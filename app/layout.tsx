@@ -3,8 +3,8 @@ import "./globals.css";
 import { MarketProvider } from "@/lib/market/store";
 
 export const metadata: Metadata = {
-  title: "Atlas — покупки из США",
-  description: "Покупки из США с прозрачным расчётом доставки в Узбекистан. Тестовая версия.",
+  title: "Atlas — покупки со всего мира",
+  description: "Покупки со всего мира с прозрачным расчётом доставки в Узбекистан. Тестовая версия.",
   other: {
     "codex-preview": "development",
   },

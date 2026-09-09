@@ -1,54 +1,50 @@
-# Atlas — executable marketplace prototype
+# Atlas — world sourcing and account-backed prototype
 
-Based on the supplied Cross-border Marketplace Uzbekistan Blueprint and Funds, Weight & Settlement supplement. The product remains a private browser-local prototype, not a production marketplace.
+Based on the supplied marketplace blueprint and Funds, Weight & Settlement supplement.
 
-## Current experience
+## Added in this revision
 
-- Responsive catalog, delivered-price sorting, text/category filters, favorites and mobile bottom navigation.
-- Product detail sheet with variant selection, description, pricing breakdown and useful source links.
-- Link-to-order using an explicit manual fallback: validated HTTPS source, name, price, weight, variant. Source URL is retained through cart and order.
-- Persistent cart with quantities, removal, merging of matching variants, and a visible 15-minute quote expiry. Changing quantity or explicitly refreshing creates a new quote.
-- Review and confirmation before simulated checkout. Multiple lines create individual orders in a common checkout batch.
-- Simulated credits can reduce the checkout payment. No payment-card details are collected.
-- Order filtering/search, itemized original pricing, quantity, status timeline and timestamped history.
-- Cancellation before purchase returns the full simulated total to customer credit once.
-- Operator workspace with workload counts, guarded status transitions and live warehouse settlement preview.
-- Shipping charged on max(actual weight, dimensional weight). The quote snapshots the shipping tariff/divisor so later configuration changes cannot alter the order's original tariff.
-- Unused shipping/reserve is credited once. Additional shipping costs block dispatch until explicit customer confirmation.
-- Balance lists credits and debits; reserves on cancelled or settled orders are excluded.
+- World-wide product origin selection, including a named custom country, with country labels and a country filter in the illustrative catalog. eBay domain is never treated as proof of the seller's actual origin.
+- Authenticated server-side product importer with JSON-LD Product / Offer and Open Graph extraction. Supports an explicit set of merchant domains including regional eBay, Amazon, Zara, Mango and other stores. Extracts available title, image, price/currency, shipping, and structured weight data; missing fields remain unknown and can be filled manually. Source title is preserved in its original language, not machine-translated.
+- Shipping destination/currency is retained. Known matching shipping estimates can prefill; unmatched/unspecified estimates require an explicit user decision. Unknown shipping is not silently accepted as zero at checkout. User confirms data and origin before adding.
+- Boxed weight input, category-based approximate defaults, and transparent +0.3 kg packaging +0.2 kg uncertainty. Shipping is later settled against actual/dimensional weight. This mass allowance is separate from the displayed monetary reserve.
+- Source shipping is a separate quote component; source currency/price, country, boxed weight, allowance and source image survive cart and order persistence. Server actions recompute demo currency conversion and padded weight rather than trusting supplied converted amounts.
+- Product images in carts and orders; existing orders with a retained source URL can request a missing photo without modifying their original quote.
+- Personal account: dispatch-owned ChatGPT sign-in, automatic first-visit account creation, separate server-backed state per stable authenticated Site user, email/name display, sign-out. No separate email/password or phone registration.
+- D1 schema/migration for account state, optimistic revision and import quota. State-changing actions are replayed on the server, scoped to authenticated identity. They cannot replace arbitrary state except explicit one-time legacy demo import into an empty profile.
+- Warehouse/purchase actions require an operator email configured as a secret runtime value. Current operator UI manages that operator's own test account; a cross-customer operations queue remains a follow-up.
+- Explicit migration of old browser-local demo data into an empty signed-in profile; old data is not deleted or silently assigned.
+- Customs reference page, checkout checkbox, and persisted consent version/time per order. $200 courier calendar-month threshold and $100 postal norm are explained separately. Customs charges are not quoted or silently deducted; external monthly purchases are unknown.
 
-## Reliability
+## Sources for customs text
 
-- Domain actions separated from UI in `lib/market/domain.ts`.
-- Common React context persists across navigation. Existing `atlas-market-demo-v1` local data is migrated in memory with Zod defaults, keeping original order IDs, quotes, history and credit entries.
-- Invalid saved data is not overwritten. Storage errors leave actions unavailable rather than reporting a successful save.
-- Storage events refresh other tabs. Writes read current data and use the Web Locks API where available. This is not backend concurrency control.
-- Checkout batch keys make repeated checkout idempotent. Cart signature checks prevent confirming a cart changed in another tab. Money-changing actions re-read and validate current order state.
-- Single entry per cancellation and warehouse refund. State and related credit records are persisted together as one local JSON value.
-- Reduced-motion support, accessible primitive dialogs/sheets/tabs/selects/checkboxes, labeled icon actions and responsive control layout.
+Reviewed 9 September 2026:
+- https://lex.uz/acts/2876352 — Customs Code, Article 169: noncommercial excess is subject to the unified customs payment.
+- https://t.me/s/customschannel/46341 — Uzbekistan Customs official channel, Cabinet Resolution 244 of 19 April 2025: courier $200 and postal $100 norms from 1 May 2025.
+- https://www.customs.kg/site/ru/master/customskg/news/k-svedeniju-uchastnikov-vneshneehkonomicheskoj-dejatelnosti — official customs explanation of Uzbekistan's calendar-month courier limit.
 
-## Boundaries
+No fixed customs duty percentage is implemented. Actual taxes/fees require carrier/customs validation for the shipment and current law.
 
-Private Site access is supplied by hosting. Customer authentication, operator RBAC and a server database are not implemented. Customer and operator views use the same local browser data; it is editable by the visitor and is not an authoritative financial ledger.
+## Runtime security and consistency
 
-Catalog photos illustrate categories. Prices, variants, source currency conversion, shipping tariffs and availability are demonstration values. No live scraping, source purchase, bank payment, shipping integration, customs assessment, address/passport collection or notifications occur. No delivery dates are promised. Warehouse evidence photos are not captured. No real funds can be topped up or withdrawn.
+API handlers obtain identity only from the starter's platform-authentication helper, scope database access by that ID, reject missing identity, require same-origin POSTs, cap input bytes and persist state with a compare-and-swap revision. No buyer-controlled user ID or role is accepted. Operator policy comes from secret `ATLAS_OPERATOR_EMAIL`, never from client claims. User API responses are no-store.
 
-Credit records are paired debit/credit movements in a simulation, not a complete production double-entry ledger: payment provenance, outbox, provider settlement, hold/capture accounts and reconciliation remain backend work.
+Import fetches have a strict domain allowlist, HTTPS/port/credential validation at every redirect, no visitor cookies or auth headers, 10-second timeout, bounded redirects and a 2 MB decoded response limit. D1 limits imports to 12 per user per minute. Bot challenges and denied/oversized/non-HTML pages fail to manual entry. Untrusted markup is not injected into the page. Images render as images with a no-referrer policy and fallback.
 
-## Validation
+Checkout remains simulated: no payment gateway, real cash, real shipping reservation or actual purchase is executed. Price/FX and all international route tariffs remain DEMO values; source prices can be genuine observations but require variant/availability verification. Source shipping entered per unit is conservatively multiplied with quantity; actual combined-shipping needs operator verification. Boxed weights are estimates unless verified by warehouse evidence. D1 JSON state is a prototype architecture, not the blueprint's full PostgreSQL ledger/outbox/reconciliation implementation.
 
-`node --experimental-strip-types --test tests/market.test.mjs` covers:
-- Pricing bounds, quantities and itemized totals.
-- Legacy state migration and malformed-data rejection.
-- Cart merging/variants and retained source URLs.
-- Quote expiry, changed-cart rejection and checkout idempotency.
-- Immutable quotes, tariff snapshots and single warehouse refunds.
-- Dimensional weight and blocked dispatch until extra-payment approval.
-- Pre-purchase cancellation, single refunds and credit spending/recovery.
-- Rejection of unsafe source URLs.
+## Verification
 
-TypeScript validation and production build are required before saving. Browser UI testing has not been performed.
+- TypeScript validation and production build.
+- 17 domain/import tests: earlier quote/cart/ledger invariants plus metadata extraction, unknown costs, aggregate-offer rejection, unit conversion, +0.5 kg applied once, SSRF/redirect rejection, response cap, source-currency recalculation, consent requirement, operator permission and quote preservation on photo changes.
+- Applied generated SQL in an isolated SQLite database and checked per-account state isolation, revision-conflict rejection, and quota increments.
+- Tried fetching the real listing https://www.ebay.es/itm/389916299901 from this environment. It timed out; successful live eBay import is NOT verified. The published runtime will still need end-to-end confirmation after deployment.
+- Browser UI, platform sign-in redirects and deployed D1 behavior were not exercised. Migration files are included in the built deployment output.
 
-## Next production slice
+## Follow-up integrations
 
-Confirm commercial model, logistics partner, source stores and PSP; replace demo tariffs with approved inputs. Implement the source blueprint's modular backend with PostgreSQL, authentication/RBAC, immutable quotes, idempotent payment webhooks, audit history, ledger and outbox. Connect one authorized source adapter and PSP sandbox, then add receiving evidence and reconciliation before any real-order pilot.
+For reliable high-volume eBay sourcing, configure an authorized eBay Browse API application rather than relying on page markup. Official documentation:
+- https://developer.ebay.com/api-docs/buy/api-browse.html
+- https://developer.ebay.com/api-docs/static/oauth-credentials.html
+
+No eBay API credential or API adapter is currently configured. No anti-bot workaround is implemented. Public customer onboarding beyond ChatGPT, provider-backed payments, current FX, real country-specific carrier tariffs, global customer operations, customs calculation and production legal/privacy readiness remain future work.

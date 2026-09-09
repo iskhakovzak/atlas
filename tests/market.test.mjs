@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {products,tariff,quote,price,settle,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource} from '../lib/market/domain.ts';
+import {products,tariff,quote,price,settle,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource} from '../lib/market/domain.ts';
+import {customsVersion} from '../lib/market/world.ts';
+const checkoutCart=(s,key,sig,balance,now)=>checkoutCore(s,key,sig,balance,now,customsVersion);
 const prepare=()=>{const s=addToCart(blank(),products[0],'US 9',1000);return checkoutCart(s,'purchase-1',cartSignature(s.cart),false,1001)};
 const warehouse=()=>{let s=prepare();const id=s.orders[0].id;s=advanceOrder(s,id,0);return advanceOrder(s,id,1)};
 test('pricing uses full delivered totals and validated quantities',()=>{
@@ -14,7 +16,7 @@ const migrated=parseState(JSON.stringify(old));assert.equal(migrated.orders[0].i
 test('cart merges the same variant, separates variants and preserves source URL',()=>{
 let s=addToCart(blank(),products[0],'US 9',1000);s=addToCart(s,products[0],'US 9',1000);s=addToCart(s,products[0],'US 8',1000);assert.equal(s.cart.length,2);assert.equal(s.cart[0].quantity,2);
 assert.throws(()=>changeQuantity(s,s.cart[0].id,11));
-const p={...products[1],id:'source',sourceUrl:'https://example.com/product'};s=addToCart(s,p,p.variants[0],1000);s=checkoutCart(s,'multi',cartSignature(s.cart),false,1001);assert.equal(s.orders.length,3);assert.equal(s.orders[2].product.sourceUrl,p.sourceUrl);
+const p={...products[1],id:'source',sourceUrl:'https://example.com/product',shippingKnown:true};s=addToCart(s,p,p.variants[0],1000);s=checkoutCart(s,'multi',cartSignature(s.cart),false,1001);assert.equal(s.orders.length,3);assert.equal(s.orders[2].product.sourceUrl,p.sourceUrl);
 });
 test('checkout rejects expired or changed quotes and is idempotent',()=>{
 let s=addToCart(blank(),products[0],'US 9',1000);const sig=cartSignature(s.cart);assert.throws(()=>checkoutCart(s,'a',sig,false,901000));const changed=changeQuantity(s,s.cart[0].id,2,1001);assert.throws(()=>checkoutCart(changed,'a',sig,false,1002));
