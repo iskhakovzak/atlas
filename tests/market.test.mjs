@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {products,tariff,quote,price,settle,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource} from '../lib/market/domain.ts';
+import {products,tariff,quote,price,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource} from '../lib/market/domain.ts';
 import {customsVersion} from '../lib/market/world.ts';
 const checkoutCart=(s,key,sig,balance,now)=>checkoutCore(s,key,sig,balance,now,customsVersion);
 const prepare=()=>{const s=addToCart(blank(),products[0],'US 9',1000);return checkoutCart(s,'purchase-1',cartSignature(s.cart),false,1001)};

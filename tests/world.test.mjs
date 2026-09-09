@@ -4,7 +4,7 @@ import {extractProduct,parseWeight,safeImage} from '../lib/importer/extract.ts';
 import {allowedUrl,fetchProduct} from '../lib/importer/fetch.ts';
 import {customsVersion,paddedWeight,toUsd} from '../lib/market/world.ts';
 import {applyAction} from '../lib/market/actions.ts';
-import {blank,products,quote,checkoutCart,addToCart,cartSignature} from '../lib/market/domain.ts';
+import {blank,products,checkoutCart,addToCart,cartSignature} from '../lib/market/domain.ts';
 test('JSON-LD extracts title, image, price/currency, shipping and packaged weight',()=>{
 const html=`<script type="application/ld+json">{"@context":"https://schema.org","@type":"Product","name":"Zapatos &amp; cosas","image":["https://i.ebayimg.com/image.jpg"],"shippingWeight":{"value":1500,"unitCode":"GRM"},"offers":{"@type":"Offer","price":"99.95","priceCurrency":"EUR","shippingDetails":{"shippingRate":{"value":4.5,"currency":"EUR"},"shippingDestination":{"addressCountry":"ES"}}}}</script>`;
 const p=extractProduct(html,'https://www.ebay.es/itm/123');assert.equal(p.title,'Zapatos & cosas');assert.equal(p.price,99.95);assert.equal(p.currency,'EUR');assert.equal(p.shipping,4.5);assert.equal(p.shippingDestination,'ES');assert.equal(p.boxedWeight,1.5);assert.equal(p.weightKind,'shipping');assert.equal(p.country,undefined);

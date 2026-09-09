@@ -36,7 +36,7 @@ export function settle(q:Quote,w:number,l:number,h:number,d:number):Settlement {
   const dimensionalWeight=l*h*d/(q.divisor??5000),chargeableWeight=Math.max(w,dimensionalWeight),shipping=Math.ceil(chargeableWeight*(q.perKg??90000)),diff=q.shipping+q.reserve-shipping;
   return {actualWeight:w,dimensionalWeight,chargeableWeight,shipping,refund:Math.max(0,diff),extra:Math.max(0,-diff),dimensions:[l,h,d]};
 }
-export const statuses=['Ожидает выкупа','Выкуплен','На складе США','Готов к отправке','В пути','Доставлен'];
+export const statuses=['Ожидает выкупа','Выкуплен','На зарубежном складе','Готов к отправке','В пути','Доставлен'];
 const historySchema=z.object({at:amount,text:z.string()});
 const orderSchema=z.object({id:z.string(),product:productSchema,variant:z.string(),quote:quoteSchema,status:z.number().int().min(0).max(5),createdAt:amount,history:z.array(historySchema),settlement:settlementSchema.optional(),extraApproved:z.boolean().optional(),quantity:z.number().int().min(1).max(10).default(1),cancelled:z.boolean().default(false),batchId:z.string().optional(),balanceUsed:amount.default(0),customsConsent:z.object({version:z.string(),acceptedAt:amount}).optional()});
 export type Order=z.infer<typeof orderSchema>;

@@ -6,7 +6,11 @@ export function parseWeight(value:unknown){if(!value||typeof value!=='object')re
 const regionNames:Record<string,string>={US:'США',ES:'Испания',DE:'Германия',GB:'Великобритания',FR:'Франция',IT:'Италия',CN:'Китай',TR:'Турция',JP:'Япония',KR:'Южная Корея',AE:'ОАЭ',CA:'Канада',AU:'Австралия'};
 export function extractProduct(html:string,sourceUrl:string):Extracted {
  const meta:Record<string,string>={};for(const tag of html.match(/<meta\b[^>]*>/gi)??[]){const a:Record<string,string>={};for(const m of tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g))a[m[1].toLowerCase()]=clean(m[2]??m[3]);const key=a.property??a.name??a.itemprop;if(key&&a.content)meta[key.toLowerCase()]=a.content;}
- const nodes:Record<string,any>[]=[];const walk=(x:any,depth=0)=>{if(depth>15||nodes.length>4000||!x||typeof x!=='object')return;if(Array.isArray(x)){for(const y of x)walk(y,depth+1)}else{nodes.push(x);for(const y of Object.values(x))walk(y,depth+1)}};
+ // JSON-LD has no fixed shape; traversal is bounded by depth and node count below.
+ // eslint-disable-next-line @typescript-eslint/no-explicit-any
+ const nodes:Record<string,any>[]=[];
+ // eslint-disable-next-line @typescript-eslint/no-explicit-any
+ const walk=(x:any,depth=0)=>{if(depth>15||nodes.length>4000||!x||typeof x!=='object')return;if(Array.isArray(x)){for(const y of x)walk(y,depth+1)}else{nodes.push(x);for(const y of Object.values(x))walk(y,depth+1)}};
  for(const match of html.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)){try{walk(JSON.parse(match[1]))}catch{}}
  const p=nodes.find(n=>[n['@type']].flat().some(t=>t==='Product'||t==='ProductGroup'));
  const offers=p?.offers;const offer=Array.isArray(offers)?offers[0]:offers;const details=offer?.shippingDetails;const ship=Array.isArray(details)?details[0]:details;
