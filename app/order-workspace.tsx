@@ -44,6 +44,12 @@ const warehouseExtra = (o: Order) =>
   !o.extraApproved ? (o.settlement?.extra ?? 0) : 0;
 const isExtra = (o: Order) =>
   !o.cancelled && Boolean(storeShippingExtra(o) || warehouseExtra(o));
+const usd = (n: number) =>
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+  }).format(n);
 export function OrdersView({ operations }: { operations: boolean }) {
   const { state, ready, error, act, user } = useMarket();
   const [tab, setTab] = useState("active"),
@@ -318,6 +324,23 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 ))}
               </ol>
             )}
+            {!operations &&
+              !o.cancelled &&
+              o.status === 0 &&
+              o.product.sourceShippingEstimated &&
+              !o.storeShippingSettlement && (
+                <div className="settlement-box">
+                  <Clock3 size={22} />
+                  <div>
+                    <h3>Менеджер уточняет доставку магазина</h3>
+                    <p>
+                      В сумму заказа пока включён резерв{" "}
+                      {money(o.quote.sourceShipping ?? 0)}. Перед выкупом вы
+                      увидите подтверждённую стоимость.
+                    </p>
+                  </div>
+                </div>
+              )}
             {o.storeShippingSettlement && (
               <div
                 className={
@@ -327,10 +350,15 @@ export function OrdersView({ operations }: { operations: boolean }) {
               >
                 <Package size={22} />
                 <div>
-                  <h3>Доставка магазина подтверждена</h3>
+                  <h3>Менеджер подтвердил доставку магазина</h3>
                   <p>
-                    Резерв: {money(o.storeShippingSettlement.estimated)} ·
-                    Фактически: {money(o.storeShippingSettlement.actual)}.
+                    Фактическая стоимость:{" "}
+                    {usd(o.storeShippingSettlement.actualUsd)} ·{" "}
+                    {money(o.storeShippingSettlement.actual)}.
+                  </p>
+                  <p>
+                    Резерв при оформлении:{" "}
+                    {money(o.storeShippingSettlement.estimated)}.
                   </p>
                   <strong>
                     {o.storeShippingSettlement.refund

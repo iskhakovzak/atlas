@@ -20,7 +20,7 @@
 
 ## Order flow
 
-- [ ] Make manager merchant-shipping confirmation clearer in customer order UI; show actual USD and UZS.
+- [x] Make manager merchant-shipping confirmation clearer in customer order UI; show actual USD and UZS.
 - [ ] Add customer approval for changed item price, unavailable item and substitutions.
 - [ ] Define combined-shipping logic for multiple units; source shipping currently multiplies per quantity.
 - [ ] Define post-purchase cancellation/refund rules. Current automatic cancellation is status 0 only.

@@ -102,6 +102,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Zara price/photo/colour/size parser and RON source currency.
 - Import photo in cart/order and photo refresh from retained source URL.
 - Merchant-shipping reserve confirmation/refund/extra flow.
+- Customer order view shows the pending merchant-shipping check and confirmed actual cost in USD and UZS.
 - Warehouse actual/dimensional settlement and balance credits.
 
 ## Partial or missing
