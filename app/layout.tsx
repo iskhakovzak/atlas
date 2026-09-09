@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { MarketProvider } from "@/lib/market/store";
 
 export const metadata: Metadata = {
   title: "Atlas — покупки из США",
@@ -20,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased"><MarketProvider>{children}</MarketProvider></body>
     </html>
   );
 }
