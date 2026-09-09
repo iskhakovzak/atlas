@@ -1,34 +1,816 @@
-'use client';
-import {useState} from 'react';
-import Link from 'next/link';
-import {ArrowRight,ArrowUpRight,Check,Clock3,Package,Scale,Search,ShieldCheck,Wallet} from 'lucide-react';
-import {Tabs,TabsList,TabsTrigger,TabsContent} from '@/components/ui/tabs';
-import {AlertDialog,AlertDialogContent,AlertDialogTitle,AlertDialogDescription,AlertDialogFooter,AlertDialogCancel,AlertDialogAction} from '@/components/ui/alert-dialog';
-import {toast} from 'sonner';
-import {useMarket} from '@/lib/market/store';
-import {balanceOf,money,settle,statuses,type Order} from '@/lib/market/domain';
-import {PageHeading,Empty,Modal,CostLines,ProductImage} from './market-ui';
-const isExtra=(o:Order)=>!o.cancelled&&!!o.settlement?.extra&&!o.extraApproved;
-export function OrdersView({operations}:{operations:boolean}){
- const {state,ready,error,act,user}=useMarket();const [tab,setTab]=useState('active'),[query,setQuery]=useState(''),[warehouse,setWarehouse]=useState<string|null>(null),[dims,setDims]=useState(['1.8','30','20','15']),[confirmation,setConfirmation]=useState<{id:string;cancel:boolean;amount:number}|null>(null),[busy,setBusy]=useState(false);
- const receiving=state.orders.find(o=>o.id===warehouse);
- const active=state.orders.filter(o=>!o.cancelled&&o.status<5),need=state.orders.filter(isExtra),done=state.orders.filter(o=>o.cancelled||o.status===5);
- const filtered=(tab==='active'?active:tab==='attention'?need:done).filter(o=>`${o.id} ${o.product.name}`.toLowerCase().includes(query.toLowerCase()));
- let calc:ReturnType<typeof settle>|null=null;try{if(receiving)calc=settle(receiving.quote,...dims.map(Number) as [number,number,number,number])}catch{}
- async function loadPhoto(o:Order){if(!o.product.sourceUrl)return;setBusy(true);try{const response=await fetch('/api/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:o.product.sourceUrl})});const data=await response.json() as {image?:string;error?:string};if(!response.ok||!data.image)throw Error(data.error??'На странице не найдено фото.');if(await act({type:'order-image',id:o.id,image:data.image}))toast.success('Фото заказа обновлено.')}catch(e){toast.error((e as Error).message)}finally{setBusy(false)}}
- async function finishReceiving(){if(!receiving||busy)return;setBusy(true);const ok=await act({type:'receive',id:receiving.id,dimensions:dims.map(Number) as [number,number,number,number]});setBusy(false);if(ok){setWarehouse(null);toast.success('Взвешивание и перерасчёт сохранены')}}
- if(operations&&ready&&!user?.operator)return <Empty title="Доступ только оператору" description="В личном кабинете доступны ваши покупки и баланс." href="/orders" label="Мои заказы"/>;
- return <><PageHeading overline={operations?'РАБОЧЕЕ МЕСТО ОПЕРАТОРА':'ВАШИ ПОКУПКИ В ПУТИ'} title={operations?'Всё готово к следующему шагу.':'От магазина до вашей двери.'} description={operations?'Выкупайте, принимайте на склад и согласовывайте исключения.':'Статусы, расчёты и история каждого заказа.'}>{(operations||user?.operator)&&<Link className="btn secondary" href={operations?'/orders':'/operations'}>{operations?'Вид покупателя':'Тестировать обработку'}<ArrowUpRight size={16}/></Link>}</PageHeading>
- {operations&&<div className="ops-stats"><div><span>В работе</span><strong>{active.length}</strong><Package/></div><div><span>Требуют согласования</span><strong>{need.length}</strong><Clock3/></div><div><span>Ожидают взвешивания</span><strong>{active.filter(o=>o.status===2).length}</strong><Scale/></div></div>}
- {state.orders.length>0&&<div className="order-controls"><Tabs value={tab} onValueChange={setTab}><TabsList className="order-tabs"><TabsTrigger value="active">В работе <b>{active.length}</b></TabsTrigger><TabsTrigger value="attention">Доплата <b>{need.length}</b></TabsTrigger><TabsTrigger value="done">Завершённые <b>{done.length}</b></TabsTrigger></TabsList><TabsContent value={tab} className="sr-only">Фильтр заказов: {tab==='active'?'В работе':tab==='attention'?'Доплата':'Завершённые'}</TabsContent></Tabs><label className="search-field"><Search size={18}/><input aria-label="Поиск заказа" placeholder="Номер или товар" value={query} onChange={e=>setQuery(e.target.value)}/></label></div>}
- {!ready?(error?<Empty title="Войдите, чтобы открыть заказы" description="История покупок, фото и расчёты доступны в вашем профиле Atlas." href="/account" label="Открыть вход"/>:<div className="loading-state">Загружаем заказы…</div>):!state.orders.length?<Empty title="Здесь начнётся путь вашей покупки" description="Оформите заказ из корзины, чтобы попробовать выкуп, склад и доставку." href="/" label="Выбрать товар"/>:!filtered.length?<Empty title="В этом разделе пока пусто" description="Измените фильтр или поисковый запрос."/>:filtered.map(o=><article className="surface order-card" key={o.id}><div className="order-card-head"><div><b>{o.id}</b><span>{new Date(o.createdAt).toLocaleDateString('ru-RU')}</span></div><span className={'status-badge '+(isExtra(o)?'needs-action':o.cancelled?'cancelled':'')}>{o.cancelled?'Отменён':isExtra(o)?'Требуется доплата':statuses[o.status]}</span></div><div className="order-product"><div className="order-photo"><ProductImage product={o.product} decorative/></div><div><h2>{o.product.name}</h2><p>{o.variant} · {o.quantity} шт. · {o.product.country??'США'}</p>{o.product.sourceUrl&&<a className="text-link" href={o.product.sourceUrl} target="_blank" rel="noopener noreferrer">Источник товара<ArrowUpRight size={14}/></a>}<span className="muted">{o.product.brand}</span>{o.product.sourceUrl&&!o.product.image&&<button className="text-button" disabled={busy} onClick={()=>loadPhoto(o)}>{busy?'Загружаем…':'Загрузить фото из ссылки'}</button>}</div><div className="order-amount"><strong>{money(o.quote.total)}</strong><span>Сумма при оформлении</span></div></div>
- {!o.cancelled&&<ol className="order-timeline">{statuses.map((name,i)=><li key={name} className={i<o.status?'complete':i===o.status?'current':''}><b>{i<o.status?<Check size={14}/>:i+1}</b><span>{name}</span></li>)}</ol>}
- {o.settlement&&<div className={'settlement-box '+(isExtra(o)?'attention':'')}><Scale size={22}/><div><h3>{isExtra(o)?'Доставка превысила резерв':o.settlement.refund?'Доставка оказалась дешевле':'Доставка пересчитана'}</h3><p>Оплачиваемый вес: {o.settlement.chargeableWeight.toFixed(2)} кг. Стоимость: {money(o.settlement.shipping)}.</p><strong>{o.settlement.refund?'Вернули '+money(o.settlement.refund)+' на демобаланс':o.extraApproved?'Доплата подтверждена: '+money(o.settlement.extra):o.settlement.extra?'Нужно согласовать '+money(o.settlement.extra):'Доплата не требуется'}</strong></div>{o.settlement.refund>0&&<Link href="/balance" className="text-link">Баланс<ArrowUpRight size={16}/></Link>}</div>}
- {isExtra(o)&&!operations&&<button className="btn primary" onClick={()=>setConfirmation({id:o.id,cancel:false,amount:o.settlement!.extra})}>Проверить доплату<ArrowRight size={16}/></button>}
- {operations&&!o.cancelled&&o.status<5&&<button className="btn primary" disabled={isExtra(o)} onClick={async()=>{if(o.status===2){setWarehouse(o.id);setDims([String(Math.max(.1,Math.round(o.quote.weight*.85*100)/100)),'30','20','15']);return}if(await act({type:'advance',id:o.id,expected:o.status}))toast.success('Статус заказа обновлён')}}>{o.status===0?'Подтвердить выкуп':o.status===1?'Принять на склад':o.status===2?'Взвесить и пересчитать':o.status===3?'Отправить в Узбекистан':'Подтвердить доставку'}<ArrowRight size={16}/></button>}
- {operations&&isExtra(o)&&<p className="micro">Отправка станет доступна после подтверждения в разделе «Мои заказы».</p>}
- <div className="order-bottom"><details><summary>Расчёт и история</summary><div className="order-detail-grid"><div><CostLines q={o.quote}/>{o.customsConsent&&<p className="micro">Таможенные условия приняты: {new Date(o.customsConsent.acceptedAt).toLocaleString('ru-RU')}.</p>}{o.balanceUsed>0&&<p className="micro">При оформлении с демобаланса: {money(o.balanceUsed)}</p>}{o.settlement&&<p className="micro">Фактический вес: {o.settlement.actualWeight.toFixed(2)} кг · Объёмный: {o.settlement.dimensionalWeight.toFixed(2)} кг</p>}</div><ol className="history-list">{[...o.history].reverse().map((h,i)=><li key={i}><time>{new Date(h.at).toLocaleString('ru-RU')}</time><p>{h.text}</p></li>)}</ol></div></details>{o.status===0&&!o.cancelled&&<button className="text-button" onClick={()=>setConfirmation({id:o.id,cancel:true,amount:o.quote.total})}>Отменить заказ</button>}</div></article>)}
- <Modal open={!!receiving} onClose={()=>{if(!busy)setWarehouse(null)}} title="Взвешивание на складе" description="Вес и размеры всей посылки, включая упаковку. Тариф зафиксирован в заказе."><form onSubmit={e=>{e.preventDefault();finishReceiving()}}><div className="two-fields">{['Фактический вес, кг','Длина, см','Ширина, см','Высота, см'].map((l,i)=><div className="field" key={l}><label htmlFor={'dim-'+i}>{l}</label><input id={'dim-'+i} type="number" inputMode="decimal" required min=".01" max={i?300:500} step=".01" value={dims[i]} onChange={e=>setDims(dims.map((n,j)=>j===i?e.target.value:n))}/></div>)}</div>{calc&&receiving?<div className="receiving-preview"><dl className="cost-lines"><div><dt>Объёмный вес</dt><dd>{calc.dimensionalWeight.toFixed(2)} кг</dd></div><div><dt>Оплачиваемый вес</dt><dd>{calc.chargeableWeight.toFixed(2)} кг</dd></div><div><dt>Было оплачено за доставку</dt><dd>{money(receiving.quote.shipping+receiving.quote.reserve)}</dd></div><div><dt>После взвешивания</dt><dd>{money(calc.shipping)}</dd></div></dl><div className={'result-line '+(calc.extra?'warning-text':'')}><span>{calc.extra?'Запросить доплату':'Вернуть на демобаланс'}</span><strong>{money(calc.extra||calc.refund)}</strong></div></div>:<p role="alert" className="warning-text">Укажите корректные положительные значения.</p>}<button className="btn primary full" disabled={!calc||busy}>{busy?'Сохраняем…':'Подтвердить перерасчёт'}<Check size={18}/></button></form></Modal>
- <AlertDialog open={!!confirmation} onOpenChange={v=>{if(!v&&!busy)setConfirmation(null)}}><AlertDialogContent><AlertDialogTitle>{confirmation?.cancel?'Отменить заказ до выкупа?':'Подтвердить тестовую доплату?'}</AlertDialogTitle><AlertDialogDescription>{confirmation?.cancel?'Вся сумма вернётся на демобаланс. Заказ больше не поступит в обработку.':'После подтверждения оператор сможет отправить заказ. Реальных списаний не будет.'}</AlertDialogDescription><div className="confirm-price"><span>{confirmation?.cancel?'К возврату':'К доплате'}</span><strong>{money(confirmation?.amount??0)}</strong></div><AlertDialogFooter><AlertDialogCancel disabled={busy}>Назад</AlertDialogCancel><AlertDialogAction disabled={busy} onClick={async e=>{e.preventDefault();if(!confirmation||busy)return;setBusy(true);const ok=await act(confirmation.cancel?{type:'cancel',id:confirmation.id}:{type:'approve-extra',id:confirmation.id,amount:confirmation.amount});setBusy(false);if(ok){setConfirmation(null);toast.success('Изменения сохранены')}}}>{busy?'Сохраняем…':confirmation?.cancel?'Отменить заказ':'Подтвердить'}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></>;
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Check,
+  Clock3,
+  Package,
+  Scale,
+  Search,
+  ShieldCheck,
+  Wallet,
+} from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { useMarket } from "@/lib/market/store";
+import {
+  balanceOf,
+  money,
+  settle,
+  statuses,
+  type Order,
+} from "@/lib/market/domain";
+import {
+  PageHeading,
+  Empty,
+  Modal,
+  CostLines,
+  ProductImage,
+} from "./market-ui";
+const storeShippingExtra = (o: Order) =>
+  !o.storeShippingExtraApproved ? (o.storeShippingSettlement?.extra ?? 0) : 0;
+const warehouseExtra = (o: Order) =>
+  !o.extraApproved ? (o.settlement?.extra ?? 0) : 0;
+const isExtra = (o: Order) =>
+  !o.cancelled && Boolean(storeShippingExtra(o) || warehouseExtra(o));
+export function OrdersView({ operations }: { operations: boolean }) {
+  const { state, ready, error, act, user } = useMarket();
+  const [tab, setTab] = useState("active"),
+    [query, setQuery] = useState(""),
+    [warehouse, setWarehouse] = useState<string | null>(null),
+    [storeShippingOrder, setStoreShippingOrder] = useState<string | null>(null),
+    [actualStoreShipping, setActualStoreShipping] = useState("10"),
+    [dims, setDims] = useState(["1.8", "30", "20", "15"]),
+    [confirmation, setConfirmation] = useState<{
+      id: string;
+      cancel: boolean;
+      amount: number;
+      storeShipping?: boolean;
+    } | null>(null),
+    [busy, setBusy] = useState(false);
+  const receiving = state.orders.find((o) => o.id === warehouse);
+  const confirmingStoreShipping = state.orders.find(
+    (o) => o.id === storeShippingOrder,
+  );
+  const active = state.orders.filter((o) => !o.cancelled && o.status < 5),
+    need = state.orders.filter(isExtra),
+    done = state.orders.filter((o) => o.cancelled || o.status === 5);
+  const filtered = (
+    tab === "active" ? active : tab === "attention" ? need : done
+  ).filter((o) =>
+    `${o.id} ${o.product.name}`.toLowerCase().includes(query.toLowerCase()),
+  );
+  let calc: ReturnType<typeof settle> | null = null;
+  try {
+    if (receiving)
+      calc = settle(
+        receiving.quote,
+        ...(dims.map(Number) as [number, number, number, number]),
+      );
+  } catch {}
+  async function loadPhoto(o: Order) {
+    if (!o.product.sourceUrl) return;
+    setBusy(true);
+    try {
+      const response = await fetch("/api/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: o.product.sourceUrl }),
+      });
+      const data = (await response.json()) as {
+        image?: string;
+        error?: string;
+      };
+      if (!response.ok || !data.image)
+        throw Error(data.error ?? "На странице не найдено фото.");
+      if (await act({ type: "order-image", id: o.id, image: data.image }))
+        toast.success("Фото заказа обновлено.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function finishReceiving() {
+    if (!receiving || busy) return;
+    setBusy(true);
+    const ok = await act({
+      type: "receive",
+      id: receiving.id,
+      dimensions: dims.map(Number) as [number, number, number, number],
+    });
+    setBusy(false);
+    if (ok) {
+      setWarehouse(null);
+      toast.success("Взвешивание и перерасчёт сохранены");
+    }
+  }
+  async function finishStoreShipping() {
+    if (!confirmingStoreShipping || busy) return;
+    setBusy(true);
+    const ok = await act({
+      type: "confirm-store-shipping",
+      id: confirmingStoreShipping.id,
+      actualUsd: Number(actualStoreShipping),
+    });
+    setBusy(false);
+    if (ok) {
+      setStoreShippingOrder(null);
+      toast.success("Доставка магазина подтверждена и пересчитана");
+    }
+  }
+  if (operations && ready && !user?.operator)
+    return (
+      <Empty
+        title="Доступ только оператору"
+        description="В личном кабинете доступны ваши покупки и баланс."
+        href="/orders"
+        label="Мои заказы"
+      />
+    );
+  return (
+    <>
+      <PageHeading
+        overline={
+          operations ? "РАБОЧЕЕ МЕСТО ОПЕРАТОРА" : "ВАШИ ПОКУПКИ В ПУТИ"
+        }
+        title={
+          operations
+            ? "Всё готово к следующему шагу."
+            : "От магазина до вашей двери."
+        }
+        description={
+          operations
+            ? "Выкупайте, принимайте на склад и согласовывайте исключения."
+            : "Статусы, расчёты и история каждого заказа."
+        }
+      >
+        {(operations || user?.operator) && (
+          <Link
+            className="btn secondary"
+            href={operations ? "/orders" : "/operations"}
+          >
+            {operations ? "Вид покупателя" : "Тестировать обработку"}
+            <ArrowUpRight size={16} />
+          </Link>
+        )}
+      </PageHeading>
+      {operations && (
+        <div className="ops-stats">
+          <div>
+            <span>В работе</span>
+            <strong>{active.length}</strong>
+            <Package />
+          </div>
+          <div>
+            <span>Требуют согласования</span>
+            <strong>{need.length}</strong>
+            <Clock3 />
+          </div>
+          <div>
+            <span>Ожидают взвешивания</span>
+            <strong>{active.filter((o) => o.status === 2).length}</strong>
+            <Scale />
+          </div>
+        </div>
+      )}
+      {state.orders.length > 0 && (
+        <div className="order-controls">
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabsList className="order-tabs">
+              <TabsTrigger value="active">
+                В работе <b>{active.length}</b>
+              </TabsTrigger>
+              <TabsTrigger value="attention">
+                Доплата <b>{need.length}</b>
+              </TabsTrigger>
+              <TabsTrigger value="done">
+                Завершённые <b>{done.length}</b>
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value={tab} className="sr-only">
+              Фильтр заказов:{" "}
+              {tab === "active"
+                ? "В работе"
+                : tab === "attention"
+                  ? "Доплата"
+                  : "Завершённые"}
+            </TabsContent>
+          </Tabs>
+          <label className="search-field">
+            <Search size={18} />
+            <input
+              aria-label="Поиск заказа"
+              placeholder="Номер или товар"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </label>
+        </div>
+      )}
+      {!ready ? (
+        error ? (
+          <Empty
+            title="Войдите, чтобы открыть заказы"
+            description="История покупок, фото и расчёты доступны в вашем профиле Atlas."
+            href="/account"
+            label="Открыть вход"
+          />
+        ) : (
+          <div className="loading-state">Загружаем заказы…</div>
+        )
+      ) : !state.orders.length ? (
+        <Empty
+          title="Здесь начнётся путь вашей покупки"
+          description="Оформите заказ из корзины, чтобы попробовать выкуп, склад и доставку."
+          href="/"
+          label="Выбрать товар"
+        />
+      ) : !filtered.length ? (
+        <Empty
+          title="В этом разделе пока пусто"
+          description="Измените фильтр или поисковый запрос."
+        />
+      ) : (
+        filtered.map((o) => (
+          <article className="surface order-card" key={o.id}>
+            <div className="order-card-head">
+              <div>
+                <b>{o.id}</b>
+                <span>{new Date(o.createdAt).toLocaleDateString("ru-RU")}</span>
+              </div>
+              <span
+                className={
+                  "status-badge " +
+                  (isExtra(o) ? "needs-action" : o.cancelled ? "cancelled" : "")
+                }
+              >
+                {o.cancelled
+                  ? "Отменён"
+                  : isExtra(o)
+                    ? "Требуется доплата"
+                    : statuses[o.status]}
+              </span>
+            </div>
+            <div className="order-product">
+              <div className="order-photo">
+                <ProductImage product={o.product} decorative />
+              </div>
+              <div>
+                <h2>{o.product.name}</h2>
+                <p>
+                  {o.variant} · {o.quantity} шт. · {o.product.country ?? "США"}
+                </p>
+                {o.product.sourceUrl && (
+                  <a
+                    className="text-link"
+                    href={o.product.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Источник товара
+                    <ArrowUpRight size={14} />
+                  </a>
+                )}
+                <span className="muted">{o.product.brand}</span>
+                {o.product.sourceUrl && !o.product.image && (
+                  <button
+                    className="text-button"
+                    disabled={busy}
+                    onClick={() => loadPhoto(o)}
+                  >
+                    {busy ? "Загружаем…" : "Загрузить фото из ссылки"}
+                  </button>
+                )}
+              </div>
+              <div className="order-amount">
+                <strong>{money(o.quote.total)}</strong>
+                <span>Сумма при оформлении</span>
+              </div>
+            </div>
+            {!o.cancelled && (
+              <ol className="order-timeline">
+                {statuses.map((name, i) => (
+                  <li
+                    key={name}
+                    className={
+                      i < o.status
+                        ? "complete"
+                        : i === o.status
+                          ? "current"
+                          : ""
+                    }
+                  >
+                    <b>{i < o.status ? <Check size={14} /> : i + 1}</b>
+                    <span>{name}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+            {o.storeShippingSettlement && (
+              <div
+                className={
+                  "settlement-box " +
+                  (storeShippingExtra(o) ? "attention" : "")
+                }
+              >
+                <Package size={22} />
+                <div>
+                  <h3>Доставка магазина подтверждена</h3>
+                  <p>
+                    Резерв: {money(o.storeShippingSettlement.estimated)} ·
+                    Фактически: {money(o.storeShippingSettlement.actual)}.
+                  </p>
+                  <strong>
+                    {o.storeShippingSettlement.refund
+                      ? "Вернули " +
+                        money(o.storeShippingSettlement.refund) +
+                        " на баланс"
+                      : o.storeShippingExtraApproved
+                        ? "Доплата подтверждена: " +
+                          money(o.storeShippingSettlement.extra)
+                        : o.storeShippingSettlement.extra
+                          ? "Нужно согласовать " +
+                            money(o.storeShippingSettlement.extra)
+                          : "Сумма совпала с резервом"}
+                  </strong>
+                </div>
+                {o.storeShippingSettlement.refund > 0 && (
+                  <Link href="/balance" className="text-link">
+                    Баланс
+                    <ArrowUpRight size={16} />
+                  </Link>
+                )}
+              </div>
+            )}
+            {o.settlement && (
+              <div
+                className={"settlement-box " + (isExtra(o) ? "attention" : "")}
+              >
+                <Scale size={22} />
+                <div>
+                  <h3>
+                    {isExtra(o)
+                      ? "Доставка превысила резерв"
+                      : o.settlement.refund
+                        ? "Доставка оказалась дешевле"
+                        : "Доставка пересчитана"}
+                  </h3>
+                  <p>
+                    Оплачиваемый вес: {o.settlement.chargeableWeight.toFixed(2)}{" "}
+                    кг. Стоимость: {money(o.settlement.shipping)}.
+                  </p>
+                  <strong>
+                    {o.settlement.refund
+                      ? "Вернули " +
+                        money(o.settlement.refund) +
+                        " на демобаланс"
+                      : o.extraApproved
+                        ? "Доплата подтверждена: " + money(o.settlement.extra)
+                        : o.settlement.extra
+                          ? "Нужно согласовать " + money(o.settlement.extra)
+                          : "Доплата не требуется"}
+                  </strong>
+                </div>
+                {o.settlement.refund > 0 && (
+                  <Link href="/balance" className="text-link">
+                    Баланс
+                    <ArrowUpRight size={16} />
+                  </Link>
+                )}
+              </div>
+            )}
+            {isExtra(o) && !operations && (
+              <button
+                className="btn primary"
+                onClick={() =>
+                  setConfirmation({
+                    id: o.id,
+                    cancel: false,
+                    amount: storeShippingExtra(o) || warehouseExtra(o),
+                    storeShipping: Boolean(storeShippingExtra(o)),
+                  })
+                }
+              >
+                Проверить доплату
+                <ArrowRight size={16} />
+              </button>
+            )}
+            {operations &&
+              !o.cancelled &&
+              o.status === 0 &&
+              o.product.sourceShippingEstimated &&
+              !o.storeShippingSettlement && (
+                <button
+                  className="btn primary"
+                  onClick={() => {
+                    setActualStoreShipping(
+                      String(o.product.sourceShippingUsd ?? 10),
+                    );
+                    setStoreShippingOrder(o.id);
+                  }}
+                >
+                  Подтвердить доставку магазина
+                  <ArrowRight size={16} />
+                </button>
+              )}
+            {operations &&
+              !o.cancelled &&
+              o.status < 5 &&
+              !(
+                o.status === 0 &&
+                o.product.sourceShippingEstimated &&
+                !o.storeShippingSettlement
+              ) && (
+              <button
+                className="btn primary"
+                disabled={isExtra(o)}
+                onClick={async () => {
+                  if (o.status === 2) {
+                    setWarehouse(o.id);
+                    setDims([
+                      String(
+                        Math.max(
+                          0.1,
+                          Math.round(o.quote.weight * 0.85 * 100) / 100,
+                        ),
+                      ),
+                      "30",
+                      "20",
+                      "15",
+                    ]);
+                    return;
+                  }
+                  if (
+                    await act({ type: "advance", id: o.id, expected: o.status })
+                  )
+                    toast.success("Статус заказа обновлён");
+                }}
+              >
+                {o.status === 0
+                  ? "Подтвердить выкуп"
+                  : o.status === 1
+                    ? "Принять на склад"
+                    : o.status === 2
+                      ? "Взвесить и пересчитать"
+                      : o.status === 3
+                        ? "Отправить в Узбекистан"
+                        : "Подтвердить доставку"}
+                <ArrowRight size={16} />
+              </button>
+            )}
+            {operations && isExtra(o) && (
+              <p className="micro">
+                Отправка станет доступна после подтверждения в разделе «Мои
+                заказы».
+              </p>
+            )}
+            <div className="order-bottom">
+              <details>
+                <summary>Расчёт и история</summary>
+                <div className="order-detail-grid">
+                  <div>
+                    <CostLines q={o.quote} />
+                    {o.customsConsent && (
+                      <p className="micro">
+                        Таможенные условия приняты:{" "}
+                        {new Date(o.customsConsent.acceptedAt).toLocaleString(
+                          "ru-RU",
+                        )}
+                        .
+                      </p>
+                    )}
+                    {o.balanceUsed > 0 && (
+                      <p className="micro">
+                        При оформлении с демобаланса: {money(o.balanceUsed)}
+                      </p>
+                    )}
+                    {o.settlement && (
+                      <p className="micro">
+                        Фактический вес: {o.settlement.actualWeight.toFixed(2)}{" "}
+                        кг · Объёмный:{" "}
+                        {o.settlement.dimensionalWeight.toFixed(2)} кг
+                      </p>
+                    )}
+                  </div>
+                  <ol className="history-list">
+                    {[...o.history].reverse().map((h, i) => (
+                      <li key={i}>
+                        <time>{new Date(h.at).toLocaleString("ru-RU")}</time>
+                        <p>{h.text}</p>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              </details>
+              {o.status === 0 && !o.cancelled && (
+                <button
+                  className="text-button"
+                  onClick={() =>
+                    setConfirmation({
+                      id: o.id,
+                      cancel: true,
+                      amount: o.quote.total,
+                    })
+                  }
+                >
+                  Отменить заказ
+                </button>
+              )}
+            </div>
+          </article>
+        ))
+      )}
+      <Modal
+        open={!!confirmingStoreShipping}
+        onClose={() => {
+          if (!busy) setStoreShippingOrder(null);
+        }}
+        title="Доставка от магазина до склада"
+        description="Укажите фактическую итоговую стоимость в долларах. Если она ниже резерва, разница сразу вернётся покупателю на баланс."
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            finishStoreShipping();
+          }}
+        >
+          <div className="field">
+            <label htmlFor="actual-store-shipping">
+              Фактическая доставка магазина, USD
+            </label>
+            <input
+              id="actual-store-shipping"
+              type="number"
+              inputMode="decimal"
+              required
+              min="0"
+              max="10000"
+              step=".01"
+              value={actualStoreShipping}
+              onChange={(e) => setActualStoreShipping(e.target.value)}
+            />
+          </div>
+          {confirmingStoreShipping && (
+            <div className="confirm-price">
+              <span>Было заложено</span>
+              <strong>
+                {money(confirmingStoreShipping.quote.sourceShipping ?? 0)}
+              </strong>
+            </div>
+          )}
+          <button className="btn primary full" disabled={busy}>
+            {busy ? "Сохраняем…" : "Подтвердить и пересчитать"}
+            <Check size={18} />
+          </button>
+        </form>
+      </Modal>
+      <Modal
+        open={!!receiving}
+        onClose={() => {
+          if (!busy) setWarehouse(null);
+        }}
+        title="Взвешивание на складе"
+        description="Вес и размеры всей посылки, включая упаковку. Тариф зафиксирован в заказе."
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            finishReceiving();
+          }}
+        >
+          <div className="two-fields">
+            {[
+              "Фактический вес, кг",
+              "Длина, см",
+              "Ширина, см",
+              "Высота, см",
+            ].map((l, i) => (
+              <div className="field" key={l}>
+                <label htmlFor={"dim-" + i}>{l}</label>
+                <input
+                  id={"dim-" + i}
+                  type="number"
+                  inputMode="decimal"
+                  required
+                  min=".01"
+                  max={i ? 300 : 500}
+                  step=".01"
+                  value={dims[i]}
+                  onChange={(e) =>
+                    setDims(dims.map((n, j) => (j === i ? e.target.value : n)))
+                  }
+                />
+              </div>
+            ))}
+          </div>
+          {calc && receiving ? (
+            <div className="receiving-preview">
+              <dl className="cost-lines">
+                <div>
+                  <dt>Объёмный вес</dt>
+                  <dd>{calc.dimensionalWeight.toFixed(2)} кг</dd>
+                </div>
+                <div>
+                  <dt>Оплачиваемый вес</dt>
+                  <dd>{calc.chargeableWeight.toFixed(2)} кг</dd>
+                </div>
+                <div>
+                  <dt>Было оплачено за доставку</dt>
+                  <dd>
+                    {money(receiving.quote.shipping + receiving.quote.reserve)}
+                  </dd>
+                </div>
+                <div>
+                  <dt>После взвешивания</dt>
+                  <dd>{money(calc.shipping)}</dd>
+                </div>
+              </dl>
+              <div
+                className={"result-line " + (calc.extra ? "warning-text" : "")}
+              >
+                <span>
+                  {calc.extra ? "Запросить доплату" : "Вернуть на демобаланс"}
+                </span>
+                <strong>{money(calc.extra || calc.refund)}</strong>
+              </div>
+            </div>
+          ) : (
+            <p role="alert" className="warning-text">
+              Укажите корректные положительные значения.
+            </p>
+          )}
+          <button className="btn primary full" disabled={!calc || busy}>
+            {busy ? "Сохраняем…" : "Подтвердить перерасчёт"}
+            <Check size={18} />
+          </button>
+        </form>
+      </Modal>
+      <AlertDialog
+        open={!!confirmation}
+        onOpenChange={(v) => {
+          if (!v && !busy) setConfirmation(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogTitle>
+            {confirmation?.cancel
+              ? "Отменить заказ до выкупа?"
+              : "Подтвердить тестовую доплату?"}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {confirmation?.cancel
+              ? "Вся сумма вернётся на демобаланс. Заказ больше не поступит в обработку."
+              : "После подтверждения оператор сможет отправить заказ. Реальных списаний не будет."}
+          </AlertDialogDescription>
+          <div className="confirm-price">
+            <span>{confirmation?.cancel ? "К возврату" : "К доплате"}</span>
+            <strong>{money(confirmation?.amount ?? 0)}</strong>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Назад</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={busy}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!confirmation || busy) return;
+                setBusy(true);
+                const ok = await act(
+                  confirmation.cancel
+                    ? { type: "cancel", id: confirmation.id }
+                    : confirmation.storeShipping
+                      ? {
+                          type: "approve-store-shipping-extra",
+                          id: confirmation.id,
+                          amount: confirmation.amount,
+                        }
+                      : {
+                        type: "approve-extra",
+                        id: confirmation.id,
+                        amount: confirmation.amount,
+                        },
+                );
+                setBusy(false);
+                if (ok) {
+                  setConfirmation(null);
+                  toast.success("Изменения сохранены");
+                }
+              }}
+            >
+              {busy
+                ? "Сохраняем…"
+                : confirmation?.cancel
+                  ? "Отменить заказ"
+                  : "Подтвердить"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
 }
-export function BalanceView(){const {state,ready,error}=useMarket();const reserved=state.orders.filter(o=>!o.cancelled&&!o.settlement).reduce((s,o)=>s+o.quote.reserve,0);return <><PageHeading overline="ДЕНЬГИ ПОД КОНТРОЛЕМ" title="Баланс с понятной историей." description="Возвраты и оплата следующих тестовых заказов."/><div className="balance-panels"><section className="balance-primary"><div><Wallet size={24}/><span>Демобаланс</span></div><span>Доступно для покупок</span><h2>{money(balanceOf(state))}</h2><Link href="/" className="btn light">Выбрать товар<ArrowUpRight size={18}/></Link><small>Тестовые средства без денежной стоимости</small></section><section className="surface reserve-panel"><ShieldCheck size={25}/><h2>Резерв доставки</h2><strong>{money(reserved)}</strong><p>Уже включён в сумму заказов. Остаток вернётся после взвешивания посылок.</p><Link href="/orders" className="text-link">Посмотреть заказы<ArrowRight size={16}/></Link></section></div><div className="section-heading"><h2>История операций</h2><span>{state.entries.length} операций</span></div>{!ready?(error?<Empty title="Войдите, чтобы открыть баланс" description="Возвраты и оплата следующих заказов сохраняются в вашем профиле." href="/account" label="Открыть вход"/>:<p>Загружаем операции…</p>):!state.entries.length?<Empty title="История начнётся с первого возврата" description="После взвешивания остаток доставки автоматически появится здесь."/>:<div className="surface ledger-list">{[...state.entries].reverse().map(e=>{const positive=e.credit==='customer-credit';return <div className="ledger-entry" key={e.id}><span className={'ledger-icon '+(!positive?'debit':'')}><ArrowUpRight size={22}/></span><div><h3>{e.description}</h3><p>{e.orderId} · {new Date(e.at).toLocaleDateString('ru-RU')}</p></div><strong className={positive?'credit':''}>{positive?'+':'−'}{money(e.amount)}</strong></div>})}</div>}<div className="notice"><Wallet size={20}/><span>Демобаланс можно использовать в корзине. Пополнение и вывод реальных денег не подключены.</span></div></>}
+export function BalanceView() {
+  const { state, ready, error } = useMarket();
+  const reserved = state.orders
+    .filter((o) => !o.cancelled && !o.settlement)
+    .reduce((s, o) => s + o.quote.reserve, 0);
+  return (
+    <>
+      <PageHeading
+        overline="ДЕНЬГИ ПОД КОНТРОЛЕМ"
+        title="Баланс с понятной историей."
+        description="Возвраты и оплата следующих тестовых заказов."
+      />
+      <div className="balance-panels">
+        <section className="balance-primary">
+          <div>
+            <Wallet size={24} />
+            <span>Демобаланс</span>
+          </div>
+          <span>Доступно для покупок</span>
+          <h2>{money(balanceOf(state))}</h2>
+          <Link href="/" className="btn light">
+            Выбрать товар
+            <ArrowUpRight size={18} />
+          </Link>
+          <small>Тестовые средства без денежной стоимости</small>
+        </section>
+        <section className="surface reserve-panel">
+          <ShieldCheck size={25} />
+          <h2>Резерв доставки</h2>
+          <strong>{money(reserved)}</strong>
+          <p>
+            Уже включён в сумму заказов. Остаток вернётся после взвешивания
+            посылок.
+          </p>
+          <Link href="/orders" className="text-link">
+            Посмотреть заказы
+            <ArrowRight size={16} />
+          </Link>
+        </section>
+      </div>
+      <div className="section-heading">
+        <h2>История операций</h2>
+        <span>{state.entries.length} операций</span>
+      </div>
+      {!ready ? (
+        error ? (
+          <Empty
+            title="Войдите, чтобы открыть баланс"
+            description="Возвраты и оплата следующих заказов сохраняются в вашем профиле."
+            href="/account"
+            label="Открыть вход"
+          />
+        ) : (
+          <p>Загружаем операции…</p>
+        )
+      ) : !state.entries.length ? (
+        <Empty
+          title="История начнётся с первого возврата"
+          description="После взвешивания остаток доставки автоматически появится здесь."
+        />
+      ) : (
+        <div className="surface ledger-list">
+          {[...state.entries].reverse().map((e) => {
+            const positive = e.credit === "customer-credit";
+            return (
+              <div className="ledger-entry" key={e.id}>
+                <span className={"ledger-icon " + (!positive ? "debit" : "")}>
+                  <ArrowUpRight size={22} />
+                </span>
+                <div>
+                  <h3>{e.description}</h3>
+                  <p>
+                    {e.orderId} · {new Date(e.at).toLocaleDateString("ru-RU")}
+                  </p>
+                </div>
+                <strong className={positive ? "credit" : ""}>
+                  {positive ? "+" : "−"}
+                  {money(e.amount)}
+                </strong>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div className="notice">
+        <Wallet size={20} />
+        <span>
+          Демобаланс можно использовать в корзине. Пополнение и вывод реальных
+          денег не подключены.
+        </span>
+      </div>
+    </>
+  );
+}
