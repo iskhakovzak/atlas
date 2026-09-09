@@ -7,7 +7,7 @@ Atlas is a functional cross-border shopping prototype for customers in Uzbekista
 It is not yet a commercial marketplace: no real payment, purchase, carrier booking, customs filing, money transfer or delivery takes place.
 
 Published URL: https://atlas-uz-market.ishakovzakir0.chatgpt.site  
-Handoff baseline: commit aefe5ab89906066138c94cc7621be7358e02a8f7, published version 6.
+Handoff baseline: commit da6e17ce23eb377410f71bfc26e35b3a64ff565f, published version 7.
 
 ## Customer flow
 
