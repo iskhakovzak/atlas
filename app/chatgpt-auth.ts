@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 export type ChatGPTUser = {
   userId: string;
+  platformUserId: string | null;
   displayName: string;
   email: string;
   fullName: string | null;
@@ -20,9 +21,9 @@ const CALLBACK_PATH = "/callback";
 
 export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
   const requestHeaders = await headers();
-  const userId = requestHeaders.get(USER_ID_HEADER);
+  const platformUserId = requestHeaders.get(USER_ID_HEADER);
   const email = requestHeaders.get(USER_EMAIL_HEADER);
-  if (!userId || !email) return null;
+  if (!email) return null;
 
   const encodedFullName = requestHeaders.get(USER_FULL_NAME_HEADER);
   const fullName =
@@ -32,7 +33,10 @@ export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
       : null;
 
   return {
-    userId,
+    // The email header is consistently present on authenticated Sites requests;
+    // the optional platform ID may be absent on background refreshes.
+    userId: `email:${email.trim().toLowerCase()}`,
+    platformUserId,
     displayName: fullName ?? email,
     email,
     fullName,

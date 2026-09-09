@@ -8,7 +8,7 @@ export const productSchema = z.object({
   id: z.string(), name: z.string().min(1).max(140), brand: z.string(), category: z.string(),
   usd: positive.max(10000), weight: positive.max(50), image: z.string(), variants: z.array(z.string()).min(1),
   sourceUrl: z.string().optional(), description: z.string().optional(),
-  country:z.string().optional(), sourceCurrency:z.string().optional(), sourcePrice:z.number().nonnegative().optional(), sourceShippingUsd:z.number().nonnegative().optional(), sourceShipping:z.number().nonnegative().optional(), shippingKnown:z.boolean().optional(), boxedWeight:positive.optional(), weightOrigin:z.string().optional(), importedAt:amount.optional(), imageOrigin:z.string().optional(),
+  country:z.string().optional(), sourceCurrency:z.string().optional(), sourcePrice:z.number().nonnegative().optional(), sourceShippingUsd:z.number().nonnegative().optional(), sourceShipping:z.number().nonnegative().optional(), shippingKnown:z.boolean().optional(), boxedWeight:positive.optional(), weightOrigin:z.string().optional(), importedAt:amount.optional(), imageOrigin:z.string().optional(), declarationDescription:z.string().max(240).optional(),
 });
 export type Product = z.infer<typeof productSchema>;
 export const products: Product[] = [

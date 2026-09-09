@@ -1,13 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {extractProduct,parseWeight,safeImage} from '../lib/importer/extract.ts';
-import {allowedUrl,fetchProduct} from '../lib/importer/fetch.ts';
+import {declarationFor,extractProduct,inferProductCategory,parseWeight,safeImage} from '../lib/importer/extract.ts';
+import {allowedUrl,fetchProduct,supportedStoreCount} from '../lib/importer/fetch.ts';
 import {customsVersion,paddedWeight,toUsd} from '../lib/market/world.ts';
 import {applyAction} from '../lib/market/actions.ts';
 import {blank,products,checkoutCart,addToCart,cartSignature} from '../lib/market/domain.ts';
 test('JSON-LD extracts title, image, price/currency, shipping and packaged weight',()=>{
 const html=`<script type="application/ld+json">{"@context":"https://schema.org","@type":"Product","name":"Zapatos &amp; cosas","image":["https://i.ebayimg.com/image.jpg"],"shippingWeight":{"value":1500,"unitCode":"GRM"},"offers":{"@type":"Offer","price":"99.95","priceCurrency":"EUR","shippingDetails":{"shippingRate":{"value":4.5,"currency":"EUR"},"shippingDestination":{"addressCountry":"ES"}}}}</script>`;
 const p=extractProduct(html,'https://www.ebay.es/itm/123');assert.equal(p.title,'Zapatos & cosas');assert.equal(p.price,99.95);assert.equal(p.currency,'EUR');assert.equal(p.shipping,4.5);assert.equal(p.shippingDestination,'ES');assert.equal(p.boxedWeight,1.5);assert.equal(p.weightKind,'shipping');assert.equal(p.country,undefined);
+});
+test('supports a broad store list and prepares a conservative declaration draft',()=>{
+assert(supportedStoreCount>=100);assert.equal(allowedUrl('https://www.on.com/en-us/products/cloud-6').hostname,'www.on.com');assert.equal(allowedUrl('https://www.zara.com/us/en/product-p000.html').hostname,'www.zara.com');assert.throws(()=>allowedUrl('https://on.com.evil.example/product'));
+assert.equal(inferProductCategory('Cloud 6 running shoes','On'),'Обувь');assert.match(declarationFor('Обувь','Cloud 6 running shoes','On'),/Обувь для личного пользования/);
 });
 test('missing shipping remains unknown and aggregate lower bounds are not exact prices',()=>{const p=extractProduct('<script type="application/ld+json">{"@type":"Product","name":"Item","offers":{"@type":"AggregateOffer","lowPrice":10,"highPrice":100,"priceCurrency":"USD"}}</script>','https://ebay.com/itm/x');assert.equal(p.shipping,undefined);assert.equal(p.price,undefined);assert(p.warnings.length>0)});
 test('OG fallback and escaped names render as text, never executable markup',()=>{const p=extractProduct(`<meta property='og:title' content='Product &amp; Shoes'><meta property='og:image' content='/image.jpg'><meta property='product:price:amount' content='12.50'><meta property='product:price:currency' content='USD'>`,'https://nike.com/item');assert.equal(p.title,'Product & Shoes');assert.equal(p.price,12.5);assert.equal(p.image,'https://nike.com/image.jpg');assert.equal(safeImage('javascript:alert(1)','https://nike.com'),undefined)});
