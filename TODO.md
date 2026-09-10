@@ -77,3 +77,4 @@
 - [ ] Email-based account key is intentional due optional platform user ID; change only with migration.
 - [ ] One JSON account state has 1 MB limit and is unsuitable for scale.
 - [ ] Source titles are intentionally not translated automatically.
+- [ ] Standalone `tsc --noEmit` reports six errors in existing support-ticket status comparisons, admin/identity JSON response typing and batch importer timestamp typing. Lint, 34 unit tests and the production build pass; this pass introduced no reported errors in customs components.
