@@ -36,7 +36,7 @@ Handoff baseline: commit 99f2fbcc0c7735c0bc9ff778b9dd1011731847d0, published ver
 | /notifications | In-app status, refund and approval notifications |
 | /analytics | Operator metrics and closed-pilot readiness |
 | /legal | Pre-release terms, privacy, refunds and restricted-goods drafts |
-| /account | ChatGPT profile and one-time legacy demo import |
+| /account | Profile, delivery recipients, document centre, monthly purchase indicator, support requests and data export |
 | /balance | Demo ledger/balance |
 | /favorites | Saved catalog items |
 | /customs | Customs guidance and consent |
@@ -137,6 +137,13 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Pre-release legal/privacy/refund/restricted-goods drafts and customer data export.
 - Authenticated API smoke test covers checkout through delivered status.
 
+## Pre-release service experience
+
+- The home screen explains the path from a store link to a preliminary calculation, confirmation and status tracking. It also includes a supported-store preview, FAQ and clear pre-release/trust notices.
+- A profile can store several recipient addresses. The chosen primary recipient remains compatible with checkout and declarations. Customer support requests are retained in that customer's account state; staff response workflow still needs an operational queue.
+- The document centre links to passport confirmation and declaration previews, explains the availability of future invoices/warehouse photos, and exports profile data. Passport source files remain private and are not placed in the JSON profile export.
+- The monthly total is an informational sum of Atlas test orders, not a customs calculation or an official limit balance.
+
 ## Partial or missing
 
 - Store parser quality varies; only Zara has the detailed adapter.
@@ -144,6 +151,8 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Operations supports one configured operator email. Team assignment and notes work, but independent staff identities and permission roles are not connected.
 - Catalog is illustrative, not inventory.
 - No real payment, carrier API, email/SMS provider, automatic live FX feed, customs calculation, public registration or production ledger. Tracking is operator-entered.
+- RU/UZ/EN navigation and chosen communication language are available, but detailed transactional screens still need a complete translation pass.
+- Email/password or email-code sign-in, optional Google linking, phone verification, staff roles, audit log and backups require chosen providers and production secrets.
 - Passport OCR is best effort; unsupported browsers fall back to manual confirmation. There is no government identity validation, liveness check or customs gateway.
 - Translations for detailed legacy screens are still being expanded; the language selector covers the shared shell and preference first.
 

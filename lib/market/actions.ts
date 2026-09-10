@@ -61,6 +61,10 @@ export const actionSchema = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("payment-demo"), id }),
   z.object({ type: z.literal("communication-save"), value: communicationSchema }),
+  z.object({ type: z.literal("delivery-profile-save"), value: deliveryProfileSchema, label: z.string().trim().min(1).max(60) }),
+  z.object({ type: z.literal("delivery-profile-remove"), id: z.string().min(1).max(80) }),
+  z.object({ type: z.literal("support-create"), subject: z.string().trim().min(3).max(120), text: z.string().trim().min(1).max(1000) }),
+  z.object({ type: z.literal("support-reply"), id: z.string().min(1).max(80), text: z.string().trim().min(1).max(1000) }),
   z.object({
     type: z.literal("assign-order"),
     id,
@@ -209,6 +213,23 @@ export function applyAction(
       return confirmDemoPayment(s, a.id);
     case "communication-save":
       return updateCommunication(s, a.value);
+    case "delivery-profile-save": {
+      const value = deliveryProfileSchema.parse(a.value);
+      const existing = s.deliveryProfiles.find((profile) => JSON.stringify(profile).includes(JSON.stringify(value)));
+      const profile = { ...value, id: existing?.id ?? crypto.randomUUID(), label: a.label, primary: true };
+      return { ...s, deliveryProfile: value, deliveryProfiles: [profile, ...s.deliveryProfiles.filter((item) => item.id !== profile.id).map((item) => ({ ...item, primary: false }))] };
+    }
+    case "delivery-profile-remove": {
+      const rest = s.deliveryProfiles.filter((item) => item.id !== a.id);
+      return { ...s, deliveryProfiles: rest, deliveryProfile: rest.find((item) => item.primary) ?? rest[0] };
+    }
+    case "support-create": {
+      const now = Date.now();
+      const ticket = { id: `SUP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, subject: a.subject, status: "open" as const, createdAt: now, updatedAt: now, replies: [{ id: crypto.randomUUID(), at: now, author: "customer" as const, text: a.text }] };
+      return { ...s, supportTickets: [ticket, ...s.supportTickets] };
+    }
+    case "support-reply":
+      return { ...s, supportTickets: s.supportTickets.map((ticket) => ticket.id === a.id ? { ...ticket, status: "answered" as const, updatedAt: Date.now(), replies: [...ticket.replies, { id: crypto.randomUUID(), at: Date.now(), author: isOperator ? "support" as const : "customer" as const, text: a.text }] } : ticket) };
     case "assign-order":
       return assignOrder(s, a.id, a.team, a.priority);
     case "staff-note":

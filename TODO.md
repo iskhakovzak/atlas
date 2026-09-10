@@ -45,7 +45,11 @@
 
 ## Auth/data/operations
 
-- [ ] Decide on ChatGPT-only auth versus standalone customer registration.
+- [ ] Choose and integrate standalone auth (email password or email code, recovery, optional Google OAuth, rate limits and consent records). Do not collect passwords until an identity provider or audited password implementation is selected.
+- [ ] Connect a verified email sender for actual notification delivery; current email/SMS history is preview-only.
+- [ ] Select a phone-verification provider and retention policy before requiring a phone at payment/delivery.
+- [ ] Add encrypted, tested D1/R2 backup export with retention and restore runbook; profile download is not a backup.
+- [ ] Translate every transactional screen and validation message for RU, UZ and EN; navigation localisation is not full localisation.
 - [ ] Document/test production D1 migration from local machine before schema changes.
 - [ ] Add retention/deletion/export policy, backups and redacted observability.
 - [ ] Select a compliant production OCR/identity provider, document consent/legal basis, retention windows and regional data processing before relying on passport recognition.

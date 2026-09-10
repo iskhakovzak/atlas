@@ -246,6 +246,12 @@ export const deliveryProfileSchema = z.object({
   comment: z.string().trim().max(300).default(""),
 });
 export type DeliveryProfile = z.infer<typeof deliveryProfileSchema>;
+const savedDeliveryProfileSchema = deliveryProfileSchema.extend({
+  id: z.string().min(1).max(80),
+  label: z.string().trim().min(1).max(60),
+  primary: z.boolean().default(false),
+});
+export type SavedDeliveryProfile = z.infer<typeof savedDeliveryProfileSchema>;
 export const identityProfileSchema = z.object({
   documentId: z.string().min(1).max(100),
   firstName: z.string().trim().min(1).max(80),
@@ -353,6 +359,12 @@ const messageDeliverySchema = z.object({
   orderId: z.string().optional(),
 });
 export type MessageDelivery = z.infer<typeof messageDeliverySchema>;
+const supportReplySchema = z.object({ id: z.string(), at: amount, author: z.enum(["customer", "support"]), text: z.string().min(1).max(1000) });
+const supportTicketSchema = z.object({
+  id: z.string(), subject: z.string().min(3).max(120), status: z.enum(["open", "answered", "closed"]),
+  createdAt: amount, updatedAt: amount, replies: z.array(supportReplySchema).default([]),
+});
+export type SupportTicket = z.infer<typeof supportTicketSchema>;
 const declarationSchema = z.object({
   id: z.string(), createdAt: amount, status: z.literal("submitted-preview"),
   identity: identityProfileSchema, delivery: deliveryProfileSchema,
@@ -377,6 +389,7 @@ export const stateSchema = z.object({
   checkoutKeys: z.array(z.string()).default([]),
   notifications: z.array(notificationSchema).default([]),
   deliveryProfile: deliveryProfileSchema.optional(),
+  deliveryProfiles: z.array(savedDeliveryProfileSchema).default([]),
   identityProfile: identityProfileSchema.optional(),
   declarations: z.array(declarationSchema).default([]),
   communication: communicationSchema.default({
@@ -387,6 +400,7 @@ export const stateSchema = z.object({
     language: "ru",
   }),
   messageDeliveries: z.array(messageDeliverySchema).default([]),
+  supportTickets: z.array(supportTicketSchema).default([]),
   version: z.number().default(3),
 });
 export type State = z.infer<typeof stateSchema>;
@@ -405,6 +419,8 @@ export const blank = (): State => ({
     language: "ru",
   },
   messageDeliveries: [],
+  deliveryProfiles: [],
+  supportTickets: [],
   declarations: [],
   version: 3,
 });

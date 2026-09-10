@@ -69,7 +69,7 @@ market_identity_documents stores owner, private R2 object key, safe file metadat
 
 market_settings also stores a versioned `policy` JSON setting. It defines server-authorized import/cart restrictions and has no client-side source of truth.
 
-State contains orders, ledger entries, cart, favourites, checkout idempotency keys, a saved delivery profile, an optional confirmed identity profile with masked passport number, test declarations, communication preferences, prepared email/SMS records and version. Order contains product snapshot, immutable quote, delivery snapshot, simulated payment, parcel/tracking events, assignment, staff notes, status/history, both settlement types, approvals, quantity, balance use and customs consent.
+State contains orders, ledger entries, cart, favourites, checkout idempotency keys, saved recipient profiles, support-request history, an optional confirmed identity profile with masked passport number, test declarations, communication preferences, prepared email/SMS records and version. Order contains product snapshot, immutable quote, delivery snapshot, simulated payment, parcel/tracking events, assignment, staff notes, status/history, both settlement types, approvals, quantity, balance use and customs consent.
 
 ## APIs
 
@@ -94,7 +94,7 @@ Action types additionally include identity-confirm, identity-clear and declarati
 | ATLAS_OPERATOR_EMAIL | Optional Worker secret granting operator role |
 | BUCKET | Private R2 storage for owner-scoped passport scans |
 
-No payment processor, eBay API, carrier API, automatic FX API or email/SMS provider exists. Payment webhooks, tracking and external messages are safely represented inside Atlas for the pre-release demo only. FX/tariffs are operator-managed and product imports have a short D1 cache.
+No payment processor, eBay API, carrier API, automatic FX API, email/SMS provider or standalone identity provider exists. Payment webhooks, tracking and external messages are safely represented inside Atlas for the pre-release demo only. FX/tariffs are operator-managed and product imports have a short D1 cache.
 
 ## Security
 
