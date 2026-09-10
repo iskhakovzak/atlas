@@ -7,7 +7,8 @@ Atlas is a functional pre-release cross-border shopping prototype for customers 
 It is not yet a commercial marketplace: no real payment, purchase, carrier booking, customs filing, money transfer or delivery takes place.
 
 Published URL: https://atlas-uz-market.ishakovzakir0.chatgpt.site  
-Handoff baseline: commit 28c2cc5343f97b6284f7371d2517dc875da382d5, published version 16.
+Handoff baseline: commit 25ae90f6cbef9e400b239821d6290724511a240e, published version 17.
+Validation: lint, all 28 unit tests and production build passed. Browser interaction smoke tests were not run in this pass.
 
 ## Customer flow
 
