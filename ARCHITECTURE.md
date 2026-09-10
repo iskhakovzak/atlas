@@ -14,6 +14,7 @@
 | Area | Files |
 | --- | --- |
 | Shell/navigation/catalog | app/marketplace.tsx, app/layout.tsx, app/globals.css |
+| Shared Atlas visual system | app/atlas-design.css, loaded after base styles in app/layout.tsx; navy/blue/lime palette, responsive hero, cards, account, forms and order surfaces |
 | Link order | app/global-link-order.tsx |
 | Cart | app/shopping.tsx |
 | Orders, operations, balance | app/order-workspace.tsx |

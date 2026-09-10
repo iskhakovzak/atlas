@@ -139,6 +139,8 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 
 ## Pre-release service experience
 
+- Atlas has a shared blue/navy/lime design system, a link-first home screen with an interactive catalog example, responsive four-step journey, and consistent account/forms/order styling. Existing images, navigation and server actions are retained.
+
 - The home screen explains the path from a store link to a preliminary calculation, confirmation and status tracking. It also includes a supported-store preview, FAQ and clear pre-release/trust notices.
 - A profile can store several recipient addresses. The chosen primary recipient remains compatible with checkout and declarations. Customer support requests are retained in that customer's account state; staff response workflow still needs an operational queue.
 - The document centre links to passport confirmation and declaration previews, explains the availability of future invoices/warehouse photos, and exports profile data. Passport source files remain private and are not placed in the JSON profile export.
