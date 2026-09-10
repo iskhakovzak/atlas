@@ -35,6 +35,7 @@
 
 ## Known prototype limits
 
+- [ ] Revisit client-side RSC navigation after Vinext fixes its production prefetch runtime; Atlas currently uses reliable full-page navigation.
 - [ ] No real payment or delivery.
 - [ ] Operations page sees only the operator’s own account orders.
 - [ ] $10 merchant shipping is an estimate, not a fetched quote.

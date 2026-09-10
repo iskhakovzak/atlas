@@ -1,6 +1,6 @@
 'use client';
 import {useState} from 'react';
-import Link from 'next/link';
+import Link from '@/components/site-link';
 import {ArrowUpRight,Package,Wallet,UserRound,ShieldCheck,LogOut,Upload,Check} from 'lucide-react';
 import {useMarket} from '@/lib/market/store';
 import {customsSources} from '@/lib/market/world';

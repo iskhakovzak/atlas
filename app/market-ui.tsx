@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useState,type ReactNode} from 'react';
 import {Package,X,ChevronRight,ArrowUpRight} from 'lucide-react';
-import Link from 'next/link';
+import Link from '@/components/site-link';
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
 import {Dialog,DialogContent,DialogTitle,DialogDescription,DialogClose} from '@/components/ui/dialog';
 import {money,type Product,type Quote} from '@/lib/market/domain';

@@ -103,6 +103,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Import photo in cart/order and photo refresh from retained source URL.
 - Merchant-shipping reserve confirmation/refund/extra flow.
 - Customer order view shows the pending merchant-shipping check and confirmed actual cost in USD and UZS.
+- Site navigation uses native document transitions to avoid the Vinext production prefetch failure that made links unresponsive.
 - Warehouse actual/dimensional settlement and balance credits.
 
 ## Partial or missing
