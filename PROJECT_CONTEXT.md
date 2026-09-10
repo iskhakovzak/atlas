@@ -7,7 +7,7 @@ Atlas is a functional pre-release cross-border shopping prototype for customers 
 It is not yet a commercial marketplace: no real payment, purchase, carrier booking, customs filing, money transfer or delivery takes place.
 
 Published URL: https://atlas-uz-market.ishakovzakir0.chatgpt.site  
-Handoff baseline: commit 4f9e98d15386083750f1004687ca3487319ea30b, published version 15.
+Handoff baseline: commit 28c2cc5343f97b6284f7371d2517dc875da382d5, published version 16.
 
 ## Customer flow
 
@@ -140,6 +140,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 ## Pre-release service experience
 
 - Atlas has a shared blue/navy/lime design system, a link-first home screen with an interactive catalog example, responsive four-step journey, and consistent account/forms/order styling. Existing images, navigation and server actions are retained.
+- The home screen now leads with a curated «Выгодные находки» feed: category filters, discount badges, source merchant, freshness wording, and an estimated delivered total before opening the existing product sheet.
 
 - The home screen explains the path from a store link to a preliminary calculation, confirmation and status tracking. It also includes a supported-store preview, FAQ and clear pre-release/trust notices.
 - A profile can store several recipient addresses. The chosen primary recipient remains compatible with checkout and declarations. Customer support requests are retained in that customer's account state; staff response workflow still needs an operational queue.
