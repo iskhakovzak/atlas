@@ -15,6 +15,9 @@ import {
   balanceOf,
   totalOf,
   validateSource,
+  tariff,
+  markNotificationsRead,
+  type Pricing,
   type State,
 } from "./domain.ts";
 import { customsVersion, paddedWeight, toUsd } from "./world.ts";
@@ -54,10 +57,16 @@ export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("confirm-store-shipping"), id, actualUsd: amount }),
   z.object({ type: z.literal("approve-store-shipping-extra"), id, amount }),
   z.object({ type: z.literal("cancel"), id }),
+  z.object({ type: z.literal("notifications-read") }),
   z.object({ type: z.literal("import-legacy"), data: z.string().max(1000000) }),
 ]);
 export type Action = z.infer<typeof actionSchema>;
-export function applyAction(s: State, a: Action, isOperator: boolean): State {
+export function applyAction(
+  s: State,
+  a: Action,
+  isOperator: boolean,
+  pricing: Pricing = tariff,
+): State {
   if (
     (a.type === "advance" ||
       a.type === "receive" ||
@@ -117,23 +126,28 @@ export function applyAction(s: State, a: Action, isOperator: boolean): State {
           !a.product.sourceCurrency
         )
           throw Error("Укажите цену, валюту и доставку магазина.");
-        a.product.usd = toUsd(a.product.sourcePrice, a.product.sourceCurrency);
+        a.product.usd = toUsd(
+          a.product.sourcePrice,
+          a.product.sourceCurrency,
+          pricing.rates,
+        );
         a.product.sourceShippingUsd = toUsd(
           a.product.sourceShipping,
           a.product.sourceShippingCurrency ?? a.product.sourceCurrency,
+          pricing.rates,
         );
         a.product.weight = paddedWeight(a.product.boxedWeight);
         if (a.product.image && !safeImage(a.product.image, a.product.sourceUrl))
           throw Error("Некорректная ссылка на изображение.");
       }
-      return addToCart(s, a.product, a.variant);
+      return addToCart(s, a.product, a.variant, Date.now(), pricing);
     }
     case "cart-quantity":
-      return changeQuantity(s, a.id, a.quantity);
+      return changeQuantity(s, a.id, a.quantity, Date.now(), pricing);
     case "cart-remove":
       return { ...s, cart: s.cart.filter((i) => i.id !== a.id) };
     case "cart-renew":
-      return renewCart(s);
+      return renewCart(s, Date.now(), pricing);
     case "checkout":
       if (s.checkoutKeys.includes(a.key)) return s;
       if (
@@ -162,6 +176,8 @@ export function applyAction(s: State, a: Action, isOperator: boolean): State {
       return approveStoreShippingExtra(s, a.id, a.amount);
     case "cancel":
       return cancelOrder(s, a.id);
+    case "notifications-read":
+      return markNotificationsRead(s);
     case "import-legacy":
       if (
         s.orders.length ||

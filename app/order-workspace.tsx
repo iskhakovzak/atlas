@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "@/components/site-link";
 import {
   ArrowRight,
@@ -11,6 +11,8 @@ import {
   Search,
   ShieldCheck,
   Wallet,
+  Bell,
+  CheckCheck,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -29,8 +31,11 @@ import {
   money,
   settle,
   statuses,
+  type Pricing,
+  type State,
   type Order,
 } from "@/lib/market/domain";
+import type { Action } from "@/lib/market/actions";
 import {
   PageHeading,
   Empty,
@@ -50,8 +55,15 @@ const usd = (n: number) =>
     currency: "USD",
     minimumFractionDigits: 2,
   }).format(n);
+type OperationsAccount = {
+  id: string;
+  name: string;
+  state: State;
+  revision: number;
+  updatedAt: number;
+};
 export function OrdersView({ operations }: { operations: boolean }) {
-  const { state, ready, error, act, user } = useMarket();
+  const { state, pricing, ready, error, act, user, refresh } = useMarket();
   const [tab, setTab] = useState("active"),
     [query, setQuery] = useState(""),
     [warehouse, setWarehouse] = useState<string | null>(null),
@@ -64,18 +76,57 @@ export function OrdersView({ operations }: { operations: boolean }) {
       amount: number;
       storeShipping?: boolean;
     } | null>(null),
-    [busy, setBusy] = useState(false);
-  const receiving = state.orders.find((o) => o.id === warehouse);
-  const confirmingStoreShipping = state.orders.find(
+    [busy, setBusy] = useState(false),
+    [opsAccounts, setOpsAccounts] = useState<OperationsAccount[]>([]),
+    [opsPricing, setOpsPricing] = useState<Pricing>(pricing),
+    [opsReady, setOpsReady] = useState(false),
+    [opsError, setOpsError] = useState<string | null>(null);
+  const refreshOperations = useCallback(async () => {
+    if (!operations || !user?.operator) return;
+    try {
+      const response = await fetch("/api/operations", { cache: "no-store" });
+      const data = (await response.json()) as {
+        accounts?: OperationsAccount[];
+        pricing?: Pricing;
+        error?: string;
+      };
+      if (!response.ok || !data.accounts || !data.pricing)
+        throw Error(data.error ?? "Не удалось загрузить очередь.");
+      setOpsAccounts(data.accounts);
+      setOpsPricing(data.pricing);
+      setOpsError(null);
+      setOpsReady(true);
+    } catch (nextError) {
+      setOpsError((nextError as Error).message);
+      setOpsReady(false);
+    }
+  }, [operations, user?.operator]);
+  useEffect(() => {
+    queueMicrotask(() => void refreshOperations());
+  }, [refreshOperations]);
+  const orders = operations
+    ? opsAccounts.flatMap((profile) => profile.state.orders)
+    : state.orders;
+  const orderAccount = new Map(
+    opsAccounts.flatMap((profile) =>
+      profile.state.orders.map((order) => [order.id, profile] as const),
+    ),
+  );
+  const viewReady = operations ? opsReady : ready;
+  const viewError = operations ? opsError : error;
+  const receiving = orders.find((o) => o.id === warehouse);
+  const confirmingStoreShipping = orders.find(
     (o) => o.id === storeShippingOrder,
   );
-  const active = state.orders.filter((o) => !o.cancelled && o.status < 5),
-    need = state.orders.filter(isExtra),
-    done = state.orders.filter((o) => o.cancelled || o.status === 5);
+  const active = orders.filter((o) => !o.cancelled && o.status < 5),
+    need = orders.filter(isExtra),
+    done = orders.filter((o) => o.cancelled || o.status === 5);
   const filtered = (
     tab === "active" ? active : tab === "attention" ? need : done
   ).filter((o) =>
-    `${o.id} ${o.product.name}`.toLowerCase().includes(query.toLowerCase()),
+    `${o.id} ${o.product.name} ${orderAccount.get(o.id)?.name ?? ""}`
+      .toLowerCase()
+      .includes(query.toLowerCase()),
   );
   let calc: ReturnType<typeof settle> | null = null;
   try {
@@ -85,6 +136,47 @@ export function OrdersView({ operations }: { operations: boolean }) {
         ...(dims.map(Number) as [number, number, number, number]),
       );
   } catch {}
+  async function runOrderAction(action: Action) {
+    if (!operations) return act(action);
+    const orderId = "id" in action ? action.id : "";
+    const profile = orderAccount.get(orderId);
+    if (!profile) {
+      toast.error("Профиль покупателя не найден. Обновите очередь.");
+      return false;
+    }
+    try {
+      const response = await fetch("/api/operations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "action",
+          accountId: profile.id,
+          revision: profile.revision,
+          action,
+        }),
+      });
+      const data = (await response.json()) as {
+        account?: OperationsAccount;
+        error?: string;
+      };
+      if (data.account)
+        setOpsAccounts((current) =>
+          current.map((item) =>
+            item.id === data.account!.id ? data.account! : item,
+          ),
+        );
+      if (!response.ok) {
+        toast.error(data.error ?? "Не удалось сохранить действие.");
+        if (!data.account) await refreshOperations();
+        return false;
+      }
+      return true;
+    } catch {
+      toast.error("Нет связи с сервером. Обновите очередь перед повтором.");
+      await refreshOperations();
+      return false;
+    }
+  }
   async function loadPhoto(o: Order) {
     if (!o.product.sourceUrl) return;
     setBusy(true);
@@ -100,7 +192,9 @@ export function OrdersView({ operations }: { operations: boolean }) {
       };
       if (!response.ok || !data.image)
         throw Error(data.error ?? "На странице не найдено фото.");
-      if (await act({ type: "order-image", id: o.id, image: data.image }))
+      if (
+        await runOrderAction({ type: "order-image", id: o.id, image: data.image })
+      )
         toast.success("Фото заказа обновлено.");
     } catch (e) {
       toast.error((e as Error).message);
@@ -111,7 +205,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
   async function finishReceiving() {
     if (!receiving || busy) return;
     setBusy(true);
-    const ok = await act({
+    const ok = await runOrderAction({
       type: "receive",
       id: receiving.id,
       dimensions: dims.map(Number) as [number, number, number, number],
@@ -125,7 +219,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
   async function finishStoreShipping() {
     if (!confirmingStoreShipping || busy) return;
     setBusy(true);
-    const ok = await act({
+    const ok = await runOrderAction({
       type: "confirm-store-shipping",
       id: confirmingStoreShipping.id,
       actualUsd: Number(actualStoreShipping),
@@ -172,6 +266,16 @@ export function OrdersView({ operations }: { operations: boolean }) {
           </Link>
         )}
       </PageHeading>
+      {operations && viewReady && (
+        <PricingManager
+          key={opsPricing.version}
+          value={opsPricing}
+          onSaved={(next) => {
+            setOpsPricing(next);
+            void refresh();
+          }}
+        />
+      )}
       {operations && (
         <div className="ops-stats">
           <div>
@@ -191,7 +295,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
           </div>
         </div>
       )}
-      {state.orders.length > 0 && (
+      {orders.length > 0 && (
         <div className="order-controls">
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList className="order-tabs">
@@ -218,28 +322,28 @@ export function OrdersView({ operations }: { operations: boolean }) {
             <Search size={18} />
             <input
               aria-label="Поиск заказа"
-              placeholder="Номер или товар"
+              placeholder={operations ? "Номер, товар или покупатель" : "Номер или товар"}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
           </label>
         </div>
       )}
-      {!ready ? (
-        error ? (
+      {!viewReady ? (
+        viewError ? (
           <Empty
-            title="Войдите, чтобы открыть заказы"
-            description="История покупок, фото и расчёты доступны в вашем профиле Atlas."
-            href="/account"
-            label="Открыть вход"
+            title={operations ? "Очередь пока недоступна" : "Войдите, чтобы открыть заказы"}
+            description={operations ? viewError ?? "Повторите загрузку очереди." : "История покупок, фото и расчёты доступны в вашем профиле Atlas."}
+            href={operations ? "/operations" : "/account"}
+            label={operations ? "Повторить" : "Открыть вход"}
           />
         ) : (
           <div className="loading-state">Загружаем заказы…</div>
         )
-      ) : !state.orders.length ? (
+      ) : !orders.length ? (
         <Empty
-          title="Здесь начнётся путь вашей покупки"
-          description="Оформите заказ из корзины, чтобы попробовать выкуп, склад и доставку."
+          title={operations ? "Очередь заказов пуста" : "Здесь начнётся путь вашей покупки"}
+          description={operations ? "Новых клиентских заказов пока нет." : "Оформите заказ из корзины, чтобы попробовать выкуп, склад и доставку."}
           href="/"
           label="Выбрать товар"
         />
@@ -255,6 +359,11 @@ export function OrdersView({ operations }: { operations: boolean }) {
               <div>
                 <b>{o.id}</b>
                 <span>{new Date(o.createdAt).toLocaleDateString("ru-RU")}</span>
+                {operations && orderAccount.get(o.id) && (
+                  <span className="customer-badge">
+                    Покупатель: {orderAccount.get(o.id)!.name}
+                  </span>
+                )}
               </div>
               <span
                 className={
@@ -481,7 +590,11 @@ export function OrdersView({ operations }: { operations: boolean }) {
                     return;
                   }
                   if (
-                    await act({ type: "advance", id: o.id, expected: o.status })
+                    await runOrderAction({
+                      type: "advance",
+                      id: o.id,
+                      expected: o.status,
+                    })
                   )
                     toast.success("Статус заказа обновлён");
                 }}
@@ -542,7 +655,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
                   </ol>
                 </div>
               </details>
-              {o.status === 0 && !o.cancelled && (
+              {!operations && o.status === 0 && !o.cancelled && (
                 <button
                   className="text-button"
                   onClick={() =>
@@ -748,6 +861,200 @@ export function OrdersView({ operations }: { operations: boolean }) {
     </>
   );
 }
+function PricingManager({
+  value,
+  onSaved,
+}: {
+  value: Pricing;
+  onSaved: (next: Pricing) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const [saving, setSaving] = useState(false);
+  const setNumber = (key: "fx" | "perKg" | "margin" | "reserve" | "divisor", raw: string) =>
+    setDraft((current) => ({ ...current, [key]: Number(raw) }));
+  async function save() {
+    setSaving(true);
+    try {
+      const response = await fetch("/api/operations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "pricing",
+          value: {
+            fx: draft.fx,
+            perKg: draft.perKg,
+            margin: draft.margin,
+            reserve: draft.reserve,
+            divisor: draft.divisor,
+            rates: draft.rates,
+          },
+        }),
+      });
+      const data = (await response.json()) as { pricing?: Pricing; error?: string };
+      if (!response.ok || !data.pricing)
+        throw Error(data.error ?? "Не удалось сохранить тарифы.");
+      onSaved(data.pricing);
+      toast.success("Новые расчёты будут использовать обновлённые тарифы");
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+  return (
+    <details className="surface pricing-manager">
+      <summary>
+        <span>
+          <b>Курсы и тарифы</b>
+          <small>
+            {money(value.fx)} / USD · обновлено{" "}
+            {value.updatedAt
+              ? new Date(value.updatedAt).toLocaleString("ru-RU")
+              : "по умолчанию"}
+          </small>
+        </span>
+        <span className="status-badge">{value.version}</span>
+      </summary>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          void save();
+        }}
+      >
+        <div className="pricing-grid">
+          {[
+            ["fx", "Сум за 1 USD", 1],
+            ["perKg", "Доставка за кг, сум", 1],
+            ["margin", "Сервисный сбор", 0.01],
+            ["reserve", "Резерв доставки", 0.01],
+            ["divisor", "Делитель объёмного веса", 1],
+          ].map(([key, label, step]) => (
+            <div className="field" key={String(key)}>
+              <label htmlFor={`pricing-${key}`}>{label}</label>
+              <input
+                id={`pricing-${key}`}
+                type="number"
+                required
+                min={Number(step)}
+                step={Number(step)}
+                value={draft[key as "fx" | "perKg" | "margin" | "reserve" | "divisor"]}
+                onChange={(event) =>
+                  setNumber(
+                    key as "fx" | "perKg" | "margin" | "reserve" | "divisor",
+                    event.target.value,
+                  )
+                }
+              />
+            </div>
+          ))}
+        </div>
+        <details className="currency-rates">
+          <summary>Курсы валют к USD</summary>
+          <div className="pricing-grid currency-grid">
+            {Object.entries(draft.rates).map(([code, rate]) => (
+              <div className="field" key={code}>
+                <label htmlFor={`rate-${code}`}>1 {code} в USD</label>
+                <input
+                  id={`rate-${code}`}
+                  type="number"
+                  required
+                  min="0.000001"
+                  step="0.000001"
+                  value={rate}
+                  disabled={code === "USD"}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      rates: {
+                        ...current.rates,
+                        [code]: Number(event.target.value),
+                      },
+                    }))
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        </details>
+        <p className="micro">
+          Новые значения применяются только к новым и обновлённым расчётам.
+          Уже оформленные заказы сохраняют исходную сумму.
+        </p>
+        <button className="btn primary" disabled={saving}>
+          {saving ? "Сохраняем…" : "Сохранить тарифы"}
+          <Check size={17} />
+        </button>
+      </form>
+    </details>
+  );
+}
+
+export function NotificationsView() {
+  const { state, ready, error, act } = useMarket();
+  const unread = state.notifications.filter((item) => !item.read).length;
+  return (
+    <>
+      <PageHeading
+        overline="ВАЖНОЕ ПО ЗАКАЗАМ"
+        title="Уведомления."
+        description="Изменения статусов, возвраты и запросы на согласование в одном месте."
+      >
+        {unread > 0 && (
+          <button
+            className="btn secondary"
+            onClick={() => void act({ type: "notifications-read" })}
+          >
+            <CheckCheck size={17} /> Прочитать все
+          </button>
+        )}
+      </PageHeading>
+      {!ready ? (
+        error ? (
+          <Empty
+            title="Войдите, чтобы открыть уведомления"
+            description="Сообщения Atlas доступны в вашем профиле."
+            href="/account"
+            label="Открыть вход"
+          />
+        ) : (
+          <div className="loading-state">Загружаем уведомления…</div>
+        )
+      ) : !state.notifications.length ? (
+        <Empty
+          title="Пока всё спокойно"
+          description="Здесь появятся изменения статусов и вопросы по вашим заказам."
+          href="/orders"
+          label="Мои заказы"
+        />
+      ) : (
+        <section className="surface notification-list">
+          {state.notifications.map((item) => (
+            <article
+              className={"notification-item " + (!item.read ? "unread" : "")}
+              key={item.id}
+            >
+              <span className="notification-icon"><Bell size={18} /></span>
+              <div>
+                <div className="notification-title">
+                  <h2>{item.title}</h2>
+                  <time>{new Date(item.at).toLocaleString("ru-RU")}</time>
+                </div>
+                <p>{item.message}</p>
+                {item.orderId && (
+                  <Link className="text-link" href="/orders">
+                    Открыть заказ {item.orderId}
+                    <ArrowUpRight size={14} />
+                  </Link>
+                )}
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
+    </>
+  );
+}
+
 export function BalanceView() {
   const { state, ready, error } = useMarket();
   const reserved = state.orders

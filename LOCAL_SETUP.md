@@ -32,6 +32,14 @@ npm run build
 npm start
 ~~~
 
+With the local Worker running, execute the browser smoke test in another terminal:
+
+~~~
+npm run smoke:ui -- http://127.0.0.1:8787/
+~~~
+
+It launches an installed Chrome/Edge headlessly, clicks the catalog filter and product details, then verifies cart, orders and notifications navigation. Set ATLAS_BROWSER_PATH when the browser is installed elsewhere.
+
 The command prints the loopback URL. Local portable profile can simulate sign-in at:
 
 ~~~text

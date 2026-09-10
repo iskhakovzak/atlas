@@ -20,7 +20,7 @@
 | Account/customs | app/account-views.tsx, app/customs/page.tsx |
 | Client provider | lib/market/store.tsx |
 | Auth | app/chatgpt-auth.ts |
-| API | app/api/account, app/api/actions, app/api/import |
+| API | app/api/account, app/api/actions, app/api/import, app/api/operations |
 | Domain/security | lib/market/domain.ts, actions.ts, server.ts, world.ts |
 | Importing | lib/importer/stores.ts, fetch.ts, extract.ts |
 | Database | db/schema.ts, drizzle/0000_overrated_justice.sql |
@@ -60,6 +60,8 @@ market_accounts:
 
 market_rate_limits stores per-minute import counters and expiry.
 
+market_settings stores the current versioned pricing JSON and update identity. market_import_cache stores allowlisted extracted product payloads for ten minutes.
+
 State contains orders, ledger entries, cart, favourites, checkout idempotency keys and version. Order contains product snapshot, immutable quote, status/history, both settlement types, approvals, quantity, balance use and customs consent.
 
 ## APIs
@@ -69,8 +71,10 @@ State contains orders, ledger entries, cart, favourites, checkout idempotency ke
 | GET /api/account | identity → user, state, revision |
 | POST /api/import | identity + same origin + URL → Extracted data, 12/min |
 | POST /api/actions | identity + same origin + action/revision → next state |
+| GET /api/operations | operator identity → all customer queues + current pricing |
+| POST /api/operations | operator identity + target revision → order action or pricing update |
 
-Action types: favorite, order-image, cart-add, cart-quantity, cart-remove, cart-renew, checkout, advance, receive, confirm-store-shipping, approve-extra, approve-store-shipping-extra, cancel and import-legacy. advance, receive and confirm-store-shipping require operator on server.
+Action types: favorite, order-image, cart-add, cart-quantity, cart-remove, cart-renew, checkout, advance, receive, confirm-store-shipping, approve-extra, approve-store-shipping-extra, cancel, notifications-read and import-legacy. advance, receive and confirm-store-shipping require operator on server. Cross-customer actions additionally verify the target account revision.
 
 ## Environment and services
 
@@ -80,7 +84,7 @@ Action types: favorite, order-image, cart-add, cart-quantity, cart-remove, cart-
 | ATLAS_OPERATOR_EMAIL | Optional Worker secret granting operator role |
 | BUCKET | Declared but unused |
 
-No payment processor, eBay API, carrier/tracking API, FX API, email/SMS provider or product cache exists.
+No payment processor, eBay API, carrier/tracking API, automatic FX API or email/SMS provider exists. FX/tariffs are operator-managed and product imports have a short D1 cache.
 
 ## Security
 
@@ -98,4 +102,4 @@ No payment processor, eBay API, carrier/tracking API, FX API, email/SMS provider
 
 Current deployment procedure: commit; request temporary Sites repo credential; push exact HEAD; package site; save a version with exact pushed SHA; deploy saved version privately; poll success. Never persist the temporary token.
 
-Last handoff verification passed npm run lint, Node tests and npm run build. Tests total: 20.
+The verification suite includes lint, Node domain/security tests, production build and a dependency-free headless-browser smoke test for primary interactions and navigation.

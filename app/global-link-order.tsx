@@ -30,7 +30,7 @@ const priors: Record<string, number> = {
   Другое: 1.5,
 };
 export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
-  const { ready } = useMarket();
+  const { ready, pricing } = useMarket();
   const searchParams = useSearchParams();
   const [url, setUrl] = useState(() => searchParams.get("url") ?? ""),
     [source, setSource] = useState(""),
@@ -54,6 +54,7 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
     [weightOrigin, setWeightOrigin] = useState("Оценка по категории"),
     [verified, setVerified] = useState(false),
     [importedAt, setImportedAt] = useState<number | undefined>(),
+    [sourceExpiresAt, setSourceExpiresAt] = useState<number | undefined>(),
     [foundShipping, setFoundShipping] = useState<{
       amount: number;
       currency: string;
@@ -79,6 +80,7 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
     setShippingEstimated(true);
     setImage("");
     setImportedAt(undefined);
+    setSourceExpiresAt(undefined);
     setWeight("");
     setVariant("");
     setVariants([]);
@@ -90,7 +92,12 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: link }),
       });
-      const data: Extracted & { error?: string } = await response.json();
+      const data: Extracted & {
+        error?: string;
+        fetchedAt?: number;
+        expiresAt?: number;
+        cached?: boolean;
+      } = await response.json();
       if (!response.ok)
         throw Error(data.error ?? "Не удалось получить данные магазина.");
       setSource(data.sourceUrl);
@@ -121,7 +128,8 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
             : "Вес товара со страницы — коробку нужно проверить"
           : "Приблизительно по категории",
       );
-      setImportedAt(Date.now());
+      setImportedAt(data.fetchedAt ?? Date.now());
+      setSourceExpiresAt(data.expiresAt);
       // Shipping may depend on destination/session; require explicit confirmation even if found.
       if (data.shipping !== undefined) {
         const foundCurrency = data.shippingCurrency ?? data.currency ?? "";
@@ -152,6 +160,7 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
           data.title
             ? "Название и доступные данные загружены."
             : "Не все данные опубликованы.",
+          data.cached ? "Использованы недавно проверенные данные." : "",
           ...data.warnings,
           shippingMessage,
           data.currency && !currencies.includes(data.currency)
@@ -177,10 +186,13 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
     if (amount && weight) {
       estimatedWeight = paddedWeight(Number(weight));
       preview = price(
-        toUsd(Number(amount), currency),
+        toUsd(Number(amount), currency, pricing.rates),
         estimatedWeight,
         1,
-        shipping ? toUsd(Number(shipping), shippingCurrency) : 0,
+        shipping
+          ? toUsd(Number(shipping), shippingCurrency, pricing.rates)
+          : 0,
+        pricing,
       );
     }
   } catch {}
@@ -278,7 +290,7 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
                     name: name.trim(),
                     brand: brand || new URL(source).hostname,
                     category,
-                    usd: toUsd(Number(amount), currency),
+                    usd: toUsd(Number(amount), currency, pricing.rates),
                     weight: paddedWeight(Number(weight)),
                     image: img ?? "",
                     sourceUrl: source,
@@ -294,18 +306,20 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
                     sourceShippingUsd: toUsd(
                       Number(shipping),
                       shippingCurrency,
+                      pricing.rates,
                     ),
                     sourceShippingEstimated: shippingEstimated,
                     shippingKnown: true,
                     boxedWeight: Number(weight),
                     weightOrigin,
                     importedAt,
+                    sourceExpiresAt,
                     imageOrigin: importedAt
                       ? "страница магазина"
                       : "ручной ввод",
                     declarationDescription: declaration || undefined,
                   };
-                  price(p.usd, p.weight, 1, p.sourceShippingUsd);
+                  price(p.usd, p.weight, 1, p.sourceShippingUsd, pricing);
                   select(p);
                 } catch (e) {
                   toast.error((e as Error).message);
@@ -556,6 +570,15 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
             Узбекистан
           </span>
           <h2>{name || "Ваш товар появится здесь"}</h2>
+          {importedAt && (
+            <p className="micro source-freshness">
+              Данные страницы проверены {new Date(importedAt).toLocaleString("ru-RU")}.
+              {sourceExpiresAt
+                ? ` Автообновление после ${new Date(sourceExpiresAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}.`
+                : ""}{" "}
+              Перед оформлением ещё раз сверьте цену и наличие.
+            </p>
+          )}
           {declaration && (
             <div className="declaration-preview">
               <b>Черновик декларации</b>

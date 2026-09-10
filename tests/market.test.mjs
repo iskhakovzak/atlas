@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {products,tariff,quote,price,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource} from '../lib/market/domain.ts';
+import {products,tariff,quote,price,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource,markNotificationsRead} from '../lib/market/domain.ts';
 import {customsVersion} from '../lib/market/world.ts';
 const checkoutCart=(s,key,sig,balance,now)=>checkoutCore(s,key,sig,balance,now,customsVersion);
 const prepare=()=>{const s=addToCart(blank(),products[0],'US 9',1000);return checkoutCart(s,'purchase-1',cartSignature(s.cart),false,1001)};
@@ -36,4 +36,10 @@ let purchased=prepare();purchased=advanceOrder(purchased,purchased.orders[0].id,
 });
 test('URLs reject unsafe schemes and credential-bearing source links',()=>{
 assert.equal(validateSource('https://www.example.com/product'),'https://www.example.com/product');for(const url of ['javascript:alert(1)','http://example.com/x','https://user:pass@example.com/x','https://127.0.0.1/x','text'])assert.throws(()=>validateSource(url));
+});
+test('managed pricing affects new quotes while old orders stay immutable',()=>{
+const managed={...tariff,fx:13000,perKg:100000,version:'managed-test',updatedAt:2000};let state=addToCart(blank(),products[0],'US 9',1000,managed);assert.equal(state.cart[0].quote.tariffVersion,'managed-test');assert.equal(state.cart[0].quote.fx,13000);state=checkoutCart(state,'managed',cartSignature(state.cart),false,1001);const original=JSON.stringify(state.orders[0].quote);managed.fx=14000;assert.equal(JSON.stringify(state.orders[0].quote),original);
+});
+test('operator progress creates customer notifications that can be marked read',()=>{
+let state=prepare();const id=state.orders[0].id;state=advanceOrder(state,id,0,3000);assert.equal(state.notifications.length,1);assert.equal(state.notifications[0].orderId,id);assert.equal(state.notifications[0].read,false);state=markNotificationsRead(state);assert.equal(state.notifications[0].read,true);
 });

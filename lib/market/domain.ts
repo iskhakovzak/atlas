@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { customsVersion } from "./world.ts";
+import { customsVersion, usdRates } from "./world.ts";
 
 export const money = (n: number) =>
   new Intl.NumberFormat("ru-RU").format(n) + " сум";
@@ -27,6 +27,7 @@ export const productSchema = z.object({
   boxedWeight: positive.optional(),
   weightOrigin: z.string().optional(),
   importedAt: amount.optional(),
+  sourceExpiresAt: amount.optional(),
   imageOrigin: z.string().optional(),
   declarationDescription: z.string().max(240).optional(),
 });
@@ -75,13 +76,27 @@ export const products: Product[] = [
       "Один рюкзак для повседневных планов. Изучите расчёт покупки и доставки до оформления заказа.",
   },
 ];
-export const tariff = {
+export const pricingSchema = z.object({
+  fx: positive.max(1_000_000),
+  perKg: positive.max(10_000_000),
+  margin: z.number().finite().min(0).max(1),
+  reserve: z.number().finite().min(0).max(2),
+  divisor: positive.max(100_000),
+  rates: z.record(z.string(), positive).default(usdRates),
+  version: z.string().min(1).max(80),
+  updatedAt: amount,
+  managedBy: z.string().max(160).optional(),
+});
+export type Pricing = z.infer<typeof pricingSchema>;
+export const tariff: Pricing = {
   fx: 12800,
   perKg: 90000,
   margin: 0.12,
   reserve: 0.2,
   divisor: 5000,
-  version: "demo-1" as const,
+  rates: usdRates,
+  version: "demo-1",
+  updatedAt: 0,
 };
 const quoteSchema = z.object({
   id: z.string(),
@@ -93,7 +108,10 @@ const quoteSchema = z.object({
   reserve: amount,
   total: amount,
   weight: positive,
-  tariffVersion: z.literal("demo-1"),
+  tariffVersion: z.string(),
+  fx: positive.optional(),
+  margin: z.number().finite().min(0).max(1).optional(),
+  reserveRate: z.number().finite().min(0).max(2).optional(),
   perKg: positive.optional(),
   divisor: positive.optional(),
   sourceShipping: amount.optional(),
@@ -104,6 +122,7 @@ export function price(
   weight: number,
   quantity = 1,
   sourceShippingUsd = 0,
+  config: Pricing = tariff,
 ) {
   if (
     !Number.isFinite(usd) ||
@@ -123,11 +142,11 @@ export function price(
     sourceShippingUsd > 10000
   )
     throw Error("Проверьте доставку магазина.");
-  const sourceShipping = Math.ceil(sourceShippingUsd * quantity * tariff.fx);
-  const merchandise = Math.round(usd * quantity * tariff.fx),
-    service = Math.round(merchandise * tariff.margin),
-    shipping = Math.ceil(weight * quantity * tariff.perKg),
-    reserve = Math.ceil(shipping * tariff.reserve);
+  const sourceShipping = Math.ceil(sourceShippingUsd * quantity * config.fx);
+  const merchandise = Math.round(usd * quantity * config.fx),
+    service = Math.round(merchandise * config.margin),
+    shipping = Math.ceil(weight * quantity * config.perKg),
+    reserve = Math.ceil(shipping * config.reserve);
   return {
     merchandise,
     service,
@@ -144,15 +163,19 @@ export function quote(
   now = Date.now(),
   quantity = 1,
   sourceShippingUsd = 0,
+  config: Pricing = tariff,
 ): Quote {
   return {
     id: crypto.randomUUID(),
     createdAt: now,
     expiresAt: now + 15 * 60000,
-    ...price(usd, weight, quantity, sourceShippingUsd),
-    tariffVersion: tariff.version,
-    perKg: tariff.perKg,
-    divisor: tariff.divisor,
+    ...price(usd, weight, quantity, sourceShippingUsd, config),
+    tariffVersion: config.version,
+    fx: config.fx,
+    margin: config.margin,
+    reserveRate: config.reserve,
+    perKg: config.perKg,
+    divisor: config.divisor,
   };
 }
 const settlementSchema = z.object({
@@ -244,6 +267,15 @@ const entrySchema = z.object({
   description: z.string(),
 });
 export type Entry = z.infer<typeof entrySchema>;
+const notificationSchema = z.object({
+  id: z.string(),
+  at: amount,
+  title: z.string().max(120),
+  message: z.string().max(300),
+  read: z.boolean().default(false),
+  orderId: z.string().optional(),
+});
+export type Notification = z.infer<typeof notificationSchema>;
 const cartSchema = z.object({
   id: z.string(),
   product: productSchema,
@@ -258,6 +290,7 @@ export const stateSchema = z.object({
   cart: z.array(cartSchema).default([]),
   favorites: z.array(z.string()).default([]),
   checkoutKeys: z.array(z.string()).default([]),
+  notifications: z.array(notificationSchema).default([]),
   version: z.number().default(2),
 });
 export type State = z.infer<typeof stateSchema>;
@@ -267,10 +300,28 @@ export const blank = (): State => ({
   cart: [],
   favorites: [],
   checkoutKeys: [],
+  notifications: [],
   version: 2,
 });
 export const parseState = (raw: string): State =>
   stateSchema.parse(JSON.parse(raw));
+const withNotification = (
+  state: State,
+  title: string,
+  message: string,
+  orderId?: string,
+  now = Date.now(),
+): State => ({
+  ...state,
+  notifications: [
+    { id: crypto.randomUUID(), at: now, title, message, read: false, orderId },
+    ...state.notifications,
+  ].slice(0, 80),
+});
+export const markNotificationsRead = (state: State): State => ({
+  ...state,
+  notifications: state.notifications.map((item) => ({ ...item, read: true })),
+});
 export const balanceOf = (state: State) =>
   state.entries.reduce(
     (sum, e) =>
@@ -286,12 +337,14 @@ export function addToCart(
   p: Product,
   variant: string,
   now = Date.now(),
+  config: Pricing = tariff,
 ): State {
   if (!p.variants.includes(variant)) throw Error("Выберите вариант товара.");
   const item = state.cart.find(
     (i) => i.product.id === p.id && i.variant === variant,
   );
-  if (item) return changeQuantity(state, item.id, item.quantity + 1, now);
+  if (item)
+    return changeQuantity(state, item.id, item.quantity + 1, now, config);
   return {
     ...state,
     cart: [
@@ -301,7 +354,7 @@ export function addToCart(
         product: p,
         variant,
         quantity: 1,
-        quote: quote(p.usd, p.weight, now, 1, p.sourceShippingUsd ?? 0),
+        quote: quote(p.usd, p.weight, now, 1, p.sourceShippingUsd ?? 0, config),
       },
     ],
   };
@@ -311,6 +364,7 @@ export function changeQuantity(
   id: string,
   quantity: number,
   now = Date.now(),
+  config: Pricing = tariff,
 ): State {
   const item = state.cart.find((i) => i.id === id);
   if (!item) throw Error("Товар уже удалён из корзины.");
@@ -327,13 +381,18 @@ export function changeQuantity(
               now,
               quantity,
               i.product.sourceShippingUsd ?? 0,
+              config,
             ),
           }
         : i,
     ),
   };
 }
-export function renewCart(state: State, now = Date.now()): State {
+export function renewCart(
+  state: State,
+  now = Date.now(),
+  config: Pricing = tariff,
+): State {
   return {
     ...state,
     cart: state.cart.map((i) => ({
@@ -344,6 +403,7 @@ export function renewCart(state: State, now = Date.now()): State {
         now,
         i.quantity,
         i.product.sourceShippingUsd ?? 0,
+        config,
       ),
     })),
   };
@@ -443,7 +503,7 @@ export function confirmStoreShipping(
   if (!Number.isFinite(actualUsd) || actualUsd < 0 || actualUsd > 10000)
     throw Error("Укажите фактическую доставку магазина в USD.");
   const estimated = o.quote.sourceShipping ?? 0;
-  const actual = Math.ceil(actualUsd * tariff.fx);
+  const actual = Math.ceil(actualUsd * (o.quote.fx ?? tariff.fx));
   const diff = estimated - actual;
   const settlement: StoreShippingSettlement = {
     estimated,
@@ -480,7 +540,17 @@ export function confirmStoreShipping(
         description: "Возврат разницы доставки магазина",
       },
     ];
-  return next;
+  return withNotification(
+    next,
+    settlement.extra ? "Нужно согласовать доставку" : "Доставка магазина уточнена",
+    settlement.extra
+      ? "Менеджер уточнил стоимость. Откройте заказ и подтвердите доплату."
+      : settlement.refund
+        ? "Разница с резервом возвращена на демобаланс."
+        : "Стоимость совпала с резервом заказа.",
+    id,
+    now,
+  );
 }
 
 export function approveStoreShippingExtra(
@@ -532,11 +602,11 @@ export function advanceOrder(
     throw Error("Этот переход пока недоступен.");
   if (o.status === 3 && !o.settlement)
     throw Error("Сначала сохраните взвешивание.");
-  return replace(state, {
+  return withNotification(replace(state, {
     ...o,
     status: o.status + 1,
     history: [...o.history, { at: now, text: statuses[o.status + 1] }],
-  });
+  }), "Статус заказа изменён", statuses[o.status + 1], id, now);
 }
 export function receiveOrder(
   state: State,
@@ -577,7 +647,17 @@ export function receiveOrder(
         description: "Возврат остатка доставки",
       },
     ];
-  return next;
+  return withNotification(
+    next,
+    s.extra ? "Нужна доплата за доставку" : "Посылка взвешена",
+    s.extra
+      ? "Фактический или объёмный вес превысил резерв. Проверьте новый расчёт."
+      : s.refund
+        ? "Остаток доставки возвращён на демобаланс."
+        : "Фактическая стоимость доставки подтверждена.",
+    id,
+    now,
+  );
 }
 export function approveExtra(
   state: State,

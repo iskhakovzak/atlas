@@ -28,7 +28,8 @@ Handoff baseline: commit 114c4cedd17567b799bfcfb5a0671e83d6c59d73, published ver
 | /order-by-link | Import product and create quote |
 | /cart | Cart, balance use, customs consent, simulated checkout |
 | /orders | Customer orders, photo refresh and extra approvals |
-| /operations | Operator workflow, currently only own account orders |
+| /operations | Cross-customer operator queue and managed pricing |
+| /notifications | In-app status, refund and approval notifications |
 | /account | ChatGPT profile and one-time legacy demo import |
 | /balance | Demo ledger/balance |
 | /favorites | Saved catalog items |
@@ -42,7 +43,7 @@ An operator is an authenticated customer whose email matches secret ATLAS_OPERAT
 
 ## Business logic and price calculation
 
-Demo pricing lives in lib/market/domain.ts and lib/market/world.ts:
+Default pricing lives in lib/market/domain.ts and lib/market/world.ts. The operator can replace it with a centrally managed version; new and renewed quotes use the current version while submitted orders keep their original values:
 
 | Item | Current demo rule |
 | --- | --- |
@@ -55,7 +56,7 @@ Demo pricing lives in lib/market/domain.ts and lib/market/world.ts:
 
 Quote is merchandise + merchant-to-warehouse shipping + service fee + international freight + international reserve. Source shipping is per unit and quantity currently multiplies it conservatively.
 
-Supported static source currencies: USD, EUR, GBP, RON, CNY, TRY, JPY, KRW, AED, CAD and AUD. RON exists for Zara Romania at static 0.23 USD/RON. These are demo conversions, not live FX.
+Supported source currencies: USD, EUR, GBP, RON, CNY, TRY, JPY, KRW, AED, CAD and AUD. Their USD rates, USD/UZS, freight, service, reserve and dimensional divisor are operator-managed. Values remain demo/managed data until a verified market feed is connected.
 
 ## Shipping, balance and recalculation
 
@@ -73,7 +74,7 @@ Order statuses: Ожидает выкупа → Выкуплен → На зар
 
 ## Importing stores and product data
 
-POST /api/import is signed-in, same-origin and rate-limited to 12 imports per user/minute. lib/importer/stores.ts contains a static explicit allowlist of more than 100 store/brand domains. Importer validates HTTPS, port, credentials and every redirect to prevent SSRF. It uses public browser-like requests, no customer cookies, a 15-second timeout and 3 MB decoded HTML cap.
+POST /api/import is signed-in, same-origin and rate-limited to 12 imports per user/minute. Successful results are cached in D1 for 10 minutes and carry a source timestamp/expiry. lib/importer/stores.ts contains a static explicit allowlist of more than 100 store/brand domains. Importer validates HTTPS, port, credentials and every redirect to prevent SSRF. It uses public browser-like requests, no customer cookies, a 15-second timeout and 3 MB decoded HTML cap.
 
 Generic parsing reads Schema.org JSON-LD plus Open Graph/Twitter fallback. It can return title, photo, price, currency, shipping, weights, category and declaration draft. Product form stays editable because stores can block Cloudflare, require login/region, generate price in JavaScript or change markup.
 
@@ -104,15 +105,20 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Merchant-shipping reserve confirmation/refund/extra flow.
 - Customer order view shows the pending merchant-shipping check and confirmed actual cost in USD and UZS.
 - Site navigation uses native document transitions to avoid the Vinext production prefetch failure that made links unresponsive.
+- Cross-customer operator queue with server-side operator authorization and revision conflicts.
+- Centrally managed versioned FX/tariff settings for future quotes.
+- In-app customer notifications for status changes, refunds and required approvals.
+- Ten-minute import cache with visible source freshness.
+- Headless browser smoke test clicks catalog filters, product details and primary navigation.
 - Warehouse actual/dimensional settlement and balance credits.
 
 ## Partial or missing
 
 - Store parser quality varies; only Zara has the detailed adapter.
 - Store shipping is frequently destination/session-dependent; $10 is reserve only.
-- Operations is not a multi-customer staff queue.
+- Operations supports one configured operator email; multi-staff roles, assignment and audit logs are not implemented.
 - Catalog is illustrative, not inventory.
-- No real payment, carrier, tracking, notification, live FX/tariffs, customs calculation, public registration or production ledger.
+- No real payment, carrier, tracking, email/SMS/push provider, automatic live FX feed, customs calculation, public registration or production ledger.
 
 ## Decisions not to lose
 

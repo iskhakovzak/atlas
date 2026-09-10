@@ -3,17 +3,20 @@
 ## Required before commercial launch
 
 - [ ] Add compliant real payment, provider webhook, refunds and reconciliation. Demo balance is not money.
-- [ ] Replace static FX and tariff constants with versioned live/managed data.
-- [ ] Build cross-customer operator queue, staff roles, audit trail and assignment.
+- [x] Replace static FX and tariff constants with versioned operator-managed data.
+- [ ] Connect and verify an automatic FX/tariff feed before presenting values as live.
+- [x] Build a server-authorized cross-customer operator queue.
+- [ ] Add multi-staff roles, assignment and an immutable audit trail.
 - [ ] Move from per-account JSON state to proper relational orders/ledger with migration, outbox and reconciliation.
 - [ ] Re-verify Uzbekistan customs rules, legal/privacy requirements and recipient-limit model.
-- [ ] Integrate actual carrier routes, tracking, volumetric rules and notifications.
+- [x] Add in-app order status, refund and approval notifications.
+- [ ] Integrate actual carrier routes/tracking and external email/SMS/push delivery.
 
 ## Importing
 
 - [ ] Add store-specific adapters from real test URLs. Zara is current detailed adapter; generic JSON-LD/OG is best effort.
 - [ ] Add authorized eBay Browse API if reliable eBay sourcing is needed. No credential/adapter exists.
-- [ ] Add caching, source timestamp and expiry for imports.
+- [x] Add caching, source timestamp and expiry for imports.
 - [ ] Improve option matrix: colour → valid size → price → stock; current UI uses a flat variant list.
 - [ ] Support multi-image gallery and stronger variant image switching for more stores.
 - [ ] Test the allowlist against live pages regularly. Store HTML and bot behavior change.
@@ -31,13 +34,14 @@
 - [ ] Decide on ChatGPT-only auth versus standalone customer registration.
 - [ ] Document/test production D1 migration from local machine before schema changes.
 - [ ] Add retention/deletion/export policy, backups and redacted observability.
-- [ ] Add authenticated end-to-end browser tests.
+- [x] Add a headless browser smoke test for core public interactions and navigation.
+- [ ] Extend browser coverage through authenticated checkout and operator actions.
 
 ## Known prototype limits
 
 - [ ] Revisit client-side RSC navigation after Vinext fixes its production prefetch runtime; Atlas currently uses reliable full-page navigation.
 - [ ] No real payment or delivery.
-- [ ] Operations page sees only the operator’s own account orders.
+- [ ] Only one operator email is supported; staff roles and assignment are still missing.
 - [ ] $10 merchant shipping is an estimate, not a fetched quote.
 - [ ] Allowed stores can still block, localize, require login or change HTML; manual entry must remain.
 - [ ] RON conversion 0.23 USD/RON is static demo data.
