@@ -61,6 +61,8 @@
 
 ## Known prototype limits
 
+- [ ] Connect verified merchant deal records before a real deals launch: source URL, seller identity, timestamped price history, currency, availability and expiry. Current comparison prices are marked as illustrative; invented freshness and countdown claims have been removed.
+
 - [ ] Revisit client-side RSC navigation after Vinext fixes its production prefetch runtime; Atlas currently uses reliable full-page navigation.
 - [ ] No real payment or delivery.
 - [ ] Only one operator email is supported; team assignment exists, but independent staff identities and permissions are still missing.

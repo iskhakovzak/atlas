@@ -14,6 +14,7 @@
 | Area | Files |
 | --- | --- |
 | Shell/navigation/catalog | app/marketplace.tsx, app/layout.tsx, app/globals.css |
+| Deals-first feed/favourites | app/deals-feed.tsx, app/finds.css, lib/market/deals.ts, lib/market/deal-copy.ts; existing products, pricing and authenticated favourite action |
 | Shared Atlas visual system | app/atlas-design.css, loaded after base styles in app/layout.tsx; navy/blue/lime palette, responsive hero, cards, account, forms and order surfaces |
 | Link order | app/global-link-order.tsx |
 | Cart | app/shopping.tsx |

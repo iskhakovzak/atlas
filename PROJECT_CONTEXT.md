@@ -140,7 +140,8 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 ## Pre-release service experience
 
 - Atlas has a shared blue/navy/lime design system, a link-first home screen with an interactive catalog example, responsive four-step journey, and consistent account/forms/order styling. Existing images, navigation and server actions are retained.
-- The home screen now leads with a curated «Выгодные находки» feed: category filters, discount badges, source merchant, freshness wording, and an estimated delivered total before opening the existing product sheet.
+- The home and favourites use one deals-first feed with search, category/country filters, a delivered-cost budget, percentage/total sorting, saved items, and expandable quote breakdowns. Link entry remains below the feed. The new feed controls and descriptions support RU/UZ/EN; legacy sections and the product sheet retain their existing translations.
+- The three catalog items and reference USD prices are explicitly illustrative. No merchant, verification time, expiry or availability is asserted without a connected source. USD product discounts are calculated from the illustrative reference price, while the UZS total uses the same pricing function as the product sheet/cart and separately excludes customs charges.
 
 - The home screen explains the path from a store link to a preliminary calculation, confirmation and status tracking. It also includes a supported-store preview, FAQ and clear pre-release/trust notices.
 - A profile can store several recipient addresses. The chosen primary recipient remains compatible with checkout and declarations. Customer support requests are retained in that customer's account state; staff response workflow still needs an operational queue.

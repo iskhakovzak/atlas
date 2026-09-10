@@ -126,11 +126,11 @@ try {
     "[...document.querySelectorAll('button')].find((item) => item.textContent?.trim() === 'Обувь')?.click()",
   );
   await eventually(
-    "document.body.textContent.includes('1 из 3 товаров')",
+    "document.querySelector('.finds-result [role=status]')?.textContent?.trim() === 'Найдено: 1'",
     "catalog category button",
   );
   await evaluate(
-    "document.querySelector('button[aria-label^=\"Подробнее:\"]')?.click()",
+    "document.querySelector('button.find-photo')?.click()",
   );
   await eventually(
     "document.body.textContent.includes('Расчёт стоимости')",
