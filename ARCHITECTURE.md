@@ -19,6 +19,7 @@
 | Orders, operations, balance | app/order-workspace.tsx |
 | Analytics, legal/readiness | app/prelaunch-views.tsx |
 | Account/customs | app/account-views.tsx, app/customs/page.tsx |
+| Identity/declaration/address help | app/identity-workspace.tsx, app/api/passport, lib/market/addresses.ts |
 | Client provider | lib/market/store.tsx |
 | Auth | app/chatgpt-auth.ts |
 | API | app/api/account, app/api/actions, app/api/import, app/api/operations |
@@ -63,7 +64,9 @@ market_rate_limits stores per-minute import counters and expiry.
 
 market_settings stores the current versioned pricing JSON and update identity. market_import_cache stores allowlisted extracted product payloads for ten minutes.
 
-State contains orders, ledger entries, cart, favourites, checkout idempotency keys, a saved delivery profile, communication preferences, prepared email/SMS records and version. Order contains product snapshot, immutable quote, delivery snapshot, simulated payment, parcel/tracking events, assignment, staff notes, status/history, both settlement types, approvals, quantity, balance use and customs consent.
+market_identity_documents stores owner, private R2 object key, safe file metadata, confirmation status and confirmed JSON. Passport bytes are stored in private BUCKET R2 and never exposed through a public URL.
+
+State contains orders, ledger entries, cart, favourites, checkout idempotency keys, a saved delivery profile, an optional confirmed identity profile with masked passport number, test declarations, communication preferences, prepared email/SMS records and version. Order contains product snapshot, immutable quote, delivery snapshot, simulated payment, parcel/tracking events, assignment, staff notes, status/history, both settlement types, approvals, quantity, balance use and customs consent.
 
 ## APIs
 
@@ -74,8 +77,11 @@ State contains orders, ledger entries, cart, favourites, checkout idempotency ke
 | POST /api/actions | identity + same origin + action/revision → next state |
 | GET /api/operations | operator identity → all customer queues + current pricing |
 | POST /api/operations | operator identity + target revision → order action or pricing update |
+| GET /api/passport | authenticated identity → own document metadata only |
+| POST /api/passport | identity + same origin + multipart image/PDF → private R2 object + D1 metadata |
+| DELETE /api/passport?id=… | identity + same origin + ownership → delete private object and metadata |
 
-Action types: favorite, order-image, cart-add, cart-quantity, cart-remove, cart-renew, checkout, payment-demo, communication-save, assign-order, staff-note, parcel-set, advance, receive, confirm-store-shipping, approve-extra, approve-store-shipping-extra, cancel, notifications-read and import-legacy. Assignment, staff notes, parcel changes, advance, receive and merchant-shipping confirmation require operator on server. Cross-customer actions additionally verify the target account revision.
+Action types additionally include identity-confirm, identity-clear and declaration-preview. Identity confirmation requires an owner-scoped D1 passport record; the server masks the number before account persistence. Declaration snapshots are recomputed from confirmed state and selected server-side orders. Assignment, staff notes, parcel changes, advance, receive and merchant-shipping confirmation require operator on server. Cross-customer actions additionally verify the target account revision.
 
 ## Environment and services
 
@@ -83,7 +89,7 @@ Action types: favorite, order-image, cart-add, cart-quantity, cart-remove, cart-
 | --- | --- |
 | DB | Required D1 binding |
 | ATLAS_OPERATOR_EMAIL | Optional Worker secret granting operator role |
-| BUCKET | Declared but unused |
+| BUCKET | Private R2 storage for owner-scoped passport scans |
 
 No payment processor, eBay API, carrier API, automatic FX API or email/SMS provider exists. Payment webhooks, tracking and external messages are safely represented inside Atlas for the pre-release demo only. FX/tariffs are operator-managed and product imports have a short D1 cache.
 
@@ -92,6 +98,7 @@ No payment processor, eBay API, carrier API, automatic FX API or email/SMS provi
 - Identity only from request headers on server.
 - Same-origin write/import routes.
 - Maximum 1 MB JSON account state.
+- Passport uploads require sign-in, same origin, owner-scoped keys, JPG/PNG/PDF MIME plus magic-byte validation, and an 8 MB limit.
 - Zod action schemas and server recalculation.
 - Merchant allowlist and redirect validation.
 - Time/body caps, captcha detection and safe image validation.

@@ -1,0 +1,1 @@
+CREATE INDEX `idx_market_identity_documents_user_created` ON `market_identity_documents` (`user_id`,`created_at`);

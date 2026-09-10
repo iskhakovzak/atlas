@@ -17,9 +17,11 @@ Handoff baseline: commit 5736d9a53a55d77e1435d8bf55e0e22de92fe7ff, published ver
 4. Customer checks/edits the source data, selects size/colour/model and adds to cart.
 5. If store shipping is unavailable, the form starts with editable $10 reserve.
 6. Customer accepts customs conditions, enters the recipient/address and completes pre-release checkout. One cart line becomes one order.
-7. Customer confirms a safe simulated payment-provider result; no charge occurs.
-8. Operator assigns a team and priority, adds internal notes, confirms merchant shipping, purchase, parcel/tracking, warehouse receipt, settlement and dispatch status.
-9. Refunds appear as demo balance credit; extras require approval before the order proceeds.
+7. Customer can upload a passport scan to private object storage, check/edit browser-detected MRZ fields and explicitly confirm identity data.
+8. Confirmed identity, saved address and selected order lines form a test declaration package. It stays inside Atlas and is not transmitted to customs.
+9. Customer confirms a safe simulated payment-provider result; no charge occurs.
+10. Operator assigns a team and priority, adds internal notes, confirms merchant shipping, purchase, parcel/tracking, warehouse receipt, settlement and dispatch status.
+11. Refunds appear as demo balance credit; extras require approval before the order proceeds.
 
 ## Current routes
 
@@ -37,6 +39,8 @@ Handoff baseline: commit 5736d9a53a55d77e1435d8bf55e0e22de92fe7ff, published ver
 | /balance | Demo ledger/balance |
 | /favorites | Saved catalog items |
 | /customs | Customs guidance and consent |
+| /identity | Private passport upload, MRZ assistance and customer confirmation |
+| /declaration | Test declaration package from confirmed identity, address and orders |
 
 ## Roles and authentication
 
@@ -115,6 +119,10 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Headless browser smoke test clicks catalog filters, product details and primary navigation.
 - Warehouse actual/dimensional settlement and balance credits.
 - Recipient/address checkout and saved primary delivery profile.
+- Local Uzbekistan region, city and street suggestions without sending typed addresses to a third-party geocoder.
+- Private owner-scoped passport files in R2 with D1 metadata, consent, format/size/signature checks and deletion.
+- Browser-assisted MRZ recognition when supported, with mandatory editable customer confirmation and a masked passport number in account state.
+- Server-built declaration previews from confirmed identity, saved address and immutable order snapshots; no customs transmission.
 - Simulated payment-link state with customer confirmation and refund status.
 - Parcel, carrier, tracking number and tracking-event history.
 - Operator team/priority assignment and internal notes.
@@ -130,6 +138,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Operations supports one configured operator email. Team assignment and notes work, but independent staff identities and permission roles are not connected.
 - Catalog is illustrative, not inventory.
 - No real payment, carrier API, email/SMS provider, automatic live FX feed, customs calculation, public registration or production ledger. Tracking is operator-entered.
+- Passport OCR is best effort; unsupported browsers fall back to manual confirmation. There is no government identity validation, liveness check or customs gateway.
 
 ## Decisions not to lose
 
@@ -139,3 +148,4 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Server domain actions and compare-and-swap revision own all state changes.
 - D1 holds one JSON State per user; do not replace it without a data migration.
 - Do not describe the prototype as commercially live.
+- Passport bytes belong in private R2 paths; D1 stores owner-scoped metadata and account state stores only confirmed fields plus a masked number.

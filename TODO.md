@@ -9,6 +9,8 @@
 - [x] Add email/SMS preferences and persistent message previews without external transmission.
 - [x] Add operator analytics, pilot-readiness dashboard and pre-release legal drafts.
 - [x] Add customer profile export and authenticated end-to-end API smoke coverage.
+- [x] Add private passport upload, editable MRZ assistance, explicit confirmation, deletion and masked identity state.
+- [x] Add local address suggestions and server-built test declaration packages without external transmission.
 
 ## Required before commercial launch
 
@@ -44,6 +46,9 @@
 - [ ] Decide on ChatGPT-only auth versus standalone customer registration.
 - [ ] Document/test production D1 migration from local machine before schema changes.
 - [ ] Add retention/deletion/export policy, backups and redacted observability.
+- [ ] Select a compliant production OCR/identity provider, document consent/legal basis, retention windows and regional data processing before relying on passport recognition.
+- [ ] Add scan-quality checks for blur, glare, cropped MRZ, expiry and check digits; current browser OCR is best effort and manual confirmation remains required.
+- [ ] Add a real customs integration only after official API access, document mapping, signed audit trail and legal review. Current submission status is preview-only.
 - [x] Add a headless browser smoke test for core public interactions and navigation.
 - [ ] Extend browser coverage through authenticated checkout and operator actions.
 

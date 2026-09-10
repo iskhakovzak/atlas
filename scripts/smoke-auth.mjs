@@ -23,6 +23,12 @@ async function request(path, { email = customerEmail, method = "GET", body } = {
   if (!response.ok) throw Error(`${method} ${path}: ${response.status} ${data.error ?? "failed"}`);
   return data;
 }
+async function requestForm(path, form, method = "POST") {
+  const response = await fetch(new URL(path, base), { method, headers: { ...auth(customerEmail), Origin: base.origin }, body: form });
+  const data = await response.json();
+  if (!response.ok) throw Error(`${method} ${path}: ${response.status} ${data.error ?? "failed"}`);
+  return data;
+}
 
 let account = await request("/api/account");
 const apply = async (action) => {
@@ -56,6 +62,16 @@ await operate({ type: "advance", id: orderId, expected: 3 });
 await operate({ type: "advance", id: orderId, expected: 4 });
 assert.equal(account.state.orders[0].status, 5);
 assert.equal(account.state.orders[0].parcel.events.at(-1).status, "Доставлено получателю");
+account = await request("/api/account");
 const operations = await request("/api/operations", { email: operatorEmail });
 assert(operations.accounts.some((item) => item.id === `email:${customerEmail}`));
-process.stdout.write("Authenticated pre-release smoke passed: checkout, payment, assignment, notes, parcel, tracking, delivery, email/SMS preview.\n");
+const scan = new Uint8Array(128);scan[0]=0xff;scan[1]=0xd8;scan[127]=0xd9;
+const form = new FormData();form.append("file",new File([scan],"passport-smoke.jpg",{type:"image/jpeg"}));
+const uploaded = await requestForm("/api/passport",form);
+await apply({type:"identity-confirm",documentId:uploaded.document.id,firstName:"ATLAS",lastName:"CUSTOMER",birthDate:"1990-01-01",passportNumber:"AA1234567",nationality:"UZB"});
+assert.equal(account.state.identityProfile.passportMasked,"•••• 4567");
+await apply({type:"declaration-preview",orderIds:[orderId]});
+assert.equal(account.state.declarations[0].orderIds[0],orderId);
+await request(`/api/passport?id=${encodeURIComponent(uploaded.document.id)}`,{method:"DELETE",body:{}});
+process.stdout.write("Authenticated pre-release smoke passed: checkout, payment, passport, declaration, assignment, notes, parcel, tracking, delivery, email/SMS preview.\n");
+process.exit(0);

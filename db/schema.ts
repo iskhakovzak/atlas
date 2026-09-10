@@ -1,5 +1,6 @@
-import {sqliteTable,text,integer} from 'drizzle-orm/sqlite-core';
+import {sqliteTable,text,integer,index} from 'drizzle-orm/sqlite-core';
 export const accounts=sqliteTable('market_accounts',{userId:text('user_id').primaryKey(),name:text('name').notNull(),state:text('state').notNull(),revision:integer('revision').notNull().default(0),createdAt:integer('created_at').notNull(),updatedAt:integer('updated_at').notNull()});
 export const limits=sqliteTable('market_rate_limits',{key:text('key').primaryKey(),count:integer('count').notNull(),expiresAt:integer('expires_at').notNull()});
 export const settings=sqliteTable('market_settings',{key:text('key').primaryKey(),value:text('value').notNull(),updatedAt:integer('updated_at').notNull(),updatedBy:text('updated_by').notNull()});
 export const importCache=sqliteTable('market_import_cache',{url:text('url').primaryKey(),payload:text('payload').notNull(),expiresAt:integer('expires_at').notNull(),updatedAt:integer('updated_at').notNull()});
+export const identityDocuments=sqliteTable('market_identity_documents',{id:text('id').primaryKey(),userId:text('user_id').notNull(),objectKey:text('object_key').notNull(),filename:text('filename').notNull(),contentType:text('content_type').notNull(),size:integer('size').notNull(),status:text('status').notNull().default('uploaded'),confirmedData:text('confirmed_data'),createdAt:integer('created_at').notNull(),updatedAt:integer('updated_at').notNull()},table=>[index('idx_market_identity_documents_user_created').on(table.userId,table.createdAt)]);

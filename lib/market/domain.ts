@@ -246,6 +246,16 @@ export const deliveryProfileSchema = z.object({
   comment: z.string().trim().max(300).default(""),
 });
 export type DeliveryProfile = z.infer<typeof deliveryProfileSchema>;
+export const identityProfileSchema = z.object({
+  documentId: z.string().min(1).max(100),
+  firstName: z.string().trim().min(1).max(80),
+  lastName: z.string().trim().min(1).max(80),
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  passportMasked: z.string().max(32),
+  nationality: z.string().trim().max(80).default(""),
+  confirmedAt: amount,
+});
+export type IdentityProfile = z.infer<typeof identityProfileSchema>;
 const paymentSchema = z.object({
   id: z.string(),
   status: z.enum(["pending", "paid", "refunded"]),
@@ -343,6 +353,14 @@ const messageDeliverySchema = z.object({
   orderId: z.string().optional(),
 });
 export type MessageDelivery = z.infer<typeof messageDeliverySchema>;
+const declarationSchema = z.object({
+  id: z.string(), createdAt: amount, status: z.literal("submitted-preview"),
+  identity: identityProfileSchema, delivery: deliveryProfileSchema,
+  orderIds: z.array(z.string()).min(1),
+  lines: z.array(z.object({ orderId: z.string(), description: z.string().max(240), country: z.string().max(100), quantity: z.number().int().positive(), value: amount })),
+  totalValue: amount,
+});
+export type Declaration = z.infer<typeof declarationSchema>;
 const cartSchema = z.object({
   id: z.string(),
   product: productSchema,
@@ -359,6 +377,8 @@ export const stateSchema = z.object({
   checkoutKeys: z.array(z.string()).default([]),
   notifications: z.array(notificationSchema).default([]),
   deliveryProfile: deliveryProfileSchema.optional(),
+  identityProfile: identityProfileSchema.optional(),
+  declarations: z.array(declarationSchema).default([]),
   communication: communicationSchema.default({
     emailEnabled: false,
     smsEnabled: false,
@@ -385,6 +405,7 @@ export const blank = (): State => ({
     language: "ru",
   },
   messageDeliveries: [],
+  declarations: [],
   version: 3,
 });
 export const parseState = (raw: string): State =>
@@ -434,6 +455,27 @@ export const updateCommunication = (
   state: State,
   value: Communication,
 ): State => ({ ...state, communication: communicationSchema.parse(value) });
+export function confirmIdentity(state: State, value: Omit<IdentityProfile, "passportMasked" | "confirmedAt"> & { passportNumber: string }, now = Date.now()): State {
+  const cleanNumber = value.passportNumber.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+  if (cleanNumber.length < 6 || cleanNumber.length > 20) throw Error("Проверьте номер паспорта.");
+  const birth = new Date(value.birthDate + "T00:00:00Z");
+  if (!Number.isFinite(birth.getTime()) || birth.getTime() > now || birth.getUTCFullYear() < new Date(now).getUTCFullYear() - 120) throw Error("Проверьте дату рождения.");
+  return { ...state, identityProfile: identityProfileSchema.parse({ ...value, passportMasked: "•••• " + cleanNumber.slice(-4), confirmedAt: now }) };
+}
+
+export function clearIdentity(state: State, documentId: string): State {
+  return state.identityProfile?.documentId === documentId ? { ...state, identityProfile: undefined } : state;
+}
+
+export function submitDeclarationPreview(state: State, orderIds: string[], now = Date.now()): State {
+  if (!state.identityProfile) throw Error("Сначала подтвердите паспортные данные.");
+  if (!state.deliveryProfile) throw Error("Сначала сохраните адрес доставки.");
+  const selected = [...new Set(orderIds)].map((id) => state.orders.find((order) => order.id === id)).filter((order): order is Order => !!order && !order.cancelled);
+  if (!selected.length) throw Error("Выберите хотя бы один действующий заказ.");
+  const lines = selected.map((order) => ({ orderId: order.id, description: order.product.declarationDescription ?? order.product.name, country: order.product.country ?? "Не указана", quantity: order.quantity, value: order.quote.merchandise }));
+  const declaration: Declaration = { id: "DEC-" + crypto.randomUUID().slice(0, 8).toUpperCase(), createdAt: now, status: "submitted-preview", identity: state.identityProfile, delivery: state.deliveryProfile, orderIds: selected.map((order) => order.id), lines, totalValue: lines.reduce((sum, line) => sum + line.value, 0) };
+  return withNotification({ ...state, declarations: [declaration, ...state.declarations].slice(0, 20) }, "Тестовая декларация подготовлена", `Пакет ${declaration.id} сохранён внутри Atlas. В таможню он не отправлялся.`);
+}
 export const balanceOf = (state: State) =>
   state.entries.reduce(
     (sum, e) =>

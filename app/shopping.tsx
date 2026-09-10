@@ -8,6 +8,7 @@ import { useMarket } from "@/lib/market/store";
 import { balanceOf, cartSignature, money, totalOf, type DeliveryProfile } from "@/lib/market/domain";
 import { customsVersion } from "@/lib/market/world";
 import { CostLines, Empty, Expiry, Modal, PageHeading, ProductImage } from "./market-ui";
+import {cities,regions,streets,suggestions} from "@/lib/market/addresses";
 
 const emptyDelivery: DeliveryProfile = { recipient: "", phone: "", region: "Ташкент", city: "Ташкент", address: "", postalCode: "", comment: "" };
 
@@ -87,10 +88,10 @@ export function CartView() {
         <div className="two-fields">
           <div className="field"><label htmlFor="recipient">Получатель</label><input id="recipient" required minLength={2} maxLength={100} value={delivery.recipient} onChange={(event) => setDelivery({ ...delivery, recipient: event.target.value })} /></div>
           <div className="field"><label htmlFor="recipient-phone">Телефон</label><input id="recipient-phone" required type="tel" minLength={7} maxLength={30} placeholder="+998 90 123 45 67" value={delivery.phone} onChange={(event) => setDelivery({ ...delivery, phone: event.target.value })} /></div>
-          <div className="field"><label htmlFor="region">Область</label><input id="region" required minLength={2} maxLength={100} value={delivery.region} onChange={(event) => setDelivery({ ...delivery, region: event.target.value })} /></div>
-          <div className="field"><label htmlFor="city">Город</label><input id="city" required minLength={2} maxLength={100} value={delivery.city} onChange={(event) => setDelivery({ ...delivery, city: event.target.value })} /></div>
+          <div className="field"><label htmlFor="region">Область</label><input id="region" list="region-suggestions" autoComplete="address-level1" required minLength={2} maxLength={100} value={delivery.region} onChange={(event) => setDelivery({ ...delivery, region: event.target.value })} /><datalist id="region-suggestions">{suggestions(regions,delivery.region).map(value=><option key={value} value={value}/>)}</datalist></div>
+          <div className="field"><label htmlFor="city">Город</label><input id="city" list="city-suggestions" autoComplete="address-level2" required minLength={2} maxLength={100} value={delivery.city} onChange={(event) => setDelivery({ ...delivery, city: event.target.value })} /><datalist id="city-suggestions">{suggestions(cities,delivery.city).map(value=><option key={value} value={value}/>)}</datalist></div>
         </div>
-        <div className="field"><label htmlFor="delivery-address">Улица, дом, квартира</label><input id="delivery-address" required minLength={5} maxLength={220} placeholder="ул. Амира Темура, 10, кв. 5" value={delivery.address} onChange={(event) => setDelivery({ ...delivery, address: event.target.value })} /></div>
+        <div className="field"><label htmlFor="delivery-address">Улица, дом, квартира</label><input id="delivery-address" list="street-suggestions" autoComplete="street-address" required minLength={5} maxLength={220} placeholder="Начните вводить улицу" value={delivery.address} onChange={(event) => setDelivery({ ...delivery, address: event.target.value })} /><datalist id="street-suggestions">{suggestions(streets,delivery.address).map(value=><option key={value} value={value}/>)}</datalist><small>Подсказки Atlas работают локально — адрес не передаётся стороннему поиску.</small></div>
         <div className="two-fields">
           <div className="field"><label htmlFor="postal-code">Индекс</label><input id="postal-code" maxLength={20} value={delivery.postalCode} onChange={(event) => setDelivery({ ...delivery, postalCode: event.target.value })} /></div>
           <div className="field"><label htmlFor="delivery-comment">Комментарий</label><input id="delivery-comment" maxLength={300} value={delivery.comment} onChange={(event) => setDelivery({ ...delivery, comment: event.target.value })} /></div>

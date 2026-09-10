@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {products,tariff,quote,price,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource,markNotificationsRead,confirmDemoPayment,updateCommunication,assignOrder,addStaffNote,setParcel} from '../lib/market/domain.ts';
+import {products,tariff,quote,price,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource,markNotificationsRead,confirmDemoPayment,updateCommunication,assignOrder,addStaffNote,setParcel,confirmIdentity,submitDeclarationPreview,clearIdentity} from '../lib/market/domain.ts';
 import {customsVersion} from '../lib/market/world.ts';
 const checkoutCart=(s,key,sig,balance,now)=>checkoutCore(s,key,sig,balance,now,customsVersion);
 const prepare=()=>{let s=addToCart(blank(),products[0],'US 9',1000);s=checkoutCart(s,'purchase-1',cartSignature(s.cart),false,1001);return confirmDemoPayment(s,s.orders[0].id,1002)};
@@ -51,4 +51,12 @@ assert.equal(state.orders[0].delivery.city,'Ташкент');assert.equal(state.
 state=confirmDemoPayment(state,id,1002);assert.equal(state.orders[0].payment.status,'paid');assert.equal(state.messageDeliveries.length,2);
 state=assignOrder(state,id,'Закупки','Высокий',1003);state=addStaffNote(state,id,'Проверить размер','Оператор',1004);state=advanceOrder(state,id,0,1005);state=setParcel(state,id,'Atlas Cargo','ATLAS-001','WH-TAS-01',1006);
 assert.equal(state.orders[0].assignment.priority,'Высокий');assert.equal(state.orders[0].staffNotes[0].text,'Проверить размер');assert.equal(state.orders[0].parcel.trackingNumber,'ATLAS-001');
+});
+test('confirmed passport data is masked and declaration is server-built from orders',()=>{
+const delivery={recipient:'Anna Karimova',phone:'+998901234567',region:'Ташкент',city:'Ташкент',address:'ул. Навои, 10',postalCode:'100000',comment:''};
+let state=addToCart(blank(),products[0],'US 9',1000);state=checkoutCore(state,'identity',cartSignature(state.cart),false,1001,customsVersion,delivery);const orderId=state.orders[0].id;
+state=confirmIdentity(state,{documentId:'DOC-1',firstName:'ANNA',lastName:'KARIMOVA',birthDate:'1995-04-20',passportNumber:'AA1234567',nationality:'UZB'},Date.UTC(2026,8,10));
+assert.equal(state.identityProfile.passportMasked,'•••• 4567');assert.equal(JSON.stringify(state).includes('AA1234567'),false);
+state=submitDeclarationPreview(state,[orderId],2001);assert.equal(state.declarations[0].lines[0].orderId,orderId);assert.equal(state.declarations[0].delivery.city,'Ташкент');assert.equal(state.declarations[0].status,'submitted-preview');assert.equal(state.notifications[0].title,'Тестовая декларация подготовлена');
+state=clearIdentity(state,'DOC-1');assert.equal(state.identityProfile,undefined);assert.throws(()=>submitDeclarationPreview(state,[orderId],2002));
 });

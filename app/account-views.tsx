@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "@/components/site-link";
-import { ArrowUpRight, BarChart3, Check, Download, FileText, LogOut, Package, ShieldCheck, Upload, UserRound, Wallet } from "lucide-react";
+import { ArrowUpRight, BarChart3, Check, Download, FileCheck2, FileText, LogOut, Package, ScanLine, ShieldCheck, Upload, UserRound, Wallet } from "lucide-react";
 import { useMarket } from "@/lib/market/store";
 import { customsSources } from "@/lib/market/world";
 import { balanceOf, money } from "@/lib/market/domain";
@@ -29,6 +29,8 @@ export function AccountView() {
           <div className="profile-actions"><button className="btn secondary" onClick={exportProfile}><Download size={17} /> Скачать мои данные</button><a className="text-link" href="/signout-with-chatgpt?return_to=%2Faccount" target="_top"><LogOut size={16} /> Выйти</a></div>
         </section>
         <section className="surface account-links">
+          <Link href="/identity"><ScanLine /><div>Паспорт<small>{state.identityProfile ? "Данные подтверждены" : "Нужно подтвердить"}</small></div><ArrowUpRight /></Link>
+          <Link href="/declaration"><FileCheck2 /><div>Декларации<small>{state.declarations.length} тестовых пакетов</small></div><ArrowUpRight /></Link>
           <Link href="/orders"><Package /><div>Мои заказы<small>{state.orders.length} заказов</small></div><ArrowUpRight /></Link>
           <Link href="/balance"><Wallet /><div>Демобаланс<small>{money(balanceOf(state))}</small></div><ArrowUpRight /></Link>
           <Link href="/notifications"><ShieldCheck /><div>Email и SMS<small>{state.communication.emailEnabled || state.communication.smsEnabled ? "Настроены" : "Выключены"}</small></div><ArrowUpRight /></Link>

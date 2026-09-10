@@ -46,7 +46,7 @@ For the complete authenticated pre-release flow, start the Worker with `ATLAS_OP
 npm run smoke:auth -- http://127.0.0.1:8787/
 ~~~
 
-The smoke uses a unique local customer and checks address checkout, simulated payment, team assignment, internal note, parcel/tracking, warehouse settlement, delivery and email/SMS previews. It never contacts external payment, carrier or messaging providers.
+The smoke uses a unique local customer and checks address checkout, simulated payment, private passport upload/deletion, masked identity, a test declaration, team assignment, internal note, parcel/tracking, warehouse settlement, delivery and email/SMS previews. It never contacts customs, external payment, carrier, identity or messaging providers.
 
 The command prints the loopback URL. Local portable profile can simulate sign-in at:
 
@@ -76,7 +76,7 @@ Local D1 is separate from production. To start fresh locally, delete .wrangler/s
 | DB | Required D1 Worker binding, declared in .openai/hosting.json |
 | ATLAS_OPERATOR_EMAIL | Hosted Worker secret, grants one email operator role |
 
-Worker runtime reads env from cloudflare:workers, not process.env. Do not commit secret values. BUCKET is declared in types but currently unused.
+Worker runtime reads env from cloudflare:workers, not process.env. Do not commit secret values. BUCKET stores private passport scans; local development uses Wrangler's local R2 state.
 
 ## Verification
 

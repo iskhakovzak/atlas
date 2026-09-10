@@ -24,6 +24,9 @@ import {
   assignOrder,
   addStaffNote,
   setParcel,
+  confirmIdentity,
+  clearIdentity,
+  submitDeclarationPreview,
   type Pricing,
   type State,
 } from "./domain.ts";
@@ -82,6 +85,9 @@ export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("approve-store-shipping-extra"), id, amount }),
   z.object({ type: z.literal("cancel"), id }),
   z.object({ type: z.literal("notifications-read") }),
+  z.object({ type: z.literal("identity-confirm"), documentId: z.string().min(1).max(100), firstName: z.string().trim().min(1).max(80), lastName: z.string().trim().min(1).max(80), birthDate: z.string(), passportNumber: z.string().min(6).max(24), nationality: z.string().trim().max(80) }),
+  z.object({ type: z.literal("identity-clear"), documentId: z.string().min(1).max(100) }),
+  z.object({ type: z.literal("declaration-preview"), orderIds: z.array(z.string().max(100)).min(1).max(30) }),
   z.object({ type: z.literal("import-legacy"), data: z.string().max(1000000) }),
 ]);
 export type Action = z.infer<typeof actionSchema>;
@@ -216,6 +222,12 @@ export function applyAction(
       return cancelOrder(s, a.id);
     case "notifications-read":
       return markNotificationsRead(s);
+    case "identity-confirm":
+      return confirmIdentity(s, a);
+    case "identity-clear":
+      return clearIdentity(s, a.documentId);
+    case "declaration-preview":
+      return submitDeclarationPreview(s, a.orderIds);
     case "import-legacy":
       if (
         s.orders.length ||
