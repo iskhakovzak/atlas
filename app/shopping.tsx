@@ -54,7 +54,7 @@ export function CartView() {
   }
 
   return <>
-    <PageHeading overline="ПРЕДРЕЛИЗНОЕ ОФОРМЛЕНИЕ" title="Ваша корзина." description="Проверьте товары, укажите получателя и пройдите безопасный тест оплаты." />
+    <PageHeading overline="ОФОРМЛЕНИЕ ЗАКАЗА" title="Ваша корзина." description="Проверьте товары, варианты и предварительный расчёт." />
     {!ready ? (error ? <Empty title="Войдите, чтобы открыть корзину" description="Корзина и заказы сохраняются в вашем профиле Atlas." href="/account" label="Открыть вход" /> : <div className="surface loading-state">Загружаем корзину…</div>) : !state.cart.length ? <Empty title="Корзина ждёт ваших находок" description="Выберите товар в каталоге или добавьте свою ссылку." href="/" /> :
       <div className="cart-layout">
         <div className="cart-items">
@@ -78,7 +78,7 @@ export function CartView() {
           {credit > 0 && <div className="credit-line"><span>С демобаланса</span><b>−{money(credit)}</b></div>}
           <div className="summary-total"><span>К тестовой оплате<strong>{money(total - credit)}</strong></span><span className="currency-mark">UZS</span></div>
           <div className="notice warning">Для курьерских отправлений указан ориентир $200 за календарный месяц на получателя; для почтовых — отдельная норма $100. Таможенные платежи не включены. <Link href="/customs">Подробнее</Link></div>
-          <div className="consent"><Checkbox id="checkout-consent" checked={consent} onCheckedChange={(value) => setConsent(value === true)} /><label htmlFor="checkout-consent">Подтверждаю <Link href="/customs" target="_blank">таможенные условия</Link>. Понимаю, что это предрелиз: реального списания и доставки нет.</label></div>
+          <div className="consent"><Checkbox id="checkout-consent" checked={consent} onCheckedChange={(value) => setConsent(value === true)} /><label htmlFor="checkout-consent">Подтверждаю <Link href="/customs" target="_blank">таможенные условия</Link>. Реальная оплата и доставка ещё не подключены: это подтверждение не списывает деньги и не создаёт отправку.</label></div>
           {expired && <div className="notice warning"><Clock3 size={19} /><span>Срок расчёта истёк. Обновите стоимость.</span></div>}
           <button className="btn primary full" disabled={!ready || (!expired && !consent)} onClick={openCheckout}>{expired ? "Обновить расчёт" : "Указать доставку"}<ArrowRight size={18} /></button>
           <div className="summary-assurance"><ShieldCheck size={16} /><span>Доплата только с вашего согласия</span></div>

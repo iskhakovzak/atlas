@@ -329,9 +329,24 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     } catch {}
   }
 
-  const p = nodes.find((n) =>
+  const group = nodes.find((n) =>
     [n["@type"]].flat().some((t) => t === "Product" || t === "ProductGroup"),
   );
+  const sameListing = (value: unknown) => {
+    if (typeof value !== 'string') return false;
+    try {
+      const candidate = new URL(value, sourceUrl), source = new URL(sourceUrl);
+      return candidate.origin === source.origin && candidate.pathname === source.pathname && candidate.search === source.search;
+    } catch { return false; }
+  };
+  // ProductGroup pages (including Nike) may put all price data on size/color children.
+  // Only use children for the exact linked listing, never a different recommended color.
+  const children = Array.isArray(group?.hasVariant) ? group.hasVariant.filter((child: Record<string, unknown>) => {
+    if (!child || typeof child !== 'object') return false;
+    const childOffers = [child.offers].flat() as Record<string, unknown>[];
+    return sameListing(child.url) || sameListing(child['@id']) || childOffers.some(item => sameListing(item?.url));
+  }) : [];
+  const p = children.length ? { ...group, ...children[0], brand: children[0].brand ?? group?.brand } : group;
   const offers = p?.offers;
   const offer = Array.isArray(offers) ? offers[0] : offers;
   const details = offer?.shippingDetails;
@@ -390,9 +405,19 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
   const genericVariants: ProductVariant[] = [p?.color, p?.size]
     .filter(Boolean)
     .map((value) => ({ label: clean(value), available: true }));
-  const variants = zara?.variants?.length ? zara.variants : genericVariants;
+  const groupVariants: ProductVariant[] = children.map((child: Record<string, unknown>) => {
+    const childOffer = [child.offers].flat()[0] as Record<string, unknown> | undefined;
+    return {
+      label: [child.color, child.size].filter(Boolean).map(clean).join(' · '),
+      available: !/OutOfStock|Discontinued|SoldOut/i.test(String(childOffer?.availability ?? '')),
+      price: number(childOffer?.price),
+      image: safeImage(Array.isArray(child.image) ? child.image[0] : child.image, sourceUrl),
+    };
+  }).filter((item: ProductVariant) => item.label);
+  const variants = zara?.variants?.length ? zara.variants : groupVariants.length ? groupVariants : genericVariants;
   const country = zara?.country ?? regionNames[String(loc).toUpperCase()];
   const warnings: string[] = [];
+  if (groupVariants.length) warnings.push('Размеры получены со страницы магазина. Наличие и цена выбранного размера требуют подтверждения.');
   if (price === undefined)
     warnings.push("Цена не найдена: укажите её со страницы выбранного варианта.");
   if (shipping === undefined)

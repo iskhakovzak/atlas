@@ -61,7 +61,10 @@
 
 ## Known prototype limits
 
-- [ ] Connect verified merchant deal records before a real deals launch: source URL, seller identity, timestamped price history, currency, availability and expiry. Current comparison prices are marked as illustrative; invented freshness and countdown claims have been removed.
+- [x] Replace public demonstration products with five real merchant snapshots, official photos, dated source prices and direct source links; preserve legacy order snapshots.
+- [ ] Automate merchant price/availability refresh and hide expired deals; dated editorial snapshots are not live inventory. Validate catalog image reuse/merchant agreements before public commercial distribution.
+- [ ] Expand fresh verified merchants beyond Nike, Anker and Apple. UNIQLO listing prices were not fresh enough to include.
+- [x] Import exact-listing ProductGroup variants and prices for Nike, without switching to an unrelated default color.
 
 - [ ] Revisit client-side RSC navigation after Vinext fixes its production prefetch runtime; Atlas currently uses reliable full-page navigation.
 - [ ] No real payment or delivery.

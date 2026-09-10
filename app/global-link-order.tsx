@@ -11,6 +11,7 @@ import {
   validateSource,
   type Product,
 } from "@/lib/market/domain";
+import { merchantFinds } from "@/lib/market/catalog";
 import { countries, currencies, toUsd, paddedWeight } from "@/lib/market/world";
 import {
   safeImage,
@@ -32,25 +33,26 @@ const priors: Record<string, number> = {
 export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
   const { ready, pricing } = useMarket();
   const searchParams = useSearchParams();
+  const seed = merchantFinds.find(item => item.sourceUrl === searchParams.get("url"));
   const [url, setUrl] = useState(() => searchParams.get("url") ?? ""),
-    [source, setSource] = useState(""),
-    [name, setName] = useState(""),
-    [brand, setBrand] = useState(""),
+    [source, setSource] = useState(seed?.sourceUrl ?? ""),
+    [name, setName] = useState(seed?.name ?? ""),
+    [brand, setBrand] = useState(seed?.brand ?? ""),
     [declaration, setDeclaration] = useState(""),
     [currency, setCurrency] = useState("USD"),
-    [amount, setAmount] = useState(""),
+    [amount, setAmount] = useState(seed ? String(seed.sourcePrice) : ""),
     [shipping, setShipping] = useState("10"),
     [shippingCurrency, setShippingCurrency] = useState("USD"),
     [shippingEstimated, setShippingEstimated] = useState(true),
-    [weight, setWeight] = useState(""),
+    [weight, setWeight] = useState(seed ? String(seed.boxedWeight) : ""),
     [country, setCountry] = useState("США"),
     [otherCountry, setOtherCountry] = useState(""),
-    [category, setCategory] = useState("Другое"),
+    [category, setCategory] = useState(seed?.category ?? "Другое"),
     [variant, setVariant] = useState(""),
     [variants, setVariants] = useState<ProductVariant[]>([]),
-    [image, setImage] = useState(""),
+    [image, setImage] = useState(seed?.image ?? ""),
     [busy, setBusy] = useState(false),
-    [note, setNote] = useState(""),
+    [note, setNote] = useState(seed ? "Данные из подборки " + seed.store + " на " + seed.observedOn + ". Обновите страницу магазина или проверьте цену и вариант вручную. Вес и доставка предварительные." : ""),
     [weightOrigin, setWeightOrigin] = useState("Оценка по категории"),
     [verified, setVerified] = useState(false),
     [importedAt, setImportedAt] = useState<number | undefined>(),
@@ -614,9 +616,8 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
             </span>
           </div>
           <p className="micro">
-            Конвертация валют и международный тариф пока демонстрационные,
-            одинаковый тариф для всех стран. Доступность маршрута, таможня и
-            сроки проверяются отдельно.
+            Расчёт использует настроенные тарифы Atlas, а не котировку перевозчика.
+            Курс, маршрут, таможня и сроки уточняются до выкупа.
           </p>
         </aside>
       </div>

@@ -24,7 +24,7 @@ export function AccountView() {
   }
   return <>
     <PageHeading overline="ЛИЧНОЕ ПРОСТРАНСТВО" title="Ваш профиль Atlas." description="Контакты, адрес доставки, заказы и настройки связи доступны после входа на другом устройстве." />
-    {!user ? <section className="surface"><UserRound size={36} /><h2>Вход и создание аккаунта</h2><p>В предрелизе профиль создаётся при первом входе через ChatGPT. Самостоятельная регистрация по email и телефону будет подключаться перед публичным запуском.</p><a className="btn primary" href="/signin-with-chatgpt?return_to=%2Faccount" target="_top">Продолжить с ChatGPT <ArrowUpRight size={18} /></a></section> : <>
+    {!user ? <section className="surface"><UserRound size={36} /><h2>Вход и создание аккаунта</h2><p>Войдите через ChatGPT — профиль Atlas создастся автоматически. Ваши находки, адреса и заказы будут доступны в одном кабинете.</p><a className="btn primary" href="/signin-with-chatgpt?return_to=%2Faccount" target="_top">Продолжить с ChatGPT <ArrowUpRight size={18} /></a></section> : <>
       <div className="account-grid">
         <section className="surface"><div className="account-avatar"><UserRound size={30} /></div><h2>{user.name}</h2><p>{user.email}</p><p className="micro">Роль: {user.operator ? "администратор и покупатель" : "покупатель"} · профиль создан {new Date(user.createdAt).toLocaleDateString("ru-RU")}</p>
           {state.deliveryProfile ? <div className="saved-address"><b>Основной получатель</b><span>{state.deliveryProfile.recipient} · {state.deliveryProfile.phone}</span><small>{state.deliveryProfile.region}, {state.deliveryProfile.city}, {state.deliveryProfile.address}</small></div> : <div className="notice"><ShieldCheck size={20} /><span>Адрес сохранится после первого оформления заказа.</span></div>}
@@ -36,7 +36,7 @@ export function AccountView() {
           <Link href="/orders"><Package /><div>Мои заказы<small>{state.orders.length} заказов</small></div><ArrowUpRight /></Link>
           <Link href="/balance"><Wallet /><div>Демобаланс<small>{money(balanceOf(state))}</small></div><ArrowUpRight /></Link>
           <Link href="/notifications"><ShieldCheck /><div>Email и SMS<small>{state.communication.emailEnabled || state.communication.smsEnabled ? "Настроены" : "Выключены"}</small></div><ArrowUpRight /></Link>
-          <Link href="/legal"><FileText /><div>Правила Atlas<small>Документы предрелиза</small></div><ArrowUpRight /></Link>
+          <Link href="/legal"><FileText /><div>Правила Atlas<small>Условия и конфиденциальность</small></div><ArrowUpRight /></Link>
           <Link href="/customs"><ShieldCheck /><div>Таможенные условия<small>Лимиты и согласие</small></div><ArrowUpRight /></Link>
           {user.operator && <><Link href="/operations"><Package /><div>Кабинет оператора<small>Заказы, команды и трекинг</small></div><ArrowUpRight /></Link><Link href="/analytics"><BarChart3 /><div>Аналитика запуска<small>Показатели и готовность</small></div><ArrowUpRight /></Link></>}
           {user.operator && <Link href="/admin"><ShieldCheck /><div>Правила оформления<small>Лимиты и проверка товаров</small></div><ArrowUpRight /></Link>}

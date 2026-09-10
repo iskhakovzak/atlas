@@ -1,7 +1,5 @@
 import { price, type Pricing, type Product } from './domain.ts';
-
-// Illustration-only reference prices. These are not merchant price history.
-const demoReferenceUsd: Record<string, number> = { sneaker: 159, headphones: 199, backpack: 110 };
+import { merchantRecord } from './catalog.ts';
 export type DealFilters = {
   search: string; category: string; country: string; maxTotal: number;
   sort: 'discount' | 'total-asc' | 'total-desc';
@@ -10,8 +8,8 @@ export const defaultDealFilters: DealFilters = { search: '', category: '', count
 
 export function dealQuote(product: Product, pricing: Pricing) {
   const costs = price(product.usd, product.weight, 1, product.sourceShippingUsd ?? 0, pricing);
-  // Never attach the illustrative comparison to an imported merchant product.
-  const referenceUsd = product.sourceUrl ? undefined : demoReferenceUsd[product.id];
+  // Compare only the exact sourced listing; no invented price history or ID-only match.
+  const referenceUsd = merchantRecord(product)?.referenceUsd;
   const savingsUsd = referenceUsd && referenceUsd > product.usd ? referenceUsd - product.usd : 0;
   const discount = referenceUsd && savingsUsd > 0 ? Math.round(savingsUsd / referenceUsd * 100) : 0;
   return { product, costs, referenceUsd, savingsUsd, discount };

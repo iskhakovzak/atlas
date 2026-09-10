@@ -2,7 +2,7 @@
 
 ## Product
 
-Atlas is a functional pre-release cross-border shopping prototype for customers in Uzbekistan. A user chooses a demonstration catalog item or pastes a foreign-store product link, receives an editable preliminary UZS calculation, saves a recipient/address, creates a simulated payment and follows the purchase, warehouse, parcel and delivery process.
+Atlas is a functional pre-release cross-border shopping prototype for customers in Uzbekistan. A user chooses a sourced merchant catalog item or pastes a foreign-store product link, receives an editable preliminary UZS calculation, saves a recipient/address, creates a simulated payment and follows the purchase, warehouse, parcel and delivery process.
 
 It is not yet a commercial marketplace: no real payment, purchase, carrier booking, customs filing, money transfer or delivery takes place.
 
@@ -29,7 +29,7 @@ Validation: lint, all 28 unit tests and production build passed. Browser interac
 
 | Route | Function |
 | --- | --- |
-| / | Demo catalog, favourites, filters and quick link entry |
+| / | Sourced merchant finds, favourites, filters and quick link entry |
 | /order-by-link | Import product and create quote |
 | /cart | Cart, balance use, customs consent, simulated checkout |
 | /orders | Customer orders, photo refresh and extra approvals |
@@ -142,7 +142,11 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 
 - Atlas has a shared blue/navy/lime design system, a link-first home screen with an interactive catalog example, responsive four-step journey, and consistent account/forms/order styling. Existing images, navigation and server actions are retained.
 - The home and favourites use one deals-first feed with search, category/country filters, a delivered-cost budget, percentage/total sorting, saved items, and expandable quote breakdowns. Link entry remains below the feed. The new feed controls and descriptions support RU/UZ/EN; legacy sections and the product sheet retain their existing translations.
-- The three catalog items and reference USD prices are explicitly illustrative. No merchant, verification time, expiry or availability is asserted without a connected source. USD product discounts are calculated from the illustrative reference price, while the UZS total uses the same pricing function as the product sheet/cart and separately excludes customs charges.
+- The public feed now uses five sourced US listings in lib/market/catalog.ts: Nike Gato LV8, Cortez Leather, Club Hoodie, Anker Nano 30W and Apple AirTag 1-pack. Official product photos were checked for successful image responses. Prices are dated snapshots, not a live inventory feed. Only Gato and Cortez have reference prices taken from the merchant page. Other items have no fabricated discount. UNIQLO candidates were excluded because fresh pricing could not be confirmed.
+- Old demonstration products remain in domain.ts for legacy state/test compatibility but are no longer offered by the feed. Old orders and stored favourite IDs are not rewritten.
+- A catalog item opens a seeded link-order calculation with an unconfirmed variant, estimated weight and $10 merchant-shipping reserve. Customer verification is still required. Catalog snapshots cannot be directly added to cart while shippingKnown is false. The product sheet routes catalog items to this confirmation flow.
+- ProductGroup JSON-LD import now selects children matching the exact source listing URL, including Nike color-specific sizes, prices and known unavailability; it does not assume all displayed sizes are in stock.
+- Repeated demo/presentation wording was removed from the home, header, footer, sign-in introduction and metadata. Real payment/shipment limitations remain explicit at checkout and in legal/financial views. The underlying external services were not activated.
 
 - The home screen explains the path from a store link to a preliminary calculation, confirmation and status tracking. It also includes a supported-store preview, FAQ and clear pre-release/trust notices.
 - A profile can store several recipient addresses. The chosen primary recipient remains compatible with checkout and declarations. Customer support requests are retained in that customer's account state; staff response workflow still needs an operational queue.
@@ -155,7 +159,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Store parser quality varies; only Zara has the detailed adapter.
 - Store shipping is frequently destination/session-dependent; $10 is reserve only.
 - Operations supports one configured operator email. Team assignment and notes work, but independent staff identities and permission roles are not connected.
-- Catalog is illustrative, not inventory.
+- Catalog has dated real merchant listings, not live inventory. Automated refresh, commercial reuse rights and merchant agreements still require work.
 - No real payment, carrier API, email/SMS provider, automatic live FX feed, customs calculation, public registration or production ledger. Tracking is operator-entered.
 - RU/UZ/EN navigation and chosen communication language are available, but detailed transactional screens still need a complete translation pass.
 - Email/password or email-code sign-in, optional Google linking, phone verification, staff roles, audit log and backups require chosen providers and production secrets.

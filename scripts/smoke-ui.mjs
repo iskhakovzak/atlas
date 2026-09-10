@@ -126,7 +126,7 @@ try {
     "[...document.querySelectorAll('button')].find((item) => item.textContent?.trim() === 'Обувь')?.click()",
   );
   await eventually(
-    "document.querySelector('.finds-result [role=status]')?.textContent?.trim() === 'Найдено: 1'",
+    "document.querySelector('.finds-result [role=status]')?.textContent?.trim() === 'Найдено: 2'",
     "catalog category button",
   );
   await evaluate(
