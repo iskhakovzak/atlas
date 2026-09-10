@@ -37,6 +37,7 @@ export function AccountView() {
           <Link href="/legal"><FileText /><div>Правила Atlas<small>Документы предрелиза</small></div><ArrowUpRight /></Link>
           <Link href="/customs"><ShieldCheck /><div>Таможенные условия<small>Лимиты и согласие</small></div><ArrowUpRight /></Link>
           {user.operator && <><Link href="/operations"><Package /><div>Кабинет оператора<small>Заказы, команды и трекинг</small></div><ArrowUpRight /></Link><Link href="/analytics"><BarChart3 /><div>Аналитика запуска<small>Показатели и готовность</small></div><ArrowUpRight /></Link></>}
+          {user.operator && <Link href="/admin"><ShieldCheck /><div>Правила оформления<small>Лимиты и проверка товаров</small></div><ArrowUpRight /></Link>}
         </section>
       </div>
       <section className="surface legacy-import"><h2>Заказы из предыдущей версии</h2><p>Если вы тестировали Atlas в этом браузере, можно один раз перенести старые данные в пустой профиль.</p><button className="btn secondary" disabled={!ready || !!(state.orders.length || state.cart.length || state.entries.length || state.favorites.length)} onClick={() => { try { const raw = localStorage.getItem("atlas-market-demo-v1"); if (!raw) { toast.message("В этом браузере старых данных нет."); return; } setLegacy(raw); } catch { toast.error("Нет доступа к данным браузера."); } }}><Upload size={16} /> Найти прежние заказы</button></section>

@@ -1126,7 +1126,7 @@ function CommunicationPanel({
       <div className="communication-fields">
         <div className="field"><label htmlFor="notice-email">Email</label><input id="notice-email" type="email" required={draft.emailEnabled} value={draft.email} onChange={(event) => setDraft({ ...draft, email: event.target.value })} /></div>
         <div className="field"><label htmlFor="notice-phone">Телефон</label><input id="notice-phone" type="tel" required={draft.smsEnabled} placeholder="+998 90 123 45 67" value={draft.phone} onChange={(event) => setDraft({ ...draft, phone: event.target.value })} /></div>
-        <div className="field"><label htmlFor="notice-language">Язык</label><select id="notice-language" value={draft.language} onChange={(event) => setDraft({ ...draft, language: event.target.value as "ru" | "uz" })}><option value="ru">Русский</option><option value="uz">O‘zbekcha</option></select></div>
+        <div className="field"><label htmlFor="notice-language">Язык интерфейса и уведомлений</label><select id="notice-language" value={draft.language} onChange={(event) => setDraft({ ...draft, language: event.target.value as "ru" | "uz" | "en" })}><option value="ru">Русский</option><option value="uz">O‘zbekcha</option><option value="en">English</option></select></div>
       </div>
       <button className="btn secondary" disabled={saving || (draft.emailEnabled && !draft.email) || (draft.smsEnabled && !draft.phone)} onClick={() => void submit()}>{saving ? "Сохраняем…" : "Сохранить настройки"}<Check size={17} /></button>
     </section>

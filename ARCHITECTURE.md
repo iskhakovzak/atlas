@@ -20,6 +20,7 @@
 | Analytics, legal/readiness | app/prelaunch-views.tsx |
 | Account/customs | app/account-views.tsx, app/customs/page.tsx |
 | Identity/declaration/address help | app/identity-workspace.tsx, app/api/passport, lib/market/addresses.ts |
+| Batch import/admin rules | app/batch-import.tsx, app/admin-view.tsx, lib/market/policy.ts |
 | Client provider | lib/market/store.tsx |
 | Auth | app/chatgpt-auth.ts |
 | API | app/api/account, app/api/actions, app/api/import, app/api/operations |
@@ -66,6 +67,8 @@ market_settings stores the current versioned pricing JSON and update identity. m
 
 market_identity_documents stores owner, private R2 object key, safe file metadata, confirmation status and confirmed JSON. Passport bytes are stored in private BUCKET R2 and never exposed through a public URL.
 
+market_settings also stores a versioned `policy` JSON setting. It defines server-authorized import/cart restrictions and has no client-side source of truth.
+
 State contains orders, ledger entries, cart, favourites, checkout idempotency keys, a saved delivery profile, an optional confirmed identity profile with masked passport number, test declarations, communication preferences, prepared email/SMS records and version. Order contains product snapshot, immutable quote, delivery snapshot, simulated payment, parcel/tracking events, assignment, staff notes, status/history, both settlement types, approvals, quantity, balance use and customs consent.
 
 ## APIs
@@ -81,7 +84,7 @@ State contains orders, ledger entries, cart, favourites, checkout idempotency ke
 | POST /api/passport | identity + same origin + multipart image/PDF → private R2 object + D1 metadata |
 | DELETE /api/passport?id=… | identity + same origin + ownership → delete private object and metadata |
 
-Action types additionally include identity-confirm, identity-clear and declaration-preview. Identity confirmation requires an owner-scoped D1 passport record; the server masks the number before account persistence. Declaration snapshots are recomputed from confirmed state and selected server-side orders. Assignment, staff notes, parcel changes, advance, receive and merchant-shipping confirmation require operator on server. Cross-customer actions additionally verify the target account revision.
+Action types additionally include identity-confirm, identity-clear and declaration-preview. Identity confirmation requires an owner-scoped D1 passport record; the server masks the number before account persistence. Declaration snapshots are recomputed from confirmed state and selected server-side orders. Cart additions, quantities and checkout run against the current server policy: category/keyword checks, count, weight and merchandise value. Assignment, staff notes, parcel changes, advance, receive and merchant-shipping confirmation require operator on server. Cross-customer actions additionally verify the target account revision.
 
 ## Environment and services
 

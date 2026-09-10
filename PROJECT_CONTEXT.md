@@ -15,8 +15,9 @@ Handoff baseline: commit ba65333fcc1cefdb647cb53259a2dc8a445769e5, published ver
 2. Paste a public supported-store product URL.
 3. The server imports available title, photo, brand, price, currency, source country, category, declaration draft, variants and weight.
 4. Customer checks/edits the source data, selects size/colour/model and adds to cart.
-5. If store shipping is unavailable, the form starts with editable $10 reserve.
-6. Customer accepts customs conditions, enters the recipient/address and completes pre-release checkout. One cart line becomes one order.
+5. For a party, customer can paste up to ten product links at once. Each imported position remains subject to the same verification before checkout.
+6. If store shipping is unavailable, the form starts with editable $10 reserve.
+7. Customer accepts customs conditions, enters the recipient/address and completes pre-release checkout. One cart line becomes one order.
 7. Customer can upload a passport scan to private object storage, check/edit browser-detected MRZ fields and explicitly confirm identity data.
 8. Confirmed identity, saved address and selected order lines form a test declaration package. It stays inside Atlas and is not transmitted to customs.
 9. Customer confirms a safe simulated payment-provider result; no charge occurs.
@@ -41,6 +42,8 @@ Handoff baseline: commit ba65333fcc1cefdb647cb53259a2dc8a445769e5, published ver
 | /customs | Customs guidance and consent |
 | /identity | Private passport upload, MRZ assistance and customer confirmation |
 | /declaration | Test declaration package from confirmed identity, address and orders |
+| /batch-import | Import up to ten product links into one cart party |
+| /admin | Operator-only managed limits, blocked categories and restricted-word rules |
 
 ## Roles and authentication
 
@@ -123,6 +126,9 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Private owner-scoped passport files in R2 with D1 metadata, consent, format/size/signature checks and deletion.
 - Browser-assisted MRZ recognition when supported, with mandatory editable customer confirmation and a masked passport number in account state.
 - Server-built declaration previews from confirmed identity, saved address and immutable order snapshots; no customs transmission.
+- Batch import of up to ten supported store links into one cart, with per-item safe import and server-side pricing checks.
+- Operator-managed smart restrictions: cart position count, estimated weight, merchandise-value ceiling, blocked categories and keywords requiring manual review.
+- Russian, Uzbek and English language selection for navigation, account preference and notification setting; page content remains progressively localized.
 - Simulated payment-link state with customer confirmation and refund status.
 - Parcel, carrier, tracking number and tracking-event history.
 - Operator team/priority assignment and internal notes.
@@ -139,6 +145,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Catalog is illustrative, not inventory.
 - No real payment, carrier API, email/SMS provider, automatic live FX feed, customs calculation, public registration or production ledger. Tracking is operator-entered.
 - Passport OCR is best effort; unsupported browsers fall back to manual confirmation. There is no government identity validation, liveness check or customs gateway.
+- Translations for detailed legacy screens are still being expanded; the language selector covers the shared shell and preference first.
 
 ## Decisions not to lose
 

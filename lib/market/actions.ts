@@ -30,6 +30,7 @@ import {
   type Pricing,
   type State,
 } from "./domain.ts";
+import { assertCartPolicy, defaultPolicy, productRestriction, type Policy } from "./policy.ts";
 import { customsVersion, paddedWeight, toUsd } from "./world.ts";
 import { safeImage } from "../importer/extract.ts";
 const id = z.string().max(5000),
@@ -96,6 +97,7 @@ export function applyAction(
   a: Action,
   isOperator: boolean,
   pricing: Pricing = tariff,
+  policy: Policy = defaultPolicy,
 ): State {
   if (
     (a.type === "advance" ||
@@ -145,6 +147,8 @@ export function applyAction(
           : [...s.favorites, a.id],
       };
     case "cart-add": {
+      const restriction = productRestriction(a.product, policy);
+      if (restriction) throw Error(restriction);
       if (a.product.sourceUrl) {
         if (
           a.product.boxedWeight === undefined ||
@@ -173,10 +177,12 @@ export function applyAction(
         if (a.product.image && !safeImage(a.product.image, a.product.sourceUrl))
           throw Error("Некорректная ссылка на изображение.");
       }
-      return addToCart(s, a.product, a.variant, Date.now(), pricing);
+      const next = addToCart(s, a.product, a.variant, Date.now(), pricing);
+      assertCartPolicy(next.cart, policy);
+      return next;
     }
     case "cart-quantity":
-      return changeQuantity(s, a.id, a.quantity, Date.now(), pricing);
+      { const next = changeQuantity(s, a.id, a.quantity, Date.now(), pricing); assertCartPolicy(next.cart, policy); return next; }
     case "cart-remove":
       return { ...s, cart: s.cart.filter((i) => i.id !== a.id) };
     case "cart-renew":
@@ -189,6 +195,7 @@ export function applyAction(
           : 0) !== a.expectedCredit
       )
         throw Error("Баланс изменился. Проверьте итог заново.");
+      assertCartPolicy(s.cart, policy);
       return checkoutCart(
         s,
         a.key,

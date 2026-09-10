@@ -11,6 +11,8 @@
 - [x] Add customer profile export and authenticated end-to-end API smoke coverage.
 - [x] Add private passport upload, editable MRZ assistance, explicit confirmation, deletion and masked identity state.
 - [x] Add local address suggestions and server-built test declaration packages without external transmission.
+- [x] Add batch link import, managed smart restrictions and an operator rule-management view.
+- [x] Add Russian, Uzbek and English selection for shared navigation and communication preferences.
 
 ## Required before commercial launch
 
@@ -49,6 +51,7 @@
 - [ ] Select a compliant production OCR/identity provider, document consent/legal basis, retention windows and regional data processing before relying on passport recognition.
 - [ ] Add scan-quality checks for blur, glare, cropped MRZ, expiry and check digits; current browser OCR is best effort and manual confirmation remains required.
 - [ ] Add a real customs integration only after official API access, document mapping, signed audit trail and legal review. Current submission status is preview-only.
+- [ ] Complete translation of every detailed legacy screen and notification template; the shared shell and language preference are available now.
 - [x] Add a headless browser smoke test for core public interactions and navigation.
 - [ ] Extend browser coverage through authenticated checkout and operator actions.
 

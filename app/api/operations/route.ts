@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { actionSchema, applyAction } from "@/lib/market/actions";
 import { pricingSchema } from "@/lib/market/domain";
+import { policySchema } from "@/lib/market/policy";
 import {
   failure,
   HttpError,
@@ -10,9 +11,11 @@ import {
   operatorAccounts,
   persist,
   pricing,
+  policy,
   requestJson,
   sameOrigin,
   savePricing,
+  savePolicy,
   storedAccount,
 } from "@/lib/market/server";
 
@@ -22,6 +25,10 @@ const updateSchema = z.discriminatedUnion("kind", [
     accountId: z.string().min(1).max(320),
     revision: z.number().int().nonnegative(),
     action: z.unknown(),
+  }),
+  z.object({
+    kind: z.literal("policy"),
+    value: policySchema.pick({ maxCartLines: true, maxCartWeightKg: true, maxMerchandiseUsd: true, blockedCategories: true, restrictedTerms: true }),
   }),
   z.object({
     kind: z.literal("pricing"),
@@ -45,11 +52,12 @@ async function requireOperator() {
 export async function GET() {
   try {
     await requireOperator();
-    const [accounts, currentPricing] = await Promise.all([
+    const [accounts, currentPricing, currentPolicy] = await Promise.all([
       operatorAccounts(),
       pricing(),
+      policy(),
     ]);
-    return json({ accounts, pricing: currentPricing });
+    return json({ accounts, pricing: currentPricing, policy: currentPolicy });
   } catch (error) {
     return failure(error);
   }
@@ -71,6 +79,12 @@ export async function POST(request: Request) {
       });
       await savePricing(next, user.userId);
       return json({ pricing: next });
+    }
+    if (payload.data.kind === "policy") {
+      const now = Date.now();
+      const next = policySchema.parse({ ...payload.data.value, version: `policy-${now}`, updatedAt: now, managedBy: user.email });
+      await savePolicy(next, user.userId);
+      return json({ policy: next });
     }
     const parsedAction = actionSchema.safeParse(payload.data.action);
     if (!parsedAction.success)
@@ -95,7 +109,8 @@ export async function POST(request: Request) {
       );
     let next;
     try {
-      next = applyAction(current.state, parsedAction.data, true, await pricing());
+      const [currentPricing,currentPolicy] = await Promise.all([pricing(),policy()]);
+      next = applyAction(current.state, parsedAction.data, true, currentPricing, currentPolicy);
     } catch (error) {
       throw new HttpError(400, (error as Error).message);
     }

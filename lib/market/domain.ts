@@ -340,7 +340,7 @@ export const communicationSchema = z.object({
   smsEnabled: z.boolean().default(false),
   email: z.string().trim().email().or(z.literal("")),
   phone: z.string().trim().max(30),
-  language: z.enum(["ru", "uz"]).default("ru"),
+  language: z.enum(["ru", "uz", "en"]).default("ru"),
 });
 export type Communication = z.infer<typeof communicationSchema>;
 const messageDeliverySchema = z.object({

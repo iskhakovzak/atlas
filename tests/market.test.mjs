@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {products,tariff,quote,price,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource,markNotificationsRead,confirmDemoPayment,updateCommunication,assignOrder,addStaffNote,setParcel,confirmIdentity,submitDeclarationPreview,clearIdentity} from '../lib/market/domain.ts';
+import {applyAction} from '../lib/market/actions.ts';
+import {defaultPolicy} from '../lib/market/policy.ts';
 import {customsVersion} from '../lib/market/world.ts';
 const checkoutCart=(s,key,sig,balance,now)=>checkoutCore(s,key,sig,balance,now,customsVersion);
 const prepare=()=>{let s=addToCart(blank(),products[0],'US 9',1000);s=checkoutCart(s,'purchase-1',cartSignature(s.cart),false,1001);return confirmDemoPayment(s,s.orders[0].id,1002)};
@@ -59,4 +61,9 @@ state=confirmIdentity(state,{documentId:'DOC-1',firstName:'ANNA',lastName:'KARIM
 assert.equal(state.identityProfile.passportMasked,'•••• 4567');assert.equal(JSON.stringify(state).includes('AA1234567'),false);
 state=submitDeclarationPreview(state,[orderId],2001);assert.equal(state.declarations[0].lines[0].orderId,orderId);assert.equal(state.declarations[0].delivery.city,'Ташкент');assert.equal(state.declarations[0].status,'submitted-preview');assert.equal(state.notifications[0].title,'Тестовая декларация подготовлена');
 state=clearIdentity(state,'DOC-1');assert.equal(state.identityProfile,undefined);assert.throws(()=>submitDeclarationPreview(state,[orderId],2002));
+});
+test('managed restrictions reject blocked goods and oversized parties on the server',()=>{
+const blocked={...defaultPolicy,blockedCategories:['Электроника']};assert.throws(()=>applyAction(blank(),{type:'cart-add',product:products[1],variant:products[1].variants[0]},false,tariff,blocked),/недоступна/);
+let state=applyAction(blank(),{type:'cart-add',product:products[0],variant:products[0].variants[0]},false,tariff,{...defaultPolicy,maxCartLines:1});assert.throws(()=>applyAction(state,{type:'cart-add',product:products[2],variant:products[2].variants[0]},false,tariff,{...defaultPolicy,maxCartLines:1}),/до 1/);
+assert.throws(()=>applyAction(blank(),{type:'cart-add',product:{...products[0],name:'Collectible weapon'},variant:products[0].variants[0]},false,tariff,defaultPolicy),/ручной проверки/);
 });
