@@ -81,6 +81,9 @@ export async function POST(request: Request) {
         "receive",
         "confirm-store-shipping",
         "order-image",
+        "assign-order",
+        "staff-note",
+        "parcel-set",
       ].includes(parsedAction.data.type)
     )
       throw new HttpError(403, "Это действие недоступно оператору.");

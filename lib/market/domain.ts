@@ -236,6 +236,50 @@ export const statuses = [
   "Доставлен",
 ];
 const historySchema = z.object({ at: amount, text: z.string() });
+export const deliveryProfileSchema = z.object({
+  recipient: z.string().trim().min(2).max(100),
+  phone: z.string().trim().min(7).max(30),
+  region: z.string().trim().min(2).max(100),
+  city: z.string().trim().min(2).max(100),
+  address: z.string().trim().min(5).max(220),
+  postalCode: z.string().trim().max(20).default(""),
+  comment: z.string().trim().max(300).default(""),
+});
+export type DeliveryProfile = z.infer<typeof deliveryProfileSchema>;
+const paymentSchema = z.object({
+  id: z.string(),
+  status: z.enum(["pending", "paid", "refunded"]),
+  method: z.enum(["payment-link", "balance"]),
+  amount: amount,
+  createdAt: amount,
+  updatedAt: amount,
+});
+export type Payment = z.infer<typeof paymentSchema>;
+const parcelEventSchema = z.object({
+  at: amount,
+  status: z.string().max(80),
+  location: z.string().max(120).optional(),
+});
+const parcelSchema = z.object({
+  id: z.string(),
+  carrier: z.string().min(2).max(80),
+  trackingNumber: z.string().min(3).max(100),
+  warehouseCode: z.string().max(80).default(""),
+  events: z.array(parcelEventSchema).default([]),
+});
+export type Parcel = z.infer<typeof parcelSchema>;
+const assignmentSchema = z.object({
+  team: z.enum(["Закупки", "Склад", "Поддержка", "Финансы"]),
+  priority: z.enum(["Обычный", "Высокий", "Срочный"]),
+  assignedAt: amount,
+});
+export type Assignment = z.infer<typeof assignmentSchema>;
+const staffNoteSchema = z.object({
+  id: z.string(),
+  at: amount,
+  author: z.string().max(160),
+  text: z.string().min(1).max(500),
+});
 const orderSchema = z.object({
   id: z.string(),
   product: productSchema,
@@ -255,6 +299,11 @@ const orderSchema = z.object({
   customsConsent: z
     .object({ version: z.string(), acceptedAt: amount })
     .optional(),
+  delivery: deliveryProfileSchema.optional(),
+  payment: paymentSchema.optional(),
+  parcel: parcelSchema.optional(),
+  assignment: assignmentSchema.optional(),
+  staffNotes: z.array(staffNoteSchema).optional(),
 });
 export type Order = z.infer<typeof orderSchema>;
 const entrySchema = z.object({
@@ -276,6 +325,24 @@ const notificationSchema = z.object({
   orderId: z.string().optional(),
 });
 export type Notification = z.infer<typeof notificationSchema>;
+export const communicationSchema = z.object({
+  emailEnabled: z.boolean().default(false),
+  smsEnabled: z.boolean().default(false),
+  email: z.string().trim().email().or(z.literal("")),
+  phone: z.string().trim().max(30),
+  language: z.enum(["ru", "uz"]).default("ru"),
+});
+export type Communication = z.infer<typeof communicationSchema>;
+const messageDeliverySchema = z.object({
+  id: z.string(),
+  at: amount,
+  channel: z.enum(["email", "sms"]),
+  destination: z.string().max(120),
+  title: z.string().max(120),
+  status: z.literal("preview"),
+  orderId: z.string().optional(),
+});
+export type MessageDelivery = z.infer<typeof messageDeliverySchema>;
 const cartSchema = z.object({
   id: z.string(),
   product: productSchema,
@@ -291,7 +358,16 @@ export const stateSchema = z.object({
   favorites: z.array(z.string()).default([]),
   checkoutKeys: z.array(z.string()).default([]),
   notifications: z.array(notificationSchema).default([]),
-  version: z.number().default(2),
+  deliveryProfile: deliveryProfileSchema.optional(),
+  communication: communicationSchema.default({
+    emailEnabled: false,
+    smsEnabled: false,
+    email: "",
+    phone: "",
+    language: "ru",
+  }),
+  messageDeliveries: z.array(messageDeliverySchema).default([]),
+  version: z.number().default(3),
 });
 export type State = z.infer<typeof stateSchema>;
 export const blank = (): State => ({
@@ -301,7 +377,15 @@ export const blank = (): State => ({
   favorites: [],
   checkoutKeys: [],
   notifications: [],
-  version: 2,
+  communication: {
+    emailEnabled: false,
+    smsEnabled: false,
+    email: "",
+    phone: "",
+    language: "ru",
+  },
+  messageDeliveries: [],
+  version: 3,
 });
 export const parseState = (raw: string): State =>
   stateSchema.parse(JSON.parse(raw));
@@ -311,17 +395,45 @@ const withNotification = (
   message: string,
   orderId?: string,
   now = Date.now(),
-): State => ({
-  ...state,
-  notifications: [
-    { id: crypto.randomUUID(), at: now, title, message, read: false, orderId },
-    ...state.notifications,
-  ].slice(0, 80),
-});
+): State => {
+  const deliveries: MessageDelivery[] = [];
+  if (state.communication.emailEnabled && state.communication.email)
+    deliveries.push({
+      id: crypto.randomUUID(),
+      at: now,
+      channel: "email",
+      destination: state.communication.email,
+      title,
+      status: "preview",
+      orderId,
+    });
+  if (state.communication.smsEnabled && state.communication.phone)
+    deliveries.push({
+      id: crypto.randomUUID(),
+      at: now,
+      channel: "sms",
+      destination: state.communication.phone,
+      title,
+      status: "preview",
+      orderId,
+    });
+  return {
+    ...state,
+    notifications: [
+      { id: crypto.randomUUID(), at: now, title, message, read: false, orderId },
+      ...state.notifications,
+    ].slice(0, 80),
+    messageDeliveries: [...deliveries, ...state.messageDeliveries].slice(0, 120),
+  };
+};
 export const markNotificationsRead = (state: State): State => ({
   ...state,
   notifications: state.notifications.map((item) => ({ ...item, read: true })),
 });
+export const updateCommunication = (
+  state: State,
+  value: Communication,
+): State => ({ ...state, communication: communicationSchema.parse(value) });
 export const balanceOf = (state: State) =>
   state.entries.reduce(
     (sum, e) =>
@@ -417,6 +529,7 @@ export function checkoutCart(
   useBalance: boolean,
   now = Date.now(),
   consentVersion?: string,
+  delivery?: DeliveryProfile,
 ): State {
   if (state.checkoutKeys.includes(key)) return state;
   if (!state.cart.length) throw Error("Корзина пуста.");
@@ -435,10 +548,14 @@ export function checkoutCart(
   if (state.cart.some((i) => now >= i.quote.expiresAt))
     throw Error("Расчёт истёк. Обновите его перед оформлением.");
   let available = useBalance ? Math.max(0, balanceOf(state)) : 0;
+  const checkedDelivery = delivery
+    ? deliveryProfileSchema.parse(delivery)
+    : state.deliveryProfile;
   const entries = [...state.entries];
   const orders = state.cart.map((i) => {
     const id = "AT-" + crypto.randomUUID().slice(0, 8).toUpperCase();
     const balanceUsed = Math.min(i.quote.total, available);
+    const payable = i.quote.total - balanceUsed;
     available -= balanceUsed;
     if (balanceUsed)
       entries.push({
@@ -461,14 +578,23 @@ export function checkoutCart(
       cancelled: false,
       balanceUsed,
       batchId: key,
+      delivery: checkedDelivery,
+      payment: {
+        id: "PAY-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
+        status: payable === 0 ? "paid" : "pending",
+        method: payable === 0 ? "balance" : "payment-link",
+        amount: payable,
+        createdAt: now,
+        updatedAt: now,
+      },
       customsConsent: { version: customsVersion, acceptedAt: now },
       history: [
         {
           at: now,
           text:
-            "Тестовый заказ оформлен. Сумма " +
+            "Предрелизный заказ оформлен. Сумма " +
             money(i.quote.total) +
-            ". Ожидаем выкуп.",
+            (payable ? ". Ожидается тестовая оплата." : ". Оплачен демобалансом."),
         },
       ],
     } as Order;
@@ -479,6 +605,7 @@ export function checkoutCart(
     orders: [...orders, ...state.orders],
     entries,
     checkoutKeys: [...state.checkoutKeys, key],
+    deliveryProfile: checkedDelivery,
   };
 }
 const getOrder = (state: State, id: string) => {
@@ -490,6 +617,112 @@ const replace = (s: State, o: Order) => ({
   ...s,
   orders: s.orders.map((x) => (x.id === o.id ? o : x)),
 });
+export function confirmDemoPayment(
+  state: State,
+  id: string,
+  now = Date.now(),
+): State {
+  const o = getOrder(state, id);
+  if (!o.payment || o.payment.status === "paid") return state;
+  if (o.cancelled || o.payment.status !== "pending")
+    throw Error("Тестовая оплата для этого заказа недоступна.");
+  const next = replace(state, {
+    ...o,
+    payment: { ...o.payment, status: "paid", updatedAt: now },
+    history: [
+      ...o.history,
+      { at: now, text: "Тестовый платёж подтверждён. Реального списания не было." },
+    ],
+  });
+  next.entries = [
+    ...state.entries,
+    {
+      id: "demo-payment:" + id,
+      orderId: id,
+      at: now,
+      amount: o.payment.amount,
+      debit: "demo-provider",
+      credit: "order-funds",
+      description: "Тестовая оплата по платёжной ссылке",
+    },
+  ];
+  return withNotification(
+    next,
+    "Оплата подтверждена",
+    "Предрелизный платёж принят в тестовом режиме. Реального списания не было.",
+    id,
+    now,
+  );
+}
+
+export function assignOrder(
+  state: State,
+  id: string,
+  team: Assignment["team"],
+  priority: Assignment["priority"],
+  now = Date.now(),
+): State {
+  const o = getOrder(state, id);
+  if (o.cancelled) throw Error("Отменённый заказ нельзя назначить.");
+  return replace(state, {
+    ...o,
+    assignment: { team, priority, assignedAt: now },
+    history: [...o.history, { at: now, text: `Назначено: ${team}. Приоритет: ${priority}.` }],
+  });
+}
+
+export function addStaffNote(
+  state: State,
+  id: string,
+  text: string,
+  author: string,
+  now = Date.now(),
+): State {
+  const o = getOrder(state, id);
+  const value = text.trim();
+  if (!value || value.length > 500) throw Error("Введите заметку до 500 символов.");
+  return replace(state, {
+    ...o,
+    staffNotes: [
+      ...(o.staffNotes ?? []),
+      { id: crypto.randomUUID(), at: now, author: author.slice(0, 160), text: value },
+    ].slice(-40),
+    history: [...o.history, { at: now, text: "Оператор добавил внутреннюю заметку." }],
+  });
+}
+
+export function setParcel(
+  state: State,
+  id: string,
+  carrier: string,
+  trackingNumber: string,
+  warehouseCode: string,
+  now = Date.now(),
+): State {
+  const o = getOrder(state, id);
+  if (o.cancelled || o.status < 1) throw Error("Сначала подтвердите выкуп заказа.");
+  const parcel = parcelSchema.parse({
+    id: o.parcel?.id ?? "PCL-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
+    carrier: carrier.trim(),
+    trackingNumber: trackingNumber.trim(),
+    warehouseCode: warehouseCode.trim(),
+    events: [
+      ...(o.parcel?.events ?? []),
+      { at: now, status: "Трек-номер подтверждён", location: warehouseCode.trim() || undefined },
+    ],
+  });
+  return withNotification(
+    replace(state, {
+      ...o,
+      parcel,
+      history: [...o.history, { at: now, text: `Добавлен трек-номер ${parcel.trackingNumber}.` }],
+    }),
+    "Добавлен трек-номер",
+    `${parcel.carrier}: ${parcel.trackingNumber}`,
+    id,
+    now,
+  );
+}
 export function confirmStoreShipping(
   state: State,
   id: string,
@@ -595,6 +828,8 @@ export function advanceOrder(
     o.cancelled ||
     o.status >= 5 ||
     o.status === 2 ||
+    (o.status === 0 && o.payment?.status === "pending") ||
+    (o.status === 3 && !o.parcel) ||
     (o.settlement?.extra && !o.extraApproved) ||
     (o.product.sourceShippingEstimated && !o.storeShippingSettlement) ||
     (o.storeShippingSettlement?.extra && !o.storeShippingExtraApproved)
@@ -602,11 +837,29 @@ export function advanceOrder(
     throw Error("Этот переход пока недоступен.");
   if (o.status === 3 && !o.settlement)
     throw Error("Сначала сохраните взвешивание.");
+  const nextStatus = o.status + 1;
+  const parcel = o.parcel
+    ? {
+        ...o.parcel,
+        events:
+          nextStatus >= 4
+            ? [
+                ...o.parcel.events,
+                {
+                  at: now,
+                  status: nextStatus === 4 ? "Передано в международную доставку" : "Доставлено получателю",
+                  location: nextStatus === 4 ? "Международный маршрут" : o.delivery?.city,
+                },
+              ]
+            : o.parcel.events,
+      }
+    : undefined;
   return withNotification(replace(state, {
     ...o,
-    status: o.status + 1,
-    history: [...o.history, { at: now, text: statuses[o.status + 1] }],
-  }), "Статус заказа изменён", statuses[o.status + 1], id, now);
+    status: nextStatus,
+    parcel,
+    history: [...o.history, { at: now, text: statuses[nextStatus] }],
+  }), "Статус заказа изменён", statuses[nextStatus], id, now);
 }
 export function receiveOrder(
   state: State,
@@ -623,6 +876,15 @@ export function receiveOrder(
     ...o,
     settlement: s,
     status: 3,
+    parcel: o.parcel
+      ? {
+          ...o.parcel,
+          events: [
+            ...o.parcel.events,
+            { at: now, status: "Принято и взвешено на складе", location: o.parcel.warehouseCode || undefined },
+          ],
+        }
+      : o.parcel,
     history: [
       ...o.history,
       {
@@ -694,6 +956,9 @@ export function cancelOrder(state: State, id: string, now = Date.now()): State {
   const next = replace(state, {
     ...o,
     cancelled: true,
+    payment: o.payment
+      ? { ...o.payment, status: "refunded", updatedAt: now }
+      : o.payment,
     history: [
       ...o.history,
       {

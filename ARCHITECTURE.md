@@ -17,6 +17,7 @@
 | Link order | app/global-link-order.tsx |
 | Cart | app/shopping.tsx |
 | Orders, operations, balance | app/order-workspace.tsx |
+| Analytics, legal/readiness | app/prelaunch-views.tsx |
 | Account/customs | app/account-views.tsx, app/customs/page.tsx |
 | Client provider | lib/market/store.tsx |
 | Auth | app/chatgpt-auth.ts |
@@ -62,7 +63,7 @@ market_rate_limits stores per-minute import counters and expiry.
 
 market_settings stores the current versioned pricing JSON and update identity. market_import_cache stores allowlisted extracted product payloads for ten minutes.
 
-State contains orders, ledger entries, cart, favourites, checkout idempotency keys and version. Order contains product snapshot, immutable quote, status/history, both settlement types, approvals, quantity, balance use and customs consent.
+State contains orders, ledger entries, cart, favourites, checkout idempotency keys, a saved delivery profile, communication preferences, prepared email/SMS records and version. Order contains product snapshot, immutable quote, delivery snapshot, simulated payment, parcel/tracking events, assignment, staff notes, status/history, both settlement types, approvals, quantity, balance use and customs consent.
 
 ## APIs
 
@@ -74,7 +75,7 @@ State contains orders, ledger entries, cart, favourites, checkout idempotency ke
 | GET /api/operations | operator identity → all customer queues + current pricing |
 | POST /api/operations | operator identity + target revision → order action or pricing update |
 
-Action types: favorite, order-image, cart-add, cart-quantity, cart-remove, cart-renew, checkout, advance, receive, confirm-store-shipping, approve-extra, approve-store-shipping-extra, cancel, notifications-read and import-legacy. advance, receive and confirm-store-shipping require operator on server. Cross-customer actions additionally verify the target account revision.
+Action types: favorite, order-image, cart-add, cart-quantity, cart-remove, cart-renew, checkout, payment-demo, communication-save, assign-order, staff-note, parcel-set, advance, receive, confirm-store-shipping, approve-extra, approve-store-shipping-extra, cancel, notifications-read and import-legacy. Assignment, staff notes, parcel changes, advance, receive and merchant-shipping confirmation require operator on server. Cross-customer actions additionally verify the target account revision.
 
 ## Environment and services
 
@@ -84,7 +85,7 @@ Action types: favorite, order-image, cart-add, cart-quantity, cart-remove, cart-
 | ATLAS_OPERATOR_EMAIL | Optional Worker secret granting operator role |
 | BUCKET | Declared but unused |
 
-No payment processor, eBay API, carrier/tracking API, automatic FX API or email/SMS provider exists. FX/tariffs are operator-managed and product imports have a short D1 cache.
+No payment processor, eBay API, carrier API, automatic FX API or email/SMS provider exists. Payment webhooks, tracking and external messages are safely represented inside Atlas for the pre-release demo only. FX/tariffs are operator-managed and product imports have a short D1 cache.
 
 ## Security
 
@@ -102,4 +103,4 @@ No payment processor, eBay API, carrier/tracking API, automatic FX API or email/
 
 Current deployment procedure: commit; request temporary Sites repo credential; push exact HEAD; package site; save a version with exact pushed SHA; deploy saved version privately; poll success. Never persist the temporary token.
 
-The verification suite includes lint, Node domain/security tests, production build and a dependency-free headless-browser smoke test for primary interactions and navigation.
+The verification suite includes lint, Node domain/security tests, production build, a dependency-free public browser smoke test and an authenticated API smoke covering checkout, payment, assignment, parcel, tracking, warehouse and email/SMS previews.

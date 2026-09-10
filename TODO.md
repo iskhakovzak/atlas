@@ -1,16 +1,26 @@
 # Atlas TODO and known limitations
 
+## Pre-release showcase completed
+
+- [x] Collect and persist recipient, phone and delivery address during checkout.
+- [x] Add an explicitly simulated payment-link lifecycle with confirmation and refund state.
+- [x] Add operator team/priority assignment and internal order notes.
+- [x] Add parcel, carrier, tracking number and tracking-event history entered by the operator.
+- [x] Add email/SMS preferences and persistent message previews without external transmission.
+- [x] Add operator analytics, pilot-readiness dashboard and pre-release legal drafts.
+- [x] Add customer profile export and authenticated end-to-end API smoke coverage.
+
 ## Required before commercial launch
 
 - [ ] Add compliant real payment, provider webhook, refunds and reconciliation. Demo balance is not money.
 - [x] Replace static FX and tariff constants with versioned operator-managed data.
 - [ ] Connect and verify an automatic FX/tariff feed before presenting values as live.
 - [x] Build a server-authorized cross-customer operator queue.
-- [ ] Add multi-staff roles, assignment and an immutable audit trail.
+- [ ] Replace the pre-release team assignment with independent staff identities, permissions and a relational immutable audit trail.
 - [ ] Move from per-account JSON state to proper relational orders/ledger with migration, outbox and reconciliation.
 - [ ] Re-verify Uzbekistan customs rules, legal/privacy requirements and recipient-limit model.
 - [x] Add in-app order status, refund and approval notifications.
-- [ ] Integrate actual carrier routes/tracking and external email/SMS/push delivery.
+- [ ] Integrate actual carrier routes/tracking and external email/SMS delivery. Push is intentionally out of scope.
 
 ## Importing
 
@@ -41,7 +51,7 @@
 
 - [ ] Revisit client-side RSC navigation after Vinext fixes its production prefetch runtime; Atlas currently uses reliable full-page navigation.
 - [ ] No real payment or delivery.
-- [ ] Only one operator email is supported; staff roles and assignment are still missing.
+- [ ] Only one operator email is supported; team assignment exists, but independent staff identities and permissions are still missing.
 - [ ] $10 merchant shipping is an estimate, not a fetched quote.
 - [ ] Allowed stores can still block, localize, require login or change HTML; manual entry must remain.
 - [ ] RON conversion 0.23 USD/RON is static demo data.

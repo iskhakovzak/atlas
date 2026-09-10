@@ -17,6 +17,13 @@ import {
   validateSource,
   tariff,
   markNotificationsRead,
+  deliveryProfileSchema,
+  communicationSchema,
+  confirmDemoPayment,
+  updateCommunication,
+  assignOrder,
+  addStaffNote,
+  setParcel,
   type Pricing,
   type State,
 } from "./domain.ts";
@@ -46,6 +53,23 @@ export const actionSchema = z.discriminatedUnion("type", [
     useBalance: z.boolean(),
     expectedCredit: amount,
     consentVersion: z.literal(customsVersion),
+    delivery: deliveryProfileSchema.optional(),
+  }),
+  z.object({ type: z.literal("payment-demo"), id }),
+  z.object({ type: z.literal("communication-save"), value: communicationSchema }),
+  z.object({
+    type: z.literal("assign-order"),
+    id,
+    team: z.enum(["Закупки", "Склад", "Поддержка", "Финансы"]),
+    priority: z.enum(["Обычный", "Высокий", "Срочный"]),
+  }),
+  z.object({ type: z.literal("staff-note"), id, text: z.string().min(1).max(500) }),
+  z.object({
+    type: z.literal("parcel-set"),
+    id,
+    carrier: z.string().min(2).max(80),
+    trackingNumber: z.string().min(3).max(100),
+    warehouseCode: z.string().max(80),
   }),
   z.object({ type: z.literal("advance"), id, expected: z.number().int() }),
   z.object({
@@ -70,7 +94,10 @@ export function applyAction(
   if (
     (a.type === "advance" ||
       a.type === "receive" ||
-      a.type === "confirm-store-shipping") &&
+      a.type === "confirm-store-shipping" ||
+      a.type === "assign-order" ||
+      a.type === "staff-note" ||
+      a.type === "parcel-set") &&
     !isOperator
   )
     throw Error("Доступно только оператору.");
@@ -163,7 +190,18 @@ export function applyAction(
         a.useBalance,
         Date.now(),
         a.consentVersion,
+        a.delivery,
       );
+    case "payment-demo":
+      return confirmDemoPayment(s, a.id);
+    case "communication-save":
+      return updateCommunication(s, a.value);
+    case "assign-order":
+      return assignOrder(s, a.id, a.team, a.priority);
+    case "staff-note":
+      return addStaffNote(s, a.id, a.text, "Оператор");
+    case "parcel-set":
+      return setParcel(s, a.id, a.carrier, a.trackingNumber, a.warehouseCode);
     case "advance":
       return advanceOrder(s, a.id, a.expected);
     case "receive":

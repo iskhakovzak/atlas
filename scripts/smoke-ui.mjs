@@ -148,10 +148,17 @@ try {
     "location.pathname === '/notifications'",
     "notifications navigation",
   );
+  await evaluate("document.querySelector('a[href=\"/legal\"]')?.click()");
+  await eventually("location.pathname === '/legal'", "legal navigation");
+  await evaluate("document.querySelector('a[href=\"/order-by-link\"]')?.click()");
+  await eventually(
+    "location.pathname === '/order-by-link' && document.body.textContent.includes('Загрузить товар')",
+    "order-by-link navigation",
+  );
   if (cdp.errors.length)
     throw Error(`Browser exceptions: ${cdp.errors.join(" | ")}`);
   process.stdout.write(
-    "UI smoke passed: filter, product details, cart, orders, notifications.\n",
+    "UI smoke passed: catalog, product details, cart, orders, notifications, legal, order-by-link.\n",
   );
 } finally {
   cdp?.close();

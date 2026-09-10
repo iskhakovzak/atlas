@@ -13,6 +13,11 @@ import {
   Wallet,
   Bell,
   CheckCheck,
+  CreditCard,
+  Mail,
+  MessageSquareText,
+  Truck,
+  UserCheck,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -34,6 +39,7 @@ import {
   type Pricing,
   type State,
   type Order,
+  type Communication,
 } from "@/lib/market/domain";
 import type { Action } from "@/lib/market/actions";
 import {
@@ -62,6 +68,60 @@ type OperationsAccount = {
   revision: number;
   updatedAt: number;
 };
+
+function OperatorOrderTools({
+  order,
+  run,
+}: {
+  order: Order;
+  run: (action: Action) => Promise<boolean>;
+}) {
+  const [team, setTeam] = useState<"Закупки" | "Склад" | "Поддержка" | "Финансы">(order.assignment?.team ?? "Закупки");
+  const [priority, setPriority] = useState<"Обычный" | "Высокий" | "Срочный">(order.assignment?.priority ?? "Обычный");
+  const [carrier, setCarrier] = useState(order.parcel?.carrier ?? "Atlas Cargo");
+  const [tracking, setTracking] = useState(order.parcel?.trackingNumber ?? "");
+  const [warehouseCode, setWarehouseCode] = useState(order.parcel?.warehouseCode ?? "WH-TAS-01");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const save = async (action: Action, message: string) => {
+    if (busy) return;
+    setBusy(true);
+    const ok = await run(action);
+    setBusy(false);
+    if (ok) toast.success(message);
+  };
+  return (
+    <details className="ops-tools">
+      <summary><UserCheck size={17} /> Команда, трекинг и заметки</summary>
+      <div className="ops-tools-grid">
+        <form onSubmit={(event) => { event.preventDefault(); void save({ type: "assign-order", id: order.id, team, priority }, "Ответственный и приоритет сохранены"); }}>
+          <h3>Ответственный</h3>
+          <div className="two-fields">
+            <div className="field"><label htmlFor={`team-${order.id}`}>Команда</label><select id={`team-${order.id}`} value={team} onChange={(event) => setTeam(event.target.value as typeof team)}>{["Закупки", "Склад", "Поддержка", "Финансы"].map((value) => <option key={value}>{value}</option>)}</select></div>
+            <div className="field"><label htmlFor={`priority-${order.id}`}>Приоритет</label><select id={`priority-${order.id}`} value={priority} onChange={(event) => setPriority(event.target.value as typeof priority)}>{["Обычный", "Высокий", "Срочный"].map((value) => <option key={value}>{value}</option>)}</select></div>
+          </div>
+          <button className="btn secondary" disabled={busy}>Сохранить назначение</button>
+        </form>
+        <form onSubmit={(event) => { event.preventDefault(); void save({ type: "parcel-set", id: order.id, carrier, trackingNumber: tracking, warehouseCode }, "Трек-номер сохранён"); }}>
+          <h3>Посылка</h3>
+          <div className="field"><label htmlFor={`carrier-${order.id}`}>Перевозчик</label><input id={`carrier-${order.id}`} required minLength={2} maxLength={80} value={carrier} onChange={(event) => setCarrier(event.target.value)} /></div>
+          <div className="two-fields">
+            <div className="field"><label htmlFor={`tracking-${order.id}`}>Трек-номер</label><input id={`tracking-${order.id}`} required minLength={3} maxLength={100} placeholder="ATLAS-DEMO-001" value={tracking} onChange={(event) => setTracking(event.target.value)} /></div>
+            <div className="field"><label htmlFor={`warehouse-${order.id}`}>Код склада</label><input id={`warehouse-${order.id}`} maxLength={80} value={warehouseCode} onChange={(event) => setWarehouseCode(event.target.value)} /></div>
+          </div>
+          <button className="btn secondary" disabled={busy || order.status < 1}>Сохранить трекинг</button>
+          {order.status < 1 && <p className="micro">Станет доступно после подтверждения выкупа.</p>}
+        </form>
+        <form onSubmit={(event) => { event.preventDefault(); void save({ type: "staff-note", id: order.id, text: note }, "Внутренняя заметка добавлена").then(() => setNote("")); }}>
+          <h3>Внутренняя заметка</h3>
+          <div className="field"><label htmlFor={`note-${order.id}`}>Видна только оператору</label><textarea id={`note-${order.id}`} required minLength={1} maxLength={500} rows={4} value={note} onChange={(event) => setNote(event.target.value)} /></div>
+          <button className="btn secondary" disabled={busy || !note.trim()}>Добавить заметку</button>
+        </form>
+      </div>
+      {!!order.staffNotes?.length && <div className="staff-notes"><h3>Последние заметки</h3>{[...order.staffNotes].reverse().slice(0, 3).map((item) => <p key={item.id}><time>{new Date(item.at).toLocaleString("ru-RU")}</time>{item.text}</p>)}</div>}
+    </details>
+  );
+}
 export function OrdersView({ operations }: { operations: boolean }) {
   const { state, pricing, ready, error, act, user, refresh } = useMarket();
   const [tab, setTab] = useState("active"),
@@ -75,6 +135,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
       cancel: boolean;
       amount: number;
       storeShipping?: boolean;
+      payment?: boolean;
     } | null>(null),
     [busy, setBusy] = useState(false),
     [opsAccounts, setOpsAccounts] = useState<OperationsAccount[]>([]),
@@ -433,6 +494,33 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 ))}
               </ol>
             )}
+            {o.payment && (
+              <div className={"settlement-box payment-box " + (o.payment.status === "pending" ? "attention" : "")}>
+                <CreditCard size={22} />
+                <div>
+                  <h3>{o.payment.status === "pending" ? "Ожидается тестовая оплата" : o.payment.status === "paid" ? "Тестовая оплата подтверждена" : "Тестовый платёж возвращён"}</h3>
+                  <p>Платёж {o.payment.id} · {money(o.payment.amount)}.</p>
+                  <strong>{o.payment.status === "pending" ? "Без реального списания" : "Сценарий платёжного провайдера пройден"}</strong>
+                </div>
+                {!operations && o.payment.status === "pending" && (
+                  <button className="btn primary" onClick={() => setConfirmation({ id: o.id, cancel: false, amount: o.payment!.amount, payment: true })}>
+                    Тестовая оплата <ArrowRight size={16} />
+                  </button>
+                )}
+              </div>
+            )}
+            {o.delivery && (
+              <div className="settlement-box delivery-box">
+                <Package size={22} />
+                <div><h3>Получатель: {o.delivery.recipient}</h3><p>{o.delivery.region}, {o.delivery.city}, {o.delivery.address}</p><strong>{o.delivery.phone}</strong></div>
+              </div>
+            )}
+            {o.parcel && (
+              <div className="settlement-box parcel-box">
+                <Truck size={22} />
+                <div><h3>{o.parcel.carrier}</h3><p>Трек-номер: {o.parcel.trackingNumber}{o.parcel.warehouseCode ? ` · склад ${o.parcel.warehouseCode}` : ""}</p><strong>{o.parcel.events.at(-1)?.status ?? "Посылка зарегистрирована"}</strong></div>
+              </div>
+            )}
             {!operations &&
               !o.cancelled &&
               o.status === 0 &&
@@ -572,7 +660,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
               ) && (
               <button
                 className="btn primary"
-                disabled={isExtra(o)}
+                disabled={isExtra(o) || (o.status === 0 && o.payment?.status === "pending") || (o.status === 3 && !o.parcel)}
                 onClick={async () => {
                   if (o.status === 2) {
                     setWarehouse(o.id);
@@ -617,6 +705,13 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 заказы».
               </p>
             )}
+            {operations && o.status === 0 && o.payment?.status === "pending" && (
+              <p className="micro">Выкуп станет доступен после тестового подтверждения оплаты клиентом.</p>
+            )}
+            {operations && o.status === 3 && !o.parcel && (
+              <p className="micro">Перед отправкой добавьте перевозчика и трек-номер.</p>
+            )}
+            {operations && !o.cancelled && <OperatorOrderTools order={o} run={runOrderAction} />}
             <div className="order-bottom">
               <details>
                 <summary>Расчёт и история</summary>
@@ -808,15 +903,19 @@ export function OrdersView({ operations }: { operations: boolean }) {
           <AlertDialogTitle>
             {confirmation?.cancel
               ? "Отменить заказ до выкупа?"
-              : "Подтвердить тестовую доплату?"}
+              : confirmation?.payment
+                ? "Подтвердить тестовую оплату?"
+                : "Подтвердить тестовую доплату?"}
           </AlertDialogTitle>
           <AlertDialogDescription>
             {confirmation?.cancel
               ? "Вся сумма вернётся на демобаланс. Заказ больше не поступит в обработку."
-              : "После подтверждения оператор сможет отправить заказ. Реальных списаний не будет."}
+              : confirmation?.payment
+                ? "Atlas имитирует успешный webhook платёжного провайдера. Деньги не списываются."
+                : "После подтверждения оператор сможет отправить заказ. Реальных списаний не будет."}
           </AlertDialogDescription>
           <div className="confirm-price">
-            <span>{confirmation?.cancel ? "К возврату" : "К доплате"}</span>
+            <span>{confirmation?.cancel ? "К возврату" : confirmation?.payment ? "Тестовый платёж" : "К доплате"}</span>
             <strong>{money(confirmation?.amount ?? 0)}</strong>
           </div>
           <AlertDialogFooter>
@@ -830,6 +929,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 const ok = await act(
                   confirmation.cancel
                     ? { type: "cancel", id: confirmation.id }
+                    : confirmation.payment
+                      ? { type: "payment-demo", id: confirmation.id }
                     : confirmation.storeShipping
                       ? {
                           type: "approve-store-shipping-extra",
@@ -989,8 +1090,51 @@ function PricingManager({
   );
 }
 
+function CommunicationPanel({
+  value,
+  email,
+  phone,
+  save,
+}: {
+  value: Communication;
+  email: string;
+  phone: string;
+  save: (value: Communication) => Promise<boolean>;
+}) {
+  const [draft, setDraft] = useState<Communication>({
+    ...value,
+    email: value.email || email,
+    phone: value.phone || phone,
+  });
+  const [saving, setSaving] = useState(false);
+  async function submit() {
+    setSaving(true);
+    const ok = await save(draft);
+    setSaving(false);
+    if (ok) toast.success("Настройки email и SMS сохранены");
+  }
+  return (
+    <section className="surface communication-panel">
+      <div className="communication-heading">
+        <div><span className="eyebrow">КАНАЛЫ СВЯЗИ</span><h2>Email и SMS</h2><p>Предрелиз сохраняет настройки и формирует журнал сообщений, но ничего не отправляет наружу.</p></div>
+        <span className="status-badge">Тестовый режим</span>
+      </div>
+      <div className="communication-grid">
+        <label className="channel-card"><input type="checkbox" checked={draft.emailEnabled} onChange={(event) => setDraft({ ...draft, emailEnabled: event.target.checked })} /><Mail size={22} /><span><b>Email</b><small>Статусы, оплата и возвраты</small></span></label>
+        <label className="channel-card"><input type="checkbox" checked={draft.smsEnabled} onChange={(event) => setDraft({ ...draft, smsEnabled: event.target.checked })} /><MessageSquareText size={22} /><span><b>SMS</b><small>Только важные изменения</small></span></label>
+      </div>
+      <div className="communication-fields">
+        <div className="field"><label htmlFor="notice-email">Email</label><input id="notice-email" type="email" required={draft.emailEnabled} value={draft.email} onChange={(event) => setDraft({ ...draft, email: event.target.value })} /></div>
+        <div className="field"><label htmlFor="notice-phone">Телефон</label><input id="notice-phone" type="tel" required={draft.smsEnabled} placeholder="+998 90 123 45 67" value={draft.phone} onChange={(event) => setDraft({ ...draft, phone: event.target.value })} /></div>
+        <div className="field"><label htmlFor="notice-language">Язык</label><select id="notice-language" value={draft.language} onChange={(event) => setDraft({ ...draft, language: event.target.value as "ru" | "uz" })}><option value="ru">Русский</option><option value="uz">O‘zbekcha</option></select></div>
+      </div>
+      <button className="btn secondary" disabled={saving || (draft.emailEnabled && !draft.email) || (draft.smsEnabled && !draft.phone)} onClick={() => void submit()}>{saving ? "Сохраняем…" : "Сохранить настройки"}<Check size={17} /></button>
+    </section>
+  );
+}
+
 export function NotificationsView() {
-  const { state, ready, error, act } = useMarket();
+  const { state, ready, error, act, user } = useMarket();
   const unread = state.notifications.filter((item) => !item.read).length;
   return (
     <>
@@ -1008,6 +1152,9 @@ export function NotificationsView() {
           </button>
         )}
       </PageHeading>
+      {ready && (
+        <CommunicationPanel key={`${state.communication.emailEnabled}-${state.communication.smsEnabled}-${state.communication.email}-${state.communication.phone}-${state.communication.language}`} value={state.communication} email={user?.email ?? ""} phone={state.deliveryProfile?.phone ?? ""} save={(value) => act({ type: "communication-save", value })} />
+      )}
       {!ready ? (
         error ? (
           <Empty
@@ -1049,6 +1196,12 @@ export function NotificationsView() {
               </div>
             </article>
           ))}
+        </section>
+      )}
+      {ready && (
+        <section className="message-log-section">
+          <div className="section-heading"><h2>Журнал внешних сообщений</h2><span>{state.messageDeliveries.length} подготовлено</span></div>
+          {!state.messageDeliveries.length ? <div className="surface message-log-empty"><Mail size={23} /><div><h3>Сообщений пока нет</h3><p>Включите канал и измените тестовый статус заказа — Atlas подготовит email или SMS.</p></div></div> : <div className="surface message-log">{state.messageDeliveries.map((item) => <article key={item.id}><span className="message-channel">{item.channel === "email" ? <Mail size={17} /> : <MessageSquareText size={17} />}{item.channel.toUpperCase()}</span><div><b>{item.title}</b><p>{item.orderId ? `${item.orderId} · ` : ""}{item.destination}</p></div><span className="status-badge">Предпросмотр</span><time>{new Date(item.at).toLocaleString("ru-RU")}</time></article>)}</div>}
         </section>
       )}
     </>

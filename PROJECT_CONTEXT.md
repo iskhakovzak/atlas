@@ -2,7 +2,7 @@
 
 ## Product
 
-Atlas is a functional cross-border shopping prototype for customers in Uzbekistan. A user chooses a demonstration catalog item or pastes a foreign-store product link, receives an editable preliminary UZS calculation, creates a simulated order and follows its simulated purchase/warehouse/delivery process.
+Atlas is a functional pre-release cross-border shopping prototype for customers in Uzbekistan. A user chooses a demonstration catalog item or pastes a foreign-store product link, receives an editable preliminary UZS calculation, saves a recipient/address, creates a simulated payment and follows the purchase, warehouse, parcel and delivery process.
 
 It is not yet a commercial marketplace: no real payment, purchase, carrier booking, customs filing, money transfer or delivery takes place.
 
@@ -16,9 +16,10 @@ Handoff baseline: commit 7895b17da6d2dd67c5a5e9a7a059bc0491b21d7d, published ver
 3. The server imports available title, photo, brand, price, currency, source country, category, declaration draft, variants and weight.
 4. Customer checks/edits the source data, selects size/colour/model and adds to cart.
 5. If store shipping is unavailable, the form starts with editable $10 reserve.
-6. Customer accepts customs conditions and completes simulated checkout. One cart line becomes one order.
-7. Operator confirms estimated merchant shipping, purchase, warehouse receipt, settlement and dispatch status.
-8. Refunds appear as demo balance credit; extras require approval before the order proceeds.
+6. Customer accepts customs conditions, enters the recipient/address and completes pre-release checkout. One cart line becomes one order.
+7. Customer confirms a safe simulated payment-provider result; no charge occurs.
+8. Operator assigns a team and priority, adds internal notes, confirms merchant shipping, purchase, parcel/tracking, warehouse receipt, settlement and dispatch status.
+9. Refunds appear as demo balance credit; extras require approval before the order proceeds.
 
 ## Current routes
 
@@ -30,6 +31,8 @@ Handoff baseline: commit 7895b17da6d2dd67c5a5e9a7a059bc0491b21d7d, published ver
 | /orders | Customer orders, photo refresh and extra approvals |
 | /operations | Cross-customer operator queue and managed pricing |
 | /notifications | In-app status, refund and approval notifications |
+| /analytics | Operator metrics and closed-pilot readiness |
+| /legal | Pre-release terms, privacy, refunds and restricted-goods drafts |
 | /account | ChatGPT profile and one-time legacy demo import |
 | /balance | Demo ledger/balance |
 | /favorites | Saved catalog items |
@@ -111,14 +114,22 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Ten-minute import cache with visible source freshness.
 - Headless browser smoke test clicks catalog filters, product details and primary navigation.
 - Warehouse actual/dimensional settlement and balance credits.
+- Recipient/address checkout and saved primary delivery profile.
+- Simulated payment-link state with customer confirmation and refund status.
+- Parcel, carrier, tracking number and tracking-event history.
+- Operator team/priority assignment and internal notes.
+- Email/SMS preferences plus a persistent pre-release delivery-preview log; no messages leave Atlas.
+- Operator analytics and closed-pilot readiness dashboard.
+- Pre-release legal/privacy/refund/restricted-goods drafts and customer data export.
+- Authenticated API smoke test covers checkout through delivered status.
 
 ## Partial or missing
 
 - Store parser quality varies; only Zara has the detailed adapter.
 - Store shipping is frequently destination/session-dependent; $10 is reserve only.
-- Operations supports one configured operator email; multi-staff roles, assignment and audit logs are not implemented.
+- Operations supports one configured operator email. Team assignment and notes work, but independent staff identities and permission roles are not connected.
 - Catalog is illustrative, not inventory.
-- No real payment, carrier, tracking, email/SMS/push provider, automatic live FX feed, customs calculation, public registration or production ledger.
+- No real payment, carrier API, email/SMS provider, automatic live FX feed, customs calculation, public registration or production ledger. Tracking is operator-entered.
 
 ## Decisions not to lose
 

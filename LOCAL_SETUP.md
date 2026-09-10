@@ -40,6 +40,14 @@ npm run smoke:ui -- http://127.0.0.1:8787/
 
 It launches an installed Chrome/Edge headlessly, clicks the catalog filter and product details, then verifies cart, orders and notifications navigation. Set ATLAS_BROWSER_PATH when the browser is installed elsewhere.
 
+For the complete authenticated pre-release flow, start the Worker with `ATLAS_OPERATOR_EMAIL` configured for a disposable local operator, then run:
+
+~~~
+npm run smoke:auth -- http://127.0.0.1:8787/
+~~~
+
+The smoke uses a unique local customer and checks address checkout, simulated payment, team assignment, internal note, parcel/tracking, warehouse settlement, delivery and email/SMS previews. It never contacts external payment, carrier or messaging providers.
+
 The command prints the loopback URL. Local portable profile can simulate sign-in at:
 
 ~~~text
