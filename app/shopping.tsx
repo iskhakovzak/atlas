@@ -18,6 +18,7 @@ export function CartView() {
   const [consent, setConsent] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [delivery, setDelivery] = useState<DeliveryProfile>(emptyDelivery);
+  const [selectedProfile, setSelectedProfile] = useState("");
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState(false);
   const [now, setNow] = useState(0);
@@ -38,7 +39,9 @@ export function CartView() {
 
   function openCheckout() {
     if (expired) { void act({ type: "cart-renew" }); return; }
-    setDelivery(state.deliveryProfile ?? { ...emptyDelivery, recipient: user?.name ?? "", phone: state.communication.phone });
+    const saved = state.deliveryProfiles.find(profile => profile.primary) ?? state.deliveryProfiles[0];
+    setSelectedProfile(saved?.id ?? "manual");
+    setDelivery(saved ?? state.deliveryProfile ?? { ...emptyDelivery, recipient: user?.name ?? "", phone: state.communication.phone });
     setCheckoutOpen(true);
   }
 
@@ -85,6 +88,7 @@ export function CartView() {
     <Modal open={checkoutOpen} onClose={() => { if (!busy) setCheckoutOpen(false); }} title="Получатель и адрес" description="Данные сохранятся в профиле и будут зафиксированы в заказе.">
       <form className="checkout-form" onSubmit={(event) => { event.preventDefault(); void checkout(); }}>
         <div className="checkout-address-head"><MapPin size={21} /><span>Доставка по Узбекистану</span></div>
+        {state.deliveryProfiles.length > 0 && <div className="field"><label htmlFor="saved-recipient">Сохранённый получатель</label><select id="saved-recipient" value={selectedProfile} onChange={event => { const profile = state.deliveryProfiles.find(item => item.id === event.target.value); setSelectedProfile(event.target.value); if (profile) setDelivery(profile); }}><option value="manual">Ввести новый адрес</option>{state.deliveryProfiles.map(profile => <option key={profile.id} value={profile.id}>{profile.label} · {profile.recipient}</option>)}</select><small>Можно выбрать адрес из профиля или указать новый.</small></div>}
         <div className="two-fields">
           <div className="field"><label htmlFor="recipient">Получатель</label><input id="recipient" required minLength={2} maxLength={100} value={delivery.recipient} onChange={(event) => setDelivery({ ...delivery, recipient: event.target.value })} /></div>
           <div className="field"><label htmlFor="recipient-phone">Телефон</label><input id="recipient-phone" required type="tel" minLength={7} maxLength={30} placeholder="+998 90 123 45 67" value={delivery.phone} onChange={(event) => setDelivery({ ...delivery, phone: event.target.value })} /></div>
