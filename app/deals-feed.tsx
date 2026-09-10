@@ -53,23 +53,21 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
     </section>
     <div className="finds-result"><span role="status">{copy.results}: <b>{list.length}</b></span>{hasFilters && <button type="button" className="text-button" onClick={() => setFilters(defaultDealFilters)}>{copy.reset}<X size={14}/></button>}</div>
     <section className="finds-grid" aria-label={favorites ? copy.saved : copy.catalog}>
-      {list.map(({ product, costs, referenceUsd, savingsUsd, discount }) => {
+      {list.map(({ product, costs, referenceUsd, discount }) => {
         const isSaved = state.favorites.includes(product.id);
         const name = product.sourceUrl ? product.name : titles[product.id] ?? product.name;
-        const rows: [string, number][] = [[copy.merchandise, costs.merchandise], [copy.service, costs.service], [copy.merchantShipping, costs.sourceShipping], [copy.international, costs.shipping], [copy.reserve, costs.reserve]];
         return <article className="find-card" key={product.id}>
           <div className="find-visual"><button className="find-photo" type="button" onClick={() => select(product)} aria-label={name}><ProductImage product={{ ...product, name }} /></button>
             <span className="find-merchant">{merchantRecord(product)?.store}</span>
             <button type="button" disabled={!ready || saving !== null} className={'find-save ' + (isSaved ? 'saved' : '')} aria-pressed={isSaved} aria-label={(isSaved ? copy.remove : copy.save) + ': ' + name} title={!ready ? copy.signin : saving === product.id ? copy.savingState : isSaved ? copy.remove : copy.save} onClick={() => void favorite(product)}><Heart size={20}/></button>
-            {!!discount && <span className="find-discount"><strong>−{discount}%</strong><small>{copy.discountLabel}</small></span>}
           </div>
           <div className="find-content"><div className="find-meta"><span>{categories.find(c => c.value === product.category)?.label ?? product.category}</span><span>{countries.find(c => c.value === product.country)?.label ?? product.country}</span></div>
             <button type="button" className="find-title" onClick={() => select(product)}>{name}</button>
-            <div className="find-store-price"><span>{copy.productPrice}</span><div><b>{fmt(product.usd, 'USD')}</b>{discount > 0 && <del title={copy.referenceLabel}>{fmt(referenceUsd!, 'USD')}</del>}</div>{discount > 0 && <small>{copy.saving}: {fmt(savingsUsd, 'USD')}</small>}</div>
+            <div className="find-store-price"><span>{copy.productPrice}</span><div><b>{fmt(product.usd, 'USD')}</b>{discount > 0 && <del title={copy.referenceLabel}>{fmt(referenceUsd!, 'USD')}</del>}</div>{discount > 0 && <span className="find-discount" title={copy.compareHint}>−{discount}%</span>}</div>
             <div className="find-total"><span>{copy.delivered}</span><strong>{fmt(costs.total)}</strong><small>{copy.excluded}</small></div>
-            <details className="find-breakdown"><summary>{copy.breakdown}</summary><dl>{rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{fmt(value)}</dd></div>)}</dl><p>{copy.compareHint}</p>{product.sourceShippingEstimated && <p>{copy.unknownShipping}</p>}<p>{copy.estimateHint}</p></details>
-            <div className="find-origin"><a href={product.sourceUrl} target="_blank" rel="noopener noreferrer">{merchantRecord(product)?.store} · {copy.sourceOpen}<ArrowUpRight size={14}/></a><span>{copy.observed}: {merchantRecord(product)?.observedOn}</span></div>
-            <div className="find-purchase"><span>{copy.checkOptions}</span><Link className="btn primary" href={findOrderUrl(product)}>{copy.buy}<ArrowRight size={17}/></Link></div>
+            <button type="button" className="text-button find-details" onClick={() => select(product)}>{copy.breakdown}<ArrowUpRight size={14}/></button>
+            <div className="find-origin"><a href={product.sourceUrl} target="_blank" rel="noopener noreferrer">{merchantRecord(product)?.store} · {copy.sourceOpen}<ArrowUpRight size={14}/></a></div>
+            <div className="find-purchase"><Link className="btn primary" href={findOrderUrl(product)}>{copy.buy}<ArrowRight size={17}/></Link></div>
           </div>
         </article>;
       })}

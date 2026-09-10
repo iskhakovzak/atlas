@@ -72,7 +72,8 @@
 - [ ] $10 merchant shipping is an estimate, not a fetched quote.
 - [ ] Allowed stores can still block, localize, require login or change HTML; manual entry must remain.
 - [ ] RON conversion 0.23 USD/RON is static demo data.
-- [ ] Customs content is informational, dated 9 September 2026 and not a duty calculator.
+- [x] Simplify catalog discount badges and move itemized quotes/weight margins into detail views; add an independent RU/UZ/EN courier-customs estimator.
+- [ ] Customs estimate is informational (checked 11 September 2026), not a binding charge. Confirm dutiable weight/value, effective-date interpretation, exclusions and bonded-vs-courier regime with the production carrier/legal adviser before commercial use. No official allowance lookup; user manually enters other imports.
 - [ ] Email-based account key is intentional due optional platform user ID; change only with migration.
 - [ ] One JSON account state has 1 MB limit and is unsuitable for scale.
 - [ ] Source titles are intentionally not translated automatically.

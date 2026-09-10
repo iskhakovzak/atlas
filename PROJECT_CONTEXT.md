@@ -160,7 +160,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Store shipping is frequently destination/session-dependent; $10 is reserve only.
 - Operations supports one configured operator email. Team assignment and notes work, but independent staff identities and permission roles are not connected.
 - Catalog has dated real merchant listings, not live inventory. Automated refresh, commercial reuse rights and merchant agreements still require work.
-- No real payment, carrier API, email/SMS provider, automatic live FX feed, customs calculation, public registration or production ledger. Tracking is operator-entered.
+- No real payment, carrier API, email/SMS provider, automatic live FX feed, binding customs calculation, public registration or production ledger. Tracking is operator-entered.
 - RU/UZ/EN navigation and chosen communication language are available, but detailed transactional screens still need a complete translation pass.
 - Email/password or email-code sign-in, optional Google linking, phone verification, staff roles, audit log and backups require chosen providers and production secrets.
 - Passport OCR is best effort; unsupported browsers fall back to manual confirmation. There is no government identity validation, liveness check or customs gateway.
@@ -175,3 +175,12 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - D1 holds one JSON State per user; do not replace it without a data migration.
 - Do not describe the prototype as commercially live.
 - Passport bytes belong in private R2 paths; D1 stores owner-scoped metadata and account state stores only confirmed fields plus a masked number.
+
+## Checkout clarity and customs estimate — 11 September 2026
+
+- Catalog now prioritizes sourced item price, compact merchant discount, delivered estimate and next action. Detailed quote lines remain in the product sheet; weight margins are no longer repeated on the primary surface.
+- Standalone /customs calculator and product/link/cart estimates are read-only and separate from Atlas totals. Cart merchandise/quantity is aggregated before applying one monthly allowance.
+- Ordinary personal courier regime: $200/calendar month (PKM-244); unified payment on excess, without adding VAT again (PP-4508). Use 30% / minimum $3 per dutiable kg before 2027-01-01 and 20% / $2 from that date as explicitly scheduled in UP-174 section 8. Consolidated PP-4508 already displays the amendment; the estimator follows the originating decree’s stated commencement date.
+- PP-136 bonded warehouse/registered e-commerce platform experiment is distinct: selected 3% plus VAT or unified 5%, not generic 5% plus VAT and not the courier exemption model.
+- User provides arrival date, other imports in that calendar month, and additional customs value. Unknown dutiable-weight allocation produces a lower/upper illustration using value-based charge and supplied gross-weight cap; it is not a customs decision. Without weight, show a lower bound. No extra fees or special restrictions are automatically assessed.
+- This pass: 34 unit tests, lint and production build passed; browser interaction/visual QA not performed.

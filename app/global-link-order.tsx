@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, Link2, Loader2, Scale, ShieldCheck } from "lucide-react";
+import { ArrowRight, Link2, Loader2, Scale } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
@@ -20,6 +20,7 @@ import {
   type ProductVariant,
 } from "@/lib/importer/extract";
 import { Choice, CostLines, PageHeading, ProductImage } from "./market-ui";
+import { CustomsEstimate } from "./customs-estimate";
 const priors: Record<string, number> = {
   Обувь: 1.3,
   Одежда: 0.6,
@@ -31,7 +32,7 @@ const priors: Record<string, number> = {
   Другое: 1.5,
 };
 export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
-  const { ready, pricing } = useMarket();
+  const { ready, pricing, state } = useMarket();
   const searchParams = useSearchParams();
   const seed = merchantFinds.find(item => item.sourceUrl === searchParams.get("url"));
   const [url, setUrl] = useState(() => searchParams.get("url") ?? ""),
@@ -483,7 +484,7 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
                   />
                 </div>
               </div>
-              <div className="weight-formula">
+              <details className="quote-details"><summary>Как уточняется вес доставки</summary><div className="weight-formula">
                 <Scale size={23} />
                 <div>
                   <strong>
@@ -499,7 +500,7 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
                     или объёмному весу.
                   </small>
                 </div>
-              </div>
+              </div></details>
               <div className="field">
                 <label htmlFor="variant">Размер, цвет или модель</label>
                 {variants.length ? (
@@ -582,39 +583,32 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
             </p>
           )}
           {declaration && (
-            <div className="declaration-preview">
-              <b>Черновик декларации</b>
+            <details className="declaration-preview"><summary>Черновик декларации</summary>
               <span>{declaration}</span>
-            </div>
+            </details>
           )}
           {preview ? (
             <>
-              <CostLines q={preview} shippingUnknown={shipping === ""} />
+              <details className="quote-details"><summary>Состав стоимости</summary><CostLines q={preview} shippingUnknown={shipping === ""} />
               {shippingEstimated && (
                 <p className="warning-text">
                   $10 — временный резерв доставки магазина. Менеджер проверит
                   сумму после оформления.
                 </p>
               )}
-              <div className="summary-total">
+              </details><div className="summary-total">
                 <span>
                   {shipping === ""
                     ? "Промежуточный итог"
-                    : "Предварительно с резервом"}
+                    : "С доставкой, ориентир"}
                 </span>
                 <strong>{money(preview.total)}</strong>
               </div>
+              <CustomsEstimate valueUsd={toUsd(Number(amount), currency, pricing.rates)} grossKg={Number(weight) || undefined} fx={pricing.fx} locale={state.communication.language}/>
             </>
           ) : (
             <p>Вставьте ссылку или заполните цену и вес.</p>
           )}
-          <div className="notice">
-            <ShieldCheck size={20} />
-            <span>
-              Добавки 0,3 и 0,2 кг учитываются в весе. Денежный резерв доставки
-              — отдельная строка.
-            </span>
-          </div>
           <p className="micro">
             Расчёт использует настроенные тарифы Atlas, а не котировку перевозчика.
             Курс, маршрут, таможня и сроки уточняются до выкупа.

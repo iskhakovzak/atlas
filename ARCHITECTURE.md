@@ -116,3 +116,7 @@ No payment processor, eBay API, carrier API, automatic FX API, email/SMS provide
 Current deployment procedure: commit; request temporary Sites repo credential; push exact HEAD; package site; save a version with exact pushed SHA; deploy saved version privately; poll success. Never persist the temporary token.
 
 The verification suite includes lint, Node domain/security tests, production build, a dependency-free public browser smoke test and an authenticated API smoke covering checkout, payment, assignment, parcel, tracking, warehouse and email/SMS previews.
+
+## Informational customs UI (2026-09-11)
+
+`lib/market/customs.ts` contains a pure, date-aware personal courier estimator and official LexUZ references. `app/customs-estimate.tsx` provides localized, disclosure-based inputs and display. It is used in product details, link import, aggregate cart and /customs; never modifies price(), quotes, checkout payload, ledger, consent version or persisted state. Prior imports are manually entered, not inferred from prototype orders. Additional value and dutiable-weight uncertainty remain explicit. Old accounts/orders require no migration.

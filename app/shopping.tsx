@@ -10,10 +10,11 @@ import { customsVersion } from "@/lib/market/world";
 import { CostLines, Empty, Expiry, Modal, PageHeading, ProductImage } from "./market-ui";
 import {cities,regions,streets,suggestions} from "@/lib/market/addresses";
 
+import { CustomsEstimate } from "./customs-estimate";
 const emptyDelivery: DeliveryProfile = { recipient: "", phone: "", region: "Ташкент", city: "Ташкент", address: "", postalCode: "", comment: "" };
 
 export function CartView() {
-  const { state, act, ready, error, user } = useMarket();
+  const { state, act, ready, error, user, pricing } = useMarket();
   const [useBalance, setUseBalance] = useState(false);
   const [consent, setConsent] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -69,15 +70,15 @@ export function CartView() {
                 <button aria-label={`Увеличить количество ${item.product.name}`} disabled={item.quantity >= 10} onClick={() => void act({ type: "cart-quantity", id: item.id, quantity: item.quantity + 1 })}><Plus size={16} /></button>
               </div><button className="remove-item" aria-label={`Удалить ${item.product.name}`} onClick={() => void act({ type: "cart-remove", id: item.id })}><Trash2 size={16} /><span>Удалить</span></button></div>
             </div>
-            <div className="cart-item-price"><strong>{money(item.quote.total)}</strong><span>За {item.quantity} шт. с резервом</span><Expiry expiresAt={item.quote.expiresAt} /></div>
+            <div className="cart-item-price"><strong>{money(item.quote.total)}</strong><span>За {item.quantity} шт.</span><Expiry expiresAt={item.quote.expiresAt} /></div>
           </article>)}
           <Link className="text-link" href="/">Продолжить покупки <ArrowRight size={16} /></Link>
         </div>
-        <aside className="surface cart-summary"><h2>Ваш заказ</h2><CostLines q={sums} />
+        <aside className="surface cart-summary"><h2>Ваш заказ</h2><details className="quote-details"><summary>Состав стоимости</summary><CostLines q={sums} /><p className="micro">Расчёт доставки включает вес с коробкой, 0,3 кг упаковки и 0,2 кг запаса на единицу. После склада вес уточняется; доплата согласовывается отдельно.</p></details>
           <div className="balance-option"><div><Wallet size={18} /><label htmlFor="use-balance">Использовать демобаланс<small>Доступно {money(balance)}</small></label></div><Checkbox id="use-balance" disabled={balance <= 0} checked={useBalance} onCheckedChange={(value) => setUseBalance(value === true)} /></div>
           {credit > 0 && <div className="credit-line"><span>С демобаланса</span><b>−{money(credit)}</b></div>}
           <div className="summary-total"><span>К тестовой оплате<strong>{money(total - credit)}</strong></span><span className="currency-mark">UZS</span></div>
-          <div className="notice warning">Для курьерских отправлений указан ориентир $200 за календарный месяц на получателя; для почтовых — отдельная норма $100. Таможенные платежи не включены. <Link href="/customs">Подробнее</Link></div>
+          <CustomsEstimate valueUsd={state.cart.reduce((sum, item) => sum + item.product.usd * item.quantity, 0)} grossKg={state.cart.reduce((sum, item) => sum + (item.product.boxedWeight ?? item.product.weight) * item.quantity, 0)} fx={pricing.fx} locale={state.communication.language}/>
           <div className="consent"><Checkbox id="checkout-consent" checked={consent} onCheckedChange={(value) => setConsent(value === true)} /><label htmlFor="checkout-consent">Подтверждаю <Link href="/customs" target="_blank">таможенные условия</Link>. Реальная оплата и доставка ещё не подключены: это подтверждение не списывает деньги и не создаёт отправку.</label></div>
           {expired && <div className="notice warning"><Clock3 size={19} /><span>Срок расчёта истёк. Обновите стоимость.</span></div>}
           <button className="btn primary full" disabled={!ready || (!expired && !consent)} onClick={openCheckout}>{expired ? "Обновить расчёт" : "Указать доставку"}<ArrowRight size={18} /></button>
