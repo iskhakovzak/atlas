@@ -9,10 +9,11 @@ import { merchantFinds as products, merchantRecord, findOrderUrl } from '@/lib/m
 import { defaultDealFilters, filterDeals, type DealFilters } from '@/lib/market/deals';
 import { dealCopy } from '@/lib/market/deal-copy';
 import { useMarket } from '@/lib/market/store';
+import { signInPath } from '@/lib/market/access';
 import { Choice, Empty, ProductImage } from './market-ui';
 
 export function DealsFeed({ favorites, select }: { favorites: boolean; select: (product: Product) => void }) {
-  const { state, pricing, ready, act } = useMarket();
+  const { state, pricing, ready, status, act } = useMarket();
   const [filters, setFilters] = useState<DealFilters>(defaultDealFilters);
   const [saving, setSaving] = useState<string | null>(null);
   const [url, setUrl] = useState('');
@@ -37,10 +38,10 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
     try { await act({ type: 'favorite', id: product.id }); } finally { setSaving(null); }
   }
 
-  return <div className="finds-page">
+  return <div className="finds-page" id="finds">
     <section className="finds-heading">
-      <div><span className="eyebrow">{copy.overline}</span><h1>{favorites ? copy.savedTitle : copy.title}</h1><p>{favorites ? copy.savedIntro : copy.intro}</p></div>
-      <Link className="btn secondary" href={favorites ? '/' : '/favorites'}><Heart size={17}/>{favorites ? copy.catalog : copy.saved}<span className="finds-count">{favorites ? products.length : state.favorites.filter(id => products.some(product => product.id === id)).length}</span></Link>
+      <div><span className="eyebrow">{copy.overline}</span>{status==='guest'?<h2>{copy.catalog}</h2>:<h1>{favorites ? copy.savedTitle : copy.title}</h1>}<p>{favorites ? copy.savedIntro : copy.intro}</p></div>
+      {ready&&<Link className="btn secondary" href={favorites ? '/' : '/favorites'}><Heart size={17}/>{favorites ? copy.catalog : copy.saved}<span className="finds-count">{favorites ? products.length : state.favorites.filter(id => products.some(product => product.id === id)).length}</span></Link>}
     </section>
     <section className="finds-controls" aria-label={copy.search}>
       <div className="finds-search"><Search size={21}/><input type="search" aria-label={copy.search} placeholder={copy.searchPlaceholder} value={filters.search} onChange={event => setFilters({ ...filters, search: event.target.value })}/>{filters.search && <button type="button" className="icon-btn" aria-label={copy.clear} onClick={() => setFilters({ ...filters, search: '' })}><X size={18}/></button>}</div>
@@ -59,7 +60,7 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
         return <article className="find-card" key={product.id}>
           <div className="find-visual"><button className="find-photo" type="button" onClick={() => select(product)} aria-label={name}><ProductImage product={{ ...product, name }} /></button>
             <span className="find-merchant">{merchantRecord(product)?.store}</span>
-            <button type="button" disabled={!ready || saving !== null} className={'find-save ' + (isSaved ? 'saved' : '')} aria-pressed={isSaved} aria-label={(isSaved ? copy.remove : copy.save) + ': ' + name} title={!ready ? copy.signin : saving === product.id ? copy.savingState : isSaved ? copy.remove : copy.save} onClick={() => void favorite(product)}><Heart size={20}/></button>
+            {ready&&<button type="button" disabled={saving !== null} className={'find-save ' + (isSaved ? 'saved' : '')} aria-pressed={isSaved} aria-label={(isSaved ? copy.remove : copy.save) + ': ' + name} title={!ready ? copy.signin : saving === product.id ? copy.savingState : isSaved ? copy.remove : copy.save} onClick={() => void favorite(product)}><Heart size={20}/></button>}
           </div>
           <div className="find-content"><div className="find-meta"><span>{categories.find(c => c.value === product.category)?.label ?? product.category}</span><span>{countries.find(c => c.value === product.country)?.label ?? product.country}</span></div>
             <button type="button" className="find-title" onClick={() => select(product)}>{name}</button>
@@ -67,14 +68,14 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
             <div className="find-total"><span>{copy.delivered}</span><strong>{fmt(costs.total)}</strong><small>{copy.excluded}</small></div>
             <button type="button" className="text-button find-details" onClick={() => select(product)}>{copy.breakdown}<ArrowUpRight size={14}/></button>
             <div className="find-origin"><a href={product.sourceUrl} target="_blank" rel="noopener noreferrer">{merchantRecord(product)?.store} · {copy.sourceOpen}<ArrowUpRight size={14}/></a></div>
-            <div className="find-purchase"><Link className="btn primary" href={findOrderUrl(product)}>{copy.buy}<ArrowRight size={17}/></Link></div>
+            <div className="find-purchase"><a className="btn primary" href={status==='guest'?signInPath(findOrderUrl(product)):findOrderUrl(product)} target={status==='guest'?'_top':undefined}>{copy.buy}<ArrowRight size={17}/></a></div>
           </div>
         </article>;
       })}
     </section>
     {!list.length && <Empty title={favorites && !candidates.length ? copy.emptySaved : copy.empty} description={favorites && !candidates.length ? copy.emptySavedHint : copy.emptyHint} href={favorites && !candidates.length ? '/' : undefined} label={copy.catalog}>{hasFilters && <button type="button" className="btn secondary" onClick={() => setFilters(defaultDealFilters)}>{copy.reset}</button>}</Empty>}
     {!!list.length && <p className="finds-price-note">{copy.priceNote}</p>}
-    {!ready && <p className="finds-signin"><Link href="/account"><Heart size={15}/>{copy.signin}<ArrowUpRight size={15}/></Link></p>}
+    {status==='guest' && <p className="finds-signin"><Link href="/account"><Heart size={15}/>{copy.signin}<ArrowUpRight size={15}/></Link></p>}
     {!favorites && <><section className="finds-own-link"><div><Link2 size={25}/><div><h2>{copy.linkTitle}</h2><p>{copy.linkHint}</p></div></div><form onSubmit={event => { event.preventDefault(); try { const target = validateSource(url); setUrlError(''); window.location.assign('/order-by-link?url=' + encodeURIComponent(target)); } catch (error) { setUrlError((error as Error).message); toast.error((error as Error).message); } }}><label className="sr-only" htmlFor="finds-product-url">{copy.linkLabel}</label><input id="finds-product-url" type="url" required value={url} aria-invalid={!!urlError} aria-describedby={urlError ? 'finds-url-error' : undefined} placeholder="https://..." onChange={event => { setUrl(event.target.value); setUrlError(''); }}/><button className="btn light">{copy.calculate}<ArrowUpRight size={18}/></button></form>{urlError && <p id="finds-url-error" role="alert">{urlError}</p>}<Link href="/batch-import">{copy.batch}<ArrowRight size={15}/></Link></section>
       <section className="finds-steps"><h2>{copy.stepsTitle}</h2><ol>{[[copy.step1, copy.step1hint], [copy.step2, copy.step2hint], [copy.step3, copy.step3hint], [copy.step4, copy.step4hint]].map(([heading, hint], index) => <li key={heading}><span>0{index + 1}</span><div><h3>{heading}</h3><p>{hint}</p></div></li>)}</ol></section></>}
   </div>;

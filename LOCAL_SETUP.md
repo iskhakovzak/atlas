@@ -40,6 +40,14 @@ npm run smoke:ui -- http://127.0.0.1:8787/
 
 It launches an installed Chrome/Edge headlessly, clicks the catalog filter and product details, then verifies cart, orders and notifications navigation. Set ATLAS_BROWSER_PATH when the browser is installed elsewhere.
 
+For the full guest/member access and responsive UI audit against the portable development server:
+
+~~~
+node scripts/audit-ui.mjs http://localhost:5173/
+~~~
+
+This local-only audit verifies protected routes, sign-in return paths, sign-out, customer denial of operator reads/writes, error recovery, semantic controls and 1440/800/390 px layouts. Screenshots and its JSON report are written under ignored `outputs/ui-audit`.
+
 For the complete authenticated pre-release flow, start the Worker with `ATLAS_OPERATOR_EMAIL` configured for a disposable local operator, then run:
 
 ~~~

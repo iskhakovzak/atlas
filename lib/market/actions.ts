@@ -229,7 +229,7 @@ export function applyAction(
       return { ...s, supportTickets: [ticket, ...s.supportTickets] };
     }
     case "support-reply":
-      return { ...s, supportTickets: s.supportTickets.map((ticket) => ticket.id === a.id ? { ...ticket, status: "answered" as const, updatedAt: Date.now(), replies: [...ticket.replies, { id: crypto.randomUUID(), at: Date.now(), author: isOperator ? "support" as const : "customer" as const, text: a.text }] } : ticket) };
+      return { ...s, supportTickets: s.supportTickets.map((ticket) => ticket.id === a.id ? { ...ticket, status: isOperator ? "answered" as const : "open" as const, updatedAt: Date.now(), replies: [...ticket.replies, { id: crypto.randomUUID(), at: Date.now(), author: isOperator ? "support" as const : "customer" as const, text: a.text }] } : ticket) };
     case "assign-order":
       return assignOrder(s, a.id, a.team, a.priority);
     case "staff-note":

@@ -24,7 +24,7 @@
 | Identity/declaration/address help | app/identity-workspace.tsx, app/api/passport, lib/market/addresses.ts |
 | Batch import/admin rules | app/batch-import.tsx, app/admin-view.tsx, lib/market/policy.ts |
 | Client provider | lib/market/store.tsx |
-| Auth | app/chatgpt-auth.ts |
+| Auth/access | app/chatgpt-auth.ts, app/access-view.tsx, lib/market/access.ts |
 | API | app/api/account, app/api/actions, app/api/import, app/api/operations |
 | Domain/security | lib/market/domain.ts, actions.ts, server.ts, world.ts |
 | Importing | lib/importer/stores.ts, fetch.ts, extract.ts |
@@ -120,3 +120,9 @@ The verification suite includes lint, Node domain/security tests, production bui
 ## Informational customs UI (2026-09-11)
 
 `lib/market/customs.ts` contains a pure, date-aware personal courier estimator and official LexUZ references. `app/customs-estimate.tsx` provides localized, disclosure-based inputs and display. It is used in product details, link import, aggregate cart and /customs; never modifies price(), quotes, checkout payload, ledger, consent version or persisted state. Prior imports are manually entered, not inferred from prototype orders. Additional value and dutiable-weight uncertainty remain explicit. Old accounts/orders require no migration.
+
+## Client access states (2026-09-11)
+
+`MarketProvider` treats session loading, guest, authenticated and connection failure as distinct states. On a 401 or failed refresh it clears the user, account revision and private state so another user or a signed-out tab cannot see stale account data. `AccessView` is the common render gate for member/admin routes. It preserves safe same-origin return paths through the platform sign-in flow. Guest language is device-local; authenticated language remains account-backed.
+
+This UI gate improves navigation and privacy but is not the authorization boundary. Account APIs still derive identity from platform headers. Operator APIs compare the authenticated email with `ATLAS_OPERATOR_EMAIL` and return 403 before reading cross-customer data or accepting an operator action. No D1 schema or stored-account format changed.

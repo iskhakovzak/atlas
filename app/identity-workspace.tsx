@@ -37,7 +37,7 @@ async function readImage(file:File){
 export function IdentityView(){
   const {state,user,ready,act}=useMarket();
   const [docs,setDocs]=useState<DocumentRow[]>([]),[file,setFile]=useState<File|null>(null),[consent,setConsent]=useState(false),[form,setForm]=useState<IdentityForm>(empty),[busy,setBusy]=useState(false),[documentId,setDocumentId]=useState("");
-  useEffect(()=>{if(!user)return;void fetch('/api/passport',{cache:'no-store'}).then(r=>r.json()).then((data:{documents?:DocumentRow[]})=>setDocs(data.documents??[])).catch(()=>undefined)},[user,state.identityProfile]);
+  useEffect(()=>{if(!user)return;void fetch('/api/passport',{cache:'no-store'}).then(async r=>{const data=await r.json() as {documents?:DocumentRow[];error?:string};if(!r.ok)throw Error(data.error??'Не удалось загрузить документы.');setDocs(data.documents??[])}).catch(e=>toast.error((e as Error).message))},[user,state.identityProfile]);
   const current=state.identityProfile;
   async function upload(){
     if(!file||!consent||busy)return;setBusy(true);

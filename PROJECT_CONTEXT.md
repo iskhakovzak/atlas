@@ -7,8 +7,8 @@ Atlas is a functional pre-release cross-border shopping prototype for customers 
 It is not yet a commercial marketplace: no real payment, purchase, carrier booking, customs filing, money transfer or delivery takes place.
 
 Published URL: https://atlas-uz-market.ishakovzakir0.chatgpt.site  
-Handoff baseline: commit 6a81062cf2d21e7911ff9e1cc9464fc449ae6304, privately published version 19.
-Validation: full-project lint, all 34 unit tests and production build passed. Standalone tsc reports six existing errors recorded in TODO.md. Browser interaction and visual QA were not run in this pass. Earlier merchant verification: Nike Gato import returned 73.97 USD and 22 variant records; official images returned successful responses.
+Handoff baseline: commit 6a81062cf2d21e7911ff9e1cc9464fc449ae6304, published version 19.
+Validation baseline will be updated after the current access-control release.
 
 ## Customer flow
 
@@ -48,9 +48,9 @@ Validation: full-project lint, all 34 unit tests and production build passed. St
 
 ## Roles and authentication
 
-Customers authenticate through platform-owned ChatGPT routes. Atlas account identity is email:<lowercase email>. This was intentional: some hosted requests provide authenticated email but omit platform user ID. app/chatgpt-auth.ts treats platform ID as optional; lib/market/server.ts migrates an old platform-ID row into the email-based account. Do not reverse this without a migration.
+The public catalog, customs guide and legal terms are available to guests. Saved finds, import, cart, orders, balance, messages, account, passport and declarations require platform-owned ChatGPT sign-in. Atlas account identity is email:<lowercase email>. This was intentional: some hosted requests provide authenticated email but omit platform user ID. app/chatgpt-auth.ts treats platform ID as optional; lib/market/server.ts migrates an old platform-ID row into the email-based account. Do not reverse this without a migration.
 
-An operator is an authenticated customer whose email matches secret ATLAS_OPERATOR_EMAIL. Client UI is not authorization: operator checks occur in server actions. There is no standalone email/password/phone registration.
+An operator is an authenticated customer whose email matches secret ATLAS_OPERATOR_EMAIL. Client UI is not authorization: operator checks occur in server actions. There is no standalone email/password/phone registration; the user asked to postpone it. The public site access policy does not grant operator rights.
 
 ## Business logic and price calculation
 
@@ -184,3 +184,11 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - PP-136 bonded warehouse/registered e-commerce platform experiment is distinct: selected 3% plus VAT or unified 5%, not generic 5% plus VAT and not the courier exemption model.
 - User provides arrival date, other imports in that calendar month, and additional customs value. Unknown dutiable-weight allocation produces a lower/upper illustration using value-based charge and supplied gross-weight cap; it is not a customs decision. Without weight, show a lower bound. No extra fees or special restrictions are automatically assessed.
 - This pass: 34 unit tests, lint and production build passed; browser interaction/visual QA not performed.
+## Guest, customer and administrator interface — 11 September 2026
+
+- The provider exposes explicit loading, guest, authenticated and connection-error states. A 401 clears the previous user, revision and all private account state before rendering; expired writes return to the guest gate.
+- `AccessView` gates every member and administrator route before its forms mount. Guest sign-in retains the relative route and product URL. Catalog, legal terms and customs information remain public.
+- Guest home has a dedicated introduction and catalog-only navigation. Save, cart, balance, notifications, documents, batch import and orders are hidden until sign-in. Product order actions lead to sign-in and return to the chosen product flow.
+- Customer navigation never exposes administrator links. Admin, operations and analytics require both an authenticated session and the server-derived operator flag; `/api/operations` independently rejects customer reads and writes with 403.
+- Guest language is stored as a device preference until an account is available. Authenticated language continues to persist through the account action.
+- The UI audit covers guest/customer sign-in and sign-out, 13 protected routes, public pages, three administrator denials, server operator denial, error/retry, three languages, inactive empty forms, semantic names/IDs/links, and 1440/800/390 px layouts.
