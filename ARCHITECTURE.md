@@ -113,7 +113,7 @@ No payment processor, eBay API, carrier API, automatic FX API, email/SMS provide
 
 .openai/hosting.json currently points to ChatGPT Sites project appgprj_6aa181097a00819196698407b43a6a45 and maps D1 binding DB. Hosted site is private owner-only.
 
-Current deployment procedure: commit; request temporary Sites repo credential; push exact HEAD; package site; save a version with exact pushed SHA; deploy saved version privately; poll success. Never persist the temporary token.
+Current deployment procedure: commit; request temporary Sites repo credential; push exact HEAD; package site; save a version with exact pushed SHA; deploy the saved version with the site's current audience; poll success. Never persist the temporary token.
 
 The verification suite includes lint, Node domain/security tests, production build, a dependency-free public browser smoke test and an authenticated API smoke covering checkout, payment, assignment, parcel, tracking, warehouse and email/SMS previews.
 

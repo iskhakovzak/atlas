@@ -107,7 +107,7 @@ Store response can change or block, so this is a diagnostic rather than a determ
 
 ## Hosting/deployment
 
-The original project is configured for ChatGPT Sites. To retain that deployment, the local developer needs access to the same Sites project. Deploy by committing exact source; obtaining temporary Sites repo credential; pushing exact HEAD; packaging; saving version with exact SHA; deploying saved version privately; polling completion.
+The original project is configured for ChatGPT Sites. To retain that deployment, the local developer needs access to the same Sites project. Deploy by committing exact source; obtaining temporary Sites repo credential; pushing exact HEAD; packaging; saving a version with the exact SHA; deploying it with the site's current audience; polling completion.
 
 For another host/account, create/configure a new D1 database and DB binding, apply migrations, set ATLAS_OPERATOR_EMAIL, provide auth, then document the new deployment path. Do not assume original Site project ID or D1 data is portable.
 
