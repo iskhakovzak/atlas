@@ -43,7 +43,7 @@
 - [ ] Add customer approval for changed item price, unavailable item and substitutions.
 - [ ] Define combined-shipping logic for multiple units; source shipping currently multiplies per quantity.
 - [ ] Define post-purchase cancellation/refund rules. Current automatic cancellation is status 0 only.
-- [ ] Add manager invoice/evidence uploads before actual financial adjustments.
+- [x] Add private manager invoice, purchase-proof, warehouse-photo and warehouse-report uploads with customer-owned download access.
 
 ## Auth/data/operations
 
@@ -51,6 +51,8 @@
 - [ ] Connect a verified email sender for actual notification delivery; current email/SMS history is preview-only.
 - [ ] Select a phone-verification provider and retention policy before requiring a phone at payment/delivery.
 - [ ] Add encrypted off-platform D1/R2 backups with retention and a tested restore runbook; administrator integrity/rebuild is not an external backup.
+- [x] Add administrator-only D1 export with checksum and audit record, excluding private blob bytes.
+- [x] Add captured operational error summaries for administrator monitoring.
 - [x] Add server-enforced customer review/blocking and an administrator customer/support/finance/system workspace.
 - [ ] Translate every transactional screen and validation message for RU, UZ and EN; navigation localisation is not full localisation.
 - [ ] Document/test production D1 migration from local machine before schema changes.

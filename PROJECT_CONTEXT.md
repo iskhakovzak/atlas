@@ -200,5 +200,13 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - D1 migration 0004 adds normalized customer, order, fee-line, order-event, legal-consent, staff-directory and audit-event tables without deleting or changing legacy JSON accounts. The current customer flow remains compatible; relational order backfill/dual-write is a later controlled migration.
 - Every successful account write now also maintains a rebuildable operational projection across customers, orders, separate fee lines and status events. Projection failure never corrupts or rolls back the compatible customer record; the administrator can rebuild all current profiles and inspect row counts from `/admin`.
 - `/admin` now includes customer access control (`active`, `review`, `blocked`), a cross-customer support queue with replies, internal finance totals, and a database-integrity workspace. Review blocks checkout/payment confirmation; blocked profiles cannot write through the customer API. These checks are server-side.
+
+## Fees, documents and resilience — 11 September 2026
+
+- Managed pricing has separate optional rates for purchase handling, conversion and delivery margin plus a flat additional-services amount. New quotes record each non-zero component; submitted orders remain immutable and old quotes parse with zero defaults.
+- Operator invoice, purchase proof, warehouse photo and warehouse report files are stored privately in R2 with owner/order metadata in D1. Customers can download only their own order documents; only the primary administrator can upload.
+- The administrator system screen shows captured server failures and provides an authenticated JSON export of operational D1 data with a SHA-256 checksum and audit record. Passport and order-document bytes are intentionally excluded; this export does not replace encrypted off-platform R2 backups.
+- New fee labels, order-document controls and administrator navigation/system labels have RU/UZ/EN variants. The remaining legacy operational copy still requires a complete professional translation pass.
+- Mobile rules keep administrator tabs scrollable, stack uploads and settings, enlarge touch targets and prevent order/document rows from overflowing narrow screens.
 - `/admin` is now an operator control centre with overview metrics, order/analytics shortcuts, staff directory, server-managed restrictions and recent audit events. Staff records are preparatory only: until standalone authentication is connected, only `ATLAS_OPERATOR_EMAIL` has server authorization.
 - Operator order changes, pricing, policy and staff-directory updates create audit records. The authenticated smoke test covers staff creation and audit visibility in addition to the full order flow.

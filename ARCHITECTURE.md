@@ -84,6 +84,8 @@ State contains orders, ledger entries, cart, favourites, checkout idempotency ke
 | POST /api/actions | identity + same origin + action/revision → next state |
 | GET /api/operations | operator identity → customer/support queues, pricing, policy, projection health, staff directory and audit events |
 | POST /api/operations | operator identity + validated payload → order/support action, customer access, projection rebuild, pricing, policy or staff-directory update + audit event |
+| GET/POST /api/order-documents | owner/operator listing and download; operator-only private R2 upload for invoice, purchase proof and warehouse material |
+| GET /api/backup | operator-only D1 JSON export with checksum and audit record; blob bytes excluded |
 | GET /api/passport | authenticated identity → own document metadata only |
 | POST /api/passport | identity + same origin + multipart image/PDF → private R2 object + D1 metadata |
 | DELETE /api/passport?id=… | identity + same origin + ownership → delete private object and metadata |
@@ -97,6 +99,8 @@ Action types additionally include identity-confirm, identity-clear and declarati
 | DB | Required D1 binding |
 | ATLAS_OPERATOR_EMAIL | Optional Worker secret granting operator role |
 | BUCKET | Private R2 storage for owner-scoped passport scans |
+
+Migration 0005 adds `market_order_documents`, `market_operational_errors` and `market_backup_exports`. Private files remain in R2; D1 keeps ownership, classification and audit metadata.
 
 No payment processor, eBay API, carrier API, automatic FX API, email/SMS provider or standalone identity provider exists. Payment webhooks, tracking and external messages are safely represented inside Atlas for the pre-release demo only. FX/tariffs are operator-managed and product imports have a short D1 cache.
 

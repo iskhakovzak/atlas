@@ -24,6 +24,7 @@ import {
   operationalHealth,
   operationalCustomers,
   setCustomerStatus,
+  errorSummary,
   staffMembers,
   storedAccount,
 } from "@/lib/market/server";
@@ -45,6 +46,10 @@ const updateSchema = z.discriminatedUnion("kind", [
       fx: true,
       perKg: true,
       margin: true,
+      buyoutFee: true,
+      conversionFee: true,
+      deliveryMargin: true,
+      optionalServices: true,
       reserve: true,
       divisor: true,
       rates: true,
@@ -73,7 +78,7 @@ export async function GET() {
   try {
     const user=await requireOperator();
     await ensurePrimaryOperator(user);
-    const [accounts, currentPricing, currentPolicy, staff, audit, health, customerStatuses] = await Promise.all([
+    const [accounts, currentPricing, currentPolicy, staff, audit, health, customerStatuses, errors] = await Promise.all([
       operatorAccounts(),
       pricing(),
       policy(),
@@ -81,8 +86,9 @@ export async function GET() {
       auditEvents(),
       operationalHealth(),
       operationalCustomers(),
+      errorSummary(),
     ]);
-    return json({ accounts, pricing: currentPricing, policy: currentPolicy, staff, audit, health, customerStatuses });
+    return json({ accounts, pricing: currentPricing, policy: currentPolicy, staff, audit, health, customerStatuses, errors });
   } catch (error) {
     return failure(error);
   }

@@ -122,6 +122,17 @@ function OperatorOrderTools({
     </details>
   );
 }
+
+type OrderDocument={id:string;order_id:string;kind:string;filename:string;content_type:string;size:number;created_at:number};
+function OrderDocuments({orderId,accountId,operatorMode,locale}:{orderId:string;accountId?:string;operatorMode:boolean;locale:"ru"|"uz"|"en"}){
+ const [documents,setDocuments]=useState<OrderDocument[]>([]),[busy,setBusy]=useState(false);
+ const words={ru:{title:'Документы заказа',empty:'Документов пока нет',invoice:'Счёт',proof:'Подтверждение покупки',photo:'Фото со склада',report:'Акт склада',upload:'Добавить документ',open:'Скачать'},uz:{title:'Buyurtma hujjatlari',empty:'Hujjatlar hali yo‘q',invoice:'Hisob',proof:'Xarid tasdig‘i',photo:'Ombor fotosi',report:'Ombor dalolatnomasi',upload:'Hujjat qo‘shish',open:'Yuklab olish'},en:{title:'Order documents',empty:'No documents yet',invoice:'Invoice',proof:'Purchase proof',photo:'Warehouse photo',report:'Warehouse report',upload:'Add document',open:'Download'}}[locale];
+ const load=useCallback(async()=>{const response=await fetch(`/api/order-documents${operatorMode&&accountId?`?accountId=${encodeURIComponent(accountId)}`:''}`,{cache:'no-store'});const data=await response.json() as {documents?:OrderDocument[]};if(response.ok)setDocuments((data.documents??[]).filter(item=>item.order_id===orderId))},[accountId,operatorMode,orderId]);
+ useEffect(()=>{queueMicrotask(()=>void load())},[load]);
+ async function upload(form:HTMLFormElement){const body=new FormData(form);body.set('orderId',orderId);body.set('customerId',accountId??'');setBusy(true);try{const response=await fetch('/api/order-documents',{method:'POST',body});const data=await response.json() as {error?:string};if(!response.ok)throw Error(data.error??'Upload failed');form.reset();await load();toast.success(words.upload)}catch(error){toast.error((error as Error).message)}finally{setBusy(false)}}
+ const labels:Record<string,string>={invoice:words.invoice,'purchase-proof':words.proof,'warehouse-photo':words.photo,'warehouse-report':words.report};
+ return <details className="order-documents"><summary>{words.title}<span>{documents.length}</span></summary><div className="document-list">{documents.length?documents.map(item=><a key={item.id} href={`/api/order-documents?id=${encodeURIComponent(item.id)}`}><span><b>{labels[item.kind]??item.kind}</b><small>{item.filename}</small></span><strong>{words.open}</strong></a>):<p className="micro">{words.empty}</p>}</div>{operatorMode&&accountId&&<form className="document-upload" onSubmit={event=>{event.preventDefault();void upload(event.currentTarget)}}><select name="kind" aria-label="Тип документа"><option value="invoice">{words.invoice}</option><option value="purchase-proof">{words.proof}</option><option value="warehouse-photo">{words.photo}</option><option value="warehouse-report">{words.report}</option></select><input name="file" type="file" accept="image/jpeg,image/png,application/pdf" required/><button className="btn secondary" disabled={busy}>{busy?'…':words.upload}</button></form>}</details>
+}
 export function OrdersView({ operations }: { operations: boolean }) {
   const { state, pricing, ready, error, act, user, refresh } = useMarket();
   const [tab, setTab] = useState("active"),
@@ -712,12 +723,13 @@ export function OrdersView({ operations }: { operations: boolean }) {
               <p className="micro">Перед отправкой добавьте перевозчика и трек-номер.</p>
             )}
             {operations && !o.cancelled && <OperatorOrderTools order={o} run={runOrderAction} />}
+            <OrderDocuments orderId={o.id} accountId={orderAccount.get(o.id)?.id} operatorMode={operations} locale={state.communication.language}/>
             <div className="order-bottom">
               <details>
                 <summary>Расчёт и история</summary>
                 <div className="order-detail-grid">
                   <div>
-                    <CostLines q={o.quote} />
+                    <CostLines q={o.quote} locale={state.communication.language}/>
                     {o.customsConsent && (
                       <p className="micro">
                         Таможенные условия приняты:{" "}
@@ -971,7 +983,7 @@ function PricingManager({
 }) {
   const [draft, setDraft] = useState(value);
   const [saving, setSaving] = useState(false);
-  const setNumber = (key: "fx" | "perKg" | "margin" | "reserve" | "divisor", raw: string) =>
+  const setNumber = (key: "fx" | "perKg" | "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "optionalServices" | "reserve" | "divisor", raw: string) =>
     setDraft((current) => ({ ...current, [key]: Number(raw) }));
   async function save() {
     setSaving(true);
@@ -985,6 +997,10 @@ function PricingManager({
             fx: draft.fx,
             perKg: draft.perKg,
             margin: draft.margin,
+            buyoutFee: draft.buyoutFee,
+            conversionFee: draft.conversionFee,
+            deliveryMargin: draft.deliveryMargin,
+            optionalServices: draft.optionalServices,
             reserve: draft.reserve,
             divisor: draft.divisor,
             rates: draft.rates,
@@ -1027,6 +1043,10 @@ function PricingManager({
             ["fx", "Сум за 1 USD", 1],
             ["perKg", "Доставка за кг, сум", 1],
             ["margin", "Сервисный сбор", 0.01],
+            ["buyoutFee", "Комиссия за выкуп", 0.01],
+            ["conversionFee", "Комиссия за конвертацию", 0.01],
+            ["deliveryMargin", "Маржа доставки", 0.01],
+            ["optionalServices", "Доп. услуги, сум", 1],
             ["reserve", "Резерв доставки", 0.01],
             ["divisor", "Делитель объёмного веса", 1],
           ].map(([key, label, step]) => (
@@ -1038,10 +1058,10 @@ function PricingManager({
                 required
                 min={Number(step)}
                 step={Number(step)}
-                value={draft[key as "fx" | "perKg" | "margin" | "reserve" | "divisor"]}
+                value={draft[key as "fx" | "perKg" | "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "optionalServices" | "reserve" | "divisor"]}
                 onChange={(event) =>
                   setNumber(
-                    key as "fx" | "perKg" | "margin" | "reserve" | "divisor",
+                    key as "fx" | "perKg" | "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "optionalServices" | "reserve" | "divisor",
                     event.target.value,
                   )
                 }

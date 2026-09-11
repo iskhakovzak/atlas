@@ -80,6 +80,10 @@ export const pricingSchema = z.object({
   fx: positive.max(1_000_000),
   perKg: positive.max(10_000_000),
   margin: z.number().finite().min(0).max(1),
+  buyoutFee: z.number().finite().min(0).max(1).default(0),
+  conversionFee: z.number().finite().min(0).max(1).default(0),
+  deliveryMargin: z.number().finite().min(0).max(1).default(0),
+  optionalServices: z.number().finite().min(0).max(10_000_000).default(0),
   reserve: z.number().finite().min(0).max(2),
   divisor: positive.max(100_000),
   rates: z.record(z.string(), positive).default(usdRates),
@@ -92,6 +96,10 @@ export const tariff: Pricing = {
   fx: 12800,
   perKg: 90000,
   margin: 0.12,
+  buyoutFee: 0,
+  conversionFee: 0,
+  deliveryMargin: 0,
+  optionalServices: 0,
   reserve: 0.2,
   divisor: 5000,
   rates: usdRates,
@@ -115,6 +123,10 @@ const quoteSchema = z.object({
   perKg: positive.optional(),
   divisor: positive.optional(),
   sourceShipping: amount.optional(),
+  buyout: amount.optional(),
+  conversion: amount.optional(),
+  deliveryMargin: amount.optional(),
+  optionalServices: amount.optional(),
 });
 export type Quote = z.infer<typeof quoteSchema>;
 export function price(
@@ -145,7 +157,11 @@ export function price(
   const sourceShipping = Math.ceil(sourceShippingUsd * quantity * config.fx);
   const merchandise = Math.round(usd * quantity * config.fx),
     service = Math.round(merchandise * config.margin),
-    shipping = Math.ceil(weight * quantity * config.perKg),
+    buyout = Math.round(merchandise * config.buyoutFee),
+    conversion = Math.round(merchandise * config.conversionFee),
+    shippingBase = Math.ceil(weight * quantity * config.perKg),
+    deliveryMargin = Math.round(shippingBase * config.deliveryMargin),
+    shipping = shippingBase + deliveryMargin,
     reserve = Math.ceil(shipping * config.reserve);
   return {
     merchandise,
@@ -153,7 +169,11 @@ export function price(
     shipping,
     reserve,
     sourceShipping,
-    total: merchandise + service + shipping + reserve + sourceShipping,
+    buyout,
+    conversion,
+    deliveryMargin,
+    optionalServices: config.optionalServices,
+    total: merchandise + service + buyout + conversion + shipping + reserve + sourceShipping + config.optionalServices,
     weight: weight * quantity,
   };
 }
