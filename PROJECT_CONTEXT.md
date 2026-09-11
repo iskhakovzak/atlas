@@ -176,6 +176,16 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Do not describe the prototype as commercially live.
 - Passport bytes belong in private R2 paths; D1 stores owner-scoped metadata and account state stores only confirmed fields plus a masked number.
 
+## Pricing, approvals, warehouse and catalog release — 12 September 2026
+
+- Quote lines now remain mathematically independent: base international freight no longer contains the delivery margin, and the total adds that margin exactly once. Cart, order details and operational fee projections include service, buyout, conversion, freight margin and optional-service lines without omissions.
+- Managed percentage fields are edited as percentages in the operator UI and may be set to zero. Submitted quotes remain immutable and retain their fee-rate snapshots.
+- Orders can carry optional change requests for price, variant, substitution, merchant shipping, warehouse services or customs data. Only the operator can create a request; only the owning customer can approve or decline it; the server checks the expected amount and blocks progress while a request is pending. An approved variant request updates the order snapshot while preserving the original quote.
+- Warehouse intake records condition, received quantity, notes, requested photo/repacking/consolidation/split/fragile operations and an optional parcel group. Weighing is unavailable until intake is recorded; damage or mismatch requires an approved customer resolution.
+- Catalog cards show their observation date. Snapshots are automatically hidden after their source-expiry time, and the administrator catalog screen can recheck every allowlisted source through the protected importer. A successful check does not silently change the editorial price; a changed value still needs operator review and a new snapshot.
+- The new approval, warehouse, catalog and finance surfaces are responsive down to the mobile layout. Shared navigation, feed, cost lines, customs estimator, legal documents and selected operational labels support RU/UZ/EN; untranslated legacy transactional copy remains tracked as a launch issue.
+- Verification for this release: 38 domain/security tests, TypeScript, lint, production build, authenticated API smoke including customer approval and warehouse intake, plus the 126-check desktop/mobile browser audit passed.
+
 ## Checkout clarity and customs estimate — 11 September 2026
 
 - Catalog now prioritizes sourced item price, compact merchant discount, delivered estimate and next action. Detailed quote lines remain in the product sheet; weight margins are no longer repeated on the primary surface.

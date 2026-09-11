@@ -51,12 +51,19 @@ async function operate(action) {
   const result = await request("/api/operations", { email: operatorEmail, method: "POST", body: { kind: "action", accountId: `email:${customerEmail}`, revision: targetRevision, action } });
   targetRevision = result.account.revision;
   account.state = result.account.state;
+  account.revision = result.account.revision;
 }
 await operate({ type: "assign-order", id: orderId, team: "Закупки", priority: "Высокий" });
 await operate({ type: "staff-note", id: orderId, text: "Автоматическая проверка предрелиза" });
+await operate({ type: "change-request-create", id: orderId, kind: "variant", title: "Замена размера", reason: "Проверка защищённого согласования", previousValue: products[0].variants[0], proposedValue: products[0].variants[2], amountDelta: 0 });
+const requestId=account.state.orders[0].changeRequests[0].id;
+await apply({type:"change-request-respond",id:orderId,requestId,decision:"approved",expectedAmountDelta:0});
+targetRevision=account.revision;
+assert.equal(account.state.orders[0].variant,products[0].variants[2]);
 await operate({ type: "advance", id: orderId, expected: 0 });
 await operate({ type: "parcel-set", id: orderId, carrier: "Atlas Cargo", trackingNumber: `SMOKE-${Date.now()}`, warehouseCode: "WH-TAS-01" });
 await operate({ type: "advance", id: orderId, expected: 1 });
+await operate({ type: "warehouse-inspect", id: orderId, condition: "ok", quantityReceived: 1, notes: "Комплектность подтверждена", services: ["photo"], packageGroup: "SMOKE-BOX" });
 await operate({ type: "receive", id: orderId, dimensions: [1.8, 30, 20, 15] });
 await operate({ type: "advance", id: orderId, expected: 3 });
 await operate({ type: "advance", id: orderId, expected: 4 });

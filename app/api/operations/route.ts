@@ -140,6 +140,8 @@ export async function POST(request: Request) {
         "assign-order",
         "staff-note",
         "parcel-set",
+        "change-request-create",
+        "warehouse-inspect",
         "support-reply",
       ].includes(parsedAction.data.type)
     )

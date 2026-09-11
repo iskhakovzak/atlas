@@ -5,6 +5,7 @@ export const money = (n: number) =>
   new Intl.NumberFormat("ru-RU").format(n) + " сум";
 const positive = z.number().finite().positive();
 const amount = z.number().int().nonnegative();
+const signedAmount = z.number().int().min(-100_000_000).max(100_000_000);
 export const productSchema = z.object({
   id: z.string(),
   name: z.string().min(1).max(140),
@@ -127,6 +128,9 @@ const quoteSchema = z.object({
   conversion: amount.optional(),
   deliveryMargin: amount.optional(),
   optionalServices: amount.optional(),
+  buyoutFeeRate: z.number().finite().min(0).max(1).optional(),
+  conversionFeeRate: z.number().finite().min(0).max(1).optional(),
+  deliveryMarginRate: z.number().finite().min(0).max(1).optional(),
 });
 export type Quote = z.infer<typeof quoteSchema>;
 export function price(
@@ -161,8 +165,8 @@ export function price(
     conversion = Math.round(merchandise * config.conversionFee),
     shippingBase = Math.ceil(weight * quantity * config.perKg),
     deliveryMargin = Math.round(shippingBase * config.deliveryMargin),
-    shipping = shippingBase + deliveryMargin,
-    reserve = Math.ceil(shipping * config.reserve);
+    shipping = shippingBase,
+    reserve = Math.ceil(shippingBase * config.reserve);
   return {
     merchandise,
     service,
@@ -173,7 +177,7 @@ export function price(
     conversion,
     deliveryMargin,
     optionalServices: config.optionalServices,
-    total: merchandise + service + buyout + conversion + shipping + reserve + sourceShipping + config.optionalServices,
+    total: merchandise + service + buyout + conversion + shipping + deliveryMargin + reserve + sourceShipping + config.optionalServices,
     weight: weight * quantity,
   };
 }
@@ -193,6 +197,9 @@ export function quote(
     tariffVersion: config.version,
     fx: config.fx,
     margin: config.margin,
+    buyoutFeeRate: config.buyoutFee,
+    conversionFeeRate: config.conversionFee,
+    deliveryMarginRate: config.deliveryMargin,
     reserveRate: config.reserve,
     perKg: config.perKg,
     divisor: config.divisor,
@@ -316,6 +323,38 @@ const staffNoteSchema = z.object({
   author: z.string().max(160),
   text: z.string().min(1).max(500),
 });
+export const changeRequestKindSchema = z.enum([
+  "price",
+  "variant",
+  "substitution",
+  "source-shipping",
+  "warehouse-service",
+  "customs",
+]);
+const changeRequestSchema = z.object({
+  id: z.string().min(1).max(100),
+  kind: changeRequestKindSchema,
+  title: z.string().min(2).max(120),
+  reason: z.string().min(2).max(500),
+  previousValue: z.string().max(240).optional(),
+  proposedValue: z.string().max(240).optional(),
+  amountDelta: signedAmount.default(0),
+  status: z.enum(["pending", "approved", "declined"]),
+  createdAt: amount,
+  respondedAt: amount.optional(),
+});
+export type ChangeRequest = z.infer<typeof changeRequestSchema>;
+export const warehouseConditionSchema = z.enum(["ok", "damaged", "mismatch"]);
+export const warehouseServiceSchema = z.enum(["photo", "repack", "consolidate", "split", "fragile"]);
+const warehouseInspectionSchema = z.object({
+  inspectedAt: amount,
+  condition: warehouseConditionSchema,
+  quantityReceived: z.number().int().min(0).max(100),
+  notes: z.string().max(500).default(""),
+  services: z.array(warehouseServiceSchema).max(5).default([]),
+  packageGroup: z.string().max(80).default(""),
+});
+export type WarehouseInspection = z.infer<typeof warehouseInspectionSchema>;
 const orderSchema = z.object({
   id: z.string(),
   product: productSchema,
@@ -340,6 +379,8 @@ const orderSchema = z.object({
   parcel: parcelSchema.optional(),
   assignment: assignmentSchema.optional(),
   staffNotes: z.array(staffNoteSchema).optional(),
+  changeRequests: z.array(changeRequestSchema).optional(),
+  warehouseInspection: warehouseInspectionSchema.optional(),
 });
 export type Order = z.infer<typeof orderSchema>;
 const entrySchema = z.object({
@@ -522,6 +563,12 @@ export const balanceOf = (state: State) =>
   );
 export const totalOf = (items: CartItem[]) =>
   items.reduce((sum, item) => sum + item.quote.total, 0);
+export const approvedAdjustments = (order: Order) =>
+  (order.changeRequests ?? [])
+    .filter((request) => request.status === "approved")
+    .reduce((sum, request) => sum + request.amountDelta, 0);
+export const orderPayable = (order: Order) =>
+  Math.max(0, order.quote.total + approvedAdjustments(order));
 export function addToCart(
   state: State,
   p: Product,
@@ -769,6 +816,89 @@ export function addStaffNote(
   });
 }
 
+export function createChangeRequest(
+  state: State,
+  id: string,
+  value: Omit<ChangeRequest, "id" | "status" | "createdAt" | "respondedAt">,
+  now = Date.now(),
+): State {
+  const o = getOrder(state, id);
+  if (o.cancelled || o.status >= 5) throw Error("Изменения для этого заказа недоступны.");
+  if ((o.changeRequests ?? []).some((request) => request.status === "pending"))
+    throw Error("Сначала дождитесь ответа на текущий запрос.");
+  const request = changeRequestSchema.parse({
+    ...value,
+    id: "CHG-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
+    status: "pending",
+    createdAt: now,
+  });
+  return withNotification(
+    replace(state, {
+      ...o,
+      changeRequests: [...(o.changeRequests ?? []), request],
+      history: [...o.history, { at: now, text: `Запрошено согласование: ${request.title}.` }],
+    }),
+    "Нужно ваше решение",
+    `${request.title}${request.amountDelta ? ` · изменение ${money(request.amountDelta)}` : ""}.`,
+    id,
+    now,
+  );
+}
+
+export function respondToChangeRequest(
+  state: State,
+  id: string,
+  requestId: string,
+  decision: "approved" | "declined",
+  expectedAmountDelta: number,
+  now = Date.now(),
+): State {
+  const o = getOrder(state, id);
+  const request = (o.changeRequests ?? []).find((item) => item.id === requestId);
+  if (!request || request.status !== "pending") throw Error("Запрос уже обработан или не найден.");
+  if (request.amountDelta !== expectedAmountDelta) throw Error("Сумма изменилась. Проверьте запрос заново.");
+  const nextRequest = { ...request, status: decision, respondedAt: now } as ChangeRequest;
+  const nextOrder: Order = {
+    ...o,
+    variant: decision === "approved" && request.kind === "variant" && request.proposedValue
+      ? request.proposedValue
+      : o.variant,
+    changeRequests: (o.changeRequests ?? []).map((item) => item.id === requestId ? nextRequest : item),
+    history: [...o.history, { at: now, text: decision === "approved" ? `Покупатель подтвердил: ${request.title}.` : `Покупатель отклонил: ${request.title}.` }],
+  };
+  return withNotification(
+    replace(state, nextOrder),
+    decision === "approved" ? "Изменение подтверждено" : "Изменение отклонено",
+    request.title,
+    id,
+    now,
+  );
+}
+
+export function inspectWarehouseOrder(
+  state: State,
+  id: string,
+  value: Omit<WarehouseInspection, "inspectedAt">,
+  now = Date.now(),
+): State {
+  const o = getOrder(state, id);
+  if (o.cancelled || o.status !== 2) throw Error("Приёмка доступна только для заказа на зарубежном складе.");
+  const warehouseInspection = warehouseInspectionSchema.parse({ ...value, inspectedAt: now });
+  if (warehouseInspection.condition === "ok" && warehouseInspection.quantityReceived !== o.quantity)
+    throw Error("При полном соответствии количество должно совпадать с заказом.");
+  return withNotification(
+    replace(state, {
+      ...o,
+      warehouseInspection,
+      history: [...o.history, { at: now, text: warehouseInspection.condition === "ok" ? "Склад подтвердил комплектность и состояние товара." : "Склад зафиксировал проблему; требуется решение оператора и покупателя." }],
+    }),
+    warehouseInspection.condition === "ok" ? "Товар принят на складе" : "На складе обнаружена проблема",
+    warehouseInspection.condition === "ok" ? "Комплектность и состояние подтверждены." : "Откройте заказ: оператор подготовит вариант решения.",
+    id,
+    now,
+  );
+}
+
 export function setParcel(
   state: State,
   id: string,
@@ -911,6 +1041,7 @@ export function advanceOrder(
     (o.settlement?.extra && !o.extraApproved) ||
     (o.product.sourceShippingEstimated && !o.storeShippingSettlement) ||
     (o.storeShippingSettlement?.extra && !o.storeShippingExtraApproved)
+    || (o.changeRequests ?? []).some((request) => request.status === "pending")
   )
     throw Error("Этот переход пока недоступен.");
   if (o.status === 3 && !o.settlement)
@@ -949,6 +1080,16 @@ export function receiveOrder(
   if (o.settlement) return state;
   if (o.cancelled || o.status !== 2)
     throw Error("Заказ ещё не готов к взвешиванию.");
+  if (!o.warehouseInspection)
+    throw Error("Сначала завершите приёмку и проверку товара на складе.");
+  if (
+    o.warehouseInspection.condition !== "ok" &&
+    !(o.changeRequests ?? []).some((request) =>
+      request.status === "approved" &&
+      request.createdAt >= o.warehouseInspection!.inspectedAt &&
+      ["substitution", "warehouse-service"].includes(request.kind),
+    )
+  ) throw Error("Сначала согласуйте с покупателем решение по проблеме на складе.");
   const s = settle(o.quote, ...dimensions);
   const next = replace(state, {
     ...o,

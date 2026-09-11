@@ -11,7 +11,7 @@ import {
   validateSource,
   type Product,
 } from "@/lib/market/domain";
-import { merchantFinds } from "@/lib/market/catalog";
+import { visibleMerchantFinds } from "@/lib/market/catalog";
 import { countries, currencies, toUsd, paddedWeight } from "@/lib/market/world";
 import {
   safeImage,
@@ -34,7 +34,7 @@ const priors: Record<string, number> = {
 export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
   const { ready, pricing, state } = useMarket();
   const searchParams = useSearchParams();
-  const seed = merchantFinds.find(item => item.sourceUrl === searchParams.get("url"));
+  const seed = visibleMerchantFinds().find(item => item.sourceUrl === searchParams.get("url"));
   const [url, setUrl] = useState(() => searchParams.get("url") ?? ""),
     [source, setSource] = useState(seed?.sourceUrl ?? ""),
     [name, setName] = useState(seed?.name ?? ""),

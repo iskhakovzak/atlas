@@ -40,7 +40,8 @@
 ## Order flow
 
 - [x] Make manager merchant-shipping confirmation clearer in customer order UI; show actual USD and UZS.
-- [ ] Add customer approval for changed item price, unavailable item and substitutions.
+- [x] Add customer approval for changed item price, unavailable item, substitutions and warehouse services with exact amount checking and a blocked pending state.
+- [x] Add warehouse intake for condition, quantity, photos/repacking/consolidation/split/fragile operations and parcel grouping before weighing.
 - [ ] Define combined-shipping logic for multiple units; source shipping currently multiplies per quantity.
 - [ ] Define post-purchase cancellation/refund rules. Current automatic cancellation is status 0 only.
 - [x] Add private manager invoice, purchase-proof, warehouse-photo and warehouse-report uploads with customer-owned download access.
@@ -69,7 +70,8 @@
 ## Known prototype limits
 
 - [x] Replace public demonstration products with five real merchant snapshots, official photos, dated source prices and direct source links; preserve legacy order snapshots.
-- [ ] Automate merchant price/availability refresh and hide expired deals; dated editorial snapshots are not live inventory. Validate catalog image reuse/merchant agreements before public commercial distribution.
+- [x] Add administrator source rechecks through the protected importer and automatically hide expired deal snapshots.
+- [ ] Turn successful catalog rechecks into a reviewed publishing workflow; current checks never silently overwrite the editorial price. Validate image reuse/merchant agreements before commercial distribution.
 - [ ] Expand fresh verified merchants beyond Nike, Anker and Apple. UNIQLO listing prices were not fresh enough to include.
 - [x] Import exact-listing ProductGroup variants and prices for Nike, without switching to an unrelated default color.
 

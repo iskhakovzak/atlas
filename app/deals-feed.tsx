@@ -5,7 +5,7 @@ import { ArrowRight, ArrowUpRight, Heart, Link2, Search, SlidersHorizontal, X } 
 import { toast } from 'sonner';
 import Link from '@/components/site-link';
 import { validateSource, type Product } from '@/lib/market/domain';
-import { merchantFinds as products, merchantRecord, findOrderUrl } from '@/lib/market/catalog';
+import { visibleMerchantFinds, merchantRecord, findOrderUrl, catalogFreshness } from '@/lib/market/catalog';
 import { defaultDealFilters, filterDeals, type DealFilters } from '@/lib/market/deals';
 import { dealCopy } from '@/lib/market/deal-copy';
 import { useMarket } from '@/lib/market/store';
@@ -20,6 +20,7 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
   const [urlError, setUrlError] = useState('');
   const locale = state.communication.language;
   const copy = dealCopy(locale);
+  const products = visibleMerchantFinds();
   const fmt = (n: number, currency = 'UZS') => new Intl.NumberFormat(locale === 'ru' ? 'ru-RU' : locale === 'uz' ? 'uz-UZ' : 'en-US', { style: 'currency', currency, maximumFractionDigits: currency === 'UZS' ? 0 : 2 }).format(n);
   const categories = [{ value: '', label: copy.all }, { value: 'Обувь', label: copy.footwear }, { value: 'Одежда', label: copy.clothing }, { value: 'Электроника', label: copy.electronics }];
   const countries = [{ value: '', label: copy.allCountries }, { value: 'США', label: copy.us }];
@@ -59,7 +60,7 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
         const name = product.sourceUrl ? product.name : titles[product.id] ?? product.name;
         return <article className="find-card" key={product.id}>
           <div className="find-visual"><button className="find-photo" type="button" onClick={() => select(product)} aria-label={name}><ProductImage product={{ ...product, name }} /></button>
-            <span className="find-merchant">{merchantRecord(product)?.store}</span>
+            <span className="find-merchant">{merchantRecord(product)?.store}</span><span className={`find-freshness ${catalogFreshness(product)}`}>{locale==='ru'?'Проверено':locale==='uz'?'Tekshirilgan':'Checked'} · {merchantRecord(product)?.observedOn}</span>
             {ready&&<button type="button" disabled={saving !== null} className={'find-save ' + (isSaved ? 'saved' : '')} aria-pressed={isSaved} aria-label={(isSaved ? copy.remove : copy.save) + ': ' + name} title={!ready ? copy.signin : saving === product.id ? copy.savingState : isSaved ? copy.remove : copy.save} onClick={() => void favorite(product)}><Heart size={20}/></button>}
           </div>
           <div className="find-content"><div className="find-meta"><span>{categories.find(c => c.value === product.category)?.label ?? product.category}</span><span>{countries.find(c => c.value === product.country)?.label ?? product.country}</span></div>

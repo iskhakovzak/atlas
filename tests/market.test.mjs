@@ -1,14 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {products,tariff,quote,price,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource,markNotificationsRead,confirmDemoPayment,updateCommunication,assignOrder,addStaffNote,setParcel,confirmIdentity,submitDeclarationPreview,clearIdentity} from '../lib/market/domain.ts';
+import {products,tariff,quote,price,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource,markNotificationsRead,confirmDemoPayment,updateCommunication,assignOrder,addStaffNote,setParcel,confirmIdentity,submitDeclarationPreview,clearIdentity,inspectWarehouseOrder,createChangeRequest,respondToChangeRequest,orderPayable} from '../lib/market/domain.ts';
 import {applyAction} from '../lib/market/actions.ts';
 import {defaultPolicy} from '../lib/market/policy.ts';
 import {customsVersion} from '../lib/market/world.ts';
 const checkoutCart=(s,key,sig,balance,now)=>checkoutCore(s,key,sig,balance,now,customsVersion);
 const prepare=()=>{let s=addToCart(blank(),products[0],'US 9',1000);s=checkoutCart(s,'purchase-1',cartSignature(s.cart),false,1001);return confirmDemoPayment(s,s.orders[0].id,1002)};
-const warehouse=()=>{let s=prepare();const id=s.orders[0].id;s=advanceOrder(s,id,0);return advanceOrder(s,id,1)};
+const warehouse=()=>{let s=prepare();const id=s.orders[0].id;s=advanceOrder(s,id,0);s=advanceOrder(s,id,1);return inspectWarehouseOrder(s,id,{condition:'ok',quantityReceived:1,notes:'',services:['photo'],packageGroup:'BOX-1'},1200)};
 test('pricing uses full delivered totals and validated quantities',()=>{
 const p=price(99,2.1,2);assert.equal(p.total,p.merchandise+p.service+p.shipping+p.reserve);assert.equal(p.weight,4.2);assert.throws(()=>price(99,2.1,0));assert.throws(()=>price(99,2.1,11));assert.throws(()=>price(NaN,2));assert.throws(()=>price(1,Infinity));
+const configured=price(100,1,1,5,{...tariff,buyoutFee:.03,conversionFee:.02,deliveryMargin:.1,optionalServices:7000});assert.equal(configured.shipping,90000);assert.equal(configured.deliveryMargin,9000);assert.equal(configured.total,configured.merchandise+configured.service+configured.buyout+configured.conversion+configured.shipping+configured.deliveryMargin+configured.optionalServices+configured.reserve+configured.sourceShipping);
 });
 test('legacy state retains old orders and credits while adding cart defaults',()=>{
 const q=quote(99,2.1,1000);delete q.perKg;delete q.divisor;
@@ -41,6 +42,9 @@ assert.equal(validateSource('https://www.example.com/product'),'https://www.exam
 });
 test('managed pricing affects new quotes while old orders stay immutable',()=>{
 const managed={...tariff,fx:13000,perKg:100000,version:'managed-test',updatedAt:2000};let state=addToCart(blank(),products[0],'US 9',1000,managed);assert.equal(state.cart[0].quote.tariffVersion,'managed-test');assert.equal(state.cart[0].quote.fx,13000);state=checkoutCart(state,'managed',cartSignature(state.cart),false,1001);const original=JSON.stringify(state.orders[0].quote);managed.fx=14000;assert.equal(JSON.stringify(state.orders[0].quote),original);
+});
+test('operator changes require an exact customer decision and preserve the original quote',()=>{
+let s=prepare();const id=s.orders[0].id,original=JSON.stringify(s.orders[0].quote);s=createChangeRequest(s,id,{kind:'variant',title:'Другой размер',reason:'Выбранного размера нет',previousValue:'US 9',proposedValue:'US 10',amountDelta:25000},1300);const request=s.orders[0].changeRequests[0];assert.throws(()=>advanceOrder(s,id,0));assert.throws(()=>respondToChangeRequest(s,id,request.id,'approved',1));s=respondToChangeRequest(s,id,request.id,'approved',25000,1400);assert.equal(s.orders[0].variant,'US 10');assert.equal(orderPayable(s.orders[0]),s.orders[0].quote.total+25000);assert.equal(JSON.stringify(s.orders[0].quote),original);
 });
 test('operator progress creates customer notifications that can be marked read',()=>{
 let state=prepare();const id=state.orders[0].id;state=advanceOrder(state,id,0,3000);assert.equal(state.notifications.length,2);assert.equal(state.notifications[0].orderId,id);assert.equal(state.notifications[0].read,false);state=markNotificationsRead(state);assert.equal(state.notifications[0].read,true);

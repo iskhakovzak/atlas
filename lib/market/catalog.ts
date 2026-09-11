@@ -3,7 +3,7 @@ import type { Product } from './domain.ts';
 // Editorial snapshots from the linked official US product pages, not an inventory feed.
 // Prices/options must be fetched and confirmed in the link-order flow before checkout.
 export type MerchantFind = Product & { store: string; observedOn: string; referenceUsd?: number };
-const estimate = { country: 'США', sourceCurrency: 'USD', sourceShippingUsd: 10, sourceShipping: 10, sourceShippingCurrency: 'USD', sourceShippingEstimated: true, shippingKnown: false, weightOrigin: 'Оценка Atlas; уточняется перед оформлением', variants: ['Уточнить вариант в магазине'] };
+const estimate = { country: 'США', sourceCurrency: 'USD', sourceShippingUsd: 10, sourceShipping: 10, sourceShippingCurrency: 'USD', sourceShippingEstimated: true, shippingKnown: false, weightOrigin: 'Оценка Atlas; уточняется перед оформлением', variants: ['Уточнить вариант в магазине'], sourceExpiresAt: Date.parse('2026-09-19T00:00:00Z') };
 export const merchantFinds: MerchantFind[] = [
   {
     ...estimate, id: 'nike-club-fn3859-657', name: 'Nike Club · Fleece Hoodie', brand: 'Nike', store: 'Nike', category: 'Одежда',
@@ -44,6 +44,15 @@ export const merchantFinds: MerchantFind[] = [
 
 export function merchantRecord(product: Product) {
   return merchantFinds.find(item => item.id === product.id && item.sourceUrl === product.sourceUrl && item.usd === product.usd);
+}
+export function catalogFreshness(product: Product, now = Date.now()) {
+  const expiresAt = product.sourceExpiresAt ?? 0;
+  if (!expiresAt || now >= expiresAt) return 'expired' as const;
+  if (expiresAt - now < 48 * 60 * 60 * 1000) return 'due' as const;
+  return 'fresh' as const;
+}
+export function visibleMerchantFinds(now = Date.now()) {
+  return merchantFinds.filter((product) => catalogFreshness(product, now) !== 'expired');
 }
 export function findOrderUrl(product: Product) {
   return '/order-by-link?url=' + encodeURIComponent(product.sourceUrl ?? '');

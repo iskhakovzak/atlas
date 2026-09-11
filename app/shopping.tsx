@@ -30,13 +30,23 @@ export function CartView() {
   const total = totalOf(state.cart);
   const balance = balanceOf(state);
   const credit = useBalance ? Math.min(total, Math.max(0, balance)) : 0;
+  const locale = state.communication.language;
+  const c = {
+    ru:{overline:"ОФОРМЛЕНИЕ ЗАКАЗА",title:"Ваша корзина.",intro:"Проверьте товары, варианты и предварительный расчёт.",signin:"Войдите, чтобы открыть корзину",signinHint:"Корзина и заказы сохраняются в вашем профиле Atlas.",loading:"Загружаем корзину…",empty:"Корзина ждёт ваших находок",emptyHint:"Выберите товар в каталоге или добавьте свою ссылку.",order:"Ваш заказ",breakdown:"Состав стоимости",estimate:"Расчёт предварительный. После приёмки на складе изменение стоимости запрашивается отдельно и применяется только после вашего подтверждения.",checkout:"Указать доставку",renew:"Обновить расчёт",assurance:"Доплата только с вашего согласия",delivery:"Получатель и адрес",deliveryHint:"Данные сохранятся в профиле и будут зафиксированы в заказе.",success:"Предзаказ оформлен",successHint:"Адрес сохранён. Завершите тестовую оплату в разделе заказов."},
+    uz:{overline:"BUYURTMANI RASMIYLASHTIRISH",title:"Savatingiz.",intro:"Tovarlar, variantlar va dastlabki hisobni tekshiring.",signin:"Savatni ochish uchun kiring",signinHint:"Savat va buyurtmalar Atlas profilingizda saqlanadi.",loading:"Savat yuklanmoqda…",empty:"Savat topilmalaringizni kutmoqda",emptyHint:"Katalogdan tovar tanlang yoki o‘z havolangizni qo‘shing.",order:"Buyurtmangiz",breakdown:"Narx tarkibi",estimate:"Hisob dastlabki. Ombordagi qabuldan keyingi narx o‘zgarishi alohida yuboriladi va faqat tasdiqlashingizdan so‘ng qo‘llanadi.",checkout:"Yetkazish manzilini kiritish",renew:"Hisobni yangilash",assurance:"Qo‘shimcha to‘lov faqat roziligingiz bilan",delivery:"Qabul qiluvchi va manzil",deliveryHint:"Ma’lumotlar profilingizda saqlanadi va buyurtmaga biriktiriladi.",success:"Oldindan buyurtma yaratildi",successHint:"Manzil saqlandi. Buyurtmalar bo‘limida sinov to‘lovini yakunlang."},
+    en:{overline:"CHECKOUT",title:"Your cart.",intro:"Review items, variants and the preliminary calculation.",signin:"Sign in to open your cart",signinHint:"Your cart and orders are saved to your Atlas profile.",loading:"Loading cart…",empty:"Your cart is ready for finds",emptyHint:"Choose an item from the catalog or add your own link.",order:"Your order",breakdown:"Price breakdown",estimate:"This is a preliminary calculation. After warehouse intake, any price change is requested separately and applies only after your approval.",checkout:"Add delivery details",renew:"Refresh calculation",assurance:"Extra charges require your approval",delivery:"Recipient and address",deliveryHint:"The details are saved to your profile and attached to the order.",success:"Pre-order created",successHint:"Address saved. Complete the simulated payment in Orders."},
+  }[locale];
   const sums = state.cart.reduce((result, item) => ({
     merchandise: result.merchandise + item.quote.merchandise,
     service: result.service + item.quote.service,
     shipping: result.shipping + item.quote.shipping,
     reserve: result.reserve + item.quote.reserve,
     sourceShipping: result.sourceShipping + (item.quote.sourceShipping ?? 0),
-  }), { merchandise: 0, service: 0, shipping: 0, reserve: 0, sourceShipping: 0 });
+    buyout: result.buyout + (item.quote.buyout ?? 0),
+    conversion: result.conversion + (item.quote.conversion ?? 0),
+    deliveryMargin: result.deliveryMargin + (item.quote.deliveryMargin ?? 0),
+    optionalServices: result.optionalServices + (item.quote.optionalServices ?? 0),
+  }), { merchandise: 0, service: 0, shipping: 0, reserve: 0, sourceShipping: 0, buyout: 0, conversion: 0, deliveryMargin: 0, optionalServices: 0 });
 
   function openCheckout() {
     if (expired) { void act({ type: "cart-renew" }); return; }
@@ -55,8 +65,8 @@ export function CartView() {
   }
 
   return <>
-    <PageHeading overline="ОФОРМЛЕНИЕ ЗАКАЗА" title="Ваша корзина." description="Проверьте товары, варианты и предварительный расчёт." />
-    {!ready ? (error ? <Empty title="Войдите, чтобы открыть корзину" description="Корзина и заказы сохраняются в вашем профиле Atlas." href="/account" label="Открыть вход" /> : <div className="surface loading-state">Загружаем корзину…</div>) : !state.cart.length ? <Empty title="Корзина ждёт ваших находок" description="Выберите товар в каталоге или добавьте свою ссылку." href="/" /> :
+    <PageHeading overline={c.overline} title={c.title} description={c.intro} />
+    {!ready ? (error ? <Empty title={c.signin} description={c.signinHint} href="/account" label={c.signin} /> : <div className="surface loading-state">{c.loading}</div>) : !state.cart.length ? <Empty title={c.empty} description={c.emptyHint} href="/" /> :
       <div className="cart-layout">
         <div className="cart-items">
           {state.cart.map((item) => <article className="surface cart-item" key={item.id}>
@@ -74,19 +84,19 @@ export function CartView() {
           </article>)}
           <Link className="text-link" href="/">Продолжить покупки <ArrowRight size={16} /></Link>
         </div>
-        <aside className="surface cart-summary"><h2>Ваш заказ</h2><details className="quote-details"><summary>Состав стоимости</summary><CostLines q={sums} /><p className="micro">Расчёт доставки включает вес с коробкой, 0,3 кг упаковки и 0,2 кг запаса на единицу. После склада вес уточняется; доплата согласовывается отдельно.</p></details>
+        <aside className="surface cart-summary"><h2>{c.order}</h2><details className="quote-details"><summary>{c.breakdown}</summary><CostLines q={sums} locale={locale} /><p className="micro">{c.estimate}</p></details>
           <div className="balance-option"><div><Wallet size={18} /><label htmlFor="use-balance">Использовать демобаланс<small>Доступно {money(balance)}</small></label></div><Checkbox id="use-balance" disabled={balance <= 0} checked={useBalance} onCheckedChange={(value) => setUseBalance(value === true)} /></div>
           {credit > 0 && <div className="credit-line"><span>С демобаланса</span><b>−{money(credit)}</b></div>}
           <div className="summary-total"><span>К тестовой оплате<strong>{money(total - credit)}</strong></span><span className="currency-mark">UZS</span></div>
           <CustomsEstimate valueUsd={state.cart.reduce((sum, item) => sum + item.product.usd * item.quantity, 0)} grossKg={state.cart.reduce((sum, item) => sum + (item.product.boxedWeight ?? item.product.weight) * item.quantity, 0)} fx={pricing.fx} locale={state.communication.language}/>
           <div className="consent"><Checkbox id="checkout-consent" checked={consent} onCheckedChange={(value) => setConsent(value === true)} /><label htmlFor="checkout-consent">Подтверждаю <Link href="/customs" target="_blank">таможенные условия</Link>. Реальная оплата и доставка ещё не подключены: это подтверждение не списывает деньги и не создаёт отправку.</label></div>
           {expired && <div className="notice warning"><Clock3 size={19} /><span>Срок расчёта истёк. Обновите стоимость.</span></div>}
-          <button className="btn primary full" disabled={!ready || (!expired && !consent)} onClick={openCheckout}>{expired ? "Обновить расчёт" : "Указать доставку"}<ArrowRight size={18} /></button>
-          <div className="summary-assurance"><ShieldCheck size={16} /><span>Доплата только с вашего согласия</span></div>
+          <button className="btn primary full" disabled={!ready || (!expired && !consent)} onClick={openCheckout}>{expired ? c.renew : c.checkout}<ArrowRight size={18} /></button>
+          <div className="summary-assurance"><ShieldCheck size={16} /><span>{c.assurance}</span></div>
         </aside>
       </div>}
 
-    <Modal open={checkoutOpen} onClose={() => { if (!busy) setCheckoutOpen(false); }} title="Получатель и адрес" description="Данные сохранятся в профиле и будут зафиксированы в заказе.">
+    <Modal open={checkoutOpen} onClose={() => { if (!busy) setCheckoutOpen(false); }} title={c.delivery} description={c.deliveryHint}>
       <form className="checkout-form" onSubmit={(event) => { event.preventDefault(); void checkout(); }}>
         <div className="checkout-address-head"><MapPin size={21} /><span>Доставка по Узбекистану</span></div>
         {state.deliveryProfiles.length > 0 && <div className="field"><label htmlFor="saved-recipient">Сохранённый получатель</label><select id="saved-recipient" value={selectedProfile} onChange={event => { const profile = state.deliveryProfiles.find(item => item.id === event.target.value); setSelectedProfile(event.target.value); if (profile) setDelivery(profile); }}><option value="manual">Ввести новый адрес</option>{state.deliveryProfiles.map(profile => <option key={profile.id} value={profile.id}>{profile.label} · {profile.recipient}</option>)}</select><small>Можно выбрать адрес из профиля или указать новый.</small></div>}
@@ -107,7 +117,7 @@ export function CartView() {
       </form>
     </Modal>
 
-    <Modal open={success} onClose={() => { setSuccess(false); window.location.assign("/orders"); }} title="Предзаказ оформлен" description="Адрес сохранён. Завершите тестовую оплату в разделе заказов.">
+    <Modal open={success} onClose={() => { setSuccess(false); window.location.assign("/orders"); }} title={c.success} description={c.successHint}>
       <div className="success-icon"><Check size={35} /></div><button className="btn primary full" onClick={() => { setSuccess(false); window.location.assign("/orders"); }}>Перейти к оплате <ArrowRight size={18} /></button><p className="micro center">Реальных списаний, писем, SMS и доставки не происходит.</p>
     </Modal>
   </>;

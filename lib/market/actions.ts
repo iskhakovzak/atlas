@@ -27,6 +27,12 @@ import {
   confirmIdentity,
   clearIdentity,
   submitDeclarationPreview,
+  createChangeRequest,
+  respondToChangeRequest,
+  inspectWarehouseOrder,
+  changeRequestKindSchema,
+  warehouseConditionSchema,
+  warehouseServiceSchema,
   type Pricing,
   type State,
 } from "./domain.ts";
@@ -73,6 +79,32 @@ export const actionSchema = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("staff-note"), id, text: z.string().min(1).max(500) }),
   z.object({
+    type: z.literal("change-request-create"),
+    id,
+    kind: changeRequestKindSchema,
+    title: z.string().trim().min(2).max(120),
+    reason: z.string().trim().min(2).max(500),
+    previousValue: z.string().trim().max(240).optional(),
+    proposedValue: z.string().trim().max(240).optional(),
+    amountDelta: z.number().int().min(-100_000_000).max(100_000_000),
+  }),
+  z.object({
+    type: z.literal("change-request-respond"),
+    id,
+    requestId: z.string().min(1).max(100),
+    decision: z.enum(["approved", "declined"]),
+    expectedAmountDelta: z.number().int().min(-100_000_000).max(100_000_000),
+  }),
+  z.object({
+    type: z.literal("warehouse-inspect"),
+    id,
+    condition: warehouseConditionSchema,
+    quantityReceived: z.number().int().min(0).max(100),
+    notes: z.string().trim().max(500),
+    services: z.array(warehouseServiceSchema).max(5),
+    packageGroup: z.string().trim().max(80),
+  }),
+  z.object({
     type: z.literal("parcel-set"),
     id,
     carrier: z.string().min(2).max(80),
@@ -109,7 +141,9 @@ export function applyAction(
       a.type === "confirm-store-shipping" ||
       a.type === "assign-order" ||
       a.type === "staff-note" ||
-      a.type === "parcel-set") &&
+      a.type === "parcel-set" ||
+      a.type === "change-request-create" ||
+      a.type === "warehouse-inspect") &&
     !isOperator
   )
     throw Error("Доступно только оператору.");
@@ -234,6 +268,12 @@ export function applyAction(
       return assignOrder(s, a.id, a.team, a.priority);
     case "staff-note":
       return addStaffNote(s, a.id, a.text, "Оператор");
+    case "change-request-create":
+      return createChangeRequest(s, a.id, a);
+    case "change-request-respond":
+      return respondToChangeRequest(s, a.id, a.requestId, a.decision, a.expectedAmountDelta);
+    case "warehouse-inspect":
+      return inspectWarehouseOrder(s, a.id, a);
     case "parcel-set":
       return setParcel(s, a.id, a.carrier, a.trackingNumber, a.warehouseCode);
     case "advance":

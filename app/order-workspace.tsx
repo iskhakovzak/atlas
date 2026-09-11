@@ -35,13 +35,14 @@ import {
   balanceOf,
   money,
   settle,
-  statuses,
+  orderPayable,
   type Pricing,
   type State,
   type Order,
   type Communication,
 } from "@/lib/market/domain";
 import type { Action } from "@/lib/market/actions";
+import { localizedStatuses } from "@/lib/market/i18n";
 import {
   PageHeading,
   Empty,
@@ -55,6 +56,7 @@ const warehouseExtra = (o: Order) =>
   !o.extraApproved ? (o.settlement?.extra ?? 0) : 0;
 const isExtra = (o: Order) =>
   !o.cancelled && Boolean(storeShippingExtra(o) || warehouseExtra(o));
+const pendingChange = (o: Order) => (o.changeRequests ?? []).some((request) => request.status === "pending");
 const usd = (n: number) =>
   new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -82,13 +84,25 @@ function OperatorOrderTools({
   const [tracking, setTracking] = useState(order.parcel?.trackingNumber ?? "");
   const [warehouseCode, setWarehouseCode] = useState(order.parcel?.warehouseCode ?? "WH-TAS-01");
   const [note, setNote] = useState("");
+  const [condition, setCondition] = useState<"ok" | "damaged" | "mismatch">(order.warehouseInspection?.condition ?? "ok");
+  const [received, setReceived] = useState(String(order.warehouseInspection?.quantityReceived ?? order.quantity));
+  const [warehouseNotes, setWarehouseNotes] = useState(order.warehouseInspection?.notes ?? "");
+  const [packageGroup, setPackageGroup] = useState(order.warehouseInspection?.packageGroup ?? "");
+  const [services, setServices] = useState<Array<"photo" | "repack" | "consolidate" | "split" | "fragile">>(order.warehouseInspection?.services ?? []);
+  const [changeKind, setChangeKind] = useState<"price" | "variant" | "substitution" | "source-shipping" | "warehouse-service" | "customs">("variant");
+  const [changeTitle, setChangeTitle] = useState("");
+  const [changeReason, setChangeReason] = useState("");
+  const [previousValue, setPreviousValue] = useState("");
+  const [proposedValue, setProposedValue] = useState("");
+  const [amountDelta, setAmountDelta] = useState("0");
   const [busy, setBusy] = useState(false);
   const save = async (action: Action, message: string) => {
-    if (busy) return;
+    if (busy) return false;
     setBusy(true);
     const ok = await run(action);
     setBusy(false);
     if (ok) toast.success(message);
+    return ok;
   };
   return (
     <details className="ops-tools">
@@ -116,6 +130,25 @@ function OperatorOrderTools({
           <h3>Внутренняя заметка</h3>
           <div className="field"><label htmlFor={`note-${order.id}`}>Видна только оператору</label><textarea id={`note-${order.id}`} required minLength={1} maxLength={500} rows={4} value={note} onChange={(event) => setNote(event.target.value)} /></div>
           <button className="btn secondary" disabled={busy || !note.trim()}>Добавить заметку</button>
+        </form>
+        <form onSubmit={(event) => { event.preventDefault(); void save({ type: "warehouse-inspect", id: order.id, condition, quantityReceived: Number(received), notes: warehouseNotes, services, packageGroup }, "Приёмка на складе сохранена"); }}>
+          <h3>Приёмка на складе</h3>
+          <div className="two-fields"><div className="field"><label htmlFor={`condition-${order.id}`}>Состояние</label><select id={`condition-${order.id}`} value={condition} onChange={(event)=>setCondition(event.target.value as typeof condition)}><option value="ok">В порядке</option><option value="damaged">Повреждение</option><option value="mismatch">Не совпадает с заказом</option></select></div><div className="field"><label htmlFor={`received-${order.id}`}>Получено, шт.</label><input id={`received-${order.id}`} type="number" min="0" max="100" required value={received} onChange={(event)=>setReceived(event.target.value)}/></div></div>
+          <div className="field"><label htmlFor={`group-${order.id}`}>Группа посылки</label><input id={`group-${order.id}`} maxLength={80} placeholder="Например, BOX-24" value={packageGroup} onChange={(event)=>setPackageGroup(event.target.value)}/></div>
+          <fieldset className="service-options"><legend>Операции</legend>{[["photo","Фото"],["repack","Переупаковка"],["consolidate","Объединение"],["split","Разделение"],["fragile","Хрупкий груз"]].map(([value,label])=><label key={value}><input type="checkbox" checked={services.includes(value as typeof services[number])} onChange={(event)=>setServices(event.target.checked?[...new Set([...services,value as typeof services[number]])]:services.filter(item=>item!==value))}/>{label}</label>)}</fieldset>
+          <div className="field"><label htmlFor={`warehouse-note-${order.id}`}>Комментарий приёмки</label><textarea id={`warehouse-note-${order.id}`} rows={3} maxLength={500} value={warehouseNotes} onChange={(event)=>setWarehouseNotes(event.target.value)}/></div>
+          <button className="btn secondary" disabled={busy || order.status !== 2}>Сохранить приёмку</button>
+          {order.status !== 2 && <p className="micro">Доступно, когда заказ прибыл на зарубежный склад.</p>}
+        </form>
+        <form onSubmit={(event) => { event.preventDefault(); void save({ type: "change-request-create", id: order.id, kind: changeKind, title: changeTitle, reason: changeReason, previousValue: previousValue || undefined, proposedValue: proposedValue || undefined, amountDelta: Math.round(Number(amountDelta)) }, "Запрос отправлен покупателю").then((ok)=>{if(ok){setChangeTitle("");setChangeReason("");setPreviousValue("");setProposedValue("");setAmountDelta("0")}}); }}>
+          <h3>Согласовать изменение</h3>
+          <div className="field"><label htmlFor={`change-kind-${order.id}`}>Тип</label><select id={`change-kind-${order.id}`} value={changeKind} onChange={(event)=>setChangeKind(event.target.value as typeof changeKind)}><option value="price">Цена</option><option value="variant">Вариант</option><option value="substitution">Замена товара</option><option value="source-shipping">Доставка магазина</option><option value="warehouse-service">Услуга склада</option><option value="customs">Таможенные данные</option></select></div>
+          <div className="field"><label htmlFor={`change-title-${order.id}`}>Что изменилось</label><input id={`change-title-${order.id}`} required minLength={2} maxLength={120} value={changeTitle} onChange={(event)=>setChangeTitle(event.target.value)}/></div>
+          <div className="two-fields"><div className="field"><label htmlFor={`previous-${order.id}`}>Было</label><input id={`previous-${order.id}`} maxLength={240} value={previousValue} onChange={(event)=>setPreviousValue(event.target.value)}/></div><div className="field"><label htmlFor={`proposed-${order.id}`}>Стало</label><input id={`proposed-${order.id}`} maxLength={240} value={proposedValue} onChange={(event)=>setProposedValue(event.target.value)}/></div></div>
+          <div className="field"><label htmlFor={`change-amount-${order.id}`}>Изменение суммы, сум</label><input id={`change-amount-${order.id}`} type="number" min="-100000000" max="100000000" step="1" value={amountDelta} onChange={(event)=>setAmountDelta(event.target.value)}/></div>
+          <div className="field"><label htmlFor={`change-reason-${order.id}`}>Причина</label><textarea id={`change-reason-${order.id}`} required minLength={2} maxLength={500} rows={3} value={changeReason} onChange={(event)=>setChangeReason(event.target.value)}/></div>
+          <button className="btn secondary" disabled={busy || !changeTitle.trim() || !changeReason.trim() || pendingChange(order)}>Отправить на согласование</button>
+          {pendingChange(order) && <p className="micro">Покупатель ещё не ответил на предыдущий запрос.</p>}
         </form>
       </div>
       {!!order.staffNotes?.length && <div className="staff-notes"><h3>Последние заметки</h3>{[...order.staffNotes].reverse().slice(0, 3).map((item) => <p key={item.id}><time>{new Date(item.at).toLocaleString("ru-RU")}</time>{item.text}</p>)}</div>}
@@ -186,12 +219,14 @@ export function OrdersView({ operations }: { operations: boolean }) {
   );
   const viewReady = operations ? opsReady : ready;
   const viewError = operations ? opsError : error;
+  const displayStatuses = localizedStatuses(state.communication.language);
+  const wc={ru:{customerOver:"ВАШИ ПОКУПКИ В ПУТИ",customerTitle:"От магазина до вашей двери.",customerIntro:"Статусы, расчёты и история каждого заказа.",operatorOver:"РАБОЧЕЕ МЕСТО ОПЕРАТОРА",operatorTitle:"Всё готово к следующему шагу.",operatorIntro:"Выкупайте, принимайте на склад и согласовывайте исключения.",customerView:"Вид покупателя",operatorView:"Открыть обработку",active:"В работе",attention:"Нужно решение",done:"Завершённые",searchCustomer:"Номер или товар",searchOperator:"Номер, товар или покупатель"},uz:{customerOver:"BUYURTMALARINGIZ YO‘LDA",customerTitle:"Do‘kondan eshigingizgacha.",customerIntro:"Har bir buyurtmaning holati, hisobi va tarixi.",operatorOver:"OPERATOR ISH JOYI",operatorTitle:"Keyingi qadam uchun hammasi tayyor.",operatorIntro:"Xaridni, ombor qabulini va istisnolarni boshqaring.",customerView:"Mijoz ko‘rinishi",operatorView:"Qayta ishlashni ochish",active:"Jarayonda",attention:"Qaror kerak",done:"Yakunlangan",searchCustomer:"Raqam yoki tovar",searchOperator:"Raqam, tovar yoki mijoz"},en:{customerOver:"YOUR PURCHASES IN TRANSIT",customerTitle:"From the store to your door.",customerIntro:"Status, calculation and history for every order.",operatorOver:"OPERATOR WORKSPACE",operatorTitle:"Everything is ready for the next step.",operatorIntro:"Manage purchase, warehouse intake and exceptions.",customerView:"Customer view",operatorView:"Open processing",active:"In progress",attention:"Decision needed",done:"Completed",searchCustomer:"Order number or item",searchOperator:"Order number, item or customer"}}[state.communication.language];
   const receiving = orders.find((o) => o.id === warehouse);
   const confirmingStoreShipping = orders.find(
     (o) => o.id === storeShippingOrder,
   );
   const active = orders.filter((o) => !o.cancelled && o.status < 5),
-    need = orders.filter(isExtra),
+    need = orders.filter((order) => isExtra(order) || pendingChange(order) || order.warehouseInspection?.condition === "damaged" || order.warehouseInspection?.condition === "mismatch"),
     done = orders.filter((o) => o.cancelled || o.status === 5);
   const filtered = (
     tab === "active" ? active : tab === "attention" ? need : done
@@ -315,17 +350,17 @@ export function OrdersView({ operations }: { operations: boolean }) {
     <>
       <PageHeading
         overline={
-          operations ? "РАБОЧЕЕ МЕСТО ОПЕРАТОРА" : "ВАШИ ПОКУПКИ В ПУТИ"
+          operations ? wc.operatorOver : wc.customerOver
         }
         title={
           operations
-            ? "Всё готово к следующему шагу."
-            : "От магазина до вашей двери."
+            ? wc.operatorTitle
+            : wc.customerTitle
         }
         description={
           operations
-            ? "Выкупайте, принимайте на склад и согласовывайте исключения."
-            : "Статусы, расчёты и история каждого заказа."
+            ? wc.operatorIntro
+            : wc.customerIntro
         }
       >
         {(operations || user?.operator) && (
@@ -333,7 +368,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
             className="btn secondary"
             href={operations ? "/orders" : "/operations"}
           >
-            {operations ? "Вид покупателя" : "Тестировать обработку"}
+            {operations ? wc.customerView : wc.operatorView}
             <ArrowUpRight size={16} />
           </Link>
         )}
@@ -372,13 +407,13 @@ export function OrdersView({ operations }: { operations: boolean }) {
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList className="order-tabs">
               <TabsTrigger value="active">
-                В работе <b>{active.length}</b>
+                {wc.active} <b>{active.length}</b>
               </TabsTrigger>
               <TabsTrigger value="attention">
-                Доплата <b>{need.length}</b>
+                {wc.attention} <b>{need.length}</b>
               </TabsTrigger>
               <TabsTrigger value="done">
-                Завершённые <b>{done.length}</b>
+                {wc.done} <b>{done.length}</b>
               </TabsTrigger>
             </TabsList>
             <TabsContent value={tab} className="sr-only">
@@ -394,7 +429,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
             <Search size={18} />
             <input
               aria-label="Поиск заказа"
-              placeholder={operations ? "Номер, товар или покупатель" : "Номер или товар"}
+              placeholder={operations ? wc.searchOperator : wc.searchCustomer}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -440,14 +475,16 @@ export function OrdersView({ operations }: { operations: boolean }) {
               <span
                 className={
                   "status-badge " +
-                  (isExtra(o) ? "needs-action" : o.cancelled ? "cancelled" : "")
+                  (isExtra(o) || pendingChange(o) ? "needs-action" : o.cancelled ? "cancelled" : "")
                 }
               >
                 {o.cancelled
                   ? "Отменён"
+                  : pendingChange(o)
+                    ? "Нужно решение"
                   : isExtra(o)
                     ? "Требуется доплата"
-                    : statuses[o.status]}
+                    : displayStatuses[o.status]}
               </span>
             </div>
             <div className="order-product">
@@ -482,13 +519,13 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 )}
               </div>
               <div className="order-amount">
-                <strong>{money(o.quote.total)}</strong>
-                <span>Сумма при оформлении</span>
+                <strong>{money(orderPayable(o))}</strong>
+                <span>{orderPayable(o) === o.quote.total ? "Сумма при оформлении" : `При оформлении ${money(o.quote.total)}`}</span>
               </div>
             </div>
             {!o.cancelled && (
               <ol className="order-timeline">
-                {statuses.map((name, i) => (
+                {displayStatuses.map((name, i) => (
                   <li
                     key={name}
                     className={
@@ -532,6 +569,12 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 <div><h3>{o.parcel.carrier}</h3><p>Трек-номер: {o.parcel.trackingNumber}{o.parcel.warehouseCode ? ` · склад ${o.parcel.warehouseCode}` : ""}</p><strong>{o.parcel.events.at(-1)?.status ?? "Посылка зарегистрирована"}</strong></div>
               </div>
             )}
+            {o.warehouseInspection && (
+              <div className={"settlement-box warehouse-box " + (o.warehouseInspection.condition === "ok" ? "" : "attention")}>
+                <Package size={22}/><div><h3>{o.warehouseInspection.condition === "ok" ? "Приёмка на складе завершена" : "Склад зафиксировал проблему"}</h3><p>Получено: {o.warehouseInspection.quantityReceived} шт.{o.warehouseInspection.packageGroup ? ` · группа ${o.warehouseInspection.packageGroup}` : ""}</p><strong>{o.warehouseInspection.services.length ? `Операции: ${o.warehouseInspection.services.join(", ")}` : "Дополнительные операции не назначены"}</strong>{o.warehouseInspection.notes && <p>{o.warehouseInspection.notes}</p>}</div>
+              </div>
+            )}
+            {!!o.changeRequests?.length && <section className="change-request-list" aria-label="Согласования по заказу">{[...o.changeRequests].reverse().map(request=><article className={`change-request ${request.status}`} key={request.id}><div><span className="eyebrow">{request.status === "pending" ? "НУЖНО РЕШЕНИЕ" : request.status === "approved" ? "ПОДТВЕРЖДЕНО" : "ОТКЛОНЕНО"}</span><h3>{request.title}</h3><p>{request.reason}</p>{(request.previousValue||request.proposedValue)&&<p className="change-values"><span>{request.previousValue||"—"}</span><ArrowRight size={15}/><b>{request.proposedValue||"—"}</b></p>}</div><div className="change-amount">{request.amountDelta !== 0 && <strong>{request.amountDelta > 0 ? "+" : ""}{money(request.amountDelta)}</strong>}{!operations && request.status === "pending" && <div className="change-actions"><button className="btn secondary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"declined",expectedAmountDelta:request.amountDelta})}>Отклонить</button><button className="btn primary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"approved",expectedAmountDelta:request.amountDelta})}>Подтвердить</button></div>}</div></article>)}</section>}
             {!operations &&
               !o.cancelled &&
               o.status === 0 &&
@@ -627,7 +670,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 )}
               </div>
             )}
-            {isExtra(o) && !operations && (
+            {isExtra(o) && !operations && !pendingChange(o) && (
               <button
                 className="btn primary"
                 onClick={() =>
@@ -671,7 +714,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
               ) && (
               <button
                 className="btn primary"
-                disabled={isExtra(o) || (o.status === 0 && o.payment?.status === "pending") || (o.status === 3 && !o.parcel)}
+                disabled={isExtra(o) || pendingChange(o) || (o.status === 2 && !o.warehouseInspection) || (o.status === 0 && o.payment?.status === "pending") || (o.status === 3 && !o.parcel)}
                 onClick={async () => {
                   if (o.status === 2) {
                     setWarehouse(o.id);
@@ -710,12 +753,13 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 <ArrowRight size={16} />
               </button>
             )}
-            {operations && isExtra(o) && (
+            {operations && (isExtra(o) || pendingChange(o)) && (
               <p className="micro">
                 Отправка станет доступна после подтверждения в разделе «Мои
                 заказы».
               </p>
             )}
+            {operations && o.status === 2 && !o.warehouseInspection && <p className="micro">Сначала сохраните приёмку товара в блоке оператора.</p>}
             {operations && o.status === 0 && o.payment?.status === "pending" && (
               <p className="micro">Выкуп станет доступен после тестового подтверждения оплаты клиентом.</p>
             )}
@@ -1051,18 +1095,19 @@ function PricingManager({
             ["divisor", "Делитель объёмного веса", 1],
           ].map(([key, label, step]) => (
             <div className="field" key={String(key)}>
-              <label htmlFor={`pricing-${key}`}>{label}</label>
+              <label htmlFor={`pricing-${key}`}>{label}{["margin", "buyoutFee", "conversionFee", "deliveryMargin", "reserve"].includes(String(key)) ? ", %" : ""}</label>
               <input
                 id={`pricing-${key}`}
                 type="number"
                 required
-                min={Number(step)}
-                step={Number(step)}
-                value={draft[key as "fx" | "perKg" | "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "optionalServices" | "reserve" | "divisor"]}
+                min={["margin", "buyoutFee", "conversionFee", "deliveryMargin", "reserve", "optionalServices"].includes(String(key)) ? 0 : Number(step)}
+                max={["margin", "buyoutFee", "conversionFee", "deliveryMargin"].includes(String(key)) ? 100 : key === "reserve" ? 200 : undefined}
+                step={["margin", "buyoutFee", "conversionFee", "deliveryMargin", "reserve"].includes(String(key)) ? 0.1 : Number(step)}
+                value={["margin", "buyoutFee", "conversionFee", "deliveryMargin", "reserve"].includes(String(key)) ? draft[key as "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "reserve"] * 100 : draft[key as "fx" | "perKg" | "optionalServices" | "divisor"]}
                 onChange={(event) =>
                   setNumber(
                     key as "fx" | "perKg" | "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "optionalServices" | "reserve" | "divisor",
-                    event.target.value,
+                    ["margin", "buyoutFee", "conversionFee", "deliveryMargin", "reserve"].includes(String(key)) ? String(Number(event.target.value) / 100) : event.target.value,
                   )
                 }
               />

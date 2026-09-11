@@ -1,6 +1,6 @@
 import {env} from 'cloudflare:workers';
 import {getChatGPTUser} from '@/app/chatgpt-auth';
-import {blank,parseState,pricingSchema,tariff,type Pricing,type State} from './domain';
+import {blank,parseState,pricingSchema,tariff,orderPayable,type Pricing,type State} from './domain';
 import {defaultPolicy,policySchema,type Policy} from './policy';
 export function database(){if(!env.DB)throw Error('Серверное хранилище пока недоступно.');return env.DB}
 export async function identity(){const user=await getChatGPTUser();if(!user)throw new HttpError(401,'Войдите, чтобы продолжить.');return user}
@@ -20,10 +20,11 @@ export async function syncOperationalProjection(id:string,state:State,now=Date.n
  const db=database(),email=id.startsWith('email:')?id.slice(6):id;
  const statements=[db.prepare("INSERT INTO market_customers (id,email,name,phone,locale,status,created_at,updated_at) VALUES (?,?,?,?,?,'active',?,?) ON CONFLICT(id) DO UPDATE SET email=excluded.email,name=excluded.name,phone=excluded.phone,locale=excluded.locale,updated_at=excluded.updated_at").bind(id,email,state.deliveryProfile?.recipient??email,state.deliveryProfile?.phone??null,state.communication.language,now,now)];
  for(const order of state.orders){
-  statements.push(db.prepare('INSERT INTO market_order_records (id,customer_id,status,source_store,source_url,currency,total,assigned_role,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET status=excluded.status,source_store=excluded.source_store,source_url=excluded.source_url,currency=excluded.currency,total=excluded.total,assigned_role=excluded.assigned_role,updated_at=excluded.updated_at').bind(order.id,id,order.cancelled?'cancelled':String(order.status),order.product.brand,order.product.sourceUrl??null,'UZS',order.quote.total,order.assignment?.team??null,order.createdAt,now));
+  statements.push(db.prepare('INSERT INTO market_order_records (id,customer_id,status,source_store,source_url,currency,total,assigned_role,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET status=excluded.status,source_store=excluded.source_store,source_url=excluded.source_url,currency=excluded.currency,total=excluded.total,assigned_role=excluded.assigned_role,updated_at=excluded.updated_at').bind(order.id,id,order.cancelled?'cancelled':String(order.status),order.product.brand,order.product.sourceUrl??null,'UZS',orderPayable(order),order.assignment?.team??null,order.createdAt,now));
   statements.push(db.prepare('DELETE FROM market_order_fee_lines WHERE order_id=?').bind(order.id));
   const fees=[['item','Товар',order.quote.merchandise],['service','Сервис Atlas',order.quote.service],['buyout','Комиссия за выкуп',order.quote.buyout??0],['conversion','Конвертация',order.quote.conversion??0],['merchant_shipping','Доставка магазина',order.quote.sourceShipping??0],['international_shipping','Международная доставка',order.quote.shipping],['delivery_margin','Маржа доставки',order.quote.deliveryMargin??0],['international_reserve','Резерв доставки',order.quote.reserve],['optional_services','Дополнительные услуги',order.quote.optionalServices??0]] as const;
   for(const [kind,label,amount] of fees)statements.push(db.prepare('INSERT INTO market_order_fee_lines (id,order_id,kind,label,amount,currency,created_at) VALUES (?,?,?,?,?,?,?)').bind(`${order.id}:${kind}`,order.id,kind,label,amount,'UZS',order.createdAt));
+  for(const adjustment of (order.changeRequests??[]).filter(item=>item.status==='approved'&&item.amountDelta!==0))statements.push(db.prepare('INSERT INTO market_order_fee_lines (id,order_id,kind,label,amount,currency,created_at) VALUES (?,?,?,?,?,?,?)').bind(`${order.id}:adjustment:${adjustment.id}`,order.id,`adjustment_${adjustment.kind}`,adjustment.title,adjustment.amountDelta,'UZS',adjustment.respondedAt??adjustment.createdAt));
   for(const event of order.history)statements.push(db.prepare('INSERT OR IGNORE INTO market_order_events (id,order_id,actor_id,event_type,payload,created_at) VALUES (?,?,?,?,?,?)').bind(`${order.id}:status:${event.at}`,order.id,null,'status',JSON.stringify({text:event.text}),event.at));
  }
  await db.batch(statements);
