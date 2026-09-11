@@ -20,6 +20,10 @@ import {
   savePricing,
   savePolicy,
   saveStaffMember,
+  rebuildOperationalProjection,
+  operationalHealth,
+  operationalCustomers,
+  setCustomerStatus,
   staffMembers,
   storedAccount,
 } from "@/lib/market/server";
@@ -55,6 +59,8 @@ const updateSchema = z.discriminatedUnion("kind", [
       status: z.enum(["invited", "active", "disabled"]),
     }),
   }),
+  z.object({kind:z.literal("projection-rebuild")}),
+  z.object({kind:z.literal("customer-status"),accountId:z.string().min(1).max(320),status:z.enum(["active","review","blocked"])}),
 ]);
 
 async function requireOperator() {
@@ -67,14 +73,16 @@ export async function GET() {
   try {
     const user=await requireOperator();
     await ensurePrimaryOperator(user);
-    const [accounts, currentPricing, currentPolicy, staff, audit] = await Promise.all([
+    const [accounts, currentPricing, currentPolicy, staff, audit, health, customerStatuses] = await Promise.all([
       operatorAccounts(),
       pricing(),
       policy(),
       staffMembers(),
       auditEvents(),
+      operationalHealth(),
+      operationalCustomers(),
     ]);
-    return json({ accounts, pricing: currentPricing, policy: currentPolicy, staff, audit });
+    return json({ accounts, pricing: currentPricing, policy: currentPolicy, staff, audit, health, customerStatuses });
   } catch (error) {
     return failure(error);
   }
@@ -86,6 +94,8 @@ export async function POST(request: Request) {
     const user = await requireOperator();
     const payload = updateSchema.safeParse(await requestJson(request));
     if (!payload.success) throw new HttpError(400, "Проверьте данные операции.");
+    if(payload.data.kind==='projection-rebuild'){const count=await rebuildOperationalProjection();await recordAudit(user,'projection.rebuild','system',undefined,{accounts:count});return json({health:await operationalHealth(),audit:await auditEvents()});}
+    if(payload.data.kind==='customer-status'){await setCustomerStatus(payload.data.accountId,payload.data.status);await recordAudit(user,'customer.status','customer',payload.data.accountId,{status:payload.data.status});return json({health:await operationalHealth(),audit:await auditEvents()});}
     if(payload.data.kind==='staff'){
       const isPrimary=operator(payload.data.value.email);
       const value=isPrimary?{...payload.data.value,role:'admin' as const,status:'active' as const}:payload.data.value;
@@ -124,6 +134,7 @@ export async function POST(request: Request) {
         "assign-order",
         "staff-note",
         "parcel-set",
+        "support-reply",
       ].includes(parsedAction.data.type)
     )
       throw new HttpError(403, "Это действие недоступно оператору.");

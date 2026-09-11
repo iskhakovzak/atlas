@@ -7,7 +7,7 @@ Atlas is a functional pre-release cross-border shopping prototype for customers 
 It is not yet a commercial marketplace: no real payment, purchase, carrier booking, customs filing, money transfer or delivery takes place.
 
 Published URL: https://atlas-uz-market.ishakovzakir0.chatgpt.site  
-Handoff baseline: commit 8b99f76ca66bd9006382b51c51b94711e41bf59d, published version 21.
+Handoff baseline: version 21 plus the current operational-database/admin release (publish result recorded after deployment).
 Validation baseline: lint, 37 tests, TypeScript, production build, authenticated API smoke with staff/audit coverage and the 126-check desktop/tablet/mobile browser audit all pass.
 
 ## Customer flow
@@ -198,5 +198,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - `/legal` now contains a structured Russian governing draft: public offer for purchasing-intermediary and logistics-agent services, privacy policy, separate passport-data consent and payment/cancellation/refund policy. It discloses buyout, service, delivery, conversion and optional-service income separately. Company name, registration/tax data, address, support contacts and bank details deliberately remain launch blockers rather than invented facts.
 - The payment policy names Uzcard, Humo, Visa and a separate crypto channel only as planned integrations. No method is shown as available and no real payment is accepted.
 - D1 migration 0004 adds normalized customer, order, fee-line, order-event, legal-consent, staff-directory and audit-event tables without deleting or changing legacy JSON accounts. The current customer flow remains compatible; relational order backfill/dual-write is a later controlled migration.
+- Every successful account write now also maintains a rebuildable operational projection across customers, orders, separate fee lines and status events. Projection failure never corrupts or rolls back the compatible customer record; the administrator can rebuild all current profiles and inspect row counts from `/admin`.
+- `/admin` now includes customer access control (`active`, `review`, `blocked`), a cross-customer support queue with replies, internal finance totals, and a database-integrity workspace. Review blocks checkout/payment confirmation; blocked profiles cannot write through the customer API. These checks are server-side.
 - `/admin` is now an operator control centre with overview metrics, order/analytics shortcuts, staff directory, server-managed restrictions and recent audit events. Staff records are preparatory only: until standalone authentication is connected, only `ATLAS_OPERATOR_EMAIL` has server authorization.
 - Operator order changes, pricing, policy and staff-directory updates create audit records. The authenticated smoke test covers staff creation and audit visibility in addition to the full order flow.

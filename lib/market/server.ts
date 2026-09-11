@@ -9,7 +9,38 @@ export class HttpError extends Error{constructor(public status:number,message:st
 export function sameOrigin(request:Request){const origin=request.headers.get('origin');if(!origin||origin!==new URL(request.url).origin)throw new HttpError(403,'Недопустимый источник запроса.')}
 export const json=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
 export async function account(user:{userId:string;platformUserId?:string|null;displayName:string}){const now=Date.now(),db=database();if(user.platformUserId&&user.platformUserId!==user.userId)await db.prepare('INSERT OR IGNORE INTO market_accounts (user_id,name,state,revision,created_at,updated_at) SELECT ?,name,state,revision,created_at,updated_at FROM market_accounts WHERE user_id=?').bind(user.userId,user.platformUserId).run();await db.prepare('INSERT OR IGNORE INTO market_accounts (user_id,name,state,revision,created_at,updated_at) VALUES (?,?,?,0,?,?)').bind(user.userId,user.displayName,JSON.stringify(blank()),now,now).run();const row=await db.prepare('SELECT name,state,revision,created_at FROM market_accounts WHERE user_id=?').bind(user.userId).first<{name:string;state:string;revision:number;created_at:number}>();if(!row)throw Error('Account unavailable');return {...row,state:parseState(row.state)}}
-export async function persist(id:string,state:State,revision:number){if(JSON.stringify(state).length>1000000)throw new HttpError(413,'Достигнут лимит данных тестового профиля.');const result=await database().prepare('UPDATE market_accounts SET state=?, revision=revision+1, updated_at=? WHERE user_id=? AND revision=?').bind(JSON.stringify(state),Date.now(),id,revision).run();if(!result.meta.changes)throw new HttpError(409,'Заказ изменился в другой вкладке. Данные обновлены — повторите действие.');}
+export async function persist(id:string,state:State,revision:number){
+ const serialized=JSON.stringify(state);if(serialized.length>1000000)throw new HttpError(413,'Достигнут лимит данных тестового профиля.');
+ const now=Date.now(),result=await database().prepare('UPDATE market_accounts SET state=?, revision=revision+1, updated_at=? WHERE user_id=? AND revision=?').bind(serialized,now,id,revision).run();
+ if(!result.meta.changes)throw new HttpError(409,'Заказ изменился в другой вкладке. Данные обновлены — повторите действие.');
+ try{await syncOperationalProjection(id,state,now)}catch(error){console.error('Operational projection sync failed',error)}
+}
+
+export async function syncOperationalProjection(id:string,state:State,now=Date.now()){
+ const db=database(),email=id.startsWith('email:')?id.slice(6):id;
+ const statements=[db.prepare("INSERT INTO market_customers (id,email,name,phone,locale,status,created_at,updated_at) VALUES (?,?,?,?,?,'active',?,?) ON CONFLICT(id) DO UPDATE SET email=excluded.email,name=excluded.name,phone=excluded.phone,locale=excluded.locale,updated_at=excluded.updated_at").bind(id,email,state.deliveryProfile?.recipient??email,state.deliveryProfile?.phone??null,state.communication.language,now,now)];
+ for(const order of state.orders){
+  statements.push(db.prepare('INSERT INTO market_order_records (id,customer_id,status,source_store,source_url,currency,total,assigned_role,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET status=excluded.status,source_store=excluded.source_store,source_url=excluded.source_url,currency=excluded.currency,total=excluded.total,assigned_role=excluded.assigned_role,updated_at=excluded.updated_at').bind(order.id,id,order.cancelled?'cancelled':String(order.status),order.product.store??order.product.brand,order.product.sourceUrl??null,'UZS',order.quote.total,order.assignment?.team??null,order.createdAt,now));
+  statements.push(db.prepare('DELETE FROM market_order_fee_lines WHERE order_id=?').bind(order.id));
+  const fees=[['item','Товар',order.quote.merchandise],['service','Сервис Atlas',order.quote.service],['merchant_shipping','Доставка магазина',order.quote.sourceShipping??0],['international_shipping','Международная доставка',order.quote.shipping],['international_reserve','Резерв доставки',order.quote.reserve]] as const;
+  for(const [kind,label,amount] of fees)statements.push(db.prepare('INSERT INTO market_order_fee_lines (id,order_id,kind,label,amount,currency,created_at) VALUES (?,?,?,?,?,?,?)').bind(`${order.id}:${kind}`,order.id,kind,label,amount,'UZS',order.createdAt));
+  for(const event of order.history)statements.push(db.prepare('INSERT OR IGNORE INTO market_order_events (id,order_id,actor_id,event_type,payload,created_at) VALUES (?,?,?,?,?,?)').bind(`${order.id}:status:${event.at}`,order.id,null,'status',JSON.stringify({status:event.status}),event.at));
+ }
+ await db.batch(statements);
+}
+
+export async function rebuildOperationalProjection(){
+ const rows=await operatorAccounts();for(const row of rows)await syncOperationalProjection(row.id,row.state,row.updatedAt);return rows.length;
+}
+
+export async function customerStatus(id:string){const row=await database().prepare('SELECT status FROM market_customers WHERE id=?').bind(id).first<{status:string}>();return row?.status??'active'}
+export async function setCustomerStatus(id:string,status:'active'|'review'|'blocked'){const result=await database().prepare('UPDATE market_customers SET status=?,updated_at=? WHERE id=?').bind(status,Date.now(),id).run();if(!result.meta.changes)throw new HttpError(404,'Клиент не найден в операционной базе. Выполните синхронизацию.');}
+export async function operationalHealth(){
+ const db=database();const [customers,orders,fees,events]=await Promise.all([
+  db.prepare('SELECT COUNT(*) count FROM market_customers').first<{count:number}>(),db.prepare('SELECT COUNT(*) count FROM market_order_records').first<{count:number}>(),db.prepare('SELECT COUNT(*) count FROM market_order_fee_lines').first<{count:number}>(),db.prepare('SELECT COUNT(*) count FROM market_order_events').first<{count:number}>()
+ ]);return{customers:customers?.count??0,orders:orders?.count??0,feeLines:fees?.count??0,events:events?.count??0,checkedAt:Date.now()};
+}
+export async function operationalCustomers(){const rows=await database().prepare('SELECT id,status FROM market_customers').all<{id:string;status:'active'|'review'|'blocked'}>();return Object.fromEntries(rows.results.map(row=>[row.id,row.status]));}
 export async function pricing():Promise<Pricing>{const row=await database().prepare("SELECT value FROM market_settings WHERE key='pricing'").first<{value:string}>();if(!row)return tariff;try{const parsed=pricingSchema.safeParse(JSON.parse(row.value));return parsed.success?parsed.data:tariff}catch{return tariff}}
 export async function savePricing(next:Pricing,userId:string){await database().prepare("INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES ('pricing',?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at,updated_by=excluded.updated_by").bind(JSON.stringify(next),next.updatedAt,userId).run()}
 export async function policy():Promise<Policy>{const row=await database().prepare("SELECT value FROM market_settings WHERE key='policy'").first<{value:string}>();if(!row)return defaultPolicy;try{const parsed=policySchema.safeParse(JSON.parse(row.value));return parsed.success?parsed.data:defaultPolicy}catch{return defaultPolicy}}

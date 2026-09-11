@@ -22,8 +22,8 @@
 - [x] Build a server-authorized cross-customer operator queue.
 - [ ] Replace the pre-release team assignment with independent staff identities, permissions and a relational immutable audit trail.
 - [x] Add a preparatory staff directory and persistent audit events for operator changes; actual staff authorization still waits for standalone auth.
-- [ ] Move from per-account JSON state to proper relational orders/ledger with migration, outbox and reconciliation.
-- [x] Add non-destructive normalized customer/order/fee/event/consent tables as the migration foundation; backfill and dual-write remain pending.
+- [ ] Complete the cutover from compatible JSON customer state to relational canonical orders/ledger with transactional outbox and automated reconciliation.
+- [x] Add non-destructive normalized customer/order/fee/event/consent tables, dual-write operational projection, administrator rebuild and integrity counters.
 - [ ] Re-verify Uzbekistan customs rules, legal/privacy requirements and recipient-limit model.
 - [x] Add in-app order status, refund and approval notifications.
 - [ ] Integrate actual carrier routes/tracking and external email/SMS delivery. Push is intentionally out of scope.
@@ -50,7 +50,8 @@
 - [ ] Choose and integrate standalone auth (email password or email code, recovery, optional Google OAuth, rate limits and consent records). Do not collect passwords until an identity provider or audited password implementation is selected.
 - [ ] Connect a verified email sender for actual notification delivery; current email/SMS history is preview-only.
 - [ ] Select a phone-verification provider and retention policy before requiring a phone at payment/delivery.
-- [ ] Add encrypted, tested D1/R2 backup export with retention and restore runbook; profile download is not a backup.
+- [ ] Add encrypted off-platform D1/R2 backups with retention and a tested restore runbook; administrator integrity/rebuild is not an external backup.
+- [x] Add server-enforced customer review/blocking and an administrator customer/support/finance/system workspace.
 - [ ] Translate every transactional screen and validation message for RU, UZ and EN; navigation localisation is not full localisation.
 - [ ] Document/test production D1 migration from local machine before schema changes.
 - [ ] Add retention/deletion/export policy, backups and redacted observability.
