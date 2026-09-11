@@ -2,7 +2,7 @@
 
 ## Product
 
-Atlas is a functional pre-release cross-border shopping prototype for customers in Uzbekistan. A user chooses a sourced merchant catalog item or pastes a foreign-store product link, receives an editable preliminary UZS calculation, saves a recipient/address, creates a simulated payment and follows the purchase, warehouse, parcel and delivery process.
+Atlas is a functional pre-release cross-border shopping prototype for customers in Uzbekistan. The intended commercial model is purchasing intermediary plus logistics agent, not the foreign seller or manufacturer. A user chooses a sourced merchant catalog item or pastes a foreign-store product link, receives an editable preliminary UZS calculation, saves a recipient/address, creates a simulated payment and follows the purchase, warehouse, parcel and delivery process.
 
 It is not yet a commercial marketplace: no real payment, purchase, carrier booking, customs filing, money transfer or delivery takes place.
 
@@ -192,3 +192,11 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Customer navigation never exposes administrator links. Admin, operations and analytics require both an authenticated session and the server-derived operator flag; `/api/operations` independently rejects customer reads and writes with 403.
 - Guest language is stored as a device preference until an account is available. Authenticated language continues to persist through the account action.
 - The UI audit covers guest/customer sign-in and sign-out, 13 protected routes, public pages, three administrator denials, server operator denial, error/retry, three languages, inactive empty forms, semantic names/IDs/links, and 1440/800/390 px layouts.
+
+## Legal and operational foundation — 11 September 2026
+
+- `/legal` now contains a structured Russian governing draft: public offer for purchasing-intermediary and logistics-agent services, privacy policy, separate passport-data consent and payment/cancellation/refund policy. It discloses buyout, service, delivery, conversion and optional-service income separately. Company name, registration/tax data, address, support contacts and bank details deliberately remain launch blockers rather than invented facts.
+- The payment policy names Uzcard, Humo, Visa and a separate crypto channel only as planned integrations. No method is shown as available and no real payment is accepted.
+- D1 migration 0004 adds normalized customer, order, fee-line, order-event, legal-consent, staff-directory and audit-event tables without deleting or changing legacy JSON accounts. The current customer flow remains compatible; relational order backfill/dual-write is a later controlled migration.
+- `/admin` is now an operator control centre with overview metrics, order/analytics shortcuts, staff directory, server-managed restrictions and recent audit events. Staff records are preparatory only: until standalone authentication is connected, only `ATLAS_OPERATOR_EMAIL` has server authorization.
+- Operator order changes, pricing, policy and staff-directory updates create audit records. The authenticated smoke test covers staff creation and audit visibility in addition to the full order flow.

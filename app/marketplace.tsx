@@ -16,7 +16,8 @@ import {AccountView,CustomsView} from './account-views';
 import {countryName} from '@/lib/market/world';
 import {CartView} from './shopping';
 import {OrdersView,BalanceView,NotificationsView} from './order-workspace';
-import {AnalyticsView,LegalView} from './prelaunch-views';
+import {AnalyticsView} from './prelaunch-views';
+import {LegalDocuments} from './legal-documents';
 import {DeclarationView,IdentityView} from './identity-workspace';
 import {BatchImportView} from './batch-import';
 import {AdminView} from './admin-view';
@@ -37,7 +38,7 @@ export default function Marketplace({view}:{view:string}) {
   <main className="site-main" id="main">{view!=='catalog'&&<div className="breadcrumb"><Link href="/">Главная</Link><span>/</span><span>{titles[view]}</span></div>}{error&&view==='catalog'&&<div className="notice error account-error" role="alert"><span>{error}</span><div><button type="button" className="text-button" onClick={()=>void refresh()}>Повторить</button>{!user&&<Link className="text-link" href="/account">Открыть вход<ArrowRight size={15}/></Link>}</div></div>}
   <AccessView view={view}>
   {(view==='catalog'||view==='favorites')&&<Catalog favorites={view==='favorites'} select={select}/>}
-  {view==='link'&&<GlobalLinkOrder select={select}/>}{view==='cart'&&<CartView/>}{(view==='orders'||view==='operations')&&<OrdersView operations={view==='operations'}/>}{view==='balance'&&<BalanceView/>}{view==='notifications'&&<NotificationsView/>}{view==='account'&&<AccountView/>}{view==='customs'&&<CustomsView/>}{view==='analytics'&&<AnalyticsView/>}{view==='legal'&&<LegalView/>}
+  {view==='link'&&<GlobalLinkOrder select={select}/>}{view==='cart'&&<CartView/>}{(view==='orders'||view==='operations')&&<OrdersView operations={view==='operations'}/>}{view==='balance'&&<BalanceView/>}{view==='notifications'&&<NotificationsView/>}{view==='account'&&<AccountView/>}{view==='customs'&&<CustomsView/>}{view==='analytics'&&<AnalyticsView/>}{view==='legal'&&<LegalDocuments/>}
   {view==='identity'&&<IdentityView/>}{view==='declaration'&&<DeclarationView/>}
   {view==='batch'&&<BatchImportView/>}{view==='admin'&&<AdminView/>}
   </AccessView>

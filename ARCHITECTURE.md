@@ -71,6 +71,8 @@ market_identity_documents stores owner, private R2 object key, safe file metadat
 
 market_settings also stores a versioned `policy` JSON setting. It defines server-authorized import/cart restrictions and has no client-side source of truth.
 
+Migration 0004 adds the normalized launch foundation: `market_customers`, `market_order_records`, `market_order_fee_lines`, `market_order_events`, `market_legal_consents`, `market_staff_directory` and `market_audit_events`. Existing `market_accounts` JSON remains the active customer-flow source until a separately tested backfill and dual-write cutover. Staff-directory rows do not grant access; `ATLAS_OPERATOR_EMAIL` remains the sole authorization source.
+
 State contains orders, ledger entries, cart, favourites, checkout idempotency keys, saved recipient profiles, support-request history, an optional confirmed identity profile with masked passport number, test declarations, communication preferences, prepared email/SMS records and version. Order contains product snapshot, immutable quote, delivery snapshot, simulated payment, parcel/tracking events, assignment, staff notes, status/history, both settlement types, approvals, quantity, balance use and customs consent.
 
 ## APIs
@@ -80,8 +82,8 @@ State contains orders, ledger entries, cart, favourites, checkout idempotency ke
 | GET /api/account | identity → user, state, revision |
 | POST /api/import | identity + same origin + URL → Extracted data, 12/min |
 | POST /api/actions | identity + same origin + action/revision → next state |
-| GET /api/operations | operator identity → all customer queues + current pricing |
-| POST /api/operations | operator identity + target revision → order action or pricing update |
+| GET /api/operations | operator identity → customer queues, pricing, policy, staff directory and audit events |
+| POST /api/operations | operator identity + validated payload → order action, pricing, policy or staff-directory update + audit event |
 | GET /api/passport | authenticated identity → own document metadata only |
 | POST /api/passport | identity + same origin + multipart image/PDF → private R2 object + D1 metadata |
 | DELETE /api/passport?id=… | identity + same origin + ownership → delete private object and metadata |
@@ -111,7 +113,7 @@ No payment processor, eBay API, carrier API, automatic FX API, email/SMS provide
 
 ## Deployment
 
-.openai/hosting.json currently points to ChatGPT Sites project appgprj_6aa181097a00819196698407b43a6a45 and maps D1 binding DB. Hosted site is private owner-only.
+.openai/hosting.json currently points to ChatGPT Sites project appgprj_6aa181097a00819196698407b43a6a45 and maps D1 binding DB. The current hosted site audience is public; customer and administrator data remain protected by server-side identity and role checks.
 
 Current deployment procedure: commit; request temporary Sites repo credential; push exact HEAD; package site; save a version with exact pushed SHA; deploy the saved version with the site's current audience; poll success. Never persist the temporary token.
 

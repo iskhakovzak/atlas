@@ -21,7 +21,9 @@
 - [ ] Connect and verify an automatic FX/tariff feed before presenting values as live.
 - [x] Build a server-authorized cross-customer operator queue.
 - [ ] Replace the pre-release team assignment with independent staff identities, permissions and a relational immutable audit trail.
+- [x] Add a preparatory staff directory and persistent audit events for operator changes; actual staff authorization still waits for standalone auth.
 - [ ] Move from per-account JSON state to proper relational orders/ledger with migration, outbox and reconciliation.
+- [x] Add non-destructive normalized customer/order/fee/event/consent tables as the migration foundation; backfill and dual-write remain pending.
 - [ ] Re-verify Uzbekistan customs rules, legal/privacy requirements and recipient-limit model.
 - [x] Add in-app order status, refund and approval notifications.
 - [ ] Integrate actual carrier routes/tracking and external email/SMS delivery. Push is intentionally out of scope.
@@ -52,6 +54,8 @@
 - [ ] Translate every transactional screen and validation message for RU, UZ and EN; navigation localisation is not full localisation.
 - [ ] Document/test production D1 migration from local machine before schema changes.
 - [ ] Add retention/deletion/export policy, backups and redacted observability.
+- [x] Draft the public intermediary/logistics offer, privacy policy, passport consent and payment/refund policy with transparent buyout, delivery, conversion and optional-service fees.
+- [ ] Fill legal entity name, registration/INN, address, support contacts and bank details; obtain Uzbek counsel approval and reviewed UZ/EN legal translations.
 - [ ] Select a compliant production OCR/identity provider, document consent/legal basis, retention windows and regional data processing before relying on passport recognition.
 - [ ] Add scan-quality checks for blur, glare, cropped MRZ, expiry and check digits; current browser OCR is best effort and manual confirmation remains required.
 - [ ] Add a real customs integration only after official API access, document mapping, signed audit trail and legal review. Current submission status is preview-only.

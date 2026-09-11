@@ -9,13 +9,18 @@ import {
   json,
   operator,
   operatorAccounts,
+  auditEvents,
+  ensurePrimaryOperator,
   persist,
   pricing,
   policy,
+  recordAudit,
   requestJson,
   sameOrigin,
   savePricing,
   savePolicy,
+  saveStaffMember,
+  staffMembers,
   storedAccount,
 } from "@/lib/market/server";
 
@@ -41,6 +46,15 @@ const updateSchema = z.discriminatedUnion("kind", [
       rates: true,
     }),
   }),
+  z.object({
+    kind: z.literal("staff"),
+    value: z.object({
+      email: z.string().trim().email().max(320),
+      displayName: z.string().trim().min(2).max(120),
+      role: z.enum(["support", "procurement", "warehouse", "finance", "admin"]),
+      status: z.enum(["invited", "active", "disabled"]),
+    }),
+  }),
 ]);
 
 async function requireOperator() {
@@ -51,13 +65,16 @@ async function requireOperator() {
 
 export async function GET() {
   try {
-    await requireOperator();
-    const [accounts, currentPricing, currentPolicy] = await Promise.all([
+    const user=await requireOperator();
+    await ensurePrimaryOperator(user);
+    const [accounts, currentPricing, currentPolicy, staff, audit] = await Promise.all([
       operatorAccounts(),
       pricing(),
       policy(),
+      staffMembers(),
+      auditEvents(),
     ]);
-    return json({ accounts, pricing: currentPricing, policy: currentPolicy });
+    return json({ accounts, pricing: currentPricing, policy: currentPolicy, staff, audit });
   } catch (error) {
     return failure(error);
   }
@@ -69,6 +86,13 @@ export async function POST(request: Request) {
     const user = await requireOperator();
     const payload = updateSchema.safeParse(await requestJson(request));
     if (!payload.success) throw new HttpError(400, "Проверьте данные операции.");
+    if(payload.data.kind==='staff'){
+      const isPrimary=operator(payload.data.value.email);
+      const value=isPrimary?{...payload.data.value,role:'admin' as const,status:'active' as const}:payload.data.value;
+      const member=await saveStaffMember(value);
+      await recordAudit(user,'staff.update','staff',member.email,{role:member.role,status:member.status});
+      return json({member,staff:await staffMembers(),audit:await auditEvents()});
+    }
     if (payload.data.kind === "pricing") {
       const now = Date.now();
       const next = pricingSchema.parse({
@@ -78,12 +102,14 @@ export async function POST(request: Request) {
         managedBy: user.email,
       });
       await savePricing(next, user.userId);
+      await recordAudit(user,'pricing.update','settings','pricing',{version:next.version});
       return json({ pricing: next });
     }
     if (payload.data.kind === "policy") {
       const now = Date.now();
       const next = policySchema.parse({ ...payload.data.value, version: `policy-${now}`, updatedAt: now, managedBy: user.email });
       await savePolicy(next, user.userId);
+      await recordAudit(user,'policy.update','settings','policy',{version:next.version});
       return json({ policy: next });
     }
     const parsedAction = actionSchema.safeParse(payload.data.action);
@@ -115,6 +141,8 @@ export async function POST(request: Request) {
       throw new HttpError(400, (error as Error).message);
     }
     await persist(current.id, next, current.revision);
+    const orderId='id' in parsedAction.data?String(parsedAction.data.id):undefined;
+    await recordAudit(user,`order.${parsedAction.data.type}`,'order',orderId,{accountId:current.id});
     return json({
       account: { ...current, state: next, revision: current.revision + 1 },
     });

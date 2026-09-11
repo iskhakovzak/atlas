@@ -16,6 +16,33 @@ export async function policy():Promise<Policy>{const row=await database().prepar
 export async function savePolicy(next:Policy,userId:string){await database().prepare("INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES ('policy',?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at,updated_by=excluded.updated_by").bind(JSON.stringify(next),next.updatedAt,userId).run()}
 export async function operatorAccounts(){const rows=await database().prepare('SELECT user_id,name,state,revision,updated_at FROM market_accounts ORDER BY updated_at DESC LIMIT 200').all<{user_id:string;name:string;state:string;revision:number;updated_at:number}>();return rows.results.map(row=>({id:row.user_id,name:row.name,state:parseState(row.state),revision:row.revision,updatedAt:row.updated_at}))}
 export async function storedAccount(id:string){const row=await database().prepare('SELECT user_id,name,state,revision,updated_at FROM market_accounts WHERE user_id=?').bind(id).first<{user_id:string;name:string;state:string;revision:number;updated_at:number}>();if(!row)throw new HttpError(404,'Профиль покупателя не найден.');return {id:row.user_id,name:row.name,state:parseState(row.state),revision:row.revision,updatedAt:row.updated_at}}
+
+export type StaffRole='support'|'procurement'|'warehouse'|'finance'|'admin';
+export type StaffStatus='invited'|'active'|'disabled';
+export type StaffMember={id:string;email:string;displayName:string;role:StaffRole;status:StaffStatus;createdAt:number;updatedAt:number};
+export type AuditEvent={id:string;actorId:string;actorEmail:string;action:string;entityType:string;entityId?:string;details?:string;createdAt:number};
+
+export async function ensurePrimaryOperator(user:{userId:string;email:string;displayName:string}){
+ const now=Date.now();
+ await database().prepare("INSERT INTO market_staff_directory (id,email,display_name,role,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT(email) DO UPDATE SET display_name=excluded.display_name,role='admin',status='active',updated_at=excluded.updated_at").bind(user.userId,user.email.toLowerCase(),user.displayName,'admin','active',now,now).run();
+}
+export async function staffMembers():Promise<StaffMember[]>{
+ const rows=await database().prepare('SELECT id,email,display_name,role,status,created_at,updated_at FROM market_staff_directory ORDER BY CASE status WHEN \'active\' THEN 0 WHEN \'invited\' THEN 1 ELSE 2 END, updated_at DESC LIMIT 100').all<{id:string;email:string;display_name:string;role:StaffRole;status:StaffStatus;created_at:number;updated_at:number}>();
+ return rows.results.map(row=>({id:row.id,email:row.email,displayName:row.display_name,role:row.role,status:row.status,createdAt:row.created_at,updatedAt:row.updated_at}));
+}
+export async function saveStaffMember(value:{email:string;displayName:string;role:StaffRole;status:StaffStatus}){
+ const now=Date.now(),email=value.email.trim().toLowerCase(),id='staff:'+email;
+ await database().prepare('INSERT INTO market_staff_directory (id,email,display_name,role,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT(email) DO UPDATE SET display_name=excluded.display_name,role=excluded.role,status=excluded.status,updated_at=excluded.updated_at').bind(id,email,value.displayName.trim(),value.role,value.status,now,now).run();
+ return {id,email,displayName:value.displayName.trim(),role:value.role,status:value.status,createdAt:now,updatedAt:now} satisfies StaffMember;
+}
+export async function recordAudit(user:{userId:string;email:string},action:string,entityType:string,entityId?:string,details?:unknown){
+ const safeDetails=details===undefined?null:JSON.stringify(details).slice(0,4000);
+ await database().prepare('INSERT INTO market_audit_events (id,actor_id,actor_email,action,entity_type,entity_id,details,created_at) VALUES (?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),user.userId,user.email.toLowerCase(),action.slice(0,100),entityType.slice(0,80),entityId?.slice(0,320)??null,safeDetails,Date.now()).run();
+}
+export async function auditEvents():Promise<AuditEvent[]>{
+ const rows=await database().prepare('SELECT id,actor_id,actor_email,action,entity_type,entity_id,details,created_at FROM market_audit_events ORDER BY created_at DESC LIMIT 100').all<{id:string;actor_id:string;actor_email:string;action:string;entity_type:string;entity_id:string|null;details:string|null;created_at:number}>();
+ return rows.results.map(row=>({id:row.id,actorId:row.actor_id,actorEmail:row.actor_email,action:row.action,entityType:row.entity_type,entityId:row.entity_id??undefined,details:row.details??undefined,createdAt:row.created_at}));
+}
 export function failure(error:unknown){if(error instanceof HttpError)return json({error:error.message},error.status);return json({error:'Не удалось выполнить запрос. Попробуйте ещё раз.'},503)}
 
 export async function requestJson(request:Request,maxBytes=1100000):Promise<unknown>{

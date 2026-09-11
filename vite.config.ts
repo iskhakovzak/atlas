@@ -16,6 +16,9 @@ const managedLinux = readExecutionProfile() === "managed-linux";
 const localBindingConfig = {
   main: "vinext/server/fetch-handler",
   compatibility_flags: ["nodejs_compat"],
+  ...(process.env.ATLAS_OPERATOR_EMAIL
+    ? { vars: { ATLAS_OPERATOR_EMAIL: process.env.ATLAS_OPERATOR_EMAIL } }
+    : {}),
   d1_databases: d1
     ? [
         {
