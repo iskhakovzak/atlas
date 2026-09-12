@@ -100,6 +100,11 @@ Order statuses: Ожидает выкупа → Выкуплен → На зар
 - Draft and published snapshots are separate. Editing a draft never silently changes the home page; publish copies a reviewed snapshot, hide removes it from the public feed without deleting the draft, and stale/sold-out/incomplete drafts cannot be published.
 - Catalog state is stored as versioned JSON in the existing D1 `market_settings` table with optimistic revision checks and operator audit events. The public endpoint returns only current published snapshots and falls back to the bundled catalog if D1 is temporarily unavailable.
 
+## Customer-facing language cleanup — 12 September 2026
+
+- Customer screens no longer label the balance, declaration packages, order history, checkout or analytics with internal “demo/test” wording. They use product terms such as “Баланс Atlas”, “Пакет декларации”, “Оплата” and “Оборот”.
+- Required truth-in-commerce notices remain: preliminary quotes can change, customs makes the final decision, and payment/carrier integrations must be connected before real money or shipment events are claimed.
+
 ## Importing stores and product data
 
 POST /api/import is signed-in, same-origin and rate-limited to 12 imports per user/minute. Successful results are cached in D1 for 10 minutes and carry a source timestamp/expiry. lib/importer/stores.ts contains a static explicit allowlist of more than 100 store/brand domains. Importer validates HTTPS, port, credentials and every redirect to prevent SSRF. It uses public browser-like requests, no customer cookies, a 15-second timeout and 3 MB decoded HTML cap.

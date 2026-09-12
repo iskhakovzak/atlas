@@ -45,19 +45,19 @@ export function AnalyticsView() {
   }, [accounts]);
   if (ready && !user?.operator) return <Empty title="Доступ только администратору" description="Аналитика содержит сводные данные всех заказов." href="/account" label="Личный кабинет" />;
   return <>
-    <PageHeading overline="ПРЕДРЕЛИЗНЫЙ КОНТРОЛЬ" title="Бизнес в одном экране." description="Заказы, тестовые платежи, логистика и готовность продукта к пилоту."><Link className="btn secondary" href="/operations">Открыть очередь <ArrowRight size={16} /></Link></PageHeading>
+    <PageHeading overline="ОПЕРАЦИОННЫЙ КОНТРОЛЬ" title="Бизнес в одном экране." description="Заказы, платежи, логистика и готовность процессов."><Link className="btn secondary" href="/operations">Открыть очередь <ArrowRight size={16} /></Link></PageHeading>
     {loading ? <div className="surface loading-state">Собираем показатели…</div> : error ? <Empty title="Отчёт пока недоступен" description={error} href="/analytics" label="Повторить" /> : <>
       <section className="analytics-grid">
         <article><UsersRound /><span>Клиенты</span><strong>{report.customers}</strong><small>профилей в Atlas</small></article>
         <article><Package /><span>Заказы</span><strong>{report.orders.length}</strong><small>{report.active.length} сейчас в работе</small></article>
-        <article><WalletCards /><span>Тестовый оборот</span><strong>{money(report.gmv)}</strong><small>комиссия {money(report.service)}</small></article>
+        <article><WalletCards /><span>Оборот</span><strong>{money(report.gmv)}</strong><small>комиссия {money(report.service)}</small></article>
         <article><Truck /><span>Посылки</span><strong>{report.parcels}</strong><small>{report.messages} email/SMS подготовлено</small></article>
       </section>
       <section className="analytics-layout">
         <article className="surface status-report"><div className="section-heading"><h2>Воронка заказов</h2><span>{report.orders.length} всего</span></div>{statuses.map((status, index) => { const count = report.orders.filter((order) => !order.cancelled && order.status === index).length; const width = report.orders.length ? Math.max(4, count / report.orders.length * 100) : 0; return <div className="status-row" key={status}><span>{status}</span><div><i style={{ width: `${width}%` }} /></div><b>{count}</b></div>; })}</article>
-        <article className="surface attention-report"><CircleAlert size={25} /><h2>Требуют внимания</h2><strong>{report.attention}</strong><p>Неоплаченные тестовые заказы и неподтверждённые доплаты.</p><Link className="text-link" href="/operations">Перейти к обработке <ArrowRight size={15} /></Link></article>
+        <article className="surface attention-report"><CircleAlert size={25} /><h2>Требуют внимания</h2><strong>{report.attention}</strong><p>Неоплаченные заказы и неподтверждённые доплаты.</p><Link className="text-link" href="/operations">Перейти к обработке <ArrowRight size={15} /></Link></article>
       </section>
-      <section className="surface release-readiness"><div className="section-heading"><h2>Готовность к закрытому показу</h2><span className="status-badge">Предрелиз</span></div><div className="readiness-grid">
+      <section className="surface release-readiness"><div className="section-heading"><h2>Готовность к запуску</h2><span className="status-badge">Контроль</span></div><div className="readiness-grid">
         {["Адрес и получатель при оформлении", "Безопасная имитация платежа", "Посылки и трек-номера", "Назначения и внутренние заметки", "Email/SMS в режиме предпросмотра", "Импорт с ручной проверкой", "Черновики юридических документов", "Автоматический smoke-тест"].map((item) => <div key={item}><Check size={16} /><span>{item}</span></div>)}
       </div><div className="notice warning"><ShieldCheck size={19} /><span>Для реального запуска ещё потребуются договоры и ключи платёжного, логистического, email- и SMS-провайдеров, юридическая проверка и публичная политика доступа.</span></div></section>
     </>}
@@ -66,7 +66,7 @@ export function AnalyticsView() {
 
 export function LegalView() {
   return <>
-    <PageHeading overline="ДОКУМЕНТЫ ПРЕДРЕЛИЗА" title="Правила Atlas." description="Черновики для демонстрации клиентского пути. Перед коммерческим запуском их должен проверить юрист."><span className="status-badge">Редакция 10.09.2026</span></PageHeading>
+    <PageHeading overline="ДОКУМЕНТЫ ATLAS" title="Правила Atlas." description="Условия сервиса, оплаты, возвратов и обработки данных. Перед коммерческим запуском их должен проверить юрист."><span className="status-badge">Редакция 10.09.2026</span></PageHeading>
     <div className="legal-grid">
       <section className="surface"><FileText /><h2>Условия использования</h2><p>Atlas помогает оформить заказ на товар иностранного магазина и показывает отдельные составляющие предварительной стоимости. Наличие, финальная цена, возможность ввоза и сроки подтверждаются отдельно.</p><p>В предрелизе платежи, выкуп и доставка имитируются. Нажатие тестовых кнопок не создаёт денежных обязательств.</p></section>
       <section className="surface"><ShieldCheck /><h2>Конфиденциальность</h2><p>Профиль содержит данные входа, адрес получателя, телефон, историю заказов и выбранные каналы связи. Эти данные используются только для демонстрации работы заказа и не передаются внешним провайдерам.</p><p>Перед запуском необходимо утвердить сроки хранения, порядок экспорта, исправления и удаления данных.</p></section>
