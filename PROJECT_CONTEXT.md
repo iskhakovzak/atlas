@@ -7,8 +7,8 @@ Atlas is a functional pre-release cross-border shopping prototype for customers 
 It is not yet a commercial marketplace: no real payment, purchase, carrier booking, customs filing, money transfer or delivery takes place.
 
 Published URL: https://atlas-uz-market.ishakovzakir0.chatgpt.site  
-Handoff baseline: version 21 plus the current operational-database/admin release (publish result recorded after deployment).
-Validation baseline: lint, 37 tests, TypeScript, production build, authenticated API smoke with staff/audit coverage and the 126-check desktop/tablet/mobile browser audit all pass.
+Handoff baseline: the current operational database, importer and editorial-catalog release (publish result recorded after deployment).
+Validation baseline: lint, 47 tests, TypeScript, production build, authenticated API smoke with staff/audit/catalog coverage and the desktop/tablet/mobile browser audit all pass.
 
 ## Customer flow
 
@@ -44,7 +44,7 @@ Validation baseline: lint, 37 tests, TypeScript, production build, authenticated
 | /identity | Private passport upload, MRZ assistance and customer confirmation |
 | /declaration | Test declaration package from confirmed identity, address and orders |
 | /batch-import | Import up to ten product links into one cart party |
-| /admin | Operator-only managed limits, blocked categories and restricted-word rules |
+| /admin | Operator-only catalog publishing, collections, managed limits, blocked categories and restricted-word rules |
 
 ## Roles and authentication
 
@@ -91,6 +91,14 @@ Order statuses: Ожидает выкупа → Выкуплен → На зар
 - The link-order screen includes a searchable store directory, gallery switching and variant-specific price/photo updates. Unsupported or unconfirmed currencies never silently apply their source amount as USD.
 - Live local checks: Allbirds Wool Runner (7 size records, sold out at check), Kylie Matte Lip Kit (38 shades), ColourPop Bare Necessities (sold out at check), Steve Madden Possession Black (17 size records), Fashion Nova Met My Match jeans (9 sizes for the linked color). Observed availability/prices can change. Bombas has allowlist/adapter coverage but no successful live product check recorded in this release.
 - Validation: 43 automated tests, TypeScript, lint and production build passed; 136 browser checks include a real Steve Madden import, loaded gallery images, size selection and 390 px rendering. The new narrow-screen check exposed and fixed the imported form's minimum-width overflow.
+
+## Editorial catalog — 12 September 2026
+
+- `/admin` now has an operator-only catalog workspace. An operator can paste up to ten allowlisted product URLs, and Atlas imports the store, title, source price/currency, safe gallery, available variants, category and a conservative editable weight into reviewable drafts.
+- A collection/category page can be scanned for up to ten allowlisted product URLs before bulk import. The same redirect, timeout, response-size and URL restrictions as product import remain in force.
+- Collections have RU/UZ/EN names, visibility and order. Published products can belong to several collections; visible collections appear as focused filters on the home feed, including clothing, cosmetics, brand and seasonal selections.
+- Draft and published snapshots are separate. Editing a draft never silently changes the home page; publish copies a reviewed snapshot, hide removes it from the public feed without deleting the draft, and stale/sold-out/incomplete drafts cannot be published.
+- Catalog state is stored as versioned JSON in the existing D1 `market_settings` table with optimistic revision checks and operator audit events. The public endpoint returns only current published snapshots and falls back to the bundled catalog if D1 is temporarily unavailable.
 
 ## Importing stores and product data
 
@@ -168,7 +176,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Store parser quality varies; detailed Zara and selected Shopify adapters complement generic ProductGroup/JSON-LD extraction.
 - Store shipping is frequently destination/session-dependent; $10 is reserve only.
 - Operations supports one configured operator email. Team assignment and notes work, but independent staff identities and permission roles are not connected.
-- Catalog has dated real merchant listings, not live inventory. Automated refresh, commercial reuse rights and merchant agreements still require work.
+- Catalog publishing is now database-managed, but imports are still dated merchant observations rather than guaranteed live inventory. Scheduled refresh, commercial reuse rights and merchant agreements still require work.
 - No real payment, carrier API, email/SMS provider, automatic live FX feed, binding customs calculation, public registration or production ledger. Tracking is operator-entered.
 - RU/UZ/EN navigation and chosen communication language are available, but detailed transactional screens still need a complete translation pass.
 - Email/password or email-code sign-in, optional Google linking, phone verification, staff roles, audit log and backups require chosen providers and production secrets.

@@ -74,3 +74,21 @@ export async function fetchProduct(value: string) {
     return extractProduct(page.text, page.url.href);
   } finally {clearTimeout(timer);}
 }
+
+export async function fetchCollectionLinks(value:string){
+  const start=allowedUrl(value),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
+  try{
+    const page=await readPublic(start,controller.signal,'html');
+    if(/verify you are human|robot check|pardon our interruption/i.test(page.text.slice(0,60000)))throw Error('Магазин ограничил доступ к подборке. Вставьте ссылки на товары.');
+    const links=new Set<string>();
+    for(const match of page.text.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi)){
+      try{const candidate=allowedUrl(new URL(match[1].replace(/&amp;/g,'&'),page.url).href);
+        if(candidate.origin!==page.url.origin||!/(?:\/products\/[^/]+|\/p\/[^/]+|\/t\/[^/]+|\/itm\/\d+|\/dp\/[A-Z0-9]+|\.html)$/i.test(candidate.pathname))continue;
+        candidate.hash='';for(const key of [...candidate.searchParams.keys()])if(/^(utm_.+|_pos|_sid|_ss)$/i.test(key))candidate.searchParams.delete(key);
+        links.add(candidate.href);if(links.size===10)break;
+      }catch{}
+    }
+    if(!links.size)throw Error('Ссылки на товары не найдены. Вставьте прямые ссылки на карточки.');
+    return [...links];
+  }finally{clearTimeout(timer)}
+}

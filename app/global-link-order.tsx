@@ -11,7 +11,6 @@ import {
   validateSource,
   type Product,
 } from "@/lib/market/domain";
-import { visibleMerchantFinds } from "@/lib/market/catalog";
 import { supportedStoreRoots } from "@/lib/importer/stores";
 import { countries, currencies, toUsd, paddedWeight } from "@/lib/market/world";
 import {
@@ -33,9 +32,9 @@ const priors: Record<string, number> = {
   Другое: 1.5,
 };
 export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
-  const { ready, pricing, state } = useMarket();
+  const { ready, pricing, state,catalogProducts } = useMarket();
   const searchParams = useSearchParams();
-  const seed = visibleMerchantFinds().find(item => item.sourceUrl === searchParams.get("url"));
+  const seed = catalogProducts.find(item => item.sourceUrl === searchParams.get("url"));
   const [url, setUrl] = useState(() => searchParams.get("url") ?? ""),
     [source, setSource] = useState(seed?.sourceUrl ?? ""),
     [name, setName] = useState(seed?.name ?? ""),

@@ -139,26 +139,23 @@ try {
   await evaluate(
     "document.querySelector('button[aria-label=\"Закрыть карточку\"]')?.click()",
   );
-  await evaluate("document.querySelector('a[href=\"/cart\"]')?.click()");
-  await eventually("location.pathname === '/cart'", "cart navigation");
-  await evaluate("document.querySelector('a[href=\"/orders\"]')?.click()");
-  await eventually("location.pathname === '/orders'", "orders navigation");
-  await evaluate("document.querySelector('a[href=\"/notifications\"]')?.click()");
-  await eventually(
-    "location.pathname === '/notifications'",
-    "notifications navigation",
+  const privateLinksHidden = await evaluate(
+    "!document.querySelector('header a[href=\"/cart\"], header a[href=\"/orders\"], header a[href=\"/notifications\"]')",
   );
+  if (!privateLinksHidden) throw Error("Guest header exposed private navigation");
   await evaluate("document.querySelector('a[href=\"/legal\"]')?.click()");
   await eventually("location.pathname === '/legal'", "legal navigation");
+  await evaluate("document.querySelector('a.wordmark[href=\"/\"]')?.click()");
+  await eventually("location.pathname === '/'", "home navigation");
   await evaluate("document.querySelector('a[href=\"/order-by-link\"]')?.click()");
   await eventually(
-    "location.pathname === '/order-by-link' && document.body.textContent.includes('Загрузить товар')",
-    "order-by-link navigation",
+    "location.pathname === '/order-by-link' && document.body.textContent.includes('Войдите')",
+    "protected order-by-link navigation",
   );
   if (cdp.errors.length)
     throw Error(`Browser exceptions: ${cdp.errors.join(" | ")}`);
   process.stdout.write(
-    "UI smoke passed: catalog, product details, cart, orders, notifications, legal, order-by-link.\n",
+    "UI smoke passed: public catalog, product details, guest navigation gates, legal and protected link order.\n",
   );
 } finally {
   cdp?.close();

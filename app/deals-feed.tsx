@@ -5,7 +5,7 @@ import { ArrowRight, ArrowUpRight, Heart, Link2, Search, SlidersHorizontal, X } 
 import { toast } from 'sonner';
 import Link from '@/components/site-link';
 import { validateSource, type Product } from '@/lib/market/domain';
-import { visibleMerchantFinds, merchantRecord, findOrderUrl, catalogFreshness } from '@/lib/market/catalog';
+import { findOrderUrl, catalogFreshness } from '@/lib/market/catalog';
 import { defaultDealFilters, filterDeals, type DealFilters } from '@/lib/market/deals';
 import { dealCopy } from '@/lib/market/deal-copy';
 import { useMarket } from '@/lib/market/store';
@@ -13,25 +13,27 @@ import { signInPath } from '@/lib/market/access';
 import { Choice, Empty, ProductImage } from './market-ui';
 
 export function DealsFeed({ favorites, select }: { favorites: boolean; select: (product: Product) => void }) {
-  const { state, pricing, ready, status, act } = useMarket();
+  const { state, pricing, ready, status, act,catalogProducts,collections,catalogError } = useMarket();
+  const [collectionId,setCollectionId]=useState('');
   const [filters, setFilters] = useState<DealFilters>(defaultDealFilters);
   const [saving, setSaving] = useState<string | null>(null);
   const [url, setUrl] = useState('');
   const [urlError, setUrlError] = useState('');
   const locale = state.communication.language;
   const copy = dealCopy(locale);
-  const products = visibleMerchantFinds();
+  const products = catalogProducts;
+  const merchantRecord=(product:Product)=>products.find(p=>p.id===product.id);
   const fmt = (n: number, currency = 'UZS') => new Intl.NumberFormat(locale === 'ru' ? 'ru-RU' : locale === 'uz' ? 'uz-UZ' : 'en-US', { style: 'currency', currency, maximumFractionDigits: currency === 'UZS' ? 0 : 2 }).format(n);
-  const categories = [{ value: '', label: copy.all }, { value: 'Обувь', label: copy.footwear }, { value: 'Одежда', label: copy.clothing }, { value: 'Электроника', label: copy.electronics }];
-  const countries = [{ value: '', label: copy.allCountries }, { value: 'США', label: copy.us }];
+  const categories = [{ value: '', label: copy.all }, { value: 'Обувь', label: copy.footwear }, { value: 'Одежда', label: copy.clothing }, { value: 'Электроника', label: copy.electronics },{value:'Красота и уход',label:locale==='ru'?'Красота и уход':locale==='uz'?'Go‘zallik va parvarish':'Beauty & care'},...['Аксессуары','Дом и быт','Спорт','Другое'].filter(value=>products.some(p=>p.category===value)).map(value=>({value,label:value}))];
+  const countries = [{ value: '', label: copy.allCountries }, ...[...new Set(['США',...products.map(p=>p.country??'США')])].map(value=>({value,label:value==='США'?copy.us:value}))];
   const budgets = [{ value: 0, label: copy.anyBudget }, { value: 1000000, label: copy.budget1 }, { value: 1500000, label: copy.budget15 }, { value: 2000000, label: copy.budget2 }];
   const sorts: { value: DealFilters['sort']; label: string }[] = [{ value: 'discount', label: copy.discountSort }, { value: 'total-asc', label: copy.lowSort }, { value: 'total-desc', label: copy.highSort }];
   const titles: Record<string, string> = {};
-  const candidates = products.filter(product => !favorites || state.favorites.includes(product.id));
+  const candidates = products.filter(product => (!favorites || state.favorites.includes(product.id))&&(!collectionId||collections.find(c=>c.id===collectionId)?.productIds.includes(product.id)));
   // Match localised labels without changing the product snapshots used at checkout.
   const search = filters.search.trim().toLocaleLowerCase();
   const matching = candidates.filter(product => [product.name, titles[product.id], product.brand, product.category, product.country, categories.find(c => c.value === product.category)?.label, countries.find(c => c.value === product.country)?.label].join(' ').toLocaleLowerCase().includes(search));
-  const list = filterDeals(matching, pricing, { ...filters, search: '' });
+  const list = filterDeals(matching, pricing, { ...filters, search: '' },products);
   const hasFilters = !!(filters.search || filters.category || filters.country || filters.maxTotal);
 
   async function favorite(product: Product) {
@@ -44,6 +46,11 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
       <div><span className="eyebrow">{copy.overline}</span>{status==='guest'?<h2>{copy.catalog}</h2>:<h1>{favorites ? copy.savedTitle : copy.title}</h1>}<p>{favorites ? copy.savedIntro : copy.intro}</p></div>
       {ready&&<Link className="btn secondary" href={favorites ? '/' : '/favorites'}><Heart size={17}/>{favorites ? copy.catalog : copy.saved}<span className="finds-count">{favorites ? products.length : state.favorites.filter(id => products.some(product => product.id === id)).length}</span></Link>}
     </section>
+    {catalogError&&<p role="alert">{catalogError}</p>}
+    {!!collections.length&&<nav className="find-collections" aria-label={locale==='ru'?'Подборки':locale==='uz'?'To‘plamlar':'Collections'}>
+      <button type="button" className={!collectionId?'active':''} onClick={()=>setCollectionId('')}>{copy.all}</button>
+      {collections.map(collection=><button type="button" key={collection.id} className={collectionId===collection.id?'active':''} onClick={()=>setCollectionId(collection.id)}><b>{locale==='en'?collection.nameEn||collection.name:locale==='uz'?collection.nameUz||collection.name:collection.name}</b><span>{collection.productIds.length}</span></button>)}
+    </nav>}
     <section className="finds-controls" aria-label={copy.search}>
       <div className="finds-search"><Search size={21}/><input type="search" aria-label={copy.search} placeholder={copy.searchPlaceholder} value={filters.search} onChange={event => setFilters({ ...filters, search: event.target.value })}/>{filters.search && <button type="button" className="icon-btn" aria-label={copy.clear} onClick={() => setFilters({ ...filters, search: '' })}><X size={18}/></button>}</div>
       <div className="finds-categories">{categories.map(category => <button type="button" key={category.value} aria-pressed={filters.category === category.value} className={filters.category === category.value ? 'active' : ''} onClick={() => setFilters({ ...filters, category: category.value })}>{category.label}</button>)}</div>

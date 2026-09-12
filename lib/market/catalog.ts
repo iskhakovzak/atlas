@@ -2,7 +2,7 @@ import type { Product } from './domain.ts';
 
 // Editorial snapshots from the linked official US product pages, not an inventory feed.
 // Prices/options must be fetched and confirmed in the link-order flow before checkout.
-export type MerchantFind = Product & { store: string; observedOn: string; referenceUsd?: number };
+export type MerchantFind = Product & { store: string; observedOn: string; referenceUsd?: number; collectionIds?: string[] };
 const estimate = { country: 'США', sourceCurrency: 'USD', sourceShippingUsd: 10, sourceShipping: 10, sourceShippingCurrency: 'USD', sourceShippingEstimated: true, shippingKnown: false, weightOrigin: 'Оценка Atlas; уточняется перед оформлением', variants: ['Уточнить вариант в магазине'], sourceExpiresAt: Date.parse('2026-09-19T00:00:00Z') };
 export const merchantFinds: MerchantFind[] = [
   {

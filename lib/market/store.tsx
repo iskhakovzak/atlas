@@ -6,10 +6,14 @@ import {defaultPolicy,policySchema,type Policy} from './policy';
 import type {Action} from './actions';
 import type {Locale} from './i18n';
 import type {SessionStatus} from './access';
+import {visibleMerchantFinds,type MerchantFind} from './catalog';
+import type {CatalogCollection} from './catalog-editor';
 export type AccountUser={name:string;email:string;operator:boolean;createdAt:number};
-type Store={state:State;pricing:Pricing;policy:Policy;ready:boolean;status:SessionStatus;error:string|null;user:AccountUser|null;setLocale:(locale:Locale)=>void;act:(action:Action)=>Promise<boolean>;refresh:()=>Promise<void>};
+type Store={catalogProducts:MerchantFind[];collections:Array<CatalogCollection&{productIds:string[]}>;catalogError:string;state:State;pricing:Pricing;policy:Policy;ready:boolean;status:SessionStatus;error:string|null;user:AccountUser|null;setLocale:(locale:Locale)=>void;act:(action:Action)=>Promise<boolean>;refresh:()=>Promise<void>};
 const Context=createContext<Store|null>(null);
 export function MarketProvider({children}:{children:ReactNode}) {
+ const [catalogProducts,setCatalogProducts]=useState<MerchantFind[]>(()=>visibleMerchantFinds()),[collections,setCollections]=useState<Array<CatalogCollection&{productIds:string[]}>>([]),[catalogError,setCatalogError]=useState('');
+ useEffect(()=>{const controller=new AbortController();fetch('/api/catalog',{cache:'no-store',signal:controller.signal}).then(async response=>{if(!response.ok)throw Error('Не удалось загрузить витрину');const data=await response.json() as {products:MerchantFind[];collections:Array<CatalogCollection&{productIds:string[]}>};setCatalogProducts(data.products);setCollections(data.collections)}).catch(error=>{if(error.name!=='AbortError')setCatalogError('Не удалось загрузить витрину. Обновите страницу.')});return()=>controller.abort()},[]);
  const [state,setState]=useState<State>(blank),[pricing,setPricing]=useState<Pricing>(tariff),[policy,setPolicy]=useState<Policy>(defaultPolicy),[status,setStatus]=useState<SessionStatus>('loading'),[error,setError]=useState<string|null>(null),[user,setUser]=useState<AccountUser|null>(null);
  const revision=useRef(0),busy=useRef(false),generation=useRef(0),localeRef=useRef<Locale>('ru');
  const ready=status==='authenticated';
@@ -65,6 +69,6 @@ export function MarketProvider({children}:{children:ReactNode}) {
   localeRef.current=locale;setState(s=>({...s,communication:{...s.communication,language:locale}}));
   try{localStorage.setItem('atlas-language',locale)}catch{}
  },[ready,act,state.communication]);
- return <Context.Provider value={{state,pricing,policy,ready,status,error,user,setLocale,act,refresh}}>{children}</Context.Provider>;
+ return <Context.Provider value={{catalogProducts,collections,catalogError,state,pricing,policy,ready,status,error,user,setLocale,act,refresh}}>{children}</Context.Provider>;
 }
 export function useMarket(){const c=useContext(Context);if(!c)throw Error('MarketProvider missing');return c}

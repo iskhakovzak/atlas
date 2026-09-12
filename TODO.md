@@ -30,6 +30,9 @@
 
 ## Importing
 
+- [x] Add an operator bulk-link catalog workflow with editable drafts, safe collection-page discovery and explicit publish/hide actions.
+- [x] Add D1-managed RU/UZ/EN home collections so clothing, cosmetics, brands and seasonal selections do not require a code deployment.
+- [ ] Add a scheduled catalog-refresh queue and operator alerts for expired, changed-price or unavailable published products. Current refresh remains manual and publication is always reviewed.
 - [x] Add a public Shopify adapter and live-check Allbirds, Kylie Cosmetics, ColourPop and Steve Madden; extend ProductGroup matching for Fashion Nova.
 - [ ] Verify Bombas, Gymshark and Anker Ajax coverage with current product URLs; generic HTML remains fallback. Expand dedicated adapters for other major stores using actual page samples.
 - [ ] Add authorized eBay Browse API if reliable eBay sourcing is needed. No credential/adapter exists.
@@ -73,7 +76,8 @@
 
 - [x] Replace public demonstration products with five real merchant snapshots, official photos, dated source prices and direct source links; preserve legacy order snapshots.
 - [x] Add administrator source rechecks through the protected importer and automatically hide expired deal snapshots.
-- [ ] Turn successful catalog rechecks into a reviewed publishing workflow; current checks never silently overwrite the editorial price. Validate image reuse/merchant agreements before commercial distribution.
+- [x] Turn successful imports into a reviewed draft/publish workflow; draft edits never silently overwrite the published snapshot.
+- [ ] Validate product-image reuse, affiliate/merchant agreements and source-attribution requirements before commercial distribution.
 - [ ] Expand fresh verified merchants beyond Nike, Anker and Apple. UNIQLO listing prices were not fresh enough to include.
 - [x] Import exact-listing ProductGroup variants and prices for Nike, without switching to an unrelated default color.
 

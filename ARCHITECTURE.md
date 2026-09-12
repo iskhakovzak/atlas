@@ -14,7 +14,7 @@
 | Area | Files |
 | --- | --- |
 | Shell/navigation/catalog | app/marketplace.tsx, app/layout.tsx, app/globals.css |
-| Deals-first feed/favourites | app/deals-feed.tsx, app/finds.css, lib/market/deals.ts, lib/market/deal-copy.ts, lib/market/catalog.ts; dated merchant records, pricing and authenticated favourite action |
+| Deals-first feed/favourites | app/deals-feed.tsx, app/finds.css, lib/market/deals.ts, lib/market/deal-copy.ts, lib/market/catalog.ts; D1-published merchant records with bundled fallback, pricing and authenticated favourite action |
 | Shared Atlas visual system | app/atlas-design.css, loaded after base styles in app/layout.tsx; navy/blue/lime palette, responsive hero, cards, account, forms and order surfaces |
 | Link order | app/global-link-order.tsx |
 | Cart | app/shopping.tsx |
@@ -22,10 +22,10 @@
 | Analytics, legal/readiness | app/prelaunch-views.tsx |
 | Account/customs | app/account-views.tsx, app/customs/page.tsx |
 | Identity/declaration/address help | app/identity-workspace.tsx, app/api/passport, lib/market/addresses.ts |
-| Batch import/admin rules | app/batch-import.tsx, app/admin-view.tsx, lib/market/policy.ts |
+| Batch import/admin catalog/rules | app/batch-import.tsx, app/admin-view.tsx, app/catalog-admin.tsx, lib/market/catalog-editor.ts, lib/market/catalog-server.ts, lib/market/policy.ts |
 | Client provider | lib/market/store.tsx |
 | Auth/access | app/chatgpt-auth.ts, app/access-view.tsx, lib/market/access.ts |
-| API | app/api/account, app/api/actions, app/api/import, app/api/operations |
+| API | app/api/account, app/api/actions, app/api/import, app/api/catalog, app/api/operations |
 | Domain/security | lib/market/domain.ts, actions.ts, server.ts, world.ts |
 | Importing | lib/importer/stores.ts, fetch.ts, extract.ts, shopify.ts |
 | Database | db/schema.ts, drizzle/0000_overrated_justice.sql |
@@ -38,15 +38,19 @@ flowchart TD
   UI[React UI] --> Provider[MarketProvider]
   Provider --> Account[GET api account]
   UI --> Import[POST api import]
+  UI --> Catalog[GET or POST api catalog]
   UI --> Actions[POST api actions]
   Account --> Auth[ChatGPT headers]
   Import --> Auth
+  Catalog --> Auth
   Actions --> Auth
   Import --> Fetch[Allowlisted public fetch]
+  Catalog --> Fetch
   Fetch --> Parse[Generic ProductGroup or Zara extractor]
   Actions --> Domain[Typed domain action]
   Account --> D1[(D1)]
   Actions --> D1
+  Catalog --> D1
 ~~~
 
 MarketProvider loads account state and revision, then sends action plus expected revision. The server parses Zod action input, applies domain function and persists only when revision matches. Conflict returns current state rather than overwriting another tab.
@@ -65,7 +69,7 @@ market_accounts:
 
 market_rate_limits stores per-minute import counters and expiry.
 
-market_settings stores the current versioned pricing JSON and update identity. market_import_cache stores allowlisted extracted product payloads for ten minutes.
+market_settings stores the current versioned pricing JSON, policy JSON and editorial `catalog` JSON with update identity. Catalog writes use a separate document revision and compare-and-swap update; public reads expose only current published snapshots. market_import_cache stores allowlisted extracted product payloads for ten minutes.
 
 market_identity_documents stores owner, private R2 object key, safe file metadata, confirmation status and confirmed JSON. Passport bytes are stored in private BUCKET R2 and never exposed through a public URL.
 
@@ -81,6 +85,8 @@ State contains orders, ledger entries, cart, favourites, checkout idempotency ke
 | --- | --- |
 | GET /api/account | identity → user, state, revision |
 | POST /api/import | identity + same origin + URL → Extracted data, 12/min |
+| GET /api/catalog | public published catalog, or operator-only full draft document with `?admin=1` |
+| POST /api/catalog | operator identity + same origin + document revision → import/discover/edit/publish/hide/collection command + audit event |
 | POST /api/actions | identity + same origin + action/revision → next state |
 | GET /api/operations | operator identity → customer/support queues, pricing, policy, projection health, staff directory and audit events |
 | POST /api/operations | operator identity + validated payload → order/support action, customer access, projection rebuild, pricing, policy or staff-directory update + audit event |
