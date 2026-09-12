@@ -11,7 +11,7 @@ export const catalogDraftSchema=z.object({
   sourceUrl:text.url().max(3000),name:text.max(140),brand:text.max(100),category:z.enum(catalogCategories),
   image:text.max(3000),images:z.array(text.max(3000)).max(12),price:z.number().finite().nonnegative().optional(),currency:text.max(3),
   referencePrice:z.number().finite().positive().optional(),country:text.max(80),boxedWeight:z.number().finite().positive().max(49.5),
-  variants:z.array(z.object({label:text.max(140),available:z.boolean(),price:z.number().finite().nonnegative().optional(),image:text.max(3000).optional()})).max(250),
+  variants:z.array(z.object({id:text.max(120).optional(),label:text.max(140),size:text.max(100).optional(),color:text.max(100).optional(),available:z.boolean(),price:z.number().finite().nonnegative().optional(),image:text.max(3000).optional()})).max(250),
   collectionIds:z.array(text.max(80)).max(20),description:text.max(600),checkedAt:z.number().int().nonnegative(),
   warnings:z.array(text.max(500)).max(20),soldOut:z.boolean().optional(),
 });
@@ -38,7 +38,7 @@ export function initialCatalog():CatalogDocument{
 }
 export function importDraft(data:Extracted,collectionIds:string[],country:string,now=Date.now()):CatalogDraft{
   const priors:Record<string,number>={'Обувь':1.3,'Одежда':0.6,'Электроника':1,'Аксессуары':0.7,'Красота и уход':0.6,'Дом и быт':2,'Спорт':1};
-  return catalogDraftSchema.parse({sourceUrl:canonicalCatalogUrl(data.sourceUrl),name:data.title??'',brand:data.brand??new URL(data.sourceUrl).hostname,category:data.category??'Другое',image:data.image??'',images:data.images??(data.image?[data.image]:[]),price:data.price,currency:data.currency??'',country:data.country??country,boxedWeight:data.boxedWeight??priors[data.category??'']??1.5,variants:(data.variants??[]).map(v=>({label:v.label,available:v.available,price:v.price,image:v.image})),collectionIds,description:'',checkedAt:now,warnings:data.warnings,soldOut:Boolean(data.variants?.length&&!data.variants.some(v=>v.available))});
+  return catalogDraftSchema.parse({sourceUrl:canonicalCatalogUrl(data.sourceUrl),name:data.title??'',brand:data.brand??new URL(data.sourceUrl).hostname,category:data.category??'Другое',image:data.image??'',images:data.images??(data.image?[data.image]:[]),price:data.price,currency:data.currency??'',country:data.country??country,boxedWeight:data.boxedWeight??priors[data.category??'']??1.5,variants:(data.variants??[]).map(v=>({id:v.id,label:v.label,size:v.size,color:v.color,available:v.available,price:v.price,image:v.image})),collectionIds,description:'',checkedAt:now,warnings:data.warnings,soldOut:Boolean(data.variants?.length&&!data.variants.some(v=>v.available))});
 }
 export function catalogIssues(draft:CatalogDraft,now=Date.now(),rates=tariff.rates){
   const issues:string[]=[];

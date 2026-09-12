@@ -125,7 +125,7 @@ try {
   async function visit(path){await cdp.send("Page.navigate",{url:new URL(path,baseUrl).href},sessionId);await check("document.readyState==='complete' && !!document.querySelector('main')","loads "+path)}
   async function snapshot(name){await mkdir('outputs/ui-audit',{recursive:true});const shot=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},sessionId);await writeFile('outputs/ui-audit/'+name+'.png',Buffer.from(shot.data,'base64'))}
   async function auditPage(label){
-    const issues=await evaluate("(()=>{const issues=[];const ids=[...document.querySelectorAll('[id]')].map(el=>el.id);if(new Set(ids).size!==ids.length)issues.push('duplicate IDs');for(const el of document.querySelectorAll('button,a[href],input:not([type=hidden]):not([aria-hidden=true]),select,textarea')){const name=(el.getAttribute('aria-label')||el.textContent||el.getAttribute('placeholder')||'').trim();if(!name&&!el.labels?.length&&!(el instanceof HTMLInputElement&&el.type==='file'))issues.push('unnamed '+el.tagName)}for(const a of document.querySelectorAll('a[target=_blank]')){if(!a.rel.includes('noopener'))issues.push('unsafe blank link')}if(document.documentElement.scrollWidth>innerWidth+1){const wide=[...document.querySelectorAll('body *')].filter(el=>el.getBoundingClientRect().right>innerWidth+1).slice(0,4).map(el=>el.className||el.tagName);issues.push('horizontal overflow '+wide.join('|'))}return [...new Set(issues)]})()");
+    const issues=await evaluate("(()=>{const issues=[];const ids=[...document.querySelectorAll('[id]')].map(el=>el.id);if(new Set(ids).size!==ids.length)issues.push('duplicate IDs');for(const el of document.querySelectorAll('button,a[href],input:not([type=hidden]):not([aria-hidden=true]),select,textarea')){const name=(el.getAttribute('aria-label')||el.textContent||el.getAttribute('placeholder')||'').trim();if(!name&&!el.labels?.length&&!(el instanceof HTMLInputElement&&el.type==='file'))issues.push('unnamed '+el.tagName)}for(const a of document.querySelectorAll('a[target=_blank]')){if(!a.rel.includes('noopener'))issues.push('unsafe blank link')}if(Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)>innerWidth+1){const wide=[...document.querySelectorAll('body *')].filter(el=>el.getBoundingClientRect().right>innerWidth+1&&!el.closest('.import-gallery')).slice(0,4).map(el=>{const box=el.getBoundingClientRect();return `${el.tagName}.${typeof el.className==='string'?el.className:''}:${Math.round(box.left)}-${Math.round(box.right)}`});issues.push('horizontal overflow '+wide.join('|'))}return [...new Set(issues)]})()");
     if(issues.length)throw Error(label+': '+issues.join(', '));
     checks.push('interface semantics '+label);
   }
@@ -168,12 +168,9 @@ try {
     await check("document.querySelector('.quote-preview').textContent.includes('POSSESSION BLACK')",'real merchant title loaded');
     await evaluate("document.querySelectorAll('.import-gallery button')[1].click()");
     await check("document.querySelectorAll('.import-gallery button')[1].getAttribute('aria-pressed')==='true'",'gallery switches photo');
-    await evaluate("document.querySelector('[aria-label=\"Размер и цвет\"]').click()");
-    await check("document.querySelectorAll('[role=option]').length>0",'available merchant sizes shown');
-    await evaluate("document.querySelector('[role=option]').click()");
-    await check("document.querySelector('[aria-label=\"Размер и цвет\"]').textContent.includes('BLACK')",'size selection retained');
-    await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape'},sessionId);
-    await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape'},sessionId);
+    await check("document.querySelectorAll('.variant-options.sizes button:not(:disabled)').length>0",'available merchant sizes shown');
+    await evaluate("document.querySelector('.variant-options.sizes button:not(:disabled)').click()");
+    await check("document.querySelector('#variant').value.includes('BLACK')",'color and size selection retained');
     await cdp.send('Emulation.setDeviceMetricsOverride',{width:390,height:900,deviceScaleFactor:1,mobile:false},sessionId);
     await check('innerWidth===390','import viewport is 390 pixels');
     await evaluate("document.querySelector('.import-gallery').scrollIntoView({block:'center',behavior:'instant'})");

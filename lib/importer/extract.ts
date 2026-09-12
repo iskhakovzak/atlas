@@ -253,6 +253,40 @@ type ZaraColor = {
   xmedia?: ZaraMedia[];
 };
 
+function extractAnker(html: string, sourceUrl: string): Extracted | undefined {
+  const source = new URL(sourceUrl);
+  if (!/(^|\.)anker\.com$/i.test(source.hostname)) return;
+  const match = html.match(/<script\b[^>]*id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i);
+  if (!match) return;
+  try {
+    const root = JSON.parse(match[1]) as {props?:{pageProps?:{product?:Record<string, unknown>}}};
+    const product = root.props?.pageProps?.product;
+    const handle = clean(product?.handle);
+    if (!product || !handle || !source.pathname.toLowerCase().includes(`/products/${handle.toLowerCase()}`) || !Array.isArray(product.variants)) return;
+    const variants: ProductVariant[] = product.variants.slice(0, 250).map(raw => {
+      const value = raw as Record<string, unknown>, name = clean(value.name), parts = name.split(/\s*\|\s*/, 2);
+      const image = value.image as Record<string, unknown> | undefined;
+      return {
+        id: clean(value.id).match(/(\d+)$/)?.[1],
+        color: parts[0] || undefined,
+        size: parts[1] || undefined,
+        label: name || 'Стандартный',
+        available: value.availableForSale === true && value.currentlyNotInStock !== true && value.quantityAvailable !== 0,
+        price: number(value.price),
+        image: safeImage(image?.url, sourceUrl),
+      };
+    }).filter(variant => variant.label);
+    const selectedId = source.searchParams.get('variant');
+    const selected = selectedId ? variants.find(variant => variant.id === selectedId) : undefined;
+    const prices = [...new Set(variants.map(variant => variant.price).filter(value => value !== undefined))];
+    const images = [...new Set([selected?.image, ...[product.images].flat().map(value => safeImage((value as Record<string, unknown>)?.url ?? value, sourceUrl))].filter((value): value is string => Boolean(value)))].slice(0, 12);
+    const title = clean(product.title ?? product.name).slice(0, 140), brand = clean(product.vendor) || 'Anker';
+    const warnings = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.', 'Вес с упаковкой нужно проверить.'];
+    if (!selected && prices.length !== 1) warnings.push('Выберите вариант, чтобы получить его точную цену.');
+    return {title,brand,category:'Электроника',declarationDescription:declarationFor('Электроника',title,brand),image:selected?.image??images[0],images,price:selected?.price??(prices.length===1?prices[0]:undefined),currency:'USD',variants,warnings,sourceUrl,method:'Anker product data',country:'США'};
+  } catch { return; }
+}
+
 function extractZara(html: string, sourceUrl: string) {
   if (!/(^|\.)zara\.com$/i.test(new URL(sourceUrl).hostname)) return undefined;
   const config = assignedJson(html, "appConfig");
@@ -312,6 +346,8 @@ function extractZara(html: string, sourceUrl: string) {
 }
 
 export function extractProduct(html: string, sourceUrl: string): Extracted {
+  const anker = extractAnker(html, sourceUrl);
+  if (anker) return anker;
   const meta: Record<string, string> = {};
   for (const tag of html.match(/<meta\b[^>]*>/gi) ?? []) {
     const a: Record<string, string> = {};
@@ -357,11 +393,12 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
   };
   // ProductGroup pages (including Nike) may put all price data on size/color children.
   // Only use children for the exact linked listing, never a different recommended color.
-  const children = Array.isArray(group?.hasVariant) ? group.hasVariant.filter((child: Record<string, unknown>) => {
+  const allChildren = Array.isArray(group?.hasVariant) ? group.hasVariant.filter((child: Record<string, unknown>) => child && typeof child === 'object') : [];
+  const children = allChildren.filter((child: Record<string, unknown>) => {
     if (!child || typeof child !== 'object') return false;
     const childOffers = [child.offers].flat() as Record<string, unknown>[];
     return sameListing(child.url) || sameListing(child['@id']) || childOffers.some(item => sameListing(item?.url));
-  }) : [];
+  });
   const selectedVariantId = new URL(sourceUrl).searchParams.get('variant');
   const selectedChild = children.find((child: Record<string, unknown>) => [child.url, ...[child.offers].flat().map((o) => (o as Record<string, unknown>)?.url)].some(value => {
     try { return selectedVariantId && typeof value === 'string' && new URL(value, sourceUrl).searchParams.get('variant') === selectedVariantId; } catch { return false; }
@@ -428,7 +465,7 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
   const genericVariants: ProductVariant[] = genericLabel
     ? [{ label: genericLabel, available: !/OutOfStock|Discontinued|SoldOut/i.test(String(offer?.availability ?? '')), size: clean(p?.size) || undefined, color: clean(p?.color) || undefined }]
     : [];
-  const groupVariants: ProductVariant[] = children.map((child: Record<string, unknown>) => {
+  const groupVariants: ProductVariant[] = allChildren.map((child: Record<string, unknown>) => {
     const childOffer = [child.offers].flat()[0] as Record<string, unknown> | undefined;
     return {
       size: clean(child.size) || undefined,
@@ -439,7 +476,11 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
       image: safeImage(Array.isArray(child.image) ? child.image[0] : child.image, sourceUrl),
     };
   }).filter((item: ProductVariant) => item.label);
-  const variants = zara?.variants?.length ? zara.variants : groupVariants.length ? groupVariants : genericVariants;
+  const rawVariants = zara?.variants?.length ? zara.variants : groupVariants.length ? groupVariants : genericVariants;
+  const gymsharkColor = /(^|\.)gymshark\.com$/i.test(new URL(sourceUrl).hostname)
+    ? clean(html.match(/aria-current=["']true["'][^>]*aria-label=["'][^"']+\s+in\s+([^"']+)/i)?.[1])
+    : '';
+  const variants = gymsharkColor ? rawVariants.map(variant => variant.color ? variant : {...variant,color:gymsharkColor,label:[gymsharkColor,variant.size??variant.label].filter(Boolean).join(' · ')}) : rawVariants;
   const country = zara?.country ?? regionNames[String(loc).toUpperCase()];
   const warnings: string[] = [];
   if (groupVariants.length) warnings.push('Размеры получены со страницы магазина. Наличие и цена выбранного размера требуют подтверждения.');

@@ -90,7 +90,7 @@ Order statuses: Ожидает выкупа → Выкуплен → На зар
 - Generic ProductGroup matching now tolerates tracking and size-variant query parameters while retaining color and other product-defining parameters. Fashion Nova's redirected color listing now returns the correct color's sizes and price. Generic color/size is one combined variant; formatted decimal/thousands prices are parsed.
 - The link-order screen includes a searchable store directory, gallery switching and variant-specific price/photo updates. Unsupported or unconfirmed currencies never silently apply their source amount as USD.
 - Live local checks: Allbirds Wool Runner (7 size records, sold out at check), Kylie Matte Lip Kit (38 shades), ColourPop Bare Necessities (sold out at check), Steve Madden Possession Black (17 size records), Fashion Nova Met My Match jeans (9 sizes for the linked color). Observed availability/prices can change. Bombas has allowlist/adapter coverage but no successful live product check recorded in this release.
-- Validation: 43 automated tests, TypeScript, lint and production build passed; 136 browser checks include a real Steve Madden import, loaded gallery images, size selection and 390 px rendering. The new narrow-screen check exposed and fixed the imported form's minimum-width overflow.
+- Validation: 49 automated tests, TypeScript, lint and production build passed; 136 browser checks include a real Steve Madden import, loaded gallery images, color/size selection and 390 px rendering. The narrow-screen check also protects the hidden variant field from stretching the page.
 
 ## Editorial catalog — 12 September 2026
 
@@ -99,6 +99,13 @@ Order statuses: Ожидает выкупа → Выкуплен → На зар
 - Collections have RU/UZ/EN names, visibility and order. Published products can belong to several collections; visible collections appear as focused filters on the home feed, including clothing, cosmetics, brand and seasonal selections.
 - Draft and published snapshots are separate. Editing a draft never silently changes the home page; publish copies a reviewed snapshot, hide removes it from the public feed without deleting the draft, and stale/sold-out/incomplete drafts cannot be published.
 - Catalog state is stored as versioned JSON in the existing D1 `market_settings` table with optimistic revision checks and operator audit events. The public endpoint returns only current published snapshots and falls back to the bundled catalog if D1 is temporarily unavailable.
+
+## Unified option matrix — 12 September 2026
+
+- Catalog publishing, customer link import and batch import use the same protected `fetchProduct` pipeline. A catalog click opens link order and refreshes the source instead of trusting the editorial snapshot for price or stock.
+- Imported options retain available and unavailable combinations. Link order selects color first and then shows only that color's sizes, with combination-specific price, photo and stock state; unavailable choices stay visible but disabled.
+- ProductGroup extraction retains the complete parent variant matrix while deriving the displayed base price from the exact color/variant URL. A recommended color cannot silently change the quote.
+- A dedicated Anker `__NEXT_DATA__` adapter retains choice, pack size, price, availability and safe images. Gymshark JSON-LD sizes are enriched with the active page color. Both retain the generic safe fallback.
 
 ## Customer-facing language cleanup — 12 September 2026
 

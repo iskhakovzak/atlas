@@ -114,7 +114,7 @@ No payment processor, eBay API, carrier API, automatic FX API, email/SMS provide
 
 ## Security
 
-Importer expansion: `shopify.ts` builds only allowlisted locale-aware `/products/{handle}.js` and read-only `/cart.js` URLs. Both use the same anonymous request context; cart currency must be explicit before accepting monetary fields. JSON redirects must remain same-origin; all redirects still pass the store allowlist. Shared fetch retains a 15-second overall deadline, four-request redirect limit, 3 MB HTML / 1 MB JSON caps and bounded photo/variant arrays. Endpoint failures fall back to HTML without customer cookies. Optional gallery/variant metadata is transient importer output; submitted products still retain the selected photo and label, with no D1 migration.
+Importer expansion: `shopify.ts` builds only allowlisted locale-aware `/products/{handle}.js` and read-only `/cart.js` URLs. Both use the same anonymous request context; cart currency must be explicit before accepting monetary fields. `extract.ts` also performs bounded dedicated parsing for Zara, Anker embedded Next data and Gymshark active-color markup, with ProductGroup/JSON-LD fallback. JSON redirects must remain same-origin; all redirects still pass the store allowlist. Shared fetch retains a 15-second overall deadline, four-request redirect limit, 3 MB HTML / 1 MB JSON caps and bounded photo/variant arrays. Endpoint failures fall back to HTML without customer cookies. Catalog variants preserve optional id, color and size, while old stored drafts remain compatible. Submitted products retain the selected photo and combined variant label.
 
 - Identity only from request headers on server.
 - Same-origin write/import routes.

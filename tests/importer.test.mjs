@@ -30,7 +30,26 @@ test('ProductGroup matches color with tracking and size variant query, not anoth
   const page='https://www.fashionnova.com/products/jeans?color=blue&variant=2&utm_source=test';
   const child=(id,color,price)=>({'@type':'Product',size:String(id),color,offers:{url:`https://www.fashionnova.com/products/jeans?color=${color}&variant=${id}`,price,priceCurrency:'USD',availability:'https://schema.org/InStock'}});
   const p=extractProduct(`<script type="application/ld+json">${JSON.stringify({'@type':'ProductGroup',name:'Jeans',hasVariant:[child(1,'red',90),child(2,'blue',20),child(3,'blue',25)]})}</script>`,page);
-  assert.equal(p.price,20);assert.deepEqual(p.variants.map(v=>v.label),['blue · 2','blue · 3']);
+  assert.equal(p.price,20);assert.deepEqual(p.variants.map(v=>v.label),['red · 1','blue · 2','blue · 3']);
+});
+test('Gymshark turns the active colour and sizes into one option matrix',()=>{
+  const group={'@type':'ProductGroup',name:'Shorts',hasVariant:[
+    {'@type':'Product',size:'S',offers:{url:'https://www.gymshark.com/products/shorts',price:32,priceCurrency:'USD',availability:'https://schema.org/InStock'}},
+    {'@type':'Product',size:'M',offers:{url:'https://www.gymshark.com/products/shorts',price:34,priceCurrency:'USD',availability:'https://schema.org/OutOfStock'}},
+  ]};
+  const html=`<a aria-current="true" aria-label="Shorts in Smokey Grey"></a><script type="application/ld+json">${JSON.stringify(group)}</script>`;
+  const p=extractProduct(html,'https://www.gymshark.com/products/shorts');
+  assert.deepEqual(p.variants.map(v=>[v.color,v.size,v.price,v.available]),[['Smokey Grey','S',32,true],['Smokey Grey','M',34,false]]);
+});
+test('Anker embedded product data retains choice, price, photo and stock',()=>{
+  const product={handle:'charger',title:'Nano Charger',vendor:'Anker',images:[{url:'https://cdn.shopify.com/main.jpg'}],variants:[
+    {id:'gid://shopify/ProductVariant/11',name:'White | 1-Pack',price:29.99,availableForSale:true,quantityAvailable:3,image:{url:'https://cdn.shopify.com/white.jpg'}},
+    {id:'gid://shopify/ProductVariant/12',name:'Black | 2-Pack',price:49.99,availableForSale:false,quantityAvailable:0,image:{url:'https://cdn.shopify.com/black.jpg'}},
+  ]};
+  const html=`<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({props:{pageProps:{product}}})}</script>`;
+  const p=extractProduct(html,'https://www.anker.com/products/charger?variant=11');
+  assert.equal(p.method,'Anker product data');assert.equal(p.price,29.99);assert.equal(p.image,'https://cdn.shopify.com/white.jpg');
+  assert.deepEqual(p.variants.map(v=>[v.id,v.color,v.size,v.available]),[['11','White','1-Pack',true],['12','Black','2-Pack',false]]);
 });
 test('generic importer deduplicates images and treats size and color as one variant',()=>{
   const p=extractProduct(`<script type="application/ld+json">${JSON.stringify({'@type':'Product',name:'Shoes',color:'Black',size:'42',image:['/a.jpg','/a.jpg','/b.jpg'],offers:{price:'1,299.95',priceCurrency:'USD'}})}</script>`,'https://nike.com/product');

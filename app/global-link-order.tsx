@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowRight, Link2, Loader2, Scale } from "lucide-react";
 import { toast } from "sonner";
@@ -51,6 +51,8 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
     [category, setCategory] = useState(seed?.category ?? "Другое"),
     [variant, setVariant] = useState(""),
     [variants, setVariants] = useState<ProductVariant[]>([]),
+    [selectedColor, setSelectedColor] = useState(""),
+    [selectedSize, setSelectedSize] = useState(""),
     [image, setImage] = useState(seed?.image ?? ""),
     [images, setImages] = useState<string[]>([]),
     [storeSearch, setStoreSearch] = useState(""),
@@ -65,6 +67,15 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
       currency: string;
       destination?: string;
     } | null>(null);
+  const variantColors = useMemo(() => [...new Set(variants.map(item => item.color).filter((value): value is string => Boolean(value)))], [variants]);
+  const variantsForColor = useMemo(() => selectedColor ? variants.filter(item => item.color === selectedColor) : variantColors.length ? [] : variants, [variants,selectedColor,variantColors]);
+  const variantSizes = useMemo(() => [...new Set(variantsForColor.map(item => item.size).filter((value): value is string => Boolean(value)))], [variantsForColor]);
+  function applyVariantChoice(item:ProductVariant|undefined,knownCurrency=true){
+    if(!item||!item.available){setVariant("");setSelectedSize("");setVerified(false);return}
+    setVariant(item.label);setSelectedColor(item.color??"");setSelectedSize(item.size??"");
+    if(item.price!==undefined&&knownCurrency)setAmount(String(item.price));else if(variants.some(value=>value.price!==undefined))setAmount("");
+    if(item.image)setImage(item.image);setVerified(false);
+  }
   async function load() {
     let link: string;
     try {
@@ -90,6 +101,8 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
     setWeight("");
     setVariant("");
     setVariants([]);
+    setSelectedColor("");
+    setSelectedSize("");
     setNote("");
     setFoundShipping(null);
     try {
@@ -121,17 +134,22 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
       );
       const knownCurrency = currencies.includes(data.currency ?? "");
       if (data.price !== undefined && knownCurrency) setAmount(String(data.price));
-      const availableVariants = (data.variants ?? []).filter(
-        (v) => v.available,
-      );
-      setVariants(knownCurrency ? availableVariants : availableVariants.map(item => ({...item, price: undefined})));
+      const importedVariants = data.variants ?? [];
+      const safeVariants = knownCurrency ? importedVariants : importedVariants.map(item => ({...item, price: undefined}));
+      const availableVariants = safeVariants.filter(v => v.available);
+      setVariants(safeVariants);
       const selectedId = new URL(data.sourceUrl).searchParams.get('variant');
       const selectedVariant = availableVariants.find(item => item.id && item.id === selectedId)
         ?? (availableVariants.length === 1 ? availableVariants[0] : undefined);
       if (selectedVariant) {
         setVariant(selectedVariant.label);
+        setSelectedColor(selectedVariant.color??"");
+        setSelectedSize(selectedVariant.size??"");
         if (selectedVariant.price !== undefined && knownCurrency) setAmount(String(selectedVariant.price));
         if (selectedVariant.image) setImage(selectedVariant.image);
+      } else {
+        const colors=[...new Set(availableVariants.map(item=>item.color).filter((value):value is string=>Boolean(value)))];
+        if(colors.length===1)setSelectedColor(colors[0]);
       }
       if (data.country) setCountry(data.country);
       setWeight(String(data.boxedWeight ?? priors[nextCategory]));
@@ -520,27 +538,14 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
                   </small>
                 </div>
               </div></details>
-              <div className="field">
-                <label htmlFor="variant">Размер, цвет или модель</label>
-                {variants.length ? (
-                  <Choice
-                    label="Размер и цвет"
-                    value={variant}
-                    onChange={(v) => {
-                      setVariant(v);
-                      const selectedVariant = variants.find(
-                        (item) => item.label === v,
-                      );
-                      if (selectedVariant?.price !== undefined)
-                        setAmount(String(selectedVariant.price));
-                      else setAmount("");
-                      if (selectedVariant?.image)
-                        setImage(selectedVariant.image);
-                      setVerified(false);
-                    }}
-                    options={variants.map((item) => item.label)}
-                  />
-                ) : (
+              <div className="field variant-matrix">
+                <label htmlFor="variant">Вариант товара</label>
+                {variants.length && (variantColors.length||variantSizes.length) ? <>
+                  {variantColors.length>0&&<div className="variant-step"><div><b>Цвет</b><span>{selectedColor||'Выберите цвет'}</span></div><div className="variant-options">{variantColors.map(color=>{const choices=variants.filter(item=>item.color===color),available=choices.some(item=>item.available);return <button type="button" key={color} disabled={!available} aria-pressed={selectedColor===color} onClick={()=>{setSelectedColor(color);setSelectedSize('');const purchasable=choices.filter(item=>item.available);if(!purchasable.some(item=>item.size)&&purchasable[0])applyVariantChoice(purchasable[0]);else{setVariant('');setVerified(false)}}}>{color}{!available&&<small>Нет</small>}</button>})}</div></div>}
+                  {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>Размер</b><span>{selectedSize||'Выберите размер'}</span></div><div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices.find(item=>item.available),price=choice?.price;return <button type="button" key={size} disabled={!choice} aria-pressed={selectedSize===size} onClick={()=>applyVariantChoice(choice)}><span>{size}</span>{choice&&price!==undefined&&<small>{price} {currency}</small>}{!choice&&<small>Нет</small>}</button>})}</div></div>}
+                  {!variantColors.length&&!variantSizes.length&&<Choice label="Вариант" value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.filter(item=>item.available).map(item=>item.label)}/>}
+                  <input id="variant" value={variant} readOnly required className="sr-only" aria-label="Выбранный вариант"/>
+                </> : variants.length ? <Choice label="Вариант" value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.filter(item=>item.available).map(item=>item.label)}/> : (
                   <input
                     id="variant"
                     required

@@ -53,6 +53,6 @@ test('ProductGroup selects linked color and retains size prices and availability
   const html='<script type="application/ld+json">'+JSON.stringify({'@type':'ProductGroup',name:'Other default',brand:{name:'Nike'},hasVariant:[child('RED','8',10,'InStock'),child('BLUE','8',70,'InStock'),child('BLUE','9',75,'OutOfStock')]})+'</script>';
   const result=extractProduct(html,url);
   assert.equal(result.price,70); assert.equal(result.title,'Shoe BLUE'); assert.equal(result.brand,'Nike');
-  assert.deepEqual(result.variants.map(v=>[v.label,v.price,v.available]),[['BLUE · 8',70,true],['BLUE · 9',75,false]]);
+  assert.deepEqual(result.variants.map(v=>[v.label,v.price,v.available]),[['RED · 8',10,true],['BLUE · 8',70,true],['BLUE · 9',75,false]]);
   assert.equal(extractProduct(html,'https://www.nike.com/t/shoe/GREEN').price,undefined);
 });

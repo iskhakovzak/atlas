@@ -34,12 +34,12 @@
 - [x] Add D1-managed RU/UZ/EN home collections so clothing, cosmetics, brands and seasonal selections do not require a code deployment.
 - [ ] Add a scheduled catalog-refresh queue and operator alerts for expired, changed-price or unavailable published products. Current refresh remains manual and publication is always reviewed.
 - [x] Add a public Shopify adapter and live-check Allbirds, Kylie Cosmetics, ColourPop and Steve Madden; extend ProductGroup matching for Fashion Nova.
-- [ ] Verify Bombas, Gymshark and Anker Ajax coverage with current product URLs; generic HTML remains fallback. Expand dedicated adapters for other major stores using actual page samples.
+- [ ] Verify Bombas with a current product URL. Gymshark active-color/size parsing and Anker embedded-product parsing have live checks; expand dedicated adapters for other major stores using actual page samples.
 - [ ] Add authorized eBay Browse API if reliable eBay sourcing is needed. No credential/adapter exists.
 - [x] Add caching, source timestamp and expiry for imports.
-- [ ] Improve option matrix: colour → valid size → price → stock; current UI uses a flat variant list.
+- [x] Add a color → valid size → combination price/photo/stock matrix to link order while keeping a flat fallback for nonstandard product options.
 - [x] Add up to 12 safe imported photos and variant photo/price switching to link order. Persisted orders retain the selected image.
-- [ ] Add gallery support to batch confirmation and persist full galleries if required; implement separate color → size controls instead of the compatible flat variant selector.
+- [ ] Add interactive per-item matrix confirmation and gallery support to batch import; it currently chooses the first available combined variant before cart review.
 - [ ] Test the allowlist against live pages regularly. Store HTML and bot behavior change.
 
 ## Order flow
