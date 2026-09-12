@@ -10,7 +10,7 @@ const html=`<script type="application/ld+json">{"@context":"https://schema.org",
 const p=extractProduct(html,'https://www.ebay.es/itm/123');assert.equal(p.title,'Zapatos & cosas');assert.equal(p.price,99.95);assert.equal(p.currency,'EUR');assert.equal(p.shipping,4.5);assert.equal(p.shippingDestination,'ES');assert.equal(p.boxedWeight,1.5);assert.equal(p.weightKind,'shipping');assert.equal(p.country,undefined);
 });
 test('supports a broad store list and prepares a conservative declaration draft',()=>{
-assert(supportedStoreCount>=100);assert.equal(allowedUrl('https://www.on.com/en-us/products/cloud-6').hostname,'www.on.com');assert.equal(allowedUrl('https://www.zara.com/us/en/product-p000.html').hostname,'www.zara.com');assert.throws(()=>allowedUrl('https://on.com.evil.example/product'));
+assert(supportedStoreCount>=145);assert.equal(allowedUrl('https://www.on.com/en-us/products/cloud-6').hostname,'www.on.com');assert.equal(allowedUrl('https://www.zara.com/us/en/product-p000.html').hostname,'www.zara.com');assert.equal(allowedUrl('https://rarebeauty.com/products/blush').hostname,'rarebeauty.com');assert.equal(allowedUrl('https://kith.com/products/shoe').hostname,'kith.com');assert.throws(()=>allowedUrl('https://on.com.evil.example/product'));
 assert.equal(inferProductCategory('Cloud 6 running shoes','On'),'Обувь');assert.match(declarationFor('Обувь','Cloud 6 running shoes','On'),/Обувь для личного пользования/);
 });
 test('Zara embedded product data provides selected price, photo, country, colors and sizes',()=>{

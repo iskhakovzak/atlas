@@ -13,7 +13,7 @@ const product = {handle:'shoe',title:'Wool shoes',vendor:'Allbirds',images:['//c
 test('Shopify retains variant price, size, color, availability and safe gallery',()=>{
   const p=extractShopify(product,{currency:'USD'},url+'?variant=1');
   assert.equal(p.price,110);assert.equal(p.currency,'USD');assert.equal(p.image,'https://cdn.shopify.com/black.jpg');
-  assert.equal(p.variants[0].size,'8');assert.equal(p.variants[0].color,'Black');assert.equal(p.variants[1].available,false);
+  assert.equal(p.variants[0].size,'8');assert.equal(p.variants[0].sizeLabel,'Size');assert.equal(p.variants[0].color,'Black');assert.equal(p.variants[1].available,false);
   assert(!p.images.some(x=>x.includes('127.0.0.1')));assert.equal(p.shipping,undefined);
   assert.equal(extractShopify(product,{currency:'USD'},url).price,undefined);
   assert.throws(()=>extractShopify(product,{},url));
@@ -23,8 +23,28 @@ test('Shopify endpoints preserve locale but reject unapproved hosts and nonprodu
   const e=shopifyEndpoints(new URL('https://kyliecosmetics.com/en-gb/collections/lips/products/lip-kit?variant=1'));
   assert.equal(e.product.href,'https://kyliecosmetics.com/en-gb/products/lip-kit.js');
   assert.equal(e.currency.pathname,'/en-gb/cart.js');
+  const satechi=shopifyEndpoints(new URL('https://satechi.net/products/usb-c-hub'));
+  assert.equal(satechi.product.href,'https://satechi.com/products/usb-c-hub.js');
+  const kith=shopifyEndpoints(new URL('https://kith.com/products/aaji2663'));
+  assert.equal(kith.product.href,'https://kith.com/products/aaji2663.js?country=US');
+  assert.equal(kith.currency.href,'https://kith.com/cart.js?country=US');
   assert.equal(shopifyEndpoints(new URL('https://evil.allbirds.com/products/shoe')),undefined);
   assert.throws(()=>allowedUrl('https://allbirds.com.evil.example/products/shoe'));
+});
+test('Shopify store profiles classify ambiguous beauty and sneaker names',()=>{
+  const basic={handle:'item',title:'The Full Kit',vendor:'Rhode',images:[],options:['Title'],variants:[{id:1,title:'Default Title',option1:'Default Title',price:11700,available:true}]};
+  assert.equal(extractShopify(basic,{currency:'USD'},'https://rhodeskin.com/products/item').category,'Красота и уход');
+  assert.equal(extractShopify({...basic,title:'Norvan LD 4',vendor:"Arc'teryx"},{currency:'USD'},'https://cncpts.com/products/item').category,'Обувь');
+});
+test('Shopify combines every non-colour option into the second choice axis',()=>{
+  const tech={handle:'case',title:'Phone Case',vendor:'Spigen',images:['//cdn.shopify.com/case.jpg'],options:[{name:'Device'},{name:'Color'},{name:'Finish'}],variants:[
+    {id:1,title:'iPhone 17 / Black / Matte',option1:'iPhone 17',option2:'Black',option3:'Matte',price:2999,available:true},
+    {id:2,title:'iPhone 17 Pro / Black / Clear',option1:'iPhone 17 Pro',option2:'Black',option3:'Clear',price:3499,available:false},
+  ]};
+  const p=extractShopify(tech,{currency:'USD'},'https://spigen.com/products/case');
+  assert.deepEqual(p.variants.map(v=>[v.color,v.size,v.sizeLabel,v.price,v.available]),[
+    ['Black','iPhone 17 / Matte','Device / Finish',29.99,true],['Black','iPhone 17 Pro / Clear','Device / Finish',34.99,false],
+  ]);
 });
 test('ProductGroup matches color with tracking and size variant query, not another color',()=>{
   const page='https://www.fashionnova.com/products/jeans?color=blue&variant=2&utm_source=test';

@@ -34,6 +34,7 @@
 - [x] Add D1-managed RU/UZ/EN home collections so clothing, cosmetics, brands and seasonal selections do not require a code deployment.
 - [ ] Add a scheduled catalog-refresh queue and operator alerts for expired, changed-price or unavailable published products. Current refresh remains manual and publication is always reviewed.
 - [x] Add a public Shopify adapter and live-check Allbirds, Kylie Cosmetics, ColourPop and Steve Madden; extend ProductGroup matching for Fashion Nova.
+- [x] Expand rich Shopify import to 20 explicit storefront roots across clothing, beauty, sneakers and electronics; live-check Alo Yoga, Rhode, Rare Beauty, Summer Fridays, Kith, CNCPTS, Satechi and Spigen.
 - [ ] Verify Bombas with a current product URL. Gymshark active-color/size parsing and Anker embedded-product parsing have live checks; expand dedicated adapters for other major stores using actual page samples.
 - [ ] Add authorized eBay Browse API if reliable eBay sourcing is needed. No credential/adapter exists.
 - [x] Add caching, source timestamp and expiry for imports.

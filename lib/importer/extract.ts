@@ -1,6 +1,7 @@
 export type ProductVariant = {
   id?: string;
   size?: string;
+  sizeLabel?: string;
   color?: string;
   label: string;
   available: boolean;
@@ -153,13 +154,13 @@ export function inferProductCategory(
   )
     return "Обувь";
   if (
-    /phone|headphone|laptop|tablet|camera|console|monitor|телефон|наушник|ноутбук|планшет|камера|приставк/.test(
+    /phone|headphone|earbuds|laptop|tablet|camera|console|monitor|charger|adapter|power bank|keyboard|mouse|cable|hub|телефон|наушник|ноутбук|планшет|камера|приставк|заряд|адаптер|клавиатур|мышь/.test(
       text,
     )
   )
     return "Электроника";
   if (
-    /lipstick|serum|cream|perfume|makeup|skincare|крем|сыворот|духи|помад|космет/.test(
+    /beauty|lipstick|lip gloss|lip oil|lip balm|blush|concealer|foundation|mascara|serum|cream|cleanser|moisturizer|perfume|makeup|skincare|крем|сыворот|духи|помад|космет|румян|тушь|бальзам/.test(
       text,
     )
   )
@@ -183,7 +184,7 @@ export function inferProductCategory(
   )
     return "Дом и быт";
   if (
-    /shirt|dress|jacket|coat|jeans|pants|hoodie|t-shirt|skirt|футбол|куртк|пальто|джинс|брюк|плать|юбк|vestido/.test(
+    /shirt|dress|jacket|coat|jeans|pants|hoodie|t-shirt|skirt|legging|bra|bralette|underwear|shorts|футбол|куртк|пальто|джинс|брюк|плать|юбк|легинс|белье|vestido/.test(
       text,
     )
   )

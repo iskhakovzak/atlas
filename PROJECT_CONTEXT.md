@@ -185,7 +185,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 
 ## Partial or missing
 
-- Store parser quality varies; detailed Zara and selected Shopify adapters complement generic ProductGroup/JSON-LD extraction.
+- Store parser quality varies; detailed Zara and 20 explicitly verified Shopify storefront adapters complement generic ProductGroup/JSON-LD extraction.
 - Store shipping is frequently destination/session-dependent; $10 is reserve only.
 - Operations supports one configured operator email. Team assignment and notes work, but independent staff identities and permission roles are not connected.
 - Catalog publishing is now database-managed, but imports are still dated merchant observations rather than guaranteed live inventory. Scheduled refresh, commercial reuse rights and merchant agreements still require work.
@@ -204,6 +204,16 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - D1 holds one JSON State per user; do not replace it without a data migration.
 - Do not describe the prototype as commercially live.
 - Passport bytes belong in private R2 paths; D1 stores owner-scoped metadata and account state stores only confirmed fields plus a masked number.
+
+## Store and variant expansion — 12 September 2026
+
+- The importer allowlist now contains 147 store roots. Twenty Shopify storefront roots use anonymous public product/cart endpoints for richer price, currency, gallery, availability and option data.
+- New rich roots cover clothing (Alo Yoga), beauty (Rare Beauty, Rhode, Glossier, Summer Fridays, Fenty Beauty), sneakers (Kith, CNCPTS, Sneakersnstuff) and electronics/accessories (Satechi and Spigen). Both Satechi domains resolve to its canonical public storefront endpoint.
+- Kith public requests pin the US storefront country so product cents and cart currency are consistently USD instead of an IP-localized unsupported currency. The importer still validates every redirect and never sends customer cookies or credentials.
+- Each rich storefront has an explicit category profile. Ambiguous names such as “the rhode kit” and model-only sneaker titles no longer fall into an unrelated category.
+- Shopify options now preserve one colour/shade axis plus a combined second axis such as `Size`, `Device / Finish` or another store-provided option label. Price, image and stock remain attached to the exact combination, and old variants without the optional label remain compatible.
+- Live product checks succeeded for representative Alo Yoga, Rhode, Rare Beauty, Summer Fridays, Kith, CNCPTS, Satechi and Spigen pages. A successful import remains editable assistance, not a stock, shipping or customs guarantee.
+- Verification for this expansion: lint, 51 domain/security tests, TypeScript and the production build passed.
 
 ## Pricing, approvals, warehouse and catalog release — 12 September 2026
 

@@ -12,6 +12,7 @@ import {
   type Product,
 } from "@/lib/market/domain";
 import { supportedStoreRoots } from "@/lib/importer/stores";
+import { shopifyStoreRoots } from "@/lib/importer/shopify";
 import { countries, currencies, toUsd, paddedWeight } from "@/lib/market/world";
 import {
   safeImage,
@@ -70,6 +71,7 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
   const variantColors = useMemo(() => [...new Set(variants.map(item => item.color).filter((value): value is string => Boolean(value)))], [variants]);
   const variantsForColor = useMemo(() => selectedColor ? variants.filter(item => item.color === selectedColor) : variantColors.length ? [] : variants, [variants,selectedColor,variantColors]);
   const variantSizes = useMemo(() => [...new Set(variantsForColor.map(item => item.size).filter((value): value is string => Boolean(value)))], [variantsForColor]);
+  const variantSizeLabel = useMemo(() => [...new Set(variantsForColor.map(item => item.sizeLabel).filter((value): value is string => Boolean(value)))].join(' / ') || 'Размер / модель', [variantsForColor]);
   function applyVariantChoice(item:ProductVariant|undefined,knownCurrency=true){
     if(!item||!item.available){setVariant("");setSelectedSize("");setVerified(false);return}
     setVariant(item.label);setSelectedColor(item.color??"");setSelectedSize(item.size??"");
@@ -288,10 +290,10 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
           </form>
           <details className="import-store-directory">
             <summary>Магазины для заказа по ссылке · {supportedStoreRoots.length}</summary>
-            <p className="micro">Новые: Allbirds, Kylie Cosmetics, ColourPop, Steve Madden, Fashion Nova и Bombas. Доступность автозагрузки зависит от страницы и региона магазина.</p>
+            <p className="micro">Расширенные варианты: одежда, косметика, кроссовки и техника. Метка «цвета и размеры» означает, что магазин отдаёт Atlas цену, фото и наличие каждой комбинации.</p>
             <input type="search" aria-label="Поиск магазина" placeholder="Найти магазин" value={storeSearch} onChange={event => setStoreSearch(event.target.value)} />
             <div className="import-store-links">
-              {supportedStoreRoots.filter(host => host.includes(storeSearch.trim().toLowerCase())).map(host => <a key={host} href={`https://${host}`} target="_blank" rel="noopener noreferrer">{host}</a>)}
+              {supportedStoreRoots.filter(host => host.includes(storeSearch.trim().toLowerCase())).map(host => <a key={host} href={`https://${host}`} target="_blank" rel="noopener noreferrer">{host}{shopifyStoreRoots.includes(host as typeof shopifyStoreRoots[number])&&<small>цвета и размеры</small>}</a>)}
             </div>
           </details>
           {!ready && (
@@ -542,7 +544,7 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
                 <label htmlFor="variant">Вариант товара</label>
                 {variants.length && (variantColors.length||variantSizes.length) ? <>
                   {variantColors.length>0&&<div className="variant-step"><div><b>Цвет</b><span>{selectedColor||'Выберите цвет'}</span></div><div className="variant-options">{variantColors.map(color=>{const choices=variants.filter(item=>item.color===color),available=choices.some(item=>item.available);return <button type="button" key={color} disabled={!available} aria-pressed={selectedColor===color} onClick={()=>{setSelectedColor(color);setSelectedSize('');const purchasable=choices.filter(item=>item.available);if(!purchasable.some(item=>item.size)&&purchasable[0])applyVariantChoice(purchasable[0]);else{setVariant('');setVerified(false)}}}>{color}{!available&&<small>Нет</small>}</button>})}</div></div>}
-                  {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>Размер</b><span>{selectedSize||'Выберите размер'}</span></div><div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices.find(item=>item.available),price=choice?.price;return <button type="button" key={size} disabled={!choice} aria-pressed={selectedSize===size} onClick={()=>applyVariantChoice(choice)}><span>{size}</span>{choice&&price!==undefined&&<small>{price} {currency}</small>}{!choice&&<small>Нет</small>}</button>})}</div></div>}
+                  {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel}</b><span>{selectedSize||'Выберите вариант'}</span></div><div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices.find(item=>item.available),price=choice?.price;return <button type="button" key={size} disabled={!choice} aria-pressed={selectedSize===size} onClick={()=>applyVariantChoice(choice)}><span>{size}</span>{choice&&price!==undefined&&<small>{price} {currency}</small>}{!choice&&<small>Нет</small>}</button>})}</div></div>}
                   {!variantColors.length&&!variantSizes.length&&<Choice label="Вариант" value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.filter(item=>item.available).map(item=>item.label)}/>}
                   <input id="variant" value={variant} readOnly required className="sr-only" aria-label="Выбранный вариант"/>
                 </> : variants.length ? <Choice label="Вариант" value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.filter(item=>item.available).map(item=>item.label)}/> : (
