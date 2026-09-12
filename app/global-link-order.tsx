@@ -12,6 +12,7 @@ import {
   type Product,
 } from "@/lib/market/domain";
 import { visibleMerchantFinds } from "@/lib/market/catalog";
+import { supportedStoreRoots } from "@/lib/importer/stores";
 import { countries, currencies, toUsd, paddedWeight } from "@/lib/market/world";
 import {
   safeImage,
@@ -52,6 +53,8 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
     [variant, setVariant] = useState(""),
     [variants, setVariants] = useState<ProductVariant[]>([]),
     [image, setImage] = useState(seed?.image ?? ""),
+    [images, setImages] = useState<string[]>([]),
+    [storeSearch, setStoreSearch] = useState(""),
     [busy, setBusy] = useState(false),
     [note, setNote] = useState(seed ? "Данные из подборки " + seed.store + " на " + seed.observedOn + ". Обновите страницу магазина или проверьте цену и вариант вручную. Вес и доставка предварительные." : ""),
     [weightOrigin, setWeightOrigin] = useState("Оценка по категории"),
@@ -82,6 +85,7 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
     setShippingCurrency("USD");
     setShippingEstimated(true);
     setImage("");
+    setImages([]);
     setImportedAt(undefined);
     setSourceExpiresAt(undefined);
     setWeight("");
@@ -107,6 +111,7 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
       setName(data.title ?? "");
       setBrand(data.brand ?? new URL(data.sourceUrl).hostname);
       setImage(data.image ?? "");
+      setImages(data.images ?? (data.image ? [data.image] : []));
       const nextCategory =
         data.category ??
         inferProductCategory(data.title ?? "", data.brand ?? "");
@@ -115,13 +120,20 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
       setCurrency(
         currencies.includes(data.currency ?? "") ? data.currency! : "USD",
       );
-      if (data.price !== undefined) setAmount(String(data.price));
+      const knownCurrency = currencies.includes(data.currency ?? "");
+      if (data.price !== undefined && knownCurrency) setAmount(String(data.price));
       const availableVariants = (data.variants ?? []).filter(
         (v) => v.available,
       );
-      setVariants(availableVariants);
-      if (availableVariants.length === 1)
-        setVariant(availableVariants[0].label);
+      setVariants(knownCurrency ? availableVariants : availableVariants.map(item => ({...item, price: undefined})));
+      const selectedId = new URL(data.sourceUrl).searchParams.get('variant');
+      const selectedVariant = availableVariants.find(item => item.id && item.id === selectedId)
+        ?? (availableVariants.length === 1 ? availableVariants[0] : undefined);
+      if (selectedVariant) {
+        setVariant(selectedVariant.label);
+        if (selectedVariant.price !== undefined && knownCurrency) setAmount(String(selectedVariant.price));
+        if (selectedVariant.image) setImage(selectedVariant.image);
+      }
       if (data.country) setCountry(data.country);
       setWeight(String(data.boxedWeight ?? priors[nextCategory]));
       setWeightOrigin(
@@ -257,6 +269,14 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
               {busy ? "Получаем данные…" : "Загрузить товар"}
             </button>
           </form>
+          <details className="import-store-directory">
+            <summary>Магазины для заказа по ссылке · {supportedStoreRoots.length}</summary>
+            <p className="micro">Новые: Allbirds, Kylie Cosmetics, ColourPop, Steve Madden, Fashion Nova и Bombas. Доступность автозагрузки зависит от страницы и региона магазина.</p>
+            <input type="search" aria-label="Поиск магазина" placeholder="Найти магазин" value={storeSearch} onChange={event => setStoreSearch(event.target.value)} />
+            <div className="import-store-links">
+              {supportedStoreRoots.filter(host => host.includes(storeSearch.trim().toLowerCase())).map(host => <a key={host} href={`https://${host}`} target="_blank" rel="noopener noreferrer">{host}</a>)}
+            </div>
+          </details>
           {!ready && (
             <p className="notice">
               Войдите в личный кабинет: автозагрузка защищена от
@@ -514,6 +534,7 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
                       );
                       if (selectedVariant?.price !== undefined)
                         setAmount(String(selectedVariant.price));
+                      else setAmount("");
                       if (selectedVariant?.image)
                         setImage(selectedVariant.image);
                       setVerified(false);
@@ -566,6 +587,14 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
           {image && (
             <div className="import-photo">
               <ProductImage product={previewProduct} />
+            </div>
+          )}
+          {images.length > 1 && (
+            <div className="import-gallery" aria-label="Фотографии магазина">
+              {images.map((photo, index) => <button type="button" key={photo} aria-label={`Фото ${index + 1}`} aria-pressed={image === photo} onClick={() => setImage(photo)}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photo} alt={`Ракурс ${index + 1}`} loading="lazy" referrerPolicy="no-referrer" />
+              </button>)}
             </div>
           )}
           <span className="eyebrow">

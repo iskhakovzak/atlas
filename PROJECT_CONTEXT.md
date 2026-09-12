@@ -83,6 +83,15 @@ Balance is a demo accounting view derived from entries in account state. It cann
 
 Order statuses: Ожидает выкупа → Выкуплен → На зарубежном складе → Готов к отправке → В пути → Доставлен.
 
+## Import expansion — 12 September 2026
+
+- The explicit allowlist now has 135 roots, adding Allbirds, Kylie Cosmetics, ColourPop, Steve Madden, Fashion Nova and Bombas. This is URL coverage, not a guarantee that every page can be imported.
+- Selected Shopify merchants use public locale-aware product Ajax data and the matching cart currency endpoint (read-only, without customer cookies). The adapter retains per-variant price, availability, size/color, selected variant ID and up to 12 safe gallery photos. If public Ajax is unavailable, the original HTML extractor remains the fallback.
+- Generic ProductGroup matching now tolerates tracking and size-variant query parameters while retaining color and other product-defining parameters. Fashion Nova's redirected color listing now returns the correct color's sizes and price. Generic color/size is one combined variant; formatted decimal/thousands prices are parsed.
+- The link-order screen includes a searchable store directory, gallery switching and variant-specific price/photo updates. Unsupported or unconfirmed currencies never silently apply their source amount as USD.
+- Live local checks: Allbirds Wool Runner (7 size records, sold out at check), Kylie Matte Lip Kit (38 shades), ColourPop Bare Necessities (sold out at check), Steve Madden Possession Black (17 size records), Fashion Nova Met My Match jeans (9 sizes for the linked color). Observed availability/prices can change. Bombas has allowlist/adapter coverage but no successful live product check recorded in this release.
+- Validation: 43 automated tests, TypeScript, lint and production build passed; 136 browser checks include a real Steve Madden import, loaded gallery images, size selection and 390 px rendering. The new narrow-screen check exposed and fixed the imported form's minimum-width overflow.
+
 ## Importing stores and product data
 
 POST /api/import is signed-in, same-origin and rate-limited to 12 imports per user/minute. Successful results are cached in D1 for 10 minutes and carry a source timestamp/expiry. lib/importer/stores.ts contains a static explicit allowlist of more than 100 store/brand domains. Importer validates HTTPS, port, credentials and every redirect to prevent SSRF. It uses public browser-like requests, no customer cookies, a 15-second timeout and 3 MB decoded HTML cap.
@@ -156,7 +165,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 
 ## Partial or missing
 
-- Store parser quality varies; only Zara has the detailed adapter.
+- Store parser quality varies; detailed Zara and selected Shopify adapters complement generic ProductGroup/JSON-LD extraction.
 - Store shipping is frequently destination/session-dependent; $10 is reserve only.
 - Operations supports one configured operator email. Team assignment and notes work, but independent staff identities and permission roles are not connected.
 - Catalog has dated real merchant listings, not live inventory. Automated refresh, commercial reuse rights and merchant agreements still require work.

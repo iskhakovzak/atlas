@@ -125,7 +125,7 @@ try {
   async function visit(path){await cdp.send("Page.navigate",{url:new URL(path,baseUrl).href},sessionId);await check("document.readyState==='complete' && !!document.querySelector('main')","loads "+path)}
   async function snapshot(name){await mkdir('outputs/ui-audit',{recursive:true});const shot=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},sessionId);await writeFile('outputs/ui-audit/'+name+'.png',Buffer.from(shot.data,'base64'))}
   async function auditPage(label){
-    const issues=await evaluate("(()=>{const issues=[];const ids=[...document.querySelectorAll('[id]')].map(el=>el.id);if(new Set(ids).size!==ids.length)issues.push('duplicate IDs');for(const el of document.querySelectorAll('button,a[href],input:not([type=hidden]),select,textarea')){const name=(el.getAttribute('aria-label')||el.textContent||el.getAttribute('placeholder')||'').trim();if(!name&&!el.labels?.length&&!(el instanceof HTMLInputElement&&el.type==='file'))issues.push('unnamed '+el.tagName)}for(const a of document.querySelectorAll('a[target=_blank]')){if(!a.rel.includes('noopener'))issues.push('unsafe blank link')}if(document.documentElement.scrollWidth>innerWidth+1){const wide=[...document.querySelectorAll('body *')].filter(el=>el.getBoundingClientRect().right>innerWidth+1).slice(0,4).map(el=>el.className||el.tagName);issues.push('horizontal overflow '+wide.join('|'))}return [...new Set(issues)]})()");
+    const issues=await evaluate("(()=>{const issues=[];const ids=[...document.querySelectorAll('[id]')].map(el=>el.id);if(new Set(ids).size!==ids.length)issues.push('duplicate IDs');for(const el of document.querySelectorAll('button,a[href],input:not([type=hidden]):not([aria-hidden=true]),select,textarea')){const name=(el.getAttribute('aria-label')||el.textContent||el.getAttribute('placeholder')||'').trim();if(!name&&!el.labels?.length&&!(el instanceof HTMLInputElement&&el.type==='file'))issues.push('unnamed '+el.tagName)}for(const a of document.querySelectorAll('a[target=_blank]')){if(!a.rel.includes('noopener'))issues.push('unsafe blank link')}if(document.documentElement.scrollWidth>innerWidth+1){const wide=[...document.querySelectorAll('body *')].filter(el=>el.getBoundingClientRect().right>innerWidth+1).slice(0,4).map(el=>el.className||el.tagName);issues.push('horizontal overflow '+wide.join('|'))}return [...new Set(issues)]})()");
     if(issues.length)throw Error(label+': '+issues.join(', '));
     checks.push('interface semantics '+label);
   }
@@ -160,6 +160,28 @@ try {
   await check("!!document.querySelector(\'#source-url\') && !document.querySelector(\'#source-url\').disabled","authenticated product form opens");
   await visit('/');
   await check("!document.querySelector('.guest-intro') && !!document.querySelector('.find-save') && !!document.querySelector('header a[href=\"/cart\"]')","member home differs from guest");
+  if (process.env.ATLAS_AUDIT_IMPORT === '1') {
+    await visit('/order-by-link?url='+encodeURIComponent('https://www.stevemadden.com/products/possession-black'));
+    await check("!!document.querySelector('#source-url') && !document.querySelector('#source-url').disabled",'import ready');
+    await evaluate("document.querySelector('#source-url').closest('form').requestSubmit()");
+    await check("document.querySelectorAll('.import-gallery button').length>1",'real merchant gallery loaded');
+    await check("document.querySelector('.quote-preview').textContent.includes('POSSESSION BLACK')",'real merchant title loaded');
+    await evaluate("document.querySelectorAll('.import-gallery button')[1].click()");
+    await check("document.querySelectorAll('.import-gallery button')[1].getAttribute('aria-pressed')==='true'",'gallery switches photo');
+    await evaluate("document.querySelector('[aria-label=\"Размер и цвет\"]').click()");
+    await check("document.querySelectorAll('[role=option]').length>0",'available merchant sizes shown');
+    await evaluate("document.querySelector('[role=option]').click()");
+    await check("document.querySelector('[aria-label=\"Размер и цвет\"]').textContent.includes('BLACK')",'size selection retained');
+    await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape'},sessionId);
+    await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape'},sessionId);
+    await cdp.send('Emulation.setDeviceMetricsOverride',{width:390,height:900,deviceScaleFactor:1,mobile:false},sessionId);
+    await check('innerWidth===390','import viewport is 390 pixels');
+    await evaluate("document.querySelector('.import-gallery').scrollIntoView({block:'center',behavior:'instant'})");
+    await check("[...document.querySelectorAll('.import-gallery img')].slice(0,2).every(img=>img.complete&&img.naturalWidth>0)",'merchant photos render');
+    await auditPage('mobile imported product');
+    await snapshot('import-390');
+    await cdp.send('Emulation.setDeviceMetricsOverride',{width:800,height:900,deviceScaleFactor:1,mobile:false},sessionId);
+  }
   // Use real local account APIs to prove server rejects non-admin reads and writes.
   const apiChecks=await evaluate("(async()=>{const results=[];for(const method of ['GET','POST']){const r=await fetch('/api/operations',{method,headers:method==='POST'?{'Content-Type':'application/json'}:undefined,body:method==='POST'?JSON.stringify({kind:'policy',value:{}}):undefined});results.push(r.status)}return results})()");
   if(apiChecks.some(status=>status!==403))throw Error('Customer could access operator API');

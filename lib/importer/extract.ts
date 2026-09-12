@@ -1,4 +1,7 @@
 export type ProductVariant = {
+  id?: string;
+  size?: string;
+  color?: string;
   label: string;
   available: boolean;
   price?: number;
@@ -11,6 +14,7 @@ export type Extracted = {
   category?: ProductCategory;
   declarationDescription?: string;
   image?: string;
+  images?: string[];
   price?: number;
   currency?: string;
   variants?: ProductVariant[];
@@ -54,7 +58,12 @@ const number = (v: unknown) => {
   if (typeof v === "number")
     return Number.isFinite(v) && v >= 0 ? v : undefined;
   if (typeof v !== "string") return undefined;
-  const n = Number(v.replace(/\s/g, "").replace(",", "."));
+  let text = v.trim().replace(/[\s\u00a0]/g, '');
+  if (!text || !/^\d[\d.,]*$/.test(text)) return undefined;
+  if (text.includes(',') && text.includes('.')) {
+    text = text.lastIndexOf(',') > text.lastIndexOf('.') ? text.replace(/\./g, '').replace(',', '.') : text.replace(/,/g, '');
+  } else if (text.includes(',')) text = /^\d{1,3}(,\d{3})+$/.test(text) ? text.replace(/,/g, '') : text.replace(',', '.');
+  const n = Number(text);
   return Number.isFinite(n) && n >= 0 ? n : undefined;
 };
 
@@ -275,6 +284,8 @@ function extractZara(html: string, sourceUrl: string) {
     );
     return (color.sizes?.length ? color.sizes : [{ name: "Стандартный" }]).map(
       (size) => ({
+        size: clean(size.name) || undefined,
+        color: clean(color.name) || undefined,
         label: [clean(color.name), clean(size.name)].filter(Boolean).join(" · "),
         available: !/out_of_stock|coming_soon/i.test(size.availability ?? ""),
         price: size.price === undefined ? undefined : size.price / divisor,
@@ -292,6 +303,7 @@ function extractZara(html: string, sourceUrl: string) {
     title: clean(product?.name).slice(0, 140) || undefined,
     brand: "Zara",
     image: safeImage(rawImage, sourceUrl),
+    images: (selected.xmedia ?? []).map(media => safeImage(media.extraInfo?.deliveryUrl ?? media.url?.replace('{width}', '1024'), sourceUrl)).filter((value): value is string => Boolean(value)).slice(0, 12),
     price,
     currency,
     variants: variants.filter((v) => v.label).slice(0, 80),
@@ -336,6 +348,10 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     if (typeof value !== 'string') return false;
     try {
       const candidate = new URL(value, sourceUrl), source = new URL(sourceUrl);
+      for (const u of [candidate, source]) {
+        for (const key of [...u.searchParams.keys()]) if (/^(utm_.+|gclid|fbclid|variant)$/i.test(key)) u.searchParams.delete(key);
+        u.searchParams.sort();
+      }
       return candidate.origin === source.origin && candidate.pathname === source.pathname && candidate.search === source.search;
     } catch { return false; }
   };
@@ -346,7 +362,11 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     const childOffers = [child.offers].flat() as Record<string, unknown>[];
     return sameListing(child.url) || sameListing(child['@id']) || childOffers.some(item => sameListing(item?.url));
   }) : [];
-  const p = children.length ? { ...group, ...children[0], brand: children[0].brand ?? group?.brand } : group;
+  const selectedVariantId = new URL(sourceUrl).searchParams.get('variant');
+  const selectedChild = children.find((child: Record<string, unknown>) => [child.url, ...[child.offers].flat().map((o) => (o as Record<string, unknown>)?.url)].some(value => {
+    try { return selectedVariantId && typeof value === 'string' && new URL(value, sourceUrl).searchParams.get('variant') === selectedVariantId; } catch { return false; }
+  })) ?? children[0];
+  const p = selectedChild ? { ...group, ...selectedChild, brand: selectedChild.brand ?? group?.brand } : group;
   const offers = p?.offers;
   const offer = Array.isArray(offers) ? offers[0] : offers;
   const details = offer?.shippingDetails;
@@ -363,6 +383,8 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
         : (p?.image ?? meta["og:image"] ?? meta["twitter:image"]),
       sourceUrl,
     );
+  const images = [...new Set([image, ...(zara?.images ?? []), ...[p?.image].flat(), meta["og:image"], meta["twitter:image"]]
+    .map((value) => safeImage(value, sourceUrl)).filter((value): value is string => Boolean(value)))].slice(0, 12);
   const price =
     zara?.price ??
     number(
@@ -402,15 +424,18 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
           : rawBrand,
       ).slice(0, 80)) || new URL(sourceUrl).hostname.replace(/^www\./, "");
   const category = inferProductCategory(title ?? "", brand);
-  const genericVariants: ProductVariant[] = [p?.color, p?.size]
-    .filter(Boolean)
-    .map((value) => ({ label: clean(value), available: true }));
+  const genericLabel = [p?.color, p?.size].map(clean).filter(Boolean).join(' · ');
+  const genericVariants: ProductVariant[] = genericLabel
+    ? [{ label: genericLabel, available: !/OutOfStock|Discontinued|SoldOut/i.test(String(offer?.availability ?? '')), size: clean(p?.size) || undefined, color: clean(p?.color) || undefined }]
+    : [];
   const groupVariants: ProductVariant[] = children.map((child: Record<string, unknown>) => {
     const childOffer = [child.offers].flat()[0] as Record<string, unknown> | undefined;
     return {
+      size: clean(child.size) || undefined,
+      color: clean(child.color) || undefined,
       label: [child.color, child.size].filter(Boolean).map(clean).join(' · '),
       available: !/OutOfStock|Discontinued|SoldOut/i.test(String(childOffer?.availability ?? '')),
-      price: number(childOffer?.price),
+      price: number(childOffer?.price ?? (childOffer?.priceSpecification as Record<string, unknown> | undefined)?.price),
       image: safeImage(Array.isArray(child.image) ? child.image[0] : child.image, sourceUrl),
     };
   }).filter((item: ProductVariant) => item.label);
@@ -438,6 +463,7 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     category,
     declarationDescription: declarationFor(category, title ?? "", brand),
     image,
+    images,
     price,
     currency,
     variants,
