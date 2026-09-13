@@ -16,6 +16,7 @@ export const productSchema = z.object({
   image: z.string(),
   variants: z.array(z.string()).min(1),
   sourceUrl: z.string().optional(),
+  sourceVariantId: z.string().max(120).optional(),
   description: z.string().optional(),
   country: z.string().optional(),
   sourceCurrency: z.string().optional(),

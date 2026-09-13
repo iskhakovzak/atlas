@@ -13,7 +13,7 @@ export const catalogDraftSchema=z.object({
   referencePrice:z.number().finite().positive().optional(),country:text.max(80),boxedWeight:z.number().finite().positive().max(49.5),
   variants:z.array(z.object({id:text.max(120).optional(),label:text.max(140),size:text.max(100).optional(),sizeLabel:text.max(100).optional(),color:text.max(100).optional(),available:z.boolean(),price:z.number().finite().nonnegative().optional(),image:text.max(3000).optional()})).max(250),
   collectionIds:z.array(text.max(80)).max(20),description:text.max(600),checkedAt:z.number().int().nonnegative(),
-  warnings:z.array(text.max(500)).max(20),soldOut:z.boolean().optional(),
+  warnings:z.array(text.max(500)).max(20),soldOut:z.boolean().optional(),reviewReasons:z.array(text.max(240)).max(10).optional(),lastCheckError:text.max(500).optional(),
 });
 export type CatalogDraft=z.infer<typeof catalogDraftSchema>;
 export const collectionSchema=z.object({id:text.min(1).max(80),name:text.min(1).max(80),nameUz:text.max(80).default(''),nameEn:text.max(80).default(''),description:text.max(240).default(''),visible:z.boolean(),position:z.number().int().min(0).max(1000)});
@@ -50,8 +50,20 @@ export function catalogIssues(draft:CatalogDraft,now=Date.now(),rates=tariff.rat
   else if(draft.price&&toUsd(draft.price,draft.currency,rates)>10000)issues.push('Стоимость выше лимита Atlas');
   if(!draft.country)issues.push('Страна отправки');
   if(draft.soldOut)issues.push('Нет доступных вариантов');
+  if(draft.lastCheckError)issues.push('Ошибка проверки магазина');
+  if(draft.reviewReasons?.length)issues.push(...draft.reviewReasons);
   if(!draft.checkedAt||draft.checkedAt>now||now-draft.checkedAt>=catalogLifetime)issues.push('Обновите источник');
   return issues;
+}
+
+export function recheckedDraft(previous:CatalogDraft,fresh:CatalogDraft){
+  const reasons:string[]=[];
+  if(previous.currency!==fresh.currency)reasons.push(`Валюта: ${previous.currency} → ${fresh.currency}`);
+  if(previous.price!==fresh.price)reasons.push(`Цена: ${previous.price??'—'} → ${fresh.price??'—'} ${fresh.currency}`);
+  const before=previous.variants.filter(v=>v.available).length,after=fresh.variants.filter(v=>v.available).length;
+  if(before!==after)reasons.push(`Доступные варианты: ${before} → ${after}`);
+  if(previous.soldOut!==fresh.soldOut)reasons.push(fresh.soldOut?'Товар закончился':'Товар снова доступен');
+  return catalogDraftSchema.parse({...fresh,referencePrice:previous.referencePrice,description:previous.description,collectionIds:previous.collectionIds,reviewReasons:reasons,lastCheckError:undefined});
 }
 export function publicCatalog(document:CatalogDocument,pricing:Pricing,now=Date.now()){
   const products:MerchantFind[]=document.entries.flatMap(entry=>{
@@ -76,7 +88,7 @@ export function changeCatalog(current:CatalogDocument,command:CatalogCommand,now
     const entry=next.entries.find(e=>e.id===command.id);if(!entry)throw Error('Товар не найден');
     const draft=catalogDraftSchema.parse(command.draft);
     // Source identity and observation time come only from server imports.
-    draft.sourceUrl=entry.draft.sourceUrl;draft.checkedAt=entry.draft.checkedAt;draft.soldOut=entry.draft.soldOut;
+    draft.sourceUrl=entry.draft.sourceUrl;draft.checkedAt=entry.draft.checkedAt;draft.soldOut=entry.draft.soldOut;draft.reviewReasons=[];draft.lastCheckError=undefined;
     draft.image=safeImage(draft.image,draft.sourceUrl)??'';
     draft.images=draft.images.map(i=>safeImage(i,draft.sourceUrl)).filter((i):i is string=>!!i);
     if(draft.collectionIds.some(id=>!next.collections.some(c=>c.id===id)))throw Error('Подборка не найдена');

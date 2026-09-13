@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {extractShopify, shopifyEndpoints} from '../lib/importer/shopify.ts';
 import {extractProduct} from '../lib/importer/extract.ts';
 import {fetchProduct, allowedUrl} from '../lib/importer/fetch.ts';
+import {verifyProductSnapshot} from '../lib/importer/verify.ts';
 
 const url = 'https://www.allbirds.com/products/shoe';
 const product = {handle:'shoe',title:'Wool shoes',vendor:'Allbirds',images:['//cdn.shopify.com/one.jpg','https://127.0.0.1/private','//cdn.shopify.com/two.jpg'],options:[{name:'Color'},{name:'Size'}],variants:[
@@ -84,4 +85,12 @@ test('public Ajax requests omit credentials and unsafe redirects fall back safel
     globalThis.fetch=async(u)=>String(u).endsWith('.js')?new Response('',{status:302,headers:{Location:'http://169.254.169.254/'}}):new Response('<meta property="og:title" content="Shoes">',{headers:{'Content-Type':'text/html'}});
     assert.equal((await fetchProduct(url)).method,'Open Graph');
   } finally {globalThis.fetch=original;}
+});
+test('fresh verification blocks changed prices and unavailable variants',()=>{
+  const p={id:'p',name:'Shoe',brand:'Allbirds',category:'Обувь',usd:110,weight:1.5,image:'',variants:['Black / 8'],sourceUrl:url,sourceVariantId:'1',sourceCurrency:'USD',sourcePrice:110};
+  const fresh=extractShopify(product,{currency:'USD'},url+'?variant=1');
+  const checked=verifyProductSnapshot(p,'Black / 8',fresh,5000);
+  assert.equal(checked.sourcePrice,110);assert.equal(checked.importedAt,5000);assert.equal(checked.sourceExpiresAt,605000);
+  assert.throws(()=>verifyProductSnapshot({...p,sourcePrice:109},'Black / 8',fresh),/Цена изменилась/);
+  assert.throws(()=>verifyProductSnapshot({...p,sourceVariantId:'2'},'Black / 9',fresh),/закончился/);
 });

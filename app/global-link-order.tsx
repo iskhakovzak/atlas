@@ -336,6 +336,7 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
                     weight: paddedWeight(Number(weight)),
                     image: img ?? "",
                     sourceUrl: source,
+                    sourceVariantId: variants.find(item => item.label === variant.trim())?.id,
                     variants: [variant.trim()],
                     country:
                       country === "Другая страна"

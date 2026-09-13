@@ -40,7 +40,9 @@
 - [x] Add caching, source timestamp and expiry for imports.
 - [x] Add a color → valid size → combination price/photo/stock matrix to link order while keeping a flat fallback for nonstandard product options.
 - [x] Add up to 12 safe imported photos and variant photo/price switching to link order. Persisted orders retain the selected image.
-- [ ] Add interactive per-item matrix confirmation and gallery support to batch import; it currently chooses the first available combined variant before cart review.
+- [x] Add review-first per-item variant confirmation and variant prices to batch import; no first available combination is silently selected.
+- [x] Recheck linked product price, currency and selected-variant availability on the server before cart addition and checkout.
+- [x] Add an administrator recheck queue for fetch errors and price/currency/availability changes, with explicit review before republication.
 - [ ] Test the allowlist against live pages regularly. Store HTML and bot behavior change.
 
 ## Order flow

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {catalogIssues,changeCatalog,importDraft,initialCatalog,publicCatalog} from '../lib/market/catalog-editor.ts';
+import {catalogIssues,changeCatalog,importDraft,initialCatalog,publicCatalog,recheckedDraft} from '../lib/market/catalog-editor.ts';
 import {tariff} from '../lib/market/domain.ts';
 
 const extracted={sourceUrl:'https://kyliecosmetics.com/products/matte-lip-kit?utm_source=mail',title:'Matte Lip Kit',brand:'Kylie Cosmetics',category:'Красота и уход',image:'https://cdn.shopify.com/lip.jpg',images:['https://cdn.shopify.com/lip.jpg'],price:35,currency:'USD',variants:[{id:'bare-full',label:'Bare · Full size',color:'Bare',size:'Full size',available:true,price:35}],warnings:['Доставка неизвестна'],method:'Shopify'};
@@ -25,6 +25,16 @@ test('catalog rejects stale, sold-out and incomplete cards before publication',(
  const base=importDraft(extracted,[],'США',1000),doc=initialCatalog();doc.entries.push({id:'bad',draft:{...base,image:'',soldOut:true}});
  assert.throws(()=>changeCatalog(doc,{kind:'publish',ids:['bad']},1001,tariff),/Фото.*Нет доступных вариантов/);
  assert(catalogIssues(base,1000+8*24*60*60*1000).includes('Обновите источник'));
+});
+test('catalog recheck queues price and availability changes for operator review',()=>{
+ const before=importDraft(extracted,[],'США',1000);
+ const after=importDraft({...extracted,price:39,variants:[{...extracted.variants[0],price:39,available:false}]},[],'США',2000);
+ const checked=recheckedDraft(before,after);
+ assert(checked.reviewReasons.some(value=>value.startsWith('Цена:')));
+ assert(checked.reviewReasons.some(value=>value.startsWith('Доступные варианты:')));
+ assert(catalogIssues(checked,2001).includes('Нет доступных вариантов'));
+ const doc=initialCatalog();doc.entries.push({id:'review',draft:checked});
+ assert.throws(()=>changeCatalog(doc,{kind:'publish',ids:['review']},2002,tariff),/Цена:/);
 });
 test('hiding removes a product from the public feed without deleting its draft',()=>{
  let doc=initialCatalog(),id=doc.entries[0].id;doc=changeCatalog(doc,{kind:'hide',ids:[id]},Date.parse('2026-09-12'),tariff);

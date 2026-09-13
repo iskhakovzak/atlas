@@ -215,6 +215,15 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Live product checks succeeded for representative Alo Yoga, Rhode, Rare Beauty, Summer Fridays, Kith, CNCPTS, Satechi and Spigen pages. A successful import remains editable assistance, not a stock, shipping or customs guarantee.
 - Verification for this expansion: lint, 51 domain/security tests, TypeScript and the production build passed.
 
+## Store freshness controls — 12 September 2026
+
+- Products imported from a store are fetched again by the authenticated server before `cart-add`. The server matches the stored public variant ID when available, rejects missing or sold-out variants, rejects currency changes and requires the exact current variant price. A successful check refreshes the optional source timestamps and selected image before the server recomputes the quote.
+- Checkout repeats the same read-only source verification for every linked cart line. A changed price or unavailable variant blocks checkout with a specific customer-facing reason; no order is created from stale source data.
+- Batch import is now review-first. It loads up to ten cards, shows their photos and all available store variants with variant-specific prices, and adds nothing until the customer explicitly selects every variant. The selected public variant ID is retained for server verification.
+- The catalog administrator has a change/error queue and can recheck up to ten selected or problematic cards. Rechecks preserve editorial description, collections and reference price, record fetch errors, and surface price, currency, availability-count and sold-out changes for explicit review before republication.
+- These additions extend existing optional JSON fields only; no D1 migration or rewrite of old carts, catalog entries or orders is required.
+- Verification for this slice: lint, 53 domain/security tests, TypeScript, production build and the authenticated checkout/catalog/operations smoke passed.
+
 ## Pricing, approvals, warehouse and catalog release — 12 September 2026
 
 - Quote lines now remain mathematically independent: base international freight no longer contains the delivery margin, and the total adds that margin exactly once. Cart, order details and operational fee projections include service, buyout, conversion, freight margin and optional-service lines without omissions.
