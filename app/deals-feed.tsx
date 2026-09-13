@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowRight, ArrowUpRight, Flame, Heart, Link2, MessageCircle, Search, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Flame, Heart, Link2, Search, SlidersHorizontal, X } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from '@/components/site-link';
 import { validateSource, type Product } from '@/lib/market/domain';
@@ -20,7 +20,7 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
   const [saving, setSaving] = useState<string | null>(null);
   const [url, setUrl] = useState('');
   const [urlError, setUrlError] = useState('');
-  const [communityCategory, setCommunityCategory] = useState('Все');
+  const [communityCategory, setCommunityCategory] = useState('');
   const [showAllCommunity, setShowAllCommunity] = useState(false);
   const locale = state.communication.language;
   const copy = dealCopy(locale);
@@ -38,10 +38,18 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
   const matching = candidates.filter(product => [product.name, titles[product.id], product.brand, product.category, product.country, categories.find(c => c.value === product.category)?.label, countries.find(c => c.value === product.country)?.label].join(' ').toLocaleLowerCase().includes(search));
   const list = filterDeals(matching, pricing, { ...filters, search: '' },products);
   const hasFilters = !!(filters.search || filters.category || filters.country || filters.maxTotal);
-  const communityCategories = ['Все', 'Одежда', 'Обувь', 'Красота', 'Техника', 'Дом'];
+  const communityCopy = locale === 'ru' ? {
+    eyebrow: 'Выгодные находки', title: 'Лучшие предложения сегодня', intro: 'Популярные товары со скидками из зарубежных магазинов. Откройте карточку — вы сразу попадёте на страницу товара в магазине.', all: 'Все', more: 'Показать ещё', collapse: 'Свернуть', open: 'В магазин', note: 'Цена и наличие могут зависеть от цвета, размера, промокода или аккаунта магазина. Atlas перепроверит их перед расчётом.', checked: 'Проверено',
+  } : locale === 'uz' ? {
+    eyebrow: 'Foydali topilmalar', title: 'Bugungi eng yaxshi takliflar', intro: 'Xorijiy do‘konlardagi mashhur chegirmali mahsulotlar. Kartani ochsangiz, bevosita do‘kon sahifasiga o‘tasiz.', all: 'Barchasi', more: 'Yana ko‘rsatish', collapse: 'Yig‘ish', open: 'Do‘konga', note: 'Narx va mavjudlik rang, o‘lcham, promo-kod yoki do‘kon hisobiga bog‘liq bo‘lishi mumkin. Atlas hisoblashdan oldin ularni qayta tekshiradi.', checked: 'Tekshirildi',
+  } : {
+    eyebrow: 'Best finds', title: 'Today’s top deals', intro: 'Popular discounted products from international stores. Open a card to go directly to the product page at the store.', all: 'All', more: 'Show more', collapse: 'Show less', open: 'Visit store', note: 'Price and availability may depend on colour, size, coupon or store account. Atlas will recheck them before calculating.', checked: 'Checked',
+  };
+  const communityCategoryLabels: Record<string,string> = locale === 'ru' ? {Одежда:'Одежда',Обувь:'Обувь',Красота:'Красота',Техника:'Техника',Дом:'Дом'} : locale === 'uz' ? {Одежда:'Kiyim',Обувь:'Poyabzal',Красота:'Go‘zallik',Техника:'Texnika',Дом:'Uy'} : {Одежда:'Clothing',Обувь:'Shoes',Красота:'Beauty',Техника:'Tech',Дом:'Home'};
+  const communityCategories = ['', 'Одежда', 'Обувь', 'Красота', 'Техника', 'Дом'];
   const communityList = communityDeals
-    .filter(deal => communityCategory === 'Все' || deal.category === communityCategory)
-    .sort((a, b) => b.score - a.score || communityDiscount(b) - communityDiscount(a));
+    .filter(deal => communityCategory === '' || deal.category === communityCategory)
+    .sort((a, b) => communityDiscount(b) - communityDiscount(a));
 
   async function favorite(product: Product) {
     setSaving(product.id);
@@ -55,16 +63,16 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
     </section>
     {catalogError&&<p role="alert">{catalogError}</p>}
     {!favorites&&<section className="community-showcase" aria-labelledby="community-title">
-      <div className="community-heading"><div><span className="eyebrow"><Flame size={14}/> Slickdeals community</span><h2 id="community-title">Сейчас обсуждают</h2><p>Популярные находки по рейтингу сообщества и размеру скидки. Это быстрый просмотр — цену, вариант и доставку Atlas проверит отдельно.</p></div><a href="https://slickdeals.net/" target="_blank" rel="noopener noreferrer">Все предложения<ArrowUpRight size={15}/></a></div>
-      <div className="community-tabs">{communityCategories.map(category=><button type="button" key={category} className={communityCategory===category?'active':''} onClick={()=>{setCommunityCategory(category);setShowAllCommunity(false)}}>{category}</button>)}</div>
+      <div className="community-heading"><div><span className="eyebrow"><Flame size={14}/> {communityCopy.eyebrow}</span><h2 id="community-title">{communityCopy.title}</h2><p>{communityCopy.intro}</p></div></div>
+      <div className="community-tabs">{communityCategories.map(category=><button type="button" key={category||'all'} className={communityCategory===category?'active':''} onClick={()=>{setCommunityCategory(category);setShowAllCommunity(false)}}>{category?communityCategoryLabels[category]:communityCopy.all}</button>)}</div>
       <div className="community-grid">{communityList.slice(0,showAllCommunity?communityList.length:8).map(deal=>{
         const discount=communityDiscount(deal);
-        return <a className={`community-card tone-${deal.category}`} href={deal.url} target="_blank" rel="noopener noreferrer" key={deal.id}>
-          <div className="community-art"><span>{deal.store}</span><strong>−{discount}%</strong></div>
-          <div className="community-body"><span className="community-category">{deal.category} · {deal.store}</span><h3>{deal.title}</h3><div className="community-price"><b>{fmt(deal.price,'USD')}</b><del>{fmt(deal.referencePrice,'USD')}</del></div><div className="community-proof"><span><Flame size={14}/>+{deal.score}</span><span><MessageCircle size={14}/>{deal.comments}</span><small>{deal.observedOn}</small></div></div>
+        return <a className="community-card" href={deal.url} target="_blank" rel="noopener noreferrer" aria-label={`${deal.title} · ${communityCopy.open}`} key={deal.id}>
+          <div className="community-art"><ProductImage product={{id:deal.id,name:deal.title,brand:deal.store,category:deal.category,usd:deal.price,weight:1,image:deal.image,variants:['—']}}/><span>{deal.store}</span><strong>−{discount}%</strong></div>
+          <div className="community-body"><span className="community-category">{communityCategoryLabels[deal.category]} · {deal.store}</span><h3>{deal.title}</h3><div className="community-price"><b>{fmt(deal.price,'USD')}</b><del>{fmt(deal.referencePrice,'USD')}</del></div><div className="community-open"><small>{communityCopy.checked} · {deal.observedOn}</small><span>{communityCopy.open}<ArrowUpRight size={15}/></span></div></div>
         </a>})}</div>
-      {communityList.length>8&&<button type="button" className="btn secondary community-more" onClick={()=>setShowAllCommunity(value=>!value)}>{showAllCommunity?'Свернуть':'Показать ещё '+(communityList.length-8)}</button>}
-      <p className="community-note">Предложения ведут на Slickdeals и могут требовать промокод, подписку или доставку по США. Atlas не выдаёт их за собственный складской остаток.</p>
+      {communityList.length>8&&<button type="button" className="btn secondary community-more" onClick={()=>setShowAllCommunity(value=>!value)}>{showAllCommunity?communityCopy.collapse:`${communityCopy.more} ${communityList.length-8}`}</button>}
+      <p className="community-note">{communityCopy.note}</p>
     </section>}
     {!!collections.length&&<nav className="find-collections" aria-label={locale==='ru'?'Подборки':locale==='uz'?'To‘plamlar':'Collections'}>
       <button type="button" className={!collectionId?'active':''} onClick={()=>setCollectionId('')}>{copy.all}</button>
