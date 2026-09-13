@@ -41,3 +41,24 @@ export function communityEstimatedWeight(deal: CommunityDeal) {
   if (deal.category === 'Дом') return 2.1;
   return deal.id === 'real-perfection-brushes' ? 0.9 : deal.id === 'elf-lip-stain' ? 0.7 : 0.65;
 }
+
+export type CommunityDealOption = { label: string; size?: string; color?: string };
+
+export const hasSelectableDimensions = (options: CommunityDealOption[]) =>
+  options.some(option => Boolean(option.size || option.color));
+
+const sized = (values: string[]): CommunityDealOption[] => values.map(size => ({ label: size, size }));
+
+export function communityFallbackOptions(deal: CommunityDeal): CommunityDealOption[] {
+  if (deal.category === 'Обувь') return sized(['US 7', 'US 7.5', 'US 8', 'US 8.5', 'US 9', 'US 9.5', 'US 10', 'US 10.5', 'US 11', 'US 12', 'US 13']);
+  if (deal.id === 'hanes-hoodie') return sized(['S', 'M', 'L', 'XL', '2XL', '3XL']);
+  if (deal.id === 'ekouaer-pajama' || deal.id === 'silkworld-swim') return sized(['S', 'M', 'L', 'XL', '2XL']);
+  return [{ label: 'Указанный вариант' }];
+}
+
+export function communityProductCategory(deal: CommunityDeal) {
+  if (deal.category === 'Красота') return 'Красота и уход';
+  if (deal.category === 'Техника') return 'Электроника';
+  if (deal.category === 'Дом') return 'Дом и быт';
+  return deal.category;
+}

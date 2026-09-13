@@ -22,6 +22,13 @@ import {
 } from "@/lib/importer/extract";
 import { Choice, CostLines, PageHeading, ProductImage } from "./market-ui";
 import { CustomsEstimate } from "./customs-estimate";
+import {
+  communityDeals,
+  communityEstimatedWeight,
+  communityFallbackOptions,
+  communityProductCategory,
+  hasSelectableDimensions,
+} from "@/lib/market/community-deals";
 const priors: Record<string, number> = {
   Обувь: 1.3,
   Одежда: 0.6,
@@ -37,32 +44,37 @@ export function GlobalLinkOrder() {
   const searchParams = useSearchParams();
   const requestedUrl = searchParams.get("url") ?? "";
   const isSourcedFlow = Boolean(requestedUrl);
+  const dealSeed = communityDeals.find(item => item.id === searchParams.get("deal") && item.url === requestedUrl);
+  const dealOptions = dealSeed ? communityFallbackOptions(dealSeed).map(item => ({ ...item, available: true })) : [];
+  const dealBoxedWeight = dealSeed ? Math.max(0.1, communityEstimatedWeight(dealSeed) - 0.5) : undefined;
   const seed = catalogProducts.find(item => item.sourceUrl === requestedUrl);
+  const fallbackOptions: ProductVariant[] = seed ? seed.variants.map(label => ({ label, available: true })) : dealOptions;
+  const fallbackBoxedWeight = seed?.boxedWeight ?? dealBoxedWeight;
   const [url, setUrl] = useState(() => searchParams.get("url") ?? ""),
-    [source, setSource] = useState(seed?.sourceUrl ?? ""),
-    [name, setName] = useState(seed?.name ?? ""),
-    [brand, setBrand] = useState(seed?.brand ?? ""),
+    [source, setSource] = useState(seed?.sourceUrl ?? dealSeed?.url ?? ""),
+    [name, setName] = useState(seed?.name ?? dealSeed?.title ?? ""),
+    [brand, setBrand] = useState(seed?.brand ?? dealSeed?.store ?? ""),
     [declaration, setDeclaration] = useState(""),
     [currency, setCurrency] = useState("USD"),
-    [amount, setAmount] = useState(seed ? String(seed.sourcePrice) : ""),
+    [amount, setAmount] = useState(seed ? String(seed.sourcePrice) : dealSeed ? String(dealSeed.price) : ""),
     [shipping, setShipping] = useState("10"),
     [shippingCurrency, setShippingCurrency] = useState("USD"),
     [shippingEstimated, setShippingEstimated] = useState(true),
-    [weight, setWeight] = useState(seed ? String(seed.boxedWeight) : ""),
+    [weight, setWeight] = useState(fallbackBoxedWeight ? String(fallbackBoxedWeight) : ""),
     [country, setCountry] = useState("США"),
     [otherCountry, setOtherCountry] = useState(""),
-    [category, setCategory] = useState(seed?.category ?? "Другое"),
-    [variant, setVariant] = useState(""),
-    [variants, setVariants] = useState<ProductVariant[]>([]),
+    [category, setCategory] = useState(seed?.category ?? (dealSeed ? communityProductCategory(dealSeed) : "Другое")),
+    [variant, setVariant] = useState(fallbackOptions.length === 1 ? fallbackOptions[0].label : ""),
+    [variants, setVariants] = useState<ProductVariant[]>(fallbackOptions),
     [selectedColor, setSelectedColor] = useState(""),
     [selectedSize, setSelectedSize] = useState(""),
-    [image, setImage] = useState(seed?.image ?? ""),
-    [images, setImages] = useState<string[]>([]),
+    [image, setImage] = useState(seed?.image ?? dealSeed?.image ?? ""),
+    [images, setImages] = useState<string[]>(dealSeed?.image ? [dealSeed.image] : []),
     [storeSearch, setStoreSearch] = useState(""),
     [busy, setBusy] = useState(false),
     [adding, setAdding] = useState(false),
     [showSourceForm, setShowSourceForm] = useState(() => !requestedUrl),
-    [note, setNote] = useState(seed ? "Данные из подборки " + seed.store + " на " + seed.observedOn + ". Обновите страницу магазина или проверьте цену и вариант вручную. Вес и доставка предварительные." : ""),
+    [note, setNote] = useState(seed ? "Данные из подборки " + seed.store + " на " + seed.observedOn + ". Обновите страницу магазина или проверьте цену и вариант вручную. Вес и доставка предварительные." : dealSeed ? `Цена и фото сохранены из подборки на ${dealSeed.observedOn}. Atlas сейчас уточняет их в магазине.` : ""),
     [weightOrigin, setWeightOrigin] = useState("Оценка по категории"),
     [verified, setVerified] = useState(false),
     [importedAt, setImportedAt] = useState<number | undefined>(),
@@ -96,23 +108,23 @@ export function GlobalLinkOrder() {
     setBusy(true);
     setSource(link);
     setVerified(false);
-    setName("");
-    setBrand("");
+    setName(seed?.name ?? dealSeed?.title ?? "");
+    setBrand(seed?.brand ?? dealSeed?.store ?? "");
     setDeclaration("");
-    setAmount("");
+    setAmount(seed?.sourcePrice !== undefined ? String(seed.sourcePrice) : dealSeed ? String(dealSeed.price) : "");
     setShipping("10");
     setShippingCurrency("USD");
     setShippingEstimated(true);
-    setImage("");
-    setImages([]);
+    setImage(seed?.image ?? dealSeed?.image ?? "");
+    setImages(seed?.image ? [seed.image] : dealSeed?.image ? [dealSeed.image] : []);
     setImportedAt(undefined);
     setSourceExpiresAt(undefined);
-    setWeight("");
-    setVariant("");
-    setVariants([]);
+    setWeight(fallbackBoxedWeight ? String(fallbackBoxedWeight) : "");
+    setVariant(fallbackOptions.length === 1 ? fallbackOptions[0].label : "");
+    setVariants(fallbackOptions);
     setSelectedColor("");
     setSelectedSize("");
-    setNote("");
+    setNote(dealSeed ? `Цена и фото сохранены из подборки на ${dealSeed.observedOn}. Atlas уточняет их в магазине.` : "");
     setFoundShipping(null);
     try {
       const response = await fetch("/api/import", {
@@ -129,12 +141,13 @@ export function GlobalLinkOrder() {
       if (!response.ok)
         throw Error(data.error ?? "Не удалось получить данные магазина.");
       setSource(data.sourceUrl);
-      setName(data.title ?? "");
-      setBrand(data.brand ?? new URL(data.sourceUrl).hostname);
-      setImage(data.image ?? "");
-      setImages(data.images ?? (data.image ? [data.image] : []));
+      setName(data.title ?? seed?.name ?? dealSeed?.title ?? "");
+      setBrand(data.brand ?? seed?.brand ?? dealSeed?.store ?? new URL(data.sourceUrl).hostname);
+      setImage(data.image ?? seed?.image ?? dealSeed?.image ?? "");
+      setImages(data.images?.length ? data.images : data.image ? [data.image] : seed?.image ? [seed.image] : dealSeed?.image ? [dealSeed.image] : []);
       const nextCategory =
         data.category ??
+        seed?.category ??
         inferProductCategory(data.title ?? "", data.brand ?? "");
       setCategory(nextCategory);
       setDeclaration(data.declarationDescription ?? "");
@@ -143,7 +156,14 @@ export function GlobalLinkOrder() {
       );
       const knownCurrency = currencies.includes(data.currency ?? "");
       if (data.price !== undefined && knownCurrency) setAmount(String(data.price));
-      const importedVariants = data.variants ?? [];
+      else if (seed?.sourcePrice !== undefined) setAmount(String(seed.sourcePrice));
+      else if (dealSeed) setAmount(String(dealSeed.price));
+      const receivedVariants = data.variants ?? [];
+      const importedVariants = hasSelectableDimensions(fallbackOptions) && !hasSelectableDimensions(receivedVariants)
+        ? fallbackOptions
+        : receivedVariants.length
+          ? receivedVariants
+          : fallbackOptions;
       const safeVariants = knownCurrency ? importedVariants : importedVariants.map(item => ({...item, price: undefined}));
       const availableVariants = safeVariants.filter(v => v.available);
       setVariants(safeVariants);
@@ -160,14 +180,17 @@ export function GlobalLinkOrder() {
         const colors=[...new Set(availableVariants.map(item=>item.color).filter((value):value is string=>Boolean(value)))];
         if(colors.length===1)setSelectedColor(colors[0]);
       }
-      if (data.country) setCountry(data.country);
-      setWeight(String(data.boxedWeight ?? priors[nextCategory]));
+      const nextCountry = data.country ?? seed?.country;
+      if (nextCountry) setCountry(nextCountry);
+      setWeight(String(data.boxedWeight ?? fallbackBoxedWeight ?? priors[nextCategory]));
       setWeightOrigin(
         data.boxedWeight
           ? data.weightKind === "shipping"
             ? "Вес отправления со страницы"
             : "Вес товара со страницы — коробку нужно проверить"
-          : "Приблизительно по категории",
+          : fallbackBoxedWeight
+            ? "Оценка Atlas; уточняется перед оформлением"
+            : "Приблизительно по категории",
       );
       setImportedAt(data.fetchedAt ?? Date.now());
       setSourceExpiresAt(data.expiresAt);
@@ -214,10 +237,10 @@ export function GlobalLinkOrder() {
           .join(" "),
       );
     } catch (e) {
-      setNote((e as Error).message + " Доступен ручной ввод.");
-      setWeight(String(priors[category]));
-      setWeightOrigin("Приблизительно по категории");
-      setShowSourceForm(true);
+      setNote(dealSeed ? `Магазин не отдал свежие данные. Показываем цену и варианты из подборки на ${dealSeed.observedOn}; перед добавлением Atlas попробует проверить их снова.` : seed ? "Магазин не отдал свежие данные. Сохранили цену и фото из каталога; перед добавлением Atlas попробует проверить их снова." : (e as Error).message + " Доступен ручной ввод.");
+      setWeight(String(fallbackBoxedWeight ?? priors[category]));
+      setWeightOrigin(fallbackBoxedWeight ? "Оценка Atlas; уточняется перед оформлением" : "Приблизительно по категории");
+      if (!dealSeed && !seed) setShowSourceForm(true);
     } finally {
       setBusy(false);
     }

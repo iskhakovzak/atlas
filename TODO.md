@@ -1,6 +1,7 @@
 # Atlas TODO and known limitations
 
 - [ ] Replace deal-shelf weight estimates with importer-confirmed boxed weights when merchants expose them reliably; link order already rechecks before checkout.
+- [ ] Replace deal-shelf fallback size lists with scheduled merchant-confirmed availability snapshots; current choices are revalidated only when the customer adds the selected item.
 
 ## Pre-release showcase completed
 

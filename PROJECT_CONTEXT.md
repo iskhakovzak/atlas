@@ -107,6 +107,7 @@ Order statuses: Ожидает выкупа → Выкуплен → На зар
 - Cards expose the store price, comparison discount and a compact preliminary delivered total computed with the current managed pricing, a conservative chargeable-weight estimate and the standard $10 unknown merchant-shipping reserve. Raw weight and fee lines stay out of the shelf to keep it scannable.
 - Each card has a direct merchant link and a separate cart action. That protected action requires sign-in, opens the exact merchant URL in the existing link-order flow, automatically imports the current price, photo and available colour/size/model matrix, then adds the customer-confirmed combination directly to the cart.
 - The cart write still reimports and verifies the selected merchant variant on the server; a displayed observation or browser-provided amount never bypasses the source-price, currency or availability check.
+- Direct deal navigation also carries a server-bundled editorial fallback for the known title, price, photo, category, conservative weight and applicable size choices. Incomplete or blocked merchant responses no longer erase those fields; successfully imported live variants replace the fallback choices.
 - These observations are not Atlas inventory or checkout-ready catalog records. Coupons, membership, US shipping, variants, availability, weight and the merchant price must still be checked through the protected Atlas import flow.
 
 ## Unified option matrix — 12 September 2026
