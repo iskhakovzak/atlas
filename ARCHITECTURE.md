@@ -69,7 +69,7 @@ market_accounts:
 
 market_rate_limits stores per-minute import counters and expiry.
 
-market_settings stores the current versioned pricing JSON, policy JSON and editorial `catalog` JSON with update identity. Catalog writes use a separate document revision and compare-and-swap update; public reads expose only current published snapshots. market_import_cache stores allowlisted extracted product payloads for ten minutes.
+market_settings stores the current versioned pricing JSON, policy JSON and editorial `catalog` JSON with update identity. Catalog writes use a separate document revision and compare-and-swap update; public reads expose only current published snapshots. On read, the server additively reconciles newly bundled merchant records into the same D1 document using a compare-and-swap write. Existing entries—including hidden products and operator edits—win by stable ID or canonical source URL. market_import_cache stores allowlisted extracted product payloads for ten minutes.
 
 market_identity_documents stores owner, private R2 object key, safe file metadata, confirmation status and confirmed JSON. Passport bytes are stored in private BUCKET R2 and never exposed through a public URL.
 
@@ -100,7 +100,7 @@ Action types additionally include identity-confirm, identity-clear, declaration-
 
 Linked products pass an additional source-freshness boundary in `/api/actions`: the server fetches the allowlisted public page on cart addition and checkout, resolves the stored optional merchant variant ID (or exact label fallback), and compares availability, currency and source price before the domain action runs. This check never trusts client-supplied freshness timestamps and sends no store credentials. Catalog rechecks use the same bounded importer; change and error markers remain optional fields in the existing versioned catalog JSON.
 
-When a public catalog or deal card opens `/order-by-link?url=…`, the client auto-starts the protected import instead of asking the customer to submit the same URL again. It renders the imported colour/size/model matrix and preliminary calculation, then submits a normal `cart-add` action only after the customer confirms the selected combination. The link query is navigation context only: the action route repeats source verification before persisting the cart line.
+When a public catalog card opens `/order-by-link?url=…`, the client auto-starts the protected import instead of asking the customer to submit the same URL again. It renders the imported colour/size/model matrix and preliminary calculation, then submits a normal `cart-add` action only after the customer confirms the selected combination. The link query is navigation context only: the action route repeats source verification before persisting the cart line. The public grid does not append separate client-only products: catalog administration, collections, favourites and ordering all resolve the same D1-backed catalog IDs and published snapshots.
 
 Pricing stores base international freight and delivery margin separately. Operational projection uses the current payable amount and creates separate fee lines for approved change requests while the original quote remains untouched. Warehouse receiving requires a saved inspection; damaged or mismatched intake needs an approved resolution created after that inspection.
 

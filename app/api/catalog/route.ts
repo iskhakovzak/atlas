@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import {database,identity,operator,sameOrigin,requestJson,json,failure,HttpError,pricing} from '@/lib/market/server';
 import {readCatalog,persistCatalog} from '@/lib/market/catalog-server';
-import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,recheckedDraft,changeCatalog,publicCatalog} from '@/lib/market/catalog-editor';
+import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,recheckedDraft,changeCatalog,publicCatalog,catalogMaxEntries} from '@/lib/market/catalog-editor';
 import {fetchProduct,fetchCollectionLinks} from '@/lib/importer/fetch';
 
 const ids=z.array(z.string().min(1).max(100)).min(1).max(100);
@@ -41,7 +41,7 @@ export async function POST(request:Request){try{
     const data=await fetchProduct(sourceUrl),draft=importDraft(data,command.collectionIds,command.country,Date.now());
     const existing=document.entries.find(e=>canonicalCatalogUrl(e.draft.sourceUrl)===draft.sourceUrl||canonicalCatalogUrl(e.draft.sourceUrl)===sourceUrl);
     if(existing){const mergedCollections=[...new Set([...existing.draft.collectionIds,...command.collectionIds])];existing.draft=recheckedDraft(existing.draft,draft);existing.draft.collectionIds=mergedCollections;}
-    else{if(document.entries.length>=100)throw new HttpError(400,'В каталоге уже 100 товаров.');document.entries.push({id:'find-'+crypto.randomUUID(),draft});}
+    else{if(document.entries.length>=catalogMaxEntries)throw new HttpError(400,`В каталоге уже ${catalogMaxEntries} товаров.`);document.entries.push({id:'find-'+crypto.randomUUID(),draft});}
     document.revision++;
     await persistCatalog(document,raw,user,'catalog.import');return json({document,importedId:existing?.id??document.entries.at(-1)!.id});
   }

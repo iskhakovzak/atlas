@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import {merchantFinds, type MerchantFind} from './catalog.ts';
+import {bundledMerchantFinds, type MerchantFind} from './catalog.ts';
 import {toUsd,paddedWeight,currencies} from './world.ts';
 import {tariff,type Pricing} from './domain.ts';
 import {safeImage,type Extracted} from '../importer/extract.ts';
@@ -20,9 +20,20 @@ export const collectionSchema=z.object({id:text.min(1).max(80),name:text.min(1).
 export type CatalogCollection=z.infer<typeof collectionSchema>;
 export const catalogEntrySchema=z.object({id:text.min(1).max(100),draft:catalogDraftSchema,published:catalogDraftSchema.optional(),publishedAt:z.number().optional()});
 export type CatalogEntry=z.infer<typeof catalogEntrySchema>;
-export const catalogDocumentSchema=z.object({revision:z.number().int().nonnegative(),entries:z.array(catalogEntrySchema).max(100),collections:z.array(collectionSchema).max(30)});
+export const catalogMaxEntries=100;
+export const catalogDocumentSchema=z.object({revision:z.number().int().nonnegative(),entries:z.array(catalogEntrySchema).max(catalogMaxEntries),collections:z.array(collectionSchema).max(30)});
 export type CatalogDocument=z.infer<typeof catalogDocumentSchema>;
 export const catalogLifetime=7*24*60*60*1000;
+
+function bundledDraft(item:MerchantFind):CatalogDraft{
+  return catalogDraftSchema.parse({
+    sourceUrl:item.sourceUrl!,name:item.name,brand:item.brand,category:item.category as CatalogDraft['category'],
+    image:item.image,images:[item.image],price:item.sourcePrice,currency:item.sourceCurrency??'USD',
+    referencePrice:item.referenceUsd,country:item.country??'',boxedWeight:item.boxedWeight??1,
+    variants:item.variants.map(label=>({label,size:/^(?:US )?\d+(?:\.5)?$|^(?:XS|S|M|L|XL|\dXL)$/i.test(label)?label:undefined,available:true})),
+    collectionIds:item.collectionIds??[],description:item.description??'',checkedAt:Date.parse(item.observedOn),warnings:[],
+  });
+}
 
 export function canonicalCatalogUrl(value:string){
   const url=new URL(value);
@@ -31,10 +42,25 @@ export function canonicalCatalogUrl(value:string){
   url.searchParams.sort();return url.href;
 }
 export function initialCatalog():CatalogDocument{
-  return {revision:0,collections:[],entries:merchantFinds.map(item=>{
-    const draft:CatalogDraft={sourceUrl:item.sourceUrl!,name:item.name,brand:item.brand,category:item.category as CatalogDraft['category'],image:item.image,images:[item.image],price:item.sourcePrice,currency:item.sourceCurrency??'USD',referencePrice:item.referenceUsd,country:item.country??'',boxedWeight:item.boxedWeight??1,variants:[],collectionIds:[],description:item.description??'',checkedAt:Date.parse(item.observedOn),warnings:[]};
-    return{id:item.id,draft,published:draft,publishedAt:Date.parse(item.observedOn)};
+  return {revision:0,collections:[],entries:bundledMerchantFinds.map(item=>{
+    const draft=bundledDraft(item);
+    return{id:item.id,draft,published:structuredClone(draft),publishedAt:Date.parse(item.observedOn)};
   })};
+}
+
+/** Adds newly bundled products to an existing D1 catalog without overwriting edits or hidden entries. */
+export function synchronizeBundledCatalog(current:CatalogDocument){
+  const next=structuredClone(current);let added=0;
+  for(const seed of initialCatalog().entries){
+    const duplicate=next.entries.some(entry=>{
+      if(entry.id===seed.id)return true;
+      try{return canonicalCatalogUrl(entry.draft.sourceUrl)===canonicalCatalogUrl(seed.draft.sourceUrl)}catch{return entry.draft.sourceUrl===seed.draft.sourceUrl}
+    });
+    if(duplicate||next.entries.length>=catalogMaxEntries)continue;
+    next.entries.push(seed);added++;
+  }
+  if(added)next.revision++;
+  return {document:catalogDocumentSchema.parse(next),added};
 }
 export function importDraft(data:Extracted,collectionIds:string[],country:string,now=Date.now()):CatalogDraft{
   const priors:Record<string,number>={'Обувь':1.3,'Одежда':0.6,'Электроника':1,'Аксессуары':0.7,'Красота и уход':0.6,'Дом и быт':2,'Спорт':1};
@@ -68,7 +94,8 @@ export function recheckedDraft(previous:CatalogDraft,fresh:CatalogDraft){
 export function publicCatalog(document:CatalogDocument,pricing:Pricing,now=Date.now()){
   const products:MerchantFind[]=document.entries.flatMap(entry=>{
     const d=entry.published;if(!d||catalogIssues(d,now,pricing.rates).length)return [];
-    return [{id:entry.id,name:d.name,brand:d.brand,category:d.category,store:new URL(d.sourceUrl).hostname.replace(/^www\./,''),observedOn:new Date(d.checkedAt).toISOString().slice(0,10),usd:toUsd(d.price!,d.currency,pricing.rates),sourcePrice:d.price,sourceCurrency:d.currency,referenceUsd:d.referencePrice&&d.referencePrice>d.price!?toUsd(d.referencePrice,d.currency,pricing.rates):undefined,image:d.image,sourceUrl:d.sourceUrl,description:d.description,country:d.country,boxedWeight:d.boxedWeight,weight:paddedWeight(d.boxedWeight),variants:['Уточнить вариант в магазине'],sourceShipping:10,sourceShippingUsd:10,sourceShippingCurrency:'USD',sourceShippingEstimated:true,shippingKnown:false,sourceExpiresAt:d.checkedAt+catalogLifetime,collectionIds:d.collectionIds}];
+    const variants=d.variants.filter(v=>v.available).map(v=>v.label);
+    return [{id:entry.id,name:d.name,brand:d.brand,category:d.category,store:new URL(d.sourceUrl).hostname.replace(/^www\./,''),observedOn:new Date(d.checkedAt).toISOString().slice(0,10),usd:toUsd(d.price!,d.currency,pricing.rates),sourcePrice:d.price,sourceCurrency:d.currency,referenceUsd:d.referencePrice&&d.referencePrice>d.price!?toUsd(d.referencePrice,d.currency,pricing.rates):undefined,image:d.image,sourceUrl:d.sourceUrl,description:d.description,country:d.country,boxedWeight:d.boxedWeight,weight:paddedWeight(d.boxedWeight),variants:variants.length?variants:['Уточнить вариант в магазине'],sourceShipping:10,sourceShippingUsd:10,sourceShippingCurrency:'USD',sourceShippingEstimated:true,shippingKnown:false,sourceExpiresAt:d.checkedAt+catalogLifetime,collectionIds:d.collectionIds}];
   });
   const collections=document.collections.filter(c=>c.visible).sort((a,b)=>a.position-b.position).map(c=>({...c,productIds:products.filter(p=>p.collectionIds?.includes(c.id)).map(p=>p.id)})).filter(c=>c.productIds.length);
   return {products,collections};

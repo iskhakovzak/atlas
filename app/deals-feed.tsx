@@ -11,7 +11,6 @@ import { dealCopy } from '@/lib/market/deal-copy';
 import { useMarket } from '@/lib/market/store';
 import { signInPath } from '@/lib/market/access';
 import { Choice, Empty, ProductImage } from './market-ui';
-import { communityCatalogProducts } from '@/lib/market/community-deals';
 
 export function DealsFeed({ favorites, select }: { favorites: boolean; select: (product: Product) => void }) {
   const { state, pricing, ready, status, act,catalogProducts,collections,catalogError } = useMarket();
@@ -22,7 +21,7 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
   const [urlError, setUrlError] = useState('');
   const locale = state.communication.language;
   const copy = dealCopy(locale);
-  const products = [...catalogProducts, ...communityCatalogProducts.filter(item => !catalogProducts.some(product => product.id === item.id || product.sourceUrl === item.sourceUrl))];
+  const products = catalogProducts;
   const merchantRecord=(product:Product)=>products.find(p=>p.id===product.id);
   const fmt = (n: number, currency = 'UZS') => new Intl.NumberFormat(locale === 'ru' ? 'ru-RU' : locale === 'uz' ? 'uz-UZ' : 'en-US', { style: 'currency', currency, maximumFractionDigits: currency === 'UZS' ? 0 : 2 }).format(n);
   const categories = [{ value: '', label: copy.all }, { value: 'Обувь', label: copy.footwear }, { value: 'Одежда', label: copy.clothing }, { value: 'Электроника', label: copy.electronics },{value:'Красота и уход',label:locale==='ru'?'Красота и уход':locale==='uz'?'Go‘zallik va parvarish':'Beauty & care'},...['Аксессуары','Дом и быт','Спорт','Другое'].filter(value=>products.some(p=>p.category===value)).map(value=>({value,label:value}))];

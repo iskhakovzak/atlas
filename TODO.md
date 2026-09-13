@@ -35,6 +35,7 @@
 
 ## Importing
 
+- [x] Reconcile source-controlled merchant additions into the existing D1 catalog without overwriting operator edits or hidden records; use the same published records in admin, collections, public catalog and ordering.
 - [x] Add an operator bulk-link catalog workflow with editable drafts, safe collection-page discovery and explicit publish/hide actions.
 - [x] Add D1-managed RU/UZ/EN home collections so clothing, cosmetics, brands and seasonal selections do not require a code deployment.
 - [ ] Add a scheduled catalog-refresh queue and operator alerts for expired, changed-price or unavailable published products. Current refresh remains manual and publication is always reviewed.

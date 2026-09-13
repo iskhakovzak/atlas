@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {catalogIssues,changeCatalog,importDraft,initialCatalog,publicCatalog,recheckedDraft} from '../lib/market/catalog-editor.ts';
+import {catalogIssues,changeCatalog,importDraft,initialCatalog,publicCatalog,recheckedDraft,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
+import {communityCatalogProducts} from '../lib/market/community-deals.ts';
 import {tariff} from '../lib/market/domain.ts';
 
 const extracted={sourceUrl:'https://kyliecosmetics.com/products/matte-lip-kit?utm_source=mail',title:'Matte Lip Kit',brand:'Kylie Cosmetics',category:'Красота и уход',image:'https://cdn.shopify.com/lip.jpg',images:['https://cdn.shopify.com/lip.jpg'],price:35,currency:'USD',variants:[{id:'bare-full',label:'Bare · Full size',color:'Bare',size:'Full size',available:true,price:35}],warnings:['Доставка неизвестна'],method:'Shopify'};
@@ -40,4 +41,21 @@ test('hiding removes a product from the public feed without deleting its draft',
  let doc=initialCatalog(),id=doc.entries[0].id;doc=changeCatalog(doc,{kind:'hide',ids:[id]},Date.parse('2026-09-12'),tariff);
  assert.equal(doc.entries[0].published,undefined);assert(doc.entries[0].draft);
  assert(!publicCatalog(doc,tariff,Date.parse('2026-09-12')).products.some(p=>p.id===id));
+});
+test('bundled products join existing catalogs without overwriting operator state',()=>{
+ const complete=initialCatalog(),seed=communityCatalogProducts[0];
+ const current=structuredClone(complete);
+ current.entries=current.entries.filter(entry=>entry.id!==seed.id);
+ delete current.entries[0].published;current.entries[0].draft.name='Название администратора';
+ const synced=synchronizeBundledCatalog(current);
+ assert.equal(synced.added,1);
+ assert.equal(synced.document.revision,current.revision+1);
+ assert.equal(synced.document.entries[0].draft.name,'Название администратора');
+ assert.equal(synced.document.entries[0].published,undefined);
+ assert(synced.document.entries.some(entry=>entry.id===seed.id&&entry.published));
+});
+test('published catalog carries seeded size choices into the order flow',()=>{
+ const shoe=communityCatalogProducts.find(product=>product.id==='merrell-wrapt');
+ const feed=publicCatalog(initialCatalog(),tariff,Date.parse('2026-09-13T12:00:00Z'));
+ assert.deepEqual(feed.products.find(product=>product.id===shoe.id).variants,shoe.variants);
 });

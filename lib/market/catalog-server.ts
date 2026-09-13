@@ -1,9 +1,21 @@
 import {database,HttpError} from './server';
-import {catalogDocumentSchema,initialCatalog,type CatalogDocument} from './catalog-editor';
+import {catalogDocumentSchema,initialCatalog,synchronizeBundledCatalog,type CatalogDocument} from './catalog-editor';
 
 export async function readCatalog(){
-  const row=await database().prepare("SELECT value FROM market_settings WHERE key='catalog'").first<{value:string}>();
-  return {raw:row?.value??null,document:row?catalogDocumentSchema.parse(JSON.parse(row.value)):initialCatalog()};
+  const db=database();
+  for(let attempt=0;attempt<2;attempt++){
+    const row=await db.prepare("SELECT value FROM market_settings WHERE key='catalog'").first<{value:string}>();
+    const current=row?catalogDocumentSchema.parse(JSON.parse(row.value)):initialCatalog();
+    const synced=synchronizeBundledCatalog(current),value=JSON.stringify(synced.document),now=Date.now();
+    if(row&&!synced.added)return {raw:row.value,document:synced.document};
+    const result=row
+      ?await db.prepare("UPDATE market_settings SET value=?,updated_at=?,updated_by='atlas.catalog.sync' WHERE key='catalog' AND value=?").bind(value,now,row.value).run()
+      :await db.prepare("INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES ('catalog',?,?, 'atlas.catalog.sync') ON CONFLICT(key) DO NOTHING").bind(value,now).run();
+    if(result.meta.changes)return {raw:value,document:synced.document};
+  }
+  const row=await db.prepare("SELECT value FROM market_settings WHERE key='catalog'").first<{value:string}>();
+  if(!row)return {raw:null,document:initialCatalog()};
+  return {raw:row.value,document:catalogDocumentSchema.parse(JSON.parse(row.value))};
 }
 export async function persistCatalog(next:CatalogDocument,previous:string|null,user:{userId:string;email:string},action:string){
   const value=JSON.stringify(catalogDocumentSchema.parse(next));

@@ -242,6 +242,13 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - These additions extend existing optional JSON fields only; no D1 migration or rewrite of old carts, catalog entries or orders is required.
 - Verification for this slice: lint, 53 domain/security tests, TypeScript, production build and the authenticated checkout/catalog/operations smoke passed.
 
+## Unified catalog synchronization — 13 September 2026
+
+- Source-controlled merchant additions are now merged into the existing versioned D1 catalog on the server. The merge is additive: operator edits, collection assignments, published snapshots and hidden entries are never overwritten.
+- Public catalog, home collections, favourites, link ordering and the administrator catalog workspace now consume the same D1-backed published records. The former client-only deal merge was removed, so operator publish/hide actions control every customer surface.
+- Newly bundled records retain their reference price and known size choices. Public catalog snapshots pass available variant labels into link ordering instead of replacing them with a generic placeholder.
+- Merrell is now an explicit allowlisted merchant root so its catalog record and protected source recheck follow the same importer security boundary.
+
 ## Pricing, approvals, warehouse and catalog release — 12 September 2026
 
 - Quote lines now remain mathematically independent: base international freight no longer contains the delivery margin, and the total adds that margin exactly once. Cart, order details and operational fee projections include service, buyout, conversion, freight margin and optional-service lines without omissions.
