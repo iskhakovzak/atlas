@@ -1,4 +1,5 @@
 import type { Product } from './domain.ts';
+import {communityCatalogProducts} from './community-deals.ts';
 
 // Editorial snapshots from the linked official US product pages, not an inventory feed.
 // Prices/options must be fetched and confirmed in the link-order flow before checkout.
@@ -42,8 +43,10 @@ export const merchantFinds: MerchantFind[] = [
   },
 ];
 
+export const bundledMerchantFinds: MerchantFind[] = [...merchantFinds, ...communityCatalogProducts];
+
 export function merchantRecord(product: Product) {
-  return merchantFinds.find(item => item.id === product.id && item.sourceUrl === product.sourceUrl && item.usd === product.usd);
+  return bundledMerchantFinds.find(item => item.id === product.id && item.sourceUrl === product.sourceUrl && item.usd === product.usd);
 }
 export function catalogFreshness(product: Product, now = Date.now()) {
   const expiresAt = product.sourceExpiresAt ?? 0;
@@ -55,5 +58,6 @@ export function visibleMerchantFinds(now = Date.now()) {
   return merchantFinds.filter((product) => catalogFreshness(product, now) !== 'expired');
 }
 export function findOrderUrl(product: Product) {
-  return '/order-by-link?url=' + encodeURIComponent(product.sourceUrl ?? '');
+  const deal = communityCatalogProducts.find(item => item.id === product.id && item.sourceUrl === product.sourceUrl);
+  return '/order-by-link?url=' + encodeURIComponent(product.sourceUrl ?? '') + (deal ? '&deal=' + encodeURIComponent(deal.id) : '');
 }

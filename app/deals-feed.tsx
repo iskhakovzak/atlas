@@ -4,14 +4,14 @@ import { useState } from 'react';
 import { ArrowRight, ArrowUpRight, Flame, Heart, Link2, Search, SlidersHorizontal, X } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from '@/components/site-link';
-import { price, validateSource, type Product } from '@/lib/market/domain';
+import { validateSource, type Product } from '@/lib/market/domain';
 import { findOrderUrl, catalogFreshness } from '@/lib/market/catalog';
 import { defaultDealFilters, filterDeals, type DealFilters } from '@/lib/market/deals';
 import { dealCopy } from '@/lib/market/deal-copy';
 import { useMarket } from '@/lib/market/store';
 import { signInPath } from '@/lib/market/access';
 import { Choice, Empty, ProductImage } from './market-ui';
-import { communityDeals, communityDiscount, communityEstimatedWeight } from '@/lib/market/community-deals';
+import { communityCatalogProducts } from '@/lib/market/community-deals';
 
 export function DealsFeed({ favorites, select }: { favorites: boolean; select: (product: Product) => void }) {
   const { state, pricing, ready, status, act,catalogProducts,collections,catalogError } = useMarket();
@@ -20,11 +20,9 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
   const [saving, setSaving] = useState<string | null>(null);
   const [url, setUrl] = useState('');
   const [urlError, setUrlError] = useState('');
-  const [communityCategory, setCommunityCategory] = useState('');
-  const [showAllCommunity, setShowAllCommunity] = useState(false);
   const locale = state.communication.language;
   const copy = dealCopy(locale);
-  const products = catalogProducts;
+  const products = [...catalogProducts, ...communityCatalogProducts.filter(item => !catalogProducts.some(product => product.id === item.id || product.sourceUrl === item.sourceUrl))];
   const merchantRecord=(product:Product)=>products.find(p=>p.id===product.id);
   const fmt = (n: number, currency = 'UZS') => new Intl.NumberFormat(locale === 'ru' ? 'ru-RU' : locale === 'uz' ? 'uz-UZ' : 'en-US', { style: 'currency', currency, maximumFractionDigits: currency === 'UZS' ? 0 : 2 }).format(n);
   const categories = [{ value: '', label: copy.all }, { value: 'Обувь', label: copy.footwear }, { value: 'Одежда', label: copy.clothing }, { value: 'Электроника', label: copy.electronics },{value:'Красота и уход',label:locale==='ru'?'Красота и уход':locale==='uz'?'Go‘zallik va parvarish':'Beauty & care'},...['Аксессуары','Дом и быт','Спорт','Другое'].filter(value=>products.some(p=>p.category===value)).map(value=>({value,label:value}))];
@@ -38,18 +36,6 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
   const matching = candidates.filter(product => [product.name, titles[product.id], product.brand, product.category, product.country, categories.find(c => c.value === product.category)?.label, countries.find(c => c.value === product.country)?.label].join(' ').toLocaleLowerCase().includes(search));
   const list = filterDeals(matching, pricing, { ...filters, search: '' },products);
   const hasFilters = !!(filters.search || filters.category || filters.country || filters.maxTotal);
-  const communityCopy = locale === 'ru' ? {
-    eyebrow: 'Выгодные находки', title: 'Лучшие предложения сегодня', intro: 'Сразу видна цена товара и примерный итог до Узбекистана. Atlas перепроверит магазин перед оформлением.', all: 'Все', more: 'Показать ещё', collapse: 'Свернуть', open: 'В магазин', order: 'В корзину', delivered: 'Примерно до Узбекистана', estimate: 'Точно — после проверки', note: 'Расчёт предварительный, таможенные платежи не включены. Цена, наличие, размер, доставка магазина и итоговый вес будут проверены перед заказом.', checked: 'Проверено',
-  } : locale === 'uz' ? {
-    eyebrow: 'Foydali topilmalar', title: 'Bugungi eng yaxshi takliflar', intro: 'Mahsulot narxi va O‘zbekistongacha taxminiy jami summa darhol ko‘rinadi. Atlas rasmiylashtirishdan oldin do‘konni qayta tekshiradi.', all: 'Barchasi', more: 'Yana ko‘rsatish', collapse: 'Yig‘ish', open: 'Do‘konga', order: 'Savatga', delivered: 'O‘zbekistongacha taxminan', estimate: 'Aniq summa — tekshiruvdan so‘ng', note: 'Hisob-kitob dastlabki, bojxona to‘lovlari kiritilmagan. Narx, mavjudlik, o‘lcham, do‘kon yetkazib berishi va yakuniy vazn buyurtmadan oldin tekshiriladi.', checked: 'Tekshirildi',
-  } : {
-    eyebrow: 'Best finds', title: 'Today’s top deals', intro: 'See the store price and an estimated total to Uzbekistan at a glance. Atlas rechecks the store before checkout.', all: 'All', more: 'Show more', collapse: 'Show less', open: 'Visit store', order: 'Add to cart', delivered: 'Estimated to Uzbekistan', estimate: 'Final total after verification', note: 'This estimate excludes customs charges. Price, availability, options, store shipping and final weight are checked before ordering.', checked: 'Checked',
-  };
-  const communityCategoryLabels: Record<string,string> = locale === 'ru' ? {Одежда:'Одежда',Обувь:'Обувь',Красота:'Красота',Техника:'Техника',Дом:'Дом'} : locale === 'uz' ? {Одежда:'Kiyim',Обувь:'Poyabzal',Красота:'Go‘zallik',Техника:'Texnika',Дом:'Uy'} : {Одежда:'Clothing',Обувь:'Shoes',Красота:'Beauty',Техника:'Tech',Дом:'Home'};
-  const communityCategories = ['', 'Одежда', 'Обувь', 'Красота', 'Техника', 'Дом'];
-  const communityList = communityDeals
-    .filter(deal => communityCategory === '' || deal.category === communityCategory)
-    .sort((a, b) => communityDiscount(b) - communityDiscount(a));
 
   async function favorite(product: Product) {
     setSaving(product.id);
@@ -62,21 +48,6 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
       {ready&&<Link className="btn secondary" href={favorites ? '/' : '/favorites'}><Heart size={17}/>{favorites ? copy.catalog : copy.saved}<span className="finds-count">{favorites ? products.length : state.favorites.filter(id => products.some(product => product.id === id)).length}</span></Link>}
     </section>
     {catalogError&&<p role="alert">{catalogError}</p>}
-    {!favorites&&<section className="community-showcase" aria-labelledby="community-title">
-      <div className="community-heading"><div><span className="eyebrow"><Flame size={14}/> {communityCopy.eyebrow}</span><h2 id="community-title">{communityCopy.title}</h2><p>{communityCopy.intro}</p></div></div>
-      <div className="community-tabs">{communityCategories.map(category=><button type="button" key={category||'all'} className={communityCategory===category?'active':''} onClick={()=>{setCommunityCategory(category);setShowAllCommunity(false)}}>{category?communityCategoryLabels[category]:communityCopy.all}</button>)}</div>
-      <div className="community-grid">{communityList.slice(0,showAllCommunity?communityList.length:8).map(deal=>{
-        const discount=communityDiscount(deal);
-        const estimatedWeight=communityEstimatedWeight(deal);
-        const estimate=price(deal.price,estimatedWeight,1,10,pricing);
-        const orderUrl='/order-by-link?url='+encodeURIComponent(deal.url)+'&deal='+encodeURIComponent(deal.id);
-        return <article className="community-card" key={deal.id}>
-          <a className="community-product-link" href={deal.url} target="_blank" rel="noopener noreferrer" aria-label={`${deal.title} · ${communityCopy.open}`}><div className="community-art"><ProductImage product={{id:deal.id,name:deal.title,brand:deal.store,category:deal.category,usd:deal.price,weight:estimatedWeight,image:deal.image,variants:['—']}}/><span>{deal.store}</span><strong>−{discount}%</strong></div></a>
-          <div className="community-body"><span className="community-category">{communityCategoryLabels[deal.category]} · {deal.store}</span><a className="community-title" href={deal.url} target="_blank" rel="noopener noreferrer"><h3>{deal.title}</h3></a><div className="community-price"><b>{fmt(deal.price,'USD')}</b><del>{fmt(deal.referencePrice,'USD')}</del></div><div className="community-estimate"><span>{communityCopy.delivered}</span><strong>{fmt(estimate.total)}</strong><small>{communityCopy.estimate}</small></div><div className="community-checked"><small>{communityCopy.checked} · {deal.observedOn}</small></div><div className="community-actions"><a className="btn primary" href={status==='guest'?signInPath(orderUrl):orderUrl} target={status==='guest'?'_top':undefined}>{communityCopy.order}<ArrowRight size={15}/></a><a className="community-store-link" href={deal.url} target="_blank" rel="noopener noreferrer">{communityCopy.open}<ArrowUpRight size={14}/></a></div></div>
-        </article>})}</div>
-      {communityList.length>8&&<button type="button" className="btn secondary community-more" onClick={()=>setShowAllCommunity(value=>!value)}>{showAllCommunity?communityCopy.collapse:`${communityCopy.more} ${communityList.length-8}`}</button>}
-      <p className="community-note">{communityCopy.note}</p>
-    </section>}
     {!!collections.length&&<nav className="find-collections" aria-label={locale==='ru'?'Подборки':locale==='uz'?'To‘plamlar':'Collections'}>
       <button type="button" className={!collectionId?'active':''} onClick={()=>setCollectionId('')}>{copy.all}</button>
       {collections.map(collection=><button type="button" key={collection.id} className={collectionId===collection.id?'active':''} onClick={()=>setCollectionId(collection.id)}><b>{locale==='en'?collection.nameEn||collection.name:locale==='uz'?collection.nameUz||collection.name:collection.name}</b><span>{collection.productIds.length}</span></button>)}
@@ -98,6 +69,7 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
         return <article className="find-card" key={product.id}>
           <div className="find-visual"><button className="find-photo" type="button" onClick={() => select(product)} aria-label={name}><ProductImage product={{ ...product, name }} /></button>
             <span className="find-merchant">{merchantRecord(product)?.store}</span><span className={`find-freshness ${catalogFreshness(product)}`}>{locale==='ru'?'Проверено':locale==='uz'?'Tekshirilgan':'Checked'} · {merchantRecord(product)?.observedOn}</span>
+            {discount >= 40 && <span className="find-top-deal"><Flame size={14}/>{copy.topDeal}</span>}
             {ready&&<button type="button" disabled={saving !== null} className={'find-save ' + (isSaved ? 'saved' : '')} aria-pressed={isSaved} aria-label={(isSaved ? copy.remove : copy.save) + ': ' + name} title={!ready ? copy.signin : saving === product.id ? copy.savingState : isSaved ? copy.remove : copy.save} onClick={() => void favorite(product)}><Heart size={20}/></button>}
           </div>
           <div className="find-content"><div className="find-meta"><span>{categories.find(c => c.value === product.category)?.label ?? product.category}</span><span>{countries.find(c => c.value === product.country)?.label ?? product.country}</span></div>

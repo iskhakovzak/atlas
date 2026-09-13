@@ -8,7 +8,7 @@ import { MarketProvider } from "@/lib/market/store";
 
 export const metadata: Metadata = {
   title: "Atlas — покупки со всего мира",
-  description: "Находки из зарубежных магазинов. Сравнивайте цены и рассчитывайте доставку в Узбекистан.",
+  description: "Каталог товаров из зарубежных магазинов. Сравнивайте цены и рассчитывайте доставку в Узбекистан.",
   other: {
     "codex-preview": "development",
   },

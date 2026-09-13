@@ -2,11 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   communityDeals,
+  communityCatalogProducts,
   communityEstimatedWeight,
   communityFallbackOptions,
   communityProductCategory,
   hasSelectableDimensions,
 } from '../lib/market/community-deals.ts';
+import {findOrderUrl} from '../lib/market/catalog.ts';
 
 test('every editorial deal has a usable cart fallback', () => {
   for (const deal of communityDeals) {
@@ -27,4 +29,14 @@ test('sized products expose choices while fixed products keep one variant', () =
 test('technical merchant variants do not count as size or colour choices', () => {
   assert.equal(hasSelectableDimensions([{ label: 'Default Title' }]), false);
   assert.equal(hasSelectableDimensions([{ label: 'US 10', size: 'US 10' }]), true);
+});
+
+test('editorial deals are ordinary catalog products with direct order intent', () => {
+  assert.equal(communityCatalogProducts.length, communityDeals.length);
+  for (const product of communityCatalogProducts) {
+    assert.ok(product.sourceUrl && product.sourcePrice > 0 && product.image);
+    const order = new URL(findOrderUrl(product), 'https://atlas.test');
+    assert.equal(order.searchParams.get('url'), product.sourceUrl);
+    assert.equal(order.searchParams.get('deal'), product.id);
+  }
 });

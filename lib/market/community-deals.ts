@@ -1,3 +1,5 @@
+import type { Product } from './domain.ts';
+
 export type CommunityDealCategory = 'Одежда' | 'Обувь' | 'Красота' | 'Техника' | 'Дом';
 
 export type CommunityDeal = {
@@ -62,3 +64,25 @@ export function communityProductCategory(deal: CommunityDeal) {
   if (deal.category === 'Дом') return 'Дом и быт';
   return deal.category;
 }
+
+export type CommunityCatalogProduct = Product & {
+  store: string;
+  observedOn: string;
+  referenceUsd: number;
+};
+
+export const communityCatalogProducts: CommunityCatalogProduct[] = communityDeals.map(deal => {
+  const weight = communityEstimatedWeight(deal);
+  return {
+    id: deal.id, name: deal.title, brand: deal.store, store: deal.store,
+    category: communityProductCategory(deal), country: 'США', usd: deal.price,
+    sourcePrice: deal.price, sourceCurrency: 'USD', sourceShipping: 10,
+    sourceShippingCurrency: 'USD', sourceShippingUsd: 10, sourceShippingEstimated: true,
+    shippingKnown: false, boxedWeight: Math.max(0.1, weight - 0.5), weight,
+    weightOrigin: 'Оценка Atlas; уточняется перед оформлением', image: deal.image,
+    variants: communityFallbackOptions(deal).map(option => option.label), sourceUrl: deal.url,
+    sourceExpiresAt: Date.parse(`${deal.observedOn}T23:59:59Z`) + 7 * 24 * 60 * 60 * 1000,
+    observedOn: deal.observedOn, referenceUsd: deal.referencePrice,
+    description: 'Товар из каталога Atlas. Цена, выбранный вариант и наличие повторно проверяются в магазине перед добавлением в корзину.',
+  };
+});

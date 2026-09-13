@@ -29,7 +29,7 @@ Validation baseline: lint, 47 tests, TypeScript, production build, authenticated
 
 | Route | Function |
 | --- | --- |
-| / | Sourced merchant finds, favourites, filters and quick link entry |
+| / | Unified product catalog, favourites, filters and quick link entry |
 | /order-by-link | Import product and create quote |
 | /cart | Cart, balance use, customs consent, simulated checkout |
 | /orders | Customer orders, photo refresh and extra approvals |
@@ -107,11 +107,12 @@ Order statuses: Ожидает выкупа → Выкуплен → На зар
 - Draft and published snapshots are separate. Editing a draft never silently changes the home page; publish copies a reviewed snapshot, hide removes it from the public feed without deleting the draft, and stale/sold-out/incomplete drafts cannot be published.
 - Catalog state is stored as versioned JSON in the existing D1 `market_settings` table with optimistic revision checks and operator audit events. The public endpoint returns only current published snapshots and falls back to the bundled catalog if D1 is temporarily unavailable.
 
-## Direct merchant deal discovery — 13 September 2026
+## Unified merchant catalog — 13 September 2026
 
-- The public home feed includes a separate editorial shelf of 13 dated deal observations across apparel, shoes, beauty, technology and home goods.
+- The former separate deal shelf was removed. Its 13 dated merchant observations now appear as ordinary products inside the main catalog and participate in the same search, category, country, budget, sorting and favourites flow.
 - Every card uses a real merchant product photo and opens the exact product page at Merrell, Brooks, Nike, Amazon, Target, Samsung or Walmart. No deal-aggregator page appears in the customer journey.
-- Cards expose the store price, comparison discount and a compact preliminary delivered total computed with the current managed pricing, a conservative chargeable-weight estimate and the standard $10 unknown merchant-shipping reserve. Raw weight and fee lines stay out of the shelf to keep it scannable.
+- Cards expose the store price, comparison discount and a compact preliminary delivered total computed with the current managed pricing, a conservative chargeable-weight estimate and the standard $10 unknown merchant-shipping reserve.
+- Products with a recorded comparison discount of at least 40% receive a compact localized “Top price” badge. The percentage remains tied only to the exact merchant listing and recorded comparison price.
 - Each card has a direct merchant link and a separate cart action. That protected action requires sign-in, opens the exact merchant URL in the existing link-order flow, automatically imports the current price, photo and available colour/size/model matrix, then adds the customer-confirmed combination directly to the cart.
 - The cart write still reimports and verifies the selected merchant variant on the server; a displayed observation or browser-provided amount never bypasses the source-price, currency or availability check.
 - Direct deal navigation also carries a server-bundled editorial fallback for the known title, price, photo, category, conservative weight and applicable size choices. Incomplete or blocked merchant responses no longer erase those fields; successfully imported live variants replace the fallback choices.
@@ -187,7 +188,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 ## Pre-release service experience
 
 - Atlas has a shared blue/navy/lime design system, a link-first home screen with an interactive catalog example, responsive four-step journey, and consistent account/forms/order styling. Existing images, navigation and server actions are retained.
-- The home and favourites use one deals-first feed with search, category/country filters, a delivered-cost budget, percentage/total sorting, saved items, and expandable quote breakdowns. Link entry remains below the feed. The new feed controls and descriptions support RU/UZ/EN; legacy sections and the product sheet retain their existing translations.
+- The home and favourites use one unified catalog with search, category/country filters, a delivered-cost budget, percentage/total sorting, saved items, and expandable quote breakdowns. Link entry remains below the feed. Catalog controls and descriptions support RU/UZ/EN; legacy sections and the product sheet retain their existing translations.
 - The public feed now uses five sourced US listings in lib/market/catalog.ts: Nike Gato LV8, Cortez Leather, Club Hoodie, Anker Nano 30W and Apple AirTag 1-pack. Official product photos were checked for successful image responses. Prices are dated snapshots, not a live inventory feed. Only Gato and Cortez have reference prices taken from the merchant page. Other items have no fabricated discount. UNIQLO candidates were excluded because fresh pricing could not be confirmed.
 - Old demonstration products remain in domain.ts for legacy state/test compatibility but are no longer offered by the feed. Old orders and stored favourite IDs are not rewritten.
 - A catalog item opens a seeded link-order calculation with an unconfirmed variant, estimated weight and $10 merchant-shipping reserve. Customer verification is still required. Catalog snapshots cannot be directly added to cart while shippingKnown is false. The product sheet routes catalog items to this confirmation flow.
