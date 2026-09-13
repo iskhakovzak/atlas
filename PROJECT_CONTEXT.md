@@ -100,6 +100,12 @@ Order statuses: Ожидает выкупа → Выкуплен → На зар
 - Draft and published snapshots are separate. Editing a draft never silently changes the home page; publish copies a reviewed snapshot, hide removes it from the public feed without deleting the draft, and stale/sold-out/incomplete drafts cannot be published.
 - Catalog state is stored as versioned JSON in the existing D1 `market_settings` table with optimistic revision checks and operator audit events. The public endpoint returns only current published snapshots and falls back to the bundled catalog if D1 is temporarily unavailable.
 
+## Community deal discovery — 13 September 2026
+
+- The public home feed includes a separate editorial preview of 16 current Slickdeals observations across apparel, shoes, beauty, technology and home goods.
+- Cards expose the observed USD price, comparison price, computed discount, community score, discussion count and observation date. Category filters and progressive disclosure keep the section compact on mobile.
+- These cards link to Slickdeals for discovery and are not treated as Atlas inventory or checkout-ready catalog records. Coupons, membership, US shipping, variants, availability and the merchant price must still be checked through the protected Atlas import flow.
+
 ## Unified option matrix — 12 September 2026
 
 - Catalog publishing, customer link import and batch import use the same protected `fetchProduct` pipeline. A catalog click opens link order and refreshes the source instead of trusting the editorial snapshot for price or stock.

@@ -77,6 +77,8 @@
 
 ## Known prototype limits
 
+- [ ] Replace the manually observed Slickdeals discovery preview with a licensed/approved affiliate feed and scheduled expiry checks before commercial use.
+
 - [x] Replace public demonstration products with five real merchant snapshots, official photos, dated source prices and direct source links; preserve legacy order snapshots.
 - [x] Add administrator source rechecks through the protected importer and automatically hide expired deal snapshots.
 - [x] Turn successful imports into a reviewed draft/publish workflow; draft edits never silently overwrite the published snapshot.
