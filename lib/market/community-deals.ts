@@ -37,11 +37,11 @@ export const communityDeals: CommunityDeal[] = [
 export const communityDiscount = (deal: CommunityDeal) => Math.round((1 - deal.price / deal.referencePrice) * 100);
 
 export function communityEstimatedWeight(deal: CommunityDeal) {
-  if (deal.category === 'Обувь') return 1.8;
-  if (deal.category === 'Одежда') return deal.id === 'hanes-hoodie' ? 1.3 : deal.id === 'silkworld-swim' ? 0.9 : 1;
-  if (deal.category === 'Техника') return 1.1;
-  if (deal.category === 'Дом') return 2.1;
-  return deal.id === 'real-perfection-brushes' ? 0.9 : deal.id === 'elf-lip-stain' ? 0.7 : 0.65;
+  if (deal.category === 'Обувь') return 2.2;
+  if (deal.category === 'Одежда') return deal.id === 'hanes-hoodie' ? 1.5 : deal.id === 'silkworld-swim' ? 1.1 : 1.2;
+  if (deal.category === 'Техника') return 1.5;
+  if (deal.category === 'Дом') return 2.4;
+  return deal.id === 'real-perfection-brushes' ? 1.1 : deal.id === 'elf-lip-stain' ? 0.9 : 0.8;
 }
 
 export type CommunityDealOption = { label: string; size?: string; color?: string };

@@ -4,6 +4,7 @@ import {toUsd,paddedWeight,currencies} from './world.ts';
 import {tariff,type Pricing} from './domain.ts';
 import {safeImage,type Extracted} from '../importer/extract.ts';
 import {isSupportedStoreHost} from '../importer/stores.ts';
+import {estimatedBoxedWeight} from './weight.ts';
 
 export const catalogCategories=['Обувь','Одежда','Электроника','Аксессуары','Красота и уход','Дом и быт','Спорт','Другое'] as const;
 const text=z.string().trim();
@@ -20,10 +21,23 @@ export const collectionSchema=z.object({id:text.min(1).max(80),name:text.min(1).
 export type CatalogCollection=z.infer<typeof collectionSchema>;
 export const catalogEntrySchema=z.object({id:text.min(1).max(100),draft:catalogDraftSchema,published:catalogDraftSchema.optional(),publishedAt:z.number().optional()});
 export type CatalogEntry=z.infer<typeof catalogEntrySchema>;
+export const catalogAvailabilityReportSchema=z.object({
+  id:text.min(1).max(100),productId:text.min(1).max(100),sourceUrl:text.url().max(3000),
+  answer:z.enum(['available','unavailable']),variant:text.max(140).optional(),reporterId:text.max(320),
+  createdAt:z.number().int().nonnegative(),resolvedAt:z.number().int().nonnegative().optional(),
+});
+export type CatalogAvailabilityReport=z.infer<typeof catalogAvailabilityReportSchema>;
 export const catalogMaxEntries=100;
-export const catalogDocumentSchema=z.object({revision:z.number().int().nonnegative(),entries:z.array(catalogEntrySchema).max(catalogMaxEntries),collections:z.array(collectionSchema).max(30)});
+export const catalogDocumentSchema=z.object({revision:z.number().int().nonnegative(),entries:z.array(catalogEntrySchema).max(catalogMaxEntries),collections:z.array(collectionSchema).max(30),availabilityReports:z.array(catalogAvailabilityReportSchema).max(300).optional()});
 export type CatalogDocument=z.infer<typeof catalogDocumentSchema>;
 export const catalogLifetime=7*24*60*60*1000;
+const legacyBundledWeights:Record<string,number>={
+  'nike-club-fn3859-657':.8,'apple-airtag-1pack-2026':.15,'nike-gato-ih3587-400':1.3,
+  'nike-cortez-dm4044-108':1.3,'anker-nano-a2147113':.2,'merrell-wrapt':1.3,'brooks-revel-7':1.3,
+  'nike-hyperspeed':1.3,'ekouaer-pajama':.5,'hanes-hoodie':.8,'silkworld-swim':.4,
+  'nyx-butter-gloss':.15,'real-perfection-brushes':.4,'laura-geller-balm':.15,'elf-lip-stain':.2,
+  'galaxy-s25-ultra':.6,'moto-g-power':.6,'softsoap-refill':1.6,
+};
 
 function bundledDraft(item:MerchantFind):CatalogDraft{
   return catalogDraftSchema.parse({
@@ -50,21 +64,26 @@ export function initialCatalog():CatalogDocument{
 
 /** Adds newly bundled products to an existing D1 catalog without overwriting edits or hidden entries. */
 export function synchronizeBundledCatalog(current:CatalogDocument){
-  const next=structuredClone(current);let added=0;
+  const next=structuredClone(current);let added=0,updated=0;
   for(const seed of initialCatalog().entries){
-    const duplicate=next.entries.some(entry=>{
+    const existing=next.entries.find(entry=>{
       if(entry.id===seed.id)return true;
       try{return canonicalCatalogUrl(entry.draft.sourceUrl)===canonicalCatalogUrl(seed.draft.sourceUrl)}catch{return entry.draft.sourceUrl===seed.draft.sourceUrl}
     });
-    if(duplicate||next.entries.length>=catalogMaxEntries)continue;
+    if(existing){
+      const legacy=legacyBundledWeights[seed.id];
+      if(legacy!==undefined&&existing.draft.boxedWeight===legacy){existing.draft.boxedWeight=seed.draft.boxedWeight;updated++}
+      if(legacy!==undefined&&existing.published?.boxedWeight===legacy){existing.published.boxedWeight=seed.published!.boxedWeight;updated++}
+      continue;
+    }
+    if(next.entries.length>=catalogMaxEntries)continue;
     next.entries.push(seed);added++;
   }
-  if(added)next.revision++;
-  return {document:catalogDocumentSchema.parse(next),added};
+  if(added||updated)next.revision++;
+  return {document:catalogDocumentSchema.parse(next),added,updated};
 }
 export function importDraft(data:Extracted,collectionIds:string[],country:string,now=Date.now()):CatalogDraft{
-  const priors:Record<string,number>={'Обувь':1.3,'Одежда':0.6,'Электроника':1,'Аксессуары':0.7,'Красота и уход':0.6,'Дом и быт':2,'Спорт':1};
-  return catalogDraftSchema.parse({sourceUrl:canonicalCatalogUrl(data.sourceUrl),name:data.title??'',brand:data.brand??new URL(data.sourceUrl).hostname,category:data.category??'Другое',image:data.image??'',images:data.images??(data.image?[data.image]:[]),price:data.price,currency:data.currency??'',country:data.country??country,boxedWeight:data.boxedWeight??priors[data.category??'']??1.5,variants:(data.variants??[]).map(v=>({id:v.id,label:v.label,size:v.size,sizeLabel:v.sizeLabel,color:v.color,available:v.available,price:v.price,image:v.image})),collectionIds,description:'',checkedAt:now,warnings:data.warnings,soldOut:Boolean(data.variants?.length&&!data.variants.some(v=>v.available))});
+  return catalogDraftSchema.parse({sourceUrl:canonicalCatalogUrl(data.sourceUrl),name:data.title??'',brand:data.brand??new URL(data.sourceUrl).hostname,category:data.category??'Другое',image:data.image??'',images:data.images??(data.image?[data.image]:[]),price:data.price,currency:data.currency??'',country:data.country??country,boxedWeight:data.boxedWeight??estimatedBoxedWeight(data.category??'Другое'),variants:(data.variants??[]).map(v=>({id:v.id,label:v.label,size:v.size,sizeLabel:v.sizeLabel,color:v.color,available:v.available,price:v.price,image:v.image})),collectionIds,description:'',checkedAt:now,warnings:data.warnings,soldOut:Boolean(data.variants?.length&&!data.variants.some(v=>v.available))});
 }
 export function catalogIssues(draft:CatalogDraft,now=Date.now(),rates=tariff.rates){
   const issues:string[]=[];
@@ -90,6 +109,20 @@ export function recheckedDraft(previous:CatalogDraft,fresh:CatalogDraft){
   if(before!==after)reasons.push(`Доступные варианты: ${before} → ${after}`);
   if(previous.soldOut!==fresh.soldOut)reasons.push(fresh.soldOut?'Товар закончился':'Товар снова доступен');
   return catalogDraftSchema.parse({...fresh,referencePrice:previous.referencePrice,description:previous.description,collectionIds:previous.collectionIds,reviewReasons:reasons,lastCheckError:undefined});
+}
+
+export function reportCatalogAvailability(current:CatalogDocument,input:{productId:string;sourceUrl:string;answer:'available'|'unavailable';variant?:string;reporterId:string},now=Date.now()){
+  const next=structuredClone(current),entry=next.entries.find(item=>item.id===input.productId);
+  if(!entry||canonicalCatalogUrl(entry.draft.sourceUrl)!==canonicalCatalogUrl(input.sourceUrl))throw Error('Товар каталога не найден.');
+  const report=catalogAvailabilityReportSchema.parse({id:crypto.randomUUID(),...input,sourceUrl:entry.draft.sourceUrl,createdAt:now});
+  const previous=(next.availabilityReports??[]).filter(item=>item.resolvedAt||item.productId!==input.productId||item.reporterId!==input.reporterId);
+  next.availabilityReports=[report,...previous].slice(0,300);
+  if(input.answer==='unavailable'){
+    const reason='Покупатель сообщил, что товар или вариант отсутствует — проверьте магазин.';
+    entry.draft.reviewReasons=[...new Set([...(entry.draft.reviewReasons??[]),reason])].slice(0,10);
+  }
+  next.revision++;
+  return catalogDocumentSchema.parse(next);
 }
 export function publicCatalog(document:CatalogDocument,pricing:Pricing,now=Date.now()){
   const products:MerchantFind[]=document.entries.flatMap(entry=>{
@@ -123,7 +156,7 @@ export function changeCatalog(current:CatalogDocument,command:CatalogCommand,now
   }else{
     for(const id of command.ids){
       const entry=next.entries.find(e=>e.id===id);if(!entry)throw Error('Товар не найден');
-      if(command.kind==='hide'){delete entry.published;delete entry.publishedAt;continue}
+      if(command.kind==='hide'){delete entry.published;delete entry.publishedAt;next.availabilityReports=next.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:now}:report);continue}
       const issues=catalogIssues(entry.draft,now,pricing.rates);
       if(issues.length)throw Error(`${entry.draft.name||'Товар'}: ${issues.join(', ')}`);
       entry.published=structuredClone(entry.draft);entry.publishedAt=now;

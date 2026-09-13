@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {catalogIssues,changeCatalog,importDraft,initialCatalog,publicCatalog,recheckedDraft,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
+import {catalogIssues,changeCatalog,importDraft,initialCatalog,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
 import {communityCatalogProducts} from '../lib/market/community-deals.ts';
 import {tariff} from '../lib/market/domain.ts';
 
@@ -8,7 +8,7 @@ const extracted={sourceUrl:'https://kyliecosmetics.com/products/matte-lip-kit?ut
 test('admin import creates a reviewable draft without claiming store shipping',()=>{
  const draft=importDraft(extracted,[],'США',1000);
  assert.equal(draft.sourceUrl,'https://kyliecosmetics.com/products/matte-lip-kit');
- assert.equal(draft.category,'Красота и уход');assert.equal(draft.price,35);assert.equal(draft.boxedWeight,.6);
+ assert.equal(draft.category,'Красота и уход');assert.equal(draft.price,35);assert.equal(draft.boxedWeight,.8);
  assert.deepEqual(draft.variants[0],{id:'bare-full',label:'Bare · Full size',color:'Bare',size:'Full size',sizeLabel:undefined,available:true,price:35,image:undefined});
  assert.deepEqual(catalogIssues(draft,1001),[]);assert.equal(draft.warnings[0],'Доставка неизвестна');
 });
@@ -54,8 +54,26 @@ test('bundled products join existing catalogs without overwriting operator state
  assert.equal(synced.document.entries[0].published,undefined);
  assert(synced.document.entries.some(entry=>entry.id===seed.id&&entry.published));
 });
+test('catalog sync raises only unchanged legacy seed weights',()=>{
+ const doc=initialCatalog(),airtag=doc.entries.find(entry=>entry.id==='apple-airtag-1pack-2026'),anker=doc.entries.find(entry=>entry.id==='anker-nano-a2147113');
+ airtag.draft.boxedWeight=.15;airtag.published.boxedWeight=.15;
+ anker.draft.boxedWeight=.3;anker.published.boxedWeight=.3;
+ const synced=synchronizeBundledCatalog(doc);
+ assert.equal(airtag.draft.boxedWeight,.15);
+ assert.equal(synced.document.entries.find(entry=>entry.id===airtag.id).draft.boxedWeight,.25);
+ assert.equal(synced.document.entries.find(entry=>entry.id===anker.id).draft.boxedWeight,.3);
+});
 test('published catalog carries seeded size choices into the order flow',()=>{
  const shoe=communityCatalogProducts.find(product=>product.id==='merrell-wrapt');
  const feed=publicCatalog(initialCatalog(),tariff,Date.parse('2026-09-13T12:00:00Z'));
  assert.deepEqual(feed.products.find(product=>product.id===shoe.id).variants,shoe.variants);
+});
+test('customer availability reports flag a product without silently hiding it',()=>{
+ const doc=initialCatalog(),entry=doc.entries[0];
+ const reported=reportCatalogAvailability(doc,{productId:entry.id,sourceUrl:entry.draft.sourceUrl,answer:'unavailable',variant:'M',reporterId:'email:customer@example.com'},1234);
+ assert.equal(reported.availabilityReports[0].answer,'unavailable');
+ assert.match(reported.entries[0].draft.reviewReasons[0],/Покупатель сообщил/);
+ assert(reported.entries[0].published);
+ const hidden=changeCatalog(reported,{kind:'hide',ids:[entry.id]},1235,tariff);
+ assert.equal(hidden.availabilityReports[0].resolvedAt,1235);
 });

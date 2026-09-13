@@ -7,7 +7,7 @@ export async function readCatalog(){
     const row=await db.prepare("SELECT value FROM market_settings WHERE key='catalog'").first<{value:string}>();
     const current=row?catalogDocumentSchema.parse(JSON.parse(row.value)):initialCatalog();
     const synced=synchronizeBundledCatalog(current),value=JSON.stringify(synced.document),now=Date.now();
-    if(row&&!synced.added)return {raw:row.value,document:synced.document};
+    if(row&&!synced.added&&!synced.updated)return {raw:row.value,document:synced.document};
     const result=row
       ?await db.prepare("UPDATE market_settings SET value=?,updated_at=?,updated_by='atlas.catalog.sync' WHERE key='catalog' AND value=?").bind(value,now,row.value).run()
       :await db.prepare("INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES ('catalog',?,?, 'atlas.catalog.sync') ON CONFLICT(key) DO NOTHING").bind(value,now).run();

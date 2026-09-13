@@ -27,7 +27,7 @@ export async function POST(request:Request){try{
   if(document.revision!==revision)throw new HttpError(409,'Каталог изменён. Обновите список перед сохранением.');
   if(command.kind==='recheck'){
     const results:string[]=[];
-    for(const id of command.ids){const entry=document.entries.find(item=>item.id===id);if(!entry){results.push(`${id}: товар не найден`);continue}try{const data=await fetchProduct(entry.draft.sourceUrl),fresh=importDraft(data,entry.draft.collectionIds,entry.draft.country,Date.now());entry.draft=recheckedDraft(entry.draft,fresh);results.push(`${entry.draft.name}: проверено`)}catch(error){entry.draft.lastCheckError=(error as Error).message.slice(0,500);results.push(`${entry.draft.name}: ${(error as Error).message}`)}}
+    for(const id of command.ids){const entry=document.entries.find(item=>item.id===id);if(!entry){results.push(`${id}: товар не найден`);continue}try{const data=await fetchProduct(entry.draft.sourceUrl),fresh=importDraft(data,entry.draft.collectionIds,entry.draft.country,Date.now());entry.draft=recheckedDraft(entry.draft,fresh);document.availabilityReports=document.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:Date.now()}:report);results.push(`${entry.draft.name}: проверено`)}catch(error){entry.draft.lastCheckError=(error as Error).message.slice(0,500);results.push(`${entry.draft.name}: ${(error as Error).message}`)}}
     document.revision++;await persistCatalog(document,raw,user,'catalog.recheck');return json({document,recheckResults:results});
   }
   if(command.kind==='import'||command.kind==='discover'){

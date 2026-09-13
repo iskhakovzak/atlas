@@ -249,6 +249,14 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Newly bundled records retain their reference price and known size choices. Public catalog snapshots pass available variant labels into link ordering instead of replacing them with a generic placeholder.
 - Merrell is now an explicit allowlisted merchant root so its catalog record and protected source recheck follow the same importer security boundary.
 
+## Weight and customer availability checks — 14 September 2026
+
+- Imported merchant weights are accepted only when they resolve to a finite boxed weight through 49.5 kg. Invalid source values such as `99999 kg` are discarded before they can reach a form or quote.
+- Category fallbacks are now more conservative, and the bundled catalog's unchanged legacy estimates are upgraded additively in D1. A weight manually changed away from the known old seed value is preserved.
+- When a store blocks fresh import for a catalog product, the customer gets a direct merchant link. After opening it, the customer must answer “available” or “unavailable” before continuing.
+- Availability answers are authenticated, rate-limited and stored inside the versioned D1 catalog document. An unavailable answer flags the draft for operator review without letting a customer hide a public product directly.
+- The catalog administrator sees unresolved reports with product, variant, time, merchant link and product shortcut. A successful source recheck or explicit hide resolves the reports.
+
 ## Pricing, approvals, warehouse and catalog release — 12 September 2026
 
 - Quote lines now remain mathematically independent: base international freight no longer contains the delivery margin, and the total adds that margin exactly once. Cart, order details and operational fee projections include service, buyout, conversion, freight margin and optional-service lines without omissions.

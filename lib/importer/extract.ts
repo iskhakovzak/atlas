@@ -122,7 +122,9 @@ export function parseWeight(value: unknown) {
       onz: 0.0283495231,
     } as Record<string, number>
   )[unit];
-  return factor ? Math.ceil(n * factor * 1000) / 1000 : undefined;
+  if (!factor) return undefined;
+  const kilograms = Math.ceil(n * factor * 1000) / 1000;
+  return kilograms > 0 && kilograms <= 49.5 ? kilograms : undefined;
 }
 
 const regionNames: Record<string, string> = {

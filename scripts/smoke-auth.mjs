@@ -86,6 +86,10 @@ catalog=imported.document;const importedEntry=catalog.entries.find(item=>item.id
 if(importedEntry.draft.reviewReasons?.length||importedEntry.draft.lastCheckError)catalog=(await request('/api/catalog',{email:operatorEmail,method:'POST',body:{revision:catalog.revision,command:{kind:'edit',id:imported.importedId,draft:importedEntry.draft}}})).document;
 catalog=(await request('/api/catalog',{email:operatorEmail,method:'POST',body:{revision:catalog.revision,command:{kind:'publish',ids:[imported.importedId]}}})).document;
 const publicCatalog=await request('/api/catalog');assert(publicCatalog.products.some(item=>item.id===imported.importedId));assert(publicCatalog.collections.some(item=>item.id===collectionId&&item.productIds.includes(imported.importedId)));
+const publicEntry=publicCatalog.products.find(item=>item.id===imported.importedId);
+await request('/api/catalog-availability',{method:'POST',body:{productId:publicEntry.id,sourceUrl:publicEntry.sourceUrl,answer:'available',variant:publicEntry.variants[0]}});
+catalog=(await request('/api/catalog?admin=1',{email:operatorEmail})).document;
+assert(catalog.availabilityReports.some(item=>item.productId===imported.importedId&&item.answer==='available'&&!item.resolvedAt));
 catalog=(await request('/api/catalog',{email:operatorEmail,method:'POST',body:{revision:catalog.revision,command:{kind:'hide',ids:[imported.importedId]}}})).document;
 assert(!(await request('/api/catalog')).products.some(item=>item.id===imported.importedId));
 const proof=new Uint8Array(128);proof[0]=0xff;proof[1]=0xd8;proof[127]=0xd9;

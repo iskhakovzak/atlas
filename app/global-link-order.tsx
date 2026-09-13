@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, Link2, Loader2, Scale } from "lucide-react";
+import { ArrowRight, Check, ExternalLink, Link2, Loader2, Scale, X } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
@@ -14,6 +14,7 @@ import {
 import { featuredStoreGroups, supportedStoreRoots } from "@/lib/importer/stores";
 import { hasEnhancedStoreImport } from "@/lib/importer/shopify";
 import { countries, currencies, toUsd, paddedWeight } from "@/lib/market/world";
+import { estimatedBoxedWeight, validBoxedWeight, weightCategories } from "@/lib/market/weight";
 import {
   safeImage,
   inferProductCategory,
@@ -29,16 +30,6 @@ import {
   communityProductCategory,
   hasSelectableDimensions,
 } from "@/lib/market/community-deals";
-const priors: Record<string, number> = {
-  Обувь: 1.3,
-  Одежда: 0.6,
-  Электроника: 1,
-  Аксессуары: 0.7,
-  "Красота и уход": 0.6,
-  "Дом и быт": 2,
-  Спорт: 1,
-  Другое: 1.5,
-};
 export function GlobalLinkOrder() {
   const { ready, pricing, state, act, catalogProducts } = useMarket();
   const searchParams = useSearchParams();
@@ -77,6 +68,10 @@ export function GlobalLinkOrder() {
     [note, setNote] = useState(seed ? "Данные из подборки " + seed.store + " на " + seed.observedOn + ". Обновите страницу магазина или проверьте цену и вариант вручную. Вес и доставка предварительные." : dealSeed ? `Цена и фото сохранены из подборки на ${dealSeed.observedOn}. Atlas сейчас уточняет их в магазине.` : ""),
     [weightOrigin, setWeightOrigin] = useState("Оценка по категории"),
     [verified, setVerified] = useState(false),
+    [manualAvailabilityRequired,setManualAvailabilityRequired]=useState(false),
+    [storeOpened,setStoreOpened]=useState(false),
+    [availabilityAnswer,setAvailabilityAnswer]=useState<'available'|'unavailable'|null>(null),
+    [reportingAvailability,setReportingAvailability]=useState(false),
     [importedAt, setImportedAt] = useState<number | undefined>(),
     [sourceExpiresAt, setSourceExpiresAt] = useState<number | undefined>(),
     [foundShipping, setFoundShipping] = useState<{
@@ -108,6 +103,9 @@ export function GlobalLinkOrder() {
     setBusy(true);
     setSource(link);
     setVerified(false);
+    setManualAvailabilityRequired(false);
+    setStoreOpened(false);
+    setAvailabilityAnswer(null);
     setName(seed?.name ?? dealSeed?.title ?? "");
     setBrand(seed?.brand ?? dealSeed?.store ?? "");
     setDeclaration("");
@@ -182,9 +180,10 @@ export function GlobalLinkOrder() {
       }
       const nextCountry = data.country ?? seed?.country;
       if (nextCountry) setCountry(nextCountry);
-      setWeight(String(data.boxedWeight ?? fallbackBoxedWeight ?? priors[nextCategory]));
+      const importedWeight=validBoxedWeight(data.boxedWeight);
+      setWeight(String(importedWeight ?? fallbackBoxedWeight ?? estimatedBoxedWeight(nextCategory)));
       setWeightOrigin(
-        data.boxedWeight
+        importedWeight
           ? data.weightKind === "shipping"
             ? "Вес отправления со страницы"
             : "Вес товара со страницы — коробку нужно проверить"
@@ -238,8 +237,9 @@ export function GlobalLinkOrder() {
       );
     } catch (e) {
       setNote(dealSeed ? `Магазин не отдал свежие данные. Показываем цену и варианты из подборки на ${dealSeed.observedOn}; перед добавлением Atlas попробует проверить их снова.` : seed ? "Магазин не отдал свежие данные. Сохранили цену и фото из каталога; перед добавлением Atlas попробует проверить их снова." : (e as Error).message + " Доступен ручной ввод.");
-      setWeight(String(fallbackBoxedWeight ?? priors[category]));
+      setWeight(String(fallbackBoxedWeight ?? estimatedBoxedWeight(category)));
       setWeightOrigin(fallbackBoxedWeight ? "Оценка Atlas; уточняется перед оформлением" : "Приблизительно по категории");
+      setManualAvailabilityRequired(Boolean(seed||dealSeed));
       if (!dealSeed && !seed) setShowSourceForm(true);
     } finally {
       setBusy(false);
@@ -254,6 +254,19 @@ export function GlobalLinkOrder() {
     // `load` intentionally reads the current form state; this effect runs once per requested product.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, requestedUrl]);
+  async function reportAvailability(answer:'available'|'unavailable'){
+    const productId=seed?.id??dealSeed?.id;
+    if(!productId||!source)return;
+    setReportingAvailability(true);
+    try{
+      const response=await fetch('/api/catalog-availability',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({productId,sourceUrl:source,answer,variant:variant||undefined})});
+      const data=await response.json() as {error?:string};
+      if(!response.ok)throw Error(data.error??'Не удалось отправить сообщение.');
+      setAvailabilityAnswer(answer);
+      setVerified(false);
+      toast.success(answer==='available'?'Наличие подтверждено. Спасибо!':'Администратор получил сообщение и проверит товар.');
+    }catch(error){toast.error((error as Error).message)}finally{setReportingAvailability(false)}
+  }
   let preview: ReturnType<typeof price> | null = null,
     estimatedWeight = 0;
   try {
@@ -367,11 +380,23 @@ export function GlobalLinkOrder() {
               {note}
             </div>
           )}
+          {manualAvailabilityRequired&&source&&<section className="availability-check" aria-labelledby="availability-check-title">
+            <div><b id="availability-check-title">Проверьте наличие в магазине</b><p>Откройте страницу товара, посмотрите выбранный размер или вариант и вернитесь сюда с ответом.</p></div>
+            <a className="btn secondary" href={source} target="_blank" rel="noopener noreferrer" onClick={()=>setStoreOpened(true)}>Открыть магазин<ExternalLink size={17}/></a>
+            <div className="availability-actions" aria-label="Результат проверки наличия">
+              <button type="button" className="btn secondary" disabled={!storeOpened||reportingAvailability} onClick={()=>void reportAvailability('available')}><Check size={17}/>Есть в наличии</button>
+              <button type="button" className="btn secondary danger" disabled={!storeOpened||reportingAvailability} onClick={()=>void reportAvailability('unavailable')}><X size={17}/>Нет в наличии</button>
+            </div>
+            {!storeOpened&&<small>Сначала откройте страницу магазина — после возврата кнопки ответа станут доступны.</small>}
+            {availabilityAnswer==='available'&&<p className="availability-result ok">Спасибо. Можно проверить остальные данные и продолжить.</p>}
+            {availabilityAnswer==='unavailable'&&<p className="availability-result bad">Товар не будет добавлен. Администратор получил сообщение для проверки и снятия карточки.</p>}
+          </section>}
           {source && !busy && (
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
                 try {
+                  if(manualAvailabilityRequired&&availabilityAnswer!=='available')throw Error('Сначала проверьте наличие товара в магазине.');
                   if (!name.trim() || !variant.trim() || !verified)
                     throw Error(
                       "Проверьте данные и подтвердите страну отправки.",
@@ -564,10 +589,10 @@ export function GlobalLinkOrder() {
                     value={category}
                     onChange={(v) => {
                       setCategory(v);
-                      setWeight(String(priors[v]));
+                      setWeight(String(estimatedBoxedWeight(v)));
                       setWeightOrigin("Приблизительно по категории");
                     }}
-                    options={Object.keys(priors)}
+                    options={weightCategories}
                   />
                 </div>
                 <div className="field">
@@ -584,6 +609,13 @@ export function GlobalLinkOrder() {
                     onChange={(e) => {
                       setWeight(e.target.value);
                       setWeightOrigin("Указан покупателем");
+                    }}
+                    onBlur={() => {
+                      const valid=validBoxedWeight(weight);
+                      if(valid!==undefined){setWeight(String(valid));return}
+                      setWeight(String(estimatedBoxedWeight(category)));
+                      setWeightOrigin("Приблизительно по категории");
+                      toast.error("Вес должен быть от 0,01 до 49,5 кг. Вернули безопасную оценку.");
                     }}
                   />
                 </div>
@@ -647,7 +679,7 @@ export function GlobalLinkOrder() {
                   магазина.
                 </label>
               </div>
-              <button className="btn primary" disabled={!verified || adding}>
+              <button className="btn primary" disabled={!verified || adding || (manualAvailabilityRequired&&availabilityAnswer!=='available')}>
                 {adding ? "Добавляем в корзину…" : "В корзину"}
                 <ArrowRight size={18} />
               </button>
