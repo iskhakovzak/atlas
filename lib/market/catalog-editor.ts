@@ -72,8 +72,8 @@ export function synchronizeBundledCatalog(current:CatalogDocument){
     });
     if(existing){
       const legacy=legacyBundledWeights[seed.id];
-      if(legacy!==undefined&&existing.draft.boxedWeight===legacy){existing.draft.boxedWeight=seed.draft.boxedWeight;updated++}
-      if(legacy!==undefined&&existing.published?.boxedWeight===legacy){existing.published.boxedWeight=seed.published!.boxedWeight;updated++}
+      if(legacy!==undefined&&Math.abs(existing.draft.boxedWeight-legacy)<1e-6){existing.draft.boxedWeight=seed.draft.boxedWeight;updated++}
+      if(legacy!==undefined&&existing.published&&Math.abs(existing.published.boxedWeight-legacy)<1e-6){existing.published.boxedWeight=seed.published!.boxedWeight;updated++}
       continue;
     }
     if(next.entries.length>=catalogMaxEntries)continue;

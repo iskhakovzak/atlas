@@ -78,7 +78,7 @@ export const communityCatalogProducts: CommunityCatalogProduct[] = communityDeal
     category: communityProductCategory(deal), country: 'США', usd: deal.price,
     sourcePrice: deal.price, sourceCurrency: 'USD', sourceShipping: 10,
     sourceShippingCurrency: 'USD', sourceShippingUsd: 10, sourceShippingEstimated: true,
-    shippingKnown: false, boxedWeight: Math.max(0.1, weight - 0.5), weight,
+    shippingKnown: false, boxedWeight: Math.round(Math.max(0.1, weight - 0.5) * 100) / 100, weight,
     weightOrigin: 'Оценка Atlas; уточняется перед оформлением', image: deal.image,
     variants: communityFallbackOptions(deal).map(option => option.label), sourceUrl: deal.url,
     sourceExpiresAt: Date.parse(`${deal.observedOn}T23:59:59Z`) + 7 * 24 * 60 * 60 * 1000,

@@ -56,10 +56,10 @@ test('bundled products join existing catalogs without overwriting operator state
 });
 test('catalog sync raises only unchanged legacy seed weights',()=>{
  const doc=initialCatalog(),airtag=doc.entries.find(entry=>entry.id==='apple-airtag-1pack-2026'),anker=doc.entries.find(entry=>entry.id==='anker-nano-a2147113');
- airtag.draft.boxedWeight=.15;airtag.published.boxedWeight=.15;
+ airtag.draft.boxedWeight=.15000000000000002;airtag.published.boxedWeight=.15000000000000002;
  anker.draft.boxedWeight=.3;anker.published.boxedWeight=.3;
  const synced=synchronizeBundledCatalog(doc);
- assert.equal(airtag.draft.boxedWeight,.15);
+ assert.equal(airtag.draft.boxedWeight,.15000000000000002);
  assert.equal(synced.document.entries.find(entry=>entry.id===airtag.id).draft.boxedWeight,.25);
  assert.equal(synced.document.entries.find(entry=>entry.id===anker.id).draft.boxedWeight,.3);
 });
