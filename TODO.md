@@ -57,7 +57,8 @@
 - [x] Make manager merchant-shipping confirmation clearer in customer order UI; show actual USD and UZS.
 - [x] Add customer approval for changed item price, unavailable item, substitutions and warehouse services with exact amount checking and a blocked pending state.
 - [x] Add warehouse intake for condition, quantity, photos/repacking/consolidation/split/fragile operations and parcel grouping before weighing.
-- [ ] Define combined-shipping logic for multiple units; source shipping currently multiplies per quantity.
+- [x] Combine international freight for cart lines from the same merchant and dispatch country, with one parcel allowance and a 1 kg minimum.
+- [ ] Define merchant-to-warehouse shipping consolidation; the merchant shipping amount currently multiplies per quantity because store checkout rules are not known before purchase.
 - [ ] Define post-purchase cancellation/refund rules. Current automatic cancellation is status 0 only.
 - [x] Add private manager invoice, purchase-proof, warehouse-photo and warehouse-report uploads with customer-owned download access.
 

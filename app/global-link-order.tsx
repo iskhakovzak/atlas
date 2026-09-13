@@ -13,11 +13,12 @@ import {
 } from "@/lib/market/domain";
 import { featuredStoreGroups, supportedStoreRoots } from "@/lib/importer/stores";
 import { hasEnhancedStoreImport } from "@/lib/importer/shopify";
-import { countries, currencies, toUsd, paddedWeight } from "@/lib/market/world";
+import { countries, currencies, currencyForCountry, toUsd, paddedWeight } from "@/lib/market/world";
 import { estimatedBoxedWeight, validBoxedWeight, weightCategories } from "@/lib/market/weight";
 import {
   safeImage,
   inferProductCategory,
+  inferStorefrontCountry,
   type Extracted,
   type ProductVariant,
 } from "@/lib/importer/extract";
@@ -110,6 +111,7 @@ export function GlobalLinkOrder() {
     setBrand(seed?.brand ?? dealSeed?.store ?? "");
     setDeclaration("");
     setAmount(seed?.sourcePrice !== undefined ? String(seed.sourcePrice) : dealSeed ? String(dealSeed.price) : "");
+    setCurrency(seed?.sourceCurrency ?? "USD");
     setShipping("10");
     setShippingCurrency("USD");
     setShippingEstimated(true);
@@ -118,6 +120,10 @@ export function GlobalLinkOrder() {
     setImportedAt(undefined);
     setSourceExpiresAt(undefined);
     setWeight(fallbackBoxedWeight ? String(fallbackBoxedWeight) : "");
+    const inferredCountry = seed?.country ?? inferStorefrontCountry(link, seed?.sourceCurrency);
+    setCountry(inferredCountry ?? "Другая страна");
+    setOtherCountry("");
+    setCategory(seed?.category ?? (dealSeed ? communityProductCategory(dealSeed) : "Другое"));
     setVariant(fallbackOptions.length === 1 ? fallbackOptions[0].label : "");
     setVariants(fallbackOptions);
     setSelectedColor("");
@@ -178,8 +184,12 @@ export function GlobalLinkOrder() {
         const colors=[...new Set(availableVariants.map(item=>item.color).filter((value):value is string=>Boolean(value)))];
         if(colors.length===1)setSelectedColor(colors[0]);
       }
-      const nextCountry = data.country ?? seed?.country;
-      if (nextCountry) setCountry(nextCountry);
+      const nextCountry = data.country ?? seed?.country ?? inferStorefrontCountry(data.sourceUrl, data.currency);
+      if (nextCountry) {
+        setCountry(nextCountry);
+        if (!data.currency || !currencies.includes(data.currency))
+          setCurrency(currencyForCountry(nextCountry) ?? "USD");
+      }
       const importedWeight=validBoxedWeight(data.boxedWeight);
       setWeight(String(importedWeight ?? fallbackBoxedWeight ?? estimatedBoxedWeight(nextCategory)));
       setWeightOrigin(
@@ -216,7 +226,7 @@ export function GlobalLinkOrder() {
             (data.shippingDestination
               ? " для " + data.shippingDestination
               : "") +
-            ". Проверьте, что это стоимость до вашего склада."
+            ". Это доставка от магазина до склада Atlas."
           : "";
       setNote(
         [
@@ -377,7 +387,7 @@ export function GlobalLinkOrder() {
           )}
           {note && (
             <div className="notice" role="status">
-              {note}
+              <span>{note}</span>{source&&<a className="text-link source-check-link" href={source} target="_blank" rel="noopener noreferrer">Проверить товар в магазине <ExternalLink size={15}/></a>}
             </div>
           )}
           {manualAvailabilityRequired&&source&&<section className="availability-check" aria-labelledby="availability-check-title">
@@ -532,7 +542,7 @@ export function GlobalLinkOrder() {
                 </div>
                 <div className="field">
                   <label htmlFor="shipping">
-                    Доставка магазина, {shippingCurrency}{" "}
+                    До склада Atlas, {shippingCurrency}{" "}
                     {shippingEstimated ? "(изменить)" : ""}
                   </label>
                   <input
@@ -568,16 +578,14 @@ export function GlobalLinkOrder() {
                       setVerified(false);
                     }}
                   >
-                    Использовать доставку со страницы: {foundShipping.amount}{" "}
+                    Использовать доставку до склада Atlas: {foundShipping.amount}{" "}
                     {foundShipping.currency}
-                    {foundShipping.destination
-                      ? " → " + foundShipping.destination
-                      : " (адрес нужно проверить)"}
+                    {foundShipping.destination ? " · " + foundShipping.destination : ""}
                   </button>
                 )}
               </div>
               <p className="micro">
-                Если магазин не публикует доставку, используется изменяемый
+                Это доставка от магазина до склада Atlas. Если магазин её не публикует, используется изменяемый
                 резерв $10. После выкупа менеджер укажет фактическую сумму, а
                 разница вернётся на баланс.
               </p>
@@ -629,7 +637,7 @@ export function GlobalLinkOrder() {
                   </strong>
                   <p>
                     {weight || "Вес с коробкой"} + 0,3 кг упаковка + 0,2 кг
-                    запас
+                    запас; минимум к оплате — 1 кг
                   </p>
                   <small>
                     {weightOrigin}. После склада — перерасчёт по фактическому

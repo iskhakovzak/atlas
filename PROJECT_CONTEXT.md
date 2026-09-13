@@ -256,6 +256,9 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - When a store blocks fresh import for a catalog product, the customer gets a direct merchant link. After opening it, the customer must answer “available” or “unavailable” before continuing.
 - Availability answers are authenticated, rate-limited and stored inside the versioned D1 catalog document. An unavailable answer flags the draft for operator review without letting a customer hide a public product directly.
 - The catalog administrator sees unresolved reports with product, variant, time, merchant link and product shortcut. A successful source recheck or explicit hide resolves the reports.
+- The link-order notice always includes the exact merchant-page link, including successful partial imports. Zero-cost shipping is labelled as merchant delivery to the Atlas warehouse rather than customer delivery.
+- Generic imports infer the storefront dispatch country from explicit shipping origin, locale path, regional domain or a bounded merchant map; currency continues to come from the store and falls back from the inferred country only when the page omits it. Category inference also uses structured product category/description and recognizes common trackers such as AirTag.
+- International freight now has a one-kilogram minimum per merchant parcel. Cart rows from the same source host and dispatch country combine boxed weight, add the 0.3 kg packaging and 0.2 kg safety allowance once, and allocate the resulting freight and reserve across their immutable line quotes.
 
 ## Pricing, approvals, warehouse and catalog release — 12 September 2026
 

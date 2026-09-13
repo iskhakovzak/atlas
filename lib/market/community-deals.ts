@@ -41,7 +41,7 @@ export function communityEstimatedWeight(deal: CommunityDeal) {
   if (deal.category === 'Одежда') return deal.id === 'hanes-hoodie' ? 1.5 : deal.id === 'silkworld-swim' ? 1.1 : 1.2;
   if (deal.category === 'Техника') return 1.5;
   if (deal.category === 'Дом') return 2.4;
-  return deal.id === 'real-perfection-brushes' ? 1.1 : deal.id === 'elf-lip-stain' ? 0.9 : 0.8;
+  return deal.id === 'real-perfection-brushes' ? 1.1 : 1;
 }
 
 export type CommunityDealOption = { label: string; size?: string; color?: string };

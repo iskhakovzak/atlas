@@ -85,6 +85,7 @@ export function CartView() {
           <Link className="text-link" href="/">Продолжить покупки <ArrowRight size={16} /></Link>
         </div>
         <aside className="surface cart-summary"><h2>{c.order}</h2><details className="quote-details"><summary>{c.breakdown}</summary><CostLines q={sums} locale={locale} /><p className="micro">{c.estimate}</p></details>
+          <p className="micro parcel-note">Товары одного магазина считаются одной посылкой: вес складывается, запас на упаковку добавляется один раз. Минимальный оплачиваемый вес посылки — 1 кг.</p>
           <div className="balance-option"><div><Wallet size={18} /><label htmlFor="use-balance">Использовать баланс Atlas<small>Доступно {money(balance)}</small></label></div><Checkbox id="use-balance" disabled={balance <= 0} checked={useBalance} onCheckedChange={(value) => setUseBalance(value === true)} /></div>
           {credit > 0 && <div className="credit-line"><span>С баланса Atlas</span><b>−{money(credit)}</b></div>}
           <div className="summary-total"><span>К оплате<strong>{money(total - credit)}</strong></span><span className="currency-mark">UZS</span></div>

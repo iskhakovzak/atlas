@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { customsVersion, usdRates } from "./world.ts";
+import { combinedShipmentWeight, customsVersion, usdRates } from "./world.ts";
 
 export const money = (n: number) =>
   new Intl.NumberFormat("ru-RU").format(n) + " сум";
@@ -159,12 +159,13 @@ export function price(
     sourceShippingUsd > 10000
   )
     throw Error("Проверьте доставку магазина.");
+  const billableUnitWeight = Math.max(1, weight);
   const sourceShipping = Math.ceil(sourceShippingUsd * quantity * config.fx);
   const merchandise = Math.round(usd * quantity * config.fx),
     service = Math.round(merchandise * config.margin),
     buyout = Math.round(merchandise * config.buyoutFee),
     conversion = Math.round(merchandise * config.conversionFee),
-    shippingBase = Math.ceil(weight * quantity * config.perKg),
+    shippingBase = Math.ceil(billableUnitWeight * quantity * config.perKg),
     deliveryMargin = Math.round(shippingBase * config.deliveryMargin),
     shipping = shippingBase,
     reserve = Math.ceil(shippingBase * config.reserve);
@@ -179,7 +180,7 @@ export function price(
     deliveryMargin,
     optionalServices: config.optionalServices,
     total: merchandise + service + buyout + conversion + shipping + deliveryMargin + reserve + sourceShipping + config.optionalServices,
-    weight: weight * quantity,
+    weight: billableUnitWeight * quantity,
   };
 }
 export function quote(
@@ -443,6 +444,72 @@ const cartSchema = z.object({
   quote: quoteSchema,
 });
 export type CartItem = z.infer<typeof cartSchema>;
+
+function merchantParcelKey(item: CartItem) {
+  if (!item.product.sourceUrl || item.product.boxedWeight === undefined)
+    return `item:${item.id}`;
+  try {
+    const host = new URL(item.product.sourceUrl).hostname.toLowerCase().replace(/^www\./, "");
+    return `store:${host}:${item.product.country ?? ""}`;
+  } catch {
+    return `item:${item.id}`;
+  }
+}
+
+/** Recalculate international delivery once per merchant parcel. */
+export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing = tariff) {
+  const next = items.map((item) => ({
+    ...item,
+    quote: quote(
+      item.product.usd,
+      item.product.weight,
+      now,
+      item.quantity,
+      item.product.sourceShippingUsd ?? 0,
+      config,
+    ),
+  }));
+  const groups = new Map<string, number[]>();
+  next.forEach((item, index) => {
+    if (!item.product.sourceUrl || item.product.boxedWeight === undefined) return;
+    const key = merchantParcelKey(item);
+    groups.set(key, [...(groups.get(key) ?? []), index]);
+  });
+  for (const indexes of groups.values()) {
+    const contributions = indexes.map((index) => next[index].product.boxedWeight! * next[index].quantity);
+    const boxedTotal = contributions.reduce((sum, value) => sum + value, 0);
+    const chargeableWeight = combinedShipmentWeight(boxedTotal);
+    const shippingTotal = Math.ceil(chargeableWeight * config.perKg);
+    const reserveTotal = Math.ceil(shippingTotal * config.reserve);
+    const deliveryMarginTotal = Math.round(shippingTotal * config.deliveryMargin);
+    let shippingLeft = shippingTotal;
+    let reserveLeft = reserveTotal;
+    let marginLeft = deliveryMarginTotal;
+    let weightLeft = chargeableWeight;
+    indexes.forEach((index, position) => {
+      const item = next[index];
+      const last = position === indexes.length - 1;
+      const share = contributions[position] / boxedTotal;
+      const shipping = last ? shippingLeft : Math.min(shippingLeft, Math.round(shippingTotal * share));
+      const reserve = last ? reserveLeft : Math.min(reserveLeft, Math.round(reserveTotal * share));
+      const deliveryMargin = last ? marginLeft : Math.min(marginLeft, Math.round(deliveryMarginTotal * share));
+      const weight = last ? weightLeft : Math.min(weightLeft, Math.round(chargeableWeight * share * 1000) / 1000);
+      shippingLeft -= shipping;
+      reserveLeft -= reserve;
+      marginLeft -= deliveryMargin;
+      weightLeft = Math.round((weightLeft - weight) * 1000) / 1000;
+      item.quote = {
+        ...item.quote,
+        shipping,
+        reserve,
+        deliveryMargin,
+        weight,
+        total: item.quote.total - item.quote.shipping - item.quote.reserve - (item.quote.deliveryMargin ?? 0) + shipping + reserve + deliveryMargin,
+      };
+    });
+  }
+  return next;
+}
 export const stateSchema = z.object({
   orders: z.array(orderSchema),
   entries: z.array(entrySchema),
@@ -583,19 +650,17 @@ export function addToCart(
   );
   if (item)
     return changeQuantity(state, item.id, item.quantity + 1, now, config);
-  return {
-    ...state,
-    cart: [
-      ...state.cart,
-      {
-        id: crypto.randomUUID(),
-        product: p,
-        variant,
-        quantity: 1,
-        quote: quote(p.usd, p.weight, now, 1, p.sourceShippingUsd ?? 0, config),
-      },
-    ],
-  };
+  const cart = [
+    ...state.cart,
+    {
+      id: crypto.randomUUID(),
+      product: p,
+      variant,
+      quantity: 1,
+      quote: quote(p.usd, p.weight, now, 1, p.sourceShippingUsd ?? 0, config),
+    },
+  ];
+  return { ...state, cart: repriceCart(cart, now, config)};
 }
 export function changeQuantity(
   state: State,
@@ -608,7 +673,7 @@ export function changeQuantity(
   if (!item) throw Error("Товар уже удалён из корзины.");
   return {
     ...state,
-    cart: state.cart.map((i) =>
+    cart: repriceCart(state.cart.map((i) =>
       i.id === id
         ? {
             ...i,
@@ -623,7 +688,7 @@ export function changeQuantity(
             ),
           }
         : i,
-    ),
+    ), now, config),
   };
 }
 export function renewCart(
@@ -633,7 +698,7 @@ export function renewCart(
 ): State {
   return {
     ...state,
-    cart: state.cart.map((i) => ({
+    cart: repriceCart(state.cart.map((i) => ({
       ...i,
       quote: quote(
         i.product.usd,
@@ -643,7 +708,7 @@ export function renewCart(
         i.product.sourceShippingUsd ?? 0,
         config,
       ),
-    })),
+    })), now, config),
   };
 }
 export const cartSignature = (items: CartItem[]) =>

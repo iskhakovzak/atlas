@@ -15,7 +15,7 @@ export const merchantFinds: MerchantFind[] = [
   },
   {
     ...estimate, id: 'apple-airtag-1pack-2026', name: 'Apple AirTag · 1 pack', brand: 'Apple', store: 'Apple', category: 'Электроника',
-    usd: 29, sourcePrice: 29, boxedWeight: 0.25, weight: 0.75,
+    usd: 29, sourcePrice: 29, boxedWeight: 0.25, weight: 1,
     sourceUrl: 'https://www.apple.com/shop/buy-airtag/airtag/1-pack',
     image: 'https://store.storeimages.cdn-apple.com/1/as-images.apple.com/is/airtag-1pack-select-202601?wid=890&hei=740&fmt=jpeg&qlt=90&.v=1767653157724',
     observedOn: '2026-09-11', description: 'Одна метка AirTag для поиска вещей через приложение «Локатор». Проверьте совместимость с вашим устройством Apple и ограничения на перевозку батарей.',
@@ -36,7 +36,7 @@ export const merchantFinds: MerchantFind[] = [
   },
   {
     ...estimate, id: 'anker-nano-a2147113', name: 'Anker Nano Charger · 30W', brand: 'Anker', store: 'Anker', category: 'Электроника',
-    usd: 15.99, sourcePrice: 15.99, boxedWeight: 0.35, weight: 0.85,
+    usd: 15.99, sourcePrice: 15.99, boxedWeight: 0.35, weight: 1,
     sourceUrl: 'https://www.anker.com/products/a2147?variant=42089534750870',
     image: 'https://cdn.shopify.com/s/files/1/0493/9834/9974/files/SKU-04-Phantom_Black.png?v=1764228261',
     observedOn: '2026-09-11', description: 'Компактное зарядное устройство USB-C, 30 Вт, Phantom Black. Американская версия: проверьте тип вилки перед оформлением.',

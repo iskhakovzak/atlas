@@ -9,6 +9,7 @@ const prepare=()=>{let s=addToCart(blank(),products[0],'US 9',1000);s=checkoutCa
 const warehouse=()=>{let s=prepare();const id=s.orders[0].id;s=advanceOrder(s,id,0);s=advanceOrder(s,id,1);return inspectWarehouseOrder(s,id,{condition:'ok',quantityReceived:1,notes:'',services:['photo'],packageGroup:'BOX-1'},1200)};
 test('pricing uses full delivered totals and validated quantities',()=>{
 const p=price(99,2.1,2);assert.equal(p.total,p.merchandise+p.service+p.shipping+p.reserve);assert.equal(p.weight,4.2);assert.throws(()=>price(99,2.1,0));assert.throws(()=>price(99,2.1,11));assert.throws(()=>price(NaN,2));assert.throws(()=>price(1,Infinity));
+assert.equal(price(10,.4).weight,1);assert.equal(price(10,.4).shipping,tariff.perKg);
 const configured=price(100,1,1,5,{...tariff,buyoutFee:.03,conversionFee:.02,deliveryMargin:.1,optionalServices:7000});assert.equal(configured.shipping,90000);assert.equal(configured.deliveryMargin,9000);assert.equal(configured.total,configured.merchandise+configured.service+configured.buyout+configured.conversion+configured.shipping+configured.deliveryMargin+configured.optionalServices+configured.reserve+configured.sourceShipping);
 });
 test('legacy state retains old orders and credits while adding cart defaults',()=>{

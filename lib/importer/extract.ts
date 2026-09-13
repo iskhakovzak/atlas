@@ -156,7 +156,7 @@ export function inferProductCategory(
   )
     return "Обувь";
   if (
-    /phone|headphone|earbuds|laptop|tablet|camera|console|monitor|charger|adapter|power bank|keyboard|mouse|cable|hub|телефон|наушник|ноутбук|планшет|камера|приставк|заряд|адаптер|клавиатур|мышь/.test(
+    /phone|headphone|earbuds|laptop|tablet|camera|console|monitor|charger|adapter|power bank|keyboard|mouse|cable|hub|airtag|smart\s*tag|bluetooth\s*tracker|item\s*tracker|телефон|наушник|ноутбук|планшет|камера|приставк|заряд|адаптер|клавиатур|мышь|трекер|метк/.test(
       text,
     )
   )
@@ -288,6 +288,35 @@ function extractAnker(html: string, sourceUrl: string): Extracted | undefined {
     if (!selected && prices.length !== 1) warnings.push('Выберите вариант, чтобы получить его точную цену.');
     return {title,brand,category:'Электроника',declarationDescription:declarationFor('Электроника',title,brand),image:selected?.image??images[0],images,price:selected?.price??(prices.length===1?prices[0]:undefined),currency:'USD',variants,warnings,sourceUrl,method:'Anker product data',country:'США'};
   } catch { return; }
+}
+
+export function inferStorefrontCountry(sourceUrl: string, currency?: string) {
+  const url = new URL(sourceUrl);
+  const host = url.hostname.toLowerCase().replace(/^www\./, "");
+  const path = url.pathname.toLowerCase();
+  const locale = path.match(/^\/(?:[a-z]{2}[-_])?(us|es|de|gb|uk|fr|it|ro|cn|tr|jp|kr|ae|ca|au)(?:[-_/]|$)/)?.[1];
+  const byCode: Record<string, string> = {
+    us: "США", es: "Испания", de: "Германия", gb: "Великобритания", uk: "Великобритания",
+    fr: "Франция", it: "Италия", ro: "Румыния", cn: "Китай", tr: "Турция",
+    jp: "Япония", kr: "Южная Корея", ae: "ОАЭ", ca: "Канада", au: "Австралия",
+  };
+  if (locale) return byCode[locale];
+  const suffix = Object.entries({
+    ".co.uk": "Великобритания", ".com.au": "Австралия", ".co.jp": "Япония",
+    ".es": "Испания", ".de": "Германия", ".fr": "Франция", ".it": "Италия",
+    ".ro": "Румыния", ".cn": "Китай", ".com.tr": "Турция", ".kr": "Южная Корея",
+    ".ae": "ОАЭ", ".ca": "Канада",
+  }).find(([ending]) => host.endsWith(ending));
+  if (suffix) return suffix[1];
+  const usStores = new Set([
+    "apple.com", "amazon.com", "ebay.com", "nike.com", "adidas.com", "bestbuy.com",
+    "walmart.com", "target.com", "nordstrom.com", "nordstromrack.com", "macys.com",
+    "sephora.com", "ulta.com", "bhphotovideo.com", "adorama.com", "newegg.com",
+    "kith.com", "footlocker.com", "zappos.com", "allbirds.com", "satechi.com",
+  ]);
+  if (usStores.has(host)) return "США";
+  if (currency === "RON") return "Румыния";
+  return undefined;
 }
 
 function extractZara(html: string, sourceUrl: string) {
@@ -463,7 +492,10 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
               (rawBrand as Record<string, unknown>)["@id"])
           : rawBrand,
       ).slice(0, 80)) || new URL(sourceUrl).hostname.replace(/^www\./, "");
-  const category = inferProductCategory(title ?? "", brand);
+  const category = inferProductCategory(
+    [title, clean(p?.category), clean(p?.description)].filter(Boolean).join(" "),
+    brand,
+  );
   const genericLabel = [p?.color, p?.size].map(clean).filter(Boolean).join(' · ');
   const genericVariants: ProductVariant[] = genericLabel
     ? [{ label: genericLabel, available: !/OutOfStock|Discontinued|SoldOut/i.test(String(offer?.availability ?? '')), size: clean(p?.size) || undefined, color: clean(p?.color) || undefined }]
@@ -484,7 +516,7 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     ? clean(html.match(/aria-current=["']true["'][^>]*aria-label=["'][^"']+\s+in\s+([^"']+)/i)?.[1])
     : '';
   const variants = gymsharkColor ? rawVariants.map(variant => variant.color ? variant : {...variant,color:gymsharkColor,label:[gymsharkColor,variant.size??variant.label].filter(Boolean).join(' · ')}) : rawVariants;
-  const country = zara?.country ?? regionNames[String(loc).toUpperCase()];
+  const country = zara?.country ?? regionNames[String(loc).toUpperCase()] ?? inferStorefrontCountry(sourceUrl, currency);
   const warnings: string[] = [];
   if (groupVariants.length) warnings.push('Размеры получены со страницы магазина. Наличие и цена выбранного размера требуют подтверждения.');
   if (price === undefined)
