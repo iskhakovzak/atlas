@@ -100,6 +100,8 @@ Action types additionally include identity-confirm, identity-clear, declaration-
 
 Linked products pass an additional source-freshness boundary in `/api/actions`: the server fetches the allowlisted public page on cart addition and checkout, resolves the stored optional merchant variant ID (or exact label fallback), and compares availability, currency and source price before the domain action runs. This check never trusts client-supplied freshness timestamps and sends no store credentials. Catalog rechecks use the same bounded importer; change and error markers remain optional fields in the existing versioned catalog JSON.
 
+When a public catalog or deal card opens `/order-by-link?url=…`, the client auto-starts the protected import instead of asking the customer to submit the same URL again. It renders the imported colour/size/model matrix and preliminary calculation, then submits a normal `cart-add` action only after the customer confirms the selected combination. The link query is navigation context only: the action route repeats source verification before persisting the cart line.
+
 Pricing stores base international freight and delivery margin separately. Operational projection uses the current payable amount and creates separate fee lines for approved change requests while the original quote remains untouched. Warehouse receiving requires a saved inspection; damaged or mismatched intake needs an approved resolution created after that inspection.
 
 ## Environment and services

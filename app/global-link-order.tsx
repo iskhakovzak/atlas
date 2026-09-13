@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ArrowRight, Link2, Loader2, Scale } from "lucide-react";
 import { toast } from "sonner";
@@ -32,10 +32,12 @@ const priors: Record<string, number> = {
   Спорт: 1,
   Другое: 1.5,
 };
-export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
-  const { ready, pricing, state,catalogProducts } = useMarket();
+export function GlobalLinkOrder() {
+  const { ready, pricing, state, act, catalogProducts } = useMarket();
   const searchParams = useSearchParams();
-  const seed = catalogProducts.find(item => item.sourceUrl === searchParams.get("url"));
+  const requestedUrl = searchParams.get("url") ?? "";
+  const isSourcedFlow = Boolean(requestedUrl);
+  const seed = catalogProducts.find(item => item.sourceUrl === requestedUrl);
   const [url, setUrl] = useState(() => searchParams.get("url") ?? ""),
     [source, setSource] = useState(seed?.sourceUrl ?? ""),
     [name, setName] = useState(seed?.name ?? ""),
@@ -58,6 +60,8 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
     [images, setImages] = useState<string[]>([]),
     [storeSearch, setStoreSearch] = useState(""),
     [busy, setBusy] = useState(false),
+    [adding, setAdding] = useState(false),
+    [showSourceForm, setShowSourceForm] = useState(() => !requestedUrl),
     [note, setNote] = useState(seed ? "Данные из подборки " + seed.store + " на " + seed.observedOn + ". Обновите страницу магазина или проверьте цену и вариант вручную. Вес и доставка предварительные." : ""),
     [weightOrigin, setWeightOrigin] = useState("Оценка по категории"),
     [verified, setVerified] = useState(false),
@@ -68,6 +72,7 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
       currency: string;
       destination?: string;
     } | null>(null);
+  const automaticallyLoaded = useRef<string | null>(null);
   const variantColors = useMemo(() => [...new Set(variants.map(item => item.color).filter((value): value is string => Boolean(value)))], [variants]);
   const variantsForColor = useMemo(() => selectedColor ? variants.filter(item => item.color === selectedColor) : variantColors.length ? [] : variants, [variants,selectedColor,variantColors]);
   const variantSizes = useMemo(() => [...new Set(variantsForColor.map(item => item.size).filter((value): value is string => Boolean(value)))], [variantsForColor]);
@@ -78,14 +83,16 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
     if(item.price!==undefined&&knownCurrency)setAmount(String(item.price));else if(variants.some(value=>value.price!==undefined))setAmount("");
     if(item.image)setImage(item.image);setVerified(false);
   }
-  async function load() {
+  async function load(value = url) {
     let link: string;
     try {
-      link = validateSource(url);
+      link = validateSource(value);
     } catch (e) {
       toast.error((e as Error).message);
+      setShowSourceForm(true);
       return;
     }
+    setUrl(link);
     setBusy(true);
     setSource(link);
     setVerified(false);
@@ -210,10 +217,20 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
       setNote((e as Error).message + " Доступен ручной ввод.");
       setWeight(String(priors[category]));
       setWeightOrigin("Приблизительно по категории");
+      setShowSourceForm(true);
     } finally {
       setBusy(false);
     }
   }
+  useEffect(() => {
+    if (!ready || !requestedUrl || automaticallyLoaded.current === requestedUrl) return;
+    automaticallyLoaded.current = requestedUrl;
+    setUrl(requestedUrl);
+    setShowSourceForm(false);
+    void load(requestedUrl);
+    // `load` intentionally reads the current form state; this effect runs once per requested product.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, requestedUrl]);
   let preview: ReturnType<typeof price> | null = null,
     estimatedWeight = 0;
   try {
@@ -244,11 +261,13 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
     <>
       <PageHeading
         overline="ПОКУПКИ СО ВСЕГО МИРА"
-        title="Нашли товар? Пришлите ссылку."
-        description="Получим доступные данные страницы. Всё можно проверить и исправить вручную."
+        title={isSourcedFlow ? "Выберите вариант и добавьте в корзину." : "Нашли товар? Пришлите ссылку."}
+        description={isSourcedFlow ? "Цена, фото, доступные цвета и размеры загружаются из магазина автоматически." : "Получим доступные данные страницы. Всё можно проверить и исправить вручную."}
       />
       <div className="link-layout">
         <section className="surface link-form">
+          {isSourcedFlow && !showSourceForm && <div className="notice" role="status">{busy ? <><Loader2 className="spin" size={18}/> Загружаем цену и варианты из магазина…</> : <>Товар уже выбран. Проверьте вариант и добавьте его в корзину.</>}<button type="button" className="text-button" onClick={() => setShowSourceForm(true)}>Изменить ссылку</button></div>}
+          {(showSourceForm || !requestedUrl) && <>
           <div className="step-heading">
             <b>01</b>
             <div>
@@ -275,6 +294,7 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
                   setUrl(e.target.value);
                   setSource("");
                   setVerified(false);
+                  setShowSourceForm(true);
                 }}
                 placeholder="https://www.ebay.es/itm/…"
               />
@@ -296,6 +316,7 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
               {supportedStoreRoots.filter(host => host.includes(storeSearch.trim().toLowerCase())).map(host => <a key={host} href={`https://${host}`} target="_blank" rel="noopener noreferrer">{host}{shopifyStoreRoots.includes(host as typeof shopifyStoreRoots[number])&&<small>цвета и размеры</small>}</a>)}
             </div>
           </details>
+          </>}
           {!ready && (
             <p className="notice">
               Войдите в личный кабинет: автозагрузка защищена от
@@ -309,7 +330,7 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
           )}
           {source && !busy && (
             <form
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
                 try {
                   if (!name.trim() || !variant.trim() || !verified)
@@ -363,9 +384,13 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
                     declarationDescription: declaration || undefined,
                   };
                   price(p.usd, p.weight, 1, p.sourceShippingUsd, pricing);
-                  select(p);
+                  setAdding(true);
+                  const added = await act({ type: "cart-add", product: p, variant: variant.trim() });
+                  if (added) toast.success("Товар добавлен в корзину", { action: { label: "Открыть корзину", onClick: () => window.location.assign("/cart") } });
                 } catch (e) {
                   toast.error((e as Error).message);
+                } finally {
+                  setAdding(false);
                 }
               }}
             >
@@ -583,8 +608,8 @@ export function GlobalLinkOrder({ select }: { select: (p: Product) => void }) {
                   магазина.
                 </label>
               </div>
-              <button className="btn primary" disabled={!verified}>
-                Проверить расчёт
+              <button className="btn primary" disabled={!verified || adding}>
+                {adding ? "Добавляем в корзину…" : "В корзину"}
                 <ArrowRight size={18} />
               </button>
             </form>
