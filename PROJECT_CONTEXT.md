@@ -92,6 +92,13 @@ Order statuses: Ожидает выкупа → Выкуплен → На зар
 - Live local checks: Allbirds Wool Runner (7 size records, sold out at check), Kylie Matte Lip Kit (38 shades), ColourPop Bare Necessities (sold out at check), Steve Madden Possession Black (17 size records), Fashion Nova Met My Match jeans (9 sizes for the linked color). Observed availability/prices can change. Bombas has allowlist/adapter coverage but no successful live product check recorded in this release.
 - Validation: 49 automated tests, TypeScript, lint and production build passed; 136 browser checks include a real Steve Madden import, loaded gallery images, color/size selection and 390 px rendering. The narrow-screen check also protects the hidden variant field from stretching the page.
 
+## Regional store expansion — 13 September 2026
+
+- The explicit importer allowlist now covers more than 200 storefront roots. The new focus is Spanish fashion, beauty, sneakers and electronics, broader European regional storefronts, and major US department, outlet, beauty, footwear and electronics stores.
+- The customer store directory highlights three practical groups — Spain, Europe and US — and explains that the cheapest region depends on the exact product, tax-inclusive storefront price, promotion, size availability and merchant-to-warehouse shipping.
+- Enhanced public Shopify import routes were added for stores including FOOTDISTRICT, NAKED Copenhagen, Nude Project, PDPAOLA, Scalpers, Blue Banana, 3INA, Saigu, Represent, Tower 28, MERIT, Good American, Kosas and Faherty. These imports retain photos, price, currency and the available option matrix when the merchant publishes them.
+- Enhanced storefront requests pin a public country context so server location does not silently change USD/EUR pricing. The exact customer URL remains authoritative; Atlas never substitutes a supposedly cheaper country automatically.
+
 ## Editorial catalog — 12 September 2026
 
 - `/admin` now has an operator-only catalog workspace. An operator can paste up to ten allowlisted product URLs, and Atlas imports the store, title, source price/currency, safe gallery, available variants, category and a conservative editable weight into reviewable drafts.

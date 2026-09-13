@@ -5,7 +5,12 @@ export const shopifyStoreRoots = [
   'allbirds.com', 'kyliecosmetics.com', 'colourpop.com', 'fashionnova.com', 'stevemadden.com', 'bombas.com', 'anker.com', 'gymshark.com',
   'aloyoga.com', 'rarebeauty.com', 'rhodeskin.com', 'glossier.com', 'summerfridays.com', 'fentybeauty.com',
   'kith.com', 'cncpts.com', 'sneakersnstuff.com', 'satechi.com', 'satechi.net', 'spigen.com',
+  '3ina.com', 'bluebananabrand.com', 'footdistrict.com', 'nakedcph.com', 'nude-project.com', 'pdpaola.com', 'saigucosmetics.com', 'scalperscompany.com',
+  'representclo.com', 'tower28beauty.com', 'meritbeauty.com', 'goodamerican.com', 'kosas.com', 'fahertybrand.com',
 ] as const;
+
+export const hasEnhancedStoreImport = (root: string) =>
+  shopifyStoreRoots.some(store => store === root);
 
 const categoryByStore: Record<string, ReturnType<typeof inferProductCategory>> = {
   'allbirds.com': 'Обувь', 'stevemadden.com': 'Обувь', 'kith.com': 'Обувь', 'cncpts.com': 'Обувь', 'sneakersnstuff.com': 'Обувь',
@@ -13,7 +18,34 @@ const categoryByStore: Record<string, ReturnType<typeof inferProductCategory>> =
   'glossier.com': 'Красота и уход', 'summerfridays.com': 'Красота и уход', 'fentybeauty.com': 'Красота и уход',
   'fashionnova.com': 'Одежда', 'bombas.com': 'Одежда', 'gymshark.com': 'Одежда', 'aloyoga.com': 'Одежда',
   'anker.com': 'Электроника', 'satechi.com': 'Электроника', 'satechi.net': 'Электроника', 'spigen.com': 'Электроника',
+  'footdistrict.com': 'Обувь', 'nakedcph.com': 'Обувь',
+  'nude-project.com': 'Одежда', 'scalperscompany.com': 'Одежда', 'bluebananabrand.com': 'Одежда', 'representclo.com': 'Одежда', 'goodamerican.com': 'Одежда', 'fahertybrand.com': 'Одежда',
+  '3ina.com': 'Красота и уход', 'saigucosmetics.com': 'Красота и уход', 'tower28beauty.com': 'Красота и уход', 'meritbeauty.com': 'Красота и уход', 'kosas.com': 'Красота и уход',
+  'pdpaola.com': 'Аксессуары',
 };
+
+const countryByStore: Record<string, {code: string; name: string}> = {
+  '3ina.com': {code:'ES',name:'Испания'}, 'bluebananabrand.com': {code:'ES',name:'Испания'}, 'footdistrict.com': {code:'ES',name:'Испания'},
+  'nude-project.com': {code:'ES',name:'Испания'}, 'pdpaola.com': {code:'ES',name:'Испания'}, 'saigucosmetics.com': {code:'ES',name:'Испания'}, 'scalperscompany.com': {code:'ES',name:'Испания'},
+  'nakedcph.com': {code:'DK',name:'Дания'}, 'representclo.com': {code:'GB',name:'Великобритания'},
+  'tower28beauty.com': {code:'US',name:'США'}, 'meritbeauty.com': {code:'US',name:'США'}, 'goodamerican.com': {code:'US',name:'США'}, 'kosas.com': {code:'US',name:'США'}, 'fahertybrand.com': {code:'US',name:'США'},
+  'allbirds.com': {code:'US',name:'США'}, 'kyliecosmetics.com': {code:'US',name:'США'}, 'colourpop.com': {code:'US',name:'США'}, 'fashionnova.com': {code:'US',name:'США'},
+  'stevemadden.com': {code:'US',name:'США'}, 'bombas.com': {code:'US',name:'США'}, 'anker.com': {code:'US',name:'США'}, 'gymshark.com': {code:'US',name:'США'},
+  'aloyoga.com': {code:'US',name:'США'}, 'rarebeauty.com': {code:'US',name:'США'}, 'rhodeskin.com': {code:'US',name:'США'}, 'glossier.com': {code:'US',name:'США'},
+  'summerfridays.com': {code:'US',name:'США'}, 'fentybeauty.com': {code:'US',name:'США'}, 'kith.com': {code:'US',name:'США'}, 'cncpts.com': {code:'US',name:'США'},
+  'satechi.com': {code:'US',name:'США'}, 'satechi.net': {code:'US',name:'США'}, 'spigen.com': {code:'US',name:'США'},
+};
+
+const countryNames: Record<string, string> = {
+  US:'США', GB:'Великобритания', ES:'Испания', DK:'Дания', DE:'Германия', FR:'Франция', IT:'Италия',
+  CA:'Канада', AU:'Австралия', AE:'ОАЭ', TR:'Турция', JP:'Япония', KR:'Южная Корея', RO:'Румыния',
+};
+
+function storefrontCountry(source: URL) {
+  const localeCode = source.pathname.match(/^\/[a-z]{2}-([a-z]{2})(?:\/|$)/i)?.[1].toUpperCase();
+  if (localeCode && countryNames[localeCode]) return {code: localeCode, name: countryNames[localeCode]};
+  return countryByStore[storeRoot(source.hostname)];
+}
 
 const storeRoot = (hostname: string) => hostname.toLowerCase().replace(/^www\./, '');
 
@@ -25,9 +57,10 @@ export function shopifyEndpoints(source: URL) {
   if (/^(?:www\.)?satechi\.net$/i.test(storefront.hostname)) storefront.hostname = 'satechi.com';
   const product = new URL(`${match[1]}products/${match[2]}.js`, storefront);
   const currency = new URL(`${match[1]}cart.js`, storefront);
-  // Kith localizes by requester IP. Pinning the public storefront country keeps
-  // both endpoints in USD instead of returning an unsupported visitor currency.
-  if (storeRoot(source.hostname) === 'kith.com') { product.searchParams.set('country', 'US'); currency.searchParams.set('country', 'US'); }
+  // Shopify can localize by server IP. Pin the public storefront country so the
+  // product and cart endpoints agree with the regional URL chosen by the user.
+  const country = storefrontCountry(source);
+  if (country) { product.searchParams.set('country', country.code); currency.searchParams.set('country', country.code); }
   return {product, currency, handle: match[2]};
 }
 
@@ -67,5 +100,5 @@ export function extractShopify(data: unknown, currencyData: unknown, sourceUrl: 
   if (selected && !selected.available) warnings.push('Вариант из ссылки отсутствует в наличии. Выберите другой вариант.');
   if (selectedId && !selected) warnings.push('Вариант из ссылки не найден. Проверьте размер или цвет.');
   if (!variants.some(v => v.available)) warnings.push('Магазин не указал доступных вариантов этого товара.');
-  return {title, brand, category, declarationDescription: declarationFor(category, title, brand), image: selected?.image ?? images[0], images: gallery([selected?.image, ...images]), price, currency, variants, warnings, sourceUrl, method: 'Shopify product API'};
+  return {title, brand, category, declarationDescription: declarationFor(category, title, brand), image: selected?.image ?? images[0], images: gallery([selected?.image, ...images]), price, currency, variants, warnings, sourceUrl, method: 'Shopify product API', country: storefrontCountry(source)?.name};
 }

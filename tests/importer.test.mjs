@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {extractShopify, shopifyEndpoints} from '../lib/importer/shopify.ts';
+import {featuredStoreGroups, supportedStoreCount} from '../lib/importer/stores.ts';
 import {extractProduct} from '../lib/importer/extract.ts';
 import {fetchProduct, allowedUrl} from '../lib/importer/fetch.ts';
 import {verifyProductSnapshot} from '../lib/importer/verify.ts';
@@ -22,10 +23,10 @@ test('Shopify retains variant price, size, color, availability and safe gallery'
 });
 test('Shopify endpoints preserve locale but reject unapproved hosts and nonproducts',()=>{
   const e=shopifyEndpoints(new URL('https://kyliecosmetics.com/en-gb/collections/lips/products/lip-kit?variant=1'));
-  assert.equal(e.product.href,'https://kyliecosmetics.com/en-gb/products/lip-kit.js');
-  assert.equal(e.currency.pathname,'/en-gb/cart.js');
+  assert.equal(e.product.href,'https://kyliecosmetics.com/en-gb/products/lip-kit.js?country=GB');
+  assert.equal(e.currency.href,'https://kyliecosmetics.com/en-gb/cart.js?country=GB');
   const satechi=shopifyEndpoints(new URL('https://satechi.net/products/usb-c-hub'));
-  assert.equal(satechi.product.href,'https://satechi.com/products/usb-c-hub.js');
+  assert.equal(satechi.product.href,'https://satechi.com/products/usb-c-hub.js?country=US');
   const kith=shopifyEndpoints(new URL('https://kith.com/products/aaji2663'));
   assert.equal(kith.product.href,'https://kith.com/products/aaji2663.js?country=US');
   assert.equal(kith.currency.href,'https://kith.com/cart.js?country=US');
@@ -36,6 +37,13 @@ test('Shopify store profiles classify ambiguous beauty and sneaker names',()=>{
   const basic={handle:'item',title:'The Full Kit',vendor:'Rhode',images:[],options:['Title'],variants:[{id:1,title:'Default Title',option1:'Default Title',price:11700,available:true}]};
   assert.equal(extractShopify(basic,{currency:'USD'},'https://rhodeskin.com/products/item').category,'Красота и уход');
   assert.equal(extractShopify({...basic,title:'Norvan LD 4',vendor:"Arc'teryx"},{currency:'USD'},'https://cncpts.com/products/item').category,'Обувь');
+  const spanish=extractShopify({...basic,title:'Sudadera',vendor:'Nude Project'},{currency:'EUR'},'https://nude-project.com/products/item');
+  assert.equal(spanish.category,'Одежда');assert.equal(spanish.country,'Испания');
+});
+test('store directory covers regional Spain, Europe and US shortlists',()=>{
+  assert.ok(supportedStoreCount>=200);
+  assert.deepEqual(featuredStoreGroups.map(group=>group.region),['Испания','Европа','США']);
+  assert.ok(featuredStoreGroups.find(group=>group.region==='Испания').stores.some(store=>store.root==='footdistrict.com'));
 });
 test('Shopify combines every non-colour option into the second choice axis',()=>{
   const tech={handle:'case',title:'Phone Case',vendor:'Spigen',images:['//cdn.shopify.com/case.jpg'],options:[{name:'Device'},{name:'Color'},{name:'Finish'}],variants:[
@@ -78,7 +86,7 @@ test('generic importer deduplicates images and treats size and color as one vari
 });
 test('public Ajax requests omit credentials and unsafe redirects fall back safely',async()=>{
   const original=globalThis.fetch;const calls=[];
-  globalThis.fetch=async(u,init)=>{calls.push([String(u),init]);if(String(u).endsWith('cart.js'))return Response.json({currency:'USD'});return Response.json(product);};
+  globalThis.fetch=async(u,init)=>{calls.push([String(u),init]);if(new URL(String(u)).pathname.endsWith('/cart.js'))return Response.json({currency:'USD'});return Response.json(product);};
   try {
     assert.equal((await fetchProduct(url+'?variant=1')).price,110);
     assert.equal(calls.length,2);assert(calls.every(([,init])=>!init.headers.Cookie&&!init.headers.Authorization&&init.redirect==='manual'));

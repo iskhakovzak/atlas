@@ -11,8 +11,8 @@ import {
   validateSource,
   type Product,
 } from "@/lib/market/domain";
-import { supportedStoreRoots } from "@/lib/importer/stores";
-import { shopifyStoreRoots } from "@/lib/importer/shopify";
+import { featuredStoreGroups, supportedStoreRoots } from "@/lib/importer/stores";
+import { hasEnhancedStoreImport } from "@/lib/importer/shopify";
 import { countries, currencies, toUsd, paddedWeight } from "@/lib/market/world";
 import {
   safeImage,
@@ -280,6 +280,13 @@ export function GlobalLinkOrder() {
     image,
     variants: [""],
   };
+  const normalizedStoreSearch = storeSearch.trim().toLowerCase();
+  const visibleStoreGroups = featuredStoreGroups.map(group => ({
+    ...group,
+    stores: group.stores.filter(store => !normalizedStoreSearch || `${store.name} ${store.root} ${store.focus}`.toLowerCase().includes(normalizedStoreSearch)),
+  })).filter(group => group.stores.length);
+  const featuredRoots = new Set<string>(featuredStoreGroups.flatMap(group => group.stores.map(store => store.root)));
+  const otherStoreRoots = supportedStoreRoots.filter(root => !featuredRoots.has(root) && (!normalizedStoreSearch || root.includes(normalizedStoreSearch)));
   return (
     <>
       <PageHeading
@@ -333,11 +340,20 @@ export function GlobalLinkOrder() {
           </form>
           <details className="import-store-directory">
             <summary>Магазины для заказа по ссылке · {supportedStoreRoots.length}</summary>
-            <p className="micro">Расширенные варианты: одежда, косметика, кроссовки и техника. Метка «цвета и размеры» означает, что магазин отдаёт Atlas цену, фото и наличие каждой комбинации.</p>
-            <input type="search" aria-label="Поиск магазина" placeholder="Найти магазин" value={storeSearch} onChange={event => setStoreSearch(event.target.value)} />
-            <div className="import-store-links">
-              {supportedStoreRoots.filter(host => host.includes(storeSearch.trim().toLowerCase())).map(host => <a key={host} href={`https://${host}`} target="_blank" rel="noopener noreferrer">{host}{shopifyStoreRoots.includes(host as typeof shopifyStoreRoots[number])&&<small>цвета и размеры</small>}</a>)}
+            <p className="micro">Выбирайте региональную витрину по ссылке. Испания часто выгодна на распродажах одежды и косметики, но Atlas считает итог с доставкой — одна страна не бывает дешевле для всех товаров.</p>
+            <input type="search" aria-label="Поиск магазина" placeholder="Магазин или категория" value={storeSearch} onChange={event => setStoreSearch(event.target.value)} />
+            <div className="store-region-grid">
+              {visibleStoreGroups.map(group => <section key={group.region} className="store-region">
+                <div><h3>{group.region}</h3><p>{group.hint}</p></div>
+                <div className="import-store-links featured">
+                  {group.stores.map(store => <a key={`${group.region}-${store.root}`} href={`https://${store.root}`} target="_blank" rel="noopener noreferrer"><span><b>{store.name}</b><em>{store.focus}</em></span>{hasEnhancedStoreImport(store.root)&&<small>цена + варианты</small>}</a>)}
+                </div>
+              </section>)}
             </div>
+            {otherStoreRoots.length>0&&<details className="all-store-list" open={Boolean(normalizedStoreSearch)}><summary>{normalizedStoreSearch?'Другие совпадения':'Все остальные магазины'} · {otherStoreRoots.length}</summary><div className="import-store-links">
+              {otherStoreRoots.map(host => <a key={host} href={`https://${host}`} target="_blank" rel="noopener noreferrer">{host}{hasEnhancedStoreImport(host)&&<small>цена + варианты</small>}</a>)}
+            </div></details>}
+            {!visibleStoreGroups.length&&!otherStoreRoots.length&&<p className="notice">Такого магазина пока нет в списке. Можно прислать его оператору для проверки.</p>}
           </details>
           </>}
           {!ready && (
