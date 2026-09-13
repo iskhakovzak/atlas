@@ -133,8 +133,11 @@ try {
   await visit('/');
   await check("!!document.querySelector('.guest-intro') && !document.querySelector('.account-error')","guest home without false server error");
   await check(hiddenPrivate,"private header controls hidden");
+  await check("document.querySelectorAll('.community-card .community-estimate strong').length===8","deal shelf shows delivered estimates");
+  await check("document.querySelector('.community-actions a.btn.primary')?.getAttribute('href')?.startsWith('/signin-with-chatgpt?return_to=')","guest deal order requires sign-in");
+  await check("[...document.querySelectorAll('.community-card a[target=_blank]')].every(a=>!a.href.includes('slickdeals'))","deal shelf links directly to merchants");
   await auditPage('guest home');
-  await evaluate("[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Обувь').click()");
+  await evaluate("[...document.querySelectorAll('.finds-categories button')].find(b=>b.textContent.trim()==='Обувь').click()");
   await check("document.querySelectorAll('.find-card').length===2","category filtering");
   await evaluate("document.querySelector('.find-photo').click()");
   await check("!!document.querySelector('.product-sheet') && !!document.querySelector('.sheet-total a[href^=\"/signin-with-chatgpt\"]')","guest product asks for sign-in");

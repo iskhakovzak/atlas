@@ -13,7 +13,9 @@ export type CommunityDeal = {
 };
 
 // Dated editorial observations presented as a direct-to-merchant discovery shelf.
-// They are not Atlas inventory and must be rechecked before any calculation.
+// They are not Atlas inventory. Card totals use a conservative chargeable-weight
+// estimate and the standard unknown-store-shipping reserve; protected import
+// rechecks the product before the customer can continue.
 export const communityDeals: CommunityDeal[] = [
   { id: 'merrell-wrapt', title: 'Merrell Wrapt Sneaker', store: 'Merrell', category: 'Обувь', price: 74.99, referencePrice: 125, observedOn: '2026-09-13', url: 'https://www.merrell.com/US/en/wrapt-sneaker/60644M.html', image: 'https://thekit.wolverineworldwide.com/match/media_lookup/MRLM-J00005167-091225-F26-000/?preset=dw-large' },
   { id: 'brooks-revel-7', title: 'Brooks Revel 7 Running Shoes', store: 'Brooks', category: 'Обувь', price: 59.99, referencePrice: 99.99, observedOn: '2026-09-13', url: 'https://www.brooksrunning.com/en_us/mens/shoes/road-running-shoes/revel-7/110435.html', image: 'https://www.brooksrunning.com/on/demandware.static/-/Sites-brooks-master-catalog/default/dw5b5fcf83/original/110435/110435-072-l-revel-7-mens-fast-running-and-training-shoe.png' },
@@ -31,3 +33,11 @@ export const communityDeals: CommunityDeal[] = [
 ];
 
 export const communityDiscount = (deal: CommunityDeal) => Math.round((1 - deal.price / deal.referencePrice) * 100);
+
+export function communityEstimatedWeight(deal: CommunityDeal) {
+  if (deal.category === 'Обувь') return 1.8;
+  if (deal.category === 'Одежда') return deal.id === 'hanes-hoodie' ? 1.3 : deal.id === 'silkworld-swim' ? 0.9 : 1;
+  if (deal.category === 'Техника') return 1.1;
+  if (deal.category === 'Дом') return 2.1;
+  return deal.id === 'real-perfection-brushes' ? 0.9 : deal.id === 'elf-lip-stain' ? 0.7 : 0.65;
+}

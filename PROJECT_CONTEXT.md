@@ -104,8 +104,9 @@ Order statuses: Ожидает выкупа → Выкуплен → На зар
 
 - The public home feed includes a separate editorial shelf of 13 dated deal observations across apparel, shoes, beauty, technology and home goods.
 - Every card uses a real merchant product photo and opens the exact product page at Merrell, Brooks, Nike, Amazon, Target, Samsung or Walmart. No deal-aggregator page appears in the customer journey.
-- Cards expose only the store, observed USD price, comparison price, computed discount and observation date. Category filters and progressive disclosure keep the section compact on mobile.
-- These observations are not Atlas inventory or checkout-ready catalog records. Coupons, membership, US shipping, variants, availability and the merchant price must still be checked through the protected Atlas import flow.
+- Cards expose the store price, comparison discount and a compact preliminary delivered total computed with the current managed pricing, a conservative chargeable-weight estimate and the standard $10 unknown merchant-shipping reserve. Raw weight and fee lines stay out of the shelf to keep it scannable.
+- Each card has a direct merchant link and a separate “calculate and order” action. That protected action requires sign-in, opens the exact merchant URL in the existing link-order flow and reimports the source before the customer can continue.
+- These observations are not Atlas inventory or checkout-ready catalog records. Coupons, membership, US shipping, variants, availability, weight and the merchant price must still be checked through the protected Atlas import flow.
 
 ## Unified option matrix — 12 September 2026
 

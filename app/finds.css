@@ -13,3 +13,19 @@
 @media(max-width:1050px){.community-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:760px){.community-showcase{padding:20px;margin-inline:-4px}.community-heading{align-items:flex-start;flex-direction:column}.community-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.community-grid{grid-template-columns:1fr}.community-art{height:260px}.community-body h3{min-height:auto}}
+
+/* Deal cards keep the merchant destination and Atlas order flow distinct. */
+.community-card{display:flex;flex-direction:column}
+.community-product-link{display:block;color:inherit}
+.community-product-link:focus-visible,.community-title:focus-visible,.community-store-link:focus-visible{outline:3px solid #91adff;outline-offset:-3px}
+.community-body{display:flex;flex-direction:column;flex:1}
+.community-title{color:inherit}
+.community-title:hover{color:#193dcf}
+.community-estimate{background:#f1f5ff;border:1px solid #dce5f7;border-radius:12px;padding:11px 12px;margin-top:12px}
+.community-estimate span,.community-estimate small{display:block;color:#66758b;font-size:11px}
+.community-estimate strong{display:block;color:#193dcf;font-size:22px;line-height:1.2;letter-spacing:-.035em;margin:4px 0}
+.community-checked{border-top:1px solid #edf0f5;margin-top:12px;padding-top:9px;color:#748198;font-size:11px}
+.community-actions{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;margin-top:auto;padding-top:12px}
+.community-actions .btn{min-height:42px;padding:9px 11px;font-size:13px;white-space:normal;text-align:center}
+.community-store-link{display:flex;align-items:center;gap:4px;color:#193dcf;font-size:12px;font-weight:700;white-space:nowrap}
+@media(max-width:480px){.community-actions .btn{font-size:14px}}

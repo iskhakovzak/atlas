@@ -4,14 +4,14 @@ import { useState } from 'react';
 import { ArrowRight, ArrowUpRight, Flame, Heart, Link2, Search, SlidersHorizontal, X } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from '@/components/site-link';
-import { validateSource, type Product } from '@/lib/market/domain';
+import { price, validateSource, type Product } from '@/lib/market/domain';
 import { findOrderUrl, catalogFreshness } from '@/lib/market/catalog';
 import { defaultDealFilters, filterDeals, type DealFilters } from '@/lib/market/deals';
 import { dealCopy } from '@/lib/market/deal-copy';
 import { useMarket } from '@/lib/market/store';
 import { signInPath } from '@/lib/market/access';
 import { Choice, Empty, ProductImage } from './market-ui';
-import { communityDeals, communityDiscount } from '@/lib/market/community-deals';
+import { communityDeals, communityDiscount, communityEstimatedWeight } from '@/lib/market/community-deals';
 
 export function DealsFeed({ favorites, select }: { favorites: boolean; select: (product: Product) => void }) {
   const { state, pricing, ready, status, act,catalogProducts,collections,catalogError } = useMarket();
@@ -39,11 +39,11 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
   const list = filterDeals(matching, pricing, { ...filters, search: '' },products);
   const hasFilters = !!(filters.search || filters.category || filters.country || filters.maxTotal);
   const communityCopy = locale === 'ru' ? {
-    eyebrow: 'Выгодные находки', title: 'Лучшие предложения сегодня', intro: 'Популярные товары со скидками из зарубежных магазинов. Откройте карточку — вы сразу попадёте на страницу товара в магазине.', all: 'Все', more: 'Показать ещё', collapse: 'Свернуть', open: 'В магазин', note: 'Цена и наличие могут зависеть от цвета, размера, промокода или аккаунта магазина. Atlas перепроверит их перед расчётом.', checked: 'Проверено',
+    eyebrow: 'Выгодные находки', title: 'Лучшие предложения сегодня', intro: 'Сразу видна цена товара и примерный итог до Узбекистана. Atlas перепроверит магазин перед оформлением.', all: 'Все', more: 'Показать ещё', collapse: 'Свернуть', open: 'В магазин', order: 'Рассчитать и заказать', delivered: 'Примерно до Узбекистана', estimate: 'Точно — после проверки', note: 'Расчёт предварительный, таможенные платежи не включены. Цена, наличие, размер, доставка магазина и итоговый вес будут проверены перед заказом.', checked: 'Проверено',
   } : locale === 'uz' ? {
-    eyebrow: 'Foydali topilmalar', title: 'Bugungi eng yaxshi takliflar', intro: 'Xorijiy do‘konlardagi mashhur chegirmali mahsulotlar. Kartani ochsangiz, bevosita do‘kon sahifasiga o‘tasiz.', all: 'Barchasi', more: 'Yana ko‘rsatish', collapse: 'Yig‘ish', open: 'Do‘konga', note: 'Narx va mavjudlik rang, o‘lcham, promo-kod yoki do‘kon hisobiga bog‘liq bo‘lishi mumkin. Atlas hisoblashdan oldin ularni qayta tekshiradi.', checked: 'Tekshirildi',
+    eyebrow: 'Foydali topilmalar', title: 'Bugungi eng yaxshi takliflar', intro: 'Mahsulot narxi va O‘zbekistongacha taxminiy jami summa darhol ko‘rinadi. Atlas rasmiylashtirishdan oldin do‘konni qayta tekshiradi.', all: 'Barchasi', more: 'Yana ko‘rsatish', collapse: 'Yig‘ish', open: 'Do‘konga', order: 'Hisoblash va buyurtma', delivered: 'O‘zbekistongacha taxminan', estimate: 'Aniq summa — tekshiruvdan so‘ng', note: 'Hisob-kitob dastlabki, bojxona to‘lovlari kiritilmagan. Narx, mavjudlik, o‘lcham, do‘kon yetkazib berishi va yakuniy vazn buyurtmadan oldin tekshiriladi.', checked: 'Tekshirildi',
   } : {
-    eyebrow: 'Best finds', title: 'Today’s top deals', intro: 'Popular discounted products from international stores. Open a card to go directly to the product page at the store.', all: 'All', more: 'Show more', collapse: 'Show less', open: 'Visit store', note: 'Price and availability may depend on colour, size, coupon or store account. Atlas will recheck them before calculating.', checked: 'Checked',
+    eyebrow: 'Best finds', title: 'Today’s top deals', intro: 'See the store price and an estimated total to Uzbekistan at a glance. Atlas rechecks the store before checkout.', all: 'All', more: 'Show more', collapse: 'Show less', open: 'Visit store', order: 'Calculate & order', delivered: 'Estimated to Uzbekistan', estimate: 'Final total after verification', note: 'This estimate excludes customs charges. Price, availability, options, store shipping and final weight are checked before ordering.', checked: 'Checked',
   };
   const communityCategoryLabels: Record<string,string> = locale === 'ru' ? {Одежда:'Одежда',Обувь:'Обувь',Красота:'Красота',Техника:'Техника',Дом:'Дом'} : locale === 'uz' ? {Одежда:'Kiyim',Обувь:'Poyabzal',Красота:'Go‘zallik',Техника:'Texnika',Дом:'Uy'} : {Одежда:'Clothing',Обувь:'Shoes',Красота:'Beauty',Техника:'Tech',Дом:'Home'};
   const communityCategories = ['', 'Одежда', 'Обувь', 'Красота', 'Техника', 'Дом'];
@@ -67,10 +67,13 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
       <div className="community-tabs">{communityCategories.map(category=><button type="button" key={category||'all'} className={communityCategory===category?'active':''} onClick={()=>{setCommunityCategory(category);setShowAllCommunity(false)}}>{category?communityCategoryLabels[category]:communityCopy.all}</button>)}</div>
       <div className="community-grid">{communityList.slice(0,showAllCommunity?communityList.length:8).map(deal=>{
         const discount=communityDiscount(deal);
-        return <a className="community-card" href={deal.url} target="_blank" rel="noopener noreferrer" aria-label={`${deal.title} · ${communityCopy.open}`} key={deal.id}>
-          <div className="community-art"><ProductImage product={{id:deal.id,name:deal.title,brand:deal.store,category:deal.category,usd:deal.price,weight:1,image:deal.image,variants:['—']}}/><span>{deal.store}</span><strong>−{discount}%</strong></div>
-          <div className="community-body"><span className="community-category">{communityCategoryLabels[deal.category]} · {deal.store}</span><h3>{deal.title}</h3><div className="community-price"><b>{fmt(deal.price,'USD')}</b><del>{fmt(deal.referencePrice,'USD')}</del></div><div className="community-open"><small>{communityCopy.checked} · {deal.observedOn}</small><span>{communityCopy.open}<ArrowUpRight size={15}/></span></div></div>
-        </a>})}</div>
+        const estimatedWeight=communityEstimatedWeight(deal);
+        const estimate=price(deal.price,estimatedWeight,1,10,pricing);
+        const orderUrl='/order-by-link?url='+encodeURIComponent(deal.url);
+        return <article className="community-card" key={deal.id}>
+          <a className="community-product-link" href={deal.url} target="_blank" rel="noopener noreferrer" aria-label={`${deal.title} · ${communityCopy.open}`}><div className="community-art"><ProductImage product={{id:deal.id,name:deal.title,brand:deal.store,category:deal.category,usd:deal.price,weight:estimatedWeight,image:deal.image,variants:['—']}}/><span>{deal.store}</span><strong>−{discount}%</strong></div></a>
+          <div className="community-body"><span className="community-category">{communityCategoryLabels[deal.category]} · {deal.store}</span><a className="community-title" href={deal.url} target="_blank" rel="noopener noreferrer"><h3>{deal.title}</h3></a><div className="community-price"><b>{fmt(deal.price,'USD')}</b><del>{fmt(deal.referencePrice,'USD')}</del></div><div className="community-estimate"><span>{communityCopy.delivered}</span><strong>{fmt(estimate.total)}</strong><small>{communityCopy.estimate}</small></div><div className="community-checked"><small>{communityCopy.checked} · {deal.observedOn}</small></div><div className="community-actions"><a className="btn primary" href={status==='guest'?signInPath(orderUrl):orderUrl} target={status==='guest'?'_top':undefined}>{communityCopy.order}<ArrowRight size={15}/></a><a className="community-store-link" href={deal.url} target="_blank" rel="noopener noreferrer">{communityCopy.open}<ArrowUpRight size={14}/></a></div></div>
+        </article>})}</div>
       {communityList.length>8&&<button type="button" className="btn secondary community-more" onClick={()=>setShowAllCommunity(value=>!value)}>{showAllCommunity?communityCopy.collapse:`${communityCopy.more} ${communityList.length-8}`}</button>}
       <p className="community-note">{communityCopy.note}</p>
     </section>}

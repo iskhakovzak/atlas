@@ -1,5 +1,7 @@
 # Atlas TODO and known limitations
 
+- [ ] Replace deal-shelf weight estimates with importer-confirmed boxed weights when merchants expose them reliably; link order already rechecks before checkout.
+
 ## Pre-release showcase completed
 
 - [x] Collect and persist recipient, phone and delivery address during checkout.
