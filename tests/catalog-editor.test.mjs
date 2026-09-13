@@ -55,13 +55,15 @@ test('bundled products join existing catalogs without overwriting operator state
  assert(synced.document.entries.some(entry=>entry.id===seed.id&&entry.published));
 });
 test('catalog sync raises only unchanged legacy seed weights',()=>{
- const doc=initialCatalog(),airtag=doc.entries.find(entry=>entry.id==='apple-airtag-1pack-2026'),anker=doc.entries.find(entry=>entry.id==='anker-nano-a2147113');
+ const doc=initialCatalog(),airtag=doc.entries.find(entry=>entry.id==='apple-airtag-1pack-2026'),anker=doc.entries.find(entry=>entry.id==='anker-nano-a2147113'),merrell=doc.entries.find(entry=>entry.id==='merrell-wrapt');
  airtag.draft.boxedWeight=.15000000000000002;airtag.published.boxedWeight=.15000000000000002;
  anker.draft.boxedWeight=.3;anker.published.boxedWeight=.3;
+ merrell.draft.boxedWeight=1.7000000000000002;merrell.published.boxedWeight=1.7000000000000002;
  const synced=synchronizeBundledCatalog(doc);
  assert.equal(airtag.draft.boxedWeight,.15000000000000002);
  assert.equal(synced.document.entries.find(entry=>entry.id===airtag.id).draft.boxedWeight,.25);
  assert.equal(synced.document.entries.find(entry=>entry.id===anker.id).draft.boxedWeight,.3);
+ assert.equal(synced.document.entries.find(entry=>entry.id===merrell.id).draft.boxedWeight,1.7);
 });
 test('published catalog carries seeded size choices into the order flow',()=>{
  const shoe=communityCatalogProducts.find(product=>product.id==='merrell-wrapt');
