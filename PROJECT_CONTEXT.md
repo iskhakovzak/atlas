@@ -16,6 +16,8 @@ Validation baseline: lint, 47 tests, TypeScript, production build, authenticated
 
 Catalog filters and secondary explanatory content now use progressive disclosure. Guest navigation stays public-only, while authenticated accounts expose their own purchases and the administrator alone sees management navigation. Orders use expandable summaries and notification deep links. Checkout separates delivery entry from an explicit review step. Account settings, supporting documents and legal sections are compact, with consent anchors opening the relevant text. Catalog administration adds search, status filters and incremental display without changing D1 schemas or pricing rules.
 
+The account home now calculates a single customer-facing next action from pending approvals, payment, passport, recipient/address and active-order state. It also exposes four compact counters and six primary service shortcuts. This is derived from existing authenticated D1 account state; no client-only account data or new persistence schema was introduced.
+
 This is a UX refinement, not a commercial launch or a new authentication system. Complete RU/UZ/EN coverage, live payment/carrier/email integrations and scheduled catalog alerts remain separate work.
 
 1. Open catalog or Заказ по ссылке.

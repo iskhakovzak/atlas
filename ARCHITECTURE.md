@@ -150,3 +150,5 @@ This UI gate improves navigation and privacy but is not the authorization bounda
 # UX refinement — September 15
 
 Shared presentation overrides are in `app/experience.css`. Order summaries defer rendering their full details and document requests until expanded; order-ID hash links open the matching row. Checkout has delivery and review UI steps but retains the existing authenticated checkout action and server recomputation. Legal hash links expand their target section. Catalog admin search, filters and pagination operate on the existing catalog document; no persistence or API schema changed.
+
+`AccountView` derives its dashboard priority locally from the already authenticated account snapshot: pending customer approval, pending simulated payment, missing confirmed identity, missing saved recipient, then the current order. The links only navigate to existing protected workflows; authorization and mutations remain in their existing APIs/domain actions.

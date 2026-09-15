@@ -203,7 +203,8 @@ try {
   await visit('/notifications');
   await check("!document.querySelector('.notification-list') || document.querySelectorAll('.notice-filters button').length===3",'populated notifications expose filters; empty inbox stays simple');
   await visit('/account');
-  await check("document.querySelector('.account-settings')?.open === false",'secondary profile settings start collapsed');
+  await check("document.querySelectorAll('.account-stats a').length===4 && document.querySelectorAll('.account-service-grid>a,.account-service-grid>button').length===6",'account dashboard prioritises four signals and six services');
+  await check("document.querySelector('.account-profile-compact details')?.open === false",'secondary profile settings start collapsed');
   await visit('/identity');
   await check("[...document.querySelectorAll('.identity-upload button')].find(b=>b.textContent.includes('Распознать')).disabled","passport submit needs file and consent");
   await visit('/batch-import');
