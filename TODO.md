@@ -6,6 +6,7 @@
 - [x] Expandable order rows, grouped notification history, direct links to order details and checkout review step.
 - [x] Compact account sections, legal consent deep links and searchable/filterable catalog administration.
 - [x] Turn the account landing screen into a state-aware customer dashboard with one next action, compact counters and primary service shortcuts.
+- [x] Make account secondary panels mutually exclusive and remove paired-panel stretching and repeated decorative hierarchy.
 - [ ] Add populated-order/operator and checkout-review browser fixtures beyond current domain and guest/customer route coverage.
 - [ ] Finish RU/UZ/EN translations across legacy forms, order copy, legal and operator screens; shared/new navigation is not full localization.
 - [ ] Implement saved searches, recently viewed products and price/size alerts only with authenticated persistence and a real refresh/delivery mechanism.

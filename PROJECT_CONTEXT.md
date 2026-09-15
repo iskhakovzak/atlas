@@ -18,6 +18,8 @@ Catalog filters and secondary explanatory content now use progressive disclosure
 
 The account home now calculates a single customer-facing next action from pending approvals, payment, passport, recipient/address and active-order state. It also exposes four compact counters and six primary service shortcuts. This is derived from existing authenticated D1 account state; no client-only account data or new persistence schema was introduced.
 
+Account secondary sections use a controlled single-open accordion, so expanding recipients cannot expand or stretch the customs panel beside it. The account visual language was reduced to fewer containers, quieter borders and one consistent hierarchy instead of repeated card/eyebrow/title combinations.
+
 This is a UX refinement, not a commercial launch or a new authentication system. Complete RU/UZ/EN coverage, live payment/carrier/email integrations and scheduled catalog alerts remain separate work.
 
 1. Open catalog or Заказ по ссылке.
