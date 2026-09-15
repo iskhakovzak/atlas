@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1788973073215,
+      "tag": "0000_overrated_justice",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1789036756221,
+      "tag": "0001_colossal_ultimatum",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789057085266,
+      "tag": "0002_fast_warlock",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1789057116001,
+      "tag": "0003_steady_warhawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1789129393915,
+      "tag": "0004_broken_betty_ross",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1789132660143,
+      "tag": "0005_lumpy_moira_mactaggert",
+      "breakpoints": true
+    }
+  ]
+}
