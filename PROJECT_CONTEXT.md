@@ -12,6 +12,12 @@ Validation baseline: lint, 47 tests, TypeScript, production build, authenticated
 
 ## Customer flow
 
+### September 15 UX refinement
+
+Catalog filters and secondary explanatory content now use progressive disclosure. Guest navigation stays public-only, while authenticated accounts expose their own purchases and the administrator alone sees management navigation. Orders use expandable summaries and notification deep links. Checkout separates delivery entry from an explicit review step. Account settings, supporting documents and legal sections are compact, with consent anchors opening the relevant text. Catalog administration adds search, status filters and incremental display without changing D1 schemas or pricing rules.
+
+This is a UX refinement, not a commercial launch or a new authentication system. Complete RU/UZ/EN coverage, live payment/carrier/email integrations and scheduled catalog alerts remain separate work.
+
 1. Open catalog or Заказ по ссылке.
 2. Paste a public supported-store product URL.
 3. The server imports available title, photo, brand, price, currency, source country, category, declaration draft, variants and weight.

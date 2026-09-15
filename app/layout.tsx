@@ -4,6 +4,7 @@ import "./atlas-design.css";
 import "./finds.css";
 import "./checkout-clarity.css";
 import "./access.css";
+import "./experience.css";
 import { MarketProvider } from "@/lib/market/store";
 
 export const metadata: Metadata = {

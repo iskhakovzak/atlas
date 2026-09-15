@@ -51,31 +51,30 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
       <button type="button" className={!collectionId?'active':''} onClick={()=>setCollectionId('')}>{copy.all}</button>
       {collections.map(collection=><button type="button" key={collection.id} className={collectionId===collection.id?'active':''} onClick={()=>setCollectionId(collection.id)}><b>{locale==='en'?collection.nameEn||collection.name:locale==='uz'?collection.nameUz||collection.name:collection.name}</b><span>{collection.productIds.length}</span></button>)}
     </nav>}
-    <section className="finds-controls" aria-label={copy.search}>
+    {(!favorites || candidates.length > 0) && <section className="finds-controls" aria-label={copy.search}>
       <div className="finds-search"><Search size={21}/><input type="search" aria-label={copy.search} placeholder={copy.searchPlaceholder} value={filters.search} onChange={event => setFilters({ ...filters, search: event.target.value })}/>{filters.search && <button type="button" className="icon-btn" aria-label={copy.clear} onClick={() => setFilters({ ...filters, search: '' })}><X size={18}/></button>}</div>
       <div className="finds-categories">{categories.map(category => <button type="button" key={category.value} aria-pressed={filters.category === category.value} className={filters.category === category.value ? 'active' : ''} onClick={() => setFilters({ ...filters, category: category.value })}>{category.label}</button>)}</div>
-      <div className="finds-filter-row"><SlidersHorizontal size={18} aria-hidden="true"/>
+      <details className="catalog-filter-disclosure"><summary><SlidersHorizontal size={18} aria-hidden="true"/>{locale==='ru'?'Фильтры и сортировка':locale==='uz'?'Filtrlar va saralash':'Filters & sorting'}{(filters.country||filters.maxTotal||filters.sort!=='discount')&&<span> · {locale==='ru'?'настроены':locale==='uz'?'tanlangan':'applied'}</span>}</summary><div className="finds-filter-row">
         <label><span>{copy.country}</span><Choice label={copy.country} value={countries.find(c => c.value === filters.country)!.label} options={countries.map(c => c.label)} onChange={label => setFilters({ ...filters, country: countries.find(c => c.label === label)!.value })}/></label>
         <label><span>{copy.budget}</span><Choice label={copy.budget} value={budgets.find(b => b.value === filters.maxTotal)!.label} options={budgets.map(b => b.label)} onChange={label => setFilters({ ...filters, maxTotal: budgets.find(b => b.label === label)!.value })}/></label>
         <label><span>{copy.sort}</span><Choice label={copy.sort} value={sorts.find(s => s.value === filters.sort)!.label} options={sorts.map(s => s.label)} onChange={label => setFilters({ ...filters, sort: sorts.find(s => s.label === label)!.value })}/></label>
-      </div>
-    </section>
-    <div className="finds-result"><span role="status">{copy.results}: <b>{list.length}</b></span>{hasFilters && <button type="button" className="text-button" onClick={() => setFilters(defaultDealFilters)}>{copy.reset}<X size={14}/></button>}</div>
+      </div></details>
+    </section>}
+    {(!favorites || candidates.length > 0) && <div className="finds-result"><span role="status">{copy.results}: <b>{list.length}</b></span><span className="catalog-customs-note">{copy.excluded} <Link href="/customs" aria-label={locale==='ru'?'Таможенные условия':locale==='uz'?'Bojxona shartlari':'Customs information'}>ⓘ</Link></span>{hasFilters && <button type="button" className="text-button" onClick={() => setFilters(defaultDealFilters)}>{copy.reset}<X size={14}/></button>}</div>}
     <section className="finds-grid" aria-label={favorites ? copy.saved : copy.catalog}>
       {list.map(({ product, costs, referenceUsd, discount }) => {
         const isSaved = state.favorites.includes(product.id);
         const name = product.sourceUrl ? product.name : titles[product.id] ?? product.name;
         return <article className="find-card" key={product.id}>
           <div className="find-visual"><button className="find-photo" type="button" onClick={() => select(product)} aria-label={name}><ProductImage product={{ ...product, name }} /></button>
-            <span className="find-merchant">{merchantRecord(product)?.store}</span><span className={`find-freshness ${catalogFreshness(product)}`}>{locale==='ru'?'Проверено':locale==='uz'?'Tekshirilgan':'Checked'} · {merchantRecord(product)?.observedOn}</span>
+            <span className="find-merchant">{merchantRecord(product)?.store}</span>{catalogFreshness(product)!=='fresh'&&<span className={`find-freshness ${catalogFreshness(product)}`}>{locale==='ru'?'Данные на':locale==='uz'?'Ma’lumot sanasi':'As of'} · {merchantRecord(product)?.observedOn}</span>}
             {discount >= 40 && <span className="find-top-deal"><Flame size={14}/>{copy.topDeal}</span>}
             {ready&&<button type="button" disabled={saving !== null} className={'find-save ' + (isSaved ? 'saved' : '')} aria-pressed={isSaved} aria-label={(isSaved ? copy.remove : copy.save) + ': ' + name} title={!ready ? copy.signin : saving === product.id ? copy.savingState : isSaved ? copy.remove : copy.save} onClick={() => void favorite(product)}><Heart size={20}/></button>}
           </div>
           <div className="find-content"><div className="find-meta"><span>{categories.find(c => c.value === product.category)?.label ?? product.category}</span><span>{countries.find(c => c.value === product.country)?.label ?? product.country}</span></div>
             <button type="button" className="find-title" onClick={() => select(product)}>{name}</button>
             <div className="find-store-price"><span>{copy.productPrice}</span><div><b>{fmt(product.usd, 'USD')}</b>{discount > 0 && <del title={copy.referenceLabel}>{fmt(referenceUsd!, 'USD')}</del>}</div>{discount > 0 && <span className="find-discount" title={copy.compareHint}>−{discount}%</span>}</div>
-            <div className="find-total"><span>{copy.delivered}</span><strong>{fmt(costs.total)}</strong><small>{copy.excluded}</small></div>
-            <button type="button" className="text-button find-details" onClick={() => select(product)}>{copy.breakdown}<ArrowUpRight size={14}/></button>
+            <div className="find-total"><span>{copy.delivered}</span><strong>{fmt(costs.total)}</strong><button type="button" className="price-info" aria-label={copy.breakdown} onClick={() => select(product)}>ⓘ</button></div>
             <div className="find-origin"><a href={product.sourceUrl} target="_blank" rel="noopener noreferrer">{merchantRecord(product)?.store} · {copy.sourceOpen}<ArrowUpRight size={14}/></a></div>
             <div className="find-purchase"><a className="btn primary" href={status==='guest'?signInPath(findOrderUrl(product)):findOrderUrl(product)} target={status==='guest'?'_top':undefined}>{copy.buy}<ArrowRight size={17}/></a></div>
           </div>

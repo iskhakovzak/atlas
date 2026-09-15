@@ -314,8 +314,8 @@ export function GlobalLinkOrder() {
     <>
       <PageHeading
         overline="ПОКУПКИ СО ВСЕГО МИРА"
-        title={isSourcedFlow ? "Выберите вариант и добавьте в корзину." : "Нашли товар? Пришлите ссылку."}
-        description={isSourcedFlow ? "Цена, фото, доступные цвета и размеры загружаются из магазина автоматически." : "Получим доступные данные страницы. Всё можно проверить и исправить вручную."}
+        title={isSourcedFlow ? "Выберите свой вариант" : "Заказ по ссылке"}
+        description={isSourcedFlow ? "Проверьте размер и цену перед добавлением." : "Вставьте ссылку — Atlas заполнит доступные данные."}
       />
       <div className="link-layout">
         <section className="surface link-form">
@@ -387,7 +387,7 @@ export function GlobalLinkOrder() {
           )}
           {note && (
             <div className="notice" role="status">
-              <span>{note}</span>{source&&<a className="text-link source-check-link" href={source} target="_blank" rel="noopener noreferrer">Проверить товар в магазине <ExternalLink size={15}/></a>}
+              {source ? <><a className="text-link source-check-link" href={source} target="_blank" rel="noopener noreferrer">Открыть оригинал в магазине <ExternalLink size={15}/></a><details className="import-status-details"><summary>Что загрузилось и что нужно проверить</summary><p>{note}</p></details></> : <p>{note}</p>}
             </div>
           )}
           {manualAvailabilityRequired&&source&&<section className="availability-check" aria-labelledby="availability-check-title">
@@ -472,10 +472,6 @@ export function GlobalLinkOrder() {
                 <b>02</b>
                 <div>
                   <h2>Проверьте данные</h2>
-                  <p>
-                    Цена зависит от выбранного размера, продавца и адреса
-                    доставки.
-                  </p>
                 </div>
               </div>
               <div className="field">
@@ -683,8 +679,7 @@ export function GlobalLinkOrder() {
                   onCheckedChange={(v) => setVerified(v === true)}
                 />
                 <label htmlFor="data-verified">
-                  Проверил страну отправки, валюту, вариант, цену и доставку
-                  магазина.
+                  Я проверил данные и выбранный вариант.
                 </label>
               </div>
               <button className="btn primary" disabled={!verified || adding || (manualAvailabilityRequired&&availabilityAnswer!=='available')}>
@@ -714,13 +709,13 @@ export function GlobalLinkOrder() {
           </span>
           <h2>{name || "Ваш товар появится здесь"}</h2>
           {importedAt && (
-            <p className="micro source-freshness">
+            <details className="micro source-freshness"><summary>Когда проверены данные</summary><p>
               Данные страницы проверены {new Date(importedAt).toLocaleString("ru-RU")}.
               {sourceExpiresAt
                 ? ` Автообновление после ${new Date(sourceExpiresAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}.`
                 : ""}{" "}
               Перед оформлением ещё раз сверьте цену и наличие.
-            </p>
+            </p></details>
           )}
           {declaration && (
             <details className="declaration-preview"><summary>Черновик декларации</summary>

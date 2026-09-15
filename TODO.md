@@ -1,5 +1,15 @@
 # Atlas TODO and known limitations
 
+## UX refinement follow-up
+
+- [x] Compact catalog cards, disclose secondary filters and pricing details, simplify guest introduction.
+- [x] Expandable order rows, grouped notification history, direct links to order details and checkout review step.
+- [x] Compact account sections, legal consent deep links and searchable/filterable catalog administration.
+- [ ] Add populated-order/operator and checkout-review browser fixtures beyond current domain and guest/customer route coverage.
+- [ ] Finish RU/UZ/EN translations across legacy forms, order copy, legal and operator screens; shared/new navigation is not full localization.
+- [ ] Implement saved searches, recently viewed products and price/size alerts only with authenticated persistence and a real refresh/delivery mechanism.
+- [ ] Validate the shortened experience with actual customers; visual simplification alone does not establish improved retention.
+
 - [ ] Add scheduled same-SKU regional price comparison. Current regional storefront support imports the exact customer URL but does not yet prove that Spain, Germany or the US is cheapest after local shipping and tax.
 - [ ] Record live import fixtures for non-Shopify regional leaders such as Primor, Druni, PcComponentes, MediaMarkt, Zalando and major US department stores; allowlist coverage currently falls back to safe JSON-LD/Open Graph or manual confirmation when their anti-bot pages block Atlas.
 - [ ] Replace deal-shelf weight estimates with importer-confirmed boxed weights when merchants expose them reliably; link order already rechecks before checkout.

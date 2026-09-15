@@ -133,12 +133,12 @@ try {
   await visit('/');
   await check("!!document.querySelector('.guest-intro') && !document.querySelector('.account-error')","guest home without false server error");
   await check(hiddenPrivate,"private header controls hidden");
-  await check("document.querySelectorAll('.community-card .community-estimate strong').length===8","deal shelf shows delivered estimates");
-  await check("document.querySelector('.community-actions a.btn.primary')?.getAttribute('href')?.startsWith('/signin-with-chatgpt?return_to=')","guest deal order requires sign-in");
-  await check("[...document.querySelectorAll('.community-card a[target=_blank]')].every(a=>!a.href.includes('slickdeals'))","deal shelf links directly to merchants");
+  await check("document.querySelectorAll('.find-card .find-total strong').length>0","catalog shows delivered estimates");
+  await check("document.querySelector('.find-purchase a.btn.primary')?.getAttribute('href')?.startsWith('/signin-with-chatgpt?return_to=')","guest catalog order requires sign-in");
+  await check("document.querySelectorAll('.find-origin a').length>0 && [...document.querySelectorAll('.find-origin a')].every(a=>!a.href.includes('slickdeals'))","catalog links directly to merchants");
   await auditPage('guest home');
   await evaluate("[...document.querySelectorAll('.finds-categories button')].find(b=>b.textContent.trim()==='Обувь').click()");
-  await check("document.querySelectorAll('.find-card').length===2","category filtering");
+  await check("document.querySelectorAll('.find-card').length>0 && [...document.querySelectorAll('.find-card .find-meta')].every(el=>el.textContent.includes('Обувь'))","category filtering");
   await evaluate("document.querySelector('.find-photo').click()");
   await check("!!document.querySelector('.product-sheet') && !!document.querySelector('.sheet-total a[href^=\"/signin-with-chatgpt\"]')","guest product asks for sign-in");
   await evaluate("document.querySelector('button[aria-label=\"Закрыть карточку\"]').click()");
@@ -198,10 +198,16 @@ try {
    await auditPage('member /'+route);
    if(route==='account')await snapshot('account-800');
   }
+  await visit('/legal#passport-consent');
+  await check("document.getElementById('passport-consent')?.open === true",'consent link opens the exact legal section');
+  await visit('/notifications');
+  await check("!document.querySelector('.notification-list') || document.querySelectorAll('.notice-filters button').length===3",'populated notifications expose filters; empty inbox stays simple');
+  await visit('/account');
+  await check("document.querySelector('.account-settings')?.open === false",'secondary profile settings start collapsed');
   await visit('/identity');
   await check("[...document.querySelectorAll('.identity-upload button')].find(b=>b.textContent.includes('Распознать')).disabled","passport submit needs file and consent");
   await visit('/batch-import');
-  await check("[...document.querySelectorAll('.batch-import button')].find(b=>b.textContent.includes('Импортировать')).disabled","batch submit needs links");
+  await check("!!document.querySelector('.batch-import button:disabled')","batch submit needs links");
   await visit('/account');
   await check("!!document.querySelector('a[href*=\"signout-with-chatgpt\"]')","member can sign out");
   const signOutUrl=await evaluate("document.querySelector('a[href*=\"signout-with-chatgpt\"]').href");

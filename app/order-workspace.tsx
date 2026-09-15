@@ -168,6 +168,7 @@ function OrderDocuments({orderId,accountId,operatorMode,locale}:{orderId:string;
 }
 export function OrdersView({ operations }: { operations: boolean }) {
   const { state, pricing, ready, error, act, user, refresh } = useMarket();
+  const [expanded,setExpanded]=useState<string[]>([]);
   const [tab, setTab] = useState("active"),
     [query, setQuery] = useState(""),
     [warehouse, setWarehouse] = useState<string | null>(null),
@@ -186,6 +187,18 @@ export function OrdersView({ operations }: { operations: boolean }) {
     [opsPricing, setOpsPricing] = useState<Pricing>(pricing),
     [opsReady, setOpsReady] = useState(false),
     [opsError, setOpsError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!ready) return;
+    const reveal = () => {
+      let id: string;
+      try { id = decodeURIComponent(window.location.hash.slice(1)); } catch { return; }
+      const row = document.getElementById(id);
+      if (row instanceof HTMLDetailsElement) { row.open = true; row.scrollIntoView({block:'start'}); }
+      else { const order=state.orders.find(item=>item.id===id);if(order)queueMicrotask(()=>{setQuery('');setTab(order.cancelled||order.status===5?'done':'active')}); }
+    };
+    reveal(); window.addEventListener('hashchange', reveal);
+    return () => window.removeEventListener('hashchange', reveal);
+  }, [ready, tab, query, opsReady,state.orders]);
   const refreshOperations = useCallback(async () => {
     if (!operations || !user?.operator) return;
     try {
@@ -226,7 +239,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
     (o) => o.id === storeShippingOrder,
   );
   const active = orders.filter((o) => !o.cancelled && o.status < 5),
-    need = orders.filter((order) => isExtra(order) || pendingChange(order) || order.warehouseInspection?.condition === "damaged" || order.warehouseInspection?.condition === "mismatch"),
+    need = orders.filter((order) => !order.cancelled&&(isExtra(order) || pendingChange(order) || (!operations&&order.payment?.status==='pending') || order.warehouseInspection?.condition === "damaged" || order.warehouseInspection?.condition === "mismatch")),
     done = orders.filter((o) => o.cancelled || o.status === 5);
   const filtered = (
     tab === "active" ? active : tab === "attention" ? need : done
@@ -461,7 +474,14 @@ export function OrdersView({ operations }: { operations: boolean }) {
         />
       ) : (
         filtered.map((o) => (
-          <article className="surface order-card" key={o.id}>
+          <details className="surface order-card compact-order" key={o.id} id={o.id} onToggle={event=>{const open=event.currentTarget.open;setExpanded(ids=>open?[...new Set([...ids,o.id])]:ids.filter(id=>id!==o.id))}}>
+            <summary className="compact-order-summary">
+              <ProductImage product={o.product} decorative />
+              <span className="compact-order-name"><small>{o.id}{operations ? ` · ${orderAccount.get(o.id)?.name ?? ''}` : ''}</small><b>{o.product.name}</b><span>{o.variant} · {o.quantity}</span></span>
+              <span className={'status-badge '+(isExtra(o)||pendingChange(o)||(!operations&&o.payment?.status==='pending')?'needs-action':'')}>{o.cancelled ? (state.communication.language==='ru'?'Отменён':state.communication.language==='uz'?'Bekor qilingan':'Cancelled') : isExtra(o)||pendingChange(o) ? wc.attention : o.payment?.status==='pending' ? (state.communication.language==='ru'?'Ожидает оплаты':state.communication.language==='uz'?'To‘lov kutilmoqda':'Awaiting payment') : displayStatuses[o.status]}</span>
+              <strong>{money(orderPayable(o))}</strong><ArrowRight size={18}/>
+            </summary>
+            {expanded.includes(o.id)&&<div className="compact-order-body">
             <div className="order-card-head">
               <div>
                 <b>{o.id}</b>
@@ -821,7 +841,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 </button>
               )}
             </div>
-          </article>
+            </div>}
+          </details>
         ))
       )}
       <Modal
@@ -1200,6 +1221,13 @@ function CommunicationPanel({
 
 export function NotificationsView() {
   const { state, ready, error, act, user } = useMarket();
+  const [noticeFilter,setNoticeFilter]=useState('all');
+  const locale=state.communication.language;
+  const noticeWords={ru:{all:'Все',unread:'Непрочитанные',orders:'Заказы',updates:'обновлений',history:'История обновлений',empty:'Таких уведомлений нет'},uz:{all:'Barchasi',unread:'O‘qilmagan',orders:'Buyurtmalar',updates:'yangilanish',history:'Yangilanishlar tarixi',empty:'Bunday bildirishnomalar yo‘q'},en:{all:'All',unread:'Unread',orders:'Orders',updates:'updates',history:'Update history',empty:'No matching notifications'}}[locale];
+  const notices=state.notifications.filter(item=>noticeFilter==='all'||(noticeFilter==='unread'&&!item.read)||(noticeFilter==='orders'&&item.orderId));
+  const grouped=new Map<string,typeof notices>();
+  for(const item of [...notices].sort((a,b)=>b.at-a.at)){const key=item.orderId??item.id;grouped.set(key,[...(grouped.get(key)??[]),item]);}
+  const groups=[...grouped.values()];
   const unread = state.notifications.filter((item) => !item.read).length;
   return (
     <>
@@ -1217,9 +1245,7 @@ export function NotificationsView() {
           </button>
         )}
       </PageHeading>
-      {ready && (
-        <CommunicationPanel key={`${state.communication.emailEnabled}-${state.communication.smsEnabled}-${state.communication.email}-${state.communication.phone}-${state.communication.language}`} value={state.communication} email={user?.email ?? ""} phone={state.deliveryProfile?.phone ?? ""} save={(value) => act({ type: "communication-save", value })} />
-      )}
+      {ready && <details className="ux-disclosure"><summary>{state.communication.language==='ru'?'Настройки email и SMS':state.communication.language==='uz'?'Email va SMS sozlamalari':'Email and SMS settings'}</summary><CommunicationPanel key={`${state.communication.emailEnabled}-${state.communication.smsEnabled}-${state.communication.email}-${state.communication.phone}-${state.communication.language}`} value={state.communication} email={user?.email ?? ""} phone={state.deliveryProfile?.phone ?? ""} save={(value) => act({ type: "communication-save", value })} /></details>}
       {!ready ? (
         error ? (
           <Empty
@@ -1239,8 +1265,8 @@ export function NotificationsView() {
           label="Мои заказы"
         />
       ) : (
-        <section className="surface notification-list">
-          {state.notifications.map((item) => (
+        <><div className="notice-filters">{[['all',noticeWords.all],['unread',noticeWords.unread],['orders',noticeWords.orders]].map(([value,label])=><button key={value} className={noticeFilter===value?'active':''} aria-pressed={noticeFilter===value} onClick={()=>setNoticeFilter(value)}>{label}</button>)}</div>{!groups.length&&<p className="surface">{noticeWords.empty}</p>}<section className="surface notification-list">
+          {groups.map(([item,...history]) => (
             <article
               className={"notification-item " + (!item.read ? "unread" : "")}
               key={item.id}
@@ -1252,8 +1278,9 @@ export function NotificationsView() {
                   <time>{new Date(item.at).toLocaleString("ru-RU")}</time>
                 </div>
                 <p>{item.message}</p>
+                {history.length>0&&<details className="notification-history"><summary>{history.length+1} {noticeWords.updates}</summary>{history.map(previous=><div key={previous.id}><b>{previous.title}</b><p>{previous.message}</p><time>{new Date(previous.at).toLocaleString(locale)}</time></div>)}</details>}
                 {item.orderId && (
-                  <Link className="text-link" href="/orders">
+                  <Link className="text-link" href={'/orders#'+item.orderId}>
                     Открыть заказ {item.orderId}
                     <ArrowUpRight size={14} />
                   </Link>
@@ -1261,9 +1288,9 @@ export function NotificationsView() {
               </div>
             </article>
           ))}
-        </section>
+        </section></>
       )}
-      {ready && (
+      {ready && user?.operator && (
         <section className="message-log-section">
           <div className="section-heading"><h2>Журнал внешних сообщений</h2><span>{state.messageDeliveries.length} подготовлено</span></div>
           {!state.messageDeliveries.length ? <div className="surface message-log-empty"><Mail size={23} /><div><h3>Сообщений пока нет</h3><p>Включите канал и измените тестовый статус заказа — Atlas подготовит email или SMS.</p></div></div> : <div className="surface message-log">{state.messageDeliveries.map((item) => <article key={item.id}><span className="message-channel">{item.channel === "email" ? <Mail size={17} /> : <MessageSquareText size={17} />}{item.channel.toUpperCase()}</span><div><b>{item.title}</b><p>{item.orderId ? `${item.orderId} · ` : ""}{item.destination}</p></div><span className="status-badge">Предпросмотр</span><time>{new Date(item.at).toLocaleString("ru-RU")}</time></article>)}</div>}

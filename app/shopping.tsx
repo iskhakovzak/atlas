@@ -18,6 +18,7 @@ export function CartView() {
   const [useBalance, setUseBalance] = useState(false);
   const [consent, setConsent] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [review,setReview]=useState(false);
   const [delivery, setDelivery] = useState<DeliveryProfile>(emptyDelivery);
   const [selectedProfile, setSelectedProfile] = useState("");
   const [busy, setBusy] = useState(false);
@@ -54,6 +55,7 @@ export function CartView() {
     setSelectedProfile(saved?.id ?? "manual");
     setDelivery(saved ?? state.deliveryProfile ?? { ...emptyDelivery, recipient: user?.name ?? "", phone: state.communication.phone });
     setCheckoutOpen(true);
+    setReview(false);
   }
 
   async function checkout() {
@@ -98,7 +100,9 @@ export function CartView() {
       </div>}
 
     <Modal open={checkoutOpen} onClose={() => { if (!busy) setCheckoutOpen(false); }} title={c.delivery} description={c.deliveryHint}>
-      <form className="checkout-form" onSubmit={(event) => { event.preventDefault(); void checkout(); }}>
+      <ol className="checkout-progress"><li className={!review?'active':''}>1 · {locale==='ru'?'Получатель':locale==='uz'?'Qabul qiluvchi':'Recipient'}</li><li className={review?'active':''}>2 · {locale==='ru'?'Проверка':locale==='uz'?'Tekshirish':'Review'}</li></ol>
+      <form className="checkout-form" onSubmit={(event) => { event.preventDefault(); if(!review){setReview(true);return;} void checkout(); }}>
+        {!review&&<>
         <div className="checkout-address-head"><MapPin size={21} /><span>Доставка по Узбекистану</span></div>
         {state.deliveryProfiles.length > 0 && <div className="field"><label htmlFor="saved-recipient">Сохранённый получатель</label><select id="saved-recipient" value={selectedProfile} onChange={event => { const profile = state.deliveryProfiles.find(item => item.id === event.target.value); setSelectedProfile(event.target.value); if (profile) setDelivery(profile); }}><option value="manual">Ввести новый адрес</option>{state.deliveryProfiles.map(profile => <option key={profile.id} value={profile.id}>{profile.label} · {profile.recipient}</option>)}</select><small>Можно выбрать адрес из профиля или указать новый.</small></div>}
         <div className="two-fields">
@@ -112,9 +116,11 @@ export function CartView() {
           <div className="field"><label htmlFor="postal-code">Индекс</label><input id="postal-code" maxLength={20} value={delivery.postalCode} onChange={(event) => setDelivery({ ...delivery, postalCode: event.target.value })} /></div>
           <div className="field"><label htmlFor="delivery-comment">Комментарий</label><input id="delivery-comment" maxLength={300} value={delivery.comment} onChange={(event) => setDelivery({ ...delivery, comment: event.target.value })} /></div>
         </div>
-        <div className="payment-preview"><div><span>Способ оплаты</span><b>Платёжная ссылка</b></div><strong>{money(total - credit)}</strong></div>
-        <p className="micro">Подтверждение оплаты откроется на защищённом экране платёжного провайдера.</p>
-        <button className="btn primary full" disabled={busy}>{busy ? "Сохраняем заказ…" : "Подтвердить предзаказ"}<Check size={18} /></button>
+        </>}
+        {review&&<section className="checkout-review"><h3>{delivery.recipient}</h3><p>{delivery.phone}</p><p>{delivery.region}, {delivery.city}, {delivery.address}</p><button type="button" className="text-button" onClick={()=>setReview(false)}>{locale==='ru'?'Изменить адрес':locale==='uz'?'Manzilni o‘zgartirish':'Edit address'}</button><hr/><div className="review-items">{state.cart.map(item=><div key={item.id}><span>{item.product.name}<small>{item.variant} · {item.quantity}</small></span><b>{money(item.quote.total)}</b></div>)}</div><details className="quote-details"><summary>{c.breakdown}</summary><CostLines q={sums} locale={locale}/></details></section>}
+        <div className="payment-preview"><div><span>{locale==='ru'?'Предварительный итог':locale==='uz'?'Dastlabki jami':'Estimated total'}</span><b>{state.cart.length} {locale==='ru'?'товаров':locale==='uz'?'tovar':'items'}</b></div><strong>{money(total - credit)}</strong></div>
+        {review&&<p className="micro">{locale==='ru'?'Предзаказ сохраняется в Atlas. Реальные платежи и доставка ещё не подключены.':locale==='uz'?'Oldindan buyurtma Atlas’da saqlanadi. Haqiqiy to‘lov va yetkazish hali ulanmagan.':'Your pre-order is saved in Atlas. Real payments and delivery are not connected yet.'}</p>}
+        <button className="btn primary full" disabled={busy}>{busy ? "Сохраняем заказ…" : review ? (locale==='ru'?"Подтвердить предзаказ":locale==='uz'?'Oldindan buyurtmani tasdiqlash':'Confirm pre-order') : (locale==='ru'?'Проверить заказ':locale==='uz'?'Buyurtmani tekshirish':'Review order')}<Check size={18} /></button>
       </form>
     </Modal>
 
