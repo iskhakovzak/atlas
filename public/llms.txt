@@ -1,0 +1,27 @@
+# Atlas
+
+> Atlas is a pre-release purchasing intermediary and logistics agent for customers in Uzbekistan. It helps customers find products from foreign stores, review variants, and receive a preliminary delivered-cost estimate in Uzbek soum.
+
+## What Atlas does
+
+- Shows a public catalog of direct-merchant products and categories.
+- Accepts supported product links and imports title, images, price, currency, dispatch country, category, weight estimate, and available variants when the store exposes them.
+- Lets an authenticated customer review colour, size, model, price, availability, recipient and delivery address before a simulated checkout.
+- Keeps item price, service/buyout fee, merchant shipping, international freight and reserve as separate quote lines.
+- Rechecks linked product price, currency and selected availability on the server before cart and checkout.
+
+## What Atlas does not claim
+
+- Imported data is editable assistance, not a guarantee of stock, price, shipping, customs clearance or delivery date.
+- Payments, merchant purchase, carrier booking, customs filing and external email/SMS delivery are simulated until production integrations are connected.
+- Customs estimates are informational; the final decision and charge belong to the relevant customs process.
+
+## Public pages
+
+- Home catalog: https://atlas-uz-market.ishakovzak0.chatgpt.site/
+- Customs guidance: https://atlas-uz-market.ishakovzak0.chatgpt.site/customs
+- Terms and privacy drafts: https://atlas-uz-market.ishakovzak0.chatgpt.site/legal
+
+## Discovery and access
+
+The public catalog, customs guidance and legal page are crawlable. Account, order, passport, declaration, operator, API and other private paths require authentication and are excluded from public discovery.

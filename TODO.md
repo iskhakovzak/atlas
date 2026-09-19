@@ -11,6 +11,9 @@
 - [ ] Finish RU/UZ/EN translations across legacy forms, order copy, legal and operator screens; shared/new navigation is not full localization.
 - [ ] Implement saved searches, recently viewed products and price/size alerts only with authenticated persistence and a real refresh/delivery mechanism.
 - [ ] Validate the shortened experience with actual customers; visual simplification alone does not establish improved retention.
+- [x] Add a production SEO baseline: canonical metadata, Open Graph/X fields, crawl boundaries and a public sitemap for catalog, customs and legal content.
+- [x] Add an AI-discovery factsheet and explicit `OAI-SearchBot` crawl policy without exposing authenticated routes or personal data.
+- [ ] Complete localization of all legacy transactional, validation, legal and operator copy; shared breadcrumb/footer/mobile labels now use RU/UZ/EN keys.
 
 - [ ] Add scheduled same-SKU regional price comparison. Current regional storefront support imports the exact customer URL but does not yet prove that Spain, Germany or the US is cheapest after local shipping and tax.
 - [ ] Record live import fixtures for non-Shopify regional leaders such as Primor, Druni, PcComponentes, MediaMarkt, Zalando and major US department stores; allowlist coverage currently falls back to safe JSON-LD/Open Graph or manual confirmation when their anti-bot pages block Atlas.
