@@ -205,8 +205,8 @@ try {
   await visit('/account');
   await check("document.querySelectorAll('.account-stats a').length===4 && document.querySelectorAll('.account-service-grid>a,.account-service-grid>button').length===6",'account dashboard prioritises four signals and six services');
   await check("document.querySelector('.account-profile-compact details')?.open === false",'secondary profile settings start collapsed');
-  await evaluate("document.querySelectorAll('.account-detail>summary')[0].click();document.querySelectorAll('.account-detail>summary')[1].click()");
-  await check("document.querySelectorAll('.account-detail[open]').length===1 && document.querySelectorAll('.account-detail')[1].open",'account detail panels open independently as one accordion');
+  await evaluate("document.querySelectorAll('.account-detail-summary')[0].click();document.querySelectorAll('.account-detail-summary')[1].click()");
+  await check("document.querySelectorAll('.account-detail[data-open=\\\"true\\\"]').length===1 && document.querySelectorAll('.account-detail')[1].dataset.open==='true'",'account detail panels open independently as one accordion');
   await visit('/identity');
   await check("[...document.querySelectorAll('.identity-upload button')].find(b=>b.textContent.includes('Распознать')).disabled","passport submit needs file and consent");
   await visit('/batch-import');
@@ -254,3 +254,4 @@ try {
   if (resolvedProfile.startsWith(resolve(tmpdir()) + sep))
     await rm(resolvedProfile, { recursive: true, force: true }).catch(() => {});
 }
+

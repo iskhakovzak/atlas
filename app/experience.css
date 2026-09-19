@@ -73,6 +73,11 @@
 .account-service-grid small { display:block; overflow:hidden; margin-top:4px; color:#637389; font-size:.75rem; font-weight:400; text-overflow:ellipsis; white-space:nowrap; }
 .account-tools { align-items:start; gap:16px; }
 .account-detail { width:100%; margin:0; padding:0; border-radius:12px; box-shadow:none; overflow:hidden; }
+.account-detail-summary { width:100%; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 20px; border:0; background:transparent; text-align:left; color:inherit; font:inherit; cursor:pointer; }
+.account-detail-summary > span:first-child { font-weight:600; }
+.account-detail-summary > small { margin-left:auto; color:#637389; font-size:.8125rem; }
+.account-detail-toggle { color:#637389; font-size:1.2rem; font-weight:400; }
+.account-detail[data-open="true"] .account-detail-summary { border-bottom:1px solid #e0e6ef; background:#f7f9fc; }
 .account-detail > summary { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 20px; list-style:none; }
 .account-detail > summary::-webkit-details-marker { display:none; }
 .account-detail > summary::after { content:'+'; color:#637389; font-size:1.2rem; font-weight:400; }
@@ -152,3 +157,4 @@ button:focus-visible,a:focus-visible,summary:focus-visible { outline:3px solid #
  .finds-filter-row { gap:8px; }
  .find-total strong { font-size:1rem; }
 }
+

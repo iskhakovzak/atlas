@@ -322,3 +322,12 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Shared breadcrumb, footer, mobile saved-items label, retry action and sign-in link now use the existing RU/UZ/EN shell dictionary instead of hardcoded Russian strings. Product names and merchant content remain source-controlled and are not machine-translated.
 - Verification for this slice: targeted ESLint, 64 domain/security tests and production build passed. Full-project lint via the unavailable npm launcher was not used; the installed project ESLint binary passed on changed files.
 - ChatGPT discovery is opt-in at the public-content boundary: `OAI-SearchBot` and `GPTBot` may crawl public pages, while private/API/operator paths remain blocked. `public/llms.txt` gives AI systems a concise, dated-safe description of Atlas and links only to public pages. Placement in ChatGPT Search is not guaranteed.
+
+## Locale persistence and transactional localization — 19 September 2026
+
+- The client language selector now writes a validated `atlas-language` preference immediately, applies it optimistically, and replays it as an authenticated `communication-save` action when the server snapshot still has another locale. This matters because Atlas uses reliable full-page anchor navigation; a pending request must not be lost when the customer opens cart, orders or another route immediately after switching language.
+- Account panels use an explicit single-open disclosure controller instead of browser-controlled sibling `<details>` elements. This prevents the address panel from opening the customs panel at the same time and improves keyboard semantics.
+- The primary customer journeys now use RU/UZ/EN copy on link order, cart/checkout, batch import, passport, declaration, customs and account surfaces. Merchant names, product titles and source URLs remain source text. Legacy operator/order notifications still contain untranslated strings and remain tracked in TODO.
+- Shared product-image fallbacks and quote-expiry labels accept the active locale. International cart and same-merchant parcel rules remain unchanged.
+- Verification for this slice: full-project ESLint, TypeScript, 64 domain/security tests, production build and the 137-check guest/customer/operator desktop/mobile browser audit passed. `npm` itself is unavailable in this Windows runtime, so the repository's installed Node entrypoints were used for the equivalent commands.
+

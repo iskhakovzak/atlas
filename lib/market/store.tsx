@@ -4,7 +4,7 @@ import {toast} from 'sonner';
 import {blank,parseState,pricingSchema,tariff,type Pricing,type State} from './domain';
 import {defaultPolicy,policySchema,type Policy} from './policy';
 import type {Action} from './actions';
-import type {Locale} from './i18n';
+import {supportedLocale,type Locale} from './i18n';
 import type {SessionStatus} from './access';
 import {visibleMerchantFinds,type MerchantFind} from './catalog';
 import type {CatalogCollection} from './catalog-editor';
@@ -15,7 +15,8 @@ export function MarketProvider({children}:{children:ReactNode}) {
  const [catalogProducts,setCatalogProducts]=useState<MerchantFind[]>(()=>visibleMerchantFinds()),[collections,setCollections]=useState<Array<CatalogCollection&{productIds:string[]}>>([]),[catalogError,setCatalogError]=useState('');
  useEffect(()=>{const controller=new AbortController();fetch('/api/catalog',{cache:'no-store',signal:controller.signal}).then(async response=>{if(!response.ok)throw Error('Не удалось загрузить витрину');const data=await response.json() as {products:MerchantFind[];collections:Array<CatalogCollection&{productIds:string[]}>};setCatalogProducts(data.products);setCollections(data.collections)}).catch(error=>{if(error.name!=='AbortError')setCatalogError('Не удалось загрузить витрину. Обновите страницу.')});return()=>controller.abort()},[]);
  const [state,setState]=useState<State>(blank),[pricing,setPricing]=useState<Pricing>(tariff),[policy,setPolicy]=useState<Policy>(defaultPolicy),[status,setStatus]=useState<SessionStatus>('loading'),[error,setError]=useState<string|null>(null),[user,setUser]=useState<AccountUser|null>(null);
- const revision=useRef(0),busy=useRef(false),generation=useRef(0),localeRef=useRef<Locale>('ru');
+ const revision=useRef(0),busy=useRef(false),generation=useRef(0),localeRef=useRef<Locale>('ru'),serverLocaleRef=useRef<Locale>('ru'),localeSyncRef=useRef<Locale|null>(null);
+ const readStoredLocale=useCallback(()=>{try{return supportedLocale(localStorage.getItem('atlas-language'))}catch{return null}},[]);
  const ready=status==='authenticated';
  const clearPrivate=useCallback(()=>{setUser(null);revision.current=0;setState({...blank(),communication:{...blank().communication,language:localeRef.current}});setPolicy(defaultPolicy)},[]);
  const refresh=useCallback(async()=>{
@@ -30,7 +31,10 @@ export function MarketProvider({children}:{children:ReactNode}) {
     if(res.status===401){setStatus('guest');setError(null);return}
     setStatus('error');setError(data.error??'Не удалось загрузить кабинет. Повторите попытку.');return;
    }
-   const next=parseState(JSON.stringify(data.state));
+   const parsed=parseState(JSON.stringify(data.state));
+   serverLocaleRef.current=parsed.communication.language;
+   const stored=readStoredLocale();
+   const next=stored?{...parsed,communication:{...parsed.communication,language:stored}}:parsed;
    localeRef.current=next.communication.language;
    setState(next);
    const parsedPricing=pricingSchema.safeParse(data.pricing);setPricing(parsedPricing.success?parsedPricing.data:tariff);
@@ -38,13 +42,14 @@ export function MarketProvider({children}:{children:ReactNode}) {
    revision.current=data.revision;setUser(data.user);setStatus('authenticated');setError(null);
   }catch{if(current===generation.current){clearPrivate();setStatus('error');setError('Не удалось связаться с сервером. Проверьте подключение и повторите попытку.')}}
   finally{clearTimeout(timeout)}
- },[clearPrivate]);
+ },[clearPrivate,readStoredLocale]);
  useEffect(()=>{
-  try{const locale=localStorage.getItem('atlas-language');if(locale==='ru'||locale==='uz'||locale==='en'){localeRef.current=locale;queueMicrotask(()=>setState(s=>({...s,communication:{...s.communication,language:locale}})))}}catch{}
+  const locale=readStoredLocale();
+  if(locale){localeRef.current=locale;queueMicrotask(()=>setState(s=>({...s,communication:{...s.communication,language:locale}})))}
   queueMicrotask(()=>void refresh());
   const focus=()=>{if(!busy.current)void refresh()};window.addEventListener('focus',focus);
   return()=>{window.removeEventListener('focus',focus)};
- },[refresh]);
+ },[readStoredLocale,refresh]);
  useEffect(()=>{document.documentElement.lang=state.communication.language},[state.communication.language]);
  const act=useCallback(async(action:Action)=>{
   if(!ready){toast.error('Войдите, чтобы сохранить изменения.');return false}
@@ -57,18 +62,25 @@ export function MarketProvider({children}:{children:ReactNode}) {
    const data=await res.json() as {state?:unknown;revision:number;error?:string};
    if(current!==generation.current)return false;
    if(res.status===401){clearPrivate();setStatus('guest');setError(null);toast.message('Сессия завершилась. Войдите снова, чтобы продолжить.');return false}
-   if(data.state){setState(parseState(JSON.stringify(data.state)));revision.current=data.revision}
+   if(data.state){const next=parseState(JSON.stringify(data.state));serverLocaleRef.current=next.communication.language;setState(next);revision.current=data.revision}
    if(!res.ok){toast.error(data.error??'Не удалось сохранить изменения.');if(res.status===409&&!data.state)await refresh();return false}
    return true;
   }catch{toast.error('Ответ сервера не получен. Проверяем состояние заказа.');await refresh();return false}
   finally{busy.current=false}
  },[ready,refresh,clearPrivate]);
+ useEffect(()=>{
+  if(status!=='authenticated')return;
+  const preferred=readStoredLocale();
+  if(!preferred||preferred===serverLocaleRef.current||localeSyncRef.current===preferred)return;
+  localeSyncRef.current=preferred;
+  void act({type:'communication-save',value:{...state.communication,language:preferred}}).then(ok=>{if(ok)localeSyncRef.current=null});
+ },[status,state.communication,act,readStoredLocale]);
  const setLocale=useCallback((locale:Locale)=>{
-  if(!['ru','uz','en'].includes(locale))return;
-  if(ready){void act({type:'communication-save',value:{...state.communication,language:locale}});return}
-  localeRef.current=locale;setState(s=>({...s,communication:{...s.communication,language:locale}}));
-  try{localStorage.setItem('atlas-language',locale)}catch{}
- },[ready,act,state.communication]);
+  const next=supportedLocale(locale);if(!next)return;
+  localeRef.current=next;setState(s=>({...s,communication:{...s.communication,language:next}}));
+  try{localStorage.setItem('atlas-language',next)}catch{}
+ },[]);
  return <Context.Provider value={{catalogProducts,collections,catalogError,state,pricing,policy,ready,status,error,user,setLocale,act,refresh}}>{children}</Context.Provider>;
 }
 export function useMarket(){const c=useContext(Context);if(!c)throw Error('MarketProvider missing');return c}
+

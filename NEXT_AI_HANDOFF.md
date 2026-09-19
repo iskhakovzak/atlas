@@ -166,6 +166,8 @@ node scripts/audit-ui.mjs http://localhost:5173
 
 > Доведи RU/UZ/EN на всех transactional routes. Найди hardcoded Russian/English labels, validation messages, empty states, statuses, legal/operator copy и notification templates. Не переводи автоматически названия товаров, merchant names, URLs и юридические цитаты. Используй существующий account language state, не добавляй client-only localStorage для account data. После каждого блока добавляй smoke check на смену языка и reload.
 
+Текущий прогресс: селектор языка сохраняется в валидированном `atlas-language`, применяется сразу и после входа повторяется через `communication-save`, поэтому full-page переходы больше не должны сбрасывать язык. Уже локализованы основные клиентские маршруты: link order, cart/checkout, batch import, account, passport, declaration и customs. Следующая очередь — `order-workspace.tsx`, `admin-view.tsx`, `catalog-admin.tsx`, `legal-documents.tsx` и оставшиеся toast/validation strings.
+
 ### 6. Безопасный запуск auth/payment
 
 > Не подключай реальные деньги или пароли вслепую. Сначала составь integration decision record: provider, webhook verification, idempotency, refunds, reconciliation, PII retention, phone verification, recovery, Google OAuth and operator staff roles. Привяжи каждое решение к текущему API/domain state и миграциям. Пока провайдер не выбран и legal review не пройден, оставляй simulated flows и честные notices.
@@ -186,3 +188,4 @@ node scripts/audit-ui.mjs http://localhost:5173
 6. опубликован ли exact commit или работа осталась локальной.
 
 Не говори «сделано идеально», если часть ограничений из раздела «не готово к коммерческому запуску» ещё существует.
+

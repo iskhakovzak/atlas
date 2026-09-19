@@ -162,3 +162,10 @@ Public metadata is defined in `app/layout.tsx` and remains honest about prelimin
 Shared shell labels continue to come from `lib/market/i18n.ts`; the SEO pass moved breadcrumb, footer, saved-items, retry and sign-in labels onto the same dictionary. Merchant titles, source URLs and product descriptions are not machine-translated.
 
 `public/llms.txt` is a concise public factsheet for AI/search systems. `public/robots.txt` explicitly allows `OAI-SearchBot` and `GPTBot` on public content and keeps account/API/operator paths blocked. This separation does not guarantee ranking or inclusion in ChatGPT Search and does not expose authenticated data.
+
+## Language state across full-page route changes — September 19, 2026
+
+`MarketProvider` treats the locale preference as a small, validated device hint (`ru`, `uz` or `en`) until an account is available. After authentication, the server remains the source of truth: if the device hint differs from the account snapshot, the provider replays the existing `communication-save` action with the current revision. The UI updates immediately, so a full-page `<a>` navigation cannot visibly fall back to Russian while the save is pending. No password, identity or order data is stored in local storage.
+
+Account disclosure panels are rendered as controlled accessible buttons with one `openSection` key. The old native-details pattern could leave sibling panels visually open after a click; the new component keeps the address/customs/documents/support panels mutually exclusive without changing persistence or API actions.
+

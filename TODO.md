@@ -86,7 +86,7 @@
 - [x] Add administrator-only D1 export with checksum and audit record, excluding private blob bytes.
 - [x] Add captured operational error summaries for administrator monitoring.
 - [x] Add server-enforced customer review/blocking and an administrator customer/support/finance/system workspace.
-- [ ] Translate every transactional screen and validation message for RU, UZ and EN; navigation localisation is not full localisation.
+- [ ] Translate every remaining transactional/operator validation message and notification template for RU, UZ and EN. The main customer journeys (link order, cart/checkout, account, passport, declaration, customs and batch import) now have localized copy; legacy order operations, admin and some legal/notification text remain.
 - [ ] Document/test production D1 migration from local machine before schema changes.
 - [ ] Add retention/deletion/export policy, backups and redacted observability.
 - [x] Draft the public intermediary/logistics offer, privacy policy, passport consent and payment/refund policy with transparent buyout, delivery, conversion and optional-service fees.
@@ -123,3 +123,4 @@
 - [x] Fix standalone TypeScript errors in account status rendering and admin/identity/batch response typing.
 - [x] Add explicit guest/customer/admin rendering gates, stale-session clearing and a repeatable browser audit across protected routes and responsive sizes.
 - [ ] Standalone email/password and Google OAuth remain postponed by product decision; current member sign-in uses the platform flow.
+

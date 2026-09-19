@@ -476,7 +476,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
         filtered.map((o) => (
           <details className="surface order-card compact-order" key={o.id} id={o.id} onToggle={event=>{const open=event.currentTarget.open;setExpanded(ids=>open?[...new Set([...ids,o.id])]:ids.filter(id=>id!==o.id))}}>
             <summary className="compact-order-summary">
-              <ProductImage product={o.product} decorative />
+              <ProductImage product={o.product} decorative locale={state.communication.language} />
               <span className="compact-order-name"><small>{o.id}{operations ? ` · ${orderAccount.get(o.id)?.name ?? ''}` : ''}</small><b>{o.product.name}</b><span>{o.variant} · {o.quantity}</span></span>
               <span className={'status-badge '+(isExtra(o)||pendingChange(o)||(!operations&&o.payment?.status==='pending')?'needs-action':'')}>{o.cancelled ? (state.communication.language==='ru'?'Отменён':state.communication.language==='uz'?'Bekor qilingan':'Cancelled') : isExtra(o)||pendingChange(o) ? wc.attention : o.payment?.status==='pending' ? (state.communication.language==='ru'?'Ожидает оплаты':state.communication.language==='uz'?'To‘lov kutilmoqda':'Awaiting payment') : displayStatuses[o.status]}</span>
               <strong>{money(orderPayable(o))}</strong><ArrowRight size={18}/>
@@ -509,7 +509,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
             </div>
             <div className="order-product">
               <div className="order-photo">
-                <ProductImage product={o.product} decorative />
+              <ProductImage product={o.product} decorative locale={state.communication.language} />
               </div>
               <div>
                 <h2>{o.product.name}</h2>
@@ -1394,3 +1394,4 @@ export function BalanceView() {
     </>
   );
 }
+
