@@ -1,4 +1,7 @@
 export type Locale = "ru" | "uz" | "en";
+export function supportedLocale(value:unknown):Locale|null{
+  return value === "ru" || value === "uz" || value === "en" ? value : null;
+}
 const copy = {
   ru: {catalog:"Каталог",link:"Заказ по ссылке",batch:"Импорт списка",orders:"Мои заказы",account:"Кабинет",signin:"Войти",cart:"Корзина",balance:"Баланс",favorites:"Избранное",home:"Главная",terms:"Правила и данные",customs:"Таможня",retry:"Повторить",openSignIn:"Открыть вход",footer:"Atlas · Магазины мира — в одном месте."},
   uz: {catalog:"Katalog",link:"Havola orqali buyurtma",batch:"Ro‘yxatni import qilish",orders:"Buyurtmalarim",account:"Kabinet",signin:"Kirish",cart:"Savat",balance:"Balans",favorites:"Saqlanganlar",home:"Bosh sahifa",terms:"Qoidalar va ma’lumotlar",customs:"Bojxona",retry:"Qayta urinish",openSignIn:"Kirishni ochish",footer:"Atlas · Dunyo do‘konlari bir joyda."},
