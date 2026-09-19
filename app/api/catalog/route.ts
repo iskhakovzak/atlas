@@ -3,12 +3,14 @@ import {database,identity,operator,sameOrigin,requestJson,json,failure,HttpError
 import {readCatalog,persistCatalog} from '@/lib/market/catalog-server';
 import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,recheckedDraft,changeCatalog,publicCatalog,catalogMaxEntries} from '@/lib/market/catalog-editor';
 import {fetchProduct,fetchCollectionLinks} from '@/lib/importer/fetch';
+import {refreshDueCatalog} from '@/lib/market/catalog-refresh';
 
 const ids=z.array(z.string().min(1).max(100)).min(1).max(100);
 const commandSchema=z.discriminatedUnion('kind',[
   z.object({kind:z.literal('import'),url:z.string().max(3000),collectionIds:z.array(z.string().max(80)).max(20),country:z.string().max(80)}),
   z.object({kind:z.literal('discover'),url:z.string().max(3000)}),
   z.object({kind:z.literal('recheck'),ids:z.array(z.string().min(1).max(100)).min(1).max(10)}),
+  z.object({kind:z.literal('refresh-due')}),
   z.object({kind:z.literal('edit'),id:z.string().max(100),draft:catalogDraftSchema}),
   z.object({kind:z.literal('publish'),ids}),z.object({kind:z.literal('hide'),ids}),
   z.object({kind:z.literal('collection'),collection:collectionSchema}),
@@ -25,6 +27,10 @@ export async function POST(request:Request){try{
   if(!payload.success)throw new HttpError(400,'Проверьте поля карточки и подборки.');
   const {command,revision}=payload.data,{document,raw}=await readCatalog();
   if(document.revision!==revision)throw new HttpError(409,'Каталог изменён. Обновите список перед сохранением.');
+  if(command.kind==='refresh-due'){
+    const refreshResult=await refreshDueCatalog(),next=await readCatalog();
+    return json({document:next.document,refreshResult});
+  }
   if(command.kind==='recheck'){
     const results:string[]=[];
     for(const id of command.ids){const entry=document.entries.find(item=>item.id===id);if(!entry){results.push(`${id}: товар не найден`);continue}try{const data=await fetchProduct(entry.draft.sourceUrl),fresh=importDraft(data,entry.draft.collectionIds,entry.draft.country,Date.now());entry.draft=recheckedDraft(entry.draft,fresh);document.availabilityReports=document.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:Date.now()}:report);results.push(`${entry.draft.name}: проверено`)}catch(error){entry.draft.lastCheckError=(error as Error).message.slice(0,500);results.push(`${entry.draft.name}: ${(error as Error).message}`)}}

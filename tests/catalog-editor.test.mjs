@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {catalogIssues,changeCatalog,importDraft,initialCatalog,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
+import {applyScheduledCatalogRefresh,catalogDocumentSchema,catalogIssues,catalogRefreshInterval,changeCatalog,dueCatalogEntries,importDraft,initialCatalog,markCatalogRefreshFailed,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
+import {catalogRefreshPath,isAuthorizedCatalogRefresh,signCatalogRefreshRequest} from '../lib/market/catalog-refresh-auth.ts';
 import {communityCatalogProducts} from '../lib/market/community-deals.ts';
 import {tariff} from '../lib/market/domain.ts';
 
@@ -78,4 +79,42 @@ test('customer availability reports flag a product without silently hiding it',(
  assert(reported.entries[0].published);
  const hidden=changeCatalog(reported,{kind:'hide',ids:[entry.id]},1235,tariff);
  assert.equal(hidden.availabilityReports[0].resolvedAt,1235);
+});
+test('scheduled catalog work is due once per day and spreads one run across stores',()=>{
+ const doc=initialCatalog();
+ for(const entry of doc.entries){entry.draft.checkedAt=0;entry.published.checkedAt=0}
+ const due=dueCatalogEntries(catalogDocumentSchema.parse(doc),catalogRefreshInterval+1);
+ assert(due.length>0);assert(due.length<=5);
+ assert.equal(new Set(due.map(entry=>new URL(entry.draft.sourceUrl).hostname.replace(/^www\./,''))).size,due.length);
+});
+test('scheduled source refresh updates available options but preserves editorial fields',()=>{
+ const draft=importDraft(extracted,['beauty'],'США',1000);
+ draft.description='Текст редактора';draft.referencePrice=45;
+ const doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'lip',draft,published:structuredClone(draft),publishedAt:1000}]});
+ const fresh=importDraft({...extracted,price:39,variants:[{...extracted.variants[0],label:'Bare · Travel',size:'Travel',price:39,available:true}]},['wrong'],'Испания',2000);
+ const updated=applyScheduledCatalogRefresh(doc,'lip',fresh,2001);
+ assert.equal(updated.outcome,'available');
+ const entry=updated.document.entries[0];
+ assert.equal(entry.draft.description,'Текст редактора');assert.equal(entry.draft.referencePrice,45);
+ assert.equal(entry.published.price,39);assert.equal(entry.published.variants[0].label,'Bare · Travel');
+ assert.equal(entry.refresh.status,'available');assert.equal(entry.refresh.availableVariantCount,1);
+});
+test('only a definitive all-sold-out matrix auto-hides a public card',()=>{
+ const draft=importDraft(extracted,[],'США',1000),doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'lip',draft,published:structuredClone(draft),publishedAt:1000}]});
+ const soldOut=importDraft({...extracted,variants:[{...extracted.variants[0],available:false}]},[],'США',2000);
+ const hidden=applyScheduledCatalogRefresh(doc,'lip',soldOut,2001).document.entries[0];
+ assert.equal(hidden.published,undefined);assert.equal(hidden.autoHideReason,'source-sold-out');assert.equal(hidden.refresh.status,'sold-out');
+ const unknown=importDraft({...extracted,variants:[]},[],'США',2002);
+ const retained=applyScheduledCatalogRefresh(doc,'lip',unknown,2003).document.entries[0];
+ assert(retained.published);assert.equal(retained.refresh.status,'unknown');
+ const failed=markCatalogRefreshFailed(doc,'lip',Error('timeout'),2004).document.entries[0];
+ assert(failed.published);assert.equal(failed.refresh.status,'failed');assert.match(failed.refresh.lastError,/timeout/);
+});
+test('the internal refresh endpoint signature expires and cannot be replayed as another path',async()=>{
+ const secret='test-secret',now=Date.UTC(2026,8,19,12),timestamp=String(now),signature=await signCatalogRefreshRequest(secret,timestamp);
+ const request=new Request(`https://atlas.test${catalogRefreshPath}`,{method:'POST',headers:{'x-atlas-refresh-timestamp':timestamp,'x-atlas-refresh-signature':signature}});
+ assert(await isAuthorizedCatalogRefresh(request,secret,now));
+ assert(!(await isAuthorizedCatalogRefresh(request,secret,now+6*60*1000)));
+ const wrongPath=new Request('https://atlas.test/api/catalog',{method:'POST',headers:request.headers});
+ assert(!(await isAuthorizedCatalogRefresh(wrongPath,secret,now)));
 });

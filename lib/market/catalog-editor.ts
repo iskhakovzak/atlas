@@ -8,6 +8,13 @@ import {estimatedBoxedWeight} from './weight.ts';
 
 export const catalogCategories=['Обувь','Одежда','Электроника','Аксессуары','Красота и уход','Дом и быт','Спорт','Другое'] as const;
 const text=z.string().trim();
+const catalogRefreshStatusSchema=z.enum(['available','sold-out','unknown','failed']);
+export const catalogRefreshSchema=z.object({
+  lastAttemptAt:z.number().int().nonnegative().optional(),lastSuccessAt:z.number().int().nonnegative().optional(),nextCheckAt:z.number().int().nonnegative().optional(),
+  status:catalogRefreshStatusSchema.optional(),lastError:text.max(500).optional(),consecutiveFailures:z.number().int().min(0).max(100).optional(),
+  availableVariantCount:z.number().int().min(0).max(250).optional(),lastChange:text.max(500).optional(),
+});
+export type CatalogRefresh=z.infer<typeof catalogRefreshSchema>;
 export const catalogDraftSchema=z.object({
   sourceUrl:text.url().max(3000),name:text.max(140),brand:text.max(100),category:z.enum(catalogCategories),
   image:text.max(3000),images:z.array(text.max(3000)).max(12),price:z.number().finite().nonnegative().optional(),currency:text.max(3),
@@ -19,7 +26,10 @@ export const catalogDraftSchema=z.object({
 export type CatalogDraft=z.infer<typeof catalogDraftSchema>;
 export const collectionSchema=z.object({id:text.min(1).max(80),name:text.min(1).max(80),nameUz:text.max(80).default(''),nameEn:text.max(80).default(''),description:text.max(240).default(''),visible:z.boolean(),position:z.number().int().min(0).max(1000)});
 export type CatalogCollection=z.infer<typeof collectionSchema>;
-export const catalogEntrySchema=z.object({id:text.min(1).max(100),draft:catalogDraftSchema,published:catalogDraftSchema.optional(),publishedAt:z.number().optional()});
+export const catalogEntrySchema=z.object({
+  id:text.min(1).max(100),draft:catalogDraftSchema,published:catalogDraftSchema.optional(),publishedAt:z.number().optional(),
+  refresh:catalogRefreshSchema.optional(),autoHiddenAt:z.number().int().nonnegative().optional(),autoHideReason:z.enum(['source-sold-out']).optional(),
+});
 export type CatalogEntry=z.infer<typeof catalogEntrySchema>;
 export const catalogAvailabilityReportSchema=z.object({
   id:text.min(1).max(100),productId:text.min(1).max(100),sourceUrl:text.url().max(3000),
@@ -31,6 +41,11 @@ export const catalogMaxEntries=100;
 export const catalogDocumentSchema=z.object({revision:z.number().int().nonnegative(),entries:z.array(catalogEntrySchema).max(catalogMaxEntries),collections:z.array(collectionSchema).max(30),availabilityReports:z.array(catalogAvailabilityReportSchema).max(300).optional()});
 export type CatalogDocument=z.infer<typeof catalogDocumentSchema>;
 export const catalogLifetime=7*24*60*60*1000;
+/** A card is due once a day; the scheduler spreads the work across small runs. */
+export const catalogRefreshInterval=24*60*60*1000;
+export const catalogRefreshBatchSize=5;
+const catalogRefreshRetryBase=60*60*1000;
+const customerUnavailableReason='Покупатель сообщил, что товар или вариант отсутствует — проверьте магазин.';
 const legacyBundledWeights:Record<string,number>={
   'nike-club-fn3859-657':.8,'apple-airtag-1pack-2026':.15,'nike-gato-ih3587-400':1.3,
   'nike-cortez-dm4044-108':1.3,'anker-nano-a2147113':.2,'merrell-wrapt':1.3,'brooks-revel-7':1.3,
@@ -115,6 +130,103 @@ export function recheckedDraft(previous:CatalogDraft,fresh:CatalogDraft){
   return catalogDraftSchema.parse({...fresh,referencePrice:previous.referencePrice,description:previous.description,collectionIds:previous.collectionIds,reviewReasons:reasons,lastCheckError:undefined});
 }
 
+export function catalogRefreshDueAt(entry:CatalogEntry){
+  return entry.refresh?.nextCheckAt??(entry.draft.checkedAt+catalogRefreshInterval);
+}
+
+/**
+ * Pick a bounded, merchant-fair batch. Only a published card (or one hidden by
+ * this job) is watched; manually hidden drafts are deliberately left alone.
+ */
+export function dueCatalogEntries(document:CatalogDocument,now=Date.now(),limit=catalogRefreshBatchSize){
+  const selected:CatalogEntry[]=[],hosts=new Set<string>();
+  const candidates=document.entries
+    .filter(entry=>Boolean(entry.published||entry.autoHiddenAt))
+    .filter(entry=>catalogRefreshDueAt(entry)<=now)
+    .sort((left,right)=>catalogRefreshDueAt(left)-catalogRefreshDueAt(right));
+  for(const entry of candidates){
+    let host:string;
+    try{host=new URL(entry.draft.sourceUrl).hostname.toLowerCase().replace(/^www\./,'')}catch{continue}
+    if(hosts.has(host))continue;
+    hosts.add(host);selected.push(entry);
+    if(selected.length>=Math.min(Math.max(1,limit),catalogRefreshBatchSize))break;
+  }
+  return selected;
+}
+
+function resolveAvailabilityReports(document:CatalogDocument,id:string,now:number){
+  document.availabilityReports=document.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:now}:report);
+}
+
+function refreshError(value:unknown){
+  const message=value instanceof Error?value.message:String(value);
+  return message.replace(/[\r\n\t]+/g,' ').trim().slice(0,500)||'Магазин не подтвердил данные.';
+}
+
+export type ScheduledRefreshOutcome='available'|'sold-out'|'unknown'|'failed'|'skipped';
+
+/**
+ * Apply a successful source observation without deleting editorial data. A
+ * public snapshot changes only when the source supplied a complete, explicit
+ * option matrix. A definitive all-sold-out matrix unpublishes the card but
+ * keeps its draft so a later source recovery can restore it.
+ */
+export function applyScheduledCatalogRefresh(current:CatalogDocument,id:string,fresh:CatalogDraft,now=Date.now()):{document:CatalogDocument;outcome:ScheduledRefreshOutcome}{
+  const next=structuredClone(current),entry=next.entries.find(item=>item.id===id);
+  if(!entry)return {document:catalogDocumentSchema.parse(next),outcome:'skipped'};
+  const checked=recheckedDraft(entry.draft,fresh);
+  const changes=(checked.reviewReasons??[]).join(' · ').slice(0,500)||undefined;
+  const candidate=catalogDraftSchema.parse({...checked,reviewReasons:[],lastCheckError:undefined});
+  const availableVariantCount=fresh.variants.filter(variant=>variant.available).length;
+  const hasExplicitMatrix=fresh.variants.length>0;
+  const successBase:CatalogRefresh={
+    ...entry.refresh,lastAttemptAt:now,lastSuccessAt:now,nextCheckAt:now+catalogRefreshInterval,
+    consecutiveFailures:0,availableVariantCount,lastChange:changes,lastError:undefined,
+  };
+  if(!hasExplicitMatrix){
+    entry.refresh={...successBase,status:'unknown',lastError:'Магазин не отдал подтверждённую матрицу вариантов.'};
+    entry.draft.lastCheckError=entry.refresh.lastError;
+    next.revision++;
+    return {document:catalogDocumentSchema.parse(next),outcome:'unknown'};
+  }
+  if(!availableVariantCount){
+    entry.draft=candidate;
+    entry.refresh={...successBase,status:'sold-out'};
+    if(entry.published){delete entry.published;delete entry.publishedAt;entry.autoHiddenAt=now;entry.autoHideReason='source-sold-out'};
+    resolveAvailabilityReports(next,id,now);
+    next.revision++;
+    return {document:catalogDocumentSchema.parse(next),outcome:'sold-out'};
+  }
+  const publishable=!catalogIssues(candidate,now).length;
+  if(!publishable){
+    entry.refresh={...successBase,status:'unknown',lastError:'Магазин отдал неполные данные для безопасного обновления карточки.'};
+    entry.draft.lastCheckError=entry.refresh.lastError;
+    next.revision++;
+    return {document:catalogDocumentSchema.parse(next),outcome:'unknown'};
+  }
+  entry.draft=candidate;
+  entry.refresh={...successBase,status:'available'};
+  if(entry.published||entry.autoHiddenAt){
+    entry.published=structuredClone(candidate);entry.publishedAt=now;delete entry.autoHiddenAt;delete entry.autoHideReason;
+  }
+  resolveAvailabilityReports(next,id,now);
+  next.revision++;
+  return {document:catalogDocumentSchema.parse(next),outcome:'available'};
+}
+
+/** A fetch failure is never evidence that a product has sold out. */
+export function markCatalogRefreshFailed(current:CatalogDocument,id:string,error:unknown,now=Date.now()):{document:CatalogDocument;outcome:ScheduledRefreshOutcome}{
+  const next=structuredClone(current),entry=next.entries.find(item=>item.id===id);
+  if(!entry)return {document:catalogDocumentSchema.parse(next),outcome:'skipped'};
+  const consecutiveFailures=Math.min(100,(entry.refresh?.consecutiveFailures??0)+1);
+  const retry=Math.min(catalogRefreshInterval,catalogRefreshRetryBase*2**Math.min(5,consecutiveFailures-1));
+  const lastError=refreshError(error);
+  entry.refresh={...entry.refresh,lastAttemptAt:now,nextCheckAt:now+retry,status:'failed',lastError,consecutiveFailures};
+  entry.draft.lastCheckError=lastError;
+  next.revision++;
+  return {document:catalogDocumentSchema.parse(next),outcome:'failed'};
+}
+
 export function reportCatalogAvailability(current:CatalogDocument,input:{productId:string;sourceUrl:string;answer:'available'|'unavailable';variant?:string;reporterId:string},now=Date.now()){
   const next=structuredClone(current),entry=next.entries.find(item=>item.id===input.productId);
   if(!entry||canonicalCatalogUrl(entry.draft.sourceUrl)!==canonicalCatalogUrl(input.sourceUrl))throw Error('Товар каталога не найден.');
@@ -122,8 +234,7 @@ export function reportCatalogAvailability(current:CatalogDocument,input:{product
   const previous=(next.availabilityReports??[]).filter(item=>item.resolvedAt||item.productId!==input.productId||item.reporterId!==input.reporterId);
   next.availabilityReports=[report,...previous].slice(0,300);
   if(input.answer==='unavailable'){
-    const reason='Покупатель сообщил, что товар или вариант отсутствует — проверьте магазин.';
-    entry.draft.reviewReasons=[...new Set([...(entry.draft.reviewReasons??[]),reason])].slice(0,10);
+    entry.draft.reviewReasons=[...new Set([...(entry.draft.reviewReasons??[]),customerUnavailableReason])].slice(0,10);
   }
   next.revision++;
   return catalogDocumentSchema.parse(next);
