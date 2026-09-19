@@ -161,4 +161,4 @@ Public metadata is defined in `app/layout.tsx` and remains honest about prelimin
 
 Shared shell labels continue to come from `lib/market/i18n.ts`; the SEO pass moved breadcrumb, footer, saved-items, retry and sign-in labels onto the same dictionary. Merchant titles, source URLs and product descriptions are not machine-translated.
 
-`public/llms.txt` is a concise public factsheet for AI/search systems. `public/robots.txt` explicitly allows `OAI-SearchBot` on public content and keeps account/API/operator paths blocked; `GPTBot` is disallowed independently. This separation does not guarantee ranking or inclusion in ChatGPT Search and does not expose authenticated data.
+`public/llms.txt` is a concise public factsheet for AI/search systems. `public/robots.txt` explicitly allows `OAI-SearchBot` and `GPTBot` on public content and keeps account/API/operator paths blocked. This separation does not guarantee ranking or inclusion in ChatGPT Search and does not expose authenticated data.
