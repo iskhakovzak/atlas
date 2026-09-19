@@ -169,3 +169,5 @@ Shared shell labels continue to come from `lib/market/i18n.ts`; the SEO pass mov
 
 Account disclosure panels are rendered as controlled accessible buttons with one `openSection` key. The old native-details pattern could leave sibling panels visually open after a click; the new component keeps the address/customs/documents/support panels mutually exclusive without changing persistence or API actions.
 
+Customer transactional copy follows the same locale state: order cards and approval/settlement dialogs, balance, notification filters/settings and dynamic link-import status messages select RU/UZ/EN at render time. Canonical product names, merchant-provided descriptions, source URLs and server-authored history remain data, not machine-translated UI labels. Operator tools, legal body text and remaining server error templates stay explicit follow-up work.
+

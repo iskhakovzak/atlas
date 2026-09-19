@@ -8,12 +8,12 @@
 - [x] Turn the account landing screen into a state-aware customer dashboard with one next action, compact counters and primary service shortcuts.
 - [x] Make account secondary panels mutually exclusive and remove paired-panel stretching and repeated decorative hierarchy.
 - [ ] Add populated-order/operator and checkout-review browser fixtures beyond current domain and guest/customer route coverage.
-- [ ] Finish RU/UZ/EN translations across legacy forms, order copy, legal and operator screens; shared/new navigation is not full localization.
+- [ ] Finish RU/UZ/EN translations across legacy forms, legal and operator screens; customer order, balance, notifications and link-order messages now follow the selected locale, while legacy/admin/legal/server-history strings remain.
 - [ ] Implement saved searches, recently viewed products and price/size alerts only with authenticated persistence and a real refresh/delivery mechanism.
 - [ ] Validate the shortened experience with actual customers; visual simplification alone does not establish improved retention.
 - [x] Add a production SEO baseline: canonical metadata, Open Graph/X fields, crawl boundaries and a public sitemap for catalog, customs and legal content.
 - [x] Add an AI-discovery factsheet and explicit `OAI-SearchBot` crawl policy without exposing authenticated routes or personal data.
-- [ ] Complete localization of all legacy transactional, validation, legal and operator copy; shared breadcrumb/footer/mobile labels now use RU/UZ/EN keys.
+- [ ] Complete localization of all legacy validation, legal and operator copy; shared shell plus customer order, balance, notifications and link-order copy now use RU/UZ/EN keys.
 
 - [ ] Add scheduled same-SKU regional price comparison. Current regional storefront support imports the exact customer URL but does not yet prove that Spain, Germany or the US is cheapest after local shipping and tax.
 - [ ] Record live import fixtures for non-Shopify regional leaders such as Primor, Druni, PcComponentes, MediaMarkt, Zalando and major US department stores; allowlist coverage currently falls back to safe JSON-LD/Open Graph or manual confirmation when their anti-bot pages block Atlas.
@@ -86,7 +86,7 @@
 - [x] Add administrator-only D1 export with checksum and audit record, excluding private blob bytes.
 - [x] Add captured operational error summaries for administrator monitoring.
 - [x] Add server-enforced customer review/blocking and an administrator customer/support/finance/system workspace.
-- [ ] Translate every remaining transactional/operator validation message and notification template for RU, UZ and EN. The main customer journeys (link order, cart/checkout, account, passport, declaration, customs and batch import) now have localized copy; legacy order operations, admin and some legal/notification text remain.
+- [ ] Translate every remaining operator validation message, server history and legal/notification template for RU, UZ and EN. Customer order, balance, notification shell and link-import copy now localize; legacy operations/admin/legal body text remains.
 - [ ] Document/test production D1 migration from local machine before schema changes.
 - [ ] Add retention/deletion/export policy, backups and redacted observability.
 - [x] Draft the public intermediary/logistics offer, privacy policy, passport consent and payment/refund policy with transparent buyout, delivery, conversion and optional-service fees.

@@ -42,7 +42,7 @@ import {
   type Communication,
 } from "@/lib/market/domain";
 import type { Action } from "@/lib/market/actions";
-import { localizedStatuses } from "@/lib/market/i18n";
+import { localizedStatuses, type Locale } from "@/lib/market/i18n";
 import {
   PageHeading,
   Empty,
@@ -63,6 +63,18 @@ const usd = (n: number) =>
     currency: "USD",
     minimumFractionDigits: 2,
   }).format(n);
+const localeTag = (locale: Locale) => locale === "ru" ? "ru-RU" : locale === "uz" ? "uz-UZ" : "en-US";
+const customerOrderCopy = {
+  ru: {
+    loginTitle: "Войдите, чтобы открыть заказы", loginDescription: "История покупок, фото и расчёты доступны в вашем профиле Atlas.", loginLabel: "Открыть вход", loading: "Загружаем заказы…", emptyTitle: "Здесь начнётся путь вашей покупки", emptyDescription: "Оформите заказ из корзины, чтобы попробовать выкуп, склад и доставку.", choose: "Выбрать товар", filteredTitle: "В этом разделе пока пусто", filteredDescription: "Измените фильтр или поисковый запрос.", search: "Поиск заказа", source: "Источник товара", loadPhoto: "Загрузить фото из ссылки", loadingPhoto: "Загружаем…", checkoutTotal: "Сумма при оформлении", checkoutAt: "При оформлении", buyer: "Покупатель", cancelled: "Отменён", needDecision: "Нужно решение", extra: "Требуется доплата", awaitingPayment: "Ожидает оплаты", paymentWaiting: "Ожидается тестовая оплата", paymentPaid: "Тестовая оплата подтверждена", paymentRefunded: "Тестовый платёж возвращён", paymentLine: "Платёж", noCharge: "Без реального списания", providerPassed: "Сценарий платёжного провайдера пройден", demoPayment: "Тестовая оплата", recipient: "Получатель", tracking: "Трек-номер", parcelRegistered: "Посылка зарегистрирована", warehouseDone: "Приёмка на складе завершена", warehouseProblem: "Склад зафиксировал проблему", received: "Получено", operations: "Операции", noOperations: "Дополнительные операции не назначены", agreements: "Согласования по заказу", pending: "НУЖНО РЕШЕНИЕ", approved: "ПОДТВЕРЖДЕНО", declined: "ОТКЛОНЕНО", reject: "Отклонить", confirm: "Подтвердить", managerChecking: "Менеджер уточняет доставку магазина", reserveIncluded: "В сумму заказа пока включён резерв", beforeBuyout: "Перед выкупом вы увидите подтверждённую стоимость.", managerConfirmed: "Менеджер подтвердил доставку магазина", actual: "Фактическая стоимость", reservedAtCheckout: "Резерв при оформлении", refundToBalance: "Вернули на баланс", extraApproved: "Доплата подтверждена", needApprove: "Нужно согласовать", reserveMatch: "Сумма совпала с резервом", balance: "Баланс", shippingOver: "Доставка превысила резерв", shippingCheaper: "Доставка оказалась дешевле", shippingRecalculated: "Доставка пересчитана", payableWeight: "Оплачиваемый вес", cost: "Стоимость", noExtra: "Доплата не требуется", checkExtra: "Проверить доплату", confirmStore: "Подтвердить доставку магазина", confirmBuyout: "Подтвердить выкуп", receiveWarehouse: "Принять на склад", weigh: "Взвесить и пересчитать", sendUzbekistan: "Отправить в Узбекистан", confirmDelivery: "Подтвердить доставку", sendAfterApproval: "Отправка станет доступна после подтверждения в разделе «Мои заказы».", saveReceivingFirst: "Сначала сохраните приёмку товара в блоке оператора.", payFirst: "Выкуп станет доступен после тестового подтверждения оплаты клиентом.", trackingFirst: "Перед отправкой добавьте перевозчика и трек-номер.", calculationHistory: "Расчёт и история", customsAccepted: "Таможенные условия приняты", balanceUsed: "При оформлении с демобаланса", actualWeight: "Фактический вес", dimensional: "Объёмный", cancelOrder: "Отменить заказ", storeModalTitle: "Доставка от магазина до склада", storeModalDescription: "Укажите фактическую итоговую стоимость в долларах. Если она ниже резерва, разница сразу вернётся покупателю на баланс.", actualStoreShipping: "Фактическая доставка магазина, USD", reserved: "Было заложено", saveRecalculate: "Подтвердить и пересчитать", warehouseModalTitle: "Взвешивание на складе", warehouseModalDescription: "Вес и размеры всей посылки, включая упаковку. Тариф зафиксирован в заказе.", dimensions: ["Фактический вес, кг", "Длина, см", "Ширина, см", "Высота, см"], volumeWeight: "Объёмный вес", paidShipping: "Было оплачено за доставку", afterWeighing: "После взвешивания", requestExtra: "Запросить доплату", returnBalance: "Вернуть на демобаланс", invalidValues: "Укажите корректные положительные значения.", confirmRecalculate: "Подтвердить перерасчёт", cancelTitle: "Отменить заказ до выкупа?", paymentTitle: "Подтвердить тестовую оплату?", extraTitle: "Подтвердить тестовую доплату?", cancelDescription: "Вся сумма вернётся на демобаланс. Заказ больше не поступит в обработку.", paymentDescription: "Atlas имитирует успешный webhook платёжного провайдера. Деньги не списываются.", extraDescription: "После подтверждения оператор сможет отправить заказ. Реальных списаний не будет.", refund: "К возврату", testPayment: "Тестовый платёж", toPay: "К доплате", back: "Назад", saveChanges: "Изменения сохранены", saving: "Сохраняем…", statusUpdated: "Статус заказа обновлён", photoUpdated: "Фото заказа обновлено"
+  },
+  uz: {
+    loginTitle: "Buyurtmalarni ochish uchun kiring", loginDescription: "Xaridlar tarixi, rasmlar va hisob-kitoblar Atlas profilingizda mavjud.", loginLabel: "Kirishni ochish", loading: "Buyurtmalar yuklanmoqda…", emptyTitle: "Xaridingiz yo‘li shu yerda boshlanadi", emptyDescription: "Xarid, ombor va yetkazib berishni sinash uchun savatdan buyurtma bering.", choose: "Tovar tanlash", filteredTitle: "Bu bo‘lim hozircha bo‘sh", filteredDescription: "Filtr yoki qidiruv so‘rovini o‘zgartiring.", search: "Buyurtmani qidirish", source: "Tovar manbasi", loadPhoto: "Havoladan rasm yuklash", loadingPhoto: "Yuklanmoqda…", checkoutTotal: "Rasmiylashtirish summasi", checkoutAt: "Rasmiylashtirishda", buyer: "Xaridor", cancelled: "Bekor qilingan", needDecision: "Qaror kerak", extra: "Qo‘shimcha to‘lov kerak", awaitingPayment: "To‘lov kutilmoqda", paymentWaiting: "Test to‘lovi kutilmoqda", paymentPaid: "Test to‘lovi tasdiqlandi", paymentRefunded: "Test to‘lovi qaytarildi", paymentLine: "To‘lov", noCharge: "Haqiqiy yechib olish yo‘q", providerPassed: "To‘lov provayderi ssenariysi bajarildi", demoPayment: "Test to‘lovi", recipient: "Qabul qiluvchi", tracking: "Kuzatuv raqami", parcelRegistered: "Jo‘natma ro‘yxatga olindi", warehouseDone: "Omborda qabul qilish yakunlandi", warehouseProblem: "Ombor muammo qayd etdi", received: "Qabul qilindi", operations: "Amallar", noOperations: "Qo‘shimcha amallar tayinlanmagan", agreements: "Buyurtma bo‘yicha kelishuvlar", pending: "QAROR KERAK", approved: "TASDIQLANGAN", declined: "RAD ETILGAN", reject: "Rad etish", confirm: "Tasdiqlash", managerChecking: "Menejer do‘kon yetkazib berishini aniqlamoqda", reserveIncluded: "Buyurtma summasiga hozircha zaxira kiritilgan", beforeBuyout: "Xariddan oldin tasdiqlangan narxni ko‘rasiz.", managerConfirmed: "Menejer do‘kon yetkazib berishini tasdiqladi", actual: "Haqiqiy summa", reservedAtCheckout: "Rasmiylashtirishdagi zaxira", refundToBalance: "Balansga qaytarildi", extraApproved: "Qo‘shimcha to‘lov tasdiqlandi", needApprove: "Kelishish kerak", reserveMatch: "Summa zaxiraga teng", balance: "Balans", shippingOver: "Yetkazib berish zaxiradan oshdi", shippingCheaper: "Yetkazib berish arzonroq chiqdi", shippingRecalculated: "Yetkazib berish qayta hisoblandi", payableWeight: "Hisoblanadigan vazn", cost: "Narx", noExtra: "Qo‘shimcha to‘lov talab qilinmaydi", checkExtra: "Qo‘shimcha to‘lovni tekshirish", confirmStore: "Do‘kon yetkazib berishini tasdiqlash", confirmBuyout: "Xaridni tasdiqlash", receiveWarehouse: "Omborga qabul qilish", weigh: "Tortish va qayta hisoblash", sendUzbekistan: "O‘zbekistonga jo‘natish", confirmDelivery: "Yetkazib berishni tasdiqlash", sendAfterApproval: "Jo‘natish «Buyurtmalarim» bo‘limida tasdiqlangandan keyin mavjud bo‘ladi.", saveReceivingFirst: "Avval operator blokida tovar qabulini saqlang.", payFirst: "Xarid mijoz test to‘lovini tasdiqlagandan keyin mavjud bo‘ladi.", trackingFirst: "Jo‘natishdan oldin tashuvchi va kuzatuv raqamini kiriting.", calculationHistory: "Hisob-kitob va tarix", customsAccepted: "Bojxona shartlari qabul qilindi", balanceUsed: "Rasmiylashtirishda demo balansdan", actualWeight: "Haqiqiy vazn", dimensional: "Hajmiy", cancelOrder: "Buyurtmani bekor qilish", storeModalTitle: "Do‘kondan omborgacha yetkazib berish", storeModalDescription: "Dollar hisobidagi yakuniy haqiqiy summani kiriting. Zaxiradan kam bo‘lsa, farq xaridor balansiga qaytariladi.", actualStoreShipping: "Do‘konning haqiqiy yetkazib berishi, USD", reserved: "Kiritilgan zaxira", saveRecalculate: "Tasdiqlash va qayta hisoblash", warehouseModalTitle: "Omborda tortish", warehouseModalDescription: "Qadoq bilan birga jo‘natmaning vazni va o‘lchamlari. Tarif buyurtmada qayd etilgan.", dimensions: ["Haqiqiy vazn, kg", "Uzunlik, sm", "Eni, sm", "Balandlik, sm"], volumeWeight: "Hajmiy vazn", paidShipping: "Yetkazib berish uchun to‘langan", afterWeighing: "Tortishdan keyin", requestExtra: "Qo‘shimcha to‘lov so‘rash", returnBalance: "Demo balansga qaytarish", invalidValues: "Musbat qiymatlarni to‘g‘ri kiriting.", confirmRecalculate: "Qayta hisoblashni tasdiqlash", cancelTitle: "Xariddan oldin buyurtma bekor qilinsinmi?", paymentTitle: "Test to‘lovi tasdiqlansinmi?", extraTitle: "Test qo‘shimcha to‘lovi tasdiqlansinmi?", cancelDescription: "Barcha summa demo balansga qaytadi. Buyurtma qayta ishlanmaydi.", paymentDescription: "Atlas to‘lov provayderining muvaffaqiyatli webhook ssenariysini taqlid qiladi. Pul yechilmaydi.", extraDescription: "Tasdiqlangach operator buyurtmani jo‘natishi mumkin. Haqiqiy yechib olish bo‘lmaydi.", refund: "Qaytariladigan summa", testPayment: "Test to‘lovi", toPay: "Qo‘shimcha to‘lov", back: "Ortga", saveChanges: "O‘zgarishlar saqlandi", saving: "Saqlanmoqda…", statusUpdated: "Buyurtma holati yangilandi", photoUpdated: "Buyurtma rasmi yangilandi"
+  },
+  en: {
+    loginTitle: "Sign in to open your orders", loginDescription: "Purchase history, photos and calculations are available in your Atlas profile.", loginLabel: "Open sign in", loading: "Loading orders…", emptyTitle: "Your purchase journey starts here", emptyDescription: "Place an order from the cart to try purchase, warehouse and delivery steps.", choose: "Choose an item", filteredTitle: "Nothing in this section yet", filteredDescription: "Change the filter or search query.", search: "Search orders", source: "Product source", loadPhoto: "Load photo from link", loadingPhoto: "Loading…", checkoutTotal: "Checkout total", checkoutAt: "At checkout", buyer: "Buyer", cancelled: "Cancelled", needDecision: "Decision needed", extra: "Additional payment needed", awaitingPayment: "Awaiting payment", paymentWaiting: "Test payment pending", paymentPaid: "Test payment confirmed", paymentRefunded: "Test payment refunded", paymentLine: "Payment", noCharge: "No real charge", providerPassed: "Payment provider flow completed", demoPayment: "Test payment", recipient: "Recipient", tracking: "Tracking number", parcelRegistered: "Parcel registered", warehouseDone: "Warehouse intake complete", warehouseProblem: "Warehouse flagged an issue", received: "Received", operations: "Operations", noOperations: "No extra operations assigned", agreements: "Order approvals", pending: "DECISION NEEDED", approved: "APPROVED", declined: "DECLINED", reject: "Decline", confirm: "Approve", managerChecking: "Manager is confirming store shipping", reserveIncluded: "A reserve is included in the order for now", beforeBuyout: "You will see the confirmed amount before purchase.", managerConfirmed: "Manager confirmed store shipping", actual: "Actual amount", reservedAtCheckout: "Checkout reserve", refundToBalance: "Refunded to balance", extraApproved: "Additional payment approved", needApprove: "Approval needed", reserveMatch: "Amount matched the reserve", balance: "Balance", shippingOver: "Shipping exceeded the reserve", shippingCheaper: "Shipping was lower", shippingRecalculated: "Shipping recalculated", payableWeight: "Chargeable weight", cost: "Cost", noExtra: "No additional payment required", checkExtra: "Review additional payment", confirmStore: "Confirm store shipping", confirmBuyout: "Confirm purchase", receiveWarehouse: "Receive at warehouse", weigh: "Weigh and recalculate", sendUzbekistan: "Ship to Uzbekistan", confirmDelivery: "Confirm delivery", sendAfterApproval: "Shipping becomes available after approval in My orders.", saveReceivingFirst: "Save the warehouse intake in the operator block first.", payFirst: "Purchase becomes available after the customer confirms the test payment.", trackingFirst: "Add a carrier and tracking number before shipping.", calculationHistory: "Calculation and history", customsAccepted: "Customs terms accepted", balanceUsed: "Paid from demo balance at checkout", actualWeight: "Actual weight", dimensional: "Dimensional", cancelOrder: "Cancel order", storeModalTitle: "Store-to-warehouse shipping", storeModalDescription: "Enter the final actual amount in USD. If it is below the reserve, the difference is returned to the customer balance.", actualStoreShipping: "Actual store shipping, USD", reserved: "Reserved", saveRecalculate: "Confirm and recalculate", warehouseModalTitle: "Warehouse weighing", warehouseModalDescription: "Parcel weight and dimensions including packaging. The tariff is recorded on the order.", dimensions: ["Actual weight, kg", "Length, cm", "Width, cm", "Height, cm"], volumeWeight: "Dimensional weight", paidShipping: "Shipping paid", afterWeighing: "After weighing", requestExtra: "Request additional payment", returnBalance: "Return to demo balance", invalidValues: "Enter valid positive values.", confirmRecalculate: "Confirm recalculation", cancelTitle: "Cancel before purchase?", paymentTitle: "Confirm test payment?", extraTitle: "Confirm test additional payment?", cancelDescription: "The full amount returns to demo balance. The order will not be processed.", paymentDescription: "Atlas simulates a successful payment-provider webhook. No money is charged.", extraDescription: "After approval, an operator can ship the order. No real charge is made.", refund: "To refund", testPayment: "Test payment", toPay: "To pay", back: "Back", saveChanges: "Changes saved", saving: "Saving…", statusUpdated: "Order status updated", photoUpdated: "Order photo updated"
+  }
+} as const;
 type OperationsAccount = {
   id: string;
   name: string;
@@ -232,7 +244,9 @@ export function OrdersView({ operations }: { operations: boolean }) {
   );
   const viewReady = operations ? opsReady : ready;
   const viewError = operations ? opsError : error;
-  const displayStatuses = localizedStatuses(state.communication.language);
+  const locale = state.communication.language as Locale;
+  const ow = customerOrderCopy[locale];
+  const displayStatuses = localizedStatuses(locale);
   const wc={ru:{customerOver:"ВАШИ ПОКУПКИ В ПУТИ",customerTitle:"От магазина до вашей двери.",customerIntro:"Статусы, расчёты и история каждого заказа.",operatorOver:"РАБОЧЕЕ МЕСТО ОПЕРАТОРА",operatorTitle:"Всё готово к следующему шагу.",operatorIntro:"Выкупайте, принимайте на склад и согласовывайте исключения.",customerView:"Вид покупателя",operatorView:"Открыть обработку",active:"В работе",attention:"Нужно решение",done:"Завершённые",searchCustomer:"Номер или товар",searchOperator:"Номер, товар или покупатель"},uz:{customerOver:"BUYURTMALARINGIZ YO‘LDA",customerTitle:"Do‘kondan eshigingizgacha.",customerIntro:"Har bir buyurtmaning holati, hisobi va tarixi.",operatorOver:"OPERATOR ISH JOYI",operatorTitle:"Keyingi qadam uchun hammasi tayyor.",operatorIntro:"Xaridni, ombor qabulini va istisnolarni boshqaring.",customerView:"Mijoz ko‘rinishi",operatorView:"Qayta ishlashni ochish",active:"Jarayonda",attention:"Qaror kerak",done:"Yakunlangan",searchCustomer:"Raqam yoki tovar",searchOperator:"Raqam, tovar yoki mijoz"},en:{customerOver:"YOUR PURCHASES IN TRANSIT",customerTitle:"From the store to your door.",customerIntro:"Status, calculation and history for every order.",operatorOver:"OPERATOR WORKSPACE",operatorTitle:"Everything is ready for the next step.",operatorIntro:"Manage purchase, warehouse intake and exceptions.",customerView:"Customer view",operatorView:"Open processing",active:"In progress",attention:"Decision needed",done:"Completed",searchCustomer:"Order number or item",searchOperator:"Order number, item or customer"}}[state.communication.language];
   const receiving = orders.find((o) => o.id === warehouse);
   const confirmingStoreShipping = orders.find(
@@ -261,7 +275,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
     const orderId = "id" in action ? action.id : "";
     const profile = orderAccount.get(orderId);
     if (!profile) {
-      toast.error("Профиль покупателя не найден. Обновите очередь.");
+      toast.error(locale === "ru" ? "Профиль покупателя не найден. Обновите очередь." : locale === "uz" ? "Mijoz profili topilmadi. Navbatni yangilang." : "Customer profile not found. Refresh the queue.");
       return false;
     }
     try {
@@ -286,13 +300,13 @@ export function OrdersView({ operations }: { operations: boolean }) {
           ),
         );
       if (!response.ok) {
-        toast.error(data.error ?? "Не удалось сохранить действие.");
+         toast.error(data.error ?? (locale === "ru" ? "Не удалось сохранить действие." : locale === "uz" ? "Amalni saqlab bo‘lmadi." : "Could not save the action."));
         if (!data.account) await refreshOperations();
         return false;
       }
       return true;
     } catch {
-      toast.error("Нет связи с сервером. Обновите очередь перед повтором.");
+      toast.error(locale === "ru" ? "Нет связи с сервером. Обновите очередь перед повтором." : locale === "uz" ? "Server bilan aloqa yo‘q. Qayta urinishdan oldin navbatni yangilang." : "The server is unreachable. Refresh the queue before retrying.");
       await refreshOperations();
       return false;
     }
@@ -311,11 +325,11 @@ export function OrdersView({ operations }: { operations: boolean }) {
         error?: string;
       };
       if (!response.ok || !data.image)
-        throw Error(data.error ?? "На странице не найдено фото.");
+         throw Error(data.error ?? (locale === "ru" ? "На странице не найдено фото." : locale === "uz" ? "Sahifada rasm topilmadi." : "No photo found on the page."));
       if (
         await runOrderAction({ type: "order-image", id: o.id, image: data.image })
       )
-        toast.success("Фото заказа обновлено.");
+         toast.success(ow.photoUpdated);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -333,7 +347,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
     setBusy(false);
     if (ok) {
       setWarehouse(null);
-      toast.success("Взвешивание и перерасчёт сохранены");
+       toast.success(locale === "ru" ? "Взвешивание и перерасчёт сохранены" : locale === "uz" ? "Tortish va qayta hisoblash saqlandi" : "Weighing and recalculation saved");
     }
   }
   async function finishStoreShipping() {
@@ -347,16 +361,16 @@ export function OrdersView({ operations }: { operations: boolean }) {
     setBusy(false);
     if (ok) {
       setStoreShippingOrder(null);
-      toast.success("Доставка магазина подтверждена и пересчитана");
+       toast.success(locale === "ru" ? "Доставка магазина подтверждена и пересчитана" : locale === "uz" ? "Do‘kon yetkazib berishi tasdiqlandi va qayta hisoblandi" : "Store shipping confirmed and recalculated");
     }
   }
   if (operations && ready && !user?.operator)
     return (
       <Empty
-        title="Доступ только оператору"
-        description="В личном кабинете доступны ваши покупки и баланс."
+        title={locale === "ru" ? "Доступ только оператору" : locale === "uz" ? "Faqat operatorlar uchun" : "Operator access only"}
+        description={locale === "ru" ? "В личном кабинете доступны ваши покупки и баланс." : locale === "uz" ? "Xaridlar va balansingiz shaxsiy kabinetda mavjud." : "Your purchases and balance are available in your account."}
         href="/orders"
-        label="Мои заказы"
+        label={locale === "ru" ? "Мои заказы" : locale === "uz" ? "Buyurtmalarim" : "My orders"}
       />
     );
   return (
@@ -399,17 +413,17 @@ export function OrdersView({ operations }: { operations: boolean }) {
       {operations && (
         <div className="ops-stats">
           <div>
-            <span>В работе</span>
+              <span>{wc.active}</span>
             <strong>{active.length}</strong>
             <Package />
           </div>
           <div>
-            <span>Требуют согласования</span>
+              <span>{wc.attention}</span>
             <strong>{need.length}</strong>
             <Clock3 />
           </div>
           <div>
-            <span>Ожидают взвешивания</span>
+              <span>{locale === "ru" ? "Ожидают взвешивания" : locale === "uz" ? "Tortish kutilmoqda" : "Awaiting weighing"}</span>
             <strong>{active.filter((o) => o.status === 2).length}</strong>
             <Scale />
           </div>
@@ -429,19 +443,15 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 {wc.done} <b>{done.length}</b>
               </TabsTrigger>
             </TabsList>
-            <TabsContent value={tab} className="sr-only">
-              Фильтр заказов:{" "}
-              {tab === "active"
-                ? "В работе"
-                : tab === "attention"
-                  ? "Доплата"
-                  : "Завершённые"}
+              <TabsContent value={tab} className="sr-only">
+               {locale === "ru" ? "Фильтр заказов: " : locale === "uz" ? "Buyurtma filtri: " : "Order filter: "}
+               {tab === "active" ? wc.active : tab === "attention" ? wc.attention : wc.done}
             </TabsContent>
           </Tabs>
           <label className="search-field">
             <Search size={18} />
             <input
-              aria-label="Поиск заказа"
+              aria-label={ow.search}
               placeholder={operations ? wc.searchOperator : wc.searchCustomer}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -452,43 +462,43 @@ export function OrdersView({ operations }: { operations: boolean }) {
       {!viewReady ? (
         viewError ? (
           <Empty
-            title={operations ? "Очередь пока недоступна" : "Войдите, чтобы открыть заказы"}
-            description={operations ? viewError ?? "Повторите загрузку очереди." : "История покупок, фото и расчёты доступны в вашем профиле Atlas."}
+            title={operations ? (locale === "ru" ? "Очередь пока недоступна" : locale === "uz" ? "Navbat hozircha mavjud emas" : "Queue is unavailable") : ow.loginTitle}
+            description={operations ? viewError ?? (locale === "ru" ? "Повторите загрузку очереди." : locale === "uz" ? "Navbatni qayta yuklang." : "Reload the queue and try again.") : ow.loginDescription}
             href={operations ? "/operations" : "/account"}
-            label={operations ? "Повторить" : "Открыть вход"}
+            label={operations ? (locale === "ru" ? "Повторить" : locale === "uz" ? "Qayta urinish" : "Try again") : ow.loginLabel}
           />
         ) : (
-          <div className="loading-state">Загружаем заказы…</div>
+          <div className="loading-state">{ow.loading}</div>
         )
       ) : !orders.length ? (
         <Empty
-          title={operations ? "Очередь заказов пуста" : "Здесь начнётся путь вашей покупки"}
-          description={operations ? "Новых клиентских заказов пока нет." : "Оформите заказ из корзины, чтобы попробовать выкуп, склад и доставку."}
+          title={operations ? (locale === "ru" ? "Очередь заказов пуста" : locale === "uz" ? "Buyurtmalar navbati bo‘sh" : "The order queue is empty") : ow.emptyTitle}
+          description={operations ? (locale === "ru" ? "Новых клиентских заказов пока нет." : locale === "uz" ? "Yangi mijoz buyurtmalari yo‘q." : "There are no new customer orders yet.") : ow.emptyDescription}
           href="/"
-          label="Выбрать товар"
+          label={ow.choose}
         />
       ) : !filtered.length ? (
         <Empty
-          title="В этом разделе пока пусто"
-          description="Измените фильтр или поисковый запрос."
+          title={ow.filteredTitle}
+          description={ow.filteredDescription}
         />
       ) : (
         filtered.map((o) => (
           <details className="surface order-card compact-order" key={o.id} id={o.id} onToggle={event=>{const open=event.currentTarget.open;setExpanded(ids=>open?[...new Set([...ids,o.id])]:ids.filter(id=>id!==o.id))}}>
             <summary className="compact-order-summary">
               <ProductImage product={o.product} decorative locale={state.communication.language} />
-              <span className="compact-order-name"><small>{o.id}{operations ? ` · ${orderAccount.get(o.id)?.name ?? ''}` : ''}</small><b>{o.product.name}</b><span>{o.variant} · {o.quantity}</span></span>
-              <span className={'status-badge '+(isExtra(o)||pendingChange(o)||(!operations&&o.payment?.status==='pending')?'needs-action':'')}>{o.cancelled ? (state.communication.language==='ru'?'Отменён':state.communication.language==='uz'?'Bekor qilingan':'Cancelled') : isExtra(o)||pendingChange(o) ? wc.attention : o.payment?.status==='pending' ? (state.communication.language==='ru'?'Ожидает оплаты':state.communication.language==='uz'?'To‘lov kutilmoqda':'Awaiting payment') : displayStatuses[o.status]}</span>
+               <span className="compact-order-name"><small>{o.id}{operations ? ` · ${orderAccount.get(o.id)?.name ?? ''}` : ''}</small><b>{o.product.name}</b><span>{o.variant} · {o.quantity}</span></span>
+               <span className={'status-badge '+(isExtra(o)||pendingChange(o)||(!operations&&o.payment?.status==='pending')?'needs-action':'')}>{o.cancelled ? ow.cancelled : isExtra(o)||pendingChange(o) ? ow.needDecision : o.payment?.status==='pending' ? ow.awaitingPayment : displayStatuses[o.status]}</span>
               <strong>{money(orderPayable(o))}</strong><ArrowRight size={18}/>
             </summary>
             {expanded.includes(o.id)&&<div className="compact-order-body">
             <div className="order-card-head">
               <div>
                 <b>{o.id}</b>
-                <span>{new Date(o.createdAt).toLocaleDateString("ru-RU")}</span>
+                 <span>{new Date(o.createdAt).toLocaleDateString(localeTag(locale))}</span>
                 {operations && orderAccount.get(o.id) && (
                   <span className="customer-badge">
-                    Покупатель: {orderAccount.get(o.id)!.name}
+                     {ow.buyer}: {orderAccount.get(o.id)!.name}
                   </span>
                 )}
               </div>
@@ -499,11 +509,11 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 }
               >
                 {o.cancelled
-                  ? "Отменён"
+                   ? ow.cancelled
                   : pendingChange(o)
-                    ? "Нужно решение"
+                     ? ow.needDecision
                   : isExtra(o)
-                    ? "Требуется доплата"
+                     ? ow.extra
                     : displayStatuses[o.status]}
               </span>
             </div>
@@ -514,7 +524,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
               <div>
                 <h2>{o.product.name}</h2>
                 <p>
-                  {o.variant} · {o.quantity} шт. · {o.product.country ?? "США"}
+                  {o.variant} · {o.quantity} {locale === "ru" ? "шт." : locale === "uz" ? "dona" : "pcs"} · {o.product.country ?? (locale === "ru" ? "США" : locale === "uz" ? "AQSh" : "USA")}
                 </p>
                 {o.product.sourceUrl && (
                   <a
@@ -523,7 +533,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Источник товара
+                    {ow.source}
                     <ArrowUpRight size={14} />
                   </a>
                 )}
@@ -534,13 +544,13 @@ export function OrdersView({ operations }: { operations: boolean }) {
                     disabled={busy}
                     onClick={() => loadPhoto(o)}
                   >
-                    {busy ? "Загружаем…" : "Загрузить фото из ссылки"}
+                     {busy ? ow.loadingPhoto : ow.loadPhoto}
                   </button>
                 )}
               </div>
               <div className="order-amount">
                 <strong>{money(orderPayable(o))}</strong>
-                <span>{orderPayable(o) === o.quote.total ? "Сумма при оформлении" : `При оформлении ${money(o.quote.total)}`}</span>
+                  <span>{orderPayable(o) === o.quote.total ? ow.checkoutTotal : `${ow.checkoutAt} ${money(o.quote.total)}`}</span>
               </div>
             </div>
             {!o.cancelled && (
@@ -566,13 +576,13 @@ export function OrdersView({ operations }: { operations: boolean }) {
               <div className={"settlement-box payment-box " + (o.payment.status === "pending" ? "attention" : "")}>
                 <CreditCard size={22} />
                 <div>
-                  <h3>{o.payment.status === "pending" ? "Ожидается тестовая оплата" : o.payment.status === "paid" ? "Тестовая оплата подтверждена" : "Тестовый платёж возвращён"}</h3>
-                  <p>Платёж {o.payment.id} · {money(o.payment.amount)}.</p>
-                  <strong>{o.payment.status === "pending" ? "Без реального списания" : "Сценарий платёжного провайдера пройден"}</strong>
+                   <h3>{o.payment.status === "pending" ? ow.paymentWaiting : o.payment.status === "paid" ? ow.paymentPaid : ow.paymentRefunded}</h3>
+                   <p>{ow.paymentLine} {o.payment.id} · {money(o.payment.amount)}.</p>
+                   <strong>{o.payment.status === "pending" ? ow.noCharge : ow.providerPassed}</strong>
                 </div>
                 {!operations && o.payment.status === "pending" && (
                   <button className="btn primary" onClick={() => setConfirmation({ id: o.id, cancel: false, amount: o.payment!.amount, payment: true })}>
-                    Тестовая оплата <ArrowRight size={16} />
+                     {ow.demoPayment} <ArrowRight size={16} />
                   </button>
                 )}
               </div>
@@ -580,21 +590,21 @@ export function OrdersView({ operations }: { operations: boolean }) {
             {o.delivery && (
               <div className="settlement-box delivery-box">
                 <Package size={22} />
-                <div><h3>Получатель: {o.delivery.recipient}</h3><p>{o.delivery.region}, {o.delivery.city}, {o.delivery.address}</p><strong>{o.delivery.phone}</strong></div>
+                 <div><h3>{ow.recipient}: {o.delivery.recipient}</h3><p>{o.delivery.region}, {o.delivery.city}, {o.delivery.address}</p><strong>{o.delivery.phone}</strong></div>
               </div>
             )}
             {o.parcel && (
               <div className="settlement-box parcel-box">
                 <Truck size={22} />
-                <div><h3>{o.parcel.carrier}</h3><p>Трек-номер: {o.parcel.trackingNumber}{o.parcel.warehouseCode ? ` · склад ${o.parcel.warehouseCode}` : ""}</p><strong>{o.parcel.events.at(-1)?.status ?? "Посылка зарегистрирована"}</strong></div>
+                 <div><h3>{o.parcel.carrier}</h3><p>{ow.tracking}: {o.parcel.trackingNumber}{o.parcel.warehouseCode ? ` · ${locale === "ru" ? "склад" : locale === "uz" ? "ombor" : "warehouse"} ${o.parcel.warehouseCode}` : ""}</p><strong>{o.parcel.events.at(-1)?.status ?? ow.parcelRegistered}</strong></div>
               </div>
             )}
             {o.warehouseInspection && (
               <div className={"settlement-box warehouse-box " + (o.warehouseInspection.condition === "ok" ? "" : "attention")}>
-                <Package size={22}/><div><h3>{o.warehouseInspection.condition === "ok" ? "Приёмка на складе завершена" : "Склад зафиксировал проблему"}</h3><p>Получено: {o.warehouseInspection.quantityReceived} шт.{o.warehouseInspection.packageGroup ? ` · группа ${o.warehouseInspection.packageGroup}` : ""}</p><strong>{o.warehouseInspection.services.length ? `Операции: ${o.warehouseInspection.services.join(", ")}` : "Дополнительные операции не назначены"}</strong>{o.warehouseInspection.notes && <p>{o.warehouseInspection.notes}</p>}</div>
+                 <Package size={22}/><div><h3>{o.warehouseInspection.condition === "ok" ? ow.warehouseDone : ow.warehouseProblem}</h3><p>{ow.received}: {o.warehouseInspection.quantityReceived} {locale === "ru" ? "шт." : locale === "uz" ? "dona" : "pcs"}{o.warehouseInspection.packageGroup ? ` · ${locale === "ru" ? "группа" : locale === "uz" ? "guruh" : "group"} ${o.warehouseInspection.packageGroup}` : ""}</p><strong>{o.warehouseInspection.services.length ? `${ow.operations}: ${o.warehouseInspection.services.join(", ")}` : ow.noOperations}</strong>{o.warehouseInspection.notes && <p>{o.warehouseInspection.notes}</p>}</div>
               </div>
             )}
-            {!!o.changeRequests?.length && <section className="change-request-list" aria-label="Согласования по заказу">{[...o.changeRequests].reverse().map(request=><article className={`change-request ${request.status}`} key={request.id}><div><span className="eyebrow">{request.status === "pending" ? "НУЖНО РЕШЕНИЕ" : request.status === "approved" ? "ПОДТВЕРЖДЕНО" : "ОТКЛОНЕНО"}</span><h3>{request.title}</h3><p>{request.reason}</p>{(request.previousValue||request.proposedValue)&&<p className="change-values"><span>{request.previousValue||"—"}</span><ArrowRight size={15}/><b>{request.proposedValue||"—"}</b></p>}</div><div className="change-amount">{request.amountDelta !== 0 && <strong>{request.amountDelta > 0 ? "+" : ""}{money(request.amountDelta)}</strong>}{!operations && request.status === "pending" && <div className="change-actions"><button className="btn secondary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"declined",expectedAmountDelta:request.amountDelta})}>Отклонить</button><button className="btn primary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"approved",expectedAmountDelta:request.amountDelta})}>Подтвердить</button></div>}</div></article>)}</section>}
+             {!!o.changeRequests?.length && <section className="change-request-list" aria-label={ow.agreements}>{[...o.changeRequests].reverse().map(request=><article className={`change-request ${request.status}`} key={request.id}><div><span className="eyebrow">{request.status === "pending" ? ow.pending : request.status === "approved" ? ow.approved : ow.declined}</span><h3>{request.title}</h3><p>{request.reason}</p>{(request.previousValue||request.proposedValue)&&<p className="change-values"><span>{request.previousValue||"—"}</span><ArrowRight size={15}/><b>{request.proposedValue||"—"}</b></p>}</div><div className="change-amount">{request.amountDelta !== 0 && <strong>{request.amountDelta > 0 ? "+" : ""}{money(request.amountDelta)}</strong>}{!operations && request.status === "pending" && <div className="change-actions"><button className="btn secondary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"declined",expectedAmountDelta:request.amountDelta})}>{ow.reject}</button><button className="btn primary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"approved",expectedAmountDelta:request.amountDelta})}>{ow.confirm}</button></div>}</div></article>)}</section>}
             {!operations &&
               !o.cancelled &&
               o.status === 0 &&
@@ -603,11 +613,9 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 <div className="settlement-box">
                   <Clock3 size={22} />
                   <div>
-                    <h3>Менеджер уточняет доставку магазина</h3>
+                    <h3>{ow.managerChecking}</h3>
                     <p>
-                      В сумму заказа пока включён резерв{" "}
-                      {money(o.quote.sourceShipping ?? 0)}. Перед выкупом вы
-                      увидите подтверждённую стоимость.
+                      {ow.reserveIncluded} {money(o.quote.sourceShipping ?? 0)}. {ow.beforeBuyout}
                     </p>
                   </div>
                 </div>
@@ -621,33 +629,33 @@ export function OrdersView({ operations }: { operations: boolean }) {
               >
                 <Package size={22} />
                 <div>
-                  <h3>Менеджер подтвердил доставку магазина</h3>
+                   <h3>{ow.managerConfirmed}</h3>
                   <p>
-                    Фактическая стоимость:{" "}
+                     {ow.actual}:{" "}
                     {usd(o.storeShippingSettlement.actualUsd)} ·{" "}
                     {money(o.storeShippingSettlement.actual)}.
                   </p>
                   <p>
-                    Резерв при оформлении:{" "}
+                     {ow.reservedAtCheckout}:{" "}
                     {money(o.storeShippingSettlement.estimated)}.
                   </p>
                   <strong>
                     {o.storeShippingSettlement.refund
-                      ? "Вернули " +
+                       ? ow.refundToBalance + " " +
                         money(o.storeShippingSettlement.refund) +
-                        " на баланс"
+                         ""
                       : o.storeShippingExtraApproved
-                        ? "Доплата подтверждена: " +
+                         ? ow.extraApproved + ": " +
                           money(o.storeShippingSettlement.extra)
                         : o.storeShippingSettlement.extra
-                          ? "Нужно согласовать " +
+                           ? ow.needApprove + " " +
                             money(o.storeShippingSettlement.extra)
-                          : "Сумма совпала с резервом"}
+                           : ow.reserveMatch}
                   </strong>
                 </div>
                 {o.storeShippingSettlement.refund > 0 && (
                   <Link href="/balance" className="text-link">
-                    Баланс
+                     {ow.balance}
                     <ArrowUpRight size={16} />
                   </Link>
                 )}
@@ -661,30 +669,29 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 <div>
                   <h3>
                     {isExtra(o)
-                      ? "Доставка превысила резерв"
+                       ? ow.shippingOver
                       : o.settlement.refund
-                        ? "Доставка оказалась дешевле"
-                        : "Доставка пересчитана"}
+                         ? ow.shippingCheaper
+                         : ow.shippingRecalculated}
                   </h3>
                   <p>
-                    Оплачиваемый вес: {o.settlement.chargeableWeight.toFixed(2)}{" "}
-                    кг. Стоимость: {money(o.settlement.shipping)}.
+                    {ow.payableWeight}: {o.settlement.chargeableWeight.toFixed(2)} {locale === "ru" ? "кг." : "kg."} {ow.cost}: {money(o.settlement.shipping)}.
                   </p>
                   <strong>
                     {o.settlement.refund
-                      ? "Вернули " +
+                       ? ow.refundToBalance + " " +
                         money(o.settlement.refund) +
-                        " на демобаланс"
+                         ""
                       : o.extraApproved
-                        ? "Доплата подтверждена: " + money(o.settlement.extra)
+                         ? ow.extraApproved + ": " + money(o.settlement.extra)
                         : o.settlement.extra
-                          ? "Нужно согласовать " + money(o.settlement.extra)
-                          : "Доплата не требуется"}
+                           ? ow.needApprove + " " + money(o.settlement.extra)
+                           : ow.noExtra}
                   </strong>
                 </div>
                 {o.settlement.refund > 0 && (
                   <Link href="/balance" className="text-link">
-                    Баланс
+                     {ow.balance}
                     <ArrowUpRight size={16} />
                   </Link>
                 )}
@@ -702,7 +709,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
                   })
                 }
               >
-                Проверить доплату
+                {ow.checkExtra}
                 <ArrowRight size={16} />
               </button>
             )}
@@ -720,7 +727,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
                     setStoreShippingOrder(o.id);
                   }}
                 >
-                  Подтвердить доставку магазина
+                  {ow.confirmStore}
                   <ArrowRight size={16} />
                 </button>
               )}
@@ -758,61 +765,58 @@ export function OrdersView({ operations }: { operations: boolean }) {
                       expected: o.status,
                     })
                   )
-                    toast.success("Статус заказа обновлён");
+                     toast.success(ow.statusUpdated);
                 }}
               >
                 {o.status === 0
-                  ? "Подтвердить выкуп"
+                   ? ow.confirmBuyout
                   : o.status === 1
-                    ? "Принять на склад"
+                     ? ow.receiveWarehouse
                     : o.status === 2
-                      ? "Взвесить и пересчитать"
+                       ? ow.weigh
                       : o.status === 3
-                        ? "Отправить в Узбекистан"
-                        : "Подтвердить доставку"}
+                         ? ow.sendUzbekistan
+                         : ow.confirmDelivery}
                 <ArrowRight size={16} />
               </button>
             )}
             {operations && (isExtra(o) || pendingChange(o)) && (
               <p className="micro">
-                Отправка станет доступна после подтверждения в разделе «Мои
-                заказы».
+                 {ow.sendAfterApproval}
               </p>
             )}
-            {operations && o.status === 2 && !o.warehouseInspection && <p className="micro">Сначала сохраните приёмку товара в блоке оператора.</p>}
+            {operations && o.status === 2 && !o.warehouseInspection && <p className="micro">{ow.saveReceivingFirst}</p>}
             {operations && o.status === 0 && o.payment?.status === "pending" && (
-              <p className="micro">Выкуп станет доступен после тестового подтверждения оплаты клиентом.</p>
+              <p className="micro">{ow.payFirst}</p>
             )}
             {operations && o.status === 3 && !o.parcel && (
-              <p className="micro">Перед отправкой добавьте перевозчика и трек-номер.</p>
+              <p className="micro">{ow.trackingFirst}</p>
             )}
             {operations && !o.cancelled && <OperatorOrderTools order={o} run={runOrderAction} />}
             <OrderDocuments orderId={o.id} accountId={orderAccount.get(o.id)?.id} operatorMode={operations} locale={state.communication.language}/>
             <div className="order-bottom">
               <details>
-                <summary>Расчёт и история</summary>
+                <summary>{ow.calculationHistory}</summary>
                 <div className="order-detail-grid">
                   <div>
                     <CostLines q={o.quote} locale={state.communication.language}/>
                     {o.customsConsent && (
                       <p className="micro">
-                        Таможенные условия приняты:{" "}
+                        {ow.customsAccepted}:{" "}
                         {new Date(o.customsConsent.acceptedAt).toLocaleString(
-                          "ru-RU",
+                          localeTag(locale),
                         )}
                         .
                       </p>
                     )}
                     {o.balanceUsed > 0 && (
                       <p className="micro">
-                        При оформлении с демобаланса: {money(o.balanceUsed)}
+                        {ow.balanceUsed}: {money(o.balanceUsed)}
                       </p>
                     )}
                     {o.settlement && (
                       <p className="micro">
-                        Фактический вес: {o.settlement.actualWeight.toFixed(2)}{" "}
-                        кг · Объёмный:{" "}
-                        {o.settlement.dimensionalWeight.toFixed(2)} кг
+                        {ow.actualWeight}: {o.settlement.actualWeight.toFixed(2)} {locale === "ru" ? "кг" : "kg"} · {ow.dimensional}: {o.settlement.dimensionalWeight.toFixed(2)} {locale === "ru" ? "кг" : "kg"}
                       </p>
                     )}
                   </div>
@@ -837,7 +841,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
                     })
                   }
                 >
-                  Отменить заказ
+                  {ow.cancelOrder}
                 </button>
               )}
             </div>
@@ -850,8 +854,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
         onClose={() => {
           if (!busy) setStoreShippingOrder(null);
         }}
-        title="Доставка от магазина до склада"
-        description="Укажите фактическую итоговую стоимость в долларах. Если она ниже резерва, разница сразу вернётся покупателю на баланс."
+        title={ow.storeModalTitle}
+        description={ow.storeModalDescription}
       >
         <form
           onSubmit={(e) => {
@@ -861,7 +865,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
         >
           <div className="field">
             <label htmlFor="actual-store-shipping">
-              Фактическая доставка магазина, USD
+               {ow.actualStoreShipping}
             </label>
             <input
               id="actual-store-shipping"
@@ -877,14 +881,14 @@ export function OrdersView({ operations }: { operations: boolean }) {
           </div>
           {confirmingStoreShipping && (
             <div className="confirm-price">
-              <span>Было заложено</span>
+               <span>{ow.reserved}</span>
               <strong>
                 {money(confirmingStoreShipping.quote.sourceShipping ?? 0)}
               </strong>
             </div>
           )}
           <button className="btn primary full" disabled={busy}>
-            {busy ? "Сохраняем…" : "Подтвердить и пересчитать"}
+             {busy ? ow.saving : ow.saveRecalculate}
             <Check size={18} />
           </button>
         </form>
@@ -894,8 +898,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
         onClose={() => {
           if (!busy) setWarehouse(null);
         }}
-        title="Взвешивание на складе"
-        description="Вес и размеры всей посылки, включая упаковку. Тариф зафиксирован в заказе."
+        title={ow.warehouseModalTitle}
+        description={ow.warehouseModalDescription}
       >
         <form
           onSubmit={(e) => {
@@ -905,10 +909,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
         >
           <div className="two-fields">
             {[
-              "Фактический вес, кг",
-              "Длина, см",
-              "Ширина, см",
-              "Высота, см",
+              ...ow.dimensions,
             ].map((l, i) => (
               <div className="field" key={l}>
                 <label htmlFor={"dim-" + i}>{l}</label>
@@ -932,21 +933,21 @@ export function OrdersView({ operations }: { operations: boolean }) {
             <div className="receiving-preview">
               <dl className="cost-lines">
                 <div>
-                  <dt>Объёмный вес</dt>
-                  <dd>{calc.dimensionalWeight.toFixed(2)} кг</dd>
+                   <dt>{ow.volumeWeight}</dt>
+                   <dd>{calc.dimensionalWeight.toFixed(2)} {locale === "ru" ? "кг" : "kg"}</dd>
                 </div>
                 <div>
-                  <dt>Оплачиваемый вес</dt>
-                  <dd>{calc.chargeableWeight.toFixed(2)} кг</dd>
+                   <dt>{ow.payableWeight}</dt>
+                   <dd>{calc.chargeableWeight.toFixed(2)} {locale === "ru" ? "кг" : "kg"}</dd>
                 </div>
                 <div>
-                  <dt>Было оплачено за доставку</dt>
+                   <dt>{ow.paidShipping}</dt>
                   <dd>
                     {money(receiving.quote.shipping + receiving.quote.reserve)}
                   </dd>
                 </div>
                 <div>
-                  <dt>После взвешивания</dt>
+                   <dt>{ow.afterWeighing}</dt>
                   <dd>{money(calc.shipping)}</dd>
                 </div>
               </dl>
@@ -954,18 +955,18 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 className={"result-line " + (calc.extra ? "warning-text" : "")}
               >
                 <span>
-                  {calc.extra ? "Запросить доплату" : "Вернуть на демобаланс"}
+                   {calc.extra ? ow.requestExtra : ow.returnBalance}
                 </span>
                 <strong>{money(calc.extra || calc.refund)}</strong>
               </div>
             </div>
           ) : (
             <p role="alert" className="warning-text">
-              Укажите корректные положительные значения.
+               {ow.invalidValues}
             </p>
           )}
           <button className="btn primary full" disabled={!calc || busy}>
-            {busy ? "Сохраняем…" : "Подтвердить перерасчёт"}
+             {busy ? ow.saving : ow.confirmRecalculate}
             <Check size={18} />
           </button>
         </form>
@@ -979,24 +980,24 @@ export function OrdersView({ operations }: { operations: boolean }) {
         <AlertDialogContent>
           <AlertDialogTitle>
             {confirmation?.cancel
-              ? "Отменить заказ до выкупа?"
+               ? ow.cancelTitle
               : confirmation?.payment
-                ? "Подтвердить тестовую оплату?"
-                : "Подтвердить тестовую доплату?"}
+                 ? ow.paymentTitle
+                 : ow.extraTitle}
           </AlertDialogTitle>
           <AlertDialogDescription>
             {confirmation?.cancel
-              ? "Вся сумма вернётся на демобаланс. Заказ больше не поступит в обработку."
+               ? ow.cancelDescription
               : confirmation?.payment
-                ? "Atlas имитирует успешный webhook платёжного провайдера. Деньги не списываются."
-                : "После подтверждения оператор сможет отправить заказ. Реальных списаний не будет."}
+                 ? ow.paymentDescription
+                 : ow.extraDescription}
           </AlertDialogDescription>
           <div className="confirm-price">
-            <span>{confirmation?.cancel ? "К возврату" : confirmation?.payment ? "Тестовый платёж" : "К доплате"}</span>
+            <span>{confirmation?.cancel ? ow.refund : confirmation?.payment ? ow.testPayment : ow.toPay}</span>
             <strong>{money(confirmation?.amount ?? 0)}</strong>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>Назад</AlertDialogCancel>
+            <AlertDialogCancel disabled={busy}>{ow.back}</AlertDialogCancel>
             <AlertDialogAction
               disabled={busy}
               onClick={async (e) => {
@@ -1023,15 +1024,15 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 setBusy(false);
                 if (ok) {
                   setConfirmation(null);
-                  toast.success("Изменения сохранены");
+                   toast.success(ow.saveChanges);
                 }
               }}
             >
               {busy
-                ? "Сохраняем…"
+                 ? ow.saving
                 : confirmation?.cancel
-                  ? "Отменить заказ"
-                  : "Подтвердить"}
+                   ? ow.cancelOrder
+                   : ow.confirm}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1193,28 +1194,29 @@ function CommunicationPanel({
     phone: value.phone || phone,
   });
   const [saving, setSaving] = useState(false);
+  const communicationWords={ru:{eyebrow:'КАНАЛЫ СВЯЗИ',title:'Email и SMS',description:'Предрелиз сохраняет настройки и формирует журнал сообщений, но ничего не отправляет наружу.',test:'Тестовый режим',emailHint:'Статусы, оплата и возвраты',smsHint:'Только важные изменения',phone:'Телефон',language:'Язык интерфейса и уведомлений',save:'Сохранить настройки',saved:'Настройки email и SMS сохранены'},uz:{eyebrow:'ALOQA KANALLARI',title:'Email va SMS',description:'Oldindan ko‘rish rejimi sozlamalarni saqlaydi va xabarlar jurnalini yaratadi, lekin tashqariga hech narsa yubormaydi.',test:'Test rejimi',emailHint:'Holatlar, to‘lov va qaytarishlar',smsHint:'Faqat muhim o‘zgarishlar',phone:'Telefon',language:'Interfeys va bildirishnomalar tili',save:'Sozlamalarni saqlash',saved:'Email va SMS sozlamalari saqlandi'},en:{eyebrow:'CONTACT CHANNELS',title:'Email and SMS',description:'Preview mode saves settings and creates a message log, but sends nothing externally.',test:'Preview mode',emailHint:'Status, payment and refunds',smsHint:'Important changes only',phone:'Phone',language:'Interface and notification language',save:'Save settings',saved:'Email and SMS settings saved'}}[value.language];
   async function submit() {
     setSaving(true);
     const ok = await save(draft);
     setSaving(false);
-    if (ok) toast.success("Настройки email и SMS сохранены");
+    if (ok) toast.success(communicationWords.saved);
   }
   return (
     <section className="surface communication-panel">
       <div className="communication-heading">
-        <div><span className="eyebrow">КАНАЛЫ СВЯЗИ</span><h2>Email и SMS</h2><p>Предрелиз сохраняет настройки и формирует журнал сообщений, но ничего не отправляет наружу.</p></div>
-        <span className="status-badge">Тестовый режим</span>
+         <div><span className="eyebrow">{communicationWords.eyebrow}</span><h2>{communicationWords.title}</h2><p>{communicationWords.description}</p></div>
+         <span className="status-badge">{communicationWords.test}</span>
       </div>
       <div className="communication-grid">
-        <label className="channel-card"><input type="checkbox" checked={draft.emailEnabled} onChange={(event) => setDraft({ ...draft, emailEnabled: event.target.checked })} /><Mail size={22} /><span><b>Email</b><small>Статусы, оплата и возвраты</small></span></label>
-        <label className="channel-card"><input type="checkbox" checked={draft.smsEnabled} onChange={(event) => setDraft({ ...draft, smsEnabled: event.target.checked })} /><MessageSquareText size={22} /><span><b>SMS</b><small>Только важные изменения</small></span></label>
+         <label className="channel-card"><input type="checkbox" checked={draft.emailEnabled} onChange={(event) => setDraft({ ...draft, emailEnabled: event.target.checked })} /><Mail size={22} /><span><b>Email</b><small>{communicationWords.emailHint}</small></span></label>
+         <label className="channel-card"><input type="checkbox" checked={draft.smsEnabled} onChange={(event) => setDraft({ ...draft, smsEnabled: event.target.checked })} /><MessageSquareText size={22} /><span><b>SMS</b><small>{communicationWords.smsHint}</small></span></label>
       </div>
       <div className="communication-fields">
         <div className="field"><label htmlFor="notice-email">Email</label><input id="notice-email" type="email" required={draft.emailEnabled} value={draft.email} onChange={(event) => setDraft({ ...draft, email: event.target.value })} /></div>
-        <div className="field"><label htmlFor="notice-phone">Телефон</label><input id="notice-phone" type="tel" required={draft.smsEnabled} placeholder="+998 90 123 45 67" value={draft.phone} onChange={(event) => setDraft({ ...draft, phone: event.target.value })} /></div>
-        <div className="field"><label htmlFor="notice-language">Язык интерфейса и уведомлений</label><select id="notice-language" value={draft.language} onChange={(event) => setDraft({ ...draft, language: event.target.value as "ru" | "uz" | "en" })}><option value="ru">Русский</option><option value="uz">O‘zbekcha</option><option value="en">English</option></select></div>
+         <div className="field"><label htmlFor="notice-phone">{communicationWords.phone}</label><input id="notice-phone" type="tel" required={draft.smsEnabled} placeholder="+998 90 123 45 67" value={draft.phone} onChange={(event) => setDraft({ ...draft, phone: event.target.value })} /></div>
+         <div className="field"><label htmlFor="notice-language">{communicationWords.language}</label><select id="notice-language" value={draft.language} onChange={(event) => setDraft({ ...draft, language: event.target.value as "ru" | "uz" | "en" })}><option value="ru">Русский</option><option value="uz">O‘zbekcha</option><option value="en">English</option></select></div>
       </div>
-      <button className="btn secondary" disabled={saving || (draft.emailEnabled && !draft.email) || (draft.smsEnabled && !draft.phone)} onClick={() => void submit()}>{saving ? "Сохраняем…" : "Сохранить настройки"}<Check size={17} /></button>
+       <button className="btn secondary" disabled={saving || (draft.emailEnabled && !draft.email) || (draft.smsEnabled && !draft.phone)} onClick={() => void submit()}>{saving ? "…" : communicationWords.save}<Check size={17} /></button>
     </section>
   );
 }
@@ -1223,7 +1225,11 @@ export function NotificationsView() {
   const { state, ready, error, act, user } = useMarket();
   const [noticeFilter,setNoticeFilter]=useState('all');
   const locale=state.communication.language;
-  const noticeWords={ru:{all:'Все',unread:'Непрочитанные',orders:'Заказы',updates:'обновлений',history:'История обновлений',empty:'Таких уведомлений нет'},uz:{all:'Barchasi',unread:'O‘qilmagan',orders:'Buyurtmalar',updates:'yangilanish',history:'Yangilanishlar tarixi',empty:'Bunday bildirishnomalar yo‘q'},en:{all:'All',unread:'Unread',orders:'Orders',updates:'updates',history:'Update history',empty:'No matching notifications'}}[locale];
+   const noticeWords={
+     ru:{overline:'ВАЖНОЕ ПО ЗАКАЗАМ',title:'Уведомления.',description:'Изменения статусов, возвраты и запросы на согласование в одном месте.',readAll:'Прочитать все',loginTitle:'Войдите, чтобы открыть уведомления',loginDescription:'Сообщения Atlas доступны в вашем профиле.',loginLabel:'Открыть вход',loading:'Загружаем уведомления…',quiet:'Пока всё спокойно',quietDescription:'Здесь появятся изменения статусов и вопросы по вашим заказам.',ordersLink:'Мои заказы',openOrder:'Открыть заказ',all:'Все',unread:'Непрочитанные',orders:'Заказы',updates:'обновлений',empty:'Таких уведомлений нет'},
+     uz:{overline:'BUYURTMALAR BO‘YICHA MUHIM',title:'Bildirishnomalar.',description:'Holat o‘zgarishlari, qaytarishlar va tasdiqlash so‘rovlari bir joyda.',readAll:'Barchasini o‘qilgan deb belgilash',loginTitle:'Bildirishnomalarni ochish uchun kiring',loginDescription:'Atlas xabarlari profilingizda mavjud.',loginLabel:'Kirishni ochish',loading:'Bildirishnomalar yuklanmoqda…',quiet:'Hozircha hammasi tinch',quietDescription:'Holat o‘zgarishlari va buyurtma savollari shu yerda ko‘rinadi.',ordersLink:'Buyurtmalarim',openOrder:'Buyurtmani ochish',all:'Barchasi',unread:'O‘qilmagan',orders:'Buyurtmalar',updates:'yangilanish',empty:'Bunday bildirishnomalar yo‘q'},
+     en:{overline:'IMPORTANT ORDER UPDATES',title:'Notifications.',description:'Status changes, refunds and approval requests in one place.',readAll:'Mark all as read',loginTitle:'Sign in to open notifications',loginDescription:'Atlas messages are available in your account.',loginLabel:'Open sign in',loading:'Loading notifications…',quiet:'All quiet for now',quietDescription:'Status changes and questions about your orders will appear here.',ordersLink:'My orders',openOrder:'Open order',all:'All',unread:'Unread',orders:'Orders',updates:'updates',empty:'No matching notifications'}
+   }[locale];
   const notices=state.notifications.filter(item=>noticeFilter==='all'||(noticeFilter==='unread'&&!item.read)||(noticeFilter==='orders'&&item.orderId));
   const grouped=new Map<string,typeof notices>();
   for(const item of [...notices].sort((a,b)=>b.at-a.at)){const key=item.orderId??item.id;grouped.set(key,[...(grouped.get(key)??[]),item]);}
@@ -1232,16 +1238,16 @@ export function NotificationsView() {
   return (
     <>
       <PageHeading
-        overline="ВАЖНОЕ ПО ЗАКАЗАМ"
-        title="Уведомления."
-        description="Изменения статусов, возвраты и запросы на согласование в одном месте."
+         overline={noticeWords.overline}
+         title={noticeWords.title}
+         description={noticeWords.description}
       >
         {unread > 0 && (
           <button
             className="btn secondary"
             onClick={() => void act({ type: "notifications-read" })}
           >
-            <CheckCheck size={17} /> Прочитать все
+            <CheckCheck size={17} /> {noticeWords.readAll}
           </button>
         )}
       </PageHeading>
@@ -1249,20 +1255,20 @@ export function NotificationsView() {
       {!ready ? (
         error ? (
           <Empty
-            title="Войдите, чтобы открыть уведомления"
-            description="Сообщения Atlas доступны в вашем профиле."
-            href="/account"
-            label="Открыть вход"
+             title={noticeWords.loginTitle}
+             description={noticeWords.loginDescription}
+             href="/account"
+             label={noticeWords.loginLabel}
           />
         ) : (
-          <div className="loading-state">Загружаем уведомления…</div>
+           <div className="loading-state">{noticeWords.loading}</div>
         )
       ) : !state.notifications.length ? (
         <Empty
-          title="Пока всё спокойно"
-          description="Здесь появятся изменения статусов и вопросы по вашим заказам."
-          href="/orders"
-          label="Мои заказы"
+           title={noticeWords.quiet}
+           description={noticeWords.quietDescription}
+           href="/orders"
+           label={noticeWords.ordersLink}
         />
       ) : (
         <><div className="notice-filters">{[['all',noticeWords.all],['unread',noticeWords.unread],['orders',noticeWords.orders]].map(([value,label])=><button key={value} className={noticeFilter===value?'active':''} aria-pressed={noticeFilter===value} onClick={()=>setNoticeFilter(value)}>{label}</button>)}</div>{!groups.length&&<p className="surface">{noticeWords.empty}</p>}<section className="surface notification-list">
@@ -1275,13 +1281,13 @@ export function NotificationsView() {
               <div>
                 <div className="notification-title">
                   <h2>{item.title}</h2>
-                  <time>{new Date(item.at).toLocaleString("ru-RU")}</time>
+                   <time>{new Date(item.at).toLocaleString(localeTag(locale))}</time>
                 </div>
                 <p>{item.message}</p>
                 {history.length>0&&<details className="notification-history"><summary>{history.length+1} {noticeWords.updates}</summary>{history.map(previous=><div key={previous.id}><b>{previous.title}</b><p>{previous.message}</p><time>{new Date(previous.at).toLocaleString(locale)}</time></div>)}</details>}
                 {item.orderId && (
                   <Link className="text-link" href={'/orders#'+item.orderId}>
-                    Открыть заказ {item.orderId}
+                     {noticeWords.openOrder} {item.orderId}
                     <ArrowUpRight size={14} />
                   </Link>
                 )}
@@ -1302,63 +1308,68 @@ export function NotificationsView() {
 
 export function BalanceView() {
   const { state, ready, error } = useMarket();
+  const locale=state.communication.language as Locale;
+  const balanceWords={
+    ru:{overline:'ДЕНЬГИ ПОД КОНТРОЛЕМ',title:'Баланс с понятной историей.',description:'Возвраты и оплата следующих тестовых заказов.',demo:'Демобаланс',available:'Доступно для покупок',choose:'Выбрать товар',testNote:'Тестовые средства без денежной стоимости',reserve:'Резерв доставки',reserveDescription:'Уже включён в сумму заказов. Остаток вернётся после взвешивания посылок.',orders:'Посмотреть заказы',history:'История операций',operations:'операций',loginTitle:'Войдите, чтобы открыть баланс',loginDescription:'Возвраты и оплата следующих заказов сохраняются в вашем профиле.',loginLabel:'Открыть вход',loading:'Загружаем операции…',emptyTitle:'История начнётся с первого возврата',emptyDescription:'После взвешивания остаток доставки автоматически появится здесь.',notice:'Демобаланс можно использовать в корзине. Пополнение и вывод реальных денег не подключены.'},
+    uz:{overline:'PUL NAZORATDA',title:'Tushunarli balans tarixi.',description:'Qaytarishlar va keyingi test buyurtmalari to‘lovi.',demo:'Demo balans',available:'Xaridlar uchun mavjud',choose:'Tovar tanlash',testNote:'Haqiqiy qiymatga ega bo‘lmagan test mablag‘lari',reserve:'Yetkazib berish zaxirasi',reserveDescription:'Buyurtmalar summasiga kiritilgan. Qoldiq jo‘natma tortilgach qaytariladi.',orders:'Buyurtmalarni ko‘rish',history:'Amallar tarixi',operations:'amal',loginTitle:'Balansni ochish uchun kiring',loginDescription:'Qaytarishlar va keyingi buyurtmalar to‘lovi profilingizda saqlanadi.',loginLabel:'Kirishni ochish',loading:'Amallar yuklanmoqda…',emptyTitle:'Tarix birinchi qaytarishdan boshlanadi',emptyDescription:'Jo‘natma tortilgach yetkazib berish qoldig‘i shu yerda ko‘rinadi.',notice:'Demo balansni savatda ishlatish mumkin. Haqiqiy pul kiritish va yechish ulanmagan.'},
+    en:{overline:'MONEY UNDER CONTROL',title:'A balance with a clear history.',description:'Refunds and payment for upcoming test orders.',demo:'Demo balance',available:'Available for purchases',choose:'Choose an item',testNote:'Test funds with no monetary value',reserve:'Shipping reserve',reserveDescription:'Already included in order totals. The remainder returns after parcels are weighed.',orders:'View orders',history:'Transaction history',operations:'transactions',loginTitle:'Sign in to open your balance',loginDescription:'Refunds and upcoming order payments are saved in your account.',loginLabel:'Open sign in',loading:'Loading transactions…',emptyTitle:'History starts with the first refund',emptyDescription:'The remaining shipping amount appears here after weighing.',notice:'Demo balance can be used in the cart. Real deposits and withdrawals are not connected.'}
+  }[locale];
   const reserved = state.orders
     .filter((o) => !o.cancelled && !o.settlement)
     .reduce((s, o) => s + o.quote.reserve, 0);
   return (
     <>
       <PageHeading
-        overline="ДЕНЬГИ ПОД КОНТРОЛЕМ"
-        title="Баланс с понятной историей."
-        description="Возвраты и оплата следующих тестовых заказов."
+         overline={balanceWords.overline}
+         title={balanceWords.title}
+         description={balanceWords.description}
       />
       <div className="balance-panels">
         <section className="balance-primary">
           <div>
             <Wallet size={24} />
-            <span>Демобаланс</span>
+             <span>{balanceWords.demo}</span>
           </div>
-          <span>Доступно для покупок</span>
+           <span>{balanceWords.available}</span>
           <h2>{money(balanceOf(state))}</h2>
           <Link href="/" className="btn light">
-            Выбрать товар
+             {balanceWords.choose}
             <ArrowUpRight size={18} />
           </Link>
-          <small>Тестовые средства без денежной стоимости</small>
+           <small>{balanceWords.testNote}</small>
         </section>
         <section className="surface reserve-panel">
           <ShieldCheck size={25} />
-          <h2>Резерв доставки</h2>
+           <h2>{balanceWords.reserve}</h2>
           <strong>{money(reserved)}</strong>
           <p>
-            Уже включён в сумму заказов. Остаток вернётся после взвешивания
-            посылок.
+             {balanceWords.reserveDescription}
           </p>
           <Link href="/orders" className="text-link">
-            Посмотреть заказы
+             {balanceWords.orders}
             <ArrowRight size={16} />
           </Link>
         </section>
       </div>
       <div className="section-heading">
-        <h2>История операций</h2>
-        <span>{state.entries.length} операций</span>
+         <h2>{balanceWords.history}</h2>
+         <span>{state.entries.length} {balanceWords.operations}</span>
       </div>
       {!ready ? (
         error ? (
           <Empty
-            title="Войдите, чтобы открыть баланс"
-            description="Возвраты и оплата следующих заказов сохраняются в вашем профиле."
-            href="/account"
-            label="Открыть вход"
+             title={balanceWords.loginTitle}
+             description={balanceWords.loginDescription}
+             href="/account"
+             label={balanceWords.loginLabel}
           />
         ) : (
-          <p>Загружаем операции…</p>
+           <p>{balanceWords.loading}</p>
         )
       ) : !state.entries.length ? (
         <Empty
-          title="История начнётся с первого возврата"
-          description="После взвешивания остаток доставки автоматически появится здесь."
+           title={balanceWords.emptyTitle}
+           description={balanceWords.emptyDescription}
         />
       ) : (
         <div className="surface ledger-list">
@@ -1372,7 +1383,7 @@ export function BalanceView() {
                 <div>
                   <h3>{e.description}</h3>
                   <p>
-                    {e.orderId} · {new Date(e.at).toLocaleDateString("ru-RU")}
+                     {e.orderId} · {new Date(e.at).toLocaleDateString(localeTag(locale))}
                   </p>
                 </div>
                 <strong className={positive ? "credit" : ""}>
@@ -1387,8 +1398,7 @@ export function BalanceView() {
       <div className="notice">
         <Wallet size={20} />
         <span>
-          Демобаланс можно использовать в корзине. Пополнение и вывод реальных
-          денег не подключены.
+           {balanceWords.notice}
         </span>
       </div>
     </>

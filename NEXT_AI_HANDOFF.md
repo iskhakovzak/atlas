@@ -54,7 +54,7 @@ https://atlas-uz-market.ishakovzakir0.chatgpt.site
 - Preview declaration package, который не отправляется в customs.
 - Orders, simulated payment state, approvals, warehouse, parcel/tracking, internal notes и notifications.
 - Operator queue, catalog drafts, collections, publish/hide, recheck, restrictions, analytics, backup/export и audit events.
-- RU/UZ/EN выбор языка в shell и новых ключевых участках, но не полная локализация всех legacy-строк.
+- RU/UZ/EN выбор языка сохраняется между переходами и уже покрывает shell, link order, cart/checkout, batch import, account, passport, declaration, customs, customer orders, balance and notification shell; legacy operator/admin/legal/server-history strings remain.
 - Account dashboard: state-aware next action, counters, services, exclusive accordion для вторичных разделов.
 - UI-аудит `scripts/audit-ui.mjs` с guest/customer/admin permission checks, responsive overflow checks и authenticated local smoke.
 - SEO-слой: canonical metadata, production title template, Open Graph/X fields, honest preliminary-quote description, static `public/robots.txt` и `public/sitemap.xml`; общий breadcrumb/footer/mobile shell использует дополнительные RU/UZ/EN ключи.
@@ -166,7 +166,7 @@ node scripts/audit-ui.mjs http://localhost:5173
 
 > Доведи RU/UZ/EN на всех transactional routes. Найди hardcoded Russian/English labels, validation messages, empty states, statuses, legal/operator copy и notification templates. Не переводи автоматически названия товаров, merchant names, URLs и юридические цитаты. Используй существующий account language state, не добавляй client-only localStorage для account data. После каждого блока добавляй smoke check на смену языка и reload.
 
-Текущий прогресс: селектор языка сохраняется в валидированном `atlas-language`, применяется сразу и после входа повторяется через `communication-save`, поэтому full-page переходы больше не должны сбрасывать язык. Уже локализованы основные клиентские маршруты: link order, cart/checkout, batch import, account, passport, declaration и customs. Следующая очередь — `order-workspace.tsx`, `admin-view.tsx`, `catalog-admin.tsx`, `legal-documents.tsx` и оставшиеся toast/validation strings.
+Текущий прогресс: селектор языка сохраняется в валидированном `atlas-language`, применяется сразу и после входа повторяется через `communication-save`, поэтому full-page переходы больше не должны сбрасывать язык. Локализованы основные клиентские маршруты, customer order cards/modals, balance/notifications и dynamic link-import messages. Следующая очередь — `OperatorOrderTools`, `admin-view.tsx`, `catalog-admin.tsx`, `legal-documents.tsx`, server-generated history/errors и оставшиеся toast/validation strings.
 
 ### 6. Безопасный запуск auth/payment
 
