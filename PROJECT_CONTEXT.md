@@ -314,3 +314,11 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Mobile rules keep administrator tabs scrollable, stack uploads and settings, enlarge touch targets and prevent order/document rows from overflowing narrow screens.
 - `/admin` is now an operator control centre with overview metrics, order/analytics shortcuts, staff directory, server-managed restrictions and recent audit events. Staff records are preparatory only: until standalone authentication is connected, only `ATLAS_OPERATOR_EMAIL` has server authorization.
 - Operator order changes, pricing, policy and staff-directory updates create audit records. The authenticated smoke test covers staff creation and audit visibility in addition to the full order flow.
+
+## SEO foundation and shared-language cleanup — 19 September 2026
+
+- Root metadata now has a production title template, honest preliminary-quote description, canonical URL, Open Graph and X card fields, locale hints and crawler directives. The internal development-only preview metadata was removed.
+- Public indexing is explicit: `public/robots.txt` allows the catalog, customs guidance and legal page, blocks authenticated/API/operator routes, and points to `public/sitemap.xml` with the three public URLs.
+- Shared breadcrumb, footer, mobile saved-items label, retry action and sign-in link now use the existing RU/UZ/EN shell dictionary instead of hardcoded Russian strings. Product names and merchant content remain source-controlled and are not machine-translated.
+- Verification for this slice: targeted ESLint, 64 domain/security tests and production build passed. Full-project lint via the unavailable npm launcher was not used; the installed project ESLint binary passed on changed files.
+- ChatGPT discovery is opt-in at the public-content boundary: `OAI-SearchBot` and `GPTBot` may crawl public pages, while private/API/operator paths remain blocked. `public/llms.txt` gives AI systems a concise, dated-safe description of Atlas and links only to public pages. Placement in ChatGPT Search is not guaranteed.

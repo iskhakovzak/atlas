@@ -57,6 +57,8 @@ https://atlas-uz-market.ishakovzakir0.chatgpt.site
 - RU/UZ/EN выбор языка в shell и новых ключевых участках, но не полная локализация всех legacy-строк.
 - Account dashboard: state-aware next action, counters, services, exclusive accordion для вторичных разделов.
 - UI-аудит `scripts/audit-ui.mjs` с guest/customer/admin permission checks, responsive overflow checks и authenticated local smoke.
+- SEO-слой: canonical metadata, production title template, Open Graph/X fields, honest preliminary-quote description, static `public/robots.txt` и `public/sitemap.xml`; общий breadcrumb/footer/mobile shell использует дополнительные RU/UZ/EN ключи.
+- AI-discovery: `public/llms.txt` содержит короткое фактологическое описание продукта, `OAI-SearchBot` и `GPTBot` явно разрешены только для публичных страниц. Это повышает crawlability, но не гарантирует попадание или позицию в ChatGPT Search.
 
 ## Текущий UX baseline
 

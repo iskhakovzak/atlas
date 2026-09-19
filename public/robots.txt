@@ -1,0 +1,57 @@
+User-agent: OAI-SearchBot
+Allow: /
+Allow: /customs
+Allow: /legal
+Disallow: /api/
+Disallow: /account
+Disallow: /admin
+Disallow: /analytics
+Disallow: /balance
+Disallow: /batch-import
+Disallow: /cart
+Disallow: /declaration
+Disallow: /favorites
+Disallow: /identity
+Disallow: /notifications
+Disallow: /operations
+Disallow: /orders
+
+# Search access and model-training access are separate controls. Atlas opts in
+# for public facts only; private paths remain blocked below.
+User-agent: GPTBot
+Allow: /
+Allow: /customs
+Allow: /legal
+Disallow: /api/
+Disallow: /account
+Disallow: /admin
+Disallow: /analytics
+Disallow: /balance
+Disallow: /batch-import
+Disallow: /cart
+Disallow: /declaration
+Disallow: /favorites
+Disallow: /identity
+Disallow: /notifications
+Disallow: /operations
+Disallow: /orders
+
+User-agent: *
+Allow: /
+Allow: /customs
+Allow: /legal
+Disallow: /api/
+Disallow: /account
+Disallow: /admin
+Disallow: /analytics
+Disallow: /balance
+Disallow: /batch-import
+Disallow: /cart
+Disallow: /declaration
+Disallow: /favorites
+Disallow: /identity
+Disallow: /notifications
+Disallow: /operations
+Disallow: /orders
+
+Sitemap: https://atlas-uz-market.ishakovzak0.chatgpt.site/sitemap.xml

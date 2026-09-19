@@ -152,3 +152,13 @@ This UI gate improves navigation and privacy but is not the authorization bounda
 Shared presentation overrides are in `app/experience.css`. Order summaries defer rendering their full details and document requests until expanded; order-ID hash links open the matching row. Checkout has delivery and review UI steps but retains the existing authenticated checkout action and server recomputation. Legal hash links expand their target section. Catalog admin search, filters and pagination operate on the existing catalog document; no persistence or API schema changed.
 
 `AccountView` derives its dashboard priority locally from the already authenticated account snapshot: pending customer approval, pending simulated payment, missing confirmed identity, missing saved recipient, then the current order. The links only navigate to existing protected workflows; authorization and mutations remain in their existing APIs/domain actions.
+
+# SEO and public crawl boundaries — September 19, 2026
+
+Public metadata is defined in `app/layout.tsx` and remains honest about preliminary pricing and delivery estimates. It declares a canonical production origin, Open Graph/X fields and RU/UZ/EN locale hints without exposing private account data or claiming a live payment/carrier integration.
+
+`public/robots.txt` and `public/sitemap.xml` are static deployment assets because the current Vinext build does not register Next metadata route modules as standalone routes. The sitemap intentionally contains only the public catalog, customs guidance and legal pages. Authenticated, operator and API paths are disallowed from crawling.
+
+Shared shell labels continue to come from `lib/market/i18n.ts`; the SEO pass moved breadcrumb, footer, saved-items, retry and sign-in labels onto the same dictionary. Merchant titles, source URLs and product descriptions are not machine-translated.
+
+`public/llms.txt` is a concise public factsheet for AI/search systems. `public/robots.txt` explicitly allows `OAI-SearchBot` and `GPTBot` on public content and keeps account/API/operator paths blocked. This separation does not guarantee ranking or inclusion in ChatGPT Search and does not expose authenticated data.
