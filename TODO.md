@@ -54,7 +54,8 @@
 - [x] Reconcile source-controlled merchant additions into the existing D1 catalog without overwriting operator edits or hidden records; use the same published records in admin, collections, public catalog and ordering.
 - [x] Add an operator bulk-link catalog workflow with editable drafts, safe collection-page discovery and explicit publish/hide actions.
 - [x] Add D1-managed RU/UZ/EN home collections so clothing, cosmetics, brands and seasonal selections do not require a code deployment.
-- [ ] Add a scheduled catalog-refresh queue and operator alerts for expired, changed-price or unavailable published products. Current refresh remains manual and publication is always reviewed.
+- [x] Add a bounded, merchant-fair catalog-refresh queue, safe auto-unpublish for a confirmed all-sold-out matrix, operator batch control and a protected scheduler endpoint. Source-controlled price, photo and option changes refresh the published snapshot only after a complete successful source response.
+- [ ] Provision a separate Cloudflare scheduled Worker (or equivalent managed scheduler), configure `ATLAS_CATALOG_REFRESH_SECRET` in both runtimes, and verify the hourly trigger, HMAC call and alert handling in production. The current Sites/Vinext Worker has no cron trigger.
 - [x] Add a public Shopify adapter and live-check Allbirds, Kylie Cosmetics, ColourPop and Steve Madden; extend ProductGroup matching for Fashion Nova.
 - [x] Expand rich Shopify import to 20 explicit storefront roots across clothing, beauty, sneakers and electronics; live-check Alo Yoga, Rhode, Rare Beauty, Summer Fridays, Kith, CNCPTS, Satechi and Spigen.
 - [ ] Verify Bombas with a current product URL. Gymshark active-color/size parsing and Anker embedded-product parsing have live checks; expand dedicated adapters for other major stores using actual page samples.
@@ -114,6 +115,7 @@
 - [ ] Only one operator email is supported; team assignment exists, but independent staff identities and permissions are still missing.
 - [ ] $10 merchant shipping is an estimate, not a fetched quote.
 - [ ] Allowed stores can still block, localize, require login or change HTML; manual entry must remain.
+- [ ] Catalog refresh endpoint is implemented but no production scheduler secret or cron caller is configured yet; manual due-batch refresh is available only to the operator.
 - [ ] RON conversion 0.23 USD/RON is static demo data.
 - [x] Simplify catalog discount badges and move itemized quotes/weight margins into detail views; add an independent RU/UZ/EN courier-customs estimator.
 - [ ] Customs estimate is informational (checked 11 September 2026), not a binding charge. Confirm dutiable weight/value, effective-date interpretation, exclusions and bonded-vs-courier regime with the production carrier/legal adviser before commercial use. No official allowance lookup; user manually enters other imports.
@@ -123,4 +125,3 @@
 - [x] Fix standalone TypeScript errors in account status rendering and admin/identity/batch response typing.
 - [x] Add explicit guest/customer/admin rendering gates, stale-session clearing and a repeatable browser audit across protected routes and responsive sizes.
 - [ ] Standalone email/password and Google OAuth remain postponed by product decision; current member sign-in uses the platform flow.
-

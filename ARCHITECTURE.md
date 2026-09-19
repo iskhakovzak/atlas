@@ -25,7 +25,7 @@
 | Batch import/admin catalog/rules | app/batch-import.tsx, app/admin-view.tsx, app/catalog-admin.tsx, lib/market/catalog-editor.ts, lib/market/catalog-server.ts, lib/market/policy.ts |
 | Client provider | lib/market/store.tsx |
 | Auth/access | app/chatgpt-auth.ts, app/access-view.tsx, lib/market/access.ts |
-| API | app/api/account, app/api/actions, app/api/import, app/api/catalog, app/api/operations |
+| API | app/api/account, app/api/actions, app/api/import, app/api/catalog, app/api/internal/catalog-refresh, app/api/operations |
 | Domain/security | lib/market/domain.ts, actions.ts, server.ts, world.ts |
 | Importing | lib/importer/stores.ts, fetch.ts, extract.ts, shopify.ts |
 | Database | db/schema.ts, drizzle/0000_overrated_justice.sql |
@@ -88,6 +88,7 @@ State contains orders, ledger entries, cart, favourites, checkout idempotency ke
 | GET /api/catalog | public published catalog, or operator-only full draft document with `?admin=1` |
 | POST /api/catalog | operator identity + same origin + document revision → import/discover/edit/publish/hide/collection command + audit event |
 | POST /api/catalog-availability | customer identity + same origin + rate limit + exact catalog ID/source → persisted available/unavailable report and operator-review marker |
+| POST /api/internal/catalog-refresh | scheduler-only HMAC signature + D1 lease → one bounded due batch; no browser identity, CORS or caller-controlled limit |
 | POST /api/actions | identity + same origin + action/revision → next state |
 | GET /api/operations | operator identity → customer/support queues, pricing, policy, projection health, staff directory and audit events |
 | POST /api/operations | operator identity + validated payload → order/support action, customer access, projection rebuild, pricing, policy or staff-directory update + audit event |
@@ -101,6 +102,8 @@ Action types additionally include identity-confirm, identity-clear, declaration-
 
 Linked products pass an additional source-freshness boundary in `/api/actions`: the server fetches the allowlisted public page on cart addition and checkout, resolves the stored optional merchant variant ID (or exact label fallback), and compares availability, currency and source price before the domain action runs. This check never trusts client-supplied freshness timestamps and sends no store credentials. Catalog rechecks use the same bounded importer; change and error markers remain optional fields in the existing versioned catalog JSON. Customer availability reports are also optional catalog fields, so old D1 documents remain valid without a migration. Reports cannot change the published snapshot; they flag the operator draft until a protected recheck or operator hide resolves them.
 
+Catalog source observations have a second, non-customer path. Each entry may store optional due/attempt/success/error/status metadata and an auto-hide reason. `refreshDueCatalog()` selects at most five due cards from distinct source hosts, fetches with a global concurrency of two, rereads the D1 document before its compare-and-swap write, and records a system audit event. It can update a complete, explicitly in-stock source snapshot or unpublish a definitive all-sold-out matrix; it never hides on a failed, blocked or incomplete source response. The internal endpoint authenticates a `POST` with a five-minute HMAC timestamp/signature and holds a two-minute D1 lease. The current Sites artifact has no `scheduled` handler or cron trigger, so a separate scheduled Worker must call that endpoint with `ATLAS_CATALOG_REFRESH_SECRET`; no `setInterval` or user browser is treated as a scheduler.
+
 When a public catalog card opens `/order-by-link?url=…`, the client auto-starts the protected import instead of asking the customer to submit the same URL again. It renders the imported colour/size/model matrix and preliminary calculation, then submits a normal `cart-add` action only after the customer confirms the selected combination. The link query is navigation context only: the action route repeats source verification before persisting the cart line. The public grid does not append separate client-only products: catalog administration, collections, favourites and ordering all resolve the same D1-backed catalog IDs and published snapshots.
 
 Pricing stores base international freight and delivery margin separately. International freight uses at least 1 kg per merchant parcel. During every cart add, quantity change and quote renewal, linked lines with the same normalized source host and dispatch country are repriced together: boxed weights are summed, the 0.3 kg packaging and 0.2 kg safety allowance are added once, and freight/reserve/delivery margin are allocated back to the line quotes so checkout and later order snapshots remain additive and immutable. Operational projection uses the current payable amount and creates separate fee lines for approved change requests while the original quote remains untouched. Warehouse receiving requires a saved inspection; damaged or mismatched intake needs an approved resolution created after that inspection.
@@ -111,6 +114,7 @@ Pricing stores base international freight and delivery margin separately. Intern
 | --- | --- |
 | DB | Required D1 binding |
 | ATLAS_OPERATOR_EMAIL | Optional Worker secret granting operator role |
+| ATLAS_CATALOG_REFRESH_SECRET | Required only by an external scheduled Worker to HMAC-sign bounded catalog-refresh calls |
 | BUCKET | Private R2 storage for owner-scoped passport scans |
 
 Migration 0005 adds `market_order_documents`, `market_operational_errors` and `market_backup_exports`. Private files remain in R2; D1 keeps ownership, classification and audit metadata.
@@ -170,4 +174,3 @@ Shared shell labels continue to come from `lib/market/i18n.ts`; the SEO pass mov
 Account disclosure panels are rendered as controlled accessible buttons with one `openSection` key. The old native-details pattern could leave sibling panels visually open after a click; the new component keeps the address/customs/documents/support panels mutually exclusive without changing persistence or API actions.
 
 Customer transactional copy follows the same locale state: order cards and approval/settlement dialogs, balance, notification filters/settings and dynamic link-import status messages select RU/UZ/EN at render time. Canonical product names, merchant-provided descriptions, source URLs and server-authored history remain data, not machine-translated UI labels. Operator tools, legal body text and remaining server error templates stay explicit follow-up work.
-

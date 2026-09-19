@@ -137,7 +137,9 @@ export function GlobalLinkOrder() {
       const response = await fetch("/api/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: link }),
+        // A product opened for ordering is checked against the merchant now;
+        // the short cache remains for batch imports and repeat browsing only.
+        body: JSON.stringify({ url: link, fresh: true }),
       });
       const data: Extracted & {
         error?: string;
@@ -696,10 +698,7 @@ export function GlobalLinkOrder() {
           {importedAt && (
             <details className="micro source-freshness"><summary>{c.fresh}</summary><p>
               {tx("Данные страницы проверены","Sahifa ma’lumotlari tekshirildi","Page data checked")} {new Date(importedAt).toLocaleString(lang==='ru'?'ru-RU':lang==='uz'?'uz-UZ':'en-US')}.
-              {sourceExpiresAt
-                ? ` Автообновление после ${new Date(sourceExpiresAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}.`
-                : ""}{" "}
-              {c.freshText}
+              {tx('Перед добавлением в корзину и оформлением Atlas снова запросит магазин.', 'Savatga qo‘shish va rasmiylashtirishdan oldin Atlas do‘kondan yana so‘raydi.', 'Atlas asks the store again before adding to cart and checkout.')}
             </p></details>
           )}
           {declaration && (
@@ -736,4 +735,3 @@ export function GlobalLinkOrder() {
     </>
   );
 }
-

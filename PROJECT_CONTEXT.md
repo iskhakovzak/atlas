@@ -252,6 +252,13 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - These additions extend existing optional JSON fields only; no D1 migration or rewrite of old carts, catalog entries or orders is required.
 - Verification for this slice: lint, 53 domain/security tests, TypeScript, production build and the authenticated checkout/catalog/operations smoke passed.
 
+## Catalog refresh queue — 19 September 2026
+
+- A product opened for ordering asks the protected importer for a fresh merchant response instead of using its short display cache. Cart addition and checkout remain the final independent server-side checks of the selected variant, price and currency.
+- Published catalog records now carry optional refresh metadata, so old D1 documents remain compatible. The due queue targets one source observation per card every 24 hours and takes at most five products from different merchant hosts in one run.
+- A successful source response with at least one available option updates the source-controlled public snapshot (price, photo and option matrix) while preserving editorial description, collections and comparison price. A non-empty matrix whose every option is explicitly unavailable unpublishes the card without deleting its draft; a later confirmed recovery can republish it. Timeout, CAPTCHA, incomplete data and an empty option matrix never count as sold out.
+- Administrators can run the next bounded batch from Catalog Control. The protected internal refresh endpoint is ready for an external scheduled Worker and uses a short-lived HMAC signature plus a D1 lease. This Sites/Vinext deployment does not yet have a cron trigger wired: until a separate scheduler and `ATLAS_CATALOG_REFRESH_SECRET` are configured, automatic background runs must not be described as active.
+
 ## Unified catalog synchronization — 13 September 2026
 
 - Source-controlled merchant additions are now merged into the existing versioned D1 catalog on the server. The merge is additive: operator edits, collection assignments, published snapshots and hidden entries are never overwritten.
@@ -330,4 +337,3 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - The primary customer journeys now use RU/UZ/EN copy on link order, cart/checkout, batch import, passport, declaration, customs, account, customer orders, balance and notifications. Dynamic link-import messages, merchant names, product titles and source URLs remain source text; operator controls, legal body copy and some server-generated history/messages still require a reviewed translation pass.
 - Shared product-image fallbacks and quote-expiry labels accept the active locale. International cart and same-merchant parcel rules remain unchanged.
 - Verification for this slice: full-project ESLint, TypeScript, 64 domain/security tests, production build and the 137-check guest/customer/operator desktop/mobile browser audit passed after the transactional copy update. `npm` itself is unavailable in this Windows runtime, so the repository's installed Node entrypoints were used for the equivalent commands.
-
