@@ -1,4 +1,4 @@
-import {extractProduct} from './extract.ts';
+import {extractAdidasProduct,extractProduct} from './extract.ts';
 import {extractShopify, shopifyEndpoints} from './shopify.ts';
 import {isSupportedStoreHost,supportedStoreCount} from './stores.ts';
 export {supportedStoreCount};
@@ -20,6 +20,21 @@ const amazonUserAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWe
 
 export function isAmazonUsUrl(url: URL) {
   return url.hostname.toLowerCase().replace(/^www\./, '') === AMAZON_US_HOST;
+}
+
+function adidasProductApiUrls(start: URL) {
+  if (start.hostname.toLowerCase().replace(/^www\./, '') !== 'adidas.com') return;
+  const segments = start.pathname.split('/').filter(Boolean);
+  const id = segments.at(-1)?.replace(/\.html$/i, '');
+  const slug = segments.at(-2);
+  const locale = segments[0]?.match(/^[a-z]{2}(?:[-_][a-z]{2})?$/i)?.[0].toLowerCase() ?? 'us';
+  if (!id || !slug || !/^[a-z0-9][a-z0-9_-]{2,31}$/i.test(id) || !/^[a-z0-9][a-z0-9_.-]{1,100}$/i.test(slug)) return;
+  const product = new URL(`https://www.adidas.com/api/search/product/${encodeURIComponent(id)}`);
+  product.searchParams.set('sitePath', locale);
+  const listing = new URL('https://www.adidas.com/api/plp/content-engine');
+  listing.searchParams.set('sitePath', locale);
+  listing.searchParams.set('query', slug);
+  return {product, listing};
 }
 
 function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = browserUserAgent) {
@@ -176,6 +191,20 @@ export async function fetchProduct(value: string) {
   const url = allowedUrl(value), controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);
   try {
+    const adidas = adidasProductApiUrls(url);
+    if (adidas) {
+      const productResponse = await readPublic(adidas.product, controller.signal, 'json');
+      let listingResponse: {text: string; url: URL} | undefined;
+      try { listingResponse = await readPublic(adidas.listing, controller.signal, 'json'); } catch { /* Product JSON remains useful if PLP is rate-limited. */ }
+      let productData: unknown, listingData: unknown;
+      try {
+        productData = JSON.parse(productResponse.text);
+        listingData = listingResponse ? JSON.parse(listingResponse.text) : undefined;
+      } catch { throw Error('Adidas вернул неполные данные. Заполните товар вручную.'); }
+      const extracted = extractAdidasProduct(productData, listingData, url.href);
+      if (!extracted) throw Error('Adidas не вернул карточку товара. Проверьте ссылку и повторите проверку.');
+      return extracted;
+    }
     const endpoints = shopifyEndpoints(url);
     if (endpoints) {
       try {

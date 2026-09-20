@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {extractShopify, shopifyEndpoints} from '../lib/importer/shopify.ts';
 import {featuredStoreGroups, supportedStoreCount} from '../lib/importer/stores.ts';
-import {extractProduct} from '../lib/importer/extract.ts';
+import {extractAdidasProduct,extractProduct} from '../lib/importer/extract.ts';
 import {fetchProduct, allowedUrl, isAmazonUsUrl} from '../lib/importer/fetch.ts';
 import {verifyProductSnapshot} from '../lib/importer/verify.ts';
 
@@ -79,6 +79,17 @@ test('Anker embedded product data retains choice, price, photo and stock',()=>{
   const p=extractProduct(html,'https://www.anker.com/products/charger?variant=11');
   assert.equal(p.method,'Anker product data');assert.equal(p.price,29.99);assert.equal(p.image,'https://cdn.shopify.com/white.jpg');
   assert.deepEqual(p.variants.map(v=>[v.id,v.color,v.size,v.available]),[['11','White','1-Pack',true],['12','Black','2-Pack',false]]);
+});
+test('Adidas public product data retains sale price, available sizes and gallery',()=>{
+  const product={id:'IF4492',name:'Daily 4.0 Shoes',brand:'Sportswear',category:'Shoes',color:'Core Black / Cloud White / Gum',price:65,salePrice:33,orderable:1,image:{src:'https://assets.adidas.com/primary.jpg'},images:[{src:'https://assets.adidas.com/one.jpg'},{src:'https://assets.adidas.com/two.jpg'}]};
+  const listing={raw:{itemList:{items:[{productId:'IF4492',displayName:'Daily 4.0 Shoes',availableSizes:['hidden','5','6','8'],orderable:1,salePrice:33,images:[{src:'https://assets.adidas.com/three.jpg'}]}]}}};
+  const p=extractAdidasProduct(product,listing,'https://www.adidas.com/us/daily-4.0-shoes/IF4492.html');
+  assert.equal(p.method,'Adidas product data');assert.equal(p.price,33);assert.equal(p.currency,'USD');assert.equal(p.country,'США');assert.equal(p.category,'Обувь');assert.equal(p.variants.length,3);assert.deepEqual(p.variants.map(v=>[v.color,v.size,v.price,v.available]),[['Core Black / Cloud White / Gum','5',33,true],['Core Black / Cloud White / Gum','6',33,true],['Core Black / Cloud White / Gum','8',33,true]]);assert.equal(p.images.length,4);
+});
+test('Adidas link import uses public JSON routes when HTML is an Akamai challenge',async()=>{
+  const original=globalThis.fetch;const calls=[];
+  globalThis.fetch=async(input,init={})=>{calls.push([String(input),init]);const u=new URL(String(input));if(u.pathname==='/api/search/product/IF4492')return Response.json({id:'IF4492',name:'Daily 4.0 Shoes',brand:'Sportswear',category:'Shoes',color:'Black',price:65,salePrice:33,orderable:1,image:{src:'https://assets.adidas.com/main.jpg'}});if(u.pathname==='/api/plp/content-engine')return Response.json({raw:{itemList:{items:[{productId:'IF4492',availableSizes:['5','7'],orderable:1,salePrice:33,images:[{src:'https://assets.adidas.com/gallery.jpg'}]}]}}});return new Response('not found',{status:404,headers:{'Content-Type':'text/html'}})};
+  try {const p=await fetchProduct('https://www.adidas.com/us/daily-4.0-shoes/IF4492.html');assert.equal(calls.length,2);assert(calls.every(([url])=>url.startsWith('https://www.adidas.com/api/')));assert.equal(p.price,33);assert.deepEqual(p.variants.map(v=>v.size),['5','7']);assert.equal(p.images.length,2)} finally {globalThis.fetch=original}
 });
 test('generic importer deduplicates images and treats size and color as one variant',()=>{
   const p=extractProduct(`<script type="application/ld+json">${JSON.stringify({'@type':'Product',name:'Shoes',color:'Black',size:'42',image:['/a.jpg','/a.jpg','/b.jpg'],offers:{price:'1,299.95',priceCurrency:'USD'}})}</script>`,'https://nike.com/product');

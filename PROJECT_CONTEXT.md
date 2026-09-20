@@ -117,6 +117,11 @@ Order statuses: Ожидает выкупа → Выкуплен → На зар
 - Amazon's larger client-side page payload is still bounded by a dedicated 6 MB importer ceiling; other public HTML remains capped at 3 MB.
 - The authenticated link-import endpoint bypasses its generic ten-minute cache for Amazon, forcing the US-location handshake even when an older cached snapshot exists.
 
+## Adidas JSON import — 21 September 2026
+
+- Adidas product HTML can be an Akamai 403 challenge for server-side requests. `adidas.com` link imports now use the same-host public product JSON and PLP JSON, match the URL article code, and retain the current locale price, merchant gallery and available size list.
+- The adapter ignores PLP results for another article and filters the service's `hidden` size sentinel. If Adidas blocks both JSON routes, Atlas keeps the safe manual-entry path instead of displaying an empty or invented card.
+
 ## Editorial catalog — 12 September 2026
 
 - `/admin` now has an operator-only catalog workspace. An operator can paste up to ten allowlisted product URLs, and Atlas imports the store, title, source price/currency, safe gallery, available variants, category and a conservative editable weight into reviewable drafts.

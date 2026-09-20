@@ -332,6 +332,75 @@ function extractAmazon(html: string, sourceUrl: string): Extracted | undefined {
   };
 }
 
+type AdidasApiRecord = Record<string, unknown>;
+
+function extractAdidasImage(value: unknown, sourceUrl: string) {
+  if (typeof value === 'string') return safeImage(value, sourceUrl);
+  if (!value || typeof value !== 'object') return undefined;
+  const record = value as AdidasApiRecord;
+  return safeImage(record.src ?? record.url ?? record.contentUrl, sourceUrl);
+}
+
+/**
+ * Adidas serves an Akamai challenge for server-side HTML requests, while its
+ * public product/search JSON still contains the merchant price, gallery and
+ * currently available size list. Keep this parser separate from JSON-LD so a
+ * challenge page can never be presented as a successful import.
+ */
+export function extractAdidasProduct(productValue: unknown, listingValue: unknown, sourceUrl: string): Extracted | undefined {
+  if (!productValue || typeof productValue !== 'object') return;
+  const product = productValue as AdidasApiRecord;
+  const listing = listingValue && typeof listingValue === 'object' ? listingValue as AdidasApiRecord : undefined;
+  const raw = listing?.raw as AdidasApiRecord | undefined;
+  const itemList = raw?.itemList as AdidasApiRecord | undefined;
+  const items = Array.isArray(itemList?.items) ? itemList.items.filter((value): value is AdidasApiRecord => Boolean(value && typeof value === 'object')) : [];
+  const id = clean(product.id ?? product.productId);
+  const item = items.find(value => clean(value.productId ?? value.id) === id);
+  if (!id && !item) return;
+  const selected = item ?? product;
+  const title = clean(product.name ?? selected.displayName ?? selected.altText).slice(0, 140) || undefined;
+  const color = clean(product.color ?? selected.color) || undefined;
+  const brand = 'adidas';
+  const category = inferProductCategory([title, clean(product.category ?? selected.category), clean(selected.subTitle)].filter(Boolean).join(' '), brand);
+  const imageValues = [product.image, product.pdpImage, product.secondImage, ...(Array.isArray(product.images) ? product.images : []), selected.image, selected.secondImage, ...(Array.isArray(selected.images) ? selected.images : [])];
+  const images = [...new Set(imageValues.map(value => extractAdidasImage(value, sourceUrl)).filter((value): value is string => Boolean(value)))].slice(0, 12);
+  const price = number(selected.salePrice ?? product.salePrice ?? selected.price ?? product.price);
+  const locale = new URL(sourceUrl).pathname.split('/').filter(Boolean)[0]?.toLowerCase() ?? '';
+  const currency = ({us: 'USD', ca: 'CAD', gb: 'GBP', uk: 'GBP', de: 'EUR', es: 'EUR', fr: 'EUR', it: 'EUR', nl: 'EUR', pl: 'PLN', se: 'SEK', dk: 'DKK', no: 'NOK', tr: 'TRY', au: 'AUD', jp: 'JPY', ae: 'AED', qa: 'QAR', bh: 'BHD', om: 'OMR'} as Record<string, string>)[locale];
+  const availableSizes = [...new Set((Array.isArray(selected.availableSizes) ? selected.availableSizes : []).map(clean).filter(size => size && size.toLowerCase() !== 'hidden'))];
+  const available = selected.orderable !== 0 && product.orderable !== 0;
+  const variants: ProductVariant[] = availableSizes.map(size => ({
+    size,
+    sizeLabel: 'Размер',
+    color,
+    label: [color, size].filter(Boolean).join(' · '),
+    available,
+    price,
+    image: images[0],
+  }));
+  if (!variants.length) variants.push({label: color ?? 'Выбранный вариант', color, available, price, image: images[0]});
+  const warnings = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.', 'Вес с упаковкой нужно проверить.'];
+  if (!availableSizes.length) warnings.push('Adidas не отдал список размеров. Проверьте вариант на странице магазина.');
+  if (price === undefined) warnings.unshift('Цена не найдена в данных Adidas: укажите её со страницы выбранного варианта.');
+  if (!available) warnings.push('Adidas сообщает, что товар сейчас недоступен.');
+  const country = inferStorefrontCountry(sourceUrl, currency);
+  return {
+    title,
+    brand,
+    category,
+    declarationDescription: declarationFor(category, title ?? '', brand),
+    image: images[0],
+    images,
+    price,
+    currency,
+    variants,
+    country,
+    warnings,
+    sourceUrl,
+    method: 'Adidas product data',
+  };
+}
+
 export function inferStorefrontCountry(sourceUrl: string, currency?: string) {
   const url = new URL(sourceUrl);
   const host = url.hostname.toLowerCase().replace(/^www\./, "");
