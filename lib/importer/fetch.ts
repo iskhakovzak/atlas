@@ -58,6 +58,7 @@ function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = br
 async function readBody(response: Response, format: 'html' | 'json', maxBytes = format === 'html' ? 3_000_000 : 1_000_000) {
   const contentType = response.headers.get('content-type') ?? '';
   if (!response.ok || !(format === 'html' ? contentType.includes('text/html') : /json|javascript/i.test(contentType))) {
+    console.error('Public merchant response rejected', {url: response.url, status: response.status, contentType, format});
     await response.body?.cancel();
     throw Error('Магазин не разрешил загрузить данные. Заполните их вручную.');
   }
