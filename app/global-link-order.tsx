@@ -35,6 +35,10 @@ import {
 type LinkOrderDraftSnapshot={
   url:string;source:string;name:string;brand:string;declaration:string;currency:string;amount:string;shipping:string;shippingCurrency:string;shippingEstimated:boolean;weight:string;country:string;otherCountry:string;category:string;variant:string;variants:ProductVariant[];selectedColor:string;selectedSize:string;image:string;images:string[];showSourceForm:boolean;note:string;weightOrigin:string;verified:boolean;sourceCheckStatus:'idle'|'checking'|'verified'|'failed';importedAt?:number;sourceExpiresAt?:number;foundShipping:{amount:number;currency:string;destination?:string}|null;
 };
+const countryAliases:Record<string,string>={'United States':'США','US':'США','AQSh':'США','Spain':'Испания','Ispaniya':'Испания','Germany':'Германия','Germaniya':'Германия','United Kingdom':'Великобритания','Buyuk Britaniya':'Великобритания','France':'Франция','Fransiya':'Франция','Italy':'Италия','Italiya':'Италия','Romania':'Румыния','Ruminiya':'Румыния','China':'Китай','Xitoy':'Китай','Turkey':'Турция','Turkiya':'Турция','Japan':'Япония','Yaponiya':'Япония','South Korea':'Южная Корея','Janubiy Koreya':'Южная Корея','United Arab Emirates':'ОАЭ','BAA':'ОАЭ','Canada':'Канада','Kanada':'Канада','Australia':'Австралия','Avstraliya':'Австралия','Other country':'Другая страна','Boshqa mamlakat':'Другая страна'};
+const categoryAliases:Record<string,string>={'Shoes':'Обувь','Oyoq kiyim':'Обувь','Clothing':'Одежда','Kiyim':'Одежда','Electronics':'Электроника','Elektronika':'Электроника','Accessories':'Аксессуары','Aksessuarlar':'Аксессуары','Beauty & care':'Красота и уход','Go‘zallik va parvarish':'Красота и уход','Home & living':'Дом и быт','Uy va maishiy':'Дом и быт','Sports':'Спорт','Boshqa':'Другое','Other':'Другое'};
+const canonicalCountry=(value:string)=>countryAliases[value]??value;
+const canonicalCategory=(value:string)=>categoryAliases[value]??value;
 export function GlobalLinkOrder() {
   const { ready, pricing, state, act, catalogProducts } = useMarket();
   const lang=state.communication.language;
@@ -103,7 +107,7 @@ export function GlobalLinkOrder() {
           queueMicrotask(()=>{
             setUrl(text(value.url,requestedUrl));setSource(text(value.source));setName(text(value.name));setBrand(text(value.brand));setDeclaration(text(value.declaration));
             setCurrency(text(value.currency,'USD'));setAmount(text(value.amount));setShipping(text(value.shipping,'10'));setShippingCurrency(text(value.shippingCurrency,'USD'));setShippingEstimated(value.shippingEstimated!==false);
-            setWeight(text(value.weight));setCountry(text(value.country,'Другая страна'));setOtherCountry(text(value.otherCountry));setCategory(text(value.category,'Другое'));setVariant(text(value.variant));
+            setWeight(text(value.weight));setCountry(canonicalCountry(text(value.country,'Другая страна')));setOtherCountry(text(value.otherCountry));setCategory(canonicalCategory(text(value.category,'Другое')));setVariant(text(value.variant));
             setVariants(Array.isArray(value.variants)?value.variants.slice(0,250):[]);setSelectedColor(text(value.selectedColor));setSelectedSize(text(value.selectedSize));setImage(text(value.image));setImages(Array.isArray(value.images)?value.images.filter((item):item is string=>typeof item==='string').slice(0,12):[]);
             setShowSourceForm(value.showSourceForm===true);setNote(text(value.note));setWeightOrigin(text(value.weightOrigin));setVerified(value.verified===true);
             setSourceCheckStatus(value.sourceCheckStatus==='verified'||value.sourceCheckStatus==='failed'||value.sourceCheckStatus==='checking'?value.sourceCheckStatus:'idle');
@@ -159,9 +163,9 @@ export function GlobalLinkOrder() {
     setSourceExpiresAt(undefined);
     setWeight(fallbackBoxedWeight ? String(fallbackBoxedWeight) : "");
     const inferredCountry = seed?.country ?? inferStorefrontCountry(link, seed?.sourceCurrency);
-    setCountry(inferredCountry ?? "Другая страна");
+    setCountry(canonicalCountry(inferredCountry ?? "Другая страна"));
     setOtherCountry("");
-    setCategory(seed?.category ?? (dealSeed ? communityProductCategory(dealSeed) : "Другое"));
+    setCategory(canonicalCategory(seed?.category ?? (dealSeed ? communityProductCategory(dealSeed) : "Другое")));
     setVariant(fallbackOptions.length === 1 ? fallbackOptions[0].label : "");
     setVariants(fallbackOptions);
     setSelectedColor("");
@@ -189,10 +193,11 @@ export function GlobalLinkOrder() {
       setBrand(data.brand ?? seed?.brand ?? dealSeed?.store ?? new URL(data.sourceUrl).hostname);
       setImage(data.image ?? seed?.image ?? dealSeed?.image ?? "");
       setImages(data.images?.length ? data.images : data.image ? [data.image] : seed?.image ? [seed.image] : dealSeed?.image ? [dealSeed.image] : []);
-      const nextCategory =
+      const nextCategory = canonicalCategory(
         data.category ??
         seed?.category ??
-        inferProductCategory(data.title ?? "", data.brand ?? "");
+        inferProductCategory(data.title ?? "", data.brand ?? ""),
+      );
       setCategory(nextCategory);
       setDeclaration(data.declarationDescription ?? "");
       setCurrency(
@@ -224,12 +229,10 @@ export function GlobalLinkOrder() {
         const colors=[...new Set(availableVariants.map(item=>item.color).filter((value):value is string=>Boolean(value)))];
         if(colors.length===1)setSelectedColor(colors[0]);
       }
-      const nextCountry = data.country ?? seed?.country ?? inferStorefrontCountry(data.sourceUrl, data.currency);
-      if (nextCountry) {
-        setCountry(nextCountry);
-        if (!data.currency || !currencies.includes(data.currency))
-          setCurrency(currencyForCountry(nextCountry) ?? "USD");
-      }
+      const nextCountry = canonicalCountry(data.country ?? seed?.country ?? inferStorefrontCountry(data.sourceUrl, data.currency) ?? "Другая страна");
+      setCountry(nextCountry);
+      if (!data.currency || !currencies.includes(data.currency))
+        setCurrency(currencyForCountry(nextCountry) ?? "USD");
       const importedWeight=validBoxedWeight(data.boxedWeight);
       setWeight(String(importedWeight ?? fallbackBoxedWeight ?? estimatedBoxedWeight(nextCategory)));
       setWeightOrigin(
@@ -346,9 +349,9 @@ export function GlobalLinkOrder() {
     variants: [""],
   };
   const normalizedStoreSearch = storeSearch.trim().toLowerCase();
-  const localCountry=(value:string)=>lang==='ru'?value:lang==='uz'?(value==='США'?'AQSh':value==='Другая страна'?'Boshqa mamlakat':value==='Великобритания'?'Buyuk Britaniya':value==='Германия'?'Germaniya':value==='Испания'?'Ispaniya':value==='Франция'?'Fransiya':value):value==='США'?'United States':value==='Другая страна'?'Other country':value==='Великобритания'?'United Kingdom':value==='Германия'?'Germany':value==='Испания'?'Spain':value==='Франция'?'France':value;
+  const localCountry=(value:string)=>{const canonical=canonicalCountry(value);return lang==='ru'?canonical:lang==='uz'?(canonical==='США'?'AQSh':canonical==='Другая страна'?'Boshqa mamlakat':canonical==='Великобритания'?'Buyuk Britaniya':canonical==='Германия'?'Germaniya':canonical==='Испания'?'Ispaniya':canonical==='Франция'?'Fransiya':canonical):canonical==='США'?'United States':canonical==='Другая страна'?'Other country':canonical==='Великобритания'?'United Kingdom':canonical==='Германия'?'Germany':canonical==='Испания'?'Spain':canonical==='Франция'?'France':canonical;};
   const localizedCountries=countries.map(localCountry);
-  const categoryLabel=(value:string)=>lang==='ru'?value:lang==='uz'?({'Обувь':'Oyoq kiyim','Одежда':'Kiyim','Электроника':'Elektronika','Аксессуары':'Aksessuarlar','Красота и уход':'Go‘zallik va parvarish','Дом и быт':'Uy va maishiy','Спорт':'Sport','Другое':'Boshqa'}[value]??value):({'Обувь':'Shoes','Одежда':'Clothing','Электроника':'Electronics','Аксессуары':'Accessories','Красота и уход':'Beauty & care','Дом и быт':'Home & living','Спорт':'Sports','Другое':'Other'}[value]??value);
+  const categoryLabel=(value:string)=>{const canonical=canonicalCategory(value);return lang==='ru'?canonical:lang==='uz'?({'Обувь':'Oyoq kiyim','Одежда':'Kiyim','Электроника':'Elektronika','Аксессуары':'Aksessuarlar','Красота и уход':'Go‘zallik va parvarish','Дом и быт':'Uy va maishiy','Спорт':'Sport','Другое':'Boshqa'}[canonical]??canonical):({'Обувь':'Shoes','Одежда':'Clothing','Электроника':'Electronics','Аксессуары':'Accessories','Красота и уход':'Beauty & care','Дом и быт':'Home & living','Спорт':'Sports','Другое':'Other'}[canonical]??canonical);};
   const localizedCategories=weightCategories.map(categoryLabel);
   const visibleStoreGroups = featuredStoreGroups.map(group => ({
     ...group,
@@ -520,7 +523,7 @@ export function GlobalLinkOrder() {
                     label={c.countryLabel}
                     value={localCountry(country)}
                     onChange={(v) => {
-                      setCountry(countries.find(value=>localCountry(value)===v)??v);
+                      setCountry(canonicalCountry(countries.find(value=>localCountry(value)===v)??v));
                       setVerified(false);
                     }}
                     options={localizedCountries}
@@ -616,7 +619,7 @@ export function GlobalLinkOrder() {
                     label={c.category}
                     value={categoryLabel(category)}
                     onChange={(v) => {
-                      const canonical=weightCategories.find(value=>categoryLabel(value)===v)??v;
+                      const canonical=canonicalCategory(weightCategories.find(value=>categoryLabel(value)===v)??v);
                       setCategory(canonical);
                       setWeight(String(estimatedBoxedWeight(canonical)));
                       setWeightOrigin(tx("Приблизительно по категории","Kategoriya bo‘yicha taxminan","Estimated by category"));
