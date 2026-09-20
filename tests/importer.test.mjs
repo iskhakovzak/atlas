@@ -139,3 +139,9 @@ test('fresh verification blocks changed prices and unavailable variants',()=>{
   assert.throws(()=>verifyProductSnapshot({...p,sourcePrice:109},'Black / 8',fresh),/Цена изменилась/);
   assert.throws(()=>verifyProductSnapshot({...p,sourceVariantId:'2'},'Black / 9',fresh),/закончился/);
 });
+test('fresh verification normalizes a catalog label for a single live option',()=>{
+  const p={id:'p',name:'Toy',brand:'Amazon',category:'Дом и быт',usd:12.79,weight:1.4,image:'',variants:['Указанный вариант'],sourceUrl:'https://www.amazon.com/dp/B0CGY4LZQ3',country:'США',sourceCurrency:'USD',sourcePrice:12.79,sourceShipping:10,sourceShippingCurrency:'USD',sourceShippingUsd:10,shippingKnown:true,boxedWeight:.4};
+  const fresh={sourceUrl:p.sourceUrl,currency:'USD',price:12.79,variants:[{label:'Выбранный вариант',available:true,price:12.79}],warnings:[],method:'Amazon product data'};
+  const checked=verifyProductSnapshot(p,'Указанный вариант',fresh,5000);
+  assert.equal(checked.sourcePrice,12.79);assert.equal(checked.importedAt,5000);
+});

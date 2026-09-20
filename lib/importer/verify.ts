@@ -9,9 +9,20 @@ function currentVariant(product: Product, selectedLabel: string, extracted: Extr
   const selected = product.sourceVariantId
     ? variants.find(item => item.id === product.sourceVariantId)
     : variants.find(item => item.label === selectedLabel);
-  if (!selected) throw Error('Выбранный вариант больше не найден в магазине. Загрузите товар заново.');
-  if (!selected.available) throw Error('Выбранный вариант закончился в магазине. Выберите другой.');
-  return selected;
+  // Some merchants expose a single product option with a generated label. A
+  // catalog/editorial fallback may use a different neutral label (for
+  // example, "Указанный вариант"), even though there is no real choice to
+  // make. Treat that as the same option, but only when both snapshots contain
+  // exactly one option and no persisted merchant option id is available. We
+  // still require the live option to be available below.
+  const normalized = !selected && !product.sourceVariantId && product.variants.length === 1 && variants.length === 1
+    ? variants[0]
+    : undefined;
+  if (!selected && !normalized) throw Error('Выбранный вариант больше не найден в магазине. Загрузите товар заново.');
+  const resolved = selected ?? normalized;
+  if (!resolved) throw Error('Выбранный вариант больше не найден в магазине. Загрузите товар заново.');
+  if (!resolved.available) throw Error('Выбранный вариант закончился в магазине. Выберите другой.');
+  return resolved;
 }
 
 export function verifyProductSnapshot(product: Product, selectedLabel: string, extracted: Extracted, now = Date.now()): Product {

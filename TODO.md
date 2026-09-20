@@ -52,7 +52,7 @@
 
 ## Importing
 
-- [x] Reject impossible merchant weight values before display, use safer category estimates and add a customer availability confirmation/report queue for blocked catalog imports.
+- [x] Reject impossible merchant weight values before display, use safer category estimates and keep an operator availability report queue for blocked catalog imports.
 - [x] Reconcile source-controlled merchant additions into the existing D1 catalog without overwriting operator edits or hidden records; use the same published records in admin, collections, public catalog and ordering.
 - [x] Add an operator bulk-link catalog workflow with editable drafts, safe collection-page discovery and explicit publish/hide actions.
 - [x] Add D1-managed RU/UZ/EN home collections so clothing, cosmetics, brands and seasonal selections do not require a code deployment.
@@ -70,6 +70,7 @@
 - [x] Add up to 12 safe imported photos and variant photo/price switching to link order. Persisted orders retain the selected image.
 - [x] Add review-first per-item variant confirmation and variant prices to batch import; no first available combination is silently selected.
 - [x] Recheck linked product price, currency and selected-variant availability on the server before cart addition and checkout.
+- [x] Remove manual merchant-page availability confirmation from link ordering; automatically retry the source check and keep add-to-cart disabled until the protected server verification succeeds.
 - [x] Add an administrator recheck queue for fetch errors and price/currency/availability changes, with explicit review before republication.
 - [ ] Test the allowlist against live pages regularly. Store HTML and bot behavior change.
 

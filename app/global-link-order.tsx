@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, Check, ExternalLink, Link2, Loader2, Scale, X } from "lucide-react";
+import { ArrowRight, ExternalLink, Link2, Loader2, Scale } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
@@ -69,13 +69,10 @@ export function GlobalLinkOrder() {
     [busy, setBusy] = useState(false),
     [adding, setAdding] = useState(false),
     [showSourceForm, setShowSourceForm] = useState(() => !requestedUrl),
-    [note, setNote] = useState(seed ? "Данные из подборки " + seed.store + " на " + seed.observedOn + ". Обновите страницу магазина или проверьте цену и вариант вручную. Вес и доставка предварительные." : dealSeed ? `Цена и фото сохранены из подборки на ${dealSeed.observedOn}. Atlas сейчас уточняет их в магазине.` : ""),
+    [note, setNote] = useState(seed ? "Данные из подборки " + seed.store + " на " + seed.observedOn + ". Atlas автоматически проверяет цену и вариант перед добавлением. Вес и доставка предварительные." : dealSeed ? `Цена и фото сохранены из подборки на ${dealSeed.observedOn}. Atlas сейчас автоматически уточняет их в магазине.` : ""),
     [weightOrigin, setWeightOrigin] = useState(tx("Оценка по категории","Kategoriya bo‘yicha taxmin","Category estimate")),
     [verified, setVerified] = useState(false),
-    [manualAvailabilityRequired,setManualAvailabilityRequired]=useState(false),
-    [storeOpened,setStoreOpened]=useState(false),
-    [availabilityAnswer,setAvailabilityAnswer]=useState<'available'|'unavailable'|null>(null),
-    [reportingAvailability,setReportingAvailability]=useState(false),
+    [sourceCheckStatus, setSourceCheckStatus] = useState<'idle'|'checking'|'verified'|'failed'>('idle'),
     [importedAt, setImportedAt] = useState<number | undefined>(),
     [sourceExpiresAt, setSourceExpiresAt] = useState<number | undefined>(),
     [foundShipping, setFoundShipping] = useState<{
@@ -84,6 +81,7 @@ export function GlobalLinkOrder() {
       destination?: string;
     } | null>(null);
   const automaticallyLoaded = useRef<string | null>(null);
+  const automaticRetryFor = useRef<string | null>(null);
   const variantColors = useMemo(() => [...new Set(variants.map(item => item.color).filter((value): value is string => Boolean(value)))], [variants]);
   const variantsForColor = useMemo(() => selectedColor ? variants.filter(item => item.color === selectedColor) : variantColors.length ? [] : variants, [variants,selectedColor,variantColors]);
   const variantSizes = useMemo(() => [...new Set(variantsForColor.map(item => item.size).filter((value): value is string => Boolean(value)))], [variantsForColor]);
@@ -107,9 +105,7 @@ export function GlobalLinkOrder() {
     setBusy(true);
     setSource(link);
     setVerified(false);
-    setManualAvailabilityRequired(false);
-    setStoreOpened(false);
-    setAvailabilityAnswer(null);
+    setSourceCheckStatus('checking');
     setName(seed?.name ?? dealSeed?.title ?? "");
     setBrand(seed?.brand ?? dealSeed?.store ?? "");
     setDeclaration("");
@@ -208,6 +204,7 @@ export function GlobalLinkOrder() {
       );
       setImportedAt(data.fetchedAt ?? Date.now());
       setSourceExpiresAt(data.expiresAt);
+      setSourceCheckStatus('verified');
       // Shipping may depend on destination/session; require explicit confirmation even if found.
       if (data.shipping !== undefined) {
         const foundCurrency = data.shippingCurrency ?? data.currency ?? "";
@@ -251,10 +248,10 @@ export function GlobalLinkOrder() {
           .join(" "),
       );
     } catch (e) {
-      setNote(dealSeed ? tx(`Магазин не отдал свежие данные. Показываем цену и варианты из подборки на ${dealSeed.observedOn}; перед добавлением Atlas попробует проверить их снова.`, `Do‘kon yangi ma’lumot bermadi. ${dealSeed.observedOn} dagi tanlov narxi va variantlari ko‘rsatilmoqda; qo‘shishdan oldin Atlas yana tekshiradi.`, `The store did not return fresh data. Showing the price and options from the ${dealSeed.observedOn} collection; Atlas will try again before adding.`) : seed ? tx("Магазин не отдал свежие данные. Сохранили цену и фото из каталога; перед добавлением Atlas попробует проверить их снова.", "Do‘kon yangi ma’lumot bermadi. Katalogdagi narx va rasm saqlandi; qo‘shishdan oldin Atlas yana tekshiradi.", "The store did not return fresh data. Catalog price and photo were kept; Atlas will try again before adding.") : `${(e as Error).message} ${tx("Доступен ручной ввод.", "Ma’lumotlarni qo‘lda kiritish mumkin.", "Manual entry is available.")}`);
+      setNote(dealSeed ? tx(`Магазин не ответил сразу. Показываем сохранённые данные подборки на ${dealSeed.observedOn}; Atlas автоматически повторит проверку перед добавлением.`, `Do‘kon darhol javob bermadi. ${dealSeed.observedOn} dagi saqlangan tanlov ma’lumotlari ko‘rsatilmoqda; Atlas qo‘shishdan oldin avtomatik qayta tekshiradi.`, `The store did not respond immediately. Showing the saved ${dealSeed.observedOn} collection data; Atlas will retry automatically before adding.`) : seed ? tx("Магазин не ответил сразу. Каталожные данные показаны, но Atlas автоматически проверит источник перед добавлением.", "Do‘kon darhol javob bermadi. Katalog ma’lumotlari ko‘rsatilmoqda, lekin Atlas qo‘shishdan oldin manbani avtomatik tekshiradi.", "The store did not respond immediately. Catalog data is shown, but Atlas will automatically verify the source before adding.") : `${(e as Error).message} ${tx("Atlas не сможет добавить товар, пока источник не подтвердит цену и наличие.", "Manba narx va mavjudlikni tasdiqlamaguncha Atlas tovarni qo‘sha olmaydi.", "Atlas cannot add the item until the source confirms price and availability.")}`);
       setWeight(String(fallbackBoxedWeight ?? estimatedBoxedWeight(category)));
       setWeightOrigin(fallbackBoxedWeight ? tx("Оценка Atlas; уточняется перед оформлением","Atlas bahosi; rasmiylashtirishdan oldin aniqlanadi","Atlas estimate; refined before checkout") : tx("Приблизительно по категории","Kategoriya bo‘yicha taxminan","Approximate by category"));
-      setManualAvailabilityRequired(Boolean(seed||dealSeed));
+      setSourceCheckStatus('failed');
       if (!dealSeed && !seed) setShowSourceForm(true);
     } finally {
       setBusy(false);
@@ -269,19 +266,15 @@ export function GlobalLinkOrder() {
     // `load` intentionally reads the current form state; this effect runs once per requested product.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, requestedUrl]);
-  async function reportAvailability(answer:'available'|'unavailable'){
-    const productId=seed?.id??dealSeed?.id;
-    if(!productId||!source)return;
-    setReportingAvailability(true);
-    try{
-      const response=await fetch('/api/catalog-availability',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({productId,sourceUrl:source,answer,variant:variant||undefined})});
-      const data=await response.json() as {error?:string};
-       if(!response.ok)throw Error(data.error??tx('Не удалось отправить сообщение.','Xabarni yuborib bo‘lmadi.','Could not send the report.'));
-      setAvailabilityAnswer(answer);
-      setVerified(false);
-       toast.success(answer==='available'?tx('Наличие подтверждено. Спасибо!','Mavjudligi tasdiqlandi. Rahmat!','Availability confirmed. Thank you!'):tx('Администратор получил сообщение и проверит товар.','Administrator xabarni oldi va tovarni tekshiradi.','The administrator received the report and will review the item.'));
-    }catch(error){toast.error((error as Error).message)}finally{setReportingAvailability(false)}
-  }
+  useEffect(() => {
+    if (sourceCheckStatus !== 'failed' || !source || automaticRetryFor.current === source) return;
+    automaticRetryFor.current = source;
+    const timer = window.setTimeout(() => void load(source), 1200);
+    return () => window.clearTimeout(timer);
+    // The retry is intentionally keyed only by the checked source. `load`
+    // reads the current form state and is recreated on each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourceCheckStatus, source]);
   let preview: ReturnType<typeof price> | null = null,
     estimatedWeight = 0;
   try {
@@ -351,6 +344,7 @@ export function GlobalLinkOrder() {
                 onChange={(e) => {
                   setUrl(e.target.value);
                   setSource("");
+                  setSourceCheckStatus('idle');
                   setVerified(false);
                   setShowSourceForm(true);
                 }}
@@ -392,23 +386,19 @@ export function GlobalLinkOrder() {
               {source ? <><a className="text-link source-check-link" href={source} target="_blank" rel="noopener noreferrer">{c.original} <ExternalLink size={15}/></a><details className="import-status-details"><summary>{c.loaded}</summary><p>{note}</p></details></> : <p>{note}</p>}
             </div>
           )}
-          {manualAvailabilityRequired&&source&&<section className="availability-check" aria-labelledby="availability-check-title">
-            <div><b id="availability-check-title">{c.availability}</b><p>{c.availabilityHint}</p></div>
-            <a className="btn secondary" href={source} target="_blank" rel="noopener noreferrer" onClick={()=>setStoreOpened(true)}>{c.openStore}<ExternalLink size={17}/></a>
-            <div className="availability-actions" aria-label={c.availability}>
-              <button type="button" className="btn secondary" disabled={!storeOpened||reportingAvailability} onClick={()=>void reportAvailability('available')}><Check size={17}/>{c.available}</button>
-              <button type="button" className="btn secondary danger" disabled={!storeOpened||reportingAvailability} onClick={()=>void reportAvailability('unavailable')}><X size={17}/>{c.unavailable}</button>
-            </div>
-            {!storeOpened&&<small>{c.openFirst}</small>}
-            {availabilityAnswer==='available'&&<p className="availability-result ok">{c.thanks}</p>}
-            {availabilityAnswer==='unavailable'&&<p className="availability-result bad">{c.removed}</p>}
-          </section>}
+          {source&&sourceCheckStatus!=='verified'&&<p className="micro source-auto-status" role="status">
+            {sourceCheckStatus==='checking'
+              ? tx('Atlas автоматически проверяет цену и наличие…','Atlas narx va mavjudlikni avtomatik tekshirmoqda…','Atlas is checking price and availability automatically…')
+              : sourceCheckStatus==='failed'
+                ? <>{tx('Магазин пока не ответил. Товар нельзя добавить, пока Atlas не подтвердит данные.','Do‘kon hozircha javob bermadi. Atlas ma’lumotlarni tasdiqlamaguncha tovarni qo‘shib bo‘lmaydi.','The store has not responded yet. The item cannot be added until Atlas confirms the data.')} <button type="button" className="text-button" disabled={busy} onClick={() => void load(source)}>{tx('Повторить проверку','Tekshiruvni qayta urinish','Retry check')}</button></>
+                : tx('Atlas проверит магазин перед добавлением.','Atlas qo‘shishdan oldin do‘konni tekshiradi.','Atlas will check the store before adding the item.')}
+          </p>}
           {source && !busy && (
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
                 try {
-                   if(manualAvailabilityRequired&&availabilityAnswer!=='available')throw Error(tx('Сначала проверьте наличие товара в магазине.','Avval do‘konda tovar mavjudligini tekshiring.','Check item availability in the store first.'));
+                  if(sourceCheckStatus!=='verified')throw Error(tx('Дождитесь автоматической проверки магазина.','Do‘konning avtomatik tekshiruvi tugashini kuting.','Wait for the automatic store check to finish.'));
                   if (!name.trim() || !variant.trim() || !verified)
                      throw Error(tx("Проверьте данные и подтвердите страну отправки.","Ma’lumotlarni tekshirib, jo‘natish mamlakatini tasdiqlang.","Check the details and confirm the dispatch country."));
                   if (country === "Другая страна" && !otherCountry.trim())
@@ -670,7 +660,7 @@ export function GlobalLinkOrder() {
                   {c.verified}
                 </label>
               </div>
-              <button className="btn primary" disabled={!verified || adding || (manualAvailabilityRequired&&availabilityAnswer!=='available')}>
+              <button className="btn primary" disabled={!verified || adding || sourceCheckStatus!=='verified'}>
                 {adding ? c.adding : c.add}
                 <ArrowRight size={18} />
               </button>

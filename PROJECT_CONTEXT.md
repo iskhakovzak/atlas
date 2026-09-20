@@ -283,8 +283,8 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 
 - Imported merchant weights are accepted only when they resolve to a finite boxed weight through 49.5 kg. Invalid source values such as `99999 kg` are discarded before they can reach a form or quote.
 - Category fallbacks are now more conservative, and the bundled catalog's unchanged legacy estimates are upgraded additively in D1. A weight manually changed away from the known old seed value is preserved.
-- When a store blocks fresh import for a catalog product, the customer gets a direct merchant link. After opening it, the customer must answer “available” or “unavailable” before continuing.
-- Availability answers are authenticated, rate-limited and stored inside the versioned D1 catalog document. An unavailable answer flags the draft for operator review without letting a customer hide a public product directly.
+- When a store blocks fresh import for a catalog product, link ordering keeps the saved editorial data visible but does not ask the customer to open the merchant page or report stock manually. Atlas retries the protected import automatically and blocks cart addition until the server confirms price, currency and the selected option.
+- The authenticated, rate-limited availability-report API remains available for operator/support tooling and old clients, but it is no longer part of the customer link-order flow. Reports flag the draft for operator review without letting a customer hide a public product directly.
 - The catalog administrator sees unresolved reports with product, variant, time, merchant link and product shortcut. A successful source recheck or explicit hide resolves the reports.
 
 ## Direct-merchant deal picks — 20 September 2026
