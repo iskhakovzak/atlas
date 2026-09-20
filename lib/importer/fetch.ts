@@ -13,6 +13,7 @@ export function allowedUrl(value: string) {
 const AMAZON_US_POSTAL_CODE = '19701';
 const AMAZON_US_HOST = 'amazon.com';
 const browserUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
+const adidasUserAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Safari/605.1.15';
 // Amazon's anonymous product endpoint serves a bot-check shell to the generic
 // Node/Chrome signature. Keep this public browser profile isolated to Amazon;
 // it is not an authentication credential or a customer session.
@@ -37,12 +38,19 @@ function adidasProductApiUrls(start: URL) {
   return {product, listing};
 }
 
-function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = browserUserAgent) {
+function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = browserUserAgent, referer?: string) {
   return {
     Accept: format === 'json' ? 'application/json' : 'text/html,application/xhtml+xml',
     'User-Agent': userAgent,
     'Accept-Language': 'en-US,en;q=0.9',
     'Cache-Control': 'no-cache',
+    ...(referer ? {
+      Referer: referer,
+      Origin: new URL(referer).origin,
+      'Sec-Fetch-Site': 'same-origin',
+      'Sec-Fetch-Mode': format === 'json' ? 'cors' : 'navigate',
+      'Sec-Fetch-Dest': format === 'json' ? 'empty' : 'document',
+    } : {}),
     ...(cookie ? {Cookie: cookie} : {}),
   };
 }
@@ -170,10 +178,10 @@ async function readAmazonUs(start: URL, signal: AbortSignal) {
   throw Error('Не удалось проверить регион Amazon.');
 }
 
-async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'json') {
+async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'json', options: {referer?: string; userAgent?: string} = {}) {
   let url = start;
   for (let i = 0; i < 4; i++) {
-    const response = await fetch(url, {redirect: 'manual', signal, headers: requestHeaders(format)});
+    const response = await fetch(url, {redirect: 'manual', signal, headers: requestHeaders(format, undefined, options.userAgent, options.referer)});
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get('location');
       await response.body?.cancel();
@@ -193,9 +201,10 @@ export async function fetchProduct(value: string) {
   try {
     const adidas = adidasProductApiUrls(url);
     if (adidas) {
-      const productResponse = await readPublic(adidas.product, controller.signal, 'json');
+      const adidasRequest = {referer: url.href, userAgent: adidasUserAgent};
+      const productResponse = await readPublic(adidas.product, controller.signal, 'json', adidasRequest);
       let listingResponse: {text: string; url: URL} | undefined;
-      try { listingResponse = await readPublic(adidas.listing, controller.signal, 'json'); } catch { /* Product JSON remains useful if PLP is rate-limited. */ }
+      try { listingResponse = await readPublic(adidas.listing, controller.signal, 'json', adidasRequest); } catch { /* Product JSON remains useful if PLP is rate-limited. */ }
       let productData: unknown, listingData: unknown;
       try {
         productData = JSON.parse(productResponse.text);
