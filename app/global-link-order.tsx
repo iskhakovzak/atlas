@@ -350,9 +350,7 @@ export function GlobalLinkOrder() {
   };
   const normalizedStoreSearch = storeSearch.trim().toLowerCase();
   const localCountry=(value:string)=>{const canonical=canonicalCountry(value);return lang==='ru'?canonical:lang==='uz'?(canonical==='США'?'AQSh':canonical==='Другая страна'?'Boshqa mamlakat':canonical==='Великобритания'?'Buyuk Britaniya':canonical==='Германия'?'Germaniya':canonical==='Испания'?'Ispaniya':canonical==='Франция'?'Fransiya':canonical):canonical==='США'?'United States':canonical==='Другая страна'?'Other country':canonical==='Великобритания'?'United Kingdom':canonical==='Германия'?'Germany':canonical==='Испания'?'Spain':canonical==='Франция'?'France':canonical;};
-  const localizedCountries=countries.map(localCountry);
   const categoryLabel=(value:string)=>{const canonical=canonicalCategory(value);return lang==='ru'?canonical:lang==='uz'?({'Обувь':'Oyoq kiyim','Одежда':'Kiyim','Электроника':'Elektronika','Аксессуары':'Aksessuarlar','Красота и уход':'Go‘zallik va parvarish','Дом и быт':'Uy va maishiy','Спорт':'Sport','Другое':'Boshqa'}[canonical]??canonical):({'Обувь':'Shoes','Одежда':'Clothing','Электроника':'Electronics','Аксессуары':'Accessories','Красота и уход':'Beauty & care','Дом и быт':'Home & living','Спорт':'Sports','Другое':'Other'}[canonical]??canonical);};
-  const localizedCategories=weightCategories.map(categoryLabel);
   const visibleStoreGroups = featuredStoreGroups.map(group => ({
     ...group,
     stores: group.stores.filter(store => !normalizedStoreSearch || `${store.name} ${store.root} ${store.focus}`.toLowerCase().includes(normalizedStoreSearch)),
@@ -519,15 +517,17 @@ export function GlobalLinkOrder() {
               <div className="two-fields">
                 <div className="field">
                   <label>{c.shipCountry}</label>
-                  <Choice
-                    label={c.countryLabel}
-                    value={localCountry(country)}
-                    onChange={(v) => {
-                      setCountry(canonicalCountry(countries.find(value=>localCountry(value)===v)??v));
+                  <select
+                    aria-label={c.countryLabel}
+                    className="select-control"
+                    value={canonicalCountry(country)}
+                    onChange={(e) => {
+                      setCountry(canonicalCountry(e.target.value));
                       setVerified(false);
                     }}
-                    options={localizedCountries}
-                  />
+                  >
+                    {countries.map((value) => <option key={value} value={value}>{localCountry(value)}</option>)}
+                  </select>
                 </div>
                 <div className="field">
                   <label>{c.currency}</label>
@@ -615,17 +615,20 @@ export function GlobalLinkOrder() {
               <div className="two-fields">
                 <div className="field">
                   <label>{c.category}</label>
-                  <Choice
-                    label={c.category}
-                    value={categoryLabel(category)}
-                    onChange={(v) => {
-                      const canonical=canonicalCategory(weightCategories.find(value=>categoryLabel(value)===v)??v);
+                  <select
+                    aria-label={c.category}
+                    className="select-control"
+                    value={canonicalCategory(category)}
+                    onChange={(e) => {
+                      const canonical = canonicalCategory(e.target.value);
                       setCategory(canonical);
                       setWeight(String(estimatedBoxedWeight(canonical)));
                       setWeightOrigin(tx("Приблизительно по категории","Kategoriya bo‘yicha taxminan","Estimated by category"));
+                      setVerified(false);
                     }}
-                    options={localizedCategories}
-                  />
+                  >
+                    {weightCategories.map((value) => <option key={value} value={value}>{categoryLabel(value)}</option>)}
+                  </select>
                 </div>
                 <div className="field">
                   <label htmlFor="weight">{c.weight}</label>
