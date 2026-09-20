@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {extractShopify, shopifyEndpoints} from '../lib/importer/shopify.ts';
 import {featuredStoreGroups, supportedStoreCount} from '../lib/importer/stores.ts';
 import {extractProduct} from '../lib/importer/extract.ts';
-import {fetchProduct, allowedUrl} from '../lib/importer/fetch.ts';
+import {fetchProduct, allowedUrl, isAmazonUsUrl} from '../lib/importer/fetch.ts';
 import {verifyProductSnapshot} from '../lib/importer/verify.ts';
 
 const url = 'https://www.allbirds.com/products/shoe';
@@ -94,6 +94,32 @@ test('public Ajax requests omit credentials and unsafe redirects fall back safel
     assert.equal((await fetchProduct(url)).method,'Open Graph');
   } finally {globalThis.fetch=original;}
 });
+
+test('Amazon checks pin the anonymous session to US ZIP 19701 before parsing',async()=>{
+  assert(isAmazonUsUrl(new URL('https://www.amazon.com/dp/TEST')));
+  assert(!isAmazonUsUrl(new URL('https://www.amazon.co.uk/dp/TEST')));
+  const original=globalThis.fetch;const calls=[];
+  const amazonHtml=`<span data-a-modal='{"ajaxHeaders":{"anti-csrftoken-a2z":"token"},"url":"/portal-migration/hz/glow/get-rendered-address-selections"}'></span><span id="glow-ingress-line2">19701</span><script type="application/ld+json">${JSON.stringify({'@type':'Product',name:'US listing',image:['https://images.example.com/item.jpg'],offers:{price:'55.99',priceCurrency:'USD',availability:'https://schema.org/InStock'}})}</script>`;
+  globalThis.fetch=async(input,init={})=>{
+    calls.push([String(input),init]);
+    if(String(input).includes('/gp/delivery/ajax/address-change.html')) return new Response(JSON.stringify({isValidAddress:1,address:{countryCode:'US',zipCode:'19701'}}),{headers:{'Content-Type':'application/json','set-cookie':'zip-code=19701; Path=/'}});
+    return new Response(amazonHtml,{headers:{'Content-Type':'text/html','set-cookie':'session-id=anon; Path=/, i18n-prefs=UZS; Path=/'}});
+  };
+  try {
+    const result=await fetchProduct('https://www.amazon.com/dp/TEST');
+    assert.equal(result.price,55.99);
+    assert.equal(calls.length,3);
+    const post=calls[1];
+    assert.equal(new URL(post[0]).pathname,'/gp/delivery/ajax/address-change.html');
+    assert.equal(post[1].method,'POST');
+    assert.match(post[1].headers.Cookie,/i18n-prefs=USD/);
+    assert.match(post[1].headers.Cookie,/lc-main=en_US/);
+    assert.equal(new URLSearchParams(post[1].body).get('countryCode'),'US');
+    assert.equal(new URLSearchParams(post[1].body).get('zipCode'),'19701');
+    assert.match(calls[2][1].headers.Cookie,/zip-code=19701/);
+  } finally {globalThis.fetch=original;}
+});
+
 test('fresh verification blocks changed prices and unavailable variants',()=>{
   const p={id:'p',name:'Shoe',brand:'Allbirds',category:'Обувь',usd:110,weight:1.5,image:'',variants:['Black / 8'],sourceUrl:url,sourceVariantId:'1',sourceCurrency:'USD',sourcePrice:110};
   const fresh=extractShopify(product,{currency:'USD'},url+'?variant=1');

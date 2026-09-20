@@ -109,6 +109,14 @@ Order statuses: Ожидает выкупа → Выкуплен → На зар
 - Enhanced public Shopify import routes were added for stores including FOOTDISTRICT, NAKED Copenhagen, Nude Project, PDPAOLA, Scalpers, Blue Banana, 3INA, Saigu, Represent, Tower 28, MERIT, Good American, Kosas and Faherty. These imports retain photos, price, currency and the available option matrix when the merchant publishes them.
 - Enhanced storefront requests pin a public country context so server location does not silently change USD/EUR pricing. The exact customer URL remains authoritative; Atlas never substitutes a supposedly cheaper country automatically.
 
+## Amazon US location verification — 20 September 2026
+
+- `amazon.com` imports and catalog rechecks now create a short-lived anonymous Amazon session, set USD/English storefront preferences, submit the public delivery-location action for United States ZIP `19701` (Bear, Delaware), and only then parse price, availability and images.
+- No Amazon account login or customer cookies are used or persisted. If Amazon does not confirm the US ZIP, Atlas stops with a manual-check message instead of silently using an Uzbekistan-IP delivery context.
+- The Amazon parser reads the post-location `corePrice` block and merchant image so the US price can enter the same protected cart/checkout recheck path as every other source. Other US stores still use their own public URL/adapter rules; add a store-specific location profile only when its public endpoint is verified.
+- Amazon's larger client-side page payload is still bounded by a dedicated 6 MB importer ceiling; other public HTML remains capped at 3 MB.
+- The authenticated link-import endpoint bypasses its generic ten-minute cache for Amazon, forcing the US-location handshake even when an older cached snapshot exists.
+
 ## Editorial catalog — 12 September 2026
 
 - `/admin` now has an operator-only catalog workspace. An operator can paste up to ten allowlisted product URLs, and Atlas imports the store, title, source price/currency, safe gallery, available variants, category and a conservative editable weight into reviewable drafts.
@@ -273,6 +281,12 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - When a store blocks fresh import for a catalog product, the customer gets a direct merchant link. After opening it, the customer must answer “available” or “unavailable” before continuing.
 - Availability answers are authenticated, rate-limited and stored inside the versioned D1 catalog document. An unavailable answer flags the draft for operator review without letting a customer hide a public product directly.
 - The catalog administrator sees unresolved reports with product, variant, time, merchant link and product shortcut. A successful source recheck or explicit hide resolves the reports.
+
+## Direct-merchant deal picks — 20 September 2026
+
+- The bundled catalog includes six fresh editorial picks selected from the Slickdeals front page: Anker Prime charger, WÜSTHOF knife, HP ProBook Fortis, LEGO City Burger Truck, Logitech K780 Resale and BIRCEN sunglasses.
+- Slickdeals is used only for editorial discovery and discount observation. Customer-facing `sourceUrl` values are canonical Amazon/eBay product URLs, and card images come from the merchant image hosts; no Slickdeals redirect or image is exposed in Atlas.
+- These are dated observations, not inventory or guarantees. The seven-day expiry boundary, protected merchant recheck, variant confirmation and operator availability reports remain authoritative before cart/checkout.
 - The link-order notice always includes the exact merchant-page link, including successful partial imports. Zero-cost shipping is labelled as merchant delivery to the Atlas warehouse rather than customer delivery.
 - Generic imports infer the storefront dispatch country from explicit shipping origin, locale path, regional domain or a bounded merchant map; currency continues to come from the store and falls back from the inferred country only when the page omits it. Category inference also uses structured product category/description and recognizes common trackers such as AirTag.
 - International freight now has a one-kilogram minimum per merchant parcel. Cart rows from the same source host and dispatch country combine boxed weight, add the 0.3 kg packaging and 0.2 kg safety allowance once, and allocate the resulting freight and reserve across their immutable line quotes.
@@ -337,3 +351,13 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - The primary customer journeys now use RU/UZ/EN copy on link order, cart/checkout, batch import, passport, declaration, customs, account, customer orders, balance and notifications. Dynamic link-import messages, merchant names, product titles and source URLs remain source text; operator controls, legal body copy and some server-generated history/messages still require a reviewed translation pass.
 - Shared product-image fallbacks and quote-expiry labels accept the active locale. International cart and same-merchant parcel rules remain unchanged.
 - Verification for this slice: full-project ESLint, TypeScript, 64 domain/security tests, production build and the 137-check guest/customer/operator desktop/mobile browser audit passed after the transactional copy update. `npm` itself is unavailable in this Windows runtime, so the repository's installed Node entrypoints were used for the equivalent commands.
+
+## Conversion continuity, account clarity and safe release boundary — 20 September 2026
+
+- A guest who pastes a valid product link is now sent to the sign-in flow with the exact `/order-by-link?url=…` return path preserved. Importing remains authenticated; the interface no longer promises a calculation that a guest cannot open.
+- The account dashboard gives its single next-action slot to a pending decision, simulated payment, active order, cart or missing recipient in that order. Passport confirmation remains a visible service and declaration prerequisite, but is not used as unsolicited first-run pressure.
+- The saved-address form now has native autocomplete semantics and bounded, local Uzbekistan region/city/street suggestions. Atlas does not send an address to a third-party search provider for those suggestions.
+- Shared catalog-shell, product-sheet and provider fallback messages now follow RU/UZ/EN. Merchant data stays source text; legacy operator, legal and server-authored text still needs a reviewed translation pass.
+- Private order-document downloads remain attachment-only and private/no-store, and now explicitly use `X-Content-Type-Options: nosniff`.
+- Freshness is intentionally enforced: the local D1 catalog state examined on 20 September contained observations dated 11 September, beyond the seven-day public lifetime, so `/api/catalog` returned no cards rather than showing an old commercial price. Fresh, reviewed merchant snapshots must be imported and published before the public catalog or its end-to-end browser audit can be considered release-ready.
+- Verification of this slice: full-project ESLint, 68 Node tests and production build passed. The normal browser audit passed 141 guest/customer/operator checks while explicitly recording that catalog-card checks were skipped because no fresh D1 snapshot was available. Its strict `ATLAS_AUDIT_REQUIRE_CATALOG=1` mode correctly rejects that state with a release-blocking message; no stale timestamp was changed to make the check pass.

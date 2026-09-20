@@ -13,7 +13,8 @@
 - [ ] Validate the shortened experience with actual customers; visual simplification alone does not establish improved retention.
 - [x] Add a production SEO baseline: canonical metadata, Open Graph/X fields, crawl boundaries and a public sitemap for catalog, customs and legal content.
 - [x] Add an AI-discovery factsheet and explicit `OAI-SearchBot` crawl policy without exposing authenticated routes or personal data.
-- [ ] Complete localization of all legacy validation, legal and operator copy; shared shell plus customer order, balance, notifications and link-order copy now use RU/UZ/EN keys.
+- [ ] Complete localization of all legacy validation, legal and operator copy; shared shell, product sheet, provider fallbacks, customer order, balance, notifications and link-order copy now use RU/UZ/EN keys.
+- [ ] Re-run the public browser audit with at least one fresh, reviewed D1-published merchant snapshot in strict `ATLAS_AUDIT_REQUIRE_CATALOG=1` mode. The normal audit covers safe-empty catalog states; the local D1 catalog state examined on 20 September contained observations dated 11 September and correctly produced an empty public catalog after seven days. Do not refresh timestamps without a real source check.
 
 - [ ] Add scheduled same-SKU regional price comparison. Current regional storefront support imports the exact customer URL but does not yet prove that Spain, Germany or the US is cheapest after local shipping and tax.
 - [ ] Record live import fixtures for non-Shopify regional leaders such as Primor, Druni, PcComponentes, MediaMarkt, Zalando and major US department stores; allowlist coverage currently falls back to safe JSON-LD/Open Graph or manual confirmation when their anti-bot pages block Atlas.
@@ -37,6 +38,7 @@
 ## Required before commercial launch
 
 - [ ] Add compliant real payment, provider webhook, refunds and reconciliation. Demo balance is not money.
+- [ ] Configure and verify Sites/Cloudflare edge protections in production: CSP, frame protection, referrer policy, global `nosniff`, and trusted injection/stripping of `oai-authenticated-user-*` identity headers. Endpoint checks alone do not establish this boundary.
 - [x] Replace static FX and tariff constants with versioned operator-managed data.
 - [ ] Connect and verify an automatic FX/tariff feed before presenting values as live.
 - [x] Build a server-authorized cross-customer operator queue.
@@ -61,6 +63,8 @@
 - [ ] Verify Bombas with a current product URL. Gymshark active-color/size parsing and Anker embedded-product parsing have live checks; expand dedicated adapters for other major stores using actual page samples.
 - [ ] Add authorized eBay Browse API if reliable eBay sourcing is needed. No credential/adapter exists.
 - [x] Add caching, source timestamp and expiry for imports.
+- [x] Pin Amazon.com anonymous checks to US storefront/USD and ZIP 19701 before parsing price, availability and images; reject the check when Amazon cannot confirm the location.
+- [ ] Add equivalent verified postal-location profiles for other US merchants only where their public endpoint is documented and safe; do not assume one cookie or ZIP works across stores.
 - [x] Add a color → valid size → combination price/photo/stock matrix to link order while keeping a flat fallback for nonstandard product options.
 - [x] Add up to 12 safe imported photos and variant photo/price switching to link order. Persisted orders retain the selected image.
 - [x] Add review-first per-item variant confirmation and variant prices to batch import; no first available combination is silently selected.
@@ -81,6 +85,7 @@
 ## Auth/data/operations
 
 - [ ] Choose and integrate standalone auth (email password or email code, recovery, optional Google OAuth, rate limits and consent records). Do not collect passwords until an identity provider or audited password implementation is selected.
+- [ ] Remove or redesign the compatible `import-legacy` path before introducing real payment, shipment, entitlement or stored-value capability. It accepts local prototype state and must never become a path to a real monetary balance.
 - [ ] Connect a verified email sender for actual notification delivery; current email/SMS history is preview-only.
 - [ ] Select a phone-verification provider and retention policy before requiring a phone at payment/delivery.
 - [ ] Add encrypted off-platform D1/R2 backups with retention and a tested restore runbook; administrator integrity/rebuild is not an external backup.
@@ -116,6 +121,7 @@
 - [ ] $10 merchant shipping is an estimate, not a fetched quote.
 - [ ] Allowed stores can still block, localize, require login or change HTML; manual entry must remain.
 - [ ] Catalog refresh endpoint is implemented but no production scheduler secret or cron caller is configured yet; manual due-batch refresh is available only to the operator.
+- [ ] Replace the dated Slickdeals-informed editorial batch with a licensed merchant/affiliate feed and confirm image reuse/attribution terms before commercial launch; keep canonical merchant URLs and recheck semantics.
 - [ ] RON conversion 0.23 USD/RON is static demo data.
 - [x] Simplify catalog discount badges and move itemized quotes/weight margins into detail views; add an independent RU/UZ/EN courier-customs estimator.
 - [ ] Customs estimate is informational (checked 11 September 2026), not a binding charge. Confirm dutiable weight/value, effective-date interpretation, exclusions and bonded-vs-courier regime with the production carrier/legal adviser before commercial use. No official allowance lookup; user manually enters other imports.

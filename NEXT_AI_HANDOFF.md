@@ -20,7 +20,7 @@ Atlas — pre-release cross-border shopping сервис для пользова
 
 Затем осмотри только относящиеся к задаче файлы и тесты. Не начинай с переписывания модулей «для красоты».
 
-Последний локально доступный product-code baseline: `b17172e31883c0d7e67ddcf94296ea790258a046`; на момент обновления этой документации он на два commit впереди `origin/main` (`0a46319`). Перед любым внешним действием заново проверь `git status`, `git log --decorate -3` и факт push/deploy. SHA нельзя называть опубликованным без подтверждённого результата Sites. Последний известный URL сайта:
+Последний локально доступный commit baseline: `e6c810458a2c0db68087752af0c562b66eefef57` (`Add Atlas team orchestration protocol`). На момент обновления этой документации поверх него есть непубликованный рабочий набор UX/localization/security изменений; перед любым внешним действием заново проверь `git status`, `git log --decorate -3` и факт push/deploy. SHA нельзя называть опубликованным без подтверждённого результата Sites. Последний известный URL сайта:
 
 https://atlas-uz-market.ishakovzakir0.chatgpt.site
 
@@ -62,6 +62,10 @@ https://atlas-uz-market.ishakovzakir0.chatgpt.site
 - UI-аудит `scripts/audit-ui.mjs` с guest/customer/admin permission checks, responsive overflow checks и authenticated local smoke.
 - SEO-слой: canonical metadata, production title template, Open Graph/X fields, honest preliminary-quote description, static `public/robots.txt` и `public/sitemap.xml`; общий breadcrumb/footer/mobile shell использует дополнительные RU/UZ/EN ключи.
 - AI-discovery: `public/llms.txt` содержит короткое фактологическое описание продукта, `OAI-SearchBot` и `GPTBot` явно разрешены только для публичных страниц. Это повышает crawlability, но не гарантирует попадание или позицию в ChatGPT Search.
+- Guest manual-link entry now preserves the exact product return path through sign-in instead of sending a guest into a protected calculation with no explanation.
+- Account next action prioritizes an approval, simulated payment, active order, cart and recipient; the passport is not an unsolicited first screen. Saved-address entry has local autocomplete/datalist suggestions and no external address lookup.
+- Shared catalog/product-sheet/provider error handling follows RU/UZ/EN. Remaining operator, legal and server-authored history text stays a deliberate translation backlog.
+- Order-document downloads are still private attachment/no-store responses and now send `X-Content-Type-Options: nosniff`.
 
 ## Текущий UX baseline
 
@@ -112,6 +116,14 @@ node scripts/run-framework.mjs build
 node scripts/audit-ui.mjs http://localhost:5173
 ```
 
+Для release-кандидата с публичным каталогом потребуй реальные свежие карточки вместо безопасного пустого режима:
+
+```powershell
+$env:ATLAS_AUDIT_REQUIRE_CATALOG='1'
+node scripts/audit-ui.mjs http://localhost:5173
+Remove-Item Env:ATLAS_AUDIT_REQUIRE_CATALOG
+```
+
 Если dev server уже работает на `http://localhost:5173`, не убивай чужой процесс и не запускай второй сервер. UI audit создаёт временный Chrome profile и удаляет его после проверки.
 
 После meaningful product/architecture/API/persistence/deployment change обнови `PROJECT_CONTEXT.md`, `ARCHITECTURE.md` и `TODO.md`.
@@ -133,12 +145,16 @@ node scripts/audit-ui.mjs http://localhost:5173
 - JSON account state совместим с prototype, но не подходит для большой нагрузки без дальнейшей нормализации/transactional outbox.
 - Полная RU/UZ/EN локализация legacy forms, validation и legal/operator text ещё не закончена.
 - Scheduled catalog refresh/price alerts/recent views/saved searches ещё не реализованы.
+- The 20 September editorial batch adds six direct Amazon/eBay product cards selected from Slickdeals. Slickdeals is provenance only: cards and import use canonical merchant URLs and merchant-hosted images, with seven-day expiry and protected recheck. Verify availability, pricing and image/affiliate rights before treating any pick as launch inventory.
+- Amazon.com verification now pins a request-scoped anonymous session to USD/English and US ZIP 19701 before parsing the page; it validates Amazon's returned address and reads the post-location price block. No account login or persistent cookies are involved. Amazon HTML gets a separate bounded 6 MB ceiling for its large client-side state; ordinary pages remain capped at 3 MB. The authenticated import route bypasses the generic cache for Amazon so older snapshots cannot skip this handshake. Extend this per-store only after verifying the merchant's own public location endpoint.
 - Affiliate/merchant image reuse, legal entity, INN, bank details and Uzbek legal review ещё нужны.
+- The local D1 catalog state examined on 20 September 2026 contained stale 11 September observations, so the seven-day public freshness boundary correctly made `/api/catalog` empty. The ordinary UI audit records catalog-card checks as skipped in this safe-empty state; the `ATLAS_AUDIT_REQUIRE_CATALOG=1` release mode correctly blocks it. Import/recheck and operator-publish fresh real snapshots before a public catalog release; do not fake dates merely to populate the UI.
+- The standard static security pass found no confirmed source-code vulnerability, but did not prove Sites/Cloudflare edge headers or the trusted-host injection/stripping of platform identity headers. Verify that boundary before launch. Replace/redesign `import-legacy` before any real payment, shipment, entitlement or stored-value feature.
 
 ## Рекомендуемый первый рабочий цикл
 
 1. Прочитай все handoff-документы и проверь `git status`.
-2. Запусти lint, TypeScript, tests, build и browser audit до изменений, чтобы зафиксировать baseline.
+2. Запусти lint, TypeScript, tests, build и browser audit до изменений, чтобы зафиксировать baseline. If the catalog is empty because its snapshots have expired, record that truthful freshness outcome and refresh/review real merchant data rather than weakening the expiry guard.
 3. Проверь задачу на конкретном route и найди соответствующий API/domain action до редактирования UI.
 4. Сделай маленький совместимый patch. Не меняй схему D1 без необходимости.
 5. Проверь guest, authenticated customer, operator и mobile states.

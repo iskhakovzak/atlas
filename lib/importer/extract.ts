@@ -290,6 +290,48 @@ function extractAnker(html: string, sourceUrl: string): Extracted | undefined {
   } catch { return; }
 }
 
+function extractAmazon(html: string, sourceUrl: string): Extracted | undefined {
+  const source = new URL(sourceUrl);
+  if (!/(^|\.)amazon\.com$/i.test(source.hostname)) return;
+  const title = clean(html.match(/id=["']productTitle["'][^>]*>([\s\S]*?)<\//i)?.[1] ?? html.match(/<meta\s+name=["']title["'][^>]*content=["']([^"']+)/i)?.[1]).slice(0, 140) || undefined;
+  const coreStart = html.search(/id=["']corePrice_feature_div["']/i);
+  const core = coreStart >= 0 ? html.slice(coreStart, coreStart + 20_000) : html;
+  const priceMatch = core.match(/<span[^>]*class=["'][^"']*a-offscreen[^"']*["'][^>]*>\s*([$€£])?\s*([\d][\d,\.\s]*)/i);
+  const price = priceMatch ? number(priceMatch[2]) : undefined;
+  const currency = priceMatch?.[1] === '€' ? 'EUR' : priceMatch?.[1] === '£' ? 'GBP' : price !== undefined ? 'USD' : undefined;
+  const imageTag = html.match(/<img[^>]+id=["']landingImage["'][^>]*>/i)?.[0] ?? '';
+  const imageAttr = (name: string) => imageTag.match(new RegExp(`${name}=["']([^"']+)`, 'i'))?.[1]
+    ?.replace(/&quot;/g, '"').replace(/&#x3D;|&#61;/g, '=').replace(/&amp;/g, '&');
+  const dynamic = imageAttr('data-a-dynamic-image');
+  const dynamicImages = dynamic ? (() => { try { return Object.keys(JSON.parse(dynamic)); } catch { return []; } })() : [];
+  const images = [...new Set([imageAttr('data-old-hires'), imageAttr('src'), ...dynamicImages]
+    .map(value => safeImage(value, sourceUrl)).filter((value): value is string => Boolean(value)))].slice(0, 12);
+  if (!title && price === undefined && !images.length) return;
+  const byline = clean(html.match(/id=["']bylineInfo["'][^>]*>([\s\S]*?)<\//i)?.[1]);
+  const brand = (byline.match(/(?:Visit|Shop)\s+the\s+(.+?)\s+Store/i)?.[1] ?? byline).slice(0, 80) || 'Amazon';
+  const category = inferProductCategory(title ?? '', brand);
+  const unavailable = /id=["']availability["'][\s\S]{0,1200}(?:out of stock|currently unavailable|unavailable)/i.test(html);
+  const variants: ProductVariant[] = title ? [{label: 'Выбранный вариант', available: !unavailable, price, image: images[0]}] : [];
+  const warnings: string[] = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.'];
+  if (price === undefined) warnings.unshift('Цена не найдена в американском блоке Amazon: укажите её со страницы выбранного варианта.');
+  if (unavailable) warnings.push('Amazon сообщает, что выбранный товар недоступен.');
+  return {
+    title,
+    brand,
+    category,
+    declarationDescription: declarationFor(category, title ?? '', brand),
+    image: images[0],
+    images,
+    price,
+    currency,
+    variants,
+    warnings,
+    sourceUrl,
+    method: 'Amazon product data',
+    country: 'США',
+  };
+}
+
 export function inferStorefrontCountry(sourceUrl: string, currency?: string) {
   const url = new URL(sourceUrl);
   const host = url.hostname.toLowerCase().replace(/^www\./, "");
@@ -380,6 +422,8 @@ function extractZara(html: string, sourceUrl: string) {
 export function extractProduct(html: string, sourceUrl: string): Extracted {
   const anker = extractAnker(html, sourceUrl);
   if (anker) return anker;
+  const amazon = extractAmazon(html, sourceUrl);
+  if (amazon) return amazon;
   const meta: Record<string, string> = {};
   for (const tag of html.match(/<meta\b[^>]*>/gi) ?? []) {
     const a: Record<string, string> = {};

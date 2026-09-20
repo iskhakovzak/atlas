@@ -10,14 +10,155 @@ export function allowedUrl(value: string) {
   return u;
 }
 
+const AMAZON_US_POSTAL_CODE = '19701';
+const AMAZON_US_HOST = 'amazon.com';
+const browserUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
+// Amazon's anonymous product endpoint serves a bot-check shell to the generic
+// Node/Chrome signature. Keep this public browser profile isolated to Amazon;
+// it is not an authentication credential or a customer session.
+const amazonUserAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Safari/605.1.15';
+
+export function isAmazonUsUrl(url: URL) {
+  return url.hostname.toLowerCase().replace(/^www\./, '') === AMAZON_US_HOST;
+}
+
+function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = browserUserAgent) {
+  return {
+    Accept: format === 'json' ? 'application/json' : 'text/html,application/xhtml+xml',
+    'User-Agent': userAgent,
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Cache-Control': 'no-cache',
+    ...(cookie ? {Cookie: cookie} : {}),
+  };
+}
+
+async function readBody(response: Response, format: 'html' | 'json', maxBytes = format === 'html' ? 3_000_000 : 1_000_000) {
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!response.ok || !(format === 'html' ? contentType.includes('text/html') : /json|javascript/i.test(contentType))) {
+    await response.body?.cancel();
+    throw Error('Магазин не разрешил загрузить данные. Заполните их вручную.');
+  }
+  const reader = response.body?.getReader();
+  if (!reader) throw Error('Пустая страница');
+  let size = 0, text = '';
+  const decoder = new TextDecoder();
+  while (true) {
+    const {done, value} = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > maxBytes) {
+      await reader.cancel();
+      throw Error('Страница слишком большая для автозагрузки. Заполните данные вручную.');
+    }
+    text += decoder.decode(value, {stream: true});
+  }
+  return text + decoder.decode();
+}
+
+function responseCookies(response: Response) {
+  const headers = response.headers as Headers & {getSetCookie?: () => string[]};
+  const raw = typeof headers.getSetCookie === 'function'
+    ? headers.getSetCookie()
+    : (headers.get('set-cookie') ?? '').split(/,(?=\s*[^;,=\s]+=[^;,]*)/);
+  return raw.map(line => line.match(/^\s*([^=;,\s]+)=([^;]*)/)?.slice(1) as [string, string] | undefined).filter((pair): pair is [string, string] => Boolean(pair));
+}
+
+function cookieHeader(jar: Map<string, string>) {
+  return [...jar].map(([name, value]) => `${name}=${value}`).join('; ');
+}
+
+function mergeCookies(jar: Map<string, string>, response: Response) {
+  for (const [name, value] of responseCookies(response)) {
+    if (!value || value.toLowerCase() === 'delete') jar.delete(name);
+    else jar.set(name, value);
+  }
+}
+
+function decodeHtmlAttribute(value: string) {
+  return value.replace(/&quot;/g, '"').replace(/&#x3D;|&#61;/g, '=').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;|&apos;/g, "'");
+}
+
+function amazonLocationToken(html: string) {
+  const raw = html.match(/data-a-modal\s*=\s*'([^']*get-rendered-address-selections[^']*)'/i)?.[1]
+    ?? html.match(/data-a-modal\s*=\s*"([^"]*get-rendered-address-selections[^"]*)"/i)?.[1];
+  if (!raw) return undefined;
+  try {
+    const modal = JSON.parse(decodeHtmlAttribute(raw)) as {ajaxHeaders?: {'anti-csrftoken-a2z'?: string}};
+    return modal.ajaxHeaders?.['anti-csrftoken-a2z'];
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Amazon renders delivery, price and availability from the anonymous session's
+ * delivery location. Set a deterministic US context before parsing instead of
+ * letting an Uzbekistan IP select an ineligible international destination.
+ * The cookie jar is request-scoped and never persisted or accepted from a user.
+ */
+async function readAmazonUs(start: URL, signal: AbortSignal) {
+  const jar = new Map<string, string>([['i18n-prefs', 'USD'], ['lc-main', 'en_US']]);
+  let url = start;
+  for (let i = 0; i < 4; i++) {
+    const response = await fetch(url, {redirect: 'manual', signal, headers: requestHeaders('html', cookieHeader(jar), amazonUserAgent)});
+    mergeCookies(jar, response);
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('location');
+      await response.body?.cancel();
+      if (!location || i === 3) throw Error('Amazon перенаправил запрос. Используйте прямую ссылку на товар.');
+      url = allowedUrl(new URL(location, url).href);
+      if (!isAmazonUsUrl(url)) throw Error('Amazon изменил регион. Используйте ссылку с amazon.com.');
+      continue;
+    }
+    // Amazon product pages carry a large client-side state payload. Keep a
+    // separate, still bounded ceiling for this allowlisted host so a valid
+    // post-location page is not mistaken for an unusable import.
+    const html = await readBody(response, 'html', 6_000_000);
+    const token = amazonLocationToken(html);
+    if (!token) throw Error(`Amazon не подтвердил регион США (ZIP ${AMAZON_US_POSTAL_CODE}). Откройте карточку магазина и повторите проверку.`);
+
+    // Amazon's public location endpoint is the same action triggered by the
+    // "Deliver to" dialog. It accepts an anonymous session; no account login
+    // or customer cookies are involved.
+    jar.set('i18n-prefs', 'USD');
+    jar.set('lc-main', 'en_US');
+    const locationResponse = await fetch('https://www.amazon.com/gp/delivery/ajax/address-change.html', {
+      method: 'POST', redirect: 'manual', signal,
+      headers: {
+        ...requestHeaders('json', cookieHeader(jar), amazonUserAgent),
+        Accept: 'application/json, text/javascript, */*; q=0.01',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'X-Requested-With': 'XMLHttpRequest',
+        Origin: 'https://www.amazon.com',
+        Referer: url.href,
+        'anti-csrftoken-a2z': token,
+      },
+      body: new URLSearchParams({locationType: 'LOCATION_INPUT', countryCode: 'US', zipCode: AMAZON_US_POSTAL_CODE, storeContext: 'generic', deviceType: 'web', pageType: 'Gateway', actionSource: 'glow', almBrandId: 'undefined'}),
+    });
+    mergeCookies(jar, locationResponse);
+    const locationText = await readBody(locationResponse, 'json');
+    let locationData: {isValidAddress?: number; address?: {countryCode?: string; zipCode?: string}};
+    try { locationData = JSON.parse(locationText) as typeof locationData; }
+    catch { throw Error(`Amazon не подтвердил регион США (ZIP ${AMAZON_US_POSTAL_CODE}). Откройте карточку магазина и повторите проверку.`); }
+    if (locationData.isValidAddress !== 1 || locationData.address?.countryCode !== 'US' || locationData.address.zipCode !== AMAZON_US_POSTAL_CODE)
+      throw Error(`Amazon не подтвердил регион США (ZIP ${AMAZON_US_POSTAL_CODE}). Откройте карточку магазина и повторите проверку.`);
+
+    jar.set('i18n-prefs', 'USD');
+    jar.set('lc-main', 'en_US');
+    const refreshed = await fetch(url, {redirect: 'manual', signal, headers: requestHeaders('html', cookieHeader(jar), amazonUserAgent)});
+    mergeCookies(jar, refreshed);
+    if (refreshed.status >= 300 && refreshed.status < 400) throw Error('Amazon изменил карточку после выбора региона. Используйте прямую ссылку на товар.');
+    const refreshedHtml = await readBody(refreshed, 'html', 6_000_000);
+    if (!refreshedHtml.includes(AMAZON_US_POSTAL_CODE)) throw Error(`Amazon не применил ZIP ${AMAZON_US_POSTAL_CODE}. Откройте карточку магазина и повторите проверку.`);
+    return {text: refreshedHtml, url};
+  }
+  throw Error('Не удалось проверить регион Amazon.');
+}
+
 async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'json') {
   let url = start;
   for (let i = 0; i < 4; i++) {
-    const response = await fetch(url, {redirect: 'manual', signal, headers: {
-      Accept: format === 'json' ? 'application/json' : 'text/html,application/xhtml+xml',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
-      'Accept-Language': 'en-US,en;q=0.9', 'Cache-Control': 'no-cache',
-    }});
+    const response = await fetch(url, {redirect: 'manual', signal, headers: requestHeaders(format)});
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get('location');
       await response.body?.cancel();
@@ -26,26 +167,7 @@ async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'jso
       if (format === 'json' && url.origin !== start.origin) throw Error('Магазин изменил регион. Используйте прямую ссылку нужного региона.');
       continue;
     }
-    const contentType = response.headers.get('content-type') ?? '';
-    if (!response.ok || !(format === 'html' ? contentType.includes('text/html') : /json|javascript/i.test(contentType))) {
-      await response.body?.cancel();
-      throw Error('Магазин не разрешил загрузить данные. Заполните их вручную.');
-    }
-    const reader = response.body?.getReader();
-    if (!reader) throw Error('Пустая страница');
-    let size = 0, text = '';
-    const decoder = new TextDecoder();
-    while (true) {
-      const {done, value} = await reader.read();
-      if (done) break;
-      size += value.byteLength;
-      if (size > (format === 'html' ? 3_000_000 : 1_000_000)) {
-        await reader.cancel();
-        throw Error('Страница слишком большая для автозагрузки. Заполните данные вручную.');
-      }
-      text += decoder.decode(value, {stream: true});
-    }
-    return {text: text + decoder.decode(), url};
+    return {text: await readBody(response, format), url};
   }
   throw Error('Не удалось загрузить товар.');
 }
@@ -67,7 +189,7 @@ export async function fetchProduct(value: string) {
         if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
       }
     }
-    const page = await readPublic(url, controller.signal, 'html');
+    const page = isAmazonUsUrl(url) ? await readAmazonUs(url, controller.signal) : await readPublic(url, controller.signal, 'html');
     if (/\/products\//.test(url.pathname) && !/\/products\//.test(page.url.pathname)) throw Error('Магазин убрал карточку товара. Укажите другую ссылку.');
     if (/captcha|verify you are human|pardon our interruption|robot check/i.test(page.text.slice(0, 60000)))
       throw Error('Магазин запросил проверку посетителя. Используйте ручной ввод.');
@@ -78,7 +200,7 @@ export async function fetchProduct(value: string) {
 export async function fetchCollectionLinks(value:string){
   const start=allowedUrl(value),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
   try{
-    const page=await readPublic(start,controller.signal,'html');
+    const page=isAmazonUsUrl(start) ? await readAmazonUs(start,controller.signal) : await readPublic(start,controller.signal,'html');
     if(/verify you are human|robot check|pardon our interruption/i.test(page.text.slice(0,60000)))throw Error('Магазин ограничил доступ к подборке. Вставьте ссылки на товары.');
     const links=new Set<string>();
     for(const match of page.text.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi)){
