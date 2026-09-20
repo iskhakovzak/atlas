@@ -13,7 +13,7 @@ export function allowedUrl(value: string) {
 const AMAZON_US_POSTAL_CODE = '19701';
 const AMAZON_US_HOST = 'amazon.com';
 const browserUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
-const adidasUserAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Safari/605.1.15';
+const adidasUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36';
 // Amazon's anonymous product endpoint serves a bot-check shell to the generic
 // Node/Chrome signature. Keep this public browser profile isolated to Amazon;
 // it is not an authentication credential or a customer session.
@@ -46,7 +46,7 @@ function adidasProductApiUrls(start: URL) {
 
 function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = browserUserAgent, referer?: string) {
   return {
-    Accept: format === 'json' ? 'application/json' : 'text/html,application/xhtml+xml',
+    Accept: format === 'json' ? 'application/json, text/plain, */*' : 'text/html,application/xhtml+xml',
     'User-Agent': userAgent,
     'Accept-Language': 'en-US,en;q=0.9',
     'Cache-Control': 'no-cache',
@@ -56,6 +56,12 @@ function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = br
       'Sec-Fetch-Site': 'same-origin',
       'Sec-Fetch-Mode': format === 'json' ? 'cors' : 'navigate',
       'Sec-Fetch-Dest': format === 'json' ? 'empty' : 'document',
+      ...(format === 'json' ? {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Sec-CH-UA': '"Chromium";v="152", "Not?A_Brand";v="24", "Google Chrome";v="152"',
+        'Sec-CH-UA-Mobile': '?0',
+        'Sec-CH-UA-Platform': '"Windows"',
+      } : {}),
     } : {}),
     ...(cookie ? {Cookie: cookie} : {}),
   };
