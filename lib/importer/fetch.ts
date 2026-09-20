@@ -35,7 +35,13 @@ function adidasProductApiUrls(start: URL) {
   const listing = new URL('https://www.adidas.com/api/plp/content-engine');
   listing.searchParams.set('sitePath', locale);
   listing.searchParams.set('query', slug);
-  return {product, listing};
+  // adidas.com and www.adidas.com are served by different edge routes. A
+  // server-side request can be rate-limited on the www route while the same
+  // public JSON remains available on the apex route; both are fixed,
+  // credential-free Adidas origins.
+  const fallbackProduct = new URL(product.href.replace('https://www.adidas.com/', 'https://adidas.com/'));
+  const fallbackListing = new URL(listing.href.replace('https://www.adidas.com/', 'https://adidas.com/'));
+  return {product, listing, fallbackProduct, fallbackListing};
 }
 
 function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = browserUserAgent, referer?: string) {
@@ -203,9 +209,28 @@ export async function fetchProduct(value: string) {
     const adidas = adidasProductApiUrls(url);
     if (adidas) {
       const adidasRequest = {referer: url.href, userAgent: adidasUserAgent};
-      const productResponse = await readPublic(adidas.product, controller.signal, 'json', adidasRequest);
+      let productResponse: {text: string; url: URL} | undefined;
+      let productError: unknown;
+      for (const endpoint of [adidas.product, adidas.fallbackProduct]) {
+        try {
+          productResponse = await readPublic(endpoint, controller.signal, 'json', adidasRequest);
+          break;
+        } catch (error) {
+          productError = error;
+          if (controller.signal.aborted) throw error;
+        }
+      }
+      if (!productResponse) throw productError ?? Error('Adidas не ответил на запрос товара.');
       let listingResponse: {text: string; url: URL} | undefined;
-      try { listingResponse = await readPublic(adidas.listing, controller.signal, 'json', adidasRequest); } catch { /* Product JSON remains useful if PLP is rate-limited. */ }
+      for (const endpoint of [adidas.listing, adidas.fallbackListing]) {
+        try {
+          listingResponse = await readPublic(endpoint, controller.signal, 'json', adidasRequest);
+          break;
+        } catch {
+          if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
+          // Product JSON remains useful if PLP is rate-limited.
+        }
+      }
       let productData: unknown, listingData: unknown;
       try {
         productData = JSON.parse(productResponse.text);
