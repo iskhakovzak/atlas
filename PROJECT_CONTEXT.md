@@ -129,6 +129,11 @@ Order statuses: Ожидает выкупа → Выкуплен → На зар
 - Collections have RU/UZ/EN names, visibility and order. Published products can belong to several collections; visible collections appear as focused filters on the home feed, including clothing, cosmetics, brand and seasonal selections.
 - Draft and published snapshots are separate. Editing a draft never silently changes the home page; publish copies a reviewed snapshot, hide removes it from the public feed without deleting the draft, and stale/sold-out/incomplete drafts cannot be published.
 - Catalog state is stored as versioned JSON in the existing D1 `market_settings` table with optimistic revision checks and operator audit events. The public endpoint returns only current published snapshots and falls back to the bundled catalog if D1 is temporarily unavailable.
+- A successful authenticated link order also creates a matching operator-reviewable draft when its canonical source URL is not already present. The draft carries the verified title, source price/currency, country, safe photos, available option matrix and weight; it is marked as a customer-demand signal and is never published automatically. A later request for the same canonical source is idempotent.
+
+## Link-order language and draft continuity — 21 September 2026
+
+- The link-order form keeps its current product, selected option, price, country, currency, shipping, weight, photos, verification and source freshness in a short-lived browser session draft. Switching RU/UZ/EN or remounting the route no longer clears the imported or customer-edited values; the server still rechecks the source before cart addition.
 
 ## Unified merchant catalog — 13 September 2026
 

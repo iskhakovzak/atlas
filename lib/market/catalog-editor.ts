@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import {bundledMerchantFinds, type MerchantFind} from './catalog.ts';
 import {toUsd,paddedWeight,currencies} from './world.ts';
-import {tariff,type Pricing} from './domain.ts';
+import {tariff,type Pricing,type Product} from './domain.ts';
 import {safeImage,type Extracted} from '../importer/extract.ts';
 import {isSupportedStoreHost} from '../importer/stores.ts';
 import {estimatedBoxedWeight} from './weight.ts';
@@ -103,6 +103,41 @@ export function synchronizeBundledCatalog(current:CatalogDocument){
 }
 export function importDraft(data:Extracted,collectionIds:string[],country:string,now=Date.now()):CatalogDraft{
   return catalogDraftSchema.parse({sourceUrl:canonicalCatalogUrl(data.sourceUrl),name:data.title??'',brand:data.brand??new URL(data.sourceUrl).hostname,category:data.category??'Другое',image:data.image??'',images:data.images??(data.image?[data.image]:[]),price:data.price,currency:data.currency??'',country:data.country??country,boxedWeight:data.boxedWeight??estimatedBoxedWeight(data.category??'Другое'),variants:(data.variants??[]).map(v=>({id:v.id,label:v.label,size:v.size,sizeLabel:v.sizeLabel,color:v.color,available:v.available,price:v.price,image:v.image})),collectionIds,description:'',checkedAt:now,warnings:data.warnings,soldOut:Boolean(data.variants?.length&&!data.variants.some(v=>v.available))});
+}
+
+const customerLinkReviewReason='Добавлен после запроса покупателя — проверьте источник и опубликуйте вручную.';
+
+/**
+ * Turn the verified link-order snapshot into an operator-reviewable catalog
+ * draft. It deliberately does not create a published snapshot: a customer
+ * request is a useful demand signal, not editorial approval or a stock claim.
+ */
+export function customerLinkDraft(product:Product,source:Extracted,now=Date.now()):CatalogDraft{
+  if(!product.sourceUrl)throw Error('Для каталога нужна ссылка на источник.');
+  const category=catalogCategories.includes(product.category as typeof catalogCategories[number])
+    ? product.category as typeof catalogCategories[number]
+    : source.category??'Другое';
+  const sourceImages=[...(source.images??[]),source.image??'',product.image].map(image=>safeImage(image,product.sourceUrl!)).filter((image):image is string=>Boolean(image)).slice(0,12);
+  const variants=source.variants?.length
+    ? source.variants
+    : product.variants.map((label,index)=>({id:index===0?product.sourceVariantId:undefined,label,available:true}));
+  const merged:Extracted={
+    ...source,
+    sourceUrl:product.sourceUrl,
+    title:source.title??product.name,
+    brand:source.brand??product.brand,
+    category,
+    image:sourceImages[0]??'',
+    images:sourceImages,
+    price:source.price??product.sourcePrice,
+    currency:source.currency??product.sourceCurrency,
+    boxedWeight:source.boxedWeight??product.boxedWeight,
+    country:source.country??product.country,
+    variants,
+    warnings:[...source.warnings,customerLinkReviewReason],
+  };
+  const draft=importDraft(merged,[],product.country??merged.country??'',now);
+  return catalogDraftSchema.parse({...draft,description:product.description??'',reviewReasons:[customerLinkReviewReason]});
 }
 export function catalogIssues(draft:CatalogDraft,now=Date.now(),rates=tariff.rates){
   const issues:string[]=[];

@@ -1,11 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {applyScheduledCatalogRefresh,catalogDocumentSchema,catalogIssues,catalogRefreshInterval,changeCatalog,dueCatalogEntries,importDraft,initialCatalog,markCatalogRefreshFailed,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
+import {applyScheduledCatalogRefresh,catalogDocumentSchema,catalogIssues,catalogRefreshInterval,changeCatalog,customerLinkDraft,dueCatalogEntries,importDraft,initialCatalog,markCatalogRefreshFailed,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
 import {catalogRefreshPath,isAuthorizedCatalogRefresh,signCatalogRefreshRequest} from '../lib/market/catalog-refresh-auth.ts';
 import {communityCatalogProducts} from '../lib/market/community-deals.ts';
 import {tariff} from '../lib/market/domain.ts';
 
 const extracted={sourceUrl:'https://kyliecosmetics.com/products/matte-lip-kit?utm_source=mail',title:'Matte Lip Kit',brand:'Kylie Cosmetics',category:'Красота и уход',image:'https://cdn.shopify.com/lip.jpg',images:['https://cdn.shopify.com/lip.jpg'],price:35,currency:'USD',variants:[{id:'bare-full',label:'Bare · Full size',color:'Bare',size:'Full size',available:true,price:35}],warnings:['Доставка неизвестна'],method:'Shopify'};
+test('customer link imports become reviewable drafts without public publication',()=>{
+ const product={id:'kylie-link',name:'Matte Lip Kit',brand:'Kylie Cosmetics',category:'Красота и уход',usd:35,weight:1.3,boxedWeight:.8,image:'https://cdn.shopify.com/lip.jpg',variants:['Bare · Full size'],sourceUrl:'https://kyliecosmetics.com/products/matte-lip-kit?utm_source=mail',sourceVariantId:'bare-full',sourceCurrency:'USD',sourcePrice:35,sourceShipping:10,sourceShippingCurrency:'USD',sourceShippingUsd:10,sourceShippingEstimated:true,shippingKnown:true,country:'США'};
+ const draft=customerLinkDraft(product,extracted,1000);
+ assert.equal(draft.sourceUrl,'https://kyliecosmetics.com/products/matte-lip-kit');
+ assert.equal(draft.variants[0].id,'bare-full');assert.equal(draft.variants[0].available,true);
+ assert(draft.reviewReasons.some(value=>value.includes('запроса покупателя')));assert(catalogIssues(draft,1001).some(value=>value.includes('Добавлен после запроса покупателя')));
+ const doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'customer-kylie',draft}]});
+ assert.equal(publicCatalog(doc,tariff,1001).products.length,0);
+});
 test('admin import creates a reviewable draft without claiming store shipping',()=>{
  const draft=importDraft(extracted,[],'США',1000);
  assert.equal(draft.sourceUrl,'https://kyliecosmetics.com/products/matte-lip-kit');

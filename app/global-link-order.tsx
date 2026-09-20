@@ -31,6 +31,10 @@ import {
   communityProductCategory,
   hasSelectableDimensions,
 } from "@/lib/market/community-deals";
+
+type LinkOrderDraftSnapshot={
+  url:string;source:string;name:string;brand:string;declaration:string;currency:string;amount:string;shipping:string;shippingCurrency:string;shippingEstimated:boolean;weight:string;country:string;otherCountry:string;category:string;variant:string;variants:ProductVariant[];selectedColor:string;selectedSize:string;image:string;images:string[];showSourceForm:boolean;note:string;weightOrigin:string;verified:boolean;sourceCheckStatus:'idle'|'checking'|'verified'|'failed';importedAt?:number;sourceExpiresAt?:number;foundShipping:{amount:number;currency:string;destination?:string}|null;
+};
 export function GlobalLinkOrder() {
   const { ready, pricing, state, act, catalogProducts } = useMarket();
   const lang=state.communication.language;
@@ -82,6 +86,41 @@ export function GlobalLinkOrder() {
     } | null>(null);
   const automaticallyLoaded = useRef<string | null>(null);
   const automaticRetryFor = useRef<string | null>(null);
+  const draftStorageKey=`atlas:link-order:${requestedUrl||'manual'}`;
+  const draftRestored=useRef(false),draftCanSkipAutomaticLoad=useRef(false),draftPersistenceReady=useRef(false);
+
+  useEffect(()=>{
+    draftRestored.current=false;draftCanSkipAutomaticLoad.current=false;draftPersistenceReady.current=false;
+    try{
+      const raw=sessionStorage.getItem(draftStorageKey);
+      if(raw&&raw.length<300000){
+        const value=JSON.parse(raw) as Partial<LinkOrderDraftSnapshot>;
+        const usable=typeof value==='object'&&value!==null&&typeof value.source==='string'&&value.source.length>0&&typeof value.sourceCheckStatus==='string';
+        const fresh=usable&&value.sourceCheckStatus==='verified'&&typeof value.sourceExpiresAt==='number'&&value.sourceExpiresAt>Date.now();
+        if(usable&&(fresh||(!requestedUrl&&value.source))){
+          const text=(item:unknown,fallback='')=>typeof item==='string'?item:fallback;
+          draftRestored.current=true;draftCanSkipAutomaticLoad.current=Boolean(fresh);
+          queueMicrotask(()=>{
+            setUrl(text(value.url,requestedUrl));setSource(text(value.source));setName(text(value.name));setBrand(text(value.brand));setDeclaration(text(value.declaration));
+            setCurrency(text(value.currency,'USD'));setAmount(text(value.amount));setShipping(text(value.shipping,'10'));setShippingCurrency(text(value.shippingCurrency,'USD'));setShippingEstimated(value.shippingEstimated!==false);
+            setWeight(text(value.weight));setCountry(text(value.country,'Другая страна'));setOtherCountry(text(value.otherCountry));setCategory(text(value.category,'Другое'));setVariant(text(value.variant));
+            setVariants(Array.isArray(value.variants)?value.variants.slice(0,250):[]);setSelectedColor(text(value.selectedColor));setSelectedSize(text(value.selectedSize));setImage(text(value.image));setImages(Array.isArray(value.images)?value.images.filter((item):item is string=>typeof item==='string').slice(0,12):[]);
+            setShowSourceForm(value.showSourceForm===true);setNote(text(value.note));setWeightOrigin(text(value.weightOrigin));setVerified(value.verified===true);
+            setSourceCheckStatus(value.sourceCheckStatus==='verified'||value.sourceCheckStatus==='failed'||value.sourceCheckStatus==='checking'?value.sourceCheckStatus:'idle');
+            setImportedAt(typeof value.importedAt==='number'?value.importedAt:undefined);setSourceExpiresAt(typeof value.sourceExpiresAt==='number'?value.sourceExpiresAt:undefined);
+            setFoundShipping(value.foundShipping&&typeof value.foundShipping.amount==='number'?{amount:value.foundShipping.amount,currency:text(value.foundShipping.currency),destination:text(value.foundShipping.destination)||undefined}:null);
+          });
+        }
+      }
+    }catch{}
+    draftPersistenceReady.current=true;
+  },[draftStorageKey,requestedUrl]);
+
+  useEffect(()=>{
+    if(!draftPersistenceReady.current)return;
+    const snapshot:LinkOrderDraftSnapshot={url,source,name,brand,declaration,currency,amount,shipping,shippingCurrency,shippingEstimated,weight,country,otherCountry,category,variant,variants,selectedColor,selectedSize,image,images,showSourceForm,note,weightOrigin,verified,sourceCheckStatus,importedAt,sourceExpiresAt,foundShipping};
+    try{sessionStorage.setItem(draftStorageKey,JSON.stringify(snapshot))}catch{}
+  },[draftStorageKey,url,source,name,brand,declaration,currency,amount,shipping,shippingCurrency,shippingEstimated,weight,country,otherCountry,category,variant,variants,selectedColor,selectedSize,image,images,showSourceForm,note,weightOrigin,verified,sourceCheckStatus,importedAt,sourceExpiresAt,foundShipping]);
   const variantColors = useMemo(() => [...new Set(variants.map(item => item.color).filter((value): value is string => Boolean(value)))], [variants]);
   const variantsForColor = useMemo(() => selectedColor ? variants.filter(item => item.color === selectedColor) : variantColors.length ? [] : variants, [variants,selectedColor,variantColors]);
   const variantSizes = useMemo(() => [...new Set(variantsForColor.map(item => item.size).filter((value): value is string => Boolean(value)))], [variantsForColor]);
@@ -259,6 +298,11 @@ export function GlobalLinkOrder() {
   }
   useEffect(() => {
     if (!ready || !requestedUrl || automaticallyLoaded.current === requestedUrl) return;
+    if(draftRestored.current&&draftCanSkipAutomaticLoad.current){
+      automaticallyLoaded.current=requestedUrl;
+      setShowSourceForm(false);
+      return;
+    }
     automaticallyLoaded.current = requestedUrl;
     setUrl(requestedUrl);
     setShowSourceForm(false);

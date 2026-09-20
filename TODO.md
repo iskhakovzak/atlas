@@ -52,6 +52,8 @@
 
 ## Importing
 
+- [x] Preserve link-order form state across RU/UZ/EN switches and route remounts with a bounded session draft; cart addition still requires a fresh server source check.
+- [x] Add verified customer link imports to the D1 catalog as idempotent operator-reviewable drafts, without auto-publishing or treating them as inventory.
 - [x] Reject impossible merchant weight values before display, use safer category estimates and keep an operator availability report queue for blocked catalog imports.
 - [x] Reconcile source-controlled merchant additions into the existing D1 catalog without overwriting operator edits or hidden records; use the same published records in admin, collections, public catalog and ordering.
 - [x] Add an operator bulk-link catalog workflow with editable drafts, safe collection-page discovery and explicit publish/hide actions.
