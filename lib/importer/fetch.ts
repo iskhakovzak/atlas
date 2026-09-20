@@ -209,6 +209,18 @@ export async function fetchProduct(value: string) {
     const adidas = adidasProductApiUrls(url);
     if (adidas) {
       const adidasRequest = {referer: url.href, userAgent: adidasUserAgent};
+      // The PLP JSON includes the canonical card, price, gallery and size
+      // matrix. Fetch it first so a product endpoint rate limit does not make
+      // an otherwise complete public listing unusable.
+      let listingResponse: {text: string; url: URL} | undefined;
+      for (const endpoint of [adidas.listing, adidas.fallbackListing]) {
+        try {
+          listingResponse = await readPublic(endpoint, controller.signal, 'json', adidasRequest);
+          break;
+        } catch {
+          if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
+        }
+      }
       let productResponse: {text: string; url: URL} | undefined;
       let productError: unknown;
       for (const endpoint of [adidas.product, adidas.fallbackProduct]) {
@@ -220,22 +232,20 @@ export async function fetchProduct(value: string) {
           if (controller.signal.aborted) throw error;
         }
       }
-      if (!productResponse) throw productError ?? Error('Adidas не ответил на запрос товара.');
-      let listingResponse: {text: string; url: URL} | undefined;
-      for (const endpoint of [adidas.listing, adidas.fallbackListing]) {
-        try {
-          listingResponse = await readPublic(endpoint, controller.signal, 'json', adidasRequest);
-          break;
-        } catch {
-          if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
-          // Product JSON remains useful if PLP is rate-limited.
-        }
-      }
       let productData: unknown, listingData: unknown;
       try {
-        productData = JSON.parse(productResponse.text);
         listingData = listingResponse ? JSON.parse(listingResponse.text) : undefined;
+        productData = productResponse ? JSON.parse(productResponse.text) : undefined;
       } catch { throw Error('Adidas вернул неполные данные. Заполните товар вручную.'); }
+      if (!productData && listingData && typeof listingData === 'object') {
+        const items = (listingData as {raw?: {itemList?: {items?: unknown[]}}}).raw?.itemList?.items;
+        const id = url.pathname.split('/').filter(Boolean).at(-1)?.replace(/\.html$/i, '');
+        const item = Array.isArray(items) ? items.find(value => value && typeof value === 'object' && String((value as Record<string, unknown>).productId ?? '') === id) as Record<string, unknown> | undefined : undefined;
+        if (item) {
+          productData = {id, name: item.displayName ?? item.altText, category: item.category, price: item.price, salePrice: item.salePrice, orderable: item.orderable, image: item.image, secondImage: item.secondImage, images: item.images};
+        }
+      }
+      if (!productData) throw productError ?? Error('Adidas не ответил на запрос товара.');
       const extracted = extractAdidasProduct(productData, listingData, url.href);
       if (!extracted) throw Error('Adidas не вернул карточку товара. Проверьте ссылку и повторите проверку.');
       return extracted;
