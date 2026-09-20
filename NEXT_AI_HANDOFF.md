@@ -16,12 +16,15 @@ Atlas — pre-release cross-border shopping сервис для пользова
 4. `LOCAL_SETUP.md`
 5. `TODO.md`
 6. этот файл `NEXT_AI_HANDOFF.md`
+7. `ATLAS_AGENT_TEAM.md`, если задача требует параллельной работы нескольких агентов
 
 Затем осмотри только относящиеся к задаче файлы и тесты. Не начинай с переписывания модулей «для красоты».
 
-Текущий подтверждённый baseline: commit `e7ff392e0711ea1785d97e1727e93f15fd8e5cc7`. Он отправлен в `origin/main`. Последний опубликованный сайт:
+Последний локально доступный product-code baseline: `b17172e31883c0d7e67ddcf94296ea790258a046`; на момент обновления этой документации он на два commit впереди `origin/main` (`0a46319`). Перед любым внешним действием заново проверь `git status`, `git log --decorate -3` и факт push/deploy. SHA нельзя называть опубликованным без подтверждённого результата Sites. Последний известный URL сайта:
 
 https://atlas-uz-market.ishakovzakir0.chatgpt.site
+
+Для задач, которые полезно делить между специалистами, используй `ATLAS_AGENT_TEAM.md`: это контролируемые короткие волны с одним владельцем каждого модуля, а не параллельное редактирование всего репозитория.
 
 ## Обязательные правила
 
@@ -115,7 +118,7 @@ node scripts/audit-ui.mjs http://localhost:5173
 
 ## Как публиковать
 
-Публикуй только после lint, tests, TypeScript, audit и production build. Для Sites используй существующий `project_id` из `.openai/hosting.json`, запроси короткий source repository credential, push exact HEAD, package build output, save version с полным SHA, deploy saved version и дождись succeeded. Credential нельзя писать в файл, git config, remote URL или ответ пользователю. Никогда не создавай новый Sites project.
+Публикуй только по прямому запросу пользователя и после lint, tests, TypeScript, audit и production build. Успешные проверки сами по себе не являются разрешением на deploy. Для Sites используй существующий `project_id` из `.openai/hosting.json`, запроси короткий source repository credential, push exact HEAD, package build output, save version с полным SHA, deploy saved version и дождись succeeded. Credential нельзя писать в файл, git config, remote URL или ответ пользователю. Никогда не создавай новый Sites project.
 
 ## Что ещё не является готовым к коммерческому запуску
 
