@@ -120,7 +120,7 @@ Order statuses: Ожидает выкупа → Выкуплен → На зар
 ## Adidas JSON import — 21 September 2026
 
 - Adidas product HTML can be an Akamai 403 challenge for server-side requests. `adidas.com` link imports now read the bounded public PLP JSON first (so a product JSON 429 still leaves a complete card), then enrich with same-host product JSON, match the URL article code, and retain the current locale price, merchant gallery and available size list. The adapter retries the fixed apex Adidas edge route and never sends credentials.
-- The adapter ignores PLP results for another article and filters the service's `hidden` size sentinel. If Adidas blocks both JSON routes, Atlas keeps the safe manual-entry path instead of displaying an empty or invented card.
+- The adapter ignores PLP results for another article and filters the service's `hidden` size sentinel. Adidas currently rate-limits Chromium client-hint/XHR headers, so its public JSON requests use a minimal credential-free header set and allow only the fixed `adidas.com` ↔ `www.adidas.com` edge redirect. Structured `Clothing`/`jersey` data maps to the clothing category. If Adidas blocks both JSON routes, Atlas keeps the safe manual-entry path instead of displaying an empty or invented card.
 
 ## Editorial catalog — 12 September 2026
 

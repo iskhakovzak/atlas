@@ -186,7 +186,7 @@ export function inferProductCategory(
   )
     return "Дом и быт";
   if (
-    /shirt|dress|jacket|coat|jeans|pants|hoodie|t-shirt|skirt|legging|bra|bralette|underwear|shorts|футбол|куртк|пальто|джинс|брюк|плать|юбк|легинс|белье|vestido/.test(
+    /clothing|apparel|jersey|shirt|dress|jacket|coat|jeans|pants|hoodie|t-shirt|skirt|legging|bra|bralette|underwear|shorts|sweater|cardigan|blazer|jumpsuit|tracksuit|футбол|куртк|пальто|джинс|брюк|плать|юбк|легинс|белье|vestido/.test(
       text,
     )
   )

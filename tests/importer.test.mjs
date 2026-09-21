@@ -86,10 +86,16 @@ test('Adidas public product data retains sale price, available sizes and gallery
   const p=extractAdidasProduct(product,listing,'https://www.adidas.com/us/daily-4.0-shoes/IF4492.html');
   assert.equal(p.method,'Adidas product data');assert.equal(p.price,33);assert.equal(p.currency,'USD');assert.equal(p.country,'США');assert.equal(p.category,'Обувь');assert.equal(p.variants.length,3);assert.deepEqual(p.variants.map(v=>[v.color,v.size,v.price,v.available]),[['Core Black / Cloud White / Gum','5',33,true],['Core Black / Cloud White / Gum','6',33,true],['Core Black / Cloud White / Gum','8',33,true]]);assert.equal(p.images.length,4);
 });
+test('Adidas clothing JSON classifies jerseys and keeps the full gallery',()=>{
+  const product={id:'JZ6941',name:'Germany Away Jersey 1994',brand:'Performance',category:'Clothing',color:'Power Green',price:110,salePrice:44,orderable:1,image:{src:'https://assets.adidas.com/primary.jpg'},secondImage:{src:'https://assets.adidas.com/second.jpg'},images:Array.from({length:12},(_,index)=>({src:`https://assets.adidas.com/gallery-${index}.jpg`}))};
+  const listing={raw:{itemList:{items:[{productId:'JZ6941',displayName:'Germany Away Jersey 1994',subTitle:"Men's Lifestyle",availableSizes:['S','M','L','XL'],orderable:1,salePrice:44,images:[{src:'https://assets.adidas.com/listing.jpg'}]}]}}};
+  const p=extractAdidasProduct(product,listing,'https://www.adidas.com/us/germany-away-jersey-1994/JZ6941.html');
+  assert.equal(p.category,'Одежда');assert.equal(p.price,44);assert.equal(p.images.length,12);assert.deepEqual(p.variants.map(v=>v.size),['S','M','L','XL']);
+});
 test('Adidas link import uses public JSON routes when HTML is an Akamai challenge',async()=>{
   const original=globalThis.fetch;const calls=[];
   globalThis.fetch=async(input,init={})=>{calls.push([String(input),init]);const u=new URL(String(input));if(u.pathname==='/api/search/product/IF4492')return Response.json({id:'IF4492',name:'Daily 4.0 Shoes',brand:'Sportswear',category:'Shoes',color:'Black',price:65,salePrice:33,orderable:1,image:{src:'https://assets.adidas.com/main.jpg'}});if(u.pathname==='/api/plp/content-engine')return Response.json({raw:{itemList:{items:[{productId:'IF4492',availableSizes:['5','7'],orderable:1,salePrice:33,images:[{src:'https://assets.adidas.com/gallery.jpg'}]}]}}});return new Response('not found',{status:404,headers:{'Content-Type':'text/html'}})};
-  try {const p=await fetchProduct('https://www.adidas.com/us/daily-4.0-shoes/IF4492.html');assert.equal(calls.length,2);assert(calls.every(([url])=>url.startsWith('https://www.adidas.com/api/')));assert.equal(p.price,33);assert.deepEqual(p.variants.map(v=>v.size),['5','7']);assert.equal(p.images.length,2)} finally {globalThis.fetch=original}
+  try {const p=await fetchProduct('https://www.adidas.com/us/daily-4.0-shoes/IF4492.html');assert.equal(calls.length,2);assert(calls.every(([url])=>url.startsWith('https://www.adidas.com/api/')));assert(calls.every(([,init])=>!init.headers['X-Requested-With']&&!init.headers['Sec-CH-UA']));assert.equal(p.price,33);assert.deepEqual(p.variants.map(v=>v.size),['5','7']);assert.equal(p.images.length,2)} finally {globalThis.fetch=original}
 });
 test('Adidas listing data remains importable when product JSON is rate-limited',async()=>{
   const original=globalThis.fetch;const calls=[];

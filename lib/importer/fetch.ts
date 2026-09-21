@@ -44,7 +44,16 @@ function adidasProductApiUrls(start: URL) {
   return {product, listing, fallbackProduct, fallbackListing};
 }
 
-function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = browserUserAgent, referer?: string) {
+type PublicRequestOptions = {
+  referer?: string;
+  userAgent?: string;
+  /** Some public merchant APIs reject browser client-hint headers as bot signals. */
+  clientHints?: boolean;
+  /** Fixed same-merchant origins that may be used during a safe redirect. */
+  allowedOrigins?: string[];
+};
+
+function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = browserUserAgent, referer?: string, options: Pick<PublicRequestOptions, 'clientHints'> = {}) {
   return {
     Accept: format === 'json' ? 'application/json, text/plain, */*' : 'text/html,application/xhtml+xml',
     'User-Agent': userAgent,
@@ -56,7 +65,7 @@ function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = br
       'Sec-Fetch-Site': 'same-origin',
       'Sec-Fetch-Mode': format === 'json' ? 'cors' : 'navigate',
       'Sec-Fetch-Dest': format === 'json' ? 'empty' : 'document',
-      ...(format === 'json' ? {
+      ...(format === 'json' && options.clientHints !== false ? {
         'X-Requested-With': 'XMLHttpRequest',
         'Sec-CH-UA': '"Chromium";v="152", "Not?A_Brand";v="24", "Google Chrome";v="152"',
         'Sec-CH-UA-Mobile': '?0',
@@ -191,16 +200,16 @@ async function readAmazonUs(start: URL, signal: AbortSignal) {
   throw Error('Не удалось проверить регион Amazon.');
 }
 
-async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'json', options: {referer?: string; userAgent?: string} = {}) {
+async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'json', options: PublicRequestOptions = {}) {
   let url = start;
   for (let i = 0; i < 4; i++) {
-    const response = await fetch(url, {redirect: 'manual', signal, headers: requestHeaders(format, undefined, options.userAgent, options.referer)});
+    const response = await fetch(url, {redirect: 'manual', signal, headers: requestHeaders(format, undefined, options.userAgent, options.referer, options)});
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get('location');
       await response.body?.cancel();
       if (!location || i === 3) throw Error('Магазин перенаправляет запрос. Используйте прямую ссылку на товар.');
       url = allowedUrl(new URL(location, url).href);
-      if (format === 'json' && url.origin !== start.origin) throw Error('Магазин изменил регион. Используйте прямую ссылку нужного региона.');
+      if (format === 'json' && url.origin !== start.origin && !options.allowedOrigins?.includes(url.origin)) throw Error('Магазин изменил регион. Используйте прямую ссылку нужного региона.');
       continue;
     }
     return {text: await readBody(response, format), url};
@@ -214,7 +223,15 @@ export async function fetchProduct(value: string) {
   try {
     const adidas = adidasProductApiUrls(url);
     if (adidas) {
-      const adidasRequest = {referer: url.href, userAgent: adidasUserAgent};
+      // Adidas treats Chromium client hints and X-Requested-With as bot signals
+      // and answers with a 429 challenge. Keep this public request minimal;
+      // it still carries the exact product-page referrer but no session data.
+      const adidasRequest = {
+        referer: url.href,
+        userAgent: adidasUserAgent,
+        clientHints: false,
+        allowedOrigins: ['https://www.adidas.com', 'https://adidas.com'],
+      };
       // The PLP JSON includes the canonical card, price, gallery and size
       // matrix. Fetch it first so a product endpoint rate limit does not make
       // an otherwise complete public listing unusable.
