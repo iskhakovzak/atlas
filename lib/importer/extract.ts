@@ -44,6 +44,229 @@ export type ProductCategory =
   | "Спорт"
   | "Другое";
 
+type EmbeddedRecord = Record<string, unknown>;
+
+/**
+ * A number of priority merchants render their product page from a bounded
+ * public JSON state blob instead of JSON-LD.  This parser is deliberately
+ * conservative: it only accepts a state object that can be tied back to the
+ * exact source path/id, and it never treats a recommendation as the product.
+ * It is a fallback for public data, not a browser/CAPTCHA workaround.
+ */
+function embeddedJson(html: string) {
+  const roots: unknown[] = [];
+  const patterns = [
+    /<script\b[^>]*id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i,
+    /<script\b[^>]*id=["']__PRELOADED_STATE__["'][^>]*>([\s\S]*?)<\/script>/i,
+    /<script\b[^>]*id=["']__INITIAL_STATE__["'][^>]*>([\s\S]*?)<\/script>/i,
+    /<script\b[^>]*id=["']__APOLLO_STATE__["'][^>]*>([\s\S]*?)<\/script>/i,
+  ];
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (!match || match[1].length > 2_500_000) continue;
+    try { roots.push(JSON.parse(match[1])); } catch {}
+  }
+  return roots;
+}
+
+function embeddedText(value: unknown) {
+  return typeof value === "string" ? clean(value) : "";
+}
+
+function embeddedNumber(value: unknown) {
+  if (value && typeof value === "object") {
+    const record = value as EmbeddedRecord;
+    return number(record.amount ?? record.value ?? record.current ?? record.price);
+  }
+  return number(value);
+}
+
+function embeddedUrlMatches(value: unknown, sourceUrl: string) {
+  if (typeof value !== "string") return false;
+  try {
+    const candidate = new URL(value, sourceUrl), source = new URL(sourceUrl);
+    if (candidate.protocol !== "https:" || candidate.username || candidate.password || candidate.port) return false;
+    candidate.hostname = candidate.hostname.replace(/^www\./, "");
+    source.hostname = source.hostname.replace(/^www\./, "");
+    candidate.pathname = candidate.pathname.replace(/\/$/, "") || "/";
+    source.pathname = source.pathname.replace(/\/$/, "") || "/";
+    return candidate.origin === source.origin && candidate.pathname === source.pathname;
+  } catch { return false; }
+}
+
+function embeddedListingTokens(sourceUrl: string) {
+  const source = new URL(sourceUrl);
+  const pathTokens = source.pathname.split(/[^a-z0-9]+/i).map(token => token.toLowerCase()).filter(token => token.length >= 3);
+  const queryTokens = [...source.searchParams.values()].flatMap(value => value.split(/[^a-z0-9]+/i)).map(token => token.toLowerCase()).filter(token => token.length >= 3);
+  return new Set([...pathTokens, ...queryTokens]);
+}
+
+function embeddedCandidateMatches(record: EmbeddedRecord, sourceUrl: string, tokens: Set<string>) {
+  const urlFields = ['url', 'canonicalUrl', 'canonical', 'pdpUrl', 'productUrl', 'link', 'href', 'path'];
+  if (urlFields.some(key => embeddedUrlMatches(record[key], sourceUrl))) return true;
+  const idFields = ['itemId', 'productId', 'styleCode', 'articleNumber', 'offerId', 'variantId', 'sku', 'id'];
+  return idFields.some(key => {
+    const value = embeddedText(record[key]).toLowerCase();
+    if (!value || value.length < 3) return false;
+    // A numeric id must be long enough to be a real listing identifier. This
+    // avoids matching a generic state key such as id=1 from a recommendation.
+    if (/^\d+$/.test(value) && value.length < 5) return false;
+    return tokens.has(value) || [...tokens].some(token => token.length >= 5 && value.includes(token));
+  });
+}
+
+function embeddedImages(record: EmbeddedRecord, sourceUrl: string) {
+  const values: unknown[] = [];
+  for (const key of ['image', 'images', 'gallery', 'media', 'pictures', 'photo', 'photos']) {
+    const value = record[key];
+    if (Array.isArray(value)) values.push(...value);
+    else if (value !== undefined) values.push(value);
+  }
+  const urls = values.flatMap(value => {
+    if (typeof value === 'string') return [value];
+    if (!value || typeof value !== 'object') return [];
+    const item = value as EmbeddedRecord;
+    return [item.url, item.src, item.contentUrl, item.imageUrl, item.large, item.original];
+  });
+  return [...new Set(urls.map(value => safeImage(value, sourceUrl)).filter((value): value is string => Boolean(value)))].slice(0, 12);
+}
+
+function embeddedAvailability(record: EmbeddedRecord) {
+  for (const key of ['available', 'isAvailable', 'inStock', 'availableForSale']) {
+    if (typeof record[key] === 'boolean') return {available: record[key], availabilityKnown: true};
+  }
+  for (const key of ['quantity', 'stock', 'inventory', 'quantityAvailable']) {
+    if (typeof record[key] === 'number') return {available: record[key] > 0, availabilityKnown: true};
+    if (record[key] && typeof record[key] === 'object') {
+      const amount = embeddedNumber(record[key]);
+      if (amount !== undefined) return {available: amount > 0, availabilityKnown: true};
+    }
+  }
+  const state = embeddedText(record.availability ?? record.availabilityStatus ?? record.status).toLowerCase();
+  if (state) {
+    if (/out.?of.?stock|sold.?out|unavailable|inactive|discontinued|not.?available/.test(state)) return {available: false, availabilityKnown: true};
+    if (/in.?stock|available|active|buyable|orderable/.test(state)) return {available: true, availabilityKnown: true};
+  }
+  return {available: true, availabilityKnown: false};
+}
+
+function embeddedOptionLabel(record: EmbeddedRecord) {
+  const direct = embeddedText(record.label ?? record.title ?? record.name ?? record.displayName);
+  const optionValues = record.optionValues ?? record.options ?? record.selectedOptions;
+  const values = Array.isArray(optionValues)
+    ? optionValues.flatMap(value => {
+      if (typeof value === 'string') return [clean(value)];
+      if (value && typeof value === 'object') {
+        const item = value as EmbeddedRecord;
+        return [embeddedText(item.value ?? item.label ?? item.name)];
+      }
+      return [];
+    }).filter(Boolean)
+    : [];
+  return direct || values.join(' · ');
+}
+
+function embeddedVariants(record: EmbeddedRecord, sourceUrl: string): ProductVariant[] {
+  const raw = ['variants', 'skus', 'children', 'offers', 'items', 'sizes'].flatMap(key => Array.isArray(record[key]) ? record[key] : []);
+  const variants = raw.flatMap(value => {
+    if (!value || typeof value !== 'object') return [];
+    const item = value as EmbeddedRecord;
+    const label = embeddedOptionLabel(item);
+    const color = embeddedText(item.color ?? item.colour ?? item.colorName);
+    const size = embeddedText(item.size ?? item.sizeName ?? item.dimension);
+    const variantLabel = label || [color, size].filter(Boolean).join(' · ');
+    if (!variantLabel) return [];
+    const availability = embeddedAvailability(item);
+    const id = embeddedText(item.sku ?? item.variantId ?? item.id ?? item.gtin ?? item.ean) || undefined;
+    const image = embeddedImages(item, sourceUrl)[0];
+    return [{
+      id,
+      label: variantLabel.slice(0, 120),
+      color: color || undefined,
+      size: size || undefined,
+      sizeLabel: size ? 'Размер' : undefined,
+      price: embeddedNumber(item.price ?? item.currentPrice ?? item.salePrice ?? item.finalPrice ?? item.amount),
+      image,
+      ...availability,
+    } satisfies ProductVariant];
+  }).slice(0, 80);
+  const counts = new Map<string, number>();
+  for (const item of variants) if (item.id) counts.set(item.id, (counts.get(item.id) ?? 0) + 1);
+  for (const item of variants) if (item.id && counts.get(item.id)! > 1) delete item.id;
+  return variants;
+}
+
+function embeddedCandidateRecords(root: unknown, sourceUrl: string) {
+  const tokens = embeddedListingTokens(sourceUrl), candidates: EmbeddedRecord[] = [];
+  const visit = (value: unknown, depth = 0) => {
+    if (depth > 14 || candidates.length > 4000 || !value || typeof value !== 'object') return;
+    if (Array.isArray(value)) { for (const item of value) visit(item, depth + 1); return; }
+    const record = value as EmbeddedRecord;
+    if (embeddedCandidateMatches(record, sourceUrl, tokens)) {
+      const title = embeddedText(record.name ?? record.title ?? record.productName ?? record.displayName ?? record.fullTitle);
+      const price = embeddedNumber(record.price ?? record.currentPrice ?? record.salePrice ?? record.finalPrice ?? record.amount);
+      const variants = embeddedVariants(record, sourceUrl);
+      if (title && (price !== undefined || variants.some(item => item.price !== undefined))) candidates.push(record);
+    }
+    for (const child of Object.values(record)) visit(child, depth + 1);
+  };
+  visit(root);
+  return candidates;
+}
+
+function extractPriorityEmbedded(html: string, sourceUrl: string): Extracted | undefined {
+  const source = new URL(sourceUrl);
+  const priorityRoots = new Set([
+    'macys.com', 'ebay.com', 'walmart.com', 'target.com', 'bestbuy.com', 'sephora.com', 'footlocker.com',
+    'zalando.com', 'zalando.de', 'zalando.es', 'zalando.fr', 'zalando.it', 'asos.com', 'zara.com', 'mango.com', 'farfetch.com', 'primor.eu', 'druni.es',
+    'mediamarkt.de', 'mediamarkt.es', 'pccomponentes.com', 'decathlon.es',
+  ]);
+  const hostname = source.hostname.toLowerCase().replace(/^www\./, '');
+  const root = [...priorityRoots].find(value => hostname === value || hostname.endsWith(`.${value}`));
+  if (!root) return;
+  const candidate = embeddedJson(html).flatMap(value => embeddedCandidateRecords(value, sourceUrl))[0];
+  if (!candidate) return;
+  const variants = embeddedVariants(candidate, sourceUrl);
+  const price = embeddedNumber(candidate.price ?? candidate.currentPrice ?? candidate.salePrice ?? candidate.finalPrice ?? candidate.amount)
+    ?? variants.find(item => item.price !== undefined)?.price;
+  const title = embeddedText(candidate.name ?? candidate.title ?? candidate.productName ?? candidate.displayName ?? candidate.fullTitle).slice(0, 140) || undefined;
+  const rawBrand = candidate.brand;
+  const brand = (typeof rawBrand === 'object' && rawBrand ? embeddedText((rawBrand as EmbeddedRecord).name ?? (rawBrand as EmbeddedRecord).label) : embeddedText(rawBrand)) || undefined;
+  const currency = embeddedText(candidate.currency ?? candidate.currencyCode ?? candidate.priceCurrency).toUpperCase() || undefined;
+  const image = embeddedImages(candidate, sourceUrl)[0];
+  const images = embeddedImages(candidate, sourceUrl);
+  const category = inferProductCategory([title, embeddedText(candidate.category), embeddedText(candidate.productType), embeddedText(candidate.description)].filter(Boolean).join(' '), brand ?? '');
+  const availability = embeddedAvailability(candidate);
+  const baseVariant = variants.length ? variants : title ? [{label: 'Выбранный вариант', price, image, ...availability} satisfies ProductVariant] : [];
+  if (!title && price === undefined && !images.length) return;
+  const weight = parseWeight(candidate.shippingWeight ?? candidate.boxedWeight ?? candidate.weight);
+  const shipping = embeddedNumber(candidate.shipping ?? candidate.shippingPrice ?? candidate.deliveryPrice);
+  const warnings = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.'];
+  if (variants.length) warnings.push('Варианты получены из публичных данных магазина и будут перепроверены перед корзиной.');
+  if (!variants.length) warnings.push('Магазин не отдал матрицу вариантов: выберите товар вручную, если он требует размера или цвета.');
+  if (variants.some(item => item.availabilityKnown === false)) warnings.push('Магазин не отдал подтверждённый статус наличия — перед корзиной Atlas проверит его ещё раз.');
+  return {
+    sku: embeddedText(candidate.sku ?? candidate.productId ?? candidate.itemId ?? candidate.styleCode) || undefined,
+    title,
+    brand,
+    category,
+    declarationDescription: declarationFor(category, title ?? '', brand),
+    image,
+    images,
+    price,
+    currency,
+    variants: baseVariant,
+    shipping,
+    shippingCurrency: currency,
+    boxedWeight: weight,
+    weightKind: weight ? 'shipping' : undefined,
+    country: inferStorefrontCountry(sourceUrl, currency),
+    warnings,
+    sourceUrl,
+    method: `${root} embedded product data`,
+  };
+}
+
 const clean = (s: unknown) =>
   typeof s === "string"
     ? s
@@ -573,6 +796,8 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
   if (amazon) return amazon;
   const nike = extractNike(html, sourceUrl);
   if (nike) return nike;
+  const priorityEmbedded = extractPriorityEmbedded(html, sourceUrl);
+  if (priorityEmbedded) return priorityEmbedded;
   const meta: Record<string, string> = {};
   for (const tag of html.match(/<meta\b[^>]*>/gi) ?? []) {
     const a: Record<string, string> = {};

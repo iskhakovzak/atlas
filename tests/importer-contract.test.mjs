@@ -84,3 +84,45 @@ test('shared parent SKUs do not collapse different size selections', () => {
   assert.deepEqual(result.variants.map(v => v.id), [undefined, undefined]);
   assert.deepEqual(result.variants.map(v => v.label), ['S', 'M']);
 });
+
+test('priority merchant embedded state keeps the exact Walmart listing and option matrix', () => {
+  const sourceUrl = 'https://www.walmart.com/ip/Atlas-Runner/123456789';
+  const state = {
+    props: {pageProps: {product: {
+      productId: '123456789',
+      name: 'Atlas Runner Shoes',
+      brand: {name: 'Atlas'},
+      category: 'Shoes',
+      price: 39.99,
+      currency: 'USD',
+      images: [{url: 'https://i5.walmartimages.com/runner.jpg'}],
+      variants: [
+        {id: 'sku-8', size: '8', color: 'Black', price: 39.99, availability: 'In Stock'},
+        {id: 'sku-9', size: '9', color: 'Black', price: 39.99, availability: 'Out of Stock'},
+      ],
+    }, recommendation: {productId: '999999999', name: 'Wrong item', price: 1}},
+  }};
+  const result = extractProduct(`<script id="__NEXT_DATA__" type="application/json">${JSON.stringify(state)}</script>`, sourceUrl);
+  assert.equal(result.method, 'walmart.com embedded product data');
+  assert.equal(result.title, 'Atlas Runner Shoes');
+  assert.equal(result.price, 39.99);
+  assert.deepEqual(result.variants.map(v => [v.color, v.size, v.available, v.availabilityKnown]), [
+    ['Black', '8', true, true], ['Black', '9', false, true],
+  ]);
+  assert.equal(result.images[0], 'https://i5.walmartimages.com/runner.jpg');
+});
+
+test('priority merchant embedded state accepts a European exact id but ignores recommendations', () => {
+  const sourceUrl = 'https://www.zalando.de/atlas-runner/AB1234-001.html';
+  const state = {
+    product: {styleCode: 'AB1234-001', title: 'Atlas Runner', brand: 'Atlas', price: {amount: 89.95}, currencyCode: 'EUR', image: 'https://img01.ztat.net/runner.jpg', sizes: [
+      {id: 's40', label: '40', status: 'available'}, {id: 's41', label: '41', status: 'sold out'},
+    ]},
+    recommendation: {styleCode: 'ZZ9999-001', title: 'Other runner', price: 2},
+  };
+  const result = extractProduct(`<script id="__PRELOADED_STATE__" type="application/json">${JSON.stringify(state)}</script>`, sourceUrl);
+  assert.equal(result.method, 'zalando.de embedded product data');
+  assert.equal(result.currency, 'EUR');
+  assert.equal(result.country, 'Германия');
+  assert.deepEqual(result.variants.map(v => [v.label, v.available, v.availabilityKnown]), [['40', true, true], ['41', false, true]]);
+});

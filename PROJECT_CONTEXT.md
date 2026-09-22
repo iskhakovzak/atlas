@@ -379,3 +379,9 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Generic JSON-LD/ProductGroup imports select the exact linked listing instead of a recommendation, preserve SKU/GTIN identities where unique, cap matrices at 80 options and reject unsafe or unrelated structured URLs. Adidas responses must match the article code in the URL.
 - Merchant option records carry optional `availabilityKnown`. When a page omits a stock signal, Atlas keeps the observation as unknown, blocks cart verification and leaves the published catalog snapshot unchanged; only an explicit all-sold-out matrix can auto-hide a card. Older stored records remain compatible because the field is optional.
 - `scripts/catalog-refresh.mjs` signs the existing HMAC refresh endpoint for an external scheduler. It does not contain a secret; production still needs a separate scheduled Worker and `ATLAS_CATALOG_REFRESH_SECRET`.
+
+## Priority merchant embedded fallback — 22 September 2026
+
+- Priority-1/priority-2 pages that omit JSON-LD can now be read from a bounded public `__NEXT_DATA__`, `__PRELOADED_STATE__`, `__INITIAL_STATE__` or `__APOLLO_STATE__` payload for Macy's, eBay, Walmart, Target, Best Buy, Sephora, Foot Locker, Zalando regional hosts, ASOS, Zara, Mango, Farfetch, Primor, Druni, MediaMarkt, PcComponentes and Decathlon.
+- The fallback accepts only a product object tied to the exact source path or product identifier. It ignores recommendation objects, unsafe URLs and short generic numeric ids. It retains only public title, price, currency, photos, SKU, option matrix, explicit availability and bounded weight/shipping fields.
+- Unknown stock remains unknown and still blocks cart verification/catalog republication. A blocked page or missing exact embedded record continues to the safe JSON-LD/Open Graph/manual path; Atlas does not bypass CAPTCHA, login, merchant cookies or official API requirements.
