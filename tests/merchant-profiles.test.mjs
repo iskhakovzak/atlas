@@ -13,6 +13,8 @@ test('regional aliases resolve to a single merchant profile without changing the
   assert.equal(merchantProfileForUrl('https://www.amazon.com/dp/B000000000')?.root, 'amazon.com');
   assert.equal(merchantProfileForUrl('https://www.ebay.de/itm/123')?.root, 'ebay.com');
   assert.equal(merchantProfileForUrl('https://www.zalando.es/articulo')?.root, 'zalando.es');
+  assert.equal(merchantProfileForUrl('https://www.perfumeriasprimor.eu/p/producto')?.root, 'perfumeriasprimor.eu');
+  assert.equal(merchantProfileForUrl('https://www.footlocker.es/producto')?.root, 'footlocker.es');
   assert.equal(merchantProfileForUrl('https://example.test/product'), undefined);
 });
 

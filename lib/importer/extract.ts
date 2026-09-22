@@ -218,8 +218,8 @@ function extractPriorityEmbedded(html: string, sourceUrl: string): Extracted | u
   const source = new URL(sourceUrl);
   const priorityRoots = new Set([
     'macys.com', 'ebay.com', 'walmart.com', 'target.com', 'bestbuy.com', 'sephora.com', 'footlocker.com',
-    'zalando.com', 'zalando.de', 'zalando.es', 'zalando.fr', 'zalando.it', 'asos.com', 'zara.com', 'mango.com', 'farfetch.com', 'primor.eu', 'druni.es',
-    'mediamarkt.de', 'mediamarkt.es', 'pccomponentes.com', 'decathlon.es',
+    'zalando.com', 'zalando.de', 'zalando.es', 'zalando.fr', 'zalando.it', 'asos.com', 'zara.com', 'mango.com', 'farfetch.com', 'primor.eu', 'perfumeriasprimor.eu', 'druni.es',
+    'mediamarkt.de', 'mediamarkt.es', 'mediamarkt.it', 'pccomponentes.com', 'decathlon.es', 'footlocker.es',
   ]);
   const hostname = source.hostname.toLowerCase().replace(/^www\./, '');
   const root = [...priorityRoots].find(value => hostname === value || hostname.endsWith(`.${value}`));

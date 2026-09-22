@@ -16,7 +16,7 @@ export type MerchantProfile = {
   defaultCategory?: ProductCategory;
   defaultCountry?: string;
   regions: string[];
-  adapter: 'amazon-location' | 'adidas-json' | 'shopify-json' | 'json-ld' | 'official-api-required';
+  adapter: 'amazon-location' | 'adidas-json' | 'shopify-json' | 'json-ld' | 'embedded-json' | 'official-api-required';
 };
 
 const p = (profile: MerchantProfile) => profile;
@@ -26,27 +26,31 @@ export const priorityMerchantProfiles: MerchantProfile[] = [
   p({root: 'amazon.com', name: 'Amazon US', priority: 1, focus: 'Универмаг', defaultCountry: 'США', regions: ['США'], adapter: 'amazon-location'}),
   p({root: 'nike.com', name: 'Nike', priority: 1, focus: 'Кроссовки', defaultBrand: 'Nike', defaultCategory: 'Обувь', defaultCountry: 'США', regions: ['США', 'Европа'], adapter: 'json-ld'}),
   p({root: 'adidas.com', name: 'adidas', priority: 1, focus: 'Кроссовки', defaultBrand: 'adidas', defaultCategory: 'Обувь', defaultCountry: 'США', regions: ['США', 'Европа'], adapter: 'adidas-json'}),
-  p({root: 'macys.com', name: "Macy's", priority: 1, focus: 'Универмаг', defaultCountry: 'США', regions: ['США'], adapter: 'json-ld'}),
+  p({root: 'macys.com', name: "Macy's", priority: 1, focus: 'Универмаг', defaultCountry: 'США', regions: ['США'], adapter: 'embedded-json'}),
   p({root: 'ebay.com', name: 'eBay', priority: 1, focus: 'Универмаг', defaultCountry: 'США', regions: ['США'], adapter: 'official-api-required'}),
-  p({root: 'walmart.com', name: 'Walmart', priority: 1, focus: 'Универмаг', defaultCountry: 'США', regions: ['США'], adapter: 'json-ld'}),
-  p({root: 'target.com', name: 'Target', priority: 1, focus: 'Универмаг', defaultCountry: 'США', regions: ['США'], adapter: 'json-ld'}),
-  p({root: 'bestbuy.com', name: 'Best Buy', priority: 1, focus: 'Техника', defaultBrand: 'Best Buy', defaultCountry: 'США', regions: ['США'], adapter: 'json-ld'}),
-  p({root: 'sephora.com', name: 'Sephora', priority: 1, focus: 'Красота', defaultCategory: 'Красота и уход', defaultCountry: 'США', regions: ['США', 'Европа'], adapter: 'json-ld'}),
-  p({root: 'footlocker.com', name: 'Foot Locker', priority: 1, focus: 'Кроссовки', defaultCategory: 'Обувь', defaultCountry: 'США', regions: ['США', 'Европа'], adapter: 'json-ld'}),
-  p({root: 'zalando.com', name: 'Zalando', priority: 2, focus: 'Одежда', regions: ['Европа'], adapter: 'json-ld'}),
-  p({root: 'zalando.de', name: 'Zalando Deutschland', priority: 2, focus: 'Одежда', defaultCountry: 'Германия', regions: ['Европа'], adapter: 'json-ld'}),
-  p({root: 'zalando.es', name: 'Zalando España', priority: 2, focus: 'Одежда', defaultCountry: 'Испания', regions: ['Европа'], adapter: 'json-ld'}),
-  p({root: 'zalando.fr', name: 'Zalando France', priority: 2, focus: 'Одежда', defaultCountry: 'Франция', regions: ['Европа'], adapter: 'json-ld'}),
-  p({root: 'asos.com', name: 'ASOS', priority: 2, focus: 'Одежда', defaultCountry: 'Великобритания', regions: ['Европа'], adapter: 'json-ld'}),
-  p({root: 'zara.com', name: 'Zara', priority: 2, focus: 'Одежда', defaultBrand: 'Zara', regions: ['Европа'], adapter: 'json-ld'}),
-  p({root: 'mango.com', name: 'Mango', priority: 2, focus: 'Одежда', defaultBrand: 'Mango', regions: ['Европа'], adapter: 'json-ld'}),
-  p({root: 'farfetch.com', name: 'Farfetch', priority: 2, focus: 'Одежда', regions: ['Европа', 'США'], adapter: 'json-ld'}),
-  p({root: 'primor.eu', name: 'Primor', priority: 2, focus: 'Красота', defaultCategory: 'Красота и уход', defaultCountry: 'Испания', regions: ['Европа'], adapter: 'json-ld'}),
-  p({root: 'druni.es', name: 'Druni', priority: 2, focus: 'Красота', defaultCategory: 'Красота и уход', defaultCountry: 'Испания', regions: ['Европа'], adapter: 'json-ld'}),
-  p({root: 'mediamarkt.de', name: 'MediaMarkt Deutschland', priority: 2, focus: 'Техника', defaultCategory: 'Электроника', defaultCountry: 'Германия', regions: ['Европа'], adapter: 'json-ld'}),
-  p({root: 'mediamarkt.es', name: 'MediaMarkt España', priority: 2, focus: 'Техника', defaultCategory: 'Электроника', defaultCountry: 'Испания', regions: ['Европа'], adapter: 'json-ld'}),
-  p({root: 'pccomponentes.com', name: 'PcComponentes', priority: 2, focus: 'Техника', defaultCategory: 'Электроника', defaultCountry: 'Испания', regions: ['Европа'], adapter: 'json-ld'}),
-  p({root: 'decathlon.es', name: 'Decathlon España', priority: 2, focus: 'Техника', defaultCategory: 'Спорт', defaultCountry: 'Испания', regions: ['Европа'], adapter: 'json-ld'}),
+  p({root: 'walmart.com', name: 'Walmart', priority: 1, focus: 'Универмаг', defaultCountry: 'США', regions: ['США'], adapter: 'embedded-json'}),
+  p({root: 'target.com', name: 'Target', priority: 1, focus: 'Универмаг', defaultCountry: 'США', regions: ['США'], adapter: 'embedded-json'}),
+  p({root: 'bestbuy.com', name: 'Best Buy', priority: 1, focus: 'Техника', defaultBrand: 'Best Buy', defaultCountry: 'США', regions: ['США'], adapter: 'embedded-json'}),
+  p({root: 'sephora.com', name: 'Sephora', priority: 1, focus: 'Красота', defaultCategory: 'Красота и уход', defaultCountry: 'США', regions: ['США', 'Европа'], adapter: 'embedded-json'}),
+  p({root: 'footlocker.com', name: 'Foot Locker', priority: 1, focus: 'Кроссовки', defaultCategory: 'Обувь', defaultCountry: 'США', regions: ['США', 'Европа'], adapter: 'embedded-json'}),
+  p({root: 'footlocker.es', name: 'Foot Locker España', priority: 1, focus: 'Кроссовки', defaultCategory: 'Обувь', defaultCountry: 'Испания', regions: ['Европа'], adapter: 'embedded-json'}),
+  p({root: 'zalando.com', name: 'Zalando', priority: 2, focus: 'Одежда', regions: ['Европа'], adapter: 'embedded-json'}),
+  p({root: 'zalando.de', name: 'Zalando Deutschland', priority: 2, focus: 'Одежда', defaultCountry: 'Германия', regions: ['Европа'], adapter: 'embedded-json'}),
+  p({root: 'zalando.es', name: 'Zalando España', priority: 2, focus: 'Одежда', defaultCountry: 'Испания', regions: ['Европа'], adapter: 'embedded-json'}),
+  p({root: 'zalando.fr', name: 'Zalando France', priority: 2, focus: 'Одежда', defaultCountry: 'Франция', regions: ['Европа'], adapter: 'embedded-json'}),
+  p({root: 'zalando.it', name: 'Zalando Italia', priority: 2, focus: 'Одежда', defaultCountry: 'Италия', regions: ['Европа'], adapter: 'embedded-json'}),
+  p({root: 'asos.com', name: 'ASOS', priority: 2, focus: 'Одежда', defaultCountry: 'Великобритания', regions: ['Европа'], adapter: 'embedded-json'}),
+  p({root: 'zara.com', name: 'Zara', priority: 2, focus: 'Одежда', defaultBrand: 'Zara', regions: ['Европа'], adapter: 'embedded-json'}),
+  p({root: 'mango.com', name: 'Mango', priority: 2, focus: 'Одежда', defaultBrand: 'Mango', regions: ['Европа'], adapter: 'embedded-json'}),
+  p({root: 'farfetch.com', name: 'Farfetch', priority: 2, focus: 'Одежда', regions: ['Европа', 'США'], adapter: 'embedded-json'}),
+  p({root: 'primor.eu', name: 'Primor', priority: 2, focus: 'Красота', defaultCategory: 'Красота и уход', defaultCountry: 'Испания', regions: ['Европа'], adapter: 'embedded-json'}),
+  p({root: 'perfumeriasprimor.eu', name: 'Primor', priority: 2, focus: 'Красота', defaultCategory: 'Красота и уход', defaultCountry: 'Испания', regions: ['Европа'], adapter: 'embedded-json'}),
+  p({root: 'druni.es', name: 'Druni', priority: 2, focus: 'Красота', defaultCategory: 'Красота и уход', defaultCountry: 'Испания', regions: ['Европа'], adapter: 'embedded-json'}),
+  p({root: 'mediamarkt.de', name: 'MediaMarkt Deutschland', priority: 2, focus: 'Техника', defaultCategory: 'Электроника', defaultCountry: 'Германия', regions: ['Европа'], adapter: 'embedded-json'}),
+  p({root: 'mediamarkt.es', name: 'MediaMarkt España', priority: 2, focus: 'Техника', defaultCategory: 'Электроника', defaultCountry: 'Испания', regions: ['Европа'], adapter: 'embedded-json'}),
+  p({root: 'mediamarkt.it', name: 'MediaMarkt Italia', priority: 2, focus: 'Техника', defaultCategory: 'Электроника', defaultCountry: 'Италия', regions: ['Европа'], adapter: 'embedded-json'}),
+  p({root: 'pccomponentes.com', name: 'PcComponentes', priority: 2, focus: 'Техника', defaultCategory: 'Электроника', defaultCountry: 'Испания', regions: ['Европа'], adapter: 'embedded-json'}),
+  p({root: 'decathlon.es', name: 'Decathlon España', priority: 2, focus: 'Техника', defaultCategory: 'Спорт', defaultCountry: 'Испания', regions: ['Европа'], adapter: 'embedded-json'}),
 ];
 
 const profiles = new Map(priorityMerchantProfiles.map(profile => [profile.root, profile]));
