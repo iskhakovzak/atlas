@@ -1,6 +1,7 @@
 import {extractAdidasProduct,extractProduct} from './extract.ts';
 import {extractShopify, shopifyEndpoints} from './shopify.ts';
 import {isSupportedStoreHost,supportedStoreCount} from './stores.ts';
+import {applyMerchantProfile} from './merchant-profiles.ts';
 export {supportedStoreCount};
 
 export function allowedUrl(value: string) {
@@ -290,7 +291,7 @@ export async function fetchProduct(value: string) {
     if (/\/products\//.test(url.pathname) && !/\/products\//.test(page.url.pathname)) throw Error('Магазин убрал карточку товара. Укажите другую ссылку.');
     if (/captcha|verify you are human|pardon our interruption|robot check/i.test(page.text.slice(0, 60000)))
       throw Error('Магазин запросил проверку посетителя. Используйте ручной ввод.');
-    return extractProduct(page.text, page.url.href);
+    return applyMerchantProfile(extractProduct(page.text, page.url.href), page.url.href);
   } finally {clearTimeout(timer);}
 }
 

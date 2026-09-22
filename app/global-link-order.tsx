@@ -129,8 +129,9 @@ export function GlobalLinkOrder() {
   const variantsForColor = useMemo(() => selectedColor ? variants.filter(item => item.color === selectedColor) : variantColors.length ? [] : variants, [variants,selectedColor,variantColors]);
   const variantSizes = useMemo(() => [...new Set(variantsForColor.map(item => item.size).filter((value): value is string => Boolean(value)))], [variantsForColor]);
   const variantSizeLabel = useMemo(() => [...new Set(variantsForColor.map(item => item.sizeLabel).filter((value): value is string => Boolean(value)))].join(' / ') || (lang==='ru'?'Размер / модель':lang==='uz'?'O‘lcham / model':'Size / model'), [variantsForColor,lang]);
+  const merchantAvailabilityUnknown = variants.length === 0 || variants.some(item => item.availabilityKnown === false);
   function applyVariantChoice(item:ProductVariant|undefined,knownCurrency=true){
-    if(!item||!item.available){setVariant("");setSelectedSize("");setVerified(false);return}
+    if(!item||!item.available||item.availabilityKnown===false){setVariant("");setSelectedSize("");setVerified(false);return}
     setVariant(item.label);setSelectedColor(item.color??"");setSelectedSize(item.size??"");
     if(item.price!==undefined&&knownCurrency)setAmount(String(item.price));else if(variants.some(value=>value.price!==undefined))setAmount("");
     if(item.image)setImage(item.image);setVerified(false);
@@ -214,7 +215,7 @@ export function GlobalLinkOrder() {
           ? receivedVariants
           : fallbackOptions;
       const safeVariants = knownCurrency ? importedVariants : importedVariants.map(item => ({...item, price: undefined}));
-      const availableVariants = safeVariants.filter(v => v.available);
+      const availableVariants = safeVariants.filter(v => v.available && v.availabilityKnown !== false);
       setVariants(safeVariants);
       const selectedId = new URL(data.sourceUrl).searchParams.get('variant');
       const selectedVariant = availableVariants.find(item => item.id && item.id === selectedId)
@@ -444,7 +445,7 @@ export function GlobalLinkOrder() {
                 e.preventDefault();
                 try {
                   if(sourceCheckStatus!=='verified')throw Error(tx('Дождитесь автоматической проверки магазина.','Do‘konning avtomatik tekshiruvi tugashini kuting.','Wait for the automatic store check to finish.'));
-                  if (!name.trim() || !variant.trim() || !verified)
+                  if (!name.trim() || !variant.trim() || !verified || merchantAvailabilityUnknown)
                      throw Error(tx("Проверьте данные и подтвердите страну отправки.","Ma’lumotlarni tekshirib, jo‘natish mamlakatini tasdiqlang.","Check the details and confirm the dispatch country."));
                   if (country === "Другая страна" && !otherCountry.trim())
                      throw Error(tx("Введите страну отправки.","Jo‘natish mamlakatini kiriting.","Enter the dispatch country."));
@@ -672,11 +673,11 @@ export function GlobalLinkOrder() {
               <div className="field variant-matrix">
                 <label htmlFor="variant">{c.variant}</label>
                 {variants.length && (variantColors.length||variantSizes.length) ? <>
-                  {variantColors.length>0&&<div className="variant-step"><div><b>{c.color}</b><span>{selectedColor||c.selectColor}</span></div><div className="variant-options">{variantColors.map(color=>{const choices=variants.filter(item=>item.color===color),available=choices.some(item=>item.available);return <button type="button" key={color} disabled={!available} aria-pressed={selectedColor===color} onClick={()=>{setSelectedColor(color);setSelectedSize('');const purchasable=choices.filter(item=>item.available);if(!purchasable.some(item=>item.size)&&purchasable[0])applyVariantChoice(purchasable[0]);else{setVariant('');setVerified(false)}}}>{color}{!available&&<small>{c.none}</small>}</button>})}</div></div>}
-                  {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize||c.selectVariant}</span></div><div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices.find(item=>item.available),price=choice?.price;return <button type="button" key={size} disabled={!choice} aria-pressed={selectedSize===size} onClick={()=>applyVariantChoice(choice)}><span>{size}</span>{choice&&price!==undefined&&<small>{price} {currency}</small>}{!choice&&<small>{c.none}</small>}</button>})}</div></div>}
-                   {!variantColors.length&&!variantSizes.length&&<Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.filter(item=>item.available).map(item=>item.label)}/>}
+                  {variantColors.length>0&&<div className="variant-step"><div><b>{c.color}</b><span>{selectedColor||c.selectColor}</span></div><div className="variant-options">{variantColors.map(color=>{const choices=variants.filter(item=>item.color===color),available=choices.some(item=>item.available&&item.availabilityKnown!==false);return <button type="button" key={color} disabled={!available} aria-pressed={selectedColor===color} onClick={()=>{setSelectedColor(color);setSelectedSize('');const purchasable=choices.filter(item=>item.available&&item.availabilityKnown!==false);if(!purchasable.some(item=>item.size)&&purchasable[0])applyVariantChoice(purchasable[0]);else{setVariant('');setVerified(false)}}}>{color}{!available&&<small>{c.none}</small>}</button>})}</div></div>}
+                  {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize||c.selectVariant}</span></div><div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices.find(item=>item.available&&item.availabilityKnown!==false),price=choice?.price;return <button type="button" key={size} disabled={!choice} aria-pressed={selectedSize===size} onClick={()=>applyVariantChoice(choice)}><span>{size}</span>{choice&&price!==undefined&&<small>{price} {currency}</small>}{!choice&&<small>{c.none}</small>}</button>})}</div></div>}
+                   {!variantColors.length&&!variantSizes.length&&<Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.filter(item=>item.available&&item.availabilityKnown!==false).map(item=>item.label)}/>}
                    <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
-                 </> : variants.length ? <Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.filter(item=>item.available).map(item=>item.label)}/> : (
+                </> : variants.length ? <Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.filter(item=>item.available&&item.availabilityKnown!==false).map(item=>item.label)}/> : (
                   <input
                     id="variant"
                     required
@@ -710,7 +711,7 @@ export function GlobalLinkOrder() {
                   {c.verified}
                 </label>
               </div>
-              <button className="btn primary" disabled={!verified || adding || sourceCheckStatus!=='verified'}>
+              <button className="btn primary" disabled={!verified || adding || sourceCheckStatus!=='verified' || merchantAvailabilityUnknown}>
                 {adding ? c.adding : c.add}
                 <ArrowRight size={18} />
               </button>

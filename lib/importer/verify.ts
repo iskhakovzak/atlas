@@ -5,7 +5,7 @@ const sameAmount = (left: number, right: number) => Math.abs(left - right) < 0.0
 
 function currentVariant(product: Product, selectedLabel: string, extracted: Extracted): ProductVariant | undefined {
   const variants = extracted.variants ?? [];
-  if (!variants.length) return;
+  if (!variants.length) throw Error('Магазин не подтвердил доступный вариант товара. Обновите карточку и повторите проверку.');
   const selected = product.sourceVariantId
     ? variants.find(item => item.id === product.sourceVariantId)
     : variants.find(item => item.label === selectedLabel);
@@ -21,6 +21,7 @@ function currentVariant(product: Product, selectedLabel: string, extracted: Extr
   if (!selected && !normalized) throw Error('Выбранный вариант больше не найден в магазине. Загрузите товар заново.');
   const resolved = selected ?? normalized;
   if (!resolved) throw Error('Выбранный вариант больше не найден в магазине. Загрузите товар заново.');
+  if (resolved.availabilityKnown === false) throw Error('Магазин не подтвердил наличие выбранного варианта. Обновите товар и повторите проверку.');
   if (!resolved.available) throw Error('Выбранный вариант закончился в магазине. Выберите другой.');
   return resolved;
 }

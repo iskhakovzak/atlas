@@ -75,6 +75,11 @@
 - [x] Remove manual merchant-page availability confirmation from link ordering; automatically retry the source check and keep add-to-cart disabled until the protected server verification succeeds.
 - [x] Add an administrator recheck queue for fetch errors and price/currency/availability changes, with explicit review before republication.
 - [ ] Test the allowlist against live pages regularly. Store HTML and bot behavior change.
+- [x] Add an explicit priority-1/priority-2 merchant registry and surface the first US/European stores in the link-order directory without claiming that every page is supported.
+- [x] Match structured product data to the exact linked listing, retain unique SKU/GTIN variant IDs and reject unsafe/unrelated recommendation nodes.
+- [x] Preserve unknown merchant availability as a separate optional state; block cart verification and catalog republishing until a stock signal is explicit.
+- [ ] Add store-specific public/official adapters and fixtures for Macy's, eBay, Walmart, Target, Best Buy, Sephora, Foot Locker, Zalando, ASOS, Primor, Druni, MediaMarkt and PcComponentes. Generic JSON-LD remains the safe fallback when a merchant blocks or omits data.
+- [ ] Provision the external scheduler using `scripts/catalog-refresh.mjs`, configure `ATLAS_CATALOG_REFRESH_SECRET` and alert on repeated merchant failures.
 
 ## Order flow
 

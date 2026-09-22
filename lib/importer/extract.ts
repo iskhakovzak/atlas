@@ -5,11 +5,15 @@ export type ProductVariant = {
   color?: string;
   label: string;
   available: boolean;
+  /** False means the merchant omitted a definitive stock signal. */
+  availabilityKnown?: boolean;
   price?: number;
   image?: string;
 };
 
 export type Extracted = {
+  /** Merchant identity from the selected structured product, never a guessed ID. */
+  sku?: string;
   title?: string;
   brand?: string;
   category?: ProductCategory;
@@ -275,6 +279,7 @@ function extractAnker(html: string, sourceUrl: string): Extracted | undefined {
         size: parts[1] || undefined,
         label: name || 'Стандартный',
         available: value.availableForSale === true && value.currentlyNotInStock !== true && value.quantityAvailable !== 0,
+        availabilityKnown: typeof value.availableForSale === 'boolean' || value.quantityAvailable !== undefined || value.currentlyNotInStock !== undefined,
         price: number(value.price),
         image: safeImage(image?.url, sourceUrl),
       };
@@ -311,7 +316,8 @@ function extractAmazon(html: string, sourceUrl: string): Extracted | undefined {
   const brand = (byline.match(/(?:Visit|Shop)\s+the\s+(.+?)\s+Store/i)?.[1] ?? byline).slice(0, 80) || 'Amazon';
   const category = inferProductCategory(title ?? '', brand);
   const unavailable = /id=["']availability["'][\s\S]{0,1200}(?:out of stock|currently unavailable|unavailable)/i.test(html);
-  const variants: ProductVariant[] = title ? [{label: 'Выбранный вариант', available: !unavailable, price, image: images[0]}] : [];
+  const availabilityBlock = /id=["']availability["']/i.test(html);
+  const variants: ProductVariant[] = title ? [{label: 'Выбранный вариант', available: !unavailable, availabilityKnown: availabilityBlock, price, image: images[0]}] : [];
   const warnings: string[] = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.'];
   if (price === undefined) warnings.unshift('Цена не найдена в американском блоке Amazon: укажите её со страницы выбранного варианта.');
   if (unavailable) warnings.push('Amazon сообщает, что выбранный товар недоступен.');
@@ -330,6 +336,73 @@ function extractAmazon(html: string, sourceUrl: string): Extracted | undefined {
     method: 'Amazon product data',
     country: 'США',
   };
+}
+
+/**
+ * Nike product pages publish a bounded `__NEXT_DATA__` payload containing the
+ * exact style code, gallery, price and size/SKU matrix. JSON-LD often omits
+ * offer availability, so prefer this merchant-owned payload when it matches
+ * the URL article code. No cookies or private Nike APIs are required.
+ */
+function extractNike(html: string, sourceUrl: string): Extracted | undefined {
+  const source = new URL(sourceUrl);
+  if (!/(^|\.)nike\.com$/i.test(source.hostname)) return;
+  const match = html.match(/<script\b[^>]*id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i);
+  if (!match) return;
+  try {
+    const root = JSON.parse(match[1]) as {props?: {pageProps?: Record<string, unknown>}};
+    const page = root.props?.pageProps;
+    const article = source.pathname.split('/').filter(Boolean).at(-1)?.replace(/\.html$/i, '').toUpperCase();
+    const selected = page?.selectedProduct && typeof page.selectedProduct === 'object'
+      ? page.selectedProduct as Record<string, unknown>
+      : undefined;
+    const groups = Array.isArray(page?.productGroups) ? page.productGroups : [];
+    const products = groups.flatMap(group => {
+      if (!group || typeof group !== 'object') return [];
+      const values = (group as Record<string, unknown>).products;
+      return values && typeof values === 'object' && !Array.isArray(values) ? Object.values(values as Record<string, unknown>) : [];
+    }).filter((value): value is Record<string, unknown> => Boolean(value && typeof value === 'object'));
+    const product = selected && (!article || [selected.styleCode, selected.styleColor, selected.pdpUrl].some(value => String(value ?? '').toUpperCase().includes(article ?? '')))
+      ? selected
+      : products.find(value => String(value.styleCode ?? value.merchProductId ?? '').toUpperCase() === article || String(value.pdpUrl ?? '').includes(`/${article}`));
+    if (!product) return;
+    const info = product.productInfo && typeof product.productInfo === 'object' ? product.productInfo as Record<string, unknown> : {};
+    const title = clean(info.fullTitle ?? info.title ?? product.displayStyle ?? product.styleCode).slice(0, 140) || undefined;
+    const brands = Array.isArray(product.brands) ? product.brands.map(clean).filter(Boolean) : [];
+    const brand = brands[0] || 'Nike';
+    const color = clean(product.colorDescription ?? product.styleColor) || undefined;
+    const priceData = product.prices && typeof product.prices === 'object' ? product.prices as Record<string, unknown> : {};
+    const price = number(priceData.currentPrice ?? priceData.price ?? priceData.initialPrice);
+    const currency = clean(priceData.currency ?? (page?.locale && typeof page.locale === 'object' ? (page.locale as Record<string, unknown>).currency : undefined)).toUpperCase() || undefined;
+    const imageValues = Array.isArray(product.contentImages) ? product.contentImages.flatMap(value => {
+      if (!value || typeof value !== 'object') return [];
+      const properties = (value as Record<string, unknown>).properties;
+      if (!properties || typeof properties !== 'object') return [];
+      const record = properties as Record<string, unknown>;
+      return [record.portrait, record.squarish];
+    }) : [];
+    const images = [...new Set(imageValues.map(value => {
+      if (!value || typeof value !== 'object') return undefined;
+      return safeImage((value as Record<string, unknown>).url, sourceUrl);
+    }).filter((value): value is string => Boolean(value)))].slice(0, 12);
+    const rawSizes = Array.isArray(product.sizes) ? product.sizes : [];
+    const variants: ProductVariant[] = rawSizes.map(raw => {
+      const value = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
+      const label = clean(value.label ?? value.localizedLabel);
+      const gtins = Array.isArray(value.gtins) ? value.gtins : [];
+      const id = clean(gtins[0] && typeof gtins[0] === 'object' ? (gtins[0] as Record<string, unknown>).gtin : value.merchSkuId) || undefined;
+      const status = clean(value.status).toUpperCase();
+      return {id, size: label || undefined, sizeLabel: 'Размер', color, label: [color, label].filter(Boolean).join(' · '), available: status === 'ACTIVE' || status === 'BUYABLE_BUY', availabilityKnown: Boolean(status), price, image: images[0]};
+    }).filter(value => value.label).slice(0, 80);
+    if (!variants.length) return;
+    const category = inferProductCategory([title, clean(product.productType), ...(Array.isArray(product.taxonomyLabels) ? product.taxonomyLabels.map(clean) : [])].filter(Boolean).join(' '), brand);
+    const warnings = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.', 'Вес с упаковкой нужно проверить.'];
+    if (price === undefined) warnings.unshift('Цена не найдена в данных Nike: выберите конкретный вариант на странице магазина.');
+    if (!variants.some(value => value.available)) warnings.push('Nike не указал доступный размер в текущем снимке.');
+    return {title, brand, category, declarationDescription: declarationFor(category, title ?? '', brand), image: images[0], images, price, currency, variants, country: inferStorefrontCountry(sourceUrl, currency), warnings, sourceUrl, method: 'Nike product data', sku: clean(product.styleCode) || undefined};
+  } catch {
+    return;
+  }
 }
 
 type AdidasApiRecord = Record<string, unknown>;
@@ -355,6 +428,8 @@ export function extractAdidasProduct(productValue: unknown, listingValue: unknow
   const itemList = raw?.itemList as AdidasApiRecord | undefined;
   const items = Array.isArray(itemList?.items) ? itemList.items.filter((value): value is AdidasApiRecord => Boolean(value && typeof value === 'object')) : [];
   const id = clean(product.id ?? product.productId);
+  const article = new URL(sourceUrl).pathname.split('/').filter(Boolean).at(-1)?.replace(/\.html$/i, '');
+  if (!article || !id || id.toUpperCase() !== article.toUpperCase()) return;
   const item = items.find(value => clean(value.productId ?? value.id) === id);
   if (!id && !item) return;
   const selected = item ?? product;
@@ -369,16 +444,18 @@ export function extractAdidasProduct(productValue: unknown, listingValue: unknow
   const currency = ({us: 'USD', ca: 'CAD', gb: 'GBP', uk: 'GBP', de: 'EUR', es: 'EUR', fr: 'EUR', it: 'EUR', nl: 'EUR', pl: 'PLN', se: 'SEK', dk: 'DKK', no: 'NOK', tr: 'TRY', au: 'AUD', jp: 'JPY', ae: 'AED', qa: 'QAR', bh: 'BHD', om: 'OMR'} as Record<string, string>)[locale];
   const availableSizes = [...new Set((Array.isArray(selected.availableSizes) ? selected.availableSizes : []).map(clean).filter(size => size && size.toLowerCase() !== 'hidden'))];
   const available = selected.orderable !== 0 && product.orderable !== 0;
+  const availabilityKnown = Array.isArray(selected.availableSizes) || typeof selected.orderable === 'number' || typeof product.orderable === 'number';
   const variants: ProductVariant[] = availableSizes.map(size => ({
     size,
     sizeLabel: 'Размер',
     color,
     label: [color, size].filter(Boolean).join(' · '),
     available,
+    availabilityKnown,
     price,
     image: images[0],
   }));
-  if (!variants.length) variants.push({label: color ?? 'Выбранный вариант', color, available, price, image: images[0]});
+  if (!variants.length) variants.push({label: color ?? 'Выбранный вариант', color, available, availabilityKnown, price, image: images[0]});
   const warnings = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.', 'Вес с упаковкой нужно проверить.'];
   if (!availableSizes.length) warnings.push('Adidas не отдал список размеров. Проверьте вариант на странице магазина.');
   if (price === undefined) warnings.unshift('Цена не найдена в данных Adidas: укажите её со страницы выбранного варианта.');
@@ -459,12 +536,13 @@ function extractZara(html: string, sourceUrl: string) {
         colorMedia?.url?.replace("{width}", "1024"),
       sourceUrl,
     );
-    return (color.sizes?.length ? color.sizes : [{ name: "Стандартный" }]).map(
+      return (color.sizes?.length ? color.sizes : [{ name: "Стандартный" }]).map(
       (size) => ({
         size: clean(size.name) || undefined,
         color: clean(color.name) || undefined,
         label: [clean(color.name), clean(size.name)].filter(Boolean).join(" · "),
         available: !/out_of_stock|coming_soon/i.test(size.availability ?? ""),
+        availabilityKnown: typeof size.availability === 'string' && size.availability.trim().length > 0,
         price: size.price === undefined ? undefined : size.price / divisor,
         image: colorImage,
       }),
@@ -493,6 +571,8 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
   if (anker) return anker;
   const amazon = extractAmazon(html, sourceUrl);
   if (amazon) return amazon;
+  const nike = extractNike(html, sourceUrl);
+  if (nike) return nike;
   const meta: Record<string, string> = {};
   for (const tag of html.match(/<meta\b[^>]*>/gi) ?? []) {
     const a: Record<string, string> = {};
@@ -522,20 +602,31 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     } catch {}
   }
 
-  const group = nodes.find((n) =>
-    [n["@type"]].flat().some((t) => t === "Product" || t === "ProductGroup"),
-  );
   const sameListing = (value: unknown) => {
     if (typeof value !== 'string') return false;
     try {
       const candidate = new URL(value, sourceUrl), source = new URL(sourceUrl);
+      if (candidate.protocol !== 'https:' || candidate.username || candidate.password || candidate.port) return false;
       for (const u of [candidate, source]) {
+        u.hostname = u.hostname.replace(/^www\./, '');
+        u.pathname = u.pathname.replace(/\/$/, '') || '/';
         for (const key of [...u.searchParams.keys()]) if (/^(utm_.+|gclid|fbclid|variant)$/i.test(key)) u.searchParams.delete(key);
         u.searchParams.sort();
       }
       return candidate.origin === source.origin && candidate.pathname === source.pathname && candidate.search === source.search;
     } catch { return false; }
   };
+  const productNodes = nodes.filter(n => [n['@type']].flat().some(t => t === 'Product' || t === 'ProductGroup'));
+  const offerUrls = (node: Record<string, unknown>) => [node.offers].flat().map(offer =>
+    offer && typeof offer === 'object' ? (offer as Record<string, unknown>).url : undefined);
+  const matchesNode = (node: Record<string, unknown>) =>
+    sameListing(node.url) || sameListing(node['@id']) || offerUrls(node).some(sameListing);
+  const hasListingUrl = (node: Record<string, unknown>) => Boolean(node.url || node['@id'] || offerUrls(node).some(Boolean));
+  // Recommendation products can precede the actual product in JSON-LD. Keep a
+  // matched parent group so its full option matrix survives the selection.
+  const group = productNodes.find(n => Array.isArray(n.hasVariant) && (matchesNode(n) || n.hasVariant.some((child: Record<string, unknown>) => child && matchesNode(child))))
+    ?? productNodes.find(matchesNode)
+    ?? productNodes.find(n => !hasListingUrl(n) && (!Array.isArray(n.hasVariant) || !n.hasVariant.some((child: Record<string, unknown>) => child && hasListingUrl(child))));
   // ProductGroup pages (including Nike) may put all price data on size/color children.
   // Only use children for the exact linked listing, never a different recommended color.
   const allChildren = Array.isArray(group?.hasVariant) ? group.hasVariant.filter((child: Record<string, unknown>) => child && typeof child === 'object') : [];
@@ -610,20 +701,28 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     brand,
   );
   const genericLabel = [p?.color, p?.size].map(clean).filter(Boolean).join(' · ');
+  const sku = clean(typeof p?.sku === 'number' ? String(p.sku) : p?.sku).slice(0, 120) || undefined;
   const genericVariants: ProductVariant[] = genericLabel
-    ? [{ label: genericLabel, available: !/OutOfStock|Discontinued|SoldOut/i.test(String(offer?.availability ?? '')), size: clean(p?.size) || undefined, color: clean(p?.color) || undefined }]
+    ? [{ id: sku, label: genericLabel, available: !/OutOfStock|Discontinued|SoldOut/i.test(String(offer?.availability ?? '')), availabilityKnown: typeof offer?.availability === 'string' && offer.availability.trim().length > 0, size: clean(p?.size) || undefined, color: clean(p?.color) || undefined }]
     : [];
   const groupVariants: ProductVariant[] = allChildren.map((child: Record<string, unknown>) => {
     const childOffer = [child.offers].flat()[0] as Record<string, unknown> | undefined;
     return {
+      id: clean(typeof child.sku === 'number' ? String(child.sku) : child.sku ?? child.gtin).slice(0, 120) || undefined,
       size: clean(child.size) || undefined,
       color: clean(child.color) || undefined,
       label: [child.color, child.size].filter(Boolean).map(clean).join(' · '),
       available: !/OutOfStock|Discontinued|SoldOut/i.test(String(childOffer?.availability ?? '')),
+      availabilityKnown: typeof childOffer?.availability === 'string' && String(childOffer.availability).trim().length > 0,
       price: number(childOffer?.price ?? (childOffer?.priceSpecification as Record<string, unknown> | undefined)?.price),
       image: safeImage(Array.isArray(child.image) ? child.image[0] : child.image, sourceUrl),
     };
-  }).filter((item: ProductVariant) => item.label);
+  }).filter((item: ProductVariant) => item.label).slice(0, 80);
+  // Some stores repeat a parent SKU across sizes. Such IDs cannot identify a
+  // selected combination: retain the existing exact-label verification path.
+  const variantIdCounts = new Map<string, number>();
+  for (const variant of groupVariants) if (variant.id) variantIdCounts.set(variant.id, (variantIdCounts.get(variant.id) ?? 0) + 1);
+  for (const variant of groupVariants) if (variant.id && variantIdCounts.get(variant.id)! > 1) delete variant.id;
   const rawVariants = zara?.variants?.length ? zara.variants : groupVariants.length ? groupVariants : genericVariants;
   const gymsharkColor = /(^|\.)gymshark\.com$/i.test(new URL(sourceUrl).hostname)
     ? clean(html.match(/aria-current=["']true["'][^>]*aria-label=["'][^"']+\s+in\s+([^"']+)/i)?.[1])
@@ -646,7 +745,10 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     warnings.push("Указан диапазон цен. Нужна цена конкретного варианта.");
   if (variants.some((v) => !v.available))
     warnings.push("Недоступные размеры скрыты из выбора.");
+  if (variants.some((v) => v.availabilityKnown === false))
+    warnings.push("Магазин не отдал подтверждённый статус наличия — перед корзиной Atlas проверит его ещё раз.");
   return {
+    sku,
     title,
     brand,
     category,

@@ -12,7 +12,7 @@ export const supportedStoreRoots = [
   'endclothing.com','fahertybrand.com','finishline.com','footdistrict.com','footlocker.com','footlocker.es','galaxus.de','gamestop.com','goat.com','goodamerican.com',
   'jcpenney.com','jcrew.com','jdsports.com','jdsports.es','kiabi.es','kikomilano.com','kohls.com','kosas.com','laredoute.fr','lefties.com','lounge.com','luisaviaroma.com',
   'madewell.com','mediamarkt.de','mediamarkt.es','mediamarkt.it','meritbeauty.com','milkmakeup.com','monoprice.com','nakedcph.com','neimanmarcus.com','nordstromrack.com','notino.de','notino.es','notino.fr','notino.it','nude-project.com',
-  'ohpolly.com','oldnavy.gap.com','otto.de','patrickta.com','pccomponentes.com','pdpaola.com','perfumeriasprimor.eu','representclo.com','revolve.com','saigucosmetics.com','saksfifthavenue.com','saturn.de','scalperscompany.com','shopbop.com','sivasdescalzo.com','slamjam.com','spacenk.com','springfield.com','stockx.com','tartecosmetics.com','tower28beauty.com','womensecret.com','yoox.com','zalando.de','zalando.es','zalando.fr','zalando.it','zappos.com'
+  'ohpolly.com','oldnavy.gap.com','otto.de','patrickta.com','pccomponentes.com','pdpaola.com','perfumeriasprimor.eu','primor.eu','representclo.com','revolve.com','saigucosmetics.com','saksfifthavenue.com','saturn.de','scalperscompany.com','shopbop.com','sivasdescalzo.com','slamjam.com','spacenk.com','springfield.com','stockx.com','tartecosmetics.com','tower28beauty.com','womensecret.com','yoox.com','zalando.de','zalando.es','zalando.fr','zalando.it','zappos.com'
 ] as const;
 
 export type StoreRegion = 'Испания' | 'Европа' | 'США';
@@ -36,13 +36,14 @@ export const featuredStoreGroups: FeaturedStoreGroup[] = [
     {root:'pccomponentes.com',name:'PcComponentes',focus:'Техника'},{root:'mediamarkt.es',name:'MediaMarkt España',focus:'Техника'},{root:'elcorteingles.es',name:'El Corte Inglés',focus:'Универмаг'},
   ]},
   { region: 'Европа', hint: 'Сравнивайте витрины по стране: цена, НДС и распродажи могут отличаться.', stores: [
-    {root:'zalando.es',name:'Zalando España',focus:'Одежда'},{root:'zalando.de',name:'Zalando Deutschland',focus:'Одежда'},{root:'aboutyou.de',name:'ABOUT YOU',focus:'Одежда'},
+    {root:'zalando.com',name:'Zalando',focus:'Одежда'},{root:'zalando.es',name:'Zalando España',focus:'Одежда'},{root:'zalando.de',name:'Zalando Deutschland',focus:'Одежда'},{root:'asos.com',name:'ASOS',focus:'Одежда'},{root:'zara.com',name:'Zara',focus:'Одежда'},{root:'aboutyou.de',name:'ABOUT YOU',focus:'Одежда'},
     {root:'nakedcph.com',name:'NAKED Copenhagen',focus:'Кроссовки'},{root:'sneakersnstuff.com',name:'SNS',focus:'Кроссовки'},{root:'endclothing.com',name:'END.',focus:'Кроссовки'},
-    {root:'notino.de',name:'Notino',focus:'Красота'},{root:'cultbeauty.com',name:'Cult Beauty',focus:'Красота'},{root:'lookfantastic.com',name:'LOOKFANTASTIC',focus:'Красота'},
+    {root:'primor.eu',name:'Primor',focus:'Красота'},{root:'druni.es',name:'Druni',focus:'Красота'},{root:'notino.de',name:'Notino',focus:'Красота'},{root:'cultbeauty.com',name:'Cult Beauty',focus:'Красота'},{root:'lookfantastic.com',name:'LOOKFANTASTIC',focus:'Красота'},
     {root:'mediamarkt.de',name:'MediaMarkt Deutschland',focus:'Техника'},{root:'galaxus.de',name:'Galaxus',focus:'Техника'},{root:'fnac.es',name:'Fnac España',focus:'Универмаг'},
   ]},
   { region: 'США', hint: 'Самый широкий выбор брендов, outlet-разделов и крупных сезонных скидок.', stores: [
-    {root:'nordstrom.com',name:'Nordstrom',focus:'Одежда'},{root:'nordstromrack.com',name:'Nordstrom Rack',focus:'Одежда'},{root:'macys.com',name:"Macy's",focus:'Универмаг'},
+    {root:'amazon.com',name:'Amazon US',focus:'Универмаг'},{root:'nike.com',name:'Nike',focus:'Кроссовки'},{root:'adidas.com',name:'adidas',focus:'Кроссовки'},{root:'nordstrom.com',name:'Nordstrom',focus:'Одежда'},{root:'nordstromrack.com',name:'Nordstrom Rack',focus:'Одежда'},{root:'macys.com',name:"Macy's",focus:'Универмаг'},
+    {root:'ebay.com',name:'eBay',focus:'Универмаг'},{root:'walmart.com',name:'Walmart',focus:'Универмаг'},{root:'target.com',name:'Target',focus:'Универмаг'},
     {root:'footlocker.com',name:'Foot Locker',focus:'Кроссовки'},{root:'dsw.com',name:'DSW',focus:'Кроссовки'},{root:'zappos.com',name:'Zappos',focus:'Кроссовки'},
     {root:'sephora.com',name:'Sephora',focus:'Красота'},{root:'ulta.com',name:'Ulta Beauty',focus:'Красота'},{root:'dermstore.com',name:'Dermstore',focus:'Красота'},
     {root:'bestbuy.com',name:'Best Buy',focus:'Техника'},{root:'bhphotovideo.com',name:'B&H Photo',focus:'Техника'},{root:'adorama.com',name:'Adorama',focus:'Техника'},

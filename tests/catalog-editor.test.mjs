@@ -119,6 +119,15 @@ test('only a definitive all-sold-out matrix auto-hides a public card',()=>{
  const failed=markCatalogRefreshFailed(doc,'lip',Error('timeout'),2004).document.entries[0];
  assert(failed.published);assert.equal(failed.refresh.status,'failed');assert.match(failed.refresh.lastError,/timeout/);
 });
+test('unknown merchant availability never republishes or auto-hides a card',()=>{
+ const draft=importDraft(extracted,[],'США',1000),doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'lip',draft,published:structuredClone(draft),publishedAt:1000}]});
+ const unknown=importDraft({...extracted,variants:[{...extracted.variants[0],available:true,availabilityKnown:false}]},[],'США',2000);
+ const result=applyScheduledCatalogRefresh(doc,'lip',unknown,2001);
+ assert.equal(result.outcome,'unknown');
+ assert(result.document.entries[0].published);
+ assert.equal(result.document.entries[0].refresh.status,'unknown');
+ assert.match(result.document.entries[0].refresh.lastError,/не отдал подтверждённую матрицу наличия/);
+});
 test('the internal refresh endpoint signature expires and cannot be replayed as another path',async()=>{
  const secret='test-secret',now=Date.UTC(2026,8,19,12),timestamp=String(now),signature=await signCatalogRefreshRequest(secret,timestamp);
  const request=new Request(`https://atlas.test${catalogRefreshPath}`,{method:'POST',headers:{'x-atlas-refresh-timestamp':timestamp,'x-atlas-refresh-signature':signature}});

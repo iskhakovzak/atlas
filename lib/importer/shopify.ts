@@ -83,6 +83,7 @@ export function extractShopify(data: unknown, currencyData: unknown, sourceUrl: 
     const v = object(raw), values = [v.option1, v.option2, v.option3].map(label);
     const chosenIndexes = choiceIndexes.filter(index => values[index] && !/^default title$/i.test(values[index]));
     return {id: v.id === undefined ? undefined : String(v.id), label: label(v.public_title ?? v.title) || 'Стандартный', available: v.available === true,
+      availabilityKnown: typeof v.available === 'boolean',
       price: amount(v.price), image: gallery([v.featured_image, product.featured_image])[0],
       size: chosenIndexes.map(index => values[index]).join(' / ') || undefined,
       sizeLabel: chosenIndexes.map(index => options[index]).join(' / ') || undefined,

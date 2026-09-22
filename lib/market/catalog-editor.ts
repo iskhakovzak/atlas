@@ -19,7 +19,7 @@ export const catalogDraftSchema=z.object({
   sourceUrl:text.url().max(3000),name:text.max(140),brand:text.max(100),category:z.enum(catalogCategories),
   image:text.max(3000),images:z.array(text.max(3000)).max(12),price:z.number().finite().nonnegative().optional(),currency:text.max(3),
   referencePrice:z.number().finite().positive().optional(),country:text.max(80),boxedWeight:z.number().finite().positive().max(49.5),
-  variants:z.array(z.object({id:text.max(120).optional(),label:text.max(140),size:text.max(100).optional(),sizeLabel:text.max(100).optional(),color:text.max(100).optional(),available:z.boolean(),price:z.number().finite().nonnegative().optional(),image:text.max(3000).optional()})).max(250),
+  variants:z.array(z.object({id:text.max(120).optional(),label:text.max(140),size:text.max(100).optional(),sizeLabel:text.max(100).optional(),color:text.max(100).optional(),available:z.boolean(),availabilityKnown:z.boolean().optional(),price:z.number().finite().nonnegative().optional(),image:text.max(3000).optional()})).max(250),
   collectionIds:z.array(text.max(80)).max(20),description:text.max(600),checkedAt:z.number().int().nonnegative(),
   warnings:z.array(text.max(500)).max(20),soldOut:z.boolean().optional(),reviewReasons:z.array(text.max(240)).max(10).optional(),lastCheckError:text.max(500).optional(),
 });
@@ -102,7 +102,7 @@ export function synchronizeBundledCatalog(current:CatalogDocument){
   return {document:catalogDocumentSchema.parse(next),added,updated};
 }
 export function importDraft(data:Extracted,collectionIds:string[],country:string,now=Date.now()):CatalogDraft{
-  return catalogDraftSchema.parse({sourceUrl:canonicalCatalogUrl(data.sourceUrl),name:data.title??'',brand:data.brand??new URL(data.sourceUrl).hostname,category:data.category??'Другое',image:data.image??'',images:data.images??(data.image?[data.image]:[]),price:data.price,currency:data.currency??'',country:data.country??country,boxedWeight:data.boxedWeight??estimatedBoxedWeight(data.category??'Другое'),variants:(data.variants??[]).map(v=>({id:v.id,label:v.label,size:v.size,sizeLabel:v.sizeLabel,color:v.color,available:v.available,price:v.price,image:v.image})),collectionIds,description:'',checkedAt:now,warnings:data.warnings,soldOut:Boolean(data.variants?.length&&!data.variants.some(v=>v.available))});
+  return catalogDraftSchema.parse({sourceUrl:canonicalCatalogUrl(data.sourceUrl),name:data.title??'',brand:data.brand??new URL(data.sourceUrl).hostname,category:data.category??'Другое',image:data.image??'',images:data.images??(data.image?[data.image]:[]),price:data.price,currency:data.currency??'',country:data.country??country,boxedWeight:data.boxedWeight??estimatedBoxedWeight(data.category??'Другое'),variants:(data.variants??[]).map(v=>({id:v.id,label:v.label,size:v.size,sizeLabel:v.sizeLabel,color:v.color,available:v.available,...(v.availabilityKnown===undefined?{}:{availabilityKnown:v.availabilityKnown}),price:v.price,image:v.image})),collectionIds,description:'',checkedAt:now,warnings:data.warnings,soldOut:Boolean(data.variants?.length&&!data.variants.some(v=>v.available))});
 }
 
 const customerLinkReviewReason='Добавлен после запроса покупателя — проверьте источник и опубликуйте вручную.';
@@ -149,6 +149,7 @@ export function catalogIssues(draft:CatalogDraft,now=Date.now(),rates=tariff.rat
   else if(draft.price&&toUsd(draft.price,draft.currency,rates)>10000)issues.push('Стоимость выше лимита Atlas');
   if(!draft.country)issues.push('Страна отправки');
   if(draft.soldOut)issues.push('Нет доступных вариантов');
+  if(draft.variants.some(variant=>variant.availabilityKnown===false))issues.push('Наличие не подтверждено магазином');
   if(draft.lastCheckError)issues.push('Ошибка проверки магазина');
   if(draft.reviewReasons?.length)issues.push(...draft.reviewReasons);
   if(!draft.checkedAt||draft.checkedAt>now||now-draft.checkedAt>=catalogLifetime)issues.push('Обновите источник');
@@ -212,7 +213,8 @@ export function applyScheduledCatalogRefresh(current:CatalogDocument,id:string,f
   const checked=recheckedDraft(entry.draft,fresh);
   const changes=(checked.reviewReasons??[]).join(' · ').slice(0,500)||undefined;
   const candidate=catalogDraftSchema.parse({...checked,reviewReasons:[],lastCheckError:undefined});
-  const availableVariantCount=fresh.variants.filter(variant=>variant.available).length;
+  const availableVariantCount=fresh.variants.filter(variant=>variant.available&&variant.availabilityKnown!==false).length;
+  const unknownVariantCount=fresh.variants.filter(variant=>variant.availabilityKnown===false).length;
   const hasExplicitMatrix=fresh.variants.length>0;
   const successBase:CatalogRefresh={
     ...entry.refresh,lastAttemptAt:now,lastSuccessAt:now,nextCheckAt:now+catalogRefreshInterval,
@@ -221,6 +223,13 @@ export function applyScheduledCatalogRefresh(current:CatalogDocument,id:string,f
   if(!hasExplicitMatrix){
     entry.refresh={...successBase,status:'unknown',lastError:'Магазин не отдал подтверждённую матрицу вариантов.'};
     entry.draft.lastCheckError=entry.refresh.lastError;
+    next.revision++;
+    return {document:catalogDocumentSchema.parse(next),outcome:'unknown'};
+  }
+  if(unknownVariantCount){
+    const message='Магазин не отдал подтверждённую матрицу наличия — опубликованный снимок сохранён до следующей проверки.';
+    entry.refresh={...successBase,status:'unknown',lastError:message};
+    entry.draft.lastCheckError=message;
     next.revision++;
     return {document:catalogDocumentSchema.parse(next),outcome:'unknown'};
   }
@@ -277,7 +286,7 @@ export function reportCatalogAvailability(current:CatalogDocument,input:{product
 export function publicCatalog(document:CatalogDocument,pricing:Pricing,now=Date.now()){
   const products:MerchantFind[]=document.entries.flatMap(entry=>{
     const d=entry.published;if(!d||catalogIssues(d,now,pricing.rates).length)return [];
-    const variants=d.variants.filter(v=>v.available).map(v=>v.label);
+    const variants=d.variants.filter(v=>v.available&&v.availabilityKnown!==false).map(v=>v.label);
     return [{id:entry.id,name:d.name,brand:d.brand,category:d.category,store:new URL(d.sourceUrl).hostname.replace(/^www\./,''),observedOn:new Date(d.checkedAt).toISOString().slice(0,10),usd:toUsd(d.price!,d.currency,pricing.rates),sourcePrice:d.price,sourceCurrency:d.currency,referenceUsd:d.referencePrice&&d.referencePrice>d.price!?toUsd(d.referencePrice,d.currency,pricing.rates):undefined,image:d.image,sourceUrl:d.sourceUrl,description:d.description,country:d.country,boxedWeight:d.boxedWeight,weight:paddedWeight(d.boxedWeight),variants:variants.length?variants:['Уточнить вариант в магазине'],sourceShipping:10,sourceShippingUsd:10,sourceShippingCurrency:'USD',sourceShippingEstimated:true,shippingKnown:false,sourceExpiresAt:d.checkedAt+catalogLifetime,collectionIds:d.collectionIds}];
   });
   const collections=document.collections.filter(c=>c.visible).sort((a,b)=>a.position-b.position).map(c=>({...c,productIds:products.filter(p=>p.collectionIds?.includes(c.id)).map(p=>p.id)})).filter(c=>c.productIds.length);
