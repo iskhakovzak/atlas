@@ -6,6 +6,8 @@ An isolated review package in `design/` compares Commerce, Editorial and Atlas r
 
 The follow-up Commerce pass replaces the guest's dark banner with a spacious photo-led introduction, removes the forced 650px mobile admin table width, and replaces native prompt dialogs for support replies and collection creation with accessible forms. The catalog browser audit now selects a category actually present in the current published catalog and waits for cards after sign-out; it passes 148 guest/customer/access checks. The admin forms preserve their existing authenticated APIs and D1 actions.
 
+An operator-mode local browser pass covered nine admin tabs at 1440/800/390/360px in addition to the main customer routes. It exposed a 390/360px header overflow from the operator link's stronger selector; the mobile header now hides that duplicate link (admin remains in navigation) and keeps locale/account/notification/cart controls within 360px. The account next-action text also wraps directly in its source rule. This did not create an operator authorization path.
+
 ## Product
 
 Atlas is a functional pre-release cross-border shopping prototype for customers in Uzbekistan. The intended commercial model is purchasing intermediary plus logistics agent, not the foreign seller or manufacturer. A user chooses a sourced merchant catalog item or pastes a foreign-store product link, receives an editable preliminary UZS calculation, saves a recipient/address, creates a simulated payment and follows the purchase, warehouse, parcel and delivery process.

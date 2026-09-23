@@ -6,6 +6,7 @@
 - [x] Record source-level design audit, staged migration order and pilot evidence gates (`design/README.md`, `PILOT_READINESS.md`).
 - [x] Owner selected A / Commerce on 24 September; first production visual pass applied to shared shell, catalog, checkout surfaces and account next action.
 - [x] Apply the guest Commerce hero, responsive admin rows and form-based support replies / collection creation; repair the catalog audit's fixed-category assumption.
+- [x] Check operator admin tabs at 1440/800/390/360px and fix the 390/360px authenticated header overflow.
 - [ ] Finish Commerce migration by consolidating overlapping rules across existing stylesheets; audit populated customer/operator states and mobile content density.
 - [ ] Complete legal/carrier/PSP/auth/operational pilot gates; never enable real payments based on visual readiness alone.
 
