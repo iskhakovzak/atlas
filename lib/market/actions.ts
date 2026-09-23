@@ -64,6 +64,8 @@ export const actionSchema = z.discriminatedUnion("type", [
     expectedCredit: amount,
     consentVersion: z.literal(customsVersion),
     delivery: deliveryProfileSchema.optional(),
+    deliveryProfileId: z.string().min(1).max(80).optional(),
+    identityProfileId: z.string().min(1).max(100).optional(),
   }),
   z.object({ type: z.literal("payment-demo"), id }),
   z.object({ type: z.literal("communication-save"), value: communicationSchema }),
@@ -122,7 +124,7 @@ export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("approve-store-shipping-extra"), id, amount }),
   z.object({ type: z.literal("cancel"), id }),
   z.object({ type: z.literal("notifications-read") }),
-  z.object({ type: z.literal("identity-confirm"), documentId: z.string().min(1).max(100), firstName: z.string().trim().min(1).max(80), lastName: z.string().trim().min(1).max(80), birthDate: z.string(), passportNumber: z.string().min(6).max(24), nationality: z.string().trim().max(80) }),
+  z.object({ type: z.literal("identity-confirm"), documentId: z.string().min(1).max(100), recipientProfileId: z.string().min(1).max(80).optional(), firstName: z.string().trim().min(1).max(80), lastName: z.string().trim().min(1).max(80), birthDate: z.string(), passportNumber: z.string().min(6).max(24), nationality: z.string().trim().max(80) }),
   z.object({ type: z.literal("identity-clear"), documentId: z.string().min(1).max(100) }),
   z.object({ type: z.literal("declaration-preview"), orderIds: z.array(z.string().max(100)).min(1).max(30) }),
   z.object({ type: z.literal("import-legacy"), data: z.string().max(1000000) }),
@@ -242,6 +244,8 @@ export function applyAction(
         Date.now(),
         a.consentVersion,
         a.delivery,
+        a.deliveryProfileId,
+        a.identityProfileId,
       );
     case "payment-demo":
       return confirmDemoPayment(s, a.id);
@@ -255,7 +259,8 @@ export function applyAction(
     }
     case "delivery-profile-remove": {
       const rest = s.deliveryProfiles.filter((item) => item.id !== a.id);
-      return { ...s, deliveryProfiles: rest, deliveryProfile: rest.find((item) => item.primary) ?? rest[0] };
+      const remaining = rest.length && !rest.some((item) => item.primary) ? rest.map((item, index) => ({ ...item, primary: index === 0 })) : rest;
+      return { ...s, deliveryProfiles: remaining, deliveryProfile: remaining.find((item) => item.primary) ?? remaining[0], identityProfiles: s.identityProfiles?.map((profile) => profile.recipientProfileId === a.id ? { ...profile, recipientProfileId: undefined } : profile) };
     }
     case "support-create": {
       const now = Date.now();

@@ -2,6 +2,12 @@
 
 ## Design direction review — 23 September 2026
 
+## Multiple recipients and passport association — 24 September 2026
+
+The customer profile no longer offers a personal-data download/export. The document centre points to passport records and declaration previews; invoices and warehouse files remain inside their orders. Customers may keep multiple delivery recipients and confirm a separate passport scan for each saved recipient. Passport identity is stored as masked identity data in the owner-scoped account state; the scan itself remains private R2 data, and the D1 confirmation record contains only the masked confirmation snapshot.
+
+Checkout presents saved recipients as selectable cards. Selecting one uses the server-owned saved address and, when available, the identity confirmed for that same recipient. New or edited checkout addresses remain manual and do not borrow another recipient's passport. Orders snapshot the selected recipient ID, delivery details and optional masked identity at checkout, so future profile edits do not rewrite existing orders. Declaration previews use the order's saved recipient snapshot; mixed-recipient orders must be prepared as separate declarations. This remains a simulated internal preview and does not submit documents to customs. New state/order fields are optional and old singleton identity/order snapshots continue to parse.
+
 An isolated review package in `design/` compares Commerce, Editorial and Atlas refined on catalog/product/checkout/account screens in RU/UZ/EN. Start `node design/serve.mjs` for localhost:4318. It uses synthetic prices/state and existing project images; it does not call production APIs or alter tariffs or D1. On 24 September the owner selected A / Commerce. The first production visual pass now uses shared type/spacing tokens in `app/atlas-design.css` and Commerce route-family styling in the existing `app/experience.css`: white shell, flat catalog cards, calmer prices, forms and account next action. No product logic or persistence changed. See `design/README.md` for audit and remaining migration, and `PILOT_READINESS.md` for externally gated launch prerequisites. These design changes do not enable real commerce.
 
 The follow-up Commerce pass replaces the guest's dark banner with a spacious photo-led introduction, removes the forced 650px mobile admin table width, and replaces native prompt dialogs for support replies and collection creation with accessible forms. The catalog browser audit now selects a category actually present in the current published catalog and waits for cards after sign-out; it passes 148 guest/customer/access checks. The admin forms preserve their existing authenticated APIs and D1 actions.
@@ -65,7 +71,7 @@ This is a UX refinement, not a commercial launch or a new authentication system.
 | /notifications | In-app status, refund and approval notifications |
 | /analytics | Operator metrics and closed-pilot readiness |
 | /legal | Pre-release terms, privacy, refunds and restricted-goods drafts |
-| /account | Profile, delivery recipients, document centre, monthly purchase indicator, support requests and data export |
+| /account | Profile, delivery recipients with passport status, document centre, monthly purchase indicator and support requests |
 | /balance | Demo ledger/balance |
 | /favorites | Saved catalog items |
 | /customs | Customs guidance and consent |
@@ -234,7 +240,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Operator team/priority assignment and internal notes.
 - Email/SMS preferences plus a persistent pre-release delivery-preview log; no messages leave Atlas.
 - Operator analytics and closed-pilot readiness dashboard.
-- Pre-release legal/privacy/refund/restricted-goods drafts and customer data export.
+- Pre-release legal/privacy/refund/restricted-goods drafts.
 - Authenticated API smoke test covers checkout through delivered status.
 
 ## Pre-release service experience
@@ -250,7 +256,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - The home screen explains the path from a store link to a preliminary calculation, confirmation and status tracking. It also includes a supported-store preview, FAQ and clear pre-release/trust notices.
 - A profile can store several recipient addresses. The chosen primary recipient remains compatible with checkout and declarations. Customer support requests are retained in that customer's account state; staff response workflow still needs an operational queue.
 - Checkout now lets the customer choose a saved recipient or switch to a fresh address, and support requests show their complete message history with customer replies.
-- The document centre links to passport confirmation and declaration previews, explains the availability of future invoices/warehouse photos, and exports profile data. Passport source files remain private and are not placed in the JSON profile export.
+- The document centre links to passport confirmation and declaration previews and explains that invoices/warehouse files are attached to orders. Passport source files remain private; customers no longer see a profile export/download action.
 - The monthly total is an informational sum of Atlas test orders, not a customs calculation or an official limit balance.
 
 ## Partial or missing

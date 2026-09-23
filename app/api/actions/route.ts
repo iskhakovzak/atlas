@@ -12,11 +12,12 @@ export async function POST(request:Request){try{
   const status=await customerStatus(user.userId);
   if(status==='blocked')throw new HttpError(403,'Профиль временно заблокирован. Обратитесь в поддержку Atlas.');
   if(status==='review'&&['checkout','payment-demo'].includes(parsed.data.type))throw new HttpError(403,'Оформление временно приостановлено до завершения проверки профиля.');
+  const current=await account(user);
   if(parsed.data.type==='identity-confirm'){
     const owned=await database().prepare('SELECT id FROM market_identity_documents WHERE id=? AND user_id=?').bind(parsed.data.documentId,user.userId).first();
     if(!owned)throw new HttpError(404,'Скан паспорта не найден. Загрузите его заново.');
+    if(parsed.data.recipientProfileId&&!current.state.deliveryProfiles.some(profile=>profile.id===parsed.data.recipientProfileId))throw new HttpError(400,'Сначала выберите сохранённого получателя.');
   }
-  const current=await account(user);
   if(payload.revision!==current.revision)return json({error:'Данные изменились. Проверьте обновлённый заказ и повторите действие.',state:current.state,revision:current.revision},409);
   let next;
   let verifiedSource:Awaited<ReturnType<typeof fetchProduct>>|undefined;
@@ -46,7 +47,7 @@ export async function POST(request:Request){try{
     catch(error){console.error('Customer catalog draft sync failed',error)}
   }
   if(parsed.data.type==='identity-confirm'){
-    const confirmed=next.identityProfile;
+    const confirmed=next.identityProfiles?.find(profile=>profile.documentId===parsed.data.documentId)??next.identityProfile;
     await database().prepare('UPDATE market_identity_documents SET status=?, confirmed_data=?, updated_at=? WHERE id=? AND user_id=?').bind('confirmed',JSON.stringify(confirmed),Date.now(),parsed.data.documentId,user.userId).run();
   }
   return json({state:next,revision:current.revision+1})

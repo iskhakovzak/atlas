@@ -12,6 +12,10 @@
 
 ## UX refinement follow-up
 
+- [x] Remove the low-value customer profile JSON download; keep operator-only database backup export separate.
+- [x] Support multiple saved recipient addresses with separately confirmed passport identities; select saved recipients in checkout and snapshot their address/identity to each order.
+- [x] Build declaration previews from each order's actual selected recipient and prevent mixing recipients in one package. This is still an internal simulated preview, not customs submission.
+
 - [x] Compact catalog cards, disclose secondary filters and pricing details, simplify guest introduction.
 - [x] Expandable order rows, grouped notification history, direct links to order details and checkout review step.
 - [x] Compact account sections, legal consent deep links and searchable/filterable catalog administration.
@@ -39,7 +43,7 @@
 - [x] Add parcel, carrier, tracking number and tracking-event history entered by the operator.
 - [x] Add email/SMS preferences and persistent message previews without external transmission.
 - [x] Add operator analytics, pilot-readiness dashboard and pre-release legal drafts.
-- [x] Add customer profile export and authenticated end-to-end API smoke coverage.
+- [x] Add authenticated end-to-end API smoke coverage. (Customer profile export was removed in the 24 September UX pass.)
 - [x] Add private passport upload, editable MRZ assistance, explicit confirmation, deletion and masked identity state.
 - [x] Add local address suggestions and server-built test declaration packages without external transmission.
 - [x] Add batch link import, managed smart restrictions and an operator rule-management view.

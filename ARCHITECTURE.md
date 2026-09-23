@@ -79,6 +79,10 @@ Migration 0004 adds the normalized launch foundation: `market_customers`, `marke
 
 State contains orders, ledger entries, cart, favourites, checkout idempotency keys, saved recipient profiles, support-request history, an optional confirmed identity profile with masked passport number, test declarations, communication preferences, prepared email/SMS records and version. Order contains product snapshot, immutable quote, delivery snapshot, simulated payment, parcel/tracking events, assignment, staff notes, optional customer change requests, optional warehouse inspection, status/history, both settlement types, approvals, quantity, balance use and customs consent. New fields remain optional so existing stored orders parse without a migration.
 
+Multiple recipient passports extend the existing JSON state compatibly: `identityProfiles` is optional, while the legacy `identityProfile` remains a latest-confirmation mirror. Each confirmed masked identity may carry an optional `recipientProfileId`; the scan bytes continue to use the owner-scoped private passport object path. `identity-confirm` validates the recipient ID against the authenticated account's saved addresses, and the D1 document status update stores only the matching masked identity. Checkout accepts optional recipient/document IDs, resolves both from server account state, and ignores browser-submitted delivery fields whenever a saved recipient ID is selected. Each order optionally snapshots `deliveryProfileId` and the matching masked identity alongside its delivery address. Old orders have neither field and continue to use compatible legacy fallback state.
+
+Declaration previews derive identity and address from the selected order snapshot (or compatible legacy state) and reject a mixed-recipient batch. Removing an address unlinks its current profile identity but leaves immutable historical order/declaration snapshots intact. The account no longer exposes customer JSON export/download; operator-only D1 backup export is a separate operational feature and is unchanged.
+
 ## APIs
 
 | Endpoint | Contract |

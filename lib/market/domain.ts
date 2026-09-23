@@ -283,6 +283,7 @@ const savedDeliveryProfileSchema = deliveryProfileSchema.extend({
 export type SavedDeliveryProfile = z.infer<typeof savedDeliveryProfileSchema>;
 export const identityProfileSchema = z.object({
   documentId: z.string().min(1).max(100),
+  recipientProfileId: z.string().min(1).max(80).optional(),
   firstName: z.string().trim().min(1).max(80),
   lastName: z.string().trim().min(1).max(80),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -377,6 +378,8 @@ const orderSchema = z.object({
     .object({ version: z.string(), acceptedAt: amount })
     .optional(),
   delivery: deliveryProfileSchema.optional(),
+  deliveryProfileId: z.string().min(1).max(80).optional(),
+  identity: identityProfileSchema.optional(),
   payment: paymentSchema.optional(),
   parcel: parcelSchema.optional(),
   assignment: assignmentSchema.optional(),
@@ -520,6 +523,7 @@ export const stateSchema = z.object({
   deliveryProfile: deliveryProfileSchema.optional(),
   deliveryProfiles: z.array(savedDeliveryProfileSchema).default([]),
   identityProfile: identityProfileSchema.optional(),
+  identityProfiles: z.array(identityProfileSchema).optional(),
   declarations: z.array(declarationSchema).default([]),
   communication: communicationSchema.default({
     emailEnabled: false,
@@ -605,20 +609,28 @@ export function confirmIdentity(state: State, value: Omit<IdentityProfile, "pass
   if (cleanNumber.length < 6 || cleanNumber.length > 20) throw Error("Проверьте номер паспорта.");
   const birth = new Date(value.birthDate + "T00:00:00Z");
   if (!Number.isFinite(birth.getTime()) || birth.getTime() > now || birth.getUTCFullYear() < new Date(now).getUTCFullYear() - 120) throw Error("Проверьте дату рождения.");
-  return { ...state, identityProfile: identityProfileSchema.parse({ ...value, passportMasked: "•••• " + cleanNumber.slice(-4), confirmedAt: now }) };
+  const confirmed = identityProfileSchema.parse({ ...value, passportMasked: "•••• " + cleanNumber.slice(-4), confirmedAt: now });
+  const profiles = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
+  return { ...state, identityProfile: confirmed, identityProfiles: [confirmed, ...profiles.filter((profile) => profile.documentId !== confirmed.documentId && profile.recipientProfileId !== confirmed.recipientProfileId)] };
 }
 
 export function clearIdentity(state: State, documentId: string): State {
-  return state.identityProfile?.documentId === documentId ? { ...state, identityProfile: undefined } : state;
+  return { ...state, identityProfile: state.identityProfile?.documentId === documentId ? undefined : state.identityProfile, identityProfiles: (state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : [])).filter((profile) => profile.documentId !== documentId) };
 }
 
 export function submitDeclarationPreview(state: State, orderIds: string[], now = Date.now()): State {
-  if (!state.identityProfile) throw Error("Сначала подтвердите паспортные данные.");
-  if (!state.deliveryProfile) throw Error("Сначала сохраните адрес доставки.");
   const selected = [...new Set(orderIds)].map((id) => state.orders.find((order) => order.id === id)).filter((order): order is Order => !!order && !order.cancelled);
   if (!selected.length) throw Error("Выберите хотя бы один действующий заказ.");
+  const recipientIds = new Set(selected.map((order) => order.deliveryProfileId ?? "legacy"));
+  if (recipientIds.size > 1) throw Error("Подготовьте отдельную декларацию для каждого получателя.");
+  const first = selected[0];
+  const profiles = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
+  const identity = first.identity ?? profiles.find((profile) => profile.recipientProfileId === first.deliveryProfileId) ?? state.identityProfile;
+  const delivery = first.delivery ?? (first.deliveryProfileId ? state.deliveryProfiles.find((profile) => profile.id === first.deliveryProfileId) : undefined) ?? state.deliveryProfile;
+  if (!identity) throw Error("Сначала подтвердите паспортные данные получателя.");
+  if (!delivery) throw Error("Сначала сохраните адрес доставки.");
   const lines = selected.map((order) => ({ orderId: order.id, description: order.product.declarationDescription ?? order.product.name, country: order.product.country ?? "Не указана", quantity: order.quantity, value: order.quote.merchandise }));
-  const declaration: Declaration = { id: "DEC-" + crypto.randomUUID().slice(0, 8).toUpperCase(), createdAt: now, status: "submitted-preview", identity: state.identityProfile, delivery: state.deliveryProfile, orderIds: selected.map((order) => order.id), lines, totalValue: lines.reduce((sum, line) => sum + line.value, 0) };
+  const declaration: Declaration = { id: "DEC-" + crypto.randomUUID().slice(0, 8).toUpperCase(), createdAt: now, status: "submitted-preview", identity, delivery, orderIds: selected.map((order) => order.id), lines, totalValue: lines.reduce((sum, line) => sum + line.value, 0) };
   return withNotification({ ...state, declarations: [declaration, ...state.declarations].slice(0, 20) }, "Тестовая декларация подготовлена", `Пакет ${declaration.id} сохранён внутри Atlas. В таможню он не отправлялся.`);
 }
 export const balanceOf = (state: State) =>
@@ -721,6 +733,8 @@ export function checkoutCart(
   now = Date.now(),
   consentVersion?: string,
   delivery?: DeliveryProfile,
+  deliveryProfileId?: string,
+  identityProfileId?: string,
 ): State {
   if (state.checkoutKeys.includes(key)) return state;
   if (!state.cart.length) throw Error("Корзина пуста.");
@@ -739,9 +753,16 @@ export function checkoutCart(
   if (state.cart.some((i) => now >= i.quote.expiresAt))
     throw Error("Расчёт истёк. Обновите его перед оформлением.");
   let available = useBalance ? Math.max(0, balanceOf(state)) : 0;
-  const checkedDelivery = delivery
-    ? deliveryProfileSchema.parse(delivery)
+  const selectedDelivery = deliveryProfileId ? state.deliveryProfiles.find((profile) => profile.id === deliveryProfileId) : undefined;
+  if (deliveryProfileId && !selectedDelivery) throw Error("Выбранный получатель больше не сохранён. Обновите профиль.");
+  const checkedDelivery = selectedDelivery
+    ? deliveryProfileSchema.parse(selectedDelivery)
+    : delivery
+      ? deliveryProfileSchema.parse(delivery)
     : state.deliveryProfile;
+  const profiles = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
+  const selectedIdentity = identityProfileId ? profiles.find((profile) => profile.documentId === identityProfileId) : undefined;
+  if (identityProfileId && (!selectedDelivery || !selectedIdentity || selectedIdentity.recipientProfileId !== selectedDelivery.id)) throw Error("Паспорт не привязан к выбранному получателю.");
   const entries = [...state.entries];
   const orders = state.cart.map((i) => {
     const id = "AT-" + crypto.randomUUID().slice(0, 8).toUpperCase();
@@ -770,6 +791,8 @@ export function checkoutCart(
       balanceUsed,
       batchId: key,
       delivery: checkedDelivery,
+      deliveryProfileId: selectedDelivery?.id,
+      identity: selectedIdentity,
       payment: {
         id: "PAY-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
         status: payable === 0 ? "paid" : "pending",
