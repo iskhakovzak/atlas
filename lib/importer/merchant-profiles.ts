@@ -16,7 +16,7 @@ export type MerchantProfile = {
   defaultCategory?: ProductCategory;
   defaultCountry?: string;
   regions: string[];
-  adapter: 'amazon-location' | 'adidas-json' | 'shopify-json' | 'json-ld' | 'embedded-json' | 'official-api-required';
+  adapter: 'amazon-location' | 'adidas-json' | 'asos-page' | 'shopify-json' | 'json-ld' | 'embedded-json' | 'official-api-required';
 };
 
 const p = (profile: MerchantProfile) => profile;
@@ -39,7 +39,7 @@ export const priorityMerchantProfiles: MerchantProfile[] = [
   p({root: 'zalando.es', name: 'Zalando España', priority: 2, focus: 'Одежда', defaultCountry: 'Испания', regions: ['Европа'], adapter: 'embedded-json'}),
   p({root: 'zalando.fr', name: 'Zalando France', priority: 2, focus: 'Одежда', defaultCountry: 'Франция', regions: ['Европа'], adapter: 'embedded-json'}),
   p({root: 'zalando.it', name: 'Zalando Italia', priority: 2, focus: 'Одежда', defaultCountry: 'Италия', regions: ['Европа'], adapter: 'embedded-json'}),
-  p({root: 'asos.com', name: 'ASOS', priority: 2, focus: 'Одежда', defaultCountry: 'Великобритания', regions: ['Европа'], adapter: 'embedded-json'}),
+  p({root: 'asos.com', name: 'ASOS', priority: 2, focus: 'Одежда', defaultCountry: 'Великобритания', regions: ['Европа'], adapter: 'asos-page'}),
   p({root: 'zara.com', name: 'Zara', priority: 2, focus: 'Одежда', defaultBrand: 'Zara', regions: ['Европа'], adapter: 'embedded-json'}),
   p({root: 'mango.com', name: 'Mango', priority: 2, focus: 'Одежда', defaultBrand: 'Mango', regions: ['Европа'], adapter: 'embedded-json'}),
   p({root: 'farfetch.com', name: 'Farfetch', priority: 2, focus: 'Одежда', regions: ['Европа', 'США'], adapter: 'embedded-json'}),

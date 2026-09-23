@@ -282,6 +282,106 @@ function extractPriorityEmbedded(html: string, sourceUrl: string): Extracted | u
   };
 }
 
+/** ASOS publishes the product's size map and its public stock/price snapshot
+ * separately in the product page. Join them only by the exact product and
+ * variant IDs; a product-level in-stock flag is not enough to enable sizes. */
+export function extractAsosProduct(html: string, sourceUrl: string, fallback: Extracted): Extracted | undefined {
+  const source = new URL(sourceUrl);
+  if (!/(^|\.)asos\.com$/i.test(source.hostname)) return;
+  const requestedId = source.pathname.match(/\/prd\/(\d+)(?:\/|$)/i)?.[1];
+  if (!requestedId) return;
+
+  const marker = 'window.asos.pdp.config.product = ';
+  let offset = html.lastIndexOf(marker), product: EmbeddedRecord | undefined;
+  while (offset >= 0) {
+    const start = offset + marker.length;
+    const end = html.indexOf(';', start);
+    if (end > start && end - start <= 500_000) {
+      try {
+        const candidate = JSON.parse(html.slice(start, end)) as EmbeddedRecord;
+        if (String(candidate.id ?? '') === requestedId) { product = candidate; break; }
+      } catch {}
+    }
+    offset = html.lastIndexOf(marker, offset - 1);
+  }
+  if (!product || !Array.isArray(product.variants)) return;
+
+  const stockMarker = 'window.asos.pdp.config.stockPriceResponse = ';
+  const stockStart = html.indexOf(stockMarker);
+  let stockProduct: EmbeddedRecord | undefined;
+  if (stockStart >= 0) {
+    const start = stockStart + stockMarker.length;
+    const end = html.indexOf(';', start);
+    if (end > start && end - start <= 250_000) {
+      try {
+        const literal = html.slice(start, end).trim();
+        const json = literal.startsWith("'") && literal.endsWith("'")
+          ? literal.slice(1, -1).replaceAll(String.fromCharCode(92, 34), '"')
+          : '';
+        const records = JSON.parse(json) as EmbeddedRecord[];
+        stockProduct = Array.isArray(records) ? records.find(record => String(record.productId ?? '') === requestedId) : undefined;
+      } catch {}
+    }
+  }
+
+  const stockById = new Map<string, EmbeddedRecord>();
+  if (Array.isArray(stockProduct?.variants)) {
+    for (const item of stockProduct.variants) {
+      if (item && typeof item === 'object' && item.id !== undefined) stockById.set(String(item.id), item as EmbeddedRecord);
+    }
+  }
+  const variants = product.variants.flatMap(value => {
+    if (!value || typeof value !== 'object') return [];
+    const item = value as EmbeddedRecord;
+    const rawId = item.variantId ?? item.id;
+    const id = embeddedText(typeof rawId === 'number' ? String(rawId) : rawId);
+    const size = embeddedText(item.size ?? item.brandSize);
+    if (!id || !size) return [];
+    const stock = stockById.get(id);
+    const stockSignal = typeof stock?.isInStock === 'boolean' ? stock.isInStock : undefined;
+    const productSignal = typeof item.isAvailable === 'boolean' ? item.isAvailable : undefined;
+    const known = stockSignal !== undefined || productSignal !== undefined;
+    const available = stockSignal ?? productSignal ?? true;
+    const stockPrice = stock?.price && typeof stock.price === 'object' ? stock.price as EmbeddedRecord : undefined;
+    const currentPrice = stockPrice?.current && typeof stockPrice.current === 'object' ? (stockPrice.current as EmbeddedRecord).value : undefined;
+    return [{
+      id,
+      size,
+      sizeLabel: 'Размер',
+      color: embeddedText(item.colour ?? item.color) || undefined,
+      label: [embeddedText(item.colour ?? item.color), size].filter(Boolean).join(' · '),
+      available,
+      availabilityKnown: known,
+      price: embeddedNumber(currentPrice),
+      image: fallback.image,
+    } satisfies ProductVariant];
+  }).slice(0, 80);
+  if (!variants.length) return;
+
+  const current = stockProduct?.productPrice && typeof stockProduct.productPrice === 'object'
+    ? (stockProduct.productPrice as EmbeddedRecord).current
+    : undefined;
+  const currentRecord = current && typeof current === 'object' ? current as EmbeddedRecord : undefined;
+  const category = inferProductCategory([embeddedText(product.name), embeddedText((product.productType as EmbeddedRecord | undefined)?.name)].filter(Boolean).join(' '), embeddedText(product.brandName));
+  const warnings = [...fallback.warnings.filter(warning => !/Цена не найдена|подтверждённый статус наличия/i.test(warning))];
+  warnings.push('Размеры, цена и наличие загружены из публичных данных ASOS и перепроверяются перед заказом.');
+  if (variants.some(variant => variant.availabilityKnown === false)) warnings.push('Для части размеров ASOS не отдал отдельный статус наличия — Atlas проверит его перед заказом.');
+  return {
+    ...fallback,
+    sku: embeddedText(product.productCode) || fallback.sku,
+    title: embeddedText(product.name).slice(0, 140) || fallback.title,
+    brand: embeddedText(product.brandName) || fallback.brand,
+    category,
+    declarationDescription: declarationFor(category, embeddedText(product.name) || fallback.title || '', embeddedText(product.brandName) || fallback.brand),
+    price: embeddedNumber(currentRecord?.value) ?? fallback.price,
+    currency: embeddedText((stockProduct?.productPrice as EmbeddedRecord | undefined)?.currency).toUpperCase() || fallback.currency,
+    variants,
+    country: inferStorefrontCountry(sourceUrl, embeddedText((stockProduct?.productPrice as EmbeddedRecord | undefined)?.currency) || fallback.currency),
+    warnings,
+    method: 'ASOS product and stock data',
+  };
+}
+
 const clean = (s: unknown) =>
   typeof s === "string"
     ? s
@@ -987,7 +1087,7 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     warnings.push("Недоступные размеры скрыты из выбора.");
   if (variants.some((v) => v.availabilityKnown === false))
     warnings.push("Магазин не отдал подтверждённый статус наличия — перед корзиной Atlas проверит его ещё раз.");
-  return {
+  const extracted: Extracted = {
     sku,
     title,
     brand,
@@ -1009,4 +1109,5 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     sourceUrl,
     method: zara ? "Zara product data" : p ? "JSON-LD" : "Open Graph",
   };
+  return extractAsosProduct(html, sourceUrl, extracted) ?? extracted;
 }

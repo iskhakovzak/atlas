@@ -80,7 +80,7 @@
 - [x] Match structured product data to the exact linked listing, retain unique SKU/GTIN variant IDs and reject unsafe/unrelated recommendation nodes.
 - [x] Preserve unknown merchant availability as a separate optional state; block cart verification and catalog republishing until a stock signal is explicit.
 - [x] Add a bounded embedded-state fallback for priority-1/priority-2 pages that omit JSON-LD; match the exact source path/listing id and retain public price, photos, SKU, option matrix and explicit stock only.
-- [ ] Add store-specific public/official adapters and fixtures for Macy's, eBay, Walmart, Target, Best Buy, Sephora, Foot Locker, Zalando, ASOS, Primor, Druni, MediaMarkt and PcComponentes. Generic JSON-LD remains the safe fallback when a merchant blocks or omits data.
+- [ ] Add store-specific public/official adapters and fixtures for Macy's, eBay, Walmart, Target, Best Buy, Sephora, Foot Locker, Zalando, Primor, Druni, MediaMarkt and PcComponentes. Generic JSON-LD remains the safe fallback when a merchant blocks or omits data.
 - [ ] Provision the external scheduler using `scripts/catalog-refresh.mjs`, configure `ATLAS_CATALOG_REFRESH_SECRET` and alert on repeated merchant failures.
 
 ## Order flow
@@ -131,7 +131,7 @@
 - [ ] Only one operator email is supported; team assignment exists, but independent staff identities and permissions are still missing.
 - [ ] $10 merchant shipping is an estimate, not a fetched quote.
 - [ ] Allowed stores can still block, localize, require login or change HTML; manual entry must remain.
-- [ ] ASOS public page exposes price and stock but not a reliably matched size matrix; add a verified variant adapter before marking its imports orderable. eBay and MediaMarkt may return 403; Walmart and Target may return CAPTCHA. Do not infer availability from those responses.
+- [ ] eBay and MediaMarkt may return 403; Walmart and Target may return CAPTCHA. Do not infer availability from those responses.
 - [ ] Catalog refresh endpoint is implemented but no production scheduler secret or cron caller is configured yet; manual due-batch refresh is available only to the operator.
 - [ ] Replace the dated Slickdeals-informed editorial batch with a licensed merchant/affiliate feed and confirm image reuse/attribution terms before commercial launch; keep canonical merchant URLs and recheck semantics.
 - [ ] RON conversion 0.23 USD/RON is static demo data.
