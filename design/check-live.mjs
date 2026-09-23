@@ -13,6 +13,7 @@ try {
     const response=await page.goto(`http://localhost:5173/${path}`,{waitUntil:'domcontentloaded'});
     assert(response?.ok(),`${path || '/'} returned ${response?.status()}`);
     await page.locator('main').first().waitFor();
+    if(!path) await page.locator('.guest-intro').waitFor();
     await page.waitForTimeout(350);
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`Horizontal overflow: ${path || '/'} at ${width}`);
     if(width===1440||width===390) await page.screenshot({path:`outputs/design-live/${path||'home'}-${width}.png`,fullPage:true});

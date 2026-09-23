@@ -6,6 +6,8 @@ An isolated review package in `design/` compares Commerce, Editorial and Atlas r
 
 The follow-up Commerce pass replaces the guest's dark banner with a spacious photo-led introduction, removes the forced 650px mobile admin table width, and replaces native prompt dialogs for support replies and collection creation with accessible forms. The catalog browser audit now selects a category actually present in the current published catalog and waits for cards after sign-out; it passes 148 guest/customer/access checks. The admin forms preserve their existing authenticated APIs and D1 actions.
 
+The guest introduction was then tightened after the owner rejected the unrelated stock sneaker photo and excess empty space. It now shows two distinct-category products from the same published catalog ordering as the feed, with direct product-detail actions and RU/UZ/EN paths to the catalog or link order. When no published product image is available, it shows a text fallback instead of inventing a product photo. The browser design check waits for guest state before capturing the home screen. No product, quote or persistence semantics changed.
+
 An operator-mode local browser pass covered nine admin tabs at 1440/800/390/360px in addition to the main customer routes. It exposed a 390/360px header overflow from the operator link's stronger selector; the mobile header now hides that duplicate link (admin remains in navigation) and keeps locale/account/notification/cart controls within 360px. The account next-action text also wraps directly in its source rule. This did not create an operator authorization path.
 
 ## Product
