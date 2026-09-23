@@ -90,7 +90,16 @@ function embeddedUrlMatches(value: unknown, sourceUrl: string) {
     source.hostname = source.hostname.replace(/^www\./, "");
     candidate.pathname = candidate.pathname.replace(/\/$/, "") || "/";
     source.pathname = source.pathname.replace(/\/$/, "") || "/";
-    return candidate.origin === source.origin && candidate.pathname === source.pathname;
+    if (candidate.origin !== source.origin || candidate.pathname !== source.pathname) return false;
+    // Tracking and a selected size do not identify a different listing.
+    // A colour or another product-defining query value does.
+    for (const url of [candidate, source]) {
+      for (const key of [...url.searchParams.keys()]) {
+        if (/^(utm_.+|gclid|fbclid|variant|size|sku)$/i.test(key)) url.searchParams.delete(key);
+      }
+      url.searchParams.sort();
+    }
+    return candidate.search === source.search;
   } catch { return false; }
 }
 
@@ -98,12 +107,14 @@ function embeddedListingTokens(sourceUrl: string) {
   const source = new URL(sourceUrl);
   const pathTokens = source.pathname.split(/[^a-z0-9]+/i).map(token => token.toLowerCase()).filter(token => token.length >= 3);
   const queryTokens = [...source.searchParams.values()].flatMap(value => value.split(/[^a-z0-9]+/i)).map(token => token.toLowerCase()).filter(token => token.length >= 3);
-  return new Set([...pathTokens, ...queryTokens]);
+  const terminal = source.pathname.split('/').filter(Boolean).at(-1)?.replace(/\.html$/i, '').toLowerCase();
+  return new Set([...pathTokens, ...queryTokens, ...(terminal ? [terminal] : [])]);
 }
 
 function embeddedCandidateMatches(record: EmbeddedRecord, sourceUrl: string, tokens: Set<string>) {
   const urlFields = ['url', 'canonicalUrl', 'canonical', 'pdpUrl', 'productUrl', 'link', 'href', 'path'];
-  if (urlFields.some(key => embeddedUrlMatches(record[key], sourceUrl))) return true;
+  const publishedUrls = urlFields.map(key => record[key]).filter(value => typeof value === 'string' && value.length > 0);
+  if (publishedUrls.length) return publishedUrls.some(value => embeddedUrlMatches(value, sourceUrl));
   const idFields = ['itemId', 'productId', 'styleCode', 'articleNumber', 'offerId', 'variantId', 'sku', 'id'];
   return idFields.some(key => {
     const value = embeddedText(record[key]).toLowerCase();
@@ -111,7 +122,7 @@ function embeddedCandidateMatches(record: EmbeddedRecord, sourceUrl: string, tok
     // A numeric id must be long enough to be a real listing identifier. This
     // avoids matching a generic state key such as id=1 from a recommendation.
     if (/^\d+$/.test(value) && value.length < 5) return false;
-    return tokens.has(value) || [...tokens].some(token => token.length >= 5 && value.includes(token));
+    return tokens.has(value);
   });
 }
 
@@ -198,8 +209,12 @@ function embeddedVariants(record: EmbeddedRecord, sourceUrl: string): ProductVar
 
 function embeddedCandidateRecords(root: unknown, sourceUrl: string) {
   const tokens = embeddedListingTokens(sourceUrl), candidates: EmbeddedRecord[] = [];
+  const visited = new WeakSet<object>();
+  let visitedCount = 0;
   const visit = (value: unknown, depth = 0) => {
-    if (depth > 14 || candidates.length > 4000 || !value || typeof value !== 'object') return;
+    if (depth > 14 || visitedCount >= 4000 || !value || typeof value !== 'object' || visited.has(value)) return;
+    visited.add(value);
+    visitedCount++;
     if (Array.isArray(value)) { for (const item of value) visit(item, depth + 1); return; }
     const record = value as EmbeddedRecord;
     if (embeddedCandidateMatches(record, sourceUrl, tokens)) {

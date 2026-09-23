@@ -126,3 +126,19 @@ test('priority merchant embedded state accepts a European exact id but ignores r
   assert.equal(result.country, 'Германия');
   assert.deepEqual(result.variants.map(v => [v.label, v.available, v.availabilityKnown]), [['40', true, true], ['41', false, true]]);
 });
+
+test('embedded state does not accept a longer recommendation id containing the linked id', () => {
+  const sourceUrl = 'https://www.walmart.com/ip/item/123456789';
+  const state = {recommendation: {productId: 'prefix-123456789-other', name: 'Different item', price: 1, currency: 'USD'}};
+  const result = extractProduct(`<script id="__NEXT_DATA__" type="application/json">${JSON.stringify(state)}</script>`, sourceUrl);
+  assert.equal(result.price, undefined);
+  assert.equal(result.title, undefined);
+});
+
+test('embedded state keeps product-defining colour queries exact', () => {
+  const sourceUrl = 'https://www.asos.com/prd/12345678?colour=blue';
+  const state = {product: {url: 'https://www.asos.com/prd/12345678?colour=red', name: 'Red shirt', price: 10, currency: 'GBP'}};
+  const result = extractProduct(`<script id="__NEXT_DATA__" type="application/json">${JSON.stringify(state)}</script>`, sourceUrl);
+  assert.equal(result.price, undefined);
+  assert.equal(result.title, undefined);
+});

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {applyMerchantProfile, merchantProfileForUrl, priorityMerchants} from '../lib/importer/merchant-profiles.ts';
+import {allowedUrl} from '../lib/importer/fetch.ts';
 
 test('priority merchant registry contains the requested US and European launch groups', () => {
   const p1 = priorityMerchants(1).map(item => item.root);
@@ -13,6 +14,9 @@ test('regional aliases resolve to a single merchant profile without changing the
   assert.equal(merchantProfileForUrl('https://www.amazon.com/dp/B000000000')?.root, 'amazon.com');
   assert.equal(merchantProfileForUrl('https://www.ebay.de/itm/123')?.root, 'ebay.com');
   assert.equal(merchantProfileForUrl('https://www.zalando.es/articulo')?.root, 'zalando.es');
+  assert.equal(merchantProfileForUrl('https://en.zalando.de/articulo')?.root, 'zalando.de');
+  assert.equal(allowedUrl('https://en.zalando.de/articulo').hostname, 'en.zalando.de');
+  assert.throws(() => allowedUrl('https://arbitrary.zalando.de/articulo'));
   assert.equal(merchantProfileForUrl('https://www.perfumeriasprimor.eu/p/producto')?.root, 'perfumeriasprimor.eu');
   assert.equal(merchantProfileForUrl('https://www.footlocker.es/producto')?.root, 'footlocker.es');
   assert.equal(merchantProfileForUrl('https://example.test/product'), undefined);

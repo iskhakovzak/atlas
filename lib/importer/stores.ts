@@ -51,10 +51,14 @@ export const featuredStoreGroups: FeaturedStoreGroup[] = [
 ];
 
 const shopSubdomains = new Set(['mango.com','hm.com','uniqlo.com','nike.com','adidas.com','on.com']);
+// Zalando's German storefront sends English-language requests to this exact
+// same-country host. Keep the exception explicit instead of allowing arbitrary
+// merchant subdomains through the SSRF boundary.
+const localizedHosts = new Set(['en.zalando.de']);
 
 export function isSupportedStoreHost(host:string){
   const normalized=host.toLowerCase();
-  return supportedStoreRoots.some(root=>normalized===root||normalized==='www.'+root||(shopSubdomains.has(root)&&normalized==='shop.'+root));
+  return localizedHosts.has(normalized)||supportedStoreRoots.some(root=>normalized===root||normalized==='www.'+root||(shopSubdomains.has(root)&&normalized==='shop.'+root));
 }
 
 export const supportedStoreCount=supportedStoreRoots.length;

@@ -131,6 +131,7 @@
 - [ ] Only one operator email is supported; team assignment exists, but independent staff identities and permissions are still missing.
 - [ ] $10 merchant shipping is an estimate, not a fetched quote.
 - [ ] Allowed stores can still block, localize, require login or change HTML; manual entry must remain.
+- [ ] ASOS public page exposes price and stock but not a reliably matched size matrix; add a verified variant adapter before marking its imports orderable. eBay and MediaMarkt may return 403; Walmart and Target may return CAPTCHA. Do not infer availability from those responses.
 - [ ] Catalog refresh endpoint is implemented but no production scheduler secret or cron caller is configured yet; manual due-batch refresh is available only to the operator.
 - [ ] Replace the dated Slickdeals-informed editorial batch with a licensed merchant/affiliate feed and confirm image reuse/attribution terms before commercial launch; keep canonical merchant URLs and recheck semantics.
 - [ ] RON conversion 0.23 USD/RON is static demo data.
