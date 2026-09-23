@@ -18,7 +18,7 @@ const ru = {
   compareHint: 'Скидка относится только к цене товара в USD. Итог ниже включает сервис, доставку и резерв.',
   empty: 'Таких товаров пока нет', emptyHint: 'Увеличьте бюджет или уберите один из фильтров.', emptySaved: 'Сохраните первый товар', emptySavedHint: 'Нажмите на сердечко у товара — он появится здесь.',
   linkTitle: 'Уже нашли товар в другом магазине?', linkHint: 'Вставьте свою ссылку — рассчитайте покупку через Atlas.', linkLabel: 'Ссылка на товар', calculate: 'Рассчитать', signInToCalculate: 'Войти и рассчитать', signInToCalculateHint: 'Расчёт и выбранный товар сохранятся в вашем кабинете.', batch: 'Добавить несколько ссылок',
-  stepsTitle: 'От товара до вашего заказа', step1: 'Выберите товар', step1hint: 'Посмотрите варианты и предварительный итог.', step2: 'Проверьте расчёт', step2hint: 'Все расходы видны отдельными строками.', step3: 'Подтвердите', step3hint: 'Укажите получателя и проверьте данные.', step4: 'Следите за заказом', step4hint: 'Изменения и согласования — в кабинете.',
+  stepsTitle: 'Всего три шага', step1: 'Выберите товар', step1hint: 'В каталоге или по ссылке из магазина.', step2: 'Укажите адрес', step2hint: 'Выберите получателя или добавьте нового.', step3: 'Подтвердите заказ', step3hint: 'Проверьте итог и подтвердите оформление.', step4: 'Следите за статусом', step4hint: 'Все обновления появятся в кабинете.', stepsNote: 'Оплата и доставка сейчас работают в тестовом режиме: реальные списания и отправки отключены.',
   sourceMissing: 'Источник магазина ещё не подключён', sourceOpen: 'Страница магазина',
   shoeName: 'Кроссовки на каждый день', audioName: 'Беспроводные наушники', bagName: 'Городской рюкзак',
 };
@@ -41,7 +41,7 @@ const uz: Copy = {
   compareHint: 'Chegirma faqat mahsulotning USD narxiga tegishli. Quyidagi jami xizmat, yetkazish va zaxirani o‘z ichiga oladi.',
   empty: 'Bunday mahsulotlar hozircha yo‘q', emptyHint: 'Budjetni oshiring yoki filtrlardan birini olib tashlang.', emptySaved: 'Birinchi mahsulotni saqlang', emptySavedHint: 'Mahsulot yonidagi yurakchani bosing — u shu yerda paydo bo‘ladi.',
   linkTitle: 'Boshqa do‘konda mahsulot topdingizmi?', linkHint: 'Havolani joylang va Atlas orqali xaridni hisoblang.', linkLabel: 'Mahsulot havolasi', calculate: 'Hisoblash', signInToCalculate: 'Kirish va hisoblash', signInToCalculateHint: 'Hisob va tanlangan mahsulot kabinetingizda saqlanadi.', batch: 'Bir nechta havola qo‘shish',
-  stepsTitle: 'Mahsulotdan buyurtmagacha', step1: 'Mahsulotni tanlang', step1hint: 'Variantlar va taxminiy jamini ko‘ring.', step2: 'Hisobni tekshiring', step2hint: 'Har bir xarajat alohida ko‘rsatiladi.', step3: 'Tasdiqlang', step3hint: 'Qabul qiluvchini kiriting va ma’lumotlarni tekshiring.', step4: 'Buyurtmani kuzating', step4hint: 'O‘zgarishlar va kelishuvlar kabinetda.',
+  stepsTitle: 'Atigi uch qadam', step1: 'Tovarni tanlang', step1hint: 'Katalogdan yoki do‘kon havolasi orqali.', step2: 'Manzilni kiriting', step2hint: 'Qabul qiluvchini tanlang yoki yangisini qo‘shing.', step3: 'Buyurtmani tasdiqlang', step3hint: 'Jami hisobni ko‘rib, rasmiylashtirishni tasdiqlang.', step4: 'Holatni kuzating', step4hint: 'Barcha yangilanishlar kabinetda ko‘rinadi.', stepsNote: 'To‘lov va yetkazish hozir sinov rejimida: haqiqiy pul yechilmaydi va jo‘natmalar yuborilmaydi.',
   sourceMissing: 'Do‘kon manbasi hali ulanmagan', sourceOpen: 'Do‘kon sahifasi',
   shoeName: 'Kundalik krossovkalar', audioName: 'Simsiz quloqchinlar', bagName: 'Shahar ryukzagi',
 };
@@ -63,7 +63,7 @@ const en: Copy = {
   compareHint: 'The discount applies only to the product price in USD. The total below includes service, delivery and reserve.',
   empty: 'No matching products yet', emptyHint: 'Increase your budget or remove a filter.', emptySaved: 'Save your first product', emptySavedHint: 'Tap the heart on a product and it will appear here.',
   linkTitle: 'Found something in another store?', linkHint: 'Paste your link to calculate a purchase through Atlas.', linkLabel: 'Product link', calculate: 'Calculate', signInToCalculate: 'Sign in to calculate', signInToCalculateHint: 'Your calculation and selected item will be saved in your account.', batch: 'Add multiple links',
-  stepsTitle: 'From product to order', step1: 'Choose a product', step1hint: 'Check the options and estimated total.', step2: 'Review the calculation', step2hint: 'Every cost is shown separately.', step3: 'Confirm', step3hint: 'Add the recipient and check the details.', step4: 'Follow your order', step4hint: 'Updates and approvals stay in your account.',
+  stepsTitle: 'Just three steps', step1: 'Choose a product', step1hint: 'Pick from the catalog or paste a store link.', step2: 'Enter your address', step2hint: 'Choose a recipient or add a new one.', step3: 'Confirm your order', step3hint: 'Review the total and confirm checkout.', step4: 'Follow the status', step4hint: 'Updates will appear in your account.', stepsNote: 'Payments and delivery are in test mode: no real charges or shipments are made.',
   sourceMissing: 'Store source not connected yet', sourceOpen: 'Store page',
   shoeName: 'Everyday sneakers', audioName: 'Wireless headphones', bagName: 'City backpack',
 };

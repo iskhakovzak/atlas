@@ -12,6 +12,10 @@ Account action buttons in document and profile sections now use a responsive gri
 
 The final legacy-data disclosure now has a clear vertical gap after the documents/support row so adjacent account sections do not visually run together.
 
+On the catalog home, the order/data-responsibility panel is always rendered as a visible trust callout instead of a collapsed disclosure. Its copy and legal destination are unchanged.
+
+The home FAQ now shows every short answer immediately in a responsive grid. The purchase path is condensed to choose an item, enter a recipient address, and confirm the order, with a clear note that payments and deliveries are still in test mode and no real charges or shipments occur.
+
 An operator-mode local browser pass covered nine admin tabs at 1440/800/390/360px in addition to the main customer routes. It exposed a 390/360px header overflow from the operator link's stronger selector; the mobile header now hides that duplicate link (admin remains in navigation) and keeps locale/account/notification/cart controls within 360px. The account next-action text also wraps directly in its source rule. This did not create an operator authorization path.
 
 ## Product
