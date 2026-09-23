@@ -1,5 +1,11 @@
 # Atlas — project context
 
+## Design direction review — 23 September 2026
+
+An isolated review package in `design/` compares Commerce, Editorial and Atlas refined on catalog/product/checkout/account screens in RU/UZ/EN. Start `node design/serve.mjs` for localhost:4318. It uses synthetic prices/state and existing project images; it does not call production APIs or alter tariffs or D1. On 24 September the owner selected A / Commerce. The first production visual pass now uses shared type/spacing tokens in `app/atlas-design.css` and Commerce route-family styling in the existing `app/experience.css`: white shell, flat catalog cards, calmer prices, forms and account next action. No product logic or persistence changed. See `design/README.md` for audit and remaining migration, and `PILOT_READINESS.md` for externally gated launch prerequisites. These design changes do not enable real commerce.
+
+The follow-up Commerce pass replaces the guest's dark banner with a spacious photo-led introduction, removes the forced 650px mobile admin table width, and replaces native prompt dialogs for support replies and collection creation with accessible forms. The catalog browser audit now selects a category actually present in the current published catalog and waits for cards after sign-out; it passes 148 guest/customer/access checks. The admin forms preserve their existing authenticated APIs and D1 actions.
+
 ## Product
 
 Atlas is a functional pre-release cross-border shopping prototype for customers in Uzbekistan. The intended commercial model is purchasing intermediary plus logistics agent, not the foreign seller or manufacturer. A user chooses a sourced merchant catalog item or pastes a foreign-store product link, receives an editable preliminary UZS calculation, saves a recipient/address, creates a simulated payment and follows the purchase, warehouse, parcel and delivery process.
@@ -351,6 +357,12 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Mobile rules keep administrator tabs scrollable, stack uploads and settings, enlarge touch targets and prevent order/document rows from overflowing narrow screens.
 - `/admin` is now an operator control centre with overview metrics, order/analytics shortcuts, staff directory, server-managed restrictions and recent audit events. Staff records are preparatory only: until standalone authentication is connected, only `ATLAS_OPERATOR_EMAIL` has server authorization.
 - Operator order changes, pricing, policy and staff-directory updates create audit records. The authenticated smoke test covers staff creation and audit visibility in addition to the full order flow.
+
+## Globbing B2B operating model — 23 September 2026
+
+- The founder's working commercial assumption is that Atlas centrally arranges personal-use purchases for named individual customers; customers would not register or operate Globbing accounts. This is not yet approved by Globbing and does not change the prototype's simulated payment, purchase, customs or delivery status.
+- The public Globbing terms describe user-specific accounts and purchase on behalf/at the expense of each user. Do not infer that Atlas may use a single personal account or centrally place third-party orders. Obtain written confirmation and a corporate contract/process before real transactions.
+- Role mapping (foreign-store buyer, Atlas customer/principal, Globbing contracting party, consignee, declarant/customs representative) remains unresolved pending written carrier terms and Uzbekistan counsel review. See `GLOBBING_B2B_PLAYBOOK.md` for the negotiation checklist and go/no-go gate.
 
 ## SEO foundation and shared-language cleanup — 19 September 2026
 

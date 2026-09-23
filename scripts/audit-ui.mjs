@@ -148,8 +148,11 @@ try {
   await check("location.pathname==='/' && !!document.querySelector('.guest-intro')","guest link audit restores the guest session");
   await visit('/');
   if(catalogReady){
-    await evaluate("[...document.querySelectorAll('.finds-categories button')].find(b=>b.textContent.trim()==='Обувь').click()");
-    await check("document.querySelectorAll('.find-card').length>0 && [...document.querySelectorAll('.find-card .find-meta')].every(el=>el.textContent.includes('Обувь'))","category filtering");
+    await check("document.querySelectorAll('.find-card').length>0","catalog cards reload after sign-out");
+    const visibleCategory=await evaluate("document.querySelector('.find-card .find-meta span')?.textContent?.trim()");
+    const categoryMatched=await evaluate(`(()=>{const category=${JSON.stringify(visibleCategory)};const button=[...document.querySelectorAll('.finds-categories button')].find(item=>item.textContent.trim()===category);if(!button)return false;button.click();return true})()`);
+    if(!categoryMatched)throw Error(`No category filter matches '${visibleCategory}'`);
+    await check(`document.querySelectorAll('.find-card').length>0 && [...document.querySelectorAll('.find-card .find-meta span:first-child')].every(el=>el.textContent.trim()===${JSON.stringify(visibleCategory)})`,"category filtering");
     await evaluate("document.querySelector('.find-photo').click()");
     await check("!!document.querySelector('.product-sheet') && !!document.querySelector('.sheet-total a[href^=\"/signin-with-chatgpt\"]')","guest product asks for sign-in");
     await evaluate("document.querySelector('button[aria-label=\"Закрыть карточку\"]').click()");

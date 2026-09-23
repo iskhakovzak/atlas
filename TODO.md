@@ -1,5 +1,14 @@
 # Atlas TODO and known limitations
 
+## Design and closed pilot — 23 September 2026
+
+- [x] Prepare three isolated interactive design directions across four key screens, RU/UZ/EN and responsive layouts (`design/`).
+- [x] Record source-level design audit, staged migration order and pilot evidence gates (`design/README.md`, `PILOT_READINESS.md`).
+- [x] Owner selected A / Commerce on 24 September; first production visual pass applied to shared shell, catalog, checkout surfaces and account next action.
+- [x] Apply the guest Commerce hero, responsive admin rows and form-based support replies / collection creation; repair the catalog audit's fixed-category assumption.
+- [ ] Finish Commerce migration by consolidating overlapping rules across existing stylesheets; audit populated customer/operator states and mobile content density.
+- [ ] Complete legal/carrier/PSP/auth/operational pilot gates; never enable real payments based on visual readiness alone.
+
 ## UX refinement follow-up
 
 - [x] Compact catalog cards, disclose secondary filters and pricing details, simplify guest introduction.
@@ -47,6 +56,7 @@
 - [ ] Complete the cutover from compatible JSON customer state to relational canonical orders/ledger with transactional outbox and automated reconciliation.
 - [x] Add non-destructive normalized customer/order/fee/event/consent tables, dual-write operational projection, administrator rebuild and integrity counters.
 - [ ] Re-verify Uzbekistan customs rules, legal/privacy requirements and recipient-limit model.
+- [ ] Obtain Globbing's written approval and corporate agreement/process for centrally handled personal-use orders where Atlas manages buyout and the customer does not create a Globbing account; resolve store buyer, consignee, declarant, payment/reconciliation and customs responsibility before real orders. See `GLOBBING_B2B_PLAYBOOK.md`.
 - [x] Add in-app order status, refund and approval notifications.
 - [ ] Integrate actual carrier routes/tracking and external email/SMS delivery. Push is intentionally out of scope.
 

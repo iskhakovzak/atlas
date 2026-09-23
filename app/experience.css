@@ -157,3 +157,64 @@ button:focus-visible,a:focus-visible,summary:focus-visible { outline:3px solid #
  .finds-filter-row { gap:8px; }
  .find-total strong { font-size:1rem; }
 }
+
+/* Commerce direction A: shared scale and a calmer shopping surface. */
+body{background:#fff;color:var(--atlas-ink);font-size:var(--atlas-type-body)}
+.site-main{max-width:1500px;padding-inline:clamp(20px,4.7vw,72px)}
+.site-header{min-height:80px;border-bottom:1px solid var(--atlas-line);box-shadow:none}
+.desktop-nav a.active{color:var(--atlas-ink);border-color:var(--atlas-ink)}
+.eyebrow{color:#50617f;font-size:var(--atlas-type-meta);letter-spacing:.16em}
+.page-heading h1,.finds-heading h1{font-size:var(--atlas-type-page);line-height:1.08;letter-spacing:-.045em}
+.page-heading p,.finds-heading p{max-width:62ch;line-height:1.6}
+.atlas-hero{grid-template-columns:minmax(0,1fr) minmax(280px,1fr);gap:clamp(28px,5vw,72px);padding:48px 0;border-radius:0;background:#fff;color:var(--atlas-ink);overflow:visible}
+.atlas-hero .eyebrow,.atlas-hero h1 em{color:var(--atlas-ink)}
+.atlas-hero h1{font-size:var(--atlas-type-page);font-weight:650;line-height:1.08;max-width:650px;margin:22px 0}
+.atlas-hero p{color:#5c687a;line-height:1.65}
+.hero-selection{transform:none;border:0;border-radius:8px;padding:0;box-shadow:none;overflow:hidden;background:#f3f5f8}
+.hero-selection-head,.hero-selection-bottom{padding:14px 18px}
+.hero-selection .product-img{height:300px;border-radius:0;object-fit:cover}
+.hero-link-form{border:1px solid var(--atlas-line);border-radius:6px;box-shadow:0 5px 24px #1423440a}
+.hero-link-form input,.hero-link-form .btn{border-radius:5px}
+.hero-footnote{color:#66758a}
+.catalog-toolbar{border-top:1px solid var(--atlas-line);padding-top:32px}
+.catalog-toolbar h2,.section-heading h2,.faq-strip h2{font-size:var(--atlas-type-section);letter-spacing:-.035em}
+.category-list button,.finds-categories button{border-radius:5px;min-height:44px}
+.product-card,.find-card{border:0;border-radius:0;box-shadow:none;background:transparent;overflow:visible}
+.product-card:hover,.find-card:hover{box-shadow:none;transform:none}
+.card-photo,.find-visual,.find-photo{border-radius:7px;overflow:hidden;background:#f3f5f8}
+.card-photo{height:clamp(220px,24vw,340px)}
+.card-content,.find-content{padding:17px 0 0}
+.product-name,.find-title{font-size:var(--atlas-type-card);line-height:1.35;letter-spacing:-.025em;font-weight:650}
+.find-title{margin:12px 0 16px}
+.find-total{padding:14px 0 8px}
+.find-total>strong{color:var(--atlas-ink);font-size:clamp(1.125rem,1.5vw,1.375rem);font-weight:700;letter-spacing:-.035em}
+.find-store-price b{font-size:1.125rem;color:var(--atlas-ink)}
+.surface,.account-detail,.faq-strip details{border-radius:8px;box-shadow:none}
+.btn{border-radius:6px;min-height:46px}
+.btn.primary{background:var(--atlas-ink);border-color:var(--atlas-ink)}
+.btn.primary:hover{background:#263c66;border-color:#263c66}
+.btn.light,.account-next-action .btn{background:var(--accent);border-color:var(--accent);color:var(--atlas-ink)}
+.field input,.field select,.field textarea,.support-form input,.support-form textarea,.address-form input,.batch-import textarea{border-radius:6px}
+.quote-preview,.cart-summary{border-top:2px solid var(--atlas-ink)}
+.checkout-progress li.active{border-color:var(--atlas-ink);color:var(--atlas-ink)}
+.account-next-action{background:var(--atlas-ink);border-radius:8px}
+.account-next-action p{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.55}
+.account-stats,.account-detail{border-radius:8px}
+.account-service-grid>a,.account-service-grid>button{min-height:64px}
+.atlas-modal .support-reply-form{display:grid;gap:18px;margin-top:18px}
+.atlas-modal .support-reply-form .field{display:grid;gap:8px;min-width:0}
+.atlas-modal .support-reply-form textarea{width:100%;min-height:140px;padding:12px;resize:vertical}
+.atlas-modal .support-reply-form .btn{justify-self:end}
+.atlas-modal .collection-create-form{display:grid;gap:14px;margin-top:18px}
+.atlas-modal .collection-create-form label{display:grid;gap:7px;color:var(--atlas-ink);font-size:var(--atlas-type-label)}
+.atlas-modal .collection-create-form input{min-height:46px;width:100%;padding:10px 12px;border:1px solid var(--atlas-line);border-radius:6px;font-size:var(--atlas-type-body)}
+.atlas-modal .collection-create-form .btn{justify-self:end}
+.guest-intro{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,.85fr);column-gap:clamp(28px,5vw,72px);align-items:center;padding:36px 0 48px;margin:0 0 24px;border-radius:0;background:#fff;color:var(--atlas-ink)}
+.guest-intro>.eyebrow,.guest-intro>h1,.guest-intro>p{grid-column:1}
+.guest-intro>.eyebrow{color:#50617f;font-size:var(--atlas-type-meta);letter-spacing:.16em}
+.guest-intro h1{font-size:var(--atlas-type-page);line-height:1.08;letter-spacing:-.05em;max-width:13ch;margin:16px 0 18px}
+.guest-intro p{color:#5c687a;font-size:var(--atlas-type-body);max-width:48ch;margin:0}
+.guest-intro::after{content:"";grid-column:2;grid-row:1/4;align-self:stretch;min-height:310px;border-radius:8px;background:#eef0f3 url('/images/sneaker.jpg') center/cover no-repeat}
+@media(max-width:900px){.atlas-hero{grid-template-columns:1fr;padding:32px 0}.hero-selection{display:block;max-width:640px}.hero-selection .product-img{height:240px}}
+@media(max-width:900px){.guest-intro{grid-template-columns:minmax(0,1fr) minmax(220px,.7fr)}.guest-intro::after{min-height:260px}}
+@media(max-width:600px){.site-main{padding-inline:20px}.atlas-hero{padding:20px 0 28px}.atlas-hero h1{font-size:clamp(2rem,9vw,2.5rem)}.hero-selection .product-img{height:210px}.hero-link-form{flex-direction:column}.catalog-toolbar{padding-top:24px}.find-total>strong{font-size:1.125rem}.card-photo{height:190px}.account-next-action{grid-template-columns:1fr}.account-next-action .eyebrow{position:static}.account-next-action h2{margin:10px 0}.account-next-action .btn{white-space:normal}.guest-intro{grid-template-columns:1fr;row-gap:0;padding:26px 0 32px}.guest-intro h1{font-size:clamp(2rem,9vw,2.5rem);max-width:13ch}.guest-intro::after{grid-column:1;grid-row:4;min-height:220px;margin-top:22px}}
