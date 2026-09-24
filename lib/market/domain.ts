@@ -89,6 +89,18 @@ export const pricingSchema = z.object({
   reserve: z.number().finite().min(0).max(2),
   divisor: positive.max(100_000),
   rates: z.record(z.string(), positive).default(usdRates),
+  // Optional dispatch-country overrides. Keys use the same country labels as
+  // Product.country (the country of actual dispatch), not the customer's country.
+  // Old centrally managed pricing rows remain valid and inherit the base tariff.
+  countryOverrides: z.record(z.string().min(1).max(80), z.object({
+    perKg: positive.max(10_000_000).optional(),
+    margin: z.number().finite().min(0).max(1).optional(),
+    buyoutFee: z.number().finite().min(0).max(1).optional(),
+    conversionFee: z.number().finite().min(0).max(1).optional(),
+    deliveryMargin: z.number().finite().min(0).max(1).optional(),
+    optionalServices: z.number().finite().min(0).max(10_000_000).optional(),
+    reserve: z.number().finite().min(0).max(2).optional(),
+  }).strict()).default({}),
   version: z.string().min(1).max(80),
   updatedAt: amount,
   managedBy: z.string().max(160).optional(),
@@ -105,9 +117,16 @@ export const tariff: Pricing = {
   reserve: 0.2,
   divisor: 5000,
   rates: usdRates,
+  countryOverrides: {},
   version: "demo-1",
   updatedAt: 0,
 };
+/** Resolve only the pricing dimensions explicitly overridden for this item's
+ * actual dispatch country. FX rates stay currency-based in `rates`. */
+export function pricingForCountry(config: Pricing, country?: string): Pricing {
+  const override = country ? config.countryOverrides?.[country] : undefined;
+  return override ? { ...config, ...override } : config;
+}
 const quoteSchema = z.object({
   id: z.string(),
   createdAt: amount,
@@ -461,17 +480,20 @@ function merchantParcelKey(item: CartItem) {
 
 /** Recalculate international delivery once per merchant parcel. */
 export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing = tariff) {
-  const next = items.map((item) => ({
-    ...item,
-    quote: quote(
-      item.product.usd,
-      item.product.weight,
-      now,
-      item.quantity,
-      item.product.sourceShippingUsd ?? 0,
-      config,
-    ),
-  }));
+  const next = items.map((item) => {
+    const itemPricing = pricingForCountry(config, item.product.country);
+    return {
+      ...item,
+      quote: quote(
+        item.product.usd,
+        item.product.weight,
+        now,
+        item.quantity,
+        item.product.sourceShippingUsd ?? 0,
+        itemPricing,
+      ),
+    };
+  });
   const groups = new Map<string, number[]>();
   next.forEach((item, index) => {
     if (!item.product.sourceUrl || item.product.boxedWeight === undefined) return;
@@ -482,9 +504,10 @@ export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing
     const contributions = indexes.map((index) => next[index].product.boxedWeight! * next[index].quantity);
     const boxedTotal = contributions.reduce((sum, value) => sum + value, 0);
     const chargeableWeight = combinedShipmentWeight(boxedTotal);
-    const shippingTotal = Math.ceil(chargeableWeight * config.perKg);
-    const reserveTotal = Math.ceil(shippingTotal * config.reserve);
-    const deliveryMarginTotal = Math.round(shippingTotal * config.deliveryMargin);
+    const countryPricing = pricingForCountry(config, next[indexes[0]].product.country);
+    const shippingTotal = Math.ceil(chargeableWeight * countryPricing.perKg);
+    const reserveTotal = Math.ceil(shippingTotal * countryPricing.reserve);
+    const deliveryMarginTotal = Math.round(shippingTotal * countryPricing.deliveryMargin);
     let shippingLeft = shippingTotal;
     let reserveLeft = reserveTotal;
     let marginLeft = deliveryMarginTotal;
@@ -657,6 +680,7 @@ export function addToCart(
   config: Pricing = tariff,
 ): State {
   if (!p.variants.includes(variant)) throw Error("Выберите вариант товара.");
+  const itemPricing = pricingForCountry(config, p.country);
   const item = state.cart.find(
     (i) => i.product.id === p.id && i.variant === variant,
   );
@@ -669,7 +693,7 @@ export function addToCart(
       product: p,
       variant,
       quantity: 1,
-      quote: quote(p.usd, p.weight, now, 1, p.sourceShippingUsd ?? 0, config),
+      quote: quote(p.usd, p.weight, now, 1, p.sourceShippingUsd ?? 0, itemPricing),
     },
   ];
   return { ...state, cart: repriceCart(cart, now, config)};
@@ -683,6 +707,7 @@ export function changeQuantity(
 ): State {
   const item = state.cart.find((i) => i.id === id);
   if (!item) throw Error("Товар уже удалён из корзины.");
+  const itemPricing = pricingForCountry(config, item.product.country);
   return {
     ...state,
     cart: repriceCart(state.cart.map((i) =>
@@ -696,7 +721,7 @@ export function changeQuantity(
               now,
               quantity,
               i.product.sourceShippingUsd ?? 0,
-              config,
+              itemPricing,
             ),
           }
         : i,
@@ -718,7 +743,7 @@ export function renewCart(
         now,
         i.quantity,
         i.product.sourceShippingUsd ?? 0,
-        config,
+        pricingForCountry(config, i.product.country),
       ),
     })), now, config),
   };

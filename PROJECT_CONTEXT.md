@@ -1,5 +1,11 @@
 # Atlas — project context
 
+## Cart completion and dispatch-country pricing — 25 September 2026
+
+Successful product additions from the catalog, link-order form and batch link import now take the customer directly to `/cart`. Checkout creates the existing pre-release order records and then offers the existing `payment-demo` confirmation from the cart success dialog. A user must explicitly confirm; this only marks a simulated test payment, does not charge funds, and does not create a shipment. Existing pending orders can still be managed in Orders; real payment-provider integration is not enabled.
+
+Operator-managed pricing now supports optional per-dispatch-country overrides for the existing service commission, buyout commission, conversion commission, delivery margin, international per-kg rate, delivery reserve and flat optional-service amount. Country keys are exact existing `Product.country` labels (actual dispatch country), not customer destination. Blank fields inherit the central tariff. Cart/add, quantity changes and quote renewal reprice server-side; existing order quote snapshots stay immutable. These values remain managed/demo data, not live commercial rates. Admin tariff controls are currently Russian-only; UZ/EN localization remains follow-up work.
+
 ## Design direction review — 23 September 2026
 
 ## Multiple recipients and passport association — 24 September 2026

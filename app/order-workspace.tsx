@@ -42,6 +42,7 @@ import {
   type Communication,
 } from "@/lib/market/domain";
 import type { Action } from "@/lib/market/actions";
+import { countries } from "@/lib/market/world";
 import { localizedStatuses, type Locale } from "@/lib/market/i18n";
 import {
   PageHeading,
@@ -1049,6 +1050,7 @@ function PricingManager({
 }) {
   const [draft, setDraft] = useState(value);
   const [saving, setSaving] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState(countries[0]);
   const setNumber = (key: "fx" | "perKg" | "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "optionalServices" | "reserve" | "divisor", raw: string) =>
     setDraft((current) => ({ ...current, [key]: Number(raw) }));
   async function save() {
@@ -1070,6 +1072,7 @@ function PricingManager({
             reserve: draft.reserve,
             divisor: draft.divisor,
             rates: draft.rates,
+            countryOverrides: draft.countryOverrides,
           },
         }),
       });
@@ -1136,6 +1139,52 @@ function PricingManager({
             </div>
           ))}
         </div>
+        <section className="country-pricing">
+          <h3>Тарифы по стране отправки</h3>
+          <p className="micro">Страна здесь — фактическая страна отправки товара. Пустое поле использует общий тариф. Существующие заказы не пересчитываются.</p>
+          <div className="field">
+            <label htmlFor="pricing-country">Страна отправки</label>
+            <select id="pricing-country" value={selectedCountry} onChange={(event) => setSelectedCountry(event.target.value)}>
+              {countries.filter((country) => country !== "Другая страна").map((country) => <option key={country} value={country}>{country}</option>)}
+            </select>
+          </div>
+          <div className="pricing-grid country-pricing-grid">
+            {([
+              ["margin", "Сервис Atlas", "%"],
+              ["buyoutFee", "Комиссия за выкуп", "%"],
+              ["conversionFee", "Комиссия за конвертацию", "%"],
+              ["deliveryMargin", "Маржа доставки", "%"],
+              ["perKg", "Доставка за кг", "сум"],
+              ["reserve", "Резерв доставки", "%"],
+              ["optionalServices", "Доп. услуги", "сум"],
+            ] as const).map(([key, label, unit]) => {
+              const override = draft.countryOverrides[selectedCountry]?.[key];
+              const base = draft[key];
+              const isRate = unit === "%";
+              return <div className="field" key={key}>
+                <label htmlFor={`country-pricing-${key}`}>{label}, {unit}</label>
+                <input
+                  id={`country-pricing-${key}`}
+                  type="number"
+                  min="0"
+                  step={isRate ? "0.1" : "1"}
+                  max={isRate ? (key === "reserve" ? 200 : 100) : undefined}
+                  value={override === undefined ? "" : isRate ? override * 100 : override}
+                  placeholder={isRate ? `${base * 100} (общий тариф)` : `${base} (общий тариф)`}
+                  onChange={(event) => setDraft((current) => {
+                    const countryOverrides = { ...current.countryOverrides };
+                    const countryValues = { ...(countryOverrides[selectedCountry] ?? {}) };
+                    if (event.target.value === "") delete countryValues[key];
+                    else countryValues[key] = Number(event.target.value) / (isRate ? 100 : 1);
+                    if (Object.keys(countryValues).length) countryOverrides[selectedCountry] = countryValues;
+                    else delete countryOverrides[selectedCountry];
+                    return { ...current, countryOverrides };
+                  })}
+                />
+              </div>;
+            })}
+          </div>
+        </section>
         <details className="currency-rates">
           <summary>Курсы валют к USD</summary>
           <div className="pricing-grid currency-grid">

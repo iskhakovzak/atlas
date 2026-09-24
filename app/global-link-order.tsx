@@ -490,7 +490,7 @@ export function GlobalLinkOrder() {
                   price(p.usd, p.weight, 1, p.sourceShippingUsd, pricing);
                   setAdding(true);
                   const added = await act({ type: "cart-add", product: p, variant: variant.trim() });
-                   if (added) toast.success(tx("Товар добавлен в корзину","Tovar savatga qo‘shildi","Item added to cart"), { action: { label: tx("Открыть корзину","Savatni ochish","Open cart"), onClick: () => window.location.assign("/cart") } });
+                   if (added) window.location.assign("/cart");
                 } catch (e) {
                   toast.error((e as Error).message);
                 } finally {

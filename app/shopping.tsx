@@ -23,6 +23,9 @@ export function CartView() {
   const [selectedProfile, setSelectedProfile] = useState("");
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [checkoutKey, setCheckoutKey] = useState("");
+  const [paymentBusy, setPaymentBusy] = useState(false);
+  const [paidFromCart, setPaidFromCart] = useState(false);
   const [now, setNow] = useState(0);
 
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer); }, []);
@@ -32,6 +35,9 @@ export function CartView() {
   const balance = balanceOf(state);
   const credit = useBalance ? Math.min(total, Math.max(0, balance)) : 0;
   const locale = state.communication.language;
+  const checkoutOrders = checkoutKey ? state.orders.filter(order => order.batchId === checkoutKey) : [];
+  const pendingCheckoutOrders = checkoutOrders.filter(order => order.payment?.status === "pending");
+  const pendingCheckoutAmount = pendingCheckoutOrders.reduce((sum, order) => sum + (order.payment?.amount ?? 0), 0);
   const c = {
     ru:{overline:"ОФОРМЛЕНИЕ ЗАКАЗА",title:"Ваша корзина.",intro:"Проверьте товары, варианты и предварительный расчёт.",signin:"Войдите, чтобы открыть корзину",signinHint:"Корзина и заказы сохраняются в вашем профиле Atlas.",loading:"Загружаем корзину…",empty:"Корзина ждёт ваших находок",emptyHint:"Выберите товар в каталоге или добавьте свою ссылку.",order:"Ваш заказ",breakdown:"Состав стоимости",estimate:"Расчёт предварительный. После приёмки на складе изменение стоимости запрашивается отдельно и применяется только после вашего подтверждения.",checkout:"Указать доставку",renew:"Обновить расчёт",assurance:"Доплата только с вашего согласия",delivery:"Получатель и адрес",deliveryHint:"Данные сохранятся в профиле и будут зафиксированы в заказе.",success:"Предзаказ оформлен",successHint:"Адрес сохранён. Завершите оплату в разделе заказов."},
     uz:{overline:"BUYURTMANI RASMIYLASHTIRISH",title:"Savatingiz.",intro:"Tovarlar, variantlar va dastlabki hisobni tekshiring.",signin:"Savatni ochish uchun kiring",signinHint:"Savat va buyurtmalar Atlas profilingizda saqlanadi.",loading:"Savat yuklanmoqda…",empty:"Savat topilmalaringizni kutmoqda",emptyHint:"Katalogdan tovar tanlang yoki o‘z havolangizni qo‘shing.",order:"Buyurtmangiz",breakdown:"Narx tarkibi",estimate:"Hisob dastlabki. Ombordagi qabuldan keyingi narx o‘zgarishi alohida yuboriladi va faqat tasdiqlashingizdan so‘ng qo‘llanadi.",checkout:"Yetkazish manzilini kiritish",renew:"Hisobni yangilash",assurance:"Qo‘shimcha to‘lov faqat roziligingiz bilan",delivery:"Qabul qiluvchi va manzil",deliveryHint:"Ma’lumotlar profilingizda saqlanadi va buyurtmaga biriktiriladi.",success:"Oldindan buyurtma yaratildi",successHint:"Manzil saqlandi. Buyurtmalar bo‘limida sinov to‘lovini yakunlang."},
@@ -64,9 +70,25 @@ export function CartView() {
     setBusy(true);
     const identityProfiles=state.identityProfiles??(state.identityProfile?[state.identityProfile]:[]);
     const selectedIdentity=selectedProfile==='manual'?undefined:identityProfiles.find(profile=>profile.recipientProfileId===selectedProfile);
-    const ok = await act({ type: "checkout", key: crypto.randomUUID(), signature: cartSignature(state.cart), useBalance, expectedCredit: credit, consentVersion: customsVersion, delivery, deliveryProfileId:selectedProfile==='manual'?undefined:selectedProfile, identityProfileId:selectedIdentity?.documentId });
+    const key = crypto.randomUUID();
+    setCheckoutKey(key);
+    setPaidFromCart(false);
+    const ok = await act({ type: "checkout", key, signature: cartSignature(state.cart), useBalance, expectedCredit: credit, consentVersion: customsVersion, delivery, deliveryProfileId:selectedProfile==='manual'?undefined:selectedProfile, identityProfileId:selectedIdentity?.documentId });
     setBusy(false);
     if (ok) { setCheckoutOpen(false); setSuccess(true); }
+  }
+
+  async function payFromCart() {
+    if (paymentBusy) return;
+    const pendingIds = pendingCheckoutOrders.map(order => order.id);
+    if (!pendingIds.length) { setPaidFromCart(true); return; }
+    setPaymentBusy(true);
+    let completed = true;
+    for (const id of pendingIds) {
+      if (!await act({ type: "payment-demo", id })) { completed = false; break; }
+    }
+    setPaymentBusy(false);
+    if (completed) setPaidFromCart(true);
   }
 
   return <>
@@ -127,8 +149,11 @@ export function CartView() {
       </form>
     </Modal>
 
-    <Modal open={success} onClose={() => { setSuccess(false); window.location.assign("/orders"); }} title={c.success} description={c.successHint}>
-      <div className="success-icon"><Check size={35} /></div><button className="btn primary full" onClick={() => { setSuccess(false); window.location.assign("/orders"); }}>{x.pay} <ArrowRight size={18} /></button><p className="micro center">{x.noCharge}</p>
+    <Modal open={success} onClose={() => setSuccess(false)} title={paidFromCart?(locale==='ru'?'Тестовая оплата подтверждена':locale==='uz'?'Sinov to‘lovi tasdiqlandi':'Test payment confirmed'):c.success} description={paidFromCart?(locale==='ru'?'Заказ отмечен как тестово оплаченный. Реального списания не было.':locale==='uz'?'Buyurtma test rejimida to‘langan deb belgilandi. Haqiqiy pul yechilmadi.':'The order is marked as test-paid. No real charge was made.'):pendingCheckoutOrders.length?(locale==='ru'?'Проверьте сумму и подтвердите тестовую оплату здесь.':locale==='uz'?'Summani tekshiring va sinov to‘lovini shu yerda tasdiqlang.':'Review the amount and confirm the test payment here.'):checkoutOrders.length?(locale==='ru'?'Заказ уже оплачен с тестового баланса.':locale==='uz'?'Buyurtma demo balans orqali to‘langan.':'The order was paid from the demo balance.'):c.successHint}>
+      <div className="success-icon"><Check size={35} /></div>
+      {!paidFromCart&&pendingCheckoutOrders.length>0&&<div className="summary-total"><span>{x.payable}<strong>{money(pendingCheckoutAmount)}</strong></span><span className="currency-mark">UZS</span></div>}
+      {!paidFromCart&&pendingCheckoutOrders.length>0?<button className="btn primary full" disabled={paymentBusy} onClick={()=>void payFromCart()}>{paymentBusy?(locale==='ru'?'Подтверждаем…':locale==='uz'?'Tasdiqlanmoqda…':'Confirming…'):(locale==='ru'?'Подтвердить тестовую оплату':locale==='uz'?'Sinov to‘lovini tasdiqlash':'Confirm test payment')} <ArrowRight size={18} /></button>:<button className="btn secondary full" onClick={() => { setSuccess(false); window.location.assign("/orders"); }}>{locale==='ru'?'Открыть заказы':locale==='uz'?'Buyurtmalarni ochish':'View orders'} <ArrowRight size={18} /></button>}
+      <p className="micro center">{x.noCharge}</p>
     </Modal>
   </>;
 }

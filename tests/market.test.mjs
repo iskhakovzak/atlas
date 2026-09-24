@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {products,tariff,quote,price,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource,markNotificationsRead,confirmDemoPayment,updateCommunication,assignOrder,addStaffNote,setParcel,confirmIdentity,submitDeclarationPreview,clearIdentity,inspectWarehouseOrder,createChangeRequest,respondToChangeRequest,orderPayable} from '../lib/market/domain.ts';
+import {products,tariff,pricingSchema,quote,price,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource,markNotificationsRead,confirmDemoPayment,updateCommunication,assignOrder,addStaffNote,setParcel,confirmIdentity,submitDeclarationPreview,clearIdentity,inspectWarehouseOrder,createChangeRequest,respondToChangeRequest,orderPayable} from '../lib/market/domain.ts';
 import {applyAction} from '../lib/market/actions.ts';
 import {defaultPolicy} from '../lib/market/policy.ts';
 import {customsVersion} from '../lib/market/world.ts';
@@ -43,6 +43,14 @@ assert.equal(validateSource('https://www.example.com/product'),'https://www.exam
 });
 test('managed pricing affects new quotes while old orders stay immutable',()=>{
 const managed={...tariff,fx:13000,perKg:100000,version:'managed-test',updatedAt:2000};let state=addToCart(blank(),products[0],'US 9',1000,managed);assert.equal(state.cart[0].quote.tariffVersion,'managed-test');assert.equal(state.cart[0].quote.fx,13000);state=checkoutCart(state,'managed',cartSignature(state.cart),false,1001);const original=JSON.stringify(state.orders[0].quote);managed.fx=14000;assert.equal(JSON.stringify(state.orders[0].quote),original);
+});
+test('dispatch-country service overrides affect new quote lines and old pricing records inherit base rates',()=>{
+const legacy=pricingSchema.parse({...tariff,countryOverrides:undefined});assert.deepEqual(legacy.countryOverrides,{});
+const managed={...tariff,perKg:90000,margin:.12,countryOverrides:{'США':{margin:.2,buyoutFee:.03,conversionFee:.01,deliveryMargin:.05,perKg:120000,reserve:.1,optionalServices:5000}}};
+const us=addToCart(blank(),products[0],products[0].variants[0],1000,managed).cart[0].quote;
+assert.equal(us.service,Math.round(us.merchandise*.2));assert.equal(us.buyout,Math.round(us.merchandise*.03));assert.equal(us.conversion,Math.round(us.merchandise*.01));assert.equal(us.shipping,Math.ceil(us.weight*120000));assert.equal(us.reserve,Math.ceil(us.shipping*.1));assert.equal(us.deliveryMargin,Math.round(us.shipping*.05));assert.equal(us.optionalServices,5000);
+const de=addToCart(blank(),products[1],products[1].variants[0],1001,managed).cart[0].quote;
+assert.equal(de.service,Math.round(de.merchandise*.12));assert.equal(de.shipping,90000);assert.equal(de.buyout,0);
 });
 test('operator changes require an exact customer decision and preserve the original quote',()=>{
 let s=prepare();const id=s.orders[0].id,original=JSON.stringify(s.orders[0].quote);s=createChangeRequest(s,id,{kind:'variant',title:'Другой размер',reason:'Выбранного размера нет',previousValue:'US 9',proposedValue:'US 10',amountDelta:25000},1300);const request=s.orders[0].changeRequests[0];assert.throws(()=>advanceOrder(s,id,0));assert.throws(()=>respondToChangeRequest(s,id,request.id,'approved',1));s=respondToChangeRequest(s,id,request.id,'approved',25000,1400);assert.equal(s.orders[0].variant,'US 10');assert.equal(orderPayable(s.orders[0]),s.orders[0].quote.total+25000);assert.equal(JSON.stringify(s.orders[0].quote),original);

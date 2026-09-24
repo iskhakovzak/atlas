@@ -53,6 +53,7 @@ const updateSchema = z.discriminatedUnion("kind", [
       reserve: true,
       divisor: true,
       rates: true,
+      countryOverrides: true,
     }),
   }),
   z.object({

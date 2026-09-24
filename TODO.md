@@ -12,6 +12,10 @@
 
 ## UX refinement follow-up
 
+- [x] Route successful catalog, link and batch additions directly to the cart; offer simulated payment confirmation from cart checkout. Real provider payments remain blocked on PSP integration.
+- [x] Add operator-managed dispatch-country overrides for existing service, buyout, conversion, delivery margin, per-kg freight, reserve and optional-service tariff fields; old pricing state and submitted quote snapshots remain compatible.
+- [ ] Localize dispatch-country pricing controls and validation errors in RU/UZ/EN; validate country-label coverage as merchant regions are added.
+
 - [x] Remove the low-value customer profile JSON download; keep operator-only database backup export separate.
 - [x] Support multiple saved recipient addresses with separately confirmed passport identities; select saved recipients in checkout and snapshot their address/identity to each order.
 - [x] Build declaration previews from each order's actual selected recipient and prevent mixing recipients in one package. This is still an internal simulated preview, not customs submission.
