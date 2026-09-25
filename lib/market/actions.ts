@@ -30,6 +30,10 @@ import {
   createChangeRequest,
   respondToChangeRequest,
   inspectWarehouseOrder,
+  setCartServices,
+  requestWarehouseService,
+  completeWarehouseService,
+  declineWarehouseService,
   changeRequestKindSchema,
   warehouseConditionSchema,
   warehouseServiceSchema,
@@ -55,6 +59,7 @@ export const actionSchema = z.discriminatedUnion("type", [
     quantity: z.number().int().min(1).max(10),
   }),
   z.object({ type: z.literal("cart-remove"), id }),
+  z.object({ type: z.literal("cart-services"), id, serviceIds: z.array(z.string().min(2).max(80)).max(40) }),
   z.object({ type: z.literal("cart-renew") }),
   z.object({
     type: z.literal("checkout"),
@@ -88,6 +93,7 @@ export const actionSchema = z.discriminatedUnion("type", [
     reason: z.string().trim().min(2).max(500),
     previousValue: z.string().trim().max(240).optional(),
     proposedValue: z.string().trim().max(240).optional(),
+    warehouseServiceRequestId: z.string().min(1).max(100).optional(),
     amountDelta: z.number().int().min(-100_000_000).max(100_000_000),
   }),
   z.object({
@@ -106,6 +112,9 @@ export const actionSchema = z.discriminatedUnion("type", [
     services: z.array(warehouseServiceSchema).max(5),
     packageGroup: z.string().trim().max(80),
   }),
+  z.object({ type: z.literal("warehouse-service-request"), id, serviceId: z.string().min(2).max(80), units: z.number().int().min(1).max(100).default(1) }),
+  z.object({ type: z.literal("warehouse-service-complete"), id, requestId: z.string().min(1).max(100) }),
+  z.object({ type: z.literal("warehouse-service-decline"), id, requestId: z.string().min(1).max(100), reason: z.string().trim().min(2).max(500) }),
   z.object({
     type: z.literal("parcel-set"),
     id,
@@ -145,10 +154,14 @@ export function applyAction(
       a.type === "staff-note" ||
       a.type === "parcel-set" ||
       a.type === "change-request-create" ||
-      a.type === "warehouse-inspect") &&
+      a.type === "warehouse-inspect" ||
+      a.type === "warehouse-service-complete" ||
+      a.type === "warehouse-service-decline") &&
     !isOperator
   )
     throw Error("Доступно только оператору.");
+  if (a.type === "warehouse-service-request" && isOperator)
+    throw Error("Запросить дополнительную услугу может владелец заказа.");
   switch (a.type) {
     case "order-image": {
       const o = s.orders.find((o) => o.id === a.id);
@@ -225,6 +238,8 @@ export function applyAction(
       { const next = changeQuantity(s, a.id, a.quantity, Date.now(), pricing); assertCartPolicy(next.cart, policy); return next; }
     case "cart-remove":
       return { ...s, cart: s.cart.filter((i) => i.id !== a.id) };
+    case "cart-services":
+      return setCartServices(s, a.id, a.serviceIds, pricing);
     case "cart-renew":
       return renewCart(s, Date.now(), pricing);
     case "checkout":
@@ -246,6 +261,7 @@ export function applyAction(
         a.delivery,
         a.deliveryProfileId,
         a.identityProfileId,
+        pricing,
       );
     case "payment-demo":
       return confirmDemoPayment(s, a.id);
@@ -279,6 +295,12 @@ export function applyAction(
       return respondToChangeRequest(s, a.id, a.requestId, a.decision, a.expectedAmountDelta);
     case "warehouse-inspect":
       return inspectWarehouseOrder(s, a.id, a);
+    case "warehouse-service-request":
+      return requestWarehouseService(s, a.id, a.serviceId, a.units, pricing);
+    case "warehouse-service-complete":
+      return completeWarehouseService(s, a.id, a.requestId);
+    case "warehouse-service-decline":
+      return declineWarehouseService(s, a.id, a.requestId, a.reason);
     case "parcel-set":
       return setParcel(s, a.id, a.carrier, a.trackingNumber, a.warehouseCode);
     case "advance":

@@ -112,6 +112,16 @@
 - [ ] Define post-purchase cancellation/refund rules. Current automatic cancellation is status 0 only.
 - [x] Add private manager invoice, purchase-proof, warehouse-photo and warehouse-report uploads with customer-owned download access.
 
+### Warehouse service catalogue — 25 September 2026
+
+- [x] Add an operator-managed RU/UZ/EN catalogue for common forwarding extras, with checkout/warehouse stage, unit, fixed/operator-quoted pricing, base price and per-dispatch-country overrides.
+- [x] Let customers note services in the cart or request warehouse-stage options after recorded intake; snapshot terms so later admin edits do not rewrite orders.
+- [x] Require operator feasibility/price review (or an explicit unavailable reason) and exact customer approval before a requested service can be marked complete; unresolved services block weighing.
+- [x] Keep the existing quote immutable, preserve old cart/order compatibility without a migration, and prevent the built-in insurance offer from being enabled until coverage terms and claims handling exist.
+- [ ] Confirm each configured service with the contracted warehouse, then enter reviewed Atlas prices, availability, limits, timing, cancellation/refund and package-impact rules before any commercial pilot.
+- [ ] Integrate and audit real warehouse execution, evidence/photos, service exceptions and any additional payment flow; current completion flags and amounts are pre-release simulation only.
+- [ ] Add a verified insurance partner and approved coverage/exclusions/claims process before making shipment insurance available.
+
 ## Auth/data/operations
 
 - [ ] Choose and integrate standalone auth (email password or email code, recovery, optional Google OAuth, rate limits and consent records). Do not collect passwords until an identity provider or audited password implementation is selected.
@@ -147,6 +157,7 @@
 
 - [ ] Revisit client-side RSC navigation after Vinext fixes its production prefetch runtime; Atlas currently uses reliable full-page navigation.
 - [ ] No real payment or delivery.
+- [ ] Warehouse optional-service requests, quotes and completion status are currently workflow simulation. Do not treat configurable preview fees as live service prices or promise physical service until a warehouse contract and execution process are verified.
 - [ ] Only one operator email is supported; team assignment exists, but independent staff identities and permissions are still missing.
 - [ ] $10 merchant shipping is an estimate, not a fetched quote.
 - [ ] Allowed stores can still block, localize, require login or change HTML; manual entry must remain.

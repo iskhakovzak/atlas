@@ -36,10 +36,15 @@ import {
   money,
   settle,
   orderPayable,
+  serviceDescription,
+  serviceFeeForCountry,
+  serviceTitle,
   type Pricing,
   type State,
   type Order,
   type Communication,
+  type ServiceOffering,
+  type WarehouseServiceRequest,
 } from "@/lib/market/domain";
 import type { Action } from "@/lib/market/actions";
 import { countries } from "@/lib/market/world";
@@ -87,9 +92,11 @@ type OperationsAccount = {
 function OperatorOrderTools({
   order,
   run,
+  locale,
 }: {
   order: Order;
   run: (action: Action) => Promise<boolean>;
+  locale: Locale;
 }) {
   const [team, setTeam] = useState<"Закупки" | "Склад" | "Поддержка" | "Финансы">(order.assignment?.team ?? "Закупки");
   const [priority, setPriority] = useState<"Обычный" | "Высокий" | "Срочный">(order.assignment?.priority ?? "Обычный");
@@ -105,6 +112,9 @@ function OperatorOrderTools({
   const [changeKind, setChangeKind] = useState<"price" | "variant" | "substitution" | "source-shipping" | "warehouse-service" | "customs">("variant");
   const [changeTitle, setChangeTitle] = useState("");
   const [changeReason, setChangeReason] = useState("");
+  const [serviceQuoteAmounts, setServiceQuoteAmounts] = useState<Record<string, string>>({});
+  const [serviceQuoteReasons, setServiceQuoteReasons] = useState<Record<string, string>>({});
+  const [serviceDeclineReasons, setServiceDeclineReasons] = useState<Record<string, string>>({});
   const [previousValue, setPreviousValue] = useState("");
   const [proposedValue, setProposedValue] = useState("");
   const [amountDelta, setAmountDelta] = useState("0");
@@ -120,6 +130,30 @@ function OperatorOrderTools({
   return (
     <details className="ops-tools">
       <summary><UserCheck size={17} /> Команда, трекинг и заметки</summary>
+      {(order.warehouseServiceRequests ?? []).some((request) => ["requested", "approved"].includes(request.status)) && <section className="warehouse-service-ops">
+        <h3>Услуги склада</h3>
+        <p className="micro">Тарифы и пожелания — внутренний предрелизный сценарий. Перед выполнением проверьте возможности фактического склада; списаний и реальной операции в Atlas пока нет.</p>
+        {(order.warehouseServiceRequests ?? []).filter((request) => ["requested", "approved"].includes(request.status)).map((request) => {
+          const expectedAmount = (request.feeUzs ?? 0) * request.units;
+          const amountValue = serviceQuoteAmounts[request.id] ?? String(expectedAmount);
+          const reasonValue = serviceQuoteReasons[request.id] ?? "Проверена возможность услуги и согласована её стоимость.";
+          const declineReason = serviceDeclineReasons[request.id] ?? "Эта услуга недоступна на нашем складе.";
+          return <article className="warehouse-service-admin-row" key={request.id}>
+            <div><b>{serviceTitle(request, locale)}</b><p>{serviceDescription(request, locale)}</p><p>{request.units} × {request.unit === "item" ? "шт." : request.unit === "photo" ? "фото" : request.unit === "day" ? "дн." : request.unit === "half-hour" ? "30 мин." : "посылка"}</p></div>
+            {request.status === "requested" && order.status === 2 && order.warehouseInspection ? <form className="warehouse-service-quote" onSubmit={(event) => {
+              event.preventDefault();
+              const amount = Math.round(Number(amountValue));
+              void save({ type: "change-request-create", id: order.id, kind: "warehouse-service", title: request.title.ru, reason: reasonValue, warehouseServiceRequestId: request.id, amountDelta: amount }, "Стоимость услуги отправлена покупателю");
+            }}>
+              <div className="field"><label htmlFor={`warehouse-service-amount-${request.id}`}>Стоимость, сум{request.pricingMode === "fixed" ? " · тариф из настроек" : ""}</label><input id={`warehouse-service-amount-${request.id}`} type="number" min="0" max="100000000" step="1" required value={amountValue} disabled={request.pricingMode === "fixed"} onChange={(event) => setServiceQuoteAmounts((current) => ({ ...current, [request.id]: event.target.value }))} /></div>
+              <div className="field"><label htmlFor={`warehouse-service-reason-${request.id}`}>Комментарий покупателю</label><input id={`warehouse-service-reason-${request.id}`} minLength={2} maxLength={500} required value={reasonValue} onChange={(event) => setServiceQuoteReasons((current) => ({ ...current, [request.id]: event.target.value }))} /></div>
+              <button className="btn secondary" disabled={busy || pendingChange(order)}>Отправить стоимость на согласование</button>
+              <div className="field warehouse-service-decline-reason"><label htmlFor={`warehouse-service-decline-${request.id}`}>Причина отказа</label><input id={`warehouse-service-decline-${request.id}`} minLength={2} maxLength={500} required value={declineReason} onChange={(event) => setServiceDeclineReasons((current) => ({ ...current, [request.id]: event.target.value }))} /></div>
+              <button type="button" className="text-button warehouse-service-decline" disabled={busy || pendingChange(order)} onClick={() => void save({ type: "warehouse-service-decline", id: order.id, requestId: request.id, reason: declineReason }, "Запрос отмечен недоступным")}>Отметить услугу недоступной</button>
+            </form> : request.status === "requested" ? <p className="micro">Согласование станет доступно после приёмки товара на склад.</p> : <div className="warehouse-service-completion"><strong>{money(request.quotedAmount ?? expectedAmount)}</strong><button className="btn secondary" disabled={busy} onClick={() => void save({ type: "warehouse-service-complete", id: order.id, requestId: request.id }, "Статус услуги обновлён")}>Отметить выполненной</button></div>}
+          </article>;
+        })}
+      </section>}
       <div className="ops-tools-grid">
         <form onSubmit={(event) => { event.preventDefault(); void save({ type: "assign-order", id: order.id, team, priority }, "Ответственный и приоритет сохранены"); }}>
           <h3>Ответственный</h3>
@@ -167,6 +201,58 @@ function OperatorOrderTools({
       {!!order.staffNotes?.length && <div className="staff-notes"><h3>Последние заметки</h3>{[...order.staffNotes].reverse().slice(0, 3).map((item) => <p key={item.id}><time>{new Date(item.at).toLocaleString("ru-RU")}</time>{item.text}</p>)}</div>}
     </details>
   );
+}
+
+function CustomerWarehouseServices({
+  order,
+  pricing,
+  locale,
+  busy,
+  run,
+}: {
+  order: Order;
+  pricing: Pricing;
+  locale: Locale;
+  busy: boolean;
+  run: (action: Action) => Promise<boolean>;
+}) {
+  const [serviceId, setServiceId] = useState("");
+  const [units, setUnits] = useState("1");
+  const [sending, setSending] = useState(false);
+  const words = {
+    ru: { title: "Услуги склада", intro: "Можно запросить после приёмки и до взвешивания. Atlas пока только сохраняет запрос: реальное выполнение и списание не подключены.", empty: "Нет дополнительных запросов", add: "Запросить услугу", quote: "Стоимость подтвердит оператор до выполнения", fixed: "Тариф по настройкам", package: "посылка", item: "шт.", day: "дней", photo: "фото", halfHour: "получасовых интервалов", requested: "Проверяется оператором", quoted: "Ожидает вашего решения ниже", approved: "Согласовано · ожидает выполнения", declined: "Не согласовано", completed: "Отмечено выполненным", checkout: "Отмечено при оформлении", amount: "Количество", request: "Отправить запрос" },
+    uz: { title: "Ombor xizmatlari", intro: "Qabuldan keyin va tortishdan oldin so‘rash mumkin. Atlas hozircha faqat so‘rovni saqlaydi: haqiqiy bajarish va pul yechish ulanmagan.", empty: "Qo‘shimcha so‘rovlar yo‘q", add: "Xizmat so‘rash", quote: "Bajarishdan oldin operator narxni tasdiqlaydi", fixed: "Sozlamalardagi tarif", package: "posilka", item: "dona", day: "kun", photo: "foto", halfHour: "yarim soatlik interval", requested: "Operator tekshirmoqda", quoted: "Quyida qaroringiz kutilmoqda", approved: "Kelishildi · bajarilishi kutilmoqda", declined: "Rad etildi", completed: "Bajarildi deb belgilandi", checkout: "Rasmiylashtirishda belgilangan", amount: "Miqdor", request: "So‘rov yuborish" },
+    en: { title: "Warehouse services", intro: "Request after intake and before weighing. Atlas currently records requests only; no real service or charge is connected.", empty: "No additional requests", add: "Request a service", quote: "The operator will confirm the price before work", fixed: "Configured tariff", package: "package", item: "items", day: "days", photo: "photos", halfHour: "half-hour units", requested: "Operator is checking", quoted: "Your decision is needed below", approved: "Approved · awaiting fulfilment", declined: "Declined", completed: "Marked complete", checkout: "Requested at checkout", amount: "Quantity", request: "Send request" },
+  }[locale];
+  const requests = order.warehouseServiceRequests ?? [];
+  const activeIds = new Set(requests.filter((request) => ["requested", "quoted", "approved"].includes(request.status)).map((request) => request.serviceId));
+  const available = order.status === 2 && order.warehouseInspection
+    ? pricing.serviceCatalog.filter((service) => service.enabled && service.requestStage === "warehouse" && !activeIds.has(service.id))
+    : [];
+  const selected = available.find((service) => service.id === serviceId) ?? available[0];
+  if (!requests.length && !available.length) return null;
+  const unitLabel = (unit: WarehouseServiceRequest["unit"]) => unit === "package" ? words.package : unit === "item" ? words.item : unit === "day" ? words.day : unit === "photo" ? words.photo : words.halfHour;
+  const statusLabel = (status: WarehouseServiceRequest["status"]) => status === "requested" ? words.requested : status === "quoted" ? words.quoted : status === "approved" ? words.approved : status === "declined" ? words.declined : words.completed;
+  const requestedUnits = selected?.unit === "package" ? 1 : selected?.unit === "item" ? order.quantity : Math.max(1, Math.min(100, Number(units) || 1));
+  const configuredAmount = selected?.pricingMode === "fixed" ? serviceFeeForCountry(selected, order.product.country) * requestedUnits : undefined;
+  return <details className="customer-warehouse-services">
+    <summary>{words.title}<span>{requests.length || available.length}</span></summary>
+    <div className="customer-warehouse-services-body">
+      <p className="micro">{words.intro}</p>
+      {requests.length > 0 && <div className="warehouse-service-request-list">{requests.map((request) => <article className={`warehouse-service-request ${request.status}`} key={request.id}>
+        <div><strong>{serviceTitle(request, locale)}</strong><small>{request.origin === "checkout" ? words.checkout : `${request.units} × ${unitLabel(request.unit)}`}</small></div>
+        <div><b>{statusLabel(request.status)}</b>{request.quotedAmount !== undefined && <small>{money(request.quotedAmount)}</small>}</div>
+      </article>)}</div>}
+      {available.length > 0 && selected && <div className="warehouse-service-request-form">
+        <div className="field"><label htmlFor={`warehouse-service-select-${order.id}`}>{words.add}</label><select id={`warehouse-service-select-${order.id}`} value={selected.id} onChange={(event) => setServiceId(event.target.value)}>{available.map((service) => <option value={service.id} key={service.id}>{serviceTitle(service, locale)}</option>)}</select></div>
+        <p className="micro">{serviceDescription(selected, locale)}</p>
+        {!["package", "item"].includes(selected.unit) && <div className="field"><label htmlFor={`warehouse-service-units-${order.id}`}>{words.amount} · {unitLabel(selected.unit)}</label><input id={`warehouse-service-units-${order.id}`} type="number" min="1" max="100" step="1" value={units} onChange={(event) => setUnits(event.target.value)} /></div>}
+        <p className="micro">{configuredAmount !== undefined ? `${words.fixed}: ${money(configuredAmount)}. ${words.quote}.` : words.quote}</p>
+        <button className="btn secondary" disabled={busy || sending} onClick={async () => { setSending(true); try { await run({ type: "warehouse-service-request", id: order.id, serviceId: selected.id, units: requestedUnits }); } finally { setSending(false); } }}>{sending ? "…" : words.request}</button>
+      </div>}
+      {!requests.length && !available.length && <p className="micro">{words.empty}</p>}
+    </div>
+  </details>;
 }
 
 type OrderDocument={id:string;order_id:string;kind:string;filename:string;content_type:string;size:number;created_at:number};
@@ -405,6 +491,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
         <PricingManager
           key={opsPricing.version}
           value={opsPricing}
+          locale={locale}
           onSaved={(next) => {
             setOpsPricing(next);
             void refresh();
@@ -605,7 +692,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
                  <Package size={22}/><div><h3>{o.warehouseInspection.condition === "ok" ? ow.warehouseDone : ow.warehouseProblem}</h3><p>{ow.received}: {o.warehouseInspection.quantityReceived} {locale === "ru" ? "шт." : locale === "uz" ? "dona" : "pcs"}{o.warehouseInspection.packageGroup ? ` · ${locale === "ru" ? "группа" : locale === "uz" ? "guruh" : "group"} ${o.warehouseInspection.packageGroup}` : ""}</p><strong>{o.warehouseInspection.services.length ? `${ow.operations}: ${o.warehouseInspection.services.join(", ")}` : ow.noOperations}</strong>{o.warehouseInspection.notes && <p>{o.warehouseInspection.notes}</p>}</div>
               </div>
             )}
-             {!!o.changeRequests?.length && <section className="change-request-list" aria-label={ow.agreements}>{[...o.changeRequests].reverse().map(request=><article className={`change-request ${request.status}`} key={request.id}><div><span className="eyebrow">{request.status === "pending" ? ow.pending : request.status === "approved" ? ow.approved : ow.declined}</span><h3>{request.title}</h3><p>{request.reason}</p>{(request.previousValue||request.proposedValue)&&<p className="change-values"><span>{request.previousValue||"—"}</span><ArrowRight size={15}/><b>{request.proposedValue||"—"}</b></p>}</div><div className="change-amount">{request.amountDelta !== 0 && <strong>{request.amountDelta > 0 ? "+" : ""}{money(request.amountDelta)}</strong>}{!operations && request.status === "pending" && <div className="change-actions"><button className="btn secondary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"declined",expectedAmountDelta:request.amountDelta})}>{ow.reject}</button><button className="btn primary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"approved",expectedAmountDelta:request.amountDelta})}>{ow.confirm}</button></div>}</div></article>)}</section>}
+            {!operations && <CustomerWarehouseServices order={o} pricing={pricing} locale={locale} busy={busy} run={runOrderAction} />}
+             {!!o.changeRequests?.length && <section className="change-request-list" aria-label={ow.agreements}>{[...o.changeRequests].reverse().map(request=><article className={`change-request ${request.status}`} key={request.id}><div><span className="eyebrow">{request.status === "pending" ? ow.pending : request.status === "approved" ? ow.approved : ow.declined}</span><h3>{request.title}</h3><p>{request.reason}</p>{request.warehouseServiceRequestId&&<p className="micro">{locale==='ru'?'Подтверждение относится только к этой услуге. В предрелизной версии реального списания и выполнения нет.':locale==='uz'?'Tasdiq faqat shu xizmatga tegishli. Oldindan ko‘rish versiyasida haqiqiy pul yechish yoki bajarish yo‘q.':'Approval applies only to this service. No real charge or fulfilment occurs in this preview.'}</p>}{(request.previousValue||request.proposedValue)&&<p className="change-values"><span>{request.previousValue||"—"}</span><ArrowRight size={15}/><b>{request.proposedValue||"—"}</b></p>}</div><div className="change-amount">{request.amountDelta !== 0 && <strong>{request.amountDelta > 0 ? "+" : ""}{money(request.amountDelta)}</strong>}{!operations && request.status === "pending" && <div className="change-actions"><button className="btn secondary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"declined",expectedAmountDelta:request.amountDelta})}>{ow.reject}</button><button className="btn primary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"approved",expectedAmountDelta:request.amountDelta})}>{ow.confirm}</button></div>}</div></article>)}</section>}
             {!operations &&
               !o.cancelled &&
               o.status === 0 &&
@@ -793,7 +881,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
             {operations && o.status === 3 && !o.parcel && (
               <p className="micro">{ow.trackingFirst}</p>
             )}
-            {operations && !o.cancelled && <OperatorOrderTools order={o} run={runOrderAction} />}
+            {operations && !o.cancelled && <OperatorOrderTools order={o} run={runOrderAction} locale={locale} />}
             <OrderDocuments orderId={o.id} accountId={orderAccount.get(o.id)?.id} operatorMode={operations} locale={state.communication.language}/>
             <div className="order-bottom">
               <details>
@@ -1043,14 +1131,23 @@ export function OrdersView({ operations }: { operations: boolean }) {
 }
 function PricingManager({
   value,
+  locale,
   onSaved,
 }: {
   value: Pricing;
+  locale: Locale;
   onSaved: (next: Pricing) => void;
 }) {
   const [draft, setDraft] = useState(value);
   const [saving, setSaving] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState(countries[0]);
+  const serviceWords = {
+    ru: { title: "Каталог услуг склада", intro: "Укажите, что клиент может запросить при оформлении или после приёмки. Фиксированная сумма — тариф за единицу; пустой тариф страны наследует базовый. Уже созданные заказы сохраняют снимок. Реального исполнения и списания в Atlas пока нет.", add: "Добавить услугу", enabled: "Доступна клиентам", required: "Обязательна при оформлении", stage: "Когда показывать", checkout: "В корзине", warehouse: "После приёмки", unit: "Единица тарифа", pricing: "Ценообразование", fixed: "Фиксированный тариф", quote: "Цена после проверки оператором", baseFee: "Базовый тариф, сум", countryFee: "Тариф для выбранной страны, сум", titleLabel: "Название", description: "Описание", remove: "Отключить", insurance: "Страхование заблокировано до подтверждения страховщика, покрытия и порядка претензий." },
+    uz: { title: "Ombor xizmatlari katalogi", intro: "Mijoz xizmatni savatda yoki qabuldan keyin so‘rashi mumkin. Belgilangan summa — birlik uchun tarif; mamlakat tarifi bo‘sh bo‘lsa, asosiy tarif ishlatiladi. Eski buyurtmalarda avvalgi nusxa qoladi. Atlasda haqiqiy bajarish va pul yechish yo‘q.", add: "Xizmat qo‘shish", enabled: "Mijozlarga ochiq", required: "Rasmiylashtirishda majburiy", stage: "Qachon ko‘rsatish", checkout: "Savatda", warehouse: "Qabuldan keyin", unit: "Tarif birligi", pricing: "Narxlash", fixed: "Belgilangan tarif", quote: "Operator tekshirgach narx", baseFee: "Asosiy tarif, so‘m", countryFee: "Tanlangan mamlakat tarifi, so‘m", titleLabel: "Nomi", description: "Tavsif", remove: "O‘chirish", insurance: "Sug‘urtalovchi, qoplama va da’vo tartibi tasdiqlanmaguncha sug‘urta bloklangan." },
+    en: { title: "Warehouse service catalogue", intro: "Choose what customers can request in the cart or after intake. A fixed amount is per unit; a blank country price inherits the base price. Existing orders keep their snapshot. Atlas does not perform services or charge money yet.", add: "Add service", enabled: "Available to customers", required: "Required at checkout", stage: "When to offer", checkout: "In cart", warehouse: "After intake", unit: "Pricing unit", pricing: "Pricing mode", fixed: "Fixed tariff", quote: "Operator quote after review", baseFee: "Base price, UZS", countryFee: "Price for selected country, UZS", titleLabel: "Title", description: "Description", remove: "Deactivate", insurance: "Insurance is locked until the insurer, coverage and claims process are confirmed." },
+  }[locale];
+  const updateService = (index: number, patch: Partial<ServiceOffering>) => setDraft((current) => ({ ...current, serviceCatalog: current.serviceCatalog.map((service, serviceIndex) => serviceIndex === index ? { ...service, ...patch } : service) }));
+  const addService = () => setDraft((current) => ({ ...current, serviceCatalog: [...current.serviceCatalog, { id: `custom-service-${crypto.randomUUID().slice(0, 8)}`, title: { ru: "Новая услуга", uz: "Yangi xizmat", en: "New service" }, description: { ru: "", uz: "", en: "" }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: false, required: false }] }));
   const setNumber = (key: "fx" | "perKg" | "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "optionalServices" | "reserve" | "divisor", raw: string) =>
     setDraft((current) => ({ ...current, [key]: Number(raw) }));
   async function save() {
@@ -1073,6 +1170,7 @@ function PricingManager({
             divisor: draft.divisor,
             rates: draft.rates,
             countryOverrides: draft.countryOverrides,
+            serviceCatalog: draft.serviceCatalog,
           },
         }),
       });
@@ -1184,6 +1282,30 @@ function PricingManager({
               </div>;
             })}
           </div>
+        </section>
+        <section className="warehouse-service-catalog">
+          <div className="warehouse-service-catalog-heading"><div><h3>{serviceWords.title}</h3><p className="micro">{serviceWords.intro}</p></div><button type="button" className="btn secondary" disabled={draft.serviceCatalog.length >= 40} onClick={addService}>{serviceWords.add}</button></div>
+          {draft.serviceCatalog.some((service) => service.id === "shipping-insurance") && <p className="notice warning">{serviceWords.insurance}</p>}
+          <div className="warehouse-service-catalog-list">{draft.serviceCatalog.map((service, index) => <details className="warehouse-service-config" key={service.id}>
+            <summary><span><b>{serviceTitle(service, locale)}</b><small>{service.id} · {service.enabled ? serviceWords.enabled : serviceWords.remove}</small></span><span className="status-badge">{service.pricingMode === "fixed" ? `${service.feeUzs.toLocaleString("ru-RU")} сум` : serviceWords.quote}</span></summary>
+            <div className="warehouse-service-config-body">
+              <label className="warehouse-service-toggle"><input type="checkbox" checked={service.enabled} disabled={service.id === "shipping-insurance"} onChange={(event) => updateService(index, { enabled: event.target.checked, required: event.target.checked ? service.required : false })} />{serviceWords.enabled}</label>
+              <div className="pricing-grid">
+                <div className="field"><label htmlFor={`service-stage-${service.id}`}>{serviceWords.stage}</label><select id={`service-stage-${service.id}`} value={service.requestStage} onChange={(event) => updateService(index, { requestStage: event.target.value as ServiceOffering["requestStage"], required: event.target.value === "checkout" ? service.required : false })}><option value="checkout">{serviceWords.checkout}</option><option value="warehouse">{serviceWords.warehouse}</option></select></div>
+                <div className="field"><label htmlFor={`service-unit-${service.id}`}>{serviceWords.unit}</label><select id={`service-unit-${service.id}`} value={service.unit} onChange={(event) => updateService(index, { unit: event.target.value as ServiceOffering["unit"] })}><option value="package">{locale === "ru" ? "посылка" : locale === "uz" ? "posilka" : "package"}</option><option value="item">{locale === "ru" ? "товар" : locale === "uz" ? "tovar" : "item"}</option><option value="day">{locale === "ru" ? "день" : locale === "uz" ? "kun" : "day"}</option><option value="photo">{locale === "ru" ? "фото" : locale === "uz" ? "foto" : "photo"}</option><option value="half-hour">{locale === "ru" ? "30 минут" : locale === "uz" ? "30 daqiqa" : "30 minutes"}</option></select></div>
+                <div className="field"><label htmlFor={`service-pricing-${service.id}`}>{serviceWords.pricing}</label><select id={`service-pricing-${service.id}`} value={service.pricingMode} onChange={(event) => updateService(index, { pricingMode: event.target.value as ServiceOffering["pricingMode"], required: event.target.value === "fixed" ? service.required : false })}><option value="operator-quote">{serviceWords.quote}</option><option value="fixed">{serviceWords.fixed}</option></select></div>
+                <div className="field"><label htmlFor={`service-fee-${service.id}`}>{serviceWords.baseFee}</label><input id={`service-fee-${service.id}`} type="number" min="0" max="20000000" step="1" disabled={service.pricingMode !== "fixed"} value={service.feeUzs} onChange={(event) => updateService(index, { feeUzs: Number(event.target.value) })} /></div>
+                <div className="field"><label htmlFor={`service-country-fee-${service.id}`}>{serviceWords.countryFee} · {selectedCountry}</label><input id={`service-country-fee-${service.id}`} type="number" min="0" max="20000000" step="1" disabled={service.pricingMode !== "fixed"} value={service.countryPrices[selectedCountry] ?? ""} placeholder={`${service.feeUzs} (${locale === "ru" ? "общий тариф" : locale === "uz" ? "asosiy tarif" : "base price"})`} onChange={(event) => {
+                  const countryPrices = { ...service.countryPrices };
+                  if (event.target.value === "") delete countryPrices[selectedCountry]; else countryPrices[selectedCountry] = Number(event.target.value);
+                  updateService(index, { countryPrices });
+                }} /></div>
+              </div>
+              <label className="warehouse-service-toggle"><input type="checkbox" checked={service.required} disabled={!service.enabled || service.requestStage !== "checkout" || service.pricingMode !== "fixed"} onChange={(event) => updateService(index, { required: event.target.checked })} />{serviceWords.required}</label>
+              <div className="warehouse-service-locales">{(["ru", "uz", "en"] as const).map((language) => <fieldset key={language}><legend>{serviceWords.titleLabel} / {serviceWords.description} · {language.toUpperCase()}</legend><div className="field"><label htmlFor={`service-title-${service.id}-${language}`}>{serviceWords.titleLabel}</label><input id={`service-title-${service.id}-${language}`} required maxLength={120} value={service.title[language]} onChange={(event) => updateService(index, { title: { ...service.title, [language]: event.target.value } })} /></div><div className="field"><label htmlFor={`service-description-${service.id}-${language}`}>{serviceWords.description}</label><textarea id={`service-description-${service.id}-${language}`} maxLength={500} rows={3} value={service.description[language]} onChange={(event) => updateService(index, { description: { ...service.description, [language]: event.target.value } })} /></div></fieldset>)}</div>
+              <p className="micro">{locale === "ru" ? "Чтобы скрыть существующую услугу, снимите флажок доступности. Удаление отключено, чтобы не ломать историю заказов." : locale === "uz" ? "Mavjud xizmatni yashirish uchun ochiqlik belgisini olib tashlang. Buyurtma tarixini saqlash uchun o‘chirish yo‘q." : "Deactivate an existing offer instead of deleting it so old orders keep their references."}</p>
+            </div>
+          </details>)}</div>
         </section>
         <details className="currency-rates">
           <summary>Курсы валют к USD</summary>

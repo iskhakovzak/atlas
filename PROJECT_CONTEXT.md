@@ -6,6 +6,14 @@ Successful product additions from the catalog, link-order form and batch link im
 
 Operator-managed pricing now supports optional per-dispatch-country overrides for the existing service commission, buyout commission, conversion commission, delivery margin, international per-kg rate, delivery reserve and flat optional-service amount. Country keys are exact existing `Product.country` labels (actual dispatch country), not customer destination. Blank fields inherit the central tariff. Cart/add, quantity changes and quote renewal reprice server-side; existing order quote snapshots stay immutable. These values remain managed/demo data, not live commercial rates. Admin tariff controls are currently Russian-only; UZ/EN localization remains follow-up work.
 
+## Warehouse service catalogue and customer approval — 25 September 2026
+
+`/operations` now includes an operator-managed warehouse service catalogue stored inside the existing versioned `market_settings.pricing` JSON; no D1 migration is required. The starter catalogue covers package/content photos, inspection, consolidation, repacking, split parcels, extra packing, fragile handling, priority processing, removing external price tags, special requests, storage extensions, merchant returns and disposal. Admins can localize names/descriptions in RU/UZ/EN, enable/deactivate an offer, choose checkout vs. warehouse request stage, unit, fixed vs. operator-quoted pricing, base UZS amount and per-dispatch-country overrides. Existing order snapshots are not rewritten when settings change. Starter prices are zero/operator quote placeholders, not Shipito or Atlas commercial rates. Insurance remains disabled and server-blocked until an actual insurer, coverage terms, exclusions and claims process are confirmed.
+
+Customers can flag checkout-stage services in `/cart`; this saves a request on the order but does not add a fee, authorize work, or guarantee availability. After warehouse intake is recorded and before weighing, the customer can request configured warehouse-stage services, including a quantity for photo/day/half-hour units. The operator checks feasibility and either marks an unavailable service with a reason or submits a price through the existing change-request handshake. Fixed fees are recomputed from the server-owned service snapshot and dispatch-country rate; quoted services use the operator amount. The customer must approve or decline that exact amount, then an operator can mark the request complete. Unresolved service requests block warehouse weighing so repacking/splitting cannot bypass freight recalculation. Approved adjustments remain separate from the immutable original quote.
+
+This is a workflow preview only: service performance, warehouse/carrier connectivity and real payments are not connected. “Completed” is an internal simulated status, not evidence of physical work. No checkout checkbox silently buys a delayed service. The catalogue follows common forwarding-service categories documented by [Shipito's service FAQ](https://www.shipito.com/en/help/faq/services) and [pricing page](https://www.shipito.com/en/shipito-pricing); Atlas does not copy Shipito's fees or claim its service capabilities.
+
 ## Design direction review — 23 September 2026
 
 ## Multiple recipients and passport association — 24 September 2026
@@ -59,6 +67,7 @@ This is a UX refinement, not a commercial launch or a new authentication system.
 5. For a party, customer can paste up to ten product links at once. Each imported position remains subject to the same verification before checkout.
 6. If store shipping is unavailable, the form starts with editable $10 reserve.
 7. Customer accepts customs conditions, enters the recipient/address and completes pre-release checkout. One cart line becomes one order.
+7a. Customer may note checkout-stage warehouse preferences in the cart; after warehouse intake they may request other configured services. Operator quotes feasibility/cost and the customer must explicitly approve before the simulated completion state.
 7. Customer can upload a passport scan to private object storage, check/edit browser-detected MRZ fields and explicitly confirm identity data.
 8. Confirmed identity, saved address and selected order lines form a test declaration package. It stays inside Atlas and is not transmitted to customs.
 9. Customer confirms a safe simulated payment-provider result; no charge occurs.
@@ -71,9 +80,9 @@ This is a UX refinement, not a commercial launch or a new authentication system.
 | --- | --- |
 | / | Unified product catalog, favourites, filters and quick link entry |
 | /order-by-link | Import product and create quote |
-| /cart | Cart, balance use, customs consent, simulated checkout |
+| /cart | Cart, optional warehouse-service preferences, balance use, customs consent, simulated checkout |
 | /orders | Customer orders, photo refresh and extra approvals |
-| /operations | Cross-customer operator queue and managed pricing |
+| /operations | Cross-customer operator queue, managed pricing and warehouse-service catalogue |
 | /notifications | In-app status, refund and approval notifications |
 | /analytics | Operator metrics and closed-pilot readiness |
 | /legal | Pre-release terms, privacy, refunds and restricted-goods drafts |
