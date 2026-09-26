@@ -1,5 +1,6 @@
 import {actionSchema,applyAction} from '@/lib/market/actions';
 import {account,customerStatus,database,identity,operator,sameOrigin,persist,json,failure,HttpError,requestJson,pricing,policy} from '@/lib/market/server';
+import {apiErrorMessage,requestLocale} from '@/lib/market/i18n';
 import {fetchProduct} from '@/lib/importer/fetch';
 import {verifyProductSnapshot} from '@/lib/importer/verify';
 import {addCustomerLinkDraft} from '@/lib/market/catalog-server';
@@ -19,7 +20,7 @@ export async function POST(request:Request){try{
     if(!owned)throw new HttpError(404, 'err_13');
     if(identityAction.recipientProfileId&&!current.state.deliveryProfiles.some(profile=>profile.id===identityAction.recipientProfileId))throw new HttpError(400, 'err_14');
   }
-  if(payload.revision!==current.revision)return json({error:'Данные изменились. Проверьте обновлённый заказ и повторите действие.',state:current.state,revision:current.revision},409);
+  if(payload.revision!==current.revision){const locale=requestLocale(request);return json({error:locale==='ru'?'Данные изменились. Проверьте обновлённый заказ и повторите действие.':apiErrorMessage(409,locale),state:current.state,revision:current.revision},409)}
   let next;
   let verifiedSource:Awaited<ReturnType<typeof fetchProduct>>|undefined;
   try{
@@ -53,4 +54,4 @@ export async function POST(request:Request){try{
     await database().prepare('UPDATE market_identity_documents SET status=?, confirmed_data=?, updated_at=? WHERE id=? AND user_id=?').bind('confirmed',JSON.stringify(confirmed),Date.now(),identityAction.documentId,user.userId).run();
   }
   return json({state:next,revision:current.revision+1})
-}catch(e){return failure(e)}}
+}catch(e){return failure(e,request)}}

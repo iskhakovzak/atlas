@@ -111,6 +111,14 @@ The original project is configured for ChatGPT Sites. To retain that deployment,
 
 For another host/account, create/configure a new D1 database and DB binding, apply migrations, set ATLAS_OPERATOR_EMAIL, provide auth, then document the new deployment path. Do not assume original Site project ID or D1 data is portable.
 
+## GitLab Ultimate mirror and CI
+
+`.gitlab-ci.yml` is prepared to run Atlas lint, domain/security tests and the production build on Node 22. It also includes GitLab-managed dependency scanning v2, SAST (with Advanced SAST enabled when the project license supports it) and secret detection. These scans report findings in GitLab; they do not deploy the Sites app or connect to D1.
+
+The existing GitHub repository remains the source of truth so GitHub-based tools such as Jules keep working. In the GitLab project, configure a one-way pull mirror from `https://github.com/iskhakovzak/atlas.git` under Settings > Repository > Mirroring repositories. Choose Pull, and enable pipeline triggers for mirror updates only when the upstream is trusted. Do not push commits to the downstream mirror or enable bidirectional mirroring.
+
+After the first sync, validate `.gitlab-ci.yml` in the GitLab Pipeline Editor, run a pipeline, and confirm the quality and security jobs complete. A first historic secret scan is a separate one-time operation; do not keep historic scanning enabled on every pipeline. Keep production credentials out of this verification pipeline. The GitLab project and account must be connected before the mirror or pipeline can be inspected from Codex.
+
 ## New agent reading order
 
 1. AGENTS.md

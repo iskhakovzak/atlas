@@ -4,6 +4,15 @@ import {isSupportedStoreHost,supportedStoreCount} from './stores.ts';
 import {applyMerchantProfile} from './merchant-profiles.ts';
 export {supportedStoreCount};
 
+/** Recoverable import failure: the user may edit details, but live confirmation
+ * is still required before the product can be added to a cart. */
+export class ManualEntryFallbackError extends Error {
+  constructor(message = 'Магазин временно не отдал данные товара. Их можно заполнить вручную; Atlas всё равно должен подтвердить цену и наличие перед добавлением.') {
+    super(message);
+    this.name = 'ManualEntryFallbackError';
+  }
+}
+
 export function allowedUrl(value: string) {
   const u = new URL(value);
   if (u.protocol !== 'https:' || u.username || u.password || u.port || !isSupportedStoreHost(u.hostname))
@@ -248,24 +257,21 @@ export async function fetchProduct(value: string) {
         }
       }
       let productResponse: {text: string; url: URL} | undefined;
+      let productError: unknown;
       for (const endpoint of [adidas.product, adidas.fallbackProduct]) {
         try {
           productResponse = await readPublic(endpoint, controller.signal, 'json', adidasRequest);
           break;
         } catch (error) {
-
+          productError = error;
           if (controller.signal.aborted) throw error;
         }
       }
       let productData: unknown, listingData: unknown;
-      try {
-        listingData = listingResponse ? JSON.parse(listingResponse.text) : undefined;
-        productData = productResponse ? JSON.parse(productResponse.text) : undefined;
-      } catch {
-        const error = new Error('Adidas вернул неполные данные. Заполните товар вручную.');
-        error.name = 'AbortError';
-        throw error;
-      }
+      try { listingData = listingResponse ? JSON.parse(listingResponse.text) : undefined; }
+      catch { /* The exact product endpoint may still provide usable data. */ }
+      try { productData = productResponse ? JSON.parse(productResponse.text) : undefined; }
+      catch { /* Fall back to the matching listing record, then manual entry. */ }
       if (!productData && listingData && typeof listingData === 'object') {
         const items = (listingData as {raw?: {itemList?: {items?: unknown[]}}}).raw?.itemList?.items;
         const id = url.pathname.split('/').filter(Boolean).at(-1)?.replace(/\.html$/i, '');
@@ -274,7 +280,15 @@ export async function fetchProduct(value: string) {
           productData = {id, name: item.displayName ?? item.altText, category: item.category, price: item.price, salePrice: item.salePrice, orderable: item.orderable, image: item.image, secondImage: item.secondImage, images: item.images};
         }
       }
-      if (!productData) { const e = new Error('Adidas не ответил на запрос товара.'); e.name = 'AbortError'; throw e; }
+      if (!productData) {
+        // API blocks, challenges and malformed JSON are temporary import
+        // failures, not proof that the link points to a different product.
+        // Preserve the manual form while the cart flow continues to require a
+        // fresh, verified price and availability.
+        throw new ManualEntryFallbackError(productError instanceof Error && productError.name === 'AbortError'
+          ? 'Adidas не ответил вовремя. Данные можно заполнить вручную; Atlas должен подтвердить цену и наличие перед добавлением.'
+          : undefined);
+      }
       const extracted = extractAdidasProduct(productData, listingData, url.href);
       if (!extracted) { const e = new Error('Adidas не вернул карточку товара. Проверьте ссылку и повторите проверку.'); e.name = 'AbortError'; throw e; }
       return extracted;

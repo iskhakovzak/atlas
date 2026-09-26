@@ -428,6 +428,7 @@ const changeRequestSchema = z.object({
   previousValue: z.string().max(240).optional(),
   proposedValue: z.string().max(240).optional(),
   warehouseServiceRequestId: z.string().min(1).max(100).optional(),
+  resolvesWarehouseIssue: z.boolean().optional(),
   amountDelta: signedAmount.default(0),
   status: z.enum(["pending", "approved", "declined"]),
   createdAt: amount,
@@ -444,6 +445,7 @@ const warehouseServiceRequestSchema = z.object({
   pricingMode: z.enum(["fixed", "operator-quote"]),
   feeUzs: amount.max(20_000_000).optional(),
   country: z.string().max(80).optional(),
+  customerNote: z.string().trim().max(500).optional(),
   origin: z.enum(["checkout", "warehouse"]),
   status: z.enum(["requested", "quoted", "approved", "declined", "completed"]),
   requestedAt: amount,
@@ -551,6 +553,7 @@ const cartSchema = z.object({
   variant: z.string(),
   quantity: z.number().int().min(1).max(10),
   requestedServiceIds: z.array(z.string().min(2).max(80)).max(40).default([]),
+  requestedServiceUnits: z.record(z.string().min(2).max(80), z.number().int().min(1).max(100)).optional(),
   quote: quoteSchema,
 });
 export type CartItem = z.infer<typeof cartSchema>;
@@ -561,6 +564,7 @@ function buildServiceRequest(
   units: number,
   origin: WarehouseServiceRequest["origin"],
   now: number,
+  customerNote?: string,
 ): WarehouseServiceRequest {
   return warehouseServiceRequestSchema.parse({
     id: "WSR-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
@@ -572,6 +576,7 @@ function buildServiceRequest(
     pricingMode: service.pricingMode,
     feeUzs: service.pricingMode === "fixed" ? serviceFeeForCountry(service, country) : undefined,
     country,
+    customerNote: customerNote?.trim() || undefined,
     origin,
     status: "requested",
     requestedAt: now,
@@ -583,6 +588,7 @@ export function setCartServices(
   id: string,
   serviceIds: string[],
   config: Pricing = tariff,
+  serviceUnits: Record<string, number> = {},
 ) {
   const item = state.cart.find((candidate) => candidate.id === id);
   if (!item) throw Error("Товар уже удалён из корзины.");
@@ -590,12 +596,23 @@ export function setCartServices(
   const selected = [...new Set(serviceIds)];
   if (selected.some((serviceId) => !allowed.some((service) => service.id === serviceId)))
     throw Error("Одна из услуг больше недоступна. Обновите страницу.");
+  if (Object.keys(serviceUnits).some((serviceId) => !selected.includes(serviceId)))
+    throw Error("Количество можно задать только для выбранной услуги.");
+  for (const [serviceId, units] of Object.entries(serviceUnits)) {
+    const service = allowed.find((candidate) => candidate.id === serviceId);
+    if (!service || ["package", "item"].includes(service.unit) || !Number.isInteger(units) || units < 1 || units > 100)
+      throw Error("Проверьте количество дополнительной услуги.");
+  }
   for (const required of allowed.filter((service) => service.required)) {
     if (!selected.includes(required.id)) throw Error("Выберите обязательные услуги перед оформлением.");
   }
   return {
     ...state,
-    cart: state.cart.map((candidate) => candidate.id === id ? { ...candidate, requestedServiceIds: selected } : candidate),
+    cart: state.cart.map((candidate) => candidate.id === id ? {
+      ...candidate,
+      requestedServiceIds: selected,
+      requestedServiceUnits: Object.fromEntries(Object.entries(serviceUnits).filter(([serviceId]) => selected.includes(serviceId))),
+    } : candidate),
   };
 }
 
@@ -606,6 +623,7 @@ export function requestWarehouseService(
   units: number,
   config: Pricing = tariff,
   now = Date.now(),
+  customerNote?: string,
 ): State {
   const order = getOrder(state, id);
   if (order.cancelled || order.status !== 2 || !order.warehouseInspection)
@@ -616,12 +634,16 @@ export function requestWarehouseService(
     throw Error("Достигнут лимит услуг для этого заказа.");
   const service = config.serviceCatalog.find((item) => item.id === serviceId && item.enabled && item.requestStage === "warehouse");
   if (!service) throw Error("Эта услуга сейчас недоступна.");
+  const note = customerNote?.trim();
+  if (service.id === "special-request" && !note)
+    throw Error("Опишите, что именно нужно сделать на складе.");
+  if (note && note.length > 500) throw Error("Комментарий к услуге должен быть не длиннее 500 символов.");
   const previous = order.warehouseServiceRequests ?? [];
   if (previous.some((request) => request.serviceId === serviceId && ["requested", "quoted", "approved"].includes(request.status)))
     throw Error("Эта услуга уже запрошена для заказа.");
   const count = service.unit === "package" ? 1 : service.unit === "item" ? order.quantity : units;
   if (!Number.isInteger(count) || count < 1 || count > 100) throw Error("Проверьте количество услуги.");
-  const request = buildServiceRequest(service, order.product.country, count, "warehouse", now);
+  const request = buildServiceRequest(service, order.product.country, count, "warehouse", now, note);
   return withNotification(replace(state, {
     ...order,
     warehouseServiceRequests: [...previous, request],
@@ -943,7 +965,12 @@ export function renewCart(
   };
 }
 export const cartSignature = (items: CartItem[]) =>
-  items.map((i) => i.id + ":" + i.quote.id + ":" + [...(i.requestedServiceIds ?? [])].sort().join(",")).join("|");
+  items.map((i) => {
+    const services = [...(i.requestedServiceIds ?? [])].sort().map((serviceId) =>
+      `${serviceId}:${i.requestedServiceUnits?.[serviceId] ?? 1}`,
+    ).join(",");
+    return i.id + ":" + i.quote.id + ":" + services;
+  }).join("|");
 export function checkoutCart(
   state: State,
   key: string,
@@ -975,6 +1002,10 @@ export function checkoutCart(
     const selected = item.requestedServiceIds ?? [];
     if (selected.some((serviceId) => !availableServices.some((service) => service.id === serviceId)))
       throw Error("Одна из выбранных услуг больше недоступна. Обновите корзину.");
+    if (Object.entries(item.requestedServiceUnits ?? {}).some(([serviceId, units]) => {
+      const service = availableServices.find((candidate) => candidate.id === serviceId);
+      return !selected.includes(serviceId) || !service || ["package", "item"].includes(service.unit) || !Number.isInteger(units) || units < 1 || units > 100;
+    })) throw Error("Количество дополнительной услуги изменилось. Проверьте корзину заново.");
     if (availableServices.some((service) => service.required && !selected.includes(service.id)))
       throw Error("Выберите обязательные услуги перед оформлением.");
   }
@@ -1010,7 +1041,9 @@ export function checkoutCart(
     const serviceRequests = (i.requestedServiceIds ?? []).map((serviceId) => {
       const service = availableServices.find((candidate) => candidate.id === serviceId);
       if (!service) throw Error("Одна из выбранных услуг больше недоступна. Обновите корзину.");
-      const units = service.unit === "item" ? i.quantity : 1;
+      const units = service.unit === "item" ? i.quantity
+        : service.unit === "package" ? 1
+        : i.requestedServiceUnits?.[serviceId] ?? 1;
       return buildServiceRequest(service, i.product.country, units, "checkout", now);
     });
     return {
@@ -1153,6 +1186,12 @@ export function createChangeRequest(
   const serviceRequest = value.warehouseServiceRequestId
     ? (o.warehouseServiceRequests ?? []).find((request) => request.id === value.warehouseServiceRequestId)
     : undefined;
+  if (value.resolvesWarehouseIssue && (
+    value.kind !== "substitution" ||
+    !o.warehouseInspection ||
+    o.warehouseInspection.condition === "ok" ||
+    !value.proposedValue?.trim()
+  )) throw Error("Решение проблемы требует явной замены товара и указания нового варианта.");
   if (value.warehouseServiceRequestId && (!serviceRequest || serviceRequest.status !== "requested" || value.kind !== "warehouse-service"))
     throw Error("Запрос на эту складскую услугу уже обработан или не найден.");
   if (serviceRequest) {
@@ -1438,7 +1477,9 @@ export function receiveOrder(
     !(o.changeRequests ?? []).some((request) =>
       request.status === "approved" &&
       request.createdAt >= o.warehouseInspection!.inspectedAt &&
-      ["substitution", "warehouse-service"].includes(request.kind),
+      request.kind === "substitution" &&
+      request.resolvesWarehouseIssue === true &&
+      !!request.proposedValue?.trim(),
     )
   ) throw Error("Сначала согласуйте с покупателем решение по проблеме на складе.");
   const s = settle(o.quote, ...dimensions);

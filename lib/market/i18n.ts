@@ -2,6 +2,45 @@ export type Locale = "ru" | "uz" | "en";
 export function supportedLocale(value:unknown):Locale|null{
   return value === "ru" || value === "uz" || value === "en" ? value : null;
 }
+
+const apiErrors:Record<Locale,Record<number,string>>={
+  ru:{400:"Проверьте данные и попробуйте снова.",401:"Войдите, чтобы продолжить.",403:"У вас нет доступа к этому действию.",404:"Запрошенные данные не найдены.",405:"Этот способ запроса не поддерживается.",409:"Данные изменились. Обновите страницу и повторите действие.",413:"Запрос слишком большой.",422:"Не удалось обработать данные. Проверьте их и попробуйте снова.",429:"Слишком много запросов. Попробуйте позже.",503:"Не удалось выполнить запрос. Попробуйте ещё раз."},
+  uz:{400:"Ma’lumotlarni tekshirib, qayta urinib ko‘ring.",401:"Davom etish uchun tizimga kiring.",403:"Bu amalni bajarish uchun ruxsat yo‘q.",404:"So‘ralgan ma’lumot topilmadi.",405:"Bu so‘rov usuli qo‘llab-quvvatlanmaydi.",409:"Ma’lumotlar o‘zgardi. Sahifani yangilab, qayta urinib ko‘ring.",413:"So‘rov hajmi juda katta.",422:"Ma’lumotlarni qayta ishlab bo‘lmadi. Tekshirib, qayta urinib ko‘ring.",429:"So‘rovlar soni oshib ketdi. Keyinroq urinib ko‘ring.",503:"So‘rov bajarilmadi. Qayta urinib ko‘ring."},
+  en:{400:"Check the details and try again.",401:"Sign in to continue.",403:"You don’t have access to this action.",404:"The requested information wasn’t found.",405:"This request method isn’t supported.",409:"The data changed. Refresh the page and try again.",413:"The request is too large.",422:"Couldn’t process the information. Check it and try again.",429:"Too many requests. Try again later.",503:"The request couldn’t be completed. Please try again."},
+};
+
+/** Resolve only display language from a validated preference cookie or Accept-Language. */
+export function requestLocale(request?:Request):Locale{
+  if(!request)return "ru";
+  const cookie=request.headers.get("cookie")?.split(";").map(part=>part.trim()).find(part=>part.startsWith("atlas-language="));
+  const saved=supportedLocale(cookie?.slice("atlas-language=".length));
+  if(saved)return saved;
+  const accepted=request.headers.get("accept-language")?.split(",").map((entry,index)=>{
+    const [tag,...params]=entry.trim().split(";");
+    const quality=Number(params.find(param=>param.trim().startsWith("q="))?.trim().slice(2)??1);
+    return {tag:tag.toLowerCase().split("-")[0],quality:Number.isFinite(quality)?quality:0,index};
+  }).filter(entry=>entry.quality>0).sort((a,b)=>b.quality-a.quality||a.index-b.index)??[];
+  for(const entry of accepted){const locale=supportedLocale(entry.tag);if(locale)return locale;}
+  return "ru";
+}
+
+export function apiErrorMessage(status:number,locale:Locale):string{
+  return apiErrors[locale][status]??apiErrors[locale][503];
+}
+
+export function importManualEntryMessage(locale:Locale):string{
+  return {
+    ru:"Не удалось загрузить данные магазина. Можно заполнить товар вручную; перед добавлением в корзину источник должен пройти повторную проверку.",
+    uz:"Do‘kondan ma’lumot olib bo‘lmadi. Mahsulotni qo‘lda to‘ldirishingiz mumkin; savatga qo‘shishdan oldin manba qayta tekshiruvdan o‘tishi kerak.",
+    en:"Couldn’t load the store details. You can enter the product manually; the source must pass a fresh check before it can be added to your cart.",
+  }[locale];
+}
+
+export function setLocaleCookie(locale:Locale):void{
+  if(typeof document==="undefined")return;
+  const secure=window.location.protocol==="https:"?"; Secure":"";
+  document.cookie=`atlas-language=${locale}; Path=/; Max-Age=31536000; SameSite=Lax${secure}`;
+}
 const copy = {
   ru: {catalog:"Каталог",link:"Заказ по ссылке",batch:"Импорт списка",orders:"Мои заказы",account:"Кабинет",signin:"Войти",cart:"Корзина",balance:"Баланс",favorites:"Избранное",home:"Главная",terms:"Правила и данные",customs:"Таможня",retry:"Повторить",openSignIn:"Открыть вход",footer:"Atlas · Магазины мира — в одном месте.",contactTitle:"Связаться с Atlas",contactSupport:"Поддержка в личном кабинете",paymentTitle:"Способы оплаты",paymentPlanned:"Планируем подключить: Visa, Mastercard, Apple Pay, Google Pay, Uzcard и Humo. Реальные платежи пока не принимаются."},
   uz: {catalog:"Katalog",link:"Havola orqali buyurtma",batch:"Ro‘yxatni import qilish",orders:"Buyurtmalarim",account:"Kabinet",signin:"Kirish",cart:"Savat",balance:"Balans",favorites:"Saqlanganlar",home:"Bosh sahifa",terms:"Qoidalar va ma’lumotlar",customs:"Bojxona",retry:"Qayta urinish",openSignIn:"Kirishni ochish",footer:"Atlas · Dunyo do‘konlari bir joyda.",contactTitle:"Atlas bilan bog‘lanish",contactSupport:"Shaxsiy kabinetdagi yordam",paymentTitle:"To‘lov usullari",paymentPlanned:"Ulash rejalashtirilgan: Visa, Mastercard, Apple Pay, Google Pay, Uzcard va Humo. Hozircha haqiqiy to‘lovlar qabul qilinmaydi."},

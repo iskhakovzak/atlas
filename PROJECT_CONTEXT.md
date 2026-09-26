@@ -1,5 +1,11 @@
 # Atlas — project context
 
+## Import recovery and API error localization — 26 September 2026
+
+Adidas product/article JSON failures caused by rate limits, challenges, or malformed payloads now produce a recoverable manual-entry response instead of an unhelpful hard parser error. The editable form remains available, but the source must still pass the existing fresh price/availability check before the item can enter the cart. Exact product/article matching and importer protections remain unchanged. Amazon US location setup still requires the address endpoint to confirm country `US` and ZIP `19701`; the importer no longer searches the refreshed page HTML for a ZIP string after that authoritative confirmation.
+
+API failure responses now resolve display language from the validated `atlas-language` preference cookie, then `Accept-Language`, and return concise RU/UZ/EN messages by status. The browser writes its selected language (or the existing Russian default) before initial API requests. Authentication, roles, state shapes and status codes are unchanged. Russian retains its detailed server messages; UZ/EN currently receive safe localized status-level text. Older operator/catalog history and other legacy UI/legal strings are still not fully localized.
+
 ## Cart completion and dispatch-country pricing — 25 September 2026
 
 Successful product additions from the catalog, link-order form and batch link import now take the customer directly to `/cart`. Checkout creates the existing pre-release order records and then offers the existing `payment-demo` confirmation from the cart success dialog. A user must explicitly confirm; this only marks a simulated test payment, does not charge funds, and does not create a shipment. Existing pending orders can still be managed in Orders; real payment-provider integration is not enabled.
@@ -13,6 +19,12 @@ Operator-managed pricing now supports optional per-dispatch-country overrides fo
 Customers can flag checkout-stage services in `/cart`; this saves a request on the order but does not add a fee, authorize work, or guarantee availability. After warehouse intake is recorded and before weighing, the customer can request configured warehouse-stage services, including a quantity for photo/day/half-hour units. The operator checks feasibility and either marks an unavailable service with a reason or submits a price through the existing change-request handshake. Fixed fees are recomputed from the server-owned service snapshot and dispatch-country rate; quoted services use the operator amount. The customer must approve or decline that exact amount, then an operator can mark the request complete. Unresolved service requests block warehouse weighing so repacking/splitting cannot bypass freight recalculation. Approved adjustments remain separate from the immutable original quote.
 
 This is a workflow preview only: service performance, warehouse/carrier connectivity and real payments are not connected. “Completed” is an internal simulated status, not evidence of physical work. No checkout checkbox silently buys a delayed service. The catalogue follows common forwarding-service categories documented by [Shipito's service FAQ](https://www.shipito.com/en/help/faq/services) and [pricing page](https://www.shipito.com/en/shipito-pricing); Atlas does not copy Shipito's fees or claim its service capabilities.
+
+## Cart warehouse-service UX and intake gates — 26 September 2026
+
+The cart now shows fixed warehouse-service rates per unit and country, supports a customer-selected count for photo/day/half-hour units, and keeps those amounts separate from the current checkout total. Any work still requires an operator feasibility check and exact customer approval; the server snapshots the selected count and rate, validates the cart signature, and retains old-cart compatibility through optional fields. Special warehouse requests require a bounded customer note that is saved for the operator. The admin summary reflects the selected dispatch country's effective service rate. The legacy `optionalServices` setting remains a separate general fee applied to each product line and is labelled separately from requested warehouse services.
+
+Internal inspection tags are now presented as intake notes, not proof that a customer-requested paid service was completed. If the warehouse reports damaged or mismatched goods, weighing remains blocked until the customer explicitly approves a post-inspection proposed substitution marked as resolving that issue; an unrelated approved warehouse fee cannot clear the block. Catalog cards no longer show the dated observation badge or a duplicate store badge; merchant links, dispatch country, and automatic freshness/availability controls remain intact.
 
 ## Design direction review — 23 September 2026
 
@@ -437,3 +449,15 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - The fallback accepts only a product object tied to the exact source path or product identifier. It ignores recommendation objects, unsafe URLs and short generic numeric ids. It retains only public title, price, currency, photos, SKU, option matrix, explicit availability and bounded weight/shipping fields.
 - Unknown stock remains unknown and still blocks cart verification/catalog republication. A blocked page or missing exact embedded record continues to the safe JSON-LD/Open Graph/manual path; Atlas does not bypass CAPTCHA, login, merchant cookies or official API requirements.
 - `workers/catalog-refresh/` now contains a deployable separate Cloudflare Cron Worker and `wrangler.toml.example`. It signs the existing refresh route hourly with Web Crypto, refuses non-HTTPS site URLs and keeps the secret in Wrangler secret storage; production provisioning and matching runtime secrets remain a deployment task.
+
+## GitLab Ultimate CI preparation — 26 September 2026
+
+- Added `.gitlab-ci.yml` for Node 22 installation, lint, domain/security tests and production build, with GitLab-managed Dependency Scanning v2, SAST/Advanced SAST and pipeline Secret Detection.
+- The pipeline does not deploy the site or access production secrets, D1 or passport data. GitHub remains the canonical repository for Jules; GitLab is intended as a one-way pull mirror for additional CI/security visibility.
+- No GitLab project was selected or authorized during this change. Mirroring, CI execution and Security Dashboard results are not active or verified yet. Pipeline config still needs GitLab's own validation after the GitLab connector is connected.
+
+## Jules PR updates reviewed locally — 26 September 2026
+
+- GitHub PR #2 was already merged into `main`; its Deals Feed tooltip and checkout/payment loading-indicator changes are integrated here. Generated build/server logs and the unrelated `pnpm-lock.yaml` were excluded; `.Jules/palette.md` was retained as a small design reference.
+- GitHub PR #1 remains open upstream and is integrated locally for review: the supported-store host set is precomputed without widening the explicit allowlist, Macy's has a guarded public-state parser, Adidas malformed/blocked JSON can fall back to editable entry, Amazon ZIP validation relies on the parsed location response, and server errors carry locale-aware codes.
+- The local integration is not pushed. Keep PR #1 open until its owner reviews the combined result. Macy's parser has synthetic fixture coverage; its live `__PRELOADED_STATE__` shape still needs a real-page verification.

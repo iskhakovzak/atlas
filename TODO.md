@@ -32,6 +32,7 @@
 - [x] Add a production SEO baseline: canonical metadata, Open Graph/X fields, crawl boundaries and a public sitemap for catalog, customs and legal content.
 - [x] Add an AI-discovery factsheet and explicit `OAI-SearchBot` crawl policy without exposing authenticated routes or personal data.
 - [ ] Complete localization of all legacy validation, legal and operator copy; shared shell, product sheet, provider fallbacks, customer order, balance, notifications and link-order copy now use RU/UZ/EN keys.
+- [x] Prevent Russian server exceptions from leaking through API failures in UZ/EN with a validated display-language preference and concise localized status messages; detailed legacy UI/legal copy and historical operator/catalog text remain outstanding.
 - [ ] Re-run the public browser audit with at least one fresh, reviewed D1-published merchant snapshot in strict `ATLAS_AUDIT_REQUIRE_CATALOG=1` mode. The normal audit covers safe-empty catalog states; the local D1 catalog state examined on 20 September contained observations dated 11 September and correctly produced an empty public catalog after seven days. Do not refresh timestamps without a real source check.
 
 - [ ] Add scheduled same-SKU regional price comparison. Current regional storefront support imports the exact customer URL but does not yet prove that Spain, Germany or the US is cheapest after local shipping and tax.
@@ -118,6 +119,10 @@
 - [x] Let customers note services in the cart or request warehouse-stage options after recorded intake; snapshot terms so later admin edits do not rewrite orders.
 - [x] Require operator feasibility/price review (or an explicit unavailable reason) and exact customer approval before a requested service can be marked complete; unresolved services block weighing.
 - [x] Keep the existing quote immutable, preserve old cart/order compatibility without a migration, and prevent the built-in insurance offer from being enabled until coverage terms and claims handling exist.
+- [x] Show fixed service rates per unit and country in the cart without adding them to the initial payable total; capture optional photo/day/half-hour counts in the cart signature and keep legacy per-item fees visually distinct.
+- [x] Require a written customer note for a special warehouse request and display it to the operator; distinguish internal intake tags from completed/paid service work.
+- [x] Keep damaged/mismatched intake on hold until the customer approves a proposed substitution explicitly marked by the operator as resolving that issue.
+- [x] Remove dated freshness/store badges from catalog photos while retaining dispatch-country information, the direct merchant link and automatic availability controls.
 - [ ] Confirm each configured service with the contracted warehouse, then enter reviewed Atlas prices, availability, limits, timing, cancellation/refund and package-impact rules before any commercial pilot.
 - [ ] Integrate and audit real warehouse execution, evidence/photos, service exceptions and any additional payment flow; current completion flags and amounts are pre-release simulation only.
 - [ ] Add a verified insurance partner and approved coverage/exclusions/claims process before making shipment insurance available.
@@ -173,3 +178,18 @@
 - [x] Fix standalone TypeScript errors in account status rendering and admin/identity/batch response typing.
 - [x] Add explicit guest/customer/admin rendering gates, stale-session clearing and a repeatable browser audit across protected routes and responsive sizes.
 - [ ] Standalone email/password and Google OAuth remain postponed by product decision; current member sign-in uses the platform flow.
+
+## GitLab Ultimate — 26 September 2026
+
+- [x] Prepare a GitLab CI pipeline for lint, domain/security tests, production build, Dependency Scanning v2, Advanced SAST and secret detection without production credentials or deployment access.
+- [ ] Connect the GitLab (Beta) app and identify the Atlas GitLab project; the connector was present but returned `not connected` during setup.
+- [ ] Configure and validate a one-way GitHub-to-GitLab pull mirror; keep GitHub as the source of truth and avoid direct writes/bidirectional mirroring.
+- [ ] Validate `.gitlab-ci.yml` in GitLab, run the first pipeline and confirm all enabled scan jobs and the Ultimate security dashboard.
+- [ ] Run one historic secret scan after connection, review any findings, and keep routine pipeline scans incremental rather than rescanning all history each time.
+
+## Jules PR source updates — 26 September 2026
+
+- [x] Precompute the explicit importer supported-host allowlist while preserving the same accepted roots/subdomains.
+- [x] Add accessible tooltips to icon-only Deals Feed controls using the existing tooltip dependency.
+- [x] Integrate GitHub PR #2's already-merged mainline changes and the reviewed source changes from still-open PR #1 into the local working branch; do not push the local merge automatically.
+- [ ] Verify the Macy's parser against a live supported product page; current automated coverage uses a synthetic public-state fixture and treats unknown availability conservatively.

@@ -56,8 +56,7 @@ const shopSubdomains = new Set(['mango.com','hm.com','uniqlo.com','nike.com','ad
 // merchant subdomains through the SSRF boundary.
 const localizedHosts = new Set(['en.zalando.de']);
 
-// Bolt: Pre-compute allowed hosts to convert O(N) array iteration per URL
-// to an O(1) Set lookup. Reduces validation overhead when parsing many URLs.
+// Precompute the explicit allowlist for constant-time URL validation.
 const allowedHostsCache = new Set<string>(localizedHosts);
 for (const root of supportedStoreRoots) {
   allowedHostsCache.add(root);

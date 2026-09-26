@@ -59,7 +59,7 @@ export const actionSchema = z.discriminatedUnion("type", [
     quantity: z.number().int().min(1).max(10),
   }),
   z.object({ type: z.literal("cart-remove"), id }),
-  z.object({ type: z.literal("cart-services"), id, serviceIds: z.array(z.string().min(2).max(80)).max(40) }),
+  z.object({ type: z.literal("cart-services"), id, serviceIds: z.array(z.string().min(2).max(80)).max(40), serviceUnits: z.record(z.string().min(2).max(80), z.number().int().min(1).max(100)).optional() }),
   z.object({ type: z.literal("cart-renew") }),
   z.object({
     type: z.literal("checkout"),
@@ -94,6 +94,7 @@ export const actionSchema = z.discriminatedUnion("type", [
     previousValue: z.string().trim().max(240).optional(),
     proposedValue: z.string().trim().max(240).optional(),
     warehouseServiceRequestId: z.string().min(1).max(100).optional(),
+    resolvesWarehouseIssue: z.boolean().optional(),
     amountDelta: z.number().int().min(-100_000_000).max(100_000_000),
   }),
   z.object({
@@ -112,7 +113,7 @@ export const actionSchema = z.discriminatedUnion("type", [
     services: z.array(warehouseServiceSchema).max(5),
     packageGroup: z.string().trim().max(80),
   }),
-  z.object({ type: z.literal("warehouse-service-request"), id, serviceId: z.string().min(2).max(80), units: z.number().int().min(1).max(100).default(1) }),
+  z.object({ type: z.literal("warehouse-service-request"), id, serviceId: z.string().min(2).max(80), units: z.number().int().min(1).max(100).default(1), customerNote: z.string().trim().max(500).optional() }),
   z.object({ type: z.literal("warehouse-service-complete"), id, requestId: z.string().min(1).max(100) }),
   z.object({ type: z.literal("warehouse-service-decline"), id, requestId: z.string().min(1).max(100), reason: z.string().trim().min(2).max(500) }),
   z.object({
@@ -239,7 +240,7 @@ export function applyAction(
     case "cart-remove":
       return { ...s, cart: s.cart.filter((i) => i.id !== a.id) };
     case "cart-services":
-      return setCartServices(s, a.id, a.serviceIds, pricing);
+      return setCartServices(s, a.id, a.serviceIds, pricing, a.serviceUnits);
     case "cart-renew":
       return renewCart(s, Date.now(), pricing);
     case "checkout":
@@ -296,7 +297,7 @@ export function applyAction(
     case "warehouse-inspect":
       return inspectWarehouseOrder(s, a.id, a);
     case "warehouse-service-request":
-      return requestWarehouseService(s, a.id, a.serviceId, a.units, pricing);
+      return requestWarehouseService(s, a.id, a.serviceId, a.units, pricing, Date.now(), a.customerNote);
     case "warehouse-service-complete":
       return completeWarehouseService(s, a.id, a.requestId);
     case "warehouse-service-decline":

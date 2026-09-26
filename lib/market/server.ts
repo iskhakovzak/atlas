@@ -2,6 +2,7 @@ import {env} from 'cloudflare:workers';
 import {getChatGPTUser} from '@/app/chatgpt-auth';
 import {blank,parseState,pricingSchema,tariff,orderPayable,type Pricing,type State} from './domain';
 import {defaultPolicy,policySchema,type Policy} from './policy';
+import {apiErrorMessage,requestLocale,serverError} from './i18n';
 export function database(){if(!env.DB)throw Error('Серверное хранилище пока недоступно.');return env.DB}
 export async function identity(){const user=await getChatGPTUser();if(!user)throw new HttpError(401, 'err_1');return user}
 export function operator(email:string){return !!env.ATLAS_OPERATOR_EMAIL&&email.toLowerCase()===env.ATLAS_OPERATOR_EMAIL.toLowerCase()}
@@ -75,7 +76,17 @@ export async function auditEvents():Promise<AuditEvent[]>{
  const rows=await database().prepare('SELECT id,actor_id,actor_email,action,entity_type,entity_id,details,created_at FROM market_audit_events ORDER BY created_at DESC LIMIT 100').all<{id:string;actor_id:string;actor_email:string;action:string;entity_type:string;entity_id:string|null;details:string|null;created_at:number}>();
  return rows.results.map(row=>({id:row.id,actorId:row.actor_id,actorEmail:row.actor_email,action:row.action,entityType:row.entity_type,entityId:row.entity_id??undefined,details:row.details??undefined,createdAt:row.created_at}));
 }
-export async function failure(error:unknown){if(error instanceof HttpError)return json({error:error.message,errorCode:error.message},error.status);console.error(error);try{await database().prepare('INSERT INTO market_operational_errors (id,area,message,details,created_at) VALUES (?,?,?,?,?)').bind(crypto.randomUUID(),'api','Unhandled request failure',error instanceof Error?JSON.stringify({name:error.name,stack:error.stack?.slice(0,1800)}):null,Date.now()).run()}catch{}return json({error:'Не удалось выполнить запрос. Попробуйте ещё раз.'},503)}
+export async function failure(error:unknown,request?:Request){
+ const locale=requestLocale(request);
+ if(error instanceof HttpError){
+  const errorCode=/^err_\d+$/.test(error.message)?error.message:undefined;
+  const message=errorCode?serverError(locale,errorCode):locale==='ru'?error.message:apiErrorMessage(error.status,locale);
+  return json({error:message,...(errorCode?{errorCode}:{})},error.status);
+ }
+ console.error(error);
+ try{await database().prepare('INSERT INTO market_operational_errors (id,area,message,details,created_at) VALUES (?,?,?,?,?)').bind(crypto.randomUUID(),'api','Unhandled request failure',error instanceof Error?JSON.stringify({name:error.name,stack:error.stack?.slice(0,1800)}):null,Date.now()).run()}catch{}
+ return json({error:apiErrorMessage(503,locale)},503);
+}
 
 export async function errorSummary(){const rows=await database().prepare('SELECT id,area,message,created_at,resolved_at FROM market_operational_errors ORDER BY created_at DESC LIMIT 100').all<{id:string;area:string;message:string;created_at:number;resolved_at:number|null}>();return rows.results.map(row=>({id:row.id,area:row.area,message:row.message,createdAt:row.created_at,resolvedAt:row.resolved_at??undefined}))}
 

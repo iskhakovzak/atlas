@@ -28,6 +28,7 @@ import {
   staffMembers,
   storedAccount,
 } from "@/lib/market/server";
+import {apiErrorMessage,requestLocale} from "@/lib/market/i18n";
 
 const updateSchema = z.discriminatedUnion("kind", [
   z.object({
@@ -76,7 +77,7 @@ async function requireOperator() {
   return user;
 }
 
-export async function GET() {
+export async function GET(request:Request) {
   try {
     const user=await requireOperator();
     await ensurePrimaryOperator(user);
@@ -92,7 +93,7 @@ export async function GET() {
     ]);
     return json({ accounts, pricing: currentPricing, policy: currentPolicy, staff, audit, health, customerStatuses, errors });
   } catch (error) {
-    return failure(error);
+    return failure(error,request);
   }
 }
 
@@ -153,11 +154,13 @@ export async function POST(request: Request) {
     )
       throw new HttpError(403, 'err_18');
     const current = await storedAccount(payload.data.accountId);
-    if (current.revision !== payload.data.revision)
+    if (current.revision !== payload.data.revision) {
+      const locale=requestLocale(request);
       return json(
-        { error: "Заказ изменился. Очередь обновлена.", account: current },
+        { error: locale==='ru'?"Заказ изменился. Очередь обновлена.":apiErrorMessage(409,locale), account: current },
         409,
       );
+    }
     let next;
     try {
       const [currentPricing,currentPolicy] = await Promise.all([pricing(),policy()]);
@@ -172,6 +175,6 @@ export async function POST(request: Request) {
       account: { ...current, state: next, revision: current.revision + 1 },
     });
   } catch (error) {
-    return failure(error);
+    return failure(error,request);
   }
 }

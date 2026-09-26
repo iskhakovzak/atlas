@@ -1,5 +1,6 @@
 import {env} from 'cloudflare:workers';
 import {database,failure,HttpError,json} from '@/lib/market/server';
+import {apiErrorMessage,requestLocale} from '@/lib/market/i18n';
 import {isAuthorizedCatalogRefresh} from '@/lib/market/catalog-refresh-auth';
 import {refreshDueCatalog} from '@/lib/market/catalog-refresh';
 
@@ -22,7 +23,7 @@ export async function POST(request:Request){
     if(!await isAuthorizedCatalogRefresh(request,env.ATLAS_CATALOG_REFRESH_SECRET))throw new HttpError(401,'Недопустимый запрос обновления каталога.');
     release=await acquireRefreshLease();
     return json({ok:true,...await refreshDueCatalog()});
-  }catch(error){return failure(error)}finally{try{await release?.()}catch{}}
+  }catch(error){return failure(error,request)}finally{try{await release?.()}catch{}}
 }
 
-export async function GET(){return json({error:'Используйте защищённый POST-запрос.'},405)}
+export async function GET(request:Request){const locale=requestLocale(request);return json({error:locale==='ru'?'Используйте защищённый POST-запрос.':apiErrorMessage(405,locale)},405)}

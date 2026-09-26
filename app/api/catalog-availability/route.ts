@@ -18,4 +18,4 @@ export async function POST(request:Request){try{
   let next;try{next=reportCatalogAvailability(document,{...payload.data,reporterId:user.userId},now)}catch(error){throw new HttpError(400,(error as Error).message)}
   await persistCatalog(next,raw,user,`catalog.availability.${payload.data.answer}`);
   return json({saved:true,revision:next.revision});
-}catch(error){return failure(error)}}
+}catch(error){return failure(error,request)}}

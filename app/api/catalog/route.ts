@@ -4,6 +4,7 @@ import {readCatalog,persistCatalog} from '@/lib/market/catalog-server';
 import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,recheckedDraft,changeCatalog,publicCatalog,catalogMaxEntries} from '@/lib/market/catalog-editor';
 import {fetchProduct,fetchCollectionLinks} from '@/lib/importer/fetch';
 import {refreshDueCatalog} from '@/lib/market/catalog-refresh';
+import {apiErrorMessage,requestLocale} from '@/lib/market/i18n';
 
 const ids=z.array(z.string().min(1).max(100)).min(1).max(100);
 const commandSchema=z.discriminatedUnion('kind',[
@@ -20,7 +21,7 @@ export async function GET(request:Request){try{
   if(admin){const user=await identity();if(!operator(user.email))throw new HttpError(403, 'err_28');}
   const {document}=await readCatalog();
   return json(admin?{document}:publicCatalog(document,await pricing()));
-}catch(error){return failure(error)}}
+}catch(error){return failure(error,request)}}
 export async function POST(request:Request){try{
   sameOrigin(request);const user=await identity();if(!operator(user.email))throw new HttpError(403, 'err_29');
   const payload=z.object({revision:z.number().int().nonnegative(),command:commandSchema}).safeParse(await requestJson(request,200000));
@@ -33,7 +34,7 @@ export async function POST(request:Request){try{
   }
   if(command.kind==='recheck'){
     const results:string[]=[];
-    for(const id of command.ids){const entry=document.entries.find(item=>item.id===id);if(!entry){results.push(`${id}: товар не найден`);continue}try{const data=await fetchProduct(entry.draft.sourceUrl),fresh=importDraft(data,entry.draft.collectionIds,entry.draft.country,Date.now());entry.draft=recheckedDraft(entry.draft,fresh);document.availabilityReports=document.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:Date.now()}:report);results.push(`${entry.draft.name}: проверено`)}catch(error){entry.draft.lastCheckError=(error as Error).message.slice(0,500);results.push(`${entry.draft.name}: ${(error as Error).message}`)}}
+    for(const id of command.ids){const entry=document.entries.find(item=>item.id===id);if(!entry){results.push(`${id}: товар не найден`);continue}try{const data=await fetchProduct(entry.draft.sourceUrl),fresh=importDraft(data,entry.draft.collectionIds,entry.draft.country,Date.now());entry.draft=recheckedDraft(entry.draft,fresh);document.availabilityReports=document.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:Date.now()}:report);results.push(`${entry.draft.name}: проверено`)}catch(error){entry.draft.lastCheckError=(error as Error).message.slice(0,500);const locale=requestLocale(request);results.push(`${entry.draft.name}: ${locale==='ru'?(error as Error).message:apiErrorMessage(422,locale)}`)}}
     document.revision++;await persistCatalog(document,raw,user,'catalog.recheck');return json({document,recheckResults:results});
   }
   if(command.kind==='import'||command.kind==='discover'){
@@ -53,4 +54,4 @@ export async function POST(request:Request){try{
   }
   let next;try{next=changeCatalog(document,command,Date.now(),await pricing())}catch(error){throw new HttpError(400,(error as Error).message)}
   await persistCatalog(next,raw,user,'catalog.'+command.kind);return json({document:next});
-}catch(error){return failure(error)}}
+}catch(error){return failure(error,request)}}

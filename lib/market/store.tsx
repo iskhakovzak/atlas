@@ -4,7 +4,7 @@ import {toast} from 'sonner';
 import {blank,parseState,pricingSchema,tariff,type Pricing,type State} from './domain';
 import {defaultPolicy,policySchema,type Policy} from './policy';
 import type {Action} from './actions';
-import {serverError,supportedLocale,type Locale} from './i18n';
+import {serverError,setLocaleCookie,supportedLocale,type Locale} from './i18n';
 import type {SessionStatus} from './access';
 import {visibleMerchantFinds,type MerchantFind} from './catalog';
 import type {CatalogCollection} from './catalog-editor';
@@ -18,7 +18,7 @@ const marketMessages:Record<Locale,{catalogLoad:string;accountLoad:string;connec
 };
 export function MarketProvider({children}:{children:ReactNode}) {
  const [catalogProducts,setCatalogProducts]=useState<MerchantFind[]>(()=>visibleMerchantFinds()),[collections,setCollections]=useState<Array<CatalogCollection&{productIds:string[]}>>([]),[catalogError,setCatalogError]=useState('');
- useEffect(()=>{const controller=new AbortController();fetch('/api/catalog',{cache:'no-store',signal:controller.signal}).then(async response=>{if(!response.ok)throw Error('Catalog load failed');const data=await response.json() as {products:MerchantFind[];collections:Array<CatalogCollection&{productIds:string[]}>};setCatalogProducts(data.products);setCollections(data.collections)}).catch(error=>{if(error.name!=='AbortError')setCatalogError(marketMessages[localeRef.current].catalogLoad)});return()=>controller.abort()},[]);
+ useEffect(()=>{let initialLocale:Locale='ru';try{initialLocale=supportedLocale(localStorage.getItem('atlas-language'))??'ru'}catch{}setLocaleCookie(initialLocale);const controller=new AbortController();fetch('/api/catalog',{cache:'no-store',signal:controller.signal}).then(async response=>{if(!response.ok)throw Error('Catalog load failed');const data=await response.json() as {products:MerchantFind[];collections:Array<CatalogCollection&{productIds:string[]}>};setCatalogProducts(data.products);setCollections(data.collections)}).catch(error=>{if(error.name!=='AbortError')setCatalogError(marketMessages[localeRef.current].catalogLoad)});return()=>controller.abort()},[]);
  const [state,setState]=useState<State>(blank),[pricing,setPricing]=useState<Pricing>(tariff),[policy,setPolicy]=useState<Policy>(defaultPolicy),[status,setStatus]=useState<SessionStatus>('loading'),[error,setError]=useState<string|null>(null),[user,setUser]=useState<AccountUser|null>(null);
  const revision=useRef(0),busy=useRef(false),generation=useRef(0),localeRef=useRef<Locale>('ru'),serverLocaleRef=useRef<Locale>('ru'),localeSyncRef=useRef<Locale|null>(null);
  const readStoredLocale=useCallback(()=>{try{return supportedLocale(localStorage.getItem('atlas-language'))}catch{return null}},[]);
@@ -43,6 +43,7 @@ export function MarketProvider({children}:{children:ReactNode}) {
    // Keep asynchronous request fallbacks in the locale the customer just selected.
    // eslint-disable-next-line react-hooks/immutability
    localeRef.current=next.communication.language;
+   setLocaleCookie(next.communication.language);
    setState(next);
    const parsedPricing=pricingSchema.safeParse(data.pricing);setPricing(parsedPricing.success?parsedPricing.data:tariff);
    const parsedPolicy=policySchema.safeParse(data.policy);setPolicy(parsedPolicy.success?parsedPolicy.data:defaultPolicy);
@@ -52,6 +53,10 @@ export function MarketProvider({children}:{children:ReactNode}) {
  },[clearPrivate,readStoredLocale]);
  useEffect(()=>{
   const locale=readStoredLocale();
+  // The server uses this display-only cookie for localized errors. Write the
+  // default as well, so its initial response matches the UI's Russian default
+  // instead of an unrelated browser Accept-Language preference.
+  setLocaleCookie(locale??'ru');
   if(locale){
    // This ref is intentionally updated outside render for callbacks that outlive this effect.
    // eslint-disable-next-line react-hooks/immutability
@@ -94,6 +99,7 @@ export function MarketProvider({children}:{children:ReactNode}) {
   localeRef.current=next;
   setState(s=>({...s,communication:{...s.communication,language:next}}));
   try{localStorage.setItem('atlas-language',next)}catch{}
+  setLocaleCookie(next);
  },[]);
  return <Context.Provider value={{catalogProducts,collections,catalogError,state,pricing,policy,ready,status,error,user,setLocale,act,refresh}}>{children}</Context.Provider>;
 }

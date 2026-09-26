@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {extractShopify, shopifyEndpoints} from '../lib/importer/shopify.ts';
 import {featuredStoreGroups, supportedStoreCount} from '../lib/importer/stores.ts';
 import {extractAdidasProduct,extractProduct} from '../lib/importer/extract.ts';
-import {fetchProduct, allowedUrl, isAmazonUsUrl} from '../lib/importer/fetch.ts';
+import {fetchProduct, allowedUrl, isAmazonUsUrl, ManualEntryFallbackError} from '../lib/importer/fetch.ts';
 import {verifyProductSnapshot} from '../lib/importer/verify.ts';
 
 const url = 'https://www.allbirds.com/products/shoe';
@@ -80,11 +80,29 @@ test('Anker embedded product data retains choice, price, photo and stock',()=>{
   assert.equal(p.method,'Anker product data');assert.equal(p.price,29.99);assert.equal(p.image,'https://cdn.shopify.com/white.jpg');
   assert.deepEqual(p.variants.map(v=>[v.id,v.color,v.size,v.available]),[['11','White','1-Pack',true],['12','Black','2-Pack',false]]);
 });
+test('Macy product data is scoped to its host and does not claim unverified stock',()=>{
+  const sourceUrl='https://www.macys.com/shop/product/example';
+  const state={product:{productDetail:{product:{detail:{name:"Women's Running Sneakers"},pricing:{price:{tieredPrice:[{values:[{value:'$89.99'}]}]}},traits:{colors:{colorMap:{blue:{name:'Blue'}}},sizes:{sizeMap:{six:{name:'6'},seven:{name:'7'}}}},imagery:{images:[{filePath:'123/456/shoe.jpg'}]}}}}};
+  const html=`<script>window.__PRELOADED_STATE__ = ${JSON.stringify(state)};</script>`;
+  const parsed=extractProduct(html,sourceUrl);
+  assert.equal(parsed.method,"Macy's product data");assert.equal(parsed.price,89.99);assert.equal(parsed.currency,'USD');assert.equal(parsed.country,'США');assert.equal(parsed.category,'Обувь');
+  assert.deepEqual(parsed.variants.map(value=>value.label),['Blue · 6','Blue · 7']);
+  assert(parsed.variants.every(value=>value.available&&value.availabilityKnown===false));
+  assert.equal(parsed.image,'https://slimages.macysassets.com/is/image/MCY/products/123/456/shoe.jpg');
+  assert.match(parsed.warnings.join(' '),/наличие выбранного сочетания нужно подтвердить/);
+  assert.notEqual(extractProduct(html,'https://macys.com.evil.example/shop/product/example').method,"Macy's product data");
+});
 test('Adidas public product data retains sale price, available sizes and gallery',()=>{
   const product={id:'IF4492',name:'Daily 4.0 Shoes',brand:'Sportswear',category:'Shoes',color:'Core Black / Cloud White / Gum',price:65,salePrice:33,orderable:1,image:{src:'https://assets.adidas.com/primary.jpg'},images:[{src:'https://assets.adidas.com/one.jpg'},{src:'https://assets.adidas.com/two.jpg'}]};
   const listing={raw:{itemList:{items:[{productId:'IF4492',displayName:'Daily 4.0 Shoes',availableSizes:['hidden','5','6','8'],orderable:1,salePrice:33,images:[{src:'https://assets.adidas.com/three.jpg'}]}]}}};
   const p=extractAdidasProduct(product,listing,'https://www.adidas.com/us/daily-4.0-shoes/IF4492.html');
   assert.equal(p.method,'Adidas product data');assert.equal(p.price,33);assert.equal(p.currency,'USD');assert.equal(p.country,'США');assert.equal(p.category,'Обувь');assert.equal(p.variants.length,3);assert.deepEqual(p.variants.map(v=>[v.color,v.size,v.price,v.available]),[['Core Black / Cloud White / Gum','5',33,true],['Core Black / Cloud White / Gum','6',33,true],['Core Black / Cloud White / Gum','8',33,true]]);assert.equal(p.images.length,4);
+});
+test('Adidas malformed public JSON falls back to editable manual entry',async()=>{
+  const original=globalThis.fetch;
+  globalThis.fetch=async()=>new Response('<html>challenge</html>',{headers:{'Content-Type':'application/json'}});
+  try { await assert.rejects(fetchProduct('https://www.adidas.com/us/daily-4.0-shoes/IF4492.html'),error=>error instanceof ManualEntryFallbackError); }
+  finally { globalThis.fetch=original; }
 });
 test('Adidas clothing JSON classifies jerseys and keeps the full gallery',()=>{
   const product={id:'JZ6941',name:'Germany Away Jersey 1994',brand:'Performance',category:'Clothing',color:'Power Green',price:110,salePrice:44,orderable:1,image:{src:'https://assets.adidas.com/primary.jpg'},secondImage:{src:'https://assets.adidas.com/second.jpg'},images:Array.from({length:12},(_,index)=>({src:`https://assets.adidas.com/gallery-${index}.jpg`}))};
@@ -101,6 +119,16 @@ test('Adidas listing data remains importable when product JSON is rate-limited',
   const original=globalThis.fetch;const calls=[];
   globalThis.fetch=async(input)=>{calls.push(String(input));const u=new URL(String(input));if(u.pathname==='/api/plp/content-engine')return Response.json({raw:{itemList:{items:[{productId:'IF4492',displayName:'Daily 4.0 Shoes',category:'shoes',availableSizes:['5','7'],orderable:1,salePrice:33,image:{src:'https://assets.adidas.com/gallery.jpg'},images:[{src:'https://assets.adidas.com/gallery.jpg'}]}]}}});return new Response('rate limited',{status:429,headers:{'Content-Type':'text/html'}})};
   try {const p=await fetchProduct('https://www.adidas.com/us/daily-4.0-shoes/IF4492.html');assert.equal(p.price,33);assert.deepEqual(p.variants.map(v=>v.size),['5','7']);assert.equal(p.images.length,1);assert(calls.some(url=>url.includes('/api/plp/content-engine')))} finally {globalThis.fetch=original}
+});
+test('Adidas API challenges and malformed payloads allow editable manual fallback',async()=>{
+  const original=globalThis.fetch,originalError=console.error;
+  try {
+    console.error=()=>{};
+    globalThis.fetch=async()=>new Response('Akamai challenge',{status:429,headers:{'Content-Type':'text/html'}});
+    await assert.rejects(fetchProduct('https://www.adidas.com/us/daily-4.0-shoes/IF4492.html'),error=>error instanceof ManualEntryFallbackError&&/вручную/.test(error.message)&&/подтвердить цену и наличие/.test(error.message));
+    globalThis.fetch=async()=>new Response('{invalid json',{headers:{'Content-Type':'application/json'}});
+    await assert.rejects(fetchProduct('https://www.adidas.com/us/daily-4.0-shoes/IF4492.html'),ManualEntryFallbackError);
+  } finally {globalThis.fetch=original;console.error=originalError;}
 });
 test('generic importer deduplicates images and treats size and color as one variant',()=>{
   const p=extractProduct(`<script type="application/ld+json">${JSON.stringify({'@type':'Product',name:'Shoes',color:'Black',size:'42',image:['/a.jpg','/a.jpg','/b.jpg'],offers:{price:'1,299.95',priceCurrency:'USD'}})}</script>`,'https://nike.com/product');
@@ -121,7 +149,7 @@ test('Amazon checks pin the anonymous session to US ZIP 19701 before parsing',as
   assert(isAmazonUsUrl(new URL('https://www.amazon.com/dp/TEST')));
   assert(!isAmazonUsUrl(new URL('https://www.amazon.co.uk/dp/TEST')));
   const original=globalThis.fetch;const calls=[];
-  const amazonHtml=`<span data-a-modal='{"ajaxHeaders":{"anti-csrftoken-a2z":"token"},"url":"/portal-migration/hz/glow/get-rendered-address-selections"}'></span><span id="glow-ingress-line2">19701</span><script type="application/ld+json">${JSON.stringify({'@type':'Product',name:'US listing',image:['https://images.example.com/item.jpg'],offers:{price:'55.99',priceCurrency:'USD',availability:'https://schema.org/InStock'}})}</script>`;
+  const amazonHtml=`<span data-a-modal='{"ajaxHeaders":{"anti-csrftoken-a2z":"token"},"url":"/portal-migration/hz/glow/get-rendered-address-selections"}'></span><script type="application/ld+json">${JSON.stringify({'@type':'Product',name:'US listing',image:['https://images.example.com/item.jpg'],offers:{price:'55.99',priceCurrency:'USD',availability:'https://schema.org/InStock'}})}</script>`;
   globalThis.fetch=async(input,init={})=>{
     calls.push([String(input),init]);
     if(String(input).includes('/gp/delivery/ajax/address-change.html')) return new Response(JSON.stringify({isValidAddress:1,address:{countryCode:'US',zipCode:'19701'}}),{headers:{'Content-Type':'application/json','set-cookie':'zip-code=19701; Path=/'}});
@@ -139,6 +167,16 @@ test('Amazon checks pin the anonymous session to US ZIP 19701 before parsing',as
     assert.equal(new URLSearchParams(post[1].body).get('countryCode'),'US');
     assert.equal(new URLSearchParams(post[1].body).get('zipCode'),'19701');
     assert.match(calls[2][1].headers.Cookie,/zip-code=19701/);
+  } finally {globalThis.fetch=original;}
+});
+test('Amazon still rejects location API responses that do not confirm US ZIP 19701',async()=>{
+  const original=globalThis.fetch;
+  const page=`<span data-a-modal='{"ajaxHeaders":{"anti-csrftoken-a2z":"token"},"url":"/portal-migration/hz/glow/get-rendered-address-selections"}'></span>`;
+  globalThis.fetch=async(input)=>String(input).includes('/gp/delivery/ajax/address-change.html')
+    ? Response.json({isValidAddress:1,address:{countryCode:'US',zipCode:'90210'}})
+    : new Response(page,{headers:{'Content-Type':'text/html'}});
+  try {
+    await assert.rejects(fetchProduct('https://www.amazon.com/dp/TEST'),/Amazon не подтвердил регион США/);
   } finally {globalThis.fetch=original;}
 });
 

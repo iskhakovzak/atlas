@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import Link from '@/components/site-link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { validateSource, type Product } from '@/lib/market/domain';
-import { findOrderUrl, catalogFreshness } from '@/lib/market/catalog';
+import { findOrderUrl } from '@/lib/market/catalog';
 import { defaultDealFilters, filterDeals, type DealFilters } from '@/lib/market/deals';
 import { dealCopy } from '@/lib/market/deal-copy';
 import { useMarket } from '@/lib/market/store';
@@ -68,7 +68,6 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
         const name = product.sourceUrl ? product.name : titles[product.id] ?? product.name;
         return <article className="find-card" key={product.id}>
           <div className="find-visual"><button className="find-photo" type="button" onClick={() => select(product)} aria-label={name}><ProductImage product={{ ...product, name }} /></button>
-            <span className="find-merchant">{merchantRecord(product)?.store}</span>{catalogFreshness(product)!=='fresh'&&<span className={`find-freshness ${catalogFreshness(product)}`}>{locale==='ru'?'Данные на':locale==='uz'?'Ma’lumot sanasi':'As of'} · {merchantRecord(product)?.observedOn}</span>}
             {discount >= 40 && <span className="find-top-deal"><Flame size={14}/>{copy.topDeal}</span>}
             {ready&&<Tooltip><TooltipTrigger asChild><button type="button" disabled={saving !== null} className={'find-save ' + (isSaved ? 'saved' : '')} aria-pressed={isSaved} aria-label={(isSaved ? copy.remove : copy.save) + ': ' + name} onClick={() => void favorite(product)}><Heart size={20}/></button></TooltipTrigger><TooltipContent>{!ready ? copy.signin : saving === product.id ? copy.savingState : isSaved ? copy.remove : copy.save}</TooltipContent></Tooltip>}
           </div>
