@@ -569,6 +569,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
         <Empty
           title={ow.filteredTitle}
           description={ow.filteredDescription}
+          href={operations ? "/operations" : "/orders"}
+          label={ow.clearFilters}
         />
       ) : (
         filtered.map((o) => (
@@ -1541,6 +1543,8 @@ export function BalanceView() {
         <Empty
            title={balanceWords.emptyTitle}
            description={balanceWords.emptyDescription}
+           href="/account"
+           label={locale === "ru" ? "На главную" : locale === "uz" ? "Bosh sahifaga" : "Home"}
         />
       ) : (
         <div className="surface ledger-list">

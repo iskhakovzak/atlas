@@ -106,7 +106,7 @@ export function CartView() {
 
   return <>
     <PageHeading overline={c.overline} title={c.title} description={c.intro} />
-    {!ready ? (error ? <Empty title={c.signin} description={c.signinHint} href="/account" label={c.signin} /> : <div className="surface loading-state">{c.loading}</div>) : !state.cart.length ? <Empty title={c.empty} description={c.emptyHint} href="/" /> :
+    {!ready ? (error ? <Empty title={c.signin} description={c.signinHint} href="/account" label={c.signin} /> : <div className="surface loading-state">{c.loading}</div>) : !state.cart.length ? <Empty title={c.empty} description={c.emptyHint} href="/" label={locale === "ru" ? "В каталог" : locale === "uz" ? "Katalogga" : "To catalog"} /> :
       <div className="cart-layout">
         <div className="cart-items">
           {state.cart.map((item) => { const checkoutServices=pricing.serviceCatalog.filter(service=>service.enabled&&service.requestStage==="checkout");const selectedServices=item.requestedServiceIds??[];return <article className="surface cart-item" key={item.id}>
