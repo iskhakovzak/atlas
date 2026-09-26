@@ -1,3 +1,4 @@
+import { extractMacysProduct } from './macys.ts';
 export type ProductVariant = {
   id?: string;
   size?: string;
@@ -905,6 +906,8 @@ function extractZara(html: string, sourceUrl: string) {
 }
 
 export function extractProduct(html: string, sourceUrl: string): Extracted {
+  const macys = extractMacysProduct(html, sourceUrl, { safeImage, inferCategory: inferProductCategory, declarationFor });
+  if (macys) return macys;
   const anker = extractAnker(html, sourceUrl);
   if (anker) return anker;
   const amazon = extractAmazon(html, sourceUrl);

@@ -4,7 +4,7 @@ import {toast} from 'sonner';
 import {blank,parseState,pricingSchema,tariff,type Pricing,type State} from './domain';
 import {defaultPolicy,policySchema,type Policy} from './policy';
 import type {Action} from './actions';
-import {supportedLocale,type Locale} from './i18n';
+import {serverError,supportedLocale,type Locale} from './i18n';
 import type {SessionStatus} from './access';
 import {visibleMerchantFinds,type MerchantFind} from './catalog';
 import type {CatalogCollection} from './catalog-editor';
@@ -29,12 +29,12 @@ export function MarketProvider({children}:{children:ReactNode}) {
   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),15000);
   try{
    const res=await fetch('/api/account',{cache:'no-store',signal:controller.signal});
-   const data=await res.json() as {state?:unknown;pricing?:unknown;policy?:unknown;revision:number;user:AccountUser;error?:string};
+   const data=await res.json() as {state?:unknown;pricing?:unknown;policy?:unknown;revision:number;user:AccountUser;error?:string; errorCode?:string};
    if(current!==generation.current)return;
    if(!res.ok){
     clearPrivate();
     if(res.status===401){setStatus('guest');setError(null);return}
-     setStatus('error');setError((localeRef.current==='ru'?data.error:undefined)??marketMessages[localeRef.current].accountLoad);return;
+     setStatus('error');setError((data.errorCode ? serverError(localeRef.current, data.errorCode) : undefined) ?? marketMessages[localeRef.current].accountLoad);return;
    }
    const parsed=parseState(JSON.stringify(data.state));
    serverLocaleRef.current=parsed.communication.language;
@@ -71,11 +71,11 @@ export function MarketProvider({children}:{children:ReactNode}) {
   const current=++generation.current;
   try{
    const res=await fetch('/api/actions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,revision:revision.current})});
-   const data=await res.json() as {state?:unknown;revision:number;error?:string};
+   const data=await res.json() as {state?:unknown;revision:number;error?:string; errorCode?:string};
    if(current!==generation.current)return false;
    if(res.status===401){clearPrivate();setStatus('guest');setError(null);toast.message(marketMessages[localeRef.current].sessionEnded);return false}
    if(data.state){const next=parseState(JSON.stringify(data.state));serverLocaleRef.current=next.communication.language;setState(next);revision.current=data.revision}
-   if(!res.ok){toast.error((localeRef.current==='ru'?data.error:undefined)??marketMessages[localeRef.current].saveFailed);if(res.status===409&&!data.state)await refresh();return false}
+   if(!res.ok){toast.error((data.errorCode ? serverError(localeRef.current, data.errorCode) : undefined) ?? marketMessages[localeRef.current].saveFailed);if(res.status===409&&!data.state)await refresh();return false}
    return true;
   }catch{toast.error(marketMessages[localeRef.current].actionConnection);await refresh();return false}
   finally{busy.current=false}

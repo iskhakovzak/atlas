@@ -3,16 +3,16 @@ import {getChatGPTUser} from '@/app/chatgpt-auth';
 import {blank,parseState,pricingSchema,tariff,orderPayable,type Pricing,type State} from './domain';
 import {defaultPolicy,policySchema,type Policy} from './policy';
 export function database(){if(!env.DB)throw Error('Серверное хранилище пока недоступно.');return env.DB}
-export async function identity(){const user=await getChatGPTUser();if(!user)throw new HttpError(401,'Войдите, чтобы продолжить.');return user}
+export async function identity(){const user=await getChatGPTUser();if(!user)throw new HttpError(401, 'err_1');return user}
 export function operator(email:string){return !!env.ATLAS_OPERATOR_EMAIL&&email.toLowerCase()===env.ATLAS_OPERATOR_EMAIL.toLowerCase()}
 export class HttpError extends Error{constructor(public status:number,message:string){super(message)}}
-export function sameOrigin(request:Request){const origin=request.headers.get('origin');if(!origin||origin!==new URL(request.url).origin)throw new HttpError(403,'Недопустимый источник запроса.')}
+export function sameOrigin(request:Request){const origin=request.headers.get('origin');if(!origin||origin!==new URL(request.url).origin)throw new HttpError(403, 'err_2')}
 export const json=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
 export async function account(user:{userId:string;platformUserId?:string|null;displayName:string}){const now=Date.now(),db=database();if(user.platformUserId&&user.platformUserId!==user.userId)await db.prepare('INSERT OR IGNORE INTO market_accounts (user_id,name,state,revision,created_at,updated_at) SELECT ?,name,state,revision,created_at,updated_at FROM market_accounts WHERE user_id=?').bind(user.userId,user.platformUserId).run();await db.prepare('INSERT OR IGNORE INTO market_accounts (user_id,name,state,revision,created_at,updated_at) VALUES (?,?,?,0,?,?)').bind(user.userId,user.displayName,JSON.stringify(blank()),now,now).run();const row=await db.prepare('SELECT name,state,revision,created_at FROM market_accounts WHERE user_id=?').bind(user.userId).first<{name:string;state:string;revision:number;created_at:number}>();if(!row)throw Error('Account unavailable');return {...row,state:parseState(row.state)}}
 export async function persist(id:string,state:State,revision:number){
- const serialized=JSON.stringify(state);if(serialized.length>1000000)throw new HttpError(413,'Достигнут лимит данных тестового профиля.');
+ const serialized=JSON.stringify(state);if(serialized.length>1000000)throw new HttpError(413, 'err_3');
  const now=Date.now(),result=await database().prepare('UPDATE market_accounts SET state=?, revision=revision+1, updated_at=? WHERE user_id=? AND revision=?').bind(serialized,now,id,revision).run();
- if(!result.meta.changes)throw new HttpError(409,'Заказ изменился в другой вкладке. Данные обновлены — повторите действие.');
+ if(!result.meta.changes)throw new HttpError(409, 'err_4');
  try{await syncOperationalProjection(id,state,now)}catch(error){console.error('Operational projection sync failed',error)}
 }
 
@@ -35,7 +35,7 @@ export async function rebuildOperationalProjection(){
 }
 
 export async function customerStatus(id:string){const row=await database().prepare('SELECT status FROM market_customers WHERE id=?').bind(id).first<{status:string}>();return row?.status??'active'}
-export async function setCustomerStatus(id:string,status:'active'|'review'|'blocked'){const result=await database().prepare('UPDATE market_customers SET status=?,updated_at=? WHERE id=?').bind(status,Date.now(),id).run();if(!result.meta.changes)throw new HttpError(404,'Клиент не найден в операционной базе. Выполните синхронизацию.');}
+export async function setCustomerStatus(id:string,status:'active'|'review'|'blocked'){const result=await database().prepare('UPDATE market_customers SET status=?,updated_at=? WHERE id=?').bind(status,Date.now(),id).run();if(!result.meta.changes)throw new HttpError(404, 'err_5');}
 export async function operationalHealth(){
  const db=database();const [customers,orders,fees,events]=await Promise.all([
   db.prepare('SELECT COUNT(*) count FROM market_customers').first<{count:number}>(),db.prepare('SELECT COUNT(*) count FROM market_order_records').first<{count:number}>(),db.prepare('SELECT COUNT(*) count FROM market_order_fee_lines').first<{count:number}>(),db.prepare('SELECT COUNT(*) count FROM market_order_events').first<{count:number}>()
@@ -47,7 +47,7 @@ export async function savePricing(next:Pricing,userId:string){await database().p
 export async function policy():Promise<Policy>{const row=await database().prepare("SELECT value FROM market_settings WHERE key='policy'").first<{value:string}>();if(!row)return defaultPolicy;try{const parsed=policySchema.safeParse(JSON.parse(row.value));return parsed.success?parsed.data:defaultPolicy}catch{return defaultPolicy}}
 export async function savePolicy(next:Policy,userId:string){await database().prepare("INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES ('policy',?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at,updated_by=excluded.updated_by").bind(JSON.stringify(next),next.updatedAt,userId).run()}
 export async function operatorAccounts(){const rows=await database().prepare('SELECT user_id,name,state,revision,updated_at FROM market_accounts ORDER BY updated_at DESC LIMIT 200').all<{user_id:string;name:string;state:string;revision:number;updated_at:number}>();return rows.results.map(row=>({id:row.user_id,name:row.name,state:parseState(row.state),revision:row.revision,updatedAt:row.updated_at}))}
-export async function storedAccount(id:string){const row=await database().prepare('SELECT user_id,name,state,revision,updated_at FROM market_accounts WHERE user_id=?').bind(id).first<{user_id:string;name:string;state:string;revision:number;updated_at:number}>();if(!row)throw new HttpError(404,'Профиль покупателя не найден.');return {id:row.user_id,name:row.name,state:parseState(row.state),revision:row.revision,updatedAt:row.updated_at}}
+export async function storedAccount(id:string){const row=await database().prepare('SELECT user_id,name,state,revision,updated_at FROM market_accounts WHERE user_id=?').bind(id).first<{user_id:string;name:string;state:string;revision:number;updated_at:number}>();if(!row)throw new HttpError(404, 'err_6');return {id:row.user_id,name:row.name,state:parseState(row.state),revision:row.revision,updatedAt:row.updated_at}}
 
 export type StaffRole='support'|'procurement'|'warehouse'|'finance'|'admin';
 export type StaffStatus='invited'|'active'|'disabled';
@@ -75,11 +75,11 @@ export async function auditEvents():Promise<AuditEvent[]>{
  const rows=await database().prepare('SELECT id,actor_id,actor_email,action,entity_type,entity_id,details,created_at FROM market_audit_events ORDER BY created_at DESC LIMIT 100').all<{id:string;actor_id:string;actor_email:string;action:string;entity_type:string;entity_id:string|null;details:string|null;created_at:number}>();
  return rows.results.map(row=>({id:row.id,actorId:row.actor_id,actorEmail:row.actor_email,action:row.action,entityType:row.entity_type,entityId:row.entity_id??undefined,details:row.details??undefined,createdAt:row.created_at}));
 }
-export async function failure(error:unknown){if(error instanceof HttpError)return json({error:error.message},error.status);console.error(error);try{await database().prepare('INSERT INTO market_operational_errors (id,area,message,details,created_at) VALUES (?,?,?,?,?)').bind(crypto.randomUUID(),'api','Unhandled request failure',error instanceof Error?JSON.stringify({name:error.name,stack:error.stack?.slice(0,1800)}):null,Date.now()).run()}catch{}return json({error:'Не удалось выполнить запрос. Попробуйте ещё раз.'},503)}
+export async function failure(error:unknown){if(error instanceof HttpError)return json({error:error.message,errorCode:error.message},error.status);console.error(error);try{await database().prepare('INSERT INTO market_operational_errors (id,area,message,details,created_at) VALUES (?,?,?,?,?)').bind(crypto.randomUUID(),'api','Unhandled request failure',error instanceof Error?JSON.stringify({name:error.name,stack:error.stack?.slice(0,1800)}):null,Date.now()).run()}catch{}return json({error:'Не удалось выполнить запрос. Попробуйте ещё раз.'},503)}
 
 export async function errorSummary(){const rows=await database().prepare('SELECT id,area,message,created_at,resolved_at FROM market_operational_errors ORDER BY created_at DESC LIMIT 100').all<{id:string;area:string;message:string;created_at:number;resolved_at:number|null}>();return rows.results.map(row=>({id:row.id,area:row.area,message:row.message,createdAt:row.created_at,resolvedAt:row.resolved_at??undefined}))}
 
 export async function requestJson(request:Request,maxBytes=1100000):Promise<unknown>{
- const reader=request.body?.getReader();if(!reader)throw new HttpError(400,'Пустой запрос.');
- let text='',size=0;const decoder=new TextDecoder();while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>maxBytes){await reader.cancel();throw new HttpError(413,'Слишком большой запрос.')}text+=decoder.decode(value,{stream:true})}text+=decoder.decode();try{return JSON.parse(text)}catch{throw new HttpError(400,'Некорректный JSON.')}
+ const reader=request.body?.getReader();if(!reader)throw new HttpError(400, 'err_7');
+ let text='',size=0;const decoder=new TextDecoder();while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>maxBytes){await reader.cancel();throw new HttpError(413, 'err_8')}text+=decoder.decode(value,{stream:true})}text+=decoder.decode();try{return JSON.parse(text)}catch{throw new HttpError(400, 'err_9')}
 }
