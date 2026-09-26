@@ -19,6 +19,14 @@ export type CommunityDeal = {
 // estimate and the standard unknown-store-shipping reserve; protected import
 // rechecks the product before the customer can continue.
 export const communityDeals: CommunityDeal[] = [
+  // Direct merchant listings selected from the current Slickdeals front page.
+  // Slickdeals is intentionally not stored as a customer-facing URL or image source.
+  { id: 'anker-prime-200w', title: 'Anker Prime · зарядная станция 200W, 6 портов', store: 'Amazon', category: 'Техника', price: 55.99, referencePrice: 80, observedOn: '2026-09-20', url: 'https://www.amazon.com/dp/B0CT2NQ7WG', image: 'https://m.media-amazon.com/images/I/31ol4e40VQL.jpg' },
+  { id: 'wusthof-fresh-rosemary', title: 'WÜSTHOF Classic · нож 8″ Fresh Rosemary', store: 'Amazon', category: 'Дом', price: 126.99, referencePrice: 170, observedOn: '2026-09-20', url: 'https://www.amazon.com/dp/B0GDVX6PDF', image: 'https://m.media-amazon.com/images/I/21JpeF+qx-L.jpg' },
+  { id: 'hp-probook-fortis-g10', title: 'HP ProBook Fortis G10 · i5, 16 GB, 256 GB SSD', store: 'eBay', category: 'Техника', price: 291, referencePrice: 659.99, observedOn: '2026-09-20', url: 'https://www.ebay.com/itm/377384835279', image: 'https://i.ebayimg.com/images/g/aUMAAeSwKYJqrW9s/s-l500.webp' },
+  { id: 'lego-city-burger-truck', title: 'LEGO City · Burger Truck 60404, 194 детали', store: 'Amazon', category: 'Дом', price: 12.79, referencePrice: 20, observedOn: '2026-09-20', url: 'https://www.amazon.com/dp/B0CGY4LZQ3', image: 'https://m.media-amazon.com/images/P/B0CGY4LZQ3.01.L.jpg' },
+  { id: 'logitech-k780-resale', title: 'Logitech K780 · беспроводная клавиатура, Amazon Resale', store: 'Amazon', category: 'Техника', price: 30.54, referencePrice: 70, observedOn: '2026-09-20', url: 'https://www.amazon.com/dp/B01LZTBKBG', image: 'https://m.media-amazon.com/images/P/B01LZTBKBG.01.L.jpg' },
+  { id: 'bircen-polarized-sunglasses', title: 'BIRCEN · поляризационные солнцезащитные очки', store: 'Amazon', category: 'Одежда', price: 10.50, referencePrice: 25, observedOn: '2026-09-20', url: 'https://www.amazon.com/dp/B0GGQV8QK9', image: 'https://m.media-amazon.com/images/I/31R90gdq2hL.jpg' },
   { id: 'merrell-wrapt', title: 'Merrell Wrapt Sneaker', store: 'Merrell', category: 'Обувь', price: 74.99, referencePrice: 125, observedOn: '2026-09-13', url: 'https://www.merrell.com/US/en/wrapt-sneaker/60644M.html', image: 'https://thekit.wolverineworldwide.com/match/media_lookup/MRLM-J00005167-091225-F26-000/?preset=dw-large' },
   { id: 'brooks-revel-7', title: 'Brooks Revel 7 Running Shoes', store: 'Brooks', category: 'Обувь', price: 59.99, referencePrice: 99.99, observedOn: '2026-09-13', url: 'https://www.brooksrunning.com/en_us/mens/shoes/road-running-shoes/revel-7/110435.html', image: 'https://www.brooksrunning.com/on/demandware.static/-/Sites-brooks-master-catalog/default/dw5b5fcf83/original/110435/110435-072-l-revel-7-mens-fast-running-and-training-shoe.png' },
   { id: 'nike-hyperspeed', title: 'Nike Zoom Hyperspeed Court SE', store: 'Nike', category: 'Обувь', price: 75.97, referencePrice: 90, observedOn: '2026-09-13', url: 'https://www.nike.com/t/zoom-hyperspeed-court-se-volleyball-shoes-m4Fqj0', image: 'https://static.nike.com/a/images/t_default/u_9ddf04c7-2a9a-4d76-add1-d15af8f0263d,c_scale,fl_relative,w_1.0,h_1.0,fl_layer_apply/d5bc8ca6-94d5-4e55-b64a-d0560d4c1d7d/NIKE+ZOOM+HYPERSPEED+COURT+SE.png' },
@@ -37,6 +45,12 @@ export const communityDeals: CommunityDeal[] = [
 export const communityDiscount = (deal: CommunityDeal) => Math.round((1 - deal.price / deal.referencePrice) * 100);
 
 export function communityEstimatedWeight(deal: CommunityDeal) {
+  if (deal.id === 'anker-prime-200w') return 0.8;
+  if (deal.id === 'wusthof-fresh-rosemary') return 1.3;
+  if (deal.id === 'hp-probook-fortis-g10') return 2.2;
+  if (deal.id === 'lego-city-burger-truck') return 0.9;
+  if (deal.id === 'logitech-k780-resale') return 1.3;
+  if (deal.id === 'bircen-polarized-sunglasses') return 0.9;
   if (deal.category === 'Обувь') return 2.2;
   if (deal.category === 'Одежда') return deal.id === 'hanes-hoodie' ? 1.5 : deal.id === 'silkworld-swim' ? 1.1 : 1.2;
   if (deal.category === 'Техника') return 1.5;
@@ -55,6 +69,8 @@ export function communityFallbackOptions(deal: CommunityDeal): CommunityDealOpti
   if (deal.category === 'Обувь') return sized(['US 7', 'US 7.5', 'US 8', 'US 8.5', 'US 9', 'US 9.5', 'US 10', 'US 10.5', 'US 11', 'US 12', 'US 13']);
   if (deal.id === 'hanes-hoodie') return sized(['S', 'M', 'L', 'XL', '2XL', '3XL']);
   if (deal.id === 'ekouaer-pajama' || deal.id === 'silkworld-swim') return sized(['S', 'M', 'L', 'XL', '2XL']);
+  if (deal.id === 'wusthof-fresh-rosemary') return [{ label: '8″ · Fresh Rosemary', color: 'Fresh Rosemary' }];
+  if (deal.id === 'bircen-polarized-sunglasses') return [{ label: 'Black frame · blue lens', color: 'Black / blue' }];
   return [{ label: 'Указанный вариант' }];
 }
 

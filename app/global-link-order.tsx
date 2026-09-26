@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, Check, ExternalLink, Link2, Loader2, Scale, X } from "lucide-react";
+import { ArrowRight, ExternalLink, Link2, Loader2, Scale } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
@@ -31,6 +31,14 @@ import {
   communityProductCategory,
   hasSelectableDimensions,
 } from "@/lib/market/community-deals";
+
+type LinkOrderDraftSnapshot={
+  url:string;source:string;name:string;brand:string;declaration:string;currency:string;amount:string;shipping:string;shippingCurrency:string;shippingEstimated:boolean;weight:string;country:string;otherCountry:string;category:string;variant:string;variants:ProductVariant[];selectedColor:string;selectedSize:string;image:string;images:string[];showSourceForm:boolean;note:string;weightOrigin:string;verified:boolean;sourceCheckStatus:'idle'|'checking'|'verified'|'failed';importedAt?:number;sourceExpiresAt?:number;foundShipping:{amount:number;currency:string;destination?:string}|null;
+};
+const countryAliases:Record<string,string>={'United States':'США','US':'США','AQSh':'США','Spain':'Испания','Ispaniya':'Испания','Germany':'Германия','Germaniya':'Германия','United Kingdom':'Великобритания','Buyuk Britaniya':'Великобритания','France':'Франция','Fransiya':'Франция','Italy':'Италия','Italiya':'Италия','Romania':'Румыния','Ruminiya':'Румыния','China':'Китай','Xitoy':'Китай','Turkey':'Турция','Turkiya':'Турция','Japan':'Япония','Yaponiya':'Япония','South Korea':'Южная Корея','Janubiy Koreya':'Южная Корея','United Arab Emirates':'ОАЭ','BAA':'ОАЭ','Canada':'Канада','Kanada':'Канада','Australia':'Австралия','Avstraliya':'Австралия','Other country':'Другая страна','Boshqa mamlakat':'Другая страна'};
+const categoryAliases:Record<string,string>={'Shoes':'Обувь','Oyoq kiyim':'Обувь','Clothing':'Одежда','Kiyim':'Одежда','Electronics':'Электроника','Elektronika':'Электроника','Accessories':'Аксессуары','Aksessuarlar':'Аксессуары','Beauty & care':'Красота и уход','Go‘zallik va parvarish':'Красота и уход','Home & living':'Дом и быт','Uy va maishiy':'Дом и быт','Sports':'Спорт','Boshqa':'Другое','Other':'Другое'};
+const canonicalCountry=(value:string)=>countryAliases[value]??value;
+const canonicalCategory=(value:string)=>categoryAliases[value]??value;
 export function GlobalLinkOrder() {
   const { ready, pricing, state, act, catalogProducts } = useMarket();
   const lang=state.communication.language;
@@ -69,13 +77,10 @@ export function GlobalLinkOrder() {
     [busy, setBusy] = useState(false),
     [adding, setAdding] = useState(false),
     [showSourceForm, setShowSourceForm] = useState(() => !requestedUrl),
-    [note, setNote] = useState(seed ? "Данные из подборки " + seed.store + " на " + seed.observedOn + ". Обновите страницу магазина или проверьте цену и вариант вручную. Вес и доставка предварительные." : dealSeed ? `Цена и фото сохранены из подборки на ${dealSeed.observedOn}. Atlas сейчас уточняет их в магазине.` : ""),
+    [note, setNote] = useState(seed ? "Данные из подборки " + seed.store + " на " + seed.observedOn + ". Atlas автоматически проверяет цену и вариант перед добавлением. Вес и доставка предварительные." : dealSeed ? `Цена и фото сохранены из подборки на ${dealSeed.observedOn}. Atlas сейчас автоматически уточняет их в магазине.` : ""),
     [weightOrigin, setWeightOrigin] = useState(tx("Оценка по категории","Kategoriya bo‘yicha taxmin","Category estimate")),
     [verified, setVerified] = useState(false),
-    [manualAvailabilityRequired,setManualAvailabilityRequired]=useState(false),
-    [storeOpened,setStoreOpened]=useState(false),
-    [availabilityAnswer,setAvailabilityAnswer]=useState<'available'|'unavailable'|null>(null),
-    [reportingAvailability,setReportingAvailability]=useState(false),
+    [sourceCheckStatus, setSourceCheckStatus] = useState<'idle'|'checking'|'verified'|'failed'>('idle'),
     [importedAt, setImportedAt] = useState<number | undefined>(),
     [sourceExpiresAt, setSourceExpiresAt] = useState<number | undefined>(),
     [foundShipping, setFoundShipping] = useState<{
@@ -84,12 +89,49 @@ export function GlobalLinkOrder() {
       destination?: string;
     } | null>(null);
   const automaticallyLoaded = useRef<string | null>(null);
+  const automaticRetryFor = useRef<string | null>(null);
+  const draftStorageKey=`atlas:link-order:${requestedUrl||'manual'}`;
+  const draftRestored=useRef(false),draftCanSkipAutomaticLoad=useRef(false),draftPersistenceReady=useRef(false);
+
+  useEffect(()=>{
+    draftRestored.current=false;draftCanSkipAutomaticLoad.current=false;draftPersistenceReady.current=false;
+    try{
+      const raw=sessionStorage.getItem(draftStorageKey);
+      if(raw&&raw.length<300000){
+        const value=JSON.parse(raw) as Partial<LinkOrderDraftSnapshot>;
+        const usable=typeof value==='object'&&value!==null&&typeof value.source==='string'&&value.source.length>0&&typeof value.sourceCheckStatus==='string';
+        const fresh=usable&&value.sourceCheckStatus==='verified'&&typeof value.sourceExpiresAt==='number'&&value.sourceExpiresAt>Date.now();
+        if(usable&&(fresh||(!requestedUrl&&value.source))){
+          const text=(item:unknown,fallback='')=>typeof item==='string'?item:fallback;
+          draftRestored.current=true;draftCanSkipAutomaticLoad.current=Boolean(fresh);
+          queueMicrotask(()=>{
+            setUrl(text(value.url,requestedUrl));setSource(text(value.source));setName(text(value.name));setBrand(text(value.brand));setDeclaration(text(value.declaration));
+            setCurrency(text(value.currency,'USD'));setAmount(text(value.amount));setShipping(text(value.shipping,'10'));setShippingCurrency(text(value.shippingCurrency,'USD'));setShippingEstimated(value.shippingEstimated!==false);
+            setWeight(text(value.weight));setCountry(canonicalCountry(text(value.country,'Другая страна')));setOtherCountry(text(value.otherCountry));setCategory(canonicalCategory(text(value.category,'Другое')));setVariant(text(value.variant));
+            setVariants(Array.isArray(value.variants)?value.variants.slice(0,250):[]);setSelectedColor(text(value.selectedColor));setSelectedSize(text(value.selectedSize));setImage(text(value.image));setImages(Array.isArray(value.images)?value.images.filter((item):item is string=>typeof item==='string').slice(0,12):[]);
+            setShowSourceForm(value.showSourceForm===true);setNote(text(value.note));setWeightOrigin(text(value.weightOrigin));setVerified(value.verified===true);
+            setSourceCheckStatus(value.sourceCheckStatus==='verified'||value.sourceCheckStatus==='failed'||value.sourceCheckStatus==='checking'?value.sourceCheckStatus:'idle');
+            setImportedAt(typeof value.importedAt==='number'?value.importedAt:undefined);setSourceExpiresAt(typeof value.sourceExpiresAt==='number'?value.sourceExpiresAt:undefined);
+            setFoundShipping(value.foundShipping&&typeof value.foundShipping.amount==='number'?{amount:value.foundShipping.amount,currency:text(value.foundShipping.currency),destination:text(value.foundShipping.destination)||undefined}:null);
+          });
+        }
+      }
+    }catch{}
+    draftPersistenceReady.current=true;
+  },[draftStorageKey,requestedUrl]);
+
+  useEffect(()=>{
+    if(!draftPersistenceReady.current)return;
+    const snapshot:LinkOrderDraftSnapshot={url,source,name,brand,declaration,currency,amount,shipping,shippingCurrency,shippingEstimated,weight,country,otherCountry,category,variant,variants,selectedColor,selectedSize,image,images,showSourceForm,note,weightOrigin,verified,sourceCheckStatus,importedAt,sourceExpiresAt,foundShipping};
+    try{sessionStorage.setItem(draftStorageKey,JSON.stringify(snapshot))}catch{}
+  },[draftStorageKey,url,source,name,brand,declaration,currency,amount,shipping,shippingCurrency,shippingEstimated,weight,country,otherCountry,category,variant,variants,selectedColor,selectedSize,image,images,showSourceForm,note,weightOrigin,verified,sourceCheckStatus,importedAt,sourceExpiresAt,foundShipping]);
   const variantColors = useMemo(() => [...new Set(variants.map(item => item.color).filter((value): value is string => Boolean(value)))], [variants]);
   const variantsForColor = useMemo(() => selectedColor ? variants.filter(item => item.color === selectedColor) : variantColors.length ? [] : variants, [variants,selectedColor,variantColors]);
   const variantSizes = useMemo(() => [...new Set(variantsForColor.map(item => item.size).filter((value): value is string => Boolean(value)))], [variantsForColor]);
   const variantSizeLabel = useMemo(() => [...new Set(variantsForColor.map(item => item.sizeLabel).filter((value): value is string => Boolean(value)))].join(' / ') || (lang==='ru'?'Размер / модель':lang==='uz'?'O‘lcham / model':'Size / model'), [variantsForColor,lang]);
+  const merchantAvailabilityUnknown = variants.length === 0 || variants.some(item => item.availabilityKnown === false);
   function applyVariantChoice(item:ProductVariant|undefined,knownCurrency=true){
-    if(!item||!item.available){setVariant("");setSelectedSize("");setVerified(false);return}
+    if(!item||!item.available||item.availabilityKnown===false){setVariant("");setSelectedSize("");setVerified(false);return}
     setVariant(item.label);setSelectedColor(item.color??"");setSelectedSize(item.size??"");
     if(item.price!==undefined&&knownCurrency)setAmount(String(item.price));else if(variants.some(value=>value.price!==undefined))setAmount("");
     if(item.image)setImage(item.image);setVerified(false);
@@ -107,9 +149,7 @@ export function GlobalLinkOrder() {
     setBusy(true);
     setSource(link);
     setVerified(false);
-    setManualAvailabilityRequired(false);
-    setStoreOpened(false);
-    setAvailabilityAnswer(null);
+    setSourceCheckStatus('checking');
     setName(seed?.name ?? dealSeed?.title ?? "");
     setBrand(seed?.brand ?? dealSeed?.store ?? "");
     setDeclaration("");
@@ -124,9 +164,9 @@ export function GlobalLinkOrder() {
     setSourceExpiresAt(undefined);
     setWeight(fallbackBoxedWeight ? String(fallbackBoxedWeight) : "");
     const inferredCountry = seed?.country ?? inferStorefrontCountry(link, seed?.sourceCurrency);
-    setCountry(inferredCountry ?? "Другая страна");
+    setCountry(canonicalCountry(inferredCountry ?? "Другая страна"));
     setOtherCountry("");
-    setCategory(seed?.category ?? (dealSeed ? communityProductCategory(dealSeed) : "Другое"));
+    setCategory(canonicalCategory(seed?.category ?? (dealSeed ? communityProductCategory(dealSeed) : "Другое")));
     setVariant(fallbackOptions.length === 1 ? fallbackOptions[0].label : "");
     setVariants(fallbackOptions);
     setSelectedColor("");
@@ -154,10 +194,11 @@ export function GlobalLinkOrder() {
       setBrand(data.brand ?? seed?.brand ?? dealSeed?.store ?? new URL(data.sourceUrl).hostname);
       setImage(data.image ?? seed?.image ?? dealSeed?.image ?? "");
       setImages(data.images?.length ? data.images : data.image ? [data.image] : seed?.image ? [seed.image] : dealSeed?.image ? [dealSeed.image] : []);
-      const nextCategory =
+      const nextCategory = canonicalCategory(
         data.category ??
         seed?.category ??
-        inferProductCategory(data.title ?? "", data.brand ?? "");
+        inferProductCategory(data.title ?? "", data.brand ?? ""),
+      );
       setCategory(nextCategory);
       setDeclaration(data.declarationDescription ?? "");
       setCurrency(
@@ -174,7 +215,7 @@ export function GlobalLinkOrder() {
           ? receivedVariants
           : fallbackOptions;
       const safeVariants = knownCurrency ? importedVariants : importedVariants.map(item => ({...item, price: undefined}));
-      const availableVariants = safeVariants.filter(v => v.available);
+      const availableVariants = safeVariants.filter(v => v.available && v.availabilityKnown !== false);
       setVariants(safeVariants);
       const selectedId = new URL(data.sourceUrl).searchParams.get('variant');
       const selectedVariant = availableVariants.find(item => item.id && item.id === selectedId)
@@ -189,12 +230,10 @@ export function GlobalLinkOrder() {
         const colors=[...new Set(availableVariants.map(item=>item.color).filter((value):value is string=>Boolean(value)))];
         if(colors.length===1)setSelectedColor(colors[0]);
       }
-      const nextCountry = data.country ?? seed?.country ?? inferStorefrontCountry(data.sourceUrl, data.currency);
-      if (nextCountry) {
-        setCountry(nextCountry);
-        if (!data.currency || !currencies.includes(data.currency))
-          setCurrency(currencyForCountry(nextCountry) ?? "USD");
-      }
+      const nextCountry = canonicalCountry(data.country ?? seed?.country ?? inferStorefrontCountry(data.sourceUrl, data.currency) ?? "Другая страна");
+      setCountry(nextCountry);
+      if (!data.currency || !currencies.includes(data.currency))
+        setCurrency(currencyForCountry(nextCountry) ?? "USD");
       const importedWeight=validBoxedWeight(data.boxedWeight);
       setWeight(String(importedWeight ?? fallbackBoxedWeight ?? estimatedBoxedWeight(nextCategory)));
       setWeightOrigin(
@@ -208,6 +247,7 @@ export function GlobalLinkOrder() {
       );
       setImportedAt(data.fetchedAt ?? Date.now());
       setSourceExpiresAt(data.expiresAt);
+      setSourceCheckStatus('verified');
       // Shipping may depend on destination/session; require explicit confirmation even if found.
       if (data.shipping !== undefined) {
         const foundCurrency = data.shippingCurrency ?? data.currency ?? "";
@@ -251,10 +291,10 @@ export function GlobalLinkOrder() {
           .join(" "),
       );
     } catch (e) {
-      setNote(dealSeed ? tx(`Магазин не отдал свежие данные. Показываем цену и варианты из подборки на ${dealSeed.observedOn}; перед добавлением Atlas попробует проверить их снова.`, `Do‘kon yangi ma’lumot bermadi. ${dealSeed.observedOn} dagi tanlov narxi va variantlari ko‘rsatilmoqda; qo‘shishdan oldin Atlas yana tekshiradi.`, `The store did not return fresh data. Showing the price and options from the ${dealSeed.observedOn} collection; Atlas will try again before adding.`) : seed ? tx("Магазин не отдал свежие данные. Сохранили цену и фото из каталога; перед добавлением Atlas попробует проверить их снова.", "Do‘kon yangi ma’lumot bermadi. Katalogdagi narx va rasm saqlandi; qo‘shishdan oldin Atlas yana tekshiradi.", "The store did not return fresh data. Catalog price and photo were kept; Atlas will try again before adding.") : `${(e as Error).message} ${tx("Доступен ручной ввод.", "Ma’lumotlarni qo‘lda kiritish mumkin.", "Manual entry is available.")}`);
+      setNote(dealSeed ? tx(`Магазин не ответил сразу. Показываем сохранённые данные подборки на ${dealSeed.observedOn}; Atlas автоматически повторит проверку перед добавлением.`, `Do‘kon darhol javob bermadi. ${dealSeed.observedOn} dagi saqlangan tanlov ma’lumotlari ko‘rsatilmoqda; Atlas qo‘shishdan oldin avtomatik qayta tekshiradi.`, `The store did not respond immediately. Showing the saved ${dealSeed.observedOn} collection data; Atlas will retry automatically before adding.`) : seed ? tx("Магазин не ответил сразу. Каталожные данные показаны, но Atlas автоматически проверит источник перед добавлением.", "Do‘kon darhol javob bermadi. Katalog ma’lumotlari ko‘rsatilmoqda, lekin Atlas qo‘shishdan oldin manbani avtomatik tekshiradi.", "The store did not respond immediately. Catalog data is shown, but Atlas will automatically verify the source before adding.") : `${(e as Error).message} ${tx("Atlas не сможет добавить товар, пока источник не подтвердит цену и наличие.", "Manba narx va mavjudlikni tasdiqlamaguncha Atlas tovarni qo‘sha olmaydi.", "Atlas cannot add the item until the source confirms price and availability.")}`);
       setWeight(String(fallbackBoxedWeight ?? estimatedBoxedWeight(category)));
       setWeightOrigin(fallbackBoxedWeight ? tx("Оценка Atlas; уточняется перед оформлением","Atlas bahosi; rasmiylashtirishdan oldin aniqlanadi","Atlas estimate; refined before checkout") : tx("Приблизительно по категории","Kategoriya bo‘yicha taxminan","Approximate by category"));
-      setManualAvailabilityRequired(Boolean(seed||dealSeed));
+      setSourceCheckStatus('failed');
       if (!dealSeed && !seed) setShowSourceForm(true);
     } finally {
       setBusy(false);
@@ -262,6 +302,11 @@ export function GlobalLinkOrder() {
   }
   useEffect(() => {
     if (!ready || !requestedUrl || automaticallyLoaded.current === requestedUrl) return;
+    if(draftRestored.current&&draftCanSkipAutomaticLoad.current){
+      automaticallyLoaded.current=requestedUrl;
+      setShowSourceForm(false);
+      return;
+    }
     automaticallyLoaded.current = requestedUrl;
     setUrl(requestedUrl);
     setShowSourceForm(false);
@@ -269,19 +314,15 @@ export function GlobalLinkOrder() {
     // `load` intentionally reads the current form state; this effect runs once per requested product.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, requestedUrl]);
-  async function reportAvailability(answer:'available'|'unavailable'){
-    const productId=seed?.id??dealSeed?.id;
-    if(!productId||!source)return;
-    setReportingAvailability(true);
-    try{
-      const response=await fetch('/api/catalog-availability',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({productId,sourceUrl:source,answer,variant:variant||undefined})});
-      const data=await response.json() as {error?:string};
-       if(!response.ok)throw Error(data.error??tx('Не удалось отправить сообщение.','Xabarni yuborib bo‘lmadi.','Could not send the report.'));
-      setAvailabilityAnswer(answer);
-      setVerified(false);
-       toast.success(answer==='available'?tx('Наличие подтверждено. Спасибо!','Mavjudligi tasdiqlandi. Rahmat!','Availability confirmed. Thank you!'):tx('Администратор получил сообщение и проверит товар.','Administrator xabarni oldi va tovarni tekshiradi.','The administrator received the report and will review the item.'));
-    }catch(error){toast.error((error as Error).message)}finally{setReportingAvailability(false)}
-  }
+  useEffect(() => {
+    if (sourceCheckStatus !== 'failed' || !source || automaticRetryFor.current === source) return;
+    automaticRetryFor.current = source;
+    const timer = window.setTimeout(() => void load(source), 1200);
+    return () => window.clearTimeout(timer);
+    // The retry is intentionally keyed only by the checked source. `load`
+    // reads the current form state and is recreated on each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sourceCheckStatus, source]);
   let preview: ReturnType<typeof price> | null = null,
     estimatedWeight = 0;
   try {
@@ -309,10 +350,8 @@ export function GlobalLinkOrder() {
     variants: [""],
   };
   const normalizedStoreSearch = storeSearch.trim().toLowerCase();
-  const localCountry=(value:string)=>lang==='ru'?value:lang==='uz'?(value==='США'?'AQSh':value==='Другая страна'?'Boshqa mamlakat':value==='Великобритания'?'Buyuk Britaniya':value==='Германия'?'Germaniya':value==='Испания'?'Ispaniya':value==='Франция'?'Fransiya':value):value==='США'?'United States':value==='Другая страна'?'Other country':value==='Великобритания'?'United Kingdom':value==='Германия'?'Germany':value==='Испания'?'Spain':value==='Франция'?'France':value;
-  const localizedCountries=countries.map(localCountry);
-  const categoryLabel=(value:string)=>lang==='ru'?value:lang==='uz'?({'Обувь':'Oyoq kiyim','Одежда':'Kiyim','Электроника':'Elektronika','Аксессуары':'Aksessuarlar','Красота и уход':'Go‘zallik va parvarish','Дом и быт':'Uy va maishiy','Спорт':'Sport','Другое':'Boshqa'}[value]??value):({'Обувь':'Shoes','Одежда':'Clothing','Электроника':'Electronics','Аксессуары':'Accessories','Красота и уход':'Beauty & care','Дом и быт':'Home & living','Спорт':'Sports','Другое':'Other'}[value]??value);
-  const localizedCategories=weightCategories.map(categoryLabel);
+  const localCountry=(value:string)=>{const canonical=canonicalCountry(value);return lang==='ru'?canonical:lang==='uz'?(canonical==='США'?'AQSh':canonical==='Другая страна'?'Boshqa mamlakat':canonical==='Великобритания'?'Buyuk Britaniya':canonical==='Германия'?'Germaniya':canonical==='Испания'?'Ispaniya':canonical==='Франция'?'Fransiya':canonical):canonical==='США'?'United States':canonical==='Другая страна'?'Other country':canonical==='Великобритания'?'United Kingdom':canonical==='Германия'?'Germany':canonical==='Испания'?'Spain':canonical==='Франция'?'France':canonical;};
+  const categoryLabel=(value:string)=>{const canonical=canonicalCategory(value);return lang==='ru'?canonical:lang==='uz'?({'Обувь':'Oyoq kiyim','Одежда':'Kiyim','Электроника':'Elektronika','Аксессуары':'Aksessuarlar','Красота и уход':'Go‘zallik va parvarish','Дом и быт':'Uy va maishiy','Спорт':'Sport','Другое':'Boshqa'}[canonical]??canonical):({'Обувь':'Shoes','Одежда':'Clothing','Электроника':'Electronics','Аксессуары':'Accessories','Красота и уход':'Beauty & care','Дом и быт':'Home & living','Спорт':'Sports','Другое':'Other'}[canonical]??canonical);};
   const visibleStoreGroups = featuredStoreGroups.map(group => ({
     ...group,
     stores: group.stores.filter(store => !normalizedStoreSearch || `${store.name} ${store.root} ${store.focus}`.toLowerCase().includes(normalizedStoreSearch)),
@@ -351,6 +390,7 @@ export function GlobalLinkOrder() {
                 onChange={(e) => {
                   setUrl(e.target.value);
                   setSource("");
+                  setSourceCheckStatus('idle');
                   setVerified(false);
                   setShowSourceForm(true);
                 }}
@@ -392,24 +432,20 @@ export function GlobalLinkOrder() {
               {source ? <><a className="text-link source-check-link" href={source} target="_blank" rel="noopener noreferrer">{c.original} <ExternalLink size={15}/></a><details className="import-status-details"><summary>{c.loaded}</summary><p>{note}</p></details></> : <p>{note}</p>}
             </div>
           )}
-          {manualAvailabilityRequired&&source&&<section className="availability-check" aria-labelledby="availability-check-title">
-            <div><b id="availability-check-title">{c.availability}</b><p>{c.availabilityHint}</p></div>
-            <a className="btn secondary" href={source} target="_blank" rel="noopener noreferrer" onClick={()=>setStoreOpened(true)}>{c.openStore}<ExternalLink size={17}/></a>
-            <div className="availability-actions" aria-label={c.availability}>
-              <button type="button" className="btn secondary" disabled={!storeOpened||reportingAvailability} onClick={()=>void reportAvailability('available')}><Check size={17}/>{c.available}</button>
-              <button type="button" className="btn secondary danger" disabled={!storeOpened||reportingAvailability} onClick={()=>void reportAvailability('unavailable')}><X size={17}/>{c.unavailable}</button>
-            </div>
-            {!storeOpened&&<small>{c.openFirst}</small>}
-            {availabilityAnswer==='available'&&<p className="availability-result ok">{c.thanks}</p>}
-            {availabilityAnswer==='unavailable'&&<p className="availability-result bad">{c.removed}</p>}
-          </section>}
+          {source&&sourceCheckStatus!=='verified'&&<p className="micro source-auto-status" role="status">
+            {sourceCheckStatus==='checking'
+              ? tx('Atlas автоматически проверяет цену и наличие…','Atlas narx va mavjudlikni avtomatik tekshirmoqda…','Atlas is checking price and availability automatically…')
+              : sourceCheckStatus==='failed'
+                ? <>{tx('Магазин пока не ответил. Товар нельзя добавить, пока Atlas не подтвердит данные.','Do‘kon hozircha javob bermadi. Atlas ma’lumotlarni tasdiqlamaguncha tovarni qo‘shib bo‘lmaydi.','The store has not responded yet. The item cannot be added until Atlas confirms the data.')} <button type="button" className="text-button" disabled={busy} onClick={() => void load(source)}>{tx('Повторить проверку','Tekshiruvni qayta urinish','Retry check')}</button></>
+                : tx('Atlas проверит магазин перед добавлением.','Atlas qo‘shishdan oldin do‘konni tekshiradi.','Atlas will check the store before adding the item.')}
+          </p>}
           {source && !busy && (
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
                 try {
-                   if(manualAvailabilityRequired&&availabilityAnswer!=='available')throw Error(tx('Сначала проверьте наличие товара в магазине.','Avval do‘konda tovar mavjudligini tekshiring.','Check item availability in the store first.'));
-                  if (!name.trim() || !variant.trim() || !verified)
+                  if(sourceCheckStatus!=='verified')throw Error(tx('Дождитесь автоматической проверки магазина.','Do‘konning avtomatik tekshiruvi tugashini kuting.','Wait for the automatic store check to finish.'));
+                  if (!name.trim() || !variant.trim() || !verified || merchantAvailabilityUnknown)
                      throw Error(tx("Проверьте данные и подтвердите страну отправки.","Ma’lumotlarni tekshirib, jo‘natish mamlakatini tasdiqlang.","Check the details and confirm the dispatch country."));
                   if (country === "Другая страна" && !otherCountry.trim())
                      throw Error(tx("Введите страну отправки.","Jo‘natish mamlakatini kiriting.","Enter the dispatch country."));
@@ -454,7 +490,7 @@ export function GlobalLinkOrder() {
                   price(p.usd, p.weight, 1, p.sourceShippingUsd, pricing);
                   setAdding(true);
                   const added = await act({ type: "cart-add", product: p, variant: variant.trim() });
-                   if (added) toast.success(tx("Товар добавлен в корзину","Tovar savatga qo‘shildi","Item added to cart"), { action: { label: tx("Открыть корзину","Savatni ochish","Open cart"), onClick: () => window.location.assign("/cart") } });
+                   if (added) window.location.assign("/cart");
                 } catch (e) {
                   toast.error((e as Error).message);
                 } finally {
@@ -482,15 +518,17 @@ export function GlobalLinkOrder() {
               <div className="two-fields">
                 <div className="field">
                   <label>{c.shipCountry}</label>
-                  <Choice
-                    label={c.countryLabel}
-                    value={localCountry(country)}
-                    onChange={(v) => {
-                      setCountry(countries.find(value=>localCountry(value)===v)??v);
+                  <select
+                    aria-label={c.countryLabel}
+                    className="select-control"
+                    value={canonicalCountry(country)}
+                    onChange={(e) => {
+                      setCountry(canonicalCountry(e.target.value));
                       setVerified(false);
                     }}
-                    options={localizedCountries}
-                  />
+                  >
+                    {countries.map((value) => <option key={value} value={value}>{localCountry(value)}</option>)}
+                  </select>
                 </div>
                 <div className="field">
                   <label>{c.currency}</label>
@@ -578,17 +616,20 @@ export function GlobalLinkOrder() {
               <div className="two-fields">
                 <div className="field">
                   <label>{c.category}</label>
-                  <Choice
-                    label={c.category}
-                    value={categoryLabel(category)}
-                    onChange={(v) => {
-                      const canonical=weightCategories.find(value=>categoryLabel(value)===v)??v;
+                  <select
+                    aria-label={c.category}
+                    className="select-control"
+                    value={canonicalCategory(category)}
+                    onChange={(e) => {
+                      const canonical = canonicalCategory(e.target.value);
                       setCategory(canonical);
                       setWeight(String(estimatedBoxedWeight(canonical)));
                       setWeightOrigin(tx("Приблизительно по категории","Kategoriya bo‘yicha taxminan","Estimated by category"));
+                      setVerified(false);
                     }}
-                    options={localizedCategories}
-                  />
+                  >
+                    {weightCategories.map((value) => <option key={value} value={value}>{categoryLabel(value)}</option>)}
+                  </select>
                 </div>
                 <div className="field">
                   <label htmlFor="weight">{c.weight}</label>
@@ -632,11 +673,11 @@ export function GlobalLinkOrder() {
               <div className="field variant-matrix">
                 <label htmlFor="variant">{c.variant}</label>
                 {variants.length && (variantColors.length||variantSizes.length) ? <>
-                  {variantColors.length>0&&<div className="variant-step"><div><b>{c.color}</b><span>{selectedColor||c.selectColor}</span></div><div className="variant-options">{variantColors.map(color=>{const choices=variants.filter(item=>item.color===color),available=choices.some(item=>item.available);return <button type="button" key={color} disabled={!available} aria-pressed={selectedColor===color} onClick={()=>{setSelectedColor(color);setSelectedSize('');const purchasable=choices.filter(item=>item.available);if(!purchasable.some(item=>item.size)&&purchasable[0])applyVariantChoice(purchasable[0]);else{setVariant('');setVerified(false)}}}>{color}{!available&&<small>{c.none}</small>}</button>})}</div></div>}
-                  {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize||c.selectVariant}</span></div><div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices.find(item=>item.available),price=choice?.price;return <button type="button" key={size} disabled={!choice} aria-pressed={selectedSize===size} onClick={()=>applyVariantChoice(choice)}><span>{size}</span>{choice&&price!==undefined&&<small>{price} {currency}</small>}{!choice&&<small>{c.none}</small>}</button>})}</div></div>}
-                   {!variantColors.length&&!variantSizes.length&&<Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.filter(item=>item.available).map(item=>item.label)}/>}
+                  {variantColors.length>0&&<div className="variant-step"><div><b>{c.color}</b><span>{selectedColor||c.selectColor}</span></div><div className="variant-options">{variantColors.map(color=>{const choices=variants.filter(item=>item.color===color),available=choices.some(item=>item.available&&item.availabilityKnown!==false);return <button type="button" key={color} disabled={!available} aria-pressed={selectedColor===color} onClick={()=>{setSelectedColor(color);setSelectedSize('');const purchasable=choices.filter(item=>item.available&&item.availabilityKnown!==false);if(!purchasable.some(item=>item.size)&&purchasable[0])applyVariantChoice(purchasable[0]);else{setVariant('');setVerified(false)}}}>{color}{!available&&<small>{c.none}</small>}</button>})}</div></div>}
+                  {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize||c.selectVariant}</span></div><div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices.find(item=>item.available&&item.availabilityKnown!==false),price=choice?.price;return <button type="button" key={size} disabled={!choice} aria-pressed={selectedSize===size} onClick={()=>applyVariantChoice(choice)}><span>{size}</span>{choice&&price!==undefined&&<small>{price} {currency}</small>}{!choice&&<small>{c.none}</small>}</button>})}</div></div>}
+                   {!variantColors.length&&!variantSizes.length&&<Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.filter(item=>item.available&&item.availabilityKnown!==false).map(item=>item.label)}/>}
                    <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
-                 </> : variants.length ? <Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.filter(item=>item.available).map(item=>item.label)}/> : (
+                </> : variants.length ? <Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.filter(item=>item.available&&item.availabilityKnown!==false).map(item=>item.label)}/> : (
                   <input
                     id="variant"
                     required
@@ -670,7 +711,7 @@ export function GlobalLinkOrder() {
                   {c.verified}
                 </label>
               </div>
-              <button className="btn primary" disabled={!verified || adding || (manualAvailabilityRequired&&availabilityAnswer!=='available')}>
+              <button className="btn primary" disabled={!verified || adding || sourceCheckStatus!=='verified' || merchantAvailabilityUnknown}>
                 {adding ? c.adding : c.add}
                 <ArrowRight size={18} />
               </button>

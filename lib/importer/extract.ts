@@ -5,11 +5,15 @@ export type ProductVariant = {
   color?: string;
   label: string;
   available: boolean;
+  /** False means the merchant omitted a definitive stock signal. */
+  availabilityKnown?: boolean;
   price?: number;
   image?: string;
 };
 
 export type Extracted = {
+  /** Merchant identity from the selected structured product, never a guessed ID. */
+  sku?: string;
   title?: string;
   brand?: string;
   category?: ProductCategory;
@@ -39,6 +43,344 @@ export type ProductCategory =
   | "Дом и быт"
   | "Спорт"
   | "Другое";
+
+type EmbeddedRecord = Record<string, unknown>;
+
+/**
+ * A number of priority merchants render their product page from a bounded
+ * public JSON state blob instead of JSON-LD.  This parser is deliberately
+ * conservative: it only accepts a state object that can be tied back to the
+ * exact source path/id, and it never treats a recommendation as the product.
+ * It is a fallback for public data, not a browser/CAPTCHA workaround.
+ */
+function embeddedJson(html: string) {
+  const roots: unknown[] = [];
+  const patterns = [
+    /<script\b[^>]*id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i,
+    /<script\b[^>]*id=["']__PRELOADED_STATE__["'][^>]*>([\s\S]*?)<\/script>/i,
+    /<script\b[^>]*id=["']__INITIAL_STATE__["'][^>]*>([\s\S]*?)<\/script>/i,
+    /<script\b[^>]*id=["']__APOLLO_STATE__["'][^>]*>([\s\S]*?)<\/script>/i,
+  ];
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (!match || match[1].length > 2_500_000) continue;
+    try { roots.push(JSON.parse(match[1])); } catch {}
+  }
+  return roots;
+}
+
+function embeddedText(value: unknown) {
+  return typeof value === "string" ? clean(value) : "";
+}
+
+function embeddedNumber(value: unknown) {
+  if (value && typeof value === "object") {
+    const record = value as EmbeddedRecord;
+    return number(record.amount ?? record.value ?? record.current ?? record.price);
+  }
+  return number(value);
+}
+
+function embeddedUrlMatches(value: unknown, sourceUrl: string) {
+  if (typeof value !== "string") return false;
+  try {
+    const candidate = new URL(value, sourceUrl), source = new URL(sourceUrl);
+    if (candidate.protocol !== "https:" || candidate.username || candidate.password || candidate.port) return false;
+    candidate.hostname = candidate.hostname.replace(/^www\./, "");
+    source.hostname = source.hostname.replace(/^www\./, "");
+    candidate.pathname = candidate.pathname.replace(/\/$/, "") || "/";
+    source.pathname = source.pathname.replace(/\/$/, "") || "/";
+    if (candidate.origin !== source.origin || candidate.pathname !== source.pathname) return false;
+    // Tracking and a selected size do not identify a different listing.
+    // A colour or another product-defining query value does.
+    for (const url of [candidate, source]) {
+      for (const key of [...url.searchParams.keys()]) {
+        if (/^(utm_.+|gclid|fbclid|variant|size|sku)$/i.test(key)) url.searchParams.delete(key);
+      }
+      url.searchParams.sort();
+    }
+    return candidate.search === source.search;
+  } catch { return false; }
+}
+
+function embeddedListingTokens(sourceUrl: string) {
+  const source = new URL(sourceUrl);
+  const pathTokens = source.pathname.split(/[^a-z0-9]+/i).map(token => token.toLowerCase()).filter(token => token.length >= 3);
+  const queryTokens = [...source.searchParams.values()].flatMap(value => value.split(/[^a-z0-9]+/i)).map(token => token.toLowerCase()).filter(token => token.length >= 3);
+  const terminal = source.pathname.split('/').filter(Boolean).at(-1)?.replace(/\.html$/i, '').toLowerCase();
+  return new Set([...pathTokens, ...queryTokens, ...(terminal ? [terminal] : [])]);
+}
+
+function embeddedCandidateMatches(record: EmbeddedRecord, sourceUrl: string, tokens: Set<string>) {
+  const urlFields = ['url', 'canonicalUrl', 'canonical', 'pdpUrl', 'productUrl', 'link', 'href', 'path'];
+  const publishedUrls = urlFields.map(key => record[key]).filter(value => typeof value === 'string' && value.length > 0);
+  if (publishedUrls.length) return publishedUrls.some(value => embeddedUrlMatches(value, sourceUrl));
+  const idFields = ['itemId', 'productId', 'styleCode', 'articleNumber', 'offerId', 'variantId', 'sku', 'id'];
+  return idFields.some(key => {
+    const value = embeddedText(record[key]).toLowerCase();
+    if (!value || value.length < 3) return false;
+    // A numeric id must be long enough to be a real listing identifier. This
+    // avoids matching a generic state key such as id=1 from a recommendation.
+    if (/^\d+$/.test(value) && value.length < 5) return false;
+    return tokens.has(value);
+  });
+}
+
+function embeddedImages(record: EmbeddedRecord, sourceUrl: string) {
+  const values: unknown[] = [];
+  for (const key of ['image', 'images', 'gallery', 'media', 'pictures', 'photo', 'photos']) {
+    const value = record[key];
+    if (Array.isArray(value)) values.push(...value);
+    else if (value !== undefined) values.push(value);
+  }
+  const urls = values.flatMap(value => {
+    if (typeof value === 'string') return [value];
+    if (!value || typeof value !== 'object') return [];
+    const item = value as EmbeddedRecord;
+    return [item.url, item.src, item.contentUrl, item.imageUrl, item.large, item.original];
+  });
+  return [...new Set(urls.map(value => safeImage(value, sourceUrl)).filter((value): value is string => Boolean(value)))].slice(0, 12);
+}
+
+function embeddedAvailability(record: EmbeddedRecord) {
+  for (const key of ['available', 'isAvailable', 'inStock', 'availableForSale']) {
+    if (typeof record[key] === 'boolean') return {available: record[key], availabilityKnown: true};
+  }
+  for (const key of ['quantity', 'stock', 'inventory', 'quantityAvailable']) {
+    if (typeof record[key] === 'number') return {available: record[key] > 0, availabilityKnown: true};
+    if (record[key] && typeof record[key] === 'object') {
+      const amount = embeddedNumber(record[key]);
+      if (amount !== undefined) return {available: amount > 0, availabilityKnown: true};
+    }
+  }
+  const state = embeddedText(record.availability ?? record.availabilityStatus ?? record.status).toLowerCase();
+  if (state) {
+    if (/out.?of.?stock|sold.?out|unavailable|inactive|discontinued|not.?available/.test(state)) return {available: false, availabilityKnown: true};
+    if (/in.?stock|available|active|buyable|orderable/.test(state)) return {available: true, availabilityKnown: true};
+  }
+  return {available: true, availabilityKnown: false};
+}
+
+function embeddedOptionLabel(record: EmbeddedRecord) {
+  const direct = embeddedText(record.label ?? record.title ?? record.name ?? record.displayName);
+  const optionValues = record.optionValues ?? record.options ?? record.selectedOptions;
+  const values = Array.isArray(optionValues)
+    ? optionValues.flatMap(value => {
+      if (typeof value === 'string') return [clean(value)];
+      if (value && typeof value === 'object') {
+        const item = value as EmbeddedRecord;
+        return [embeddedText(item.value ?? item.label ?? item.name)];
+      }
+      return [];
+    }).filter(Boolean)
+    : [];
+  return direct || values.join(' · ');
+}
+
+function embeddedVariants(record: EmbeddedRecord, sourceUrl: string): ProductVariant[] {
+  const raw = ['variants', 'skus', 'children', 'offers', 'items', 'sizes'].flatMap(key => Array.isArray(record[key]) ? record[key] : []);
+  const variants = raw.flatMap(value => {
+    if (!value || typeof value !== 'object') return [];
+    const item = value as EmbeddedRecord;
+    const label = embeddedOptionLabel(item);
+    const color = embeddedText(item.color ?? item.colour ?? item.colorName);
+    const size = embeddedText(item.size ?? item.sizeName ?? item.dimension);
+    const variantLabel = label || [color, size].filter(Boolean).join(' · ');
+    if (!variantLabel) return [];
+    const availability = embeddedAvailability(item);
+    const id = embeddedText(item.sku ?? item.variantId ?? item.id ?? item.gtin ?? item.ean) || undefined;
+    const image = embeddedImages(item, sourceUrl)[0];
+    return [{
+      id,
+      label: variantLabel.slice(0, 120),
+      color: color || undefined,
+      size: size || undefined,
+      sizeLabel: size ? 'Размер' : undefined,
+      price: embeddedNumber(item.price ?? item.currentPrice ?? item.salePrice ?? item.finalPrice ?? item.amount),
+      image,
+      ...availability,
+    } satisfies ProductVariant];
+  }).slice(0, 80);
+  const counts = new Map<string, number>();
+  for (const item of variants) if (item.id) counts.set(item.id, (counts.get(item.id) ?? 0) + 1);
+  for (const item of variants) if (item.id && counts.get(item.id)! > 1) delete item.id;
+  return variants;
+}
+
+function embeddedCandidateRecords(root: unknown, sourceUrl: string) {
+  const tokens = embeddedListingTokens(sourceUrl), candidates: EmbeddedRecord[] = [];
+  const visited = new WeakSet<object>();
+  let visitedCount = 0;
+  const visit = (value: unknown, depth = 0) => {
+    if (depth > 14 || visitedCount >= 4000 || !value || typeof value !== 'object' || visited.has(value)) return;
+    visited.add(value);
+    visitedCount++;
+    if (Array.isArray(value)) { for (const item of value) visit(item, depth + 1); return; }
+    const record = value as EmbeddedRecord;
+    if (embeddedCandidateMatches(record, sourceUrl, tokens)) {
+      const title = embeddedText(record.name ?? record.title ?? record.productName ?? record.displayName ?? record.fullTitle);
+      const price = embeddedNumber(record.price ?? record.currentPrice ?? record.salePrice ?? record.finalPrice ?? record.amount);
+      const variants = embeddedVariants(record, sourceUrl);
+      if (title && (price !== undefined || variants.some(item => item.price !== undefined))) candidates.push(record);
+    }
+    for (const child of Object.values(record)) visit(child, depth + 1);
+  };
+  visit(root);
+  return candidates;
+}
+
+function extractPriorityEmbedded(html: string, sourceUrl: string): Extracted | undefined {
+  const source = new URL(sourceUrl);
+  const priorityRoots = new Set([
+    'macys.com', 'ebay.com', 'walmart.com', 'target.com', 'bestbuy.com', 'sephora.com', 'footlocker.com',
+    'zalando.com', 'zalando.de', 'zalando.es', 'zalando.fr', 'zalando.it', 'asos.com', 'zara.com', 'mango.com', 'farfetch.com', 'primor.eu', 'perfumeriasprimor.eu', 'druni.es',
+    'mediamarkt.de', 'mediamarkt.es', 'mediamarkt.it', 'pccomponentes.com', 'decathlon.es', 'footlocker.es',
+  ]);
+  const hostname = source.hostname.toLowerCase().replace(/^www\./, '');
+  const root = [...priorityRoots].find(value => hostname === value || hostname.endsWith(`.${value}`));
+  if (!root) return;
+  const candidate = embeddedJson(html).flatMap(value => embeddedCandidateRecords(value, sourceUrl))[0];
+  if (!candidate) return;
+  const variants = embeddedVariants(candidate, sourceUrl);
+  const price = embeddedNumber(candidate.price ?? candidate.currentPrice ?? candidate.salePrice ?? candidate.finalPrice ?? candidate.amount)
+    ?? variants.find(item => item.price !== undefined)?.price;
+  const title = embeddedText(candidate.name ?? candidate.title ?? candidate.productName ?? candidate.displayName ?? candidate.fullTitle).slice(0, 140) || undefined;
+  const rawBrand = candidate.brand;
+  const brand = (typeof rawBrand === 'object' && rawBrand ? embeddedText((rawBrand as EmbeddedRecord).name ?? (rawBrand as EmbeddedRecord).label) : embeddedText(rawBrand)) || undefined;
+  const currency = embeddedText(candidate.currency ?? candidate.currencyCode ?? candidate.priceCurrency).toUpperCase() || undefined;
+  const image = embeddedImages(candidate, sourceUrl)[0];
+  const images = embeddedImages(candidate, sourceUrl);
+  const category = inferProductCategory([title, embeddedText(candidate.category), embeddedText(candidate.productType), embeddedText(candidate.description)].filter(Boolean).join(' '), brand ?? '');
+  const availability = embeddedAvailability(candidate);
+  const baseVariant = variants.length ? variants : title ? [{label: 'Выбранный вариант', price, image, ...availability} satisfies ProductVariant] : [];
+  if (!title && price === undefined && !images.length) return;
+  const weight = parseWeight(candidate.shippingWeight ?? candidate.boxedWeight ?? candidate.weight);
+  const shipping = embeddedNumber(candidate.shipping ?? candidate.shippingPrice ?? candidate.deliveryPrice);
+  const warnings = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.'];
+  if (variants.length) warnings.push('Варианты получены из публичных данных магазина и будут перепроверены перед корзиной.');
+  if (!variants.length) warnings.push('Магазин не отдал матрицу вариантов: выберите товар вручную, если он требует размера или цвета.');
+  if (variants.some(item => item.availabilityKnown === false)) warnings.push('Магазин не отдал подтверждённый статус наличия — перед корзиной Atlas проверит его ещё раз.');
+  return {
+    sku: embeddedText(candidate.sku ?? candidate.productId ?? candidate.itemId ?? candidate.styleCode) || undefined,
+    title,
+    brand,
+    category,
+    declarationDescription: declarationFor(category, title ?? '', brand),
+    image,
+    images,
+    price,
+    currency,
+    variants: baseVariant,
+    shipping,
+    shippingCurrency: currency,
+    boxedWeight: weight,
+    weightKind: weight ? 'shipping' : undefined,
+    country: inferStorefrontCountry(sourceUrl, currency),
+    warnings,
+    sourceUrl,
+    method: `${root} embedded product data`,
+  };
+}
+
+/** ASOS publishes the product's size map and its public stock/price snapshot
+ * separately in the product page. Join them only by the exact product and
+ * variant IDs; a product-level in-stock flag is not enough to enable sizes. */
+export function extractAsosProduct(html: string, sourceUrl: string, fallback: Extracted): Extracted | undefined {
+  const source = new URL(sourceUrl);
+  if (!/(^|\.)asos\.com$/i.test(source.hostname)) return;
+  const requestedId = source.pathname.match(/\/prd\/(\d+)(?:\/|$)/i)?.[1];
+  if (!requestedId) return;
+
+  const marker = 'window.asos.pdp.config.product = ';
+  let offset = html.lastIndexOf(marker), product: EmbeddedRecord | undefined;
+  while (offset >= 0) {
+    const start = offset + marker.length;
+    const end = html.indexOf(';', start);
+    if (end > start && end - start <= 500_000) {
+      try {
+        const candidate = JSON.parse(html.slice(start, end)) as EmbeddedRecord;
+        if (String(candidate.id ?? '') === requestedId) { product = candidate; break; }
+      } catch {}
+    }
+    offset = html.lastIndexOf(marker, offset - 1);
+  }
+  if (!product || !Array.isArray(product.variants)) return;
+
+  const stockMarker = 'window.asos.pdp.config.stockPriceResponse = ';
+  const stockStart = html.indexOf(stockMarker);
+  let stockProduct: EmbeddedRecord | undefined;
+  if (stockStart >= 0) {
+    const start = stockStart + stockMarker.length;
+    const end = html.indexOf(';', start);
+    if (end > start && end - start <= 250_000) {
+      try {
+        const literal = html.slice(start, end).trim();
+        const json = literal.startsWith("'") && literal.endsWith("'")
+          ? literal.slice(1, -1).replaceAll(String.fromCharCode(92, 34), '"')
+          : '';
+        const records = JSON.parse(json) as EmbeddedRecord[];
+        stockProduct = Array.isArray(records) ? records.find(record => String(record.productId ?? '') === requestedId) : undefined;
+      } catch {}
+    }
+  }
+
+  const stockById = new Map<string, EmbeddedRecord>();
+  if (Array.isArray(stockProduct?.variants)) {
+    for (const item of stockProduct.variants) {
+      if (item && typeof item === 'object' && item.id !== undefined) stockById.set(String(item.id), item as EmbeddedRecord);
+    }
+  }
+  const variants = product.variants.flatMap(value => {
+    if (!value || typeof value !== 'object') return [];
+    const item = value as EmbeddedRecord;
+    const rawId = item.variantId ?? item.id;
+    const id = embeddedText(typeof rawId === 'number' ? String(rawId) : rawId);
+    const size = embeddedText(item.size ?? item.brandSize);
+    if (!id || !size) return [];
+    const stock = stockById.get(id);
+    const stockSignal = typeof stock?.isInStock === 'boolean' ? stock.isInStock : undefined;
+    const productSignal = typeof item.isAvailable === 'boolean' ? item.isAvailable : undefined;
+    const known = stockSignal !== undefined || productSignal !== undefined;
+    const available = stockSignal ?? productSignal ?? true;
+    const stockPrice = stock?.price && typeof stock.price === 'object' ? stock.price as EmbeddedRecord : undefined;
+    const currentPrice = stockPrice?.current && typeof stockPrice.current === 'object' ? (stockPrice.current as EmbeddedRecord).value : undefined;
+    return [{
+      id,
+      size,
+      sizeLabel: 'Размер',
+      color: embeddedText(item.colour ?? item.color) || undefined,
+      label: [embeddedText(item.colour ?? item.color), size].filter(Boolean).join(' · '),
+      available,
+      availabilityKnown: known,
+      price: embeddedNumber(currentPrice),
+      image: fallback.image,
+    } satisfies ProductVariant];
+  }).slice(0, 80);
+  if (!variants.length) return;
+
+  const current = stockProduct?.productPrice && typeof stockProduct.productPrice === 'object'
+    ? (stockProduct.productPrice as EmbeddedRecord).current
+    : undefined;
+  const currentRecord = current && typeof current === 'object' ? current as EmbeddedRecord : undefined;
+  const category = inferProductCategory([embeddedText(product.name), embeddedText((product.productType as EmbeddedRecord | undefined)?.name)].filter(Boolean).join(' '), embeddedText(product.brandName));
+  const warnings = [...fallback.warnings.filter(warning => !/Цена не найдена|подтверждённый статус наличия/i.test(warning))];
+  warnings.push('Размеры, цена и наличие загружены из публичных данных ASOS и перепроверяются перед заказом.');
+  if (variants.some(variant => variant.availabilityKnown === false)) warnings.push('Для части размеров ASOS не отдал отдельный статус наличия — Atlas проверит его перед заказом.');
+  return {
+    ...fallback,
+    sku: embeddedText(product.productCode) || fallback.sku,
+    title: embeddedText(product.name).slice(0, 140) || fallback.title,
+    brand: embeddedText(product.brandName) || fallback.brand,
+    category,
+    declarationDescription: declarationFor(category, embeddedText(product.name) || fallback.title || '', embeddedText(product.brandName) || fallback.brand),
+    price: embeddedNumber(currentRecord?.value) ?? fallback.price,
+    currency: embeddedText((stockProduct?.productPrice as EmbeddedRecord | undefined)?.currency).toUpperCase() || fallback.currency,
+    variants,
+    country: inferStorefrontCountry(sourceUrl, embeddedText((stockProduct?.productPrice as EmbeddedRecord | undefined)?.currency) || fallback.currency),
+    warnings,
+    method: 'ASOS product and stock data',
+  };
+}
 
 const clean = (s: unknown) =>
   typeof s === "string"
@@ -186,7 +528,7 @@ export function inferProductCategory(
   )
     return "Дом и быт";
   if (
-    /shirt|dress|jacket|coat|jeans|pants|hoodie|t-shirt|skirt|legging|bra|bralette|underwear|shorts|футбол|куртк|пальто|джинс|брюк|плать|юбк|легинс|белье|vestido/.test(
+    /clothing|apparel|jersey|shirt|dress|jacket|coat|jeans|pants|hoodie|t-shirt|skirt|legging|bra|bralette|underwear|shorts|sweater|cardigan|blazer|jumpsuit|tracksuit|футбол|куртк|пальто|джинс|брюк|плать|юбк|легинс|белье|vestido/.test(
       text,
     )
   )
@@ -275,6 +617,7 @@ function extractAnker(html: string, sourceUrl: string): Extracted | undefined {
         size: parts[1] || undefined,
         label: name || 'Стандартный',
         available: value.availableForSale === true && value.currentlyNotInStock !== true && value.quantityAvailable !== 0,
+        availabilityKnown: typeof value.availableForSale === 'boolean' || value.quantityAvailable !== undefined || value.currentlyNotInStock !== undefined,
         price: number(value.price),
         image: safeImage(image?.url, sourceUrl),
       };
@@ -288,6 +631,189 @@ function extractAnker(html: string, sourceUrl: string): Extracted | undefined {
     if (!selected && prices.length !== 1) warnings.push('Выберите вариант, чтобы получить его точную цену.');
     return {title,brand,category:'Электроника',declarationDescription:declarationFor('Электроника',title,brand),image:selected?.image??images[0],images,price:selected?.price??(prices.length===1?prices[0]:undefined),currency:'USD',variants,warnings,sourceUrl,method:'Anker product data',country:'США'};
   } catch { return; }
+}
+
+function extractAmazon(html: string, sourceUrl: string): Extracted | undefined {
+  const source = new URL(sourceUrl);
+  if (!/(^|\.)amazon\.com$/i.test(source.hostname)) return;
+  const title = clean(html.match(/id=["']productTitle["'][^>]*>([\s\S]*?)<\//i)?.[1] ?? html.match(/<meta\s+name=["']title["'][^>]*content=["']([^"']+)/i)?.[1]).slice(0, 140) || undefined;
+  const coreStart = html.search(/id=["']corePrice_feature_div["']/i);
+  const core = coreStart >= 0 ? html.slice(coreStart, coreStart + 20_000) : html;
+  const priceMatch = core.match(/<span[^>]*class=["'][^"']*a-offscreen[^"']*["'][^>]*>\s*([$€£])?\s*([\d][\d,\.\s]*)/i);
+  const price = priceMatch ? number(priceMatch[2]) : undefined;
+  const currency = priceMatch?.[1] === '€' ? 'EUR' : priceMatch?.[1] === '£' ? 'GBP' : price !== undefined ? 'USD' : undefined;
+  const imageTag = html.match(/<img[^>]+id=["']landingImage["'][^>]*>/i)?.[0] ?? '';
+  const imageAttr = (name: string) => imageTag.match(new RegExp(`${name}=["']([^"']+)`, 'i'))?.[1]
+    ?.replace(/&quot;/g, '"').replace(/&#x3D;|&#61;/g, '=').replace(/&amp;/g, '&');
+  const dynamic = imageAttr('data-a-dynamic-image');
+  const dynamicImages = dynamic ? (() => { try { return Object.keys(JSON.parse(dynamic)); } catch { return []; } })() : [];
+  const images = [...new Set([imageAttr('data-old-hires'), imageAttr('src'), ...dynamicImages]
+    .map(value => safeImage(value, sourceUrl)).filter((value): value is string => Boolean(value)))].slice(0, 12);
+  if (!title && price === undefined && !images.length) return;
+  const byline = clean(html.match(/id=["']bylineInfo["'][^>]*>([\s\S]*?)<\//i)?.[1]);
+  const brand = (byline.match(/(?:Visit|Shop)\s+the\s+(.+?)\s+Store/i)?.[1] ?? byline).slice(0, 80) || 'Amazon';
+  const category = inferProductCategory(title ?? '', brand);
+  const unavailable = /id=["']availability["'][\s\S]{0,1200}(?:out of stock|currently unavailable|unavailable)/i.test(html);
+  const availabilityBlock = /id=["']availability["']/i.test(html);
+  const variants: ProductVariant[] = title ? [{label: 'Выбранный вариант', available: !unavailable, availabilityKnown: availabilityBlock, price, image: images[0]}] : [];
+  const warnings: string[] = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.'];
+  if (price === undefined) warnings.unshift('Цена не найдена в американском блоке Amazon: укажите её со страницы выбранного варианта.');
+  if (unavailable) warnings.push('Amazon сообщает, что выбранный товар недоступен.');
+  return {
+    title,
+    brand,
+    category,
+    declarationDescription: declarationFor(category, title ?? '', brand),
+    image: images[0],
+    images,
+    price,
+    currency,
+    variants,
+    warnings,
+    sourceUrl,
+    method: 'Amazon product data',
+    country: 'США',
+  };
+}
+
+/**
+ * Nike product pages publish a bounded `__NEXT_DATA__` payload containing the
+ * exact style code, gallery, price and size/SKU matrix. JSON-LD often omits
+ * offer availability, so prefer this merchant-owned payload when it matches
+ * the URL article code. No cookies or private Nike APIs are required.
+ */
+function extractNike(html: string, sourceUrl: string): Extracted | undefined {
+  const source = new URL(sourceUrl);
+  if (!/(^|\.)nike\.com$/i.test(source.hostname)) return;
+  const match = html.match(/<script\b[^>]*id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i);
+  if (!match) return;
+  try {
+    const root = JSON.parse(match[1]) as {props?: {pageProps?: Record<string, unknown>}};
+    const page = root.props?.pageProps;
+    const article = source.pathname.split('/').filter(Boolean).at(-1)?.replace(/\.html$/i, '').toUpperCase();
+    const selected = page?.selectedProduct && typeof page.selectedProduct === 'object'
+      ? page.selectedProduct as Record<string, unknown>
+      : undefined;
+    const groups = Array.isArray(page?.productGroups) ? page.productGroups : [];
+    const products = groups.flatMap(group => {
+      if (!group || typeof group !== 'object') return [];
+      const values = (group as Record<string, unknown>).products;
+      return values && typeof values === 'object' && !Array.isArray(values) ? Object.values(values as Record<string, unknown>) : [];
+    }).filter((value): value is Record<string, unknown> => Boolean(value && typeof value === 'object'));
+    const product = selected && (!article || [selected.styleCode, selected.styleColor, selected.pdpUrl].some(value => String(value ?? '').toUpperCase().includes(article ?? '')))
+      ? selected
+      : products.find(value => String(value.styleCode ?? value.merchProductId ?? '').toUpperCase() === article || String(value.pdpUrl ?? '').includes(`/${article}`));
+    if (!product) return;
+    const info = product.productInfo && typeof product.productInfo === 'object' ? product.productInfo as Record<string, unknown> : {};
+    const title = clean(info.fullTitle ?? info.title ?? product.displayStyle ?? product.styleCode).slice(0, 140) || undefined;
+    const brands = Array.isArray(product.brands) ? product.brands.map(clean).filter(Boolean) : [];
+    const brand = brands[0] || 'Nike';
+    const color = clean(product.colorDescription ?? product.styleColor) || undefined;
+    const priceData = product.prices && typeof product.prices === 'object' ? product.prices as Record<string, unknown> : {};
+    const price = number(priceData.currentPrice ?? priceData.price ?? priceData.initialPrice);
+    const currency = clean(priceData.currency ?? (page?.locale && typeof page.locale === 'object' ? (page.locale as Record<string, unknown>).currency : undefined)).toUpperCase() || undefined;
+    const imageValues = Array.isArray(product.contentImages) ? product.contentImages.flatMap(value => {
+      if (!value || typeof value !== 'object') return [];
+      const properties = (value as Record<string, unknown>).properties;
+      if (!properties || typeof properties !== 'object') return [];
+      const record = properties as Record<string, unknown>;
+      return [record.portrait, record.squarish];
+    }) : [];
+    const images = [...new Set(imageValues.map(value => {
+      if (!value || typeof value !== 'object') return undefined;
+      return safeImage((value as Record<string, unknown>).url, sourceUrl);
+    }).filter((value): value is string => Boolean(value)))].slice(0, 12);
+    const rawSizes = Array.isArray(product.sizes) ? product.sizes : [];
+    const variants: ProductVariant[] = rawSizes.map(raw => {
+      const value = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
+      const label = clean(value.label ?? value.localizedLabel);
+      const gtins = Array.isArray(value.gtins) ? value.gtins : [];
+      const id = clean(gtins[0] && typeof gtins[0] === 'object' ? (gtins[0] as Record<string, unknown>).gtin : value.merchSkuId) || undefined;
+      const status = clean(value.status).toUpperCase();
+      return {id, size: label || undefined, sizeLabel: 'Размер', color, label: [color, label].filter(Boolean).join(' · '), available: status === 'ACTIVE' || status === 'BUYABLE_BUY', availabilityKnown: Boolean(status), price, image: images[0]};
+    }).filter(value => value.label).slice(0, 80);
+    if (!variants.length) return;
+    const category = inferProductCategory([title, clean(product.productType), ...(Array.isArray(product.taxonomyLabels) ? product.taxonomyLabels.map(clean) : [])].filter(Boolean).join(' '), brand);
+    const warnings = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.', 'Вес с упаковкой нужно проверить.'];
+    if (price === undefined) warnings.unshift('Цена не найдена в данных Nike: выберите конкретный вариант на странице магазина.');
+    if (!variants.some(value => value.available)) warnings.push('Nike не указал доступный размер в текущем снимке.');
+    return {title, brand, category, declarationDescription: declarationFor(category, title ?? '', brand), image: images[0], images, price, currency, variants, country: inferStorefrontCountry(sourceUrl, currency), warnings, sourceUrl, method: 'Nike product data', sku: clean(product.styleCode) || undefined};
+  } catch {
+    return;
+  }
+}
+
+type AdidasApiRecord = Record<string, unknown>;
+
+function extractAdidasImage(value: unknown, sourceUrl: string) {
+  if (typeof value === 'string') return safeImage(value, sourceUrl);
+  if (!value || typeof value !== 'object') return undefined;
+  const record = value as AdidasApiRecord;
+  return safeImage(record.src ?? record.url ?? record.contentUrl, sourceUrl);
+}
+
+/**
+ * Adidas serves an Akamai challenge for server-side HTML requests, while its
+ * public product/search JSON still contains the merchant price, gallery and
+ * currently available size list. Keep this parser separate from JSON-LD so a
+ * challenge page can never be presented as a successful import.
+ */
+export function extractAdidasProduct(productValue: unknown, listingValue: unknown, sourceUrl: string): Extracted | undefined {
+  if (!productValue || typeof productValue !== 'object') return;
+  const product = productValue as AdidasApiRecord;
+  const listing = listingValue && typeof listingValue === 'object' ? listingValue as AdidasApiRecord : undefined;
+  const raw = listing?.raw as AdidasApiRecord | undefined;
+  const itemList = raw?.itemList as AdidasApiRecord | undefined;
+  const items = Array.isArray(itemList?.items) ? itemList.items.filter((value): value is AdidasApiRecord => Boolean(value && typeof value === 'object')) : [];
+  const id = clean(product.id ?? product.productId);
+  const article = new URL(sourceUrl).pathname.split('/').filter(Boolean).at(-1)?.replace(/\.html$/i, '');
+  if (!article || !id || id.toUpperCase() !== article.toUpperCase()) return;
+  const item = items.find(value => clean(value.productId ?? value.id) === id);
+  if (!id && !item) return;
+  const selected = item ?? product;
+  const title = clean(product.name ?? selected.displayName ?? selected.altText).slice(0, 140) || undefined;
+  const color = clean(product.color ?? selected.color) || undefined;
+  const brand = 'adidas';
+  const category = inferProductCategory([title, clean(product.category ?? selected.category), clean(selected.subTitle)].filter(Boolean).join(' '), brand);
+  const imageValues = [product.image, product.pdpImage, product.secondImage, ...(Array.isArray(product.images) ? product.images : []), selected.image, selected.secondImage, ...(Array.isArray(selected.images) ? selected.images : [])];
+  const images = [...new Set(imageValues.map(value => extractAdidasImage(value, sourceUrl)).filter((value): value is string => Boolean(value)))].slice(0, 12);
+  const price = number(selected.salePrice ?? product.salePrice ?? selected.price ?? product.price);
+  const locale = new URL(sourceUrl).pathname.split('/').filter(Boolean)[0]?.toLowerCase() ?? '';
+  const currency = ({us: 'USD', ca: 'CAD', gb: 'GBP', uk: 'GBP', de: 'EUR', es: 'EUR', fr: 'EUR', it: 'EUR', nl: 'EUR', pl: 'PLN', se: 'SEK', dk: 'DKK', no: 'NOK', tr: 'TRY', au: 'AUD', jp: 'JPY', ae: 'AED', qa: 'QAR', bh: 'BHD', om: 'OMR'} as Record<string, string>)[locale];
+  const availableSizes = [...new Set((Array.isArray(selected.availableSizes) ? selected.availableSizes : []).map(clean).filter(size => size && size.toLowerCase() !== 'hidden'))];
+  const available = selected.orderable !== 0 && product.orderable !== 0;
+  const availabilityKnown = Array.isArray(selected.availableSizes) || typeof selected.orderable === 'number' || typeof product.orderable === 'number';
+  const variants: ProductVariant[] = availableSizes.map(size => ({
+    size,
+    sizeLabel: 'Размер',
+    color,
+    label: [color, size].filter(Boolean).join(' · '),
+    available,
+    availabilityKnown,
+    price,
+    image: images[0],
+  }));
+  if (!variants.length) variants.push({label: color ?? 'Выбранный вариант', color, available, availabilityKnown, price, image: images[0]});
+  const warnings = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.', 'Вес с упаковкой нужно проверить.'];
+  if (!availableSizes.length) warnings.push('Adidas не отдал список размеров. Проверьте вариант на странице магазина.');
+  if (price === undefined) warnings.unshift('Цена не найдена в данных Adidas: укажите её со страницы выбранного варианта.');
+  if (!available) warnings.push('Adidas сообщает, что товар сейчас недоступен.');
+  const country = inferStorefrontCountry(sourceUrl, currency);
+  return {
+    title,
+    brand,
+    category,
+    declarationDescription: declarationFor(category, title ?? '', brand),
+    image: images[0],
+    images,
+    price,
+    currency,
+    variants,
+    country,
+    warnings,
+    sourceUrl,
+    method: 'Adidas product data',
+  };
 }
 
 export function inferStorefrontCountry(sourceUrl: string, currency?: string) {
@@ -348,12 +874,13 @@ function extractZara(html: string, sourceUrl: string) {
         colorMedia?.url?.replace("{width}", "1024"),
       sourceUrl,
     );
-    return (color.sizes?.length ? color.sizes : [{ name: "Стандартный" }]).map(
+      return (color.sizes?.length ? color.sizes : [{ name: "Стандартный" }]).map(
       (size) => ({
         size: clean(size.name) || undefined,
         color: clean(color.name) || undefined,
         label: [clean(color.name), clean(size.name)].filter(Boolean).join(" · "),
         available: !/out_of_stock|coming_soon/i.test(size.availability ?? ""),
+        availabilityKnown: typeof size.availability === 'string' && size.availability.trim().length > 0,
         price: size.price === undefined ? undefined : size.price / divisor,
         image: colorImage,
       }),
@@ -380,6 +907,12 @@ function extractZara(html: string, sourceUrl: string) {
 export function extractProduct(html: string, sourceUrl: string): Extracted {
   const anker = extractAnker(html, sourceUrl);
   if (anker) return anker;
+  const amazon = extractAmazon(html, sourceUrl);
+  if (amazon) return amazon;
+  const nike = extractNike(html, sourceUrl);
+  if (nike) return nike;
+  const priorityEmbedded = extractPriorityEmbedded(html, sourceUrl);
+  if (priorityEmbedded) return priorityEmbedded;
   const meta: Record<string, string> = {};
   for (const tag of html.match(/<meta\b[^>]*>/gi) ?? []) {
     const a: Record<string, string> = {};
@@ -409,20 +942,31 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     } catch {}
   }
 
-  const group = nodes.find((n) =>
-    [n["@type"]].flat().some((t) => t === "Product" || t === "ProductGroup"),
-  );
   const sameListing = (value: unknown) => {
     if (typeof value !== 'string') return false;
     try {
       const candidate = new URL(value, sourceUrl), source = new URL(sourceUrl);
+      if (candidate.protocol !== 'https:' || candidate.username || candidate.password || candidate.port) return false;
       for (const u of [candidate, source]) {
+        u.hostname = u.hostname.replace(/^www\./, '');
+        u.pathname = u.pathname.replace(/\/$/, '') || '/';
         for (const key of [...u.searchParams.keys()]) if (/^(utm_.+|gclid|fbclid|variant)$/i.test(key)) u.searchParams.delete(key);
         u.searchParams.sort();
       }
       return candidate.origin === source.origin && candidate.pathname === source.pathname && candidate.search === source.search;
     } catch { return false; }
   };
+  const productNodes = nodes.filter(n => [n['@type']].flat().some(t => t === 'Product' || t === 'ProductGroup'));
+  const offerUrls = (node: Record<string, unknown>) => [node.offers].flat().map(offer =>
+    offer && typeof offer === 'object' ? (offer as Record<string, unknown>).url : undefined);
+  const matchesNode = (node: Record<string, unknown>) =>
+    sameListing(node.url) || sameListing(node['@id']) || offerUrls(node).some(sameListing);
+  const hasListingUrl = (node: Record<string, unknown>) => Boolean(node.url || node['@id'] || offerUrls(node).some(Boolean));
+  // Recommendation products can precede the actual product in JSON-LD. Keep a
+  // matched parent group so its full option matrix survives the selection.
+  const group = productNodes.find(n => Array.isArray(n.hasVariant) && (matchesNode(n) || n.hasVariant.some((child: Record<string, unknown>) => child && matchesNode(child))))
+    ?? productNodes.find(matchesNode)
+    ?? productNodes.find(n => !hasListingUrl(n) && (!Array.isArray(n.hasVariant) || !n.hasVariant.some((child: Record<string, unknown>) => child && hasListingUrl(child))));
   // ProductGroup pages (including Nike) may put all price data on size/color children.
   // Only use children for the exact linked listing, never a different recommended color.
   const allChildren = Array.isArray(group?.hasVariant) ? group.hasVariant.filter((child: Record<string, unknown>) => child && typeof child === 'object') : [];
@@ -497,20 +1041,28 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     brand,
   );
   const genericLabel = [p?.color, p?.size].map(clean).filter(Boolean).join(' · ');
+  const sku = clean(typeof p?.sku === 'number' ? String(p.sku) : p?.sku).slice(0, 120) || undefined;
   const genericVariants: ProductVariant[] = genericLabel
-    ? [{ label: genericLabel, available: !/OutOfStock|Discontinued|SoldOut/i.test(String(offer?.availability ?? '')), size: clean(p?.size) || undefined, color: clean(p?.color) || undefined }]
+    ? [{ id: sku, label: genericLabel, available: !/OutOfStock|Discontinued|SoldOut/i.test(String(offer?.availability ?? '')), availabilityKnown: typeof offer?.availability === 'string' && offer.availability.trim().length > 0, size: clean(p?.size) || undefined, color: clean(p?.color) || undefined }]
     : [];
   const groupVariants: ProductVariant[] = allChildren.map((child: Record<string, unknown>) => {
     const childOffer = [child.offers].flat()[0] as Record<string, unknown> | undefined;
     return {
+      id: clean(typeof child.sku === 'number' ? String(child.sku) : child.sku ?? child.gtin).slice(0, 120) || undefined,
       size: clean(child.size) || undefined,
       color: clean(child.color) || undefined,
       label: [child.color, child.size].filter(Boolean).map(clean).join(' · '),
       available: !/OutOfStock|Discontinued|SoldOut/i.test(String(childOffer?.availability ?? '')),
+      availabilityKnown: typeof childOffer?.availability === 'string' && String(childOffer.availability).trim().length > 0,
       price: number(childOffer?.price ?? (childOffer?.priceSpecification as Record<string, unknown> | undefined)?.price),
       image: safeImage(Array.isArray(child.image) ? child.image[0] : child.image, sourceUrl),
     };
-  }).filter((item: ProductVariant) => item.label);
+  }).filter((item: ProductVariant) => item.label).slice(0, 80);
+  // Some stores repeat a parent SKU across sizes. Such IDs cannot identify a
+  // selected combination: retain the existing exact-label verification path.
+  const variantIdCounts = new Map<string, number>();
+  for (const variant of groupVariants) if (variant.id) variantIdCounts.set(variant.id, (variantIdCounts.get(variant.id) ?? 0) + 1);
+  for (const variant of groupVariants) if (variant.id && variantIdCounts.get(variant.id)! > 1) delete variant.id;
   const rawVariants = zara?.variants?.length ? zara.variants : groupVariants.length ? groupVariants : genericVariants;
   const gymsharkColor = /(^|\.)gymshark\.com$/i.test(new URL(sourceUrl).hostname)
     ? clean(html.match(/aria-current=["']true["'][^>]*aria-label=["'][^"']+\s+in\s+([^"']+)/i)?.[1])
@@ -533,7 +1085,10 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     warnings.push("Указан диапазон цен. Нужна цена конкретного варианта.");
   if (variants.some((v) => !v.available))
     warnings.push("Недоступные размеры скрыты из выбора.");
-  return {
+  if (variants.some((v) => v.availabilityKnown === false))
+    warnings.push("Магазин не отдал подтверждённый статус наличия — перед корзиной Atlas проверит его ещё раз.");
+  const extracted: Extracted = {
+    sku,
     title,
     brand,
     category,
@@ -554,4 +1109,5 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     sourceUrl,
     method: zara ? "Zara product data" : p ? "JSON-LD" : "Open Graph",
   };
+  return extractAsosProduct(html, sourceUrl, extracted) ?? extracted;
 }

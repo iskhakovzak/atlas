@@ -1,5 +1,43 @@
 # Atlas — project context
 
+## Cart completion and dispatch-country pricing — 25 September 2026
+
+Successful product additions from the catalog, link-order form and batch link import now take the customer directly to `/cart`. Checkout creates the existing pre-release order records and then offers the existing `payment-demo` confirmation from the cart success dialog. A user must explicitly confirm; this only marks a simulated test payment, does not charge funds, and does not create a shipment. Existing pending orders can still be managed in Orders; real payment-provider integration is not enabled.
+
+Operator-managed pricing now supports optional per-dispatch-country overrides for the existing service commission, buyout commission, conversion commission, delivery margin, international per-kg rate, delivery reserve and flat optional-service amount. Country keys are exact existing `Product.country` labels (actual dispatch country), not customer destination. Blank fields inherit the central tariff. Cart/add, quantity changes and quote renewal reprice server-side; existing order quote snapshots stay immutable. These values remain managed/demo data, not live commercial rates. Admin tariff controls are currently Russian-only; UZ/EN localization remains follow-up work.
+
+## Warehouse service catalogue and customer approval — 25 September 2026
+
+`/operations` now includes an operator-managed warehouse service catalogue stored inside the existing versioned `market_settings.pricing` JSON; no D1 migration is required. The starter catalogue covers package/content photos, inspection, consolidation, repacking, split parcels, extra packing, fragile handling, priority processing, removing external price tags, special requests, storage extensions, merchant returns and disposal. Admins can localize names/descriptions in RU/UZ/EN, enable/deactivate an offer, choose checkout vs. warehouse request stage, unit, fixed vs. operator-quoted pricing, base UZS amount and per-dispatch-country overrides. Existing order snapshots are not rewritten when settings change. Starter prices are zero/operator quote placeholders, not Shipito or Atlas commercial rates. Insurance remains disabled and server-blocked until an actual insurer, coverage terms, exclusions and claims process are confirmed.
+
+Customers can flag checkout-stage services in `/cart`; this saves a request on the order but does not add a fee, authorize work, or guarantee availability. After warehouse intake is recorded and before weighing, the customer can request configured warehouse-stage services, including a quantity for photo/day/half-hour units. The operator checks feasibility and either marks an unavailable service with a reason or submits a price through the existing change-request handshake. Fixed fees are recomputed from the server-owned service snapshot and dispatch-country rate; quoted services use the operator amount. The customer must approve or decline that exact amount, then an operator can mark the request complete. Unresolved service requests block warehouse weighing so repacking/splitting cannot bypass freight recalculation. Approved adjustments remain separate from the immutable original quote.
+
+This is a workflow preview only: service performance, warehouse/carrier connectivity and real payments are not connected. “Completed” is an internal simulated status, not evidence of physical work. No checkout checkbox silently buys a delayed service. The catalogue follows common forwarding-service categories documented by [Shipito's service FAQ](https://www.shipito.com/en/help/faq/services) and [pricing page](https://www.shipito.com/en/shipito-pricing); Atlas does not copy Shipito's fees or claim its service capabilities.
+
+## Design direction review — 23 September 2026
+
+## Multiple recipients and passport association — 24 September 2026
+
+The customer profile no longer offers a personal-data download/export. The document centre points to passport records and declaration previews; invoices and warehouse files remain inside their orders. Customers may keep multiple delivery recipients and confirm a separate passport scan for each saved recipient. Passport identity is stored as masked identity data in the owner-scoped account state; the scan itself remains private R2 data, and the D1 confirmation record contains only the masked confirmation snapshot.
+
+Checkout presents saved recipients as selectable cards. Selecting one uses the server-owned saved address and, when available, the identity confirmed for that same recipient. New or edited checkout addresses remain manual and do not borrow another recipient's passport. Orders snapshot the selected recipient ID, delivery details and optional masked identity at checkout, so future profile edits do not rewrite existing orders. Declaration previews use the order's saved recipient snapshot; mixed-recipient orders must be prepared as separate declarations. This remains a simulated internal preview and does not submit documents to customs. New state/order fields are optional and old singleton identity/order snapshots continue to parse.
+
+An isolated review package in `design/` compares Commerce, Editorial and Atlas refined on catalog/product/checkout/account screens in RU/UZ/EN. Start `node design/serve.mjs` for localhost:4318. It uses synthetic prices/state and existing project images; it does not call production APIs or alter tariffs or D1. On 24 September the owner selected A / Commerce. The first production visual pass now uses shared type/spacing tokens in `app/atlas-design.css` and Commerce route-family styling in the existing `app/experience.css`: white shell, flat catalog cards, calmer prices, forms and account next action. No product logic or persistence changed. See `design/README.md` for audit and remaining migration, and `PILOT_READINESS.md` for externally gated launch prerequisites. These design changes do not enable real commerce.
+
+The follow-up Commerce pass replaces the guest's dark banner with a spacious photo-led introduction, removes the forced 650px mobile admin table width, and replaces native prompt dialogs for support replies and collection creation with accessible forms. The catalog browser audit now selects a category actually present in the current published catalog and waits for cards after sign-out; it passes 148 guest/customer/access checks. The admin forms preserve their existing authenticated APIs and D1 actions.
+
+The guest introduction was then tightened after the owner rejected the unrelated stock sneaker photo and excess empty space. It now shows two distinct-category products from the same published catalog ordering as the feed, with direct product-detail actions and RU/UZ/EN paths to the catalog or link order. When no published product image is available, it shows a text fallback instead of inventing a product photo. The browser design check waits for guest state before capturing the home screen. No product, quote or persistence semantics changed.
+
+Account action buttons in document and profile sections now use a responsive grid, can wrap translated labels, and fill their cells without overlapping when an account panel narrows. This is presentation-only; account actions and data remain unchanged.
+
+The final legacy-data disclosure now has a clear vertical gap after the documents/support row so adjacent account sections do not visually run together.
+
+On the catalog home, the order/data-responsibility panel is always rendered as a visible trust callout instead of a collapsed disclosure. Its copy and legal destination are unchanged.
+
+The home FAQ now shows every short answer immediately in a responsive grid. The purchase path is condensed to choose an item, enter a recipient address, and confirm the order, with a clear note that payments and deliveries are still in test mode and no real charges or shipments occur.
+
+An operator-mode local browser pass covered nine admin tabs at 1440/800/390/360px in addition to the main customer routes. It exposed a 390/360px header overflow from the operator link's stronger selector; the mobile header now hides that duplicate link (admin remains in navigation) and keeps locale/account/notification/cart controls within 360px. The account next-action text also wraps directly in its source rule. This did not create an operator authorization path.
+
 ## Product
 
 Atlas is a functional pre-release cross-border shopping prototype for customers in Uzbekistan. The intended commercial model is purchasing intermediary plus logistics agent, not the foreign seller or manufacturer. A user chooses a sourced merchant catalog item or pastes a foreign-store product link, receives an editable preliminary UZS calculation, saves a recipient/address, creates a simulated payment and follows the purchase, warehouse, parcel and delivery process.
@@ -29,6 +67,7 @@ This is a UX refinement, not a commercial launch or a new authentication system.
 5. For a party, customer can paste up to ten product links at once. Each imported position remains subject to the same verification before checkout.
 6. If store shipping is unavailable, the form starts with editable $10 reserve.
 7. Customer accepts customs conditions, enters the recipient/address and completes pre-release checkout. One cart line becomes one order.
+7a. Customer may note checkout-stage warehouse preferences in the cart; after warehouse intake they may request other configured services. Operator quotes feasibility/cost and the customer must explicitly approve before the simulated completion state.
 7. Customer can upload a passport scan to private object storage, check/edit browser-detected MRZ fields and explicitly confirm identity data.
 8. Confirmed identity, saved address and selected order lines form a test declaration package. It stays inside Atlas and is not transmitted to customs.
 9. Customer confirms a safe simulated payment-provider result; no charge occurs.
@@ -41,13 +80,13 @@ This is a UX refinement, not a commercial launch or a new authentication system.
 | --- | --- |
 | / | Unified product catalog, favourites, filters and quick link entry |
 | /order-by-link | Import product and create quote |
-| /cart | Cart, balance use, customs consent, simulated checkout |
+| /cart | Cart, optional warehouse-service preferences, balance use, customs consent, simulated checkout |
 | /orders | Customer orders, photo refresh and extra approvals |
-| /operations | Cross-customer operator queue and managed pricing |
+| /operations | Cross-customer operator queue, managed pricing and warehouse-service catalogue |
 | /notifications | In-app status, refund and approval notifications |
 | /analytics | Operator metrics and closed-pilot readiness |
 | /legal | Pre-release terms, privacy, refunds and restricted-goods drafts |
-| /account | Profile, delivery recipients, document centre, monthly purchase indicator, support requests and data export |
+| /account | Profile, delivery recipients with passport status, document centre, monthly purchase indicator and support requests |
 | /balance | Demo ledger/balance |
 | /favorites | Saved catalog items |
 | /customs | Customs guidance and consent |
@@ -109,6 +148,25 @@ Order statuses: Ожидает выкупа → Выкуплен → На зар
 - Enhanced public Shopify import routes were added for stores including FOOTDISTRICT, NAKED Copenhagen, Nude Project, PDPAOLA, Scalpers, Blue Banana, 3INA, Saigu, Represent, Tower 28, MERIT, Good American, Kosas and Faherty. These imports retain photos, price, currency and the available option matrix when the merchant publishes them.
 - Enhanced storefront requests pin a public country context so server location does not silently change USD/EUR pricing. The exact customer URL remains authoritative; Atlas never substitutes a supposedly cheaper country automatically.
 
+## Amazon US location verification — 20 September 2026
+
+- `amazon.com` imports and catalog rechecks now create a short-lived anonymous Amazon session, set USD/English storefront preferences, submit the public delivery-location action for United States ZIP `19701` (Bear, Delaware), and only then parse price, availability and images.
+- No Amazon account login or customer cookies are used or persisted. If Amazon does not confirm the US ZIP, Atlas stops with a manual-check message instead of silently using an Uzbekistan-IP delivery context.
+- The Amazon parser reads the post-location `corePrice` block and merchant image so the US price can enter the same protected cart/checkout recheck path as every other source. Other US stores still use their own public URL/adapter rules; add a store-specific location profile only when its public endpoint is verified.
+- Amazon's larger client-side page payload is still bounded by a dedicated 6 MB importer ceiling; other public HTML remains capped at 3 MB.
+- The authenticated link-import endpoint bypasses its generic ten-minute cache for Amazon, forcing the US-location handshake even when an older cached snapshot exists.
+
+## Adidas JSON import — 21 September 2026
+
+- Adidas product HTML can be an Akamai 403 challenge for server-side requests. `adidas.com` link imports now read the bounded public PLP JSON first (so a product JSON 429 still leaves a complete card), then enrich with same-host product JSON, match the URL article code, and retain the current locale price, merchant gallery and available size list. The adapter retries the fixed apex Adidas edge route and never sends credentials.
+- The adapter ignores PLP results for another article and filters the service's `hidden` size sentinel. Adidas currently rate-limits Chromium client-hint/XHR headers, so its public JSON requests use a minimal credential-free header set and allow only the fixed `adidas.com` ↔ `www.adidas.com` edge redirect. Structured `Clothing`/`jersey` data maps to the clothing category. If Adidas blocks both JSON routes, Atlas keeps the safe manual-entry path instead of displaying an empty or invented card.
+
+## ASOS product and size import — 23 September 2026
+
+- ASOS product pages publish the product size map and stock/price snapshot in separate public page assignments. The adapter verifies the requested `/prd/<id>` against the embedded product ID, then matches each size to stock by exact variant ID.
+- Live check on a US ASOS footwear page returned an exact title, USD 29.99, two photos, eight sizes and one explicitly in-stock option. Results are transient; cart verification still rechecks the selected size.
+- ASOS stays on the normal safe HTML fetch path. No account cookies, login or challenge bypass is used.
+
 ## Editorial catalog — 12 September 2026
 
 - `/admin` now has an operator-only catalog workspace. An operator can paste up to ten allowlisted product URLs, and Atlas imports the store, title, source price/currency, safe gallery, available variants, category and a conservative editable weight into reviewable drafts.
@@ -116,6 +174,11 @@ Order statuses: Ожидает выкупа → Выкуплен → На зар
 - Collections have RU/UZ/EN names, visibility and order. Published products can belong to several collections; visible collections appear as focused filters on the home feed, including clothing, cosmetics, brand and seasonal selections.
 - Draft and published snapshots are separate. Editing a draft never silently changes the home page; publish copies a reviewed snapshot, hide removes it from the public feed without deleting the draft, and stale/sold-out/incomplete drafts cannot be published.
 - Catalog state is stored as versioned JSON in the existing D1 `market_settings` table with optimistic revision checks and operator audit events. The public endpoint returns only current published snapshots and falls back to the bundled catalog if D1 is temporarily unavailable.
+- A successful authenticated link order also creates a matching operator-reviewable draft when its canonical source URL is not already present. The draft carries the verified title, source price/currency, country, safe photos, available option matrix and weight; it is marked as a customer-demand signal and is never published automatically. A later request for the same canonical source is idempotent.
+
+## Link-order language and draft continuity — 21 September 2026
+
+- The link-order form keeps its current product, selected option, price, country, currency, shipping, weight, photos, verification and source freshness in a short-lived browser session draft. Switching RU/UZ/EN or remounting the route no longer clears the imported or customer-edited values; the server still rechecks the source before cart addition.
 
 ## Unified merchant catalog — 13 September 2026
 
@@ -192,7 +255,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Operator team/priority assignment and internal notes.
 - Email/SMS preferences plus a persistent pre-release delivery-preview log; no messages leave Atlas.
 - Operator analytics and closed-pilot readiness dashboard.
-- Pre-release legal/privacy/refund/restricted-goods drafts and customer data export.
+- Pre-release legal/privacy/refund/restricted-goods drafts.
 - Authenticated API smoke test covers checkout through delivered status.
 
 ## Pre-release service experience
@@ -208,7 +271,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - The home screen explains the path from a store link to a preliminary calculation, confirmation and status tracking. It also includes a supported-store preview, FAQ and clear pre-release/trust notices.
 - A profile can store several recipient addresses. The chosen primary recipient remains compatible with checkout and declarations. Customer support requests are retained in that customer's account state; staff response workflow still needs an operational queue.
 - Checkout now lets the customer choose a saved recipient or switch to a fresh address, and support requests show their complete message history with customer replies.
-- The document centre links to passport confirmation and declaration previews, explains the availability of future invoices/warehouse photos, and exports profile data. Passport source files remain private and are not placed in the JSON profile export.
+- The document centre links to passport confirmation and declaration previews and explains that invoices/warehouse files are attached to orders. Passport source files remain private; customers no longer see a profile export/download action.
 - The monthly total is an informational sum of Atlas test orders, not a customs calculation or an official limit balance.
 
 ## Partial or missing
@@ -270,9 +333,15 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 
 - Imported merchant weights are accepted only when they resolve to a finite boxed weight through 49.5 kg. Invalid source values such as `99999 kg` are discarded before they can reach a form or quote.
 - Category fallbacks are now more conservative, and the bundled catalog's unchanged legacy estimates are upgraded additively in D1. A weight manually changed away from the known old seed value is preserved.
-- When a store blocks fresh import for a catalog product, the customer gets a direct merchant link. After opening it, the customer must answer “available” or “unavailable” before continuing.
-- Availability answers are authenticated, rate-limited and stored inside the versioned D1 catalog document. An unavailable answer flags the draft for operator review without letting a customer hide a public product directly.
+- When a store blocks fresh import for a catalog product, link ordering keeps the saved editorial data visible but does not ask the customer to open the merchant page or report stock manually. Atlas retries the protected import automatically and blocks cart addition until the server confirms price, currency and the selected option.
+- The authenticated, rate-limited availability-report API remains available for operator/support tooling and old clients, but it is no longer part of the customer link-order flow. Reports flag the draft for operator review without letting a customer hide a public product directly.
 - The catalog administrator sees unresolved reports with product, variant, time, merchant link and product shortcut. A successful source recheck or explicit hide resolves the reports.
+
+## Direct-merchant deal picks — 20 September 2026
+
+- The bundled catalog includes six fresh editorial picks selected from the Slickdeals front page: Anker Prime charger, WÜSTHOF knife, HP ProBook Fortis, LEGO City Burger Truck, Logitech K780 Resale and BIRCEN sunglasses.
+- Slickdeals is used only for editorial discovery and discount observation. Customer-facing `sourceUrl` values are canonical Amazon/eBay product URLs, and card images come from the merchant image hosts; no Slickdeals redirect or image is exposed in Atlas.
+- These are dated observations, not inventory or guarantees. The seven-day expiry boundary, protected merchant recheck, variant confirmation and operator availability reports remain authoritative before cart/checkout.
 - The link-order notice always includes the exact merchant-page link, including successful partial imports. Zero-cost shipping is labelled as merchant delivery to the Atlas warehouse rather than customer delivery.
 - Generic imports infer the storefront dispatch country from explicit shipping origin, locale path, regional domain or a bounded merchant map; currency continues to come from the store and falls back from the inferred country only when the page omits it. Category inference also uses structured product category/description and recognizes common trackers such as AirTag.
 - International freight now has a one-kilogram minimum per merchant parcel. Cart rows from the same source host and dispatch country combine boxed weight, add the 0.3 kg packaging and 0.2 kg safety allowance once, and allocate the resulting freight and reserve across their immutable line quotes.
@@ -322,6 +391,12 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - `/admin` is now an operator control centre with overview metrics, order/analytics shortcuts, staff directory, server-managed restrictions and recent audit events. Staff records are preparatory only: until standalone authentication is connected, only `ATLAS_OPERATOR_EMAIL` has server authorization.
 - Operator order changes, pricing, policy and staff-directory updates create audit records. The authenticated smoke test covers staff creation and audit visibility in addition to the full order flow.
 
+## Globbing B2B operating model — 23 September 2026
+
+- The founder's working commercial assumption is that Atlas centrally arranges personal-use purchases for named individual customers; customers would not register or operate Globbing accounts. This is not yet approved by Globbing and does not change the prototype's simulated payment, purchase, customs or delivery status.
+- The public Globbing terms describe user-specific accounts and purchase on behalf/at the expense of each user. Do not infer that Atlas may use a single personal account or centrally place third-party orders. Obtain written confirmation and a corporate contract/process before real transactions.
+- Role mapping (foreign-store buyer, Atlas customer/principal, Globbing contracting party, consignee, declarant/customs representative) remains unresolved pending written carrier terms and Uzbekistan counsel review. See `GLOBBING_B2B_PLAYBOOK.md` for the negotiation checklist and go/no-go gate.
+
 ## SEO foundation and shared-language cleanup — 19 September 2026
 
 - Root metadata now has a production title template, honest preliminary-quote description, canonical URL, Open Graph and X card fields, locale hints and crawler directives. The internal development-only preview metadata was removed.
@@ -337,3 +412,28 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - The primary customer journeys now use RU/UZ/EN copy on link order, cart/checkout, batch import, passport, declaration, customs, account, customer orders, balance and notifications. Dynamic link-import messages, merchant names, product titles and source URLs remain source text; operator controls, legal body copy and some server-generated history/messages still require a reviewed translation pass.
 - Shared product-image fallbacks and quote-expiry labels accept the active locale. International cart and same-merchant parcel rules remain unchanged.
 - Verification for this slice: full-project ESLint, TypeScript, 64 domain/security tests, production build and the 137-check guest/customer/operator desktop/mobile browser audit passed after the transactional copy update. `npm` itself is unavailable in this Windows runtime, so the repository's installed Node entrypoints were used for the equivalent commands.
+
+## Conversion continuity, account clarity and safe release boundary — 20 September 2026
+
+- A guest who pastes a valid product link is now sent to the sign-in flow with the exact `/order-by-link?url=…` return path preserved. Importing remains authenticated; the interface no longer promises a calculation that a guest cannot open.
+- The account dashboard gives its single next-action slot to a pending decision, simulated payment, active order, cart or missing recipient in that order. Passport confirmation remains a visible service and declaration prerequisite, but is not used as unsolicited first-run pressure.
+- The saved-address form now has native autocomplete semantics and bounded, local Uzbekistan region/city/street suggestions. Atlas does not send an address to a third-party search provider for those suggestions.
+- Shared catalog-shell, product-sheet and provider fallback messages now follow RU/UZ/EN. Merchant data stays source text; legacy operator, legal and server-authored text still needs a reviewed translation pass.
+- Private order-document downloads remain attachment-only and private/no-store, and now explicitly use `X-Content-Type-Options: nosniff`.
+- Freshness is intentionally enforced: the local D1 catalog state examined on 20 September contained observations dated 11 September, beyond the seven-day public lifetime, so `/api/catalog` returned no cards rather than showing an old commercial price. Fresh, reviewed merchant snapshots must be imported and published before the public catalog or its end-to-end browser audit can be considered release-ready.
+- Verification of this slice: full-project ESLint, 68 Node tests and production build passed. The normal browser audit passed 141 guest/customer/operator checks while explicitly recording that catalog-card checks were skipped because no fresh D1 snapshot was available. Its strict `ATLAS_AUDIT_REQUIRE_CATALOG=1` mode correctly rejects that state with a release-blocking message; no stale timestamp was changed to make the check pass.
+
+## Priority merchant contract and stock safety — 22 September 2026
+
+- `lib/importer/merchant-profiles.ts` keeps an explicit, reviewable priority registry for the first US and European rollout: Amazon, Nike, adidas, Macy's, eBay, Walmart, Target, Best Buy, Sephora, Foot Locker, Zalando, ASOS, Zara, Mango, Farfetch, Primor, Druni, MediaMarkt, PcComponentes and Decathlon.
+- Profiles only fill missing merchant/category/dispatch metadata. They never invent price, shipping, photos, SKU, variants or stock and never substitute a cheaper regional URL. The customer URL remains authoritative.
+- Generic JSON-LD/ProductGroup imports select the exact linked listing instead of a recommendation, preserve SKU/GTIN identities where unique, cap matrices at 80 options and reject unsafe or unrelated structured URLs. Adidas responses must match the article code in the URL.
+- Merchant option records carry optional `availabilityKnown`. When a page omits a stock signal, Atlas keeps the observation as unknown, blocks cart verification and leaves the published catalog snapshot unchanged; only an explicit all-sold-out matrix can auto-hide a card. Older stored records remain compatible because the field is optional.
+- `scripts/catalog-refresh.mjs` signs the existing HMAC refresh endpoint for an external scheduler. It does not contain a secret; production still needs a separate scheduled Worker and `ATLAS_CATALOG_REFRESH_SECRET`.
+
+## Priority merchant embedded fallback — 22 September 2026
+
+- Priority-1/priority-2 pages that omit JSON-LD can now be read from a bounded public `__NEXT_DATA__`, `__PRELOADED_STATE__`, `__INITIAL_STATE__` or `__APOLLO_STATE__` payload for Macy's, eBay, Walmart, Target, Best Buy, Sephora, Foot Locker, Zalando regional hosts, ASOS, Zara, Mango, Farfetch, Primor, Druni, MediaMarkt, PcComponentes and Decathlon.
+- The fallback accepts only a product object tied to the exact source path or product identifier. It ignores recommendation objects, unsafe URLs and short generic numeric ids. It retains only public title, price, currency, photos, SKU, option matrix, explicit availability and bounded weight/shipping fields.
+- Unknown stock remains unknown and still blocks cart verification/catalog republication. A blocked page or missing exact embedded record continues to the safe JSON-LD/Open Graph/manual path; Atlas does not bypass CAPTCHA, login, merchant cookies or official API requirements.
+- `workers/catalog-refresh/` now contains a deployable separate Cloudflare Cron Worker and `wrangler.toml.example`. It signs the existing refresh route hourly with Web Crypto, refuses non-HTTPS site URLs and keeps the secret in Wrangler secret storage; production provisioning and matching runtime secrets remain a deployment task.

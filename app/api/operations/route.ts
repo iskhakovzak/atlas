@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { actionSchema, applyAction } from "@/lib/market/actions";
-import { pricingSchema } from "@/lib/market/domain";
+import { pricingSchema, validateServiceCatalog } from "@/lib/market/domain";
 import { policySchema } from "@/lib/market/policy";
 import {
   failure,
@@ -53,6 +53,8 @@ const updateSchema = z.discriminatedUnion("kind", [
       reserve: true,
       divisor: true,
       rates: true,
+      countryOverrides: true,
+      serviceCatalog: true,
     }),
   }),
   z.object({
@@ -117,6 +119,8 @@ export async function POST(request: Request) {
         updatedAt: now,
         managedBy: user.email,
       });
+      try { validateServiceCatalog(next.serviceCatalog); }
+      catch (error) { throw new HttpError(400, (error as Error).message); }
       await savePricing(next, user.userId);
       await recordAudit(user,'pricing.update','settings','pricing',{version:next.version});
       return json({ pricing: next });
@@ -142,6 +146,8 @@ export async function POST(request: Request) {
         "parcel-set",
         "change-request-create",
         "warehouse-inspect",
+        "warehouse-service-complete",
+        "warehouse-service-decline",
         "support-reply",
       ].includes(parsedAction.data.type)
     )

@@ -40,3 +40,22 @@ test('editorial deals are ordinary catalog products with direct order intent', (
     assert.equal(order.searchParams.get('deal'), product.id);
   }
 });
+
+test('fresh Slickdeals picks keep only canonical merchant URLs', () => {
+  const expected = {
+    'anker-prime-200w': 'https://www.amazon.com/dp/B0CT2NQ7WG',
+    'wusthof-fresh-rosemary': 'https://www.amazon.com/dp/B0GDVX6PDF',
+    'hp-probook-fortis-g10': 'https://www.ebay.com/itm/377384835279',
+    'lego-city-burger-truck': 'https://www.amazon.com/dp/B0CGY4LZQ3',
+    'logitech-k780-resale': 'https://www.amazon.com/dp/B01LZTBKBG',
+    'bircen-polarized-sunglasses': 'https://www.amazon.com/dp/B0GGQV8QK9',
+  };
+  for (const [id, url] of Object.entries(expected)) {
+    const deal = communityDeals.find(item => item.id === id);
+    assert.ok(deal, `missing ${id}`);
+    assert.equal(deal.url, url);
+    assert.ok(!deal.url.includes('slickdeals.net'));
+    assert.ok(!deal.image.includes('slickdeals.net'));
+    assert.match(deal.image, /^https:\/\/(?:m\.media-amazon\.com|i\.ebayimg\.com)\//);
+  }
+});

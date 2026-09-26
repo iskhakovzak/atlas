@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Atlas — три дизайн-направления</title><link rel="stylesheet" href="review.css"><script src="review.js" defer></script></head>
+<body>
+  <header class="review-header"><div class="review-brand">atlas<span>DESIGN STUDIO / 01</span></div><span class="review-status">Концепции для выбора · примерные данные</span></header>
+  <main>
+    <section class="review-intro"><div><p class="overline">ОДИН ATLAS. ТРИ НАПРАВЛЕНИЯ.</p><h1>Как будет ощущаться Atlas?</h1><p>Те же товары и сценарии. Разная композиция, типографика и характер.</p></div><div class="palette" aria-label="Цвета Atlas: тёмно-синий, синий, лайм"><i></i><i></i><i></i><span>Сохраняем цвета Atlas</span></div></section>
+    <div class="directions" role="group" aria-label="Дизайн-направление">
+      <button data-direction="commerce" aria-pressed="true"><span class="direction-num">A</span><span><strong>Commerce</strong><small>Чисто. Собранно. Уверенно.</small></span><span class="recommended">Рекомендую</span></button>
+      <button data-direction="editorial" aria-pressed="false"><span class="direction-num">B</span><span><strong>Editorial</strong><small>Больше моды и характера.</small></span></button>
+      <button data-direction="refined" aria-pressed="false"><span class="direction-num">C</span><span><strong>Atlas refined</strong><small>Знакомый Atlas, точнее в деталях.</small></span></button>
+    </div>
+    <div class="preview-toolbar">
+      <div class="screen-tabs" role="group" aria-label="Экран"><button data-screen="catalog" aria-pressed="true">Каталог</button><button data-screen="product" aria-pressed="false">Товар</button><button data-screen="cart" aria-pressed="false">Оформление</button><button data-screen="account" aria-pressed="false">Кабинет</button></div>
+      <div class="preview-options"><label><span class="sr-only">Состояние экрана</span><select id="state"><option value="ready">Заполнено</option><option value="empty">Пусто</option><option value="error">Ошибка</option><option value="loading">Загрузка</option></select></label><label><span class="sr-only">Язык примера</span><select id="locale"><option value="ru">RU</option><option value="uz">UZ</option><option value="en">EN</option></select></label><button id="device" aria-pressed="false">Телефон 390 px</button><a id="full-screen" href="screen.html" target="_blank" rel="noopener">Отдельный экран ↗</a></div>
+    </div>
+    <div class="preview-stage"><iframe id="preview" title="Интерактивная дизайн-концепция Atlas" src="screen.html?theme=commerce&amp;screen=catalog&amp;lang=ru" sandbox="allow-scripts allow-same-origin"></iframe></div>
+    <section class="direction-note" aria-live="polite"><div><span id="note-id">НАПРАВЛЕНИЕ A</span><h2 id="note-title">Покупки на первом плане.</h2></div><p id="note-body">Чёткая сетка, спокойный фон и выразительный тёмно-синий. Лайм подчёркивает главное действие. Универсальная основа для одежды, техники и косметики.</p></section>
+    <footer><p>Это изолированные визуальные прототипы. Фото из проекта, цены, размеры и заказы — примеры для сравнения, без связи с каталогом и платежами.</p><p>Чтобы утвердить направление, напишите в чат <b>A, B или C</b>. Можно сочетать главную B с рабочими экранами A.</p></footer>
+  </main>
+</body></html>

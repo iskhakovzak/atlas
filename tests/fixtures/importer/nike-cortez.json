@@ -1,0 +1,35 @@
+{
+  "sourceUrl": "https://www.nike.com/t/cortez-leather-mens-shoes-SxhPXX/DM4044-108",
+  "observedOn": "2026-09-22",
+  "provenance": "Anonymous public HTML GET, HTTP 200. Minimal JSON-LD excerpt; first two size records retained, descriptive text removed. Fixture is not current inventory. The source omitted availability on these offers.",
+  "product": {
+    "@type": "ProductGroup",
+    "@id": "https://www.nike.com/t/cortez-leather-mens-shoes-SxhPXX#group",
+    "name": "Nike Cortez Leather Men's Shoes",
+    "url": "https://www.nike.com/t/cortez-leather-mens-shoes-SxhPXX",
+    "brand": {"@type": "Brand", "name": "Nike"},
+    "hasVariant": [
+      {
+        "@type": "Product",
+        "@id": "https://www.nike.com/t/cortez-leather-mens-shoes-SxhPXX/DM4044-108#size-6",
+        "name": "Nike Cortez Leather Men's Shoes - White/Varsity Blue/Varsity Red - Size 6",
+        "color": "White/Varsity Blue/Varsity Red",
+        "mpn": "DM4044-108",
+        "image": "https://static.nike.com/a/images/t_default/u_9ddf04c7-2a9a-4d76-add1-d15af8f0263d,c_scale,fl_relative,w_1.0,h_1.0,fl_layer_apply/464ab3ac-0dc0-4fd0-84bd-eae123a2db18/NIKE+CORTEZ.png",
+        "size": "6",
+        "gtin": "00197600816527",
+        "offers": {"@type": "Offer", "url": "https://www.nike.com/t/cortez-leather-mens-shoes-SxhPXX/DM4044-108", "price": 76.97, "priceCurrency": "USD", "itemCondition": "https://schema.org/NewCondition"}
+      },
+      {
+        "@type": "Product",
+        "@id": "https://www.nike.com/t/cortez-leather-mens-shoes-SxhPXX/DM4044-108#size-6.5",
+        "name": "Nike Cortez Leather Men's Shoes - White/Varsity Blue/Varsity Red - Size 6.5",
+        "color": "White/Varsity Blue/Varsity Red",
+        "mpn": "DM4044-108",
+        "size": "6.5",
+        "gtin": "00197600804203",
+        "offers": {"@type": "Offer", "url": "https://www.nike.com/t/cortez-leather-mens-shoes-SxhPXX/DM4044-108", "price": 76.97, "priceCurrency": "USD", "itemCondition": "https://schema.org/NewCondition"}
+      }
+    ]
+  }
+}

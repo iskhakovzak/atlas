@@ -5,7 +5,7 @@ import Link from "@/components/site-link";
 import { ArrowRight, Check, Clock3, MapPin, Minus, Plus, ShieldCheck, Trash2, Wallet } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
-import { balanceOf, cartSignature, money, totalOf, type DeliveryProfile } from "@/lib/market/domain";
+import { balanceOf, cartSignature, money, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, type DeliveryProfile } from "@/lib/market/domain";
 import { customsVersion } from "@/lib/market/world";
 import { CostLines, Empty, Expiry, Modal, PageHeading, ProductImage } from "./market-ui";
 import {cities,regions,streets,suggestions} from "@/lib/market/addresses";
@@ -23,15 +23,34 @@ export function CartView() {
   const [selectedProfile, setSelectedProfile] = useState("");
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [checkoutKey, setCheckoutKey] = useState("");
+  const [paymentBusy, setPaymentBusy] = useState(false);
+  const [paidFromCart, setPaidFromCart] = useState(false);
   const [now, setNow] = useState(0);
 
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(timer); }, []);
+  useEffect(() => {
+    if (!ready) return;
+    for (const item of state.cart) {
+      const selected = item.requestedServiceIds ?? [];
+      const available = pricing.serviceCatalog.filter((service) => service.enabled && service.requestStage === "checkout");
+      const allowedIds = new Set(available.map((service) => service.id));
+      const current = selected.filter((serviceId) => allowedIds.has(serviceId));
+      const missingRequired = available.filter((service) => service.required && !current.includes(service.id)).map((service) => service.id);
+      const normalized = [...current, ...missingRequired];
+      if (normalized.length !== selected.length || normalized.some((serviceId, index) => serviceId !== selected[index]))
+        void act({ type: "cart-services", id: item.id, serviceIds: normalized });
+    }
+  }, [act, pricing.serviceCatalog, ready, state.cart]);
 
   const expired = now > 0 && state.cart.some((item) => now >= item.quote.expiresAt);
   const total = totalOf(state.cart);
   const balance = balanceOf(state);
   const credit = useBalance ? Math.min(total, Math.max(0, balance)) : 0;
   const locale = state.communication.language;
+  const checkoutOrders = checkoutKey ? state.orders.filter(order => order.batchId === checkoutKey) : [];
+  const pendingCheckoutOrders = checkoutOrders.filter(order => order.payment?.status === "pending");
+  const pendingCheckoutAmount = pendingCheckoutOrders.reduce((sum, order) => sum + (order.payment?.amount ?? 0), 0);
   const c = {
     ru:{overline:"ОФОРМЛЕНИЕ ЗАКАЗА",title:"Ваша корзина.",intro:"Проверьте товары, варианты и предварительный расчёт.",signin:"Войдите, чтобы открыть корзину",signinHint:"Корзина и заказы сохраняются в вашем профиле Atlas.",loading:"Загружаем корзину…",empty:"Корзина ждёт ваших находок",emptyHint:"Выберите товар в каталоге или добавьте свою ссылку.",order:"Ваш заказ",breakdown:"Состав стоимости",estimate:"Расчёт предварительный. После приёмки на складе изменение стоимости запрашивается отдельно и применяется только после вашего подтверждения.",checkout:"Указать доставку",renew:"Обновить расчёт",assurance:"Доплата только с вашего согласия",delivery:"Получатель и адрес",deliveryHint:"Данные сохранятся в профиле и будут зафиксированы в заказе.",success:"Предзаказ оформлен",successHint:"Адрес сохранён. Завершите оплату в разделе заказов."},
     uz:{overline:"BUYURTMANI RASMIYLASHTIRISH",title:"Savatingiz.",intro:"Tovarlar, variantlar va dastlabki hisobni tekshiring.",signin:"Savatni ochish uchun kiring",signinHint:"Savat va buyurtmalar Atlas profilingizda saqlanadi.",loading:"Savat yuklanmoqda…",empty:"Savat topilmalaringizni kutmoqda",emptyHint:"Katalogdan tovar tanlang yoki o‘z havolangizni qo‘shing.",order:"Buyurtmangiz",breakdown:"Narx tarkibi",estimate:"Hisob dastlabki. Ombordagi qabuldan keyingi narx o‘zgarishi alohida yuboriladi va faqat tasdiqlashingizdan so‘ng qo‘llanadi.",checkout:"Yetkazish manzilini kiritish",renew:"Hisobni yangilash",assurance:"Qo‘shimcha to‘lov faqat roziligingiz bilan",delivery:"Qabul qiluvchi va manzil",deliveryHint:"Ma’lumotlar profilingizda saqlanadi va buyurtmaga biriktiriladi.",success:"Oldindan buyurtma yaratildi",successHint:"Manzil saqlandi. Buyurtmalar bo‘limida sinov to‘lovini yakunlang."},
@@ -62,9 +81,27 @@ export function CartView() {
   async function checkout() {
     if (busy) return;
     setBusy(true);
-    const ok = await act({ type: "checkout", key: crypto.randomUUID(), signature: cartSignature(state.cart), useBalance, expectedCredit: credit, consentVersion: customsVersion, delivery });
+    const identityProfiles=state.identityProfiles??(state.identityProfile?[state.identityProfile]:[]);
+    const selectedIdentity=selectedProfile==='manual'?undefined:identityProfiles.find(profile=>profile.recipientProfileId===selectedProfile);
+    const key = crypto.randomUUID();
+    setCheckoutKey(key);
+    setPaidFromCart(false);
+    const ok = await act({ type: "checkout", key, signature: cartSignature(state.cart), useBalance, expectedCredit: credit, consentVersion: customsVersion, delivery, deliveryProfileId:selectedProfile==='manual'?undefined:selectedProfile, identityProfileId:selectedIdentity?.documentId });
     setBusy(false);
     if (ok) { setCheckoutOpen(false); setSuccess(true); }
+  }
+
+  async function payFromCart() {
+    if (paymentBusy) return;
+    const pendingIds = pendingCheckoutOrders.map(order => order.id);
+    if (!pendingIds.length) { setPaidFromCart(true); return; }
+    setPaymentBusy(true);
+    let completed = true;
+    for (const id of pendingIds) {
+      if (!await act({ type: "payment-demo", id })) { completed = false; break; }
+    }
+    setPaymentBusy(false);
+    if (completed) setPaidFromCart(true);
   }
 
   return <>
@@ -72,7 +109,7 @@ export function CartView() {
     {!ready ? (error ? <Empty title={c.signin} description={c.signinHint} href="/account" label={c.signin} /> : <div className="surface loading-state">{c.loading}</div>) : !state.cart.length ? <Empty title={c.empty} description={c.emptyHint} href="/" /> :
       <div className="cart-layout">
         <div className="cart-items">
-          {state.cart.map((item) => <article className="surface cart-item" key={item.id}>
+          {state.cart.map((item) => { const checkoutServices=pricing.serviceCatalog.filter(service=>service.enabled&&service.requestStage==="checkout");const selectedServices=item.requestedServiceIds??[];return <article className="surface cart-item" key={item.id}>
             <div className="cart-product-photo"><ProductImage product={item.product} decorative locale={locale} /></div>
             <div className="cart-item-body">
               <span className="eyebrow">{item.product.brand}</span><h2>{item.product.name}</h2><p>{item.variant} · {item.product.country ?? (locale==='ru'?'США':locale==='uz'?'AQSh':'United States')}</p>
@@ -82,9 +119,10 @@ export function CartView() {
                 <span aria-label={x.quantity}>{item.quantity}</span>
                 <button aria-label={`${x.increase} ${item.product.name}`} disabled={item.quantity >= 10} onClick={() => void act({ type: "cart-quantity", id: item.id, quantity: item.quantity + 1 })}><Plus size={16} /></button>
               </div><button className="remove-item" aria-label={`${x.remove} ${item.product.name}`} onClick={() => void act({ type: "cart-remove", id: item.id })}><Trash2 size={16} /><span>{x.remove}</span></button></div>
+              {checkoutServices.length>0&&<details className="cart-service-chooser"><summary>{locale==='ru'?'Услуги склада':locale==='uz'?'Ombor xizmatlari':'Warehouse services'}{selectedServices.length>0&&<span>{selectedServices.length}</span>}</summary><p>{locale==='ru'?'Можно отметить пожелания сейчас. Выполнимость и точную стоимость оператор подтвердит после приёмки; без вашего согласия услугу не выполнят.':locale==='uz'?'Istaklarni hozir belgilashingiz mumkin. Ombor qabulidan keyin operator imkoniyat va aniq narxni tasdiqlaydi; roziligingizsiz xizmat bajarilmaydi.':'You can note preferences now. The operator will confirm availability and the exact price after intake; nothing is performed without your approval.'}</p><div className="cart-service-list">{checkoutServices.map(service=>{const checked=selectedServices.includes(service.id)||service.required;const amount=serviceFeeForCountry(service,item.product.country)*(service.unit==='item'?item.quantity:1);return <label className="cart-service-option" key={service.id}><Checkbox checked={checked} disabled={service.required} onCheckedChange={(value)=>{const next=value===true?[...new Set([...selectedServices,service.id])]:selectedServices.filter(id=>id!==service.id);void act({type:'cart-services',id:item.id,serviceIds:next})}}/><span><b>{serviceTitle(service,locale)}</b><small>{serviceDescription(service,locale)}</small><small>{service.pricingMode==='fixed'?`${locale==='ru'?'Тариф':'Tariff'}: ${money(amount)} · ${locale==='ru'?'сумма будет подтверждена на складе':'confirmed at the warehouse'}`:(locale==='ru'?'Стоимость подтвердит оператор до выполнения':'The operator will quote before performing the service')}</small></span>{service.required&&<em>{locale==='ru'?'обязательно':locale==='uz'?'majburiy':'required'}</em>}</label>})}</div></details>}
             </div>
             <div className="cart-item-price"><strong>{money(item.quote.total)}</strong><span>{x.per} {item.quantity} {locale==='ru'?'шт.':locale==='uz'?'dona':'items'}</span><Expiry expiresAt={item.quote.expiresAt} locale={locale} /></div>
-          </article>)}
+          </article>})}
           <Link className="text-link" href="/">{x.continue} <ArrowRight size={16} /></Link>
         </div>
         <aside className="surface cart-summary"><h2>{c.order}</h2><details className="quote-details"><summary>{c.breakdown}</summary><CostLines q={sums} locale={locale} /><p className="micro">{c.estimate}</p></details>
@@ -105,29 +143,31 @@ export function CartView() {
       <form className="checkout-form" onSubmit={(event) => { event.preventDefault(); if(!review){setReview(true);return;} void checkout(); }}>
         {!review&&<>
         <div className="checkout-address-head"><MapPin size={21} /><span>{x.deliveryUz}</span></div>
-        {state.deliveryProfiles.length > 0 && <div className="field"><label htmlFor="saved-recipient">{x.saved}</label><select id="saved-recipient" value={selectedProfile} onChange={event => { const profile = state.deliveryProfiles.find(item => item.id === event.target.value); setSelectedProfile(event.target.value); if (profile) setDelivery(profile); }}><option value="manual">{x.newAddress}</option>{state.deliveryProfiles.map(profile => <option key={profile.id} value={profile.id}>{profile.label} · {profile.recipient}</option>)}</select><small>{x.chooseSaved}</small></div>}
+        {state.deliveryProfiles.length > 0 && <fieldset className="recipient-choices"><legend>{x.saved}</legend>{state.deliveryProfiles.map(profile=>{const passport=(state.identityProfiles??(state.identityProfile?[state.identityProfile]:[])).find(identity=>identity.recipientProfileId===profile.id);return <label className={'recipient-choice'+(selectedProfile===profile.id?' selected':'')} key={profile.id}><input type="radio" name="checkout-recipient" value={profile.id} checked={selectedProfile===profile.id} onChange={()=>{setSelectedProfile(profile.id);setDelivery(profile)}}/><span className="recipient-choice-body"><strong>{profile.label}{profile.primary?` · ${locale==='ru'?'основной':locale==='uz'?'asosiy':'primary'}`:''}</strong><span>{profile.recipient} · {profile.phone}</span><small>{profile.region}, {profile.city}, {profile.address}</small><small className={passport?'recipient-passport-ok':'recipient-passport-missing'}>{passport?(locale==='ru'?'Паспорт подтверждён':locale==='uz'?'Pasport tasdiqlangan':'Passport confirmed'):(locale==='ru'?'Паспорт не добавлен':locale==='uz'?'Pasport qo‘shilmagan':'No passport added')}</small></span></label>})}<button type="button" className={'recipient-choice recipient-choice-manual'+(selectedProfile==='manual'?' selected':'')} onClick={()=>{setSelectedProfile('manual');setDelivery(state.deliveryProfile??{...emptyDelivery,recipient:user?.name??'',phone:state.communication.phone})}}>{x.newAddress}</button><small>{locale==='ru'?'Выберите фактического получателя посылки.':'Select the person who will actually receive the parcel.'}</small></fieldset>}
         <div className="two-fields">
-          <div className="field"><label htmlFor="recipient">{x.recipient}</label><input id="recipient" required minLength={2} maxLength={100} value={delivery.recipient} onChange={(event) => setDelivery({ ...delivery, recipient: event.target.value })} /></div>
-          <div className="field"><label htmlFor="recipient-phone">{x.phone}</label><input id="recipient-phone" required type="tel" minLength={7} maxLength={30} placeholder="+998 90 123 45 67" value={delivery.phone} onChange={(event) => setDelivery({ ...delivery, phone: event.target.value })} /></div>
-          <div className="field"><label htmlFor="region">{x.region}</label><input id="region" list="region-suggestions" autoComplete="address-level1" required minLength={2} maxLength={100} value={delivery.region} onChange={(event) => setDelivery({ ...delivery, region: event.target.value })} /><datalist id="region-suggestions">{suggestions(regions,delivery.region).map(value=><option key={value} value={value}/>)}</datalist></div>
-          <div className="field"><label htmlFor="city">{x.city}</label><input id="city" list="city-suggestions" autoComplete="address-level2" required minLength={2} maxLength={100} value={delivery.city} onChange={(event) => setDelivery({ ...delivery, city: event.target.value })} /><datalist id="city-suggestions">{suggestions(cities,delivery.city).map(value=><option key={value} value={value}/>)}</datalist></div>
+          <div className="field"><label htmlFor="recipient">{x.recipient}</label><input id="recipient" required minLength={2} maxLength={100} value={delivery.recipient} onChange={(event) => {setSelectedProfile('manual');setDelivery({ ...delivery, recipient: event.target.value })}} /></div>
+          <div className="field"><label htmlFor="recipient-phone">{x.phone}</label><input id="recipient-phone" required type="tel" minLength={7} maxLength={30} placeholder="+998 90 123 45 67" value={delivery.phone} onChange={(event) => {setSelectedProfile('manual');setDelivery({ ...delivery, phone: event.target.value })}} /></div>
+          <div className="field"><label htmlFor="region">{x.region}</label><input id="region" list="region-suggestions" autoComplete="address-level1" required minLength={2} maxLength={100} value={delivery.region} onChange={(event) => {setSelectedProfile('manual');setDelivery({ ...delivery, region: event.target.value })}} /><datalist id="region-suggestions">{suggestions(regions,delivery.region).map(value=><option key={value} value={value}/>)}</datalist></div>
+          <div className="field"><label htmlFor="city">{x.city}</label><input id="city" list="city-suggestions" autoComplete="address-level2" required minLength={2} maxLength={100} value={delivery.city} onChange={(event) => {setSelectedProfile('manual');setDelivery({ ...delivery, city: event.target.value })}} /><datalist id="city-suggestions">{suggestions(cities,delivery.city).map(value=><option key={value} value={value}/>)}</datalist></div>
         </div>
-        <div className="field"><label htmlFor="delivery-address">{x.street}</label><input id="delivery-address" list="street-suggestions" autoComplete="street-address" required minLength={5} maxLength={220} placeholder={x.streetPlaceholder} value={delivery.address} onChange={(event) => setDelivery({ ...delivery, address: event.target.value })} /><datalist id="street-suggestions">{suggestions(streets,delivery.address).map(value=><option key={value} value={value}/>)}</datalist><small>{x.addressHint}</small></div>
+        <div className="field"><label htmlFor="delivery-address">{x.street}</label><input id="delivery-address" list="street-suggestions" autoComplete="street-address" required minLength={5} maxLength={220} placeholder={x.streetPlaceholder} value={delivery.address} onChange={(event) => {setSelectedProfile('manual');setDelivery({ ...delivery, address: event.target.value })}} /><datalist id="street-suggestions">{suggestions(streets,delivery.address).map(value=><option key={value} value={value}/>)}</datalist><small>{x.addressHint}</small></div>
         <div className="two-fields">
-          <div className="field"><label htmlFor="postal-code">{x.postal}</label><input id="postal-code" maxLength={20} value={delivery.postalCode} onChange={(event) => setDelivery({ ...delivery, postalCode: event.target.value })} /></div>
-          <div className="field"><label htmlFor="delivery-comment">{x.comment}</label><input id="delivery-comment" maxLength={300} value={delivery.comment} onChange={(event) => setDelivery({ ...delivery, comment: event.target.value })} /></div>
+          <div className="field"><label htmlFor="postal-code">{x.postal}</label><input id="postal-code" maxLength={20} value={delivery.postalCode} onChange={(event) => {setSelectedProfile('manual');setDelivery({ ...delivery, postalCode: event.target.value })}} /></div>
+          <div className="field"><label htmlFor="delivery-comment">{x.comment}</label><input id="delivery-comment" maxLength={300} value={delivery.comment} onChange={(event) => {setSelectedProfile('manual');setDelivery({ ...delivery, comment: event.target.value })}} /></div>
         </div>
         </>}
-        {review&&<section className="checkout-review"><h3>{delivery.recipient}</h3><p>{delivery.phone}</p><p>{delivery.region}, {delivery.city}, {delivery.address}</p><button type="button" className="text-button" onClick={()=>setReview(false)}>{x.editAddress}</button><hr/><div className="review-items">{state.cart.map(item=><div key={item.id}><span>{item.product.name}<small>{item.variant} · {item.quantity}</small></span><b>{money(item.quote.total)}</b></div>)}</div><details className="quote-details"><summary>{c.breakdown}</summary><CostLines q={sums} locale={locale}/></details></section>}
+        {review&&<section className="checkout-review"><h3>{delivery.recipient}</h3><p>{delivery.phone}</p><p>{delivery.region}, {delivery.city}, {delivery.address}</p><button type="button" className="text-button" onClick={()=>setReview(false)}>{x.editAddress}</button><hr/><div className="review-items">{state.cart.map(item=><div key={item.id}><span>{item.product.name}<small>{item.variant} · {item.quantity}</small>{(item.requestedServiceIds??[]).map(id=>{const service=pricing.serviceCatalog.find(value=>value.id===id);return service?<small className="review-service" key={id}>+ {serviceTitle(service,locale)} · {locale==='ru'?'цена будет согласована после приёмки':'price confirmed after intake'}</small>:null})}</span><b>{money(item.quote.total)}</b></div>)}</div><details className="quote-details"><summary>{c.breakdown}</summary><CostLines q={sums} locale={locale}/></details></section>}
         <div className="payment-preview"><div><span>{x.estimated}</span><b>{state.cart.length} {x.items}</b></div><strong>{money(total - credit)}</strong></div>
         {review&&<p className="micro">{locale==='ru'?'Предзаказ сохраняется в Atlas. Реальные платежи и доставка ещё не подключены.':locale==='uz'?'Oldindan buyurtma Atlas’da saqlanadi. Haqiqiy to‘lov va yetkazish hali ulanmagan.':'Your pre-order is saved in Atlas. Real payments and delivery are not connected yet.'}</p>}
         <button className="btn primary full" disabled={busy}>{busy ? x.saving : review ? x.confirm : x.review}<Check size={18} /></button>
       </form>
     </Modal>
 
-    <Modal open={success} onClose={() => { setSuccess(false); window.location.assign("/orders"); }} title={c.success} description={c.successHint}>
-      <div className="success-icon"><Check size={35} /></div><button className="btn primary full" onClick={() => { setSuccess(false); window.location.assign("/orders"); }}>{x.pay} <ArrowRight size={18} /></button><p className="micro center">{x.noCharge}</p>
+    <Modal open={success} onClose={() => setSuccess(false)} title={paidFromCart?(locale==='ru'?'Тестовая оплата подтверждена':locale==='uz'?'Sinov to‘lovi tasdiqlandi':'Test payment confirmed'):c.success} description={paidFromCart?(locale==='ru'?'Заказ отмечен как тестово оплаченный. Реального списания не было.':locale==='uz'?'Buyurtma test rejimida to‘langan deb belgilandi. Haqiqiy pul yechilmadi.':'The order is marked as test-paid. No real charge was made.'):pendingCheckoutOrders.length?(locale==='ru'?'Проверьте сумму и подтвердите тестовую оплату здесь.':locale==='uz'?'Summani tekshiring va sinov to‘lovini shu yerda tasdiqlang.':'Review the amount and confirm the test payment here.'):checkoutOrders.length?(locale==='ru'?'Заказ уже оплачен с тестового баланса.':locale==='uz'?'Buyurtma demo balans orqali to‘langan.':'The order was paid from the demo balance.'):c.successHint}>
+      <div className="success-icon"><Check size={35} /></div>
+      {!paidFromCart&&pendingCheckoutOrders.length>0&&<div className="summary-total"><span>{x.payable}<strong>{money(pendingCheckoutAmount)}</strong></span><span className="currency-mark">UZS</span></div>}
+      {!paidFromCart&&pendingCheckoutOrders.length>0?<button className="btn primary full" disabled={paymentBusy} onClick={()=>void payFromCart()}>{paymentBusy?(locale==='ru'?'Подтверждаем…':locale==='uz'?'Tasdiqlanmoqda…':'Confirming…'):(locale==='ru'?'Подтвердить тестовую оплату':locale==='uz'?'Sinov to‘lovini tasdiqlash':'Confirm test payment')} <ArrowRight size={18} /></button>:<button className="btn secondary full" onClick={() => { setSuccess(false); window.location.assign("/orders"); }}>{locale==='ru'?'Открыть заказы':locale==='uz'?'Buyurtmalarni ochish':'View orders'} <ArrowRight size={18} /></button>}
+      <p className="micro center">{x.noCharge}</p>
     </Modal>
   </>;
 }
-

@@ -1,0 +1,15 @@
+name = "atlas-catalog-refresh"
+main = "src/index.ts"
+compatibility_date = "2026-09-22"
+
+[triggers]
+# One bounded batch per hour; the site endpoint limits work to a small,
+# cross-store batch and takes a D1 lease so overlapping runs are harmless.
+crons = ["0 * * * *"]
+
+[vars]
+ATLAS_SITE_URL = "https://atlas-uz-market.ishakovzakir0.chatgpt.site"
+
+# Configure the matching value on the Atlas Site runtime and this worker with
+# secret storage. Never add the real value to this file or source control:
+#   wrangler secret put ATLAS_CATALOG_REFRESH_SECRET

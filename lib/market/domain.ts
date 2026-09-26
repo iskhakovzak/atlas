@@ -6,6 +6,46 @@ export const money = (n: number) =>
 const positive = z.number().finite().positive();
 const amount = z.number().int().nonnegative();
 const signedAmount = z.number().int().min(-100_000_000).max(100_000_000);
+const localizedTextSchema = z.object({
+  ru: z.string().trim().min(1).max(120),
+  uz: z.string().trim().min(1).max(120),
+  en: z.string().trim().min(1).max(120),
+});
+const localizedDescriptionSchema = z.object({
+  ru: z.string().trim().max(500),
+  uz: z.string().trim().max(500),
+  en: z.string().trim().max(500),
+});
+export const serviceOfferingSchema = z.object({
+  id: z.string().regex(/^[a-z0-9][a-z0-9_-]{1,79}$/),
+  title: localizedTextSchema,
+  description: localizedDescriptionSchema,
+  requestStage: z.enum(["checkout", "warehouse"]),
+  unit: z.enum(["package", "item", "day", "photo", "half-hour"]),
+  pricingMode: z.enum(["fixed", "operator-quote"]),
+  feeUzs: amount.max(20_000_000).default(0),
+  countryPrices: z.record(z.string().min(1).max(80), amount.max(20_000_000)).default({}),
+  enabled: z.boolean().default(false),
+  required: z.boolean().default(false),
+});
+export type ServiceOffering = z.infer<typeof serviceOfferingSchema>;
+const defaultServiceOfferings: ServiceOffering[] = [
+  { id: "content-photo", title: { ru: "Фото содержимого", uz: "Ichidagi mahsulot fotosi", en: "Contents photo" }, description: { ru: "Открыть посылку и сфотографировать содержимое одним кадром.", uz: "Posilkani ochib, ichidagi mahsulotlarni bitta kadrda suratga olish.", en: "Open the parcel and photograph its contents in one overview." }, requestStage: "checkout", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
+  { id: "detailed-photos", title: { ru: "Дополнительные фото", uz: "Qo‘shimcha fotosuratlar", en: "Detailed photos" }, description: { ru: "Крупные фото товара, ярлыков и комплектации по запросу.", uz: "So‘rov bo‘yicha tovar, yorliq va komplektatsiyaning yaqin fotosuratlari.", en: "Close-up photos of the item, labels and included parts on request." }, requestStage: "checkout", unit: "photo", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
+  { id: "visual-inspection", title: { ru: "Проверка состояния", uz: "Holatini tekshirish", en: "Condition inspection" }, description: { ru: "Визуально проверить упаковку и доступные части товара без вскрытия заводских пломб.", uz: "Zavod plombalarini buzmasdan qadoq va ko‘rinadigan qismlarni tekshirish.", en: "Visually check the packaging and accessible parts without breaking factory seals." }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
+  { id: "consolidation", title: { ru: "Объединение посылок", uz: "Posilkalarni birlashtirish", en: "Package consolidation" }, description: { ru: "Объединить несколько полученных посылок, если склад и маршрут это позволяют.", uz: "Ombor va yo‘nalish imkon bersa, bir nechta qabul qilingan posilkani birlashtirish.", en: "Combine multiple received packages when the warehouse and route allow it." }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
+  { id: "repack", title: { ru: "Переупаковка", uz: "Qayta qadoqlash", en: "Repacking" }, description: { ru: "Заменить внешнюю коробку или упаковать товар компактнее, если это возможно.", uz: "Imkon bo‘lsa, tashqi qutini almashtirish yoki tovarni ixchamroq qadoqlash.", en: "Replace the outer box or repack more compactly when possible." }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
+  { id: "split-package", title: { ru: "Разделение посылки", uz: "Posilkani bo‘lish", en: "Split package" }, description: { ru: "Разделить содержимое на отдельные отправления после проверки ограничений маршрута.", uz: "Yo‘nalish cheklovlari tekshirilgach, tarkibni alohida jo‘natmalarga ajratish.", en: "Separate contents into shipments after route restrictions are checked." }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
+  { id: "extra-packing", title: { ru: "Дополнительная упаковка", uz: "Qo‘shimcha qadoqlash", en: "Extra packing material" }, description: { ru: "Пузырчатая плёнка, дополнительная защита или укрепление коробки по доступности.", uz: "Mavjudligiga qarab pufakchali plyonka, qo‘shimcha himoya yoki qutini mustahkamlash.", en: "Bubble wrap, extra protection or box reinforcement, subject to availability." }, requestStage: "checkout", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
+  { id: "fragile-handling", title: { ru: "Маркировка «Хрупкое»", uz: "«Mo‘rt» belgisi", en: "Fragile handling" }, description: { ru: "Дополнительная маркировка и осторожная обработка, если их поддерживает склад.", uz: "Ombor qo‘llab-quvvatlasa, qo‘shimcha belgi va ehtiyotkor ishlov.", en: "Extra fragile marking and careful handling if supported by the warehouse." }, requestStage: "checkout", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
+  { id: "express-processing", title: { ru: "Срочная обработка", uz: "Tezkor ishlov", en: "Express processing" }, description: { ru: "Приоритет в очереди склада; срок зависит от фактической загрузки.", uz: "Ombor navbatida ustuvorlik; muddat haqiqiy yuklamaga bog‘liq.", en: "Priority in the warehouse queue; timing depends on actual workload." }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
+  { id: "remove-tags", title: { ru: "Снять ценники и бирки", uz: "Narx yorliqlari va teglarni olib tashlash", en: "Remove price tags and labels" }, description: { ru: "Снять наружные ценники или бирки, если это возможно без повреждения товара.", uz: "Tovarga zarar yetkazmasdan tashqi narx yorliqlari yoki teglarni olib tashlash.", en: "Remove external price tags or labels when this can be done without damaging the item." }, requestStage: "warehouse", unit: "item", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
+  { id: "special-request", title: { ru: "Особое поручение складу", uz: "Omborga maxsus topshiriq", en: "Special warehouse request" }, description: { ru: "Опишите нестандартную просьбу. Оператор подтвердит выполнимость и стоимость.", uz: "Nostandart iltimosni yozing. Operator bajarish imkoniyati va narxni tasdiqlaydi.", en: "Describe a custom request. An operator will confirm feasibility and price." }, requestStage: "warehouse", unit: "half-hour", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
+  { id: "storage-extension", title: { ru: "Дополнительное хранение", uz: "Qo‘shimcha saqlash", en: "Extended storage" }, description: { ru: "Запросить дополнительные дни хранения; условия подтвердит оператор.", uz: "Qo‘shimcha saqlash kunlarini so‘rash; shartlarni operator tasdiqlaydi.", en: "Request extra storage days; an operator will confirm the terms." }, requestStage: "warehouse", unit: "day", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
+  { id: "return-to-store", title: { ru: "Возврат продавцу", uz: "Sotuvchiga qaytarish", en: "Return to merchant" }, description: { ru: "Запрос на возврат зависит от правил магазина, срока и стоимости обратной доставки.", uz: "Qaytarish do‘kon qoidalari, muddat va qayta yetkazish narxiga bog‘liq.", en: "A return depends on the store's policy, deadline and return-shipping cost." }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
+  { id: "package-disposal", title: { ru: "Утилизация посылки", uz: "Posilkani utilizatsiya qilish", en: "Package disposal" }, description: { ru: "Запрос на утилизацию после подтверждения владельца и условий склада.", uz: "Egasi va ombor shartlari tasdiqlangach utilizatsiya so‘rovi.", en: "A disposal request, subject to owner confirmation and warehouse rules." }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
+  { id: "shipping-insurance", title: { ru: "Страхование отправления", uz: "Jo‘natmani sug‘urtalash", en: "Shipment insurance" }, description: { ru: "Недоступно, пока не подтверждены страховщик, покрытие, исключения и порядок выплат.", uz: "Sug‘urtalovchi, qoplama, istisnolar va to‘lov tartibi tasdiqlanmaguncha mavjud emas.", en: "Unavailable until the insurer, coverage, exclusions and claim process are confirmed." }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: false, required: false },
+];
 export const productSchema = z.object({
   id: z.string(),
   name: z.string().min(1).max(140),
@@ -89,6 +129,21 @@ export const pricingSchema = z.object({
   reserve: z.number().finite().min(0).max(2),
   divisor: positive.max(100_000),
   rates: z.record(z.string(), positive).default(usdRates),
+  // Warehouse service options are versioned with pricing. Old settings receive
+  // the safe starter catalogue; submitted orders keep their own snapshots.
+  serviceCatalog: z.array(serviceOfferingSchema).max(40).default(defaultServiceOfferings),
+  // Optional dispatch-country overrides. Keys use the same country labels as
+  // Product.country (the country of actual dispatch), not the customer's country.
+  // Old centrally managed pricing rows remain valid and inherit the base tariff.
+  countryOverrides: z.record(z.string().min(1).max(80), z.object({
+    perKg: positive.max(10_000_000).optional(),
+    margin: z.number().finite().min(0).max(1).optional(),
+    buyoutFee: z.number().finite().min(0).max(1).optional(),
+    conversionFee: z.number().finite().min(0).max(1).optional(),
+    deliveryMargin: z.number().finite().min(0).max(1).optional(),
+    optionalServices: z.number().finite().min(0).max(10_000_000).optional(),
+    reserve: z.number().finite().min(0).max(2).optional(),
+  }).strict()).default({}),
   version: z.string().min(1).max(80),
   updatedAt: amount,
   managedBy: z.string().max(160).optional(),
@@ -105,9 +160,40 @@ export const tariff: Pricing = {
   reserve: 0.2,
   divisor: 5000,
   rates: usdRates,
+  serviceCatalog: defaultServiceOfferings,
+  countryOverrides: {},
   version: "demo-1",
   updatedAt: 0,
 };
+/** Resolve only the pricing dimensions explicitly overridden for this item's
+ * actual dispatch country. FX rates stay currency-based in `rates`. */
+export function pricingForCountry(config: Pricing, country?: string): Pricing {
+  const override = country ? config.countryOverrides?.[country] : undefined;
+  return override ? { ...config, ...override } : config;
+}
+export const serviceTitle = (service: ServiceOffering | WarehouseServiceRequest, locale: "ru" | "uz" | "en") => service.title[locale];
+export const serviceDescription = (service: ServiceOffering | WarehouseServiceRequest, locale: "ru" | "uz" | "en") => service.description[locale];
+export function serviceFeeForCountry(service: ServiceOffering, country?: string) {
+  return country && service.countryPrices[country] !== undefined
+    ? service.countryPrices[country]
+    : service.feeUzs;
+}
+export function validateServiceCatalog(services: ServiceOffering[]) {
+  const seen = new Set<string>();
+  for (const service of services) {
+    if (seen.has(service.id)) throw Error("Идентификаторы услуг должны быть уникальными.");
+    seen.add(service.id);
+    if (service.required && (service.requestStage !== "checkout" || service.pricingMode !== "fixed"))
+      throw Error("Обязательная услуга должна предлагаться при оформлении и иметь фиксированный тариф.");
+    if (service.enabled && service.pricingMode === "fixed" && serviceFeeForCountry(service) <= 0)
+      throw Error("Для активной услуги с фиксированной ценой задайте положительный базовый тариф.");
+    if (service.enabled && service.pricingMode === "fixed" && Object.values(service.countryPrices).some((fee) => fee <= 0))
+      throw Error("У активной услуги все заданные тарифы по странам должны быть больше нуля.");
+    if (service.id === "shipping-insurance" && service.enabled)
+      throw Error("Страхование нельзя включить без подтверждённого страховщика, покрытия и процесса претензий.");
+  }
+  return services;
+}
 const quoteSchema = z.object({
   id: z.string(),
   createdAt: amount,
@@ -283,6 +369,7 @@ const savedDeliveryProfileSchema = deliveryProfileSchema.extend({
 export type SavedDeliveryProfile = z.infer<typeof savedDeliveryProfileSchema>;
 export const identityProfileSchema = z.object({
   documentId: z.string().min(1).max(100),
+  recipientProfileId: z.string().min(1).max(80).optional(),
   firstName: z.string().trim().min(1).max(80),
   lastName: z.string().trim().min(1).max(80),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -340,12 +427,31 @@ const changeRequestSchema = z.object({
   reason: z.string().min(2).max(500),
   previousValue: z.string().max(240).optional(),
   proposedValue: z.string().max(240).optional(),
+  warehouseServiceRequestId: z.string().min(1).max(100).optional(),
   amountDelta: signedAmount.default(0),
   status: z.enum(["pending", "approved", "declined"]),
   createdAt: amount,
   respondedAt: amount.optional(),
 });
 export type ChangeRequest = z.infer<typeof changeRequestSchema>;
+const warehouseServiceRequestSchema = z.object({
+  id: z.string().min(1).max(100),
+  serviceId: z.string().min(2).max(80),
+  title: localizedTextSchema,
+  description: localizedDescriptionSchema,
+  unit: z.enum(["package", "item", "day", "photo", "half-hour"]),
+  units: z.number().int().min(1).max(100),
+  pricingMode: z.enum(["fixed", "operator-quote"]),
+  feeUzs: amount.max(20_000_000).optional(),
+  country: z.string().max(80).optional(),
+  origin: z.enum(["checkout", "warehouse"]),
+  status: z.enum(["requested", "quoted", "approved", "declined", "completed"]),
+  requestedAt: amount,
+  quotedAmount: amount.max(100_000_000).optional(),
+  quoteChangeRequestId: z.string().max(100).optional(),
+  completedAt: amount.optional(),
+});
+export type WarehouseServiceRequest = z.infer<typeof warehouseServiceRequestSchema>;
 export const warehouseConditionSchema = z.enum(["ok", "damaged", "mismatch"]);
 export const warehouseServiceSchema = z.enum(["photo", "repack", "consolidate", "split", "fragile"]);
 const warehouseInspectionSchema = z.object({
@@ -377,11 +483,14 @@ const orderSchema = z.object({
     .object({ version: z.string(), acceptedAt: amount })
     .optional(),
   delivery: deliveryProfileSchema.optional(),
+  deliveryProfileId: z.string().min(1).max(80).optional(),
+  identity: identityProfileSchema.optional(),
   payment: paymentSchema.optional(),
   parcel: parcelSchema.optional(),
   assignment: assignmentSchema.optional(),
   staffNotes: z.array(staffNoteSchema).optional(),
   changeRequests: z.array(changeRequestSchema).optional(),
+  warehouseServiceRequests: z.array(warehouseServiceRequestSchema).max(40).optional(),
   warehouseInspection: warehouseInspectionSchema.optional(),
 });
 export type Order = z.infer<typeof orderSchema>;
@@ -441,9 +550,115 @@ const cartSchema = z.object({
   product: productSchema,
   variant: z.string(),
   quantity: z.number().int().min(1).max(10),
+  requestedServiceIds: z.array(z.string().min(2).max(80)).max(40).default([]),
   quote: quoteSchema,
 });
 export type CartItem = z.infer<typeof cartSchema>;
+
+function buildServiceRequest(
+  service: ServiceOffering,
+  country: string | undefined,
+  units: number,
+  origin: WarehouseServiceRequest["origin"],
+  now: number,
+): WarehouseServiceRequest {
+  return warehouseServiceRequestSchema.parse({
+    id: "WSR-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
+    serviceId: service.id,
+    title: service.title,
+    description: service.description,
+    unit: service.unit,
+    units,
+    pricingMode: service.pricingMode,
+    feeUzs: service.pricingMode === "fixed" ? serviceFeeForCountry(service, country) : undefined,
+    country,
+    origin,
+    status: "requested",
+    requestedAt: now,
+  });
+}
+
+export function setCartServices(
+  state: State,
+  id: string,
+  serviceIds: string[],
+  config: Pricing = tariff,
+) {
+  const item = state.cart.find((candidate) => candidate.id === id);
+  if (!item) throw Error("Товар уже удалён из корзины.");
+  const allowed = config.serviceCatalog.filter((service) => service.enabled && service.requestStage === "checkout");
+  const selected = [...new Set(serviceIds)];
+  if (selected.some((serviceId) => !allowed.some((service) => service.id === serviceId)))
+    throw Error("Одна из услуг больше недоступна. Обновите страницу.");
+  for (const required of allowed.filter((service) => service.required)) {
+    if (!selected.includes(required.id)) throw Error("Выберите обязательные услуги перед оформлением.");
+  }
+  return {
+    ...state,
+    cart: state.cart.map((candidate) => candidate.id === id ? { ...candidate, requestedServiceIds: selected } : candidate),
+  };
+}
+
+export function requestWarehouseService(
+  state: State,
+  id: string,
+  serviceId: string,
+  units: number,
+  config: Pricing = tariff,
+  now = Date.now(),
+): State {
+  const order = getOrder(state, id);
+  if (order.cancelled || order.status !== 2 || !order.warehouseInspection)
+    throw Error("Услуги можно запросить после приёмки товара и до взвешивания.");
+  if ((order.changeRequests ?? []).some((request) => request.status === "pending"))
+    throw Error("Сначала дождитесь ответа на текущий запрос по заказу.");
+  if ((order.warehouseServiceRequests ?? []).length >= 40)
+    throw Error("Достигнут лимит услуг для этого заказа.");
+  const service = config.serviceCatalog.find((item) => item.id === serviceId && item.enabled && item.requestStage === "warehouse");
+  if (!service) throw Error("Эта услуга сейчас недоступна.");
+  const previous = order.warehouseServiceRequests ?? [];
+  if (previous.some((request) => request.serviceId === serviceId && ["requested", "quoted", "approved"].includes(request.status)))
+    throw Error("Эта услуга уже запрошена для заказа.");
+  const count = service.unit === "package" ? 1 : service.unit === "item" ? order.quantity : units;
+  if (!Number.isInteger(count) || count < 1 || count > 100) throw Error("Проверьте количество услуги.");
+  const request = buildServiceRequest(service, order.product.country, count, "warehouse", now);
+  return withNotification(replace(state, {
+    ...order,
+    warehouseServiceRequests: [...previous, request],
+    history: [...order.history, { at: now, text: `Клиент запросил услугу склада «${service.title.ru}»; оператор проверит выполнимость и отправит стоимость на согласование.` }],
+  }), "Запрос передан оператору", `${service.title.ru}. Цена и возможность будут подтверждены до выполнения.`, id, now);
+}
+
+export function completeWarehouseService(state: State, id: string, requestId: string, now = Date.now()): State {
+  const order = getOrder(state, id);
+  if (order.cancelled || order.status !== 2 || !order.warehouseInspection)
+    throw Error("Услуги можно отметить только после приёмки и до взвешивания.");
+  const request = (order.warehouseServiceRequests ?? []).find((item) => item.id === requestId);
+  if (!request || request.status !== "approved") throw Error("Сначала получите согласие покупателя на услугу.");
+  const completed = { ...request, status: "completed" as const, completedAt: now };
+  return withNotification(replace(state, {
+    ...order,
+    warehouseServiceRequests: (order.warehouseServiceRequests ?? []).map((item) => item.id === requestId ? completed : item),
+    history: [...order.history, { at: now, text: `Склад отметил услугу «${request.title.ru}» выполненной.` }],
+  }), "Услуга выполнена", request.title.ru, id, now);
+}
+
+export function declineWarehouseService(state: State, id: string, requestId: string, reason: string, now = Date.now()): State {
+  const order = getOrder(state, id);
+  if (order.cancelled || order.status !== 2 || !order.warehouseInspection)
+    throw Error("Запрос можно отклонить после приёмки товара и до взвешивания.");
+  const request = (order.warehouseServiceRequests ?? []).find((item) => item.id === requestId);
+  if (!request || request.status !== "requested") throw Error("Запрос уже обработан или не найден.");
+  if ((order.changeRequests ?? []).some((change) => change.status === "pending" && change.warehouseServiceRequestId === requestId))
+    throw Error("Сначала обработайте ожидающее согласование услуги.");
+  const note = reason.trim();
+  if (note.length < 2 || note.length > 500) throw Error("Укажите причину недоступности услуги.");
+  return withNotification(replace(state, {
+    ...order,
+    warehouseServiceRequests: (order.warehouseServiceRequests ?? []).map((item) => item.id === requestId ? { ...item, status: "declined" as const } : item),
+    history: [...order.history, { at: now, text: `Оператор отклонил услугу «${request.title.ru}»: ${note}` }],
+  }), "Услуга недоступна", `${request.title.ru}: ${note}`, id, now);
+}
 
 function merchantParcelKey(item: CartItem) {
   if (!item.product.sourceUrl || item.product.boxedWeight === undefined)
@@ -458,17 +673,20 @@ function merchantParcelKey(item: CartItem) {
 
 /** Recalculate international delivery once per merchant parcel. */
 export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing = tariff) {
-  const next = items.map((item) => ({
-    ...item,
-    quote: quote(
-      item.product.usd,
-      item.product.weight,
-      now,
-      item.quantity,
-      item.product.sourceShippingUsd ?? 0,
-      config,
-    ),
-  }));
+  const next = items.map((item) => {
+    const itemPricing = pricingForCountry(config, item.product.country);
+    return {
+      ...item,
+      quote: quote(
+        item.product.usd,
+        item.product.weight,
+        now,
+        item.quantity,
+        item.product.sourceShippingUsd ?? 0,
+        itemPricing,
+      ),
+    };
+  });
   const groups = new Map<string, number[]>();
   next.forEach((item, index) => {
     if (!item.product.sourceUrl || item.product.boxedWeight === undefined) return;
@@ -479,9 +697,10 @@ export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing
     const contributions = indexes.map((index) => next[index].product.boxedWeight! * next[index].quantity);
     const boxedTotal = contributions.reduce((sum, value) => sum + value, 0);
     const chargeableWeight = combinedShipmentWeight(boxedTotal);
-    const shippingTotal = Math.ceil(chargeableWeight * config.perKg);
-    const reserveTotal = Math.ceil(shippingTotal * config.reserve);
-    const deliveryMarginTotal = Math.round(shippingTotal * config.deliveryMargin);
+    const countryPricing = pricingForCountry(config, next[indexes[0]].product.country);
+    const shippingTotal = Math.ceil(chargeableWeight * countryPricing.perKg);
+    const reserveTotal = Math.ceil(shippingTotal * countryPricing.reserve);
+    const deliveryMarginTotal = Math.round(shippingTotal * countryPricing.deliveryMargin);
     let shippingLeft = shippingTotal;
     let reserveLeft = reserveTotal;
     let marginLeft = deliveryMarginTotal;
@@ -520,6 +739,7 @@ export const stateSchema = z.object({
   deliveryProfile: deliveryProfileSchema.optional(),
   deliveryProfiles: z.array(savedDeliveryProfileSchema).default([]),
   identityProfile: identityProfileSchema.optional(),
+  identityProfiles: z.array(identityProfileSchema).optional(),
   declarations: z.array(declarationSchema).default([]),
   communication: communicationSchema.default({
     emailEnabled: false,
@@ -605,20 +825,28 @@ export function confirmIdentity(state: State, value: Omit<IdentityProfile, "pass
   if (cleanNumber.length < 6 || cleanNumber.length > 20) throw Error("Проверьте номер паспорта.");
   const birth = new Date(value.birthDate + "T00:00:00Z");
   if (!Number.isFinite(birth.getTime()) || birth.getTime() > now || birth.getUTCFullYear() < new Date(now).getUTCFullYear() - 120) throw Error("Проверьте дату рождения.");
-  return { ...state, identityProfile: identityProfileSchema.parse({ ...value, passportMasked: "•••• " + cleanNumber.slice(-4), confirmedAt: now }) };
+  const confirmed = identityProfileSchema.parse({ ...value, passportMasked: "•••• " + cleanNumber.slice(-4), confirmedAt: now });
+  const profiles = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
+  return { ...state, identityProfile: confirmed, identityProfiles: [confirmed, ...profiles.filter((profile) => profile.documentId !== confirmed.documentId && profile.recipientProfileId !== confirmed.recipientProfileId)] };
 }
 
 export function clearIdentity(state: State, documentId: string): State {
-  return state.identityProfile?.documentId === documentId ? { ...state, identityProfile: undefined } : state;
+  return { ...state, identityProfile: state.identityProfile?.documentId === documentId ? undefined : state.identityProfile, identityProfiles: (state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : [])).filter((profile) => profile.documentId !== documentId) };
 }
 
 export function submitDeclarationPreview(state: State, orderIds: string[], now = Date.now()): State {
-  if (!state.identityProfile) throw Error("Сначала подтвердите паспортные данные.");
-  if (!state.deliveryProfile) throw Error("Сначала сохраните адрес доставки.");
   const selected = [...new Set(orderIds)].map((id) => state.orders.find((order) => order.id === id)).filter((order): order is Order => !!order && !order.cancelled);
   if (!selected.length) throw Error("Выберите хотя бы один действующий заказ.");
+  const recipientIds = new Set(selected.map((order) => order.deliveryProfileId ?? "legacy"));
+  if (recipientIds.size > 1) throw Error("Подготовьте отдельную декларацию для каждого получателя.");
+  const first = selected[0];
+  const profiles = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
+  const identity = first.identity ?? profiles.find((profile) => profile.recipientProfileId === first.deliveryProfileId) ?? state.identityProfile;
+  const delivery = first.delivery ?? (first.deliveryProfileId ? state.deliveryProfiles.find((profile) => profile.id === first.deliveryProfileId) : undefined) ?? state.deliveryProfile;
+  if (!identity) throw Error("Сначала подтвердите паспортные данные получателя.");
+  if (!delivery) throw Error("Сначала сохраните адрес доставки.");
   const lines = selected.map((order) => ({ orderId: order.id, description: order.product.declarationDescription ?? order.product.name, country: order.product.country ?? "Не указана", quantity: order.quantity, value: order.quote.merchandise }));
-  const declaration: Declaration = { id: "DEC-" + crypto.randomUUID().slice(0, 8).toUpperCase(), createdAt: now, status: "submitted-preview", identity: state.identityProfile, delivery: state.deliveryProfile, orderIds: selected.map((order) => order.id), lines, totalValue: lines.reduce((sum, line) => sum + line.value, 0) };
+  const declaration: Declaration = { id: "DEC-" + crypto.randomUUID().slice(0, 8).toUpperCase(), createdAt: now, status: "submitted-preview", identity, delivery, orderIds: selected.map((order) => order.id), lines, totalValue: lines.reduce((sum, line) => sum + line.value, 0) };
   return withNotification({ ...state, declarations: [declaration, ...state.declarations].slice(0, 20) }, "Тестовая декларация подготовлена", `Пакет ${declaration.id} сохранён внутри Atlas. В таможню он не отправлялся.`);
 }
 export const balanceOf = (state: State) =>
@@ -645,6 +873,7 @@ export function addToCart(
   config: Pricing = tariff,
 ): State {
   if (!p.variants.includes(variant)) throw Error("Выберите вариант товара.");
+  const itemPricing = pricingForCountry(config, p.country);
   const item = state.cart.find(
     (i) => i.product.id === p.id && i.variant === variant,
   );
@@ -657,7 +886,8 @@ export function addToCart(
       product: p,
       variant,
       quantity: 1,
-      quote: quote(p.usd, p.weight, now, 1, p.sourceShippingUsd ?? 0, config),
+      requestedServiceIds: config.serviceCatalog.filter((service) => service.enabled && service.required && service.requestStage === "checkout").map((service) => service.id),
+      quote: quote(p.usd, p.weight, now, 1, p.sourceShippingUsd ?? 0, itemPricing),
     },
   ];
   return { ...state, cart: repriceCart(cart, now, config)};
@@ -671,6 +901,7 @@ export function changeQuantity(
 ): State {
   const item = state.cart.find((i) => i.id === id);
   if (!item) throw Error("Товар уже удалён из корзины.");
+  const itemPricing = pricingForCountry(config, item.product.country);
   return {
     ...state,
     cart: repriceCart(state.cart.map((i) =>
@@ -684,7 +915,7 @@ export function changeQuantity(
               now,
               quantity,
               i.product.sourceShippingUsd ?? 0,
-              config,
+              itemPricing,
             ),
           }
         : i,
@@ -706,13 +937,13 @@ export function renewCart(
         now,
         i.quantity,
         i.product.sourceShippingUsd ?? 0,
-        config,
+        pricingForCountry(config, i.product.country),
       ),
     })), now, config),
   };
 }
 export const cartSignature = (items: CartItem[]) =>
-  items.map((i) => i.id + ":" + i.quote.id).join("|");
+  items.map((i) => i.id + ":" + i.quote.id + ":" + [...(i.requestedServiceIds ?? [])].sort().join(",")).join("|");
 export function checkoutCart(
   state: State,
   key: string,
@@ -721,6 +952,9 @@ export function checkoutCart(
   now = Date.now(),
   consentVersion?: string,
   delivery?: DeliveryProfile,
+  deliveryProfileId?: string,
+  identityProfileId?: string,
+  config: Pricing = tariff,
 ): State {
   if (state.checkoutKeys.includes(key)) return state;
   if (!state.cart.length) throw Error("Корзина пуста.");
@@ -736,12 +970,27 @@ export function checkoutCart(
     );
   if (cartSignature(state.cart) !== signature)
     throw Error("Корзина изменилась. Проверьте новый итог перед оформлением.");
+  const availableServices = config.serviceCatalog.filter((service) => service.enabled && service.requestStage === "checkout");
+  for (const item of state.cart) {
+    const selected = item.requestedServiceIds ?? [];
+    if (selected.some((serviceId) => !availableServices.some((service) => service.id === serviceId)))
+      throw Error("Одна из выбранных услуг больше недоступна. Обновите корзину.");
+    if (availableServices.some((service) => service.required && !selected.includes(service.id)))
+      throw Error("Выберите обязательные услуги перед оформлением.");
+  }
   if (state.cart.some((i) => now >= i.quote.expiresAt))
     throw Error("Расчёт истёк. Обновите его перед оформлением.");
   let available = useBalance ? Math.max(0, balanceOf(state)) : 0;
-  const checkedDelivery = delivery
-    ? deliveryProfileSchema.parse(delivery)
+  const selectedDelivery = deliveryProfileId ? state.deliveryProfiles.find((profile) => profile.id === deliveryProfileId) : undefined;
+  if (deliveryProfileId && !selectedDelivery) throw Error("Выбранный получатель больше не сохранён. Обновите профиль.");
+  const checkedDelivery = selectedDelivery
+    ? deliveryProfileSchema.parse(selectedDelivery)
+    : delivery
+      ? deliveryProfileSchema.parse(delivery)
     : state.deliveryProfile;
+  const profiles = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
+  const selectedIdentity = identityProfileId ? profiles.find((profile) => profile.documentId === identityProfileId) : undefined;
+  if (identityProfileId && (!selectedDelivery || !selectedIdentity || selectedIdentity.recipientProfileId !== selectedDelivery.id)) throw Error("Паспорт не привязан к выбранному получателю.");
   const entries = [...state.entries];
   const orders = state.cart.map((i) => {
     const id = "AT-" + crypto.randomUUID().slice(0, 8).toUpperCase();
@@ -758,6 +1007,12 @@ export function checkoutCart(
         credit: "order-funds",
         description: "Оплата заказа демобалансом",
       });
+    const serviceRequests = (i.requestedServiceIds ?? []).map((serviceId) => {
+      const service = availableServices.find((candidate) => candidate.id === serviceId);
+      if (!service) throw Error("Одна из выбранных услуг больше недоступна. Обновите корзину.");
+      const units = service.unit === "item" ? i.quantity : 1;
+      return buildServiceRequest(service, i.product.country, units, "checkout", now);
+    });
     return {
       id,
       product: i.product,
@@ -770,6 +1025,9 @@ export function checkoutCart(
       balanceUsed,
       batchId: key,
       delivery: checkedDelivery,
+      deliveryProfileId: selectedDelivery?.id,
+      identity: selectedIdentity,
+      warehouseServiceRequests: serviceRequests.length ? serviceRequests : undefined,
       payment: {
         id: "PAY-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
         status: payable === 0 ? "paid" : "pending",
@@ -892,16 +1150,34 @@ export function createChangeRequest(
   if (o.cancelled || o.status >= 5) throw Error("Изменения для этого заказа недоступны.");
   if ((o.changeRequests ?? []).some((request) => request.status === "pending"))
     throw Error("Сначала дождитесь ответа на текущий запрос.");
+  const serviceRequest = value.warehouseServiceRequestId
+    ? (o.warehouseServiceRequests ?? []).find((request) => request.id === value.warehouseServiceRequestId)
+    : undefined;
+  if (value.warehouseServiceRequestId && (!serviceRequest || serviceRequest.status !== "requested" || value.kind !== "warehouse-service"))
+    throw Error("Запрос на эту складскую услугу уже обработан или не найден.");
+  if (serviceRequest) {
+    if (o.status < 2 || o.status >= 4 || !o.warehouseInspection)
+      throw Error("Стоимость складской услуги можно предложить после приёмки товара.");
+    if (value.amountDelta < 0) throw Error("Стоимость услуги не может быть отрицательной.");
+    if (serviceRequest.pricingMode === "fixed" && value.amountDelta !== (serviceRequest.feeUzs ?? 0) * serviceRequest.units)
+      throw Error("Сумма не совпадает с зафиксированным тарифом услуги.");
+  }
   const request = changeRequestSchema.parse({
     ...value,
     id: "CHG-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
     status: "pending",
     createdAt: now,
   });
+  const warehouseServiceRequests = serviceRequest
+    ? (o.warehouseServiceRequests ?? []).map((item) => item.id === serviceRequest.id
+      ? { ...item, status: "quoted" as const, quotedAmount: request.amountDelta, quoteChangeRequestId: request.id }
+      : item)
+    : o.warehouseServiceRequests;
   return withNotification(
     replace(state, {
       ...o,
       changeRequests: [...(o.changeRequests ?? []), request],
+      warehouseServiceRequests,
       history: [...o.history, { at: now, text: `Запрошено согласование: ${request.title}.` }],
     }),
     "Нужно ваше решение",
@@ -924,12 +1200,18 @@ export function respondToChangeRequest(
   if (!request || request.status !== "pending") throw Error("Запрос уже обработан или не найден.");
   if (request.amountDelta !== expectedAmountDelta) throw Error("Сумма изменилась. Проверьте запрос заново.");
   const nextRequest = { ...request, status: decision, respondedAt: now } as ChangeRequest;
+  const warehouseServiceRequests = request.warehouseServiceRequestId
+    ? (o.warehouseServiceRequests ?? []).map((serviceRequest) => serviceRequest.id === request.warehouseServiceRequestId
+      ? { ...serviceRequest, status: decision, quotedAmount: request.amountDelta }
+      : serviceRequest)
+    : o.warehouseServiceRequests;
   const nextOrder: Order = {
     ...o,
     variant: decision === "approved" && request.kind === "variant" && request.proposedValue
       ? request.proposedValue
       : o.variant,
     changeRequests: (o.changeRequests ?? []).map((item) => item.id === requestId ? nextRequest : item),
+    warehouseServiceRequests,
     history: [...o.history, { at: now, text: decision === "approved" ? `Покупатель подтвердил: ${request.title}.` : `Покупатель отклонил: ${request.title}.` }],
   };
   return withNotification(
@@ -1108,6 +1390,7 @@ export function advanceOrder(
     (o.product.sourceShippingEstimated && !o.storeShippingSettlement) ||
     (o.storeShippingSettlement?.extra && !o.storeShippingExtraApproved)
     || (o.changeRequests ?? []).some((request) => request.status === "pending")
+    || (o.status >= 2 && (o.warehouseServiceRequests ?? []).some((request) => ["requested", "quoted", "approved"].includes(request.status)))
   )
     throw Error("Этот переход пока недоступен.");
   if (o.status === 3 && !o.settlement)
@@ -1148,6 +1431,8 @@ export function receiveOrder(
     throw Error("Заказ ещё не готов к взвешиванию.");
   if (!o.warehouseInspection)
     throw Error("Сначала завершите приёмку и проверку товара на складе.");
+  if ((o.warehouseServiceRequests ?? []).some((request) => ["requested", "quoted", "approved"].includes(request.status)))
+    throw Error("Сначала завершите или отклоните выбранные складские услуги.");
   if (
     o.warehouseInspection.condition !== "ok" &&
     !(o.changeRequests ?? []).some((request) =>
