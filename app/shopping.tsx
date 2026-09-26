@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "@/components/site-link";
-import { ArrowRight, Check, Clock3, MapPin, Minus, Plus, ShieldCheck, Trash2, Wallet } from "lucide-react";
+import { ArrowRight, Check, Clock3, Loader2, MapPin, Minus, Plus, ShieldCheck, Trash2, Wallet } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
 import { balanceOf, cartSignature, money, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, type DeliveryProfile } from "@/lib/market/domain";
@@ -159,14 +159,14 @@ export function CartView() {
         {review&&<section className="checkout-review"><h3>{delivery.recipient}</h3><p>{delivery.phone}</p><p>{delivery.region}, {delivery.city}, {delivery.address}</p><button type="button" className="text-button" onClick={()=>setReview(false)}>{x.editAddress}</button><hr/><div className="review-items">{state.cart.map(item=><div key={item.id}><span>{item.product.name}<small>{item.variant} · {item.quantity}</small>{(item.requestedServiceIds??[]).map(id=>{const service=pricing.serviceCatalog.find(value=>value.id===id);return service?<small className="review-service" key={id}>+ {serviceTitle(service,locale)} · {locale==='ru'?'цена будет согласована после приёмки':'price confirmed after intake'}</small>:null})}</span><b>{money(item.quote.total)}</b></div>)}</div><details className="quote-details"><summary>{c.breakdown}</summary><CostLines q={sums} locale={locale}/></details></section>}
         <div className="payment-preview"><div><span>{x.estimated}</span><b>{state.cart.length} {x.items}</b></div><strong>{money(total - credit)}</strong></div>
         {review&&<p className="micro">{locale==='ru'?'Предзаказ сохраняется в Atlas. Реальные платежи и доставка ещё не подключены.':locale==='uz'?'Oldindan buyurtma Atlas’da saqlanadi. Haqiqiy to‘lov va yetkazish hali ulanmagan.':'Your pre-order is saved in Atlas. Real payments and delivery are not connected yet.'}</p>}
-        <button className="btn primary full" disabled={busy}>{busy ? x.saving : review ? x.confirm : x.review}<Check size={18} /></button>
+        <button className="btn primary full" disabled={busy}>{busy ? x.saving : review ? x.confirm : x.review}{busy ? <Loader2 size={18} className="spin" /> : <Check size={18} />}</button>
       </form>
     </Modal>
 
     <Modal open={success} onClose={() => setSuccess(false)} title={paidFromCart?(locale==='ru'?'Тестовая оплата подтверждена':locale==='uz'?'Sinov to‘lovi tasdiqlandi':'Test payment confirmed'):c.success} description={paidFromCart?(locale==='ru'?'Заказ отмечен как тестово оплаченный. Реального списания не было.':locale==='uz'?'Buyurtma test rejimida to‘langan deb belgilandi. Haqiqiy pul yechilmadi.':'The order is marked as test-paid. No real charge was made.'):pendingCheckoutOrders.length?(locale==='ru'?'Проверьте сумму и подтвердите тестовую оплату здесь.':locale==='uz'?'Summani tekshiring va sinov to‘lovini shu yerda tasdiqlang.':'Review the amount and confirm the test payment here.'):checkoutOrders.length?(locale==='ru'?'Заказ уже оплачен с тестового баланса.':locale==='uz'?'Buyurtma demo balans orqali to‘langan.':'The order was paid from the demo balance.'):c.successHint}>
       <div className="success-icon"><Check size={35} /></div>
       {!paidFromCart&&pendingCheckoutOrders.length>0&&<div className="summary-total"><span>{x.payable}<strong>{money(pendingCheckoutAmount)}</strong></span><span className="currency-mark">UZS</span></div>}
-      {!paidFromCart&&pendingCheckoutOrders.length>0?<button className="btn primary full" disabled={paymentBusy} onClick={()=>void payFromCart()}>{paymentBusy?(locale==='ru'?'Подтверждаем…':locale==='uz'?'Tasdiqlanmoqda…':'Confirming…'):(locale==='ru'?'Подтвердить тестовую оплату':locale==='uz'?'Sinov to‘lovini tasdiqlash':'Confirm test payment')} <ArrowRight size={18} /></button>:<button className="btn secondary full" onClick={() => { setSuccess(false); window.location.assign("/orders"); }}>{locale==='ru'?'Открыть заказы':locale==='uz'?'Buyurtmalarni ochish':'View orders'} <ArrowRight size={18} /></button>}
+      {!paidFromCart&&pendingCheckoutOrders.length>0?<button className="btn primary full" disabled={paymentBusy} onClick={()=>void payFromCart()}>{paymentBusy?(locale==='ru'?'Подтверждаем…':locale==='uz'?'Tasdiqlanmoqda…':'Confirming…'):(locale==='ru'?'Подтвердить тестовую оплату':locale==='uz'?'Sinov to‘lovini tasdiqlash':'Confirm test payment')} {paymentBusy ? <Loader2 size={18} className="spin" /> : <ArrowRight size={18} />}</button>:<button className="btn secondary full" onClick={() => { setSuccess(false); window.location.assign("/orders"); }}>{locale==='ru'?'Открыть заказы':locale==='uz'?'Buyurtmalarni ochish':'View orders'} <ArrowRight size={18} /></button>}
       <p className="micro center">{x.noCharge}</p>
     </Modal>
   </>;
