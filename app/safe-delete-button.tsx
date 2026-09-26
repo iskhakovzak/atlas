@@ -1,7 +1,9 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { Trash2, AlertTriangle } from "lucide-react";
 
-export function SafeDeleteButton({ onConfirm, label, itemName }: { onConfirm: () => void, label: string, itemName?: string }) {
+export function SafeDeleteButton({ onConfirm, label, itemName, locale = 'ru' }: { onConfirm: () => void, label: string, itemName?: string, locale?: 'ru'|'uz'|'en' }) {
   const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
@@ -11,11 +13,14 @@ export function SafeDeleteButton({ onConfirm, label, itemName }: { onConfirm: ()
     }
   }, [confirming]);
 
+  const confirmText = locale === 'uz' ? 'Aniqmi?' : locale === 'en' ? 'Sure?' : 'Точно?';
+  const ariaConfirm = locale === 'uz' ? 'Aniq o‘chirasizmi?' : locale === 'en' ? 'Are you sure?' : 'Точно удалить?';
+
   return (
     <button
       type="button"
       className={`remove-item ${confirming ? 'confirming' : ''}`}
-      aria-label={`${confirming ? 'Точно удалить?' : label} ${itemName ?? ''}`}
+      aria-label={`${confirming ? ariaConfirm : label} ${itemName ?? ''}`}
       onClick={() => {
         if (confirming) {
           onConfirm();
@@ -25,7 +30,7 @@ export function SafeDeleteButton({ onConfirm, label, itemName }: { onConfirm: ()
       }}
     >
       {confirming ? <AlertTriangle size={16} className="text-red-500" /> : <Trash2 size={16} />}
-      <span style={{ color: confirming ? '#e7000b' : undefined }}>{confirming ? 'Точно?' : label}</span>
+      <span style={{ color: confirming ? '#e7000b' : undefined }}>{confirming ? confirmText : label}</span>
     </button>
   );
 }

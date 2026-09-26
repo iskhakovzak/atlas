@@ -54,9 +54,9 @@
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
+  --color-background: #ffffff;
+  --color-foreground: #203c31;
+  --color-card: #ffffff;
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
@@ -65,11 +65,11 @@
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
+  --color-muted-foreground: #65716a;
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
+  --color-destructive: #e7000b;
+  --color-border: #e5e5e5;
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-chart-1: var(--chart-1);
@@ -160,7 +160,7 @@ a, button, input, textarea, select, .btn, summary {
 
 /* SAFE DELETE COMPONENT */
 .remove-item.confirming {
-  color: var(--destructive);
+  color: #e7000b;
   font-weight: 500;
   background: rgba(231, 0, 11, 0.05);
   padding: 4px 8px;
@@ -175,7 +175,7 @@ a, button, input, textarea, select, .btn, summary {
     bottom: calc(max(11px, env(safe-area-inset-bottom)) + 55px) !important; /* Выше mobile-nav */
     z-index: 20;
     box-shadow: 0 -4px 15px rgba(32, 78, 61, 0.1);
-    background: var(--background);
+    background: #ffffff;
     margin-bottom: -15px; /* компенсировать нижний паддинг если есть */
   }
 }
@@ -192,9 +192,9 @@ a, button, input, textarea, select, .btn, summary {
   flex-direction: column;
   gap: 6px;
   padding: 16px;
-  border: 1px solid var(--border);
+  border: 1px solid #e5e5e5;
   border-radius: 12px;
-  background: var(--card);
+  background: #ffffff;
   position: relative;
   text-align: left;
 }
@@ -216,8 +216,8 @@ a, button, input, textarea, select, .btn, summary {
   border-color: #315f91;
 }
 .address-card b { font-size: 14px; }
-.address-card span { font-size: 13px; color: var(--foreground); }
-.address-card small { font-size: 12px; color: var(--muted-foreground); line-height: 1.4; }
+.address-card span { font-size: 13px; color: #203c31; }
+.address-card small { font-size: 12px; color: #65716a; line-height: 1.4; }
 .address-card .remove-item { margin-top: auto; padding-top: 12px; align-self: flex-start; }
 .passport-ok { color: #668c3e !important; }
 .passport-missing { color: #e7000b !important; }
