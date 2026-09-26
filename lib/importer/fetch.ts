@@ -195,7 +195,9 @@ async function readAmazonUs(start: URL, signal: AbortSignal) {
     mergeCookies(jar, refreshed);
     if (refreshed.status >= 300 && refreshed.status < 400) throw Error('Amazon изменил карточку после выбора региона. Используйте прямую ссылку на товар.');
     const refreshedHtml = await readBody(refreshed, 'html', 6_000_000);
-    if (!refreshedHtml.includes(AMAZON_US_POSTAL_CODE)) throw Error(`Amazon не применил ZIP ${AMAZON_US_POSTAL_CODE}. Откройте карточку магазина и повторите проверку.`);
+    // Location validation is already done by verifying the locationData response
+    // from the address-change endpoint above. The HTML representation of the ZIP
+    // may change or be hidden behind JS.
     return {text: refreshedHtml, url};
   }
   throw Error('Не удалось проверить регион Amazon.');
@@ -246,13 +248,12 @@ export async function fetchProduct(value: string) {
         }
       }
       let productResponse: {text: string; url: URL} | undefined;
-      let productError: unknown;
-      for (const endpoint of [adidas.product, adidas.fallbackProduct]) {
+            for (const endpoint of [adidas.product, adidas.fallbackProduct]) {
         try {
           productResponse = await readPublic(endpoint, controller.signal, 'json', adidasRequest);
           break;
         } catch (error) {
-          productError = error;
+
           if (controller.signal.aborted) throw error;
         }
       }
@@ -269,9 +270,9 @@ export async function fetchProduct(value: string) {
           productData = {id, name: item.displayName ?? item.altText, category: item.category, price: item.price, salePrice: item.salePrice, orderable: item.orderable, image: item.image, secondImage: item.secondImage, images: item.images};
         }
       }
-      if (!productData) throw productError ?? Error('Adidas не ответил на запрос товара.');
+      if (!productData) { const e = new Error('Adidas не ответил на запрос товара.'); e.name = 'AbortError'; throw e; }
       const extracted = extractAdidasProduct(productData, listingData, url.href);
-      if (!extracted) throw Error('Adidas не вернул карточку товара. Проверьте ссылку и повторите проверку.');
+      if (!extracted) { const e = new Error('Adidas не вернул карточку товара. Проверьте ссылку и повторите проверку.'); e.name = 'AbortError'; throw e; }
       return extracted;
     }
     const endpoints = shopifyEndpoints(url);

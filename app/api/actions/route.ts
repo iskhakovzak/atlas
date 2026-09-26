@@ -8,16 +8,16 @@ export async function POST(request:Request){try{
   const user=await identity();
   const payload=await requestJson(request) as {action:unknown;revision:number};
   const parsed=actionSchema.safeParse(payload.action);
-  if(!parsed.success)throw new HttpError(400,'Проверьте данные запроса и согласие с условиями.');
+  if(!parsed.success)throw new HttpError(400, 'err_10');
   const status=await customerStatus(user.userId);
-  if(status==='blocked')throw new HttpError(403,'Профиль временно заблокирован. Обратитесь в поддержку Atlas.');
-  if(status==='review'&&['checkout','payment-demo'].includes(parsed.data.type))throw new HttpError(403,'Оформление временно приостановлено до завершения проверки профиля.');
+  if(status==='blocked')throw new HttpError(403, 'err_11');
+  if(status==='review'&&['checkout','payment-demo'].includes(parsed.data.type))throw new HttpError(403, 'err_12');
   const current=await account(user);
   if(parsed.data.type==='identity-confirm'){
     const identityAction=parsed.data;
     const owned=await database().prepare('SELECT id FROM market_identity_documents WHERE id=? AND user_id=?').bind(identityAction.documentId,user.userId).first();
-    if(!owned)throw new HttpError(404,'Скан паспорта не найден. Загрузите его заново.');
-    if(identityAction.recipientProfileId&&!current.state.deliveryProfiles.some(profile=>profile.id===identityAction.recipientProfileId))throw new HttpError(400,'Сначала выберите сохранённого получателя.');
+    if(!owned)throw new HttpError(404, 'err_13');
+    if(identityAction.recipientProfileId&&!current.state.deliveryProfiles.some(profile=>profile.id===identityAction.recipientProfileId))throw new HttpError(400, 'err_14');
   }
   if(payload.revision!==current.revision)return json({error:'Данные изменились. Проверьте обновлённый заказ и повторите действие.',state:current.state,revision:current.revision},409);
   let next;

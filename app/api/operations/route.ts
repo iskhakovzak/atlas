@@ -72,7 +72,7 @@ const updateSchema = z.discriminatedUnion("kind", [
 
 async function requireOperator() {
   const user = await identity();
-  if (!operator(user.email)) throw new HttpError(403, "Доступно только оператору.");
+  if (!operator(user.email)) throw new HttpError(403, 'err_15');
   return user;
 }
 
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     sameOrigin(request);
     const user = await requireOperator();
     const payload = updateSchema.safeParse(await requestJson(request));
-    if (!payload.success) throw new HttpError(400, "Проверьте данные операции.");
+    if (!payload.success) throw new HttpError(400, 'err_16');
     if(payload.data.kind==='projection-rebuild'){const count=await rebuildOperationalProjection();await recordAudit(user,'projection.rebuild','system',undefined,{accounts:count});return json({health:await operationalHealth(),audit:await auditEvents()});}
     if(payload.data.kind==='customer-status'){await setCustomerStatus(payload.data.accountId,payload.data.status);await recordAudit(user,'customer.status','customer',payload.data.accountId,{status:payload.data.status});return json({health:await operationalHealth(),audit:await auditEvents()});}
     if(payload.data.kind==='staff'){
@@ -134,7 +134,7 @@ export async function POST(request: Request) {
     }
     const parsedAction = actionSchema.safeParse(payload.data.action);
     if (!parsedAction.success)
-      throw new HttpError(400, "Проверьте действие с заказом.");
+      throw new HttpError(400, 'err_17');
     if (
       ![
         "advance",
@@ -151,7 +151,7 @@ export async function POST(request: Request) {
         "support-reply",
       ].includes(parsedAction.data.type)
     )
-      throw new HttpError(403, "Это действие недоступно оператору.");
+      throw new HttpError(403, 'err_18');
     const current = await storedAccount(payload.data.accountId);
     if (current.revision !== payload.data.revision)
       return json(

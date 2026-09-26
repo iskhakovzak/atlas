@@ -17,16 +17,16 @@ const commandSchema=z.discriminatedUnion('kind',[
 ]);
 export async function GET(request:Request){try{
   const admin=new URL(request.url).searchParams.get('admin')==='1';
-  if(admin){const user=await identity();if(!operator(user.email))throw new HttpError(403,'Доступ только администратору.');}
+  if(admin){const user=await identity();if(!operator(user.email))throw new HttpError(403, 'err_28');}
   const {document}=await readCatalog();
   return json(admin?{document}:publicCatalog(document,await pricing()));
 }catch(error){return failure(error)}}
 export async function POST(request:Request){try{
-  sameOrigin(request);const user=await identity();if(!operator(user.email))throw new HttpError(403,'Доступ только администратору.');
+  sameOrigin(request);const user=await identity();if(!operator(user.email))throw new HttpError(403, 'err_29');
   const payload=z.object({revision:z.number().int().nonnegative(),command:commandSchema}).safeParse(await requestJson(request,200000));
-  if(!payload.success)throw new HttpError(400,'Проверьте поля карточки и подборки.');
+  if(!payload.success)throw new HttpError(400, 'err_30');
   const {command,revision}=payload.data,{document,raw}=await readCatalog();
-  if(document.revision!==revision)throw new HttpError(409,'Каталог изменён. Обновите список перед сохранением.');
+  if(document.revision!==revision)throw new HttpError(409, 'err_31');
   if(command.kind==='refresh-due'){
     const refreshResult=await refreshDueCatalog(),next=await readCatalog();
     return json({document:next.document,refreshResult});
@@ -40,10 +40,10 @@ export async function POST(request:Request){try{
     const sourceUrl=canonicalCatalogUrl(command.url),now=Date.now(),db=database();
     const key=user.userId+':catalog-import:'+Math.floor(now/60000);
     const limit=await db.prepare('INSERT INTO market_rate_limits (key,count,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count').bind(key,now+120000).first<{count:number}>();
-    if(!limit||limit.count>20)throw new HttpError(429,'Достигнут лимит импорта. Продолжите через минуту.');
+    if(!limit||limit.count>20)throw new HttpError(429, 'err_32');
     await db.prepare('DELETE FROM market_rate_limits WHERE expires_at < ?').bind(now).run();
     if(command.kind==='discover')return json({urls:await fetchCollectionLinks(sourceUrl)});
-    if(command.collectionIds.some(id=>!document.collections.some(c=>c.id===id)))throw new HttpError(400,'Подборка не найдена.');
+    if(command.collectionIds.some(id=>!document.collections.some(c=>c.id===id)))throw new HttpError(400, 'err_33');
     const data=await fetchProduct(sourceUrl),draft=importDraft(data,command.collectionIds,command.country,Date.now());
     const existing=document.entries.find(e=>canonicalCatalogUrl(e.draft.sourceUrl)===draft.sourceUrl||canonicalCatalogUrl(e.draft.sourceUrl)===sourceUrl);
     if(existing){const mergedCollections=[...new Set([...existing.draft.collectionIds,...command.collectionIds])];existing.draft=recheckedDraft(existing.draft,draft);existing.draft.collectionIds=mergedCollections;}
