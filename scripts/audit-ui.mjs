@@ -157,15 +157,15 @@ try {
     await check("!!document.querySelector('.product-sheet') && !!document.querySelector('.sheet-total a[href^=\"/signin-with-chatgpt\"]')","guest product asks for sign-in");
     await evaluate("document.querySelector('button[aria-label=\"Закрыть карточку\"]').click()");
   }
-  await evaluate("(()=>{const el=document.querySelector('.locale-select');el.value='en';el.dispatchEvent(new Event('change',{bubbles:true}))})()");
-  await check("document.documentElement.lang==='en' && document.querySelector('.guest-intro').textContent.includes('Find better value')","guest language works without saving an account");
+  await evaluate("(()=>{const el=document.querySelector('.locale-select');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(el,'en');el.dispatchEvent(new Event('change',{bubbles:true}))})()");
+  await check("document.documentElement.lang==='en' && document.querySelector('.guest-intro h1').textContent.includes('Shop abroad')","guest language works without saving an account");
   await check("document.querySelector('.finds-own-link form button')?.textContent.includes('Sign in to calculate')","guest link CTA is honest in English");
   if(catalogReady){
     await evaluate("document.querySelector('.find-photo').click()");
     await check("document.querySelector('.product-sheet')?.textContent.includes('Cost calculation')","product details localize to English");
     await evaluate("document.querySelector('button[aria-label=\"Close item details\"]').click()");
   }
-  await evaluate("(()=>{const el=document.querySelector('.locale-select');el.value='uz';el.dispatchEvent(new Event('change',{bubbles:true}))})()");
+  await evaluate("(()=>{const el=document.querySelector('.locale-select');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(el,'uz');el.dispatchEvent(new Event('change',{bubbles:true}))})()");
   await check("document.documentElement.lang==='uz' && document.querySelector('.finds-own-link form button')?.textContent.includes('Kirish va hisoblash')","guest link CTA localizes to Uzbek");
   if(catalogReady){
     await evaluate("document.querySelector('.find-photo').click()");
@@ -174,7 +174,7 @@ try {
   }
   await visit('/');
   await check("document.documentElement.lang==='uz'","guest language survives reload");
-  await evaluate("(()=>{const el=document.querySelector('.locale-select');el.value='ru';el.dispatchEvent(new Event('change',{bubbles:true}))})()");
+  await evaluate("(()=>{const el=document.querySelector('.locale-select');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(el,'ru');el.dispatchEvent(new Event('change',{bubbles:true}))})()");
   await check("document.documentElement.lang==='ru'","guest language switches back to Russian");
   const protectedRoutes=['account','favorites','cart','orders','balance','notifications','identity','declaration','batch-import','order-by-link','admin','operations','analytics'];
   for(const route of protectedRoutes){
@@ -203,7 +203,7 @@ try {
     await check("document.querySelectorAll('.variant-options.sizes button:not(:disabled)').length>0",'available merchant sizes shown');
     await evaluate("document.querySelector('.variant-options.sizes button:not(:disabled)').click()");
     await check("document.querySelector('#variant').value.includes('BLACK')",'color and size selection retained');
-    await cdp.send('Emulation.setDeviceMetricsOverride',{width:390,height:900,deviceScaleFactor:1,mobile:false},sessionId);
+    await cdp.send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:3,mobile:true},sessionId);
     await check('innerWidth===390','import viewport is 390 pixels');
     await evaluate("document.querySelector('.import-gallery').scrollIntoView({block:'center',behavior:'instant'})");
     await check("[...document.querySelectorAll('.import-gallery img')].slice(0,2).every(img=>img.complete&&img.naturalWidth>0)",'merchant photos render');
@@ -227,6 +227,16 @@ try {
    await auditPage('member /'+route);
    if(route==='account')await snapshot('account-800');
   }
+  await cdp.send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:3,mobile:true},sessionId);
+  for(const route of ['account','cart','order-by-link']){
+   await visit('/'+route);
+   await check("!document.querySelector('.access-card[role=status]')","iPhone session resolves /"+route);
+   await auditPage('iPhone member /'+route);
+   if(route==='order-by-link')await check("(()=>{const input=document.querySelector('#source-url');if(!input)return false;const style=getComputedStyle(input);return parseFloat(style.fontSize)>=16&&parseFloat(style.minHeight)>=48})()",'iPhone link field avoids zoom and remains tappable');
+   if(route==='cart')await check("(()=>{const bar=document.querySelector('.cart-mobile-sticky'),nav=document.querySelector('.mobile-nav');return !bar||bar.getBoundingClientRect().bottom<=nav.getBoundingClientRect().top+1})()",'iPhone cart action clears bottom navigation');
+   await snapshot('iphone-'+route);
+  }
+  await cdp.send('Emulation.setDeviceMetricsOverride',{width:1440,height:900,deviceScaleFactor:1,mobile:false},sessionId);
   await visit('/legal#passport-consent');
   await check("document.getElementById('passport-consent')?.open === true",'consent link opens the exact legal section');
   await visit('/notifications');
@@ -261,11 +271,19 @@ try {
   await check("!!document.querySelector('[data-access=signin]')","retry recovers to guest");
   await cdp.send('Page.removeScriptToEvaluateOnNewDocument',{identifier:fixtureScript.identifier},sessionId);
   await visit('/');
-  for(const width of [1440,390]){
-   await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<600},sessionId);
+  for(const width of [1440,800,430,402,390,360]){
+   const mobile=width<600;
+   await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:mobile?3:1,mobile},sessionId);
    await visit('/');
    await check("!!document.querySelector('.guest-intro')","responsive guest "+width);
    await check("document.documentElement.scrollWidth<=innerWidth+1","no horizontal overflow "+width);
+   if(mobile){
+    await check("document.querySelector('meta[name=viewport]')?.content.includes('viewport-fit=cover')","iPhone edge-to-edge viewport "+width);
+    await check("(()=>{const header=document.querySelector('.site-header');return header.scrollWidth<=header.clientWidth+1})()","iPhone header fits viewport "+width);
+    await check("(()=>{const input=document.querySelector('#finds-product-url');const style=getComputedStyle(input);return parseFloat(style.fontSize)>=16&&parseFloat(style.minHeight)>=48})()","iPhone form fields avoid zoom and remain tappable "+width);
+    await check("getComputedStyle(document.querySelector('.mobile-nav')).display==='grid'","mobile navigation visible "+width);
+    await check("(()=>{const nav=document.querySelector('.mobile-nav');const main=document.querySelector('main');const probe=document.createElement('div');probe.className='cart-mobile-sticky';probe.style.height='60px';main.append(probe);const clear=probe.getBoundingClientRect().bottom<=nav.getBoundingClientRect().top+1;probe.remove();return clear})()","cart action clears bottom navigation "+width);
+   }
    await mkdir('outputs/ui-audit',{recursive:true});
    const shot=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},sessionId);
    await writeFile('outputs/ui-audit/guest-'+width+'.png',Buffer.from(shot.data,'base64'));

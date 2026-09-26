@@ -252,6 +252,12 @@ For Adidas, a blocked or malformed public JSON response may use the recoverable 
 
 `app/dark-theme.css` is imported last from `app/layout.tsx` and is scoped to `html[data-theme="dark"]`. Its final graphite normalization maps legacy fixed light surfaces to shared surface, inset, hover, selected and semantic status tokens; keep the default light palette and UI/domain state independent. When adding a component with a fixed background, define both its foreground and border in this dark layer, and cover interactive, selected, disabled and warning/error states. Do not infer commercial readiness from visual status styling.
 
+## iPhone responsive shell
+
+`app/layout.tsx` declares `width=device-width`, `initialScale: 1` and `viewportFit: cover`. Mobile shell rules in `app/experience.css` use `env(safe-area-inset-top/bottom)` and `--atlas-mobile-nav-clearance` to keep fixed navigation, the cart action and the dismissible storage notice from colliding. Touch form controls use at least 16px text and 48px height to prevent iOS Safari focus zoom; navigation/card actions target 44px. On narrow screens, duplicated account/cart shortcuts are hidden from the header but remain in the persistent mobile navigation; notifications and operator access stay available.
+
+`node scripts/audit-ui.mjs http://localhost:5173/` runs the dependency-free Chromium UI audit. It checks guest home at 360/390/402/430/800/1440px and authenticated account/cart/link-order at 390px. Responsive emulation does not replace physical iPhone Safari testing, particularly keyboard/visual-viewport, notch/home-indicator, VoiceOver and dark-mode behavior.
+
 ## September GitHub branch reconciliation — 2026-09-26
 
 GitHub `main` through `3c06b83` is already contained in the Site source. The newer open PR and palette branch heads are treated as review inputs, not blanket merges. In particular, `market_staff_directory` does **not** grant API operator rights: only the authenticated email equal to `ATLAS_OPERATOR_EMAIL` does. This preserves the existing authorization boundary while staff identities and roles remain preparatory.

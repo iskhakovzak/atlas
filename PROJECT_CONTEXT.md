@@ -504,3 +504,10 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Added a final semantic dark-theme layer after the existing stylesheet stack so light-mode fixed surfaces in catalog/search, imported product choices, cart, account, orders, warehouse-service panels and admin/operations are paired with readable graphite backgrounds, text and borders.
 - Reworked warning/success/error status pairs, open/selected/disabled controls, active order timeline states, customs estimate details, quantity controls, recipient/passport choices, admin tabs/tables and keyboard focus colors. Light theme, domain behavior, authorization and stored state are unchanged.
 - The in-app Browser connection could not initialize during this pass, so responsive visual screenshots and contrast measurement remain a manual follow-up; production build verification is recorded separately.
+
+## iPhone-first mobile foundation — 27 September 2026
+
+- Added a device-width viewport with `viewport-fit=cover`, safe-area-aware shell spacing, 48px/16px mobile form controls to avoid iOS focus zoom, and 44px touch targets for mobile navigation and card actions. The compact cart checkout bar clears the fixed bottom navigation and the iPhone safe area.
+- Reduced mobile header duplication so the wordmark, theme switch, language selector and notifications fit without clipping; account and cart remain available from the persistent mobile navigation, while operator access stays available as an icon control.
+- Kept the storage/privacy notice dismissible and above the mobile navigation. No cart/order/customer state, fees, access rules or APIs changed.
+- The dependency-free browser audit now emulates 360/390/402/430px phone widths and checks viewport-fit, header width, form tap sizing, navigation, cart-bar clearance, and mobile account/cart/link-order screens. Latest run passed 191 checks. These are Chromium device emulations, not physical iPhone Safari verification; keyboard behavior, notch/home-indicator safe areas and dark-theme screenshots still need a real-device pass.

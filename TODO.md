@@ -219,3 +219,9 @@
 - [ ] Perform a visual browser pass in light and graphite themes at 360px, 390px, 800px, and 1440px after owner review; no full test suite is being repeated for this visual-only iteration.
 - [x] Add a scoped graphite normalization layer for fixed light surfaces and contrast regressions across search/catalog, link import, cart, account, orders, warehouse services and operator screens.
 - [ ] Verify dark-theme screenshots and contrast interactively in guest/customer/operator states at 360px, 390px, 800px and 1440px; the in-app Browser connection was unavailable during the source pass.
+
+## iPhone-first mobile pass — 27 September 2026
+
+- [x] Add edge-to-edge viewport metadata, safe-area-aware fixed navigation/cart spacing, iOS-friendly form text/targets and a narrower mobile header without removing access to account, cart, notifications or operator tools.
+- [x] Add mobile account/cart/order-by-link checks and header-overflow checks to the browser audit; 191 checks passed in Chromium emulation at phone, tablet and desktop widths.
+- [ ] Verify visual-viewport/keyboard behavior, notch and home-indicator spacing, VoiceOver focus order and graphite theme on current physical iPhones/Safari; emulation cannot establish device-level behavior.
