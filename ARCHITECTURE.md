@@ -163,6 +163,8 @@ The verification suite includes lint, Node domain/security tests, production bui
 
 ## Client access states (2026-09-11)
 
+The customer account no longer exposes the browser-local legacy-state import panel. The `import-legacy` server action remains in the compatible action surface and is a pre-launch blocker before real payment, shipment or stored-value capability; removing the account UI does not remove or secure that backend path.
+
 `MarketProvider` treats session loading, guest, authenticated and connection failure as distinct states. On a 401 or failed refresh it clears the user, account revision and private state so another user or a signed-out tab cannot see stale account data. `AccessView` is the common render gate for member/admin routes. It preserves safe same-origin return paths through the platform sign-in flow. Guest language is device-local; authenticated language remains account-backed.
 
 This UI gate improves navigation and privacy but is not the authorization boundary. Account APIs still derive identity from platform headers. Operator APIs compare the authenticated email with `ATLAS_OPERATOR_EMAIL` and return 403 before reading cross-customer data or accepting an operator action. No D1 schema or stored-account format changed.

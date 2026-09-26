@@ -17,6 +17,7 @@
 - [ ] Localize dispatch-country pricing controls and validation errors in RU/UZ/EN; validate country-label coverage as merchant regions are added.
 
 - [x] Remove the low-value customer profile JSON download; keep operator-only database backup export separate.
+- [x] Remove the legacy browser-data migration panel from the customer account; the server-side `import-legacy` path remains a separate pre-launch blocker.
 - [x] Support multiple saved recipient addresses with separately confirmed passport identities; select saved recipients in checkout and snapshot their address/identity to each order.
 - [x] Build declaration previews from each order's actual selected recipient and prevent mixing recipients in one package. This is still an internal simulated preview, not customs submission.
 

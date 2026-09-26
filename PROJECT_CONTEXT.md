@@ -6,6 +6,8 @@ The current review layer applies a green merchant-service palette through the fi
 
 This is a reviewable visual override, not yet the settled Atlas brand palette. The owner should confirm or ask to revert the green palette before further design-system consolidation. No global test suite was run for this visual iteration; production build is the deployment check.
 
+The customer account no longer displays the legacy browser-data migration panel. The server-side `import-legacy` action remains in place and must still be removed or redesigned before real payment, shipment or stored-value capability is introduced; hiding the UI does not retire that action.
+
 ## Import recovery and API error localization — 26 September 2026
 
 Adidas product/article JSON failures caused by rate limits, challenges, or malformed payloads now produce a recoverable manual-entry response instead of an unhelpful hard parser error. The editable form remains available, but the source must still pass the existing fresh price/availability check before the item can enter the cart. Exact product/article matching and importer protections remain unchanged. Amazon US location setup still requires the address endpoint to confirm country `US` and ZIP `19701`; the importer no longer searches the refreshed page HTML for a ZIP string after that authoritative confirmation.
