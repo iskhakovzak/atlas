@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowRight, ArrowUpRight, Flame, Heart, Link2, Search, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Flame, Heart, Info, Link2, Search, SlidersHorizontal, X } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from '@/components/site-link';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { validateSource, type Product } from '@/lib/market/domain';
 import { findOrderUrl, catalogFreshness } from '@/lib/market/catalog';
 import { defaultDealFilters, filterDeals, type DealFilters } from '@/lib/market/deals';
@@ -41,7 +42,7 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
     try { await act({ type: 'favorite', id: product.id }); } finally { setSaving(null); }
   }
 
-  return <div className="finds-page" id="finds">
+  return <TooltipProvider delayDuration={300}><div className="finds-page" id="finds">
     <section className="finds-heading">
       <div><span className="eyebrow">{copy.overline}</span>{status==='guest'?<h2>{copy.catalog}</h2>:<h1>{favorites ? copy.savedTitle : copy.title}</h1>}<p>{favorites ? copy.savedIntro : copy.intro}</p></div>
       {ready&&<Link className="btn secondary" href={favorites ? '/' : '/favorites'}><Heart size={17}/>{favorites ? copy.catalog : copy.saved}<span className="finds-count">{favorites ? products.length : state.favorites.filter(id => products.some(product => product.id === id)).length}</span></Link>}
@@ -69,12 +70,12 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
           <div className="find-visual"><button className="find-photo" type="button" onClick={() => select(product)} aria-label={name}><ProductImage product={{ ...product, name }} /></button>
             <span className="find-merchant">{merchantRecord(product)?.store}</span>{catalogFreshness(product)!=='fresh'&&<span className={`find-freshness ${catalogFreshness(product)}`}>{locale==='ru'?'Данные на':locale==='uz'?'Ma’lumot sanasi':'As of'} · {merchantRecord(product)?.observedOn}</span>}
             {discount >= 40 && <span className="find-top-deal"><Flame size={14}/>{copy.topDeal}</span>}
-            {ready&&<button type="button" disabled={saving !== null} className={'find-save ' + (isSaved ? 'saved' : '')} aria-pressed={isSaved} aria-label={(isSaved ? copy.remove : copy.save) + ': ' + name} title={!ready ? copy.signin : saving === product.id ? copy.savingState : isSaved ? copy.remove : copy.save} onClick={() => void favorite(product)}><Heart size={20}/></button>}
+            {ready&&<Tooltip><TooltipTrigger asChild><button type="button" disabled={saving !== null} className={'find-save ' + (isSaved ? 'saved' : '')} aria-pressed={isSaved} aria-label={(isSaved ? copy.remove : copy.save) + ': ' + name} onClick={() => void favorite(product)}><Heart size={20}/></button></TooltipTrigger><TooltipContent>{!ready ? copy.signin : saving === product.id ? copy.savingState : isSaved ? copy.remove : copy.save}</TooltipContent></Tooltip>}
           </div>
           <div className="find-content"><div className="find-meta"><span>{categories.find(c => c.value === product.category)?.label ?? product.category}</span><span>{countries.find(c => c.value === product.country)?.label ?? product.country}</span></div>
             <button type="button" className="find-title" onClick={() => select(product)}>{name}</button>
             <div className="find-store-price"><span>{copy.productPrice}</span><div><b>{fmt(product.usd, 'USD')}</b>{discount > 0 && <del title={copy.referenceLabel}>{fmt(referenceUsd!, 'USD')}</del>}</div>{discount > 0 && <span className="find-discount" title={copy.compareHint}>−{discount}%</span>}</div>
-            <div className="find-total"><span>{copy.delivered}</span><strong>{fmt(costs.total)}</strong><button type="button" className="price-info" aria-label={copy.breakdown} onClick={() => select(product)}>ⓘ</button></div>
+            <div className="find-total"><span>{copy.delivered}</span><strong>{fmt(costs.total)}</strong><Tooltip><TooltipTrigger asChild><button type="button" className="price-info" aria-label={copy.breakdown} onClick={() => select(product)}><Info size={16}/></button></TooltipTrigger><TooltipContent>{copy.breakdown}</TooltipContent></Tooltip></div>
             <div className="find-origin"><a href={product.sourceUrl} target="_blank" rel="noopener noreferrer">{merchantRecord(product)?.store} · {copy.sourceOpen}<ArrowUpRight size={14}/></a></div>
             <div className="find-purchase"><a className="btn primary" href={status==='guest'?signInPath(findOrderUrl(product)):findOrderUrl(product)} target={status==='guest'?'_top':undefined}>{copy.buy}<ArrowRight size={17}/></a></div>
           </div>
@@ -86,5 +87,5 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
     {status==='guest' && <p className="finds-signin"><Link href="/account"><Heart size={15}/>{copy.signin}<ArrowUpRight size={15}/></Link></p>}
     {!favorites && <><section className="finds-own-link"><div><Link2 size={25}/><div><h2>{copy.linkTitle}</h2><p>{copy.linkHint}</p></div></div><form onSubmit={event => { event.preventDefault(); try { const target = validateSource(url); const orderUrl = '/order-by-link?url=' + encodeURIComponent(target); setUrlError(''); window.location.assign(status === 'guest' ? signInPath(orderUrl) : orderUrl); } catch (error) { setUrlError((error as Error).message); toast.error((error as Error).message); } }}><label className="sr-only" htmlFor="finds-product-url">{copy.linkLabel}</label><input id="finds-product-url" type="url" required value={url} aria-invalid={!!urlError} aria-describedby={urlError ? 'finds-url-error' : undefined} placeholder="https://..." onChange={event => { setUrl(event.target.value); setUrlError(''); }}/><button className="btn light">{status === 'guest' ? copy.signInToCalculate : copy.calculate}<ArrowUpRight size={18}/></button></form>{status === 'guest' && <p className="micro">{copy.signInToCalculateHint}</p>}{urlError && <p id="finds-url-error" role="alert">{urlError}</p>}<Link href="/batch-import">{copy.batch}<ArrowRight size={15}/></Link></section>
       <section className="finds-steps"><h2>{copy.stepsTitle}</h2><ol>{[[copy.step1, copy.step1hint], [copy.step2, copy.step2hint], [copy.step3, copy.step3hint]].map(([heading, hint], index) => <li key={heading}><span>0{index + 1}</span><div><h3>{heading}</h3><p>{hint}</p></div></li>)}</ol><p className="finds-steps-note">{copy.stepsNote}</p></section></>}
-  </div>;
+  </div></TooltipProvider>;
 }
