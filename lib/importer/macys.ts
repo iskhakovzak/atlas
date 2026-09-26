@@ -111,7 +111,7 @@ export function extractMacysProduct(html: string, sourceUrl: string, helpers: Ma
     }).filter((value, index, all) => all.indexOf(value) === index).slice(0, 12);
     const brand = "Macy's";
     const category = helpers.inferCategory(title, brand);
-    const warnings = ['Цена и варианты взяты из страницы магазина; наличие выбранного сочетания нужно подтвердить перед добавлением.'];
+    const warnings: string[] = [];
     if (price === undefined) warnings.push('Цена не распознана — укажите её со страницы выбранного варианта.');
 
     return {

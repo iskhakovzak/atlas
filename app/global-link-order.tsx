@@ -129,9 +129,8 @@ export function GlobalLinkOrder() {
   const variantsForColor = useMemo(() => selectedColor ? variants.filter(item => item.color === selectedColor) : variantColors.length ? [] : variants, [variants,selectedColor,variantColors]);
   const variantSizes = useMemo(() => [...new Set(variantsForColor.map(item => item.size).filter((value): value is string => Boolean(value)))], [variantsForColor]);
   const variantSizeLabel = useMemo(() => [...new Set(variantsForColor.map(item => item.sizeLabel).filter((value): value is string => Boolean(value)))].join(' / ') || (lang==='ru'?'Размер / модель':lang==='uz'?'O‘lcham / model':'Size / model'), [variantsForColor,lang]);
-  const merchantAvailabilityUnknown = variants.length === 0 || variants.some(item => item.availabilityKnown === false);
   function applyVariantChoice(item:ProductVariant|undefined,knownCurrency=true){
-    if(!item||!item.available||item.availabilityKnown===false){setVariant("");setSelectedSize("");setVerified(false);return}
+    if(!item){setVariant("");setSelectedSize("");setVerified(false);return}
     setVariant(item.label);setSelectedColor(item.color??"");setSelectedSize(item.size??"");
     if(item.price!==undefined&&knownCurrency)setAmount(String(item.price));else if(variants.some(value=>value.price!==undefined))setAmount("");
     if(item.image)setImage(item.image);setVerified(false);
@@ -215,11 +214,11 @@ export function GlobalLinkOrder() {
           ? receivedVariants
           : fallbackOptions;
       const safeVariants = knownCurrency ? importedVariants : importedVariants.map(item => ({...item, price: undefined}));
-      const availableVariants = safeVariants.filter(v => v.available && v.availabilityKnown !== false);
+      const selectableVariants = safeVariants;
       setVariants(safeVariants);
       const selectedId = new URL(data.sourceUrl).searchParams.get('variant');
-      const selectedVariant = availableVariants.find(item => item.id && item.id === selectedId)
-        ?? (availableVariants.length === 1 ? availableVariants[0] : undefined);
+      const selectedVariant = selectableVariants.find(item => item.id && item.id === selectedId)
+        ?? (selectableVariants.length === 1 ? selectableVariants[0] : undefined);
       if (selectedVariant) {
         setVariant(selectedVariant.label);
         setSelectedColor(selectedVariant.color??"");
@@ -227,7 +226,7 @@ export function GlobalLinkOrder() {
         if (selectedVariant.price !== undefined && knownCurrency) setAmount(String(selectedVariant.price));
         if (selectedVariant.image) setImage(selectedVariant.image);
       } else {
-        const colors=[...new Set(availableVariants.map(item=>item.color).filter((value):value is string=>Boolean(value)))];
+        const colors=[...new Set(selectableVariants.map(item=>item.color).filter((value):value is string=>Boolean(value)))];
         if(colors.length===1)setSelectedColor(colors[0]);
       }
       const nextCountry = canonicalCountry(data.country ?? seed?.country ?? inferStorefrontCountry(data.sourceUrl, data.currency) ?? "Другая страна");
@@ -291,7 +290,7 @@ export function GlobalLinkOrder() {
           .join(" "),
       );
     } catch (e) {
-      setNote(dealSeed ? tx(`Магазин не ответил сразу. Показываем сохранённые данные подборки на ${dealSeed.observedOn}; Atlas автоматически повторит проверку перед добавлением.`, `Do‘kon darhol javob bermadi. ${dealSeed.observedOn} dagi saqlangan tanlov ma’lumotlari ko‘rsatilmoqda; Atlas qo‘shishdan oldin avtomatik qayta tekshiradi.`, `The store did not respond immediately. Showing the saved ${dealSeed.observedOn} collection data; Atlas will retry automatically before adding.`) : seed ? tx("Магазин не ответил сразу. Каталожные данные показаны, но Atlas автоматически проверит источник перед добавлением.", "Do‘kon darhol javob bermadi. Katalog ma’lumotlari ko‘rsatilmoqda, lekin Atlas qo‘shishdan oldin manbani avtomatik tekshiradi.", "The store did not respond immediately. Catalog data is shown, but Atlas will automatically verify the source before adding.") : `${(e as Error).message} ${tx("Atlas не сможет добавить товар, пока источник не подтвердит цену и наличие.", "Manba narx va mavjudlikni tasdiqlamaguncha Atlas tovarni qo‘sha olmaydi.", "Atlas cannot add the item until the source confirms price and availability.")}`);
+      setNote(dealSeed ? tx(`Магазин не ответил сразу. Показываем сохранённые данные подборки на ${dealSeed.observedOn}; Atlas автоматически повторит проверку перед добавлением.`, `Do‘kon darhol javob bermadi. ${dealSeed.observedOn} dagi saqlangan tanlov ma’lumotlari ko‘rsatilmoqda; Atlas qo‘shishdan oldin avtomatik qayta tekshiradi.`, `The store did not respond immediately. Showing the saved ${dealSeed.observedOn} collection data; Atlas will retry automatically before adding.`) : seed ? tx("Магазин не ответил сразу. Каталожные данные показаны, но Atlas автоматически проверит источник перед добавлением.", "Do‘kon darhol javob bermadi. Katalog ma’lumotlari ko‘rsatilmoqda, lekin Atlas qo‘shishdan oldin manbani avtomatik tekshiradi.", "The store did not respond immediately. Catalog data is shown, but Atlas will automatically verify the source before adding.") : `${(e as Error).message} ${tx("Atlas не сможет добавить товар, пока источник не подтвердит цену, валюту и выбранный вариант.", "Manba narx, valyuta va tanlangan variantni tasdiqlamaguncha Atlas tovarni qo‘sha olmaydi.", "Atlas cannot add the item until the source confirms its price, currency and selected option.")}`);
       setWeight(String(fallbackBoxedWeight ?? estimatedBoxedWeight(category)));
       setWeightOrigin(fallbackBoxedWeight ? tx("Оценка Atlas; уточняется перед оформлением","Atlas bahosi; rasmiylashtirishdan oldin aniqlanadi","Atlas estimate; refined before checkout") : tx("Приблизительно по категории","Kategoriya bo‘yicha taxminan","Approximate by category"));
       setSourceCheckStatus('failed');
@@ -446,7 +445,7 @@ export function GlobalLinkOrder() {
           )}
           {source&&sourceCheckStatus!=='verified'&&<p className="micro source-auto-status" role="status">
             {sourceCheckStatus==='checking'
-              ? tx('Atlas автоматически проверяет цену и наличие…','Atlas narx va mavjudlikni avtomatik tekshirmoqda…','Atlas is checking price and availability automatically…')
+              ? tx('Atlas сверяет цену, валюту и варианты…','Atlas narx, valyuta va variantlarni tekshirmoqda…','Atlas is checking the price, currency and options…')
               : sourceCheckStatus==='failed'
                 ? <>{tx('Магазин пока не ответил. Товар нельзя добавить, пока Atlas не подтвердит данные.','Do‘kon hozircha javob bermadi. Atlas ma’lumotlarni tasdiqlamaguncha tovarni qo‘shib bo‘lmaydi.','The store has not responded yet. The item cannot be added until Atlas confirms the data.')} <button type="button" className="text-button" disabled={busy} onClick={() => void load(source)}>{tx('Повторить проверку','Tekshiruvni qayta urinish','Retry check')}</button></>
                 : tx('Atlas проверит магазин перед добавлением.','Atlas qo‘shishdan oldin do‘konni tekshiradi.','Atlas will check the store before adding the item.')}
@@ -457,7 +456,7 @@ export function GlobalLinkOrder() {
                 e.preventDefault();
                 try {
                   if(sourceCheckStatus!=='verified')throw Error(tx('Дождитесь автоматической проверки магазина.','Do‘konning avtomatik tekshiruvi tugashini kuting.','Wait for the automatic store check to finish.'));
-                  if (!name.trim() || !variant.trim() || !verified || merchantAvailabilityUnknown)
+                  if (!name.trim() || !variant.trim() || !verified)
                      throw Error(tx("Проверьте данные и подтвердите страну отправки.","Ma’lumotlarni tekshirib, jo‘natish mamlakatini tasdiqlang.","Check the details and confirm the dispatch country."));
                   if (country === "Другая страна" && !otherCountry.trim())
                      throw Error(tx("Введите страну отправки.","Jo‘natish mamlakatini kiriting.","Enter the dispatch country."));
@@ -685,11 +684,11 @@ export function GlobalLinkOrder() {
               <div className="field variant-matrix">
                 <label htmlFor="variant">{c.variant}</label>
                 {variants.length && (variantColors.length||variantSizes.length) ? <>
-                  {variantColors.length>0&&<div className="variant-step"><div><b>{c.color}</b><span>{selectedColor||c.selectColor}</span></div><div className="variant-options">{variantColors.map(color=>{const choices=variants.filter(item=>item.color===color),available=choices.some(item=>item.available&&item.availabilityKnown!==false);return <button type="button" key={color} disabled={!available} aria-pressed={selectedColor===color} onClick={()=>{setSelectedColor(color);setSelectedSize('');const purchasable=choices.filter(item=>item.available&&item.availabilityKnown!==false);if(!purchasable.some(item=>item.size)&&purchasable[0])applyVariantChoice(purchasable[0]);else{setVariant('');setVerified(false)}}}>{color}{!available&&<small>{c.none}</small>}</button>})}</div></div>}
-                  {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize||c.selectVariant}</span></div><div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices.find(item=>item.available&&item.availabilityKnown!==false),price=choice?.price;return <button type="button" key={size} disabled={!choice} aria-pressed={selectedSize===size} onClick={()=>applyVariantChoice(choice)}><span>{size}</span>{choice&&price!==undefined&&<small>{price} {currency}</small>}{!choice&&<small>{c.none}</small>}</button>})}</div></div>}
-                   {!variantColors.length&&!variantSizes.length&&<Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.filter(item=>item.available&&item.availabilityKnown!==false).map(item=>item.label)}/>}
+                  {variantColors.length>0&&<div className="variant-step"><div><b>{c.color}</b><span>{selectedColor||c.selectColor}</span></div><div className="variant-options">{variantColors.map(color=>{const choices=variants.filter(item=>item.color===color);return <button type="button" key={color} aria-pressed={selectedColor===color} onClick={()=>{setSelectedColor(color);setSelectedSize('');if(!choices.some(item=>item.size)&&choices[0])applyVariantChoice(choices[0]);else{setVariant('');setVerified(false)}}}>{color}</button>})}</div></div>}
+                  {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize||c.selectVariant}</span></div><div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={selectedSize===size} onClick={()=>applyVariantChoice(choice)}><span>{size}</span>{choice&&price!==undefined&&<small>{price} {currency}</small>}</button>})}</div></div>}
+                   {!variantColors.length&&!variantSizes.length&&<Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.map(item=>item.label)}/>}
                    <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
-                </> : variants.length ? <Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.filter(item=>item.available&&item.availabilityKnown!==false).map(item=>item.label)}/> : (
+                </> : variants.length ? <Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.map(item=>item.label)}/> : (
                   <input
                     id="variant"
                     required
@@ -723,7 +722,7 @@ export function GlobalLinkOrder() {
                   {c.verified}
                 </label>
               </div>
-              <button className="btn primary" disabled={!verified || adding || sourceCheckStatus!=='verified' || merchantAvailabilityUnknown}>
+              <button className="btn primary" disabled={!verified || adding || sourceCheckStatus!=='verified'}>
                 {adding ? c.adding : c.add}
                 <ArrowRight size={18} />
               </button>

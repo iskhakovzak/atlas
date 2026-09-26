@@ -5,9 +5,10 @@ import {applyMerchantProfile} from './merchant-profiles.ts';
 export {supportedStoreCount};
 
 /** Recoverable import failure: the user may edit details, but live confirmation
- * is still required before the product can be added to a cart. */
+ * of the price, currency and selected option is still required before the
+ * product can be added to a cart. */
 export class ManualEntryFallbackError extends Error {
-  constructor(message = 'Магазин временно не отдал данные товара. Их можно заполнить вручную; Atlas всё равно должен подтвердить цену и наличие перед добавлением.') {
+  constructor(message = 'Магазин временно не отдал данные товара. Их можно заполнить вручную; Atlas всё равно должен подтвердить цену, валюту и выбранный вариант перед добавлением.') {
     super(message);
     this.name = 'ManualEntryFallbackError';
   }
@@ -284,9 +285,9 @@ export async function fetchProduct(value: string) {
         // API blocks, challenges and malformed JSON are temporary import
         // failures, not proof that the link points to a different product.
         // Preserve the manual form while the cart flow continues to require a
-        // fresh, verified price and availability.
+        // fresh, verified price, currency and selected option.
         throw new ManualEntryFallbackError(productError instanceof Error && productError.name === 'AbortError'
-          ? 'Adidas не ответил вовремя. Данные можно заполнить вручную; Atlas должен подтвердить цену и наличие перед добавлением.'
+          ? 'Adidas не ответил вовремя. Данные можно заполнить вручную; Atlas должен подтвердить цену, валюту и выбранный вариант перед добавлением.'
           : undefined);
       }
       const extracted = extractAdidasProduct(productData, listingData, url.href);

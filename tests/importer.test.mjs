@@ -80,7 +80,7 @@ test('Anker embedded product data retains choice, price, photo and stock',()=>{
   assert.equal(p.method,'Anker product data');assert.equal(p.price,29.99);assert.equal(p.image,'https://cdn.shopify.com/white.jpg');
   assert.deepEqual(p.variants.map(v=>[v.id,v.color,v.size,v.available]),[['11','White','1-Pack',true],['12','Black','2-Pack',false]]);
 });
-test('Macy product data is scoped to its host and does not claim unverified stock',()=>{
+test('Macy product data is scoped to its host and keeps unknown stock out of customer copy',()=>{
   const sourceUrl='https://www.macys.com/shop/product/example';
   const state={product:{productDetail:{product:{detail:{name:"Women's Running Sneakers"},pricing:{price:{tieredPrice:[{values:[{value:'$89.99'}]}]}},traits:{colors:{colorMap:{blue:{name:'Blue'}}},sizes:{sizeMap:{six:{name:'6'},seven:{name:'7'}}}},imagery:{images:[{filePath:'123/456/shoe.jpg'}]}}}}};
   const html=`<script>window.__PRELOADED_STATE__ = ${JSON.stringify(state)};</script>`;
@@ -89,7 +89,7 @@ test('Macy product data is scoped to its host and does not claim unverified stoc
   assert.deepEqual(parsed.variants.map(value=>value.label),['Blue · 6','Blue · 7']);
   assert(parsed.variants.every(value=>value.available&&value.availabilityKnown===false));
   assert.equal(parsed.image,'https://slimages.macysassets.com/is/image/MCY/products/123/456/shoe.jpg');
-  assert.match(parsed.warnings.join(' '),/наличие выбранного сочетания нужно подтвердить/);
+  assert.doesNotMatch(parsed.warnings.join(' '),/наличие выбранного сочетания нужно подтвердить/);
   assert.notEqual(extractProduct(html,'https://macys.com.evil.example/shop/product/example').method,"Macy's product data");
 });
 test('Sephora linkJSON uses only the exact listing and keeps stock unverified when absent',()=>{
@@ -136,7 +136,7 @@ test('Adidas API challenges and malformed payloads allow editable manual fallbac
   try {
     console.error=()=>{};
     globalThis.fetch=async()=>new Response('Akamai challenge',{status:429,headers:{'Content-Type':'text/html'}});
-    await assert.rejects(fetchProduct('https://www.adidas.com/us/daily-4.0-shoes/IF4492.html'),error=>error instanceof ManualEntryFallbackError&&/вручную/.test(error.message)&&/подтвердить цену и наличие/.test(error.message));
+    await assert.rejects(fetchProduct('https://www.adidas.com/us/daily-4.0-shoes/IF4492.html'),error=>error instanceof ManualEntryFallbackError&&/вручную/.test(error.message)&&/подтвердить цену, валюту и выбранный вариант/.test(error.message));
     globalThis.fetch=async()=>new Response('{invalid json',{headers:{'Content-Type':'application/json'}});
     await assert.rejects(fetchProduct('https://www.adidas.com/us/daily-4.0-shoes/IF4492.html'),ManualEntryFallbackError);
   } finally {globalThis.fetch=original;console.error=originalError;}
@@ -191,13 +191,16 @@ test('Amazon still rejects location API responses that do not confirm US ZIP 197
   } finally {globalThis.fetch=original;}
 });
 
-test('fresh verification blocks changed prices and unavailable variants',()=>{
+test('fresh verification checks exact price and option identity without gating on stock',()=>{
   const p={id:'p',name:'Shoe',brand:'Allbirds',category:'Обувь',usd:110,weight:1.5,image:'',variants:['Black / 8'],sourceUrl:url,sourceVariantId:'1',sourceCurrency:'USD',sourcePrice:110};
   const fresh=extractShopify(product,{currency:'USD'},url+'?variant=1');
   const checked=verifyProductSnapshot(p,'Black / 8',fresh,5000);
   assert.equal(checked.sourcePrice,110);assert.equal(checked.importedAt,5000);assert.equal(checked.sourceExpiresAt,605000);
   assert.throws(()=>verifyProductSnapshot({...p,sourcePrice:109},'Black / 8',fresh),/Цена изменилась/);
-  assert.throws(()=>verifyProductSnapshot({...p,sourceVariantId:'2'},'Black / 9',fresh),/закончился/);
+  assert.throws(()=>verifyProductSnapshot({...p,sourceVariantId:'missing-id'},'Black / 8',fresh),/больше не найден/);
+  const soldOut=extractShopify({...product,variants:product.variants.map(variant=>({...variant,available:false}))},{currency:'USD'},url+'?variant=1');
+  assert.equal(verifyProductSnapshot(p,'Black / 8',soldOut).sourcePrice,110);
+  assert.throws(()=>verifyProductSnapshot(p,'Black / 8',{...fresh,currency:'EUR'}),/валюту витрины/);
 });
 test('fresh verification normalizes a catalog label for a single live option',()=>{
   const p={id:'p',name:'Toy',brand:'Amazon',category:'Дом и быт',usd:12.79,weight:1.4,image:'',variants:['Указанный вариант'],sourceUrl:'https://www.amazon.com/dp/B0CGY4LZQ3',country:'США',sourceCurrency:'USD',sourcePrice:12.79,sourceShipping:10,sourceShippingCurrency:'USD',sourceShippingUsd:10,shippingKnown:true,boxedWeight:.4};
@@ -205,8 +208,8 @@ test('fresh verification normalizes a catalog label for a single live option',()
   const checked=verifyProductSnapshot(p,'Указанный вариант',fresh,5000);
   assert.equal(checked.sourcePrice,12.79);assert.equal(checked.importedAt,5000);
 });
-test('fresh verification blocks a variant whose merchant omitted stock status',()=>{
+test('fresh verification accepts a matching variant when the merchant omits stock status',()=>{
   const p={id:'p',name:'Shoe',brand:'Nike',category:'Обувь',usd:76.97,weight:1.5,image:'',variants:['White · 6'],sourceUrl:'https://www.nike.com/t/example/DM4044-108',sourceVariantId:'00197600816527',sourceCurrency:'USD',sourcePrice:76.97};
   const fresh={sourceUrl:p.sourceUrl,currency:'USD',price:76.97,variants:[{id:'00197600816527',label:'White · 6',available:true,availabilityKnown:false,price:76.97}],warnings:[],method:'JSON-LD'};
-  assert.throws(()=>verifyProductSnapshot(p,'White · 6',fresh,5000),/не подтвердил наличие/);
+  assert.equal(verifyProductSnapshot(p,'White · 6',fresh,5000).sourcePrice,76.97);
 });

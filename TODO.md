@@ -13,6 +13,7 @@
 ## UX refinement follow-up
 
 - [x] Route successful catalog, link and batch additions directly to the cart; offer simulated payment confirmation from cart checkout. Real provider payments remain blocked on PSP integration.
+- [x] Remove the customer stock-status gate from link/batch cart addition and checkout while retaining live selected-option, price and currency verification; catalog auto-hide remains a separate operator feed policy.
 - [x] Add operator-managed dispatch-country overrides for existing service, buyout, conversion, delivery margin, per-kg freight, reserve and optional-service tariff fields; old pricing state and submitted quote snapshots remain compatible.
 - [ ] Localize dispatch-country pricing controls and validation errors in RU/UZ/EN; validate country-label coverage as merchant regions are added.
 
