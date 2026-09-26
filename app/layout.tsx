@@ -6,6 +6,7 @@ import "./checkout-clarity.css";
 import "./access.css";
 import "./experience.css";
 import { MarketProvider } from "@/lib/market/store";
+import { StorageNotice } from "./storage-notice";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -13,7 +14,7 @@ const structuredData = {
     {
       "@type": "Organization",
       name: "Atlas",
-      url: "https://atlas-uz-market.ishakovzak0.chatgpt.site",
+      url: "https://atlas-uz-market.ishakovzakir0.chatgpt.site",
       description:
         "Purchasing intermediary and logistics agent for international shopping in Uzbekistan.",
       areaServed: "UZ",
@@ -21,14 +22,14 @@ const structuredData = {
     {
       "@type": "WebSite",
       name: "Atlas",
-      url: "https://atlas-uz-market.ishakovzak0.chatgpt.site",
+      url: "https://atlas-uz-market.ishakovzakir0.chatgpt.site",
       inLanguage: ["ru", "uz", "en"],
     },
   ],
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://atlas-uz-market.ishakovzak0.chatgpt.site"),
+  metadataBase: new URL("https://atlas-uz-market.ishakovzakir0.chatgpt.site"),
   title: {
     default: "Atlas — покупки со всего мира",
     template: "%s · Atlas",
@@ -74,7 +75,7 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body className="antialiased">
-        <MarketProvider>{children}</MarketProvider>
+        <MarketProvider>{children}<StorageNotice /></MarketProvider>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}

@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "@/components/site-link";
-import { ArrowRight, Check, Clock3, Loader2, MapPin, Minus, Plus, ShieldCheck, Trash2, Wallet } from "lucide-react";
+import { ArrowRight, Check, Clock3, Loader2, MapPin, Minus, Plus, ShieldCheck, Wallet } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
 import { balanceOf, cartSignature, money, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, type DeliveryProfile } from "@/lib/market/domain";
 import { customsVersion } from "@/lib/market/world";
 import { CostLines, Empty, Expiry, Modal, PageHeading, ProductImage } from "./market-ui";
+import { SafeDeleteButton } from "./safe-delete-button";
 import {cities,regions,streets,suggestions} from "@/lib/market/addresses";
 
 import { CustomsEstimate } from "./customs-estimate";
@@ -115,7 +116,7 @@ export function CartView() {
 
   return <>
     <PageHeading overline={c.overline} title={c.title} description={c.intro} />
-    {!ready ? (error ? <Empty title={c.signin} description={c.signinHint} href="/account" label={c.signin} /> : <div className="surface loading-state">{c.loading}</div>) : !state.cart.length ? <Empty title={c.empty} description={c.emptyHint} href="/" /> :
+    {!ready ? (error ? <Empty title={c.signin} description={c.signinHint} href="/account" label={c.signin} /> : <div className="surface loading-state">{c.loading}</div>) : !state.cart.length ? <Empty title={c.empty} description={c.emptyHint} href="/" label={x.continue} /> :
       <div className="cart-layout">
         <div className="cart-items">
           {state.cart.map((item) => {
@@ -136,7 +137,7 @@ export function CartView() {
                   <button aria-label={`${x.decrease} ${item.product.name}`} disabled={item.quantity <= 1} onClick={() => void act({ type: "cart-quantity", id: item.id, quantity: item.quantity - 1 })}><Minus size={16} /></button>
                   <span aria-label={x.quantity}>{item.quantity}</span>
                   <button aria-label={`${x.increase} ${item.product.name}`} disabled={item.quantity >= 10} onClick={() => void act({ type: "cart-quantity", id: item.id, quantity: item.quantity + 1 })}><Plus size={16} /></button>
-                </div><button className="remove-item" aria-label={`${x.remove} ${item.product.name}`} onClick={() => void act({ type: "cart-remove", id: item.id })}><Trash2 size={16} /><span>{x.remove}</span></button></div>
+                </div><SafeDeleteButton label={x.remove} itemName={item.product.name} locale={locale} onConfirm={() => act({ type: "cart-remove", id: item.id })} /></div>
                 {checkoutServices.length > 0 && <details className="cart-service-chooser">
                   <summary>{serviceCopy.title}{selectedServices.length > 0 && <span>{selectedServices.length}</span>}</summary>
                   <p>{serviceCopy.hint}</p>

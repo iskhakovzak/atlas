@@ -92,6 +92,17 @@ test('Macy product data is scoped to its host and does not claim unverified stoc
   assert.match(parsed.warnings.join(' '),/наличие выбранного сочетания нужно подтвердить/);
   assert.notEqual(extractProduct(html,'https://macys.com.evil.example/shop/product/example').method,"Macy's product data");
 });
+test('Sephora linkJSON uses only the exact listing and keeps stock unverified when absent',()=>{
+  const source='https://www.sephora.com/product/example-P123';
+  const product=(url,price)=>({'@type':'Product',url,name:'Cream',brand:{name:'Sephora Collection'},image:['https://www.sephora.com/photo.jpg'],offers:{price,priceCurrency:'USD'}});
+  const html=`<script id="linkJSON">${JSON.stringify([product('https://www.sephora.com/product/other-P999',999),product(source,29)])}</script>`;
+  const parsed=extractProduct(html,source);
+  assert.equal(parsed.price,29);assert.equal(parsed.currency,'USD');assert.equal(parsed.title,'Cream');
+  assert.equal(parsed.image,'https://www.sephora.com/photo.jpg');
+  assert.equal(parsed.variants.length,0);
+  assert.equal(extractProduct(html,'https://www.sephora.com/product/unrelated-P321').price,undefined);
+  assert.equal(extractProduct(html,'https://sephora.com.evil.example/product/example-P123').price,undefined);
+});
 test('Adidas public product data retains sale price, available sizes and gallery',()=>{
   const product={id:'IF4492',name:'Daily 4.0 Shoes',brand:'Sportswear',category:'Shoes',color:'Core Black / Cloud White / Gum',price:65,salePrice:33,orderable:1,image:{src:'https://assets.adidas.com/primary.jpg'},images:[{src:'https://assets.adidas.com/one.jpg'},{src:'https://assets.adidas.com/two.jpg'}]};
   const listing={raw:{itemList:{items:[{productId:'IF4492',displayName:'Daily 4.0 Shoes',availableSizes:['hidden','5','6','8'],orderable:1,salePrice:33,images:[{src:'https://assets.adidas.com/three.jpg'}]}]}}};

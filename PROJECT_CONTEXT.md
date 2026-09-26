@@ -466,3 +466,11 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 
 - The redundant “item already selected” banner is removed from imported order links. The merchant link, collapsed import details and change-link action sit in a compact utility row, with RU/UZ/EN labels.
 - Automatic merchant recheck, its unresolved/error status and the server-backed gate against adding an unverified item remain unchanged.
+
+## GitHub branch review and selective Site integration — 26 September 2026
+
+- GitHub `main` at `3c06b83` is already an ancestor of the Site checkout. Open PR #1, open PR #3, the already-merged PR #2, PR #4, and the later palette branch were reviewed separately. Do not describe their branch heads as merged wholesale: generated files, lockfile deletion, old palette, misleading cron claims and a staff-authority change were intentionally rejected.
+- Sephora's nonstandard `linkJSON` script can now feed the ordinary JSON-LD extractor only for `sephora.com` and the exact listing URL. Unmatched recommendations cannot supply a price; stock absent from the merchant remains unverified. The guarded Macy's, Adidas, Amazon and locale changes already in this checkout remain unchanged.
+- The account address panel uses compact cards and a clear add action; cart and saved-recipient removals require a second click. Support fields now have visible labels and server-aligned length limits. The empty-cart action is localized. No order, cart or account schema was changed.
+- A dismissible, localized notice describes browser storage and links to the privacy draft. It is informational, not a claim of completed legal cookie consent. The public metadata, robots, sitemap and AI factsheet now use the verified Site origin `atlas-uz-market.ishakovzakir0.chatgpt.site`.
+- `workers/catalog-refresh/wrangler.toml` records the intended hourly schedule and current public Site URL as source configuration only. The separate Worker, shared secret and real scheduled calls have **not** been provisioned or verified; Sites deployment alone does not activate them. Payments, shipment, customs filing and notifications remain simulated.

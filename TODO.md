@@ -193,3 +193,12 @@
 - [x] Add accessible tooltips to icon-only Deals Feed controls using the existing tooltip dependency.
 - [x] Integrate GitHub PR #2's already-merged mainline changes and the reviewed source changes from still-open PR #1 into the local working branch; do not push the local merge automatically.
 - [ ] Verify the Macy's parser against a live supported product page; current automated coverage uses a synthetic public-state fixture and treats unknown availability conservatively.
+
+## GitHub branch reconciliation — 26 September 2026
+
+- [x] Review all GitHub branch heads against the current Site checkout; retain the verified mainline and selectively adapt safe importer and UX work instead of merging conflicting generated or security-sensitive patches wholesale.
+- [x] Parse an exact Sephora `linkJSON` listing through the existing safe importer; reject unrelated products and keep missing stock unverified.
+- [x] Add localized browser-storage notice, two-step cart/recipient removal, accessible support labels, address cards and localized empty-cart action without changing saved-state schemas.
+- [ ] Provision `ATLAS_CATALOG_REFRESH_SECRET` in both Site and separate Cron Worker, deploy the Worker from `workers/catalog-refresh/wrangler.toml`, and verify scheduled signed calls plus safe failure/retry. The config file alone is not a live scheduler.
+- [ ] Select a real authentication/role model before enabling independent staff accounts; keep `market_staff_directory` non-authoritative and `ATLAS_OPERATOR_EMAIL` the sole operator gate for now.
+- [ ] Review the public privacy draft and storage notice with counsel before describing either as legally sufficient cookie/data consent.

@@ -17,7 +17,6 @@
 .price-info { position:absolute; right:0; top:50%; transform:translateY(-50%); width:36px; height:36px; border-radius:50%; color:#315f91; cursor:pointer; display:flex; align-items:center; justify-content:center; border:0; background:transparent; padding:0; }
 .price-info:hover { background:#eaf2fb; }
 .find-title { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.8em; }
-.find-store-price > span:first-child { font-size:.75rem; }
 .find-origin { font-size:.8125rem; }
 .compact-order { padding:0!important; scroll-margin-top:100px; overflow:hidden; }
 .compact-order-summary { list-style:none; display:grid; grid-template-columns:64px minmax(0,1fr) auto auto 20px; gap:20px; align-items:center; padding:22px; cursor:pointer; }
@@ -190,7 +189,6 @@ body{background:#fff;color:var(--atlas-ink);font-size:var(--atlas-type-body)}
 .find-title{margin:12px 0 16px}
 .find-total{padding:14px 0 8px}
 .find-total>strong{color:var(--atlas-ink);font-size:clamp(1.125rem,1.5vw,1.375rem);font-weight:700;letter-spacing:-.035em}
-.find-store-price b{font-size:1.125rem;color:var(--atlas-ink)}
 .surface,.account-detail,.faq-strip details{border-radius:8px;box-shadow:none}
 .btn{border-radius:6px;min-height:46px}
 .btn.primary{background:var(--atlas-ink);border-color:var(--atlas-ink)}
@@ -270,3 +268,17 @@ body{background:#fff;color:var(--atlas-ink);font-size:var(--atlas-type-body)}
 @media(max-width:900px){.guest-intro{grid-template-columns:minmax(0,1fr) minmax(245px,.75fr);gap:24px}.guest-intro-photo{height:170px}}
 @media(max-width:600px){.site-main{padding-inline:20px}.atlas-hero{padding:20px 0 28px}.atlas-hero h1{font-size:clamp(2rem,9vw,2.5rem)}.hero-selection .product-img{height:210px}.hero-link-form{flex-direction:column}.catalog-toolbar{padding-top:24px}.find-total>strong{font-size:1.125rem}.card-photo{height:190px}.account-next-action{grid-template-columns:1fr}.account-next-action .eyebrow{position:static}.account-next-action h2{margin:10px 0}.account-next-action .btn{white-space:normal}.guest-intro{grid-template-columns:1fr;gap:22px;padding:24px 0 26px}.guest-intro h1{font-size:clamp(2rem,9vw,2.5rem);max-width:16ch;margin:12px 0}.guest-intro-actions{margin-top:18px;gap:12px}.guest-intro-photo{height:140px}.guest-intro-product-info{padding:9px 25px 10px 10px}.guest-intro-product-info>span{font-size:.8125rem}.guest-intro-product>svg{right:8px;bottom:12px;width:15px}.guest-intro-fallback{min-height:140px}}
 @media(max-width:380px){.site-header{padding-inline:12px}.header-actions .locale-select{min-width:54px;width:54px;padding-inline:3px}}
+.storage-notice{position:fixed;z-index:60;right:24px;bottom:24px;display:flex;align-items:center;gap:18px;max-width:min(620px,calc(100vw - 40px));padding:14px 16px;border:1px solid var(--atlas-line);border-radius:8px;background:#fff;box-shadow:0 14px 42px #14234424}
+.storage-notice p{margin:0;color:#45536e;font-size:.875rem;line-height:1.45}
+.storage-notice a{color:#193dcf;text-decoration:underline;text-underline-offset:2px}
+.storage-notice button{flex:none;min-height:42px;padding:8px 14px;border:0;border-radius:6px;background:var(--atlas-ink);color:#fff;font-weight:650}
+.remove-item.confirming{color:#a33236}
+.remove-item.confirming:hover{color:#7d2428}
+@media(max-width:600px){.storage-notice{left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));max-width:none;align-items:stretch;flex-direction:column;gap:10px}.storage-notice button{align-self:flex-start}}
+.account-address-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;margin-top:12px}
+.account-address-list .saved-address{min-width:0;margin:0;padding:16px;overflow-wrap:anywhere;background:#f8faff;border:1px solid var(--atlas-line);border-radius:8px}
+.account-address-list .remove-item{align-self:flex-start;margin-top:auto;min-height:38px;padding:6px 0;background:transparent;border:0;color:#6a4550;font-size:.8125rem}
+.account-address-add{display:flex;align-items:center;justify-content:center;gap:9px;min-height:145px;min-width:0;padding:16px;border:1px dashed #acbce0;border-radius:8px;background:#fbfcff;color:#193dcf;font-weight:650}
+.account-address-add:hover,.account-address-add:focus-visible{background:#eef3ff;border-color:#193dcf}
+.support-form label{color:var(--atlas-ink);font-size:.875rem;font-weight:600}
+.support-form .support-counter{align-self:flex-end;color:#68758a;font-variant-numeric:tabular-nums}

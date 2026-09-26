@@ -54,4 +54,4 @@ Disallow: /notifications
 Disallow: /operations
 Disallow: /orders
 
-Sitemap: https://atlas-uz-market.ishakovzak0.chatgpt.site/sitemap.xml
+Sitemap: https://atlas-uz-market.ishakovzakir0.chatgpt.site/sitemap.xml

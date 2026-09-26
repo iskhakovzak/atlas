@@ -959,6 +959,22 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
       return candidate.origin === source.origin && candidate.pathname === source.pathname && candidate.search === source.search;
     } catch { return false; }
   };
+  // Sephora puts product JSON-LD in a script without the usual type attribute.
+  // Accept it only for the exact approved host and listing URL; recommendation
+  // products in the same payload must never supply a different item's price.
+  if (/^(?:www\.)?sephora\.com$/i.test(new URL(sourceUrl).hostname)) {
+    for (const match of html.matchAll(/<script\b(?=[^>]*\bid\s*=\s*["']linkJSON["'])[^>]*>([\s\S]*?)<\/script>/gi)) {
+      try {
+        const parsed = JSON.parse(match[1]);
+        const candidates = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.['@graph']) ? parsed['@graph'] : [parsed];
+        for (const candidate of candidates) {
+          if (!candidate || typeof candidate !== 'object' || ![candidate['@type']].flat().includes('Product')) continue;
+          const offerUrls = [candidate.offers].flat().map((offer: unknown) => offer && typeof offer === 'object' ? (offer as Record<string, unknown>).url : undefined);
+          if ([candidate.url, candidate['@id'], ...offerUrls].some(sameListing)) walk(candidate);
+        }
+      } catch { /* Keep editable Open Graph fallback. */ }
+    }
+  }
   const productNodes = nodes.filter(n => [n['@type']].flat().some(t => t === 'Product' || t === 'ProductGroup'));
   const offerUrls = (node: Record<string, unknown>) => [node.offers].flat().map(offer =>
     offer && typeof offer === 'object' ? (offer as Record<string, unknown>).url : undefined);

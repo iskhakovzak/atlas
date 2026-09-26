@@ -20,7 +20,7 @@ Atlas — pre-release cross-border shopping сервис для пользова
 
 Затем осмотри только относящиеся к задаче файлы и тесты. Не начинай с переписывания модулей «для красоты».
 
-Последний локально доступный commit baseline: `e6c810458a2c0db68087752af0c562b66eefef57` (`Add Atlas team orchestration protocol`). На момент обновления этой документации поверх него есть непубликованный рабочий набор UX/localization/security изменений; перед любым внешним действием заново проверь `git status`, `git log --decorate -3` и факт push/deploy. SHA нельзя называть опубликованным без подтверждённого результата Sites. Последний известный URL сайта:
+Рабочая копия Sites и GitHub `main` расходятся: GitHub mainline уже входит в историю Site, а локальный Site-источник содержит более поздние изменения. Перед любым внешним действием заново проверь `git status`, `git log --decorate -3`, `git branch -r` и факт push/deploy; не называй SHA опубликованным без подтверждённого результата Sites. Последний известный URL сайта:
 
 https://atlas-uz-market.ishakovzakir0.chatgpt.site
 
@@ -66,6 +66,7 @@ https://atlas-uz-market.ishakovzakir0.chatgpt.site
 - Account next action prioritizes an approval, simulated payment, active order, cart and recipient; the passport is not an unsolicited first screen. Saved-address entry has local autocomplete/datalist suggestions and no external address lookup.
 - Shared catalog/product-sheet/provider error handling follows RU/UZ/EN. Remaining operator, legal and server-authored history text stays a deliberate translation backlog.
 - Order-document downloads are still private attachment/no-store responses and now send `X-Content-Type-Options: nosniff`.
+- September 26 GitHub branches were reviewed selectively: do not merge their heads wholesale. `market_staff_directory` must not grant operator access; only `ATLAS_OPERATOR_EMAIL` does. Sephora `linkJSON` accepts exact listing only; account/cart two-step deletion, storage notice and cron source configuration are described in `PROJECT_CONTEXT.md`. The separate cron Worker is not live until deployed with its secret.
 
 ## Текущий UX baseline
 
