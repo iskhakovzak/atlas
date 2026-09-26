@@ -363,7 +363,19 @@ export function GlobalLinkOrder() {
       <PageHeading overline={c.over} title={isSourcedFlow ? c.choose : c.order} description={isSourcedFlow ? c.checkPrice : c.paste}/>
       <div className="link-layout">
         <section className="surface link-form">
-          {isSourcedFlow && !showSourceForm && <div className="notice" role="status">{busy ? <><Loader2 className="spin" size={18}/> {c.loading}</> : <>{c.selected}</>}<button type="button" className="text-button" onClick={() => setShowSourceForm(true)}>{c.edit}</button></div>}
+          {isSourcedFlow && !showSourceForm && <div className="link-source-tools" aria-live="polite">
+            {busy && <span className="link-source-loading" role="status"><Loader2 className="spin" size={16}/> {c.loading}</span>}
+            {!busy && source && <>
+              <a className="text-link source-check-link" href={source} target="_blank" rel="noopener noreferrer" aria-label={c.original} title={c.original}>
+                {tx('Магазин','Do‘kon','Store')} <ExternalLink size={14}/>
+              </a>
+              {note && <details className="import-status-details">
+                <summary>{tx('Данные импорта','Import ma’lumotlari','Import details')}</summary>
+                <p>{note}</p>
+              </details>}
+            </>}
+            {!busy && <button type="button" className="text-button" onClick={() => setShowSourceForm(true)} aria-label={c.edit} title={c.edit}>{tx('Изменить','O‘zgartirish','Change')}</button>}
+          </div>}
           {(showSourceForm || !requestedUrl) && <>
           <div className="step-heading">
             <b>01</b>
@@ -427,9 +439,9 @@ export function GlobalLinkOrder() {
           {!ready && (
             <p className="notice">{c.login}</p>
           )}
-          {note && (
+          {note && !source && (
             <div className="notice" role="status">
-              {source ? <><a className="text-link source-check-link" href={source} target="_blank" rel="noopener noreferrer">{c.original} <ExternalLink size={15}/></a><details className="import-status-details"><summary>{c.loaded}</summary><p>{note}</p></details></> : <p>{note}</p>}
+              <p>{note}</p>
             </div>
           )}
           {source&&sourceCheckStatus!=='verified'&&<p className="micro source-auto-status" role="status">

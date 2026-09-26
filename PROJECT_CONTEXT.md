@@ -461,3 +461,8 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - GitHub PR #2 was already merged into `main`; its Deals Feed tooltip and checkout/payment loading-indicator changes are integrated here. Generated build/server logs and the unrelated `pnpm-lock.yaml` were excluded; `.Jules/palette.md` was retained as a small design reference.
 - GitHub PR #1 remains open upstream and is integrated locally for review: the supported-store host set is precomputed without widening the explicit allowlist, Macy's has a guarded public-state parser, Adidas malformed/blocked JSON can fall back to editable entry, Amazon ZIP validation relies on the parsed location response, and server errors carry locale-aware codes.
 - The local integration is not pushed. Keep PR #1 open until its owner reviews the combined result. Macy's parser has synthetic fixture coverage; its live `__PRELOADED_STATE__` shape still needs a real-page verification.
+
+## Compact imported-link controls — 26 September 2026
+
+- The redundant “item already selected” banner is removed from imported order links. The merchant link, collapsed import details and change-link action sit in a compact utility row, with RU/UZ/EN labels.
+- Automatic merchant recheck, its unresolved/error status and the server-backed gate against adding an unverified item remain unchanged.
