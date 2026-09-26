@@ -4,6 +4,8 @@
 
 The current review layer applies a green merchant-service palette through the final shared experience stylesheet, without changing the established route or business-action structure. Cart users see a compact fixed total/checkout action on narrow screens; it follows the same customs-consent gate and existing simulated checkout action. Order identifiers can be copied from the expanded order details with a localized accessible control. Shared loading surfaces use a restrained shimmer; actionable order states receive a subtle attention pulse. Motion respects reduced-motion preferences. The order/cart, account, and service flows remain simulated where noted below; visual polish does not imply live payment or fulfilment.
 
+The account's high-priority next-action panel explicitly retains its dark ink surface above generic white `.surface` styling, keeping its white heading and supporting copy readable in the current green review palette.
+
 This is a reviewable visual override, not yet the settled Atlas brand palette. The owner should confirm or ask to revert the green palette before further design-system consolidation. No global test suite was run for this visual iteration; production build is the deployment check.
 
 The customer account no longer displays the legacy browser-data migration panel. The server-side `import-legacy` action remains in place and must still be removed or redesigned before real payment, shipment or stored-value capability is introduced; hiding the UI does not retire that action.

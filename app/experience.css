@@ -294,6 +294,7 @@ body{background:var(--background);color:var(--atlas-ink)}
 .cart-link:hover,.btn.primary:hover,.storage-notice button:hover{background:#173d30;border-color:#173d30}
 .cart-link b{background:#dff0b5;color:#203c31}
 .btn.light,.account-next-action .btn{background:#dff0b5;border-color:#dff0b5;color:#203c31}
+.surface.account-next-action{background-color:var(--atlas-ink);color:#fff}
 .desktop-nav a.active{border-color:#204e3d}
 .icon-btn:hover,.notice-link.active,.account-address-add:hover,.account-address-add:focus-visible{background:#edf5e9;color:#204e3d}
 button:focus-visible,a:focus-visible,summary:focus-visible{outline-color:#164e40}
