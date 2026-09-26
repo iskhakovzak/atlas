@@ -157,3 +157,67 @@ a, button, input, textarea, select, .btn, summary {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
+
+/* SAFE DELETE COMPONENT */
+.remove-item.confirming {
+  color: var(--destructive);
+  font-weight: 500;
+  background: rgba(231, 0, 11, 0.05);
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-left: -8px;
+}
+
+/* STICKY MOBILE CHECKOUT */
+@media (max-width: 850px) {
+  .cart-summary {
+    position: sticky !important;
+    bottom: calc(max(11px, env(safe-area-inset-bottom)) + 55px) !important; /* Выше mobile-nav */
+    z-index: 20;
+    box-shadow: 0 -4px 15px rgba(32, 78, 61, 0.1);
+    background: var(--background);
+    margin-bottom: -15px; /* компенсировать нижний паддинг если есть */
+  }
+}
+
+/* ADDRESS CARDS */
+.address-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+.address-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  position: relative;
+  text-align: left;
+}
+.address-card.primary {
+  background: rgba(32, 78, 61, 0.04);
+  border-color: rgba(32, 78, 61, 0.2);
+}
+.address-card.add-new {
+  border: 2px dashed #d1dced;
+  background: transparent;
+  align-items: center;
+  justify-content: center;
+  color: #315f91;
+  cursor: pointer;
+  min-height: 140px;
+}
+.address-card.add-new:hover {
+  background: #f3f7fc;
+  border-color: #315f91;
+}
+.address-card b { font-size: 14px; }
+.address-card span { font-size: 13px; color: var(--foreground); }
+.address-card small { font-size: 12px; color: var(--muted-foreground); line-height: 1.4; }
+.address-card .remove-item { margin-top: auto; padding-top: 12px; align-self: flex-start; }
+.passport-ok { color: #668c3e !important; }
+.passport-missing { color: #e7000b !important; }
