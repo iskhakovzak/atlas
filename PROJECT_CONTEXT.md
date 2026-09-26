@@ -4,6 +4,8 @@
 
 The shared header has a localized light/dark control on public, customer and operator routes. New visits default to the white/light theme regardless of device appearance; a manual choice is stored only in the browser-local `atlas-theme` preference and follows full-page navigation. Theme state does not enter account, cart, order or API data. Dark mode uses low-glare graphite surfaces, softened text contrast and restrained Atlas blue/lime accents instead of pure black or a green cast. The `next-themes` bootstrap suppresses the root hydration warning and applies the selected `data-theme` before the interface settles.
 
+Catalog cards retain a contained surface and rounded image crop across themes. Product titles and prices may wrap inside narrow cards without widening the grid; catalog search fields, filters and result controls use the same graphite contrast in dark mode.
+
 ## Interface review pass — 27 September 2026
 
 ## Interface review pass — 27 September 2026

@@ -214,5 +214,6 @@
 - [x] Add a reviewable shared green palette override without altering the established brand mark or business logic.
 - [x] Add a shared localized light/dark toggle and persist a manual choice in device-local preference only.
 - [x] Keep white/light as the default regardless of system appearance; tune dark mode to low-glare graphite with softer contrast and restrained accents.
+- [x] Restore rounded, contained catalog cards; keep long names/prices inside narrow cards and theme search/filter controls in graphite mode.
 - [ ] Owner to review the green palette and mobile checkout bar; restore the previous navy/blue/lime palette or adjust proportions if requested.
 - [ ] Perform a visual browser pass in light and graphite themes at 360px, 390px, 800px, and 1440px after owner review; no full test suite is being repeated for this visual-only iteration.

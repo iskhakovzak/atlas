@@ -58,6 +58,8 @@ MarketProvider loads account state and revision, then sends action plus expected
 
 The root `AtlasThemeProvider` uses `next-themes` with the root `data-theme` attribute, light as the initial default independent of the operating-system preference, and the device-local `atlas-theme` preference key. The localized `ThemeToggle` lives in the shared Marketplace header. Theme choice is presentational only and does not enter customer account state or server requests.
 
+Catalog card rules are finalized in `app/experience.css` after the base catalog styles so the full card retains its surface, radius, image crop and text padding. Long product names and price rows may wrap within grid columns. `app/dark-theme.css` also themes the separate finds search/filter panel and its embedded controls; no catalog data or behavior changes.
+
 ## D1
 
 market_accounts:
