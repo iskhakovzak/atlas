@@ -18,12 +18,12 @@
 | Shared Atlas visual system | app/atlas-design.css plus app/experience.css; responsive hero, cards, account, forms, order surfaces and green review palette. app/dark-theme.css provides the opt-in low-glare graphite palette; app/theme-control.tsx owns the light-default, local-only theme provider and toggle. |
 | Link order | app/global-link-order.tsx |
 | Cart and checkout/payment-test confirmation | app/shopping.tsx |
-| Orders, operations, balance and managed pricing UI | app/order-workspace.tsx |
+| Cart/order workflows, balance and pricing form component | app/order-workspace.tsx; the shared `PricingManager` is rendered centrally by `app/admin-view.tsx` |
 | Copy order ID interaction | app/copy-text.tsx; localized clipboard action in expanded order details |
 | Analytics, legal/readiness | app/prelaunch-views.tsx |
 | Account/customs | app/account-views.tsx, app/customs/page.tsx |
 | Identity/declaration/address help | app/identity-workspace.tsx, app/api/passport, lib/market/addresses.ts |
-| Batch import/admin catalog/rules | app/batch-import.tsx, app/admin-view.tsx, app/catalog-admin.tsx, lib/market/catalog-editor.ts, lib/market/catalog-server.ts, lib/market/policy.ts |
+| Batch import/admin catalog, unified pricing and rules | app/batch-import.tsx, app/admin-view.tsx, app/catalog-admin.tsx, lib/market/catalog-editor.ts, lib/market/catalog-server.ts, lib/market/policy.ts |
 | Client provider | lib/market/store.tsx |
 | Auth/access | app/chatgpt-auth.ts, app/access-view.tsx, lib/market/access.ts |
 | API | app/api/account, app/api/actions, app/api/import, app/api/catalog, app/api/internal/catalog-refresh, app/api/operations |
@@ -31,6 +31,8 @@
 | Importing | lib/importer/stores.ts, fetch.ts, extract.ts, shopify.ts |
 | Database | db/schema.ts, drizzle/0000_overrated_justice.sql |
 | Tests | tests/market.test.mjs, tests/world.test.mjs |
+
+The `/admin` route is the single operator UI for catalog administration, rules, audit/system tools and centrally managed pricing. Global FX/freight/fees, actual-dispatch-country overrides, currency rates and the warehouse service catalogue are loaded and saved through the existing `app/api/operations` endpoints. Both the route content and API reads/writes require the primary operator configured by `ATLAS_OPERATOR_EMAIL`; the UI's staff directory does not grant access. `/operations` is reserved for order processing and no longer presents a duplicate tariff editor. Pricing remains versioned in the existing `market_settings.pricing` record, without a schema migration; orders retain their pricing snapshots.
 
 ## Runtime flow
 

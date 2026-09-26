@@ -1,5 +1,13 @@
 # Atlas — project context
 
+## Catalog contrast and centralized operator tariffs — 27 September 2026
+
+The final dark-only catalog layer now overrides the remaining hard-coded navy price, merchant-link and detail-summary text, and gives savings badges, deal labels and count chips contrast-safe graphite-theme colors. Light appearance and catalog behavior are unchanged.
+
+The operator `/admin` workspace now owns a single “Tariffs and services” section for global FX and freight, service/buyout/conversion fees, delivery margin and reserve, general per-line fees, actual-dispatch-country overrides, currency rates and warehouse-service offers. The duplicate editor was removed from `/operations`; that route remains the cross-customer order queue. Settings use the existing operator-protected `/api/operations` API and versioned D1 pricing record; no migration was added. RU/UZ/EN labels and country names are provided. Existing submitted order snapshots remain unchanged. Values are explicitly marked as pre-release estimates, not live carrier, warehouse, FX or payment-provider prices; insurance remains locked and warehouse work still requires feasibility confirmation plus the customer's exact-price approval.
+
+Admin navigation remains conditional on the server-derived operator identity. The existing route gate denies non-operators before mounting admin content, and `/api/operations` checks the configured primary operator before returning or changing data. No customer role or team-directory entry gains admin rights from this UI work. A local browser screenshot pass could not be completed in the available browser harness; source checks and project test/build commands are recorded at handoff.
+
 ## Dark appearance and theme preference — 27 September 2026
 
 The shared header has a localized light/dark control on public, customer and operator routes. New visits default to the white/light theme regardless of device appearance; a manual choice is stored only in the browser-local `atlas-theme` preference and follows full-page navigation. Theme state does not enter account, cart, order or API data. Dark mode uses low-glare graphite surfaces, softened text contrast and restrained Atlas blue/lime accents instead of pure black or a green cast. The `next-themes` bootstrap suppresses the root hydration warning and applies the selected `data-theme` before the interface settles.
@@ -28,11 +36,11 @@ API failure responses now resolve display language from the validated `atlas-lan
 
 Successful product additions from the catalog, link-order form and batch link import now take the customer directly to `/cart`. Checkout creates the existing pre-release order records and then offers the existing `payment-demo` confirmation from the cart success dialog. A user must explicitly confirm; this only marks a simulated test payment, does not charge funds, and does not create a shipment. Existing pending orders can still be managed in Orders; real payment-provider integration is not enabled.
 
-Operator-managed pricing now supports optional per-dispatch-country overrides for the existing service commission, buyout commission, conversion commission, delivery margin, international per-kg rate, delivery reserve and flat optional-service amount. Country keys are exact existing `Product.country` labels (actual dispatch country), not customer destination. Blank fields inherit the central tariff. Cart/add, quantity changes and quote renewal reprice server-side; existing order quote snapshots stay immutable. These values remain managed/demo data, not live commercial rates. Admin tariff controls are currently Russian-only; UZ/EN localization remains follow-up work.
+Operator-managed pricing supports optional per-dispatch-country overrides for the existing service commission, buyout commission, conversion commission, delivery margin, international per-kg rate, delivery reserve and flat optional-service amount. Country keys are exact existing `Product.country` labels (actual dispatch country), not customer destination. Blank fields inherit the central tariff. Cart/add, quantity changes and quote renewal reprice server-side; existing order quote snapshots stay immutable. These values remain managed/pre-release estimate data, not live commercial rates. The editor was consolidated under `/admin` and its controls are localized in RU/UZ/EN; see the 27 September entry above.
 
 ## Warehouse service catalogue and customer approval — 25 September 2026
 
-`/operations` now includes an operator-managed warehouse service catalogue stored inside the existing versioned `market_settings.pricing` JSON; no D1 migration is required. The starter catalogue covers package/content photos, inspection, consolidation, repacking, split parcels, extra packing, fragile handling, priority processing, removing external price tags, special requests, storage extensions, merchant returns and disposal. Admins can localize names/descriptions in RU/UZ/EN, enable/deactivate an offer, choose checkout vs. warehouse request stage, unit, fixed vs. operator-quoted pricing, base UZS amount and per-dispatch-country overrides. Existing order snapshots are not rewritten when settings change. Starter prices are zero/operator quote placeholders, not Shipito or Atlas commercial rates. Insurance remains disabled and server-blocked until an actual insurer, coverage terms, exclusions and claims process are confirmed.
+The operator-managed warehouse service catalogue is stored inside the existing versioned `market_settings.pricing` JSON; no D1 migration is required. It was formerly edited under `/operations`; its central editor now lives under `/admin`. The starter catalogue covers package/content photos, inspection, consolidation, repacking, split parcels, extra packing, fragile handling, priority processing, removing external price tags, special requests, storage extensions, merchant returns and disposal. Admins can localize names/descriptions in RU/UZ/EN, enable/deactivate an offer, choose checkout vs. warehouse request stage, unit, fixed vs. operator-quoted pricing, base UZS amount and per-dispatch-country overrides. Existing order snapshots are not rewritten when settings change. Starter prices are zero/operator quote placeholders, not Shipito or Atlas commercial rates. Insurance remains disabled and server-blocked until an actual insurer, coverage terms, exclusions and claims process are confirmed.
 
 Customers can flag checkout-stage services in `/cart`; this saves a request on the order but does not add a fee, authorize work, or guarantee availability. After warehouse intake is recorded and before weighing, the customer can request configured warehouse-stage services, including a quantity for photo/day/half-hour units. The operator checks feasibility and either marks an unavailable service with a reason or submits a price through the existing change-request handshake. Fixed fees are recomputed from the server-owned service snapshot and dispatch-country rate; quoted services use the operator amount. The customer must approve or decline that exact amount, then an operator can mark the request complete. Unresolved service requests block warehouse weighing so repacking/splitting cannot bypass freight recalculation. Approved adjustments remain separate from the immutable original quote.
 
@@ -112,7 +120,7 @@ This is a UX refinement, not a commercial launch or a new authentication system.
 | /order-by-link | Import product and create quote |
 | /cart | Cart, optional warehouse-service preferences, balance use, customs consent, simulated checkout |
 | /orders | Customer orders, photo refresh and extra approvals |
-| /operations | Cross-customer operator queue, managed pricing and warehouse-service catalogue |
+| /operations | Cross-customer operator order queue and warehouse-service processing |
 | /notifications | In-app status, refund and approval notifications |
 | /analytics | Operator metrics and closed-pilot readiness |
 | /legal | Pre-release terms, privacy, refunds and restricted-goods drafts |
@@ -123,7 +131,7 @@ This is a UX refinement, not a commercial launch or a new authentication system.
 | /identity | Private passport upload, MRZ assistance and customer confirmation |
 | /declaration | Test declaration package from confirmed identity, address and orders |
 | /batch-import | Import up to ten product links into one cart party |
-| /admin | Operator-only catalog publishing, collections, managed limits, blocked categories and restricted-word rules |
+| /admin | Operator-only catalog publishing, collections, limits, access controls, audit, system tools and unified global/country pricing plus warehouse-service settings |
 
 ## Roles and authentication
 

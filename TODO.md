@@ -8,6 +8,10 @@
 - [x] Apply the guest Commerce hero, responsive admin rows and form-based support replies / collection creation; repair the catalog audit's fixed-category assumption.
 - [x] Check operator admin tabs at 1440/800/390/360px and fix the 390/360px authenticated header overflow.
 - [x] Preserve high contrast in the account next-action panel when shared surface colors are overridden by the active palette.
+- [x] Fix remaining dark-theme catalog accents whose legacy rules used navy text on low-contrast surfaces.
+- [x] Consolidate global pricing, per-dispatch-country overrides, FX and warehouse-service rates into one operator-only `/admin` section; remove the duplicate editor from `/operations` and keep saved order snapshots immutable.
+- [x] Verify the existing customer/admin boundary: customers have no admin navigation, direct admin routes show the denial state, and `/api/operations` rejects non-operators before returning data.
+- [ ] Visually review the new catalog accent colors and centralized tariff tab in light/dark mode at desktop and iPhone widths; the local in-app browser harness could not attach to this preview during this pass.
 - [ ] Finish Commerce migration by consolidating overlapping rules across existing stylesheets; audit populated customer/operator states and mobile content density.
 - [ ] Complete legal/carrier/PSP/auth/operational pilot gates; never enable real payments based on visual readiness alone.
 
@@ -16,7 +20,8 @@
 - [x] Route successful catalog, link and batch additions directly to the cart; offer simulated payment confirmation from cart checkout. Real provider payments remain blocked on PSP integration.
 - [x] Remove the customer stock-status gate from link/batch cart addition and checkout while retaining live selected-option, price and currency verification; catalog auto-hide remains a separate operator feed policy.
 - [x] Add operator-managed dispatch-country overrides for existing service, buyout, conversion, delivery margin, per-kg freight, reserve and optional-service tariff fields; old pricing state and submitted quote snapshots remain compatible.
-- [ ] Localize dispatch-country pricing controls and validation errors in RU/UZ/EN; validate country-label coverage as merchant regions are added.
+- [x] Localize global and dispatch-country pricing controls, warehouse-service settings and supported country names in RU/UZ/EN.
+- [ ] Validate country-label coverage as merchant regions are added; complete the remaining legacy operator copy localization pass.
 
 - [x] Remove the low-value customer profile JSON download; keep operator-only database backup export separate.
 - [x] Remove the legacy browser-data migration panel from the customer account; the server-side `import-legacy` path remains a separate pre-launch blocker.

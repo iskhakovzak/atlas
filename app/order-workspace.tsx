@@ -289,7 +289,6 @@ export function OrdersView({ operations }: { operations: boolean }) {
     } | null>(null),
     [busy, setBusy] = useState(false),
     [opsAccounts, setOpsAccounts] = useState<OperationsAccount[]>([]),
-    [opsPricing, setOpsPricing] = useState<Pricing>(pricing),
     [opsReady, setOpsReady] = useState(false),
     [opsError, setOpsError] = useState<string | null>(null);
   useEffect(() => {
@@ -310,13 +309,11 @@ export function OrdersView({ operations }: { operations: boolean }) {
       const response = await fetch("/api/operations", { cache: "no-store" });
       const data = (await response.json()) as {
         accounts?: OperationsAccount[];
-        pricing?: Pricing;
         error?: string;
       };
-      if (!response.ok || !data.accounts || !data.pricing)
+      if (!response.ok || !data.accounts)
         throw Error(data.error ?? "Не удалось загрузить очередь.");
       setOpsAccounts(data.accounts);
-      setOpsPricing(data.pricing);
       setOpsError(null);
       setOpsReady(true);
     } catch (nextError) {
@@ -493,17 +490,6 @@ export function OrdersView({ operations }: { operations: boolean }) {
           </Link>
         )}
       </PageHeading>
-      {operations && viewReady && (
-        <PricingManager
-          key={opsPricing.version}
-          value={opsPricing}
-          locale={locale}
-          onSaved={(next) => {
-            setOpsPricing(next);
-            void refresh();
-          }}
-        />
-      )}
       {operations && (
         <div className="ops-stats">
           <div>
@@ -1135,23 +1121,130 @@ export function OrdersView({ operations }: { operations: boolean }) {
     </>
   );
 }
-function PricingManager({
+export function PricingManager({
   value,
   locale,
   onSaved,
+  onDirtyChange,
 }: {
   value: Pricing;
   locale: Locale;
   onSaved: (next: Pricing) => void;
+  onDirtyChange: (dirty: boolean) => void;
 }) {
   const [draft, setDraft] = useState(value);
   const [saving, setSaving] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState(countries[0]);
+  useEffect(() => {
+    onDirtyChange(JSON.stringify(draft) !== JSON.stringify(value));
+  }, [draft, onDirtyChange, value]);
   const serviceWords = {
     ru: { title: "Услуги и тарифы склада", intro: "Настройте цену за единицу и при необходимости отдельные тарифы по стране отправки. Фиксированная цена показывается клиенту, но не входит в заказ к оплате: оператор сначала подтверждает возможность, клиент отдельно одобряет точную сумму. Снимок условий сохраняется в заказе; списаний и реального выполнения пока нет.", add: "Добавить услугу", enabled: "Доступна клиентам", required: "Обязательна при оформлении", stage: "Когда показывать", checkout: "В корзине", warehouse: "После приёмки", unit: "Единица тарифа", pricing: "Ценообразование", fixed: "Фиксированный тариф", quote: "Цена после проверки оператором", baseFee: "Базовый тариф за единицу, сум", countryFee: "Тариф за единицу для страны, сум", titleLabel: "Название", description: "Описание", remove: "Отключить", insurance: "Страхование заблокировано до подтверждения страховщика, покрытия и порядка претензий." },
     uz: { title: "Ombor xizmatlari va tariflari", intro: "Birlik narxini va kerak bo‘lsa jo‘natish mamlakati bo‘yicha alohida tarifni belgilang. Belgilangan tarif buyurtma summasiga kiritilmaydi: operator imkoniyatni tasdiqlaydi, mijoz esa aniq summaga alohida rozilik beradi. Shartlar buyurtmada saqlanadi; haqiqiy yechib olish va bajarish hali yo‘q.", add: "Xizmat qo‘shish", enabled: "Mijozlarga ochiq", required: "Rasmiylashtirishda majburiy", stage: "Qachon ko‘rsatish", checkout: "Savatda", warehouse: "Qabuldan keyin", unit: "Tarif birligi", pricing: "Narxlash", fixed: "Belgilangan tarif", quote: "Operator tekshirgach narx", baseFee: "Birlik uchun asosiy tarif, so‘m", countryFee: "Mamlakat uchun birlik tarifi, so‘m", titleLabel: "Nomi", description: "Tavsif", remove: "O‘chirish", insurance: "Sug‘urtalovchi, qoplama va da’vo tartibi tasdiqlanmaguncha sug‘urta bloklangan." },
     en: { title: "Warehouse services and rates", intro: "Set a per-unit rate and optional dispatch-country overrides. A fixed rate is shown to customers but excluded from the checkout amount: an operator confirms feasibility, then the customer separately approves the exact amount. Terms are snapshotted on the order; no real charge or fulfilment is connected yet.", add: "Add service", enabled: "Available to customers", required: "Required at checkout", stage: "When to offer", checkout: "In cart", warehouse: "After intake", unit: "Pricing unit", pricing: "Pricing mode", fixed: "Fixed tariff", quote: "Operator quote after review", baseFee: "Base rate per unit, UZS", countryFee: "Rate per unit for country, UZS", titleLabel: "Title", description: "Description", remove: "Deactivate", insurance: "Insurance is locked until the insurer, coverage and claims process are confirmed." },
   }[locale];
+  const pricingWords = {
+    ru: {
+      title: "Единые тарифы Atlas",
+      updated: "Обновлено",
+      default: "по умолчанию",
+      estimateNotice: "Предрелизные настройки расчёта, а не актуальные тарифы перевозчика, склада или платёжного провайдера. Новые значения применяются к новым и обновляемым расчётам; уже оформленные заказы сохраняют исходные условия.",
+      fx: "Сум за 1 USD",
+      perKg: "Международная доставка за кг, сум",
+      service: "Сервисный сбор Atlas",
+      buyout: "Комиссия за выкуп",
+      conversion: "Комиссия за конвертацию",
+      deliveryMargin: "Маржа доставки",
+      lineFee: "Общий сбор за позицию, сум",
+      reserve: "Резерв международной доставки",
+      divisor: "Делитель объёмного веса",
+      lineFeeNote: "Общий сбор применяется к каждой товарной позиции. Он не заменяет тариф отдельно запрошенной услуги склада.",
+      countryTitle: "Тарифы по фактической стране отправки",
+      countryNote: "Выберите страну, откуда магазин фактически отправляет товар. Пустое поле наследует общий тариф. Смена настроек не пересчитывает оформленные заказы.",
+      countryLabel: "Страна отправки",
+      baseRate: "общий тариф",
+      currencies: "Курсы валют к USD",
+      currencyNote: "Курсы задаются вручную и не подключены к онлайн-источнику. Значение USD фиксировано.",
+      perKgCountry: "Доставка за кг",
+      lineFeeCountry: "Общий сбор за позицию",
+      newQuotes: "Новые значения используются при создании или обновлении расчёта. Снимки оформленных заказов остаются неизменными.",
+      save: "Сохранить тарифы",
+      saving: "Сохраняем…",
+      saved: "Единые тарифы обновлены. Новые расчёты будут использовать их.",
+    },
+    uz: {
+      title: "Atlas yagona tariflari",
+      updated: "Yangilangan",
+      default: "standart",
+      estimateNotice: "Bu oldindan ko‘rish uchun hisob sozlamalari, tashuvchi, ombor yoki to‘lov provayderining amaldagi tariflari emas. Yangi qiymatlar yangi va yangilanadigan hisob-kitoblarga qo‘llanadi; rasmiylashtirilgan buyurtmalar o‘zgarmaydi.",
+      fx: "1 USD uchun so‘m",
+      perKg: "Xalqaro yetkazib berish, kg uchun so‘m",
+      service: "Atlas xizmat haqi",
+      buyout: "Xarid komissiyasi",
+      conversion: "Konvertatsiya komissiyasi",
+      deliveryMargin: "Yetkazib berish marjasi",
+      lineFee: "Har bir tovar qatori uchun umumiy yig‘im, so‘m",
+      reserve: "Xalqaro yetkazib berish zaxirasi",
+      divisor: "Hajmiy vazn bo‘luvchisi",
+      lineFeeNote: "Umumiy yig‘im har bir tovar qatoriga qo‘llanadi. U alohida so‘ralgan ombor xizmati tarifini almashtirmaydi.",
+      countryTitle: "Haqiqiy jo‘natish mamlakati bo‘yicha tariflar",
+      countryNote: "Do‘kon mahsulotni haqiqatda qaysi mamlakatdan yuborishini tanlang. Bo‘sh maydon umumiy tarifdan foydalanadi. Rasmiylashtirilgan buyurtmalar qayta hisoblanmaydi.",
+      countryLabel: "Jo‘natish mamlakati",
+      baseRate: "umumiy tarif",
+      currencies: "USD ga nisbatan valyuta kurslari",
+      currencyNote: "Kurslar qo‘lda kiritiladi va onlayn manbaga ulanmagan. USD qiymati o‘zgarmaydi.",
+      perKgCountry: "Yetkazib berish, kg uchun",
+      lineFeeCountry: "Har bir tovar qatori uchun umumiy yig‘im",
+      newQuotes: "Yangi qiymatlar yangi yoki yangilanadigan hisob-kitobda ishlatiladi. Rasmiylashtirilgan buyurtma nusxalari o‘zgarmaydi.",
+      save: "Tariflarni saqlash",
+      saving: "Saqlanmoqda…",
+      saved: "Yagona tariflar yangilandi. Yangi hisob-kitoblarda ular qo‘llanadi.",
+    },
+    en: {
+      title: "Atlas central tariffs",
+      updated: "Updated",
+      default: "default",
+      estimateNotice: "These are pre-release calculation settings, not current carrier, warehouse or payment-provider rates. New values apply to new or refreshed quotes; existing orders keep their original terms.",
+      fx: "UZS per 1 USD",
+      perKg: "International delivery per kg, UZS",
+      service: "Atlas service fee",
+      buyout: "Buyout commission",
+      conversion: "Conversion commission",
+      deliveryMargin: "Delivery margin",
+      lineFee: "General fee per item line, UZS",
+      reserve: "International delivery reserve",
+      divisor: "Dimensional-weight divisor",
+      lineFeeNote: "This general fee applies to each product line. It is separate from a requested warehouse service rate.",
+      countryTitle: "Rates by actual dispatch country",
+      countryNote: "Choose the country the merchant actually dispatches the item from. Blank fields inherit the global rate. Saved orders are not recalculated when settings change.",
+      countryLabel: "Dispatch country",
+      baseRate: "global rate",
+      currencies: "Currency rates to USD",
+      currencyNote: "Rates are entered manually and are not connected to a live market feed. USD is fixed.",
+      perKgCountry: "Delivery per kg",
+      lineFeeCountry: "General fee per item line",
+      newQuotes: "New values are used when a quote is created or refreshed. Existing order snapshots remain unchanged.",
+      save: "Save tariffs",
+      saving: "Saving…",
+      saved: "Central tariffs updated. New calculations will use them.",
+    },
+  }[locale];
+  const countryLabels: Record<string, Record<Locale, string>> = {
+    "США": { ru: "США", uz: "AQSh", en: "United States" },
+    "Испания": { ru: "Испания", uz: "Ispaniya", en: "Spain" },
+    "Германия": { ru: "Германия", uz: "Germaniya", en: "Germany" },
+    "Великобритания": { ru: "Великобритания", uz: "Buyuk Britaniya", en: "United Kingdom" },
+    "Франция": { ru: "Франция", uz: "Fransiya", en: "France" },
+    "Италия": { ru: "Италия", uz: "Italiya", en: "Italy" },
+    "Румыния": { ru: "Румыния", uz: "Ruminiya", en: "Romania" },
+    "Китай": { ru: "Китай", uz: "Xitoy", en: "China" },
+    "Турция": { ru: "Турция", uz: "Turkiya", en: "Turkey" },
+    "Япония": { ru: "Япония", uz: "Yaponiya", en: "Japan" },
+    "Южная Корея": { ru: "Южная Корея", uz: "Janubiy Koreya", en: "South Korea" },
+    "ОАЭ": { ru: "ОАЭ", uz: "BAA", en: "UAE" },
+    "Канада": { ru: "Канада", uz: "Kanada", en: "Canada" },
+    "Австралия": { ru: "Австралия", uz: "Avstraliya", en: "Australia" },
+  };
   const updateService = (index: number, patch: Partial<ServiceOffering>) => setDraft((current) => ({ ...current, serviceCatalog: current.serviceCatalog.map((service, serviceIndex) => serviceIndex === index ? { ...service, ...patch } : service) }));
   const addService = () => setDraft((current) => ({ ...current, serviceCatalog: [...current.serviceCatalog, { id: `custom-service-${crypto.randomUUID().slice(0, 8)}`, title: { ru: "Новая услуга", uz: "Yangi xizmat", en: "New service" }, description: { ru: "", uz: "", en: "" }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: false, required: false }] }));
   const setNumber = (key: "fx" | "perKg" | "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "optionalServices" | "reserve" | "divisor", raw: string) =>
@@ -1183,8 +1276,9 @@ function PricingManager({
       const data = (await response.json()) as { pricing?: Pricing; error?: string };
       if (!response.ok || !data.pricing)
         throw Error(data.error ?? "Не удалось сохранить тарифы.");
+      setDraft(data.pricing);
       onSaved(data.pricing);
-      toast.success("Новые расчёты будут использовать обновлённые тарифы");
+      toast.success(pricingWords.saved);
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
@@ -1192,15 +1286,14 @@ function PricingManager({
     }
   }
   return (
-    <details className="surface pricing-manager">
+    <details className="surface pricing-manager" open>
       <summary>
         <span>
-          <b>Курсы и тарифы</b>
+          <b>{pricingWords.title}</b>
           <small>
-            {money(value.fx)} / USD · обновлено{" "}
-            {value.updatedAt
-              ? new Date(value.updatedAt).toLocaleString("ru-RU")
-              : "по умолчанию"}
+            {money(value.fx)} / USD · {value.updatedAt
+              ? `${pricingWords.updated} ${new Date(value.updatedAt).toLocaleString(localeTag(locale))}`
+              : pricingWords.default}
           </small>
         </span>
         <span className="status-badge">{value.version}</span>
@@ -1211,17 +1304,18 @@ function PricingManager({
           void save();
         }}
       >
+        <p className="notice warning" role="note">{pricingWords.estimateNotice}</p>
         <div className="pricing-grid">
           {[
-            ["fx", "Сум за 1 USD", 1],
-            ["perKg", "Доставка за кг, сум", 1],
-            ["margin", "Сервисный сбор", 0.01],
-            ["buyoutFee", "Комиссия за выкуп", 0.01],
-            ["conversionFee", "Комиссия за конвертацию", 0.01],
-            ["deliveryMargin", "Маржа доставки", 0.01],
-            ["optionalServices", locale === "ru" ? "Общий сбор за товар, сум" : locale === "uz" ? "Tovar uchun umumiy yig‘im, so‘m" : "General per-item fee, UZS", 1],
-            ["reserve", "Резерв доставки", 0.01],
-            ["divisor", "Делитель объёмного веса", 1],
+            ["fx", pricingWords.fx, 1],
+            ["perKg", pricingWords.perKg, 1],
+            ["margin", pricingWords.service, 0.01],
+            ["buyoutFee", pricingWords.buyout, 0.01],
+            ["conversionFee", pricingWords.conversion, 0.01],
+            ["deliveryMargin", pricingWords.deliveryMargin, 0.01],
+            ["optionalServices", pricingWords.lineFee, 1],
+            ["reserve", pricingWords.reserve, 0.01],
+            ["divisor", pricingWords.divisor, 1],
           ].map(([key, label, step]) => (
             <div className="field" key={String(key)}>
               <label htmlFor={`pricing-${key}`}>{label}{["margin", "buyoutFee", "conversionFee", "deliveryMargin", "reserve"].includes(String(key)) ? ", %" : ""}</label>
@@ -1243,25 +1337,25 @@ function PricingManager({
             </div>
           ))}
         </div>
-        <p className="micro">{locale === "ru" ? "Общий сбор применяется к каждой товарной позиции всегда. Он не заменяет отдельный тариф на услугу склада." : locale === "uz" ? "Umumiy yig‘im har bir tovar qatoriga doim qo‘llanadi. U ombor xizmatining alohida tarifini almashtirmaydi." : "This general fee applies to every cart line. It is separate from individually requested warehouse-service rates."}</p>
+        <p className="micro">{pricingWords.lineFeeNote}</p>
         <section className="country-pricing">
-          <h3>Тарифы по стране отправки</h3>
-          <p className="micro">Страна здесь — фактическая страна отправки товара. Пустое поле использует общий тариф. Существующие заказы не пересчитываются.</p>
+          <h3>{pricingWords.countryTitle}</h3>
+          <p className="micro">{pricingWords.countryNote}</p>
           <div className="field">
-            <label htmlFor="pricing-country">Страна отправки</label>
+            <label htmlFor="pricing-country">{pricingWords.countryLabel}</label>
             <select id="pricing-country" value={selectedCountry} onChange={(event) => setSelectedCountry(event.target.value)}>
-              {countries.filter((country) => country !== "Другая страна").map((country) => <option key={country} value={country}>{country}</option>)}
+              {countries.filter((country) => country !== "Другая страна").map((country) => <option key={country} value={country}>{countryLabels[country]?.[locale] ?? country}</option>)}
             </select>
           </div>
           <div className="pricing-grid country-pricing-grid">
             {([
-              ["margin", "Сервис Atlas", "%"],
-              ["buyoutFee", "Комиссия за выкуп", "%"],
-              ["conversionFee", "Комиссия за конвертацию", "%"],
-              ["deliveryMargin", "Маржа доставки", "%"],
-              ["perKg", "Доставка за кг", "сум"],
-              ["reserve", "Резерв доставки", "%"],
-              ["optionalServices", locale === "ru" ? "Общий сбор за товар" : locale === "uz" ? "Tovar uchun umumiy yig‘im" : "General per-item fee", "сум"],
+              ["margin", pricingWords.service, "%"],
+              ["buyoutFee", pricingWords.buyout, "%"],
+              ["conversionFee", pricingWords.conversion, "%"],
+              ["deliveryMargin", pricingWords.deliveryMargin, "%"],
+              ["perKg", pricingWords.perKgCountry, locale === "en" ? "UZS" : locale === "uz" ? "so‘m" : "сум"],
+              ["reserve", pricingWords.reserve, "%"],
+              ["optionalServices", pricingWords.lineFeeCountry, locale === "en" ? "UZS" : locale === "uz" ? "so‘m" : "сум"],
             ] as const).map(([key, label, unit]) => {
               const override = draft.countryOverrides[selectedCountry]?.[key];
               const base = draft[key];
@@ -1275,7 +1369,7 @@ function PricingManager({
                   step={isRate ? "0.1" : "1"}
                   max={isRate ? (key === "reserve" ? 200 : 100) : undefined}
                   value={override === undefined ? "" : isRate ? override * 100 : override}
-                  placeholder={isRate ? `${base * 100} (общий тариф)` : `${base} (общий тариф)`}
+                  placeholder={`${isRate ? base * 100 : base} (${pricingWords.baseRate})`}
                   onChange={(event) => setDraft((current) => {
                     const countryOverrides = { ...current.countryOverrides };
                     const countryValues = { ...(countryOverrides[selectedCountry] ?? {}) };
@@ -1315,11 +1409,12 @@ function PricingManager({
           </details>)}</div>
         </section>
         <details className="currency-rates">
-          <summary>Курсы валют к USD</summary>
+          <summary>{pricingWords.currencies}</summary>
+          <p className="micro">{pricingWords.currencyNote}</p>
           <div className="pricing-grid currency-grid">
             {Object.entries(draft.rates).map(([code, rate]) => (
               <div className="field" key={code}>
-                <label htmlFor={`rate-${code}`}>1 {code} в USD</label>
+                <label htmlFor={`rate-${code}`}>{locale === "ru" ? `1 ${code} в USD` : `1 ${code} → USD`}</label>
                 <input
                   id={`rate-${code}`}
                   type="number"
@@ -1342,12 +1437,9 @@ function PricingManager({
             ))}
           </div>
         </details>
-        <p className="micro">
-          Новые значения применяются только к новым и обновлённым расчётам.
-          Уже оформленные заказы сохраняют исходную сумму.
-        </p>
+        <p className="micro">{pricingWords.newQuotes}</p>
         <button className="btn primary" disabled={saving}>
-          {saving ? "Сохраняем…" : "Сохранить тарифы"}
+          {saving ? pricingWords.saving : pricingWords.save}
           <Check size={17} />
         </button>
       </form>

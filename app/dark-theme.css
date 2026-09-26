@@ -1603,3 +1603,34 @@ html[data-theme="dark"] .success-icon {
   background-color: var(--atlas-dark-success-bg);
   color: var(--atlas-dark-success-ink);
 }
+
+/* Keep catalog accents readable when legacy light-theme rules hard-code navy. */
+html[data-theme="dark"] .find-card .find-total > strong,
+html[data-theme="dark"] .find-card .find-origin a,
+html[data-theme="dark"] .find-card .find-breakdown > summary,
+html[data-theme="dark"] .finds-signin a,
+html[data-theme="dark"] .finds-disclosure > svg,
+html[data-theme="dark"] .finds-disclosure b {
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .find-card .find-top-deal,
+html[data-theme="dark"] .find-card .find-discount,
+html[data-theme="dark"] .find-card .find-store-price > .find-discount {
+  background-color: var(--atlas-dark-success-bg);
+  border: 1px solid var(--atlas-dark-success-line);
+  color: var(--atlas-dark-success-ink);
+}
+
+html[data-theme="dark"] .finds-count,
+html[data-theme="dark"] .finds-steps li > span {
+  background-color: var(--atlas-dark-selected);
+  border-color: #69799f;
+  color: #e3e8f8;
+}
+
+html[data-theme="dark"] .find-card .find-breakdown > summary:hover,
+html[data-theme="dark"] .find-card .find-origin a:hover,
+html[data-theme="dark"] .finds-signin a:hover {
+  color: #d3dcf6;
+}
