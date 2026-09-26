@@ -1,5 +1,11 @@
 # Atlas — project context
 
+## Interface review pass — 27 September 2026
+
+The current review layer applies a green merchant-service palette through the final shared experience stylesheet, without changing the established route or business-action structure. Cart users see a compact fixed total/checkout action on narrow screens; it follows the same customs-consent gate and existing simulated checkout action. Order identifiers can be copied from the expanded order details with a localized accessible control. Shared loading surfaces use a restrained shimmer; actionable order states receive a subtle attention pulse. Motion respects reduced-motion preferences. The order/cart, account, and service flows remain simulated where noted below; visual polish does not imply live payment or fulfilment.
+
+This is a reviewable visual override, not yet the settled Atlas brand palette. The owner should confirm or ask to revert the green palette before further design-system consolidation. No global test suite was run for this visual iteration; production build is the deployment check.
+
 ## Import recovery and API error localization — 26 September 2026
 
 Adidas product/article JSON failures caused by rate limits, challenges, or malformed payloads now produce a recoverable manual-entry response instead of an unhelpful hard parser error. The editable form remains available, but the source must still pass the existing fresh price/availability check before the item can enter the cart. Exact product/article matching and importer protections remain unchanged. Amazon US location setup still requires the address endpoint to confirm country `US` and ZIP `19701`; the importer no longer searches the refreshed page HTML for a ZIP string after that authoritative confirmation.

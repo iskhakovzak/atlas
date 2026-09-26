@@ -202,3 +202,12 @@
 - [ ] Provision `ATLAS_CATALOG_REFRESH_SECRET` in both Site and separate Cron Worker, deploy the Worker from `workers/catalog-refresh/wrangler.toml`, and verify scheduled signed calls plus safe failure/retry. The config file alone is not a live scheduler.
 - [ ] Select a real authentication/role model before enabling independent staff accounts; keep `market_staff_directory` non-authoritative and `ATLAS_OPERATOR_EMAIL` the sole operator gate for now.
 - [ ] Review the public privacy draft and storage notice with counsel before describing either as legally sufficient cookie/data consent.
+
+## Visual micro-UX review — 27 September 2026
+
+- [x] Add a compact mobile checkout bar that preserves the current customs-consent gate and existing simulated checkout behavior.
+- [x] Add a localized accessible copy action for order IDs, only in expanded order details.
+- [x] Add reduced-motion-aware transitions, loading shimmer, and subtle pending-action emphasis.
+- [x] Add a reviewable shared green palette override without altering the established brand mark or business logic.
+- [ ] Owner to review the green palette and mobile checkout bar; restore the previous navy/blue/lime palette or adjust proportions if requested.
+- [ ] Perform a visual browser pass at 360px, 390px, 800px, and 1440px after owner review; no full test suite is being repeated for this visual-only iteration.

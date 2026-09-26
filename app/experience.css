@@ -282,3 +282,49 @@ body{background:#fff;color:var(--atlas-ink);font-size:var(--atlas-type-body)}
 .account-address-add:hover,.account-address-add:focus-visible{background:#eef3ff;border-color:#193dcf}
 .support-form label{color:var(--atlas-ink);font-size:.875rem;font-weight:600}
 .support-form .support-counter{align-self:flex-end;color:#68758a;font-variant-numeric:tabular-nums}
+
+/* Reviewable palette and interaction layer: keeps product data and workflows untouched. */
+:root{--background:#f8faf7;--foreground:#203c31;--primary:#204e3d;--ring:#164e40;--atlas-ink:#203c31;--atlas-blue:#204e3d;--atlas-line:#dfe7dc;--atlas-soft:#f3f7f0;--accent:#dff0b5}
+body{background:var(--background);color:var(--atlas-ink)}
+.site-header,.utility-bar,.surface,.account-detail,.faq-strip details,.find-card,.product-card,.catalog-draft,.order-card{background-color:#fff}
+.utility-bar{background:#203c31}
+.wordmark{color:#203c31}
+.wordmark svg,.desktop-nav a.active,.text-link,.guest-intro-link,.storage-notice a,.account-address-add{color:#204e3d}
+.cart-link,.btn.primary,.storage-notice button{background:#204e3d;border-color:#204e3d}
+.cart-link:hover,.btn.primary:hover,.storage-notice button:hover{background:#173d30;border-color:#173d30}
+.cart-link b{background:#dff0b5;color:#203c31}
+.btn.light,.account-next-action .btn{background:#dff0b5;border-color:#dff0b5;color:#203c31}
+.desktop-nav a.active{border-color:#204e3d}
+.icon-btn:hover,.notice-link.active,.account-address-add:hover,.account-address-add:focus-visible{background:#edf5e9;color:#204e3d}
+button:focus-visible,a:focus-visible,summary:focus-visible{outline-color:#164e40}
+input:focus-visible,textarea:focus-visible,select:focus-visible{outline-color:#164e40;box-shadow:0 0 0 4px #164e4018}
+.checkout-progress li.active{border-color:#204e3d;color:#204e3d}
+.cart-service-chooser>summary>span{background:#edf5e9;color:#204e3d}
+.warehouse-issue-resolution input{accent-color:#204e3d}
+.account-address-list .saved-address{background:#f8fbf6}
+.account-address-add{border-color:#b9ccb5;background:#f8fbf6}
+.faq-item{background:#fff}
+.surface,.account-detail,.faq-strip details,.find-card,.product-card,.order-card{box-shadow:0 2px 10px #203c3108}
+a,button,input,textarea,select,summary,.surface,.account-detail,.find-card,.product-card{transition:color .18s ease,background-color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+.loading-state{position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(100deg,#f4f7f2 28%,#e9efe6 44%,#f4f7f2 62%);background-size:220% 100%;animation:atlas-loading-shimmer 1.35s linear infinite}
+.status-badge.needs-action{display:inline-flex;align-items:center;gap:7px}
+.status-badge.needs-action::before{content:"";width:7px;height:7px;flex:none;border-radius:50%;background:#9a6a14;box-shadow:0 0 0 3px #f5e8c8;animation:atlas-status-pulse 2s ease-out infinite}
+.order-id-copy{display:inline-flex;align-items:center;gap:5px;min-width:0}
+.copy-text-btn{display:inline-grid;place-items:center;width:30px;height:30px;padding:0;border:1px solid transparent;border-radius:6px;background:transparent;color:#52715d;cursor:pointer}
+.copy-text-btn:hover,.copy-text-btn:focus-visible{border-color:#cddccc;background:#f1f7ef;color:#204e3d}
+.cart-mobile-sticky{display:none}
+@keyframes atlas-loading-shimmer{to{background-position-x:-220%}}
+@keyframes atlas-status-pulse{0%{box-shadow:0 0 0 0 #d2a95166}70%{box-shadow:0 0 0 5px #d2a95100}100%{box-shadow:0 0 0 0 #d2a95100}}
+@media(max-width:700px){
+  main:has(.cart-mobile-sticky){padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+  .cart-summary>.btn.primary{display:none}
+  .cart-mobile-sticky{position:fixed;z-index:45;right:0;bottom:0;left:0;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));border-top:1px solid #d9e4d6;background:#fffffff2;box-shadow:0 -8px 28px #203c3118;backdrop-filter:blur(14px)}
+  .cart-mobile-sticky>div{display:grid;gap:2px;min-width:0}
+  .cart-mobile-sticky>div>span{color:#68766a;font-size:.75rem}
+  .cart-mobile-sticky strong{overflow:hidden;color:#203c31;font-size:1rem;font-variant-numeric:tabular-nums;text-overflow:ellipsis;white-space:nowrap}
+  .cart-mobile-sticky strong small{font-size:.68em}
+  .cart-mobile-sticky .btn{min-height:44px;padding:8px 12px;white-space:nowrap}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}

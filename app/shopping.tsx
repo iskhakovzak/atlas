@@ -188,6 +188,11 @@ export function CartView() {
         </aside>
       </div>}
 
+    {ready && state.cart.length > 0 && <div className="cart-mobile-sticky" role="region" aria-label={locale === "ru" ? "Итог и оформление корзины" : locale === "uz" ? "Savat jami va rasmiylashtirish" : "Cart total and checkout"}>
+      <div><span>{x.payable}</span><strong>{money(total - credit)} <small>UZS</small></strong></div>
+      <button className="btn primary" disabled={!expired && !consent} onClick={openCheckout}>{expired ? c.renew : c.checkout}<ArrowRight size={18} /></button>
+    </div>}
+
     <Modal open={checkoutOpen} onClose={() => { if (!busy) setCheckoutOpen(false); }} title={c.delivery} description={c.deliveryHint}>
       <ol className="checkout-progress"><li className={!review?'active':''}>1 · {locale==='ru'?'Получатель':locale==='uz'?'Qabul qiluvchi':'Recipient'}</li><li className={review?'active':''}>2 · {locale==='ru'?'Проверка':locale==='uz'?'Tekshirish':'Review'}</li></ol>
       <form className="checkout-form" onSubmit={(event) => { event.preventDefault(); if(!review){setReview(true);return;} void checkout(); }}>

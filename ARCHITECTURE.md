@@ -15,10 +15,11 @@
 | --- | --- |
 | Shell/navigation/catalog | app/marketplace.tsx, app/layout.tsx, app/globals.css |
 | Deals-first feed/favourites | app/deals-feed.tsx, app/finds.css, lib/market/deals.ts, lib/market/deal-copy.ts, lib/market/catalog.ts; D1-published merchant records with bundled fallback, pricing and authenticated favourite action |
-| Shared Atlas visual system | app/atlas-design.css, loaded after base styles in app/layout.tsx; navy/blue/lime palette, responsive hero, cards, account, forms and order surfaces |
+| Shared Atlas visual system | app/atlas-design.css plus the final review layer in app/experience.css; responsive hero, cards, account, forms, order surfaces, green palette override, mobile cart action and motion states |
 | Link order | app/global-link-order.tsx |
 | Cart and checkout/payment-test confirmation | app/shopping.tsx |
 | Orders, operations, balance and managed pricing UI | app/order-workspace.tsx |
+| Copy order ID interaction | app/copy-text.tsx; localized clipboard action in expanded order details |
 | Analytics, legal/readiness | app/prelaunch-views.tsx |
 | Account/customs | app/account-views.tsx, app/customs/page.tsx |
 | Identity/declaration/address help | app/identity-workspace.tsx, app/api/passport, lib/market/addresses.ts |

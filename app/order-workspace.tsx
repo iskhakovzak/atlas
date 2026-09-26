@@ -30,6 +30,7 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { CopyText } from "./copy-text";
 import { useMarket } from "@/lib/market/store";
 import {
   balanceOf,
@@ -587,7 +588,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
             {expanded.includes(o.id)&&<div className="compact-order-body">
             <div className="order-card-head">
               <div>
-                <b>{o.id}</b>
+                <span className="order-id-copy"><b>{o.id}</b><CopyText text={o.id} locale={locale} /></span>
                  <span>{new Date(o.createdAt).toLocaleDateString(localeTag(locale))}</span>
                 {operations && orderAccount.get(o.id) && (
                   <span className="customer-badge">
