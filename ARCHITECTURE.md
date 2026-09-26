@@ -248,6 +248,10 @@ GitHub remains the canonical source because Jules uses the GitHub repository. Gi
 
 For Adidas, a blocked or malformed public JSON response may use the recoverable manual-entry path; exact article mismatches remain hard errors. Manual data does not bypass fresh source verification: the link-order page must receive a successful source check before it allows cart addition. Amazon's anonymous ZIP flow trusts only the parsed public location response (`isValidAddress === 1`, `countryCode === "US"`, exact ZIP `19701`); the subsequent product HTML need not render the postal code in a particular UI format. Failed or mismatched location responses remain hard failures. The Macy's adapter accepts only the exact `macys.com` host and a bounded, balanced JSON state block; missing stock is explicitly unknown, and a matching live merchant page has not yet been verified.
 
+## Dark-theme styling
+
+`app/dark-theme.css` is imported last from `app/layout.tsx` and is scoped to `html[data-theme="dark"]`. Its final graphite normalization maps legacy fixed light surfaces to shared surface, inset, hover, selected and semantic status tokens; keep the default light palette and UI/domain state independent. When adding a component with a fixed background, define both its foreground and border in this dark layer, and cover interactive, selected, disabled and warning/error states. Do not infer commercial readiness from visual status styling.
+
 ## September GitHub branch reconciliation — 2026-09-26
 
 GitHub `main` through `3c06b83` is already contained in the Site source. The newer open PR and palette branch heads are treated as review inputs, not blanket merges. In particular, `market_staff_directory` does **not** grant API operator rights: only the authenticated email equal to `ATLAS_OPERATOR_EMAIL` does. This preserves the existing authorization boundary while staff identities and roles remain preparatory.

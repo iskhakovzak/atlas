@@ -498,3 +498,9 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Link-order and batch-import choices no longer filter or block a variant based on `available` / `availabilityKnown`; server cart-add and checkout likewise ignore stock status.
 - The server still fetches the merchant page and requires the exact selected option, unchanged option price and storefront currency on both add and checkout. A blocked store, changed price/currency or unmatched option still stops the order.
 - This is not a stock or buyout guarantee. The separate operator catalog refresh/publication policy still uses explicit stock observations to hide definitive all-sold-out catalog cards and to hold unknown snapshots.
+
+## Graphite theme contrast pass — 27 September 2026
+
+- Added a final semantic dark-theme layer after the existing stylesheet stack so light-mode fixed surfaces in catalog/search, imported product choices, cart, account, orders, warehouse-service panels and admin/operations are paired with readable graphite backgrounds, text and borders.
+- Reworked warning/success/error status pairs, open/selected/disabled controls, active order timeline states, customs estimate details, quantity controls, recipient/passport choices, admin tabs/tables and keyboard focus colors. Light theme, domain behavior, authorization and stored state are unchanged.
+- The in-app Browser connection could not initialize during this pass, so responsive visual screenshots and contrast measurement remain a manual follow-up; production build verification is recorded separately.

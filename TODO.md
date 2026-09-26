@@ -217,3 +217,5 @@
 - [x] Restore rounded, contained catalog cards; keep long names/prices inside narrow cards and theme search/filter controls in graphite mode.
 - [ ] Owner to review the green palette and mobile checkout bar; restore the previous navy/blue/lime palette or adjust proportions if requested.
 - [ ] Perform a visual browser pass in light and graphite themes at 360px, 390px, 800px, and 1440px after owner review; no full test suite is being repeated for this visual-only iteration.
+- [x] Add a scoped graphite normalization layer for fixed light surfaces and contrast regressions across search/catalog, link import, cart, account, orders, warehouse services and operator screens.
+- [ ] Verify dark-theme screenshots and contrast interactively in guest/customer/operator states at 360px, 390px, 800px and 1440px; the in-app Browser connection was unavailable during the source pass.

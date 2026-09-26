@@ -872,3 +872,734 @@ html[data-theme="dark"] .find-save.saved {
   background: #454b59;
   color: var(--atlas-link);
 }
+
+/* Final graphite normalization: pair each formerly fixed light surface with readable text. */
+html[data-theme="dark"] {
+  --atlas-dark-canvas: #25272c;
+  --atlas-dark-surface: #2e3137;
+  --atlas-dark-raised: #363940;
+  --atlas-dark-inset: #292c31;
+  --atlas-dark-hover: #3d4148;
+  --atlas-dark-selected: #3a4255;
+  --atlas-dark-line: #484c54;
+  --atlas-dark-ink: #e2e4e7;
+  --atlas-dark-muted: #b3b7be;
+  --atlas-dark-link: #bdcafa;
+  --atlas-dark-focus: #b7c8fa;
+  --atlas-dark-success-bg: #303b35;
+  --atlas-dark-success-line: #4d6758;
+  --atlas-dark-success-ink: #c2ddc9;
+  --atlas-dark-warning-bg: #3b362d;
+  --atlas-dark-warning-line: #6b5b3c;
+  --atlas-dark-warning-ink: #e9d39e;
+  --atlas-dark-error-bg: #3c3032;
+  --atlas-dark-error-line: #70484b;
+  --atlas-dark-error-ink: #edc3c5;
+}
+
+/* Cards and expandable sections. */
+html[data-theme="dark"] :is(
+  .recipient-choice,
+  .store-region,
+  .import-store-links.featured a,
+  .batch-candidate,
+  .customer-warehouse-services,
+  .warehouse-service-catalog,
+  .warehouse-service-config,
+  .warehouse-service-request,
+  .warehouse-service-ops,
+  .warehouse-service-request-form,
+  .warehouse-service-config-body,
+  .warehouse-service-locales fieldset,
+  .catalog-editor,
+  .catalog-importer,
+  .catalog-issues,
+  .catalog-draft,
+  .finds-disclosure,
+  .find-demo,
+  .find-top-deal,
+  .finds-own-link,
+  .admin-shortcut-grid > *,
+  .admin-metrics article,
+  .staff-form,
+  .ops-tools,
+  .payment-preview,
+  .delivery-box,
+  .parcel-box,
+  .identity-upload,
+  .legal-sources,
+  .legal-nav,
+  .ticket-reply,
+  .notification-history > div,
+  .monitor-panel,
+  .account-address-list .saved-address
+) {
+  background-color: var(--atlas-dark-surface);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] :is(
+  .recipient-choice.selected,
+  .variant-options button[aria-pressed="true"],
+  .channel-card:has(input:checked),
+  .find-collections button.active,
+  .admin-tabs button[aria-selected="true"],
+  .order-tabs [data-state="active"]
+) {
+  background-color: var(--atlas-dark-selected);
+  border-color: #69799f;
+  color: #e3e8f8;
+}
+
+html[data-theme="dark"] :is(
+  .recipient-choice:hover,
+  .store-region:hover,
+  .import-store-links a:hover,
+  .find-collections button:hover:not(.active),
+  .admin-shortcut-grid > a:hover,
+  .account-service-grid > a:hover,
+  .account-service-grid > button:hover,
+  .saved-address:hover,
+  .compact-order summary:hover,
+  .finds-own-link button:hover
+) {
+  background-color: var(--atlas-dark-hover);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] :is(
+  .recipient-choice-body > strong,
+  .store-region h3,
+  .store-region p,
+  .import-store-links a,
+  .import-store-links a b,
+  .import-store-links a em,
+  .saved-address b,
+  .saved-address span,
+  .saved-address small,
+  .account-profile-compact summary,
+  .account-profile-compact > div:nth-child(2) span,
+  .account-detail-summary > small,
+  .account-detail-toggle,
+  .account-detail-empty,
+  .account-detail-head p,
+  .account-service-grid small,
+  .account-service-grid > a > svg:last-child,
+  .account-stats a,
+  .account-stats b,
+  .finds-count,
+  .finds-result,
+  .finds-steps,
+  .finds-steps p,
+  .finds-disclosure summary,
+  .finds-own-link label,
+  .find-top-deal small,
+  .find-demo,
+  .catalog-customs-note,
+  .batch-candidate > label,
+  .warehouse-service-request small,
+  .warehouse-service-config > summary small,
+  .warehouse-service-locales legend,
+  .warehouse-service-admin-row > div:first-child p,
+  .catalog-draft-summary em,
+  .admin-shortcut-grid > a,
+  .admin-metrics article,
+  .admin-table-row,
+  .staff-form,
+  .ops-tools,
+  .payment-preview,
+  .delivery-box,
+  .parcel-box,
+  .ticket-reply,
+  .ticket-reply b,
+  .legal-nav a,
+  .legal-sources,
+  .notification-history time,
+  .summary-assurance,
+  .customs-estimate summary strong,
+  .customs-estimate summary small,
+  .customs-estimate summary span,
+  .cart-mobile-sticky > div > span,
+  .checkout-progress li,
+  .identity-upload,
+  .payment-methods span,
+  .store-tags span,
+  .journey-strip b,
+  .sheet-close,
+  .status-row,
+  .readiness-grid svg
+) {
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] :is(
+  .account-service-grid > a > svg:first-child,
+  .account-service-grid > button > svg:first-child,
+  .status-center-row span,
+  .status-center-row > svg,
+  .legal-disclosure > summary > svg,
+  .find-result-icon,
+  .finds-search > svg,
+  .finds-filter-row > svg,
+  .price-info
+) {
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .account-stats,
+html[data-theme="dark"] .account-service-grid,
+html[data-theme="dark"] .account-detail[data-open="true"] .account-detail-summary,
+html[data-theme="dark"] .account-detail[open] > summary,
+html[data-theme="dark"] .compact-order[open] > summary,
+html[data-theme="dark"] .admin-tabs,
+html[data-theme="dark"] .admin-table-row.head,
+html[data-theme="dark"] .warehouse-service-config > summary,
+html[data-theme="dark"] .warehouse-service-request-form,
+html[data-theme="dark"] .warehouse-service-ops,
+html[data-theme="dark"] .catalog-editor,
+html[data-theme="dark"] .catalog-draft-summary img,
+html[data-theme="dark"] .catalog-draft-summary > span,
+html[data-theme="dark"] .batch-candidate img,
+html[data-theme="dark"] .batch-candidate > .batch-no-image,
+html[data-theme="dark"] .compact-order-summary > .product-img,
+html[data-theme="dark"] .compact-order-summary > .no-photo {
+  background-color: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+}
+
+html[data-theme="dark"] .account-detail-summary,
+html[data-theme="dark"] .account-detail > summary,
+html[data-theme="dark"] .account-profile-compact > details,
+html[data-theme="dark"] .account-service-grid > a,
+html[data-theme="dark"] .account-service-grid > button,
+html[data-theme="dark"] .account-stats a,
+html[data-theme="dark"] .account-stats a + a,
+html[data-theme="dark"] .compact-order[open] > summary,
+html[data-theme="dark"] .compact-order[open] > summary,
+html[data-theme="dark"] .admin-table-row,
+html[data-theme="dark"] .warehouse-service-config-body,
+html[data-theme="dark"] .warehouse-service-admin-row,
+html[data-theme="dark"] .warehouse-service-locales fieldset,
+html[data-theme="dark"] .find-store-price,
+html[data-theme="dark"] .find-card .find-store-price {
+  border-color: var(--atlas-dark-line);
+}
+
+/* Account, order progress and warehouse-service semantic states. */
+html[data-theme="dark"] .recipient-passport-ok,
+html[data-theme="dark"] .draft-live,
+html[data-theme="dark"] .report-available,
+html[data-theme="dark"] .warehouse-service-request.completed,
+html[data-theme="dark"] .change-request:not(.pending):not(.declined) {
+  background-color: var(--atlas-dark-success-bg);
+  border-color: var(--atlas-dark-success-line);
+  color: var(--atlas-dark-success-ink) !important;
+}
+
+html[data-theme="dark"] .recipient-passport-missing,
+html[data-theme="dark"] .settlement-box.attention,
+html[data-theme="dark"] .change-request.pending,
+html[data-theme="dark"] .warehouse-service-request.quoted,
+html[data-theme="dark"] .warehouse-box.attention,
+html[data-theme="dark"] .draft-review,
+html[data-theme="dark"] .catalog-issues {
+  background-color: var(--atlas-dark-warning-bg);
+  border-color: var(--atlas-dark-warning-line);
+  color: var(--atlas-dark-warning-ink) !important;
+}
+
+html[data-theme="dark"] .report-unavailable,
+html[data-theme="dark"] .change-request.declined {
+  color: var(--atlas-dark-error-ink);
+}
+
+html[data-theme="dark"] .order-timeline .current b,
+html[data-theme="dark"] .order-timeline .complete b {
+  background: var(--atlas-dark-selected);
+  border-color: #69799f;
+  color: #e3e8f8;
+}
+
+html[data-theme="dark"] .order-timeline .current span,
+html[data-theme="dark"] .order-timeline .complete span,
+html[data-theme="dark"] .change-amount > strong,
+html[data-theme="dark"] .status-center-row span,
+html[data-theme="dark"] .status-center-row > svg,
+html[data-theme="dark"] .customs-limit,
+html[data-theme="dark"] .admin-metrics strong,
+html[data-theme="dark"] .ops-stats strong,
+html[data-theme="dark"] .analytics-grid strong,
+html[data-theme="dark"] .admin-metrics svg,
+html[data-theme="dark"] .admin-shortcut-grid svg {
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .status-badge,
+html[data-theme="dark"] .order-tabs b,
+html[data-theme="dark"] .journey-strip b {
+  background-color: var(--atlas-dark-selected);
+  border-color: #69799f;
+  color: #e3e8f8;
+}
+
+/* Catalog, deal search, store choices, and imported product variants. */
+html[data-theme="dark"] .catalog-filter-disclosure > summary,
+html[data-theme="dark"] .finds-disclosure > summary,
+html[data-theme="dark"] .finds-collections button,
+html[data-theme="dark"] .find-collections button,
+html[data-theme="dark"] .finds-own-link input,
+html[data-theme="dark"] .finds-own-link select,
+html[data-theme="dark"] .finds-own-link textarea,
+html[data-theme="dark"] .variant-options button,
+html[data-theme="dark"] .find-store-price .find-discount {
+  background-color: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .finds-own-link form {
+  background-color: var(--atlas-dark-inset);
+  border: 1px solid var(--atlas-dark-line);
+}
+
+html[data-theme="dark"] .finds-own-link form .btn {
+  background: var(--atlas-dark-selected);
+  border-color: #69799f;
+  color: #e3e8f8;
+}
+
+html[data-theme="dark"] .find-card .find-discount,
+html[data-theme="dark"] .find-photo .find-discount {
+  background: #414638;
+  color: #dce9b6;
+}
+
+html[data-theme="dark"] .find-card .find-discount small,
+html[data-theme="dark"] .find-photo .find-discount small {
+  color: #dce9b6;
+}
+
+html[data-theme="dark"] .finds-own-link input,
+html[data-theme="dark"] .finds-own-link select,
+html[data-theme="dark"] .finds-own-link textarea,
+html[data-theme="dark"] .catalog-editor input,
+html[data-theme="dark"] .catalog-editor select,
+html[data-theme="dark"] .catalog-editor textarea,
+html[data-theme="dark"] .catalog-collections input,
+html[data-theme="dark"] .warehouse-service-request-form select,
+html[data-theme="dark"] .warehouse-service-request-form input,
+html[data-theme="dark"] .warehouse-service-quote input,
+html[data-theme="dark"] .warehouse-service-locales input,
+html[data-theme="dark"] .warehouse-service-locales textarea,
+html[data-theme="dark"] .warehouse-service-config .pricing-grid input,
+html[data-theme="dark"] .warehouse-service-config .pricing-grid select,
+html[data-theme="dark"] .batch-candidate select,
+html[data-theme="dark"] .catalog-review-controls input,
+html[data-theme="dark"] .catalog-review-controls select {
+  background-color: var(--atlas-dark-inset);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .finds-own-link input::placeholder,
+html[data-theme="dark"] .finds-own-link textarea::placeholder,
+html[data-theme="dark"] .catalog-editor input::placeholder,
+html[data-theme="dark"] .catalog-editor textarea::placeholder {
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .variant-options button:hover:not(:disabled),
+html[data-theme="dark"] .finds-collections button:hover,
+html[data-theme="dark"] .find-collections button:hover:not(.active),
+html[data-theme="dark"] .catalog-filter-disclosure > summary:hover,
+html[data-theme="dark"] .price-info:hover {
+  background-color: var(--atlas-dark-hover);
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .variant-options button[aria-pressed="true"] {
+  background-color: var(--atlas-dark-selected);
+  border-color: #7789b5;
+  color: #e4eafb;
+  box-shadow: 0 0 0 1px #7789b5;
+}
+
+html[data-theme="dark"] .variant-options button:disabled,
+html[data-theme="dark"] button:disabled,
+html[data-theme="dark"] input:disabled,
+html[data-theme="dark"] select:disabled,
+html[data-theme="dark"] textarea:disabled {
+  background-color: #303238;
+  border-color: #41454c;
+  color: #a2a6ad;
+  opacity: .68;
+}
+
+html[data-theme="dark"] .finds-count,
+html[data-theme="dark"] .finds-disclosure p,
+html[data-theme="dark"] .finds-steps p,
+html[data-theme="dark"] .finds-own-link p,
+html[data-theme="dark"] .catalog-customs-note,
+html[data-theme="dark"] .price-info,
+html[data-theme="dark"] .find-store-price .find-discount {
+  color: var(--atlas-dark-muted);
+}
+
+/* Cart, payment estimates and expandable order details. */
+html[data-theme="dark"] .quantity-control,
+html[data-theme="dark"] .quantity-control button,
+html[data-theme="dark"] .remove-item,
+html[data-theme="dark"] .customs-estimate,
+html[data-theme="dark"] .customs-estimate summary,
+html[data-theme="dark"] .summary-assurance,
+html[data-theme="dark"] .cart-mobile-sticky,
+html[data-theme="dark"] .cart-service-option,
+html[data-theme="dark"] .cart-service-option-copy,
+html[data-theme="dark"] .cart-service-units,
+html[data-theme="dark"] .balance-option,
+html[data-theme="dark"] .consent {
+  background-color: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .quantity-control button:hover,
+html[data-theme="dark"] .remove-item:hover,
+html[data-theme="dark"] .customs-estimate summary:hover {
+  background-color: var(--atlas-dark-hover);
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .customs-estimate summary::after {
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .cart-item-price > span,
+html[data-theme="dark"] .expiry,
+html[data-theme="dark"] .consent label,
+html[data-theme="dark"] .customs-estimate p,
+html[data-theme="dark"] .customs-estimate small,
+html[data-theme="dark"] .cart-service-option-copy > span,
+html[data-theme="dark"] .cart-service-option-copy > small,
+html[data-theme="dark"] .cart-service-units > label,
+html[data-theme="dark"] .balance-option small,
+html[data-theme="dark"] .summary-assurance,
+html[data-theme="dark"] .remove-item {
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .compact-order[open] > summary {
+  background-color: var(--atlas-dark-raised);
+  color: var(--atlas-dark-ink);
+}
+
+/* Admin, operations and reporting tables; these are authenticated surfaces too. */
+html[data-theme="dark"] .admin-tabs,
+html[data-theme="dark"] .admin-tabs button,
+html[data-theme="dark"] .admin-metrics article,
+html[data-theme="dark"] .admin-shortcut-grid > *,
+html[data-theme="dark"] .staff-form,
+html[data-theme="dark"] .admin-table-row,
+html[data-theme="dark"] .admin-table-row.head,
+html[data-theme="dark"] .ops-tools,
+html[data-theme="dark"] .payment-preview,
+html[data-theme="dark"] .delivery-box,
+html[data-theme="dark"] .parcel-box,
+html[data-theme="dark"] .catalog-editor,
+html[data-theme="dark"] .catalog-issues,
+html[data-theme="dark"] .catalog-draft-summary,
+html[data-theme="dark"] .catalog-reports article,
+html[data-theme="dark"] .report-unavailable,
+html[data-theme="dark"] .report-available,
+html[data-theme="dark"] .draft-live,
+html[data-theme="dark"] .draft-ready,
+html[data-theme="dark"] .draft-review,
+html[data-theme="dark"] .staff-status {
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .admin-tabs button:hover,
+html[data-theme="dark"] .admin-table-row:not(.head):hover {
+  background-color: var(--atlas-dark-hover);
+}
+
+html[data-theme="dark"] .admin-tabs button.active,
+html[data-theme="dark"] .admin-tabs button[aria-selected="true"] {
+  background-color: var(--atlas-dark-selected);
+  border-color: #69799f;
+  color: #e3e8f8;
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .admin-table-row.head,
+html[data-theme="dark"] .admin-tabs,
+html[data-theme="dark"] .admin-metrics article,
+html[data-theme="dark"] .admin-shortcut-grid > *,
+html[data-theme="dark"] .staff-form,
+html[data-theme="dark"] .ops-tools,
+html[data-theme="dark"] .payment-preview,
+html[data-theme="dark"] .delivery-box,
+html[data-theme="dark"] .parcel-box,
+html[data-theme="dark"] .catalog-editor,
+html[data-theme="dark"] .catalog-draft-summary img,
+html[data-theme="dark"] .catalog-draft-summary > span,
+html[data-theme="dark"] .catalog-issues,
+html[data-theme="dark"] .monitor-panel {
+  background-color: var(--atlas-dark-raised);
+}
+
+html[data-theme="dark"] .draft-live,
+html[data-theme="dark"] .staff-status.active,
+html[data-theme="dark"] .report-available {
+  background-color: var(--atlas-dark-success-bg);
+  color: var(--atlas-dark-success-ink);
+}
+
+html[data-theme="dark"] .draft-review,
+html[data-theme="dark"] .catalog-issues {
+  background-color: var(--atlas-dark-warning-bg);
+  color: var(--atlas-dark-warning-ink);
+}
+
+html[data-theme="dark"] .report-unavailable,
+html[data-theme="dark"] .change-request.declined {
+  background-color: var(--atlas-dark-error-bg);
+  border-color: var(--atlas-dark-error-line);
+  color: var(--atlas-dark-error-ink);
+}
+
+html[data-theme="dark"] .draft-ready {
+  background-color: var(--atlas-dark-selected);
+  color: #e3e8f8;
+}
+
+html[data-theme="dark"] .staff-status,
+html[data-theme="dark"] .staff-status.disabled {
+  background-color: var(--atlas-dark-raised);
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .settlement-box.attention > svg,
+html[data-theme="dark"] .settlement-box.attention h3,
+html[data-theme="dark"] .settlement-box.attention p,
+html[data-theme="dark"] .settlement-box.attention strong,
+html[data-theme="dark"] .settlement-box.attention .text-link {
+  color: var(--atlas-dark-warning-ink);
+}
+
+html[data-theme="dark"] .settlement-box.delivery-box > svg,
+html[data-theme="dark"] .settlement-box.parcel-box > svg,
+html[data-theme="dark"] .settlement-box.delivery-box strong,
+html[data-theme="dark"] .settlement-box.parcel-box strong {
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .admin-shortcut-grid span,
+html[data-theme="dark"] .admin-metrics span,
+html[data-theme="dark"] .admin-metrics small,
+html[data-theme="dark"] .admin-table-row small {
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .staff-status.disabled {
+  background-color: #303238;
+  color: var(--atlas-dark-muted);
+}
+
+/* Secondary chrome and keyboard/disabled states. */
+html[data-theme="dark"] .ticket-reply,
+html[data-theme="dark"] .legal-nav,
+html[data-theme="dark"] .legal-sources,
+html[data-theme="dark"] .identity-upload,
+html[data-theme="dark"] .payment-methods span,
+html[data-theme="dark"] .store-tags span,
+html[data-theme="dark"] .journey-strip b,
+html[data-theme="dark"] .sheet-close,
+html[data-theme="dark"] .status-row,
+html[data-theme="dark"] .checkout-progress li,
+html[data-theme="dark"] .notification-history > div,
+html[data-theme="dark"] .import-gallery button {
+  background-color: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .checkout-progress li.active,
+html[data-theme="dark"] .admin-tabs button[aria-selected="true"] {
+  color: var(--atlas-dark-link);
+  border-color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .readiness-grid svg {
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] :is(input, textarea, select, option) {
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] option {
+  background: var(--atlas-dark-inset);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] :is(button, a, summary, input, textarea, select):focus-visible {
+  outline-color: var(--atlas-dark-focus);
+  box-shadow: 0 0 0 3px rgb(183 200 250 / 24%);
+}
+
+/* Smaller surfaces discovered outside the main customer journey. */
+html[data-theme="dark"] :is(.deal-section, .legacy-import, .ux-disclosure, .legal-requisites) {
+  background-color: var(--atlas-dark-surface);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .deal-section .deal-heading p,
+html[data-theme="dark"] .deal-section .deal-source,
+html[data-theme="dark"] .deal-section .deal-source small,
+html[data-theme="dark"] .deal-section .deal-price del,
+html[data-theme="dark"] .deal-section .deal-price small,
+html[data-theme="dark"] .deal-section .deal-note,
+html[data-theme="dark"] .deal-section .legacy-import p,
+html[data-theme="dark"] .legal-requisites dt {
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .deal-section .deal-name,
+html[data-theme="dark"] .deal-section .deal-price strong,
+html[data-theme="dark"] .deal-section .deal-note svg,
+html[data-theme="dark"] .legal-document > header > svg {
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .deal-section .deal-name:hover {
+  color: #d3dcf6;
+}
+
+html[data-theme="dark"] .deal-filters button,
+html[data-theme="dark"] .finds-heading > .btn,
+html[data-theme="dark"] .ux-disclosure > summary,
+html[data-theme="dark"] .favorite-btn,
+html[data-theme="dark"] .favorite-btn.is-favorite,
+html[data-theme="dark"] .deal-heart,
+html[data-theme="dark"] .ledger-icon.debit {
+  background-color: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .deal-filters button.active,
+html[data-theme="dark"] .favorite-btn.is-favorite {
+  background-color: var(--atlas-dark-selected);
+  border-color: #69799f;
+  color: #e3e8f8;
+}
+
+html[data-theme="dark"] .favorite-btn.is-favorite svg {
+  fill: var(--atlas-dark-link);
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .deal-section .deal-image {
+  background-color: var(--atlas-dark-raised);
+}
+
+html[data-theme="dark"] .deal-card {
+  background-color: var(--atlas-dark-surface);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .deal-section .deal-badge {
+  background-color: #42483a;
+  color: #dce9b6;
+}
+
+html[data-theme="dark"] .deal-section .deal-action {
+  background-color: var(--atlas-dark-selected);
+  border-color: #69799f;
+  color: #e3e8f8;
+}
+
+html[data-theme="dark"] .skip-link {
+  background: var(--atlas-dark-raised);
+  color: var(--atlas-dark-link);
+  border-color: var(--atlas-dark-focus);
+}
+
+html[data-theme="dark"] .warehouse-customer-note {
+  background-color: var(--atlas-dark-raised);
+  border-left-color: var(--atlas-dark-link);
+  color: var(--atlas-dark-muted) !important;
+}
+
+html[data-theme="dark"] .warehouse-customer-note span,
+html[data-theme="dark"] .legal-document section p,
+html[data-theme="dark"] .legal-document section ul,
+html[data-theme="dark"] .legal-document section li,
+html[data-theme="dark"] .legal-document > header span {
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .legal-status {
+  background-color: var(--atlas-dark-warning-bg);
+  border-color: var(--atlas-dark-warning-line);
+  color: var(--atlas-dark-warning-ink);
+}
+
+html[data-theme="dark"] .legal-status p,
+html[data-theme="dark"] .legal-status svg,
+html[data-theme="dark"] .legal-requisites dd {
+  color: var(--atlas-dark-warning-ink);
+}
+
+html[data-theme="dark"] .ledger-icon.debit {
+  background-color: var(--atlas-dark-raised);
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .copy-text-btn {
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .copy-text-btn:hover,
+html[data-theme="dark"] .copy-text-btn:focus-visible {
+  background-color: var(--atlas-dark-hover);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .customs-estimate-body input {
+  background-color: var(--atlas-dark-inset);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .status-badge.cancelled {
+  background-color: #34363b;
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] :is(.access-icon, .floating-label, .customer-badge) {
+  background-color: var(--atlas-dark-selected);
+  border-color: #69799f;
+  color: #e3e8f8 !important;
+}
+
+html[data-theme="dark"] .card-add {
+  background-color: #42483a;
+  border-color: #596044;
+  color: #dce9b6;
+}
+
+html[data-theme="dark"] .card-add:hover {
+  background-color: #4c5341;
+}
+
+html[data-theme="dark"] .success-icon {
+  background-color: var(--atlas-dark-success-bg);
+  color: var(--atlas-dark-success-ink);
+}
