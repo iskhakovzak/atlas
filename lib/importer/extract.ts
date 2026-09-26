@@ -1,3 +1,4 @@
+import { extractSephoraProduct } from './sephora.ts';
 import { extractMacysProduct } from './macys.ts';
 export type ProductVariant = {
   id?: string;
@@ -906,6 +907,8 @@ function extractZara(html: string, sourceUrl: string) {
 }
 
 export function extractProduct(html: string, sourceUrl: string): Extracted {
+  const sephora = extractSephoraProduct(html, sourceUrl);
+  if (sephora) return sephora;
   const macys = extractMacysProduct(html, sourceUrl);
   if (macys) return macys;
   const anker = extractAnker(html, sourceUrl);

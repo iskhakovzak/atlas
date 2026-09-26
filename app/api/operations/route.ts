@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isOperator } from "@/lib/market/server";
 import { actionSchema, applyAction } from "@/lib/market/actions";
 import { pricingSchema, validateServiceCatalog } from "@/lib/market/domain";
 import { policySchema } from "@/lib/market/policy";
@@ -72,7 +73,7 @@ const updateSchema = z.discriminatedUnion("kind", [
 
 async function requireOperator() {
   const user = await identity();
-  if (!operator(user.email)) throw new HttpError(403, 'err_15');
+  if (!(await isOperator(user.email))) throw new HttpError(403, 'err_15');
   return user;
 }
 

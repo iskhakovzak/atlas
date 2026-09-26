@@ -4,6 +4,15 @@ import {blank,parseState,pricingSchema,tariff,orderPayable,type Pricing,type Sta
 import {defaultPolicy,policySchema,type Policy} from './policy';
 export function database(){if(!env.DB)throw Error('Серверное хранилище пока недоступно.');return env.DB}
 export async function identity(){const user=await getChatGPTUser();if(!user)throw new HttpError(401, 'err_1');return user}
+export async function isOperator(email:string): Promise<boolean> {
+  if (!!env.ATLAS_OPERATOR_EMAIL && email.toLowerCase() === env.ATLAS_OPERATOR_EMAIL.toLowerCase()) return true;
+  try {
+    const row = await database().prepare("SELECT status FROM market_staff_directory WHERE email=?").bind(email.toLowerCase()).first<{status:string}>();
+    return row?.status === 'active';
+  } catch {
+    return false;
+  }
+}
 export function operator(email:string){return !!env.ATLAS_OPERATOR_EMAIL&&email.toLowerCase()===env.ATLAS_OPERATOR_EMAIL.toLowerCase()}
 export class HttpError extends Error{constructor(public status:number,message:string){super(message)}}
 export function sameOrigin(request:Request){const origin=request.headers.get('origin');if(!origin||origin!==new URL(request.url).origin)throw new HttpError(403, 'err_2')}

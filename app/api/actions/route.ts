@@ -1,5 +1,5 @@
 import {actionSchema,applyAction} from '@/lib/market/actions';
-import {account,customerStatus,database,identity,operator,sameOrigin,persist,json,failure,HttpError,requestJson,pricing,policy} from '@/lib/market/server';
+import {account,customerStatus,database,identity,isOperator,sameOrigin,persist,json,failure,HttpError,requestJson,pricing,policy} from '@/lib/market/server';
 import {fetchProduct} from '@/lib/importer/fetch';
 import {verifyProductSnapshot} from '@/lib/importer/verify';
 import {addCustomerLinkDraft} from '@/lib/market/catalog-server';
@@ -40,7 +40,7 @@ export async function POST(request:Request){try{
         for(const item of items)verifyProductSnapshot(item.product,item.variant,fresh);
       }));
     }
-    next=applyAction(current.state,parsed.data,operator(user.email),currentPricing,currentPolicy);
+    next=applyAction(current.state,parsed.data,await isOperator(user.email),currentPricing,currentPolicy);
   }catch(e){throw new HttpError(400,(e as Error).message)}
   await persist(user.userId,next,current.revision);
   if(parsed.data.type==='cart-add'&&parsed.data.product.sourceUrl&&verifiedSource){
