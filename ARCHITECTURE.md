@@ -15,7 +15,7 @@
 | --- | --- |
 | Shell/navigation/catalog | app/marketplace.tsx, app/layout.tsx, app/globals.css |
 | Deals-first feed/favourites | app/deals-feed.tsx, app/finds.css, lib/market/deals.ts, lib/market/deal-copy.ts, lib/market/catalog.ts; D1-published merchant records with bundled fallback, pricing and authenticated favourite action |
-| Shared Atlas visual system | app/atlas-design.css plus the final review layer in app/experience.css; responsive hero, cards, account, forms, order surfaces, green palette override, mobile cart action and motion states |
+| Shared Atlas visual system | app/atlas-design.css plus app/experience.css; responsive hero, cards, account, forms, order surfaces and green review palette. app/dark-theme.css provides the opt-in dark palette; app/theme-control.tsx owns the local-only theme provider and toggle. |
 | Link order | app/global-link-order.tsx |
 | Cart and checkout/payment-test confirmation | app/shopping.tsx |
 | Orders, operations, balance and managed pricing UI | app/order-workspace.tsx |
@@ -55,6 +55,8 @@ flowchart TD
 ~~~
 
 MarketProvider loads account state and revision, then sends action plus expected revision. The server parses Zod action input, applies domain function and persists only when revision matches. Conflict returns current state rather than overwriting another tab.
+
+The root `AtlasThemeProvider` uses `next-themes` with the root `data-theme` attribute, system preference as the initial default, and the device-local `atlas-theme` preference key. The localized `ThemeToggle` lives in the shared Marketplace header. Theme choice is presentational only and does not enter customer account state or server requests.
 
 ## D1
 

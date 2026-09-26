@@ -5,8 +5,10 @@ import "./finds.css";
 import "./checkout-clarity.css";
 import "./access.css";
 import "./experience.css";
+import "./dark-theme.css";
 import { MarketProvider } from "@/lib/market/store";
 import { StorageNotice } from "./storage-notice";
+import { AtlasThemeProvider } from "./theme-control";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -73,9 +75,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru">
+    <html lang="ru" suppressHydrationWarning>
       <body className="antialiased">
-        <MarketProvider>{children}<StorageNotice /></MarketProvider>
+        <AtlasThemeProvider>
+          <MarketProvider>{children}<StorageNotice /></MarketProvider>
+        </AtlasThemeProvider>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}

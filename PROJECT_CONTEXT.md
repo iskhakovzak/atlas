@@ -1,5 +1,11 @@
 # Atlas — project context
 
+## Dark appearance and theme preference — 27 September 2026
+
+The shared header has a localized light/dark control on public, customer and operator routes. The default follows the device appearance; a manual choice is stored only in browser-local `atlas-theme` preference and follows full-page navigation. Theme state does not enter account, cart, order or API data. Dark colors follow the current Atlas forest/green identity, with tuned text, controls, dialogs, tables, alerts and mobile bars. The `next-themes` bootstrap suppresses the root hydration warning and provides the selected `data-theme` before the interface settles.
+
+## Interface review pass — 27 September 2026
+
 ## Interface review pass — 27 September 2026
 
 The current review layer applies a green merchant-service palette through the final shared experience stylesheet, without changing the established route or business-action structure. Cart users see a compact fixed total/checkout action on narrow screens; it follows the same customs-consent gate and existing simulated checkout action. Order identifiers can be copied from the expanded order details with a localized accessible control. Shared loading surfaces use a restrained shimmer; actionable order states receive a subtle attention pulse. Motion respects reduced-motion preferences. The order/cart, account, and service flows remain simulated where noted below; visual polish does not imply live payment or fulfilment.

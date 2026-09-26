@@ -212,5 +212,6 @@
 - [x] Add a localized accessible copy action for order IDs, only in expanded order details.
 - [x] Add reduced-motion-aware transitions, loading shimmer, and subtle pending-action emphasis.
 - [x] Add a reviewable shared green palette override without altering the established brand mark or business logic.
+- [x] Add a shared localized dark-theme toggle, follow system appearance by default, and persist a manual choice in device-local preference only.
 - [ ] Owner to review the green palette and mobile checkout bar; restore the previous navy/blue/lime palette or adjust proportions if requested.
-- [ ] Perform a visual browser pass at 360px, 390px, 800px, and 1440px after owner review; no full test suite is being repeated for this visual-only iteration.
+- [ ] Perform a visual browser pass in light and dark themes at 360px, 390px, 800px, and 1440px after owner review; no full test suite is being repeated for this visual-only iteration.
