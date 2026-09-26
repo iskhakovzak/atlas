@@ -20,6 +20,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { CopyText } from "./copy-text";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -577,14 +578,14 @@ export function OrdersView({ operations }: { operations: boolean }) {
           <details className="surface order-card compact-order" key={o.id} id={o.id} onToggle={event=>{const open=event.currentTarget.open;setExpanded(ids=>open?[...new Set([...ids,o.id])]:ids.filter(id=>id!==o.id))}}>
             <summary className="compact-order-summary">
               <ProductImage product={o.product} decorative locale={state.communication.language} />
-               <span className="compact-order-name"><small>{o.id}{operations ? ` · ${orderAccount.get(o.id)?.name ?? ''}` : ''}</small><b>{o.product.name}</b><span>{o.variant} · {o.quantity}</span></span>
+               <span className="compact-order-name"><small><CopyText text={o.id}>{o.id}</CopyText>{operations ? ` · ${orderAccount.get(o.id)?.name ?? ''}` : ''}</small><b>{o.product.name}</b><span>{o.variant} · {o.quantity}</span></span>
                <span className={'status-badge '+(isExtra(o)||pendingChange(o)||(!operations&&o.payment?.status==='pending')?'needs-action':'')}>{o.cancelled ? ow.cancelled : isExtra(o)||pendingChange(o) ? ow.needDecision : o.payment?.status==='pending' ? ow.awaitingPayment : displayStatuses[o.status]}</span>
               <strong>{money(orderPayable(o))}</strong><ArrowRight size={18}/>
             </summary>
             {expanded.includes(o.id)&&<div className="compact-order-body">
             <div className="order-card-head">
               <div>
-                <b>{o.id}</b>
+                <b><CopyText text={o.id}>{o.id}</CopyText></b>
                  <span>{new Date(o.createdAt).toLocaleDateString(localeTag(locale))}</span>
                 {operations && orderAccount.get(o.id) && (
                   <span className="customer-badge">

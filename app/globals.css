@@ -221,3 +221,27 @@ a, button, input, textarea, select, .btn, summary {
 .address-card .remove-item { margin-top: auto; padding-top: 12px; align-self: flex-start; }
 .passport-ok { color: #668c3e !important; }
 .passport-missing { color: #e7000b !important; }
+
+/* LIVE STATUS DOTS (Ping Animation) */
+.status-badge.needs-action {
+  position: relative;
+  padding-left: 24px;
+}
+.status-badge.needs-action::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 0 currentColor;
+  animation: status-ping 1.5s infinite;
+}
+@keyframes status-ping {
+  0% { box-shadow: 0 0 0 0 rgba(158, 120, 37, 0.7); }
+  70% { box-shadow: 0 0 0 6px rgba(158, 120, 37, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(158, 120, 37, 0); }
+}
