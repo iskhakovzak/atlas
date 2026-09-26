@@ -488,3 +488,294 @@ html[data-theme="dark"] select:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Low-glare graphite: keep Atlas accents, but avoid pure black, white and neon contrast. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #25272c;
+  --foreground: #d4d6da;
+  --primary: #9aaddf;
+  --primary-foreground: #232630;
+  --secondary: #34373d;
+  --secondary-foreground: #d4d6da;
+  --muted: #34373d;
+  --muted-foreground: #aeb2b9;
+  --accent: #b8c68b;
+  --accent-foreground: #292c2e;
+  --border: #454950;
+  --input: #454950;
+  --ring: #a3b4e3;
+  --atlas-ink: #d4d6da;
+  --atlas-blue: #a8b9e9;
+  --atlas-line: #454950;
+  --atlas-soft: #2b2e33;
+  --atlas-surface: #2e3137;
+  --atlas-raised: #363940;
+  --atlas-copy-muted: #adb1b8;
+  --atlas-link: #afbfed;
+}
+
+html[data-theme="dark"] .site-header { background: #2a2d32; }
+html[data-theme="dark"] .utility-bar { background: #303339; color: #d0d3d8; }
+
+html[data-theme="dark"] .eyebrow,
+html[data-theme="dark"] .account-next-action .eyebrow,
+html[data-theme="dark"] .guest-intro .eyebrow,
+html[data-theme="dark"] .atlas-hero .eyebrow,
+html[data-theme="dark"] .atlas-hero h1 em {
+  color: #c1ca9b;
+}
+
+html[data-theme="dark"] .surface.account-next-action,
+html[data-theme="dark"] .trust-callout,
+html[data-theme="dark"] .balance-primary,
+html[data-theme="dark"] .attention-report {
+  background: #32353a;
+  border-color: #4b5057;
+  color: #d8dade;
+}
+
+html[data-theme="dark"] .account-next-action h2,
+html[data-theme="dark"] .account-next-action p,
+html[data-theme="dark"] .trust-callout p,
+html[data-theme="dark"] .balance-primary h2,
+html[data-theme="dark"] .balance-primary > span,
+html[data-theme="dark"] .balance-primary small {
+  color: #d4d6da;
+}
+
+html[data-theme="dark"] .btn.primary,
+html[data-theme="dark"] .cart-link,
+html[data-theme="dark"] .storage-notice button {
+  background: #aebbdc;
+  border-color: #aebbdc;
+  color: #252934;
+}
+
+html[data-theme="dark"] .btn.primary:hover,
+html[data-theme="dark"] .cart-link:hover,
+html[data-theme="dark"] .storage-notice button:hover {
+  background: #bdc8e4;
+  border-color: #bdc8e4;
+  color: #222630;
+}
+
+html[data-theme="dark"] .cart-link b {
+  background: #454a3b;
+  color: #d9dfc5;
+}
+
+html[data-theme="dark"] .btn.light,
+html[data-theme="dark"] .account-next-action .btn {
+  background: #b5c28a;
+  border-color: #b5c28a;
+  color: #292d2b;
+}
+
+html[data-theme="dark"] .field label,
+html[data-theme="dark"] .support-form label,
+html[data-theme="dark"] .service-options legend,
+html[data-theme="dark"] .cart-service-option-copy > b,
+html[data-theme="dark"] .cart-service-units > label,
+html[data-theme="dark"] .collection-create-form label {
+  color: #cdd0d5;
+}
+
+html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select,
+html[data-theme="dark"] .field input,
+html[data-theme="dark"] .field select,
+html[data-theme="dark"] .field textarea,
+html[data-theme="dark"] .support-form input,
+html[data-theme="dark"] .support-form textarea,
+html[data-theme="dark"] .address-form input,
+html[data-theme="dark"] .batch-import textarea,
+html[data-theme="dark"] .cart-service-units > input,
+html[data-theme="dark"] .collection-create-form input {
+  background-color: #292c31;
+  border-color: #4a4e56;
+  color: #d4d6da;
+}
+
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+  color: #9fa4ac;
+}
+
+html[data-theme="dark"] input[type="checkbox"],
+html[data-theme="dark"] input[type="radio"],
+html[data-theme="dark"] .service-options input,
+html[data-theme="dark"] .channel-card input,
+html[data-theme="dark"] .warehouse-issue-resolution input {
+  accent-color: #b5c28a;
+}
+
+html[data-theme="dark"] .search-field input,
+html[data-theme="dark"] .hero-link-form input {
+  background: transparent;
+  color: #d4d6da;
+}
+
+html[data-theme="dark"] .btn.secondary:hover,
+html[data-theme="dark"] .category-list button:hover,
+html[data-theme="dark"] .finds-categories button:hover,
+html[data-theme="dark"] .icon-btn:hover,
+html[data-theme="dark"] .notice-link.active,
+html[data-theme="dark"] .account-address-add:hover,
+html[data-theme="dark"] .account-address-add:focus-visible,
+html[data-theme="dark"] .theme-toggle[aria-pressed="true"] {
+  background: #3c4047;
+  color: #c6d0aa;
+}
+
+html[data-theme="dark"] .icon-btn,
+html[data-theme="dark"] .notice-link,
+html[data-theme="dark"] .theme-toggle {
+  color: #d3d6db;
+}
+
+html[data-theme="dark"] .theme-toggle:focus-visible {
+  outline-color: #b7c596;
+}
+
+html[data-theme="dark"] .notice:not(.error):not(.warning),
+html[data-theme="dark"] .notice,
+html[data-theme="dark"] .declaration-preview,
+html[data-theme="dark"] .weight-formula,
+html[data-theme="dark"] .checkout-address-head,
+html[data-theme="dark"] .settlement-box:not(.attention),
+html[data-theme="dark"] .change-request {
+  background-color: #33363c;
+  border-color: #4a4e56;
+  color: #d1d4d9;
+}
+
+html[data-theme="dark"] .notice.warning,
+html[data-theme="dark"] .change-request.pending,
+html[data-theme="dark"] .warehouse-box.attention,
+html[data-theme="dark"] .warehouse-issue-resolution {
+  background-color: #3b362b;
+  border-color: #62583f;
+  color: #ded3b3;
+}
+
+html[data-theme="dark"] .notice.error {
+  background-color: #3b2d2c;
+  border-color: #604744;
+  color: #dfc0ba;
+}
+
+html[data-theme="dark"] .card-photo,
+html[data-theme="dark"] .find-visual,
+html[data-theme="dark"] .find-photo,
+html[data-theme="dark"] .guest-intro-photo,
+html[data-theme="dark"] .guest-intro-fallback,
+html[data-theme="dark"] .detail-image,
+html[data-theme="dark"] .import-photo,
+html[data-theme="dark"] .no-photo,
+html[data-theme="dark"] .confirm-price {
+  background-color: #303339;
+}
+
+html[data-theme="dark"] .guest-intro,
+html[data-theme="dark"] .atlas-hero {
+  background: #282b30;
+  color: var(--atlas-ink);
+  border-color: var(--atlas-line);
+}
+
+html[data-theme="dark"] .guest-intro p,
+html[data-theme="dark"] .atlas-hero p,
+html[data-theme="dark"] .import-strip p {
+  color: #c0c3c9;
+}
+
+html[data-theme="dark"] .empty-state {
+  background: #2c2f35;
+  border-color: #484d54;
+}
+
+html[data-theme="dark"] .empty-icon,
+html[data-theme="dark"] .account-avatar,
+html[data-theme="dark"] .identity-icon,
+html[data-theme="dark"] .step-heading > b,
+html[data-theme="dark"] .notification-icon,
+html[data-theme="dark"] .ledger-icon {
+  background: #3a3e43;
+  color: #c4ce9a;
+}
+
+html[data-theme="dark"] .status-badge,
+html[data-theme="dark"] .order-tabs,
+html[data-theme="dark"] .cart-service-chooser > summary > span,
+html[data-theme="dark"] .document-list > a,
+html[data-theme="dark"] .order-tabs b {
+  background: #3a3e43;
+  color: #c9d0b0;
+}
+
+html[data-theme="dark"] .order-tabs [data-state="active"] {
+  background: #454950;
+  color: #d5d7db;
+}
+
+html[data-theme="dark"] .status-badge.needs-action {
+  background: #443d2f;
+  color: #dfd2ae;
+}
+
+html[data-theme="dark"] .cost-lines dd,
+html[data-theme="dark"] .sheet-total strong,
+html[data-theme="dark"] .product-facts b,
+html[data-theme="dark"] .summary-total strong,
+html[data-theme="dark"] .ops-stats strong,
+html[data-theme="dark"] .analytics-grid strong,
+html[data-theme="dark"] .change-amount > strong,
+html[data-theme="dark"] .cart-mobile-sticky strong {
+  color: #d9dbdf;
+}
+
+html[data-theme="dark"] .mobile-nav {
+  background: rgb(39 41 46 / 96%);
+  border-color: var(--atlas-line);
+}
+
+html[data-theme="dark"] .mobile-nav a,
+html[data-theme="dark"] .mobile-nav a.active {
+  color: #bac4e4;
+}
+
+html[data-theme="dark"] .mobile-nav a.active:before {
+  background: #b8c48f;
+}
+
+html[data-theme="dark"] .cart-mobile-sticky {
+  background: rgb(39 41 46 / 97%);
+  border-color: var(--atlas-line);
+  box-shadow: 0 -8px 28px rgb(0 0 0 / 18%);
+}
+
+html[data-theme="dark"] .storage-notice {
+  background: #2b2e33;
+  border-color: var(--atlas-line);
+  color: var(--atlas-ink);
+}
+
+html[data-theme="dark"] .storage-notice p {
+  color: #c6c9ce;
+}
+
+html[data-theme="dark"] .loading-state {
+  background: linear-gradient(100deg, #2b2e33 28%, #373a40 44%, #2b2e33 62%);
+}
+
+html[data-theme="dark"] button:focus-visible,
+html[data-theme="dark"] a:focus-visible,
+html[data-theme="dark"] summary:focus-visible,
+html[data-theme="dark"] input:focus-visible,
+html[data-theme="dark"] textarea:focus-visible,
+html[data-theme="dark"] select:focus-visible {
+  outline-color: #aab9e3;
+  box-shadow: 0 0 0 3px rgb(170 185 227 / 18%);
+}
