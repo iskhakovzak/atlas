@@ -65,7 +65,7 @@ export function GlobalLinkOrder() {
   const requestedUrl = searchParams.get("url") ?? "";
   const isSourcedFlow = Boolean(requestedUrl);
   const dealSeed = communityDeals.find(item => item.id === searchParams.get("deal") && item.url === requestedUrl);
-  const dealOptions = dealSeed ? communityFallbackOptions(dealSeed).map(item => ({ ...item, available: true })) : [];
+  const dealOptions: ProductVariant[] = dealSeed ? communityFallbackOptions(dealSeed).map(item => ({ ...item, available: true })) : [];
   const dealBoxedWeight = dealSeed ? Math.max(0.1, communityEstimatedWeight(dealSeed) - 0.5) : undefined;
   const seed = catalogProducts.find(item => item.sourceUrl === requestedUrl);
   const seedIsFresh = Boolean(seed && !seed.priceNeedsConfirmation);
