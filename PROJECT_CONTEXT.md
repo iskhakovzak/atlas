@@ -551,3 +551,10 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Reading an already initialized account now performs one D1 select and no write batch. Missing accounts still use the email identity, preserve legacy platform-ID migration, and use `INSERT OR IGNORE` to remain safe under concurrent first visits.
 - Account, customer action and operator routes now get pricing and policy through one settings query rather than two. API response fields, policy defaults and tariff validation remain unchanged.
 - Build snapshot after this change: route modules are separate assets; the previous single ~563 KiB marketplace chunk is no longer emitted as one file (largest route-shell chunk is ~70 KiB). Shared framework/store/UI chunks and a ~333 KiB global CSS file remain; inspect compressed transfer size and real route waterfalls before further splitting them.
+
+## Copy hierarchy and supported stores — 27 September 2026
+
+- Replaced the duplicated, collapsed “supported stores” callout with one visible localized store strip. It now has only one section heading, shared type scale, compact chips and a single link to the categorized store directory; the link-order action remains in the main shopping entry points.
+- Removed the stale profile-export wording from the home trust copy. Aligned the RU/UZ/EN store-directory heading meaning and corrected the Uzbek count label without changing directory contents or importer support claims.
+- Applied the Atlas forest accent to Atlas controls while retaining blue for navigation and original merchant links; dark-mode primary buttons and the logo arrow use a softer sage brand accent. Corrected a mobile cascade that hid the operator-only admin icon and overrode flexible admin table columns with narrow fixed widths.
+- The in-app Browser runtime rejected the supported setup import (`node:process` is unavailable), so actual font rendering, screenshots and mobile interaction were not verified. Unit tests/build and source inspection do not replace a deployed guest/customer/operator visual pass or physical iPhone Safari.

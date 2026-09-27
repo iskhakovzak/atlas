@@ -1674,3 +1674,224 @@ html[data-theme="dark"] .catalog-import-hint {
   background-color: var(--atlas-soft);
   color: var(--atlas-ink);
 }
+
+/* Final contrast sweep for legacy utility copy and route-specific fixed colors. */
+html[data-theme="dark"] .supported-stores {
+  background-color: var(--atlas-dark-surface);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .supported-stores :is(h2, h3) {
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .supported-stores :is(p, small) {
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .supported-stores .supported-store-list > li {
+  background-color: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .supported-stores-link {
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .access-card :is(p, small),
+html[data-theme="dark"] .ticket-list small,
+html[data-theme="dark"] .change-values span,
+html[data-theme="dark"] .variant-step > div:first-child span,
+html[data-theme="dark"] .customs-estimate-caption,
+html[data-theme="dark"] .compact-order-name > span,
+html[data-theme="dark"] .review-items small,
+html[data-theme="dark"] .support-form .support-counter,
+html[data-theme="dark"] .finds-price-note,
+html[data-theme="dark"] .find-meta,
+html[data-theme="dark"] .find-purchase > span,
+html[data-theme="dark"] .find-store-price > small,
+html[data-theme="dark"] .message-log p,
+html[data-theme="dark"] .message-log time,
+html[data-theme="dark"] .staff-notes time,
+html[data-theme="dark"] .admin-section-head > span,
+html[data-theme="dark"] .section-heading > span,
+html[data-theme="dark"] .audit-list span,
+html[data-theme="dark"] .audit-list time,
+html[data-theme="dark"] .payment-preview span,
+html[data-theme="dark"] .review-service,
+html[data-theme="dark"] .declaration-facts dt,
+html[data-theme="dark"] .identity-placeholder {
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .find-card .find-breakdown dt,
+html[data-theme="dark"] .find-card .find-origin > span {
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .find-card .find-breakdown dd {
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .image-edit,
+html[data-theme="dark"] .image-edit summary,
+html[data-theme="dark"] .source-list a,
+html[data-theme="dark"] .currency-rates > summary,
+html[data-theme="dark"] .ticket-list summary,
+html[data-theme="dark"] .message-channel,
+html[data-theme="dark"] .admin-heading > svg,
+html[data-theme="dark"] .ops-tools > summary {
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .ticket-reply {
+  background-color: var(--atlas-dark-raised);
+  border: 1px solid var(--atlas-dark-line);
+  color: var(--atlas-dark-ink) !important;
+}
+
+html[data-theme="dark"] .ticket-reply b {
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .cart-service-option-copy > .cart-service-rate,
+html[data-theme="dark"] .customs-estimate summary strong,
+html[data-theme="dark"] .checkout-progress li.active {
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .remove-item.confirming,
+html[data-theme="dark"] .remove-item.confirming:hover,
+html[data-theme="dark"] .account-error .text-button,
+html[data-theme="dark"] .account-error .text-link {
+  color: var(--atlas-dark-error-ink);
+}
+
+html[data-theme="dark"] .remove-item.confirming {
+  background-color: var(--atlas-dark-error-bg);
+  border-color: var(--atlas-dark-error-line);
+}
+
+html[data-theme="dark"] .credit-line,
+html[data-theme="dark"] .result-line,
+html[data-theme="dark"] .ledger-entry .credit {
+  color: var(--atlas-dark-success-ink);
+}
+
+html[data-theme="dark"] .warning-text {
+  color: var(--atlas-dark-warning-ink);
+}
+
+html[data-theme="dark"] .expiry.expired {
+  color: var(--atlas-dark-warning-ink);
+}
+
+html[data-theme="dark"] .currency-rates > summary:hover,
+html[data-theme="dark"] .ticket-list summary:hover,
+html[data-theme="dark"] .source-list a:hover {
+  color: #d3dcf6;
+}
+
+html[data-theme="dark"] .notice-filters button {
+  background-color: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .notice-filters button.active {
+  background-color: var(--atlas-dark-selected);
+  border-color: #69799f;
+  color: #e3e8f8;
+}
+
+html[data-theme="dark"] .status-row > div {
+  background-color: var(--atlas-dark-inset);
+}
+
+html[data-theme="dark"] .checkout-review hr {
+  border-color: var(--atlas-dark-line);
+}
+
+html[data-theme="dark"] .identity-has-document .identity-upload {
+  background-color: var(--atlas-dark-surface);
+}
+
+html[data-theme="dark"] .access-spinner {
+  border-color: var(--atlas-dark-line);
+  border-top-color: var(--atlas-dark-link);
+}
+
+@media (max-width: 600px) {
+  html[data-theme="dark"] :is(
+    .supported-stores,
+    .supported-stores-heading,
+    .supported-store-list,
+    .find-card,
+    .find-content,
+    .cart-item,
+    .compact-order-name,
+    .compact-order-body,
+    .document-row > div,
+    .saved-address,
+    .account-detail-summary,
+    .catalog-draft-summary > div,
+    .admin-table-row > *,
+    .message-log article > *,
+    .review-items > div,
+    .legal-document
+  ) {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  html[data-theme="dark"] :is(
+    .supported-store-list > li,
+    .find-title,
+    .product-name,
+    .deal-name,
+    .find-origin,
+    .compact-order-name,
+    .cart-item :is(h2, h3, p, small, strong),
+    .order-card :is(h2, h3, p, small, strong),
+    .document-row b,
+    .catalog-draft-summary :is(b, small, em),
+    .account-error,
+    .ticket-reply,
+    .admin-table-row > *,
+    .message-log article > *,
+    .legal-document :is(p, li),
+    .site-footer :is(a, small)
+  ) {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+}
+
+/* Dark theme keeps blue for navigation/source links and uses Atlas sage for primary actions. */
+html[data-theme="dark"] {
+  --primary: #a9bf91;
+  --primary-foreground: #252a26;
+}
+
+html[data-theme="dark"] .wordmark svg,
+html[data-theme="dark"] .supported-stores-link {
+  color: #b8c99f;
+}
+
+html[data-theme="dark"] .btn.primary,
+html[data-theme="dark"] .cart-link,
+html[data-theme="dark"] .storage-notice button {
+  background: #a9bf91;
+  border-color: #a9bf91;
+  color: #252a26;
+}
+
+html[data-theme="dark"] .btn.primary:hover,
+html[data-theme="dark"] .cart-link:hover,
+html[data-theme="dark"] .storage-notice button:hover {
+  background: #b7c99f;
+  border-color: #b7c99f;
+  color: #222722;
+}

@@ -13,7 +13,7 @@
 
 | Area | Files |
 | --- | --- |
-| Shell/navigation/catalog | app/marketplace.tsx, app/layout.tsx, app/globals.css |
+| Shell/navigation/catalog | app/marketplace.tsx, app/layout.tsx, app/globals.css, app/supported-stores.tsx |
 | Deals-first feed/favourites | app/deals-feed.tsx, app/finds.css, lib/market/deals.ts, lib/market/deal-copy.ts, lib/market/catalog.ts; D1-published merchant records with bundled fallback, pricing and authenticated favourite action |
 | Shared Atlas visual system | app/atlas-design.css plus app/experience.css; responsive hero, cards, account, forms, order surfaces and green review palette. app/dark-theme.css provides the opt-in low-glare graphite palette; app/theme-control.tsx owns the light-default, local-only theme provider and toggle. |
 | Link order | app/global-link-order.tsx |
@@ -61,6 +61,8 @@ MarketProvider loads account state and revision, then sends action plus expected
 The root `AtlasThemeProvider` uses `next-themes` with the root `data-theme` attribute, light as the initial default independent of the operating-system preference, and the device-local `atlas-theme` preference key. The localized `ThemeToggle` lives in the shared Marketplace header. Theme choice is presentational only and does not enter customer account state or server requests.
 
 Catalog card rules are finalized in `app/experience.css` after the base catalog styles so the full card retains its surface, radius, image crop and text padding. Long product names and price rows may wrap within grid columns. `app/dark-theme.css` also themes the separate finds search/filter panel and its embedded controls; no catalog data or behavior changes.
+
+The public supported-store strip is an always-visible, localized section in `app/supported-stores.tsx`, not a disclosure or a second link-order callout. Keep one section heading, small store chips and one route to the complete `/stores` directory. Use Atlas forest green for Atlas actions/active controls; retain blue where it helps identify navigation or off-site merchant links. The graphite layer must supply its own readable surface, border, copy and semantic accent colors.
 
 ## D1
 

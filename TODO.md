@@ -220,7 +220,8 @@
 - [x] Add a shared localized light/dark toggle and persist a manual choice in device-local preference only.
 - [x] Keep white/light as the default regardless of system appearance; tune dark mode to low-glare graphite with softer contrast and restrained accents.
 - [x] Restore rounded, contained catalog cards; keep long names/prices inside narrow cards and theme search/filter controls in graphite mode.
-- [ ] Owner to review the green palette and mobile checkout bar; restore the previous navy/blue/lime palette or adjust proportions if requested.
+- [x] Apply the owner's requested semantic accent split: Atlas actions/mark use forest green or low-glare sage; blue remains for navigation and merchant-source links.
+- [ ] Owner to review the mobile checkout bar proportions.
 - [ ] Perform a visual browser pass in light and graphite themes at 360px, 390px, 800px, and 1440px after owner review; no full test suite is being repeated for this visual-only iteration.
 - [x] Add a scoped graphite normalization layer for fixed light surfaces and contrast regressions across search/catalog, link import, cart, account, orders, warehouse services and operator screens.
 - [ ] Verify dark-theme screenshots and contrast interactively in guest/customer/operator states at 360px, 390px, 800px and 1440px; the in-app Browser connection was unavailable during the source pass.
@@ -258,3 +259,10 @@
 - [ ] Measure shared `store`, `market-ui`, framework chunks and the global CSS transfer on current mobile Safari/network before attempting further splitting; CSS is globally composed and route separation may introduce visual regressions.
 - [ ] Complete live interactive checks on the deployed Site in guest/customer/operator sessions and physical iPhone Safari; unit tests/build do not verify remote D1, R2, Cron, payment or merchant connectivity.
 - [ ] Configure and verify production security headers, authentication identity provider and scheduled catalog refresh as separate production infrastructure changes; the source build alone does not establish those runtime settings.
+
+## Copy hierarchy, brand accents and mobile cascade — 27 September 2026
+
+- [x] Remove the extra “Поддерживаемые магазины” eyebrow; leave a single section heading, one concise explanation and compact store chips.
+- [x] Restore the authenticated operator-only admin icon on narrow screens and allow admin-table columns to flex instead of inheriting fixed 90/92px columns.
+- [x] Use forest/sage for Atlas primary actions and logo accent while preserving blue for navigation and merchant-source links; normalize the corresponding graphite-mode actions.
+- [ ] Complete deployed visual screenshots at 360px and 390px, 800px and 1440px, in light and dark modes with guest/customer/operator states; verify current iPhone Safari separately. In-app Browser initialization failed during this source pass, so do not mark visual verification complete from the build alone.
