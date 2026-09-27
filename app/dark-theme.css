@@ -1653,21 +1653,28 @@ html[data-theme="dark"] .catalog-variant-no-image {
   color: var(--atlas-ink);
 }
 
-html[data-theme="dark"] .catalog-variant-table td:last-child span,
+html[data-theme="dark"] .catalog-variant-table td:nth-child(6) span,
 html[data-theme="dark"] .catalog-import-progress .import-saved > span {
   background-color: #263b2d;
   color: #c5e8c9;
 }
 
-html[data-theme="dark"] .catalog-variant-table td:last-child .variant-unknown {
+html[data-theme="dark"] .catalog-variant-table td:nth-child(6) .variant-unknown {
   background-color: #2b3430;
   color: #c2cec7;
 }
 
-html[data-theme="dark"] .catalog-variant-table td:last-child .variant-sold-out,
+html[data-theme="dark"] .catalog-variant-table td:nth-child(6) .variant-sold-out,
 html[data-theme="dark"] .catalog-import-progress .import-failed > span {
   background-color: #452c29;
   color: #f0bbb0;
+}
+
+html[data-theme="dark"] .catalog-variant-table input,
+html[data-theme="dark"] .catalog-variant-table select {
+  background-color: var(--atlas-surface);
+  border-color: var(--atlas-line);
+  color: var(--atlas-ink);
 }
 
 html[data-theme="dark"] .catalog-import-hint {

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {applyScheduledCatalogRefresh,catalogDocumentSchema,catalogIssues,catalogRefreshInterval,changeCatalog,cleanGeneratedCatalogDescription,customerLinkDraft,dueCatalogEntries,importDraft,initialCatalog,markCatalogRefreshFailed,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
+import {applyScheduledCatalogRefresh,catalogDocumentSchema,catalogIssues,catalogRefreshInterval,changeCatalog,cleanGeneratedCatalogDescription,customerLinkDraft,dueCatalogEntries,importDraft,initialCatalog,manualFallbackCatalogDraft,markCatalogRefreshFailed,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
 import {catalogRefreshPath,isAuthorizedCatalogRefresh,signCatalogRefreshRequest} from '../lib/market/catalog-refresh-auth.ts';
 import {communityCatalogProducts} from '../lib/market/community-deals.ts';
 import {catalogOrderVariants,keepCatalogVisible} from '../lib/market/catalog.ts';
@@ -33,6 +33,20 @@ test('admin import creates a reviewable draft without claiming store shipping',(
  assert.equal(draft.category,'Красота и уход');assert.equal(draft.price,35);assert.equal(draft.boxedWeight,.8);
  assert.deepEqual(draft.variants[0],{id:'bare-full',label:'Bare · Full size',color:'Bare',size:'Full size',sizeLabel:undefined,available:true,price:35,image:undefined});
  assert.deepEqual(catalogIssues(draft,1001),[]);assert.equal(draft.warnings[0],'Доставка неизвестна');
+});
+test('blocked store imports stay as incomplete manual drafts without asserting price or stock',()=>{
+ const partial={...extracted,sourceUrl:'https://www.amazon.com/dp/B09XS7JWHH',price:298,currency:'USD',variants:[{...extracted.variants[0],available:true}]};
+ const draft=manualFallbackCatalogDraft(partial,partial.sourceUrl,[],'США',1000);
+ assert.equal(draft.name,'Matte Lip Kit');assert.equal(draft.image,partial.image);
+ assert.equal(draft.price,undefined);assert.equal(draft.currency,'');
+ assert.equal(draft.variants[0].available,false);assert.equal(draft.variants[0].availabilityKnown,false);
+ assert(catalogIssues(draft,1001).includes('Цена'));
+ assert(catalogIssues(draft,1001).includes('Валюта'));
+ assert(catalogIssues(draft,1001).includes('Наличие не подтверждено магазином'));
+ assert(catalogIssues(draft,1001).some(value=>value.includes('ручная проверка')));
+ const blank=manualFallbackCatalogDraft(undefined,'https://www.asos.com/asos-design/prd/123456789',[],'Великобритания',1000);
+ assert.equal(blank.brand,'asos.com');assert.equal(blank.country,'Великобритания');
+ assert(catalogIssues(blank,1001).includes('Доступный вариант'));
 });
 test('admin import deduplicates photos and chooses the first safe gallery image',()=>{
  const photo='https://cdn.shopify.com/product.jpg';

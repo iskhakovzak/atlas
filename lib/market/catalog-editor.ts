@@ -106,6 +106,17 @@ export function importDraft(data:Extracted,collectionIds:string[],country:string
  return catalogDraftSchema.parse({sourceUrl:canonicalCatalogUrl(data.sourceUrl),name:data.title??'',brand:data.brand??new URL(data.sourceUrl).hostname,category:data.category??'Другое',image:safeImage(data.image,data.sourceUrl)??images[0]??'',images,price:data.price,currency:data.currency??'',country:data.country??country,boxedWeight:data.boxedWeight??estimatedBoxedWeight(data.category??'Другое'),variants:(data.variants??[]).map(v=>({id:v.id,label:v.label,size:v.size,sizeLabel:v.sizeLabel,color:v.color,available:v.available,...(v.availabilityKnown===undefined?{}:{availabilityKnown:v.availabilityKnown}),price:v.price,image:safeImage(v.image,data.sourceUrl)})),collectionIds,description:'',checkedAt:now,warnings:data.warnings,soldOut:Boolean(data.variants?.length&&!data.variants.some(v=>v.available))});
 }
 
+/** Keep a supported merchant link reviewable when its public importer is blocked. */
+export function manualFallbackCatalogDraft(data:Extracted|undefined,sourceUrl:string,collectionIds:string[],country:string,now=Date.now()):CatalogDraft{
+ const host=new URL(sourceUrl).hostname.replace(/^www\./,'');
+ const draft=importDraft({
+  ...data,sourceUrl,brand:data?.brand??host,price:undefined,currency:'',
+  variants:(data?.variants??[]).map(variant=>({...variant,price:undefined,available:false,availabilityKnown:false})),
+  warnings:[...(data?.warnings??[]),'Автоимпорт не подтвердил данные магазина. Проверьте карточку вручную перед публикацией.'],
+ },collectionIds,country,now);
+ return catalogDraftSchema.parse({...draft,reviewReasons:['Требуется ручная проверка цены, варианта и фото перед публикацией.'],lastCheckError:'Магазин не подтвердил цену и наличие.'});
+}
+
 const generatedCatalogDescriptions = new Set([
   'Товар из каталога Atlas. Цена, выбранный вариант и наличие повторно проверяются в магазине перед добавлением в корзину.',
   'Товар из каталога Atlas. При добавлении Atlas сверяет цену и валюту с данными магазина, если они доступны.',
@@ -161,6 +172,9 @@ export function catalogIssues(draft:CatalogDraft,now=Date.now(),rates=tariff.rat
   if(!currencies.includes(draft.currency)||!rates[draft.currency])issues.push('Валюта');
   else if(draft.price&&toUsd(draft.price,draft.currency,rates)>10000)issues.push('Стоимость выше лимита Atlas');
   if(!draft.country)issues.push('Страна отправки');
+  if(!draft.variants.length)issues.push('Доступный вариант');
+  if(draft.variants.some(variant=>!variant.label.trim()))issues.push('Название варианта');
+  if(draft.variants.length&&!draft.variants.some(variant=>variant.available&&variant.availabilityKnown!==false))issues.push('Подтвердите доступный вариант');
   if(draft.soldOut)issues.push('Нет доступных вариантов');
   if(draft.variants.some(variant=>variant.availabilityKnown===false))issues.push('Наличие не подтверждено магазином');
   if(draft.lastCheckError)issues.push('Ошибка проверки магазина');

@@ -17,6 +17,10 @@
 
 ## UX refinement follow-up
 
+- [x] Turn expected blocked-store/time-out responses in operator catalog import into safe incomplete drafts instead of generic HTTP 503 failures; do not carry unverified prices or stock into the draft.
+- [x] Make catalog variants editable for operator review and require price/currency plus a named, explicitly confirmed available option before publication.
+- [ ] Complete the 35-priority-store catalog expansion only with individually verified product URLs and merchant details. Many source profiles return bot challenges or incomplete data; do not fabricate products, photos, prices, or availability. eBay still requires manual review unless the supported listing data can be obtained through an approved source.
+
 - [x] Let unsupported public HTTPS stores continue as explicit manual-entry orders without making a server request to that host; cart-add remains clickable and guides the customer to each missing field.
 - [x] Expand the exact eBay storefront allowlist; let blocked/incomplete eBay pages produce manually reviewable admin drafts without publishing them or overwriting an existing complete draft.
 - [x] Remove generated Atlas boilerplate from product descriptions, hide known legacy boilerplate in public catalog output and the operator editor, and preserve actual editorial descriptions.

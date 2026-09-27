@@ -1,5 +1,9 @@
 # Atlas — project context
 
+## Catalog importer recovery — 27 September 2026
+
+Operator imports now preserve a recoverable draft when a supported merchant blocks the public request or returns an expected manual-entry fallback. Safe partial title/image data may be retained, but unverified price, currency and variant availability are cleared. The catalog editor exposes variant name, color, size, price and an explicit operator availability choice; drafts cannot be published until required product data and at least one confirmed available variant are present. Rechecking an existing source that is temporarily unavailable preserves its saved card fields instead of replacing them with empty data. This is a manual-review path, not evidence that the merchant has stock or that the catalog is launch-ready.
+
 ## Catalog contrast and centralized operator tariffs — 27 September 2026
 
 The final dark-only catalog layer now overrides the remaining hard-coded navy price, merchant-link and detail-summary text, and gives savings badges, deal labels and count chips contrast-safe graphite-theme colors. Light appearance and catalog behavior are unchanged.

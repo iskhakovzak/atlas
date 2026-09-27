@@ -1,9 +1,8 @@
 import {z} from 'zod';
 import {database,identity,operator,sameOrigin,requestJson,json,failure,HttpError,pricing} from '@/lib/market/server';
 import {readCatalog,persistCatalog} from '@/lib/market/catalog-server';
-import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,recheckedDraft,changeCatalog,publicCatalog,catalogMaxEntries} from '@/lib/market/catalog-editor';
+import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,manualFallbackCatalogDraft,recheckedDraft,changeCatalog,publicCatalog,catalogMaxEntries} from '@/lib/market/catalog-editor';
 import {fetchProduct,fetchCollectionLinks,ManualEntryFallbackError} from '@/lib/importer/fetch';
-import {isEbayStoreHost} from '@/lib/importer/stores';
 import type {Extracted} from '@/lib/importer/extract';
 import {refreshDueCatalog} from '@/lib/market/catalog-refresh';
 import {apiErrorMessage,requestLocale} from '@/lib/market/i18n';
@@ -47,17 +46,18 @@ export async function POST(request:Request){try{
     await db.prepare('DELETE FROM market_rate_limits WHERE expires_at < ?').bind(now).run();
     if(command.kind==='discover')return json({urls:await fetchCollectionLinks(sourceUrl)});
     if(command.collectionIds.some(id=>!document.collections.some(c=>c.id===id)))throw new HttpError(400, 'err_33');
-    let data:Extracted,sourceUnavailable=false;
+    let data:Extracted|undefined,sourceUnavailable=false;
     try{data=await fetchProduct(sourceUrl)}catch(error){
-      const canSaveEbayDraft=isEbayStoreHost(new URL(sourceUrl).hostname)&&(error instanceof ManualEntryFallbackError||error instanceof Error&&error.name==='AbortError');
-      if(!canSaveEbayDraft)throw error;
+      const canSaveManualDraft=error instanceof ManualEntryFallbackError||error instanceof Error&&error.name==='AbortError';
+      if(!canSaveManualDraft)throw error;
       sourceUnavailable=true;
-      const partial=error instanceof ManualEntryFallbackError?error.partial:undefined;
-      data={...partial,sourceUrl,brand:partial?.brand??new URL(sourceUrl).hostname.replace(/^www\./,''),warnings:[...(partial?.warnings??[]),'eBay не отдал часть данных автоматически. Заполните карточку вручную перед публикацией.']};
+      data=error instanceof ManualEntryFallbackError?error.partial:undefined;
     }
-    const draft=importDraft(data,command.collectionIds,command.country,Date.now());
+    const draft=sourceUnavailable
+      ?manualFallbackCatalogDraft(data,sourceUrl,command.collectionIds,command.country,Date.now())
+      :importDraft(data!,command.collectionIds,command.country,Date.now());
     const existing=document.entries.find(e=>canonicalCatalogUrl(e.draft.sourceUrl)===draft.sourceUrl||canonicalCatalogUrl(e.draft.sourceUrl)===sourceUrl);
-    if(existing){const mergedCollections=[...new Set([...existing.draft.collectionIds,...command.collectionIds])];if(sourceUnavailable)existing.draft.lastCheckError='eBay временно не предоставил данные; сохранённые поля карточки оставлены без изменений.';else existing.draft=recheckedDraft(existing.draft,draft);existing.draft.collectionIds=mergedCollections;}
+    if(existing){const mergedCollections=[...new Set([...existing.draft.collectionIds,...command.collectionIds])];if(sourceUnavailable)existing.draft.lastCheckError='Магазин временно не подтвердил данные; сохранённые поля карточки оставлены без изменений.';else existing.draft=recheckedDraft(existing.draft,draft);existing.draft.collectionIds=mergedCollections;}
     else{if(document.entries.length>=catalogMaxEntries)throw new HttpError(400,`В каталоге уже ${catalogMaxEntries} товаров.`);document.entries.push({id:'find-'+crypto.randomUUID(),draft});}
     document.revision++;
     await persistCatalog(document,raw,user,'catalog.import');return json({document,importedId:existing?.id??document.entries.at(-1)!.id});
