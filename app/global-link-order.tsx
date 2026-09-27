@@ -47,6 +47,14 @@ function displayCountryName(value:string,locale:string){
     : {'США':'United States','Другая страна':'Other country','Великобритания':'United Kingdom','Германия':'Germany','Испания':'Spain','Франция':'France'};
   return labels[canonical as keyof typeof labels]??canonical;
 }
+function displayCategoryName(value:string,locale:string){
+  const canonical=canonicalCategory(value);
+  if(locale==='ru')return canonical;
+  const labels=locale==='uz'
+    ? {'Обувь':'Oyoq kiyim','Одежда':'Kiyim','Электроника':'Elektronika','Аксессуары':'Aksessuarlar','Красота и уход':'Go‘zallik va parvarish','Дом и быт':'Uy va maishiy','Спорт':'Sport','Другое':'Boshqa'}
+    : {'Обувь':'Shoes','Одежда':'Clothing','Электроника':'Electronics','Аксессуары':'Accessories','Красота и уход':'Beauty & care','Дом и быт':'Home & living','Спорт':'Sports','Другое':'Other'};
+  return labels[canonical as keyof typeof labels]??canonical;
+}
 export function GlobalLinkOrder() {
   const { ready, pricing, state, act, catalogProducts } = useMarket();
   const lang=state.communication.language;
@@ -681,7 +689,7 @@ export function GlobalLinkOrder() {
                       setVerified(false);
                     }}
                   >
-                    {weightCategories.map((value) => <option key={value} value={value}>{categoryLabel(value)}</option>)}
+                    {weightCategories.map((value) => <option key={value} value={value}>{displayCategoryName(value,lang)}</option>)}
                   </select>
                 </div>
                 <div className="field">
