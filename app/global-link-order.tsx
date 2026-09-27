@@ -39,6 +39,14 @@ const countryAliases:Record<string,string>={'United States':'США','US':'СШ�
 const categoryAliases:Record<string,string>={'Shoes':'Обувь','Oyoq kiyim':'Обувь','Clothing':'Одежда','Kiyim':'Одежда','Electronics':'Электроника','Elektronika':'Электроника','Accessories':'Аксессуары','Aksessuarlar':'Аксессуары','Beauty & care':'Красота и уход','Go‘zallik va parvarish':'Красота и уход','Home & living':'Дом и быт','Uy va maishiy':'Дом и быт','Sports':'Спорт','Boshqa':'Другое','Other':'Другое'};
 const canonicalCountry=(value:string)=>countryAliases[value]??value;
 const canonicalCategory=(value:string)=>categoryAliases[value]??value;
+function displayCountryName(value:string,locale:string){
+  const canonical=canonicalCountry(value);
+  if(locale==='ru')return canonical;
+  const labels=locale==='uz'
+    ? {'США':'AQSh','Другая страна':'Boshqa mamlakat','Великобритания':'Buyuk Britaniya','Германия':'Germaniya','Испания':'Ispaniya','Франция':'Fransiya'}
+    : {'США':'United States','Другая страна':'Other country','Великобритания':'United Kingdom','Германия':'Germany','Испания':'Spain','Франция':'France'};
+  return labels[canonical as keyof typeof labels]??canonical;
+}
 export function GlobalLinkOrder() {
   const { ready, pricing, state, act, catalogProducts } = useMarket();
   const lang=state.communication.language;
@@ -573,7 +581,7 @@ export function GlobalLinkOrder() {
                       setVerified(false);
                     }}
                   >
-                    {countries.map((value) => <option key={value} value={value}>{localCountry(value)}</option>)}
+                    {countries.map((value) => <option key={value} value={value}>{displayCountryName(value,lang)}</option>)}
                   </select>
                 </div>
                 <div className="field">
