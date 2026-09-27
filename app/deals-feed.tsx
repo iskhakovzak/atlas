@@ -14,10 +14,11 @@ import { signInPath } from '@/lib/market/access';
 import { Choice, Empty, ProductImage } from './market-ui';
 
 export function DealsFeed({ favorites, select }: { favorites: boolean; select: (product: Product) => void }) {
-  const { state, pricing, ready, status, act,catalogProducts,collections,catalogError } = useMarket();
+  const { state, pricing, ready, status, act,catalogProducts,collections,catalogError,loadCatalog } = useMarket();
   const [collectionId,setCollectionId]=useState('');
   const [filters, setFilters] = useState<DealFilters>(defaultDealFilters);
   const [saving, setSaving] = useState<string | null>(null);
+  const [catalogRefreshing,setCatalogRefreshing]=useState(false);
   const [url, setUrl] = useState('');
   const [urlError, setUrlError] = useState('');
   const locale = state.communication.language;
@@ -42,12 +43,18 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
     try { await act({ type: 'favorite', id: product.id }); } finally { setSaving(null); }
   }
 
+  async function retryCatalog() {
+    if(catalogRefreshing)return;
+    setCatalogRefreshing(true);
+    try{await loadCatalog(true)}finally{setCatalogRefreshing(false)}
+  }
+
   return <TooltipProvider delayDuration={300}><div className="finds-page" id="finds">
     <section className="finds-heading">
       <div><span className="eyebrow">{copy.overline}</span>{status==='guest'?<h2>{copy.catalog}</h2>:<h1>{favorites ? copy.savedTitle : copy.title}</h1>}<p>{favorites ? copy.savedIntro : copy.intro}</p></div>
       {ready&&<Link className="btn secondary" href={favorites ? '/' : '/favorites'}><Heart size={17}/>{favorites ? copy.catalog : copy.saved}<span className="finds-count">{favorites ? products.length : state.favorites.filter(id => products.some(product => product.id === id)).length}</span></Link>}
     </section>
-    {catalogError&&<p className="notice catalog-fallback-message" role="status">{catalogError}</p>}
+    {catalogError&&<div className="notice catalog-fallback-message" role="status"><span>{catalogError}</span><button type="button" className="text-button catalog-retry" disabled={catalogRefreshing} onClick={()=>void retryCatalog()}>{catalogRefreshing?(locale==='ru'?'Обновляем…':locale==='uz'?'Yangilanmoqda…':'Refreshing…'):(locale==='ru'?'Повторить':locale==='uz'?'Qayta urinish':'Retry')}</button></div>}
     {!!collections.length&&<nav className="find-collections" aria-label={locale==='ru'?'Подборки':locale==='uz'?'To‘plamlar':'Collections'}>
       <button type="button" className={!collectionId?'active':''} onClick={()=>setCollectionId('')}>{copy.all}</button>
       {collections.map(collection=><button type="button" key={collection.id} className={collectionId===collection.id?'active':''} onClick={()=>setCollectionId(collection.id)}><b>{locale==='en'?collection.nameEn||collection.name:locale==='uz'?collection.nameUz||collection.name:collection.name}</b><span>{collection.productIds.length}</span></button>)}

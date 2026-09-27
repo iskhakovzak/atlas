@@ -120,7 +120,7 @@ const delivery={recipient:'Anna Karimova',phone:'+998901234567',region:'Ташк
 let state=addToCart(blank(),products[0],'US 9',1000);state=checkoutCore(state,'identity',cartSignature(state.cart),false,1001,customsVersion,delivery);const orderId=state.orders[0].id;
 state=confirmIdentity(state,{documentId:'DOC-1',firstName:'ANNA',lastName:'KARIMOVA',birthDate:'1995-04-20',passportNumber:'AA1234567',nationality:'UZB'},Date.UTC(2026,8,10));
 assert.equal(state.identityProfile.passportMasked,'•••• 4567');assert.equal(JSON.stringify(state).includes('AA1234567'),false);
-state=submitDeclarationPreview(state,[orderId],2001);assert.equal(state.declarations[0].lines[0].orderId,orderId);assert.equal(state.declarations[0].delivery.city,'Ташкент');assert.equal(state.declarations[0].status,'submitted-preview');assert.equal(state.notifications[0].title,'Тестовая декларация подготовлена');
+ state=submitDeclarationPreview(state,[orderId],2001);assert.equal(state.declarations[0].lines[0].orderId,orderId);assert.equal(state.declarations[0].delivery.city,'Ташкент');assert.equal(state.declarations[0].status,'submitted-preview');assert.equal(state.notifications[0].title,'Черновик декларации подготовлен');
 state=clearIdentity(state,'DOC-1');assert.equal(state.identityProfile,undefined);assert.throws(()=>submitDeclarationPreview(state,[orderId],2002));
 });
 test('managed restrictions reject blocked goods and oversized parties on the server',()=>{

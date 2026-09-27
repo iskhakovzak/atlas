@@ -496,7 +496,7 @@ export function safeImage(value: unknown, base: string) {
 
 /** Keep one representative for rendition URLs that point to the same source photo. */
 export function dedupeSafeImages(values: unknown[], base: string, limit = 12) {
-    const seen = new Set<string>();
+  const seen = new Set<string>();
   const result: string[] = [];
   for (const value of values) {
     const safe = safeImage(value, base);
@@ -509,10 +509,19 @@ export function dedupeSafeImages(values: unknown[], base: string, limit = 12) {
       const ebayImages = host === 'i.ebayimg.com';
       if (amazonImages) url.pathname = url.pathname.replace(/\._(?:AC|UX|SX|SL|SY|UL|SS|SR|CR|FM)(?:_[A-Z]{2}\d{2,4}(?:,\d{2,4})?)+(?:_[A-Z]{2}\d{1,3})*_?(?=\.[^./]+$)/i, '');
       if (ebayImages) url.pathname = url.pathname.replace(/\/s-l\d{2,4}(?=\.(?:jpe?g|png|webp)$)/i, '/s-lSIZE');
-      const knownResizeHost = ['cdn.shopify.com', 'images.ctfassets.net', 'cdn.media.amplience.net', 'static.zara.net'].includes(host);
-      const renditionParams = new Set(['w', 'h', 'width', 'height', 'wid', 'hei', 'qlt', 'quality', 'fmt', 'format', 'fit', 'crop', 'resize', 'auto']);
+      // Most storefronts expose the same source photo through several CDN
+      // sizes. These parameters only affect rendition, not the selected
+      // product/color; remove them across hosts while preserving identity
+      // parameters such as `variant`, `color` and version/cache keys.
+      const renditionParams = new Set(['w', 'h', 'width', 'height', 'wid', 'hei', 'sw', 'sh', 'qlt', 'quality', 'fmt', 'format', 'fit', 'crop', 'resize', 'auto', 'sm']);
       for (const key of [...url.searchParams.keys()]) {
-        if (/^(?:utm_.+|gclid|fbclid|dclid|msclkid|igshid)$/i.test(key) || knownResizeHost && renditionParams.has(key.toLowerCase())) url.searchParams.delete(key);
+        if (/^(?:utm_.+|gclid|fbclid|dclid|msclkid|igshid)$/i.test(key) || renditionParams.has(key.toLowerCase())) url.searchParams.delete(key);
+      }
+      // Shopify encodes image size in the filename (`photo_300x.jpg`,
+      // `photo_1200x1200.jpg`). Keep the original first URL for display, but
+      // compare those variants by their shared source filename.
+      if (host === 'cdn.shopify.com') {
+        url.pathname = url.pathname.replace(/_(?:\d{1,5}x\d{0,5}|x\d{1,5})(?=\.[^./]+$)/i, '');
       }
       url.searchParams.sort();
       const key = url.href;

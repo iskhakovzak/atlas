@@ -9,7 +9,7 @@ import type {SessionStatus} from './access';
 import {keepCatalogVisible,visibleMerchantFinds,type MerchantFind} from './catalog';
 import type {CatalogCollection} from './catalog-editor';
 export type AccountUser={name:string;email:string;operator:boolean;createdAt:number};
-type Store={catalogProducts:MerchantFind[];collections:Array<CatalogCollection&{productIds:string[]}>;catalogError:string;loadCatalog:()=>Promise<void>;state:State;pricing:Pricing;policy:Policy;ready:boolean;status:SessionStatus;error:string|null;user:AccountUser|null;setLocale:(locale:Locale)=>void;act:(action:Action)=>Promise<boolean>;refresh:()=>Promise<void>};
+type Store={catalogProducts:MerchantFind[];collections:Array<CatalogCollection&{productIds:string[]}>;catalogError:string;loadCatalog:(force?:boolean)=>Promise<void>;state:State;pricing:Pricing;policy:Policy;ready:boolean;status:SessionStatus;error:string|null;user:AccountUser|null;setLocale:(locale:Locale)=>void;act:(action:Action)=>Promise<boolean>;refresh:()=>Promise<void>};
 const Context=createContext<Store|null>(null);
 const marketMessages:Record<Locale,{catalogLoad:string;accountLoad:string;connection:string;signin:string;busy:string;sessionEnded:string;saveFailed:string;actionConnection:string}>={
   ru:{catalogLoad:'Не удалось обновить витрину. Сохранённые ссылки остаются доступны; актуальную цену нужно подтвердить перед заказом.',accountLoad:'Не удалось загрузить кабинет. Повторите попытку.',connection:'Не удалось связаться с сервером. Проверьте подключение и повторите попытку.',signin:'Войдите, чтобы сохранить изменения.',busy:'Дождитесь сохранения предыдущего действия.',sessionEnded:'Сессия завершилась. Войдите снова, чтобы продолжить.',saveFailed:'Не удалось сохранить изменения.',actionConnection:'Ответ сервера не получен. Проверяем состояние заказа.'},
@@ -21,7 +21,8 @@ export function MarketProvider({children}:{children:ReactNode}) {
  const [state,setState]=useState<State>(blank),[pricing,setPricing]=useState<Pricing>(tariff),[policy,setPolicy]=useState<Policy>(defaultPolicy),[status,setStatus]=useState<SessionStatus>('loading'),[error,setError]=useState<string|null>(null),[user,setUser]=useState<AccountUser|null>(null);
  const revision=useRef(0),busy=useRef(false),generation=useRef(0),localeRef=useRef<Locale>('ru'),serverLocaleRef=useRef<Locale>('ru'),localeSyncRef=useRef<Locale|null>(null);
  const catalogLoaded=useRef(false),catalogRequest=useRef<Promise<void>|null>(null);
- const loadCatalog=useCallback(()=>{
+ const loadCatalog=useCallback((force=false)=>{
+  if(force)catalogLoaded.current=false;
   if(catalogLoaded.current)return Promise.resolve();
   if(catalogRequest.current)return catalogRequest.current;
   const request=(async()=>{

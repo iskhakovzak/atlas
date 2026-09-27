@@ -61,6 +61,21 @@ test('image gallery collapses photo renditions but keeps different images and va
  assert.equal(result[0],'https://i.ebayimg.com/images/g/a/s-l500.jpg');
  assert(result.some(url=>url.endsWith('shoe._red.jpg')));assert(result.some(url=>url.endsWith('shoe._blue.jpg')));
 });
+test('image gallery collapses common CDN and Shopify size renditions but keeps color-specific photos',()=>{
+ const result=dedupeSafeImages([
+  'https://cdn.example.com/products/coat.jpg?width=320&quality=70',
+  'https://cdn.example.com/products/coat.jpg?quality=90&width=1600',
+  'https://cdn.shopify.com/s/files/1/0001/products/coat_300x.jpg?v=42',
+  'https://cdn.shopify.com/s/files/1/0001/products/coat_1200x1200.jpg?v=42',
+  'https://cdn.shopify.com/s/files/1/0001/products/coat-red_300x.jpg?v=42',
+  'https://cdn.shopify.com/s/files/1/0001/products/coat-blue_300x.jpg?v=42',
+ ],'https://shop.example/products/coat');
+ assert.equal(result.length,4);
+ assert.equal(result[0],'https://cdn.example.com/products/coat.jpg?width=320&quality=70');
+ assert.equal(result[1],'https://cdn.shopify.com/s/files/1/0001/products/coat_300x.jpg?v=42');
+ assert(result.some(url=>url.includes('coat-red_300x.jpg')));
+ assert(result.some(url=>url.includes('coat-blue_300x.jpg')));
+});
 test('official eBay short links may redirect only to an allowlisted eBay product page',async()=>{const original=globalThis.fetch;let requests=0;globalThis.fetch=async()=>{requests++;if(requests===1)return new Response('',{status:302,headers:{Location:'https://www.ebay.com/itm/123'}});return new Response('<script type="application/ld+json">{"@type":"Product","name":"eBay item","image":"https://i.ebayimg.com/images/g/a/s-l500.jpg","offers":{"@type":"Offer","price":"18.50","priceCurrency":"USD"}}</script>',{headers:{'Content-Type':'text/html'}})};try{const item=await fetchProduct('https://ebay.us/abc123');assert.equal(item.title,'eBay item');assert.equal(item.price,18.5);assert.equal(item.currency,'USD')}finally{globalThis.fetch=original}});
 test('server recomputes country currency, domestic shipping and padded weight',()=>{const p={...products[0],sourceUrl:'https://ebay.es/itm/12',sourcePrice:100,sourceCurrency:'EUR',sourceShipping:5,shippingKnown:true,boxedWeight:1.2,country:'Испания',weight:49,usd:1};const s=applyAction(blank(),{type:'cart-add',product:p,variant:p.variants[0]},false);assert.equal(s.cart[0].product.weight,1.7);assert.equal(s.cart[0].product.usd,110);assert.equal(s.cart[0].quote.sourceShipping,70400);assert.equal(s.cart[0].quote.weight,1.7);assert.equal(s.cart[0].quote.total,s.cart[0].quote.merchandise+s.cart[0].quote.service+s.cart[0].quote.shipping+s.cart[0].quote.reserve+70400)});
 test('checkout needs recorded customs consent and warehouse actions require operator',()=>{let s=addToCart(blank(),products[0],products[0].variants[0]);assert.throws(()=>checkoutCart(s,'x',cartSignature(s.cart),false));s=checkoutCart(s,'x',cartSignature(s.cart),false,Date.now(),customsVersion);assert.equal(s.orders[0].customsConsent.version,customsVersion);assert.throws(()=>applyAction(s,{type:'advance',id:s.orders[0].id,expected:0},false));s=confirmDemoPayment(s,s.orders[0].id);const n=applyAction(s,{type:'advance',id:s.orders[0].id,expected:0},true);assert.equal(n.orders[0].status,1)});

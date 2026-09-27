@@ -889,7 +889,7 @@ export function submitDeclarationPreview(state: State, orderIds: string[], now =
   if (!delivery) throw Error("Сначала сохраните адрес доставки.");
   const lines = selected.map((order) => ({ orderId: order.id, description: order.product.declarationDescription ?? order.product.name, country: order.product.country ?? "Не указана", quantity: order.quantity, value: order.quote.merchandise }));
   const declaration: Declaration = { id: "DEC-" + crypto.randomUUID().slice(0, 8).toUpperCase(), createdAt: now, status: "submitted-preview", identity, delivery, orderIds: selected.map((order) => order.id), lines, totalValue: lines.reduce((sum, line) => sum + line.value, 0) };
-  return withNotification({ ...state, declarations: [declaration, ...state.declarations].slice(0, 20) }, "Тестовая декларация подготовлена", `Пакет ${declaration.id} сохранён внутри Atlas. В таможню он не отправлялся.`);
+  return withNotification({ ...state, declarations: [declaration, ...state.declarations].slice(0, 20) }, "Черновик декларации подготовлен", `Пакет ${declaration.id} сохранён внутри Atlas. В таможню он не отправлялся.`);
 }
 export const balanceOf = (state: State) =>
   state.entries.reduce(
@@ -1056,7 +1056,7 @@ export function checkoutCart(
         amount: balanceUsed,
         debit: "customer-credit",
         credit: "order-funds",
-        description: "Оплата заказа демобалансом",
+        description: "Оплата заказа из внутреннего баланса Atlas",
       });
     const serviceRequests = (i.requestedServiceIds ?? []).map((serviceId) => {
       const service = availableServices.find((candidate) => candidate.id === serviceId);
@@ -1094,9 +1094,9 @@ export function checkoutCart(
         {
           at: now,
           text:
-            "Предрелизный заказ оформлен. Сумма " +
+            "Заказ оформлен в Atlas. Сумма " +
             money(i.quote.total) +
-            (payable ? ". Ожидается тестовая оплата." : ". Оплачен демобалансом."),
+            (payable ? ". Ожидается подтверждение платёжного провайдера." : ". Учтено из внутреннего баланса Atlas."),
         },
       ],
     } as Order;
@@ -1127,13 +1127,13 @@ export function confirmDemoPayment(
   const o = getOrder(state, id);
   if (!o.payment || o.payment.status === "paid") return state;
   if (o.cancelled || o.payment.status !== "pending")
-    throw Error("Тестовая оплата для этого заказа недоступна.");
+    throw Error("Оплата недоступна: платёжный провайдер не подключён.");
   const next = replace(state, {
     ...o,
     payment: { ...o.payment, status: "paid", updatedAt: now },
     history: [
       ...o.history,
-      { at: now, text: "Тестовый платёж подтверждён. Реального списания не было." },
+      { at: now, text: "Статус оплаты отмечен в Atlas. Платёжный провайдер не подтвердил списание." },
     ],
   });
   next.entries = [
@@ -1145,13 +1145,13 @@ export function confirmDemoPayment(
       amount: o.payment.amount,
       debit: "demo-provider",
       credit: "order-funds",
-      description: "Тестовая оплата по платёжной ссылке",
+      description: "Статус оплаты записан в Atlas; провайдер не подключён",
     },
   ];
   return withNotification(
     next,
-    "Оплата подтверждена",
-    "Предрелизный платёж принят в тестовом режиме. Реального списания не было.",
+    "Статус оплаты обновлён в Atlas",
+    "Платёжный провайдер не подключён: списания и банковского подтверждения нет.",
     id,
     now,
   );
@@ -1394,7 +1394,7 @@ export function confirmStoreShipping(
     settlement.extra
       ? "Менеджер уточнил стоимость. Откройте заказ и подтвердите доплату."
       : settlement.refund
-        ? "Разница с резервом возвращена на демобаланс."
+        ? "Разница учтена на внутреннем балансе Atlas. Банковский перевод не выполнялся."
         : "Стоимость совпала с резервом заказа.",
     id,
     now,
@@ -1546,7 +1546,7 @@ export function receiveOrder(
     s.extra
       ? "Фактический или объёмный вес превысил резерв. Проверьте новый расчёт."
       : s.refund
-        ? "Остаток доставки возвращён на демобаланс."
+        ? "Остаток учтён на внутреннем балансе Atlas. Банковский перевод не выполнялся."
         : "Фактическая стоимость доставки подтверждена.",
     id,
     now,
@@ -1574,7 +1574,7 @@ export function approveExtra(
       {
         at: now,
         text:
-          "Покупатель подтвердил тестовую доплату " + money(o.settlement.extra),
+          "Покупатель согласовал доплату " + money(o.settlement.extra),
       },
     ],
   });
@@ -1594,7 +1594,7 @@ export function cancelOrder(state: State, id: string, now = Date.now()): State {
       ...o.history,
       {
         at: now,
-        text: "Отменён до выкупа. Вся сумма возвращена на демобаланс.",
+        text: "Заказ отменён до выкупа. Сумма учтена на внутреннем балансе Atlas; банковский перевод не выполнялся.",
       },
     ],
   });
