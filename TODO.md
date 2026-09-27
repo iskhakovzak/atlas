@@ -291,3 +291,5 @@
 - [x] Retain manual-review drafts for recoverable importer failures without asserting price, currency, variant price or stock; preserve Shopify per-variant prices, support XHTML and do not follow unapproved redirects.
 - [ ] Run full lint/build in the supported Sites toolchain and complete a visual admin pass at desktop/mobile widths and both themes; the local pnpm wrapper attempted an unattended install and was stopped, so no dependency directory was changed.
 - [ ] Verify high-priority merchant adapters against authorized live pages or stable fixtures maintained per merchant. An allowlisted hostname is not proof that each product page can be parsed.
+- [x] Label source-backed catalog card actions as “Add to cart” and route them into the protected fresh-import/variant confirmation flow; never add the dated card snapshot directly.
+- [ ] Activate and verify the separate hourly catalog-refresh Worker. This still requires an authenticated Cloudflare deployment environment, matching `ATLAS_CATALOG_REFRESH_SECRET` bindings, and evidence from a scheduled signed run; the Wrangler source/config is not an active job.
