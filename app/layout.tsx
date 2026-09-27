@@ -5,6 +5,7 @@ import "./finds.css";
 import "./checkout-clarity.css";
 import "./access.css";
 import "./experience.css";
+import "./catalog-import.css";
 import "./dark-theme.css";
 import { MarketProvider } from "@/lib/market/store";
 import { StorageNotice } from "./storage-notice";

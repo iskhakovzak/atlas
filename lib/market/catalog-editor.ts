@@ -1,8 +1,8 @@
 import {z} from 'zod';
 import {bundledMerchantFinds, type MerchantFind} from './catalog.ts';
 import {toUsd,paddedWeight,currencies} from './world.ts';
-import {tariff,type Pricing,type Product} from './domain.ts';
-import {safeImage,type Extracted} from '../importer/extract.ts';
+import {tariff,sourceVariantSchema,type Pricing,type Product} from './domain.ts';
+import {dedupeSafeImages,safeImage,type Extracted} from '../importer/extract.ts';
 import {isSupportedStoreHost} from '../importer/stores.ts';
 import {estimatedBoxedWeight} from './weight.ts';
 
@@ -19,7 +19,7 @@ export const catalogDraftSchema=z.object({
   sourceUrl:text.url().max(3000),name:text.max(140),brand:text.max(100),category:z.enum(catalogCategories),
   image:text.max(3000),images:z.array(text.max(3000)).max(12),price:z.number().finite().nonnegative().optional(),currency:text.max(3),
   referencePrice:z.number().finite().positive().optional(),country:text.max(80),boxedWeight:z.number().finite().positive().max(49.5),
-  variants:z.array(z.object({id:text.max(120).optional(),label:text.max(140),size:text.max(100).optional(),sizeLabel:text.max(100).optional(),color:text.max(100).optional(),available:z.boolean(),availabilityKnown:z.boolean().optional(),price:z.number().finite().nonnegative().optional(),image:text.max(3000).optional()})).max(250),
+  variants:z.array(sourceVariantSchema).max(250),
   collectionIds:z.array(text.max(80)).max(20),description:text.max(600),checkedAt:z.number().int().nonnegative(),
   warnings:z.array(text.max(500)).max(20),soldOut:z.boolean().optional(),reviewReasons:z.array(text.max(240)).max(10).optional(),lastCheckError:text.max(500).optional(),
 });
@@ -102,7 +102,8 @@ export function synchronizeBundledCatalog(current:CatalogDocument){
   return {document:catalogDocumentSchema.parse(next),added,updated};
 }
 export function importDraft(data:Extracted,collectionIds:string[],country:string,now=Date.now()):CatalogDraft{
-  return catalogDraftSchema.parse({sourceUrl:canonicalCatalogUrl(data.sourceUrl),name:data.title??'',brand:data.brand??new URL(data.sourceUrl).hostname,category:data.category??'Другое',image:data.image??'',images:data.images??(data.image?[data.image]:[]),price:data.price,currency:data.currency??'',country:data.country??country,boxedWeight:data.boxedWeight??estimatedBoxedWeight(data.category??'Другое'),variants:(data.variants??[]).map(v=>({id:v.id,label:v.label,size:v.size,sizeLabel:v.sizeLabel,color:v.color,available:v.available,...(v.availabilityKnown===undefined?{}:{availabilityKnown:v.availabilityKnown}),price:v.price,image:v.image})),collectionIds,description:'',checkedAt:now,warnings:data.warnings,soldOut:Boolean(data.variants?.length&&!data.variants.some(v=>v.available))});
+ const images=dedupeSafeImages([data.image??'',...(data.images??[])],data.sourceUrl,12);
+ return catalogDraftSchema.parse({sourceUrl:canonicalCatalogUrl(data.sourceUrl),name:data.title??'',brand:data.brand??new URL(data.sourceUrl).hostname,category:data.category??'Другое',image:safeImage(data.image,data.sourceUrl)??images[0]??'',images,price:data.price,currency:data.currency??'',country:data.country??country,boxedWeight:data.boxedWeight??estimatedBoxedWeight(data.category??'Другое'),variants:(data.variants??[]).map(v=>({id:v.id,label:v.label,size:v.size,sizeLabel:v.sizeLabel,color:v.color,available:v.available,...(v.availabilityKnown===undefined?{}:{availabilityKnown:v.availabilityKnown}),price:v.price,image:safeImage(v.image,data.sourceUrl)})),collectionIds,description:'',checkedAt:now,warnings:data.warnings,soldOut:Boolean(data.variants?.length&&!data.variants.some(v=>v.available))});
 }
 
 const customerLinkReviewReason='Добавлен после запроса покупателя — проверьте источник и опубликуйте вручную.';
@@ -291,7 +292,16 @@ export function publicCatalog(document:CatalogDocument,pricing:Pricing,now=Date.
     if(issues.length&&!freshnessOnly)return [];
     const priceNeedsConfirmation=issues.length>0;
     const variants=d.variants.filter(v=>v.available&&v.availabilityKnown!==false).map(v=>v.label);
-    return [{id:entry.id,name:d.name,brand:d.brand,category:d.category,store:new URL(d.sourceUrl).hostname.replace(/^www\./,''),observedOn:new Date(d.checkedAt).toISOString().slice(0,10),usd:priceNeedsConfirmation?1:toUsd(d.price!,d.currency,pricing.rates),sourcePrice:priceNeedsConfirmation?undefined:d.price,sourceCurrency:priceNeedsConfirmation?undefined:d.currency,referenceUsd:!priceNeedsConfirmation&&d.referencePrice&&d.referencePrice>d.price!?toUsd(d.referencePrice,d.currency,pricing.rates):undefined,image:d.image,sourceUrl:d.sourceUrl,description:d.description,country:d.country,boxedWeight:d.boxedWeight,weight:paddedWeight(d.boxedWeight),variants:priceNeedsConfirmation?['Уточнить вариант в магазине']:variants.length?variants:['Уточнить вариант в магазине'],sourceShipping:10,sourceShippingUsd:10,sourceShippingCurrency:'USD',sourceShippingEstimated:true,shippingKnown:false,sourceExpiresAt:d.checkedAt+catalogLifetime,collectionIds:d.collectionIds,priceNeedsConfirmation}];
+    const sourceImages=dedupeSafeImages([d.image,...d.images,...d.variants.map(variant=>variant.image??'')],d.sourceUrl,12);
+    const sourceVariants=d.variants.map(variant=>{
+      const image=safeImage(variant.image,d.sourceUrl);
+      return {
+        ...variant,
+        ...(image?{image}:{image:undefined}),
+        ...(priceNeedsConfirmation?{available:true,availabilityKnown:false,price:undefined}:{}),
+      };
+    });
+    return [{id:entry.id,name:d.name,brand:d.brand,category:d.category,store:new URL(d.sourceUrl).hostname.replace(/^www\./,''),observedOn:new Date(d.checkedAt).toISOString().slice(0,10),usd:priceNeedsConfirmation?1:toUsd(d.price!,d.currency,pricing.rates),sourcePrice:priceNeedsConfirmation?undefined:d.price,sourceCurrency:priceNeedsConfirmation?undefined:d.currency,referenceUsd:!priceNeedsConfirmation&&d.referencePrice&&d.referencePrice>d.price!?toUsd(d.referencePrice,d.currency,pricing.rates):undefined,image:sourceImages[0]??'',sourceImages,sourceVariants,sourceUrl:d.sourceUrl,description:d.description,country:d.country,boxedWeight:d.boxedWeight,weight:paddedWeight(d.boxedWeight),variants:priceNeedsConfirmation?['Уточнить вариант в магазине']:variants.length?variants:['Уточнить вариант в магазине'],sourceShipping:10,sourceShippingUsd:10,sourceShippingCurrency:'USD',sourceShippingEstimated:true,shippingKnown:false,sourceExpiresAt:d.checkedAt+catalogLifetime,collectionIds:d.collectionIds,priceNeedsConfirmation}];
   });
   const collections=document.collections.filter(c=>c.visible).sort((a,b)=>a.position-b.position).map(c=>({...c,productIds:products.filter(p=>p.collectionIds?.includes(c.id)).map(p=>p.id)})).filter(c=>c.productIds.length);
   return {products,collections};

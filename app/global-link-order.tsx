@@ -5,6 +5,7 @@ import { ArrowRight, ExternalLink, Link2, Loader2, Scale } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
+import { catalogOrderVariants } from "@/lib/market/catalog";
 import {
   price,
   money,
@@ -52,7 +53,11 @@ export function GlobalLinkOrder() {
   const dealBoxedWeight = dealSeed ? Math.max(0.1, communityEstimatedWeight(dealSeed) - 0.5) : undefined;
   const seed = catalogProducts.find(item => item.sourceUrl === requestedUrl);
   const seedIsFresh = Boolean(seed && !seed.priceNeedsConfirmation);
-  const fallbackOptions: ProductVariant[] = seedIsFresh ? seed!.variants.map(label => ({ label, available: true })) : dealOptions;
+  const seedOptions: ProductVariant[] = seed ? catalogOrderVariants(seed) : [];
+  const fallbackOptions = seedOptions.length ? seedOptions : dealOptions;
+  const seedImages = seed
+    ? dedupeSafeImages([seed.image, ...(seed.sourceImages ?? [])], seed.sourceUrl ?? requestedUrl)
+    : dealSeed?.image ? [dealSeed.image] : [];
   const fallbackBoxedWeight = seed?.boxedWeight ?? dealBoxedWeight;
   const [url, setUrl] = useState(() => searchParams.get("url") ?? ""),
     [source, setSource] = useState(seed?.sourceUrl ?? dealSeed?.url ?? ""),
@@ -73,7 +78,7 @@ export function GlobalLinkOrder() {
     [selectedColor, setSelectedColor] = useState(""),
     [selectedSize, setSelectedSize] = useState(""),
     [image, setImage] = useState(seed?.image ?? dealSeed?.image ?? ""),
-    [images, setImages] = useState<string[]>(dealSeed?.image ? [dealSeed.image] : []),
+    [images, setImages] = useState<string[]>(seedImages),
     [busy, setBusy] = useState(false),
     [adding, setAdding] = useState(false),
     [showSourceForm, setShowSourceForm] = useState(() => !requestedUrl),
@@ -157,7 +162,7 @@ export function GlobalLinkOrder() {
     setShippingCurrency("USD");
     setShippingEstimated(true);
     setImage(seed?.image ?? dealSeed?.image ?? "");
-    setImages(seed?.image ? [seed.image] : dealSeed?.image ? [dealSeed.image] : []);
+    setImages(seedImages);
     setImportedAt(undefined);
     setSourceExpiresAt(undefined);
     setWeight(fallbackBoxedWeight ? String(fallbackBoxedWeight) : "");
@@ -194,7 +199,7 @@ export function GlobalLinkOrder() {
         setName(data.title??seed?.name??dealSeed?.title??"");
         setBrand(data.brand??seed?.brand??dealSeed?.store??new URL(link).hostname.replace(/^www\./,''));
         setImage(partialImages[0]??seed?.image??dealSeed?.image??"");
-        setImages(partialImages.length?partialImages:seed?.image?[seed.image]:dealSeed?.image?[dealSeed.image]:[]);
+        setImages(partialImages.length?partialImages:seedImages);
         if(data.price!==undefined&&currencies.includes(data.currency??"")){setAmount(String(data.price));setCurrency(data.currency!)}
         else if(seedIsFresh&&seed?.sourcePrice!==undefined){setAmount(String(seed.sourcePrice));setCurrency(seed.sourceCurrency??"USD")}
         else if(dealSeed){setAmount(String(dealSeed.price));setCurrency("USD")}
@@ -219,7 +224,7 @@ export function GlobalLinkOrder() {
       setBrand(data.brand ?? seed?.brand ?? dealSeed?.store ?? new URL(data.sourceUrl).hostname);
       setImage(data.image ?? seed?.image ?? dealSeed?.image ?? "");
       const importedImages=dedupeSafeImages([data.image,...(data.images??[])].filter(Boolean) as string[],data.sourceUrl);
-      setImages(importedImages.length?importedImages:seed?.image?[seed.image]:dealSeed?.image?[dealSeed.image]:[]);
+      setImages(importedImages.length?importedImages:seedImages);
       if(importedImages.length&&!data.image)setImage(importedImages[0]);
       const nextCategory = canonicalCategory(
         data.category ??
@@ -324,7 +329,7 @@ export function GlobalLinkOrder() {
       setName(seed?.name??dealSeed?.title??"");
       setBrand(seed?.brand??dealSeed?.store??new URL(link).hostname.replace(/^www\./,''));
       setImage(seed?.image??dealSeed?.image??"");
-      setImages(seed?.image?[seed.image]:dealSeed?.image?[dealSeed.image]:[]);
+      setImages(seedImages);
       setAmount(seedIsFresh&&seed?.sourcePrice!==undefined?String(seed.sourcePrice):dealSeed?String(dealSeed.price):"");
       setCurrency(seedIsFresh?seed?.sourceCurrency??"USD":"USD");
       setVariants(fallbackOptions);

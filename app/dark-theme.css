@@ -1634,3 +1634,43 @@ html[data-theme="dark"] .find-card .find-origin a:hover,
 html[data-theme="dark"] .finds-signin a:hover {
   color: #d3dcf6;
 }
+
+html[data-theme="dark"] .catalog-variant-panel,
+html[data-theme="dark"] .catalog-variant-scroll,
+html[data-theme="dark"] .catalog-import-progress,
+html[data-theme="dark"] .catalog-import-progress li,
+html[data-theme="dark"] .catalog-import-queue-summary span,
+html[data-theme="dark"] .catalog-photo-gallery img {
+  background-color: var(--atlas-surface);
+  border-color: var(--atlas-line);
+  color: var(--atlas-ink);
+}
+
+html[data-theme="dark"] .catalog-variant-table th,
+html[data-theme="dark"] .catalog-variant-table td > img,
+html[data-theme="dark"] .catalog-variant-no-image {
+  background-color: var(--atlas-soft);
+  color: var(--atlas-ink);
+}
+
+html[data-theme="dark"] .catalog-variant-table td:last-child span,
+html[data-theme="dark"] .catalog-import-progress .import-saved > span {
+  background-color: #263b2d;
+  color: #c5e8c9;
+}
+
+html[data-theme="dark"] .catalog-variant-table td:last-child .variant-unknown {
+  background-color: #2b3430;
+  color: #c2cec7;
+}
+
+html[data-theme="dark"] .catalog-variant-table td:last-child .variant-sold-out,
+html[data-theme="dark"] .catalog-import-progress .import-failed > span {
+  background-color: #452c29;
+  color: #f0bbb0;
+}
+
+html[data-theme="dark"] .catalog-import-hint {
+  background-color: var(--atlas-soft);
+  color: var(--atlas-ink);
+}

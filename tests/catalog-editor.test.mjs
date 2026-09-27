@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {applyScheduledCatalogRefresh,catalogDocumentSchema,catalogIssues,catalogRefreshInterval,changeCatalog,customerLinkDraft,dueCatalogEntries,importDraft,initialCatalog,markCatalogRefreshFailed,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
 import {catalogRefreshPath,isAuthorizedCatalogRefresh,signCatalogRefreshRequest} from '../lib/market/catalog-refresh-auth.ts';
 import {communityCatalogProducts} from '../lib/market/community-deals.ts';
-import {keepCatalogVisible} from '../lib/market/catalog.ts';
-import {tariff} from '../lib/market/domain.ts';
+import {catalogOrderVariants,keepCatalogVisible} from '../lib/market/catalog.ts';
+import {productSchema,tariff} from '../lib/market/domain.ts';
 
 const extracted={sourceUrl:'https://kyliecosmetics.com/products/matte-lip-kit?utm_source=mail',title:'Matte Lip Kit',brand:'Kylie Cosmetics',category:'Красота и уход',image:'https://cdn.shopify.com/lip.jpg',images:['https://cdn.shopify.com/lip.jpg'],price:35,currency:'USD',variants:[{id:'bare-full',label:'Bare · Full size',color:'Bare',size:'Full size',available:true,price:35}],warnings:['Доставка неизвестна'],method:'Shopify'};
 test('customer link imports become reviewable drafts without public publication',()=>{
@@ -22,6 +22,11 @@ test('admin import creates a reviewable draft without claiming store shipping',(
  assert.equal(draft.category,'Красота и уход');assert.equal(draft.price,35);assert.equal(draft.boxedWeight,.8);
  assert.deepEqual(draft.variants[0],{id:'bare-full',label:'Bare · Full size',color:'Bare',size:'Full size',sizeLabel:undefined,available:true,price:35,image:undefined});
  assert.deepEqual(catalogIssues(draft,1001),[]);assert.equal(draft.warnings[0],'Доставка неизвестна');
+});
+test('admin import deduplicates photos and chooses the first safe gallery image',()=>{
+ const photo='https://cdn.shopify.com/product.jpg';
+ const draft=importDraft({...extracted,image:undefined,images:[photo,photo,'http://unsafe.example/product.jpg']},[],'США',1000);
+ assert.equal(draft.image,photo);assert.deepEqual(draft.images,[photo]);
 });
 test('publishing copies a reviewed snapshot while later edits remain drafts',()=>{
  let doc=initialCatalog();doc.collections=[{id:'beauty',name:'Красота',nameUz:'',nameEn:'Beauty',description:'',visible:true,position:0}];
@@ -52,6 +57,41 @@ test('hiding removes a product from the public feed without deleting its draft',
  let doc=initialCatalog(),id=doc.entries[0].id;doc=changeCatalog(doc,{kind:'hide',ids:[id]},Date.parse('2026-09-12'),tariff);
  assert.equal(doc.entries[0].published,undefined);assert(doc.entries[0].draft);
  assert(!publicCatalog(doc,tariff,Date.parse('2026-09-12')).products.some(p=>p.id===id));
+});
+test('published catalog carries the complete safe option matrix and photo gallery',()=>{
+ const sourceUrl='https://kyliecosmetics.com/products/matte-lip-kit';
+ const matrix=[
+  {id:'bare-full',label:'Bare · Full',color:'Bare',size:'Full size',sizeLabel:'Size',available:true,availabilityKnown:true,price:35,image:'https://cdn.shopify.com/bare.jpg'},
+  {id:'bare-mini',label:'Bare · Mini',color:'Bare',size:'Mini',sizeLabel:'Size',available:true,availabilityKnown:true,price:19,image:'https://cdn.shopify.com/mini.jpg'},
+  {id:'rose-full',label:'Rosé · Full',color:'Rosé',size:'Full size',sizeLabel:'Size',available:false,availabilityKnown:true,price:37,image:'http://unsafe.example/rose.jpg'},
+ ];
+ const draft=importDraft({...extracted,sourceUrl,image:'https://cdn.shopify.com/bare.jpg',images:['https://cdn.shopify.com/bare.jpg','https://cdn.shopify.com/mini.jpg','http://unsafe.example/gallery.jpg'],variants:matrix},[],'США',1000);
+ const doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'lip-matrix',draft,published:structuredClone(draft),publishedAt:1000}]});
+ const product=publicCatalog(doc,tariff,1001).products[0];
+ assert.equal(product.sourceVariants.length,3);
+ assert.deepEqual(product.sourceVariants.map(({id,color,size,sizeLabel,price})=>({id,color,size,sizeLabel,price})),matrix.map(({id,color,size,sizeLabel,price})=>({id,color,size,sizeLabel,price})));
+ assert.equal(product.sourceVariants[2].image,undefined);
+ assert.deepEqual(product.sourceImages,['https://cdn.shopify.com/bare.jpg','https://cdn.shopify.com/mini.jpg']);
+ assert.deepEqual(product.variants,['Bare · Full','Bare · Mini']);
+});
+test('stale catalog keeps variant labels for manual choice but strips stale stock and prices',()=>{
+ const draft=importDraft({...extracted,variants:[{id:'large-red',label:'Red · Large',color:'Red',size:'Large',available:true,availabilityKnown:true,price:45,image:'https://cdn.shopify.com/red.jpg'}]},[],'США',1000);
+ const doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'stale-shirt',draft,published:structuredClone(draft),publishedAt:1000}]});
+ const product=publicCatalog(doc,tariff,1000+7*24*60*60*1000).products[0];
+ assert.equal(product.priceNeedsConfirmation,true);assert.equal(product.sourcePrice,undefined);assert.equal(product.sourceCurrency,undefined);
+ assert.deepEqual(product.variants,['Уточнить вариант в магазине']);
+ assert.deepEqual(product.sourceVariants.map(({id,label,color,size,available,availabilityKnown,price})=>({id,label,color,size,available,availabilityKnown,price})),[{id:'large-red',label:'Red · Large',color:'Red',size:'Large',available:true,availabilityKnown:false,price:undefined}]);
+});
+test('legacy products without detailed source metadata continue to parse',()=>{
+ const parsed=productSchema.parse({id:'legacy',name:'Legacy product',brand:'Shop',category:'Другое',usd:10,weight:1,image:'https://cdn.example/item.jpg',variants:['One size']});
+ assert.equal(parsed.sourceVariants,undefined);assert.equal(parsed.sourceImages,undefined);
+ assert.deepEqual(catalogOrderVariants(parsed),[{label:'One size',available:true}]);
+});
+test('link-order fallback keeps catalog color, size, price, id and photo metadata',()=>{
+ const option={id:'navy-us-9',label:'Navy · US 9',color:'Navy',size:'US 9',sizeLabel:'Men size',available:true,availabilityKnown:true,price:59.5,image:'https://cdn.example/navy.jpg'};
+ const product=productSchema.parse({id:'shoe',name:'Shoe',brand:'Shop',category:'Обувь',usd:59.5,weight:1,image:option.image,variants:[option.label],sourceVariants:[option],sourceImages:[option.image]});
+ assert.deepEqual(catalogOrderVariants(product),[option]);
+ assert.deepEqual(product.sourceImages,[option.image]);
 });
 test('empty live catalog falls back to direct links with old prices suppressed',()=>{
  const fallback=keepCatalogVisible([],Date.parse('2026-09-27T12:00:00Z'));

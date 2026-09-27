@@ -16,6 +16,18 @@ const localizedDescriptionSchema = z.object({
   uz: z.string().trim().max(500),
   en: z.string().trim().max(500),
 });
+export const sourceVariantSchema = z.object({
+  id: z.string().trim().max(120).optional(),
+  label: z.string().trim().max(140),
+  size: z.string().trim().max(100).optional(),
+  sizeLabel: z.string().trim().max(100).optional(),
+  color: z.string().trim().max(100).optional(),
+  available: z.boolean(),
+  availabilityKnown: z.boolean().optional(),
+  price: z.number().finite().nonnegative().optional(),
+  image: z.string().trim().max(3000).optional(),
+});
+export type SourceVariant = z.infer<typeof sourceVariantSchema>;
 export const serviceOfferingSchema = z.object({
   id: z.string().regex(/^[a-z0-9][a-z0-9_-]{1,79}$/),
   title: localizedTextSchema,
@@ -55,6 +67,10 @@ export const productSchema = z.object({
   weight: positive.max(50),
   image: z.string(),
   variants: z.array(z.string()).min(1),
+  /** Optional merchant matrix for storefront and link-order fallback; never a quote authority. */
+  sourceVariants: z.array(sourceVariantSchema).max(250).optional(),
+  /** Optional safe merchant gallery, with the primary image first. */
+  sourceImages: z.array(z.string().max(3000)).max(12).optional(),
   sourceUrl: z.string().optional(),
   sourceVariantId: z.string().max(120).optional(),
   description: z.string().optional(),

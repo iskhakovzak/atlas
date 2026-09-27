@@ -4,6 +4,11 @@ import {communityCatalogProducts} from './community-deals.ts';
 // Editorial snapshots from the linked official US product pages, not an inventory feed.
 // Prices/options must be fetched and confirmed in the link-order flow before checkout.
 export type MerchantFind = Product & { store: string; observedOn: string; referenceUsd?: number; collectionIds?: string[] };
+export function catalogOrderVariants(product:Product){
+  if(product.sourceVariants?.length)return product.sourceVariants;
+  if(product.priceNeedsConfirmation)return [];
+  return product.variants.map(label=>({label,available:true}));
+}
 const estimate = { country: 'США', sourceCurrency: 'USD', sourceShippingUsd: 10, sourceShipping: 10, sourceShippingCurrency: 'USD', sourceShippingEstimated: true, shippingKnown: false, weightOrigin: 'Оценка Atlas; уточняется перед оформлением', variants: ['Уточнить вариант в магазине'], sourceExpiresAt: Date.parse('2026-09-19T00:00:00Z') };
 export const merchantFinds: MerchantFind[] = [
   {
