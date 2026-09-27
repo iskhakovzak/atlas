@@ -1,20 +1,33 @@
-import {env} from 'cloudflare:workers';
+import {env,waitUntil} from 'cloudflare:workers';
 import {getChatGPTUser} from '@/app/chatgpt-auth';
 import {blank,parseState,pricingSchema,tariff,orderPayable,type Pricing,type State} from './domain';
 import {defaultPolicy,policySchema,type Policy} from './policy';
 import {apiErrorMessage,requestLocale,serverError} from './i18n';
 export function database(){if(!env.DB)throw Error('Серверное хранилище пока недоступно.');return env.DB}
+export function deferBackground(task:Promise<unknown>,label:string){waitUntil(task.catch(error=>console.error(label,error)))}
 export async function identity(){const user=await getChatGPTUser();if(!user)throw new HttpError(401, 'err_1');return user}
 export function operator(email:string){return !!env.ATLAS_OPERATOR_EMAIL&&email.toLowerCase()===env.ATLAS_OPERATOR_EMAIL.toLowerCase()}
 export class HttpError extends Error{constructor(public status:number,message:string){super(message)}}
 export function sameOrigin(request:Request){const origin=request.headers.get('origin');if(!origin||origin!==new URL(request.url).origin)throw new HttpError(403, 'err_2')}
 export const json=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
-export async function account(user:{userId:string;platformUserId?:string|null;displayName:string}){const now=Date.now(),db=database();if(user.platformUserId&&user.platformUserId!==user.userId)await db.prepare('INSERT OR IGNORE INTO market_accounts (user_id,name,state,revision,created_at,updated_at) SELECT ?,name,state,revision,created_at,updated_at FROM market_accounts WHERE user_id=?').bind(user.userId,user.platformUserId).run();await db.prepare('INSERT OR IGNORE INTO market_accounts (user_id,name,state,revision,created_at,updated_at) VALUES (?,?,?,0,?,?)').bind(user.userId,user.displayName,JSON.stringify(blank()),now,now).run();const row=await db.prepare('SELECT name,state,revision,created_at FROM market_accounts WHERE user_id=?').bind(user.userId).first<{name:string;state:string;revision:number;created_at:number}>();if(!row)throw Error('Account unavailable');return {...row,state:parseState(row.state)}}
+export async function account(user:{userId:string;platformUserId?:string|null;displayName:string}){const now=Date.now(),db=database(),writes=[];if(user.platformUserId&&user.platformUserId!==user.userId)writes.push(db.prepare('INSERT OR IGNORE INTO market_accounts (user_id,name,state,revision,created_at,updated_at) SELECT ?,name,state,revision,created_at,updated_at FROM market_accounts WHERE user_id=?').bind(user.userId,user.platformUserId));writes.push(db.prepare('INSERT OR IGNORE INTO market_accounts (user_id,name,state,revision,created_at,updated_at) VALUES (?,?,?,0,?,?)').bind(user.userId,user.displayName,JSON.stringify(blank()),now,now));await db.batch(writes);const row=await db.prepare('SELECT name,state,revision,created_at FROM market_accounts WHERE user_id=?').bind(user.userId).first<{name:string;state:string;revision:number;created_at:number}>();if(!row)throw Error('Account unavailable');return {...row,state:parseState(row.state)}}
 export async function persist(id:string,state:State,revision:number){
  const serialized=JSON.stringify(state);if(serialized.length>1000000)throw new HttpError(413, 'err_3');
  const now=Date.now(),result=await database().prepare('UPDATE market_accounts SET state=?, revision=revision+1, updated_at=? WHERE user_id=? AND revision=?').bind(serialized,now,id,revision).run();
  if(!result.meta.changes)throw new HttpError(409, 'err_4');
- try{await syncOperationalProjection(id,state,now)}catch(error){console.error('Operational projection sync failed',error)}
+ deferBackground(syncLatestOperationalProjection(id),'Operational projection sync failed');
+}
+
+async function syncLatestOperationalProjection(id:string){
+ const db=database();
+ for(let attempt=0;attempt<3;attempt++){
+  const row=await db.prepare('SELECT state,revision,updated_at FROM market_accounts WHERE user_id=?').bind(id).first<{state:string;revision:number;updated_at:number}>();
+  if(!row)return;
+  await syncOperationalProjection(id,parseState(row.state),row.updated_at);
+  const latest=await db.prepare('SELECT revision FROM market_accounts WHERE user_id=?').bind(id).first<{revision:number}>();
+  if(latest?.revision===row.revision)return;
+ }
+ console.error('Operational projection sync remains behind canonical account state');
 }
 
 export async function syncOperationalProjection(id:string,state:State,now=Date.now()){

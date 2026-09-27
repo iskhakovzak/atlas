@@ -238,3 +238,10 @@
 - [x] Add a fixed 15-store US-first priority set, exact Sephora US/Spain and Victoria's Secret US/Spain storefront handling, and generic named option axes for shade/color, size/format/volume and bra band/cup without relaxing URL or image checks.
 - [ ] Run authorized live import fixtures across the full 15-store US-first set and both Sephora/Victoria's Secret Spain storefronts. Current synthetic contracts do not prove merchant network access; these pages may block server requests or omit variant data. Do not bypass challenges or fabricate missing options.
 - [ ] Attach and verify `atlasmarket.uz` in Sites/DNS before switching canonical URLs. Then update structured data, `metadataBase`, robots, sitemap, `llms.txt` and catalog-refresh worker origin together and verify HTTPS/canonical redirects.
+
+## Button and cart response optimization — 27 September 2026
+
+- [x] Batch account migration/initialization writes before loading the customer snapshot without changing account IDs or legacy compatibility.
+- [x] Keep the revision-checked canonical account write synchronous but run the rebuildable operator projection through Cloudflare `waitUntil`, rereading and rechecking the latest account revision to guard against concurrent mutations.
+- [x] Run idempotent customer-link catalog-draft creation in the background after the cart write; it no longer blocks the cart response.
+- [ ] Measure hosted action latency (especially p50/p95 for catalog clicks, cart quantity changes and linked-item add) under a representative D1 account. Live merchant latency remains unavoidable on linked products; do not remove price/currency/selected-option checks to improve it.

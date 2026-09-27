@@ -1,5 +1,5 @@
 import {actionSchema,applyAction} from '@/lib/market/actions';
-import {account,customerStatus,database,identity,operator,sameOrigin,persist,json,failure,HttpError,requestJson,pricing,policy} from '@/lib/market/server';
+import {account,customerStatus,database,identity,operator,sameOrigin,persist,json,failure,HttpError,requestJson,pricing,policy,deferBackground} from '@/lib/market/server';
 import {apiErrorMessage,requestLocale} from '@/lib/market/i18n';
 import {fetchProduct} from '@/lib/importer/fetch';
 import {manualFallbackAllowed} from '@/lib/importer/manual-fallback';
@@ -54,8 +54,7 @@ export async function POST(request:Request){try{
   }catch(e){throw new HttpError(400,(e as Error).message)}
   await persist(user.userId,next,current.revision);
   if(parsed.data.type==='cart-add'&&parsed.data.product.sourceUrl&&verifiedSource){
-    try{await addCustomerLinkDraft(parsed.data.product,verifiedSource,user)}
-    catch(error){console.error('Customer catalog draft sync failed',error)}
+    deferBackground(addCustomerLinkDraft(parsed.data.product,verifiedSource,user),'Customer catalog draft sync failed');
   }
   if(parsed.data.type==='identity-confirm'){
     const identityAction=parsed.data;
