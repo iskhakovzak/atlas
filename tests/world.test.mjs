@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {declarationFor,extractProduct,inferProductCategory,parseWeight,safeImage} from '../lib/importer/extract.ts';
-import {allowedUrl,fetchProduct,supportedStoreCount} from '../lib/importer/fetch.ts';
+import {declarationFor,dedupeSafeImages,extractProduct,inferProductCategory,parseWeight,safeImage} from '../lib/importer/extract.ts';
+import {allowedUrl,fetchProduct,supportedStoreCount,ManualEntryFallbackError} from '../lib/importer/fetch.ts';
 import {customsVersion,paddedWeight,toUsd} from '../lib/market/world.ts';
 import {applyAction} from '../lib/market/actions.ts';
 import {blank,products,checkoutCart,addToCart,cartSignature,balanceOf,confirmDemoPayment,totalOf} from '../lib/market/domain.ts';
@@ -10,7 +10,7 @@ const html=`<script type="application/ld+json">{"@context":"https://schema.org",
 const p=extractProduct(html,'https://www.ebay.es/itm/123');assert.equal(p.title,'Zapatos & cosas');assert.equal(p.price,99.95);assert.equal(p.currency,'EUR');assert.equal(p.shipping,4.5);assert.equal(p.shippingDestination,'ES');assert.equal(p.boxedWeight,1.5);assert.equal(p.weightKind,'shipping');assert.equal(p.country,'Испания');
 });
 test('supports a broad store list and prepares a conservative declaration draft',()=>{
-assert(supportedStoreCount>=145);assert.equal(allowedUrl('https://www.on.com/en-us/products/cloud-6').hostname,'www.on.com');assert.equal(allowedUrl('https://www.zara.com/us/en/product-p000.html').hostname,'www.zara.com');assert.equal(allowedUrl('https://rarebeauty.com/products/blush').hostname,'rarebeauty.com');assert.equal(allowedUrl('https://kith.com/products/shoe').hostname,'kith.com');assert.throws(()=>allowedUrl('https://on.com.evil.example/product'));
+assert(supportedStoreCount>=145);assert.equal(allowedUrl('https://www.on.com/en-us/products/cloud-6').hostname,'www.on.com');assert.equal(allowedUrl('https://www.zara.com/us/en/product-p000.html').hostname,'www.zara.com');assert.equal(allowedUrl('https://rarebeauty.com/products/blush').hostname,'rarebeauty.com');assert.equal(allowedUrl('https://kith.com/products/shoe').hostname,'kith.com');assert.equal(allowedUrl('https://ebay.us/short-link').hostname,'ebay.us');assert.throws(()=>allowedUrl('https://on.com.evil.example/product'));
 assert.equal(extractProduct('<meta property="og:title" content="Cloud 6"><meta property="product:price:currency" content="USD">','https://www.on.com/en-us/products/cloud-6').country,'США');
 assert.equal(inferProductCategory('Cloud 6 running shoes','On'),'Обувь');assert.match(declarationFor('Обувь','Cloud 6 running shoes','On'),/Обувь для личного пользования/);
 });
@@ -33,7 +33,35 @@ test('same-store cart items share one parcel allowance and one-kilo minimum',()=
 });
 test('storefront and product text infer Apple shipping country and AirTag category',()=>{const p=extractProduct('<script type="application/ld+json">{"@type":"Product","name":"AirTag 1 pack","category":"Bluetooth trackers","offers":{"price":29,"priceCurrency":"USD"}}</script>','https://www.apple.com/shop/buy-airtag/airtag/1-pack');assert.equal(p.country,'США');assert.equal(p.category,'Электроника')});
 test('source fetch rejects private URLs, deceptive domains and foreign redirects',async()=>{for(const u of ['http://ebay.com/x','https://127.0.0.1','https://ebay.com.evil.com','https://evil.ebay.com','https://user:pw@ebay.com/x','https://ebay.com:8080'])assert.throws(()=>allowedUrl(u));const original=globalThis.fetch;globalThis.fetch=async()=>new Response('',{status:302,headers:{Location:'http://169.254.169.254/latest'}});try{await assert.rejects(()=>fetchProduct('https://ebay.com/itm/1'))}finally{globalThis.fetch=original}});
-test('fetch parses readable pages and rejects oversized responses',async()=>{const original=globalThis.fetch;globalThis.fetch=async()=>new Response('<meta property="og:title" content="Demo listing">',{headers:{'Content-Type':'text/html'}});try{assert.equal((await fetchProduct('https://ebay.es/itm/1')).title,'Demo listing');globalThis.fetch=async()=>new Response('x'.repeat(3_000_001),{headers:{'Content-Type':'text/html'}});await assert.rejects(()=>fetchProduct('https://ebay.es/itm/1'))}finally{globalThis.fetch=original}});
+test('eBay keeps partial public data and allows manual review when a page is blocked or incomplete',async()=>{const original=globalThis.fetch;globalThis.fetch=async()=>new Response('<meta property="og:title" content="Vintage jacket"><meta property="og:image" content="https://i.ebayimg.com/images/g/a/s-l500.jpg">',{headers:{'Content-Type':'text/html'}});try{await assert.rejects(()=>fetchProduct('https://ebay.es/itm/1'),error=>error instanceof ManualEntryFallbackError&&error.partial?.title==='Vintage jacket'&&error.partial?.image==='https://i.ebayimg.com/images/g/a/s-l500.jpg');globalThis.fetch=async()=>{throw new TypeError('blocked by upstream')};await assert.rejects(()=>fetchProduct('https://ebay.es/itm/1'),ManualEntryFallbackError);globalThis.fetch=async()=>new Response('x'.repeat(3_000_001),{headers:{'Content-Type':'text/html'}});await assert.rejects(()=>fetchProduct('https://ebay.es/itm/1'),ManualEntryFallbackError)}finally{globalThis.fetch=original}});
+test('eBay definite not-found responses are not treated as a temporary block',async()=>{const original=globalThis.fetch;globalThis.fetch=async()=>new Response('not found',{status:404,headers:{'Content-Type':'text/html'}});try{await assert.rejects(()=>fetchProduct('https://ebay.es/itm/12345'),error=>!(error instanceof ManualEntryFallbackError)&&/карточка товара не найдена/.test(error.message))}finally{globalThis.fetch=original}});
+test('eBay locale pages can use exact listing-bound embedded item data',()=>{
+ const item={url:'https://www.ebay.es/itm/123',itemId:'123',name:'Chaqueta vintage',price:24.5,currency:'EUR',image:'https://i.ebayimg.com/images/g/a/s-l500.jpg'};
+ const recommendation={url:'https://www.ebay.es/itm/456',itemId:'456',name:'Unrelated recommendation',price:5,currency:'EUR',image:'https://i.ebayimg.com/images/g/b/s-l500.jpg'};
+ const html=`<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({props:{pageProps:{recommendations:[recommendation],item}}})}</script>`;
+ const parsed=extractProduct(html,item.url);
+ assert.equal(parsed.title,'Chaqueta vintage');assert.equal(parsed.price,24.5);assert.equal(parsed.currency,'EUR');assert.equal(parsed.method,'ebay.es embedded product data');
+});
+test('image gallery collapses photo renditions but keeps different images and variants',()=>{
+ const result=dedupeSafeImages([
+  'https://i.ebayimg.com/images/g/a/s-l500.jpg',
+  'https://i.ebayimg.com/images/g/a/s-l1600.jpg',
+  'https://i.ebayimg.com/images/g/b/s-l500.jpg',
+  'https://m.media-amazon.com/images/I/shoe._AC_SY500_.jpg',
+  'https://m.media-amazon.com/images/I/shoe._AC_SY1200_.jpg',
+  'https://m.media-amazon.com/images/I/shoe._red.jpg',
+  'https://m.media-amazon.com/images/I/shoe._blue.jpg',
+  'https://cdn.example.com/shoe.jpg?variant=blue',
+  'https://cdn.example.com/shoe.jpg?variant=red',
+  'https://cdn.example.com/shoe.jpg?color=blue',
+  'https://cdn.example.com/shoe.jpg?color=red',
+  'http://127.0.0.1/private.jpg',
+ ],'https://ebay.com/itm/1');
+ assert.equal(result.length,9);
+ assert.equal(result[0],'https://i.ebayimg.com/images/g/a/s-l500.jpg');
+ assert(result.some(url=>url.endsWith('shoe._red.jpg')));assert(result.some(url=>url.endsWith('shoe._blue.jpg')));
+});
+test('official eBay short links may redirect only to an allowlisted eBay product page',async()=>{const original=globalThis.fetch;let requests=0;globalThis.fetch=async()=>{requests++;if(requests===1)return new Response('',{status:302,headers:{Location:'https://www.ebay.com/itm/123'}});return new Response('<script type="application/ld+json">{"@type":"Product","name":"eBay item","image":"https://i.ebayimg.com/images/g/a/s-l500.jpg","offers":{"@type":"Offer","price":"18.50","priceCurrency":"USD"}}</script>',{headers:{'Content-Type':'text/html'}})};try{const item=await fetchProduct('https://ebay.us/abc123');assert.equal(item.title,'eBay item');assert.equal(item.price,18.5);assert.equal(item.currency,'USD')}finally{globalThis.fetch=original}});
 test('server recomputes country currency, domestic shipping and padded weight',()=>{const p={...products[0],sourceUrl:'https://ebay.es/itm/12',sourcePrice:100,sourceCurrency:'EUR',sourceShipping:5,shippingKnown:true,boxedWeight:1.2,country:'Испания',weight:49,usd:1};const s=applyAction(blank(),{type:'cart-add',product:p,variant:p.variants[0]},false);assert.equal(s.cart[0].product.weight,1.7);assert.equal(s.cart[0].product.usd,110);assert.equal(s.cart[0].quote.sourceShipping,70400);assert.equal(s.cart[0].quote.weight,1.7);assert.equal(s.cart[0].quote.total,s.cart[0].quote.merchandise+s.cart[0].quote.service+s.cart[0].quote.shipping+s.cart[0].quote.reserve+70400)});
 test('checkout needs recorded customs consent and warehouse actions require operator',()=>{let s=addToCart(blank(),products[0],products[0].variants[0]);assert.throws(()=>checkoutCart(s,'x',cartSignature(s.cart),false));s=checkoutCart(s,'x',cartSignature(s.cart),false,Date.now(),customsVersion);assert.equal(s.orders[0].customsConsent.version,customsVersion);assert.throws(()=>applyAction(s,{type:'advance',id:s.orders[0].id,expected:0},false));s=confirmDemoPayment(s,s.orders[0].id);const n=applyAction(s,{type:'advance',id:s.orders[0].id,expected:0},true);assert.equal(n.orders[0].status,1)});
 test('adding a photo keeps the original order quote unchanged',()=>{let s=addToCart(blank(),{...products[0],sourceUrl:'https://ebay.com/itm/1',shippingKnown:true},products[0].variants[0]);s=checkoutCart(s,'x',cartSignature(s.cart),false,Date.now(),customsVersion);const before=JSON.stringify(s.orders[0].quote);s=applyAction(s,{type:'order-image',id:s.orders[0].id,image:'https://i.ebayimg.com/image.jpg'},false);assert.equal(s.orders[0].product.image,'https://i.ebayimg.com/image.jpg');assert.equal(JSON.stringify(s.orders[0].quote),before)});

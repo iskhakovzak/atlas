@@ -55,9 +55,15 @@ export function catalogFreshness(product: Product, now = Date.now()) {
   return 'fresh' as const;
 }
 export function visibleMerchantFinds(now = Date.now()) {
-  return merchantFinds.filter((product) => catalogFreshness(product, now) !== 'expired');
+  return merchantFinds.map((product) => catalogFreshness(product, now) === 'expired'
+    ? {...product,priceNeedsConfirmation:true,sourcePrice:undefined,referenceUsd:undefined,variants:['Уточнить вариант в магазине']}
+    : product);
+}
+/** Keep direct-store discovery usable if the live catalog endpoint has no rows. */
+export function keepCatalogVisible(products: MerchantFind[], now = Date.now()) {
+  return products.length ? products : visibleMerchantFinds(now);
 }
 export function findOrderUrl(product: Product) {
-  const deal = communityCatalogProducts.find(item => item.id === product.id && item.sourceUrl === product.sourceUrl);
+  const deal = product.priceNeedsConfirmation ? undefined : communityCatalogProducts.find(item => item.id === product.id && item.sourceUrl === product.sourceUrl);
   return '/order-by-link?url=' + encodeURIComponent(product.sourceUrl ?? '') + (deal ? '&deal=' + encodeURIComponent(deal.id) : '');
 }

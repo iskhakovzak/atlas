@@ -285,9 +285,13 @@ export function reportCatalogAvailability(current:CatalogDocument,input:{product
 }
 export function publicCatalog(document:CatalogDocument,pricing:Pricing,now=Date.now()){
   const products:MerchantFind[]=document.entries.flatMap(entry=>{
-    const d=entry.published;if(!d||catalogIssues(d,now,pricing.rates).length)return [];
+    const d=entry.published;if(!d)return [];
+    const issues=catalogIssues(d,now,pricing.rates);
+    const freshnessOnly=issues.every(issue=>['Обновите источник','Ошибка проверки магазина','Наличие не подтверждено магазином'].includes(issue));
+    if(issues.length&&!freshnessOnly)return [];
+    const priceNeedsConfirmation=issues.length>0;
     const variants=d.variants.filter(v=>v.available&&v.availabilityKnown!==false).map(v=>v.label);
-    return [{id:entry.id,name:d.name,brand:d.brand,category:d.category,store:new URL(d.sourceUrl).hostname.replace(/^www\./,''),observedOn:new Date(d.checkedAt).toISOString().slice(0,10),usd:toUsd(d.price!,d.currency,pricing.rates),sourcePrice:d.price,sourceCurrency:d.currency,referenceUsd:d.referencePrice&&d.referencePrice>d.price!?toUsd(d.referencePrice,d.currency,pricing.rates):undefined,image:d.image,sourceUrl:d.sourceUrl,description:d.description,country:d.country,boxedWeight:d.boxedWeight,weight:paddedWeight(d.boxedWeight),variants:variants.length?variants:['Уточнить вариант в магазине'],sourceShipping:10,sourceShippingUsd:10,sourceShippingCurrency:'USD',sourceShippingEstimated:true,shippingKnown:false,sourceExpiresAt:d.checkedAt+catalogLifetime,collectionIds:d.collectionIds}];
+    return [{id:entry.id,name:d.name,brand:d.brand,category:d.category,store:new URL(d.sourceUrl).hostname.replace(/^www\./,''),observedOn:new Date(d.checkedAt).toISOString().slice(0,10),usd:priceNeedsConfirmation?1:toUsd(d.price!,d.currency,pricing.rates),sourcePrice:priceNeedsConfirmation?undefined:d.price,sourceCurrency:priceNeedsConfirmation?undefined:d.currency,referenceUsd:!priceNeedsConfirmation&&d.referencePrice&&d.referencePrice>d.price!?toUsd(d.referencePrice,d.currency,pricing.rates):undefined,image:d.image,sourceUrl:d.sourceUrl,description:d.description,country:d.country,boxedWeight:d.boxedWeight,weight:paddedWeight(d.boxedWeight),variants:priceNeedsConfirmation?['Уточнить вариант в магазине']:variants.length?variants:['Уточнить вариант в магазине'],sourceShipping:10,sourceShippingUsd:10,sourceShippingCurrency:'USD',sourceShippingEstimated:true,shippingKnown:false,sourceExpiresAt:d.checkedAt+catalogLifetime,collectionIds:d.collectionIds,priceNeedsConfirmation}];
   });
   const collections=document.collections.filter(c=>c.visible).sort((a,b)=>a.position-b.position).map(c=>({...c,productIds:products.filter(p=>p.collectionIds?.includes(c.id)).map(p=>p.id)})).filter(c=>c.productIds.length);
   return {products,collections};

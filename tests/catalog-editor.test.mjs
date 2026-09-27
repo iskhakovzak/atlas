@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {applyScheduledCatalogRefresh,catalogDocumentSchema,catalogIssues,catalogRefreshInterval,changeCatalog,customerLinkDraft,dueCatalogEntries,importDraft,initialCatalog,markCatalogRefreshFailed,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
 import {catalogRefreshPath,isAuthorizedCatalogRefresh,signCatalogRefreshRequest} from '../lib/market/catalog-refresh-auth.ts';
 import {communityCatalogProducts} from '../lib/market/community-deals.ts';
+import {keepCatalogVisible} from '../lib/market/catalog.ts';
 import {tariff} from '../lib/market/domain.ts';
 
 const extracted={sourceUrl:'https://kyliecosmetics.com/products/matte-lip-kit?utm_source=mail',title:'Matte Lip Kit',brand:'Kylie Cosmetics',category:'Красота и уход',image:'https://cdn.shopify.com/lip.jpg',images:['https://cdn.shopify.com/lip.jpg'],price:35,currency:'USD',variants:[{id:'bare-full',label:'Bare · Full size',color:'Bare',size:'Full size',available:true,price:35}],warnings:['Доставка неизвестна'],method:'Shopify'};
@@ -51,6 +52,18 @@ test('hiding removes a product from the public feed without deleting its draft',
  let doc=initialCatalog(),id=doc.entries[0].id;doc=changeCatalog(doc,{kind:'hide',ids:[id]},Date.parse('2026-09-12'),tariff);
  assert.equal(doc.entries[0].published,undefined);assert(doc.entries[0].draft);
  assert(!publicCatalog(doc,tariff,Date.parse('2026-09-12')).products.some(p=>p.id===id));
+});
+test('empty live catalog falls back to direct links with old prices suppressed',()=>{
+ const fallback=keepCatalogVisible([],Date.parse('2026-09-27T12:00:00Z'));
+ assert(fallback.length>0);
+ assert(fallback.every(product=>product.priceNeedsConfirmation===true&&product.sourcePrice===undefined&&product.referenceUsd===undefined));
+});
+test('refresh failures keep stale published cards discoverable without presenting old prices',()=>{
+ const doc=initialCatalog(),entry=doc.entries[0];
+ entry.draft.lastCheckError='temporary source error';
+ const result=publicCatalog(doc,tariff,Date.parse('2026-09-27T12:00:00Z'));
+ const item=result.products.find(product=>product.id===entry.id);
+ assert(item);assert.equal(item.priceNeedsConfirmation,true);assert.equal(item.sourcePrice,undefined);assert.deepEqual(item.variants,['Уточнить вариант в магазине']);
 });
 test('bundled products join existing catalogs without overwriting operator state',()=>{
  const complete=initialCatalog(),seed=communityCatalogProducts[0];

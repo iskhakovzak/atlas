@@ -140,7 +140,7 @@ function embeddedImages(record: EmbeddedRecord, sourceUrl: string) {
     const item = value as EmbeddedRecord;
     return [item.url, item.src, item.contentUrl, item.imageUrl, item.large, item.original];
   });
-  return [...new Set(urls.map(value => safeImage(value, sourceUrl)).filter((value): value is string => Boolean(value)))].slice(0, 12);
+  return dedupeSafeImages(urls, sourceUrl);
 }
 
 function embeddedAvailability(record: EmbeddedRecord) {
@@ -238,7 +238,8 @@ function extractPriorityEmbedded(html: string, sourceUrl: string): Extracted | u
     'mediamarkt.de', 'mediamarkt.es', 'mediamarkt.it', 'pccomponentes.com', 'decathlon.es', 'footlocker.es',
   ]);
   const hostname = source.hostname.toLowerCase().replace(/^www\./, '');
-  const root = [...priorityRoots].find(value => hostname === value || hostname.endsWith(`.${value}`));
+  const ebayRoot = hostname.match(/^ebay\.(?:com|ca|co\.uk|com\.au|de|es|fr|it|us)$/)?.[0];
+  const root = [...priorityRoots].find(value => hostname === value || hostname.endsWith(`.${value}`)) ?? ebayRoot;
   if (!root) return;
   const candidate = embeddedJson(html).flatMap(value => embeddedCandidateRecords(value, sourceUrl))[0];
   if (!candidate) return;
@@ -258,9 +259,8 @@ function extractPriorityEmbedded(html: string, sourceUrl: string): Extracted | u
   const weight = parseWeight(candidate.shippingWeight ?? candidate.boxedWeight ?? candidate.weight);
   const shipping = embeddedNumber(candidate.shipping ?? candidate.shippingPrice ?? candidate.deliveryPrice);
   const warnings = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.'];
-  if (variants.length) warnings.push('Варианты получены из публичных данных магазина и будут перепроверены перед корзиной.');
+  if (variants.length) warnings.push('Варианты получены из публичных данных магазина.');
   if (!variants.length) warnings.push('Магазин не отдал матрицу вариантов: выберите товар вручную, если он требует размера или цвета.');
-  if (variants.some(item => item.availabilityKnown === false)) warnings.push('Магазин не отдал подтверждённый статус наличия — перед корзиной Atlas проверит его ещё раз.');
   return {
     sku: embeddedText(candidate.sku ?? candidate.productId ?? candidate.itemId ?? candidate.styleCode) || undefined,
     title,
@@ -365,8 +365,7 @@ export function extractAsosProduct(html: string, sourceUrl: string, fallback: Ex
   const currentRecord = current && typeof current === 'object' ? current as EmbeddedRecord : undefined;
   const category = inferProductCategory([embeddedText(product.name), embeddedText((product.productType as EmbeddedRecord | undefined)?.name)].filter(Boolean).join(' '), embeddedText(product.brandName));
   const warnings = [...fallback.warnings.filter(warning => !/Цена не найдена|подтверждённый статус наличия/i.test(warning))];
-  warnings.push('Размеры, цена и наличие загружены из публичных данных ASOS и перепроверяются перед заказом.');
-  if (variants.some(variant => variant.availabilityKnown === false)) warnings.push('Для части размеров ASOS не отдал отдельный статус наличия — Atlas проверит его перед заказом.');
+  warnings.push('Размеры и цена загружены из публичных данных ASOS.');
   return {
     ...fallback,
     sku: embeddedText(product.productCode) || fallback.sku,
@@ -440,6 +439,39 @@ export function safeImage(value: unknown, base: string) {
   } catch {
     return undefined;
   }
+}
+
+/** Keep one representative for rendition URLs that point to the same source photo. */
+export function dedupeSafeImages(values: unknown[], base: string, limit = 12) {
+    const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    const safe = safeImage(value, base);
+    if (!safe) continue;
+    try {
+      const url = new URL(safe);
+      url.hash = '';
+      const host = url.hostname.toLowerCase();
+      const amazonImages = host === 'm.media-amazon.com' || host.endsWith('.media-amazon.com') || host === 'images-na.ssl-images-amazon.com' || host === 'images-eu.ssl-images-amazon.com';
+      const ebayImages = host === 'i.ebayimg.com';
+      if (amazonImages) url.pathname = url.pathname.replace(/\._(?:AC|UX|SX|SL|SY|UL|SS|SR|CR|FM)(?:_[A-Z]{2}\d{2,4}(?:,\d{2,4})?)+(?:_[A-Z]{2}\d{1,3})*_?(?=\.[^./]+$)/i, '');
+      if (ebayImages) url.pathname = url.pathname.replace(/\/s-l\d{2,4}(?=\.(?:jpe?g|png|webp)$)/i, '/s-lSIZE');
+      const knownResizeHost = ['cdn.shopify.com', 'images.ctfassets.net', 'cdn.media.amplience.net', 'static.zara.net'].includes(host);
+      const renditionParams = new Set(['w', 'h', 'width', 'height', 'wid', 'hei', 'qlt', 'quality', 'fmt', 'format', 'fit', 'crop', 'resize', 'auto']);
+      for (const key of [...url.searchParams.keys()]) {
+        if (/^(?:utm_.+|gclid|fbclid|dclid|msclkid|igshid)$/i.test(key) || knownResizeHost && renditionParams.has(key.toLowerCase())) url.searchParams.delete(key);
+      }
+      url.searchParams.sort();
+      const key = url.href;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(safe);
+      if (result.length >= limit) break;
+    } catch {
+      // safeImage already validated the URL; malformed values are ignored defensively.
+    }
+  }
+  return result;
 }
 
 export function parseWeight(value: unknown) {
@@ -1102,10 +1134,6 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     warnings.push("Найдено несколько предложений: показано первое. Проверьте вариант и цену.");
   if (offer?.["@type"] === "AggregateOffer")
     warnings.push("Указан диапазон цен. Нужна цена конкретного варианта.");
-  if (variants.some((v) => !v.available))
-    warnings.push("Недоступные размеры скрыты из выбора.");
-  if (variants.some((v) => v.availabilityKnown === false))
-    warnings.push("Магазин не отдал подтверждённый статус наличия — перед корзиной Atlas проверит его ещё раз.");
   const extracted: Extracted = {
     sku,
     title,

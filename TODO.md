@@ -80,7 +80,7 @@
 
 ## Importing
 
-- [x] Preserve link-order form state across RU/UZ/EN switches and route remounts with a bounded session draft; cart addition still requires a fresh server source check.
+- [x] Preserve link-order form state across RU/UZ/EN switches and route remounts with a bounded session draft; the server compares price/currency when public source data is returned.
 - [x] Add verified customer link imports to the D1 catalog as idempotent operator-reviewable drafts, without auto-publishing or treating them as inventory.
 - [x] Reject impossible merchant weight values before display, use safer category estimates and keep an operator availability report queue for blocked catalog imports.
 - [x] Reconcile source-controlled merchant additions into the existing D1 catalog without overwriting operator edits or hidden records; use the same published records in admin, collections, public catalog and ordering.
@@ -100,15 +100,15 @@
 - [x] Add a color → valid size → combination price/photo/stock matrix to link order while keeping a flat fallback for nonstandard product options.
 - [x] Add up to 12 safe imported photos and variant photo/price switching to link order. Persisted orders retain the selected image.
 - [x] Add review-first per-item variant confirmation and variant prices to batch import; no first available combination is silently selected.
-- [x] Recheck linked product price, currency and selected-variant availability on the server before cart addition and checkout.
-- [x] Remove manual merchant-page availability confirmation from link ordering; automatically retry the source check and keep add-to-cart disabled until the protected server verification succeeds.
+- [x] Recheck linked product price and currency on the server before cart addition and checkout when the merchant returns data; availability is not a customer-order gate.
+- [x] Remove the manual merchant-page stock step. If public data is blocked or omitted, allow a customer-confirmed order request with any returned price/currency still checked; reject price/currency mismatches and definite not-found responses.
 - [x] Add an administrator recheck queue for fetch errors and price/currency/availability changes, with explicit review before republication.
 - [ ] Test the allowlist against live pages regularly. Store HTML and bot behavior change.
-- [x] Add an explicit priority-1/priority-2 merchant registry and surface the first US/European stores in the link-order directory without claiming that every page is supported.
+- [x] Add an explicit priority-1/priority-2 merchant registry and a separate searchable `/stores` directory grouped by product category; do not imply that every page is supported.
 - [x] Match structured product data to the exact linked listing, retain unique SKU/GTIN variant IDs and reject unsafe/unrelated recommendation nodes.
-- [x] Preserve unknown merchant availability as a separate optional state; block cart verification and catalog republishing until a stock signal is explicit.
+- [x] Preserve unknown merchant availability as a separate optional state; it does not block customer cart/checkout, while catalog publication/refresh keeps its separate conservative stock policy.
 - [x] Add a bounded embedded-state fallback for priority-1/priority-2 pages that omit JSON-LD; match the exact source path/listing id and retain public price, photos, SKU, option matrix and explicit stock only.
-- [ ] Add store-specific public/official adapters and fixtures for Macy's, eBay, Walmart, Target, Best Buy, Sephora, Foot Locker, Zalando, Primor, Druni, MediaMarkt and PcComponentes. Generic JSON-LD remains the safe fallback when a merchant blocks or omits data.
+- [ ] Add store-specific public/official adapters and fixtures for Macy's, eBay, Walmart, Target, Best Buy, Sephora, Foot Locker, Zalando, Primor, Druni, MediaMarkt and PcComponentes. eBay exact-listing embedded/JSON-LD parsing and manual fallback are covered; broad automatic support still needs live fixtures, and an official Browse API would require authorization and credentials.
 - [ ] Provision the external scheduler using `scripts/catalog-refresh.mjs`, configure `ATLAS_CATALOG_REFRESH_SECRET` and alert on repeated merchant failures.
 
 ## Order flow
@@ -173,8 +173,8 @@
 - [ ] Warehouse optional-service requests, quotes and completion status are currently workflow simulation. Do not treat configurable preview fees as live service prices or promise physical service until a warehouse contract and execution process are verified.
 - [ ] Only one operator email is supported; team assignment exists, but independent staff identities and permissions are still missing.
 - [ ] $10 merchant shipping is an estimate, not a fetched quote.
-- [ ] Allowed stores can still block, localize, require login or change HTML; manual entry must remain.
-- [ ] eBay and MediaMarkt may return 403; Walmart and Target may return CAPTCHA. Do not infer availability from those responses.
+- [ ] Allowed stores can still block, localize, require login or change HTML; manually confirmed price/option entry remains the fallback when the page is unavailable.
+- [ ] eBay and MediaMarkt may return 403; Walmart and Target may return CAPTCHA. These responses never imply stock. A confirmed order can be saved when only public data access failed; a merchant's definite not-found response still stops it.
 - [ ] Catalog refresh endpoint is implemented but no production scheduler secret or cron caller is configured yet; manual due-batch refresh is available only to the operator.
 - [ ] Replace the dated Slickdeals-informed editorial batch with a licensed merchant/affiliate feed and confirm image reuse/attribution terms before commercial launch; keep canonical merchant URLs and recheck semantics.
 - [ ] RON conversion 0.23 USD/RON is static demo data.

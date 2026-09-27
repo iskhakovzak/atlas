@@ -67,4 +67,11 @@ const en: Copy = {
   sourceMissing: 'Store source not connected yet', sourceOpen: 'Store page',
   shoeName: 'Everyday sneakers', audioName: 'Wireless headphones', bagName: 'City backpack',
 };
-export const dealCopy = (locale: Locale): Copy => ({ ru, uz, en })[locale];
+export const dealCopy = (locale: Locale): Copy => ({
+  ...({ ru, uz, en })[locale],
+  stepsNote: {
+    ru: 'Платёжный провайдер и доставка пока не подключены: списания и отправки не выполняются.',
+    uz: 'To‘lov provayderi va yetkazish hali ulanmagan: pul yechilmaydi va jo‘natmalar yuborilmaydi.',
+    en: 'A payment provider and delivery integration are not connected yet; no charges or shipments are made.',
+  }[locale],
+});

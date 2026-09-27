@@ -16,9 +16,9 @@ test('API errors use the validated locale cookie and localize fallback copy',()=
   assert.equal(requestLocale(request({'cookie':'atlas-language=xx'})),'ru');
   assert.equal(apiErrorMessage(403,'en'),'You don’t have access to this action.');
   assert.equal(apiErrorMessage(503,'uz'),'So‘rov bajarilmadi. Qayta urinib ko‘ring.');
-  assert.equal(importManualEntryMessage('ru').includes('добавлением в корзину'),true);
-  assert.equal(importManualEntryMessage('uz').includes('savatga qo‘shishdan oldin'),true);
-  assert.equal(importManualEntryMessage('en').includes('before it can be added to your cart'),true);
+  assert.equal(importManualEntryMessage('ru').includes('в корзину'),true);
+  assert.equal(importManualEntryMessage('uz').includes('savatga qo‘shing'),true);
+  assert.equal(importManualEntryMessage('en').includes('add it to your cart'),true);
   assert.equal(serverError('uz','err_1'),'Davom etish uchun tizimga kiring.');
   assert.match(serverError('en','err_unknown'),/request could not be completed/i);
 });

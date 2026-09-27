@@ -70,6 +70,10 @@ export const productSchema = z.object({
   weightOrigin: z.string().optional(),
   importedAt: amount.optional(),
   sourceExpiresAt: amount.optional(),
+  /** Customer explicitly reviewed a manual fallback after the merchant fetch failed. */
+  sourceManuallyConfirmed: z.boolean().optional(),
+  /** Public listing snapshot remains discoverable, but its price is no longer current. */
+  priceNeedsConfirmation: z.boolean().optional(),
   imageOrigin: z.string().optional(),
   declarationDescription: z.string().max(240).optional(),
 });

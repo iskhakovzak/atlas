@@ -1,16 +1,17 @@
-import {extractAdidasProduct,extractProduct} from './extract.ts';
+import {dedupeSafeImages,extractAdidasProduct,extractProduct,type Extracted} from './extract.ts';
 import {extractShopify, shopifyEndpoints} from './shopify.ts';
 import {isSupportedStoreHost,supportedStoreCount} from './stores.ts';
 import {applyMerchantProfile} from './merchant-profiles.ts';
 export {supportedStoreCount};
 
-/** Recoverable import failure: the user may edit details, but live confirmation
- * of the price, currency and selected option is still required before the
- * product can be added to a cart. */
+/** Recoverable import failure: the customer may review and explicitly confirm
+ * manually entered details when a merchant does not expose a public response. */
 export class ManualEntryFallbackError extends Error {
-  constructor(message = 'Магазин временно не отдал данные товара. Их можно заполнить вручную; Atlas всё равно должен подтвердить цену, валюту и выбранный вариант перед добавлением.') {
+  readonly partial?: Extracted;
+  constructor(message = 'Магазин временно не отдал данные товара. Заполните и подтвердите цену, валюту и выбранный вариант вручную; Atlas сверит цену и валюту, если получит ответ.', partial?: Extracted) {
     super(message);
     this.name = 'ManualEntryFallbackError';
+    this.partial = partial;
   }
 }
 
@@ -19,6 +20,17 @@ export function allowedUrl(value: string) {
   if (u.protocol !== 'https:' || u.username || u.password || u.port || !isSupportedStoreHost(u.hostname))
     throw Error('Этот магазин пока не в списке поддерживаемых. Вставьте ссылку из одного из ' + supportedStoreCount + ' магазинов или заполните товар вручную.');
   return u;
+}
+
+function finalizeExtraction(extracted:Extracted,sourceUrl:string){
+  const images=dedupeSafeImages([extracted.image,...(extracted.images??[])],sourceUrl);
+  const result={...extracted,image:images[0]??extracted.image,images};
+  if(!result.title||result.price===undefined||!result.currency){
+    throw new ManualEntryFallbackError(/^ebay\./i.test(new URL(sourceUrl).hostname)
+      ? 'eBay не предоставил полные публичные данные объявления. Проверьте карточку и подтвердите цену и вариант вручную.'
+      : 'Магазин не отдал полные данные товара. Заполните и подтвердите недостающие поля вручную.',result);
+  }
+  return result;
 }
 
 const AMAZON_US_POSTAL_CODE = '19701';
@@ -92,10 +104,10 @@ async function readBody(response: Response, format: 'html' | 'json', maxBytes = 
   if (!response.ok || !(format === 'html' ? contentType.includes('text/html') : /json|javascript/i.test(contentType))) {
     console.error('Public merchant response rejected', {url: response.url, status: response.status, contentType, format});
     await response.body?.cancel();
-    throw Error('Магазин не разрешил загрузить данные. Заполните их вручную.');
+    throw new ManualEntryFallbackError();
   }
   const reader = response.body?.getReader();
-  if (!reader) throw Error('Пустая страница');
+  if (!reader) throw new ManualEntryFallbackError();
   let size = 0, text = '';
   const decoder = new TextDecoder();
   while (true) {
@@ -104,11 +116,21 @@ async function readBody(response: Response, format: 'html' | 'json', maxBytes = 
     size += value.byteLength;
     if (size > maxBytes) {
       await reader.cancel();
-      throw Error('Страница слишком большая для автозагрузки. Заполните данные вручную.');
+      throw new ManualEntryFallbackError();
     }
     text += decoder.decode(value, {stream: true});
   }
   return text + decoder.decode();
+}
+
+/** Network failures are not evidence that a listing is unavailable. */
+async function merchantFetch(input: string | URL, init: RequestInit) {
+  try {
+    return await fetch(input, init);
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') throw error;
+    throw new ManualEntryFallbackError();
+  }
 }
 
 function responseCookies(response: Response) {
@@ -156,7 +178,7 @@ async function readAmazonUs(start: URL, signal: AbortSignal) {
   const jar = new Map<string, string>([['i18n-prefs', 'USD'], ['lc-main', 'en_US']]);
   let url = start;
   for (let i = 0; i < 4; i++) {
-    const response = await fetch(url, {redirect: 'manual', signal, headers: requestHeaders('html', cookieHeader(jar), amazonUserAgent)});
+    const response = await merchantFetch(url, {redirect: 'manual', signal, headers: requestHeaders('html', cookieHeader(jar), amazonUserAgent)});
     mergeCookies(jar, response);
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get('location');
@@ -171,14 +193,14 @@ async function readAmazonUs(start: URL, signal: AbortSignal) {
     // post-location page is not mistaken for an unusable import.
     const html = await readBody(response, 'html', 6_000_000);
     const token = amazonLocationToken(html);
-    if (!token) throw Error(`Amazon не подтвердил регион США (ZIP ${AMAZON_US_POSTAL_CODE}). Откройте карточку магазина и повторите проверку.`);
+    if (!token) throw new ManualEntryFallbackError();
 
     // Amazon's public location endpoint is the same action triggered by the
     // "Deliver to" dialog. It accepts an anonymous session; no account login
     // or customer cookies are involved.
     jar.set('i18n-prefs', 'USD');
     jar.set('lc-main', 'en_US');
-    const locationResponse = await fetch('https://www.amazon.com/gp/delivery/ajax/address-change.html', {
+    const locationResponse = await merchantFetch('https://www.amazon.com/gp/delivery/ajax/address-change.html', {
       method: 'POST', redirect: 'manual', signal,
       headers: {
         ...requestHeaders('json', cookieHeader(jar), amazonUserAgent),
@@ -195,13 +217,13 @@ async function readAmazonUs(start: URL, signal: AbortSignal) {
     const locationText = await readBody(locationResponse, 'json');
     let locationData: {isValidAddress?: number; address?: {countryCode?: string; zipCode?: string}};
     try { locationData = JSON.parse(locationText) as typeof locationData; }
-    catch { throw Error(`Amazon не подтвердил регион США (ZIP ${AMAZON_US_POSTAL_CODE}). Откройте карточку магазина и повторите проверку.`); }
+    catch { throw new ManualEntryFallbackError(); }
     if (locationData.isValidAddress !== 1 || locationData.address?.countryCode !== 'US' || locationData.address.zipCode !== AMAZON_US_POSTAL_CODE)
-      throw Error(`Amazon не подтвердил регион США (ZIP ${AMAZON_US_POSTAL_CODE}). Откройте карточку магазина и повторите проверку.`);
+      throw new ManualEntryFallbackError();
 
     jar.set('i18n-prefs', 'USD');
     jar.set('lc-main', 'en_US');
-    const refreshed = await fetch(url, {redirect: 'manual', signal, headers: requestHeaders('html', cookieHeader(jar), amazonUserAgent)});
+    const refreshed = await merchantFetch(url, {redirect: 'manual', signal, headers: requestHeaders('html', cookieHeader(jar), amazonUserAgent)});
     mergeCookies(jar, refreshed);
     if (refreshed.status >= 300 && refreshed.status < 400) throw Error('Amazon изменил карточку после выбора региона. Используйте прямую ссылку на товар.');
     const refreshedHtml = await readBody(refreshed, 'html', 6_000_000);
@@ -216,7 +238,15 @@ async function readAmazonUs(start: URL, signal: AbortSignal) {
 async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'json', options: PublicRequestOptions = {}) {
   let url = start;
   for (let i = 0; i < 4; i++) {
-    const response = await fetch(url, {redirect: 'manual', signal, headers: requestHeaders(format, undefined, options.userAgent, options.referer, options)});
+    const response = await merchantFetch(url, {redirect: 'manual', signal, headers: requestHeaders(format, undefined, options.userAgent, options.referer, options)});
+    if (response.status === 404 || response.status === 410) {
+      await response.body?.cancel();
+      throw Error('Магазин сообщил, что карточка товара не найдена. Проверьте ссылку.');
+    }
+    if (response.status === 401 || response.status === 403 || response.status === 429 || response.status >= 500) {
+      await response.body?.cancel();
+      throw new ManualEntryFallbackError();
+    }
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get('location');
       await response.body?.cancel();
@@ -292,7 +322,7 @@ export async function fetchProduct(value: string) {
       }
       const extracted = extractAdidasProduct(productData, listingData, url.href);
       if (!extracted) { const e = new Error('Adidas не вернул карточку товара. Проверьте ссылку и повторите проверку.'); e.name = 'AbortError'; throw e; }
-      return extracted;
+      return finalizeExtraction(extracted,url.href);
     }
     const endpoints = shopifyEndpoints(url);
     if (endpoints) {
@@ -301,7 +331,8 @@ export async function fetchProduct(value: string) {
         const [product, currency] = await Promise.all([
           readPublic(endpoints.product, signal, 'json'), readPublic(endpoints.currency, signal, 'json'),
         ]);
-        return extractShopify(JSON.parse(product.text), JSON.parse(currency.text), url.href);
+        const extracted = extractShopify(JSON.parse(product.text), JSON.parse(currency.text), url.href);
+        return finalizeExtraction(extracted,url.href);
       } catch {
         // The ordinary product page remains usable if a merchant disables Ajax.
         if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
@@ -310,8 +341,18 @@ export async function fetchProduct(value: string) {
     const page = isAmazonUsUrl(url) ? await readAmazonUs(url, controller.signal) : await readPublic(url, controller.signal, 'html');
     if (/\/products\//.test(url.pathname) && !/\/products\//.test(page.url.pathname)) throw Error('Магазин убрал карточку товара. Укажите другую ссылку.');
     if (/captcha|verify you are human|pardon our interruption|robot check/i.test(page.text.slice(0, 60000)))
-      throw Error('Магазин запросил проверку посетителя. Используйте ручной ввод.');
-    return applyMerchantProfile(extractProduct(page.text, page.url.href), page.url.href);
+      throw new ManualEntryFallbackError('Магазин ограничил автоматическую загрузку. Заполните и подтвердите данные товара вручную.');
+    let extracted:Extracted;
+    try {
+      extracted = applyMerchantProfile(extractProduct(page.text, page.url.href), page.url.href);
+    } catch (error) {
+      if (error instanceof ManualEntryFallbackError || error instanceof Error && error.name === 'AbortError') throw error;
+      const isEbay=/^ebay\./i.test(page.url.hostname);
+      throw new ManualEntryFallbackError(isEbay
+        ? 'eBay не предоставил данные объявления в доступном формате. Проверьте и подтвердите цену и вариант вручную.'
+        : 'Страница магазина не предоставила данные товара в доступном формате. Проверьте и подтвердите цену и вариант вручную.');
+    }
+    return finalizeExtraction(extracted,page.url.href);
   } finally {clearTimeout(timer);}
 }
 

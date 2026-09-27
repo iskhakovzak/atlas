@@ -47,7 +47,7 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
       <div><span className="eyebrow">{copy.overline}</span>{status==='guest'?<h2>{copy.catalog}</h2>:<h1>{favorites ? copy.savedTitle : copy.title}</h1>}<p>{favorites ? copy.savedIntro : copy.intro}</p></div>
       {ready&&<Link className="btn secondary" href={favorites ? '/' : '/favorites'}><Heart size={17}/>{favorites ? copy.catalog : copy.saved}<span className="finds-count">{favorites ? products.length : state.favorites.filter(id => products.some(product => product.id === id)).length}</span></Link>}
     </section>
-    {catalogError&&<p role="alert">{catalogError}</p>}
+    {catalogError&&<p className="notice catalog-fallback-message" role="status">{catalogError}</p>}
     {!!collections.length&&<nav className="find-collections" aria-label={locale==='ru'?'Подборки':locale==='uz'?'To‘plamlar':'Collections'}>
       <button type="button" className={!collectionId?'active':''} onClick={()=>setCollectionId('')}>{copy.all}</button>
       {collections.map(collection=><button type="button" key={collection.id} className={collectionId===collection.id?'active':''} onClick={()=>setCollectionId(collection.id)}><b>{locale==='en'?collection.nameEn||collection.name:locale==='uz'?collection.nameUz||collection.name:collection.name}</b><span>{collection.productIds.length}</span></button>)}
@@ -66,17 +66,20 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
       {list.map(({ product, costs, referenceUsd, discount }) => {
         const isSaved = state.favorites.includes(product.id);
         const name = product.sourceUrl ? product.name : titles[product.id] ?? product.name;
+        const needsPrice = product.priceNeedsConfirmation===true;
+        const orderUrl=findOrderUrl(product);
+        const freshnessLabel=locale==='ru'?'Уточнить цену':locale==='uz'?'Narxni aniqlash':'Check current price';
         return <article className="find-card" key={product.id}>
-          <div className="find-visual"><button className="find-photo" type="button" onClick={() => select(product)} aria-label={name}><ProductImage product={{ ...product, name }} /></button>
+          <div className="find-visual">{needsPrice?<a className="find-photo" href={status==='guest'?signInPath(orderUrl):orderUrl} target={status==='guest'?'_top':undefined} aria-label={name}><ProductImage product={{ ...product, name }} /></a>:<button className="find-photo" type="button" onClick={() => select(product)} aria-label={name}><ProductImage product={{ ...product, name }} /></button>}
             {discount >= 40 && <span className="find-top-deal"><Flame size={14}/>{copy.topDeal}</span>}
             {ready&&<Tooltip><TooltipTrigger asChild><button type="button" disabled={saving !== null} className={'find-save ' + (isSaved ? 'saved' : '')} aria-pressed={isSaved} aria-label={(isSaved ? copy.remove : copy.save) + ': ' + name} onClick={() => void favorite(product)}><Heart size={20}/></button></TooltipTrigger><TooltipContent>{!ready ? copy.signin : saving === product.id ? copy.savingState : isSaved ? copy.remove : copy.save}</TooltipContent></Tooltip>}
           </div>
           <div className="find-content"><div className="find-meta"><span>{categories.find(c => c.value === product.category)?.label ?? product.category}</span><span>{countries.find(c => c.value === product.country)?.label ?? product.country}</span></div>
-            <button type="button" className="find-title" onClick={() => select(product)}>{name}</button>
-            <div className="find-store-price"><span>{copy.productPrice}</span><div><b>{fmt(product.usd, 'USD')}</b>{discount > 0 && <del title={copy.referenceLabel}>{fmt(referenceUsd!, 'USD')}</del>}</div>{discount > 0 && <span className="find-discount" title={copy.compareHint}>−{discount}%</span>}</div>
-            <div className="find-total"><span>{copy.delivered}</span><strong>{fmt(costs.total)}</strong><Tooltip><TooltipTrigger asChild><button type="button" className="price-info" aria-label={copy.breakdown} onClick={() => select(product)}><Info size={16}/></button></TooltipTrigger><TooltipContent>{copy.breakdown}</TooltipContent></Tooltip></div>
-            <div className="find-origin"><a href={product.sourceUrl} target="_blank" rel="noopener noreferrer">{merchantRecord(product)?.store} · {copy.sourceOpen}<ArrowUpRight size={14}/></a></div>
-            <div className="find-purchase"><a className="btn primary" href={status==='guest'?signInPath(findOrderUrl(product)):findOrderUrl(product)} target={status==='guest'?'_top':undefined}>{copy.buy}<ArrowRight size={17}/></a></div>
+             {needsPrice?<a className="find-title" href={status==='guest'?signInPath(orderUrl):orderUrl} target={status==='guest'?'_top':undefined}>{name}</a>:<button type="button" className="find-title" onClick={() => select(product)}>{name}</button>}
+             <div className={'find-store-price'+(needsPrice?' needs-confirmation':'')}><span>{needsPrice?(locale==='ru'?'Цена в магазине':locale==='uz'?'Do‘kondagi narx':'Store price'):copy.productPrice}</span><div><b>{needsPrice?freshnessLabel:fmt(product.usd, 'USD')}</b>{!needsPrice&&discount > 0 && <del title={copy.referenceLabel}>{fmt(referenceUsd!, 'USD')}</del>}</div>{!needsPrice&&discount > 0 && <span className="find-discount" title={copy.compareHint}>−{discount}%</span>}</div>
+             <div className="find-total"><span>{needsPrice?(locale==='ru'?'Расчёт после проверки цены':locale==='uz'?'Narx tekshirilgach hisob':'Estimate after price check'):copy.delivered}</span><strong>{costs?fmt(costs.total):(locale==='ru'?'Рассчитаем по актуальной цене':locale==='uz'?'Joriy narx bo‘yicha hisoblaymiz':'Calculated with current price')}</strong>{costs&&<Tooltip><TooltipTrigger asChild><button type="button" className="price-info" aria-label={copy.breakdown} onClick={() => select(product)}><Info size={16}/></button></TooltipTrigger><TooltipContent>{copy.breakdown}</TooltipContent></Tooltip>}</div>
+             <div className="find-origin"><a href={product.sourceUrl} target="_blank" rel="noopener noreferrer">{merchantRecord(product)?.store??(product.sourceUrl?new URL(product.sourceUrl).hostname.replace(/^www\./,''):copy.sourceOpen)} · {copy.sourceOpen}<ArrowUpRight size={14}/></a></div>
+             <div className="find-purchase"><a className="btn primary" href={status==='guest'?signInPath(orderUrl):orderUrl} target={status==='guest'?'_top':undefined}>{needsPrice?freshnessLabel:copy.buy}<ArrowRight size={17}/></a></div>
           </div>
         </article>;
       })}

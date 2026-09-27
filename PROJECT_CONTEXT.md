@@ -28,7 +28,7 @@ The customer account no longer displays the legacy browser-data migration panel.
 
 ## Import recovery and API error localization — 26 September 2026
 
-Adidas product/article JSON failures caused by rate limits, challenges, or malformed payloads now produce a recoverable manual-entry response instead of an unhelpful hard parser error. The editable form remains available, but the source must still pass the existing fresh price/availability check before the item can enter the cart. Exact product/article matching and importer protections remain unchanged. Amazon US location setup still requires the address endpoint to confirm country `US` and ZIP `19701`; the importer no longer searches the refreshed page HTML for a ZIP string after that authoritative confirmation.
+Adidas product/article JSON failures caused by rate limits, challenges, or malformed payloads now produce a recoverable manual-entry response instead of an unhelpful hard parser error. A customer can confirm the editable price/currency/option and add the item when the merchant is unavailable; whenever the source responds, cart-add and checkout still reject a mismatched price or currency. Availability is not an order gate and is not promised. Exact product/article matching and importer protections remain unchanged. Amazon US location setup still requires the address endpoint to confirm country `US` and ZIP `19701`; the importer no longer searches the refreshed page HTML for a ZIP string after that authoritative confirmation.
 
 API failure responses now resolve display language from the validated `atlas-language` preference cookie, then `Accept-Language`, and return concise RU/UZ/EN messages by status. The browser writes its selected language (or the existing Russian default) before initial API requests. Authentication, roles, state shapes and status codes are unchanged. Russian retains its detailed server messages; UZ/EN currently receive safe localized status-level text. Older operator/catalog history and other legacy UI/legal strings are still not fully localized.
 
@@ -216,7 +216,7 @@ Order statuses: Ожидает выкупа → Выкуплен → На зар
 
 ## Link-order language and draft continuity — 21 September 2026
 
-- The link-order form keeps its current product, selected option, price, country, currency, shipping, weight, photos, verification and source freshness in a short-lived browser session draft. Switching RU/UZ/EN or remounting the route no longer clears the imported or customer-edited values; the server still rechecks the source before cart addition.
+- The link-order form keeps its current product, selected option, price, country, currency, shipping, weight, photos, verification and source freshness in a short-lived browser session draft. Switching RU/UZ/EN or remounting the route no longer clears imported or customer-edited values; the server compares the source before cart addition when it returns public data.
 
 ## Unified merchant catalog — 13 September 2026
 
@@ -225,9 +225,9 @@ Order statuses: Ожидает выкупа → Выкуплен → На зар
 - Cards expose the store price, comparison discount and a compact preliminary delivered total computed with the current managed pricing, a conservative chargeable-weight estimate and the standard $10 unknown merchant-shipping reserve.
 - Products with a recorded comparison discount of at least 40% receive a compact localized “Top price” badge. The percentage remains tied only to the exact merchant listing and recorded comparison price.
 - Each card has a direct merchant link and a separate cart action. That protected action requires sign-in, opens the exact merchant URL in the existing link-order flow, automatically imports the current price, photo and available colour/size/model matrix, then adds the customer-confirmed combination directly to the cart.
-- The cart write still reimports and verifies the selected merchant variant on the server; a displayed observation or browser-provided amount never bypasses the source-price, currency or availability check.
+- The cart write still reimports and verifies returned merchant price/currency/option data on the server; a customer-confirmed manual fallback is available only when the public source is blocked or incomplete. Availability is not a customer-order gate.
 - Direct deal navigation also carries a server-bundled editorial fallback for the known title, price, photo, category, conservative weight and applicable size choices. Incomplete or blocked merchant responses no longer erase those fields; successfully imported live variants replace the fallback choices.
-- These observations are not Atlas inventory or checkout-ready catalog records. Coupons, membership, US shipping, variants, availability, weight and the merchant price must still be checked through the protected Atlas import flow.
+- These observations are not Atlas inventory or checkout-ready catalog records. The protected Atlas import flow refreshes price and options when the merchant responds; if it does not, the customer must confirm the displayed price, currency and option. Stock is never guaranteed.
 
 ## Unified option matrix — 12 September 2026
 
@@ -355,7 +355,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 
 ## Catalog refresh queue — 19 September 2026
 
-- A product opened for ordering asks the protected importer for a fresh merchant response instead of using its short display cache. Cart addition and checkout remain the final independent server-side checks of the selected variant, price and currency.
+- A product opened for ordering asks the protected importer for a fresh merchant response instead of using its short display cache. Cart addition and checkout independently compare any returned price/currency/option data; a blocked response uses the explicit customer-confirmed fallback described below.
 - Published catalog records now carry optional refresh metadata, so old D1 documents remain compatible. The due queue targets one source observation per card every 24 hours and takes at most five products from different merchant hosts in one run.
 - A successful source response with at least one available option updates the source-controlled public snapshot (price, photo and option matrix) while preserving editorial description, collections and comparison price. A non-empty matrix whose every option is explicitly unavailable unpublishes the card without deleting its draft; a later confirmed recovery can republish it. Timeout, CAPTCHA, incomplete data and an empty option matrix never count as sold out.
 - Administrators can run the next bounded batch from Catalog Control. The protected internal refresh endpoint is ready for an external scheduled Worker and uses a short-lived HMAC signature plus a D1 lease. This Sites/Vinext deployment does not yet have a cron trigger wired: until a separate scheduler and `ATLAS_CATALOG_REFRESH_SECRET` are configured, automatic background runs must not be described as active.
@@ -371,7 +371,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 
 - Imported merchant weights are accepted only when they resolve to a finite boxed weight through 49.5 kg. Invalid source values such as `99999 kg` are discarded before they can reach a form or quote.
 - Category fallbacks are now more conservative, and the bundled catalog's unchanged legacy estimates are upgraded additively in D1. A weight manually changed away from the known old seed value is preserved.
-- When a store blocks fresh import for a catalog product, link ordering keeps the saved editorial data visible but does not ask the customer to open the merchant page or report stock manually. Atlas retries the protected import automatically and blocks cart addition until the server confirms price, currency and the selected option.
+- When a store blocks fresh import for a catalog product, link ordering keeps any saved editorial data visible and does not ask the customer to report stock. After the customer confirms the displayed price, currency and option, the order request can be saved despite the unavailable public response; any returned price/currency mismatch and definite not-found response still block it.
 - The authenticated, rate-limited availability-report API remains available for operator/support tooling and old clients, but it is no longer part of the customer link-order flow. Reports flag the draft for operator review without letting a customer hide a public product directly.
 - The catalog administrator sees unresolved reports with product, variant, time, merchant link and product shortcut. A successful source recheck or explicit hide resolves the reports.
 
@@ -379,7 +379,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 
 - The bundled catalog includes six fresh editorial picks selected from the Slickdeals front page: Anker Prime charger, WÜSTHOF knife, HP ProBook Fortis, LEGO City Burger Truck, Logitech K780 Resale and BIRCEN sunglasses.
 - Slickdeals is used only for editorial discovery and discount observation. Customer-facing `sourceUrl` values are canonical Amazon/eBay product URLs, and card images come from the merchant image hosts; no Slickdeals redirect or image is exposed in Atlas.
-- These are dated observations, not inventory or guarantees. Before cart/checkout the server still requires a protected merchant recheck of the selected variant, its current price and storefront currency; customer ordering does not gate on stock status. Operator availability reports remain catalog-review signals, not customer checkout consent or a stock guarantee.
+- These are dated observations, not inventory or guarantees. Before cart/checkout the server attempts a protected price/currency/option recheck. If the merchant is unreachable or omits public details, only an explicitly customer-confirmed request can proceed; mismatches and definite not-found responses stop. Customer ordering does not gate on stock status.
 - The link-order notice always includes the exact merchant-page link, including successful partial imports. Zero-cost shipping is labelled as merchant delivery to the Atlas warehouse rather than customer delivery.
 - Generic imports infer the storefront dispatch country from explicit shipping origin, locale path, regional domain or a bounded merchant map; currency continues to come from the store and falls back from the inferred country only when the page omits it. Category inference also uses structured product category/description and recognizes common trackers such as AirTag.
 - International freight now has a one-kilogram minimum per merchant parcel. Cart rows from the same source host and dispatch country combine boxed weight, add the 0.3 kg packaging and 0.2 kg safety allowance once, and allocate the resulting freight and reserve across their immutable line quotes.
@@ -466,14 +466,14 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - `lib/importer/merchant-profiles.ts` keeps an explicit, reviewable priority registry for the first US and European rollout: Amazon, Nike, adidas, Macy's, eBay, Walmart, Target, Best Buy, Sephora, Foot Locker, Zalando, ASOS, Zara, Mango, Farfetch, Primor, Druni, MediaMarkt, PcComponentes and Decathlon.
 - Profiles only fill missing merchant/category/dispatch metadata. They never invent price, shipping, photos, SKU, variants or stock and never substitute a cheaper regional URL. The customer URL remains authoritative.
 - Generic JSON-LD/ProductGroup imports select the exact linked listing instead of a recommendation, preserve SKU/GTIN identities where unique, cap matrices at 80 options and reject unsafe or unrelated structured URLs. Adidas responses must match the article code in the URL.
-- Merchant option records carry optional `availabilityKnown`. When a page omits a stock signal, Atlas keeps the observation as unknown; customer cart verification ignores that signal but still checks the exact selected option, price and currency. The published catalog snapshot remains governed by the separate catalog refresh policy; only an explicit all-sold-out matrix can auto-hide a card. Older stored records remain compatible because the field is optional.
+- Merchant option records carry optional `availabilityKnown`. Customer cart/checkout ignores stock signals and tries to compare returned price/currency/option data; when that response is unavailable, the customer-confirmed manual fallback can proceed. The published catalog snapshot remains governed by the separate catalog refresh policy; only an explicit all-sold-out matrix can auto-hide a card. Older stored records remain compatible because the field is optional.
 - `scripts/catalog-refresh.mjs` signs the existing HMAC refresh endpoint for an external scheduler. It does not contain a secret; production still needs a separate scheduled Worker and `ATLAS_CATALOG_REFRESH_SECRET`.
 
 ## Priority merchant embedded fallback — 22 September 2026
 
 - Priority-1/priority-2 pages that omit JSON-LD can now be read from a bounded public `__NEXT_DATA__`, `__PRELOADED_STATE__`, `__INITIAL_STATE__` or `__APOLLO_STATE__` payload for Macy's, eBay, Walmart, Target, Best Buy, Sephora, Foot Locker, Zalando regional hosts, ASOS, Zara, Mango, Farfetch, Primor, Druni, MediaMarkt, PcComponentes and Decathlon.
 - The fallback accepts only a product object tied to the exact source path or product identifier. It ignores recommendation objects, unsafe URLs and short generic numeric ids. It retains only public title, price, currency, photos, SKU, option matrix, explicit availability and bounded weight/shipping fields.
-- Unknown stock remains unknown and no longer blocks customer cart/checkout; the existing admin catalog publication/refresh policy still treats unknown stock conservatively. A blocked page or missing exact embedded record continues to the safe JSON-LD/Open Graph/manual path; Atlas does not bypass CAPTCHA, login, merchant cookies or official API requirements. The customer order path still requires a fresh matching option, price and currency; stock is not promised.
+- Unknown stock remains unknown and does not block customer cart/checkout; the admin catalog publication/refresh policy still treats unknown stock conservatively. A blocked page or missing exact embedded record continues to the safe JSON-LD/Open Graph/manual path; Atlas does not bypass CAPTCHA, login, merchant cookies or official API requirements. When a public source does respond, mismatched price/currency blocks; otherwise a customer-confirmed manual order request may proceed. Stock is not promised.
 - `workers/catalog-refresh/` now contains a deployable separate Cloudflare Cron Worker and `wrangler.toml.example`. It signs the existing refresh route hourly with Web Crypto, refuses non-HTTPS site URLs and keeps the secret in Wrangler secret storage; production provisioning and matching runtime secrets remain a deployment task.
 
 ## GitLab Ultimate CI preparation — 26 September 2026
@@ -503,9 +503,11 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 
 ## Customer stock gate removed — 27 September 2026
 
-- Link-order and batch-import choices no longer filter or block a variant based on `available` / `availabilityKnown`; server cart-add and checkout likewise ignore stock status.
-- The server still fetches the merchant page and requires the exact selected option, unchanged option price and storefront currency on both add and checkout. A blocked store, changed price/currency or unmatched option still stops the order.
-- This is not a stock or buyout guarantee. The separate operator catalog refresh/publication policy still uses explicit stock observations to hide definitive all-sold-out catalog cards and to hold unknown snapshots.
+- Customer link orders no longer use `available` / `availabilityKnown` as an add-to-cart or checkout gate. The manual “open the store and report stock” interaction is removed; catalog refresh/publication still uses its separate operator stock policy.
+- `ManualEntryFallbackError` carries any safe partial data. After the customer confirms the visible price, currency and selected option, cart-add and checkout may proceed if a public store response is unavailable. When the store does respond, the server still checks currency and any published product/selected-option price; mismatches stop the action. A missing option/stock signal does not itself block a buyer-confirmed order.
+- The page must not describe a manual fallback as a fresh merchant quote, confirmed inventory or guaranteed buyout. At checkout, the operator still needs to resolve any actual store-side purchase issue with the customer.
+- eBay short host `ebay.us` is explicitly allowlisted; redirect destinations remain HTTPS and within the store allowlist. Public eBay embedded data is accepted only when tied to the exact listing. Blocked pages retain title/photo when available and allow explicit manual confirmation; no eBay Browse API credentials are configured.
+- `/stores` is a searchable, categorized directory generated from the existing allowlist and is separate from the order-by-link form. Catalog-empty fallback keeps previously reviewed direct links visible while removing expired price/discount claims. Imported image galleries collapse known rendition URLs without merging distinct color/variant URLs.
 
 ## Graphite theme contrast pass — 27 September 2026
 

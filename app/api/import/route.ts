@@ -55,7 +55,8 @@ export async function POST(request: Request) {
       const message = canManuallyEnter
         ? importManualEntryMessage(locale)
         : locale === 'ru' ? (error as Error).message : apiErrorMessage(422, locale);
-      return json({ error: message, manualEntryAvailable: canManuallyEnter }, 422);
+      const partial = error instanceof ManualEntryFallbackError ? error.partial : undefined;
+      return json({ ...partial, error: message, manualEntryAvailable: canManuallyEnter }, 422);
     }
   } catch (error) {
     return failure(error, request);
