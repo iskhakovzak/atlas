@@ -88,6 +88,7 @@ export function GlobalLinkOrder() {
     [sourceCheckStatus, setSourceCheckStatus] = useState<'idle'|'checking'|'verified'|'failed'>('idle'),
     [importedAt, setImportedAt] = useState<number | undefined>(),
     [sourceExpiresAt, setSourceExpiresAt] = useState<number | undefined>(),
+    [formIssue, setFormIssue] = useState(""),
     [foundShipping, setFoundShipping] = useState<{
       amount: number;
       currency: string;
@@ -453,16 +454,36 @@ export function GlobalLinkOrder() {
           )}
           {source && !busy && (
             <form
+              noValidate
               onSubmit={async (e) => {
                 e.preventDefault();
                 try {
-                  if(sourceCheckStatus==='checking'||sourceCheckStatus==='idle')throw Error(tx('Дождитесь загрузки или заполните ссылку ещё раз.','Yuklanishni kuting yoki havolani qayta kiriting.','Wait for the import to finish or reload the item link.'));
-                  if (!name.trim() || !variant.trim() || !verified)
-                     throw Error(tx("Проверьте данные и подтвердите страну отправки.","Ma’lumotlarni tekshirib, jo‘natish mamlakatini tasdiqlang.","Check the details and confirm the dispatch country."));
-                  if (country === "Другая страна" && !otherCountry.trim())
-                     throw Error(tx("Введите страну отправки.","Jo‘natish mamlakatini kiriting.","Enter the dispatch country."));
-                  if (shipping === "")
-                     throw Error(tx("Укажите доставку магазина; 0 — только если она бесплатная.","Do‘kon yetkazishini kiriting; 0 faqat bepul bo‘lsa.","Enter store shipping; use 0 only when it is free."));
+                  if(sourceCheckStatus==='checking'||sourceCheckStatus==='idle'){
+                    const message=tx('Загрузка ещё не завершилась. Дождитесь результата или вставьте ссылку повторно.','Yuklash hali tugamadi. Natijani kuting yoki havolani qayta kiriting.','Import has not finished. Wait for the result or enter the link again.');
+                    setFormIssue(message);toast.error(message);return;
+                  }
+                  const missing=[
+                    {id:'name',invalid:!name.trim(),message:tx('Введите название товара.','Tovar nomini kiriting.','Enter the item name.')},
+                    {id:'variant',invalid:!variant.trim(),message:tx('Выберите или укажите цвет, размер либо модель.','Rang, o‘lcham yoki modelni tanlang yoki kiriting.','Choose or enter a color, size, or model.')},
+                    {id:'other-country',invalid:country==='Другая страна'&&!otherCountry.trim(),message:tx('Укажите страну фактической отправки.','Haqiqiy jo‘natish mamlakatini kiriting.','Enter the actual dispatch country.')},
+                    {id:'amount',invalid:!Number.isFinite(Number(amount))||Number(amount)<=0,message:tx('Укажите цену товара больше нуля.','Tovar narxini noldan katta kiriting.','Enter an item price greater than zero.')},
+                    {id:'shipping',invalid:shipping===''||!Number.isFinite(Number(shipping))||Number(shipping)<0,message:tx('Укажите доставку магазина до склада Atlas; 0 — только если она бесплатная.','Do‘kondan Atlas omborigacha yetkazishni kiriting; 0 faqat bepul bo‘lsa.','Enter store-to-Atlas shipping; use 0 only when it is free.')},
+                    {id:'weight',invalid:validBoxedWeight(weight)===undefined,message:tx('Укажите вес товара с коробкой от 0,01 до 49,5 кг.','Qadoq bilan vaznni 0,01–49,5 kg oralig‘ida kiriting.','Enter boxed weight from 0.01 to 49.5 kg.')},
+                    {id:'data-verified',invalid:!verified,message:tx('Подтвердите, что проверили введённые данные и вариант.','Kiritilgan ma’lumotlar va variantni tekshirganingizni tasdiqlang.','Confirm that you reviewed the entered details and option.')},
+                  ].find(field=>field.invalid);
+                  if(missing){
+                    setFormIssue(missing.message);
+                    window.setTimeout(()=>{
+                      const group=missing.id==='variant'?window.document.querySelector<HTMLElement>('[data-order-variant]'):null;
+                      const steps=group?.querySelectorAll<HTMLElement>('.variant-step');
+                      const lastStep=steps?.item(Math.max(0,(steps?.length??1)-1));
+                      const target=lastStep?.querySelector<HTMLElement>('button[aria-pressed="false"], button, input')??group?.querySelector<HTMLElement>('button, input')??window.document.getElementById(missing.id);
+                      target?.scrollIntoView({behavior:'smooth',block:'center'});
+                      target?.focus({preventScroll:true});
+                    },0);
+                    return;
+                  }
+                  setFormIssue("");
                   const img = image ? safeImage(image, source) : "";
                   if (image && !img)
                      throw Error(tx("Изображение должно иметь публичный HTTPS-адрес.","Rasm ommaviy HTTPS manziliga ega bo‘lishi kerak.","The image must have a public HTTPS URL."));
@@ -511,13 +532,14 @@ export function GlobalLinkOrder() {
                 }
               }}
             >
+              {formIssue&&<p className="notice" role="alert">{formIssue}</p>}
               <div className="step-heading second-step">
                 <b>02</b>
                 <div>
                   <h2>{c.dataStep}</h2>
                 </div>
               </div>
-              <div className="field variant-matrix">
+              <div className="field variant-matrix" data-order-variant tabIndex={-1}>
                 <label htmlFor="variant">{c.variant}</label>
                 {variants.length && (variantColors.length||variantSizes.length) ? <>
                   {variantColors.length>0&&<div className="variant-step"><div><b>{c.color}</b><span>{selectedColor||c.selectColor}</span></div><div className="variant-options">{variantColors.map(color=>{const choices=variants.filter(item=>item.color===color);return <button type="button" key={color} aria-pressed={selectedColor===color} onClick={()=>{setSelectedColor(color);setSelectedSize('');setVerified(false);if(!choices.some(item=>item.size)&&choices[0])applyVariantChoice(choices[0]);else setVariant('')}}>{color}</button>})}</div></div>}
@@ -717,7 +739,7 @@ export function GlobalLinkOrder() {
                   {c.verified}
                 </label>
               </div>
-              <button className="btn primary" disabled={!verified || adding || sourceCheckStatus==='checking'}>
+              <button className="btn primary" disabled={adding}>
                 {adding ? c.adding : c.add}
                 <ArrowRight size={18} />
               </button>

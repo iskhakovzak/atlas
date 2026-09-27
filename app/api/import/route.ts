@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { allowedUrl, fetchProduct, isAmazonUsUrl, ManualEntryFallbackError } from '@/lib/importer/fetch';
+import { fetchProduct, isAmazonUsUrl, ManualEntryFallbackError, validateManualSourceUrl } from '@/lib/importer/fetch';
+import { isSupportedStoreHost } from '@/lib/importer/stores';
 import { database, identity, sameOrigin, json, failure, HttpError, requestJson } from '@/lib/market/server';
 import { apiErrorMessage, importManualEntryMessage, requestLocale } from '@/lib/market/i18n';
 
@@ -14,10 +15,11 @@ export async function POST(request: Request) {
 
     let sourceUrl: string;
     try {
-      sourceUrl = allowedUrl(payload.data.url).href;
+      sourceUrl = validateManualSourceUrl(payload.data.url).href;
     } catch (error) {
       throw new HttpError(400, (error as Error).message);
     }
+    const autoImportSupported = isSupportedStoreHost(new URL(sourceUrl).hostname);
 
     const liveLocationRequired = isAmazonUsUrl(new URL(sourceUrl));
     const minute = Math.floor(Date.now() / 60000);
@@ -28,6 +30,17 @@ export async function POST(request: Request) {
       .bind(key, now + 120000).first<{ count: number }>();
     if (!row || row.count > 12) throw new HttpError(429, 'err_20');
     await db.prepare('DELETE FROM market_rate_limits WHERE expires_at < ?').bind(now).run();
+
+    if (!autoImportSupported) {
+      const locale = requestLocale(request);
+      return json({
+        sourceUrl,
+        brand: new URL(sourceUrl).hostname.replace(/^www\./, ''),
+        warnings: [],
+        error: importManualEntryMessage(locale),
+        manualEntryAvailable: true,
+      }, 422);
+    }
 
     const cached = liveLocationRequired ? undefined : await db.prepare('SELECT payload,expires_at,updated_at FROM market_import_cache WHERE url=? AND expires_at>?')
       .bind(sourceUrl, now).first<{ payload: string; expires_at: number; updated_at: number }>();

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {declarationFor,dedupeSafeImages,extractProduct,inferProductCategory,parseWeight,safeImage} from '../lib/importer/extract.ts';
 import {allowedUrl,fetchProduct,supportedStoreCount,ManualEntryFallbackError} from '../lib/importer/fetch.ts';
+import {manualFallbackAllowed} from '../lib/importer/manual-fallback.ts';
 import {customsVersion,paddedWeight,toUsd} from '../lib/market/world.ts';
 import {applyAction} from '../lib/market/actions.ts';
 import {blank,products,checkoutCart,addToCart,cartSignature,balanceOf,confirmDemoPayment,totalOf} from '../lib/market/domain.ts';
@@ -10,7 +11,7 @@ const html=`<script type="application/ld+json">{"@context":"https://schema.org",
 const p=extractProduct(html,'https://www.ebay.es/itm/123');assert.equal(p.title,'Zapatos & cosas');assert.equal(p.price,99.95);assert.equal(p.currency,'EUR');assert.equal(p.shipping,4.5);assert.equal(p.shippingDestination,'ES');assert.equal(p.boxedWeight,1.5);assert.equal(p.weightKind,'shipping');assert.equal(p.country,'Испания');
 });
 test('supports a broad store list and prepares a conservative declaration draft',()=>{
-assert(supportedStoreCount>=145);assert.equal(allowedUrl('https://www.on.com/en-us/products/cloud-6').hostname,'www.on.com');assert.equal(allowedUrl('https://www.zara.com/us/en/product-p000.html').hostname,'www.zara.com');assert.equal(allowedUrl('https://rarebeauty.com/products/blush').hostname,'rarebeauty.com');assert.equal(allowedUrl('https://kith.com/products/shoe').hostname,'kith.com');assert.equal(allowedUrl('https://ebay.us/short-link').hostname,'ebay.us');assert.throws(()=>allowedUrl('https://on.com.evil.example/product'));
+assert(supportedStoreCount>=145);assert.equal(allowedUrl('https://www.on.com/en-us/products/cloud-6').hostname,'www.on.com');assert.equal(allowedUrl('https://www.zara.com/us/en/product-p000.html').hostname,'www.zara.com');assert.equal(allowedUrl('https://rarebeauty.com/products/blush').hostname,'rarebeauty.com');assert.equal(allowedUrl('https://kith.com/products/shoe').hostname,'kith.com');assert.equal(allowedUrl('https://ebay.us/short-link').hostname,'ebay.us');assert.equal(allowedUrl('https://www.ebay.nl/itm/123456789012').hostname,'www.ebay.nl');assert.throws(()=>allowedUrl('https://on.com.evil.example/product'));
 assert.equal(extractProduct('<meta property="og:title" content="Cloud 6"><meta property="product:price:currency" content="USD">','https://www.on.com/en-us/products/cloud-6').country,'США');
 assert.equal(inferProductCategory('Cloud 6 running shoes','On'),'Обувь');assert.match(declarationFor('Обувь','Cloud 6 running shoes','On'),/Обувь для личного пользования/);
 });
@@ -41,6 +42,28 @@ test('eBay locale pages can use exact listing-bound embedded item data',()=>{
  const html=`<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({props:{pageProps:{recommendations:[recommendation],item}}})}</script>`;
  const parsed=extractProduct(html,item.url);
  assert.equal(parsed.title,'Chaqueta vintage');assert.equal(parsed.price,24.5);assert.equal(parsed.currency,'EUR');assert.equal(parsed.method,'ebay.es embedded product data');
+});
+test('eBay regional listing data is recognized on newly supported storefronts',()=>{
+ const url='https://www.ebay.nl/itm/123456789012';
+ const item={url,itemId:'123456789012',name:'Dutch listing',price:14.25,currency:'EUR',image:'https://i.ebayimg.com/images/g/a/s-l500.jpg'};
+ const html=`<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({props:{pageProps:{item}}})}</script>`;
+ const parsed=extractProduct(html,url);assert.equal(parsed.title,'Dutch listing');assert.equal(parsed.price,14.25);assert.equal(parsed.method,'ebay.nl embedded product data');
+});
+test('unsupported stores enter a no-network manual fallback while auto import stays allowlisted',async()=>{
+ const original=globalThis.fetch;let requests=0;globalThis.fetch=async()=>{requests++;throw Error('should not fetch an unsupported host')};
+ try{
+  await assert.rejects(()=>fetchProduct('https://shop.example.com/products/coat'),error=>error instanceof ManualEntryFallbackError&&error.partial?.sourceUrl==='https://shop.example.com/products/coat');
+  assert.equal(requests,0);assert.throws(()=>allowedUrl('https://shop.example.com/products/coat'),/не в списке поддерживаемых/);
+  await assert.rejects(()=>fetchProduct('https://localhost/products/coat'));
+  await assert.rejects(()=>fetchProduct('https://shop.example.com:8443/products/coat'));
+ }finally{globalThis.fetch=original}
+});
+test('a customer-confirmed unsupported-store listing can be ordered with server-recomputed pricing',async()=>{
+ let failure;try{await fetchProduct('https://shop.example.com/products/coat')}catch(error){failure=error}
+ const sourceUrl='https://shop.example.com/products/coat',product={...products[0],sourceUrl,sourceManuallyConfirmed:true,sourcePrice:20,sourceCurrency:'EUR',sourceShipping:3,sourceShippingCurrency:'EUR',sourceShippingUsd:1,shippingKnown:true,country:'Испания',boxedWeight:.8,weight:1.3};
+ const selectedVariant=product.variants[0];assert(manualFallbackAllowed(product,selectedVariant,failure));assert(!manualFallbackAllowed({...product,sourceManuallyConfirmed:false},selectedVariant,failure));
+ const state=applyAction(blank(),{type:'cart-add',product,variant:selectedVariant},false);
+ assert.equal(state.cart[0].product.usd,toUsd(20,'EUR'));assert.equal(state.cart[0].product.sourceShippingUsd,toUsd(3,'EUR'));
 });
 test('image gallery collapses photo renditions but keeps different images and variants',()=>{
  const result=dedupeSafeImages([

@@ -17,6 +17,11 @@
 
 ## UX refinement follow-up
 
+- [x] Let unsupported public HTTPS stores continue as explicit manual-entry orders without making a server request to that host; cart-add remains clickable and guides the customer to each missing field.
+- [x] Expand the exact eBay storefront allowlist; let blocked/incomplete eBay pages produce manually reviewable admin drafts without publishing them or overwriting an existing complete draft.
+- [x] Remove generated Atlas boilerplate from product descriptions, hide known legacy boilerplate in public catalog output and the operator editor, and preserve actual editorial descriptions.
+- [ ] Validate representative live eBay item URLs from desktop/mobile shares; public merchant blocks can still prevent automatic title, price, photo and option extraction, so manual entry remains the supported fallback.
+
 - [x] Route successful catalog, link and batch additions directly to the cart; offer simulated payment confirmation from cart checkout. Real provider payments remain blocked on PSP integration.
 - [x] Remove the customer stock-status gate from link/batch cart addition and checkout while retaining live selected-option, price and currency verification; catalog auto-hide remains a separate operator feed policy.
 - [x] Add operator-managed dispatch-country overrides for existing service, buyout, conversion, delivery margin, per-kg freight, reserve and optional-service tariff fields; old pricing state and submitted quote snapshots remain compatible.

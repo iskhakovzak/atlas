@@ -15,9 +15,25 @@ export class ManualEntryFallbackError extends Error {
   }
 }
 
-export function allowedUrl(value: string) {
+/** Validate a user-supplied public merchant URL without making a request. */
+export function validateManualSourceUrl(value: string) {
   const u = new URL(value);
-  if (u.protocol !== 'https:' || u.username || u.password || u.port || !isSupportedStoreHost(u.hostname))
+  const host = u.hostname.toLowerCase().replace(/\.$/, '');
+  const labels = host.split('.');
+  const validDnsHost = host.length <= 253 && labels.length >= 2 && labels.every(label =>
+    label.length > 0 && label.length <= 63 && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label),
+  );
+  if (u.protocol !== 'https:' || u.username || u.password || u.port || !validDnsHost ||
+      /^\d[\d.]*$/.test(host) || /(?:^|\.)(?:localhost|local|internal|test|invalid)$/i.test(host))
+    throw Error('Нужна публичная HTTPS-ссылка на страницу товара.');
+  u.hostname = host;
+  u.hash = '';
+  return u;
+}
+
+export function allowedUrl(value: string) {
+  const u = validateManualSourceUrl(value);
+  if (!isSupportedStoreHost(u.hostname))
     throw Error('Этот магазин пока не в списке поддерживаемых. Вставьте ссылку из одного из ' + supportedStoreCount + ' магазинов или заполните товар вручную.');
   return u;
 }
@@ -261,7 +277,12 @@ async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'jso
 }
 
 export async function fetchProduct(value: string) {
-  const url = allowedUrl(value), controller = new AbortController();
+  const manualUrl = validateManualSourceUrl(value);
+  if (!isSupportedStoreHost(manualUrl.hostname)) {
+    const partial: Extracted = {sourceUrl: manualUrl.href, brand: manualUrl.hostname.replace(/^www\./, ''), warnings: []};
+    throw new ManualEntryFallbackError('Автоматическая загрузка этого магазина недоступна. Заполните данные товара вручную; сервер не обращается к этому магазину.', partial);
+  }
+  const url = allowedUrl(manualUrl.href), controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);
   try {
     const adidas = adidasProductApiUrls(url);

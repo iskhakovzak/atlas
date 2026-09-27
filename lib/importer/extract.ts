@@ -1,5 +1,6 @@
 import { extractMacysProduct } from './macys.ts';
 import { priorityMerchantProfiles } from './merchant-profiles.ts';
+import { isEbayStoreHost } from './stores.ts';
 export type ProductVariant = {
   id?: string;
   size?: string;
@@ -289,7 +290,7 @@ function extractPriorityEmbedded(html: string, sourceUrl: string): Extracted | u
   const source = new URL(sourceUrl);
   const priorityRoots = new Set(priorityMerchantProfiles.map(profile => profile.root));
   const hostname = source.hostname.toLowerCase().replace(/^www\./, '');
-  const ebayRoot = hostname.match(/^ebay\.(?:com|ca|co\.uk|com\.au|de|es|fr|it|us)$/)?.[0];
+  const ebayRoot = isEbayStoreHost(hostname) ? hostname : undefined;
   const root = priorityRoots.has(hostname)
     ? hostname
     : [...priorityRoots].filter(value => hostname.endsWith(`.${value}`)).sort((a, b) => b.length - a.length)[0] ?? ebayRoot;

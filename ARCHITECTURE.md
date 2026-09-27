@@ -32,6 +32,14 @@
 | Database | db/schema.ts, drizzle/0000_overrated_justice.sql |
 | Tests | tests/market.test.mjs, tests/world.test.mjs |
 
+## Link import fallback and eBay
+
+Automated merchant fetches remain restricted to exact allowlisted HTTPS storefront hosts, with redirect checks, request timeouts and response-size limits. A separate URL-shape validator accepts a public HTTPS product URL for a manual order without fetching an unsupported host; cart-add and checkout can skip a failed merchant check only after the customer marks the entered details as reviewed. The server still recomputes currency conversion, weight and quote fields. Unsafe URLs, credentials, ports, private IP literals and local hostnames are rejected.
+
+eBay country storefronts are explicitly listed. If an eBay page blocks public parsing, customer link ordering receives the normal manual-entry form; operator batch import saves a reviewable draft from any partial public fields, or an empty draft when the listing is inaccessible. It never publishes that draft or replaces an existing item's saved data with an empty response. A definitive not-found response is still an error. eBay automation is limited to data exposed by the public page; no challenge or access control is bypassed.
+
+Catalog descriptions no longer receive generated Atlas boilerplate. Known legacy boilerplate is omitted from public catalog projection and shown blank in the admin editor; custom descriptions remain untouched.
+
 The `/admin` route is the single operator UI for catalog administration, rules, audit/system tools and centrally managed pricing. Global FX/freight/fees, actual-dispatch-country overrides, currency rates and the warehouse service catalogue are loaded and saved through the existing `app/api/operations` endpoints. Both the route content and API reads/writes require the primary operator configured by `ATLAS_OPERATOR_EMAIL`; the UI's staff directory does not grant access. `/operations` is reserved for order processing and no longer presents a duplicate tariff editor. Pricing remains versioned in the existing `market_settings.pricing` record, without a schema migration; orders retain their pricing snapshots.
 
 ## Runtime flow
