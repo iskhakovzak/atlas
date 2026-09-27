@@ -12,8 +12,7 @@ import {
   auditEvents,
   ensurePrimaryOperator,
   persist,
-  pricing,
-  policy,
+  pricingAndPolicy,
   recordAudit,
   requestJson,
   sameOrigin,
@@ -81,17 +80,16 @@ export async function GET(request:Request) {
   try {
     const user=await requireOperator();
     await ensurePrimaryOperator(user);
-    const [accounts, currentPricing, currentPolicy, staff, audit, health, customerStatuses, errors] = await Promise.all([
+    const [accounts, settings, staff, audit, health, customerStatuses, errors] = await Promise.all([
       operatorAccounts(),
-      pricing(),
-      policy(),
+      pricingAndPolicy(),
       staffMembers(),
       auditEvents(),
       operationalHealth(),
       operationalCustomers(),
       errorSummary(),
     ]);
-    return json({ accounts, pricing: currentPricing, policy: currentPolicy, staff, audit, health, customerStatuses, errors });
+    return json({ accounts, pricing: settings.pricing, policy: settings.policy, staff, audit, health, customerStatuses, errors });
   } catch (error) {
     return failure(error,request);
   }
@@ -163,7 +161,7 @@ export async function POST(request: Request) {
     }
     let next;
     try {
-      const [currentPricing,currentPolicy] = await Promise.all([pricing(),policy()]);
+      const {pricing:currentPricing,policy:currentPolicy} = await pricingAndPolicy();
       next = applyAction(current.state, parsedAction.data, true, currentPricing, currentPolicy);
     } catch (error) {
       throw new HttpError(400, (error as Error).message);

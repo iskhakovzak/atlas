@@ -245,3 +245,16 @@
 - [x] Keep the revision-checked canonical account write synchronous but run the rebuildable operator projection through Cloudflare `waitUntil`, rereading and rechecking the latest account revision to guard against concurrent mutations.
 - [x] Run idempotent customer-link catalog-draft creation in the background after the cart write; it no longer blocks the cart response.
 - [ ] Measure hosted action latency (especially p50/p95 for catalog clicks, cart quantity changes and linked-item add) under a representative D1 account. Live merchant latency remains unavoidable on linked products; do not remove price/currency/selected-option checks to improve it.
+
+## Full project diagnosis and route-performance pass — 27 September 2026
+
+- [x] Split non-catalog route views into demand-loaded chunks with a localized loading boundary.
+- [x] Stop fetching catalog data on account, cart, orders and unrelated routes; coalesce simultaneous catalog requests.
+- [x] Make reads of initialized accounts read-only; retain idempotent account initialization and legacy identity migration for first visits.
+- [x] Fetch pricing and policy settings together in account, action and operator request paths without changing response contracts.
+- [x] Run ESLint, all 127 domain/API contract tests and a production Site build; no failures.
+- [ ] Capture compressed production network waterfalls and hosted API p50/p95 for guest storefront, customer account/cart and operator routes. Do not use a local preview as a substitute for Site deployment measurements.
+- [ ] Profile operator page payload: it currently projects up to 200 account JSON documents and related operational data; paginate or narrow server projections only with a compatibility plan.
+- [ ] Measure shared `store`, `market-ui`, framework chunks and the global CSS transfer on current mobile Safari/network before attempting further splitting; CSS is globally composed and route separation may introduce visual regressions.
+- [ ] Complete live interactive checks on the deployed Site in guest/customer/operator sessions and physical iPhone Safari; unit tests/build do not verify remote D1, R2, Cron, payment or merchant connectivity.
+- [ ] Configure and verify production security headers, authentication identity provider and scheduled catalog refresh as separate production infrastructure changes; the source build alone does not establish those runtime settings.

@@ -9,7 +9,7 @@ import type {SessionStatus} from './access';
 import {keepCatalogVisible,visibleMerchantFinds,type MerchantFind} from './catalog';
 import type {CatalogCollection} from './catalog-editor';
 export type AccountUser={name:string;email:string;operator:boolean;createdAt:number};
-type Store={catalogProducts:MerchantFind[];collections:Array<CatalogCollection&{productIds:string[]}>;catalogError:string;state:State;pricing:Pricing;policy:Policy;ready:boolean;status:SessionStatus;error:string|null;user:AccountUser|null;setLocale:(locale:Locale)=>void;act:(action:Action)=>Promise<boolean>;refresh:()=>Promise<void>};
+type Store={catalogProducts:MerchantFind[];collections:Array<CatalogCollection&{productIds:string[]}>;catalogError:string;loadCatalog:()=>Promise<void>;state:State;pricing:Pricing;policy:Policy;ready:boolean;status:SessionStatus;error:string|null;user:AccountUser|null;setLocale:(locale:Locale)=>void;act:(action:Action)=>Promise<boolean>;refresh:()=>Promise<void>};
 const Context=createContext<Store|null>(null);
 const marketMessages:Record<Locale,{catalogLoad:string;accountLoad:string;connection:string;signin:string;busy:string;sessionEnded:string;saveFailed:string;actionConnection:string}>={
   ru:{catalogLoad:'Не удалось обновить витрину. Сохранённые ссылки остаются доступны; актуальную цену нужно подтвердить перед заказом.',accountLoad:'Не удалось загрузить кабинет. Повторите попытку.',connection:'Не удалось связаться с сервером. Проверьте подключение и повторите попытку.',signin:'Войдите, чтобы сохранить изменения.',busy:'Дождитесь сохранения предыдущего действия.',sessionEnded:'Сессия завершилась. Войдите снова, чтобы продолжить.',saveFailed:'Не удалось сохранить изменения.',actionConnection:'Ответ сервера не получен. Проверяем состояние заказа.'},
@@ -18,9 +18,28 @@ const marketMessages:Record<Locale,{catalogLoad:string;accountLoad:string;connec
 };
 export function MarketProvider({children}:{children:ReactNode}) {
  const [catalogProducts,setCatalogProducts]=useState<MerchantFind[]>(()=>visibleMerchantFinds()),[collections,setCollections]=useState<Array<CatalogCollection&{productIds:string[]}>>([]),[catalogError,setCatalogError]=useState('');
- useEffect(()=>{let initialLocale:Locale='ru';try{initialLocale=supportedLocale(localStorage.getItem('atlas-language'))??'ru'}catch{}setLocaleCookie(initialLocale);const controller=new AbortController();fetch('/api/catalog',{cache:'no-store',signal:controller.signal}).then(async response=>{if(!response.ok)throw Error('Catalog load failed');const data=await response.json() as {products:MerchantFind[];collections:Array<CatalogCollection&{productIds:string[]}>};if(!Array.isArray(data.products)||!Array.isArray(data.collections))throw Error('Catalog response is invalid');setCatalogProducts(keepCatalogVisible(data.products));setCatalogError(data.products.length?'':marketMessages[localeRef.current].catalogLoad);setCollections(data.collections)}).catch(error=>{if(error.name!=='AbortError')setCatalogError(marketMessages[localeRef.current].catalogLoad)});return()=>controller.abort()},[]);
  const [state,setState]=useState<State>(blank),[pricing,setPricing]=useState<Pricing>(tariff),[policy,setPolicy]=useState<Policy>(defaultPolicy),[status,setStatus]=useState<SessionStatus>('loading'),[error,setError]=useState<string|null>(null),[user,setUser]=useState<AccountUser|null>(null);
  const revision=useRef(0),busy=useRef(false),generation=useRef(0),localeRef=useRef<Locale>('ru'),serverLocaleRef=useRef<Locale>('ru'),localeSyncRef=useRef<Locale|null>(null);
+ const catalogLoaded=useRef(false),catalogRequest=useRef<Promise<void>|null>(null);
+ const loadCatalog=useCallback(()=>{
+  if(catalogLoaded.current)return Promise.resolve();
+  if(catalogRequest.current)return catalogRequest.current;
+  const request=(async()=>{
+   try{
+    const response=await fetch('/api/catalog',{cache:'no-store'});
+    if(!response.ok)throw Error('Catalog load failed');
+    const data=await response.json() as {products:MerchantFind[];collections:Array<CatalogCollection&{productIds:string[]}>};
+    if(!Array.isArray(data.products)||!Array.isArray(data.collections))throw Error('Catalog response is invalid');
+    catalogLoaded.current=true;
+    setCatalogProducts(keepCatalogVisible(data.products));
+    setCatalogError(data.products.length?'':marketMessages[localeRef.current].catalogLoad);
+    setCollections(data.collections);
+   }catch{setCatalogError(marketMessages[localeRef.current].catalogLoad)}
+   finally{catalogRequest.current=null}
+  })();
+  catalogRequest.current=request;
+  return request;
+ },[]);
  const readStoredLocale=useCallback(()=>{try{return supportedLocale(localStorage.getItem('atlas-language'))}catch{return null}},[]);
  const ready=status==='authenticated';
  const clearPrivate=useCallback(()=>{setUser(null);revision.current=0;setState({...blank(),communication:{...blank().communication,language:localeRef.current}});setPolicy(defaultPolicy)},[]);
@@ -101,6 +120,6 @@ export function MarketProvider({children}:{children:ReactNode}) {
   try{localStorage.setItem('atlas-language',next)}catch{}
   setLocaleCookie(next);
  },[]);
- return <Context.Provider value={{catalogProducts,collections,catalogError,state,pricing,policy,ready,status,error,user,setLocale,act,refresh}}>{children}</Context.Provider>;
+ return <Context.Provider value={{catalogProducts,collections,catalogError,loadCatalog,state,pricing,policy,ready,status,error,user,setLocale,act,refresh}}>{children}</Context.Provider>;
 }
 export function useMarket(){const c=useContext(Context);if(!c)throw Error('MarketProvider missing');return c}

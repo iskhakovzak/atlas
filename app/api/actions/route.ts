@@ -1,5 +1,5 @@
 import {actionSchema,applyAction} from '@/lib/market/actions';
-import {account,customerStatus,database,identity,operator,sameOrigin,persist,json,failure,HttpError,requestJson,pricing,policy,deferBackground} from '@/lib/market/server';
+import {account,customerStatus,database,identity,operator,sameOrigin,persist,json,failure,HttpError,requestJson,pricingAndPolicy,deferBackground} from '@/lib/market/server';
 import {apiErrorMessage,requestLocale} from '@/lib/market/i18n';
 import {fetchProduct} from '@/lib/importer/fetch';
 import {manualFallbackAllowed} from '@/lib/importer/manual-fallback';
@@ -25,7 +25,7 @@ export async function POST(request:Request){try{
   let next;
   let verifiedSource:Awaited<ReturnType<typeof fetchProduct>>|undefined;
   try{
-     const [currentPricing,currentPolicy]=await Promise.all([pricing(),policy()]);
+     const {pricing:currentPricing,policy:currentPolicy}=await pricingAndPolicy();
      if(parsed.data.type==='cart-add'&&parsed.data.product.sourceUrl){
        try{
          verifiedSource=await fetchProduct(parsed.data.product.sourceUrl);
