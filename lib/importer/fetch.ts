@@ -8,10 +8,12 @@ export {supportedStoreCount};
  * manually entered details when a merchant does not expose a public response. */
 export class ManualEntryFallbackError extends Error {
   readonly partial?: Extracted;
-  constructor(message = 'Магазин временно не отдал данные товара. Заполните и подтвердите цену, валюту и выбранный вариант вручную; Atlas сверит цену и валюту, если получит ответ.', partial?: Extracted) {
+  readonly reason: 'blocked' | 'network' | 'upstream' | 'response' | 'redirect' | 'timeout' | 'incomplete' | 'unknown';
+  constructor(message = 'Магазин временно не отдал данные товара. Заполните и подтвердите цену, валюту и выбранный вариант вручную; Atlas сверит цену и валюту, если получит ответ.', partial?: Extracted, reason: ManualEntryFallbackError['reason'] = 'unknown') {
     super(message);
     this.name = 'ManualEntryFallbackError';
     this.partial = partial;
+    this.reason = reason;
   }
 }
 
@@ -41,10 +43,12 @@ export function allowedUrl(value: string) {
 function finalizeExtraction(extracted:Extracted,sourceUrl:string){
   const images=dedupeSafeImages([extracted.image,...(extracted.images??[])],sourceUrl);
   const result={...extracted,image:images[0]??extracted.image,images};
-  if(!result.title||result.price===undefined||!result.currency){
+  const hasProductPrice=typeof result.price==='number'&&Number.isFinite(result.price)&&result.price>0;
+  const hasVariantPrice=(result.variants??[]).some(variant=>typeof variant.price==='number'&&Number.isFinite(variant.price)&&variant.price>0);
+  if(!result.title||(!hasProductPrice&&!hasVariantPrice)||!result.currency){
     throw new ManualEntryFallbackError(/^ebay\./i.test(new URL(sourceUrl).hostname)
       ? 'eBay не предоставил полные публичные данные объявления. Проверьте карточку и подтвердите цену и вариант вручную.'
-      : 'Магазин не отдал полные данные товара. Заполните и подтвердите недостающие поля вручную.',result);
+      : 'Магазин не отдал полные данные товара. Заполните и подтвердите недостающие поля вручную.',result,'incomplete');
   }
   return result;
 }
@@ -117,13 +121,17 @@ function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = br
 
 async function readBody(response: Response, format: 'html' | 'json', maxBytes = format === 'html' ? 3_000_000 : 1_000_000) {
   const contentType = response.headers.get('content-type') ?? '';
-  if (!response.ok || !(format === 'html' ? contentType.includes('text/html') : /json|javascript/i.test(contentType))) {
+  const validType = format === 'html' ? /(?:text\/html|application\/xhtml\+xml)/i.test(contentType) : /json|javascript/i.test(contentType);
+  if (!response.ok || !validType) {
     console.error('Public merchant response rejected', {url: response.url, status: response.status, contentType, format});
     await response.body?.cancel();
-    throw new ManualEntryFallbackError();
+    const reason = !response.ok
+      ? response.status === 401 || response.status === 403 || response.status === 429 ? 'blocked' : response.status >= 500 ? 'upstream' : 'response'
+      : 'response';
+    throw new ManualEntryFallbackError(undefined, undefined, reason);
   }
   const reader = response.body?.getReader();
-  if (!reader) throw new ManualEntryFallbackError();
+  if (!reader) throw new ManualEntryFallbackError(undefined, undefined, 'response');
   let size = 0, text = '';
   const decoder = new TextDecoder();
   while (true) {
@@ -132,7 +140,7 @@ async function readBody(response: Response, format: 'html' | 'json', maxBytes = 
     size += value.byteLength;
     if (size > maxBytes) {
       await reader.cancel();
-      throw new ManualEntryFallbackError();
+      throw new ManualEntryFallbackError(undefined, undefined, 'response');
     }
     text += decoder.decode(value, {stream: true});
   }
@@ -145,7 +153,7 @@ async function merchantFetch(input: string | URL, init: RequestInit) {
     return await fetch(input, init);
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') throw error;
-    throw new ManualEntryFallbackError();
+    throw new ManualEntryFallbackError(undefined, undefined, 'network');
   }
 }
 
@@ -199,10 +207,15 @@ async function readAmazonUs(start: URL, signal: AbortSignal) {
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get('location');
       await response.body?.cancel();
-      if (!location || i === 3) throw Error('Amazon перенаправил запрос. Используйте прямую ссылку на товар.');
-      url = allowedUrl(new URL(location, url).href);
-      if (!isAmazonUsUrl(url)) throw Error('Amazon изменил регион. Используйте ссылку с amazon.com.');
+      if (!location || i === 3) throw new ManualEntryFallbackError('Amazon перенаправил запрос. Заполните данные вручную; адрес перенаправления не открывался.',undefined,'redirect');
+      try { url = allowedUrl(new URL(location, url).href); }
+      catch { throw new ManualEntryFallbackError('Amazon изменил адрес страницы. Заполните данные вручную; новый адрес не открывался.',undefined,'redirect'); }
+      if (!isAmazonUsUrl(url)) throw new ManualEntryFallbackError('Amazon изменил регион. Заполните данные вручную; другой региональный адрес не открывался.',undefined,'redirect');
       continue;
+    }
+    if (response.status === 404 || response.status === 410) {
+      await response.body?.cancel();
+      throw Error('Магазин сообщил, что карточка товара не найдена. Проверьте ссылку.');
     }
     // Amazon product pages carry a large client-side state payload. Keep a
     // separate, still bounded ceiling for this allowlisted host so a valid
@@ -233,15 +246,15 @@ async function readAmazonUs(start: URL, signal: AbortSignal) {
     const locationText = await readBody(locationResponse, 'json');
     let locationData: {isValidAddress?: number; address?: {countryCode?: string; zipCode?: string}};
     try { locationData = JSON.parse(locationText) as typeof locationData; }
-    catch { throw new ManualEntryFallbackError(); }
+    catch { throw new ManualEntryFallbackError(undefined, undefined, 'response'); }
     if (locationData.isValidAddress !== 1 || locationData.address?.countryCode !== 'US' || locationData.address.zipCode !== AMAZON_US_POSTAL_CODE)
-      throw new ManualEntryFallbackError();
+      throw new ManualEntryFallbackError(undefined, undefined, 'response');
 
     jar.set('i18n-prefs', 'USD');
     jar.set('lc-main', 'en_US');
     const refreshed = await merchantFetch(url, {redirect: 'manual', signal, headers: requestHeaders('html', cookieHeader(jar), amazonUserAgent)});
     mergeCookies(jar, refreshed);
-    if (refreshed.status >= 300 && refreshed.status < 400) throw Error('Amazon изменил карточку после выбора региона. Используйте прямую ссылку на товар.');
+    if (refreshed.status >= 300 && refreshed.status < 400) throw new ManualEntryFallbackError('Amazon изменил адрес карточки после выбора региона. Заполните данные вручную; новый адрес не открывался.',undefined,'redirect');
     const refreshedHtml = await readBody(refreshed, 'html', 6_000_000);
     // Location validation is already done by verifying the locationData response
     // from the address-change endpoint above. The HTML representation of the ZIP
@@ -261,14 +274,15 @@ async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'jso
     }
     if (response.status === 401 || response.status === 403 || response.status === 429 || response.status >= 500) {
       await response.body?.cancel();
-      throw new ManualEntryFallbackError();
+      throw new ManualEntryFallbackError(undefined, undefined, response.status>=500?'upstream':'blocked');
     }
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get('location');
       await response.body?.cancel();
-      if (!location || i === 3) throw Error('Магазин перенаправляет запрос. Используйте прямую ссылку на товар.');
-      url = allowedUrl(new URL(location, url).href);
-      if (format === 'json' && url.origin !== start.origin && !options.allowedOrigins?.includes(url.origin)) throw Error('Магазин изменил регион. Используйте прямую ссылку нужного региона.');
+      if (!location || i === 3) throw new ManualEntryFallbackError('Магазин перенаправил запрос. Заполните данные вручную; адрес перенаправления не открывался.',undefined,'redirect');
+      try { url = allowedUrl(new URL(location, url).href); }
+      catch { throw new ManualEntryFallbackError('Магазин перенаправил запрос за пределы разрешённых страниц. Заполните данные вручную; новый адрес не открывался.',undefined,'redirect'); }
+      if (format === 'json' && url.origin !== start.origin && !options.allowedOrigins?.includes(url.origin)) throw new ManualEntryFallbackError('Магазин изменил регион API. Заполните данные вручную; новый адрес не открывался.',undefined,'redirect');
       continue;
     }
     return {text: await readBody(response, format), url};

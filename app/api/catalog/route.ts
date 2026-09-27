@@ -2,6 +2,7 @@ import {z} from 'zod';
 import {database,identity,operator,sameOrigin,requestJson,json,failure,HttpError,pricing} from '@/lib/market/server';
 import {readCatalog,persistCatalog} from '@/lib/market/catalog-server';
 import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,manualFallbackCatalogDraft,recheckedDraft,changeCatalog,publicCatalog,catalogMaxEntries} from '@/lib/market/catalog-editor';
+import type {CatalogDraft} from '@/lib/market/catalog-editor';
 import {fetchProduct,fetchCollectionLinks,ManualEntryFallbackError} from '@/lib/importer/fetch';
 import type {Extracted} from '@/lib/importer/extract';
 import {refreshDueCatalog} from '@/lib/market/catalog-refresh';
@@ -14,7 +15,7 @@ const commandSchema=z.discriminatedUnion('kind',[
   z.object({kind:z.literal('recheck'),ids:z.array(z.string().min(1).max(100)).min(1).max(10)}),
   z.object({kind:z.literal('refresh-due')}),
   z.object({kind:z.literal('edit'),id:z.string().max(100),draft:catalogDraftSchema}),
-  z.object({kind:z.literal('publish'),ids}),z.object({kind:z.literal('hide'),ids}),
+  z.object({kind:z.literal('publish'),ids}),z.object({kind:z.literal('hide'),ids}),z.object({kind:z.literal('delete-drafts'),ids}),
   z.object({kind:z.literal('collection'),collection:collectionSchema}),
 ]);
 export async function GET(request:Request){try{
@@ -35,8 +36,8 @@ export async function POST(request:Request){try{
   }
   if(command.kind==='recheck'){
     const results:string[]=[];
-    for(const id of command.ids){const entry=document.entries.find(item=>item.id===id);if(!entry){results.push(`${id}: товар не найден`);continue}try{const data=await fetchProduct(entry.draft.sourceUrl),fresh=importDraft(data,entry.draft.collectionIds,entry.draft.country,Date.now());entry.draft=recheckedDraft(entry.draft,fresh);document.availabilityReports=document.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:Date.now()}:report);results.push(`${entry.draft.name}: проверено`)}catch(error){entry.draft.lastCheckError=(error as Error).message.slice(0,500);const locale=requestLocale(request);results.push(`${entry.draft.name}: ${locale==='ru'?(error as Error).message:apiErrorMessage(422,locale)}`)}}
-    document.revision++;await persistCatalog(document,raw,user,'catalog.recheck');return json({document,recheckResults:results});
+    for(const id of command.ids){const entry=document.entries.find(item=>item.id===id);if(!entry){results.push(`${id}: товар не найден`);continue}try{const data=await fetchProduct(entry.draft.sourceUrl),fresh=importDraft(data,entry.draft.collectionIds,entry.draft.country,Date.now());entry.draft=recheckedDraft(entry.draft,fresh);document.availabilityReports=document.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:Date.now()}:report);results.push(`${entry.draft.name}: проверено`)}catch(error){entry.draft.lastCheckError=(error as Error).message.slice(0,500);entry.draft.importFailureReason=error instanceof ManualEntryFallbackError?error.reason:error instanceof Error&&error.name==='AbortError'?'timeout':undefined;const locale=requestLocale(request);results.push(`${entry.draft.name}: ${locale==='ru'?(error as Error).message:apiErrorMessage(422,locale)}`)}}
+    document.revision++;await persistCatalog(document,raw,user,'catalog.recheck',{ids:command.ids});return json({document,recheckResults:results});
   }
   if(command.kind==='import'||command.kind==='discover'){
     const sourceUrl=canonicalCatalogUrl(command.url),now=Date.now(),db=database();
@@ -46,22 +47,25 @@ export async function POST(request:Request){try{
     await db.prepare('DELETE FROM market_rate_limits WHERE expires_at < ?').bind(now).run();
     if(command.kind==='discover')return json({urls:await fetchCollectionLinks(sourceUrl)});
     if(command.collectionIds.some(id=>!document.collections.some(c=>c.id===id)))throw new HttpError(400, 'err_33');
-    let data:Extracted|undefined,sourceUnavailable=false;
+    let data:Extracted|undefined,sourceUnavailable=false,failureMessage='',failureReason:CatalogDraft['importFailureReason']='unknown';
     try{data=await fetchProduct(sourceUrl)}catch(error){
       const canSaveManualDraft=error instanceof ManualEntryFallbackError||error instanceof Error&&error.name==='AbortError';
       if(!canSaveManualDraft)throw error;
       sourceUnavailable=true;
+      failureMessage=error instanceof Error&&error.name!=='AbortError'?error.message:'Магазин не ответил вовремя. Повторите проверку позже.';
+      failureReason=error instanceof ManualEntryFallbackError?error.reason:error instanceof Error&&error.name==='AbortError'?'timeout':'unknown';
       data=error instanceof ManualEntryFallbackError?error.partial:undefined;
     }
     const draft=sourceUnavailable
-      ?manualFallbackCatalogDraft(data,sourceUrl,command.collectionIds,command.country,Date.now())
+      ?manualFallbackCatalogDraft(data,sourceUrl,command.collectionIds,command.country,Date.now(),failureMessage,failureReason)
       :importDraft(data!,command.collectionIds,command.country,Date.now());
     const existing=document.entries.find(e=>canonicalCatalogUrl(e.draft.sourceUrl)===draft.sourceUrl||canonicalCatalogUrl(e.draft.sourceUrl)===sourceUrl);
-    if(existing){const mergedCollections=[...new Set([...existing.draft.collectionIds,...command.collectionIds])];if(sourceUnavailable)existing.draft.lastCheckError='Магазин временно не подтвердил данные; сохранённые поля карточки оставлены без изменений.';else existing.draft=recheckedDraft(existing.draft,draft);existing.draft.collectionIds=mergedCollections;}
-    else{if(document.entries.length>=catalogMaxEntries)throw new HttpError(400,`В каталоге уже ${catalogMaxEntries} товаров.`);document.entries.push({id:'find-'+crypto.randomUUID(),draft});}
+    if(existing){const mergedCollections=[...new Set([...existing.draft.collectionIds,...command.collectionIds])];if(sourceUnavailable){existing.draft.lastCheckError=failureMessage.slice(0,500);existing.draft.importFailureReason=failureReason;}else{existing.draft=recheckedDraft(existing.draft,draft);if(!existing.published){existing.createdAt??=now;existing.origin??='operator-import';existing.queueState='queued';}}existing.draft.collectionIds=mergedCollections;}
+    else{if(document.entries.length>=catalogMaxEntries)throw new HttpError(400,`В каталоге уже ${catalogMaxEntries} товаров.`);document.entries.push({id:'find-'+crypto.randomUUID(),draft,createdAt:now,origin:'operator-import',queueState:'queued'});}
     document.revision++;
     await persistCatalog(document,raw,user,'catalog.import');return json({document,importedId:existing?.id??document.entries.at(-1)!.id});
   }
   let next;try{next=changeCatalog(document,command,Date.now(),await pricing())}catch(error){throw new HttpError(400,(error as Error).message)}
-  await persistCatalog(next,raw,user,'catalog.'+command.kind);return json({document:next});
+  const auditDetails='ids' in command?{ids:command.ids}:undefined;
+  await persistCatalog(next,raw,user,'catalog.'+command.kind,auditDetails);return json({document:next});
 }catch(error){return failure(error,request)}}

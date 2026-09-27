@@ -283,3 +283,11 @@
 - [x] Clip catalog photos to the rounded visual frame, remove the excessive title-to-price gap, compact estimate rows and constrain the supported-store strip to a centered readable width.
 - [ ] As of 27 September 2026 the live catalog API returned 24 published cards, all beyond the seven-day confirmation window. Preliminary estimates can be displayed from their stored source prices, but none should be represented as current. Verify the separate scheduled Worker deployment/secret and obtain fresh operator-reviewed imports before advertising current prices.
 - [ ] Confirm the published `/order-by-link` → `/cart` manual fallback with an isolated test identity/cart, and visually inspect the live catalog in light/dark at phone and desktop widths; do not use a real purchase flow for verification.
+
+## Catalog queue and importer reliability — 27 September 2026
+
+- [x] Separate newly queued, published, previously added/hidden, and all catalog entries for operator review; add responsive five-column cards, explicit multi-select, bounded recheck, reversible hide and confirmed removal of eligible drafts.
+- [x] Keep catalog queue metadata optional for legacy D1 JSON and protect published/bundled products from hard deletion; audit mutation IDs.
+- [x] Retain manual-review drafts for recoverable importer failures without asserting price, currency, variant price or stock; preserve Shopify per-variant prices, support XHTML and do not follow unapproved redirects.
+- [ ] Run full lint/build in the supported Sites toolchain and complete a visual admin pass at desktop/mobile widths and both themes; the local pnpm wrapper attempted an unattended install and was stopped, so no dependency directory was changed.
+- [ ] Verify high-priority merchant adapters against authorized live pages or stable fixtures maintained per merchant. An allowlisted hostname is not proof that each product page can be parsed.

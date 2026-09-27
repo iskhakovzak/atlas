@@ -22,6 +22,26 @@ test('Shopify retains variant price, size, color, availability and safe gallery'
   assert.throws(()=>extractShopify(product,{},url));
   assert.throws(()=>extractShopify({...product,handle:'other'},{currency:'USD'},url));
 });
+test('Shopify products with variant-specific prices remain importable without a guessed base price',async()=>{
+ const original=globalThis.fetch;
+ globalThis.fetch=async(input)=>String(input).endsWith('/cart.js?country=US')?Response.json({currency:'USD'}):Response.json({...product,variants:product.variants.map((variant,index)=>({...variant,price:(11000+index*1000)}))});
+ try{
+  const result=await fetchProduct(url);
+  assert.equal(result.price,undefined);
+  assert.deepEqual(result.variants.map(item=>item.price),[110,120,130]);
+  assert.match(result.warnings.join(' '),/Выберите вариант/);
+ }finally{globalThis.fetch=original;}
+});
+test('XHTML product pages are parsed as supported HTML documents',async()=>{
+ const original=globalThis.fetch,markup=`<script type="application/ld+json">${JSON.stringify({'@type':'Product',name:'Example running shoe',image:['https://static.nike.com/a.jpg'],offers:{price:'79.99',priceCurrency:'USD',availability:'https://schema.org/InStock'}})}</script>`;
+ globalThis.fetch=async()=>new Response(markup,{headers:{'Content-Type':'application/xhtml+xml; charset=utf-8'}});
+ try{const result=await fetchProduct('https://www.nike.com/t/example-running-shoe/DM4044-108');assert.equal(result.title,'Example running shoe');assert.equal(result.price,79.99)}finally{globalThis.fetch=original;}
+});
+test('unsafe merchant redirects preserve a manual-entry path without following the target',async()=>{
+ const original=globalThis.fetch;let requests=0;
+ globalThis.fetch=async()=>{requests++;return new Response('',{status:302,headers:{Location:'https://untrusted.example/item'}})};
+ try{await assert.rejects(fetchProduct('https://www.nike.com/t/example/DM4044-108'),error=>error instanceof ManualEntryFallbackError&&error.reason==='redirect');assert.equal(requests,1)}finally{globalThis.fetch=original;}
+});
 test('Shopify endpoints preserve locale but reject unapproved hosts and nonproducts',()=>{
   const e=shopifyEndpoints(new URL('https://kyliecosmetics.com/en-gb/collections/lips/products/lip-kit?variant=1'));
   assert.equal(e.product.href,'https://kyliecosmetics.com/en-gb/products/lip-kit.js?country=GB');

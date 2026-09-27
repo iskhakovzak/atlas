@@ -1902,3 +1902,51 @@ html[data-theme="dark"] .storage-notice button:hover {
   border-color: #b7c99f;
   color: #222722;
 }
+
+html[data-theme="dark"] .catalog-scope-tabs {
+  border-color: var(--atlas-dark-line);
+}
+
+html[data-theme="dark"] .catalog-scope-tabs button:hover,
+html[data-theme="dark"] .catalog-scope-tabs button.active {
+  background: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .catalog-scope-tabs button span,
+html[data-theme="dark"] .catalog-empty-state {
+  background: var(--atlas-dark-raised);
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .catalog-scope-tabs button.active span {
+  background: #384936;
+  color: #e6f2da;
+}
+
+html[data-theme="dark"] .catalog-review-controls input,
+html[data-theme="dark"] .catalog-review-controls select,
+html[data-theme="dark"] .catalog-draft {
+  background: var(--atlas-dark-surface);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .catalog-select .draft-new {
+  background: #304334;
+  border-color: #4d664f;
+  color: #e3f0d8;
+}
+
+html[data-theme="dark"] .catalog-delete-action {
+  background: #382725;
+  border-color: #70443f;
+  color: #ffd4cd;
+}
+
+html[data-theme="dark"] .catalog-delete-action:hover:not(:disabled) {
+  background: #4b2c28;
+  border-color: #a05a51;
+  color: #fff0ec;
+}

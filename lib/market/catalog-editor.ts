@@ -22,12 +22,16 @@ export const catalogDraftSchema=z.object({
   variants:z.array(sourceVariantSchema).max(250),
   collectionIds:z.array(text.max(80)).max(20),description:text.max(600),checkedAt:z.number().int().nonnegative(),
   warnings:z.array(text.max(500)).max(20),soldOut:z.boolean().optional(),reviewReasons:z.array(text.max(240)).max(10).optional(),lastCheckError:text.max(500).optional(),
+  importFailureReason:z.enum(['blocked','network','upstream','response','redirect','timeout','incomplete','unknown']).optional(),
 });
 export type CatalogDraft=z.infer<typeof catalogDraftSchema>;
 export const collectionSchema=z.object({id:text.min(1).max(80),name:text.min(1).max(80),nameUz:text.max(80).default(''),nameEn:text.max(80).default(''),description:text.max(240).default(''),visible:z.boolean(),position:z.number().int().min(0).max(1000)});
 export type CatalogCollection=z.infer<typeof collectionSchema>;
+export const catalogOriginSchema=z.enum(['operator-import','customer-link','bundled']);
+export const catalogQueueStateSchema=z.enum(['queued','published','archived']);
 export const catalogEntrySchema=z.object({
   id:text.min(1).max(100),draft:catalogDraftSchema,published:catalogDraftSchema.optional(),publishedAt:z.number().optional(),
+  createdAt:z.number().int().nonnegative().optional(),origin:catalogOriginSchema.optional(),queueState:catalogQueueStateSchema.optional(),
   refresh:catalogRefreshSchema.optional(),autoHiddenAt:z.number().int().nonnegative().optional(),autoHideReason:z.enum(['source-sold-out']).optional(),
 });
 export type CatalogEntry=z.infer<typeof catalogEntrySchema>;
@@ -38,6 +42,8 @@ export const catalogAvailabilityReportSchema=z.object({
 });
 export type CatalogAvailabilityReport=z.infer<typeof catalogAvailabilityReportSchema>;
 export const catalogMaxEntries=100;
+const bundledCatalogIds=new Set(bundledMerchantFinds.map(item=>item.id));
+export function isBundledCatalogEntry(id:string){return bundledCatalogIds.has(id)}
 export const catalogDocumentSchema=z.object({revision:z.number().int().nonnegative(),entries:z.array(catalogEntrySchema).max(catalogMaxEntries),collections:z.array(collectionSchema).max(30),availabilityReports:z.array(catalogAvailabilityReportSchema).max(300).optional()});
 export type CatalogDocument=z.infer<typeof catalogDocumentSchema>;
 export const catalogLifetime=7*24*60*60*1000;
@@ -73,7 +79,7 @@ export function canonicalCatalogUrl(value:string){
 export function initialCatalog():CatalogDocument{
   return {revision:0,collections:[],entries:bundledMerchantFinds.map(item=>{
     const draft=bundledDraft(item);
-    return{id:item.id,draft,published:structuredClone(draft),publishedAt:Date.parse(item.observedOn)};
+    return{id:item.id,draft,published:structuredClone(draft),publishedAt:Date.parse(item.observedOn),origin:'bundled' as const,queueState:'published' as const};
   })};
 }
 
@@ -107,14 +113,14 @@ export function importDraft(data:Extracted,collectionIds:string[],country:string
 }
 
 /** Keep a supported merchant link reviewable when its public importer is blocked. */
-export function manualFallbackCatalogDraft(data:Extracted|undefined,sourceUrl:string,collectionIds:string[],country:string,now=Date.now()):CatalogDraft{
+export function manualFallbackCatalogDraft(data:Extracted|undefined,sourceUrl:string,collectionIds:string[],country:string,now=Date.now(),failureMessage?:string,failureReason:CatalogDraft['importFailureReason']='unknown'):CatalogDraft{
  const host=new URL(sourceUrl).hostname.replace(/^www\./,'');
  const draft=importDraft({
   ...data,sourceUrl,brand:data?.brand??host,price:undefined,currency:'',
   variants:(data?.variants??[]).map(variant=>({...variant,price:undefined,available:false,availabilityKnown:false})),
   warnings:[...(data?.warnings??[]),'Автоимпорт не подтвердил данные магазина. Проверьте карточку вручную перед публикацией.'],
  },collectionIds,country,now);
- return catalogDraftSchema.parse({...draft,reviewReasons:['Требуется ручная проверка цены, варианта и фото перед публикацией.'],lastCheckError:'Магазин не подтвердил цену и наличие.'});
+ return catalogDraftSchema.parse({...draft,reviewReasons:['Требуется ручная проверка цены, варианта и фото перед публикацией.'],lastCheckError:(failureMessage||'Магазин не подтвердил цену и наличие.').slice(0,500),importFailureReason:failureReason});
 }
 
 const generatedCatalogDescriptions = new Set([
@@ -339,6 +345,7 @@ export type CatalogCommand=
   |{kind:'edit';id:string;draft:CatalogDraft}
   |{kind:'publish';ids:string[]}
   |{kind:'hide';ids:string[]}
+  |{kind:'delete-drafts';ids:string[]}
   |{kind:'collection';collection:CatalogCollection};
 export function changeCatalog(current:CatalogDocument,command:CatalogCommand,now=Date.now(),pricing:Pricing=tariff):CatalogDocument{
   const next=structuredClone(current);
@@ -354,13 +361,22 @@ export function changeCatalog(current:CatalogDocument,command:CatalogCommand,now
     draft.images=draft.images.map(i=>safeImage(i,draft.sourceUrl)).filter((i):i is string=>!!i);
     if(draft.collectionIds.some(id=>!next.collections.some(c=>c.id===id)))throw Error('Подборка не найдена');
     entry.draft=draft;
+  }else if(command.kind==='delete-drafts'){
+    const ids=[...new Set(command.ids)];
+    for(const id of ids){
+      const entry=next.entries.find(item=>item.id===id);if(!entry)throw Error('Товар не найден');
+      if(entry.published)throw Error('Опубликованный товар сначала уберите из публичного каталога.');
+      if(isBundledCatalogEntry(id))throw Error('Встроенный товар нельзя удалить; его можно только скрыть.');
+    }
+    const removed=new Set(ids);next.entries=next.entries.filter(entry=>!removed.has(entry.id));
+    next.availabilityReports=next.availabilityReports?.filter(report=>!removed.has(report.productId));
   }else{
     for(const id of command.ids){
       const entry=next.entries.find(e=>e.id===id);if(!entry)throw Error('Товар не найден');
-      if(command.kind==='hide'){delete entry.published;delete entry.publishedAt;next.availabilityReports=next.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:now}:report);continue}
+      if(command.kind==='hide'){delete entry.published;delete entry.publishedAt;entry.queueState='archived';next.availabilityReports=next.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:now}:report);continue}
       const issues=catalogIssues(entry.draft,now,pricing.rates);
       if(issues.length)throw Error(`${entry.draft.name||'Товар'}: ${issues.join(', ')}`);
-      entry.published=structuredClone(entry.draft);entry.publishedAt=now;
+      entry.published=structuredClone(entry.draft);entry.publishedAt=now;entry.queueState='published';
     }
   }
   next.revision++;return catalogDocumentSchema.parse(next);

@@ -314,3 +314,12 @@ After a source-backed cart addition has been verified and saved, `addCustomerLin
 - `GET /api/account` reads an existing D1 account without issuing initialization writes. Legacy platform-ID migration and default-account creation remain supported on a missing-row path with idempotent inserts.
 - Account/action/operator endpoints fetch pricing and policy settings in one D1 query; response shapes and fallbacks remain unchanged.
 - Do not move merchant price/option checks, account CAS writes, or server-side quote recomputation out of the authorized action path. Remaining large shared client/runtime and global CSS assets are recorded in `TODO.md` for measurement-led follow-up.
+
+## Catalog review queue and resilient importer — 27 September 2026
+
+- `CatalogEntry.createdAt`, `origin`, and `queueState`, plus `CatalogDraft.importFailureReason`, are optional versioned JSON fields. Old D1 catalog records continue to parse; no SQL migration is required.
+- Operator imports and customer link orders are queued as private drafts. The admin view separates new queue, currently published, earlier/archived entries and all records; selection actions operate on explicit IDs and are written to the existing catalog audit stream.
+- Hard-delete is restricted to unpublished, non-bundled drafts. Published and bundled products remain recoverable through hide/unpublish; order snapshots and customer carts are not changed by catalog draft deletion.
+- Merchant request/parser/network failures can be represented as manual-review drafts with unknown price and availability. Manual entry does not bypass the existing live exact-variant, price and currency checks on cart/checkout.
+- Shopify products with only per-variant prices remain importable without inventing a base price. Generic HTML parsing accepts XHTML. Redirects outside the allowlist become a manual path without following the destination.
+- Allowlisting a store root does not imply a dedicated adapter or reliable extraction. Live behavior across all supported stores is still unverified; do not state that every store auto-imports perfectly.

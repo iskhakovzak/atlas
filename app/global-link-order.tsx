@@ -264,8 +264,9 @@ export function GlobalLinkOrder() {
           ? receivedVariants
           : fallbackOptions;
       const safeVariants = knownCurrency ? importedVariants : importedVariants.map(item => ({...item, price: undefined}));
-      const selectableVariants = safeVariants;
-      setVariants(safeVariants);
+      const hasPricedVariants=knownCurrency&&safeVariants.some(item=>typeof item.price==='number'&&Number.isFinite(item.price)&&item.price>0);
+      const selectableVariants=data.price===undefined&&hasPricedVariants?safeVariants.filter(item=>typeof item.price==='number'&&Number.isFinite(item.price)&&item.price>0):safeVariants;
+      setVariants(selectableVariants);
       const selectedId = new URL(data.sourceUrl).searchParams.get('variant');
       const selectedVariant = selectableVariants.find(item => item.id && item.id === selectedId)
         ?? (selectableVariants.length === 1 ? selectableVariants[0] : undefined);
@@ -296,7 +297,7 @@ export function GlobalLinkOrder() {
       );
       setImportedAt(data.fetchedAt ?? Date.now());
       setSourceExpiresAt(data.expiresAt);
-      const sourceHasPrice=typeof data.price==='number'&&Boolean(data.currency&&currencies.includes(data.currency))&&Boolean(selectableVariants.length);
+      const sourceHasPrice=Boolean(data.currency&&currencies.includes(data.currency))&&Boolean(selectableVariants.length)&&(typeof data.price==='number'&&Number.isFinite(data.price)&&data.price>0||hasPricedVariants);
       setSourceCheckStatus(sourceHasPrice?'verified':'failed');
       // Shipping may depend on destination/session; require explicit confirmation even if found.
       if (data.shipping !== undefined) {
@@ -331,6 +332,7 @@ export function GlobalLinkOrder() {
           data.cached ? tx("Использованы недавно проверенные данные.", "Yaqinda tekshirilgan ma’lumotlar ishlatildi.", "Recently checked data was used.") : "",
           ...data.warnings,
           !sourceHasPrice?tx("Цена или вариант не получены — заполните их вручную и подтвердите.","Narx yoki variant olinmadi — ularni qo‘lda kiriting va tasdiqlang.","Price or option was not returned — enter and confirm it manually."):"",
+          selectableVariants.length<safeVariants.length?tx("Варианты без подтверждённой цены магазина не показаны.","Do‘kon tasdiqlagan narxi yo‘q variantlar ko‘rsatilmaydi.","Options without a store-confirmed price are not shown."):"",
           shippingMessage,
           data.currency && !currencies.includes(data.currency)
              ? tx("Валюта ", "Valyuta ", "Currency ") +

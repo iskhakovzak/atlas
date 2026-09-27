@@ -564,3 +564,11 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Removed the stale profile-export wording from the home trust copy. Aligned the RU/UZ/EN store-directory heading meaning and corrected the Uzbek count label without changing directory contents or importer support claims.
 - Applied the Atlas forest accent to Atlas controls while retaining blue for navigation and original merchant links; dark-mode primary buttons and the logo arrow use a softer sage brand accent. Corrected a mobile cascade that hid the operator-only admin icon and overrode flexible admin table columns with narrow fixed widths.
 - The in-app Browser runtime rejected the supported setup import (`node:process` is unavailable), so actual font rendering, screenshots and mobile interaction were not verified. Unit tests/build and source inspection do not replace a deployed guest/customer/operator visual pass or physical iPhone Safari.
+
+## Admin catalog queue and importer fallback — 27 September 2026
+
+- Catalog review defaults to newly queued imports; published, previously added/hidden, and all records have separate tabs. Desktop cards display in a five-column grid where width permits and collapse responsively; editors span the full grid width.
+- Operators can select all matching results, recheck in bounded groups of ten, hide/unpublish, or confirm deletion of unpublished non-bundled drafts. The API checks operator identity and same-origin, validates IDs/state/revision, and audits affected IDs. Bundled/published items are protected from hard deletion.
+- Imports now preserve a reasoned manual-review path for upstream/network/response/redirect/incomplete failures. Incomplete importer data remains explicitly unconfirmed; add-to-cart and checkout continue to require existing server-side exact price/currency/variant validation.
+- Price-only variant matrices (notably Shopify product endpoints with no one base price) are retained without averaging or guessing; unpriced variants are called out. XHTML product responses are accepted, and disallowed redirect targets are never followed.
+- Automated fixtures are not live merchant verification. Store support remains adapter-specific and some approved sites may require customer/admin manual completion.

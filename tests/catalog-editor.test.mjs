@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {applyScheduledCatalogRefresh,catalogDocumentSchema,catalogIssues,catalogRefreshInterval,changeCatalog,cleanGeneratedCatalogDescription,customerLinkDraft,dueCatalogEntries,importDraft,initialCatalog,manualFallbackCatalogDraft,markCatalogRefreshFailed,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
+import {applyScheduledCatalogRefresh,catalogDocumentSchema,catalogIssues,catalogRefreshInterval,changeCatalog,cleanGeneratedCatalogDescription,customerLinkDraft,dueCatalogEntries,importDraft,initialCatalog,isBundledCatalogEntry,manualFallbackCatalogDraft,markCatalogRefreshFailed,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
 import {catalogRefreshPath,isAuthorizedCatalogRefresh,signCatalogRefreshRequest} from '../lib/market/catalog-refresh-auth.ts';
 import {communityCatalogProducts} from '../lib/market/community-deals.ts';
 import {catalogOrderVariants,keepCatalogVisible} from '../lib/market/catalog.ts';
@@ -47,6 +47,23 @@ test('blocked store imports stay as incomplete manual drafts without asserting p
  const blank=manualFallbackCatalogDraft(undefined,'https://www.asos.com/asos-design/prd/123456789',[],'Великобритания',1000);
  assert.equal(blank.brand,'asos.com');assert.equal(blank.country,'Великобритания');
  assert(catalogIssues(blank,1001).includes('Доступный вариант'));
+});
+test('catalog review state is optional for legacy records and manual failures retain a reason',()=>{
+ const base=importDraft(extracted,[],'США',1000);
+ const legacy=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'legacy-entry',draft:base}]});
+ assert.equal(legacy.entries[0].origin,undefined);assert.equal(legacy.entries[0].queueState,undefined);assert.equal(legacy.entries[0].createdAt,undefined);
+ const manual=manualFallbackCatalogDraft(undefined,'https://www.amazon.com/dp/B09XS7JWHH',[],'США',1000,'Amazon blocked this request','blocked');
+ assert.equal(manual.importFailureReason,'blocked');assert.match(manual.lastCheckError,/blocked/);
+});
+test('catalog queue supports deleting only unpublished imported drafts and keeps reports consistent',()=>{
+ const doc=initialCatalog(),draft=importDraft(extracted,[],'США',1000);doc.entries.push({id:'queued-import',draft,createdAt:1000,origin:'operator-import',queueState:'queued'});
+ doc.availabilityReports=[{id:'report-1',productId:'queued-import',sourceUrl:draft.sourceUrl,answer:'unavailable',reporterId:'customer-1',createdAt:1001}];
+ const deleted=changeCatalog(doc,{kind:'delete-drafts',ids:['queued-import','queued-import']},1002,tariff);
+ assert(!deleted.entries.some(entry=>entry.id==='queued-import'));assert.equal(deleted.availabilityReports.length,0);
+ assert.throws(()=>changeCatalog(doc,{kind:'delete-drafts',ids:[doc.entries[0].id]},1002,tariff),/Опубликованный товар/);
+ const bundled=structuredClone(doc);delete bundled.entries[0].published;
+ assert.equal(isBundledCatalogEntry(bundled.entries[0].id),true);
+ assert.throws(()=>changeCatalog(bundled,{kind:'delete-drafts',ids:[bundled.entries[0].id]},1002,tariff),/Встроенный товар/);
 });
 test('admin import deduplicates photos and chooses the first safe gallery image',()=>{
  const photo='https://cdn.shopify.com/product.jpg';
