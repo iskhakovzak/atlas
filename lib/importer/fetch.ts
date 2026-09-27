@@ -1,6 +1,6 @@
 import {dedupeSafeImages,extractAdidasProduct,extractProduct,type Extracted} from './extract.ts';
 import {extractShopify, shopifyEndpoints} from './shopify.ts';
-import {isSupportedStoreHost,supportedStoreCount} from './stores.ts';
+import {isEbayStoreHost,isSupportedStoreHost,supportedStoreCount} from './stores.ts';
 import {applyMerchantProfile} from './merchant-profiles.ts';
 export {supportedStoreCount};
 
@@ -374,6 +374,24 @@ export async function fetchProduct(value: string) {
         : 'Страница магазина не предоставила данные товара в доступном формате. Проверьте и подтвердите цену и вариант вручную.');
     }
     return finalizeExtraction(extracted,page.url.href);
+  } catch(error) {
+    // eBay blocks or reshapes public listing responses often. Keep those links
+    // in the manual-confirmation flow instead of stranding the customer on a
+    // hard import error. A confirmed 404/410 is still definitive and must not
+    // be converted into an orderable fallback.
+    if (isEbayStoreHost(url.hostname)) {
+      if (error instanceof Error && /карточка товара не найдена/i.test(error.message)) throw error;
+      if (error instanceof ManualEntryFallbackError && error.partial) throw error;
+      const message = error instanceof ManualEntryFallbackError
+        ? error.message
+        : 'eBay не предоставил данные объявления. Заполните и подтвердите цену, валюту и вариант вручную.';
+      throw new ManualEntryFallbackError(message, {
+        sourceUrl: url.href,
+        brand: 'eBay',
+        warnings: [],
+      });
+    }
+    throw error;
   } finally {clearTimeout(timer);}
 }
 

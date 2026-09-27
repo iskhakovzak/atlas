@@ -111,7 +111,11 @@ const generatedCatalogDescriptions = new Set([
   'Товар из каталога Atlas. При добавлении Atlas сверяет цену и валюту с данными магазина, если они доступны.',
 ]);
 export function cleanGeneratedCatalogDescription(value:string){
-  return generatedCatalogDescriptions.has(value.trim())?'':value;
+  const normalized=value.normalize('NFKC').replace(/^[\uFEFF\u200B\u200E\u200F\u2060]+/u,'').trim();
+  // A few legacy drafts were saved with a stray leading Cyrillic “в” before
+  // this generated copy. Treat only that exact whole-field variant as boilerplate.
+  const withoutLegacyPrefix=normalized.replace(/^[вВ](?=Товар из каталога Atlas\.)/u,'');
+  return generatedCatalogDescriptions.has(withoutLegacyPrefix)?'':value;
 }
 
 const customerLinkReviewReason='Добавлен после запроса покупателя — проверьте источник и опубликуйте вручную.';

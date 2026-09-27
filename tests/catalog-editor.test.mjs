@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {applyScheduledCatalogRefresh,catalogDocumentSchema,catalogIssues,catalogRefreshInterval,changeCatalog,customerLinkDraft,dueCatalogEntries,importDraft,initialCatalog,markCatalogRefreshFailed,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
+import {applyScheduledCatalogRefresh,catalogDocumentSchema,catalogIssues,catalogRefreshInterval,changeCatalog,cleanGeneratedCatalogDescription,customerLinkDraft,dueCatalogEntries,importDraft,initialCatalog,markCatalogRefreshFailed,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
 import {catalogRefreshPath,isAuthorizedCatalogRefresh,signCatalogRefreshRequest} from '../lib/market/catalog-refresh-auth.ts';
 import {communityCatalogProducts} from '../lib/market/community-deals.ts';
 import {catalogOrderVariants,keepCatalogVisible} from '../lib/market/catalog.ts';
@@ -19,6 +19,8 @@ test('customer link imports become reviewable drafts without public publication'
 });
 test('generated catalog boilerplate is hidden without erasing real product descriptions',()=>{
  const now=Date.now(),base=importDraft(extracted,[],'США',now),legacy='Товар из каталога Atlas. Цена, выбранный вариант и наличие повторно проверяются в магазине перед добавлением в корзину.';
+ assert.equal(cleanGeneratedCatalogDescription(legacy),'');
+ assert.equal(cleanGeneratedCatalogDescription(`в${legacy}`),'');
  const doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'legacy-copy',draft:{...base,description:legacy},published:{...base,description:legacy}}]});
  assert.equal(publicCatalog(doc,tariff,now+1).products[0].description,'');
  const custom='Кожаная куртка с утеплённой подкладкой.';
