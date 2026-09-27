@@ -2,9 +2,31 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {extractProduct, extractAdidasProduct} from '../lib/importer/extract.ts';
+import {priorityMerchants} from '../lib/importer/merchant-profiles.ts';
 
 const html = data => `<script type="application/ld+json">${JSON.stringify(data)}</script>`;
 const nike = JSON.parse(readFileSync(new URL('./fixtures/importer/nike-cortez.json', import.meta.url), 'utf8'));
+
+test('all 15 US priority roots accept an exact-source public embedded product contract', () => {
+  for (const [index, profile] of priorityMerchants(1).entries()) {
+    const sourceUrl = `https://www.${profile.root}/product/atlas-fixture/ATLAS${String(index + 1).padStart(5, '0')}`;
+    const state = {props: {pageProps: {product: {
+      url: sourceUrl,
+      name: 'Atlas Cotton Shirt',
+      brand: {name: 'Atlas'},
+      price: 24.5,
+      currency: 'USD',
+      images: [{url: 'https://cdn.example.net/atlas-fixture.jpg'}],
+      variants: [{skuId: `ATLAS-SKU-${index}`, color: 'Navy', size: 'M', price: 24.5, availability: 'In Stock'}],
+    }}}};
+    const result = extractProduct(`<script id="__NEXT_DATA__" type="application/json">${JSON.stringify(state)}</script>`, sourceUrl);
+    assert.equal(result.title, 'Atlas Cotton Shirt', profile.root);
+    assert.equal(result.price, 24.5, profile.root);
+    assert.equal(result.currency, 'USD', profile.root);
+    assert.equal(result.image, 'https://cdn.example.net/atlas-fixture.jpg', profile.root);
+    assert.deepEqual(result.variants.map(item => [item.color, item.size]), [['Navy', 'M']], profile.root);
+  }
+});
 
 test('captured Nike ProductGroup retains exact listing and distinct merchant size identifiers', () => {
   const result = extractProduct(html(nike.product), nike.sourceUrl + '?utm_source=fixture');
@@ -141,4 +163,74 @@ test('embedded state keeps product-defining colour queries exact', () => {
   const result = extractProduct(`<script id="__NEXT_DATA__" type="application/json">${JSON.stringify(state)}</script>`, sourceUrl);
   assert.equal(result.price, undefined);
   assert.equal(result.title, undefined);
+});
+
+test('Sephora US and Spain exact linkJSON pages import their own price and currency', () => {
+  const cases = [
+    {url: 'https://www.sephora.com/product/replica-by-fireplace-P404758?skuId=2415552', price: 85, currency: 'USD'},
+    {url: 'https://www.sephora.es/p/replica-by-the-fireplace-P3387007.html', price: 115, currency: 'EUR'},
+  ];
+  for (const item of cases) {
+    const data = [
+      {'@type': 'Product', url: 'https://www.sephora.com/product/not-this-item-P000001', name: 'Recommendation', offers: {price: 1, priceCurrency: 'USD'}},
+      {'@type': 'Product', url: item.url, name: 'Replica fragrance', image: 'https://www.sephora.com/productimages/sku/s123-main-zoom.jpg', brand: {name: 'Maison Margiela'}, offers: {url: item.url, price: item.price, priceCurrency: item.currency, availability: 'https://schema.org/InStock'}},
+    ];
+    const htmlText = `<script id="linkJSON">${JSON.stringify(data)}</script>`;
+    const result = extractProduct(htmlText, item.url);
+    assert.equal(result.title, 'Replica fragrance');
+    assert.equal(result.price, item.price);
+    assert.equal(result.currency, item.currency);
+    assert.deepEqual(result.variants, []);
+  }
+});
+
+test('exact Victoria’s Secret Spain ProductGroup retains shade and band/cup variants without child URLs', () => {
+  const sourceUrl = 'https://es.victoriassecret.com/es/vs/bras-catalog/5000009803';
+  const product = {
+    '@type': 'ProductGroup', url: sourceUrl, name: 'Sujetador Push-Up', brand: {name: "Victoria's Secret"},
+    hasVariant: [
+      {'@type': 'Product', skuId: 500000980301, additionalProperty: [{name: 'Color', value: 'Black'}, {name: 'Band Size', value: '34'}, {name: 'Cup Size', value: 'B'}], image: 'https://www.victoriassecret.com/images/black.jpg', offers: {price: 59.95, priceCurrency: 'EUR', availability: 'https://schema.org/InStock'}},
+      {'@type': 'Product', skuId: 500000980302, additionalProperty: [{name: 'Color', value: 'Black'}, {name: 'Band Size', value: '34'}, {name: 'Cup Size', value: 'C'}], offers: {price: 59.95, priceCurrency: 'EUR'}},
+      {'@type': 'Product', skuId: 500000980303, additionalProperty: [{name: 'Color', value: 'Rose'}, {name: 'Band Size', value: '36'}, {name: 'Cup Size', value: 'B'}], offers: {price: 59.95, priceCurrency: 'EUR'}},
+    ],
+  };
+  const result = extractProduct(html(product), sourceUrl);
+  assert.equal(result.method, 'JSON-LD');
+  assert.equal(result.price, 59.95);
+  assert.equal(result.currency, 'EUR');
+  assert.equal(result.country, 'Испания');
+  assert.equal(result.category, 'Одежда');
+  assert.deepEqual(result.variants.map(item => [item.id, item.color, item.size, item.sizeLabel, item.label]), [
+    ['500000980301', 'Black', '34 B', 'Band / cup', 'Black · 34 B'],
+    ['500000980302', 'Black', '34 C', 'Band / cup', 'Black · 34 C'],
+    ['500000980303', 'Rose', '36 B', 'Band / cup', 'Rose · 36 B'],
+  ]);
+  assert.equal(result.variants[0].availabilityKnown, true);
+  assert.equal(result.variants[1].availabilityKnown, false);
+});
+
+test('Victoria’s Secret US embedded data keeps exact product sizes and shade options', () => {
+  const sourceUrl = 'https://www.victoriassecret.com/us/vs/bras-catalog/5000000009';
+  const state = {props: {pageProps: {product: {
+    productId: '5000000009', name: 'Push-Up Smooth Bra', brand: "Victoria's Secret", price: 54.95, currency: 'USD',
+    variants: [
+      {skuId: 91001, optionValues: [{name: 'Shade', value: 'Black'}, {name: 'Band Size', value: '34'}, {name: 'Cup Size', value: 'B'}], isAvailable: true, images: ['https://www.victoriassecret.com/images/black.jpg']},
+      {skuId: 91002, optionValues: [{name: 'Shade', value: 'Black'}, {name: 'Band Size', value: '34'}, {name: 'Cup Size', value: 'C'}], isAvailable: false},
+    ],
+  }}}};
+  const result = extractProduct(`<script id="__NEXT_DATA__" type="application/json">${JSON.stringify(state)}</script>`, sourceUrl);
+  assert.equal(result.method, 'victoriassecret.com embedded product data');
+  assert.equal(result.price, 54.95);
+  assert.equal(result.currency, 'USD');
+  assert.equal(result.country, 'США');
+  assert.deepEqual(result.variants.map(item => [item.id, item.color, item.size, item.label, item.available, item.availabilityKnown]), [
+    ['91001', 'Black', '34 B', 'Black · 34 B', true, true],
+    ['91002', 'Black', '34 C', 'Black · 34 C', false, true],
+  ]);
+  const spainSource = 'https://es.victoriassecret.com/es/vs/bras-catalog/5000009803';
+  const spainState = {product: {productId: '5000009803', name: 'Sujetador Push-Up', price: 59.95, currency: 'EUR', variants: [{skuId: 92001, optionValues: [{name: 'Shade', value: 'Rose'}, {name: 'Band Size', value: '36'}, {name: 'Cup Size', value: 'B'}] }]}};
+  const spainResult = extractProduct(`<script id="__NEXT_DATA__" type="application/json">${JSON.stringify(spainState)}</script>`, spainSource);
+  assert.equal(spainResult.method, 'es.victoriassecret.com embedded product data');
+  assert.equal(spainResult.country, 'Испания');
+  assert.equal(spainResult.currency, 'EUR');
 });

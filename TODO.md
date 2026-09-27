@@ -235,5 +235,6 @@
 
 - [x] Make the operator's 10-link import queue visible and lossless: show per-link progress, retain failed/unprocessed URLs, recover stale revisions and retry safely without auto-publishing drafts.
 - [x] Show imported gallery and complete color/size/price/photo matrix in catalog review; pass bounded, sanitized optional option metadata through the public catalog and link-order fallback without changing legacy product/cart/order requirements.
-- [ ] Continue expanding verified merchant-specific option extraction; some stores omit sizes, colors, per-option prices or image variants in their public page response. Do not fabricate missing options.
+- [x] Add a fixed 15-store US-first priority set, exact Sephora US/Spain and Victoria's Secret US/Spain storefront handling, and generic named option axes for shade/color, size/format/volume and bra band/cup without relaxing URL or image checks.
+- [ ] Run authorized live import fixtures across the full 15-store US-first set and both Sephora/Victoria's Secret Spain storefronts. Current synthetic contracts do not prove merchant network access; these pages may block server requests or omit variant data. Do not bypass challenges or fabricate missing options.
 - [ ] Attach and verify `atlasmarket.uz` in Sites/DNS before switching canonical URLs. Then update structured data, `metadataBase`, robots, sitemap, `llms.txt` and catalog-refresh worker origin together and verify HTTPS/canonical redirects.

@@ -1,4 +1,5 @@
 import { extractMacysProduct } from './macys.ts';
+import { priorityMerchantProfiles } from './merchant-profiles.ts';
 export type ProductVariant = {
   id?: string;
   size?: string;
@@ -74,6 +75,11 @@ function embeddedText(value: unknown) {
   return typeof value === "string" ? clean(value) : "";
 }
 
+function embeddedIdentifier(value: unknown) {
+  if (typeof value === 'number' && Number.isSafeInteger(value)) return String(value);
+  return embeddedText(value);
+}
+
 function embeddedNumber(value: unknown) {
   if (value && typeof value === "object") {
     const record = value as EmbeddedRecord;
@@ -116,9 +122,9 @@ function embeddedCandidateMatches(record: EmbeddedRecord, sourceUrl: string, tok
   const urlFields = ['url', 'canonicalUrl', 'canonical', 'pdpUrl', 'productUrl', 'link', 'href', 'path'];
   const publishedUrls = urlFields.map(key => record[key]).filter(value => typeof value === 'string' && value.length > 0);
   if (publishedUrls.length) return publishedUrls.some(value => embeddedUrlMatches(value, sourceUrl));
-  const idFields = ['itemId', 'productId', 'styleCode', 'articleNumber', 'offerId', 'variantId', 'sku', 'id'];
+  const idFields = ['itemId', 'productId', 'genericId', 'productCode', 'styleCode', 'articleNumber', 'offerId', 'variantId', 'sku', 'id'];
   return idFields.some(key => {
-    const value = embeddedText(record[key]).toLowerCase();
+    const value = embeddedIdentifier(record[key]).toLowerCase();
     if (!value || value.length < 3) return false;
     // A numeric id must be long enough to be a real listing identifier. This
     // avoids matching a generic state key such as id=1 from a recommendation.
@@ -162,6 +168,53 @@ function embeddedAvailability(record: EmbeddedRecord) {
   return {available: true, availabilityKnown: false};
 }
 
+function embeddedOptionEntries(record: EmbeddedRecord) {
+  const entries: {name: string; value: string}[] = [];
+  for (const key of ['optionValues', 'selectedOptions', 'additionalProperty', 'variationAttributes', 'attributes', 'options']) {
+    const raw = record[key];
+    if (Array.isArray(raw)) {
+      for (const value of raw) {
+        if (!value || typeof value !== 'object') continue;
+        const item = value as EmbeddedRecord;
+        const name = embeddedText(item.name ?? item.label ?? item.propertyID ?? item.optionName ?? item.key);
+        const rawValue = item.value ?? item.selectedValue ?? item.valueName ?? item.optionValue;
+        const nested = rawValue && typeof rawValue === 'object' ? rawValue as EmbeddedRecord : undefined;
+        const optionValue = embeddedText(nested?.name ?? nested?.label ?? nested?.value ?? rawValue);
+        if (name && optionValue) entries.push({name, value: optionValue});
+      }
+    } else if (raw && typeof raw === 'object') {
+      for (const [name, value] of Object.entries(raw as EmbeddedRecord)) {
+        const nested = value && typeof value === 'object' ? value as EmbeddedRecord : undefined;
+        const optionValue = embeddedText(nested?.value ?? nested?.label ?? nested?.name ?? value);
+        if (name && optionValue) entries.push({name: clean(name), value: optionValue});
+      }
+    }
+  }
+  const seen = new Set<string>();
+  return entries.filter(entry => {
+    const key = `${entry.name.toLowerCase()}\u0000${entry.value.toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function embeddedVariantAxes(record: EmbeddedRecord) {
+  const options = embeddedOptionEntries(record);
+  const option = (pattern: RegExp) => options.find(item => pattern.test(item.name));
+  const color = embeddedText(record.color ?? record.colour ?? record.colorName ?? record.colourName ?? record.shade ?? record.shadeName ?? record.tone)
+    || option(/color|colour|shade|tone|couleur|farbe|tono/i)?.value
+    || '';
+  const band = embeddedText(record.band ?? record.bandSize) || option(/^(?:band|band size|banda)$/i)?.value || '';
+  const cup = embeddedText(record.cup ?? record.cupSize) || option(/^(?:cup|cup size|copa)$/i)?.value || '';
+  const sizeEntry = option(/size|dimension|talla|tamaño|talle|taille|größe|groesse|format|volume/i);
+  const size = embeddedText(record.size ?? record.sizeName ?? record.dimension ?? record.format ?? record.volume)
+    || (band && cup ? `${band} ${cup}` : band || cup || sizeEntry?.value || '');
+  const sourceSizeLabel = embeddedText(record.sizeLabel ?? record.sizeType ?? sizeEntry?.name);
+  const sizeLabel = band && cup ? 'Band / cup' : sourceSizeLabel || (size ? 'Размер' : undefined);
+  return {color, size, sizeLabel};
+}
+
 function embeddedOptionLabel(record: EmbeddedRecord) {
   const direct = embeddedText(record.label ?? record.title ?? record.name ?? record.displayName);
   const optionValues = record.optionValues ?? record.options ?? record.selectedOptions;
@@ -175,7 +228,8 @@ function embeddedOptionLabel(record: EmbeddedRecord) {
       return [];
     }).filter(Boolean)
     : [];
-  return direct || values.join(' · ');
+  const namedValues = embeddedOptionEntries(record).map(item => item.value);
+  return direct || [...new Set([...values, ...namedValues])].join(' · ');
 }
 
 function embeddedVariants(record: EmbeddedRecord, sourceUrl: string): ProductVariant[] {
@@ -183,20 +237,21 @@ function embeddedVariants(record: EmbeddedRecord, sourceUrl: string): ProductVar
   const variants = raw.flatMap(value => {
     if (!value || typeof value !== 'object') return [];
     const item = value as EmbeddedRecord;
+    const axes = embeddedVariantAxes(item);
     const label = embeddedOptionLabel(item);
-    const color = embeddedText(item.color ?? item.colour ?? item.colorName);
-    const size = embeddedText(item.size ?? item.sizeName ?? item.dimension);
-    const variantLabel = label || [color, size].filter(Boolean).join(' · ');
+    const color = axes.color;
+    const size = axes.size;
+    const variantLabel = [color, size].filter(Boolean).join(' · ') || label;
     if (!variantLabel) return [];
     const availability = embeddedAvailability(item);
-    const id = embeddedText(item.sku ?? item.variantId ?? item.id ?? item.gtin ?? item.ean) || undefined;
+    const id = embeddedIdentifier(item.sku ?? item.skuId ?? item.variantId ?? item.id ?? item.gtin ?? item.ean) || undefined;
     const image = embeddedImages(item, sourceUrl)[0];
     return [{
       id,
       label: variantLabel.slice(0, 120),
       color: color || undefined,
       size: size || undefined,
-      sizeLabel: size ? 'Размер' : undefined,
+      sizeLabel: axes.sizeLabel,
       price: embeddedNumber(item.price ?? item.currentPrice ?? item.salePrice ?? item.finalPrice ?? item.amount),
       image,
       ...availability,
@@ -232,14 +287,12 @@ function embeddedCandidateRecords(root: unknown, sourceUrl: string) {
 
 function extractPriorityEmbedded(html: string, sourceUrl: string): Extracted | undefined {
   const source = new URL(sourceUrl);
-  const priorityRoots = new Set([
-    'macys.com', 'ebay.com', 'walmart.com', 'target.com', 'bestbuy.com', 'sephora.com', 'footlocker.com',
-    'zalando.com', 'zalando.de', 'zalando.es', 'zalando.fr', 'zalando.it', 'asos.com', 'zara.com', 'mango.com', 'farfetch.com', 'primor.eu', 'perfumeriasprimor.eu', 'druni.es',
-    'mediamarkt.de', 'mediamarkt.es', 'mediamarkt.it', 'pccomponentes.com', 'decathlon.es', 'footlocker.es',
-  ]);
+  const priorityRoots = new Set(priorityMerchantProfiles.map(profile => profile.root));
   const hostname = source.hostname.toLowerCase().replace(/^www\./, '');
   const ebayRoot = hostname.match(/^ebay\.(?:com|ca|co\.uk|com\.au|de|es|fr|it|us)$/)?.[0];
-  const root = [...priorityRoots].find(value => hostname === value || hostname.endsWith(`.${value}`)) ?? ebayRoot;
+  const root = priorityRoots.has(hostname)
+    ? hostname
+    : [...priorityRoots].filter(value => hostname.endsWith(`.${value}`)).sort((a, b) => b.length - a.length)[0] ?? ebayRoot;
   if (!root) return;
   const candidate = embeddedJson(html).flatMap(value => embeddedCandidateRecords(value, sourceUrl))[0];
   if (!candidate) return;
@@ -561,7 +614,7 @@ export function inferProductCategory(
   )
     return "Дом и быт";
   if (
-    /clothing|apparel|jersey|shirt|dress|jacket|coat|jeans|pants|hoodie|t-shirt|skirt|legging|bra|bralette|underwear|shorts|sweater|cardigan|blazer|jumpsuit|tracksuit|футбол|куртк|пальто|джинс|брюк|плать|юбк|легинс|белье|vestido/.test(
+    /clothing|apparel|jersey|shirt|dress|jacket|coat|jeans|pants|hoodie|t-shirt|skirt|legging|bra|bralette|underwear|shorts|sweater|cardigan|blazer|jumpsuit|tracksuit|футбол|куртк|пальто|джинс|брюк|плать|юбк|легинс|белье|vestido|sujetador|lencer[ií]a|ropa\s+interior|bragas|bañador|pijama/.test(
       text,
     )
   )
@@ -872,6 +925,7 @@ export function inferStorefrontCountry(sourceUrl: string, currency?: string) {
     "walmart.com", "target.com", "nordstrom.com", "nordstromrack.com", "macys.com",
     "sephora.com", "ulta.com", "bhphotovideo.com", "adorama.com", "newegg.com",
     "kith.com", "footlocker.com", "zappos.com", "allbirds.com", "satechi.com",
+    "victoriassecret.com", "newbalance.com",
   ]);
   if (usStores.has(host)) return "США";
   if (currency === "RON") return "Румыния";
@@ -991,16 +1045,17 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
       return candidate.origin === source.origin && candidate.pathname === source.pathname && candidate.search === source.search;
     } catch { return false; }
   };
-  // Sephora puts product JSON-LD in a script without the usual type attribute.
-  // Accept it only for the exact approved host and listing URL; recommendation
-  // products in the same payload must never supply a different item's price.
-  if (/^(?:www\.)?sephora\.com$/i.test(new URL(sourceUrl).hostname)) {
+  // Sephora US and Spain put product JSON-LD in a script without the usual
+  // type attribute. Accept only these exact storefront hosts and the exact
+  // listing URL; recommendations must never supply another item's price.
+  const sourceHost = new URL(sourceUrl).hostname.toLowerCase().replace(/^www\./, '');
+  if (sourceHost === 'sephora.com' || sourceHost === 'sephora.es') {
     for (const match of html.matchAll(/<script\b(?=[^>]*\bid\s*=\s*["']linkJSON["'])[^>]*>([\s\S]*?)<\/script>/gi)) {
       try {
         const parsed = JSON.parse(match[1]);
         const candidates = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.['@graph']) ? parsed['@graph'] : [parsed];
         for (const candidate of candidates) {
-          if (!candidate || typeof candidate !== 'object' || ![candidate['@type']].flat().includes('Product')) continue;
+          if (!candidate || typeof candidate !== 'object' || ![candidate['@type']].flat().some((type: unknown) => type === 'Product' || type === 'ProductGroup')) continue;
           const offerUrls = [candidate.offers].flat().map((offer: unknown) => offer && typeof offer === 'object' ? (offer as Record<string, unknown>).url : undefined);
           if ([candidate.url, candidate['@id'], ...offerUrls].some(sameListing)) walk(candidate);
         }
@@ -1021,10 +1076,14 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
   // ProductGroup pages (including Nike) may put all price data on size/color children.
   // Only use children for the exact linked listing, never a different recommended color.
   const allChildren = Array.isArray(group?.hasVariant) ? group.hasVariant.filter((child: Record<string, unknown>) => child && typeof child === 'object') : [];
+  const groupIdentifiesListing = Boolean(group && (matchesNode(group) || allChildren.some((child: Record<string, unknown>) => matchesNode(child))));
   const children = allChildren.filter((child: Record<string, unknown>) => {
     if (!child || typeof child !== 'object') return false;
     const childOffers = [child.offers].flat() as Record<string, unknown>[];
-    return sameListing(child.url) || sameListing(child['@id']) || childOffers.some(item => sameListing(item?.url));
+    const childHasExactUrl = sameListing(child.url) || sameListing(child['@id']) || childOffers.some(item => sameListing(item?.url));
+    // ProductGroup children without individual URLs still belong to the
+    // exact matched parent. Do not add siblings from an unrelated recommendation.
+    return childHasExactUrl || groupIdentifiesListing && !hasListingUrl(child);
   });
   const selectedVariantId = new URL(sourceUrl).searchParams.get('variant');
   const selectedChild = children.find((child: Record<string, unknown>) => [child.url, ...[child.offers].flat().map((o) => (o as Record<string, unknown>)?.url)].some(value => {
@@ -1091,20 +1150,27 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     [title, clean(p?.category), clean(p?.description)].filter(Boolean).join(" "),
     brand,
   );
-  const genericLabel = [p?.color, p?.size].map(clean).filter(Boolean).join(' · ');
-  const sku = clean(typeof p?.sku === 'number' ? String(p.sku) : p?.sku).slice(0, 120) || undefined;
+  const genericAxes = p ? embeddedVariantAxes(p as EmbeddedRecord) : {color: '', size: '', sizeLabel: undefined};
+  const namedOptionValues = p ? embeddedOptionEntries(p as EmbeddedRecord).map(item => item.value) : [];
+  const genericLabel = p
+    ? [genericAxes.color, genericAxes.size].filter(Boolean).join(' · ')
+      || embeddedText(p.variantLabel ?? p.selectedVariantLabel ?? p.optionLabel)
+      || namedOptionValues.join(' · ')
+    : '';
+  const sku = embeddedIdentifier(p?.sku ?? p?.gtin ?? p?.ean).slice(0, 120) || undefined;
   const genericVariants: ProductVariant[] = genericLabel
-    ? [{ id: sku, label: genericLabel, available: !/OutOfStock|Discontinued|SoldOut/i.test(String(offer?.availability ?? '')), availabilityKnown: typeof offer?.availability === 'string' && offer.availability.trim().length > 0, size: clean(p?.size) || undefined, color: clean(p?.color) || undefined }]
+    ? [{ id: sku, label: genericLabel, ...embeddedAvailability({availability: offer?.availability}), size: genericAxes.size || undefined, sizeLabel: genericAxes.sizeLabel, color: genericAxes.color || undefined }]
     : [];
   const groupVariants: ProductVariant[] = allChildren.map((child: Record<string, unknown>) => {
     const childOffer = [child.offers].flat()[0] as Record<string, unknown> | undefined;
+    const axes = embeddedVariantAxes(child);
     return {
-      id: clean(typeof child.sku === 'number' ? String(child.sku) : child.sku ?? child.gtin).slice(0, 120) || undefined,
-      size: clean(child.size) || undefined,
-      color: clean(child.color) || undefined,
-      label: [child.color, child.size].filter(Boolean).map(clean).join(' · '),
-      available: !/OutOfStock|Discontinued|SoldOut/i.test(String(childOffer?.availability ?? '')),
-      availabilityKnown: typeof childOffer?.availability === 'string' && String(childOffer.availability).trim().length > 0,
+      id: embeddedIdentifier(child.sku ?? child.skuId ?? child.gtin ?? child.ean).slice(0, 120) || undefined,
+      size: axes.size || undefined,
+      sizeLabel: axes.sizeLabel,
+      color: axes.color || undefined,
+      label: [axes.color, axes.size].filter(Boolean).join(' · ') || embeddedOptionLabel(child),
+      ...embeddedAvailability({availability: childOffer?.availability}),
       price: number(childOffer?.price ?? (childOffer?.priceSpecification as Record<string, unknown> | undefined)?.price),
       image: safeImage(Array.isArray(child.image) ? child.image[0] : child.image, sourceUrl),
     };
