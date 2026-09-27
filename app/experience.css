@@ -184,6 +184,13 @@ body{background:#fff;color:var(--atlas-ink);font-size:var(--atlas-type-body)}
 .product-card:hover,.find-card:hover{box-shadow:0 10px 28px #14234412;transform:translateY(-2px)}
 .card-photo,.find-visual{border-radius:15px 15px 0 0;overflow:hidden;background:#f3f5f8}
 .find-photo{border-radius:inherit;overflow:hidden;background:transparent}
+.find-card .find-visual{border-radius:18px 18px 0 0;background:var(--atlas-soft,#f3f5f8)!important;overflow:hidden}
+.find-card .find-visual>.find-photo{aspect-ratio:1.25;line-height:0;border-radius:inherit;overflow:hidden}
+.finds-page .find-card .find-visual .find-photo .product-img{display:block;width:100%!important;height:100%;max-width:100%;object-fit:contain!important;object-position:center;border-radius:inherit;mix-blend-mode:normal;transform-origin:center}
+.finds-page .find-card .find-content .find-title{min-height:0;margin:10px 0 8px}
+.finds-page .find-card .find-content .find-store-price{margin-top:0;padding-bottom:14px}
+.finds-page .find-card .find-content .find-total{padding-top:12px}
+.finds-page .find-card .find-content .find-origin{margin:0 0 12px}
 .card-photo{height:clamp(220px,24vw,340px)}
 .card-content,.find-content{display:flex;flex:1;flex-direction:column;min-width:0;padding:16px}
 .product-name,.find-title{display:block;min-width:0;max-width:100%;font-size:var(--atlas-type-card);line-height:1.4;letter-spacing:-.025em;font-weight:650;overflow-wrap:anywhere;hyphens:auto}
@@ -359,7 +366,7 @@ a,button,input,textarea,select,summary,.surface,.account-detail,.find-card,.prod
 }
 
 /* One compact hierarchy for the store strip; green is Atlas UI, blue remains for merchant-source links. */
-.supported-stores{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px 28px;align-items:center;margin:28px 0 34px;padding:24px 26px;border:1px solid var(--atlas-line);border-radius:14px;background:var(--atlas-surface,#fff);color:var(--atlas-ink)}
+.supported-stores{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px 28px;align-items:center;max-width:1040px;margin:28px auto 34px;padding:24px 26px;border:1px solid var(--atlas-line);border-radius:14px;background:var(--atlas-surface,#fff);color:var(--atlas-ink)}
 .supported-stores-heading{min-width:0}
 .supported-stores-heading h2{margin:0 0 5px;font-size:var(--atlas-type-section);line-height:1.25;letter-spacing:-.03em}
 .supported-stores-heading p{max-width:58ch;margin:0;color:var(--atlas-copy-muted,#59677f);font-size:var(--atlas-type-label);line-height:1.5}
@@ -386,7 +393,7 @@ a,button,input,textarea,select,summary,.surface,.account-detail,.find-card,.prod
 }
 
 @media(max-width:700px){
-  .supported-stores{grid-template-columns:minmax(0,1fr);gap:14px;margin:22px 0 28px;padding:18px}
+  .supported-stores{grid-template-columns:minmax(0,1fr);gap:14px;max-width:none;margin:22px 0 28px;padding:18px}
   .supported-store-list{justify-content:flex-start;gap:6px}
   .supported-store-list li{min-height:32px;padding-inline:9px;font-size:.75rem}
   .supported-stores-link{grid-column:auto;justify-self:start;min-height:44px}

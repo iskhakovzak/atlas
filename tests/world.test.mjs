@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {declarationFor,dedupeSafeImages,extractProduct,inferProductCategory,parseWeight,safeImage} from '../lib/importer/extract.ts';
 import {allowedUrl,fetchProduct,supportedStoreCount,ManualEntryFallbackError} from '../lib/importer/fetch.ts';
-import {manualFallbackAllowed} from '../lib/importer/manual-fallback.ts';
+import {manualFallbackAllowed,requiresMerchantSnapshot} from '../lib/importer/manual-fallback.ts';
 import {customsVersion,paddedWeight,toUsd} from '../lib/market/world.ts';
 import {applyAction} from '../lib/market/actions.ts';
 import {blank,products,checkoutCart,addToCart,cartSignature,balanceOf,confirmDemoPayment,totalOf} from '../lib/market/domain.ts';
@@ -63,6 +63,11 @@ test('a customer-confirmed unsupported-store listing can be ordered with server-
  let failure;try{await fetchProduct('https://shop.example.com/products/coat')}catch(error){failure=error}
  const sourceUrl='https://shop.example.com/products/coat',product={...products[0],sourceUrl,sourceManuallyConfirmed:true,sourcePrice:20,sourceCurrency:'EUR',sourceShipping:3,sourceShippingCurrency:'EUR',sourceShippingUsd:1,shippingKnown:true,country:'Испания',boxedWeight:.8,weight:1.3};
  const selectedVariant=product.variants[0];assert(manualFallbackAllowed(product,selectedVariant,failure));assert(!manualFallbackAllowed({...product,sourceManuallyConfirmed:false},selectedVariant,failure));
+ assert.equal(requiresMerchantSnapshot(product),false);
+ assert.throws(()=>requiresMerchantSnapshot({...product,sourceManuallyConfirmed:false}),/подтвердите цену/);
+ assert.equal(requiresMerchantSnapshot({...product,sourceManuallyConfirmed:false},true),false);
+ assert.equal(requiresMerchantSnapshot({...product,sourceUrl:'https://nike.com/t/shoe',sourceManuallyConfirmed:true}),true);
+ assert.throws(()=>requiresMerchantSnapshot({...product,sourceUrl:'https://shop.example.com:8443/products/coat'}));
  const state=applyAction(blank(),{type:'cart-add',product,variant:selectedVariant},false);
  assert.equal(state.cart[0].product.usd,toUsd(20,'EUR'));assert.equal(state.cart[0].product.sourceShippingUsd,toUsd(3,'EUR'));
 });

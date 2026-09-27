@@ -1,4 +1,5 @@
 import { price, type Pricing, type Product } from './domain.ts';
+import { toUsd } from './world.ts';
 import { bundledMerchantFinds,type MerchantFind } from './catalog.ts';
 export type DealFilters = {
   search: string; category: string; country: string; maxTotal: number;
@@ -7,7 +8,12 @@ export type DealFilters = {
 export const defaultDealFilters: DealFilters = { search: '', category: '', country: '', maxTotal: 0, sort: 'discount' };
 
 export function dealQuote(product: Product, pricing: Pricing,records:MerchantFind[]=bundledMerchantFinds) {
-  const costs = product.priceNeedsConfirmation ? null : price(product.usd, product.weight, 1, product.sourceShippingUsd ?? 0, pricing);
+  const estimateUsd=product.priceNeedsConfirmation
+    ?product.sourcePrice!==undefined&&product.sourceCurrency&&pricing.rates[product.sourceCurrency]
+      ?toUsd(product.sourcePrice,product.sourceCurrency,pricing.rates)
+      :undefined
+    :product.usd;
+  const costs = estimateUsd===undefined ? null : price(estimateUsd, product.weight, 1, product.sourceShippingUsd ?? 0, pricing);
   // Compare only the exact sourced listing; no invented price history or ID-only match.
   const referenceUsd = records.find(item=>item.id===product.id&&item.sourceUrl===product.sourceUrl&&item.usd===product.usd)?.referenceUsd;
   const savingsUsd = !product.priceNeedsConfirmation && referenceUsd && referenceUsd > product.usd ? referenceUsd - product.usd : 0;

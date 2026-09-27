@@ -31,6 +31,13 @@ test('merchant totals match checkout pricing and source-only discounts', () => {
   assert.equal(deal.costs.total, deal.costs.merchandise + deal.costs.service + deal.costs.sourceShipping + deal.costs.shipping + deal.costs.reserve);
   assert.equal(dealQuote(p, {...tariff, fx:14000}).discount, deal.discount);
 });
+test('stale catalog snapshots still get a clearly unconfirmed server-rate estimate',()=>{
+  const p={...merchantFinds[0],usd:1,sourcePrice:24,sourceCurrency:'EUR',priceNeedsConfirmation:true,referenceUsd:999};
+  const config={...tariff,rates:{...tariff.rates,EUR:1.1}};
+  const deal=dealQuote(p,config);
+  assert.deepEqual(deal.costs,price(26.4,p.weight,1,p.sourceShippingUsd,config));
+  assert.equal(deal.discount,0);assert.equal(deal.referenceUsd,undefined);
+});
 test('reference prices never leak to legacy, changed or unrelated listings', () => {
   for (const p of products) assert.equal(dealQuote(p, tariff).discount, 0);
   const p = merchantFinds.find(p => p.referenceUsd);

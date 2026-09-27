@@ -271,3 +271,11 @@
 - [x] Restore the authenticated operator-only admin icon on narrow screens and allow admin-table columns to flex instead of inheriting fixed 90/92px columns.
 - [x] Use forest/sage for Atlas primary actions and logo accent while preserving blue for navigation and merchant-source links; normalize the corresponding graphite-mode actions.
 - [ ] Complete deployed visual screenshots at 360px and 390px, 800px and 1440px, in light and dark modes with guest/customer/operator states; verify current iPhone Safari separately. In-app Browser initialization failed during this source pass, so do not mark visual verification complete from the build alone.
+
+## Catalog calculations and manual-store cart recovery — 27 September 2026
+
+- [x] Show a labelled preliminary delivered estimate from a valid last-recorded catalog price when the seven-day merchant snapshot is stale; suppress stale discounts, option prices and current-stock claims. This is not a live merchant quote.
+- [x] Fix cart-add/checkout for explicitly confirmed manual items from public HTTPS stores outside the importer allowlist. Those paths validate URL shape without fetching an unsupported host; allowlisted stores still require live price/currency/option verification.
+- [x] Clip catalog photos to the rounded visual frame, remove the excessive title-to-price gap, compact estimate rows and constrain the supported-store strip to a centered readable width.
+- [ ] As of 27 September 2026 the live catalog API returned 24 published cards, all beyond the seven-day confirmation window. Preliminary estimates can be displayed from their stored source prices, but none should be represented as current. Verify the separate scheduled Worker deployment/secret and obtain fresh operator-reviewed imports before advertising current prices.
+- [ ] Confirm the published `/order-by-link` → `/cart` manual fallback with an isolated test identity/cart, and visually inspect the live catalog in light/dark at phone and desktop widths; do not use a real purchase flow for verification.

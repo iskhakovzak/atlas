@@ -85,11 +85,11 @@ test('published catalog carries the complete safe option matrix and photo galler
  assert.deepEqual(product.sourceImages,['https://cdn.shopify.com/bare.jpg','https://cdn.shopify.com/mini.jpg']);
  assert.deepEqual(product.variants,['Bare · Full','Bare · Mini']);
 });
-test('stale catalog keeps variant labels for manual choice but strips stale stock and prices',()=>{
+test('stale catalog retains its last recorded price for an estimate but strips stale stock',()=>{
  const draft=importDraft({...extracted,variants:[{id:'large-red',label:'Red · Large',color:'Red',size:'Large',available:true,availabilityKnown:true,price:45,image:'https://cdn.shopify.com/red.jpg'}]},[],'США',1000);
  const doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'stale-shirt',draft,published:structuredClone(draft),publishedAt:1000}]});
  const product=publicCatalog(doc,tariff,1000+7*24*60*60*1000).products[0];
- assert.equal(product.priceNeedsConfirmation,true);assert.equal(product.sourcePrice,undefined);assert.equal(product.sourceCurrency,undefined);
+ assert.equal(product.priceNeedsConfirmation,true);assert.equal(product.sourcePrice,35);assert.equal(product.sourceCurrency,'USD');assert.equal(product.usd,35);
  assert.deepEqual(product.variants,['Уточнить вариант в магазине']);
  assert.deepEqual(product.sourceVariants.map(({id,label,color,size,available,availabilityKnown,price})=>({id,label,color,size,available,availabilityKnown,price})),[{id:'large-red',label:'Red · Large',color:'Red',size:'Large',available:true,availabilityKnown:false,price:undefined}]);
 });
@@ -104,17 +104,17 @@ test('link-order fallback keeps catalog color, size, price, id and photo metadat
  assert.deepEqual(catalogOrderVariants(product),[option]);
  assert.deepEqual(product.sourceImages,[option.image]);
 });
-test('empty live catalog falls back to direct links with old prices suppressed',()=>{
+test('empty live catalog falls back to direct links with prices marked as unconfirmed estimates',()=>{
  const fallback=keepCatalogVisible([],Date.parse('2026-09-27T12:00:00Z'));
  assert(fallback.length>0);
- assert(fallback.every(product=>product.priceNeedsConfirmation===true&&product.sourcePrice===undefined&&product.referenceUsd===undefined));
+ assert(fallback.every(product=>product.priceNeedsConfirmation===true&&product.sourcePrice>0&&product.referenceUsd===undefined));
 });
-test('refresh failures keep stale published cards discoverable without presenting old prices',()=>{
+test('refresh failures keep stale published cards discoverable and clearly unconfirmed',()=>{
  const doc=initialCatalog(),entry=doc.entries[0];
  entry.draft.lastCheckError='temporary source error';
  const result=publicCatalog(doc,tariff,Date.parse('2026-09-27T12:00:00Z'));
  const item=result.products.find(product=>product.id===entry.id);
- assert(item);assert.equal(item.priceNeedsConfirmation,true);assert.equal(item.sourcePrice,undefined);assert.deepEqual(item.variants,['Уточнить вариант в магазине']);
+ assert(item);assert.equal(item.priceNeedsConfirmation,true);assert(item.sourcePrice>0);assert.equal(item.sourceCurrency,'USD');assert.deepEqual(item.variants,['Уточнить вариант в магазине']);
 });
 test('bundled products join existing catalogs without overwriting operator state',()=>{
  const complete=initialCatalog(),seed=communityCatalogProducts[0];

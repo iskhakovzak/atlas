@@ -61,7 +61,7 @@ export function catalogFreshness(product: Product, now = Date.now()) {
 }
 export function visibleMerchantFinds(now = Date.now()) {
   return merchantFinds.map((product) => catalogFreshness(product, now) === 'expired'
-    ? {...product,priceNeedsConfirmation:true,sourcePrice:undefined,referenceUsd:undefined,variants:['Уточнить вариант в магазине']}
+    ? {...product,priceNeedsConfirmation:true,referenceUsd:undefined,variants:['Уточнить вариант в магазине']}
     : product);
 }
 /** Keep direct-store discovery usable if the live catalog endpoint has no rows. */

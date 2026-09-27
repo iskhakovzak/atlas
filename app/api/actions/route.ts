@@ -2,7 +2,7 @@ import {actionSchema,applyAction} from '@/lib/market/actions';
 import {account,customerStatus,database,identity,operator,sameOrigin,persist,json,failure,HttpError,requestJson,pricingAndPolicy,deferBackground} from '@/lib/market/server';
 import {apiErrorMessage,requestLocale} from '@/lib/market/i18n';
 import {fetchProduct} from '@/lib/importer/fetch';
-import {manualFallbackAllowed} from '@/lib/importer/manual-fallback';
+import {manualFallbackAllowed,requiresMerchantSnapshot} from '@/lib/importer/manual-fallback';
 import {verifyProductSnapshot} from '@/lib/importer/verify';
 import {addCustomerLinkDraft} from '@/lib/market/catalog-server';
 export async function POST(request:Request){try{
@@ -27,11 +27,13 @@ export async function POST(request:Request){try{
   try{
      const {pricing:currentPricing,policy:currentPolicy}=await pricingAndPolicy();
      if(parsed.data.type==='cart-add'&&parsed.data.product.sourceUrl){
-       try{
-         verifiedSource=await fetchProduct(parsed.data.product.sourceUrl);
-         parsed.data.product=verifyProductSnapshot(parsed.data.product,parsed.data.variant,verifiedSource);
-       }catch(error){
-         if(!manualFallbackAllowed(parsed.data.product,parsed.data.variant,error))throw error;
+       if(requiresMerchantSnapshot(parsed.data.product)){
+         try{
+           verifiedSource=await fetchProduct(parsed.data.product.sourceUrl);
+           parsed.data.product=verifyProductSnapshot(parsed.data.product,parsed.data.variant,verifiedSource);
+         }catch(error){
+           if(!manualFallbackAllowed(parsed.data.product,parsed.data.variant,error))throw error;
+         }
        }
      }
     if(parsed.data.type==='checkout'){
@@ -42,6 +44,10 @@ export async function POST(request:Request){try{
         items.push(item);grouped.set(key,items);
       }
        await Promise.all([...grouped.entries()].map(async([url,items])=>{
+         // Old cart snapshots predate the optional manual-confirmation flag;
+         // preserve them at checkout while new unsupported-store adds require
+         // the customer to explicitly confirm the entered details.
+         if(!items.some(item=>requiresMerchantSnapshot(item.product,true)))return;
          try{
            const fresh=await fetchProduct(url);
            for(const item of items)verifyProductSnapshot(item.product,item.variant,fresh);
