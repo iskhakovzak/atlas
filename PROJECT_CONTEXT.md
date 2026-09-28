@@ -593,3 +593,11 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Catalog refresh, changed-price review and sold-out hiding require the separate signed scheduled Worker. It is not provisioned or verified in production; only manually requested refresh is available. Definitive all-options-unavailable checks can hide a product while retaining its draft; there is no automatic hard deletion.
 - Finance summarizes saved quote snapshots and simulated payment workflow states, not collected revenue. The audit tab filters the actual retained admin/system audit events; customer activity is not in this event stream, and only the latest 100 events are returned.
 - Pricing editor adds a focused disclosure for per-country overrides and guards unsaved edits. No pricing schema or calculation changed. The product page no longer carries the duplicate catalog overline or customs/payment setup banners; browse filters expose sorting and additional filters more clearly.
+
+## Refund review and targeted customer notices — 29 September 2026
+
+`/operations` has a dedicated refund/cancellation queue for cancelled orders, orders with the simulated `refunded` status, and orders with owner-ledger credits. Each row calculates positive `customer-credit` entries from that order owner's existing account state and labels them as internal Atlas balance accounting. A cancelled order without a recorded balance credit is explicitly shown as such; the queue does not imply a card, bank or wallet transfer.
+
+Operator notes remain internal and are displayed separately from a new targeted in-app notification form. The notification action references an order ID, resolves the target account from the authenticated operator queue, and saves a bounded title/body to that owner's existing notification list. It creates no email/SMS preview or external delivery. The `/api/operations` operator email, same-origin, account revision, action-schema and audit checks remain in force. All fields reuse existing optional state; no migration or rewrite of old orders was added.
+
+The browser UI for this refund/notification pass has not yet been visually verified at mobile/desktop widths; automated project checks are recorded at handoff. Real provider refunds and email/SMS delivery remain unavailable, and all refund/payment states are Atlas-internal simulation.

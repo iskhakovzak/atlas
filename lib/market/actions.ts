@@ -23,6 +23,7 @@ import {
   updateCommunication,
   assignOrder,
   addStaffNote,
+  sendCustomerNotification,
   setParcel,
   confirmIdentity,
   clearIdentity,
@@ -85,6 +86,7 @@ export const actionSchema = z.discriminatedUnion("type", [
     priority: z.enum(["Обычный", "Высокий", "Срочный"]),
   }),
   z.object({ type: z.literal("staff-note"), id, text: z.string().min(1).max(500) }),
+  z.object({ type: z.literal("customer-notification"), id, title: z.string().trim().min(2).max(120), message: z.string().trim().min(1).max(300) }),
   z.object({
     type: z.literal("change-request-create"),
     id,
@@ -153,6 +155,7 @@ export function applyAction(
       a.type === "confirm-store-shipping" ||
       a.type === "assign-order" ||
       a.type === "staff-note" ||
+      a.type === "customer-notification" ||
       a.type === "parcel-set" ||
       a.type === "change-request-create" ||
       a.type === "warehouse-inspect" ||
@@ -290,6 +293,8 @@ export function applyAction(
       return assignOrder(s, a.id, a.team, a.priority);
     case "staff-note":
       return addStaffNote(s, a.id, a.text, "Оператор");
+    case "customer-notification":
+      return sendCustomerNotification(s, a.id, a.title, a.message);
     case "change-request-create":
       return createChangeRequest(s, a.id, a);
     case "change-request-respond":

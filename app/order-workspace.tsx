@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "@/components/site-link";
 import {
   ArrowRight,
@@ -242,6 +242,13 @@ type OperationsAccount = {
   revision: number;
   updatedAt: number;
 };
+const atlasCreditForOrder = (account: OperationsAccount | undefined, orderId: string) =>
+  account?.state.entries.reduce(
+    (total, entry) => entry.orderId === orderId && entry.credit === "customer-credit"
+      ? total + entry.amount
+      : total,
+    0,
+  ) ?? 0;
 
 function OperatorOrderTools({
   order,
@@ -257,7 +264,6 @@ function OperatorOrderTools({
   const [carrier, setCarrier] = useState(order.parcel?.carrier ?? "Atlas Cargo");
   const [tracking, setTracking] = useState(order.parcel?.trackingNumber ?? "");
   const [warehouseCode, setWarehouseCode] = useState(order.parcel?.warehouseCode ?? "WH-TAS-01");
-  const [note, setNote] = useState("");
   const [condition, setCondition] = useState<"ok" | "damaged" | "mismatch">(order.warehouseInspection?.condition ?? "ok");
   const [received, setReceived] = useState(String(order.warehouseInspection?.quantityReceived ?? order.quantity));
   const [warehouseNotes, setWarehouseNotes] = useState(order.warehouseInspection?.notes ?? "");
@@ -329,11 +335,6 @@ function OperatorOrderTools({
           <button className="btn secondary" disabled={busy || order.status < 1}>Сохранить трекинг</button>
           {order.status < 1 && <p className="micro">Станет доступно после подтверждения выкупа.</p>}
         </form>
-        <form onSubmit={(event) => { event.preventDefault(); void save({ type: "staff-note", id: order.id, text: note }, "Внутренняя заметка добавлена").then(() => setNote("")); }}>
-          <h3>Внутренняя заметка</h3>
-          <div className="field"><label htmlFor={`note-${order.id}`}>Видна только оператору</label><textarea id={`note-${order.id}`} required minLength={1} maxLength={500} rows={4} value={note} onChange={(event) => setNote(event.target.value)} /></div>
-          <button className="btn secondary" disabled={busy || !note.trim()}>Добавить заметку</button>
-        </form>
         <form onSubmit={(event) => { event.preventDefault(); void save({ type: "warehouse-inspect", id: order.id, condition, quantityReceived: Number(received), notes: warehouseNotes, services, packageGroup }, "Приёмка на складе сохранена"); }}>
           <h3>Приёмка на складе</h3>
           <div className="two-fields"><div className="field"><label htmlFor={`condition-${order.id}`}>Состояние</label><select id={`condition-${order.id}`} value={condition} onChange={(event)=>setCondition(event.target.value as typeof condition)}><option value="ok">В порядке</option><option value="damaged">Повреждение</option><option value="mismatch">Не совпадает с заказом</option></select></div><div className="field"><label htmlFor={`received-${order.id}`}>Получено, шт.</label><input id={`received-${order.id}`} type="number" min="0" max="100" required value={received} onChange={(event)=>setReceived(event.target.value)}/></div></div>
@@ -355,7 +356,156 @@ function OperatorOrderTools({
           {pendingChange(order) && <p className="micro">Покупатель ещё не ответил на предыдущий запрос.</p>}
         </form>
       </div>
-      {!!order.staffNotes?.length && <div className="staff-notes"><h3>Последние заметки</h3>{[...order.staffNotes].reverse().slice(0, 3).map((item) => <p key={item.id}><time>{new Date(item.at).toLocaleString("ru-RU")}</time>{item.text}</p>)}</div>}
+    </details>
+  );
+}
+
+function OperatorOrderCommunication({
+  order,
+  customerName,
+  customerEmail,
+  recipientAvailable,
+  run,
+  locale,
+}: {
+  order: Order;
+  customerName: string;
+  customerEmail: string;
+  recipientAvailable: boolean;
+  run: (action: Action) => Promise<boolean>;
+  locale: Locale;
+}) {
+  const [note, setNote] = useState("");
+  const [title, setTitle] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const words = {
+    ru: {
+      panel: "Заметки и сообщение покупателю",
+      internalTitle: "Внутренняя заметка",
+      internalHint: "Видна только оператору Atlas",
+      addNote: "Добавить заметку",
+      notes: "Последние заметки",
+      customerTitle: "Уведомление покупателю",
+      recipient: "Получатель по этому заказу",
+      titleLabel: "Заголовок уведомления",
+      messageLabel: "Текст уведомления",
+      send: "Отправить уведомление в Atlas",
+      channelHint: "Сообщение появится в уведомлениях выбранного аккаунта Atlas. Email и SMS не отправляются.",
+      noRecipient: "Не удалось определить аккаунт этого заказа. Обновите очередь перед отправкой.",
+      noteSaved: "Внутренняя заметка сохранена",
+      notificationSaved: "Уведомление сохранено в Atlas",
+      saving: "Сохраняем…",
+      titlePlaceholder: "Например, Нужны реквизиты для возврата",
+      messagePlaceholder: "Напишите, что нужно сообщить покупателю",
+    },
+    uz: {
+      panel: "Izohlar va xaridorga xabar",
+      internalTitle: "Ichki izoh",
+      internalHint: "Faqat Atlas operatoriga ko‘rinadi",
+      addNote: "Izoh qo‘shish",
+      notes: "So‘nggi izohlar",
+      customerTitle: "Xaridorga bildirishnoma",
+      recipient: "Ushbu buyurtma bo‘yicha oluvchi",
+      titleLabel: "Bildirishnoma sarlavhasi",
+      messageLabel: "Bildirishnoma matni",
+      send: "Atlasda bildirishnoma yuborish",
+      channelHint: "Xabar tanlangan Atlas akkauntining bildirishnomalarida ko‘rinadi. Email va SMS yuborilmaydi.",
+      noRecipient: "Bu buyurtma akkauntini aniqlab bo‘lmadi. Yuborishdan oldin navbatni yangilang.",
+      noteSaved: "Ichki izoh saqlandi",
+      notificationSaved: "Bildirishnoma Atlasda saqlandi",
+      saving: "Saqlanmoqda…",
+      titlePlaceholder: "Masalan, Qaytarish uchun ma’lumot kerak",
+      messagePlaceholder: "Xaridorga aytilishi kerak bo‘lgan ma’lumotni yozing",
+    },
+    en: {
+      panel: "Notes and customer message",
+      internalTitle: "Internal note",
+      internalHint: "Visible to Atlas operators only",
+      addNote: "Add note",
+      notes: "Recent notes",
+      customerTitle: "Customer notification",
+      recipient: "Recipient for this order",
+      titleLabel: "Notification title",
+      messageLabel: "Notification message",
+      send: "Save in-app notification",
+      channelHint: "The message appears in this Atlas account’s notifications. No email or SMS is sent.",
+      noRecipient: "Could not identify this order’s account. Refresh the queue before sending.",
+      noteSaved: "Internal note saved",
+      notificationSaved: "Notification saved in Atlas",
+      saving: "Saving…",
+      titlePlaceholder: "For example, Details needed for your refund",
+      messagePlaceholder: "Write what the customer needs to know",
+    },
+  }[locale];
+  const saveNote = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (busy || !note.trim()) return;
+    setBusy(true);
+    try {
+      if (await run({ type: "staff-note", id: order.id, text: note.trim() })) {
+        setNote("");
+        toast.success(words.noteSaved);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+  const sendNotification = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (busy || !recipientAvailable || !title.trim() || !message.trim()) return;
+    setBusy(true);
+    try {
+      // Account selection is intentionally absent: runOrderAction resolves the
+      // owner from this order ID before posting the action to the operator API.
+      const action: Action = {
+        type: "customer-notification",
+        id: order.id,
+        title: title.trim(),
+        message: message.trim(),
+      };
+      if (await run(action)) {
+        setTitle("");
+        setMessage("");
+        toast.success(words.notificationSaved);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <details className="ops-tools operator-order-communication">
+      <summary><MessageSquareText size={17} /> {words.panel}</summary>
+      <div className="ops-tools-grid">
+        <form onSubmit={(event) => void saveNote(event)}>
+          <h3>{words.internalTitle}</h3>
+          <div className="field">
+            <label htmlFor={`internal-note-${order.id}`}>{words.internalHint}</label>
+            <textarea id={`internal-note-${order.id}`} required minLength={1} maxLength={500} rows={3} value={note} disabled={busy} onChange={(event) => setNote(event.target.value)} />
+          </div>
+          <button className="btn secondary" disabled={busy || !recipientAvailable || !note.trim()}>{busy ? words.saving : words.addNote}</button>
+          {!!order.staffNotes?.length && <section className="staff-notes">
+            <h3>{words.notes}</h3>
+            {[...order.staffNotes].reverse().slice(0, 3).map((item) => (
+              <p key={item.id}><time>{new Date(item.at).toLocaleString(localeTag(locale))}</time>{item.text}</p>
+            ))}
+          </section>}
+        </form>
+        <form onSubmit={(event) => void sendNotification(event)}>
+          <h3>{words.customerTitle}</h3>
+          <p className="micro"><b>{words.recipient}:</b> {recipientAvailable ? customerName : words.noRecipient}{recipientAvailable && customerEmail ? <small> · {customerEmail}</small> : null}</p>
+          <div className="field">
+            <label htmlFor={`notification-title-${order.id}`}>{words.titleLabel}</label>
+            <input id={`notification-title-${order.id}`} required minLength={2} maxLength={120} value={title} disabled={busy || !recipientAvailable} placeholder={words.titlePlaceholder} onChange={(event) => setTitle(event.target.value)} />
+          </div>
+          <div className="field">
+            <label htmlFor={`notification-message-${order.id}`}>{words.messageLabel}</label>
+            <textarea id={`notification-message-${order.id}`} required minLength={1} maxLength={300} rows={3} value={message} disabled={busy || !recipientAvailable} placeholder={words.messagePlaceholder} onChange={(event) => setMessage(event.target.value)} />
+          </div>
+          <p className="micro">{words.channelHint}</p>
+          <button className="btn secondary" disabled={busy || !recipientAvailable || !title.trim() || !message.trim()}>{busy ? words.saving : words.send}</button>
+        </form>
+      </div>
     </details>
   );
 }
@@ -451,11 +601,11 @@ export function OrdersView({ operations }: { operations: boolean }) {
       try { id = decodeURIComponent(window.location.hash.slice(1)); } catch { return; }
       const row = document.getElementById(id);
       if (row instanceof HTMLDetailsElement) { row.open = true; row.scrollIntoView({block:'start'}); }
-      else { const order=state.orders.find(item=>item.id===id);if(order)queueMicrotask(()=>{setQuery('');setTab(order.cancelled||order.status===5?'done':'active')}); }
+      else { const order=(operations?opsAccounts.flatMap(profile=>profile.state.orders):state.orders).find(item=>item.id===id);if(order)queueMicrotask(()=>{setQuery('');const hasCredit=operations&&opsAccounts.some(profile=>profile.state.entries.some(entry=>entry.orderId===order.id&&entry.credit==='customer-credit'&&entry.amount>0));setTab(operations&&(order.cancelled||order.payment?.status==='refunded'||hasCredit)?'refunds':order.cancelled||order.status===5?'done':'active')}); }
     };
     reveal(); window.addEventListener('hashchange', reveal);
     return () => window.removeEventListener('hashchange', reveal);
-  }, [ready, tab, query, opsReady,state.orders]);
+  }, [ready, tab, query, opsReady, state.orders, operations, opsAccounts]);
   const refreshOperations = useCallback(async () => {
     if (!operations || !user?.operator) return;
     try {
@@ -492,15 +642,19 @@ export function OrdersView({ operations }: { operations: boolean }) {
   ow.emptyDescription = customerOrderEmptyCopy[locale];
   const displayStatuses = localizedStatuses(locale);
   const wc={ru:{customerOver:"ВАШИ ПОКУПКИ В ПУТИ",customerTitle:"От магазина до вашей двери.",customerIntro:"Статусы, расчёты и история каждого заказа.",operatorOver:"РАБОЧЕЕ МЕСТО ОПЕРАТОРА",operatorTitle:"Всё готово к следующему шагу.",operatorIntro:"Выкупайте, принимайте на склад и согласовывайте исключения.",customerView:"Вид покупателя",operatorView:"Открыть обработку",active:"В работе",attention:"Нужно решение",done:"Завершённые",searchCustomer:"Номер или товар",searchOperator:"Номер, товар или покупатель"},uz:{customerOver:"BUYURTMALARINGIZ YO‘LDA",customerTitle:"Do‘kondan eshigingizgacha.",customerIntro:"Har bir buyurtmaning holati, hisobi va tarixi.",operatorOver:"OPERATOR ISH JOYI",operatorTitle:"Keyingi qadam uchun hammasi tayyor.",operatorIntro:"Xaridni, ombor qabulini va istisnolarni boshqaring.",customerView:"Mijoz ko‘rinishi",operatorView:"Qayta ishlashni ochish",active:"Jarayonda",attention:"Qaror kerak",done:"Yakunlangan",searchCustomer:"Raqam yoki tovar",searchOperator:"Raqam, tovar yoki mijoz"},en:{customerOver:"YOUR PURCHASES IN TRANSIT",customerTitle:"From the store to your door.",customerIntro:"Status, calculation and history for every order.",operatorOver:"OPERATOR WORKSPACE",operatorTitle:"Everything is ready for the next step.",operatorIntro:"Manage purchase, warehouse intake and exceptions.",customerView:"Customer view",operatorView:"Open processing",active:"In progress",attention:"Decision needed",done:"Completed",searchCustomer:"Order number or item",searchOperator:"Order number, item or customer"}}[state.communication.language];
+  const refundTabLabel={ru:"Возвраты и отмены",uz:"Qaytarishlar va bekor qilinganlar",en:"Refunds and cancellations"}[locale];
+  const refundStatusLabel={ru:"Отметка возврата в Atlas",uz:"Atlasdagi qaytarish belgisi",en:"Refund marker in Atlas"}[locale];
+  const refundQueueCopy={ru:"Здесь отменённые заказы и заказы с отметкой о возврате. Сумма ниже — проводки Atlas, зачисленные во внутренний баланс покупателя по этому заказу; перевод на карту, в банк или кошелёк не выполняется.",uz:"Bu yerda bekor qilingan buyurtmalar va qaytarish belgisi bor buyurtmalar ko‘rsatiladi. Quyidagi summa — shu buyurtma bo‘yicha xaridorning Atlas ichki balansiga yozilgan hisob; karta, bank yoki hamyonga pul o‘tkazilmaydi.",en:"This queue includes cancelled orders and orders marked refunded. The amount shown is Atlas ledger entries credited to the customer’s internal balance for this order; no card, bank, or wallet transfer is made."}[locale];
   const receiving = orders.find((o) => o.id === warehouse);
   const confirmingStoreShipping = orders.find(
     (o) => o.id === storeShippingOrder,
   );
   const active = orders.filter((o) => !o.cancelled && o.status < 5),
     need = orders.filter((order) => !order.cancelled&&(isExtra(order) || pendingChange(order) || (!operations&&order.payment?.status==='pending') || order.warehouseInspection?.condition === "damaged" || order.warehouseInspection?.condition === "mismatch")),
-    done = orders.filter((o) => o.cancelled || o.status === 5);
+    done = orders.filter((o) => operations ? (!o.cancelled && o.status === 5) : (o.cancelled || o.status === 5)),
+    refunds = operations ? orders.filter((o) => o.cancelled || o.payment?.status === "refunded" || atlasCreditForOrder(orderAccount.get(o.id), o.id) > 0) : [];
   const filtered = (
-    tab === "active" ? active : tab === "attention" ? need : done
+    tab === "active" ? active : tab === "attention" ? need : tab === "refunds" && operations ? refunds : done
   ).filter((o) =>
     `${o.id} ${o.product.name} ${orderAccount.get(o.id)?.name ?? ""}`
       .toLowerCase()
@@ -666,7 +820,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
       {orders.length > 0 && (
         <div className="order-controls">
           <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className="order-tabs">
+            <TabsList className={`order-tabs${operations ? " has-refund-tab" : ""}`}>
               <TabsTrigger value="active">
                 {wc.active} <b>{active.length}</b>
               </TabsTrigger>
@@ -676,10 +830,13 @@ export function OrdersView({ operations }: { operations: boolean }) {
               <TabsTrigger value="done">
                 {wc.done} <b>{done.length}</b>
               </TabsTrigger>
+              {operations && <TabsTrigger value="refunds">
+                {refundTabLabel} <b>{refunds.length}</b>
+              </TabsTrigger>}
             </TabsList>
               <TabsContent value={tab} className="sr-only">
                {locale === "ru" ? "Фильтр заказов: " : locale === "uz" ? "Buyurtma filtri: " : "Order filter: "}
-               {tab === "active" ? wc.active : tab === "attention" ? wc.attention : wc.done}
+               {tab === "active" ? wc.active : tab === "attention" ? wc.attention : tab === "refunds" && operations ? refundTabLabel : wc.done}
             </TabsContent>
           </Tabs>
           <label className="search-field">
@@ -693,6 +850,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
           </label>
         </div>
       )}
+      {operations && tab === "refunds" && <p className="notice">{refundQueueCopy}</p>}
       {!viewReady ? (
         viewError ? (
           <Empty
@@ -721,8 +879,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
           <details className="surface order-card compact-order" key={o.id} id={o.id} onToggle={event=>{const open=event.currentTarget.open;setExpanded(ids=>open?[...new Set([...ids,o.id])]:ids.filter(id=>id!==o.id))}}>
             <summary className="compact-order-summary">
               <ProductImage product={o.product} decorative locale={state.communication.language} />
-               <span className="compact-order-name"><small>{o.id}{operations ? ` · ${orderAccount.get(o.id)?.name ?? ''}` : ''}</small><b>{o.product.name}</b><span>{o.variant} · {o.quantity}</span></span>
-               <span className={'status-badge '+(isExtra(o)||pendingChange(o)||(!operations&&o.payment?.status==='pending')?'needs-action':'')}>{o.cancelled ? ow.cancelled : isExtra(o)||pendingChange(o) ? ow.needDecision : o.payment?.status==='pending' ? ow.awaitingPayment : displayStatuses[o.status]}</span>
+               <span className="compact-order-name"><small>{o.id}{operations ? ` · ${orderAccount.get(o.id)?.name ?? ''}` : ''}</small><b>{o.product.name}</b><span>{o.variant} · {o.quantity}</span>{operations && tab === "refunds" && <small>{atlasCreditForOrder(orderAccount.get(o.id), o.id) > 0 ? `${locale === "ru" ? "Зачислено во внутренний баланс Atlas" : locale === "uz" ? "Atlas ichki balansiga yozildi" : "Credited to Atlas internal balance"}: ${money(atlasCreditForOrder(orderAccount.get(o.id), o.id))}` : locale === "ru" ? "Зачислений во внутренний баланс Atlas по заказу нет" : locale === "uz" ? "Buyurtma bo‘yicha Atlas ichki balansiga yozuv yo‘q" : "No Atlas internal-balance credit recorded for this order"}</small>}</span>
+               <span className={'status-badge '+(isExtra(o)||pendingChange(o)||(!operations&&o.payment?.status==='pending')?'needs-action':'')}>{o.cancelled ? ow.cancelled : o.payment?.status==='refunded' ? refundStatusLabel : isExtra(o)||pendingChange(o) ? ow.needDecision : o.payment?.status==='pending' ? ow.awaitingPayment : displayStatuses[o.status]}</span>
               <strong>{money(orderPayable(o))}</strong><ArrowRight size={18}/>
             </summary>
             {expanded.includes(o.id)&&<div className="compact-order-body">
@@ -1028,6 +1186,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
               <p className="micro">{ow.trackingFirst}</p>
             )}
             {operations && !o.cancelled && <OperatorOrderTools order={o} run={runOrderAction} locale={locale} />}
+            {operations && <OperatorOrderCommunication order={o} customerName={orderAccount.get(o.id)?.name ?? ""} customerEmail={orderAccount.get(o.id)?.id.replace(/^email:/, "") ?? ""} recipientAvailable={Boolean(orderAccount.get(o.id))} run={runOrderAction} locale={locale} />}
             <OrderDocuments orderId={o.id} accountId={orderAccount.get(o.id)?.id} operatorMode={operations} locale={state.communication.language}/>
             <div className="order-bottom">
               <details>

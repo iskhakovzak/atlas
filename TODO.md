@@ -308,3 +308,10 @@
 - [ ] Decide whether customer-facing product/suggestion actions should be copied into the admin journal, then extend the source event schema/API if desired. Current actor filters correctly cover only the latest 100 returned admin/system events.
 - [ ] Visually verify admin, catalog, finance, pricing, audit, cart customs threshold, and public CTA flows in guest/customer/operator contexts, at phone and desktop widths and in light/graphite themes. Local lint/tests/build do not verify D1, live auth, remote Worker or production layout.
 - [ ] Clarify the customs effective date with Uzbekistan Customs Committee; PP-4508 consolidated text and UP-174 §8 disagree. Until confirmed, estimates remain informational.
+
+## Refund review and customer follow-up — 29 September 2026
+
+- [x] Add an operator-only refund/cancellation queue covering cancelled orders and positive owner-ledger customer credits; display Atlas balance entries without suggesting a bank/card/wallet transfer.
+- [x] Keep internal operator comments distinct from bounded, order-linked in-app notifications saved only to that order owner's account; preserve operator auth, same-origin writes, revision checks and audit events, with no email/SMS delivery.
+- [ ] Visually verify the refund tab, order-owner targeting label, note history and notification form at phone/tablet/desktop widths and in light/graphite themes.
+- [ ] Replace simulated refund statuses with provider-backed refunds, reconciliation and customer notices only after a payment provider and compliant process are selected and verified.

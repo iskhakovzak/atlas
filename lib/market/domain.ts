@@ -1193,6 +1193,32 @@ export function addStaffNote(
   });
 }
 
+export function sendCustomerNotification(
+  state: State,
+  id: string,
+  title: string,
+  message: string,
+  now = Date.now(),
+): State {
+  const o = getOrder(state, id);
+  const cleanTitle = title.trim();
+  const cleanMessage = message.trim();
+  if (cleanTitle.length < 2 || cleanTitle.length > 120)
+    throw Error("Заголовок уведомления должен содержать от 2 до 120 символов.");
+  if (!cleanMessage || cleanMessage.length > 300)
+    throw Error("Текст уведомления должен содержать от 1 до 300 символов.");
+  return {
+    ...state,
+    notifications: [
+      { id: crypto.randomUUID(), at: now, title: cleanTitle, message: cleanMessage, read: false, orderId: o.id },
+      ...state.notifications,
+    ].slice(0, 80),
+    orders: state.orders.map((order) => order.id === id
+      ? { ...order, history: [...order.history, { at: now, text: "Оператор отправил уведомление в Atlas." }] }
+      : order),
+  };
+}
+
 export function createChangeRequest(
   state: State,
   id: string,
