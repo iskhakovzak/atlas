@@ -1,5 +1,14 @@
 # Atlas TODO and known limitations
 
+## Nike variant selection and operator contacts — 29 September 2026
+
+- [x] Restrict Nike sibling color selection to the exact linked product group; preserve per-color prices, images and size IDs and label verified US men's sizing with Nike's official chart.
+- [x] Add operator order refresh and search by buyer/account/recipient identifiers; show purchaser email/profile phone separately from delivery contacts with click-to-email/call links.
+- [x] Move the customer store-shipping reserve note beside payment status and explicitly label it a preliminary reserve, not a payment.
+- [x] Restore the localized `КАТАЛОГ ATLAS` feed eyebrow and clear ESLint's four pre-existing warnings plus the new implementation's warnings.
+- [ ] Complete an authenticated local operator/customer UI smoke with isolated fixture API responses; the ordinary local API smoke currently fails because local D1 has no `market_settings` table. Keep that database unchanged; this gap does not prove a production database issue.
+- [ ] Review the expanded operator contact card and size selection on phone and desktop in both themes using an authenticated test account; do not use real customer contact details for screenshots.
+
 ## Design and closed pilot — 23 September 2026
 
 - [x] Prepare three isolated interactive design directions across four key screens, RU/UZ/EN and responsive layouts (`design/`).

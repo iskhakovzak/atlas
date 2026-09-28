@@ -16,6 +16,8 @@ import {
   CreditCard,
   Mail,
   MessageSquareText,
+  Phone,
+  RefreshCw,
   Truck,
   UserCheck,
 } from "lucide-react";
@@ -242,6 +244,48 @@ type OperationsAccount = {
   revision: number;
   updatedAt: number;
 };
+const operatorPhoneHref = (value: string | undefined) => {
+  const phone = value?.trim().replace(/[^\d+]/g, "") ?? "";
+  return /^\+?\d{8,15}$/.test(phone) ? `tel:${phone}` : undefined;
+};
+function OperatorOrderContacts({order,account,locale}:{order:Order;account:OperationsAccount|undefined;locale:Locale}) {
+  if (!account) return null;
+  const copy={
+    ru:{title:"Контакты заказа",buyer:"Покупатель · аккаунт",email:"Email аккаунта",profilePhone:"Телефон в профиле",recipient:"Получатель по заказу",recipientPhone:"Телефон получателя",notVerified:"Указан в профиле · не подтверждён",missing:"Не указан",call:"Позвонить",write:"Написать"},
+    uz:{title:"Buyurtma kontaktlari",buyer:"Xaridor · akkaunt",email:"Akkaunt emaili",profilePhone:"Profildagi telefon",recipient:"Buyurtma oluvchisi",recipientPhone:"Oluvchi telefoni",notVerified:"Profilda ko‘rsatilgan · tasdiqlanmagan",missing:"Ko‘rsatilmagan",call:"Qo‘ng‘iroq qilish",write:"Yozish"},
+    en:{title:"Order contacts",buyer:"Purchaser · account",email:"Account email",profilePhone:"Profile phone",recipient:"Order recipient",recipientPhone:"Recipient phone",notVerified:"Listed in profile · not verified",missing:"Not provided",call:"Call",write:"Email"},
+  }[locale];
+  const email=account.id.replace(/^email:/i,"");
+  const validEmail=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)?email:"";
+  const profilePhone=account.state.communication.phone?.trim()||"";
+  const recipientPhone=order.delivery?.phone?.trim()||"";
+  const profileTel=operatorPhoneHref(profilePhone);
+  const recipientTel=operatorPhoneHref(recipientPhone);
+  const mailto=validEmail?`mailto:${validEmail}?subject=${encodeURIComponent(`Atlas — ${order.id}`)}`:undefined;
+  return <section className="operator-contact-panel" aria-label={copy.title}>
+    <span className="eyebrow">{copy.title}</span>
+    <div className="operator-contact-grid">
+      <div className="operator-contact-person">
+        <b>{copy.buyer}</b>
+        <strong>{account.name}</strong>
+        <span className="operator-contact-detail">{copy.email}: {validEmail||copy.missing}</span>
+        <span className="operator-contact-detail">{copy.profilePhone}: {profilePhone||copy.missing}{profilePhone&&<small>{copy.notVerified}</small>}</span>
+        <div className="operator-contact-actions">
+          {mailto&&<a className="btn secondary" href={mailto}><Mail size={16}/>{copy.write}</a>}
+          {profileTel&&<a className="btn secondary" href={profileTel}><Phone size={16}/>{copy.call}</a>}
+        </div>
+      </div>
+      <div className="operator-contact-person">
+        <b>{copy.recipient}</b>
+        <strong>{order.delivery?.recipient||copy.missing}</strong>
+        <span className="operator-contact-detail">{copy.recipientPhone}: {recipientPhone||copy.missing}</span>
+        <div className="operator-contact-actions">
+          {recipientTel&&<a className="btn secondary" href={recipientTel}><Phone size={16}/>{copy.call}</a>}
+        </div>
+      </div>
+    </div>
+  </section>;
+}
 const atlasCreditForOrder = (account: OperationsAccount | undefined, orderId: string) =>
   account?.state.entries.reduce(
     (total, entry) => entry.orderId === orderId && entry.credit === "customer-credit"
@@ -593,6 +637,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
     [busy, setBusy] = useState(false),
     [opsAccounts, setOpsAccounts] = useState<OperationsAccount[]>([]),
     [opsReady, setOpsReady] = useState(false),
+    [opsRefreshing, setOpsRefreshing] = useState(false),
     [opsError, setOpsError] = useState<string | null>(null);
   useEffect(() => {
     if (!ready) return;
@@ -608,6 +653,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
   }, [ready, tab, query, opsReady, state.orders, operations, opsAccounts]);
   const refreshOperations = useCallback(async () => {
     if (!operations || !user?.operator) return;
+    setOpsRefreshing(true);
     try {
       const response = await fetch("/api/operations", { cache: "no-store" });
       const data = (await response.json()) as {
@@ -622,6 +668,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
     } catch (nextError) {
       setOpsError((nextError as Error).message);
       setOpsReady(false);
+    } finally {
+      setOpsRefreshing(false);
     }
   }, [operations, user?.operator]);
   useEffect(() => {
@@ -655,11 +703,17 @@ export function OrdersView({ operations }: { operations: boolean }) {
     refunds = operations ? orders.filter((o) => o.cancelled || o.payment?.status === "refunded" || atlasCreditForOrder(orderAccount.get(o.id), o.id) > 0) : [];
   const filtered = (
     tab === "active" ? active : tab === "attention" ? need : tab === "refunds" && operations ? refunds : done
-  ).filter((o) =>
-    `${o.id} ${o.product.name} ${orderAccount.get(o.id)?.name ?? ""}`
-      .toLowerCase()
-      .includes(query.toLowerCase()),
-  );
+  ).filter((o) => {
+    const profile=orderAccount.get(o.id);
+    const profilePhone=profile?.state.communication.phone??"";
+    const recipientPhone=o.delivery?.phone??"";
+    const searchable=[o.id,o.product.name,o.product.brand,o.variant,profile?.name,profile?.id,profilePhone,o.delivery?.recipient,recipientPhone,o.delivery?.city];
+    const needle=query.trim().toLocaleLowerCase();
+    const normalizedPhoneNeedle=query.replace(/\D/g,"");
+    const phoneNumbers=`${profilePhone} ${recipientPhone}`.replace(/\D/g,"");
+    return searchable.filter(Boolean).join(" ").toLocaleLowerCase().includes(needle)
+      || normalizedPhoneNeedle.length>=4&&phoneNumbers.includes(normalizedPhoneNeedle);
+  });
   let calc: ReturnType<typeof settle> | null = null;
   try {
     if (receiving)
@@ -843,11 +897,12 @@ export function OrdersView({ operations }: { operations: boolean }) {
             <Search size={18} />
             <input
               aria-label={ow.search}
-              placeholder={operations ? wc.searchOperator : wc.searchCustomer}
+              placeholder={operations ? (locale === "ru" ? "Номер, товар, имя, телефон или email" : locale === "uz" ? "Raqam, tovar, ism, telefon yoki email" : "Order, item, name, phone or email") : wc.searchCustomer}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
           </label>
+          {operations&&<button type="button" className="btn secondary order-refresh" disabled={opsRefreshing} onClick={()=>void refreshOperations()}><RefreshCw size={16} className={opsRefreshing?"spin":""}/>{locale==='ru'?(opsRefreshing?'Обновляем…':'Обновить очередь'):locale==='uz'?(opsRefreshing?'Yangilanmoqda…':'Navbatni yangilash'):(opsRefreshing?'Refreshing…':'Refresh queue')}</button>}
         </div>
       )}
       {operations && tab === "refunds" && <p className="notice">{refundQueueCopy}</p>}
@@ -909,6 +964,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
                     : displayStatuses[o.status]}
               </span>
             </div>
+            {operations&&<OperatorOrderContacts order={o} account={orderAccount.get(o.id)} locale={locale}/>}
             <div className="order-product">
               <div className="order-photo">
               <ProductImage product={o.product} decorative locale={state.communication.language} />
@@ -971,6 +1027,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
                    <h3>{o.payment.status === "pending" ? ow.paymentWaiting : o.payment.status === "paid" ? ow.paymentPaid : ow.paymentRefunded}</h3>
                    <p>{ow.paymentLine} {o.payment.id} · {money(o.payment.amount)}.</p>
                    <strong>{o.payment.status === "pending" ? ow.noCharge : ow.providerPassed}</strong>
+                   {!operations&&!o.cancelled&&o.status===0&&o.product.sourceShippingEstimated&&!o.storeShippingSettlement&&<div className="payment-reserve-hint"><Clock3 size={16}/><div><b>{ow.managerChecking}</b><p>{ow.reserveIncluded} {money(o.quote.sourceShipping??0)}. {ow.beforeBuyout}</p><small>{locale==='ru'?'Резерв — часть предварительного расчёта, это не отметка об оплате.':locale==='uz'?'Zaxira dastlabki hisobning bir qismi, bu to‘lov qaydi emas.':'This reserve is part of the preliminary total, not a payment status.'}</small></div></div>}
                 </div>
                 {!operations && o.payment.status === "pending" && (
                   <button className="btn primary" onClick={() => setConfirmation({ id: o.id, cancel: false, amount: o.payment!.amount, payment: true })}>
@@ -998,21 +1055,6 @@ export function OrdersView({ operations }: { operations: boolean }) {
             )}
             {!operations && <CustomerWarehouseServices order={o} pricing={pricing} locale={locale} busy={busy} run={runOrderAction} />}
              {!!o.changeRequests?.length && <section className="change-request-list" aria-label={ow.agreements}>{[...o.changeRequests].reverse().map(request=><article className={`change-request ${request.status}`} key={request.id}><div><span className="eyebrow">{request.status === "pending" ? ow.pending : request.status === "approved" ? ow.approved : ow.declined}</span><h3>{request.title}</h3><p>{request.reason}</p>{request.warehouseServiceRequestId&&<p className="micro">{locale==='ru'?'Подтверждение относится только к этой услуге. Платёжный провайдер не подключён, а выполнение ещё не подтверждено.':locale==='uz'?'Tasdiq faqat shu xizmatga tegishli. To‘lov provayderi ulanmagan, xizmat bajarilgani hali tasdiqlanmagan.':'Approval applies only to this service. No payment provider is connected, and fulfilment has not been confirmed.'}</p>}{(request.previousValue||request.proposedValue)&&<p className="change-values"><span>{request.previousValue||"—"}</span><ArrowRight size={15}/><b>{request.proposedValue||"—"}</b></p>}</div><div className="change-amount">{request.amountDelta !== 0 && <strong>{request.amountDelta > 0 ? "+" : ""}{money(request.amountDelta)}</strong>}{!operations && request.status === "pending" && <div className="change-actions"><button className="btn secondary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"declined",expectedAmountDelta:request.amountDelta})}>{ow.reject}</button><button className="btn primary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"approved",expectedAmountDelta:request.amountDelta})}>{ow.confirm}</button></div>}</div></article>)}</section>}
-            {!operations &&
-              !o.cancelled &&
-              o.status === 0 &&
-              o.product.sourceShippingEstimated &&
-              !o.storeShippingSettlement && (
-                <div className="settlement-box">
-                  <Clock3 size={22} />
-                  <div>
-                    <h3>{ow.managerChecking}</h3>
-                    <p>
-                      {ow.reserveIncluded} {money(o.quote.sourceShipping ?? 0)}. {ow.beforeBuyout}
-                    </p>
-                  </div>
-                </div>
-              )}
             {o.storeShippingSettlement && (
               <div
                 className={

@@ -61,7 +61,6 @@ export function MarketProvider({children}:{children:ReactNode}) {
    const stored=readStoredLocale();
    const next=stored?{...parsed,communication:{...parsed.communication,language:stored}}:parsed;
    // Keep asynchronous request fallbacks in the locale the customer just selected.
-   // eslint-disable-next-line react-hooks/immutability
    localeRef.current=next.communication.language;
    setLocaleCookie(next.communication.language);
    setState(next);
@@ -79,7 +78,6 @@ export function MarketProvider({children}:{children:ReactNode}) {
   setLocaleCookie(locale??'ru');
   if(locale){
    // This ref is intentionally updated outside render for callbacks that outlive this effect.
-   // eslint-disable-next-line react-hooks/immutability
    localeRef.current=locale;
    queueMicrotask(()=>setState(s=>({...s,communication:{...s.communication,language:locale}})))
   }
@@ -115,7 +113,6 @@ export function MarketProvider({children}:{children:ReactNode}) {
  const setLocale=useCallback((locale:Locale)=>{
   const next=supportedLocale(locale);if(!next)return;
   // Toasts and failed requests can resolve after a locale switch, so they read this latest value.
-  // eslint-disable-next-line react-hooks/immutability
   localeRef.current=next;
   setState(s=>({...s,communication:{...s.communication,language:next}}));
   try{localStorage.setItem('atlas-language',next)}catch{}

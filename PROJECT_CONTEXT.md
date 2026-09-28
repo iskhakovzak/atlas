@@ -1,5 +1,13 @@
 # Atlas — project context
 
+## Nike size options and operator order contacts — 29 September 2026
+
+Nike link imports now keep the exact URL-selected style and also read its sibling colorways only from the same Nike product group. Each size retains that colorway's own article/GTIN, price, availability signal and image; other product groups and recommendations are excluded. A Nike `www.nike.com` USD men's shoe page is labelled as Nike US men's sizing and links to Nike's official conversion chart, with a note that the package CM label is not foot length. Other merchants keep their source-provided size label. Customers can switch colors without a repeated click clearing their selected size; choosing a different color clears only the old size/price selection and updates its product image.
+
+The operator order queue can be refreshed manually and searched by order/product, purchaser name, account email, profile phone, recipient name, recipient phone or city. Expanded orders show purchaser-account details separately from the order's delivery recipient. Email and phone are explicit `mailto:`/`tel:` links; the profile phone is labelled unverified and is not confused with the recipient phone. No message is sent by loading or searching the queue. Customer orders place the store-shipping reserve note beside the payment status and explicitly describe it as part of the preliminary total, not a payment record. The catalog eyebrow “КАТАЛОГ ATLAS” (localized for UZ/EN) is restored above the feed title, including on narrow screens.
+
+Link-order gallery thumbnails use `next/image` with optimization disabled because safe merchant image hosts are intentionally variable. Removed three obsolete lint suppressions without changing locale-state behavior. Lint now completes without warnings. The local full API/UI smoke remains constrained by the absent local D1 `market_settings` table; the database was not seeded or otherwise changed.
+
 ## Catalog importer recovery — 27 September 2026
 
 Operator imports now preserve a recoverable draft when a supported merchant blocks the public request or returns an expected manual-entry fallback. Safe partial title/image data may be retained, but unverified price, currency and variant availability are cleared. The catalog editor exposes variant name, color, size, price and an explicit operator availability choice; drafts cannot be published until required product data and at least one confirmed available variant are present. Rechecking an existing source that is temporarily unavailable preserves its saved card fields instead of replacing them with empty data. This is a manual-review path, not evidence that the merchant has stock or that the catalog is launch-ready.

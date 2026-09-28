@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { ArrowRight, CircleHelp, ExternalLink, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -169,7 +170,10 @@ export function GlobalLinkOrder() {
   const variantColors = useMemo(() => [...new Set(variants.map(item => item.color).filter((value): value is string => Boolean(value)))], [variants]);
   const variantsForColor = useMemo(() => selectedColor ? variants.filter(item => item.color === selectedColor) : variantColors.length ? [] : variants, [variants,selectedColor,variantColors]);
   const variantSizes = useMemo(() => [...new Set(variantsForColor.map(item => item.size).filter((value): value is string => Boolean(value)))], [variantsForColor]);
-  const variantSizeLabel = useMemo(() => [...new Set(variantsForColor.map(item => item.sizeLabel).filter((value): value is string => Boolean(value)))].join(' / ') || (lang==='ru'?'Размер / модель':lang==='uz'?'O‘lcham / model':'Size / model'), [variantsForColor,lang]);
+  const nikeUsMenSizes = variantsForColor.some(item => item.sizeLabel === 'Nike US men');
+  const variantSizeLabel = nikeUsMenSizes
+    ? tx('Размер · Nike US, мужские','O‘lcham · Nike US, erkaklar','Size · Nike US men')
+    : [...new Set(variantsForColor.map(item => item.sizeLabel).filter((value): value is string => Boolean(value)))].join(' / ') || (lang==='ru'?'Размер / модель':lang==='uz'?'O‘lcham / model':'Size / model');
   function applyVariantChoice(item:ProductVariant|undefined,knownCurrency=true){
     if(!item){setVariant("");setSelectedSize("");setVerified(false);return}
     setVariant(item.label);setSelectedColor(item.color??"");setSelectedSize(item.size??"");
@@ -431,7 +435,7 @@ export function GlobalLinkOrder() {
       <PageHeading overline={c.over} title={isSourcedFlow ? c.choose : c.order} description={isSourcedFlow ? c.checkPrice : c.paste}/>
       <div className="link-layout">
         <section className="surface link-form">
-          {image&&<div className="mobile-import-photo"><div className="import-photo"><ProductImage product={previewProduct} locale={lang}/></div>{images.length>1&&<div className="import-gallery" aria-label={c.gallery}>{images.map((photo,index)=><button type="button" key={photo} aria-label={`${c.gallery} ${index+1}`} aria-pressed={image===photo} onClick={()=>setImage(photo)}><img src={photo} alt={`${c.gallery} ${index+1}`} loading="lazy" referrerPolicy="no-referrer"/></button>)}</div>}</div>}
+          {image&&<div className="mobile-import-photo"><div className="import-photo"><ProductImage product={previewProduct} locale={lang}/></div>{images.length>1&&<div className="import-gallery" aria-label={c.gallery}>{images.map((photo,index)=><button type="button" key={photo} aria-label={`${c.gallery} ${index+1}`} aria-pressed={image===photo} onClick={()=>setImage(photo)}><Image src={photo} alt={`${c.gallery} ${index+1}`} width={64} height={64} unoptimized loading="lazy" referrerPolicy="no-referrer"/></button>)}</div>}</div>}
           {isSourcedFlow && !showSourceForm && <div className="link-source-tools" aria-live="polite">
             {busy && <span className="link-source-loading" role="status"><Loader2 className="spin" size={16}/> {c.loading}</span>}
             {!busy && source && <>
@@ -585,8 +589,8 @@ export function GlobalLinkOrder() {
                   <small>{tx('Выбран автоматически','Avtomatik tanlandi','Automatically selected')}</small>
                   <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
                 </div> : variants.length && (variantColors.length||variantSizes.length) ? <>
-                  {variantColors.length>0&&<div className="variant-step"><div><b>{c.color}</b><span>{selectedColor||c.selectColor}</span></div><div className="variant-options">{variantColors.map(color=>{const choices=variants.filter(item=>item.color===color);return <button type="button" key={color} aria-pressed={selectedColor===color} onClick={()=>{setSelectedColor(color);setSelectedSize('');setVerified(false);if(!choices.some(item=>item.size)&&choices[0])applyVariantChoice(choices[0]);else setVariant('')}}>{color}</button>})}</div></div>}
-                  {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize||c.selectVariant}</span></div><div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={selectedSize===size} onClick={()=>applyVariantChoice(choice)}><span>{size}</span>{choice&&price!==undefined&&<small>{price} {currency}</small>}</button>})}</div></div>}
+                  {variantColors.length>0&&<div className="variant-step"><div><b>{c.color}</b><span>{selectedColor||c.selectColor}</span></div><div className="variant-options">{variantColors.map(color=>{const choices=variants.filter(item=>item.color===color);return <button type="button" key={color} aria-pressed={selectedColor===color} onClick={()=>{if(color===selectedColor)return;setSelectedColor(color);setSelectedSize('');setVariant('');setVerified(false);const first=choices.find(item=>item.available)??choices[0];if(first?.image){setImage(first.image);setImages(current=>dedupeSafeImages([first.image!,...current],source))}if(choices.some(item=>item.price!==undefined))setAmount('');if(!choices.some(item=>item.size)&&first)applyVariantChoice(first)}}>{color}</button>})}</div></div>}
+                  {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize||c.selectVariant}</span></div><div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={selectedSize===size} onClick={()=>applyVariantChoice(choice)}><span>{size}</span>{choice&&price!==undefined&&<small>{price} {currency}</small>}</button>})}</div>{nikeUsMenSizes&&<p className="micro">{tx('Размеры указаны в системе Nike US для мужской обуви. CM на ярлыке Nike — размер обуви, не длина стопы.','O‘lchamlar Nike US erkaklar poyabzali tizimida ko‘rsatilgan. Nike yorlig‘idagi CM — oyoq uzunligi emas, poyabzal o‘lchami.','Sizes use Nike US men’s footwear sizing. Nike’s CM label is a shoe size, not foot length.')} <a className="text-link" href="https://www.nike.com/size-fit/mens-footwear" target="_blank" rel="noopener noreferrer">{tx('Таблица размеров Nike','Nike o‘lcham jadvali','Nike size chart')} <ExternalLink size={13}/></a></p>}</div>}
                   {!variantColors.length&&!variantSizes.length&&<Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.map(item=>item.label)}/>}
                   <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
                 </> : variants.length ? <Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.map(item=>item.label)}/> : (
@@ -770,8 +774,7 @@ export function GlobalLinkOrder() {
           {images.length > 1 && (
             <div className="import-gallery" aria-label={c.gallery}>
               {images.map((photo, index) => <button type="button" key={photo} aria-label={`${c.gallery} ${index + 1}`} aria-pressed={image === photo} onClick={() => setImage(photo)}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                 <img src={photo} alt={`${c.gallery} ${index + 1}`} loading="lazy" referrerPolicy="no-referrer" />
+                 <Image src={photo} alt={`${c.gallery} ${index + 1}`} width={64} height={64} unoptimized loading="lazy" referrerPolicy="no-referrer" />
               </button>)}
             </div>
           )}

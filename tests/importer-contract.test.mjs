@@ -65,6 +65,46 @@ test('Nike embedded product data keeps exact style price, gallery and stock matr
   ]);
 });
 
+test('Nike exact product group exposes sibling colorways without importing recommendations', () => {
+  const sourceUrl = 'https://www.nike.com/t/gato-lv8-mens-shoes-Ib4M9R5k/IH3587-400';
+  const style = (styleCode, colorDescription, price, image, sizes) => ({
+    styleCode,
+    colorDescription,
+    brands: ['Nike'],
+    productType: 'FOOTWEAR',
+    productInfo: {fullTitle: "Nike Gato LV8 Men's Shoes"},
+    prices: {currency: 'USD', currentPrice: price},
+    contentImages: [{properties: {portrait: {url: image}}}],
+    sizes,
+  });
+  const blue = style('IH3587-400', 'Light Armory Blue/White', 73.97, 'https://static.nike.com/blue.jpg', [
+    {label: '6', status: 'ACTIVE', gtins: [{gtin: 'blue-6'}]},
+    {label: '6.5', status: 'INACTIVE', gtins: [{gtin: 'blue-65'}]},
+  ]);
+  const red = style('IH3587-401', 'University Red/White', 78.97, 'https://static.nike.com/red.jpg', [
+    {label: '7', status: 'ACTIVE', gtins: [{gtin: 'red-7'}]},
+  ]);
+  const unrelated = style('OTHER-001', 'Black/White', 10, 'https://static.nike.com/unrelated.jpg', [
+    {label: '9', status: 'ACTIVE', gtins: [{gtin: 'other-9'}]},
+  ]);
+  const payload = {props: {pageProps: {
+    locale: {currency: 'USD'},
+    selectedProduct: {...blue},
+    productGroups: [
+      {products: {blue, red}},
+      {products: {unrelated}},
+    ],
+  }}};
+  const result = extractProduct(`<script id="__NEXT_DATA__" type="application/json">${JSON.stringify(payload)}</script>`, sourceUrl);
+  assert.equal(result.sku, 'IH3587-400');
+  assert.equal(result.price, 73.97);
+  assert.deepEqual(result.variants.map(({id,color,size,price,image,available,sizeLabel}) => ({id,color,size,price,image,available,sizeLabel})), [
+    {id:'blue-6',color:'Light Armory Blue/White',size:'6',price:73.97,image:'https://static.nike.com/blue.jpg',available:true,sizeLabel:'Nike US men'},
+    {id:'blue-65',color:'Light Armory Blue/White',size:'6.5',price:73.97,image:'https://static.nike.com/blue.jpg',available:false,sizeLabel:'Nike US men'},
+    {id:'red-7',color:'University Red/White',size:'7',price:78.97,image:'https://static.nike.com/red.jpg',available:true,sizeLabel:'Nike US men'},
+  ]);
+});
+
 test('exact listing wins over earlier recommended JSON-LD products', () => {
   const source = 'https://www.target.com/p/item/-/A-123';
   const product = (url, price, sku) => ({'@type':'Product', url, name:'Item', sku, color:'Blue', offers:{price, priceCurrency:'USD'}});

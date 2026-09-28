@@ -52,7 +52,7 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
 
   return <TooltipProvider delayDuration={300}><div className="finds-page" id="finds">
     <section className="finds-heading">
-      <div>{status==='guest'?<h2>{copy.catalog}</h2>:<h1>{favorites ? copy.savedTitle : copy.title}</h1>}<p>{favorites ? copy.savedIntro : copy.intro}</p></div>
+      <div>{!favorites&&<span className="eyebrow">{locale==='ru'?'КАТАЛОГ ATLAS':locale==='uz'?'ATLAS KATALOGI':'ATLAS CATALOG'}</span>}{status==='guest'?<h2>{copy.catalog}</h2>:<h1>{favorites ? copy.savedTitle : copy.title}</h1>}<p>{favorites ? copy.savedIntro : copy.intro}</p></div>
       {ready&&<Link className="btn secondary" href={favorites ? '/' : '/favorites'}><Heart size={17}/>{favorites ? copy.catalog : copy.saved}<span className="finds-count">{favorites ? products.length : state.favorites.filter(id => products.some(product => product.id === id)).length}</span></Link>}
     </section>
     {catalogError&&<div className="notice catalog-fallback-message" role="status"><span>{catalogError}</span><button type="button" className="text-button catalog-retry" disabled={catalogRefreshing} onClick={()=>void retryCatalog()}>{catalogRefreshing?(locale==='ru'?'Обновляем…':locale==='uz'?'Yangilanmoqda…':'Refreshing…'):(locale==='ru'?'Повторить':locale==='uz'?'Qayta urinish':'Retry')}</button></div>}

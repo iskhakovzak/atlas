@@ -791,20 +791,29 @@ function extractNike(html: string, sourceUrl: string): Extracted | undefined {
       ? page.selectedProduct as Record<string, unknown>
       : undefined;
     const groups = Array.isArray(page?.productGroups) ? page.productGroups : [];
-    const products = groups.flatMap(group => {
+    const groupedProducts = groups.map(group => {
       if (!group || typeof group !== 'object') return [];
       const values = (group as Record<string, unknown>).products;
-      return values && typeof values === 'object' && !Array.isArray(values) ? Object.values(values as Record<string, unknown>) : [];
-    }).filter((value): value is Record<string, unknown> => Boolean(value && typeof value === 'object'));
-    const product = selected && (!article || [selected.styleCode, selected.styleColor, selected.pdpUrl].some(value => String(value ?? '').toUpperCase().includes(article ?? '')))
+      return values && typeof values === 'object' && !Array.isArray(values)
+        ? Object.values(values as Record<string, unknown>).filter((value): value is Record<string, unknown> => Boolean(value && typeof value === 'object'))
+        : [];
+    });
+    const products = groupedProducts.flat();
+    const matchesArticle = (value: Record<string, unknown>) => {
+      if (!article) return true;
+      const styleCode = String(value.styleCode ?? '').trim().toUpperCase();
+      const merchProductId = String(value.merchProductId ?? '').trim().toUpperCase();
+      const pdpPath = String(value.pdpUrl ?? '').split(/[?#]/, 1)[0].replace(/\/$/, '').toUpperCase();
+      return styleCode === article || merchProductId === article || pdpPath.endsWith(`/${article}`);
+    };
+    const product = selected && matchesArticle(selected)
       ? selected
-      : products.find(value => String(value.styleCode ?? value.merchProductId ?? '').toUpperCase() === article || String(value.pdpUrl ?? '').includes(`/${article}`));
+      : products.find(matchesArticle);
     if (!product) return;
     const info = product.productInfo && typeof product.productInfo === 'object' ? product.productInfo as Record<string, unknown> : {};
     const title = clean(info.fullTitle ?? info.title ?? product.displayStyle ?? product.styleCode).slice(0, 140) || undefined;
     const brands = Array.isArray(product.brands) ? product.brands.map(clean).filter(Boolean) : [];
     const brand = brands[0] || 'Nike';
-    const color = clean(product.colorDescription ?? product.styleColor) || undefined;
     const priceData = product.prices && typeof product.prices === 'object' ? product.prices as Record<string, unknown> : {};
     const price = number(priceData.currentPrice ?? priceData.price ?? priceData.initialPrice);
     const currency = clean(priceData.currency ?? (page?.locale && typeof page.locale === 'object' ? (page.locale as Record<string, unknown>).currency : undefined)).toUpperCase() || undefined;
@@ -819,21 +828,55 @@ function extractNike(html: string, sourceUrl: string): Extracted | undefined {
       if (!value || typeof value !== 'object') return undefined;
       return safeImage((value as Record<string, unknown>).url, sourceUrl);
     }).filter((value): value is string => Boolean(value)))].slice(0, 12);
-    const rawSizes = Array.isArray(product.sizes) ? product.sizes : [];
-    const variants: ProductVariant[] = rawSizes.map(raw => {
-      const value = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
-      const label = clean(value.label ?? value.localizedLabel);
-      const gtins = Array.isArray(value.gtins) ? value.gtins : [];
-      const id = clean(gtins[0] && typeof gtins[0] === 'object' ? (gtins[0] as Record<string, unknown>).gtin : value.merchSkuId) || undefined;
-      const status = clean(value.status).toUpperCase();
-      return {id, size: label || undefined, sizeLabel: 'Размер', color, label: [color, label].filter(Boolean).join(' · '), available: status === 'ACTIVE' || status === 'BUYABLE_BUY', availabilityKnown: Boolean(status), price, image: images[0]};
-    }).filter(value => value.label).slice(0, 80);
-    if (!variants.length) return;
+    const matchedGroup = article ? groupedProducts.find(items => items.some(matchesArticle)) : undefined;
+    // Nike stores colorways as sibling products inside the matching product
+    // group. Never borrow variants from another group (for example, recommendations).
+    const colorways = (matchedGroup?.length
+      ? [product, ...matchedGroup.filter(candidate => !matchesArticle(candidate))]
+      : [product]).slice(0, 20);
+    const isNikeUsMen = (source.hostname === 'www.nike.com' || source.hostname === 'nike.com')
+      && currency === 'USD' && /\bmen['’]s\b/i.test(title ?? '');
+    const sizeLabel = isNikeUsMen ? 'Nike US men' : 'Размер';
+    const variants: ProductVariant[] = colorways.flatMap(colorway => {
+      const variantColor = clean(colorway.colorDescription ?? colorway.styleColor) || undefined;
+      const variantPriceData = colorway.prices && typeof colorway.prices === 'object' ? colorway.prices as Record<string, unknown> : {};
+      const selectedStyle = matchesArticle(colorway);
+      const variantPrice = number(variantPriceData.currentPrice ?? variantPriceData.price ?? variantPriceData.initialPrice) ?? (selectedStyle ? price : undefined);
+      const variantImages = Array.isArray(colorway.contentImages) ? colorway.contentImages.flatMap(value => {
+        if (!value || typeof value !== 'object') return [];
+        const properties = (value as Record<string, unknown>).properties;
+        if (!properties || typeof properties !== 'object') return [];
+        const record = properties as Record<string, unknown>;
+        return [record.portrait, record.squarish];
+      }).map(value => {
+        if (!value || typeof value !== 'object') return undefined;
+        return safeImage((value as Record<string, unknown>).url, sourceUrl);
+      }).filter((value): value is string => Boolean(value)) : [];
+      const variantImage = variantImages[0] ?? (selectedStyle ? images[0] : undefined);
+      const rawSizes = Array.isArray(colorway.sizes) ? colorway.sizes.slice(0, 80) : [];
+      return rawSizes.map(raw => {
+        const value = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
+        const label = clean(value.label ?? value.localizedLabel);
+        const gtins = Array.isArray(value.gtins) ? value.gtins : [];
+        const id = clean(gtins[0] && typeof gtins[0] === 'object' ? (gtins[0] as Record<string, unknown>).gtin : value.merchSkuId) || undefined;
+        const status = clean(value.status).toUpperCase();
+        if (!label) return undefined;
+        return {id, size: label, sizeLabel, color: variantColor, label: [variantColor, label].filter(Boolean).join(' · '), available: status === 'ACTIVE' || status === 'BUYABLE_BUY', availabilityKnown: Boolean(status), price: variantPrice, image: variantImage};
+      }).filter((value): value is ProductVariant => Boolean(value));
+    });
+    const seenOptions = new Set<string>();
+    const boundedVariants = variants.filter(value => {
+      const key = `${value.color ?? ''}\u0000${value.size ?? ''}`;
+      if (seenOptions.has(key)) return false;
+      seenOptions.add(key);
+      return true;
+    }).slice(0, 80);
+    if (!boundedVariants.length) return;
     const category = inferProductCategory([title, clean(product.productType), ...(Array.isArray(product.taxonomyLabels) ? product.taxonomyLabels.map(clean) : [])].filter(Boolean).join(' '), brand);
     const warnings = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.', 'Вес с упаковкой нужно проверить.'];
     if (price === undefined) warnings.unshift('Цена не найдена в данных Nike: выберите конкретный вариант на странице магазина.');
-    if (!variants.some(value => value.available)) warnings.push('Nike не указал доступный размер в текущем снимке.');
-    return {title, brand, category, declarationDescription: declarationFor(category, title ?? '', brand), image: images[0], images, price, currency, variants, country: inferStorefrontCountry(sourceUrl, currency), warnings, sourceUrl, method: 'Nike product data', sku: clean(product.styleCode) || undefined};
+    if (!boundedVariants.some(value => value.available)) warnings.push('Nike не указал доступный размер в текущем снимке.');
+    return {title, brand, category, declarationDescription: declarationFor(category, title ?? '', brand), image: images[0], images, price, currency, variants: boundedVariants, country: inferStorefrontCountry(sourceUrl, currency), warnings, sourceUrl, method: 'Nike product data', sku: clean(product.styleCode) || undefined};
   } catch {
     return;
   }
