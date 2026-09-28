@@ -1289,9 +1289,10 @@ export function PricingManager({
   const [draft, setDraft] = useState(value);
   const [saving, setSaving] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState(countries[0]);
+  const isDirty=JSON.stringify(draft)!==JSON.stringify(value);
   useEffect(() => {
-    onDirtyChange(JSON.stringify(draft) !== JSON.stringify(value));
-  }, [draft, onDirtyChange, value]);
+    onDirtyChange(isDirty);
+  }, [isDirty, onDirtyChange]);
   const serviceWords = {
     ru: { title: "Услуги и тарифы склада", intro: "Настройте цену за единицу и при необходимости отдельные тарифы по стране отправки. Фиксированная цена показывается клиенту, но не входит в заказ к оплате: оператор сначала подтверждает возможность, клиент отдельно одобряет точную сумму. Снимок условий сохраняется в заказе; списаний и реального выполнения пока нет.", add: "Добавить услугу", enabled: "Доступна клиентам", required: "Обязательна при оформлении", stage: "Когда показывать", checkout: "В корзине", warehouse: "После приёмки", unit: "Единица тарифа", pricing: "Ценообразование", fixed: "Фиксированный тариф", quote: "Цена после проверки оператором", baseFee: "Базовый тариф за единицу, сум", countryFee: "Тариф за единицу для страны, сум", titleLabel: "Название", description: "Описание", remove: "Отключить", insurance: "Страхование заблокировано до подтверждения страховщика, покрытия и порядка претензий." },
     uz: { title: "Ombor xizmatlari va tariflari", intro: "Birlik narxini va kerak bo‘lsa jo‘natish mamlakati bo‘yicha alohida tarifni belgilang. Belgilangan tarif buyurtma summasiga kiritilmaydi: operator imkoniyatni tasdiqlaydi, mijoz esa aniq summaga alohida rozilik beradi. Shartlar buyurtmada saqlanadi; haqiqiy yechib olish va bajarish hali yo‘q.", add: "Xizmat qo‘shish", enabled: "Mijozlarga ochiq", required: "Rasmiylashtirishda majburiy", stage: "Qachon ko‘rsatish", checkout: "Savatda", warehouse: "Qabuldan keyin", unit: "Tarif birligi", pricing: "Narxlash", fixed: "Belgilangan tarif", quote: "Operator tekshirgach narx", baseFee: "Birlik uchun asosiy tarif, so‘m", countryFee: "Mamlakat uchun birlik tarifi, so‘m", titleLabel: "Nomi", description: "Tavsif", remove: "O‘chirish", insurance: "Sug‘urtalovchi, qoplama va da’vo tartibi tasdiqlanmaguncha sug‘urta bloklangan." },
@@ -1450,7 +1451,7 @@ export function PricingManager({
               : pricingWords.default}
           </small>
         </span>
-        <span className="status-badge">{value.version}</span>
+         <span className="status-badge">{isDirty?(locale==="ru"?"Не сохранено":locale==="uz"?"Saqlanmagan":"Unsaved"):value.version}</span>
       </summary>
       <form
         onSubmit={(event) => {
@@ -1492,8 +1493,8 @@ export function PricingManager({
           ))}
         </div>
         <p className="micro">{pricingWords.lineFeeNote}</p>
-        <section className="country-pricing">
-          <h3>{pricingWords.countryTitle}</h3>
+        <details className="country-pricing">
+          <summary>{pricingWords.countryTitle}</summary>
           <p className="micro">{pricingWords.countryNote}</p>
           <div className="field">
             <label htmlFor="pricing-country">{pricingWords.countryLabel}</label>
@@ -1537,7 +1538,7 @@ export function PricingManager({
               </div>;
             })}
           </div>
-        </section>
+        </details>
         <section className="warehouse-service-catalog">
           <div className="warehouse-service-catalog-heading"><div><h3>{serviceWords.title}</h3><p className="micro">{serviceWords.intro}</p></div><button type="button" className="btn secondary" disabled={draft.serviceCatalog.length >= 40} onClick={addService}>{serviceWords.add}</button></div>
           {draft.serviceCatalog.some((service) => service.id === "shipping-insurance") && <p className="notice warning">{serviceWords.insurance}</p>}
@@ -1592,7 +1593,7 @@ export function PricingManager({
           </div>
         </details>
         <p className="micro">{pricingWords.newQuotes}</p>
-        <button className="btn primary" disabled={saving}>
+        <button className="btn primary" disabled={saving||!isDirty}>
           {saving ? pricingWords.saving : pricingWords.save}
           <Check size={17} />
         </button>

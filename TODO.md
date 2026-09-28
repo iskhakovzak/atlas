@@ -294,4 +294,17 @@
 - [x] Label source-backed catalog card actions as “Add to cart” and route them into the protected fresh-import/variant confirmation flow; never add the dated card snapshot directly.
 - [ ] Activate and verify the separate hourly catalog-refresh Worker. This still requires an authenticated Cloudflare deployment environment, matching `ATLAS_CATALOG_REFRESH_SECRET` bindings, and evidence from a scheduled signed run; the Wrangler source/config is not an active job.
 - [ ] Confirm the customs-rate effective date with the Uzbekistan Customs Committee: the consolidated PP-4508 text effective 2026-09-01 shows 20% / $2 per kg, while UP-174 §8 states that rate starts 2027-01-01. Until resolved, the link-order figure is informational only and must not be sold as a confirmed customs quote.
-- [ ] Run visual verification of the updated link-order summary (light/dark, phone/desktop) on the published Site after deployment; verify the quote total is unchanged while displayed service/reserve rows are consolidated.
+- [ ] Run visual verification of the updated link-order summary (light/dark, phone/desktop) on the published Site after deployment; verify the quote total is unchanged and every existing quote component remains separately labelled.
+
+## Admin/catalog and storefront feedback — 29 September 2026
+
+- [x] Allow bulk catalog rechecks over all selected matches by sending sequential groups of ten and retaining unprocessed IDs on a failure; keep the API's existing limit and revision checks.
+- [x] Separate customer-submitted links from operator imports, published products and older/hidden records; retain availability reports inside the relevant product card.
+- [x] Increase operator import to 16 unique links per launch, preserve remaining/failed links, infer collection membership for known stores and add localized seasonal/outfit/store/deals presets. Imports still create unpublished review drafts.
+- [x] Keep an order CTA on every published catalog card and route it through live price/variant verification before cart persistence.
+- [x] Simplify catalog discovery controls, split finance quote/fee/payment workflow summaries, add actual admin audit filters and unsaved pricing-change feedback, and remove public duplicate/setup copy.
+- [ ] Provision and verify catalog Cron Worker plus `ATLAS_CATALOG_REFRESH_SECRET` on both Site and Worker before claiming automatic price/stock refresh or cleanup. UI currently describes manual refresh and keeps drafts on auto-hide.
+- [ ] Select and configure a machine-translation provider before promising automatic translation of arbitrary collection titles; current translated presets are static.
+- [ ] Decide whether customer-facing product/suggestion actions should be copied into the admin journal, then extend the source event schema/API if desired. Current actor filters correctly cover only the latest 100 returned admin/system events.
+- [ ] Visually verify admin, catalog, finance, pricing, audit, cart customs threshold, and public CTA flows in guest/customer/operator contexts, at phone and desktop widths and in light/graphite themes. Local lint/tests/build do not verify D1, live auth, remote Worker or production layout.
+- [ ] Clarify the customs effective date with Uzbekistan Customs Committee; PP-4508 consolidated text and UP-174 §8 disagree. Until confirmed, estimates remain informational.

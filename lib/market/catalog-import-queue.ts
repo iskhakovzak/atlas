@@ -1,5 +1,10 @@
 export const catalogImportBatchSize = 10;
 
+export function chunkCatalogIds(ids: string[], size = catalogImportBatchSize) {
+  if (!Number.isInteger(size) || size < 1) throw new Error('Chunk size must be a positive integer.');
+  return Array.from({ length: Math.ceil(ids.length / size) }, (_, index) => ids.slice(index * size, (index + 1) * size));
+}
+
 export function parseCatalogImportQueue(value: string) {
   const raw = value.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
   const links = [...new Set(raw)];

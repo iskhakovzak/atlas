@@ -24,7 +24,6 @@ import {
   type ProductVariant,
 } from "@/lib/importer/extract";
 import { Choice, PageHeading, ProductImage } from "./market-ui";
-import { CustomsEstimate } from "./customs-estimate";
 import {
   communityDeals,
   communityEstimatedWeight,
@@ -42,17 +41,20 @@ const canonicalCountry=(value:string)=>countryAliases[value]??value;
 const canonicalCategory=(value:string)=>categoryAliases[value]??value;
 function OrderLinkCostLines({q,locale,weightHelp}:{q:Pick<Quote,"merchandise"|"service"|"shipping"|"reserve"|"sourceShipping"|"buyout"|"conversion"|"deliveryMargin"|"optionalServices">;locale:"ru"|"uz"|"en";weightHelp:string}){
   const copy={
-    ru:{item:"Товар",service:"Сервис Atlas",shipping:"Международная доставка",reserve:"Возвратный резерв",help:"Как считается доставка"},
-    uz:{item:"Tovar",service:"Atlas xizmati",shipping:"Xalqaro yetkazish",reserve:"Qaytariladigan zaxira",help:"Yetkazish qanday hisoblanadi"},
-    en:{item:"Item",service:"Atlas service",shipping:"International delivery",reserve:"Refundable reserve",help:"How delivery is estimated"},
+    ru:{item:"Товар",service:"Сервис Atlas",buyout:"Выкуп",conversion:"Конвертация",shipping:"Международная доставка",merchantShipping:"Доставка магазина",margin:"Маржа доставки",reserve:"Резерв международной доставки",optional:"Дополнительные услуги",help:"Как считается доставка"},
+    uz:{item:"Tovar",service:"Atlas xizmati",buyout:"Xarid",conversion:"Konvertatsiya",shipping:"Xalqaro yetkazish",merchantShipping:"Do‘kon yetkazishi",margin:"Yetkazish marjasi",reserve:"Xalqaro yetkazish zaxirasi",optional:"Qo‘shimcha xizmatlar",help:"Yetkazish qanday hisoblanadi"},
+    en:{item:"Item",service:"Atlas service",buyout:"Buyout",conversion:"Conversion",shipping:"International delivery",merchantShipping:"Store shipping",margin:"Delivery margin",reserve:"International delivery reserve",optional:"Optional services",help:"How delivery is estimated"},
   }[locale];
-  const atlasService=q.service+(q.buyout??0)+(q.conversion??0)+(q.deliveryMargin??0)+(q.optionalServices??0);
-  const sourceAndFreightReserve=q.reserve+(q.sourceShipping??0);
   return <dl className="cost-lines order-link-cost-lines">
     <div><dt>{copy.item}</dt><dd>{money(q.merchandise)}</dd></div>
-    {atlasService>0&&<div><dt>{copy.service}</dt><dd>{money(atlasService)}</dd></div>}
+    {q.service>0&&<div><dt>{copy.service}</dt><dd>{money(q.service)}</dd></div>}
+    {!!q.buyout&&<div><dt>{copy.buyout}</dt><dd>{money(q.buyout)}</dd></div>}
+    {!!q.conversion&&<div><dt>{copy.conversion}</dt><dd>{money(q.conversion)}</dd></div>}
+    {!!q.sourceShipping&&<div><dt>{copy.merchantShipping}</dt><dd>{money(q.sourceShipping)}</dd></div>}
     <div className="order-link-international-line"><dt>{copy.shipping}</dt><dd><span>{money(q.shipping)}</span><details className="quote-cost-help"><summary aria-label={copy.help} title={copy.help}><CircleHelp size={16}/></summary><div className="quote-cost-help-popover"><p>{weightHelp}</p></div></details></dd></div>
-    <div><dt>{copy.reserve}</dt><dd>{money(sourceAndFreightReserve)}</dd></div>
+    {!!q.deliveryMargin&&<div><dt>{copy.margin}</dt><dd>{money(q.deliveryMargin)}</dd></div>}
+    {!!q.reserve&&<div><dt>{copy.reserve}</dt><dd>{money(q.reserve)}</dd></div>}
+    {!!q.optionalServices&&<div><dt>{copy.optional}</dt><dd>{money(q.optionalServices)}</dd></div>}
   </dl>;
 }
 function displayCountryName(value:string,locale:string){
@@ -410,9 +412,9 @@ export function GlobalLinkOrder() {
     }
   } catch {}
   const deliveryHelp=tx(
-    "К расчёту берётся вес товара в коробке + 0,3 кг на упаковку + 0,2 кг запаса; минимум — 1 кг на посылку. После приёмки склад уточнит фактический или объёмный вес. Доставка магазина до склада Atlas объединена с возвратным резервом; если её цена неизвестна, временно используется редактируемая оценка $10, которую сверит менеджер.",
-    "Hisobda qutidagi tovar vazni + qadoq uchun 0,3 kg + 0,2 kg zaxira olinadi; har bir jo‘natma uchun kamida 1 kg. Ombor qabuldan keyin haqiqiy yoki hajmiy vaznni aniqlaydi. Do‘kondan Atlas omborigacha yetkazish qaytariladigan zaxiraga qo‘shilgan; narx noma’lum bo‘lsa, menejer tekshiradigan o‘zgartiriladigan $10 baho vaqtincha qo‘llanadi.",
-    "The estimate uses boxed item weight + 0.3 kg packaging + 0.2 kg allowance, with a 1 kg minimum per parcel. The warehouse settles actual or dimensional weight after intake. Store-to-Atlas shipping is grouped into the refundable reserve; if its price is unknown, an editable $10 estimate is used temporarily and checked by a manager.",
+    "Международная доставка считается от веса товара в коробке + 0,3 кг упаковки + 0,2 кг запаса; минимум — 1 кг на посылку. После приёмки склад уточнит фактический или объёмный вес и пересчитает международную доставку. Доставка магазина до склада Atlas показана отдельной строкой; если магазин её не указывает, используется изменяемый резерв $10, который менеджер сверит.",
+    "Xalqaro yetkazish qutidagi tovar vazni + qadoq uchun 0,3 kg + 0,2 kg zaxira bo‘yicha hisoblanadi; har bir jo‘natma uchun kamida 1 kg. Qabuldan keyin ombor haqiqiy yoki hajmiy vaznni aniqlab, xalqaro yetkazishni qayta hisoblaydi. Do‘kondan Atlas omborigacha yetkazish alohida satrda ko‘rsatiladi; narx noma’lum bo‘lsa, menejer tekshiradigan o‘zgartiriladigan $10 zaxira qo‘llanadi.",
+    "International delivery uses boxed item weight + 0.3 kg packaging + 0.2 kg allowance, with a 1 kg minimum per parcel. After intake, the warehouse confirms actual or dimensional weight and settles international delivery. Store-to-Atlas shipping is a separate line; if the store does not publish it, an editable $10 reserve is used and checked by a manager.",
   );
   const previewProduct: Product = {
     id: "preview",
@@ -788,7 +790,6 @@ export function GlobalLinkOrder() {
                 </span>
                 <strong>{money(preview.total)}</strong>
               </div>
-              <CustomsEstimate valueUsd={toUsd(Number(amount), currency, pricing.rates)} grossKg={Number(weight) || undefined} fx={pricing.fx} locale={state.communication.language} compact/>
             </>
           ) : (
             <p>{c.emptyQuote}</p>

@@ -319,8 +319,8 @@ After a source-backed cart addition has been verified and saved, `addCustomerLin
 
 ## Link-order quote presentation and customs note — 29 September 2026
 
-- The order-by-link summary is presentation-only: it aggregates the existing quote's service, buyout, conversion, delivery-margin and optional-service amounts into “Atlas service”, and groups source shipping with the refundable reserve. `price()` and server-side totals remain unchanged; stored orders/carts and Zod schemas are unchanged.
-- The weight/shipping explanation is an on-demand disclosure beside international delivery. A compact customs estimate is used in the link-order preview; `/customs` retains the detailed input form. It remains informational, separate from Atlas totals, and is not a carrier quote.
+- The order-by-link summary is presentation-only: item, service, buyout, conversion, store shipping, international delivery, margin, reserve and optional-service quote fields remain separate. `price()` and server-side totals are unchanged; stored orders/carts and Zod schemas are unchanged.
+- The weight/shipping explanation is an on-demand disclosure beside international delivery. The order-by-link and product-card views omit customs calculations; the cart conditionally shows the informational estimate only when merchandise exceeds the configured $200 monthly allowance, while `/customs` retains the detailed input form. It remains separate from Atlas totals and is not a carrier quote.
 - The calculator currently follows the consolidated PP-4508 rate text (20% and a $2/kg minimum from 1 September 2026), while UP-174 §8 separately states 1 January 2027. This legal effective-date conflict is a known issue; do not present this estimate as a binding duty quote or commercial tariff before Customs confirms the effective date.
 
 ## Catalog review queue and resilient importer — 27 September 2026
@@ -331,3 +331,12 @@ After a source-backed cart addition has been verified and saved, `addCustomerLin
 - Merchant request/parser/network failures can be represented as manual-review drafts with unknown price and availability. Manual entry does not bypass the existing live exact-variant, price and currency checks on cart/checkout.
 - Shopify products with only per-variant prices remain importable without inventing a base price. Generic HTML parsing accepts XHTML. Redirects outside the allowlist become a manual path without following the destination.
 - Allowlisting a store root does not imply a dedicated adapter or reliable extraction. Live behavior across all supported stores is still unverified; do not state that every store auto-imports perfectly.
+
+## Admin/catalog interaction changes — 29 September 2026
+
+- `CatalogAdmin` retains the existing authenticated `/api/catalog` mutation flow and D1-backed catalog document. A bulk recheck uses sequential chunks no larger than the unchanged API limit of ten IDs; each response revision feeds the next request. A failed chunk leaves the remainder selected so the operator can retry.
+- Admin import remains draft-only. The UI starts at most 16 source imports per launch, under the API's rate limit, and removes only successfully saved URLs from the text queue. Empty manual collection selection can inherit the most-used collections for the same source host. RU/UZ/EN templates are static presets; no machine-translation service is present.
+- Every published catalog card renders the existing order CTA, which enters the live, server-validated price/variant flow. Customer-link entries and admin imports are not auto-published. Public purchase availability is an order request workflow, not guaranteed merchant inventory or completed payment/fulfilment.
+- Scheduled refresh source exists separately under `workers/catalog-refresh`; no schedule or secret was deployed/verified in this change. Manual refresh UI must not be described as automatic background operation. Only definitive all-options-out-of-stock evidence auto-hides a card, and it preserves the underlying draft.
+- Finance display derives grouped totals from immutable saved order quote snapshots and simulated payment statuses. It does not represent recognized Atlas revenue or settled provider transactions. Audit filters are constrained to the latest 100 events returned by `/api/operations`; customer clicks/messages are not present and must not be inferred from administrator events.
+- Per-country rate overrides are a collapsed UI disclosure only; server settings schema, effective pricing and existing-order snapshots are unchanged. The public home filters are client-side refinements over the already loaded public catalog.

@@ -36,7 +36,8 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
   const search = filters.search.trim().toLocaleLowerCase();
   const matching = candidates.filter(product => [product.name, titles[product.id], product.brand, product.category, product.country, categories.find(c => c.value === product.category)?.label, countries.find(c => c.value === product.country)?.label].join(' ').toLocaleLowerCase().includes(search));
   const list = filterDeals(matching, pricing, { ...filters, search: '' },products);
-  const hasFilters = !!(filters.search || filters.category || filters.country || filters.maxTotal);
+  const hasFilters = !!(filters.search || filters.category || filters.country || filters.maxTotal || filters.sort !== 'discount' || collectionId);
+  const clearFilters = () => { setFilters(defaultDealFilters); setCollectionId(''); };
 
   async function favorite(product: Product) {
     setSaving(product.id);
@@ -51,7 +52,7 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
 
   return <TooltipProvider delayDuration={300}><div className="finds-page" id="finds">
     <section className="finds-heading">
-      <div><span className="eyebrow">{copy.overline}</span>{status==='guest'?<h2>{copy.catalog}</h2>:<h1>{favorites ? copy.savedTitle : copy.title}</h1>}<p>{favorites ? copy.savedIntro : copy.intro}</p></div>
+      <div>{status==='guest'?<h2>{copy.catalog}</h2>:<h1>{favorites ? copy.savedTitle : copy.title}</h1>}<p>{favorites ? copy.savedIntro : copy.intro}</p></div>
       {ready&&<Link className="btn secondary" href={favorites ? '/' : '/favorites'}><Heart size={17}/>{favorites ? copy.catalog : copy.saved}<span className="finds-count">{favorites ? products.length : state.favorites.filter(id => products.some(product => product.id === id)).length}</span></Link>}
     </section>
     {catalogError&&<div className="notice catalog-fallback-message" role="status"><span>{catalogError}</span><button type="button" className="text-button catalog-retry" disabled={catalogRefreshing} onClick={()=>void retryCatalog()}>{catalogRefreshing?(locale==='ru'?'Обновляем…':locale==='uz'?'Yangilanmoqda…':'Refreshing…'):(locale==='ru'?'Повторить':locale==='uz'?'Qayta urinish':'Retry')}</button></div>}
@@ -62,13 +63,12 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
     {(!favorites || candidates.length > 0) && <section className="finds-controls" aria-label={copy.search}>
       <div className="finds-search"><Search size={21}/><input type="search" aria-label={copy.search} placeholder={copy.searchPlaceholder} value={filters.search} onChange={event => setFilters({ ...filters, search: event.target.value })}/>{filters.search && <button type="button" className="icon-btn" aria-label={copy.clear} onClick={() => setFilters({ ...filters, search: '' })}><X size={18}/></button>}</div>
       <div className="finds-categories">{categories.map(category => <button type="button" key={category.value} aria-pressed={filters.category === category.value} className={filters.category === category.value ? 'active' : ''} onClick={() => setFilters({ ...filters, category: category.value })}>{category.label}</button>)}</div>
-      <details className="catalog-filter-disclosure"><summary><SlidersHorizontal size={18} aria-hidden="true"/>{locale==='ru'?'Фильтры и сортировка':locale==='uz'?'Filtrlar va saralash':'Filters & sorting'}{(filters.country||filters.maxTotal||filters.sort!=='discount')&&<span> · {locale==='ru'?'настроены':locale==='uz'?'tanlangan':'applied'}</span>}</summary><div className="finds-filter-row">
+      <div className="finds-filter-primary"><label className="finds-sort-control"><span>{copy.sort}</span><Choice label={copy.sort} value={sorts.find(s => s.value === filters.sort)!.label} options={sorts.map(s => s.label)} onChange={label => setFilters({ ...filters, sort: sorts.find(s => s.label === label)!.value })}/></label><details className="catalog-filter-disclosure"><summary><SlidersHorizontal size={18} aria-hidden="true"/>{locale==='ru'?'Ещё фильтры':locale==='uz'?'Boshqa filtrlar':'More filters'}{(filters.country||filters.maxTotal)&&<span> · {locale==='ru'?'настроены':locale==='uz'?'tanlangan':'applied'}</span>}</summary><div className="finds-filter-row">
         <label><span>{copy.country}</span><Choice label={copy.country} value={countries.find(c => c.value === filters.country)!.label} options={countries.map(c => c.label)} onChange={label => setFilters({ ...filters, country: countries.find(c => c.label === label)!.value })}/></label>
         <label><span>{copy.budget}</span><Choice label={copy.budget} value={budgets.find(b => b.value === filters.maxTotal)!.label} options={budgets.map(b => b.label)} onChange={label => setFilters({ ...filters, maxTotal: budgets.find(b => b.label === label)!.value })}/></label>
-        <label><span>{copy.sort}</span><Choice label={copy.sort} value={sorts.find(s => s.value === filters.sort)!.label} options={sorts.map(s => s.label)} onChange={label => setFilters({ ...filters, sort: sorts.find(s => s.label === label)!.value })}/></label>
-      </div></details>
+      </div></details></div>
     </section>}
-    {(!favorites || candidates.length > 0) && <div className="finds-result"><span role="status">{copy.results}: <b>{list.length}</b></span><span className="catalog-customs-note">{copy.excluded} <Link href="/customs" aria-label={locale==='ru'?'Таможенные условия':locale==='uz'?'Bojxona shartlari':'Customs information'}>ⓘ</Link></span>{hasFilters && <button type="button" className="text-button" onClick={() => setFilters(defaultDealFilters)}>{copy.reset}<X size={14}/></button>}</div>}
+    {(!favorites || candidates.length > 0) && <div className="finds-result"><span role="status">{copy.results}: <b>{list.length}</b></span>{hasFilters && <button type="button" className="text-button" onClick={clearFilters}>{copy.reset}<X size={14}/></button>}</div>}
     <section className="finds-grid" aria-label={favorites ? copy.saved : copy.catalog}>
       {list.map(({ product, costs, referenceUsd, discount }) => {
         const isSaved = state.favorites.includes(product.id);
@@ -94,10 +94,10 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
         </article>;
       })}
     </section>
-    {!list.length && <Empty title={favorites && !candidates.length ? copy.emptySaved : copy.empty} description={favorites && !candidates.length ? copy.emptySavedHint : copy.emptyHint} href={favorites && !candidates.length ? '/' : undefined} label={copy.catalog}>{hasFilters && <button type="button" className="btn secondary" onClick={() => setFilters(defaultDealFilters)}>{copy.reset}</button>}</Empty>}
+    {!list.length && <Empty title={favorites && !candidates.length ? copy.emptySaved : copy.empty} description={favorites && !candidates.length ? copy.emptySavedHint : copy.emptyHint} href={favorites && !candidates.length ? '/' : undefined} label={copy.catalog}>{hasFilters && <button type="button" className="btn secondary" onClick={clearFilters}>{copy.reset}</button>}</Empty>}
     {!!list.length && <p className="finds-price-note">{copy.priceNote}</p>}
     {status==='guest' && <p className="finds-signin"><Link href="/account"><Heart size={15}/>{copy.signin}<ArrowUpRight size={15}/></Link></p>}
     {!favorites && <><section className="finds-own-link"><div><Link2 size={25}/><div><h2>{copy.linkTitle}</h2><p>{copy.linkHint}</p></div></div><form onSubmit={event => { event.preventDefault(); try { const target = validateSource(url); const orderUrl = '/order-by-link?url=' + encodeURIComponent(target); setUrlError(''); window.location.assign(status === 'guest' ? signInPath(orderUrl) : orderUrl); } catch (error) { setUrlError((error as Error).message); toast.error((error as Error).message); } }}><label className="sr-only" htmlFor="finds-product-url">{copy.linkLabel}</label><input id="finds-product-url" type="url" required value={url} aria-invalid={!!urlError} aria-describedby={urlError ? 'finds-url-error' : undefined} placeholder="https://..." onChange={event => { setUrl(event.target.value); setUrlError(''); }}/><button className="btn light">{status === 'guest' ? copy.signInToCalculate : copy.calculate}<ArrowUpRight size={18}/></button></form>{status === 'guest' && <p className="micro">{copy.signInToCalculateHint}</p>}{urlError && <p id="finds-url-error" role="alert">{urlError}</p>}<Link href="/batch-import">{copy.batch}<ArrowRight size={15}/></Link></section>
-      <section className="finds-steps"><h2>{copy.stepsTitle}</h2><ol>{[[copy.step1, copy.step1hint], [copy.step2, copy.step2hint], [copy.step3, copy.step3hint]].map(([heading, hint], index) => <li key={heading}><span>0{index + 1}</span><div><h3>{heading}</h3><p>{hint}</p></div></li>)}</ol><p className="finds-steps-note">{copy.stepsNote}</p></section></>}
+      <section className="finds-steps"><h2>{copy.stepsTitle}</h2><ol>{[[copy.step1, copy.step1hint], [copy.step2, copy.step2hint], [copy.step3, copy.step3hint]].map(([heading, hint], index) => <li key={heading}><span>0{index + 1}</span><div><h3>{heading}</h3><p>{hint}</p></div></li>)}</ol></section></>}
   </div></TooltipProvider>;
 }

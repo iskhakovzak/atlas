@@ -828,6 +828,17 @@ html[data-theme="dark"] .finds-categories button:hover:not(.active) {
   color: var(--atlas-ink);
 }
 
+html[data-theme="dark"] .finds-sort-control>span,
+html[data-theme="dark"] .finds-filter-primary .catalog-filter-disclosure>summary {
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .finds-filter-primary .catalog-filter-disclosure>summary,
+html[data-theme="dark"] .finds-filter-primary .finds-filter-row {
+  background: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+}
+
 html[data-theme="dark"] .finds-result .text-button,
 html[data-theme="dark"] .find-title:hover {
   color: var(--atlas-link);
@@ -1156,6 +1167,24 @@ html[data-theme="dark"] .find-store-price .find-discount {
   background-color: var(--atlas-dark-raised);
   border-color: var(--atlas-dark-line);
   color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .finance-breakdown,
+html[data-theme="dark"] .finance-payment-states>div,
+html[data-theme="dark"] .audit-folders button,
+html[data-theme="dark"] .collection-presets,
+html[data-theme="dark"] .country-pricing {
+  background-color: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .audit-folders button.active {
+  background-color: var(--atlas-dark-selected);
+}
+
+html[data-theme="dark"] .finance-lines>div {
+  border-color: var(--atlas-dark-line);
 }
 
 html[data-theme="dark"] .finds-own-link form {
