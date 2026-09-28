@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, ExternalLink, Link2, Loader2, Scale } from "lucide-react";
+import { ArrowRight, CircleHelp, ExternalLink, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
@@ -11,6 +11,7 @@ import {
   money,
   validateSource,
   type Product,
+  type Quote,
 } from "@/lib/market/domain";
 import { countries, currencies, currencyForCountry, toUsd, paddedWeight } from "@/lib/market/world";
 import { estimatedBoxedWeight, validBoxedWeight, weightCategories } from "@/lib/market/weight";
@@ -22,7 +23,7 @@ import {
   type Extracted,
   type ProductVariant,
 } from "@/lib/importer/extract";
-import { Choice, CostLines, PageHeading, ProductImage } from "./market-ui";
+import { Choice, PageHeading, ProductImage } from "./market-ui";
 import { CustomsEstimate } from "./customs-estimate";
 import {
   communityDeals,
@@ -39,6 +40,21 @@ const countryAliases:Record<string,string>={'United States':'США','US':'СШ�
 const categoryAliases:Record<string,string>={'Shoes':'Обувь','Oyoq kiyim':'Обувь','Clothing':'Одежда','Kiyim':'Одежда','Electronics':'Электроника','Elektronika':'Электроника','Accessories':'Аксессуары','Aksessuarlar':'Аксессуары','Beauty & care':'Красота и уход','Go‘zallik va parvarish':'Красота и уход','Home & living':'Дом и быт','Uy va maishiy':'Дом и быт','Sports':'Спорт','Boshqa':'Другое','Other':'Другое'};
 const canonicalCountry=(value:string)=>countryAliases[value]??value;
 const canonicalCategory=(value:string)=>categoryAliases[value]??value;
+function OrderLinkCostLines({q,locale,weightHelp}:{q:Pick<Quote,"merchandise"|"service"|"shipping"|"reserve"|"sourceShipping"|"buyout"|"conversion"|"deliveryMargin"|"optionalServices">;locale:"ru"|"uz"|"en";weightHelp:string}){
+  const copy={
+    ru:{item:"Товар",service:"Сервис Atlas",shipping:"Международная доставка",reserve:"Возвратный резерв",help:"Как считается доставка"},
+    uz:{item:"Tovar",service:"Atlas xizmati",shipping:"Xalqaro yetkazish",reserve:"Qaytariladigan zaxira",help:"Yetkazish qanday hisoblanadi"},
+    en:{item:"Item",service:"Atlas service",shipping:"International delivery",reserve:"Refundable reserve",help:"How delivery is estimated"},
+  }[locale];
+  const atlasService=q.service+(q.buyout??0)+(q.conversion??0)+(q.deliveryMargin??0)+(q.optionalServices??0);
+  const sourceAndFreightReserve=q.reserve+(q.sourceShipping??0);
+  return <dl className="cost-lines order-link-cost-lines">
+    <div><dt>{copy.item}</dt><dd>{money(q.merchandise)}</dd></div>
+    {atlasService>0&&<div><dt>{copy.service}</dt><dd>{money(atlasService)}</dd></div>}
+    <div className="order-link-international-line"><dt>{copy.shipping}</dt><dd><span>{money(q.shipping)}</span><details className="quote-cost-help"><summary aria-label={copy.help} title={copy.help}><CircleHelp size={16}/></summary><div className="quote-cost-help-popover"><p>{weightHelp}</p></div></details></dd></div>
+    <div><dt>{copy.reserve}</dt><dd>{money(sourceAndFreightReserve)}</dd></div>
+  </dl>;
+}
 function displayCountryName(value:string,locale:string){
   const canonical=canonicalCountry(value);
   if(locale==='ru')return canonical;
@@ -124,12 +140,14 @@ export function GlobalLinkOrder() {
         const fresh=usable&&value.sourceCheckStatus==='verified'&&typeof value.sourceExpiresAt==='number'&&value.sourceExpiresAt>Date.now();
         if(usable&&(fresh||(!requestedUrl&&value.source))){
           const text=(item:unknown,fallback='')=>typeof item==='string'?item:fallback;
+          const restoredVariants=Array.isArray(value.variants)?value.variants.slice(0,250):[];
+          const restoredVariant=text(value.variant,restoredVariants.length===1?restoredVariants[0].label:'');
           draftRestored.current=true;draftCanSkipAutomaticLoad.current=Boolean(fresh);
           queueMicrotask(()=>{
             setUrl(text(value.url,requestedUrl));setSource(text(value.source));setName(text(value.name));setBrand(text(value.brand));setDeclaration(text(value.declaration));
             setCurrency(text(value.currency,'USD'));setAmount(text(value.amount));setShipping(text(value.shipping,'10'));setShippingCurrency(text(value.shippingCurrency,'USD'));setShippingEstimated(value.shippingEstimated!==false);
-            setWeight(text(value.weight));setCountry(canonicalCountry(text(value.country,'Другая страна')));setOtherCountry(text(value.otherCountry));setCategory(canonicalCategory(text(value.category,'Другое')));setVariant(text(value.variant));
-            setVariants(Array.isArray(value.variants)?value.variants.slice(0,250):[]);setSelectedColor(text(value.selectedColor));setSelectedSize(text(value.selectedSize));setImage(text(value.image));setImages(dedupeSafeImages(Array.isArray(value.images)?value.images.filter((item):item is string=>typeof item==='string'):[],text(value.source)));
+            setWeight(text(value.weight));setCountry(canonicalCountry(text(value.country,'Другая страна')));setOtherCountry(text(value.otherCountry));setCategory(canonicalCategory(text(value.category,'Другое')));setVariant(restoredVariant);
+            setVariants(restoredVariants);setSelectedColor(text(value.selectedColor));setSelectedSize(text(value.selectedSize));setImage(text(value.image));setImages(dedupeSafeImages(Array.isArray(value.images)?value.images.filter((item):item is string=>typeof item==='string'):[],text(value.source)));
             setShowSourceForm(value.showSourceForm===true);setNote(text(value.note));setWeightOrigin(text(value.weightOrigin));setVerified(value.verified===true);
             setSourceCheckStatus(value.sourceCheckStatus==='verified'||value.sourceCheckStatus==='failed'||value.sourceCheckStatus==='checking'?value.sourceCheckStatus:'idle');
             setImportedAt(typeof value.importedAt==='number'?value.importedAt:undefined);setSourceExpiresAt(typeof value.sourceExpiresAt==='number'?value.sourceExpiresAt:undefined);
@@ -391,6 +409,11 @@ export function GlobalLinkOrder() {
       );
     }
   } catch {}
+  const deliveryHelp=tx(
+    "К расчёту берётся вес товара в коробке + 0,3 кг на упаковку + 0,2 кг запаса; минимум — 1 кг на посылку. После приёмки склад уточнит фактический или объёмный вес. Доставка магазина до склада Atlas объединена с возвратным резервом; если её цена неизвестна, временно используется редактируемая оценка $10, которую сверит менеджер.",
+    "Hisobda qutidagi tovar vazni + qadoq uchun 0,3 kg + 0,2 kg zaxira olinadi; har bir jo‘natma uchun kamida 1 kg. Ombor qabuldan keyin haqiqiy yoki hajmiy vaznni aniqlaydi. Do‘kondan Atlas omborigacha yetkazish qaytariladigan zaxiraga qo‘shilgan; narx noma’lum bo‘lsa, menejer tekshiradigan o‘zgartiriladigan $10 baho vaqtincha qo‘llanadi.",
+    "The estimate uses boxed item weight + 0.3 kg packaging + 0.2 kg allowance, with a 1 kg minimum per parcel. The warehouse settles actual or dimensional weight after intake. Store-to-Atlas shipping is grouped into the refundable reserve; if its price is unknown, an editable $10 estimate is used temporarily and checked by a manager.",
+  );
   const previewProduct: Product = {
     id: "preview",
     name: name || "Фото товара",
@@ -413,10 +436,6 @@ export function GlobalLinkOrder() {
               <a className="text-link source-check-link" href={source} target="_blank" rel="noopener noreferrer" aria-label={c.original} title={c.original}>
                 {tx('Магазин','Do‘kon','Store')} <ExternalLink size={14}/>
               </a>
-              {note && <details className="import-status-details">
-                <summary>{tx('Данные импорта','Import ma’lumotlari','Import details')}</summary>
-                <p>{note}</p>
-              </details>}
             </>}
             {!busy && <button type="button" className="text-button" onClick={() => setShowSourceForm(true)} aria-label={c.edit} title={c.edit}>{tx('Изменить','O‘zgartirish','Change')}</button>}
           </div>}
@@ -559,7 +578,11 @@ export function GlobalLinkOrder() {
               </div>
               <div className="field variant-matrix" data-order-variant tabIndex={-1}>
                 <label htmlFor="variant">{c.variant}</label>
-                {variants.length && (variantColors.length||variantSizes.length) ? <>
+                {variants.length===1 ? <div className="single-variant-selection">
+                  <span>{variants[0].label}</span>
+                  <small>{tx('Выбран автоматически','Avtomatik tanlandi','Automatically selected')}</small>
+                  <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
+                </div> : variants.length && (variantColors.length||variantSizes.length) ? <>
                   {variantColors.length>0&&<div className="variant-step"><div><b>{c.color}</b><span>{selectedColor||c.selectColor}</span></div><div className="variant-options">{variantColors.map(color=>{const choices=variants.filter(item=>item.color===color);return <button type="button" key={color} aria-pressed={selectedColor===color} onClick={()=>{setSelectedColor(color);setSelectedSize('');setVerified(false);if(!choices.some(item=>item.size)&&choices[0])applyVariantChoice(choices[0]);else setVariant('')}}>{color}</button>})}</div></div>}
                   {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize||c.selectVariant}</span></div><div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={selectedSize===size} onClick={()=>applyVariantChoice(choice)}><span>{size}</span>{choice&&price!==undefined&&<small>{price} {currency}</small>}</button>})}</div></div>}
                   {!variantColors.length&&!variantSizes.length&&<Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.map(item=>item.label)}/>}
@@ -675,7 +698,6 @@ export function GlobalLinkOrder() {
                   </button>
                 )}
               </div>
-              <p className="micro">{c.shippingNote}</p>
               <div className="two-fields">
                 <div className="field">
                   <label>{c.category}</label>
@@ -720,33 +742,6 @@ export function GlobalLinkOrder() {
                   />
                 </div>
               </div>
-              <details className="quote-details"><summary>{c.weightDetails}</summary><div className="weight-formula">
-                <Scale size={23} />
-                <div>
-                  <strong>
-                     {estimatedWeight ? estimatedWeight.toFixed(2) : "—"} {lang==='ru'?'кг':'kg'} {c.forCalc}
-                  </strong>
-                  <p>
-                     {weight || c.weight} + 0,3 {lang==='ru'?'кг':'kg'} {tx('упаковка','qadoq','packaging')} + 0,2 {lang==='ru'?'кг':'kg'} {tx('запас','zaxira','allowance')}; {tx('минимум к оплате — 1 кг','minimal to‘lov — 1 kg','1 kg minimum billed')}
-                  </p>
-                  <small>
-                    {weightOrigin}. {tx("После склада — перерасчёт по фактическому или объёмному весу.","Ombordan so‘ng haqiqiy yoki hajmiy og‘irlik bo‘yicha qayta hisoblanadi.","After warehouse intake, the actual or dimensional weight is settled.")}
-                  </small>
-                </div>
-              </div></details>
-              <details className="image-edit">
-                <summary>{c.photo}</summary>
-                <div className="field">
-                  <label htmlFor="image">{c.image}</label>
-                  <input
-                    id="image"
-                    type="url"
-                    value={image}
-                    onChange={(e) => {setImage(e.target.value);setVerified(false)}}
-                    placeholder="https://…/product.jpg"
-                  />
-                </div>
-              </details>
               <div className="consent">
                 <Checkbox
                   id="data-verified"
@@ -782,26 +777,10 @@ export function GlobalLinkOrder() {
             {country === "Другая страна" ? otherCountry || country : country} → {c.uz}
           </span>
           <h2>{name || c.empty}</h2>
-          {importedAt && (
-            <details className="micro source-freshness"><summary>{c.fresh}</summary><p>
-              {tx("Данные страницы проверены","Sahifa ma’lumotlari tekshirildi","Page data checked")} {new Date(importedAt).toLocaleString(lang==='ru'?'ru-RU':lang==='uz'?'uz-UZ':'en-US')}.
-              {tx('Цена и валюта сверяются при добавлении и оформлении заказа, если магазин отдаёт данные.', 'Do‘kon ma’lumot bersa, narx va valyuta savatga qo‘shish hamda rasmiylashtirishda solishtiriladi.', 'Price and currency are compared when adding the item and checking out, whenever store data is available.')}
-            </p></details>
-          )}
-          {declaration && (
-            <details className="declaration-preview"><summary>{c.declaration}</summary>
-              <span>{declaration}</span>
-            </details>
-          )}
           {preview ? (
             <>
-              <details className="quote-details"><summary>{c.cost}</summary><CostLines q={preview} shippingUnknown={shipping === ""} locale={lang}/>
-              {shippingEstimated && (
-                <p className="warning-text">
-                  {c.reserve}
-                </p>
-              )}
-              </details><div className="summary-total">
+              <details className="quote-details"><summary>{c.cost}</summary><OrderLinkCostLines q={preview} locale={lang} weightHelp={deliveryHelp}/></details>
+              <div className="summary-total">
                 <span>
                   {shipping === ""
                     ? c.subtotal
@@ -809,14 +788,11 @@ export function GlobalLinkOrder() {
                 </span>
                 <strong>{money(preview.total)}</strong>
               </div>
-              <CustomsEstimate valueUsd={toUsd(Number(amount), currency, pricing.rates)} grossKg={Number(weight) || undefined} fx={pricing.fx} locale={state.communication.language}/>
+              <CustomsEstimate valueUsd={toUsd(Number(amount), currency, pricing.rates)} grossKg={Number(weight) || undefined} fx={pricing.fx} locale={state.communication.language} compact/>
             </>
           ) : (
             <p>{c.emptyQuote}</p>
           )}
-          <p className="micro">
-            {c.foot}
-          </p>
         </aside>
       </div>
     </>

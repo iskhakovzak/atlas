@@ -1950,3 +1950,30 @@ html[data-theme="dark"] .catalog-delete-action:hover:not(:disabled) {
   border-color: #a05a51;
   color: #fff0ec;
 }
+
+/* Compact order-by-link quote disclosures use the same low-glare surface as the rest of Atlas. */
+html[data-theme="dark"] .single-variant-selection,
+html[data-theme="dark"] .quote-cost-help > summary,
+html[data-theme="dark"] .customs-estimate-help > summary {
+  background: #202b25;
+  border-color: #35463c;
+  color: #cde8a2;
+}
+
+html[data-theme="dark"] .quote-cost-help-popover,
+html[data-theme="dark"] .customs-estimate-popover {
+  background: #18221d;
+  border-color: #35463c;
+  color: #e8efea;
+  box-shadow: 0 12px 32px #0008;
+}
+
+html[data-theme="dark"] .single-variant-selection > small,
+html[data-theme="dark"] .customs-compact-copy > small,
+html[data-theme="dark"] .customs-compact-note {
+  color: #afbbb3;
+}
+
+html[data-theme="dark"] .customs-estimate-compact {
+  border-color: #35463c;
+}

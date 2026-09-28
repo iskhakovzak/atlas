@@ -46,7 +46,14 @@ const copy = {
   uz: {catalog:"Katalog",link:"Havola orqali buyurtma",batch:"Ro‘yxatni import qilish",orders:"Buyurtmalarim",account:"Kabinet",signin:"Kirish",cart:"Savat",balance:"Balans",favorites:"Saqlanganlar",home:"Bosh sahifa",terms:"Qoidalar va ma’lumotlar",customs:"Bojxona",retry:"Qayta urinish",openSignIn:"Kirishni ochish",footer:"Atlas · Dunyo do‘konlari bir joyda.",contactTitle:"Atlas bilan bog‘lanish",contactSupport:"Shaxsiy kabinetdagi yordam",paymentTitle:"To‘lov usullari",paymentPlanned:"Ulash rejalashtirilgan: Visa, Mastercard, Apple Pay, Google Pay, Uzcard va Humo. Hozircha haqiqiy to‘lovlar qabul qilinmaydi."},
   en: {catalog:"Catalog",link:"Order by link",batch:"Import list",orders:"My orders",account:"Account",signin:"Sign in",cart:"Cart",balance:"Balance",favorites:"Saved",home:"Home",terms:"Terms & privacy",customs:"Customs",retry:"Try again",openSignIn:"Open sign in",footer:"Atlas · The world’s stores, in one place.",contactTitle:"Contact Atlas",contactSupport:"Support in your account",paymentTitle:"Payment methods",paymentPlanned:"Planned: Visa, Mastercard, Apple Pay, Google Pay, Uzcard and Humo. Real payments are not accepted yet."},
 };
-export function ui(locale:Locale){return copy[locale]}
+export function ui(locale:Locale){
+  const paymentPlanned=locale==='ru'
+    ?'Планируем подключить Visa, Mastercard, Apple Pay, Google Pay, Uzcard, Humo и криптооплату. Реальные платежи пока не принимаются.'
+    :locale==='uz'
+      ?'Visa, Mastercard, Apple Pay, Google Pay, Uzcard, Humo va kripto to‘lovlarini ulash rejalashtirilgan. Hozircha haqiqiy to‘lovlar qabul qilinmaydi.'
+      :'Planned: Visa, Mastercard, Apple Pay, Google Pay, Uzcard, Humo, and crypto. Real payments are not accepted yet.';
+  return {...copy[locale],paymentPlanned};
+}
 const orderStatuses = {
   ru: ["Ожидает выкупа", "Выкуплен", "На зарубежном складе", "Готов к отправке", "В пути", "Доставлен"],
   uz: ["Xarid kutilmoqda", "Xarid qilindi", "Xorijdagi omborda", "Jo‘natishga tayyor", "Yo‘lda", "Yetkazildi"],

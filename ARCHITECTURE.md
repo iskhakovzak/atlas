@@ -317,6 +317,12 @@ After a source-backed cart addition has been verified and saved, `addCustomerLin
 - Account/action/operator endpoints fetch pricing and policy settings in one D1 query; response shapes and fallbacks remain unchanged.
 - Do not move merchant price/option checks, account CAS writes, or server-side quote recomputation out of the authorized action path. Remaining large shared client/runtime and global CSS assets are recorded in `TODO.md` for measurement-led follow-up.
 
+## Link-order quote presentation and customs note — 29 September 2026
+
+- The order-by-link summary is presentation-only: it aggregates the existing quote's service, buyout, conversion, delivery-margin and optional-service amounts into “Atlas service”, and groups source shipping with the refundable reserve. `price()` and server-side totals remain unchanged; stored orders/carts and Zod schemas are unchanged.
+- The weight/shipping explanation is an on-demand disclosure beside international delivery. A compact customs estimate is used in the link-order preview; `/customs` retains the detailed input form. It remains informational, separate from Atlas totals, and is not a carrier quote.
+- The calculator currently follows the consolidated PP-4508 rate text (20% and a $2/kg minimum from 1 September 2026), while UP-174 §8 separately states 1 January 2027. This legal effective-date conflict is a known issue; do not present this estimate as a binding duty quote or commercial tariff before Customs confirms the effective date.
+
 ## Catalog review queue and resilient importer — 27 September 2026
 
 - `CatalogEntry.createdAt`, `origin`, and `queueState`, plus `CatalogDraft.importFailureReason`, are optional versioned JSON fields. Old D1 catalog records continue to parse; no SQL migration is required.
