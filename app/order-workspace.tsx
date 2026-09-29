@@ -39,12 +39,16 @@ import {
   money,
   settle,
   orderPayable,
+  orderNeedsOperatorAttention,
   serviceDescription,
   serviceFeeForCountry,
   serviceTitle,
   type Pricing,
   type State,
   type Order,
+  type OrderIssueCategory,
+  type OrderIssueStatus,
+  type Notification,
   type Communication,
   type ServiceOffering,
   type WarehouseServiceRequest,
@@ -294,12 +298,69 @@ const atlasCreditForOrder = (account: OperationsAccount | undefined, orderId: st
     0,
   ) ?? 0;
 
+const orderIssueWords = {
+  ru: {
+    title: "Проблема / возврат", intro: "Зафиксируйте причину и следующий шаг. Предлагаемая сумма — только для разбора: платёж и баланс не меняются.",
+    category: "Причина", categories: { stalled: "Заказ задержан", merchant: "Проблема магазина", payment: "Платёж или сумма", warehouse: "Склад или товар", delivery: "Доставка", other: "Другое" },
+    status: "Статус случая", statuses: { open: "Открыт", investigating: "Проверяем", "waiting-customer": "Ждём покупателя", "waiting-merchant": "Ждём магазин / перевозчика", "refund-review": "Проверяем возврат", resolved: "Решён" },
+    refund: "Предложенная сумма возврата, сум", refundHint: "Не является возвратом средств и не меняет статус платежа.", save: "Сохранить разбор", saving: "Сохраняем…", saved: "Разбор случая сохранён", invalid: "Введите целую сумму от 0 до 100 000 000 сум или оставьте поле пустым.", history: "История случая", noHistory: "Изменений пока нет.", noAmount: "Сумма не предлагалась", messages: "Уведомления по заказу в кабинете покупателя",
+  },
+  uz: {
+    title: "Muammo / qaytarish ishi", intro: "Sabab va keyingi qadamni qayd eting. Taklif qilingan summa faqat ko‘rib chiqish uchun: to‘lov va balans o‘zgarmaydi.",
+    category: "Sabab", categories: { stalled: "Buyurtma kechikdi", merchant: "Do‘kon muammosi", payment: "To‘lov yoki summa", warehouse: "Ombor yoki tovar", delivery: "Yetkazib berish", other: "Boshqa" },
+    status: "Ish holati", statuses: { open: "Ochiq", investigating: "Tekshirilmoqda", "waiting-customer": "Xaridor kutilmoqda", "waiting-merchant": "Do‘kon / tashuvchi kutilmoqda", "refund-review": "Qaytarish tekshirilmoqda", resolved: "Hal qilindi" },
+    refund: "Taklif qilingan qaytarish summasi, so‘m", refundHint: "Bu mablag‘ni qaytarish emas va to‘lov holatini o‘zgartirmaydi.", save: "Ko‘rib chiqishni saqlash", saving: "Saqlanmoqda…", saved: "Ish qaydi saqlandi", invalid: "0–100 000 000 so‘m oralig‘ida butun summa kiriting yoki maydonni bo‘sh qoldiring.", history: "Ish tarixi", noHistory: "Hali o‘zgarishlar yo‘q.", noAmount: "Summa taklif qilinmagan", messages: "Xaridor kabinetidagi buyurtma bildirishnomalari",
+  },
+  en: {
+    title: "Problem / refund case", intro: "Record the cause and next step. Any amount is a proposal for review only; payment and balance remain unchanged.",
+    category: "Issue type", categories: { stalled: "Order delayed", merchant: "Store issue", payment: "Payment or amount", warehouse: "Warehouse or item", delivery: "Delivery", other: "Other" },
+    status: "Case status", statuses: { open: "Open", investigating: "Investigating", "waiting-customer": "Waiting for customer", "waiting-merchant": "Waiting for store / carrier", "refund-review": "Refund under review", resolved: "Resolved" },
+    refund: "Proposed refund amount, UZS", refundHint: "This does not issue a refund or change the payment status.", save: "Save case update", saving: "Saving…", saved: "Case update saved", invalid: "Enter a whole amount from 0 to 100,000,000 UZS, or leave the field empty.", history: "Case history", noHistory: "No changes recorded yet.", noAmount: "No amount proposed", messages: "Order notifications in the customer account",
+  },
+} as const;
+
+function OrderIssueCasePanel({ order, notifications, run, locale }: {
+  order: Order; notifications: Notification[]; run: (action: Action) => Promise<boolean>; locale: Locale;
+}) {
+  const [category, setCategory] = useState<OrderIssueCategory>(order.issueCase?.category ?? "stalled");
+  const [status, setStatus] = useState<OrderIssueStatus>(order.issueCase?.status ?? "open");
+  const [proposedRefund, setProposedRefund] = useState(order.issueCase?.proposedRefund === undefined ? "" : String(order.issueCase.proposedRefund));
+  const [busy, setBusy] = useState(false);
+  const words = orderIssueWords[locale];
+  const categoryLabels: Record<OrderIssueCategory, string> = words.categories;
+  const statusLabels: Record<OrderIssueStatus, string> = words.statuses;
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (busy) return;
+    const amount = proposedRefund.trim() === "" ? undefined : Number(proposedRefund);
+    if (amount !== undefined && (!Number.isSafeInteger(amount) || amount < 0 || amount > 100_000_000)) { toast.error(words.invalid); return; }
+    setBusy(true);
+    try { if (await run({ type: "order-issue-update", id: order.id, category, status, proposedRefund: amount })) toast.success(words.saved); }
+    finally { setBusy(false); }
+  }
+  return <section className="warehouse-service-ops order-issue-case">
+    <h3>{words.title}</h3><p className="micro">{words.intro}</p>
+    <form onSubmit={(event) => void save(event)}>
+      <div className="two-fields">
+        <div className="field"><label htmlFor={`issue-category-${order.id}`}>{words.category}</label><select id={`issue-category-${order.id}`} value={category} onChange={(event) => setCategory(event.target.value as OrderIssueCategory)}>{(Object.keys(categoryLabels) as OrderIssueCategory[]).map((value) => <option key={value} value={value}>{categoryLabels[value]}</option>)}</select></div>
+        <div className="field"><label htmlFor={`issue-status-${order.id}`}>{words.status}</label><select id={`issue-status-${order.id}`} value={status} onChange={(event) => setStatus(event.target.value as OrderIssueStatus)}>{(Object.keys(statusLabels) as OrderIssueStatus[]).map((value) => <option key={value} value={value}>{statusLabels[value]}</option>)}</select></div>
+      </div>
+      <div className="field"><label htmlFor={`issue-refund-${order.id}`}>{words.refund}</label><input id={`issue-refund-${order.id}`} type="number" min="0" max="100000000" step="1" inputMode="numeric" value={proposedRefund} onChange={(event) => setProposedRefund(event.target.value)} /><small>{words.refundHint}</small></div>
+      <button className="btn secondary" disabled={busy}>{busy ? words.saving : words.save}</button>
+    </form>
+    {order.issueCase?.history.length ? <div className="staff-notes"><h4>{words.history}</h4><ol className="history-list">{[...order.issueCase.history].reverse().slice(0, 5).map((entry) => <li key={entry.id}><time>{new Date(entry.at).toLocaleString(localeTag(locale))}</time><span>{categoryLabels[entry.category]} · {statusLabels[entry.status]}</span><span>{entry.proposedRefund === undefined ? words.noAmount : `${words.refund}: ${money(entry.proposedRefund)}`}</span></li>)}</ol></div> : <p className="micro">{words.noHistory}</p>}
+    {!!notifications.length && <details className="order-issue-notification-history"><summary>{words.messages} · {notifications.length}</summary><ol className="history-list">{notifications.slice(0, 5).map((item) => <li key={item.id}><time>{new Date(item.at).toLocaleString(localeTag(locale))}</time><span><b>{item.title}</b></span><span>{item.message}</span></li>)}</ol></details>}
+  </section>;
+}
+
 function OperatorOrderTools({
   order,
+  notifications,
   run,
   locale,
 }: {
   order: Order;
+  notifications: Notification[];
   run: (action: Action) => Promise<boolean>;
   locale: Locale;
 }) {
@@ -332,9 +393,14 @@ function OperatorOrderTools({
     if (ok) toast.success(message);
     return ok;
   };
+  if (order.cancelled) return <details className="ops-tools order-refund-tools">
+    <summary><MessageSquareText size={17} /> Комментарий и разбор возврата</summary>
+    <OrderIssueCasePanel order={order} notifications={notifications} run={run} locale={locale} />
+  </details>;
   return (
     <details className="ops-tools">
       <summary><UserCheck size={17} /> Команда, трекинг и заметки</summary>
+      <OrderIssueCasePanel order={order} notifications={notifications} run={run} locale={locale} />
       {(order.warehouseServiceRequests ?? []).some((request) => ["requested", "approved"].includes(request.status)) && <section className="warehouse-service-ops">
         <h3>Услуги склада</h3>
         <p className="micro">Тарифы и пожелания — настройки Atlas. Перед подтверждением оператор проверяет возможности склада, точную стоимость и условия выполнения; эта запись не означает списание или выполненную операцию.</p>
@@ -698,8 +764,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
     (o) => o.id === storeShippingOrder,
   );
   const active = orders.filter((o) => !o.cancelled && o.status < 5),
-    need = orders.filter((order) => !order.cancelled&&(isExtra(order) || pendingChange(order) || (!operations&&order.payment?.status==='pending') || order.warehouseInspection?.condition === "damaged" || order.warehouseInspection?.condition === "mismatch")),
-    done = orders.filter((o) => operations ? (!o.cancelled && o.status === 5) : (o.cancelled || o.status === 5)),
+    need = orders.filter((order) => orderNeedsOperatorAttention(order) || (!operations && !order.cancelled && order.payment?.status === "pending")),
+    done = orders.filter((o) => (o.cancelled || o.status === 5) && (!o.issueCase || o.issueCase.status === "resolved")),
     refunds = operations ? orders.filter((o) => o.cancelled || o.payment?.status === "refunded" || atlasCreditForOrder(orderAccount.get(o.id), o.id) > 0) : [];
   const filtered = (
     tab === "active" ? active : tab === "attention" ? need : tab === "refunds" && operations ? refunds : done
@@ -1227,7 +1293,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
             {operations && o.status === 3 && !o.parcel && (
               <p className="micro">{ow.trackingFirst}</p>
             )}
-            {operations && !o.cancelled && <OperatorOrderTools order={o} run={runOrderAction} locale={locale} />}
+            {operations && <OperatorOrderTools order={o} notifications={orderAccount.get(o.id)?.state.notifications.filter((item) => item.orderId === o.id) ?? []} run={runOrderAction} locale={locale} />}
             {operations && <OperatorOrderCommunication order={o} customerName={orderAccount.get(o.id)?.name ?? ""} customerEmail={orderAccount.get(o.id)?.id.replace(/^email:/, "") ?? ""} recipientAvailable={Boolean(orderAccount.get(o.id))} run={runOrderAction} locale={locale} />}
             <OrderDocuments orderId={o.id} accountId={orderAccount.get(o.id)?.id} operatorMode={operations} locale={state.communication.language}/>
             <div className="order-bottom">

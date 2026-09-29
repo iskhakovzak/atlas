@@ -1999,9 +1999,13 @@ html[data-theme="dark"] .customs-estimate-popover {
 
 html[data-theme="dark"] .single-variant-selection > small,
 html[data-theme="dark"] .customs-compact-copy > small,
-html[data-theme="dark"] .customs-compact-note {
+html[data-theme="dark"] .customs-compact-note,
+html[data-theme="dark"] .single-colorway-note,
+html[data-theme="dark"] .single-colorway-source {
   color: #afbbb3;
 }
+
+html[data-theme="dark"] .single-colorway-source > span { color: #e8efea; }
 
 html[data-theme="dark"] .customs-estimate-compact {
   border-color: #35463c;

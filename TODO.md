@@ -1,5 +1,13 @@
 # Atlas TODO and known limitations
 
+## Refund workflow, SEO boundaries, and diagnostics — 29 September 2026
+
+- [x] Add an operator-only issue/refund case for active and cancelled orders with reason, status, proposed amount and bounded history; keep it separate from internal notes and customer notifications, and never change payment or balance from a proposal.
+- [x] Clarify one-colorway merchant labels in link ordering without presenting descriptive slash-separated text as multiple selectable colors; retain the exact source label on demand.
+- [x] Add local-only Core Web Vitals/API-latency diagnostics and explicit canonical/noindex route metadata; no customer telemetry is uploaded.
+- [ ] Complete an authenticated production smoke for refund cases, order messages, color/size selection and desktop/mobile dark/light layouts. Do not use real customer contact data or perform a real refund.
+- [ ] Keep the separate catalog-refresh Cron Worker and its HMAC secret provisioning/alerting as an external launch gate; the built-in source alone does not mean the schedule is live.
+
 ## Nike variant selection and operator contacts — 29 September 2026
 
 - [x] Restrict Nike sibling color selection to the exact linked product group; preserve per-color prices, images and size IDs and label verified US men's sizing with Nike's official chart.

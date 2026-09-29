@@ -10,6 +10,7 @@ import "./dark-theme.css";
 import { MarketProvider } from "@/lib/market/store";
 import { StorageNotice } from "./storage-notice";
 import { AtlasThemeProvider } from "./theme-control";
+import { PerformanceProbe } from "./performance-probe";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -85,7 +86,7 @@ export default function RootLayout({
     <html lang="ru" suppressHydrationWarning>
       <body className="antialiased">
         <AtlasThemeProvider>
-          <MarketProvider>{children}<StorageNotice /></MarketProvider>
+          <MarketProvider>{children}<StorageNotice /><PerformanceProbe /></MarketProvider>
         </AtlasThemeProvider>
         <script
           type="application/ld+json"

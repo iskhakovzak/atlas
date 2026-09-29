@@ -1,5 +1,13 @@
 # Atlas — project context
 
+## Colorway clarity, refund cases, and local speed diagnostics — 29 September 2026
+
+When a store exposes one unique colorway with a slash-separated descriptive name, link ordering now shows a concise, non-clickable primary color and explains that another color requires its own merchant URL. The original merchant wording remains available on demand; it is not split into false selectable colors. Real multiple Nike sibling colorways remain separately selectable only when the exact linked Nike product group exposes them, with each size retaining its own article/price/image metadata.
+
+The operator can keep an issue/refund case on an order, including a cancelled order: reason, case status, proposed UZS refund amount and a bounded history. An amount is a review note only; no payment, ledger, balance or refund state changes. Internal notes and targeted in-app customer notifications remain separate. Email/SMS are not sent by that notification control.
+
+The admin system tab includes a browser-local performance summary for TTFB, FCP, LCP, INP, CLS and same-origin API latency. The probe retains at most 20 recent samples in that browser's `localStorage`; it does not upload routes, identifiers, request URLs or response data. Public catalog/customs/legal routes have explicit canonical metadata; private/order-entry routes are marked non-indexable, and robots.txt excludes those routes from crawling.
+
 ## Nike size options and operator order contacts — 29 September 2026
 
 Nike link imports now keep the exact URL-selected style and also read its sibling colorways only from the same Nike product group. Each size retains that colorway's own article/GTIN, price, availability signal and image; other product groups and recommendations are excluded. A Nike `www.nike.com` USD men's shoe page is labelled as Nike US men's sizing and links to Nike's official conversion chart, with a note that the package CM label is not foot length. Other merchants keep their source-provided size label. Customers can switch colors without a repeated click clearing their selected size; choosing a different color clears only the old size/price selection and updates its product image.

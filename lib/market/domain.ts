@@ -432,6 +432,25 @@ const staffNoteSchema = z.object({
   author: z.string().max(160),
   text: z.string().min(1).max(500),
 });
+export const orderIssueCategorySchema = z.enum(["stalled", "merchant", "payment", "warehouse", "delivery", "other"]);
+export type OrderIssueCategory = z.infer<typeof orderIssueCategorySchema>;
+export const orderIssueStatusSchema = z.enum(["open", "investigating", "waiting-customer", "waiting-merchant", "refund-review", "resolved"]);
+export type OrderIssueStatus = z.infer<typeof orderIssueStatusSchema>;
+const orderIssueEventSchema = z.object({
+  id: z.string().min(1).max(100),
+  at: amount,
+  category: orderIssueCategorySchema,
+  status: orderIssueStatusSchema,
+  proposedRefund: z.number().int().min(0).max(100_000_000).optional(),
+});
+const orderIssueCaseSchema = z.object({
+  category: orderIssueCategorySchema,
+  status: orderIssueStatusSchema,
+  proposedRefund: z.number().int().min(0).max(100_000_000).optional(),
+  updatedAt: amount,
+  history: z.array(orderIssueEventSchema).max(40),
+});
+export type OrderIssueCase = z.infer<typeof orderIssueCaseSchema>;
 export const changeRequestKindSchema = z.enum([
   "price",
   "variant",
@@ -511,6 +530,7 @@ const orderSchema = z.object({
   parcel: parcelSchema.optional(),
   assignment: assignmentSchema.optional(),
   staffNotes: z.array(staffNoteSchema).optional(),
+  issueCase: orderIssueCaseSchema.optional(),
   changeRequests: z.array(changeRequestSchema).optional(),
   warehouseServiceRequests: z.array(warehouseServiceRequestSchema).max(40).optional(),
   warehouseInspection: warehouseInspectionSchema.optional(),
@@ -907,6 +927,15 @@ export const approvedAdjustments = (order: Order) =>
     .reduce((sum, request) => sum + request.amountDelta, 0);
 export const orderPayable = (order: Order) =>
   Math.max(0, order.quote.total + approvedAdjustments(order));
+export const orderNeedsOperatorAttention = (order: Order) =>
+  Boolean(order.issueCase && order.issueCase.status !== "resolved") ||
+  (!order.cancelled && (
+    Boolean(order.settlement?.extra && !order.extraApproved) ||
+    Boolean(order.storeShippingSettlement?.extra && !order.storeShippingExtraApproved) ||
+    (order.changeRequests ?? []).some((request) => request.status === "pending") ||
+    order.warehouseInspection?.condition === "damaged" ||
+    order.warehouseInspection?.condition === "mismatch"
+  ));
 export function addToCart(
   state: State,
   p: Product,
@@ -1190,6 +1219,32 @@ export function addStaffNote(
       { id: crypto.randomUUID(), at: now, author: author.slice(0, 160), text: value },
     ].slice(-40),
     history: [...o.history, { at: now, text: "Оператор добавил внутреннюю заметку." }],
+  });
+}
+
+export function updateOrderIssueCase(
+  state: State,
+  id: string,
+  category: OrderIssueCategory,
+  status: OrderIssueStatus,
+  proposedRefund?: number,
+  now = Date.now(),
+): State {
+  const order = getOrder(state, id);
+  const event = orderIssueEventSchema.parse({
+    id: crypto.randomUUID(), at: now, category, status,
+    ...(proposedRefund === undefined ? {} : { proposedRefund }),
+  });
+  const issueCase = orderIssueCaseSchema.parse({
+    category, status,
+    ...(proposedRefund === undefined ? {} : { proposedRefund }),
+    updatedAt: now,
+    history: [...(order.issueCase?.history ?? []), event].slice(-40),
+  });
+  return replace(state, {
+    ...order,
+    issueCase,
+    history: [...order.history, { at: now, text: "Оператор обновил разбор проблемы/возврата." }],
   });
 }
 
