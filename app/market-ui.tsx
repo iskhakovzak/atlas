@@ -5,8 +5,8 @@ import Link from '@/components/site-link';
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
 import {Dialog,DialogContent,DialogTitle,DialogDescription,DialogClose} from '@/components/ui/dialog';
 import {money,type Product,type Quote} from '@/lib/market/domain';
-import {atlasServiceTotal} from '@/lib/market/quote-presentation';
-export function Choice({value,onChange,options,label}:{value:string;onChange:(v:string)=>void;options:string[];label:string}){return <Select value={value} onValueChange={onChange}><SelectTrigger aria-label={label} className="select-control"><SelectValue>{value}</SelectValue></SelectTrigger><SelectContent>{options.map(o=><SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>}
+import {atlasServiceBreakdown,atlasServiceTotal} from '@/lib/market/quote-presentation';
+export function Choice({value,onChange,options,label,disabled=false,className=''}:{value:string;onChange:(v:string)=>void;options:string[];label:string;disabled?:boolean;className?:string}){return <Select value={value} onValueChange={onChange} disabled={disabled}><SelectTrigger aria-label={label} className={`select-control ${className}`.trim()}><SelectValue>{value}</SelectValue></SelectTrigger><SelectContent>{options.map(o=><SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>}
 export function ProductImage({product,className='',decorative=false,locale='ru'}:{product:Product;className?:string;decorative?:boolean;locale?:'ru'|'uz'|'en'}){
  const [failedImage,setFailedImage]=useState('');
  const label=locale==='ru'?'Товар по ссылке':locale==='uz'?'Havoladagi tovar':'Linked item';
@@ -20,16 +20,14 @@ export function Empty({title,description,href,label,children}:{title:string;desc
 export function Modal({open,onClose,title,description,children,locale='ru'}:{open:boolean;onClose:()=>void;title:string;description:string;children:ReactNode;locale?:'ru'|'uz'|'en'}){return <Dialog open={open} onOpenChange={v=>{if(!v)onClose()}}><DialogContent className="atlas-modal" showCloseButton={false}><DialogClose asChild><button className="icon-btn modal-close" aria-label={{ru:'Закрыть',uz:'Yopish',en:'Close'}[locale]}><X size={20}/></button></DialogClose><DialogTitle className="modal-title">{title}</DialogTitle><DialogDescription>{description}</DialogDescription>{children}</DialogContent></Dialog>}
 export function CostLines({ q, shippingUnknown = false, locale = "ru", internationalHelp }: { q: Pick<Quote, "merchandise" | "service" | "shipping" | "reserve" | "sourceShipping" | "buyout" | "conversion" | "deliveryMargin" | "optionalServices">; shippingUnknown?: boolean; locale?: "ru" | "uz" | "en"; internationalHelp?: string }) {
   const copy = {
-    ru: { item: "Товар", merchantShipping: "Доставка магазина", service: "Сервис Atlas", buyout: "Выкуп", conversion: "Конвертация", international: "Международная доставка", margin: "Маржа доставки", optional: "Общий сбор Atlas", reserve: "Возвратный резерв", breakdown: "Состав сервиса", help: "Как считается международная доставка", unknown: "Уточняется", free: "Бесплатно" },
-    uz: { item: "Tovar", merchantShipping: "Do‘kon yetkazishi", service: "Atlas xizmati", buyout: "Xarid", conversion: "Konvertatsiya", international: "Xalqaro yetkazish", margin: "Yetkazish marjasi", optional: "Atlas umumiy yig‘imi", reserve: "Qaytariladigan zaxira", breakdown: "Xizmat tarkibi", help: "Xalqaro yetkazish qanday hisoblanadi", unknown: "Aniqlanmoqda", free: "Bepul" },
-    en: { item: "Item", merchantShipping: "Store delivery", service: "Atlas service", buyout: "Buyout", conversion: "Conversion", international: "International delivery", margin: "Delivery margin", optional: "General Atlas fee", reserve: "Refundable reserve", breakdown: "Service breakdown", help: "How international delivery is estimated", unknown: "To be confirmed", free: "Free" },
+    ru: { item: "Товар", merchantShipping: "Доставка магазина", service: "Сервис Atlas", international: "Международная доставка", optional: "Общий сбор Atlas", reserve: "Возвратный резерв", breakdown: "Состав сервиса", help: "Как считается международная доставка", unknown: "Уточняется", free: "Бесплатно" },
+    uz: { item: "Tovar", merchantShipping: "Do‘kon yetkazishi", service: "Atlas xizmati", international: "Xalqaro yetkazish", optional: "Atlas umumiy yig‘imi", reserve: "Qaytariladigan zaxira", breakdown: "Xizmat tarkibi", help: "Xalqaro yetkazish qanday hisoblanadi", unknown: "Aniqlanmoqda", free: "Bepul" },
+    en: { item: "Item", merchantShipping: "Store delivery", service: "Atlas service", international: "International delivery", optional: "General Atlas fee", reserve: "Refundable reserve", breakdown: "Service breakdown", help: "How international delivery is estimated", unknown: "To be confirmed", free: "Free" },
   }[locale];
+  const breakdown = atlasServiceBreakdown(q);
   const serviceParts = [
-    { key: "service", label: copy.service, amount: q.service },
-    { key: "buyout", label: copy.buyout, amount: q.buyout ?? 0 },
-    { key: "conversion", label: copy.conversion, amount: q.conversion ?? 0 },
-    { key: "international", label: copy.international, amount: q.shipping },
-    { key: "margin", label: copy.margin, amount: q.deliveryMargin ?? 0 },
+    { key: "service", label: copy.service, amount: breakdown.service },
+    { key: "international", label: copy.international, amount: breakdown.international },
   ];
   const serviceTotal = atlasServiceTotal(q);
   return <dl className="cost-lines">

@@ -19,6 +19,7 @@ test('merchant records retain unique identity, safe sources and unconfirmed ship
     assert.equal(p.sourceShippingUsd, 10);
     assert.equal(p.weight, Math.max(1, Math.round((p.boxedWeight + 0.5) * 100) / 100));
     assert.equal(new URL(findOrderUrl(p), 'https://atlas.test').searchParams.get('url'), p.sourceUrl);
+    assert.equal(new URL(findOrderUrl(p), 'https://atlas.test').searchParams.get('catalog'), p.id);
     assert.throws(() => applyAction(blank(), {type:'cart-add',product:p,variant:p.variants[0]}, false), /доставку магазина/);
   }
 });

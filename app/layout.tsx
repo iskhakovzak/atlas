@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./atlas-design.css";
+import "./catalog-admin.css";
 import "./finds.css";
 import "./checkout-clarity.css";
 import "./access.css";

@@ -70,5 +70,8 @@ export function keepCatalogVisible(products: MerchantFind[], now = Date.now()) {
 }
 export function findOrderUrl(product: Product) {
   const deal = product.priceNeedsConfirmation ? undefined : communityCatalogProducts.find(item => item.id === product.id && item.sourceUrl === product.sourceUrl);
-  return '/order-by-link?url=' + encodeURIComponent(product.sourceUrl ?? '') + (deal ? '&deal=' + encodeURIComponent(deal.id) : '');
+  const params=new URLSearchParams({url:product.sourceUrl??''});
+  if(product.sourceUrl)params.set('catalog',product.id);
+  if(deal)params.set('deal',deal.id);
+  return '/order-by-link?'+params.toString();
 }

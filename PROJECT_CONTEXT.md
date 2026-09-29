@@ -1,5 +1,13 @@
 # Atlas — project context
 
+## Catalog-backed orders and store shipping — 30 September 2026
+
+Catalog card links now carry the product ID as context. In that flow, Atlas-owned title, category, boxed weight and store-to-warehouse shipping are read-only for customers; price and selected option can still refresh from the merchant, while a customer-entered link remains editable. The order action and server-side quote recomputation are unchanged.
+
+Operators can set store-to-Atlas shipping in USD and mark it estimated or confirmed. These two fields are optional in stored catalog drafts. Older records continue to show the existing $10 provisional reserve until an operator edits them, and scheduled merchant refreshes preserve the operator's shipping settings.
+
+The cost disclosure groups service, buyout and conversion under “Atlas service,” and international freight plus delivery margin under “International delivery.” This is presentation-only; order fee lines and arithmetic remain separate. The disclosure and its help popover are width-constrained, and link-order selects receive a taller mobile control height.
+
 ## Catalog filter hierarchy — 29 September 2026
 
 The catalog keeps search, quick category chips and sorting visible while presenting country and delivered-budget controls in a compact, anchored filter panel. The panel shows a count only when one or more of its filters are active; selected country/budget values remain visible as removable chips with individual clear actions. The existing filter and delivered-cost sorting logic is unchanged, and the layout supports narrow screens and graphite theme without catalog/API/D1 changes.

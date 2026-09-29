@@ -37,6 +37,7 @@ test('editorial deals are ordinary catalog products with direct order intent', (
     assert.ok(product.sourceUrl && product.sourcePrice > 0 && product.image);
     const order = new URL(findOrderUrl(product), 'https://atlas.test');
     assert.equal(order.searchParams.get('url'), product.sourceUrl);
+    assert.equal(order.searchParams.get('catalog'), product.id);
     assert.equal(order.searchParams.get('deal'), product.id);
   }
 });

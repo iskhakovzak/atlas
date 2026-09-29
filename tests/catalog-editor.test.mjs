@@ -95,6 +95,22 @@ test('catalog recheck queues price and availability changes for operator review'
  const doc=initialCatalog();doc.entries.push({id:'review',draft:checked});
  assert.throws(()=>changeCatalog(doc,{kind:'publish',ids:['review']},2002,tariff),/Цена:/);
 });
+test('catalog store shipping keeps its reviewed amount through refresh and legacy rows use the reserve',()=>{
+ const base=importDraft(extracted,[],'США',1000);
+ assert.equal(base.sourceShippingUsd,10);assert.equal(base.sourceShippingEstimated,true);
+ const reviewed={...base,sourceShippingUsd:6.5,sourceShippingEstimated:false};
+ const fresh=importDraft(extracted,[],'США',2000);
+ const checked=recheckedDraft(reviewed,fresh);
+ assert.equal(checked.sourceShippingUsd,6.5);assert.equal(checked.sourceShippingEstimated,false);
+ const doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'shipping',draft:checked,published:checked,publishedAt:2000}]});
+ const product=publicCatalog(doc,tariff,2001).products[0];
+ assert.equal(product.sourceShipping,6.5);assert.equal(product.sourceShippingUsd,6.5);
+ assert.equal(product.sourceShippingEstimated,false);assert.equal(product.shippingKnown,true);
+ const legacyDraft={...base};delete legacyDraft.sourceShippingUsd;delete legacyDraft.sourceShippingEstimated;
+ const legacy=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'legacy-shipping',draft:legacyDraft,published:legacyDraft,publishedAt:1000}]});
+ const legacyProduct=publicCatalog(legacy,tariff,1001).products[0];
+ assert.equal(legacyProduct.sourceShippingUsd,10);assert.equal(legacyProduct.sourceShippingEstimated,true);assert.equal(legacyProduct.shippingKnown,false);
+});
 test('hiding removes a product from the public feed without deleting its draft',()=>{
  let doc=initialCatalog(),id=doc.entries[0].id;doc=changeCatalog(doc,{kind:'hide',ids:[id]},Date.parse('2026-09-12'),tariff);
  assert.equal(doc.entries[0].published,undefined);assert(doc.entries[0].draft);

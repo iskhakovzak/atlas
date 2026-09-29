@@ -2054,3 +2054,28 @@ html[data-theme="dark"] .finds-active-filters>button b,
 html[data-theme="dark"] .finds-active-filters>button svg {
   color: var(--atlas-dark-ink);
 }
+
+html[data-theme="dark"] .link-form .catalog-fixed-note {
+  background: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .link-form .catalog-locked-field,
+html[data-theme="dark"] .link-form .catalog-locked-field:disabled {
+  background-color: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+  opacity: 1;
+}
+
+html[data-theme="dark"] .catalog-shipping-editor input[type="number"] {
+  background-color: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .catalog-shipping-estimate,
+html[data-theme="dark"] .catalog-shipping-editor>small {
+  color: var(--atlas-dark-muted);
+}

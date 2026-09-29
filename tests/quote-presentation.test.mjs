@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {atlasServiceTotal} from '../lib/market/quote-presentation.ts';
+import {atlasServiceBreakdown,atlasServiceTotal} from '../lib/market/quote-presentation.ts';
 
 test('service display groups fees without changing the quote total', () => {
   const quote = {
@@ -16,7 +16,9 @@ test('service display groups fees without changing the quote total', () => {
   };
 
   const groupedService = atlasServiceTotal(quote);
+  const breakdown = atlasServiceBreakdown(quote);
 
+  assert.deepEqual(breakdown, {service: 115_393, international: 266_640});
   assert.equal(groupedService, 382_033);
   assert.equal(quote.merchandise + quote.sourceShipping + groupedService + quote.optionalServices + quote.reserve, 1_416_073);
 });

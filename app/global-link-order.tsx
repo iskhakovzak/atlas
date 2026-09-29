@@ -81,18 +81,20 @@ function displayCategoryName(value:string,locale:string){
   return labels[canonical as keyof typeof labels]??canonical;
 }
 export function GlobalLinkOrder() {
-  const { ready, pricing, state, act, catalogProducts } = useMarket();
+  const { ready, pricing, state, act, catalogProducts, loadCatalog } = useMarket();
   const lang=state.communication.language;
   const c=lang==='ru'?{over:'ПОКУПКИ СО ВСЕГО МИРА',choose:'Выберите свой вариант',order:'Заказ по ссылке',checkPrice:'Проверьте размер и цену перед добавлением.',paste:'Вставьте ссылку — Atlas заполнит доступные данные.',loading:'Загружаем цену и варианты из магазина…',selected:'Товар уже выбран. Проверьте вариант и добавьте его в корзину.',edit:'Изменить ссылку',linkStep:'Ссылка на товар',stores:'eBay, Zara, Mango, Amazon и другие магазины.',storePage:'Страница магазина',get:'Получаем данные…',load:'Загрузить товар',directory:'Магазины для заказа по ссылке',storeHint:'Выбирайте региональную витрину по ссылке. Atlas считает итог с доставкой.',search:'Магазин или категория',enhanced:'цена + варианты',otherMatches:'Другие совпадения',allStores:'Все остальные магазины',notFound:'Такого магазина пока нет в списке. Можно прислать его оператору для проверки.',login:'Войдите в личный кабинет: автозагрузка защищена, а товар сохранится в вашей корзине.',original:'Открыть оригинал в магазине',loaded:'Что загрузилось и что нужно проверить',availability:'Проверьте наличие в магазине',availabilityHint:'Откройте страницу товара, проверьте выбранный размер или вариант и вернитесь с ответом.',openStore:'Открыть магазин',available:'Есть в наличии',unavailable:'Нет в наличии',openFirst:'Сначала откройте страницу магазина — после возврата кнопки ответа станут доступны.',thanks:'Спасибо. Можно проверить остальные данные и продолжить.',removed:'Товар не будет добавлен. Администратор получил сообщение для проверки.',dataStep:'Проверьте данные',name:'Название товара',namePlaceholder:'Название со страницы магазина',shipCountry:'Страна фактической отправки',countryLabel:'Страна отправки',currency:'Валюта магазина',otherCountry:'Укажите страну',price:'Цена товара',atlasShipping:'До склада Atlas',change:'изменить',useShipping:'Использовать доставку до склада Atlas',shippingNote:'Это доставка от магазина до склада Atlas. Если магазин её не публикует, используется изменяемый резерв $10.',category:'Категория',weight:'Вес товара с коробкой, кг',weightDetails:'Как уточняется вес доставки',forCalc:'для расчёта',variant:'Вариант товара',color:'Цвет',size:'Размер / модель',selectColor:'Выберите цвет',selectVariant:'Выберите вариант',none:'Нет',photo:'Фото товара — автоматически или по ссылке',image:'Адрес изображения',verified:'Я проверил данные и выбранный вариант.',add:'В корзину',adding:'Добавляем в корзину…',gallery:'Фотографии магазина',uz:'Узбекистан',empty:'Ваш товар появится здесь',fresh:'Когда проверены данные',freshText:'Перед оформлением Atlas перепроверит цену и выбранный вариант, если магазин ответит.',declaration:'Черновик декларации',cost:'Состав стоимости',reserve:'$10 — временный резерв доставки магазина. Менеджер проверит сумму после оформления.',subtotal:'Промежуточный итог',estimate:'С доставкой, ориентир',emptyQuote:'Вставьте ссылку или заполните цену и вес.',foot:'Расчёт использует настроенные тарифы Atlas, а не котировку перевозчика. Курс, маршрут, таможня и сроки уточняются до выкупа.'}:{over:lang==='uz'?'DUNYODAN XARIDLAR':'SHOP THE WORLD',choose:lang==='uz'?'Variantni tanlang':'Choose your option',order:lang==='uz'?'Havola orqali buyurtma':'Order by link',checkPrice:lang==='uz'?'Qo‘shishdan oldin o‘lcham va narxni tekshiring.':'Check the size and price before adding.',paste:lang==='uz'?'Havolani kiriting — Atlas ma’lumotlarni to‘ldiradi.':'Paste a link — Atlas will fill in the details.',loading:lang==='uz'?'Do‘kondan narx va variantlar yuklanmoqda…':'Loading price and options from the store…',selected:lang==='uz'?'Tovar tanlandi. Variantni tekshirib savatga qo‘shing.':'The item is selected. Check the option and add it to your cart.',edit:lang==='uz'?'Havolani o‘zgartirish':'Change link',linkStep:lang==='uz'?'Tovar havolasi':'Item link',stores:lang==='uz'?'eBay, Zara, Mango, Amazon va boshqa do‘konlar.':'eBay, Zara, Mango, Amazon and more.',storePage:lang==='uz'?'Do‘kon sahifasi':'Store page',get:lang==='uz'?'Ma’lumot olinmoqda…':'Getting product data…',load:lang==='uz'?'Tovarni yuklash':'Load item',directory:lang==='uz'?'Havola orqali buyurtma do‘konlari':'Stores for link orders',storeHint:lang==='uz'?'Havola orqali mintaqaviy vitrinani tanlang. Atlas yetkazish bilan hisoblaydi.':'Choose a regional storefront. Atlas calculates the total with delivery.',search:lang==='uz'?'Do‘kon yoki kategoriya':'Store or category',enhanced:lang==='uz'?'narx + variantlar':'price + options',otherMatches:lang==='uz'?'Boshqa moslar':'Other matches',allStores:lang==='uz'?'Boshqa barcha do‘konlar':'All other stores',notFound:lang==='uz'?'Bu do‘kon ro‘yxatda yo‘q. Tekshirish uchun operatorga yuborishingiz mumkin.':'This store is not listed yet. Send it to an operator for review.',login:lang==='uz'?'Kabinetga kiring: avtomatik yuklash himoyalangan va tovar savatda saqlanadi.':'Sign in: automatic import is protected and the item will be saved to your cart.',original:lang==='uz'?'Do‘kondagi asl sahifani ochish':'Open original store page',loaded:lang==='uz'?'Nimalar yuklandi va nimani tekshirish kerak':'What loaded and what to check',availability:lang==='uz'?'Do‘kondagi mavjudlikni tekshiring':'Check availability in the store',availabilityHint:lang==='uz'?'Tovar sahifasini oching, tanlangan o‘lcham yoki variantni tekshiring va javob bilan qayting.':'Open the item page, check the selected size or option, and return with your answer.',openStore:lang==='uz'?'Do‘konni ochish':'Open store',available:lang==='uz'?'Mavjud':'In stock',unavailable:lang==='uz'?'Mavjud emas':'Out of stock',openFirst:lang==='uz'?'Avval do‘kon sahifasini oching — qaytgach javob tugmalari yoqiladi.':'Open the store page first; the answer buttons will unlock when you return.',thanks:lang==='uz'?'Rahmat. Qolgan ma’lumotlarni tekshirib davom eting.':'Thanks. Check the remaining details to continue.',removed:lang==='uz'?'Tovar qo‘shilmaydi. Administrator tekshiradi.':'The item will not be added. An administrator will review it.',dataStep:lang==='uz'?'Ma’lumotlarni tekshiring':'Check the details',name:lang==='uz'?'Tovar nomi':'Item name',namePlaceholder:lang==='uz'?'Do‘kon sahifasidagi nom':'Name from the store page',shipCountry:lang==='uz'?'Haqiqiy jo‘natish mamlakati':'Actual dispatch country',countryLabel:lang==='uz'?'Jo‘natish mamlakati':'Dispatch country',currency:lang==='uz'?'Do‘kon valyutasi':'Store currency',otherCountry:lang==='uz'?'Mamlakatni kiriting':'Enter country',price:lang==='uz'?'Tovar narxi':'Item price',atlasShipping:lang==='uz'?'Atlas omborigacha':'To Atlas warehouse',change:lang==='uz'?'o‘zgartirish':'edit',useShipping:lang==='uz'?'Atlas omborigacha yetkazishni ishlatish':'Use delivery to Atlas warehouse',shippingNote:lang==='uz'?'Bu do‘kondan Atlas omborigacha yetkazish. Ko‘rsatilmasa, o‘zgartiriladigan $10 zaxira ishlatiladi.':'This is store-to-Atlas delivery. If unpublished, an editable $10 reserve is used.',category:lang==='uz'?'Kategoriya':'Category',weight:lang==='uz'?'Qutidagi og‘irlik, kg':'Boxed weight, kg',weightDetails:lang==='uz'?'Yetkazish og‘irligi qanday aniqlanadi':'How delivery weight is refined',forCalc:lang==='uz'?'hisoblash uchun':'for calculation',variant:lang==='uz'?'Tovar varianti':'Item option',color:lang==='uz'?'Rang':'Color',size:lang==='uz'?'O‘lcham / model':'Size / model',selectColor:lang==='uz'?'Rangni tanlang':'Choose a color',selectVariant:lang==='uz'?'Variantni tanlang':'Choose an option',none:lang==='uz'?'Yo‘q':'Unavailable',photo:lang==='uz'?'Tovar surati — avtomatik yoki havola orqali':'Product photo — automatic or by link',image:lang==='uz'?'Rasm manzili':'Image URL',verified:lang==='uz'?'Ma’lumot va variantni tekshirdim.':'I checked the details and selected option.',add:lang==='uz'?'Savatga':'Add to cart',adding:lang==='uz'?'Savatga qo‘shilmoqda…':'Adding to cart…',gallery:lang==='uz'?'Do‘kon rasmlari':'Store photos',uz:lang==='uz'?'O‘zbekiston':'Uzbekistan',empty:lang==='uz'?'Tovaringiz shu yerda paydo bo‘ladi':'Your item will appear here',fresh:lang==='uz'?'Ma’lumot qachon tekshirildi':'When the data was checked',freshText:lang==='uz'?'Rasmiylashtirishdan oldin do‘kon javob bersa, Atlas narx va tanlangan variantni qayta tekshiradi.':'Before checkout, Atlas rechecks the price and selected option if the store responds.',declaration:lang==='uz'?'Deklaratsiya qoralamasi':'Declaration draft',cost:lang==='uz'?'Narx tarkibi':'Cost breakdown',reserve:lang==='uz'?'$10 — do‘kon yetkazishi uchun vaqtinchalik zaxira. Menejer rasmiylashtirilgach tekshiradi.':'$10 is a temporary store-delivery reserve. A manager will verify it after the order.',subtotal:lang==='uz'?'Oraliq jami':'Interim total',estimate:lang==='uz'?'Yetkazish bilan taxmin':'Estimate with delivery',emptyQuote:lang==='uz'?'Havolani kiriting yoki narx va og‘irlikni to‘ldiring.':'Paste a link or enter price and weight.',foot:lang==='uz'?'Hisob Atlas tariflari bilan qilinadi, tashuvchi kotirovkasi emas. Kurs, yo‘nalish, bojxona va muddatlar xaridgacha aniqlanadi.':'The estimate uses Atlas tariffs, not a carrier quote. Rate, route, customs and timing are confirmed before purchase.'};
   const tx=(ru:string,uz:string,en:string)=>lang==='ru'?ru:lang==='uz'?uz:en;
   c.freshText=tx('Перед оформлением Atlas проверит цену и валюту, если магазин ответит.','Do‘kon javob bersa, Atlas rasmiylashtirishdan oldin narx va valyutani tekshiradi.','Atlas rechecks price and currency before checkout when the store responds.');
   const searchParams = useSearchParams();
   const requestedUrl = searchParams.get("url") ?? "";
+  const catalogId = searchParams.get("catalog") ?? "";
   const isSourcedFlow = Boolean(requestedUrl);
+  const catalogFixedText=tx('Данные товара заданы Atlas. Цена проверяется в магазине; чтобы заказать по другой ссылке, измените ссылку выше.','Tovar ma’lumotlarini Atlas belgilagan. Narx do‘konda tekshiriladi; boshqa havola uchun yuqoridagi havolani o‘zgartiring.','Atlas set this catalog item’s details. Its price is checked with the store; change the link above to order another item.');
   const dealSeed = communityDeals.find(item => item.id === searchParams.get("deal") && item.url === requestedUrl);
   const dealOptions: ProductVariant[] = dealSeed ? communityFallbackOptions(dealSeed).map(item => ({ ...item, available: true })) : [];
   const dealBoxedWeight = dealSeed ? Math.max(0.1, communityEstimatedWeight(dealSeed) - 0.5) : undefined;
-  const seed = catalogProducts.find(item => item.sourceUrl === requestedUrl);
+  const seed = catalogProducts.find(item => item.sourceUrl === requestedUrl && (!catalogId || item.id === catalogId));
   const seedIsFresh = Boolean(seed && !seed.priceNeedsConfirmation);
   const seedOptions: ProductVariant[] = seed ? catalogOrderVariants(seed) : [];
   const fallbackOptions = seedOptions.length ? seedOptions : dealOptions;
@@ -100,18 +102,18 @@ export function GlobalLinkOrder() {
     ? dedupeSafeImages([seed.image, ...(seed.sourceImages ?? [])], seed.sourceUrl ?? requestedUrl)
     : dealSeed?.image ? [dealSeed.image] : [];
   const fallbackBoxedWeight = seed?.boxedWeight ?? dealBoxedWeight;
-  const [url, setUrl] = useState(() => searchParams.get("url") ?? ""),
-    [source, setSource] = useState(seed?.sourceUrl ?? dealSeed?.url ?? ""),
+  const [url, setUrl] = useState(() => searchParams.get("url") ?? "");
+  const [source, setSource] = useState(seed?.sourceUrl ?? dealSeed?.url ?? ""),
     [name, setName] = useState(seed?.name ?? dealSeed?.title ?? ""),
     [brand, setBrand] = useState(seed?.brand ?? dealSeed?.store ?? ""),
     [declaration, setDeclaration] = useState(""),
-    [currency, setCurrency] = useState("USD"),
+    [currency, setCurrency] = useState(seed?.sourceCurrency ?? "USD"),
     [amount, setAmount] = useState(seedIsFresh ? String(seed!.sourcePrice) : dealSeed ? String(dealSeed.price) : ""),
-    [shipping, setShipping] = useState("10"),
-    [shippingCurrency, setShippingCurrency] = useState("USD"),
-    [shippingEstimated, setShippingEstimated] = useState(true),
+    [shipping, setShipping] = useState(String(seed?.sourceShippingUsd ?? 10)),
+    [shippingCurrency, setShippingCurrency] = useState(seed?.sourceShippingCurrency ?? "USD"),
+    [shippingEstimated, setShippingEstimated] = useState(seed?.sourceShippingEstimated ?? true),
     [weight, setWeight] = useState(fallbackBoxedWeight ? String(fallbackBoxedWeight) : ""),
-    [country, setCountry] = useState("США"),
+    [country, setCountry] = useState(seed?.country ?? "США"),
     [otherCountry, setOtherCountry] = useState(""),
     [category, setCategory] = useState(seed?.category ?? (dealSeed ? communityProductCategory(dealSeed) : "Другое")),
     [variant, setVariant] = useState(fallbackOptions.length === 1 ? fallbackOptions[0].label : ""),
@@ -137,14 +139,24 @@ export function GlobalLinkOrder() {
       destination?: string;
     } | null>(null);
   const automaticallyLoaded = useRef<string | null>(null);
-  const draftStorageKey=`atlas:link-order:${requestedUrl||'manual'}`;
+  const [catalogContextLoaded,setCatalogContextLoaded]=useState<string|null>(()=>catalogId?null:'');
+  const [sourceEditedFor,setSourceEditedFor]=useState<string|null>(null);
+  const catalogContextKey=`${catalogId}:${requestedUrl}`;
+  const catalogSourceChanged=sourceEditedFor===catalogContextKey;
+  const draftStorageKey=`atlas:link-order:${catalogId?'catalog:'+catalogId:requestedUrl||'manual'}`;
   const draftRestored=useRef(false),draftCanSkipAutomaticLoad=useRef(false),draftPersistenceReady=useRef(false);
+
+  useEffect(()=>{
+    let active=true;
+    void loadCatalog().finally(()=>{if(active&&catalogId)setCatalogContextLoaded(catalogId)});
+    return()=>{active=false};
+  },[catalogId,loadCatalog]);
 
   useEffect(()=>{
     draftRestored.current=false;draftCanSkipAutomaticLoad.current=false;draftPersistenceReady.current=false;
     try{
       const raw=sessionStorage.getItem(draftStorageKey);
-      if(raw&&raw.length<300000){
+      if(raw&&!catalogId&&!dealSeed&&raw.length<300000){
         const value=JSON.parse(raw) as Partial<LinkOrderDraftSnapshot>;
         const usable=typeof value==='object'&&value!==null&&typeof value.source==='string'&&value.source.length>0&&typeof value.sourceCheckStatus==='string';
         const needsNikeGallery=typeof value.source==='string'&&/^https:\/\/(?:www\.)?nike\.com\//i.test(value.source);
@@ -168,7 +180,7 @@ export function GlobalLinkOrder() {
       }
     }catch{}
     draftPersistenceReady.current=true;
-  },[draftStorageKey,requestedUrl]);
+  },[draftStorageKey,requestedUrl,catalogId,dealSeed]);
 
   useEffect(()=>{
     if(!draftPersistenceReady.current)return;
@@ -176,6 +188,8 @@ export function GlobalLinkOrder() {
     try{sessionStorage.setItem(draftStorageKey,JSON.stringify(snapshot))}catch{}
   },[draftStorageKey,url,source,name,brand,declaration,currency,amount,shipping,shippingCurrency,shippingEstimated,weight,country,otherCountry,category,variant,variants,selectedColor,selectedSize,image,images,colorwayImages,showSourceForm,note,weightOrigin,verified,sourceCheckStatus,importedAt,sourceExpiresAt,foundShipping]);
   const variantColors = useMemo(() => [...new Set(variants.map(item => item.color).filter((value): value is string => Boolean(value)))], [variants]);
+  const currentCatalogSeed=catalogProducts.find(item=>item.sourceUrl===url);
+  const catalogProductFlow=Boolean(currentCatalogSeed||((catalogId||dealSeed)&&!catalogSourceChanged));
   const variantsForColor = useMemo(() => selectedColor ? variants.filter(item => item.color === selectedColor) : variantColors.length===1 ? variants.filter(item => item.color === variantColors[0]) : variantColors.length ? [] : variants, [variants,selectedColor,variantColors]);
   const variantSizes = useMemo(() => [...new Set(variantsForColor.map(item => item.size).filter((value): value is string => Boolean(value)))], [variantsForColor]);
   const nikeUsMenSizes = variantsForColor.some(item => item.sizeLabel === 'Nike US men');
@@ -209,34 +223,41 @@ export function GlobalLinkOrder() {
       setShowSourceForm(true);
       return;
     }
+    const linkSeed=catalogProducts.find(item=>item.sourceUrl===link&&(!(catalogId&&link===requestedUrl)||item.id===catalogId));
+    const linkDealSeed=!catalogSourceChanged?dealSeed:undefined;
+    const linkIsCatalogFlow=Boolean(linkSeed||((catalogId||dealSeed)&&!catalogSourceChanged)||linkDealSeed);
+    const linkSeedIsFresh=Boolean(linkSeed&&!linkSeed.priceNeedsConfirmation);
+    const linkFallbackOptions=linkSeed?catalogOrderVariants(linkSeed):linkDealSeed?communityFallbackOptions(linkDealSeed).map(item=>({...item,available:true})):[];
+    const linkSeedImages=linkSeed?dedupeSafeImages([linkSeed.image,...(linkSeed.sourceImages??[])],linkSeed.sourceUrl??link):linkDealSeed?.image?[linkDealSeed.image]:[];
+    const linkBoxedWeight=linkSeed?.boxedWeight??(linkDealSeed?Math.max(.1,communityEstimatedWeight(linkDealSeed)-.5):undefined);
     setUrl(link);
     setBusy(true);
     setSource(link);
     setVerified(false);
     setSourceCheckStatus('checking');
-    setName(seed?.name ?? dealSeed?.title ?? "");
-    setBrand(seed?.brand ?? dealSeed?.store ?? "");
+    setName(linkSeed?.name ?? linkDealSeed?.title ?? "");
+    setBrand(linkSeed?.brand ?? linkDealSeed?.store ?? "");
     setDeclaration("");
-    setAmount(seedIsFresh && seed?.sourcePrice !== undefined ? String(seed.sourcePrice) : dealSeed ? String(dealSeed.price) : "");
-    setCurrency(seedIsFresh ? seed?.sourceCurrency ?? "USD" : "USD");
-    setShipping("10");
+    setAmount(linkSeedIsFresh && linkSeed?.sourcePrice !== undefined ? String(linkSeed.sourcePrice) : linkDealSeed ? String(linkDealSeed.price) : "");
+    setCurrency(linkSeedIsFresh ? linkSeed?.sourceCurrency ?? "USD" : "USD");
+    setShipping(String(linkSeed?.sourceShippingUsd ?? 10));
     setShippingCurrency("USD");
-    setShippingEstimated(true);
-    setImage(seed?.image ?? dealSeed?.image ?? "");
-    setImages(seedImages);
+    setShippingEstimated(linkSeed?.sourceShippingEstimated ?? true);
+    setImage(linkSeed?.image ?? linkDealSeed?.image ?? "");
+    setImages(linkSeedImages);
     setColorwayImages([]);
     setImportedAt(undefined);
     setSourceExpiresAt(undefined);
-    setWeight(fallbackBoxedWeight ? String(fallbackBoxedWeight) : "");
-    const inferredCountry = seed?.country ?? inferStorefrontCountry(link, seed?.sourceCurrency);
+    setWeight(linkBoxedWeight ? String(linkBoxedWeight) : "");
+    const inferredCountry = linkSeed?.country ?? inferStorefrontCountry(link, linkSeed?.sourceCurrency);
     setCountry(canonicalCountry(inferredCountry ?? "Другая страна"));
     setOtherCountry("");
-    setCategory(canonicalCategory(seed?.category ?? (dealSeed ? communityProductCategory(dealSeed) : "Другое")));
-    setVariant(fallbackOptions.length === 1 ? fallbackOptions[0].label : "");
-    setVariants(fallbackOptions);
+    setCategory(canonicalCategory(linkSeed?.category ?? (linkDealSeed ? communityProductCategory(linkDealSeed) : "Другое")));
+    setVariant(linkFallbackOptions.length === 1 ? linkFallbackOptions[0].label : "");
+    setVariants(linkFallbackOptions);
     setSelectedColor("");
     setSelectedSize("");
-    setNote(dealSeed ? `Цена и фото сохранены из подборки на ${dealSeed.observedOn}. Atlas уточняет их в магазине.` : "");
+    setNote(linkDealSeed ? `Цена и фото сохранены из подборки на ${linkDealSeed.observedOn}. Atlas уточняет их в магазине.` : linkSeed ? `Товар из каталога ${linkSeed.store}. Atlas проверит цену и вариант в магазине.` : "");
     setFoundShipping(null);
     try {
       const response = await fetch("/api/import", {
@@ -259,21 +280,21 @@ export function GlobalLinkOrder() {
         const partialGalleries=data.selectedVariantColor
           ? allPartialGalleries.filter(gallery=>gallery.color===data.selectedVariantColor)
           : allPartialGalleries;
-        const partialCountry=canonicalCountry(data.country??seed?.country??inferStorefrontCountry(link,data.currency)??"Другая страна");
+        const partialCountry=canonicalCountry(linkIsCatalogFlow&&linkSeed?linkSeed.country:data.country??linkSeed?.country??inferStorefrontCountry(link,data.currency)??"Другая страна");
         const partialCurrency=currencies.includes(data.currency??"")?data.currency!:currencyForCountry(partialCountry);
         setSource(data.sourceUrl??link);
-        setName(data.title??seed?.name??dealSeed?.title??"");
-        setBrand(data.brand??seed?.brand??dealSeed?.store??new URL(link).hostname.replace(/^www\./,''));
-        setImage(partialImages[0]??seed?.image??dealSeed?.image??"");
-        setImages(partialImages.length?partialImages:seedImages);
+        setName(linkIsCatalogFlow&&linkSeed?linkSeed.name:data.title??linkSeed?.name??linkDealSeed?.title??"");
+        setBrand(data.brand??linkSeed?.brand??linkDealSeed?.store??new URL(link).hostname.replace(/^www\./,''));
+        setImage(partialImages[0]??linkSeed?.image??linkDealSeed?.image??"");
+        setImages(partialImages.length?partialImages:linkSeedImages);
         setColorwayImages(partialGalleries);
         if(data.price!==undefined&&currencies.includes(data.currency??"")){setAmount(String(data.price));setCurrency(data.currency!)}
-        else if(seedIsFresh&&seed?.sourcePrice!==undefined){setAmount(String(seed.sourcePrice));setCurrency(seed.sourceCurrency??"USD")}
-        else if(dealSeed){setAmount(String(dealSeed.price));setCurrency("USD")}
+        else if(linkSeedIsFresh&&linkSeed?.sourcePrice!==undefined){setAmount(String(linkSeed.sourcePrice));setCurrency(linkSeed.sourceCurrency??"USD")}
+        else if(linkDealSeed){setAmount(String(linkDealSeed.price));setCurrency("USD")}
         else {setAmount("");setCurrency(currencies.includes(partialCurrency??"")?partialCurrency!:"USD")}
-        const partialCategory=canonicalCategory(data.category??seed?.category??inferProductCategory(data.title??"",data.brand??""));
+        const partialCategory=canonicalCategory(linkIsCatalogFlow&&linkSeed?linkSeed.category:data.category??linkSeed?.category??inferProductCategory(data.title??"",data.brand??""));
         setCategory(partialCategory);
-        const receivedPartialVariants=data.variants?.length?data.variants:fallbackOptions;
+        const receivedPartialVariants=data.variants?.length?data.variants:linkFallbackOptions;
         const partialVariants=variantsForSourceColor(receivedPartialVariants,data.selectedVariantColor);
         setVariants(partialVariants);
         setVariant(partialVariants.length===1?partialVariants[0].label:"");
@@ -282,7 +303,8 @@ export function GlobalLinkOrder() {
         const partialGallery=partialGalleries.find(gallery=>gallery.color===partialColor);
         if(partialGallery){setImages(partialGallery.images);setImage(partialGallery.images[0]);}
         setCountry(partialCountry);
-        if(data.boxedWeight!==undefined)setWeight(String(validBoxedWeight(data.boxedWeight)??estimatedBoxedWeight(partialCategory)));
+        if(linkIsCatalogFlow&&linkSeed)setWeight(String(linkSeed.boxedWeight));
+        else if(data.boxedWeight!==undefined)setWeight(String(validBoxedWeight(data.boxedWeight)??estimatedBoxedWeight(partialCategory)));
         setSourceCheckStatus('failed');
         setNote(tx("Автоматически получены не все данные. Проверьте цену и вариант.","Ma’lumotlarning hammasi avtomatik olinmadi. Narx va variantni tekshiring.","Some details were not available automatically. Review the price and option."));
         setShowSourceForm(false);
@@ -291,22 +313,20 @@ export function GlobalLinkOrder() {
       if (!response.ok)
         throw Error(data.error ?? tx("Не удалось получить данные магазина.", "Do‘kon ma’lumotlarini olib bo‘lmadi.", "Could not load store data."));
       setSource(data.sourceUrl);
-      setName(data.title ?? seed?.name ?? dealSeed?.title ?? "");
-      setBrand(data.brand ?? seed?.brand ?? dealSeed?.store ?? new URL(data.sourceUrl).hostname);
-      setImage(data.image ?? seed?.image ?? dealSeed?.image ?? "");
+      setName(linkIsCatalogFlow&&linkSeed?linkSeed.name:data.title ?? linkSeed?.name ?? linkDealSeed?.title ?? "");
+      setBrand(data.brand ?? linkSeed?.brand ?? linkDealSeed?.store ?? new URL(data.sourceUrl).hostname);
+      setImage(data.image ?? linkSeed?.image ?? linkDealSeed?.image ?? "");
       const importedImages=dedupeSafeImages([data.image,...(data.images??[])].filter(Boolean) as string[],data.sourceUrl);
-      setImages(importedImages.length?importedImages:seedImages);
+      setImages(importedImages.length?importedImages:linkSeedImages);
       const allImportedColorwayGalleries=cleanColorwayGalleries(data.colorwayImages,data.sourceUrl);
       const importedColorwayGalleries=data.selectedVariantColor
         ? allImportedColorwayGalleries.filter(gallery=>gallery.color===data.selectedVariantColor)
         : allImportedColorwayGalleries;
       setColorwayImages(importedColorwayGalleries);
       if(importedImages.length&&!data.image)setImage(importedImages[0]);
-      const nextCategory = canonicalCategory(
-        data.category ??
-        seed?.category ??
-        inferProductCategory(data.title ?? "", data.brand ?? ""),
-      );
+      const nextCategory = linkIsCatalogFlow&&linkSeed
+        ? canonicalCategory(linkSeed.category)
+        : canonicalCategory(data.category ?? linkSeed?.category ?? inferProductCategory(data.title ?? "", data.brand ?? ""));
       setCategory(nextCategory);
       setDeclaration(data.declarationDescription ?? "");
       setCurrency(
@@ -314,14 +334,14 @@ export function GlobalLinkOrder() {
       );
       const knownCurrency = currencies.includes(data.currency ?? "");
       if (data.price !== undefined && knownCurrency) setAmount(String(data.price));
-      else if (seedIsFresh && seed?.sourcePrice !== undefined) setAmount(String(seed.sourcePrice));
-      else if (dealSeed) setAmount(String(dealSeed.price));
+      else if (linkSeedIsFresh && linkSeed?.sourcePrice !== undefined) setAmount(String(linkSeed.sourcePrice));
+      else if (linkDealSeed) setAmount(String(linkDealSeed.price));
       const receivedVariants = data.variants ?? [];
-      const allImportedVariants = hasSelectableDimensions(fallbackOptions) && !hasSelectableDimensions(receivedVariants)
-        ? fallbackOptions
+      const allImportedVariants = hasSelectableDimensions(linkFallbackOptions) && !hasSelectableDimensions(receivedVariants)
+        ? linkFallbackOptions
         : receivedVariants.length
           ? receivedVariants
-          : fallbackOptions;
+          : linkFallbackOptions;
       const importedVariants = variantsForSourceColor(allImportedVariants,data.selectedVariantColor);
       const safeVariants = knownCurrency ? importedVariants : importedVariants.map(item => ({...item, price: undefined}));
       const hasPricedVariants=knownCurrency&&safeVariants.some(item=>typeof item.price==='number'&&Number.isFinite(item.price)&&item.price>0);
@@ -343,14 +363,16 @@ export function GlobalLinkOrder() {
         if (selectedVariant.price !== undefined && knownCurrency) setAmount(String(selectedVariant.price));
         if (selectedVariant.image) setImage(selectedVariant.image);
       }
-      const nextCountry = canonicalCountry(data.country ?? seed?.country ?? inferStorefrontCountry(data.sourceUrl, data.currency) ?? "Другая страна");
+      const nextCountry = canonicalCountry(linkIsCatalogFlow&&linkSeed?linkSeed.country:data.country ?? linkSeed?.country ?? inferStorefrontCountry(data.sourceUrl, data.currency) ?? "Другая страна");
       setCountry(nextCountry);
       if (!data.currency || !currencies.includes(data.currency))
         setCurrency(currencyForCountry(nextCountry) ?? "USD");
       const importedWeight=validBoxedWeight(data.boxedWeight);
-      setWeight(String(importedWeight ?? fallbackBoxedWeight ?? estimatedBoxedWeight(nextCategory)));
+      setWeight(String(linkIsCatalogFlow&&linkSeed?linkSeed.boxedWeight:importedWeight ?? linkBoxedWeight ?? estimatedBoxedWeight(nextCategory)));
       setWeightOrigin(
-        importedWeight
+        linkIsCatalogFlow&&linkSeed
+          ? tx("Вес задан Atlas для карточки каталога","Vazn Atlas katalog kartochkasi uchun belgilagan","Weight set by Atlas for this catalog item")
+          : importedWeight
           ? data.weightKind === "shipping"
             ? tx("Вес отправления со страницы","Sahifadagi jo‘natma og‘irligi","Shipping weight from page")
             : tx("Вес товара со страницы — коробку нужно проверить","Sahifadagi tovar og‘irligi — qutini tekshirish kerak","Product weight from page; verify the box")
@@ -363,7 +385,7 @@ export function GlobalLinkOrder() {
       const sourceHasPrice=Boolean(data.currency&&currencies.includes(data.currency))&&Boolean(selectableVariants.length)&&(typeof data.price==='number'&&Number.isFinite(data.price)&&data.price>0||hasPricedVariants);
       setSourceCheckStatus(sourceHasPrice?'verified':'failed');
       // Shipping may depend on destination/session; require explicit confirmation even if found.
-      if (data.shipping !== undefined) {
+      if (!linkIsCatalogFlow&&data.shipping !== undefined) {
         const foundCurrency = data.shippingCurrency ?? data.currency ?? "";
         setFoundShipping({
           amount: data.shipping,
@@ -377,7 +399,7 @@ export function GlobalLinkOrder() {
         }
       }
       const shippingMessage =
-        data.shipping !== undefined
+        !linkIsCatalogFlow&&data.shipping !== undefined
           ? tx("На странице указана доставка ", "Sahifada yetkazish ", "The page lists shipping of ") +
             data.shipping +
             " " +
@@ -408,17 +430,18 @@ export function GlobalLinkOrder() {
       );
     } catch (e) {
       setNote((e as Error).message);
-      setName(seed?.name??dealSeed?.title??"");
-      setBrand(seed?.brand??dealSeed?.store??new URL(link).hostname.replace(/^www\./,''));
-      setImage(seed?.image??dealSeed?.image??"");
-      setImages(seedImages);
-      setAmount(seedIsFresh&&seed?.sourcePrice!==undefined?String(seed.sourcePrice):dealSeed?String(dealSeed.price):"");
-      setCurrency(seedIsFresh?seed?.sourceCurrency??"USD":"USD");
-      setVariants(fallbackOptions);
+      setName(linkSeed?.name??linkDealSeed?.title??"");
+      setBrand(linkSeed?.brand??linkDealSeed?.store??new URL(link).hostname.replace(/^www\./,''));
+      setImage(linkSeed?.image??linkDealSeed?.image??"");
+      setImages(linkSeedImages);
+      setAmount(linkSeedIsFresh&&linkSeed?.sourcePrice!==undefined?String(linkSeed.sourcePrice):linkDealSeed?String(linkDealSeed.price):"");
+      setCurrency(linkSeedIsFresh?linkSeed?.sourceCurrency??"USD":"USD");
+      setShipping(String(linkSeed?.sourceShippingUsd??10));setShippingCurrency("USD");setShippingEstimated(linkSeed?.sourceShippingEstimated??true);
+      setVariants(linkFallbackOptions);
       setColorwayImages([]);
-      setVariant(fallbackOptions.length===1?fallbackOptions[0].label:"");
-      setWeight(String(fallbackBoxedWeight ?? estimatedBoxedWeight(category)));
-      setWeightOrigin(fallbackBoxedWeight ? tx("Оценка Atlas; уточняется перед оформлением","Atlas bahosi; rasmiylashtirishdan oldin aniqlanadi","Atlas estimate; refined before checkout") : tx("Приблизительно по категории","Kategoriya bo‘yicha taxminan","Approximate by category"));
+      setVariant(linkFallbackOptions.length===1?linkFallbackOptions[0].label:"");
+      setWeight(String(linkBoxedWeight ?? estimatedBoxedWeight(category)));
+      setWeightOrigin(linkIsCatalogFlow&&linkSeed?tx("Вес задан Atlas для карточки каталога","Vazn Atlas katalog kartochkasi uchun belgilagan","Weight set by Atlas for this catalog item"):linkBoxedWeight ? tx("Оценка Atlas; уточняется перед оформлением","Atlas bahosi; rasmiylashtirishdan oldin aniqlanadi","Atlas estimate; refined before checkout") : tx("Приблизительно по категории","Kategoriya bo‘yicha taxminan","Approximate by category"));
       setSourceCheckStatus('failed');
       setShowSourceForm(false);
     } finally {
@@ -426,19 +449,20 @@ export function GlobalLinkOrder() {
     }
   }
   useEffect(() => {
-    if (!ready || !requestedUrl || automaticallyLoaded.current === requestedUrl) return;
+    const loadKey=`${catalogId}:${requestedUrl}`;
+    if (!ready || !requestedUrl || (catalogId&&catalogContextLoaded!==catalogId) || automaticallyLoaded.current === loadKey) return;
     if(draftRestored.current&&draftCanSkipAutomaticLoad.current){
-      automaticallyLoaded.current=requestedUrl;
+      automaticallyLoaded.current=loadKey;
       setShowSourceForm(false);
       return;
     }
-    automaticallyLoaded.current = requestedUrl;
+    automaticallyLoaded.current = loadKey;
     setUrl(requestedUrl);
     setShowSourceForm(false);
     void load(requestedUrl);
     // `load` intentionally reads the current form state; this effect runs once per requested product.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, requestedUrl]);
+  }, [ready, requestedUrl, catalogId, catalogContextLoaded]);
   let preview: ReturnType<typeof price> | null = null,
     estimatedWeight = 0;
   try {
@@ -509,6 +533,7 @@ export function GlobalLinkOrder() {
                 disabled={busy}
                 onChange={(e) => {
                   setUrl(e.target.value);
+                  setSourceEditedFor(e.target.value.trim()===requestedUrl?null:catalogContextKey);
                   setSource("");
                   setSourceCheckStatus('idle');
                   setVerified(false);
@@ -622,6 +647,7 @@ export function GlobalLinkOrder() {
                   <h2>{c.dataStep}</h2>
                 </div>
               </div>
+              {catalogProductFlow&&<p className="catalog-fixed-note" role="status">{catalogFixedText}</p>}
               <div className="field variant-matrix" data-order-variant tabIndex={-1}>
                 <label htmlFor="variant">{c.variant}</label>
                 {variants.length===1 ? <div className="single-variant-selection">
@@ -644,6 +670,8 @@ export function GlobalLinkOrder() {
                   required
                   maxLength={140}
                   value={name}
+                  readOnly={catalogProductFlow}
+                  className={catalogProductFlow?"catalog-locked-field":undefined}
                   onChange={(e) => {setName(e.target.value);setVerified(false)}}
                   placeholder={c.namePlaceholder}
                 />
@@ -653,7 +681,8 @@ export function GlobalLinkOrder() {
                   <label>{c.shipCountry}</label>
                   <select
                     aria-label={c.countryLabel}
-                    className="select-control"
+                    className={`select-control${catalogProductFlow?" catalog-locked-field":""}`}
+                    disabled={catalogProductFlow}
                     value={canonicalCountry(country)}
                     onChange={(e) => {
                       setCountry(canonicalCountry(e.target.value));
@@ -668,6 +697,8 @@ export function GlobalLinkOrder() {
                   <Choice
                     label={c.currency}
                     value={currency}
+                    disabled={catalogProductFlow}
+                    className={catalogProductFlow?"catalog-locked-field":undefined}
                     onChange={(v) => {
                       setCurrency(v);setVerified(false);
                     }}
@@ -683,6 +714,8 @@ export function GlobalLinkOrder() {
                     required
                     maxLength={60}
                     value={otherCountry}
+                    readOnly={catalogProductFlow}
+                    className={catalogProductFlow?"catalog-locked-field":undefined}
                     onChange={(e) => setOtherCountry(e.target.value)}
                   />
                 </div>
@@ -697,13 +730,15 @@ export function GlobalLinkOrder() {
                     min=".01"
                     step=".01"
                     value={amount}
+                    readOnly={catalogProductFlow}
+                    className={catalogProductFlow?"catalog-locked-field":undefined}
                     onChange={(e) => {setAmount(e.target.value);setVerified(false)}}
                   />
                 </div>
                 <div className="field">
                   <label htmlFor="shipping">
                     {c.atlasShipping}, {shippingCurrency}{" "}
-                    {shippingEstimated ? `(${c.change})` : ""}
+                    {shippingEstimated&&!catalogProductFlow ? `(${c.change})` : ""}
                   </label>
                   <input
                     id="shipping"
@@ -712,16 +747,19 @@ export function GlobalLinkOrder() {
                     min="0"
                     step=".01"
                     value={shipping}
+                    readOnly={catalogProductFlow}
+                    className={catalogProductFlow?"catalog-locked-field":undefined}
                     onChange={(e) => {
                       setShipping(e.target.value);
                       setShippingEstimated(true);
                       setVerified(false);
                     }}
                   />
+                  <small className="micro">{catalogProductFlow?shippingEstimated?tx("Сумма задана Atlas как предварительная; оператор сверит её после заказа.","Summa Atlas tomonidan taxminiy belgilangan; operator buyurtmadan keyin tekshiradi.","Atlas marked this amount as an estimate; an operator will verify it after the order."):tx("Сумма доставки подтверждена Atlas при добавлении товара.","Yetkazish summasi tovar qo‘shilganda Atlas tomonidan tasdiqlangan.","Atlas confirmed this shipping amount when adding the item."):c.shippingNote}</small>
                 </div>
               </div>
               <div>
-                {foundShipping && shippingEstimated && (
+                {foundShipping && shippingEstimated && !catalogProductFlow && (
                   <button
                     type="button"
                     className="btn secondary"
@@ -749,7 +787,8 @@ export function GlobalLinkOrder() {
                   <label>{c.category}</label>
                   <select
                     aria-label={c.category}
-                    className="select-control"
+                    className={`select-control${catalogProductFlow?" catalog-locked-field":""}`}
+                    disabled={catalogProductFlow}
                     value={canonicalCategory(category)}
                     onChange={(e) => {
                       const canonical = canonicalCategory(e.target.value);
@@ -773,12 +812,15 @@ export function GlobalLinkOrder() {
                     max="49.5"
                     step=".01"
                     value={weight}
+                    readOnly={catalogProductFlow}
+                    className={catalogProductFlow?"catalog-locked-field":undefined}
                     onChange={(e) => {
                       setWeight(e.target.value);
                       setWeightOrigin(tx("Указан покупателем","Xaridor kiritdi","Entered by customer"));
                       setVerified(false);
                     }}
                     onBlur={() => {
+                      if(catalogProductFlow)return;
                       const valid=validBoxedWeight(weight);
                       if(valid!==undefined){setWeight(String(valid));return}
                       setWeight(String(estimatedBoxedWeight(category)));

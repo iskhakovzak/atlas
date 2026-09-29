@@ -10,7 +10,7 @@
 .quote-cost-help>summary::-webkit-details-marker,.customs-estimate-help>summary::-webkit-details-marker{display:none}
 .quote-cost-help>summary::after,.customs-estimate-help>summary::after{content:none!important}
 .quote-cost-help>summary:focus-visible,.customs-estimate-help>summary:focus-visible{outline:2px solid #315f50;outline-offset:2px}
-.quote-cost-help-popover,.customs-estimate-popover{position:absolute;z-index:20;right:0;bottom:calc(100% + 8px);width:min(340px,calc(100vw - 52px));padding:14px 16px;border:1px solid #dce5e2;border-radius:12px;background:#fff;color:#263b34;box-shadow:0 12px 32px #152b221f;font-size:12px;line-height:1.55;white-space:normal;overflow-wrap:anywhere;text-align:left}
+.quote-cost-help-popover,.customs-estimate-popover{position:absolute;z-index:20;right:0;bottom:calc(100% + 8px);box-sizing:border-box;width:min(340px,calc(100vw - 32px));max-width:calc(100vw - 32px);padding:14px 16px;border:1px solid #dce5e2;border-radius:12px;background:#fff;color:#263b34;box-shadow:0 12px 32px #152b221f;font-size:12px;line-height:1.55;white-space:normal;overflow-wrap:anywhere;text-align:left}
 .quote-cost-help-popover p,.customs-estimate-popover p{margin:0 0 9px}
 .quote-cost-help-popover p:last-child,.customs-estimate-popover p:last-child{margin-bottom:0}
 .quote-cost-help[open] .quote-cost-help-popover,.customs-estimate-help[open] .customs-estimate-popover{animation:quote-help-in .14s ease-out}
@@ -40,12 +40,14 @@
 .link-source-tools>.text-button{min-height:40px;padding:8px 12px;border:1px solid transparent;border-radius:9px;color:var(--muted-foreground,#64756e)}
 .link-source-tools>.text-button:hover{border-color:var(--atlas-line,#dce5e2);background:var(--atlas-soft,#f8faf8);color:var(--atlas-ink,#213c31)}
 
-.cost-service-row>dd{display:grid;justify-items:end;gap:3px;white-space:normal}
-.cost-service-breakdown{max-width:100%;color:var(--muted-foreground,#64756e);font-size:12px;font-weight:400}
+.cost-service-row>dd{display:grid;flex:1;min-width:0;max-width:100%;justify-items:end;gap:3px;white-space:normal;box-sizing:border-box}
+.cost-service-breakdown{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;color:var(--muted-foreground,#64756e);font-size:12px;font-weight:400}
 .cost-service-breakdown>summary{min-height:26px;cursor:pointer;font-size:12px;font-weight:500;line-height:1.4;white-space:nowrap}
 .quote-details[open] .cost-service-breakdown>summary{margin-bottom:0}
-.cost-service-breakdown>dl{display:grid;width:min(320px,calc(100vw - 72px));gap:6px;margin:7px 0 0;padding:8px 0 0;border-top:1px solid var(--atlas-line,#dce5e2)}
-.cost-service-breakdown>dl>div{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px}
-.cost-service-breakdown dt{font-size:12px;line-height:1.4;overflow-wrap:anywhere}
-.cost-service-breakdown dd{display:flex;align-items:center;gap:7px;font-size:12px;white-space:nowrap}
-@media(max-width:700px){.link-source-tools{display:flex;margin-bottom:14px}}
+.cost-service-breakdown>dl{display:grid;width:100%;min-width:0;max-width:100%;box-sizing:border-box;gap:6px;margin:7px 0 0;padding:8px 0 0;border-top:1px solid var(--atlas-line,#dce5e2)}
+.cost-service-breakdown>dl>div{display:grid;grid-template-columns:minmax(0,1fr) auto;min-width:0;align-items:center;gap:12px}
+.cost-service-breakdown dt{min-width:0;font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+.cost-service-breakdown dd{display:flex;min-width:0;align-items:center;gap:7px;font-size:12px;white-space:nowrap}
+.catalog-fixed-note{margin:0 0 16px;padding:10px 12px;border:1px solid var(--atlas-line,#dce5e2);border-radius:9px;background:var(--atlas-soft,#f8faf8);font-size:13px;line-height:1.45;color:var(--muted-foreground,#64756e)}
+.link-form .catalog-locked-field{background:var(--atlas-soft,#f8faf8);color:var(--atlas-ink,#213c31);opacity:1}
+@media(max-width:700px){.link-source-tools{display:flex;margin-bottom:14px}.link-form .field .select-control{box-sizing:border-box;min-height:48px;height:48px!important;padding:10px 12px;font-size:16px;line-height:1.4}}

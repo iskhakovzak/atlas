@@ -1,5 +1,10 @@
 # Atlas TODO and known limitations
 
+## Order-by-link follow-up — 30 September 2026
+
+- [ ] Enter and confirm the actual store-to-Atlas USD shipping for existing published catalog products where known. Older saved records still use the compatible $10 provisional reserve until an operator updates them; no production catalog records were changed by this code update.
+- [ ] Visually verify the expanded cost disclosure, help popover and country/currency/category controls at 360/390/768 px in light and graphite themes. The local UI flow was not run because its local D1 setup is missing `market_settings` and there is no safe populated UI fixture.
+
 ## Catalog filter redesign — 29 September 2026
 
 - [x] Replace the stretched “More filters” row with a compact, responsive filter control and a clearly grouped country/delivered-budget panel.

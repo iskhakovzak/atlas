@@ -1,5 +1,13 @@
 # Atlas architecture
 
+## Catalog navigation context and source-shipping fields — 30 September 2026
+
+`findOrderUrl()` adds a `catalog` product ID to catalog-card navigation. The order-by-link screen loads the public catalog for this route and uses the exact source URL + ID match as UI context, not as authority for price or permission. A catalog-backed item keeps Atlas-authored name, category and boxed weight fixed; store-to-warehouse shipping comes from the catalog record and is not replaced by merchant-page shipping. Customers can still select an available variant. Changing the link switches the form back to editable manual-entry behavior. Fresh merchant import and the authenticated `/api/actions` recalculation remain in place.
+
+`CatalogDraft.sourceShippingUsd` and `CatalogDraft.sourceShippingEstimated` are optional, backward-compatible fields. New imports start with a $10 estimated reserve. Public catalog serialization uses those operator-owned values and maps confirmed shipping to `shippingKnown`; scheduled rechecks retain the previous editorial shipping settings. Old D1 JSON rows parse without a migration and default to the same $10 estimated reserve.
+
+`atlasServiceBreakdown()` is a display helper only: it groups the existing `service + buyout + conversion` and `shipping + deliveryMargin` components. Domain quote values, stored orders, fee lines, cart totals and server validations stay unchanged.
+
 ## Stack
 
 - React 19 and Next-style App Router through Vinext/Vite.
