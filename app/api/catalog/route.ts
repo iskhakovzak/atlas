@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import {database,identity,operator,sameOrigin,requestJson,json,failure,HttpError,pricing} from '@/lib/market/server';
 import {readCatalog,persistCatalog} from '@/lib/market/catalog-server';
-import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,recheckedDraft,changeCatalog,publicCatalog,catalogMaxEntries} from '@/lib/market/catalog-editor';
+import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,recheckedDraft,changeCatalog,publicCatalog,catalogMaxEntries,catalogRecheckBatchSize} from '@/lib/market/catalog-editor';
 import {fetchProduct,fetchCollectionLinks} from '@/lib/importer/fetch';
 import {refreshDueCatalog} from '@/lib/market/catalog-refresh';
 import {apiErrorMessage,requestLocale} from '@/lib/market/i18n';
@@ -10,7 +10,7 @@ const ids=z.array(z.string().min(1).max(100)).min(1).max(100);
 const commandSchema=z.discriminatedUnion('kind',[
   z.object({kind:z.literal('import'),url:z.string().max(3000),collectionIds:z.array(z.string().max(80)).max(20),country:z.string().max(80)}),
   z.object({kind:z.literal('discover'),url:z.string().max(3000)}),
-  z.object({kind:z.literal('recheck'),ids:z.array(z.string().min(1).max(100)).min(1).max(10)}),
+  z.object({kind:z.literal('recheck'),ids:z.array(z.string().min(1).max(100)).min(1).max(catalogRecheckBatchSize)}),
   z.object({kind:z.literal('refresh-due')}),
   z.object({kind:z.literal('edit'),id:z.string().max(100),draft:catalogDraftSchema}),
   z.object({kind:z.literal('publish'),ids}),z.object({kind:z.literal('hide'),ids}),

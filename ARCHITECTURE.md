@@ -18,12 +18,12 @@
 | Shared Atlas visual system | app/atlas-design.css plus app/experience.css; responsive hero, cards, account, forms, order surfaces and green review palette. app/dark-theme.css provides the opt-in low-glare graphite palette; app/theme-control.tsx owns the light-default, local-only theme provider and toggle. |
 | Link order | app/global-link-order.tsx |
 | Cart and checkout/payment-test confirmation | app/shopping.tsx |
-| Orders, operations, balance and managed pricing UI | app/order-workspace.tsx |
+| Cart/order workflows, balance and pricing form component | app/order-workspace.tsx; the shared `PricingManager` is rendered centrally by `app/admin-view.tsx` |
 | Copy order ID interaction | app/copy-text.tsx; localized clipboard action in expanded order details |
 | Analytics, legal/readiness | app/prelaunch-views.tsx |
 | Account/customs | app/account-views.tsx, app/customs/page.tsx |
 | Identity/declaration/address help | app/identity-workspace.tsx, app/api/passport, lib/market/addresses.ts |
-| Batch import/admin catalog/rules | app/batch-import.tsx, app/admin-view.tsx, app/catalog-admin.tsx, lib/market/catalog-editor.ts, lib/market/catalog-server.ts, lib/market/policy.ts |
+| Batch import/admin catalog, unified pricing and rules | app/batch-import.tsx, app/admin-view.tsx, app/catalog-admin.tsx, lib/market/catalog-editor.ts, lib/market/catalog-server.ts, lib/market/policy.ts |
 | Client provider | lib/market/store.tsx |
 | Auth/access | app/chatgpt-auth.ts, app/access-view.tsx, lib/market/access.ts |
 | API | app/api/account, app/api/actions, app/api/import, app/api/catalog, app/api/internal/catalog-refresh, app/api/operations |
@@ -31,6 +31,10 @@
 | Importing | lib/importer/stores.ts, fetch.ts, extract.ts, shopify.ts |
 | Database | db/schema.ts, drizzle/0000_overrated_justice.sql |
 | Tests | tests/market.test.mjs, tests/world.test.mjs |
+
+The hosted `/order-by-link` page uses explicit localized formatters for country and category labels. Its seeded fallback variant list is typed against the full optional `ProductVariant` contract. This guards the client render path when imported options are absent; no importer API, persisted data schema, price verification or cart action was changed by the production render-crash fix (Sites version 103).
+
+The `/admin` route is the single operator UI for catalog administration, rules, audit/system tools and centrally managed pricing. Global FX/freight/fees, actual-dispatch-country overrides, currency rates and the warehouse service catalogue are loaded and saved through the existing `app/api/operations` endpoints. Both the route content and API reads/writes require the primary operator configured by `ATLAS_OPERATOR_EMAIL`; the UI's staff directory does not grant access. `/operations` is reserved for order processing and no longer presents a duplicate tariff editor. Pricing remains versioned in the existing `market_settings.pricing` record, without a schema migration; orders retain their pricing snapshots.
 
 ## Runtime flow
 
@@ -87,6 +91,8 @@ That same versioned pricing record also contains an optional `serviceCatalog` (u
 Migration 0004 adds the normalized launch foundation: `market_customers`, `market_order_records`, `market_order_fee_lines`, `market_order_events`, `market_legal_consents`, `market_staff_directory` and `market_audit_events`. Existing `market_accounts` JSON remains the compatible customer-flow source; every successful write now maintains an idempotent operational projection of customers, orders, fee lines and status events. The projection is rebuildable from `/admin` and is safe to reconcile if a secondary write fails. Staff-directory rows do not grant access; `ATLAS_OPERATOR_EMAIL` remains the sole authorization source.
 
 State contains orders, ledger entries, cart, favourites, checkout idempotency keys, saved recipient profiles, support-request history, an optional confirmed identity profile with masked passport number, test declarations, communication preferences, prepared email/SMS records and version. Order contains product snapshot, immutable quote, delivery snapshot, simulated payment, parcel/tracking events, assignment, staff notes, optional customer change requests, optional warehouse inspection, optional `warehouseServiceRequests` snapshots, status/history, both settlement types, approvals, quantity, balance use and customs consent. Cart lines optionally store `requestedServiceIds` and per-service `requestedServiceUnits`. Service requests optionally store a customer instruction note; change requests optionally mark an explicitly customer-approved proposed substitution as resolving a warehouse issue. These fields default compatibly for old stored carts/orders; no D1 migration is needed.
+
+The operator-only `order-notify` action validates the target order and bounded title/message, then stores an order-linked in-app notification in the customer's existing account state through the same-origin, revision-checked `/api/operations` write path. It adds no required state fields or migration and does not send email or SMS. Operator order views may show account email/phone as unverified contact channels; only operators receive that detail. Canceled orders retain staff-note and notification tools, but not lifecycle-changing controls.
 
 Warehouse services use the normal authenticated action path. At checkout the customer can flag `checkout`-stage preferences; checkout snapshots localized service text, unit, configured rate, dispatch country and request origin without changing the initial quote or authorizing work. After an order has warehouse inspection and remains at status 2 (before weighing), its owner can request a `warehouse`-stage offer. The server reads current enabled offers and country fee from managed pricing, snapshots the values, and rejects unknown/disabled/wrong-stage choices. An operator-only linked `change-request-create` checks the exact fixed price or records a quote; the customer must approve/decline the exact amount. An operator can also mark the request unavailable with a reason. `warehouse-service-complete` is operator-only and requires approval. Any requested, quoted or approved service blocks weighing until completed/declined; checkout preferences do not block purchase progression before arrival. Approved prices are represented by existing approved change requests and remain separate from the immutable quote. This is a pre-release workflow only: there is no connected warehouse execution or real additional charge, and “complete” is only a simulated status. Insurance cannot be enabled until insurer, coverage, exclusions and claims are verified.
 
@@ -263,3 +269,18 @@ For Adidas, a blocked or malformed public JSON response may use the recoverable 
 GitHub `main` through `3c06b83` is already contained in the Site source. The newer open PR and palette branch heads are treated as review inputs, not blanket merges. In particular, `market_staff_directory` does **not** grant API operator rights: only the authenticated email equal to `ATLAS_OPERATOR_EMAIL` does. This preserves the existing authorization boundary while staff identities and roles remain preparatory.
 
 Sephora's `linkJSON` Product record passes through the existing generic structured-data parser only on the exact approved host and URL; it inherits safe-image handling, unknown-availability semantics and the authenticated import/cart verification gates. The client-only storage notice and deletion-confirmation controls add no new persisted account fields or server permissions. `workers/catalog-refresh/wrangler.toml` is a separate Worker deployment input, not part of the Sites application build; its schedule is inactive until the secret exists on both runtimes and the Worker is actually deployed.
+
+## Catalog review queue and resilient importer — 27 September 2026
+
+- `CatalogEntry.createdAt`, `origin`, and `queueState`, plus `CatalogDraft.importFailureReason`, are optional versioned JSON fields. Old D1 catalog records continue to parse; no SQL migration is required.
+- Operator imports and customer link orders are queued as private drafts. The admin view separates new queue, currently published, earlier/archived entries and all records; selection actions operate on explicit IDs and are written to the existing catalog audit stream.
+- Hard-delete is restricted to unpublished, non-bundled drafts. Published and bundled products remain recoverable through hide/unpublish; order snapshots and customer carts are not changed by catalog draft deletion.
+- Merchant request/parser/network failures can be represented as manual-review drafts with unknown price and availability. Manual entry does not bypass the existing live exact-variant, price and currency checks on cart/checkout.
+- Shopify products with only per-variant prices remain importable without inventing a base price. Generic HTML parsing accepts XHTML. Redirects outside the allowlist become a manual path without following the destination.
+- Allowlisting a store root does not imply a dedicated adapter or reliable extraction. Live behavior across all supported stores is still unverified; do not state that every store auto-imports perfectly.
+
+## Link-order quote presentation and customs note — 29 September 2026
+
+- The order-by-link summary is presentation-only and keeps item, Atlas service, buyout, conversion, merchant shipping, international freight, delivery margin, international reserve and optional services separately labeled. `price()` and server-side totals remain unchanged; stored orders/carts and Zod schemas are unchanged.
+- The weight/shipping explanation is an on-demand disclosure beside international delivery. A compact customs estimate is used in the link-order preview; `/customs` retains the detailed input form. It remains informational, separate from Atlas totals, and is not a carrier quote.
+- The consolidated PP-4508 text shows 20% and a $2/kg minimum from 1 September 2026, while UP-174 §8 schedules that rate from 1 January 2027. Numeric estimates are suppressed for the disputed 1 September–31 December 2026 arrival window pending Customs confirmation; estimates remain informational and are not binding duty quotes or commercial tariffs.

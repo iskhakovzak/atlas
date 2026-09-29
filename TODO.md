@@ -8,15 +8,21 @@
 - [x] Apply the guest Commerce hero, responsive admin rows and form-based support replies / collection creation; repair the catalog audit's fixed-category assumption.
 - [x] Check operator admin tabs at 1440/800/390/360px and fix the 390/360px authenticated header overflow.
 - [x] Preserve high contrast in the account next-action panel when shared surface colors are overridden by the active palette.
+- [x] Fix remaining dark-theme catalog accents whose legacy rules used navy text on low-contrast surfaces.
+- [x] Consolidate global pricing, per-dispatch-country overrides, FX and warehouse-service rates into one operator-only `/admin` section; remove the duplicate editor from `/operations` and keep saved order snapshots immutable.
+- [x] Verify the existing customer/admin boundary: customers have no admin navigation, direct admin routes show the denial state, and `/api/operations` rejects non-operators before returning data.
+- [ ] Visually review the new catalog accent colors and centralized tariff tab in light/dark mode at desktop and iPhone widths; the local in-app browser harness could not attach to this preview during this pass.
 - [ ] Finish Commerce migration by consolidating overlapping rules across existing stylesheets; audit populated customer/operator states and mobile content density.
 - [ ] Complete legal/carrier/PSP/auth/operational pilot gates; never enable real payments based on visual readiness alone.
 
 ## UX refinement follow-up
 
+- [x] Fix the hosted `/order-by-link` render crash caused by missing localized country/category helpers and an under-typed fallback variant list; deployed as Sites version 103. Nike form rendering was checked, but fresh importer/cart behavior was not exercised.
 - [x] Route successful catalog, link and batch additions directly to the cart; offer simulated payment confirmation from cart checkout. Real provider payments remain blocked on PSP integration.
 - [x] Remove the customer stock-status gate from link/batch cart addition and checkout while retaining live selected-option, price and currency verification; catalog auto-hide remains a separate operator feed policy.
 - [x] Add operator-managed dispatch-country overrides for existing service, buyout, conversion, delivery margin, per-kg freight, reserve and optional-service tariff fields; old pricing state and submitted quote snapshots remain compatible.
-- [ ] Localize dispatch-country pricing controls and validation errors in RU/UZ/EN; validate country-label coverage as merchant regions are added.
+- [x] Localize global and dispatch-country pricing controls, warehouse-service settings and supported country names in RU/UZ/EN.
+- [ ] Validate country-label coverage as merchant regions are added; complete the remaining legacy operator copy localization pass.
 
 - [x] Remove the low-value customer profile JSON download; keep operator-only database backup export separate.
 - [x] Remove the legacy browser-data migration panel from the customer account; the server-side `import-legacy` path remains a separate pre-launch blocker.
@@ -28,7 +34,11 @@
 - [x] Compact account sections, legal consent deep links and searchable/filterable catalog administration.
 - [x] Turn the account landing screen into a state-aware customer dashboard with one next action, compact counters and primary service shortcuts.
 - [x] Make account secondary panels mutually exclusive and remove paired-panel stretching and repeated decorative hierarchy.
+- [x] Process all selected catalog rechecks in sequential server-sized batches with visible progress and failed/unprocessed selection retained; support 20 pasted import links with per-link progress and visible partial failures.
+- [x] Surface warehouse exceptions in the operator attention queue; retain safe notes and add order-linked in-app customer notifications plus clearly labeled, unverified operator contact channels.
+- [x] Lazy-load heavy customer/operator route screens to reduce the initial marketplace JavaScript bundle.
 - [ ] Add populated-order/operator and checkout-review browser fixtures beyond current domain and guest/customer route coverage.
+- [ ] Run fixture-backed responsive browser QA at 1440, 800, 430, 402, 390 and 360px across catalog, batch import, sign-in/account entry, customer workspace and operator order flows. Avoid local smoke paths that mutate D1; the current local database lacks `market_settings`.
 - [ ] Finish RU/UZ/EN translations across legacy forms, legal and operator screens; customer order, balance, notifications and link-order messages now follow the selected locale, while legacy/admin/legal/server-history strings remain.
 - [ ] Implement saved searches, recently viewed products and price/size alerts only with authenticated persistence and a real refresh/delivery mechanism.
 - [ ] Validate the shortened experience with actual customers; visual simplification alone does not establish improved retention.
@@ -225,3 +235,16 @@
 - [x] Add edge-to-edge viewport metadata, safe-area-aware fixed navigation/cart spacing, iOS-friendly form text/targets and a narrower mobile header without removing access to account, cart, notifications or operator tools.
 - [x] Add mobile account/cart/order-by-link checks and header-overflow checks to the browser audit; 191 checks passed in Chromium emulation at phone, tablet and desktop widths.
 - [ ] Verify visual-viewport/keyboard behavior, notch and home-indicator spacing, VoiceOver focus order and graphite theme on current physical iPhones/Safari; emulation cannot establish device-level behavior.
+
+## Catalog queue and importer reliability — 27 September 2026
+
+- [x] Separate newly queued, published, previously added/hidden, and all catalog entries for operator review; add responsive five-column cards, explicit multi-select, bounded recheck, reversible hide and confirmed removal of eligible drafts.
+- [x] Keep catalog queue metadata optional for legacy D1 JSON and protect published/bundled products from hard deletion; audit mutation IDs.
+- [x] Retain manual-review drafts for recoverable importer failures without asserting price, currency, variant price or stock; preserve Shopify per-variant prices, support XHTML and do not follow unapproved redirects.
+- [ ] Run full lint/build in the supported Sites toolchain and complete a visual admin pass at desktop/mobile widths and both themes; the local pnpm wrapper attempted an unattended install and was stopped, so no dependency directory was changed.
+- [ ] Verify high-priority merchant adapters against authorized live pages or stable fixtures maintained per merchant. An allowlisted hostname is not proof that each product page can be parsed.
+- [ ] Confirm the customs-rate effective date with the Uzbekistan Customs Committee: the consolidated PP-4508 text effective 2026-09-01 shows 20% / $2 per kg, while UP-174 §8 states that rate starts 2027-01-01. Numeric estimates are suppressed for the disputed 2026-09-01–2026-12-31 arrival window until resolved.
+- [ ] Run visual verification of the updated link-order summary (light/dark, phone/desktop) on the published Site after deployment; verify totals are unchanged and all quote components remain separately labeled.
+- [x] Keep merchant shipping, international reserve and each commission as separately labeled quote rows; do not imply merchant shipping is refundable.
+- [x] Suppress customs estimates during the disputed effective-date window and explain the source discrepancy in RU/UZ/EN.
+- [x] Add keyboard roles, focus styling and Enter/Space activation to mobile-prototype navigation cards.

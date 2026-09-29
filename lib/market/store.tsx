@@ -11,10 +11,10 @@ import type {CatalogCollection} from './catalog-editor';
 export type AccountUser={name:string;email:string;operator:boolean;createdAt:number};
 type Store={catalogProducts:MerchantFind[];collections:Array<CatalogCollection&{productIds:string[]}>;catalogError:string;state:State;pricing:Pricing;policy:Policy;ready:boolean;status:SessionStatus;error:string|null;user:AccountUser|null;setLocale:(locale:Locale)=>void;act:(action:Action)=>Promise<boolean>;refresh:()=>Promise<void>};
 const Context=createContext<Store|null>(null);
-const marketMessages:Record<Locale,{catalogLoad:string;accountLoad:string;connection:string;signin:string;busy:string;sessionEnded:string;saveFailed:string;actionConnection:string}>={
- ru:{catalogLoad:'Не удалось загрузить витрину. Обновите страницу.',accountLoad:'Не удалось загрузить кабинет. Повторите попытку.',connection:'Не удалось связаться с сервером. Проверьте подключение и повторите попытку.',signin:'Войдите, чтобы сохранить изменения.',busy:'Дождитесь сохранения предыдущего действия.',sessionEnded:'Сессия завершилась. Войдите снова, чтобы продолжить.',saveFailed:'Не удалось сохранить изменения.',actionConnection:'Ответ сервера не получен. Проверяем состояние заказа.'},
- uz:{catalogLoad:'Katalog yuklanmadi. Sahifani yangilang.',accountLoad:'Kabinet yuklanmadi. Qayta urinib ko‘ring.',connection:'Server bilan bog‘lanib bo‘lmadi. Ulanishni tekshirib, qayta urinib ko‘ring.',signin:'O‘zgarishlarni saqlash uchun kiring.',busy:'Oldingi amal saqlanishini kuting.',sessionEnded:'Sessiya tugadi. Davom etish uchun qayta kiring.',saveFailed:'O‘zgarishlarni saqlab bo‘lmadi.',actionConnection:'Serverdan javob olinmadi. Buyurtma holatini tekshiramiz.'},
- en:{catalogLoad:'Could not load the catalog. Refresh the page.',accountLoad:'Could not load your account. Try again.',connection:'Could not reach the server. Check your connection and try again.',signin:'Sign in to save changes.',busy:'Wait for the previous change to finish saving.',sessionEnded:'Your session ended. Sign in again to continue.',saveFailed:'Could not save changes.',actionConnection:'No response from the server. Checking your order state.'},
+const marketMessages:Record<Locale,{catalogLoad:string;accountLoad:string;connection:string;signin:string;sessionEnded:string;saveFailed:string;actionConnection:string}>={
+ ru:{catalogLoad:'Не удалось загрузить витрину. Обновите страницу.',accountLoad:'Не удалось загрузить кабинет. Повторите попытку.',connection:'Не удалось связаться с сервером. Проверьте подключение и повторите попытку.',signin:'Войдите, чтобы сохранить изменения.',sessionEnded:'Сессия завершилась. Войдите снова, чтобы продолжить.',saveFailed:'Не удалось сохранить изменения.',actionConnection:'Ответ сервера не получен. Проверяем состояние заказа.'},
+ uz:{catalogLoad:'Katalog yuklanmadi. Sahifani yangilang.',accountLoad:'Kabinet yuklanmadi. Qayta urinib ko‘ring.',connection:'Server bilan bog‘lanib bo‘lmadi. Ulanishni tekshirib, qayta urinib ko‘ring.',signin:'O‘zgarishlarni saqlash uchun kiring.',sessionEnded:'Sessiya tugadi. Davom etish uchun qayta kiring.',saveFailed:'O‘zgarishlarni saqlab bo‘lmadi.',actionConnection:'Serverdan javob olinmadi. Buyurtma holatini tekshiramiz.'},
+ en:{catalogLoad:'Could not load the catalog. Refresh the page.',accountLoad:'Could not load your account. Try again.',connection:'Could not reach the server. Check your connection and try again.',signin:'Sign in to save changes.',sessionEnded:'Your session ended. Sign in again to continue.',saveFailed:'Could not save changes.',actionConnection:'No response from the server. Checking your order state.'},
 };
 export function MarketProvider({children}:{children:ReactNode}) {
  const [catalogProducts,setCatalogProducts]=useState<MerchantFind[]>(()=>visibleMerchantFinds()),[collections,setCollections]=useState<Array<CatalogCollection&{productIds:string[]}>>([]),[catalogError,setCatalogError]=useState('');
@@ -70,7 +70,7 @@ export function MarketProvider({children}:{children:ReactNode}) {
  useEffect(()=>{document.documentElement.lang=state.communication.language},[state.communication.language]);
  const act=useCallback(async(action:Action)=>{
   if(!ready){toast.error(marketMessages[localeRef.current].signin);return false}
-  if(busy.current){toast.message(marketMessages[localeRef.current].busy);return false}
+  if(busy.current)return false;
   busy.current=true;
   // A pending read must not overwrite the result of this newer mutation.
   const current=++generation.current;

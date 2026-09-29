@@ -25,8 +25,16 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
   const products = catalogProducts;
   const merchantRecord=(product:Product)=>products.find(p=>p.id===product.id);
   const fmt = (n: number, currency = 'UZS') => new Intl.NumberFormat(locale === 'ru' ? 'ru-RU' : locale === 'uz' ? 'uz-UZ' : 'en-US', { style: 'currency', currency, maximumFractionDigits: currency === 'UZS' ? 0 : 2 }).format(n);
-  const categories = [{ value: '', label: copy.all }, { value: 'Обувь', label: copy.footwear }, { value: 'Одежда', label: copy.clothing }, { value: 'Электроника', label: copy.electronics },{value:'Красота и уход',label:locale==='ru'?'Красота и уход':locale==='uz'?'Go‘zallik va parvarish':'Beauty & care'},...['Аксессуары','Дом и быт','Спорт','Другое'].filter(value=>products.some(p=>p.category===value)).map(value=>({value,label:value}))];
-  const countries = [{ value: '', label: copy.allCountries }, ...[...new Set(['США',...products.map(p=>p.country??'США')])].map(value=>({value,label:value==='США'?copy.us:value}))];
+  const categoryNames:Record<string,{ru:string;uz:string;en:string}>={
+    'Красота и уход':{ru:'Красота и уход',uz:'Go‘zallik va parvarish',en:'Beauty & care'},
+    'Аксессуары':{ru:'Аксессуары',uz:copy.accessories,en:'Accessories'},
+    'Дом и быт':{ru:'Дом и быт',uz:'Uy va ro‘zg‘or',en:'Home & living'},
+    'Спорт':{ru:'Спорт',uz:'Sport',en:'Sport'},
+    'Другое':{ru:'Другое',uz:'Boshqa',en:'Other'},
+  };
+  const categories = [{ value: '', label: copy.all }, { value: 'Обувь', label: copy.footwear }, { value: 'Одежда', label: copy.clothing }, { value: 'Электроника', label: copy.electronics },...['Красота и уход','Аксессуары','Дом и быт','Спорт','Другое'].filter(value=>products.some(p=>p.category===value)).map(value=>({value,label:categoryNames[value][locale]}))];
+  const countryNames:Record<string,string>={'США':copy.us,'Германия':copy.de,'Испания':copy.es};
+  const countries = [{ value: '', label: copy.allCountries }, ...[...new Set(['США',...products.map(p=>p.country??'США')])].map(value=>({value,label:countryNames[value]??value}))];
   const budgets = [{ value: 0, label: copy.anyBudget }, { value: 1000000, label: copy.budget1 }, { value: 1500000, label: copy.budget15 }, { value: 2000000, label: copy.budget2 }];
   const sorts: { value: DealFilters['sort']; label: string }[] = [{ value: 'discount', label: copy.discountSort }, { value: 'total-asc', label: copy.lowSort }, { value: 'total-desc', label: copy.highSort }];
   const titles: Record<string, string> = {};
@@ -49,8 +57,8 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
     </section>
     {catalogError&&<p role="alert">{catalogError}</p>}
     {!!collections.length&&<nav className="find-collections" aria-label={locale==='ru'?'Подборки':locale==='uz'?'To‘plamlar':'Collections'}>
-      <button type="button" className={!collectionId?'active':''} onClick={()=>setCollectionId('')}>{copy.all}</button>
-      {collections.map(collection=><button type="button" key={collection.id} className={collectionId===collection.id?'active':''} onClick={()=>setCollectionId(collection.id)}><b>{locale==='en'?collection.nameEn||collection.name:locale==='uz'?collection.nameUz||collection.name:collection.name}</b><span>{collection.productIds.length}</span></button>)}
+      <button type="button" aria-pressed={!collectionId} className={!collectionId?'active':''} onClick={()=>setCollectionId('')}>{copy.all}</button>
+      {collections.map(collection=><button type="button" key={collection.id} aria-pressed={collectionId===collection.id} className={collectionId===collection.id?'active':''} onClick={()=>setCollectionId(collection.id)}><b>{locale==='en'?collection.nameEn||collection.name:locale==='uz'?collection.nameUz||collection.name:collection.name}</b><span>{collection.productIds.length}</span></button>)}
     </nav>}
     {(!favorites || candidates.length > 0) && <section className="finds-controls" aria-label={copy.search}>
       <div className="finds-search"><Search size={21}/><input type="search" aria-label={copy.search} placeholder={copy.searchPlaceholder} value={filters.search} onChange={event => setFilters({ ...filters, search: event.target.value })}/>{filters.search && <button type="button" className="icon-btn" aria-label={copy.clear} onClick={() => setFilters({ ...filters, search: '' })}><X size={18}/></button>}</div>

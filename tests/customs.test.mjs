@@ -1,20 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { estimateCourierCustoms as estimate, courierRule } from '../lib/market/customs.ts';
-const input = {valueUsd:300,grossKg:1,date:'2026-09-11'};
+import { estimateCourierCustoms as estimate, courierRule, courierRateNeedsConfirmation } from '../lib/market/customs.ts';
+const input = {valueUsd:300,grossKg:1,date:'2026-08-11'};
 test('courier allowance applies only once and unified payment does not add VAT',()=>{
  assert.equal(estimate(input).lowerUsd,30);
  assert.equal(estimate({...input,valueUsd:200}).upperUsd,0);
  assert.equal(estimate({...input,valueUsd:100,usedUsd:150}).lowerUsd,15);
  assert.equal(estimate({...input,usedUsd:300}).lowerUsd,90);
 });
-test('scheduled rate changes at arrival date, not earlier',()=>{
- assert.equal(courierRule('2026-12-31').rate,.3);
+test('disputed customs-rate window has no numeric estimate until confirmed',()=>{
+ assert.deepEqual(courierRule('2026-08-31'),{rate:.3,minimumPerKg:3});
+ assert.equal(courierRateNeedsConfirmation('2026-09-01'),true);
+ assert.equal(courierRateNeedsConfirmation('2026-12-31'),true);
+ assert.equal(courierRule('2026-09-01'),null);
+ assert.equal(estimate({...input,date:'2026-09-29'}),null);
+ assert.equal(courierRateNeedsConfirmation('2027-01-01'),false);
  assert.equal(estimate({...input,date:'2027-01-01'}).lowerUsd,20);
  assert.equal(courierRule('2027-01-01').minimumPerKg,2);
 });
 test('unknown dutiable weight is a range, not invented proportional weight',()=>{
  assert.deepEqual([estimate({...input,valueUsd:201,grossKg:10}).lowerUsd,estimate({...input,valueUsd:201,grossKg:10}).upperUsd],[.3,30]);
+ assert.deepEqual([estimate({...input,valueUsd:201,grossKg:1,date:'2027-01-01'}).lowerUsd,estimate({...input,valueUsd:201,grossKg:1,date:'2027-01-01'}).upperUsd],[.2,2]);
  assert.equal(estimate({...input,grossKg:undefined}).upperUsd,undefined);
 });
 test('reject invalid amounts, weights and calendar dates',()=>{

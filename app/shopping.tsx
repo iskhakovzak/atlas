@@ -55,6 +55,8 @@ export function CartView() {
 
   const expired = now > 0 && state.cart.some((item) => now >= item.quote.expiresAt);
   const total = totalOf(state.cart);
+  const merchandiseUsd = state.cart.reduce((sum, item) => sum + item.product.usd * item.quantity, 0);
+  const customsGrossKg = state.cart.reduce((sum, item) => sum + (item.product.boxedWeight ?? item.product.weight) * item.quantity, 0);
   const balance = balanceOf(state);
   const credit = useBalance ? Math.min(total, Math.max(0, balance)) : 0;
   const locale = state.communication.language;
@@ -180,7 +182,7 @@ export function CartView() {
           <div className="balance-option"><div><Wallet size={18} /><label htmlFor="use-balance">{x.balance}<small>{x.available} {money(balance)}</small></label></div><Checkbox id="use-balance" disabled={balance <= 0} checked={useBalance} onCheckedChange={(value) => setUseBalance(value === true)} /></div>
           {credit > 0 && <div className="credit-line"><span>{x.fromBalance}</span><b>−{money(credit)}</b></div>}
           <div className="summary-total"><span>{x.payable}<strong>{money(total - credit)}</strong></span><span className="currency-mark">UZS</span></div>
-          <CustomsEstimate valueUsd={state.cart.reduce((sum, item) => sum + item.product.usd * item.quantity, 0)} grossKg={state.cart.reduce((sum, item) => sum + (item.product.boxedWeight ?? item.product.weight) * item.quantity, 0)} fx={pricing.fx} locale={state.communication.language}/>
+          {merchandiseUsd > 200 && <CustomsEstimate valueUsd={merchandiseUsd} grossKg={customsGrossKg} fx={pricing.fx} locale={state.communication.language}/>}
           <div className="consent"><Checkbox id="checkout-consent" checked={consent} onCheckedChange={(value) => setConsent(value === true)} /><label htmlFor="checkout-consent">{x.customs} <Link href="/customs" target="_blank">{x.customsText}</Link>. {x.simulation}</label></div>
           {expired && <div className="notice warning"><Clock3 size={19} /><span>{x.expired}</span></div>}
           <button className="btn primary full" disabled={!ready || (!expired && !consent)} onClick={openCheckout}>{expired ? c.renew : c.checkout}<ArrowRight size={18} /></button>

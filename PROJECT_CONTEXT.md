@@ -1,5 +1,23 @@
 # Atlas — project context
 
+## Operator, catalog and performance QA — 29 September 2026
+
+Selected catalog rechecks now run sequentially in server-sized batches of 10, with visible progress and failed/unprocessed products retained in the selection; the admin paste importer accepts up to 20 links per submission and reports per-link progress/results. Partial batch additions remain on the import screen so failures are not hidden by a cart redirect. The operator order queue and dashboard share an attention predicate that includes warehouse exceptions; canceled orders remain available for staff notes and order-linked in-app customer notifications. Operator order details surface the account email/phone as unverified contact methods and the recipient phone separately. Notifications are in-app only: no email or SMS is sent.
+
+Expensive customer/operator routes are lazy-loaded to reduce the initial marketplace bundle. Full tests, lint and build passed after these changes. Real browser/device visual QA remains open because `npx` is unavailable in the local shell and existing smoke scripts can mutate the local D1 database; the local `market_settings` table is absent, so no database-backed UI smoke was run or repaired. No D1 state was changed. Account creation/authentication remains platform-owned; Atlas does not collect standalone passwords.
+
+## Order-by-link render recovery — 27 September 2026
+
+The production `/order-by-link` route crashed while rendering its country and category selectors because localized label helpers were missing from the Site source bundle. The helpers are now defined explicitly, and seeded fallback options retain the complete optional `ProductVariant` shape. Sites version 103 is deployed. The supplied Nike URL now renders the order form, colour/size options, price and estimate; this confirms the client render path only, not a fresh merchant fetch or a cart/order transaction.
+
+## Catalog contrast and centralized operator tariffs — 27 September 2026
+
+The final dark-only catalog layer now overrides the remaining hard-coded navy price, merchant-link and detail-summary text, and gives savings badges, deal labels and count chips contrast-safe graphite-theme colors. Light appearance and catalog behavior are unchanged.
+
+The operator `/admin` workspace now owns a single “Tariffs and services” section for global FX and freight, service/buyout/conversion fees, delivery margin and reserve, general per-line fees, actual-dispatch-country overrides, currency rates and warehouse-service offers. The duplicate editor was removed from `/operations`; that route remains the cross-customer order queue. Settings use the existing operator-protected `/api/operations` API and versioned D1 pricing record; no migration was added. RU/UZ/EN labels and country names are provided. Existing submitted order snapshots remain unchanged. Values are explicitly marked as pre-release estimates, not live carrier, warehouse, FX or payment-provider prices; insurance remains locked and warehouse work still requires feasibility confirmation plus the customer's exact-price approval.
+
+Admin navigation remains conditional on the server-derived operator identity. The existing route gate denies non-operators before mounting admin content, and `/api/operations` checks the configured primary operator before returning or changing data. No customer role or team-directory entry gains admin rights from this UI work. A local browser screenshot pass could not be completed in the available browser harness; source checks and project test/build commands are recorded at handoff.
+
 ## Dark appearance and theme preference — 27 September 2026
 
 The shared header has a localized light/dark control on public, customer and operator routes. New visits default to the white/light theme regardless of device appearance; a manual choice is stored only in the browser-local `atlas-theme` preference and follows full-page navigation. Theme state does not enter account, cart, order or API data. Dark mode uses low-glare graphite surfaces, softened text contrast and restrained Atlas blue/lime accents instead of pure black or a green cast. The `next-themes` bootstrap suppresses the root hydration warning and applies the selected `data-theme` before the interface settles.
@@ -28,11 +46,11 @@ API failure responses now resolve display language from the validated `atlas-lan
 
 Successful product additions from the catalog, link-order form and batch link import now take the customer directly to `/cart`. Checkout creates the existing pre-release order records and then offers the existing `payment-demo` confirmation from the cart success dialog. A user must explicitly confirm; this only marks a simulated test payment, does not charge funds, and does not create a shipment. Existing pending orders can still be managed in Orders; real payment-provider integration is not enabled.
 
-Operator-managed pricing now supports optional per-dispatch-country overrides for the existing service commission, buyout commission, conversion commission, delivery margin, international per-kg rate, delivery reserve and flat optional-service amount. Country keys are exact existing `Product.country` labels (actual dispatch country), not customer destination. Blank fields inherit the central tariff. Cart/add, quantity changes and quote renewal reprice server-side; existing order quote snapshots stay immutable. These values remain managed/demo data, not live commercial rates. Admin tariff controls are currently Russian-only; UZ/EN localization remains follow-up work.
+Operator-managed pricing supports optional per-dispatch-country overrides for the existing service commission, buyout commission, conversion commission, delivery margin, international per-kg rate, delivery reserve and flat optional-service amount. Country keys are exact existing `Product.country` labels (actual dispatch country), not customer destination. Blank fields inherit the central tariff. Cart/add, quantity changes and quote renewal reprice server-side; existing order quote snapshots stay immutable. These values remain managed/pre-release estimate data, not live commercial rates. The editor was consolidated under `/admin` and its controls are localized in RU/UZ/EN; see the 27 September entry above.
 
 ## Warehouse service catalogue and customer approval — 25 September 2026
 
-`/operations` now includes an operator-managed warehouse service catalogue stored inside the existing versioned `market_settings.pricing` JSON; no D1 migration is required. The starter catalogue covers package/content photos, inspection, consolidation, repacking, split parcels, extra packing, fragile handling, priority processing, removing external price tags, special requests, storage extensions, merchant returns and disposal. Admins can localize names/descriptions in RU/UZ/EN, enable/deactivate an offer, choose checkout vs. warehouse request stage, unit, fixed vs. operator-quoted pricing, base UZS amount and per-dispatch-country overrides. Existing order snapshots are not rewritten when settings change. Starter prices are zero/operator quote placeholders, not Shipito or Atlas commercial rates. Insurance remains disabled and server-blocked until an actual insurer, coverage terms, exclusions and claims process are confirmed.
+The operator-managed warehouse service catalogue is stored inside the existing versioned `market_settings.pricing` JSON; no D1 migration is required. It was formerly edited under `/operations`; its central editor now lives under `/admin`. The starter catalogue covers package/content photos, inspection, consolidation, repacking, split parcels, extra packing, fragile handling, priority processing, removing external price tags, special requests, storage extensions, merchant returns and disposal. Admins can localize names/descriptions in RU/UZ/EN, enable/deactivate an offer, choose checkout vs. warehouse request stage, unit, fixed vs. operator-quoted pricing, base UZS amount and per-dispatch-country overrides. Existing order snapshots are not rewritten when settings change. Starter prices are zero/operator quote placeholders, not Shipito or Atlas commercial rates. Insurance remains disabled and server-blocked until an actual insurer, coverage terms, exclusions and claims process are confirmed.
 
 Customers can flag checkout-stage services in `/cart`; this saves a request on the order but does not add a fee, authorize work, or guarantee availability. After warehouse intake is recorded and before weighing, the customer can request configured warehouse-stage services, including a quantity for photo/day/half-hour units. The operator checks feasibility and either marks an unavailable service with a reason or submits a price through the existing change-request handshake. Fixed fees are recomputed from the server-owned service snapshot and dispatch-country rate; quoted services use the operator amount. The customer must approve or decline that exact amount, then an operator can mark the request complete. Unresolved service requests block warehouse weighing so repacking/splitting cannot bypass freight recalculation. Approved adjustments remain separate from the immutable original quote.
 
@@ -112,7 +130,7 @@ This is a UX refinement, not a commercial launch or a new authentication system.
 | /order-by-link | Import product and create quote |
 | /cart | Cart, optional warehouse-service preferences, balance use, customs consent, simulated checkout |
 | /orders | Customer orders, photo refresh and extra approvals |
-| /operations | Cross-customer operator queue, managed pricing and warehouse-service catalogue |
+| /operations | Cross-customer operator order queue and warehouse-service processing |
 | /notifications | In-app status, refund and approval notifications |
 | /analytics | Operator metrics and closed-pilot readiness |
 | /legal | Pre-release terms, privacy, refunds and restricted-goods drafts |
@@ -123,7 +141,7 @@ This is a UX refinement, not a commercial launch or a new authentication system.
 | /identity | Private passport upload, MRZ assistance and customer confirmation |
 | /declaration | Test declaration package from confirmed identity, address and orders |
 | /batch-import | Import up to ten product links into one cart party |
-| /admin | Operator-only catalog publishing, collections, managed limits, blocked categories and restricted-word rules |
+| /admin | Operator-only catalog publishing, collections, limits, access controls, audit, system tools and unified global/country pricing plus warehouse-service settings |
 
 ## Roles and authentication
 
@@ -511,3 +529,18 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Reduced mobile header duplication so the wordmark, theme switch, language selector and notifications fit without clipping; account and cart remain available from the persistent mobile navigation, while operator access stays available as an icon control.
 - Kept the storage/privacy notice dismissible and above the mobile navigation. No cart/order/customer state, fees, access rules or APIs changed.
 - The dependency-free browser audit now emulates 360/390/402/430px phone widths and checks viewport-fit, header width, form tap sizing, navigation, cart-bar clearance, and mobile account/cart/link-order screens. Latest run passed 191 checks. These are Chromium device emulations, not physical iPhone Safari verification; keyboard behavior, notch/home-indicator safe areas and dark-theme screenshots still need a real-device pass.
+
+## Admin catalog queue and importer fallback — 27 September 2026
+
+- Catalog review defaults to newly queued imports; published, previously added/hidden, and all records have separate tabs. Desktop cards display in a five-column grid where width permits and collapse responsively; editors span the full grid width.
+- Operators can select all matching results, recheck in bounded groups of ten, hide/unpublish, or confirm deletion of unpublished non-bundled drafts. The API checks operator identity and same-origin, validates IDs/state/revision, and audits affected IDs. Bundled/published items are protected from hard deletion.
+- Imports now preserve a reasoned manual-review path for upstream/network/response/redirect/incomplete failures. Incomplete importer data remains explicitly unconfirmed; add-to-cart and checkout continue to require existing server-side exact price/currency/variant validation.
+- Price-only variant matrices (notably Shopify product endpoints with no one base price) are retained without averaging or guessing; unpriced variants are called out. XHTML product responses are accepted, and disallowed redirect targets are never followed.
+- Automated fixtures are not live merchant verification. Store support remains adapter-specific and some approved sites may require customer/admin manual completion.
+
+## Order-by-link quote presentation and customs estimate — 29 September 2026
+
+- The link-order quote presents item, Atlas service, buyout, conversion, merchant shipping, international freight, delivery margin, international reserve and optional services as separate display rows. Delivery-weight guidance is available from an info control beside international delivery. Server quote components, recomputation and total are unchanged.
+- The link-order page hides redundant import-status/freshness text, the declaration preview and manual photo-URL editor; the store link/change action, imported image selection, editable product data and saved draft state remain. A sole imported option is shown as automatically selected; restoration fills it for older drafts that omitted the selected label.
+- Link-order customs is a compact informational estimate. The detailed calculator remains available at `/customs`; no customs estimate is included in Atlas charges or treated as a carrier quote. The official consolidated PP-4508 text shows 20% / $2 per kg from 1 September 2026, while UP-174 §8 schedules it from 1 January 2027. Numeric estimates are suppressed for arrival dates from 1 September through 31 December 2026 until Customs confirms the effective date; the page explains the conflict.
+- Footer crypto is listed as planned only. No crypto provider, payment acceptance, card charge or real shipment was added.

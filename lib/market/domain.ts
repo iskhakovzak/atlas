@@ -887,6 +887,14 @@ export const approvedAdjustments = (order: Order) =>
     .reduce((sum, request) => sum + request.amountDelta, 0);
 export const orderPayable = (order: Order) =>
   Math.max(0, order.quote.total + approvedAdjustments(order));
+export const orderNeedsOperatorAttention = (order: Order) =>
+  !order.cancelled && (
+    Boolean(order.settlement?.extra && !order.extraApproved) ||
+    Boolean(order.storeShippingSettlement?.extra && !order.storeShippingExtraApproved) ||
+    (order.changeRequests ?? []).some((request) => request.status === "pending") ||
+    order.warehouseInspection?.condition === "damaged" ||
+    order.warehouseInspection?.condition === "mismatch"
+  );
 export function addToCart(
   state: State,
   p: Product,
