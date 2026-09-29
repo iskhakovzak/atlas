@@ -30,6 +30,17 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
   const countries = [{ value: '', label: copy.allCountries }, ...[...new Set(['США',...products.map(p=>p.country??'США')])].map(value=>({value,label:value==='США'?copy.us:value}))];
   const budgets = [{ value: 0, label: copy.anyBudget }, { value: 1000000, label: copy.budget1 }, { value: 1500000, label: copy.budget15 }, { value: 2000000, label: copy.budget2 }];
   const sorts: { value: DealFilters['sort']; label: string }[] = [{ value: 'discount', label: copy.discountSort }, { value: 'total-asc', label: copy.lowSort }, { value: 'total-desc', label: copy.highSort }];
+  const activeDetailFilterCount = Number(Boolean(filters.country)) + Number(filters.maxTotal > 0);
+  const filterLabel = locale === 'ru' ? 'Фильтры' : locale === 'uz' ? 'Filtrlar' : 'Filters';
+  const filterPanelTitle = locale === 'ru' ? 'Уточнить каталог' : locale === 'uz' ? 'Tanlovni aniqlashtirish' : 'Refine results';
+  const filterPanelHint = locale === 'ru' ? 'Страна отправки и бюджет с доставкой' : locale === 'uz' ? 'Jo‘natish mamlakati va yetkazish bilan budjet' : 'Dispatch country and delivered budget';
+  const filterCountryLabel = locale === 'ru' ? 'Страна отправки' : locale === 'uz' ? 'Jo‘natish mamlakati' : 'Dispatch country';
+  const filterCountText = locale === 'ru' ? `выбрано фильтров: ${activeDetailFilterCount}` : locale === 'uz' ? `${activeDetailFilterCount} ta tanlangan` : `${activeDetailFilterCount} selected`;
+  const resetDetailFilters = locale === 'ru' ? 'Сбросить' : locale === 'uz' ? 'Tozalash' : 'Clear';
+  const selectedFiltersLabel = locale === 'ru' ? 'Выбранные фильтры' : locale === 'uz' ? 'Tanlangan filtrlar' : 'Active filters';
+  const removeFilterLabel = locale === 'ru' ? 'Убрать фильтр' : locale === 'uz' ? 'Filtrni olib tashlash' : 'Remove filter';
+  const countryLabel = countries.find(country => country.value === filters.country)?.label;
+  const budgetLabel = budgets.find(budget => budget.value === filters.maxTotal)?.label;
   const titles: Record<string, string> = {};
   const candidates = products.filter(product => (!favorites || state.favorites.includes(product.id))&&(!collectionId||collections.find(c=>c.id===collectionId)?.productIds.includes(product.id)));
   // Match localised labels without changing the product snapshots used at checkout.
@@ -63,10 +74,26 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
     {(!favorites || candidates.length > 0) && <section className="finds-controls" aria-label={copy.search}>
       <div className="finds-search"><Search size={21}/><input type="search" aria-label={copy.search} placeholder={copy.searchPlaceholder} value={filters.search} onChange={event => setFilters({ ...filters, search: event.target.value })}/>{filters.search && <button type="button" className="icon-btn" aria-label={copy.clear} onClick={() => setFilters({ ...filters, search: '' })}><X size={18}/></button>}</div>
       <div className="finds-categories">{categories.map(category => <button type="button" key={category.value} aria-pressed={filters.category === category.value} className={filters.category === category.value ? 'active' : ''} onClick={() => setFilters({ ...filters, category: category.value })}>{category.label}</button>)}</div>
-      <div className="finds-filter-primary"><label className="finds-sort-control"><span>{copy.sort}</span><Choice label={copy.sort} value={sorts.find(s => s.value === filters.sort)!.label} options={sorts.map(s => s.label)} onChange={label => setFilters({ ...filters, sort: sorts.find(s => s.label === label)!.value })}/></label><details className="catalog-filter-disclosure"><summary><SlidersHorizontal size={18} aria-hidden="true"/>{locale==='ru'?'Ещё фильтры':locale==='uz'?'Boshqa filtrlar':'More filters'}{(filters.country||filters.maxTotal)&&<span> · {locale==='ru'?'настроены':locale==='uz'?'tanlangan':'applied'}</span>}</summary><div className="finds-filter-row">
-        <label><span>{copy.country}</span><Choice label={copy.country} value={countries.find(c => c.value === filters.country)!.label} options={countries.map(c => c.label)} onChange={label => setFilters({ ...filters, country: countries.find(c => c.label === label)!.value })}/></label>
-        <label><span>{copy.budget}</span><Choice label={copy.budget} value={budgets.find(b => b.value === filters.maxTotal)!.label} options={budgets.map(b => b.label)} onChange={label => setFilters({ ...filters, maxTotal: budgets.find(b => b.label === label)!.value })}/></label>
-      </div></details></div>
+      <div className="finds-filter-primary">
+        <label className="finds-sort-control"><span>{copy.sort}</span><Choice label={copy.sort} value={sorts.find(s => s.value === filters.sort)!.label} options={sorts.map(s => s.label)} onChange={label => setFilters(current => ({ ...current, sort: sorts.find(s => s.label === label)!.value }))}/></label>
+        <details className="catalog-filter-disclosure">
+          <summary aria-label={activeDetailFilterCount ? `${filterLabel}, ${filterCountText}` : filterLabel}>
+            <SlidersHorizontal size={18} aria-hidden="true"/><span>{filterLabel}</span>
+            {activeDetailFilterCount > 0 && <span className="finds-filter-count" aria-hidden="true">{activeDetailFilterCount}</span>}
+          </summary>
+          <div className="finds-filter-panel">
+            <div className="finds-filter-panel-head"><div><strong>{filterPanelTitle}</strong><span>{filterPanelHint}</span></div>{activeDetailFilterCount > 0 && <button type="button" className="text-button" onClick={() => setFilters(current => ({ ...current, country: '', maxTotal: 0 }))}>{resetDetailFilters}</button>}</div>
+            <div className="finds-filter-row">
+              <label><span>{filterCountryLabel}</span><Choice label={filterCountryLabel} value={countries.find(country => country.value === filters.country)!.label} options={countries.map(country => country.label)} onChange={label => setFilters(current => ({ ...current, country: countries.find(country => country.label === label)!.value }))}/></label>
+              <label><span>{copy.budget}</span><Choice label={copy.budget} value={budgets.find(budget => budget.value === filters.maxTotal)!.label} options={budgets.map(budget => budget.label)} onChange={label => setFilters(current => ({ ...current, maxTotal: budgets.find(budget => budget.label === label)!.value }))}/></label>
+            </div>
+          </div>
+        </details>
+      </div>
+      {activeDetailFilterCount > 0 && <div className="finds-active-filters" aria-label={selectedFiltersLabel}>
+        {filters.country && countryLabel && <button type="button" aria-label={`${removeFilterLabel}: ${filterCountryLabel} ${countryLabel}`} onClick={() => setFilters(current => ({ ...current, country: '' }))}><span>{filterCountryLabel}: <b>{countryLabel}</b></span><X size={15} aria-hidden="true"/></button>}
+        {filters.maxTotal > 0 && budgetLabel && <button type="button" aria-label={`${removeFilterLabel}: ${copy.budget} ${budgetLabel}`} onClick={() => setFilters(current => ({ ...current, maxTotal: 0 }))}><span>{copy.budget}: <b>{budgetLabel}</b></span><X size={15} aria-hidden="true"/></button>}
+      </div>}
     </section>}
     {(!favorites || candidates.length > 0) && <div className="finds-result"><span role="status">{copy.results}: <b>{list.length}</b></span>{hasFilters && <button type="button" className="text-button" onClick={clearFilters}>{copy.reset}<X size={14}/></button>}</div>}
     <section className="finds-grid" aria-label={favorites ? copy.saved : copy.catalog}>

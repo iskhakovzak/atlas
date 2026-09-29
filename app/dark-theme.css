@@ -2010,3 +2010,47 @@ html[data-theme="dark"] .single-colorway-source > span { color: #e8efea; }
 html[data-theme="dark"] .customs-estimate-compact {
   border-color: #35463c;
 }
+
+/* Catalog filter panel and active chips stay distinct in graphite mode. */
+html[data-theme="dark"] .finds-filter-primary .catalog-filter-disclosure>summary,
+html[data-theme="dark"] .finds-filter-primary .catalog-filter-disclosure[open]>summary {
+  background: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .finds-filter-primary .catalog-filter-disclosure>summary:hover,
+html[data-theme="dark"] .finds-active-filters>button:hover {
+  background: var(--atlas-dark-hover);
+  border-color: #69717e;
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .finds-filter-count {
+  background: var(--atlas-dark-selected);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .finds-filter-panel {
+  background: var(--atlas-dark-surface);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+  box-shadow: 0 18px 44px #0008;
+}
+
+html[data-theme="dark"] .finds-filter-panel-head span,
+html[data-theme="dark"] .finds-filter-panel .finds-filter-row label>span {
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .finds-active-filters>button {
+  background: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .finds-active-filters>button b,
+html[data-theme="dark"] .finds-active-filters>button svg {
+  color: var(--atlas-dark-ink);
+}

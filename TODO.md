@@ -1,5 +1,11 @@
 # Atlas TODO and known limitations
 
+## Catalog filter redesign — 29 September 2026
+
+- [x] Replace the stretched “More filters” row with a compact, responsive filter control and a clearly grouped country/delivered-budget panel.
+- [x] Show a selected-count badge only for active panel filters and expose chosen values as individually removable chips; keep search, category, sort and delivered-total behavior unchanged.
+- [ ] Verify the published panel at 360/390/800/1440 px in light and graphite themes; source checks/build do not replace an interactive visual pass.
+
 ## Delivery help popover — 29 September 2026
 
 - [x] Reset the help popover's inherited no-wrap text behavior and scope the quote accordion's spacing to only its top-level summary.

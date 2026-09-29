@@ -78,6 +78,8 @@ The root `AtlasThemeProvider` uses `next-themes` with the root `data-theme` attr
 
 Catalog card rules are finalized in `app/experience.css` after the base catalog styles so the full card retains its surface, radius, image crop and text padding. Long product names and price rows may wrap within grid columns. `app/dark-theme.css` also themes the separate finds search/filter panel and its embedded controls; no catalog data or behavior changes.
 
+Catalog filtering remains a client-side projection in `app/deals-feed.tsx` over the current published list: search and category chips stay visible, sort remains separate, and country/delivered-budget choices sit in a compact `details` panel. Active hidden filters are shown as removable chips; the displayed count excludes visible category/search controls and never renders as zero. `app/finds.css` provides the responsive light layout and `app/dark-theme.css` the graphite surfaces. This presentation layer does not change `filterDeals`, API requests, price formulas or persistence.
+
 The public supported-store strip is an always-visible, localized section in `app/supported-stores.tsx`, not a disclosure or a second link-order callout. Keep one section heading, small store chips and one route to the complete `/stores` directory. Use Atlas forest green for Atlas actions/active controls; retain blue where it helps identify navigation or off-site merchant links. The graphite layer must supply its own readable surface, border, copy and semantic accent colors.
 
 ## D1

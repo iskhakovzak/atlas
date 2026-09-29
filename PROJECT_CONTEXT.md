@@ -1,5 +1,9 @@
 # Atlas — project context
 
+## Catalog filter hierarchy — 29 September 2026
+
+The catalog keeps search, quick category chips and sorting visible while presenting country and delivered-budget controls in a compact, anchored filter panel. The panel shows a count only when one or more of its filters are active; selected country/budget values remain visible as removable chips with individual clear actions. The existing filter and delivered-cost sorting logic is unchanged, and the layout supports narrow screens and graphite theme without catalog/API/D1 changes.
+
 ## Nike color galleries and grouped service display — 29 September 2026
 
 The Nike adapter now matches the exact article in either a PDP URL string or the merchant's object-shaped `pdpUrl.url`/`pdpUrl.path`. A matched product group keeps every sibling colorway, its sizes, price and safe gallery for catalog drafts; the customer order-by-link view is scoped to the exact linked article/color. Each gallery uses one preferred square rendition per source slot, avoiding duplicate portrait/square thumbnails. These fields remain optional import-response/session-draft data; no catalog, cart or order schema changed.
