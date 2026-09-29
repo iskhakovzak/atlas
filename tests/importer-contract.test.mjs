@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {extractProduct, extractAdidasProduct} from '../lib/importer/extract.ts';
+import {variantsForSourceColor} from '../lib/importer/link-selection.ts';
 import {priorityMerchants} from '../lib/importer/merchant-profiles.ts';
 
 const html = data => `<script type="application/ld+json">${JSON.stringify(data)}</script>`;
@@ -58,7 +59,8 @@ test('Nike embedded product data keeps exact style price, gallery and stock matr
   assert.equal(result.method, 'Nike product data');
   assert.equal(result.price, 76.97);
   assert.equal(result.category, 'Обувь');
-  assert.equal(result.images.length, 2);
+  assert.equal(result.images.length, 1);
+  assert.equal(result.images[0], 'https://static.nike.com/two.jpg');
   assert.deepEqual(result.variants.map(item => [item.id, item.size, item.available, item.availabilityKnown]), [
     ['00197600816527', '6', true, true],
     ['00197600804203', '6.5', false, true],
@@ -102,6 +104,58 @@ test('Nike exact product group exposes sibling colorways without importing recom
     {id:'blue-6',color:'Light Armory Blue/White',size:'6',price:73.97,image:'https://static.nike.com/blue.jpg',available:true,sizeLabel:'Nike US men'},
     {id:'blue-65',color:'Light Armory Blue/White',size:'6.5',price:73.97,image:'https://static.nike.com/blue.jpg',available:false,sizeLabel:'Nike US men'},
     {id:'red-7',color:'University Red/White',size:'7',price:78.97,image:'https://static.nike.com/red.jpg',available:true,sizeLabel:'Nike US men'},
+  ]);
+  assert.deepEqual(variantsForSourceColor(result.variants,result.selectedVariantColor).map(({color,size})=>[color,size]),[
+    ['Light Armory Blue/White','6'],
+    ['Light Armory Blue/White','6.5'],
+  ]);
+});
+
+test('Nike live PDP shape matches object PDP URLs and keeps one photo per gallery slot', () => {
+  const sourceUrl = 'https://www.nike.com/t/gato-lv8-mens-shoes-Ib4M9R5k/IH3587-400';
+  const gallery = prefix => Array.from({length: 8}, (_, index) => ({properties: {
+    portrait: {url: `https://static.nike.com/${prefix}-${index + 1}-portrait.jpg`},
+    squarish: {url: `https://static.nike.com/${prefix}-${index + 1}-square.jpg`},
+  }}));
+  const style = ({article, color, price, prefix}) => ({
+    styleCode: 'IH3587',
+    pdpUrl: {
+      url: `https://www.nike.com/t/gato-lv8-mens-shoes-Ib4M9R5k/${article}`,
+      path: `/t/gato-lv8-mens-shoes-Ib4M9R5k/${article}`,
+    },
+    colorDescription: color,
+    brands: ['Nike'],
+    productType: 'FOOTWEAR',
+    productInfo: {fullTitle: "Nike Gato LV8 Men's Shoes"},
+    prices: {currency: 'USD', currentPrice: price},
+    contentImages: gallery(prefix),
+    sizes: [{label: '6', status: 'ACTIVE', gtins: [{gtin: `${prefix}-6`}]}],
+  });
+  const blue = style({article: 'IH3587-400', color: 'Light Armory Blue/White', price: 73.97, prefix: 'blue'});
+  const red = style({article: 'IH3587-401', color: 'University Red/White', price: 78.97, prefix: 'red'});
+  const unrelated = {
+    ...style({article: 'OTHER-001', color: 'Black/White', price: 10, prefix: 'other'}),
+    styleCode: 'OTHER-001',
+  };
+  const payload = {props: {pageProps: {
+    locale: {currency: 'USD'},
+    selectedProduct: blue,
+    productGroups: [{products: {blue, red}}, {products: {unrelated}}],
+  }}};
+
+  const result = extractProduct(`<script id="__NEXT_DATA__" type="application/json">${JSON.stringify(payload)}</script>`, sourceUrl);
+
+  assert.equal(result.method, 'Nike product data');
+  assert.equal(result.price, 73.97);
+  assert.equal(result.selectedVariantColor, 'Light Armory Blue/White');
+  assert.deepEqual(result.images, Array.from({length: 8}, (_, index) => `https://static.nike.com/blue-${index + 1}-square.jpg`));
+  assert.deepEqual(result.colorwayImages.map(({color, images}) => [color, images.length, images[0]]), [
+    ['Light Armory Blue/White', 8, 'https://static.nike.com/blue-1-square.jpg'],
+    ['University Red/White', 8, 'https://static.nike.com/red-1-square.jpg'],
+  ]);
+  assert.deepEqual(result.variants.map(({color, size, price, image}) => [color, size, price, image]), [
+    ['Light Armory Blue/White', '6', 73.97, 'https://static.nike.com/blue-1-square.jpg'],
+    ['University Red/White', '6', 78.97, 'https://static.nike.com/red-1-square.jpg'],
   ]);
 });
 

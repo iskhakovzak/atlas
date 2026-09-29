@@ -14,6 +14,11 @@ export type ProductVariant = {
   image?: string;
 };
 
+export type ProductColorwayGallery = {
+  color: string;
+  images: string[];
+};
+
 export type Extracted = {
   /** Merchant identity from the selected structured product, never a guessed ID. */
   sku?: string;
@@ -23,6 +28,10 @@ export type Extracted = {
   declarationDescription?: string;
   image?: string;
   images?: string[];
+  /** Optional, short-lived galleries for exact sibling colorways in a merchant product group. */
+  colorwayImages?: ProductColorwayGallery[];
+  /** Color belonging to the exact article selected by the source URL. */
+  selectedVariantColor?: string;
   price?: number;
   currency?: string;
   variants?: ProductVariant[];
@@ -787,6 +796,21 @@ function extractNike(html: string, sourceUrl: string): Extracted | undefined {
     const root = JSON.parse(match[1]) as {props?: {pageProps?: Record<string, unknown>}};
     const page = root.props?.pageProps;
     const article = source.pathname.split('/').filter(Boolean).at(-1)?.replace(/\.html$/i, '').toUpperCase();
+    const nikeImages = (candidate: Record<string, unknown>) => {
+      const values = Array.isArray(candidate.contentImages) ? candidate.contentImages.map(value => {
+        if (!value || typeof value !== 'object') return undefined;
+        const properties = (value as Record<string, unknown>).properties;
+        if (!properties || typeof properties !== 'object') return undefined;
+        const record = properties as Record<string, unknown>;
+        // Nike publishes several renditions for each gallery slot. Keep one
+        // square image per slot rather than filling the carousel with repeats.
+        return record.squarish ?? record.portrait;
+      }) : [];
+      return [...new Set(values.map(value => {
+        if (!value || typeof value !== 'object') return undefined;
+        return safeImage((value as Record<string, unknown>).url, sourceUrl);
+      }).filter((value): value is string => Boolean(value)))].slice(0, 12);
+    };
     const selected = page?.selectedProduct && typeof page.selectedProduct === 'object'
       ? page.selectedProduct as Record<string, unknown>
       : undefined;
@@ -803,8 +827,30 @@ function extractNike(html: string, sourceUrl: string): Extracted | undefined {
       if (!article) return true;
       const styleCode = String(value.styleCode ?? '').trim().toUpperCase();
       const merchProductId = String(value.merchProductId ?? '').trim().toUpperCase();
-      const pdpPath = String(value.pdpUrl ?? '').split(/[?#]/, 1)[0].replace(/\/$/, '').toUpperCase();
-      return styleCode === article || merchProductId === article || pdpPath.endsWith(`/${article}`);
+      const rawPdpUrl = value.pdpUrl;
+      const pdpCandidates = typeof rawPdpUrl === 'string'
+        ? [rawPdpUrl]
+        : rawPdpUrl && typeof rawPdpUrl === 'object'
+          ? [
+            (rawPdpUrl as Record<string, unknown>).url,
+            (rawPdpUrl as Record<string, unknown>).path,
+          ].filter((candidate): candidate is string => typeof candidate === 'string')
+          : [];
+      const pdpMatches = pdpCandidates.some(candidate => {
+        try {
+          const url = /^https:\/\//i.test(candidate)
+            ? new URL(candidate)
+            : candidate.startsWith('/') && !candidate.startsWith('//')
+              ? new URL(candidate, source.origin)
+              : undefined;
+          if (!url || url.protocol !== 'https:' || url.username || url.password || url.port || !/(^|\.)nike\.com$/i.test(url.hostname)) return false;
+          const pdpArticle = url.pathname.split('/').filter(Boolean).at(-1)?.replace(/\.html$/i, '').toUpperCase();
+          return pdpArticle === article;
+        } catch {
+          return false;
+        }
+      });
+      return styleCode === article || merchProductId === article || pdpMatches;
     };
     const product = selected && matchesArticle(selected)
       ? selected
@@ -817,23 +863,22 @@ function extractNike(html: string, sourceUrl: string): Extracted | undefined {
     const priceData = product.prices && typeof product.prices === 'object' ? product.prices as Record<string, unknown> : {};
     const price = number(priceData.currentPrice ?? priceData.price ?? priceData.initialPrice);
     const currency = clean(priceData.currency ?? (page?.locale && typeof page.locale === 'object' ? (page.locale as Record<string, unknown>).currency : undefined)).toUpperCase() || undefined;
-    const imageValues = Array.isArray(product.contentImages) ? product.contentImages.flatMap(value => {
-      if (!value || typeof value !== 'object') return [];
-      const properties = (value as Record<string, unknown>).properties;
-      if (!properties || typeof properties !== 'object') return [];
-      const record = properties as Record<string, unknown>;
-      return [record.portrait, record.squarish];
-    }) : [];
-    const images = [...new Set(imageValues.map(value => {
-      if (!value || typeof value !== 'object') return undefined;
-      return safeImage((value as Record<string, unknown>).url, sourceUrl);
-    }).filter((value): value is string => Boolean(value)))].slice(0, 12);
+    const images = nikeImages(product);
     const matchedGroup = article ? groupedProducts.find(items => items.some(matchesArticle)) : undefined;
     // Nike stores colorways as sibling products inside the matching product
     // group. Never borrow variants from another group (for example, recommendations).
     const colorways = (matchedGroup?.length
       ? [product, ...matchedGroup.filter(candidate => !matchesArticle(candidate))]
       : [product]).slice(0, 20);
+    const imagesByColorway = new Map(colorways.map(colorway => [colorway, nikeImages(colorway)]));
+    const galleriesByColor = new Map<string, string[]>();
+    for (const colorway of colorways) {
+      const color = clean(colorway.colorDescription ?? colorway.styleColor);
+      const gallery = imagesByColorway.get(colorway) ?? [];
+      if (!color || !gallery.length) continue;
+      galleriesByColor.set(color, [...new Set([...(galleriesByColor.get(color) ?? []), ...gallery])].slice(0, 12));
+    }
+    const colorwayImages = [...galleriesByColor].map(([color, gallery]) => ({color, images: gallery}));
     const isNikeUsMen = (source.hostname === 'www.nike.com' || source.hostname === 'nike.com')
       && currency === 'USD' && /\bmen['’]s\b/i.test(title ?? '');
     const sizeLabel = isNikeUsMen ? 'Nike US men' : 'Размер';
@@ -842,27 +887,28 @@ function extractNike(html: string, sourceUrl: string): Extracted | undefined {
       const variantPriceData = colorway.prices && typeof colorway.prices === 'object' ? colorway.prices as Record<string, unknown> : {};
       const selectedStyle = matchesArticle(colorway);
       const variantPrice = number(variantPriceData.currentPrice ?? variantPriceData.price ?? variantPriceData.initialPrice) ?? (selectedStyle ? price : undefined);
-      const variantImages = Array.isArray(colorway.contentImages) ? colorway.contentImages.flatMap(value => {
-        if (!value || typeof value !== 'object') return [];
-        const properties = (value as Record<string, unknown>).properties;
-        if (!properties || typeof properties !== 'object') return [];
-        const record = properties as Record<string, unknown>;
-        return [record.portrait, record.squarish];
-      }).map(value => {
-        if (!value || typeof value !== 'object') return undefined;
-        return safeImage((value as Record<string, unknown>).url, sourceUrl);
-      }).filter((value): value is string => Boolean(value)) : [];
+      const variantImages = imagesByColorway.get(colorway) ?? [];
       const variantImage = variantImages[0] ?? (selectedStyle ? images[0] : undefined);
       const rawSizes = Array.isArray(colorway.sizes) ? colorway.sizes.slice(0, 80) : [];
-      return rawSizes.map(raw => {
+      return rawSizes.flatMap((raw): ProductVariant[] => {
         const value = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
         const label = clean(value.label ?? value.localizedLabel);
         const gtins = Array.isArray(value.gtins) ? value.gtins : [];
         const id = clean(gtins[0] && typeof gtins[0] === 'object' ? (gtins[0] as Record<string, unknown>).gtin : value.merchSkuId) || undefined;
         const status = clean(value.status).toUpperCase();
-        if (!label) return undefined;
-        return {id, size: label, sizeLabel, color: variantColor, label: [variantColor, label].filter(Boolean).join(' · '), available: status === 'ACTIVE' || status === 'BUYABLE_BUY', availabilityKnown: Boolean(status), price: variantPrice, image: variantImage};
-      }).filter((value): value is ProductVariant => Boolean(value));
+        if (!label) return [];
+        return [{
+          ...(id ? {id} : {}),
+          size: label,
+          sizeLabel,
+          ...(variantColor ? {color: variantColor} : {}),
+          label: [variantColor, label].filter(Boolean).join(' · '),
+          available: status === 'ACTIVE' || status === 'BUYABLE_BUY',
+          availabilityKnown: Boolean(status),
+          ...(variantPrice !== undefined ? {price: variantPrice} : {}),
+          ...(variantImage ? {image: variantImage} : {}),
+        }];
+      });
     });
     const seenOptions = new Set<string>();
     const boundedVariants = variants.filter(value => {
@@ -876,7 +922,7 @@ function extractNike(html: string, sourceUrl: string): Extracted | undefined {
     const warnings = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.', 'Вес с упаковкой нужно проверить.'];
     if (price === undefined) warnings.unshift('Цена не найдена в данных Nike: выберите конкретный вариант на странице магазина.');
     if (!boundedVariants.some(value => value.available)) warnings.push('Nike не указал доступный размер в текущем снимке.');
-    return {title, brand, category, declarationDescription: declarationFor(category, title ?? '', brand), image: images[0], images, price, currency, variants: boundedVariants, country: inferStorefrontCountry(sourceUrl, currency), warnings, sourceUrl, method: 'Nike product data', sku: clean(product.styleCode) || undefined};
+    return {title, brand, category, declarationDescription: declarationFor(category, title ?? '', brand), image: images[0], images, colorwayImages, selectedVariantColor: clean(product.colorDescription ?? product.styleColor) || undefined, price, currency, variants: boundedVariants, country: inferStorefrontCountry(sourceUrl, currency), warnings, sourceUrl, method: 'Nike product data', sku: clean(product.styleCode) || undefined};
   } catch {
     return;
   }

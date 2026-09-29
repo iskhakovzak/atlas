@@ -32,3 +32,20 @@
 .customs-estimate-compact .customs-estimate-popover{width:min(360px,calc(100vw - 52px))}
 .customs-compact-note{display:block;margin-top:5px}
 @media(max-width:420px){.customs-compact-row{gap:7px}.customs-compact-copy>small{max-width:190px}.customs-compact-result{font-size:13px}}
+
+/* Keep the merchant actions in one calm row; the next step supplies the sole divider. */
+.link-source-tools{margin:0 0 0;padding:0;border-bottom:0}
+.link-source-tools .source-check-link{min-height:40px;margin:0;padding:8px 11px;border:1px solid var(--atlas-line,#dce5e2);border-radius:9px;background:var(--atlas-soft,#f8faf8);color:var(--atlas-ink,#213c31);font-weight:600}
+.link-source-tools .source-check-link:hover{border-color:var(--atlas-green,#315f50);color:var(--atlas-green,#315f50)}
+.link-source-tools>.text-button{min-height:40px;padding:8px 12px;border:1px solid transparent;border-radius:9px;color:var(--muted-foreground,#64756e)}
+.link-source-tools>.text-button:hover{border-color:var(--atlas-line,#dce5e2);background:var(--atlas-soft,#f8faf8);color:var(--atlas-ink,#213c31)}
+
+.cost-service-row>dd{display:grid;justify-items:end;gap:3px;white-space:normal}
+.cost-service-breakdown{max-width:100%;color:var(--muted-foreground,#64756e);font-size:12px;font-weight:400}
+.cost-service-breakdown>summary{min-height:26px;cursor:pointer;font-size:12px;font-weight:500;line-height:1.4;white-space:nowrap}
+.quote-details[open] .cost-service-breakdown>summary{margin-bottom:0}
+.cost-service-breakdown>dl{display:grid;width:min(320px,calc(100vw - 72px));gap:6px;margin:7px 0 0;padding:8px 0 0;border-top:1px solid var(--atlas-line,#dce5e2)}
+.cost-service-breakdown>dl>div{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px}
+.cost-service-breakdown dt{font-size:12px;line-height:1.4;overflow-wrap:anywhere}
+.cost-service-breakdown dd{display:flex;align-items:center;gap:7px;font-size:12px;white-space:nowrap}
+@media(max-width:700px){.link-source-tools{display:flex;margin-bottom:14px}}

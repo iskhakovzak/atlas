@@ -1,8 +1,14 @@
 # Atlas — project context
 
+## Nike color galleries and grouped service display — 29 September 2026
+
+The Nike adapter now matches the exact article in either a PDP URL string or the merchant's object-shaped `pdpUrl.url`/`pdpUrl.path`. A matched product group keeps every sibling colorway, its sizes, price and safe gallery for catalog drafts; the customer order-by-link view is scoped to the exact linked article/color. Each gallery uses one preferred square rendition per source slot, avoiding duplicate portrait/square thumbnails. These fields remain optional import-response/session-draft data; no catalog, cart or order schema changed.
+
+Cart and order-by-link cost summaries show the existing service, buyout, conversion, international freight and delivery-margin components as one “Сервис Atlas” amount. “Состав сервиса” keeps the separate quote rows available on demand. Store delivery, the refundable reserve and general Atlas fee remain distinct, and the quote formula and saved snapshots are unchanged.
+
 ## Colorway clarity, refund cases, and local speed diagnostics — 29 September 2026
 
-When a store exposes one unique colorway with a slash-separated descriptive name, link ordering now shows a concise, non-clickable primary color and explains that another color requires its own merchant URL. The original merchant wording remains available on demand; it is not split into false selectable colors. Real multiple Nike sibling colorways remain separately selectable only when the exact linked Nike product group exposes them, with each size retaining its own article/price/image metadata.
+When a store exposes one unique colorway with a slash-separated descriptive name, link ordering now shows a concise, non-clickable primary color and explains that another color requires its own merchant URL. The original merchant wording remains available on demand; it is not split into false selectable colors. Exact Nike sibling colorways remain in catalog-import data with their own size/price/image metadata; a customer ordering one article sees only that article's color.
 
 The operator can keep an issue/refund case on an order, including a cancelled order: reason, case status, proposed UZS refund amount and a bounded history. An amount is a review note only; no payment, ledger, balance or refund state changes. Internal notes and targeted in-app customer notifications remain separate. Email/SMS are not sent by that notification control.
 
@@ -10,7 +16,7 @@ The admin system tab includes a browser-local performance summary for TTFB, FCP,
 
 ## Nike size options and operator order contacts — 29 September 2026
 
-Nike link imports now keep the exact URL-selected style and also read its sibling colorways only from the same Nike product group. Each size retains that colorway's own article/GTIN, price, availability signal and image; other product groups and recommendations are excluded. A Nike `www.nike.com` USD men's shoe page is labelled as Nike US men's sizing and links to Nike's official conversion chart, with a note that the package CM label is not foot length. Other merchants keep their source-provided size label. Customers can switch colors without a repeated click clearing their selected size; choosing a different color clears only the old size/price selection and updates its product image.
+Nike link imports keep the exact URL-selected style and read sibling colorways only from the same Nike product group for catalog review. Each size retains its colorway's own article/GTIN, price, availability signal and image; other product groups and recommendations are excluded. Customer order-by-link remains scoped to the linked article/color. A Nike `www.nike.com` USD men's shoe page is labelled as Nike US men's sizing and links to Nike's official conversion chart, with a note that the package CM label is not foot length. Other merchants keep their source-provided size label.
 
 The operator order queue can be refreshed manually and searched by order/product, purchaser name, account email, profile phone, recipient name, recipient phone or city. Expanded orders show purchaser-account details separately from the order's delivery recipient. Email and phone are explicit `mailto:`/`tel:` links; the profile phone is labelled unverified and is not confused with the recipient phone. No message is sent by loading or searching the queue. Customer orders place the store-shipping reserve note beside the payment status and explicitly describe it as part of the preliminary total, not a payment record. The catalog eyebrow “КАТАЛОГ ATLAS” (localized for UZ/EN) is restored above the feed title, including on narrow screens.
 

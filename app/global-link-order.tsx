@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { ArrowRight, CircleHelp, ExternalLink, Link2, Loader2 } from "lucide-react";
+import { ArrowRight, ExternalLink, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
@@ -12,10 +12,10 @@ import {
   money,
   validateSource,
   type Product,
-  type Quote,
 } from "@/lib/market/domain";
 import { countries, currencies, currencyForCountry, toUsd, paddedWeight } from "@/lib/market/world";
 import { describeSingleColorway } from "@/lib/market/variant-colorway";
+import { variantsForSourceColor } from "@/lib/importer/link-selection";
 import { estimatedBoxedWeight, validBoxedWeight, weightCategories } from "@/lib/market/weight";
 import {
   safeImage,
@@ -24,8 +24,9 @@ import {
   inferStorefrontCountry,
   type Extracted,
   type ProductVariant,
+  type ProductColorwayGallery,
 } from "@/lib/importer/extract";
-import { Choice, PageHeading, ProductImage } from "./market-ui";
+import { Choice, CostLines, PageHeading, ProductImage } from "./market-ui";
 import {
   communityDeals,
   communityEstimatedWeight,
@@ -35,29 +36,33 @@ import {
 } from "@/lib/market/community-deals";
 
 type LinkOrderDraftSnapshot={
-  url:string;source:string;name:string;brand:string;declaration:string;currency:string;amount:string;shipping:string;shippingCurrency:string;shippingEstimated:boolean;weight:string;country:string;otherCountry:string;category:string;variant:string;variants:ProductVariant[];selectedColor:string;selectedSize:string;image:string;images:string[];showSourceForm:boolean;note:string;weightOrigin:string;verified:boolean;sourceCheckStatus:'idle'|'checking'|'verified'|'failed';importedAt?:number;sourceExpiresAt?:number;foundShipping:{amount:number;currency:string;destination?:string}|null;
+  url:string;source:string;name:string;brand:string;declaration:string;currency:string;amount:string;shipping:string;shippingCurrency:string;shippingEstimated:boolean;weight:string;country:string;otherCountry:string;category:string;variant:string;variants:ProductVariant[];selectedColor:string;selectedSize:string;image:string;images:string[];colorwayImages?:ProductColorwayGallery[];showSourceForm:boolean;note:string;weightOrigin:string;verified:boolean;sourceCheckStatus:'idle'|'checking'|'verified'|'failed';importedAt?:number;sourceExpiresAt?:number;foundShipping:{amount:number;currency:string;destination?:string}|null;
 };
 const countryAliases:Record<string,string>={'United States':'США','US':'США','AQSh':'США','Spain':'Испания','Ispaniya':'Испания','Germany':'Германия','Germaniya':'Германия','United Kingdom':'Великобритания','Buyuk Britaniya':'Великобритания','France':'Франция','Fransiya':'Франция','Italy':'Италия','Italiya':'Италия','Romania':'Румыния','Ruminiya':'Румыния','China':'Китай','Xitoy':'Китай','Turkey':'Турция','Turkiya':'Турция','Japan':'Япония','Yaponiya':'Япония','South Korea':'Южная Корея','Janubiy Koreya':'Южная Корея','United Arab Emirates':'ОАЭ','BAA':'ОАЭ','Canada':'Канада','Kanada':'Канада','Australia':'Австралия','Avstraliya':'Австралия','Other country':'Другая страна','Boshqa mamlakat':'Другая страна'};
 const categoryAliases:Record<string,string>={'Shoes':'Обувь','Oyoq kiyim':'Обувь','Clothing':'Одежда','Kiyim':'Одежда','Electronics':'Электроника','Elektronika':'Электроника','Accessories':'Аксессуары','Aksessuarlar':'Аксессуары','Beauty & care':'Красота и уход','Go‘zallik va parvarish':'Красота и уход','Home & living':'Дом и быт','Uy va maishiy':'Дом и быт','Sports':'Спорт','Boshqa':'Другое','Other':'Другое'};
 const canonicalCountry=(value:string)=>countryAliases[value]??value;
 const canonicalCategory=(value:string)=>categoryAliases[value]??value;
-function OrderLinkCostLines({q,locale,weightHelp}:{q:Pick<Quote,"merchandise"|"service"|"shipping"|"reserve"|"sourceShipping"|"buyout"|"conversion"|"deliveryMargin"|"optionalServices">;locale:"ru"|"uz"|"en";weightHelp:string}){
-  const copy={
-    ru:{item:"Товар",service:"Сервис Atlas",buyout:"Выкуп",conversion:"Конвертация",shipping:"Международная доставка",merchantShipping:"Доставка магазина",margin:"Маржа доставки",reserve:"Резерв международной доставки",optional:"Дополнительные услуги",help:"Как считается доставка"},
-    uz:{item:"Tovar",service:"Atlas xizmati",buyout:"Xarid",conversion:"Konvertatsiya",shipping:"Xalqaro yetkazish",merchantShipping:"Do‘kon yetkazishi",margin:"Yetkazish marjasi",reserve:"Xalqaro yetkazish zaxirasi",optional:"Qo‘shimcha xizmatlar",help:"Yetkazish qanday hisoblanadi"},
-    en:{item:"Item",service:"Atlas service",buyout:"Buyout",conversion:"Conversion",shipping:"International delivery",merchantShipping:"Store shipping",margin:"Delivery margin",reserve:"International delivery reserve",optional:"Optional services",help:"How delivery is estimated"},
-  }[locale];
-  return <dl className="cost-lines order-link-cost-lines">
-    <div><dt>{copy.item}</dt><dd>{money(q.merchandise)}</dd></div>
-    {q.service>0&&<div><dt>{copy.service}</dt><dd>{money(q.service)}</dd></div>}
-    {!!q.buyout&&<div><dt>{copy.buyout}</dt><dd>{money(q.buyout)}</dd></div>}
-    {!!q.conversion&&<div><dt>{copy.conversion}</dt><dd>{money(q.conversion)}</dd></div>}
-    {!!q.sourceShipping&&<div><dt>{copy.merchantShipping}</dt><dd>{money(q.sourceShipping)}</dd></div>}
-    <div className="order-link-international-line"><dt>{copy.shipping}</dt><dd><span>{money(q.shipping)}</span><details className="quote-cost-help"><summary aria-label={copy.help} title={copy.help}><CircleHelp size={16}/></summary><div className="quote-cost-help-popover"><p>{weightHelp}</p></div></details></dd></div>
-    {!!q.deliveryMargin&&<div><dt>{copy.margin}</dt><dd>{money(q.deliveryMargin)}</dd></div>}
-    {!!q.reserve&&<div><dt>{copy.reserve}</dt><dd>{money(q.reserve)}</dd></div>}
-    {!!q.optionalServices&&<div><dt>{copy.optional}</dt><dd>{money(q.optionalServices)}</dd></div>}
-  </dl>;
+function cleanColorwayGalleries(value:unknown,base:string):ProductColorwayGallery[]{
+  if(!Array.isArray(value))return [];
+  const byColor=new Map<string,string[]>();
+  for(const entry of value.slice(0,20)){
+    if(!entry||typeof entry!=='object')continue;
+    const row=entry as {color?:unknown;images?:unknown};
+    const color=typeof row.color==='string'?row.color.trim().slice(0,140):'';
+    if(!color||!Array.isArray(row.images))continue;
+    const images=dedupeSafeImages(row.images,base,12);
+    if(!images.length)continue;
+    byColor.set(color,[...new Set([...(byColor.get(color)??[]),...images])].slice(0,12));
+  }
+  return [...byColor].map(([color,images])=>({color,images}));
+}
+function selectedImportedColor(data:Extracted,variants:ProductVariant[],galleries:ProductColorwayGallery[]):string{
+  const colors=[...new Set(variants.map(item=>item.color).filter((value):value is string=>Boolean(value)))];
+  if(data.selectedVariantColor&&colors.includes(data.selectedVariantColor))return data.selectedVariantColor;
+  const image=data.image;
+  const imageColor=image?galleries.find(gallery=>gallery.images.includes(image))?.color:undefined;
+  if(imageColor&&colors.includes(imageColor))return imageColor;
+  return colors.length===1?colors[0]:'';
 }
 function displayCountryName(value:string,locale:string){
   const canonical=canonicalCountry(value);
@@ -115,6 +120,7 @@ export function GlobalLinkOrder() {
     [selectedSize, setSelectedSize] = useState(""),
     [image, setImage] = useState(seed?.image ?? dealSeed?.image ?? ""),
     [images, setImages] = useState<string[]>(seedImages),
+    [colorwayImages, setColorwayImages] = useState<ProductColorwayGallery[]>([]),
     [busy, setBusy] = useState(false),
     [adding, setAdding] = useState(false),
     [showSourceForm, setShowSourceForm] = useState(() => !requestedUrl),
@@ -141,7 +147,8 @@ export function GlobalLinkOrder() {
       if(raw&&raw.length<300000){
         const value=JSON.parse(raw) as Partial<LinkOrderDraftSnapshot>;
         const usable=typeof value==='object'&&value!==null&&typeof value.source==='string'&&value.source.length>0&&typeof value.sourceCheckStatus==='string';
-        const fresh=usable&&value.sourceCheckStatus==='verified'&&typeof value.sourceExpiresAt==='number'&&value.sourceExpiresAt>Date.now();
+        const needsNikeGallery=typeof value.source==='string'&&/^https:\/\/(?:www\.)?nike\.com\//i.test(value.source);
+        const fresh=usable&&value.sourceCheckStatus==='verified'&&typeof value.sourceExpiresAt==='number'&&value.sourceExpiresAt>Date.now()&&(!needsNikeGallery||Array.isArray(value.colorwayImages));
         if(usable&&(fresh||(!requestedUrl&&value.source))){
           const text=(item:unknown,fallback='')=>typeof item==='string'?item:fallback;
           const restoredVariants=Array.isArray(value.variants)?value.variants.slice(0,250):[];
@@ -151,7 +158,7 @@ export function GlobalLinkOrder() {
             setUrl(text(value.url,requestedUrl));setSource(text(value.source));setName(text(value.name));setBrand(text(value.brand));setDeclaration(text(value.declaration));
             setCurrency(text(value.currency,'USD'));setAmount(text(value.amount));setShipping(text(value.shipping,'10'));setShippingCurrency(text(value.shippingCurrency,'USD'));setShippingEstimated(value.shippingEstimated!==false);
             setWeight(text(value.weight));setCountry(canonicalCountry(text(value.country,'Другая страна')));setOtherCountry(text(value.otherCountry));setCategory(canonicalCategory(text(value.category,'Другое')));setVariant(restoredVariant);
-            setVariants(restoredVariants);setSelectedColor(text(value.selectedColor));setSelectedSize(text(value.selectedSize));setImage(text(value.image));setImages(dedupeSafeImages(Array.isArray(value.images)?value.images.filter((item):item is string=>typeof item==='string'):[],text(value.source)));
+            setVariants(restoredVariants);setSelectedColor(text(value.selectedColor));setSelectedSize(text(value.selectedSize));setImage(text(value.image));setImages(dedupeSafeImages(Array.isArray(value.images)?value.images.filter((item):item is string=>typeof item==='string'):[],text(value.source)));setColorwayImages(cleanColorwayGalleries(value.colorwayImages,text(value.source)));
             setShowSourceForm(value.showSourceForm===true);setNote(text(value.note));setWeightOrigin(text(value.weightOrigin));setVerified(value.verified===true);
             setSourceCheckStatus(value.sourceCheckStatus==='verified'||value.sourceCheckStatus==='failed'||value.sourceCheckStatus==='checking'?value.sourceCheckStatus:'idle');
             setImportedAt(typeof value.importedAt==='number'?value.importedAt:undefined);setSourceExpiresAt(typeof value.sourceExpiresAt==='number'?value.sourceExpiresAt:undefined);
@@ -165,9 +172,9 @@ export function GlobalLinkOrder() {
 
   useEffect(()=>{
     if(!draftPersistenceReady.current)return;
-    const snapshot:LinkOrderDraftSnapshot={url,source,name,brand,declaration,currency,amount,shipping,shippingCurrency,shippingEstimated,weight,country,otherCountry,category,variant,variants,selectedColor,selectedSize,image,images,showSourceForm,note,weightOrigin,verified,sourceCheckStatus,importedAt,sourceExpiresAt,foundShipping};
+    const snapshot:LinkOrderDraftSnapshot={url,source,name,brand,declaration,currency,amount,shipping,shippingCurrency,shippingEstimated,weight,country,otherCountry,category,variant,variants,selectedColor,selectedSize,image,images,colorwayImages,showSourceForm,note,weightOrigin,verified,sourceCheckStatus,importedAt,sourceExpiresAt,foundShipping};
     try{sessionStorage.setItem(draftStorageKey,JSON.stringify(snapshot))}catch{}
-  },[draftStorageKey,url,source,name,brand,declaration,currency,amount,shipping,shippingCurrency,shippingEstimated,weight,country,otherCountry,category,variant,variants,selectedColor,selectedSize,image,images,showSourceForm,note,weightOrigin,verified,sourceCheckStatus,importedAt,sourceExpiresAt,foundShipping]);
+  },[draftStorageKey,url,source,name,brand,declaration,currency,amount,shipping,shippingCurrency,shippingEstimated,weight,country,otherCountry,category,variant,variants,selectedColor,selectedSize,image,images,colorwayImages,showSourceForm,note,weightOrigin,verified,sourceCheckStatus,importedAt,sourceExpiresAt,foundShipping]);
   const variantColors = useMemo(() => [...new Set(variants.map(item => item.color).filter((value): value is string => Boolean(value)))], [variants]);
   const variantsForColor = useMemo(() => selectedColor ? variants.filter(item => item.color === selectedColor) : variantColors.length===1 ? variants.filter(item => item.color === variantColors[0]) : variantColors.length ? [] : variants, [variants,selectedColor,variantColors]);
   const variantSizes = useMemo(() => [...new Set(variantsForColor.map(item => item.size).filter((value): value is string => Boolean(value)))], [variantsForColor]);
@@ -179,7 +186,19 @@ export function GlobalLinkOrder() {
     if(!item){setVariant("");setSelectedSize("");setVerified(false);return}
     setVariant(item.label);setSelectedColor(item.color??"");setSelectedSize(item.size??"");
     if(item.price!==undefined&&knownCurrency)setAmount(String(item.price));else if(variants.some(value=>value.price!==undefined))setAmount("");
-    if(item.image)setImage(item.image);setVerified(false);
+    if(item.image&&item.color!==selectedColor)setImage(item.image);setVerified(false);
+  }
+  function selectColorway(color:string){
+    if(color===selectedColor)return;
+    const choices=variants.filter(item=>item.color===color);
+    const first=choices.find(item=>item.available)??choices[0];
+    const gallery=colorwayImages.find(item=>item.color===color)?.images??[];
+    const nextImages=gallery.length?gallery:first?.image?[first.image]:[];
+    setSelectedColor(color);setSelectedSize('');setVariant('');setVerified(false);
+    setImages(nextImages);
+    setImage(first?.image&&nextImages.includes(first.image)?first.image:nextImages[0]??'');
+    if(choices.some(item=>item.price!==undefined))setAmount('');
+    if(!choices.some(item=>item.size)&&first)applyVariantChoice(first);
   }
   async function load(value = url) {
     let link: string;
@@ -205,6 +224,7 @@ export function GlobalLinkOrder() {
     setShippingEstimated(true);
     setImage(seed?.image ?? dealSeed?.image ?? "");
     setImages(seedImages);
+    setColorwayImages([]);
     setImportedAt(undefined);
     setSourceExpiresAt(undefined);
     setWeight(fallbackBoxedWeight ? String(fallbackBoxedWeight) : "");
@@ -235,6 +255,10 @@ export function GlobalLinkOrder() {
       } = await response.json();
       if (!response.ok && data.manualEntryAvailable) {
         const partialImages=dedupeSafeImages([data.image,...(data.images??[])].filter(Boolean) as string[],link);
+        const allPartialGalleries=cleanColorwayGalleries(data.colorwayImages,data.sourceUrl??link);
+        const partialGalleries=data.selectedVariantColor
+          ? allPartialGalleries.filter(gallery=>gallery.color===data.selectedVariantColor)
+          : allPartialGalleries;
         const partialCountry=canonicalCountry(data.country??seed?.country??inferStorefrontCountry(link,data.currency)??"Другая страна");
         const partialCurrency=currencies.includes(data.currency??"")?data.currency!:currencyForCountry(partialCountry);
         setSource(data.sourceUrl??link);
@@ -242,16 +266,21 @@ export function GlobalLinkOrder() {
         setBrand(data.brand??seed?.brand??dealSeed?.store??new URL(link).hostname.replace(/^www\./,''));
         setImage(partialImages[0]??seed?.image??dealSeed?.image??"");
         setImages(partialImages.length?partialImages:seedImages);
+        setColorwayImages(partialGalleries);
         if(data.price!==undefined&&currencies.includes(data.currency??"")){setAmount(String(data.price));setCurrency(data.currency!)}
         else if(seedIsFresh&&seed?.sourcePrice!==undefined){setAmount(String(seed.sourcePrice));setCurrency(seed.sourceCurrency??"USD")}
         else if(dealSeed){setAmount(String(dealSeed.price));setCurrency("USD")}
         else {setAmount("");setCurrency(currencies.includes(partialCurrency??"")?partialCurrency!:"USD")}
         const partialCategory=canonicalCategory(data.category??seed?.category??inferProductCategory(data.title??"",data.brand??""));
         setCategory(partialCategory);
-        const partialVariants=data.variants?.length?data.variants:fallbackOptions;
+        const receivedPartialVariants=data.variants?.length?data.variants:fallbackOptions;
+        const partialVariants=variantsForSourceColor(receivedPartialVariants,data.selectedVariantColor);
         setVariants(partialVariants);
         setVariant(partialVariants.length===1?partialVariants[0].label:"");
-        setSelectedColor("");setSelectedSize("");
+        const partialColor=selectedImportedColor(data,partialVariants,partialGalleries);
+        setSelectedColor(partialColor);setSelectedSize("");
+        const partialGallery=partialGalleries.find(gallery=>gallery.color===partialColor);
+        if(partialGallery){setImages(partialGallery.images);setImage(partialGallery.images[0]);}
         setCountry(partialCountry);
         if(data.boxedWeight!==undefined)setWeight(String(validBoxedWeight(data.boxedWeight)??estimatedBoxedWeight(partialCategory)));
         setSourceCheckStatus('failed');
@@ -267,6 +296,11 @@ export function GlobalLinkOrder() {
       setImage(data.image ?? seed?.image ?? dealSeed?.image ?? "");
       const importedImages=dedupeSafeImages([data.image,...(data.images??[])].filter(Boolean) as string[],data.sourceUrl);
       setImages(importedImages.length?importedImages:seedImages);
+      const allImportedColorwayGalleries=cleanColorwayGalleries(data.colorwayImages,data.sourceUrl);
+      const importedColorwayGalleries=data.selectedVariantColor
+        ? allImportedColorwayGalleries.filter(gallery=>gallery.color===data.selectedVariantColor)
+        : allImportedColorwayGalleries;
+      setColorwayImages(importedColorwayGalleries);
       if(importedImages.length&&!data.image)setImage(importedImages[0]);
       const nextCategory = canonicalCategory(
         data.category ??
@@ -283,11 +317,12 @@ export function GlobalLinkOrder() {
       else if (seedIsFresh && seed?.sourcePrice !== undefined) setAmount(String(seed.sourcePrice));
       else if (dealSeed) setAmount(String(dealSeed.price));
       const receivedVariants = data.variants ?? [];
-      const importedVariants = hasSelectableDimensions(fallbackOptions) && !hasSelectableDimensions(receivedVariants)
+      const allImportedVariants = hasSelectableDimensions(fallbackOptions) && !hasSelectableDimensions(receivedVariants)
         ? fallbackOptions
         : receivedVariants.length
           ? receivedVariants
           : fallbackOptions;
+      const importedVariants = variantsForSourceColor(allImportedVariants,data.selectedVariantColor);
       const safeVariants = knownCurrency ? importedVariants : importedVariants.map(item => ({...item, price: undefined}));
       const hasPricedVariants=knownCurrency&&safeVariants.some(item=>typeof item.price==='number'&&Number.isFinite(item.price)&&item.price>0);
       const selectableVariants=data.price===undefined&&hasPricedVariants?safeVariants.filter(item=>typeof item.price==='number'&&Number.isFinite(item.price)&&item.price>0):safeVariants;
@@ -295,15 +330,18 @@ export function GlobalLinkOrder() {
       const selectedId = new URL(data.sourceUrl).searchParams.get('variant');
       const selectedVariant = selectableVariants.find(item => item.id && item.id === selectedId)
         ?? (selectableVariants.length === 1 ? selectableVariants[0] : undefined);
+      const selectedColorForLink=selectedVariant?.color??selectedImportedColor(data,selectableVariants,importedColorwayGalleries);
+      setSelectedColor(selectedColorForLink);
+      const selectedColorGallery=importedColorwayGalleries.find(gallery=>gallery.color===selectedColorForLink);
+      if(selectedColorGallery){
+        setImages(selectedColorGallery.images);
+        if(!selectedVariant?.image)setImage(selectedColorGallery.images[0]);
+      }
       if (selectedVariant) {
         setVariant(selectedVariant.label);
-        setSelectedColor(selectedVariant.color??"");
         setSelectedSize(selectedVariant.size??"");
         if (selectedVariant.price !== undefined && knownCurrency) setAmount(String(selectedVariant.price));
         if (selectedVariant.image) setImage(selectedVariant.image);
-      } else {
-        const colors=[...new Set(selectableVariants.map(item=>item.color).filter((value):value is string=>Boolean(value)))];
-        if(colors.length===1)setSelectedColor(colors[0]);
       }
       const nextCountry = canonicalCountry(data.country ?? seed?.country ?? inferStorefrontCountry(data.sourceUrl, data.currency) ?? "Другая страна");
       setCountry(nextCountry);
@@ -377,6 +415,7 @@ export function GlobalLinkOrder() {
       setAmount(seedIsFresh&&seed?.sourcePrice!==undefined?String(seed.sourcePrice):dealSeed?String(dealSeed.price):"");
       setCurrency(seedIsFresh?seed?.sourceCurrency??"USD":"USD");
       setVariants(fallbackOptions);
+      setColorwayImages([]);
       setVariant(fallbackOptions.length===1?fallbackOptions[0].label:"");
       setWeight(String(fallbackBoxedWeight ?? estimatedBoxedWeight(category)));
       setWeightOrigin(fallbackBoxedWeight ? tx("Оценка Atlas; уточняется перед оформлением","Atlas bahosi; rasmiylashtirishdan oldin aniqlanadi","Atlas estimate; refined before checkout") : tx("Приблизительно по категории","Kategoriya bo‘yicha taxminan","Approximate by category"));
@@ -590,7 +629,7 @@ export function GlobalLinkOrder() {
                   <small>{tx('Выбран автоматически','Avtomatik tanlandi','Automatically selected')}</small>
                   <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
                 </div> : variants.length && (variantColors.length||variantSizes.length) ? <>
-                  {variantColors.length>0&&<div className="variant-step"><div><b>{variantColors.length===1?tx('Расцветка по ссылке','Havoladagi rang','Linked colorway'):c.color}</b>{variantColors.length!==1&&<span>{selectedColor||c.selectColor}</span>}</div>{variantColors.length===1?<><div className="single-variant-selection"><span>{describeSingleColorway(variantColors[0]).primary}</span><small>{tx('Одна расцветка по этой ссылке','Bu havolada bitta rang varianti','One colorway in this link')}</small></div><p className="single-colorway-note">{tx('Для другого цвета нужна ссылка на соответствующий артикул магазина.','Boshqa rang uchun do‘kondagi tegishli artikl havolasi kerak.','Another color requires a link to its separate store item.')}</p><details className="single-colorway-source"><summary>{tx('Полное название расцветки в магазине','Do‘kondagi rangning to‘liq nomi','Full store colorway name')}</summary><span>{variantColors[0]}</span></details></>:<div className="variant-options">{variantColors.map(color=>{const choices=variants.filter(item=>item.color===color);return <button type="button" key={color} aria-pressed={selectedColor===color} onClick={()=>{if(color===selectedColor)return;setSelectedColor(color);setSelectedSize('');setVariant('');setVerified(false);const first=choices.find(item=>item.available)??choices[0];if(first?.image){setImage(first.image);setImages(current=>dedupeSafeImages([first.image!,...current],source))}if(choices.some(item=>item.price!==undefined))setAmount('');if(!choices.some(item=>item.size)&&first)applyVariantChoice(first)}}>{color}</button>})}</div>}</div>}
+                  {variantColors.length>0&&<div className="variant-step"><div><b>{variantColors.length===1?tx('Расцветка по ссылке','Havoladagi rang','Linked colorway'):c.color}</b>{variantColors.length!==1&&<span>{selectedColor||c.selectColor}</span>}</div>{variantColors.length===1?<><div className="single-variant-selection"><span>{describeSingleColorway(variantColors[0]).primary}</span><small>{tx('Одна расцветка по этой ссылке','Bu havolada bitta rang varianti','One colorway in this link')}</small></div><p className="single-colorway-note">{tx('Для другого цвета нужна ссылка на соответствующий артикул магазина.','Boshqa rang uchun do‘kondagi tegishli artikl havolasi kerak.','Another color requires a link to its separate store item.')}</p><details className="single-colorway-source"><summary>{tx('Полное название расцветки в магазине','Do‘kondagi rangning to‘liq nomi','Full store colorway name')}</summary><span>{variantColors[0]}</span></details></>:<div className="variant-options">{variantColors.map(color=><button type="button" key={color} aria-pressed={selectedColor===color} onClick={()=>selectColorway(color)}>{color}</button>)}</div>}</div>}
                   {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize||c.selectVariant}</span></div><div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={selectedSize===size} onClick={()=>applyVariantChoice(choice)}><span>{size}</span>{choice&&price!==undefined&&<small>{price} {currency}</small>}</button>})}</div>{nikeUsMenSizes&&<p className="micro">{tx('Размеры указаны в системе Nike US для мужской обуви. CM на ярлыке Nike — размер обуви, не длина стопы.','O‘lchamlar Nike US erkaklar poyabzali tizimida ko‘rsatilgan. Nike yorlig‘idagi CM — oyoq uzunligi emas, poyabzal o‘lchami.','Sizes use Nike US men’s footwear sizing. Nike’s CM label is a shoe size, not foot length.')} <a className="text-link" href="https://www.nike.com/size-fit/mens-footwear" target="_blank" rel="noopener noreferrer">{tx('Таблица размеров Nike','Nike o‘lcham jadvali','Nike size chart')} <ExternalLink size={13}/></a></p>}</div>}
                   {!variantColors.length&&!variantSizes.length&&<Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.map(item=>item.label)}/>}
                   <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
@@ -785,7 +824,7 @@ export function GlobalLinkOrder() {
           <h2>{name || c.empty}</h2>
           {preview ? (
             <>
-              <details className="quote-details"><summary>{c.cost}</summary><OrderLinkCostLines q={preview} locale={lang} weightHelp={deliveryHelp}/></details>
+              <details className="quote-details"><summary>{c.cost}</summary><CostLines q={preview} locale={lang} internationalHelp={deliveryHelp}/></details>
               <div className="summary-total">
                 <span>
                   {shipping === ""

@@ -1,5 +1,13 @@
 # Atlas TODO and known limitations
 
+## Nike galleries and grouped service display — 29 September 2026
+
+- [x] Match Nike's exact linked article from string or object-shaped PDP data; default to the linked color while exposing only sibling colors from the matching product group.
+- [x] Preserve one safe image per Nike gallery slot and switch the link-order gallery with the selected color; keep gallery state optional and browser-local.
+- [x] Group service, buyout, conversion, international freight and delivery margin under one service amount while retaining expandable component amounts and the original quote math.
+- [x] Add live-shaped importer fixture coverage and a quote-display total regression test; keep D1 and saved order/cart schemas unchanged.
+- [ ] Complete authenticated browser interaction/visual verification for color switching, gallery thumbnails and grouped costs at phone/desktop sizes; automated source/build checks do not verify the published D1/auth-backed experience.
+
 ## Refund workflow, SEO boundaries, and diagnostics — 29 September 2026
 
 - [x] Add an operator-only issue/refund case for active and cancelled orders with reason, status, proposed amount and bounded history; keep it separate from internal notes and customer notifications, and never change payment or balance from a proposal.
