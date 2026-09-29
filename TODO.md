@@ -2,8 +2,8 @@
 
 ## Nike galleries and grouped service display — 29 September 2026
 
-- [x] Match Nike's exact linked article from string or object-shaped PDP data; default to the linked color while exposing only sibling colors from the matching product group.
-- [x] Preserve one safe image per Nike gallery slot and switch the link-order gallery with the selected color; keep gallery state optional and browser-local.
+- [x] Match Nike's exact linked article from string or object-shaped PDP data; retain all exact-group colors for catalog review while order-by-link shows only the linked article/color.
+- [x] Preserve one safe image per Nike gallery slot; use the linked article's gallery in order-by-link and retain per-color galleries for catalog imports.
 - [x] Group service, buyout, conversion, international freight and delivery margin under one service amount while retaining expandable component amounts and the original quote math.
 - [x] Add live-shaped importer fixture coverage and a quote-display total regression test; keep D1 and saved order/cart schemas unchanged.
 - [ ] Complete authenticated browser interaction/visual verification for color switching, gallery thumbnails and grouped costs at phone/desktop sizes; automated source/build checks do not verify the published D1/auth-backed experience.
@@ -18,7 +18,7 @@
 
 ## Nike variant selection and operator contacts — 29 September 2026
 
-- [x] Restrict Nike sibling color selection to the exact linked product group; preserve per-color prices, images and size IDs and label verified US men's sizing with Nike's official chart.
+- [x] Restrict catalog Nike variants to the exact linked product group; preserve per-color prices, images and size IDs, keep direct-link ordering on its exact article, and label verified US men's sizing with Nike's official chart.
 - [x] Add operator order refresh and search by buyer/account/recipient identifiers; show purchaser email/profile phone separately from delivery contacts with click-to-email/call links.
 - [x] Move the customer store-shipping reserve note beside payment status and explicitly label it a preliminary reserve, not a payment.
 - [x] Restore the localized `КАТАЛОГ ATLAS` feed eyebrow and clear ESLint's four pre-existing warnings plus the new implementation's warnings.
