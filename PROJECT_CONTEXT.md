@@ -6,6 +6,8 @@ Selected catalog rechecks now run sequentially in server-sized batches of 10, wi
 
 Expensive customer/operator routes are lazy-loaded to reduce the initial marketplace bundle. Full tests, lint and build passed after these changes. Real browser/device visual QA remains open because `npx` is unavailable in the local shell and existing smoke scripts can mutate the local D1 database; the local `market_settings` table is absent, so no database-backed UI smoke was run or repaired. No D1 state was changed. Account creation/authentication remains platform-owned; Atlas does not collect standalone passwords.
 
+In order-by-link, size options known to be unavailable are disabled; missing availability stays selectable and is still subject to authenticated server verification. When storefront locale is recognized as US/UK/EU, the size grid labels the inferred region; this is a display hint from the merchant storefront, not a conversion or sizing guarantee. Color buttons remain explicit selections and switching color clears the previous size.
+
 ## Order-by-link render recovery — 27 September 2026
 
 The production `/order-by-link` route crashed while rendering its country and category selectors because localized label helpers were missing from the Site source bundle. The helpers are now defined explicitly, and seeded fallback options retain the complete optional `ProductVariant` shape. Sites version 103 is deployed. The supplied Nike URL now renders the order form, colour/size options, price and estimate; this confirms the client render path only, not a fresh merchant fetch or a cart/order transaction.

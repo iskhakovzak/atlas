@@ -846,6 +846,24 @@ export function inferStorefrontCountry(sourceUrl: string, currency?: string) {
   return undefined;
 }
 
+/** Display-only size-region hint inferred from a known storefront locale. */
+export function inferSizeRegion(sourceUrl: string, currency?: string): 'US' | 'UK' | 'EU' | undefined {
+  let country: string | undefined;
+  try {
+    country = inferStorefrontCountry(sourceUrl, currency);
+  } catch {
+    return undefined;
+  }
+  if (country === 'США') return 'US';
+  if (country === 'Великобритания') return 'UK';
+  if (['Испания', 'Германия', 'Франция', 'Италия', 'Румыния'].includes(country ?? '')) return 'EU';
+  return undefined;
+}
+
+export function isConfirmedUnavailableVariant(variant: Pick<ProductVariant, 'available' | 'availabilityKnown'>): boolean {
+  return variant.availabilityKnown === true && !variant.available;
+}
+
 function extractZara(html: string, sourceUrl: string) {
   if (!/(^|\.)zara\.com$/i.test(new URL(sourceUrl).hostname)) return undefined;
   const config = assignedJson(html, "appConfig");

@@ -37,6 +37,7 @@
 - [x] Process all selected catalog rechecks in sequential server-sized batches with visible progress and failed/unprocessed selection retained; support 20 pasted import links with per-link progress and visible partial failures.
 - [x] Surface warehouse exceptions in the operator attention queue; retain safe notes and add order-linked in-app customer notifications plus clearly labeled, unverified operator contact channels.
 - [x] Lazy-load heavy customer/operator route screens to reduce the initial marketplace JavaScript bundle.
+- [x] Disable definitively unavailable link-order color/size variants, retain choices with unknown stock for server verification, and label recognized US/UK/EU size-grid region from the storefront.
 - [ ] Add populated-order/operator and checkout-review browser fixtures beyond current domain and guest/customer route coverage.
 - [ ] Run fixture-backed responsive browser QA at 1440, 800, 430, 402, 390 and 360px across catalog, batch import, sign-in/account entry, customer workspace and operator order flows. Avoid local smoke paths that mutate D1; the current local database lacks `market_settings`.
 - [ ] Finish RU/UZ/EN translations across legacy forms, legal and operator screens; customer order, balance, notifications and link-order messages now follow the selected locale, while legacy/admin/legal/server-history strings remain.

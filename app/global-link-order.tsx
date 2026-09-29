@@ -19,6 +19,8 @@ import { estimatedBoxedWeight, validBoxedWeight, weightCategories } from "@/lib/
 import {
   safeImage,
   inferProductCategory,
+  inferSizeRegion,
+  isConfirmedUnavailableVariant,
   inferStorefrontCountry,
   type Extracted,
   type ProductVariant,
@@ -151,6 +153,9 @@ export function GlobalLinkOrder() {
   const variantsForColor = useMemo(() => selectedColor ? variants.filter(item => item.color === selectedColor) : variantColors.length ? [] : variants, [variants,selectedColor,variantColors]);
   const variantSizes = useMemo(() => [...new Set(variantsForColor.map(item => item.size).filter((value): value is string => Boolean(value)))], [variantsForColor]);
   const variantSizeLabel = useMemo(() => [...new Set(variantsForColor.map(item => item.sizeLabel).filter((value): value is string => Boolean(value)))].join(' / ') || (lang==='ru'?'Размер / модель':lang==='uz'?'O‘lcham / model':'Size / model'), [variantsForColor,lang]);
+  const sizeRegion=inferSizeRegion(url,currency);
+  const sizeRegionName=sizeRegion==='US'?(lang==='ru'?'США (US)':lang==='uz'?'AQSh (US)':'United States (US)'):sizeRegion==='UK'?(lang==='ru'?'Великобритания (UK)':lang==='uz'?'Buyuk Britaniya (UK)':'United Kingdom (UK)'):sizeRegion==='EU'?(lang==='ru'?'Европа (EU)':lang==='uz'?'Yevropa (EU)':'Europe (EU)'):'';
+  const sizeRegionCaption=sizeRegionName?(lang==='ru'?`Размерная сетка магазина: ${sizeRegionName}`:lang==='uz'?`Do‘kon o‘lcham tizimi: ${sizeRegionName}`:`Store size system: ${sizeRegionName}`):'';
   function applyVariantChoice(item:ProductVariant|undefined,knownCurrency=true){
     if(!item){setVariant("");setSelectedSize("");setVerified(false);return}
     setVariant(item.label);setSelectedColor(item.color??"");setSelectedSize(item.size??"");
@@ -694,8 +699,8 @@ export function GlobalLinkOrder() {
                   <small>{tx('Выбран автоматически','Avtomatik tanlandi','Automatically selected')}</small>
                   <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
                 </div> : variants.length && (variantColors.length||variantSizes.length) ? <>
-                  {variantColors.length>0&&<div className="variant-step"><div><b>{c.color}</b><span>{selectedColor||c.selectColor}</span></div><div className="variant-options">{variantColors.map(color=>{const choices=variants.filter(item=>item.color===color);return <button type="button" key={color} aria-pressed={selectedColor===color} onClick={()=>{setSelectedColor(color);setSelectedSize('');if(!choices.some(item=>item.size)&&choices[0])applyVariantChoice(choices[0]);else{setVariant('');setVerified(false)}}}>{color}</button>})}</div></div>}
-                  {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize||c.selectVariant}</span></div><div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={selectedSize===size} onClick={()=>applyVariantChoice(choice)}><span>{size}</span>{choice&&price!==undefined&&<small>{price} {currency}</small>}</button>})}</div></div>}
+                  {variantColors.length>0&&<div className="variant-step"><div><b>{c.color}</b><span>{selectedColor||c.selectColor}</span></div><div className="variant-options">{variantColors.map(color=>{const choices=variants.filter(item=>item.color===color),unavailable=choices.length>0&&choices.every(isConfirmedUnavailableVariant);return <button type="button" key={color} aria-pressed={selectedColor===color} disabled={unavailable} onClick={()=>{setSelectedColor(color);setSelectedSize('');if(!choices.some(item=>item.size)&&choices[0])applyVariantChoice(choices[0]);else{setVariant('');setVerified(false)}}}>{color}</button>})}</div></div>}
+                  {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize||c.selectVariant}</span></div>{sizeRegionCaption&&<small className="variant-region-note">{sizeRegionCaption}</small>}<div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={selectedSize===size} disabled={!choice||isConfirmedUnavailableVariant(choice)} onClick={()=>applyVariantChoice(choice)}><span>{size}</span>{choice&&price!==undefined&&<small>{price} {currency}</small>}</button>})}</div></div>}
                    {!variantColors.length&&!variantSizes.length&&<Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.map(item=>item.label)}/>}
                    <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
                 </> : variants.length ? <Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.map(item=>item.label)}/> : (

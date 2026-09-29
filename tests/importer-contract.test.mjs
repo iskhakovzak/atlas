@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {extractProduct, extractAdidasProduct} from '../lib/importer/extract.ts';
+import {extractProduct, extractAdidasProduct, inferSizeRegion, isConfirmedUnavailableVariant} from '../lib/importer/extract.ts';
 
 const html = data => `<script type="application/ld+json">${JSON.stringify(data)}</script>`;
 const nike = JSON.parse(readFileSync(new URL('./fixtures/importer/nike-cortez.json', import.meta.url), 'utf8'));
@@ -41,6 +41,16 @@ test('Nike embedded product data keeps exact style price, gallery and stock matr
     ['00197600816527', '6', true, true],
     ['00197600804203', '6.5', false, true],
   ]);
+});
+
+test('size-region hint follows a known storefront locale and unknown availability stays selectable', () => {
+  assert.equal(inferSizeRegion('https://www.nike.com/t/shoes/example', 'USD'), 'US');
+  assert.equal(inferSizeRegion('https://www.nike.com/gb/t/shoes/example', 'GBP'), 'UK');
+  assert.equal(inferSizeRegion('https://www.nike.com/de/t/shoes/example', 'EUR'), 'EU');
+  assert.equal(inferSizeRegion('https://merchant.example/product/123', 'USD'), undefined);
+  assert.equal(isConfirmedUnavailableVariant({available: false, availabilityKnown: true}), true);
+  assert.equal(isConfirmedUnavailableVariant({available: false, availabilityKnown: false}), false);
+  assert.equal(isConfirmedUnavailableVariant({available: true, availabilityKnown: true}), false);
 });
 
 test('exact listing wins over earlier recommended JSON-LD products', () => {

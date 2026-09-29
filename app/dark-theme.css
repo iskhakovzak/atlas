@@ -1225,6 +1225,10 @@ html[data-theme="dark"] .variant-options button[aria-pressed="true"] {
   box-shadow: 0 0 0 1px #7789b5;
 }
 
+html[data-theme="dark"] .variant-region-note {
+  color: var(--atlas-dark-muted);
+}
+
 html[data-theme="dark"] .variant-options button:disabled,
 html[data-theme="dark"] button:disabled,
 html[data-theme="dark"] input:disabled,
