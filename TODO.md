@@ -1,5 +1,10 @@
 # Atlas TODO and known limitations
 
+## Delivery help popover — 29 September 2026
+
+- [x] Reset the help popover's inherited no-wrap text behavior and scope the quote accordion's spacing to only its top-level summary.
+- [ ] Verify the published tooltip visually at desktop and phone widths in light/dark themes; Playwright CLI is unavailable in this runtime because `npx` is not installed, so source checks are not visual verification.
+
 ## Nike galleries and grouped service display — 29 September 2026
 
 - [x] Match Nike's exact linked article from string or object-shaped PDP data; retain all exact-group colors for catalog review while order-by-link shows only the linked article/color.
