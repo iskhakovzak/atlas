@@ -1,5 +1,11 @@
 # Atlas — project context
 
+## Operator catalog refresh diagnostics — 1 October 2026
+
+Expanded catalog cards in `/admin` now show the stored refresh status, exact bounded last error/detail, last attempt, last successful source response, snapshot date, consecutive failure count and next retry time. The compact card summary prioritizes the stored error over the generic publication issue, so an operator can identify a block, timeout, incomplete response or other parser/source result without inspecting D1 directly. This is operator-only presentation over existing optional `CatalogEntry.refresh` and `CatalogDraft.lastCheckError` fields; it adds no API, D1 write, migration or customer-facing data.
+
+The admin guidance matches the enabled external UpCloud timer: it starts hourly and processes at most five due products from distinct stores; normal freshness is 24 hours and failed sources back off from one to 24 hours. Failures do not count as out-of-stock and do not hide or delete a product. External alerts for repeated failures remain unconfigured; the bounded outcome is available in the systemd journal.
+
 ## New York merchant egress and catalog refresh — 30 September 2026
 
 The authenticated Site Worker remains the only customer/API and D1 boundary. Its existing merchant importer can use an optional HMAC-signed HTTPS transport through the dedicated UpCloud VM in New York; importer parsing, the exact explicit store-host allowlist, manual redirect validation, and customer price/option checks remain in the Site code. The VM's Node service is bound to loopback and accepts only fresh signed requests for allowlisted merchant hosts, with bounded request/response sizes, concurrency and timeout. It does not receive account, cart or order state. Local/dev requests continue to use direct fetch when both proxy variables are absent, and a partial production configuration fails closed.

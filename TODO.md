@@ -1,5 +1,11 @@
 # Atlas TODO and known limitations
 
+## Operator catalog refresh diagnostics — 1 October 2026
+
+- [x] Show the operator the exact stored source/processing detail, last attempt, last success, snapshot date, consecutive failures and next retry inside each expanded catalog card; keep the compact summary from masking the specific error with a generic issue label.
+- [x] Correct the catalog-admin guidance to match the enabled hourly UpCloud schedule, five-host batch cap and bounded retry window; preserve the rule that an error is not proof of sold-out inventory.
+- [ ] Add an external operator alert for repeated refresh failures; until then inspect the bounded outcomes in the UpCloud systemd journal.
+
 ## NYC merchant egress and automatic refresh — 30 September 2026
 
 - [x] Provision the dedicated UpCloud VM with SSH-key-only access, host firewall and system updates; install Caddy and issue/renew HTTPS for the temporary `85-9-196-196.sslip.io` hostname.
