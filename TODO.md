@@ -5,7 +5,8 @@
 - [x] Provision the dedicated UpCloud VM with SSH-key-only access, host firewall and system updates; install Caddy and issue/renew HTTPS for the temporary `85-9-196-196.sslip.io` hostname.
 - [x] Run the HMAC-authenticated, exact-host allowlisted merchant proxy as an unprivileged loopback-only systemd service; cap payloads, concurrency and timeouts, and keep Site customer/API/D1 traffic out of the VM.
 - [x] Add an optional Site Worker transport with fail-closed partial configuration and automated HMAC, replay, allowlist and unsafe-header tests; preserve the original merchant parser and manual-entry fallback.
-- [ ] Deploy `ATLAS_IMPORT_PROXY_URL` plus secret `ATLAS_IMPORT_PROXY_SECRET` to the Site, verify an authenticated production refresh run, then enable the hourly UpCloud timer.
+- [x] Deploy `ATLAS_IMPORT_PROXY_URL` plus secret `ATLAS_IMPORT_PROXY_SECRET` to the Site; verify the signed production refresh and enable the hourly UpCloud timer. First call checked five entries: two confirmed available and three conservatively failed with exponential retry.
+- [ ] Observe the first automatic timer firing at the next hourly boundary and confirm its outcome in the systemd journal.
 - [ ] Replace the bootstrap `sslip.io` name with an Atlas-owned DNS hostname when the domain's DNS is available.
 - [ ] Add an external operator alert for repeated refresh failures; currently safe status/reason codes are in the systemd journal only.
 - [ ] Add a bounded retry/backoff policy only if production logs show transient failures; do not increase the batch or hammer rate-limited stores.
@@ -171,7 +172,7 @@
 - [x] Add D1-managed RU/UZ/EN home collections so clothing, cosmetics, brands and seasonal selections do not require a code deployment.
 - [x] Add a bounded, merchant-fair catalog-refresh queue, safe auto-unpublish for a confirmed all-sold-out matrix, operator batch control and a protected scheduler endpoint. Source-controlled price, photo and option changes refresh the published snapshot only after a complete successful source response.
 - [x] Add a separate Cloudflare Cron Worker source, HTTPS guard and runbook for the signed hourly refresh call; it never contains the production secret.
-- [x] Configure `ATLAS_CATALOG_REFRESH_SECRET` in the Site and UpCloud's root-only refresh environment, then verify the signed hourly refresh through the protected Site endpoint. UpCloud systemd is the active external scheduler; the Site Worker itself has no cron trigger.
+- [x] Configure `ATLAS_CATALOG_REFRESH_SECRET` in the Site and UpCloud's root-only refresh environment, verify a signed production call through the protected Site endpoint, and enable the UpCloud systemd schedule; the Site Worker itself has no cron trigger.
 - [ ] Add external alert delivery for repeated refresh failures; systemd currently records bounded failure status/reason in the journal.
 - [x] Add a public Shopify adapter and live-check Allbirds, Kylie Cosmetics, ColourPop and Steve Madden; extend ProductGroup matching for Fashion Nova.
 - [x] Expand rich Shopify import to 20 explicit storefront roots across clothing, beauty, sneakers and electronics; live-check Alo Yoga, Rhode, Rare Beauty, Summer Fridays, Kith, CNCPTS, Satechi and Spigen.
@@ -193,7 +194,7 @@
 - [x] Preserve unknown merchant availability as a separate optional state; it does not block customer cart/checkout, while catalog publication/refresh keeps its separate conservative stock policy.
 - [x] Add a bounded embedded-state fallback for priority-1/priority-2 pages that omit JSON-LD; match the exact source path/listing id and retain public price, photos, SKU, option matrix and explicit stock only.
 - [ ] Add store-specific public/official adapters and fixtures for Macy's, eBay, Walmart, Target, Best Buy, Sephora, Foot Locker, Zalando, Primor, Druni, MediaMarkt and PcComponentes. eBay exact-listing embedded/JSON-LD parsing and manual fallback are covered; broad automatic support still needs live fixtures, and an official Browse API would require authorization and credentials.
-- [x] Provision and verify the UpCloud systemd timer using `scripts/catalog-refresh.mjs` and `ATLAS_CATALOG_REFRESH_SECRET`; the active call is bounded and HMAC-signed.
+- [x] Provision and enable the UpCloud systemd timer using `scripts/catalog-refresh.mjs` and `ATLAS_CATALOG_REFRESH_SECRET`; the signed call is bounded, and failed sources use exponential backoff.
 - [ ] Configure external alert delivery for repeated merchant-refresh failures.
 
 ## Order flow
@@ -260,7 +261,7 @@
 - [ ] $10 merchant shipping is an estimate, not a fetched quote.
 - [ ] Allowed stores can still block, localize, require login or change HTML; manually confirmed price/option entry remains the fallback when the page is unavailable.
 - [ ] eBay and MediaMarkt may return 403; Walmart and Target may return CAPTCHA. These responses never imply stock. A confirmed order can be saved when only public data access failed; a merchant's definite not-found response still stops it.
-- [x] Catalog refresh is scheduled by the separate UpCloud systemd timer and calls the protected Site endpoint; a Cloudflare Cron binding is not required for this deployment.
+- [x] Catalog refresh is scheduled by the separate UpCloud systemd timer and calls the protected Site endpoint; a Cloudflare Cron binding is not required for this deployment. The first production batch checked 5 entries (2 available, 3 failed/retrying).
 - [ ] Replace the dated Slickdeals-informed editorial batch with a licensed merchant/affiliate feed and confirm image reuse/attribution terms before commercial launch; keep canonical merchant URLs and recheck semantics.
 - [ ] RON conversion 0.23 USD/RON is static demo data.
 - [x] Simplify catalog discount badges and move itemized quotes/weight margins into detail views; add an independent RU/UZ/EN courier-customs estimator.
@@ -292,7 +293,7 @@
 - [x] Review all GitHub branch heads against the current Site checkout; retain the verified mainline and selectively adapt safe importer and UX work instead of merging conflicting generated or security-sensitive patches wholesale.
 - [x] Parse an exact Sephora `linkJSON` listing through the existing safe importer; reject unrelated products and keep missing stock unverified.
 - [x] Add localized browser-storage notice, two-step cart/recipient removal, accessible support labels, address cards and localized empty-cart action without changing saved-state schemas.
-- [x] Provision `ATLAS_CATALOG_REFRESH_SECRET` in the Site and UpCloud refresh caller and verify its signed request; keep the Cloudflare Cron Worker source as an optional alternative, not a second active scheduler.
+- [x] Provision `ATLAS_CATALOG_REFRESH_SECRET` in the Site and UpCloud refresh caller, verify its signed request and enable the hourly timer; keep the Cloudflare Cron Worker source as an optional alternative, not a second active scheduler.
 - [ ] Select a real authentication/role model before enabling independent staff accounts; keep `market_staff_directory` non-authoritative and `ATLAS_OPERATOR_EMAIL` the sole operator gate for now.
 - [ ] Review the public privacy draft and storage notice with counsel before describing either as legally sufficient cookie/data consent.
 
@@ -343,7 +344,7 @@
 - [ ] Profile operator page payload: it currently projects up to 200 account JSON documents and related operational data; paginate or narrow server projections only with a compatibility plan.
 - [ ] Measure shared `store`, `market-ui`, framework chunks and the global CSS transfer on current mobile Safari/network before attempting further splitting; CSS is globally composed and route separation may introduce visual regressions.
 - [ ] Complete live interactive checks on the deployed Site in guest/customer/operator sessions and physical iPhone Safari; unit tests/build do not verify remote D1, R2, Cron, payment or merchant connectivity.
-- [ ] Configure and verify production security headers, authentication identity provider and scheduled catalog refresh as separate production infrastructure changes; the source build alone does not establish those runtime settings.
+- [ ] Configure and verify production security headers and authentication identity provider; the source build alone does not establish those runtime settings.
 
 ## Copy hierarchy, brand accents and mobile cascade — 27 September 2026
 

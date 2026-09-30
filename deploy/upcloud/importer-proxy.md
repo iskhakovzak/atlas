@@ -18,3 +18,15 @@ Do not log target URLs, cookies, request bodies, response bodies, customer ident
 Generate a fresh random 32-byte hexadecimal secret on the VM. Replace the root-only server environment file and the Site secret `ATLAS_IMPORT_PROXY_SECRET` with the same value, set non-secret `ATLAS_IMPORT_PROXY_URL=https://85-9-196-196.sslip.io/v1/fetch`, then restart the service and deploy the Site version. Never put the value in this repository, a command argument, shell history, or logs.
 
 Refresh `supported-store-hosts.json` from the checked-in source with `node --experimental-strip-types scripts/export-importer-hosts.mjs <output-path>` whenever the merchant allowlist changes. The server rejects hosts absent from this exact snapshot even when a signed client asks for them.
+
+## Catalog scheduler operations
+
+The independent hourly refresh caller uses `/opt/atlas-catalog-refresh` and `/etc/atlas/catalog-refresh.env`; the latter is root-owned and contains the existing Site refresh HMAC secret. The VM timer calls only the protected Site endpoint, which performs the bounded D1 work and merchant requests through the proxy.
+
+```sh
+systemctl list-timers atlas-catalog-refresh.timer --no-pager
+systemctl start --wait atlas-catalog-refresh.service
+journalctl -u atlas-catalog-refresh.service -n 40 --no-pager
+```
+
+Catalog failures are stored as conservative source-check results with exponential retry and are also visible in the local systemd journal. No external alert is configured yet. A successful HTTP response with some failed merchants is a partial batch, not proof that all catalog cards are fresh.
