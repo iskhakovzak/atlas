@@ -1,5 +1,11 @@
 # Atlas — project context
 
+## eBay Marketplace Account Deletion endpoint — 1 October 2026
+
+The deployed eBay Browse importer currently receives HTTP 401 at OAuth because eBay has disabled this Production keyset until the application subscribes to Marketplace Account Deletion notifications. `GET /api/ebay/notifications?challenge_code=...` now returns eBay's required SHA-256 challenge response for the exact `https://atlasmarket.uz/api/ebay/notifications` URL. `POST /api/ebay/notifications` accepts bounded JSON, verifies the `X-EBAY-SIGNATURE` ECDSA signature against eBay's OAuth-protected public-key API, caches public keys for one hour, returns 412 for invalid signatures and 503 for transient key-service failures, and never writes or logs the notification payload or account identifiers.
+
+The Browse adapter maps listing title, price, variant and image fields; it does not persist eBay member profile IDs, usernames or EIAS tokens. Therefore a valid deletion notice has no Atlas eBay-member profile record to erase. Do not claim the app stores no eBay data or opt out: product listing data is used and cached. eBay requires an alert email before accepting endpoint setup; after an operator chooses the correct operations mailbox, enter this deployed endpoint and the separately stored runtime verification-token secret in the Production Notifications page, complete eBay's challenge and send a test notification. Only after the keyset activates can a read-only exact-listing import verify Browse OAuth, price and variants.
+
 ## Optional official eBay Browse import — 1 October 2026
 
 The eBay importer can use the official Browse API for exact numeric `/itm/.../{legacyItemId}` links when the Site runtime has `EBAY_CLIENT_ID`, secret `EBAY_CLIENT_SECRET`, and an explicit `EBAY_ENV` (`sandbox` or `production`). It exchanges application credentials for a server-only OAuth token, requests the exact legacy listing and—only for seller-defined variation groups—the exact item group. Prices remain per option, eBay seller size/color aspect labels are preserved, known-out-of-stock options are not offered, and requests are bound to the input listing ID and the source marketplace. It never searches by title or borrows a similar listing.

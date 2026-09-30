@@ -1,5 +1,12 @@
 # Atlas TODO and known limitations
 
+## eBay Production activation — 1 October 2026
+
+- [x] Add and test the public HTTPS account-deletion callback: exact-endpoint SHA-256 challenge, bounded request bodies, ECDSA notification-signature verification, one-hour eBay public-key cache, and no retention/logging of notification identifiers.
+- [ ] Choose the operations alert email required by eBay; do not reuse an owner/personal address unless the operator explicitly supplies it for this destination.
+- [ ] In eBay Developer Portal Production Notifications, save the chosen alert email, `https://atlasmarket.uz/api/ebay/notifications`, and the Site secret `EBAY_NOTIFICATION_VERIFICATION_TOKEN`; complete the live challenge and send eBay's test notification. Do not select the exemption while Atlas uses eBay listing data.
+- [ ] After eBay enables the Production keyset, run a read-only exact-listing import and confirm OAuth, title, price, and available size/color variants. The earlier 401 is not a verified import result.
+
 ## Operator catalog refresh diagnostics — 1 October 2026
 
 - [x] Show the operator the exact stored source/processing detail, last attempt, last success, snapshot date, consecutive failures and next retry inside each expanded catalog card; keep the compact summary from masking the specific error with a generic issue label.

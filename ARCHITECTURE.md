@@ -1,5 +1,9 @@
 # Atlas architecture
 
+## eBay deletion-notification webhook — 1 October 2026
+
+`app/api/ebay/notifications/route.ts` is a public eBay callback, separate from customer identity and D1 actions. GET challenge requests use the fixed canonical custom-domain endpoint plus secret `EBAY_NOTIFICATION_VERIFICATION_TOKEN`. POST payloads are capped at 64 KB, signature headers are validated against eBay's fixed OAuth/public-key APIs using Web Crypto, and keys are held only in a one-hour per-isolate cache. Invalid signatures receive 412, upstream verification failures 503, and valid notices 204. Neither payloads nor eBay account identifiers are stored or logged: Browse import persists only the mapped public listing fields and does not map eBay member profile identifiers. No SQL migration or account/cart/order change is involved.
+
 ## Operator catalog refresh diagnostics — 1 October 2026
 
 `CatalogRefreshDiagnostics` renders only inside the operator-gated `/admin` catalog editor, using the already-returned catalog document. It displays optional `CatalogEntry.refresh` status/timestamps/retry count and the bounded `lastError` or compatible `CatalogDraft.lastCheckError`, alongside the source snapshot date and next retry. The compact card summary gives the stored detail priority over the generic `catalogIssues()` publication label. This is a read-only UI projection: it adds no API call, persisted state, schema or migration and exposes no merchant detail to public catalog responses.
