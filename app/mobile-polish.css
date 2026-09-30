@@ -19,6 +19,8 @@
 .detail-image:has(.product-gallery){height:auto;padding:20px}
 .detail-image:has(.product-gallery)>.floating-label{position:static;display:inline-flex;margin-top:8px}
 .quote-preview>.product-gallery{margin-bottom:18px}
+/* The informational notice returns when the dialog closes; it cannot cover a trapped form. */
+body:has([role=dialog][data-state=open]) .storage-notice{visibility:hidden}
 
 @media(max-width:600px){
   /* Let copy reflow instead of creating hidden page overflow. */
@@ -36,6 +38,7 @@
   .site-main :is(.notice,.status-notice,.customer-badge){overflow-wrap:anywhere}
   .atlas-modal{width:calc(100vw - 24px);max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow-y:auto;padding:24px 18px;scroll-padding-block:24px;overscroll-behavior-y:contain}
   .atlas-modal .modal-title{padding-right:32px;font-size:24px;overflow-wrap:anywhere}
+  .atlas-modal [data-slot=dialog-close]{width:44px;height:44px;display:grid;place-items:center;top:8px;right:8px}
   .atlas-modal :is(input:not([type=checkbox]):not([type=radio]),textarea,select){font-size:16px;min-height:48px}
   .atlas-modal .btn{min-height:48px;white-space:normal}
   .product-sheet{width:100%;max-width:100vw;padding-bottom:env(safe-area-inset-bottom);max-height:100dvh;overflow-y:auto;overscroll-behavior-y:contain}
