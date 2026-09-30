@@ -105,7 +105,7 @@
 - [x] Let unsupported public HTTPS stores continue as explicit manual-entry orders without making a server request to that host; cart-add remains clickable and guides the customer to each missing field.
 - [x] Expand the exact eBay storefront allowlist; let blocked/incomplete eBay pages produce manually reviewable admin drafts without publishing them or overwriting an existing complete draft.
 - [x] Remove generated Atlas boilerplate from product descriptions, hide known legacy boilerplate in public catalog output and the operator editor, and preserve actual editorial descriptions.
-- [ ] Validate representative live eBay item URLs from desktop/mobile shares; public merchant blocks can still prevent automatic title, price, photo and option extraction, so manual entry remains the supported fallback.
+- [ ] Validate representative live eBay URLs, including selected-variation `?var=` links, after an authorized Browse API environment is provisioned; until then production imports intentionally retain the safe manual fallback.
 
 - [x] Route successful catalog, link and batch additions directly to the cart; offer simulated payment confirmation from cart checkout. Real provider payments remain blocked on PSP integration.
 - [x] Remove the customer stock-status gate from link/batch cart addition and checkout while retaining live selected-option, price and currency verification; catalog auto-hide remains a separate operator feed policy.
@@ -183,7 +183,8 @@
 - [x] Add a public Shopify adapter and live-check Allbirds, Kylie Cosmetics, ColourPop and Steve Madden; extend ProductGroup matching for Fashion Nova.
 - [x] Expand rich Shopify import to 20 explicit storefront roots across clothing, beauty, sneakers and electronics; live-check Alo Yoga, Rhode, Rare Beauty, Summer Fridays, Kith, CNCPTS, Satechi and Spigen.
 - [ ] Verify Bombas with a current product URL. Gymshark active-color/size parsing and Anker embedded-product parsing have live checks; expand dedicated adapters for other major stores using actual page samples.
-- [ ] Add authorized eBay Browse API if reliable eBay sourcing is needed. No credential/adapter exists.
+- [x] Add an optional official eBay Browse adapter for exact numeric listings and seller variation groups; preserve per-size prices/stock, reject auctions/unrelated IDs, and keep page/manual fallback when disabled.
+- [ ] Provision `EBAY_CLIENT_ID`, secret `EBAY_CLIENT_SECRET`, and explicit `EBAY_ENV` in Sites runtime; confirm eBay Browse API Production access before selecting `production`. Credentials were not supplied/configured and live API requests remain unverified.
 - [x] Add caching, source timestamp and expiry for imports.
 - [x] Pin Amazon.com anonymous checks to US storefront/USD and ZIP 19701 before parsing price, availability and images; reject the check when Amazon cannot confirm the location.
 - [x] Add Adidas article-code JSON/PLP fallback for Akamai-blocked HTML, retaining sale price, safe gallery and current available sizes; use PLP-first parsing, Adidas-safe minimal headers, clothing/jersey category inference and the fixed apex edge retry when product JSON is rate-limited.
@@ -199,7 +200,7 @@
 - [x] Match structured product data to the exact linked listing, retain unique SKU/GTIN variant IDs and reject unsafe/unrelated recommendation nodes.
 - [x] Preserve unknown merchant availability as a separate optional state; it does not block customer cart/checkout, while catalog publication/refresh keeps its separate conservative stock policy.
 - [x] Add a bounded embedded-state fallback for priority-1/priority-2 pages that omit JSON-LD; match the exact source path/listing id and retain public price, photos, SKU, option matrix and explicit stock only.
-- [ ] Add store-specific public/official adapters and fixtures for Macy's, eBay, Walmart, Target, Best Buy, Sephora, Foot Locker, Zalando, Primor, Druni, MediaMarkt and PcComponentes. eBay exact-listing embedded/JSON-LD parsing and manual fallback are covered; broad automatic support still needs live fixtures, and an official Browse API would require authorization and credentials.
+- [ ] Add store-specific public/official adapters and fixtures for Macy's, Walmart, Target, Best Buy, Sephora, Foot Locker, Zalando, Primor, Druni, MediaMarkt and PcComponentes. eBay now has a fixture-tested optional Browse API adapter; live production integration still requires authorized credentials and listings.
 - [x] Provision and enable the UpCloud systemd timer using `scripts/catalog-refresh.mjs` and `ATLAS_CATALOG_REFRESH_SECRET`; the signed call is bounded, and failed sources use exponential backoff.
 - [ ] Configure external alert delivery for repeated merchant-refresh failures.
 

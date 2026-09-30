@@ -2,6 +2,7 @@ import {dedupeSafeImages,extractAdidasProduct,extractProduct,type Extracted} fro
 import {extractShopify, shopifyEndpoints} from './shopify.ts';
 import {isEbayStoreHost,isSupportedStoreHost,supportedStoreCount} from './stores.ts';
 import {applyMerchantProfile} from './merchant-profiles.ts';
+import {EbayListingUnavailableError, EbayManualReviewError, fetchEbayProduct, type EbayBrowseConfig} from './ebay.ts';
 export {supportedStoreCount};
 
 /** Recoverable import failure: the customer may review and explicitly confirm
@@ -95,7 +96,9 @@ type PublicRequestOptions = {
   /** Fixed same-merchant origins that may be used during a safe redirect. */
   allowedOrigins?: string[];
 };
-export type MerchantFetch = (input: string | URL, init?: RequestInit) => Promise<Response>;
+export type MerchantFetch = ((input: string | URL, init?: RequestInit) => Promise<Response>) & {
+  ebayBrowseConfig?: () => EbayBrowseConfig;
+};
 
 function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = browserUserAgent, referer?: string, options: Pick<PublicRequestOptions, 'clientHints'> = {}) {
   return {
@@ -300,6 +303,26 @@ export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch
   const url = allowedUrl(manualUrl.href), controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);
   try {
+    if (isEbayStoreHost(url.hostname)) {
+      const config = fetcher.ebayBrowseConfig?.();
+      if (config?.clientId?.trim() && config.clientSecret) {
+        try {
+          const ebayProduct = await fetchEbayProduct(url.href, config, fetcher, controller.signal);
+          if (ebayProduct) return finalizeExtraction(ebayProduct, url.href);
+        } catch (error) {
+          if (error instanceof EbayListingUnavailableError || error instanceof ManualEntryFallbackError) throw error;
+          if (error instanceof EbayManualReviewError) {
+            throw new ManualEntryFallbackError(error.message, {
+              sourceUrl: url.href,
+              brand: 'eBay',
+              warnings: [],
+            }, 'incomplete');
+          }
+          // An unavailable/unauthorized API should not strand existing links:
+          // continue through the current exact-page parser and manual fallback.
+        }
+      }
+    }
     const adidas = adidasProductApiUrls(url);
     if (adidas) {
       // Adidas treats Chromium client hints and X-Requested-With as bot signals
@@ -395,6 +418,7 @@ export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch
     // hard import error. A confirmed 404/410 is still definitive and must not
     // be converted into an orderable fallback.
     if (isEbayStoreHost(url.hostname)) {
+      if (error instanceof EbayListingUnavailableError) throw error;
       if (error instanceof Error && /карточка товара не найдена/i.test(error.message)) throw error;
       if (error instanceof ManualEntryFallbackError && error.partial) throw error;
       const message = error instanceof ManualEntryFallbackError

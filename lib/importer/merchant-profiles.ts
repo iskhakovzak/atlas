@@ -27,7 +27,7 @@ export const priorityMerchantProfiles: MerchantProfile[] = [
   p({root: 'nike.com', name: 'Nike', priority: 1, focus: 'Кроссовки', defaultBrand: 'Nike', defaultCategory: 'Обувь', defaultCountry: 'США', regions: ['США', 'Европа'], adapter: 'json-ld'}),
   p({root: 'adidas.com', name: 'adidas', priority: 1, focus: 'Кроссовки', defaultBrand: 'adidas', defaultCategory: 'Обувь', defaultCountry: 'США', regions: ['США', 'Европа'], adapter: 'adidas-json'}),
   p({root: 'macys.com', name: "Macy's", priority: 1, focus: 'Универмаг', defaultCountry: 'США', regions: ['США'], adapter: 'embedded-json'}),
-  p({root: 'ebay.com', name: 'eBay', priority: 1, focus: 'Универмаг', defaultCountry: 'США', regions: ['США'], adapter: 'official-api-required'}),
+  p({root: 'ebay.com', name: 'eBay', priority: 1, focus: 'Универмаг', regions: ['США', 'Европа'], adapter: 'official-api-required'}),
   p({root: 'walmart.com', name: 'Walmart', priority: 1, focus: 'Универмаг', defaultCountry: 'США', regions: ['США'], adapter: 'embedded-json'}),
   p({root: 'target.com', name: 'Target', priority: 1, focus: 'Универмаг', defaultCountry: 'США', regions: ['США'], adapter: 'embedded-json'}),
   p({root: 'bestbuy.com', name: 'Best Buy', priority: 1, focus: 'Техника', defaultBrand: 'Best Buy', defaultCountry: 'США', regions: ['США'], adapter: 'embedded-json'}),

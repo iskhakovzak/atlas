@@ -1,5 +1,11 @@
 # Atlas — project context
 
+## Optional official eBay Browse import — 1 October 2026
+
+The eBay importer can use the official Browse API for exact numeric `/itm/.../{legacyItemId}` links when the Site runtime has `EBAY_CLIENT_ID`, secret `EBAY_CLIENT_SECRET`, and an explicit `EBAY_ENV` (`sandbox` or `production`). It exchanges application credentials for a server-only OAuth token, requests the exact legacy listing and—only for seller-defined variation groups—the exact item group. Prices remain per option, eBay seller size/color aspect labels are preserved, known-out-of-stock options are not offered, and requests are bound to the input listing ID and the source marketplace. It never searches by title or borrows a similar listing.
+
+API credentials and tokens are not sent through the New York merchant-page proxy. Missing/invalid credentials, unsupported eBay marketplaces, short links, or API outages retain the existing safe page/manual-review fallback. Production Browse access is a separate eBay approval from creating developer keys; set `EBAY_ENV=production` only after that access is granted. Seller size labels are not converted to an assumed official or centimeter chart. Dispatch country comes from the listing location; if eBay omits/uses an unsupported location, the order form requires manual confirmation. No D1 schema or saved cart/order fields changed. No eBay keys were supplied/configured for this change, so live API access remains unverified and the published feature stays inactive until the owner provisions the three runtime variables.
+
 ## Operator catalog refresh diagnostics — 1 October 2026
 
 Expanded catalog cards in `/admin` now show the stored refresh status, exact bounded last error/detail, last attempt, last successful source response, snapshot date, consecutive failure count and next retry time. The compact card summary prioritizes the stored error over the generic publication issue, so an operator can identify a block, timeout, incomplete response or other parser/source result without inspecting D1 directly. This is operator-only presentation over existing optional `CatalogEntry.refresh` and `CatalogDraft.lastCheckError` fields; it adds no API, D1 write, migration or customer-facing data.

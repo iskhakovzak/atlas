@@ -356,8 +356,9 @@ export function GlobalLinkOrder() {
       const hasPricedVariants=knownCurrency&&safeVariants.some(item=>typeof item.price==='number'&&Number.isFinite(item.price)&&item.price>0);
       const selectableVariants=data.price===undefined&&hasPricedVariants?safeVariants.filter(item=>typeof item.price==='number'&&Number.isFinite(item.price)&&item.price>0):safeVariants;
       setVariants(selectableVariants);
-      const selectedId = new URL(data.sourceUrl).searchParams.get('variant');
-      const selectedVariant = selectableVariants.find(item => item.id && item.id === selectedId)
+      const sourceParams = new URL(data.sourceUrl).searchParams;
+      const selectedIds = [sourceParams.get('variant'), sourceParams.get('var')].filter((value): value is string => Boolean(value));
+      const selectedVariant = selectableVariants.find(item => item.id && selectedIds.includes(item.id))
         ?? (selectableVariants.length === 1 ? selectableVariants[0] : undefined);
       const selectedColorForLink=selectedVariant?.color??selectedImportedColor(data,selectableVariants,importedColorwayGalleries);
       setSelectedColor(selectedColorForLink);
