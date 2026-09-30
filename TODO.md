@@ -79,7 +79,7 @@
 - [x] Add D1-managed RU/UZ/EN home collections so clothing, cosmetics, brands and seasonal selections do not require a code deployment.
 - [x] Add a bounded, merchant-fair catalog-refresh queue, safe auto-unpublish for a confirmed all-sold-out matrix, operator batch control and a protected scheduler endpoint. Source-controlled price, photo and option changes refresh the published snapshot only after a complete successful source response.
 - [x] Add a separate Cloudflare Cron Worker source, HTTPS guard and runbook for the signed hourly refresh call; it never contains the production secret.
-- [ ] Provision a separate Cloudflare scheduled Worker (or equivalent managed scheduler), configure `ATLAS_CATALOG_REFRESH_SECRET` in both runtimes, and verify the hourly trigger, HMAC call and alert handling in production. The current Sites/Vinext Worker has no cron trigger.
+- [x] Provision a separate Cloudflare scheduled Worker (or equivalent managed scheduler), configure `ATLAS_CATALOG_REFRESH_SECRET` in both runtimes, and verify the hourly trigger, HMAC call and alert handling in production. The current Sites/Vinext Worker has no cron trigger.
 - [x] Add a public Shopify adapter and live-check Allbirds, Kylie Cosmetics, ColourPop and Steve Madden; extend ProductGroup matching for Fashion Nova.
 - [x] Expand rich Shopify import to 20 explicit storefront roots across clothing, beauty, sneakers and electronics; live-check Alo Yoga, Rhode, Rare Beauty, Summer Fridays, Kith, CNCPTS, Satechi and Spigen.
 - [ ] Verify Bombas with a current product URL. Gymshark active-color/size parsing and Anker embedded-product parsing have live checks; expand dedicated adapters for other major stores using actual page samples.
@@ -100,7 +100,7 @@
 - [x] Preserve unknown merchant availability as a separate optional state; block cart verification and catalog republishing until a stock signal is explicit.
 - [x] Add a bounded embedded-state fallback for priority-1/priority-2 pages that omit JSON-LD; match the exact source path/listing id and retain public price, photos, SKU, option matrix and explicit stock only.
 - [ ] Add store-specific public/official adapters and fixtures for Macy's, eBay, Walmart, Target, Best Buy, Sephora, Foot Locker, Zalando, Primor, Druni, MediaMarkt and PcComponentes. Generic JSON-LD remains the safe fallback when a merchant blocks or omits data.
-- [ ] Provision the external scheduler using `scripts/catalog-refresh.mjs`, configure `ATLAS_CATALOG_REFRESH_SECRET` and alert on repeated merchant failures.
+- [x] Provision the external scheduler using `scripts/catalog-refresh.mjs`, configure `ATLAS_CATALOG_REFRESH_SECRET` and alert on repeated merchant failures.
 
 ## Order flow
 

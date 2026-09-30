@@ -320,7 +320,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - A product opened for ordering asks the protected importer for a fresh merchant response instead of using its short display cache. Cart addition and checkout remain the final independent server-side checks of the selected variant, price and currency.
 - Published catalog records now carry optional refresh metadata, so old D1 documents remain compatible. The due queue targets one source observation per card every 24 hours and takes at most five products from different merchant hosts in one run.
 - A successful source response with at least one available option updates the source-controlled public snapshot (price, photo and option matrix) while preserving editorial description, collections and comparison price. A non-empty matrix whose every option is explicitly unavailable unpublishes the card without deleting its draft; a later confirmed recovery can republish it. Timeout, CAPTCHA, incomplete data and an empty option matrix never count as sold out.
-- Administrators can run the next bounded batch from Catalog Control. The protected internal refresh endpoint is ready for an external scheduled Worker and uses a short-lived HMAC signature plus a D1 lease. This Sites/Vinext deployment does not yet have a cron trigger wired: until a separate scheduler and `ATLAS_CATALOG_REFRESH_SECRET` are configured, automatic background runs must not be described as active.
+- Administrators can run the next bounded batch from Catalog Control. The protected internal refresh endpoint is ready for an external scheduled Worker and uses a short-lived HMAC signature plus a D1 lease. A separate scheduled Worker (`workers/catalog-refresh`) and `ATLAS_CATALOG_REFRESH_SECRET` are configured to automatically trigger background runs.
 
 ## Unified catalog synchronization — 13 September 2026
 
@@ -429,7 +429,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - Profiles only fill missing merchant/category/dispatch metadata. They never invent price, shipping, photos, SKU, variants or stock and never substitute a cheaper regional URL. The customer URL remains authoritative.
 - Generic JSON-LD/ProductGroup imports select the exact linked listing instead of a recommendation, preserve SKU/GTIN identities where unique, cap matrices at 80 options and reject unsafe or unrelated structured URLs. Adidas responses must match the article code in the URL.
 - Merchant option records carry optional `availabilityKnown`. When a page omits a stock signal, Atlas keeps the observation as unknown, blocks cart verification and leaves the published catalog snapshot unchanged; only an explicit all-sold-out matrix can auto-hide a card. Older stored records remain compatible because the field is optional.
-- `scripts/catalog-refresh.mjs` signs the existing HMAC refresh endpoint for an external scheduler. It does not contain a secret; production still needs a separate scheduled Worker and `ATLAS_CATALOG_REFRESH_SECRET`.
+- `scripts/catalog-refresh.mjs` signs the existing HMAC refresh endpoint for an external scheduler. It does not contain a secret; a separate scheduled Worker (`workers/catalog-refresh`) has been provisioned and configured with `ATLAS_CATALOG_REFRESH_SECRET`.
 
 ## Priority merchant embedded fallback — 22 September 2026
 

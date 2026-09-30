@@ -1,0 +1,1 @@
+This folder contains the built output assets for the worker "atlas-catalog-refresh" generated at 2026-09-26T17:16:30.163Z.

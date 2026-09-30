@@ -6,6 +6,7 @@ import "./checkout-clarity.css";
 import "./access.css";
 import "./experience.css";
 import { MarketProvider } from "@/lib/market/store";
+import { CookieConsent } from "./cookie-consent";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -74,7 +75,10 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body className="antialiased">
-        <MarketProvider>{children}</MarketProvider>
+        <MarketProvider>
+          {children}
+          <CookieConsent />
+        </MarketProvider>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
