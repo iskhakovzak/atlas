@@ -1,5 +1,9 @@
 # Atlas architecture
 
+## Explicit link-order context and incomplete source recovery — 30 September 2026
+
+`lib/market/link-order-context.ts` resolves catalog display context only from a matching explicit catalog ID + requested source URL, never from a URL match alone. The current input must still equal that source; manual/changed links remain editable. `catalogLinkPrice()` preserves a finite positive recorded source amount/currency even when the observation is stale, while the UI labels failed rechecks as preliminary. Missing price/currency remains editable. `catalogLinkWeight()` derives a compatible finite boxed weight for legacy catalog snapshots. These helpers are client presentation/fallback logic, not price or authorization authority. `/api/actions`, importer allowlist/redirect checks and manual fallback's returned-price/currency comparison are unchanged.
+
 ## Scoped homepage presentation and source sizing — 30 September 2026
 
 `Marketplace` adds `catalog-home` only to the catalog route. `home-polish.css` scopes the grid and section hierarchy to that route; other account/operator screens retain their existing layout. `DealsFeed` retains full in-memory filtering/counts and renders a 12-item window, expanded by a client-only button; it does not truncate the API response or stored catalog. Query changes reset the window. FAQ uses native accessible details/summary controls.

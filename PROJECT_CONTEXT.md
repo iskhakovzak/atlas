@@ -1,5 +1,11 @@
 # Atlas — project context
 
+## Link-order source context recovery — 30 September 2026
+
+Customer-pasted URLs no longer inherit read-only Atlas fields merely because their URL also exists in the public catalog. Catalog context requires an explicit matching product ID and source URL; changing the link releases that context. A blocked/incomplete catalog source retains its valid last-recorded amount and currency as a clearly disclosed preliminary estimate, not a fresh quote. An absent catalog amount leaves price/currency editable rather than creating an empty locked field. Legacy boxed-weight fallback stays finite. Atlas-authored catalog title/category/weight/store shipping remain fixed; fresh source price and option checks, customer confirmation, authenticated server recomputation and checkout verification are unchanged. No D1 state or schema is changed.
+
+Local Chromium smoke uses synthetic account/catalog/import responses for Amazon, eBay, Zara, Sephora, adidas and Nike at 360/1440 px. It verifies pasted-link editing, blocked catalog price retention, fresh-price updates without overwriting Atlas fields, changing links, and 12 intercepted cart requests. No page errors or horizontal overflow occurred and no request wrote to D1. This verifies interface recovery, not live merchant availability or actual production checkout.
+
 ## Homepage visual hierarchy and Nike size guide — 30 September 2026
 
 Homepage sections now share a scoped spacing scale: guest hero, catalog controls, responsive product grid, link entry, order steps, store strip, trust panels, collapsible FAQ and footer. The catalog initially renders 12 matches and exposes all remaining matches through “Show more”; search/filter changes reset that display window. All products, source links, saved items, category filters and delivered-cost calculations remain available. Cards use shorter estimate labels and localized UZS suffixes without changing price freshness checks.

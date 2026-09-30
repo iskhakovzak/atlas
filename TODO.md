@@ -1,5 +1,12 @@
 # Atlas TODO and known limitations
 
+## Link-order lock recovery — 30 September 2026
+
+- [x] Require explicit matching catalog context, not just URL equality, before locking Atlas fields; preserve manual entry and changing to another source.
+- [x] Keep a valid dated catalog amount as a disclosed fallback estimate instead of clearing a read-only price; leave missing price/currency editable and derive finite legacy boxed weight.
+- [x] Verify six merchant-shaped UI fixtures at 360/1440 px, blocked/fresh responses, catalog vs. pasted-link modes, changing links and intercepted cart submissions. Missing legacy country remains editable. No real account/cart or D1 state was changed.
+- [ ] Verify actual authenticated merchant imports and checkout on a dedicated test account across the priority stores. Merchant blocking/incomplete responses remain supported manual fallback, not guaranteed automatic imports; do not bypass challenges or infer stock.
+
 ## Homepage and sizing QA — 30 September 2026
 
 - [x] Improve homepage hero/catalog/cards/link-entry/steps/stores/trust/FAQ/footer with route-scoped responsive spacing and progressive catalog rendering; preserve all product features.

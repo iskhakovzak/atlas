@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
 import { catalogOrderVariants } from "@/lib/market/catalog";
+import { catalogLinkSeed, catalogLinkPrice, catalogLinkWeight } from "@/lib/market/link-order-context";
 import {
   price,
   money,
@@ -91,25 +92,25 @@ export function GlobalLinkOrder() {
   const requestedUrl = searchParams.get("url") ?? "";
   const catalogId = searchParams.get("catalog") ?? "";
   const isSourcedFlow = Boolean(requestedUrl);
-  const catalogFixedText=tx('Данные товара заданы Atlas. Цена проверяется в магазине; чтобы заказать по другой ссылке, измените ссылку выше.','Tovar ma’lumotlarini Atlas belgilagan. Narx do‘konda tekshiriladi; boshqa havola uchun yuqoridagi havolani o‘zgartiring.','Atlas set this catalog item’s details. Its price is checked with the store; change the link above to order another item.');
+  const catalogFixedText=tx('Название, категория, вес и доставка заданы Atlas для товара каталога. Выберите вариант и проверьте расчёт.','Katalog tovarining nomi, kategoriyasi, vazni va yetkazishini Atlas belgilagan. Variantni tanlab, hisobni tekshiring.','Atlas set the catalog item’s name, category, weight and store delivery. Choose an option and review the estimate.');
   const dealSeed = communityDeals.find(item => item.id === searchParams.get("deal") && item.url === requestedUrl);
   const dealOptions: ProductVariant[] = dealSeed ? communityFallbackOptions(dealSeed).map(item => ({ ...item, available: true })) : [];
   const dealBoxedWeight = dealSeed ? Math.max(0.1, communityEstimatedWeight(dealSeed) - 0.5) : undefined;
-  const seed = catalogProducts.find(item => item.sourceUrl === requestedUrl && (!catalogId || item.id === catalogId));
-  const seedIsFresh = Boolean(seed && !seed.priceNeedsConfirmation);
+  const seed = catalogLinkSeed(catalogProducts, catalogId, requestedUrl);
+  const seedPrice = catalogLinkPrice(seed);
   const seedOptions: ProductVariant[] = seed ? catalogOrderVariants(seed) : [];
   const fallbackOptions = seedOptions.length ? seedOptions : dealOptions;
   const seedImages = seed
     ? dedupeSafeImages([seed.image, ...(seed.sourceImages ?? [])], seed.sourceUrl ?? requestedUrl)
     : dealSeed?.image ? [dealSeed.image] : [];
-  const fallbackBoxedWeight = seed?.boxedWeight ?? dealBoxedWeight;
+  const fallbackBoxedWeight = catalogLinkWeight(seed) ?? dealBoxedWeight;
   const [url, setUrl] = useState(() => searchParams.get("url") ?? "");
   const [source, setSource] = useState(seed?.sourceUrl ?? dealSeed?.url ?? ""),
     [name, setName] = useState(seed?.name ?? dealSeed?.title ?? ""),
     [brand, setBrand] = useState(seed?.brand ?? dealSeed?.store ?? ""),
     [declaration, setDeclaration] = useState(""),
     [currency, setCurrency] = useState(seed?.sourceCurrency ?? "USD"),
-    [amount, setAmount] = useState(seedIsFresh ? String(seed!.sourcePrice) : dealSeed ? String(dealSeed.price) : ""),
+    [amount, setAmount] = useState(seedPrice ? String(seedPrice.amount) : dealSeed ? String(dealSeed.price) : ""),
     [shipping, setShipping] = useState(String(seed?.sourceShippingUsd ?? 10)),
     [shippingCurrency, setShippingCurrency] = useState(seed?.sourceShippingCurrency ?? "USD"),
     [shippingEstimated, setShippingEstimated] = useState(seed?.sourceShippingEstimated ?? true),
@@ -141,9 +142,6 @@ export function GlobalLinkOrder() {
     } | null>(null);
   const automaticallyLoaded = useRef<string | null>(null);
   const [catalogContextLoaded,setCatalogContextLoaded]=useState<string|null>(()=>catalogId?null:'');
-  const [sourceEditedFor,setSourceEditedFor]=useState<string|null>(null);
-  const catalogContextKey=`${catalogId}:${requestedUrl}`;
-  const catalogSourceChanged=sourceEditedFor===catalogContextKey;
   const draftStorageKey=`atlas:link-order:${catalogId?'catalog:'+catalogId:requestedUrl||'manual'}`;
   const draftRestored=useRef(false),draftCanSkipAutomaticLoad=useRef(false),draftPersistenceReady=useRef(false);
 
@@ -189,8 +187,11 @@ export function GlobalLinkOrder() {
     try{sessionStorage.setItem(draftStorageKey,JSON.stringify(snapshot))}catch{}
   },[draftStorageKey,url,source,name,brand,declaration,currency,amount,shipping,shippingCurrency,shippingEstimated,weight,country,otherCountry,category,variant,variants,selectedColor,selectedSize,image,images,colorwayImages,showSourceForm,note,weightOrigin,verified,sourceCheckStatus,importedAt,sourceExpiresAt,foundShipping]);
   const variantColors = useMemo(() => [...new Set(variants.map(item => item.color).filter((value): value is string => Boolean(value)))], [variants]);
-  const currentCatalogSeed=catalogProducts.find(item=>item.sourceUrl===url);
-  const catalogProductFlow=Boolean(currentCatalogSeed||((catalogId||dealSeed)&&!catalogSourceChanged));
+  const currentCatalogSeed=catalogLinkSeed(catalogProducts,catalogId,requestedUrl,url);
+  const catalogProductFlow=Boolean(currentCatalogSeed || (dealSeed && url===requestedUrl));
+  // Incomplete merchant/catalog responses must never leave an empty read-only price.
+  const catalogPriceLocked=catalogProductFlow && Boolean(catalogLinkPrice(currentCatalogSeed) || dealSeed);
+  const catalogCountryLocked=catalogProductFlow && Boolean(dealSeed || (currentCatalogSeed?.country && countries.includes(canonicalCountry(currentCatalogSeed.country)) && canonicalCountry(currentCatalogSeed.country)!=='Другая страна'));
   const variantsForColor = useMemo(() => selectedColor ? variants.filter(item => item.color === selectedColor) : variantColors.length===1 ? variants.filter(item => item.color === variantColors[0]) : variantColors.length ? [] : variants, [variants,selectedColor,variantColors]);
   const variantSizes = useMemo(() => [...new Set(variantsForColor.map(item => item.size).filter((value): value is string => Boolean(value)))], [variantsForColor]);
   const nikeSizeSystem = variantsForColor.some(item => item.sizeLabel === 'Nike US women')
@@ -231,13 +232,13 @@ export function GlobalLinkOrder() {
       setShowSourceForm(true);
       return;
     }
-    const linkSeed=catalogProducts.find(item=>item.sourceUrl===link&&(!(catalogId&&link===requestedUrl)||item.id===catalogId));
-    const linkDealSeed=!catalogSourceChanged?dealSeed:undefined;
-    const linkIsCatalogFlow=Boolean(linkSeed||((catalogId||dealSeed)&&!catalogSourceChanged)||linkDealSeed);
-    const linkSeedIsFresh=Boolean(linkSeed&&!linkSeed.priceNeedsConfirmation);
+    const linkSeed=catalogLinkSeed(catalogProducts,catalogId,requestedUrl,link);
+    const linkDealSeed=link===requestedUrl?dealSeed:undefined;
+    const linkIsCatalogFlow=Boolean(linkSeed||linkDealSeed);
+    const linkSeedPrice=catalogLinkPrice(linkSeed);
     const linkFallbackOptions:ProductVariant[]=linkSeed?catalogOrderVariants(linkSeed):linkDealSeed?communityFallbackOptions(linkDealSeed).map(item=>({...item,available:true})):[];
     const linkSeedImages=linkSeed?dedupeSafeImages([linkSeed.image,...(linkSeed.sourceImages??[])],linkSeed.sourceUrl??link):linkDealSeed?.image?[linkDealSeed.image]:[];
-    const linkBoxedWeight=linkSeed?.boxedWeight??(linkDealSeed?Math.max(.1,communityEstimatedWeight(linkDealSeed)-.5):undefined);
+    const linkBoxedWeight=catalogLinkWeight(linkSeed)??(linkDealSeed?Math.max(.1,communityEstimatedWeight(linkDealSeed)-.5):undefined);
     setUrl(link);
     setBusy(true);
     setSource(link);
@@ -246,8 +247,8 @@ export function GlobalLinkOrder() {
     setName(linkSeed?.name ?? linkDealSeed?.title ?? "");
     setBrand(linkSeed?.brand ?? linkDealSeed?.store ?? "");
     setDeclaration("");
-    setAmount(linkSeedIsFresh && linkSeed?.sourcePrice !== undefined ? String(linkSeed.sourcePrice) : linkDealSeed ? String(linkDealSeed.price) : "");
-    setCurrency(linkSeedIsFresh ? linkSeed?.sourceCurrency ?? "USD" : "USD");
+    setAmount(linkSeedPrice ? String(linkSeedPrice.amount) : linkDealSeed ? String(linkDealSeed.price) : "");
+    setCurrency(linkSeedPrice?.currency ?? "USD");
     setShipping(String(linkSeed?.sourceShippingUsd ?? 10));
     setShippingCurrency("USD");
     setShippingEstimated(linkSeed?.sourceShippingEstimated ?? true);
@@ -288,7 +289,7 @@ export function GlobalLinkOrder() {
         const partialGalleries=data.selectedVariantColor
           ? allPartialGalleries.filter(gallery=>gallery.color===data.selectedVariantColor)
           : allPartialGalleries;
-        const partialCountry=canonicalCountry((linkIsCatalogFlow&&linkSeed?linkSeed.country:data.country??linkSeed?.country??inferStorefrontCountry(link,data.currency))??"Другая страна");
+        const partialCountry=canonicalCountry((linkIsCatalogFlow&&linkSeed?linkSeed.country??data.country??inferStorefrontCountry(link,data.currency):data.country??inferStorefrontCountry(link,data.currency))??"Другая страна");
         const partialCurrency=currencies.includes(data.currency??"")?data.currency!:currencyForCountry(partialCountry);
         setSource(data.sourceUrl??link);
         setName(linkIsCatalogFlow&&linkSeed?linkSeed.name:data.title??linkSeed?.name??linkDealSeed?.title??"");
@@ -297,7 +298,7 @@ export function GlobalLinkOrder() {
         setImages(partialImages.length?partialImages:linkSeedImages);
         setColorwayImages(partialGalleries);
         if(data.price!==undefined&&currencies.includes(data.currency??"")){setAmount(String(data.price));setCurrency(data.currency!)}
-        else if(linkSeedIsFresh&&linkSeed?.sourcePrice!==undefined){setAmount(String(linkSeed.sourcePrice));setCurrency(linkSeed.sourceCurrency??"USD")}
+        else if(linkSeedPrice){setAmount(String(linkSeedPrice.amount));setCurrency(linkSeedPrice.currency)}
         else if(linkDealSeed){setAmount(String(linkDealSeed.price));setCurrency("USD")}
         else {setAmount("");setCurrency(currencies.includes(partialCurrency??"")?partialCurrency!:"USD")}
         const partialCategory=canonicalCategory(linkIsCatalogFlow&&linkSeed?linkSeed.category:data.category??linkSeed?.category??inferProductCategory(data.title??"",data.brand??""));
@@ -311,7 +312,7 @@ export function GlobalLinkOrder() {
         const partialGallery=partialGalleries.find(gallery=>gallery.color===partialColor);
         if(partialGallery){setImages(partialGallery.images);setImage(partialGallery.images[0]);}
         setCountry(partialCountry);
-        if(linkIsCatalogFlow&&linkSeed)setWeight(String(linkSeed.boxedWeight));
+        if(linkIsCatalogFlow&&linkSeed)setWeight(String(linkBoxedWeight));
         else if(data.boxedWeight!==undefined)setWeight(String(validBoxedWeight(data.boxedWeight)??estimatedBoxedWeight(partialCategory)));
         setSourceCheckStatus('failed');
         setNote(tx("Автоматически получены не все данные. Проверьте цену и вариант.","Ma’lumotlarning hammasi avtomatik olinmadi. Narx va variantni tekshiring.","Some details were not available automatically. Review the price and option."));
@@ -342,7 +343,7 @@ export function GlobalLinkOrder() {
       );
       const knownCurrency = currencies.includes(data.currency ?? "");
       if (data.price !== undefined && knownCurrency) setAmount(String(data.price));
-      else if (linkSeedIsFresh && linkSeed?.sourcePrice !== undefined) setAmount(String(linkSeed.sourcePrice));
+      else if (linkSeedPrice) {setAmount(String(linkSeedPrice.amount));setCurrency(linkSeedPrice.currency)}
       else if (linkDealSeed) setAmount(String(linkDealSeed.price));
       const receivedVariants = data.variants ?? [];
       const allImportedVariants = hasSelectableDimensions(linkFallbackOptions) && !hasSelectableDimensions(receivedVariants)
@@ -371,12 +372,12 @@ export function GlobalLinkOrder() {
         if (selectedVariant.price !== undefined && knownCurrency) setAmount(String(selectedVariant.price));
         if (selectedVariant.image) setImage(selectedVariant.image);
       }
-      const nextCountry = canonicalCountry((linkIsCatalogFlow&&linkSeed?linkSeed.country:data.country ?? linkSeed?.country ?? inferStorefrontCountry(data.sourceUrl, data.currency)) ?? "Другая страна");
+      const nextCountry = canonicalCountry((linkIsCatalogFlow&&linkSeed?linkSeed.country??data.country??inferStorefrontCountry(data.sourceUrl,data.currency):data.country??inferStorefrontCountry(data.sourceUrl,data.currency)) ?? "Другая страна");
       setCountry(nextCountry);
-      if (!data.currency || !currencies.includes(data.currency))
+      if ((!data.currency || !currencies.includes(data.currency)) && !linkSeedPrice)
         setCurrency(currencyForCountry(nextCountry) ?? "USD");
       const importedWeight=validBoxedWeight(data.boxedWeight);
-      setWeight(String(linkIsCatalogFlow&&linkSeed?linkSeed.boxedWeight:importedWeight ?? linkBoxedWeight ?? estimatedBoxedWeight(nextCategory)));
+      setWeight(String(linkIsCatalogFlow&&linkSeed?linkBoxedWeight:importedWeight ?? linkBoxedWeight ?? estimatedBoxedWeight(nextCategory)));
       setWeightOrigin(
         linkIsCatalogFlow&&linkSeed
           ? tx("Вес задан Atlas для карточки каталога","Vazn Atlas katalog kartochkasi uchun belgilagan","Weight set by Atlas for this catalog item")
@@ -442,8 +443,8 @@ export function GlobalLinkOrder() {
       setBrand(linkSeed?.brand??linkDealSeed?.store??new URL(link).hostname.replace(/^www\./,''));
       setImage(linkSeed?.image??linkDealSeed?.image??"");
       setImages(linkSeedImages);
-      setAmount(linkSeedIsFresh&&linkSeed?.sourcePrice!==undefined?String(linkSeed.sourcePrice):linkDealSeed?String(linkDealSeed.price):"");
-      setCurrency(linkSeedIsFresh?linkSeed?.sourceCurrency??"USD":"USD");
+      setAmount(linkSeedPrice?String(linkSeedPrice.amount):linkDealSeed?String(linkDealSeed.price):"");
+      setCurrency(linkSeedPrice?.currency??"USD");
       setShipping(String(linkSeed?.sourceShippingUsd??10));setShippingCurrency("USD");setShippingEstimated(linkSeed?.sourceShippingEstimated??true);
       setVariants(linkFallbackOptions);
       setColorwayImages([]);
@@ -541,7 +542,6 @@ export function GlobalLinkOrder() {
                 disabled={busy}
                 onChange={(e) => {
                   setUrl(e.target.value);
-                  setSourceEditedFor(e.target.value.trim()===requestedUrl?null:catalogContextKey);
                   setSource("");
                   setSourceCheckStatus('idle');
                   setVerified(false);
@@ -657,6 +657,9 @@ export function GlobalLinkOrder() {
                 </div>
               </div>
               {catalogProductFlow&&<p className="catalog-fixed-note" role="status">{catalogFixedText}</p>}
+              {sourceCheckStatus==='failed'&&<p className="notice" role="status">{catalogProductFlow&&amount
+                ? tx('Магазин не подтвердил все данные. Расчёт предварительный: при отсутствии новой цены используется сохранённая цена каталога. Перед выкупом оператор уточнит стоимость. Проверьте вариант и подтвердите данные.','Do‘kon barcha ma’lumotlarni tasdiqlamadi. Hisob taxminiy: yangi narx bo‘lmasa, katalogdagi saqlangan narx ishlatiladi. Operator xariddan oldin narxni aniqlaydi. Variantni tekshirib, ma’lumotlarni tasdiqlang.','The store did not confirm all details. This is a preliminary estimate; without a new price, the saved catalog amount is used. An operator will confirm the cost before buyout. Review the option and confirm the details.')
+                : tx('Не все данные удалось загрузить из магазина. Заполните недостающие поля по странице товара и подтвердите их. Цена и валюта повторно проверяются при добавлении, если магазин ответит.','Do‘kondan barcha ma’lumotlar olinmadi. Tovar sahifasi bo‘yicha yetishmayotgan maydonlarni to‘ldirib tasdiqlang. Do‘kon javob bersa, qo‘shishda narx va valyuta qayta tekshiriladi.','Some store details could not be loaded. Complete the missing fields from the item page and confirm them. Price and currency are checked again on addition when the store responds.')}</p>}
               <div className="field variant-matrix" data-order-variant tabIndex={-1}>
                 <label htmlFor="variant">{c.variant}</label>
                 {variants.length===1 ? <div className="single-variant-selection">
@@ -697,8 +700,8 @@ export function GlobalLinkOrder() {
                   <label>{c.shipCountry}</label>
                   <select
                     aria-label={c.countryLabel}
-                    className={`select-control${catalogProductFlow?" catalog-locked-field":""}`}
-                    disabled={catalogProductFlow}
+                    className={`select-control${catalogCountryLocked?" catalog-locked-field":""}`}
+                    disabled={catalogCountryLocked}
                     value={canonicalCountry(country)}
                     onChange={(e) => {
                       setCountry(canonicalCountry(e.target.value));
@@ -713,8 +716,8 @@ export function GlobalLinkOrder() {
                   <Choice
                     label={c.currency}
                     value={currency}
-                    disabled={catalogProductFlow}
-                    className={catalogProductFlow?"catalog-locked-field":undefined}
+                    disabled={catalogPriceLocked}
+                    className={catalogPriceLocked?"catalog-locked-field":undefined}
                     onChange={(v) => {
                       setCurrency(v);setVerified(false);
                     }}
@@ -730,8 +733,8 @@ export function GlobalLinkOrder() {
                     required
                     maxLength={60}
                     value={otherCountry}
-                    readOnly={catalogProductFlow}
-                    className={catalogProductFlow?"catalog-locked-field":undefined}
+                    readOnly={catalogCountryLocked}
+                    className={catalogCountryLocked?"catalog-locked-field":undefined}
                     onChange={(e) => setOtherCountry(e.target.value)}
                   />
                 </div>
@@ -746,8 +749,8 @@ export function GlobalLinkOrder() {
                     min=".01"
                     step=".01"
                     value={amount}
-                    readOnly={catalogProductFlow}
-                    className={catalogProductFlow?"catalog-locked-field":undefined}
+                    readOnly={catalogPriceLocked}
+                    className={catalogPriceLocked?"catalog-locked-field":undefined}
                     onChange={(e) => {setAmount(e.target.value);setVerified(false)}}
                   />
                 </div>
