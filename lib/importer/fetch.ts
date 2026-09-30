@@ -313,7 +313,7 @@ export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch
           if (ebayProduct) return finalizeExtraction(ebayProduct, url.href);
         } catch (error) {
           if (error instanceof EbayBrowseApiError || error instanceof EbayListingUnavailableError || error instanceof EbayManualReviewError) {
-            console.warn(`[eBay import] stage=${error.stage} status=${error.status ?? 'network'}`);
+            console.warn(`[eBay import] stage=${error.stage} status=${error.status ?? 'network'}${error instanceof EbayBrowseApiError && error.errorId ? ` errorId=${error.errorId}` : ''}`);
           }
           if (error instanceof EbayListingUnavailableError || error instanceof ManualEntryFallbackError) throw error;
           if (error instanceof EbayManualReviewError) {

@@ -72,12 +72,14 @@ export class EbayManualReviewError extends Error {
 export class EbayBrowseApiError extends Error {
   readonly stage: EbayImportStage;
   readonly status?: number;
+  readonly errorId?: number;
 
-  constructor(stage: EbayImportStage, status?: number) {
+  constructor(stage: EbayImportStage, status?: number, errorId?: number) {
     super('eBay Browse API request failed.');
     this.name = 'EbayBrowseApiError';
     this.stage = stage;
     this.status = status;
+    this.errorId = errorId;
   }
 }
 
@@ -170,11 +172,49 @@ async function readJson(response: Response, maxBytes: number, stage: EbayImportS
   return record(parsed) ?? {};
 }
 
-function apiError(response: Response, stage: EbayImportStage, definitive = false) {
+async function errorIdFrom(response: Response) {
+  const reader = response.body?.getReader();
+  if (!reader) return undefined;
+  const chunks: Uint8Array[] = [];
+  let bytes = 0;
+  try {
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > 32_000) {
+        await reader.cancel();
+        return undefined;
+      }
+      chunks.push(value);
+    }
+  } catch {
+    return undefined;
+  } finally {
+    reader.releaseLock();
+  }
+  try {
+    const merged = new Uint8Array(bytes);
+    let offset = 0;
+    for (const chunk of chunks) {
+      merged.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    const raw = JSON.parse(new TextDecoder().decode(merged)) as {errors?: unknown};
+    const errors = Array.isArray(raw.errors) ? raw.errors : [];
+    const id = (errors[0] as {errorId?: unknown} | undefined)?.errorId;
+    return typeof id === 'number' && Number.isSafeInteger(id) && id > 0 ? id : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function apiError(response: Response, stage: EbayImportStage, definitive = false) {
+  const errorId = await errorIdFrom(response);
   if (definitive && (response.status === 404 || response.status === 410)) {
     return new EbayListingUnavailableError('Магазин сообщил, что карточка товара не найдена. Проверьте ссылку.', stage, response.status);
   }
-  return new EbayBrowseApiError(stage, response.status || undefined);
+  return new EbayBrowseApiError(stage, response.status || undefined, errorId);
 }
 
 async function tokenFor(config: EbayBrowseConfig, base: string, fetcher: EbayFetch, signal: AbortSignal) {
@@ -198,8 +238,7 @@ async function tokenFor(config: EbayBrowseConfig, base: string, fetcher: EbayFet
     throw new EbayBrowseApiError('oauth');
   }
   if (!response.ok) {
-    await response.body?.cancel();
-    throw apiError(response, 'oauth');
+    throw await apiError(response, 'oauth');
   }
   const payload = await readJson(response, 32_000, 'oauth');
   const token = clean(payload.access_token, 4096);
@@ -226,8 +265,7 @@ async function browseGet(path: string | URL, token: string, marketplace: Marketp
     throw new EbayBrowseApiError(stage);
   }
   if (!response.ok) {
-    await response.body?.cancel();
-    throw apiError(response, stage, definitive);
+    throw await apiError(response, stage, definitive);
   }
   return readJson(response, MAX_JSON_BYTES, stage);
 }
