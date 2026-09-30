@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type SetStateAction } from 'react';
 import { ArrowRight, ArrowUpRight, Flame, Heart, Info, Link2, Search, SlidersHorizontal, X } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from '@/components/site-link';
@@ -16,17 +16,26 @@ import { Choice, Empty, ProductImage } from './market-ui';
 export function DealsFeed({ favorites, select }: { favorites: boolean; select: (product: Product) => void }) {
   const { state, pricing, ready, status, act,catalogProducts,collections,catalogError,loadCatalog } = useMarket();
   const [collectionId,setCollectionId]=useState('');
-  const [filters, setFilters] = useState<DealFilters>(defaultDealFilters);
+  const [filters, setFilterState] = useState<DealFilters>(defaultDealFilters);
   const [saving, setSaving] = useState<string | null>(null);
   const [catalogRefreshing,setCatalogRefreshing]=useState(false);
   const [url, setUrl] = useState('');
   const [urlError, setUrlError] = useState('');
+  const [page, setPage] = useState({ key: '', limit: 12 });
+  const setFilters = (next: SetStateAction<DealFilters>) => {
+    setPage({ key: '', limit: 12 });
+    setFilterState(next);
+  };
   const locale = state.communication.language;
   const copy = dealCopy(locale);
   const products = catalogProducts;
   const merchantRecord=(product:Product)=>products.find(p=>p.id===product.id);
-  const fmt = (n: number, currency = 'UZS') => new Intl.NumberFormat(locale === 'ru' ? 'ru-RU' : locale === 'uz' ? 'uz-UZ' : 'en-US', { style: 'currency', currency, maximumFractionDigits: currency === 'UZS' ? 0 : 2 }).format(n);
-  const categories = [{ value: '', label: copy.all }, { value: 'Обувь', label: copy.footwear }, { value: 'Одежда', label: copy.clothing }, { value: 'Электроника', label: copy.electronics },{value:'Красота и уход',label:locale==='ru'?'Красота и уход':locale==='uz'?'Go‘zallik va parvarish':'Beauty & care'},...['Аксессуары','Дом и быт','Спорт','Другое'].filter(value=>products.some(p=>p.category===value)).map(value=>({value,label:value}))];
+  const numberLocale = locale === 'ru' ? 'ru-RU' : locale === 'uz' ? 'uz-UZ' : 'en-US';
+  const fmt = (n: number, currency = 'UZS') => currency === 'UZS'
+    ? `${new Intl.NumberFormat(numberLocale, { maximumFractionDigits: 0 }).format(n)} ${locale === 'ru' ? 'сум' : locale === 'uz' ? 'so‘m' : 'UZS'}`
+    : new Intl.NumberFormat(numberLocale, { style: 'currency', currency, maximumFractionDigits: 2 }).format(n);
+  const extraCategories: Record<string, [string, string]> = {'Аксессуары':['Aksessuarlar','Accessories'],'Дом и быт':['Uy va ro‘zg‘or','Home & living'],'Спорт':['Sport','Sports'],'Другое':['Boshqa','Other']};
+  const categories = [{ value: '', label: copy.all }, { value: 'Обувь', label: copy.footwear }, { value: 'Одежда', label: copy.clothing }, { value: 'Электроника', label: copy.electronics },{value:'Красота и уход',label:locale==='ru'?'Красота и уход':locale==='uz'?'Go‘zallik va parvarish':'Beauty & care'},...['Аксессуары','Дом и быт','Спорт','Другое'].filter(value=>products.some(p=>p.category===value)).map(value=>({value,label:locale==='ru'?value:extraCategories[value][locale==='uz'?0:1]}))];
   const countries = [{ value: '', label: copy.allCountries }, ...[...new Set(['США',...products.map(p=>p.country??'США')])].map(value=>({value,label:value==='США'?copy.us:value}))];
   const budgets = [{ value: 0, label: copy.anyBudget }, { value: 1000000, label: copy.budget1 }, { value: 1500000, label: copy.budget15 }, { value: 2000000, label: copy.budget2 }];
   const sorts: { value: DealFilters['sort']; label: string }[] = [{ value: 'discount', label: copy.discountSort }, { value: 'total-asc', label: copy.lowSort }, { value: 'total-desc', label: copy.highSort }];
@@ -47,6 +56,10 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
   const search = filters.search.trim().toLocaleLowerCase();
   const matching = candidates.filter(product => [product.name, titles[product.id], product.brand, product.category, product.country, categories.find(c => c.value === product.category)?.label, countries.find(c => c.value === product.country)?.label].join(' ').toLocaleLowerCase().includes(search));
   const list = filterDeals(matching, pricing, { ...filters, search: '' },products);
+  // A changed query starts a new page immediately, without an effect or stale frame.
+  const pageKey = JSON.stringify([filters, collectionId, favorites]);
+  const limit = page.key === pageKey ? page.limit : 12;
+  const visibleList = list.slice(0, limit);
   const hasFilters = !!(filters.search || filters.category || filters.country || filters.maxTotal || filters.sort !== 'discount' || collectionId);
   const clearFilters = () => { setFilters(defaultDealFilters); setCollectionId(''); };
 
@@ -63,7 +76,7 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
 
   return <TooltipProvider delayDuration={300}><div className="finds-page" id="finds">
     <section className="finds-heading">
-      <div>{!favorites&&<span className="eyebrow">{locale==='ru'?'КАТАЛОГ ATLAS':locale==='uz'?'ATLAS KATALOGI':'ATLAS CATALOG'}</span>}{status==='guest'?<h2>{copy.catalog}</h2>:<h1>{favorites ? copy.savedTitle : copy.title}</h1>}<p>{favorites ? copy.savedIntro : copy.intro}</p></div>
+      <div>{!favorites&&<span className="eyebrow">{locale==='ru'?'КАТАЛОГ ATLAS':locale==='uz'?'ATLAS KATALOGI':'ATLAS CATALOG'}</span>}{status==='guest'?<h2>{favorites ? copy.savedTitle : copy.title}</h2>:<h1>{favorites ? copy.savedTitle : copy.title}</h1>}<p>{favorites ? copy.savedIntro : copy.intro}</p></div>
       {ready&&<Link className="btn secondary" href={favorites ? '/' : '/favorites'}><Heart size={17}/>{favorites ? copy.catalog : copy.saved}<span className="finds-count">{favorites ? products.length : state.favorites.filter(id => products.some(product => product.id === id)).length}</span></Link>}
     </section>
     {catalogError&&<div className="notice catalog-fallback-message" role="status"><span>{catalogError}</span><button type="button" className="text-button catalog-retry" disabled={catalogRefreshing} onClick={()=>void retryCatalog()}>{catalogRefreshing?(locale==='ru'?'Обновляем…':locale==='uz'?'Yangilanmoqda…':'Refreshing…'):(locale==='ru'?'Повторить':locale==='uz'?'Qayta urinish':'Retry')}</button></div>}
@@ -97,7 +110,7 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
     </section>}
     {(!favorites || candidates.length > 0) && <div className="finds-result"><span role="status">{copy.results}: <b>{list.length}</b></span>{hasFilters && <button type="button" className="text-button" onClick={clearFilters}>{copy.reset}<X size={14}/></button>}</div>}
     <section className="finds-grid" aria-label={favorites ? copy.saved : copy.catalog}>
-      {list.map(({ product, costs, referenceUsd, discount }) => {
+      {visibleList.map(({ product, costs, referenceUsd, discount }) => {
         const isSaved = state.favorites.includes(product.id);
         const name = product.sourceUrl ? product.name : titles[product.id] ?? product.name;
         const needsPrice = product.priceNeedsConfirmation===true;
@@ -105,7 +118,7 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
         const orderUrl=findOrderUrl(product);
         const freshnessLabel=locale==='ru'?'Уточнить цену':locale==='uz'?'Narxni aniqlash':'Check current price';
         const recordedPriceLabel=locale==='ru'?'Последняя цена магазина':locale==='uz'?'Do‘kondagi oxirgi narx':'Last recorded store price';
-        const recordedEstimateLabel=locale==='ru'?'Предварительный расчёт по последней цене':locale==='uz'?'Oxirgi narx bo‘yicha dastlabki hisob':'Estimate from last recorded price';
+        const recordedEstimateLabel=locale==='ru'?'Ориентир с доставкой':locale==='uz'?'Yetkazish bilan taxmin':'Delivery estimate';
         return <article className="find-card" key={product.id}>
           <div className="find-visual">{needsPrice?<a className="find-photo" href={status==='guest'?signInPath(orderUrl):orderUrl} target={status==='guest'?'_top':undefined} aria-label={name}><ProductImage product={{ ...product, name }} /></a>:<button className="find-photo" type="button" onClick={() => select(product)} aria-label={name}><ProductImage product={{ ...product, name }} /></button>}
             {discount >= 40 && <span className="find-top-deal"><Flame size={14}/>{copy.topDeal}</span>}
@@ -113,14 +126,15 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
           </div>
           <div className="find-content"><div className="find-meta"><span>{categories.find(c => c.value === product.category)?.label ?? product.category}</span><span>{countries.find(c => c.value === product.country)?.label ?? product.country}</span></div>
              {needsPrice?<a className="find-title" href={status==='guest'?signInPath(orderUrl):orderUrl} target={status==='guest'?'_top':undefined}>{name}</a>:<button type="button" className="find-title" onClick={() => select(product)}>{name}</button>}
-             <div className={'find-store-price'+(needsPrice?' needs-confirmation':'')}><span>{needsPrice?(hasRecordedPrice?recordedPriceLabel:(locale==='ru'?'Цена в магазине':locale==='uz'?'Do‘kondagi narx':'Store price')):copy.productPrice}</span><div><b title={needsPrice&&product.observedOn?`${copy.observed}: ${product.observedOn}`:undefined}>{needsPrice?(hasRecordedPrice?fmt(product.sourcePrice!,product.sourceCurrency!):freshnessLabel):fmt(product.usd, 'USD')}</b>{!needsPrice&&discount > 0 && <del title={copy.referenceLabel}>{fmt(referenceUsd!, 'USD')}</del>}</div>{!needsPrice&&discount > 0 && <span className="find-discount" title={copy.compareHint}>−{discount}%</span>}</div>
+             <div className={'find-store-price'+(needsPrice?' needs-confirmation':'')}><span>{needsPrice?(hasRecordedPrice?recordedPriceLabel:(locale==='ru'?'Цена в магазине':locale==='uz'?'Do‘kondagi narx':'Store price')):copy.productPrice}</span><div><b title={needsPrice&&merchantRecord(product)?.observedOn?`${copy.observed}: ${merchantRecord(product)?.observedOn}`:undefined}>{needsPrice?(hasRecordedPrice?fmt(product.sourcePrice!,product.sourceCurrency!):freshnessLabel):fmt(product.usd, 'USD')}</b>{!needsPrice&&discount > 0 && <del title={copy.referenceLabel}>{fmt(referenceUsd!, 'USD')}</del>}</div>{!needsPrice&&discount > 0 && <span className="find-discount" title={copy.compareHint}>−{discount}%</span>}</div>
              <div className="find-total"><span>{needsPrice?(hasRecordedPrice?recordedEstimateLabel:(locale==='ru'?'Расчёт после проверки цены':locale==='uz'?'Narx tekshirilgach hisob':'Estimate after price check')):copy.delivered}</span><strong>{costs?fmt(costs.total):(locale==='ru'?'Рассчитаем после проверки цены':locale==='uz'?'Narx tekshirilgach hisoblaymiz':'Calculated after price check')}</strong>{costs&&<Tooltip><TooltipTrigger asChild><button type="button" className="price-info" aria-label={copy.breakdown} onClick={() => select(product)}><Info size={16}/></button></TooltipTrigger><TooltipContent>{copy.breakdown}</TooltipContent></Tooltip>}</div>
              <div className="find-origin"><a href={product.sourceUrl} target="_blank" rel="noopener noreferrer">{merchantRecord(product)?.store??(product.sourceUrl?new URL(product.sourceUrl).hostname.replace(/^www\./,''):copy.sourceOpen)} · {copy.sourceOpen}<ArrowUpRight size={14}/></a></div>
-             <div className="find-purchase"><a className="btn primary" href={status==='guest'?signInPath(orderUrl):orderUrl} target={status==='guest'?'_top':undefined}>{copy.buy}<ArrowRight size={17}/></a></div>
+             <div className="find-purchase"><a className="btn primary" href={status==='guest'?signInPath(orderUrl):orderUrl} target={status==='guest'?'_top':undefined}>{locale==='ru'?'В корзину':locale==='uz'?'Savatga':'Add to cart'}<ArrowRight size={17}/></a></div>
           </div>
         </article>;
       })}
     </section>
+    {list.length > 0 && <div className="finds-pagination"><span role="status">{locale==='ru'?`Показано ${visibleList.length} из ${list.length}`:locale==='uz'?`${list.length} tadan ${visibleList.length} ko‘rsatildi`:`Showing ${visibleList.length} of ${list.length}`}</span>{visibleList.length < list.length && <button type="button" className="btn secondary" onClick={() => setPage({ key: pageKey, limit: limit + 12 })}>{locale==='ru'?'Показать ещё':locale==='uz'?'Yana ko‘rsatish':'Show more'}<ArrowRight size={17}/></button>}</div>}
     {!list.length && <Empty title={favorites && !candidates.length ? copy.emptySaved : copy.empty} description={favorites && !candidates.length ? copy.emptySavedHint : copy.emptyHint} href={favorites && !candidates.length ? '/' : undefined} label={copy.catalog}>{hasFilters && <button type="button" className="btn secondary" onClick={clearFilters}>{copy.reset}</button>}</Empty>}
     {!!list.length && <p className="finds-price-note">{copy.priceNote}</p>}
     {status==='guest' && <p className="finds-signin"><Link href="/account"><Heart size={15}/>{copy.signin}<ArrowUpRight size={15}/></Link></p>}

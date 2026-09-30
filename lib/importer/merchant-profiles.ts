@@ -98,6 +98,6 @@ export function applyMerchantProfile(extracted: Extracted, sourceUrl: string): E
     brand: extracted.brand || profile.defaultBrand,
     category,
     country: extracted.country || profile.defaultCountry,
-    method: extracted.method.includes(profile.name) ? extracted.method : `${extracted.method} · ${profile.name}`,
+    method: extracted.method ? extracted.method.includes(profile.name) ? extracted.method : `${extracted.method} · ${profile.name}` : undefined,
   };
 }

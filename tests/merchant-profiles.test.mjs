@@ -53,3 +53,11 @@ test('explicit source metadata wins over a broad store profile', () => {
   assert.equal(result.country, 'Канада');
   assert.equal(result.price, 12);
 });
+
+test('incomplete manual data can be enriched without inventing a parser method or price',()=>{
+  const sourceUrl='https://www.nike.com/t/example/IB1881-500';
+  const result=applyMerchantProfile({sourceUrl,warnings:[]},sourceUrl);
+  assert.equal(result.method,undefined);
+  assert.equal(result.price,undefined);
+  assert.equal(result.brand,'Nike');
+});

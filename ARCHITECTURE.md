@@ -1,5 +1,13 @@
 # Atlas architecture
 
+## Scoped homepage presentation and source sizing — 30 September 2026
+
+`Marketplace` adds `catalog-home` only to the catalog route. `home-polish.css` scopes the grid and section hierarchy to that route; other account/operator screens retain their existing layout. `DealsFeed` retains full in-memory filtering/counts and renders a 12-item window, expanded by a client-only button; it does not truncate the API response or stored catalog. Query changes reset the window. FAQ uses native accessible details/summary controls.
+
+`lib/market/nike-size-chart.ts` contains separately sourced men's/women's US footwear tables. It keeps CM/JP shoe labels distinct from foot length, converts the official inch measurements to centimeters and filters the displayed rows to source sizes. `extractNike` annotates explicitly identified Nike USD footwear with a gendered optional `sizeLabel`; the UI also supports legacy drafts via a constrained source/category/currency/title inference. No schema migration, identity/API authorization, pricing formula or D1 state changes are introduced.
+
+The UI's legacy fallback option arrays are explicitly typed and optional country values use the existing unknown-country path. Incomplete manual importer responses may omit parser-method metadata; profile enrichment preserves that absence instead of assuming a string. These type-safety corrections do not add merchant network access or relax validation.
+
 ## Catalog navigation context and source-shipping fields — 30 September 2026
 
 `findOrderUrl()` adds a `catalog` product ID to catalog-card navigation. The order-by-link screen loads the public catalog for this route and uses the exact source URL + ID match as UI context, not as authority for price or permission. A catalog-backed item keeps Atlas-authored name, category and boxed weight fixed; store-to-warehouse shipping comes from the catalog record and is not replaced by merchant-page shipping. Customers can still select an available variant. Changing the link switches the form back to editable manual-entry behavior. Fresh merchant import and the authenticated `/api/actions` recalculation remain in place.

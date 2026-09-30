@@ -1,6 +1,7 @@
 import { extractMacysProduct } from './macys.ts';
 import { priorityMerchantProfiles } from './merchant-profiles.ts';
 import { isEbayStoreHost } from './stores.ts';
+import { inferNikeFootwearSizeSystem } from '../market/nike-size-chart.ts';
 export type ProductVariant = {
   id?: string;
   size?: string;
@@ -43,7 +44,8 @@ export type Extracted = {
   country?: string;
   warnings: string[];
   sourceUrl: string;
-  method: string;
+  /** Parsing metadata may be absent in an incomplete manual-entry fallback. */
+  method?: string;
 };
 
 export type ProductCategory =
@@ -863,6 +865,7 @@ function extractNike(html: string, sourceUrl: string): Extracted | undefined {
     const priceData = product.prices && typeof product.prices === 'object' ? product.prices as Record<string, unknown> : {};
     const price = number(priceData.currentPrice ?? priceData.price ?? priceData.initialPrice);
     const currency = clean(priceData.currency ?? (page?.locale && typeof page.locale === 'object' ? (page.locale as Record<string, unknown>).currency : undefined)).toUpperCase() || undefined;
+    const category = inferProductCategory([title, clean(product.productType), ...(Array.isArray(product.taxonomyLabels) ? product.taxonomyLabels.map(clean) : [])].filter(Boolean).join(' '), brand);
     const images = nikeImages(product);
     const matchedGroup = article ? groupedProducts.find(items => items.some(matchesArticle)) : undefined;
     // Nike stores colorways as sibling products inside the matching product
@@ -879,9 +882,8 @@ function extractNike(html: string, sourceUrl: string): Extracted | undefined {
       galleriesByColor.set(color, [...new Set([...(galleriesByColor.get(color) ?? []), ...gallery])].slice(0, 12));
     }
     const colorwayImages = [...galleriesByColor].map(([color, gallery]) => ({color, images: gallery}));
-    const isNikeUsMen = (source.hostname === 'www.nike.com' || source.hostname === 'nike.com')
-      && currency === 'USD' && /\bmen['’]s\b/i.test(title ?? '');
-    const sizeLabel = isNikeUsMen ? 'Nike US men' : 'Размер';
+    const nikeUsSizeSystem = inferNikeFootwearSizeSystem({sourceUrl,currency,category,title});
+    const sizeLabel = nikeUsSizeSystem ? `Nike US ${nikeUsSizeSystem}` : 'Размер';
     const variants: ProductVariant[] = colorways.flatMap(colorway => {
       const variantColor = clean(colorway.colorDescription ?? colorway.styleColor) || undefined;
       const variantPriceData = colorway.prices && typeof colorway.prices === 'object' ? colorway.prices as Record<string, unknown> : {};
@@ -918,7 +920,6 @@ function extractNike(html: string, sourceUrl: string): Extracted | undefined {
       return true;
     }).slice(0, 80);
     if (!boundedVariants.length) return;
-    const category = inferProductCategory([title, clean(product.productType), ...(Array.isArray(product.taxonomyLabels) ? product.taxonomyLabels.map(clean) : [])].filter(Boolean).join(' '), brand);
     const warnings = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.', 'Вес с упаковкой нужно проверить.'];
     if (price === undefined) warnings.unshift('Цена не найдена в данных Nike: выберите конкретный вариант на странице магазина.');
     if (!boundedVariants.some(value => value.available)) warnings.push('Nike не указал доступный размер в текущем снимке.');

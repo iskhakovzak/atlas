@@ -1,5 +1,14 @@
 # Atlas TODO and known limitations
 
+## Homepage and sizing QA — 30 September 2026
+
+- [x] Improve homepage hero/catalog/cards/link-entry/steps/stores/trust/FAQ/footer with route-scoped responsive spacing and progressive catalog rendering; preserve all product features.
+- [x] Use installed Node/npm and Playwright CLI for Chromium guest/member smoke checks with public catalog and synthetic account/import fixtures; no local D1 modification is required.
+- [x] Distinguish Nike US women/men, show official UK/EU/CM-JP and foot-length cm, and cover legacy inference and non-Nike/non-USD exclusion with tests.
+- [x] Add reserve settlement help and reduce confirmation spacing; align service disclosure and quote totals without changing saved fee lines.
+- [ ] Test Safari/iOS and Android on physical devices, actual authenticated production checkout, and live API latency/Core Web Vitals; responsive Chromium fixtures do not prove those workflows or performance targets.
+- [ ] Add independently sourced size guides for other brands/categories. Do not apply the Nike chart generically; missing official foot measurements remain unavailable rather than invented.
+
 ## Order-by-link follow-up — 30 September 2026
 
 - [ ] Enter and confirm the actual store-to-Atlas USD shipping for existing published catalog products where known. Older saved records still use the compatible $10 provisional reserve until an operator updates them; no production catalog records were changed by this code update.

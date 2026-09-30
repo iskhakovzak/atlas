@@ -7,6 +7,7 @@ import "./checkout-clarity.css";
 import "./access.css";
 import "./experience.css";
 import "./catalog-import.css";
+import "./home-polish.css";
 import "./dark-theme.css";
 import { MarketProvider } from "@/lib/market/store";
 import { StorageNotice } from "./storage-notice";

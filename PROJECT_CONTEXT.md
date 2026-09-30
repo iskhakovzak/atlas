@@ -1,5 +1,13 @@
 # Atlas — project context
 
+## Homepage visual hierarchy and Nike size guide — 30 September 2026
+
+Homepage sections now share a scoped spacing scale: guest hero, catalog controls, responsive product grid, link entry, order steps, store strip, trust panels, collapsible FAQ and footer. The catalog initially renders 12 matches and exposes all remaining matches through “Show more”; search/filter changes reset that display window. All products, source links, saved items, category filters and delivered-cost calculations remain available. Cards use shorter estimate labels and localized UZS suffixes without changing price freshness checks.
+
+Figma was used to capture the current homepage and build an editable catalog spacing study. Local Chromium checks cover guest/member layouts at 360/390/768/900/1440 px, light/graphite appearance, RU/UZ/EN, search, empty results, filters, Show more and FAQ. Public catalog fixtures and a synthetic signed-in account were intercepted in the browser; no D1 records or actual user orders were changed.
+
+Nike US footwear now identifies women's versus men's sizing, labels the size buttons US, and shows official UK/EU/CM-JP conversions plus separate foot length in centimeters. Older Nike USD footwear drafts can infer the guide from their exact source/category/gendered title. Other brands, unidentified gender and non-USD storefronts do not receive a guessed Nike chart. Refundable-reserve help explains internal-balance settlement and approval of a higher amount; layout refinements keep quote amounts, service disclosure and confirmation spacing aligned. Quote arithmetic and saved order fields remain unchanged.
+
 ## Catalog-backed orders and store shipping — 30 September 2026
 
 Catalog card links now carry the product ID as context. In that flow, Atlas-owned title, category, boxed weight and store-to-warehouse shipping are read-only for customers; price and selected option can still refresh from the merchant, while a customer-entered link remains editable. The order action and server-side quote recomputation are unchanged.
