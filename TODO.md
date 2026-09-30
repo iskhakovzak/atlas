@@ -3,9 +3,8 @@
 ## eBay Production activation — 1 October 2026
 
 - [x] Add and test the public HTTPS account-deletion callback: exact-endpoint SHA-256 challenge, bounded request bodies, ECDSA notification-signature verification, one-hour eBay public-key cache, and no retention/logging of notification identifiers.
-- [ ] Choose the operations alert email required by eBay; do not reuse an owner/personal address unless the operator explicitly supplies it for this destination.
-- [ ] In eBay Developer Portal Production Notifications, save the chosen alert email, `https://atlasmarket.uz/api/ebay/notifications`, and the Site secret `EBAY_NOTIFICATION_VERIFICATION_TOKEN`; complete the live challenge and send eBay's test notification. Do not select the exemption while Atlas uses eBay listing data.
-- [ ] After eBay enables the Production keyset, run a read-only exact-listing import and confirm OAuth, title, price, and available size/color variants. The earlier 401 is not a verified import result.
+- [x] Save the alert email explicitly supplied by the operator and configure the exact Production endpoint plus the Site-only `EBAY_NOTIFICATION_VERIFICATION_TOKEN`; eBay accepted the settings, challenge and test notification.
+- [ ] Resolve the remaining live Browse item HTTP 400. OAuth now succeeds, but the exact listing still returns Atlas's safe 422 manual fallback. The numeric eBay error ID is extracted without response text, but the Sites log view has not exposed the console record; verify Buy API Production eligibility in eBay and only mark import complete after title, price, and available variants are actually returned.
 
 ## Operator catalog refresh diagnostics — 1 October 2026
 
@@ -192,7 +191,7 @@
 - [ ] Verify Bombas with a current product URL. Gymshark active-color/size parsing and Anker embedded-product parsing have live checks; expand dedicated adapters for other major stores using actual page samples.
 - [x] Add an optional official eBay Browse adapter for exact numeric listings and seller variation groups; preserve per-size prices/stock, reject auctions/unrelated IDs, and keep page/manual fallback when disabled.
 - [x] Configure eBay production Client ID/Cert ID as Sites runtime values and set `EBAY_ENV=production`; secret values remain outside source control.
-- [ ] Verify a read-only exact production listing import after completing the eBay developer profile. Atlas still returns the safe HTTP 422 manual fallback; use only internal stage/status diagnostics, and do not claim verified price, availability or sizes until matching data is returned.
+- [ ] Verify a read-only exact production listing import after the keyset activation and notification test. OAuth succeeds, but Browse returns HTTP 400 and Atlas retains the safe HTTP 422 manual fallback; the numeric error ID is not visible in current Site logs. Check the eBay Buy API eligibility/approval state and do not claim verified price, availability or sizes until matching data is returned.
 - [x] Add caching, source timestamp and expiry for imports.
 - [x] Pin Amazon.com anonymous checks to US storefront/USD and ZIP 19701 before parsing price, availability and images; reject the check when Amazon cannot confirm the location.
 - [x] Add Adidas article-code JSON/PLP fallback for Akamai-blocked HTML, retaining sale price, safe gallery and current available sizes; use PLP-first parsing, Adidas-safe minimal headers, clothing/jersey category inference and the fixed apex edge retry when product JSON is rate-limited.

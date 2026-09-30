@@ -202,7 +202,7 @@ Pricing stores base international freight and delivery margin separately. Intern
 
 Migration 0005 adds `market_order_documents`, `market_operational_errors` and `market_backup_exports`. Private files remain in R2; D1 keeps ownership, classification and audit metadata.
 
-No payment processor, eBay API, carrier API, automatic FX API, email/SMS provider or standalone identity provider exists. Payment webhooks, tracking and external messages are safely represented inside Atlas for the pre-release demo only. FX/tariffs are operator-managed and product imports have a short D1 cache.
+No payment processor, carrier API, automatic FX API, customer email/SMS provider or standalone identity provider exists. Atlas has an optional official eBay Browse adapter that uses a server-only application token and exact listing IDs; credentials never pass through the New York merchant-page proxy. Production OAuth currently succeeds, but a live item request still returns HTTP 400 and safely falls back to manual entry, so eBay title/price/variant import is not verified and production Buy API eligibility may still need eBay approval. eBay account-deletion notification subscription and test are configured and verified separately. Payment webhooks, tracking and customer-facing external messages remain simulated. FX/tariffs are operator-managed and product imports have a short D1 cache.
 
 ## Security
 
