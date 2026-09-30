@@ -43,7 +43,7 @@ export function AdminView(){
  async function reply(account:{id:string;revision:number},ticketId:string,text:string){if(!text.trim())return;setBusy(true);try{const response=await fetch('/api/operations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'action',accountId:account.id,revision:account.revision,action:{type:'support-reply',id:ticketId,text:text.trim()}})});const next=await response.json() as {error?:string};if(!response.ok)throw Error(next.error??'Не удалось отправить ответ.');await load();setReplyTarget(null);setReplyText("");toast.success('Ответ добавлен в историю обращения.')}catch(error){toast.error((error as Error).message)}finally{setBusy(false)}}
  if(!user?.operator)return <Empty title="Доступ только администратору" description="Управление Atlas доступно только назначенному администратору." href="/account" label="Личный кабинет"/>;
  if(!data)return <section className="surface" role="status"><p>{loadError||"Загружаем операционный центр…"}</p>{loadError&&<button className="btn secondary" onClick={()=>void load()}>Повторить</button>}</section>;
- return <>
+ return <div className="operator-admin">
   <PageHeading overline="ОПЕРАЦИОННЫЙ ЦЕНТР" title="Управление Atlas." description="Заказы, команда, тарифы, ограничения и контроль действий в одном защищённом разделе."><span className="status-badge">Только администратор</span></PageHeading>
   <nav className="admin-tabs" aria-label="Разделы админки">{(['overview','catalog','customers','support','finance','pricing','staff','rules','system','audit'] as const).map((id,index)=><button key={id} className={tab===id?'active':''} aria-current={tab===id?'page':undefined} onClick={()=>selectTab(id)}>{c.tabs[index]}</button>)}</nav>
   {tab==='system'&&<PerformanceSummary/>}
@@ -73,5 +73,5 @@ export function AdminView(){
       <button className="btn primary" type="submit" disabled={busy||!replyText.trim()}>{busy?replyCopy.saving:replyCopy.send}</button>
     </form>
   </Modal>
- </>;
+ </div>;
 }

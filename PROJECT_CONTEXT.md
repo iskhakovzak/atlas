@@ -1,5 +1,13 @@
 # Atlas — project context
 
+## Mobile layouts and photo gestures — 30 September 2026
+
+Shared product galleries now support horizontal photo gestures, arrow keys, buttons and localized photo counts in the product sheet, link-order preview and cart. Photo selection is presentation-only: it never selects a product variant or changes a quote. Imported galleries are retained in the existing optional `sourceImages` field when adding to the cart; legacy one-photo carts remain compatible. Authenticated cart actions reject unsafe gallery URLs.
+
+Phone refinements cover catalog touch targets, link forms, cart actions, delivery dialogs, notifications, balance, account/support/address forms, identity, declarations, batch import, all ten admin tabs and the operations workspace. Long values wrap, controls retain readable height and local table/tab scrolling does not widen the document. Figma's existing spacing study was inspected as a design reference; no new Figma mobile design was created.
+
+Chromium checks use synthetic authenticated/catalog/import responses and local image assets at 360/390/402/430/440 px, with additional 768/1440 px customer-route checks. Admin/operations fixtures and customer account/document fixtures are not production records. No D1 data was changed. Physical iPhone/Safari, real merchant imports and live checkout remain unverified; no claim is made about unreleased device specifications.
+
 ## Link-order source context recovery — 30 September 2026
 
 Customer-pasted URLs no longer inherit read-only Atlas fields merely because their URL also exists in the public catalog. Catalog context requires an explicit matching product ID and source URL; changing the link releases that context. A blocked/incomplete catalog source retains its valid last-recorded amount and currency as a clearly disclosed preliminary estimate, not a fresh quote. An absent catalog amount leaves price/currency editable rather than creating an empty locked field. Legacy boxed-weight fallback stays finite. Atlas-authored catalog title/category/weight/store shipping remain fixed; fresh source price and option checks, customer confirmation, authenticated server recomputation and checkout verification are unchanged. No D1 state or schema is changed.

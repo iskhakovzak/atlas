@@ -1,5 +1,12 @@
 # Atlas TODO and known limitations
 
+## Mobile follow-up — 30 September 2026
+
+- [x] Add shared swipe/button/keyboard galleries in product details, link import and cart; retain optional safe photos in new carts and keep old carts compatible.
+- [x] Improve narrow-screen fields, wrapping, modal bounds and touch targets across customer, admin and operations screens using safe browser fixtures without D1 writes.
+- [ ] Test horizontal swipes, vertical scrolling, pinch zoom, on-screen keyboard, safe areas and delivery dialogs in physical iPhone Safari and Android browsers. Chromium responsive fixtures are not real-device verification.
+- [ ] Check real authenticated production flows and live multi-photo merchant responses on a dedicated test account. Existing carts containing only one stored image cannot reveal photos that were never saved.
+
 ## Link-order lock recovery — 30 September 2026
 
 - [x] Require explicit matching catalog context, not just URL equality, before locking Atlas fields; preserve manual entry and changing to another source.

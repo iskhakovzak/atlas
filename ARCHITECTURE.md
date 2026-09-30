@@ -1,5 +1,11 @@
 # Atlas architecture
 
+## Mobile presentation and safe galleries — 30 September 2026
+
+`ProductGallery` centralizes safe, deduplicated merchant images and UI-only navigation. `gallerySwipeStep()` rejects taps, predominantly vertical gestures and invalid dimensions; CSS permits vertical scrolling and pinch zoom. Pointer cancellation clears a pending gesture. Buttons and keyboard navigation remain alternatives. Link-order previews control the active photo; product sheets/carts keep local selection. Existing optional `Product.sourceImages` preserves imported photos through cart persistence, with server-side safe-image validation in `cart-add`; identity, authorization, variant validation and fee recomputation are unchanged.
+
+`mobile-polish.css`, `customer-mobile.css` and `operator-mobile.css` load after theme styles. Their narrow-screen selectors scope layout overrides to actual customer/operator containers. Admin now has an `operator-admin` wrapper without removing any tab or action. Account labels are visible and telephone fields use telephone input semantics. No migration or pricing changes are introduced.
+
 ## Explicit link-order context and incomplete source recovery — 30 September 2026
 
 `lib/market/link-order-context.ts` resolves catalog display context only from a matching explicit catalog ID + requested source URL, never from a URL match alone. The current input must still equal that source; manual/changed links remain editable. `catalogLinkPrice()` preserves a finite positive recorded source amount/currency even when the observation is stale, while the UI labels failed rechecks as preliminary. Missing price/currency remains editable. `catalogLinkWeight()` derives a compatible finite boxed weight for legacy catalog snapshots. These helpers are client presentation/fallback logic, not price or authorization authority. `/api/actions`, importer allowlist/redirect checks and manual fallback's returned-price/currency comparison are unchanged.

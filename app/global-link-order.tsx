@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import Image from "next/image";
 import { ArrowRight, ExternalLink, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -28,7 +27,8 @@ import {
   type ProductVariant,
   type ProductColorwayGallery,
 } from "@/lib/importer/extract";
-import { Choice, CostLines, PageHeading, ProductImage } from "./market-ui";
+import { Choice, CostLines, PageHeading } from "./market-ui";
+import { ProductGallery } from "./product-gallery";
 import {
   communityDeals,
   communityEstimatedWeight,
@@ -501,6 +501,7 @@ export function GlobalLinkOrder() {
     usd: 1,
     weight: 1,
     image,
+    sourceUrl: source || undefined,
     variants: [""],
   };
   return (
@@ -508,7 +509,7 @@ export function GlobalLinkOrder() {
       <PageHeading overline={c.over} title={isSourcedFlow ? c.choose : c.order} description={isSourcedFlow ? c.checkPrice : c.paste}/>
       <div className="link-layout">
         <section className="surface link-form">
-          {image&&<div className="mobile-import-photo"><div className="import-photo"><ProductImage product={previewProduct} locale={lang}/></div>{images.length>1&&<div className="import-gallery" aria-label={c.gallery}>{images.map((photo,index)=><button type="button" key={photo} aria-label={`${c.gallery} ${index+1}`} aria-pressed={image===photo} onClick={()=>setImage(photo)}><Image src={photo} alt={`${c.gallery} ${index+1}`} width={64} height={64} unoptimized loading="lazy" referrerPolicy="no-referrer"/></button>)}</div>}</div>}
+          {image&&<div className="mobile-import-photo"><ProductGallery product={previewProduct} images={images.length?images:[image]} activeImage={image} onImageChange={setImage} locale={lang}/></div>}
           {isSourcedFlow && !showSourceForm && <div className="link-source-tools" aria-live="polite">
             {busy && <span className="link-source-loading" role="status"><Loader2 className="spin" size={16}/> {c.loading}</span>}
             {!busy && source && <>
@@ -612,6 +613,7 @@ export function GlobalLinkOrder() {
                     usd: toUsd(Number(amount), currency, pricing.rates),
                     weight: paddedWeight(Number(weight)),
                     image: img ?? "",
+                    sourceImages: dedupeSafeImages([img ?? '', ...images], source, 12),
                     sourceUrl: source,
                     sourceVariantId: variants.find(item => item.label === variant.trim())?.id,
                     variants: [variant.trim()],
@@ -867,18 +869,7 @@ export function GlobalLinkOrder() {
           )}
         </section>
         <aside className="surface quote-preview">
-          {image && (
-            <div className="import-photo">
-              <ProductImage product={previewProduct} locale={lang} />
-            </div>
-          )}
-          {images.length > 1 && (
-            <div className="import-gallery" aria-label={c.gallery}>
-              {images.map((photo, index) => <button type="button" key={photo} aria-label={`${c.gallery} ${index + 1}`} aria-pressed={image === photo} onClick={() => setImage(photo)}>
-                 <Image src={photo} alt={`${c.gallery} ${index + 1}`} width={64} height={64} unoptimized loading="lazy" referrerPolicy="no-referrer" />
-              </button>)}
-            </div>
-          )}
+          {image && <ProductGallery product={previewProduct} images={images.length?images:[image]} activeImage={image} onImageChange={setImage} locale={lang}/>}
           <span className="eyebrow">
             {country === "Другая страна" ? otherCountry || country : country} → {c.uz}
           </span>

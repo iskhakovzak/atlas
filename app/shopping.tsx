@@ -7,7 +7,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
 import { balanceOf, cartSignature, money, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, type DeliveryProfile } from "@/lib/market/domain";
 import { customsVersion } from "@/lib/market/world";
-import { CostLines, Empty, Expiry, Modal, PageHeading, ProductImage } from "./market-ui";
+import { CostLines, Empty, Expiry, Modal, PageHeading } from "./market-ui";
+import { ProductGallery } from "./product-gallery";
 import { SafeDeleteButton } from "./safe-delete-button";
 import {cities,regions,streets,suggestions} from "@/lib/market/addresses";
 
@@ -132,7 +133,7 @@ export function CartView() {
               en: { title: "Warehouse services", hint: "Choose preferences. An operator checks feasibility after intake; work starts only after the exact price is shown and you approve it.", fixed: "Rate per unit", quote: "Operator will quote", notIncluded: "Not included in the order total", quantity: "Quantity" },
             }[locale];
             return <article className="surface cart-item" key={item.id}>
-              <div className="cart-product-photo"><ProductImage product={item.product} decorative locale={locale} /></div>
+              <div className="cart-product-photo"><ProductGallery key={item.product.id} product={item.product} locale={locale} compact /></div>
               <div className="cart-item-body">
                 <span className="eyebrow">{item.product.brand}</span><h2>{item.product.name}</h2><p>{item.variant} · {item.product.country ?? (locale === "ru" ? "США" : locale === "uz" ? "AQSh" : "United States")}</p>
                 {item.product.sourceUrl && <a className="text-link micro" href={item.product.sourceUrl} target="_blank" rel="noopener noreferrer">{x.source}</a>}

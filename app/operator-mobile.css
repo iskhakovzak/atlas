@@ -1,0 +1,214 @@
+/* Operator-only phone layout. Preserve complete forms, queues and quote lines. */
+@media (max-width: 600px) {
+  .operator-admin,
+  .operator-admin :is(section, article, form, fieldset, label, .field, .two-fields, .pricing-grid, .catalog-workspace, .catalog-editor, .catalog-import-options, .catalog-variant-panel) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .operator-admin :is(h2, h3, p, small, b, strong, legend, .status-badge, .admin-table-row > *, .audit-list article > div) {
+    overflow-wrap: anywhere;
+  }
+
+  .operator-admin :is(button, a.btn, summary) {
+    min-height: 44px;
+  }
+
+  .operator-admin :is(.btn, .text-button) {
+    max-width: 100%;
+    white-space: normal;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  .operator-admin :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    min-width: 0;
+    max-width: 100%;
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .operator-admin input:is([type="checkbox"], [type="radio"]) {
+    width: 20px;
+    height: 20px;
+    min-height: 20px;
+    flex: 0 0 20px;
+  }
+
+  .operator-admin :is(.admin-tabs, .catalog-scope-tabs, .audit-folders) {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  .operator-admin :is(.admin-tabs, .catalog-scope-tabs, .audit-folders) button {
+    flex: 0 0 auto;
+    min-height: 44px;
+    white-space: nowrap;
+  }
+
+  .operator-admin .admin-section-head,
+  .operator-admin .warehouse-service-catalog-heading {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .operator-admin :is(.admin-period-filter, .admin-system-actions, .catalog-bulk-actions) {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .operator-admin .admin-system-actions {
+    display: grid;
+    gap: 10px;
+  }
+
+  .operator-admin .admin-metrics strong {
+    font-size: clamp(24px, 7vw, 31px);
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .operator-admin :is(.finance-payment-states small, .finance-lines strong, .monitor-panel span, .audit-list span) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .operator-admin .catalog-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .operator-admin .catalog-drafts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .operator-admin .catalog-draft-summary :is(b, small, em),
+  .operator-admin .catalog-select span {
+    display: block;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    -webkit-line-clamp: unset;
+    font-size: 13px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  .operator-admin .catalog-draft-summary b {
+    font-size: 15px;
+  }
+
+  .operator-admin .catalog-select {
+    min-height: 44px;
+  }
+
+  .operator-admin :is(.catalog-import-options fieldset label, .catalog-editor fieldset label, .catalog-collections article > label, .catalog-shipping-estimate, .warehouse-service-toggle) {
+    min-height: 44px;
+  }
+
+  .operator-admin .catalog-editor fieldset > div {
+    min-width: 0;
+  }
+
+  .operator-admin :is(.catalog-import-actions, .catalog-bulk-actions, .catalog-editor-actions, .catalog-selection-toolbar) .btn {
+    width: 100%;
+    flex-basis: 100%;
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  .operator-admin .catalog-variant-scroll {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .operator-admin .catalog-variant-table {
+    min-width: 880px;
+  }
+
+  .operator-admin .catalog-variant-table :is(input, select) {
+    min-width: 110px;
+  }
+
+  .operator-admin .catalog-variant-table td:nth-child(6) {
+    min-width: 185px;
+  }
+
+  .operator-admin .warehouse-service-catalog {
+    padding: 14px;
+  }
+
+  .operator-admin .warehouse-service-config > summary,
+  .operator-admin .pricing-manager > summary {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .operator-admin .warehouse-service-config > summary {
+    padding: 13px;
+  }
+
+  .operator-admin .warehouse-service-config-body {
+    padding: 12px;
+  }
+
+  .operator-admin .warehouse-service-config > summary .status-badge {
+    white-space: normal;
+  }
+
+  .operator-admin :is(.country-pricing, .currency-rates) > summary {
+    display: flex;
+    align-items: center;
+  }
+
+  /* The operations route already renders this unique operator statistics block. */
+  .site-main:has(.ops-stats) :is(.order-controls, .order-card, .ops-panel, .ops-tools-grid, .ops-tools-grid > form, .operator-contact-grid, .warehouse-service-ops, .operator-order-communication) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .site-main:has(.ops-stats) :is(button, summary, a.btn) {
+    min-height: 44px;
+  }
+
+  .site-main:has(.ops-stats) :is(.btn, .text-button, .status-badge, .operator-contact-detail, .operator-contact-person strong, .history-list, .staff-notes) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .site-main:has(.ops-stats) :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+    min-width: 0;
+    max-width: 100%;
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .site-main:has(.ops-stats) .order-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .site-main:has(.ops-stats) .order-controls > * {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .site-main:has(.ops-stats) .order-tabs {
+    max-width: 100%;
+    height: auto;
+    overflow-x: auto;
+    justify-content: flex-start;
+    overscroll-behavior-x: contain;
+  }
+
+  .site-main:has(.ops-stats) .order-tabs > button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}

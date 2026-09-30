@@ -238,6 +238,8 @@ export function applyAction(
         a.product.weight = paddedWeight(a.product.boxedWeight);
         if (a.product.image && !safeImage(a.product.image, a.product.sourceUrl))
           throw Error("Некорректная ссылка на изображение.");
+        if (a.product.sourceImages?.some(image => !safeImage(image, a.product.sourceUrl ?? '')))
+          throw Error("Некорректная ссылка на изображение.");
       }
       const next = addToCart(s, a.product, a.variant, Date.now(), pricing);
       assertCartPolicy(next.cart, policy);
