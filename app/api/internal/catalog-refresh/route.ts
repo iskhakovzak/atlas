@@ -3,6 +3,7 @@ import {database,failure,HttpError,json} from '@/lib/market/server';
 import {apiErrorMessage,requestLocale} from '@/lib/market/i18n';
 import {isAuthorizedCatalogRefresh} from '@/lib/market/catalog-refresh-auth';
 import {refreshDueCatalog} from '@/lib/market/catalog-refresh';
+import {merchantRequest} from '@/lib/importer/worker-fetch';
 
 async function acquireRefreshLease(){
   const now=Date.now(),db=database();
@@ -22,7 +23,7 @@ export async function POST(request:Request){
   try{
     if(!await isAuthorizedCatalogRefresh(request,env.ATLAS_CATALOG_REFRESH_SECRET))throw new HttpError(401,'Недопустимый запрос обновления каталога.');
     release=await acquireRefreshLease();
-    return json({ok:true,...await refreshDueCatalog()});
+    return json({ok:true,...await refreshDueCatalog(Date.now(),merchantRequest)});
   }catch(error){return failure(error,request)}finally{try{await release?.()}catch{}}
 }
 

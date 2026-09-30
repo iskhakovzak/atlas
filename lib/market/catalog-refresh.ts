@@ -1,4 +1,4 @@
-import {fetchProduct} from '../importer/fetch.ts';
+import {fetchProduct,type MerchantFetch} from '../importer/fetch.ts';
 import {
   applyScheduledCatalogRefresh,
   dueCatalogEntries,
@@ -47,12 +47,12 @@ function applyResult(document:CatalogDocument,result:SourceCheck,now:number){
  * Rechecks at most five due, distinct-store cards. It reads the catalog again
  * after network work, so an editor's changes win over an older worker view.
  */
-export async function refreshDueCatalog(now=Date.now()):Promise<CatalogRefreshResult>{
+export async function refreshDueCatalog(now=Date.now(),fetcher:MerchantFetch=fetch):Promise<CatalogRefreshResult>{
   const source=await readCatalog();
   const candidates=dueCatalogEntries(source.document,now);
   if(!candidates.length)return blankResult();
   const checks=await mapWithConcurrency(candidates,maxParallelFetches,async entry=>{
-    try{return {id:entry.id,sourceUrl:entry.draft.sourceUrl,data:await fetchProduct(entry.draft.sourceUrl)} satisfies SourceCheck}
+    try{return {id:entry.id,sourceUrl:entry.draft.sourceUrl,data:await fetchProduct(entry.draft.sourceUrl,fetcher)} satisfies SourceCheck}
     catch(error){return {id:entry.id,sourceUrl:entry.draft.sourceUrl,error} satisfies SourceCheck}
   });
   const summary=blankResult(candidates.length);

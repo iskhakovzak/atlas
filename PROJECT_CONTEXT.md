@@ -1,5 +1,13 @@
 # Atlas — project context
 
+## New York merchant egress and catalog refresh — 30 September 2026
+
+The authenticated Site Worker remains the only customer/API and D1 boundary. Its existing merchant importer can use an optional HMAC-signed HTTPS transport through the dedicated UpCloud VM in New York; importer parsing, the exact explicit store-host allowlist, manual redirect validation, and customer price/option checks remain in the Site code. The VM's Node service is bound to loopback and accepts only fresh signed requests for allowlisted merchant hosts, with bounded request/response sizes, concurrency and timeout. It does not receive account, cart or order state. Local/dev requests continue to use direct fetch when both proxy variables are absent, and a partial production configuration fails closed.
+
+Caddy terminates HTTPS on `85-9-196-196.sslip.io`; this bootstrap hostname is third-party DNS and should be replaced with an Atlas-owned hostname when DNS is available. `ATLAS_IMPORT_PROXY_URL` and secret `ATLAS_IMPORT_PROXY_SECRET` are runtime bindings, never source files. The UpCloud `atlas-catalog-refresh.timer` is the external hourly HMAC caller for the existing protected Site refresh route; merchant freshness only advances after a successful source check and the existing bounded batch/unknown-stock rules remain in force. Refresh failures are available in the systemd journal; external alert delivery is not configured. No SQL migration or stored account/cart/order schema change was made.
+
+The proxy transport and server contract have automated tests. A signed live Nike request traversed HTTPS and the NYC egress service successfully. Production Site deployment and a successful signed D1 refresh run must be confirmed before describing the Site path or schedule as live. This infrastructure does not promise access to every supported merchant or bypass blocks; manual entry and customer confirmation remain the fallback.
+
 ## Mobile layouts and photo gestures — 30 September 2026
 
 Shared product galleries now support horizontal photo gestures, arrow keys, buttons and localized photo counts in the product sheet, link-order preview and cart. Photo selection is presentation-only: it never selects a product variant or changes a quote. Imported galleries are retained in the existing optional `sourceImages` field when adding to the cart; legacy one-photo carts remain compatible. Authenticated cart actions reject unsafe gallery URLs.

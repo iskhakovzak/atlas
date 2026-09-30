@@ -95,6 +95,7 @@ type PublicRequestOptions = {
   /** Fixed same-merchant origins that may be used during a safe redirect. */
   allowedOrigins?: string[];
 };
+export type MerchantFetch = (input: string | URL, init?: RequestInit) => Promise<Response>;
 
 function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = browserUserAgent, referer?: string, options: Pick<PublicRequestOptions, 'clientHints'> = {}) {
   return {
@@ -148,9 +149,9 @@ async function readBody(response: Response, format: 'html' | 'json', maxBytes = 
 }
 
 /** Network failures are not evidence that a listing is unavailable. */
-async function merchantFetch(input: string | URL, init: RequestInit) {
+async function merchantFetch(input: string | URL, init: RequestInit, fetcher: MerchantFetch = fetch) {
   try {
-    return await fetch(input, init);
+    return await fetcher(input, init);
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') throw error;
     throw new ManualEntryFallbackError(undefined, undefined, 'network');
@@ -198,11 +199,11 @@ function amazonLocationToken(html: string) {
  * letting an Uzbekistan IP select an ineligible international destination.
  * The cookie jar is request-scoped and never persisted or accepted from a user.
  */
-async function readAmazonUs(start: URL, signal: AbortSignal) {
+async function readAmazonUs(start: URL, signal: AbortSignal, fetcher: MerchantFetch = fetch) {
   const jar = new Map<string, string>([['i18n-prefs', 'USD'], ['lc-main', 'en_US']]);
   let url = start;
   for (let i = 0; i < 4; i++) {
-    const response = await merchantFetch(url, {redirect: 'manual', signal, headers: requestHeaders('html', cookieHeader(jar), amazonUserAgent)});
+    const response = await merchantFetch(url, {redirect: 'manual', signal, headers: requestHeaders('html', cookieHeader(jar), amazonUserAgent)}, fetcher);
     mergeCookies(jar, response);
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get('location');
@@ -241,7 +242,7 @@ async function readAmazonUs(start: URL, signal: AbortSignal) {
         'anti-csrftoken-a2z': token,
       },
       body: new URLSearchParams({locationType: 'LOCATION_INPUT', countryCode: 'US', zipCode: AMAZON_US_POSTAL_CODE, storeContext: 'generic', deviceType: 'web', pageType: 'Gateway', actionSource: 'glow', almBrandId: 'undefined'}),
-    });
+    }, fetcher);
     mergeCookies(jar, locationResponse);
     const locationText = await readBody(locationResponse, 'json');
     let locationData: {isValidAddress?: number; address?: {countryCode?: string; zipCode?: string}};
@@ -252,7 +253,7 @@ async function readAmazonUs(start: URL, signal: AbortSignal) {
 
     jar.set('i18n-prefs', 'USD');
     jar.set('lc-main', 'en_US');
-    const refreshed = await merchantFetch(url, {redirect: 'manual', signal, headers: requestHeaders('html', cookieHeader(jar), amazonUserAgent)});
+    const refreshed = await merchantFetch(url, {redirect: 'manual', signal, headers: requestHeaders('html', cookieHeader(jar), amazonUserAgent)}, fetcher);
     mergeCookies(jar, refreshed);
     if (refreshed.status >= 300 && refreshed.status < 400) throw new ManualEntryFallbackError('Amazon изменил адрес карточки после выбора региона. Заполните данные вручную; новый адрес не открывался.',undefined,'redirect');
     const refreshedHtml = await readBody(refreshed, 'html', 6_000_000);
@@ -264,10 +265,10 @@ async function readAmazonUs(start: URL, signal: AbortSignal) {
   throw Error('Не удалось проверить регион Amazon.');
 }
 
-async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'json', options: PublicRequestOptions = {}) {
+async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'json', options: PublicRequestOptions = {}, fetcher: MerchantFetch = fetch) {
   let url = start;
   for (let i = 0; i < 4; i++) {
-    const response = await merchantFetch(url, {redirect: 'manual', signal, headers: requestHeaders(format, undefined, options.userAgent, options.referer, options)});
+    const response = await merchantFetch(url, {redirect: 'manual', signal, headers: requestHeaders(format, undefined, options.userAgent, options.referer, options)}, fetcher);
     if (response.status === 404 || response.status === 410) {
       await response.body?.cancel();
       throw Error('Магазин сообщил, что карточка товара не найдена. Проверьте ссылку.');
@@ -290,7 +291,7 @@ async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'jso
   throw Error('Не удалось загрузить товар.');
 }
 
-export async function fetchProduct(value: string) {
+export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch) {
   const manualUrl = validateManualSourceUrl(value);
   if (!isSupportedStoreHost(manualUrl.hostname)) {
     const partial: Extracted = {sourceUrl: manualUrl.href, brand: manualUrl.hostname.replace(/^www\./, ''), warnings: []};
@@ -316,7 +317,7 @@ export async function fetchProduct(value: string) {
       let listingResponse: {text: string; url: URL} | undefined;
       for (const endpoint of [adidas.listing, adidas.fallbackListing]) {
         try {
-          listingResponse = await readPublic(endpoint, controller.signal, 'json', adidasRequest);
+          listingResponse = await readPublic(endpoint, controller.signal, 'json', adidasRequest, fetcher);
           break;
         } catch {
           if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
@@ -326,7 +327,7 @@ export async function fetchProduct(value: string) {
       let productError: unknown;
       for (const endpoint of [adidas.product, adidas.fallbackProduct]) {
         try {
-          productResponse = await readPublic(endpoint, controller.signal, 'json', adidasRequest);
+          productResponse = await readPublic(endpoint, controller.signal, 'json', adidasRequest, fetcher);
           break;
         } catch (error) {
           productError = error;
@@ -364,7 +365,7 @@ export async function fetchProduct(value: string) {
       try {
         const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(6500)]);
         const [product, currency] = await Promise.all([
-          readPublic(endpoints.product, signal, 'json'), readPublic(endpoints.currency, signal, 'json'),
+          readPublic(endpoints.product, signal, 'json', {}, fetcher), readPublic(endpoints.currency, signal, 'json', {}, fetcher),
         ]);
         const extracted = extractShopify(JSON.parse(product.text), JSON.parse(currency.text), url.href);
         return finalizeExtraction(extracted,url.href);
@@ -373,7 +374,7 @@ export async function fetchProduct(value: string) {
         if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
       }
     }
-    const page = isAmazonUsUrl(url) ? await readAmazonUs(url, controller.signal) : await readPublic(url, controller.signal, 'html');
+    const page = isAmazonUsUrl(url) ? await readAmazonUs(url, controller.signal, fetcher) : await readPublic(url, controller.signal, 'html', {}, fetcher);
     if (/\/products\//.test(url.pathname) && !/\/products\//.test(page.url.pathname)) throw Error('Магазин убрал карточку товара. Укажите другую ссылку.');
     if (/captcha|verify you are human|pardon our interruption|robot check/i.test(page.text.slice(0, 60000)))
       throw new ManualEntryFallbackError('Магазин ограничил автоматическую загрузку. Заполните и подтвердите данные товара вручную.');
@@ -409,10 +410,10 @@ export async function fetchProduct(value: string) {
   } finally {clearTimeout(timer);}
 }
 
-export async function fetchCollectionLinks(value:string){
+export async function fetchCollectionLinks(value:string, fetcher:MerchantFetch = fetch){
   const start=allowedUrl(value),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
   try{
-    const page=isAmazonUsUrl(start) ? await readAmazonUs(start,controller.signal) : await readPublic(start,controller.signal,'html');
+    const page=isAmazonUsUrl(start) ? await readAmazonUs(start,controller.signal,fetcher) : await readPublic(start,controller.signal,'html',{},fetcher);
     if(/verify you are human|robot check|pardon our interruption/i.test(page.text.slice(0,60000)))throw Error('Магазин ограничил доступ к подборке. Вставьте ссылки на товары.');
     const links=new Set<string>();
     for(const match of page.text.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi)){

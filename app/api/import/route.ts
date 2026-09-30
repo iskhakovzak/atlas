@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { fetchProduct, isAmazonUsUrl, ManualEntryFallbackError, validateManualSourceUrl } from '@/lib/importer/fetch';
 import { isSupportedStoreHost } from '@/lib/importer/stores';
+import { merchantRequest } from '@/lib/importer/worker-fetch';
 import { database, identity, sameOrigin, json, failure, HttpError, requestJson } from '@/lib/market/server';
 import { apiErrorMessage, importManualEntryMessage, requestLocale } from '@/lib/market/i18n';
 
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
     }
 
     try {
-      const data = await fetchProduct(sourceUrl);
+      const data = await fetchProduct(sourceUrl, merchantRequest);
       const fetchedAt = Date.now();
       const expiresAt = fetchedAt + 10 * 60_000;
       if (!liveLocationRequired) {

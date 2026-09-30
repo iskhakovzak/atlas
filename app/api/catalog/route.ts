@@ -6,6 +6,7 @@ import type {CatalogDraft} from '@/lib/market/catalog-editor';
 import {fetchProduct,fetchCollectionLinks,ManualEntryFallbackError} from '@/lib/importer/fetch';
 import type {Extracted} from '@/lib/importer/extract';
 import {refreshDueCatalog} from '@/lib/market/catalog-refresh';
+import {merchantRequest} from '@/lib/importer/worker-fetch';
 import {apiErrorMessage,requestLocale} from '@/lib/market/i18n';
 
 const ids=z.array(z.string().min(1).max(100)).min(1).max(100);
@@ -31,12 +32,12 @@ export async function POST(request:Request){try{
   const {command,revision}=payload.data,{document,raw}=await readCatalog();
   if(document.revision!==revision)throw new HttpError(409, 'err_31');
   if(command.kind==='refresh-due'){
-    const refreshResult=await refreshDueCatalog(),next=await readCatalog();
+    const refreshResult=await refreshDueCatalog(Date.now(),merchantRequest),next=await readCatalog();
     return json({document:next.document,refreshResult});
   }
   if(command.kind==='recheck'){
     const results:string[]=[];
-    for(const id of command.ids){const entry=document.entries.find(item=>item.id===id);if(!entry){results.push(`${id}: товар не найден`);continue}try{const data=await fetchProduct(entry.draft.sourceUrl),fresh=importDraft(data,entry.draft.collectionIds,entry.draft.country,Date.now());entry.draft=recheckedDraft(entry.draft,fresh);document.availabilityReports=document.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:Date.now()}:report);results.push(`${entry.draft.name}: проверено`)}catch(error){entry.draft.lastCheckError=(error as Error).message.slice(0,500);entry.draft.importFailureReason=error instanceof ManualEntryFallbackError?error.reason:error instanceof Error&&error.name==='AbortError'?'timeout':undefined;const locale=requestLocale(request);results.push(`${entry.draft.name}: ${locale==='ru'?(error as Error).message:apiErrorMessage(422,locale)}`)}}
+    for(const id of command.ids){const entry=document.entries.find(item=>item.id===id);if(!entry){results.push(`${id}: товар не найден`);continue}try{const data=await fetchProduct(entry.draft.sourceUrl,merchantRequest),fresh=importDraft(data,entry.draft.collectionIds,entry.draft.country,Date.now());entry.draft=recheckedDraft(entry.draft,fresh);document.availabilityReports=document.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:Date.now()}:report);results.push(`${entry.draft.name}: проверено`)}catch(error){entry.draft.lastCheckError=(error as Error).message.slice(0,500);entry.draft.importFailureReason=error instanceof ManualEntryFallbackError?error.reason:error instanceof Error&&error.name==='AbortError'?'timeout':undefined;const locale=requestLocale(request);results.push(`${entry.draft.name}: ${locale==='ru'?(error as Error).message:apiErrorMessage(422,locale)}`)}}
     document.revision++;await persistCatalog(document,raw,user,'catalog.recheck',{ids:command.ids});return json({document,recheckResults:results});
   }
   if(command.kind==='import'||command.kind==='discover'){
@@ -45,10 +46,10 @@ export async function POST(request:Request){try{
     const limit=await db.prepare('INSERT INTO market_rate_limits (key,count,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count').bind(key,now+120000).first<{count:number}>();
     if(!limit||limit.count>20)throw new HttpError(429, 'err_32');
     await db.prepare('DELETE FROM market_rate_limits WHERE expires_at < ?').bind(now).run();
-    if(command.kind==='discover')return json({urls:await fetchCollectionLinks(sourceUrl)});
+    if(command.kind==='discover')return json({urls:await fetchCollectionLinks(sourceUrl,merchantRequest)});
     if(command.collectionIds.some(id=>!document.collections.some(c=>c.id===id)))throw new HttpError(400, 'err_33');
     let data:Extracted|undefined,sourceUnavailable=false,failureMessage='',failureReason:CatalogDraft['importFailureReason']='unknown';
-    try{data=await fetchProduct(sourceUrl)}catch(error){
+    try{data=await fetchProduct(sourceUrl,merchantRequest)}catch(error){
       const canSaveManualDraft=error instanceof ManualEntryFallbackError||error instanceof Error&&error.name==='AbortError';
       if(!canSaveManualDraft)throw error;
       sourceUnavailable=true;

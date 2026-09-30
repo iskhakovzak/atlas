@@ -75,6 +75,9 @@ for (const root of supportedStoreRoots) {
   if (shopSubdomains.has(root)) allowedHostsCache.add('shop.' + root);
 }
 
+/** Exact hostnames accepted by the source fetcher; shared with the isolated egress proxy. */
+export const supportedStoreHosts = [...allowedHostsCache].sort();
+
 export function isSupportedStoreHost(host:string){
   return allowedHostsCache.has(host.toLowerCase());
 }
