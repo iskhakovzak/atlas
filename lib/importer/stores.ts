@@ -56,9 +56,17 @@ const shopSubdomains = new Set(['mango.com','hm.com','uniqlo.com','nike.com','ad
 // merchant subdomains through the SSRF boundary.
 const localizedHosts = new Set(['en.zalando.de']);
 
+// Bolt: Pre-compute allowed hosts to convert O(N) array iteration per URL
+// to an O(1) Set lookup. Reduces validation overhead when parsing many URLs.
+const allowedHostsCache = new Set<string>(localizedHosts);
+for (const root of supportedStoreRoots) {
+  allowedHostsCache.add(root);
+  allowedHostsCache.add('www.' + root);
+  if (shopSubdomains.has(root)) allowedHostsCache.add('shop.' + root);
+}
+
 export function isSupportedStoreHost(host:string){
-  const normalized=host.toLowerCase();
-  return localizedHosts.has(normalized)||supportedStoreRoots.some(root=>normalized===root||normalized==='www.'+root||(shopSubdomains.has(root)&&normalized==='shop.'+root));
+  return allowedHostsCache.has(host.toLowerCase());
 }
 
 export const supportedStoreCount=supportedStoreRoots.length;

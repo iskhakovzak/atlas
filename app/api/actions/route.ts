@@ -1,5 +1,5 @@
 import {actionSchema,applyAction} from '@/lib/market/actions';
-import {account,customerStatus,database,identity,operator,sameOrigin,persist,json,failure,HttpError,requestJson,pricing,policy} from '@/lib/market/server';
+import {account,customerStatus,database,identity,isOperator,sameOrigin,persist,json,failure,HttpError,requestJson,pricing,policy} from '@/lib/market/server';
 import {fetchProduct} from '@/lib/importer/fetch';
 import {verifyProductSnapshot} from '@/lib/importer/verify';
 import {addCustomerLinkDraft} from '@/lib/market/catalog-server';
@@ -8,16 +8,16 @@ export async function POST(request:Request){try{
   const user=await identity();
   const payload=await requestJson(request) as {action:unknown;revision:number};
   const parsed=actionSchema.safeParse(payload.action);
-  if(!parsed.success)throw new HttpError(400,'Проверьте данные запроса и согласие с условиями.');
+  if(!parsed.success)throw new HttpError(400, 'err_10');
   const status=await customerStatus(user.userId);
-  if(status==='blocked')throw new HttpError(403,'Профиль временно заблокирован. Обратитесь в поддержку Atlas.');
-  if(status==='review'&&['checkout','payment-demo'].includes(parsed.data.type))throw new HttpError(403,'Оформление временно приостановлено до завершения проверки профиля.');
+  if(status==='blocked')throw new HttpError(403, 'err_11');
+  if(status==='review'&&['checkout','payment-demo'].includes(parsed.data.type))throw new HttpError(403, 'err_12');
   const current=await account(user);
   if(parsed.data.type==='identity-confirm'){
     const identityAction=parsed.data;
     const owned=await database().prepare('SELECT id FROM market_identity_documents WHERE id=? AND user_id=?').bind(identityAction.documentId,user.userId).first();
-    if(!owned)throw new HttpError(404,'Скан паспорта не найден. Загрузите его заново.');
-    if(identityAction.recipientProfileId&&!current.state.deliveryProfiles.some(profile=>profile.id===identityAction.recipientProfileId))throw new HttpError(400,'Сначала выберите сохранённого получателя.');
+    if(!owned)throw new HttpError(404, 'err_13');
+    if(identityAction.recipientProfileId&&!current.state.deliveryProfiles.some(profile=>profile.id===identityAction.recipientProfileId))throw new HttpError(400, 'err_14');
   }
   if(payload.revision!==current.revision)return json({error:'Данные изменились. Проверьте обновлённый заказ и повторите действие.',state:current.state,revision:current.revision},409);
   let next;
@@ -40,7 +40,7 @@ export async function POST(request:Request){try{
         for(const item of items)verifyProductSnapshot(item.product,item.variant,fresh);
       }));
     }
-    next=applyAction(current.state,parsed.data,operator(user.email),currentPricing,currentPolicy);
+    next=applyAction(current.state,parsed.data,await isOperator(user.email),currentPricing,currentPolicy);
   }catch(e){throw new HttpError(400,(e as Error).message)}
   await persist(user.userId,next,current.revision);
   if(parsed.data.type==='cart-add'&&parsed.data.product.sourceUrl&&verifiedSource){
