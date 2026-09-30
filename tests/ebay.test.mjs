@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {clearEbayTokenCacheForTests, fetchEbayProduct} from '../lib/importer/ebay.ts';
+import {clearEbayTokenCacheForTests, EbayBrowseApiError, fetchEbayProduct} from '../lib/importer/ebay.ts';
 import {fetchProduct, ManualEntryFallbackError} from '../lib/importer/fetch.ts';
 
 const credentials = {clientId: 'app-client-id', clientSecret: 'private-cert-secret', environment: 'production'};
@@ -126,6 +126,43 @@ test('missing credentials or unsupported eBay path leaves the safe legacy/manual
   assert.equal(await fetchEbayProduct(`https://www.ebay.com/itm/${listingId}`, {}, fetcher), undefined);
   assert.equal(await fetchEbayProduct('https://www.ebay.com/itm/seller-short-link', credentials, fetcher), undefined);
   assert.equal(calls, 0);
+});
+
+test('eBay API failures retain only a safe diagnostic stage and HTTP status', async () => {
+  clearEbayTokenCacheForTests();
+  const privateBody = 'private-ebay-error-details';
+  const oauthFailure = async () => new Response(privateBody, {status: 401, headers: {'Content-Type': 'application/json'}});
+  await assert.rejects(
+    fetchEbayProduct(`https://www.ebay.com/itm/${listingId}`, credentials, oauthFailure),
+    error => error instanceof EbayBrowseApiError && error.stage === 'oauth' && error.status === 401 && !error.message.includes(privateBody),
+  );
+
+  clearEbayTokenCacheForTests();
+  const browseFailure = async (input) => new URL(String(input)).pathname.endsWith('/oauth2/token')
+    ? json({access_token: 'test-access-token', expires_in: 3600})
+    : new Response(privateBody, {status: 403, headers: {'Content-Type': 'application/json'}});
+  await assert.rejects(
+    fetchEbayProduct(`https://www.ebay.com/itm/${listingId}`, credentials, browseFailure),
+    error => error instanceof EbayBrowseApiError && error.stage === 'browse_item' && error.status === 403 && !error.message.includes(privateBody),
+  );
+});
+
+test('eBay fallback logs stage and status without listing URL or upstream body', async () => {
+  clearEbayTokenCacheForTests();
+  const privateBody = 'private-ebay-error-details';
+  const fetcher = Object.assign(async input => new URL(String(input)).pathname.endsWith('/oauth2/token')
+    ? json({access_token: 'test-access-token', expires_in: 3600})
+    : new Response(privateBody, {status: 403, headers: {'Content-Type': 'application/json'}}), {ebayBrowseConfig: () => credentials});
+  const warnings = [];
+  const originalWarn = console.warn;
+  console.warn = message => warnings.push(String(message));
+  try {
+    await assert.rejects(fetchProduct(`https://www.ebay.com/itm/${listingId}`, fetcher), error => error instanceof ManualEntryFallbackError);
+  } finally {
+    console.warn = originalWarn;
+  }
+  assert.deepEqual(warnings, ['[eBay import] stage=browse_item status=403']);
+  assert.ok(warnings.every(message => !message.includes(listingId) && !message.includes(privateBody)));
 });
 
 test('an ended or unavailable eBay listing is not converted into the manual order fallback', async () => {

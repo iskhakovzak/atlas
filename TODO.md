@@ -184,7 +184,8 @@
 - [x] Expand rich Shopify import to 20 explicit storefront roots across clothing, beauty, sneakers and electronics; live-check Alo Yoga, Rhode, Rare Beauty, Summer Fridays, Kith, CNCPTS, Satechi and Spigen.
 - [ ] Verify Bombas with a current product URL. Gymshark active-color/size parsing and Anker embedded-product parsing have live checks; expand dedicated adapters for other major stores using actual page samples.
 - [x] Add an optional official eBay Browse adapter for exact numeric listings and seller variation groups; preserve per-size prices/stock, reject auctions/unrelated IDs, and keep page/manual fallback when disabled.
-- [ ] Provision `EBAY_CLIENT_ID`, secret `EBAY_CLIENT_SECRET`, and explicit `EBAY_ENV` in Sites runtime; confirm eBay Browse API Production access before selecting `production`. Credentials were not supplied/configured and live API requests remain unverified.
+- [x] Configure eBay production Client ID/Cert ID as Sites runtime values and set `EBAY_ENV=production`; secret values remain outside source control.
+- [ ] Verify a read-only exact production listing import after completing the eBay developer profile. Atlas still returns the safe HTTP 422 manual fallback; use only internal stage/status diagnostics, and do not claim verified price, availability or sizes until matching data is returned.
 - [x] Add caching, source timestamp and expiry for imports.
 - [x] Pin Amazon.com anonymous checks to US storefront/USD and ZIP 19701 before parsing price, availability and images; reject the check when Amazon cannot confirm the location.
 - [x] Add Adidas article-code JSON/PLP fallback for Akamai-blocked HTML, retaining sale price, safe gallery and current available sizes; use PLP-first parsing, Adidas-safe minimal headers, clothing/jersey category inference and the fixed apex edge retry when product JSON is rate-limited.

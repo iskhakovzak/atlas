@@ -16,6 +16,7 @@ export type EbayFetch = (input: string | URL, init?: RequestInit) => Promise<Res
 
 type Marketplace = {id: string};
 type EbayItem = Record<string, unknown>;
+export type EbayImportStage = 'configuration' | 'oauth' | 'browse_item' | 'browse_variants' | 'item_data' | 'variation_group' | 'variant_data';
 
 const MARKETPLACES: Record<string, Marketplace> = {
   'ebay.com': {id: 'EBAY_US'},
@@ -45,16 +46,38 @@ const MAX_IMAGES = 12;
 let tokenCache: {key: string; token: string; expiresAt: number} | undefined;
 
 export class EbayListingUnavailableError extends Error {
-  constructor(message = 'Объявление eBay больше недоступно. Проверьте ссылку или выберите другое объявление.') {
+  readonly stage: EbayImportStage;
+  readonly status?: number;
+
+  constructor(message = 'Объявление eBay больше недоступно. Проверьте ссылку или выберите другое объявление.', stage: EbayImportStage = 'item_data', status?: number) {
     super(message);
     this.name = 'EbayListingUnavailableError';
+    this.stage = stage;
+    this.status = status;
   }
 }
 
 export class EbayManualReviewError extends Error {
-  constructor(message: string) {
+  readonly stage: EbayImportStage;
+  readonly status?: number;
+
+  constructor(message: string, stage: EbayImportStage = 'item_data', status?: number) {
     super(message);
     this.name = 'EbayManualReviewError';
+    this.stage = stage;
+    this.status = status;
+  }
+}
+
+export class EbayBrowseApiError extends Error {
+  readonly stage: EbayImportStage;
+  readonly status?: number;
+
+  constructor(stage: EbayImportStage, status?: number) {
+    super('eBay Browse API request failed.');
+    this.name = 'EbayBrowseApiError';
+    this.stage = stage;
+    this.status = status;
   }
 }
 
@@ -114,11 +137,11 @@ function selectedLegacyVariation(url: URL) {
   return value && /^\d{1,20}$/.test(value) ? value : undefined;
 }
 
-async function readJson(response: Response, maxBytes = MAX_JSON_BYTES) {
+async function readJson(response: Response, maxBytes: number, stage: EbayImportStage) {
   const contentType = response.headers.get('content-type') ?? '';
   if (!response.ok || !/application\/json/i.test(contentType)) {
     await response.body?.cancel();
-    throw new Error(`eBay Browse API returned ${response.status || 'an invalid response'}.`);
+    throw new EbayBrowseApiError(stage, response.status || undefined);
   }
   const reader = response.body?.getReader();
   if (!reader) return {} as Record<string, unknown>;
@@ -131,7 +154,7 @@ async function readJson(response: Response, maxBytes = MAX_JSON_BYTES) {
       bytes += value.byteLength;
       if (bytes > maxBytes) {
         await reader.cancel();
-        throw new Error('eBay Browse API response exceeded the size limit.');
+        throw new EbayBrowseApiError(stage, response.status || undefined);
       }
       chunks.push(value);
     }
@@ -141,15 +164,17 @@ async function readJson(response: Response, maxBytes = MAX_JSON_BYTES) {
   const merged = new Uint8Array(bytes);
   let offset = 0;
   for (const chunk of chunks) { merged.set(chunk, offset); offset += chunk.byteLength; }
-  const parsed = JSON.parse(new TextDecoder().decode(merged));
+  let parsed: unknown;
+  try { parsed = JSON.parse(new TextDecoder().decode(merged)); }
+  catch { throw new EbayBrowseApiError(stage, response.status || undefined); }
   return record(parsed) ?? {};
 }
 
-function apiError(response: Response, definitive = false) {
+function apiError(response: Response, stage: EbayImportStage, definitive = false) {
   if (definitive && (response.status === 404 || response.status === 410)) {
-    return new EbayListingUnavailableError('Магазин сообщил, что карточка товара не найдена. Проверьте ссылку.');
+    return new EbayListingUnavailableError('Магазин сообщил, что карточка товара не найдена. Проверьте ссылку.', stage, response.status);
   }
-  return new Error(`eBay Browse API returned ${response.status || 'an invalid response'}.`);
+  return new EbayBrowseApiError(stage, response.status || undefined);
 }
 
 async function tokenFor(config: EbayBrowseConfig, base: string, fetcher: EbayFetch, signal: AbortSignal) {
@@ -160,41 +185,51 @@ async function tokenFor(config: EbayBrowseConfig, base: string, fetcher: EbayFet
   if (tokenCache?.key === cacheKey && tokenCache.expiresAt > Date.now() + 60_000) return tokenCache.token;
 
   const basic = btoa(`${clientId}:${clientSecret}`);
-  const response = await fetcher(`${base}/identity/v1/oauth2/token`, {
-    method: 'POST',
-    redirect: 'manual',
-    signal: AbortSignal.any([signal, AbortSignal.timeout(5_000)]),
-    headers: {Authorization: `Basic ${basic}`, 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json'},
-    body: new URLSearchParams({grant_type: 'client_credentials', scope: API_SCOPE}),
-  });
+  let response: Response;
+  try {
+    response = await fetcher(`${base}/identity/v1/oauth2/token`, {
+      method: 'POST',
+      redirect: 'manual',
+      signal: AbortSignal.any([signal, AbortSignal.timeout(5_000)]),
+      headers: {Authorization: `Basic ${basic}`, 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json'},
+      body: new URLSearchParams({grant_type: 'client_credentials', scope: API_SCOPE}),
+    });
+  } catch {
+    throw new EbayBrowseApiError('oauth');
+  }
   if (!response.ok) {
     await response.body?.cancel();
-    throw apiError(response);
+    throw apiError(response, 'oauth');
   }
-  const payload = await readJson(response, 32_000);
+  const payload = await readJson(response, 32_000, 'oauth');
   const token = clean(payload.access_token, 4096);
   const lifetime = typeof payload.expires_in === 'number' && Number.isFinite(payload.expires_in) ? payload.expires_in : 0;
-  if (!token || lifetime < 120) throw new Error('eBay OAuth token response was incomplete.');
+  if (!token || lifetime < 120) throw new EbayBrowseApiError('oauth', response.status);
   tokenCache = {key: cacheKey, token, expiresAt: Date.now() + Math.min(lifetime, 86_400) * 1000};
   return token;
 }
 
-async function browseGet(path: string, token: string, marketplace: Marketplace, fetcher: EbayFetch, signal: AbortSignal, definitive = false) {
-  const response = await fetcher(path, {
-    method: 'GET',
-    redirect: 'manual',
-    signal: AbortSignal.any([signal, AbortSignal.timeout(5_000)]),
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/json',
-      'X-EBAY-C-MARKETPLACE-ID': marketplace.id,
-    },
-  });
+async function browseGet(path: string | URL, token: string, marketplace: Marketplace, fetcher: EbayFetch, signal: AbortSignal, stage: EbayImportStage, definitive = false) {
+  let response: Response;
+  try {
+    response = await fetcher(path, {
+      method: 'GET',
+      redirect: 'manual',
+      signal: AbortSignal.any([signal, AbortSignal.timeout(5_000)]),
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+        'X-EBAY-C-MARKETPLACE-ID': marketplace.id,
+      },
+    });
+  } catch {
+    throw new EbayBrowseApiError(stage);
+  }
   if (!response.ok) {
     await response.body?.cancel();
-    throw apiError(response, definitive);
+    throw apiError(response, stage, definitive);
   }
-  return readJson(response);
+  return readJson(response, MAX_JSON_BYTES, stage);
 }
 
 function aspectsFor(item: EbayItem) {
@@ -310,13 +345,13 @@ function groupVariants(items: EbayItem[], listingId: string, sourceUrl: string, 
 function mapSingleItem(item: EbayItem, listingId: string, url: URL): Extracted {
   const itemId = clean(item.itemId, 100);
   if (!itemId.startsWith(`v1|${listingId}|`)) throw new Error('eBay item did not match the requested listing.');
-  if (!fixedPrice(item)) throw new EbayManualReviewError('Это аукцион или предложение без фиксированной цены. Проверьте объявление вручную; текущая ставка не считается ценой покупки.');
+  if (!fixedPrice(item)) throw new EbayManualReviewError('Это аукцион или предложение без фиксированной цены. Проверьте объявление вручную; текущая ставка не считается ценой покупки.', 'item_data', 200);
   const price = priceFor(item);
   const title = clean(item.title, 140);
   const images = itemImages(item, url.href);
   const status = availability(item);
-  if (status.known && !status.available) throw new EbayListingUnavailableError();
-  if (!title || !price || !price.currency) throw new Error('eBay listing data was incomplete.');
+  if (status.known && !status.available) throw new EbayListingUnavailableError(undefined, 'item_data', 200);
+  if (!title || !price || !price.currency) throw new EbayManualReviewError('eBay не вернул полные данные объявления.', 'item_data', 200);
   const brand = clean(item.brand, 80) || undefined;
   const category = inferCategory(item, title);
   const variant: ProductVariant = {
@@ -374,25 +409,25 @@ export async function fetchEbayProduct(sourceUrl: string, config: EbayBrowseConf
   itemUrl.searchParams.set('legacy_item_id', listingId);
   const selectedVariation = selectedLegacyVariation(url);
   if (selectedVariation) itemUrl.searchParams.set('legacy_variation_id', selectedVariation);
-  const item = await browseGet(itemUrl, token, marketplace, fetcher, signal, true);
+  const item = await browseGet(itemUrl, token, marketplace, fetcher, signal, 'browse_item', true);
   const primaryGroup = record(item.primaryItemGroup);
   const groupId = clean(primaryGroup?.itemGroupId, 32);
   const groupType = clean(primaryGroup?.itemGroupType, 80);
   if (!groupId || groupType !== 'SELLER_DEFINED_VARIATIONS') return mapSingleItem(item, listingId, url);
-  if (groupId !== listingId) throw new Error('eBay variation group did not match the requested listing.');
+  if (groupId !== listingId) throw new EbayManualReviewError('Не удалось подтвердить, что варианты относятся к этому объявлению eBay.', 'variation_group', 200);
 
   const groupUrl = new URL(`${base}/buy/browse/v1/item/get_items_by_item_group`);
   groupUrl.searchParams.set('item_group_id', groupId);
-  const group = await browseGet(groupUrl, token, marketplace, fetcher, signal);
+  const group = await browseGet(groupUrl, token, marketplace, fetcher, signal, 'browse_variants');
   const items = Array.isArray(group.items) ? group.items.map(record).filter((value): value is EbayItem => Boolean(value)) : [];
   const parentPrice = priceFor(item);
   const groupPrice = items.map(priceFor).find((value): value is NonNullable<typeof value> => Boolean(value));
   const currency = groupPrice?.currency ?? parentPrice?.currency;
   const title = clean(primaryGroup.itemGroupTitle ?? item.title, 140);
-  if (!title || !currency) throw new Error('eBay variation group data was incomplete.');
+  if (!title || !currency) throw new EbayManualReviewError('eBay не вернул полные данные вариантов.', 'variation_group', 200);
   const parsed = groupVariants(items, listingId, url.href, currency);
-  if (parsed.warning) throw new EbayManualReviewError(parsed.warning);
-  if (!parsed.variants.length) throw new EbayManualReviewError('eBay не вернул ни одного варианта с проверяемой ценой и размером. Откройте объявление и проверьте его вручную.');
+  if (parsed.warning) throw new EbayManualReviewError(parsed.warning, 'variant_data', 200);
+  if (!parsed.variants.length) throw new EbayManualReviewError('eBay не вернул ни одного варианта с проверяемой ценой и размером. Откройте объявление и проверьте его вручную.', 'variant_data', 200);
   const selectedColor = clean(item.color, 120) || [...aspectsFor(item)].find(([name]) => /colou?r/i.test(name))?.[1] || undefined;
   const images = dedupeSafeImages([
     ...itemImages(primaryGroup, url.href),

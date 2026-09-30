@@ -2,7 +2,7 @@ import {dedupeSafeImages,extractAdidasProduct,extractProduct,type Extracted} fro
 import {extractShopify, shopifyEndpoints} from './shopify.ts';
 import {isEbayStoreHost,isSupportedStoreHost,supportedStoreCount} from './stores.ts';
 import {applyMerchantProfile} from './merchant-profiles.ts';
-import {EbayListingUnavailableError, EbayManualReviewError, fetchEbayProduct, type EbayBrowseConfig} from './ebay.ts';
+import {EbayBrowseApiError, EbayListingUnavailableError, EbayManualReviewError, fetchEbayProduct, type EbayBrowseConfig} from './ebay.ts';
 export {supportedStoreCount};
 
 /** Recoverable import failure: the customer may review and explicitly confirm
@@ -305,11 +305,16 @@ export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch
   try {
     if (isEbayStoreHost(url.hostname)) {
       const config = fetcher.ebayBrowseConfig?.();
-      if (config?.clientId?.trim() && config.clientSecret) {
+      if (!config?.clientId?.trim() || !config.clientSecret || !config.environment) {
+        console.warn('[eBay import] stage=configuration status=missing');
+      } else {
         try {
           const ebayProduct = await fetchEbayProduct(url.href, config, fetcher, controller.signal);
           if (ebayProduct) return finalizeExtraction(ebayProduct, url.href);
         } catch (error) {
+          if (error instanceof EbayBrowseApiError || error instanceof EbayListingUnavailableError || error instanceof EbayManualReviewError) {
+            console.warn(`[eBay import] stage=${error.stage} status=${error.status ?? 'network'}`);
+          }
           if (error instanceof EbayListingUnavailableError || error instanceof ManualEntryFallbackError) throw error;
           if (error instanceof EbayManualReviewError) {
             throw new ManualEntryFallbackError(error.message, {
