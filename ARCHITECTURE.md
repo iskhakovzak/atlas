@@ -405,3 +405,7 @@ After a source-backed cart addition has been verified and saved, `addCustomerLin
 - The first signed production refresh checked five due entries: two were confirmed available and three failed conservatively. Failed entries remain published as before and receive one-hour-to-one-day exponential retry; transport success does not imply that every store produced a usable product matrix. The timer is enabled, with its first automatic hourly firing still pending.
 - The live NYC proxy was verified over HTTPS with a Nike product HTML GET and the importer’s fixed anonymous Amazon-US ZIP lookup POST; the response body/cookies stay bounded and are not logged.
 - No D1 migration or runtime customer-state schema change accompanies the proxy. An allowlisted store may still block or omit data; the manual-entry and explicit customer-confirmation paths remain unchanged. A source check is not proof of stock or a guaranteed commercial quote.
+# eBay variation-group recovery — 1 October 2026
+
+On a legacy item HTTP 400 without an explicit child variation, the official Browse adapter requests `get_items_by_item_group` using the same numeric listing ID. Only exact-parent children may supply metadata, prices and images. Explicit child errors and unavailable groups remain errors; OAuth and generic safe/manual fallback are unchanged.
+

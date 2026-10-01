@@ -105,6 +105,58 @@ test('regional eBay marketplace is sent explicitly and a standalone item keeps i
   assert.equal(calls.find(call => call.url.pathname.endsWith('/get_item_by_legacy_id')).init.headers['X-EBAY-C-MARKETPLACE-ID'], 'EBAY_ES');
 });
 
+test('a parent variation link recovers a legacy-item 400 through its exact item group', async () => {
+  clearEbayTokenCacheForTests();
+  const items = [
+    ebayItem({variationId: '9001', size: '8', amount: 28}),
+    ebayItem({variationId: '9002', size: '9', amount: 31}),
+    ebayItem({variationId: '9003', size: '10', amount: 28, availability: 'OUT_OF_STOCK'}),
+  ];
+  const calls = [];
+  const fetcher = async input => {
+    const url = new URL(String(input)); calls.push(url);
+    if (url.pathname.endsWith('/oauth2/token')) return json({access_token: 'test-access-token', expires_in: 3600});
+    if (url.pathname.endsWith('/get_item_by_legacy_id')) return json({errors:[{errorId:11001}]}, 400);
+    assert.equal(url.searchParams.get('item_group_id'), listingId);
+    return json({items});
+  };
+  const product = await fetchEbayProduct(`https://www.ebay.com/itm/${listingId}`, credentials, fetcher);
+  assert.equal(product.title, 'Atlas Trail Running Shoe');
+  assert.equal(product.currency, 'USD');
+  assert.equal(product.price, undefined);
+  assert.equal(product.selectedVariantColor, undefined, 'a parent URL must not select the first child color');
+  assert.deepEqual(product.variants.map(v => [v.id, v.size, v.price]), [['9001','8',28],['9002','9',31]]);
+  assert.equal(calls.length, 3);
+});
+
+test('an explicit invalid child variation is not replaced with the parent group', async () => {
+  clearEbayTokenCacheForTests();
+  const calls = [];
+  const fetcher = async input => {
+    const url = new URL(String(input)); calls.push(url);
+    return url.pathname.endsWith('/oauth2/token')
+      ? json({access_token:'test-access-token', expires_in:3600})
+      : json({errors:[{errorId:11001}]}, 400);
+  };
+  await assert.rejects(fetchEbayProduct(`https://www.ebay.com/itm/${listingId}?var=9999`, credentials, fetcher), error => error instanceof EbayBrowseApiError && error.status === 400);
+  assert.equal(calls.length, 2);
+});
+
+test('parent recovery rejects unrelated group data and keeps a sold-out group unavailable', async () => {
+  for (const unrelated of [true, false]) {
+    clearEbayTokenCacheForTests();
+    const item = ebayItem({variationId:'9001',size:'8',amount:28,availability:'OUT_OF_STOCK'});
+    if (unrelated) item.itemId = 'v1|999999999999|9001';
+    const fetcher = async input => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/oauth2/token')) return json({access_token:'test-access-token', expires_in:3600});
+      if (path.endsWith('/get_item_by_legacy_id')) return json({errors:[{errorId:11001}]},400);
+      return json({items:[item]});
+    };
+    await assert.rejects(fetchEbayProduct(`https://www.ebay.com/itm/${listingId}`, credentials, fetcher), unrelated ? /запрошенного объявления/ : /больше недоступно/);
+  }
+});
+
 test('eBay auction and mismatched variation responses do not become a purchasable price', async () => {
   clearEbayTokenCacheForTests();
   const auction = {itemId: `v1|${listingId}|0`, title: 'Auction', price: {value: '2', currency: 'USD'}, buyingOptions: ['AUCTION']};

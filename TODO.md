@@ -4,7 +4,8 @@
 
 - [x] Add and test the public HTTPS account-deletion callback: exact-endpoint SHA-256 challenge, bounded request bodies, ECDSA notification-signature verification, one-hour eBay public-key cache, and no retention/logging of notification identifiers.
 - [x] Save the alert email explicitly supplied by the operator and configure the exact Production endpoint plus the Site-only `EBAY_NOTIFICATION_VERIFICATION_TOKEN`; eBay accepted the settings, challenge and test notification.
-- [ ] Resolve the remaining live Browse item HTTP 400. OAuth now succeeds, but the exact listing still returns Atlas's safe 422 manual fallback. The numeric eBay error ID is extracted without response text, but the Sites log view has not exposed the console record; verify Buy API Production eligibility in eBay and only mark import complete after title, price, and available variants are actually returned.
+- [x] Fix legacy HTTP 400 for parent variation listings by requesting the exact listing group; add regressions for active, sold-out, unrelated and explicitly selected child variants (188 tests passing).
+- [ ] Verify the deployed parent-group import returns live title, prices and available variants before declaring eBay operational.
 
 ## Operator catalog refresh diagnostics — 1 October 2026
 

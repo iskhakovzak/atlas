@@ -683,3 +683,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 Operator notes remain internal and are displayed separately from a new targeted in-app notification form. The notification action references an order ID, resolves the target account from the authenticated operator queue, and saves a bounded title/body to that owner's existing notification list. It creates no email/SMS preview or external delivery. The `/api/operations` operator email, same-origin, account revision, action-schema and audit checks remain in force. All fields reuse existing optional state; no migration or rewrite of old orders was added.
 
 The browser UI for this refund/notification pass has not yet been visually verified at mobile/desktop widths; automated project checks are recorded at handoff. Real provider refunds and email/SMS delivery remain unavailable, and all refund/payment states are Atlas-internal simulation.
+# eBay parent listing recovery — 1 October 2026
+
+Parent variation listings rejected by the legacy Browse endpoint with HTTP 400 now use the exact listing group endpoint. Explicit child selection is never silently replaced. Exact-parent variants retain individual prices and availability; unrelated group images/currencies are excluded. Regression suite: 188 passing tests. Live publication/import verification remains required.
+

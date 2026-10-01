@@ -447,30 +447,53 @@ export async function fetchEbayProduct(sourceUrl: string, config: EbayBrowseConf
   itemUrl.searchParams.set('legacy_item_id', listingId);
   const selectedVariation = selectedLegacyVariation(url);
   if (selectedVariation) itemUrl.searchParams.set('legacy_variation_id', selectedVariation);
-  const item = await browseGet(itemUrl, token, marketplace, fetcher, signal, 'browse_item', true);
+  let item: EbayItem;
+  let group: EbayItem | undefined;
+  try {
+    item = await browseGet(itemUrl, token, marketplace, fetcher, signal, 'browse_item', true);
+  } catch (error) {
+    // A parent listing URL has no child variation ID. eBay rejects that
+    // legacy-item request with 400; its exact group endpoint accepts the
+    // parent ID and returns the individually priced seller variations.
+    if (selectedVariation || !(error instanceof EbayBrowseApiError) || error.status !== 400) throw error;
+    const groupUrl = new URL(`${base}/buy/browse/v1/item/get_items_by_item_group`);
+    groupUrl.searchParams.set('item_group_id', listingId);
+    group = await browseGet(groupUrl, token, marketplace, fetcher, signal, 'browse_variants');
+    const exactItem = Array.isArray(group.items)
+      ? group.items.map(record).find(value => value && variationId(value, listingId) !== undefined)
+      : undefined;
+    if (!exactItem) throw new EbayManualReviewError('eBay не вернул варианты запрошенного объявления.', 'variation_group', 200);
+    item = exactItem;
+  }
   const primaryGroup = record(item.primaryItemGroup);
-  const groupId = clean(primaryGroup?.itemGroupId, 32);
-  const groupType = clean(primaryGroup?.itemGroupType, 80);
+  const groupId = group ? listingId : clean(primaryGroup?.itemGroupId, 32);
+  const groupType = group ? 'SELLER_DEFINED_VARIATIONS' : clean(primaryGroup?.itemGroupType, 80);
   if (!groupId || groupType !== 'SELLER_DEFINED_VARIATIONS') return mapSingleItem(item, listingId, url);
   if (groupId !== listingId) throw new EbayManualReviewError('Не удалось подтвердить, что варианты относятся к этому объявлению eBay.', 'variation_group', 200);
 
   const groupUrl = new URL(`${base}/buy/browse/v1/item/get_items_by_item_group`);
   groupUrl.searchParams.set('item_group_id', groupId);
-  const group = await browseGet(groupUrl, token, marketplace, fetcher, signal, 'browse_variants');
+  const recoveredParent = Boolean(group);
+  group ??= await browseGet(groupUrl, token, marketplace, fetcher, signal, 'browse_variants');
   const items = Array.isArray(group.items) ? group.items.map(record).filter((value): value is EbayItem => Boolean(value)) : [];
+  const exactItems = items.filter(value => variationId(value, listingId) !== undefined);
+  if (exactItems.length && exactItems.every(value => {
+    const state = availability(value);
+    return state.known && !state.available;
+  })) throw new EbayListingUnavailableError(undefined, 'variation_group', 200);
   const parentPrice = priceFor(item);
-  const groupPrice = items.map(priceFor).find((value): value is NonNullable<typeof value> => Boolean(value));
+  const groupPrice = exactItems.map(priceFor).find((value): value is NonNullable<typeof value> => Boolean(value));
   const currency = groupPrice?.currency ?? parentPrice?.currency;
-  const title = clean(primaryGroup.itemGroupTitle ?? item.title, 140);
+  const title = clean(primaryGroup?.itemGroupTitle ?? item.title, 140);
   if (!title || !currency) throw new EbayManualReviewError('eBay не вернул полные данные вариантов.', 'variation_group', 200);
   const parsed = groupVariants(items, listingId, url.href, currency);
   if (parsed.warning) throw new EbayManualReviewError(parsed.warning, 'variant_data', 200);
   if (!parsed.variants.length) throw new EbayManualReviewError('eBay не вернул ни одного варианта с проверяемой ценой и размером. Откройте объявление и проверьте его вручную.', 'variant_data', 200);
-  const selectedColor = clean(item.color, 120) || [...aspectsFor(item)].find(([name]) => /colou?r/i.test(name))?.[1] || undefined;
+  const selectedColor = recoveredParent ? undefined : clean(item.color, 120) || [...aspectsFor(item)].find(([name]) => /colou?r/i.test(name))?.[1] || undefined;
   const images = dedupeSafeImages([
-    ...itemImages(primaryGroup, url.href),
+    ...itemImages(primaryGroup ?? {}, url.href),
     ...itemImages(item, url.href),
-    ...items.flatMap(value => itemImages(value, url.href)),
+    ...exactItems.flatMap(value => itemImages(value, url.href)),
   ], url.href, MAX_IMAGES);
   const category = inferCategory(item, title);
   return {
