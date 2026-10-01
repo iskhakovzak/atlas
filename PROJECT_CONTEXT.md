@@ -685,5 +685,5 @@ Operator notes remain internal and are displayed separately from a new targeted 
 The browser UI for this refund/notification pass has not yet been visually verified at mobile/desktop widths; automated project checks are recorded at handoff. Real provider refunds and email/SMS delivery remain unavailable, and all refund/payment states are Atlas-internal simulation.
 # eBay parent listing recovery — 1 October 2026
 
-Parent variation listings rejected by the legacy Browse endpoint with HTTP 400 now use the exact listing group endpoint. Explicit child selection is never silently replaced. Exact-parent variants retain individual prices and availability; unrelated group images/currencies are excluded. Regression suite: 188 passing tests. Live publication/import verification remains required.
+Parent variation listings rejected by the legacy Browse endpoint with HTTP 400 now use the exact listing group endpoint. Explicit child selection is never silently replaced. Exact-parent variants retain individual prices and availability; unrelated group images/currencies are excluded. Regression suite: 188 passing tests. Version 128 live verification on atlasmarket.uz: listing 157740212601 returned seven available variants and seven photos, with selected prices USD 19 and USD 23 for different size/color combinations. No checkout or customer-state writes performed.
 
