@@ -687,3 +687,7 @@ The browser UI for this refund/notification pass has not yet been visually verif
 
 Parent variation listings rejected by the legacy Browse endpoint with HTTP 400 now use the exact listing group endpoint. Explicit child selection is never silently replaced. Exact-parent variants retain individual prices and availability; unrelated group images/currencies are excluded. Regression suite: 188 passing tests. Version 128 live verification on atlasmarket.uz: listing 157740212601 returned seven available variants and seven photos, with selected prices USD 19 and USD 23 for different size/color combinations. No checkout or customer-state writes performed.
 
+# ShopSimon import support — 1 October 2026
+
+Added only the exact `shop.simon.com` storefront to the importer allowlist and US store directory. Its public Shopify product/currency endpoints use the existing anonymous, bounded pipeline; color, Shoe Size, per-variant price/stock and galleries are retained. The NYC proxy allowlist was updated with exactly this one host (no removals), backed up and restarted successfully. Local live checks: Nike toddler Dunk USD 60, four variants/one available/two photos; NVLT crochet jacket USD 229, ten available variants/four photos. Two older adidas URLs returned zero available variants and must not be labelled in stock. Production UI verification is still a release check. No account/cart/order schema or tariff change.
+

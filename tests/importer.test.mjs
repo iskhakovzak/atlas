@@ -8,6 +8,30 @@ import {verifyKnownSnapshotFields,verifyProductSnapshot} from '../lib/importer/v
 import {manualFallbackAllowed} from '../lib/importer/manual-fallback.ts';
 
 const url = 'https://www.allbirds.com/products/shoe';
+test('ShopSimon uses exact approved storefront and US Shopify endpoints',()=>{
+  const source='https://shop.simon.com/products/superstar?variant=123';
+  assert.equal(allowedUrl(source).href,source);
+  const endpoints=shopifyEndpoints(new URL(source));
+  assert.equal(endpoints.product.href,'https://shop.simon.com/products/superstar.js?country=US');
+  assert.equal(endpoints.currency.href,'https://shop.simon.com/cart.js?country=US');
+  for(const host of ['simon.com','evil.simon.com','www.shop.simon.com','shop.simon.com.evil.example'])
+    assert.throws(()=>allowedUrl(`https://${host}/products/superstar`));
+  assert.ok(featuredStoreGroups.find(group=>group.region==='США').stores.some(store=>store.root==='shop.simon.com'));
+});
+test('ShopSimon preserves shoe sizes, colorways, selected price and availability',()=>{
+  const data={handle:'superstar',title:'Women\'s adidas SUPERSTAR II SHOES',vendor:'adidas',type:'women/shoes/athletic',images:['//shop.simon.com/cdn/shop/files/shoe.jpg'],options:[{name:'Shoe Size'},{name:'Color'}],variants:[
+    {id:123,title:'US 8 / off white / carbon',option1:'US 8',option2:'off white / carbon',price:7100,available:true},
+    {id:124,title:'US 9 / night indigo',option1:'US 9',option2:'night indigo',price:6900,available:false},
+  ]};
+  const result=extractShopify(data,{currency:'USD'},'https://shop.simon.com/products/superstar?variant=123');
+  assert.equal(result.price,71);assert.equal(result.currency,'USD');assert.equal(result.country,'США');assert.equal(result.category,'Обувь');
+  assert.equal(result.images[0],'https://shop.simon.com/cdn/shop/files/shoe.jpg');
+  assert.deepEqual(result.variants.map(v=>[v.id,v.size,v.sizeLabel,v.color,v.price,v.available,v.availabilityKnown]),[
+    ['123','US 8','Shoe Size','off white / carbon',71,true,true],['124','US 9','Shoe Size','night indigo',69,false,true],
+  ]);
+  assert.equal(result.shipping,undefined);
+  assert.equal(extractShopify(data,{currency:'USD'},'https://shop.simon.com/products/superstar').price,undefined);
+});
 const product = {handle:'shoe',title:'Wool shoes',vendor:'Allbirds',images:['//cdn.shopify.com/one.jpg','https://127.0.0.1/private','//cdn.shopify.com/two.jpg'],options:[{name:'Color'},{name:'Size'}],variants:[
   {id:1,title:'Black / 8',option1:'Black',option2:'8',price:11000,available:true,featured_image:{src:'//cdn.shopify.com/black.jpg'}},
   {id:2,title:'Black / 9',option1:'Black',option2:'9',price:12000,available:false},

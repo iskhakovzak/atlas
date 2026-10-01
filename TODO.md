@@ -1,5 +1,12 @@
 # Atlas TODO and known limitations
 
+## ShopSimon — 1 October 2026
+
+- [x] Add exact storefront allowlisting, US Shopify product/currency loading and store-directory entry; retain price, colour/size, availability and photos with security regressions.
+- [x] Synchronize the NYC proxy allowlist with exactly `shop.simon.com`, retain a backup and verify the service is active.
+- [x] Live-check active Nike toddler shoes and NVLT clothing through the complete local importer; older adidas pages currently have no available variants.
+- [ ] Verify authenticated production UI imports after publication; validate the user's specific failing URL when supplied. Promotions and seller shipping are not automatically guaranteed; the unknown-shipping reserve remains separate.
+
 ## eBay Production activation — 1 October 2026
 
 - [x] Add and test the public HTTPS account-deletion callback: exact-endpoint SHA-256 challenge, bounded request bodies, ECDSA notification-signature verification, one-hour eBay public-key cache, and no retention/logging of notification identifiers.

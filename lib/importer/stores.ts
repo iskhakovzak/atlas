@@ -12,6 +12,7 @@ export function isEbayStoreHost(host: string) {
 }
 
 export const supportedStoreRoots = [
+  'shop.simon.com',
   'allbirds.com','kyliecosmetics.com','colourpop.com','fashionnova.com','stevemadden.com','bombas.com',
   'aloyoga.com','rarebeauty.com','rhodeskin.com','glossier.com','summerfridays.com','fentybeauty.com',
   'kith.com','cncpts.com','sneakersnstuff.com','satechi.com','satechi.net','spigen.com',
@@ -53,6 +54,7 @@ export const featuredStoreGroups: FeaturedStoreGroup[] = [
     {root:'mediamarkt.de',name:'MediaMarkt Deutschland',focus:'Техника'},{root:'galaxus.de',name:'Galaxus',focus:'Техника'},{root:'fnac.es',name:'Fnac España',focus:'Универмаг'},
   ]},
   { region: 'США', hint: 'Самый широкий выбор брендов, outlet-разделов и крупных сезонных скидок.', stores: [
+    {root:'shop.simon.com',name:'ShopSimon',focus:'Универмаг'},
     {root:'amazon.com',name:'Amazon US',focus:'Универмаг'},{root:'nike.com',name:'Nike',focus:'Кроссовки'},{root:'adidas.com',name:'adidas',focus:'Кроссовки'},{root:'nordstrom.com',name:'Nordstrom',focus:'Одежда'},{root:'nordstromrack.com',name:'Nordstrom Rack',focus:'Одежда'},{root:'macys.com',name:"Macy's",focus:'Универмаг'},
     {root:'ebay.com',name:'eBay',focus:'Универмаг'},{root:'walmart.com',name:'Walmart',focus:'Универмаг'},{root:'target.com',name:'Target',focus:'Универмаг'},
     {root:'footlocker.com',name:'Foot Locker',focus:'Кроссовки'},{root:'dsw.com',name:'DSW',focus:'Кроссовки'},{root:'zappos.com',name:'Zappos',focus:'Кроссовки'},
@@ -71,7 +73,7 @@ const localizedHosts = new Set(['en.zalando.de']);
 const allowedHostsCache = new Set<string>(localizedHosts);
 for (const root of supportedStoreRoots) {
   allowedHostsCache.add(root);
-  allowedHostsCache.add('www.' + root);
+  if (root !== 'shop.simon.com') allowedHostsCache.add('www.' + root);
   if (shopSubdomains.has(root)) allowedHostsCache.add('shop.' + root);
 }
 

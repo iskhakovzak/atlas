@@ -409,3 +409,7 @@ After a source-backed cart addition has been verified and saved, `addCustomerLin
 
 On a legacy item HTTP 400 without an explicit child variation, the official Browse adapter requests `get_items_by_item_group` using the same numeric listing ID. Only exact-parent children may supply metadata, prices and images. Explicit child errors and unavailable groups remain errors; OAuth and generic safe/manual fallback are unchanged.
 
+# ShopSimon exact-host adapter — 1 October 2026
+
+`shop.simon.com` is an exact store root with no implicit `www.shop.simon.com` permission and no broad `simon.com` subdomain wildcard. It uses the existing Shopify JSON adapter with public US country context and cart-confirmed USD. Existing time/body/redirect/image limits and server variant rechecks remain unchanged. Every allowlist addition must also update `/opt/atlas-import-proxy/supported-store-hosts.json` on the NYC VM; this rollout added exactly one host with a recoverable backup.
+
