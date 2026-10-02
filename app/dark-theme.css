@@ -828,6 +828,17 @@ html[data-theme="dark"] .finds-categories button:hover:not(.active) {
   color: var(--atlas-ink);
 }
 
+html[data-theme="dark"] .finds-sort-control>span,
+html[data-theme="dark"] .finds-filter-primary .catalog-filter-disclosure>summary {
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .finds-filter-primary .catalog-filter-disclosure>summary,
+html[data-theme="dark"] .finds-filter-primary .finds-filter-row {
+  background: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+}
+
 html[data-theme="dark"] .finds-result .text-button,
 html[data-theme="dark"] .find-title:hover {
   color: var(--atlas-link);
@@ -1156,6 +1167,24 @@ html[data-theme="dark"] .find-store-price .find-discount {
   background-color: var(--atlas-dark-raised);
   border-color: var(--atlas-dark-line);
   color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .finance-breakdown,
+html[data-theme="dark"] .finance-payment-states>div,
+html[data-theme="dark"] .audit-folders button,
+html[data-theme="dark"] .collection-presets,
+html[data-theme="dark"] .country-pricing {
+  background-color: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .audit-folders button.active {
+  background-color: var(--atlas-dark-selected);
+}
+
+html[data-theme="dark"] .finance-lines>div {
+  border-color: var(--atlas-dark-line);
 }
 
 html[data-theme="dark"] .finds-own-link form {
@@ -1639,6 +1668,322 @@ html[data-theme="dark"] .finds-signin a:hover {
   color: #d3dcf6;
 }
 
+html[data-theme="dark"] .catalog-variant-panel,
+html[data-theme="dark"] .catalog-variant-scroll,
+html[data-theme="dark"] .catalog-import-progress,
+html[data-theme="dark"] .catalog-import-progress li,
+html[data-theme="dark"] .catalog-import-queue-summary span,
+html[data-theme="dark"] .catalog-photo-gallery img {
+  background-color: var(--atlas-surface);
+  border-color: var(--atlas-line);
+  color: var(--atlas-ink);
+}
+
+html[data-theme="dark"] .catalog-variant-table th,
+html[data-theme="dark"] .catalog-variant-table td > img,
+html[data-theme="dark"] .catalog-variant-no-image {
+  background-color: var(--atlas-soft);
+  color: var(--atlas-ink);
+}
+
+html[data-theme="dark"] .catalog-variant-table td:nth-child(6) span,
+html[data-theme="dark"] .catalog-import-progress .import-saved > span {
+  background-color: #263b2d;
+  color: #c5e8c9;
+}
+
+html[data-theme="dark"] .catalog-variant-table td:nth-child(6) .variant-unknown {
+  background-color: #2b3430;
+  color: #c2cec7;
+}
+
+html[data-theme="dark"] .catalog-variant-table td:nth-child(6) .variant-sold-out,
+html[data-theme="dark"] .catalog-import-progress .import-failed > span {
+  background-color: #452c29;
+  color: #f0bbb0;
+}
+
+html[data-theme="dark"] .catalog-variant-table input,
+html[data-theme="dark"] .catalog-variant-table select {
+  background-color: var(--atlas-surface);
+  border-color: var(--atlas-line);
+  color: var(--atlas-ink);
+}
+
+html[data-theme="dark"] .catalog-import-hint {
+  background-color: var(--atlas-soft);
+  color: var(--atlas-ink);
+}
+
+/* Final contrast sweep for legacy utility copy and route-specific fixed colors. */
+html[data-theme="dark"] .supported-stores {
+  background-color: var(--atlas-dark-surface);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .supported-stores :is(h2, h3) {
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .supported-stores :is(p, small) {
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .supported-stores .supported-store-list > li {
+  background-color: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .supported-stores-link {
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .access-card :is(p, small),
+html[data-theme="dark"] .ticket-list small,
+html[data-theme="dark"] .change-values span,
+html[data-theme="dark"] .variant-step > div:first-child span,
+html[data-theme="dark"] .customs-estimate-caption,
+html[data-theme="dark"] .compact-order-name > span,
+html[data-theme="dark"] .review-items small,
+html[data-theme="dark"] .support-form .support-counter,
+html[data-theme="dark"] .finds-price-note,
+html[data-theme="dark"] .find-meta,
+html[data-theme="dark"] .find-purchase > span,
+html[data-theme="dark"] .find-store-price > small,
+html[data-theme="dark"] .message-log p,
+html[data-theme="dark"] .message-log time,
+html[data-theme="dark"] .staff-notes time,
+html[data-theme="dark"] .admin-section-head > span,
+html[data-theme="dark"] .section-heading > span,
+html[data-theme="dark"] .audit-list span,
+html[data-theme="dark"] .audit-list time,
+html[data-theme="dark"] .payment-preview span,
+html[data-theme="dark"] .review-service,
+html[data-theme="dark"] .declaration-facts dt,
+html[data-theme="dark"] .identity-placeholder {
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .find-card .find-breakdown dt,
+html[data-theme="dark"] .find-card .find-origin > span {
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .find-card .find-breakdown dd {
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .image-edit,
+html[data-theme="dark"] .image-edit summary,
+html[data-theme="dark"] .source-list a,
+html[data-theme="dark"] .currency-rates > summary,
+html[data-theme="dark"] .ticket-list summary,
+html[data-theme="dark"] .message-channel,
+html[data-theme="dark"] .admin-heading > svg,
+html[data-theme="dark"] .ops-tools > summary {
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .ticket-reply {
+  background-color: var(--atlas-dark-raised);
+  border: 1px solid var(--atlas-dark-line);
+  color: var(--atlas-dark-ink) !important;
+}
+
+html[data-theme="dark"] .ticket-reply b {
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .cart-service-option-copy > .cart-service-rate,
+html[data-theme="dark"] .customs-estimate summary strong,
+html[data-theme="dark"] .checkout-progress li.active {
+  color: var(--atlas-dark-link);
+}
+
+html[data-theme="dark"] .remove-item.confirming,
+html[data-theme="dark"] .remove-item.confirming:hover,
+html[data-theme="dark"] .account-error .text-button,
+html[data-theme="dark"] .account-error .text-link {
+  color: var(--atlas-dark-error-ink);
+}
+
+html[data-theme="dark"] .remove-item.confirming {
+  background-color: var(--atlas-dark-error-bg);
+  border-color: var(--atlas-dark-error-line);
+}
+
+html[data-theme="dark"] .credit-line,
+html[data-theme="dark"] .result-line,
+html[data-theme="dark"] .ledger-entry .credit {
+  color: var(--atlas-dark-success-ink);
+}
+
+html[data-theme="dark"] .warning-text {
+  color: var(--atlas-dark-warning-ink);
+}
+
+html[data-theme="dark"] .expiry.expired {
+  color: var(--atlas-dark-warning-ink);
+}
+
+html[data-theme="dark"] .currency-rates > summary:hover,
+html[data-theme="dark"] .ticket-list summary:hover,
+html[data-theme="dark"] .source-list a:hover {
+  color: #d3dcf6;
+}
+
+html[data-theme="dark"] .notice-filters button {
+  background-color: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .notice-filters button.active {
+  background-color: var(--atlas-dark-selected);
+  border-color: #69799f;
+  color: #e3e8f8;
+}
+
+html[data-theme="dark"] .status-row > div {
+  background-color: var(--atlas-dark-inset);
+}
+
+html[data-theme="dark"] .checkout-review hr {
+  border-color: var(--atlas-dark-line);
+}
+
+html[data-theme="dark"] .identity-has-document .identity-upload {
+  background-color: var(--atlas-dark-surface);
+}
+
+html[data-theme="dark"] .access-spinner {
+  border-color: var(--atlas-dark-line);
+  border-top-color: var(--atlas-dark-link);
+}
+
+@media (max-width: 600px) {
+  html[data-theme="dark"] :is(
+    .supported-stores,
+    .supported-stores-heading,
+    .supported-store-list,
+    .find-card,
+    .find-content,
+    .cart-item,
+    .compact-order-name,
+    .compact-order-body,
+    .document-row > div,
+    .saved-address,
+    .account-detail-summary,
+    .catalog-draft-summary > div,
+    .admin-table-row > *,
+    .message-log article > *,
+    .review-items > div,
+    .legal-document
+  ) {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  html[data-theme="dark"] :is(
+    .supported-store-list > li,
+    .find-title,
+    .product-name,
+    .deal-name,
+    .find-origin,
+    .compact-order-name,
+    .cart-item :is(h2, h3, p, small, strong),
+    .order-card :is(h2, h3, p, small, strong),
+    .document-row b,
+    .catalog-draft-summary :is(b, small, em),
+    .account-error,
+    .ticket-reply,
+    .admin-table-row > *,
+    .message-log article > *,
+    .legal-document :is(p, li),
+    .site-footer :is(a, small)
+  ) {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+}
+
+/* Dark theme keeps blue for navigation/source links and uses Atlas sage for primary actions. */
+html[data-theme="dark"] {
+  --primary: #a9bf91;
+  --primary-foreground: #252a26;
+}
+
+html[data-theme="dark"] .wordmark svg,
+html[data-theme="dark"] .supported-stores-link {
+  color: #b8c99f;
+}
+
+html[data-theme="dark"] .btn.primary,
+html[data-theme="dark"] .cart-link,
+html[data-theme="dark"] .storage-notice button {
+  background: #a9bf91;
+  border-color: #a9bf91;
+  color: #252a26;
+}
+
+html[data-theme="dark"] .btn.primary:hover,
+html[data-theme="dark"] .cart-link:hover,
+html[data-theme="dark"] .storage-notice button:hover {
+  background: #b7c99f;
+  border-color: #b7c99f;
+  color: #222722;
+}
+
+html[data-theme="dark"] .catalog-scope-tabs {
+  border-color: var(--atlas-dark-line);
+}
+
+html[data-theme="dark"] .catalog-scope-tabs button:hover,
+html[data-theme="dark"] .catalog-scope-tabs button.active {
+  background: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .catalog-scope-tabs button span,
+html[data-theme="dark"] .catalog-empty-state {
+  background: var(--atlas-dark-raised);
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .catalog-scope-tabs button.active span {
+  background: #384936;
+  color: #e6f2da;
+}
+
+html[data-theme="dark"] .catalog-review-controls input,
+html[data-theme="dark"] .catalog-review-controls select,
+html[data-theme="dark"] .catalog-draft {
+  background: var(--atlas-dark-surface);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .catalog-select .draft-new {
+  background: #304334;
+  border-color: #4d664f;
+  color: #e3f0d8;
+}
+
+html[data-theme="dark"] .catalog-delete-action {
+  background: #382725;
+  border-color: #70443f;
+  color: #ffd4cd;
+}
+
+html[data-theme="dark"] .catalog-delete-action:hover:not(:disabled) {
+  background: #4b2c28;
+  border-color: #a05a51;
+  color: #fff0ec;
+}
+
 /* Compact order-by-link quote disclosures use the same low-glare surface as the rest of Atlas. */
 html[data-theme="dark"] .single-variant-selection,
 html[data-theme="dark"] .quote-cost-help > summary,
@@ -1658,29 +2003,200 @@ html[data-theme="dark"] .customs-estimate-popover {
 
 html[data-theme="dark"] .single-variant-selection > small,
 html[data-theme="dark"] .customs-compact-copy > small,
-html[data-theme="dark"] .customs-compact-note {
+html[data-theme="dark"] .customs-compact-note,
+html[data-theme="dark"] .single-colorway-note,
+html[data-theme="dark"] .single-colorway-source {
   color: #afbbb3;
 }
+
+html[data-theme="dark"] .single-colorway-source > span { color: #e8efea; }
 
 html[data-theme="dark"] .customs-estimate-compact {
   border-color: #35463c;
 }
 
-html[data-theme="dark"] .order-tabs {
-  background-color: var(--atlas-dark-raised) !important;
+/* Catalog filter panel and active chips stay distinct in graphite mode. */
+html[data-theme="dark"] .finds-filter-primary .catalog-filter-disclosure>summary,
+html[data-theme="dark"] .finds-filter-primary .catalog-filter-disclosure[open]>summary {
+  background: var(--atlas-dark-raised);
   border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+  box-shadow: none;
 }
 
-html[data-theme="dark"] .order-tabs [data-slot="tabs-trigger"] {
+html[data-theme="dark"] .finds-filter-primary .catalog-filter-disclosure>summary:hover,
+html[data-theme="dark"] .finds-active-filters>button:hover {
+  background: var(--atlas-dark-hover);
+  border-color: #69717e;
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .finds-filter-count {
+  background: var(--atlas-dark-selected);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .finds-filter-panel {
+  background: var(--atlas-dark-surface);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+  box-shadow: 0 18px 44px #0008;
+}
+
+html[data-theme="dark"] .finds-filter-panel-head span,
+html[data-theme="dark"] .finds-filter-panel .finds-filter-row label>span {
   color: var(--atlas-dark-muted);
 }
 
-html[data-theme="dark"] .order-tabs [data-slot="tabs-trigger"][data-state="active"] {
-  background-color: var(--atlas-dark-selected);
+html[data-theme="dark"] .finds-active-filters>button {
+  background: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .finds-active-filters>button b,
+html[data-theme="dark"] .finds-active-filters>button svg {
   color: var(--atlas-dark-ink);
 }
 
-html[data-theme="dark"] .order-tabs b {
-  background-color: var(--atlas-dark-selected);
+html[data-theme="dark"] .link-form .catalog-fixed-note {
+  background: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .link-form .catalog-locked-field,
+html[data-theme="dark"] .link-form .catalog-locked-field:disabled {
+  background-color: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
   color: var(--atlas-dark-ink);
+  opacity: 1;
+}
+
+html[data-theme="dark"] .catalog-shipping-editor input[type="number"] {
+  background-color: var(--atlas-dark-raised);
+  border-color: var(--atlas-dark-line);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .catalog-shipping-estimate,
+html[data-theme="dark"] .catalog-shipping-editor>small {
+  color: var(--atlas-dark-muted);
+}
+
+.catalog-refresh-diagnostics {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--atlas-line);
+  border-radius: 12px;
+  background: var(--atlas-surface, #fff);
+  color: var(--atlas-ink);
+}
+
+.catalog-refresh-diagnostics-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.catalog-refresh-diagnostics-head h3 {
+  margin: 0 0 5px;
+  font-size: 15px;
+}
+
+.catalog-refresh-status,
+.catalog-refresh-no-error,
+.catalog-refresh-change {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.catalog-refresh-status.failed,
+.catalog-refresh-error { color: #8f352b; }
+.catalog-refresh-status.attention { color: #88641a; }
+.catalog-refresh-status.success { color: #356744; }
+
+.catalog-refresh-failure-count {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border: 1px solid #e7c6bb;
+  border-radius: 999px;
+  background: #fff5f0;
+  color: #8f352b;
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.catalog-refresh-diagnostics dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.catalog-refresh-diagnostics dl > div {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--atlas-line);
+  border-radius: 9px;
+  background: var(--atlas-soft);
+}
+
+.catalog-refresh-diagnostics dt {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.catalog-refresh-diagnostics dd {
+  margin: 0;
+  color: var(--atlas-ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.catalog-refresh-error {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #e7c6bb;
+  border-radius: 9px;
+  background: #fff5f0;
+  font-size: 13px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.catalog-refresh-change strong,
+.catalog-refresh-error strong { font-weight: 700; }
+
+html[data-theme="dark"] .catalog-refresh-status.failed {
+  color: var(--atlas-dark-warning-ink);
+}
+
+html[data-theme="dark"] .catalog-refresh-error,
+html[data-theme="dark"] .catalog-refresh-failure-count {
+  border-color: var(--atlas-dark-warning-line);
+  background: var(--atlas-dark-warning-bg);
+  color: var(--atlas-dark-warning-ink);
+}
+
+html[data-theme="dark"] .catalog-refresh-status.attention { color: var(--atlas-dark-warning-ink); }
+html[data-theme="dark"] .catalog-refresh-status.success { color: #a8d1ad; }
+
+@media(max-width:650px) {
+  .catalog-refresh-diagnostics-head { flex-direction: column; }
+  .catalog-refresh-diagnostics dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

@@ -1,0 +1,6 @@
+.catalog-shipping-editor{display:grid;gap:8px;margin:14px 0 18px;max-width:520px}
+.catalog-shipping-editor>label:first-child{display:grid;gap:6px}
+.catalog-shipping-editor input[type=number]{width:100%;min-height:42px;padding:9px 11px;border:1px solid var(--atlas-line,#dce5e2);border-radius:8px;background:#fff;color:var(--atlas-ink,#213c31)}
+.catalog-shipping-estimate{display:flex;align-items:flex-start;gap:8px;font-size:13px;line-height:1.45}
+.catalog-shipping-estimate input{margin-top:4px;flex:none}
+.catalog-shipping-editor>small{font-size:12px;color:var(--muted-foreground,#64756e)}

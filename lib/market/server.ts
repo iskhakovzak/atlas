@@ -1,20 +1,46 @@
-import {env} from 'cloudflare:workers';
+import {env,waitUntil} from 'cloudflare:workers';
 import {getChatGPTUser} from '@/app/chatgpt-auth';
 import {blank,parseState,pricingSchema,tariff,orderPayable,type Pricing,type State} from './domain';
 import {defaultPolicy,policySchema,type Policy} from './policy';
 import {apiErrorMessage,requestLocale,serverError} from './i18n';
 export function database(){if(!env.DB)throw Error('Серверное хранилище пока недоступно.');return env.DB}
+export function deferBackground(task:Promise<unknown>,label:string){waitUntil(task.catch(error=>console.error(label,error)))}
 export async function identity(){const user=await getChatGPTUser();if(!user)throw new HttpError(401, 'err_1');return user}
 export function operator(email:string){return !!env.ATLAS_OPERATOR_EMAIL&&email.toLowerCase()===env.ATLAS_OPERATOR_EMAIL.toLowerCase()}
 export class HttpError extends Error{constructor(public status:number,message:string){super(message)}}
 export function sameOrigin(request:Request){const origin=request.headers.get('origin');if(!origin||origin!==new URL(request.url).origin)throw new HttpError(403, 'err_2')}
 export const json=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
-export async function account(user:{userId:string;platformUserId?:string|null;displayName:string}){const now=Date.now(),db=database();if(user.platformUserId&&user.platformUserId!==user.userId)await db.prepare('INSERT OR IGNORE INTO market_accounts (user_id,name,state,revision,created_at,updated_at) SELECT ?,name,state,revision,created_at,updated_at FROM market_accounts WHERE user_id=?').bind(user.userId,user.platformUserId).run();await db.prepare('INSERT OR IGNORE INTO market_accounts (user_id,name,state,revision,created_at,updated_at) VALUES (?,?,?,0,?,?)').bind(user.userId,user.displayName,JSON.stringify(blank()),now,now).run();const row=await db.prepare('SELECT name,state,revision,created_at FROM market_accounts WHERE user_id=?').bind(user.userId).first<{name:string;state:string;revision:number;created_at:number}>();if(!row)throw Error('Account unavailable');return {...row,state:parseState(row.state)}}
+export async function account(user:{userId:string;platformUserId?:string|null;displayName:string}){
+ const db=database();
+ const select=()=>db.prepare('SELECT name,state,revision,created_at FROM market_accounts WHERE user_id=?').bind(user.userId).first<{name:string;state:string;revision:number;created_at:number}>();
+ let row=await select();
+ if(!row){
+  const now=Date.now(),writes=[];
+  if(user.platformUserId&&user.platformUserId!==user.userId)writes.push(db.prepare('INSERT OR IGNORE INTO market_accounts (user_id,name,state,revision,created_at,updated_at) SELECT ?,name,state,revision,created_at,updated_at FROM market_accounts WHERE user_id=?').bind(user.userId,user.platformUserId));
+  writes.push(db.prepare('INSERT OR IGNORE INTO market_accounts (user_id,name,state,revision,created_at,updated_at) VALUES (?,?,?,0,?,?)').bind(user.userId,user.displayName,JSON.stringify(blank()),now,now));
+  await db.batch(writes);
+  row=await select();
+ }
+ if(!row)throw Error('Account unavailable');
+ return {...row,state:parseState(row.state)};
+}
 export async function persist(id:string,state:State,revision:number){
  const serialized=JSON.stringify(state);if(serialized.length>1000000)throw new HttpError(413, 'err_3');
  const now=Date.now(),result=await database().prepare('UPDATE market_accounts SET state=?, revision=revision+1, updated_at=? WHERE user_id=? AND revision=?').bind(serialized,now,id,revision).run();
  if(!result.meta.changes)throw new HttpError(409, 'err_4');
- try{await syncOperationalProjection(id,state,now)}catch(error){console.error('Operational projection sync failed',error)}
+ deferBackground(syncLatestOperationalProjection(id),'Operational projection sync failed');
+}
+
+async function syncLatestOperationalProjection(id:string){
+ const db=database();
+ for(let attempt=0;attempt<3;attempt++){
+  const row=await db.prepare('SELECT state,revision,updated_at FROM market_accounts WHERE user_id=?').bind(id).first<{state:string;revision:number;updated_at:number}>();
+  if(!row)return;
+  await syncOperationalProjection(id,parseState(row.state),row.updated_at);
+  const latest=await db.prepare('SELECT revision FROM market_accounts WHERE user_id=?').bind(id).first<{revision:number}>();
+  if(latest?.revision===row.revision)return;
+ }
+ console.error('Operational projection sync remains behind canonical account state');
 }
 
 export async function syncOperationalProjection(id:string,state:State,now=Date.now()){
@@ -43,9 +69,12 @@ export async function operationalHealth(){
  ]);return{customers:customers?.count??0,orders:orders?.count??0,feeLines:fees?.count??0,events:events?.count??0,checkedAt:Date.now()};
 }
 export async function operationalCustomers(){const rows=await database().prepare('SELECT id,status FROM market_customers').all<{id:string;status:'active'|'review'|'blocked'}>();return Object.fromEntries(rows.results.map(row=>[row.id,row.status]));}
-export async function pricing():Promise<Pricing>{const row=await database().prepare("SELECT value FROM market_settings WHERE key='pricing'").first<{value:string}>();if(!row)return tariff;try{const parsed=pricingSchema.safeParse(JSON.parse(row.value));return parsed.success?parsed.data:tariff}catch{return tariff}}
+function parsePricingValue(value:string|undefined):Pricing{if(!value)return tariff;try{const parsed=pricingSchema.safeParse(JSON.parse(value));return parsed.success?parsed.data:tariff}catch{return tariff}}
+function parsePolicyValue(value:string|undefined):Policy{if(!value)return defaultPolicy;try{const parsed=policySchema.safeParse(JSON.parse(value));return parsed.success?parsed.data:defaultPolicy}catch{return defaultPolicy}}
+export async function pricing():Promise<Pricing>{const row=await database().prepare("SELECT value FROM market_settings WHERE key='pricing'").first<{value:string}>();return parsePricingValue(row?.value)}
+export async function pricingAndPolicy():Promise<{pricing:Pricing;policy:Policy}>{const rows=await database().prepare("SELECT key,value FROM market_settings WHERE key IN ('pricing','policy')").all<{key:string;value:string}>();const values=new Map(rows.results.map(row=>[row.key,row.value]));return {pricing:parsePricingValue(values.get('pricing')),policy:parsePolicyValue(values.get('policy'))}}
 export async function savePricing(next:Pricing,userId:string){await database().prepare("INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES ('pricing',?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at,updated_by=excluded.updated_by").bind(JSON.stringify(next),next.updatedAt,userId).run()}
-export async function policy():Promise<Policy>{const row=await database().prepare("SELECT value FROM market_settings WHERE key='policy'").first<{value:string}>();if(!row)return defaultPolicy;try{const parsed=policySchema.safeParse(JSON.parse(row.value));return parsed.success?parsed.data:defaultPolicy}catch{return defaultPolicy}}
+export async function policy():Promise<Policy>{const row=await database().prepare("SELECT value FROM market_settings WHERE key='policy'").first<{value:string}>();return parsePolicyValue(row?.value)}
 export async function savePolicy(next:Policy,userId:string){await database().prepare("INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES ('policy',?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at,updated_by=excluded.updated_by").bind(JSON.stringify(next),next.updatedAt,userId).run()}
 export async function operatorAccounts(){const rows=await database().prepare('SELECT user_id,name,state,revision,updated_at FROM market_accounts ORDER BY updated_at DESC LIMIT 200').all<{user_id:string;name:string;state:string;revision:number;updated_at:number}>();return rows.results.map(row=>({id:row.user_id,name:row.name,state:parseState(row.state),revision:row.revision,updatedAt:row.updated_at}))}
 export async function storedAccount(id:string){const row=await database().prepare('SELECT user_id,name,state,revision,updated_at FROM market_accounts WHERE user_id=?').bind(id).first<{user_id:string;name:string;state:string;revision:number;updated_at:number}>();if(!row)throw new HttpError(404, 'err_6');return {id:row.user_id,name:row.name,state:parseState(row.state),revision:row.revision,updatedAt:row.updated_at}}

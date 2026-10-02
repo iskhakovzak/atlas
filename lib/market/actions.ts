@@ -24,6 +24,7 @@ import {
   assignOrder,
   addStaffNote,
   updateOrderIssueCase,
+  sendCustomerNotification,
   setParcel,
   confirmIdentity,
   clearIdentity,
@@ -88,7 +89,7 @@ export const actionSchema = z.discriminatedUnion("type", [
     priority: z.enum(["Обычный", "Высокий", "Срочный"]),
   }),
   z.object({ type: z.literal("staff-note"), id, text: z.string().min(1).max(500) }),
-  z.object({ type: z.literal("order-notify"), id, title: z.string().trim().min(2).max(120), message: z.string().trim().min(1).max(300) }),
+  z.object({ type: z.literal("customer-notification"), id, title: z.string().trim().min(2).max(120), message: z.string().trim().min(1).max(300) }),
   z.object({ type: z.literal("order-issue-update"), id, category: orderIssueCategorySchema, status: orderIssueStatusSchema, proposedRefund: z.number().int().min(0).max(100_000_000).optional() }),
   z.object({
     type: z.literal("change-request-create"),
@@ -158,7 +159,7 @@ export function applyAction(
       a.type === "confirm-store-shipping" ||
       a.type === "assign-order" ||
       a.type === "staff-note" ||
-      a.type === "order-notify" ||
+      a.type === "customer-notification" ||
       a.type === "order-issue-update" ||
       a.type === "parcel-set" ||
       a.type === "change-request-create" ||
@@ -237,6 +238,8 @@ export function applyAction(
         a.product.weight = paddedWeight(a.product.boxedWeight);
         if (a.product.image && !safeImage(a.product.image, a.product.sourceUrl))
           throw Error("Некорректная ссылка на изображение.");
+        if (a.product.sourceImages?.some(image => !safeImage(image, a.product.sourceUrl ?? '')))
+          throw Error("Некорректная ссылка на изображение.");
       }
       const next = addToCart(s, a.product, a.variant, Date.now(), pricing);
       assertCartPolicy(next.cart, policy);
@@ -297,12 +300,8 @@ export function applyAction(
       return assignOrder(s, a.id, a.team, a.priority);
     case "staff-note":
       return addStaffNote(s, a.id, a.text, "Оператор");
-    case "order-notify": {
-      if (!s.orders.some((order) => order.id === a.id))
-        throw Error("Заказ не найден.");
-      const notification = { id: crypto.randomUUID(), at: Date.now(), title: a.title, message: a.message, read: false, orderId: a.id };
-      return { ...s, notifications: [notification, ...s.notifications].slice(0, 100) };
-    }
+    case "customer-notification":
+      return sendCustomerNotification(s, a.id, a.title, a.message);
     case "order-issue-update":
       return updateOrderIssueCase(s, a.id, a.category, a.status, a.proposedRefund);
     case "change-request-create":

@@ -1,6 +1,10 @@
 import { z } from 'zod';
-import { allowedUrl, fetchProduct, isAmazonUsUrl, ManualEntryFallbackError } from '@/lib/importer/fetch';
-import { database, identity, sameOrigin, json, failure, HttpError, requestJson } from '@/lib/market/server';
+import { fetchProduct, isAmazonUsUrl, ManualEntryFallbackError, validateManualSourceUrl } from '@/lib/importer/fetch';
+import { isSupportedStoreHost } from '@/lib/importer/stores';
+import { merchantRequest } from '@/lib/importer/worker-fetch';
+import { database, sameOrigin, json, failure, HttpError, requestJson } from '@/lib/market/server';
+import { getChatGPTUser } from '@/app/chatgpt-auth';
+import { importRateBuckets } from '@/lib/market/import-preview';
 import { apiErrorMessage, importManualEntryMessage, requestLocale } from '@/lib/market/i18n';
 
 const importRequestSchema = z.object({ url: z.string().max(3000), fresh: z.boolean().optional() });
@@ -8,26 +12,38 @@ const importRequestSchema = z.object({ url: z.string().max(3000), fresh: z.boole
 export async function POST(request: Request) {
   try {
     sameOrigin(request);
-    const user = await identity();
+    const user = await getChatGPTUser();
     const payload = importRequestSchema.safeParse(await requestJson(request, 5000));
     if (!payload.success || !payload.data.url) throw new HttpError(400, 'err_19');
 
     let sourceUrl: string;
     try {
-      sourceUrl = allowedUrl(payload.data.url).href;
+      sourceUrl = validateManualSourceUrl(payload.data.url).href;
     } catch (error) {
       throw new HttpError(400, (error as Error).message);
     }
+    const autoImportSupported = isSupportedStoreHost(new URL(sourceUrl).hostname);
 
     const liveLocationRequired = isAmazonUsUrl(new URL(sourceUrl));
-    const minute = Math.floor(Date.now() / 60000);
-    const key = `${user.userId}:import:${minute}`;
     const now = Date.now();
     const db = database();
-    const row = await db.prepare('INSERT INTO market_rate_limits (key,count,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count')
-      .bind(key, now + 120000).first<{ count: number }>();
-    if (!row || row.count > 12) throw new HttpError(429, 'err_20');
+    for (const bucket of await importRateBuckets(user?.userId, request.headers.get('cf-connecting-ip'), now)) {
+      const row = await db.prepare('INSERT INTO market_rate_limits (key,count,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count')
+        .bind(bucket.key, now + 120000).first<{ count: number }>();
+      if (!row || row.count > bucket.limit) throw new HttpError(429, 'err_20');
+    }
     await db.prepare('DELETE FROM market_rate_limits WHERE expires_at < ?').bind(now).run();
+
+    if (!autoImportSupported) {
+      const locale = requestLocale(request);
+      return json({
+        sourceUrl,
+        brand: new URL(sourceUrl).hostname.replace(/^www\./, ''),
+        warnings: [],
+        error: importManualEntryMessage(locale),
+        manualEntryAvailable: true,
+      }, 422);
+    }
 
     const cached = liveLocationRequired ? undefined : await db.prepare('SELECT payload,expires_at,updated_at FROM market_import_cache WHERE url=? AND expires_at>?')
       .bind(sourceUrl, now).first<{ payload: string; expires_at: number; updated_at: number }>();
@@ -40,7 +56,7 @@ export async function POST(request: Request) {
     }
 
     try {
-      const data = await fetchProduct(sourceUrl);
+      const data = await fetchProduct(sourceUrl, merchantRequest);
       const fetchedAt = Date.now();
       const expiresAt = fetchedAt + 10 * 60_000;
       if (!liveLocationRequired) {
@@ -55,7 +71,8 @@ export async function POST(request: Request) {
       const message = canManuallyEnter
         ? importManualEntryMessage(locale)
         : locale === 'ru' ? (error as Error).message : apiErrorMessage(422, locale);
-      return json({ error: message, manualEntryAvailable: canManuallyEnter }, 422);
+      const partial = error instanceof ManualEntryFallbackError ? error.partial : undefined;
+      return json({ ...partial, error: message, manualEntryAvailable: canManuallyEnter }, 422);
     }
   } catch (error) {
     return failure(error, request);

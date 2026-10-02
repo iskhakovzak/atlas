@@ -30,9 +30,9 @@ export function apiErrorMessage(status:number,locale:Locale):string{
 
 export function importManualEntryMessage(locale:Locale):string{
   return {
-    ru:"Не удалось загрузить данные магазина. Можно заполнить товар вручную; перед добавлением в корзину источник должен пройти повторную проверку.",
-    uz:"Do‘kondan ma’lumot olib bo‘lmadi. Mahsulotni qo‘lda to‘ldirishingiz mumkin; savatga qo‘shishdan oldin manba qayta tekshiruvdan o‘tishi kerak.",
-    en:"Couldn’t load the store details. You can enter the product manually; the source must pass a fresh check before it can be added to your cart.",
+    ru:"Не все данные магазина загрузились. Подтвердите цену, валюту и вариант, затем добавьте товар в корзину. Atlas сверит цену и валюту, если магазин ответит.",
+    uz:"Do‘kon ma’lumotlarining hammasi yuklanmadi. Narx, valyuta va variantni tasdiqlab, savatga qo‘shing. Do‘kon javob bersa, Atlas narx va valyutani solishtiradi.",
+    en:"Some store details did not load. Confirm the price, currency and option, then add it to your cart. Atlas compares them when the store responds.",
   }[locale];
 }
 
@@ -42,11 +42,13 @@ export function setLocaleCookie(locale:Locale):void{
   document.cookie=`atlas-language=${locale}; Path=/; Max-Age=31536000; SameSite=Lax${secure}`;
 }
 const copy = {
-  ru: {catalog:"Каталог",link:"Заказ по ссылке",batch:"Импорт списка",orders:"Мои заказы",account:"Кабинет",signin:"Войти",cart:"Корзина",balance:"Баланс",favorites:"Избранное",home:"Главная",terms:"Правила и данные",customs:"Таможня",retry:"Повторить",openSignIn:"Открыть вход",footer:"Atlas · Магазины мира — в одном месте.",contactTitle:"Связаться с Atlas",contactSupport:"Поддержка в личном кабинете",paymentTitle:"Способы оплаты",paymentPlanned:"Планируем подключить Visa, Mastercard, Apple Pay, Google Pay, Uzcard, Humo и криптооплату. Реальные платежи пока не принимаются."},
-  uz: {catalog:"Katalog",link:"Havola orqali buyurtma",batch:"Ro‘yxatni import qilish",orders:"Buyurtmalarim",account:"Kabinet",signin:"Kirish",cart:"Savat",balance:"Balans",favorites:"Saqlanganlar",home:"Bosh sahifa",terms:"Qoidalar va ma’lumotlar",customs:"Bojxona",retry:"Qayta urinish",openSignIn:"Kirishni ochish",footer:"Atlas · Dunyo do‘konlari bir joyda.",contactTitle:"Atlas bilan bog‘lanish",contactSupport:"Shaxsiy kabinetdagi yordam",paymentTitle:"To‘lov usullari",paymentPlanned:"Visa, Mastercard, Apple Pay, Google Pay, Uzcard, Humo va kripto to‘lovini ulash rejalashtirilgan. Hozircha haqiqiy to‘lovlar qabul qilinmaydi."},
-  en: {catalog:"Catalog",link:"Order by link",batch:"Import list",orders:"My orders",account:"Account",signin:"Sign in",cart:"Cart",balance:"Balance",favorites:"Saved",home:"Home",terms:"Terms & privacy",customs:"Customs",retry:"Try again",openSignIn:"Open sign in",footer:"Atlas · The world’s stores, in one place.",contactTitle:"Contact Atlas",contactSupport:"Support in your account",paymentTitle:"Payment methods",paymentPlanned:"Planned: Visa, Mastercard, Apple Pay, Google Pay, Uzcard, Humo and crypto. Real payments are not accepted yet."},
+  ru: {catalog:"Каталог",link:"Заказ по ссылке",batch:"Импорт списка",orders:"Мои заказы",account:"Кабинет",signin:"Войти",cart:"Корзина",balance:"Баланс",favorites:"Избранное",home:"Главная",terms:"Правила и данные",customs:"Таможня",retry:"Повторить",openSignIn:"Открыть вход",footer:"Atlas · Магазины мира — в одном месте.",contactTitle:"Связаться с Atlas",contactSupport:"Поддержка в личном кабинете"},
+  uz: {catalog:"Katalog",link:"Havola orqali buyurtma",batch:"Ro‘yxatni import qilish",orders:"Buyurtmalarim",account:"Kabinet",signin:"Kirish",cart:"Savat",balance:"Balans",favorites:"Saqlanganlar",home:"Bosh sahifa",terms:"Qoidalar va ma’lumotlar",customs:"Bojxona",retry:"Qayta urinish",openSignIn:"Kirishni ochish",footer:"Atlas · Dunyo do‘konlari bir joyda.",contactTitle:"Atlas bilan bog‘lanish",contactSupport:"Shaxsiy kabinetdagi yordam"},
+  en: {catalog:"Catalog",link:"Order by link",batch:"Import list",orders:"My orders",account:"Account",signin:"Sign in",cart:"Cart",balance:"Balance",favorites:"Saved",home:"Home",terms:"Terms & privacy",customs:"Customs",retry:"Try again",openSignIn:"Open sign in",footer:"Atlas · The world’s stores, in one place.",contactTitle:"Contact Atlas",contactSupport:"Support in your account"},
 };
-export function ui(locale:Locale){return copy[locale]}
+export function ui(locale:Locale){
+  return copy[locale];
+}
 const orderStatuses = {
   ru: ["Ожидает выкупа", "Выкуплен", "На зарубежном складе", "Готов к отправке", "В пути", "Доставлен"],
   uz: ["Xarid kutilmoqda", "Xarid qilindi", "Xorijdagi omborda", "Jo‘natishga tayyor", "Yo‘lda", "Yetkazildi"],
@@ -54,9 +56,9 @@ const orderStatuses = {
 };
 export function localizedStatuses(locale:Locale){return orderStatuses[locale]}
 const routeTitles:Record<Locale,Record<string,string>>={
-  ru:{catalog:'Каталог',favorites:'Избранное',link:'Заказ по ссылке',cart:'Корзина',orders:'Мои заказы',balance:'Баланс',operations:'Кабинет оператора',notifications:'Уведомления',account:'Личный кабинет',customs:'Таможенные условия',analytics:'Аналитика',legal:'Правила Atlas',identity:'Паспорт',declaration:'Декларация',batch:'Импорт списка',admin:'Администрирование'},
-  uz:{catalog:'Katalog',favorites:'Saqlanganlar',link:'Havola orqali buyurtma',cart:'Savat',orders:'Buyurtmalarim',balance:'Balans',operations:'Operator kabineti',notifications:'Bildirishnomalar',account:'Shaxsiy kabinet',customs:'Bojxona shartlari',analytics:'Tahlil',legal:'Atlas qoidalari',identity:'Pasport',declaration:'Deklaratsiya',batch:'Ro‘yxat importi',admin:'Boshqaruv'},
-  en:{catalog:'Catalog',favorites:'Saved',link:'Order by link',cart:'Cart',orders:'My orders',balance:'Balance',operations:'Operator workspace',notifications:'Notifications',account:'Account',customs:'Customs terms',analytics:'Analytics',legal:'Atlas terms',identity:'Passport',declaration:'Declaration',batch:'List import',admin:'Administration'},
+  ru:{catalog:'Каталог',favorites:'Избранное',link:'Заказ по ссылке',stores:'Магазины',cart:'Корзина',orders:'Мои заказы',balance:'Баланс',operations:'Кабинет оператора',notifications:'Уведомления',account:'Личный кабинет',customs:'Таможенные условия',analytics:'Аналитика',legal:'Правила Atlas',identity:'Паспорт',declaration:'Декларация',batch:'Импорт списка',admin:'Администрирование'},
+  uz:{catalog:'Katalog',favorites:'Saqlanganlar',link:'Havola orqali buyurtma',stores:'Do‘konlar',cart:'Savat',orders:'Buyurtmalarim',balance:'Balans',operations:'Operator kabineti',notifications:'Bildirishnomalar',account:'Shaxsiy kabinet',customs:'Bojxona shartlari',analytics:'Tahlil',legal:'Atlas qoidalari',identity:'Pasport',declaration:'Deklaratsiya',batch:'Ro‘yxat importi',admin:'Boshqaruv'},
+  en:{catalog:'Catalog',favorites:'Saved',link:'Order by link',stores:'Stores',cart:'Cart',orders:'My orders',balance:'Balance',operations:'Operator workspace',notifications:'Notifications',account:'Account',customs:'Customs terms',analytics:'Analytics',legal:'Atlas terms',identity:'Passport',declaration:'Declaration',batch:'List import',admin:'Administration'},
 };
 export function routeTitle(locale:Locale,view:string){return routeTitles[locale][view]??view}
 
@@ -64,7 +66,7 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
   ru: {
     'err_1': 'Войдите, чтобы продолжить.',
     'err_2': 'Недопустимый источник запроса.',
-    'err_3': 'Достигнут лимит данных тестового профиля.',
+    'err_3': 'Достигнут лимит данных профиля.',
     'err_4': 'Заказ изменился в другой вкладке. Данные обновлены — повторите действие.',
     'err_5': 'Клиент не найден в операционной базе. Выполните синхронизацию.',
     'err_6': 'Профиль покупателя не найден.',
@@ -99,7 +101,7 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
   uz: {
     'err_1': 'Davom etish uchun tizimga kiring.',
     'err_2': 'Ruxsatsiz so‘rov manbasi.',
-    'err_3': 'Sinov profili ma’lumotlari chegarasiga yetildi.',
+    'err_3': 'Profil ma’lumotlari chegarasiga yetildi.',
     'err_4': 'Buyurtma boshqa oynada o‘zgargan. Ma’lumotlar yangilandi — amalni takrorlang.',
     'err_5': 'Mijoz operatsion bazada topilmadi. Sinxronizatsiya qiling.',
     'err_6': 'Xaridor profili topilmadi.',
@@ -134,7 +136,7 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
   en: {
     'err_1': 'Sign in to continue.',
     'err_2': 'Invalid request origin.',
-    'err_3': 'Test profile data limit reached.',
+    'err_3': 'Profile data limit reached.',
     'err_4': 'Order changed in another tab. Data refreshed — please retry.',
     'err_5': 'Customer not found in operational database. Run sync.',
     'err_6': 'Customer profile not found.',

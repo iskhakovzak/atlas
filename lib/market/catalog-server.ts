@@ -19,13 +19,13 @@ export async function readCatalog(){
   if(!row)return {raw:null,document:initialCatalog()};
   return {raw:row.value,document:catalogDocumentSchema.parse(JSON.parse(row.value))};
 }
-export async function persistCatalog(next:CatalogDocument,previous:string|null,user:{userId:string;email:string},action:string){
+export async function persistCatalog(next:CatalogDocument,previous:string|null,user:{userId:string;email:string},action:string,details?:Record<string,unknown>){
   const value=JSON.stringify(catalogDocumentSchema.parse(next));
   if(new TextEncoder().encode(value).length>1_500_000)throw new HttpError(413,'Каталог заполнен. Сократите количество черновиков.');
   const now=Date.now(),db=database();
   const results=await db.batch([
     db.prepare("INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES ('catalog',?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at,updated_by=excluded.updated_by WHERE market_settings.value=?").bind(value,now,user.userId,previous??''),
-    db.prepare("INSERT INTO market_audit_events (id,actor_id,actor_email,action,entity_type,entity_id,details,created_at) SELECT ?,?,?,?,'catalog',NULL,?,? WHERE changes()=1").bind(crypto.randomUUID(),user.userId,user.email,action,JSON.stringify({revision:next.revision}),now),
+    db.prepare("INSERT INTO market_audit_events (id,actor_id,actor_email,action,entity_type,entity_id,details,created_at) SELECT ?,?,?,?,'catalog',NULL,?,? WHERE changes()=1").bind(crypto.randomUUID(),user.userId,user.email,action,JSON.stringify({revision:next.revision,...details}),now),
   ]);
   if(!results[0].meta.changes)throw new HttpError(409,'Каталог изменён в другой вкладке. Обновите список и повторите действие.');
 }
@@ -47,7 +47,7 @@ export async function addCustomerLinkDraft(product:Product,source:Extracted,user
     if(existing)return {added:false as const,id:existing.id};
     if(document.entries.length>=catalogMaxEntries)return {added:false as const,reason:'limit' as const};
     const draft=customerLinkDraft({...product,sourceUrl},source,now),id='customer-'+crypto.randomUUID();
-    const next=catalogDocumentSchema.parse({...document,revision:document.revision+1,entries:[...document.entries,{id,draft}]});
+    const next=catalogDocumentSchema.parse({...document,revision:document.revision+1,entries:[...document.entries,{id,draft,createdAt:now,origin:'customer-link',queueState:'queued'}]});
     try{
       await persistCatalog(next,raw,user,'catalog.customer-link');
       return {added:true as const,id};

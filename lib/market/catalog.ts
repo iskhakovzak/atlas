@@ -4,6 +4,11 @@ import {communityCatalogProducts} from './community-deals.ts';
 // Editorial snapshots from the linked official US product pages, not an inventory feed.
 // Prices/options must be fetched and confirmed in the link-order flow before checkout.
 export type MerchantFind = Product & { store: string; observedOn: string; referenceUsd?: number; collectionIds?: string[] };
+export function catalogOrderVariants(product:Product){
+  if(product.sourceVariants?.length)return product.sourceVariants;
+  if(product.priceNeedsConfirmation)return [];
+  return product.variants.map(label=>({label,available:true}));
+}
 const estimate = { country: 'США', sourceCurrency: 'USD', sourceShippingUsd: 10, sourceShipping: 10, sourceShippingCurrency: 'USD', sourceShippingEstimated: true, shippingKnown: false, weightOrigin: 'Оценка Atlas; уточняется перед оформлением', variants: ['Уточнить вариант в магазине'], sourceExpiresAt: Date.parse('2026-09-19T00:00:00Z') };
 export const merchantFinds: MerchantFind[] = [
   {
@@ -55,9 +60,18 @@ export function catalogFreshness(product: Product, now = Date.now()) {
   return 'fresh' as const;
 }
 export function visibleMerchantFinds(now = Date.now()) {
-  return merchantFinds.filter((product) => catalogFreshness(product, now) !== 'expired');
+  return merchantFinds.map((product) => catalogFreshness(product, now) === 'expired'
+    ? {...product,priceNeedsConfirmation:true,referenceUsd:undefined,variants:['Уточнить вариант в магазине']}
+    : product);
+}
+/** Keep direct-store discovery usable if the live catalog endpoint has no rows. */
+export function keepCatalogVisible(products: MerchantFind[], now = Date.now()) {
+  return products.length ? products : visibleMerchantFinds(now);
 }
 export function findOrderUrl(product: Product) {
-  const deal = communityCatalogProducts.find(item => item.id === product.id && item.sourceUrl === product.sourceUrl);
-  return '/order-by-link?url=' + encodeURIComponent(product.sourceUrl ?? '') + (deal ? '&deal=' + encodeURIComponent(deal.id) : '');
+  const deal = product.priceNeedsConfirmation ? undefined : communityCatalogProducts.find(item => item.id === product.id && item.sourceUrl === product.sourceUrl);
+  const params=new URLSearchParams({url:product.sourceUrl??''});
+  if(product.sourceUrl)params.set('catalog',product.id);
+  if(deal)params.set('deal',deal.id);
+  return '/order-by-link?'+params.toString();
 }

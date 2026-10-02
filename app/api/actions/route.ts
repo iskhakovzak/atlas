@@ -1,7 +1,9 @@
 import {actionSchema,applyAction} from '@/lib/market/actions';
-import {account,customerStatus,database,identity,operator,sameOrigin,persist,json,failure,HttpError,requestJson,pricing,policy} from '@/lib/market/server';
+import {account,customerStatus,database,identity,operator,sameOrigin,persist,json,failure,HttpError,requestJson,pricingAndPolicy,deferBackground} from '@/lib/market/server';
 import {apiErrorMessage,requestLocale} from '@/lib/market/i18n';
 import {fetchProduct} from '@/lib/importer/fetch';
+import {merchantRequest} from '@/lib/importer/worker-fetch';
+import {manualFallbackAllowed,requiresMerchantSnapshot} from '@/lib/importer/manual-fallback';
 import {verifyProductSnapshot} from '@/lib/importer/verify';
 import {addCustomerLinkDraft} from '@/lib/market/catalog-server';
 export async function POST(request:Request){try{
@@ -24,11 +26,17 @@ export async function POST(request:Request){try{
   let next;
   let verifiedSource:Awaited<ReturnType<typeof fetchProduct>>|undefined;
   try{
-    const [currentPricing,currentPolicy]=await Promise.all([pricing(),policy()]);
-    if(parsed.data.type==='cart-add'&&parsed.data.product.sourceUrl){
-      verifiedSource=await fetchProduct(parsed.data.product.sourceUrl);
-      parsed.data.product=verifyProductSnapshot(parsed.data.product,parsed.data.variant,verifiedSource);
-    }
+     const {pricing:currentPricing,policy:currentPolicy}=await pricingAndPolicy();
+     if(parsed.data.type==='cart-add'&&parsed.data.product.sourceUrl){
+       if(requiresMerchantSnapshot(parsed.data.product)){
+         try{
+           verifiedSource=await fetchProduct(parsed.data.product.sourceUrl,merchantRequest);
+           parsed.data.product=verifyProductSnapshot(parsed.data.product,parsed.data.variant,verifiedSource);
+         }catch(error){
+           if(!manualFallbackAllowed(parsed.data.product,parsed.data.variant,error))throw error;
+         }
+       }
+     }
     if(parsed.data.type==='checkout'){
       const grouped=new Map<string,typeof current.state.cart>();
       for(const item of current.state.cart){
@@ -36,17 +44,24 @@ export async function POST(request:Request){try{
         const key=item.product.sourceUrl,items=grouped.get(key)??[];
         items.push(item);grouped.set(key,items);
       }
-      await Promise.all([...grouped.entries()].map(async([url,items])=>{
-        const fresh=await fetchProduct(url);
-        for(const item of items)verifyProductSnapshot(item.product,item.variant,fresh);
-      }));
+       await Promise.all([...grouped.entries()].map(async([url,items])=>{
+         // Old cart snapshots predate the optional manual-confirmation flag;
+         // preserve them at checkout while new unsupported-store adds require
+         // the customer to explicitly confirm the entered details.
+         if(!items.some(item=>requiresMerchantSnapshot(item.product,true)))return;
+         try{
+           const fresh=await fetchProduct(url,merchantRequest);
+           for(const item of items)verifyProductSnapshot(item.product,item.variant,fresh);
+         }catch(error){
+           for(const item of items)if(!manualFallbackAllowed(item.product,item.variant,error))throw error;
+         }
+       }));
     }
     next=applyAction(current.state,parsed.data,operator(user.email),currentPricing,currentPolicy);
   }catch(e){throw new HttpError(400,(e as Error).message)}
   await persist(user.userId,next,current.revision);
   if(parsed.data.type==='cart-add'&&parsed.data.product.sourceUrl&&verifiedSource){
-    try{await addCustomerLinkDraft(parsed.data.product,verifiedSource,user)}
-    catch(error){console.error('Customer catalog draft sync failed',error)}
+    deferBackground(addCustomerLinkDraft(parsed.data.product,verifiedSource,user),'Customer catalog draft sync failed');
   }
   if(parsed.data.type==='identity-confirm'){
     const identityAction=parsed.data;

@@ -11,7 +11,7 @@ test('private screens never render before identity is confirmed, including admin
  }
  for(const route of adminViews){assert.equal(viewAccess(route,'authenticated',false),'forbidden');assert.equal(viewAccess(route,'authenticated',true),'allow')}
  for(const route of memberViews)assert.equal(viewAccess(route,'authenticated',false),'allow');
- for(const route of ['catalog','customs','legal'])assert.equal(viewAccess(route,'guest'),'allow');
+ for(const route of ['catalog','customs','legal','link'])assert.equal(viewAccess(route,'guest'),'allow');
 });
 test('sign-in preserves product intent but rejects external and recursive return destinations',()=>{
  const path='/order-by-link?url='+encodeURIComponent('https://www.nike.com/t/shoe');

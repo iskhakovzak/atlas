@@ -1,5 +1,5 @@
 export type SessionStatus = 'loading' | 'guest' | 'authenticated' | 'error';
-export const memberViews = new Set(['account','favorites','cart','orders','balance','notifications','identity','declaration','batch','link']);
+export const memberViews = new Set(['account','favorites','cart','orders','balance','notifications','identity','declaration','batch']);
 export const adminViews = new Set(['operations','analytics','admin']);
 export function viewAccess(view: string, status: SessionStatus, operator = false) {
   if (!memberViews.has(view) && !adminViews.has(view)) return 'allow';

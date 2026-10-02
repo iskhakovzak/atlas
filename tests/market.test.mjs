@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {products,tariff,pricingSchema,quote,price,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource,markNotificationsRead,confirmDemoPayment,updateCommunication,assignOrder,addStaffNote,setParcel,confirmIdentity,submitDeclarationPreview,clearIdentity,inspectWarehouseOrder,createChangeRequest,respondToChangeRequest,orderPayable,orderNeedsOperatorAttention,validateServiceCatalog} from '../lib/market/domain.ts';
+import {products,tariff,pricingSchema,quote,price,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource,markNotificationsRead,confirmDemoPayment,updateCommunication,assignOrder,addStaffNote,setParcel,confirmIdentity,submitDeclarationPreview,clearIdentity,inspectWarehouseOrder,createChangeRequest,respondToChangeRequest,orderPayable,validateServiceCatalog,sendCustomerNotification} from '../lib/market/domain.ts';
 import {actionSchema,applyAction} from '../lib/market/actions.ts';
 import {defaultPolicy} from '../lib/market/policy.ts';
 import {customsVersion} from '../lib/market/world.ts';
@@ -34,9 +34,9 @@ test('API errors use the validated locale cookie and localize fallback copy',()=
   assert.equal(requestLocale(request({'cookie':'atlas-language=xx'})),'ru');
   assert.equal(apiErrorMessage(403,'en'),'You don’t have access to this action.');
   assert.equal(apiErrorMessage(503,'uz'),'So‘rov bajarilmadi. Qayta urinib ko‘ring.');
-  assert.equal(importManualEntryMessage('ru').includes('добавлением в корзину'),true);
-  assert.equal(importManualEntryMessage('uz').includes('savatga qo‘shishdan oldin'),true);
-  assert.equal(importManualEntryMessage('en').includes('before it can be added to your cart'),true);
+  assert.equal(importManualEntryMessage('ru').includes('в корзину'),true);
+  assert.equal(importManualEntryMessage('uz').includes('savatga qo‘shing'),true);
+  assert.equal(importManualEntryMessage('en').includes('add it to your cart'),true);
   assert.equal(serverError('uz','err_1'),'Davom etish uchun tizimga kiring.');
   assert.match(serverError('en','err_unknown'),/request could not be completed/i);
 });
@@ -124,6 +124,26 @@ let s=prepare();const id=s.orders[0].id,original=JSON.stringify(s.orders[0].quot
 test('operator progress creates customer notifications that can be marked read',()=>{
 let state=prepare();const id=state.orders[0].id;state=advanceOrder(state,id,0,3000);assert.equal(state.notifications.length,2);assert.equal(state.notifications[0].orderId,id);assert.equal(state.notifications[0].read,false);state=markNotificationsRead(state);assert.equal(state.notifications[0].read,true);
 });
+test('operator can add an internal-only in-app notification to one refund order',()=>{
+ let state=prepare();const firstId=state.orders[0].id;
+ state=addToCart(state,products[1],products[1].variants[0],1003);state=checkoutCart(state,'second-order',cartSignature(state.cart),false,1004);
+ const selectedId=state.orders.find(order=>order.id!==firstId).id;
+ state=cancelOrder(state,selectedId,1005);
+ const deliveryCount=state.messageDeliveries.length,notificationCount=state.notifications.length;
+ const action=actionSchema.parse({type:'customer-notification',id:selectedId,title:'  Возврат по заказу  ',message:'  Зачисление отражено во внутреннем балансе Atlas.  '});
+ assert.throws(()=>applyAction(state,action,false),/только оператору/);
+ state=applyAction(state,action,true);
+ assert.equal(state.notifications.length,notificationCount+1);
+ assert.equal(state.notifications[0].orderId,selectedId);
+ assert.equal(state.notifications[0].title,'Возврат по заказу');
+ assert.equal(state.notifications[0].message,'Зачисление отражено во внутреннем балансе Atlas.');
+ assert.equal(state.notifications[0].read,false);
+ assert.equal(state.messageDeliveries.length,deliveryCount,'manual notice must not prepare external email/SMS');
+ assert.equal(state.orders.find(order=>order.id===selectedId).history.at(-1).text,'Оператор отправил уведомление в Atlas.');
+ assert.equal(state.orders.find(order=>order.id===firstId).history.some(entry=>entry.text.includes('уведомление')),false);
+ assert.throws(()=>actionSchema.parse({type:'customer-notification',id:selectedId,title:'x',message:'ok'}));
+ assert.throws(()=>sendCustomerNotification(state,selectedId,'Refund','x'.repeat(301)));
+});
 test('pre-release checkout keeps delivery, payment, operations and message previews together',()=>{
 const delivery={recipient:'Zakir',phone:'+998901234567',region:'Ташкент',city:'Ташкент',address:'ул. Амира Темура, 10',postalCode:'100000',comment:'Позвонить'};
 let state=updateCommunication(blank(),{emailEnabled:true,smsEnabled:true,email:'zakir@example.com',phone:delivery.phone,language:'ru'});
@@ -138,7 +158,7 @@ const delivery={recipient:'Anna Karimova',phone:'+998901234567',region:'Ташк
 let state=addToCart(blank(),products[0],'US 9',1000);state=checkoutCore(state,'identity',cartSignature(state.cart),false,1001,customsVersion,delivery);const orderId=state.orders[0].id;
 state=confirmIdentity(state,{documentId:'DOC-1',firstName:'ANNA',lastName:'KARIMOVA',birthDate:'1995-04-20',passportNumber:'AA1234567',nationality:'UZB'},Date.UTC(2026,8,10));
 assert.equal(state.identityProfile.passportMasked,'•••• 4567');assert.equal(JSON.stringify(state).includes('AA1234567'),false);
-state=submitDeclarationPreview(state,[orderId],2001);assert.equal(state.declarations[0].lines[0].orderId,orderId);assert.equal(state.declarations[0].delivery.city,'Ташкент');assert.equal(state.declarations[0].status,'submitted-preview');assert.equal(state.notifications[0].title,'Тестовая декларация подготовлена');
+ state=submitDeclarationPreview(state,[orderId],2001);assert.equal(state.declarations[0].lines[0].orderId,orderId);assert.equal(state.declarations[0].delivery.city,'Ташкент');assert.equal(state.declarations[0].status,'submitted-preview');assert.equal(state.notifications[0].title,'Черновик декларации подготовлен');
 state=clearIdentity(state,'DOC-1');assert.equal(state.identityProfile,undefined);assert.throws(()=>submitDeclarationPreview(state,[orderId],2002));
 });
 test('managed restrictions reject blocked goods and oversized parties on the server',()=>{

@@ -1,0 +1,362 @@
+/* Customer tools on phones. Keep long account and document data readable. */
+@media (max-width: 600px) {
+  .surface.account-next-action {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 12px;
+    min-height: 0;
+    padding: 20px;
+  }
+
+  .account-next-action .eyebrow,
+  .account-next-action .btn {
+    grid-column: 1 / -1;
+  }
+
+  .account-next-action .next-action-icon {
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    align-self: start;
+  }
+
+  .account-next-action h2 {
+    margin: 0 0 6px;
+    font-size: 20px;
+    line-height: 1.3;
+  }
+
+  .account-next-action p,
+  .account-profile-compact > div:nth-child(2) b,
+  .account-profile-compact > div:nth-child(2) span,
+  .account-service-grid div,
+  .account-service-grid small,
+  .account-address-list .saved-address,
+  .ticket-list > div {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+  }
+
+  .account-profile-compact > div:nth-child(2) span,
+  .account-service-grid small {
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .account-service-grid > a,
+  .account-service-grid > button {
+    color: var(--atlas-ink);
+  }
+
+  .account-stats a {
+    min-height: 72px;
+    gap: 9px;
+  }
+
+  .account-stats span {
+    overflow-wrap: anywhere;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .account-detail-summary {
+    gap: 10px;
+    min-height: 56px;
+    padding: 16px;
+    line-height: 1.4;
+  }
+
+  .account-detail-summary > span:first-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .account-detail-summary > small {
+    max-width: 100px;
+    flex-shrink: 0;
+    text-align: right;
+    white-space: normal;
+  }
+
+  .account-detail-toggle {
+    flex-shrink: 0;
+  }
+
+  .account-detail-content {
+    padding: 16px;
+  }
+
+  .account-profile-compact summary,
+  .account-services .text-link,
+  .account-detail-content > .text-link,
+  .ticket-list summary,
+  .identity-upload summary,
+  .declaration-grid > .surface > .text-button {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    white-space: normal;
+    line-height: 1.4;
+  }
+
+  .account-services .text-link > svg {
+    flex-shrink: 0;
+  }
+
+  .account-address-list .remove-item {
+    align-self: start;
+    min-height: 44px;
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
+  }
+
+  .support-form textarea {
+    min-height: 128px;
+    line-height: 1.5;
+  }
+
+  .account-detail-content .support-reply-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .support-reply-form input {
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 12px;
+    border: 1px solid var(--atlas-line);
+    border-radius: 6px;
+    background: var(--atlas-surface, #fff);
+    color: var(--atlas-ink);
+    font-size: 16px;
+  }
+
+  .account-detail-content .support-reply-form .btn,
+  .support-form .btn {
+    width: 100%;
+    min-height: 48px;
+    margin: 0;
+  }
+
+  .address-form {
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .address-form > label {
+    margin-top: 8px;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .address-form > label:first-child {
+    margin-top: 0;
+  }
+
+  .address-form input {
+    min-width: 0;
+  }
+
+  .address-form > small {
+    line-height: 1.5;
+  }
+
+  .identity-grid,
+  .declaration-grid,
+  .identity-grid > .surface,
+  .declaration-grid > .surface,
+  .passport-document-list,
+  .declaration-history {
+    min-width: 0;
+  }
+
+  .identity-confirm .two-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .identity-confirm .field,
+  .identity-confirm input,
+  .identity-confirm select {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .identity-upload .file-drop {
+    padding: 20px 14px;
+    min-height: 88px;
+  }
+
+  .identity-upload .file-drop > svg {
+    flex-shrink: 0;
+  }
+
+  .identity-upload .file-drop > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+  }
+
+  .identity-upload .file-drop:focus-within {
+    outline: 3px solid var(--atlas-blue);
+    outline-offset: 3px;
+  }
+
+  .identity-upload .consent label {
+    min-height: 44px;
+    line-height: 1.5;
+  }
+
+  .identity-grid .btn,
+  .declaration-grid .btn,
+  .batch-import .btn,
+  .batch-review .btn,
+  .access-actions .btn {
+    min-height: 48px;
+    white-space: normal;
+    line-height: 1.4;
+  }
+
+  .passport-document-list .document-row {
+    align-items: start;
+    gap: 10px;
+  }
+
+  .passport-document-list .document-row > svg {
+    margin-top: 10px;
+  }
+
+  .passport-document-list .document-row .icon-btn {
+    flex-shrink: 0;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .passport-document-list .document-row small,
+  .declaration-history .document-row small {
+    overflow-wrap: anywhere;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .declaration-facts > div {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .declaration-facts dd {
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+
+  .declaration-grid .saved-address {
+    overflow-wrap: anywhere;
+  }
+
+  .declaration-order {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    gap: 8px 12px;
+    min-height: 64px;
+  }
+
+  .declaration-order > [data-slot="checkbox"] {
+    margin-top: 3px;
+  }
+
+  .declaration-order > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+  }
+
+  .declaration-order > strong {
+    display: block;
+    grid-column: 2;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .declaration-history .document-row {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    gap: 8px 12px;
+  }
+
+  .declaration-history .document-row > strong {
+    grid-column: 2;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .batch-import,
+  .batch-review {
+    min-width: 0;
+  }
+
+  .batch-result li {
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+  }
+
+  .batch-result {
+    color: var(--atlas-copy-muted, var(--muted-foreground));
+  }
+
+  .batch-candidate {
+    min-width: 0;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .batch-candidate-info b,
+  .batch-candidate-info small {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+    line-height: 1.45;
+  }
+
+  .batch-candidate-info a {
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  .batch-candidate > label,
+  .batch-candidate select {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .batch-candidate select {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .batch-candidate > svg {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: start;
+  }
+
+  .batch-import > .btn {
+    width: 100%;
+  }
+
+  .access-card {
+    min-width: 0;
+    padding: 24px 20px;
+    gap: 14px;
+  }
+
+  .access-card h1,
+  .access-card p {
+    overflow-wrap: anywhere;
+  }
+
+  .access-card small {
+    line-height: 1.5;
+  }
+}

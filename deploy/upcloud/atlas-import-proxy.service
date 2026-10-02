@@ -1,0 +1,34 @@
+[Unit]
+Description=Atlas allowlisted merchant egress proxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=atlas-import-proxy
+Group=atlas-import-proxy
+WorkingDirectory=/opt/atlas-import-proxy
+EnvironmentFile=/etc/atlas/importer-proxy.env
+Environment=NODE_ENV=production
+Environment=ATLAS_IMPORT_PROXY_PORT=8787
+ExecStart=/usr/bin/node /opt/atlas-import-proxy/importer-proxy-server.mjs
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

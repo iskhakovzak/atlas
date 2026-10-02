@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {applyScheduledCatalogRefresh,catalogDocumentSchema,catalogIssues,catalogRefreshInterval,catalogRecheckBatchSize,catalogRecheckBatches,changeCatalog,customerLinkDraft,dueCatalogEntries,importDraft,initialCatalog,markCatalogRefreshFailed,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
+import {applyScheduledCatalogRefresh,catalogDocumentSchema,catalogIssues,catalogRefreshInterval,changeCatalog,cleanGeneratedCatalogDescription,customerLinkDraft,dueCatalogEntries,importDraft,initialCatalog,isBundledCatalogEntry,manualFallbackCatalogDraft,markCatalogRefreshFailed,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
 import {catalogRefreshPath,isAuthorizedCatalogRefresh,signCatalogRefreshRequest} from '../lib/market/catalog-refresh-auth.ts';
 import {communityCatalogProducts} from '../lib/market/community-deals.ts';
-import {tariff} from '../lib/market/domain.ts';
+import {catalogOrderVariants,keepCatalogVisible} from '../lib/market/catalog.ts';
+import {productSchema,tariff} from '../lib/market/domain.ts';
 
 const extracted={sourceUrl:'https://kyliecosmetics.com/products/matte-lip-kit?utm_source=mail',title:'Matte Lip Kit',brand:'Kylie Cosmetics',category:'Красота и уход',image:'https://cdn.shopify.com/lip.jpg',images:['https://cdn.shopify.com/lip.jpg'],price:35,currency:'USD',variants:[{id:'bare-full',label:'Bare · Full size',color:'Bare',size:'Full size',available:true,price:35}],warnings:['Доставка неизвестна'],method:'Shopify'};
 test('catalog rechecks keep every selected id in stable server-sized batches',()=>{
@@ -15,13 +16,24 @@ test('catalog rechecks keep every selected id in stable server-sized batches',()
  assert(batches.every(batch=>batch.length<=catalogRecheckBatchSize));
 });
 test('customer link imports become reviewable drafts without public publication',()=>{
- const product={id:'kylie-link',name:'Matte Lip Kit',brand:'Kylie Cosmetics',category:'Красота и уход',usd:35,weight:1.3,boxedWeight:.8,image:'https://cdn.shopify.com/lip.jpg',variants:['Bare · Full size'],sourceUrl:'https://kyliecosmetics.com/products/matte-lip-kit?utm_source=mail',sourceVariantId:'bare-full',sourceCurrency:'USD',sourcePrice:35,sourceShipping:10,sourceShippingCurrency:'USD',sourceShippingUsd:10,sourceShippingEstimated:true,shippingKnown:true,country:'США'};
+ const product={id:'kylie-link',name:'Matte Lip Kit',brand:'Kylie Cosmetics',category:'Красота и уход',usd:35,weight:1.3,boxedWeight:.8,image:'https://cdn.shopify.com/lip.jpg',variants:['Bare · Full size'],sourceUrl:'https://kyliecosmetics.com/products/matte-lip-kit?utm_source=mail',sourceVariantId:'bare-full',sourceCurrency:'USD',sourcePrice:35,sourceShipping:10,sourceShippingCurrency:'USD',sourceShippingUsd:10,sourceShippingEstimated:true,shippingKnown:true,country:'США',description:'Товар из каталога Atlas. Цена, выбранный вариант и наличие повторно проверяются в магазине перед добавлением в корзину.'};
  const draft=customerLinkDraft(product,extracted,1000);
  assert.equal(draft.sourceUrl,'https://kyliecosmetics.com/products/matte-lip-kit');
+ assert.equal(draft.description,'');
  assert.equal(draft.variants[0].id,'bare-full');assert.equal(draft.variants[0].available,true);
  assert(draft.reviewReasons.some(value=>value.includes('запроса покупателя')));assert(catalogIssues(draft,1001).some(value=>value.includes('Добавлен после запроса покупателя')));
  const doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'customer-kylie',draft}]});
  assert.equal(publicCatalog(doc,tariff,1001).products.length,0);
+});
+test('generated catalog boilerplate is hidden without erasing real product descriptions',()=>{
+ const now=Date.now(),base=importDraft(extracted,[],'США',now),legacy='Товар из каталога Atlas. Цена, выбранный вариант и наличие повторно проверяются в магазине перед добавлением в корзину.';
+ assert.equal(cleanGeneratedCatalogDescription(legacy),'');
+ assert.equal(cleanGeneratedCatalogDescription(`в${legacy}`),'');
+ const doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'legacy-copy',draft:{...base,description:legacy},published:{...base,description:legacy}}]});
+ assert.equal(publicCatalog(doc,tariff,now+1).products[0].description,'');
+ const custom='Кожаная куртка с утеплённой подкладкой.';
+ const customDoc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'custom-copy',draft:{...base,description:custom},published:{...base,description:custom}}]});
+ assert.equal(publicCatalog(customDoc,tariff,now+1).products[0].description,custom);
 });
 test('admin import creates a reviewable draft without claiming store shipping',()=>{
  const draft=importDraft(extracted,[],'США',1000);
@@ -29,6 +41,42 @@ test('admin import creates a reviewable draft without claiming store shipping',(
  assert.equal(draft.category,'Красота и уход');assert.equal(draft.price,35);assert.equal(draft.boxedWeight,.8);
  assert.deepEqual(draft.variants[0],{id:'bare-full',label:'Bare · Full size',color:'Bare',size:'Full size',sizeLabel:undefined,available:true,price:35,image:undefined});
  assert.deepEqual(catalogIssues(draft,1001),[]);assert.equal(draft.warnings[0],'Доставка неизвестна');
+});
+test('blocked store imports stay as incomplete manual drafts without asserting price or stock',()=>{
+ const partial={...extracted,sourceUrl:'https://www.amazon.com/dp/B09XS7JWHH',price:298,currency:'USD',variants:[{...extracted.variants[0],available:true}]};
+ const draft=manualFallbackCatalogDraft(partial,partial.sourceUrl,[],'США',1000);
+ assert.equal(draft.name,'Matte Lip Kit');assert.equal(draft.image,partial.image);
+ assert.equal(draft.price,undefined);assert.equal(draft.currency,'');
+ assert.equal(draft.variants[0].available,false);assert.equal(draft.variants[0].availabilityKnown,false);
+ assert(catalogIssues(draft,1001).includes('Цена'));
+ assert(catalogIssues(draft,1001).includes('Валюта'));
+ assert(catalogIssues(draft,1001).includes('Наличие не подтверждено магазином'));
+ assert(catalogIssues(draft,1001).some(value=>value.includes('ручная проверка')));
+ const blank=manualFallbackCatalogDraft(undefined,'https://www.asos.com/asos-design/prd/123456789',[],'Великобритания',1000);
+ assert.equal(blank.brand,'asos.com');assert.equal(blank.country,'Великобритания');
+ assert(catalogIssues(blank,1001).includes('Доступный вариант'));
+});
+test('catalog review state is optional for legacy records and manual failures retain a reason',()=>{
+ const base=importDraft(extracted,[],'США',1000);
+ const legacy=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'legacy-entry',draft:base}]});
+ assert.equal(legacy.entries[0].origin,undefined);assert.equal(legacy.entries[0].queueState,undefined);assert.equal(legacy.entries[0].createdAt,undefined);
+ const manual=manualFallbackCatalogDraft(undefined,'https://www.amazon.com/dp/B09XS7JWHH',[],'США',1000,'Amazon blocked this request','blocked');
+ assert.equal(manual.importFailureReason,'blocked');assert.match(manual.lastCheckError,/blocked/);
+});
+test('catalog queue supports deleting only unpublished imported drafts and keeps reports consistent',()=>{
+ const doc=initialCatalog(),draft=importDraft(extracted,[],'США',1000);doc.entries.push({id:'queued-import',draft,createdAt:1000,origin:'operator-import',queueState:'queued'});
+ doc.availabilityReports=[{id:'report-1',productId:'queued-import',sourceUrl:draft.sourceUrl,answer:'unavailable',reporterId:'customer-1',createdAt:1001}];
+ const deleted=changeCatalog(doc,{kind:'delete-drafts',ids:['queued-import','queued-import']},1002,tariff);
+ assert(!deleted.entries.some(entry=>entry.id==='queued-import'));assert.equal(deleted.availabilityReports.length,0);
+ assert.throws(()=>changeCatalog(doc,{kind:'delete-drafts',ids:[doc.entries[0].id]},1002,tariff),/Опубликованный товар/);
+ const bundled=structuredClone(doc);delete bundled.entries[0].published;
+ assert.equal(isBundledCatalogEntry(bundled.entries[0].id),true);
+ assert.throws(()=>changeCatalog(bundled,{kind:'delete-drafts',ids:[bundled.entries[0].id]},1002,tariff),/Встроенный товар/);
+});
+test('admin import deduplicates photos and chooses the first safe gallery image',()=>{
+ const photo='https://cdn.shopify.com/product.jpg';
+ const draft=importDraft({...extracted,image:undefined,images:[photo,photo,'http://unsafe.example/product.jpg']},[],'США',1000);
+ assert.equal(draft.image,photo);assert.deepEqual(draft.images,[photo]);
 });
 test('publishing copies a reviewed snapshot while later edits remain drafts',()=>{
  let doc=initialCatalog();doc.collections=[{id:'beauty',name:'Красота',nameUz:'',nameEn:'Beauty',description:'',visible:true,position:0}];
@@ -55,10 +103,73 @@ test('catalog recheck queues price and availability changes for operator review'
  const doc=initialCatalog();doc.entries.push({id:'review',draft:checked});
  assert.throws(()=>changeCatalog(doc,{kind:'publish',ids:['review']},2002,tariff),/Цена:/);
 });
+test('catalog store shipping keeps its reviewed amount through refresh and legacy rows use the reserve',()=>{
+ const base=importDraft(extracted,[],'США',1000);
+ assert.equal(base.sourceShippingUsd,10);assert.equal(base.sourceShippingEstimated,true);
+ const reviewed={...base,sourceShippingUsd:6.5,sourceShippingEstimated:false};
+ const fresh=importDraft(extracted,[],'США',2000);
+ const checked=recheckedDraft(reviewed,fresh);
+ assert.equal(checked.sourceShippingUsd,6.5);assert.equal(checked.sourceShippingEstimated,false);
+ const doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'shipping',draft:checked,published:checked,publishedAt:2000}]});
+ const product=publicCatalog(doc,tariff,2001).products[0];
+ assert.equal(product.sourceShipping,6.5);assert.equal(product.sourceShippingUsd,6.5);
+ assert.equal(product.sourceShippingEstimated,false);assert.equal(product.shippingKnown,true);
+ const legacyDraft={...base};delete legacyDraft.sourceShippingUsd;delete legacyDraft.sourceShippingEstimated;
+ const legacy=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'legacy-shipping',draft:legacyDraft,published:legacyDraft,publishedAt:1000}]});
+ const legacyProduct=publicCatalog(legacy,tariff,1001).products[0];
+ assert.equal(legacyProduct.sourceShippingUsd,10);assert.equal(legacyProduct.sourceShippingEstimated,true);assert.equal(legacyProduct.shippingKnown,false);
+});
 test('hiding removes a product from the public feed without deleting its draft',()=>{
  let doc=initialCatalog(),id=doc.entries[0].id;doc=changeCatalog(doc,{kind:'hide',ids:[id]},Date.parse('2026-09-12'),tariff);
  assert.equal(doc.entries[0].published,undefined);assert(doc.entries[0].draft);
  assert(!publicCatalog(doc,tariff,Date.parse('2026-09-12')).products.some(p=>p.id===id));
+});
+test('published catalog carries the complete safe option matrix and photo gallery',()=>{
+ const sourceUrl='https://kyliecosmetics.com/products/matte-lip-kit';
+ const matrix=[
+  {id:'bare-full',label:'Bare · Full',color:'Bare',size:'Full size',sizeLabel:'Size',available:true,availabilityKnown:true,price:35,image:'https://cdn.shopify.com/bare.jpg'},
+  {id:'bare-mini',label:'Bare · Mini',color:'Bare',size:'Mini',sizeLabel:'Size',available:true,availabilityKnown:true,price:19,image:'https://cdn.shopify.com/mini.jpg'},
+  {id:'rose-full',label:'Rosé · Full',color:'Rosé',size:'Full size',sizeLabel:'Size',available:false,availabilityKnown:true,price:37,image:'http://unsafe.example/rose.jpg'},
+ ];
+ const draft=importDraft({...extracted,sourceUrl,image:'https://cdn.shopify.com/bare.jpg',images:['https://cdn.shopify.com/bare.jpg','https://cdn.shopify.com/mini.jpg','http://unsafe.example/gallery.jpg'],variants:matrix},[],'США',1000);
+ const doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'lip-matrix',draft,published:structuredClone(draft),publishedAt:1000}]});
+ const product=publicCatalog(doc,tariff,1001).products[0];
+ assert.equal(product.sourceVariants.length,3);
+ assert.deepEqual(product.sourceVariants.map(({id,color,size,sizeLabel,price})=>({id,color,size,sizeLabel,price})),matrix.map(({id,color,size,sizeLabel,price})=>({id,color,size,sizeLabel,price})));
+ assert.equal(product.sourceVariants[2].image,undefined);
+ assert.deepEqual(product.sourceImages,['https://cdn.shopify.com/bare.jpg','https://cdn.shopify.com/mini.jpg']);
+ assert.deepEqual(product.variants,['Bare · Full','Bare · Mini']);
+});
+test('stale catalog retains its last recorded price for an estimate but strips stale stock',()=>{
+ const draft=importDraft({...extracted,variants:[{id:'large-red',label:'Red · Large',color:'Red',size:'Large',available:true,availabilityKnown:true,price:45,image:'https://cdn.shopify.com/red.jpg'}]},[],'США',1000);
+ const doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'stale-shirt',draft,published:structuredClone(draft),publishedAt:1000}]});
+ const product=publicCatalog(doc,tariff,1000+7*24*60*60*1000).products[0];
+ assert.equal(product.priceNeedsConfirmation,true);assert.equal(product.sourcePrice,35);assert.equal(product.sourceCurrency,'USD');assert.equal(product.usd,35);
+ assert.deepEqual(product.variants,['Уточнить вариант в магазине']);
+ assert.deepEqual(product.sourceVariants.map(({id,label,color,size,available,availabilityKnown,price})=>({id,label,color,size,available,availabilityKnown,price})),[{id:'large-red',label:'Red · Large',color:'Red',size:'Large',available:true,availabilityKnown:false,price:undefined}]);
+});
+test('legacy products without detailed source metadata continue to parse',()=>{
+ const parsed=productSchema.parse({id:'legacy',name:'Legacy product',brand:'Shop',category:'Другое',usd:10,weight:1,image:'https://cdn.example/item.jpg',variants:['One size']});
+ assert.equal(parsed.sourceVariants,undefined);assert.equal(parsed.sourceImages,undefined);
+ assert.deepEqual(catalogOrderVariants(parsed),[{label:'One size',available:true}]);
+});
+test('link-order fallback keeps catalog color, size, price, id and photo metadata',()=>{
+ const option={id:'navy-us-9',label:'Navy · US 9',color:'Navy',size:'US 9',sizeLabel:'Men size',available:true,availabilityKnown:true,price:59.5,image:'https://cdn.example/navy.jpg'};
+ const product=productSchema.parse({id:'shoe',name:'Shoe',brand:'Shop',category:'Обувь',usd:59.5,weight:1,image:option.image,variants:[option.label],sourceVariants:[option],sourceImages:[option.image]});
+ assert.deepEqual(catalogOrderVariants(product),[option]);
+ assert.deepEqual(product.sourceImages,[option.image]);
+});
+test('empty live catalog falls back to direct links with prices marked as unconfirmed estimates',()=>{
+ const fallback=keepCatalogVisible([],Date.parse('2026-09-27T12:00:00Z'));
+ assert(fallback.length>0);
+ assert(fallback.every(product=>product.priceNeedsConfirmation===true&&product.sourcePrice>0&&product.referenceUsd===undefined));
+});
+test('refresh failures keep stale published cards discoverable and clearly unconfirmed',()=>{
+ const doc=initialCatalog(),entry=doc.entries[0];
+ entry.draft.lastCheckError='temporary source error';
+ const result=publicCatalog(doc,tariff,Date.parse('2026-09-27T12:00:00Z'));
+ const item=result.products.find(product=>product.id===entry.id);
+ assert(item);assert.equal(item.priceNeedsConfirmation,true);assert(item.sourcePrice>0);assert.equal(item.sourceCurrency,'USD');assert.deepEqual(item.variants,['Уточнить вариант в магазине']);
 });
 test('bundled products join existing catalogs without overwriting operator state',()=>{
  const complete=initialCatalog(),seed=communityCatalogProducts[0];

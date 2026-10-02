@@ -1,18 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {describeSingleColorway} from '../lib/market/variant-colorway.ts';
+import { describeSingleColorway } from '../lib/market/variant-colorway.ts';
 
-test('single Nike colorway is presented by its primary color while preserving distinct components', () => {
+test('a slash-separated merchant name is displayed as one colorway, not as selectable colors', () => {
   assert.deepEqual(describeSingleColorway('Light Armory Blue/Light Armory Blue/Gum Light Brown/White'), {
     primary: 'Light Armory Blue',
     components: ['Light Armory Blue', 'Gum Light Brown', 'White'],
   });
 });
 
-test('colorway descriptions tolerate empty components and retain the source label', () => {
+test('empty colorway components are ignored without losing the original display name', () => {
   assert.deepEqual(describeSingleColorway(' / Navy / '), {
     primary: 'Navy',
     components: ['Navy'],
   });
-  assert.deepEqual(describeSingleColorway(''), {primary: '', components: []});
+  assert.deepEqual(describeSingleColorway(''), { primary: '', components: [] });
 });
