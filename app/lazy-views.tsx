@@ -5,6 +5,7 @@ import {lazy} from 'react';
 export const GlobalLinkOrder=lazy(()=>import('./global-link-order').then(module=>({default:module.GlobalLinkOrder})));
 export const StoresDirectory=lazy(()=>import('./stores-directory').then(module=>({default:module.StoresDirectory})));
 export const AccountView=lazy(()=>import('./account-views').then(module=>({default:module.AccountView})));
+export const LoginView=lazy(()=>import('./login-view').then(module=>({default:module.LoginView})));
 export const CustomsView=lazy(()=>import('./account-views').then(module=>({default:module.CustomsView})));
 export const CartView=lazy(()=>import('./shopping').then(module=>({default:module.CartView})));
 export const OrdersView=lazy(()=>import('./order-workspace').then(module=>({default:module.OrdersView})));

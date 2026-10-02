@@ -46,7 +46,7 @@ The UI's legacy fallback option arrays are explicitly typed and optional country
 - Cloudflare Worker runtime.
 - Cloudflare D1 binding DB.
 - Drizzle schema/migration.
-- Hosted ChatGPT identity headers.
+- Atlas-owned sign-in (Telegram, SMS code, email code, Google) with D1-backed sessions.
 - shadcn/Base UI and Lucide.
 
 ## Module map
@@ -65,7 +65,7 @@ The UI's legacy fallback option arrays are explicitly typed and optional country
 | Identity/declaration/address help | app/identity-workspace.tsx, app/api/passport, lib/market/addresses.ts |
 | Batch import/admin catalog, unified pricing and rules | app/batch-import.tsx, app/admin-view.tsx, app/catalog-admin.tsx, lib/market/catalog-editor.ts, lib/market/catalog-server.ts, lib/market/policy.ts |
 | Client provider | lib/market/store.tsx |
-| Auth/access | app/chatgpt-auth.ts, app/access-view.tsx, lib/market/access.ts |
+| Auth/access | lib/auth/core.ts (pure helpers), lib/auth/server.ts (sessions, codes, providers), lib/auth/return-to.ts, app/api/auth/*, app/login-view.tsx, app/access-view.tsx, lib/market/access.ts |
 | API | app/api/account, app/api/actions, app/api/import, app/api/catalog, app/api/internal/catalog-refresh, app/api/operations |
 | Domain/security | lib/market/domain.ts, actions.ts, server.ts, world.ts |
 | Importing | lib/importer/stores.ts, fetch.ts, extract.ts, shopify.ts |
@@ -103,7 +103,7 @@ flowchart TD
   UI --> Import[POST api import]
   UI --> Catalog[GET or POST api catalog]
   UI --> Actions[POST api actions]
-  Account --> Auth[ChatGPT headers]
+  Account --> Auth[Atlas session cookie]
   Import --> Auth
   Catalog --> Auth
   Actions --> Auth
@@ -115,6 +115,16 @@ flowchart TD
   Actions --> D1
   Catalog --> D1
 ~~~
+
+## Sign-in and sessions
+
+Atlas no longer relies on ChatGPT Sites identity headers; `oai-authenticated-*` headers are ignored. `/login` offers each method only when its provider settings exist (`GET /api/auth/methods`):
+
+- Email code (Resend) and phone code (Eskiz.uz, +998 only): `POST /api/auth/otp` with `step: start|verify`. Six-digit codes live 10 minutes, are stored only as an HMAC bound to the challenge ID (pepper `ATLAS_AUTH_SECRET`), allow 5 attempts, and are deleted on use. Sending is limited to 3 per target per 10 minutes, 10 per day, and 20 per edge IP per hour.
+- Telegram Login Widget: the widget's JS callback posts to `POST /api/auth/telegram`; the server checks the HMAC with `TELEGRAM_BOT_TOKEN` and a 10-minute `auth_date` window.
+- Google: `GET /api/auth/google` starts OAuth with PKCE, state and nonce; the state is also kept in a short `__Host-atlas_oauth` cookie to block login CSRF. The callback accepts only a verified email with matching issuer, audience, nonce and expiry.
+
+User IDs: email and Google sign-ins map to `email:<address>`, which keeps accounts created under the former ChatGPT sign-in. Phone uses `phone:+998…` and Telegram `tg:<id>`; neither carries an email, so `operator()` can only match `ATLAS_OPERATOR_EMAIL` through a verified email. A successful sign-in creates a random 256-bit token in the `__Host-atlas_session` cookie (HttpOnly, Secure, SameSite=Lax, 30 days); D1 `market_auth_sessions` keeps only its SHA-256. `POST /api/auth/logout` deletes the row. All auth POSTs require same-origin requests. Dev servers on loopback hosts return codes on screen instead of sending them; production builds compile that path out unless `ATLAS_AUTH_DEV_CODES=true`, and even then only for loopback hosts.
 
 MarketProvider loads account state and revision, then sends action plus expected revision. The server parses Zod action input, applies domain function and persists only when revision matches. Conflict returns current state rather than overwriting another tab.
 

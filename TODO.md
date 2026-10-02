@@ -1,5 +1,16 @@
 # Atlas TODO and known limitations
 
+## Atlas-owned sign-in — 2 October 2026
+
+- [x] Replace ChatGPT Sites sign-in with `/login`: Telegram Login Widget, +998 phone SMS code (Eskiz.uz), email code (Resend) and Google OAuth (PKCE, state, nonce). Sessions are D1 rows keyed by the SHA-256 of a `__Host-` HttpOnly cookie token; migration `0006_own_auth` adds only new tables.
+- [x] Keep existing accounts: email and Google sign-ins map to the former `email:<address>` user ID. Phone (`phone:`) and Telegram (`tg:`) accounts carry no email and can never match `ATLAS_OPERATOR_EMAIL`.
+- [x] Dev servers show codes on screen for loopback hosts only; `smoke:auth` and `scripts/audit-ui.mjs` sign in through the real email-code endpoint.
+- [ ] Before publishing, apply `0006_own_auth` to production D1 and set at least one provider: `RESEND_API_KEY` + `ATLAS_AUTH_EMAIL_FROM` (verified sender domain), `ESKIZ_EMAIL` + `ESKIZ_PASSWORD` (approved SMS text), `TELEGRAM_BOT_TOKEN` + `TELEGRAM_BOT_USERNAME` (BotFather `/setdomain`), `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` (redirect `/api/auth/google/callback`). Also set `ATLAS_AUTH_SECRET`. Without any provider, nobody can sign in.
+- [ ] Verify on the hosted Site that Sites dispatch passes the `__Host-atlas_session` and `__Host-atlas_oauth` cookies and `Set-Cookie` responses through unchanged, and that the custom domain serves HTTPS.
+- [ ] Test each provider end to end on a dedicated test account: real SMS delivery and Eskiz template approval, Resend delivery/spam placement, Telegram widget on the public domain, Google consent screen publishing status. None was exercised against a real provider in development.
+- [ ] Decide whether a customer who signs in by phone or Telegram should be able to link an email/Google identity to the same account; today each method creates its own account unless the email matches.
+- [ ] Existing ChatGPT-only sessions end at deployment; customers sign in again with the same email (email code or Google) to reach their saved account.
+
 ## Guest link preview — 2 October 2026
 
 - [x] Allow anonymous single-link import, option selection and preliminary calculation; remove catalog/home sign-in redirects before preview.

@@ -129,6 +129,10 @@ try {
     if(issues.length)throw Error(label+': '+issues.join(', '));
     checks.push('interface semantics '+label);
   }
+  // Local Atlas sign-in: dev servers return the email code in the API response (never on a public host).
+  let signIns=0;
+  async function signIn(){signIns+=1;await evaluate(`(async()=>{const post=body=>fetch('/api/auth/otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());const start=await post({step:'start',channel:'email',target:'audit-${signIns}@atlas.test'});if(!start.devCode)throw Error('Dev sign-in codes are unavailable: run the audit against a local dev server');await post({step:'verify',channel:'email',challengeId:start.challengeId,code:start.devCode})})()`)}
+  async function signOut(){await evaluate("fetch('/api/auth/logout',{method:'POST'}).then(r=>r.ok)")}
   const hiddenPrivate="!document.querySelector('header a[href=\"/balance\"]') && !document.querySelector('header a[href=\"/notifications\"]') && !document.querySelector('header a[href=\"/cart\"]')";
   await visit('/');
   await check("!!document.querySelector('.guest-intro') && !document.querySelector('.account-error')","guest home without false server error");
@@ -137,14 +141,16 @@ try {
   if(!catalogReady&&process.env.ATLAS_AUDIT_REQUIRE_CATALOG==='1')throw Error('Fresh published catalog cards are required for this release audit. Import, review and publish a real merchant snapshot before retrying.');
   if(catalogReady){
     await check("document.querySelectorAll('.find-card .find-total strong').length>0","catalog shows delivered estimates");
-    await check("document.querySelector('.find-purchase a.btn.primary')?.getAttribute('href')?.startsWith('/signin-with-chatgpt?return_to=')","guest catalog order requires sign-in");
+    await check("document.querySelector('.find-purchase a.btn.primary')?.getAttribute('href')?.startsWith('/login?return_to=')","guest catalog order requires sign-in");
     await check("document.querySelectorAll('.find-origin a').length>0 && [...document.querySelectorAll('.find-origin a')].every(a=>!a.href.includes('slickdeals'))","catalog links directly to merchants");
   }else checks.push('catalog-card checks skipped: no fresh published snapshot');
   await auditPage('guest home');
   await evaluate("(async()=>{const input=document.querySelector('#finds-product-url'),set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;set.call(input,'https://www.nike.com/t/shoe');input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(resolve=>setTimeout(resolve,0));input.closest('form').requestSubmit()})()");
   await check("location.pathname==='/order-by-link' && new URL(location.href).searchParams.get('url')==='https://www.nike.com/t/shoe'","guest link calculation preserves intent through sign-in");
+  await signIn();
   await check("fetch('/api/account',{cache:'no-store'}).then(r=>r.status===200)","guest link sign-in creates an authenticated local session");
-  await visit('/signout-with-chatgpt?return_to=/');
+  await signOut();
+  await visit('/');
   await check("location.pathname==='/' && !!document.querySelector('.guest-intro')","guest link audit restores the guest session");
   await visit('/');
   if(catalogReady){
@@ -154,7 +160,7 @@ try {
     if(!categoryMatched)throw Error(`No category filter matches '${visibleCategory}'`);
     await check(`document.querySelectorAll('.find-card').length>0 && [...document.querySelectorAll('.find-card .find-meta span:first-child')].every(el=>el.textContent.trim()===${JSON.stringify(visibleCategory)})`,"category filtering");
     await evaluate("document.querySelector('.find-photo').click()");
-    await check("!!document.querySelector('.product-sheet') && !!document.querySelector('.sheet-total a[href^=\"/signin-with-chatgpt\"]')","guest product asks for sign-in");
+    await check("!!document.querySelector('.product-sheet') && !!document.querySelector('.sheet-total a[href^=\"/login\"]')","guest product asks for sign-in");
     await evaluate("document.querySelector('button[aria-label=\"Закрыть карточку\"]').click()");
   }
   await evaluate("(()=>{const el=document.querySelector('.locale-select');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(el,'en');el.dispatchEvent(new Event('change',{bubbles:true}))})()");
@@ -187,6 +193,8 @@ try {
   await check("new URL(document.querySelector('[data-access=signin] a.btn.primary').href).searchParams.get('return_to')===location.pathname+location.search","sign-in retains source URL");
   const signInUrl=await evaluate("document.querySelector(\'[data-access=signin] a.btn.primary\').href");
   await cdp.send("Page.navigate",{url:signInUrl},sessionId);
+  await check("location.pathname==='/login' && !!document.querySelector('.login-card')","sign-in opens the Atlas login screen");
+  await signIn();
   await check("fetch(\'/api/account\',{cache:\'no-store\'}).then(r=>r.status===200)","real local sign-in creates an authenticated session");
   await visit("/order-by-link");
   await check("!!document.querySelector(\'#source-url\') && !document.querySelector(\'#source-url\').disabled","authenticated product form opens");
@@ -251,9 +259,9 @@ try {
   await visit('/batch-import');
   await check("!!document.querySelector('.batch-import button:disabled')","batch submit needs links");
   await visit('/account');
-  await check("!!document.querySelector('a[href*=\"signout-with-chatgpt\"]')","member can sign out");
-  const signOutUrl=await evaluate("document.querySelector('a[href*=\"signout-with-chatgpt\"]').href");
-  await cdp.send("Page.navigate",{url:signOutUrl},sessionId);
+  await check("!!document.querySelector('.profile-actions button.text-link')","member can sign out");
+  await signOut();
+  await visit('/account');
   await check("!!document.querySelector('[data-access=signin]')","local sign-out clears protected screen");
   await check(hiddenPrivate,"sign-out clears private navigation");
   // Controlled response fixtures cover loading, connectivity failure and expiration.

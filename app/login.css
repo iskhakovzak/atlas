@@ -1,0 +1,28 @@
+.login-card{max-width:520px;margin:32px auto 72px;padding:clamp(22px,5vw,44px);display:flex;flex-direction:column;gap:16px}
+.login-card h1{font-size:clamp(26px,4vw,36px);line-height:1.15;letter-spacing:-.025em}
+.login-intro{color:#526079;font-size:15px;line-height:1.6}
+.login-status{display:flex;align-items:center;gap:12px;color:#526079}
+.login-tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px;padding:4px;border-radius:10px;background:#eef2f7}
+.login-tabs button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:42px;border:0;border-radius:7px;background:transparent;font:inherit;font-weight:600;color:#3b4a63;cursor:pointer}
+.login-tabs button.active{background:#fff;color:#1d3d2f;box-shadow:0 1px 3px rgba(17,30,52,.12)}
+.login-tabs button:focus-visible{outline:2px solid #193dcf;outline-offset:2px}
+.login-panel{display:flex;flex-direction:column;gap:14px}
+.login-form{display:flex;flex-direction:column;gap:14px}
+.login-form .field{display:flex;flex-direction:column;gap:6px}
+.login-form .field input{width:100%}
+.login-form .field small{color:#62718a;font-size:13px}
+.login-form .btn,.login-google .btn{min-height:46px;justify-content:center}
+.login-code{font-size:22px!important;letter-spacing:.35em;text-align:center;font-variant-numeric:tabular-nums}
+.login-sent{display:flex;flex-wrap:wrap;align-items:center;gap:6px;color:#3b4a63;font-size:15px}
+.login-sent .text-button{display:inline-flex;align-items:center;gap:4px}
+.login-resend{align-self:center}
+.login-resend:disabled{opacity:.55;cursor:default}
+.login-telegram,.login-google{display:flex;flex-direction:column;gap:14px;align-items:stretch}
+.login-telegram p,.login-google p{color:#526079}
+.login-telegram-widget{min-height:48px;display:flex;justify-content:center}
+.login-legal{color:#62718a;font-size:12px;text-align:center}
+html[data-theme="dark"] .login-intro,html[data-theme="dark"] .login-telegram p,html[data-theme="dark"] .login-google p,html[data-theme="dark"] .login-status,html[data-theme="dark"] .login-sent{color:#c3cbd8}
+html[data-theme="dark"] .login-tabs{background:#1c2430}
+html[data-theme="dark"] .login-tabs button{color:#c3cbd8}
+html[data-theme="dark"] .login-tabs button.active{background:#2b3544;color:#fff}
+@media(max-width:600px){.login-card{margin:16px 0 36px}}

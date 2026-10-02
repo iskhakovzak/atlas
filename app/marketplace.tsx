@@ -13,7 +13,7 @@ import {ProductGallery} from './product-gallery';
 import {findOrderUrl} from '@/lib/market/catalog';
 import {DealsFeed} from './deals-feed';
 import {countryName} from '@/lib/market/world';
-import {GlobalLinkOrder,StoresDirectory,AccountView,CustomsView,CartView,OrdersView,BalanceView,NotificationsView,AnalyticsView,LegalDocuments,DeclarationView,IdentityView,BatchImportView,AdminView} from './lazy-views';
+import {GlobalLinkOrder,StoresDirectory,AccountView,CustomsView,CartView,OrdersView,BalanceView,NotificationsView,AnalyticsView,LegalDocuments,DeclarationView,IdentityView,BatchImportView,AdminView,LoginView} from './lazy-views';
 import {AccessView,GuestIntro} from './access-view';
 import {routeTitle,ui,type Locale} from '@/lib/market/i18n';
 import {useTheme} from 'next-themes';
@@ -39,7 +39,7 @@ export default function Marketplace({view}:{view:string}) {
   <Suspense fallback={<section className="surface access-card" role="status" aria-live="polite"><span className="access-spinner"/><span className="sr-only">{locale==='ru'?'Загрузка…':locale==='uz'?'Yuklanmoqda…':'Loading…'}</span></section>}>
   <AccessView view={view}>
   {(view==='catalog'||view==='favorites')&&<Catalog favorites={view==='favorites'} select={select}/>}
-   {view==='link'&&<GlobalLinkOrder/>}{view==='stores'&&<StoresDirectory/>}{view==='cart'&&<CartView/>}{(view==='orders'||view==='operations')&&<OrdersView operations={view==='operations'}/>}{view==='balance'&&<BalanceView/>}{view==='notifications'&&<NotificationsView/>}{view==='account'&&<AccountView/>}{view==='customs'&&<CustomsView/>}{view==='analytics'&&<AnalyticsView/>}{view==='legal'&&<LegalDocuments/>}
+   {view==='link'&&<GlobalLinkOrder/>}{view==='stores'&&<StoresDirectory/>}{view==='cart'&&<CartView/>}{(view==='orders'||view==='operations')&&<OrdersView operations={view==='operations'}/>}{view==='balance'&&<BalanceView/>}{view==='notifications'&&<NotificationsView/>}{view==='account'&&<AccountView/>}{view==='login'&&<LoginView/>}{view==='customs'&&<CustomsView/>}{view==='analytics'&&<AnalyticsView/>}{view==='legal'&&<LegalDocuments/>}
   {view==='identity'&&<IdentityView/>}{view==='declaration'&&<DeclarationView/>}
   {view==='batch'&&<BatchImportView/>}{view==='admin'&&<AdminView/>}
    </AccessView>
