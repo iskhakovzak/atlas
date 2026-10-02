@@ -795,7 +795,7 @@ export function GlobalLinkOrder() {
                     className="btn secondary"
                     onClick={() => {
                       if (!currencies.includes(foundShipping.currency)) {
-                        toast.error(unsupportedShippingCurrency);
+                        toast.error(tx("Валюта ", "Valyuta ", "Currency ") + foundShipping.currency + tx(" пока не поддерживается: укажите эквивалент в поддерживаемой валюте.", " hozircha qo‘llanmaydi: qo‘llab-quvvatlanadigan valyutada ekvivalent kiriting.", " is not supported yet: enter an equivalent in a supported currency."));
                         return;
                       }
                       setShipping(String(foundShipping.amount));
