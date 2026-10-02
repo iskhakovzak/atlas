@@ -3,6 +3,14 @@ import assert from 'node:assert/strict';
 import {viewAccess,signInPath,memberViews,adminViews} from '../lib/market/access.ts';
 import {applyAction} from '../lib/market/actions.ts';
 import {blank} from '../lib/market/domain.ts';
+import {uzbekBrowserPreference} from '../lib/market/i18n.ts';
+test('first visit switches to Uzbek only when the browser prefers it over Russian',()=>{
+ assert.equal(uzbekBrowserPreference(['uz-UZ','ru']),'uz');
+ assert.equal(uzbekBrowserPreference(['en-US','uz-Latn-UZ']),'uz');
+ assert.equal(uzbekBrowserPreference(['ru-RU','uz']),null);
+ assert.equal(uzbekBrowserPreference(['en-US','en']),null);
+ assert.equal(uzbekBrowserPreference([]),null);
+});
 test('private screens never render before identity is confirmed, including admin pages',()=>{
  for(const route of [...memberViews,...adminViews]){
   assert.equal(viewAccess(route,'loading',true),'loading');

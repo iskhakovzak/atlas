@@ -66,4 +66,4 @@ Disallow: /signin-with-chatgpt
 Disallow: /signout-with-chatgpt
 Disallow: /login
 
-Sitemap: https://atlas-uz-market.ishakovzakir0.chatgpt.site/sitemap.xml
+Sitemap: https://atlasmarket.uz/sitemap.xml

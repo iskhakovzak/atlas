@@ -1,5 +1,18 @@
 # Atlas TODO and known limitations
 
+## Home and catalog UX pass — 3 October 2026
+
+- [x] Home hero for every visitor: the service in one headline and the "paste a link → calculate" form as the main action; the duplicate link form under the catalog is removed.
+- [x] Catalog cards: inline "price breakdown" (item, store-delivery reserve, delivery to Uzbekistan with billable kg, Atlas service, refundable reserve) with plain-language reserve notes; the button reads "Choose option" because it opens the option/price step, not the cart; the merchant link on the card is replaced by the store name.
+- [x] Short catalogs (8 or fewer products) hide search, sort and detail filters; category chips show only categories with products; "best discount" sort and copy appear only when a product has a discount.
+- [x] SEO: canonical, og:url, JSON-LD, sitemap, robots and llms.txt use https://atlasmarket.uz; 1200×630 `public/og-image.png` and `summary_large_image`. `workers/catalog-refresh/wrangler.toml` still targets the chatgpt.site origin and changes only with that worker's next deploy.
+- [x] Server HTML: catalog and /stores render outside Suspense, so crawlers no longer see "Загрузка…" with content after the footer; stray hidden "О товаре" removed; utility bar text has separators.
+- [x] Popular stores link to /stores?q=<store>. First visit switches to Uzbek only when the browser ranks Uzbek above Russian.
+- [ ] Needs business data (do not invent): contacts (Telegram, phone, social links), delivery time ranges per dispatch country for the FAQ and cards, confirmed per-kg tariff wording, legal entity details. Real payment methods (Click, Payme, Uzcard, Humo) only after a payment provider is connected — payments are simulated. Reviews/cases only from real customers.
+- [ ] `money()` always prints "сум"; UZ/EN amounts outside the catalog cards and header still show "сум".
+- [ ] /customs and /legal are still lazy views inside Suspense (their modules are large); move them out for crawler-friendly HTML without growing every page's bundle.
+- [ ] Store logos need licensed brand assets; chips use monograms for now.
+
 ## Atlas-owned sign-in — 2 October 2026
 
 - [x] Replace ChatGPT Sites sign-in with `/login`: Telegram Login Widget, +998 phone SMS code (Eskiz.uz), email code (Resend) and Google OAuth (PKCE, state, nonce). Sessions are D1 rows keyed by the SHA-256 of a `__Host-` HttpOnly cookie token; migration `0006_own_auth` adds only new tables.

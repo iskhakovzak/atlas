@@ -4,7 +4,7 @@ import {toast} from 'sonner';
 import {blank,parseState,pricingSchema,tariff,type Pricing,type State} from './domain';
 import {defaultPolicy,policySchema,type Policy} from './policy';
 import type {Action} from './actions';
-import {serverError,setLocaleCookie,supportedLocale,type Locale} from './i18n';
+import {serverError,setLocaleCookie,supportedLocale,uzbekBrowserPreference,type Locale} from './i18n';
 import type {SessionStatus} from './access';
 import {keepCatalogVisible,visibleMerchantFinds,type MerchantFind} from './catalog';
 import type {CatalogCollection} from './catalog-editor';
@@ -73,10 +73,11 @@ export function MarketProvider({children}:{children:ReactNode}) {
   finally{clearTimeout(timeout)}
  },[clearPrivate,readStoredLocale]);
  useEffect(()=>{
-  const locale=readStoredLocale();
-  // The server uses this display-only cookie for localized errors. Write the
-  // default as well, so its initial response matches the UI's Russian default
-  // instead of an unrelated browser Accept-Language preference.
+  // A saved choice wins. Otherwise only an Uzbek browser preference ranked
+  // above Russian switches the first visit to UZ; every other browser keeps the
+  // Russian default. The detected value is not saved, so a manual pick still wins.
+  const locale=readStoredLocale()??uzbekBrowserPreference(navigator.languages??[navigator.language]);
+  // The server uses this display-only cookie for localized errors.
   setLocaleCookie(locale??'ru');
   if(locale){
    // This ref is intentionally updated outside render for callbacks that outlive this effect.

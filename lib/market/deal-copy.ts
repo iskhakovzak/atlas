@@ -1,7 +1,7 @@
 import type { Locale } from './i18n';
 
 const ru = {
-  title: 'Каталог зарубежных товаров.', intro: 'Обычные товары и лучшие скидки — в одном месте, с расчётом доставки в Узбекистан.',
+  title: 'Каталог зарубежных товаров.', intro: 'Товары из зарубежных магазинов, отобранные Atlas, — с расчётом доставки в Узбекистан.',
   savedTitle: 'Избранные товары.', savedIntro: 'Сравните цены и вернитесь к покупке, когда будете готовы.',
   observed: 'Цена на', checkOptions: 'Atlas перепроверит цену и выбранный вариант', priceNote: 'Цены зафиксированы на указанную дату и могут измениться. Atlas сверит цену и валюту выбранного варианта при добавлении. Atlas не является официальным представителем указанных брендов.', estimateHint: 'Вес оценочный. Итог рассчитан по настроенным тарифам Atlas, не является офертой и уточняется до выкупа.',
   all: 'Все категории', footwear: 'Обувь', clothing: 'Одежда', electronics: 'Электроника', accessories: 'Аксессуары',
@@ -24,7 +24,7 @@ const ru = {
 };
 type Copy = { [K in keyof typeof ru]: string };
 const uz: Copy = {
-  title: 'Xorijiy mahsulotlar katalogi.', intro: 'Oddiy mahsulotlar va eng yaxshi chegirmalar — O‘zbekistonga yetkazish hisobi bilan bir joyda.',
+  title: 'Xorijiy mahsulotlar katalogi.', intro: 'Atlas tanlagan xorijiy do‘kon tovarlari — O‘zbekistonga yetkazish hisobi bilan.',
   savedTitle: 'Saralangan mahsulotlar.', savedIntro: 'Narxlarni solishtiring va tayyor bo‘lganingizda xaridga qayting.',
   observed: 'Narx sanasi', checkOptions: 'Atlas narx va tanlangan variantni qayta tekshiradi', priceNote: 'Narxlar ko‘rsatilgan sanada qayd etilgan va o‘zgarishi mumkin. Savatga qo‘shishda Atlas tanlangan variant narxi va valyutasini tekshiradi. Atlas ushbu brendlarning rasmiy vakili emas.', estimateHint: 'Vazn taxminiy. Jami Atlas tariflari asosida hisoblangan, oferta emas va xariddan oldin aniqlashtiriladi.',
   all: 'Barcha toifalar', footwear: 'Poyabzal', clothing: 'Kiyim', electronics: 'Elektronika', accessories: 'Aksessuarlar',
@@ -46,7 +46,7 @@ const uz: Copy = {
   shoeName: 'Kundalik krossovkalar', audioName: 'Simsiz quloqchinlar', bagName: 'Shahar ryukzagi',
 };
 const en: Copy = {
-  title: 'International product catalog.', intro: 'Everyday products and the best discounts in one place, with delivery estimates to Uzbekistan.',
+  title: 'International product catalog.', intro: 'Products from international stores, selected by Atlas, with delivery estimates to Uzbekistan.',
   savedTitle: 'Saved products.', savedIntro: 'Compare prices and come back when you’re ready to buy.',
   observed: 'Price recorded', checkOptions: 'Atlas rechecks price and selected option', priceNote: 'Prices were recorded on the stated date and may change. Atlas checks the selected option’s price and currency when it is added. Atlas is not an official representative of these brands.', estimateHint: 'Weight is estimated. Totals use configured Atlas rates, are not a binding offer and must be confirmed before purchase.',
   all: 'All categories', footwear: 'Footwear', clothing: 'Clothing', electronics: 'Electronics', accessories: 'Accessories',

@@ -142,7 +142,8 @@ try {
   if(catalogReady){
     await check("document.querySelectorAll('.find-card .find-total strong').length>0","catalog shows delivered estimates");
     await check("document.querySelector('.find-purchase a.btn.primary')?.getAttribute('href')?.startsWith('/login?return_to=')","guest catalog order requires sign-in");
-    await check("document.querySelectorAll('.find-origin a').length>0 && [...document.querySelectorAll('.find-origin a')].every(a=>!a.href.includes('slickdeals'))","catalog links directly to merchants");
+    await check("document.querySelectorAll('.find-origin a').length===0 && document.querySelectorAll('.find-origin span').length>0","catalog names the store without sending customers away");
+    await check("document.querySelectorAll('.find-breakdown').length>0","catalog cards explain the delivered price");
   }else checks.push('catalog-card checks skipped: no fresh published snapshot');
   await auditPage('guest home');
   await evaluate("(async()=>{const input=document.querySelector('#finds-product-url'),set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;set.call(input,'https://www.nike.com/t/shoe');input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(resolve=>setTimeout(resolve,0));input.closest('form').requestSubmit()})()");
@@ -156,23 +157,25 @@ try {
   if(catalogReady){
     await check("document.querySelectorAll('.find-card').length>0","catalog cards reload after sign-out");
     const visibleCategory=await evaluate("document.querySelector('.find-card .find-meta span')?.textContent?.trim()");
-    const categoryMatched=await evaluate(`(()=>{const category=${JSON.stringify(visibleCategory)};const button=[...document.querySelectorAll('.finds-categories button')].find(item=>item.textContent.trim()===category);if(!button)return false;button.click();return true})()`);
-    if(!categoryMatched)throw Error(`No category filter matches '${visibleCategory}'`);
-    await check(`document.querySelectorAll('.find-card').length>0 && [...document.querySelectorAll('.find-card .find-meta span:first-child')].every(el=>el.textContent.trim()===${JSON.stringify(visibleCategory)})`,"category filtering");
+    // Category chips appear only when the catalog spans several categories.
+    const categoryMatched=await evaluate(`(()=>{const buttons=[...document.querySelectorAll('.finds-categories button')];if(!buttons.length)return null;const category=${JSON.stringify(visibleCategory)};const button=buttons.find(item=>item.textContent.trim()===category);if(!button)return false;button.click();return true})()`);
+    if(categoryMatched===false)throw Error(`No category filter matches '${visibleCategory}'`);
+    if(categoryMatched)await check(`document.querySelectorAll('.find-card').length>0 && [...document.querySelectorAll('.find-card .find-meta span:first-child')].every(el=>el.textContent.trim()===${JSON.stringify(visibleCategory)})`,"category filtering");
+    else checks.push('category filtering skipped: single-category catalog');
     await evaluate("document.querySelector('.find-photo').click()");
     await check("!!document.querySelector('.product-sheet') && !!document.querySelector('.sheet-total a[href^=\"/login\"]')","guest product asks for sign-in");
     await evaluate("document.querySelector('button[aria-label=\"Закрыть карточку\"]').click()");
   }
   await evaluate("(()=>{const el=document.querySelector('.locale-select');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(el,'en');el.dispatchEvent(new Event('change',{bubbles:true}))})()");
-  await check("document.documentElement.lang==='en' && document.querySelector('.guest-intro h1').textContent.includes('Shop abroad')","guest language works without saving an account");
-  await check("document.querySelector('.finds-own-link form button')?.textContent.includes('Sign in to calculate')","guest link CTA is honest in English");
+  await check("document.documentElement.lang==='en' && document.querySelector('.guest-intro h1').textContent.includes('Shop international stores')","guest language works without saving an account");
+  await check("document.querySelector('.hero-link-form button')?.textContent.includes('Calculate') && document.querySelector('.hero-link-note')?.textContent.includes('no sign-in')","guest link CTA is honest in English");
   if(catalogReady){
     await evaluate("document.querySelector('.find-photo').click()");
     await check("document.querySelector('.product-sheet')?.textContent.includes('Cost calculation')","product details localize to English");
     await evaluate("document.querySelector('button[aria-label=\"Close item details\"]').click()");
   }
   await evaluate("(()=>{const el=document.querySelector('.locale-select');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(el,'uz');el.dispatchEvent(new Event('change',{bubbles:true}))})()");
-  await check("document.documentElement.lang==='uz' && document.querySelector('.finds-own-link form button')?.textContent.includes('Kirish va hisoblash')","guest link CTA localizes to Uzbek");
+  await check("document.documentElement.lang==='uz' && document.querySelector('.hero-link-form button')?.textContent.includes('Hisoblash')","guest link CTA localizes to Uzbek");
   if(catalogReady){
     await evaluate("document.querySelector('.find-photo').click()");
     await check("document.querySelector('.product-sheet')?.textContent.includes('Narx hisobi')","product details localize to Uzbek");
@@ -199,7 +202,7 @@ try {
   await visit("/order-by-link");
   await check("!!document.querySelector(\'#source-url\') && !document.querySelector(\'#source-url\').disabled","authenticated product form opens");
   await visit('/');
-  await check(`!document.querySelector('.guest-intro') && !!document.querySelector('header a[href=\"/cart\"]') && ${catalogReady?"!!document.querySelector('.find-save')":"!!document.querySelector('.finds-own-link')"}`,"member home differs from guest");
+  await check(`!!document.querySelector('header a[href=\"/cart\"]') && !document.querySelector('.hero-link-note')?.textContent.includes('без входа') && ${catalogReady?"!!document.querySelector('.find-save')":"!!document.querySelector('.hero-link-form')"}`,"member home differs from guest");
   if (process.env.ATLAS_AUDIT_IMPORT === '1') {
     await visit('/order-by-link?url='+encodeURIComponent('https://www.stevemadden.com/products/possession-black'));
     await check("!!document.querySelector('#source-url') && !document.querySelector('#source-url').disabled",'import ready');

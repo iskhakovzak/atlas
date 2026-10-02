@@ -115,3 +115,41 @@
   .catalog-home .faq-item p { padding:0 16px 16px; font-size:14px; }
 }
 @media(max-width:359px) { .catalog-home .finds-grid { grid-template-columns:1fr; } }
+
+/* Hero link form: the primary "paste a link → calculate" action. */
+.guest-intro .hero-link-form { display:flex; gap:6px; margin-top:24px; max-width:620px; padding:6px; background:var(--atlas-surface,#fff); border:2px solid #224f3c; border-radius:14px; box-shadow:0 10px 28px rgba(20,48,36,.10); }
+.guest-intro .hero-link-form:focus-within { box-shadow:0 0 0 4px rgba(34,79,60,.18); }
+.guest-intro .hero-link-form input { flex:1; min-width:0; border:0; background:transparent; color:var(--atlas-ink); font-size:17px; padding:12px 14px; }
+.guest-intro .hero-link-form input:focus { outline:none; }
+.guest-intro .hero-link-form .btn { min-height:50px; padding-inline:24px; white-space:nowrap; }
+.guest-intro .hero-link-note, .guest-intro .hero-link-error { margin-top:10px; font-size:14px; }
+.guest-intro .hero-link-error { color:#b42318; }
+.guest-intro .guest-intro-actions { margin-top:14px; }
+html[data-theme="dark"] .guest-intro .hero-link-form { background:#1f2328; border-color:#b9d6a7; }
+html[data-theme="dark"] .guest-intro .hero-link-error { color:#ffb4a8; }
+@media(max-width:600px) {
+  .guest-intro .hero-link-form { flex-direction:column; }
+  .guest-intro .hero-link-form .btn { width:100%; justify-content:center; }
+}
+
+/* Catalog card: price breakdown and honest action labels. */
+.find-breakdown { margin-top:6px; font-size:13px; }
+.find-breakdown > summary { cursor:pointer; color:var(--atlas-link,#2346ba); font-weight:600; list-style:none; display:inline-flex; align-items:center; gap:4px; }
+.find-breakdown > summary::-webkit-details-marker { display:none; }
+.find-breakdown > summary::after { content:"▾"; font-size:11px; }
+.find-breakdown[open] > summary::after { content:"▴"; }
+.find-breakdown dl { display:grid; gap:4px; margin:8px 0 0; padding:10px; border-radius:10px; background:var(--atlas-soft,#f3f5f8); }
+.find-breakdown dl > div { display:flex; justify-content:space-between; gap:10px; }
+.find-breakdown dt { color:#53637c; }
+.find-breakdown dd { margin:0; font-weight:600; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.find-breakdown p { margin:6px 0 0; color:#53637c; line-height:1.45; }
+html[data-theme="dark"] .find-breakdown dl { background:#262a30; }
+html[data-theme="dark"] .find-breakdown dt, html[data-theme="dark"] .find-breakdown p { color:#c0c3c9; }
+.find-origin span { color:#53637c; font-size:13px; }
+
+/* Popular stores: each chip opens the store directory filtered to that store. */
+.supported-store-list li { padding:0; }
+.supported-store-list li a { display:inline-flex; align-items:center; gap:7px; min-height:inherit; padding:5px 12px 5px 5px; color:inherit; text-decoration:none; border-radius:999px; }
+.supported-store-list li a:hover, .supported-store-list li a:focus-visible { background:var(--atlas-surface,#fff); text-decoration:underline; text-underline-offset:3px; }
+.store-monogram { display:inline-grid; place-items:center; width:24px; height:24px; border-radius:50%; background:#224f3c; color:#e3efbc; font-size:12px; font-weight:800; }
+html[data-theme="dark"] .store-monogram { background:#b9d6a7; color:#1f2328; }

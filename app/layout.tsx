@@ -24,7 +24,8 @@ const structuredData = {
     {
       "@type": "Organization",
       name: "Atlas",
-      url: "https://atlas-uz-market.ishakovzakir0.chatgpt.site",
+      url: "https://atlasmarket.uz",
+      logo: "https://atlasmarket.uz/og-image.png",
       description:
         "Purchasing intermediary and logistics agent for international shopping in Uzbekistan.",
       areaServed: "UZ",
@@ -32,14 +33,14 @@ const structuredData = {
     {
       "@type": "WebSite",
       name: "Atlas",
-      url: "https://atlas-uz-market.ishakovzakir0.chatgpt.site",
+      url: "https://atlasmarket.uz",
       inLanguage: ["ru", "uz", "en"],
     },
   ],
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://atlas-uz-market.ishakovzakir0.chatgpt.site"),
+  metadataBase: new URL("https://atlasmarket.uz"),
   title: {
     default: "Atlas — покупки со всего мира",
     template: "%s · Atlas",
@@ -62,12 +63,14 @@ export const metadata: Metadata = {
     title: "Atlas — покупки со всего мира",
     description:
       "Зарубежные магазины, понятный предварительный расчёт и доставка в Узбекистан.",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Atlas — покупки в зарубежных магазинах с доставкой в Узбекистан" }],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Atlas — покупки со всего мира",
     description:
       "Зарубежные магазины, понятный предварительный расчёт и доставка в Узбекистан.",
+    images: ["/og-image.png"],
   },
   icons: {
     icon: "/favicon.svg",

@@ -3,6 +3,16 @@ export function supportedLocale(value:unknown):Locale|null{
   return value === "ru" || value === "uz" || value === "en" ? value : null;
 }
 
+/** First-visit language: Uzbek only when the browser ranks it above Russian; otherwise null (keep the Russian default). */
+export function uzbekBrowserPreference(languages:readonly string[]):Locale|null{
+  for(const tag of languages){
+    const base=tag.trim().toLowerCase().split(/[-_]/)[0];
+    if(base==="uz")return "uz";
+    if(base==="ru")return null;
+  }
+  return null;
+}
+
 const apiErrors:Record<Locale,Record<number,string>>={
   ru:{400:"Проверьте данные и попробуйте снова.",401:"Войдите, чтобы продолжить.",403:"У вас нет доступа к этому действию.",404:"Запрошенные данные не найдены.",405:"Этот способ запроса не поддерживается.",409:"Данные изменились. Обновите страницу и повторите действие.",413:"Запрос слишком большой.",422:"Не удалось обработать данные. Проверьте их и попробуйте снова.",429:"Слишком много запросов. Попробуйте позже.",503:"Не удалось выполнить запрос. Попробуйте ещё раз."},
   uz:{400:"Ma’lumotlarni tekshirib, qayta urinib ko‘ring.",401:"Davom etish uchun tizimga kiring.",403:"Bu amalni bajarish uchun ruxsat yo‘q.",404:"So‘ralgan ma’lumot topilmadi.",405:"Bu so‘rov usuli qo‘llab-quvvatlanmaydi.",409:"Ma’lumotlar o‘zgardi. Sahifani yangilab, qayta urinib ko‘ring.",413:"So‘rov hajmi juda katta.",422:"Ma’lumotlarni qayta ishlab bo‘lmadi. Tekshirib, qayta urinib ko‘ring.",429:"So‘rovlar soni oshib ketdi. Keyinroq urinib ko‘ring.",503:"So‘rov bajarilmadi. Qayta urinib ko‘ring."},

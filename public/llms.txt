@@ -18,9 +18,9 @@
 
 ## Public pages
 
-- Home catalog: https://atlas-uz-market.ishakovzakir0.chatgpt.site/
-- Customs guidance: https://atlas-uz-market.ishakovzakir0.chatgpt.site/customs
-- Terms and privacy drafts: https://atlas-uz-market.ishakovzakir0.chatgpt.site/legal
+- Home catalog: https://atlasmarket.uz/
+- Customs guidance: https://atlasmarket.uz/customs
+- Terms and privacy drafts: https://atlasmarket.uz/legal
 
 ## Discovery and access
 

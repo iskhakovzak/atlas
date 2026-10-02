@@ -37,7 +37,7 @@ export function SupportedStores({ locale }: { locale: Locale }) {
         <p>{text.description}</p>
       </div>
       <ul className="supported-store-list" aria-label={text.label}>
-        {stores.map((store) => <li key={store}>{store}</li>)}
+        {stores.map((store) => <li key={store}><Link href={`/stores?q=${encodeURIComponent(store)}`}><span className="store-monogram" aria-hidden="true">{store[0]}</span>{store}</Link></li>)}
       </ul>
       <Link className="supported-stores-link" href="/stores">
         {text.allStores}<ArrowRight size={17} aria-hidden="true" />

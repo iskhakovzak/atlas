@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://atlas-uz-market.ishakovzakir0.chatgpt.site/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
-  <url><loc>https://atlas-uz-market.ishakovzakir0.chatgpt.site/customs</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://atlas-uz-market.ishakovzakir0.chatgpt.site/legal</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://atlasmarket.uz/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://atlasmarket.uz/stores</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://atlasmarket.uz/customs</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://atlasmarket.uz/legal</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
 </urlset>
