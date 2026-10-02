@@ -145,6 +145,7 @@ export async function POST(request: Request) {
         "assign-order",
         "staff-note",
         "order-notify",
+        "order-issue-update",
         "parcel-set",
         "change-request-create",
         "warehouse-inspect",

@@ -7,7 +7,7 @@ import Link from '@/components/site-link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { validateSource, type Product } from '@/lib/market/domain';
 import { findOrderUrl } from '@/lib/market/catalog';
-import { defaultDealFilters, filterDeals, type DealFilters } from '@/lib/market/deals';
+import { defaultDealFilters, filterDeals, hasActiveDealFilters, type DealFilters } from '@/lib/market/deals';
 import { dealCopy } from '@/lib/market/deal-copy';
 import { useMarket } from '@/lib/market/store';
 import { signInPath } from '@/lib/market/access';
@@ -43,7 +43,8 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
   const search = filters.search.trim().toLocaleLowerCase();
   const matching = candidates.filter(product => [product.name, titles[product.id], product.brand, product.category, product.country, categories.find(c => c.value === product.category)?.label, countries.find(c => c.value === product.country)?.label].join(' ').toLocaleLowerCase().includes(search));
   const list = filterDeals(matching, pricing, { ...filters, search: '' },products);
-  const hasFilters = !!(filters.search || filters.category || filters.country || filters.maxTotal);
+  const hasFilters = hasActiveDealFilters(filters, collectionId);
+  const resetFilters = () => { setFilters(defaultDealFilters); setCollectionId(''); };
 
   async function favorite(product: Product) {
     setSaving(product.id);
@@ -69,7 +70,7 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
         <label><span>{copy.sort}</span><Choice label={copy.sort} value={sorts.find(s => s.value === filters.sort)!.label} options={sorts.map(s => s.label)} onChange={label => setFilters({ ...filters, sort: sorts.find(s => s.label === label)!.value })}/></label>
       </div></details>
     </section>}
-    {(!favorites || candidates.length > 0) && <div className="finds-result"><span role="status">{copy.results}: <b>{list.length}</b></span><span className="catalog-customs-note">{copy.excluded} <Link href="/customs" aria-label={locale==='ru'?'Таможенные условия':locale==='uz'?'Bojxona shartlari':'Customs information'}>ⓘ</Link></span>{hasFilters && <button type="button" className="text-button" onClick={() => setFilters(defaultDealFilters)}>{copy.reset}<X size={14}/></button>}</div>}
+    {(!favorites || candidates.length > 0) && <div className="finds-result"><span role="status">{copy.results}: <b>{list.length}</b></span><span className="catalog-customs-note">{copy.excluded} <Link href="/customs" aria-label={locale==='ru'?'Таможенные условия':locale==='uz'?'Bojxona shartlari':'Customs information'}>ⓘ</Link></span>{hasFilters && <button type="button" className="text-button" onClick={resetFilters}>{copy.reset}<X size={14}/></button>}</div>}
     <section className="finds-grid" aria-label={favorites ? copy.saved : copy.catalog}>
       {list.map(({ product, costs, referenceUsd, discount }) => {
         const isSaved = state.favorites.includes(product.id);
@@ -89,7 +90,7 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
         </article>;
       })}
     </section>
-    {!list.length && <Empty title={favorites && !candidates.length ? copy.emptySaved : copy.empty} description={favorites && !candidates.length ? copy.emptySavedHint : copy.emptyHint} href={favorites && !candidates.length ? '/' : undefined} label={copy.catalog}>{hasFilters && <button type="button" className="btn secondary" onClick={() => setFilters(defaultDealFilters)}>{copy.reset}</button>}</Empty>}
+    {!list.length && <Empty title={favorites && !candidates.length ? copy.emptySaved : copy.empty} description={favorites && !candidates.length ? copy.emptySavedHint : copy.emptyHint} href={favorites && !candidates.length ? '/' : undefined} label={copy.catalog}>{hasFilters && <button type="button" className="btn secondary" onClick={resetFilters}>{copy.reset}</button>}</Empty>}
     {!!list.length && <p className="finds-price-note">{copy.priceNote}</p>}
     {status==='guest' && <p className="finds-signin"><Link href="/account"><Heart size={15}/>{copy.signin}<ArrowUpRight size={15}/></Link></p>}
     {!favorites && <><section className="finds-own-link"><div><Link2 size={25}/><div><h2>{copy.linkTitle}</h2><p>{copy.linkHint}</p></div></div><form onSubmit={event => { event.preventDefault(); try { const target = validateSource(url); const orderUrl = '/order-by-link?url=' + encodeURIComponent(target); setUrlError(''); window.location.assign(status === 'guest' ? signInPath(orderUrl) : orderUrl); } catch (error) { setUrlError((error as Error).message); toast.error((error as Error).message); } }}><label className="sr-only" htmlFor="finds-product-url">{copy.linkLabel}</label><input id="finds-product-url" type="url" required value={url} aria-invalid={!!urlError} aria-describedby={urlError ? 'finds-url-error' : undefined} placeholder="https://..." onChange={event => { setUrl(event.target.value); setUrlError(''); }}/><button className="btn light">{status === 'guest' ? copy.signInToCalculate : copy.calculate}<ArrowUpRight size={18}/></button></form>{status === 'guest' && <p className="micro">{copy.signInToCalculateHint}</p>}{urlError && <p id="finds-url-error" role="alert">{urlError}</p>}<Link href="/batch-import">{copy.batch}<ArrowRight size={15}/></Link></section>

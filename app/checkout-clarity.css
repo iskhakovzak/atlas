@@ -18,6 +18,9 @@
 .single-variant-selection{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;min-height:44px;padding:10px 12px;border:1px solid #dce5e2;border-radius:10px;background:#f8faf8}
 .single-variant-selection>span{font-weight:600}
 .single-variant-selection>small{color:#64756e}
+.single-colorway-note,.single-colorway-source{margin:0;color:#64756e;font-size:12px;line-height:1.5}
+.single-colorway-source summary{width:max-content;max-width:100%;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.single-colorway-source>span{display:block;margin-top:6px;overflow-wrap:anywhere}
 .customs-estimate-compact{margin:12px 0 0;padding:12px 0 0;border-top:1px solid #e0e6ed}
 .customs-compact-row{display:flex;align-items:center;gap:10px}
 .customs-compact-copy{display:grid;gap:3px;min-width:0}

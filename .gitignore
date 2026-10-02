@@ -44,6 +44,8 @@ next-env.d.ts
 /.codex/
 /outputs/
 /work/
+/.playwright-cli/
+/output/playwright/
 
 # Incremental TypeScript cache
 *.tsbuildinfo

@@ -9,6 +9,7 @@ import "./dark-theme.css";
 import { MarketProvider } from "@/lib/market/store";
 import { StorageNotice } from "./storage-notice";
 import { AtlasThemeProvider } from "./theme-control";
+import { PerformanceProbe } from "./performance-probe";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -41,7 +42,6 @@ export const metadata: Metadata = {
   applicationName: "Atlas",
   category: "shopping",
   creator: "Atlas",
-  alternates: { canonical: "/" },
   robots: {
     index: true,
     follow: true,
@@ -55,7 +55,6 @@ export const metadata: Metadata = {
     title: "Atlas — покупки со всего мира",
     description:
       "Зарубежные магазины, понятный предварительный расчёт и доставка в Узбекистан.",
-    url: "/",
   },
   twitter: {
     card: "summary",
@@ -84,7 +83,7 @@ export default function RootLayout({
     <html lang="ru" suppressHydrationWarning>
       <body className="antialiased">
         <AtlasThemeProvider>
-          <MarketProvider>{children}<StorageNotice /></MarketProvider>
+          <MarketProvider>{children}<StorageNotice /><PerformanceProbe /></MarketProvider>
         </AtlasThemeProvider>
         <script
           type="application/ld+json"

@@ -38,8 +38,15 @@
 - [x] Surface warehouse exceptions in the operator attention queue; retain safe notes and add order-linked in-app customer notifications plus clearly labeled, unverified operator contact channels.
 - [x] Lazy-load heavy customer/operator route screens to reduce the initial marketplace JavaScript bundle.
 - [x] Disable definitively unavailable link-order color/size variants, retain choices with unknown stock for server verification, and label recognized US/UK/EU size-grid region from the storefront.
-- [ ] Add populated-order/operator and checkout-review browser fixtures beyond current domain and guest/customer route coverage.
-- [ ] Run fixture-backed responsive browser QA at 1440, 800, 430, 402, 390 and 360px across catalog, batch import, sign-in/account entry, customer workspace and operator order flows. Avoid local smoke paths that mutate D1; the current local database lacks `market_settings`.
+- [x] Show a single merchant colorway as fixed information instead of a misleading one-option color button; preserve the full source color name without inventing selectable shade variants.
+- [x] Show the catalog reset action for sort-only or collection-only selections and clear all catalog filter state in one action.
+- [x] Add an operator issue/refund review case with bounded history, explicit status, proposed amount and queue visibility; keep notes, customer in-app notifications and payment mutation separate.
+- [x] Add privacy-preserving local Web Vitals/API timing diagnostics to the operator System tab; no telemetry leaves the current browser.
+- [x] Give public catalog/customs/legal pages independent canonical/Open Graph URLs and set private workflows to noindex; keep product schema out until fresh product URLs can be served reliably.
+- [x] Report catalog-refresh Worker configuration readiness and sanitized run outcomes without exposing HMAC secrets or merchant response bodies.
+- [ ] Add privacy-reviewed, consent-aware aggregate field-performance telemetry if cross-customer Core Web Vitals and API latency are required; local operator samples are diagnostic only.
+- [x] Run fixture-backed browser layout/interaction smoke for catalog, order-by-link color/size selection, operator order/case tools, account, passport and admin overview at 1440, 800, 430, 390 and 360px. No horizontal overflow or action POST/D1 writes; the add-to-cart control was verified enabled after explicit confirmation, not submitted.
+- [ ] Extend browser smoke to batch import, sign-in redirects, 402px, realistic product imagery and a full disposable-state checkout. The ordinary local D1 still lacks `market_settings`; current admin test data returned an invalid empty pricing object, now rejected without a UI crash.
 - [ ] Finish RU/UZ/EN translations across legacy forms, legal and operator screens; customer order, balance, notifications and link-order messages now follow the selected locale, while legacy/admin/legal/server-history strings remain.
 - [ ] Implement saved searches, recently viewed products and price/size alerts only with authenticated persistence and a real refresh/delivery mechanism.
 - [ ] Validate the shortened experience with actual customers; visual simplification alone does not establish improved retention.

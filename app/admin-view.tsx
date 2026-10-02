@@ -6,12 +6,14 @@ import {BarChart3,ClipboardList,Database,History,Package,Settings2,ShieldCheck,U
 import {toast} from "sonner";
 import {useMarket} from "@/lib/market/store";
 import type {Policy} from "@/lib/market/policy";
-import {orderNeedsOperatorAttention,type Pricing} from "@/lib/market/domain";
+import {policySchema} from "@/lib/market/policy";
+import {orderNeedsOperatorAttention,pricingSchema,type Pricing} from "@/lib/market/domain";
 import type {State} from "@/lib/market/domain";
 import type {AuditEvent,StaffMember,StaffRole,StaffStatus} from "@/lib/market/server";
 import {Empty,Modal,PageHeading} from "./market-ui";
 import {CatalogAdmin} from "./catalog-admin";
 import {PricingManager} from "./order-workspace";
+import {PerformanceSummary} from "./performance-summary";
 
 type AdminData={accounts:Array<{id:string;name:string;state:State;revision:number;updatedAt:number}>;pricing:Pricing;policy:Policy;staff:StaffMember[];audit:AuditEvent[];health:{customers:number;orders:number;feeLines:number;events:number;checkedAt:number};customerStatuses:Record<string,"active"|"review"|"blocked">;errors:Array<{id:string;area:string;message:string;createdAt:number;resolvedAt?:number}>};
 type Tab="overview"|"catalog"|"customers"|"support"|"finance"|"pricing"|"staff"|"rules"|"system"|"audit";
@@ -24,7 +26,7 @@ export function AdminView(){
  const replyCopy={ru:{title:'Ответ клиенту',label:'Сообщение',saving:'Сохраняем…',send:'Отправить ответ'},uz:{title:'Mijozga javob',label:'Xabar',saving:'Saqlanmoqda…',send:'Javob yuborish'},en:{title:'Reply to customer',label:'Message',saving:'Saving…',send:'Send reply'}}[state.communication.language];
  const [staffForm,setStaffForm]=useState<{email:string;displayName:string;role:StaffRole;status:StaffStatus}>({email:"",displayName:"",role:"support",status:"invited"});
  const [replyTarget,setReplyTarget]=useState<{account:{id:string;revision:number};ticketId:string;subject:string}|null>(null),[replyText,setReplyText]=useState("");
- const load=useCallback(async()=>{if(!user?.operator)return;setLoadError("");try{const response=await fetch('/api/operations',{cache:'no-store'});const next=await response.json() as AdminData&{error?:string};if(!response.ok||!next.accounts||!next.pricing||!next.policy||!next.staff||!next.audit)throw Error(next.error??'Не удалось загрузить админку.');setData(next)}catch(error){setLoadError((error as Error).message)}},[user?.operator]);
+ const load=useCallback(async()=>{if(!user?.operator)return;setLoadError("");try{const response=await fetch('/api/operations',{cache:'no-store'});const next=await response.json() as AdminData&{error?:string};const parsedPricing=pricingSchema.safeParse(next.pricing),parsedPolicy=policySchema.safeParse(next.policy);if(!response.ok||!next.accounts||!next.staff||!next.audit||!next.health||!next.customerStatuses||!next.errors||!parsedPricing.success||!parsedPolicy.success)throw Error(next.error??'Не удалось загрузить админку.');setData({...next,pricing:parsedPricing.data,policy:parsedPolicy.data})}catch(error){setData(null);setLoadError((error as Error).message)}},[user?.operator]);
  const selectTab=(next:Tab)=>{if(next===tab)return;if(tab==='pricing'&&pricingDirty&&!window.confirm(c.unsavedPricing))return;setPricingDirty(false);setTab(next)};
  useEffect(()=>{queueMicrotask(()=>void load())},[load]);
  const metrics=useMemo(()=>{const accounts=data?.accounts??[],orders=accounts.flatMap(account=>account.state.orders),tickets=accounts.flatMap(account=>account.state.supportTickets);return{customers:accounts.length,orders:orders.length,activeOrders:orders.filter(order=>!order.cancelled&&order.status<5).length,attention:orders.filter(order=>orderNeedsOperatorAttention(order)||(!order.cancelled&&order.payment?.status==='pending')).length,openTickets:tickets.filter(ticket=>ticket.status==='open').length}},[data]);
@@ -38,6 +40,7 @@ export function AdminView(){
  return <>
   <PageHeading overline="ОПЕРАЦИОННЫЙ ЦЕНТР" title="Управление Atlas." description="Заказы, команда, тарифы, ограничения и контроль действий в одном защищённом разделе."><span className="status-badge">Только администратор</span></PageHeading>
   <nav className="admin-tabs" aria-label="Разделы админки">{(['overview','catalog','customers','support','finance','pricing','staff','rules','system','audit'] as const).map((id,index)=><button key={id} className={tab===id?'active':''} aria-current={tab===id?'page':undefined} onClick={()=>selectTab(id)}>{c.tabs[index]}</button>)}</nav>
+  {tab==='system'&&<PerformanceSummary/>}
   {tab==='overview'&&<div className="admin-dashboard">
    <section className="admin-metrics">
     <article><UsersRound/><span>Клиенты</span><strong>{metrics.customers}</strong><small>профилей в базе</small></article>

@@ -1665,3 +1665,22 @@ html[data-theme="dark"] .customs-compact-note {
 html[data-theme="dark"] .customs-estimate-compact {
   border-color: #35463c;
 }
+
+html[data-theme="dark"] .order-tabs {
+  background-color: var(--atlas-dark-raised) !important;
+  border-color: var(--atlas-dark-line);
+}
+
+html[data-theme="dark"] .order-tabs [data-slot="tabs-trigger"] {
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .order-tabs [data-slot="tabs-trigger"][data-state="active"] {
+  background-color: var(--atlas-dark-selected);
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .order-tabs b {
+  background-color: var(--atlas-dark-selected);
+  color: var(--atlas-dark-ink);
+}

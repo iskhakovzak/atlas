@@ -5,7 +5,7 @@ import { merchantFinds, findOrderUrl } from '../lib/market/catalog.ts';
 import { applyAction } from '../lib/market/actions.ts';
 import { allowedUrl } from '../lib/importer/fetch.ts';
 import { safeImage, extractProduct } from '../lib/importer/extract.ts';
-import { dealQuote, filterDeals, defaultDealFilters } from '../lib/market/deals.ts';
+import { dealQuote, filterDeals, defaultDealFilters, hasActiveDealFilters } from '../lib/market/deals.ts';
 
 test('merchant records retain unique identity, safe sources and unconfirmed shipping reserves', () => {
   assert.equal(new Set(merchantFinds.map(p => p.id)).size, merchantFinds.length);
@@ -46,6 +46,12 @@ test('merchant filters combine search, category, country and full delivered budg
   assert.equal(filterDeals(merchantFinds, tariff, {...filters,country:'Испания'}).length, 0);
   const ascending = filterDeals(merchantFinds, tariff, {...defaultDealFilters,sort:'total-asc'});
   assert.deepEqual(ascending.map(x=>x.costs.total), ascending.map(x=>x.costs.total).sort((a,b)=>a-b));
+});
+test('catalog reset affordance recognizes sort-only and collection-only state', () => {
+  assert.equal(hasActiveDealFilters(defaultDealFilters), false);
+  assert.equal(hasActiveDealFilters({...defaultDealFilters,sort:'total-asc'}), true);
+  assert.equal(hasActiveDealFilters(defaultDealFilters,'autumn-edit'), true);
+  assert.equal(hasActiveDealFilters({...defaultDealFilters,search:'  shoes  '}), true);
 });
 test('ProductGroup selects linked color and retains size prices and availability', () => {
   const url='https://www.nike.com/t/shoe/BLUE';

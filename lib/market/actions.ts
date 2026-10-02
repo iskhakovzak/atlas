@@ -23,6 +23,7 @@ import {
   updateCommunication,
   assignOrder,
   addStaffNote,
+  updateOrderIssueCase,
   setParcel,
   confirmIdentity,
   clearIdentity,
@@ -37,6 +38,8 @@ import {
   changeRequestKindSchema,
   warehouseConditionSchema,
   warehouseServiceSchema,
+  orderIssueCategorySchema,
+  orderIssueStatusSchema,
   type Pricing,
   type State,
 } from "./domain.ts";
@@ -86,6 +89,7 @@ export const actionSchema = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("staff-note"), id, text: z.string().min(1).max(500) }),
   z.object({ type: z.literal("order-notify"), id, title: z.string().trim().min(2).max(120), message: z.string().trim().min(1).max(300) }),
+  z.object({ type: z.literal("order-issue-update"), id, category: orderIssueCategorySchema, status: orderIssueStatusSchema, proposedRefund: z.number().int().min(0).max(100_000_000).optional() }),
   z.object({
     type: z.literal("change-request-create"),
     id,
@@ -155,6 +159,7 @@ export function applyAction(
       a.type === "assign-order" ||
       a.type === "staff-note" ||
       a.type === "order-notify" ||
+      a.type === "order-issue-update" ||
       a.type === "parcel-set" ||
       a.type === "change-request-create" ||
       a.type === "warehouse-inspect" ||
@@ -298,6 +303,8 @@ export function applyAction(
       const notification = { id: crypto.randomUUID(), at: Date.now(), title: a.title, message: a.message, read: false, orderId: a.id };
       return { ...s, notifications: [notification, ...s.notifications].slice(0, 100) };
     }
+    case "order-issue-update":
+      return updateOrderIssueCase(s, a.id, a.category, a.status, a.proposedRefund);
     case "change-request-create":
       return createChangeRequest(s, a.id, a);
     case "change-request-respond":
