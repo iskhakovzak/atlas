@@ -1,5 +1,9 @@
 # Atlas architecture
 
+## Guest preview boundary — 2 October 2026
+
+`link` is a public view. `/api/import` reads optional platform identity only to select rate limits; it does not read/write accounts. All requests still require same origin and bounded validated source URLs. Anonymous requests increment both a shared 60/minute counter and a SHA-256 edge-IP bucket capped at 6/minute; unknown edge IPs share one bucket. The existing D1 rate-limit/cache tables are reused. `/api/catalog` adds current public pricing, parsed by MarketProvider for guest estimates. Cart/account/order APIs keep mandatory identity, same-origin and server recomputation. The link-order continuation sends guests to a safe same-tab sign-in return path, leaving its existing browser-session draft intact. Catalog entries continue to rehydrate from published context, not guest-owned catalog snapshots.
+
 ## eBay deletion-notification webhook — 1 October 2026
 
 `app/api/ebay/notifications/route.ts` is a public eBay callback, separate from customer identity and D1 actions. GET challenge requests use the fixed canonical custom-domain endpoint plus secret `EBAY_NOTIFICATION_VERIFICATION_TOKEN`. POST payloads are capped at 64 KB, signature headers are validated against eBay's fixed OAuth/public-key APIs using Web Crypto, and keys are held only in a one-hour per-isolate cache. Invalid signatures receive 412, upstream verification failures 503, and valid notices 204. Neither payloads nor eBay account identifiers are stored or logged: Browse import persists only the mapped public listing fields and does not map eBay member profile identifiers. No SQL migration or account/cart/order change is involved.

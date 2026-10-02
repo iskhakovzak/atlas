@@ -1,5 +1,13 @@
 # Atlas TODO and known limitations
 
+## Guest link preview — 2 October 2026
+
+- [x] Allow anonymous single-link import, option selection and preliminary calculation; remove catalog/home sign-in redirects before preview.
+- [x] Retain authenticated cart/checkout/private APIs, same-origin importer protection and managed public pricing; add shared and hashed edge-IP guest quotas without account initialization or a schema migration.
+- [x] Cover access gates and member/guest/missing-IP quota buckets in regression tests.
+- [ ] Observe real anonymous import load and edge-IP availability. Shared 60/minute ceiling and missing-IP bucket deliberately fail conservatively; review with measured traffic before increasing limits.
+- [ ] Verify completed real sign-in return on a dedicated test account, especially expired/manual and catalog-backed drafts. No checkout or existing customer-state mutation is needed for preview QA.
+
 ## ShopSimon — 1 October 2026
 
 - [x] Add exact storefront allowlisting, US Shopify product/currency loading and store-directory entry; retain price, colour/size, availability and photos with security regressions.

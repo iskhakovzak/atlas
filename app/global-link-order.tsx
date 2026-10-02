@@ -5,6 +5,7 @@ import { ArrowRight, ExternalLink, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
+import { signInPath } from "@/lib/market/access";
 import { catalogOrderVariants } from "@/lib/market/catalog";
 import { catalogLinkSeed, catalogLinkPrice, catalogLinkWeight } from "@/lib/market/link-order-context";
 import {
@@ -83,7 +84,7 @@ function displayCategoryName(value:string,locale:string){
   return labels[canonical as keyof typeof labels]??canonical;
 }
 export function GlobalLinkOrder() {
-  const { ready, pricing, state, act, catalogProducts, loadCatalog } = useMarket();
+  const { ready, status, pricing, state, act, catalogProducts, loadCatalog } = useMarket();
   const lang=state.communication.language;
   const c=lang==='ru'?{over:'ПОКУПКИ СО ВСЕГО МИРА',choose:'Выберите свой вариант',order:'Заказ по ссылке',checkPrice:'Проверьте размер и цену перед добавлением.',paste:'Вставьте ссылку — Atlas заполнит доступные данные.',loading:'Загружаем цену и варианты из магазина…',selected:'Товар уже выбран. Проверьте вариант и добавьте его в корзину.',edit:'Изменить ссылку',linkStep:'Ссылка на товар',stores:'eBay, Zara, Mango, Amazon и другие магазины.',storePage:'Страница магазина',get:'Получаем данные…',load:'Загрузить товар',directory:'Магазины для заказа по ссылке',storeHint:'Выбирайте региональную витрину по ссылке. Atlas считает итог с доставкой.',search:'Магазин или категория',enhanced:'цена + варианты',otherMatches:'Другие совпадения',allStores:'Все остальные магазины',notFound:'Такого магазина пока нет в списке. Можно прислать его оператору для проверки.',login:'Войдите в личный кабинет: автозагрузка защищена, а товар сохранится в вашей корзине.',original:'Открыть оригинал в магазине',loaded:'Что загрузилось и что нужно проверить',availability:'Проверьте наличие в магазине',availabilityHint:'Откройте страницу товара, проверьте выбранный размер или вариант и вернитесь с ответом.',openStore:'Открыть магазин',available:'Есть в наличии',unavailable:'Нет в наличии',openFirst:'Сначала откройте страницу магазина — после возврата кнопки ответа станут доступны.',thanks:'Спасибо. Можно проверить остальные данные и продолжить.',removed:'Товар не будет добавлен. Администратор получил сообщение для проверки.',dataStep:'Проверьте данные',name:'Название товара',namePlaceholder:'Название со страницы магазина',shipCountry:'Страна фактической отправки',countryLabel:'Страна отправки',currency:'Валюта магазина',otherCountry:'Укажите страну',price:'Цена товара',atlasShipping:'До склада Atlas',change:'изменить',useShipping:'Использовать доставку до склада Atlas',shippingNote:'Это доставка от магазина до склада Atlas. Если магазин её не публикует, используется изменяемый резерв $10.',category:'Категория',weight:'Вес товара с коробкой, кг',weightDetails:'Как уточняется вес доставки',forCalc:'для расчёта',variant:'Вариант товара',color:'Цвет',size:'Размер / модель',selectColor:'Выберите цвет',selectVariant:'Выберите вариант',none:'Нет',photo:'Фото товара — автоматически или по ссылке',image:'Адрес изображения',verified:'Я проверил данные и выбранный вариант.',add:'В корзину',adding:'Добавляем в корзину…',gallery:'Фотографии магазина',uz:'Узбекистан',empty:'Ваш товар появится здесь',fresh:'Когда проверены данные',freshText:'Перед оформлением Atlas перепроверит цену и выбранный вариант, если магазин ответит.',declaration:'Черновик декларации',cost:'Состав стоимости',reserve:'$10 — временный резерв доставки магазина. Менеджер проверит сумму после оформления.',subtotal:'Промежуточный итог',estimate:'С доставкой, ориентир',emptyQuote:'Вставьте ссылку или заполните цену и вес.',foot:'Расчёт использует настроенные тарифы Atlas, а не котировку перевозчика. Курс, маршрут, таможня и сроки уточняются до выкупа.'}:{over:lang==='uz'?'DUNYODAN XARIDLAR':'SHOP THE WORLD',choose:lang==='uz'?'Variantni tanlang':'Choose your option',order:lang==='uz'?'Havola orqali buyurtma':'Order by link',checkPrice:lang==='uz'?'Qo‘shishdan oldin o‘lcham va narxni tekshiring.':'Check the size and price before adding.',paste:lang==='uz'?'Havolani kiriting — Atlas ma’lumotlarni to‘ldiradi.':'Paste a link — Atlas will fill in the details.',loading:lang==='uz'?'Do‘kondan narx va variantlar yuklanmoqda…':'Loading price and options from the store…',selected:lang==='uz'?'Tovar tanlandi. Variantni tekshirib savatga qo‘shing.':'The item is selected. Check the option and add it to your cart.',edit:lang==='uz'?'Havolani o‘zgartirish':'Change link',linkStep:lang==='uz'?'Tovar havolasi':'Item link',stores:lang==='uz'?'eBay, Zara, Mango, Amazon va boshqa do‘konlar.':'eBay, Zara, Mango, Amazon and more.',storePage:lang==='uz'?'Do‘kon sahifasi':'Store page',get:lang==='uz'?'Ma’lumot olinmoqda…':'Getting product data…',load:lang==='uz'?'Tovarni yuklash':'Load item',directory:lang==='uz'?'Havola orqali buyurtma do‘konlari':'Stores for link orders',storeHint:lang==='uz'?'Havola orqali mintaqaviy vitrinani tanlang. Atlas yetkazish bilan hisoblaydi.':'Choose a regional storefront. Atlas calculates the total with delivery.',search:lang==='uz'?'Do‘kon yoki kategoriya':'Store or category',enhanced:lang==='uz'?'narx + variantlar':'price + options',otherMatches:lang==='uz'?'Boshqa moslar':'Other matches',allStores:lang==='uz'?'Boshqa barcha do‘konlar':'All other stores',notFound:lang==='uz'?'Bu do‘kon ro‘yxatda yo‘q. Tekshirish uchun operatorga yuborishingiz mumkin.':'This store is not listed yet. Send it to an operator for review.',login:lang==='uz'?'Kabinetga kiring: avtomatik yuklash himoyalangan va tovar savatda saqlanadi.':'Sign in: automatic import is protected and the item will be saved to your cart.',original:lang==='uz'?'Do‘kondagi asl sahifani ochish':'Open original store page',loaded:lang==='uz'?'Nimalar yuklandi va nimani tekshirish kerak':'What loaded and what to check',availability:lang==='uz'?'Do‘kondagi mavjudlikni tekshiring':'Check availability in the store',availabilityHint:lang==='uz'?'Tovar sahifasini oching, tanlangan o‘lcham yoki variantni tekshiring va javob bilan qayting.':'Open the item page, check the selected size or option, and return with your answer.',openStore:lang==='uz'?'Do‘konni ochish':'Open store',available:lang==='uz'?'Mavjud':'In stock',unavailable:lang==='uz'?'Mavjud emas':'Out of stock',openFirst:lang==='uz'?'Avval do‘kon sahifasini oching — qaytgach javob tugmalari yoqiladi.':'Open the store page first; the answer buttons will unlock when you return.',thanks:lang==='uz'?'Rahmat. Qolgan ma’lumotlarni tekshirib davom eting.':'Thanks. Check the remaining details to continue.',removed:lang==='uz'?'Tovar qo‘shilmaydi. Administrator tekshiradi.':'The item will not be added. An administrator will review it.',dataStep:lang==='uz'?'Ma’lumotlarni tekshiring':'Check the details',name:lang==='uz'?'Tovar nomi':'Item name',namePlaceholder:lang==='uz'?'Do‘kon sahifasidagi nom':'Name from the store page',shipCountry:lang==='uz'?'Haqiqiy jo‘natish mamlakati':'Actual dispatch country',countryLabel:lang==='uz'?'Jo‘natish mamlakati':'Dispatch country',currency:lang==='uz'?'Do‘kon valyutasi':'Store currency',otherCountry:lang==='uz'?'Mamlakatni kiriting':'Enter country',price:lang==='uz'?'Tovar narxi':'Item price',atlasShipping:lang==='uz'?'Atlas omborigacha':'To Atlas warehouse',change:lang==='uz'?'o‘zgartirish':'edit',useShipping:lang==='uz'?'Atlas omborigacha yetkazishni ishlatish':'Use delivery to Atlas warehouse',shippingNote:lang==='uz'?'Bu do‘kondan Atlas omborigacha yetkazish. Ko‘rsatilmasa, o‘zgartiriladigan $10 zaxira ishlatiladi.':'This is store-to-Atlas delivery. If unpublished, an editable $10 reserve is used.',category:lang==='uz'?'Kategoriya':'Category',weight:lang==='uz'?'Qutidagi og‘irlik, kg':'Boxed weight, kg',weightDetails:lang==='uz'?'Yetkazish og‘irligi qanday aniqlanadi':'How delivery weight is refined',forCalc:lang==='uz'?'hisoblash uchun':'for calculation',variant:lang==='uz'?'Tovar varianti':'Item option',color:lang==='uz'?'Rang':'Color',size:lang==='uz'?'O‘lcham / model':'Size / model',selectColor:lang==='uz'?'Rangni tanlang':'Choose a color',selectVariant:lang==='uz'?'Variantni tanlang':'Choose an option',none:lang==='uz'?'Yo‘q':'Unavailable',photo:lang==='uz'?'Tovar surati — avtomatik yoki havola orqali':'Product photo — automatic or by link',image:lang==='uz'?'Rasm manzili':'Image URL',verified:lang==='uz'?'Ma’lumot va variantni tekshirdim.':'I checked the details and selected option.',add:lang==='uz'?'Savatga':'Add to cart',adding:lang==='uz'?'Savatga qo‘shilmoqda…':'Adding to cart…',gallery:lang==='uz'?'Do‘kon rasmlari':'Store photos',uz:lang==='uz'?'O‘zbekiston':'Uzbekistan',empty:lang==='uz'?'Tovaringiz shu yerda paydo bo‘ladi':'Your item will appear here',fresh:lang==='uz'?'Ma’lumot qachon tekshirildi':'When the data was checked',freshText:lang==='uz'?'Rasmiylashtirishdan oldin do‘kon javob bersa, Atlas narx va tanlangan variantni qayta tekshiradi.':'Before checkout, Atlas rechecks the price and selected option if the store responds.',declaration:lang==='uz'?'Deklaratsiya qoralamasi':'Declaration draft',cost:lang==='uz'?'Narx tarkibi':'Cost breakdown',reserve:lang==='uz'?'$10 — do‘kon yetkazishi uchun vaqtinchalik zaxira. Menejer rasmiylashtirilgach tekshiradi.':'$10 is a temporary store-delivery reserve. A manager will verify it after the order.',subtotal:lang==='uz'?'Oraliq jami':'Interim total',estimate:lang==='uz'?'Yetkazish bilan taxmin':'Estimate with delivery',emptyQuote:lang==='uz'?'Havolani kiriting yoki narx va og‘irlikni to‘ldiring.':'Paste a link or enter price and weight.',foot:lang==='uz'?'Hisob Atlas tariflari bilan qilinadi, tashuvchi kotirovkasi emas. Kurs, yo‘nalish, bojxona va muddatlar xaridgacha aniqlanadi.':'The estimate uses Atlas tariffs, not a carrier quote. Rate, route, customs and timing are confirmed before purchase.'};
   const tx=(ru:string,uz:string,en:string)=>lang==='ru'?ru:lang==='uz'?uz:en;
@@ -460,7 +461,7 @@ export function GlobalLinkOrder() {
   }
   useEffect(() => {
     const loadKey=`${catalogId}:${requestedUrl}`;
-    if (!ready || !requestedUrl || (catalogId&&catalogContextLoaded!==catalogId) || automaticallyLoaded.current === loadKey) return;
+    if (!requestedUrl || (catalogId&&catalogContextLoaded!==catalogId) || automaticallyLoaded.current === loadKey) return;
     if(draftRestored.current&&draftCanSkipAutomaticLoad.current){
       automaticallyLoaded.current=loadKey;
       setShowSourceForm(false);
@@ -472,7 +473,7 @@ export function GlobalLinkOrder() {
     void load(requestedUrl);
     // `load` intentionally reads the current form state; this effect runs once per requested product.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, requestedUrl, catalogId, catalogContextLoaded]);
+  }, [requestedUrl, catalogId, catalogContextLoaded]);
   let preview: ReturnType<typeof price> | null = null,
     estimatedWeight = 0;
   try {
@@ -552,7 +553,7 @@ export function GlobalLinkOrder() {
                 placeholder="https://www.ebay.es/itm/…"
               />
             </div>
-            <button className="btn primary" disabled={busy || !ready}>
+            <button className="btn primary" disabled={busy}>
               {busy ? (
                 <Loader2 className="spin" size={18} />
               ) : (
@@ -563,7 +564,7 @@ export function GlobalLinkOrder() {
           </form>
           </>}
           {!ready && (
-            <p className="notice">{c.login}</p>
+            <p className="notice">{tx('Можно загрузить товар и посмотреть расчёт без входа. Для продолжения заказа понадобится авторизация.','Kirmasdan tovarni yuklab, hisobni ko‘rishingiz mumkin. Buyurtmani davom ettirish uchun kiring.','Load an item and view the estimate without signing in. Sign in to continue your order.')}</p>
           )}
           {note && !source && (
             <div className="notice" role="status">
@@ -603,6 +604,13 @@ export function GlobalLinkOrder() {
                     return;
                   }
                   setFormIssue("");
+                  if (!ready) {
+                    if (status === 'loading') return;
+                    // The existing session draft retains the reviewed form; the
+                    // authenticated cart action still revalidates it on return.
+                    window.location.assign(signInPath(window.location.pathname + window.location.search));
+                    return;
+                  }
                   const img = image ? safeImage(image, source) : "";
                   if (image && !img)
                      throw Error(tx("Изображение должно иметь публичный HTTPS-адрес.","Rasm ommaviy HTTPS manziliga ega bo‘lishi kerak.","The image must have a public HTTPS URL."));
@@ -862,8 +870,8 @@ export function GlobalLinkOrder() {
                   {c.verified}
                 </label>
               </div>
-              <button className="btn primary" disabled={adding}>
-                {adding ? c.adding : c.add}
+              <button className="btn primary" disabled={adding || status==='loading'}>
+                {adding ? c.adding : ready ? c.add : tx('Войти и продолжить заказ','Kirish va buyurtmani davom ettirish','Sign in and continue order')}
                 <ArrowRight size={18} />
               </button>
             </form>

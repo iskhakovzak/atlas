@@ -23,7 +23,8 @@ export async function GET(request:Request){try{
   const admin=new URL(request.url).searchParams.get('admin')==='1';
   if(admin){const user=await identity();if(!operator(user.email))throw new HttpError(403, 'err_28');}
   const {document}=await readCatalog();
-  return json(admin?{document}:publicCatalog(document,await pricing()));
+  const currentPricing=await pricing();
+  return json(admin?{document}:{...publicCatalog(document,currentPricing),pricing:currentPricing});
 }catch(error){return failure(error,request)}}
 export async function POST(request:Request){try{
   sameOrigin(request);const user=await identity();if(!operator(user.email))throw new HttpError(403, 'err_29');

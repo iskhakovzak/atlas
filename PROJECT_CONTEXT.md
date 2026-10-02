@@ -1,5 +1,11 @@
 # Atlas — project context
 
+## Guest link preview — 2 October 2026
+
+Guests can open catalog order links or paste a product link, import public merchant data, select options and inspect the preliminary delivery calculation without signing in. The continuation button asks for authentication before an account/cart mutation. Existing session drafts retain customer-entered link forms across same-tab sign-in; catalog flows retain their exact URL/catalog context and recheck merchant data. No guest account, cart, order or balance is created. Batch import remains member-only. Public catalog responses include current managed pricing so guest estimates do not silently use starter tariffs; payments and delivery remain simulated.
+
+Public import remains same-origin with the existing source/redirect/image/body/time protections. Member limits stay 12/minute; anonymous work has a 60/minute shared ceiling plus 6/minute per hashed edge IP (missing IP shares a conservative bucket). Raw IPs are not stored in rate-limit keys. Cache is shared public merchant data only; actions, checkout and private APIs remain authenticated and server-recomputed. No schema migration.
+
 ## eBay Marketplace Account Deletion endpoint — 1 October 2026
 
 The Production Notifications page now has the operator-supplied alert email, the exact `https://atlasmarket.uz/api/ebay/notifications` endpoint and the runtime `EBAY_NOTIFICATION_VERIFICATION_TOKEN`. eBay confirmed the settings were saved; its challenge request and “Send Test Notification” both reached the Worker successfully. The endpoint accepts bounded JSON, verifies the `X-EBAY-SIGNATURE` ECDSA signature against eBay's OAuth-protected public-key API, caches public keys for one hour, returns 412 for invalid signatures and 503 for transient key-service failures, and never writes or logs the notification payload or account identifiers.

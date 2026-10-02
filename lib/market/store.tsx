@@ -29,12 +29,14 @@ export function MarketProvider({children}:{children:ReactNode}) {
    try{
     const response=await fetch('/api/catalog',{cache:'no-store'});
     if(!response.ok)throw Error('Catalog load failed');
-    const data=await response.json() as {products:MerchantFind[];collections:Array<CatalogCollection&{productIds:string[]}>};
+    const data=await response.json() as {products:MerchantFind[];collections:Array<CatalogCollection&{productIds:string[]}>;pricing?:unknown};
     if(!Array.isArray(data.products)||!Array.isArray(data.collections))throw Error('Catalog response is invalid');
     catalogLoaded.current=true;
     setCatalogProducts(keepCatalogVisible(data.products));
     setCatalogError(data.products.length?'':marketMessages[localeRef.current].catalogLoad);
     setCollections(data.collections);
+    const publicPricing=pricingSchema.safeParse(data.pricing);
+    if(publicPricing.success)setPricing(publicPricing.data);
    }catch{setCatalogError(marketMessages[localeRef.current].catalogLoad)}
    finally{catalogRequest.current=null}
   })();
