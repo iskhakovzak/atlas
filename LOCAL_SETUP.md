@@ -66,7 +66,7 @@ Hosted ChatGPT authentication is platform-owned. Use the private hosted site for
 
 ## Local D1
 
-Build first, then apply the checked-in migration once:
+Build first, then apply every checked-in migration once, in filename order (the same order recorded in drizzle/meta/_journal.json). Start with the first one:
 
 ~~~
 npm run build
@@ -75,7 +75,9 @@ node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js \
   --persist-to .wrangler/state --file drizzle/0000_overrated_justice.sql
 ~~~
 
-Local D1 is separate from production. To start fresh locally, delete .wrangler/state intentionally, then apply migration again.
+Repeat the `d1 execute` command for each later drizzle/*.sql file through the newest. Stopping after 0000 leaves tables such as the import cache, identity documents, audit events and backup exports missing. Do not replay a migration already applied to the same local state.
+
+Local D1 is separate from production. To start fresh locally, delete .wrangler/state intentionally, then apply all migrations again in order.
 
 ## Environment
 
