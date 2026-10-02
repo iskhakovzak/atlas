@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import {database,identity,operator,sameOrigin,requestJson,json,failure,HttpError,pricing} from '@/lib/market/server';
 import {readCatalog,persistCatalog} from '@/lib/market/catalog-server';
-import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,manualFallbackCatalogDraft,recheckedDraft,changeCatalog,publicCatalog,catalogMaxEntries} from '@/lib/market/catalog-editor';
+import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,manualFallbackCatalogDraft,recheckedDraft,changeCatalog,publicCatalog,catalogMaxEntries,catalogRecheckBatchSize} from '@/lib/market/catalog-editor';
 import type {CatalogDraft} from '@/lib/market/catalog-editor';
 import {fetchProduct,fetchCollectionLinks,ManualEntryFallbackError} from '@/lib/importer/fetch';
 import type {Extracted} from '@/lib/importer/extract';
