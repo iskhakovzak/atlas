@@ -43,7 +43,6 @@ import {
   serviceDescription,
   serviceFeeForCountry,
   serviceTitle,
-  orderNeedsOperatorAttention,
   type Pricing,
   type State,
   type Order,
@@ -51,7 +50,6 @@ import {
   type OrderIssueStatus,
   type Notification,
   type Communication,
-  type Notification,
   type ServiceOffering,
   type WarehouseServiceRequest,
 } from "@/lib/market/domain";
@@ -355,67 +353,7 @@ function OrderIssueCasePanel({ order, notifications, run, locale }: {
   </section>;
 }
 
-const orderIssueCopy = {
-  ru: {
-    title: "Проблема / возврат",
-    intro: "Зафиксируйте причину и следующий шаг. Предлагаемая сумма — только для разбора: платёж и баланс не меняются.",
-    separation: "Внутренняя заметка и отдельное уведомление покупателю доступны ниже и не смешиваются.",
-    category: "Причина",
-    categories: { stalled: "Заказ задержан", merchant: "Проблема магазина", payment: "Платёж или сумма", warehouse: "Склад или товар", delivery: "Доставка", other: "Другое" },
-    status: "Статус случая",
-    statuses: { open: "Открыт", investigating: "Проверяем", "waiting-customer": "Ждём покупателя", "waiting-merchant": "Ждём магазин / перевозчика", "refund-review": "Проверяем возврат", resolved: "Решён" },
-    refund: "Предложенная сумма возврата, сум",
-    refundHint: "Не является возвратом средств и не меняет состояние тестового платежа.",
-    save: "Сохранить разбор",
-    saving: "Сохраняем…",
-    saved: "Разбор случая сохранён",
-    invalid: "Введите целую сумму от 0 до 100 000 000 сум или оставьте поле пустым.",
-    history: "История случая",
-    noHistory: "Изменений пока нет.",
-    noAmount: "Сумма не предлагалась",
-    messages: "Уведомления по заказу в кабинете покупателя",
-  },
-  uz: {
-    title: "Muammo / qaytarish ishi",
-    intro: "Sabab va keyingi qadamni qayd eting. Taklif qilingan summa faqat ko‘rib chiqish uchun: to‘lov va balans o‘zgarmaydi.",
-    separation: "Ichki qayd va xaridorga alohida bildirishnoma quyida alohida saqlanadi.",
-    category: "Sabab",
-    categories: { stalled: "Buyurtma kechikdi", merchant: "Do‘kon muammosi", payment: "To‘lov yoki summa", warehouse: "Ombor yoki tovar", delivery: "Yetkazib berish", other: "Boshqa" },
-    status: "Ish holati",
-    statuses: { open: "Ochiq", investigating: "Tekshirilmoqda", "waiting-customer": "Xaridor kutilmoqda", "waiting-merchant": "Do‘kon / tashuvchi kutilmoqda", "refund-review": "Qaytarish tekshirilmoqda", resolved: "Hal qilindi" },
-    refund: "Taklif qilingan qaytarish summasi, so‘m",
-    refundHint: "Bu mablag‘ni qaytarish emas va test to‘lovi holatini o‘zgartirmaydi.",
-    save: "Ko‘rib chiqishni saqlash",
-    saving: "Saqlanmoqda…",
-    saved: "Ish qaydi saqlandi",
-    invalid: "0–100 000 000 so‘m oralig‘ida butun summa kiriting yoki maydonni bo‘sh qoldiring.",
-    history: "Ish tarixi",
-    noHistory: "Hali o‘zgarishlar yo‘q.",
-    noAmount: "Summa taklif qilinmagan",
-    messages: "Xaridor kabinetidagi buyurtma bildirishnomalari",
-  },
-  en: {
-    title: "Problem / refund case",
-    intro: "Record the cause and next step. Any amount is a proposal for review only; payment and balance remain unchanged.",
-    separation: "Internal notes and a separate customer notification are available below and remain distinct.",
-    category: "Issue type",
-    categories: { stalled: "Order delayed", merchant: "Store issue", payment: "Payment or amount", warehouse: "Warehouse or item", delivery: "Delivery", other: "Other" },
-    status: "Case status",
-    statuses: { open: "Open", investigating: "Investigating", "waiting-customer": "Waiting for customer", "waiting-merchant": "Waiting for store / carrier", "refund-review": "Refund under review", resolved: "Resolved" },
-    refund: "Proposed refund amount, UZS",
-    refundHint: "This does not issue a refund or change the test payment status.",
-    save: "Save case update",
-    saving: "Saving…",
-    saved: "Case update saved",
-    invalid: "Enter a whole amount from 0 to 100,000,000 UZS, or leave the field empty.",
-    history: "Case history",
-    noHistory: "No changes recorded yet.",
-    noAmount: "No amount proposed",
-    messages: "Order notifications in the customer account",
-  },
-} as const;
-
-function OrderIssueCasePanel({
+function OperatorOrderTools({
   order,
   notifications,
   run,
@@ -683,24 +621,6 @@ function OperatorOrderCommunication({
       </div>
     </details>
   );
-}
-
-function OrderNotificationForm({order,run,locale}:{order:Order;run:(action:Action)=>Promise<boolean>;locale:Locale}){
-  const words={
-    ru:{title:'Уведомить покупателя',heading:'Обновление по заказу',message:'Сообщение появится в уведомлениях кабинета. Email и SMS не отправляются.',subject:'Заголовок',body:'Сообщение',send:'Отправить в кабинет',saving:'Сохраняем…',success:'Уведомление добавлено в кабинет покупателя.',placeholder:'Кратко опишите обновление или следующий шаг.'},
-    uz:{title:'Xaridorga xabar berish',heading:'Buyurtma yangilanishi',message:'Xabar kabinetdagi bildirishnomalarda ko‘rinadi. Email va SMS yuborilmaydi.',subject:'Sarlavha',body:'Xabar',send:'Kabinetga yuborish',saving:'Saqlanmoqda…',success:'Xaridor kabinetiga bildirishnoma qo‘shildi.',placeholder:'Yangilanish yoki keyingi qadamni qisqacha yozing.'},
-    en:{title:'Notify customer',heading:'Order update',message:'This appears in the customer’s in-app notifications. No email or SMS is sent.',subject:'Title',body:'Message',send:'Add to account',saving:'Saving…',success:'Notification added to the customer account.',placeholder:'Briefly describe the update or next step.'},
-  }[locale];
-  const [subject,setSubject]=useState(`${words.heading} · ${order.id}`),[message,setMessage]=useState(''),[busy,setBusy]=useState(false);
-  async function submit(event:FormEvent<HTMLFormElement>){event.preventDefault();if(busy)return;setBusy(true);try{const ok=await run({type:'order-notify',id:order.id,title:subject,message});if(ok){setMessage('');toast.success(words.success)}}finally{setBusy(false)}}
-  return <form className="operator-order-notification" onSubmit={event=>void submit(event)}><h3><Bell size={17}/>{words.title}</h3><p className="micro">{words.message}</p><div className="field"><label htmlFor={`notify-title-${order.id}`}>{words.subject}</label><input id={`notify-title-${order.id}`} value={subject} maxLength={120} required onChange={event=>setSubject(event.target.value)}/></div><div className="field"><label htmlFor={`notify-message-${order.id}`}>{words.body}</label><textarea id={`notify-message-${order.id}`} value={message} maxLength={300} rows={3} required placeholder={words.placeholder} onChange={event=>setMessage(event.target.value)}/></div><button className="btn secondary" disabled={busy||!subject.trim()||!message.trim()}>{busy?words.saving:words.send}</button></form>;
-}
-
-function OperatorBuyerContact({account,locale}:{account:OperationsAccount;locale:Locale}){
-  const email=account.state.communication.email,phone=account.state.communication.phone;
-  if(!email&&!phone)return null;
-  const words={ru:{title:'Контакты из профиля',email:'Почта в профиле · не подтверждена',phone:'Телефон в профиле · не подтверждён'},uz:{title:'Profildagi aloqa ma’lumotlari',email:'Profildagi email · tasdiqlanmagan',phone:'Profildagi telefon · tasdiqlanmagan'},en:{title:'Profile contact details',email:'Profile email · unverified',phone:'Profile phone · unverified'}}[locale];
-  return <aside className="settlement-box operator-buyer-contact"><UserCheck size={21}/><div><h3>{words.title}</h3>{email&&<p>{words.email}: <a href={`mailto:${email}`}>{email}</a></p>}{phone&&<p>{words.phone}: <a href={`tel:${phone.replace(/[^\d+]/g,'')}`}>{phone}</a></p>}</div></aside>;
 }
 
 function CustomerWarehouseServices({

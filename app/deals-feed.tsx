@@ -7,7 +7,7 @@ import Link from '@/components/site-link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { validateSource, type Product } from '@/lib/market/domain';
 import { findOrderUrl } from '@/lib/market/catalog';
-import { defaultDealFilters, filterDeals, hasActiveDealFilters, type DealFilters } from '@/lib/market/deals';
+import { defaultDealFilters, filterDeals, type DealFilters } from '@/lib/market/deals';
 import { dealCopy } from '@/lib/market/deal-copy';
 import { useMarket } from '@/lib/market/store';
 import { Choice, Empty, ProductImage } from './market-ui';

@@ -17,7 +17,6 @@ export function CustomsEstimate({ valueUsd, grossKg, fx, locale = 'ru', compact 
   const id = useId(), copy = labels[locale];
   const [used, setUsed] = useState('0'), [extra, setExtra] = useState('0');
   const [date, setDate] = useState(() => new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString().slice(0, 10));
-  const rateUnconfirmed = courierRateNeedsConfirmation(date);
   const estimate = estimateCourierCustoms({ valueUsd: valueUsd + (extra.trim() ? Number(extra) : NaN), usedUsd: used.trim() ? Number(used) : NaN, grossKg, date });
   const format = (usd: number) => new Intl.NumberFormat(locale === 'ru' ? 'ru-RU' : locale === 'uz' ? 'uz-UZ' : 'en-US', { maximumFractionDigits:0 }).format(Math.round(usd * fx)) + (locale === 'ru' ? ' сум' : locale === 'uz' ? ' so‘m' : ' UZS');
   const result = !estimate ? copy.unavailable : estimate.upperUsd === undefined ? copy.from + ' ' + format(estimate.lowerUsd) : estimate.upperUsd > estimate.lowerUsd ? format(estimate.lowerUsd) + ' – ' + format(estimate.upperUsd) : '≈ ' + format(estimate.lowerUsd);

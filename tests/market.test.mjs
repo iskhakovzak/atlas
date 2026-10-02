@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {products,tariff,pricingSchema,quote,price,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource,markNotificationsRead,confirmDemoPayment,updateCommunication,assignOrder,addStaffNote,setParcel,confirmIdentity,submitDeclarationPreview,clearIdentity,inspectWarehouseOrder,createChangeRequest,respondToChangeRequest,orderPayable,validateServiceCatalog,sendCustomerNotification} from '../lib/market/domain.ts';
+import {products,tariff,pricingSchema,quote,price,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource,markNotificationsRead,confirmDemoPayment,updateCommunication,assignOrder,addStaffNote,setParcel,confirmIdentity,submitDeclarationPreview,clearIdentity,inspectWarehouseOrder,createChangeRequest,respondToChangeRequest,orderPayable,validateServiceCatalog,sendCustomerNotification,orderNeedsOperatorAttention} from '../lib/market/domain.ts';
 import {actionSchema,applyAction} from '../lib/market/actions.ts';
 import {defaultPolicy} from '../lib/market/policy.ts';
 import {customsVersion} from '../lib/market/world.ts';
@@ -17,7 +17,7 @@ test('operator attention includes warehouse exceptions but ignores cancelled ord
 });
 test('order-linked notifications are operator-only and stay in the customer account',()=>{
  const state=prepare(),orderId=state.orders[0].id;
- const action=actionSchema.parse({type:'order-notify',id:orderId,title:'Обновление заказа',message:'Проверка завершена.'});
+ const action=actionSchema.parse({type:'customer-notification',id:orderId,title:'Обновление заказа',message:'Проверка завершена.'});
  const next=applyAction(state,action,true);
  assert.equal(next.notifications[0].orderId,orderId);
  assert.equal(next.notifications[0].title,'Обновление заказа');

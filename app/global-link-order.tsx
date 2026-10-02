@@ -13,7 +13,6 @@ import {
   money,
   validateSource,
   type Product,
-  type Quote,
 } from "@/lib/market/domain";
 import { countries, currencies, currencyForCountry, toUsd, paddedWeight } from "@/lib/market/world";
 import { describeSingleColorway } from "@/lib/market/variant-colorway";
@@ -24,8 +23,6 @@ import {
   safeImage,
   dedupeSafeImages,
   inferProductCategory,
-  inferSizeRegion,
-  isConfirmedUnavailableVariant,
   inferStorefrontCountry,
   type Extracted,
   type ProductVariant,

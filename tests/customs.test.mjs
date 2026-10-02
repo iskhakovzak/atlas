@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { estimateCourierCustoms as estimate, courierRule, courierRateNeedsConfirmation } from '../lib/market/customs.ts';
-const input = {valueUsd:300,grossKg:1,date:'2026-08-11'};
+import { estimateCourierCustoms as estimate, courierRule } from '../lib/market/customs.ts';
+const input = {valueUsd:300,grossKg:1,date:'2026-09-11'};
 test('courier allowance applies only once and unified payment does not add VAT',()=>{
  assert.equal(estimate(input).lowerUsd,20);
  assert.equal(estimate({...input,valueUsd:200}).upperUsd,0);
