@@ -4,7 +4,7 @@ import {toast} from 'sonner';
 import {blank,parseState,pricingSchema,tariff,type Pricing,type State} from './domain';
 import {defaultPolicy,policySchema,type Policy} from './policy';
 import type {Action} from './actions';
-import {serverError,setLocaleCookie,supportedLocale,uzbekBrowserPreference,type Locale} from './i18n';
+import {serverError,setLocaleCookie,supportedLocale,type Locale} from './i18n';
 import type {SessionStatus} from './access';
 import {keepCatalogVisible,visibleMerchantFinds,type MerchantFind} from './catalog';
 import type {CatalogCollection} from './catalog-editor';
@@ -16,10 +16,12 @@ const marketMessages:Record<Locale,{catalogLoad:string;accountLoad:string;connec
   uz:{catalogLoad:'Vitrinani yangilab bo‘lmadi. Saqlangan havolalar mavjud; buyurtmadan oldin joriy narxni tasdiqlang.',accountLoad:'Kabinet yuklanmadi. Qayta urinib ko‘ring.',connection:'Server bilan bog‘lanib bo‘lmadi. Ulanishni tekshirib, qayta urinib ko‘ring.',signin:'O‘zgarishlarni saqlash uchun kiring.',sessionEnded:'Sessiya tugadi. Davom etish uchun qayta kiring.',saveFailed:'O‘zgarishlarni saqlab bo‘lmadi.',actionConnection:'Serverdan javob olinmadi. Buyurtma holatini tekshiramiz.'},
   en:{catalogLoad:'The storefront could not refresh. Saved links remain available; confirm the current price before ordering.',accountLoad:'Could not load your account. Try again.',connection:'Could not reach the server. Check your connection and try again.',signin:'Sign in to save changes.',sessionEnded:'Your session ended. Sign in again to continue.',saveFailed:'Could not save changes.',actionConnection:'No response from the server. Checking your order state.'},
 };
-export function MarketProvider({children}:{children:ReactNode}) {
+// initialLocale comes from the server (saved cookie, Accept-Language, then the Uzbek default),
+// so the first render already matches the server HTML.
+export function MarketProvider({children,initialLocale='uz'}:{children:ReactNode;initialLocale?:Locale}) {
  const [catalogProducts,setCatalogProducts]=useState<MerchantFind[]>(()=>visibleMerchantFinds()),[collections,setCollections]=useState<Array<CatalogCollection&{productIds:string[]}>>([]),[catalogError,setCatalogError]=useState('');
- const [state,setState]=useState<State>(blank),[pricing,setPricing]=useState<Pricing>(tariff),[policy,setPolicy]=useState<Policy>(defaultPolicy),[status,setStatus]=useState<SessionStatus>('loading'),[error,setError]=useState<string|null>(null),[user,setUser]=useState<AccountUser|null>(null);
- const revision=useRef(0),busy=useRef(false),generation=useRef(0),localeRef=useRef<Locale>('ru'),serverLocaleRef=useRef<Locale>('ru'),localeSyncRef=useRef<Locale|null>(null);
+ const [state,setState]=useState<State>(()=>{const initial=blank();return {...initial,communication:{...initial.communication,language:initialLocale}}}),[pricing,setPricing]=useState<Pricing>(tariff),[policy,setPolicy]=useState<Policy>(defaultPolicy),[status,setStatus]=useState<SessionStatus>('loading'),[error,setError]=useState<string|null>(null),[user,setUser]=useState<AccountUser|null>(null);
+ const revision=useRef(0),busy=useRef(false),generation=useRef(0),localeRef=useRef<Locale>(initialLocale),serverLocaleRef=useRef<Locale>('ru'),localeSyncRef=useRef<Locale|null>(null);
  const catalogLoaded=useRef(false),catalogRequest=useRef<Promise<void>|null>(null);
  const loadCatalog=useCallback((force=false)=>{
   if(force)catalogLoaded.current=false;
@@ -60,8 +62,9 @@ export function MarketProvider({children}:{children:ReactNode}) {
    }
    const parsed=parseState(JSON.stringify(data.state));
    serverLocaleRef.current=parsed.communication.language;
-   const stored=readStoredLocale();
-   const next=stored?{...parsed,communication:{...parsed.communication,language:stored}}:parsed;
+   // Keep the language this device already shows; signing in must not switch it.
+   const display=readStoredLocale()??localeRef.current;
+   const next={...parsed,communication:{...parsed.communication,language:display}};
    // Keep asynchronous request fallbacks in the locale the customer just selected.
    localeRef.current=next.communication.language;
    setLocaleCookie(next.communication.language);
@@ -73,13 +76,14 @@ export function MarketProvider({children}:{children:ReactNode}) {
   finally{clearTimeout(timeout)}
  },[clearPrivate,readStoredLocale]);
  useEffect(()=>{
-  // A saved choice wins. Otherwise only an Uzbek browser preference ranked
-  // above Russian switches the first visit to UZ; every other browser keeps the
-  // Russian default. The detected value is not saved, so a manual pick still wins.
-  const locale=readStoredLocale()??uzbekBrowserPreference(navigator.languages??[navigator.language]);
-  // The server uses this display-only cookie for localized errors.
-  setLocaleCookie(locale??'ru');
-  if(locale){
+  // ?lang=uz|ru|en (hreflang URLs) is an explicit choice and is saved; otherwise a
+  // locally saved choice wins over the server's pick.
+  const fromQuery=supportedLocale(new URLSearchParams(window.location.search).get('lang'));
+  if(fromQuery)try{localStorage.setItem('atlas-language',fromQuery)}catch{}
+  const locale=fromQuery??readStoredLocale()??initialLocale;
+  // The server reads this cookie to render pages and localized errors in the same language.
+  setLocaleCookie(locale);
+  if(locale!==localeRef.current){
    // This ref is intentionally updated outside render for callbacks that outlive this effect.
    localeRef.current=locale;
    queueMicrotask(()=>setState(s=>({...s,communication:{...s.communication,language:locale}})))
@@ -87,7 +91,7 @@ export function MarketProvider({children}:{children:ReactNode}) {
   queueMicrotask(()=>void refresh());
   const focus=()=>{if(!busy.current)void refresh()};window.addEventListener('focus',focus);
   return()=>{window.removeEventListener('focus',focus)};
- },[readStoredLocale,refresh]);
+ },[readStoredLocale,refresh,initialLocale]);
  useEffect(()=>{document.documentElement.lang=state.communication.language},[state.communication.language]);
  const act=useCallback(async(action:Action)=>{
   if(!ready){toast.error(marketMessages[localeRef.current].signin);return false}

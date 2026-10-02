@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
+import { preferredLocale } from "@/lib/market/i18n";
 import "./globals.css";
 import "./atlas-design.css";
 import "./catalog-admin.css";
@@ -13,6 +15,7 @@ import "./dark-theme.css";
 import "./mobile-polish.css";
 import "./customer-mobile.css";
 import "./operator-mobile.css";
+import "./home.css";
 import { MarketProvider } from "@/lib/market/store";
 import { StorageNotice } from "./storage-notice";
 import { AtlasThemeProvider } from "./theme-control";
@@ -84,16 +87,19 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Render in the visitor's language from the first byte: saved choice, then browser language, then Uzbek.
+  const requestHeaders = await headers();
+  const locale = preferredLocale(requestHeaders.get("cookie"), requestHeaders.get("accept-language"));
   return (
-    <html lang="ru" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className="antialiased">
         <AtlasThemeProvider>
-          <MarketProvider>{children}<StorageNotice /><PerformanceProbe /></MarketProvider>
+          <MarketProvider initialLocale={locale}>{children}<StorageNotice /><PerformanceProbe /></MarketProvider>
         </AtlasThemeProvider>
         <script
           type="application/ld+json"

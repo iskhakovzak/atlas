@@ -1,5 +1,16 @@
 # Atlas TODO and known limitations
 
+## Home page redesign — 3 October 2026
+
+- [x] Mobile-first home in brief order: header (Stores, How it works, Rates, UZ/RU/EN switch, Sign in), hero with the link form, popular-store chips (open the store in a new tab) and "add several links", 4-step "how it works", example estimate from live pricing with a reserve tooltip, product selection only from 8 products (filters/sort from 16; cards: brand, country, $ price, soum total with an "i" breakdown, "Order"), delivery times and rates table from pricing (per-country overrides when set), trust block, concrete FAQ, shared footer. Copy lives in `lib/market/home-copy.ts` (uz/ru/en), components in `app/home-sections.tsx`, `app/site-footer.tsx`, styles in `app/home.css`.
+- [x] Language: Uzbek is the default; the server renders in the saved `atlas-language` cookie, else the best Accept-Language match, else Uzbek, and passes it to `MarketProvider`. `/?lang=uz|ru|en` are self-canonical hreflang alternates (`/` is x-default) and save the choice. Signing in no longer switches the device's language. Localized `og-image-uz.png` / `og-image-en.png`.
+- [x] Guests have no bottom bar on mobile (it duplicated "Sign in"); a sticky "Paste a link" button returns to the hero form once it scrolls away. Header and footer tap targets are at least 44px; the theme toggle moves to the footer on phones.
+- [ ] Fill `lib/market/site-content.ts` with verified data only: delivery days per region, support Telegram bot and channel, phone, Instagram, pickup address, legal entity, INN and address, real reviews (with consent), real parcel photos, the real delivered-orders count, and the official prohibited-goods list URL. Empty fields are hidden in production and shown as dashed placeholders in dev.
+- [ ] Payment methods (Click, Payme, Uzcard, Humo, Visa/Mastercard, crypto) are listed only after each provider is actually connected (see the payment policy draft); add them to `paymentMethods` then. Crypto needs a licensed provider and its own policy first.
+- [ ] Store chips use monograms; real brand logos need licensed assets.
+- [ ] Lighthouse was not run (the CLI is not installed); a11y self-check found no unnamed controls, images without alt or duplicate IDs. Run Lighthouse on the deployed page.
+- [ ] Next streams async metadata for Googlebot (it renders JS); Telegram/Yandex receive title, canonical, hreflang and og tags in `<head>`.
+
 ## Home and catalog UX pass — 3 October 2026
 
 - [x] Home hero for every visitor: the service in one headline and the "paste a link → calculate" form as the main action; the duplicate link form under the catalog is removed.

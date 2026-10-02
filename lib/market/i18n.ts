@@ -3,15 +3,8 @@ export function supportedLocale(value:unknown):Locale|null{
   return value === "ru" || value === "uz" || value === "en" ? value : null;
 }
 
-/** First-visit language: Uzbek only when the browser ranks it above Russian; otherwise null (keep the Russian default). */
-export function uzbekBrowserPreference(languages:readonly string[]):Locale|null{
-  for(const tag of languages){
-    const base=tag.trim().toLowerCase().split(/[-_]/)[0];
-    if(base==="uz")return "uz";
-    if(base==="ru")return null;
-  }
-  return null;
-}
+/** Site language when neither a saved choice nor the browser language matches a supported one. */
+export const defaultLocale:Locale="uz";
 
 const apiErrors:Record<Locale,Record<number,string>>={
   ru:{400:"Проверьте данные и попробуйте снова.",401:"Войдите, чтобы продолжить.",403:"У вас нет доступа к этому действию.",404:"Запрошенные данные не найдены.",405:"Этот способ запроса не поддерживается.",409:"Данные изменились. Обновите страницу и повторите действие.",413:"Запрос слишком большой.",422:"Не удалось обработать данные. Проверьте их и попробуйте снова.",429:"Слишком много запросов. Попробуйте позже.",503:"Не удалось выполнить запрос. Попробуйте ещё раз."},
@@ -21,17 +14,22 @@ const apiErrors:Record<Locale,Record<number,string>>={
 
 /** Resolve only display language from a validated preference cookie or Accept-Language. */
 export function requestLocale(request?:Request):Locale{
-  if(!request)return "ru";
-  const cookie=request.headers.get("cookie")?.split(";").map(part=>part.trim()).find(part=>part.startsWith("atlas-language="));
+  if(!request)return defaultLocale;
+  return preferredLocale(request.headers.get("cookie"),request.headers.get("accept-language"));
+}
+
+/** Saved "atlas-language" cookie first, then the highest-ranked supported Accept-Language, then the site default. */
+export function preferredLocale(cookieHeader:string|null|undefined,acceptLanguage:string|null|undefined):Locale{
+  const cookie=cookieHeader?.split(";").map(part=>part.trim()).find(part=>part.startsWith("atlas-language="));
   const saved=supportedLocale(cookie?.slice("atlas-language=".length));
   if(saved)return saved;
-  const accepted=request.headers.get("accept-language")?.split(",").map((entry,index)=>{
+  const accepted=acceptLanguage?.split(",").map((entry,index)=>{
     const [tag,...params]=entry.trim().split(";");
     const quality=Number(params.find(param=>param.trim().startsWith("q="))?.trim().slice(2)??1);
     return {tag:tag.toLowerCase().split("-")[0],quality:Number.isFinite(quality)?quality:0,index};
   }).filter(entry=>entry.quality>0).sort((a,b)=>b.quality-a.quality||a.index-b.index)??[];
   for(const entry of accepted){const locale=supportedLocale(entry.tag);if(locale)return locale;}
-  return "ru";
+  return defaultLocale;
 }
 
 export function apiErrorMessage(status:number,locale:Locale):string{

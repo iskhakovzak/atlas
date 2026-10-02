@@ -31,7 +31,10 @@ test('API errors use the validated locale cookie and localize fallback copy',()=
   assert.equal(requestLocale(request({'cookie':'atlas-language=uz','accept-language':'en-US,en;q=0.9'})),'uz');
   assert.equal(requestLocale(request({'cookie':'atlas-language=xx','accept-language':'en-US,en;q=0.9,ru;q=0.4'})),'en');
   assert.equal(requestLocale(request({'accept-language':'uz-Latn-UZ,ru;q=0.8'})),'uz');
-  assert.equal(requestLocale(request({'cookie':'atlas-language=xx'})),'ru');
+  // Uzbek is the site default when nothing else matches.
+  assert.equal(requestLocale(request({'cookie':'atlas-language=xx'})),'uz');
+  assert.equal(requestLocale(request({'accept-language':'de-DE,fr;q=0.8'})),'uz');
+  assert.equal(requestLocale(request({'accept-language':'ru-RU,ru;q=0.9,en;q=0.8'})),'ru');
   assert.equal(apiErrorMessage(403,'en'),'You don’t have access to this action.');
   assert.equal(apiErrorMessage(503,'uz'),'So‘rov bajarilmadi. Qayta urinib ko‘ring.');
   assert.equal(importManualEntryMessage('ru').includes('в корзину'),true);

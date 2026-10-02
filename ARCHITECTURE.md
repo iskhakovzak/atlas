@@ -116,6 +116,12 @@ flowchart TD
   Catalog --> D1
 ~~~
 
+## Home page and site language
+
+The catalog route renders `HomeHero`, `HowItWorks`, `ExampleQuote`, `DealsFeed` (only from 8 products), `DeliveryTariffs`, `TrustSection` and `HomeFaq` from `app/home-sections.tsx`, then the shared `SiteFooter`. All home copy is in `lib/market/home-copy.ts` (uz/ru/en). Business facts — contacts, legal entity, delivery days, connected payment methods, reviews, parcel photos, delivered-order count — come only from `lib/market/site-content.ts`; empty values hide their block in production and show a dashed placeholder in dev. The example estimate and the per-kg column use the live pricing settings (`pricingForCountry` for dispatch-country overrides; per-kg includes the delivery margin) and are labelled as estimates, not offers.
+
+The root layout reads `atlas-language` and Accept-Language (`preferredLocale`, Uzbek default) and passes the result to `MarketProvider`, so server HTML and the first client render share one language. `/?lang=xx` pages are self-canonical hreflang alternates; the client saves that choice. API errors use the same `requestLocale` resolution.
+
 ## Sign-in and sessions
 
 Atlas no longer relies on ChatGPT Sites identity headers; `oai-authenticated-*` headers are ignored. `/login` offers each method only when its provider settings exist (`GET /api/auth/methods`):

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, type SetStateAction } from 'react';
-import { ArrowRight, ArrowUpRight, Flame, Heart, Search, SlidersHorizontal, X } from 'lucide-react';
+import { useId, useState, type SetStateAction } from 'react';
+import { ArrowRight, ArrowUpRight, Flame, Heart, Info, Search, SlidersHorizontal, X } from 'lucide-react';
 import Link from '@/components/site-link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Product } from '@/lib/market/domain';
@@ -9,15 +9,18 @@ import { findOrderUrl } from '@/lib/market/catalog';
 import { defaultDealFilters, filterDeals, type DealFilters } from '@/lib/market/deals';
 import { dealCopy } from '@/lib/market/deal-copy';
 import { atlasServiceBreakdown } from '@/lib/market/quote-presentation';
+import { formatSum, homeCopy } from '@/lib/market/home-copy';
 import { useMarket } from '@/lib/market/store';
 import { Choice, Empty, ProductImage } from './market-ui';
 
-// A short catalog does not need search, sorting or detail filters.
-const compactCatalogSize = 8;
+/** The home page shows the product selection only from this many products. */
+export const homeCatalogMinimum = 8;
+// Search, sorting and detail filters appear only for a catalog this large.
+const filterCatalogSize = 16;
 const breakdownCopy = {
-  ru: { title: 'Из чего цена', item: 'Товар', store: 'Доставка магазина до склада', storeReserve: 'Доставка магазина — резерв', international: 'Доставка в Узбекистан', kg: 'кг', service: 'Сервис Atlas', fee: 'Общий сбор Atlas', reserve: 'Возвратный резерв', storeReserveNote: (amount: string) => `Магазин не указал цену доставки до склада, поэтому заложен резерв ${amount}. Если доставка выйдет дешевле, разницу вернём на баланс Atlas.`, reserveNote: 'Возвратный резерв — запас на случай, если посылка окажется тяжелее. Неиспользованная часть вернётся на баланс Atlas, а доплату сверх резерва согласуем с вами заранее.', choose: 'Выбрать вариант' },
-  uz: { title: 'Narx tarkibi', item: 'Tovar', store: 'Do‘kondan omborgacha yetkazish', storeReserve: 'Do‘kon yetkazishi — zaxira', international: 'O‘zbekistonga yetkazish', kg: 'kg', service: 'Atlas xizmati', fee: 'Atlas umumiy yig‘imi', reserve: 'Qaytariladigan zaxira', storeReserveNote: (amount: string) => `Do‘kon omborgacha yetkazish narxini ko‘rsatmagan, shuning uchun ${amount} zaxira qo‘yilgan. Yetkazish arzonroq bo‘lsa, farq Atlas balansiga qaytariladi.`, reserveNote: 'Qaytariladigan zaxira — jo‘natma og‘irroq chiqsa, ehtiyot uchun. Ishlatilmagan qismi Atlas balansiga qaytadi, zaxiradan ortiq to‘lov siz bilan oldindan kelishiladi.', choose: 'Variantni tanlash' },
-  en: { title: 'Price breakdown', item: 'Item', store: 'Store delivery to warehouse', storeReserve: 'Store delivery — reserve', international: 'Delivery to Uzbekistan', kg: 'kg', service: 'Atlas service', fee: 'General Atlas fee', reserve: 'Refundable reserve', storeReserveNote: (amount: string) => `The store did not state delivery to our warehouse, so a ${amount} reserve is included. If delivery costs less, the difference returns to your Atlas balance.`, reserveNote: 'The refundable reserve covers a heavier-than-estimated parcel. Any unused part returns to your Atlas balance; anything above it is agreed with you first.', choose: 'Choose option' },
+  ru: { title: 'Из чего цена', item: 'Товар', store: 'Доставка магазина до склада', storeReserve: 'Доставка магазина — резерв', international: 'Доставка в Узбекистан', kg: 'кг', service: 'Сервис Atlas', fee: 'Общий сбор Atlas', reserve: 'Возвратный резерв', storeReserveNote: (amount: string) => `Магазин не указал цену доставки до склада, поэтому заложен резерв ${amount}. Если доставка выйдет дешевле, разницу вернём на баланс Atlas.`, reserveNote: 'Возвратный резерв — запас на случай, если посылка окажется тяжелее. Неиспользованная часть вернётся на баланс Atlas, а доплату сверх резерва согласуем с вами заранее.' },
+  uz: { title: 'Narx tarkibi', item: 'Tovar', store: 'Do‘kondan omborgacha yetkazish', storeReserve: 'Do‘kon yetkazishi — zaxira', international: 'O‘zbekistonga yetkazish', kg: 'kg', service: 'Atlas xizmati', fee: 'Atlas umumiy yig‘imi', reserve: 'Qaytariladigan zaxira', storeReserveNote: (amount: string) => `Do‘kon omborgacha yetkazish narxini ko‘rsatmagan, shuning uchun ${amount} zaxira qo‘yilgan. Yetkazish arzonroq bo‘lsa, farq Atlas balansiga qaytariladi.`, reserveNote: 'Qaytariladigan zaxira — jo‘natma og‘irroq chiqsa, ehtiyot uchun. Ishlatilmagan qismi Atlas balansiga qaytadi, zaxiradan ortiq to‘lov siz bilan oldindan kelishiladi.' },
+  en: { title: 'Price breakdown', item: 'Item', store: 'Store delivery to warehouse', storeReserve: 'Store delivery — reserve', international: 'Delivery to Uzbekistan', kg: 'kg', service: 'Atlas service', fee: 'General Atlas fee', reserve: 'Refundable reserve', storeReserveNote: (amount: string) => `The store did not state delivery to our warehouse, so a ${amount} reserve is included. If delivery costs less, the difference returns to your Atlas balance.`, reserveNote: 'The refundable reserve covers a heavier-than-estimated parcel. Any unused part returns to your Atlas balance; anything above it is agreed with you first.' },
 };
 
 export function DealsFeed({ favorites, select }: { favorites: boolean; select: (product: Product) => void }) {
@@ -37,8 +40,9 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
   const merchantRecord=(product:Product)=>products.find(p=>p.id===product.id);
   const numberLocale = locale === 'ru' ? 'ru-RU' : locale === 'uz' ? 'uz-UZ' : 'en-US';
   const fmt = (n: number, currency = 'UZS') => currency === 'UZS'
-    ? `${new Intl.NumberFormat(numberLocale, { maximumFractionDigits: 0 }).format(n)} ${locale === 'ru' ? 'сум' : locale === 'uz' ? 'so‘m' : 'UZS'}`
+    ? formatSum(n, locale)
     : new Intl.NumberFormat(numberLocale, { style: 'currency', currency, maximumFractionDigits: 2 }).format(n);
+  const hc = homeCopy[locale];
   const extraCategories: Record<string, [string, string]> = {'Аксессуары':['Aksessuarlar','Accessories'],'Дом и быт':['Uy va ro‘zg‘or','Home & living'],'Спорт':['Sport','Sports'],'Другое':['Boshqa','Other']};
   const categoryOptions = [{ value: '', label: copy.all }, { value: 'Обувь', label: copy.footwear }, { value: 'Одежда', label: copy.clothing }, { value: 'Электроника', label: copy.electronics },{value:'Красота и уход',label:locale==='ru'?'Красота и уход':locale==='uz'?'Go‘zallik va parvarish':'Beauty & care'},...['Аксессуары','Дом и быт','Спорт','Другое'].map(value=>({value,label:locale==='ru'?value:extraCategories[value][locale==='uz'?0:1]}))];
   // Offer only categories that currently have products, so the catalog never shows empty chips.
@@ -67,7 +71,7 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
   const search = filters.search.trim().toLocaleLowerCase();
   const matching = candidates.filter(product => [product.name, titles[product.id], product.brand, product.category, product.country, categories.find(c => c.value === product.category)?.label, countries.find(c => c.value === product.country)?.label].join(' ').toLocaleLowerCase().includes(search));
   const list = filterDeals(matching, pricing, { ...filters, sort: sortValue, search: '' },products);
-  const compact = candidates.length <= compactCatalogSize;
+  const compact = candidates.length < filterCatalogSize;
   // A changed query starts a new page immediately, without an effect or stale frame.
   const pageKey = JSON.stringify([filters, collectionId, favorites]);
   const limit = page.key === pageKey ? page.limit : 12;
@@ -88,7 +92,8 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
 
   return <TooltipProvider delayDuration={300}><div className="finds-page" id="finds">
     <section className="finds-heading">
-      <div>{!favorites&&<span className="eyebrow">{locale==='ru'?'КАТАЛОГ ATLAS':locale==='uz'?'ATLAS KATALOGI':'ATLAS CATALOG'}</span>}{status==='guest'?<h2>{favorites ? copy.savedTitle : copy.title}</h2>:<h1>{favorites ? copy.savedTitle : copy.title}</h1>}<p>{favorites ? copy.savedIntro : copy.intro}</p></div>
+      {/* The home hero owns the page's only h1; the favorites page has no hero. */}
+      <div>{favorites?<h1>{copy.savedTitle}</h1>:<h2 id="finds-title">{hc.catalog.title}</h2>}<p>{favorites ? copy.savedIntro : hc.catalog.intro}</p></div>
       {ready&&<Link className="btn secondary" href={favorites ? '/' : '/favorites'}><Heart size={17}/>{favorites ? copy.catalog : copy.saved}<span className="finds-count">{favorites ? products.length : state.favorites.filter(id => products.some(product => product.id === id)).length}</span></Link>}
     </section>
     {catalogError&&<div className="notice catalog-fallback-message" role="status"><span>{catalogError}</span><button type="button" className="text-button catalog-retry" disabled={catalogRefreshing} onClick={()=>void retryCatalog()}>{catalogRefreshing?(locale==='ru'?'Обновляем…':locale==='uz'?'Yangilanmoqda…':'Refreshing…'):(locale==='ru'?'Повторить':locale==='uz'?'Qayta urinish':'Retry')}</button></div>}
@@ -136,21 +141,12 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
             {discount >= 40 && <span className="find-top-deal"><Flame size={14}/>{copy.topDeal}</span>}
             {ready&&<Tooltip><TooltipTrigger asChild><button type="button" disabled={saving !== null} className={'find-save ' + (isSaved ? 'saved' : '')} aria-pressed={isSaved} aria-label={(isSaved ? copy.remove : copy.save) + ': ' + name} onClick={() => void favorite(product)}><Heart size={20}/></button></TooltipTrigger><TooltipContent>{!ready ? copy.signin : saving === product.id ? copy.savingState : isSaved ? copy.remove : copy.save}</TooltipContent></Tooltip>}
           </div>
-          <div className="find-content"><div className="find-meta"><span>{categories.find(c => c.value === product.category)?.label ?? product.category}</span><span>{countries.find(c => c.value === product.country)?.label ?? product.country}</span></div>
+          <div className="find-content"><div className="find-meta"><span>{product.brand||categories.find(c => c.value === product.category)?.label||product.category}</span><span>{countries.find(c => c.value === product.country)?.label ?? product.country}</span></div>
              {needsPrice?<a className="find-title" href={orderUrl}>{name}</a>:<button type="button" className="find-title" onClick={() => select(product)}>{name}</button>}
              <div className={'find-store-price'+(needsPrice?' needs-confirmation':'')}><span>{needsPrice?(hasRecordedPrice?recordedPriceLabel:(locale==='ru'?'Цена в магазине':locale==='uz'?'Do‘kondagi narx':'Store price')):copy.productPrice}</span><div><b title={needsPrice&&merchantRecord(product)?.observedOn?`${copy.observed}: ${merchantRecord(product)?.observedOn}`:undefined}>{needsPrice?(hasRecordedPrice?fmt(product.sourcePrice!,product.sourceCurrency!):freshnessLabel):fmt(product.usd, 'USD')}</b>{!needsPrice&&discount > 0 && <del title={copy.referenceLabel}>{fmt(referenceUsd!, 'USD')}</del>}</div>{!needsPrice&&discount > 0 && <span className="find-discount" title={copy.compareHint}>−{discount}%</span>}</div>
-             <div className="find-total"><span>{needsPrice?(hasRecordedPrice?recordedEstimateLabel:(locale==='ru'?'Расчёт после проверки цены':locale==='uz'?'Narx tekshirilgach hisob':'Estimate after price check')):copy.delivered}</span><strong>{costs?fmt(costs.total):(locale==='ru'?'Рассчитаем после проверки цены':locale==='uz'?'Narx tekshirilgach hisoblaymiz':'Calculated after price check')}</strong></div>
-             {costs&&(()=>{const parts=atlasServiceBreakdown(costs);const storeReserve=product.sourceShippingEstimated===true&&costs.sourceShipping>0;return <details className="find-breakdown"><summary>{bd.title}</summary><dl>
-               <div><dt>{bd.item}</dt><dd>{fmt(costs.merchandise)}</dd></div>
-               {costs.sourceShipping>0&&<div><dt>{storeReserve?bd.storeReserve:bd.store}</dt><dd>{fmt(costs.sourceShipping)}</dd></div>}
-               <div><dt>{bd.international} · {new Intl.NumberFormat(numberLocale,{maximumFractionDigits:1}).format(costs.weight)} {bd.kg}</dt><dd>{fmt(parts.international)}</dd></div>
-               {parts.service>0&&<div><dt>{bd.service}</dt><dd>{fmt(parts.service)}</dd></div>}
-               {costs.optionalServices>0&&<div><dt>{bd.fee}</dt><dd>{fmt(costs.optionalServices)}</dd></div>}
-               {costs.reserve>0&&<div><dt>{bd.reserve}</dt><dd>{fmt(costs.reserve)}</dd></div>}
-             </dl>{storeReserve&&<p>{bd.storeReserveNote(fmt(product.sourceShippingUsd??0,'USD'))}</p>}{costs.reserve>0&&<p>{bd.reserveNote}</p>}</details>})()}
-             {/* Store name only: a direct merchant link here sends customers away from the order flow. */}
-             <div className="find-origin"><span>{merchantRecord(product)?.store??(product.sourceUrl?new URL(product.sourceUrl).hostname.replace(/^www\./,''):'')}</span></div>
-             <div className="find-purchase"><a className="btn primary" href={orderUrl}>{bd.choose}<ArrowRight size={17}/></a></div>
+             {costs?<FindPrice costs={costs} product={product} label={needsPrice&&hasRecordedPrice?recordedEstimateLabel:hc.catalog.total} breakdownLabel={hc.catalog.breakdown} fmt={fmt} numberLocale={numberLocale} bd={bd}/>:<div className="find-total"><span>{locale==='ru'?'Расчёт после проверки цены':locale==='uz'?'Narx tekshirilgach hisob':'Estimate after price check'}</span><strong>{locale==='ru'?'Рассчитаем после проверки цены':locale==='uz'?'Narx tekshirilgach hisoblaymiz':'Calculated after price check'}</strong></div>}
+             {/* No merchant link on the card: it would send customers away from the order flow. */}
+             <div className="find-purchase"><a className="btn primary" href={orderUrl}>{hc.catalog.order}<ArrowRight size={17} aria-hidden="true"/></a></div>
           </div>
         </article>;
       })}
@@ -159,6 +155,26 @@ export function DealsFeed({ favorites, select }: { favorites: boolean; select: (
     {!list.length && <Empty title={favorites && !candidates.length ? copy.emptySaved : copy.empty} description={favorites && !candidates.length ? copy.emptySavedHint : copy.emptyHint} href={favorites && !candidates.length ? '/' : undefined} label={copy.catalog}>{hasFilters && <button type="button" className="btn secondary" onClick={clearFilters}>{copy.reset}</button>}</Empty>}
     {!!list.length && <p className="finds-price-note">{copy.priceNote}</p>}
     {status==='guest' && <p className="finds-signin"><Link href="/account"><Heart size={15}/>{copy.signin}<ArrowUpRight size={15}/></Link></p>}
-    {!favorites && <><section className="finds-steps"><h2>{copy.stepsTitle}</h2><ol>{[[copy.step1, copy.step1hint], [copy.step2, copy.step2hint], [copy.step3, copy.step3hint]].map(([heading, hint], index) => <li key={heading}><span>0{index + 1}</span><div><h3>{heading}</h3><p>{hint}</p></div></li>)}</ol></section></>}
   </div></TooltipProvider>;
+}
+
+type Costs = NonNullable<ReturnType<typeof filterDeals>[number]['costs']>;
+
+/** Delivered total in soum with an "i" toggle that opens the line-by-line breakdown. */
+function FindPrice({ costs, product, label, breakdownLabel, fmt, numberLocale, bd }: { costs: Costs; product: Product; label: string; breakdownLabel: string; fmt: (n: number, currency?: string) => string; numberLocale: string; bd: (typeof breakdownCopy)['ru'] }) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  const parts = atlasServiceBreakdown(costs);
+  const storeReserve = product.sourceShippingEstimated === true && costs.sourceShipping > 0;
+  return <>
+    <div className="find-total"><span>{label}</span><strong>{fmt(costs.total)}</strong><button type="button" className="find-info" aria-label={breakdownLabel} aria-expanded={open} aria-controls={id} onClick={() => setOpen(value => !value)}><Info size={18} aria-hidden="true"/></button></div>
+    {open && <div id={id} className="find-breakdown"><dl>
+      <div><dt>{bd.item}</dt><dd>{fmt(costs.merchandise)}</dd></div>
+      {costs.sourceShipping > 0 && <div><dt>{storeReserve ? bd.storeReserve : bd.store}</dt><dd>{fmt(costs.sourceShipping)}</dd></div>}
+      <div><dt>{bd.international} · {new Intl.NumberFormat(numberLocale, { maximumFractionDigits: 1 }).format(costs.weight)} {bd.kg}</dt><dd>{fmt(parts.international)}</dd></div>
+      {parts.service > 0 && <div><dt>{bd.service}</dt><dd>{fmt(parts.service)}</dd></div>}
+      {costs.optionalServices > 0 && <div><dt>{bd.fee}</dt><dd>{fmt(costs.optionalServices)}</dd></div>}
+      {costs.reserve > 0 && <div><dt>{bd.reserve}</dt><dd>{fmt(costs.reserve)}</dd></div>}
+    </dl>{storeReserve && <p>{bd.storeReserveNote(fmt(product.sourceShippingUsd ?? 0, 'USD'))}</p>}{costs.reserve > 0 && <p>{bd.reserveNote}</p>}</div>}
+  </>;
 }

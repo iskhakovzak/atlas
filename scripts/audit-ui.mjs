@@ -135,7 +135,7 @@ try {
   async function signOut(){await evaluate("fetch('/api/auth/logout',{method:'POST'}).then(r=>r.ok)")}
   const hiddenPrivate="!document.querySelector('header a[href=\"/balance\"]') && !document.querySelector('header a[href=\"/notifications\"]') && !document.querySelector('header a[href=\"/cart\"]')";
   await visit('/');
-  await check("!!document.querySelector('.guest-intro') && !document.querySelector('.account-error')","guest home without false server error");
+  await check("!!document.querySelector('.home-hero') && !document.querySelector('.account-error')","guest home without false server error");
   await check(hiddenPrivate,"private header controls hidden");
   const catalogReady=await evaluate("document.querySelectorAll('.find-card').length>0");
   if(!catalogReady&&process.env.ATLAS_AUDIT_REQUIRE_CATALOG==='1')throw Error('Fresh published catalog cards are required for this release audit. Import, review and publish a real merchant snapshot before retrying.');
@@ -152,7 +152,7 @@ try {
   await check("fetch('/api/account',{cache:'no-store'}).then(r=>r.status===200)","guest link sign-in creates an authenticated local session");
   await signOut();
   await visit('/');
-  await check("location.pathname==='/' && !!document.querySelector('.guest-intro')","guest link audit restores the guest session");
+  await check("location.pathname==='/' && !!document.querySelector('.home-hero')","guest link audit restores the guest session");
   await visit('/');
   if(catalogReady){
     await check("document.querySelectorAll('.find-card').length>0","catalog cards reload after sign-out");
@@ -166,16 +166,16 @@ try {
     await check("!!document.querySelector('.product-sheet') && !!document.querySelector('.sheet-total a[href^=\"/login\"]')","guest product asks for sign-in");
     await evaluate("document.querySelector('button[aria-label=\"Закрыть карточку\"]').click()");
   }
-  await evaluate("(()=>{const el=document.querySelector('.locale-select');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(el,'en');el.dispatchEvent(new Event('change',{bubbles:true}))})()");
-  await check("document.documentElement.lang==='en' && document.querySelector('.guest-intro h1').textContent.includes('Shop international stores')","guest language works without saving an account");
-  await check("document.querySelector('.hero-link-form button')?.textContent.includes('Calculate') && document.querySelector('.hero-link-note')?.textContent.includes('no sign-in')","guest link CTA is honest in English");
+  await evaluate("document.querySelector('.lang-switch button[lang=en]').click()");
+  await check("document.documentElement.lang==='en' && document.querySelector('.home-hero h1').textContent.includes('Shop any store in the world')","guest language works without saving an account");
+  await check("document.querySelector('.home-link-form button')?.textContent.includes('Calculate') && document.querySelector('.home-link-note')?.textContent.includes('no sign-up')","guest link CTA is honest in English");
   if(catalogReady){
     await evaluate("document.querySelector('.find-photo').click()");
     await check("document.querySelector('.product-sheet')?.textContent.includes('Cost calculation')","product details localize to English");
     await evaluate("document.querySelector('button[aria-label=\"Close item details\"]').click()");
   }
-  await evaluate("(()=>{const el=document.querySelector('.locale-select');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(el,'uz');el.dispatchEvent(new Event('change',{bubbles:true}))})()");
-  await check("document.documentElement.lang==='uz' && document.querySelector('.hero-link-form button')?.textContent.includes('Hisoblash')","guest link CTA localizes to Uzbek");
+  await evaluate("document.querySelector('.lang-switch button[lang=uz]').click()");
+  await check("document.documentElement.lang==='uz' && document.querySelector('.home-link-form button')?.textContent.includes('Hisoblash')","guest link CTA localizes to Uzbek");
   if(catalogReady){
     await evaluate("document.querySelector('.find-photo').click()");
     await check("document.querySelector('.product-sheet')?.textContent.includes('Narx hisobi')","product details localize to Uzbek");
@@ -183,7 +183,7 @@ try {
   }
   await visit('/');
   await check("document.documentElement.lang==='uz'","guest language survives reload");
-  await evaluate("(()=>{const el=document.querySelector('.locale-select');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(el,'ru');el.dispatchEvent(new Event('change',{bubbles:true}))})()");
+  await evaluate("document.querySelector('.lang-switch button[lang=ru]').click()");
   await check("document.documentElement.lang==='ru'","guest language switches back to Russian");
   const protectedRoutes=['account','favorites','cart','orders','balance','notifications','identity','declaration','batch-import','order-by-link','admin','operations','analytics'];
   for(const route of protectedRoutes){
@@ -202,7 +202,7 @@ try {
   await visit("/order-by-link");
   await check("!!document.querySelector(\'#source-url\') && !document.querySelector(\'#source-url\').disabled","authenticated product form opens");
   await visit('/');
-  await check(`!!document.querySelector('header a[href=\"/cart\"]') && !document.querySelector('.hero-link-note')?.textContent.includes('без входа') && ${catalogReady?"!!document.querySelector('.find-save')":"!!document.querySelector('.hero-link-form')"}`,"member home differs from guest");
+  await check(`!!document.querySelector('header a[href=\"/cart\"]') && !document.querySelector('.home-link-note')?.textContent.includes('без регистрации') && ${catalogReady?"!!document.querySelector('.find-save')":"!!document.querySelector('.home-link-form')"}`,"member home differs from guest");
   if (process.env.ATLAS_AUDIT_IMPORT === '1') {
     await visit('/order-by-link?url='+encodeURIComponent('https://www.stevemadden.com/products/possession-black'));
     await check("!!document.querySelector('#source-url') && !document.querySelector('#source-url').disabled",'import ready');
@@ -286,14 +286,14 @@ try {
    const mobile=width<600;
    await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:mobile?3:1,mobile},sessionId);
    await visit('/');
-   await check("!!document.querySelector('.guest-intro')","responsive guest "+width);
+   await check("!!document.querySelector('.home-hero')","responsive guest "+width);
    await check("document.documentElement.scrollWidth<=innerWidth+1","no horizontal overflow "+width);
    if(mobile){
     await check("document.querySelector('meta[name=viewport]')?.content.includes('viewport-fit=cover')","iPhone edge-to-edge viewport "+width);
     await check("(()=>{const header=document.querySelector('.site-header');return header.scrollWidth<=header.clientWidth+1})()","iPhone header fits viewport "+width);
     await check("(()=>{const input=document.querySelector('#finds-product-url');const style=getComputedStyle(input);return parseFloat(style.fontSize)>=16&&parseFloat(style.minHeight)>=48})()","iPhone form fields avoid zoom and remain tappable "+width);
-    await check("getComputedStyle(document.querySelector('.mobile-nav')).display==='grid'","mobile navigation visible "+width);
-    await check("(()=>{const nav=document.querySelector('.mobile-nav');const main=document.querySelector('main');const probe=document.createElement('div');probe.className='cart-mobile-sticky';probe.style.height='60px';main.append(probe);const clear=probe.getBoundingClientRect().bottom<=nav.getBoundingClientRect().top+1;probe.remove();return clear})()","cart action clears bottom navigation "+width);
+    // Guests sign in from the header, so the bottom bar (members only) must not duplicate it.
+    await check("!document.querySelector('.mobile-nav')","guest mobile has no duplicate bottom navigation "+width);
    }
    await mkdir('outputs/ui-audit',{recursive:true});
    const shot=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},sessionId);
