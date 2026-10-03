@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "@/components/site-link";
 import { ArrowRight, ArrowUpRight, Check, ClipboardPaste, Clock3, Info, Loader2, MapPin, Minus, Plus, ShieldCheck, ShoppingBag, Store } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,6 +16,7 @@ import { Modal, ProductImage } from "./market-ui";
 import { SafeDeleteButton } from "./safe-delete-button";
 import { cities, regions, streets, suggestions } from "@/lib/market/addresses";
 import { CustomsEstimate } from "./customs-estimate";
+import { SummaryLine } from "./price-summary";
 
 const emptyDelivery: DeliveryProfile = { recipient: "", phone: "", region: "Ташкент", city: "Ташкент", address: "", postalCode: "", comment: "" };
 
@@ -36,17 +37,6 @@ function CheckoutSteps({ current, c }: { current: number; c: CartCopy }) {
     <li key={step} data-state={index < current ? "done" : index === current ? "current" : "next"} aria-current={index === current ? "step" : undefined}>
       <span aria-hidden="true">{index < current ? <Check size={13} /> : index + 1}</span>{step}
     </li>)}</ol>;
-}
-
-/** One summary row; an optional help text opens below it instead of a floating popover. */
-function SummaryLine({ label, amount, locale, help, helpLabel, negative = false }: { label: string; amount: number; locale: Locale; help?: string; helpLabel?: string; negative?: boolean }) {
-  const [open, setOpen] = useState(false);
-  const id = useId();
-  return <div className="basket-line">
-    <span className="basket-line-label">{label}{help && <button type="button" className="basket-help" aria-label={helpLabel} aria-expanded={open} aria-controls={id} onClick={() => setOpen(value => !value)}><Info size={15} aria-hidden="true" /></button>}</span>
-    <b>{negative ? "−" : ""}{formatSum(amount, locale)}</b>
-    {help && open && <p id={id} className="basket-line-help">{help}</p>}
-  </div>;
 }
 
 export function CartView() {

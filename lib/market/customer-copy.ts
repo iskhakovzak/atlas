@@ -558,3 +558,63 @@ export const noticesCopy: Record<Locale, NoticesCopy> = {
     signin: { title: 'Sign in to open notifications', text: 'Atlas messages are saved in your profile.', action: 'Sign in' }, loading: 'Loading notifications…',
   },
 };
+
+export type LinkOrderCopy = {
+  title: string;
+  lead: string;
+  leadLoaded: string;
+  label: string;
+  placeholder: string;
+  calculate: string;
+  loading: string;
+  hint: string;
+  stores: string;
+  batch: string;
+  openStore: string;
+  change: string;
+  storePrice: string;
+  checkedAt: (time: string) => string;
+  unconfirmed: string;
+  total: string;
+  emptyTotal: string;
+  data: string;
+  dataHint: string;
+  shippingReserve: string;
+  storeShipping: (amount: string) => string;
+  kg: string;
+  add: string;
+  addShort: string;
+  signinAdd: string;
+  guest: string;
+  details: string;
+};
+
+export const linkOrderCopy: Record<Locale, LinkOrderCopy> = {
+  ru: {
+    title: 'Заказ по ссылке', lead: 'Вставьте ссылку на товар из любого магазина — посчитаем итог с доставкой до Ташкента.', leadLoaded: 'Выберите вариант и проверьте расчёт.',
+    label: 'Ссылка на товар', placeholder: 'Вставьте ссылку на товар', calculate: 'Рассчитать', loading: 'Загружаем цену и варианты из магазина…',
+    hint: 'Нужна ссылка на страницу товара: Nike, Zara, Amazon, eBay и другие магазины.', stores: 'Где это работает', batch: 'Добавить несколько ссылок',
+    openStore: 'Открыть в магазине', change: 'Другая ссылка', storePrice: 'Цена в магазине', checkedAt: time => `проверено в ${time}`,
+    unconfirmed: 'Магазин не подтвердил все данные — проверьте их ниже.', total: 'Итого с доставкой до Ташкента', emptyTotal: 'Укажите цену и вес — покажем итог.',
+    data: 'Данные для расчёта', dataHint: 'Откройте, если что-то не совпадает со страницей магазина.', shippingReserve: 'доставка магазина: резерв', storeShipping: amount => `доставка магазина ${amount}`, kg: 'кг',
+    add: 'Добавить в корзину', addShort: 'В корзину', signinAdd: 'Войти и продолжить', guest: 'Расчёт доступен без входа. Чтобы добавить товар в корзину, понадобится войти.', details: 'Подробности загрузки',
+  },
+  uz: {
+    title: 'Havola orqali buyurtma', lead: 'Istalgan do‘kondagi tovar havolasini qo‘ying — Toshkentgacha yetkazish bilan jami summani hisoblaymiz.', leadLoaded: 'Variantni tanlang va hisobni tekshiring.',
+    label: 'Tovar havolasi', placeholder: 'Tovar havolasini qo‘ying', calculate: 'Hisoblash', loading: 'Do‘kondan narx va variantlar yuklanmoqda…',
+    hint: 'Tovar sahifasi havolasi kerak: Nike, Zara, Amazon, eBay va boshqa do‘konlar.', stores: 'Qayerlarda ishlaydi', batch: 'Bir nechta havola qo‘shish',
+    openStore: 'Do‘konda ochish', change: 'Boshqa havola', storePrice: 'Do‘kondagi narx', checkedAt: time => `${time} da tekshirildi`,
+    unconfirmed: 'Do‘kon barcha ma’lumotlarni tasdiqlamadi — quyida tekshiring.', total: 'Toshkentgacha yetkazish bilan jami', emptyTotal: 'Narx va vaznni kiriting — jami summani ko‘rsatamiz.',
+    data: 'Hisob uchun ma’lumotlar', dataHint: 'Do‘kon sahifasiga mos kelmasa, oching.', shippingReserve: 'do‘kon yetkazishi: zaxira', storeShipping: amount => `do‘kon yetkazishi ${amount}`, kg: 'kg',
+    add: 'Savatga qo‘shish', addShort: 'Savatga', signinAdd: 'Kirish va davom etish', guest: 'Hisobni kirmasdan ko‘rish mumkin. Tovarni savatga qo‘shish uchun kirish kerak.', details: 'Yuklash tafsilotlari',
+  },
+  en: {
+    title: 'Order by link', lead: 'Paste a product link from any store — we will calculate the total with delivery to Tashkent.', leadLoaded: 'Choose an option and review the estimate.',
+    label: 'Product link', placeholder: 'Paste a product link', calculate: 'Calculate', loading: 'Loading price and options from the store…',
+    hint: 'Use a product page link: Nike, Zara, Amazon, eBay and other stores.', stores: 'Where it works', batch: 'Add several links',
+    openStore: 'Open in store', change: 'Another link', storePrice: 'Store price', checkedAt: time => `checked at ${time}`,
+    unconfirmed: 'The store did not confirm every detail — review them below.', total: 'Total with delivery to Tashkent', emptyTotal: 'Enter a price and weight to see the total.',
+    data: 'Calculation details', dataHint: 'Open if anything differs from the store page.', shippingReserve: 'store delivery: reserve', storeShipping: amount => `store delivery ${amount}`, kg: 'kg',
+    add: 'Add to cart', addShort: 'Add', signinAdd: 'Sign in and continue', guest: 'You can see the estimate without signing in. Sign in to add the item to your cart.', details: 'Import details',
+  },
+};
