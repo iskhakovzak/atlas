@@ -13,6 +13,7 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern outputs --ignore-pattern .sites-runtime --ignore-pattern .sites-checkout-*",
     "smoke:ui": "node scripts/smoke-ui.mjs",
     "smoke:auth": "node --experimental-strip-types scripts/smoke-auth.mjs",
+    "e2e": "node --experimental-strip-types scripts/e2e.mjs",
     "catalog:refresh": "node scripts/catalog-refresh.mjs",
     "importer:check": "node --experimental-strip-types scripts/check-merchant-imports.mjs",
     "db:generate": "drizzle-kit generate"
