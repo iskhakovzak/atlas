@@ -1,14 +1,6 @@
 /* Homepage only: one spacing scale, clear sections and a shorter initial catalog. */
 .catalog-home { --home-gap:clamp(28px,4vw,52px); }
 .catalog-home .finds-page { scroll-margin-top:100px; padding-top:24px; }
-.catalog-home .finds-heading { margin:0 0 24px; align-items:flex-end; }
-.catalog-home .finds-heading h1,.catalog-home .finds-page .finds-heading h2 { font-size:clamp(28px,3vw,42px); line-height:1.14; letter-spacing:-.04em; margin:9px 0 12px; max-width:32ch; }
-.catalog-home .finds-heading p { max-width:62ch; margin:0; font-size:15px; line-height:1.6; }
-.catalog-home .finds-controls { padding:18px; border-radius:16px; background:var(--atlas-surface); }
-.catalog-home .finds-categories { padding:14px 0; margin-bottom:12px; gap:8px; }
-.catalog-home .finds-categories button { min-height:44px; }
-.catalog-home .finds-filter-primary { margin-top:0; }
-.catalog-home .finds-result { min-height:54px; }
 .catalog-home .finds-grid { gap:20px; }
 .catalog-home .find-card { border-radius:16px; }
 .catalog-home .finds-grid .find-photo { aspect-ratio:1.18; }
@@ -33,18 +25,8 @@
 }
 @media(max-width:600px) {
   .catalog-home { padding-inline:16px; }
-  .catalog-home .finds-heading { align-items:flex-start; gap:12px; }
-  .catalog-home .finds-heading h1,.catalog-home .finds-heading h2 { font-size:29px; }
-  .catalog-home .finds-heading p { font-size:14px; }
-  .catalog-home .finds-controls { padding:12px; }
-  .catalog-home .finds-categories { margin-bottom:10px; padding-block:12px; scrollbar-width:thin; }
-  .catalog-home .finds-filter-primary { grid-template-columns:minmax(0,1fr) auto; align-items:end; gap:8px; }
-  .catalog-home .finds-sort-control { min-width:0; }
-  .catalog-home .finds-sort-control .select-control { padding-inline:9px; }
   .catalog-home .catalog-filter-disclosure { width:auto!important; position:static; }
   .catalog-home .catalog-filter-disclosure>summary { min-width:0!important; min-height:48px!important; padding-inline:11px!important; }
-  .catalog-home .finds-filter-panel { margin-top:12px; }
-  .catalog-home .finds-filter-primary:has(.catalog-filter-disclosure[open]) { grid-template-columns:1fr; }
   .catalog-home .finds-grid { gap:12px; }
   .catalog-home .find-content { padding:12px; }
   .catalog-home .find-meta { font-size:10px; gap:5px; flex-wrap:wrap; }

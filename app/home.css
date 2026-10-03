@@ -79,7 +79,7 @@ html[data-theme="dark"] .home-link-error { color: #ffb4a8; }
 
 /* Sections. */
 .home-section { padding: 40px 0; border-top: 1px solid var(--home-line); scroll-margin-top: 88px; }
-.home-section h2, .catalog-home .finds-heading h2 { margin: 0 0 8px; color: var(--home-ink); font-size: clamp(24px, 4.6vw, 36px); line-height: 1.15; letter-spacing: -.02em; }
+.home-section h2 { margin: 0 0 8px; color: var(--home-ink); font-size: clamp(24px, 4.6vw, 36px); line-height: 1.15; letter-spacing: -.02em; }
 .home-section-lead { max-width: 660px; margin: 0 0 20px; color: var(--home-muted); line-height: 1.55; }
 .home-note { margin: 12px 0 0; color: var(--home-muted); font-size: 13px; line-height: 1.55; }
 .home-missing { margin: 12px 0 0; padding: 10px 12px; border: 1.5px dashed #c58a00; border-radius: 10px; background: #fff8e6; color: #6b4e00; font-size: 13px; line-height: 1.45; }

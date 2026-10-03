@@ -1,5 +1,19 @@
 # Atlas TODO and known limitations
 
+## Catalog and filters — 4 October 2026
+
+The public catalog had 6 products, so the home section (shown from 8) never appeared; filters were hidden below 16 products, lived only in component state and did not separate real data (every product ships from the US; budget steps of 1–2 million soum against products of 275–500 thousand).
+
+- [x] `/catalog` page with filters in the address (category, store, delivered price, size, duty-free, on sale, current price, sort, collection), counts next to every option, a filter sheet on phones and a sidebar from 1024 px, two cards per row on phones; the home page shows a teaser from 4 products.
+- [x] Duty-free awareness: the remaining $200 allowance of the primary recipient this month, a filter that uses it and a mark on cards above it.
+- [x] "With your parcel": for stores already in the cart, cards show what the product would add to the cart total (priced by `repriceCart`).
+- [x] Empty results suggest which single filter to drop; the catalog ends with "order by link" and the store directory.
+- [ ] Product cards are rendered on the client after `/api/catalog`; the server HTML of `/catalog` has the heading, filters and placeholders but no product names. Server-rendering the first page of products would help search engines.
+- [ ] The unconfirmed store-shipping reserve ($10) is charged per cart line even when several products come from one store; a per-store-parcel reserve would make "add to your parcel" much cheaper. Product decision: it changes quotes and refunds.
+- [ ] The allowance follows the primary recipient; a recipient switcher in the catalog would help households that order for several people.
+- [ ] Sizes come from the store's own size list. US stores mix systems (men's/women's, "US 9" and "9"); "US " is normalized, but there is no conversion to EU/UZ sizes yet.
+- [ ] `scripts/audit-ui.mjs` (not run in CI) still expects the old home catalog and the pre-#8 guest order link; `npm run e2e` covers the same ground. Update or remove it.
+- [ ] The live catalog in production has 6 products, 4 of them waiting for a price check: the catalog becomes useful only once operators publish more items (Administration → Catalog).
 ## Post-merge review and polish — 3 October 2026
 
 Checked `main` at `fedd1e7` (the squash of #8), then fixed the findings on `fix/post-merge-polish`. lint, `tsc --noEmit`, all tests, the build, `smoke:ui`, `smoke:auth` (live import skipped locally) and `npm run e2e` pass; the e2e audit covers customer, guest and operator pages at 390 and 1280 px in both themes.

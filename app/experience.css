@@ -1,11 +1,6 @@
 /* Shared hierarchy: scan first, open details when needed. */
 .catalog-filter-disclosure > summary { display:flex; align-items:center; gap:8px; cursor:pointer; font-size:.875rem; color:#173c66; padding:12px 0 0; }
 .catalog-filter-disclosure[open] > summary { margin-bottom:12px; }
-@media(max-width:600px) {
- .finds-categories { flex-wrap:nowrap; overflow-x:auto; padding-bottom:6px; }
- .finds-categories button { flex-shrink:0; }
- .finds-heading p { font-size:.875rem; }
-}
 .ux-disclosure { margin: 16px 0; border: 1px solid #dbe3ed; border-radius: 16px; padding: 16px 20px; background: #fff; }
 .ux-disclosure > summary { cursor: pointer; font-size: 1rem; font-weight: 600; color: #173c66; }
 .ux-disclosure[open] > summary { margin-bottom: 16px; }
@@ -49,10 +44,6 @@
 .notice-filters button.active { background:#173c66; border-color:#173c66; color:white; }
 .checkout-review p { margin:6px 0; }
 .checkout-review hr { border-color:#dbe3ed; margin:20px 0; }
-.finds-heading { margin-bottom:20px; }
-.finds-heading .eyebrow { display:block; margin-bottom:10px; }
-.finds-heading p { max-width:65ch; }
-@media(max-width:600px) { .finds-heading { gap:8px; } }
 @media(max-width:700px) { .catalog-review-controls { flex-direction:column; } }
 button:focus-visible,a:focus-visible,summary:focus-visible { outline:3px solid #4388d1; outline-offset:4px; }
 @media(max-width:700px) {
@@ -65,7 +56,6 @@ button:focus-visible,a:focus-visible,summary:focus-visible { outline:3px solid #
  .catalog-customs-note { font-size:.75rem; max-width:65%; text-align:right; }
  .header-actions .operator-entry { display:none; }
  .ux-disclosure { padding:16px; }
- .finds-filter-row { gap:8px; }
 }
 
 /* Commerce direction A: shared scale and a calmer shopping surface. */
@@ -74,11 +64,10 @@ body{background:#fff;color:var(--atlas-ink);font-size:var(--atlas-type-body)}
 .site-header{min-height:80px;border-bottom:1px solid var(--atlas-line);box-shadow:none}
 .desktop-nav a.active{color:var(--atlas-ink);border-color:var(--atlas-ink)}
 .eyebrow{color:#50617f;font-size:var(--atlas-type-meta);letter-spacing:.16em}
-.page-heading h1,.finds-heading h1{font-size:var(--atlas-type-page);line-height:1.08;letter-spacing:-.045em}
-.page-heading p,.finds-heading p{max-width:62ch;line-height:1.6}
+.page-heading h1{font-size:var(--atlas-type-page);line-height:1.08;letter-spacing:-.045em}
+.page-heading p{max-width:62ch;line-height:1.6}
 .catalog-toolbar{border-top:1px solid var(--atlas-line);padding-top:32px}
 .catalog-toolbar h2, .section-heading h2{font-size:var(--atlas-type-section);letter-spacing:-.035em}
-.finds-categories button{border-radius:5px;min-height:44px}
 .find-card{display:flex;flex-direction:column;min-width:0;border:1px solid var(--atlas-line);border-radius:16px;box-shadow:0 4px 18px #1423440a;background:var(--atlas-surface,#fff);overflow:hidden}
 .find-card:hover{box-shadow:0 10px 28px #14234412;transform:translateY(-2px)}
 .find-visual{border-radius:15px 15px 0 0;overflow:hidden;background:#f3f5f8}
@@ -188,9 +177,7 @@ a, button, input, textarea, select, summary, .surface, .find-card{transition:col
 /* One compact hierarchy for the store strip; green is Atlas UI, blue remains for merchant-source links. */
 
 /* Atlas forest is the interface/action accent; retain clear blue for off-site merchant links. */
-.finds-count{background:var(--atlas-soft);border-color:var(--atlas-line);color:var(--atlas-ink)}
-.find-title:hover, .find-breakdown>summary, .finds-result .text-button, .finds-signin a{color:var(--atlas-blue)}
-.finds-categories button.active{background:var(--primary);border-color:var(--primary);color:var(--primary-foreground)}
+.find-title:hover, .find-breakdown>summary, .finds-signin a{color:var(--atlas-blue)}
 .find-total>strong{color:var(--atlas-ink)}
 
 /* Mobile operator access and admin tables: override the older fixed 90px columns. */

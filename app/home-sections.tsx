@@ -72,7 +72,7 @@ export function HomeHero({showCatalogLink}:{showCatalogLink:boolean}){
    <p className="home-stores-label">{c.hero.popular}</p>
    <ul>{heroStores.map(store=><li key={store.name}><a href={store.url} target="_blank" rel="noopener noreferrer"><span className="home-store-mark" aria-hidden="true">{store.name[0]}</span>{store.name}<span className="sr-only"> ({c.hero.openStore})</span></a></li>)}</ul>
   </div>
-  <div className="home-hero-links"><Link href="/batch-import">{c.hero.batch}<ArrowRight size={16} aria-hidden="true"/></Link>{showCatalogLink&&<a href="#finds">{c.hero.catalog}<ArrowRight size={16} aria-hidden="true"/></a>}</div>
+  <div className="home-hero-links"><Link href="/batch-import">{c.hero.batch}<ArrowRight size={16} aria-hidden="true"/></Link>{showCatalogLink&&<Link href="/catalog">{c.hero.catalog}<ArrowRight size={16} aria-hidden="true"/></Link>}</div>
  </section>;
 }
 

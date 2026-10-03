@@ -9,7 +9,7 @@ import type {SessionStatus} from './access';
 import {keepCatalogVisible,visibleMerchantFinds,type MerchantFind} from './catalog';
 import type {CatalogCollection} from './catalog-editor';
 export type AccountUser={name:string;email:string;contact?:string;method?:'email'|'phone'|'telegram'|'google';operator:boolean;createdAt:number};
-type Store={catalogProducts:MerchantFind[];collections:Array<CatalogCollection&{productIds:string[]}>;catalogError:string;loadCatalog:(force?:boolean)=>Promise<void>;state:State;pricing:Pricing;policy:Policy;ready:boolean;status:SessionStatus;error:string|null;user:AccountUser|null;setLocale:(locale:Locale)=>void;act:(action:Action)=>Promise<boolean>;refresh:()=>Promise<void>};
+type Store={catalogProducts:MerchantFind[];/** The public catalog request finished (with or without data). */catalogReady:boolean;collections:Array<CatalogCollection&{productIds:string[]}>;catalogError:string;loadCatalog:(force?:boolean)=>Promise<void>;state:State;pricing:Pricing;policy:Policy;ready:boolean;status:SessionStatus;error:string|null;user:AccountUser|null;setLocale:(locale:Locale)=>void;act:(action:Action)=>Promise<boolean>;refresh:()=>Promise<void>};
 const Context=createContext<Store|null>(null);
 const marketMessages:Record<Locale,{catalogLoad:string;accountLoad:string;connection:string;signin:string;sessionEnded:string;saveFailed:string;actionConnection:string}>={
   ru:{catalogLoad:'Не удалось обновить витрину. Сохранённые ссылки остаются доступны; актуальную цену нужно подтвердить перед заказом.',accountLoad:'Не удалось загрузить кабинет. Повторите попытку.',connection:'Не удалось связаться с сервером. Проверьте подключение и повторите попытку.',signin:'Войдите, чтобы сохранить изменения.',sessionEnded:'Сессия завершилась. Войдите снова, чтобы продолжить.',saveFailed:'Не удалось сохранить изменения.',actionConnection:'Ответ сервера не получен. Проверяем состояние заказа.'},
@@ -19,7 +19,7 @@ const marketMessages:Record<Locale,{catalogLoad:string;accountLoad:string;connec
 // initialLocale comes from the server (saved cookie, Accept-Language, then the Uzbek default),
 // so the first render already matches the server HTML.
 export function MarketProvider({children,initialLocale='uz'}:{children:ReactNode;initialLocale?:Locale}) {
- const [catalogProducts,setCatalogProducts]=useState<MerchantFind[]>(()=>visibleMerchantFinds()),[collections,setCollections]=useState<Array<CatalogCollection&{productIds:string[]}>>([]),[catalogError,setCatalogError]=useState('');
+ const [catalogProducts,setCatalogProducts]=useState<MerchantFind[]>(()=>visibleMerchantFinds()),[collections,setCollections]=useState<Array<CatalogCollection&{productIds:string[]}>>([]),[catalogError,setCatalogError]=useState(''),[catalogReady,setCatalogReady]=useState(false);
  const [state,setState]=useState<State>(()=>{const initial=blank();return {...initial,communication:{...initial.communication,language:initialLocale}}}),[pricing,setPricing]=useState<Pricing>(tariff),[policy,setPolicy]=useState<Policy>(defaultPolicy),[status,setStatus]=useState<SessionStatus>('loading'),[error,setError]=useState<string|null>(null),[user,setUser]=useState<AccountUser|null>(null);
  const revision=useRef(0),busy=useRef(false),generation=useRef(0),localeRef=useRef<Locale>(initialLocale),serverLocaleRef=useRef<Locale>('ru'),localeSyncRef=useRef<Locale|null>(null);
  const catalogLoaded=useRef(false),catalogRequest=useRef<Promise<void>|null>(null);
@@ -40,7 +40,7 @@ export function MarketProvider({children,initialLocale='uz'}:{children:ReactNode
     const publicPricing=pricingSchema.safeParse(data.pricing);
     if(publicPricing.success)setPricing(publicPricing.data);
    }catch{setCatalogError(marketMessages[localeRef.current].catalogLoad)}
-   finally{catalogRequest.current=null}
+   finally{catalogRequest.current=null;setCatalogReady(true)}
   })();
   catalogRequest.current=request;
   return request;
@@ -125,6 +125,6 @@ export function MarketProvider({children,initialLocale='uz'}:{children:ReactNode
   try{localStorage.setItem('atlas-language',next)}catch{}
   setLocaleCookie(next);
  },[]);
- return <Context.Provider value={{catalogProducts,collections,catalogError,loadCatalog,state,pricing,policy,ready,status,error,user,setLocale,act,refresh}}>{children}</Context.Provider>;
+ return <Context.Provider value={{catalogProducts,catalogReady,collections,catalogError,loadCatalog,state,pricing,policy,ready,status,error,user,setLocale,act,refresh}}>{children}</Context.Provider>;
 }
 export function useMarket(){const c=useContext(Context);if(!c)throw Error('MarketProvider missing');return c}

@@ -226,13 +226,23 @@ try {
 
   // 1. Guest: public pages, language versions and the link calculator.
   await setViewport(1280); await open("/"); await setPreferences("light");
-  for (const path of ["/", "/stores", "/customs", "/legal", "/login", "/order-by-link", "/e2e-missing-page"]) await snapshot("guest", path);
-  for (const [path, locale] of [["/?lang=uz", "uz"], ["/stores?lang=en", "en"], ["/customs?lang=ru", "ru"]]) {
+  for (const path of ["/", "/catalog", "/catalog?cat=shoes&sort=cheap", "/stores", "/customs", "/legal", "/login", "/order-by-link", "/e2e-missing-page"]) await snapshot("guest", path);
+  for (const [path, locale] of [["/?lang=uz", "uz"], ["/catalog?lang=en", "en"], ["/stores?lang=en", "en"], ["/customs?lang=ru", "ru"]]) {
     await open(path);
     const seen = await evaluate("({ lang: document.documentElement.lang, title: document.title, canonical: document.querySelector('link[rel=canonical]')?.getAttribute('href') })");
     if (seen.lang !== locale) fail(`guest ${path}`, `html lang is ${seen.lang}, expected ${locale}`);
     if (!seen.canonical?.endsWith(path)) fail(`guest ${path}`, `canonical ${seen.canonical} is not self-referencing`);
   }
+  // Catalog filters: a category narrows the list and lands in the address; the address restores it.
+  await open("/catalog?lang=ru");
+  await eventually("document.querySelectorAll('.catalog-results .find-card:not(.catalog-skeleton-card)').length > 0", "catalog products");
+  const catalogTotal = await evaluate("document.querySelectorAll('.catalog-results .find-card:not(.catalog-skeleton-card)').length");
+  await evaluate("[...document.querySelectorAll('.catalog-categories button')].find((button) => button.getAttribute('aria-pressed') === 'false' && !button.dataset.empty)?.click(), true");
+  await eventually("new URLSearchParams(location.search).has('cat') && new URLSearchParams(location.search).get('lang') === 'ru'", "category kept in the address with the language");
+  const filtered = await evaluate("({ cat: new URLSearchParams(location.search).get('cat'), shown: document.querySelectorAll('.catalog-results .find-card:not(.catalog-skeleton-card)').length })");
+  if (!(filtered.shown > 0 && filtered.shown <= catalogTotal)) fail("guest /catalog", `category ${filtered.cat} shows ${filtered.shown} of ${catalogTotal}`);
+  await open(`/catalog?cat=${filtered.cat}`);
+  await eventually(`document.querySelector('.catalog-categories [aria-pressed=true]') && document.querySelectorAll('.catalog-results .find-card:not(.catalog-skeleton-card)').length === ${filtered.shown}`, "category restored from the address");
   await open("/order-by-link");
   if (!(await evaluate("!!document.querySelector('main input')"))) fail("guest /order-by-link", "link field missing");
 
@@ -267,7 +277,7 @@ try {
   const orderId = await evaluate("fetch('/api/account').then((r) => r.json()).then((a) => a.state.orders[0].id)");
   await open("/orders");
   await eventually(`document.querySelector('main').textContent.includes(${JSON.stringify(orderId)})`, "order shown in My orders");
-  for (const path of ["/orders", "/account", "/notifications", "/balance", "/identity", "/declaration", "/favorites"]) await snapshot("customer", path);
+  for (const path of ["/orders", "/account", "/notifications", "/balance", "/identity", "/declaration", "/favorites", "/catalog"]) await snapshot("customer", path);
 
   // 3. Operator pages.
   await setViewport(1280); await setPreferences("light"); await signIn(operatorEmail);

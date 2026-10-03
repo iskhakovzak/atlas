@@ -21,7 +21,7 @@ type Step = { title: string; text: string };
 type Faq = { q: string; a: string };
 
 export type HomeCopy = {
-  nav: { stores: string; how: string; tariffs: string; orders: string; signin: string; account: string; language: string };
+  nav: { catalog: string; stores: string; how: string; tariffs: string; orders: string; signin: string; account: string; language: string };
   hero: { title: string; lead: string; label: string; placeholder: string; calculate: string; invalid: string; guestNote: string; memberNote: string; popular: string; openStore: string; batch: string; catalog: string };
   how: { title: string; steps: [Step, Step, Step, Step]; paymentsLabel: string; pickupLabel: string };
   example: { title: string; lead: string; product: string; meta: string; item: string; service: string; serviceDetail: (percent: string) => string; delivery: string; reserve: string; reserveHelpLabel: string; reserveHelp: string; total: string; note: string };
@@ -35,7 +35,7 @@ export type HomeCopy = {
 
 export const homeCopy: Record<Locale, HomeCopy> = {
   ru: {
-    nav: { stores: 'Магазины', how: 'Как это работает', tariffs: 'Тарифы', orders: 'Мои заказы', signin: 'Войти', account: 'Кабинет', language: 'Язык сайта' },
+    nav: { catalog: 'Каталог', stores: 'Магазины', how: 'Как это работает', tariffs: 'Тарифы', orders: 'Мои заказы', signin: 'Войти', account: 'Кабинет', language: 'Язык сайта' },
     hero: {
       title: 'Покупайте в любых магазинах мира — доставим в Узбекистан',
       lead: 'Вставьте ссылку на товар — сразу покажем итог в сумах. Цена товара, сервис и доставка — отдельными строками, без скрытых комиссий.',
@@ -105,7 +105,7 @@ export const homeCopy: Record<Locale, HomeCopy> = {
     sticky: { paste: 'Вставить ссылку' },
   },
   uz: {
-    nav: { stores: 'Do‘konlar', how: 'Qanday ishlaydi', tariffs: 'Tariflar', orders: 'Buyurtmalarim', signin: 'Kirish', account: 'Kabinet', language: 'Sayt tili' },
+    nav: { catalog: 'Katalog', stores: 'Do‘konlar', how: 'Qanday ishlaydi', tariffs: 'Tariflar', orders: 'Buyurtmalarim', signin: 'Kirish', account: 'Kabinet', language: 'Sayt tili' },
     hero: {
       title: 'Dunyoning istalgan do‘konidan xarid qiling — O‘zbekistonga yetkazib beramiz',
       lead: 'Tovar havolasini qo‘ying — yakuniy narxni darhol so‘mda ko‘rsatamiz. Tovar narxi, xizmat va yetkazib berish alohida satrlarda, yashirin komissiyalarsiz.',
@@ -175,7 +175,7 @@ export const homeCopy: Record<Locale, HomeCopy> = {
     sticky: { paste: 'Havolani qo‘yish' },
   },
   en: {
-    nav: { stores: 'Stores', how: 'How it works', tariffs: 'Rates', orders: 'My orders', signin: 'Sign in', account: 'Account', language: 'Site language' },
+    nav: { catalog: 'Catalog', stores: 'Stores', how: 'How it works', tariffs: 'Rates', orders: 'My orders', signin: 'Sign in', account: 'Account', language: 'Site language' },
     hero: {
       title: 'Shop any store in the world — we deliver to Uzbekistan',
       lead: 'Paste a product link and see the total in soum right away. Item price, service and delivery on separate lines, with no hidden fees.',
