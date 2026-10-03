@@ -43,6 +43,29 @@ export function formatLongDate(timestamp: number, locale: Locale) {
   return date.toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+/** Short date with time, year only when it is not the current one: "3 октября, 14:05" / "3-oktabr, 14:05". */
+export function formatDateTime(timestamp: number, locale: Locale, now = Date.now()) {
+  const date = new Date(timestamp), sameYear = date.getFullYear() === new Date(now).getFullYear();
+  const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+  if (locale === 'uz') return `${date.getDate()}-${uzMonths[date.getMonth()]}${sameYear ? '' : ` ${date.getFullYear()}-yil`}, ${time}`;
+  const day = date.toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-US', sameYear ? { day: 'numeric', month: 'long' } : { day: 'numeric', month: 'long', year: 'numeric' });
+  return `${day}, ${time}`;
+}
+
+/** Date without time, year only when it is not the current one: "3 октября" / "3-oktabr". */
+export function formatShortDate(timestamp: number, locale: Locale, now = Date.now()) {
+  const date = new Date(timestamp), sameYear = date.getFullYear() === new Date(now).getFullYear();
+  if (locale === 'uz') return `${date.getDate()}-${uzMonths[date.getMonth()]}${sameYear ? '' : ` ${date.getFullYear()}-yil`}`;
+  return date.toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-US', sameYear ? { day: 'numeric', month: 'long' } : { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+/** "3 заказа" / "3 ta buyurtma" / "3 orders". */
+export function orderCount(count: number, locale: Locale) {
+  if (locale === 'ru') return `${count} ${ruPlural(count, 'заказ', 'заказа', 'заказов')}`;
+  if (locale === 'uz') return `${count} ta buyurtma`;
+  return `${count} ${count === 1 ? 'order' : 'orders'}`;
+}
+
 /** Stored country names are Russian; show them in the interface language. */
 export function countryLabel(country: string, locale: Locale) {
   return locale === 'ru' ? country : countryNames[country]?.[locale] ?? country;
@@ -382,5 +405,156 @@ export const accountCopy: Record<Locale, AccountCopy> = {
       label: 'Label: home, parents, office', defaultLabel: 'New address', recipient: 'Recipient (full name)', phone: 'Phone', region: 'Region', city: 'City',
       address: 'Street, building, apartment', postal: 'Postal code (optional)', hint: 'Suggestions run on your device — the address is not sent to third-party search.', save: 'Save recipient',
     },
+  },
+};
+
+export type OrdersCopy = {
+  title: string;
+  active: (count: number) => string;
+  attention: (count: number) => string;
+  showAttention: string;
+  search: string;
+  actionNeeded: string;
+  stage: (current: number, total: number) => string;
+  progress: string;
+  placed: (date: string) => string;
+  quantity: (count: number) => string;
+  openStore: string;
+  item: string;
+  total: string;
+  atCheckout: (amount: string) => string;
+  delivery: string;
+  tracking: string;
+  payment: string;
+  orderNumber: string;
+  newOrder: string;
+  cart: string;
+};
+
+export type BalanceCopy = {
+  title: string;
+  label: string;
+  note: string;
+  spend: string;
+  withdraw: string;
+  withdrawTitle: string;
+  withdrawText: string;
+  close: string;
+  reserve: string;
+  reserveText: string;
+  orders: string;
+  history: string;
+  operations: (count: number) => string;
+  order: string;
+  emptyTitle: string;
+  emptyText: string;
+  notice: string;
+  signin: { title: string; text: string; action: string };
+  loading: string;
+};
+
+export type NoticesCopy = {
+  title: string;
+  unread: (count: number) => string;
+  allRead: string;
+  readAll: string;
+  filtersLabel: string;
+  filters: { all: string; unread: string; orders: string };
+  newBadge: string;
+  more: (count: number) => string;
+  openOrder: string;
+  emptyTitle: string;
+  emptyText: string;
+  emptyFilter: string;
+  orders: string;
+  settings: string;
+  signin: { title: string; text: string; action: string };
+  loading: string;
+};
+
+export const ordersCopy: Record<Locale, OrdersCopy> = {
+  ru: {
+    title: 'Мои заказы', active: count => `${count} в работе`,
+    attention: count => `Нужно ваше решение: ${orderCount(count, 'ru')}`, showAttention: 'Показать',
+    search: 'Номер заказа или товар', actionNeeded: 'Нужно ваше действие', stage: (current, total) => `Этап ${current} из ${total}`, progress: 'Ход заказа',
+    placed: date => `Оформлен ${date}`, quantity: count => `${count} шт.`, openStore: 'Открыть в магазине', item: 'Товар', total: 'Сумма заказа',
+    atCheckout: amount => `при оформлении ${amount}`, delivery: 'Получатель', tracking: 'Отслеживание', payment: 'Оплата',
+    orderNumber: 'Номер заказа', newOrder: 'Заказать по ссылке', cart: 'Корзина',
+  },
+  uz: {
+    title: 'Buyurtmalarim', active: count => `${count} ta jarayonda`,
+    attention: count => `Qaroringiz kerak: ${orderCount(count, 'uz')}`, showAttention: 'Ko‘rsatish',
+    search: 'Buyurtma raqami yoki tovar', actionNeeded: 'Sizdan harakat kerak', stage: (current, total) => `Bosqich: ${current} / ${total}`, progress: 'Buyurtma jarayoni',
+    placed: date => `Rasmiylashtirilgan: ${date}`, quantity: count => `${count} dona`, openStore: 'Do‘konda ochish', item: 'Tovar', total: 'Buyurtma summasi',
+    atCheckout: amount => `rasmiylashtirishda ${amount}`, delivery: 'Qabul qiluvchi', tracking: 'Kuzatish', payment: 'To‘lov',
+    orderNumber: 'Buyurtma raqami', newOrder: 'Havola orqali buyurtma', cart: 'Savat',
+  },
+  en: {
+    title: 'My orders', active: count => `${count} in progress`,
+    attention: count => `Your decision is needed: ${orderCount(count, 'en')}`, showAttention: 'Show',
+    search: 'Order number or item', actionNeeded: 'Action needed', stage: (current, total) => `Step ${current} of ${total}`, progress: 'Order progress',
+    placed: date => `Placed ${date}`, quantity: count => `${count} pcs`, openStore: 'Open in store', item: 'Item', total: 'Order total',
+    atCheckout: amount => `${amount} at checkout`, delivery: 'Recipient', tracking: 'Tracking', payment: 'Payment',
+    orderNumber: 'Order number', newOrder: 'Order by link', cart: 'Cart',
+  },
+};
+
+export const balanceCopy: Record<Locale, BalanceCopy> = {
+  ru: {
+    title: 'Баланс', label: 'Баланс Atlas', note: 'Внутренний счёт для расчётов по заказам — не банковская карта и не кошелёк.',
+    spend: 'Заказать по ссылке', withdraw: 'Вывести', withdrawTitle: 'Вывод пока не подключён',
+    withdrawText: 'Atlas ещё не подключил платёжного провайдера для перечисления средств. Этот экран не отправит запрос и не выполнит перевод. Баланс — внутренний учёт заказов, не банковский счёт.',
+    close: 'Понятно', reserve: 'Резерв доставки в заказах', reserveText: 'Уже входит в суммы заказов. После взвешивания посылок остаток вернётся на баланс, а доплату выше резерва согласуем отдельно.',
+    orders: 'Мои заказы', history: 'История операций', operations: count => `${count} ${ruPlural(count, 'операция', 'операции', 'операций')}`, order: 'Заказ',
+    emptyTitle: 'Операций пока нет', emptyText: 'Здесь появятся возвраты разницы после взвешивания и оплата заказов с баланса.',
+    notice: 'Платёжный провайдер и вывод средств пока не подключены. Переводы не выполняются.',
+    signin: { title: 'Войдите, чтобы открыть баланс', text: 'Расчёты по заказам и возвратам хранятся в вашем профиле.', action: 'Войти' }, loading: 'Загружаем операции…',
+  },
+  uz: {
+    title: 'Balans', label: 'Atlas balansi', note: 'Buyurtmalar bo‘yicha hisob-kitob uchun ichki hisob — bank kartasi yoki hamyon emas.',
+    spend: 'Havola orqali buyurtma', withdraw: 'Yechib olish', withdrawTitle: 'Yechib olish hali ulanmagan',
+    withdrawText: 'Atlas hali mablag‘ o‘tkazish uchun to‘lov provayderini ulamagan. Bu ekran so‘rov yubormaydi va pul o‘tkazmaydi. Balans — buyurtmalarning ichki hisobi, bank hisob raqami emas.',
+    close: 'Tushunarli', reserve: 'Buyurtmalardagi yetkazish zaxirasi', reserveText: 'Buyurtma summalariga allaqachon kiritilgan. Posilkalar tortilgach qoldiq balansga qaytadi, zaxiradan ortiq to‘lov alohida kelishiladi.',
+    orders: 'Buyurtmalarim', history: 'Amallar tarixi', operations: count => `${count} ta amal`, order: 'Buyurtma',
+    emptyTitle: 'Hali amallar yo‘q', emptyText: 'Tortishdan keyingi farq qaytarilishi va balansdan to‘langan buyurtmalar shu yerda ko‘rinadi.',
+    notice: 'To‘lov provayderi va pul yechib olish hali ulanmagan. O‘tkazmalar bajarilmaydi.',
+    signin: { title: 'Balansni ochish uchun kiring', text: 'Buyurtma va qaytarishlar hisobi profilingizda saqlanadi.', action: 'Kirish' }, loading: 'Amallar yuklanmoqda…',
+  },
+  en: {
+    title: 'Balance', label: 'Atlas balance', note: 'An internal account for order settlements — not a bank card or a wallet.',
+    spend: 'Order by link', withdraw: 'Withdraw', withdrawTitle: 'Withdrawals are not connected',
+    withdrawText: 'Atlas has not connected a payment provider for payouts. This screen will not submit a request or transfer funds. The balance is internal order accounting, not a bank account.',
+    close: 'Got it', reserve: 'Delivery reserve in orders', reserveText: 'Already included in order totals. After parcels are weighed, any remainder returns to your balance; charges above the reserve are agreed separately.',
+    orders: 'My orders', history: 'Transaction history', operations: count => `${count} ${count === 1 ? 'transaction' : 'transactions'}`, order: 'Order',
+    emptyTitle: 'No transactions yet', emptyText: 'Refunds after weighing and orders paid from the balance will appear here.',
+    notice: 'A payment provider and withdrawals are not connected yet. No transfers are made.',
+    signin: { title: 'Sign in to open your balance', text: 'Order and refund settlements are saved in your profile.', action: 'Sign in' }, loading: 'Loading transactions…',
+  },
+};
+
+export const noticesCopy: Record<Locale, NoticesCopy> = {
+  ru: {
+    title: 'Уведомления', unread: count => `${count} ${ruPlural(count, 'непрочитанное', 'непрочитанных', 'непрочитанных')}`, allRead: 'Всё прочитано',
+    readAll: 'Прочитать все', filtersLabel: 'Показать', filters: { all: 'Все', unread: 'Непрочитанные', orders: 'По заказам' }, newBadge: 'Новое',
+    more: count => `Ещё ${count} ${ruPlural(count, 'обновление', 'обновления', 'обновлений')}`, openOrder: 'Открыть заказ',
+    emptyTitle: 'Пока всё спокойно', emptyText: 'Здесь появятся смена статусов, возвраты и вопросы по вашим заказам.', emptyFilter: 'Таких уведомлений нет.',
+    orders: 'Мои заказы', settings: 'Настройки email и SMS',
+    signin: { title: 'Войдите, чтобы открыть уведомления', text: 'Сообщения Atlas хранятся в вашем профиле.', action: 'Войти' }, loading: 'Загружаем уведомления…',
+  },
+  uz: {
+    title: 'Bildirishnomalar', unread: count => `${count} ta o‘qilmagan`, allRead: 'Hammasi o‘qilgan',
+    readAll: 'Hammasini o‘qilgan qilish', filtersLabel: 'Ko‘rsatish', filters: { all: 'Barchasi', unread: 'O‘qilmagan', orders: 'Buyurtmalar bo‘yicha' }, newBadge: 'Yangi',
+    more: count => `Yana ${count} ta yangilanish`, openOrder: 'Buyurtmani ochish',
+    emptyTitle: 'Hozircha hammasi tinch', emptyText: 'Holat o‘zgarishlari, qaytarishlar va buyurtmalaringiz bo‘yicha savollar shu yerda ko‘rinadi.', emptyFilter: 'Bunday bildirishnomalar yo‘q.',
+    orders: 'Buyurtmalarim', settings: 'Email va SMS sozlamalari',
+    signin: { title: 'Bildirishnomalarni ochish uchun kiring', text: 'Atlas xabarlari profilingizda saqlanadi.', action: 'Kirish' }, loading: 'Bildirishnomalar yuklanmoqda…',
+  },
+  en: {
+    title: 'Notifications', unread: count => `${count} unread`, allRead: 'All caught up',
+    readAll: 'Mark all as read', filtersLabel: 'Show', filters: { all: 'All', unread: 'Unread', orders: 'Orders' }, newBadge: 'New',
+    more: count => `${count} more ${count === 1 ? 'update' : 'updates'}`, openOrder: 'Open order',
+    emptyTitle: 'All quiet for now', emptyText: 'Status changes, refunds and questions about your orders will appear here.', emptyFilter: 'No matching notifications.',
+    orders: 'My orders', settings: 'Email and SMS settings',
+    signin: { title: 'Sign in to open notifications', text: 'Atlas messages are saved in your profile.', action: 'Sign in' }, loading: 'Loading notifications…',
   },
 };

@@ -251,7 +251,7 @@ try {
   await visit('/legal#passport-consent');
   await check("document.getElementById('passport-consent')?.open === true",'consent link opens the exact legal section');
   await visit('/notifications');
-  await check("!document.querySelector('.notification-list') || document.querySelectorAll('.notice-filters button').length===3",'populated notifications expose filters; empty inbox stays simple');
+  await check("!document.querySelector('.notices-list') || document.querySelectorAll('.notice-filters button').length===3",'populated notifications expose filters; empty inbox stays simple');
   await visit('/account');
   await check("!!document.querySelector('.cabinet-next h2') && document.querySelectorAll('.cabinet-tiles a').length===4",'account leads with the next action and four quick tiles');
   await check("['/orders','/cart','/balance','/notifications'].every(href=>document.querySelector('.cabinet-tiles a[href=\\\"'+href+'\\\"]'))",'account tiles link to orders, cart, balance and notifications');

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { accountCopy, cartCopy, countryLabel, formatLongDate, itemCount, minutesLeft, parcelCount } from '../lib/market/customer-copy.ts';
+import { accountCopy, balanceCopy, cartCopy, countryLabel, formatDateTime, formatLongDate, formatShortDate, itemCount, minutesLeft, noticesCopy, orderCount, ordersCopy, parcelCount } from '../lib/market/customer-copy.ts';
 
 function shape(value) {
   if (Array.isArray(value)) return value.map(shape);
@@ -9,7 +9,7 @@ function shape(value) {
   return typeof value;
 }
 
-for (const [name, copy] of Object.entries({ cart: cartCopy, account: accountCopy })) {
+for (const [name, copy] of Object.entries({ cart: cartCopy, account: accountCopy, orders: ordersCopy, balance: balanceCopy, notices: noticesCopy })) {
   test(`${name} copy has the same keys in Uzbek, Russian and English, with no empty strings`, () => {
     assert.deepEqual(shape(copy.uz), shape(copy.ru));
     assert.deepEqual(shape(copy.en), shape(copy.ru));
@@ -71,4 +71,29 @@ test('stored Russian country names are shown in the interface language', () => {
   assert.equal(countryLabel('США', 'uz'), 'AQSH');
   assert.equal(countryLabel('Турция', 'en'), 'Turkey');
   assert.equal(countryLabel('Атлантида', 'en'), 'Атлантида');
+});
+
+test('order, balance and notification counts read naturally', () => {
+  assert.equal(orderCount(1, 'ru'), '1 заказ');
+  assert.equal(orderCount(2, 'ru'), '2 заказа');
+  assert.equal(orderCount(5, 'ru'), '5 заказов');
+  assert.equal(orderCount(3, 'uz'), '3 ta buyurtma');
+  assert.equal(orderCount(1, 'en'), '1 order');
+  assert.equal(balanceCopy.ru.operations(1), '1 операция');
+  assert.equal(balanceCopy.ru.operations(4), '4 операции');
+  assert.equal(noticesCopy.ru.unread(1), '1 непрочитанное');
+  assert.equal(noticesCopy.ru.more(5), 'Ещё 5 обновлений');
+  assert.equal(ordersCopy.ru.attention(2), 'Нужно ваше решение: 2 заказа');
+});
+
+test('short dates and date-times drop the year only within the current year', () => {
+  const now = new Date(2026, 9, 3, 18).getTime();
+  const thisYear = new Date(2026, 9, 3, 9, 5).getTime();
+  const lastYear = new Date(2025, 11, 31, 23, 59).getTime();
+  assert.equal(formatShortDate(thisYear, 'uz', now), '3-oktabr');
+  assert.equal(formatShortDate(lastYear, 'uz', now), '31-dekabr 2025-yil');
+  assert.equal(formatShortDate(thisYear, 'en', now), 'October 3');
+  assert.equal(formatDateTime(thisYear, 'uz', now), '3-oktabr, 09:05');
+  assert.equal(formatDateTime(thisYear, 'ru', now), '3 октября, 09:05');
+  assert.match(formatDateTime(lastYear, 'ru', now), /^31 декабря 2025.*, 23:59$/);
 });

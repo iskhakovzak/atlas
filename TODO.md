@@ -8,7 +8,9 @@
 - [x] Copy for both pages is in `lib/market/customer-copy.ts` (uz/ru/en) with tests; soum amounts use `formatSum` (so‘m / UZS outside Russian); Uzbek dates are formatted by hand because browser Intl prints "2026 M10 3".
 - [x] Signed-in header between 761 and 1399px hides the "How it works" / "Rates" anchors and the theme switch (still in the footer and account settings): the full member header needs about 1290px in Russian and overflowed before.
 - [ ] Checkout recipient form still uses free-text region/city with local suggestions; a region/city picker and +998 phone mask would cut errors.
-- [ ] Order list (`/orders`), balance and notifications pages keep the previous design.
+- [x] `/orders` (customer view): "My orders · N orders · N in progress" heading, an amber banner that jumps to the "Decision needed" tab, search only from 6 orders. Each order is one card: photo, name, number, short date, status chip, soum total and a progress bar; opened, it shows "Action needed" first (record payment, approve/decline change requests, review extra payment), then the 6-stage progress (vertical on phones), details (number with copy, total, item, payment, recipient, tracking), warehouse/settlement notes, past approvals, warehouse services, documents, "Calculation and history" and cancel. `/orders#ID` still opens the order. The operator queue (`/operations`) is unchanged.
+- [x] `/balance`: accent balance card (internal account, not a bank card; withdraw still explains it is not connected), delivery reserve card, transaction history with credit/debit icons, date-time and order links. `/notifications`: unread count, mark-all-read, filter chips with counts, one card per order with a "New" badge and older updates folded; email/SMS settings moved below the list.
+- [x] Shared `CostLines` and the order confirmation dialog print soum amounts in the interface language.
 
 ## Home page redesign — 3 October 2026
 
