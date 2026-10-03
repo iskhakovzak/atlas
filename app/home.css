@@ -66,7 +66,7 @@ html[data-theme="dark"] .home-link-error { color: #ffb4a8; }
 }
 .home-stores { margin-top: 22px; }
 .home-stores-label { margin: 0 0 10px; color: var(--home-muted); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-.home-stores ul { display: flex; gap: 8px; margin: 0; padding: 2px 2px 6px; overflow-x: auto; list-style: none; scrollbar-width: none; overscroll-behavior-x: contain; }
+.home-stores ul { position: relative; display: flex; gap: 8px; margin: 0; padding: 2px 2px 6px; overflow-x: auto; list-style: none; scrollbar-width: none; overscroll-behavior-x: contain; }
 .home-stores ul::-webkit-scrollbar { display: none; }
 .home-stores a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 5px 14px 5px 5px; border: 1px solid var(--home-line); border-radius: 999px; background: var(--home-surface); color: var(--home-ink); font-weight: 700; text-decoration: none; white-space: nowrap; }
 .home-stores a:hover { border-color: var(--home-accent); }

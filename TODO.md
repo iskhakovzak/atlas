@@ -1,5 +1,13 @@
 # Atlas TODO and known limitations
 
+## Premium dark theme and typography — 3 October 2026
+
+- [x] One dark palette ("Atlas Night": black-green canvas, ivory primary actions, jade accents, champagne labels) in `app/theme-night.css`, loaded last. The dark theme had three stacked generations (forest, graphite, "normalization") with ~160 different hard-coded colours; every hex in the dark rules of `dark-theme.css`, `home-polish.css` and `login.css` now resolves to a `--night-*` token (mapped by property, luminance and hue), and the older variable families (`--atlas-*`, `--atlas-dark-*`, shadcn tokens, `--home-*`, `--cx-*`) point at the same tokens.
+- [x] Premium finish in dark: glass header and bottom bar over a soft jade glow, layered cards (sheen + hairline + depth shadow), ivory gradient buttons, inset fields with a jade focus ring, ivory selected chips and steps, emerald wallet card, blurred dialog overlays, dark toasts, styled scrollbars and selection. Merchant photos sit on an ivory "studio plate" (`mix-blend-mode: multiply`) so white product backgrounds no longer glare.
+- [x] Manrope (variable, self-hosted via `@fontsource-variable/manrope`, ~38 KB for Latin + Cyrillic) replaces Segoe UI/Arial in both themes; the header was re-checked at 360–1440 px in all three languages (narrow phones get a smaller wordmark so the operator's extra link fits).
+- [x] Light-theme rules that use `!important` for colours are mirrored for dark; a browser audit (light patches, text contrast < 3.2, horizontal overflow) passes on every customer page, `/login`, `/admin` and `/operations` at 390 and 1280 px. Fixed on the way: the home store-chip row's screen-reader labels widened the page to 809 px on phones.
+- [ ] The tokenizer mapped hard-coded colours automatically; rarely used operator states not present in the local test data (issue cases, parcel events, warehouse inspection photos) were not seen in dark.
+
 ## Cart and account redesign — 3 October 2026
 
 - [x] Cart, mobile-first: "Cart · N items · N parcels" heading and a 3-step checkout indicator (Cart → Recipient → Confirmation); items grouped into parcels exactly as the server allocates them (`merchantParcelKey`: store host + dispatch country); each line shows brand, variant, country, store price (links to the store) and the soum total; quantity stepper and remove are 44px. Warehouse services stay an optional disclosure with unchanged rules.

@@ -21,8 +21,8 @@
 .login-telegram p,.login-google p{color:#526079}
 .login-telegram-widget{min-height:48px;display:flex;justify-content:center}
 .login-legal{color:#62718a;font-size:12px;text-align:center}
-html[data-theme="dark"] .login-intro,html[data-theme="dark"] .login-telegram p,html[data-theme="dark"] .login-google p,html[data-theme="dark"] .login-status,html[data-theme="dark"] .login-sent{color:#c3cbd8}
-html[data-theme="dark"] .login-tabs{background:#1c2430}
-html[data-theme="dark"] .login-tabs button{color:#c3cbd8}
-html[data-theme="dark"] .login-tabs button.active{background:#2b3544;color:#fff}
+html[data-theme="dark"] .login-intro,html[data-theme="dark"] .login-telegram p,html[data-theme="dark"] .login-google p,html[data-theme="dark"] .login-status,html[data-theme="dark"] .login-sent{color:var(--night-muted)}
+html[data-theme="dark"] .login-tabs{background:rgba(255,255,255,.03);box-shadow:inset 0 0 0 1px var(--night-line)}
+html[data-theme="dark"] .login-tabs button{color:var(--night-muted)}
+html[data-theme="dark"] .login-tabs button.active{background:var(--night-hover);color:var(--night-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
 @media(max-width:600px){.login-card{margin:16px 0 36px}}

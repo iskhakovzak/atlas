@@ -134,6 +134,10 @@ The root layout reads `atlas-language` and Accept-Language (`preferredLocale`, U
 
 `/order-by-link` (`GlobalLinkOrder`) keeps its import, draft, validation and `cart-add` code; only the layout changed. Price rows on the cart and this page share `app/price-summary.tsx`.
 
+## Dark theme and typography
+
+`app/theme-night.css` is imported last in `app/layout.tsx` and owns the dark appearance: it defines the `--night-*` palette under `html[data-theme="dark"]`, points every older variable family at it (shadcn tokens, `--atlas-*`, `--atlas-dark-*`, `--home-*`, `--cx-*`) and adds the component finish. Dark rules in `dark-theme.css`, `home-polish.css` and `login.css` use only `var(--night-*)` colours, so a palette change is one edit. Light-theme rules that set colours with `!important` need a dark mirror in `theme-night.css`. The font is Manrope (`@fontsource-variable/manrope/wght.css`, self-hosted, `font-display: swap`), applied through `--font-sans` in both themes.
+
 ## Sign-in and sessions
 
 Atlas no longer relies on ChatGPT Sites identity headers; `oai-authenticated-*` headers are ignored. `/login` offers each method only when its provider settings exist (`GET /api/auth/methods`):

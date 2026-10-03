@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { preferredLocale } from "@/lib/market/i18n";
+import "@fontsource-variable/manrope/wght.css";
 import "./globals.css";
 import "./atlas-design.css";
 import "./catalog-admin.css";
@@ -17,6 +18,7 @@ import "./customer-mobile.css";
 import "./operator-mobile.css";
 import "./home.css";
 import "./customer.css";
+import "./theme-night.css";
 import { MarketProvider } from "@/lib/market/store";
 import { StorageNotice } from "./storage-notice";
 import { AtlasThemeProvider } from "./theme-control";
