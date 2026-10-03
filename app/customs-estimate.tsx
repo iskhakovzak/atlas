@@ -13,9 +13,15 @@ const labels = {
 labels.ru.assumption = 'Ориентир: лимит $200 за этот месяц ещё полностью доступен';
 labels.uz.assumption = 'Taxmin: bu oy uchun $200 limit hali to‘liq mavjud';
 labels.en.assumption = 'Assumes the full $200 monthly allowance remains';
-export function CustomsEstimate({ valueUsd, grossKg, fx, locale = 'ru', compact = false }: { valueUsd: number; grossKg?: number; fx: number; locale?: Locale; compact?: boolean }) {
+// Prefilled from this month's Atlas orders for the same recipient; the customer can still adjust it.
+const counted = {
+  ru: (usd: number) => `Учтено $${usd}, уже заказанных этому получателю в этом месяце через Atlas`,
+  uz: (usd: number) => `Shu oy Atlas orqali bu qabul qiluvchiga buyurtma qilingan $${usd} hisobga olindi`,
+  en: (usd: number) => `Counts $${usd} already ordered for this recipient this month through Atlas`,
+};
+export function CustomsEstimate({ valueUsd, grossKg, fx, locale = 'ru', compact = false, initialUsedUsd = 0 }: { valueUsd: number; grossKg?: number; fx: number; locale?: Locale; compact?: boolean; initialUsedUsd?: number }) {
   const id = useId(), copy = labels[locale];
-  const [used, setUsed] = useState('0'), [extra, setExtra] = useState('0');
+  const [used, setUsed] = useState(String(initialUsedUsd)), [extra, setExtra] = useState('0');
   const [date, setDate] = useState(() => new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString().slice(0, 10));
   const estimate = estimateCourierCustoms({ valueUsd: valueUsd + (extra.trim() ? Number(extra) : NaN), usedUsd: used.trim() ? Number(used) : NaN, grossKg, date });
   const format = (usd: number) => new Intl.NumberFormat(locale === 'ru' ? 'ru-RU' : locale === 'uz' ? 'uz-UZ' : 'en-US', { maximumFractionDigits:0 }).format(Math.round(usd * fx)) + (locale === 'ru' ? ' сум' : locale === 'uz' ? ' so‘m' : ' UZS');
@@ -37,7 +43,7 @@ export function CustomsEstimate({ valueUsd, grossKg, fx, locale = 'ru', compact 
     <small className="customs-compact-note">{copy.separate}</small>
   </div>;
   return <div className="customs-estimate-wrap"><details className="customs-estimate"><summary><span>{copy.title}</span><strong>{result}</strong></summary>
-    <div className="customs-estimate-body"><p className="micro">{Number(used) === 0 ? copy.assumption + '. ' : ''}{copy.separate}.</p>
+    <div className="customs-estimate-body"><p className="micro">{Number(used) === 0 ? copy.assumption + '. ' : Number(used) === initialUsedUsd ? counted[locale](initialUsedUsd) + '. ' : ''}{copy.separate}.</p>
       <details className="customs-estimate-inputs"><summary>{copy.adjust}</summary><div>
         <div className="field"><label htmlFor={id+'-used'}>{copy.used}</label><input id={id+'-used'} type="number" min="0" step="0.01" value={used} onChange={e=>setUsed(e.target.value)}/></div>
         <div className="field"><label htmlFor={id+'-date'}>{copy.date}</label><input id={id+'-date'} type="date" min="2025-05-01" value={date} onChange={e=>setDate(e.target.value)}/></div>

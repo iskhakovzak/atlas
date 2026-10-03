@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { accountCopy, balanceCopy, cartCopy, linkOrderCopy, countryLabel, formatDateTime, formatLongDate, formatShortDate, itemCount, minutesLeft, noticesCopy, orderCount, ordersCopy, parcelCount } from '../lib/market/customer-copy.ts';
+import { accountCopy, balanceCopy, cartCopy, docsCopy, linkOrderCopy, recipientCopy, countryLabel, formatDateTime, formatLongDate, formatShortDate, itemCount, minutesLeft, noticesCopy, orderCount, ordersCopy, parcelCount } from '../lib/market/customer-copy.ts';
 
 function shape(value) {
   if (Array.isArray(value)) return value.map(shape);
@@ -9,7 +9,7 @@ function shape(value) {
   return typeof value;
 }
 
-for (const [name, copy] of Object.entries({ cart: cartCopy, account: accountCopy, orders: ordersCopy, balance: balanceCopy, notices: noticesCopy, linkOrder: linkOrderCopy })) {
+for (const [name, copy] of Object.entries({ cart: cartCopy, account: accountCopy, orders: ordersCopy, balance: balanceCopy, notices: noticesCopy, linkOrder: linkOrderCopy, recipient: recipientCopy, docs: docsCopy })) {
   test(`${name} copy has the same keys in Uzbek, Russian and English, with no empty strings`, () => {
     assert.deepEqual(shape(copy.uz), shape(copy.ru));
     assert.deepEqual(shape(copy.en), shape(copy.ru));

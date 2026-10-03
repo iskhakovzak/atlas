@@ -657,7 +657,7 @@ export function GlobalLinkOrder() {
             {image && <div className="lo-gallery"><ProductGallery product={previewProduct} images={images.length?images:[image]} activeImage={image} onImageChange={setImage} locale={lang}/></div>}
             <div className="lo-product-copy">
               <p className="basket-brand">{[brand, sourceHost && brand !== sourceHost ? sourceHost : ""].filter(Boolean).join(" · ")}</p>
-              <h2 id="lo-product-name">{name || c.empty}</h2>
+              <h2 id="lo-product-name">{name || (sourceCheckStatus === "failed" ? lc.unnamed : c.empty)}</h2>
               <p className="lo-store-price">{lc.storePrice}: <b>{storePriceText}</b>{sourceCheckStatus === "verified" && checkedTime && <small> · {lc.checkedAt(checkedTime)}</small>}</p>
               {catalogProductFlow && <p className="lo-note" role="status">{catalogFixedText}</p>}
               {sourceCheckStatus === "failed" && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{catalogProductFlow && amount
@@ -710,7 +710,7 @@ export function GlobalLinkOrder() {
 
           <section className={"lo-card lo-data" + (dataExpanded ? " open" : "")}>
             <button type="button" className="lo-data-toggle" aria-expanded={dataExpanded} aria-controls="lo-data-fields" onClick={() => setDataOpen(!dataExpanded)}>
-              <span><b>{lc.data}</b><small>{dataExpanded ? lc.dataHint : dataSummary}</small></span>
+              <span><b>{lc.data}</b><small>{!dataExpanded ? dataSummary : sourceCheckStatus === "verified" ? lc.dataHint : lc.fillFromStore}</small></span>
               <span aria-hidden="true" className="lo-data-sign">{dataExpanded ? "−" : "+"}</span>
             </button>
             <div id="lo-data-fields" className="lo-data-fields" hidden={!dataExpanded}>

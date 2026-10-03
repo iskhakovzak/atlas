@@ -93,7 +93,7 @@ export type CartCopy = {
     title: string; hint: string; reviewTitle: string; reviewHint: string; deliveryUz: string; saved: string; primary: string; passportOk: string; passportMissing: string;
     newRecipient: string; chooseHint: string; recipient: string; phone: string; region: string; city: string; street: string; streetPlaceholder: string;
     addressHint: string; postal: string; comment: string; next: string; edit: string; consent: Sentence; consentRequired: string;
-    serviceNotAdded: string; servicePriceLater: string; confirm: string; saving: string; preorderNote: string; estimated: string;
+    serviceNotAdded: string; servicePriceLater: string; confirm: string; saving: string; preorderNote: string; estimated: string; saveRecipient: string;
   };
   success: { title: string; hint: string; statusTitle: string; saved: string; pending: string; confirm: string; updating: string; orders: string; noCharge: string };
 };
@@ -112,18 +112,15 @@ export type AccountCopy = {
     label: string; orders: string; ordersActive: (count: number) => string; ordersTotal: (count: number) => string; none: string;
     cart: string; cartEmpty: string; balance: string; balanceSub: string; notifications: string; unread: (count: number) => string; noUnread: string;
   };
-  customs: { title: string; used: (used: number, limit: number) => string; left: (amount: number) => string; over: (amount: number) => string; note: string; link: string };
-  recipients: { title: string; lead: string; primary: string; passportOk: (masked: string) => string; passportMissing: string; addPassport: string; remove: string; add: string; empty: string };
+  customs: { title: string; used: (used: number, limit: number) => string; left: (amount: number) => string; over: (amount: number) => string; note: string; link: string; perPerson: string; empty: string; unnamed: string; cart: (amount: number) => string };
+  recipients: { title: string; lead: string; primary: string; passportOk: (masked: string) => string; passportMissing: string; addPassport: string; remove: string; add: string; empty: string; edit: string; makePrimary: string };
   documents: { title: string; passport: string; passportCount: (count: number) => string; missing: string; declarations: string; declarationsCount: (count: number) => string; note: string };
   support: {
     title: string; lead: string; telegram: string; waiting: string; answered: string; closed: string; messages: (count: number) => string; history: string;
     team: string; you: string; replyPlaceholder: string; reply: string; none: string; newTicket: string; subject: string; question: string; send: string; sent: string;
+    aboutOrder: (id: string) => string;
   };
   settings: { title: string; language: string; theme: string; rules: string; signOut: string };
-  form: {
-    title: string; note: string; saved: string; label: string; defaultLabel: string; recipient: string; phone: string; region: string; city: string;
-    address: string; postal: string; hint: string; save: string;
-  };
 };
 
 const reserveHelp = {
@@ -172,6 +169,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
       serviceNotAdded: 'не входит в итог до вашего согласия', servicePriceLater: 'цена после проверки оператора',
       confirm: 'Подтвердить предзаказ', saving: 'Сохраняем заказ…',
       preorderNote: 'Предзаказ сохранится в Atlas. Реальная оплата и доставка ещё не подключены.', estimated: 'Предварительный итог',
+      saveRecipient: 'Сохранить получателя в профиле — для следующих заказов и паспорта',
     },
     success: {
       title: 'Предзаказ оформлен', hint: 'Провайдер оплаты ещё не подключён. Atlas не списывает деньги и не создаёт отправку.',
@@ -219,6 +217,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
       serviceNotAdded: 'roziligingizgacha jamiga kirmaydi', servicePriceLater: 'narx operator tekshiruvidan so‘ng',
       confirm: 'Oldindan buyurtmani tasdiqlash', saving: 'Buyurtma saqlanmoqda…',
       preorderNote: 'Oldindan buyurtma Atlas’da saqlanadi. Haqiqiy to‘lov va yetkazish hali ulanmagan.', estimated: 'Dastlabki jami',
+      saveRecipient: 'Qabul qiluvchini profilga saqlash — keyingi buyurtmalar va pasport uchun',
     },
     success: {
       title: 'Oldindan buyurtma yaratildi', hint: 'To‘lov provayderi hali ulanmagan. Atlas pul yechmaydi va jo‘natma yaratmaydi.',
@@ -266,6 +265,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
       serviceNotAdded: 'not added until you approve', servicePriceLater: 'price after operator review',
       confirm: 'Confirm pre-order', saving: 'Saving order…',
       preorderNote: 'Your pre-order is saved in Atlas. Real payments and delivery are not connected yet.', estimated: 'Estimated total',
+      saveRecipient: 'Save this recipient to your profile — for next orders and the passport',
     },
     success: {
       title: 'Pre-order created', hint: 'A payment provider is not connected yet. Atlas does not charge or ship orders.',
@@ -297,11 +297,12 @@ export const accountCopy: Record<Locale, AccountCopy> = {
     customs: {
       title: 'Таможенный лимит месяца', used: (used, limit) => `$${used} из $${limit}`, left: amount => `Ещё $${amount} без пошлины`,
       over: amount => `Превышение $${amount}: возможен таможенный платёж`,
-      note: 'Считаются только покупки через Atlas в этом месяце. Покупки в других сервисах учитывайте сами.', link: 'Как считается таможня',
+      note: 'Считаются только покупки через Atlas в этом месяце, по дате заказа. Покупки в других сервисах учитывайте сами.', link: 'Как считается таможня',
+      perPerson: 'Лимит $200 — на каждого получателя.', empty: 'В этом месяце заказов ещё не было — лимит свободен.', unnamed: 'Получатель не указан', cart: amount => `В корзине ещё $${amount} — учтите при оформлении.`,
     },
     recipients: {
       title: 'Получатели и адреса', lead: 'Подставляются при оформлении заказа.', primary: 'основной', passportOk: masked => `Паспорт ${masked}`,
-      passportMissing: 'Паспорт не добавлен', addPassport: 'Добавить паспорт', remove: 'Удалить', add: 'Добавить получателя', empty: 'Сохранённых получателей пока нет.',
+      passportMissing: 'Паспорт не добавлен', addPassport: 'Добавить паспорт', remove: 'Удалить', add: 'Добавить получателя', empty: 'Сохранённых получателей пока нет.', edit: 'Изменить', makePrimary: 'Сделать основным',
     },
     documents: {
       title: 'Документы', passport: 'Паспорт', passportCount: count => `добавлено: ${count}`, missing: 'не добавлен',
@@ -311,14 +312,9 @@ export const accountCopy: Record<Locale, AccountCopy> = {
       title: 'Поддержка', lead: 'Ответ придёт сюда и в уведомления.', telegram: 'Написать в Telegram', waiting: 'Ждём ответа', answered: 'Есть ответ', closed: 'Закрыто',
       messages: count => `${count} ${ruPlural(count, 'сообщение', 'сообщения', 'сообщений')}`, history: 'Открыть переписку', team: 'Поддержка Atlas', you: 'Вы',
       replyPlaceholder: 'Ваш ответ', reply: 'Ответить', none: 'Обращений пока нет.', newTicket: 'Новое обращение', subject: 'Тема', question: 'Опишите вопрос',
-      send: 'Отправить', sent: 'Обращение отправлено.',
+      send: 'Отправить', sent: 'Обращение отправлено.', aboutOrder: id => `Вопрос по заказу ${id}`,
     },
     settings: { title: 'Настройки', language: 'Язык', theme: 'Тема', rules: 'Правила и обработка данных', signOut: 'Выйти из аккаунта' },
-    form: {
-      title: 'Новый получатель', note: 'Адрес сохранится в профиле и подставится при оформлении.', saved: 'Получатель сохранён.',
-      label: 'Название: дом, родители, офис', defaultLabel: 'Новый адрес', recipient: 'Получатель (ФИО)', phone: 'Телефон', region: 'Область', city: 'Город',
-      address: 'Улица, дом, квартира', postal: 'Индекс (необязательно)', hint: 'Подсказки работают на устройстве — адрес не уходит в сторонние сервисы поиска.', save: 'Сохранить получателя',
-    },
   },
   uz: {
     title: 'Shaxsiy kabinet',
@@ -340,11 +336,12 @@ export const accountCopy: Record<Locale, AccountCopy> = {
     customs: {
       title: 'Oylik bojxona limiti', used: (used, limit) => `$${used} / $${limit}`, left: amount => `Yana $${amount} bojsiz`,
       over: amount => `$${amount} ortiqcha: bojxona to‘lovi bo‘lishi mumkin`,
-      note: 'Faqat shu oy Atlas orqali qilingan xaridlar hisoblanadi. Boshqa xizmatlardagi xaridlarni o‘zingiz hisobga oling.', link: 'Bojxona qanday hisoblanadi',
+      note: 'Faqat shu oy Atlas orqali qilingan xaridlar buyurtma sanasi bo‘yicha hisoblanadi. Boshqa xizmatlardagi xaridlarni o‘zingiz hisobga oling.', link: 'Bojxona qanday hisoblanadi',
+      perPerson: '$200 limit — har bir qabul qiluvchiga.', empty: 'Bu oy hali buyurtma yo‘q — limit bo‘sh.', unnamed: 'Qabul qiluvchi ko‘rsatilmagan', cart: amount => `Savatda yana $${amount} — rasmiylashtirishda hisobga oling.`,
     },
     recipients: {
       title: 'Qabul qiluvchilar va manzillar', lead: 'Buyurtma rasmiylashtirishda avtomatik qo‘yiladi.', primary: 'asosiy', passportOk: masked => `Pasport ${masked}`,
-      passportMissing: 'Pasport qo‘shilmagan', addPassport: 'Pasport qo‘shish', remove: 'O‘chirish', add: 'Qabul qiluvchi qo‘shish', empty: 'Hali saqlangan qabul qiluvchilar yo‘q.',
+      passportMissing: 'Pasport qo‘shilmagan', addPassport: 'Pasport qo‘shish', remove: 'O‘chirish', add: 'Qabul qiluvchi qo‘shish', empty: 'Hali saqlangan qabul qiluvchilar yo‘q.', edit: 'O‘zgartirish', makePrimary: 'Asosiy qilish',
     },
     documents: {
       title: 'Hujjatlar', passport: 'Pasport', passportCount: count => `qo‘shilgan: ${count}`, missing: 'qo‘shilmagan',
@@ -354,14 +351,9 @@ export const accountCopy: Record<Locale, AccountCopy> = {
       title: 'Yordam', lead: 'Javob shu yerga va bildirishnomalarga keladi.', telegram: 'Telegram’da yozish', waiting: 'Javob kutilmoqda', answered: 'Javob bor', closed: 'Yopilgan',
       messages: count => `${count} ta xabar`, history: 'Yozishmani ochish', team: 'Atlas yordami', you: 'Siz',
       replyPlaceholder: 'Javobingiz', reply: 'Javob berish', none: 'Hali murojaatlar yo‘q.', newTicket: 'Yangi murojaat', subject: 'Mavzu', question: 'Savolingizni yozing',
-      send: 'Yuborish', sent: 'Murojaat yuborildi.',
+      send: 'Yuborish', sent: 'Murojaat yuborildi.', aboutOrder: id => `${id} buyurtma bo‘yicha savol`,
     },
     settings: { title: 'Sozlamalar', language: 'Til', theme: 'Ko‘rinish', rules: 'Qoidalar va ma’lumotlarga ishlov berish', signOut: 'Akkauntdan chiqish' },
-    form: {
-      title: 'Yangi qabul qiluvchi', note: 'Manzil profilingizda saqlanadi va rasmiylashtirishda qo‘yiladi.', saved: 'Qabul qiluvchi saqlandi.',
-      label: 'Nomi: uy, ota-ona, ofis', defaultLabel: 'Yangi manzil', recipient: 'Qabul qiluvchi (F.I.Sh.)', phone: 'Telefon', region: 'Viloyat', city: 'Shahar',
-      address: 'Ko‘cha, uy, xonadon', postal: 'Indeks (ixtiyoriy)', hint: 'Maslahatlar qurilmangizda ishlaydi — manzil tashqi qidiruv xizmatlariga yuborilmaydi.', save: 'Qabul qiluvchini saqlash',
-    },
   },
   en: {
     title: 'Your account',
@@ -383,11 +375,12 @@ export const accountCopy: Record<Locale, AccountCopy> = {
     customs: {
       title: 'Monthly customs allowance', used: (used, limit) => `$${used} of $${limit}`, left: amount => `$${amount} left duty-free`,
       over: amount => `$${amount} over: customs duty may apply`,
-      note: 'Only this month’s purchases through Atlas are counted. Track purchases made through other services yourself.', link: 'How customs is calculated',
+      note: 'Only this month’s purchases through Atlas are counted, by order date. Track purchases made through other services yourself.', link: 'How customs is calculated',
+      perPerson: 'The $200 allowance is per recipient.', empty: 'No orders this month yet — the allowance is free.', unnamed: 'No recipient given', cart: amount => `$${amount} more in the cart — keep it in mind at checkout.`,
     },
     recipients: {
       title: 'Recipients & addresses', lead: 'Filled in automatically at checkout.', primary: 'primary', passportOk: masked => `Passport ${masked}`,
-      passportMissing: 'No passport added', addPassport: 'Add passport', remove: 'Remove', add: 'Add recipient', empty: 'No saved recipients yet.',
+      passportMissing: 'No passport added', addPassport: 'Add passport', remove: 'Remove', add: 'Add recipient', empty: 'No saved recipients yet.', edit: 'Edit', makePrimary: 'Make default',
     },
     documents: {
       title: 'Documents', passport: 'Passport', passportCount: count => `added: ${count}`, missing: 'not added',
@@ -397,14 +390,9 @@ export const accountCopy: Record<Locale, AccountCopy> = {
       title: 'Support', lead: 'Replies arrive here and in notifications.', telegram: 'Message us on Telegram', waiting: 'Waiting for reply', answered: 'Reply received', closed: 'Closed',
       messages: count => `${count} ${count === 1 ? 'message' : 'messages'}`, history: 'Open conversation', team: 'Atlas support', you: 'You',
       replyPlaceholder: 'Your reply', reply: 'Reply', none: 'No tickets yet.', newTicket: 'New request', subject: 'Subject', question: 'Describe your question',
-      send: 'Send', sent: 'Request sent.',
+      send: 'Send', sent: 'Request sent.', aboutOrder: id => `Question about order ${id}`,
     },
     settings: { title: 'Settings', language: 'Language', theme: 'Theme', rules: 'Terms and data processing', signOut: 'Sign out' },
-    form: {
-      title: 'New recipient', note: 'The address is saved to your profile and filled in at checkout.', saved: 'Recipient saved.',
-      label: 'Label: home, parents, office', defaultLabel: 'New address', recipient: 'Recipient (full name)', phone: 'Phone', region: 'Region', city: 'City',
-      address: 'Street, building, apartment', postal: 'Postal code (optional)', hint: 'Suggestions run on your device — the address is not sent to third-party search.', save: 'Save recipient',
-    },
   },
 };
 
@@ -429,6 +417,12 @@ export type OrdersCopy = {
   orderNumber: string;
   newOrder: string;
   cart: string;
+  repeat: string;
+  ask: string;
+  allowance: string;
+  allowanceValue: (used: number, limit: number) => string;
+  recipients: string;
+  allRecipients: string;
 };
 
 export type BalanceCopy = {
@@ -480,6 +474,7 @@ export const ordersCopy: Record<Locale, OrdersCopy> = {
     placed: date => `Оформлен ${date}`, quantity: count => `${count} шт.`, openStore: 'Открыть в магазине', item: 'Товар', total: 'Сумма заказа',
     atCheckout: amount => `при оформлении ${amount}`, delivery: 'Получатель', tracking: 'Отслеживание', payment: 'Оплата',
     orderNumber: 'Номер заказа', newOrder: 'Заказать по ссылке', cart: 'Корзина',
+    repeat: 'Повторить заказ', ask: 'Вопрос по заказу', allowance: 'Лимит получателя', allowanceValue: (used, limit) => `$${used} из $${limit} в этом месяце`, recipients: 'Получатель', allRecipients: 'Все',
   },
   uz: {
     title: 'Buyurtmalarim', active: count => `${count} ta jarayonda`,
@@ -488,6 +483,7 @@ export const ordersCopy: Record<Locale, OrdersCopy> = {
     placed: date => `Rasmiylashtirilgan: ${date}`, quantity: count => `${count} dona`, openStore: 'Do‘konda ochish', item: 'Tovar', total: 'Buyurtma summasi',
     atCheckout: amount => `rasmiylashtirishda ${amount}`, delivery: 'Qabul qiluvchi', tracking: 'Kuzatish', payment: 'To‘lov',
     orderNumber: 'Buyurtma raqami', newOrder: 'Havola orqali buyurtma', cart: 'Savat',
+    repeat: 'Qayta buyurtma', ask: 'Buyurtma bo‘yicha savol', allowance: 'Qabul qiluvchi limiti', allowanceValue: (used, limit) => `bu oy $${used} / $${limit}`, recipients: 'Qabul qiluvchi', allRecipients: 'Barchasi',
   },
   en: {
     title: 'My orders', active: count => `${count} in progress`,
@@ -496,6 +492,7 @@ export const ordersCopy: Record<Locale, OrdersCopy> = {
     placed: date => `Placed ${date}`, quantity: count => `${count} pcs`, openStore: 'Open in store', item: 'Item', total: 'Order total',
     atCheckout: amount => `${amount} at checkout`, delivery: 'Recipient', tracking: 'Tracking', payment: 'Payment',
     orderNumber: 'Order number', newOrder: 'Order by link', cart: 'Cart',
+    repeat: 'Order again', ask: 'Ask about this order', allowance: 'Recipient allowance', allowanceValue: (used, limit) => `$${used} of $${limit} this month`, recipients: 'Recipient', allRecipients: 'All',
   },
 };
 
@@ -587,6 +584,8 @@ export type LinkOrderCopy = {
   signinAdd: string;
   guest: string;
   details: string;
+  unnamed: string;
+  fillFromStore: string;
 };
 
 export const linkOrderCopy: Record<Locale, LinkOrderCopy> = {
@@ -598,6 +597,7 @@ export const linkOrderCopy: Record<Locale, LinkOrderCopy> = {
     unconfirmed: 'Магазин не подтвердил все данные — проверьте их ниже.', total: 'Итого с доставкой до Ташкента', emptyTotal: 'Укажите цену и вес — покажем итог.',
     data: 'Данные для расчёта', dataHint: 'Откройте, если что-то не совпадает со страницей магазина.', shippingReserve: 'доставка магазина: резерв', storeShipping: amount => `доставка магазина ${amount}`, kg: 'кг',
     add: 'Добавить в корзину', addShort: 'В корзину', signinAdd: 'Войти и продолжить', guest: 'Расчёт доступен без входа. Чтобы добавить товар в корзину, понадобится войти.', details: 'Подробности загрузки',
+    unnamed: 'Название не получено — укажите его ниже', fillFromStore: 'Заполните по странице товара в магазине.',
   },
   uz: {
     title: 'Havola orqali buyurtma', lead: 'Istalgan do‘kondagi tovar havolasini qo‘ying — Toshkentgacha yetkazish bilan jami summani hisoblaymiz.', leadLoaded: 'Variantni tanlang va hisobni tekshiring.',
@@ -607,6 +607,7 @@ export const linkOrderCopy: Record<Locale, LinkOrderCopy> = {
     unconfirmed: 'Do‘kon barcha ma’lumotlarni tasdiqlamadi — quyida tekshiring.', total: 'Toshkentgacha yetkazish bilan jami', emptyTotal: 'Narx va vaznni kiriting — jami summani ko‘rsatamiz.',
     data: 'Hisob uchun ma’lumotlar', dataHint: 'Do‘kon sahifasiga mos kelmasa, oching.', shippingReserve: 'do‘kon yetkazishi: zaxira', storeShipping: amount => `do‘kon yetkazishi ${amount}`, kg: 'kg',
     add: 'Savatga qo‘shish', addShort: 'Savatga', signinAdd: 'Kirish va davom etish', guest: 'Hisobni kirmasdan ko‘rish mumkin. Tovarni savatga qo‘shish uchun kirish kerak.', details: 'Yuklash tafsilotlari',
+    unnamed: 'Nomi olinmadi — quyida kiriting', fillFromStore: 'Do‘kondagi tovar sahifasiga qarab to‘ldiring.',
   },
   en: {
     title: 'Order by link', lead: 'Paste a product link from any store — we will calculate the total with delivery to Tashkent.', leadLoaded: 'Choose an option and review the estimate.',
@@ -616,5 +617,93 @@ export const linkOrderCopy: Record<Locale, LinkOrderCopy> = {
     unconfirmed: 'The store did not confirm every detail — review them below.', total: 'Total with delivery to Tashkent', emptyTotal: 'Enter a price and weight to see the total.',
     data: 'Calculation details', dataHint: 'Open if anything differs from the store page.', shippingReserve: 'store delivery: reserve', storeShipping: amount => `store delivery ${amount}`, kg: 'kg',
     add: 'Add to cart', addShort: 'Add', signinAdd: 'Sign in and continue', guest: 'You can see the estimate without signing in. Sign in to add the item to your cart.', details: 'Import details',
+    unnamed: 'No name received — enter it below', fillFromStore: 'Fill these in from the product page in the store.',
+  },
+};
+
+export type RecipientCopy = {
+  addTitle: string; editTitle: string; note: string;
+  labelLegend: string; labels: { home: string; work: string; parents: string; other: string }; customLabel: string;
+  name: string; nameHint: string; phone: string; phoneHint: string; phoneError: string;
+  region: string; regionPlaceholder: string; city: string; address: string; addressPlaceholder: string;
+  postal: string; comment: string; commentPlaceholder: string; optional: string;
+  primary: string; save: string; saving: string; saved: string; updated: string; required: string; privacy: string;
+};
+
+export const recipientCopy: Record<Locale, RecipientCopy> = {
+  ru: {
+    addTitle: 'Новый получатель', editTitle: 'Изменить получателя', note: 'Тот, кто заберёт посылку. ФИО — как в паспорте.',
+    labelLegend: 'Как подписать', labels: { home: 'Дом', work: 'Работа', parents: 'Родители', other: 'Другое' }, customLabel: 'Своя подпись',
+    name: 'ФИО получателя', nameHint: 'Как в паспорте — так посылку выдадут без вопросов.',
+    phone: 'Телефон', phoneHint: 'Курьер позвонит перед доставкой.', phoneError: 'Введите 9 цифр номера после +998.',
+    region: 'Область', regionPlaceholder: 'Выберите область', city: 'Город или район', address: 'Улица, дом, квартира', addressPlaceholder: 'Например: ул. Навои, 15, кв. 4',
+    postal: 'Индекс', comment: 'Комментарий для курьера', commentPlaceholder: 'Подъезд, ориентир, удобное время', optional: 'необязательно',
+    primary: 'Основной получатель — подставляется в заказ сам', save: 'Сохранить получателя', saving: 'Сохраняем…', saved: 'Получатель сохранён.', updated: 'Изменения сохранены.',
+    required: 'Заполните это поле.', privacy: 'Подсказки работают на устройстве — адрес не уходит в сторонние сервисы поиска.',
+  },
+  uz: {
+    addTitle: 'Yangi qabul qiluvchi', editTitle: 'Qabul qiluvchini o‘zgartirish', note: 'Posilkani oladigan odam. F.I.Sh. — pasportdagidek.',
+    labelLegend: 'Qanday nomlash', labels: { home: 'Uy', work: 'Ish', parents: 'Ota-ona', other: 'Boshqa' }, customLabel: 'O‘z nomingiz',
+    name: 'Qabul qiluvchining F.I.Sh.', nameHint: 'Pasportdagidek — shunda posilka muammosiz beriladi.',
+    phone: 'Telefon', phoneHint: 'Kuryer yetkazishdan oldin qo‘ng‘iroq qiladi.', phoneError: '+998 dan keyin 9 ta raqamni kiriting.',
+    region: 'Viloyat', regionPlaceholder: 'Viloyatni tanlang', city: 'Shahar yoki tuman', address: 'Ko‘cha, uy, xonadon', addressPlaceholder: 'Masalan: Navoiy ko‘chasi, 15-uy, 4-xonadon',
+    postal: 'Indeks', comment: 'Kuryer uchun izoh', commentPlaceholder: 'Podyezd, mo‘ljal, qulay vaqt', optional: 'ixtiyoriy',
+    primary: 'Asosiy qabul qiluvchi — buyurtmaga avtomatik qo‘yiladi', save: 'Qabul qiluvchini saqlash', saving: 'Saqlanmoqda…', saved: 'Qabul qiluvchi saqlandi.', updated: 'O‘zgarishlar saqlandi.',
+    required: 'Bu maydonni to‘ldiring.', privacy: 'Maslahatlar qurilmangizda ishlaydi — manzil tashqi qidiruv xizmatlariga yuborilmaydi.',
+  },
+  en: {
+    addTitle: 'New recipient', editTitle: 'Edit recipient', note: 'The person who will collect the parcel. Full name as in the passport.',
+    labelLegend: 'Label', labels: { home: 'Home', work: 'Work', parents: 'Parents', other: 'Other' }, customLabel: 'Your own label',
+    name: 'Recipient’s full name', nameHint: 'As in the passport, so the parcel is handed over without questions.',
+    phone: 'Phone', phoneHint: 'The courier calls before delivery.', phoneError: 'Enter the 9 digits after +998.',
+    region: 'Region', regionPlaceholder: 'Choose a region', city: 'City or district', address: 'Street, building, apartment', addressPlaceholder: 'For example: Navoi St 15, apt 4',
+    postal: 'Postal code', comment: 'Note for the courier', commentPlaceholder: 'Entrance, landmark, convenient time', optional: 'optional',
+    primary: 'Default recipient — filled in at checkout', save: 'Save recipient', saving: 'Saving…', saved: 'Recipient saved.', updated: 'Changes saved.',
+    required: 'Fill in this field.', privacy: 'Suggestions run on your device — the address is not sent to third-party search.',
+  },
+};
+
+export type DocsCopy = {
+  title: string; lead: string; whose: string; whoseHint: string; noRecipient: string; addRecipient: string;
+  passportOk: (masked: string) => string; passportMissing: string; uploadStep: string; replaceStep: string; checkStep: string;
+  pickFirst: string; uploaded: string; uploadedFilled: string; autoFailed: string; confirmedToast: string; deleteConfirm: string; deleted: string;
+  loadError: string; uploadError: string; deleteError: string; scans: string;
+  declTitle: string; declLead: string; need: string; needRecipient: string; needPassport: string; needOrders: string; addPassport: string; newOrder: string;
+  ordersFor: (name: string) => string; selectGroup: string; usd: (amount: number) => string; overLimit: string; history: string;
+};
+
+export const docsCopy: Record<Locale, DocsCopy> = {
+  ru: {
+    title: 'Паспорт получателя', lead: 'Нужен для таможенного оформления посылки. Скан и данные видите только вы.',
+    whose: 'Чей паспорт', whoseHint: 'Паспорт привязывается к получателю — тому, кто заберёт посылку.', noRecipient: 'Сначала добавьте получателя.', addRecipient: 'Добавить получателя',
+    passportOk: masked => `Паспорт ${masked}`, passportMissing: 'паспорт не добавлен', uploadStep: 'Фото разворота', replaceStep: 'Заменить скан', checkStep: 'Проверьте данные',
+    pickFirst: 'Выберите получателя выше.', uploaded: 'Скан загружен — проверьте и заполните данные.', uploadedFilled: 'Скан загружен, найденные данные заполнены.',
+    autoFailed: 'Автораспознавание не сработало — поля можно заполнить вручную.', confirmedToast: 'Паспортные данные подтверждены.', deleteConfirm: 'Удалить скан паспорта из защищённого хранилища?', deleted: 'Скан удалён.',
+    loadError: 'Не удалось загрузить документы.', uploadError: 'Не удалось загрузить документ.', deleteError: 'Не удалось удалить документ.', scans: 'Загруженные сканы',
+    declTitle: 'Декларация', declLead: 'Соберём черновик из ваших заказов и подтверждённого паспорта — без повторного ввода.', need: 'Что нужно для декларации',
+    needRecipient: 'Получатель', needPassport: 'Паспорт получателя', needOrders: 'Хотя бы один заказ', addPassport: 'Добавить паспорт', newOrder: 'Заказать по ссылке',
+    ordersFor: name => `Заказы для: ${name}`, selectGroup: 'Выбрать все', usd: amount => `≈ $${amount}`, overLimit: 'Больше $200 — сверх лимита возможна пошлина.', history: 'Черновики деклараций',
+  },
+  uz: {
+    title: 'Qabul qiluvchi pasporti', lead: 'Posilkani bojxonada rasmiylashtirish uchun kerak. Skan va ma’lumotlarni faqat siz ko‘rasiz.',
+    whose: 'Kimning pasporti', whoseHint: 'Pasport qabul qiluvchiga — posilkani oladigan odamga bog‘lanadi.', noRecipient: 'Avval qabul qiluvchini qo‘shing.', addRecipient: 'Qabul qiluvchi qo‘shish',
+    passportOk: masked => `Pasport ${masked}`, passportMissing: 'pasport qo‘shilmagan', uploadStep: 'Pasport sahifasi surati', replaceStep: 'Skanni almashtirish', checkStep: 'Ma’lumotlarni tekshiring',
+    pickFirst: 'Yuqorida qabul qiluvchini tanlang.', uploaded: 'Skan yuklandi — ma’lumotlarni tekshirib to‘ldiring.', uploadedFilled: 'Skan yuklandi, topilgan ma’lumotlar to‘ldirildi.',
+    autoFailed: 'Avtomatik aniqlash ishlamadi — maydonlarni qo‘lda to‘ldirish mumkin.', confirmedToast: 'Pasport ma’lumotlari tasdiqlandi.', deleteConfirm: 'Pasport skani himoyalangan omborxonadan o‘chirilsinmi?', deleted: 'Skan o‘chirildi.',
+    loadError: 'Hujjatlarni yuklab bo‘lmadi.', uploadError: 'Hujjatni yuklab bo‘lmadi.', deleteError: 'Hujjatni o‘chirib bo‘lmadi.', scans: 'Yuklangan skanlar',
+    declTitle: 'Deklaratsiya', declLead: 'Buyurtmalaringiz va tasdiqlangan pasportdan qoralama tayyorlaymiz — qayta kiritmasdan.', need: 'Deklaratsiya uchun nima kerak',
+    needRecipient: 'Qabul qiluvchi', needPassport: 'Qabul qiluvchi pasporti', needOrders: 'Kamida bitta buyurtma', addPassport: 'Pasport qo‘shish', newOrder: 'Havola orqali buyurtma',
+    ordersFor: name => `Buyurtmalar: ${name}`, selectGroup: 'Hammasini tanlash', usd: amount => `≈ $${amount}`, overLimit: '$200 dan ko‘p — limitdan ortiq qismga boj bo‘lishi mumkin.', history: 'Deklaratsiya qoralamalari',
+  },
+  en: {
+    title: 'Recipient passport', lead: 'Needed to clear the parcel through customs. Only you can see the scan and details.',
+    whose: 'Whose passport', whoseHint: 'A passport belongs to a recipient — the person who collects the parcel.', noRecipient: 'Add a recipient first.', addRecipient: 'Add recipient',
+    passportOk: masked => `Passport ${masked}`, passportMissing: 'no passport yet', uploadStep: 'Photo page', replaceStep: 'Replace scan', checkStep: 'Check the details',
+    pickFirst: 'Choose a recipient above.', uploaded: 'Scan uploaded — check and complete the details.', uploadedFilled: 'Scan uploaded; the details found were filled in.',
+    autoFailed: 'Automatic reading did not work — you can fill in the fields yourself.', confirmedToast: 'Passport details confirmed.', deleteConfirm: 'Delete the passport scan from protected storage?', deleted: 'Scan deleted.',
+    loadError: 'Could not load documents.', uploadError: 'Could not upload the document.', deleteError: 'Could not delete the document.', scans: 'Uploaded scans',
+    declTitle: 'Declaration', declLead: 'We build a draft from your orders and the confirmed passport — nothing to retype.', need: 'What a declaration needs',
+    needRecipient: 'A recipient', needPassport: 'The recipient’s passport', needOrders: 'At least one order', addPassport: 'Add passport', newOrder: 'Order by link',
+    ordersFor: name => `Orders for: ${name}`, selectGroup: 'Select all', usd: amount => `≈ $${amount}`, overLimit: 'Over $200 — duty may apply above the allowance.', history: 'Declaration drafts',
   },
 };

@@ -1,21 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "@/components/site-link";
-import { AlertCircle, ArrowRight, ArrowUpRight, Bell, Check, FileCheck2, LogOut, MapPin, MessageCircle, Package, Plus, ScanLine, ShoppingBag, Wallet } from "lucide-react";
+import { AlertCircle, ArrowRight, ArrowUpRight, Bell, Check, FileCheck2, LogOut, MapPin, MessageCircle, Package, Pencil, Plus, ScanLine, ShoppingBag, Wallet } from "lucide-react";
 import { useMarket } from "@/lib/market/store";
 import { courierAllowanceUsd, customsReferences as customsSources } from "@/lib/market/customs";
 import { CustomsCalculator } from "./customs-estimate";
-import { balanceOf, totalOf } from "@/lib/market/domain";
+import { balanceOf, totalOf, type SavedDeliveryProfile } from "@/lib/market/domain";
+import { monthlyAllowance, recipientKey, type RecipientAllowance } from "@/lib/market/allowance";
 import { localizedStatuses } from "@/lib/market/i18n";
 import { formatSum } from "@/lib/market/home-copy";
-import { accountCopy, formatLongDate, itemCount, type AccountCopy } from "@/lib/market/customer-copy";
+import { accountCopy, formatLongDate, itemCount, recipientCopy, type AccountCopy } from "@/lib/market/customer-copy";
 import { siteContent } from "@/lib/market/site-content";
-import { cities, regions, streets, suggestions } from "@/lib/market/addresses";
 import { toast } from "sonner";
 import { Modal, PageHeading } from "./market-ui";
 import { SafeDeleteButton } from "./safe-delete-button";
 import { ThemeToggle } from "./theme-control";
+import { RecipientForm } from "./recipient-form";
 
 // Account home, mobile-first: one "what needs you now" card, four quick tiles, then
 // recipients, customs allowance, documents, support and settings — each shown once.
@@ -23,9 +25,16 @@ export function AccountView() {
   const { user, state, ready, act, pricing } = useMarket();
   const lang = state.communication.language;
   const c = accountCopy[lang];
-  const [addressOpen, setAddressOpen] = useState(false);
+  const [editor, setEditor] = useState<SavedDeliveryProfile | "new" | null>(null);
   const [ticketOpen, setTicketOpen] = useState(false);
   const [ticket, setTicket] = useState({ subject: "", text: "" });
+  const aboutOrder = useSearchParams().get("order") ?? "";
+  // "Question about this order" from /orders opens the support form with the order number filled in.
+  useEffect(() => {
+    if (!/^AT-[A-Z0-9]{4,12}$/.test(aboutOrder)) return;
+    queueMicrotask(() => { setTicketOpen(true); setTicket(current => current.subject ? current : { ...current, subject: c.support.aboutOrder(aboutOrder) }); });
+    window.setTimeout(() => document.getElementById("support")?.scrollIntoView({ block: "start" }), 300);
+  }, [aboutOrder, c.support]);
   const identityProfiles = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
   const activeOrders = state.orders.filter(order => !order.cancelled && order.status < 5);
   const pendingApproval = activeOrders.find(order => (order.changeRequests ?? []).some(request => request.status === "pending"));
@@ -35,11 +44,9 @@ export function AccountView() {
   const cartCount = state.cart.reduce((sum, item) => sum + item.quantity, 0);
   const balance = balanceOf(state);
   const statuses = localizedStatuses(lang);
-  const date = new Date();
-  const monthlyUsd = Math.round(state.orders.filter(order => {
-    const created = new Date(order.createdAt);
-    return !order.cancelled && created.getMonth() === date.getMonth() && created.getFullYear() === date.getFullYear();
-  }).reduce((sum, order) => sum + order.quote.merchandise / (order.quote.fx ?? pricing.fx), 0));
+  const allowance = monthlyAllowance(state, pricing.fx);
+  const primaryRecipient = state.deliveryProfiles.find(profile => profile.primary) ?? state.deliveryProfiles[0];
+  const cartUsd = Math.round(state.cart.reduce((sum, item) => sum + item.product.usd * item.quantity, 0));
   const telegram = siteContent.contacts.telegramSupport;
 
   if (!user) return <section className="cabinet-card cabinet-signin"><h1>{c.signin.title}</h1><p>{c.signin.text}</p><a className="btn primary" href="/login?return_to=%2Faccount">{c.signin.action}<ArrowRight size={18} aria-hidden="true" /></a></section>;
@@ -77,7 +84,7 @@ export function AccountView() {
             <div className="cabinet-bar" role="progressbar" aria-label={statuses[next.order.status]} aria-valuemin={1} aria-valuemax={statuses.length} aria-valuenow={next.order.status + 1}><span style={{ width: `${(next.order.status + 1) / statuses.length * 100}%` }} /></div>
             <small>{c.next.stage(next.order.status + 1, statuses.length)} · {statuses[next.order.status]}</small>
           </div>}
-          {next ? (next.href ? <Link className="btn primary" href={next.href}>{c.next.open}<ArrowRight size={17} aria-hidden="true" /></Link> : <button type="button" className="btn primary" onClick={() => setAddressOpen(true)}>{c.next.add}<Plus size={17} aria-hidden="true" /></button>)
+          {next ? (next.href ? <Link className="btn primary" href={next.href}>{c.next.open}<ArrowRight size={17} aria-hidden="true" /></Link> : <button type="button" className="btn primary" onClick={() => setEditor("new")}>{c.next.add}<Plus size={17} aria-hidden="true" /></button>)
             : <Link className="btn primary" href="/order-by-link">{c.next.newOrder}<ArrowRight size={17} aria-hidden="true" /></Link>}
         </section>
 
@@ -98,12 +105,16 @@ export function AccountView() {
               <p>{profile.recipient} · {profile.phone}</p>
               <p className="cabinet-muted">{profile.region}, {profile.city}, {profile.address}</p>
               <div className="cabinet-recipient-foot">
-                {passport ? <span className="cabinet-chip ok"><Check size={14} aria-hidden="true" />{c.recipients.passportOk(passport.passportMasked)}</span> : <Link className="cabinet-chip warn" href="/identity"><ScanLine size={14} aria-hidden="true" />{c.recipients.addPassport}</Link>}
+                {passport ? <span className="cabinet-chip ok"><Check size={14} aria-hidden="true" />{c.recipients.passportOk(passport.passportMasked)}</span> : <Link className="cabinet-chip warn" href={`/identity?recipient=${encodeURIComponent(profile.id)}`}><ScanLine size={14} aria-hidden="true" />{c.recipients.addPassport}</Link>}
+              </div>
+              <div className="cabinet-recipient-actions">
+                <button type="button" className="cabinet-text-btn" onClick={() => setEditor(profile)}><Pencil size={15} aria-hidden="true" />{c.recipients.edit}</button>
+                {!profile.primary && <button type="button" className="cabinet-text-btn" onClick={() => void act({ type: "delivery-profile-save", id: profile.id, value: profile, label: profile.label, primary: true })}>{c.recipients.makePrimary}</button>}
                 <SafeDeleteButton label={c.recipients.remove} itemName={profile.label} locale={lang} onConfirm={() => act({ type: "delivery-profile-remove", id: profile.id })} />
               </div>
             </li>;
           })}</ul> : <p className="cabinet-empty">{c.recipients.empty}</p>}
-          <button type="button" className="cabinet-add" onClick={() => setAddressOpen(true)}><Plus size={18} aria-hidden="true" />{c.recipients.add}</button>
+          <button type="button" className="cabinet-add" onClick={() => setEditor("new")}><Plus size={18} aria-hidden="true" />{c.recipients.add}</button>
         </section>
 
         <section className="cabinet-card" id="support" aria-labelledby="cabinet-support-title">
@@ -125,7 +136,7 @@ export function AccountView() {
       </div>
 
       <div className="cabinet-side">
-        <CustomsAllowance used={monthlyUsd} c={c} />
+        <CustomsAllowance groups={allowance} primaryName={primaryRecipient?.recipient} cartUsd={cartUsd} c={c} />
 
         <section className="cabinet-card" aria-labelledby="cabinet-documents-title">
           <h2 id="cabinet-documents-title">{c.documents.title}</h2>
@@ -145,38 +156,37 @@ export function AccountView() {
       </div>
     </div>
 
-    <Modal open={addressOpen} onClose={() => setAddressOpen(false)} title={c.form.title} description={c.form.note} locale={lang}><AddressForm c={c} onSave={async value => { if (await act({ type: "delivery-profile-save", value: value.profile, label: value.label })) { setAddressOpen(false); toast.success(c.form.saved); } }} /></Modal>
+    <Modal open={editor !== null} onClose={() => setEditor(null)} title={editor === "new" ? recipientCopy[lang].addTitle : recipientCopy[lang].editTitle} description={recipientCopy[lang].note} locale={lang}>
+      {editor !== null && <RecipientForm key={editor === "new" ? "new" : editor.id} locale={lang} initial={editor === "new" ? undefined : editor} isFirst={!state.deliveryProfiles.length} onSave={async value => {
+        const editing = editor === "new" ? undefined : editor;
+        if (await act({ type: "delivery-profile-save", value: value.profile, label: value.label, id: editing?.id, primary: value.primary })) { setEditor(null); toast.success(editing ? recipientCopy[lang].updated : recipientCopy[lang].saved); }
+      }} />}
+    </Modal>
   </div>;
 }
 
-/** Purchases through Atlas this month against the duty-free courier allowance. */
-function CustomsAllowance({ used, c }: { used: number; c: AccountCopy }) {
-  const limit = courierAllowanceUsd, over = used > limit;
-  return <section className={"cabinet-card cabinet-customs" + (over ? " over" : "")} aria-labelledby="cabinet-customs-title">
+/** This month's purchases through Atlas against the duty-free courier allowance, per recipient. */
+function CustomsAllowance({ groups, primaryName, cartUsd, c }: { groups: RecipientAllowance[]; primaryName?: string; cartUsd: number; c: AccountCopy }) {
+  const limit = courierAllowanceUsd;
+  // Show the default recipient even before their first order, so the empty state still says "for whom".
+  const rows = groups.length ? groups : primaryName ? [{ key: recipientKey(primaryName), name: primaryName, usedUsd: 0, orders: 0 }] : [];
+  const anyOver = rows.some(row => row.usedUsd > limit);
+  return <section className={"cabinet-card cabinet-customs" + (anyOver ? " over" : "")} aria-labelledby="cabinet-customs-title">
     <h2 id="cabinet-customs-title">{c.customs.title}</h2>
-    <strong className="cabinet-customs-value">{c.customs.used(used, limit)}</strong>
-    <div className="cabinet-bar" role="progressbar" aria-labelledby="cabinet-customs-title" aria-valuemin={0} aria-valuemax={limit} aria-valuenow={Math.min(used, limit)}><span style={{ width: `${Math.min(100, used / limit * 100)}%` }} /></div>
-    <p className="cabinet-customs-left">{over ? c.customs.over(used - limit) : c.customs.left(limit - used)}</p>
+    <p className="cabinet-lead">{c.customs.perPerson}</p>
+    {rows.length ? <ul className="cabinet-allowance">{rows.map(row => {
+      const over = row.usedUsd > limit;
+      return <li key={row.key} className={over ? "over" : undefined}>
+        <div className="cabinet-allowance-head"><b>{row.name || c.customs.unnamed}</b><strong>{c.customs.used(row.usedUsd, limit)}</strong></div>
+        <div className="cabinet-bar" role="progressbar" aria-label={row.name || c.customs.unnamed} aria-valuemin={0} aria-valuemax={limit} aria-valuenow={Math.min(row.usedUsd, limit)}><span style={{ width: `${Math.min(100, row.usedUsd / limit * 100)}%` }} /></div>
+        <small>{over ? c.customs.over(row.usedUsd - limit) : c.customs.left(limit - row.usedUsd)}</small>
+      </li>;
+    })}</ul> : <p className="cabinet-empty">{c.customs.empty}</p>}
+    {cartUsd > 0 && <p className="cabinet-customs-cart">{c.customs.cart(cartUsd)}</p>}
     <p className="cabinet-note">{c.customs.note}</p>
     <Link className="cabinet-link" href="/customs">{c.customs.link}<ArrowRight size={16} aria-hidden="true" /></Link>
   </section>;
 }
-
-function AddressForm({ c, onSave }: { c: AccountCopy; onSave: (value: { label: string; profile: { recipient: string; phone: string; region: string; city: string; address: string; postalCode: string; comment: string } }) => Promise<void> }) {
-  const copy = c.form;
-  const [value, setValue] = useState({ label: copy.defaultLabel, recipient: "", phone: "", region: "", city: "", address: "", postalCode: "", comment: "" });
-  return <form className="address-form" onSubmit={event => { event.preventDefault(); void onSave({ label: value.label, profile: value }); }}>
-    <label htmlFor="account-address-label">{copy.label}</label><input id="account-address-label" required maxLength={80} value={value.label} onChange={e => setValue({ ...value, label: e.target.value })} />
-    <label htmlFor="account-recipient">{copy.recipient}</label><input id="account-recipient" required maxLength={120} autoComplete="name" value={value.recipient} onChange={e => setValue({ ...value, recipient: e.target.value })} />
-    <label htmlFor="account-phone">{copy.phone}</label><input id="account-phone" type="tel" inputMode="tel" required maxLength={50} autoComplete="tel" placeholder="+998 90 123 45 67" value={value.phone} onChange={e => setValue({ ...value, phone: e.target.value })} />
-    <label htmlFor="account-region">{copy.region}</label><input id="account-region" list="account-region-suggestions" required minLength={2} maxLength={100} autoComplete="address-level1" value={value.region} onChange={e => setValue({ ...value, region: e.target.value })} /><datalist id="account-region-suggestions">{suggestions(regions, value.region).map(item => <option key={item} value={item} />)}</datalist>
-    <label htmlFor="account-city">{copy.city}</label><input id="account-city" list="account-city-suggestions" required minLength={2} maxLength={100} autoComplete="address-level2" value={value.city} onChange={e => setValue({ ...value, city: e.target.value })} /><datalist id="account-city-suggestions">{suggestions(cities, value.city).map(item => <option key={item} value={item} />)}</datalist>
-    <label htmlFor="account-street">{copy.address}</label><input id="account-street" list="account-street-suggestions" required minLength={5} maxLength={220} autoComplete="street-address" value={value.address} onChange={e => setValue({ ...value, address: e.target.value })} /><datalist id="account-street-suggestions">{suggestions(streets, value.address).map(item => <option key={item} value={item} />)}</datalist><small>{copy.hint}</small>
-    <label htmlFor="account-postal">{copy.postal}</label><input id="account-postal" inputMode="numeric" maxLength={30} autoComplete="postal-code" value={value.postalCode} onChange={e => setValue({ ...value, postalCode: e.target.value })} />
-    <button className="btn primary">{copy.save}</button>
-  </form>;
-}
-
 export function CustomsView() {
   const { pricing, state } = useMarket();
   if(state.communication.language!=='ru')return <LocalizedCustoms locale={state.communication.language} fx={pricing.fx}/>;

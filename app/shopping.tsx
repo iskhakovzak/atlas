@@ -10,11 +10,12 @@ import { atlasServiceBreakdown } from "@/lib/market/quote-presentation";
 import { courierAllowanceUsd } from "@/lib/market/customs";
 import { countryName, customsVersion } from "@/lib/market/world";
 import { formatSum } from "@/lib/market/home-copy";
-import { cartCopy, countryLabel, itemCount, minutesLeft, parcelCount, type CartCopy } from "@/lib/market/customer-copy";
+import { cartCopy, countryLabel, itemCount, minutesLeft, parcelCount, recipientCopy, type CartCopy } from "@/lib/market/customer-copy";
+import { monthlyUsedFor } from "@/lib/market/allowance";
 import type { Locale } from "@/lib/market/i18n";
 import { Modal, ProductImage } from "./market-ui";
 import { SafeDeleteButton } from "./safe-delete-button";
-import { cities, regions, streets, suggestions } from "@/lib/market/addresses";
+import { cities, formatUzLocal, regionCapital, regionLabel, regions, streets, suggestions, uzPhone, uzPhoneDigits } from "@/lib/market/addresses";
 import { CustomsEstimate } from "./customs-estimate";
 import { SummaryLine } from "./price-summary";
 
@@ -49,6 +50,7 @@ export function CartView() {
   const [delivery, setDelivery] = useState<DeliveryProfile>(emptyDelivery);
   const [selectedProfile, setSelectedProfile] = useState("");
   const [busy, setBusy] = useState(false);
+  const [saveRecipient, setSaveRecipient] = useState(true);
   const [savingServiceItemId, setSavingServiceItemId] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [checkoutKey, setCheckoutKey] = useState("");
@@ -84,6 +86,9 @@ export function CartView() {
   const total = totalOf(state.cart);
   const count = state.cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartMerchandiseUsd = state.cart.reduce((sum, item) => sum + item.product.usd * item.quantity, 0);
+  // The $200 allowance is per person and per month: count what the default recipient already ordered.
+  const plannedRecipient = (state.deliveryProfiles.find(profile => profile.primary) ?? state.deliveryProfiles[0])?.recipient ?? state.deliveryProfile?.recipient;
+  const usedThisMonth = monthlyUsedFor(state, plannedRecipient, pricing.fx);
   const balance = balanceOf(state);
   const credit = useBalance ? Math.min(total, Math.max(0, balance)) : 0;
   const payable = total - credit;
@@ -130,7 +135,9 @@ export function CartView() {
     const key = crypto.randomUUID();
     setCheckoutKey(key);
     setPaidFromCart(false);
-    const ok = await act({ type: "checkout", key, signature: cartSignature(state.cart), useBalance, expectedCredit: credit, consentVersion: customsVersion, delivery, deliveryProfileId: selectedProfile === "manual" ? undefined : selectedProfile, identityProfileId: selectedIdentity?.documentId });
+    const ok = await act({ type: "checkout", key, signature: cartSignature(state.cart), useBalance, expectedCredit: credit, consentVersion: customsVersion, delivery, deliveryProfileId: selectedProfile === "manual" ? undefined : selectedProfile, identityProfileId: selectedIdentity?.documentId,
+      // A recipient typed here is kept for the next order and the passport, unless the customer opts out.
+      saveRecipientLabel: selectedProfile === "manual" && saveRecipient ? (state.deliveryProfiles.length ? delivery.recipient.trim().slice(0, 60) : recipientCopy[locale].labels.home) : undefined });
     setBusy(false);
     if (ok) { setCheckoutOpen(false); setSuccess(true); }
   }
@@ -255,7 +262,7 @@ export function CartView() {
         {balance > 0 && <div className="basket-balance"><Checkbox id="use-balance" checked={useBalance} onCheckedChange={(value) => setUseBalance(value === true)} /><label htmlFor="use-balance">{c.summary.balance}<small>{c.summary.available}: {formatSum(balance, locale)}</small></label></div>}
         <div className="basket-total"><span>{c.summary.payable}</span><strong>{formatSum(payable, locale)}</strong></div>
         <p className={"basket-expiry" + (expired ? " expired" : "")} role={expired ? "alert" : undefined}><Clock3 size={15} aria-hidden="true" />{expired ? c.summary.expired : now ? c.summary.validFor(minutesLeft(earliestExpiry - now, locale)) : c.summary.checking}</p>
-        {cartMerchandiseUsd > courierAllowanceUsd && <CustomsEstimate valueUsd={cartMerchandiseUsd} grossKg={state.cart.reduce((sum, item) => sum + (item.product.boxedWeight ?? item.product.weight) * item.quantity, 0)} fx={pricing.fx} locale={locale} />}
+        {cartMerchandiseUsd + usedThisMonth > courierAllowanceUsd && <CustomsEstimate key={usedThisMonth} valueUsd={cartMerchandiseUsd} grossKg={state.cart.reduce((sum, item) => sum + (item.product.boxedWeight ?? item.product.weight) * item.quantity, 0)} fx={pricing.fx} locale={locale} initialUsedUsd={usedThisMonth} />}
         <button type="button" className="btn primary basket-cta" onClick={openCheckout}>{expired ? c.summary.renew : c.summary.checkout}<ArrowRight size={18} aria-hidden="true" /></button>
         <ul className="basket-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{c.summary.assurance}</li><li><Info size={16} aria-hidden="true" />{c.summary.simulation}</li></ul>
       </aside>
@@ -289,8 +296,8 @@ export function CartView() {
           </fieldset>}
           <div className="two-fields">
             <div className="field"><label htmlFor="recipient">{c.checkout.recipient}</label><input id="recipient" autoComplete="name" required minLength={2} maxLength={100} value={delivery.recipient} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, recipient: event.target.value }); }} /></div>
-            <div className="field"><label htmlFor="recipient-phone">{c.checkout.phone}</label><input id="recipient-phone" required type="tel" inputMode="tel" autoComplete="tel" minLength={7} maxLength={30} placeholder="+998 90 123 45 67" value={delivery.phone} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, phone: event.target.value }); }} /></div>
-            <div className="field"><label htmlFor="region">{c.checkout.region}</label><input id="region" list="region-suggestions" autoComplete="address-level1" required minLength={2} maxLength={100} value={delivery.region} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, region: event.target.value }); }} /><datalist id="region-suggestions">{suggestions(regions, delivery.region).map(value => <option key={value} value={value} />)}</datalist></div>
+            <div className="field"><label htmlFor="recipient-phone">{c.checkout.phone}<span className="sr-only"> +998</span></label><span className="rf-phone"><span aria-hidden="true">+998</span><input id="recipient-phone" required type="tel" inputMode="tel" autoComplete="tel-national" pattern="\d{2} \d{3} \d{2} \d{2}" title={recipientCopy[locale].phoneError} placeholder="90 123 45 67" value={formatUzLocal(uzPhoneDigits(delivery.phone))} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, phone: uzPhone(uzPhoneDigits(event.target.value)) }); }} /></span></div>
+            <div className="field"><label htmlFor="region">{c.checkout.region}</label><select id="region" autoComplete="address-level1" required value={delivery.region} onChange={(event) => { const region = event.target.value, capital = regionCapital(region); setSelectedProfile("manual"); setDelivery({ ...delivery, region, city: !delivery.city.trim() || cities.includes(delivery.city) ? capital ?? delivery.city : delivery.city }); }}>{!regions.includes(delivery.region) && <option value={delivery.region}>{delivery.region || recipientCopy[locale].regionPlaceholder}</option>}{regions.map(value => <option key={value} value={value}>{regionLabel(value, locale)}</option>)}</select></div>
             <div className="field"><label htmlFor="city">{c.checkout.city}</label><input id="city" list="city-suggestions" autoComplete="address-level2" required minLength={2} maxLength={100} value={delivery.city} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, city: event.target.value }); }} /><datalist id="city-suggestions">{suggestions(cities, delivery.city).map(value => <option key={value} value={value} />)}</datalist></div>
           </div>
           <div className="field"><label htmlFor="delivery-address">{c.checkout.street}</label><input id="delivery-address" list="street-suggestions" autoComplete="street-address" required minLength={5} maxLength={220} placeholder={c.checkout.streetPlaceholder} value={delivery.address} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, address: event.target.value }); }} /><datalist id="street-suggestions">{suggestions(streets, delivery.address).map(value => <option key={value} value={value} />)}</datalist><small>{c.checkout.addressHint}</small></div>
@@ -298,6 +305,7 @@ export function CartView() {
             <div className="field"><label htmlFor="postal-code">{c.checkout.postal}</label><input id="postal-code" autoComplete="postal-code" inputMode="numeric" maxLength={20} value={delivery.postalCode} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, postalCode: event.target.value }); }} /></div>
             <div className="field"><label htmlFor="delivery-comment">{c.checkout.comment}</label><input id="delivery-comment" maxLength={300} value={delivery.comment} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, comment: event.target.value }); }} /></div>
           </div>
+          {selectedProfile === "manual" && <div className="basket-consent"><Checkbox id="save-recipient" checked={saveRecipient} onCheckedChange={(value) => setSaveRecipient(value === true)} /><label htmlFor="save-recipient">{c.checkout.saveRecipient}</label></div>}
         </>}
         {review && <section className="checkout-review">
           <div className="basket-review-recipient"><div><h3>{delivery.recipient}</h3><p>{delivery.phone}</p><p>{delivery.region}, {delivery.city}, {delivery.address}</p></div><button type="button" className="text-button" onClick={() => setReview(false)}>{c.checkout.edit}</button></div>

@@ -128,6 +128,12 @@ The root layout reads `atlas-language` and Accept-Language (`preferredLocale`, U
 
 `OrdersView` (`app/order-workspace.tsx`) still serves both `/orders` and the operator `/operations` queue. In customer mode each order renders through `CustomerOrderCard`, which reuses the same state, `runOrderAction`, confirmation dialog, `CustomerWarehouseServices` and `OrderDocuments`; the operator branch keeps its original markup and tools. `NotificationsView` and `BalanceView` read the same state as before (`notifications`, `communication`, `entries`, order reserves) and still send only `notifications-read` and `communication-save`. Their copy lives in `ordersCopy`, `balanceCopy` and `noticesCopy` in `lib/market/customer-copy.ts`; dates use `formatShortDate` / `formatDateTime`, built by hand for Uzbek.
 
+## Recipients, documents and the monthly allowance
+
+`delivery-profile-save` accepts optional `id` (edit that recipient in place) and `primary` (make it the default); `saveDeliveryProfile` in `lib/market/domain.ts` keeps exactly one default and, when neither field is sent, behaves as before (the saved recipient becomes the default). `checkout` accepts optional `saveRecipientLabel`: with a typed `delivery` and no `deliveryProfileId`, the server saves the recipient and links the new orders to it in the same revision, so a failed checkout saves nothing. `app/recipient-form.tsx` is the one recipient form (account, passport page); phone numbers are normalised to "+998 XX XXX XX XX" by `lib/market/addresses.ts`, which also holds UZ/EN region labels and regional centres. `/identity?recipient=<id>` preselects the passport's recipient. `lib/market/allowance.ts` derives the per-person monthly total (non-cancelled orders this calendar month, grouped by recipient name, USD at each order's quote rate) for the account card, order details and the cart customs estimate; it reads state only and stores nothing.
+
+`/order-by-link` (`GlobalLinkOrder`) keeps its import, draft, validation and `cart-add` code; only the layout changed. Price rows on the cart and this page share `app/price-summary.tsx`.
+
 ## Sign-in and sessions
 
 Atlas no longer relies on ChatGPT Sites identity headers; `oai-authenticated-*` headers are ignored. `/login` offers each method only when its provider settings exist (`GET /api/auth/methods`):

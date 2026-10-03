@@ -19,9 +19,11 @@ import {
   CreditCard,
   Info,
   Mail,
+  MessageCircle,
   MessageSquareText,
   Phone,
   RefreshCw,
+  RotateCcw,
   Truck,
   UserCheck,
 } from "lucide-react";
@@ -62,6 +64,8 @@ import { countries } from "@/lib/market/world";
 import { localizedStatuses, type Locale } from "@/lib/market/i18n";
 import { formatSum } from "@/lib/market/home-copy";
 import { balanceCopy, countryLabel, formatDateTime, formatShortDate, noticesCopy, orderCount, ordersCopy } from "@/lib/market/customer-copy";
+import { monthlyAllowance, orderRecipientName, recipientKey } from "@/lib/market/allowance";
+import { courierAllowanceUsd } from "@/lib/market/customs";
 import {
   PageHeading,
   Empty,
@@ -704,8 +708,9 @@ const intakeTagCopy = {
 } as const;
 
 /** Customer order, mobile-first: what needs you first, then progress, details, settlements and history. */
-function CustomerOrderCard({ order: o, locale, pricing, busy, expanded, onToggle, run, confirm, loadPhoto }: {
+function CustomerOrderCard({ order: o, locale, pricing, busy, expanded, onToggle, run, confirm, loadPhoto, allowanceUsd }: {
   order: Order;
+  allowanceUsd?: number;
   locale: Locale;
   pricing: Pricing;
   busy: boolean;
@@ -786,6 +791,7 @@ function CustomerOrderCard({ order: o, locale, pricing, busy, expanded, onToggle
         </dd></div>
         {o.payment && <div><dt>{c.payment}</dt><dd>{o.payment.status === "pending" ? ow.paymentWaiting : o.payment.status === "paid" ? ow.paymentPaid : ow.paymentRefunded}<small>{o.payment.id} · {ow.providerPassed}</small></dd></div>}
         {o.delivery && <div><dt>{c.delivery}</dt><dd>{o.delivery.recipient}<small>{o.delivery.region}, {o.delivery.city}, {o.delivery.address}</small><a className="order-x-link" href={`tel:${o.delivery.phone.replace(/[^\d+]/g, "")}`}>{o.delivery.phone}</a></dd></div>}
+        {allowanceUsd !== undefined && <div><dt>{c.allowance}</dt><dd className={allowanceUsd > courierAllowanceUsd ? "order-x-over" : undefined}>{c.allowanceValue(allowanceUsd, courierAllowanceUsd)}</dd></div>}
         {o.parcel && <div><dt>{c.tracking}</dt><dd>{o.parcel.carrier}<span className="order-x-track"><span className="order-x-id">{o.parcel.trackingNumber}</span><CopyText text={o.parcel.trackingNumber} locale={locale} /></span><small>{lastParcelEvent ?? ow.parcelRegistered}{o.parcel.warehouseCode ? ` · ${locale === "ru" ? "склад" : locale === "uz" ? "ombor" : "warehouse"} ${o.parcel.warehouseCode}` : ""}</small></dd></div>}
       </dl>
 
@@ -838,7 +844,11 @@ function CustomerOrderCard({ order: o, locale, pricing, busy, expanded, onToggle
         </div>
       </details>
 
-      {o.status === 0 && !o.cancelled && <button type="button" className="order-x-cancel" onClick={() => confirm({ id: o.id, cancel: true, amount: o.quote.total })}>{ow.cancelOrder}</button>}
+      <div className="order-x-actions">
+        {o.product.sourceUrl && <Link className="cabinet-text-btn" href={`/order-by-link?url=${encodeURIComponent(o.product.sourceUrl)}`}><RotateCcw size={15} aria-hidden="true" />{c.repeat}</Link>}
+        <Link className="cabinet-text-btn" href={`/account?order=${encodeURIComponent(o.id)}#support`}><MessageCircle size={15} aria-hidden="true" />{c.ask}</Link>
+        {o.status === 0 && !o.cancelled && <button type="button" className="order-x-cancel" onClick={() => confirm({ id: o.id, cancel: true, amount: o.quote.total })}>{ow.cancelOrder}</button>}
+      </div>
     </div>}
   </details>;
 }
@@ -846,6 +856,7 @@ function CustomerOrderCard({ order: o, locale, pricing, busy, expanded, onToggle
 export function OrdersView({ operations }: { operations: boolean }) {
   const { state, pricing, ready, error, act, user } = useMarket();
   const [expanded,setExpanded]=useState<string[]>([]);
+  const [recipientFilter,setRecipientFilter]=useState("all");
   const [tab, setTab] = useState("active"),
     [query, setQuery] = useState(""),
     [warehouse, setWarehouse] = useState<string | null>(null),
@@ -925,9 +936,14 @@ export function OrdersView({ operations }: { operations: boolean }) {
     need = orders.filter((order) => orderNeedsOperatorAttention(order) || (!operations && !order.cancelled && order.payment?.status === "pending")),
     done = orders.filter((o) => (o.cancelled || o.status === 5) && (!o.issueCase || o.issueCase.status === "resolved")),
     refunds = operations ? orders.filter((o) => o.cancelled || o.payment?.status === "refunded" || atlasCreditForOrder(orderAccount.get(o.id), o.id) > 0) : [];
+  // Customers who order for several people can narrow the list to one recipient.
+  const recipientOf = (order: Order) => recipientKey(orderRecipientName(state, order));
+  const recipientOptions = operations ? [] : [...new Map(orders.map(order => [recipientOf(order), orderRecipientName(state, order).trim()] as const)).entries()].filter(([key]) => key !== "unknown");
+  const allowanceByRecipient = new Map(monthlyAllowance(state, pricing.fx).map(group => [group.key, group.usedUsd]));
+  const thisMonth = (order: Order) => { const created = new Date(order.createdAt), now = new Date(); return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear(); };
   const filtered = (
     tab === "active" ? active : tab === "attention" ? need : tab === "refunds" && operations ? refunds : done
-  ).filter((o) => {
+  ).filter((o) => operations || recipientFilter === "all" || recipientOptions.length < 2 || recipientOf(o) === recipientFilter).filter((o) => {
     const profile=orderAccount.get(o.id);
     const profilePhone=profile?.state.communication.phone??"";
     const recipientPhone=o.delivery?.phone??"";
@@ -948,7 +964,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
   } catch {}
   async function runOrderAction(action: Action) {
     if (!operations) return act(action);
-    const orderId = "id" in action ? action.id : "";
+    const orderId = "id" in action ? action.id ?? "" : "";
     const profile = orderAccount.get(orderId);
     if (!profile) {
       toast.error(locale === "ru" ? "Профиль покупателя не найден. Обновите очередь." : locale === "uz" ? "Mijoz profili topilmadi. Navbatni yangilang." : "Customer profile not found. Refresh the queue.");
@@ -1137,6 +1153,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
           {operations&&<button type="button" className="btn secondary order-refresh" disabled={opsRefreshing} onClick={()=>void refreshOperations()}><RefreshCw size={16} className={opsRefreshing?"spin":""}/>{locale==='ru'?(opsRefreshing?'Обновляем…':'Обновить очередь'):locale==='uz'?(opsRefreshing?'Yangilanmoqda…':'Navbatni yangilash'):(opsRefreshing?'Refreshing…':'Refresh queue')}</button>}
         </div>
       )}
+      {!operations && recipientOptions.length > 1 && <div className="notice-filters orders-recipients" role="group" aria-label={oc.recipients}>{[["all", oc.allRecipients] as const, ...recipientOptions].map(([key, name]) => <button type="button" key={key} aria-pressed={recipientFilter === key} className={recipientFilter === key ? "active" : ""} onClick={() => setRecipientFilter(key)}>{name}</button>)}</div>}
       {operations && tab === "refunds" && <p className="notice">{refundQueueCopy}</p>}
       {!viewReady ? (
         viewError ? (
@@ -1166,7 +1183,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
           description={ow.filteredDescription}
         />
       ) : (
-        filtered.map((o) => !operations ? <CustomerOrderCard key={o.id} order={o} locale={locale} pricing={pricing} busy={busy} expanded={expanded.includes(o.id)} onToggle={open => setExpanded(ids => open ? [...new Set([...ids, o.id])] : ids.filter(id => id !== o.id))} run={runOrderAction} confirm={setConfirmation} loadPhoto={order => void loadPhoto(order)} /> : (
+        filtered.map((o) => !operations ? <CustomerOrderCard key={o.id} order={o} locale={locale} pricing={pricing} busy={busy} expanded={expanded.includes(o.id)} onToggle={open => setExpanded(ids => open ? [...new Set([...ids, o.id])] : ids.filter(id => id !== o.id))} run={runOrderAction} confirm={setConfirmation} loadPhoto={order => void loadPhoto(order)} allowanceUsd={!o.cancelled && thisMonth(o) ? allowanceByRecipient.get(recipientOf(o)) : undefined} /> : (
           <details className="surface order-card compact-order" key={o.id} id={o.id} onToggle={event=>{const open=event.currentTarget.open;setExpanded(ids=>open?[...new Set([...ids,o.id])]:ids.filter(id=>id!==o.id))}}>
             <summary className="compact-order-summary">
               <ProductImage product={o.product} decorative locale={state.communication.language} />

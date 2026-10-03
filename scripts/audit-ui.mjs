@@ -257,7 +257,7 @@ try {
   await check("['/orders','/cart','/balance','/notifications'].every(href=>document.querySelector('.cabinet-tiles a[href=\\\"'+href+'\\\"]'))",'account tiles link to orders, cart, balance and notifications');
   await check("new Set([...document.querySelectorAll('main h2')].map(h=>h.textContent)).size===document.querySelectorAll('main h2').length",'account sections are not repeated');
   await visit('/identity');
-  await check("[...document.querySelectorAll('.identity-upload button')].find(b=>b.textContent.includes('Распознать')).disabled","passport submit needs file and consent");
+  await check("[...document.querySelectorAll('.docs-step button')].find(b=>b.textContent.includes('Распознать')).disabled","passport submit needs file and consent");
   await visit('/batch-import');
   await check("!!document.querySelector('.batch-import button:disabled')","batch submit needs links");
   await visit('/account');
