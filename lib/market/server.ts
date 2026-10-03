@@ -118,7 +118,8 @@ export async function failure(error:unknown,request?:Request){
  return json({error:apiErrorMessage(503,locale)},503);
 }
 
-export async function errorSummary(){const rows=await database().prepare('SELECT id,area,message,created_at,resolved_at FROM market_operational_errors ORDER BY created_at DESC LIMIT 100').all<{id:string;area:string;message:string;created_at:number;resolved_at:number|null}>();return rows.results.map(row=>({id:row.id,area:row.area,message:row.message,createdAt:row.created_at,resolvedAt:row.resolved_at??undefined}))}
+// Browser reports (areas "client" and "csp") count repeats and remember the last time and route they were seen.
+export async function errorSummary(){const field=(path:string)=>`CASE WHEN json_valid(details) THEN json_extract(details,'${path}') END`;const rows=await database().prepare(`SELECT id,area,message,created_at,resolved_at,${field('$.count')} AS count,${field('$.lastSeen')} AS last_seen,${field('$.route')} AS route FROM market_operational_errors ORDER BY coalesce(${field('$.lastSeen')},created_at) DESC LIMIT 100`).all<{id:string;area:string;message:string;created_at:number;resolved_at:number|null;count:number|null;last_seen:number|null;route:string|null}>();return rows.results.map(row=>({id:row.id,area:row.area,message:row.message,createdAt:row.created_at,resolvedAt:row.resolved_at??undefined,...(typeof row.count==='number'?{count:row.count}:{}),...(typeof row.last_seen==='number'?{lastSeen:row.last_seen}:{}),...(row.route?{route:row.route}:{})}))}
 
 export async function requestJson(request:Request,maxBytes=1100000):Promise<unknown>{
  const reader=request.body?.getReader();if(!reader)throw new HttpError(400, 'err_7');
