@@ -1,0 +1,13 @@
+{
+	admin off
+}
+
+85-9-196-196.sslip.io {
+	@proxy path /v1/fetch
+	handle @proxy {
+		reverse_proxy 127.0.0.1:8787
+	}
+	handle {
+		respond "Not found" 404
+	}
+}

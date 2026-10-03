@@ -41,6 +41,16 @@ export const operationalErrors=sqliteTable('market_operational_errors',{
  id:text('id').primaryKey(),area:text('area').notNull(),message:text('message').notNull(),details:text('details'),createdAt:integer('created_at').notNull(),resolvedAt:integer('resolved_at'),
 },table=>[index('idx_market_operational_errors_created').on(table.createdAt),index('idx_market_operational_errors_open').on(table.resolvedAt,table.createdAt)]);
 
+// Session IDs are SHA-256 hashes of the cookie token; the raw token is never stored.
+export const authSessions=sqliteTable('market_auth_sessions',{
+ id:text('id').primaryKey(),userId:text('user_id').notNull(),method:text('method').notNull(),email:text('email'),displayName:text('display_name').notNull(),contact:text('contact').notNull(),createdAt:integer('created_at').notNull(),expiresAt:integer('expires_at').notNull(),
+},table=>[index('idx_market_auth_sessions_user').on(table.userId),index('idx_market_auth_sessions_expires').on(table.expiresAt)]);
+
+// One-time sign-in challenges: hashed email/SMS codes, or Google OAuth state with its PKCE verifier.
+export const authChallenges=sqliteTable('market_auth_challenges',{
+ id:text('id').primaryKey(),kind:text('kind').notNull(),target:text('target').notNull(),secret:text('secret').notNull(),attempts:integer('attempts').notNull().default(0),returnTo:text('return_to'),createdAt:integer('created_at').notNull(),expiresAt:integer('expires_at').notNull(),
+},table=>[index('idx_market_auth_challenges_expires').on(table.expiresAt)]);
+
 export const backupExports=sqliteTable('market_backup_exports',{
  id:text('id').primaryKey(),requestedBy:text('requested_by').notNull(),recordCount:integer('record_count').notNull(),checksum:text('checksum').notNull(),createdAt:integer('created_at').notNull(),
 },table=>[index('idx_market_backup_exports_created').on(table.createdAt)]);

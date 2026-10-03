@@ -4,6 +4,11 @@ import {communityCatalogProducts} from './community-deals.ts';
 // Editorial snapshots from the linked official US product pages, not an inventory feed.
 // Prices/options must be fetched and confirmed in the link-order flow before checkout.
 export type MerchantFind = Product & { store: string; observedOn: string; referenceUsd?: number; collectionIds?: string[] };
+export function catalogOrderVariants(product:Product){
+  if(product.sourceVariants?.length)return product.sourceVariants;
+  if(product.priceNeedsConfirmation)return [];
+  return product.variants.map(label=>({label,available:true}));
+}
 const estimate = { country: 'США', sourceCurrency: 'USD', sourceShippingUsd: 10, sourceShipping: 10, sourceShippingCurrency: 'USD', sourceShippingEstimated: true, shippingKnown: false, weightOrigin: 'Оценка Atlas; уточняется перед оформлением', variants: ['Уточнить вариант в магазине'], sourceExpiresAt: Date.parse('2026-09-19T00:00:00Z') };
 export const merchantFinds: MerchantFind[] = [
   {
@@ -25,14 +30,14 @@ export const merchantFinds: MerchantFind[] = [
     usd: 73.97, sourcePrice: 73.97, referenceUsd: 125, boxedWeight: 1.7, weight: 2.2,
     sourceUrl: 'https://www.nike.com/t/gato-lv8-mens-shoes-Ib4M9R5k/IH3587-400',
     image: 'https://static.nike.com/a/images/t_web_pdp_535_v2/f_auto%2Cu_9ddf04c7-2a9a-4d76-add1-d15af8f0263d%2Cc_scale%2Cfl_relative%2Cw_1.0%2Ch_1.0%2Cfl_layer_apply/2262c689-289d-4cf1-a229-77ee9a6f7ae1/NIKE%2BGATO%2BLV8.png',
-    observedOn: '2026-09-11', description: 'Модель с джинсовым верхом в цвете Light Armory Blue. Артикул IH3587-400. Размер и наличие уточняются на странице Nike.',
+    observedOn: '2026-09-11', description: 'Модель с джинсовым верхом в цвете Light Armory Blue. Артикул IH3587-400.',
   },
   {
     ...estimate, id: 'nike-cortez-dm4044-108', name: 'Nike Cortez Leather', brand: 'Nike', store: 'Nike', category: 'Обувь',
     usd: 76.97, sourcePrice: 76.97, referenceUsd: 95, boxedWeight: 1.7, weight: 2.2,
     sourceUrl: 'https://www.nike.com/t/cortez-leather-mens-shoes-SxhPXX/DM4044-108',
     image: 'https://static.nike.com/a/images/t_web_pdp_535_v2/f_auto%2Cu_9ddf04c7-2a9a-4d76-add1-d15af8f0263d%2Cc_scale%2Cfl_relative%2Cw_1.0%2Ch_1.0%2Cfl_layer_apply/db838aa6-9440-4e42-adf5-81b9141aec37/NIKE%2BCORTEZ.png',
-    observedOn: '2026-09-11', description: 'Кожаные кроссовки White / Varsity Blue / Varsity Red. Артикул DM4044-108. Размер и наличие уточняются на странице Nike.',
+    observedOn: '2026-09-11', description: 'Кожаные кроссовки White / Varsity Blue / Varsity Red. Артикул DM4044-108.',
   },
   {
     ...estimate, id: 'anker-nano-a2147113', name: 'Anker Nano Charger · 30W', brand: 'Anker', store: 'Anker', category: 'Электроника',
@@ -55,9 +60,18 @@ export function catalogFreshness(product: Product, now = Date.now()) {
   return 'fresh' as const;
 }
 export function visibleMerchantFinds(now = Date.now()) {
-  return merchantFinds.filter((product) => catalogFreshness(product, now) !== 'expired');
+  return merchantFinds.map((product) => catalogFreshness(product, now) === 'expired'
+    ? {...product,priceNeedsConfirmation:true,referenceUsd:undefined,variants:['Уточнить вариант в магазине']}
+    : product);
+}
+/** Keep direct-store discovery usable if the live catalog endpoint has no rows. */
+export function keepCatalogVisible(products: MerchantFind[], now = Date.now()) {
+  return products.length ? products : visibleMerchantFinds(now);
 }
 export function findOrderUrl(product: Product) {
-  const deal = communityCatalogProducts.find(item => item.id === product.id && item.sourceUrl === product.sourceUrl);
-  return '/order-by-link?url=' + encodeURIComponent(product.sourceUrl ?? '') + (deal ? '&deal=' + encodeURIComponent(deal.id) : '');
+  const deal = product.priceNeedsConfirmation ? undefined : communityCatalogProducts.find(item => item.id === product.id && item.sourceUrl === product.sourceUrl);
+  const params=new URLSearchParams({url:product.sourceUrl??''});
+  if(product.sourceUrl)params.set('catalog',product.id);
+  if(deal)params.set('deal',deal.id);
+  return '/order-by-link?'+params.toString();
 }

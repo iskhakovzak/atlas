@@ -1,0 +1,35 @@
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: '$CI_COMMIT_BRANCH'
+
+include:
+  - template: Jobs/Dependency-Scanning.v2.gitlab-ci.yml
+  - template: Jobs/SAST.gitlab-ci.yml
+  - template: Jobs/Secret-Detection.gitlab-ci.yml
+
+variables:
+  AST_ENABLE_MR_PIPELINES: "true"
+  GITLAB_ADVANCED_SAST_ENABLED: "true"
+
+atlas:quality:
+  stage: test
+  image: node:22-bookworm
+  variables:
+    SHARP_IGNORE_GLOBAL_LIBVIPS: "1"
+    npm_config_cache: "$CI_PROJECT_DIR/.npm"
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm/
+  script:
+    - node --version
+    - npm --version
+    - npm run install:ci
+    - npm run lint
+    - node --experimental-strip-types --test tests/*.test.mjs
+    - npm run build

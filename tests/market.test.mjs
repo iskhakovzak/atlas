@@ -1,12 +1,48 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {products,tariff,pricingSchema,quote,price,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource,markNotificationsRead,confirmDemoPayment,updateCommunication,assignOrder,addStaffNote,setParcel,confirmIdentity,submitDeclarationPreview,clearIdentity,inspectWarehouseOrder,createChangeRequest,respondToChangeRequest,orderPayable,validateServiceCatalog} from '../lib/market/domain.ts';
-import {applyAction} from '../lib/market/actions.ts';
+import {products,tariff,pricingSchema,quote,price,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource,markNotificationsRead,confirmDemoPayment,updateCommunication,assignOrder,addStaffNote,setParcel,confirmIdentity,submitDeclarationPreview,clearIdentity,inspectWarehouseOrder,createChangeRequest,respondToChangeRequest,orderPayable,validateServiceCatalog,sendCustomerNotification,orderNeedsOperatorAttention} from '../lib/market/domain.ts';
+import {actionSchema,applyAction} from '../lib/market/actions.ts';
 import {defaultPolicy} from '../lib/market/policy.ts';
 import {customsVersion} from '../lib/market/world.ts';
+import {requestLocale,apiErrorMessage,importManualEntryMessage,serverError} from '../lib/market/i18n.ts';
 const checkoutCart=(s,key,sig,balance,now)=>checkoutCore(s,key,sig,balance,now,customsVersion);
 const prepare=()=>{let s=addToCart(blank(),products[0],'US 9',1000);s=checkoutCart(s,'purchase-1',cartSignature(s.cart),false,1001);return confirmDemoPayment(s,s.orders[0].id,1002)};
 const warehouse=()=>{let s=prepare();const id=s.orders[0].id;s=advanceOrder(s,id,0);s=advanceOrder(s,id,1);return inspectWarehouseOrder(s,id,{condition:'ok',quantityReceived:1,notes:'',services:['photo'],packageGroup:'BOX-1'},1200)};
+test('operator attention includes warehouse exceptions but ignores cancelled orders',()=>{
+ const order=prepare().orders[0];
+ assert.equal(orderNeedsOperatorAttention(order),false);
+ assert.equal(orderNeedsOperatorAttention({...order,warehouseInspection:{condition:'damaged',quantityReceived:1,notes:'box damaged',services:[]}}),true);
+ assert.equal(orderNeedsOperatorAttention({...order,warehouseInspection:{condition:'mismatch',quantityReceived:0,notes:'missing',services:[]}}),true);
+ assert.equal(orderNeedsOperatorAttention({...order,cancelled:true,warehouseInspection:{condition:'damaged',quantityReceived:1,notes:'box damaged',services:[]}}),false);
+});
+test('order-linked notifications are operator-only and stay in the customer account',()=>{
+ const state=prepare(),orderId=state.orders[0].id;
+ const action=actionSchema.parse({type:'customer-notification',id:orderId,title:'Обновление заказа',message:'Проверка завершена.'});
+ const next=applyAction(state,action,true);
+ assert.equal(next.notifications[0].orderId,orderId);
+ assert.equal(next.notifications[0].title,'Обновление заказа');
+ assert.equal(next.notifications[0].read,false);
+ assert.throws(()=>applyAction(state,action,false),/Доступно только оператору/);
+ assert.throws(()=>applyAction(state,{...action,id:'missing'},true),/Заказ не найден/);
+ assert.equal(actionSchema.safeParse({...action,message:'x'.repeat(301)}).success,false);
+});
+test('API errors use the validated locale cookie and localize fallback copy',()=>{
+  const request=(headers={})=>new Request('https://atlas.example/api/actions',{headers});
+  assert.equal(requestLocale(request({'cookie':'atlas-language=uz','accept-language':'en-US,en;q=0.9'})),'uz');
+  assert.equal(requestLocale(request({'cookie':'atlas-language=xx','accept-language':'en-US,en;q=0.9,ru;q=0.4'})),'en');
+  assert.equal(requestLocale(request({'accept-language':'uz-Latn-UZ,ru;q=0.8'})),'uz');
+  // Uzbek is the site default when nothing else matches.
+  assert.equal(requestLocale(request({'cookie':'atlas-language=xx'})),'uz');
+  assert.equal(requestLocale(request({'accept-language':'de-DE,fr;q=0.8'})),'uz');
+  assert.equal(requestLocale(request({'accept-language':'ru-RU,ru;q=0.9,en;q=0.8'})),'ru');
+  assert.equal(apiErrorMessage(403,'en'),'You don’t have access to this action.');
+  assert.equal(apiErrorMessage(503,'uz'),'So‘rov bajarilmadi. Qayta urinib ko‘ring.');
+  assert.equal(importManualEntryMessage('ru').includes('в корзину'),true);
+  assert.equal(importManualEntryMessage('uz').includes('savatga qo‘shing'),true);
+  assert.equal(importManualEntryMessage('en').includes('add it to your cart'),true);
+  assert.equal(serverError('uz','err_1'),'Davom etish uchun tizimga kiring.');
+  assert.match(serverError('en','err_unknown'),/request could not be completed/i);
+});
 test('pricing uses full delivered totals and validated quantities',()=>{
 const p=price(99,2.1,2);assert.equal(p.total,p.merchandise+p.service+p.shipping+p.reserve);assert.equal(p.weight,4.2);assert.throws(()=>price(99,2.1,0));assert.throws(()=>price(99,2.1,11));assert.throws(()=>price(NaN,2));assert.throws(()=>price(1,Infinity));
 assert.equal(price(10,.4).weight,1);assert.equal(price(10,.4).shipping,tariff.perKg);
@@ -63,6 +99,9 @@ const selected={...tariff.serviceCatalog.find(service=>service.id==='content-pho
 let state=addToCart(blank(),products[0],'US 9',1000,config);const before=cartSignature(state.cart);state=applyAction(state,{type:'cart-services',id:state.cart[0].id,serviceIds:[selected.id]},false,config);assert.notEqual(cartSignature(state.cart),before);assert.throws(()=>applyAction(state,{type:'cart-services',id:state.cart[0].id,serviceIds:['unknown-service']},false,config),/больше недоступна/);
 state=checkoutCore(state,'services-cart',cartSignature(state.cart),false,1001,customsVersion,undefined,undefined,undefined,config);const order=state.orders[0];assert.equal(order.warehouseServiceRequests[0].origin,'checkout');assert.equal(order.warehouseServiceRequests[0].status,'requested');assert.equal(orderPayable(order),order.quote.total);state=confirmDemoPayment(state,order.id,1002);state=advanceOrder(state,order.id,0,1003);assert.equal(state.orders[0].status,1);
 });
+test('cart snapshots per-unit service quantities, country tariffs and recalculates the confirmation signature',()=>{
+const photo={...tariff.serviceCatalog.find(service=>service.id==='detailed-photos'),requestStage:'checkout',unit:'photo',pricingMode:'fixed',feeUzs:5000,countryPrices:{'США':7000},enabled:true};const config={...tariff,serviceCatalog:[photo]};let state=addToCart(blank(),products[0],'US 9',1000,config);const id=state.cart[0].id;state=applyAction(state,{type:'cart-services',id,serviceIds:[photo.id],serviceUnits:{[photo.id]:4}},false,config);const fourPhotoSignature=cartSignature(state.cart);state=applyAction(state,{type:'cart-services',id,serviceIds:[photo.id],serviceUnits:{[photo.id]:3}},false,config);assert.notEqual(cartSignature(state.cart),fourPhotoSignature);state=applyAction(state,{type:'cart-services',id,serviceIds:[photo.id],serviceUnits:{[photo.id]:4}},false,config);state=checkoutCore(state,'per-unit-service',cartSignature(state.cart),false,1001,customsVersion,undefined,undefined,undefined,config);assert.equal(state.orders[0].warehouseServiceRequests[0].units,4);assert.equal(state.orders[0].warehouseServiceRequests[0].feeUzs,7000);assert.equal(orderPayable(state.orders[0]),state.orders[0].quote.total);
+});
 test('warehouse services require operator price confirmation, customer approval and operator completion',()=>{
 const fixed={...tariff.serviceCatalog.find(service=>service.id==='detailed-photos'),id:'extra-photos',requestStage:'warehouse',pricingMode:'fixed',feeUzs:10000,countryPrices:{'США':15000},enabled:true};const config={...tariff,serviceCatalog:[fixed]};
 let state=addToCart(blank(),products[0],'US 9',1000,config);state=checkoutCore(state,'warehouse-service',cartSignature(state.cart),false,1001,customsVersion,undefined,undefined,undefined,config);let id=state.orders[0].id;state=confirmDemoPayment(state,id,1002);state=advanceOrder(state,id,0,1003);state=advanceOrder(state,id,1,1004);state=inspectWarehouseOrder(state,id,{condition:'ok',quantityReceived:1,notes:'',services:[],packageGroup:''},1005);
@@ -74,6 +113,11 @@ state=applyAction(state,{type:'warehouse-service-complete',id,requestId:request.
 test('quote-only warehouse service can be declined before the parcel is weighed',()=>{
 const offer={...tariff.serviceCatalog.find(service=>service.id==='visual-inspection'),enabled:true};const config={...tariff,serviceCatalog:[offer]};let state=addToCart(blank(),products[0],'US 9',1000,config);state=checkoutCore(state,'warehouse-quote',cartSignature(state.cart),false,1001,customsVersion,undefined,undefined,undefined,config);const id=state.orders[0].id;state=confirmDemoPayment(state,id,1002);state=advanceOrder(state,id,0,1003);state=advanceOrder(state,id,1,1004);state=inspectWarehouseOrder(state,id,{condition:'ok',quantityReceived:1,notes:'',services:[],packageGroup:''},1005);state=applyAction(state,{type:'warehouse-service-request',id,serviceId:offer.id,units:1},false,config);const serviceRequest=state.orders[0].warehouseServiceRequests[0];state=applyAction(state,{type:'change-request-create',id,kind:'warehouse-service',title:offer.title.ru,reason:'Оператор проверил возможность услуги',warehouseServiceRequestId:serviceRequest.id,amountDelta:40000},true,config);const change=state.orders[0].changeRequests[0];state=applyAction(state,{type:'change-request-respond',id,requestId:change.id,decision:'declined',expectedAmountDelta:40000},false,config);assert.equal(state.orders[0].warehouseServiceRequests[0].status,'declined');state=receiveOrder(state,id,[1.8,30,20,15]);assert.equal(state.orders[0].status,3);
 });
+test('special warehouse instructions are saved and unrelated approved fees cannot clear a warehouse issue',()=>{
+const config={...tariff,serviceCatalog:tariff.serviceCatalog.map(service=>service.id==='special-request'?{...service,enabled:true}:service)};let state=addToCart(blank(),products[0],'US 9',1000,config);state=checkoutCore(state,'warehouse-note',cartSignature(state.cart),false,1001,customsVersion,undefined,undefined,undefined,config);const id=state.orders[0].id;state=confirmDemoPayment(state,id,1002);state=advanceOrder(state,id,0,1003);state=advanceOrder(state,id,1,1004);state=inspectWarehouseOrder(state,id,{condition:'damaged',quantityReceived:1,notes:'Коробка повреждена',services:[],packageGroup:''},1005);assert.throws(()=>applyAction(state,{type:'warehouse-service-request',id,serviceId:'special-request',units:1},false,config),/Опишите/);state=applyAction(state,{type:'warehouse-service-request',id,serviceId:'special-request',units:2,customerNote:'Проверьте застёжку и приложите крупные фото'},false,config);assert.equal(state.orders[0].warehouseServiceRequests[0].customerNote,'Проверьте застёжку и приложите крупные фото');const serviceRequest=state.orders[0].warehouseServiceRequests[0];state=applyAction(state,{type:'warehouse-service-decline',id,requestId:serviceRequest.id,reason:'Сначала устранить повреждение упаковки'},true,config);
+state=applyAction(state,{type:'change-request-create',id,kind:'warehouse-service',title:'Доплата склада',reason:'Оператор проверил услугу',amountDelta:1000},true,config);let change=state.orders[0].changeRequests[0];state=applyAction(state,{type:'change-request-respond',id,requestId:change.id,decision:'approved',expectedAmountDelta:1000},false,config);assert.throws(()=>receiveOrder(state,id,[1.8,30,20,15]),/проблем/);
+state=applyAction(state,{type:'change-request-create',id,kind:'substitution',title:'Замена повреждённого товара',reason:'Предлагаем равноценный товар',proposedValue:'Новая модель · чёрный цвет',resolvesWarehouseIssue:true,amountDelta:0},true,config);change=state.orders[0].changeRequests.at(-1);state=applyAction(state,{type:'change-request-respond',id,requestId:change.id,decision:'approved',expectedAmountDelta:0},false,config);state=receiveOrder(state,id,[1.8,30,20,15]);assert.equal(state.orders[0].status,3);
+});
 test('operator can report a warehouse service unavailable without charging or blocking weighing',()=>{
 const offer={...tariff.serviceCatalog.find(service=>service.id==='repack'),enabled:true};const config={...tariff,serviceCatalog:[offer]};let state=addToCart(blank(),products[0],'US 9',1000,config);state=checkoutCore(state,'unavailable-service',cartSignature(state.cart),false,1001,customsVersion,undefined,undefined,undefined,config);const id=state.orders[0].id;state=confirmDemoPayment(state,id,1002);state=advanceOrder(state,id,0,1003);state=advanceOrder(state,id,1,1004);state=inspectWarehouseOrder(state,id,{condition:'ok',quantityReceived:1,notes:'',services:[],packageGroup:''},1005);state=applyAction(state,{type:'warehouse-service-request',id,serviceId:offer.id,units:1},false,config);const request=state.orders[0].warehouseServiceRequests[0];assert.throws(()=>applyAction(state,{type:'warehouse-service-decline',id,requestId:request.id,reason:'Нет доступа к складу'},false,config),/только оператору/);state=applyAction(state,{type:'warehouse-service-decline',id,requestId:request.id,reason:'Склад не выполняет этот вид упаковки'},true,config);assert.equal(state.orders[0].warehouseServiceRequests[0].status,'declined');assert.equal(orderPayable(state.orders[0]),state.orders[0].quote.total);state=receiveOrder(state,id,[1.8,30,20,15]);assert.equal(state.orders[0].status,3);
 });
@@ -82,6 +126,26 @@ let s=prepare();const id=s.orders[0].id,original=JSON.stringify(s.orders[0].quot
 });
 test('operator progress creates customer notifications that can be marked read',()=>{
 let state=prepare();const id=state.orders[0].id;state=advanceOrder(state,id,0,3000);assert.equal(state.notifications.length,2);assert.equal(state.notifications[0].orderId,id);assert.equal(state.notifications[0].read,false);state=markNotificationsRead(state);assert.equal(state.notifications[0].read,true);
+});
+test('operator can add an internal-only in-app notification to one refund order',()=>{
+ let state=prepare();const firstId=state.orders[0].id;
+ state=addToCart(state,products[1],products[1].variants[0],1003);state=checkoutCart(state,'second-order',cartSignature(state.cart),false,1004);
+ const selectedId=state.orders.find(order=>order.id!==firstId).id;
+ state=cancelOrder(state,selectedId,1005);
+ const deliveryCount=state.messageDeliveries.length,notificationCount=state.notifications.length;
+ const action=actionSchema.parse({type:'customer-notification',id:selectedId,title:'  Возврат по заказу  ',message:'  Зачисление отражено во внутреннем балансе Atlas.  '});
+ assert.throws(()=>applyAction(state,action,false),/только оператору/);
+ state=applyAction(state,action,true);
+ assert.equal(state.notifications.length,notificationCount+1);
+ assert.equal(state.notifications[0].orderId,selectedId);
+ assert.equal(state.notifications[0].title,'Возврат по заказу');
+ assert.equal(state.notifications[0].message,'Зачисление отражено во внутреннем балансе Atlas.');
+ assert.equal(state.notifications[0].read,false);
+ assert.equal(state.messageDeliveries.length,deliveryCount,'manual notice must not prepare external email/SMS');
+ assert.equal(state.orders.find(order=>order.id===selectedId).history.at(-1).text,'Оператор отправил уведомление в Atlas.');
+ assert.equal(state.orders.find(order=>order.id===firstId).history.some(entry=>entry.text.includes('уведомление')),false);
+ assert.throws(()=>actionSchema.parse({type:'customer-notification',id:selectedId,title:'x',message:'ok'}));
+ assert.throws(()=>sendCustomerNotification(state,selectedId,'Refund','x'.repeat(301)));
 });
 test('pre-release checkout keeps delivery, payment, operations and message previews together',()=>{
 const delivery={recipient:'Zakir',phone:'+998901234567',region:'Ташкент',city:'Ташкент',address:'ул. Амира Темура, 10',postalCode:'100000',comment:'Позвонить'};
@@ -97,7 +161,7 @@ const delivery={recipient:'Anna Karimova',phone:'+998901234567',region:'Ташк
 let state=addToCart(blank(),products[0],'US 9',1000);state=checkoutCore(state,'identity',cartSignature(state.cart),false,1001,customsVersion,delivery);const orderId=state.orders[0].id;
 state=confirmIdentity(state,{documentId:'DOC-1',firstName:'ANNA',lastName:'KARIMOVA',birthDate:'1995-04-20',passportNumber:'AA1234567',nationality:'UZB'},Date.UTC(2026,8,10));
 assert.equal(state.identityProfile.passportMasked,'•••• 4567');assert.equal(JSON.stringify(state).includes('AA1234567'),false);
-state=submitDeclarationPreview(state,[orderId],2001);assert.equal(state.declarations[0].lines[0].orderId,orderId);assert.equal(state.declarations[0].delivery.city,'Ташкент');assert.equal(state.declarations[0].status,'submitted-preview');assert.equal(state.notifications[0].title,'Тестовая декларация подготовлена');
+ state=submitDeclarationPreview(state,[orderId],2001);assert.equal(state.declarations[0].lines[0].orderId,orderId);assert.equal(state.declarations[0].delivery.city,'Ташкент');assert.equal(state.declarations[0].status,'submitted-preview');assert.equal(state.notifications[0].title,'Черновик декларации подготовлен');
 state=clearIdentity(state,'DOC-1');assert.equal(state.identityProfile,undefined);assert.throws(()=>submitDeclarationPreview(state,[orderId],2002));
 });
 test('managed restrictions reject blocked goods and oversized parties on the server',()=>{

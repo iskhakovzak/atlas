@@ -6,12 +6,25 @@ const base = new URL(process.argv[2] ?? "http://127.0.0.1:8787/");
 if (!/^https?:$/.test(base.protocol)) throw Error("Expected an HTTP URL");
 const customerEmail = `preflight-${Date.now()}@atlas.local`;
 const operatorEmail = process.env.ATLAS_SMOKE_OPERATOR ?? "operator@atlas.local";
-const auth = (email) => ({
-  "oai-authenticated-user-id": `smoke:${email}`,
-  "oai-authenticated-user-email": email,
-  "oai-authenticated-user-full-name": encodeURIComponent(email === operatorEmail ? "Atlas Operator" : "Atlas Customer"),
-  "oai-authenticated-user-full-name-encoding": "percent-encoded-utf-8",
-});
+// Signs in through the real email-code flow. The local Worker must allow dev codes:
+// npm start -- --var ATLAS_AUTH_DEV_CODES:true --var ATLAS_OPERATOR_EMAIL:operator@atlas.local
+const sessions = new Map();
+async function signIn(email) {
+  const post = async (body, expectCookie) => {
+    const response = await fetch(new URL("/api/auth/otp", base), { method: "POST", headers: { "Content-Type": "application/json", Origin: base.origin }, body: JSON.stringify(body) });
+    const data = await response.json();
+    if (!response.ok) throw Error(`sign-in ${body.step}: ${response.status} ${data.error ?? "failed"}`);
+    return expectCookie ? response.headers.get("set-cookie")?.split(";")[0] : data;
+  };
+  const start = await post({ step: "start", channel: "email", target: email });
+  if (!start.devCode) throw Error("Dev sign-in codes are disabled; start the Worker with ATLAS_AUTH_DEV_CODES=true on a loopback URL.");
+  const cookie = await post({ step: "verify", channel: "email", challengeId: start.challengeId, code: start.devCode }, true);
+  if (!cookie) throw Error("Sign-in did not return a session cookie");
+  sessions.set(email, cookie);
+}
+const auth = (email) => ({ Cookie: sessions.get(email) ?? "" });
+await signIn(customerEmail);
+await signIn(operatorEmail);
 
 async function request(path, { email = customerEmail, method = "GET", body } = {}) {
   const response = await fetch(new URL(path, base), {

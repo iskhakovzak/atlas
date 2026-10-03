@@ -1,0 +1,11 @@
+name = "atlas-catalog-refresh"
+main = "src/index.ts"
+compatibility_date = "2026-09-22"
+
+[triggers]
+crons = ["0 * * * *"]
+
+[vars]
+ATLAS_SITE_URL = "https://atlas-uz-market.ishakovzakir0.chatgpt.site"
+
+# Set ATLAS_CATALOG_REFRESH_SECRET in both runtimes before deploying this worker.

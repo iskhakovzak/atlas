@@ -12,8 +12,7 @@ import {
   auditEvents,
   ensurePrimaryOperator,
   persist,
-  pricing,
-  policy,
+  pricingAndPolicy,
   recordAudit,
   requestJson,
   sameOrigin,
@@ -28,6 +27,7 @@ import {
   staffMembers,
   storedAccount,
 } from "@/lib/market/server";
+import {apiErrorMessage,requestLocale} from "@/lib/market/i18n";
 
 const updateSchema = z.discriminatedUnion("kind", [
   z.object({
@@ -72,27 +72,26 @@ const updateSchema = z.discriminatedUnion("kind", [
 
 async function requireOperator() {
   const user = await identity();
-  if (!operator(user.email)) throw new HttpError(403, "Доступно только оператору.");
+  if (!operator(user.email)) throw new HttpError(403, 'err_15');
   return user;
 }
 
-export async function GET() {
+export async function GET(request:Request) {
   try {
     const user=await requireOperator();
     await ensurePrimaryOperator(user);
-    const [accounts, currentPricing, currentPolicy, staff, audit, health, customerStatuses, errors] = await Promise.all([
+    const [accounts, settings, staff, audit, health, customerStatuses, errors] = await Promise.all([
       operatorAccounts(),
-      pricing(),
-      policy(),
+      pricingAndPolicy(),
       staffMembers(),
       auditEvents(),
       operationalHealth(),
       operationalCustomers(),
       errorSummary(),
     ]);
-    return json({ accounts, pricing: currentPricing, policy: currentPolicy, staff, audit, health, customerStatuses, errors });
+    return json({ accounts, pricing: settings.pricing, policy: settings.policy, staff, audit, health, customerStatuses, errors });
   } catch (error) {
-    return failure(error);
+    return failure(error,request);
   }
 }
 
@@ -101,7 +100,7 @@ export async function POST(request: Request) {
     sameOrigin(request);
     const user = await requireOperator();
     const payload = updateSchema.safeParse(await requestJson(request));
-    if (!payload.success) throw new HttpError(400, "Проверьте данные операции.");
+    if (!payload.success) throw new HttpError(400, 'err_16');
     if(payload.data.kind==='projection-rebuild'){const count=await rebuildOperationalProjection();await recordAudit(user,'projection.rebuild','system',undefined,{accounts:count});return json({health:await operationalHealth(),audit:await auditEvents()});}
     if(payload.data.kind==='customer-status'){await setCustomerStatus(payload.data.accountId,payload.data.status);await recordAudit(user,'customer.status','customer',payload.data.accountId,{status:payload.data.status});return json({health:await operationalHealth(),audit:await auditEvents()});}
     if(payload.data.kind==='staff'){
@@ -134,7 +133,7 @@ export async function POST(request: Request) {
     }
     const parsedAction = actionSchema.safeParse(payload.data.action);
     if (!parsedAction.success)
-      throw new HttpError(400, "Проверьте действие с заказом.");
+      throw new HttpError(400, 'err_17');
     if (
       ![
         "advance",
@@ -143,6 +142,8 @@ export async function POST(request: Request) {
         "order-image",
         "assign-order",
         "staff-note",
+        "customer-notification",
+        "order-issue-update",
         "parcel-set",
         "change-request-create",
         "warehouse-inspect",
@@ -151,16 +152,18 @@ export async function POST(request: Request) {
         "support-reply",
       ].includes(parsedAction.data.type)
     )
-      throw new HttpError(403, "Это действие недоступно оператору.");
+      throw new HttpError(403, 'err_18');
     const current = await storedAccount(payload.data.accountId);
-    if (current.revision !== payload.data.revision)
+    if (current.revision !== payload.data.revision) {
+      const locale=requestLocale(request);
       return json(
-        { error: "Заказ изменился. Очередь обновлена.", account: current },
+        { error: locale==='ru'?"Заказ изменился. Очередь обновлена.":apiErrorMessage(409,locale), account: current },
         409,
       );
+    }
     let next;
     try {
-      const [currentPricing,currentPolicy] = await Promise.all([pricing(),policy()]);
+      const {pricing:currentPricing,policy:currentPolicy} = await pricingAndPolicy();
       next = applyAction(current.state, parsedAction.data, true, currentPricing, currentPolicy);
     } catch (error) {
       throw new HttpError(400, (error as Error).message);
@@ -172,6 +175,6 @@ export async function POST(request: Request) {
       account: { ...current, state: next, revision: current.revision + 1 },
     });
   } catch (error) {
-    return failure(error);
+    return failure(error,request);
   }
 }

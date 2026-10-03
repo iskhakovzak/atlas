@@ -23,9 +23,12 @@ import {
   updateCommunication,
   assignOrder,
   addStaffNote,
+  updateOrderIssueCase,
+  sendCustomerNotification,
   setParcel,
   confirmIdentity,
   clearIdentity,
+  saveDeliveryProfile,
   submitDeclarationPreview,
   createChangeRequest,
   respondToChangeRequest,
@@ -37,6 +40,8 @@ import {
   changeRequestKindSchema,
   warehouseConditionSchema,
   warehouseServiceSchema,
+  orderIssueCategorySchema,
+  orderIssueStatusSchema,
   type Pricing,
   type State,
 } from "./domain.ts";
@@ -59,7 +64,7 @@ export const actionSchema = z.discriminatedUnion("type", [
     quantity: z.number().int().min(1).max(10),
   }),
   z.object({ type: z.literal("cart-remove"), id }),
-  z.object({ type: z.literal("cart-services"), id, serviceIds: z.array(z.string().min(2).max(80)).max(40) }),
+  z.object({ type: z.literal("cart-services"), id, serviceIds: z.array(z.string().min(2).max(80)).max(40), serviceUnits: z.record(z.string().min(2).max(80), z.number().int().min(1).max(100)).optional() }),
   z.object({ type: z.literal("cart-renew") }),
   z.object({
     type: z.literal("checkout"),
@@ -71,10 +76,13 @@ export const actionSchema = z.discriminatedUnion("type", [
     delivery: deliveryProfileSchema.optional(),
     deliveryProfileId: z.string().min(1).max(80).optional(),
     identityProfileId: z.string().min(1).max(100).optional(),
+    // Keeps an address typed at checkout as a saved recipient; the orders then refer to it.
+    saveRecipientLabel: z.string().trim().min(1).max(60).optional(),
   }),
   z.object({ type: z.literal("payment-demo"), id }),
   z.object({ type: z.literal("communication-save"), value: communicationSchema }),
-  z.object({ type: z.literal("delivery-profile-save"), value: deliveryProfileSchema, label: z.string().trim().min(1).max(60) }),
+  // `id` edits a saved recipient; `primary` chooses the default one. Older clients send neither.
+  z.object({ type: z.literal("delivery-profile-save"), value: deliveryProfileSchema, label: z.string().trim().min(1).max(60), id: z.string().min(1).max(80).optional(), primary: z.boolean().optional() }),
   z.object({ type: z.literal("delivery-profile-remove"), id: z.string().min(1).max(80) }),
   z.object({ type: z.literal("support-create"), subject: z.string().trim().min(3).max(120), text: z.string().trim().min(1).max(1000) }),
   z.object({ type: z.literal("support-reply"), id: z.string().min(1).max(80), text: z.string().trim().min(1).max(1000) }),
@@ -85,6 +93,8 @@ export const actionSchema = z.discriminatedUnion("type", [
     priority: z.enum(["Обычный", "Высокий", "Срочный"]),
   }),
   z.object({ type: z.literal("staff-note"), id, text: z.string().min(1).max(500) }),
+  z.object({ type: z.literal("customer-notification"), id, title: z.string().trim().min(2).max(120), message: z.string().trim().min(1).max(300) }),
+  z.object({ type: z.literal("order-issue-update"), id, category: orderIssueCategorySchema, status: orderIssueStatusSchema, proposedRefund: z.number().int().min(0).max(100_000_000).optional() }),
   z.object({
     type: z.literal("change-request-create"),
     id,
@@ -94,6 +104,7 @@ export const actionSchema = z.discriminatedUnion("type", [
     previousValue: z.string().trim().max(240).optional(),
     proposedValue: z.string().trim().max(240).optional(),
     warehouseServiceRequestId: z.string().min(1).max(100).optional(),
+    resolvesWarehouseIssue: z.boolean().optional(),
     amountDelta: z.number().int().min(-100_000_000).max(100_000_000),
   }),
   z.object({
@@ -112,7 +123,7 @@ export const actionSchema = z.discriminatedUnion("type", [
     services: z.array(warehouseServiceSchema).max(5),
     packageGroup: z.string().trim().max(80),
   }),
-  z.object({ type: z.literal("warehouse-service-request"), id, serviceId: z.string().min(2).max(80), units: z.number().int().min(1).max(100).default(1) }),
+  z.object({ type: z.literal("warehouse-service-request"), id, serviceId: z.string().min(2).max(80), units: z.number().int().min(1).max(100).default(1), customerNote: z.string().trim().max(500).optional() }),
   z.object({ type: z.literal("warehouse-service-complete"), id, requestId: z.string().min(1).max(100) }),
   z.object({ type: z.literal("warehouse-service-decline"), id, requestId: z.string().min(1).max(100), reason: z.string().trim().min(2).max(500) }),
   z.object({
@@ -152,6 +163,8 @@ export function applyAction(
       a.type === "confirm-store-shipping" ||
       a.type === "assign-order" ||
       a.type === "staff-note" ||
+      a.type === "customer-notification" ||
+      a.type === "order-issue-update" ||
       a.type === "parcel-set" ||
       a.type === "change-request-create" ||
       a.type === "warehouse-inspect" ||
@@ -229,6 +242,8 @@ export function applyAction(
         a.product.weight = paddedWeight(a.product.boxedWeight);
         if (a.product.image && !safeImage(a.product.image, a.product.sourceUrl))
           throw Error("Некорректная ссылка на изображение.");
+        if (a.product.sourceImages?.some(image => !safeImage(image, a.product.sourceUrl ?? '')))
+          throw Error("Некорректная ссылка на изображение.");
       }
       const next = addToCart(s, a.product, a.variant, Date.now(), pricing);
       assertCartPolicy(next.cart, policy);
@@ -239,10 +254,10 @@ export function applyAction(
     case "cart-remove":
       return { ...s, cart: s.cart.filter((i) => i.id !== a.id) };
     case "cart-services":
-      return setCartServices(s, a.id, a.serviceIds, pricing);
+      return setCartServices(s, a.id, a.serviceIds, pricing, a.serviceUnits);
     case "cart-renew":
       return renewCart(s, Date.now(), pricing);
-    case "checkout":
+    case "checkout": {
       if (s.checkoutKeys.includes(a.key)) return s;
       if (
         (a.useBalance
@@ -251,28 +266,32 @@ export function applyAction(
       )
         throw Error("Баланс изменился. Проверьте итог заново.");
       assertCartPolicy(s.cart, policy);
+      // Saved in the same revision as the orders, so a failed checkout saves nothing.
+      let next = s, deliveryProfileId = a.deliveryProfileId;
+      if (a.saveRecipientLabel && !deliveryProfileId && a.delivery) {
+        const value = deliveryProfileSchema.parse(a.delivery);
+        next = saveDeliveryProfile(s, value, a.saveRecipientLabel, undefined, !s.deliveryProfiles.length);
+        deliveryProfileId = next.deliveryProfiles.find((profile) => JSON.stringify(deliveryProfileSchema.parse(profile)) === JSON.stringify(value))?.id;
+      }
       return checkoutCart(
-        s,
+        next,
         a.key,
         a.signature,
         a.useBalance,
         Date.now(),
         a.consentVersion,
         a.delivery,
-        a.deliveryProfileId,
+        deliveryProfileId,
         a.identityProfileId,
         pricing,
       );
+    }
     case "payment-demo":
       return confirmDemoPayment(s, a.id);
     case "communication-save":
       return updateCommunication(s, a.value);
-    case "delivery-profile-save": {
-      const value = deliveryProfileSchema.parse(a.value);
-      const existing = s.deliveryProfiles.find((profile) => JSON.stringify(profile).includes(JSON.stringify(value)));
-      const profile = { ...value, id: existing?.id ?? crypto.randomUUID(), label: a.label, primary: true };
-      return { ...s, deliveryProfile: value, deliveryProfiles: [profile, ...s.deliveryProfiles.filter((item) => item.id !== profile.id).map((item) => ({ ...item, primary: false }))] };
-    }
+    case "delivery-profile-save":
+      return saveDeliveryProfile(s, deliveryProfileSchema.parse(a.value), a.label, a.id, a.primary);
     case "delivery-profile-remove": {
       const rest = s.deliveryProfiles.filter((item) => item.id !== a.id);
       const remaining = rest.length && !rest.some((item) => item.primary) ? rest.map((item, index) => ({ ...item, primary: index === 0 })) : rest;
@@ -289,6 +308,10 @@ export function applyAction(
       return assignOrder(s, a.id, a.team, a.priority);
     case "staff-note":
       return addStaffNote(s, a.id, a.text, "Оператор");
+    case "customer-notification":
+      return sendCustomerNotification(s, a.id, a.title, a.message);
+    case "order-issue-update":
+      return updateOrderIssueCase(s, a.id, a.category, a.status, a.proposedRefund);
     case "change-request-create":
       return createChangeRequest(s, a.id, a);
     case "change-request-respond":
@@ -296,7 +319,7 @@ export function applyAction(
     case "warehouse-inspect":
       return inspectWarehouseOrder(s, a.id, a);
     case "warehouse-service-request":
-      return requestWarehouseService(s, a.id, a.serviceId, a.units, pricing);
+      return requestWarehouseService(s, a.id, a.serviceId, a.units, pricing, Date.now(), a.customerNote);
     case "warehouse-service-complete":
       return completeWarehouseService(s, a.id, a.requestId);
     case "warehouse-service-decline":

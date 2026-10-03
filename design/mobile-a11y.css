@@ -1,0 +1,5 @@
+.phone [role="button"]:focus-visible,
+.phone [role="link"]:focus-visible {
+  outline: 2px solid #193dcf;
+  outline-offset: 3px;
+}

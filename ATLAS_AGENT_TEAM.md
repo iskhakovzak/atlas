@@ -41,7 +41,7 @@ The coordinator resolves conflicts before merging. Two agents must never edit th
 - Keep stored state compatible; optional/default new fields unless a migration is explicitly designed and verified.
 - Verify or recompute customer-supplied money, currency, weight, identity, role, selected variant and status on the server.
 - Retain importer restrictions: explicit HTTPS allowlist, redirect validation, response limits, no customer credentials and safe public images.
-- Keep foreign-store availability, shipping and prices as editable/preliminary assistance even after fresh server verification: that check gates cart/checkout but never guarantees the merchant. Unknown merchant shipping remains a reserve, never free.
+- Keep foreign-store prices and currency as editable/preliminary assistance. Compare returned price/currency server-side when public data is available; if it is blocked or omitted, save only after the customer explicitly confirms the price, currency and option. A definite not-found response or a returned mismatch blocks the action. Availability never gates customer cart/checkout and is not guaranteed; catalog publication may use a separate conservative stock policy. Unknown merchant shipping remains a reserve, never free.
 - Keep payments, purchases, shipment, customs filing and external notifications honestly simulated until their integrations exist.
 - Check the applicable guest, customer, operator, RU/UZ/EN and mobile states.
 

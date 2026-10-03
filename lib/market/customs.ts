@@ -1,17 +1,28 @@
 // Informational personal courier-import estimate. Never part of an Atlas charge or quote.
-// PP-4508: excess value, unified payment (no additional VAT).
-// UP-174 §8 explicitly schedules 20% / $2 per kg from 2027-01-01.
-export const customsCheckedOn = '2026-09-11';
+// PP-4508's consolidated 2026-09-01 text shows 20% / $2 per kg, while UP-174 §8
+// expressly schedules that rate from 2027-01-01. Keep this legal effective-date
+// ambiguity documented and confirm it with Customs before commercial use.
+export const customsCheckedOn = '2026-09-29';
 export const courierAllowanceUsd = 200;
+const customsRuleDisputeStart = '2026-09-01';
+const scheduledCourierRateStart = '2027-01-01';
 export const customsReferences = [
-  { title: 'ПКМ №244: лимит курьерского ввоза', url: 'https://lex.uz/docs/7484114' },
-  { title: 'ПП-4508: единый таможенный платёж', url: 'https://lex.uz/docs/4585742' },
-  { title: 'УП-174, п. 8: ставка с 01.01.2027', url: 'https://lex.uz/docs/8444993' },
-  { title: 'ПП-136: отдельный режим бондовых складов', url: 'https://lex.uz/docs/8131421' },
+  { title: 'ПКМ №244: лимит личного курьерского ввоза', url: 'https://lex.uz/docs/7484114' },
+  { title: 'ПП-4508: действующая сводная редакция', url: 'https://lex.uz/ru/docs/4585744?ONDATE=01.09.2026' },
+  { title: 'УП-174: ставка и дата начала применения', url: 'https://lex.uz/uz/docs/8444993' },
+  { title: 'ПП-136: отдельный режим бондовых складов', url: 'https://lex.uz/docs/8131458' },
 ];
+function validArrivalDate(date: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) && Number.isFinite(Date.parse(date)) && new Date(date).toISOString().slice(0, 10) === date;
+}
+export function courierRateNeedsConfirmation(date: string) {
+  return validArrivalDate(date) && date >= customsRuleDisputeStart && date < scheduledCourierRateStart;
+}
 export function courierRule(date: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date || date < '2025-05-01') return null;
-  return date >= '2027-01-01' ? { rate: 0.2, minimumPerKg: 2 } : { rate: 0.3, minimumPerKg: 3 };
+  // Follow the consolidated PP-4508 version effective 2026-09-01. UP-174 §8
+  // separately gives 2027-01-01 as the start date; see the legal ambiguity above.
+  return date >= '2026-09-01' ? { rate: 0.2, minimumPerKg: 2 } : { rate: 0.3, minimumPerKg: 3 };
 }
 export function estimateCourierCustoms({ valueUsd, usedUsd = 0, grossKg, date }: { valueUsd: number; usedUsd?: number; grossKg?: number; date: string }) {
   const rule = courierRule(date);

@@ -2,6 +2,7 @@ import {declarationFor, inferProductCategory, safeImage, type Extracted, type Pr
 
 // Public Ajax endpoints only; no customer session, admin token or checkout access.
 export const shopifyStoreRoots = [
+  'shop.simon.com',
   'allbirds.com', 'kyliecosmetics.com', 'colourpop.com', 'fashionnova.com', 'stevemadden.com', 'bombas.com', 'anker.com', 'gymshark.com',
   'aloyoga.com', 'rarebeauty.com', 'rhodeskin.com', 'glossier.com', 'summerfridays.com', 'fentybeauty.com',
   'kith.com', 'cncpts.com', 'sneakersnstuff.com', 'satechi.com', 'satechi.net', 'spigen.com',
@@ -25,6 +26,7 @@ const categoryByStore: Record<string, ReturnType<typeof inferProductCategory>> =
 };
 
 const countryByStore: Record<string, {code: string; name: string}> = {
+  'shop.simon.com': {code:'US',name:'США'},
   '3ina.com': {code:'ES',name:'Испания'}, 'bluebananabrand.com': {code:'ES',name:'Испания'}, 'footdistrict.com': {code:'ES',name:'Испания'},
   'nude-project.com': {code:'ES',name:'Испания'}, 'pdpaola.com': {code:'ES',name:'Испания'}, 'saigucosmetics.com': {code:'ES',name:'Испания'}, 'scalperscompany.com': {code:'ES',name:'Испания'},
   'nakedcph.com': {code:'DK',name:'Дания'}, 'representclo.com': {code:'GB',name:'Великобритания'},

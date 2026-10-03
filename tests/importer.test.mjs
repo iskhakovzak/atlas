@@ -3,10 +3,35 @@ import assert from 'node:assert/strict';
 import {extractShopify, shopifyEndpoints} from '../lib/importer/shopify.ts';
 import {featuredStoreGroups, supportedStoreCount} from '../lib/importer/stores.ts';
 import {extractAdidasProduct,extractProduct} from '../lib/importer/extract.ts';
-import {fetchProduct, allowedUrl, isAmazonUsUrl} from '../lib/importer/fetch.ts';
-import {verifyProductSnapshot} from '../lib/importer/verify.ts';
+import {fetchProduct, allowedUrl, isAmazonUsUrl, ManualEntryFallbackError} from '../lib/importer/fetch.ts';
+import {verifyKnownSnapshotFields,verifyProductSnapshot} from '../lib/importer/verify.ts';
+import {manualFallbackAllowed} from '../lib/importer/manual-fallback.ts';
 
 const url = 'https://www.allbirds.com/products/shoe';
+test('ShopSimon uses exact approved storefront and US Shopify endpoints',()=>{
+  const source='https://shop.simon.com/products/superstar?variant=123';
+  assert.equal(allowedUrl(source).href,source);
+  const endpoints=shopifyEndpoints(new URL(source));
+  assert.equal(endpoints.product.href,'https://shop.simon.com/products/superstar.js?country=US');
+  assert.equal(endpoints.currency.href,'https://shop.simon.com/cart.js?country=US');
+  for(const host of ['simon.com','evil.simon.com','www.shop.simon.com','shop.simon.com.evil.example'])
+    assert.throws(()=>allowedUrl(`https://${host}/products/superstar`));
+  assert.ok(featuredStoreGroups.find(group=>group.region==='США').stores.some(store=>store.root==='shop.simon.com'));
+});
+test('ShopSimon preserves shoe sizes, colorways, selected price and availability',()=>{
+  const data={handle:'superstar',title:'Women\'s adidas SUPERSTAR II SHOES',vendor:'adidas',type:'women/shoes/athletic',images:['//shop.simon.com/cdn/shop/files/shoe.jpg'],options:[{name:'Shoe Size'},{name:'Color'}],variants:[
+    {id:123,title:'US 8 / off white / carbon',option1:'US 8',option2:'off white / carbon',price:7100,available:true},
+    {id:124,title:'US 9 / night indigo',option1:'US 9',option2:'night indigo',price:6900,available:false},
+  ]};
+  const result=extractShopify(data,{currency:'USD'},'https://shop.simon.com/products/superstar?variant=123');
+  assert.equal(result.price,71);assert.equal(result.currency,'USD');assert.equal(result.country,'США');assert.equal(result.category,'Обувь');
+  assert.equal(result.images[0],'https://shop.simon.com/cdn/shop/files/shoe.jpg');
+  assert.deepEqual(result.variants.map(v=>[v.id,v.size,v.sizeLabel,v.color,v.price,v.available,v.availabilityKnown]),[
+    ['123','US 8','Shoe Size','off white / carbon',71,true,true],['124','US 9','Shoe Size','night indigo',69,false,true],
+  ]);
+  assert.equal(result.shipping,undefined);
+  assert.equal(extractShopify(data,{currency:'USD'},'https://shop.simon.com/products/superstar').price,undefined);
+});
 const product = {handle:'shoe',title:'Wool shoes',vendor:'Allbirds',images:['//cdn.shopify.com/one.jpg','https://127.0.0.1/private','//cdn.shopify.com/two.jpg'],options:[{name:'Color'},{name:'Size'}],variants:[
   {id:1,title:'Black / 8',option1:'Black',option2:'8',price:11000,available:true,featured_image:{src:'//cdn.shopify.com/black.jpg'}},
   {id:2,title:'Black / 9',option1:'Black',option2:'9',price:12000,available:false},
@@ -20,6 +45,26 @@ test('Shopify retains variant price, size, color, availability and safe gallery'
   assert.equal(extractShopify(product,{currency:'USD'},url).price,undefined);
   assert.throws(()=>extractShopify(product,{},url));
   assert.throws(()=>extractShopify({...product,handle:'other'},{currency:'USD'},url));
+});
+test('Shopify products with variant-specific prices remain importable without a guessed base price',async()=>{
+ const original=globalThis.fetch;
+ globalThis.fetch=async(input)=>String(input).endsWith('/cart.js?country=US')?Response.json({currency:'USD'}):Response.json({...product,variants:product.variants.map((variant,index)=>({...variant,price:(11000+index*1000)}))});
+ try{
+  const result=await fetchProduct(url);
+  assert.equal(result.price,undefined);
+  assert.deepEqual(result.variants.map(item=>item.price),[110,120,130]);
+  assert.match(result.warnings.join(' '),/Выберите вариант/);
+ }finally{globalThis.fetch=original;}
+});
+test('XHTML product pages are parsed as supported HTML documents',async()=>{
+ const original=globalThis.fetch,markup=`<script type="application/ld+json">${JSON.stringify({'@type':'Product',name:'Example running shoe',image:['https://static.nike.com/a.jpg'],offers:{price:'79.99',priceCurrency:'USD',availability:'https://schema.org/InStock'}})}</script>`;
+ globalThis.fetch=async()=>new Response(markup,{headers:{'Content-Type':'application/xhtml+xml; charset=utf-8'}});
+ try{const result=await fetchProduct('https://www.nike.com/t/example-running-shoe/DM4044-108');assert.equal(result.title,'Example running shoe');assert.equal(result.price,79.99)}finally{globalThis.fetch=original;}
+});
+test('unsafe merchant redirects preserve a manual-entry path without following the target',async()=>{
+ const original=globalThis.fetch;let requests=0;
+ globalThis.fetch=async()=>{requests++;return new Response('',{status:302,headers:{Location:'https://untrusted.example/item'}})};
+ try{await assert.rejects(fetchProduct('https://www.nike.com/t/example/DM4044-108'),error=>error instanceof ManualEntryFallbackError&&error.reason==='redirect');assert.equal(requests,1)}finally{globalThis.fetch=original;}
 });
 test('Shopify endpoints preserve locale but reject unapproved hosts and nonproducts',()=>{
   const e=shopifyEndpoints(new URL('https://kyliecosmetics.com/en-gb/collections/lips/products/lip-kit?variant=1'));
@@ -80,11 +125,40 @@ test('Anker embedded product data retains choice, price, photo and stock',()=>{
   assert.equal(p.method,'Anker product data');assert.equal(p.price,29.99);assert.equal(p.image,'https://cdn.shopify.com/white.jpg');
   assert.deepEqual(p.variants.map(v=>[v.id,v.color,v.size,v.available]),[['11','White','1-Pack',true],['12','Black','2-Pack',false]]);
 });
+test('Macy product data is scoped to its host and keeps unknown stock out of customer copy',()=>{
+  const sourceUrl='https://www.macys.com/shop/product/example';
+  const state={product:{productDetail:{product:{detail:{name:"Women's Running Sneakers"},pricing:{price:{tieredPrice:[{values:[{value:'$89.99'}]}]}},traits:{colors:{colorMap:{blue:{name:'Blue'}}},sizes:{sizeMap:{six:{name:'6'},seven:{name:'7'}}}},imagery:{images:[{filePath:'123/456/shoe.jpg'}]}}}}};
+  const html=`<script>window.__PRELOADED_STATE__ = ${JSON.stringify(state)};</script>`;
+  const parsed=extractProduct(html,sourceUrl);
+  assert.equal(parsed.method,"Macy's product data");assert.equal(parsed.price,89.99);assert.equal(parsed.currency,'USD');assert.equal(parsed.country,'США');assert.equal(parsed.category,'Обувь');
+  assert.deepEqual(parsed.variants.map(value=>value.label),['Blue · 6','Blue · 7']);
+  assert(parsed.variants.every(value=>value.available&&value.availabilityKnown===false));
+  assert.equal(parsed.image,'https://slimages.macysassets.com/is/image/MCY/products/123/456/shoe.jpg');
+  assert.doesNotMatch(parsed.warnings.join(' '),/наличие выбранного сочетания нужно подтвердить/);
+  assert.notEqual(extractProduct(html,'https://macys.com.evil.example/shop/product/example').method,"Macy's product data");
+});
+test('Sephora linkJSON uses only the exact listing and keeps stock unverified when absent',()=>{
+  const source='https://www.sephora.com/product/example-P123';
+  const product=(url,price)=>({'@type':'Product',url,name:'Cream',brand:{name:'Sephora Collection'},image:['https://www.sephora.com/photo.jpg'],offers:{price,priceCurrency:'USD'}});
+  const html=`<script id="linkJSON">${JSON.stringify([product('https://www.sephora.com/product/other-P999',999),product(source,29)])}</script>`;
+  const parsed=extractProduct(html,source);
+  assert.equal(parsed.price,29);assert.equal(parsed.currency,'USD');assert.equal(parsed.title,'Cream');
+  assert.equal(parsed.image,'https://www.sephora.com/photo.jpg');
+  assert.equal(parsed.variants.length,0);
+  assert.equal(extractProduct(html,'https://www.sephora.com/product/unrelated-P321').price,undefined);
+  assert.equal(extractProduct(html,'https://sephora.com.evil.example/product/example-P123').price,undefined);
+});
 test('Adidas public product data retains sale price, available sizes and gallery',()=>{
   const product={id:'IF4492',name:'Daily 4.0 Shoes',brand:'Sportswear',category:'Shoes',color:'Core Black / Cloud White / Gum',price:65,salePrice:33,orderable:1,image:{src:'https://assets.adidas.com/primary.jpg'},images:[{src:'https://assets.adidas.com/one.jpg'},{src:'https://assets.adidas.com/two.jpg'}]};
   const listing={raw:{itemList:{items:[{productId:'IF4492',displayName:'Daily 4.0 Shoes',availableSizes:['hidden','5','6','8'],orderable:1,salePrice:33,images:[{src:'https://assets.adidas.com/three.jpg'}]}]}}};
   const p=extractAdidasProduct(product,listing,'https://www.adidas.com/us/daily-4.0-shoes/IF4492.html');
   assert.equal(p.method,'Adidas product data');assert.equal(p.price,33);assert.equal(p.currency,'USD');assert.equal(p.country,'США');assert.equal(p.category,'Обувь');assert.equal(p.variants.length,3);assert.deepEqual(p.variants.map(v=>[v.color,v.size,v.price,v.available]),[['Core Black / Cloud White / Gum','5',33,true],['Core Black / Cloud White / Gum','6',33,true],['Core Black / Cloud White / Gum','8',33,true]]);assert.equal(p.images.length,4);
+});
+test('Adidas malformed public JSON falls back to editable manual entry',async()=>{
+  const original=globalThis.fetch;
+  globalThis.fetch=async()=>new Response('<html>challenge</html>',{headers:{'Content-Type':'application/json'}});
+  try { await assert.rejects(fetchProduct('https://www.adidas.com/us/daily-4.0-shoes/IF4492.html'),error=>error instanceof ManualEntryFallbackError); }
+  finally { globalThis.fetch=original; }
 });
 test('Adidas clothing JSON classifies jerseys and keeps the full gallery',()=>{
   const product={id:'JZ6941',name:'Germany Away Jersey 1994',brand:'Performance',category:'Clothing',color:'Power Green',price:110,salePrice:44,orderable:1,image:{src:'https://assets.adidas.com/primary.jpg'},secondImage:{src:'https://assets.adidas.com/second.jpg'},images:Array.from({length:12},(_,index)=>({src:`https://assets.adidas.com/gallery-${index}.jpg`}))};
@@ -102,6 +176,16 @@ test('Adidas listing data remains importable when product JSON is rate-limited',
   globalThis.fetch=async(input)=>{calls.push(String(input));const u=new URL(String(input));if(u.pathname==='/api/plp/content-engine')return Response.json({raw:{itemList:{items:[{productId:'IF4492',displayName:'Daily 4.0 Shoes',category:'shoes',availableSizes:['5','7'],orderable:1,salePrice:33,image:{src:'https://assets.adidas.com/gallery.jpg'},images:[{src:'https://assets.adidas.com/gallery.jpg'}]}]}}});return new Response('rate limited',{status:429,headers:{'Content-Type':'text/html'}})};
   try {const p=await fetchProduct('https://www.adidas.com/us/daily-4.0-shoes/IF4492.html');assert.equal(p.price,33);assert.deepEqual(p.variants.map(v=>v.size),['5','7']);assert.equal(p.images.length,1);assert(calls.some(url=>url.includes('/api/plp/content-engine')))} finally {globalThis.fetch=original}
 });
+test('Adidas API challenges and malformed payloads allow editable manual fallback',async()=>{
+  const original=globalThis.fetch,originalError=console.error;
+  try {
+    console.error=()=>{};
+    globalThis.fetch=async()=>new Response('Akamai challenge',{status:429,headers:{'Content-Type':'text/html'}});
+    await assert.rejects(fetchProduct('https://www.adidas.com/us/daily-4.0-shoes/IF4492.html'),error=>error instanceof ManualEntryFallbackError&&/вручную/.test(error.message)&&/подтвердите цену, валюту и выбранный вариант/.test(error.message));
+    globalThis.fetch=async()=>new Response('{invalid json',{headers:{'Content-Type':'application/json'}});
+    await assert.rejects(fetchProduct('https://www.adidas.com/us/daily-4.0-shoes/IF4492.html'),ManualEntryFallbackError);
+  } finally {globalThis.fetch=original;console.error=originalError;}
+});
 test('generic importer deduplicates images and treats size and color as one variant',()=>{
   const p=extractProduct(`<script type="application/ld+json">${JSON.stringify({'@type':'Product',name:'Shoes',color:'Black',size:'42',image:['/a.jpg','/a.jpg','/b.jpg'],offers:{price:'1,299.95',priceCurrency:'USD'}})}</script>`,'https://nike.com/product');
   assert.equal(p.price,1299.95);assert.equal(p.images.length,2);assert.deepEqual(p.variants.map(v=>v.label),['Black · 42']);
@@ -113,7 +197,7 @@ test('public Ajax requests omit credentials and unsafe redirects fall back safel
     assert.equal((await fetchProduct(url+'?variant=1')).price,110);
     assert.equal(calls.length,2);assert(calls.every(([,init])=>!init.headers.Cookie&&!init.headers.Authorization&&init.redirect==='manual'));
     globalThis.fetch=async(u)=>String(u).endsWith('.js')?new Response('',{status:302,headers:{Location:'http://169.254.169.254/'}}):new Response('<meta property="og:title" content="Shoes">',{headers:{'Content-Type':'text/html'}});
-    assert.equal((await fetchProduct(url)).method,'Open Graph');
+    await assert.rejects(fetchProduct(url),error=>error instanceof ManualEntryFallbackError&&error.partial?.title==='Shoes');
   } finally {globalThis.fetch=original;}
 });
 
@@ -121,7 +205,7 @@ test('Amazon checks pin the anonymous session to US ZIP 19701 before parsing',as
   assert(isAmazonUsUrl(new URL('https://www.amazon.com/dp/TEST')));
   assert(!isAmazonUsUrl(new URL('https://www.amazon.co.uk/dp/TEST')));
   const original=globalThis.fetch;const calls=[];
-  const amazonHtml=`<span data-a-modal='{"ajaxHeaders":{"anti-csrftoken-a2z":"token"},"url":"/portal-migration/hz/glow/get-rendered-address-selections"}'></span><span id="glow-ingress-line2">19701</span><script type="application/ld+json">${JSON.stringify({'@type':'Product',name:'US listing',image:['https://images.example.com/item.jpg'],offers:{price:'55.99',priceCurrency:'USD',availability:'https://schema.org/InStock'}})}</script>`;
+  const amazonHtml=`<span data-a-modal='{"ajaxHeaders":{"anti-csrftoken-a2z":"token"},"url":"/portal-migration/hz/glow/get-rendered-address-selections"}'></span><script type="application/ld+json">${JSON.stringify({'@type':'Product',name:'US listing',image:['https://images.example.com/item.jpg'],offers:{price:'55.99',priceCurrency:'USD',availability:'https://schema.org/InStock'}})}</script>`;
   globalThis.fetch=async(input,init={})=>{
     calls.push([String(input),init]);
     if(String(input).includes('/gp/delivery/ajax/address-change.html')) return new Response(JSON.stringify({isValidAddress:1,address:{countryCode:'US',zipCode:'19701'}}),{headers:{'Content-Type':'application/json','set-cookie':'zip-code=19701; Path=/'}});
@@ -141,14 +225,42 @@ test('Amazon checks pin the anonymous session to US ZIP 19701 before parsing',as
     assert.match(calls[2][1].headers.Cookie,/zip-code=19701/);
   } finally {globalThis.fetch=original;}
 });
+test('Amazon still rejects location API responses that do not confirm US ZIP 19701',async()=>{
+  const original=globalThis.fetch;
+  const page=`<span data-a-modal='{"ajaxHeaders":{"anti-csrftoken-a2z":"token"},"url":"/portal-migration/hz/glow/get-rendered-address-selections"}'></span>`;
+  globalThis.fetch=async(input)=>String(input).includes('/gp/delivery/ajax/address-change.html')
+    ? Response.json({isValidAddress:1,address:{countryCode:'US',zipCode:'90210'}})
+    : new Response(page,{headers:{'Content-Type':'text/html'}});
+  try {
+    await assert.rejects(fetchProduct('https://www.amazon.com/dp/TEST'),error=>error instanceof ManualEntryFallbackError);
+  } finally {globalThis.fetch=original;}
+});
 
-test('fresh verification blocks changed prices and unavailable variants',()=>{
+test('fresh verification checks exact price and option identity without gating on stock',()=>{
   const p={id:'p',name:'Shoe',brand:'Allbirds',category:'Обувь',usd:110,weight:1.5,image:'',variants:['Black / 8'],sourceUrl:url,sourceVariantId:'1',sourceCurrency:'USD',sourcePrice:110};
   const fresh=extractShopify(product,{currency:'USD'},url+'?variant=1');
   const checked=verifyProductSnapshot(p,'Black / 8',fresh,5000);
   assert.equal(checked.sourcePrice,110);assert.equal(checked.importedAt,5000);assert.equal(checked.sourceExpiresAt,605000);
   assert.throws(()=>verifyProductSnapshot({...p,sourcePrice:109},'Black / 8',fresh),/Цена изменилась/);
-  assert.throws(()=>verifyProductSnapshot({...p,sourceVariantId:'2'},'Black / 9',fresh),/закончился/);
+  assert.throws(()=>verifyProductSnapshot({...p,sourceVariantId:'missing-id'},'Black / 8',fresh),/не удалось сверить/);
+  const soldOut=extractShopify({...product,variants:product.variants.map(variant=>({...variant,available:false}))},{currency:'USD'},url+'?variant=1');
+  assert.equal(verifyProductSnapshot(p,'Black / 8',soldOut).sourcePrice,110);
+  const confirmed={...p,sourceManuallyConfirmed:true};
+  assert.equal(verifyProductSnapshot(confirmed,'Black / 8',fresh).sourceManuallyConfirmed,true);
+  const optionsOmitted={...fresh,variants:[]};
+  const verifiedBase=verifyProductSnapshot(confirmed,'Black / 8',optionsOmitted,6000);
+  assert.equal(verifiedBase.sourcePrice,110);assert.equal(verifiedBase.sourceVariantId,'1');
+  assert.equal(verifiedBase.importedAt,6000);
+  assert.doesNotThrow(()=>verifyKnownSnapshotFields(confirmed,'Black / 8',{currency:'USD',price:110,variants:[{label:'Black / 8',available:false,price:110}]}));
+  assert.throws(()=>verifyKnownSnapshotFields(confirmed,'Black / 8',{currency:'USD',price:111}),/Цена изменилась/);
+  assert.throws(()=>verifyKnownSnapshotFields(confirmed,'Black / 8',{currency:'EUR',price:110}),/валюту витрины/);
+  assert.throws(()=>verifyProductSnapshot(p,'Black / 8',{...fresh,currency:'EUR'}),/валюту витрины/);
+  assert.equal(manualFallbackAllowed(confirmed,'Black / 8',new ManualEntryFallbackError()),true);
+  assert.equal(manualFallbackAllowed(p,'Black / 8',new ManualEntryFallbackError()),false);
+  assert.equal(manualFallbackAllowed(confirmed,'Black / 8',new Error('Price changed')),false);
+  assert.throws(()=>manualFallbackAllowed(confirmed,'Black / 8',new ManualEntryFallbackError('fallback',{currency:'EUR',price:110,variants:[],warnings:[],sourceUrl:url,method:'partial'})),/валюту витрины/);
+  assert.throws(()=>manualFallbackAllowed(confirmed,'Black / 8',new ManualEntryFallbackError('fallback',{currency:'USD',price:111,variants:[],warnings:[],sourceUrl:url,method:'partial'})),/Цена изменилась/);
+  assert.throws(()=>manualFallbackAllowed(confirmed,'Black / 8',new ManualEntryFallbackError('fallback',{price:111,variants:[],warnings:[],sourceUrl:url,method:'partial'})),/без валюты/);
 });
 test('fresh verification normalizes a catalog label for a single live option',()=>{
   const p={id:'p',name:'Toy',brand:'Amazon',category:'Дом и быт',usd:12.79,weight:1.4,image:'',variants:['Указанный вариант'],sourceUrl:'https://www.amazon.com/dp/B0CGY4LZQ3',country:'США',sourceCurrency:'USD',sourcePrice:12.79,sourceShipping:10,sourceShippingCurrency:'USD',sourceShippingUsd:10,shippingKnown:true,boxedWeight:.4};
@@ -156,8 +268,8 @@ test('fresh verification normalizes a catalog label for a single live option',()
   const checked=verifyProductSnapshot(p,'Указанный вариант',fresh,5000);
   assert.equal(checked.sourcePrice,12.79);assert.equal(checked.importedAt,5000);
 });
-test('fresh verification blocks a variant whose merchant omitted stock status',()=>{
+test('fresh verification accepts a matching variant when the merchant omits stock status',()=>{
   const p={id:'p',name:'Shoe',brand:'Nike',category:'Обувь',usd:76.97,weight:1.5,image:'',variants:['White · 6'],sourceUrl:'https://www.nike.com/t/example/DM4044-108',sourceVariantId:'00197600816527',sourceCurrency:'USD',sourcePrice:76.97};
   const fresh={sourceUrl:p.sourceUrl,currency:'USD',price:76.97,variants:[{id:'00197600816527',label:'White · 6',available:true,availabilityKnown:false,price:76.97}],warnings:[],method:'JSON-LD'};
-  assert.throws(()=>verifyProductSnapshot(p,'White · 6',fresh,5000),/не подтвердил наличие/);
+  assert.equal(verifyProductSnapshot(p,'White · 6',fresh,5000).sourcePrice,76.97);
 });

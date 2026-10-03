@@ -16,6 +16,18 @@ const localizedDescriptionSchema = z.object({
   uz: z.string().trim().max(500),
   en: z.string().trim().max(500),
 });
+export const sourceVariantSchema = z.object({
+  id: z.string().trim().max(120).optional(),
+  label: z.string().trim().max(140),
+  size: z.string().trim().max(100).optional(),
+  sizeLabel: z.string().trim().max(100).optional(),
+  color: z.string().trim().max(100).optional(),
+  available: z.boolean(),
+  availabilityKnown: z.boolean().optional(),
+  price: z.number().finite().nonnegative().optional(),
+  image: z.string().trim().max(3000).optional(),
+});
+export type SourceVariant = z.infer<typeof sourceVariantSchema>;
 export const serviceOfferingSchema = z.object({
   id: z.string().regex(/^[a-z0-9][a-z0-9_-]{1,79}$/),
   title: localizedTextSchema,
@@ -55,6 +67,10 @@ export const productSchema = z.object({
   weight: positive.max(50),
   image: z.string(),
   variants: z.array(z.string()).min(1),
+  /** Optional merchant matrix for storefront and link-order fallback; never a quote authority. */
+  sourceVariants: z.array(sourceVariantSchema).max(250).optional(),
+  /** Optional safe merchant gallery, with the primary image first. */
+  sourceImages: z.array(z.string().max(3000)).max(12).optional(),
   sourceUrl: z.string().optional(),
   sourceVariantId: z.string().max(120).optional(),
   description: z.string().optional(),
@@ -70,6 +86,10 @@ export const productSchema = z.object({
   weightOrigin: z.string().optional(),
   importedAt: amount.optional(),
   sourceExpiresAt: amount.optional(),
+  /** Customer explicitly reviewed a manual fallback after the merchant fetch failed. */
+  sourceManuallyConfirmed: z.boolean().optional(),
+  /** Public listing snapshot remains discoverable, but its price is no longer current. */
+  priceNeedsConfirmation: z.boolean().optional(),
   imageOrigin: z.string().optional(),
   declarationDescription: z.string().max(240).optional(),
 });
@@ -412,6 +432,25 @@ const staffNoteSchema = z.object({
   author: z.string().max(160),
   text: z.string().min(1).max(500),
 });
+export const orderIssueCategorySchema = z.enum(["stalled", "merchant", "payment", "warehouse", "delivery", "other"]);
+export type OrderIssueCategory = z.infer<typeof orderIssueCategorySchema>;
+export const orderIssueStatusSchema = z.enum(["open", "investigating", "waiting-customer", "waiting-merchant", "refund-review", "resolved"]);
+export type OrderIssueStatus = z.infer<typeof orderIssueStatusSchema>;
+const orderIssueEventSchema = z.object({
+  id: z.string().min(1).max(100),
+  at: amount,
+  category: orderIssueCategorySchema,
+  status: orderIssueStatusSchema,
+  proposedRefund: z.number().int().min(0).max(100_000_000).optional(),
+});
+const orderIssueCaseSchema = z.object({
+  category: orderIssueCategorySchema,
+  status: orderIssueStatusSchema,
+  proposedRefund: z.number().int().min(0).max(100_000_000).optional(),
+  updatedAt: amount,
+  history: z.array(orderIssueEventSchema).max(40),
+});
+export type OrderIssueCase = z.infer<typeof orderIssueCaseSchema>;
 export const changeRequestKindSchema = z.enum([
   "price",
   "variant",
@@ -428,6 +467,7 @@ const changeRequestSchema = z.object({
   previousValue: z.string().max(240).optional(),
   proposedValue: z.string().max(240).optional(),
   warehouseServiceRequestId: z.string().min(1).max(100).optional(),
+  resolvesWarehouseIssue: z.boolean().optional(),
   amountDelta: signedAmount.default(0),
   status: z.enum(["pending", "approved", "declined"]),
   createdAt: amount,
@@ -444,6 +484,7 @@ const warehouseServiceRequestSchema = z.object({
   pricingMode: z.enum(["fixed", "operator-quote"]),
   feeUzs: amount.max(20_000_000).optional(),
   country: z.string().max(80).optional(),
+  customerNote: z.string().trim().max(500).optional(),
   origin: z.enum(["checkout", "warehouse"]),
   status: z.enum(["requested", "quoted", "approved", "declined", "completed"]),
   requestedAt: amount,
@@ -489,6 +530,7 @@ const orderSchema = z.object({
   parcel: parcelSchema.optional(),
   assignment: assignmentSchema.optional(),
   staffNotes: z.array(staffNoteSchema).optional(),
+  issueCase: orderIssueCaseSchema.optional(),
   changeRequests: z.array(changeRequestSchema).optional(),
   warehouseServiceRequests: z.array(warehouseServiceRequestSchema).max(40).optional(),
   warehouseInspection: warehouseInspectionSchema.optional(),
@@ -551,6 +593,7 @@ const cartSchema = z.object({
   variant: z.string(),
   quantity: z.number().int().min(1).max(10),
   requestedServiceIds: z.array(z.string().min(2).max(80)).max(40).default([]),
+  requestedServiceUnits: z.record(z.string().min(2).max(80), z.number().int().min(1).max(100)).optional(),
   quote: quoteSchema,
 });
 export type CartItem = z.infer<typeof cartSchema>;
@@ -561,6 +604,7 @@ function buildServiceRequest(
   units: number,
   origin: WarehouseServiceRequest["origin"],
   now: number,
+  customerNote?: string,
 ): WarehouseServiceRequest {
   return warehouseServiceRequestSchema.parse({
     id: "WSR-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
@@ -572,6 +616,7 @@ function buildServiceRequest(
     pricingMode: service.pricingMode,
     feeUzs: service.pricingMode === "fixed" ? serviceFeeForCountry(service, country) : undefined,
     country,
+    customerNote: customerNote?.trim() || undefined,
     origin,
     status: "requested",
     requestedAt: now,
@@ -583,6 +628,7 @@ export function setCartServices(
   id: string,
   serviceIds: string[],
   config: Pricing = tariff,
+  serviceUnits: Record<string, number> = {},
 ) {
   const item = state.cart.find((candidate) => candidate.id === id);
   if (!item) throw Error("Товар уже удалён из корзины.");
@@ -590,12 +636,23 @@ export function setCartServices(
   const selected = [...new Set(serviceIds)];
   if (selected.some((serviceId) => !allowed.some((service) => service.id === serviceId)))
     throw Error("Одна из услуг больше недоступна. Обновите страницу.");
+  if (Object.keys(serviceUnits).some((serviceId) => !selected.includes(serviceId)))
+    throw Error("Количество можно задать только для выбранной услуги.");
+  for (const [serviceId, units] of Object.entries(serviceUnits)) {
+    const service = allowed.find((candidate) => candidate.id === serviceId);
+    if (!service || ["package", "item"].includes(service.unit) || !Number.isInteger(units) || units < 1 || units > 100)
+      throw Error("Проверьте количество дополнительной услуги.");
+  }
   for (const required of allowed.filter((service) => service.required)) {
     if (!selected.includes(required.id)) throw Error("Выберите обязательные услуги перед оформлением.");
   }
   return {
     ...state,
-    cart: state.cart.map((candidate) => candidate.id === id ? { ...candidate, requestedServiceIds: selected } : candidate),
+    cart: state.cart.map((candidate) => candidate.id === id ? {
+      ...candidate,
+      requestedServiceIds: selected,
+      requestedServiceUnits: Object.fromEntries(Object.entries(serviceUnits).filter(([serviceId]) => selected.includes(serviceId))),
+    } : candidate),
   };
 }
 
@@ -606,6 +663,7 @@ export function requestWarehouseService(
   units: number,
   config: Pricing = tariff,
   now = Date.now(),
+  customerNote?: string,
 ): State {
   const order = getOrder(state, id);
   if (order.cancelled || order.status !== 2 || !order.warehouseInspection)
@@ -616,12 +674,16 @@ export function requestWarehouseService(
     throw Error("Достигнут лимит услуг для этого заказа.");
   const service = config.serviceCatalog.find((item) => item.id === serviceId && item.enabled && item.requestStage === "warehouse");
   if (!service) throw Error("Эта услуга сейчас недоступна.");
+  const note = customerNote?.trim();
+  if (service.id === "special-request" && !note)
+    throw Error("Опишите, что именно нужно сделать на складе.");
+  if (note && note.length > 500) throw Error("Комментарий к услуге должен быть не длиннее 500 символов.");
   const previous = order.warehouseServiceRequests ?? [];
   if (previous.some((request) => request.serviceId === serviceId && ["requested", "quoted", "approved"].includes(request.status)))
     throw Error("Эта услуга уже запрошена для заказа.");
   const count = service.unit === "package" ? 1 : service.unit === "item" ? order.quantity : units;
   if (!Number.isInteger(count) || count < 1 || count > 100) throw Error("Проверьте количество услуги.");
-  const request = buildServiceRequest(service, order.product.country, count, "warehouse", now);
+  const request = buildServiceRequest(service, order.product.country, count, "warehouse", now, note);
   return withNotification(replace(state, {
     ...order,
     warehouseServiceRequests: [...previous, request],
@@ -660,7 +722,7 @@ export function declineWarehouseService(state: State, id: string, requestId: str
   }), "Услуга недоступна", `${request.title.ru}: ${note}`, id, now);
 }
 
-function merchantParcelKey(item: CartItem) {
+export function merchantParcelKey(item: CartItem) {
   if (!item.product.sourceUrl || item.product.boxedWeight === undefined)
     return `item:${item.id}`;
   try {
@@ -834,6 +896,24 @@ export function clearIdentity(state: State, documentId: string): State {
   return { ...state, identityProfile: state.identityProfile?.documentId === documentId ? undefined : state.identityProfile, identityProfiles: (state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : [])).filter((profile) => profile.documentId !== documentId) };
 }
 
+/** Saves a recipient. `id` edits that recipient in place; `primary` chooses the default one.
+ * Older clients send neither, and the saved recipient becomes the default, as before. */
+export function saveDeliveryProfile(state: State, value: DeliveryProfile, label: string, id?: string, primary?: boolean): State {
+  const target = id ? state.deliveryProfiles.find((profile) => profile.id === id) : undefined;
+  if (id && !target) throw Error("Получатель не найден. Обновите страницу.");
+  const existing = target ?? state.deliveryProfiles.find((profile) => JSON.stringify(profile).includes(JSON.stringify(value)));
+  const others = state.deliveryProfiles.filter((profile) => profile.id !== existing?.id);
+  // There is always exactly one default recipient: it cannot be switched off, only moved to another one.
+  const makePrimary = primary === undefined || primary || Boolean(existing?.primary) || !others.length;
+  const profile = savedDeliveryProfileSchema.parse({ ...value, id: existing?.id ?? crypto.randomUUID(), label, primary: makePrimary });
+  const rest = makePrimary ? others.map((item) => ({ ...item, primary: false })) : others;
+  const deliveryProfiles = existing
+    ? state.deliveryProfiles.map((item) => item.id === profile.id ? profile : rest.find((other) => other.id === item.id) ?? item)
+    : makePrimary ? [profile, ...rest] : [...rest, profile];
+  const primaryProfile = deliveryProfiles.find((item) => item.primary) ?? deliveryProfiles[0];
+  return { ...state, deliveryProfiles, deliveryProfile: deliveryProfileSchema.parse(primaryProfile) };
+}
+
 export function submitDeclarationPreview(state: State, orderIds: string[], now = Date.now()): State {
   const selected = [...new Set(orderIds)].map((id) => state.orders.find((order) => order.id === id)).filter((order): order is Order => !!order && !order.cancelled);
   if (!selected.length) throw Error("Выберите хотя бы один действующий заказ.");
@@ -847,7 +927,7 @@ export function submitDeclarationPreview(state: State, orderIds: string[], now =
   if (!delivery) throw Error("Сначала сохраните адрес доставки.");
   const lines = selected.map((order) => ({ orderId: order.id, description: order.product.declarationDescription ?? order.product.name, country: order.product.country ?? "Не указана", quantity: order.quantity, value: order.quote.merchandise }));
   const declaration: Declaration = { id: "DEC-" + crypto.randomUUID().slice(0, 8).toUpperCase(), createdAt: now, status: "submitted-preview", identity, delivery, orderIds: selected.map((order) => order.id), lines, totalValue: lines.reduce((sum, line) => sum + line.value, 0) };
-  return withNotification({ ...state, declarations: [declaration, ...state.declarations].slice(0, 20) }, "Тестовая декларация подготовлена", `Пакет ${declaration.id} сохранён внутри Atlas. В таможню он не отправлялся.`);
+  return withNotification({ ...state, declarations: [declaration, ...state.declarations].slice(0, 20) }, "Черновик декларации подготовлен", `Пакет ${declaration.id} сохранён внутри Atlas. В таможню он не отправлялся.`);
 }
 export const balanceOf = (state: State) =>
   state.entries.reduce(
@@ -865,6 +945,15 @@ export const approvedAdjustments = (order: Order) =>
     .reduce((sum, request) => sum + request.amountDelta, 0);
 export const orderPayable = (order: Order) =>
   Math.max(0, order.quote.total + approvedAdjustments(order));
+export const orderNeedsOperatorAttention = (order: Order) =>
+  Boolean(order.issueCase && order.issueCase.status !== "resolved") ||
+  (!order.cancelled && (
+    Boolean(order.settlement?.extra && !order.extraApproved) ||
+    Boolean(order.storeShippingSettlement?.extra && !order.storeShippingExtraApproved) ||
+    (order.changeRequests ?? []).some((request) => request.status === "pending") ||
+    order.warehouseInspection?.condition === "damaged" ||
+    order.warehouseInspection?.condition === "mismatch"
+  ));
 export function addToCart(
   state: State,
   p: Product,
@@ -943,7 +1032,12 @@ export function renewCart(
   };
 }
 export const cartSignature = (items: CartItem[]) =>
-  items.map((i) => i.id + ":" + i.quote.id + ":" + [...(i.requestedServiceIds ?? [])].sort().join(",")).join("|");
+  items.map((i) => {
+    const services = [...(i.requestedServiceIds ?? [])].sort().map((serviceId) =>
+      `${serviceId}:${i.requestedServiceUnits?.[serviceId] ?? 1}`,
+    ).join(",");
+    return i.id + ":" + i.quote.id + ":" + services;
+  }).join("|");
 export function checkoutCart(
   state: State,
   key: string,
@@ -975,6 +1069,10 @@ export function checkoutCart(
     const selected = item.requestedServiceIds ?? [];
     if (selected.some((serviceId) => !availableServices.some((service) => service.id === serviceId)))
       throw Error("Одна из выбранных услуг больше недоступна. Обновите корзину.");
+    if (Object.entries(item.requestedServiceUnits ?? {}).some(([serviceId, units]) => {
+      const service = availableServices.find((candidate) => candidate.id === serviceId);
+      return !selected.includes(serviceId) || !service || ["package", "item"].includes(service.unit) || !Number.isInteger(units) || units < 1 || units > 100;
+    })) throw Error("Количество дополнительной услуги изменилось. Проверьте корзину заново.");
     if (availableServices.some((service) => service.required && !selected.includes(service.id)))
       throw Error("Выберите обязательные услуги перед оформлением.");
   }
@@ -1005,12 +1103,14 @@ export function checkoutCart(
         amount: balanceUsed,
         debit: "customer-credit",
         credit: "order-funds",
-        description: "Оплата заказа демобалансом",
+        description: "Оплата заказа из внутреннего баланса Atlas",
       });
     const serviceRequests = (i.requestedServiceIds ?? []).map((serviceId) => {
       const service = availableServices.find((candidate) => candidate.id === serviceId);
       if (!service) throw Error("Одна из выбранных услуг больше недоступна. Обновите корзину.");
-      const units = service.unit === "item" ? i.quantity : 1;
+      const units = service.unit === "item" ? i.quantity
+        : service.unit === "package" ? 1
+        : i.requestedServiceUnits?.[serviceId] ?? 1;
       return buildServiceRequest(service, i.product.country, units, "checkout", now);
     });
     return {
@@ -1041,9 +1141,9 @@ export function checkoutCart(
         {
           at: now,
           text:
-            "Предрелизный заказ оформлен. Сумма " +
+            "Заказ оформлен в Atlas. Сумма " +
             money(i.quote.total) +
-            (payable ? ". Ожидается тестовая оплата." : ". Оплачен демобалансом."),
+            (payable ? ". Ожидается подтверждение платёжного провайдера." : ". Учтено из внутреннего баланса Atlas."),
         },
       ],
     } as Order;
@@ -1074,13 +1174,13 @@ export function confirmDemoPayment(
   const o = getOrder(state, id);
   if (!o.payment || o.payment.status === "paid") return state;
   if (o.cancelled || o.payment.status !== "pending")
-    throw Error("Тестовая оплата для этого заказа недоступна.");
+    throw Error("Оплата недоступна: платёжный провайдер не подключён.");
   const next = replace(state, {
     ...o,
     payment: { ...o.payment, status: "paid", updatedAt: now },
     history: [
       ...o.history,
-      { at: now, text: "Тестовый платёж подтверждён. Реального списания не было." },
+      { at: now, text: "Статус оплаты отмечен в Atlas. Платёжный провайдер не подтвердил списание." },
     ],
   });
   next.entries = [
@@ -1092,13 +1192,13 @@ export function confirmDemoPayment(
       amount: o.payment.amount,
       debit: "demo-provider",
       credit: "order-funds",
-      description: "Тестовая оплата по платёжной ссылке",
+      description: "Статус оплаты записан в Atlas; провайдер не подключён",
     },
   ];
   return withNotification(
     next,
-    "Оплата подтверждена",
-    "Предрелизный платёж принят в тестовом режиме. Реального списания не было.",
+    "Статус оплаты обновлён в Atlas",
+    "Платёжный провайдер не подключён: списания и банковского подтверждения нет.",
     id,
     now,
   );
@@ -1140,6 +1240,58 @@ export function addStaffNote(
   });
 }
 
+export function updateOrderIssueCase(
+  state: State,
+  id: string,
+  category: OrderIssueCategory,
+  status: OrderIssueStatus,
+  proposedRefund?: number,
+  now = Date.now(),
+): State {
+  const order = getOrder(state, id);
+  const event = orderIssueEventSchema.parse({
+    id: crypto.randomUUID(), at: now, category, status,
+    ...(proposedRefund === undefined ? {} : { proposedRefund }),
+  });
+  const issueCase = orderIssueCaseSchema.parse({
+    category, status,
+    ...(proposedRefund === undefined ? {} : { proposedRefund }),
+    updatedAt: now,
+    history: [...(order.issueCase?.history ?? []), event].slice(-40),
+  });
+  return replace(state, {
+    ...order,
+    issueCase,
+    history: [...order.history, { at: now, text: "Оператор обновил разбор проблемы/возврата." }],
+  });
+}
+
+export function sendCustomerNotification(
+  state: State,
+  id: string,
+  title: string,
+  message: string,
+  now = Date.now(),
+): State {
+  const o = getOrder(state, id);
+  const cleanTitle = title.trim();
+  const cleanMessage = message.trim();
+  if (cleanTitle.length < 2 || cleanTitle.length > 120)
+    throw Error("Заголовок уведомления должен содержать от 2 до 120 символов.");
+  if (!cleanMessage || cleanMessage.length > 300)
+    throw Error("Текст уведомления должен содержать от 1 до 300 символов.");
+  return {
+    ...state,
+    notifications: [
+      { id: crypto.randomUUID(), at: now, title: cleanTitle, message: cleanMessage, read: false, orderId: o.id },
+      ...state.notifications,
+    ].slice(0, 80),
+    orders: state.orders.map((order) => order.id === id
+      ? { ...order, history: [...order.history, { at: now, text: "Оператор отправил уведомление в Atlas." }] }
+      : order),
+  };
+}
+
 export function createChangeRequest(
   state: State,
   id: string,
@@ -1153,6 +1305,12 @@ export function createChangeRequest(
   const serviceRequest = value.warehouseServiceRequestId
     ? (o.warehouseServiceRequests ?? []).find((request) => request.id === value.warehouseServiceRequestId)
     : undefined;
+  if (value.resolvesWarehouseIssue && (
+    value.kind !== "substitution" ||
+    !o.warehouseInspection ||
+    o.warehouseInspection.condition === "ok" ||
+    !value.proposedValue?.trim()
+  )) throw Error("Решение проблемы требует явной замены товара и указания нового варианта.");
   if (value.warehouseServiceRequestId && (!serviceRequest || serviceRequest.status !== "requested" || value.kind !== "warehouse-service"))
     throw Error("Запрос на эту складскую услугу уже обработан или не найден.");
   if (serviceRequest) {
@@ -1335,7 +1493,7 @@ export function confirmStoreShipping(
     settlement.extra
       ? "Менеджер уточнил стоимость. Откройте заказ и подтвердите доплату."
       : settlement.refund
-        ? "Разница с резервом возвращена на демобаланс."
+        ? "Разница учтена на внутреннем балансе Atlas. Банковский перевод не выполнялся."
         : "Стоимость совпала с резервом заказа.",
     id,
     now,
@@ -1438,7 +1596,9 @@ export function receiveOrder(
     !(o.changeRequests ?? []).some((request) =>
       request.status === "approved" &&
       request.createdAt >= o.warehouseInspection!.inspectedAt &&
-      ["substitution", "warehouse-service"].includes(request.kind),
+      request.kind === "substitution" &&
+      request.resolvesWarehouseIssue === true &&
+      !!request.proposedValue?.trim(),
     )
   ) throw Error("Сначала согласуйте с покупателем решение по проблеме на складе.");
   const s = settle(o.quote, ...dimensions);
@@ -1485,7 +1645,7 @@ export function receiveOrder(
     s.extra
       ? "Фактический или объёмный вес превысил резерв. Проверьте новый расчёт."
       : s.refund
-        ? "Остаток доставки возвращён на демобаланс."
+        ? "Остаток учтён на внутреннем балансе Atlas. Банковский перевод не выполнялся."
         : "Фактическая стоимость доставки подтверждена.",
     id,
     now,
@@ -1513,7 +1673,7 @@ export function approveExtra(
       {
         at: now,
         text:
-          "Покупатель подтвердил тестовую доплату " + money(o.settlement.extra),
+          "Покупатель согласовал доплату " + money(o.settlement.extra),
       },
     ],
   });
@@ -1533,7 +1693,7 @@ export function cancelOrder(state: State, id: string, now = Date.now()): State {
       ...o.history,
       {
         at: now,
-        text: "Отменён до выкупа. Вся сумма возвращена на демобаланс.",
+        text: "Заказ отменён до выкупа. Сумма учтена на внутреннем балансе Atlas; банковский перевод не выполнялся.",
       },
     ],
   });

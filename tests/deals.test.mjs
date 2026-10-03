@@ -5,7 +5,7 @@ import { merchantFinds, findOrderUrl } from '../lib/market/catalog.ts';
 import { applyAction } from '../lib/market/actions.ts';
 import { allowedUrl } from '../lib/importer/fetch.ts';
 import { safeImage, extractProduct } from '../lib/importer/extract.ts';
-import { dealQuote, filterDeals, defaultDealFilters } from '../lib/market/deals.ts';
+import { dealQuote, filterDeals, defaultDealFilters, hasActiveDealFilters } from '../lib/market/deals.ts';
 
 test('merchant records retain unique identity, safe sources and unconfirmed shipping reserves', () => {
   assert.equal(new Set(merchantFinds.map(p => p.id)).size, merchantFinds.length);
@@ -19,6 +19,7 @@ test('merchant records retain unique identity, safe sources and unconfirmed ship
     assert.equal(p.sourceShippingUsd, 10);
     assert.equal(p.weight, Math.max(1, Math.round((p.boxedWeight + 0.5) * 100) / 100));
     assert.equal(new URL(findOrderUrl(p), 'https://atlas.test').searchParams.get('url'), p.sourceUrl);
+    assert.equal(new URL(findOrderUrl(p), 'https://atlas.test').searchParams.get('catalog'), p.id);
     assert.throws(() => applyAction(blank(), {type:'cart-add',product:p,variant:p.variants[0]}, false), /доставку магазина/);
   }
 });
@@ -30,6 +31,13 @@ test('merchant totals match checkout pricing and source-only discounts', () => {
   assert.equal(deal.discount, Math.round((p.referenceUsd - p.usd) / p.referenceUsd * 100));
   assert.equal(deal.costs.total, deal.costs.merchandise + deal.costs.service + deal.costs.sourceShipping + deal.costs.shipping + deal.costs.reserve);
   assert.equal(dealQuote(p, {...tariff, fx:14000}).discount, deal.discount);
+});
+test('stale catalog snapshots still get a clearly unconfirmed server-rate estimate',()=>{
+  const p={...merchantFinds[0],usd:1,sourcePrice:24,sourceCurrency:'EUR',priceNeedsConfirmation:true,referenceUsd:999};
+  const config={...tariff,rates:{...tariff.rates,EUR:1.1}};
+  const deal=dealQuote(p,config);
+  assert.deepEqual(deal.costs,price(26.4,p.weight,1,p.sourceShippingUsd,config));
+  assert.equal(deal.discount,0);assert.equal(deal.referenceUsd,undefined);
 });
 test('reference prices never leak to legacy, changed or unrelated listings', () => {
   for (const p of products) assert.equal(dealQuote(p, tariff).discount, 0);
@@ -46,6 +54,12 @@ test('merchant filters combine search, category, country and full delivered budg
   assert.equal(filterDeals(merchantFinds, tariff, {...filters,country:'Испания'}).length, 0);
   const ascending = filterDeals(merchantFinds, tariff, {...defaultDealFilters,sort:'total-asc'});
   assert.deepEqual(ascending.map(x=>x.costs.total), ascending.map(x=>x.costs.total).sort((a,b)=>a-b));
+});
+test('catalog reset affordance recognizes sort-only and collection-only state', () => {
+  assert.equal(hasActiveDealFilters(defaultDealFilters), false);
+  assert.equal(hasActiveDealFilters({...defaultDealFilters,sort:'total-asc'}), true);
+  assert.equal(hasActiveDealFilters(defaultDealFilters,'autumn-edit'), true);
+  assert.equal(hasActiveDealFilters({...defaultDealFilters,search:'  shoes  '}), true);
 });
 test('ProductGroup selects linked color and retains size prices and availability', () => {
   const url='https://www.nike.com/t/shoe/BLUE';
