@@ -722,7 +722,7 @@ export function declineWarehouseService(state: State, id: string, requestId: str
   }), "Услуга недоступна", `${request.title.ru}: ${note}`, id, now);
 }
 
-function merchantParcelKey(item: CartItem) {
+export function merchantParcelKey(item: CartItem) {
   if (!item.product.sourceUrl || item.product.boxedWeight === undefined)
     return `item:${item.id}`;
   try {

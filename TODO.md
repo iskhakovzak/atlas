@@ -1,5 +1,15 @@
 # Atlas TODO and known limitations
 
+## Cart and account redesign — 3 October 2026
+
+- [x] Cart, mobile-first: "Cart · N items · N parcels" heading and a 3-step checkout indicator (Cart → Recipient → Confirmation); items grouped into parcels exactly as the server allocates them (`merchantParcelKey`: store host + dispatch country); each line shows brand, variant, country, store price (links to the store) and the soum total; quantity stepper and remove are 44px. Warehouse services stay an optional disclosure with unchanged rules.
+- [x] Cart summary is open by default: items, store delivery, Atlas service, international delivery and refundable reserve on separate lines with tap-to-open explanations; balance appears only when it is positive; one "price held for N min" line replaces per-item countdowns. The checkout button is always enabled; the customs consent moved to the confirmation step, where a missing tick shows an inline error instead of a silently disabled button. The phone sticky bar sits above the member navigation.
+- [x] Account: one "needs your attention" card (approval → payment → order in progress with a 6-stage progress bar → cart → add recipient → all set with "Order by link"), four tiles (orders, cart, balance, notifications), recipients with passport status, monthly customs allowance bar ($ used of $200, cancelled orders excluded), documents, support (tickets, Telegram when configured, new-request form) and settings (theme, rules, sign out). The previous stats, service grid and accordions repeated the same sections three times.
+- [x] Copy for both pages is in `lib/market/customer-copy.ts` (uz/ru/en) with tests; soum amounts use `formatSum` (so‘m / UZS outside Russian); Uzbek dates are formatted by hand because browser Intl prints "2026 M10 3".
+- [x] Signed-in header between 761 and 1399px hides the "How it works" / "Rates" anchors and the theme switch (still in the footer and account settings): the full member header needs about 1290px in Russian and overflowed before.
+- [ ] Checkout recipient form still uses free-text region/city with local suggestions; a region/city picker and +998 phone mask would cut errors.
+- [ ] Order list (`/orders`), balance and notifications pages keep the previous design.
+
 ## Home page redesign — 3 October 2026
 
 - [x] Mobile-first home in brief order: header (Stores, How it works, Rates, UZ/RU/EN switch, Sign in), hero with the link form, popular-store chips (open the store in a new tab) and "add several links", 4-step "how it works", example estimate from live pricing with a reserve tooltip, product selection only from 8 products (filters/sort from 16; cards: brand, country, $ price, soum total with an "i" breakdown, "Order"), delivery times and rates table from pricing (per-country overrides when set), trust block, concrete FAQ, shared footer. Copy lives in `lib/market/home-copy.ts` (uz/ru/en), components in `app/home-sections.tsx`, `app/site-footer.tsx`, styles in `app/home.css`.

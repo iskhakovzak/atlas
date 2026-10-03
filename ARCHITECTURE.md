@@ -122,6 +122,10 @@ The catalog route renders `HomeHero`, `HowItWorks`, `ExampleQuote`, `DealsFeed` 
 
 The root layout reads `atlas-language` and Accept-Language (`preferredLocale`, Uzbek default) and passes the result to `MarketProvider`, so server HTML and the first client render share one language. `/?lang=xx` pages are self-canonical hreflang alternates; the client saves that choice. API errors use the same `requestLocale` resolution.
 
+## Cart and account pages
+
+`CartView` (`app/shopping.tsx`) and `AccountView` (`app/account-views.tsx`) take all copy from `lib/market/customer-copy.ts` and are styled by `app/customer.css` (loaded after `home.css`, same `--home-*` tokens). The cart groups lines with the exported domain `merchantParcelKey`, so the UI parcels match the server's shipping allocation; totals are summed from the stored line quotes and split with `atlasServiceBreakdown`, display only. Checkout still sends the same `checkout` action (cart signature, expected balance credit, `customsVersion` consent, delivery, profile IDs); the UI requires the consent tick on the confirmation step before sending, and the server keeps validating everything. The account page reads only existing state (orders, cart, entries, notifications, profiles, identity profiles, declarations, tickets); the customs bar counts this month's non-cancelled orders' merchandise in USD against `courierAllowanceUsd`. `<main data-view>` lets page CSS hide the breadcrumb on phones for these two views.
+
 ## Sign-in and sessions
 
 Atlas no longer relies on ChatGPT Sites identity headers; `oai-authenticated-*` headers are ignored. `/login` offers each method only when its provider settings exist (`GET /api/auth/methods`):

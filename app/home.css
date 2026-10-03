@@ -31,8 +31,14 @@ html[data-theme="dark"] {
 .header-account:hover { background: var(--home-soft); }
 .site-header .header-actions .operator-entry { display: inline-flex; }
 .site-header .desktop-nav a, .site-header .wallet-link, .finds-page .find-card .find-content .find-title { min-height: 44px; }
-.site-header .wallet-link { display: inline-flex; align-items: center; }
+.site-header .wallet-link { display: inline-flex; align-items: center; white-space: nowrap; }
+.site-header .desktop-nav a { white-space: nowrap; }
 .site-header .icon-btn { min-width: 44px; min-height: 44px; }
+/* Signed-in header below 1400px: the home anchors and theme switch (also in the footer and account) make room. */
+@media (min-width: 761px) and (max-width: 1399px) {
+  .site-header:has(.header-account.member) .desktop-nav a:is([data-nav="how"], [data-nav="tariffs"]),
+  .site-header:has(.header-account.member) .header-theme { display: none; }
+}
 @media (max-width: 760px) {
   .site-header { gap: 8px; }
   .site-header .header-actions { gap: 8px; }

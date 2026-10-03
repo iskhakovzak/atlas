@@ -16,6 +16,7 @@ import "./mobile-polish.css";
 import "./customer-mobile.css";
 import "./operator-mobile.css";
 import "./home.css";
+import "./customer.css";
 import { MarketProvider } from "@/lib/market/store";
 import { StorageNotice } from "./storage-notice";
 import { AtlasThemeProvider } from "./theme-control";

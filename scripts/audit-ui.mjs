@@ -244,7 +244,7 @@ try {
    await check("!document.querySelector('.access-card[role=status]')","iPhone session resolves /"+route);
    await auditPage('iPhone member /'+route);
    if(route==='order-by-link')await check("(()=>{const input=document.querySelector('#source-url');if(!input)return false;const style=getComputedStyle(input);return parseFloat(style.fontSize)>=16&&parseFloat(style.minHeight)>=48})()",'iPhone link field avoids zoom and remains tappable');
-   if(route==='cart')await check("(()=>{const bar=document.querySelector('.cart-mobile-sticky'),nav=document.querySelector('.mobile-nav');return !bar||bar.getBoundingClientRect().bottom<=nav.getBoundingClientRect().top+1})()",'iPhone cart action clears bottom navigation');
+   if(route==='cart')await check("(()=>{const bar=document.querySelector('.basket-sticky'),nav=document.querySelector('.mobile-nav');return !bar||bar.getBoundingClientRect().bottom<=nav.getBoundingClientRect().top+1})()",'iPhone cart action clears bottom navigation');
    await snapshot('iphone-'+route);
   }
   await cdp.send('Emulation.setDeviceMetricsOverride',{width:1440,height:900,deviceScaleFactor:1,mobile:false},sessionId);
@@ -253,16 +253,15 @@ try {
   await visit('/notifications');
   await check("!document.querySelector('.notification-list') || document.querySelectorAll('.notice-filters button').length===3",'populated notifications expose filters; empty inbox stays simple');
   await visit('/account');
-  await check("document.querySelectorAll('.account-stats a').length===4 && document.querySelectorAll('.account-service-grid>a,.account-service-grid>button').length===6",'account dashboard prioritises four signals and six services');
-  await check("document.querySelector('.account-profile-compact details')?.open === false",'secondary profile settings start collapsed');
-  await evaluate("document.querySelectorAll('.account-detail-summary')[0].click();document.querySelectorAll('.account-detail-summary')[1].click()");
-  await check("document.querySelectorAll('.account-detail[data-open=\\\"true\\\"]').length===1 && document.querySelectorAll('.account-detail')[1].dataset.open==='true'",'account detail panels open independently as one accordion');
+  await check("!!document.querySelector('.cabinet-next h2') && document.querySelectorAll('.cabinet-tiles a').length===4",'account leads with the next action and four quick tiles');
+  await check("['/orders','/cart','/balance','/notifications'].every(href=>document.querySelector('.cabinet-tiles a[href=\\\"'+href+'\\\"]'))",'account tiles link to orders, cart, balance and notifications');
+  await check("new Set([...document.querySelectorAll('main h2')].map(h=>h.textContent)).size===document.querySelectorAll('main h2').length",'account sections are not repeated');
   await visit('/identity');
   await check("[...document.querySelectorAll('.identity-upload button')].find(b=>b.textContent.includes('Распознать')).disabled","passport submit needs file and consent");
   await visit('/batch-import');
   await check("!!document.querySelector('.batch-import button:disabled')","batch submit needs links");
   await visit('/account');
-  await check("!!document.querySelector('.profile-actions button.text-link')","member can sign out");
+  await check("!!document.querySelector('.cabinet-signout')","member can sign out");
   await signOut();
   await visit('/account');
   await check("!!document.querySelector('[data-access=signin]')","local sign-out clears protected screen");

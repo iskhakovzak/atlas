@@ -34,7 +34,7 @@ function perKgFor(pricing:Pricing,country?:string){
  return Math.round(p.perKg*(1+p.deliveryMargin));
 }
 
-function InfoTip({label,children}:{label:string;children:ReactNode}){
+export function InfoTip({label,children}:{label:string;children:ReactNode}){
  const [open,setOpen]=useState(false);
  const id=useId();
  useEffect(()=>{
