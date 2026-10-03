@@ -69,7 +69,7 @@ The UI's legacy fallback option arrays are explicitly typed and optional country
 | API | app/api/account, app/api/actions, app/api/import, app/api/catalog, app/api/internal/catalog-refresh, app/api/operations |
 | Domain/security | lib/market/domain.ts, actions.ts, server.ts, world.ts |
 | Importing | lib/importer/stores.ts, fetch.ts, extract.ts, shopify.ts |
-| Database | db/schema.ts, drizzle/0000_overrated_justice.sql |
+| Database | db/schema.ts, drizzle/*.sql (applied in drizzle/meta/_journal.json order) |
 | Tests | tests/market.test.mjs, tests/world.test.mjs |
 
 ## Link import fallback and eBay
