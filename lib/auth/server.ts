@@ -1,0 +1,192 @@
+import {env} from 'cloudflare:workers';
+import {headers} from 'next/headers';
+import {
+ CODE_TTL_MS,MAX_CODE_ATTEMPTS,OAUTH_STATE_COOKIE,OAUTH_TTL_MS,SESSION_COOKIE,SESSION_TTL_MS,
+ constantTimeEqual,cookie,decodeJwtPayload,googleIdentity,hashCode,identityFor,normalizeEmail,normalizeUzPhone,
+ pkceChallenge,randomCode,randomToken,readCookie,sha256Hex,verifyTelegramAuth,
+ type AuthMethod,type AuthUser,type TelegramFields,
+} from './core';
+import {loginPath,safeReturnTo} from './return-to';
+
+export class AuthError extends Error{constructor(public status:number,public code:string){super(code)}}
+export type OtpChannel='email'|'phone';
+
+function db(){if(!env.DB)throw new AuthError(503,'unavailable');return env.DB}
+const pepper=()=>env.ATLAS_AUTH_SECRET??'';
+const configured={
+ email:()=>!!(env.RESEND_API_KEY&&env.ATLAS_AUTH_EMAIL_FROM),
+ phone:()=>!!(env.ESKIZ_EMAIL&&env.ESKIZ_PASSWORD),
+ telegram:()=>!!(env.TELEGRAM_BOT_TOKEN&&env.TELEGRAM_BOT_USERNAME),
+ google:()=>!!(env.GOOGLE_CLIENT_ID&&env.GOOGLE_CLIENT_SECRET),
+};
+
+// Codes are shown on screen only for loopback development requests, never on a public host.
+function devCodes(request:Request){
+ const dev=(import.meta as {env?:{DEV?:boolean}}).env?.DEV===true||env.ATLAS_AUTH_DEV_CODES==='true';
+ const host=new URL(request.url).hostname.replace(/^\[|\]$/g,'');
+ return dev&&['localhost','127.0.0.1','::1'].includes(host);
+}
+
+export function authMethods(request:Request){
+ const dev=devCodes(request);
+ return {
+  email:configured.email()||dev,phone:configured.phone()||dev,
+  telegram:configured.telegram()?env.TELEGRAM_BOT_USERNAME!:null,google:configured.google(),devCodes:dev,
+ };
+}
+
+async function limit(name:string,max:number,windowMs:number){
+ const now=Date.now(),key=`auth:${name}:${Math.floor(now/windowMs)}`;
+ const row=await db().prepare('INSERT INTO market_rate_limits (key,count,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count').bind(key,now+windowMs).first<{count:number}>();
+ if(!row||row.count>max)throw new AuthError(429,'too_many_requests');
+}
+async function clientKey(request:Request){return (await sha256Hex('ip:'+(request.headers.get('cf-connecting-ip')?.trim().slice(0,80)||'unknown'))).slice(0,32)}
+
+async function cleanup(){
+ const now=Date.now();
+ await db().batch([
+  db().prepare('DELETE FROM market_auth_challenges WHERE expires_at < ?').bind(now),
+  db().prepare('DELETE FROM market_auth_sessions WHERE expires_at < ?').bind(now),
+  db().prepare('DELETE FROM market_rate_limits WHERE expires_at < ?').bind(now),
+ ]);
+}
+
+export async function createSession(user:AuthUser){
+ const token=randomToken(32),now=Date.now();
+ await db().prepare('INSERT INTO market_auth_sessions (id,user_id,method,email,display_name,contact,created_at,expires_at) VALUES (?,?,?,?,?,?,?,?)')
+  .bind(await sha256Hex(token),user.userId,user.method,user.email||null,user.displayName,user.contact,now,now+SESSION_TTL_MS).run();
+ return cookie(SESSION_COOKIE,token,SESSION_TTL_MS/1000);
+}
+
+function sessionToken(cookieHeader:string|null){
+ const token=readCookie(cookieHeader,SESSION_COOKIE);
+ return token&&/^[A-Za-z0-9_-]{43}$/.test(token)?token:null;
+}
+
+export async function currentUser():Promise<AuthUser|null>{
+ const token=sessionToken((await headers()).get('cookie'));
+ if(!token||!env.DB)return null;
+ const row=await env.DB.prepare('SELECT user_id,method,email,display_name,contact FROM market_auth_sessions WHERE id=? AND expires_at>?')
+  .bind(await sha256Hex(token),Date.now()).first<{user_id:string;method:AuthMethod;email:string|null;display_name:string;contact:string}>();
+ return row?{userId:row.user_id,method:row.method,email:row.email??'',displayName:row.display_name,contact:row.contact}:null;
+}
+
+export async function endSession(request:Request){
+ const token=sessionToken(request.headers.get('cookie'));
+ if(token)await db().prepare('DELETE FROM market_auth_sessions WHERE id=?').bind(await sha256Hex(token)).run();
+ return cookie(SESSION_COOKIE,'',0);
+}
+
+export async function startOtp(channel:OtpChannel,rawTarget:unknown,request:Request){
+ const target=channel==='email'?normalizeEmail(rawTarget):normalizeUzPhone(rawTarget);
+ if(!target)throw new AuthError(400,channel==='email'?'invalid_email':'invalid_phone');
+ const dev=devCodes(request);
+ if(!configured[channel]()&&!dev)throw new AuthError(503,'method_unavailable');
+ const targetKey=(await sha256Hex(channel+':'+target)).slice(0,32);
+ await limit(`send:${targetKey}:10m`,3,10*60*1000);
+ await limit(`send:${targetKey}:day`,10,24*60*60*1000);
+ await limit(`send-ip:${await clientKey(request)}`,20,60*60*1000);
+ await cleanup();
+ const id=randomToken(18),code=randomCode(),now=Date.now();
+ await db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,created_at,expires_at) VALUES (?,?,?,?,0,?,?)')
+  .bind(id,channel,target,await hashCode(id,code,pepper()),now,now+CODE_TTL_MS).run();
+ if(configured[channel]()){
+  try{await (channel==='email'?sendEmail(target,code):sendSms(target,code))}
+  catch(error){
+   console.error('Sign-in code delivery failed',error);
+   await db().prepare('DELETE FROM market_auth_challenges WHERE id=?').bind(id).run();
+   throw new AuthError(502,'delivery_failed');
+  }
+  return {challengeId:id};
+ }
+ console.info(`[atlas dev sign-in] ${channel} code for ${target}: ${code}`);
+ return {challengeId:id,devCode:code};
+}
+
+export async function verifyOtp(channel:OtpChannel,challengeId:unknown,code:unknown,request:Request){
+ if(typeof challengeId!=='string'||!/^[A-Za-z0-9_-]{24}$/.test(challengeId))throw new AuthError(400,'code_expired');
+ if(typeof code!=='string'||!/^\d{6}$/.test(code))throw new AuthError(400,'invalid_code');
+ await limit(`verify-ip:${await clientKey(request)}`,60,60*60*1000);
+ const row=await db().prepare('UPDATE market_auth_challenges SET attempts=attempts+1 WHERE id=? AND kind=? AND expires_at>? AND attempts<? RETURNING target,secret')
+  .bind(challengeId,channel,Date.now(),MAX_CODE_ATTEMPTS).first<{target:string;secret:string}>();
+ if(!row)throw new AuthError(400,'code_expired');
+ if(!constantTimeEqual(await hashCode(challengeId,code,pepper()),row.secret))throw new AuthError(400,'invalid_code');
+ // Deleting with RETURNING makes the code single-use even under concurrent submissions.
+ const used=await db().prepare('DELETE FROM market_auth_challenges WHERE id=? RETURNING id').bind(challengeId).first();
+ if(!used)throw new AuthError(400,'code_expired');
+ return createSession(identityFor(channel,row.target));
+}
+
+export async function signInWithTelegram(fields:TelegramFields,request:Request){
+ if(!configured.telegram())throw new AuthError(503,'method_unavailable');
+ await limit(`telegram-ip:${await clientKey(request)}`,30,60*60*1000);
+ const verified=await verifyTelegramAuth(fields,env.TELEGRAM_BOT_TOKEN!);
+ if(!verified)throw new AuthError(400,'telegram_invalid');
+ return createSession(identityFor('telegram',verified.id,{name:verified.name}));
+}
+
+const googleRedirect=(request:Request)=>new URL('/api/auth/google/callback',request.url).href;
+
+export async function startGoogle(request:Request){
+ if(!configured.google())throw new AuthError(503,'method_unavailable');
+ await limit(`google-ip:${await clientKey(request)}`,30,60*60*1000);
+ await cleanup();
+ const state=randomToken(24),verifier=randomToken(48),nonce=randomToken(18),now=Date.now();
+ await db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,return_to,created_at,expires_at) VALUES (?,?,?,?,0,?,?,?)')
+  .bind(state,'google',nonce,verifier,safeReturnTo(new URL(request.url).searchParams.get('return_to')),now,now+OAUTH_TTL_MS).run();
+ const url=new URL('https://accounts.google.com/o/oauth2/v2/auth');
+ url.search=new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID!,redirect_uri:googleRedirect(request),response_type:'code',scope:'openid email profile',state,nonce,code_challenge:await pkceChallenge(verifier),code_challenge_method:'S256',prompt:'select_account'}).toString();
+ return redirect(url.href,[cookie(OAUTH_STATE_COOKIE,state,OAUTH_TTL_MS/1000)]);
+}
+
+export async function finishGoogle(request:Request){
+ const params=new URL(request.url).searchParams,state=params.get('state')??'',code=params.get('code');
+ const expected=readCookie(request.headers.get('cookie'),OAUTH_STATE_COOKIE)??'';
+ const clearState=cookie(OAUTH_STATE_COOKIE,'',0);
+ const fail=(returnTo='/')=>redirect(loginPath(returnTo)+'&error=google',[clearState]);
+ // The state must match the cookie set for this browser, which blocks login CSRF.
+ if(!configured.google()||!state||!constantTimeEqual(state,expected))return fail();
+ const row=await db().prepare("DELETE FROM market_auth_challenges WHERE id=? AND kind='google' AND expires_at>? RETURNING target,secret,return_to")
+  .bind(state,Date.now()).first<{target:string;secret:string;return_to:string|null}>();
+ if(!row)return fail();
+ const returnTo=safeReturnTo(row.return_to);
+ if(!code||params.get('error'))return fail(returnTo);
+ const response=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:AbortSignal.timeout(10000),
+  body:new URLSearchParams({code,client_id:env.GOOGLE_CLIENT_ID!,client_secret:env.GOOGLE_CLIENT_SECRET!,redirect_uri:googleRedirect(request),grant_type:'authorization_code',code_verifier:row.secret})});
+ const token=response.ok?await response.json().catch(()=>null) as {id_token?:unknown}|null:null;
+ const identity=typeof token?.id_token==='string'?googleIdentity(decodeJwtPayload(token.id_token),{clientId:env.GOOGLE_CLIENT_ID!,nonce:row.target}):null;
+ if(!identity){console.error('Google sign-in rejected',response.status);return fail(returnTo)}
+ return redirect(returnTo,[clearState,await createSession(identityFor('google',identity.email,{name:identity.name}))]);
+}
+
+function redirect(location:string,cookies:string[]){
+ const response=new Response(null,{status:303,headers:{Location:location,'Cache-Control':'no-store'}});
+ for(const value of cookies)response.headers.append('Set-Cookie',value);
+ return response;
+}
+
+async function sendEmail(to:string,code:string){
+ const response=await fetch('https://api.resend.com/emails',{method:'POST',signal:AbortSignal.timeout(10000),
+  headers:{Authorization:`Bearer ${env.RESEND_API_KEY}`,'Content-Type':'application/json'},
+  body:JSON.stringify({from:env.ATLAS_AUTH_EMAIL_FROM,to:[to],subject:`Код входа в Atlas: ${code}`,
+   text:`Ваш код для входа в Atlas: ${code}\nКод действует 10 минут. Никому его не сообщайте.\nЕсли вы не запрашивали вход, просто проигнорируйте это письмо.`})});
+ if(!response.ok)throw new Error(`Resend responded ${response.status}`);
+}
+
+let eskizToken:{value:string;expiresAt:number}|null=null;
+async function eskiz(path:string,form:Record<string,string>,authorized=true):Promise<Response>{
+ const body=new FormData();for(const [key,value] of Object.entries(form))body.set(key,value);
+ return fetch('https://notify.eskiz.uz/api/'+path,{method:'POST',body,signal:AbortSignal.timeout(10000),headers:authorized&&eskizToken?{Authorization:`Bearer ${eskizToken.value}`}:{}});
+}
+async function sendSms(phone:string,code:string){
+ if(!eskizToken||eskizToken.expiresAt<Date.now()){
+  const login=await eskiz('auth/login',{email:env.ESKIZ_EMAIL!,password:env.ESKIZ_PASSWORD!},false);
+  const token=login.ok?(await login.json() as {data?:{token?:string}}).data?.token:undefined;
+  if(!token)throw new Error(`Eskiz login responded ${login.status}`);
+  eskizToken={value:token,expiresAt:Date.now()+20*24*60*60*1000};
+ }
+ const message=(env.ATLAS_SMS_TEMPLATE??'Kod dlya vhoda v Atlas: {code}').replace('{code}',code);
+ const response=await eskiz('message/sms/send',{mobile_phone:phone.slice(1),message,from:env.ESKIZ_FROM??'4546'});
+ if(response.status===401)eskizToken=null;
+ if(!response.ok)throw new Error(`Eskiz responded ${response.status}`);
+}

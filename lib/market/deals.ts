@@ -7,6 +7,13 @@ export type DealFilters = {
 };
 export const defaultDealFilters: DealFilters = { search: '', category: '', country: '', maxTotal: 0, sort: 'discount' };
 
+export function hasActiveDealFilters(filters: DealFilters, collectionId = '') {
+  return Boolean(
+    collectionId || filters.search.trim() || filters.category || filters.country || filters.maxTotal ||
+    filters.sort !== defaultDealFilters.sort,
+  );
+}
+
 export function dealQuote(product: Product, pricing: Pricing,records:MerchantFind[]=bundledMerchantFinds) {
   const estimateUsd=product.priceNeedsConfirmation
     ?product.sourcePrice!==undefined&&product.sourceCurrency&&pricing.rates[product.sourceCurrency]

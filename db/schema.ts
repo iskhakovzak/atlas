@@ -1,4 +1,4 @@
-import {sqliteTable,text,integer,index,uniqueIndex} from 'drizzle-orm/sqlite-core';
+import {sqliteTable,text,integer,real,index,uniqueIndex} from 'drizzle-orm/sqlite-core';
 export const accounts=sqliteTable('market_accounts',{userId:text('user_id').primaryKey(),name:text('name').notNull(),state:text('state').notNull(),revision:integer('revision').notNull().default(0),createdAt:integer('created_at').notNull(),updatedAt:integer('updated_at').notNull()});
 export const limits=sqliteTable('market_rate_limits',{key:text('key').primaryKey(),count:integer('count').notNull(),expiresAt:integer('expires_at').notNull()});
 export const settings=sqliteTable('market_settings',{key:text('key').primaryKey(),value:text('value').notNull(),updatedAt:integer('updated_at').notNull(),updatedBy:text('updated_by').notNull()});
@@ -41,6 +41,22 @@ export const operationalErrors=sqliteTable('market_operational_errors',{
  id:text('id').primaryKey(),area:text('area').notNull(),message:text('message').notNull(),details:text('details'),createdAt:integer('created_at').notNull(),resolvedAt:integer('resolved_at'),
 },table=>[index('idx_market_operational_errors_created').on(table.createdAt),index('idx_market_operational_errors_open').on(table.resolvedAt,table.createdAt)]);
 
+// Session IDs are SHA-256 hashes of the cookie token; the raw token is never stored.
+export const authSessions=sqliteTable('market_auth_sessions',{
+ id:text('id').primaryKey(),userId:text('user_id').notNull(),method:text('method').notNull(),email:text('email'),displayName:text('display_name').notNull(),contact:text('contact').notNull(),createdAt:integer('created_at').notNull(),expiresAt:integer('expires_at').notNull(),
+},table=>[index('idx_market_auth_sessions_user').on(table.userId),index('idx_market_auth_sessions_expires').on(table.expiresAt)]);
+
+// One-time sign-in challenges: hashed email/SMS codes, or Google OAuth state with its PKCE verifier.
+export const authChallenges=sqliteTable('market_auth_challenges',{
+ id:text('id').primaryKey(),kind:text('kind').notNull(),target:text('target').notNull(),secret:text('secret').notNull(),attempts:integer('attempts').notNull().default(0),returnTo:text('return_to'),createdAt:integer('created_at').notNull(),expiresAt:integer('expires_at').notNull(),
+},table=>[index('idx_market_auth_challenges_expires').on(table.expiresAt)]);
+
 export const backupExports=sqliteTable('market_backup_exports',{
  id:text('id').primaryKey(),requestedBy:text('requested_by').notNull(),recordCount:integer('record_count').notNull(),checksum:text('checksum').notNull(),createdAt:integer('created_at').notNull(),
 },table=>[index('idx_market_backup_exports_created').on(table.createdAt)]);
+
+// Anonymous page-speed samples from visitors' browsers: route pattern and device class only
+// (no account, IP or query string). Kept 30 days; the operator dashboard shows p75 per route.
+export const webVitals=sqliteTable('market_web_vitals',{
+ id:text('id').primaryKey(),route:text('route').notNull(),device:text('device').notNull(),ttfbMs:real('ttfb_ms'),fcpMs:real('fcp_ms'),lcpMs:real('lcp_ms'),inpMs:real('inp_ms'),cls:real('cls'),apiSlow:integer('api_slow'),createdAt:integer('created_at').notNull(),
+},table=>[index('idx_market_web_vitals_created').on(table.createdAt),index('idx_market_web_vitals_route').on(table.route,table.createdAt)]);

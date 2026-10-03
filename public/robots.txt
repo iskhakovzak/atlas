@@ -16,8 +16,7 @@ Disallow: /notifications
 Disallow: /operations
 Disallow: /orders
 Disallow: /order-by-link
-Disallow: /signin-with-chatgpt
-Disallow: /signout-with-chatgpt
+Disallow: /login
 
 # Search access and model-training access are separate controls. Atlas opts in
 # for public facts only; private paths remain blocked below.
@@ -39,8 +38,7 @@ Disallow: /notifications
 Disallow: /operations
 Disallow: /orders
 Disallow: /order-by-link
-Disallow: /signin-with-chatgpt
-Disallow: /signout-with-chatgpt
+Disallow: /login
 
 User-agent: *
 Allow: /
@@ -60,7 +58,6 @@ Disallow: /notifications
 Disallow: /operations
 Disallow: /orders
 Disallow: /order-by-link
-Disallow: /signin-with-chatgpt
-Disallow: /signout-with-chatgpt
+Disallow: /login
 
-Sitemap: https://atlas-uz-market.ishakovzakir0.chatgpt.site/sitemap.xml
+Sitemap: https://atlasmarket.uz/sitemap.xml

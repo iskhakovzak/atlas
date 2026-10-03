@@ -28,6 +28,7 @@ import {
   setParcel,
   confirmIdentity,
   clearIdentity,
+  saveDeliveryProfile,
   submitDeclarationPreview,
   createChangeRequest,
   respondToChangeRequest,
@@ -75,10 +76,13 @@ export const actionSchema = z.discriminatedUnion("type", [
     delivery: deliveryProfileSchema.optional(),
     deliveryProfileId: z.string().min(1).max(80).optional(),
     identityProfileId: z.string().min(1).max(100).optional(),
+    // Keeps an address typed at checkout as a saved recipient; the orders then refer to it.
+    saveRecipientLabel: z.string().trim().min(1).max(60).optional(),
   }),
   z.object({ type: z.literal("payment-demo"), id }),
   z.object({ type: z.literal("communication-save"), value: communicationSchema }),
-  z.object({ type: z.literal("delivery-profile-save"), value: deliveryProfileSchema, label: z.string().trim().min(1).max(60) }),
+  // `id` edits a saved recipient; `primary` chooses the default one. Older clients send neither.
+  z.object({ type: z.literal("delivery-profile-save"), value: deliveryProfileSchema, label: z.string().trim().min(1).max(60), id: z.string().min(1).max(80).optional(), primary: z.boolean().optional() }),
   z.object({ type: z.literal("delivery-profile-remove"), id: z.string().min(1).max(80) }),
   z.object({ type: z.literal("support-create"), subject: z.string().trim().min(3).max(120), text: z.string().trim().min(1).max(1000) }),
   z.object({ type: z.literal("support-reply"), id: z.string().min(1).max(80), text: z.string().trim().min(1).max(1000) }),
@@ -253,7 +257,7 @@ export function applyAction(
       return setCartServices(s, a.id, a.serviceIds, pricing, a.serviceUnits);
     case "cart-renew":
       return renewCart(s, Date.now(), pricing);
-    case "checkout":
+    case "checkout": {
       if (s.checkoutKeys.includes(a.key)) return s;
       if (
         (a.useBalance
@@ -262,28 +266,32 @@ export function applyAction(
       )
         throw Error("Баланс изменился. Проверьте итог заново.");
       assertCartPolicy(s.cart, policy);
+      // Saved in the same revision as the orders, so a failed checkout saves nothing.
+      let next = s, deliveryProfileId = a.deliveryProfileId;
+      if (a.saveRecipientLabel && !deliveryProfileId && a.delivery) {
+        const value = deliveryProfileSchema.parse(a.delivery);
+        next = saveDeliveryProfile(s, value, a.saveRecipientLabel, undefined, !s.deliveryProfiles.length);
+        deliveryProfileId = next.deliveryProfiles.find((profile) => JSON.stringify(deliveryProfileSchema.parse(profile)) === JSON.stringify(value))?.id;
+      }
       return checkoutCart(
-        s,
+        next,
         a.key,
         a.signature,
         a.useBalance,
         Date.now(),
         a.consentVersion,
         a.delivery,
-        a.deliveryProfileId,
+        deliveryProfileId,
         a.identityProfileId,
         pricing,
       );
+    }
     case "payment-demo":
       return confirmDemoPayment(s, a.id);
     case "communication-save":
       return updateCommunication(s, a.value);
-    case "delivery-profile-save": {
-      const value = deliveryProfileSchema.parse(a.value);
-      const existing = s.deliveryProfiles.find((profile) => JSON.stringify(profile).includes(JSON.stringify(value)));
-      const profile = { ...value, id: existing?.id ?? crypto.randomUUID(), label: a.label, primary: true };
-      return { ...s, deliveryProfile: value, deliveryProfiles: [profile, ...s.deliveryProfiles.filter((item) => item.id !== profile.id).map((item) => ({ ...item, primary: false }))] };
-    }
+    case "delivery-profile-save":
+      return saveDeliveryProfile(s, deliveryProfileSchema.parse(a.value), a.label, a.id, a.primary);
     case "delivery-profile-remove": {
       const rest = s.deliveryProfiles.filter((item) => item.id !== a.id);
       const remaining = rest.length && !rest.some((item) => item.primary) ? rest.map((item, index) => ({ ...item, primary: index === 0 })) : rest;

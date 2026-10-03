@@ -1,10 +1,14 @@
 import type { Metadata, Viewport } from "next";
+import { pageLocale } from "./page-locale";
+import { rootMetadata } from "./route-metadata";
+import "@fontsource-variable/manrope/wght.css";
 import "./globals.css";
 import "./atlas-design.css";
 import "./catalog-admin.css";
 import "./finds.css";
 import "./checkout-clarity.css";
 import "./access.css";
+import "./login.css";
 import "./experience.css";
 import "./catalog-import.css";
 import "./home-polish.css";
@@ -12,6 +16,9 @@ import "./dark-theme.css";
 import "./mobile-polish.css";
 import "./customer-mobile.css";
 import "./operator-mobile.css";
+import "./home.css";
+import "./customer.css";
+import "./theme-night.css";
 import { MarketProvider } from "@/lib/market/store";
 import { StorageNotice } from "./storage-notice";
 import { AtlasThemeProvider } from "./theme-control";
@@ -23,7 +30,8 @@ const structuredData = {
     {
       "@type": "Organization",
       name: "Atlas",
-      url: "https://atlas-uz-market.ishakovzakir0.chatgpt.site",
+      url: "https://atlasmarket.uz",
+      logo: "https://atlasmarket.uz/og-image.png",
       description:
         "Purchasing intermediary and logistics agent for international shopping in Uzbekistan.",
       areaServed: "UZ",
@@ -31,67 +39,38 @@ const structuredData = {
     {
       "@type": "WebSite",
       name: "Atlas",
-      url: "https://atlas-uz-market.ishakovzakir0.chatgpt.site",
+      url: "https://atlasmarket.uz",
       inLanguage: ["ru", "uz", "en"],
     },
   ],
 };
 
-export const metadata: Metadata = {
-  metadataBase: new URL("https://atlas-uz-market.ishakovzakir0.chatgpt.site"),
-  title: {
-    default: "Atlas — покупки со всего мира",
-    template: "%s · Atlas",
-  },
-  description:
-    "Находите товары в зарубежных магазинах, проверяйте варианты и получайте предварительный расчёт доставки в Узбекистан.",
-  applicationName: "Atlas",
-  category: "shopping",
-  creator: "Atlas",
-  alternates: { canonical: "/" },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: { index: true, follow: true, "max-image-preview": "large" },
-  },
-  openGraph: {
-    type: "website",
-    locale: "ru_RU",
-    alternateLocale: ["uz_UZ", "en_US"],
-    siteName: "Atlas",
-    title: "Atlas — покупки со всего мира",
-    description:
-      "Зарубежные магазины, понятный предварительный расчёт и доставка в Узбекистан.",
-    url: "/",
-  },
-  twitter: {
-    card: "summary",
-    title: "Atlas — покупки со всего мира",
-    description:
-      "Зарубежные магазины, понятный предварительный расчёт и доставка в Узбекистан.",
-  },
-  icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return rootMetadata(await pageLocale());
+}
 
+// Browser chrome matches the header. The site theme is chosen in the app, not by the OS,
+// so app/theme-control.tsx switches this colour when the visitor turns the dark theme on.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: "#ffffff",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Render in the visitor's language from the first byte: a `?lang=` version, the saved choice,
+  // the browser language, then Uzbek.
+  const locale = await pageLocale();
   return (
-    <html lang="ru" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className="antialiased">
         <AtlasThemeProvider>
-          <MarketProvider>{children}<StorageNotice /><PerformanceProbe /></MarketProvider>
+          <MarketProvider initialLocale={locale}>{children}<StorageNotice /><PerformanceProbe /></MarketProvider>
         </AtlasThemeProvider>
         <script
           type="application/ld+json"

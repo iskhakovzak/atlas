@@ -722,7 +722,7 @@ export function declineWarehouseService(state: State, id: string, requestId: str
   }), "Услуга недоступна", `${request.title.ru}: ${note}`, id, now);
 }
 
-function merchantParcelKey(item: CartItem) {
+export function merchantParcelKey(item: CartItem) {
   if (!item.product.sourceUrl || item.product.boxedWeight === undefined)
     return `item:${item.id}`;
   try {
@@ -894,6 +894,24 @@ export function confirmIdentity(state: State, value: Omit<IdentityProfile, "pass
 
 export function clearIdentity(state: State, documentId: string): State {
   return { ...state, identityProfile: state.identityProfile?.documentId === documentId ? undefined : state.identityProfile, identityProfiles: (state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : [])).filter((profile) => profile.documentId !== documentId) };
+}
+
+/** Saves a recipient. `id` edits that recipient in place; `primary` chooses the default one.
+ * Older clients send neither, and the saved recipient becomes the default, as before. */
+export function saveDeliveryProfile(state: State, value: DeliveryProfile, label: string, id?: string, primary?: boolean): State {
+  const target = id ? state.deliveryProfiles.find((profile) => profile.id === id) : undefined;
+  if (id && !target) throw Error("Получатель не найден. Обновите страницу.");
+  const existing = target ?? state.deliveryProfiles.find((profile) => JSON.stringify(profile).includes(JSON.stringify(value)));
+  const others = state.deliveryProfiles.filter((profile) => profile.id !== existing?.id);
+  // There is always exactly one default recipient: it cannot be switched off, only moved to another one.
+  const makePrimary = primary === undefined || primary || Boolean(existing?.primary) || !others.length;
+  const profile = savedDeliveryProfileSchema.parse({ ...value, id: existing?.id ?? crypto.randomUUID(), label, primary: makePrimary });
+  const rest = makePrimary ? others.map((item) => ({ ...item, primary: false })) : others;
+  const deliveryProfiles = existing
+    ? state.deliveryProfiles.map((item) => item.id === profile.id ? profile : rest.find((other) => other.id === item.id) ?? item)
+    : makePrimary ? [profile, ...rest] : [...rest, profile];
+  const primaryProfile = deliveryProfiles.find((item) => item.primary) ?? deliveryProfiles[0];
+  return { ...state, deliveryProfiles, deliveryProfile: deliveryProfileSchema.parse(primaryProfile) };
 }
 
 export function submitDeclarationPreview(state: State, orderIds: string[], now = Date.now()): State {

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {products,tariff,pricingSchema,quote,price,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource,markNotificationsRead,confirmDemoPayment,updateCommunication,assignOrder,addStaffNote,setParcel,confirmIdentity,submitDeclarationPreview,clearIdentity,inspectWarehouseOrder,createChangeRequest,respondToChangeRequest,orderPayable,validateServiceCatalog,sendCustomerNotification} from '../lib/market/domain.ts';
+import {products,tariff,pricingSchema,quote,price,blank,parseState,addToCart,changeQuantity,cartSignature,checkoutCart as checkoutCore,advanceOrder,receiveOrder,approveExtra,cancelOrder,balanceOf,renewCart,validateSource,markNotificationsRead,confirmDemoPayment,updateCommunication,assignOrder,addStaffNote,setParcel,confirmIdentity,submitDeclarationPreview,clearIdentity,inspectWarehouseOrder,createChangeRequest,respondToChangeRequest,orderPayable,validateServiceCatalog,sendCustomerNotification,orderNeedsOperatorAttention} from '../lib/market/domain.ts';
 import {actionSchema,applyAction} from '../lib/market/actions.ts';
 import {defaultPolicy} from '../lib/market/policy.ts';
 import {customsVersion} from '../lib/market/world.ts';
@@ -8,12 +8,33 @@ import {requestLocale,apiErrorMessage,importManualEntryMessage,serverError} from
 const checkoutCart=(s,key,sig,balance,now)=>checkoutCore(s,key,sig,balance,now,customsVersion);
 const prepare=()=>{let s=addToCart(blank(),products[0],'US 9',1000);s=checkoutCart(s,'purchase-1',cartSignature(s.cart),false,1001);return confirmDemoPayment(s,s.orders[0].id,1002)};
 const warehouse=()=>{let s=prepare();const id=s.orders[0].id;s=advanceOrder(s,id,0);s=advanceOrder(s,id,1);return inspectWarehouseOrder(s,id,{condition:'ok',quantityReceived:1,notes:'',services:['photo'],packageGroup:'BOX-1'},1200)};
+test('operator attention includes warehouse exceptions but ignores cancelled orders',()=>{
+ const order=prepare().orders[0];
+ assert.equal(orderNeedsOperatorAttention(order),false);
+ assert.equal(orderNeedsOperatorAttention({...order,warehouseInspection:{condition:'damaged',quantityReceived:1,notes:'box damaged',services:[]}}),true);
+ assert.equal(orderNeedsOperatorAttention({...order,warehouseInspection:{condition:'mismatch',quantityReceived:0,notes:'missing',services:[]}}),true);
+ assert.equal(orderNeedsOperatorAttention({...order,cancelled:true,warehouseInspection:{condition:'damaged',quantityReceived:1,notes:'box damaged',services:[]}}),false);
+});
+test('order-linked notifications are operator-only and stay in the customer account',()=>{
+ const state=prepare(),orderId=state.orders[0].id;
+ const action=actionSchema.parse({type:'customer-notification',id:orderId,title:'Обновление заказа',message:'Проверка завершена.'});
+ const next=applyAction(state,action,true);
+ assert.equal(next.notifications[0].orderId,orderId);
+ assert.equal(next.notifications[0].title,'Обновление заказа');
+ assert.equal(next.notifications[0].read,false);
+ assert.throws(()=>applyAction(state,action,false),/Доступно только оператору/);
+ assert.throws(()=>applyAction(state,{...action,id:'missing'},true),/Заказ не найден/);
+ assert.equal(actionSchema.safeParse({...action,message:'x'.repeat(301)}).success,false);
+});
 test('API errors use the validated locale cookie and localize fallback copy',()=>{
   const request=(headers={})=>new Request('https://atlas.example/api/actions',{headers});
   assert.equal(requestLocale(request({'cookie':'atlas-language=uz','accept-language':'en-US,en;q=0.9'})),'uz');
   assert.equal(requestLocale(request({'cookie':'atlas-language=xx','accept-language':'en-US,en;q=0.9,ru;q=0.4'})),'en');
   assert.equal(requestLocale(request({'accept-language':'uz-Latn-UZ,ru;q=0.8'})),'uz');
-  assert.equal(requestLocale(request({'cookie':'atlas-language=xx'})),'ru');
+  // Uzbek is the site default when nothing else matches.
+  assert.equal(requestLocale(request({'cookie':'atlas-language=xx'})),'uz');
+  assert.equal(requestLocale(request({'accept-language':'de-DE,fr;q=0.8'})),'uz');
+  assert.equal(requestLocale(request({'accept-language':'ru-RU,ru;q=0.9,en;q=0.8'})),'ru');
   assert.equal(apiErrorMessage(403,'en'),'You don’t have access to this action.');
   assert.equal(apiErrorMessage(503,'uz'),'So‘rov bajarilmadi. Qayta urinib ko‘ring.');
   assert.equal(importManualEntryMessage('ru').includes('в корзину'),true);

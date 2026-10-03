@@ -129,44 +129,53 @@ try {
     if(issues.length)throw Error(label+': '+issues.join(', '));
     checks.push('interface semantics '+label);
   }
+  // Local Atlas sign-in: dev servers return the email code in the API response (never on a public host).
+  let signIns=0;
+  async function signIn(){signIns+=1;await evaluate(`(async()=>{const post=body=>fetch('/api/auth/otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());const start=await post({step:'start',channel:'email',target:'audit-${signIns}@atlas.test'});if(!start.devCode)throw Error('Dev sign-in codes are unavailable: run the audit against a local dev server');await post({step:'verify',channel:'email',challengeId:start.challengeId,code:start.devCode})})()`)}
+  async function signOut(){await evaluate("fetch('/api/auth/logout',{method:'POST'}).then(r=>r.ok)")}
   const hiddenPrivate="!document.querySelector('header a[href=\"/balance\"]') && !document.querySelector('header a[href=\"/notifications\"]') && !document.querySelector('header a[href=\"/cart\"]')";
   await visit('/');
-  await check("!!document.querySelector('.guest-intro') && !document.querySelector('.account-error')","guest home without false server error");
+  await check("!!document.querySelector('.home-hero') && !document.querySelector('.account-error')","guest home without false server error");
   await check(hiddenPrivate,"private header controls hidden");
   const catalogReady=await evaluate("document.querySelectorAll('.find-card').length>0");
   if(!catalogReady&&process.env.ATLAS_AUDIT_REQUIRE_CATALOG==='1')throw Error('Fresh published catalog cards are required for this release audit. Import, review and publish a real merchant snapshot before retrying.');
   if(catalogReady){
     await check("document.querySelectorAll('.find-card .find-total strong').length>0","catalog shows delivered estimates");
-    await check("document.querySelector('.find-purchase a.btn.primary')?.getAttribute('href')?.startsWith('/signin-with-chatgpt?return_to=')","guest catalog order requires sign-in");
-    await check("document.querySelectorAll('.find-origin a').length>0 && [...document.querySelectorAll('.find-origin a')].every(a=>!a.href.includes('slickdeals'))","catalog links directly to merchants");
+    await check("document.querySelector('.find-purchase a.btn.primary')?.getAttribute('href')?.startsWith('/login?return_to=')","guest catalog order requires sign-in");
+    await check("document.querySelectorAll('.find-origin a').length===0 && document.querySelectorAll('.find-origin span').length>0","catalog names the store without sending customers away");
+    await check("document.querySelectorAll('.find-breakdown').length>0","catalog cards explain the delivered price");
   }else checks.push('catalog-card checks skipped: no fresh published snapshot');
   await auditPage('guest home');
   await evaluate("(async()=>{const input=document.querySelector('#finds-product-url'),set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;set.call(input,'https://www.nike.com/t/shoe');input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));await new Promise(resolve=>setTimeout(resolve,0));input.closest('form').requestSubmit()})()");
   await check("location.pathname==='/order-by-link' && new URL(location.href).searchParams.get('url')==='https://www.nike.com/t/shoe'","guest link calculation preserves intent through sign-in");
+  await signIn();
   await check("fetch('/api/account',{cache:'no-store'}).then(r=>r.status===200)","guest link sign-in creates an authenticated local session");
-  await visit('/signout-with-chatgpt?return_to=/');
-  await check("location.pathname==='/' && !!document.querySelector('.guest-intro')","guest link audit restores the guest session");
+  await signOut();
+  await visit('/');
+  await check("location.pathname==='/' && !!document.querySelector('.home-hero')","guest link audit restores the guest session");
   await visit('/');
   if(catalogReady){
     await check("document.querySelectorAll('.find-card').length>0","catalog cards reload after sign-out");
     const visibleCategory=await evaluate("document.querySelector('.find-card .find-meta span')?.textContent?.trim()");
-    const categoryMatched=await evaluate(`(()=>{const category=${JSON.stringify(visibleCategory)};const button=[...document.querySelectorAll('.finds-categories button')].find(item=>item.textContent.trim()===category);if(!button)return false;button.click();return true})()`);
-    if(!categoryMatched)throw Error(`No category filter matches '${visibleCategory}'`);
-    await check(`document.querySelectorAll('.find-card').length>0 && [...document.querySelectorAll('.find-card .find-meta span:first-child')].every(el=>el.textContent.trim()===${JSON.stringify(visibleCategory)})`,"category filtering");
+    // Category chips appear only when the catalog spans several categories.
+    const categoryMatched=await evaluate(`(()=>{const buttons=[...document.querySelectorAll('.finds-categories button')];if(!buttons.length)return null;const category=${JSON.stringify(visibleCategory)};const button=buttons.find(item=>item.textContent.trim()===category);if(!button)return false;button.click();return true})()`);
+    if(categoryMatched===false)throw Error(`No category filter matches '${visibleCategory}'`);
+    if(categoryMatched)await check(`document.querySelectorAll('.find-card').length>0 && [...document.querySelectorAll('.find-card .find-meta span:first-child')].every(el=>el.textContent.trim()===${JSON.stringify(visibleCategory)})`,"category filtering");
+    else checks.push('category filtering skipped: single-category catalog');
     await evaluate("document.querySelector('.find-photo').click()");
-    await check("!!document.querySelector('.product-sheet') && !!document.querySelector('.sheet-total a[href^=\"/signin-with-chatgpt\"]')","guest product asks for sign-in");
+    await check("!!document.querySelector('.product-sheet') && !!document.querySelector('.sheet-total a[href^=\"/login\"]')","guest product asks for sign-in");
     await evaluate("document.querySelector('button[aria-label=\"Закрыть карточку\"]').click()");
   }
-  await evaluate("(()=>{const el=document.querySelector('.locale-select');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(el,'en');el.dispatchEvent(new Event('change',{bubbles:true}))})()");
-  await check("document.documentElement.lang==='en' && document.querySelector('.guest-intro h1').textContent.includes('Shop abroad')","guest language works without saving an account");
-  await check("document.querySelector('.finds-own-link form button')?.textContent.includes('Sign in to calculate')","guest link CTA is honest in English");
+  await evaluate("document.querySelector('.lang-switch button[lang=en]').click()");
+  await check("document.documentElement.lang==='en' && document.querySelector('.home-hero h1').textContent.includes('Shop any store in the world')","guest language works without saving an account");
+  await check("document.querySelector('.home-link-form button')?.textContent.includes('Calculate') && document.querySelector('.home-link-note')?.textContent.includes('no sign-up')","guest link CTA is honest in English");
   if(catalogReady){
     await evaluate("document.querySelector('.find-photo').click()");
     await check("document.querySelector('.product-sheet')?.textContent.includes('Cost calculation')","product details localize to English");
     await evaluate("document.querySelector('button[aria-label=\"Close item details\"]').click()");
   }
-  await evaluate("(()=>{const el=document.querySelector('.locale-select');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(el,'uz');el.dispatchEvent(new Event('change',{bubbles:true}))})()");
-  await check("document.documentElement.lang==='uz' && document.querySelector('.finds-own-link form button')?.textContent.includes('Kirish va hisoblash')","guest link CTA localizes to Uzbek");
+  await evaluate("document.querySelector('.lang-switch button[lang=uz]').click()");
+  await check("document.documentElement.lang==='uz' && document.querySelector('.home-link-form button')?.textContent.includes('Hisoblash')","guest link CTA localizes to Uzbek");
   if(catalogReady){
     await evaluate("document.querySelector('.find-photo').click()");
     await check("document.querySelector('.product-sheet')?.textContent.includes('Narx hisobi')","product details localize to Uzbek");
@@ -174,7 +183,7 @@ try {
   }
   await visit('/');
   await check("document.documentElement.lang==='uz'","guest language survives reload");
-  await evaluate("(()=>{const el=document.querySelector('.locale-select');Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(el,'ru');el.dispatchEvent(new Event('change',{bubbles:true}))})()");
+  await evaluate("document.querySelector('.lang-switch button[lang=ru]').click()");
   await check("document.documentElement.lang==='ru'","guest language switches back to Russian");
   const protectedRoutes=['account','favorites','cart','orders','balance','notifications','identity','declaration','batch-import','order-by-link','admin','operations','analytics'];
   for(const route of protectedRoutes){
@@ -187,11 +196,13 @@ try {
   await check("new URL(document.querySelector('[data-access=signin] a.btn.primary').href).searchParams.get('return_to')===location.pathname+location.search","sign-in retains source URL");
   const signInUrl=await evaluate("document.querySelector(\'[data-access=signin] a.btn.primary\').href");
   await cdp.send("Page.navigate",{url:signInUrl},sessionId);
+  await check("location.pathname==='/login' && !!document.querySelector('.login-card')","sign-in opens the Atlas login screen");
+  await signIn();
   await check("fetch(\'/api/account\',{cache:\'no-store\'}).then(r=>r.status===200)","real local sign-in creates an authenticated session");
   await visit("/order-by-link");
   await check("!!document.querySelector(\'#source-url\') && !document.querySelector(\'#source-url\').disabled","authenticated product form opens");
   await visit('/');
-  await check(`!document.querySelector('.guest-intro') && !!document.querySelector('header a[href=\"/cart\"]') && ${catalogReady?"!!document.querySelector('.find-save')":"!!document.querySelector('.finds-own-link')"}`,"member home differs from guest");
+  await check(`!!document.querySelector('header a[href=\"/cart\"]') && !document.querySelector('.home-link-note')?.textContent.includes('без регистрации') && ${catalogReady?"!!document.querySelector('.find-save')":"!!document.querySelector('.home-link-form')"}`,"member home differs from guest");
   if (process.env.ATLAS_AUDIT_IMPORT === '1') {
     await visit('/order-by-link?url='+encodeURIComponent('https://www.stevemadden.com/products/possession-black'));
     await check("!!document.querySelector('#source-url') && !document.querySelector('#source-url').disabled",'import ready');
@@ -233,27 +244,26 @@ try {
    await check("!document.querySelector('.access-card[role=status]')","iPhone session resolves /"+route);
    await auditPage('iPhone member /'+route);
    if(route==='order-by-link')await check("(()=>{const input=document.querySelector('#source-url');if(!input)return false;const style=getComputedStyle(input);return parseFloat(style.fontSize)>=16&&parseFloat(style.minHeight)>=48})()",'iPhone link field avoids zoom and remains tappable');
-   if(route==='cart')await check("(()=>{const bar=document.querySelector('.cart-mobile-sticky'),nav=document.querySelector('.mobile-nav');return !bar||bar.getBoundingClientRect().bottom<=nav.getBoundingClientRect().top+1})()",'iPhone cart action clears bottom navigation');
+   if(route==='cart')await check("(()=>{const bar=document.querySelector('.basket-sticky'),nav=document.querySelector('.mobile-nav');return !bar||bar.getBoundingClientRect().bottom<=nav.getBoundingClientRect().top+1})()",'iPhone cart action clears bottom navigation');
    await snapshot('iphone-'+route);
   }
   await cdp.send('Emulation.setDeviceMetricsOverride',{width:1440,height:900,deviceScaleFactor:1,mobile:false},sessionId);
   await visit('/legal#passport-consent');
   await check("document.getElementById('passport-consent')?.open === true",'consent link opens the exact legal section');
   await visit('/notifications');
-  await check("!document.querySelector('.notification-list') || document.querySelectorAll('.notice-filters button').length===3",'populated notifications expose filters; empty inbox stays simple');
+  await check("!document.querySelector('.notices-list') || document.querySelectorAll('.notice-filters button').length===3",'populated notifications expose filters; empty inbox stays simple');
   await visit('/account');
-  await check("document.querySelectorAll('.account-stats a').length===4 && document.querySelectorAll('.account-service-grid>a,.account-service-grid>button').length===6",'account dashboard prioritises four signals and six services');
-  await check("document.querySelector('.account-profile-compact details')?.open === false",'secondary profile settings start collapsed');
-  await evaluate("document.querySelectorAll('.account-detail-summary')[0].click();document.querySelectorAll('.account-detail-summary')[1].click()");
-  await check("document.querySelectorAll('.account-detail[data-open=\\\"true\\\"]').length===1 && document.querySelectorAll('.account-detail')[1].dataset.open==='true'",'account detail panels open independently as one accordion');
+  await check("!!document.querySelector('.cabinet-next h2') && document.querySelectorAll('.cabinet-tiles a').length===4",'account leads with the next action and four quick tiles');
+  await check("['/orders','/cart','/balance','/notifications'].every(href=>document.querySelector('.cabinet-tiles a[href=\\\"'+href+'\\\"]'))",'account tiles link to orders, cart, balance and notifications');
+  await check("new Set([...document.querySelectorAll('main h2')].map(h=>h.textContent)).size===document.querySelectorAll('main h2').length",'account sections are not repeated');
   await visit('/identity');
-  await check("[...document.querySelectorAll('.identity-upload button')].find(b=>b.textContent.includes('Распознать')).disabled","passport submit needs file and consent");
+  await check("[...document.querySelectorAll('.docs-step button')].find(b=>b.textContent.includes('Распознать')).disabled","passport submit needs file and consent");
   await visit('/batch-import');
   await check("!!document.querySelector('.batch-import button:disabled')","batch submit needs links");
   await visit('/account');
-  await check("!!document.querySelector('a[href*=\"signout-with-chatgpt\"]')","member can sign out");
-  const signOutUrl=await evaluate("document.querySelector('a[href*=\"signout-with-chatgpt\"]').href");
-  await cdp.send("Page.navigate",{url:signOutUrl},sessionId);
+  await check("!!document.querySelector('.cabinet-signout')","member can sign out");
+  await signOut();
+  await visit('/account');
   await check("!!document.querySelector('[data-access=signin]')","local sign-out clears protected screen");
   await check(hiddenPrivate,"sign-out clears private navigation");
   // Controlled response fixtures cover loading, connectivity failure and expiration.
@@ -275,14 +285,14 @@ try {
    const mobile=width<600;
    await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:mobile?3:1,mobile},sessionId);
    await visit('/');
-   await check("!!document.querySelector('.guest-intro')","responsive guest "+width);
+   await check("!!document.querySelector('.home-hero')","responsive guest "+width);
    await check("document.documentElement.scrollWidth<=innerWidth+1","no horizontal overflow "+width);
    if(mobile){
     await check("document.querySelector('meta[name=viewport]')?.content.includes('viewport-fit=cover')","iPhone edge-to-edge viewport "+width);
     await check("(()=>{const header=document.querySelector('.site-header');return header.scrollWidth<=header.clientWidth+1})()","iPhone header fits viewport "+width);
     await check("(()=>{const input=document.querySelector('#finds-product-url');const style=getComputedStyle(input);return parseFloat(style.fontSize)>=16&&parseFloat(style.minHeight)>=48})()","iPhone form fields avoid zoom and remain tappable "+width);
-    await check("getComputedStyle(document.querySelector('.mobile-nav')).display==='grid'","mobile navigation visible "+width);
-    await check("(()=>{const nav=document.querySelector('.mobile-nav');const main=document.querySelector('main');const probe=document.createElement('div');probe.className='cart-mobile-sticky';probe.style.height='60px';main.append(probe);const clear=probe.getBoundingClientRect().bottom<=nav.getBoundingClientRect().top+1;probe.remove();return clear})()","cart action clears bottom navigation "+width);
+    // Guests sign in from the header, so the bottom bar (members only) must not duplicate it.
+    await check("!document.querySelector('.mobile-nav')","guest mobile has no duplicate bottom navigation "+width);
    }
    await mkdir('outputs/ui-audit',{recursive:true});
    const shot=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},sessionId);

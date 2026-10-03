@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, ArrowUpRight, Search, ShoppingBag } from 'lucide-react';
 import Link from '@/components/site-link';
 import { featuredStoreGroups, supportedStoreRoots, type StoreFocus } from '@/lib/importer/stores';
@@ -43,6 +43,8 @@ export function StoresDirectory() {
   const locale = state.communication.language;
   const [search, setSearch] = useState('');
   const [focus, setFocus] = useState<Focus | ''>('');
+  // Home-page store chips link here with ?q=<store>; read it after hydration.
+  useEffect(() => { const q = new URLSearchParams(window.location.search).get('q'); if (q) queueMicrotask(() => setSearch(q.slice(0, 80))); }, []);
   const copy = {
     ru: { overline: 'МАГАЗИНЫ ATLAS', title: 'Найдите магазин и закажите через Atlas.', description: 'Выберите магазин и откройте оригинальную витрину. Поддержка импорта зависит от страницы: если данные не загрузятся, цену и вариант можно подтвердить вручную.', search: 'Найти магазин', all: 'Все', start: 'Вставить ссылку на товар', open: 'Открыть магазин', supported: 'магазинов в списке', enhanced: 'Расширенный импорт', noResults: 'Магазин не найден. Попробуйте домен сайта.', categories: { 'Одежда': 'Одежда', 'Кроссовки': 'Кроссовки и обувь', 'Красота': 'Красота и уход', 'Техника': 'Электроника и техника', 'Универмаг': 'Универмаги и другие магазины' }, note: 'Список означает, что домен разрешён для заказа по ссылке. Он не гарантирует доступность каждой карточки, наличие товара или цену.' },
     uz: { overline: 'ATLAS DO‘KONLARI', title: 'Do‘konni tanlang va Atlas orqali buyurtma bering.', description: 'Do‘konni tanlang va asl vitrinasini oching. Import sahifaga bog‘liq: ma’lumot yuklanmasa, narx va variantni qo‘lda tasdiqlash mumkin.', search: 'Do‘konni qidirish', all: 'Barchasi', start: 'Mahsulot havolasini kiritish', open: 'Do‘konni ochish', supported: 'ta do‘kon ro‘yxatda', enhanced: 'Kengaytirilgan import', noResults: 'Do‘kon topilmadi. Sayt domeni bilan qidiring.', categories: { 'Одежда': 'Kiyim', 'Кроссовки': 'Krossovka va poyabzal', 'Красота': 'Go‘zallik va parvarish', 'Техника': 'Elektronika va texnika', 'Универмаг': 'Univermag va boshqa do‘konlar' }, note: 'Ro‘yxat ushbu domen havola orqali buyurtma uchun ruxsat etilganini bildiradi. Har bir sahifa, mavjudlik yoki narx kafolatlanmaydi.' },

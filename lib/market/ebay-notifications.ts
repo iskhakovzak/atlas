@@ -256,7 +256,7 @@ export async function verifyEbayNotification(payload: unknown, signatureHeader: 
   } catch {
     return false;
   }
-  let signatureBytes: Uint8Array;
+  let signatureBytes: Uint8Array<ArrayBuffer>;
   try {
     signatureBytes = derEcdsaToP1363(decodeBase64(signature.signature));
   } catch {

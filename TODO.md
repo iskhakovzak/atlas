@@ -1,5 +1,86 @@
 # Atlas TODO and known limitations
 
+## Post-merge review and polish — 3 October 2026
+
+Checked `main` at `fedd1e7` (the squash of #8), then fixed the findings on `fix/post-merge-polish`. lint, `tsc --noEmit`, all tests, the build, `smoke:ui`, `smoke:auth` (live import skipped locally) and `npm run e2e` pass; the e2e audit covers customer, guest and operator pages at 390 and 1280 px in both themes.
+
+- [x] Unknown URLs render a localized `app/not-found.tsx` inside the site shell, still with HTTP 404.
+- [x] `<title>` and description follow the rendered language on every page; private pages have localized titles instead of one generic title.
+- [x] `/customs` and `/legal` render their text in place in the server HTML (each page now passes its view to the shell; no hidden Suspense copy, duplicated `h1` or ids).
+- [x] `/analytics` light theme: the attention card keeps its dark background (`.surface.attention-report`).
+- [x] Security headers from the Worker (`next.config.ts`): `nosniff`, referrer policy, `Permissions-Policy`, HSTS; CSP and `frame-ancestors` report-only, with reports in the operator error log.
+- [ ] Enforce the CSP (switch to `Content-Security-Policy`) once production shows no unexpected `csp` reports under Administration → System; first confirm that nothing legitimate (for example a Sites dashboard preview) frames the site.
+- [x] Contrast reaches WCAG AA in both themes (`--night-faint` raised to `#88938d`, light-theme floor in `customer.css`); the dark header favourites icon; 24 px tap targets for breadcrumbs and text links; long store names wrap on phones.
+- [ ] `/legal` still shows "Заполнить до запуска" in eight places and the documents exist only in Russian: needs the company details and a reviewed Uzbek version.
+- [x] `smoke:ui` follows the redesigned home (and checks the 404 page); `smoke:auth` skips the live import with `ATLAS_SMOKE_SKIP_LIVE_IMPORT=1` and says so.
+- [x] Page weight: each route loads only its own view, and unused selectors are removed (`scripts/css-unused.mjs`). Stylesheet 500 → 421 KB (84 → 71 KB gzip); shared JS on private pages 257 → 186 KB gzip.
+- [ ] The home page still loads about 258 KB gzip of JS, and every page parses the shared runtime again on each full-page navigation. Next steps: native `<dialog>` instead of Radix in `Modal`/`Sheet` (most of the `market-ui` chunk), keep zod schemas out of the client provider, and revisit client-side navigation once Vinext's prefetch issue is fixed.
+- [x] App icons, web manifest and `theme-color`; `robots.txt` without the ChatGPT sign-in paths; sitemap and `llms.txt` list the language versions.
+- [x] #5 and #7 closed with a note (their changes reached `main` through #8).
+- [ ] Apply migration `0007_web_vitals` to production D1; until then beacons are dropped quietly and the speed summary says it is unavailable.
+
+## Premium dark theme and typography — 3 October 2026
+
+- [x] One dark palette ("Atlas Night": black-green canvas, ivory primary actions, jade accents, champagne labels) in `app/theme-night.css`, loaded last. The dark theme had three stacked generations (forest, graphite, "normalization") with ~160 different hard-coded colours; every hex in the dark rules of `dark-theme.css`, `home-polish.css` and `login.css` now resolves to a `--night-*` token (mapped by property, luminance and hue), and the older variable families (`--atlas-*`, `--atlas-dark-*`, shadcn tokens, `--home-*`, `--cx-*`) point at the same tokens.
+- [x] Premium finish in dark: glass header and bottom bar over a soft jade glow, layered cards (sheen + hairline + depth shadow), ivory gradient buttons, inset fields with a jade focus ring, ivory selected chips and steps, emerald wallet card, blurred dialog overlays, dark toasts, styled scrollbars and selection. Merchant photos sit on an ivory "studio plate" (`mix-blend-mode: multiply`) so white product backgrounds no longer glare.
+- [x] Manrope (variable, self-hosted via `@fontsource-variable/manrope`, ~38 KB for Latin + Cyrillic) replaces Segoe UI/Arial in both themes; the header was re-checked at 360–1440 px in all three languages (narrow phones get a smaller wordmark so the operator's extra link fits).
+- [x] Light-theme rules that use `!important` for colours are mirrored for dark; a browser audit (light patches, text contrast < 3.2, horizontal overflow) passes on every customer page, `/login`, `/admin` and `/operations` at 390 and 1280 px. Fixed on the way: the home store-chip row's screen-reader labels widened the page to 809 px on phones.
+- [ ] The tokenizer mapped hard-coded colours automatically; rarely used operator states not present in the local test data (issue cases, parcel events, warehouse inspection photos) were not seen in dark.
+
+## Cart and account redesign — 3 October 2026
+
+- [x] Cart, mobile-first: "Cart · N items · N parcels" heading and a 3-step checkout indicator (Cart → Recipient → Confirmation); items grouped into parcels exactly as the server allocates them (`merchantParcelKey`: store host + dispatch country); each line shows brand, variant, country, store price (links to the store) and the soum total; quantity stepper and remove are 44px. Warehouse services stay an optional disclosure with unchanged rules.
+- [x] Cart summary is open by default: items, store delivery, Atlas service, international delivery and refundable reserve on separate lines with tap-to-open explanations; balance appears only when it is positive; one "price held for N min" line replaces per-item countdowns. The checkout button is always enabled; the customs consent moved to the confirmation step, where a missing tick shows an inline error instead of a silently disabled button. The phone sticky bar sits above the member navigation.
+- [x] Account: one "needs your attention" card (approval → payment → order in progress with a 6-stage progress bar → cart → add recipient → all set with "Order by link"), four tiles (orders, cart, balance, notifications), recipients with passport status, monthly customs allowance bar ($ used of $200, cancelled orders excluded), documents, support (tickets, Telegram when configured, new-request form) and settings (theme, rules, sign out). The previous stats, service grid and accordions repeated the same sections three times.
+- [x] Copy for both pages is in `lib/market/customer-copy.ts` (uz/ru/en) with tests; soum amounts use `formatSum` (so‘m / UZS outside Russian); Uzbek dates are formatted by hand because browser Intl prints "2026 M10 3".
+- [x] Signed-in header between 761 and 1399px hides the "How it works" / "Rates" anchors and the theme switch (still in the footer and account settings): the full member header needs about 1290px in Russian and overflowed before.
+- [ ] Checkout recipient form still uses free-text region/city with local suggestions; a region/city picker and +998 phone mask would cut errors.
+- [x] `/orders` (customer view): "My orders · N orders · N in progress" heading, an amber banner that jumps to the "Decision needed" tab, search only from 6 orders. Each order is one card: photo, name, number, short date, status chip, soum total and a progress bar; opened, it shows "Action needed" first (record payment, approve/decline change requests, review extra payment), then the 6-stage progress (vertical on phones), details (number with copy, total, item, payment, recipient, tracking), warehouse/settlement notes, past approvals, warehouse services, documents, "Calculation and history" and cancel. `/orders#ID` still opens the order. The operator queue (`/operations`) is unchanged.
+- [x] `/balance`: accent balance card (internal account, not a bank card; withdraw still explains it is not connected), delivery reserve card, transaction history with credit/debit icons, date-time and order links. `/notifications`: unread count, mark-all-read, filter chips with counts, one card per order with a "New" badge and older updates folded; email/SMS settings moved below the list.
+- [x] Shared `CostLines` and the order confirmation dialog print soum amounts in the interface language.
+- [x] `/order-by-link`: "Order by link" heading and the home-style link field; once loaded — source bar, one gallery (it showed twice on phones), name and store price with check time, variant picker (no repeated identical size prices), full estimate right away, technical inputs folded under "Calculation details" when the store confirmed them (open when it did not, or when validation points at one), sticky total + add on phones. Import, validation and cart-add logic unchanged; the "use found shipping" button no longer references an undefined message.
+- [x] Recipients: one `RecipientForm` (label chips, full name "as in the passport", +998 phone mask stored as "+998 90 123 45 67", region list with UZ/EN labels that prefills the regional centre, inline errors, "default recipient"). Account recipients can be edited and made default; `delivery-profile-save` takes optional `id` and `primary` (old clients keep the old behaviour). Checkout can keep a typed address as a saved recipient (`saveRecipientLabel`, same revision as the orders) and links the orders to it — previously typed addresses never reached the recipient list, so passports and declarations had nothing to attach to.
+- [x] Passport page: three steps (whose passport → photo page → check details), recipient cards with passport status, add a recipient in place, `/identity?recipient=` preselects; toasts localized. Declaration: checklist (recipient, passport, orders) with links, orders grouped per recipient with "select all", USD total with an over-$200 note, localized history.
+- [x] Customs allowance is per person: `lib/market/allowance.ts` groups this month's non-cancelled orders by recipient name (two addresses of one person share it). The account shows a bar per recipient and the cart amount; each order shows its recipient's month total; the cart customs estimate now appears when the default recipient's month total plus the cart exceeds $200 and starts from that total.
+- [x] Orders: "Order again" (back to the product link), "Ask about this order" (`/account?order=ID#support` opens support with the subject filled), recipient filter chips when orders go to more than one person.
+- [ ] Allowance is counted by order date; customs counts by arrival date. Revisit once parcels carry real arrival dates.
+- [ ] Recipients and passports are matched by name only for the allowance; a person saved with different spellings counts twice.
+
+## Home page redesign — 3 October 2026
+
+- [x] Mobile-first home in brief order: header (Stores, How it works, Rates, UZ/RU/EN switch, Sign in), hero with the link form, popular-store chips (open the store in a new tab) and "add several links", 4-step "how it works", example estimate from live pricing with a reserve tooltip, product selection only from 8 products (filters/sort from 16; cards: brand, country, $ price, soum total with an "i" breakdown, "Order"), delivery times and rates table from pricing (per-country overrides when set), trust block, concrete FAQ, shared footer. Copy lives in `lib/market/home-copy.ts` (uz/ru/en), components in `app/home-sections.tsx`, `app/site-footer.tsx`, styles in `app/home.css`.
+- [x] Language: Uzbek is the default; the server renders in the saved `atlas-language` cookie, else the best Accept-Language match, else Uzbek, and passes it to `MarketProvider`. `/?lang=uz|ru|en` are self-canonical hreflang alternates (`/` is x-default) and save the choice. Signing in no longer switches the device's language. Localized `og-image-uz.png` / `og-image-en.png`.
+- [x] Guests have no bottom bar on mobile (it duplicated "Sign in"); a sticky "Paste a link" button returns to the hero form once it scrolls away. Header and footer tap targets are at least 44px; the theme toggle moves to the footer on phones.
+- [ ] Fill `lib/market/site-content.ts` with verified data only: delivery days per region, support Telegram bot and channel, phone, Instagram, pickup address, legal entity, INN and address, real reviews (with consent), real parcel photos, the real delivered-orders count, and the official prohibited-goods list URL. Empty fields are hidden in production and shown as dashed placeholders in dev.
+- [ ] Payment methods (Click, Payme, Uzcard, Humo, Visa/Mastercard, crypto) are listed only after each provider is actually connected (see the payment policy draft); add them to `paymentMethods` then. Crypto needs a licensed provider and its own policy first.
+- [ ] Store chips use monograms; real brand logos need licensed assets.
+- [ ] Lighthouse was not run (the CLI is not installed); a11y self-check found no unnamed controls, images without alt or duplicate IDs. Run Lighthouse on the deployed page.
+- [ ] Next streams async metadata for Googlebot (it renders JS); Telegram/Yandex receive title, canonical, hreflang and og tags in `<head>`.
+
+## Home and catalog UX pass — 3 October 2026
+
+- [x] Home hero for every visitor: the service in one headline and the "paste a link → calculate" form as the main action; the duplicate link form under the catalog is removed.
+- [x] Catalog cards: inline "price breakdown" (item, store-delivery reserve, delivery to Uzbekistan with billable kg, Atlas service, refundable reserve) with plain-language reserve notes; the button reads "Choose option" because it opens the option/price step, not the cart; the merchant link on the card is replaced by the store name.
+- [x] Short catalogs (8 or fewer products) hide search, sort and detail filters; category chips show only categories with products; "best discount" sort and copy appear only when a product has a discount.
+- [x] SEO: canonical, og:url, JSON-LD, sitemap, robots and llms.txt use https://atlasmarket.uz; 1200×630 `public/og-image.png` and `summary_large_image`. `workers/catalog-refresh/wrangler.toml` still targets the chatgpt.site origin and changes only with that worker's next deploy.
+- [x] Server HTML: catalog and /stores render outside Suspense, so crawlers no longer see "Загрузка…" with content after the footer; stray hidden "О товаре" removed; utility bar text has separators.
+- [x] Popular stores link to /stores?q=<store>. First visit switches to Uzbek only when the browser ranks Uzbek above Russian.
+- [ ] Needs business data (do not invent): contacts (Telegram, phone, social links), delivery time ranges per dispatch country for the FAQ and cards, confirmed per-kg tariff wording, legal entity details. Real payment methods (Click, Payme, Uzcard, Humo) only after a payment provider is connected — payments are simulated. Reviews/cases only from real customers.
+- [ ] `money()` always prints "сум"; UZ/EN amounts outside the catalog cards and header still show "сум".
+- [ ] /customs and /legal are still lazy views inside Suspense (their modules are large); move them out for crawler-friendly HTML without growing every page's bundle.
+- [ ] Store logos need licensed brand assets; chips use monograms for now.
+
+## Atlas-owned sign-in — 2 October 2026
+
+- [x] Replace ChatGPT Sites sign-in with `/login`: Telegram Login Widget, +998 phone SMS code (Eskiz.uz), email code (Resend) and Google OAuth (PKCE, state, nonce). Sessions are D1 rows keyed by the SHA-256 of a `__Host-` HttpOnly cookie token; migration `0006_own_auth` adds only new tables.
+- [x] Keep existing accounts: email and Google sign-ins map to the former `email:<address>` user ID. Phone (`phone:`) and Telegram (`tg:`) accounts carry no email and can never match `ATLAS_OPERATOR_EMAIL`.
+- [x] Dev servers show codes on screen for loopback hosts only; `smoke:auth` and `scripts/audit-ui.mjs` sign in through the real email-code endpoint.
+- [ ] Before publishing, apply `0006_own_auth` to production D1 and set at least one provider: `RESEND_API_KEY` + `ATLAS_AUTH_EMAIL_FROM` (verified sender domain), `ESKIZ_EMAIL` + `ESKIZ_PASSWORD` (approved SMS text), `TELEGRAM_BOT_TOKEN` + `TELEGRAM_BOT_USERNAME` (BotFather `/setdomain`), `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` (redirect `/api/auth/google/callback`). Also set `ATLAS_AUTH_SECRET`. Without any provider, nobody can sign in.
+- [ ] Verify on the hosted Site that Sites dispatch passes the `__Host-atlas_session` and `__Host-atlas_oauth` cookies and `Set-Cookie` responses through unchanged, and that the custom domain serves HTTPS.
+- [ ] Test each provider end to end on a dedicated test account: real SMS delivery and Eskiz template approval, Resend delivery/spam placement, Telegram widget on the public domain, Google consent screen publishing status. None was exercised against a real provider in development.
+- [ ] Decide whether a customer who signs in by phone or Telegram should be able to link an email/Google identity to the same account; today each method creates its own account unless the email matches.
+- [ ] Existing ChatGPT-only sessions end at deployment; customers sign in again with the same email (email code or Google) to reach their saved account.
+
 ## Guest link preview — 2 October 2026
 
 - [x] Allow anonymous single-link import, option selection and preliminary calculation; remove catalog/home sign-in redirects before preview.
@@ -145,7 +226,19 @@
 - [x] Compact account sections, legal consent deep links and searchable/filterable catalog administration.
 - [x] Turn the account landing screen into a state-aware customer dashboard with one next action, compact counters and primary service shortcuts.
 - [x] Make account secondary panels mutually exclusive and remove paired-panel stretching and repeated decorative hierarchy.
-- [ ] Add populated-order/operator and checkout-review browser fixtures beyond current domain and guest/customer route coverage.
+- [x] Process all selected catalog rechecks in sequential server-sized batches with visible progress and failed/unprocessed selection retained; support 20 pasted import links with per-link progress and visible partial failures.
+- [x] Surface warehouse exceptions in the operator attention queue; retain safe notes and add order-linked in-app customer notifications plus clearly labeled, unverified operator contact channels.
+- [x] Lazy-load heavy customer/operator route screens to reduce the initial marketplace JavaScript bundle.
+- [x] Disable definitively unavailable link-order color/size variants, retain choices with unknown stock for server verification, and label recognized US/UK/EU size-grid region from the storefront.
+- [x] Show a single merchant colorway as fixed information instead of a misleading one-option color button; preserve the full source color name without inventing selectable shade variants.
+- [x] Show the catalog reset action for sort-only or collection-only selections and clear all catalog filter state in one action.
+- [x] Add an operator issue/refund review case with bounded history, explicit status, proposed amount and queue visibility; keep notes, customer in-app notifications and payment mutation separate.
+- [x] Add privacy-preserving local Web Vitals/API timing diagnostics to the operator System tab; no telemetry leaves the current browser.
+- [x] Give public catalog/customs/legal pages independent canonical/Open Graph URLs and set private workflows to noindex; keep product schema out until fresh product URLs can be served reliably.
+- [x] Report catalog-refresh Worker configuration readiness and sanitized run outcomes without exposing HMAC secrets or merchant response bodies.
+- [ ] Add privacy-reviewed, consent-aware aggregate field-performance telemetry if cross-customer Core Web Vitals and API latency are required; local operator samples are diagnostic only.
+- [x] Run fixture-backed browser layout/interaction smoke for catalog, order-by-link color/size selection, operator order/case tools, account, passport and admin overview at 1440, 800, 430, 390 and 360px. No horizontal overflow or action POST/D1 writes; the add-to-cart control was verified enabled after explicit confirmation, not submitted.
+- [ ] Extend browser smoke to batch import, sign-in redirects, 402px, realistic product imagery and a full disposable-state checkout. The ordinary local D1 still lacks `market_settings`; current admin test data returned an invalid empty pricing object, now rejected without a UI crash.
 - [ ] Finish RU/UZ/EN translations across legacy forms, legal and operator screens; customer order, balance, notifications and link-order messages now follow the selected locale, while legacy/admin/legal/server-history strings remain.
 - [ ] Implement saved searches, recently viewed products and price/size alerts only with authenticated persistence and a real refresh/delivery mechanism.
 - [ ] Validate the shortened experience with actual customers; visual simplification alone does not establish improved retention.
@@ -301,7 +394,7 @@
 - [ ] Source titles are intentionally not translated automatically.
 - [x] Fix standalone TypeScript errors in account status rendering and admin/identity/batch response typing.
 - [x] Add explicit guest/customer/admin rendering gates, stale-session clearing and a repeatable browser audit across protected routes and responsive sizes.
-- [ ] Standalone email/password and Google OAuth remain postponed by product decision; current member sign-in uses the platform flow.
+- [x] Atlas-owned sign-in (Telegram, SMS code, email code, Google OAuth) replaced the platform flow on 2 October 2026; there is still no email/password sign-in, by product decision.
 
 ## GitLab Ultimate — 26 September 2026
 

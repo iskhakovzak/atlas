@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, ExternalLink, Link2, Loader2 } from "lucide-react";
+import { AlertCircle, ArrowRight, ExternalLink, Info, Link2, Loader2, ShieldCheck } from "lucide-react";
+import Link from "@/components/site-link";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
@@ -10,7 +11,6 @@ import { catalogOrderVariants } from "@/lib/market/catalog";
 import { catalogLinkSeed, catalogLinkPrice, catalogLinkWeight } from "@/lib/market/link-order-context";
 import {
   price,
-  money,
   validateSource,
   type Product,
 } from "@/lib/market/domain";
@@ -28,7 +28,11 @@ import {
   type ProductVariant,
   type ProductColorwayGallery,
 } from "@/lib/importer/extract";
-import { Choice, CostLines, PageHeading } from "./market-ui";
+import { Choice } from "./market-ui";
+import { SummaryLine } from "./price-summary";
+import { atlasServiceBreakdown } from "@/lib/market/quote-presentation";
+import { formatSum } from "@/lib/market/home-copy";
+import { cartCopy, countryLabel, linkOrderCopy } from "@/lib/market/customer-copy";
 import { ProductGallery } from "./product-gallery";
 import {
   communityDeals,
@@ -66,14 +70,6 @@ function selectedImportedColor(data:Extracted,variants:ProductVariant[],gallerie
   const imageColor=image?galleries.find(gallery=>gallery.images.includes(image))?.color:undefined;
   if(imageColor&&colors.includes(imageColor))return imageColor;
   return colors.length===1?colors[0]:'';
-}
-function displayCountryName(value:string,locale:string){
-  const canonical=canonicalCountry(value);
-  if(locale==='ru')return canonical;
-  const labels=locale==='uz'
-    ? {'США':'AQSh','Другая страна':'Boshqa mamlakat','Великобритания':'Buyuk Britaniya','Германия':'Germaniya','Испания':'Ispaniya','Франция':'Fransiya'}
-    : {'США':'United States','Другая страна':'Other country','Великобритания':'United Kingdom','Германия':'Germany','Испания':'Spain','Франция':'France'};
-  return labels[canonical as keyof typeof labels]??canonical;
 }
 function displayCategoryName(value:string,locale:string){
   const canonical=canonicalCategory(value);
@@ -136,6 +132,7 @@ export function GlobalLinkOrder() {
     [importedAt, setImportedAt] = useState<number | undefined>(),
     [sourceExpiresAt, setSourceExpiresAt] = useState<number | undefined>(),
     [formIssue, setFormIssue] = useState(""),
+    [dataOpen, setDataOpen] = useState(false),
     [foundShipping, setFoundShipping] = useState<{
       amount: number;
       currency: string;
@@ -506,349 +503,275 @@ export function GlobalLinkOrder() {
     sourceUrl: source || undefined,
     variants: [""],
   };
+  const lc = linkOrderCopy[lang];
+  const cc = cartCopy[lang];
+  const parts = preview ? atlasServiceBreakdown(preview) : null;
+  const sourceHost = (() => { try { return source ? new URL(source).hostname.replace(/^www\./, "") : ""; } catch { return ""; } })();
+  // A confirmed import keeps the technical fields folded; anything unconfirmed stays open for review.
+  const dataExpanded = dataOpen || sourceCheckStatus !== "verified";
+  const sizePricesDiffer = new Set(variantsForColor.map(item => item.price).filter((value): value is number => value !== undefined)).size > 1;
+  const countryText = country === "Другая страна" ? otherCountry.trim() || countryLabel(country, lang) : countryLabel(canonicalCountry(country), lang);
+  const storePriceText = (() => {
+    const value = Number(amount);
+    if (!amount || !Number.isFinite(value)) return "—";
+    try { return new Intl.NumberFormat(lang === "ru" ? "ru-RU" : "en-US", { style: "currency", currency, maximumFractionDigits: 2 }).format(value); }
+    catch { return `${amount} ${currency}`; }
+  })();
+  const checkedTime = importedAt ? `${String(new Date(importedAt).getHours()).padStart(2, "0")}:${String(new Date(importedAt).getMinutes()).padStart(2, "0")}` : "";
+  const dataSummary = [countryText, amount ? `${amount} ${currency}` : "", validBoxedWeight(weight) !== undefined ? `${weight} ${lc.kg}` : "", shippingEstimated ? `${lc.shippingReserve} ${shipping} ${shippingCurrency}` : lc.storeShipping(`${shipping} ${shippingCurrency}`)].filter(Boolean).join(" · ");
+  const submitLabel = adding ? c.adding : ready ? lc.add : lc.signinAdd;
   return (
-    <>
-      <PageHeading overline={c.over} title={isSourcedFlow ? c.choose : c.order} description={isSourcedFlow ? c.checkPrice : c.paste}/>
-      <div className="link-layout">
-        <section className="surface link-form">
-          {image&&<div className="mobile-import-photo"><ProductGallery product={previewProduct} images={images.length?images:[image]} activeImage={image} onImageChange={setImage} locale={lang}/></div>}
-          {isSourcedFlow && !showSourceForm && <div className="link-source-tools" aria-live="polite">
-            {busy && <span className="link-source-loading" role="status"><Loader2 className="spin" size={16}/> {c.loading}</span>}
-            {!busy && source && <>
-              <a className="text-link source-check-link" href={source} target="_blank" rel="noopener noreferrer" aria-label={c.original} title={c.original}>
-                {tx('Магазин','Do‘kon','Store')} <ExternalLink size={14}/>
-              </a>
-            </>}
-            {!busy && <button type="button" className="text-button" onClick={() => setShowSourceForm(true)} aria-label={c.edit} title={c.edit}>{tx('Изменить','O‘zgartirish','Change')}</button>}
-          </div>}
-          {(showSourceForm || !requestedUrl) && <>
-          <div className="step-heading">
-            <b>01</b>
-            <div>
-              <h2>{c.linkStep}</h2>
-            </div>
-          </div>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void load();
-            }}
-            aria-busy={busy}
-          >
-            <div className="field">
-              <label htmlFor="source-url">{c.storePage}</label>
-              <input
-                id="source-url"
-                type="url"
-                required
-                value={url}
-                disabled={busy}
-                onChange={(e) => {
-                  setUrl(e.target.value);
-                  setSource("");
-                  setSourceCheckStatus('idle');
-                  setVerified(false);
-                  setShowSourceForm(true);
-                }}
-                placeholder="https://www.ebay.es/itm/…"
-              />
-            </div>
-            <button className="btn primary" disabled={busy}>
-              {busy ? (
-                <Loader2 className="spin" size={18} />
-              ) : (
-                <Link2 size={18} />
-              )}{" "}
-              {busy ? c.get : c.load}
-            </button>
-          </form>
-          </>}
-          {!ready && (
-            <p className="notice">{tx('Можно загрузить товар и посмотреть расчёт без входа. Для продолжения заказа понадобится авторизация.','Kirmasdan tovarni yuklab, hisobni ko‘rishingiz mumkin. Buyurtmani davom ettirish uchun kiring.','Load an item and view the estimate without signing in. Sign in to continue your order.')}</p>
-          )}
-          {note && !source && (
-            <div className="notice" role="status">
-              <p>{note}</p>
-            </div>
-          )}
-          {source && !busy && (
-            <form
-              className="link-order-data-form"
-              noValidate
-              onSubmit={async (e) => {
-                e.preventDefault();
-                try {
-                  if(sourceCheckStatus==='checking'||sourceCheckStatus==='idle'){
-                    const message=tx('Загрузка ещё не завершилась. Дождитесь результата или вставьте ссылку повторно.','Yuklash hali tugamadi. Natijani kuting yoki havolani qayta kiriting.','Import has not finished. Wait for the result or enter the link again.');
-                    setFormIssue(message);toast.error(message);return;
-                  }
-                  const missing=[
-                    {id:'name',invalid:!name.trim(),message:tx('Введите название товара.','Tovar nomini kiriting.','Enter the item name.')},
-                    {id:'variant',invalid:!variant.trim(),message:tx('Выберите или укажите цвет, размер либо модель.','Rang, o‘lcham yoki modelni tanlang yoki kiriting.','Choose or enter a color, size, or model.')},
-                    {id:'other-country',invalid:country==='Другая страна'&&!otherCountry.trim(),message:tx('Укажите страну фактической отправки.','Haqiqiy jo‘natish mamlakatini kiriting.','Enter the actual dispatch country.')},
-                    {id:'amount',invalid:!Number.isFinite(Number(amount))||Number(amount)<=0,message:tx('Укажите цену товара больше нуля.','Tovar narxini noldan katta kiriting.','Enter an item price greater than zero.')},
-                    {id:'shipping',invalid:shipping===''||!Number.isFinite(Number(shipping))||Number(shipping)<0,message:tx('Укажите доставку магазина до склада Atlas; 0 — только если она бесплатная.','Do‘kondan Atlas omborigacha yetkazishni kiriting; 0 faqat bepul bo‘lsa.','Enter store-to-Atlas shipping; use 0 only when it is free.')},
-                    {id:'weight',invalid:validBoxedWeight(weight)===undefined,message:tx('Укажите вес товара с коробкой от 0,01 до 49,5 кг.','Qadoq bilan vaznni 0,01–49,5 kg oralig‘ida kiriting.','Enter boxed weight from 0.01 to 49.5 kg.')},
-                    {id:'data-verified',invalid:!verified,message:tx('Подтвердите, что проверили введённые данные и вариант.','Kiritilgan ma’lumotlar va variantni tekshirganingizni tasdiqlang.','Confirm that you reviewed the entered details and option.')},
-                  ].find(field=>field.invalid);
-                  if(missing){
-                    setFormIssue(missing.message);
-                    window.setTimeout(()=>{
-                      const group=missing.id==='variant'?window.document.querySelector<HTMLElement>('[data-order-variant]'):null;
-                      const steps=group?.querySelectorAll<HTMLElement>('.variant-step');
-                      const lastStep=steps?.item(Math.max(0,(steps?.length??1)-1));
-                      const target=lastStep?.querySelector<HTMLElement>('button[aria-pressed="false"], button, input')??group?.querySelector<HTMLElement>('button, input')??window.document.getElementById(missing.id);
-                      target?.scrollIntoView({behavior:'smooth',block:'center'});
-                      target?.focus({preventScroll:true});
-                    },0);
-                    return;
-                  }
-                  setFormIssue("");
-                  if (!ready) {
-                    if (status === 'loading') return;
-                    // The existing session draft retains the reviewed form; the
-                    // authenticated cart action still revalidates it on return.
-                    window.location.assign(signInPath(window.location.pathname + window.location.search));
-                    return;
-                  }
-                  const img = image ? safeImage(image, source) : "";
-                  if (image && !img)
-                     throw Error(tx("Изображение должно иметь публичный HTTPS-адрес.","Rasm ommaviy HTTPS manziliga ega bo‘lishi kerak.","The image must have a public HTTPS URL."));
-                  const p: Product = {
-                    id: source + "#" + variant.trim(),
-                    name: name.trim(),
-                    brand: brand || new URL(source).hostname,
-                    category,
-                    usd: toUsd(Number(amount), currency, pricing.rates),
-                    weight: paddedWeight(Number(weight)),
-                    image: img ?? "",
-                    sourceImages: dedupeSafeImages([img ?? '', ...images], source, 12),
-                    sourceUrl: source,
-                    sourceVariantId: variants.find(item => item.label === variant.trim())?.id,
-                    variants: [variant.trim()],
-                    country:
-                      country === "Другая страна"
-                        ? otherCountry.trim()
-                        : country,
-                    sourceCurrency: currency,
-                    sourcePrice: Number(amount),
-                    sourceShipping: Number(shipping),
-                    sourceShippingCurrency: shippingCurrency,
-                    sourceShippingUsd: toUsd(
-                      Number(shipping),
-                      shippingCurrency,
-                      pricing.rates,
-                    ),
-                    sourceShippingEstimated: shippingEstimated,
-                    shippingKnown: true,
-                    boxedWeight: Number(weight),
-                    weightOrigin,
-                    importedAt,
-                    sourceExpiresAt,
-                    sourceManuallyConfirmed:true,
-                     imageOrigin: importedAt ? tx("страница магазина","do‘kon sahifasi","store page") : tx("ручной ввод","qo‘lda kiritish","manual entry"),
-                    declarationDescription: declaration || undefined,
-                  };
-                  price(p.usd, p.weight, 1, p.sourceShippingUsd, pricing);
-                  setAdding(true);
-                  const added = await act({ type: "cart-add", product: p, variant: variant.trim() });
-                   if (added) window.location.assign("/cart");
-                } catch (e) {
-                  toast.error((e as Error).message);
-                } finally {
-                  setAdding(false);
-                }
-              }}
-            >
-              {formIssue&&<p className="notice" role="alert">{formIssue}</p>}
-              <div className="step-heading second-step">
-                <b>02</b>
-                <div>
-                  <h2>{c.dataStep}</h2>
-                </div>
-              </div>
-              {catalogProductFlow&&<p className="catalog-fixed-note" role="status">{catalogFixedText}</p>}
-              {sourceCheckStatus==='failed'&&<p className="notice" role="status">{catalogProductFlow&&amount
+    <div className="lo-page">
+      <header className="orders-head"><div><h1>{lc.title}</h1><p>{source && !busy ? lc.leadLoaded : lc.lead}</p></div></header>
+
+      {(showSourceForm || !requestedUrl) && <form className="lo-link" onSubmit={(e) => { e.preventDefault(); void load(); }} aria-busy={busy}>
+        <label className="sr-only" htmlFor="source-url">{lc.label}</label>
+        <span className="lo-link-field"><Link2 size={20} aria-hidden="true" /><input
+          id="source-url"
+          type="url"
+          inputMode="url"
+          autoComplete="off"
+          spellCheck={false}
+          enterKeyHint="go"
+          required
+          value={url}
+          disabled={busy}
+          onChange={(e) => {
+            setUrl(e.target.value);
+            setSource("");
+            setSourceCheckStatus('idle');
+            setVerified(false);
+            setShowSourceForm(true);
+          }}
+          placeholder={lc.placeholder}
+        /></span>
+        <button className="btn primary lo-link-submit" disabled={busy}>{busy ? <Loader2 className="spin" size={18} aria-hidden="true" /> : null}{busy ? c.get : lc.calculate}{!busy && <ArrowRight size={18} aria-hidden="true" />}</button>
+      </form>}
+      {(showSourceForm || !requestedUrl) && !source && !busy && <div className="lo-hints"><p>{lc.hint}</p><div className="home-hero-links"><Link href="/stores">{lc.stores}<ArrowRight size={16} aria-hidden="true" /></Link><Link href="/batch-import">{lc.batch}<ArrowRight size={16} aria-hidden="true" /></Link></div></div>}
+
+      {isSourcedFlow && !showSourceForm && <div className="lo-source" aria-live="polite">
+        <span className="lo-source-host"><Link2 size={16} aria-hidden="true" />{sourceHost || url}</span>
+        {busy ? <span className="lo-source-loading" role="status"><Loader2 className="spin" size={16} aria-hidden="true" />{lc.loading}</span> : <>
+          {source && <a className="lo-source-link" href={source} target="_blank" rel="noopener noreferrer">{lc.openStore}<ExternalLink size={14} aria-hidden="true" /></a>}
+          <button type="button" className="lo-source-link" onClick={() => setShowSourceForm(true)}>{lc.change}</button>
+        </>}
+      </div>}
+
+      {!ready && <p className="lo-guest">{lc.guest}</p>}
+      {note && !source && <div className="notice" role="status"><p>{note}</p></div>}
+      {busy && <div className="basket-loading lo-loading" role="status"><Loader2 className="spin" size={18} aria-hidden="true" /> {lc.loading}</div>}
+
+      {source && !busy && (
+        <form
+          id="link-order-form"
+          className="lo-layout link-order-data-form"
+          noValidate
+          onSubmit={async (e) => {
+            e.preventDefault();
+            try {
+              if(sourceCheckStatus==='checking'||sourceCheckStatus==='idle'){
+                const message=tx('Загрузка ещё не завершилась. Дождитесь результата или вставьте ссылку повторно.','Yuklash hali tugamadi. Natijani kuting yoki havolani qayta kiriting.','Import has not finished. Wait for the result or enter the link again.');
+                setFormIssue(message);toast.error(message);return;
+              }
+              const missing=[
+                {id:'name',invalid:!name.trim(),message:tx('Введите название товара.','Tovar nomini kiriting.','Enter the item name.')},
+                {id:'variant',invalid:!variant.trim(),message:tx('Выберите или укажите цвет, размер либо модель.','Rang, o‘lcham yoki modelni tanlang yoki kiriting.','Choose or enter a color, size, or model.')},
+                {id:'other-country',invalid:country==='Другая страна'&&!otherCountry.trim(),message:tx('Укажите страну фактической отправки.','Haqiqiy jo‘natish mamlakatini kiriting.','Enter the actual dispatch country.')},
+                {id:'amount',invalid:!Number.isFinite(Number(amount))||Number(amount)<=0,message:tx('Укажите цену товара больше нуля.','Tovar narxini noldan katta kiriting.','Enter an item price greater than zero.')},
+                {id:'shipping',invalid:shipping===''||!Number.isFinite(Number(shipping))||Number(shipping)<0,message:tx('Укажите доставку магазина до склада Atlas; 0 — только если она бесплатная.','Do‘kondan Atlas omborigacha yetkazishni kiriting; 0 faqat bepul bo‘lsa.','Enter store-to-Atlas shipping; use 0 only when it is free.')},
+                {id:'weight',invalid:validBoxedWeight(weight)===undefined,message:tx('Укажите вес товара с коробкой от 0,01 до 49,5 кг.','Qadoq bilan vaznni 0,01–49,5 kg oralig‘ida kiriting.','Enter boxed weight from 0.01 to 49.5 kg.')},
+                {id:'data-verified',invalid:!verified,message:tx('Подтвердите, что проверили введённые данные и вариант.','Kiritilgan ma’lumotlar va variantni tekshirganingizni tasdiqlang.','Confirm that you reviewed the entered details and option.')},
+              ].find(field=>field.invalid);
+              if(missing){
+                setFormIssue(missing.message);
+                // Fields folded under "Calculation details" must be visible before they can take focus.
+                if(['name','other-country','amount','shipping','weight'].includes(missing.id))setDataOpen(true);
+                window.setTimeout(()=>{
+                  const group=missing.id==='variant'?window.document.querySelector<HTMLElement>('[data-order-variant]'):null;
+                  const steps=group?.querySelectorAll<HTMLElement>('.variant-step');
+                  const lastStep=steps?.item(Math.max(0,(steps?.length??1)-1));
+                  const target=lastStep?.querySelector<HTMLElement>('button[aria-pressed="false"], button, input')??group?.querySelector<HTMLElement>('button, input')??window.document.getElementById(missing.id);
+                  target?.scrollIntoView({behavior:'smooth',block:'center'});
+                  target?.focus({preventScroll:true});
+                },0);
+                return;
+              }
+              setFormIssue("");
+              if (!ready) {
+                if (status === 'loading') return;
+                // The existing session draft retains the reviewed form; the
+                // authenticated cart action still revalidates it on return.
+                window.location.assign(signInPath(window.location.pathname + window.location.search));
+                return;
+              }
+              const img = image ? safeImage(image, source) : "";
+              if (image && !img)
+                 throw Error(tx("Изображение должно иметь публичный HTTPS-адрес.","Rasm ommaviy HTTPS manziliga ega bo‘lishi kerak.","The image must have a public HTTPS URL."));
+              const p: Product = {
+                id: source + "#" + variant.trim(),
+                name: name.trim(),
+                brand: brand || new URL(source).hostname,
+                category,
+                usd: toUsd(Number(amount), currency, pricing.rates),
+                weight: paddedWeight(Number(weight)),
+                image: img ?? "",
+                sourceImages: dedupeSafeImages([img ?? '', ...images], source, 12),
+                sourceUrl: source,
+                sourceVariantId: variants.find(item => item.label === variant.trim())?.id,
+                variants: [variant.trim()],
+                country:
+                  country === "Другая страна"
+                    ? otherCountry.trim()
+                    : country,
+                sourceCurrency: currency,
+                sourcePrice: Number(amount),
+                sourceShipping: Number(shipping),
+                sourceShippingCurrency: shippingCurrency,
+                sourceShippingUsd: toUsd(
+                  Number(shipping),
+                  shippingCurrency,
+                  pricing.rates,
+                ),
+                sourceShippingEstimated: shippingEstimated,
+                shippingKnown: true,
+                boxedWeight: Number(weight),
+                weightOrigin,
+                importedAt,
+                sourceExpiresAt,
+                sourceManuallyConfirmed:true,
+                 imageOrigin: importedAt ? tx("страница магазина","do‘kon sahifasi","store page") : tx("ручной ввод","qo‘lda kiritish","manual entry"),
+                declarationDescription: declaration || undefined,
+              };
+              price(p.usd, p.weight, 1, p.sourceShippingUsd, pricing);
+              setAdding(true);
+              const added = await act({ type: "cart-add", product: p, variant: variant.trim() });
+               if (added) window.location.assign("/cart");
+            } catch (e) {
+              toast.error((e as Error).message);
+            } finally {
+              setAdding(false);
+            }
+          }}
+        >
+          <section className="lo-product" aria-labelledby="lo-product-name">
+            {image && <div className="lo-gallery"><ProductGallery product={previewProduct} images={images.length?images:[image]} activeImage={image} onImageChange={setImage} locale={lang}/></div>}
+            <div className="lo-product-copy">
+              <p className="basket-brand">{[brand, sourceHost && brand !== sourceHost ? sourceHost : ""].filter(Boolean).join(" · ")}</p>
+              <h2 id="lo-product-name">{name || (sourceCheckStatus === "failed" ? lc.unnamed : c.empty)}</h2>
+              <p className="lo-store-price">{lc.storePrice}: <b>{storePriceText}</b>{sourceCheckStatus === "verified" && checkedTime && <small> · {lc.checkedAt(checkedTime)}</small>}</p>
+              {catalogProductFlow && <p className="lo-note" role="status">{catalogFixedText}</p>}
+              {sourceCheckStatus === "failed" && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{catalogProductFlow && amount
                 ? tx('Магазин не подтвердил все данные. Расчёт предварительный: при отсутствии новой цены используется сохранённая цена каталога. Перед выкупом оператор уточнит стоимость. Проверьте вариант и подтвердите данные.','Do‘kon barcha ma’lumotlarni tasdiqlamadi. Hisob taxminiy: yangi narx bo‘lmasa, katalogdagi saqlangan narx ishlatiladi. Operator xariddan oldin narxni aniqlaydi. Variantni tekshirib, ma’lumotlarni tasdiqlang.','The store did not confirm all details. This is a preliminary estimate; without a new price, the saved catalog amount is used. An operator will confirm the cost before buyout. Review the option and confirm the details.')
-                : tx('Не все данные удалось загрузить из магазина. Заполните недостающие поля по странице товара и подтвердите их. Цена и валюта повторно проверяются при добавлении, если магазин ответит.','Do‘kondan barcha ma’lumotlar olinmadi. Tovar sahifasi bo‘yicha yetishmayotgan maydonlarni to‘ldirib tasdiqlang. Do‘kon javob bersa, qo‘shishda narx va valyuta qayta tekshiriladi.','Some store details could not be loaded. Complete the missing fields from the item page and confirm them. Price and currency are checked again on addition when the store responds.')}</p>}
-              <div className="field variant-matrix" data-order-variant tabIndex={-1}>
-                <label htmlFor="variant">{c.variant}</label>
-                {variants.length===1 ? <div className="single-variant-selection">
-                  <span>{variantColors.length===1?describeSingleColorway(variantColors[0]).primary:variants[0].label}</span>
-                  <small>{tx('Выбран автоматически','Avtomatik tanlandi','Automatically selected')}</small>
-                  <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
-                </div> : variants.length && (variantColors.length||variantSizes.length) ? <>
-                  {variantColors.length>0&&<div className="variant-step"><div><b>{variantColors.length===1?tx('Расцветка по ссылке','Havoladagi rang','Linked colorway'):c.color}</b>{variantColors.length!==1&&<span>{selectedColor||c.selectColor}</span>}</div>{variantColors.length===1?<><div className="single-variant-selection"><span>{describeSingleColorway(variantColors[0]).primary}</span><small>{tx('Одна расцветка по этой ссылке','Bu havolada bitta rang varianti','One colorway in this link')}</small></div><p className="single-colorway-note">{tx('Для другого цвета нужна ссылка на соответствующий артикул магазина.','Boshqa rang uchun do‘kondagi tegishli artikl havolasi kerak.','Another color requires a link to its separate store item.')}</p><details className="single-colorway-source"><summary>{tx('Полное название расцветки в магазине','Do‘kondagi rangning to‘liq nomi','Full store colorway name')}</summary><span>{variantColors[0]}</span></details></>:<div className="variant-options">{variantColors.map(color=><button type="button" key={color} aria-pressed={selectedColor===color} onClick={()=>selectColorway(color)}>{color}</button>)}</div>}</div>}
-                  {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize?(nikeSizeSystem?`US ${selectedSize}`:selectedSize):c.selectVariant}</span></div><div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={selectedSize===size} onClick={()=>applyVariantChoice(choice)}><span>{nikeSizeSystem?`US ${size}`:size}</span>{choice&&price!==undefined&&<small>{price} {currency}</small>}</button>})}</div>{nikeSizeSystem&&<div className="nike-size-guide">
-                    {selectedNikeSize&&<p className="nike-selected-size">{tx('Выбранный размер','Tanlangan o‘lcham','Selected size')}: <strong>US {selectedNikeSize.us}</strong><span>EU {selectedNikeSize.eu}</span><span>UK {selectedNikeSize.uk}</span><span>CM/JP {selectedNikeSize.cmLabel}</span><span>{tx('Стопа','Oyoq','Foot')} {selectedNikeSize.footLengthCm===undefined?'—':selectedNikeSize.footLengthCm} {tx('см','sm','cm')}</span></p>}
-                    <details className="nike-size-chart"><summary>{tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')}</summary>
-                      <p>{tx('Показаны размеры, найденные для этого товара. CM/JP — маркировка обуви Nike; длина стопы указана отдельно.','Bu tovar uchun topilgan o‘lchamlar ko‘rsatilgan. CM/JP — Nike poyabzali yorlig‘i; oyoq uzunligi alohida berilgan.','Shows sizes found for this item. CM/JP is Nike’s shoe-label size; foot length is listed separately.')}</p>
-                      <div className="nike-size-chart-scroll" role="region" aria-label={tx('Таблица размеров Nike с прокруткой','Nike o‘lcham jadvali','Nike size chart')} tabIndex={0}><table><thead><tr><th scope="col">US</th><th scope="col">UK</th><th scope="col">EU</th><th scope="col">CM/JP</th><th scope="col">{tx('Стопа, см','Oyoq, sm','Foot, cm')}</th></tr></thead><tbody>{nikeSizeRows.map(row=><tr key={row.us}><th scope="row">{row.us}</th><td>{row.uk}</td><td>{row.eu}</td><td>{row.cmLabel}</td><td>{row.footLengthCm===undefined?'—':row.footLengthCm}</td></tr>)}</tbody></table></div>
-                      <a className="nike-size-source" href={`https://www.nike.com/size-fit/${nikeSizeSystem==='women'?'womens':'mens'}-footwear`} target="_blank" rel="noopener noreferrer">{tx('Полная таблица на сайте Nike','To‘liq jadval Nike saytida','Full chart on Nike')} <ExternalLink size={13}/></a>
-                    </details>
-                  </div>}</div>}
-                  {!variantColors.length&&!variantSizes.length&&<Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.map(item=>item.label)}/>}
-                  <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
-                </> : variants.length ? <Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.map(item=>item.label)}/> : (
-                  <input id="variant" required maxLength={80} value={variant} onChange={(e) => {setVariant(e.target.value);setVerified(false)}} placeholder={lang==='ru'?"Например: EU 42, чёрный":lang==='uz'?"Masalan: EU 42, qora":"For example: EU 42, black"}/>
-                )}
+                : lc.unconfirmed}</p>}
+              {note && <details className="lo-import-note"><summary>{lc.details}</summary><p>{note}</p></details>}
+            </div>
+          </section>
+
+          <section className="lo-card lo-variant">
+            <div className="field variant-matrix" data-order-variant tabIndex={-1}>
+              <label htmlFor="variant">{c.variant}</label>
+              {variants.length===1 ? <div className="single-variant-selection">
+                <span>{variantColors.length===1?describeSingleColorway(variantColors[0]).primary:variants[0].label}</span>
+                <small>{tx('Выбран автоматически','Avtomatik tanlandi','Automatically selected')}</small>
+                <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
+              </div> : variants.length && (variantColors.length||variantSizes.length) ? <>
+                {variantColors.length>0&&<div className="variant-step"><div><b>{variantColors.length===1?tx('Расцветка по ссылке','Havoladagi rang','Linked colorway'):c.color}</b>{variantColors.length!==1&&<span>{selectedColor||c.selectColor}</span>}</div>{variantColors.length===1?<><div className="single-variant-selection"><span>{describeSingleColorway(variantColors[0]).primary}</span><small>{tx('Одна расцветка по этой ссылке','Bu havolada bitta rang varianti','One colorway in this link')}</small></div><p className="single-colorway-note">{tx('Для другого цвета нужна ссылка на соответствующий артикул магазина.','Boshqa rang uchun do‘kondagi tegishli artikl havolasi kerak.','Another color requires a link to its separate store item.')}</p><details className="single-colorway-source"><summary>{tx('Полное название расцветки в магазине','Do‘kondagi rangning to‘liq nomi','Full store colorway name')}</summary><span>{variantColors[0]}</span></details></>:<div className="variant-options">{variantColors.map(color=><button type="button" key={color} aria-pressed={selectedColor===color} onClick={()=>selectColorway(color)}>{color}</button>)}</div>}</div>}
+                {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize?(nikeSizeSystem?`US ${selectedSize}`:selectedSize):c.selectVariant}</span></div><div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={selectedSize===size} onClick={()=>applyVariantChoice(choice)}><span>{nikeSizeSystem?`US ${size}`:size}</span>{choice&&price!==undefined&&sizePricesDiffer&&<small>{price} {currency}</small>}</button>})}</div>{nikeSizeSystem&&<div className="nike-size-guide">
+                  {selectedNikeSize&&<p className="nike-selected-size">{tx('Выбранный размер','Tanlangan o‘lcham','Selected size')}: <strong>US {selectedNikeSize.us}</strong><span>EU {selectedNikeSize.eu}</span><span>UK {selectedNikeSize.uk}</span><span>CM/JP {selectedNikeSize.cmLabel}</span><span>{tx('Стопа','Oyoq','Foot')} {selectedNikeSize.footLengthCm===undefined?'—':selectedNikeSize.footLengthCm} {tx('см','sm','cm')}</span></p>}
+                  <details className="nike-size-chart"><summary>{tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')}</summary>
+                    <p>{tx('Показаны размеры, найденные для этого товара. CM/JP — маркировка обуви Nike; длина стопы указана отдельно.','Bu tovar uchun topilgan o‘lchamlar ko‘rsatilgan. CM/JP — Nike poyabzali yorlig‘i; oyoq uzunligi alohida berilgan.','Shows sizes found for this item. CM/JP is Nike’s shoe-label size; foot length is listed separately.')}</p>
+                    <div className="nike-size-chart-scroll" role="region" aria-label={tx('Таблица размеров Nike с прокруткой','Nike o‘lcham jadvali','Nike size chart')} tabIndex={0}><table><thead><tr><th scope="col">US</th><th scope="col">UK</th><th scope="col">EU</th><th scope="col">CM/JP</th><th scope="col">{tx('Стопа, см','Oyoq, sm','Foot, cm')}</th></tr></thead><tbody>{nikeSizeRows.map(row=><tr key={row.us}><th scope="row">{row.us}</th><td>{row.uk}</td><td>{row.eu}</td><td>{row.cmLabel}</td><td>{row.footLengthCm===undefined?'—':row.footLengthCm}</td></tr>)}</tbody></table></div>
+                    <a className="nike-size-source" href={`https://www.nike.com/size-fit/${nikeSizeSystem==='women'?'womens':'mens'}-footwear`} target="_blank" rel="noopener noreferrer">{tx('Полная таблица на сайте Nike','To‘liq jadval Nike saytida','Full chart on Nike')} <ExternalLink size={13}/></a>
+                  </details>
+                </div>}</div>}
+                {!variantColors.length&&!variantSizes.length&&<Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.map(item=>item.label)}/>}
+                <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
+              </> : variants.length ? <Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.map(item=>item.label)}/> : (
+                <input id="variant" required maxLength={80} value={variant} onChange={(e) => {setVariant(e.target.value);setVerified(false)}} placeholder={lang==='ru'?"Например: EU 42, чёрный":lang==='uz'?"Masalan: EU 42, qora":"For example: EU 42, black"}/>
+              )}
+            </div>
+          </section>
+
+          <aside className="lo-summary basket-summary" aria-labelledby="lo-summary-title">
+            <h2 id="lo-summary-title">{lc.total}</h2>
+            {preview && parts ? <>
+              <div className="basket-lines">
+                <SummaryLine label={cc.summary.items} amount={preview.merchandise} locale={lang} />
+                {(preview.sourceShipping ?? 0) > 0 && <SummaryLine label={cc.summary.storeShipping} amount={preview.sourceShipping ?? 0} locale={lang} help={shippingEstimated && !catalogProductFlow ? c.reserve : undefined} helpLabel={cc.summary.storeShipping} />}
+                {parts.service > 0 && <SummaryLine label={cc.summary.service} amount={parts.service} locale={lang} help={cc.summary.serviceHelp} helpLabel={cc.summary.serviceHelpLabel} />}
+                {parts.international > 0 && <SummaryLine label={`${cc.summary.international} · ${estimatedWeight} ${lc.kg}`} amount={parts.international} locale={lang} help={deliveryHelp} helpLabel={cc.summary.internationalHelpLabel} />}
+                {preview.reserve > 0 && <SummaryLine label={cc.summary.reserve} amount={preview.reserve} locale={lang} help={cc.summary.reserveHelp} helpLabel={cc.summary.reserveHelpLabel} />}
+                {(preview.optionalServices ?? 0) > 0 && <SummaryLine label={cc.summary.optional} amount={preview.optionalServices ?? 0} locale={lang} />}
               </div>
+              <div className="basket-total"><span>{shipping === "" ? c.subtotal : c.estimate}</span><strong>{formatSum(preview.total, lang)}</strong></div>
+            </> : <p className="cabinet-empty">{lc.emptyTotal}</p>}
+            <p className="lo-foot">{c.foot}</p>
+          </aside>
+
+          <section className={"lo-card lo-data" + (dataExpanded ? " open" : "")}>
+            <button type="button" className="lo-data-toggle" aria-expanded={dataExpanded} aria-controls="lo-data-fields" onClick={() => setDataOpen(!dataExpanded)}>
+              <span><b>{lc.data}</b><small>{!dataExpanded ? dataSummary : sourceCheckStatus === "verified" ? lc.dataHint : lc.fillFromStore}</small></span>
+              <span aria-hidden="true" className="lo-data-sign">{dataExpanded ? "−" : "+"}</span>
+            </button>
+            <div id="lo-data-fields" className="lo-data-fields" hidden={!dataExpanded}>
               <div className="field">
                 <label htmlFor="name">{c.name}</label>
-                <input
-                  id="name"
-                  required
-                  maxLength={140}
-                  value={name}
-                  readOnly={catalogProductFlow}
-                  className={catalogProductFlow?"catalog-locked-field":undefined}
-                  onChange={(e) => {setName(e.target.value);setVerified(false)}}
-                  placeholder={c.namePlaceholder}
-                />
+                <input id="name" required maxLength={140} value={name} readOnly={catalogProductFlow} className={catalogProductFlow?"catalog-locked-field":undefined} onChange={(e) => {setName(e.target.value);setVerified(false)}} placeholder={c.namePlaceholder} />
               </div>
               <div className="two-fields">
                 <div className="field">
-                  <label>{c.shipCountry}</label>
-                  <select
-                    aria-label={c.countryLabel}
-                    className={`select-control${catalogCountryLocked?" catalog-locked-field":""}`}
-                    disabled={catalogCountryLocked}
-                    value={canonicalCountry(country)}
-                    onChange={(e) => {
-                      setCountry(canonicalCountry(e.target.value));
-                      setVerified(false);
-                    }}
-                  >
-                    {countries.map((value) => <option key={value} value={value}>{displayCountryName(value,lang)}</option>)}
+                  <label htmlFor="ship-country">{c.shipCountry}</label>
+                  <select id="ship-country" className={`select-control${catalogCountryLocked?" catalog-locked-field":""}`} disabled={catalogCountryLocked} value={canonicalCountry(country)} onChange={(e) => { setCountry(canonicalCountry(e.target.value)); setVerified(false); }}>
+                    {countries.map((value) => <option key={value} value={value}>{countryLabel(value,lang)}</option>)}
                   </select>
                 </div>
                 <div className="field">
                   <label>{c.currency}</label>
-                  <Choice
-                    label={c.currency}
-                    value={currency}
-                    disabled={catalogPriceLocked}
-                    className={catalogPriceLocked?"catalog-locked-field":undefined}
-                    onChange={(v) => {
-                      setCurrency(v);setVerified(false);
-                    }}
-                    options={currencies}
-                  />
+                  <Choice label={c.currency} value={currency} disabled={catalogPriceLocked} className={catalogPriceLocked?"catalog-locked-field":undefined} onChange={(v) => { setCurrency(v);setVerified(false); }} options={currencies} />
                 </div>
               </div>
-              {country === "Другая страна" && (
-                <div className="field">
-                  <label htmlFor="other-country">{c.otherCountry}</label>
-                  <input
-                    id="other-country"
-                    required
-                    maxLength={60}
-                    value={otherCountry}
-                    readOnly={catalogCountryLocked}
-                    className={catalogCountryLocked?"catalog-locked-field":undefined}
-                    onChange={(e) => setOtherCountry(e.target.value)}
-                  />
-                </div>
-              )}
+              {country === "Другая страна" && <div className="field">
+                <label htmlFor="other-country">{c.otherCountry}</label>
+                <input id="other-country" required maxLength={60} value={otherCountry} readOnly={catalogCountryLocked} className={catalogCountryLocked?"catalog-locked-field":undefined} onChange={(e) => setOtherCountry(e.target.value)} />
+              </div>}
               <div className="two-fields">
                 <div className="field">
                   <label htmlFor="amount">{c.price}, {currency}</label>
-                  <input
-                    id="amount"
-                    type="number"
-                    required
-                    min=".01"
-                    step=".01"
-                    value={amount}
-                    readOnly={catalogPriceLocked}
-                    className={catalogPriceLocked?"catalog-locked-field":undefined}
-                    onChange={(e) => {setAmount(e.target.value);setVerified(false)}}
-                  />
+                  <input id="amount" type="number" inputMode="decimal" required min=".01" step=".01" value={amount} readOnly={catalogPriceLocked} className={catalogPriceLocked?"catalog-locked-field":undefined} onChange={(e) => {setAmount(e.target.value);setVerified(false)}} />
                 </div>
                 <div className="field">
-                  <label htmlFor="shipping">
-                    {c.atlasShipping}, {shippingCurrency}{" "}
-                    {shippingEstimated&&!catalogProductFlow ? `(${c.change})` : ""}
-                  </label>
-                  <input
-                    id="shipping"
-                    type="number"
-                    required
-                    min="0"
-                    step=".01"
-                    value={shipping}
-                    readOnly={catalogProductFlow}
-                    className={catalogProductFlow?"catalog-locked-field":undefined}
-                    onChange={(e) => {
-                      setShipping(e.target.value);
-                      setShippingEstimated(true);
-                      setVerified(false);
-                    }}
-                  />
+                  <label htmlFor="shipping">{c.atlasShipping}, {shippingCurrency}{shippingEstimated&&!catalogProductFlow ? ` (${c.change})` : ""}</label>
+                  <input id="shipping" type="number" inputMode="decimal" required min="0" step=".01" value={shipping} readOnly={catalogProductFlow} className={catalogProductFlow?"catalog-locked-field":undefined} onChange={(e) => { setShipping(e.target.value); setShippingEstimated(true); setVerified(false); }} />
                   <small className="micro">{catalogProductFlow?shippingEstimated?tx("Сумма задана Atlas как предварительная; оператор сверит её после заказа.","Summa Atlas tomonidan taxminiy belgilangan; operator buyurtmadan keyin tekshiradi.","Atlas marked this amount as an estimate; an operator will verify it after the order."):tx("Сумма доставки подтверждена Atlas при добавлении товара.","Yetkazish summasi tovar qo‘shilganda Atlas tomonidan tasdiqlangan.","Atlas confirmed this shipping amount when adding the item."):c.shippingNote}</small>
                 </div>
               </div>
-              <div>
-                {foundShipping && shippingEstimated && !catalogProductFlow && (
-                  <button
-                    type="button"
-                    className="btn secondary"
-                    onClick={() => {
-                      if (!currencies.includes(foundShipping.currency)) {
-                        toast.error(
-                          "Валюта доставки не поддерживается: укажите эквивалент в USD.",
-                        );
-                        return;
-                      }
-                      setShipping(String(foundShipping.amount));
-                      setShippingCurrency(foundShipping.currency);
-                      setShippingEstimated(false);
-                      setVerified(false);
-                    }}
-                  >
-                    {c.useShipping}: {foundShipping.amount}{" "}
-                    {foundShipping.currency}
-                    {foundShipping.destination ? " · " + foundShipping.destination : ""}
-                  </button>
-                )}
-              </div>
+              {foundShipping && shippingEstimated && !catalogProductFlow && <button type="button" className="btn secondary lo-found-shipping" onClick={() => {
+                if (!currencies.includes(foundShipping.currency)) {
+                  toast.error(tx("Валюта ", "Valyuta ", "Currency ") + foundShipping.currency + tx(" пока не поддерживается: укажите эквивалент в поддерживаемой валюте.", " hozircha qo‘llanmaydi: qo‘llab-quvvatlanadigan valyutada ekvivalent kiriting.", " is not supported yet: enter an equivalent in a supported currency."));
+                  return;
+                }
+                setShipping(String(foundShipping.amount));
+                setShippingCurrency(foundShipping.currency);
+                setShippingEstimated(false);
+                setVerified(false);
+              }}>{c.useShipping}: {foundShipping.amount} {foundShipping.currency}{foundShipping.destination ? " · " + foundShipping.destination : ""}</button>}
               <div className="two-fields">
                 <div className="field">
-                  <label>{c.category}</label>
-                  <select
-                    aria-label={c.category}
-                    className={`select-control${catalogProductFlow?" catalog-locked-field":""}`}
-                    disabled={catalogProductFlow}
-                    value={canonicalCategory(category)}
-                    onChange={(e) => {
-                      const canonical = canonicalCategory(e.target.value);
-                      setCategory(canonical);
-                      setWeight(String(estimatedBoxedWeight(canonical)));
-                      setWeightOrigin(tx("Приблизительно по категории","Kategoriya bo‘yicha taxminan","Estimated by category"));
-                      setVerified(false);
-                    }}
-                  >
+                  <label htmlFor="category">{c.category}</label>
+                  <select id="category" className={`select-control${catalogProductFlow?" catalog-locked-field":""}`} disabled={catalogProductFlow} value={canonicalCategory(category)} onChange={(e) => {
+                    const canonical = canonicalCategory(e.target.value);
+                    setCategory(canonical);
+                    setWeight(String(estimatedBoxedWeight(canonical)));
+                    setWeightOrigin(tx("Приблизительно по категории","Kategoriya bo‘yicha taxminan","Estimated by category"));
+                    setVerified(false);
+                  }}>
                     {weightCategories.map((value) => <option key={value} value={value}>{displayCategoryName(value,lang)}</option>)}
                   </select>
                 </div>
                 <div className="field">
                   <label htmlFor="weight">{c.weight}</label>
-                  <input
-                    id="weight"
-                    type="number"
-                    inputMode="decimal"
-                    required
-                    min=".01"
-                    max="49.5"
-                    step=".01"
-                    value={weight}
-                    readOnly={catalogProductFlow}
-                    className={catalogProductFlow?"catalog-locked-field":undefined}
-                    onChange={(e) => {
-                      setWeight(e.target.value);
-                      setWeightOrigin(tx("Указан покупателем","Xaridor kiritdi","Entered by customer"));
-                      setVerified(false);
-                    }}
+                  <input id="weight" type="number" inputMode="decimal" required min=".01" max="49.5" step=".01" value={weight} readOnly={catalogProductFlow} className={catalogProductFlow?"catalog-locked-field":undefined}
+                    onChange={(e) => { setWeight(e.target.value); setWeightOrigin(tx("Указан покупателем","Xaridor kiritdi","Entered by customer")); setVerified(false); }}
                     onBlur={() => {
                       if(catalogProductFlow)return;
                       const valid=validBoxedWeight(weight);
@@ -856,50 +779,29 @@ export function GlobalLinkOrder() {
                       setWeight(String(estimatedBoxedWeight(category)));
                       setWeightOrigin(tx("Приблизительно по категории","Kategoriya bo‘yicha taxminan","Estimated by category"));
                       toast.error(tx("Вес должен быть от 0,01 до 49,5 кг. Вернули безопасную оценку.","Og‘irlik 0,01–49,5 kg bo‘lishi kerak. Xavfsiz baho qaytarildi.","Weight must be between 0.01 and 49.5 kg. A safe estimate was restored."));
-                    }}
-                  />
+                    }} />
+                  <small className="micro">{weightOrigin}</small>
                 </div>
               </div>
-              <div className="consent">
-                <Checkbox
-                  id="data-verified"
-                  checked={verified}
-                  onCheckedChange={(v) => setVerified(v === true)}
-                />
-                <label htmlFor="data-verified">
-                  {c.verified}
-                </label>
-              </div>
-              <button className="btn primary" disabled={adding || status==='loading'}>
-                {adding ? c.adding : ready ? c.add : tx('Войти и продолжить заказ','Kirish va buyurtmani davom ettirish','Sign in and continue order')}
-                <ArrowRight size={18} />
-              </button>
-            </form>
-          )}
-        </section>
-        <aside className="surface quote-preview">
-          {image && <ProductGallery product={previewProduct} images={images.length?images:[image]} activeImage={image} onImageChange={setImage} locale={lang}/>}
-          <span className="eyebrow">
-            {country === "Другая страна" ? otherCountry || country : country} → {c.uz}
-          </span>
-          <h2>{name || c.empty}</h2>
-          {preview ? (
-            <>
-              <details className="quote-details"><summary>{c.cost}</summary><CostLines q={preview} locale={lang} internationalHelp={deliveryHelp}/></details>
-              <div className="summary-total">
-                <span>
-                  {shipping === ""
-                    ? c.subtotal
-                    : c.estimate}
-                </span>
-                <strong>{money(preview.total)}</strong>
-              </div>
-            </>
-          ) : (
-            <p>{c.emptyQuote}</p>
-          )}
-        </aside>
-      </div>
-    </>
+            </div>
+          </section>
+
+          <section className="lo-card lo-confirm">
+            {formIssue && <p className="basket-consent-error" role="alert">{formIssue}</p>}
+            <div className="basket-consent">
+              <Checkbox id="data-verified" checked={verified} onCheckedChange={(v) => setVerified(v === true)} />
+              <label htmlFor="data-verified">{c.verified}</label>
+            </div>
+            <button className="btn primary basket-cta" disabled={adding || status==='loading'}>{submitLabel}<ArrowRight size={18} aria-hidden="true" /></button>
+            <ul className="basket-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{cc.summary.assurance}</li><li><Info size={16} aria-hidden="true" />{c.freshText}</li></ul>
+          </section>
+        </form>
+      )}
+
+      {source && !busy && <div className={"basket-sticky lo-sticky" + (ready ? "" : " guest")} role="region" aria-label={lc.total}>
+        <div><span>{lc.total}</span><strong>{preview ? formatSum(preview.total, lang) : "—"}</strong></div>
+        <button type="submit" form="link-order-form" className="btn primary" disabled={adding || status==='loading'}>{ready ? (adding ? c.adding : lc.addShort) : lc.signinAdd}<ArrowRight size={18} aria-hidden="true" /></button>
+      </div>}
+    </div>
   );
 }

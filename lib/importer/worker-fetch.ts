@@ -1,6 +1,7 @@
 import {env} from 'cloudflare:workers';
 import {createMerchantProxyFetch} from './proxy-client.mjs';
 import type {MerchantFetch} from './fetch.ts';
+import type {EbayBrowseConfig} from './ebay.ts';
 
 let cached:{endpoint:string;secret:string;fetcher:typeof fetch}|undefined;
 
@@ -36,7 +37,7 @@ async function merchantRequest(input:string|URL,init?:RequestInit):Promise<Respo
   }
   return cached.fetcher(input,init);
 },
-{ebayBrowseConfig(){
+{ebayBrowseConfig():EbayBrowseConfig{
   const bindings=env as unknown as {EBAY_CLIENT_ID?:string;EBAY_CLIENT_SECRET?:string;EBAY_ENV?:string};
   const environment=bindings.EBAY_ENV?.trim().toLowerCase();
   return {

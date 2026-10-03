@@ -6,12 +6,25 @@ const base = new URL(process.argv[2] ?? "http://127.0.0.1:8787/");
 if (!/^https?:$/.test(base.protocol)) throw Error("Expected an HTTP URL");
 const customerEmail = `preflight-${Date.now()}@atlas.local`;
 const operatorEmail = process.env.ATLAS_SMOKE_OPERATOR ?? "operator@atlas.local";
-const auth = (email) => ({
-  "oai-authenticated-user-id": `smoke:${email}`,
-  "oai-authenticated-user-email": email,
-  "oai-authenticated-user-full-name": encodeURIComponent(email === operatorEmail ? "Atlas Operator" : "Atlas Customer"),
-  "oai-authenticated-user-full-name-encoding": "percent-encoded-utf-8",
-});
+// Signs in through the real email-code flow. The local Worker must allow dev codes:
+// npm start -- --var ATLAS_AUTH_DEV_CODES:true --var ATLAS_OPERATOR_EMAIL:operator@atlas.local
+const sessions = new Map();
+async function signIn(email) {
+  const post = async (body, expectCookie) => {
+    const response = await fetch(new URL("/api/auth/otp", base), { method: "POST", headers: { "Content-Type": "application/json", Origin: base.origin }, body: JSON.stringify(body) });
+    const data = await response.json();
+    if (!response.ok) throw Error(`sign-in ${body.step}: ${response.status} ${data.error ?? "failed"}`);
+    return expectCookie ? response.headers.get("set-cookie")?.split(";")[0] : data;
+  };
+  const start = await post({ step: "start", channel: "email", target: email });
+  if (!start.devCode) throw Error("Dev sign-in codes are disabled; start the Worker with ATLAS_AUTH_DEV_CODES=true on a loopback URL.");
+  const cookie = await post({ step: "verify", channel: "email", challengeId: start.challengeId, code: start.devCode }, true);
+  if (!cookie) throw Error("Sign-in did not return a session cookie");
+  sessions.set(email, cookie);
+}
+const auth = (email) => ({ Cookie: sessions.get(email) ?? "" });
+await signIn(customerEmail);
+await signIn(operatorEmail);
 
 async function request(path, { email = customerEmail, method = "GET", body } = {}) {
   const response = await fetch(new URL(path, base), {
@@ -81,6 +94,10 @@ assert(staffResult.audit.some((item) => item.action === "staff.update" && item.e
 let catalog=(await request('/api/catalog?admin=1',{email:operatorEmail})).document;
 const collectionId=`smoke-collection-${Date.now()}`;
 catalog=(await request('/api/catalog',{email:operatorEmail,method:'POST',body:{revision:catalog.revision,command:{kind:'collection',collection:{id:collectionId,name:'Тестовая подборка',nameUz:'Sinov to‘plami',nameEn:'Test collection',description:'',visible:true,position:99}}}})).document;
+// The live store import needs the US egress proxy (ATLAS_IMPORT_PROXY_*); without it, skip it explicitly.
+const liveImport=process.env.ATLAS_SMOKE_SKIP_LIVE_IMPORT!=='1';
+if(!liveImport)process.stdout.write('Skipping the live stevemadden.com import (ATLAS_SMOKE_SKIP_LIVE_IMPORT=1).\n');
+if(liveImport){
 const imported=await request('/api/catalog',{email:operatorEmail,method:'POST',body:{revision:catalog.revision,command:{kind:'import',url:'https://www.stevemadden.com/products/possession-black',collectionIds:[collectionId],country:'США'}}});
 catalog=imported.document;const importedEntry=catalog.entries.find(item=>item.id===imported.importedId);assert(importedEntry.draft.images.length>1);assert(importedEntry.draft.variants.some(item=>item.available));assert.equal(importedEntry.draft.price,79.99);
 if(importedEntry.draft.reviewReasons?.length||importedEntry.draft.lastCheckError)catalog=(await request('/api/catalog',{email:operatorEmail,method:'POST',body:{revision:catalog.revision,command:{kind:'edit',id:imported.importedId,draft:importedEntry.draft}}})).document;
@@ -92,6 +109,7 @@ catalog=(await request('/api/catalog?admin=1',{email:operatorEmail})).document;
 assert(catalog.availabilityReports.some(item=>item.productId===imported.importedId&&item.answer==='available'&&!item.resolvedAt));
 catalog=(await request('/api/catalog',{email:operatorEmail,method:'POST',body:{revision:catalog.revision,command:{kind:'hide',ids:[imported.importedId]}}})).document;
 assert(!(await request('/api/catalog')).products.some(item=>item.id===imported.importedId));
+}
 const proof=new Uint8Array(128);proof[0]=0xff;proof[1]=0xd8;proof[127]=0xd9;
 const orderForm=new FormData();orderForm.append('orderId',orderId);orderForm.append('customerId',`email:${customerEmail}`);orderForm.append('kind','purchase-proof');orderForm.append('file',new File([proof],'purchase-proof.jpg',{type:'image/jpeg'}));
 const orderUploadResponse=await fetch(new URL('/api/order-documents',base),{method:'POST',headers:{...auth(operatorEmail),Origin:base.origin},body:orderForm});assert.equal(orderUploadResponse.status,201);
@@ -105,5 +123,5 @@ assert.equal(account.state.identityProfile.passportMasked,"•••• 4567");
 await apply({type:"declaration-preview",orderIds:[orderId]});
 assert.equal(account.state.declarations[0].orderIds[0],orderId);
 await request(`/api/passport?id=${encodeURIComponent(uploaded.document.id)}`,{method:"DELETE",body:{}});
-process.stdout.write("Authenticated pre-release smoke passed: checkout, fees, catalog import/publish, private order documents, backup export, passport, declaration, operations and delivery.\n");
+process.stdout.write(`Authenticated pre-release smoke passed: checkout, fees, ${liveImport?'catalog import/publish, ':''}private order documents, backup export, passport, declaration, operations and delivery.\n`);
 process.exit(0);

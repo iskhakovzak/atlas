@@ -30,70 +30,28 @@ html[data-theme="dark"] body {
 }
 
 html[data-theme="dark"] .site-header {
-  background: #151f1a;
+  background: var(--night-surface);
   border-color: var(--atlas-line);
 }
 
-html[data-theme="dark"] .utility-bar {
-  background: #14241b;
-  color: #d7e7dc;
-}
-
-html[data-theme="dark"] .wordmark,
-html[data-theme="dark"] h1,
-html[data-theme="dark"] h2,
-html[data-theme="dark"] h3,
-html[data-theme="dark"] .product-name,
-html[data-theme="dark"] .find-title,
-html[data-theme="dark"] .page-heading,
-html[data-theme="dark"] .breadcrumb > span:last-child,
-html[data-theme="dark"] .notification-title h2,
-html[data-theme="dark"] .product-title {
+html[data-theme="dark"] .wordmark, html[data-theme="dark"] h1, html[data-theme="dark"] h2, html[data-theme="dark"] h3, html[data-theme="dark"] .find-title, html[data-theme="dark"] .page-heading, html[data-theme="dark"] .breadcrumb > span:last-child, html[data-theme="dark"] .product-title {
   color: var(--atlas-ink);
 }
 
-html[data-theme="dark"] .wordmark svg,
-html[data-theme="dark"] .desktop-nav a.active,
-html[data-theme="dark"] .text-link,
-html[data-theme="dark"] .guest-intro-link,
-html[data-theme="dark"] .storage-notice a,
-html[data-theme="dark"] .account-address-add,
-html[data-theme="dark"] .find-title:hover {
+html[data-theme="dark"] .wordmark svg, html[data-theme="dark"] .desktop-nav a.active, html[data-theme="dark"] .text-link, html[data-theme="dark"] .storage-notice a, html[data-theme="dark"] .find-title:hover {
   color: var(--atlas-link);
 }
 
-html[data-theme="dark"] .desktop-nav a,
-html[data-theme="dark"] .breadcrumb,
-html[data-theme="dark"] .card-meta,
-html[data-theme="dark"] .results-count,
-html[data-theme="dark"] .text-button,
-html[data-theme="dark"] .order-timeline li,
-html[data-theme="dark"] .product-facts > span,
-html[data-theme="dark"] .sheet-total > span,
-html[data-theme="dark"] .cost-lines dt,
-html[data-theme="dark"] .cart-mobile-sticky > div > span {
+html[data-theme="dark"] .desktop-nav a, html[data-theme="dark"] .breadcrumb, html[data-theme="dark"] .text-button, html[data-theme="dark"] .order-timeline li, html[data-theme="dark"] .product-facts > span, html[data-theme="dark"] .sheet-total > span, html[data-theme="dark"] .cost-lines dt {
   color: var(--atlas-copy-muted);
 }
 
-html[data-theme="dark"] p,
-html[data-theme="dark"] small,
-html[data-theme="dark"] .micro,
-html[data-theme="dark"] .muted,
-html[data-theme="dark"] .catalog-toolbar p,
-html[data-theme="dark"] .store-strip p,
-html[data-theme="dark"] .trust-strip p,
-html[data-theme="dark"] .faq-strip details p,
-html[data-theme="dark"] .faq-item p,
-html[data-theme="dark"] .empty-state p,
-html[data-theme="dark"] .account-grid p,
-html[data-theme="dark"] .change-request p,
-html[data-theme="dark"] .notification-item p {
+html[data-theme="dark"] p, html[data-theme="dark"] small, html[data-theme="dark"] .micro, html[data-theme="dark"] .muted, html[data-theme="dark"] .catalog-toolbar p, html[data-theme="dark"] .empty-state p, html[data-theme="dark"] .change-request p {
   color: var(--atlas-copy-muted);
 }
 
-html[data-theme="dark"] .eyebrow,
-html[data-theme="dark"] .account-next-action .eyebrow {
-  color: #b9d6a7;
+html[data-theme="dark"] .eyebrow {
+  color: var(--night-jade);
 }
 
 html[data-theme="dark"] :is(
@@ -135,105 +93,58 @@ html[data-theme="dark"] :is(
   color: var(--atlas-ink);
 }
 
-html[data-theme="dark"] .surface.account-next-action,
-html[data-theme="dark"] .trust-callout,
-html[data-theme="dark"] .balance-primary,
 html[data-theme="dark"] .attention-report {
-  background: #1a3024;
-  color: #f0f5ef;
-  border-color: #34513d;
-}
-
-html[data-theme="dark"] .account-next-action h2,
-html[data-theme="dark"] .account-next-action p,
-html[data-theme="dark"] .trust-callout p,
-html[data-theme="dark"] .balance-primary h2,
-html[data-theme="dark"] .balance-primary > span,
-html[data-theme="dark"] .balance-primary small {
-  color: #e2ede4;
+  background: var(--night-jade-soft);
+  color: var(--night-ink);
+  border-color: var(--night-line-strong);
 }
 
 html[data-theme="dark"] .btn.primary,
 html[data-theme="dark"] .cart-link,
 html[data-theme="dark"] .storage-notice button {
-  background: #d5eca8;
-  border-color: #d5eca8;
-  color: #1b3023;
+  background: var(--night-ivory);
+  border-color: var(--night-jade);
+  color: var(--night-on-ivory);
 }
 
 html[data-theme="dark"] .btn.primary:hover,
 html[data-theme="dark"] .cart-link:hover,
 html[data-theme="dark"] .storage-notice button:hover {
-  background: #e2f3c2;
-  border-color: #e2f3c2;
-  color: #17291e;
+  background: var(--night-ivory);
+  border-color: var(--night-jade);
+  color: var(--night-on-ivory);
 }
 
 html[data-theme="dark"] .cart-link b {
-  background: #263b2c;
-  color: #e4f2c5;
+  background: var(--night-jade-soft);
+  color: var(--night-ink);
 }
 
-html[data-theme="dark"] .btn.light,
-html[data-theme="dark"] .account-next-action .btn {
-  background: #d5eca8;
-  border-color: #d5eca8;
-  color: #1b3023;
+html[data-theme="dark"] .btn.light {
+  background: var(--night-ivory);
+  border-color: var(--night-jade);
+  color: var(--night-on-ivory);
 }
 
-html[data-theme="dark"] .btn.secondary,
-html[data-theme="dark"] .locale-select,
-html[data-theme="dark"] .select-control,
-html[data-theme="dark"] .category-list button,
-html[data-theme="dark"] .finds-categories button,
-html[data-theme="dark"] .search-field,
-html[data-theme="dark"] .hero-link-form,
-html[data-theme="dark"] .channel-card,
-html[data-theme="dark"] .file-drop,
-html[data-theme="dark"] .account-address-add,
-html[data-theme="dark"] .cart-service-chooser,
-html[data-theme="dark"] .cart-service-option,
-html[data-theme="dark"] .cart-service-units > input,
-html[data-theme="dark"] .change-request,
-html[data-theme="dark"] .settlement-box:not(.attention),
-html[data-theme="dark"] .order-tabs,
-html[data-theme="dark"] .order-tabs [data-state="active"],
-html[data-theme="dark"] .document-list > a,
-html[data-theme="dark"] .monitor-panel {
+html[data-theme="dark"] .btn.secondary, html[data-theme="dark"] .select-control, html[data-theme="dark"] .finds-categories button, html[data-theme="dark"] .search-field, html[data-theme="dark"] .channel-card, html[data-theme="dark"] .change-request, html[data-theme="dark"] .settlement-box:not(.attention), html[data-theme="dark"] .order-tabs, html[data-theme="dark"] .order-tabs [data-state="active"], html[data-theme="dark"] .document-list > a, html[data-theme="dark"] .monitor-panel {
   background-color: var(--atlas-raised);
   border-color: var(--atlas-line);
   color: var(--atlas-ink);
 }
 
-html[data-theme="dark"] .field label,
-html[data-theme="dark"] .support-form label,
-html[data-theme="dark"] .service-options legend,
-html[data-theme="dark"] .cart-service-option-copy > b,
-html[data-theme="dark"] .cart-service-units > label,
-html[data-theme="dark"] .collection-create-form label {
-  color: #dce8df;
+html[data-theme="dark"] .field label, html[data-theme="dark"] .service-options legend, html[data-theme="dark"] .collection-create-form label {
+  color: var(--night-ink);
 }
 
-html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
-html[data-theme="dark"] textarea,
-html[data-theme="dark"] select,
-html[data-theme="dark"] .field input,
-html[data-theme="dark"] .field select,
-html[data-theme="dark"] .field textarea,
-html[data-theme="dark"] .support-form input,
-html[data-theme="dark"] .support-form textarea,
-html[data-theme="dark"] .address-form input,
-html[data-theme="dark"] .batch-import textarea,
-html[data-theme="dark"] .cart-service-units > input,
-html[data-theme="dark"] .collection-create-form input {
-  background-color: #121b16;
-  border-color: #45574b;
-  color: #edf3ef;
+html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]), html[data-theme="dark"] textarea, html[data-theme="dark"] select, html[data-theme="dark"] .field input, html[data-theme="dark"] .field select, html[data-theme="dark"] .field textarea, html[data-theme="dark"] .batch-import textarea, html[data-theme="dark"] .collection-create-form input {
+  background-color: var(--night-canvas);
+  border-color: var(--night-line-strong);
+  color: var(--night-ink);
 }
 
 html[data-theme="dark"] input::placeholder,
 html[data-theme="dark"] textarea::placeholder {
-  color: #98a99e;
+  color: var(--night-muted);
 }
 
 html[data-theme="dark"] input[type="checkbox"],
@@ -241,172 +152,93 @@ html[data-theme="dark"] input[type="radio"],
 html[data-theme="dark"] .service-options input,
 html[data-theme="dark"] .channel-card input,
 html[data-theme="dark"] .warehouse-issue-resolution input {
-  accent-color: #b9db91;
+  accent-color: var(--night-jade);
 }
 
-html[data-theme="dark"] .search-field input,
-html[data-theme="dark"] .hero-link-form input {
+html[data-theme="dark"] .search-field input {
   background: transparent;
-  color: #edf3ef;
+  color: var(--night-ink);
 }
 
-html[data-theme="dark"] .btn.secondary:hover,
-html[data-theme="dark"] .category-list button:hover,
-html[data-theme="dark"] .finds-categories button:hover,
-html[data-theme="dark"] .icon-btn:hover,
-html[data-theme="dark"] .notice-link.active,
-html[data-theme="dark"] .account-address-add:hover,
-html[data-theme="dark"] .account-address-add:focus-visible {
-  background: #29382f;
-  color: #c9e3b5;
+html[data-theme="dark"] .btn.secondary:hover, html[data-theme="dark"] .finds-categories button:hover, html[data-theme="dark"] .icon-btn:hover, html[data-theme="dark"] .notice-link.active {
+  background: var(--night-raised);
+  color: var(--night-jade);
 }
 
 html[data-theme="dark"] .icon-btn,
 html[data-theme="dark"] .notice-link,
 html[data-theme="dark"] .theme-toggle {
-  color: #e5eee8;
+  color: var(--night-ink);
 }
 
 html[data-theme="dark"] .theme-toggle[aria-pressed="true"] {
-  background: #29382f;
-  color: #d5eca8;
+  background: var(--night-raised);
+  color: var(--night-ink);
 }
 
 html[data-theme="dark"] .theme-toggle:focus-visible {
-  outline-color: #d5eca8;
+  outline-color: var(--night-jade);
 }
 
-html[data-theme="dark"] .notice:not(.error):not(.warning),
-html[data-theme="dark"] .notice,
-html[data-theme="dark"] .declaration-preview,
-html[data-theme="dark"] .weight-formula,
-html[data-theme="dark"] .checkout-address-head,
-html[data-theme="dark"] .settlement-box:not(.attention),
-html[data-theme="dark"] .change-request {
-  background-color: #1d2c26;
-  border-color: #3a5145;
-  color: #d8e6dc;
+html[data-theme="dark"] .notice:not(.error):not(.warning), html[data-theme="dark"] .notice, html[data-theme="dark"] .declaration-preview, html[data-theme="dark"] .checkout-address-head, html[data-theme="dark"] .settlement-box:not(.attention), html[data-theme="dark"] .change-request {
+  background-color: var(--night-jade-soft);
+  border-color: var(--night-line-strong);
+  color: var(--night-ink);
 }
 
 html[data-theme="dark"] .notice.warning,
 html[data-theme="dark"] .change-request.pending,
 html[data-theme="dark"] .warehouse-box.attention,
 html[data-theme="dark"] .warehouse-issue-resolution {
-  background-color: #332b1b;
-  border-color: #66512b;
-  color: #f0dba8;
+  background-color: var(--night-warn-bg);
+  border-color: var(--night-warn-line);
+  color: var(--night-ink);
 }
 
 html[data-theme="dark"] .notice.error {
-  background-color: #38221f;
-  border-color: #68413a;
-  color: #f0b9ad;
+  background-color: var(--night-error-bg);
+  border-color: var(--night-error-line);
+  color: var(--night-error-ink);
 }
 
-html[data-theme="dark"] .card-photo,
-html[data-theme="dark"] .find-visual,
-html[data-theme="dark"] .find-photo,
-html[data-theme="dark"] .guest-intro-photo,
-html[data-theme="dark"] .guest-intro-fallback,
-html[data-theme="dark"] .detail-image,
-html[data-theme="dark"] .import-photo,
-html[data-theme="dark"] .no-photo,
-html[data-theme="dark"] .confirm-price {
-  background-color: #202a25;
+html[data-theme="dark"] .find-visual, html[data-theme="dark"] .find-photo, html[data-theme="dark"] .detail-image, html[data-theme="dark"] .import-photo, html[data-theme="dark"] .no-photo, html[data-theme="dark"] .confirm-price {
+  background-color: var(--night-surface);
 }
 
-html[data-theme="dark"] .guest-intro,
-html[data-theme="dark"] .atlas-hero {
-  background: var(--background);
-  color: var(--atlas-ink);
-  border-color: var(--atlas-line);
-}
-
-html[data-theme="dark"] .guest-intro .eyebrow,
-html[data-theme="dark"] .atlas-hero .eyebrow,
-html[data-theme="dark"] .atlas-hero h1 em {
-  color: #b9d6a7;
-}
-
-html[data-theme="dark"] .guest-intro p,
-html[data-theme="dark"] .atlas-hero p,
 html[data-theme="dark"] .import-strip p {
-  color: #c1cec5;
-}
-
-html[data-theme="dark"] .guest-intro-product,
-html[data-theme="dark"] .guest-intro-product-info,
-html[data-theme="dark"] .hero-selection-head,
-html[data-theme="dark"] .hero-selection-bottom {
-  background: var(--atlas-surface);
-  border-color: var(--atlas-line);
-  color: var(--atlas-ink);
-}
-
-html[data-theme="dark"] .trust-strip,
-html[data-theme="dark"] .store-strip,
-html[data-theme="dark"] .faq-item,
-html[data-theme="dark"] .faq-strip details,
-html[data-theme="dark"] .account-address-list .saved-address {
-  background: var(--atlas-surface);
+  color: var(--night-ink-2);
 }
 
 html[data-theme="dark"] .empty-state {
-  background: #141e19;
-  border-color: #425449;
+  background: var(--night-surface);
+  border-color: var(--night-line-strong);
 }
 
-html[data-theme="dark"] .empty-icon,
-html[data-theme="dark"] .account-avatar,
-html[data-theme="dark"] .identity-icon,
-html[data-theme="dark"] .step-heading > b,
-html[data-theme="dark"] .notification-icon,
-html[data-theme="dark"] .ledger-icon {
-  background: #27382d;
-  color: #c3dfa0;
+html[data-theme="dark"] .empty-icon {
+  background: var(--night-raised);
+  color: var(--night-jade);
 }
 
-html[data-theme="dark"] .status-badge,
-html[data-theme="dark"] .order-tabs,
-html[data-theme="dark"] .cart-service-chooser > summary > span,
-html[data-theme="dark"] .document-list > a,
-html[data-theme="dark"] .order-tabs b {
-  background: #25352b;
-  color: #cbe2b3;
+html[data-theme="dark"] .status-badge, html[data-theme="dark"] .order-tabs, html[data-theme="dark"] .document-list > a, html[data-theme="dark"] .order-tabs b {
+  background: var(--night-raised);
+  color: var(--night-jade);
 }
 
 html[data-theme="dark"] .order-tabs [data-state="active"] {
-  background: #34473a;
-  color: #eef4ef;
+  background: var(--night-hover);
+  color: var(--night-ink);
 }
 
 html[data-theme="dark"] .status-badge.needs-action {
-  background: #40331e;
-  color: #f3d58d;
+  background: var(--night-warn-bg);
+  color: var(--night-warn-ink);
 }
 
-html[data-theme="dark"] .cost-lines dd,
-html[data-theme="dark"] .sheet-total strong,
-html[data-theme="dark"] .product-facts b,
-html[data-theme="dark"] .summary-total strong,
-html[data-theme="dark"] .ops-stats strong,
-html[data-theme="dark"] .analytics-grid strong,
-html[data-theme="dark"] .change-amount > strong,
-html[data-theme="dark"] .cart-mobile-sticky strong {
-  color: #edf3ef;
+html[data-theme="dark"] .cost-lines dd, html[data-theme="dark"] .sheet-total strong, html[data-theme="dark"] .product-facts b, html[data-theme="dark"] .ops-stats strong, html[data-theme="dark"] .analytics-grid strong, html[data-theme="dark"] .change-amount > strong {
+  color: var(--night-ink);
 }
 
-html[data-theme="dark"] .summary-total,
-html[data-theme="dark"] .sheet-total,
-html[data-theme="dark"] .trust-strip > div + div,
-html[data-theme="dark"] .order-card-head,
-html[data-theme="dark"] .order-bottom,
-html[data-theme="dark"] .order-amount,
-html[data-theme="dark"] .document-row,
-html[data-theme="dark"] .cart-service-list,
-html[data-theme="dark"] .cart-service-option,
-html[data-theme="dark"] .ledger-entry + .ledger-entry,
-html[data-theme="dark"] .history-list li {
+html[data-theme="dark"] .sheet-total, html[data-theme="dark"] .order-card-head, html[data-theme="dark"] .order-bottom, html[data-theme="dark"] .order-amount, html[data-theme="dark"] .history-list li {
   border-color: var(--atlas-line);
 }
 
@@ -422,27 +254,21 @@ html[data-theme="dark"] .mobile-nav {
 
 html[data-theme="dark"] .mobile-nav a,
 html[data-theme="dark"] .mobile-nav a.active {
-  color: #b2c8b8;
+  color: var(--night-ink-2);
 }
 
 html[data-theme="dark"] .mobile-nav a.active:before {
-  background: #cde8a2;
-}
-
-html[data-theme="dark"] .cart-mobile-sticky {
-  background: rgb(20 30 25 / 96%);
-  border-color: var(--atlas-line);
-  box-shadow: 0 -8px 28px rgb(0 0 0 / 28%);
+  background: var(--night-ivory);
 }
 
 html[data-theme="dark"] .storage-notice {
-  background: #1b2721;
+  background: var(--night-surface);
   border-color: var(--atlas-line);
   color: var(--atlas-ink);
 }
 
 html[data-theme="dark"] .storage-notice p {
-  color: #d1ddd5;
+  color: var(--night-ink-2);
 }
 
 html[data-theme="dark"] .atlas-modal,
@@ -467,7 +293,7 @@ html[data-theme="dark"] [data-slot="tabs-trigger"][data-state="active"] {
 }
 
 html[data-theme="dark"] .loading-state {
-  background: linear-gradient(100deg, #17221c 28%, #233128 44%, #17221c 62%);
+  background: linear-gradient(100deg, var(--night-surface) 28%, var(--night-raised) 44%, var(--night-surface) 62%);
   background-size: 220% 100%;
 }
 
@@ -477,7 +303,7 @@ html[data-theme="dark"] summary:focus-visible,
 html[data-theme="dark"] input:focus-visible,
 html[data-theme="dark"] textarea:focus-visible,
 html[data-theme="dark"] select:focus-visible {
-  outline-color: #cde8a2;
+  outline-color: var(--night-jade);
   box-shadow: 0 0 0 3px rgb(205 232 162 / 22%);
 }
 
@@ -515,92 +341,58 @@ html[data-theme="dark"] {
   --atlas-link: #afbfed;
 }
 
-html[data-theme="dark"] .site-header { background: #2a2d32; }
-html[data-theme="dark"] .utility-bar { background: #303339; color: #d0d3d8; }
+html[data-theme="dark"] .site-header { background: var(--night-surface); }
 
-html[data-theme="dark"] .eyebrow,
-html[data-theme="dark"] .account-next-action .eyebrow,
-html[data-theme="dark"] .guest-intro .eyebrow,
-html[data-theme="dark"] .atlas-hero .eyebrow,
-html[data-theme="dark"] .atlas-hero h1 em {
-  color: #c1ca9b;
+html[data-theme="dark"] .eyebrow {
+  color: var(--night-jade);
 }
 
-html[data-theme="dark"] .surface.account-next-action,
-html[data-theme="dark"] .trust-callout,
-html[data-theme="dark"] .balance-primary,
 html[data-theme="dark"] .attention-report {
-  background: #32353a;
-  border-color: #4b5057;
-  color: #d8dade;
-}
-
-html[data-theme="dark"] .account-next-action h2,
-html[data-theme="dark"] .account-next-action p,
-html[data-theme="dark"] .trust-callout p,
-html[data-theme="dark"] .balance-primary h2,
-html[data-theme="dark"] .balance-primary > span,
-html[data-theme="dark"] .balance-primary small {
-  color: #d4d6da;
+  background: var(--night-raised);
+  border-color: var(--night-line-strong);
+  color: var(--night-ink-2);
 }
 
 html[data-theme="dark"] .btn.primary,
 html[data-theme="dark"] .cart-link,
 html[data-theme="dark"] .storage-notice button {
-  background: #aebbdc;
-  border-color: #aebbdc;
-  color: #252934;
+  background: var(--night-ivory);
+  border-color: var(--night-jade);
+  color: var(--night-on-ivory);
 }
 
 html[data-theme="dark"] .btn.primary:hover,
 html[data-theme="dark"] .cart-link:hover,
 html[data-theme="dark"] .storage-notice button:hover {
-  background: #bdc8e4;
-  border-color: #bdc8e4;
-  color: #222630;
+  background: var(--night-ivory);
+  border-color: var(--night-jade);
+  color: var(--night-on-ivory);
 }
 
 html[data-theme="dark"] .cart-link b {
-  background: #454a3b;
-  color: #d9dfc5;
+  background: var(--night-hover);
+  color: var(--night-jade);
 }
 
-html[data-theme="dark"] .btn.light,
-html[data-theme="dark"] .account-next-action .btn {
-  background: #b5c28a;
-  border-color: #b5c28a;
-  color: #292d2b;
+html[data-theme="dark"] .btn.light {
+  background: var(--night-ivory);
+  border-color: var(--night-jade);
+  color: var(--night-on-ivory);
 }
 
-html[data-theme="dark"] .field label,
-html[data-theme="dark"] .support-form label,
-html[data-theme="dark"] .service-options legend,
-html[data-theme="dark"] .cart-service-option-copy > b,
-html[data-theme="dark"] .cart-service-units > label,
-html[data-theme="dark"] .collection-create-form label {
-  color: #cdd0d5;
+html[data-theme="dark"] .field label, html[data-theme="dark"] .service-options legend, html[data-theme="dark"] .collection-create-form label {
+  color: var(--night-ink-2);
 }
 
-html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
-html[data-theme="dark"] textarea,
-html[data-theme="dark"] select,
-html[data-theme="dark"] .field input,
-html[data-theme="dark"] .field select,
-html[data-theme="dark"] .field textarea,
-html[data-theme="dark"] .support-form input,
-html[data-theme="dark"] .support-form textarea,
-html[data-theme="dark"] .address-form input,
-html[data-theme="dark"] .batch-import textarea,
-html[data-theme="dark"] .cart-service-units > input,
-html[data-theme="dark"] .collection-create-form input {
-  background-color: #292c31;
-  border-color: #4a4e56;
-  color: #d4d6da;
+html[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]), html[data-theme="dark"] textarea, html[data-theme="dark"] select, html[data-theme="dark"] .field input, html[data-theme="dark"] .field select, html[data-theme="dark"] .field textarea, html[data-theme="dark"] .batch-import textarea, html[data-theme="dark"] .collection-create-form input {
+  background-color: var(--night-surface);
+  border-color: var(--night-line-strong);
+  color: var(--night-ink-2);
 }
 
 html[data-theme="dark"] input::placeholder,
 html[data-theme="dark"] textarea::placeholder {
-  color: #9fa4ac;
+  color: var(--night-muted);
 }
 
 html[data-theme="dark"] input[type="checkbox"],
@@ -608,132 +400,85 @@ html[data-theme="dark"] input[type="radio"],
 html[data-theme="dark"] .service-options input,
 html[data-theme="dark"] .channel-card input,
 html[data-theme="dark"] .warehouse-issue-resolution input {
-  accent-color: #b5c28a;
+  accent-color: var(--night-jade);
 }
 
-html[data-theme="dark"] .search-field input,
-html[data-theme="dark"] .hero-link-form input {
+html[data-theme="dark"] .search-field input {
   background: transparent;
-  color: #d4d6da;
+  color: var(--night-ink-2);
 }
 
-html[data-theme="dark"] .btn.secondary:hover,
-html[data-theme="dark"] .category-list button:hover,
-html[data-theme="dark"] .finds-categories button:hover,
-html[data-theme="dark"] .icon-btn:hover,
-html[data-theme="dark"] .notice-link.active,
-html[data-theme="dark"] .account-address-add:hover,
-html[data-theme="dark"] .account-address-add:focus-visible,
-html[data-theme="dark"] .theme-toggle[aria-pressed="true"] {
-  background: #3c4047;
-  color: #c6d0aa;
+html[data-theme="dark"] .btn.secondary:hover, html[data-theme="dark"] .finds-categories button:hover, html[data-theme="dark"] .icon-btn:hover, html[data-theme="dark"] .notice-link.active, html[data-theme="dark"] .theme-toggle[aria-pressed="true"] {
+  background: var(--night-hover);
+  color: var(--night-jade);
 }
 
 html[data-theme="dark"] .icon-btn,
 html[data-theme="dark"] .notice-link,
 html[data-theme="dark"] .theme-toggle {
-  color: #d3d6db;
+  color: var(--night-ink-2);
 }
 
 html[data-theme="dark"] .theme-toggle:focus-visible {
-  outline-color: #b7c596;
+  outline-color: var(--night-jade);
 }
 
-html[data-theme="dark"] .notice:not(.error):not(.warning),
-html[data-theme="dark"] .notice,
-html[data-theme="dark"] .declaration-preview,
-html[data-theme="dark"] .weight-formula,
-html[data-theme="dark"] .checkout-address-head,
-html[data-theme="dark"] .settlement-box:not(.attention),
-html[data-theme="dark"] .change-request {
-  background-color: #33363c;
-  border-color: #4a4e56;
-  color: #d1d4d9;
+html[data-theme="dark"] .notice:not(.error):not(.warning), html[data-theme="dark"] .notice, html[data-theme="dark"] .declaration-preview, html[data-theme="dark"] .checkout-address-head, html[data-theme="dark"] .settlement-box:not(.attention), html[data-theme="dark"] .change-request {
+  background-color: var(--night-raised);
+  border-color: var(--night-line-strong);
+  color: var(--night-ink-2);
 }
 
 html[data-theme="dark"] .notice.warning,
 html[data-theme="dark"] .change-request.pending,
 html[data-theme="dark"] .warehouse-box.attention,
 html[data-theme="dark"] .warehouse-issue-resolution {
-  background-color: #3b362b;
-  border-color: #62583f;
-  color: #ded3b3;
+  background-color: var(--night-raised);
+  border-color: var(--night-warn-line);
+  color: var(--night-warn-ink);
 }
 
 html[data-theme="dark"] .notice.error {
-  background-color: #3b2d2c;
-  border-color: #604744;
-  color: #dfc0ba;
+  background-color: var(--night-raised);
+  border-color: var(--night-line-strong);
+  color: var(--night-error-ink);
 }
 
-html[data-theme="dark"] .card-photo,
-html[data-theme="dark"] .find-visual,
-html[data-theme="dark"] .find-photo,
-html[data-theme="dark"] .guest-intro-photo,
-html[data-theme="dark"] .guest-intro-fallback,
-html[data-theme="dark"] .detail-image,
-html[data-theme="dark"] .import-photo,
-html[data-theme="dark"] .no-photo,
-html[data-theme="dark"] .confirm-price {
-  background-color: #303339;
+html[data-theme="dark"] .find-visual, html[data-theme="dark"] .find-photo, html[data-theme="dark"] .detail-image, html[data-theme="dark"] .import-photo, html[data-theme="dark"] .no-photo, html[data-theme="dark"] .confirm-price {
+  background-color: var(--night-raised);
 }
 
-html[data-theme="dark"] .guest-intro,
-html[data-theme="dark"] .atlas-hero {
-  background: #282b30;
-  color: var(--atlas-ink);
-  border-color: var(--atlas-line);
-}
-
-html[data-theme="dark"] .guest-intro p,
-html[data-theme="dark"] .atlas-hero p,
 html[data-theme="dark"] .import-strip p {
-  color: #c0c3c9;
+  color: var(--night-ink-2);
 }
 
 html[data-theme="dark"] .empty-state {
-  background: #2c2f35;
-  border-color: #484d54;
+  background: var(--night-raised);
+  border-color: var(--night-line-strong);
 }
 
-html[data-theme="dark"] .empty-icon,
-html[data-theme="dark"] .account-avatar,
-html[data-theme="dark"] .identity-icon,
-html[data-theme="dark"] .step-heading > b,
-html[data-theme="dark"] .notification-icon,
-html[data-theme="dark"] .ledger-icon {
-  background: #3a3e43;
-  color: #c4ce9a;
+html[data-theme="dark"] .empty-icon {
+  background: var(--night-hover);
+  color: var(--night-jade);
 }
 
-html[data-theme="dark"] .status-badge,
-html[data-theme="dark"] .order-tabs,
-html[data-theme="dark"] .cart-service-chooser > summary > span,
-html[data-theme="dark"] .document-list > a,
-html[data-theme="dark"] .order-tabs b {
-  background: #3a3e43;
-  color: #c9d0b0;
+html[data-theme="dark"] .status-badge, html[data-theme="dark"] .order-tabs, html[data-theme="dark"] .document-list > a, html[data-theme="dark"] .order-tabs b {
+  background: var(--night-hover);
+  color: var(--night-jade);
 }
 
 html[data-theme="dark"] .order-tabs [data-state="active"] {
-  background: #454950;
-  color: #d5d7db;
+  background: var(--night-hover);
+  color: var(--night-ink-2);
 }
 
 html[data-theme="dark"] .status-badge.needs-action {
-  background: #443d2f;
-  color: #dfd2ae;
+  background: var(--night-warn-bg);
+  color: var(--night-warn-ink);
 }
 
-html[data-theme="dark"] .cost-lines dd,
-html[data-theme="dark"] .sheet-total strong,
-html[data-theme="dark"] .product-facts b,
-html[data-theme="dark"] .summary-total strong,
-html[data-theme="dark"] .ops-stats strong,
-html[data-theme="dark"] .analytics-grid strong,
-html[data-theme="dark"] .change-amount > strong,
-html[data-theme="dark"] .cart-mobile-sticky strong {
-  color: #d9dbdf;
+html[data-theme="dark"] .cost-lines dd, html[data-theme="dark"] .sheet-total strong, html[data-theme="dark"] .product-facts b, html[data-theme="dark"] .ops-stats strong, html[data-theme="dark"] .analytics-grid strong, html[data-theme="dark"] .change-amount > strong {
+  color: var(--night-ink-2);
 }
 
 html[data-theme="dark"] .mobile-nav {
@@ -743,31 +488,25 @@ html[data-theme="dark"] .mobile-nav {
 
 html[data-theme="dark"] .mobile-nav a,
 html[data-theme="dark"] .mobile-nav a.active {
-  color: #bac4e4;
+  color: var(--night-jade);
 }
 
 html[data-theme="dark"] .mobile-nav a.active:before {
-  background: #b8c48f;
-}
-
-html[data-theme="dark"] .cart-mobile-sticky {
-  background: rgb(39 41 46 / 97%);
-  border-color: var(--atlas-line);
-  box-shadow: 0 -8px 28px rgb(0 0 0 / 18%);
+  background: var(--night-ivory);
 }
 
 html[data-theme="dark"] .storage-notice {
-  background: #2b2e33;
+  background: var(--night-raised);
   border-color: var(--atlas-line);
   color: var(--atlas-ink);
 }
 
 html[data-theme="dark"] .storage-notice p {
-  color: #c6c9ce;
+  color: var(--night-ink-2);
 }
 
 html[data-theme="dark"] .loading-state {
-  background: linear-gradient(100deg, #2b2e33 28%, #373a40 44%, #2b2e33 62%);
+  background: linear-gradient(100deg, var(--night-raised) 28%, var(--night-raised) 44%, var(--night-raised) 62%);
 }
 
 html[data-theme="dark"] button:focus-visible,
@@ -776,7 +515,7 @@ html[data-theme="dark"] summary:focus-visible,
 html[data-theme="dark"] input:focus-visible,
 html[data-theme="dark"] textarea:focus-visible,
 html[data-theme="dark"] select:focus-visible {
-  outline-color: #aab9e3;
+  outline-color: var(--night-jade);
   box-shadow: 0 0 0 3px rgb(170 185 227 / 18%);
 }
 
@@ -787,8 +526,8 @@ html[data-theme="dark"] .finds-controls {
 }
 
 html[data-theme="dark"] .finds-search {
-  background: #292c31;
-  border-color: #4a4e56;
+  background: var(--night-surface);
+  border-color: var(--night-line-strong);
 }
 
 html[data-theme="dark"] .finds-search input {
@@ -818,13 +557,13 @@ html[data-theme="dark"] .finds-categories button {
 }
 
 html[data-theme="dark"] .finds-categories button.active {
-  background: #46516c;
-  border-color: #586582;
-  color: #e0e3e9;
+  background: var(--night-selected);
+  border-color: var(--night-line-strong);
+  color: var(--night-ink);
 }
 
 html[data-theme="dark"] .finds-categories button:hover:not(.active) {
-  background: #41454c;
+  background: var(--night-hover);
   color: var(--atlas-ink);
 }
 
@@ -845,7 +584,7 @@ html[data-theme="dark"] .find-title:hover {
 }
 
 html[data-theme="dark"] .find-visual {
-  background: #303339 !important;
+  background: var(--night-raised) !important;
 }
 
 html[data-theme="dark"] .find-photo .product-img {
@@ -853,7 +592,7 @@ html[data-theme="dark"] .find-photo .product-img {
 }
 
 html[data-theme="dark"] .find-breakdown dl {
-  background: #383b42;
+  background: var(--night-raised);
 }
 
 html[data-theme="dark"] .find-breakdown dt,
@@ -873,14 +612,14 @@ html[data-theme="dark"] .find-card .find-store-price {
 }
 
 html[data-theme="dark"] .find-save {
-  background: #383b42;
-  border-color: #50545b;
+  background: var(--night-raised);
+  border-color: var(--night-line-strong);
   color: var(--atlas-ink);
 }
 
 html[data-theme="dark"] .find-save:hover,
 html[data-theme="dark"] .find-save.saved {
-  background: #454b59;
+  background: var(--night-hover);
   color: var(--atlas-link);
 }
 
@@ -959,8 +698,8 @@ html[data-theme="dark"] :is(
   .order-tabs [data-state="active"]
 ) {
   background-color: var(--atlas-dark-selected);
-  border-color: #69799f;
-  color: #e3e8f8;
+  border-color: var(--night-line-strong);
+  color: var(--night-ink);
 }
 
 html[data-theme="dark"] :is(
@@ -1058,51 +797,17 @@ html[data-theme="dark"] :is(
   color: var(--atlas-dark-link);
 }
 
-html[data-theme="dark"] .account-stats,
-html[data-theme="dark"] .account-service-grid,
-html[data-theme="dark"] .account-detail[data-open="true"] .account-detail-summary,
-html[data-theme="dark"] .account-detail[open] > summary,
-html[data-theme="dark"] .compact-order[open] > summary,
-html[data-theme="dark"] .admin-tabs,
-html[data-theme="dark"] .admin-table-row.head,
-html[data-theme="dark"] .warehouse-service-config > summary,
-html[data-theme="dark"] .warehouse-service-request-form,
-html[data-theme="dark"] .warehouse-service-ops,
-html[data-theme="dark"] .catalog-editor,
-html[data-theme="dark"] .catalog-draft-summary img,
-html[data-theme="dark"] .catalog-draft-summary > span,
-html[data-theme="dark"] .batch-candidate img,
-html[data-theme="dark"] .batch-candidate > .batch-no-image,
-html[data-theme="dark"] .compact-order-summary > .product-img,
-html[data-theme="dark"] .compact-order-summary > .no-photo {
+html[data-theme="dark"] .compact-order[open] > summary, html[data-theme="dark"] .admin-tabs, html[data-theme="dark"] .admin-table-row.head, html[data-theme="dark"] .warehouse-service-config > summary, html[data-theme="dark"] .warehouse-service-request-form, html[data-theme="dark"] .warehouse-service-ops, html[data-theme="dark"] .catalog-editor, html[data-theme="dark"] .catalog-draft-summary img, html[data-theme="dark"] .catalog-draft-summary > span, html[data-theme="dark"] .batch-candidate img, html[data-theme="dark"] .batch-candidate > .batch-no-image, html[data-theme="dark"] .compact-order-summary > .product-img, html[data-theme="dark"] .compact-order-summary > .no-photo {
   background-color: var(--atlas-dark-raised);
   border-color: var(--atlas-dark-line);
 }
 
-html[data-theme="dark"] .account-detail-summary,
-html[data-theme="dark"] .account-detail > summary,
-html[data-theme="dark"] .account-profile-compact > details,
-html[data-theme="dark"] .account-service-grid > a,
-html[data-theme="dark"] .account-service-grid > button,
-html[data-theme="dark"] .account-stats a,
-html[data-theme="dark"] .account-stats a + a,
-html[data-theme="dark"] .compact-order[open] > summary,
-html[data-theme="dark"] .compact-order[open] > summary,
-html[data-theme="dark"] .admin-table-row,
-html[data-theme="dark"] .warehouse-service-config-body,
-html[data-theme="dark"] .warehouse-service-admin-row,
-html[data-theme="dark"] .warehouse-service-locales fieldset,
-html[data-theme="dark"] .find-store-price,
-html[data-theme="dark"] .find-card .find-store-price {
+html[data-theme="dark"] .compact-order[open] > summary, html[data-theme="dark"] .compact-order[open] > summary, html[data-theme="dark"] .admin-table-row, html[data-theme="dark"] .warehouse-service-config-body, html[data-theme="dark"] .warehouse-service-admin-row, html[data-theme="dark"] .warehouse-service-locales fieldset, html[data-theme="dark"] .find-store-price, html[data-theme="dark"] .find-card .find-store-price {
   border-color: var(--atlas-dark-line);
 }
 
 /* Account, order progress and warehouse-service semantic states. */
-html[data-theme="dark"] .recipient-passport-ok,
-html[data-theme="dark"] .draft-live,
-html[data-theme="dark"] .report-available,
-html[data-theme="dark"] .warehouse-service-request.completed,
-html[data-theme="dark"] .change-request:not(.pending):not(.declined) {
+html[data-theme="dark"] .recipient-passport-ok, html[data-theme="dark"] .draft-live, html[data-theme="dark"] .warehouse-service-request.completed, html[data-theme="dark"] .change-request:not(.pending):not(.declined) {
   background-color: var(--atlas-dark-success-bg);
   border-color: var(--atlas-dark-success-line);
   color: var(--atlas-dark-success-ink) !important;
@@ -1120,7 +825,6 @@ html[data-theme="dark"] .catalog-issues {
   color: var(--atlas-dark-warning-ink) !important;
 }
 
-html[data-theme="dark"] .report-unavailable,
 html[data-theme="dark"] .change-request.declined {
   color: var(--atlas-dark-error-ink);
 }
@@ -1128,42 +832,22 @@ html[data-theme="dark"] .change-request.declined {
 html[data-theme="dark"] .order-timeline .current b,
 html[data-theme="dark"] .order-timeline .complete b {
   background: var(--atlas-dark-selected);
-  border-color: #69799f;
-  color: #e3e8f8;
+  border-color: var(--night-line-strong);
+  color: var(--night-ink);
 }
 
-html[data-theme="dark"] .order-timeline .current span,
-html[data-theme="dark"] .order-timeline .complete span,
-html[data-theme="dark"] .change-amount > strong,
-html[data-theme="dark"] .status-center-row span,
-html[data-theme="dark"] .status-center-row > svg,
-html[data-theme="dark"] .customs-limit,
-html[data-theme="dark"] .admin-metrics strong,
-html[data-theme="dark"] .ops-stats strong,
-html[data-theme="dark"] .analytics-grid strong,
-html[data-theme="dark"] .admin-metrics svg,
-html[data-theme="dark"] .admin-shortcut-grid svg {
+html[data-theme="dark"] .order-timeline .current span, html[data-theme="dark"] .order-timeline .complete span, html[data-theme="dark"] .change-amount > strong, html[data-theme="dark"] .customs-limit, html[data-theme="dark"] .admin-metrics strong, html[data-theme="dark"] .ops-stats strong, html[data-theme="dark"] .analytics-grid strong, html[data-theme="dark"] .admin-metrics svg, html[data-theme="dark"] .admin-shortcut-grid svg {
   color: var(--atlas-dark-link);
 }
 
-html[data-theme="dark"] .status-badge,
-html[data-theme="dark"] .order-tabs b,
-html[data-theme="dark"] .journey-strip b {
+html[data-theme="dark"] .status-badge, html[data-theme="dark"] .order-tabs b {
   background-color: var(--atlas-dark-selected);
-  border-color: #69799f;
-  color: #e3e8f8;
+  border-color: var(--night-line-strong);
+  color: var(--night-ink);
 }
 
 /* Catalog, deal search, store choices, and imported product variants. */
-html[data-theme="dark"] .catalog-filter-disclosure > summary,
-html[data-theme="dark"] .finds-disclosure > summary,
-html[data-theme="dark"] .finds-collections button,
-html[data-theme="dark"] .find-collections button,
-html[data-theme="dark"] .finds-own-link input,
-html[data-theme="dark"] .finds-own-link select,
-html[data-theme="dark"] .finds-own-link textarea,
-html[data-theme="dark"] .variant-options button,
-html[data-theme="dark"] .find-store-price .find-discount {
+html[data-theme="dark"] .catalog-filter-disclosure > summary, html[data-theme="dark"] .find-collections button, html[data-theme="dark"] .variant-options button, html[data-theme="dark"] .find-store-price .find-discount {
   background-color: var(--atlas-dark-raised);
   border-color: var(--atlas-dark-line);
   color: var(--atlas-dark-ink);
@@ -1187,71 +871,37 @@ html[data-theme="dark"] .finance-lines>div {
   border-color: var(--atlas-dark-line);
 }
 
-html[data-theme="dark"] .finds-own-link form {
-  background-color: var(--atlas-dark-inset);
-  border: 1px solid var(--atlas-dark-line);
-}
-
-html[data-theme="dark"] .finds-own-link form .btn {
-  background: var(--atlas-dark-selected);
-  border-color: #69799f;
-  color: #e3e8f8;
-}
-
 html[data-theme="dark"] .find-card .find-discount,
 html[data-theme="dark"] .find-photo .find-discount {
-  background: #414638;
-  color: #dce9b6;
+  background: var(--night-hover);
+  color: var(--night-ink);
 }
 
 html[data-theme="dark"] .find-card .find-discount small,
 html[data-theme="dark"] .find-photo .find-discount small {
-  color: #dce9b6;
+  color: var(--night-ink);
 }
 
-html[data-theme="dark"] .finds-own-link input,
-html[data-theme="dark"] .finds-own-link select,
-html[data-theme="dark"] .finds-own-link textarea,
-html[data-theme="dark"] .catalog-editor input,
-html[data-theme="dark"] .catalog-editor select,
-html[data-theme="dark"] .catalog-editor textarea,
-html[data-theme="dark"] .catalog-collections input,
-html[data-theme="dark"] .warehouse-service-request-form select,
-html[data-theme="dark"] .warehouse-service-request-form input,
-html[data-theme="dark"] .warehouse-service-quote input,
-html[data-theme="dark"] .warehouse-service-locales input,
-html[data-theme="dark"] .warehouse-service-locales textarea,
-html[data-theme="dark"] .warehouse-service-config .pricing-grid input,
-html[data-theme="dark"] .warehouse-service-config .pricing-grid select,
-html[data-theme="dark"] .batch-candidate select,
-html[data-theme="dark"] .catalog-review-controls input,
-html[data-theme="dark"] .catalog-review-controls select {
+html[data-theme="dark"] .catalog-editor input, html[data-theme="dark"] .catalog-editor select, html[data-theme="dark"] .catalog-editor textarea, html[data-theme="dark"] .catalog-collections input, html[data-theme="dark"] .warehouse-service-request-form select, html[data-theme="dark"] .warehouse-service-request-form input, html[data-theme="dark"] .warehouse-service-quote input, html[data-theme="dark"] .warehouse-service-locales input, html[data-theme="dark"] .warehouse-service-locales textarea, html[data-theme="dark"] .warehouse-service-config .pricing-grid input, html[data-theme="dark"] .warehouse-service-config .pricing-grid select, html[data-theme="dark"] .batch-candidate select, html[data-theme="dark"] .catalog-review-controls input, html[data-theme="dark"] .catalog-review-controls select {
   background-color: var(--atlas-dark-inset);
   border-color: var(--atlas-dark-line);
   color: var(--atlas-dark-ink);
 }
 
-html[data-theme="dark"] .finds-own-link input::placeholder,
-html[data-theme="dark"] .finds-own-link textarea::placeholder,
-html[data-theme="dark"] .catalog-editor input::placeholder,
-html[data-theme="dark"] .catalog-editor textarea::placeholder {
+html[data-theme="dark"] .catalog-editor input::placeholder, html[data-theme="dark"] .catalog-editor textarea::placeholder {
   color: var(--atlas-dark-muted);
 }
 
-html[data-theme="dark"] .variant-options button:hover:not(:disabled),
-html[data-theme="dark"] .finds-collections button:hover,
-html[data-theme="dark"] .find-collections button:hover:not(.active),
-html[data-theme="dark"] .catalog-filter-disclosure > summary:hover,
-html[data-theme="dark"] .price-info:hover {
+html[data-theme="dark"] .variant-options button:hover:not(:disabled), html[data-theme="dark"] .find-collections button:hover:not(.active), html[data-theme="dark"] .catalog-filter-disclosure > summary:hover {
   background-color: var(--atlas-dark-hover);
   color: var(--atlas-dark-link);
 }
 
 html[data-theme="dark"] .variant-options button[aria-pressed="true"] {
   background-color: var(--atlas-dark-selected);
-  border-color: #7789b5;
-  color: #e4eafb;
-  box-shadow: 0 0 0 1px #7789b5;
+  border-color: var(--night-jade);
+  color: var(--night-ink);
+  box-shadow: 0 0 0 1px var(--night-jade);
 }
 
 html[data-theme="dark"] .variant-options button:disabled,
@@ -1259,43 +909,24 @@ html[data-theme="dark"] button:disabled,
 html[data-theme="dark"] input:disabled,
 html[data-theme="dark"] select:disabled,
 html[data-theme="dark"] textarea:disabled {
-  background-color: #303238;
-  border-color: #41454c;
-  color: #a2a6ad;
+  background-color: var(--night-raised);
+  border-color: var(--night-line-strong);
+  color: var(--night-muted);
   opacity: .68;
 }
 
-html[data-theme="dark"] .finds-count,
-html[data-theme="dark"] .finds-disclosure p,
-html[data-theme="dark"] .finds-steps p,
-html[data-theme="dark"] .finds-own-link p,
-html[data-theme="dark"] .catalog-customs-note,
-html[data-theme="dark"] .price-info,
-html[data-theme="dark"] .find-store-price .find-discount {
+html[data-theme="dark"] .finds-count, html[data-theme="dark"] .catalog-customs-note, html[data-theme="dark"] .find-store-price .find-discount {
   color: var(--atlas-dark-muted);
 }
 
 /* Cart, payment estimates and expandable order details. */
-html[data-theme="dark"] .quantity-control,
-html[data-theme="dark"] .quantity-control button,
-html[data-theme="dark"] .remove-item,
-html[data-theme="dark"] .customs-estimate,
-html[data-theme="dark"] .customs-estimate summary,
-html[data-theme="dark"] .summary-assurance,
-html[data-theme="dark"] .cart-mobile-sticky,
-html[data-theme="dark"] .cart-service-option,
-html[data-theme="dark"] .cart-service-option-copy,
-html[data-theme="dark"] .cart-service-units,
-html[data-theme="dark"] .balance-option,
-html[data-theme="dark"] .consent {
+html[data-theme="dark"] .remove-item, html[data-theme="dark"] .customs-estimate, html[data-theme="dark"] .customs-estimate summary, html[data-theme="dark"] .consent {
   background-color: var(--atlas-dark-raised);
   border-color: var(--atlas-dark-line);
   color: var(--atlas-dark-ink);
 }
 
-html[data-theme="dark"] .quantity-control button:hover,
-html[data-theme="dark"] .remove-item:hover,
-html[data-theme="dark"] .customs-estimate summary:hover {
+html[data-theme="dark"] .remove-item:hover, html[data-theme="dark"] .customs-estimate summary:hover {
   background-color: var(--atlas-dark-hover);
   color: var(--atlas-dark-link);
 }
@@ -1304,17 +935,7 @@ html[data-theme="dark"] .customs-estimate summary::after {
   color: var(--atlas-dark-muted);
 }
 
-html[data-theme="dark"] .cart-item-price > span,
-html[data-theme="dark"] .expiry,
-html[data-theme="dark"] .consent label,
-html[data-theme="dark"] .customs-estimate p,
-html[data-theme="dark"] .customs-estimate small,
-html[data-theme="dark"] .cart-service-option-copy > span,
-html[data-theme="dark"] .cart-service-option-copy > small,
-html[data-theme="dark"] .cart-service-units > label,
-html[data-theme="dark"] .balance-option small,
-html[data-theme="dark"] .summary-assurance,
-html[data-theme="dark"] .remove-item {
+html[data-theme="dark"] .expiry, html[data-theme="dark"] .consent label, html[data-theme="dark"] .customs-estimate p, html[data-theme="dark"] .customs-estimate small, html[data-theme="dark"] .remove-item {
   color: var(--atlas-dark-muted);
 }
 
@@ -1324,27 +945,7 @@ html[data-theme="dark"] .compact-order[open] > summary {
 }
 
 /* Admin, operations and reporting tables; these are authenticated surfaces too. */
-html[data-theme="dark"] .admin-tabs,
-html[data-theme="dark"] .admin-tabs button,
-html[data-theme="dark"] .admin-metrics article,
-html[data-theme="dark"] .admin-shortcut-grid > *,
-html[data-theme="dark"] .staff-form,
-html[data-theme="dark"] .admin-table-row,
-html[data-theme="dark"] .admin-table-row.head,
-html[data-theme="dark"] .ops-tools,
-html[data-theme="dark"] .payment-preview,
-html[data-theme="dark"] .delivery-box,
-html[data-theme="dark"] .parcel-box,
-html[data-theme="dark"] .catalog-editor,
-html[data-theme="dark"] .catalog-issues,
-html[data-theme="dark"] .catalog-draft-summary,
-html[data-theme="dark"] .catalog-reports article,
-html[data-theme="dark"] .report-unavailable,
-html[data-theme="dark"] .report-available,
-html[data-theme="dark"] .draft-live,
-html[data-theme="dark"] .draft-ready,
-html[data-theme="dark"] .draft-review,
-html[data-theme="dark"] .staff-status {
+html[data-theme="dark"] .admin-tabs, html[data-theme="dark"] .admin-tabs button, html[data-theme="dark"] .admin-metrics article, html[data-theme="dark"] .admin-shortcut-grid > *, html[data-theme="dark"] .staff-form, html[data-theme="dark"] .admin-table-row, html[data-theme="dark"] .admin-table-row.head, html[data-theme="dark"] .ops-tools, html[data-theme="dark"] .payment-preview, html[data-theme="dark"] .delivery-box, html[data-theme="dark"] .parcel-box, html[data-theme="dark"] .catalog-editor, html[data-theme="dark"] .catalog-issues, html[data-theme="dark"] .catalog-draft-summary, html[data-theme="dark"] .catalog-reports article, html[data-theme="dark"] .draft-live, html[data-theme="dark"] .draft-ready, html[data-theme="dark"] .draft-review, html[data-theme="dark"] .staff-status {
   border-color: var(--atlas-dark-line);
   color: var(--atlas-dark-ink);
 }
@@ -1357,8 +958,8 @@ html[data-theme="dark"] .admin-table-row:not(.head):hover {
 html[data-theme="dark"] .admin-tabs button.active,
 html[data-theme="dark"] .admin-tabs button[aria-selected="true"] {
   background-color: var(--atlas-dark-selected);
-  border-color: #69799f;
-  color: #e3e8f8;
+  border-color: var(--night-line-strong);
+  color: var(--night-ink);
   box-shadow: none;
 }
 
@@ -1379,9 +980,7 @@ html[data-theme="dark"] .monitor-panel {
   background-color: var(--atlas-dark-raised);
 }
 
-html[data-theme="dark"] .draft-live,
-html[data-theme="dark"] .staff-status.active,
-html[data-theme="dark"] .report-available {
+html[data-theme="dark"] .draft-live, html[data-theme="dark"] .staff-status.active {
   background-color: var(--atlas-dark-success-bg);
   color: var(--atlas-dark-success-ink);
 }
@@ -1392,7 +991,6 @@ html[data-theme="dark"] .catalog-issues {
   color: var(--atlas-dark-warning-ink);
 }
 
-html[data-theme="dark"] .report-unavailable,
 html[data-theme="dark"] .change-request.declined {
   background-color: var(--atlas-dark-error-bg);
   border-color: var(--atlas-dark-error-line);
@@ -1401,7 +999,7 @@ html[data-theme="dark"] .change-request.declined {
 
 html[data-theme="dark"] .draft-ready {
   background-color: var(--atlas-dark-selected);
-  color: #e3e8f8;
+  color: var(--night-ink);
 }
 
 html[data-theme="dark"] .staff-status,
@@ -1433,29 +1031,17 @@ html[data-theme="dark"] .admin-table-row small {
 }
 
 html[data-theme="dark"] .staff-status.disabled {
-  background-color: #303238;
+  background-color: var(--night-raised);
   color: var(--atlas-dark-muted);
 }
 
 /* Secondary chrome and keyboard/disabled states. */
-html[data-theme="dark"] .ticket-reply,
-html[data-theme="dark"] .legal-nav,
-html[data-theme="dark"] .legal-sources,
-html[data-theme="dark"] .identity-upload,
-html[data-theme="dark"] .payment-methods span,
-html[data-theme="dark"] .store-tags span,
-html[data-theme="dark"] .journey-strip b,
-html[data-theme="dark"] .sheet-close,
-html[data-theme="dark"] .status-row,
-html[data-theme="dark"] .checkout-progress li,
-html[data-theme="dark"] .notification-history > div,
-html[data-theme="dark"] .import-gallery button {
+html[data-theme="dark"] .ticket-reply, html[data-theme="dark"] .legal-nav, html[data-theme="dark"] .legal-sources, html[data-theme="dark"] .sheet-close, html[data-theme="dark"] .status-row, html[data-theme="dark"] .import-gallery button {
   background-color: var(--atlas-dark-raised);
   border-color: var(--atlas-dark-line);
   color: var(--atlas-dark-ink);
 }
 
-html[data-theme="dark"] .checkout-progress li.active,
 html[data-theme="dark"] .admin-tabs button[aria-selected="true"] {
   color: var(--atlas-dark-link);
   border-color: var(--atlas-dark-link);
@@ -1486,71 +1072,18 @@ html[data-theme="dark"] :is(.deal-section, .legacy-import, .ux-disclosure, .lega
   color: var(--atlas-dark-ink);
 }
 
-html[data-theme="dark"] .deal-section .deal-heading p,
-html[data-theme="dark"] .deal-section .deal-source,
-html[data-theme="dark"] .deal-section .deal-source small,
-html[data-theme="dark"] .deal-section .deal-price del,
-html[data-theme="dark"] .deal-section .deal-price small,
-html[data-theme="dark"] .deal-section .deal-note,
-html[data-theme="dark"] .deal-section .legacy-import p,
 html[data-theme="dark"] .legal-requisites dt {
   color: var(--atlas-dark-muted);
 }
 
-html[data-theme="dark"] .deal-section .deal-name,
-html[data-theme="dark"] .deal-section .deal-price strong,
-html[data-theme="dark"] .deal-section .deal-note svg,
 html[data-theme="dark"] .legal-document > header > svg {
   color: var(--atlas-dark-link);
 }
 
-html[data-theme="dark"] .deal-section .deal-name:hover {
-  color: #d3dcf6;
-}
-
-html[data-theme="dark"] .deal-filters button,
-html[data-theme="dark"] .finds-heading > .btn,
-html[data-theme="dark"] .ux-disclosure > summary,
-html[data-theme="dark"] .favorite-btn,
-html[data-theme="dark"] .favorite-btn.is-favorite,
-html[data-theme="dark"] .deal-heart,
-html[data-theme="dark"] .ledger-icon.debit {
+html[data-theme="dark"] .finds-heading > .btn, html[data-theme="dark"] .ux-disclosure > summary {
   background-color: var(--atlas-dark-raised);
   border-color: var(--atlas-dark-line);
   color: var(--atlas-dark-ink);
-}
-
-html[data-theme="dark"] .deal-filters button.active,
-html[data-theme="dark"] .favorite-btn.is-favorite {
-  background-color: var(--atlas-dark-selected);
-  border-color: #69799f;
-  color: #e3e8f8;
-}
-
-html[data-theme="dark"] .favorite-btn.is-favorite svg {
-  fill: var(--atlas-dark-link);
-  color: var(--atlas-dark-link);
-}
-
-html[data-theme="dark"] .deal-section .deal-image {
-  background-color: var(--atlas-dark-raised);
-}
-
-html[data-theme="dark"] .deal-card {
-  background-color: var(--atlas-dark-surface);
-  border-color: var(--atlas-dark-line);
-  color: var(--atlas-dark-ink);
-}
-
-html[data-theme="dark"] .deal-section .deal-badge {
-  background-color: #42483a;
-  color: #dce9b6;
-}
-
-html[data-theme="dark"] .deal-section .deal-action {
-  background-color: var(--atlas-dark-selected);
-  border-color: #69799f;
-  color: #e3e8f8;
 }
 
 html[data-theme="dark"] .skip-link {
@@ -1585,11 +1118,6 @@ html[data-theme="dark"] .legal-requisites dd {
   color: var(--atlas-dark-warning-ink);
 }
 
-html[data-theme="dark"] .ledger-icon.debit {
-  background-color: var(--atlas-dark-raised);
-  color: var(--atlas-dark-link);
-}
-
 html[data-theme="dark"] .copy-text-btn {
   color: var(--atlas-dark-link);
 }
@@ -1608,24 +1136,14 @@ html[data-theme="dark"] .customs-estimate-body input {
 }
 
 html[data-theme="dark"] .status-badge.cancelled {
-  background-color: #34363b;
+  background-color: var(--night-raised);
   color: var(--atlas-dark-muted);
 }
 
 html[data-theme="dark"] :is(.access-icon, .floating-label, .customer-badge) {
   background-color: var(--atlas-dark-selected);
-  border-color: #69799f;
-  color: #e3e8f8 !important;
-}
-
-html[data-theme="dark"] .card-add {
-  background-color: #42483a;
-  border-color: #596044;
-  color: #dce9b6;
-}
-
-html[data-theme="dark"] .card-add:hover {
-  background-color: #4c5341;
+  border-color: var(--night-line-strong);
+  color: var(--night-ink) !important;
 }
 
 html[data-theme="dark"] .success-icon {
@@ -1634,12 +1152,7 @@ html[data-theme="dark"] .success-icon {
 }
 
 /* Keep catalog accents readable when legacy light-theme rules hard-code navy. */
-html[data-theme="dark"] .find-card .find-total > strong,
-html[data-theme="dark"] .find-card .find-origin a,
-html[data-theme="dark"] .find-card .find-breakdown > summary,
-html[data-theme="dark"] .finds-signin a,
-html[data-theme="dark"] .finds-disclosure > svg,
-html[data-theme="dark"] .finds-disclosure b {
+html[data-theme="dark"] .find-card .find-total > strong, html[data-theme="dark"] .find-card .find-origin a, html[data-theme="dark"] .find-card .find-breakdown > summary, html[data-theme="dark"] .finds-signin a {
   color: var(--atlas-dark-link);
 }
 
@@ -1651,17 +1164,16 @@ html[data-theme="dark"] .find-card .find-store-price > .find-discount {
   color: var(--atlas-dark-success-ink);
 }
 
-html[data-theme="dark"] .finds-count,
-html[data-theme="dark"] .finds-steps li > span {
+html[data-theme="dark"] .finds-count {
   background-color: var(--atlas-dark-selected);
-  border-color: #69799f;
-  color: #e3e8f8;
+  border-color: var(--night-line-strong);
+  color: var(--night-ink);
 }
 
 html[data-theme="dark"] .find-card .find-breakdown > summary:hover,
 html[data-theme="dark"] .find-card .find-origin a:hover,
 html[data-theme="dark"] .finds-signin a:hover {
-  color: #d3dcf6;
+  color: var(--night-jade);
 }
 
 html[data-theme="dark"] .catalog-variant-panel,
@@ -1684,19 +1196,13 @@ html[data-theme="dark"] .catalog-variant-no-image {
 
 html[data-theme="dark"] .catalog-variant-table td:nth-child(6) span,
 html[data-theme="dark"] .catalog-import-progress .import-saved > span {
-  background-color: #263b2d;
-  color: #c5e8c9;
+  background-color: var(--night-jade-soft);
+  color: var(--night-ink);
 }
 
-html[data-theme="dark"] .catalog-variant-table td:nth-child(6) .variant-unknown {
-  background-color: #2b3430;
-  color: #c2cec7;
-}
-
-html[data-theme="dark"] .catalog-variant-table td:nth-child(6) .variant-sold-out,
 html[data-theme="dark"] .catalog-import-progress .import-failed > span {
-  background-color: #452c29;
-  color: #f0bbb0;
+  background-color: var(--night-error-bg);
+  color: var(--night-error-ink);
 }
 
 html[data-theme="dark"] .catalog-variant-table input,
@@ -1712,53 +1218,8 @@ html[data-theme="dark"] .catalog-import-hint {
 }
 
 /* Final contrast sweep for legacy utility copy and route-specific fixed colors. */
-html[data-theme="dark"] .supported-stores {
-  background-color: var(--atlas-dark-surface);
-  border-color: var(--atlas-dark-line);
-  color: var(--atlas-dark-ink);
-}
 
-html[data-theme="dark"] .supported-stores :is(h2, h3) {
-  color: var(--atlas-dark-ink);
-}
-
-html[data-theme="dark"] .supported-stores :is(p, small) {
-  color: var(--atlas-dark-muted);
-}
-
-html[data-theme="dark"] .supported-stores .supported-store-list > li {
-  background-color: var(--atlas-dark-raised);
-  border-color: var(--atlas-dark-line);
-  color: var(--atlas-dark-ink);
-}
-
-html[data-theme="dark"] .supported-stores-link {
-  color: var(--atlas-dark-link);
-}
-
-html[data-theme="dark"] .access-card :is(p, small),
-html[data-theme="dark"] .ticket-list small,
-html[data-theme="dark"] .change-values span,
-html[data-theme="dark"] .variant-step > div:first-child span,
-html[data-theme="dark"] .customs-estimate-caption,
-html[data-theme="dark"] .compact-order-name > span,
-html[data-theme="dark"] .review-items small,
-html[data-theme="dark"] .support-form .support-counter,
-html[data-theme="dark"] .finds-price-note,
-html[data-theme="dark"] .find-meta,
-html[data-theme="dark"] .find-purchase > span,
-html[data-theme="dark"] .find-store-price > small,
-html[data-theme="dark"] .message-log p,
-html[data-theme="dark"] .message-log time,
-html[data-theme="dark"] .staff-notes time,
-html[data-theme="dark"] .admin-section-head > span,
-html[data-theme="dark"] .section-heading > span,
-html[data-theme="dark"] .audit-list span,
-html[data-theme="dark"] .audit-list time,
-html[data-theme="dark"] .payment-preview span,
-html[data-theme="dark"] .review-service,
-html[data-theme="dark"] .declaration-facts dt,
-html[data-theme="dark"] .identity-placeholder {
+html[data-theme="dark"] .access-card :is(p, small), html[data-theme="dark"] .change-values span, html[data-theme="dark"] .variant-step > div:first-child span, html[data-theme="dark"] .customs-estimate-caption, html[data-theme="dark"] .compact-order-name > span, html[data-theme="dark"] .finds-price-note, html[data-theme="dark"] .find-meta, html[data-theme="dark"] .find-purchase > span, html[data-theme="dark"] .find-store-price > small, html[data-theme="dark"] .message-log p, html[data-theme="dark"] .message-log time, html[data-theme="dark"] .staff-notes time, html[data-theme="dark"] .admin-section-head > span, html[data-theme="dark"] .section-heading > span, html[data-theme="dark"] .audit-list span, html[data-theme="dark"] .audit-list time, html[data-theme="dark"] .payment-preview span, html[data-theme="dark"] .review-service {
   color: var(--atlas-dark-muted);
 }
 
@@ -1771,14 +1232,7 @@ html[data-theme="dark"] .find-card .find-breakdown dd {
   color: var(--atlas-dark-ink);
 }
 
-html[data-theme="dark"] .image-edit,
-html[data-theme="dark"] .image-edit summary,
-html[data-theme="dark"] .source-list a,
-html[data-theme="dark"] .currency-rates > summary,
-html[data-theme="dark"] .ticket-list summary,
-html[data-theme="dark"] .message-channel,
-html[data-theme="dark"] .admin-heading > svg,
-html[data-theme="dark"] .ops-tools > summary {
+html[data-theme="dark"] .source-list a, html[data-theme="dark"] .currency-rates > summary, html[data-theme="dark"] .message-channel, html[data-theme="dark"] .admin-heading > svg, html[data-theme="dark"] .ops-tools > summary {
   color: var(--atlas-dark-link);
 }
 
@@ -1792,9 +1246,7 @@ html[data-theme="dark"] .ticket-reply b {
   color: var(--atlas-dark-link);
 }
 
-html[data-theme="dark"] .cart-service-option-copy > .cart-service-rate,
-html[data-theme="dark"] .customs-estimate summary strong,
-html[data-theme="dark"] .checkout-progress li.active {
+html[data-theme="dark"] .customs-estimate summary strong {
   color: var(--atlas-dark-link);
 }
 
@@ -1810,9 +1262,7 @@ html[data-theme="dark"] .remove-item.confirming {
   border-color: var(--atlas-dark-error-line);
 }
 
-html[data-theme="dark"] .credit-line,
-html[data-theme="dark"] .result-line,
-html[data-theme="dark"] .ledger-entry .credit {
+html[data-theme="dark"] .result-line {
   color: var(--atlas-dark-success-ink);
 }
 
@@ -1824,10 +1274,8 @@ html[data-theme="dark"] .expiry.expired {
   color: var(--atlas-dark-warning-ink);
 }
 
-html[data-theme="dark"] .currency-rates > summary:hover,
-html[data-theme="dark"] .ticket-list summary:hover,
-html[data-theme="dark"] .source-list a:hover {
-  color: #d3dcf6;
+html[data-theme="dark"] .currency-rates > summary:hover, html[data-theme="dark"] .source-list a:hover {
+  color: var(--night-jade);
 }
 
 html[data-theme="dark"] .notice-filters button {
@@ -1838,8 +1286,8 @@ html[data-theme="dark"] .notice-filters button {
 
 html[data-theme="dark"] .notice-filters button.active {
   background-color: var(--atlas-dark-selected);
-  border-color: #69799f;
-  color: #e3e8f8;
+  border-color: var(--night-line-strong);
+  color: var(--night-ink);
 }
 
 html[data-theme="dark"] .status-row > div {
@@ -1848,10 +1296,6 @@ html[data-theme="dark"] .status-row > div {
 
 html[data-theme="dark"] .checkout-review hr {
   border-color: var(--atlas-dark-line);
-}
-
-html[data-theme="dark"] .identity-has-document .identity-upload {
-  background-color: var(--atlas-dark-surface);
 }
 
 html[data-theme="dark"] .access-spinner {
@@ -1911,25 +1355,24 @@ html[data-theme="dark"] {
   --primary-foreground: #252a26;
 }
 
-html[data-theme="dark"] .wordmark svg,
-html[data-theme="dark"] .supported-stores-link {
-  color: #b8c99f;
+html[data-theme="dark"] .wordmark svg {
+  color: var(--night-jade);
 }
 
 html[data-theme="dark"] .btn.primary,
 html[data-theme="dark"] .cart-link,
 html[data-theme="dark"] .storage-notice button {
-  background: #a9bf91;
-  border-color: #a9bf91;
-  color: #252a26;
+  background: var(--night-ivory);
+  border-color: var(--night-jade);
+  color: var(--night-on-ivory);
 }
 
 html[data-theme="dark"] .btn.primary:hover,
 html[data-theme="dark"] .cart-link:hover,
 html[data-theme="dark"] .storage-notice button:hover {
-  background: #b7c99f;
-  border-color: #b7c99f;
-  color: #222722;
+  background: var(--night-ivory);
+  border-color: var(--night-jade);
+  color: var(--night-on-ivory);
 }
 
 html[data-theme="dark"] .catalog-scope-tabs {
@@ -1950,8 +1393,8 @@ html[data-theme="dark"] .catalog-empty-state {
 }
 
 html[data-theme="dark"] .catalog-scope-tabs button.active span {
-  background: #384936;
-  color: #e6f2da;
+  background: var(--night-hover);
+  color: var(--night-ink);
 }
 
 html[data-theme="dark"] .catalog-review-controls input,
@@ -1963,37 +1406,37 @@ html[data-theme="dark"] .catalog-draft {
 }
 
 html[data-theme="dark"] .catalog-select .draft-new {
-  background: #304334;
-  border-color: #4d664f;
-  color: #e3f0d8;
+  background: var(--night-hover);
+  border-color: var(--night-line-strong);
+  color: var(--night-ink);
 }
 
 html[data-theme="dark"] .catalog-delete-action {
-  background: #382725;
-  border-color: #70443f;
-  color: #ffd4cd;
+  background: var(--night-error-bg);
+  border-color: var(--night-error-line);
+  color: var(--night-ink);
 }
 
 html[data-theme="dark"] .catalog-delete-action:hover:not(:disabled) {
-  background: #4b2c28;
-  border-color: #a05a51;
-  color: #fff0ec;
+  background: var(--night-error-bg);
+  border-color: var(--night-error-line);
+  color: var(--night-ink);
 }
 
 /* Compact order-by-link quote disclosures use the same low-glare surface as the rest of Atlas. */
 html[data-theme="dark"] .single-variant-selection,
 html[data-theme="dark"] .quote-cost-help > summary,
 html[data-theme="dark"] .customs-estimate-help > summary {
-  background: #202b25;
-  border-color: #35463c;
-  color: #cde8a2;
+  background: var(--night-surface);
+  border-color: var(--night-line-strong);
+  color: var(--night-ink);
 }
 
 html[data-theme="dark"] .quote-cost-help-popover,
 html[data-theme="dark"] .customs-estimate-popover {
-  background: #18221d;
-  border-color: #35463c;
-  color: #e8efea;
+  background: var(--night-surface);
+  border-color: var(--night-line-strong);
+  color: var(--night-ink);
   box-shadow: 0 12px 32px #0008;
 }
 
@@ -2002,13 +1445,13 @@ html[data-theme="dark"] .customs-compact-copy > small,
 html[data-theme="dark"] .customs-compact-note,
 html[data-theme="dark"] .single-colorway-note,
 html[data-theme="dark"] .single-colorway-source {
-  color: #afbbb3;
+  color: var(--night-ink-2);
 }
 
-html[data-theme="dark"] .single-colorway-source > span { color: #e8efea; }
+html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink); }
 
 html[data-theme="dark"] .customs-estimate-compact {
-  border-color: #35463c;
+  border-color: var(--night-line-strong);
 }
 
 /* Catalog filter panel and active chips stay distinct in graphite mode. */
@@ -2023,7 +1466,7 @@ html[data-theme="dark"] .finds-filter-primary .catalog-filter-disclosure[open]>s
 html[data-theme="dark"] .finds-filter-primary .catalog-filter-disclosure>summary:hover,
 html[data-theme="dark"] .finds-active-filters>button:hover {
   background: var(--atlas-dark-hover);
-  border-color: #69717e;
+  border-color: var(--night-line-strong);
   color: var(--atlas-dark-ink);
 }
 
@@ -2055,20 +1498,6 @@ html[data-theme="dark"] .finds-active-filters>button svg {
   color: var(--atlas-dark-ink);
 }
 
-html[data-theme="dark"] .link-form .catalog-fixed-note {
-  background: var(--atlas-dark-raised);
-  border-color: var(--atlas-dark-line);
-  color: var(--atlas-dark-muted);
-}
-
-html[data-theme="dark"] .link-form .catalog-locked-field,
-html[data-theme="dark"] .link-form .catalog-locked-field:disabled {
-  background-color: var(--atlas-dark-raised);
-  border-color: var(--atlas-dark-line);
-  color: var(--atlas-dark-ink);
-  opacity: 1;
-}
-
 html[data-theme="dark"] .catalog-shipping-editor input[type="number"] {
   background-color: var(--atlas-dark-raised);
   border-color: var(--atlas-dark-line);
@@ -2087,7 +1516,7 @@ html[data-theme="dark"] .catalog-shipping-editor>small {
   padding: 14px;
   border: 1px solid var(--atlas-line);
   border-radius: 12px;
-  background: var(--atlas-surface, #fff);
+  background: var(--atlas-surface, var(--night-ivory));
   color: var(--atlas-ink);
 }
 
@@ -2114,17 +1543,17 @@ html[data-theme="dark"] .catalog-shipping-editor>small {
 }
 
 .catalog-refresh-status.failed,
-.catalog-refresh-error { color: #8f352b; }
-.catalog-refresh-status.attention { color: #88641a; }
-.catalog-refresh-status.success { color: #356744; }
+.catalog-refresh-error { color: var(--night-error-ink); }
+.catalog-refresh-status.attention { color: var(--night-warn-ink); }
+.catalog-refresh-status.success { color: var(--night-muted); }
 
 .catalog-refresh-failure-count {
   flex: 0 0 auto;
   padding: 4px 8px;
-  border: 1px solid #e7c6bb;
+  border: 1px solid var(--night-error-line);
   border-radius: 999px;
-  background: #fff5f0;
-  color: #8f352b;
+  background: var(--night-ivory);
+  color: var(--night-error-ink);
   font-size: 12px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
@@ -2167,9 +1596,9 @@ html[data-theme="dark"] .catalog-shipping-editor>small {
 .catalog-refresh-error {
   margin: 0;
   padding: 10px 12px;
-  border: 1px solid #e7c6bb;
+  border: 1px solid var(--night-error-line);
   border-radius: 9px;
-  background: #fff5f0;
+  background: var(--night-ivory);
   font-size: 13px;
   line-height: 1.55;
   overflow-wrap: anywhere;
@@ -2190,7 +1619,7 @@ html[data-theme="dark"] .catalog-refresh-failure-count {
 }
 
 html[data-theme="dark"] .catalog-refresh-status.attention { color: var(--atlas-dark-warning-ink); }
-html[data-theme="dark"] .catalog-refresh-status.success { color: #a8d1ad; }
+html[data-theme="dark"] .catalog-refresh-status.success { color: var(--night-jade); }
 
 @media(max-width:650px) {
   .catalog-refresh-diagnostics-head { flex-direction: column; }

@@ -36,6 +36,12 @@ export const catalogEntrySchema=z.object({
   refresh:catalogRefreshSchema.optional(),autoHiddenAt:z.number().int().nonnegative().optional(),autoHideReason:z.enum(['source-sold-out']).optional(),
 });
 export type CatalogEntry=z.infer<typeof catalogEntrySchema>;
+export const catalogRecheckBatchSize=10;
+export function catalogRecheckBatches(ids:string[]){
+  const unique=[...new Set(ids)],batches:string[][]=[];
+  for(let index=0;index<unique.length;index+=catalogRecheckBatchSize)batches.push(unique.slice(index,index+catalogRecheckBatchSize));
+  return batches;
+}
 export const catalogAvailabilityReportSchema=z.object({
   id:text.min(1).max(100),productId:text.min(1).max(100),sourceUrl:text.url().max(3000),
   answer:z.enum(['available','unavailable']),variant:text.max(140).optional(),reporterId:text.max(320),

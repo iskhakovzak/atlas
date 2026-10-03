@@ -1,5 +1,14 @@
 # Atlas architecture
 
+## Page shell, language versions, monitoring and security headers — 3 October 2026
+
+- **Page shell.** `app/marketplace.tsx` is only the shell (header, breadcrumb, footer, members' bottom bar, toasts). Every `app/*/page.tsx` passes its view as children (`<Marketplace view="cart"><CartView/></Marketplace>`) instead of the removed `lazy()` table in `app/lazy-views.tsx`, so a route loads only its own view, without a second request after hydration, and the server HTML carries the view in place: `/customs` and `/legal` no longer ship their text in a hidden Suspense segment. The home catalog and product sheet live in `app/home-catalog.tsx` (also `/favorites`), shared labels in `app/marketplace-words.ts`, the public customs page in `app/customs-view.tsx`. Unknown URLs render `app/not-found.tsx` in the same shell, localized, with HTTP 404.
+- **Language versions.** `middleware.ts` turns `?lang=uz|ru|en` on any page into the `x-atlas-locale` request header (a client-sent copy is always replaced). `app/page-locale.ts` resolves the render language as `?lang` → `atlas-language` cookie → Accept-Language → Uzbek (`renderLocale` in `lib/market/i18n.ts`) for the root layout (`<html lang>`, `MarketProvider`) and every page's `generateMetadata`. `publicMetadata(page, lang, fallback)` in `app/route-metadata.ts` gives `/`, `/stores`, `/customs` and `/legal` a title and description in the rendered language, a self-canonical URL and `uz`/`ru`/`en`/`x-default` alternates; private pages get `privateMetadata(view, locale)` (localized `routeTitle`, noindex). `public/sitemap.xml` lists each page and its `?lang` versions with `xhtml:link` alternates. Vinext streams async metadata into the body for browsers and Googlebot and renders it in `<head>` for HTML-only bots (checked with YandexBot).
+- **Field monitoring.** `PerformanceProbe` (root layout) keeps its local samples and also sends one anonymous beacon per page view to `POST /api/telemetry`: path, device class (≤760 px = mobile), TTFB/FCP/LCP/INP/CLS and the slow-API count when the page is hidden, plus up to five uncaught errors or rejections (sent after 2 s). The endpoint (same origin, 300 beacons per hashed IP per 10 minutes because mobile carriers share addresses, 16 KB, always `204`, body always read first so keep-alive connections never stall) maps the path to a fixed route list and scrubs emails, long numbers and URL parameters (`lib/market/telemetry.ts`). Speed samples go to `market_web_vitals` (migration 0007); errors go to `market_operational_errors` with area `client`, and repeats of an open error raise `details.count`/`lastSeen` instead of adding rows (`lib/market/telemetry-store.ts`). Content-Security-Policy reports (`application/csp-report`, no Origin header) are stored there with area `csp`. Rows older than 30 days are pruned on 2% of requests. `/admin` → System shows the error log with repeat counts and the p75 per route over 7 days (`vitalsSummary`, returned by `GET /api/operations`).
+- **Security headers.** `next.config.ts` sends `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (camera, microphone, geolocation, payment and USB off), `Strict-Transport-Security: max-age=15552000` and a report-only CSP (including `frame-ancestors 'none'`) on every response. Vinext's `/:path*` does not match `/`, hence two rules. Enforcing the CSP and frame protection waits for clean reports.
+- **App icons.** `scripts/make-icons.mjs` renders `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, a maskable 512 px icon and `favicon.ico` from `public/favicon.svg`; `public/manifest.webmanifest` lists them, and `theme-color` follows the site theme (`ThemeColorSync` in `app/theme-control.tsx`).
+- **Tooling.** `npm run e2e` (`scripts/e2e.mjs`) drives Chrome/Edge over CDP: guest pages and `?lang` versions, sign-in, cart, the three-step checkout through the interface and My orders, then light and dark snapshots at 390 and 1280 px of guest, customer and operator pages, failing on script errors, horizontal overflow, text below WCAG AA contrast, broken images, unnamed controls, duplicate ids or a missing/duplicated h1; `--compare <run>` lists computed-style changes against an earlier run. `scripts/css-unused.mjs` removes selectors whose classes no source file mentions (22% of app CSS on 3 October 2026, with no computed-style change in the e2e snapshots).
+
 ## Guest preview boundary — 2 October 2026
 
 `link` is a public view. `/api/import` reads optional platform identity only to select rate limits; it does not read/write accounts. All requests still require same origin and bounded validated source URLs. Anonymous requests increment both a shared 60/minute counter and a SHA-256 edge-IP bucket capped at 6/minute; unknown edge IPs share one bucket. The existing D1 rate-limit/cache tables are reused. `/api/catalog` adds current public pricing, parsed by MarketProvider for guest estimates. Cart/account/order APIs keep mandatory identity, same-origin and server recomputation. The link-order continuation sends guests to a safe same-tab sign-in return path, leaving its existing browser-session draft intact. Catalog entries continue to rehydrate from published context, not guest-owned catalog snapshots.
@@ -46,14 +55,17 @@ The UI's legacy fallback option arrays are explicitly typed and optional country
 - Cloudflare Worker runtime.
 - Cloudflare D1 binding DB.
 - Drizzle schema/migration.
-- Hosted ChatGPT identity headers.
+- Atlas-owned sign-in (Telegram, SMS code, email code, Google) with D1-backed sessions.
 - shadcn/Base UI and Lucide.
 
 ## Module map
 
 | Area | Files |
 | --- | --- |
-| Shell/navigation/catalog | app/marketplace.tsx, app/layout.tsx, app/globals.css, app/supported-stores.tsx |
+| Shell/navigation | app/marketplace.tsx (shell around each page's view), app/marketplace-words.ts, app/layout.tsx, app/not-found.tsx, app/globals.css |
+| Home catalog and product sheet | app/home-catalog.tsx, app/home-sections.tsx, app/supported-stores.tsx |
+| Language and page metadata | middleware.ts, app/page-locale.ts, app/route-metadata.ts, lib/market/i18n.ts, public/sitemap.xml |
+| Field monitoring | app/performance-probe.tsx, app/api/telemetry/route.ts, lib/market/telemetry.ts, lib/market/telemetry-store.ts, app/performance-summary.tsx |
 | Deals-first feed/favourites | app/deals-feed.tsx, app/finds.css, lib/market/deals.ts, lib/market/deal-copy.ts, lib/market/catalog.ts; D1-published merchant records with bundled fallback, pricing and authenticated favourite action |
 | Shared Atlas visual system | app/atlas-design.css plus app/experience.css; responsive hero, cards, account, forms, order surfaces and green review palette. app/dark-theme.css provides the opt-in low-glare graphite palette; app/theme-control.tsx owns the light-default, local-only theme provider and toggle. |
 | Link order | app/global-link-order.tsx |
@@ -61,16 +73,16 @@ The UI's legacy fallback option arrays are explicitly typed and optional country
 | Cart/order workflows, balance and pricing form component | app/order-workspace.tsx; the shared `PricingManager` is rendered centrally by `app/admin-view.tsx` |
 | Copy order ID interaction | app/copy-text.tsx; localized clipboard action in expanded order details |
 | Analytics, legal/readiness | app/prelaunch-views.tsx |
-| Account/customs | app/account-views.tsx, app/customs/page.tsx |
+| Account/customs | app/account-views.tsx, app/customs-view.tsx, app/customs/page.tsx |
 | Identity/declaration/address help | app/identity-workspace.tsx, app/api/passport, lib/market/addresses.ts |
 | Batch import/admin catalog, unified pricing and rules | app/batch-import.tsx, app/admin-view.tsx, app/catalog-admin.tsx, lib/market/catalog-editor.ts, lib/market/catalog-server.ts, lib/market/policy.ts |
 | Client provider | lib/market/store.tsx |
-| Auth/access | app/chatgpt-auth.ts, app/access-view.tsx, lib/market/access.ts |
+| Auth/access | lib/auth/core.ts (pure helpers), lib/auth/server.ts (sessions, codes, providers), lib/auth/return-to.ts, app/api/auth/*, app/login-view.tsx, app/access-view.tsx, lib/market/access.ts |
 | API | app/api/account, app/api/actions, app/api/import, app/api/catalog, app/api/internal/catalog-refresh, app/api/operations |
 | Domain/security | lib/market/domain.ts, actions.ts, server.ts, world.ts |
 | Importing | lib/importer/stores.ts, fetch.ts, extract.ts, shopify.ts |
-| Database | db/schema.ts, drizzle/0000_overrated_justice.sql |
-| Tests | tests/market.test.mjs, tests/world.test.mjs |
+| Database | db/schema.ts, drizzle/0000_overrated_justice.sql … drizzle/0007_web_vitals.sql |
+| Tests and tooling | tests/*.test.mjs; scripts/smoke-ui.mjs, scripts/smoke-auth.mjs, scripts/e2e.mjs, scripts/css-unused.mjs, scripts/make-icons.mjs |
 
 ## Link import fallback and eBay
 
@@ -103,7 +115,7 @@ flowchart TD
   UI --> Import[POST api import]
   UI --> Catalog[GET or POST api catalog]
   UI --> Actions[POST api actions]
-  Account --> Auth[ChatGPT headers]
+  Account --> Auth[Atlas session cookie]
   Import --> Auth
   Catalog --> Auth
   Actions --> Auth
@@ -115,6 +127,38 @@ flowchart TD
   Actions --> D1
   Catalog --> D1
 ~~~
+
+## Home page and site language
+
+The catalog route renders `HomeHero`, `HowItWorks`, `ExampleQuote`, `DealsFeed` (only from 8 products), `DeliveryTariffs`, `TrustSection` and `HomeFaq` from `app/home-sections.tsx`, then the shared `SiteFooter`. All home copy is in `lib/market/home-copy.ts` (uz/ru/en). Business facts — contacts, legal entity, delivery days, connected payment methods, reviews, parcel photos, delivered-order count — come only from `lib/market/site-content.ts`; empty values hide their block in production and show a dashed placeholder in dev. The example estimate and the per-kg column use the live pricing settings (`pricingForCountry` for dispatch-country overrides; per-kg includes the delivery margin) and are labelled as estimates, not offers.
+
+The root layout renders in `pageLocale()`: an explicit `?lang=uz|ru|en` (passed on by `middleware.ts`), then the `atlas-language` cookie, Accept-Language and Uzbek. It passes the result to `MarketProvider`, so server HTML and the first client render share one language; the client saves a `?lang` choice. Every public page (`/`, `/stores`, `/customs`, `/legal`) has self-canonical `?lang` versions with hreflang alternates, and titles always match the rendered language. API errors use the same cookie/Accept-Language resolution (`requestLocale`).
+
+## Cart and account pages
+
+`CartView` (`app/shopping.tsx`) and `AccountView` (`app/account-views.tsx`) take all copy from `lib/market/customer-copy.ts` and are styled by `app/customer.css` (loaded after `home.css`, same `--home-*` tokens). The cart groups lines with the exported domain `merchantParcelKey`, so the UI parcels match the server's shipping allocation; totals are summed from the stored line quotes and split with `atlasServiceBreakdown`, display only. Checkout still sends the same `checkout` action (cart signature, expected balance credit, `customsVersion` consent, delivery, profile IDs); the UI requires the consent tick on the confirmation step before sending, and the server keeps validating everything. The account page reads only existing state (orders, cart, entries, notifications, profiles, identity profiles, declarations, tickets); the customs bar counts this month's non-cancelled orders' merchandise in USD against `courierAllowanceUsd`. `<main data-view>` lets page CSS hide the breadcrumb on phones for these views.
+
+`OrdersView` (`app/order-workspace.tsx`) still serves both `/orders` and the operator `/operations` queue. In customer mode each order renders through `CustomerOrderCard`, which reuses the same state, `runOrderAction`, confirmation dialog, `CustomerWarehouseServices` and `OrderDocuments`; the operator branch keeps its original markup and tools. `NotificationsView` and `BalanceView` read the same state as before (`notifications`, `communication`, `entries`, order reserves) and still send only `notifications-read` and `communication-save`. Their copy lives in `ordersCopy`, `balanceCopy` and `noticesCopy` in `lib/market/customer-copy.ts`; dates use `formatShortDate` / `formatDateTime`, built by hand for Uzbek.
+
+## Recipients, documents and the monthly allowance
+
+`delivery-profile-save` accepts optional `id` (edit that recipient in place) and `primary` (make it the default); `saveDeliveryProfile` in `lib/market/domain.ts` keeps exactly one default and, when neither field is sent, behaves as before (the saved recipient becomes the default). `checkout` accepts optional `saveRecipientLabel`: with a typed `delivery` and no `deliveryProfileId`, the server saves the recipient and links the new orders to it in the same revision, so a failed checkout saves nothing. `app/recipient-form.tsx` is the one recipient form (account, passport page); phone numbers are normalised to "+998 XX XXX XX XX" by `lib/market/addresses.ts`, which also holds UZ/EN region labels and regional centres. `/identity?recipient=<id>` preselects the passport's recipient. `lib/market/allowance.ts` derives the per-person monthly total (non-cancelled orders this calendar month, grouped by recipient name, USD at each order's quote rate) for the account card, order details and the cart customs estimate; it reads state only and stores nothing.
+
+`/order-by-link` (`GlobalLinkOrder`) keeps its import, draft, validation and `cart-add` code; only the layout changed. Price rows on the cart and this page share `app/price-summary.tsx`.
+
+## Dark theme and typography
+
+`app/theme-night.css` is imported last in `app/layout.tsx` and owns the dark appearance: it defines the `--night-*` palette under `html[data-theme="dark"]`, points every older variable family at it (shadcn tokens, `--atlas-*`, `--atlas-dark-*`, `--home-*`, `--cx-*`) and adds the component finish. Dark rules in `dark-theme.css`, `home-polish.css` and `login.css` use only `var(--night-*)` colours, so a palette change is one edit. Light-theme rules that set colours with `!important` need a dark mirror in `theme-night.css`. The font is Manrope (`@fontsource-variable/manrope/wght.css`, self-hosted, `font-display: swap`), applied through `--font-sans` in both themes.
+
+## Sign-in and sessions
+
+Atlas no longer relies on ChatGPT Sites identity headers; `oai-authenticated-*` headers are ignored. `/login` offers each method only when its provider settings exist (`GET /api/auth/methods`):
+
+- Email code (Resend) and phone code (Eskiz.uz, +998 only): `POST /api/auth/otp` with `step: start|verify`. Six-digit codes live 10 minutes, are stored only as an HMAC bound to the challenge ID (pepper `ATLAS_AUTH_SECRET`), allow 5 attempts, and are deleted on use. Sending is limited to 3 per target per 10 minutes, 10 per day, and 20 per edge IP per hour.
+- Telegram Login Widget: the widget's JS callback posts to `POST /api/auth/telegram`; the server checks the HMAC with `TELEGRAM_BOT_TOKEN` and a 10-minute `auth_date` window.
+- Google: `GET /api/auth/google` starts OAuth with PKCE, state and nonce; the state is also kept in a short `__Host-atlas_oauth` cookie to block login CSRF. The callback accepts only a verified email with matching issuer, audience, nonce and expiry.
+
+User IDs: email and Google sign-ins map to `email:<address>`, which keeps accounts created under the former ChatGPT sign-in. Phone uses `phone:+998…` and Telegram `tg:<id>`; neither carries an email, so `operator()` can only match `ATLAS_OPERATOR_EMAIL` through a verified email. A successful sign-in creates a random 256-bit token in the `__Host-atlas_session` cookie (HttpOnly, Secure, SameSite=Lax, 30 days); D1 `market_auth_sessions` keeps only its SHA-256. `POST /api/auth/logout` deletes the row. All auth POSTs require same-origin requests. Dev servers on loopback hosts return codes on screen instead of sending them; production builds compile that path out unless `ATLAS_AUTH_DEV_CODES=true`, and even then only for loopback hosts.
 
 MarketProvider loads account state and revision, then sends action plus expected revision. The server parses Zod action input, applies domain function and persists only when revision matches. Conflict returns current state rather than overwriting another tab.
 
@@ -138,7 +182,9 @@ market_accounts:
 | revision | CAS integer |
 | created_at, updated_at | Epoch milliseconds |
 
-market_rate_limits stores per-minute import counters and expiry.
+market_rate_limits stores per-minute import counters and expiry, sign-in limits and the `telemetry:` beacon budget.
+
+market_web_vitals (migration 0007) stores anonymous page-speed samples: fixed route name, device class, TTFB/FCP/LCP/INP/CLS and the slow-API count, with no account, IP or query string; rows older than 30 days are pruned. Browser script errors and CSP reports share `market_operational_errors` (areas `client` and `csp`) and keep `count`, `lastSeen` and `route` in its JSON `details`.
 
 market_settings stores the current versioned pricing JSON, policy JSON and editorial `catalog` JSON with update identity. Catalog writes use a separate document revision and compare-and-swap update; public reads expose only current published snapshots. On read, the server additively reconciles newly bundled merchant records into the same D1 document using a compare-and-swap write. Existing entries—including hidden products and operator edits—win by stable ID or canonical source URL. market_import_cache stores allowlisted extracted product payloads for ten minutes.
 
@@ -173,7 +219,8 @@ Declaration previews derive identity and address from the selected order snapsho
 | POST /api/catalog-availability | customer identity + same origin + rate limit + exact catalog ID/source → persisted available/unavailable report and operator-review marker |
 | POST /api/internal/catalog-refresh | scheduler-only HMAC signature + D1 lease → one bounded due batch; no browser identity, CORS or caller-controlled limit |
 | POST /api/actions | identity + same origin + action/revision → next state |
-| GET /api/operations | operator identity → customer/support queues, pricing, policy, projection health, staff directory and audit events |
+| GET /api/operations | operator identity → customer/support queues, pricing, policy, projection health, staff directory, audit events, the error log with repeat counts and the 7-day page-speed summary |
+| POST /api/telemetry | same-origin beacon (route, device, speed metrics, up to five script errors) or browser CSP report → anonymous rows; 300 per hashed IP per 10 minutes, 16 KB, always `204` |
 | POST /api/operations | operator identity + validated payload → order/support action (including a selected owner's in-app notification), customer access, projection rebuild, pricing, policy or staff-directory update + audit event |
 | GET/POST /api/order-documents | owner/operator listing and download; operator-only private R2 upload for invoice, purchase proof and warehouse material |
 | GET /api/backup | operator-only D1 JSON export with checksum and audit record; blob bytes excluded |
@@ -188,6 +235,14 @@ Linked products pass a source-freshness boundary in `/api/actions`: on cart addi
 After a successful source-backed `cart-add`, the action route passes the verified importer snapshot to `addCustomerLinkDraft`. That helper canonicalizes the allowlisted source URL, performs an optimistic D1 catalog write only when no matching draft or published entry exists, and records a `catalog.customer-link` audit event. The result is a draft with a customer-demand review reason; it is intentionally not published or treated as Atlas inventory. A concurrent duplicate request is resolved by the catalog document's compare-and-swap revision, so the side effect is idempotent without weakening the account/cart transaction.
 
 Catalog source observations have a second, non-customer path. Each entry may store optional due/attempt/success/error/status metadata and an auto-hide reason. `refreshDueCatalog()` selects at most five due cards from distinct source hosts, fetches with a global concurrency of two, rereads the D1 document before its compare-and-swap write, and records a system audit event. It can update a complete, explicitly in-stock source snapshot or unpublish a definitive all-sold-out matrix; it never hides on a failed, blocked or incomplete source response. The internal endpoint authenticates a `POST` with a five-minute HMAC timestamp/signature and holds a two-minute D1 lease. The Sites artifact has no `scheduled` handler: production uses the separately enabled UpCloud systemd timer and HMAC caller. No `setInterval` or user browser is treated as a scheduler.
+
+The separate `workers/catalog-refresh/` Cron Worker keeps the hourly HMAC caller out of the Site. `/health` exposes only boolean configuration readiness and stable reason codes; cron logs contain outcome, duration and a safe failure code/status, never secrets, URLs or response bodies. The Worker requires `ATLAS_SITE_URL` to be an HTTPS origin (no path/query) and a configured shared secret. This configuration check does not prove that the secret matches the Site or that a scheduled network call succeeds; provisioning, alerting and a real cron run remain deployment checks.
+
+Operator order issue cases are optional fields in the existing account JSON and require no migration. `order-issue-update` is in the existing operator-only action allowlist and records bounded case history through the same-origin, account-revision and audit path. Existing `order-notify` is a separate order-linked in-app message; internal notes remain separate. Neither action sends email/SMS or issues an external refund.
+
+`PerformanceProbe` observes supported browser Navigation/Paint/LCP/CLS/Event Timing entries and same-origin `/api/` resource durations. It persists at most 20 recent samples in the current browser's localStorage, with coarse route groups and numeric aggregates only, and sends the anonymous field beacon described under "Field monitoring" (3 October 2026). The operator System panel shows the 7-day p75 per route from all visitors and, separately, this browser's local p75.
+
+The public routes `/`, `/stores`, `/customs` and `/legal` set independent canonical and Open Graph URLs plus `?lang` hreflang versions; the root layout intentionally does not impose `/` as a child-page canonical. Account, order, operator and other workflow routes set `noindex`/`nofollow`; the public sitemap contains only those stable pages and their language versions. There are no dedicated per-product public URLs yet, so product offers/availability are not emitted as structured data and expired snapshots are not added to the sitemap.
 
 When a public catalog card opens `/order-by-link?url=…`, the client auto-starts the protected import instead of asking the customer to submit the same URL again. It renders the imported colour/size/model matrix and preliminary calculation, then submits a normal `cart-add` action only after the customer confirms the selected combination. The link query is navigation context only: the action route repeats source verification before persisting the cart line. The public grid does not append separate client-only products: catalog administration, collections, favourites and ordering all resolve the same D1-backed catalog IDs and published snapshots.
 
@@ -204,7 +259,7 @@ Pricing stores base international freight and delivery margin separately. Intern
 | ATLAS_CATALOG_REFRESH_SECRET | Required only by an external scheduled Worker to HMAC-sign bounded catalog-refresh calls |
 | BUCKET | Private R2 storage for owner-scoped passport scans |
 
-Migration 0005 adds `market_order_documents`, `market_operational_errors` and `market_backup_exports`. Private files remain in R2; D1 keeps ownership, classification and audit metadata.
+Migration 0005 adds `market_order_documents`, `market_operational_errors` and `market_backup_exports`. Private files remain in R2; D1 keeps ownership, classification and audit metadata. Migration 0007 adds `market_web_vitals`; until it is applied, beacons are accepted and dropped and the System panel says the summary is unavailable.
 
 No payment processor, carrier API, automatic FX API, customer email/SMS provider or standalone identity provider exists. Atlas has an optional official eBay Browse adapter that uses a server-only application token and exact listing IDs; credentials never pass through the New York merchant-page proxy. Production OAuth currently succeeds, but a live item request still returns HTTP 400 and safely falls back to manual entry, so eBay title/price/variant import is not verified and production Buy API eligibility may still need eBay approval. eBay account-deletion notification subscription and test are configured and verified separately. Payment webhooks, tracking and customer-facing external messages remain simulated. FX/tariffs are operator-managed and product imports have a short D1 cache.
 
@@ -220,6 +275,7 @@ Importer expansion: `shopify.ts` builds only allowlisted locale-aware `/products
 - Merchant allowlist and redirect validation.
 - Time/body caps, captcha detection and safe image validation.
 - No cookies/auth sent to stores.
+- Response headers from `next.config.ts`: `nosniff`, `strict-origin-when-cross-origin` referrer policy, a restrictive `Permissions-Policy`, HSTS (180 days, host only) and a report-only Content-Security-Policy whose violations reach `/api/telemetry`. The policy allows inline scripts (RSC payload, theme script), Telegram's widget and HTTPS merchant images; enforce it, including `frame-ancestors 'none'`, after the reports are clean.
 
 ## Deployment
 

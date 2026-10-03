@@ -1,112 +1,188 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "@/components/site-link";
-import { AlertCircle, ArrowRight, ArrowUpRight, Bell, Check, FileCheck2, Heart, LogOut, MapPin, MessageCircle, Package, Plus, ScanLine, ShieldCheck, ShoppingBag, UserRound, Wallet } from "lucide-react";
+import { AlertCircle, ArrowRight, ArrowUpRight, Bell, Check, FileCheck2, LogOut, MapPin, MessageCircle, Package, Pencil, Plus, ScanLine, ShoppingBag, Wallet } from "lucide-react";
 import { useMarket } from "@/lib/market/store";
-import { customsReferences as customsSources } from "@/lib/market/customs";
-import { CustomsCalculator } from "./customs-estimate";
-import { balanceOf, money } from "@/lib/market/domain";
-import { cities, regions, streets, suggestions } from "@/lib/market/addresses";
+import { courierAllowanceUsd } from "@/lib/market/customs";
+import { balanceOf, totalOf, type SavedDeliveryProfile } from "@/lib/market/domain";
+import { monthlyAllowance, recipientKey, type RecipientAllowance } from "@/lib/market/allowance";
+import { localizedStatuses } from "@/lib/market/i18n";
+import { formatSum } from "@/lib/market/home-copy";
+import { accountCopy, formatLongDate, itemCount, recipientCopy, type AccountCopy } from "@/lib/market/customer-copy";
+import { siteContent } from "@/lib/market/site-content";
 import { toast } from "sonner";
-import { Modal, PageHeading } from "./market-ui";
+import { Modal } from "./market-ui";
 import { SafeDeleteButton } from "./safe-delete-button";
+import { ThemeToggle } from "./theme-control";
+import { RecipientForm } from "./recipient-form";
 
+// Account home, mobile-first: one "what needs you now" card, four quick tiles, then
+// recipients, customs allowance, documents, support and settings — each shown once.
 export function AccountView() {
-  const { user, state, ready, act } = useMarket();
-  const lang=state.communication.language;
-  const labels={ru:{title:"Личный кабинет",intro:"Всё важное по покупкам — на одном экране.",settings:"Профиль и настройки",manage:"Управление Atlas",addresses:"Получатели и адреса",documents:"Документы",support:"Поддержка",limits:"Таможенный ориентир",next:"Сейчас важно",orders:"Заказы",active:"В работе",saved:"Избранное",messages:"Новые сообщения",services:"Сервисы Atlas",allOrders:"Все заказы",open:"Открыть",ready:"Всё в порядке",readyHint:"Сейчас от вас ничего не требуется.",shop:"Перейти в каталог",signInTitle:"Вход и создание аккаунта",signInText:"Войдите через ChatGPT — профиль Atlas создастся автоматически. Ваши находки, адреса и заказы будут доступны в одном кабинете.",continueChatGPT:"Продолжить с ChatGPT",download:"Скачать данные",signOut:"Выйти",passport:"Паспорт",confirmed:"Подтверждён",needsConfirm:"Нужно подтвердить",declarations:"Декларации",balance:"Баланс Atlas",notifications:"Уведомления",savedRecipients:"Сохранённые получатели для оформления заказа",add:"Добавить",primary:"основной",remove:"Удалить",noRecipients:"Получателей пока нет.",monthlyNote:"Покупки через Atlas в этом месяце. Покупки в других сервисах здесь не учитываются.",termsCalc:"Условия и расчёт",documentsNote:"Паспорт, декларации и экспорт данных. Счета и складские материалы находятся внутри заказов.",export:"Экспорт",hasReply:"Есть ответ",waiting:"Ждём ответа",closed:"Закрыто",messagesCount:"сообщений",openHistory:"Открыть историю",supportTeam:"Поддержка",you:"Вы",replyPlaceholder:"Ответить по обращению",reply:"Ответить",noTickets:"Нет открытых обращений.",subjectPlaceholder:"Тема обращения",questionPlaceholder:"Опишите вопрос",send:"Отправить",sent:"Обращение отправлено в очередь.",migration:"Перенос прежних данных",previousOrders:"Заказы из предыдущей версии",migrationText:"Если в этом браузере уже есть данные Atlas, можно один раз перенести их в пустой профиль.",findOrders:"Найти прежние заказы",noLegacy:"В этом браузере старых данных нет.",browserAccess:"Нет доступа к данным браузера.",migrateTitle:"Перенести данные?",migrateDescription:"Будут перенесены заказы, корзина, избранное и баланс Atlas из этого браузера. Подтвердите, что это ваши данные.",migrateConfirm:"Это мои данные — перенести",newRecipient:"Новый получатель",addressNote:"Адрес сохраняется в вашем профиле и используется при оформлении заказа."},uz:{title:"Shaxsiy kabinet",intro:"Xaridlar bo‘yicha barcha muhim ma’lumotlar bir joyda.",settings:"Profil va sozlamalar",manage:"Atlas boshqaruvi",addresses:"Qabul qiluvchilar va manzillar",documents:"Hujjatlar",support:"Yordam",limits:"Bojxona bahosi",next:"Hozir muhim",orders:"Buyurtmalar",active:"Jarayonda",saved:"Saqlangan",messages:"Yangi xabarlar",services:"Atlas xizmatlari",allOrders:"Barcha buyurtmalar",open:"Ochish",ready:"Hammasi joyida",readyHint:"Hozir sizdan hech narsa talab qilinmaydi.",shop:"Katalogga o‘tish",signInTitle:"Kirish va akkaunt yaratish",signInText:"ChatGPT orqali kiring — Atlas profilingiz avtomatik yaratiladi. Saqlanganlar, manzillar va buyurtmalar bir joyda bo‘ladi.",continueChatGPT:"ChatGPT bilan davom etish",download:"Ma’lumotlarni yuklash",signOut:"Chiqish",passport:"Pasport",confirmed:"Tasdiqlangan",needsConfirm:"Tasdiqlash kerak",declarations:"Deklaratsiyalar",balance:"Atlas balansi",notifications:"Bildirishnomalar",savedRecipients:"Buyurtma uchun saqlangan qabul qiluvchilar",add:"Qo‘shish",primary:"asosiy",remove:"O‘chirish",noRecipients:"Hali qabul qiluvchilar yo‘q.",monthlyNote:"Shu oy Atlas orqali qilingan xaridlar. Boshqa xizmatlardagi xaridlar hisobga olinmaydi.",termsCalc:"Shartlar va hisoblash",documentsNote:"Pasport, deklaratsiyalar va ma’lumotlar eksporti. Hisoblar va ombor materiallari buyurtma ichida.",export:"Eksport",hasReply:"Javob bor",waiting:"Javob kutilmoqda",closed:"Yopilgan",messagesCount:"xabar",openHistory:"Tarixni ochish",supportTeam:"Yordam",you:"Siz",replyPlaceholder:"Murojaatga javob",reply:"Javob berish",noTickets:"Ochiq murojaatlar yo‘q.",subjectPlaceholder:"Murojaat mavzusi",questionPlaceholder:"Savolingizni yozing",send:"Yuborish",sent:"Murojaat navbatga yuborildi.",migration:"Eski ma’lumotlarni ko‘chirish",previousOrders:"Oldingi versiya buyurtmalari",migrationText:"Brauzerda Atlas ma’lumotlari bo‘lsa, ularni bo‘sh profilga bir marta ko‘chirish mumkin.",findOrders:"Eski buyurtmalarni topish",noLegacy:"Bu brauzerda eski ma’lumotlar yo‘q.",browserAccess:"Brauzer ma’lumotlariga kirib bo‘lmadi.",migrateTitle:"Ma’lumotlar ko‘chirilsinmi?",migrateDescription:"Buyurtmalar, savat, saqlanganlar va Atlas balansi ko‘chiriladi. Bu ma’lumotlar sizniki ekanini tasdiqlang.",migrateConfirm:"Bu ma’lumotlar meniki — ko‘chirish",newRecipient:"Yangi qabul qiluvchi",addressNote:"Manzil profilingizda saqlanadi va buyurtma rasmiylashtirishda ishlatiladi."},en:{title:"Your account",intro:"Everything important about your purchases in one place.",settings:"Profile & settings",manage:"Manage Atlas",addresses:"Recipients & addresses",documents:"Documents",support:"Support",limits:"Customs estimate",next:"Needs your attention",orders:"Orders",active:"In progress",saved:"Saved",messages:"New messages",services:"Atlas services",allOrders:"All orders",open:"Open",ready:"You’re all set",readyHint:"Nothing needs your attention right now.",shop:"Browse catalog",signInTitle:"Sign in and create an account",signInText:"Sign in with ChatGPT — your Atlas profile is created automatically. Saved items, addresses and orders stay in one account.",continueChatGPT:"Continue with ChatGPT",download:"Download data",signOut:"Sign out",passport:"Passport",confirmed:"Confirmed",needsConfirm:"Confirmation needed",declarations:"Declarations",balance:"Atlas balance",notifications:"Notifications",savedRecipients:"Saved checkout recipients",add:"Add",primary:"primary",remove:"Remove",noRecipients:"No recipients yet.",monthlyNote:"Atlas purchases this month. Purchases in other services are not included.",termsCalc:"Terms and calculation",documentsNote:"Passport, declarations and data export. Invoices and warehouse materials are inside orders.",export:"Export",hasReply:"Reply received",waiting:"Waiting for reply",closed:"Closed",messagesCount:"messages",openHistory:"Open history",supportTeam:"Support",you:"You",replyPlaceholder:"Reply to ticket",reply:"Reply",noTickets:"No open tickets.",subjectPlaceholder:"Ticket subject",questionPlaceholder:"Describe your question",send:"Send",sent:"Ticket sent to the queue.",migration:"Import previous data",previousOrders:"Orders from the previous version",migrationText:"If this browser already has Atlas data, you can import it once into an empty profile.",findOrders:"Find previous orders",noLegacy:"No previous data in this browser.",browserAccess:"Browser data is unavailable.",migrateTitle:"Import data?",migrateDescription:"Orders, cart, saved items and Atlas balance from this browser will be imported. Confirm that this is your data.",migrateConfirm:"This is my data — import",newRecipient:"New recipient",addressNote:"The address is saved to your profile and used at checkout."}}[lang];
-  labels.documentsNote=lang==='ru'?'Паспорта получателей и подготовленные декларации. Счета и складские материалы находятся внутри заказов.':lang==='uz'?'Qabul qiluvchilar pasportlari va tayyorlangan deklaratsiyalar. Hisob va ombor hujjatlari buyurtma ichida.':'Recipient passports and prepared declarations. Invoices and warehouse files are inside orders.';
-  const identityProfiles=state.identityProfiles??(state.identityProfile?[state.identityProfile]:[]);
-  const [addressOpen, setAddressOpen] = useState(false);
-  const [openSection,setOpenSection]=useState<string|null>(null);
+  const { user, state, ready, act, pricing } = useMarket();
+  const lang = state.communication.language;
+  const c = accountCopy[lang];
+  const [editor, setEditor] = useState<SavedDeliveryProfile | "new" | null>(null);
+  const [ticketOpen, setTicketOpen] = useState(false);
   const [ticket, setTicket] = useState({ subject: "", text: "" });
-  const activeOrders=state.orders.filter(order=>!order.cancelled&&order.status<5);
-  const pendingApproval=activeOrders.find(order=>(order.changeRequests??[]).some(request=>request.status==="pending"));
-  const pendingPayment=activeOrders.find(order=>order.payment?.status==="pending");
-  const currentOrder=pendingApproval??pendingPayment??activeOrders[0];
-  const unread=state.notifications.filter(item=>!item.read).length;
-  const monthlyMerchandise=Math.round(state.orders.filter(order=>{const date=new Date(order.createdAt),now=new Date();return date.getMonth()===now.getMonth()&&date.getFullYear()===now.getFullYear()}).reduce((sum,order)=>sum+order.quote.merchandise/(order.quote.fx??12800),0));
-  const nextAction=pendingApproval?{title:lang==='ru'?'Нужно ваше решение':lang==='uz'?'Qaroringiz kerak':'Your approval is needed',hint:pendingApproval.product.name,href:`/orders#${pendingApproval.id}`,icon:<AlertCircle/>}:pendingPayment?{title:lang==='ru'?'Завершите оплату':lang==='uz'?'To‘lovni yakunlang':'Complete payment',hint:pendingPayment.product.name,href:`/orders#${pendingPayment.id}`,icon:<Wallet/>}:currentOrder?{title:lang==='ru'?'Заказ в работе':lang==='uz'?'Buyurtma jarayonda':'Order in progress',hint:currentOrder.product.name,href:`/orders#${currentOrder.id}`,icon:<Package/>}:state.cart.length?{title:lang==='ru'?'Проверьте корзину':lang==='uz'?'Savatni tekshiring':'Review your cart',hint:lang==='ru'?`В корзине ${state.cart.length}. Перейдите к оформлению.`:lang==='uz'?`Savatda ${state.cart.length} ta mahsulot bor. Rasmiylashtirishga o‘ting.`:`${state.cart.length} item${state.cart.length===1?' is':'s are'} waiting for checkout.`,href:'/cart',icon:<ShoppingBag/>}:!state.deliveryProfiles.length?{title:lang==='ru'?'Добавьте получателя':lang==='uz'?'Qabul qiluvchini qo‘shing':'Add a recipient',hint:lang==='ru'?'Адрес будет готов к оформлению.':lang==='uz'?'Manzil buyurtma uchun tayyor bo‘ladi.':'Your address will be ready at checkout.',action:true,icon:<MapPin/>}:null;
-  return <>
-    <PageHeading overline="ATLAS" title={labels.title} description={labels.intro}>{user?.operator&&<Link className="btn secondary" href="/admin">{labels.manage}<ArrowUpRight size={17}/></Link>}</PageHeading>
-    {!user ? <section className="surface"><UserRound size={36} /><h2>{labels.signInTitle}</h2><p>{labels.signInText}</p><a className="btn primary" href="/signin-with-chatgpt?return_to=%2Faccount" target="_top">{labels.continueChatGPT} <ArrowUpRight size={18} /></a></section> : <>
-      <section className="account-overview">
-        <div className="surface account-next-action"><span className="eyebrow">{labels.next}</span>{nextAction?<><div className="next-action-icon">{nextAction.icon}</div><div><h2>{nextAction.title}</h2><p>{nextAction.hint}</p></div>{nextAction.action?<button className="btn primary" onClick={()=>setAddressOpen(true)}>{labels.open}<ArrowRight size={17}/></button>:<Link className="btn primary" href={nextAction.href!}>{labels.open}<ArrowRight size={17}/></Link>}</>:<><div className="next-action-icon complete"><Check/></div><div><h2>{labels.ready}</h2><p>{labels.readyHint}</p></div><Link className="btn primary" href="/">{labels.shop}<ArrowRight size={17}/></Link></>}</div>
-        <aside className="surface account-profile-compact"><div className="account-avatar"><UserRound size={26}/></div><div><b>{user.name}</b><span>{user.email}</span></div><details><summary>{labels.settings}</summary><p className="micro">{user.operator ? labels.manage : labels.title} · {new Date(user.createdAt).toLocaleDateString(lang==='ru'?'ru-RU':lang==='uz'?'uz-UZ':'en-US')}</p><div className="profile-actions"><a className="text-link" href="/signout-with-chatgpt?return_to=%2Faccount" target="_top"><LogOut size={16}/>{labels.signOut}</a></div></details></aside>
-      </section>
-      <section className="account-stats" aria-label={labels.title}>
-        <Link href="/orders"><Package/><span>{labels.orders}<b>{state.orders.length}</b></span></Link>
-        <Link href="/orders"><ShieldCheck/><span>{labels.active}<b>{activeOrders.length}</b></span></Link>
-        <Link href="/favorites"><Heart/><span>{labels.saved}<b>{state.favorites.length}</b></span></Link>
-        <Link href="/notifications"><Bell/><span>{labels.messages}<b>{unread}</b></span></Link>
-      </section>
-      <section className="account-services"><div className="section-heading"><div><span className="eyebrow">ATLAS</span><h2>{labels.services}</h2></div><Link className="text-link" href="/orders">{labels.allOrders}<ArrowUpRight size={16}/></Link></div><div className="account-links account-service-grid">
-        <Link href="/orders"><Package/><div>{labels.orders}<small>{activeOrders.length?`${activeOrders.length} ${labels.active.toLocaleLowerCase()}`:labels.ready}</small></div><ArrowUpRight/></Link>
-        <Link href="/identity"><ScanLine/><div>{labels.passport}<small>{state.identityProfile?labels.confirmed:labels.needsConfirm}</small></div><ArrowUpRight/></Link>
-        <Link href="/declaration"><FileCheck2/><div>{labels.declarations}<small>{state.declarations.length}</small></div><ArrowUpRight/></Link>
-        <Link href="/balance"><Wallet/><div>{labels.balance}<small>{money(balanceOf(state))}</small></div><ArrowUpRight/></Link>
-        <button type="button" onClick={()=>setAddressOpen(true)}><MapPin/><div>{labels.addresses}<small>{state.deliveryProfiles.length}</small></div><Plus/></button>
-        <Link href="/notifications"><Bell/><div>{labels.notifications}<small>{unread?`${unread} ${labels.messages.toLocaleLowerCase()}`:labels.ready}</small></div><ArrowUpRight/></Link>
-      </div></section>
+  const aboutOrder = useSearchParams().get("order") ?? "";
+  // "Question about this order" from /orders opens the support form with the order number filled in.
+  useEffect(() => {
+    if (!/^AT-[A-Z0-9]{4,12}$/.test(aboutOrder)) return;
+    queueMicrotask(() => { setTicketOpen(true); setTicket(current => current.subject ? current : { ...current, subject: c.support.aboutOrder(aboutOrder) }); });
+    window.setTimeout(() => document.getElementById("support")?.scrollIntoView({ block: "start" }), 300);
+  }, [aboutOrder, c.support]);
+  const identityProfiles = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
+  const activeOrders = state.orders.filter(order => !order.cancelled && order.status < 5);
+  const pendingApproval = activeOrders.find(order => (order.changeRequests ?? []).some(request => request.status === "pending"));
+  const pendingPayment = activeOrders.find(order => order.payment?.status === "pending");
+  const currentOrder = pendingApproval ?? pendingPayment ?? activeOrders[0];
+  const unread = state.notifications.filter(item => !item.read).length;
+  const cartCount = state.cart.reduce((sum, item) => sum + item.quantity, 0);
+  const balance = balanceOf(state);
+  const statuses = localizedStatuses(lang);
+  const allowance = monthlyAllowance(state, pricing.fx);
+  const primaryRecipient = state.deliveryProfiles.find(profile => profile.primary) ?? state.deliveryProfiles[0];
+  const cartUsd = Math.round(state.cart.reduce((sum, item) => sum + item.product.usd * item.quantity, 0));
+  const telegram = siteContent.contacts.telegramSupport;
 
-      <div className="account-grid account-tools">
-        <AccountDisclosure open={openSection==='addresses'} onToggle={()=>setOpenSection(openSection==='addresses'?null:'addresses')} title={labels.addresses} count={state.deliveryProfiles.length}><div className="account-detail-head"><p>{labels.savedRecipients}</p></div><div className="account-address-list">{state.deliveryProfiles.map(profile => {const passport=identityProfiles.find(identity=>identity.recipientProfileId===profile.id);return <div className="saved-address" key={profile.id}><b>{profile.label}{profile.primary ? ` · ${labels.primary}` : ""}</b><span>{profile.recipient} · {profile.phone}</span><small>{profile.region}, {profile.city}, {profile.address}</small><small>{passport?(lang==='ru'?`Паспорт подтверждён · ${passport.passportMasked}`:lang==='uz'?`Pasport tasdiqlangan · ${passport.passportMasked}`:`Passport confirmed · ${passport.passportMasked}`):(lang==='ru'?'Паспорт не добавлен':lang==='uz'?'Pasport qo‘shilmagan':'No passport added')}</small><SafeDeleteButton label={labels.remove} itemName={profile.label} locale={lang} onConfirm={() => act({ type: "delivery-profile-remove", id: profile.id })}/></div>})}<button type="button" className="account-address-add" onClick={()=>setAddressOpen(true)}><Plus size={20}/><span>{labels.add}</span></button></div>{!state.deliveryProfiles.length&&<p className="account-detail-empty">{labels.noRecipients}</p>}</AccountDisclosure>
-        <AccountDisclosure open={openSection==='limits'} onToggle={()=>setOpenSection(openSection==='limits'?null:'limits')} title={labels.limits} count={`$${monthlyMerchandise}`}><strong className="customs-limit">${monthlyMerchandise}</strong><p>{labels.monthlyNote}</p><Link className="text-link" href="/customs">{labels.termsCalc} <ArrowUpRight size={16}/></Link></AccountDisclosure>
+  if (!user) return <section className="cabinet-card cabinet-signin"><h1>{c.signin.title}</h1><p>{c.signin.text}</p><a className="btn primary" href="/login?return_to=%2Faccount">{c.signin.action}<ArrowRight size={18} aria-hidden="true" /></a></section>;
+
+  const contact = user.email || user.contact;
+  const since = formatLongDate(user.createdAt, lang);
+  const next = pendingApproval ? { title: c.next.approval, hint: pendingApproval.product.name, href: `/orders#${pendingApproval.id}`, icon: <AlertCircle aria-hidden="true" />, order: pendingApproval, tone: "warn" }
+    : pendingPayment ? { title: c.next.payment, hint: pendingPayment.product.name, href: `/orders#${pendingPayment.id}`, icon: <Wallet aria-hidden="true" />, order: pendingPayment, tone: "warn" }
+    : currentOrder ? { title: c.next.inProgress, hint: currentOrder.product.name, href: `/orders#${currentOrder.id}`, icon: <Package aria-hidden="true" />, order: currentOrder, tone: "info" }
+    : state.cart.length ? { title: c.next.cart, hint: c.next.cartHint(itemCount(cartCount, lang)), href: "/cart", icon: <ShoppingBag aria-hidden="true" />, tone: "info" }
+    : !state.deliveryProfiles.length ? { title: c.next.recipient, hint: c.next.recipientHint, icon: <MapPin aria-hidden="true" />, tone: "info" }
+    : null;
+
+  async function signOut() {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => undefined);
+    window.location.assign("/");
+  }
+
+  return <div className="cabinet">
+    <header className="cabinet-head">
+      <span className="cabinet-avatar" aria-hidden="true">{(user.name || contact || "A").trim().charAt(0).toUpperCase()}</span>
+      <div className="cabinet-identity"><h1>{c.title}</h1><p><b>{user.name}</b>{contact && contact !== user.name ? <> · {contact}</> : null}<small>{c.since(since)}</small></p></div>
+      {user.operator && <Link className="btn secondary cabinet-manage" href="/admin">{c.manage}<ArrowUpRight size={17} aria-hidden="true" /></Link>}
+    </header>
+
+    <div className="cabinet-grid">
+      <div className="cabinet-main">
+        <section className={"cabinet-next" + (next ? ` ${next.tone}` : " done")} aria-labelledby="cabinet-next-title">
+          <p className="cabinet-eyebrow">{c.next.label}</p>
+          <div className="cabinet-next-body">
+            <span className="cabinet-next-icon">{next ? next.icon : <Check aria-hidden="true" />}</span>
+            <div><h2 id="cabinet-next-title">{next ? next.title : c.next.allSet}</h2><p>{next ? next.hint : c.next.allSetHint}</p></div>
+          </div>
+          {next?.order && <div className="cabinet-progress">
+            <div className="cabinet-bar" role="progressbar" aria-label={statuses[next.order.status]} aria-valuemin={1} aria-valuemax={statuses.length} aria-valuenow={next.order.status + 1}><span style={{ width: `${(next.order.status + 1) / statuses.length * 100}%` }} /></div>
+            <small>{c.next.stage(next.order.status + 1, statuses.length)} · {statuses[next.order.status]}</small>
+          </div>}
+          {next ? (next.href ? <Link className="btn primary" href={next.href}>{c.next.open}<ArrowRight size={17} aria-hidden="true" /></Link> : <button type="button" className="btn primary" onClick={() => setEditor("new")}>{c.next.add}<Plus size={17} aria-hidden="true" /></button>)
+            : <Link className="btn primary" href="/order-by-link">{c.next.newOrder}<ArrowRight size={17} aria-hidden="true" /></Link>}
+        </section>
+
+        <nav className="cabinet-tiles" aria-label={c.tiles.label}>
+          <Link href="/orders"><Package aria-hidden="true" /><span>{c.tiles.orders}</span><strong>{state.orders.length}</strong><small>{activeOrders.length ? c.tiles.ordersActive(activeOrders.length) : state.orders.length ? c.tiles.ordersTotal(state.orders.length) : c.tiles.none}</small></Link>
+          <Link href="/cart"><ShoppingBag aria-hidden="true" /><span>{c.tiles.cart}</span><strong>{cartCount}</strong><small>{cartCount ? formatSum(totalOf(state.cart), lang) : c.tiles.cartEmpty}</small></Link>
+          <Link href="/balance"><Wallet aria-hidden="true" /><span>{c.tiles.balance}</span><strong className="cabinet-money">{formatSum(balance, lang)}</strong><small>{c.tiles.balanceSub}</small></Link>
+          <Link href="/notifications"><Bell aria-hidden="true" /><span>{c.tiles.notifications}</span><strong>{state.notifications.length}</strong><small>{unread ? c.tiles.unread(unread) : c.tiles.noUnread}</small></Link>
+        </nav>
+
+        <section className="cabinet-card" aria-labelledby="cabinet-recipients-title">
+          <h2 id="cabinet-recipients-title">{c.recipients.title}</h2>
+          <p className="cabinet-lead">{c.recipients.lead}</p>
+          {state.deliveryProfiles.length ? <ul className="cabinet-recipients">{state.deliveryProfiles.map(profile => {
+            const passport = identityProfiles.find(identity => identity.recipientProfileId === profile.id);
+            return <li key={profile.id}>
+              <div className="cabinet-recipient-top"><b>{profile.label}</b>{profile.primary && <span className="cabinet-badge">{c.recipients.primary}</span>}</div>
+              <p>{profile.recipient} · {profile.phone}</p>
+              <p className="cabinet-muted">{profile.region}, {profile.city}, {profile.address}</p>
+              <div className="cabinet-recipient-foot">
+                {passport ? <span className="cabinet-chip ok"><Check size={14} aria-hidden="true" />{c.recipients.passportOk(passport.passportMasked)}</span> : <Link className="cabinet-chip warn" href={`/identity?recipient=${encodeURIComponent(profile.id)}`}><ScanLine size={14} aria-hidden="true" />{c.recipients.addPassport}</Link>}
+              </div>
+              <div className="cabinet-recipient-actions">
+                <button type="button" className="cabinet-text-btn" onClick={() => setEditor(profile)}><Pencil size={15} aria-hidden="true" />{c.recipients.edit}</button>
+                {!profile.primary && <button type="button" className="cabinet-text-btn" onClick={() => void act({ type: "delivery-profile-save", id: profile.id, value: profile, label: profile.label, primary: true })}>{c.recipients.makePrimary}</button>}
+                <SafeDeleteButton label={c.recipients.remove} itemName={profile.label} locale={lang} onConfirm={() => act({ type: "delivery-profile-remove", id: profile.id })} />
+              </div>
+            </li>;
+          })}</ul> : <p className="cabinet-empty">{c.recipients.empty}</p>}
+          <button type="button" className="cabinet-add" onClick={() => setEditor("new")}><Plus size={18} aria-hidden="true" />{c.recipients.add}</button>
+        </section>
+
+        <section className="cabinet-card" id="support" aria-labelledby="cabinet-support-title">
+          <div className="cabinet-card-head"><div><h2 id="cabinet-support-title">{c.support.title}</h2><p className="cabinet-lead">{c.support.lead}</p></div>
+            {telegram && <a className="btn secondary" href={`https://t.me/${telegram}`} target="_blank" rel="noopener noreferrer">{c.support.telegram}<ArrowUpRight size={16} aria-hidden="true" /></a>}</div>
+          {state.supportTickets.length ? <ul className="cabinet-tickets">{state.supportTickets.slice(0, 3).map(item => <li key={item.id}>
+            <div className="cabinet-ticket-head"><b>{item.subject}</b><span className={"cabinet-status " + item.status}>{item.status === "open" ? c.support.waiting : item.status === "answered" ? c.support.answered : c.support.closed}</span></div>
+            <details><summary>{c.support.history} · {c.support.messages(item.replies.length)}</summary>
+              {item.replies.map(reply => <p className="ticket-reply" key={reply.id}><b>{reply.author === "support" ? c.support.team : c.support.you}</b><br />{reply.text}</p>)}
+              {item.status !== "closed" && <form className="support-reply-form" onSubmit={async event => { event.preventDefault(); const form = event.currentTarget; const input = form.elements.namedItem("reply") as HTMLInputElement; if (await act({ type: "support-reply", id: item.id, text: input.value })) input.value = ""; }}><input name="reply" aria-label={c.support.replyPlaceholder} required minLength={3} maxLength={1000} placeholder={c.support.replyPlaceholder} /><button className="btn secondary">{c.support.reply}</button></form>}
+            </details>
+          </li>)}</ul> : <p className="cabinet-empty">{c.support.none}</p>}
+          {ticketOpen || !state.supportTickets.length ? <form className="cabinet-ticket-form" onSubmit={async event => { event.preventDefault(); if (await act({ type: "support-create", subject: ticket.subject, text: ticket.text })) { setTicket({ subject: "", text: "" }); setTicketOpen(false); toast.success(c.support.sent); } }}>
+            <label htmlFor="support-subject">{c.support.subject}</label><input id="support-subject" required minLength={3} maxLength={120} value={ticket.subject} onChange={event => setTicket({ ...ticket, subject: event.target.value })} />
+            <label htmlFor="support-question">{c.support.question}</label><textarea id="support-question" required minLength={3} maxLength={1000} rows={4} value={ticket.text} onChange={event => setTicket({ ...ticket, text: event.target.value })} />
+            <div className="cabinet-form-foot"><small>{ticket.text.length} / 1000</small><button className="btn primary" disabled={!ready}><MessageCircle size={16} aria-hidden="true" />{c.support.send}</button></div>
+          </form> : <button type="button" className="cabinet-add" onClick={() => setTicketOpen(true)}><Plus size={18} aria-hidden="true" />{c.support.newTicket}</button>}
+        </section>
       </div>
-      <div className="account-grid account-tools">
-        <AccountDisclosure open={openSection==='documents'} onToggle={()=>setOpenSection(openSection==='documents'?null:'documents')} title={labels.documents} count={state.declarations.length}><p>{labels.documentsNote}</p><div className="profile-actions"><Link className="btn secondary" href="/identity"><ScanLine size={16}/> {labels.passport}</Link><Link className="btn secondary" href="/declaration"><FileCheck2 size={16}/> {labels.declarations}</Link></div></AccountDisclosure>
-        <AccountDisclosure open={openSection==='support'} onToggle={()=>setOpenSection(openSection==='support'?null:'support')} title={labels.support} count={state.supportTickets.some(t=>t.status==="answered")?labels.hasReply:state.supportTickets.length}>
-          {state.supportTickets.length ? <div className="ticket-list">{state.supportTickets.slice(0,3).map(item => <div key={item.id}><b>{item.subject}</b><small>{item.status === "open" ? labels.waiting : item.status === "answered" ? labels.hasReply : labels.closed} · {item.replies.length} {labels.messagesCount}</small><details><summary>{labels.openHistory}</summary>{item.replies.map(reply => <p className="ticket-reply" key={reply.id}><b>{reply.author === "support" ? labels.supportTeam : labels.you}</b><br/>{reply.text}</p>)}{item.status !== "closed" && <form className="support-reply-form" onSubmit={async event => { event.preventDefault(); const form = event.currentTarget; const input = form.elements.namedItem("reply") as HTMLInputElement; if (await act({ type: "support-reply", id: item.id, text: input.value })) input.value = ""; }}><input name="reply" aria-label={labels.replyPlaceholder} required minLength={3} maxLength={1000} placeholder={labels.replyPlaceholder}/><button className="btn secondary">{labels.reply}</button></form>}</details></div>)}</div> : <p className="account-detail-empty">{labels.noTickets}</p>}
-          <form className="support-form" onSubmit={async event => { event.preventDefault(); if (await act({ type: "support-create", subject: ticket.subject, text: ticket.text })) { setTicket({ subject: "", text: "" }); toast.success(labels.sent); } }}>
-            <label htmlFor="support-subject">{labels.subjectPlaceholder}</label><input id="support-subject" required minLength={3} maxLength={120} placeholder={labels.subjectPlaceholder} value={ticket.subject} onChange={event => setTicket({ ...ticket, subject: event.target.value })}/>
-            <label htmlFor="support-question">{labels.questionPlaceholder}</label><textarea id="support-question" required minLength={3} maxLength={1000} placeholder={labels.questionPlaceholder} value={ticket.text} onChange={event => setTicket({ ...ticket, text: event.target.value })}/>
-            <small className="support-counter">{ticket.text.length} / 1000</small><button className="btn secondary" disabled={!ready}><MessageCircle size={16}/> {labels.send}</button>
-          </form>
-        </AccountDisclosure>
+
+      <div className="cabinet-side">
+        <CustomsAllowance groups={allowance} primaryName={primaryRecipient?.recipient} cartUsd={cartUsd} c={c} />
+
+        <section className="cabinet-card" aria-labelledby="cabinet-documents-title">
+          <h2 id="cabinet-documents-title">{c.documents.title}</h2>
+          <ul className="cabinet-rows">
+            <li><Link href="/identity"><ScanLine aria-hidden="true" /><span>{c.documents.passport}<small>{identityProfiles.length ? c.documents.passportCount(identityProfiles.length) : c.documents.missing}</small></span><ArrowRight size={18} aria-hidden="true" /></Link></li>
+            <li><Link href="/declaration"><FileCheck2 aria-hidden="true" /><span>{c.documents.declarations}<small>{c.documents.declarationsCount(state.declarations.length)}</small></span><ArrowRight size={18} aria-hidden="true" /></Link></li>
+          </ul>
+          <p className="cabinet-note">{c.documents.note}</p>
+        </section>
+
+        <section className="cabinet-card" aria-labelledby="cabinet-settings-title">
+          <h2 id="cabinet-settings-title">{c.settings.title}</h2>
+          <div className="cabinet-setting"><span>{c.settings.theme}</span><ThemeToggle locale={lang} /></div>
+          <Link className="cabinet-setting cabinet-setting-link" href="/legal">{c.settings.rules}<ArrowRight size={18} aria-hidden="true" /></Link>
+          <button type="button" className="cabinet-signout" onClick={() => void signOut()}><LogOut size={18} aria-hidden="true" />{c.settings.signOut}</button>
+        </section>
       </div>
-    </>}
-    <Modal open={addressOpen} onClose={() => setAddressOpen(false)} title={labels.newRecipient} description={labels.addressNote}><AddressForm locale={lang} onSave={async value => { if (await act({ type: "delivery-profile-save", value: value.profile, label: value.label })) { setAddressOpen(false); toast.success(lang==='ru'?"Получатель сохранён.":lang==='uz'?"Qabul qiluvchi saqlandi.":"Recipient saved."); } }}/></Modal>
-  </>;
+    </div>
+
+    <Modal open={editor !== null} onClose={() => setEditor(null)} title={editor === "new" ? recipientCopy[lang].addTitle : recipientCopy[lang].editTitle} description={recipientCopy[lang].note} locale={lang}>
+      {editor !== null && <RecipientForm key={editor === "new" ? "new" : editor.id} locale={lang} initial={editor === "new" ? undefined : editor} isFirst={!state.deliveryProfiles.length} onSave={async value => {
+        const editing = editor === "new" ? undefined : editor;
+        if (await act({ type: "delivery-profile-save", value: value.profile, label: value.label, id: editing?.id, primary: value.primary })) { setEditor(null); toast.success(editing ? recipientCopy[lang].updated : recipientCopy[lang].saved); }
+      }} />}
+    </Modal>
+  </div>;
 }
 
-function AccountDisclosure({open,onToggle,title,count,children}:{open:boolean;onToggle:()=>void;title:string;count?:string|number;children:ReactNode}){
-  return <section className="surface ux-disclosure account-detail" data-open={open}>
-    <button type="button" className="account-detail-summary" aria-expanded={open} onClick={onToggle}><span>{title}</span>{count!==undefined&&<small>{count}</small>}<span className="account-detail-toggle" aria-hidden="true">{open?'−':'+'}</span></button>
-    {open&&<div className="account-detail-content">{children}</div>}
+/** This month's purchases through Atlas against the duty-free courier allowance, per recipient. */
+function CustomsAllowance({ groups, primaryName, cartUsd, c }: { groups: RecipientAllowance[]; primaryName?: string; cartUsd: number; c: AccountCopy }) {
+  const limit = courierAllowanceUsd;
+  // Show the default recipient even before their first order, so the empty state still says "for whom".
+  const rows = groups.length ? groups : primaryName ? [{ key: recipientKey(primaryName), name: primaryName, usedUsd: 0, orders: 0 }] : [];
+  const anyOver = rows.some(row => row.usedUsd > limit);
+  return <section className={"cabinet-card cabinet-customs" + (anyOver ? " over" : "")} aria-labelledby="cabinet-customs-title">
+    <h2 id="cabinet-customs-title">{c.customs.title}</h2>
+    <p className="cabinet-lead">{c.customs.perPerson}</p>
+    {rows.length ? <ul className="cabinet-allowance">{rows.map(row => {
+      const over = row.usedUsd > limit;
+      return <li key={row.key} className={over ? "over" : undefined}>
+        <div className="cabinet-allowance-head"><b>{row.name || c.customs.unnamed}</b><strong>{c.customs.used(row.usedUsd, limit)}</strong></div>
+        <div className="cabinet-bar" role="progressbar" aria-label={row.name || c.customs.unnamed} aria-valuemin={0} aria-valuemax={limit} aria-valuenow={Math.min(row.usedUsd, limit)}><span style={{ width: `${Math.min(100, row.usedUsd / limit * 100)}%` }} /></div>
+        <small>{over ? c.customs.over(row.usedUsd - limit) : c.customs.left(limit - row.usedUsd)}</small>
+      </li>;
+    })}</ul> : <p className="cabinet-empty">{c.customs.empty}</p>}
+    {cartUsd > 0 && <p className="cabinet-customs-cart">{c.customs.cart(cartUsd)}</p>}
+    <p className="cabinet-note">{c.customs.note}</p>
+    <Link className="cabinet-link" href="/customs">{c.customs.link}<ArrowRight size={16} aria-hidden="true" /></Link>
   </section>;
-}
-
-function AddressForm({locale,onSave}:{locale:'ru'|'uz'|'en';onSave:(value:{label:string;profile:{recipient:string;phone:string;region:string;city:string;address:string;postalCode:string;comment:string}})=>Promise<void>}) {
-  const copy={
-    ru:{label:'Название: дом, родители, офис',recipient:'Получатель',phone:'Телефон',region:'Область',city:'Город',address:'Улица, дом, квартира',postal:'Индекс (необязательно)',hint:'Подсказки Atlas работают локально — адрес не передаётся стороннему поиску.',save:'Сохранить адрес'},
-    uz:{label:'Nomi: uy, ota-ona, ofis',recipient:'Qabul qiluvchi',phone:'Telefon',region:'Viloyat',city:'Shahar',address:'Ko‘cha, uy, xonadon',postal:'Indeks (ixtiyoriy)',hint:'Atlas maslahatlari lokal ishlaydi — manzil tashqi qidiruvga yuborilmaydi.',save:'Manzilni saqlash'},
-    en:{label:'Label: home, parents, office',recipient:'Recipient',phone:'Phone',region:'Region',city:'City',address:'Street, building, apartment',postal:'Postal code (optional)',hint:'Atlas suggestions run locally; your address is not sent to an external search.',save:'Save address'}
-  }[locale];
-  const [value,setValue]=useState({label:locale==='ru'?'Новый адрес':locale==='uz'?'Yangi manzil':'New address',recipient:"",phone:"",region:"",city:"",address:"",postalCode:"",comment:""});
-  return <form className="address-form" onSubmit={event=>{event.preventDefault();void onSave({label:value.label,profile:value})}}>
-    <label htmlFor="account-address-label">{copy.label}</label><input id="account-address-label" required maxLength={80} placeholder={copy.label} value={value.label} onChange={e=>setValue({...value,label:e.target.value})}/>
-    <label htmlFor="account-recipient">{copy.recipient}</label><input id="account-recipient" required maxLength={120} autoComplete="name" placeholder={copy.recipient} value={value.recipient} onChange={e=>setValue({...value,recipient:e.target.value})}/>
-    <label htmlFor="account-phone">{copy.phone}</label><input id="account-phone" type="tel" inputMode="tel" required maxLength={50} autoComplete="tel" placeholder={copy.phone} value={value.phone} onChange={e=>setValue({...value,phone:e.target.value})}/>
-    <label htmlFor="account-region">{copy.region}</label><input id="account-region" list="account-region-suggestions" required minLength={2} maxLength={100} autoComplete="address-level1" placeholder={copy.region} value={value.region} onChange={e=>setValue({...value,region:e.target.value})}/><datalist id="account-region-suggestions">{suggestions(regions,value.region).map(item=><option key={item} value={item}/>)}</datalist>
-    <label htmlFor="account-city">{copy.city}</label><input id="account-city" list="account-city-suggestions" required minLength={2} maxLength={100} autoComplete="address-level2" placeholder={copy.city} value={value.city} onChange={e=>setValue({...value,city:e.target.value})}/><datalist id="account-city-suggestions">{suggestions(cities,value.city).map(item=><option key={item} value={item}/>)}</datalist>
-    <label htmlFor="account-street">{copy.address}</label><input id="account-street" list="account-street-suggestions" required minLength={5} maxLength={220} autoComplete="street-address" placeholder={copy.address} value={value.address} onChange={e=>setValue({...value,address:e.target.value})}/><datalist id="account-street-suggestions">{suggestions(streets,value.address).map(item=><option key={item} value={item}/>)}</datalist><small>{copy.hint}</small>
-    <label htmlFor="account-postal">{copy.postal}</label><input id="account-postal" maxLength={30} autoComplete="postal-code" placeholder={copy.postal} value={value.postalCode} onChange={e=>setValue({...value,postalCode:e.target.value})}/>
-    <button className="btn primary">{copy.save}</button>
-  </form>;
-}
-
-export function CustomsView() {
-  const { pricing, state } = useMarket();
-  if(state.communication.language!=='ru')return <LocalizedCustoms locale={state.communication.language} fx={pricing.fx}/>;
-  return <>
-    <PageHeading overline="ДО ОФОРМЛЕНИЯ ЗАКАЗА" title="Таможня: что нужно учитывать." description="Памятка для личных некоммерческих покупок в Узбекистан. Проверена 11 сентября 2026 года." />
-    <div className="customs-grid"><section className="surface"><h2>Курьерские отправления</h2><strong className="customs-limit">$200</strong><p>Лимит беспошлинного ввоза на имя физического лица за календарный месяц по нормам, введённым с 1 мая 2025 года. Учитывайте покупки у других продавцов и сервисов.</p></section><section className="surface"><h2>Почтовые отправления</h2><strong className="customs-limit">$100</strong><p>Для международных почтовых отправлений установлена отдельная норма. Нельзя автоматически применять к ним курьерский лимит.</p></section></div>
-    <CustomsCalculator fx={pricing.fx} locale={state.communication.language}/><section className="surface customs-text"><details className="ux-disclosure"><summary>Если стоимость выше нормы</summary><p>Для личных некоммерческих товаров превышение установленных норм облагается единым таможенным платежом. Конкретный расчёт зависит от таможенной стоимости, количества, категории и способа ввоза. Возможны отдельные сборы.</p></details><details className="ux-disclosure"><summary>Какая ставка используется</summary><p>Для обычного личного курьерского ввоза: 30% превышения, минимум $3 за кг облагаемой части. С 1 января 2027 года пункт 8 УП-174 предусматривает 20%, минимум $2 за кг. НДС повторно не добавляется. Дата прибытия меняет ставку в калькуляторе.</p><details><summary>Почему не 3% или 5% из публикаций?</summary><p>ПП-136 устанавливает отдельный эксперимент для бондовых складов и зарегистрированных платформ: 3% плюс НДС для специального перечня либо единый платёж 5%. Это не общий режим зарубежных покупок; 5% не означает 5% плюс НДС, а курьерский лимит $200 к этой схеме не переносится.</p></details></details><details className="ux-disclosure"><summary>Что означает ваше согласие</summary><p>При оформлении вы подтверждаете, что ознакомлены с условиями и понимаете возможность дополнительных таможенных платежей. Это не разрешение на автоматическое списание произвольной суммы: доплата согласовывается отдельно.</p></details><details className="ux-disclosure"><summary>Что Atlas пока не знает</summary><p>Мы не получаем ваши покупки через другие сервисы и официальный остаток месячного лимита. Оценка таможни показана отдельно и не включена в сумму Atlas. Страна магазина сама по себе не определяет размер платежа; некоторые категории и коммерческие партии имеют другие требования.</p></details><details className="ux-disclosure"><summary>Официальные источники</summary><div className="source-list">{customsSources.map((source) => <a key={source.url} href={source.url} target="_blank" rel="noopener noreferrer">{source.title}<ArrowUpRight size={16} /></a>)}</div><p className="micro">Перед реальными покупками проверьте действующую редакцию правил и расчёт перевозчика. Эта памятка не заменяет таможенное решение.</p></details></section>
-  </>;
-}
-
-function LocalizedCustoms({locale,fx}:{locale:'uz'|'en';fx:number}){
-  const c=locale==='uz'?{overline:'BUYURTMA RASMIYLASHTIRISHDAN OLDIN',title:'Bojxona: nimalarni bilish kerak.',intro:'O‘zbekistondagi shaxsiy notijorat xaridlar uchun qo‘llanma.',courier:'Kuryer jo‘natmalari',courierText:'Jismoniy shaxs nomiga bir oy uchun bojsiz olib kirish limiti. Boshqa xizmatlardagi xaridlarni ham hisobga oling.',postal:'Pochta jo‘natmalari',postalText:'Xalqaro pochta jo‘natmalari uchun alohida norma mavjud. Kuryer limitini avtomatik qo‘llab bo‘lmaydi.',overLimit:'Qiymat limitdan oshsa',overText:'Limitdan oshgan qism yagona bojxona to‘lovi bilan soliqqa tortiladi. Hisob qiymat, miqdor, kategoriya va olib kirish usuliga bog‘liq.',rate:'Qaysi stavka ishlatiladi',rateText:'Oddiy shaxsiy kuryer jo‘natmasi uchun: oshgan qismning 30 foizi, kamida har kg uchun $3. 2027-yildan 20 foiz va kamida $2 nazarda tutilgan.',consent:'Roziligingiz nimani anglatadi',consentText:'Shartlarni o‘qiganingizni va qo‘shimcha to‘lov ehtimolini tushunganingizni tasdiqlaysiz. Qo‘shimcha to‘lov alohida kelishiladi.',unknown:'Atlas nimani bilmaydi',unknownText:'Boshqa xizmatlardagi rasmiy oylik limit qoldig‘i bizga ko‘rinmaydi. Baholangan bojxona summasi Atlas narxiga kirmaydi.',sources:'Rasmiy manbalar',sourcesText:'Haqiqiy xariddan oldin amaldagi qoidalarni tekshiring.'}:{overline:'BEFORE CHECKOUT',title:'Customs: what to keep in mind.',intro:'A guide for personal, non-commercial purchases in Uzbekistan.',courier:'Courier shipments',courierText:'Duty-free allowance for an individual per calendar month. Include purchases made through other services.',postal:'Postal shipments',postalText:'International postal shipments have a separate allowance. The courier allowance cannot be applied automatically.',overLimit:'If the value exceeds the allowance',overText:'The excess is subject to a single customs payment. The calculation depends on value, quantity, category and import method.',rate:'Which rate applies',rateText:'For ordinary personal courier imports: 30% of the excess, at least $3 per taxable kilogram. From 2027, 20% and at least $2 per kilogram are planned.',consent:'What your consent means',consentText:'You confirm that you understand the terms and possible extra customs payments. Any top-up is agreed separately.',unknown:'What Atlas does not know yet',unknownText:'We cannot see the official monthly allowance used through other services. The customs estimate is separate from the Atlas amount.',sources:'Official sources',sourcesText:'Before a real purchase, check the current rules.'};
-  return <><PageHeading overline={c.overline} title={c.title} description={c.intro}/><div className="customs-grid"><section className="surface"><h2>{c.courier}</h2><strong className="customs-limit">$200</strong><p>{c.courierText}</p></section><section className="surface"><h2>{c.postal}</h2><strong className="customs-limit">$100</strong><p>{c.postalText}</p></section></div><CustomsCalculator fx={fx} locale={locale}/><section className="surface customs-text"><details className="ux-disclosure"><summary>{c.overLimit}</summary><p>{c.overText}</p></details><details className="ux-disclosure"><summary>{c.rate}</summary><p>{c.rateText}</p></details><details className="ux-disclosure"><summary>{c.consent}</summary><p>{c.consentText}</p></details><details className="ux-disclosure"><summary>{c.unknown}</summary><p>{c.unknownText}</p></details><details className="ux-disclosure"><summary>{c.sources}</summary><div className="source-list">{customsSources.map(source=><a key={source.url} href={source.url} target="_blank" rel="noopener noreferrer">{source.title}<ArrowUpRight size={16}/></a>)}</div><p className="micro">{c.sourcesText}</p></details></section></>;
 }

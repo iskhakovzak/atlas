@@ -3,6 +3,9 @@ export function supportedLocale(value:unknown):Locale|null{
   return value === "ru" || value === "uz" || value === "en" ? value : null;
 }
 
+/** Site language when neither a saved choice nor the browser language matches a supported one. */
+export const defaultLocale:Locale="uz";
+
 const apiErrors:Record<Locale,Record<number,string>>={
   ru:{400:"Проверьте данные и попробуйте снова.",401:"Войдите, чтобы продолжить.",403:"У вас нет доступа к этому действию.",404:"Запрошенные данные не найдены.",405:"Этот способ запроса не поддерживается.",409:"Данные изменились. Обновите страницу и повторите действие.",413:"Запрос слишком большой.",422:"Не удалось обработать данные. Проверьте их и попробуйте снова.",429:"Слишком много запросов. Попробуйте позже.",503:"Не удалось выполнить запрос. Попробуйте ещё раз."},
   uz:{400:"Ma’lumotlarni tekshirib, qayta urinib ko‘ring.",401:"Davom etish uchun tizimga kiring.",403:"Bu amalni bajarish uchun ruxsat yo‘q.",404:"So‘ralgan ma’lumot topilmadi.",405:"Bu so‘rov usuli qo‘llab-quvvatlanmaydi.",409:"Ma’lumotlar o‘zgardi. Sahifani yangilab, qayta urinib ko‘ring.",413:"So‘rov hajmi juda katta.",422:"Ma’lumotlarni qayta ishlab bo‘lmadi. Tekshirib, qayta urinib ko‘ring.",429:"So‘rovlar soni oshib ketdi. Keyinroq urinib ko‘ring.",503:"So‘rov bajarilmadi. Qayta urinib ko‘ring."},
@@ -11,17 +14,30 @@ const apiErrors:Record<Locale,Record<number,string>>={
 
 /** Resolve only display language from a validated preference cookie or Accept-Language. */
 export function requestLocale(request?:Request):Locale{
-  if(!request)return "ru";
-  const cookie=request.headers.get("cookie")?.split(";").map(part=>part.trim()).find(part=>part.startsWith("atlas-language="));
+  if(!request)return defaultLocale;
+  return preferredLocale(request.headers.get("cookie"),request.headers.get("accept-language"));
+}
+
+/** Saved "atlas-language" cookie first, then the highest-ranked supported Accept-Language, then the site default. */
+export function preferredLocale(cookieHeader:string|null|undefined,acceptLanguage:string|null|undefined):Locale{
+  const cookie=cookieHeader?.split(";").map(part=>part.trim()).find(part=>part.startsWith("atlas-language="));
   const saved=supportedLocale(cookie?.slice("atlas-language=".length));
   if(saved)return saved;
-  const accepted=request.headers.get("accept-language")?.split(",").map((entry,index)=>{
+  const accepted=acceptLanguage?.split(",").map((entry,index)=>{
     const [tag,...params]=entry.trim().split(";");
     const quality=Number(params.find(param=>param.trim().startsWith("q="))?.trim().slice(2)??1);
     return {tag:tag.toLowerCase().split("-")[0],quality:Number.isFinite(quality)?quality:0,index};
   }).filter(entry=>entry.quality>0).sort((a,b)=>b.quality-a.quality||a.index-b.index)??[];
   for(const entry of accepted){const locale=supportedLocale(entry.tag);if(locale)return locale;}
-  return "ru";
+  return defaultLocale;
+}
+
+/** Request header that middleware.ts sets for `?lang=uz|ru|en` page versions. */
+export const pageLocaleHeader="x-atlas-locale";
+
+/** Language a page renders in: an explicit `?lang=` version (passed on by middleware), then the saved choice, the browser language and Uzbek. */
+export function renderLocale(requested:string|null|undefined,cookieHeader:string|null|undefined,acceptLanguage:string|null|undefined):Locale{
+  return supportedLocale(requested)??preferredLocale(cookieHeader,acceptLanguage);
 }
 
 export function apiErrorMessage(status:number,locale:Locale):string{
@@ -56,9 +72,9 @@ const orderStatuses = {
 };
 export function localizedStatuses(locale:Locale){return orderStatuses[locale]}
 const routeTitles:Record<Locale,Record<string,string>>={
-  ru:{catalog:'Каталог',favorites:'Избранное',link:'Заказ по ссылке',stores:'Магазины',cart:'Корзина',orders:'Мои заказы',balance:'Баланс',operations:'Кабинет оператора',notifications:'Уведомления',account:'Личный кабинет',customs:'Таможенные условия',analytics:'Аналитика',legal:'Правила Atlas',identity:'Паспорт',declaration:'Декларация',batch:'Импорт списка',admin:'Администрирование'},
-  uz:{catalog:'Katalog',favorites:'Saqlanganlar',link:'Havola orqali buyurtma',stores:'Do‘konlar',cart:'Savat',orders:'Buyurtmalarim',balance:'Balans',operations:'Operator kabineti',notifications:'Bildirishnomalar',account:'Shaxsiy kabinet',customs:'Bojxona shartlari',analytics:'Tahlil',legal:'Atlas qoidalari',identity:'Pasport',declaration:'Deklaratsiya',batch:'Ro‘yxat importi',admin:'Boshqaruv'},
-  en:{catalog:'Catalog',favorites:'Saved',link:'Order by link',stores:'Stores',cart:'Cart',orders:'My orders',balance:'Balance',operations:'Operator workspace',notifications:'Notifications',account:'Account',customs:'Customs terms',analytics:'Analytics',legal:'Atlas terms',identity:'Passport',declaration:'Declaration',batch:'List import',admin:'Administration'},
+  ru:{catalog:'Каталог',favorites:'Избранное',link:'Заказ по ссылке',stores:'Магазины',cart:'Корзина',orders:'Мои заказы',balance:'Баланс',operations:'Кабинет оператора',notifications:'Уведомления',account:'Личный кабинет',customs:'Таможенные условия',analytics:'Аналитика',legal:'Правила Atlas',identity:'Паспорт',declaration:'Декларация',batch:'Импорт списка',admin:'Администрирование',login:'Вход',notfound:'Страница не найдена'},
+  uz:{catalog:'Katalog',favorites:'Saqlanganlar',link:'Havola orqali buyurtma',stores:'Do‘konlar',cart:'Savat',orders:'Buyurtmalarim',balance:'Balans',operations:'Operator kabineti',notifications:'Bildirishnomalar',account:'Shaxsiy kabinet',customs:'Bojxona shartlari',analytics:'Tahlil',legal:'Atlas qoidalari',identity:'Pasport',declaration:'Deklaratsiya',batch:'Ro‘yxat importi',admin:'Boshqaruv',login:'Kirish',notfound:'Sahifa topilmadi'},
+  en:{catalog:'Catalog',favorites:'Saved',link:'Order by link',stores:'Stores',cart:'Cart',orders:'My orders',balance:'Balance',operations:'Operator workspace',notifications:'Notifications',account:'Account',customs:'Customs terms',analytics:'Analytics',legal:'Atlas terms',identity:'Passport',declaration:'Declaration',batch:'List import',admin:'Administration',login:'Sign in',notfound:'Page not found'},
 };
 export function routeTitle(locale:Locale,view:string){return routeTitles[locale][view]??view}
 

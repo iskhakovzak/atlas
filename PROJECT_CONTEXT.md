@@ -1,5 +1,11 @@
 # Atlas — project context
 
+## Post-merge polish — 3 October 2026
+
+After the UX redesign reached `main` (#8), a full review found no broken flows but several rough edges, now fixed: every public page (home, stores, customs, legal) has Uzbek, Russian and English versions at `?lang=uz|ru|en`, rendered in that language on the server with matching titles and hreflang, so search engines can show each language; private pages are titled in the page language. Unknown addresses show a localized "page not found" inside the site with ways back. Text contrast meets WCAG AA in both themes, and the operator analytics card is readable in the light theme again. Each page loads only its own code, and unused CSS was removed.
+
+Operators now see field data under Administration → System: anonymous page speed per route (p75 over 7 days) and browser script errors with repeat counts, plus Content-Security-Policy reports. Beacons carry no account, cookie, IP or query string and are deleted after 30 days; the privacy policy draft says so. Security headers are sent by the Worker; the CSP stays report-only until production reports are clean. Before deploying: apply migration `0007_web_vitals` (and `0006_own_auth` with the sign-in secrets).
+
 ## Guest link preview — 2 October 2026
 
 Guests can open catalog order links or paste a product link, import public merchant data, select options and inspect the preliminary delivery calculation without signing in. The continuation button asks for authentication before an account/cart mutation. Existing session drafts retain customer-entered link forms across same-tab sign-in; catalog flows retain their exact URL/catalog context and recheck merchant data. No guest account, cart, order or balance is created. Batch import remains member-only. Public catalog responses include current managed pricing so guest estimates do not silently use starter tariffs; payments and delivery remain simulated.

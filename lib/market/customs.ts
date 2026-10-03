@@ -4,12 +4,20 @@
 // ambiguity documented and confirm it with Customs before commercial use.
 export const customsCheckedOn = '2026-09-29';
 export const courierAllowanceUsd = 200;
+const customsRuleDisputeStart = '2026-09-01';
+const scheduledCourierRateStart = '2027-01-01';
 export const customsReferences = [
   { title: 'ПКМ №244: лимит личного курьерского ввоза', url: 'https://lex.uz/docs/7484114' },
   { title: 'ПП-4508: действующая сводная редакция', url: 'https://lex.uz/ru/docs/4585744?ONDATE=01.09.2026' },
   { title: 'УП-174: ставка и дата начала применения', url: 'https://lex.uz/uz/docs/8444993' },
   { title: 'ПП-136: отдельный режим бондовых складов', url: 'https://lex.uz/docs/8131458' },
 ];
+function validArrivalDate(date: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) && Number.isFinite(Date.parse(date)) && new Date(date).toISOString().slice(0, 10) === date;
+}
+export function courierRateNeedsConfirmation(date: string) {
+  return validArrivalDate(date) && date >= customsRuleDisputeStart && date < scheduledCourierRateStart;
+}
 export function courierRule(date: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date || date < '2025-05-01') return null;
   // Follow the consolidated PP-4508 version effective 2026-09-01. UP-174 §8

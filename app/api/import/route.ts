@@ -3,7 +3,7 @@ import { fetchProduct, isAmazonUsUrl, ManualEntryFallbackError, validateManualSo
 import { isSupportedStoreHost } from '@/lib/importer/stores';
 import { merchantRequest } from '@/lib/importer/worker-fetch';
 import { database, sameOrigin, json, failure, HttpError, requestJson } from '@/lib/market/server';
-import { getChatGPTUser } from '@/app/chatgpt-auth';
+import { currentUser } from '@/lib/auth/server';
 import { importRateBuckets } from '@/lib/market/import-preview';
 import { apiErrorMessage, importManualEntryMessage, requestLocale } from '@/lib/market/i18n';
 
@@ -12,7 +12,7 @@ const importRequestSchema = z.object({ url: z.string().max(3000), fresh: z.boole
 export async function POST(request: Request) {
   try {
     sameOrigin(request);
-    const user = await getChatGPTUser();
+    const user = await currentUser();
     const payload = importRequestSchema.safeParse(await requestJson(request, 5000));
     if (!payload.success || !payload.data.url) throw new HttpError(400, 'err_19');
 

@@ -4,8 +4,9 @@ import {Package,X,ChevronRight,ArrowUpRight,CircleHelp} from 'lucide-react';
 import Link from '@/components/site-link';
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
 import {Dialog,DialogContent,DialogTitle,DialogDescription,DialogClose} from '@/components/ui/dialog';
-import {money,type Product,type Quote} from '@/lib/market/domain';
+import {type Product,type Quote} from '@/lib/market/domain';
 import {atlasServiceBreakdown,atlasServiceTotal} from '@/lib/market/quote-presentation';
+import {formatSum} from '@/lib/market/home-copy';
 export function Choice({value,onChange,options,label,disabled=false,className=''}:{value:string;onChange:(v:string)=>void;options:string[];label:string;disabled?:boolean;className?:string}){return <Select value={value} onValueChange={onChange} disabled={disabled}><SelectTrigger aria-label={label} className={`select-control ${className}`.trim()}><SelectValue>{value}</SelectValue></SelectTrigger><SelectContent>{options.map(o=><SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>}
 export function ProductImage({product,className='',decorative=false,locale='ru'}:{product:Product;className?:string;decorative?:boolean;locale?:'ru'|'uz'|'en'}){
  const [failedImage,setFailedImage]=useState('');
@@ -31,18 +32,18 @@ export function CostLines({ q, shippingUnknown = false, locale = "ru", internati
   ];
   const serviceTotal = atlasServiceTotal(q);
   return <dl className="cost-lines">
-    <div><dt>{copy.item}</dt><dd>{money(q.merchandise)}</dd></div>
-    <div><dt>{copy.merchantShipping}</dt><dd>{shippingUnknown ? copy.unknown : q.sourceShipping ? money(q.sourceShipping) : copy.free}</dd></div>
+    <div><dt>{copy.item}</dt><dd>{formatSum(q.merchandise, locale)}</dd></div>
+    <div><dt>{copy.merchantShipping}</dt><dd>{shippingUnknown ? copy.unknown : q.sourceShipping ? formatSum(q.sourceShipping, locale) : copy.free}</dd></div>
     {serviceTotal > 0 && <div className="cost-service-row">
       <dt>{copy.service}</dt>
       <dd>
-        <span className="cost-service-total">{money(serviceTotal)}</span>
+        <span className="cost-service-total">{formatSum(serviceTotal, locale)}</span>
         <details className="cost-service-breakdown">
           <summary>{copy.breakdown}</summary>
           <dl>{serviceParts.filter(part => part.amount > 0).map(part => <div key={part.key}>
             <dt>{part.label}</dt>
             <dd>
-              <span>{money(part.amount)}</span>
+              <span>{formatSum(part.amount, locale)}</span>
               {part.key === "international" && internationalHelp && <details className="quote-cost-help">
                 <summary aria-label={copy.help} title={copy.help}><CircleHelp size={16}/></summary>
                 <div className="quote-cost-help-popover"><p>{internationalHelp}</p></div>
@@ -52,8 +53,8 @@ export function CostLines({ q, shippingUnknown = false, locale = "ru", internati
         </details>
       </dd>
     </div>}
-    {(q.optionalServices ?? 0) > 0 && <div><dt>{copy.optional}</dt><dd>{money(q.optionalServices ?? 0)}</dd></div>}
-    {q.reserve > 0 && <div className="cost-reserve-row"><dt>{copy.reserve}</dt><dd><span>{money(q.reserve)}</span><details className="quote-cost-help reserve-cost-help">
+    {(q.optionalServices ?? 0) > 0 && <div><dt>{copy.optional}</dt><dd>{formatSum(q.optionalServices ?? 0, locale)}</dd></div>}
+    {q.reserve > 0 && <div className="cost-reserve-row"><dt>{copy.reserve}</dt><dd><span>{formatSum(q.reserve, locale)}</span><details className="quote-cost-help reserve-cost-help">
       <summary aria-label={copy.reserveHelpLabel} title={copy.reserveHelpLabel}><CircleHelp size={16}/></summary>
       <div className="quote-cost-help-popover"><p>{copy.reserveHelp}</p></div>
     </details></dd></div>}
