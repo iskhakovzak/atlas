@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { headers } from "next/headers";
-import { preferredLocale } from "@/lib/market/i18n";
+import { pageLocale } from "./page-locale";
+import { rootMetadata } from "./route-metadata";
 import "@fontsource-variable/manrope/wght.css";
 import "./globals.css";
 import "./atlas-design.css";
@@ -45,49 +45,17 @@ const structuredData = {
   ],
 };
 
-export const metadata: Metadata = {
-  metadataBase: new URL("https://atlasmarket.uz"),
-  title: {
-    default: "Atlas — покупки со всего мира",
-    template: "%s · Atlas",
-  },
-  description:
-    "Находите товары в зарубежных магазинах, проверяйте варианты и получайте предварительный расчёт доставки в Узбекистан.",
-  applicationName: "Atlas",
-  category: "shopping",
-  creator: "Atlas",
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: { index: true, follow: true, "max-image-preview": "large" },
-  },
-  openGraph: {
-    type: "website",
-    locale: "ru_RU",
-    alternateLocale: ["uz_UZ", "en_US"],
-    siteName: "Atlas",
-    title: "Atlas — покупки со всего мира",
-    description:
-      "Зарубежные магазины, понятный предварительный расчёт и доставка в Узбекистан.",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Atlas — покупки в зарубежных магазинах с доставкой в Узбекистан" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Atlas — покупки со всего мира",
-    description:
-      "Зарубежные магазины, понятный предварительный расчёт и доставка в Узбекистан.",
-    images: ["/og-image.png"],
-  },
-  icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return rootMetadata(await pageLocale());
+}
 
+// Browser chrome matches the header. The site theme is chosen in the app, not by the OS,
+// so app/theme-control.tsx switches this colour when the visitor turns the dark theme on.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: "#ffffff",
 };
 
 export default async function RootLayout({
@@ -95,9 +63,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Render in the visitor's language from the first byte: saved choice, then browser language, then Uzbek.
-  const requestHeaders = await headers();
-  const locale = preferredLocale(requestHeaders.get("cookie"), requestHeaders.get("accept-language"));
+  // Render in the visitor's language from the first byte: a `?lang=` version, the saved choice,
+  // the browser language, then Uzbek.
+  const locale = await pageLocale();
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className="antialiased">

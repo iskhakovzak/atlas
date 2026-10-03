@@ -89,8 +89,9 @@ class Cdp {
 let cdp;
 try {
   cdp = new Cdp(await waitForDevtools());
+  // The checks below read Russian labels; ?lang=ru renders the page in Russian on the server too.
   const { targetId } = await cdp.send("Target.createTarget", {
-    url: baseUrl.href,
+    url: new URL("/?lang=ru", baseUrl).href,
   });
   const { sessionId } = await cdp.send("Target.attachToTarget", {
     targetId,
@@ -119,43 +120,46 @@ try {
   }
 
   await eventually(
-    "document.readyState === 'complete' && document.querySelector('main') !== null",
-    "catalog load",
+    "document.readyState === 'complete' && document.documentElement.lang === 'ru' && document.querySelector('.home-hero h1') !== null",
+    "home page in Russian",
   );
+  if (!(await evaluate("!!document.querySelector('.home-hero input')")))
+    throw Error("Home link calculator is missing");
+  // Catalog filter: the count depends on the catalog, so only check that a category narrows it.
+  const count = "Number(document.querySelector('.finds-result [role=status]')?.textContent?.match(/\\d+/)?.[0] ?? NaN)";
+  await eventually(`${count} > 0`, "catalog product count");
+  const total = await evaluate(count);
   await evaluate(
-    "[...document.querySelectorAll('button')].find((item) => item.textContent?.trim() === 'Обувь')?.click()",
+    "[...document.querySelectorAll('.finds-page button')].find((item) => item.textContent?.trim() === 'Обувь')?.click()",
   );
-  await eventually(
-    "document.querySelector('.finds-result [role=status]')?.textContent?.trim() === 'Найдено: 2'",
-    "catalog category button",
-  );
-  await evaluate(
-    "document.querySelector('button.find-photo')?.click()",
-  );
-  await eventually(
-    "document.body.textContent.includes('Расчёт стоимости')",
-    "product details button",
-  );
-  await evaluate(
-    "document.querySelector('button[aria-label=\"Закрыть карточку\"]')?.click()",
-  );
+  await eventually(`${count} > 0 && ${count} < ${total}`, "catalog category filter");
+  // Cards with a known price open the product sheet; others link to the order page.
+  if (await evaluate("!!document.querySelector('button.find-photo')")) {
+    await evaluate("document.querySelector('button.find-photo').click()");
+    await eventually("document.body.textContent.includes('Расчёт стоимости')", "product details");
+    await evaluate("document.querySelector('button[aria-label=\"Закрыть карточку\"]')?.click()");
+  } else if (!(await evaluate("!!document.querySelector('a.find-photo[href^=\"/order-by-link\"]')"))) {
+    throw Error("Catalog cards neither open details nor link to the order page");
+  }
   const privateLinksHidden = await evaluate(
     "!document.querySelector('header a[href=\"/cart\"], header a[href=\"/orders\"], header a[href=\"/notifications\"]')",
   );
   if (!privateLinksHidden) throw Error("Guest header exposed private navigation");
-  await evaluate("document.querySelector('a[href=\"/legal\"]')?.click()");
-  await eventually("location.pathname === '/legal'", "legal navigation");
+  await evaluate("document.querySelector('footer a[href^=\"/legal\"]')?.click()");
+  await eventually("location.pathname === '/legal' && document.querySelector('main h1') !== null", "legal navigation");
   await evaluate("document.querySelector('a.wordmark[href=\"/\"]')?.click()");
-  await eventually("location.pathname === '/'", "home navigation");
-  await evaluate("document.querySelector('a[href=\"/order-by-link\"]')?.click()");
+  await eventually("location.pathname === '/' && document.querySelector('.home-hero') !== null", "home navigation");
+  await evaluate("location.assign('/order-by-link')");
   await eventually(
-    "location.pathname === '/order-by-link' && document.body.textContent.includes('Войдите')",
-    "protected order-by-link navigation",
+    "location.pathname === '/order-by-link' && !!document.querySelector('main input') && document.querySelector('main').textContent.includes('без входа')",
+    "guest order-by-link: the estimate works without signing in",
   );
+  await evaluate("location.assign('/e2e-missing-page')");
+  await eventually("document.querySelector('main h1')?.textContent?.includes('Страница не найдена')", "localized 404 page");
   if (cdp.errors.length)
     throw Error(`Browser exceptions: ${cdp.errors.join(" | ")}`);
   process.stdout.write(
-    "UI smoke passed: public catalog, product details, guest navigation gates, legal and protected link order.\n",
+    "UI smoke passed: Russian home and link calculator, catalog filter, guest navigation gates, legal, guest link order and 404.\n",
   );
 } finally {
   cdp?.close();

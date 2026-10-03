@@ -28,6 +28,7 @@ import {
   storedAccount,
 } from "@/lib/market/server";
 import {apiErrorMessage,requestLocale} from "@/lib/market/i18n";
+import { vitalsSummary } from "@/lib/market/telemetry-store";
 
 const updateSchema = z.discriminatedUnion("kind", [
   z.object({
@@ -80,7 +81,7 @@ export async function GET(request:Request) {
   try {
     const user=await requireOperator();
     await ensurePrimaryOperator(user);
-    const [accounts, settings, staff, audit, health, customerStatuses, errors] = await Promise.all([
+    const [accounts, settings, staff, audit, health, customerStatuses, errors, vitals] = await Promise.all([
       operatorAccounts(),
       pricingAndPolicy(),
       staffMembers(),
@@ -88,8 +89,10 @@ export async function GET(request:Request) {
       operationalHealth(),
       operationalCustomers(),
       errorSummary(),
+      // Before migration 0007 is applied the table is missing; the dashboard then shows no field data.
+      vitalsSummary().catch(() => null),
     ]);
-    return json({ accounts, pricing: settings.pricing, policy: settings.policy, staff, audit, health, customerStatuses, errors });
+    return json({ accounts, pricing: settings.pricing, policy: settings.policy, staff, audit, health, customerStatuses, errors, vitals });
   } catch (error) {
     return failure(error,request);
   }

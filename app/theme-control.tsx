@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { ThemeProvider as NextThemeProvider, useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
 import { useSyncExternalStore } from "react";
@@ -9,6 +9,16 @@ import type { Locale } from "@/lib/market/i18n";
 const subscribeNever = () => () => {};
 const getMountedSnapshot = () => true;
 const getServerSnapshot = () => false;
+
+/** Keeps the mobile browser bar the colour of the header: white, or the night canvas in dark. */
+function ThemeColorSync() {
+  const { resolvedTheme } = useTheme();
+  useEffect(() => {
+    const color = resolvedTheme === "dark" ? "#0a0e0c" : "#ffffff";
+    for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.setAttribute("content", color);
+  }, [resolvedTheme]);
+  return null;
+}
 
 export function AtlasThemeProvider({ children }: { children: ReactNode }) {
   return (
@@ -19,6 +29,7 @@ export function AtlasThemeProvider({ children }: { children: ReactNode }) {
       disableTransitionOnChange
       storageKey="atlas-theme"
     >
+      <ThemeColorSync />
       {children}
     </NextThemeProvider>
   );

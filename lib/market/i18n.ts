@@ -32,6 +32,14 @@ export function preferredLocale(cookieHeader:string|null|undefined,acceptLanguag
   return defaultLocale;
 }
 
+/** Request header that middleware.ts sets for `?lang=uz|ru|en` page versions. */
+export const pageLocaleHeader="x-atlas-locale";
+
+/** Language a page renders in: an explicit `?lang=` version (passed on by middleware), then the saved choice, the browser language and Uzbek. */
+export function renderLocale(requested:string|null|undefined,cookieHeader:string|null|undefined,acceptLanguage:string|null|undefined):Locale{
+  return supportedLocale(requested)??preferredLocale(cookieHeader,acceptLanguage);
+}
+
 export function apiErrorMessage(status:number,locale:Locale):string{
   return apiErrors[locale][status]??apiErrors[locale][503];
 }
@@ -64,9 +72,9 @@ const orderStatuses = {
 };
 export function localizedStatuses(locale:Locale){return orderStatuses[locale]}
 const routeTitles:Record<Locale,Record<string,string>>={
-  ru:{catalog:'Каталог',favorites:'Избранное',link:'Заказ по ссылке',stores:'Магазины',cart:'Корзина',orders:'Мои заказы',balance:'Баланс',operations:'Кабинет оператора',notifications:'Уведомления',account:'Личный кабинет',customs:'Таможенные условия',analytics:'Аналитика',legal:'Правила Atlas',identity:'Паспорт',declaration:'Декларация',batch:'Импорт списка',admin:'Администрирование',login:'Вход'},
-  uz:{catalog:'Katalog',favorites:'Saqlanganlar',link:'Havola orqali buyurtma',stores:'Do‘konlar',cart:'Savat',orders:'Buyurtmalarim',balance:'Balans',operations:'Operator kabineti',notifications:'Bildirishnomalar',account:'Shaxsiy kabinet',customs:'Bojxona shartlari',analytics:'Tahlil',legal:'Atlas qoidalari',identity:'Pasport',declaration:'Deklaratsiya',batch:'Ro‘yxat importi',admin:'Boshqaruv',login:'Kirish'},
-  en:{catalog:'Catalog',favorites:'Saved',link:'Order by link',stores:'Stores',cart:'Cart',orders:'My orders',balance:'Balance',operations:'Operator workspace',notifications:'Notifications',account:'Account',customs:'Customs terms',analytics:'Analytics',legal:'Atlas terms',identity:'Passport',declaration:'Declaration',batch:'List import',admin:'Administration',login:'Sign in'},
+  ru:{catalog:'Каталог',favorites:'Избранное',link:'Заказ по ссылке',stores:'Магазины',cart:'Корзина',orders:'Мои заказы',balance:'Баланс',operations:'Кабинет оператора',notifications:'Уведомления',account:'Личный кабинет',customs:'Таможенные условия',analytics:'Аналитика',legal:'Правила Atlas',identity:'Паспорт',declaration:'Декларация',batch:'Импорт списка',admin:'Администрирование',login:'Вход',notfound:'Страница не найдена'},
+  uz:{catalog:'Katalog',favorites:'Saqlanganlar',link:'Havola orqali buyurtma',stores:'Do‘konlar',cart:'Savat',orders:'Buyurtmalarim',balance:'Balans',operations:'Operator kabineti',notifications:'Bildirishnomalar',account:'Shaxsiy kabinet',customs:'Bojxona shartlari',analytics:'Tahlil',legal:'Atlas qoidalari',identity:'Pasport',declaration:'Deklaratsiya',batch:'Ro‘yxat importi',admin:'Boshqaruv',login:'Kirish',notfound:'Sahifa topilmadi'},
+  en:{catalog:'Catalog',favorites:'Saved',link:'Order by link',stores:'Stores',cart:'Cart',orders:'My orders',balance:'Balance',operations:'Operator workspace',notifications:'Notifications',account:'Account',customs:'Customs terms',analytics:'Analytics',legal:'Atlas terms',identity:'Passport',declaration:'Declaration',batch:'List import',admin:'Administration',login:'Sign in',notfound:'Page not found'},
 };
 export function routeTitle(locale:Locale,view:string){return routeTitles[locale][view]??view}
 

@@ -240,12 +240,8 @@ html[data-theme="dark"] {
 .cabinet-ticket-form input:focus, .cabinet-ticket-form textarea:focus { border-color: var(--home-accent); outline: 2px solid color-mix(in srgb, var(--home-accent) 25%, transparent); }
 .cabinet-form-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 6px; color: var(--home-muted); }
 .cabinet-form-foot .btn { min-height: 48px; border-radius: 12px; }
-
-.cabinet-customs-value { display: block; margin: 6px 0 10px; color: var(--home-ink); font-size: 28px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .cabinet-customs .cabinet-bar { height: 10px; }
 .cabinet-customs.over .cabinet-bar span { background: var(--cx-danger); }
-.cabinet-customs-left { margin: 10px 0 0; color: var(--home-ink); font-size: 15px; font-weight: 700; }
-.cabinet-customs.over .cabinet-customs-left { color: var(--cx-danger); }
 
 .cabinet-rows { display: grid; margin: 8px 0 0; padding: 0; list-style: none; }
 .cabinet-rows a { display: flex; align-items: center; gap: 12px; min-height: 60px; border-bottom: 1px solid var(--home-line); color: var(--home-ink); font-weight: 700; text-decoration: none; }
@@ -627,3 +623,38 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
 .orders-recipients { display: flex; gap: 8px; margin: 0 0 14px; overflow-x: auto; scrollbar-width: none; }
 .orders-recipients button { display: inline-flex; flex-shrink: 0; align-items: center; min-height: 44px; padding: 0 14px; border: 1px solid var(--home-line); border-radius: 999px; background: var(--home-surface); color: var(--home-ink); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
 .orders-recipients button.active { border-color: var(--home-accent); background: var(--home-accent); color: var(--home-accent-ink); }
+
+/* ---------- Light theme: text contrast floor (WCAG AA 4.5:1) ----------
+   Muted olive and blue-grey tones from older palette layers measured 2.9–4.4:1. */
+:where(html:not([data-theme="dark"])) .remove-item:not(.confirming),
+:where(html:not([data-theme="dark"])) .channel-card small,
+:where(html:not([data-theme="dark"])) .ops-stats span,
+:where(html:not([data-theme="dark"])) .analytics-grid span,
+:where(html:not([data-theme="dark"])) .analytics-grid small,
+:where(html:not([data-theme="dark"])) .section-heading span { color: #5a6b4a; }
+:where(html:not([data-theme="dark"])) .section-heading .status-badge { color: #294da7; }
+:where(html:not([data-theme="dark"])) .admin-shortcut-grid :is(a, button) span { color: #5b6578; }
+:where(html:not([data-theme="dark"])) .legal-requisites dt { color: #59667c; }
+:where(html:not([data-theme="dark"])) .legal-requisites dd { color: #85600f; }
+/* The generic white `.surface` background must not erase this dark card (white text on white). */
+.surface.attention-report { background: #294f39; color: #fff; }
+
+/* ---------- Tap targets of at least 24 px (WCAG 2.5.8) ----------
+   Negative block margins keep the surrounding layout where it was. */
+.breadcrumb a { display: inline-flex; align-items: center; min-height: 24px; margin-block: -3px; }
+:is(.customs-estimate-body, .attention-report, .finds-signin) a { display: inline-flex; align-items: center; min-height: 24px; margin-block: -2px; }
+
+/* Operator: page speed per route from visitors' browsers (app/performance-summary.tsx). */
+.field-vitals { overflow-x: auto; margin: 0 0 22px; border: 1px solid var(--atlas-line); border-radius: 14px; }
+.field-vitals table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.field-vitals :is(th, td) { padding: 10px 12px; border-bottom: 1px solid var(--atlas-line); text-align: right; white-space: nowrap; }
+.field-vitals :is(thead th, tbody th) { text-align: left; }
+.field-vitals thead th { color: #5b6578; font-weight: 650; }
+.field-vitals tbody tr:last-child :is(th, td) { border-bottom: 0; }
+.field-vitals td[data-verdict="ok"] { color: #2f6b45; }
+.field-vitals td[data-verdict="slow"] { color: #a33236; font-weight: 700; }
+
+/* Long store names wrap to two lines on phones instead of being cut off. */
+@media (max-width: 600px) {
+  .store-card-name h3 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; line-height: 1.25; }
+}

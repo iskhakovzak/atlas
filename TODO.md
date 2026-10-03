@@ -1,5 +1,24 @@
 # Atlas TODO and known limitations
 
+## Post-merge review and polish — 3 October 2026
+
+Checked `main` at `fedd1e7` (the squash of #8), then fixed the findings on `fix/post-merge-polish`. lint, `tsc --noEmit`, all tests, the build, `smoke:ui`, `smoke:auth` (live import skipped locally) and `npm run e2e` pass; the e2e audit covers customer, guest and operator pages at 390 and 1280 px in both themes.
+
+- [x] Unknown URLs render a localized `app/not-found.tsx` inside the site shell, still with HTTP 404.
+- [x] `<title>` and description follow the rendered language on every page; private pages have localized titles instead of one generic title.
+- [x] `/customs` and `/legal` render their text in place in the server HTML (each page now passes its view to the shell; no hidden Suspense copy, duplicated `h1` or ids).
+- [x] `/analytics` light theme: the attention card keeps its dark background (`.surface.attention-report`).
+- [x] Security headers from the Worker (`next.config.ts`): `nosniff`, referrer policy, `Permissions-Policy`, HSTS; CSP and `frame-ancestors` report-only, with reports in the operator error log.
+- [ ] Enforce the CSP (switch to `Content-Security-Policy`) once production shows no unexpected `csp` reports under Administration → System; first confirm that nothing legitimate (for example a Sites dashboard preview) frames the site.
+- [x] Contrast reaches WCAG AA in both themes (`--night-faint` raised to `#88938d`, light-theme floor in `customer.css`); the dark header favourites icon; 24 px tap targets for breadcrumbs and text links; long store names wrap on phones.
+- [ ] `/legal` still shows "Заполнить до запуска" in eight places and the documents exist only in Russian: needs the company details and a reviewed Uzbek version.
+- [x] `smoke:ui` follows the redesigned home (and checks the 404 page); `smoke:auth` skips the live import with `ATLAS_SMOKE_SKIP_LIVE_IMPORT=1` and says so.
+- [x] Page weight: each route loads only its own view, and unused selectors are removed (`scripts/css-unused.mjs`). Stylesheet 500 → 421 KB (84 → 71 KB gzip); shared JS on private pages 257 → 186 KB gzip.
+- [ ] The home page still loads about 258 KB gzip of JS, and every page parses the shared runtime again on each full-page navigation. Next steps: native `<dialog>` instead of Radix in `Modal`/`Sheet` (most of the `market-ui` chunk), keep zod schemas out of the client provider, and revisit client-side navigation once Vinext's prefetch issue is fixed.
+- [x] App icons, web manifest and `theme-color`; `robots.txt` without the ChatGPT sign-in paths; sitemap and `llms.txt` list the language versions.
+- [x] #5 and #7 closed with a note (their changes reached `main` through #8).
+- [ ] Apply migration `0007_web_vitals` to production D1; until then beacons are dropped quietly and the speed summary says it is unavailable.
+
 ## Premium dark theme and typography — 3 October 2026
 
 - [x] One dark palette ("Atlas Night": black-green canvas, ivory primary actions, jade accents, champagne labels) in `app/theme-night.css`, loaded last. The dark theme had three stacked generations (forest, graphite, "normalization") with ~160 different hard-coded colours; every hex in the dark rules of `dark-theme.css`, `home-polish.css` and `login.css` now resolves to a `--night-*` token (mapped by property, luminance and hue), and the older variable families (`--atlas-*`, `--atlas-dark-*`, shadcn tokens, `--home-*`, `--cx-*`) point at the same tokens.
@@ -375,7 +394,7 @@
 - [ ] Source titles are intentionally not translated automatically.
 - [x] Fix standalone TypeScript errors in account status rendering and admin/identity/batch response typing.
 - [x] Add explicit guest/customer/admin rendering gates, stale-session clearing and a repeatable browser audit across protected routes and responsive sizes.
-- [ ] Standalone email/password and Google OAuth remain postponed by product decision; current member sign-in uses the platform flow.
+- [x] Atlas-owned sign-in (Telegram, SMS code, email code, Google OAuth) replaced the platform flow on 2 October 2026; there is still no email/password sign-in, by product decision.
 
 ## GitLab Ultimate — 26 September 2026
 

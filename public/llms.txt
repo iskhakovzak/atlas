@@ -19,8 +19,11 @@
 ## Public pages
 
 - Home catalog: https://atlasmarket.uz/
+- Store directory: https://atlasmarket.uz/stores
 - Customs guidance: https://atlasmarket.uz/customs
 - Terms and privacy drafts: https://atlasmarket.uz/legal
+
+Every public page has Uzbek, Russian and English versions: add `?lang=uz`, `?lang=ru` or `?lang=en` (for example https://atlasmarket.uz/customs?lang=ru). Without the parameter a page follows the visitor's saved or browser language and defaults to Uzbek. The legal documents themselves are drafted in Russian until the reviewed translations are ready.
 
 ## Discovery and access
 

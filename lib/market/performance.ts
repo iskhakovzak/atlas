@@ -1,4 +1,6 @@
 export const performanceStorageKey = 'atlas:performance:v1';
+/** Beacon endpoint for anonymous field monitoring (app/api/telemetry/route.ts). */
+export const telemetryPath = '/api/telemetry';
 export const performanceUpdateEvent = 'atlas:performance-updated';
 
 export type PerformanceRoute = 'catalog' | 'account' | 'orders' | 'admin' | 'other';

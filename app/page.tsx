@@ -1,10 +1,12 @@
-import type { Metadata } from 'next';
 import Marketplace from './marketplace';
-import { homeMetadata } from './route-metadata';
+import { HomeCatalog } from './home-catalog';
+import type { Metadata } from 'next';
+import { pageLocale } from './page-locale';
+import { publicMetadata } from './route-metadata';
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {
   const { lang } = await searchParams;
-  return homeMetadata(typeof lang === 'string' ? lang : undefined);
+  return publicMetadata('home', typeof lang === 'string' ? lang : undefined, await pageLocale());
 }
 
-export default function Page(){return <Marketplace view="catalog"/>}
+export default function Page(){return <Marketplace view="catalog"><HomeCatalog/></Marketplace>;}

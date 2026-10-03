@@ -16,8 +16,6 @@
 .catalog-variant-table td:nth-child(5){white-space:nowrap;font-variant-numeric:tabular-nums}
 .catalog-variant-table input,.catalog-variant-table select{width:100%;min-width:92px;border:1px solid var(--atlas-line);border-radius:8px;background:var(--atlas-surface,#fff);color:var(--atlas-ink);padding:7px 8px;font:inherit}
 .catalog-variant-table td:nth-child(6) span{display:inline-block;padding:4px 7px;border-radius:99px;background:#eaf5ec;color:#256238;font-size:12px;white-space:nowrap}
-.catalog-variant-table td:nth-child(6) .variant-unknown{background:#f2f3f5;color:#657084}
-.catalog-variant-table td:nth-child(6) .variant-sold-out{background:#fff0ed;color:#a34432}
 .catalog-photo-gallery{display:grid;gap:8px}
 .catalog-photo-gallery>strong{font-size:14px}
 .catalog-photo-gallery>div{display:flex;gap:8px;overflow-x:auto;padding:2px}

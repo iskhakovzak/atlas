@@ -15,10 +15,8 @@
 .product-gallery-thumbnails img{width:100%;height:48px;object-fit:contain}
 .product-gallery-compact .product-gallery-controls{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:0}
 .product-gallery-compact .product-gallery-controls span{min-width:0;font-size:11px}
-.cart-product-photo:has(.product-gallery){height:auto;overflow:visible;background:transparent}
 .detail-image:has(.product-gallery){height:auto;padding:20px}
 .detail-image:has(.product-gallery)>.floating-label{position:static;display:inline-flex;margin-top:8px}
-.quote-preview>.product-gallery{margin-bottom:18px}
 /* The informational notice returns when the dialog closes; it cannot cover a trapped form. */
 body:has([role=dialog][data-state=open]) .storage-notice{visibility:hidden}
 
@@ -34,7 +32,7 @@ body:has([role=dialog][data-state=open]) .storage-notice{visibility:hidden}
   .catalog-home .find-total{padding-right:40px}
   .catalog-home .find-origin a{min-height:44px;display:flex;align-items:center;overflow-wrap:anywhere;font-size:13px}
   .catalog-home .find-purchase .btn{font-size:14px;line-height:1.35;white-space:normal}
-  .catalog-filter-disclosure>summary,.single-colorway-source>summary,.link-source-tools .source-check-link{min-height:44px;align-content:center}
+  .catalog-filter-disclosure>summary, .single-colorway-source>summary{min-height:44px;align-content:center}
   .site-main :is(.notice,.status-notice,.customer-badge){overflow-wrap:anywhere}
   .atlas-modal{width:calc(100vw - 24px);max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow-y:auto;padding:24px 18px;scroll-padding-block:24px;overscroll-behavior-y:contain}
   .atlas-modal .modal-title{padding-right:32px;font-size:24px;overflow-wrap:anywhere}
@@ -45,16 +43,6 @@ body:has([role=dialog][data-state=open]) .storage-notice{visibility:hidden}
   .product-sheet .sheet-body{padding:20px}
   .product-sheet .sheet-total{align-items:stretch;flex-direction:column;gap:12px}
   .product-sheet .sheet-total .btn{width:100%;white-space:normal;min-height:48px}
-  .mobile-import-photo{margin:0 0 18px}
-  .mobile-import-photo .product-gallery-stage{max-height:340px;aspect-ratio:1}
-  .cart-product-photo{width:112px;max-width:100%}
-  .cart-item{min-width:0}
-  .cart-item h2{font-size:18px;line-height:1.35;overflow-wrap:anywhere}
-  .cart-item :is(.cart-item-body,.cart-item-price){min-width:0}
-  .quantity-control button{min-width:44px;min-height:44px}
-  .cart-mobile-sticky{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
-  .cart-mobile-sticky strong{white-space:normal;overflow:visible;font-size:16px;line-height:1.3}
-  .cart-mobile-sticky .btn{white-space:normal;min-height:48px;line-height:1.3;text-align:center}
   .storage-notice{bottom:calc(var(--atlas-mobile-nav-clearance) + 8px);max-height:35dvh;overflow-y:auto}
   body:has(.cart-mobile-sticky) .storage-notice{bottom:calc(var(--atlas-mobile-nav-clearance) + 84px)}
   .cost-lines>div{gap:8px}
@@ -62,18 +50,6 @@ body:has([role=dialog][data-state=open]) .storage-notice{visibility:hidden}
   .cost-lines dd{min-width:0}
   .cost-lines .quote-cost-help>summary{min-width:44px;min-height:44px;display:grid;place-items:center}
   .quote-cost-help-popover{max-width:calc(100vw - 64px);max-height:50dvh;overflow-y:auto}
-  .quote-preview .summary-total{gap:6px}
-  .quote-preview .summary-total>strong{font-size:28px;overflow-wrap:anywhere}
-  .notification-item{grid-template-columns:34px minmax(0,1fr);min-width:0}
-  .notification-item :is(h2,p,.text-link),.notification-history article{overflow-wrap:anywhere;min-width:0}
   .notice-filters{flex-wrap:wrap}
-  .notice-filters button,.notification-history>summary,.notification-item .text-link{min-height:44px}
-  .notification-item .text-link{display:inline-flex;align-items:center;font-size:14px;white-space:normal}
-  .notification-history>summary{display:flex;align-items:center}
-  .balance-primary h2{font-size:clamp(26px,8vw,36px);overflow-wrap:anywhere;line-height:1.2}
-  .ledger-entry{min-width:0;gap:12px}
-  .ledger-entry :is(p,b,small,strong){overflow-wrap:anywhere;white-space:normal}
-  .ledger-entry p{font-size:14px;line-height:1.45}
-  .balance-actions{flex-wrap:wrap}
-  .message-delivery-log{overflow-wrap:anywhere}
+  .notice-filters button{min-height:44px}
 }
