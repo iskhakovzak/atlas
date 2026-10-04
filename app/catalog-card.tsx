@@ -3,7 +3,7 @@
 import { useId, useState } from 'react';
 import { ArrowRight, Flame, Heart, Info, PackageCheck, TriangleAlert } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import type { Product } from '@/lib/market/domain';
+import { storeShippingHoldUsd, type Product } from '@/lib/market/domain';
 import { findOrderUrl } from '@/lib/market/catalog';
 import { dealCopy } from '@/lib/market/deal-copy';
 import { catalogCopy } from '@/lib/market/catalog-copy';
@@ -17,15 +17,15 @@ import { brandForHost } from '@/lib/market/store-brands';
 import { useMarket } from '@/lib/market/store';
 
 const breakdownCopy = {
-  ru: { item: 'Товар', store: 'Доставка магазина до склада', storeReserve: 'Доставка магазина — резерв', storeFree: 'без резерва', international: 'Доставка в Узбекистан', kg: 'кг', service: 'Сервис Atlas', fee: 'Общий сбор Atlas', reserve: 'Возвратный резерв',
-    storeReserveNote: (amount: string, freeFrom: string) => `Магазин не указал цену доставки до склада, поэтому заложен резерв ${amount} — один на заказ из этого магазина, а от ${freeFrom} его не берём. Если доставка выйдет дешевле, разницу вернём на баланс Atlas.`,
-    storeFreeNote: (freeFrom: string) => `Магазин не указал цену доставки до склада, но от ${freeFrom} резерв не берём: такие заказы обычно везут бесплатно. Если магазин всё же возьмёт плату, сначала спросим вас.`, reserveNote: 'Возвратный резерв — запас на случай, если посылка окажется тяжелее. Неиспользованная часть вернётся на баланс Atlas, а доплату сверх резерва согласуем с вами заранее.' },
-  uz: { item: 'Tovar', store: 'Do‘kondan omborgacha yetkazish', storeReserve: 'Do‘kon yetkazishi — zaxira', storeFree: 'zaxirasiz', international: 'O‘zbekistonga yetkazish', kg: 'kg', service: 'Atlas xizmati', fee: 'Atlas umumiy yig‘imi', reserve: 'Qaytariladigan zaxira',
-    storeReserveNote: (amount: string, freeFrom: string) => `Do‘kon omborgacha yetkazish narxini ko‘rsatmagan, shuning uchun ${amount} zaxira qo‘yilgan — shu do‘kondan bitta buyurtmaga bir marta, ${freeFrom} dan esa olinmaydi. Yetkazish arzonroq bo‘lsa, farq Atlas balansiga qaytariladi.`,
-    storeFreeNote: (freeFrom: string) => `Do‘kon omborgacha yetkazish narxini ko‘rsatmagan, lekin ${freeFrom} dan zaxira olinmaydi: bunday buyurtmalar odatda bepul yetkaziladi. Do‘kon baribir haq olsa, avval sizdan so‘raymiz.`, reserveNote: 'Qaytariladigan zaxira — jo‘natma og‘irroq chiqsa, ehtiyot uchun. Ishlatilmagan qismi Atlas balansiga qaytadi, zaxiradan ortiq to‘lov siz bilan oldindan kelishiladi.' },
-  en: { item: 'Item', store: 'Store delivery to warehouse', storeReserve: 'Store delivery — reserve', storeFree: 'no reserve', international: 'Delivery to Uzbekistan', kg: 'kg', service: 'Atlas service', fee: 'General Atlas fee', reserve: 'Refundable reserve',
-    storeReserveNote: (amount: string, freeFrom: string) => `The store did not state delivery to our warehouse, so a ${amount} reserve is included — once per order from this store, and none from ${freeFrom}. If delivery costs less, the difference returns to your Atlas balance.`,
-    storeFreeNote: (freeFrom: string) => `The store did not state delivery to our warehouse, but from ${freeFrom} there is no reserve: such orders usually ship free. If the store still charges, we ask you first.`, reserveNote: 'The refundable reserve covers a heavier-than-estimated parcel. Any unused part returns to your Atlas balance; anything above it is agreed with you first.' },
+  ru: { item: 'Товар', store: 'Доставка магазина до склада', storeReserve: 'Резерв доставки магазина (отдельно, не в итоге)', storeFree: 'бесплатно', international: 'Доставка в Узбекистан', kg: 'кг', service: 'Комиссия Atlas', fee: 'Общий сбор Atlas', reserve: 'Возвратный резерв',
+    storeReserveNote: (amount: string, freeFrom: string) => `Магазин не указал цену доставки до склада: резерв ${amount} удерживается отдельно и в итог не входит — один на заказ из этого магазина. Больше чем на ${freeFrom} из магазина — доставка бесплатна.`,
+    storeFreeNote: (freeFrom: string) => `Магазин не указал цену доставки до склада, но при заказе больше чем на ${freeFrom} она бесплатна. Если магазин всё же возьмёт плату, сначала спросим вас.`, reserveNote: 'Возвратный резерв — запас на случай, если посылка окажется тяжелее. Неиспользованная часть вернётся на баланс Atlas, а доплату сверх резерва согласуем с вами заранее.' },
+  uz: { item: 'Tovar', store: 'Do‘kondan omborgacha yetkazish', storeReserve: 'Do‘kon yetkazishi zaxirasi (alohida, jamiga kirmaydi)', storeFree: 'bepul', international: 'O‘zbekistonga yetkazish', kg: 'kg', service: 'Atlas komissiyasi', fee: 'Atlas umumiy yig‘imi', reserve: 'Qaytariladigan zaxira',
+    storeReserveNote: (amount: string, freeFrom: string) => `Do‘kon omborgacha yetkazish narxini ko‘rsatmagan: ${amount} zaxira alohida ushlab turiladi va jamiga kirmaydi — shu do‘kondan bitta buyurtmaga bir marta. Do‘kondan ${freeFrom} dan ortiq — yetkazish bepul.`,
+    storeFreeNote: (freeFrom: string) => `Do‘kon omborgacha yetkazish narxini ko‘rsatmagan, lekin ${freeFrom} dan ortiq buyurtmada u bepul. Do‘kon baribir haq olsa, avval sizdan so‘raymiz.`, reserveNote: 'Qaytariladigan zaxira — jo‘natma og‘irroq chiqsa, ehtiyot uchun. Ishlatilmagan qismi Atlas balansiga qaytadi, zaxiradan ortiq to‘lov siz bilan oldindan kelishiladi.' },
+  en: { item: 'Item', store: 'Store delivery to warehouse', storeReserve: 'Store-delivery reserve (separate, not in the total)', storeFree: 'free', international: 'Delivery to Uzbekistan', kg: 'kg', service: 'Atlas fee', fee: 'General Atlas fee', reserve: 'Refundable reserve',
+    storeReserveNote: (amount: string, freeFrom: string) => `The store did not state delivery to our warehouse: a ${amount} reserve is held separately and is not in the total — once per order from this store. Over ${freeFrom} from the store, delivery is free.`,
+    storeFreeNote: (freeFrom: string) => `The store did not state delivery to our warehouse, but orders over ${freeFrom} ship free. If the store still charges, we ask you first.`, reserveNote: 'The refundable reserve covers a heavier-than-estimated parcel. Any unused part returns to your Atlas balance; anything above it is agreed with you first.' },
 };
 type Breakdown = (typeof breakdownCopy)['ru'];
 type Costs = NonNullable<CatalogItem['costs']>;
@@ -90,13 +90,16 @@ function FindPrice({ costs, product, label, breakdownLabel, fmt, numberLocale, b
   const { pricing } = useMarket();
   const parts = atlasServiceBreakdown(costs);
   const estimated = product.sourceShippingEstimated === true && (product.sourceShippingUsd ?? 0) > 0;
-  const storeReserve = estimated && costs.sourceShipping > 0, storeFree = estimated && !costs.sourceShipping;
+  // Unknown store delivery is never in the total: a separate hold up to $50, free above it.
+  const holdUsd = estimated ? storeShippingHoldUsd(product, product.usd, pricing) : 0;
+  const storeReserve = estimated && holdUsd > 0, storeFree = estimated && holdUsd === 0;
   const freeFrom = fmt(pricing.storeShippingFreeFromUsd ?? 50, 'USD');
   return <>
     <div className="find-total"><span>{label}</span><strong>{fmt(costs.total)}</strong><button type="button" className="find-info" aria-label={breakdownLabel} aria-expanded={open} aria-controls={id} onClick={() => setOpen(value => !value)}><Info size={18} aria-hidden="true" /></button></div>
     {open && <div id={id} className="find-breakdown"><dl>
       <div><dt>{bd.item}</dt><dd>{fmt(costs.merchandise)}</dd></div>
-      {costs.sourceShipping > 0 && <div><dt>{storeReserve ? bd.storeReserve : bd.store}</dt><dd>{fmt(costs.sourceShipping)}</dd></div>}
+      {costs.sourceShipping > 0 && <div><dt>{bd.store}</dt><dd>{fmt(costs.sourceShipping)}</dd></div>}
+      {storeReserve && <div><dt>{bd.storeReserve}</dt><dd>{fmt(Math.ceil(holdUsd * pricing.fx))}</dd></div>}
       {storeFree && <div><dt>{bd.store}</dt><dd>{bd.storeFree}</dd></div>}
       <div><dt>{bd.international} · {new Intl.NumberFormat(numberLocale, { maximumFractionDigits: 1 }).format(costs.weight)} {bd.kg}</dt><dd>{fmt(parts.international)}</dd></div>
       {parts.service > 0 && <div><dt>{bd.service}</dt><dd>{fmt(parts.service)}</dd></div>}

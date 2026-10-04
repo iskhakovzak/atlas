@@ -86,7 +86,7 @@ export type CartCopy = {
     parcelReserve: (missing: string, reserve: string) => string; parcelFree: (freeFrom: string) => string;
     /** Results of the live check with the store. */
     priceUp: (from: string, to: string) => string; priceDown: (from: string, to: string) => string; shippingChanged: (from: string, to: string) => string;
-    issues: { currency: string; variant: string; price: string; unreachable: string }; reload: string; checked: (time: string) => string;
+    issues: { currency: string; variant: string; price: string; unreachable: string; stock: string }; reload: string; checked: (time: string) => string;
   };
   services: { title: string; optional: string; hint: string; fixed: string; quote: string; notIncluded: string; quantity: string; required: string; units: { package: string; item: string; day: string; photo: string; 'half-hour': string } };
   summary: {
@@ -146,12 +146,12 @@ export const cartCopy: Record<Locale, CartCopy> = {
     signin: { title: 'Войдите, чтобы открыть корзину', text: 'Корзина и заказы хранятся в вашем профиле Atlas.', action: 'Войти' },
     empty: { title: 'Корзина пуста', text: 'Вставьте ссылку на товар из любого магазина — посчитаем цену с доставкой до Ташкента.', paste: 'Вставить ссылку', stores: 'Смотреть магазины' },
     item: { remove: 'Удалить', decrease: 'Уменьшить количество', increase: 'Увеличить количество', quantity: 'Количество', storePrice: 'В магазине', openStore: 'Открыть в магазине', parcelFrom: store => `Посылка из ${store}`, forQuantity: count => `за ${count} шт.`,
-      parcelReserve: (missing, reserve) => `Ещё ${missing} из этого магазина — и резерв ${reserve} на его доставку не понадобится.`,
-      parcelFree: freeFrom => `Из этого магазина от ${freeFrom} — резерв на его доставку не берём.`,
+      parcelReserve: (missing, reserve) => `Доставка магазина неизвестна: резерв ${reserve} удерживается отдельно и не входит в сумму. Ещё ${missing} из этого магазина — и доставка будет бесплатной.`,
+      parcelFree: freeFrom => `Из этого магазина больше чем на ${freeFrom} — доставка до склада бесплатна.`,
       priceUp: (from, to) => `Цена в магазине выросла: ${from} → ${to}. Итог пересчитан.`,
       priceDown: (from, to) => `Цена в магазине снизилась: ${from} → ${to}. Итог пересчитан.`,
       shippingChanged: (from, to) => `Доставка магазина изменилась: ${from} → ${to}.`,
-      issues: { currency: 'Магазин сменил валюту витрины — откройте товар заново.', variant: 'Этот вариант больше не найден в магазине — выберите его заново.', price: 'Магазин не подтвердил цену — откройте товар заново.', unreachable: 'Магазин не ответил при проверке. Atlas сверит цену перед выкупом.' },
+      issues: { currency: 'Магазин сменил валюту витрины — откройте товар заново.', variant: 'Этот вариант больше не найден в магазине — выберите его заново.', price: 'Магазин не подтвердил цену — откройте товар заново.', unreachable: 'Магазин не ответил при проверке. Atlas сверит цену перед выкупом.', stock: 'У магазина осталось меньше, чем в корзине, — уменьшите количество.' },
       reload: 'Открыть товар', checked: time => `Цена сверена с магазином в ${time}` },
     services: {
       title: 'Услуги склада', optional: 'по желанию',
@@ -203,12 +203,12 @@ export const cartCopy: Record<Locale, CartCopy> = {
     signin: { title: 'Savatni ochish uchun kiring', text: 'Savat va buyurtmalar Atlas profilingizda saqlanadi.', action: 'Kirish' },
     empty: { title: 'Savat bo‘sh', text: 'Istalgan do‘kondagi tovar havolasini qo‘ying — Toshkentgacha yetkazish bilan narxini hisoblaymiz.', paste: 'Havolani qo‘yish', stores: 'Do‘konlarni ko‘rish' },
     item: { remove: 'O‘chirish', decrease: 'Miqdorni kamaytirish', increase: 'Miqdorni oshirish', quantity: 'Miqdor', storePrice: 'Do‘konda', openStore: 'Do‘konda ochish', parcelFrom: store => `${store} posilkasi`, forQuantity: count => `${count} dona uchun`,
-      parcelReserve: (missing, reserve) => `Bu do‘kondan yana ${missing} lik tovar qo‘shing — ${reserve} yetkazish zaxirasi kerak bo‘lmaydi.`,
-      parcelFree: freeFrom => `Bu do‘kondan ${freeFrom} va undan ko‘p — yetkazish zaxirasi olinmaydi.`,
+      parcelReserve: (missing, reserve) => `Do‘kon yetkazishi noma’lum: ${reserve} zaxira alohida ushlab turiladi va summaga kirmaydi. Bu do‘kondan yana ${missing} — va yetkazish bepul bo‘ladi.`,
+      parcelFree: freeFrom => `Bu do‘kondan ${freeFrom} dan ortiq — omborgacha yetkazish bepul.`,
       priceUp: (from, to) => `Do‘kondagi narx oshdi: ${from} → ${to}. Jami qayta hisoblandi.`,
       priceDown: (from, to) => `Do‘kondagi narx tushdi: ${from} → ${to}. Jami qayta hisoblandi.`,
       shippingChanged: (from, to) => `Do‘kon yetkazishi o‘zgardi: ${from} → ${to}.`,
-      issues: { currency: 'Do‘kon valyutani o‘zgartirdi — tovarni qayta oching.', variant: 'Bu variant do‘konda topilmadi — uni qayta tanlang.', price: 'Do‘kon narxni tasdiqlamadi — tovarni qayta oching.', unreachable: 'Tekshiruvda do‘kon javob bermadi. Atlas xariddan oldin narxni tekshiradi.' },
+      issues: { currency: 'Do‘kon valyutani o‘zgartirdi — tovarni qayta oching.', variant: 'Bu variant do‘konda topilmadi — uni qayta tanlang.', price: 'Do‘kon narxni tasdiqlamadi — tovarni qayta oching.', unreachable: 'Tekshiruvda do‘kon javob bermadi. Atlas xariddan oldin narxni tekshiradi.', stock: 'Do‘konda savatdagidan kam qoldi — sonini kamaytiring.' },
       reload: 'Tovarni ochish', checked: time => `Narx do‘kon bilan ${time} da tekshirildi` },
     services: {
       title: 'Ombor xizmatlari', optional: 'ixtiyoriy',
@@ -260,12 +260,12 @@ export const cartCopy: Record<Locale, CartCopy> = {
     signin: { title: 'Sign in to open your cart', text: 'Your cart and orders are saved to your Atlas profile.', action: 'Sign in' },
     empty: { title: 'Your cart is empty', text: 'Paste a product link from any store — we will calculate the price with delivery to Tashkent.', paste: 'Paste a link', stores: 'Browse stores' },
     item: { remove: 'Remove', decrease: 'Decrease quantity', increase: 'Increase quantity', quantity: 'Quantity', storePrice: 'In store', openStore: 'Open in store', parcelFrom: store => `Parcel from ${store}`, forQuantity: count => `for ${count}`,
-      parcelReserve: (missing, reserve) => `Add ${missing} more from this store and the ${reserve} store-delivery reserve goes away.`,
-      parcelFree: freeFrom => `${freeFrom} or more from this store — no store-delivery reserve.`,
+      parcelReserve: (missing, reserve) => `Store delivery is unknown: a ${reserve} reserve is held separately, outside the total. Add ${missing} more from this store and delivery is free.`,
+      parcelFree: freeFrom => `Over ${freeFrom} from this store — delivery to the warehouse is free.`,
       priceUp: (from, to) => `The store price went up: ${from} → ${to}. Total recalculated.`,
       priceDown: (from, to) => `The store price went down: ${from} → ${to}. Total recalculated.`,
       shippingChanged: (from, to) => `Store delivery changed: ${from} → ${to}.`,
-      issues: { currency: 'The store changed its currency — open the item again.', variant: 'This option is no longer listed — choose it again.', price: 'The store did not confirm the price — open the item again.', unreachable: 'The store did not answer the check. Atlas confirms the price before buying.' },
+      issues: { currency: 'The store changed its currency — open the item again.', variant: 'This option is no longer listed — choose it again.', price: 'The store did not confirm the price — open the item again.', unreachable: 'The store did not answer the check. Atlas confirms the price before buying.', stock: 'The store has fewer left than your cart asks for — lower the quantity.' },
       reload: 'Open item', checked: time => `Price checked with the store at ${time}` },
     services: {
       title: 'Warehouse services', optional: 'optional',

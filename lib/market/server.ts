@@ -2,6 +2,7 @@ import {env,waitUntil} from 'cloudflare:workers';
 import {currentUser} from '@/lib/auth/server';
 import {blank,parseState,pricingSchema,tariff,upgradePricing,orderPayable,type Pricing,type State} from './domain';
 import {defaultPolicy,policySchema,type Policy} from './policy';
+import {cbuUsdUrl,fxRefreshDue,parseCbuRate,withCbuRate} from './fx';
 import {apiErrorMessage,requestLocale,serverError} from './i18n';
 export function database(){if(!env.DB)throw Error('Серверное хранилище пока недоступно.');return env.DB}
 export function deferBackground(task:Promise<unknown>,label:string){waitUntil(task.catch(error=>console.error(label,error)))}
@@ -74,8 +75,38 @@ export async function operationalHealth(){
 export async function operationalCustomers(){const rows=await database().prepare('SELECT id,status FROM market_customers').all<{id:string;status:'active'|'review'|'blocked'}>();return Object.fromEntries(rows.results.map(row=>[row.id,row.status]));}
 function parsePricingValue(value:string|undefined):Pricing{if(!value)return tariff;try{const parsed=pricingSchema.safeParse(JSON.parse(value));return parsed.success?upgradePricing(parsed.data):tariff}catch{return tariff}}
 function parsePolicyValue(value:string|undefined):Policy{if(!value)return defaultPolicy;try{const parsed=policySchema.safeParse(JSON.parse(value));return parsed.success?parsed.data:defaultPolicy}catch{return defaultPolicy}}
-export async function pricing():Promise<Pricing>{const row=await database().prepare("SELECT value FROM market_settings WHERE key='pricing'").first<{value:string}>();return parsePricingValue(row?.value)}
-export async function pricingAndPolicy():Promise<{pricing:Pricing;policy:Policy}>{const rows=await database().prepare("SELECT key,value FROM market_settings WHERE key IN ('pricing','policy')").all<{key:string;value:string}>();const values=new Map(rows.results.map(row=>[row.key,row.value]));return {pricing:parsePricingValue(values.get('pricing')),policy:parsePolicyValue(values.get('policy'))}}
+export async function pricing():Promise<Pricing>{const row=await database().prepare("SELECT value FROM market_settings WHERE key='pricing'").first<{value:string}>();return scheduleFxRefresh(parsePricingValue(row?.value))}
+export async function pricingAndPolicy():Promise<{pricing:Pricing;policy:Policy}>{const rows=await database().prepare("SELECT key,value FROM market_settings WHERE key IN ('pricing','policy')").all<{key:string;value:string}>();const values=new Map(rows.results.map(row=>[row.key,row.value]));return {pricing:scheduleFxRefresh(parsePricingValue(values.get('pricing'))),policy:parsePolicyValue(values.get('policy'))}}
+/** A tariff on the Central Bank rate reads it again in the background when it is older than 6 hours. */
+function scheduleFxRefresh(current:Pricing){if(fxRefreshDue(current))deferBackground(refreshCbuFx(),'CBU rate refresh failed');return current}
+/**
+ * Read the CBU USD rate and store it in the tariff (rate × markup, new version when the soum rate changes).
+ * One refresh at a time (D1 lease); the write applies only if the tariff did not change meanwhile.
+ */
+export async function refreshCbuFx(now=Date.now()):Promise<Pricing|null>{
+ const db=database();
+ const lease=await db.prepare('INSERT INTO market_rate_limits (key,count,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=1,expires_at=excluded.expires_at WHERE market_rate_limits.expires_at<? RETURNING key').bind('atlas:fx-refresh:lease',now+120000,now).first<{key:string}>();
+ if(!lease)return null;
+ // A failed attempt keeps the 2-minute lease, so the bank is not asked again on every request.
+ // Workers support only "follow" or "manual": a redirect is not followed and counts as a failed read.
+ const response=await fetch(cbuUsdUrl,{headers:{Accept:'application/json'},redirect:'manual',signal:AbortSignal.timeout(8000)});
+ const text=response.status===200?await response.text():'';
+ const cbu=text.length<64000?parseCbuRate(JSON.parse(text||'null')):null;
+ if(!cbu)throw Error('CBU rate response was not usable');
+ const row=await db.prepare("SELECT value FROM market_settings WHERE key='pricing'").first<{value:string}>();
+ const current=parsePricingValue(row?.value);
+ let result:Pricing|null=current;
+ if(current.fxSource==='cbu'){
+  const next=withCbuRate(current,cbu,now);
+  const value=JSON.stringify(next);
+  const write=row
+   ?await db.prepare("UPDATE market_settings SET value=?,updated_at=?,updated_by=? WHERE key='pricing' AND value=?").bind(value,now,'system:cbu',row.value).run()
+   :await db.prepare("INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES ('pricing',?,?,?) ON CONFLICT(key) DO NOTHING").bind(value,now,'system:cbu').run();
+  result=write.meta.changes?next:null;
+ }
+ await db.prepare('DELETE FROM market_rate_limits WHERE key=?').bind('atlas:fx-refresh:lease').run();
+ return result;
+}
 export async function savePricing(next:Pricing,userId:string){await database().prepare("INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES ('pricing',?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at,updated_by=excluded.updated_by").bind(JSON.stringify(next),next.updatedAt,userId).run()}
 export async function policy():Promise<Policy>{const row=await database().prepare("SELECT value FROM market_settings WHERE key='policy'").first<{value:string}>();return parsePolicyValue(row?.value)}
 export async function savePolicy(next:Policy,userId:string){await database().prepare("INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES ('policy',?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at,updated_by=excluded.updated_by").bind(JSON.stringify(next),next.updatedAt,userId).run()}

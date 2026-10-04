@@ -43,9 +43,14 @@ import {
   warehouseServiceSchema,
   orderIssueCategorySchema,
   orderIssueStatusSchema,
+  cartCustomsSchema,
+  setCartNote,
+  setCartCustoms,
   type Pricing,
+  type Product,
   type State,
 } from "./domain.ts";
+import { cartCustomsEstimate } from "./allowance.ts";
 import { assertCartPolicy, defaultPolicy, productRestriction, type Policy } from "./policy.ts";
 import { customsVersion, paddedWeight, toUsd } from "./world.ts";
 import { safeImage } from "../importer/extract.ts";
@@ -58,7 +63,17 @@ export const actionSchema = z.discriminatedUnion("type", [
     type: z.literal("cart-add"),
     product: productSchema,
     variant: z.string(),
+    quantity: z.number().int().min(1).max(10).optional(),
+    note: z.string().max(500).optional(),
   }),
+  // Several options of one product at once (sizes, colors), each with its own quantity; one store check covers them.
+  z.object({
+    type: z.literal("cart-add-many"),
+    items: z.array(z.object({ product: productSchema, variant: z.string(), quantity: z.number().int().min(1).max(10) })).min(1).max(20),
+    note: z.string().max(500).optional(),
+  }),
+  z.object({ type: z.literal("cart-note"), id, note: z.string().max(500) }),
+  z.object({ type: z.literal("cart-customs"), value: cartCustomsSchema }),
   z.object({
     type: z.literal("cart-quantity"),
     id,
@@ -153,6 +168,26 @@ export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("import-legacy"), data: z.string().max(1000000) }),
 ]);
 export type Action = z.infer<typeof actionSchema>;
+/** A product as the server accepts it into the cart: USD, store delivery and weight recomputed from the store data. */
+function checkedCartProduct(product: Product, pricing: Pricing, policy: Policy): Product {
+  const restriction = productRestriction(product, policy);
+  if (restriction) throw Error(restriction);
+  if (!product.sourceUrl) return product;
+  if (product.boxedWeight === undefined || !product.country || !product.shippingKnown)
+    throw Error("Укажите страну, вес с коробкой и доставку магазина.");
+  const sourceUrl = validateSource(product.sourceUrl);
+  if (product.sourcePrice === undefined || product.sourceShipping === undefined || !product.sourceCurrency)
+    throw Error("Укажите цену, валюту и доставку магазина.");
+  if (product.image && !safeImage(product.image, sourceUrl)) throw Error("Некорректная ссылка на изображение.");
+  if (product.sourceImages?.some((image) => !safeImage(image, sourceUrl))) throw Error("Некорректная ссылка на изображение.");
+  return {
+    ...product,
+    sourceUrl,
+    usd: toUsd(product.sourcePrice, product.sourceCurrency, pricing.rates),
+    sourceShippingUsd: toUsd(product.sourceShipping, product.sourceShippingCurrency ?? product.sourceCurrency, pricing.rates),
+    weight: paddedWeight(product.boxedWeight),
+  };
+}
 export function applyAction(
   s: State,
   a: Action,
@@ -216,42 +251,21 @@ export function applyAction(
           : [...s.favorites, a.id],
       };
     case "cart-add": {
-      const restriction = productRestriction(a.product, policy);
-      if (restriction) throw Error(restriction);
-      if (a.product.sourceUrl) {
-        if (
-          a.product.boxedWeight === undefined ||
-          !a.product.country ||
-          !a.product.shippingKnown
-        )
-          throw Error("Укажите страну, вес с коробкой и доставку магазина.");
-        a.product.sourceUrl = validateSource(a.product.sourceUrl);
-        if (
-          a.product.sourcePrice === undefined ||
-          a.product.sourceShipping === undefined ||
-          !a.product.sourceCurrency
-        )
-          throw Error("Укажите цену, валюту и доставку магазина.");
-        a.product.usd = toUsd(
-          a.product.sourcePrice,
-          a.product.sourceCurrency,
-          pricing.rates,
-        );
-        a.product.sourceShippingUsd = toUsd(
-          a.product.sourceShipping,
-          a.product.sourceShippingCurrency ?? a.product.sourceCurrency,
-          pricing.rates,
-        );
-        a.product.weight = paddedWeight(a.product.boxedWeight);
-        if (a.product.image && !safeImage(a.product.image, a.product.sourceUrl))
-          throw Error("Некорректная ссылка на изображение.");
-        if (a.product.sourceImages?.some(image => !safeImage(image, a.product.sourceUrl ?? '')))
-          throw Error("Некорректная ссылка на изображение.");
-      }
-      const next = addToCart(s, a.product, a.variant, Date.now(), pricing);
+      const next = addToCart(s, checkedCartProduct(a.product, pricing, policy), a.variant, Date.now(), pricing, a.quantity ?? 1, a.note);
       assertCartPolicy(next.cart, policy);
       return next;
     }
+    case "cart-add-many": {
+      const now = Date.now();
+      // One revision: either every chosen option is added, or none.
+      const next = a.items.reduce((state, item) => addToCart(state, checkedCartProduct(item.product, pricing, policy), item.variant, now, pricing, item.quantity, a.note), s);
+      assertCartPolicy(next.cart, policy);
+      return next;
+    }
+    case "cart-note":
+      return setCartNote(s, a.id, a.note);
+    case "cart-customs":
+      return setCartCustoms(s, a.value);
     case "cart-quantity":
       { const next = changeQuantity(s, a.id, a.quantity, Date.now(), pricing); assertCartPolicy(next.cart, policy); return next; }
     case "cart-remove":
@@ -278,6 +292,9 @@ export function applyAction(
         next = saveDeliveryProfile(s, value, a.saveRecipientLabel, undefined, !s.deliveryProfiles.length);
         deliveryProfileId = next.deliveryProfiles.find((profile) => JSON.stringify(deliveryProfileSchema.parse(profile)) === JSON.stringify(value))?.id;
       }
+      // The server works out the customs estimate for the chosen recipient; the browser's figures are not used.
+      const recipientProfile = deliveryProfileId ? next.deliveryProfiles.find((profile) => profile.id === deliveryProfileId) : undefined;
+      const customs = cartCustomsEstimate(next, pricing, { profile: recipientProfile, name: a.delivery?.recipient });
       return checkoutCart(
         next,
         a.key,
@@ -289,6 +306,7 @@ export function applyAction(
         deliveryProfileId,
         a.identityProfileId,
         pricing,
+        customs,
       );
     }
     case "payment-demo":

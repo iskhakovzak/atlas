@@ -1,5 +1,9 @@
 # Atlas — project context
 
+## Order calculation — 5 October 2026
+
+The calculation follows the owner's rules. A parcel is billed on its boxed weight plus 0.3 kg once (at least 1 kg); the weight comes from the store or is an editable estimate. The Atlas fee is 9.98% of the items only. Soum amounts use the Central Bank of Uzbekistan's USD rate × 1.012, read by the server and shown with its time. When a store does not state delivery to the warehouse, delivery is free for more than $50 from that store; below that a $10 hold is kept apart from the order amount, and a higher actual charge needs the customer's consent. Customers can add several sizes at once with quantities, see eBay stock, leave a comment for Atlas, and see a customs estimate per recipient for the calendar month ($200 duty-free, 20% above it), including purchases elsewhere and an optional "Atlas helps pay customs" request (3%, a request only). Payments remain simulated.
+
 ## Delivery tariff — 4 October 2026
 
 The owner set express delivery at $15 per kg ($1.5 per 100 g) from the US, the UK, China, Germany, Italy and Spain, with approximate times of 5–10 business days from the US, 7–10 from the UK, 7–12 from China and 7–9 from Germany, Italy and Spain. The rate is stored in USD and converted at the Atlas exchange rate, so it follows the rate set by the operator. The home page shows the times and prices per country. Tariffs saved earlier in soum are read as $15 under a new version until an operator saves the form.

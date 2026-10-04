@@ -17,7 +17,7 @@ test('merchant records retain unique identity, safe sources and unconfirmed ship
     assert.equal(p.shippingKnown, false);
     assert.equal(p.sourceShippingEstimated, true);
     assert.equal(p.sourceShippingUsd, 10);
-    assert.equal(p.weight, Math.max(1, Math.round((p.boxedWeight + 0.5) * 100) / 100));
+    assert.equal(p.weight, Math.max(1, Math.ceil((p.boxedWeight + 0.3) * 100 - 1e-8) / 100));
     assert.equal(new URL(findOrderUrl(p), 'https://atlas.test').searchParams.get('url'), p.sourceUrl);
     assert.equal(new URL(findOrderUrl(p), 'https://atlas.test').searchParams.get('catalog'), p.id);
     assert.throws(() => applyAction(blank(), {type:'cart-add',product:p,variant:p.variants[0]}, false), /доставку магазина/);
@@ -26,10 +26,11 @@ test('merchant records retain unique identity, safe sources and unconfirmed ship
 test('merchant totals match checkout pricing and source-only discounts', () => {
   const p = merchantFinds.find(p => p.referenceUsd);
   const deal = dealQuote(p, tariff);
-  // From $50 an unknown store delivery carries no reserve.
-  assert.ok(p.usd >= tariff.storeShippingFreeFromUsd);
+  // Above $50 an unknown store delivery is free.
+  assert.ok(p.usd > tariff.storeShippingFreeFromUsd);
   assert.deepEqual(deal.costs, price(p.usd, p.weight, 1, 0, tariff));
-  assert.equal(dealQuote({ ...p, usd: 20 }, tariff).costs.sourceShipping, 10 * tariff.fx);
+  assert.equal(dealQuote({ ...p, usd: 20 }, tariff).costs.sourceShipping, 0, 'the hold is never in the total');
+  assert.equal(dealQuote({ ...p, usd: 20 }, tariff).holdUsd, 10);
   assert.equal(deal.savingsUsd, p.referenceUsd - p.usd);
   assert.equal(deal.discount, Math.round((p.referenceUsd - p.usd) / p.referenceUsd * 100));
   assert.equal(deal.costs.total, deal.costs.merchandise + deal.costs.service + deal.costs.sourceShipping + deal.costs.shipping + deal.costs.reserve);
@@ -39,7 +40,7 @@ test('stale catalog snapshots still get a clearly unconfirmed server-rate estima
   const p={...merchantFinds[0],usd:1,sourcePrice:24,sourceCurrency:'EUR',priceNeedsConfirmation:true,referenceUsd:999};
   const config={...tariff,rates:{...tariff.rates,EUR:1.1}};
   const deal=dealQuote(p,config);
-  assert.deepEqual(deal.costs,price(26.4,p.weight,1,p.sourceShippingUsd,config));
+  assert.deepEqual(deal.costs,price(26.4,p.weight,1,p.sourceShippingEstimated?0:p.sourceShippingUsd,config));
   assert.equal(deal.discount,0);assert.equal(deal.referenceUsd,undefined);
 });
 test('reference prices never leak to legacy, changed or unrelated listings', () => {

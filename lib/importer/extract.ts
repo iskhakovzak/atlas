@@ -13,6 +13,10 @@ export type ProductVariant = {
   availabilityKnown?: boolean;
   price?: number;
   image?: string;
+  /** Units left as the store itself reports them (eBay Browse API); never inferred from other signals. */
+  quantity?: number;
+  /** The store only says "more than N" (eBay hides exact stock above its threshold). */
+  quantityMoreThan?: number;
 };
 
 export type ProductColorwayGallery = {

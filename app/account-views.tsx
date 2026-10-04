@@ -8,7 +8,8 @@ import { useMarket } from "@/lib/market/store";
 import { courierAllowanceUsd } from "@/lib/market/customs";
 import { balanceOf, totalOf, type SavedDeliveryProfile } from "@/lib/market/domain";
 import { monthlyAllowance, recipientKey, type RecipientAllowance } from "@/lib/market/allowance";
-import { localizedStatuses } from "@/lib/market/i18n";
+import { localizedStatuses, type Locale } from "@/lib/market/i18n";
+import { calcCopy } from "@/lib/market/calc-copy";
 import { formatSum } from "@/lib/market/home-copy";
 import { accountCopy, formatLongDate, itemCount, recipientCopy, type AccountCopy } from "@/lib/market/customer-copy";
 import { siteContent } from "@/lib/market/site-content";
@@ -137,7 +138,7 @@ export function AccountView() {
       </div>
 
       <div className="cabinet-side">
-        <CustomsAllowance groups={allowance} primaryName={primaryRecipient?.recipient} cartUsd={cartUsd} c={c} />
+        <CustomsAllowance groups={allowance} primaryName={primaryRecipient?.recipient} cartUsd={cartUsd} c={c} locale={lang} />
 
         <section className="cabinet-card" aria-labelledby="cabinet-documents-title">
           <h2 id="cabinet-documents-title">{c.documents.title}</h2>
@@ -167,7 +168,7 @@ export function AccountView() {
 }
 
 /** This month's purchases through Atlas against the duty-free courier allowance, per recipient. */
-function CustomsAllowance({ groups, primaryName, cartUsd, c }: { groups: RecipientAllowance[]; primaryName?: string; cartUsd: number; c: AccountCopy }) {
+function CustomsAllowance({ groups, primaryName, cartUsd, c, locale }: { groups: RecipientAllowance[]; primaryName?: string; cartUsd: number; c: AccountCopy; locale: Locale }) {
   const limit = courierAllowanceUsd;
   // Show the default recipient even before their first order, so the empty state still says "for whom".
   const rows = groups.length ? groups : primaryName ? [{ key: recipientKey(primaryName), name: primaryName, usedUsd: 0, orders: 0 }] : [];
@@ -185,6 +186,8 @@ function CustomsAllowance({ groups, primaryName, cartUsd, c }: { groups: Recipie
     })}</ul> : <p className="cabinet-empty">{c.customs.empty}</p>}
     {cartUsd > 0 && <p className="cabinet-customs-cart">{c.customs.cart(cartUsd)}</p>}
     <p className="cabinet-note">{c.customs.note}</p>
+    {/* Each person has their own allowance: a relative may be the recipient only with their own details. */}
+    <p className="cabinet-note">{calcCopy[locale].customs.relative} {calcCopy[locale].customs.rule}</p>
     <Link className="cabinet-link" href="/customs">{c.customs.link}<ArrowRight size={16} aria-hidden="true" /></Link>
   </section>;
 }

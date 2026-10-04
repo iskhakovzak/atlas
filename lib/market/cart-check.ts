@@ -84,6 +84,12 @@ export async function checkCartSources(cart: CartItem[], fetchSource: (url: stri
       product.usd = toUsd(product.sourcePrice!, product.sourceCurrency!, pricing.rates);
       if (product.sourceShipping !== undefined)
         product.sourceShippingUsd = toUsd(product.sourceShipping, product.sourceShippingCurrency ?? product.sourceCurrency!, pricing.rates);
+      // The store now reports fewer units than the line asks for: the customer lowers the quantity first.
+      if (product.stockQuantity !== undefined && item.quantity > product.stockQuantity) {
+        update(index, { product, sourceIssue: { kind: 'stock', at: now } });
+        result.blocked.push(item.id);
+        continue;
+      }
       if (check.status === 'changed') {
         update(index, { product, sourceIssue: undefined, priceChange: { ...check.change, at: now } });
         result.changed.push(item.id);

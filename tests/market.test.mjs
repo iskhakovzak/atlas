@@ -64,7 +64,7 @@ s=renewCart(s,2000);s=checkoutCart(s,'a',cartSignature(s.cart),false,2001);asser
 });
 test('settlement keeps quote immutable, refunds once and holds its original tariff',()=>{
 let s=warehouse();const id=s.orders[0].id;const original=JSON.stringify(s.orders[0].quote);const previous=tariff.perKg;tariff.perKg=250000;
-try{s=receiveOrder(s,id,[1.8,30,20,15]);assert.equal(s.orders[0].settlement.shipping,345600);assert.equal(balanceOf(s),138240);assert.equal(JSON.stringify(s.orders[0].quote),original);const again=receiveOrder(s,id,[1.8,30,20,15]);assert.equal(again.entries.length,2);assert.equal(balanceOf(again),138240)}finally{tariff.perKg=previous}
+try{s=receiveOrder(s,id,[1.8,30,20,15]);const q=JSON.parse(original);const shipping=Math.ceil(1.8*q.perKg);assert.equal(s.orders[0].settlement.shipping,shipping);const refund=q.shipping+q.reserve-shipping;assert.ok(refund>0);assert.equal(balanceOf(s),refund);assert.equal(JSON.stringify(s.orders[0].quote),original);const again=receiveOrder(s,id,[1.8,30,20,15]);assert.equal(again.entries.length,2);assert.equal(balanceOf(again),refund)}finally{tariff.perKg=previous}
 });
 test('dimensional weight dominates and extra payment blocks shipment until approved',()=>{
 let s=warehouse();const id=s.orders[0].id;s=receiveOrder(s,id,[1,50,50,50]);assert.equal(s.orders[0].settlement.chargeableWeight,25);assert.equal(balanceOf(s),0);assert.throws(()=>advanceOrder(s,id,3));assert.throws(()=>approveExtra(s,id,1));

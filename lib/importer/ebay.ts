@@ -303,6 +303,23 @@ function availability(item: EbayItem) {
   return {known: false, available: true};
 }
 
+/**
+ * Units left as eBay reports them (Browse API `estimatedAvailabilities`): an exact estimated count, or only
+ * "more than N" when the seller hides it. Nothing is derived from other fields.
+ */
+export function ebayStock(item: EbayItem): { quantity?: number; quantityMoreThan?: number } {
+  const estimates = Array.isArray(item.estimatedAvailabilities) ? item.estimatedAvailabilities.map(record).filter(Boolean) : [];
+  const count = (value: unknown) => typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 100_000 ? value : undefined;
+  for (const estimate of estimates) {
+    const type = clean(estimate?.availabilityThresholdType, 20).toUpperCase();
+    const threshold = count(estimate?.availabilityThreshold);
+    if (type === 'MORE_THAN' && threshold !== undefined) return { quantityMoreThan: threshold };
+    const quantity = count(estimate?.estimatedAvailableQuantity);
+    if (quantity !== undefined) return { quantity };
+  }
+  return {};
+}
+
 function fixedPrice(item: EbayItem) {
   return Array.isArray(item.buyingOptions) && item.buyingOptions.includes('FIXED_PRICE');
 }
@@ -363,6 +380,7 @@ function groupVariants(items: EbayItem[], listingId: string, sourceUrl: string, 
       availabilityKnown: state.known,
       price: price.amount,
       image: images[0],
+      ...ebayStock(item),
     });
   }
   const distinctLabels = new Set(variants.map(value => value.label));
@@ -399,6 +417,7 @@ function mapSingleItem(item: EbayItem, listingId: string, url: URL): Extracted {
     availabilityKnown: status.known,
     price: price.amount,
     image: images[0],
+    ...ebayStock(item),
   };
   const sizeAspect = [...aspectsFor(item)].find(([name]) => /size|width|length|waist|band|cup/i.test(name));
   if (sizeAspect) {

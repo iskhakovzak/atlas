@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { actionSchema, applyAction } from "@/lib/market/actions";
-import { normalizePricing, pricingSchema, validateServiceCatalog } from "@/lib/market/domain";
+import { normalizePricing, pricingRevision, pricingSchema, validateServiceCatalog } from "@/lib/market/domain";
 import { policySchema } from "@/lib/market/policy";
 import {
   failure,
@@ -14,6 +14,7 @@ import {
   persist,
   pricingAndPolicy,
   recordAudit,
+  refreshCbuFx,
   requestJson,
   sameOrigin,
   savePricing,
@@ -55,6 +56,12 @@ const updateSchema = z.discriminatedUnion("kind", [
       reserve: true,
       divisor: true,
       storeShippingFreeFromUsd: true,
+      fxSource: true,
+      fxMarkup: true,
+      customsAllowanceUsd: true,
+      customsRate: true,
+      customsMinimumPerKg: true,
+      customsHelpFee: true,
       rates: true,
       countryOverrides: true,
       serviceCatalog: true,
@@ -70,6 +77,7 @@ const updateSchema = z.discriminatedUnion("kind", [
     }),
   }),
   z.object({kind:z.literal("projection-rebuild")}),
+  z.object({kind:z.literal("fx-refresh")}),
   z.object({kind:z.literal("customer-status"),accountId:z.string().min(1).max(320),status:z.enum(["active","review","blocked"])}),
 ]);
 
@@ -115,10 +123,22 @@ export async function POST(request: Request) {
       await recordAudit(user,'staff.update','staff',member.email,{role:member.role,status:member.status});
       return json({member,staff:await staffMembers(),audit:await auditEvents()});
     }
+    if (payload.data.kind === "fx-refresh") {
+      const next = await refreshCbuFx().catch(() => null);
+      if (!next) throw new HttpError(502, "Не удалось получить курс ЦБ. Попробуйте позже или задайте курс вручную.");
+      await recordAudit(user, "pricing.fx-refresh", "settings", "pricing", { version: next.version, fx: next.fx });
+      return json({ pricing: next });
+    }
     if (payload.data.kind === "pricing") {
       const now = Date.now();
+      const current = (await pricingAndPolicy()).pricing;
       const next = normalizePricing(pricingSchema.parse({
         ...payload.data.value,
+        // The Central Bank rate already read stays with the tariff; switching to a set rate keeps `fx` as entered.
+        fxCbuRate: current.fxCbuRate,
+        fxCbuDate: current.fxCbuDate,
+        fxUpdatedAt: payload.data.value.fxSource === "cbu" ? current.fxUpdatedAt : now,
+        revision: pricingRevision,
         version: `managed-${now}`,
         updatedAt: now,
         managedBy: user.email,
