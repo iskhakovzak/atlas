@@ -1,6 +1,6 @@
 import {env,waitUntil} from 'cloudflare:workers';
 import {currentUser} from '@/lib/auth/server';
-import {blank,parseState,pricingSchema,tariff,orderPayable,type Pricing,type State} from './domain';
+import {blank,parseState,pricingSchema,tariff,upgradePricing,orderPayable,type Pricing,type State} from './domain';
 import {defaultPolicy,policySchema,type Policy} from './policy';
 import {apiErrorMessage,requestLocale,serverError} from './i18n';
 export function database(){if(!env.DB)throw Error('Серверное хранилище пока недоступно.');return env.DB}
@@ -72,7 +72,7 @@ export async function operationalHealth(){
  ]);return{customers:customers?.count??0,orders:orders?.count??0,feeLines:fees?.count??0,events:events?.count??0,checkedAt:Date.now()};
 }
 export async function operationalCustomers(){const rows=await database().prepare('SELECT id,status FROM market_customers').all<{id:string;status:'active'|'review'|'blocked'}>();return Object.fromEntries(rows.results.map(row=>[row.id,row.status]));}
-function parsePricingValue(value:string|undefined):Pricing{if(!value)return tariff;try{const parsed=pricingSchema.safeParse(JSON.parse(value));return parsed.success?parsed.data:tariff}catch{return tariff}}
+function parsePricingValue(value:string|undefined):Pricing{if(!value)return tariff;try{const parsed=pricingSchema.safeParse(JSON.parse(value));return parsed.success?upgradePricing(parsed.data):tariff}catch{return tariff}}
 function parsePolicyValue(value:string|undefined):Policy{if(!value)return defaultPolicy;try{const parsed=policySchema.safeParse(JSON.parse(value));return parsed.success?parsed.data:defaultPolicy}catch{return defaultPolicy}}
 export async function pricing():Promise<Pricing>{const row=await database().prepare("SELECT value FROM market_settings WHERE key='pricing'").first<{value:string}>();return parsePricingValue(row?.value)}
 export async function pricingAndPolicy():Promise<{pricing:Pricing;policy:Policy}>{const rows=await database().prepare("SELECT key,value FROM market_settings WHERE key IN ('pricing','policy')").all<{key:string;value:string}>();const values=new Map(rows.results.map(row=>[row.key,row.value]));return {pricing:parsePricingValue(values.get('pricing')),policy:parsePolicyValue(values.get('policy'))}}

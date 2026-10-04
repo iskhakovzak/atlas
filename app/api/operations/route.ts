@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { actionSchema, applyAction } from "@/lib/market/actions";
-import { pricingSchema, validateServiceCatalog } from "@/lib/market/domain";
+import { normalizePricing, pricingSchema, validateServiceCatalog } from "@/lib/market/domain";
 import { policySchema } from "@/lib/market/policy";
 import {
   failure,
@@ -46,6 +46,7 @@ const updateSchema = z.discriminatedUnion("kind", [
     value: pricingSchema.pick({
       fx: true,
       perKg: true,
+      perKgUsd: true,
       margin: true,
       buyoutFee: true,
       conversionFee: true,
@@ -116,12 +117,12 @@ export async function POST(request: Request) {
     }
     if (payload.data.kind === "pricing") {
       const now = Date.now();
-      const next = pricingSchema.parse({
+      const next = normalizePricing(pricingSchema.parse({
         ...payload.data.value,
         version: `managed-${now}`,
         updatedAt: now,
         managedBy: user.email,
-      });
+      }));
       try { validateServiceCatalog(next.serviceCatalog); }
       catch (error) { throw new HttpError(400, (error as Error).message); }
       await savePricing(next, user.userId);

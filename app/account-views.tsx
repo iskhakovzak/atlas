@@ -99,9 +99,11 @@ export function AccountView() {
           <p className="cabinet-lead">{c.recipients.lead}</p>
           {state.deliveryProfiles.length ? <ul className="cabinet-recipients">{state.deliveryProfiles.map(profile => {
             const passport = identityProfiles.find(identity => identity.recipientProfileId === profile.id);
+            // A recipient saved under their own name would show it twice.
+            const named = profile.label.trim() && profile.label.trim() !== profile.recipient.trim();
             return <li key={profile.id}>
-              <div className="cabinet-recipient-top"><b>{profile.label}</b>{profile.primary && <span className="cabinet-badge">{c.recipients.primary}</span>}</div>
-              <p>{profile.recipient} · {profile.phone}</p>
+              <div className="cabinet-recipient-top"><b>{named ? profile.label : profile.recipient}</b>{profile.primary && <span className="cabinet-badge">{c.recipients.primary}</span>}</div>
+              <p>{named && <>{profile.recipient} · </>}<span className="nowrap">{profile.phone}</span></p>
               <p className="cabinet-muted">{profile.region}, {profile.city}, {profile.address}</p>
               <div className="cabinet-recipient-foot">
                 {passport ? <span className="cabinet-chip ok"><Check size={14} aria-hidden="true" />{c.recipients.passportOk(passport.passportMasked)}</span> : <Link className="cabinet-chip warn" href={`/identity?recipient=${encodeURIComponent(profile.id)}`}><ScanLine size={14} aria-hidden="true" />{c.recipients.addPassport}</Link>}
@@ -125,8 +127,8 @@ export function AccountView() {
               {item.replies.map(reply => <p className="ticket-reply" key={reply.id}><b>{reply.author === "support" ? c.support.team : c.support.you}</b><br />{reply.text}</p>)}
               {item.status !== "closed" && <form className="support-reply-form" onSubmit={async event => { event.preventDefault(); const form = event.currentTarget; const input = form.elements.namedItem("reply") as HTMLInputElement; if (await act({ type: "support-reply", id: item.id, text: input.value })) input.value = ""; }}><input name="reply" aria-label={c.support.replyPlaceholder} required minLength={3} maxLength={1000} placeholder={c.support.replyPlaceholder} /><button className="btn secondary">{c.support.reply}</button></form>}
             </details>
-          </li>)}</ul> : <p className="cabinet-empty">{c.support.none}</p>}
-          {ticketOpen || !state.supportTickets.length ? <form className="cabinet-ticket-form" onSubmit={async event => { event.preventDefault(); if (await act({ type: "support-create", subject: ticket.subject, text: ticket.text })) { setTicket({ subject: "", text: "" }); setTicketOpen(false); toast.success(c.support.sent); } }}>
+          </li>)}</ul> : null}
+          {ticketOpen ? <form className="cabinet-ticket-form" onSubmit={async event => { event.preventDefault(); if (await act({ type: "support-create", subject: ticket.subject, text: ticket.text })) { setTicket({ subject: "", text: "" }); setTicketOpen(false); toast.success(c.support.sent); } }}>
             <label htmlFor="support-subject">{c.support.subject}</label><input id="support-subject" required minLength={3} maxLength={120} value={ticket.subject} onChange={event => setTicket({ ...ticket, subject: event.target.value })} />
             <label htmlFor="support-question">{c.support.question}</label><textarea id="support-question" required minLength={3} maxLength={1000} rows={4} value={ticket.text} onChange={event => setTicket({ ...ticket, text: event.target.value })} />
             <div className="cabinet-form-foot"><small>{ticket.text.length} / 1000</small><button className="btn primary" disabled={!ready}><MessageCircle size={16} aria-hidden="true" />{c.support.send}</button></div>

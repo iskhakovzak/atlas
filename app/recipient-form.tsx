@@ -3,7 +3,8 @@ import {useId,useState,type FormEvent} from 'react';
 import {Check,Loader2} from 'lucide-react';
 import {Checkbox} from '@/components/ui/checkbox';
 import {recipientCopy} from '@/lib/market/customer-copy';
-import {cities,formatUzLocal,regionCapital,regionLabel,regions,streets,suggestions,uzPhone,uzPhoneDigits} from '@/lib/market/addresses';
+import {cities,regionCapital,regionLabel,regions,streets,suggestions,uzPhone,uzPhoneDigits} from '@/lib/market/addresses';
+import {UzPhoneInput} from './phone-input';
 import type {DeliveryProfile,SavedDeliveryProfile} from '@/lib/market/domain';
 import type {Locale} from '@/lib/market/i18n';
 
@@ -49,7 +50,7 @@ export function RecipientForm({locale,initial,isFirst,onSave}:{locale:Locale;ini
   </div>
   <div className={'rf-field'+(show('phone')?' invalid':'')}>
    <label htmlFor={`${uid}-phone`}>{c.phone}<span className="sr-only"> +998</span></label>
-   <span className="rf-phone"><span aria-hidden="true">+998</span><input id={`${uid}-phone`} type="tel" inputMode="tel" autoComplete="tel-national" placeholder="90 123 45 67" value={formatUzLocal(phoneDigits)} aria-invalid={show('phone')} aria-describedby={`${uid}-phone-hint`} onChange={event=>setPhoneDigits(uzPhoneDigits(event.target.value))}/></span>
+   <span className="rf-phone"><span aria-hidden="true">+998</span><UzPhoneInput id={`${uid}-phone`} digits={phoneDigits} onDigits={setPhoneDigits} aria-invalid={show('phone')} aria-describedby={`${uid}-phone-hint`}/></span>
    {hint('phone',c.phoneHint)}
   </div>
   <div className="rf-row">
