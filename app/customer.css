@@ -49,6 +49,10 @@ html[data-theme="dark"] {
 .basket-parcel-title svg { flex-shrink: 0; color: var(--home-accent); }
 .basket-parcel-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .basket-parcel-title small { margin-left: auto; color: var(--home-muted); font-size: 13px; font-weight: 600; white-space: nowrap; }
+/* Store-delivery reserve of this store order: how to drop it, or that it is not taken. */
+.basket-parcel-note { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 10px 16px; border-top: 1px solid var(--home-line); background: color-mix(in srgb, var(--home-accent) 6%, transparent); color: var(--home-ink); font-size: 13.5px; line-height: 1.45; }
+.basket-parcel-note svg { flex-shrink: 0; margin-top: 1px; color: var(--home-accent); }
+.basket-parcel-note.ok { background: transparent; color: var(--home-muted); }
 
 .basket-item { display: grid; grid-template-columns: 76px minmax(0, 1fr); grid-template-areas: "photo info" "photo price" "controls controls" "services services"; gap: 6px 14px; padding: 16px; }
 .basket-item + .basket-item { border-top: 1px solid var(--home-line); }
@@ -79,6 +83,17 @@ html[data-theme="dark"] {
   .basket-photo { width: 96px; height: 96px; }
   .basket-price { flex-direction: column; align-items: flex-end; text-align: right; }
 }
+/* What the last check with the store found, between the price and the quantity. */
+.basket-item:has(> .basket-item-note) { grid-template-areas: "photo info" "photo price" "note note" "controls controls" "services services"; }
+@media (min-width: 640px) { .basket-item:has(> .basket-item-note) { grid-template-areas: "photo info price" "photo note note" "photo controls controls" "services services services"; } }
+.basket-item-note { display: flex; grid-area: note; align-items: flex-start; gap: 8px; margin: 2px 0 0; padding: 9px 12px; border-radius: 12px; font-size: 13.5px; line-height: 1.45; }
+.basket-item-note svg { flex-shrink: 0; margin-top: 1px; }
+.basket-item-note.up { background: var(--cat-warn-bg); color: var(--cat-warn); }
+.basket-item-note.down { background: var(--cat-ok-bg); color: var(--cat-ok); }
+.basket-item-note.issue { border: 1px solid #f1c3bc; background: #fdf1ef; color: #9b2c1c; }
+.basket-item-note.issue a { color: inherit; font-weight: 800; text-decoration: underline; text-underline-offset: 2px; }
+.basket-item-note.soft { background: var(--home-soft); color: var(--home-muted); }
+html[data-theme="dark"] .basket-item-note.issue { border-color: rgba(255, 140, 120, .35); background: rgba(255, 120, 100, .1); color: #ffb4a8; }.basket-checked { display: inline-flex; align-items: center; gap: 5px; margin-top: 2px; color: var(--cat-ok); font-size: 12.5px; }
 
 .basket-services { grid-area: services; margin-top: 4px; border: 1px solid var(--home-line); border-radius: 12px; }
 .basket-services > summary { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; color: var(--home-ink); font-size: 14px; font-weight: 700; cursor: pointer; list-style: none; }
@@ -649,12 +664,9 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
 .field-vitals table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
 .field-vitals :is(th, td) { padding: 10px 12px; border-bottom: 1px solid var(--atlas-line); text-align: right; white-space: nowrap; }
 .field-vitals :is(thead th, tbody th) { text-align: left; }
-.field-vitals thead th { color: #5b6578; font-weight: 650; }
+.field-vitals thead th { color: #56695f; font-weight: 650; }
 .field-vitals tbody tr:last-child :is(th, td) { border-bottom: 0; }
 .field-vitals td[data-verdict="ok"] { color: #2f6b45; }
 .field-vitals td[data-verdict="slow"] { color: #a33236; font-weight: 700; }
 
 /* Long store names wrap to two lines on phones instead of being cut off. */
-@media (max-width: 600px) {
-  .store-card-name h3 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; line-height: 1.25; }
-}

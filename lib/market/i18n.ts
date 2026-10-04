@@ -72,9 +72,9 @@ const orderStatuses = {
 };
 export function localizedStatuses(locale:Locale){return orderStatuses[locale]}
 const routeTitles:Record<Locale,Record<string,string>>={
-  ru:{catalog:'Каталог',favorites:'Избранное',link:'Заказ по ссылке',stores:'Магазины',cart:'Корзина',orders:'Мои заказы',balance:'Баланс',operations:'Кабинет оператора',notifications:'Уведомления',account:'Личный кабинет',customs:'Таможенные условия',analytics:'Аналитика',legal:'Правила Atlas',identity:'Паспорт',declaration:'Декларация',batch:'Импорт списка',admin:'Администрирование',login:'Вход',notfound:'Страница не найдена'},
-  uz:{catalog:'Katalog',favorites:'Saqlanganlar',link:'Havola orqali buyurtma',stores:'Do‘konlar',cart:'Savat',orders:'Buyurtmalarim',balance:'Balans',operations:'Operator kabineti',notifications:'Bildirishnomalar',account:'Shaxsiy kabinet',customs:'Bojxona shartlari',analytics:'Tahlil',legal:'Atlas qoidalari',identity:'Pasport',declaration:'Deklaratsiya',batch:'Ro‘yxat importi',admin:'Boshqaruv',login:'Kirish',notfound:'Sahifa topilmadi'},
-  en:{catalog:'Catalog',favorites:'Saved',link:'Order by link',stores:'Stores',cart:'Cart',orders:'My orders',balance:'Balance',operations:'Operator workspace',notifications:'Notifications',account:'Account',customs:'Customs terms',analytics:'Analytics',legal:'Atlas terms',identity:'Passport',declaration:'Declaration',batch:'List import',admin:'Administration',login:'Sign in',notfound:'Page not found'},
+  ru:{catalog:'Каталог',products:'Каталог',favorites:'Избранное',link:'Заказ по ссылке',stores:'Магазины',cart:'Корзина',orders:'Мои заказы',balance:'Баланс',operations:'Кабинет оператора',notifications:'Уведомления',account:'Личный кабинет',customs:'Таможенные условия',analytics:'Аналитика',legal:'Правила Atlas',identity:'Паспорт',declaration:'Декларация',batch:'Импорт списка',admin:'Администрирование',login:'Вход',notfound:'Страница не найдена'},
+  uz:{catalog:'Katalog',products:'Katalog',favorites:'Saqlanganlar',link:'Havola orqali buyurtma',stores:'Do‘konlar',cart:'Savat',orders:'Buyurtmalarim',balance:'Balans',operations:'Operator kabineti',notifications:'Bildirishnomalar',account:'Shaxsiy kabinet',customs:'Bojxona shartlari',analytics:'Tahlil',legal:'Atlas qoidalari',identity:'Pasport',declaration:'Deklaratsiya',batch:'Ro‘yxat importi',admin:'Boshqaruv',login:'Kirish',notfound:'Sahifa topilmadi'},
+  en:{catalog:'Catalog',products:'Catalog',favorites:'Saved',link:'Order by link',stores:'Stores',cart:'Cart',orders:'My orders',balance:'Balance',operations:'Operator workspace',notifications:'Notifications',account:'Account',customs:'Customs terms',analytics:'Analytics',legal:'Atlas terms',identity:'Passport',declaration:'Declaration',batch:'List import',admin:'Administration',login:'Sign in',notfound:'Page not found'},
 };
 export function routeTitle(locale:Locale,view:string){return routeTitles[locale][view]??view}
 
@@ -113,6 +113,11 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_31': 'Каталог изменён. Обновите список перед сохранением.',
     'err_32': 'Достигнут лимит импорта. Продолжите через минуту.',
     'err_33': 'Подборка не найдена.',
+    'err_34': 'Цена в магазине только что изменилась. Мы загрузили новую цену — проверьте итог и добавьте товар ещё раз.',
+    'err_35': 'Цена в магазине изменилась. Корзина пересчитана — проверьте новый итог и оформите заказ ещё раз.',
+    'err_36': 'Магазин изменил данные товара: валюту, вариант или цену. Откройте отмеченный товар и добавьте его заново.',
+    'err_37': 'Тарифы Atlas обновились. Корзина пересчитана — проверьте новый итог и оформите заказ ещё раз.',
+    'err_38': 'Магазин сейчас не отвечает, поэтому цену не удалось сверить. Попробуйте через несколько минут.',
   },
   uz: {
     'err_1': 'Davom etish uchun tizimga kiring.',
@@ -148,6 +153,11 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_31': 'Katalog o‘zgartirildi. Saqlashdan oldin ro‘yxatni yangilang.',
     'err_32': 'Import limiti yetildi. Bir daqiqadan so‘ng davom eting.',
     'err_33': 'To‘plam topilmadi.',
+    'err_34': 'Do‘kondagi narx hozirgina o‘zgardi. Yangi narxni yukladik — jamini tekshirib, tovarni qayta qo‘shing.',
+    'err_35': 'Do‘kondagi narx o‘zgardi. Savat qayta hisoblandi — yangi jamini tekshirib, buyurtmani qayta rasmiylashtiring.',
+    'err_36': 'Do‘kon tovar ma’lumotlarini o‘zgartirdi: valyuta, variant yoki narx. Belgilangan tovarni ochib, qayta qo‘shing.',
+    'err_37': 'Atlas tariflari yangilandi. Savat qayta hisoblandi — yangi jamini tekshirib, buyurtmani qayta rasmiylashtiring.',
+    'err_38': 'Do‘kon hozir javob bermayapti, shuning uchun narxni tekshirib bo‘lmadi. Bir necha daqiqadan so‘ng urinib ko‘ring.',
   },
   en: {
     'err_1': 'Sign in to continue.',
@@ -183,6 +193,11 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_31': 'Catalog modified. Refresh the list before saving.',
     'err_32': 'Import limit reached. Continue in a minute.',
     'err_33': 'Collection not found.',
+    'err_34': 'The store price just changed. We loaded the new price — check the total and add the item again.',
+    'err_35': 'A store price changed. Your cart was recalculated — check the new total and check out again.',
+    'err_36': 'The store changed the item’s currency, option or price. Open the marked item and add it again.',
+    'err_37': 'Atlas rates were updated. Your cart was recalculated — check the new total and check out again.',
+    'err_38': 'The store is not responding, so the price could not be checked. Try again in a few minutes.',
   },
 };
 export function serverError(locale:Locale, key:string){

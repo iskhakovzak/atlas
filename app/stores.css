@@ -1,0 +1,174 @@
+/* Store directory (/stores), store logos everywhere and the store card dialog. Loaded after catalog.css,
+   whose --cat-* tokens it uses. Mobile-first; tap targets are at least 44px. */
+
+/* ---------- Logo plate ---------- */
+/* Store icons are drawn for light backgrounds, so the plate stays white in both themes. */
+.store-logo { display: inline-grid; flex: none; place-items: center; overflow: hidden; border: 1px solid rgba(20, 35, 68, .08); border-radius: 24%; background: #fff; }
+.store-logo img { width: 100%; height: 100%; object-fit: contain; }
+.store-logo-mono { padding: 0; color: #28312c; font-weight: 800; letter-spacing: -.02em; line-height: 1; }
+html[data-theme="dark"] .store-logo { border-color: transparent; }
+.find-card .find-meta .find-store { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.find-card .find-meta .store-logo { padding: 2px !important; border-radius: 5px; }
+.catalog-check .store-logo { padding: 2px !important; border-radius: 5px; }
+
+/* ---------- Hero with the link field ---------- */
+.stores-page { padding-bottom: 8px; }
+.stores-hero { margin: 8px 0 28px; padding: 22px 18px; border: 1px solid var(--cat-line); border-radius: 22px; background: linear-gradient(160deg, var(--cat-surface) 0%, var(--cat-soft) 100%); }
+.stores-overline { margin: 0 0 8px; color: var(--cat-accent); font-size: 12.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.stores-hero h1 { max-width: 20ch; margin: 0 0 10px; color: var(--cat-ink); font-size: clamp(28px, 5vw, 44px); line-height: 1.1; }
+.stores-intro { max-width: 60ch; margin: 0 0 18px; color: var(--cat-muted); line-height: 1.55; }
+.stores-link { display: grid; gap: 10px; max-width: 720px; }
+.stores-link-field { display: flex; align-items: center; gap: 10px; min-height: 54px; padding: 0 6px 0 16px; border: 1.5px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); color: var(--cat-muted); }
+.stores-link-field:focus-within { border-color: var(--cat-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cat-accent) 18%, transparent); }
+.stores-link-field input { flex: 1; min-width: 0; min-height: 50px; padding: 0; border: 0; border-radius: 0; outline: 0; background: transparent; box-shadow: none; color: var(--cat-ink); font: inherit; font-size: 16px; }
+html[data-theme="dark"] .stores-link-field, html[data-theme="dark"] .stores-search { background: var(--night-inset); }
+.stores-link-field .icon-btn, .stores-search .icon-btn { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; border: 0; border-radius: 10px; background: transparent; color: var(--cat-accent); cursor: pointer; }
+.stores-link > .btn { justify-content: center; min-height: 52px; }
+.stores-link-error { margin: 0; color: #b42318; font-size: 14px; font-weight: 600; }
+html[data-theme="dark"] .stores-link-error { color: #ffb4a8; }
+.stores-steps { display: grid; gap: 12px; margin: 20px 0 0; padding: 0; list-style: none; }
+.stores-steps li { display: flex; align-items: flex-start; gap: 12px; }
+.stores-steps li > span { display: inline-grid; flex: none; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--cat-on); color: var(--cat-on-ink); font-size: 14px; font-weight: 800; }
+.stores-steps b { display: block; color: var(--cat-ink); font-weight: 700; }
+.stores-steps small { display: block; margin-top: 2px; color: var(--cat-muted); font-size: 13.5px; line-height: 1.45; }
+
+/* ---------- Shelves: your stores and popular ---------- */
+.stores-shelf { margin-bottom: 26px; }
+.stores-shelf h2, .stores-browse-head h2 { margin: 0; color: var(--cat-ink); font-size: clamp(20px, 3vw, 26px); letter-spacing: -.02em; }
+.stores-shelf ul { display: flex; gap: 8px; margin: 12px -16px 0; padding: 2px 16px 6px; overflow-x: auto; list-style: none; scroll-padding-inline: 16px; scroll-snap-type: x proximity; scrollbar-width: none; }
+.stores-shelf li { flex: none; scroll-snap-align: start; }
+.stores-shelf button { display: grid; justify-items: center; gap: 6px; width: 84px; padding: 10px 4px 9px; border: 1px solid var(--cat-line); border-radius: 16px; background: var(--cat-surface); color: var(--cat-ink); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.stores-shelf button > span:last-child { display: block; max-width: 100%; overflow: hidden; line-height: 1.2; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.stores-mine button { border-color: var(--cat-ok-line); background: var(--cat-ok-bg); }
+
+/* ---------- Directory ---------- */
+.stores-browse-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.stores-browse-head > span { color: var(--cat-muted); font-size: 14px; font-weight: 650; }
+.stores-search { display: flex; align-items: center; gap: 10px; min-height: 52px; margin-bottom: 12px; padding: 0 6px 0 16px; border: 1.5px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); color: var(--cat-muted); }
+.stores-search:focus-within { border-color: var(--cat-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cat-accent) 18%, transparent); }
+.stores-search input { flex: 1; min-width: 0; min-height: 48px; padding: 0; border: 0; border-radius: 0; outline: 0; background: transparent; box-shadow: none; color: var(--cat-ink); font: inherit; font-size: 16px; }
+.stores-search input::-webkit-search-cancel-button { display: none; }
+.stores-chips { display: flex; gap: 8px; margin: 0 -16px 10px; padding: 2px 16px 4px; overflow-x: auto; scroll-padding-inline: 16px; scrollbar-width: none; }
+.stores-chips > button { display: inline-flex; flex: none; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid var(--cat-line); border-radius: 999px; background: var(--cat-surface); color: var(--cat-ink); font: inherit; font-size: 14px; font-weight: 650; white-space: nowrap; cursor: pointer; }
+.stores-chips > button > span { color: var(--cat-muted); font-size: 12px; font-weight: 750; font-feature-settings: "tnum" 1; }
+.stores-chips > button[aria-pressed="true"] { border-color: var(--cat-on); background: var(--cat-on); color: var(--cat-on-ink); }
+.stores-chips > button[aria-pressed="true"] > span { color: inherit; opacity: .85; }
+.stores-regions > button { min-height: 40px; font-size: 13.5px; }
+.stores-group { margin-top: 22px; }
+.stores-group h3 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 10px; color: var(--cat-ink); font-size: 17px; letter-spacing: -.01em; }
+.stores-group h3 span { color: var(--cat-muted); font-size: 13px; font-weight: 700; }
+.stores-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.store-tile { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 56px; padding: 9px 10px; border: 1px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); color: var(--cat-ink); font: inherit; text-align: left; cursor: pointer; }
+.store-tile-text { display: grid; min-width: 0; }
+/* One line each: a store name never breaks inside a word. */
+.store-tile-text b { overflow: hidden; font-size: 14px; font-weight: 700; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.store-tile-text small { overflow: hidden; margin-top: 2px; color: var(--cat-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.store-tile-text em { color: var(--cat-ok); font-style: normal; font-weight: 700; }
+/* Collapsed groups: two rows of the current grid; "show all" opens the rest. */
+.stores-group:not(.open) .stores-grid > li:nth-child(n + 7) { display: none; }
+.stores-more { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 44px; margin-top: 8px; border: 1px dashed var(--cat-line); border-radius: 12px; background: transparent; color: var(--cat-accent); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.stores-more svg { transition: transform .15s; }
+.stores-more[aria-expanded="true"] svg { transform: rotate(180deg); }
+.stores-missing { display: grid; gap: 12px; margin-top: 26px; padding: 18px; border: 1px solid var(--cat-line); border-radius: 18px; background: var(--cat-soft); }
+.stores-missing h3 { margin: 0 0 4px; color: var(--cat-ink); font-size: 17px; }
+.stores-missing p { margin: 0; color: var(--cat-muted); font-size: 14px; line-height: 1.5; }
+.stores-missing .btn { justify-content: center; min-height: 46px; }
+.stores-empty { padding: 28px 18px; border: 1px dashed var(--cat-line); border-radius: 18px; text-align: center; }
+.stores-empty p { max-width: 52ch; margin: 0 auto 16px; color: var(--cat-muted); line-height: 1.5; }
+.stores-note { max-width: 80ch; margin: 24px 0 0; color: var(--cat-muted); font-size: 13px; line-height: 1.55; }
+:is(.stores-page, .store-dialog) :is(button, a, input):focus-visible { outline: 2px solid var(--cat-accent); outline-offset: 2px; }
+@media (hover: hover) {
+  .stores-shelf button:hover, .store-tile:hover, .store-dialog-similar button:hover { border-color: var(--cat-accent); }
+  .stores-chips > button:not([aria-pressed="true"]):hover, .stores-more:hover { border-color: var(--cat-accent); }
+}
+.stores-shelf button:active, .store-tile:active { background: var(--cat-soft); }
+
+/* ---------- Store dialog ---------- */
+.store-dialog { width: min(520px, calc(100% - 32px)); max-height: min(720px, calc(100dvh - 48px)); padding: 0; border: 0; border-radius: 22px; background: var(--cat-surface); color: var(--cat-ink); box-shadow: 0 24px 60px rgba(10, 20, 15, .25); }
+.store-dialog::backdrop { background: rgba(8, 12, 10, .55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+html:has(.store-dialog[open]) { overflow: hidden; }
+.store-dialog-body { position: relative; display: grid; gap: 16px; padding: 22px 20px 20px; }
+.store-dialog-close { position: absolute; top: 10px; right: 10px; display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; border: 0; border-radius: 12px; background: transparent; color: var(--cat-ink); cursor: pointer; }
+.store-dialog-head { display: flex; align-items: center; gap: 14px; padding-right: 40px; }
+.store-dialog-head h2 { margin: 0 0 4px; color: var(--cat-ink); font-size: 24px; line-height: 1.15; }
+.store-dialog-head p { margin: 0; color: var(--cat-muted); font-size: 14px; }
+.store-dialog-open, .store-dialog-paste { justify-content: center; min-height: 52px; }
+.store-dialog-section h3 { margin: 0 0 8px; color: var(--cat-muted); font-size: 12.5px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+.store-dialog-fronts { display: grid; margin: 0; padding: 0; border: 1px solid var(--cat-line); border-radius: 14px; list-style: none; }
+.store-dialog-fronts li + li { border-top: 1px solid var(--cat-line); }
+.store-dialog-fronts a { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 10px; min-height: 46px; padding: 0 14px; color: var(--cat-ink); font-weight: 650; text-decoration: none; }
+.store-dialog-fronts small { color: var(--cat-muted); font-size: 13px; font-weight: 500; }
+.store-dialog-fronts svg { color: var(--cat-muted); }
+.store-dialog-catalog { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 0 16px; border: 1px solid var(--cat-ok-line); border-radius: 14px; background: var(--cat-ok-bg); color: var(--cat-ink); font-weight: 650; text-decoration: none; }
+.store-dialog-catalog b { display: inline-flex; align-items: center; gap: 6px; color: var(--cat-accent); }
+.store-dialog-steps { display: grid; gap: 10px; margin: 0; padding: 0 0 0 22px; }
+.store-dialog-steps b { display: block; font-weight: 700; }
+.store-dialog-steps small { display: block; color: var(--cat-muted); font-size: 13.5px; line-height: 1.45; }
+.store-dialog-similar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.store-dialog-similar button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 6px 10px; border: 1px solid var(--cat-line); border-radius: 12px; background: var(--cat-surface); color: var(--cat-ink); font: inherit; font-size: 14px; font-weight: 650; text-align: left; cursor: pointer; }
+.store-dialog-similar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- Breakpoints ---------- */
+/* Phones: the three steps fit in one row (the store card repeats the details), so stores start sooner. */
+@media (max-width: 599px) {
+  .stores-hero { margin-bottom: 22px; padding: 16px 14px; border-radius: 18px; }
+  .stores-overline { margin-bottom: 6px; font-size: 11.5px; }
+  .stores-hero h1 { margin-bottom: 8px; font-size: 24px; letter-spacing: -.025em; }
+  .stores-intro { margin-bottom: 14px; font-size: 14.5px; line-height: 1.5; }
+  .stores-link-field { min-height: 50px; }
+  .stores-link > .btn { min-height: 48px; }
+  .stores-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+  .stores-steps li { flex-direction: column; gap: 6px; }
+  .stores-steps li > span { width: 22px; height: 22px; font-size: 12px; }
+  .stores-steps b { font-size: 12.5px; line-height: 1.3; }
+  .stores-steps small { display: none; }
+  .stores-shelf { margin-bottom: 20px; }
+  .stores-search { min-height: 48px; }
+  .stores-chips > button { min-height: 40px; padding: 0 12px; font-size: 13.5px; }
+  .stores-regions > button { min-height: 36px; font-size: 13px; }
+  .stores-group { margin-top: 18px; }
+}
+/* Three columns: three rows collapsed. */
+@media (min-width: 600px) {
+  .stores-group:not(.open) .stores-grid > li:nth-child(n + 7) { display: list-item; }
+  .stores-group:not(.open) .stores-grid > li:nth-child(n + 10) { display: none; }
+  .stores-group.le9 .stores-more { display: none; }
+  .stores-missing { grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 20px 24px; }
+}
+@media (max-width: 760px) {
+  /* A bottom sheet on phones, above the home indicator. */
+  .store-dialog { width: 100%; max-width: 100%; max-height: 90dvh; margin: auto 0 0; border-radius: 22px 22px 0 0; }
+  .store-dialog-body { padding-bottom: calc(20px + env(safe-area-inset-bottom)); overflow-y: auto; max-height: 90dvh; }
+  @media (prefers-reduced-motion: no-preference) { .store-dialog[open] { animation: store-sheet-in .28s cubic-bezier(.2, .8, .2, 1); } }
+}
+@keyframes store-sheet-in { from { transform: translateY(40px); opacity: .4; } }
+@media (min-width: 600px) {
+  .stores-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .stores-link { grid-template-columns: minmax(0, 1fr) auto; }
+  .stores-link > .btn { padding: 0 22px; }
+  .stores-link-error { grid-column: 1 / -1; }
+}
+@media (min-width: 761px) {
+  .stores-hero { padding: 32px; }
+  .stores-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+  .stores-chips, .stores-shelf ul { flex-wrap: wrap; margin-inline: 0; padding-inline: 0; overflow: visible; }
+  .stores-shelf ul { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .stores-shelf button { width: 100%; }
+  .store-dialog-body { max-height: inherit; overflow-y: auto; }
+  .store-dialog-similar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+/* Four and five columns: two rows collapsed. */
+@media (min-width: 960px) {
+  .stores-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .stores-group:not(.open) .stores-grid > li:nth-child(n + 7) { display: list-item; }
+  .stores-group:not(.open) .stores-grid > li:nth-child(n + 9) { display: none; }
+  .stores-group.le9 .stores-more { display: flex; }
+  .stores-group.le8 .stores-more { display: none; }
+}
+@media (min-width: 1200px) {
+  .stores-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .stores-shelf ul { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  .stores-group:not(.open) .stores-grid > li:nth-child(n + 9) { display: list-item; }
+  .stores-group:not(.open) .stores-grid > li:nth-child(n + 11) { display: none; }
+  .stores-group.le9 .stores-more, .stores-group.le10 .stores-more { display: none; }
+}

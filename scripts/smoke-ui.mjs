@@ -125,14 +125,16 @@ try {
   );
   if (!(await evaluate("!!document.querySelector('.home-hero input')")))
     throw Error("Home link calculator is missing");
-  // Catalog filter: the count depends on the catalog, so only check that a category narrows it.
-  const count = "Number(document.querySelector('.finds-result [role=status]')?.textContent?.match(/\\d+/)?.[0] ?? NaN)";
-  await eventually(`${count} > 0`, "catalog product count");
+  // Catalog filter: the count depends on the catalog, so only check that a category narrows it
+  // and lands in the address.
+  await evaluate("location.assign('/catalog?lang=ru')");
+  const count = "document.querySelectorAll('.catalog-results .find-card:not(.catalog-skeleton-card)').length";
+  await eventually(`location.pathname === '/catalog' && ${count} > 0`, "catalog products");
   const total = await evaluate(count);
   await evaluate(
-    "[...document.querySelectorAll('.finds-page button')].find((item) => item.textContent?.trim() === 'Обувь')?.click()",
+    "[...document.querySelectorAll('.catalog-categories button')].find((item) => item.textContent?.trim().startsWith('Обувь'))?.click()",
   );
-  await eventually(`${count} > 0 && ${count} < ${total}`, "catalog category filter");
+  await eventually(`new URLSearchParams(location.search).get('cat') === 'shoes' && ${count} > 0 && ${count} < ${total}`, "catalog category filter");
   // Cards with a known price open the product sheet; others link to the order page.
   if (await evaluate("!!document.querySelector('button.find-photo')")) {
     await evaluate("document.querySelector('button.find-photo').click()");

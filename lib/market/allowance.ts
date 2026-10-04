@@ -1,4 +1,5 @@
 import type { Order, State } from './domain.ts';
+import { courierAllowanceUsd } from './customs.ts';
 
 export type RecipientAllowance = { key: string; name: string; usedUsd: number; orders: number };
 
@@ -36,4 +37,15 @@ export function monthlyAllowance(state: State, fallbackFx: number, now = Date.no
 export function monthlyUsedFor(state: State, name: string | undefined, fallbackFx: number, now = Date.now()) {
   const key = recipientKey(name);
   return monthlyAllowance(state, fallbackFx, now).find((group) => group.key === key)?.usedUsd ?? 0;
+}
+
+/** The allowance the catalog shows: for the primary saved recipient, else the first saved one,
+ * else the recipient of the latest order. Null when the account has no recipient yet. */
+export function catalogAllowance(state: State, fallbackFx: number, now = Date.now()) {
+  const profile = state.deliveryProfiles.find((item) => item.primary) ?? state.deliveryProfiles[0];
+  const latest = [...state.orders].sort((a, b) => b.createdAt - a.createdAt)[0];
+  const name = (profile?.recipient ?? (latest ? orderRecipientName(state, latest) : '')).trim();
+  if (!name) return null;
+  const usedUsd = monthlyUsedFor(state, name, fallbackFx, now);
+  return { name, usedUsd, remainingUsd: Math.max(0, courierAllowanceUsd - usedUsd) };
 }

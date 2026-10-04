@@ -5,6 +5,7 @@ import {
   addToCart,
   changeQuantity,
   renewCart,
+  repriceCart,
   checkoutCart,
   advanceOrder,
   receiveOrder,
@@ -66,6 +67,8 @@ export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("cart-remove"), id }),
   z.object({ type: z.literal("cart-services"), id, serviceIds: z.array(z.string().min(2).max(80)).max(40), serviceUnits: z.record(z.string().min(2).max(80), z.number().int().min(1).max(100)).optional() }),
   z.object({ type: z.literal("cart-renew") }),
+  // Before checkout: the server checks prices with the stores and reprices the cart (app/api/actions/route.ts).
+  z.object({ type: z.literal("cart-check") }),
   z.object({
     type: z.literal("checkout"),
     key: id,
@@ -252,10 +255,12 @@ export function applyAction(
     case "cart-quantity":
       { const next = changeQuantity(s, a.id, a.quantity, Date.now(), pricing); assertCartPolicy(next.cart, policy); return next; }
     case "cart-remove":
-      return { ...s, cart: s.cart.filter((i) => i.id !== a.id) };
+      // The rest of that store's parcel is priced again: its shipping share and store-delivery reserve change.
+      return { ...s, cart: repriceCart(s.cart.filter((i) => i.id !== a.id), Date.now(), pricing) };
     case "cart-services":
       return setCartServices(s, a.id, a.serviceIds, pricing, a.serviceUnits);
     case "cart-renew":
+    case "cart-check":
       return renewCart(s, Date.now(), pricing);
     case "checkout": {
       if (s.checkoutKeys.includes(a.key)) return s;

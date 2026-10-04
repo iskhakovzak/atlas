@@ -256,7 +256,7 @@ Supported source currencies: USD, EUR, GBP, RON, CNY, TRY, JPY, KRW, AED, CAD an
 
 ## Shipping, balance and recalculation
 
-Unknown store shipping uses editable $10 and sourceShippingEstimated true. Before a reserve-based order leaves status Ожидает выкупа, an operator enters actual total merchant shipping in USD:
+Unknown store shipping uses editable $10 and sourceShippingEstimated true. Since 4 October 2026 the reserve is taken once per store order (lines with the same store host and dispatch country; `storeShippingReserves` in `lib/market/domain.ts`, split across them by merchandise) and not at all from `pricing.storeShippingFreeFromUsd` ($50 by default, editable in the tariff form) of items from that store, because stores usually ship such orders free. The cart tells the customer how much more from that store removes the reserve; a waived reserve shows as "no reserve", never "free". Removing a cart line reprices the rest. Before an order with estimated store shipping leaves status Ожидает выкупа (reserved or waived), an operator enters actual total merchant shipping in USD:
 
 - actual lower than reserve: customer-credit ledger entry immediately;
 - equal: no adjustment;
@@ -444,7 +444,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 
 ## Store freshness controls — 12 September 2026
 
-- Products imported from a store are fetched again by the authenticated server before `cart-add`. The server matches the stored public variant ID when available, rejects missing or sold-out variants, rejects currency changes and requires the exact current variant price. A successful check refreshes the optional source timestamps and selected image before the server recomputes the quote.
+- Products imported from a store are fetched again by the authenticated server before `cart-add`. The server matches the stored public variant ID when available, rejects missing or sold-out variants, rejects currency changes and requires the exact current variant price. A successful check refreshes the optional source timestamps and selected image before the server recomputes the quote. Since 4 October 2026 the same comparison runs when the customer presses "Check out" (`cart-check`) and again at checkout (skipped for lines checked in the last 2 minutes): a changed store price or stated store delivery is written into the cart line, marked and repriced, and the action is refused with the new total shown, so the customer confirms it before ordering; a quote made under an older tariff version is repriced the same way. Details: `lib/market/cart-check.ts` and the 4 October section of `ARCHITECTURE.md`.
 - Checkout repeats the same read-only source verification for every linked cart line. A changed price or unavailable variant blocks checkout with a specific customer-facing reason; no order is created from stale source data.
 - Batch import is now review-first. It loads up to ten cards, shows their photos and all available store variants with variant-specific prices, and adds nothing until the customer explicitly selects every variant. The selected public variant ID is retained for server verification.
 - The catalog administrator has a change/error queue and can recheck up to ten selected or problematic cards. Rechecks preserve editorial description, collections and reference price, record fetch errors, and surface price, currency, availability-count and sold-out changes for explicit review before republication.

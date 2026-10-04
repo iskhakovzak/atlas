@@ -53,6 +53,7 @@ const updateSchema = z.discriminatedUnion("kind", [
       optionalServices: true,
       reserve: true,
       divisor: true,
+      storeShippingFreeFromUsd: true,
       rates: true,
       countryOverrides: true,
       serviceCatalog: true,

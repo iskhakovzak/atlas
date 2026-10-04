@@ -27,4 +27,4 @@ Every public page has Uzbek, Russian and English versions: add `?lang=uz`, `?lan
 
 ## Discovery and access
 
-The public catalog, customs guidance and legal page are crawlable. Account, order, passport, declaration, operator, API and other private paths require authentication and are excluded from public discovery.
+The public catalog, store directory, customs guidance and legal page are crawlable. Account, order, passport, declaration, operator, API and other private paths require authentication and are excluded from public discovery.
