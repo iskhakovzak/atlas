@@ -54,7 +54,7 @@ https://atlas-uz-market.ishakovzakir0.chatgpt.site
 - Batch import до десяти ссылок.
 - Единый расчёт merchandise, merchant shipping, service/buyout/conversion, international shipping, delivery margin и reserve.
 - Минимум международного веса 1 кг на merchant-посылку. Для одного merchant host + dispatch country упаковка `+0.3 kg` и safety allowance `+0.2 kg` добавляются один раз.
-- Неизвестная доставка магазина не становится бесплатной: используется редактируемый reserve `$10`.
+- Неизвестная доставка магазина не становится бесплатной: используется редактируемый reserve `$10`, один на заказ из магазина; от `storeShippingFreeFromUsd` ($50) товаров из магазина резерв не берётся, интерфейс пишет «без резерва», а фактическая плата магазина согласуется с клиентом.
 - Cart/checkout/order flow с server-side quote verification и customs consent.
 - Адреса и несколько получателей.
 - Passport upload в private R2, MRZ assistance, ручное подтверждение, masked identity и удаление.

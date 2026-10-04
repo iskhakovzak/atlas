@@ -323,7 +323,7 @@ function extractPriorityEmbedded(html: string, sourceUrl: string): Extracted | u
   if (!title && price === undefined && !images.length) return;
   const weight = parseWeight(candidate.shippingWeight ?? candidate.boxedWeight ?? candidate.weight);
   const shipping = embeddedNumber(candidate.shipping ?? candidate.shippingPrice ?? candidate.deliveryPrice);
-  const warnings = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.'];
+  const warnings = ['Доставка магазина не опубликована — указан изменяемый резерв $10; для заказа из магазина от $50 его не берём.'];
   if (variants.length) warnings.push('Варианты получены из публичных данных магазина.');
   if (!variants.length) warnings.push('Магазин не отдал матрицу вариантов: выберите товар вручную, если он требует размера или цвета.');
   return {
@@ -734,7 +734,7 @@ function extractAnker(html: string, sourceUrl: string): Extracted | undefined {
     const prices = [...new Set(variants.map(variant => variant.price).filter(value => value !== undefined))];
     const images = [...new Set([selected?.image, ...[product.images].flat().map(value => safeImage((value as Record<string, unknown>)?.url ?? value, sourceUrl))].filter((value): value is string => Boolean(value)))].slice(0, 12);
     const title = clean(product.title ?? product.name).slice(0, 140), brand = clean(product.vendor) || 'Anker';
-    const warnings = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.', 'Вес с упаковкой нужно проверить.'];
+    const warnings = ['Доставка магазина не опубликована — указан изменяемый резерв $10; для заказа из магазина от $50 его не берём.', 'Вес с упаковкой нужно проверить.'];
     if (!selected && prices.length !== 1) warnings.push('Выберите вариант, чтобы получить его точную цену.');
     return {title,brand,category:'Электроника',declarationDescription:declarationFor('Электроника',title,brand),image:selected?.image??images[0],images,price:selected?.price??(prices.length===1?prices[0]:undefined),currency:'USD',variants,warnings,sourceUrl,method:'Anker product data',country:'США'};
   } catch { return; }
@@ -763,7 +763,7 @@ function extractAmazon(html: string, sourceUrl: string): Extracted | undefined {
   const unavailable = /id=["']availability["'][\s\S]{0,1200}(?:out of stock|currently unavailable|unavailable)/i.test(html);
   const availabilityBlock = /id=["']availability["']/i.test(html);
   const variants: ProductVariant[] = title ? [{label: 'Выбранный вариант', available: !unavailable, availabilityKnown: availabilityBlock, price, image: images[0]}] : [];
-  const warnings: string[] = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.'];
+  const warnings: string[] = ['Доставка магазина не опубликована — указан изменяемый резерв $10; для заказа из магазина от $50 его не берём.'];
   if (price === undefined) warnings.unshift('Цена не найдена в американском блоке Amazon: укажите её со страницы выбранного варианта.');
   if (unavailable) warnings.push('Amazon сообщает, что выбранный товар недоступен.');
   return {
@@ -920,7 +920,7 @@ function extractNike(html: string, sourceUrl: string): Extracted | undefined {
       return true;
     }).slice(0, 80);
     if (!boundedVariants.length) return;
-    const warnings = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.', 'Вес с упаковкой нужно проверить.'];
+    const warnings = ['Доставка магазина не опубликована — указан изменяемый резерв $10; для заказа из магазина от $50 его не берём.', 'Вес с упаковкой нужно проверить.'];
     if (price === undefined) warnings.unshift('Цена не найдена в данных Nike: выберите конкретный вариант на странице магазина.');
     if (!boundedVariants.some(value => value.available)) warnings.push('Nike не указал доступный размер в текущем снимке.');
     return {title, brand, category, declarationDescription: declarationFor(category, title ?? '', brand), image: images[0], images, colorwayImages, selectedVariantColor: clean(product.colorDescription ?? product.styleColor) || undefined, price, currency, variants: boundedVariants, country: inferStorefrontCountry(sourceUrl, currency), warnings, sourceUrl, method: 'Nike product data', sku: clean(product.styleCode) || undefined};
@@ -980,7 +980,7 @@ export function extractAdidasProduct(productValue: unknown, listingValue: unknow
     image: images[0],
   }));
   if (!variants.length) variants.push({label: color ?? 'Выбранный вариант', color, available, availabilityKnown, price, image: images[0]});
-  const warnings = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.', 'Вес с упаковкой нужно проверить.'];
+  const warnings = ['Доставка магазина не опубликована — указан изменяемый резерв $10; для заказа из магазина от $50 его не берём.', 'Вес с упаковкой нужно проверить.'];
   if (!availableSizes.length) warnings.push('Adidas не отдал список размеров. Проверьте вариант на странице магазина.');
   if (price === undefined) warnings.unshift('Цена не найдена в данных Adidas: укажите её со страницы выбранного варианта.');
   if (!available) warnings.push('Adidas сообщает, что товар сейчас недоступен.');
@@ -1309,7 +1309,7 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
   if (price === undefined)
     warnings.push("Цена не найдена: укажите её со страницы выбранного варианта.");
   if (shipping === undefined)
-    warnings.push("Доставка магазина не опубликована — добавлен изменяемый резерв $10.");
+    warnings.push("Доставка магазина не опубликована — указан изменяемый резерв $10; для заказа из магазина от $50 его не берём.");
   if (!gross && !net)
     warnings.push("Вес не опубликован. Предложим приблизительный вес по категории.");
   if (net && !gross)

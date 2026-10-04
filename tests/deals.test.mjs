@@ -26,7 +26,10 @@ test('merchant records retain unique identity, safe sources and unconfirmed ship
 test('merchant totals match checkout pricing and source-only discounts', () => {
   const p = merchantFinds.find(p => p.referenceUsd);
   const deal = dealQuote(p, tariff);
-  assert.deepEqual(deal.costs, price(p.usd, p.weight, 1, 10, tariff));
+  // From $50 an unknown store delivery carries no reserve.
+  assert.ok(p.usd >= tariff.storeShippingFreeFromUsd);
+  assert.deepEqual(deal.costs, price(p.usd, p.weight, 1, 0, tariff));
+  assert.equal(dealQuote({ ...p, usd: 20 }, tariff).costs.sourceShipping, 10 * tariff.fx);
   assert.equal(deal.savingsUsd, p.referenceUsd - p.usd);
   assert.equal(deal.discount, Math.round((p.referenceUsd - p.usd) / p.referenceUsd * 100));
   assert.equal(deal.costs.total, deal.costs.merchandise + deal.costs.service + deal.costs.sourceShipping + deal.costs.shipping + deal.costs.reserve);

@@ -1,5 +1,48 @@
 # Atlas TODO and known limitations
 
+## Price check with the stores and cart — 4 October 2026
+
+- [x] A refused action showed "could not save" instead of the reason (for example "the price changed"); the server's text now reaches the customer.
+- [x] A changed store price at checkout no longer dead-ends: the cart takes the new price, marks the line and shows the new total; the customer checks out again.
+- [x] Quotes made before an operator changed the tariff are repriced and shown again instead of passing within their 15 minutes.
+- [x] Store delivery stated on the product page is compared too; Atlas's editable reserve is not.
+- [x] "Check out" checks prices with the stores first; quick quantity taps are no longer dropped.
+- [x] `persist()` refuses a document that would not parse on the next read.
+- [ ] Production check after deploy: one product per proxy-dependent store (Nike, Target, Walmart, Merrell) through `npm run importer:check` on the UpCloud host, and a cart-check from a phone; locally those stores time out without the proxy.
+- [ ] An unreachable store is accepted at checkout when the price was confirmed in the last 30 minutes (the order history says so and the operator re-checks before buyout). If operators prefer a hard stop, set `unreachableGraceMs` in `lib/market/cart-check.ts` to 0.
+- [ ] The price-change mark stays on a cart line until checkout or removal; there is no "dismiss".
+## Store-delivery reserve, light theme, phone scale and stores — 4 October 2026
+
+- [x] Unknown store delivery: one $10 reserve per store order instead of per line × quantity, none from $50 of items from that store (pricing setting `storeShippingFreeFromUsd`); the cart says how much more removes it; "no reserve" instead of "free".
+- [x] Removing a cart line reprices the rest of the cart (parcel shares and the reserve were left stale).
+- [x] Light theme follows one palette (Atlas Day); phones get a 60 px header, smaller titles and chips; catalog totals and "+N to your parcel" no longer leave the card at 320–390 px.
+- [x] `/stores`: collapsed type shelves with "show all", "Stores you ordered from", catalog counts on tiles, similar stores in the store card, "Store not listed?".
+- [ ] Carts saved before this change keep their old reserve until the quote is renewed (15 minutes at most) — no migration needed, but a cart open at release time may show the reserve hint and the old line together until "Refresh estimate".
+- [ ] Operators should know that waived-reserve orders still need "confirm store shipping" (actual $0 when the store shipped free) before buyout, as before.
+- [ ] Atlas Day was checked on the main customer pages (home, catalog, stores, cart, account, orders) and by the e2e snapshots; operator pages (`/admin`, `/operations`) only by the automated contrast audit.
+## Stores, logos and phones — 4 October 2026
+
+- [x] `/stores`: 207 brands instead of 266 lowercase domains, proper names, logos, types and storefront countries, search and filters in the address, a store card with country storefronts, catalog products and iPhone copy instructions, a link field with paste.
+- [x] Phones: a bottom bar for guests too (they had no navigation and no sign-in on phones), brand colours instead of the old blue, safe areas, no tap flash or stuck hover, 24 px checkboxes, compact "How it works" and footer.
+- [x] e2e fails on phone text fields under 16 px (iPhone zoom) and controls under 24×24 px.
+- [ ] Logos missing for Aéropostale, Carrefour, Converse, Druni, END., Gap, Reserved and Springfield (monograms shown); GOAT's icon was rejected. Re-run `node --experimental-strip-types scripts/store-logos.mjs` after adding stores.
+- [ ] Storefront countries for `.com` sites are the brand's main market; multi-country `.com` sites (Zara, H&M, UNIQLO) actually depend on the visitor's region. The US egress proxy sees the US version.
+- [ ] Checked in Chrome's phone emulation and against Safari-specific CSS, not on a physical iPhone: open the site on one (Safari and "Add to Home Screen") before launch.
+- [ ] `scripts/audit-ui.mjs` also still expects the old store directory markup.
+## Catalog and filters — 4 October 2026
+
+The public catalog had 6 products, so the home section (shown from 8) never appeared; filters were hidden below 16 products, lived only in component state and did not separate real data (every product ships from the US; budget steps of 1–2 million soum against products of 275–500 thousand).
+
+- [x] `/catalog` page with filters in the address (category, store, delivered price, size, duty-free, on sale, current price, sort, collection), counts next to every option, a filter sheet on phones and a sidebar from 1024 px, two cards per row on phones; the home page shows a teaser from 4 products.
+- [x] Duty-free awareness: the remaining $200 allowance of the primary recipient this month, a filter that uses it and a mark on cards above it.
+- [x] "With your parcel": for stores already in the cart, cards show what the product would add to the cart total (priced by `repriceCart`).
+- [x] Empty results suggest which single filter to drop; the catalog ends with "order by link" and the store directory.
+- [ ] Product cards are rendered on the client after `/api/catalog`; the server HTML of `/catalog` has the heading, filters and placeholders but no product names. Server-rendering the first page of products would help search engines.
+- [x] The unconfirmed store-shipping reserve ($10) was charged per cart line; since 4 October 2026 it is one per store order and waived from $50 (see the section above).
+- [ ] The allowance follows the primary recipient; a recipient switcher in the catalog would help households that order for several people.
+- [ ] Sizes come from the store's own size list. US stores mix systems (men's/women's, "US 9" and "9"); "US " is normalized, but there is no conversion to EU/UZ sizes yet.
+- [ ] `scripts/audit-ui.mjs` (not run in CI) still expects the old home catalog and the pre-#8 guest order link; `npm run e2e` covers the same ground. Update or remove it.
+- [ ] The live catalog in production has 6 products, 4 of them waiting for a price check: the catalog becomes useful only once operators publish more items (Administration → Catalog).
 ## Post-merge review and polish — 3 October 2026
 
 Checked `main` at `fedd1e7` (the squash of #8), then fixed the findings on `fix/post-merge-polish`. lint, `tsc --noEmit`, all tests, the build, `smoke:ui`, `smoke:auth` (live import skipped locally) and `npm run e2e` pass; the e2e audit covers customer, guest and operator pages at 390 and 1280 px in both themes.

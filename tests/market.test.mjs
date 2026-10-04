@@ -78,7 +78,7 @@ test('URLs reject unsafe schemes and credential-bearing source links',()=>{
 assert.equal(validateSource('https://www.example.com/product'),'https://www.example.com/product');for(const url of ['javascript:alert(1)','http://example.com/x','https://user:pass@example.com/x','https://127.0.0.1/x','text'])assert.throws(()=>validateSource(url));
 });
 test('managed pricing affects new quotes while old orders stay immutable',()=>{
-const managed={...tariff,fx:13000,perKg:100000,version:'managed-test',updatedAt:2000};let state=addToCart(blank(),products[0],'US 9',1000,managed);assert.equal(state.cart[0].quote.tariffVersion,'managed-test');assert.equal(state.cart[0].quote.fx,13000);state=checkoutCart(state,'managed',cartSignature(state.cart),false,1001);const original=JSON.stringify(state.orders[0].quote);managed.fx=14000;assert.equal(JSON.stringify(state.orders[0].quote),original);
+const managed={...tariff,fx:13000,perKg:100000,version:'managed-test',updatedAt:2000};let state=addToCart(blank(),products[0],'US 9',1000,managed);assert.equal(state.cart[0].quote.tariffVersion,'managed-test');assert.equal(state.cart[0].quote.fx,13000);state=checkoutCore(state,'managed',cartSignature(state.cart),false,1001,customsVersion,undefined,undefined,undefined,managed);const original=JSON.stringify(state.orders[0].quote);managed.fx=14000;assert.equal(JSON.stringify(state.orders[0].quote),original);
 });
 test('dispatch-country service overrides affect new quote lines and old pricing records inherit base rates',()=>{
 const legacy=pricingSchema.parse({...tariff,countryOverrides:undefined});assert.deepEqual(legacy.countryOverrides,{});

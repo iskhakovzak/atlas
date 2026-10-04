@@ -126,7 +126,7 @@ html[data-theme="dark"] .btn.light {
   color: var(--night-on-ivory);
 }
 
-html[data-theme="dark"] .btn.secondary, html[data-theme="dark"] .select-control, html[data-theme="dark"] .finds-categories button, html[data-theme="dark"] .search-field, html[data-theme="dark"] .channel-card, html[data-theme="dark"] .change-request, html[data-theme="dark"] .settlement-box:not(.attention), html[data-theme="dark"] .order-tabs, html[data-theme="dark"] .order-tabs [data-state="active"], html[data-theme="dark"] .document-list > a, html[data-theme="dark"] .monitor-panel {
+html[data-theme="dark"] .btn.secondary, html[data-theme="dark"] .select-control, html[data-theme="dark"] .search-field, html[data-theme="dark"] .channel-card, html[data-theme="dark"] .change-request, html[data-theme="dark"] .settlement-box:not(.attention), html[data-theme="dark"] .order-tabs, html[data-theme="dark"] .order-tabs [data-state="active"], html[data-theme="dark"] .document-list > a, html[data-theme="dark"] .monitor-panel {
   background-color: var(--atlas-raised);
   border-color: var(--atlas-line);
   color: var(--atlas-ink);
@@ -160,7 +160,7 @@ html[data-theme="dark"] .search-field input {
   color: var(--night-ink);
 }
 
-html[data-theme="dark"] .btn.secondary:hover, html[data-theme="dark"] .finds-categories button:hover, html[data-theme="dark"] .icon-btn:hover, html[data-theme="dark"] .notice-link.active {
+html[data-theme="dark"] .btn.secondary:hover, html[data-theme="dark"] .icon-btn:hover, html[data-theme="dark"] .notice-link.active {
   background: var(--night-raised);
   color: var(--night-jade);
 }
@@ -408,7 +408,7 @@ html[data-theme="dark"] .search-field input {
   color: var(--night-ink-2);
 }
 
-html[data-theme="dark"] .btn.secondary:hover, html[data-theme="dark"] .finds-categories button:hover, html[data-theme="dark"] .icon-btn:hover, html[data-theme="dark"] .notice-link.active, html[data-theme="dark"] .theme-toggle[aria-pressed="true"] {
+html[data-theme="dark"] .btn.secondary:hover, html[data-theme="dark"] .icon-btn:hover, html[data-theme="dark"] .notice-link.active, html[data-theme="dark"] .theme-toggle[aria-pressed="true"] {
   background: var(--night-hover);
   color: var(--night-jade);
 }
@@ -520,65 +520,7 @@ html[data-theme="dark"] select:focus-visible {
 }
 
 /* Catalog surfaces and search controls share the graphite palette on every catalog route. */
-html[data-theme="dark"] .finds-controls {
-  background: var(--atlas-surface);
-  border-color: var(--atlas-line);
-}
 
-html[data-theme="dark"] .finds-search {
-  background: var(--night-surface);
-  border-color: var(--night-line-strong);
-}
-
-html[data-theme="dark"] .finds-search input {
-  background: transparent;
-  color: var(--atlas-ink);
-}
-
-html[data-theme="dark"] .finds-search input::placeholder {
-  color: var(--atlas-copy-muted);
-}
-
-html[data-theme="dark"] .finds-search > svg,
-html[data-theme="dark"] .finds-filter-row > svg,
-html[data-theme="dark"] .finds-filter-row label > span,
-html[data-theme="dark"] .finds-result {
-  color: var(--atlas-copy-muted);
-}
-
-html[data-theme="dark"] .finds-categories {
-  border-color: var(--atlas-line);
-}
-
-html[data-theme="dark"] .finds-categories button {
-  background: var(--atlas-raised);
-  border-color: var(--atlas-line);
-  color: var(--atlas-copy-muted);
-}
-
-html[data-theme="dark"] .finds-categories button.active {
-  background: var(--night-selected);
-  border-color: var(--night-line-strong);
-  color: var(--night-ink);
-}
-
-html[data-theme="dark"] .finds-categories button:hover:not(.active) {
-  background: var(--night-hover);
-  color: var(--atlas-ink);
-}
-
-html[data-theme="dark"] .finds-sort-control>span,
-html[data-theme="dark"] .finds-filter-primary .catalog-filter-disclosure>summary {
-  color: var(--atlas-dark-ink);
-}
-
-html[data-theme="dark"] .finds-filter-primary .catalog-filter-disclosure>summary,
-html[data-theme="dark"] .finds-filter-primary .finds-filter-row {
-  background: var(--atlas-dark-raised);
-  border-color: var(--atlas-dark-line);
-}
-
-html[data-theme="dark"] .finds-result .text-button,
 html[data-theme="dark"] .find-title:hover {
   color: var(--atlas-link);
 }
@@ -915,7 +857,7 @@ html[data-theme="dark"] textarea:disabled {
   opacity: .68;
 }
 
-html[data-theme="dark"] .finds-count, html[data-theme="dark"] .catalog-customs-note, html[data-theme="dark"] .find-store-price .find-discount {
+html[data-theme="dark"] .catalog-customs-note, html[data-theme="dark"] .find-store-price .find-discount {
   color: var(--atlas-dark-muted);
 }
 
@@ -1080,7 +1022,7 @@ html[data-theme="dark"] .legal-document > header > svg {
   color: var(--atlas-dark-link);
 }
 
-html[data-theme="dark"] .finds-heading > .btn, html[data-theme="dark"] .ux-disclosure > summary {
+html[data-theme="dark"] .ux-disclosure > summary {
   background-color: var(--atlas-dark-raised);
   border-color: var(--atlas-dark-line);
   color: var(--atlas-dark-ink);
@@ -1162,12 +1104,6 @@ html[data-theme="dark"] .find-card .find-store-price > .find-discount {
   background-color: var(--atlas-dark-success-bg);
   border: 1px solid var(--atlas-dark-success-line);
   color: var(--atlas-dark-success-ink);
-}
-
-html[data-theme="dark"] .finds-count {
-  background-color: var(--atlas-dark-selected);
-  border-color: var(--night-line-strong);
-  color: var(--night-ink);
 }
 
 html[data-theme="dark"] .find-card .find-breakdown > summary:hover,
@@ -1455,48 +1391,6 @@ html[data-theme="dark"] .customs-estimate-compact {
 }
 
 /* Catalog filter panel and active chips stay distinct in graphite mode. */
-html[data-theme="dark"] .finds-filter-primary .catalog-filter-disclosure>summary,
-html[data-theme="dark"] .finds-filter-primary .catalog-filter-disclosure[open]>summary {
-  background: var(--atlas-dark-raised);
-  border-color: var(--atlas-dark-line);
-  color: var(--atlas-dark-ink);
-  box-shadow: none;
-}
-
-html[data-theme="dark"] .finds-filter-primary .catalog-filter-disclosure>summary:hover,
-html[data-theme="dark"] .finds-active-filters>button:hover {
-  background: var(--atlas-dark-hover);
-  border-color: var(--night-line-strong);
-  color: var(--atlas-dark-ink);
-}
-
-html[data-theme="dark"] .finds-filter-count {
-  background: var(--atlas-dark-selected);
-  color: var(--atlas-dark-ink);
-}
-
-html[data-theme="dark"] .finds-filter-panel {
-  background: var(--atlas-dark-surface);
-  border-color: var(--atlas-dark-line);
-  color: var(--atlas-dark-ink);
-  box-shadow: 0 18px 44px #0008;
-}
-
-html[data-theme="dark"] .finds-filter-panel-head span,
-html[data-theme="dark"] .finds-filter-panel .finds-filter-row label>span {
-  color: var(--atlas-dark-muted);
-}
-
-html[data-theme="dark"] .finds-active-filters>button {
-  background: var(--atlas-dark-raised);
-  border-color: var(--atlas-dark-line);
-  color: var(--atlas-dark-muted);
-}
-
-html[data-theme="dark"] .finds-active-filters>button b,
-html[data-theme="dark"] .finds-active-filters>button svg {
-  color: var(--atlas-dark-ink);
-}
 
 html[data-theme="dark"] .catalog-shipping-editor input[type="number"] {
   background-color: var(--atlas-dark-raised);

@@ -1,75 +1,210 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, ArrowUpRight, Search, ShoppingBag } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type RefObject } from 'react';
+import { ArrowRight, ArrowUpRight, ChevronDown, ClipboardPaste, Link2, Search, X } from 'lucide-react';
 import Link from '@/components/site-link';
-import { featuredStoreGroups, supportedStoreRoots, type StoreFocus } from '@/lib/importer/stores';
-import { PageHeading } from './market-ui';
+import { validateSource } from '@/lib/market/domain';
 import { useMarket } from '@/lib/market/store';
+import { homeCopy } from '@/lib/market/home-copy';
+import { storesCopy } from '@/lib/market/stores-copy';
+import { storeHost } from '@/lib/market/catalog-query';
+import {
+  brandForHost, brandRegions, popularBrandKeys, storeBrands, storeCountryNames, storeFocusNames, storeFocusOrder, storeRegionOrder,
+  type StoreBrand, type StoreFocus, type StoreRegion,
+} from '@/lib/market/store-brands';
+import type { Locale } from '@/lib/market/i18n';
+import { StoreLogo } from './store-logo';
 
-type Focus = StoreFocus | 'Универмаг';
-type StoreCard = { root: string; name: string; focus: Focus; region?: string; featured: boolean };
+type Copy = (typeof storesCopy)['ru'];
+type CatalogCounts = Map<string, { count: number; hosts: Set<string> }>;
+const focusKeys = new Set<string>(storeFocusOrder);
+const regionKeys = new Set<string>(storeRegionOrder);
+const popular = popularBrandKeys.map((key) => storeBrands.find((brand) => brand.key === key)).filter((brand): brand is StoreBrand => !!brand);
+/** Popular brands first, then the bigger ones (more country storefronts), then by name. */
+const byRank = (a: StoreBrand, b: StoreBrand) => {
+  const pa = popularBrandKeys.indexOf(a.key), pb = popularBrandKeys.indexOf(b.key);
+  if (pa !== pb) return (pa < 0 ? 99 : pa) - (pb < 0 ? 99 : pb);
+  return b.storefronts.length - a.storefronts.length || a.name.localeCompare(b.name);
+};
+/** A collapsed group shows this many stores: two rows on phones, two rows of five on wide screens (CSS hides the rest). */
+const collapsedCount = 6;
 
-const allRoots = [...new Set<string>(supportedStoreRoots)];
-const curated = new Map<string, { name: string; focus: Focus; region: string }>();
-for (const group of featuredStoreGroups) for (const store of group.stores) {
-  if (!curated.has(store.root)) curated.set(store.root, { name: store.name, focus: store.focus, region: group.region });
-}
-
-function guessedFocus(root: string): Focus {
-  const host = root.toLowerCase();
-  if (/(nike|adidas|asics|sneaker|footwear|footlocker|finishline|jdsports|salomon|newbalance|zappos|stockx|goat|vans|reebok|puma|hoka|dsw|champs)/.test(host)) return 'Кроссовки';
-  if (/(beauty|cosmetic|makeup|skin|sephora|ulta|druni|primor|perfumer|lookfantastic|notino|douglas|glossier|fenty|dior)/.test(host)) return 'Красота';
-  if (/(electronics|tech|apple|anker|satechi|spigen|bestbuy|adorama|bhphoto|microcenter|newegg|mediamarkt|saturn|pccomponentes|samsung|sony|dell|lenovo|razer|logitech|gopro|nikon|xiaomi)/.test(host)) return 'Техника';
-  if (/(amazon|ebay|etsy|walmart|target|costco|carrefour|elcorte|macys|bloomingdale|nordstrom|kohls|jcpenney|neiman|saks|otto|galaxus|fnac)/.test(host)) return 'Универмаг';
-  if (/(zara|mango|fashion|clothing|apparel|wear|uniqlo|asos|hm\.|hollister|gap|abercrombie|arket|cos\.|lululemon|gymshark|patagonia|burberry|gucci|prada|farfetch|zalando|revolve|ssense|boohoo|bershka|pullandbear|stradivarius|massimodutti|reserved|levi|carhartt|columbia|northface)/.test(host)) return 'Одежда';
-  return 'Универмаг';
-}
-
-function storeName(root: string) {
-  const known = curated.get(root)?.name;
-  if (known) return known;
-  return root.replace(/\.(?:com|net|org|tech|eu|de|es|fr|it|nl|ca|au|jp|tr|ae|us|co\.uk)$/i, '').replaceAll('.', ' ');
-}
-
-const stores: StoreCard[] = allRoots.map(root => {
-  const known = curated.get(root);
-  return { root, name: storeName(root), focus: known?.focus ?? guessedFocus(root), region: known?.region, featured: Boolean(known) };
-});
-const focusOrder: Focus[] = ['Одежда', 'Кроссовки', 'Красота', 'Техника', 'Универмаг'];
-
+/**
+ * Store directory: brands with logos (country storefronts of one store grouped), search, type and
+ * region filters kept in the address, and a store card that explains how to order from it.
+ */
 export function StoresDirectory() {
-  const { state } = useMarket();
-  const locale = state.communication.language;
-  const [search, setSearch] = useState('');
-  const [focus, setFocus] = useState<Focus | ''>('');
-  // Home-page store chips link here with ?q=<store>; read it after hydration.
-  useEffect(() => { const q = new URLSearchParams(window.location.search).get('q'); if (q) queueMicrotask(() => setSearch(q.slice(0, 80))); }, []);
-  const copy = {
-    ru: { overline: 'МАГАЗИНЫ ATLAS', title: 'Найдите магазин и закажите через Atlas.', description: 'Выберите магазин и откройте оригинальную витрину. Поддержка импорта зависит от страницы: если данные не загрузятся, цену и вариант можно подтвердить вручную.', search: 'Найти магазин', all: 'Все', start: 'Вставить ссылку на товар', open: 'Открыть магазин', supported: 'магазинов в списке', enhanced: 'Расширенный импорт', noResults: 'Магазин не найден. Попробуйте домен сайта.', categories: { 'Одежда': 'Одежда', 'Кроссовки': 'Кроссовки и обувь', 'Красота': 'Красота и уход', 'Техника': 'Электроника и техника', 'Универмаг': 'Универмаги и другие магазины' }, note: 'Список означает, что домен разрешён для заказа по ссылке. Он не гарантирует доступность каждой карточки, наличие товара или цену.' },
-    uz: { overline: 'ATLAS DO‘KONLARI', title: 'Do‘konni tanlang va Atlas orqali buyurtma bering.', description: 'Do‘konni tanlang va asl vitrinasini oching. Import sahifaga bog‘liq: ma’lumot yuklanmasa, narx va variantni qo‘lda tasdiqlash mumkin.', search: 'Do‘konni qidirish', all: 'Barchasi', start: 'Mahsulot havolasini kiritish', open: 'Do‘konni ochish', supported: 'ta do‘kon ro‘yxatda', enhanced: 'Kengaytirilgan import', noResults: 'Do‘kon topilmadi. Sayt domeni bilan qidiring.', categories: { 'Одежда': 'Kiyim', 'Кроссовки': 'Krossovka va poyabzal', 'Красота': 'Go‘zallik va parvarish', 'Техника': 'Elektronika va texnika', 'Универмаг': 'Univermag va boshqa do‘konlar' }, note: 'Ro‘yxat ushbu domen havola orqali buyurtma uchun ruxsat etilganini bildiradi. Har bir sahifa, mavjudlik yoki narx kafolatlanmaydi.' },
-    en: { overline: 'ATLAS STORES', title: 'Choose a store and order through Atlas.', description: 'Choose a store and open its original storefront. Import support varies by page; if details are unavailable, you can confirm the price and option manually.', search: 'Search stores', all: 'All', start: 'Paste a product link', open: 'Open store', supported: 'stores listed', enhanced: 'Enhanced import', noResults: 'No store found. Try searching by domain.', categories: { 'Одежда': 'Clothing', 'Кроссовки': 'Sneakers & shoes', 'Красота': 'Beauty & care', 'Техника': 'Electronics & tech', 'Универмаг': 'Department & other stores' }, note: 'A store being listed means its domain is allowed for link orders. It does not guarantee every product page, stock or price.' },
-  }[locale];
-  const query = search.trim().toLocaleLowerCase();
-  const filtered = useMemo(() => stores.filter(store => (!focus || store.focus === focus) && (!query || `${store.name} ${store.root} ${store.focus} ${store.region ?? ''}`.toLocaleLowerCase().includes(query))), [focus, query]);
-  const sections = focus ? [focus] : focusOrder;
+  const { state, catalogProducts, loadCatalog } = useMarket();
+  const locale = state.communication.language as Locale;
+  const c = storesCopy[locale];
+  const [query, setQuery] = useState('');
+  const [focus, setFocus] = useState<StoreFocus | ''>('');
+  const [region, setRegion] = useState<StoreRegion | ''>('');
+  const [open, setOpen] = useState<StoreBrand | null>(null);
+  const [expanded, setExpanded] = useState<StoreFocus[]>([]);
+  const field = useRef<HTMLInputElement>(null);
+  useEffect(() => { void loadCatalog(); }, [loadCatalog]);
+  // Home store chips and shared links arrive as ?q=, ?focus= and ?region=; read them after hydration.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    queueMicrotask(() => {
+      setQuery((params.get('q') ?? '').slice(0, 80));
+      const f = params.get('focus'), r = params.get('region');
+      if (f && focusKeys.has(f)) setFocus(f as StoreFocus);
+      if (r && regionKeys.has(r)) setRegion(r as StoreRegion);
+    });
+  }, []);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    for (const [key, value] of [['q', query.trim()], ['focus', focus], ['region', region]] as const) { if (value) params.set(key, value); else params.delete(key); }
+    const search = params.toString();
+    const next = window.location.pathname + (search ? '?' + search : '') + window.location.hash;
+    if (next !== window.location.pathname + window.location.search + window.location.hash) window.history.replaceState(window.history.state, '', next);
+  }, [query, focus, region]);
 
-  return <>
-    <PageHeading overline={copy.overline} title={copy.title} description={copy.description}>
-      <Link className="btn primary" href="/order-by-link"><ShoppingBag size={17}/>{copy.start}<ArrowRight size={17}/></Link>
-    </PageHeading>
-    <section className="stores-directory surface">
-      <div className="stores-directory-top"><div><strong>{allRoots.length}</strong><span>{copy.supported}</span></div><p>{copy.note}</p></div>
-      <label className="stores-search"><Search size={19}/><span className="sr-only">{copy.search}</span><input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder={copy.search}/></label>
-      <nav className="stores-categories" aria-label={copy.overline}>
-        <button type="button" aria-pressed={!focus} className={!focus ? 'active' : ''} onClick={() => setFocus('')}>{copy.all}<span>{allRoots.length}</span></button>
-        {focusOrder.map(category => <button type="button" key={category} aria-pressed={focus === category} className={focus === category ? 'active' : ''} onClick={() => setFocus(focus === category ? '' : category)}>{copy.categories[category]}<span>{stores.filter(store => store.focus === category).length}</span></button>)}
-      </nav>
-      {filtered.length ? sections.map(category => {
-        const items = filtered.filter(store => store.focus === category);
-        if (!items.length) return null;
-        return <section className="stores-category" key={category}><header><h2>{copy.categories[category]}</h2><span>{items.length}</span></header><div className="stores-grid">{items.map(store => <article className="store-card" key={store.root}><div className="store-card-icon"><ShoppingBag size={19}/></div><div className="store-card-name"><h3>{store.name}</h3><span>{store.root}</span></div>{store.featured&&<span className="store-card-badge">{locale === 'ru' ? store.region : locale === 'uz' ? ({'Испания':'Ispaniya','Европа':'Yevropa','США':'AQSh'} as Record<string,string>)[store.region??'']??store.region : ({'Испания':'Spain','Европа':'Europe','США':'USA'} as Record<string,string>)[store.region??'']??store.region}</span>}<a href={`https://${store.root}`} target="_blank" rel="noopener noreferrer" aria-label={`${copy.open}: ${store.name}`}><ArrowUpRight size={17}/></a></article>)}</div></section>;
-      }) : <div className="stores-empty">{copy.noResults}</div>}
+  const catalogByBrand = useMemo(() => {
+    const map: CatalogCounts = new Map();
+    for (const product of catalogProducts) {
+      const host = storeHost(product), brand = brandForHost(host);
+      if (!brand) continue;
+      const entry = map.get(brand.key) ?? { count: 0, hosts: new Set<string>() };
+      entry.count++; entry.hosts.add(host); map.set(brand.key, entry);
+    }
+    return map;
+  }, [catalogProducts]);
+  // Stores from the cart and earlier orders, the latest first: the quickest way back to a store.
+  const mine = useMemo(() => {
+    const products = [...state.cart.map((item) => item.product), ...[...state.orders].sort((a, b) => b.createdAt - a.createdAt).map((order) => order.product)];
+    const brands: StoreBrand[] = [];
+    for (const product of products) {
+      const brand = brandForHost(storeHost(product));
+      if (brand && !brands.includes(brand)) brands.push(brand);
+    }
+    return brands.slice(0, 12);
+  }, [state.cart, state.orders]);
+
+  const search = query.trim().toLocaleLowerCase();
+  const matchesSearch = (brand: StoreBrand) => !search || [brand.name, brand.key, storeFocusNames[brand.focus][locale], ...brand.storefronts.flatMap((s) => [s.root, storeCountryNames[s.country][locale]])].join(' ').toLocaleLowerCase().includes(search);
+  const searched = storeBrands.filter(matchesSearch);
+  const inRegion = (brand: StoreBrand) => !region || brandRegions(brand).has(region);
+  const list = searched.filter((brand) => (!focus || brand.focus === focus) && inRegion(brand)).sort((a, b) => a.name.localeCompare(b.name));
+  const focusCount = (key: StoreFocus) => searched.filter((brand) => brand.focus === key && inRegion(brand)).length;
+  const regionCount = (key: StoreRegion) => searched.filter((brand) => (!focus || brand.focus === focus) && brandRegions(brand).has(key)).length;
+  const grouped = !search && !focus;
+
+  return <div className="stores-page">
+    <header className="stores-hero">
+      <p className="stores-overline">{c.overline}</p>
+      <h1>{c.title(storeBrands.length)}</h1>
+      <p className="stores-intro">{c.intro}</p>
+      <StoresLinkForm c={c} locale={locale} field={field} />
+      <ol className="stores-steps">{c.steps.map(([title, hint], index) => <li key={title}><span aria-hidden="true">{index + 1}</span><div><b>{title}</b><small>{hint}</small></div></li>)}</ol>
+    </header>
+
+    {mine.length > 0 && <section className="stores-shelf stores-mine" aria-labelledby="stores-mine-title">
+      <h2 id="stores-mine-title">{c.mine}</h2>
+      <ul>{mine.map((brand) => <li key={brand.key}><button type="button" onClick={() => setOpen(brand)}><StoreLogo brand={brand} size={44} /><span>{brand.name}</span></button></li>)}</ul>
+    </section>}
+
+    <section className="stores-shelf stores-popular" aria-labelledby="stores-popular-title">
+      <h2 id="stores-popular-title">{c.popular}</h2>
+      <ul>{popular.map((brand) => <li key={brand.key}><button type="button" onClick={() => setOpen(brand)}><StoreLogo brand={brand} size={44} /><span>{brand.name}</span></button></li>)}</ul>
     </section>
-  </>;
+
+    <section className="stores-browse" aria-labelledby="stores-browse-title">
+      <div className="stores-browse-head"><h2 id="stores-browse-title">{c.directory}</h2><span role="status">{c.count(list.length)}</span></div>
+      <label className="stores-search"><Search size={20} aria-hidden="true" /><span className="sr-only">{c.search}</span><input type="search" value={query} maxLength={80} placeholder={c.search} onChange={(event) => setQuery(event.target.value)} />{query && <button type="button" className="icon-btn" aria-label={c.clear} onClick={() => setQuery('')}><X size={18} /></button>}</label>
+      <div className="stores-chips" role="group" aria-label={c.directory}>
+        <button type="button" aria-pressed={!focus} onClick={() => setFocus('')}>{c.all}<span>{searched.filter(inRegion).length}</span></button>
+        {storeFocusOrder.map((key) => <button type="button" key={key} aria-pressed={focus === key} onClick={() => setFocus(focus === key ? '' : key)}>{storeFocusNames[key][locale]}<span>{focusCount(key)}</span></button>)}
+      </div>
+      <div className="stores-chips stores-regions" role="group" aria-label={c.regionLabel}>
+        <button type="button" aria-pressed={!region} onClick={() => setRegion('')}>{c.regionLabel}: {c.all.toLocaleLowerCase()}</button>
+        {storeRegionOrder.map((key) => <button type="button" key={key} aria-pressed={region === key} onClick={() => setRegion(region === key ? '' : key)}>{c.regions[key]}<span>{regionCount(key)}</span></button>)}
+      </div>
+      {!list.length ? <div className="stores-empty" role="status"><p>{c.noResults}</p><button type="button" className="btn primary" onClick={() => { setQuery(''); setFocus(''); setRegion(''); field.current?.focus(); }}><Link2 size={18} aria-hidden="true" />{c.pasteLabel}</button></div>
+        : grouped ? storeFocusOrder.map((key) => {
+          // Without a search or a type filter each type is a short shelf, popular stores first, opened on demand.
+          const items = list.filter((brand) => brand.focus === key).sort(byRank);
+          const isOpen = expanded.includes(key);
+          // le8/le9/le10: everything fits in the collapsed rows of that breakpoint, so no "show all" there.
+          const fits = [8, 9, 10].filter((limit) => items.length <= limit).map((limit) => ' le' + limit).join('');
+          return items.length ? <section className={'stores-group' + (isOpen ? ' open' : '') + fits} key={key} aria-labelledby={'stores-' + key}>
+            <h3 id={'stores-' + key}>{storeFocusNames[key][locale]}<span>{items.length}</span></h3>
+            <StoreGrid items={items} locale={locale} c={c} catalog={catalogByBrand} onOpen={setOpen} />
+            {items.length > collapsedCount && <button type="button" className="stores-more" aria-expanded={isOpen} aria-controls={'stores-grid-' + key} onClick={() => setExpanded(isOpen ? expanded.filter((value) => value !== key) : [...expanded, key])}>
+              {isOpen ? c.showLess : c.showAll(items.length)}<ChevronDown size={18} aria-hidden="true" />
+            </button>}
+          </section> : null;
+        })
+        : <StoreGrid items={list} locale={locale} c={c} catalog={catalogByBrand} onOpen={setOpen} />}
+      <div className="stores-missing">
+        <div><h3>{c.missingTitle}</h3><p>{c.missingText}</p></div>
+        <button type="button" className="btn secondary" onClick={() => { field.current?.scrollIntoView({ block: 'center' }); field.current?.focus(); }}><Link2 size={18} aria-hidden="true" />{c.missingAction}</button>
+      </div>
+      <p className="stores-note">{c.note}</p>
+    </section>
+    <StoreDialog brand={open} c={c} locale={locale} catalog={open ? catalogByBrand.get(open.key) : undefined} onOpen={setOpen} onClose={() => setOpen(null)} onPaste={() => { setOpen(null); field.current?.scrollIntoView({ block: 'center' }); field.current?.focus(); }} />
+  </div>;
+}
+
+function StoreGrid({ items, locale, c, catalog, onOpen }: { items: StoreBrand[]; locale: Locale; c: Copy; catalog: CatalogCounts; onOpen: (brand: StoreBrand) => void }) {
+  return <ul className="stores-grid" id={items[0] ? 'stores-grid-' + items[0].focus : undefined}>{items.map((brand) => {
+    const countries = new Set(brand.storefronts.map((s) => s.country)).size, inCatalog = catalog.get(brand.key)?.count ?? 0;
+    return <li key={brand.key}><button type="button" className="store-tile" onClick={() => onOpen(brand)}>
+      <StoreLogo brand={brand} size={36} />
+      <span className="store-tile-text"><b>{brand.name}</b><small>{inCatalog > 0 ? <em>{c.inCatalogShort(inCatalog)}</em> : countries > 1 ? c.countries(countries) : storeCountryNames[brand.storefronts[0].country][locale]}</small></span>
+    </button></li>;
+  })}</ul>;
+}
+
+/** Native modal dialog: a sheet from the bottom on phones, a centred card on larger screens. */
+function StoreDialog({ brand, c, locale, catalog, onOpen, onClose, onPaste }: { brand: StoreBrand | null; c: Copy; locale: Locale; catalog?: { count: number; hosts: Set<string> }; onOpen: (brand: StoreBrand) => void; onClose: () => void; onPaste: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    if (brand && !dialog.open) dialog.showModal();
+    if (!brand && dialog.open) dialog.close();
+  }, [brand]);
+  const main = brand?.storefronts[0];
+  // Same type of store, popular first and preferably from the same part of the world.
+  const similar = brand ? storeBrands.filter((other) => other.focus === brand.focus && other.key !== brand.key)
+    .sort((a, b) => Number(b.country === brand.country) - Number(a.country === brand.country) || byRank(a, b)).slice(0, 6) : [];
+  return <dialog ref={ref} className="store-dialog" aria-labelledby="store-dialog-title" onClose={onClose} onClick={(event) => { if (event.target === ref.current) ref.current?.close(); }}>
+    {brand && main && <div className="store-dialog-body">
+      <button type="button" className="icon-btn store-dialog-close" aria-label={c.close} onClick={() => ref.current?.close()}><X size={20} /></button>
+      <div className="store-dialog-head"><StoreLogo brand={brand} size={60} /><div><h2 id="store-dialog-title">{brand.name}</h2><p>{storeFocusNames[brand.focus][locale]} · {storeCountryNames[main.country][locale]}</p></div></div>
+      <a className="btn primary store-dialog-open" href={`https://${main.root}`} target="_blank" rel="noopener noreferrer">{c.open(main.root)}<ArrowUpRight size={18} aria-hidden="true" /><span className="sr-only"> ({c.newTab})</span></a>
+      {brand.storefronts.length > 1 && <div className="store-dialog-section"><h3>{c.storefronts}</h3><ul className="store-dialog-fronts">{brand.storefronts.map((front) => <li key={front.root}><a href={`https://${front.root}`} target="_blank" rel="noopener noreferrer"><span>{storeCountryNames[front.country][locale]}</span><small>{front.root}</small><ArrowUpRight size={16} aria-hidden="true" /></a></li>)}</ul></div>}
+      {catalog && catalog.count > 0 && <Link className="store-dialog-catalog" href={'/catalog?store=' + [...catalog.hosts].join(',')}><span>{c.inCatalog(catalog.count)}</span><b>{c.viewCatalog}<ArrowRight size={16} aria-hidden="true" /></b></Link>}
+      <div className="store-dialog-section"><h3>{c.howTitle}</h3><ol className="store-dialog-steps">{c.steps.map(([title, hint]) => <li key={title}><b>{title}</b><small>{hint}</small></li>)}</ol></div>
+      <button type="button" className="btn secondary store-dialog-paste" onClick={onPaste}><Link2 size={18} aria-hidden="true" />{c.pastePlaceholder}</button>
+      {similar.length > 0 && <div className="store-dialog-section"><h3>{c.similar}</h3><ul className="store-dialog-similar">{similar.map((other) => <li key={other.key}><button type="button" onClick={() => { onOpen(other); ref.current?.querySelector('.store-dialog-body')?.scrollTo({ top: 0 }); }}><StoreLogo brand={other} size={32} /><span>{other.name}</span></button></li>)}</ul></div>}
+    </div>}
+  </dialog>;
+}
+
+function StoresLinkForm({ c, locale, field }: { c: Copy; locale: Locale; field: RefObject<HTMLInputElement | null> }) {
+  const [url, setUrl] = useState('');
+  const [error, setError] = useState('');
+  const [canPaste, setCanPaste] = useState(false);
+  useEffect(() => { queueMicrotask(() => setCanPaste(typeof navigator !== 'undefined' && !!navigator.clipboard?.readText)); }, []);
+  function go(value: string) {
+    try { window.location.assign('/order-by-link?url=' + encodeURIComponent(validateSource(value.trim()))); }
+    catch { setError(homeCopy[locale].hero.invalid); }
+  }
+  function submit(event: FormEvent) { event.preventDefault(); go(url); }
+  // Reading the clipboard needs a tap; iPhone shows its own "Paste" confirmation.
+  async function paste() {
+    try { const text = (await navigator.clipboard.readText()).trim(); if (text) { setUrl(text); setError(''); go(text); return; } } catch { /* denied: type or paste by hand */ }
+    field.current?.focus();
+  }
+  return <form className="stores-link" onSubmit={submit} noValidate>
+    <label className="sr-only" htmlFor="stores-link-url">{c.pasteLabel}</label>
+    <span className="stores-link-field"><Link2 size={20} aria-hidden="true" /><input ref={field} id="stores-link-url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.pastePlaceholder} aria-invalid={!!error} aria-describedby={error ? 'stores-link-error' : undefined} onChange={(event) => { setUrl(event.target.value); setError(''); }} />
+      {canPaste && !url && <button type="button" className="icon-btn" aria-label={c.paste} onClick={() => void paste()}><ClipboardPaste size={19} /></button>}</span>
+    <button type="submit" className="btn primary">{c.calculate}<ArrowRight size={18} aria-hidden="true" /></button>
+    {error && <p id="stores-link-error" className="stores-link-error" role="alert">{error}</p>}
+  </form>;
 }

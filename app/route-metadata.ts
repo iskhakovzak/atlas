@@ -11,14 +11,19 @@ const imageAlt: Record<Locale, string> = {
 // Route-level openGraph replaces the root object, so each route repeats the preview image.
 const images = (locale: Locale) => [{ url: ogImage[locale], width: 1200, height: 630, alt: imageAlt[locale] }];
 
-export type PublicPage = 'home' | 'stores' | 'customs' | 'legal';
-const paths: Record<PublicPage, string> = { home: '/', stores: '/stores', customs: '/customs', legal: '/legal' };
+export type PublicPage = 'home' | 'catalog' | 'stores' | 'customs' | 'legal';
+const paths: Record<PublicPage, string> = { home: '/', catalog: '/catalog', stores: '/stores', customs: '/customs', legal: '/legal' };
 
 const pageText: Record<PublicPage, Record<Locale, { title: string; description: string }>> = {
   home: {
     uz: { title: 'Atlas — xorijiy do‘konlardan O‘zbekistonga yetkazib berish', description: 'Istalgan xorijiy do‘kondagi tovar havolasini qo‘ying va yakuniy narxni so‘mda biling: tovar, xizmat va yetkazib berish alohida satrlarda.' },
     ru: { title: 'Atlas — покупки в зарубежных магазинах с доставкой в Узбекистан', description: 'Вставьте ссылку на товар из любого зарубежного магазина и узнайте итог в сумах: товар, сервис и доставка отдельными строками.' },
     en: { title: 'Atlas — shop international stores with delivery to Uzbekistan', description: 'Paste a link from any international store and see the total in soum: item, service and delivery on separate lines.' },
+  },
+  catalog: {
+    uz: { title: 'Xorijiy do‘konlar tovarlari katalogi', description: 'Poyabzal, kiyim, elektronika va go‘zallik mahsulotlari — yakuniy narxi so‘mda, O‘zbekistongacha yetkazish bilan. Do‘kon, narx, o‘lcham va bojsiz limit bo‘yicha filtrlar.' },
+    ru: { title: 'Каталог товаров из зарубежных магазинов', description: 'Обувь, одежда, электроника и красота с итогом в сумах и доставкой в Узбекистан. Фильтры по магазину, цене, размеру и беспошлинному лимиту.' },
+    en: { title: 'Catalog of products from international stores', description: 'Shoes, clothing, electronics and beauty with the total in soum and delivery to Uzbekistan. Filter by store, price, size and duty-free allowance.' },
   },
   stores: {
     uz: { title: 'Buyurtma berish mumkin bo‘lgan do‘konlar', description: 'Atlas orqali havola bo‘yicha buyurtma berish mumkin bo‘lgan xorijiy do‘konlar katalogi.' },
