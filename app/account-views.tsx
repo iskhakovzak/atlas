@@ -8,7 +8,8 @@ import { useMarket } from "@/lib/market/store";
 import { courierAllowanceUsd } from "@/lib/market/customs";
 import { balanceOf, totalOf, type SavedDeliveryProfile } from "@/lib/market/domain";
 import { monthlyAllowance, recipientKey, type RecipientAllowance } from "@/lib/market/allowance";
-import { localizedStatuses } from "@/lib/market/i18n";
+import { localizedStatuses, type Locale } from "@/lib/market/i18n";
+import { calcCopy } from "@/lib/market/calc-copy";
 import { formatSum } from "@/lib/market/home-copy";
 import { accountCopy, formatLongDate, itemCount, recipientCopy, type AccountCopy } from "@/lib/market/customer-copy";
 import { siteContent } from "@/lib/market/site-content";
@@ -99,9 +100,11 @@ export function AccountView() {
           <p className="cabinet-lead">{c.recipients.lead}</p>
           {state.deliveryProfiles.length ? <ul className="cabinet-recipients">{state.deliveryProfiles.map(profile => {
             const passport = identityProfiles.find(identity => identity.recipientProfileId === profile.id);
+            // A recipient saved under their own name would show it twice.
+            const named = profile.label.trim() && profile.label.trim() !== profile.recipient.trim();
             return <li key={profile.id}>
-              <div className="cabinet-recipient-top"><b>{profile.label}</b>{profile.primary && <span className="cabinet-badge">{c.recipients.primary}</span>}</div>
-              <p>{profile.recipient} · {profile.phone}</p>
+              <div className="cabinet-recipient-top"><b>{named ? profile.label : profile.recipient}</b>{profile.primary && <span className="cabinet-badge">{c.recipients.primary}</span>}</div>
+              <p>{named && <>{profile.recipient} · </>}<span className="nowrap">{profile.phone}</span></p>
               <p className="cabinet-muted">{profile.region}, {profile.city}, {profile.address}</p>
               <div className="cabinet-recipient-foot">
                 {passport ? <span className="cabinet-chip ok"><Check size={14} aria-hidden="true" />{c.recipients.passportOk(passport.passportMasked)}</span> : <Link className="cabinet-chip warn" href={`/identity?recipient=${encodeURIComponent(profile.id)}`}><ScanLine size={14} aria-hidden="true" />{c.recipients.addPassport}</Link>}
@@ -125,8 +128,8 @@ export function AccountView() {
               {item.replies.map(reply => <p className="ticket-reply" key={reply.id}><b>{reply.author === "support" ? c.support.team : c.support.you}</b><br />{reply.text}</p>)}
               {item.status !== "closed" && <form className="support-reply-form" onSubmit={async event => { event.preventDefault(); const form = event.currentTarget; const input = form.elements.namedItem("reply") as HTMLInputElement; if (await act({ type: "support-reply", id: item.id, text: input.value })) input.value = ""; }}><input name="reply" aria-label={c.support.replyPlaceholder} required minLength={3} maxLength={1000} placeholder={c.support.replyPlaceholder} /><button className="btn secondary">{c.support.reply}</button></form>}
             </details>
-          </li>)}</ul> : <p className="cabinet-empty">{c.support.none}</p>}
-          {ticketOpen || !state.supportTickets.length ? <form className="cabinet-ticket-form" onSubmit={async event => { event.preventDefault(); if (await act({ type: "support-create", subject: ticket.subject, text: ticket.text })) { setTicket({ subject: "", text: "" }); setTicketOpen(false); toast.success(c.support.sent); } }}>
+          </li>)}</ul> : null}
+          {ticketOpen ? <form className="cabinet-ticket-form" onSubmit={async event => { event.preventDefault(); if (await act({ type: "support-create", subject: ticket.subject, text: ticket.text })) { setTicket({ subject: "", text: "" }); setTicketOpen(false); toast.success(c.support.sent); } }}>
             <label htmlFor="support-subject">{c.support.subject}</label><input id="support-subject" required minLength={3} maxLength={120} value={ticket.subject} onChange={event => setTicket({ ...ticket, subject: event.target.value })} />
             <label htmlFor="support-question">{c.support.question}</label><textarea id="support-question" required minLength={3} maxLength={1000} rows={4} value={ticket.text} onChange={event => setTicket({ ...ticket, text: event.target.value })} />
             <div className="cabinet-form-foot"><small>{ticket.text.length} / 1000</small><button className="btn primary" disabled={!ready}><MessageCircle size={16} aria-hidden="true" />{c.support.send}</button></div>
@@ -135,7 +138,7 @@ export function AccountView() {
       </div>
 
       <div className="cabinet-side">
-        <CustomsAllowance groups={allowance} primaryName={primaryRecipient?.recipient} cartUsd={cartUsd} c={c} />
+        <CustomsAllowance groups={allowance} primaryName={primaryRecipient?.recipient} cartUsd={cartUsd} c={c} locale={lang} />
 
         <section className="cabinet-card" aria-labelledby="cabinet-documents-title">
           <h2 id="cabinet-documents-title">{c.documents.title}</h2>
@@ -165,7 +168,7 @@ export function AccountView() {
 }
 
 /** This month's purchases through Atlas against the duty-free courier allowance, per recipient. */
-function CustomsAllowance({ groups, primaryName, cartUsd, c }: { groups: RecipientAllowance[]; primaryName?: string; cartUsd: number; c: AccountCopy }) {
+function CustomsAllowance({ groups, primaryName, cartUsd, c, locale }: { groups: RecipientAllowance[]; primaryName?: string; cartUsd: number; c: AccountCopy; locale: Locale }) {
   const limit = courierAllowanceUsd;
   // Show the default recipient even before their first order, so the empty state still says "for whom".
   const rows = groups.length ? groups : primaryName ? [{ key: recipientKey(primaryName), name: primaryName, usedUsd: 0, orders: 0 }] : [];
@@ -183,6 +186,8 @@ function CustomsAllowance({ groups, primaryName, cartUsd, c }: { groups: Recipie
     })}</ul> : <p className="cabinet-empty">{c.customs.empty}</p>}
     {cartUsd > 0 && <p className="cabinet-customs-cart">{c.customs.cart(cartUsd)}</p>}
     <p className="cabinet-note">{c.customs.note}</p>
+    {/* Each person has their own allowance: a relative may be the recipient only with their own details. */}
+    <p className="cabinet-note">{calcCopy[locale].customs.relative} {calcCopy[locale].customs.rule}</p>
     <Link className="cabinet-link" href="/customs">{c.customs.link}<ArrowRight size={16} aria-hidden="true" /></Link>
   </section>;
 }

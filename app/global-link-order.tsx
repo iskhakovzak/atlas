@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { AlertCircle, ArrowRight, ExternalLink, Info, Link2, Loader2, ShieldCheck } from "lucide-react";
+import { AlertCircle, ArrowRight, Check, ExternalLink, Info, Link2, Loader2, Minus, Plus, ShieldCheck, ShoppingBag, X } from "lucide-react";
 import Link from "@/components/site-link";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -10,16 +10,20 @@ import { signInPath } from "@/lib/market/access";
 import { catalogOrderVariants } from "@/lib/market/catalog";
 import { catalogLinkSeed, catalogLinkPrice, catalogLinkWeight } from "@/lib/market/link-order-context";
 import {
-  price,
-  storeShippingUsd,
+  repriceCart,
+  storeShippingReserves,
   validateSource,
+  type CartItem,
   type Product,
 } from "@/lib/market/domain";
+import { calcCopy, type CalcCopy } from "@/lib/market/calc-copy";
+import { cartCustomsEstimate } from "@/lib/market/allowance";
+import { CalcLines, CustomsPanel, FxNote, HoldNote, sumQuotes } from "./calc-summary";
 import { countries, currencies, currencyForCountry, toUsd, paddedWeight } from "@/lib/market/world";
 import { describeSingleColorway } from "@/lib/market/variant-colorway";
 import { variantsForSourceColor } from "@/lib/importer/link-selection";
 import { findNikeFootwearSizeRow, getNikeFootwearSizeRows, inferNikeFootwearSizeSystem } from "@/lib/market/nike-size-chart";
-import { estimatedBoxedWeight, validBoxedWeight, weightCategories } from "@/lib/market/weight";
+import { estimateBoxedWeight, estimatedBoxedWeight, validBoxedWeight, weightCategories } from "@/lib/market/weight";
 import {
   safeImage,
   dedupeSafeImages,
@@ -30,8 +34,6 @@ import {
   type ProductColorwayGallery,
 } from "@/lib/importer/extract";
 import { Choice } from "./market-ui";
-import { SummaryLine } from "./price-summary";
-import { atlasServiceBreakdown } from "@/lib/market/quote-presentation";
 import { formatSum } from "@/lib/market/home-copy";
 import { cartCopy, countryLabel, linkOrderCopy } from "@/lib/market/customer-copy";
 import { ProductGallery } from "./product-gallery";
@@ -80,6 +82,30 @@ function displayCategoryName(value:string,locale:string){
     : {'Обувь':'Shoes','Одежда':'Clothing','Электроника':'Electronics','Аксессуары':'Accessories','Красота и уход':'Beauty & care','Дом и быт':'Home & living','Спорт':'Sports','Другое':'Other'};
   return labels[canonical as keyof typeof labels]??canonical;
 }
+/** Units left as the store reports them (only eBay does); empty when unknown — never guessed. */
+function stockText(item: ProductVariant | undefined, k: CalcCopy) {
+  if (item?.quantity !== undefined) return item.quantity === 0 ? k.outOfStock : `${k.stockLeft(item.quantity)} · ${k.stockByEbay}`;
+  if (item?.quantityMoreThan !== undefined) return `${k.stockMore(item.quantityMoreThan)} · ${k.stockByEbay}`;
+  return "";
+}
+/** At most 10 of one option, or fewer when the store reports less stock. */
+const maxFor = (item: ProductVariant | undefined) => Math.max(1, Math.min(10, item?.quantity ?? 10));
+
+function Stepper({ value, max, label, k, onChange }: { value: number; max: number; label: string; k: CalcCopy; onChange: (value: number) => void }) {
+  return <span className="lo-stepper" role="group" aria-label={label}>
+    <button type="button" aria-label={k.less} disabled={value <= 1} onClick={() => onChange(value - 1)}><Minus size={16} aria-hidden="true" /></button>
+    <output aria-live="polite">{value}</output>
+    <button type="button" aria-label={k.more} disabled={value >= max} onClick={() => onChange(Math.min(max, value + 1))}><Plus size={16} aria-hidden="true" /></button>
+  </span>;
+}
+
+/** Options without a color/size matrix, as buttons the customer can pick several of. */
+function OptionChips({ variants, picked, k, onToggle }: { variants: ProductVariant[]; picked: Record<string, number>; k: CalcCopy; onToggle: (item: ProductVariant) => void }) {
+  return <div className="variant-options lo-option-chips">{variants.map(item => <button type="button" key={item.label} aria-pressed={Boolean(picked[item.label])} disabled={item.quantity === 0} onClick={() => onToggle(item)}>
+    <span>{item.label}</span>{item.quantity !== undefined && item.quantity <= 5 && <small className="lo-stock">{item.quantity ? k.stockLeft(item.quantity) : k.outOfStock}</small>}
+  </button>)}</div>;
+}
+
 export function GlobalLinkOrder() {
   const { ready, status, pricing, state, act, lastActionError, catalogProducts, loadCatalog } = useMarket();
   const lang=state.communication.language;
@@ -140,6 +166,12 @@ export function GlobalLinkOrder() {
       currency: string;
       destination?: string;
     } | null>(null);
+  // Several options of one product can go to the cart at once: option label → quantity.
+  const [picked, setPicked] = useState<Record<string, number>>(() => fallbackOptions.length === 1 ? { [fallbackOptions[0].label]: 1 } : {});
+  const [manualQuantity, setManualQuantity] = useState(1);
+  const [comment, setComment] = useState("");
+  const [weightBasis, setWeightBasis] = useState<"store" | "estimate" | "title" | "catalog" | "customer">(seed ? "catalog" : "estimate");
+  const [added, setAdded] = useState<{ lines: number; units: number } | null>(null);
   const automaticallyLoaded = useRef<string | null>(null);
   const [catalogContextLoaded,setCatalogContextLoaded]=useState<string|null>(()=>catalogId?null:'');
   const draftStorageKey=`atlas:link-order:${catalogId?'catalog:'+catalogId:requestedUrl||'manual'}`;
@@ -168,7 +200,7 @@ export function GlobalLinkOrder() {
           queueMicrotask(()=>{
             setUrl(text(value.url,requestedUrl));setSource(text(value.source));setName(text(value.name));setBrand(text(value.brand));setDeclaration(text(value.declaration));
             setCurrency(text(value.currency,'USD'));setAmount(text(value.amount));setShipping(text(value.shipping,'10'));setShippingCurrency(text(value.shippingCurrency,'USD'));setShippingEstimated(value.shippingEstimated!==false);
-            setWeight(text(value.weight));setCountry(canonicalCountry(text(value.country,'Другая страна')));setOtherCountry(text(value.otherCountry));setCategory(canonicalCategory(text(value.category,'Другое')));setVariant(restoredVariant);
+            setWeight(text(value.weight));setCountry(canonicalCountry(text(value.country,'Другая страна')));setOtherCountry(text(value.otherCountry));setCategory(canonicalCategory(text(value.category,'Другое')));setVariant(restoredVariant);setPicked(restoredVariant?{[restoredVariant]:1}:{});
             setVariants(restoredVariants);setSelectedColor(text(value.selectedColor));setSelectedSize(text(value.selectedSize));setImage(text(value.image));setImages(dedupeSafeImages(Array.isArray(value.images)?value.images.filter((item):item is string=>typeof item==='string'):[],text(value.source)));setColorwayImages(cleanColorwayGalleries(value.colorwayImages,text(value.source)));
             setShowSourceForm(value.showSourceForm===true);setNote(text(value.note));setWeightOrigin(text(value.weightOrigin));setVerified(value.verified===true);
             setSourceCheckStatus(value.sourceCheckStatus==='verified'||value.sourceCheckStatus==='failed'||value.sourceCheckStatus==='checking'?value.sourceCheckStatus:'idle');
@@ -221,6 +253,16 @@ export function GlobalLinkOrder() {
     if(item.price!==undefined&&knownCurrency)setAmount(String(item.price));else if(variants.some(value=>value.price!==undefined))setAmount("");
     if(item.image&&item.color!==selectedColor)setImage(item.image);setVerified(false);
   }
+  /** Toggle an option in the selection; the last one touched sets the price shown in the form. */
+  function togglePick(item:ProductVariant){
+    setPicked(current=>{const next={...current};if(next[item.label])delete next[item.label];else next[item.label]=1;return next});
+    applyVariantChoice(item);
+    setAdded(null);
+  }
+  function setPickQuantity(label:string,quantity:number){
+    setPicked(current=>({...current,[label]:quantity}));
+    setVerified(false);
+  }
   function selectColorway(color:string){
     if(color===selectedColor)return;
     const choices=variants.filter(item=>item.color===color);
@@ -231,7 +273,7 @@ export function GlobalLinkOrder() {
     setImages(nextImages);
     setImage(first?.image&&nextImages.includes(first.image)?first.image:nextImages[0]??'');
     if(choices.some(item=>item.price!==undefined))setAmount('');
-    if(!choices.some(item=>item.size)&&first)applyVariantChoice(first);
+    if(!choices.some(item=>item.size)&&first){applyVariantChoice(first);setPicked(current=>({...current,[first.label]:current[first.label]??1}))}
   }
   async function load(value = url) {
     let link: string;
@@ -274,6 +316,9 @@ export function GlobalLinkOrder() {
     setCategory(canonicalCategory(linkSeed?.category ?? (linkDealSeed ? communityProductCategory(linkDealSeed) : "Другое")));
     setVariant(linkFallbackOptions.length === 1 ? linkFallbackOptions[0].label : "");
     setVariants(linkFallbackOptions);
+    setPicked(linkFallbackOptions.length === 1 ? { [linkFallbackOptions[0].label]: 1 } : {});
+    setManualQuantity(1);
+    setAdded(null);
     setSelectedColor("");
     setSelectedSize("");
     setNote(linkDealSeed ? `Цена и фото сохранены из подборки на ${linkDealSeed.observedOn}. Atlas уточняет их в магазине.` : linkSeed ? `Товар из каталога ${linkSeed.store}. Atlas проверит цену и вариант в магазине.` : "");
@@ -317,13 +362,18 @@ export function GlobalLinkOrder() {
         const partialVariants=variantsForSourceColor(receivedPartialVariants,data.selectedVariantColor);
         setVariants(partialVariants);
         setVariant(partialVariants.length===1?partialVariants[0].label:"");
+        setPicked(partialVariants.length===1?{[partialVariants[0].label]:1}:{});
         const partialColor=selectedImportedColor(data,partialVariants,partialGalleries);
         setSelectedColor(partialColor);setSelectedSize("");
         const partialGallery=partialGalleries.find(gallery=>gallery.color===partialColor);
         if(partialGallery){setImages(partialGallery.images);setImage(partialGallery.images[0]);}
         setCountry(partialCountry);
-        if(linkIsCatalogFlow&&linkSeed)setWeight(String(linkBoxedWeight));
-        else if(data.boxedWeight!==undefined)setWeight(String(validBoxedWeight(data.boxedWeight)??estimatedBoxedWeight(partialCategory)));
+        if(linkIsCatalogFlow&&linkSeed){setWeight(String(linkBoxedWeight));setWeightBasis('catalog')}
+        else{
+          const stated=data.weightKind==='shipping'?validBoxedWeight(data.boxedWeight):undefined;
+          const estimate=estimateBoxedWeight(partialCategory,data.title??'');
+          setWeight(String(stated??estimate.kg));setWeightBasis(stated!==undefined?'store':estimate.basis==='title'?'title':'estimate');
+        }
         setSourceCheckStatus('failed');
         setNote(tx("Автоматически получены не все данные. Проверьте цену и вариант.","Ma’lumotlarning hammasi avtomatik olinmadi. Narx va variantni tekshiring.","Some details were not available automatically. Review the price and option."));
         setShowSourceForm(false);
@@ -377,6 +427,7 @@ export function GlobalLinkOrder() {
         setImages(selectedColorGallery.images);
         if(!selectedVariant?.image)setImage(selectedColorGallery.images[0]);
       }
+      setPicked(selectedVariant ? { [selectedVariant.label]: 1 } : {});
       if (selectedVariant) {
         setVariant(selectedVariant.label);
         setSelectedSize(selectedVariant.size??"");
@@ -388,7 +439,12 @@ export function GlobalLinkOrder() {
       if ((!data.currency || !currencies.includes(data.currency)) && !linkSeedPrice)
         setCurrency(currencyForCountry(nextCountry) ?? "USD");
       const importedWeight=validBoxedWeight(data.boxedWeight);
-      setWeight(String(linkIsCatalogFlow&&linkSeed?linkBoxedWeight:importedWeight ?? linkBoxedWeight ?? estimatedBoxedWeight(nextCategory)));
+      // Only a shipping weight is "with packaging"; a bare product weight is a floor for the estimate.
+      const statedWeight=data.weightKind==='shipping'?importedWeight:undefined;
+      const titleEstimate=estimateBoxedWeight(nextCategory,data.title??'');
+      const estimateKg=Math.max(titleEstimate.kg,importedWeight??0);
+      setWeight(String(linkIsCatalogFlow&&linkSeed?linkBoxedWeight:statedWeight ?? linkBoxedWeight ?? estimateKg));
+      setWeightBasis(linkIsCatalogFlow&&linkSeed?'catalog':statedWeight!==undefined?'store':linkBoxedWeight!==undefined?'catalog':titleEstimate.basis==='title'?'title':'estimate');
       setWeightOrigin(
         linkIsCatalogFlow&&linkSeed
           ? tx("Вес задан Atlas для карточки каталога","Vazn Atlas katalog kartochkasi uchun belgilagan","Weight set by Atlas for this catalog item")
@@ -404,6 +460,7 @@ export function GlobalLinkOrder() {
       setSourceExpiresAt(data.expiresAt);
       const sourceHasPrice=Boolean(data.currency&&currencies.includes(data.currency))&&Boolean(selectableVariants.length)&&(typeof data.price==='number'&&Number.isFinite(data.price)&&data.price>0||hasPricedVariants);
       setSourceCheckStatus(sourceHasPrice?'verified':'failed');
+      setShowSourceForm(false);
       // Shipping may depend on destination/session; require explicit confirmation even if found.
       if (!linkIsCatalogFlow&&data.shipping !== undefined) {
         const foundCurrency = data.shippingCurrency ?? data.currency ?? "";
@@ -460,7 +517,9 @@ export function GlobalLinkOrder() {
       setVariants(linkFallbackOptions);
       setColorwayImages([]);
       setVariant(linkFallbackOptions.length===1?linkFallbackOptions[0].label:"");
+      setPicked(linkFallbackOptions.length===1?{[linkFallbackOptions[0].label]:1}:{});
       setWeight(String(linkBoxedWeight ?? estimatedBoxedWeight(category)));
+      setWeightBasis(linkBoxedWeight!==undefined?'catalog':'estimate');
       setWeightOrigin(linkIsCatalogFlow&&linkSeed?tx("Вес задан Atlas для карточки каталога","Vazn Atlas katalog kartochkasi uchun belgilagan","Weight set by Atlas for this catalog item"):linkBoxedWeight ? tx("Оценка Atlas; уточняется перед оформлением","Atlas bahosi; rasmiylashtirishdan oldin aniqlanadi","Atlas estimate; refined before checkout") : tx("Приблизительно по категории","Kategoriya bo‘yicha taxminan","Approximate by category"));
       setSourceCheckStatus('failed');
       setShowSourceForm(false);
@@ -483,28 +542,33 @@ export function GlobalLinkOrder() {
     // `load` intentionally reads the current form state; this effect runs once per requested product.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestedUrl, catalogId, catalogContextLoaded]);
-  let preview: ReturnType<typeof price> | null = null,
-    estimatedWeight = 0;
+  // The options the customer chose, with quantities: from the option buttons, or the typed option.
+  const picks: [string, number][] = variants.length
+    ? Object.entries(picked).filter(([label]) => variants.some(item => item.label === label))
+    : variant.trim() ? [[variant.trim(), manualQuantity]] : [];
+  const pickedVariant = (label: string) => variants.find(item => item.label === label);
+  const priceOf = (label: string) => pickedVariant(label)?.price ?? Number(amount);
+  const units = picks.reduce((sum, [, quantity]) => sum + quantity, 0);
+  // Priced exactly as the cart would price these lines on their own: one parcel, one store-delivery hold.
+  let previewItems: CartItem[] = [];
   try {
-    if (amount && weight) {
-      estimatedWeight = paddedWeight(Number(weight));
-      const itemUsd = toUsd(Number(amount), currency, pricing.rates);
-      preview = price(
-        itemUsd,
-        estimatedWeight,
-        1,
-        shipping
-          ? storeShippingUsd({ sourceShippingUsd: toUsd(Number(shipping), shippingCurrency, pricing.rates), sourceShippingEstimated: shippingEstimated }, itemUsd, pricing)
-          : 0,
-        pricing,
-      );
+    const boxed = validBoxedWeight(weight);
+    if (boxed !== undefined && picks.length && source) {
+      const shippingUsd = shipping === "" ? 0 : toUsd(Number(shipping), shippingCurrency, pricing.rates);
+      previewItems = repriceCart(picks.map(([label, quantity], index) => ({
+        id: `preview-${index}`,
+        product: { id: `preview-${index}`, name: name || "item", brand: "", category, usd: toUsd(priceOf(label), currency, pricing.rates), weight: paddedWeight(boxed), image: "", variants: [label], sourceUrl: source, country: country === "Другая страна" ? otherCountry : country, sourceShippingUsd: shippingUsd, sourceShippingEstimated: shippingEstimated, boxedWeight: boxed },
+        variant: label, quantity, requestedServiceIds: [], quote: {} as CartItem["quote"],
+      })), 0, pricing);
     }
-  } catch {}
-  const deliveryHelp=tx(
-    `Международная доставка считается от веса товара в коробке + 0,3 кг упаковки + 0,2 кг запаса; минимум — 1 кг на посылку. После приёмки склад уточнит фактический или объёмный вес и пересчитает международную доставку. Доставка магазина до склада Atlas показана отдельной строкой; если магазин её не указывает, используется изменяемый резерв $10, который менеджер сверит. Резерв берём один раз на заказ из магазина и не берём от ${freeFrom}.`,
-    `Xalqaro yetkazish qutidagi tovar vazni + qadoq uchun 0,3 kg + 0,2 kg zaxira bo‘yicha hisoblanadi; har bir jo‘natma uchun kamida 1 kg. Qabuldan keyin ombor haqiqiy yoki hajmiy vaznni aniqlab, xalqaro yetkazishni qayta hisoblaydi. Do‘kondan Atlas omborigacha yetkazish alohida satrda ko‘rsatiladi; narx noma’lum bo‘lsa, menejer tekshiradigan o‘zgartiriladigan $10 zaxira qo‘llanadi. Zaxira do‘kondan bitta buyurtmaga bir marta olinadi, ${freeFrom} dan esa olinmaydi.`,
-    `International delivery uses boxed item weight + 0.3 kg packaging + 0.2 kg allowance, with a 1 kg minimum per parcel. After intake, the warehouse confirms actual or dimensional weight and settles international delivery. Store-to-Atlas shipping is a separate line; if the store does not publish it, an editable $10 reserve is used and checked by a manager. The reserve is taken once per store order and not at all from ${freeFrom}.`,
-  );
+  } catch { previewItems = []; }
+  const previewSums = previewItems.length ? sumQuotes(previewItems.map(item => item.quote)) : null;
+  const previewWeight = Math.round(previewItems.reduce((sum, item) => sum + item.quote.weight, 0) * 100) / 100;
+  const previewHold = storeShippingReserves(previewItems, pricing)[0];
+  const storeShippingState: "stated" | "free" | "hold" | "none" = !shippingEstimated ? (Number(shipping) > 0 ? "stated" : "none") : !previewItems.length ? "none" : previewHold?.reserveUsd ? "hold" : "free";
+  const primaryProfile = state.deliveryProfiles.find(profile => profile.primary) ?? state.deliveryProfiles[0];
+  const customsPreview = previewItems.length ? cartCustomsEstimate({ ...state, cart: previewItems }, pricing, { profile: primaryProfile }, { outsideUsed: false, help: false }) : null;
+  const k = calcCopy[lang];
   const previewProduct: Product = {
     id: "preview",
     name: name || "Фото товара",
@@ -518,8 +582,10 @@ export function GlobalLinkOrder() {
   };
   const lc = linkOrderCopy[lang];
   const cc = cartCopy[lang];
-  const parts = preview ? atlasServiceBreakdown(preview) : null;
   const sourceHost = (() => { try { return source ? new URL(source).hostname.replace(/^www\./, "") : ""; } catch { return ""; } })();
+  // The store link at the top: domain and path, no tracking parameters; the full address opens on click.
+  const sourceShort = (() => { try { const parsed = new URL(source || url); return parsed.hostname.replace(/^www\./, "") + (parsed.pathname === "/" ? "" : parsed.pathname); } catch { return sourceHost || url; } })();
+  const weightNote = weightBasis === "store" ? k.weightStore : weightBasis === "catalog" ? k.weightCatalog : weightBasis === "customer" ? k.weightCustomer : weightBasis === "title" ? k.weightTitle : k.weightEstimate(displayCategoryName(category, lang));
   // A confirmed import keeps the technical fields folded; anything unconfirmed stays open for review.
   const dataExpanded = dataOpen || sourceCheckStatus !== "verified";
   const sizePricesDiffer = new Set(variantsForColor.map(item => item.price).filter((value): value is number => value !== undefined)).size > 1;
@@ -532,7 +598,6 @@ export function GlobalLinkOrder() {
   })();
   const checkedTime = importedAt ? `${String(new Date(importedAt).getHours()).padStart(2, "0")}:${String(new Date(importedAt).getMinutes()).padStart(2, "0")}` : "";
   const dataSummary = [countryText, amount ? `${amount} ${currency}` : "", validBoxedWeight(weight) !== undefined ? `${weight} ${lc.kg}` : "", shippingEstimated ? `${lc.shippingReserve} ${shipping} ${shippingCurrency}` : lc.storeShipping(`${shipping} ${shippingCurrency}`)].filter(Boolean).join(" · ");
-  const submitLabel = adding ? c.adding : ready ? lc.add : lc.signinAdd;
   return (
     <div className="lo-page">
       <header className="orders-head"><div><h1>{lc.title}</h1><p>{source && !busy ? lc.leadLoaded : lc.lead}</p></div></header>
@@ -562,14 +627,22 @@ export function GlobalLinkOrder() {
       </form>}
       {(showSourceForm || !requestedUrl) && !source && !busy && <div className="lo-hints"><p>{lc.hint}</p><div className="home-hero-links"><Link href="/stores">{lc.stores}<ArrowRight size={16} aria-hidden="true" /></Link><Link href="/batch-import">{lc.batch}<ArrowRight size={16} aria-hidden="true" /></Link></div></div>}
 
-      {isSourcedFlow && !showSourceForm && <div className="lo-source" aria-live="polite">
-        <span className="lo-source-host"><Link2 size={16} aria-hidden="true" />{sourceHost || url}</span>
-        {busy ? <span className="lo-source-loading" role="status"><Loader2 className="spin" size={16} aria-hidden="true" />{lc.loading}</span> : <>
-          {source && <a className="lo-source-link" href={source} target="_blank" rel="noopener noreferrer">{lc.openStore}<ExternalLink size={14} aria-hidden="true" /></a>}
-          <button type="button" className="lo-source-link" onClick={() => setShowSourceForm(true)}>{lc.change}</button>
-        </>}
+      {(isSourcedFlow || source) && !showSourceForm && <div className="lo-source" aria-live="polite">
+        {source && !busy
+          ? <a className="lo-source-host" href={source} target="_blank" rel="noopener noreferrer" title={source}><Link2 size={16} aria-hidden="true" /><span>{sourceShort}</span><ExternalLink size={13} aria-hidden="true" /><span className="sr-only"> ({lc.openStore})</span></a>
+          : <span className="lo-source-host"><Link2 size={16} aria-hidden="true" /><span>{sourceShort}</span></span>}
+        {busy ? <span className="lo-source-loading" role="status"><Loader2 className="spin" size={16} aria-hidden="true" />{lc.loading}</span>
+          : <button type="button" className="lo-source-link" onClick={() => setShowSourceForm(true)}>{lc.change}</button>}
       </div>}
 
+      {added && <div className="lo-added" role="status">
+        <Check size={20} aria-hidden="true" />
+        <div><b>{tx(`В корзине: +${added.units} шт.`, `Savatda: +${added.units} dona`, `Added to cart: ${added.units} pcs`)}</b><small>{tx("Можно выбрать другой вариант или вставить ссылку на следующий товар — корзина сохранится.", "Boshqa variantni tanlash yoki keyingi tovar havolasini qo‘yish mumkin — savat saqlanadi.", "Choose another option or paste the next product link — your cart is kept.")}</small></div>
+        <span className="lo-added-actions">
+          <button type="button" className="btn secondary" onClick={() => { setAdded(null); setUrl(""); setSource(""); setShowSourceForm(true); window.setTimeout(() => document.getElementById("source-url")?.focus(), 0); }}><Link2 size={16} aria-hidden="true" />{tx("Следующий товар", "Keyingi tovar", "Next item")}</button>
+          <Link className="btn primary" href="/cart"><ShoppingBag size={16} aria-hidden="true" />{tx("В корзину", "Savatga", "Go to cart")}</Link>
+        </span>
+      </div>}
       {!ready && <p className="lo-guest">{lc.guest}</p>}
       {note && !source && <div className="notice" role="status"><p>{note}</p></div>}
       {busy && <div className="basket-loading lo-loading" role="status"><Loader2 className="spin" size={18} aria-hidden="true" /> {lc.loading}</div>}
@@ -588,7 +661,8 @@ export function GlobalLinkOrder() {
               }
               const missing=[
                 {id:'name',invalid:!name.trim(),message:tx('Введите название товара.','Tovar nomini kiriting.','Enter the item name.')},
-                {id:'variant',invalid:!variant.trim(),message:tx('Выберите или укажите цвет, размер либо модель.','Rang, o‘lcham yoki modelni tanlang yoki kiriting.','Choose or enter a color, size, or model.')},
+                {id:'variant',invalid:!picks.length,message:tx('Выберите или укажите цвет, размер либо модель.','Rang, o‘lcham yoki modelni tanlang yoki kiriting.','Choose or enter a color, size, or model.')},
+                {id:'variant',invalid:picks.some(([label,quantity])=>{const left=pickedVariant(label)?.quantity;return left!==undefined&&quantity>left}),message:tx('Для одного из вариантов выбрано больше, чем осталось у магазина.','Variantlardan biri uchun do‘konda qolganidan ko‘p tanlangan.','One option is chosen in a larger quantity than the store has left.')},
                 {id:'other-country',invalid:country==='Другая страна'&&!otherCountry.trim(),message:tx('Укажите страну фактической отправки.','Haqiqiy jo‘natish mamlakatini kiriting.','Enter the actual dispatch country.')},
                 {id:'amount',invalid:!Number.isFinite(Number(amount))||Number(amount)<=0,message:tx('Укажите цену товара больше нуля.','Tovar narxini noldan katta kiriting.','Enter an item price greater than zero.')},
                 {id:'shipping',invalid:shipping===''||!Number.isFinite(Number(shipping))||Number(shipping)<0,message:tx('Укажите доставку магазина до склада Atlas; 0 — только если она бесплатная.','Do‘kondan Atlas omborigacha yetkazishni kiriting; 0 faqat bepul bo‘lsa.','Enter store-to-Atlas shipping; use 0 only when it is free.')},
@@ -620,24 +694,38 @@ export function GlobalLinkOrder() {
               const img = image ? safeImage(image, source) : "";
               if (image && !img)
                  throw Error(tx("Изображение должно иметь публичный HTTPS-адрес.","Rasm ommaviy HTTPS manziliga ega bo‘lishi kerak.","The image must have a public HTTPS URL."));
-              const p: Product = {
-                id: source + "#" + variant.trim(),
+              // One cart line per chosen option, each with its own store price, option ID and photo.
+              const productFor = (label: string): Product => {
+                const option = pickedVariant(label);
+                const optionImage = option?.image ? safeImage(option.image, source) : undefined;
+                const photo = optionImage || img || "";
+                return {
+                ...baseProduct,
+                id: source + "#" + label,
+                usd: toUsd(priceOf(label), currency, pricing.rates),
+                image: photo,
+                sourceImages: dedupeSafeImages([photo, ...images], source, 12),
+                sourceVariantId: option?.id,
+                variants: [label],
+                sourcePrice: priceOf(label),
+                };
+              };
+              const baseProduct: Product = {
+                id: source,
                 name: name.trim(),
                 brand: brand || new URL(source).hostname,
                 category,
-                usd: toUsd(Number(amount), currency, pricing.rates),
+                usd: toUsd(Number(amount || priceOf(picks[0][0])), currency, pricing.rates),
                 weight: paddedWeight(Number(weight)),
                 image: img ?? "",
-                sourceImages: dedupeSafeImages([img ?? '', ...images], source, 12),
                 sourceUrl: source,
-                sourceVariantId: variants.find(item => item.label === variant.trim())?.id,
-                variants: [variant.trim()],
+                variants: [picks[0][0]],
                 country:
                   country === "Другая страна"
                     ? otherCountry.trim()
                     : country,
                 sourceCurrency: currency,
-                sourcePrice: Number(amount),
+                sourcePrice: priceOf(picks[0][0]),
                 sourceShipping: Number(shipping),
                 sourceShippingCurrency: shippingCurrency,
                 sourceShippingUsd: toUsd(
@@ -649,18 +737,22 @@ export function GlobalLinkOrder() {
                 shippingKnown: true,
                 boxedWeight: Number(weight),
                 weightOrigin,
+                weightBasis: weightBasis === "title" ? "estimate" : weightBasis,
                 importedAt,
                 sourceExpiresAt,
                 sourceManuallyConfirmed:true,
                  imageOrigin: importedAt ? tx("страница магазина","do‘kon sahifasi","store page") : tx("ручной ввод","qo‘lda kiritish","manual entry"),
                 declarationDescription: declaration || undefined,
               };
-              price(p.usd, p.weight, 1, p.sourceShippingUsd, pricing);
               setAdding(true);
-              const added = await act({ type: "cart-add", product: p, variant: variant.trim() });
-               if (added) window.location.assign("/cart");
-               // The store's price moved since this page loaded: load it again and keep the chosen option.
-               else if (lastActionError()?.code === "err_34") { reselectVariant.current = variant.trim(); void load(source); }
+              const note = comment.trim() || undefined;
+              const ok = picks.length === 1
+                ? await act({ type: "cart-add", product: productFor(picks[0][0]), variant: picks[0][0], quantity: picks[0][1], note })
+                : await act({ type: "cart-add-many", items: picks.map(([label, quantity]) => ({ product: productFor(label), variant: label, quantity })), note });
+              // The cart keeps what is already there; the customer can add more from this or another link.
+              if (ok) { setAdded({ lines: picks.length, units }); setComment(""); window.scrollTo({ top: 0, behavior: "smooth" }); }
+              // The store's price moved since this page loaded: load it again and keep the chosen option.
+              else if (lastActionError()?.code === "err_34") { reselectVariant.current = picks[0][0]; void load(source); }
             } catch (e) {
               toast.error((e as Error).message);
             } finally {
@@ -668,7 +760,7 @@ export function GlobalLinkOrder() {
             }
           }}
         >
-          <section className="lo-product" aria-labelledby="lo-product-name">
+          <section className={"lo-product" + (image ? "" : " lo-product-plain")} aria-labelledby="lo-product-name">
             {image && <div className="lo-gallery"><ProductGallery product={previewProduct} images={images.length?images:[image]} activeImage={image} onImageChange={setImage} locale={lang}/></div>}
             <div className="lo-product-copy">
               <p className="basket-brand">{[brand, sourceHost && brand !== sourceHost ? sourceHost : ""].filter(Boolean).join(" · ")}</p>
@@ -678,20 +770,19 @@ export function GlobalLinkOrder() {
               {sourceCheckStatus === "failed" && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{catalogProductFlow && amount
                 ? tx('Магазин не подтвердил все данные. Расчёт предварительный: при отсутствии новой цены используется сохранённая цена каталога. Перед выкупом оператор уточнит стоимость. Проверьте вариант и подтвердите данные.','Do‘kon barcha ma’lumotlarni tasdiqlamadi. Hisob taxminiy: yangi narx bo‘lmasa, katalogdagi saqlangan narx ishlatiladi. Operator xariddan oldin narxni aniqlaydi. Variantni tekshirib, ma’lumotlarni tasdiqlang.','The store did not confirm all details. This is a preliminary estimate; without a new price, the saved catalog amount is used. An operator will confirm the cost before buyout. Review the option and confirm the details.')
                 : lc.unconfirmed}</p>}
-              {note && <details className="lo-import-note"><summary>{lc.details}</summary><p>{note}</p></details>}
             </div>
           </section>
 
           <section className="lo-card lo-variant">
             <div className="field variant-matrix" data-order-variant tabIndex={-1}>
               <label htmlFor="variant">{c.variant}</label>
-              {variants.length===1 ? <div className="single-variant-selection">
-                <span>{variantColors.length===1?describeSingleColorway(variantColors[0]).primary:variants[0].label}</span>
-                <small>{tx('Выбран автоматически','Avtomatik tanlandi','Automatically selected')}</small>
+              {variants.length===1 ? <div className="single-variant-selection lo-single-option">
+                <span><small>{k.onlyOption}</small><b>{variants[0].label==='Выбранный вариант'||variants[0].label==='Объявление eBay'?name||variants[0].label:variantColors.length===1&&!variants[0].size?describeSingleColorway(variantColors[0]).primary:variants[0].label}</b>{stockText(variants[0],k)&&<em className="lo-stock">{stockText(variants[0],k)}</em>}</span>
+                <Stepper value={picked[variants[0].label]??1} max={maxFor(variants[0])} label={k.quantity} k={k} onChange={value=>setPickQuantity(variants[0].label,value)}/>
                 <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
               </div> : variants.length && (variantColors.length||variantSizes.length) ? <>
                 {variantColors.length>0&&<div className="variant-step"><div><b>{variantColors.length===1?tx('Расцветка по ссылке','Havoladagi rang','Linked colorway'):c.color}</b>{variantColors.length!==1&&<span>{selectedColor||c.selectColor}</span>}</div>{variantColors.length===1?<><div className="single-variant-selection"><span>{describeSingleColorway(variantColors[0]).primary}</span><small>{tx('Одна расцветка по этой ссылке','Bu havolada bitta rang varianti','One colorway in this link')}</small></div><p className="single-colorway-note">{tx('Для другого цвета нужна ссылка на соответствующий артикул магазина.','Boshqa rang uchun do‘kondagi tegishli artikl havolasi kerak.','Another color requires a link to its separate store item.')}</p><details className="single-colorway-source"><summary>{tx('Полное название расцветки в магазине','Do‘kondagi rangning to‘liq nomi','Full store colorway name')}</summary><span>{variantColors[0]}</span></details></>:<div className="variant-options">{variantColors.map(color=><button type="button" key={color} aria-pressed={selectedColor===color} onClick={()=>selectColorway(color)}>{color}</button>)}</div>}</div>}
-                {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize?(nikeSizeSystem?`US ${selectedSize}`:selectedSize):c.selectVariant}</span></div><div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={selectedSize===size} onClick={()=>applyVariantChoice(choice)}><span>{nikeSizeSystem?`US ${size}`:size}</span>{choice&&price!==undefined&&sizePricesDiffer&&<small>{price} {currency}</small>}</button>})}</div>{nikeSizeSystem&&<div className="nike-size-guide">
+                {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize?(nikeSizeSystem?`US ${selectedSize}`:selectedSize):c.selectVariant}</span></div><div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={Boolean(choice&&picked[choice.label])} disabled={choice?.quantity===0} onClick={()=>choice&&togglePick(choice)}><span>{nikeSizeSystem?`US ${size}`:size}</span>{choice&&price!==undefined&&sizePricesDiffer&&<small>{price} {currency}</small>}{choice?.quantity!==undefined&&choice.quantity<=5&&<small className="lo-stock">{choice.quantity?k.stockLeft(choice.quantity):k.outOfStock}</small>}</button>})}</div>{nikeSizeSystem&&<div className="nike-size-guide">
                   {selectedNikeSize&&<p className="nike-selected-size">{tx('Выбранный размер','Tanlangan o‘lcham','Selected size')}: <strong>US {selectedNikeSize.us}</strong><span>EU {selectedNikeSize.eu}</span><span>UK {selectedNikeSize.uk}</span><span>CM/JP {selectedNikeSize.cmLabel}</span><span>{tx('Стопа','Oyoq','Foot')} {selectedNikeSize.footLengthCm===undefined?'—':selectedNikeSize.footLengthCm} {tx('см','sm','cm')}</span></p>}
                   <details className="nike-size-chart"><summary>{tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')}</summary>
                     <p>{tx('Показаны размеры, найденные для этого товара. CM/JP — маркировка обуви Nike; длина стопы указана отдельно.','Bu tovar uchun topilgan o‘lchamlar ko‘rsatilgan. CM/JP — Nike poyabzali yorlig‘i; oyoq uzunligi alohida berilgan.','Shows sizes found for this item. CM/JP is Nike’s shoe-label size; foot length is listed separately.')}</p>
@@ -699,29 +790,36 @@ export function GlobalLinkOrder() {
                     <a className="nike-size-source" href={`https://www.nike.com/size-fit/${nikeSizeSystem==='women'?'womens':'mens'}-footwear`} target="_blank" rel="noopener noreferrer">{tx('Полная таблица на сайте Nike','To‘liq jadval Nike saytida','Full chart on Nike')} <ExternalLink size={13}/></a>
                   </details>
                 </div>}</div>}
-                {!variantColors.length&&!variantSizes.length&&<Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.map(item=>item.label)}/>}
+                {!variantColors.length&&!variantSizes.length&&<OptionChips variants={variants} picked={picked} k={k} onToggle={togglePick}/>}
                 <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
-              </> : variants.length ? <Choice label={c.variant} value={variant} onChange={value=>applyVariantChoice(variants.find(item=>item.label===value))} options={variants.map(item=>item.label)}/> : (
-                <input id="variant" required maxLength={80} value={variant} onChange={(e) => {setVariant(e.target.value);setVerified(false)}} placeholder={lang==='ru'?"Например: EU 42, чёрный":lang==='uz'?"Masalan: EU 42, qora":"For example: EU 42, black"}/>
+              </> : variants.length ? <OptionChips variants={variants} picked={picked} k={k} onToggle={togglePick}/> : (
+                <div className="lo-manual-option"><input id="variant" required maxLength={80} value={variant} aria-label={k.optionLabel} onChange={(e) => {setVariant(e.target.value);setVerified(false)}} placeholder={k.optionPlaceholder}/><Stepper value={manualQuantity} max={10} label={k.quantity} k={k} onChange={setManualQuantity}/></div>
               )}
             </div>
+            {variants.length > 1 && <>
+              <p className="lo-hint-line">{k.chooseOptions}</p>
+              {picks.length > 0 && <ul className="lo-picks" aria-label={k.chosen}>{picks.map(([label, quantity]) => {
+                const option = pickedVariant(label);
+                const optionPrice = option?.price ?? Number(amount);
+                return <li key={label}>
+                  <span className="lo-pick-label"><b>{label}</b><small>{[Number.isFinite(optionPrice) && optionPrice > 0 ? `${optionPrice} ${currency}` : "", stockText(option, k)].filter(Boolean).join(" · ")}</small></span>
+                  <Stepper value={quantity} max={maxFor(option)} label={`${k.quantity}: ${label}`} k={k} onChange={value => setPickQuantity(label, value)}/>
+                  <button type="button" className="lo-pick-remove" aria-label={`${k.removeOption}: ${label}`} onClick={() => option && togglePick(option)}><X size={16} aria-hidden="true"/></button>
+                </li>;
+              })}</ul>}
+            </>}
+            {variants.length > 0 && !variants.some(item => item.quantity !== undefined || item.quantityMoreThan !== undefined) && <p className="lo-hint-line muted">{k.stockUnknown}</p>}
           </section>
 
           <aside className="lo-summary basket-summary" aria-labelledby="lo-summary-title">
             <h2 id="lo-summary-title">{lc.total}</h2>
-            {preview && parts ? <>
-              <div className="basket-lines">
-                <SummaryLine label={cc.summary.items} amount={preview.merchandise} locale={lang} />
-                {(preview.sourceShipping ?? 0) > 0
-                  ? <SummaryLine label={cc.summary.storeShipping} amount={preview.sourceShipping ?? 0} locale={lang} help={shippingEstimated && !catalogProductFlow ? c.reserve : undefined} helpLabel={cc.summary.storeShipping} />
-                  : shippingEstimated && Number(shipping) > 0 && <SummaryLine label={cc.summary.storeShipping} amount={0} value={cc.summary.storeNoReserve} locale={lang} help={cc.summary.storeShippingHelp(freeFrom)} helpLabel={cc.summary.storeShipping} />}
-                {parts.service > 0 && <SummaryLine label={cc.summary.service} amount={parts.service} locale={lang} help={cc.summary.serviceHelp} helpLabel={cc.summary.serviceHelpLabel} />}
-                {parts.international > 0 && <SummaryLine label={`${cc.summary.international} · ${estimatedWeight} ${lc.kg}`} amount={parts.international} locale={lang} help={deliveryHelp} helpLabel={cc.summary.internationalHelpLabel} />}
-                {preview.reserve > 0 && <SummaryLine label={cc.summary.reserve} amount={preview.reserve} locale={lang} help={cc.summary.reserveHelp} helpLabel={cc.summary.reserveHelpLabel} />}
-                {(preview.optionalServices ?? 0) > 0 && <SummaryLine label={cc.summary.optional} amount={preview.optionalServices ?? 0} locale={lang} />}
-              </div>
-              <div className="basket-total"><span>{shipping === "" ? c.subtotal : c.estimate}</span><strong>{formatSum(preview.total, lang)}</strong></div>
-            </> : <p className="cabinet-empty">{lc.emptyTotal}</p>}
+            {previewSums ? <>
+              <CalcLines sums={previewSums} locale={lang} pricing={pricing} weightKg={previewWeight} storeShippingState={storeShippingState}/>
+              <div className="basket-total"><span>{units > 1 ? `${k.lines.total} · ${units} ${lang === "en" ? "pcs" : lang === "uz" ? "dona" : "шт."}` : k.lines.total}</span><strong>{formatSum(previewSums.total, lang)}</strong></div>
+              <HoldNote amount={previewSums.storeShippingHold} locale={lang} pricing={pricing}/>
+              {customsPreview && <CustomsPanel estimate={customsPreview} choices={{ outsideUsed: false, help: false }} locale={lang} pricing={pricing} profiles={primaryProfile ? [primaryProfile] : []} compact/>}
+            </> : <p className="cabinet-empty">{picks.length ? lc.emptyTotal : tx("Выберите вариант — покажем итог.", "Variantni tanlang — jamini ko‘rsatamiz.", "Choose an option to see the total.")}</p>}
+            <FxNote pricing={pricing} locale={lang}/>
             <p className="lo-foot">{c.foot}</p>
           </aside>
 
@@ -731,76 +829,106 @@ export function GlobalLinkOrder() {
               <span aria-hidden="true" className="lo-data-sign">{dataExpanded ? "−" : "+"}</span>
             </button>
             <div id="lo-data-fields" className="lo-data-fields" hidden={!dataExpanded}>
-              <div className="field">
+              <div className="field lo-name-field">
                 <label htmlFor="name">{c.name}</label>
-                <input id="name" required maxLength={140} value={name} readOnly={catalogProductFlow} className={catalogProductFlow?"catalog-locked-field":undefined} onChange={(e) => {setName(e.target.value);setVerified(false)}} placeholder={c.namePlaceholder} />
+                <input id="name" required maxLength={140} value={name} readOnly={catalogProductFlow} className={catalogProductFlow?"catalog-locked-field":undefined} onChange={(e) => {
+                  setName(e.target.value);setVerified(false);
+                  // An Atlas estimate follows the name ("boots", "t-shirt"); a weight the customer or the store gave stays.
+                  if(weightBasis==="estimate"||weightBasis==="title"){const estimate=estimateBoxedWeight(category,e.target.value);setWeight(String(estimate.kg));setWeightBasis(estimate.basis==="title"?"title":"estimate")}
+                }} placeholder={c.namePlaceholder} />
               </div>
-              <div className="two-fields">
-                <div className="field">
-                  <label htmlFor="ship-country">{c.shipCountry}</label>
-                  <select id="ship-country" className={`select-control${catalogCountryLocked?" catalog-locked-field":""}`} disabled={catalogCountryLocked} value={canonicalCountry(country)} onChange={(e) => { setCountry(canonicalCountry(e.target.value)); setVerified(false); }}>
-                    {countries.map((value) => <option key={value} value={value}>{countryLabel(value,lang)}</option>)}
-                  </select>
-                </div>
-                <div className="field">
-                  <label>{c.currency}</label>
-                  <Choice label={c.currency} value={currency} disabled={catalogPriceLocked} className={catalogPriceLocked?"catalog-locked-field":undefined} onChange={(v) => { setCurrency(v);setVerified(false); }} options={currencies} />
-                </div>
-              </div>
-              {country === "Другая страна" && <div className="field">
-                <label htmlFor="other-country">{c.otherCountry}</label>
-                <input id="other-country" required maxLength={60} value={otherCountry} readOnly={catalogCountryLocked} className={catalogCountryLocked?"catalog-locked-field":undefined} onChange={(e) => setOtherCountry(e.target.value)} />
-              </div>}
-              <div className="two-fields">
-                <div className="field">
-                  <label htmlFor="amount">{c.price}, {currency}</label>
-                  <input id="amount" type="number" inputMode="decimal" required min=".01" step=".01" value={amount} readOnly={catalogPriceLocked} className={catalogPriceLocked?"catalog-locked-field":undefined} onChange={(e) => {setAmount(e.target.value);setVerified(false)}} />
-                </div>
-                <div className="field">
-                  <label htmlFor="shipping">{c.atlasShipping}, {shippingCurrency}{shippingEstimated&&!catalogProductFlow ? ` (${c.change})` : ""}</label>
-                  <input id="shipping" type="number" inputMode="decimal" required min="0" step=".01" value={shipping} readOnly={catalogProductFlow} className={catalogProductFlow?"catalog-locked-field":undefined} onChange={(e) => { setShipping(e.target.value); setShippingEstimated(true); setVerified(false); }} />
-                  <small className="micro">{catalogProductFlow?shippingEstimated?tx("Сумма задана Atlas как предварительная; оператор сверит её после заказа.","Summa Atlas tomonidan taxminiy belgilangan; operator buyurtmadan keyin tekshiradi.","Atlas marked this amount as an estimate; an operator will verify it after the order."):tx("Сумма доставки подтверждена Atlas при добавлении товара.","Yetkazish summasi tovar qo‘shilganda Atlas tomonidan tasdiqlangan.","Atlas confirmed this shipping amount when adding the item."):c.shippingNote}</small>
-                </div>
-              </div>
-              {foundShipping && shippingEstimated && !catalogProductFlow && <button type="button" className="btn secondary lo-found-shipping" onClick={() => {
-                if (!currencies.includes(foundShipping.currency)) {
-                  toast.error(tx("Валюта ", "Valyuta ", "Currency ") + foundShipping.currency + tx(" пока не поддерживается: укажите эквивалент в поддерживаемой валюте.", " hozircha qo‘llanmaydi: qo‘llab-quvvatlanadigan valyutada ekvivalent kiriting.", " is not supported yet: enter an equivalent in a supported currency."));
-                  return;
-                }
-                setShipping(String(foundShipping.amount));
-                setShippingCurrency(foundShipping.currency);
-                setShippingEstimated(false);
-                setVerified(false);
-              }}>{c.useShipping}: {foundShipping.amount} {foundShipping.currency}{foundShipping.destination ? " · " + foundShipping.destination : ""}</button>}
-              <div className="two-fields">
-                <div className="field">
-                  <label htmlFor="category">{c.category}</label>
-                  <select id="category" className={`select-control${catalogProductFlow?" catalog-locked-field":""}`} disabled={catalogProductFlow} value={canonicalCategory(category)} onChange={(e) => {
-                    const canonical = canonicalCategory(e.target.value);
-                    setCategory(canonical);
-                    setWeight(String(estimatedBoxedWeight(canonical)));
-                    setWeightOrigin(tx("Приблизительно по категории","Kategoriya bo‘yicha taxminan","Estimated by category"));
+              <div className="lo-blocks">
+                <fieldset className="lo-block">
+                  <legend>{k.blocks.price}</legend>
+                  <div className="lo-block-row">
+                    <div className="field">
+                      <label htmlFor="amount">{k.price}</label>
+                      <input id="amount" type="number" inputMode="decimal" required min=".01" step=".01" value={amount} readOnly={catalogPriceLocked} className={catalogPriceLocked?"catalog-locked-field":undefined} onChange={(e) => {setAmount(e.target.value);setVerified(false)}} />
+                    </div>
+                    <div className="field lo-currency">
+                      <label>{k.currency}</label>
+                      <Choice label={k.currency} value={currency} disabled={catalogPriceLocked} className={catalogPriceLocked?"catalog-locked-field":undefined} onChange={(v) => { setCurrency(v);setVerified(false); }} options={currencies} />
+                    </div>
+                  </div>
+                  {variants.some(item => item.price !== undefined) && picks.length > 1 && <small className="micro">{tx("У каждого выбранного варианта своя цена магазина.","Har bir tanlangan variantning o‘z do‘kon narxi bor.","Each chosen option keeps its own store price.")}</small>}
+                </fieldset>
+                <fieldset className="lo-block">
+                  <legend>{k.blocks.storeShipping}</legend>
+                  <div className="lo-block-row">
+                    <div className="field">
+                      <label htmlFor="shipping">{k.storeShippingAmount}, {shippingCurrency}</label>
+                      <input id="shipping" type="number" inputMode="decimal" required min="0" step=".01" value={shipping} readOnly={catalogProductFlow} className={catalogProductFlow?"catalog-locked-field":undefined} onChange={(e) => { setShipping(e.target.value); setShippingEstimated(true); setVerified(false); }} />
+                    </div>
+                    <p className="lo-block-state">{shippingEstimated ? (storeShippingState === "free" ? k.lines.free : k.storeShippingUnknown) : k.storeShippingStated}</p>
+                  </div>
+                  <small className="micro">{catalogProductFlow && !shippingEstimated ? tx("Сумма доставки подтверждена Atlas при добавлении товара.","Yetkazish summasi tovar qo‘shilganda Atlas tomonidan tasdiqlangan.","Atlas confirmed this shipping amount when adding the item.") : k.storeShippingRule(freeFrom)}</small>
+                  {foundShipping && shippingEstimated && !catalogProductFlow && <button type="button" className="btn secondary lo-found-shipping" onClick={() => {
+                    if (!currencies.includes(foundShipping.currency)) {
+                      toast.error(tx("Валюта ", "Valyuta ", "Currency ") + foundShipping.currency + tx(" пока не поддерживается: укажите эквивалент в поддерживаемой валюте.", " hozircha qo‘llanmaydi: qo‘llab-quvvatlanadigan valyutada ekvivalent kiriting.", " is not supported yet: enter an equivalent in a supported currency."));
+                      return;
+                    }
+                    setShipping(String(foundShipping.amount));
+                    setShippingCurrency(foundShipping.currency);
+                    setShippingEstimated(false);
                     setVerified(false);
-                  }}>
-                    {weightCategories.map((value) => <option key={value} value={value}>{displayCategoryName(value,lang)}</option>)}
-                  </select>
-                </div>
-                <div className="field">
-                  <label htmlFor="weight">{c.weight}</label>
-                  <input id="weight" type="number" inputMode="decimal" required min=".01" max="49.5" step=".01" value={weight} readOnly={catalogProductFlow} className={catalogProductFlow?"catalog-locked-field":undefined}
-                    onChange={(e) => { setWeight(e.target.value); setWeightOrigin(tx("Указан покупателем","Xaridor kiritdi","Entered by customer")); setVerified(false); }}
-                    onBlur={() => {
-                      if(catalogProductFlow)return;
-                      const valid=validBoxedWeight(weight);
-                      if(valid!==undefined){setWeight(String(valid));return}
-                      setWeight(String(estimatedBoxedWeight(category)));
-                      setWeightOrigin(tx("Приблизительно по категории","Kategoriya bo‘yicha taxminan","Estimated by category"));
-                      toast.error(tx("Вес должен быть от 0,01 до 49,5 кг. Вернули безопасную оценку.","Og‘irlik 0,01–49,5 kg bo‘lishi kerak. Xavfsiz baho qaytarildi.","Weight must be between 0.01 and 49.5 kg. A safe estimate was restored."));
-                    }} />
-                  <small className="micro">{weightOrigin}</small>
-                </div>
+                  }}>{k.useStated}: {foundShipping.amount} {foundShipping.currency}{foundShipping.destination ? " · " + foundShipping.destination : ""}</button>}
+                </fieldset>
+                <fieldset className="lo-block">
+                  <legend>{k.blocks.country}</legend>
+                  <div className="field">
+                    <label htmlFor="ship-country" className="sr-only">{c.shipCountry}</label>
+                    <select id="ship-country" className={`select-control${catalogCountryLocked?" catalog-locked-field":""}`} disabled={catalogCountryLocked} value={canonicalCountry(country)} onChange={(e) => { setCountry(canonicalCountry(e.target.value)); setVerified(false); }}>
+                      {countries.map((value) => <option key={value} value={value}>{countryLabel(value,lang)}</option>)}
+                    </select>
+                  </div>
+                  {country === "Другая страна" && <div className="field">
+                    <label htmlFor="other-country">{c.otherCountry}</label>
+                    <input id="other-country" required maxLength={60} value={otherCountry} readOnly={catalogCountryLocked} className={catalogCountryLocked?"catalog-locked-field":undefined} onChange={(e) => setOtherCountry(e.target.value)} />
+                  </div>}
+                </fieldset>
+                <fieldset className="lo-block">
+                  <legend>{k.blocks.weight}</legend>
+                  <div className="lo-block-row">
+                    <div className="field">
+                      <label htmlFor="category">{k.category}</label>
+                      <select id="category" className={`select-control${catalogProductFlow?" catalog-locked-field":""}`} disabled={catalogProductFlow} value={canonicalCategory(category)} onChange={(e) => {
+                        const canonical = canonicalCategory(e.target.value);
+                        const estimate = estimateBoxedWeight(canonical, name);
+                        setCategory(canonical);
+                        setWeight(String(estimate.kg));
+                        setWeightBasis(estimate.basis === "title" ? "title" : "estimate");
+                        setWeightOrigin(tx("Оценка Atlas","Atlas bahosi","Atlas estimate"));
+                        setVerified(false);
+                      }}>
+                        {weightCategories.map((value) => <option key={value} value={value}>{displayCategoryName(value,lang)}</option>)}
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label htmlFor="weight">{k.boxedWeight}</label>
+                      <input id="weight" type="number" inputMode="decimal" required min=".01" max="49.5" step=".01" value={weight} readOnly={catalogProductFlow} className={catalogProductFlow?"catalog-locked-field":undefined}
+                        onChange={(e) => { setWeight(e.target.value); setWeightBasis("customer"); setWeightOrigin(tx("Указан покупателем","Xaridor kiritdi","Entered by customer")); setVerified(false); }}
+                        onBlur={() => {
+                          if(catalogProductFlow)return;
+                          const valid=validBoxedWeight(weight);
+                          if(valid!==undefined){setWeight(String(valid));return}
+                          const estimate=estimateBoxedWeight(category,name);
+                          setWeight(String(estimate.kg));
+                          setWeightBasis(estimate.basis==="title"?"title":"estimate");
+                          setWeightOrigin(tx("Оценка Atlas","Atlas bahosi","Atlas estimate"));
+                          toast.error(tx("Вес должен быть от 0,01 до 49,5 кг. Вернули оценку Atlas.","Og‘irlik 0,01–49,5 kg bo‘lishi kerak. Atlas bahosi qaytarildi.","Weight must be between 0.01 and 49.5 kg. The Atlas estimate was restored."));
+                        }} />
+                    </div>
+                  </div>
+                  <small className={"micro lo-weight-basis" + (weightBasis === "estimate" || weightBasis === "title" ? " estimate" : "")}>{weightNote}</small>
+                  <small className="micro">{k.weightRule}{previewWeight ? ` ${k.parcelWeight(String(previewWeight).replace(".", lang === "en" ? "." : ","))}.` : ""}</small>
+                </fieldset>
               </div>
             </div>
+          </section>
+
+          <section className="lo-card lo-comment">
+            <label htmlFor="order-comment"><b>{k.blocks.comment}</b><small>{k.commentHint}</small></label>
+            <textarea id="order-comment" rows={2} maxLength={500} value={comment} placeholder={k.commentPlaceholder} onChange={(e) => setComment(e.target.value)} />
           </section>
 
           <section className="lo-card lo-confirm">
@@ -809,14 +937,14 @@ export function GlobalLinkOrder() {
               <Checkbox id="data-verified" checked={verified} onCheckedChange={(v) => setVerified(v === true)} />
               <label htmlFor="data-verified">{c.verified}</label>
             </div>
-            <button className="btn primary basket-cta" disabled={adding || status==='loading'}>{submitLabel}<ArrowRight size={18} aria-hidden="true" /></button>
+            <button className="btn primary basket-cta" disabled={adding || status==='loading'}>{adding ? c.adding : ready ? k.addOptions(Math.max(1, picks.length), Math.max(1, units)) : lc.signinAdd}<ArrowRight size={18} aria-hidden="true" /></button>
             <ul className="basket-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{cc.summary.assurance}</li><li><Info size={16} aria-hidden="true" />{c.freshText}</li></ul>
           </section>
         </form>
       )}
 
       {source && !busy && <div className={"basket-sticky lo-sticky" + (ready ? "" : " guest")} role="region" aria-label={lc.total}>
-        <div><span>{lc.total}</span><strong>{preview ? formatSum(preview.total, lang) : "—"}</strong></div>
+        <div><span>{k.lines.total}</span><strong>{previewSums ? formatSum(previewSums.total, lang) : "—"}</strong></div>
         <button type="submit" form="link-order-form" className="btn primary" disabled={adding || status==='loading'}>{ready ? (adding ? c.adding : lc.addShort) : lc.signinAdd}<ArrowRight size={18} aria-hidden="true" /></button>
       </div>}
     </div>

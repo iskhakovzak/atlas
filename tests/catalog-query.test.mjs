@@ -145,8 +145,9 @@ test('the catalog shows the allowance of the primary recipient', () => {
     { id: 'a', label: 'Uy', recipient: 'Ali Valiyev', phone: '+998901234567', region: 'Toshkent', city: 'Toshkent', address: 'Amir Temur 1', postalCode: '', comment: '', primary: false },
     { id: 'b', label: 'Ish', recipient: 'Zarina Karimova', phone: '+998901234568', region: 'Toshkent', city: 'Toshkent', address: 'Navoiy 2', postalCode: '', comment: '', primary: true },
   ];
-  const order = (recipient, usd, createdAt) => ({ createdAt, cancelled: false, deliveryProfileId: undefined, delivery: { recipient }, quote: { merchandise: usd * tariff.fx, fx: tariff.fx } });
-  state.orders = [order('Zarina Karimova', 120, now - 86_400_000), order('Zarina Karimova', 999, Date.parse('2026-09-30T10:00:00Z')), order('Ali Valiyev', 50, now)];
+  // Bought and paid orders count in their month of import: a delivered one in its delivery month, one on its way now.
+  const order = (recipient, usd, createdAt, deliveredAt) => ({ createdAt, cancelled: false, status: deliveredAt ? 5 : 1, history: deliveredAt ? [{ at: deliveredAt, text: 'Доставлен' }] : [], payment: { status: 'paid' }, deliveryProfileId: undefined, delivery: { recipient }, quote: { merchandise: usd * tariff.fx, fx: tariff.fx } });
+  state.orders = [order('Zarina Karimova', 120, now - 86_400_000), order('Zarina Karimova', 999, Date.parse('2026-09-10T10:00:00Z'), Date.parse('2026-09-30T10:00:00Z')), order('Ali Valiyev', 50, now)];
   assert.deepEqual(catalogAllowance(state, tariff.fx, now), { name: 'Zarina Karimova', usedUsd: 120, remainingUsd: 80 });
 });
 

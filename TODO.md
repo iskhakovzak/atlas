@@ -1,5 +1,31 @@
 # Atlas TODO and known limitations
 
+## Order calculation — 5 October 2026
+
+- [x] 0.3 kg packaging once per parcel; weight from the store or an editable, labelled estimate.
+- [x] 9.98% Atlas fee on merchandise only; CBU USD rate × 1.012 with the rate and time shown.
+- [x] Unknown store delivery: free strictly above $50 from a store, else a hold outside the amount to pay.
+- [x] Several options with quantities, eBay stock, order comments, customs per recipient with outside use and the help request, passport notices, faster service actions.
+- [ ] Confirm the customs rate start date with Customs (PP-4508 consolidated 01.09.2026 vs UP-174 §8 01.01.2027) and set `customsRate`/`customsMinimumPerKg` in the tariff form if needed.
+- [ ] The allowance month is the month of import; Atlas has no customs date and uses the delivery month (or the current month while in transit). Record the real customs clearance date when the carrier provides it.
+- [ ] Payments are simulated: the passport notice speaks of a placed request. When a real provider confirms payment, show the notice only for paid orders and say so.
+- [ ] Stock is known only for eBay (Browse API estimate). Shopify `/products/*.js` exposes only availability; do not infer counts from cart-limit errors.
+- [x] A store-stated delivery charge stays a charge even above $50; "free above $50" applies only to unknown delivery (confirmed by the owner, 5 October 2026).
+- [ ] After deploy: check that the Worker can reach `cbu.uz` from Sites; if not, switch the tariff to a set rate.
+## Checkout and form controls — 4 October 2026
+
+- [x] The checkout phone field turned "9" into "99 89" and could not be erased; it now keeps the caret and handles deleting, pasting and a tenth digit.
+- [x] Ticked checkboxes were barely visible in the dark theme and on phones set to dark mode; a ticked row is highlighted as a whole.
+- [x] The recipient step showed every address field under an already chosen recipient; the cart showed the total and the button twice.
+- [x] Sideways scrolling at 320 px on every page.
+- [ ] The price check before checkout takes 10–20 s for Amazon from the workstation; check the time on production (through the proxy) and consider checking in the background when the cart opens.
+- [ ] The catalog's first phone screen is mostly the lead and two banners (duty-free, parcel); consider folding them.
+## Delivery tariff — 4 October 2026
+
+- [x] Delivery is $15 per kg ($1.5 per 100 g) at the Atlas rate; the home page lists express times for the US, the UK, China, Germany, Italy and Spain.
+- [ ] After deploy, open Administration → tariffs once: check `fx`, the $15 rate and "Rates by actual dispatch country" (an old soum override there still wins for its country), then save so the row stores `perKgUsd`.
+- [ ] Confirm with the carrier whether the times run from the warehouse abroad (the copy says so) and whether they bill in 100 g steps; Atlas rounds the parcel up to 10 g.
+- [ ] Turkey, France, Romania, Japan, Korea and other countries are not in the owner's route list but are still quoted at the base $15. Decide whether to block them or set their own rates.
 ## Price check with the stores and cart — 4 October 2026
 
 - [x] A refused action showed "could not save" instead of the reason (for example "the price changed"); the server's text now reaches the customer.

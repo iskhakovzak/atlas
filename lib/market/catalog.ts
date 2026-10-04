@@ -13,7 +13,7 @@ const estimate = { country: 'США', sourceCurrency: 'USD', sourceShippingUsd: 
 export const merchantFinds: MerchantFind[] = [
   {
     ...estimate, id: 'nike-club-fn3859-657', name: 'Nike Club · Fleece Hoodie', brand: 'Nike', store: 'Nike', category: 'Одежда',
-    usd: 49.97, sourcePrice: 49.97, boxedWeight: 1, weight: 1.5,
+    usd: 49.97, sourcePrice: 49.97, boxedWeight: 1, weight: 1.3,
     sourceUrl: 'https://www.nike.com/t/club-mens-pullover-fleece-hoodie-00eeWNwD/FN3859-657',
     image: 'https://static.nike.com/a/images/t_web_pdp_535_v2/f_auto%2Cu_9ddf04c7-2a9a-4d76-add1-d15af8f0263d%2Cc_scale%2Cfl_relative%2Cw_1.0%2Ch_1.0%2Cfl_layer_apply/2af74814-9b8c-44c3-8ba9-d08ef0fe0ca1/M%2BNK%2BCLUB%2BBB%2BPO%2BHOODIE.png',
     observedOn: '2026-09-11', description: 'Худи из флиса с капюшоном и карманом. Цвет University Red, артикул FN3859-657. Цена конкретного размера проверяется перед оформлением.',
@@ -27,14 +27,14 @@ export const merchantFinds: MerchantFind[] = [
   },
   {
     ...estimate, id: 'nike-gato-ih3587-400', name: 'Nike Gato LV8', brand: 'Nike', store: 'Nike', category: 'Обувь',
-    usd: 73.97, sourcePrice: 73.97, referenceUsd: 125, boxedWeight: 1.7, weight: 2.2,
+    usd: 73.97, sourcePrice: 73.97, referenceUsd: 125, boxedWeight: 1.7, weight: 2,
     sourceUrl: 'https://www.nike.com/t/gato-lv8-mens-shoes-Ib4M9R5k/IH3587-400',
     image: 'https://static.nike.com/a/images/t_web_pdp_535_v2/f_auto%2Cu_9ddf04c7-2a9a-4d76-add1-d15af8f0263d%2Cc_scale%2Cfl_relative%2Cw_1.0%2Ch_1.0%2Cfl_layer_apply/2262c689-289d-4cf1-a229-77ee9a6f7ae1/NIKE%2BGATO%2BLV8.png',
     observedOn: '2026-09-11', description: 'Модель с джинсовым верхом в цвете Light Armory Blue. Артикул IH3587-400.',
   },
   {
     ...estimate, id: 'nike-cortez-dm4044-108', name: 'Nike Cortez Leather', brand: 'Nike', store: 'Nike', category: 'Обувь',
-    usd: 76.97, sourcePrice: 76.97, referenceUsd: 95, boxedWeight: 1.7, weight: 2.2,
+    usd: 76.97, sourcePrice: 76.97, referenceUsd: 95, boxedWeight: 1.7, weight: 2,
     sourceUrl: 'https://www.nike.com/t/cortez-leather-mens-shoes-SxhPXX/DM4044-108',
     image: 'https://static.nike.com/a/images/t_web_pdp_535_v2/f_auto%2Cu_9ddf04c7-2a9a-4d76-add1-d15af8f0263d%2Cc_scale%2Cfl_relative%2Cw_1.0%2Ch_1.0%2Cfl_layer_apply/db838aa6-9440-4e42-adf5-81b9141aec37/NIKE%2BCORTEZ.png',
     observedOn: '2026-09-11', description: 'Кожаные кроссовки White / Varsity Blue / Varsity Red. Артикул DM4044-108.',

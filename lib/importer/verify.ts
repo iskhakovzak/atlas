@@ -46,7 +46,14 @@ export function compareProductSnapshot(product: Product, selectedLabel: string, 
     return { status: 'blocked', kind: 'variant', message: 'Выбранный вариант не удалось сверить с данными магазина. Подтвердите его вручную.' };
   const price = variant?.price ?? extracted.price;
   if (price === undefined) return { status: 'blocked', kind: 'price', message: 'Магазин не подтвердил цену выбранного варианта.' };
-  const next: Product = { ...product, sourcePrice: price, sourceVariantId: variant?.id ?? product.sourceVariantId, image: variant?.image ?? product.image, importedAt: now, sourceExpiresAt: now + 10 * 60_000, sourceCheckedAt: now };
+  // Stock is known only when the store reports a count (eBay); otherwise it stays unknown, never guessed.
+  if (variant?.quantity === 0)
+    return { status: 'blocked', kind: 'stock', message: 'Этого варианта больше нет в наличии у магазина.' };
+  const stockKnown = variant?.quantity !== undefined || variant?.quantityMoreThan !== undefined;
+  const next: Product = {
+    ...product, sourcePrice: price, sourceVariantId: variant?.id ?? product.sourceVariantId, image: variant?.image ?? product.image, importedAt: now, sourceExpiresAt: now + 10 * 60_000, sourceCheckedAt: now,
+    stockQuantity: variant?.quantity, stockMoreThan: variant?.quantity === undefined ? variant?.quantityMoreThan : undefined, stockSource: stockKnown ? 'ebay' : undefined,
+  };
   const change: SourcePriceChange = { previousPrice: product.sourcePrice, price, currency };
   let changed = !sameAmount(price, product.sourcePrice);
   // Store delivery the page stated (not Atlas's editable reserve) is part of the price too.

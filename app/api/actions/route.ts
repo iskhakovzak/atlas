@@ -8,16 +8,17 @@ import {compareProductSnapshot} from '@/lib/importer/verify';
 import {checkCartSources,recentCheckMs} from '@/lib/market/cart-check';
 import {cartSignature,renewCart,type State} from '@/lib/market/domain';
 import {addCustomerLinkDraft} from '@/lib/market/catalog-server';
+import {validBoxedWeight} from '@/lib/market/weight';
 export async function POST(request:Request){try{
   sameOrigin(request);
   const user=await identity();
   const payload=await requestJson(request) as {action:unknown;revision:number};
   const parsed=actionSchema.safeParse(payload.action);
   if(!parsed.success)throw new HttpError(400, 'err_10');
-  const status=await customerStatus(user.userId);
+  // Independent reads go out together: one D1 round trip instead of three in a row on every action.
+  const [status,current,settings]=await Promise.all([customerStatus(user.userId),account(user),pricingAndPolicy()]);
   if(status==='blocked')throw new HttpError(403, 'err_11');
   if(status==='review'&&['checkout','payment-demo'].includes(parsed.data.type))throw new HttpError(403, 'err_12');
-  const current=await account(user);
   if(parsed.data.type==='identity-confirm'){
     const identityAction=parsed.data;
     const owned=await database().prepare('SELECT id FROM market_identity_documents WHERE id=? AND user_id=?').bind(identityAction.documentId,user.userId).first();
@@ -31,23 +32,33 @@ export async function POST(request:Request){try{
   // saved and shown, and the action itself is refused, so an old total never passes unnoticed.
   let refusal:string|undefined;
   try{
-    const {pricing:currentPricing,policy:currentPolicy}=await pricingAndPolicy();
+    const {pricing:currentPricing,policy:currentPolicy}=settings;
     const action=parsed.data,now=Date.now();
     let state=current.state;
-    if(action.type==='cart-add'){
-      // Only the server records when a product was last checked against the store.
-      action.product.sourceCheckedAt=undefined;
-      if(action.product.sourceUrl&&requiresMerchantSnapshot(action.product)){
-        try{verifiedSource=await fetchProduct(action.product.sourceUrl,merchantRequest)}
-        catch(error){if(!manualFallbackAllowed(action.product,action.variant,error))throw error}
-        if(verifiedSource){
-          const check=compareProductSnapshot(action.product,action.variant,verifiedSource,now);
-          if(check.status==='blocked')throw Error(check.message);
-          // The page showed an older price: the customer reloads it and sees the new total before adding.
-          if(check.status==='changed')throw new HttpError(409,'err_34');
-          action.product=check.product;
-        }
+    if(action.type==='cart-add'||action.type==='cart-add-many'){
+      const items=action.type==='cart-add'?[{product:action.product,variant:action.variant}]:action.items;
+      // Several options of one product share one request to the store.
+      const fetched=new Map<string,Promise<{value?:Awaited<ReturnType<typeof fetchProduct>>;error?:unknown}>>();
+      for(const item of items){
+        // Only the server records when a product was last checked and how many units the store reports.
+        item.product={...item.product,sourceCheckedAt:undefined,stockQuantity:undefined,stockMoreThan:undefined,stockSource:undefined};
+        if(!item.product.sourceUrl||!requiresMerchantSnapshot(item.product))continue;
+        const url=item.product.sourceUrl;
+        let result=fetched.get(url);
+        if(!result){result=fetchProduct(url,merchantRequest).then(value=>({value}),error=>({error}));fetched.set(url,result)}
+        const {value,error}=await result;
+        if(!value){if(!manualFallbackAllowed(item.product,item.variant,error))throw error;continue}
+        verifiedSource??=value;
+        const check=compareProductSnapshot(item.product,item.variant,value,now);
+        if(check.status==='blocked')throw Error(check.message);
+        // The page showed an older price: the customer reloads it and sees the new total before adding.
+        if(check.status==='changed')throw new HttpError(409,'err_34');
+        item.product=check.product;
+        // A shipping weight the store publishes is used unless the customer entered their own.
+        const storeWeight=value.weightKind==='shipping'?validBoxedWeight(value.boxedWeight):undefined;
+        if(storeWeight!==undefined&&item.product.weightBasis!=='customer')item.product={...item.product,boxedWeight:storeWeight,weightBasis:'store'};
       }
+      if(action.type==='cart-add')action.product=items[0].product;
     }
     if(action.type==='cart-check'||action.type==='checkout'){
       const checked=await checkCartSources(state.cart,url=>fetchProduct(url,merchantRequest),currentPricing,now,recentCheckMs);
@@ -69,8 +80,9 @@ export async function POST(request:Request){try{
   }catch(e){if(e instanceof HttpError)throw e;throw new HttpError(400,(e as Error).message)}
   await persist(user.userId,next,current.revision);
   if(refusal)return json({error:serverError(requestLocale(request),refusal),errorCode:refusal,state:next,revision:current.revision+1},409);
-  if(parsed.data.type==='cart-add'&&parsed.data.product.sourceUrl&&verifiedSource){
-    deferBackground(addCustomerLinkDraft(parsed.data.product,verifiedSource,user),'Customer catalog draft sync failed');
+  const addedProduct=parsed.data.type==='cart-add'?parsed.data.product:parsed.data.type==='cart-add-many'?parsed.data.items[0].product:undefined;
+  if(addedProduct?.sourceUrl&&verifiedSource){
+    deferBackground(addCustomerLinkDraft(addedProduct,verifiedSource,user),'Customer catalog draft sync failed');
   }
   if(parsed.data.type==='identity-confirm'){
     const identityAction=parsed.data;

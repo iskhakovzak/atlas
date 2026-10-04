@@ -1,5 +1,6 @@
 import type { Product } from './domain.ts';
 import { estimatedBoxedWeight, validBoxedWeight } from './weight.ts';
+import { packagingKg } from './world.ts';
 
 /** URL equality alone does not make a customer-pasted link an Atlas catalog order. */
 export function catalogLinkSeed<T extends Product>(products: T[], catalogId: string, requestedUrl: string, link = requestedUrl): T | undefined {
@@ -15,5 +16,5 @@ export function catalogLinkPrice(product: Product | undefined): { amount: number
 
 export function catalogLinkWeight(product: Product | undefined): number | undefined {
   if (!product) return undefined;
-  return validBoxedWeight(product.boxedWeight) ?? validBoxedWeight(product.weight - 0.5) ?? estimatedBoxedWeight(product.category);
+  return validBoxedWeight(product.boxedWeight) ?? validBoxedWeight(product.weight - packagingKg) ?? estimatedBoxedWeight(product.category);
 }

@@ -129,6 +129,8 @@ html[data-theme="dark"] .home-missing { border-color: #c9a23f; background: #3a31
 .home-tariffs td { color: var(--home-ink); }
 .home-tariffs td:last-child { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .home-tariffs tr:last-child > * { border-bottom: 0; }
+.home-tariffs .home-tariff-price b { display: block; font-size: 17px; }
+.home-tariffs .home-tariff-price small { display: block; margin-top: 2px; color: var(--home-muted); font-size: 12px; font-weight: 600; }
 .home-tariffs .home-pending { color: var(--home-pending); font-style: italic; }
 @media (max-width: 420px) { .home-tariffs th, .home-tariffs td { padding: 12px 10px; font-size: 14px; } }
 

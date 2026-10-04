@@ -3,7 +3,7 @@ import {useState} from 'react';
 import {ArrowUpRight,ArrowRight,ShieldCheck,ShoppingBag,X} from 'lucide-react';
 import {Sheet,SheetContent,SheetTitle,SheetDescription,SheetClose} from '@/components/ui/sheet';
 import {Tabs,TabsList,TabsTrigger,TabsContent} from '@/components/ui/tabs';
-import {price,money,storeShippingUsd,type Product} from '@/lib/market/domain';
+import {price,money,storeShippingHoldUsd,storeShippingUsd,type Product} from '@/lib/market/domain';
 import {useMarket} from '@/lib/market/store';
 import {findOrderUrl} from '@/lib/market/catalog';
 import {countryName} from '@/lib/market/world';
@@ -26,7 +26,9 @@ function ProductDetails({product:selected,onClose}:{product:Product;onClose:()=>
   const curated=catalogProducts.find(item=>item.id===selected.id&&item.sourceUrl===selected.sourceUrl);
   const country=countryName(selected);
   const countryLabel=locale==='ru'?country:countries[country]?.[locale==='uz'?0:1]??country;
-  const estimate=price(selected.usd,selected.weight,1,storeShippingUsd(selected,selected.usd,pricing),pricing);
+  // Unknown store delivery is held apart (or free above $50), never in the total.
+  const holdUsd=storeShippingHoldUsd(selected,selected.usd,pricing);
+  const estimate={...price(selected.usd,selected.weight,1,storeShippingUsd(selected),pricing),storeShippingHold:selected.sourceShippingEstimated?Math.ceil(holdUsd*pricing.fx):undefined};
   async function add(){if(adding)return;if(curated){navigate(findOrderUrl(selected));return}setAdding(true);const ok=await act({type:'cart-add',product:selected,variant});setAdding(false);if(ok){onClose();navigate('/cart')}}
   return <><SheetClose asChild><button className="icon-btn sheet-close" aria-label={modalWords.close}><X size={20}/></button></SheetClose>
    <div className={'detail-image detail-'+selected.id}><ProductGallery product={selected} locale={locale}/><span className="floating-label">{selected.sourceUrl?countryLabel:modalWords.item}</span></div>
@@ -34,7 +36,7 @@ function ProductDetails({product:selected,onClose}:{product:Product;onClose:()=>
     <SheetDescription>{curated?`${modalWords.offerFrom} ${curated.store}. ${modalWords.priceOn} ${curated.observedOn}. ${modalWords.checkOption}`:modalWords.review}</SheetDescription>
     <Tabs defaultValue="about" className="detail-tabs"><TabsList variant="line"><TabsTrigger value="about">{modalWords.about}</TabsTrigger><TabsTrigger value="price">{modalWords.price}</TabsTrigger></TabsList>
      <TabsContent value="about"><p>{selected.description??modalWords.manual}</p>{selected.sourceUrl&&<a className="text-link" href={selected.sourceUrl} target="_blank" rel="noopener noreferrer">{modalWords.source}<ArrowUpRight size={16}/></a>}<div className="product-facts"><span>{modalWords.storePrice} <b>{selected.sourcePrice??selected.usd} {selected.sourceCurrency??'USD'}</b></span></div></TabsContent>
-     <TabsContent value="price"><p className="micro">{modalWords.weight}: {selected.weight} {modalWords.kg}.{selected.boxedWeight!==undefined&&<> {modalWords.box} {selected.boxedWeight} {modalWords.kg} + 0.3 {modalWords.kg} {modalWords.packaging} + 0.2 {modalWords.kg} {modalWords.allowance}.</>}</p>{curated&&<p className="micro">{modalWords.estimate}</p>}<CostLines q={estimate} storeReserveWaived={selected.sourceShippingEstimated===true} locale={locale}/><small className="muted">{modalWords.rate}: {money(pricing.fx)} / USD</small></TabsContent>
+     <TabsContent value="price"><p className="micro">{modalWords.weight}: {selected.weight} {modalWords.kg}.{selected.boxedWeight!==undefined&&<> {modalWords.box} {selected.boxedWeight} {modalWords.kg} + 0.3 {modalWords.kg} {modalWords.packaging}.</>}</p>{curated&&<p className="micro">{modalWords.estimate}</p>}<CostLines q={estimate} storeReserveWaived={selected.sourceShippingEstimated===true} locale={locale}/><small className="muted">{modalWords.rate}: {money(pricing.fx)} / USD</small></TabsContent>
     </Tabs>
     {!curated&&<div className="field"><label>{modalWords.variant}</label><Choice label={modalWords.variant} value={variant} onChange={setVariant} options={selected.variants}/></div>}
     <div className="notice"><ShieldCheck size={19}/><span>{modalWords.delivery}</span></div>

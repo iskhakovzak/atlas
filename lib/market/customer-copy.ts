@@ -86,7 +86,7 @@ export type CartCopy = {
     parcelReserve: (missing: string, reserve: string) => string; parcelFree: (freeFrom: string) => string;
     /** Results of the live check with the store. */
     priceUp: (from: string, to: string) => string; priceDown: (from: string, to: string) => string; shippingChanged: (from: string, to: string) => string;
-    issues: { currency: string; variant: string; price: string; unreachable: string }; reload: string; checked: (time: string) => string;
+    issues: { currency: string; variant: string; price: string; unreachable: string; stock: string }; reload: string; checked: (time: string) => string;
   };
   services: { title: string; optional: string; hint: string; fixed: string; quote: string; notIncluded: string; quantity: string; required: string; units: { package: string; item: string; day: string; photo: string; 'half-hour': string } };
   summary: {
@@ -98,9 +98,9 @@ export type CartCopy = {
   };
   sticky: { label: string; checkout: string };
   checkout: {
-    title: string; hint: string; reviewTitle: string; reviewHint: string; deliveryUz: string; saved: string; primary: string; passportOk: string; passportMissing: string;
-    newRecipient: string; chooseHint: string; recipient: string; phone: string; region: string; city: string; street: string; streetPlaceholder: string;
-    addressHint: string; postal: string; comment: string; next: string; edit: string; consent: Sentence; consentRequired: string;
+    title: string; hint: string; reviewTitle: string; reviewHint: string; saved: string; primary: string; passportOk: string; passportMissing: string;
+    newRecipient: string; optionalFields: string; recipient: string; phone: string; region: string; city: string; street: string; streetPlaceholder: string;
+    postal: string; comment: string; next: string; edit: string; consent: Sentence; consentRequired: string;
     serviceNotAdded: string; servicePriceLater: string; confirm: string; saving: string; preorderNote: string; estimated: string; saveRecipient: string;
   };
   success: { title: string; hint: string; statusTitle: string; saved: string; pending: string; confirm: string; updating: string; orders: string; noCharge: string };
@@ -146,12 +146,12 @@ export const cartCopy: Record<Locale, CartCopy> = {
     signin: { title: 'Войдите, чтобы открыть корзину', text: 'Корзина и заказы хранятся в вашем профиле Atlas.', action: 'Войти' },
     empty: { title: 'Корзина пуста', text: 'Вставьте ссылку на товар из любого магазина — посчитаем цену с доставкой до Ташкента.', paste: 'Вставить ссылку', stores: 'Смотреть магазины' },
     item: { remove: 'Удалить', decrease: 'Уменьшить количество', increase: 'Увеличить количество', quantity: 'Количество', storePrice: 'В магазине', openStore: 'Открыть в магазине', parcelFrom: store => `Посылка из ${store}`, forQuantity: count => `за ${count} шт.`,
-      parcelReserve: (missing, reserve) => `Ещё ${missing} из этого магазина — и резерв ${reserve} на его доставку не понадобится.`,
-      parcelFree: freeFrom => `Из этого магазина от ${freeFrom} — резерв на его доставку не берём.`,
+      parcelReserve: (missing, reserve) => `Доставка магазина неизвестна: резерв ${reserve} удерживается отдельно и не входит в сумму. Ещё ${missing} из этого магазина — и доставка будет бесплатной.`,
+      parcelFree: freeFrom => `Из этого магазина больше чем на ${freeFrom} — доставка до склада бесплатна.`,
       priceUp: (from, to) => `Цена в магазине выросла: ${from} → ${to}. Итог пересчитан.`,
       priceDown: (from, to) => `Цена в магазине снизилась: ${from} → ${to}. Итог пересчитан.`,
       shippingChanged: (from, to) => `Доставка магазина изменилась: ${from} → ${to}.`,
-      issues: { currency: 'Магазин сменил валюту витрины — откройте товар заново.', variant: 'Этот вариант больше не найден в магазине — выберите его заново.', price: 'Магазин не подтвердил цену — откройте товар заново.', unreachable: 'Магазин не ответил при проверке. Atlas сверит цену перед выкупом.' },
+      issues: { currency: 'Магазин сменил валюту витрины — откройте товар заново.', variant: 'Этот вариант больше не найден в магазине — выберите его заново.', price: 'Магазин не подтвердил цену — откройте товар заново.', unreachable: 'Магазин не ответил при проверке. Atlas сверит цену перед выкупом.', stock: 'У магазина осталось меньше, чем в корзине, — уменьшите количество.' },
       reload: 'Открыть товар', checked: time => `Цена сверена с магазином в ${time}` },
     services: {
       title: 'Услуги склада', optional: 'по желанию',
@@ -163,7 +163,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
       title: 'Итого', items: 'Товары', storeShipping: 'Доставка магазина', storeNoReserve: 'Без резерва', service: 'Сервис Atlas',
       storeShippingHelp: freeFrom => `Если магазин не указал цену доставки до нашего склада, закладываем резерв $10 — один на заказ из магазина. От ${freeFrom} товаров из одного магазина резерв не берём: такие заказы обычно везут бесплатно. Если магазин всё же возьмёт плату, сначала спросим вас.`,
       serviceHelp: 'Выкуп товара, оплата в валюте магазина и сопровождение заказа до выдачи.', serviceHelpLabel: 'Что входит в сервис Atlas',
-      international: 'Международная доставка',
+      international: 'Доставка в Узбекистан',
       internationalHelp: 'Товары одного магазина едут одной посылкой: вес складывается, упаковка учитывается один раз. Минимальный оплачиваемый вес посылки — 1 кг.',
       internationalHelpLabel: 'Как считается доставка',
       reserve: 'Возвратный резерв', reserveHelp: reserveHelp.ru, reserveHelpLabel: 'Что такое возвратный резерв',
@@ -171,21 +171,21 @@ export const cartCopy: Record<Locale, CartCopy> = {
       checkout: 'Оформить заказ', renew: 'Обновить расчёт', validFor: time => `Цена зафиксирована ещё ${time}`, checking: 'Проверяем срок цены…',
       expired: 'Срок расчёта истёк — обновите цену перед оформлением.', assurance: 'Доплата — только с вашего согласия',
       simulation: 'Оплата на сайте пока не подключена: деньги не списываются.', continue: 'Продолжить покупки',
-      verifying: 'Сверяем цены с магазинами…', recheckNote: 'Перед оформлением Atlas сверит цены с магазинами и пересчитает итог по текущему тарифу.',
+      verifying: 'Сверяем цены…', recheckNote: 'Перед оформлением сверим цены с магазинами.',
     },
     sticky: { label: 'Итог корзины', checkout: 'Оформить' },
     checkout: {
-      title: 'Получатель и адрес', hint: 'Данные сохранятся в профиле и попадут в заказ.', reviewTitle: 'Проверьте заказ', reviewHint: 'Последний шаг: проверьте получателя, состав и сумму.',
-      deliveryUz: 'Доставка по Узбекистану', saved: 'Сохранённые получатели', primary: 'основной', passportOk: 'Паспорт добавлен', passportMissing: 'Паспорт не добавлен',
-      newRecipient: 'Новый получатель', chooseHint: 'Выберите того, кто будет получать посылку.', recipient: 'Получатель (ФИО)', phone: 'Телефон',
+      title: 'Получатель и адрес', hint: 'Кому и куда доставить посылку по Узбекистану.', reviewTitle: 'Проверьте заказ', reviewHint: 'Последний шаг: проверьте получателя, состав и сумму.',
+      saved: 'Кому доставить', primary: 'основной', passportOk: 'Паспорт добавлен', passportMissing: 'Паспорт не добавлен',
+      newRecipient: 'Новый получатель', recipient: 'Получатель (ФИО)', phone: 'Телефон',
       region: 'Область', city: 'Город', street: 'Улица, дом, квартира', streetPlaceholder: 'Начните вводить улицу',
-      addressHint: 'Подсказки работают на устройстве — адрес не уходит в сторонние сервисы поиска.', postal: 'Индекс', comment: 'Комментарий для курьера',
+      optionalFields: 'Индекс и комментарий · необязательно', postal: 'Индекс', comment: 'Комментарий для курьера',
       next: 'Далее: проверка', edit: 'Изменить',
       consent: { before: 'Я ознакомлен(а) с ', link: 'таможенными условиями', after: ' и понимаю, что сверх месячного лимита возможна пошлина.' },
       consentRequired: 'Отметьте согласие с таможенными условиями.',
       serviceNotAdded: 'не входит в итог до вашего согласия', servicePriceLater: 'цена после проверки оператора',
       confirm: 'Подтвердить предзаказ', saving: 'Сохраняем заказ…',
-      preorderNote: 'Предзаказ сохранится в Atlas. Реальная оплата и доставка ещё не подключены.', estimated: 'Предварительный итог',
+      preorderNote: 'Предзаказ сохранится в Atlas. Реальная оплата и доставка ещё не подключены.', estimated: 'К оплате',
       saveRecipient: 'Сохранить получателя в профиле — для следующих заказов и паспорта',
     },
     success: {
@@ -203,12 +203,12 @@ export const cartCopy: Record<Locale, CartCopy> = {
     signin: { title: 'Savatni ochish uchun kiring', text: 'Savat va buyurtmalar Atlas profilingizda saqlanadi.', action: 'Kirish' },
     empty: { title: 'Savat bo‘sh', text: 'Istalgan do‘kondagi tovar havolasini qo‘ying — Toshkentgacha yetkazish bilan narxini hisoblaymiz.', paste: 'Havolani qo‘yish', stores: 'Do‘konlarni ko‘rish' },
     item: { remove: 'O‘chirish', decrease: 'Miqdorni kamaytirish', increase: 'Miqdorni oshirish', quantity: 'Miqdor', storePrice: 'Do‘konda', openStore: 'Do‘konda ochish', parcelFrom: store => `${store} posilkasi`, forQuantity: count => `${count} dona uchun`,
-      parcelReserve: (missing, reserve) => `Bu do‘kondan yana ${missing} lik tovar qo‘shing — ${reserve} yetkazish zaxirasi kerak bo‘lmaydi.`,
-      parcelFree: freeFrom => `Bu do‘kondan ${freeFrom} va undan ko‘p — yetkazish zaxirasi olinmaydi.`,
+      parcelReserve: (missing, reserve) => `Do‘kon yetkazishi noma’lum: ${reserve} zaxira alohida ushlab turiladi va summaga kirmaydi. Bu do‘kondan yana ${missing} — va yetkazish bepul bo‘ladi.`,
+      parcelFree: freeFrom => `Bu do‘kondan ${freeFrom} dan ortiq — omborgacha yetkazish bepul.`,
       priceUp: (from, to) => `Do‘kondagi narx oshdi: ${from} → ${to}. Jami qayta hisoblandi.`,
       priceDown: (from, to) => `Do‘kondagi narx tushdi: ${from} → ${to}. Jami qayta hisoblandi.`,
       shippingChanged: (from, to) => `Do‘kon yetkazishi o‘zgardi: ${from} → ${to}.`,
-      issues: { currency: 'Do‘kon valyutani o‘zgartirdi — tovarni qayta oching.', variant: 'Bu variant do‘konda topilmadi — uni qayta tanlang.', price: 'Do‘kon narxni tasdiqlamadi — tovarni qayta oching.', unreachable: 'Tekshiruvda do‘kon javob bermadi. Atlas xariddan oldin narxni tekshiradi.' },
+      issues: { currency: 'Do‘kon valyutani o‘zgartirdi — tovarni qayta oching.', variant: 'Bu variant do‘konda topilmadi — uni qayta tanlang.', price: 'Do‘kon narxni tasdiqlamadi — tovarni qayta oching.', unreachable: 'Tekshiruvda do‘kon javob bermadi. Atlas xariddan oldin narxni tekshiradi.', stock: 'Do‘konda savatdagidan kam qoldi — sonini kamaytiring.' },
       reload: 'Tovarni ochish', checked: time => `Narx do‘kon bilan ${time} da tekshirildi` },
     services: {
       title: 'Ombor xizmatlari', optional: 'ixtiyoriy',
@@ -220,7 +220,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
       title: 'Jami', items: 'Tovarlar', storeShipping: 'Do‘kon yetkazishi', storeNoReserve: 'Zaxirasiz', service: 'Atlas xizmati',
       storeShippingHelp: freeFrom => `Do‘kon omborimizgacha yetkazish narxini ko‘rsatmasa, $10 zaxira qo‘yamiz — do‘kondan bitta buyurtmaga bir marta. Bitta do‘kondan ${freeFrom} va undan ortiq tovarga zaxira olinmaydi: bunday buyurtmalar odatda bepul yetkaziladi. Do‘kon baribir haq olsa, avval sizdan so‘raymiz.`,
       serviceHelp: 'Tovarni sotib olish, do‘kon valyutasida to‘lash va buyurtmani topshirishgacha kuzatib borish.', serviceHelpLabel: 'Atlas xizmatiga nimalar kiradi',
-      international: 'Xalqaro yetkazish',
+      international: 'O‘zbekistonga yetkazish',
       internationalHelp: 'Bir do‘kon tovarlari bitta posilkada keladi: vazn qo‘shiladi, qadoq bir marta hisoblanadi. Posilkaning minimal to‘lovli vazni — 1 kg.',
       internationalHelpLabel: 'Yetkazish qanday hisoblanadi',
       reserve: 'Qaytariladigan zaxira', reserveHelp: reserveHelp.uz, reserveHelpLabel: 'Qaytariladigan zaxira nima',
@@ -228,21 +228,21 @@ export const cartCopy: Record<Locale, CartCopy> = {
       checkout: 'Buyurtmani rasmiylashtirish', renew: 'Hisobni yangilash', validFor: time => `Narx yana ${time} amal qiladi`, checking: 'Narx muddati tekshirilmoqda…',
       expired: 'Hisob muddati tugadi — rasmiylashtirishdan oldin narxni yangilang.', assurance: 'Qo‘shimcha to‘lov — faqat roziligingiz bilan',
       simulation: 'Saytda to‘lov hali ulanmagan: pul yechilmaydi.', continue: 'Xaridni davom ettirish',
-      verifying: 'Narxlarni do‘konlar bilan tekshiryapmiz…', recheckNote: 'Rasmiylashtirishdan oldin Atlas narxlarni do‘konlar bilan tekshiradi va jamini joriy tarif bo‘yicha qayta hisoblaydi.',
+      verifying: 'Narxlar tekshirilmoqda…', recheckNote: 'Rasmiylashtirishdan oldin narxlarni do‘konlar bilan tekshiramiz.',
     },
     sticky: { label: 'Savat jami', checkout: 'Rasmiylashtirish' },
     checkout: {
-      title: 'Qabul qiluvchi va manzil', hint: 'Ma’lumotlar profilingizda saqlanadi va buyurtmaga biriktiriladi.', reviewTitle: 'Buyurtmani tekshiring', reviewHint: 'Oxirgi qadam: qabul qiluvchi, tarkib va summani tekshiring.',
-      deliveryUz: 'O‘zbekiston bo‘ylab yetkazish', saved: 'Saqlangan qabul qiluvchilar', primary: 'asosiy', passportOk: 'Pasport qo‘shilgan', passportMissing: 'Pasport qo‘shilmagan',
-      newRecipient: 'Yangi qabul qiluvchi', chooseHint: 'Posilkani kim qabul qilishini tanlang.', recipient: 'Qabul qiluvchi (F.I.Sh.)', phone: 'Telefon',
+      title: 'Qabul qiluvchi va manzil', hint: 'Posilkani O‘zbekistonda kimga va qayerga yetkazamiz.', reviewTitle: 'Buyurtmani tekshiring', reviewHint: 'Oxirgi qadam: qabul qiluvchi, tarkib va summani tekshiring.',
+      saved: 'Kimga yetkazamiz', primary: 'asosiy', passportOk: 'Pasport qo‘shilgan', passportMissing: 'Pasport qo‘shilmagan',
+      newRecipient: 'Yangi qabul qiluvchi', recipient: 'Qabul qiluvchi (F.I.Sh.)', phone: 'Telefon',
       region: 'Viloyat', city: 'Shahar', street: 'Ko‘cha, uy, xonadon', streetPlaceholder: 'Ko‘cha nomini yozing',
-      addressHint: 'Maslahatlar qurilmangizda ishlaydi — manzil tashqi qidiruv xizmatlariga yuborilmaydi.', postal: 'Indeks', comment: 'Kuryer uchun izoh',
+      optionalFields: 'Indeks va izoh · ixtiyoriy', postal: 'Indeks', comment: 'Kuryer uchun izoh',
       next: 'Keyingi: tekshirish', edit: 'O‘zgartirish',
       consent: { before: '', link: 'Bojxona shartlari', after: ' bilan tanishdim va oylik limitdan oshsa, boj to‘lovi bo‘lishi mumkinligini tushunaman.' },
       consentRequired: 'Bojxona shartlariga roziligingizni belgilang.',
       serviceNotAdded: 'roziligingizgacha jamiga kirmaydi', servicePriceLater: 'narx operator tekshiruvidan so‘ng',
       confirm: 'Oldindan buyurtmani tasdiqlash', saving: 'Buyurtma saqlanmoqda…',
-      preorderNote: 'Oldindan buyurtma Atlas’da saqlanadi. Haqiqiy to‘lov va yetkazish hali ulanmagan.', estimated: 'Dastlabki jami',
+      preorderNote: 'Oldindan buyurtma Atlas’da saqlanadi. Haqiqiy to‘lov va yetkazish hali ulanmagan.', estimated: 'To‘lov uchun',
       saveRecipient: 'Qabul qiluvchini profilga saqlash — keyingi buyurtmalar va pasport uchun',
     },
     success: {
@@ -260,12 +260,12 @@ export const cartCopy: Record<Locale, CartCopy> = {
     signin: { title: 'Sign in to open your cart', text: 'Your cart and orders are saved to your Atlas profile.', action: 'Sign in' },
     empty: { title: 'Your cart is empty', text: 'Paste a product link from any store — we will calculate the price with delivery to Tashkent.', paste: 'Paste a link', stores: 'Browse stores' },
     item: { remove: 'Remove', decrease: 'Decrease quantity', increase: 'Increase quantity', quantity: 'Quantity', storePrice: 'In store', openStore: 'Open in store', parcelFrom: store => `Parcel from ${store}`, forQuantity: count => `for ${count}`,
-      parcelReserve: (missing, reserve) => `Add ${missing} more from this store and the ${reserve} store-delivery reserve goes away.`,
-      parcelFree: freeFrom => `${freeFrom} or more from this store — no store-delivery reserve.`,
+      parcelReserve: (missing, reserve) => `Store delivery is unknown: a ${reserve} reserve is held separately, outside the total. Add ${missing} more from this store and delivery is free.`,
+      parcelFree: freeFrom => `Over ${freeFrom} from this store — delivery to the warehouse is free.`,
       priceUp: (from, to) => `The store price went up: ${from} → ${to}. Total recalculated.`,
       priceDown: (from, to) => `The store price went down: ${from} → ${to}. Total recalculated.`,
       shippingChanged: (from, to) => `Store delivery changed: ${from} → ${to}.`,
-      issues: { currency: 'The store changed its currency — open the item again.', variant: 'This option is no longer listed — choose it again.', price: 'The store did not confirm the price — open the item again.', unreachable: 'The store did not answer the check. Atlas confirms the price before buying.' },
+      issues: { currency: 'The store changed its currency — open the item again.', variant: 'This option is no longer listed — choose it again.', price: 'The store did not confirm the price — open the item again.', unreachable: 'The store did not answer the check. Atlas confirms the price before buying.', stock: 'The store has fewer left than your cart asks for — lower the quantity.' },
       reload: 'Open item', checked: time => `Price checked with the store at ${time}` },
     services: {
       title: 'Warehouse services', optional: 'optional',
@@ -277,7 +277,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
       title: 'Summary', items: 'Items', storeShipping: 'Store delivery', storeNoReserve: 'No reserve', service: 'Atlas service',
       storeShippingHelp: freeFrom => `When a store does not state delivery to our warehouse, we add a $10 reserve — once per store order. From ${freeFrom} of items from one store there is no reserve: such orders usually ship free. If the store still charges, we ask you first.`,
       serviceHelp: 'Buying the item, paying in the store’s currency and handling the order until pickup.', serviceHelpLabel: 'What the Atlas service covers',
-      international: 'International delivery',
+      international: 'Delivery to Uzbekistan',
       internationalHelp: 'Items from one store travel as one parcel: weights add up and packaging counts once. The minimum billable parcel weight is 1 kg.',
       internationalHelpLabel: 'How delivery is calculated',
       reserve: 'Refundable reserve', reserveHelp: reserveHelp.en, reserveHelpLabel: 'What the refundable reserve is',
@@ -285,21 +285,21 @@ export const cartCopy: Record<Locale, CartCopy> = {
       checkout: 'Check out', renew: 'Refresh estimate', validFor: time => `Price held for ${time}`, checking: 'Checking price validity…',
       expired: 'The estimate expired — refresh the price before checkout.', assurance: 'Extra charges only with your approval',
       simulation: 'Online payment is not connected yet: no money is charged.', continue: 'Continue shopping',
-      verifying: 'Checking prices with the stores…', recheckNote: 'Before checkout Atlas checks prices with the stores and recalculates the total at the current rates.',
+      verifying: 'Checking prices…', recheckNote: 'We check prices with the stores before checkout.',
     },
     sticky: { label: 'Cart total', checkout: 'Check out' },
     checkout: {
-      title: 'Recipient and address', hint: 'The details are saved to your profile and attached to the order.', reviewTitle: 'Review your order', reviewHint: 'Last step: check the recipient, items and total.',
-      deliveryUz: 'Delivery in Uzbekistan', saved: 'Saved recipients', primary: 'primary', passportOk: 'Passport added', passportMissing: 'No passport added',
-      newRecipient: 'New recipient', chooseHint: 'Choose the person who will receive the parcel.', recipient: 'Recipient (full name)', phone: 'Phone',
+      title: 'Recipient and address', hint: 'Who receives the parcel and where in Uzbekistan.', reviewTitle: 'Review your order', reviewHint: 'Last step: check the recipient, items and total.',
+      saved: 'Deliver to', primary: 'primary', passportOk: 'Passport added', passportMissing: 'No passport added',
+      newRecipient: 'New recipient', recipient: 'Recipient (full name)', phone: 'Phone',
       region: 'Region', city: 'City', street: 'Street, building, apartment', streetPlaceholder: 'Start typing a street',
-      addressHint: 'Suggestions run on your device — the address is not sent to third-party search.', postal: 'Postal code', comment: 'Note for the courier',
+      optionalFields: 'Postal code and note · optional', postal: 'Postal code', comment: 'Note for the courier',
       next: 'Next: review', edit: 'Edit',
       consent: { before: 'I have read the ', link: 'customs terms', after: ' and understand that duty may apply above the monthly allowance.' },
       consentRequired: 'Please confirm the customs terms.',
       serviceNotAdded: 'not added until you approve', servicePriceLater: 'price after operator review',
       confirm: 'Confirm pre-order', saving: 'Saving order…',
-      preorderNote: 'Your pre-order is saved in Atlas. Real payments and delivery are not connected yet.', estimated: 'Estimated total',
+      preorderNote: 'Your pre-order is saved in Atlas. Real payments and delivery are not connected yet.', estimated: 'To pay',
       saveRecipient: 'Save this recipient to your profile — for next orders and the passport',
     },
     success: {

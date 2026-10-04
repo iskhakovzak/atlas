@@ -1,13 +1,19 @@
+import type { Pricing } from './domain.ts';
+
 // Informational personal courier-import estimate. Never part of an Atlas charge or quote.
-// PP-4508's consolidated 2026-09-01 text shows 20% / $2 per kg, while UP-174 §8
-// expressly schedules that rate from 2027-01-01. Keep this legal effective-date
-// ambiguity documented and confirm it with Customs before commercial use.
-export const customsCheckedOn = '2026-09-29';
+// Checked on lex.uz on 4 October 2026:
+// - CM resolution No. 244 of 19.04.2025 (in force from 01.05.2025): goods for an individual in international
+//   courier shipments are duty-free up to $200, and the norm applies "within one calendar month" (§3(b));
+//   the single customs payment is charged on the part above the norm (§10). Postal shipments: $100.
+// - PP-4508, consolidated text dated 01.09.2026: single customs payment 20% of customs value, at least $2 per kg.
+// - UP-174 of 27.08.2026, §8: the same 20% / $2 per kg "from 1 January 2027". The dates conflict, so the
+//   estimate says so and the parameters can be overridden in the tariff settings (Pricing.customs*).
+export const customsCheckedOn = '2026-10-04';
 export const courierAllowanceUsd = 200;
 const customsRuleDisputeStart = '2026-09-01';
 const scheduledCourierRateStart = '2027-01-01';
 export const customsReferences = [
-  { title: 'ПКМ №244: лимит личного курьерского ввоза', url: 'https://lex.uz/docs/7484114' },
+  { title: 'ПКМ №244: лимит $200 в календарный месяц, платёж с превышения', url: 'https://lex.uz/docs/7484114' },
   { title: 'ПП-4508: действующая сводная редакция', url: 'https://lex.uz/ru/docs/4585744?ONDATE=01.09.2026' },
   { title: 'УП-174: ставка и дата начала применения', url: 'https://lex.uz/uz/docs/8444993' },
   { title: 'ПП-136: отдельный режим бондовых складов', url: 'https://lex.uz/docs/8131458' },
@@ -23,6 +29,16 @@ export function courierRule(date: string) {
   // Follow the consolidated PP-4508 version effective 2026-09-01. UP-174 §8
   // separately gives 2027-01-01 as the start date; see the legal ambiguity above.
   return date >= '2026-09-01' ? { rate: 0.2, minimumPerKg: 2 } : { rate: 0.3, minimumPerKg: 3 };
+}
+/** The allowance and rate for a date, with the operator's overrides from the tariff settings when set. */
+export function customsParams(pricing: Partial<Pick<Pricing, 'customsAllowanceUsd' | 'customsRate' | 'customsMinimumPerKg'>> | undefined, date: string) {
+  const rule = courierRule(date) ?? { rate: 0.2, minimumPerKg: 2 };
+  return {
+    allowanceUsd: pricing?.customsAllowanceUsd ?? courierAllowanceUsd,
+    rate: pricing?.customsRate ?? rule.rate,
+    minimumPerKg: pricing?.customsMinimumPerKg ?? rule.minimumPerKg,
+    needsConfirmation: pricing?.customsRate === undefined && courierRateNeedsConfirmation(date),
+  };
 }
 export function estimateCourierCustoms({ valueUsd, usedUsd = 0, grossKg, date }: { valueUsd: number; usedUsd?: number; grossKg?: number; date: string }) {
   const rule = courierRule(date);

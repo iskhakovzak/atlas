@@ -24,7 +24,7 @@ test('dated catalog prices remain usable preliminary amounts, not blank locked i
 });
 test('legacy catalog weights cannot produce an empty or undefined locked field',()=>{
   assert.equal(catalogLinkWeight(products[0]),1);
-  assert.equal(catalogLinkWeight({...products[0],boxedWeight:undefined}),1);
-  assert.equal(catalogLinkWeight({...products[0],boxedWeight:undefined,weight:0}),1);
+  assert.equal(catalogLinkWeight({...products[0],boxedWeight:undefined}),1.2);
+  assert.equal(catalogLinkWeight({...products[0],boxedWeight:undefined,weight:0}),0.6);
   assert.equal(catalogLinkWeight(undefined),undefined);
 });

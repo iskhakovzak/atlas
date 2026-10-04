@@ -180,7 +180,7 @@ html[data-theme="dark"] .theme-toggle:focus-visible {
   outline-color: var(--night-jade);
 }
 
-html[data-theme="dark"] .notice:not(.error):not(.warning), html[data-theme="dark"] .notice, html[data-theme="dark"] .declaration-preview, html[data-theme="dark"] .checkout-address-head, html[data-theme="dark"] .settlement-box:not(.attention), html[data-theme="dark"] .change-request {
+html[data-theme="dark"] .notice:not(.error):not(.warning), html[data-theme="dark"] .notice, html[data-theme="dark"] .declaration-preview, html[data-theme="dark"] .settlement-box:not(.attention), html[data-theme="dark"] .change-request {
   background-color: var(--night-jade-soft);
   border-color: var(--night-line-strong);
   color: var(--night-ink);
@@ -423,7 +423,7 @@ html[data-theme="dark"] .theme-toggle:focus-visible {
   outline-color: var(--night-jade);
 }
 
-html[data-theme="dark"] .notice:not(.error):not(.warning), html[data-theme="dark"] .notice, html[data-theme="dark"] .declaration-preview, html[data-theme="dark"] .checkout-address-head, html[data-theme="dark"] .settlement-box:not(.attention), html[data-theme="dark"] .change-request {
+html[data-theme="dark"] .notice:not(.error):not(.warning), html[data-theme="dark"] .notice, html[data-theme="dark"] .declaration-preview, html[data-theme="dark"] .settlement-box:not(.attention), html[data-theme="dark"] .change-request {
   background-color: var(--night-raised);
   border-color: var(--night-line-strong);
   color: var(--night-ink-2);

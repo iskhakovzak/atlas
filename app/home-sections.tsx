@@ -3,9 +3,9 @@ import {useEffect,useId,useState,type FormEvent,type ReactNode} from 'react';
 import {ArrowRight,Calculator,Check,ClipboardPaste,CreditCard,Info,Link2,PackageCheck,ShieldCheck,Truck} from 'lucide-react';
 import Link from '@/components/site-link';
 import {useMarket} from '@/lib/market/store';
-import {price,pricingForCountry,validateSource,type Pricing} from '@/lib/market/domain';
+import {deliveryPerKgUsdFor,price,validateSource} from '@/lib/market/domain';
 import {atlasServiceBreakdown} from '@/lib/market/quote-presentation';
-import {formatSum,groupDigits,homeCopy} from '@/lib/market/home-copy';
+import {formatSum,formatUsd,groupDigits,homeCopy} from '@/lib/market/home-copy';
 import {deliveryRegions,paymentLabels,siteContent} from '@/lib/market/site-content';
 import {localizedStatuses,type Locale} from '@/lib/market/i18n';
 import {storeBrands} from '@/lib/market/store-brands';
@@ -26,11 +26,6 @@ export function MissingContent({what}:{what:string}){
  return <p className="home-missing" role="note">Нужно заполнить: {what} — <code>lib/market/site-content.ts</code></p>;
 }
 
-/** Delivery price per kg as the customer pays it: base tariff plus the delivery margin. */
-function perKgFor(pricing:Pricing,country?:string){
- const p=pricingForCountry(pricing,country);
- return Math.round(p.perKg*(1+p.deliveryMargin));
-}
 
 export function InfoTip({label,children}:{label:string;children:ReactNode}){
  const [open,setOpen]=useState(false);
@@ -104,7 +99,7 @@ export function ExampleQuote(){
    <dl>
     <div><dt>{c.example.item}<small>$100 × {formatSum(pricing.fx,locale)}</small></dt><dd>{formatSum(quote.merchandise,locale)}</dd></div>
     <div><dt>{c.example.service}<small>{c.example.serviceDetail(percent)}</small></dt><dd>{formatSum(parts.service,locale)}</dd></div>
-    <div><dt>{c.example.delivery}<small>{kg} × {formatSum(perKgFor(pricing),locale)}</small></dt><dd>{formatSum(parts.international,locale)}</dd></div>
+    <div><dt>{c.example.delivery}<small>{kg} × {formatUsd(deliveryPerKgUsdFor(pricing),locale)}</small></dt><dd>{formatSum(parts.international,locale)}</dd></div>
     <div><dt><span className="home-dt-with-tip">{c.example.reserve}<InfoTip label={c.example.reserveHelpLabel}>{c.example.reserveHelp}</InfoTip></span></dt><dd>{formatSum(quote.reserve,locale)}</dd></div>
    </dl>
    <div className="home-quote-total"><span>{c.example.total}</span><strong>{formatSum(quote.total,locale)}</strong></div>
@@ -127,11 +122,12 @@ export function DeliveryTariffs(){
    <tbody>{deliveryRegions.map(region=>{
     const days=siteContent.deliveryDays[region.id];
     const country=region.countries.find(name=>pricing.countryOverrides?.[name])??region.countries[0];
-    return <tr key={region.id}><th scope="row">{c.tariffs.regions[region.id]}</th>{anyDays&&<td className={days?undefined:'home-pending'}>{days?c.tariffs.days(days[0],days[1]):c.tariffs.pending}</td>}<td>{formatSum(perKgFor(pricing,country),locale)}</td></tr>;
+    const usd=deliveryPerKgUsdFor(pricing,country);
+    return <tr key={region.id}><th scope="row">{c.tariffs.regions[region.id]}</th>{anyDays&&<td className={days?undefined:'home-pending'}>{days?c.tariffs.days(days[0],days[1]):c.tariffs.pending}</td>}<td className="home-tariff-price"><b>{formatUsd(usd,locale)}</b><small>{c.tariffs.per100g(formatUsd(usd/10,locale))}</small></td></tr>;
    })}</tbody>
   </table></div>
   {missingDays&&<MissingContent what="сроки доставки по странам (дни, от–до)"/>}
-  <p className="home-note">{!anyDays&&<>{c.tariffs.noDays} </>}{c.tariffs.weightNote} {c.tariffs.rateNote}</p>
+  <p className="home-note">{!anyDays&&<>{c.tariffs.noDays} </>}{c.tariffs.weightNote} {c.tariffs.fxNote(formatSum(pricing.fx,locale))} {c.tariffs.rateNote}</p>
  </section>;
 }
 

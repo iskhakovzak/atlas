@@ -268,8 +268,11 @@ html[data-theme="dark"] .rf-phone { border-color: var(--night-line-strong); back
 html[data-theme="dark"] .rf-phone:focus-within { border-color: rgba(128, 208, 172, 0.65); box-shadow: var(--night-ring); outline: none; }
 html[data-theme="dark"] .rf-phone > span { color: var(--night-ink-2); }
 html[data-theme="dark"] [data-slot="checkbox"] { border-color: rgba(226, 238, 231, 0.32); background: var(--night-inset); }
-html[data-theme="dark"] [data-slot="checkbox"][data-checked] { border-color: transparent; background: var(--night-ivory); color: var(--night-on-ivory); }
+html[data-theme="dark"] [data-slot="checkbox"][data-state="checked"] { border-color: transparent; background: var(--night-ivory); color: var(--night-on-ivory); }
 html[data-theme="dark"] :is(.basket-consent, .consent) { border-color: var(--night-line-strong); }
+/* A ticked option lights up as a whole, not only its small box. */
+html[data-theme="dark"] :is(.basket-consent, .consent, .basket-balance, .basket-service):has([data-slot="checkbox"][data-state="checked"]) { border-color: rgba(128, 208, 172, 0.55); background: var(--night-jade-soft); }
+html[data-theme="dark"] .recipient-choice.selected { border-color: var(--night-jade); background: var(--night-jade-soft); box-shadow: 0 0 0 3px rgba(128, 208, 172, 0.14); }
 html[data-theme="dark"] .docs-drop { border-color: rgba(128, 208, 172, 0.35); background: var(--night-jade-soft); color: var(--night-jade); }
 html[data-theme="dark"] .docs-recipient.selected { border-color: var(--night-jade); box-shadow: var(--night-shadow), 0 0 0 3px rgba(128, 208, 172, 0.14); }
 html[data-theme="dark"] .docs-recipient input,

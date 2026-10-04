@@ -2,23 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "@/components/site-link";
-import { ArrowRight, ArrowUpRight, BadgeCheck, Check, ClipboardPaste, Clock3, Info, Loader2, MapPin, Minus, Plus, ShieldCheck, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BadgeCheck, Check, ClipboardPaste, Clock3, Info, Loader2, MessageSquare, Minus, Plus, ShieldCheck, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
-import { balanceOf, cartSignature, merchantParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, type CartItem, type DeliveryProfile } from "@/lib/market/domain";
-import { atlasServiceBreakdown } from "@/lib/market/quote-presentation";
-import { courierAllowanceUsd } from "@/lib/market/customs";
+import { balanceOf, cartSignature, maxLineQuantity, merchantParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, type CartItem, type DeliveryProfile } from "@/lib/market/domain";
 import { countryName, customsVersion } from "@/lib/market/world";
 import { formatSum } from "@/lib/market/home-copy";
 import { cartCopy, countryLabel, itemCount, minutesLeft, parcelCount, recipientCopy, type CartCopy } from "@/lib/market/customer-copy";
-import { monthlyUsedFor } from "@/lib/market/allowance";
+import { cartCustomsEstimate } from "@/lib/market/allowance";
+import { calcCopy } from "@/lib/market/calc-copy";
+import { CalcLines, CustomsPanel, FxNote, HoldNote, sumQuotes } from "./calc-summary";
 import { storefrontLabel } from "@/lib/market/store-brands";
 import type { Locale } from "@/lib/market/i18n";
 import { Modal, ProductImage } from "./market-ui";
 import { SafeDeleteButton } from "./safe-delete-button";
-import { cities, formatUzLocal, regionCapital, regionLabel, regions, streets, suggestions, uzPhone, uzPhoneDigits } from "@/lib/market/addresses";
-import { CustomsEstimate } from "./customs-estimate";
-import { SummaryLine } from "./price-summary";
+import { cities, regionCapital, regionLabel, regions, streets, suggestions, uzPhone, uzPhoneDigits } from "@/lib/market/addresses";
+import { UzPhoneInput } from "./phone-input";
 
 const emptyDelivery: DeliveryProfile = { recipient: "", phone: "", region: "Ташкент", city: "Ташкент", address: "", postalCode: "", comment: "" };
 
@@ -45,8 +44,10 @@ function QuantityControl({ item, c, save }: { item: CartItem; c: CartCopy; save:
   const [value, setValue] = useState(item.quantity);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
+  // Never more than the store reports left (when it reports a count at all).
+  const max = Math.max(1, maxLineQuantity(item.product));
   function step(delta: number) {
-    const next = Math.min(10, Math.max(1, value + delta));
+    const next = Math.min(max, Math.max(1, value + delta));
     if (next === value) return;
     setValue(next);
     clearTimeout(timer.current);
@@ -55,7 +56,20 @@ function QuantityControl({ item, c, save }: { item: CartItem; c: CartCopy; save:
   return <div className="basket-qty" role="group" aria-label={`${c.item.quantity}: ${item.product.name}`}>
     <button type="button" aria-label={`${c.item.decrease}: ${item.product.name}`} disabled={value <= 1} onClick={() => step(-1)}><Minus size={16} aria-hidden="true" /></button>
     <output aria-live="polite">{value}</output>
-    <button type="button" aria-label={`${c.item.increase}: ${item.product.name}`} disabled={value >= 10} onClick={() => step(1)}><Plus size={16} aria-hidden="true" /></button>
+    <button type="button" aria-label={`${c.item.increase}: ${item.product.name}`} disabled={value >= max} onClick={() => step(1)}><Plus size={16} aria-hidden="true" /></button>
+  </div>;
+}
+
+/** The customer's note on a cart line: shown when set, edited in place, saved on blur; never sent to the store. */
+function ItemNote({ item, locale, save }: { item: CartItem; locale: Locale; save: (note: string) => Promise<boolean> }) {
+  const k = calcCopy[locale];
+  const [open, setOpen] = useState(Boolean(item.note));
+  const [text, setText] = useState(item.note ?? "");
+  if (!open) return <button type="button" className="basket-note-add" onClick={() => setOpen(true)}><MessageSquare size={15} aria-hidden="true" />{k.blocks.comment}</button>;
+  return <div className="basket-note">
+    <label htmlFor={`note-${item.id}`}>{k.blocks.comment}<small> · {k.commentHint}</small></label>
+    <textarea id={`note-${item.id}`} rows={2} maxLength={500} value={text} placeholder={k.commentPlaceholder} onChange={(event) => setText(event.target.value)}
+      onBlur={() => { if (text.trim() !== (item.note ?? "")) void save(text); if (!text.trim()) setOpen(false); }} />
   </div>;
 }
 
@@ -78,6 +92,17 @@ function usd(amount: number, locale: Locale) {
   return new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-US", { style: "currency", currency: "USD", minimumFractionDigits: digits, maximumFractionDigits: digits }).format(rounded);
 }
 
+/** The importer's name for the only option of a product: not worth showing to the customer. */
+const shownVariant = (variant?: string) => variant && variant !== "Выбранный вариант" ? variant : "";
+
+/** Long store titles are cut to three lines; a tap shows the whole name. */
+function ItemName({ name }: { name: string }) {
+  const [open, setOpen] = useState(false);
+  return <h3 className={"basket-name" + (open ? " open" : "")}>{name.length > 70
+    ? <button type="button" className="basket-name-toggle" aria-expanded={open} onClick={() => setOpen(value => !value)}>{name}</button>
+    : name}</h3>;
+}
+
 /** Checkout progress shared by the cart page and the checkout dialog. */
 function CheckoutSteps({ current, c }: { current: number; c: CartCopy }) {
   return <ol className="basket-steps" aria-label={c.stepsLabel}>{c.steps.map((step, index) =>
@@ -98,36 +123,59 @@ export function CartView() {
   const [busy, setBusy] = useState(false);
   const [saveRecipient, setSaveRecipient] = useState(true);
   const [savingServiceItemId, setSavingServiceItemId] = useState<string | null>(null);
+  const [savingServiceId, setSavingServiceId] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [checkoutKey, setCheckoutKey] = useState("");
   const [paymentBusy, setPaymentBusy] = useState(false);
   const [paidFromCart, setPaidFromCart] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [summaryCta, setSummaryCta] = useState<HTMLButtonElement | null>(null);
+  const [customsRecipient, setCustomsRecipient] = useState("");
+  const [customsBusy, setCustomsBusy] = useState(false);
+  const [summaryCtaInView, setSummaryCtaInView] = useState(false);
 
+  // The phone bar repeats the total and the button; it steps aside while the summary's own button is on screen.
   useEffect(() => {
-    if (!ready) return;
+    if (!summaryCta || !("IntersectionObserver" in window)) return;
+    const observer = new IntersectionObserver(([entry]) => setSummaryCtaInView(entry.isIntersecting), { rootMargin: "0px 0px -150px 0px" });
+    observer.observe(summaryCta);
+    return () => observer.disconnect();
+  }, [summaryCta]);
+
+  // Keeps cart services in line with the catalog (a service switched off or made required). It used to fire a
+  // request per item on every cart change; a request in flight then made the customer's own tap on a service do
+  // nothing. Now: one line at a time, never while the customer is saving, and never the same fix twice.
+  const normalizationSent = useRef("");
+  useEffect(() => {
+    if (!ready || savingServiceItemId !== null) return;
+    const available = pricing.serviceCatalog.filter((service) => service.enabled && service.requestStage === "checkout");
+    const allowedIds = new Set(available.map((service) => service.id));
     for (const item of state.cart) {
       const selected = item.requestedServiceIds ?? [];
-      const available = pricing.serviceCatalog.filter((service) => service.enabled && service.requestStage === "checkout");
-      const allowedIds = new Set(available.map((service) => service.id));
       const current = selected.filter((serviceId) => allowedIds.has(serviceId));
       const missingRequired = available.filter((service) => service.required && !current.includes(service.id)).map((service) => service.id);
       const normalized = [...current, ...missingRequired];
       const normalizedUnits = Object.fromEntries(Object.entries(item.requestedServiceUnits ?? {}).filter(([serviceId]) => normalized.includes(serviceId) && available.some((service) => service.id === serviceId && !["package", "item"].includes(service.unit))));
-      if (normalized.length !== selected.length || normalized.some((serviceId, index) => serviceId !== selected[index]) || JSON.stringify(normalizedUnits) !== JSON.stringify(item.requestedServiceUnits ?? {}))
-        void act({ type: "cart-services", id: item.id, serviceIds: normalized, serviceUnits: normalizedUnits });
+      const differs = normalized.length !== selected.length || normalized.some((serviceId, index) => serviceId !== selected[index]) || JSON.stringify(normalizedUnits) !== JSON.stringify(item.requestedServiceUnits ?? {});
+      const fix = `${item.id}:${normalized.join(",")}:${JSON.stringify(normalizedUnits)}`;
+      if (!differs || normalizationSent.current === fix) continue;
+      normalizationSent.current = fix;
+      void act({ type: "cart-services", id: item.id, serviceIds: normalized, serviceUnits: normalizedUnits });
+      return;
     }
-  }, [act, pricing.serviceCatalog, ready, state.cart]);
+  }, [act, pricing.serviceCatalog, ready, state.cart, savingServiceItemId]);
 
   const locale = state.communication.language;
   const c = cartCopy[locale];
+  const k = calcCopy[locale];
   const earliestExpiry = state.cart.reduce((min, item) => Math.min(min, item.quote.expiresAt), Infinity);
   const total = totalOf(state.cart);
   const count = state.cart.reduce((sum, item) => sum + item.quantity, 0);
-  const cartMerchandiseUsd = state.cart.reduce((sum, item) => sum + item.product.usd * item.quantity, 0);
-  // The $200 allowance is per person and per month: count what the default recipient already ordered.
-  const plannedRecipient = (state.deliveryProfiles.find(profile => profile.primary) ?? state.deliveryProfiles[0])?.recipient ?? state.deliveryProfile?.recipient;
-  const usedThisMonth = monthlyUsedFor(state, plannedRecipient, pricing.fx);
+  // Customs: the allowance is per recipient and calendar month; the customer picks whose it is.
+  const primaryProfile = state.deliveryProfiles.find(profile => profile.primary) ?? state.deliveryProfiles[0];
+  const customsProfile = state.deliveryProfiles.find(profile => profile.id === customsRecipient) ?? primaryProfile;
+  const customsChoices = state.cartCustoms ?? { outsideUsed: false, help: false };
+  const customs = cartCustomsEstimate(state, pricing, { profile: customsProfile, name: customsProfile ? undefined : state.deliveryProfile?.recipient }, customsChoices);
   const balance = balanceOf(state);
   const credit = useBalance ? Math.min(total, Math.max(0, balance)) : 0;
   const payable = total - credit;
@@ -136,19 +184,9 @@ export function CartView() {
   const pendingCheckoutAmount = pendingCheckoutOrders.reduce((sum, order) => sum + (order.payment?.amount ?? 0), 0);
   const checkoutServices = pricing.serviceCatalog.filter((service) => service.enabled && service.requestStage === "checkout");
   const identityProfiles = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
-  const sums = state.cart.reduce((result, item) => ({
-    merchandise: result.merchandise + item.quote.merchandise,
-    service: result.service + item.quote.service,
-    shipping: result.shipping + item.quote.shipping,
-    reserve: result.reserve + item.quote.reserve,
-    sourceShipping: result.sourceShipping + (item.quote.sourceShipping ?? 0),
-    buyout: result.buyout + (item.quote.buyout ?? 0),
-    conversion: result.conversion + (item.quote.conversion ?? 0),
-    deliveryMargin: result.deliveryMargin + (item.quote.deliveryMargin ?? 0),
-    optionalServices: result.optionalServices + (item.quote.optionalServices ?? 0),
-  }), { merchandise: 0, service: 0, shipping: 0, reserve: 0, sourceShipping: 0, buyout: 0, conversion: 0, deliveryMargin: 0, optionalServices: 0 });
-  const parts = atlasServiceBreakdown(sums);
-  // Store orders whose delivery price is unknown: a reserve below the threshold, none from it.
+  const sums = sumQuotes(state.cart.map(item => item.quote));
+  const cartWeight = Math.round(state.cart.reduce((sum, item) => sum + item.quote.weight, 0) * 100) / 100;
+  // Store orders whose delivery price is unknown: a separate hold up to the threshold, free above it.
   const reserves = storeShippingReserves(state.cart, pricing);
   const freeFrom = usd(pricing.storeShippingFreeFromUsd ?? 50, locale);
   // Same grouping as the server's parcel allocation: one store and one origin country share a parcel.
@@ -207,17 +245,20 @@ export function CartView() {
   function renderItem(item: CartItem) {
     const selectedServices = item.requestedServiceIds ?? [];
     const serviceUnits = item.requestedServiceUnits ?? {};
-    const meta = [item.variant, countryLabel(countryName(item.product), locale)].filter(Boolean).join(" · ");
+    const meta = [shownVariant(item.variant), countryLabel(countryName(item.product), locale)].filter(Boolean).join(" · ");
     const change = item.priceChange, issue = item.sourceIssue, currency = change?.currency ?? item.product.sourceCurrency ?? "USD";
     const reopen = item.product.sourceUrl ? `/order-by-link?url=${encodeURIComponent(item.product.sourceUrl)}` : "";
     return <article className={"basket-item" + (issue && issue.kind !== "unreachable" ? " has-issue" : "")} key={item.id}>
       <div className="basket-photo"><ProductImage product={item.product} locale={locale} decorative /></div>
       <div className="basket-info">
         {item.product.brand && <p className="basket-brand">{item.product.brand}</p>}
-        <h3 className="basket-name">{item.product.name}</h3>
+        <ItemName name={item.product.name} />
         <p className="basket-meta">{meta}</p>
         <p className="basket-meta">{item.product.sourceUrl ? <a className="basket-source" href={item.product.sourceUrl} target="_blank" rel="noopener noreferrer">{c.item.storePrice}: {storePrice(item, locale)}<ArrowUpRight size={14} aria-hidden="true" /><span className="sr-only"> ({c.item.openStore})</span></a> : <>{c.item.storePrice}: {storePrice(item, locale)}</>}{item.quantity > 1 ? ` × ${item.quantity}` : ""}</p>
         {!change && !issue && item.product.sourceCheckedAt && <p className="basket-meta basket-checked"><BadgeCheck size={14} aria-hidden="true" />{c.item.checked(clock(item.product.sourceCheckedAt, locale))}</p>}
+        {item.product.stockQuantity !== undefined
+          ? <p className={"basket-meta basket-stock" + (item.product.stockQuantity <= 3 ? " low" : "")}>{item.product.stockQuantity ? k.stockLeft(item.product.stockQuantity) : k.outOfStock} · {k.stockByEbay}</p>
+          : item.product.stockMoreThan !== undefined && <p className="basket-meta basket-stock">{k.stockMore(item.product.stockMoreThan)} · {k.stockByEbay}</p>}
       </div>
       <div className="basket-price"><strong>{formatSum(item.quote.total, locale)}</strong>{item.quantity > 1 && <small>{c.item.forQuantity(item.quantity)}</small>}</div>
       {/* What the last check with the store found: a new price (already in the total) or something to fix. */}
@@ -232,6 +273,7 @@ export function CartView() {
         <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity })} />
         <SafeDeleteButton label={c.item.remove} itemName={item.product.name} locale={locale} onConfirm={() => act({ type: "cart-remove", id: item.id })} />
       </div>
+      <ItemNote key={`${item.id}:${item.note ?? ""}`} item={item} locale={locale} save={(note) => act({ type: "cart-note", id: item.id, note })} />
       {checkoutServices.length > 0 && <details className="basket-services">
         <summary><span>{c.services.title}<small>{c.services.optional}</small></span>{selectedServices.length > 0 && <b>{selectedServices.length}</b>}</summary>
         <p>{c.services.hint}</p>
@@ -248,35 +290,32 @@ export function CartView() {
             else if (selected) serviceUnitsNext[service.id] = nextUnits;
             else delete serviceUnitsNext[service.id];
             setSavingServiceItemId(item.id);
+            setSavingServiceId(service.id);
             try { await act({ type: "cart-services", id: item.id, serviceIds: next, serviceUnits: serviceUnitsNext }); }
-            finally { setSavingServiceItemId(null); }
+            finally { setSavingServiceItemId(null); setSavingServiceId(null); }
           };
           const unitName = c.services.units[service.unit];
-          return <div className="basket-service" key={service.id}>
+          const saving = savingServiceItemId === item.id && savingServiceId === service.id;
+          return <div className="basket-service" key={service.id} aria-busy={saving || undefined}>
             <Checkbox aria-label={serviceTitle(service, locale)} checked={checked} disabled={service.required || savingServiceItemId !== null} onCheckedChange={(value) => void updateService(value === true)} />
-            <span className="basket-service-copy"><b>{serviceTitle(service, locale)}{service.required && <em>{c.services.required}</em>}</b><small>{serviceDescription(service, locale)}</small>
+            <span className="basket-service-copy"><b>{serviceTitle(service, locale)}{service.required && <em>{c.services.required}</em>}{saving && <span className="basket-service-saving" role="status"><Loader2 size={13} className="spin" aria-hidden="true" />{locale === "ru" ? "Сохраняем…" : locale === "uz" ? "Saqlanmoqda…" : "Saving…"}</span>}</b><small>{serviceDescription(service, locale)}</small>
               <small className="basket-service-rate">{service.pricingMode === "fixed"
                 ? `${c.services.fixed}: ${formatSum(unitFee, locale)} / ${unitName}${units > 1 ? ` · ${units} × ${formatSum(unitFee, locale)} = ${formatSum(amount, locale)}` : ""} · ${c.services.notIncluded}`
                 : `${c.services.quote} · ${c.services.notIncluded}`}</small>
             </span>
-            {!["package", "item"].includes(service.unit) && checked && <span className="basket-service-units"><label htmlFor={`cart-service-units-${item.id}-${service.id}`}>{c.services.quantity} · {unitName}</label><input id={`cart-service-units-${item.id}-${service.id}`} type="number" inputMode="numeric" min="1" max="100" step="1" disabled={savingServiceItemId !== null} value={units} onChange={(event) => { const nextUnits = Number(event.target.value); if (Number.isInteger(nextUnits) && nextUnits >= 1 && nextUnits <= 100) void updateService(true, nextUnits); }} /></span>}
+            {!["package", "item"].includes(service.unit) && checked && <span className="basket-service-units"><label htmlFor={`cart-service-units-${item.id}-${service.id}`}>{c.services.quantity} · {unitName}</label><input key={units} id={`cart-service-units-${item.id}-${service.id}`} type="number" inputMode="numeric" min="1" max="100" step="1" disabled={savingServiceItemId !== null} defaultValue={units} onBlur={(event) => { const nextUnits = Number(event.target.value); if (Number.isInteger(nextUnits) && nextUnits >= 1 && nextUnits <= 100 && nextUnits !== units) void updateService(true, nextUnits); else event.target.value = String(units); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); } }} /></span>}
           </div>;
         })}</div>
       </details>}
     </article>;
   }
 
-  const summaryLines = <div className="basket-lines">
-    <SummaryLine label={`${c.summary.items} · ${itemCount(count, locale)}`} amount={sums.merchandise} locale={locale} />
-    {sums.sourceShipping > 0
-      ? <SummaryLine label={c.summary.storeShipping} amount={sums.sourceShipping} locale={locale} help={reserves.length ? c.summary.storeShippingHelp(freeFrom) : undefined} helpLabel={c.summary.storeShipping} />
-      : reserves.length > 0 && <SummaryLine label={c.summary.storeShipping} amount={0} value={c.summary.storeNoReserve} locale={locale} help={c.summary.storeShippingHelp(freeFrom)} helpLabel={c.summary.storeShipping} />}
-    {parts.service > 0 && <SummaryLine label={c.summary.service} amount={parts.service} locale={locale} help={c.summary.serviceHelp} helpLabel={c.summary.serviceHelpLabel} />}
-    {parts.international > 0 && <SummaryLine label={c.summary.international} amount={parts.international} locale={locale} help={c.summary.internationalHelp} helpLabel={c.summary.internationalHelpLabel} />}
-    {sums.reserve > 0 && <SummaryLine label={c.summary.reserve} amount={sums.reserve} locale={locale} help={c.summary.reserveHelp} helpLabel={c.summary.reserveHelpLabel} />}
-    {sums.optionalServices > 0 && <SummaryLine label={c.summary.optional} amount={sums.optionalServices} locale={locale} />}
-    {credit > 0 && <SummaryLine label={c.summary.fromBalance} amount={credit} locale={locale} negative />}
-  </div>;
+  // Each fee on its own line; the store-delivery hold and customs stay outside the amount to pay.
+  const summaryLines = <CalcLines sums={sums} locale={locale} pricing={pricing} weightKg={cartWeight} storeShippingState="none" anyFree={reserves.some(entry => entry.free)}>
+    {credit > 0 && <div className="basket-lines basket-lines-credit"><div className="basket-line"><span className="basket-line-label">{c.summary.fromBalance}</span><b>−{formatSum(credit, locale)}</b></div></div>}
+  </CalcLines>;
+  const saveCustoms = async (next: typeof customsChoices) => { setCustomsBusy(true); try { await act({ type: "cart-customs", value: next }); } finally { setCustomsBusy(false); } };
+  const customsPanel = <CustomsPanel estimate={customs} choices={customsChoices} locale={locale} pricing={pricing} profiles={state.deliveryProfiles} recipientId={customsProfile?.id} onRecipient={setCustomsRecipient} onChoices={(next) => void saveCustoms(next)} busy={customsBusy} />;
 
   // Rendered after checkout empties the cart, so it lives outside the cart layout.
   const successDialog = <Modal open={success} onClose={() => setSuccess(false)} locale={locale} title={paidFromCart ? c.success.statusTitle : c.success.title} description={paidFromCart ? c.success.saved : pendingCheckoutOrders.length ? c.success.pending : checkoutOrders.length ? c.success.saved : c.success.hint}>
@@ -327,13 +366,15 @@ export function CartView() {
         {balance > 0 && <div className="basket-balance"><Checkbox id="use-balance" checked={useBalance} onCheckedChange={(value) => setUseBalance(value === true)} /><label htmlFor="use-balance">{c.summary.balance}<small>{c.summary.available}: {formatSum(balance, locale)}</small></label></div>}
         <div className="basket-total"><span>{c.summary.payable}</span><strong>{formatSum(payable, locale)}</strong></div>
         <PriceHold expiresAt={earliestExpiry} locale={locale} c={c} />
-        {cartMerchandiseUsd + usedThisMonth > courierAllowanceUsd && <CustomsEstimate key={usedThisMonth} valueUsd={cartMerchandiseUsd} grossKg={state.cart.reduce((sum, item) => sum + (item.product.boxedWeight ?? item.product.weight) * item.quantity, 0)} fx={pricing.fx} locale={locale} initialUsedUsd={usedThisMonth} />}
-        <button type="button" className="btn primary basket-cta" disabled={verifying} aria-busy={verifying} onClick={() => void openCheckout()}>{verifying ? <>{c.summary.verifying}<Loader2 size={18} className="spin" aria-hidden="true" /></> : <>{c.summary.checkout}<ArrowRight size={18} aria-hidden="true" /></>}</button>
+        <HoldNote amount={sums.storeShippingHold} locale={locale} pricing={pricing} />
+        {customsPanel}
+        <FxNote pricing={pricing} locale={locale} />
+        <button ref={setSummaryCta} type="button" className="btn primary basket-cta" disabled={verifying} aria-busy={verifying} onClick={() => void openCheckout()}>{verifying ? <>{c.summary.verifying}<Loader2 size={18} className="spin" aria-hidden="true" /></> : <>{c.summary.checkout}<ArrowRight size={18} aria-hidden="true" /></>}</button>
         <ul className="basket-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{c.summary.assurance}</li><li><Info size={16} aria-hidden="true" />{c.summary.simulation}</li></ul>
       </aside>
     </div>
 
-    <div className="basket-sticky" role="region" aria-label={c.sticky.label}>
+    <div className={"basket-sticky" + (summaryCtaInView ? " is-hidden" : "")} role="region" aria-label={c.sticky.label} aria-hidden={summaryCtaInView || undefined}>
       <div><span>{c.summary.payable}</span><strong>{formatSum(payable, locale)}</strong></div>
       <button type="button" className="btn primary" disabled={verifying} aria-busy={verifying} onClick={() => void openCheckout()}>{verifying ? <Loader2 size={18} className="spin" aria-label={c.summary.verifying} /> : <>{c.sticky.checkout}<ArrowRight size={18} aria-hidden="true" /></>}</button>
     </div>
@@ -347,35 +388,50 @@ export function CartView() {
         void checkout();
       }}>
         {!review && <>
-          <div className="checkout-address-head"><MapPin size={21} aria-hidden="true" /><span>{c.checkout.deliveryUz}</span></div>
           {state.deliveryProfiles.length > 0 && <fieldset className="recipient-choices"><legend>{c.checkout.saved}</legend>
             {state.deliveryProfiles.map(profile => {
               const passport = identityProfiles.find(identity => identity.recipientProfileId === profile.id);
+              // The label repeats the name when a recipient was saved under it: show it once.
+              const named = profile.label.trim() && profile.label.trim() !== profile.recipient.trim();
               return <label className={"recipient-choice" + (selectedProfile === profile.id ? " selected" : "")} key={profile.id}>
                 <input type="radio" name="checkout-recipient" value={profile.id} checked={selectedProfile === profile.id} onChange={() => { setSelectedProfile(profile.id); setDelivery(profile); }} />
-                <span className="recipient-choice-body"><strong>{profile.label}{profile.primary ? ` · ${c.checkout.primary}` : ""}</strong><span>{profile.recipient} · {profile.phone}</span><small>{profile.region}, {profile.city}, {profile.address}</small><small className={passport ? "recipient-passport-ok" : "recipient-passport-missing"}>{passport ? c.checkout.passportOk : c.checkout.passportMissing}</small></span>
+                <span className="recipient-choice-body">
+                  <strong>{named ? profile.label : profile.recipient}{profile.primary && <em>{c.checkout.primary}</em>}</strong>
+                  <span>{named && <>{profile.recipient} · </>}<span className="nowrap">{profile.phone}</span></span>
+                  <small>{profile.region}, {profile.city}, {profile.address}</small>
+                  <small className={passport ? "recipient-passport-ok" : "recipient-passport-missing"}>{passport ? c.checkout.passportOk : c.checkout.passportMissing}</small>
+                </span>
               </label>;
             })}
-            <button type="button" className={"recipient-choice recipient-choice-manual" + (selectedProfile === "manual" ? " selected" : "")} onClick={() => { setSelectedProfile("manual"); setDelivery(state.deliveryProfile ?? { ...emptyDelivery, recipient: user?.name ?? "", phone: state.communication.phone }); }}><Plus size={16} aria-hidden="true" />{c.checkout.newRecipient}</button>
-            <small>{c.checkout.chooseHint}</small>
+            <label className={"recipient-choice recipient-choice-manual" + (selectedProfile === "manual" ? " selected" : "")}>
+              <input type="radio" name="checkout-recipient" value="manual" checked={selectedProfile === "manual"} onChange={() => { setSelectedProfile("manual"); setDelivery({ ...emptyDelivery }); }} />
+              <span className="recipient-choice-body"><strong><Plus size={16} aria-hidden="true" />{c.checkout.newRecipient}</strong></span>
+            </label>
           </fieldset>}
+          {/* A saved recipient is complete as chosen; the address fields are for a new one. */}
+          {(selectedProfile === "manual" || !state.deliveryProfiles.length) && <>
           <div className="two-fields">
             <div className="field"><label htmlFor="recipient">{c.checkout.recipient}</label><input id="recipient" autoComplete="name" required minLength={2} maxLength={100} value={delivery.recipient} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, recipient: event.target.value }); }} /></div>
-            <div className="field"><label htmlFor="recipient-phone">{c.checkout.phone}<span className="sr-only"> +998</span></label><span className="rf-phone"><span aria-hidden="true">+998</span><input id="recipient-phone" required type="tel" inputMode="tel" autoComplete="tel-national" pattern="\d{2} \d{3} \d{2} \d{2}" title={recipientCopy[locale].phoneError} placeholder="90 123 45 67" value={formatUzLocal(uzPhoneDigits(delivery.phone))} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, phone: uzPhone(uzPhoneDigits(event.target.value)) }); }} /></span></div>
+            <div className="field"><label htmlFor="recipient-phone">{c.checkout.phone}<span className="sr-only"> +998</span></label><span className="rf-phone"><span aria-hidden="true">+998</span><UzPhoneInput id="recipient-phone" required pattern="\d{2} \d{3} \d{2} \d{2}" title={recipientCopy[locale].phoneError} digits={uzPhoneDigits(delivery.phone)} onDigits={(digits) => { setSelectedProfile("manual"); setDelivery({ ...delivery, phone: uzPhone(digits) }); }} /></span></div>
             <div className="field"><label htmlFor="region">{c.checkout.region}</label><select id="region" autoComplete="address-level1" required value={delivery.region} onChange={(event) => { const region = event.target.value, capital = regionCapital(region); setSelectedProfile("manual"); setDelivery({ ...delivery, region, city: !delivery.city.trim() || cities.includes(delivery.city) ? capital ?? delivery.city : delivery.city }); }}>{!regions.includes(delivery.region) && <option value={delivery.region}>{delivery.region || recipientCopy[locale].regionPlaceholder}</option>}{regions.map(value => <option key={value} value={value}>{regionLabel(value, locale)}</option>)}</select></div>
             <div className="field"><label htmlFor="city">{c.checkout.city}</label><input id="city" list="city-suggestions" autoComplete="address-level2" required minLength={2} maxLength={100} value={delivery.city} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, city: event.target.value }); }} /><datalist id="city-suggestions">{suggestions(cities, delivery.city).map(value => <option key={value} value={value} />)}</datalist></div>
           </div>
-          <div className="field"><label htmlFor="delivery-address">{c.checkout.street}</label><input id="delivery-address" list="street-suggestions" autoComplete="street-address" required minLength={5} maxLength={220} placeholder={c.checkout.streetPlaceholder} value={delivery.address} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, address: event.target.value }); }} /><datalist id="street-suggestions">{suggestions(streets, delivery.address).map(value => <option key={value} value={value} />)}</datalist><small>{c.checkout.addressHint}</small></div>
-          <div className="two-fields">
-            <div className="field"><label htmlFor="postal-code">{c.checkout.postal}</label><input id="postal-code" autoComplete="postal-code" inputMode="numeric" maxLength={20} value={delivery.postalCode} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, postalCode: event.target.value }); }} /></div>
-            <div className="field"><label htmlFor="delivery-comment">{c.checkout.comment}</label><input id="delivery-comment" maxLength={300} value={delivery.comment} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, comment: event.target.value }); }} /></div>
-          </div>
-          {selectedProfile === "manual" && <div className="basket-consent"><Checkbox id="save-recipient" checked={saveRecipient} onCheckedChange={(value) => setSaveRecipient(value === true)} /><label htmlFor="save-recipient">{c.checkout.saveRecipient}</label></div>}
+          <div className="field"><label htmlFor="delivery-address">{c.checkout.street}</label><input id="delivery-address" list="street-suggestions" autoComplete="street-address" required minLength={5} maxLength={220} placeholder={c.checkout.streetPlaceholder} value={delivery.address} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, address: event.target.value }); }} /><datalist id="street-suggestions">{suggestions(streets, delivery.address).map(value => <option key={value} value={value} />)}</datalist></div>
+          {/* Optional details stay folded unless they are already filled. */}
+          <details className="checkout-optional" open={Boolean(delivery.postalCode || delivery.comment) || undefined}>
+            <summary>{c.checkout.optionalFields}</summary>
+            <div className="two-fields">
+              <div className="field"><label htmlFor="postal-code">{c.checkout.postal}</label><input id="postal-code" autoComplete="postal-code" inputMode="numeric" maxLength={20} value={delivery.postalCode} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, postalCode: event.target.value }); }} /></div>
+              <div className="field"><label htmlFor="delivery-comment">{c.checkout.comment}</label><input id="delivery-comment" maxLength={300} value={delivery.comment} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, comment: event.target.value }); }} /></div>
+            </div>
+          </details>
+          <div className="basket-consent"><Checkbox id="save-recipient" checked={saveRecipient} onCheckedChange={(value) => setSaveRecipient(value === true)} /><label htmlFor="save-recipient">{c.checkout.saveRecipient}</label></div>
+          </>}
         </>}
         {review && <section className="checkout-review">
           <div className="basket-review-recipient"><div><h3>{delivery.recipient}</h3><p>{delivery.phone}</p><p>{delivery.region}, {delivery.city}, {delivery.address}</p></div><button type="button" className="text-button" onClick={() => setReview(false)}>{c.checkout.edit}</button></div>
           <ul className="basket-review-items">{state.cart.map(item => <li key={item.id}>
-            <span>{item.product.name}<small>{item.variant} · {item.quantity}</small>
+            <span>{item.product.name}<small>{[shownVariant(item.variant), `× ${item.quantity}`].filter(Boolean).join(" · ")}</small>
               {(item.requestedServiceIds ?? []).map(id => {
                 const service = pricing.serviceCatalog.find(value => value.id === id);
                 if (!service) return null;
@@ -386,6 +442,9 @@ export function CartView() {
             </span><b>{formatSum(item.quote.total, locale)}</b>
           </li>)}</ul>
           {summaryLines}
+          <HoldNote amount={sums.storeShippingHold} locale={locale} pricing={pricing} />
+          {/* The estimate for the person chosen in this checkout; the server works it out again and keeps it with the orders. */}
+          <CustomsPanel estimate={cartCustomsEstimate(state, pricing, { profile: state.deliveryProfiles.find(profile => profile.id === selectedProfile), name: delivery.recipient }, customsChoices)} choices={customsChoices} locale={locale} pricing={pricing} profiles={[]} />
           <div className={"basket-consent" + (consentError ? " invalid" : "")}>
             <Checkbox id="checkout-consent" checked={consent} aria-invalid={consentError} aria-describedby={consentError ? "checkout-consent-error" : undefined} onCheckedChange={(value) => { setConsent(value === true); if (value === true) setConsentError(false); }} />
             <label htmlFor="checkout-consent">{c.checkout.consent.before}<Link href="/customs" target="_blank">{c.checkout.consent.link}</Link>{c.checkout.consent.after}</label>

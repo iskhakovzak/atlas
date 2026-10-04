@@ -38,7 +38,7 @@ test('generated catalog boilerplate is hidden without erasing real product descr
 test('admin import creates a reviewable draft without claiming store shipping',()=>{
  const draft=importDraft(extracted,[],'США',1000);
  assert.equal(draft.sourceUrl,'https://kyliecosmetics.com/products/matte-lip-kit');
- assert.equal(draft.category,'Красота и уход');assert.equal(draft.price,35);assert.equal(draft.boxedWeight,.8);
+ assert.equal(draft.category,'Красота и уход');assert.equal(draft.price,35);assert.equal(draft.boxedWeight,.4);
  assert.deepEqual(draft.variants[0],{id:'bare-full',label:'Bare · Full size',color:'Bare',size:'Full size',sizeLabel:undefined,available:true,price:35,image:undefined});
  assert.deepEqual(catalogIssues(draft,1001),[]);assert.equal(draft.warnings[0],'Доставка неизвестна');
 });

@@ -27,6 +27,10 @@ export const sourceVariantSchema = z.object({
   availabilityKnown: z.boolean().optional(),
   price: z.number().finite().nonnegative().optional(),
   image: z.string().trim().max(3000).optional(),
+  /** Units the store reports for this option (eBay); absent when the store does not say. */
+  quantity: z.number().int().min(0).max(100_000).optional(),
+  /** The store only says "more than N". */
+  quantityMoreThan: z.number().int().min(0).max(100_000).optional(),
 });
 export type SourceVariant = z.infer<typeof sourceVariantSchema>;
 export const serviceOfferingSchema = z.object({
@@ -96,8 +100,17 @@ export const productSchema = z.object({
   priceNeedsConfirmation: z.boolean().optional(),
   imageOrigin: z.string().optional(),
   declarationDescription: z.string().max(240).optional(),
+  /** Units left for the chosen option as the store reports them (only eBay does); the server sets these. */
+  stockQuantity: z.number().int().min(0).max(100_000).optional(),
+  stockMoreThan: z.number().int().min(0).max(100_000).optional(),
+  stockSource: z.enum(["ebay"]).optional(),
+  /** How the boxed weight was found: published by the store, or an editable estimate. */
+  weightBasis: z.enum(["store", "estimate", "catalog", "customer"]).optional(),
 });
 export type Product = z.infer<typeof productSchema>;
+/** The most units of one line the customer may choose: 10, or fewer when the store reports less stock. */
+export const maxLineQuantity = (product: Pick<Product, "stockQuantity">) =>
+  Math.max(0, Math.min(10, product.stockQuantity ?? 10));
 export const products: Product[] = [
   {
     id: "sneaker",
@@ -107,7 +120,7 @@ export const products: Product[] = [
     brand: "Обувь · США",
     category: "Обувь",
     usd: 99,
-    weight: 2.1,
+    weight: 1.9,
     image: "/images/sneaker.jpg",
     variants: ["US 8", "US 9", "US 10", "US 11"],
     description:
@@ -121,7 +134,7 @@ export const products: Product[] = [
     brand: "Аудио · Европа",
     category: "Электроника",
     usd: 129,
-    weight: 0.7,
+    weight: 0.5,
     image: "/images/headphones.jpg",
     variants: ["Чёрный", "Светлый"],
     description:
@@ -135,7 +148,7 @@ export const products: Product[] = [
     brand: "Аксессуары · Европа",
     category: "Аксессуары",
     usd: 65,
-    weight: 1.2,
+    weight: 1,
     image: "/images/backpack.jpg",
     variants: ["Стандартный"],
     description:
@@ -144,7 +157,10 @@ export const products: Product[] = [
 ];
 export const pricingSchema = z.object({
   fx: positive.max(1_000_000),
+  // International delivery per kg in soum, as quotes and settlements use it. When `perKgUsd` is set
+  // (the carrier prices in USD), `normalizePricing` derives this from it at the current rate.
   perKg: positive.max(10_000_000),
+  perKgUsd: positive.max(1_000).optional(),
   margin: z.number().finite().min(0).max(1),
   buyoutFee: z.number().finite().min(0).max(1).default(0),
   conversionFee: z.number().finite().min(0).max(1).default(0),
@@ -164,6 +180,7 @@ export const pricingSchema = z.object({
   // Old centrally managed pricing rows remain valid and inherit the base tariff.
   countryOverrides: z.record(z.string().min(1).max(80), z.object({
     perKg: positive.max(10_000_000).optional(),
+    perKgUsd: positive.max(1_000).optional(),
     margin: z.number().finite().min(0).max(1).optional(),
     buyoutFee: z.number().finite().min(0).max(1).optional(),
     conversionFee: z.number().finite().min(0).max(1).optional(),
@@ -171,15 +188,43 @@ export const pricingSchema = z.object({
     optionalServices: z.number().finite().min(0).max(10_000_000).optional(),
     reserve: z.number().finite().min(0).max(2).optional(),
   }).strict()).default({}),
+  // Where `fx` comes from: the Central Bank of Uzbekistan's USD rate × `fxMarkup`, fetched by the server
+  // (lib/market/fx-server.ts), or a rate the operator sets. Customers see which one and when it was set.
+  fxSource: z.enum(["cbu", "manual"]).default("manual"),
+  fxMarkup: z.number().finite().min(1).max(1.2).default(1.012),
+  fxCbuRate: positive.max(1_000_000).optional(),
+  fxCbuDate: z.string().max(20).optional(),
+  fxUpdatedAt: amount.optional(),
+  // Customs estimate overrides (informational only, never in the total); defaults and sources in customs.ts.
+  customsAllowanceUsd: z.number().finite().min(0).max(10_000).optional(),
+  customsRate: z.number().finite().min(0).max(1).optional(),
+  customsMinimumPerKg: z.number().finite().min(0).max(100).optional(),
+  // "Atlas helps pay customs": this share of the dutiable value, quoted on request, never charged automatically.
+  customsHelpFee: z.number().finite().min(0).max(0.2).default(0.03),
+  // Owner decisions already applied to this row (see upgradePricing).
+  revision: z.number().int().min(0).max(1000).optional(),
   version: z.string().min(1).max(80),
   updatedAt: amount,
   managedBy: z.string().max(160).optional(),
 });
 export type Pricing = z.infer<typeof pricingSchema>;
+/** Atlas express delivery from the US, UK, China, Germany, Italy and Spain: $15 per kg ($1.5 per 100 g). */
+export const deliveryPerKgUsd = 15;
+/** Atlas service fee on merchandise only (owner's decision, 4 October 2026); never on delivery or customs. */
+export const atlasServiceFee = 0.0998;
+/** Owner decisions that tariffs saved earlier still lack: 1 = $15 per kg, 2 = 9.98% fee and the CBU rate × 1.012. */
+export const pricingRevision = 2;
+/** Until the server reads the Central Bank rate, the owner's estimate stands in, shown as a set rate. */
+const startingFx = 11990;
 export const tariff: Pricing = {
-  fx: 12800,
-  perKg: 90000,
-  margin: 0.12,
+  fx: startingFx,
+  perKg: deliveryPerKgUsd * startingFx,
+  perKgUsd: deliveryPerKgUsd,
+  fxSource: "cbu",
+  fxMarkup: 1.012,
+  customsHelpFee: 0.03,
+  revision: pricingRevision,
+  margin: atlasServiceFee,
   buyoutFee: 0,
   conversionFee: 0,
   deliveryMargin: 0,
@@ -193,6 +238,42 @@ export const tariff: Pricing = {
   version: "demo-1",
   updatedAt: 0,
 };
+/** The rate in use: the Central Bank rate × markup once the server has read it, else the set rate. */
+export function effectiveFx(config: Pick<Pricing, "fx" | "fxSource" | "fxMarkup" | "fxCbuRate">) {
+  return config.fxSource === "cbu" && config.fxCbuRate ? Math.round(config.fxCbuRate * (config.fxMarkup ?? 1.012)) : config.fx;
+}
+/** Derive the rate, then soum per kg from USD per kg at that rate, for the base rate and each country override. */
+export function normalizePricing(config: Pricing): Pricing {
+  const fx = effectiveFx(config);
+  const soum = (usd: number) => Math.round(usd * fx);
+  const countryOverrides = Object.fromEntries(Object.entries(config.countryOverrides ?? {}).map(([country, override]) =>
+    [country, override.perKgUsd === undefined ? override : { ...override, perKg: soum(override.perKgUsd) }]));
+  return { ...config, fx, perKg: config.perKgUsd === undefined ? config.perKg : soum(config.perKgUsd), countryOverrides };
+}
+/**
+ * A tariff saved before the owner's decisions lacks them: $15 per kg, the 9.98% fee and the Central Bank
+ * rate × 1.012. It gets them under a new version, so carts quoted under the old one are shown again.
+ */
+export function upgradePricing(config: Pricing): Pricing {
+  if ((config.revision ?? 0) >= pricingRevision) return normalizePricing(config);
+  return normalizePricing({
+    ...config,
+    perKgUsd: config.perKgUsd ?? deliveryPerKgUsd,
+    margin: atlasServiceFee,
+    fxSource: "cbu",
+    fxMarkup: 1.012,
+    revision: pricingRevision,
+    version: `${config.version.slice(0, 70)}+r${pricingRevision}`,
+  });
+}
+/** Delivery per kg in USD for a dispatch country, as the customer pays it (with the delivery margin). */
+export function deliveryPerKgUsdFor(config: Pricing, country?: string) {
+  const p = pricingForCountry(config, country);
+  const override = country ? config.countryOverrides?.[country] : undefined;
+  // A soum-only country override wins over the base USD rate.
+  const usd = override?.perKg !== undefined && override.perKgUsd === undefined ? p.perKg / p.fx : (p.perKgUsd ?? p.perKg / p.fx);
+  return Math.round(usd * (1 + p.deliveryMargin) * 100) / 100;
+}
 /** Resolve only the pricing dimensions explicitly overridden for this item's
  * actual dispatch country. FX rates stay currency-based in `rates`. */
 export function pricingForCountry(config: Pricing, country?: string): Pricing {
@@ -239,6 +320,8 @@ const quoteSchema = z.object({
   perKg: positive.optional(),
   divisor: positive.optional(),
   sourceShipping: amount.optional(),
+  /** Unknown store delivery, held separately: never part of `total` or the amount to pay (4 October 2026). */
+  storeShippingHold: amount.optional(),
   buyout: amount.optional(),
   conversion: amount.optional(),
   deliveryMargin: amount.optional(),
@@ -337,6 +420,9 @@ const storeShippingSettlementSchema = z.object({
   actualUsd: z.number().finite().nonnegative(),
   refund: amount,
   extra: amount,
+  /** The order had a separate hold (not paid with the order): `estimated` is the hold, `released` its unused part. */
+  held: z.boolean().optional(),
+  released: amount.optional(),
 });
 export type StoreShippingSettlement = z.infer<
   typeof storeShippingSettlementSchema
@@ -512,6 +598,33 @@ const warehouseInspectionSchema = z.object({
   packageGroup: z.string().max(80).default(""),
 });
 export type WarehouseInspection = z.infer<typeof warehouseInspectionSchema>;
+/** One checkout's customs estimate for one recipient and calendar month (CM resolution No. 244). */
+export const customsEstimateSchema = z.object({
+  recipientKey: z.string().max(200),
+  recipientName: z.string().max(100).optional(),
+  month: z.string().regex(/^\d{4}-\d{2}$/),
+  allowanceUsd: z.number().finite().nonnegative(),
+  atlasUsedUsd: z.number().finite().nonnegative(),
+  outsideUsedUsd: z.number().finite().nonnegative().optional(),
+  /** The customer used part of the allowance elsewhere but did not say how much: counted as fully used. */
+  outsideUnknown: z.boolean().optional(),
+  valueUsd: z.number().finite().nonnegative(),
+  dutiableUsd: z.number().finite().nonnegative(),
+  rate: z.number().finite().min(0).max(1),
+  minimumPerKg: z.number().finite().min(0),
+  estimateUsd: z.number().finite().nonnegative(),
+  helpRequested: z.boolean().optional(),
+  helpFeeUsd: z.number().finite().nonnegative().optional(),
+  checkedOn: z.string().max(20),
+});
+export type CustomsEstimate = z.infer<typeof customsEstimateSchema>;
+/** The customer's customs choices in the cart: allowance used outside Atlas, and the "help pay customs" request. */
+export const cartCustomsSchema = z.object({
+  outsideUsed: z.boolean().default(false),
+  outsideUsd: z.number().finite().min(0).max(100_000).optional(),
+  help: z.boolean().default(false),
+});
+export type CartCustoms = z.infer<typeof cartCustomsSchema>;
 const orderSchema = z.object({
   id: z.string(),
   product: productSchema,
@@ -542,6 +655,10 @@ const orderSchema = z.object({
   changeRequests: z.array(changeRequestSchema).optional(),
   warehouseServiceRequests: z.array(warehouseServiceRequestSchema).max(40).optional(),
   warehouseInspection: warehouseInspectionSchema.optional(),
+  /** The customer's note from the cart line; for operators only, never sent to the store. */
+  note: z.string().max(500).optional(),
+  /** The customs estimate the customer saw at checkout for this recipient and month (informational). */
+  customs: customsEstimateSchema.optional(),
 });
 export type Order = z.infer<typeof orderSchema>;
 const entrySchema = z.object({
@@ -610,7 +727,9 @@ const cartSchema = z.object({
     previousShipping: storeAmount.optional(), shipping: storeAmount.optional(), at: amount,
   }).optional(),
   /** The last live check could not confirm the item. Only "unreachable" with a recent earlier check lets checkout go on. */
-  sourceIssue: z.object({ kind: z.enum(["currency", "variant", "price", "unreachable"]), at: amount }).optional(),
+  sourceIssue: z.object({ kind: z.enum(["currency", "variant", "price", "unreachable", "stock"]), at: amount }).optional(),
+  /** The customer's note for Atlas about this item; kept through repricing, shown to operators, never sent to the store. */
+  note: z.string().trim().max(500).optional(),
 });
 export type CartItem = z.infer<typeof cartSchema>;
 export type SourceIssueKind = NonNullable<CartItem["sourceIssue"]>["kind"];
@@ -758,16 +877,23 @@ export function merchantParcelKey(item: CartItem) {
 }
 
 /**
- * Store delivery for a quote. A stated charge is used as is. An unknown one is a reserve,
- * waived from `storeShippingFreeFromUsd` of merchandise from that store. A store that still
- * charges is settled by confirmStoreShipping, and any extra waits for the customer's approval.
+ * Store delivery charged in the quote: only an amount the store states. Unknown delivery is never
+ * charged: it is free above `storeShippingFreeFromUsd` of items from that store, else held separately
+ * (storeShippingHoldUsd). A store that still charges is settled by confirmStoreShipping with consent.
  */
-export function storeShippingUsd(product: Pick<Product, "sourceShippingUsd" | "sourceShippingEstimated">, storeSubtotalUsd: number, config: Pricing = tariff) {
-  const usd = product.sourceShippingUsd ?? 0;
-  return product.sourceShippingEstimated && storeSubtotalUsd >= (config.storeShippingFreeFromUsd ?? tariff.storeShippingFreeFromUsd) ? 0 : usd;
+export function storeShippingUsd(product: Pick<Product, "sourceShippingUsd" | "sourceShippingEstimated">) {
+  return product.sourceShippingEstimated ? 0 : product.sourceShippingUsd ?? 0;
+}
+/** Unknown store delivery is free when items from that store cost strictly more than the threshold ($50). */
+export function storeShippingFree(product: Pick<Product, "sourceShippingEstimated">, storeSubtotalUsd: number, config: Pricing = tariff) {
+  return Boolean(product.sourceShippingEstimated) && storeSubtotalUsd > (config.storeShippingFreeFromUsd ?? tariff.storeShippingFreeFromUsd);
+}
+/** The preliminary hold for unknown store delivery (USD): outside the total and the amount to pay. */
+export function storeShippingHoldUsd(product: Pick<Product, "sourceShippingUsd" | "sourceShippingEstimated">, storeSubtotalUsd: number, config: Pricing = tariff) {
+  return product.sourceShippingEstimated && !storeShippingFree(product, storeSubtotalUsd, config) ? product.sourceShippingUsd ?? 0 : 0;
 }
 
-/** Unknown store delivery per store order in the cart: one reserve below the threshold, none from it. */
+/** Unknown store delivery per store order in the cart: one hold up to the threshold, free above it. */
 export function storeShippingReserves(items: CartItem[], config: Pricing = tariff) {
   const groups = new Map<string, CartItem[]>();
   for (const item of items) {
@@ -777,10 +903,12 @@ export function storeShippingReserves(items: CartItem[], config: Pricing = tarif
   return [...groups].flatMap(([key, group]) => {
     const estimated = group.filter((item) => item.product.sourceShippingEstimated);
     if (!estimated.length) return [];
-    const subtotalUsd = group.reduce((sum, item) => sum + item.product.usd * item.quantity, 0);
+    const subtotalUsd = Math.round(group.reduce((sum, item) => sum + item.product.usd * item.quantity, 0) * 100) / 100;
     const freeFromUsd = config.storeShippingFreeFromUsd ?? tariff.storeShippingFreeFromUsd;
-    const reserveUsd = Math.max(...estimated.map((item) => storeShippingUsd(item.product, subtotalUsd, config)));
-    return [{ key, itemIds: estimated.map((item) => item.id), subtotalUsd, reserveUsd, freeFromUsd, missingUsd: reserveUsd > 0 ? Math.max(0, freeFromUsd - subtotalUsd) : 0 }];
+    const reserveUsd = Math.max(...estimated.map((item) => storeShippingHoldUsd(item.product, subtotalUsd, config)));
+    // "Free above $50": the smallest addition that makes the subtotal strictly greater.
+    const missingUsd = reserveUsd > 0 ? Math.max(0.01, Math.round((freeFromUsd - subtotalUsd + 0.01) * 100) / 100) : 0;
+    return [{ key, itemIds: estimated.map((item) => item.id), subtotalUsd, reserveUsd, freeFromUsd, missingUsd, free: reserveUsd === 0 }];
   });
 }
 
@@ -795,7 +923,7 @@ export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing
         item.product.weight,
         now,
         item.quantity,
-        item.product.sourceShippingUsd ?? 0,
+        storeShippingUsd(item.product),
         itemPricing,
       ),
     };
@@ -840,21 +968,25 @@ export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing
       };
     });
   }
+  // The hold is split by merchandise across that store's lines for display and order snapshots; the totals stay without it.
   for (const parcel of storeShippingReserves(next, config)) {
     const indexes = parcel.itemIds.map((id) => next.findIndex((item) => item.id === id));
-    const reserveTotal = Math.ceil(parcel.reserveUsd * config.fx);
+    const holdTotal = Math.ceil(parcel.reserveUsd * config.fx);
     const merchandiseTotal = indexes.reduce((sum, index) => sum + next[index].quote.merchandise, 0);
-    let left = reserveTotal;
+    let left = holdTotal;
     indexes.forEach((index, position) => {
       const item = next[index];
       const share = merchandiseTotal ? item.quote.merchandise / merchandiseTotal : 1 / indexes.length;
-      const sourceShipping = position === indexes.length - 1 ? left : Math.min(left, Math.round(reserveTotal * share));
-      left -= sourceShipping;
-      item.quote = { ...item.quote, sourceShipping, total: item.quote.total - (item.quote.sourceShipping ?? 0) + sourceShipping };
+      const storeShippingHold = position === indexes.length - 1 ? left : Math.min(left, Math.round(holdTotal * share));
+      left -= storeShippingHold;
+      item.quote = { ...item.quote, storeShippingHold };
     });
   }
   return next;
 }
+/** The separate hold for unknown store delivery across cart lines (soum); never part of the amount to pay. */
+export const holdOf = (items: { quote: Pick<Quote, "storeShippingHold"> }[]) =>
+  items.reduce((sum, item) => sum + (item.quote.storeShippingHold ?? 0), 0);
 export const stateSchema = z.object({
   orders: z.array(orderSchema),
   entries: z.array(entrySchema),
@@ -876,6 +1008,7 @@ export const stateSchema = z.object({
   }),
   messageDeliveries: z.array(messageDeliverySchema).default([]),
   supportTickets: z.array(supportTicketSchema).default([]),
+  cartCustoms: cartCustomsSchema.optional(),
   version: z.number().default(3),
 });
 export type State = z.infer<typeof stateSchema>;
@@ -1024,26 +1157,46 @@ export function addToCart(
   variant: string,
   now = Date.now(),
   config: Pricing = tariff,
+  quantity = 1,
+  note?: string,
 ): State {
   if (!p.variants.includes(variant)) throw Error("Выберите вариант товара.");
-  const itemPricing = pricingForCountry(config, p.country);
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) throw Error("Количество — от 1 до 10.");
+  const comment = note?.trim().slice(0, 500) || undefined;
   const item = state.cart.find(
     (i) => i.product.id === p.id && i.variant === variant,
   );
-  if (item)
-    return changeQuantity(state, item.id, item.quantity + 1, now, config);
+  if (item) {
+    // The same option again adds to that line (with the fresh store data) and keeps its note unless a new one is given.
+    const merged = { ...state, cart: state.cart.map((i) => i.id === item.id ? { ...i, product: p, note: comment ?? i.note } : i) };
+    return changeQuantity(merged, item.id, item.quantity + quantity, now, config);
+  }
+  if (quantity > maxLineQuantity(p)) throw Error(`В магазине осталось ${p.stockQuantity} шт. этого варианта.`);
+  const itemPricing = pricingForCountry(config, p.country);
   const cart = [
     ...state.cart,
     {
       id: crypto.randomUUID(),
       product: p,
       variant,
-      quantity: 1,
+      quantity,
       requestedServiceIds: config.serviceCatalog.filter((service) => service.enabled && service.required && service.requestStage === "checkout").map((service) => service.id),
-      quote: quote(p.usd, p.weight, now, 1, p.sourceShippingUsd ?? 0, itemPricing),
+      quote: quote(p.usd, p.weight, now, quantity, storeShippingUsd(p), itemPricing),
+      ...(comment ? { note: comment } : {}),
     },
   ];
   return { ...state, cart: repriceCart(cart, now, config)};
+}
+/** The customer's note on a cart line; an empty text removes it. */
+export function setCartNote(state: State, id: string, note: string): State {
+  if (!state.cart.some((item) => item.id === id)) throw Error("Товар уже удалён из корзины.");
+  const comment = note.trim().slice(0, 500);
+  return { ...state, cart: state.cart.map((item) => item.id === id ? { ...item, note: comment || undefined } : item) };
+}
+/** Customs choices for this cart: allowance used outside Atlas (amount optional) and the help request. */
+export function setCartCustoms(state: State, value: CartCustoms): State {
+  const checked = cartCustomsSchema.parse(value);
+  return { ...state, cartCustoms: { ...checked, outsideUsd: checked.outsideUsed ? checked.outsideUsd : undefined } };
 }
 export function changeQuantity(
   state: State,
@@ -1054,6 +1207,9 @@ export function changeQuantity(
 ): State {
   const item = state.cart.find((i) => i.id === id);
   if (!item) throw Error("Товар уже удалён из корзины.");
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) throw Error("Количество — от 1 до 10.");
+  // Only a stock count the store itself reported limits the quantity; an unknown stock does not.
+  if (quantity > maxLineQuantity(item.product)) throw Error(`В магазине осталось ${item.product.stockQuantity} шт. этого варианта.`);
   const itemPricing = pricingForCountry(config, item.product.country);
   return {
     ...state,
@@ -1062,12 +1218,14 @@ export function changeQuantity(
         ? {
             ...i,
             quantity,
+            // Lowering the quantity to what the store has left resolves a stock mark.
+            sourceIssue: i.sourceIssue?.kind === "stock" ? undefined : i.sourceIssue,
             quote: quote(
               i.product.usd,
               i.product.weight,
               now,
               quantity,
-              i.product.sourceShippingUsd ?? 0,
+              storeShippingUsd(i.product),
               itemPricing,
             ),
           }
@@ -1089,7 +1247,7 @@ export function renewCart(
         i.product.weight,
         now,
         i.quantity,
-        i.product.sourceShippingUsd ?? 0,
+        storeShippingUsd(i.product),
         pricingForCountry(config, i.product.country),
       ),
     })), now, config),
@@ -1128,6 +1286,7 @@ export function checkoutCart(
   deliveryProfileId?: string,
   identityProfileId?: string,
   config: Pricing = tariff,
+  customs?: CustomsEstimate,
 ): State {
   if (state.checkoutKeys.includes(key)) return state;
   if (!state.cart.length) throw Error("Корзина пуста.");
@@ -1162,6 +1321,8 @@ export function checkoutCart(
     throw Error("Тарифы Atlas обновились. Проверьте новый итог перед оформлением.");
   if (state.cart.some(blockingSourceIssue))
     throw Error("Магазин изменил данные товара. Загрузите отмеченные товары заново.");
+  const overStock = state.cart.find((i) => i.quantity > maxLineQuantity(i.product));
+  if (overStock) throw Error(`В магазине осталось ${overStock.product.stockQuantity} шт. «${overStock.product.name}». Уменьшите количество.`);
   let available = useBalance ? Math.max(0, balanceOf(state)) : 0;
   const selectedDelivery = deliveryProfileId ? state.deliveryProfiles.find((profile) => profile.id === deliveryProfileId) : undefined;
   if (deliveryProfileId && !selectedDelivery) throw Error("Выбранный получатель больше не сохранён. Обновите профиль.");
@@ -1221,6 +1382,8 @@ export function checkoutCart(
         updatedAt: now,
       },
       customsConsent: { version: customsVersion, acceptedAt: now },
+      ...(i.note ? { note: i.note } : {}),
+      ...(customs ? { customs } : {}),
       history: [
         {
           at: now,
@@ -1229,6 +1392,9 @@ export function checkoutCart(
             money(i.quote.total) +
             (payable ? ". Ожидается подтверждение платёжного провайдера." : ". Учтено из внутреннего баланса Atlas."),
         },
+        ...(i.quote.storeShippingHold
+          ? [{ at: now, text: "Предварительный резерв доставки магазина " + money(i.quote.storeShippingHold) + " удерживается отдельно и не входит в сумму заказа. Менеджер уточнит фактическую доставку." }]
+          : []),
         ...sourceCheckHistory(i, now),
       ],
     } as Order;
@@ -1534,8 +1700,25 @@ export function confirmStoreShipping(
     throw Error("Подтверждение доставки для этого заказа недоступно.");
   if (!Number.isFinite(actualUsd) || actualUsd < 0 || actualUsd > 10000)
     throw Error("Укажите фактическую доставку магазина в USD.");
-  const estimated = o.quote.sourceShipping ?? 0;
   const actual = Math.ceil(actualUsd * (o.quote.fx ?? tariff.fx));
+  if (o.quote.storeShippingHold !== undefined) {
+    // Orders since 4 October 2026: the hold was kept apart from the order sum and nothing was paid for store
+    // delivery. Within the hold the customer already agreed to it and the rest is released; above the hold
+    // (or with free delivery, any charge) the difference waits for the customer's approval.
+    const hold = o.quote.storeShippingHold;
+    const held: StoreShippingSettlement = { estimated: hold, actual, actualUsd, refund: 0, extra: Math.max(0, actual - hold), held: true, released: Math.max(0, hold - actual) };
+    const text = held.extra
+      ? `Менеджер подтвердил доставку магазина ${money(actual)}. Это больше резерва ${money(hold)}: нужно согласие покупателя на разницу ${money(held.extra)}.`
+      : `Менеджер подтвердил доставку магазина ${money(actual)} в пределах резерва ${money(hold)}.` + (held.released ? ` Неиспользованная часть резерва ${money(held.released)} освобождается.` : "");
+    return withNotification(
+      replace(state, { ...o, storeShippingSettlement: held, history: [...o.history, { at: now, text }] }),
+      held.extra ? "Нужно согласовать доставку" : "Доставка магазина уточнена",
+      held.extra ? "Фактическая доставка магазина больше резерва. Откройте заказ и подтвердите разницу." : "Фактическая доставка магазина в пределах резерва. Списаний не было: оплата пока не подключена.",
+      id,
+      now,
+    );
+  }
+  const estimated = o.quote.sourceShipping ?? 0;
   const diff = estimated - actual;
   const settlement: StoreShippingSettlement = {
     estimated,
