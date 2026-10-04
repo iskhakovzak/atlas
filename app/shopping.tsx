@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "@/components/site-link";
-import { ArrowRight, ArrowUpRight, BadgeCheck, Check, ClipboardPaste, Clock3, Info, Loader2, MapPin, Minus, Plus, ShieldCheck, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BadgeCheck, Check, ClipboardPaste, Clock3, Info, Loader2, Minus, Plus, ShieldCheck, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
 import { balanceOf, cartSignature, merchantParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, type CartItem, type DeliveryProfile } from "@/lib/market/domain";
@@ -16,7 +16,8 @@ import { storefrontLabel } from "@/lib/market/store-brands";
 import type { Locale } from "@/lib/market/i18n";
 import { Modal, ProductImage } from "./market-ui";
 import { SafeDeleteButton } from "./safe-delete-button";
-import { cities, formatUzLocal, regionCapital, regionLabel, regions, streets, suggestions, uzPhone, uzPhoneDigits } from "@/lib/market/addresses";
+import { cities, regionCapital, regionLabel, regions, streets, suggestions, uzPhone, uzPhoneDigits } from "@/lib/market/addresses";
+import { UzPhoneInput } from "./phone-input";
 import { CustomsEstimate } from "./customs-estimate";
 import { SummaryLine } from "./price-summary";
 
@@ -78,6 +79,17 @@ function usd(amount: number, locale: Locale) {
   return new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-US", { style: "currency", currency: "USD", minimumFractionDigits: digits, maximumFractionDigits: digits }).format(rounded);
 }
 
+/** The importer's name for the only option of a product: not worth showing to the customer. */
+const shownVariant = (variant?: string) => variant && variant !== "Выбранный вариант" ? variant : "";
+
+/** Long store titles are cut to three lines; a tap shows the whole name. */
+function ItemName({ name }: { name: string }) {
+  const [open, setOpen] = useState(false);
+  return <h3 className={"basket-name" + (open ? " open" : "")}>{name.length > 70
+    ? <button type="button" className="basket-name-toggle" aria-expanded={open} onClick={() => setOpen(value => !value)}>{name}</button>
+    : name}</h3>;
+}
+
 /** Checkout progress shared by the cart page and the checkout dialog. */
 function CheckoutSteps({ current, c }: { current: number; c: CartCopy }) {
   return <ol className="basket-steps" aria-label={c.stepsLabel}>{c.steps.map((step, index) =>
@@ -103,6 +115,16 @@ export function CartView() {
   const [paymentBusy, setPaymentBusy] = useState(false);
   const [paidFromCart, setPaidFromCart] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [summaryCta, setSummaryCta] = useState<HTMLButtonElement | null>(null);
+  const [summaryCtaInView, setSummaryCtaInView] = useState(false);
+
+  // The phone bar repeats the total and the button; it steps aside while the summary's own button is on screen.
+  useEffect(() => {
+    if (!summaryCta || !("IntersectionObserver" in window)) return;
+    const observer = new IntersectionObserver(([entry]) => setSummaryCtaInView(entry.isIntersecting), { rootMargin: "0px 0px -150px 0px" });
+    observer.observe(summaryCta);
+    return () => observer.disconnect();
+  }, [summaryCta]);
 
   useEffect(() => {
     if (!ready) return;
@@ -207,14 +229,14 @@ export function CartView() {
   function renderItem(item: CartItem) {
     const selectedServices = item.requestedServiceIds ?? [];
     const serviceUnits = item.requestedServiceUnits ?? {};
-    const meta = [item.variant, countryLabel(countryName(item.product), locale)].filter(Boolean).join(" · ");
+    const meta = [shownVariant(item.variant), countryLabel(countryName(item.product), locale)].filter(Boolean).join(" · ");
     const change = item.priceChange, issue = item.sourceIssue, currency = change?.currency ?? item.product.sourceCurrency ?? "USD";
     const reopen = item.product.sourceUrl ? `/order-by-link?url=${encodeURIComponent(item.product.sourceUrl)}` : "";
     return <article className={"basket-item" + (issue && issue.kind !== "unreachable" ? " has-issue" : "")} key={item.id}>
       <div className="basket-photo"><ProductImage product={item.product} locale={locale} decorative /></div>
       <div className="basket-info">
         {item.product.brand && <p className="basket-brand">{item.product.brand}</p>}
-        <h3 className="basket-name">{item.product.name}</h3>
+        <ItemName name={item.product.name} />
         <p className="basket-meta">{meta}</p>
         <p className="basket-meta">{item.product.sourceUrl ? <a className="basket-source" href={item.product.sourceUrl} target="_blank" rel="noopener noreferrer">{c.item.storePrice}: {storePrice(item, locale)}<ArrowUpRight size={14} aria-hidden="true" /><span className="sr-only"> ({c.item.openStore})</span></a> : <>{c.item.storePrice}: {storePrice(item, locale)}</>}{item.quantity > 1 ? ` × ${item.quantity}` : ""}</p>
         {!change && !issue && item.product.sourceCheckedAt && <p className="basket-meta basket-checked"><BadgeCheck size={14} aria-hidden="true" />{c.item.checked(clock(item.product.sourceCheckedAt, locale))}</p>}
@@ -328,12 +350,12 @@ export function CartView() {
         <div className="basket-total"><span>{c.summary.payable}</span><strong>{formatSum(payable, locale)}</strong></div>
         <PriceHold expiresAt={earliestExpiry} locale={locale} c={c} />
         {cartMerchandiseUsd + usedThisMonth > courierAllowanceUsd && <CustomsEstimate key={usedThisMonth} valueUsd={cartMerchandiseUsd} grossKg={state.cart.reduce((sum, item) => sum + (item.product.boxedWeight ?? item.product.weight) * item.quantity, 0)} fx={pricing.fx} locale={locale} initialUsedUsd={usedThisMonth} />}
-        <button type="button" className="btn primary basket-cta" disabled={verifying} aria-busy={verifying} onClick={() => void openCheckout()}>{verifying ? <>{c.summary.verifying}<Loader2 size={18} className="spin" aria-hidden="true" /></> : <>{c.summary.checkout}<ArrowRight size={18} aria-hidden="true" /></>}</button>
+        <button ref={setSummaryCta} type="button" className="btn primary basket-cta" disabled={verifying} aria-busy={verifying} onClick={() => void openCheckout()}>{verifying ? <>{c.summary.verifying}<Loader2 size={18} className="spin" aria-hidden="true" /></> : <>{c.summary.checkout}<ArrowRight size={18} aria-hidden="true" /></>}</button>
         <ul className="basket-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{c.summary.assurance}</li><li><Info size={16} aria-hidden="true" />{c.summary.simulation}</li></ul>
       </aside>
     </div>
 
-    <div className="basket-sticky" role="region" aria-label={c.sticky.label}>
+    <div className={"basket-sticky" + (summaryCtaInView ? " is-hidden" : "")} role="region" aria-label={c.sticky.label} aria-hidden={summaryCtaInView || undefined}>
       <div><span>{c.summary.payable}</span><strong>{formatSum(payable, locale)}</strong></div>
       <button type="button" className="btn primary" disabled={verifying} aria-busy={verifying} onClick={() => void openCheckout()}>{verifying ? <Loader2 size={18} className="spin" aria-label={c.summary.verifying} /> : <>{c.sticky.checkout}<ArrowRight size={18} aria-hidden="true" /></>}</button>
     </div>
@@ -347,35 +369,50 @@ export function CartView() {
         void checkout();
       }}>
         {!review && <>
-          <div className="checkout-address-head"><MapPin size={21} aria-hidden="true" /><span>{c.checkout.deliveryUz}</span></div>
           {state.deliveryProfiles.length > 0 && <fieldset className="recipient-choices"><legend>{c.checkout.saved}</legend>
             {state.deliveryProfiles.map(profile => {
               const passport = identityProfiles.find(identity => identity.recipientProfileId === profile.id);
+              // The label repeats the name when a recipient was saved under it: show it once.
+              const named = profile.label.trim() && profile.label.trim() !== profile.recipient.trim();
               return <label className={"recipient-choice" + (selectedProfile === profile.id ? " selected" : "")} key={profile.id}>
                 <input type="radio" name="checkout-recipient" value={profile.id} checked={selectedProfile === profile.id} onChange={() => { setSelectedProfile(profile.id); setDelivery(profile); }} />
-                <span className="recipient-choice-body"><strong>{profile.label}{profile.primary ? ` · ${c.checkout.primary}` : ""}</strong><span>{profile.recipient} · {profile.phone}</span><small>{profile.region}, {profile.city}, {profile.address}</small><small className={passport ? "recipient-passport-ok" : "recipient-passport-missing"}>{passport ? c.checkout.passportOk : c.checkout.passportMissing}</small></span>
+                <span className="recipient-choice-body">
+                  <strong>{named ? profile.label : profile.recipient}{profile.primary && <em>{c.checkout.primary}</em>}</strong>
+                  <span>{named && <>{profile.recipient} · </>}<span className="nowrap">{profile.phone}</span></span>
+                  <small>{profile.region}, {profile.city}, {profile.address}</small>
+                  <small className={passport ? "recipient-passport-ok" : "recipient-passport-missing"}>{passport ? c.checkout.passportOk : c.checkout.passportMissing}</small>
+                </span>
               </label>;
             })}
-            <button type="button" className={"recipient-choice recipient-choice-manual" + (selectedProfile === "manual" ? " selected" : "")} onClick={() => { setSelectedProfile("manual"); setDelivery(state.deliveryProfile ?? { ...emptyDelivery, recipient: user?.name ?? "", phone: state.communication.phone }); }}><Plus size={16} aria-hidden="true" />{c.checkout.newRecipient}</button>
-            <small>{c.checkout.chooseHint}</small>
+            <label className={"recipient-choice recipient-choice-manual" + (selectedProfile === "manual" ? " selected" : "")}>
+              <input type="radio" name="checkout-recipient" value="manual" checked={selectedProfile === "manual"} onChange={() => { setSelectedProfile("manual"); setDelivery({ ...emptyDelivery }); }} />
+              <span className="recipient-choice-body"><strong><Plus size={16} aria-hidden="true" />{c.checkout.newRecipient}</strong></span>
+            </label>
           </fieldset>}
+          {/* A saved recipient is complete as chosen; the address fields are for a new one. */}
+          {(selectedProfile === "manual" || !state.deliveryProfiles.length) && <>
           <div className="two-fields">
             <div className="field"><label htmlFor="recipient">{c.checkout.recipient}</label><input id="recipient" autoComplete="name" required minLength={2} maxLength={100} value={delivery.recipient} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, recipient: event.target.value }); }} /></div>
-            <div className="field"><label htmlFor="recipient-phone">{c.checkout.phone}<span className="sr-only"> +998</span></label><span className="rf-phone"><span aria-hidden="true">+998</span><input id="recipient-phone" required type="tel" inputMode="tel" autoComplete="tel-national" pattern="\d{2} \d{3} \d{2} \d{2}" title={recipientCopy[locale].phoneError} placeholder="90 123 45 67" value={formatUzLocal(uzPhoneDigits(delivery.phone))} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, phone: uzPhone(uzPhoneDigits(event.target.value)) }); }} /></span></div>
+            <div className="field"><label htmlFor="recipient-phone">{c.checkout.phone}<span className="sr-only"> +998</span></label><span className="rf-phone"><span aria-hidden="true">+998</span><UzPhoneInput id="recipient-phone" required pattern="\d{2} \d{3} \d{2} \d{2}" title={recipientCopy[locale].phoneError} digits={uzPhoneDigits(delivery.phone)} onDigits={(digits) => { setSelectedProfile("manual"); setDelivery({ ...delivery, phone: uzPhone(digits) }); }} /></span></div>
             <div className="field"><label htmlFor="region">{c.checkout.region}</label><select id="region" autoComplete="address-level1" required value={delivery.region} onChange={(event) => { const region = event.target.value, capital = regionCapital(region); setSelectedProfile("manual"); setDelivery({ ...delivery, region, city: !delivery.city.trim() || cities.includes(delivery.city) ? capital ?? delivery.city : delivery.city }); }}>{!regions.includes(delivery.region) && <option value={delivery.region}>{delivery.region || recipientCopy[locale].regionPlaceholder}</option>}{regions.map(value => <option key={value} value={value}>{regionLabel(value, locale)}</option>)}</select></div>
             <div className="field"><label htmlFor="city">{c.checkout.city}</label><input id="city" list="city-suggestions" autoComplete="address-level2" required minLength={2} maxLength={100} value={delivery.city} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, city: event.target.value }); }} /><datalist id="city-suggestions">{suggestions(cities, delivery.city).map(value => <option key={value} value={value} />)}</datalist></div>
           </div>
-          <div className="field"><label htmlFor="delivery-address">{c.checkout.street}</label><input id="delivery-address" list="street-suggestions" autoComplete="street-address" required minLength={5} maxLength={220} placeholder={c.checkout.streetPlaceholder} value={delivery.address} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, address: event.target.value }); }} /><datalist id="street-suggestions">{suggestions(streets, delivery.address).map(value => <option key={value} value={value} />)}</datalist><small>{c.checkout.addressHint}</small></div>
-          <div className="two-fields">
-            <div className="field"><label htmlFor="postal-code">{c.checkout.postal}</label><input id="postal-code" autoComplete="postal-code" inputMode="numeric" maxLength={20} value={delivery.postalCode} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, postalCode: event.target.value }); }} /></div>
-            <div className="field"><label htmlFor="delivery-comment">{c.checkout.comment}</label><input id="delivery-comment" maxLength={300} value={delivery.comment} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, comment: event.target.value }); }} /></div>
-          </div>
-          {selectedProfile === "manual" && <div className="basket-consent"><Checkbox id="save-recipient" checked={saveRecipient} onCheckedChange={(value) => setSaveRecipient(value === true)} /><label htmlFor="save-recipient">{c.checkout.saveRecipient}</label></div>}
+          <div className="field"><label htmlFor="delivery-address">{c.checkout.street}</label><input id="delivery-address" list="street-suggestions" autoComplete="street-address" required minLength={5} maxLength={220} placeholder={c.checkout.streetPlaceholder} value={delivery.address} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, address: event.target.value }); }} /><datalist id="street-suggestions">{suggestions(streets, delivery.address).map(value => <option key={value} value={value} />)}</datalist></div>
+          {/* Optional details stay folded unless they are already filled. */}
+          <details className="checkout-optional" open={Boolean(delivery.postalCode || delivery.comment) || undefined}>
+            <summary>{c.checkout.optionalFields}</summary>
+            <div className="two-fields">
+              <div className="field"><label htmlFor="postal-code">{c.checkout.postal}</label><input id="postal-code" autoComplete="postal-code" inputMode="numeric" maxLength={20} value={delivery.postalCode} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, postalCode: event.target.value }); }} /></div>
+              <div className="field"><label htmlFor="delivery-comment">{c.checkout.comment}</label><input id="delivery-comment" maxLength={300} value={delivery.comment} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, comment: event.target.value }); }} /></div>
+            </div>
+          </details>
+          <div className="basket-consent"><Checkbox id="save-recipient" checked={saveRecipient} onCheckedChange={(value) => setSaveRecipient(value === true)} /><label htmlFor="save-recipient">{c.checkout.saveRecipient}</label></div>
+          </>}
         </>}
         {review && <section className="checkout-review">
           <div className="basket-review-recipient"><div><h3>{delivery.recipient}</h3><p>{delivery.phone}</p><p>{delivery.region}, {delivery.city}, {delivery.address}</p></div><button type="button" className="text-button" onClick={() => setReview(false)}>{c.checkout.edit}</button></div>
           <ul className="basket-review-items">{state.cart.map(item => <li key={item.id}>
-            <span>{item.product.name}<small>{item.variant} · {item.quantity}</small>
+            <span>{item.product.name}<small>{[shownVariant(item.variant), `× ${item.quantity}`].filter(Boolean).join(" · ")}</small>
               {(item.requestedServiceIds ?? []).map(id => {
                 const service = pricing.serviceCatalog.find(value => value.id === id);
                 if (!service) return null;

@@ -1,5 +1,13 @@
 # Atlas TODO and known limitations
 
+## Checkout and form controls — 4 October 2026
+
+- [x] The checkout phone field turned "9" into "99 89" and could not be erased; it now keeps the caret and handles deleting, pasting and a tenth digit.
+- [x] Ticked checkboxes were barely visible in the dark theme and on phones set to dark mode; a ticked row is highlighted as a whole.
+- [x] The recipient step showed every address field under an already chosen recipient; the cart showed the total and the button twice.
+- [x] Sideways scrolling at 320 px on every page.
+- [ ] The price check before checkout takes 10–20 s for Amazon from the workstation; check the time on production (through the proxy) and consider checking in the background when the cart opens.
+- [ ] The catalog's first phone screen is mostly the lead and two banners (duty-free, parcel); consider folding them.
 ## Delivery tariff — 4 October 2026
 
 - [x] Delivery is $15 per kg ($1.5 per 100 g) at the Atlas rate; the home page lists express times for the US, the UK, China, Germany, Italy and Spain.

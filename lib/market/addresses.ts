@@ -32,10 +32,49 @@ export function regionCapital(region: string) {
 }
 
 /** The nine local digits of an Uzbek number, whatever way it was typed or stored. */
+/** The nine local digits of an Uzbek number. A stored or pasted international form ("+998 90 1…",
+ * "998901234567") loses its country code; a local number that starts with 99 8… keeps it. */
 export function uzPhoneDigits(value: string) {
   let digits = value.replace(/\D/g, "");
-  if (digits.length > 9 && digits.startsWith("998")) digits = digits.slice(3);
+  if (/^\s*\+\s*998/.test(value) || (digits.length >= 12 && digits.startsWith("998"))) digits = digits.slice(3);
   return digits.slice(0, 9);
+}
+
+/** Digits to the left of a caret in a grouped value. */
+export function digitsBefore(value: string, position: number) {
+  return value.slice(0, position).replace(/\D/g, "").length;
+}
+
+/** Caret index in "90 123 45 67" right after the given number of digits. */
+export function caretAfterDigits(formatted: string, count: number) {
+  if (count <= 0) return 0;
+  let seen = 0;
+  for (let index = 0; index < formatted.length; index++) if (/\d/.test(formatted[index]) && ++seen === count) return index + 1;
+  return formatted.length;
+}
+
+/**
+ * One edit of the local phone field: the new digits and how many digits stay left of the caret.
+ * A tenth digit typed into a full number is ignored instead of pushing the last one out.
+ */
+export function editUzPhone(previous: string, raw: string, caret: number) {
+  const all = raw.replace(/\D/g, "");
+  if (/^\s*\+\s*998/.test(raw) || (all.length >= 12 && all.startsWith("998"))) {
+    const digits = uzPhoneDigits(raw);
+    return { digits, caret: digits.length };
+  }
+  if (all.length > 9) return { digits: previous, caret: Math.max(0, Math.min(previous.length, digitsBefore(raw, caret) - (all.length - previous.length))) };
+  return { digits: all, caret: digitsBefore(raw, caret) };
+}
+
+/** Backspace or Delete next to a group space removes the neighbouring digit, not only the space. */
+export function deleteAcrossSpace(digits: string, formatted: string, caret: number, key: "Backspace" | "Delete") {
+  const space = key === "Backspace" ? caret - 1 : caret;
+  if (formatted[space] !== " ") return null;
+  const before = digitsBefore(formatted, caret);
+  return key === "Backspace"
+    ? { digits: digits.slice(0, before - 1) + digits.slice(before), caret: before - 1 }
+    : { digits: digits.slice(0, before) + digits.slice(before + 1), caret: before };
 }
 
 /** "901234567" → "90 123 45 67"; partial input is grouped as it is typed. */
