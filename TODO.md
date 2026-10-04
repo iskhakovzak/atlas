@@ -10,7 +10,7 @@
 - [ ] The allowance month is the month of import; Atlas has no customs date and uses the delivery month (or the current month while in transit). Record the real customs clearance date when the carrier provides it.
 - [ ] Payments are simulated: the passport notice speaks of a placed request. When a real provider confirms payment, show the notice only for paid orders and say so.
 - [ ] Stock is known only for eBay (Browse API estimate). Shopify `/products/*.js` exposes only availability; do not infer counts from cart-limit errors.
-- [ ] A store-stated delivery charge stays a charge even above $50 (the owner's "free above $50" applies to unknown delivery); confirm with the owner.
+- [x] A store-stated delivery charge stays a charge even above $50; "free above $50" applies only to unknown delivery (confirmed by the owner, 5 October 2026).
 - [ ] After deploy: check that the Worker can reach `cbu.uz` from Sites; if not, switch the tariff to a set rate.
 ## Checkout and form controls — 4 October 2026
 
