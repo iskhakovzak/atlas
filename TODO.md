@@ -1,5 +1,16 @@
 # Atlas TODO and known limitations
 
+## Price check with the stores and cart — 4 October 2026
+
+- [x] A refused action showed "could not save" instead of the reason (for example "the price changed"); the server's text now reaches the customer.
+- [x] A changed store price at checkout no longer dead-ends: the cart takes the new price, marks the line and shows the new total; the customer checks out again.
+- [x] Quotes made before an operator changed the tariff are repriced and shown again instead of passing within their 15 minutes.
+- [x] Store delivery stated on the product page is compared too; Atlas's editable reserve is not.
+- [x] "Check out" checks prices with the stores first; quick quantity taps are no longer dropped.
+- [x] `persist()` refuses a document that would not parse on the next read.
+- [ ] Production check after deploy: one product per proxy-dependent store (Nike, Target, Walmart, Merrell) through `npm run importer:check` on the UpCloud host, and a cart-check from a phone; locally those stores time out without the proxy.
+- [ ] An unreachable store is accepted at checkout when the price was confirmed in the last 30 minutes (the order history says so and the operator re-checks before buyout). If operators prefer a hard stop, set `unreachableGraceMs` in `lib/market/cart-check.ts` to 0.
+- [ ] The price-change mark stays on a cart line until checkout or removal; there is no "dismiss".
 ## Store-delivery reserve, light theme, phone scale and stores — 4 October 2026
 
 - [x] Unknown store delivery: one $10 reserve per store order instead of per line × quantity, none from $50 of items from that store (pricing setting `storeShippingFreeFromUsd`); the cart says how much more removes it; "no reserve" instead of "free".

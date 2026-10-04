@@ -83,6 +83,17 @@ html[data-theme="dark"] {
   .basket-photo { width: 96px; height: 96px; }
   .basket-price { flex-direction: column; align-items: flex-end; text-align: right; }
 }
+/* What the last check with the store found, between the price and the quantity. */
+.basket-item:has(> .basket-item-note) { grid-template-areas: "photo info" "photo price" "note note" "controls controls" "services services"; }
+@media (min-width: 640px) { .basket-item:has(> .basket-item-note) { grid-template-areas: "photo info price" "photo note note" "photo controls controls" "services services services"; } }
+.basket-item-note { display: flex; grid-area: note; align-items: flex-start; gap: 8px; margin: 2px 0 0; padding: 9px 12px; border-radius: 12px; font-size: 13.5px; line-height: 1.45; }
+.basket-item-note svg { flex-shrink: 0; margin-top: 1px; }
+.basket-item-note.up { background: var(--cat-warn-bg); color: var(--cat-warn); }
+.basket-item-note.down { background: var(--cat-ok-bg); color: var(--cat-ok); }
+.basket-item-note.issue { border: 1px solid #f1c3bc; background: #fdf1ef; color: #9b2c1c; }
+.basket-item-note.issue a { color: inherit; font-weight: 800; text-decoration: underline; text-underline-offset: 2px; }
+.basket-item-note.soft { background: var(--home-soft); color: var(--home-muted); }
+html[data-theme="dark"] .basket-item-note.issue { border-color: rgba(255, 140, 120, .35); background: rgba(255, 120, 100, .1); color: #ffb4a8; }.basket-checked { display: inline-flex; align-items: center; gap: 5px; margin-top: 2px; color: var(--cat-ok); font-size: 12.5px; }
 
 .basket-services { grid-area: services; margin-top: 4px; border: 1px solid var(--home-line); border-radius: 12px; }
 .basket-services > summary { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; color: var(--home-ink); font-size: 14px; font-weight: 700; cursor: pointer; list-style: none; }

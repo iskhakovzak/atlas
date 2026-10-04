@@ -5,6 +5,7 @@ export const money = (n: number) =>
   new Intl.NumberFormat("ru-RU").format(n) + " сум";
 const positive = z.number().finite().positive();
 const amount = z.number().int().nonnegative();
+const storeAmount = z.number().finite().nonnegative().max(1_000_000);
 const signedAmount = z.number().int().min(-100_000_000).max(100_000_000);
 const localizedTextSchema = z.object({
   ru: z.string().trim().min(1).max(120),
@@ -86,6 +87,9 @@ export const productSchema = z.object({
   weightOrigin: z.string().optional(),
   importedAt: amount.optional(),
   sourceExpiresAt: amount.optional(),
+  /** Server time of the last successful check against the live store (cart-add, cart-check, checkout).
+   * The server overwrites whatever a client sends here. */
+  sourceCheckedAt: amount.optional(),
   /** Customer explicitly reviewed a manual fallback after the merchant fetch failed. */
   sourceManuallyConfirmed: z.boolean().optional(),
   /** Public listing snapshot remains discoverable, but its price is no longer current. */
@@ -599,8 +603,19 @@ const cartSchema = z.object({
   requestedServiceIds: z.array(z.string().min(2).max(80)).max(40).default([]),
   requestedServiceUnits: z.record(z.string().min(2).max(80), z.number().int().min(1).max(100)).optional(),
   quote: quoteSchema,
+  /** The store's price (or stated delivery) changed since the item was added; the server updated it and repriced. */
+  // Store prices keep their cents (12.79 USD), unlike soum amounts.
+  priceChange: z.object({
+    previousPrice: storeAmount, price: storeAmount, currency: z.string().max(8),
+    previousShipping: storeAmount.optional(), shipping: storeAmount.optional(), at: amount,
+  }).optional(),
+  /** The last live check could not confirm the item. Only "unreachable" with a recent earlier check lets checkout go on. */
+  sourceIssue: z.object({ kind: z.enum(["currency", "variant", "price", "unreachable"]), at: amount }).optional(),
 });
 export type CartItem = z.infer<typeof cartSchema>;
+export type SourceIssueKind = NonNullable<CartItem["sourceIssue"]>["kind"];
+/** Problems the customer has to resolve (reload the product); an unreachable store after a recent check is not one. */
+export const blockingSourceIssue = (item: Pick<CartItem, "sourceIssue">) => Boolean(item.sourceIssue && item.sourceIssue.kind !== "unreachable");
 
 function buildServiceRequest(
   service: ServiceOffering,
@@ -1087,6 +1102,21 @@ export const cartSignature = (items: CartItem[]) =>
     ).join(",");
     return i.id + ":" + i.quote.id + ":" + services;
   }).join("|");
+/** What the live store check said about this item, kept in the order history. */
+function sourceCheckHistory(item: CartItem, now: number) {
+  const notes: { at: number; text: string }[] = [];
+  const change = item.priceChange;
+  if (change && change.previousPrice !== change.price)
+    notes.push({ at: now, text: `Цена в магазине изменилась до оформления: ${change.previousPrice} → ${change.price} ${change.currency}. Покупатель оформил заказ по новому расчёту.` });
+  if (change?.shipping !== undefined && change.previousShipping !== change.shipping)
+    notes.push({ at: now, text: `Доставка магазина изменилась до оформления: ${change.previousShipping ?? 0} → ${change.shipping} ${item.product.sourceShippingCurrency ?? change.currency}.` });
+  if (item.sourceIssue?.kind === "unreachable")
+    notes.push({ at: now, text: "Магазин не ответил при оформлении; цена была сверена незадолго до этого. Оператор сверит её перед выкупом." });
+  else if (item.product.sourceCheckedAt && now - item.product.sourceCheckedAt <= 10 * 60_000)
+    notes.push({ at: now, text: "Цена и вариант сверены с магазином перед оформлением." });
+  return notes;
+}
+
 export function checkoutCart(
   state: State,
   key: string,
@@ -1127,6 +1157,11 @@ export function checkoutCart(
   }
   if (state.cart.some((i) => now >= i.quote.expiresAt))
     throw Error("Расчёт истёк. Обновите его перед оформлением.");
+  // A quote made before the operator changed the tariff must be shown again, not accepted silently.
+  if (state.cart.some((i) => i.quote.tariffVersion !== config.version))
+    throw Error("Тарифы Atlas обновились. Проверьте новый итог перед оформлением.");
+  if (state.cart.some(blockingSourceIssue))
+    throw Error("Магазин изменил данные товара. Загрузите отмеченные товары заново.");
   let available = useBalance ? Math.max(0, balanceOf(state)) : 0;
   const selectedDelivery = deliveryProfileId ? state.deliveryProfiles.find((profile) => profile.id === deliveryProfileId) : undefined;
   if (deliveryProfileId && !selectedDelivery) throw Error("Выбранный получатель больше не сохранён. Обновите профиль.");
@@ -1194,6 +1229,7 @@ export function checkoutCart(
             money(i.quote.total) +
             (payable ? ". Ожидается подтверждение платёжного провайдера." : ". Учтено из внутреннего баланса Atlas."),
         },
+        ...sourceCheckHistory(i, now),
       ],
     } as Order;
   });

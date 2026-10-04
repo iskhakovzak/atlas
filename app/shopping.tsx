@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "@/components/site-link";
-import { ArrowRight, ArrowUpRight, Check, ClipboardPaste, Clock3, Info, Loader2, MapPin, Minus, Plus, ShieldCheck, ShoppingBag, Store, Truck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BadgeCheck, Check, ClipboardPaste, Clock3, Info, Loader2, MapPin, Minus, Plus, ShieldCheck, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
 import { balanceOf, cartSignature, merchantParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, type CartItem, type DeliveryProfile } from "@/lib/market/domain";
@@ -26,11 +26,50 @@ function storeHost(item: CartItem) {
   try { return item.product.sourceUrl ? new URL(item.product.sourceUrl).hostname.replace(/^www\./, "") : ""; } catch { return ""; }
 }
 
-/** Store price as the shop shows it, e.g. "$29.99" or "129,90 RON". */
-function storePrice(item: CartItem, locale: Locale) {
-  const amount = item.product.sourcePrice ?? item.product.usd, currency = item.product.sourceCurrency ?? "USD";
+/** An amount in the store's currency, e.g. "$29.99" or "129,90 RON". */
+function sourceMoney(amount: number, currency: string, locale: Locale) {
   try { return new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-US", { style: "currency", currency, maximumFractionDigits: 2 }).format(amount); }
   catch { return `${amount} ${currency}`; }
+}
+/** Store price as the shop shows it. */
+const storePrice = (item: CartItem, locale: Locale) => sourceMoney(item.product.sourcePrice ?? item.product.usd, item.product.sourceCurrency ?? "USD", locale);
+const clock = (at: number, locale: Locale) => new Date(at).toLocaleTimeString(locale === "ru" ? "ru-RU" : locale === "uz" ? "uz-UZ" : "en-US", { hour: "2-digit", minute: "2-digit" });
+/** Refusals that repriced or marked the cart: the dialog closes so the customer sees what changed. */
+const cartChangedCodes = new Set(["err_35", "err_36", "err_37", "err_38"]);
+
+/**
+ * Quantity stepper that waits for a pause (400 ms) before saving, so quick taps add up to one request
+ * instead of being dropped while the previous one is still saving. Remounted (by key) on a server change.
+ */
+function QuantityControl({ item, c, save }: { item: CartItem; c: CartCopy; save: (quantity: number) => Promise<boolean> }) {
+  const [value, setValue] = useState(item.quantity);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  function step(delta: number) {
+    const next = Math.min(10, Math.max(1, value + delta));
+    if (next === value) return;
+    setValue(next);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => { void save(next).then((ok) => { if (!ok) setValue(item.quantity); }); }, 400);
+  }
+  return <div className="basket-qty" role="group" aria-label={`${c.item.quantity}: ${item.product.name}`}>
+    <button type="button" aria-label={`${c.item.decrease}: ${item.product.name}`} disabled={value <= 1} onClick={() => step(-1)}><Minus size={16} aria-hidden="true" /></button>
+    <output aria-live="polite">{value}</output>
+    <button type="button" aria-label={`${c.item.increase}: ${item.product.name}`} disabled={value >= 10} onClick={() => step(1)}><Plus size={16} aria-hidden="true" /></button>
+  </div>;
+}
+
+/** "Price held for N min", ticking on its own so the rest of the cart does not re-render every 15 s. */
+function PriceHold({ expiresAt, locale, c }: { expiresAt: number; locale: Locale; c: CartCopy }) {
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    const first = setTimeout(tick, 0), timer = setInterval(tick, 15000);
+    return () => { clearTimeout(first); clearInterval(timer); };
+  }, []);
+  // After the hold the total is not lost: "Check out" checks the stores and reprices first.
+  const expired = now > 0 && now >= expiresAt;
+  return <p className="basket-expiry"><Clock3 size={15} aria-hidden="true" />{expired ? c.summary.recheckNote : now ? c.summary.validFor(minutesLeft(expiresAt - now, locale)) : c.summary.checking}</p>;
 }
 
 function usd(amount: number, locale: Locale) {
@@ -48,7 +87,7 @@ function CheckoutSteps({ current, c }: { current: number; c: CartCopy }) {
 }
 
 export function CartView() {
-  const { state, act, ready, error, user, pricing } = useMarket();
+  const { state, act, lastActionError, ready, error, user, pricing } = useMarket();
   const [useBalance, setUseBalance] = useState(false);
   const [consent, setConsent] = useState(false);
   const [consentError, setConsentError] = useState(false);
@@ -63,14 +102,8 @@ export function CartView() {
   const [checkoutKey, setCheckoutKey] = useState("");
   const [paymentBusy, setPaymentBusy] = useState(false);
   const [paidFromCart, setPaidFromCart] = useState(false);
-  const [now, setNow] = useState(0);
+  const [verifying, setVerifying] = useState(false);
 
-  // Minute precision is enough for "price held for N min"; expiry is re-checked on the server anyway.
-  useEffect(() => {
-    const tick = () => setNow(Date.now());
-    const first = setTimeout(tick, 0), timer = setInterval(tick, 15000);
-    return () => { clearTimeout(first); clearInterval(timer); };
-  }, []);
   useEffect(() => {
     if (!ready) return;
     for (const item of state.cart) {
@@ -89,7 +122,6 @@ export function CartView() {
   const locale = state.communication.language;
   const c = cartCopy[locale];
   const earliestExpiry = state.cart.reduce((min, item) => Math.min(min, item.quote.expiresAt), Infinity);
-  const expired = now > 0 && state.cart.some((item) => now >= item.quote.expiresAt);
   const total = totalOf(state.cart);
   const count = state.cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartMerchandiseUsd = state.cart.reduce((sum, item) => sum + item.product.usd * item.quantity, 0);
@@ -128,8 +160,14 @@ export function CartView() {
     return groups;
   }, []);
 
-  function openCheckout() {
-    if (expired) { void act({ type: "cart-renew" }); return; }
+  async function openCheckout() {
+    if (verifying) return;
+    // The server checks prices with the stores and reprices at the current tariff; a change keeps the
+    // customer in the cart with the new total and a note on the item instead of opening the form.
+    setVerifying(true);
+    const ok = await act({ type: "cart-check" });
+    setVerifying(false);
+    if (!ok) return;
     const saved = state.deliveryProfiles.find(profile => profile.primary) ?? state.deliveryProfiles[0];
     setSelectedProfile(saved?.id ?? "manual");
     setDelivery(saved ?? state.deliveryProfile ?? { ...emptyDelivery, recipient: user?.name ?? "", phone: state.communication.phone });
@@ -150,6 +188,7 @@ export function CartView() {
       saveRecipientLabel: selectedProfile === "manual" && saveRecipient ? (state.deliveryProfiles.length ? delivery.recipient.trim().slice(0, 60) : recipientCopy[locale].labels.home) : undefined });
     setBusy(false);
     if (ok) { setCheckoutOpen(false); setSuccess(true); }
+    else if (cartChangedCodes.has(lastActionError()?.code ?? "")) setCheckoutOpen(false);
   }
 
   async function payFromCart() {
@@ -169,21 +208,28 @@ export function CartView() {
     const selectedServices = item.requestedServiceIds ?? [];
     const serviceUnits = item.requestedServiceUnits ?? {};
     const meta = [item.variant, countryLabel(countryName(item.product), locale)].filter(Boolean).join(" · ");
-    return <article className="basket-item" key={item.id}>
+    const change = item.priceChange, issue = item.sourceIssue, currency = change?.currency ?? item.product.sourceCurrency ?? "USD";
+    const reopen = item.product.sourceUrl ? `/order-by-link?url=${encodeURIComponent(item.product.sourceUrl)}` : "";
+    return <article className={"basket-item" + (issue && issue.kind !== "unreachable" ? " has-issue" : "")} key={item.id}>
       <div className="basket-photo"><ProductImage product={item.product} locale={locale} decorative /></div>
       <div className="basket-info">
         {item.product.brand && <p className="basket-brand">{item.product.brand}</p>}
         <h3 className="basket-name">{item.product.name}</h3>
         <p className="basket-meta">{meta}</p>
         <p className="basket-meta">{item.product.sourceUrl ? <a className="basket-source" href={item.product.sourceUrl} target="_blank" rel="noopener noreferrer">{c.item.storePrice}: {storePrice(item, locale)}<ArrowUpRight size={14} aria-hidden="true" /><span className="sr-only"> ({c.item.openStore})</span></a> : <>{c.item.storePrice}: {storePrice(item, locale)}</>}{item.quantity > 1 ? ` × ${item.quantity}` : ""}</p>
+        {!change && !issue && item.product.sourceCheckedAt && <p className="basket-meta basket-checked"><BadgeCheck size={14} aria-hidden="true" />{c.item.checked(clock(item.product.sourceCheckedAt, locale))}</p>}
       </div>
       <div className="basket-price"><strong>{formatSum(item.quote.total, locale)}</strong>{item.quantity > 1 && <small>{c.item.forQuantity(item.quantity)}</small>}</div>
+      {/* What the last check with the store found: a new price (already in the total) or something to fix. */}
+      {change && <p className={"basket-item-note " + (change.price > change.previousPrice || (change.shipping ?? 0) > (change.previousShipping ?? 0) ? "up" : "down")} role="status">
+        <Info size={16} aria-hidden="true" /><span>
+          {change.price !== change.previousPrice && (change.price > change.previousPrice ? c.item.priceUp : c.item.priceDown)(sourceMoney(change.previousPrice, currency, locale), sourceMoney(change.price, currency, locale))}
+          {change.shipping !== undefined && change.shipping !== change.previousShipping && <> {c.item.shippingChanged(sourceMoney(change.previousShipping ?? 0, item.product.sourceShippingCurrency ?? currency, locale), sourceMoney(change.shipping, item.product.sourceShippingCurrency ?? currency, locale))}</>}
+        </span></p>}
+      {issue && <p className={"basket-item-note " + (issue.kind === "unreachable" ? "soft" : "issue")} role={issue.kind === "unreachable" ? "status" : "alert"}>
+        <TriangleAlert size={16} aria-hidden="true" /><span>{c.item.issues[issue.kind]}{issue.kind !== "unreachable" && reopen && <> <Link href={reopen}>{c.item.reload}</Link></>}</span></p>}
       <div className="basket-controls">
-        <div className="basket-qty" role="group" aria-label={`${c.item.quantity}: ${item.product.name}`}>
-          <button type="button" aria-label={`${c.item.decrease}: ${item.product.name}`} disabled={item.quantity <= 1} onClick={() => void act({ type: "cart-quantity", id: item.id, quantity: item.quantity - 1 })}><Minus size={16} aria-hidden="true" /></button>
-          <output aria-live="polite">{item.quantity}</output>
-          <button type="button" aria-label={`${c.item.increase}: ${item.product.name}`} disabled={item.quantity >= 10} onClick={() => void act({ type: "cart-quantity", id: item.id, quantity: item.quantity + 1 })}><Plus size={16} aria-hidden="true" /></button>
-        </div>
+        <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity })} />
         <SafeDeleteButton label={c.item.remove} itemName={item.product.name} locale={locale} onConfirm={() => act({ type: "cart-remove", id: item.id })} />
       </div>
       {checkoutServices.length > 0 && <details className="basket-services">
@@ -280,16 +326,16 @@ export function CartView() {
         {summaryLines}
         {balance > 0 && <div className="basket-balance"><Checkbox id="use-balance" checked={useBalance} onCheckedChange={(value) => setUseBalance(value === true)} /><label htmlFor="use-balance">{c.summary.balance}<small>{c.summary.available}: {formatSum(balance, locale)}</small></label></div>}
         <div className="basket-total"><span>{c.summary.payable}</span><strong>{formatSum(payable, locale)}</strong></div>
-        <p className={"basket-expiry" + (expired ? " expired" : "")} role={expired ? "alert" : undefined}><Clock3 size={15} aria-hidden="true" />{expired ? c.summary.expired : now ? c.summary.validFor(minutesLeft(earliestExpiry - now, locale)) : c.summary.checking}</p>
+        <PriceHold expiresAt={earliestExpiry} locale={locale} c={c} />
         {cartMerchandiseUsd + usedThisMonth > courierAllowanceUsd && <CustomsEstimate key={usedThisMonth} valueUsd={cartMerchandiseUsd} grossKg={state.cart.reduce((sum, item) => sum + (item.product.boxedWeight ?? item.product.weight) * item.quantity, 0)} fx={pricing.fx} locale={locale} initialUsedUsd={usedThisMonth} />}
-        <button type="button" className="btn primary basket-cta" onClick={openCheckout}>{expired ? c.summary.renew : c.summary.checkout}<ArrowRight size={18} aria-hidden="true" /></button>
+        <button type="button" className="btn primary basket-cta" disabled={verifying} aria-busy={verifying} onClick={() => void openCheckout()}>{verifying ? <>{c.summary.verifying}<Loader2 size={18} className="spin" aria-hidden="true" /></> : <>{c.summary.checkout}<ArrowRight size={18} aria-hidden="true" /></>}</button>
         <ul className="basket-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{c.summary.assurance}</li><li><Info size={16} aria-hidden="true" />{c.summary.simulation}</li></ul>
       </aside>
     </div>
 
     <div className="basket-sticky" role="region" aria-label={c.sticky.label}>
       <div><span>{c.summary.payable}</span><strong>{formatSum(payable, locale)}</strong></div>
-      <button type="button" className="btn primary" onClick={openCheckout}>{expired ? c.summary.renew : c.sticky.checkout}<ArrowRight size={18} aria-hidden="true" /></button>
+      <button type="button" className="btn primary" disabled={verifying} aria-busy={verifying} onClick={() => void openCheckout()}>{verifying ? <Loader2 size={18} className="spin" aria-label={c.summary.verifying} /> : <>{c.sticky.checkout}<ArrowRight size={18} aria-hidden="true" /></>}</button>
     </div>
 
     <Modal open={checkoutOpen} onClose={() => { if (!busy) setCheckoutOpen(false); }} title={review ? c.checkout.reviewTitle : c.checkout.title} description={review ? c.checkout.reviewHint : c.checkout.hint} locale={locale}>

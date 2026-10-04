@@ -27,6 +27,8 @@ export async function account(user:{userId:string;platformUserId?:string|null;di
 }
 export async function persist(id:string,state:State,revision:number){
  const serialized=JSON.stringify(state);if(serialized.length>1000000)throw new HttpError(413, 'err_3');
+ // A document the next read cannot parse would lock the customer out of the account: refuse to save it.
+ try{parseState(serialized)}catch(error){throw new Error('Refused to save an account state that does not parse: '+(error as Error).message.slice(0,400))}
  const now=Date.now(),result=await database().prepare('UPDATE market_accounts SET state=?, revision=revision+1, updated_at=? WHERE user_id=? AND revision=?').bind(serialized,now,id,revision).run();
  if(!result.meta.changes)throw new HttpError(409, 'err_4');
  deferBackground(syncLatestOperationalProjection(id),'Operational projection sync failed');
