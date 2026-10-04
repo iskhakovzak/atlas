@@ -2,16 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "@/components/site-link";
-import { ArrowRight, ArrowUpRight, Check, ClipboardPaste, Clock3, Info, Loader2, MapPin, Minus, Plus, ShieldCheck, ShoppingBag, Store } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, ClipboardPaste, Clock3, Info, Loader2, MapPin, Minus, Plus, ShieldCheck, ShoppingBag, Store, Truck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
-import { balanceOf, cartSignature, merchantParcelKey, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, type CartItem, type DeliveryProfile } from "@/lib/market/domain";
+import { balanceOf, cartSignature, merchantParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, type CartItem, type DeliveryProfile } from "@/lib/market/domain";
 import { atlasServiceBreakdown } from "@/lib/market/quote-presentation";
 import { courierAllowanceUsd } from "@/lib/market/customs";
 import { countryName, customsVersion } from "@/lib/market/world";
 import { formatSum } from "@/lib/market/home-copy";
 import { cartCopy, countryLabel, itemCount, minutesLeft, parcelCount, recipientCopy, type CartCopy } from "@/lib/market/customer-copy";
 import { monthlyUsedFor } from "@/lib/market/allowance";
+import { storefrontLabel } from "@/lib/market/store-brands";
 import type { Locale } from "@/lib/market/i18n";
 import { Modal, ProductImage } from "./market-ui";
 import { SafeDeleteButton } from "./safe-delete-button";
@@ -30,6 +31,12 @@ function storePrice(item: CartItem, locale: Locale) {
   const amount = item.product.sourcePrice ?? item.product.usd, currency = item.product.sourceCurrency ?? "USD";
   try { return new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-US", { style: "currency", currency, maximumFractionDigits: 2 }).format(amount); }
   catch { return `${amount} ${currency}`; }
+}
+
+function usd(amount: number, locale: Locale) {
+  const rounded = Math.ceil(amount * 100 - 1e-6) / 100;
+  const digits = Number.isInteger(rounded) ? 0 : 2;
+  return new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-US", { style: "currency", currency: "USD", minimumFractionDigits: digits, maximumFractionDigits: digits }).format(rounded);
 }
 
 /** Checkout progress shared by the cart page and the checkout dialog. */
@@ -109,12 +116,15 @@ export function CartView() {
     optionalServices: result.optionalServices + (item.quote.optionalServices ?? 0),
   }), { merchandise: 0, service: 0, shipping: 0, reserve: 0, sourceShipping: 0, buyout: 0, conversion: 0, deliveryMargin: 0, optionalServices: 0 });
   const parts = atlasServiceBreakdown(sums);
+  // Store orders whose delivery price is unknown: a reserve below the threshold, none from it.
+  const reserves = storeShippingReserves(state.cart, pricing);
+  const freeFrom = usd(pricing.storeShippingFreeFromUsd ?? 50, locale);
   // Same grouping as the server's parcel allocation: one store and one origin country share a parcel.
   const parcels = state.cart.reduce<{ key: string; title: string; country: string; items: CartItem[] }[]>((groups, item) => {
     const key = merchantParcelKey(item);
     const group = groups.find(entry => entry.key === key);
     if (group) group.items.push(item);
-    else groups.push({ key, title: c.item.parcelFrom(storeHost(item) || item.product.brand), country: countryLabel(countryName(item.product), locale), items: [item] });
+    else { const host = storeHost(item); groups.push({ key, title: c.item.parcelFrom((host && storefrontLabel(host, locale)) || item.product.brand), country: countryLabel(countryName(item.product), locale), items: [item] }); }
     return groups;
   }, []);
 
@@ -212,7 +222,9 @@ export function CartView() {
 
   const summaryLines = <div className="basket-lines">
     <SummaryLine label={`${c.summary.items} · ${itemCount(count, locale)}`} amount={sums.merchandise} locale={locale} />
-    {sums.sourceShipping > 0 && <SummaryLine label={c.summary.storeShipping} amount={sums.sourceShipping} locale={locale} />}
+    {sums.sourceShipping > 0
+      ? <SummaryLine label={c.summary.storeShipping} amount={sums.sourceShipping} locale={locale} help={reserves.length ? c.summary.storeShippingHelp(freeFrom) : undefined} helpLabel={c.summary.storeShipping} />
+      : reserves.length > 0 && <SummaryLine label={c.summary.storeShipping} amount={0} value={c.summary.storeNoReserve} locale={locale} help={c.summary.storeShippingHelp(freeFrom)} helpLabel={c.summary.storeShipping} />}
     {parts.service > 0 && <SummaryLine label={c.summary.service} amount={parts.service} locale={locale} help={c.summary.serviceHelp} helpLabel={c.summary.serviceHelpLabel} />}
     {parts.international > 0 && <SummaryLine label={c.summary.international} amount={parts.international} locale={locale} help={c.summary.internationalHelp} helpLabel={c.summary.internationalHelpLabel} />}
     {sums.reserve > 0 && <SummaryLine label={c.summary.reserve} amount={sums.reserve} locale={locale} help={c.summary.reserveHelp} helpLabel={c.summary.reserveHelpLabel} />}
@@ -250,10 +262,17 @@ export function CartView() {
     <CheckoutSteps current={0} c={c} />
     <div className="basket-layout">
       <div className="basket-parcels">
-        {parcels.map(parcel => <section className="basket-parcel" key={parcel.key} aria-label={parcel.title}>
-          <h2 className="basket-parcel-title"><Store size={16} aria-hidden="true" /><span>{parcel.title}</span><small>{parcel.country}</small></h2>
-          {parcel.items.map(renderItem)}
-        </section>)}
+        {parcels.map(parcel => {
+          const reserve = reserves.find(entry => parcel.items.some(item => entry.itemIds.includes(item.id)));
+          return <section className="basket-parcel" key={parcel.key} aria-label={parcel.title}>
+            <h2 className="basket-parcel-title"><Store size={16} aria-hidden="true" /><span>{parcel.title}</span><small>{parcel.country}</small></h2>
+            {parcel.items.map(renderItem)}
+            {reserve && <p className={"basket-parcel-note" + (reserve.reserveUsd ? "" : " ok")}>
+              {reserve.reserveUsd ? <Truck size={16} aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
+              <span>{reserve.reserveUsd ? c.item.parcelReserve(usd(reserve.missingUsd, locale), usd(reserve.reserveUsd, locale)) : c.item.parcelFree(freeFrom)}</span>
+            </p>}
+          </section>;
+        })}
         <Link className="basket-continue" href="/">{c.summary.continue}<ArrowRight size={16} aria-hidden="true" /></Link>
       </div>
       <aside className="basket-summary" aria-labelledby="basket-summary-title">

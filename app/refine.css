@@ -1,0 +1,103 @@
+/* Final layer, loaded last: Atlas Day (the light theme) and the phone scale.
+   Atlas Day mirrors Atlas Night (theme-night.css): green-black ink, one brand green, warm neutral surfaces,
+   so both themes read as one brand. Older layers still name --home-*, --cat-* and --atlas-* tokens;
+   here they all resolve to the same day palette. */
+
+/* ---------- Atlas Day palette ---------- */
+:root:not([data-theme="dark"]) {
+  --day-canvas: #f7f6f2;
+  --day-surface: #ffffff;
+  --day-soft: #f2f0ea;
+  --day-line: #e4e2da;
+  --day-line-strong: #d3d1c6;
+  --day-ink: #16211c;
+  --day-muted: #5b665f;
+  --day-accent: #1f4d3b;
+  --day-accent-hover: #173b2d;
+  --day-ok: #1d6b47;
+  --day-ok-bg: #e9f3ed;
+  --day-ok-line: #bfdccb;
+  --day-shadow: 0 1px 2px rgba(22, 33, 28, .04), 0 6px 18px rgba(22, 33, 28, .05);
+
+  --home-ink: var(--day-ink); --home-muted: var(--day-muted); --home-line: var(--day-line);
+  --home-soft: var(--day-soft); --home-surface: var(--day-surface); --home-accent: var(--day-accent);
+  --cat-ink: var(--day-ink); --cat-muted: var(--day-muted); --cat-line: var(--day-line); --cat-soft: var(--day-soft);
+  --cat-surface: var(--day-surface); --cat-accent: var(--day-accent); --cat-on: var(--day-accent);
+  --cat-ok: var(--day-ok); --cat-ok-bg: var(--day-ok-bg); --cat-ok-line: var(--day-ok-line);
+  --atlas-ink: var(--day-ink); --atlas-line: var(--day-line); --atlas-soft: var(--day-soft); --atlas-blue: var(--day-accent);
+  --background: var(--day-canvas); --foreground: var(--day-ink); --border: var(--day-line); --input: var(--day-line-strong);
+  --primary: var(--day-accent); --ring: var(--day-accent); --muted-foreground: var(--day-muted);
+}
+/* White cards and fields stand on a warm canvas instead of white on white. */
+html:not([data-theme="dark"]) body { background: var(--day-canvas); color: var(--day-ink); }
+html:not([data-theme="dark"]) .site-header { border-bottom-color: var(--day-line); background: var(--day-surface); }
+html:not([data-theme="dark"]) ::selection { background: rgba(31, 77, 59, .16); }
+/* The old breadcrumb grey (#65738b) falls just below 4.5:1 on the warm canvas. */
+html:not([data-theme="dark"]) .breadcrumb { color: var(--day-muted); }
+html:not([data-theme="dark"]) :is(.find-card, .store-tile, .stores-shelf button, .basket-parcel, .basket-summary, .cabinet-card, .order-x, .surface) { box-shadow: var(--day-shadow); }
+html:not([data-theme="dark"]) :is(.find-card, .store-tile, .stores-shelf button, .surface, .cabinet-card, .order-x) { border-color: var(--day-line); }
+html:not([data-theme="dark"]) .btn.primary:not(:disabled):hover { background: var(--day-accent-hover); }
+html:not([data-theme="dark"]) .find-card .find-visual { background: linear-gradient(180deg, #fbfaf7 0%, #f3f1eb 100%) !important; }
+html:not([data-theme="dark"]) .find-card .find-photo .product-img { mix-blend-mode: multiply; }
+
+/* ---------- Catalog cards: long soum totals never leave the card ---------- */
+.find-card .find-total > strong { display: block; white-space: nowrap; font-feature-settings: "tnum" 1; }
+.find-card .find-store-price > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+@media (max-width: 600px) {
+  /* The "i" sits on the label row, so the total gets the full card width. */
+  :is(.catalog-page, .catalog-teaser) .find-card .find-content .find-total { padding: 8px 0; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-total > span { display: block; padding-right: 26px; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-total > strong { font-size: clamp(14px, 4.2vw, 16.5px); letter-spacing: -.02em; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-info { top: 0; right: -10px; bottom: auto; width: 36px; height: 36px; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-store-price b { font-size: 13.5px; }
+  /* "+N soum to the parcel": the store line on top, the amount below it. */
+  :is(.catalog-page, .catalog-teaser) .find-card .find-parcel { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 6px; align-items: start; padding: 7px 8px; font-size: 11.5px; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-parcel > svg { width: 15px; height: 15px; margin-top: 1px; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-parcel > span { overflow-wrap: normal; word-break: normal; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-parcel > b { grid-column: 1 / -1; font-size: clamp(11.5px, 3.5vw, 13px); }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-limit { font-size: 11.5px; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-breakdown { font-size: 12.5px; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-breakdown dd { white-space: nowrap; }
+}
+
+/* ---------- Phones: a lighter scale ---------- */
+@media (max-width: 600px) {
+  /* Header: 60px instead of 80px. */
+  .site-header { min-height: 60px; }
+  .site-header .wordmark { font-size: 26px; }
+  .site-header .wordmark svg { width: 23px; height: 23px; }
+  .site-header .lang-switch { padding: 2px; border-radius: 11px; }
+  .site-header .lang-switch button { min-width: 36px; min-height: 36px; border-radius: 9px; font-size: 12px; }
+  .site-header .icon-btn { min-width: 40px; min-height: 40px; }
+
+  /* Page titles 25px, section titles 20–21px, leads 15px; weights one step lighter. */
+  .site-main h1 { font-size: 25px; line-height: 1.15; font-weight: 760; letter-spacing: -.03em; }
+  .site-main .home-hero h1 { font-size: 29px; line-height: 1.1; }
+  .site-main :is(.home-section, .home-example-copy, .catalog-teaser > header) h2 { font-size: 21px; line-height: 1.2; font-weight: 740; letter-spacing: -.025em; }
+  .site-main :is(.catalog-end, .catalog-empty, .surface, .communication-heading, .cabinet-next-body) h2 { font-size: 19px; line-height: 1.25; }
+  .site-main .cabinet-card h2 { font-size: 17px; }
+  .home-hero { padding: 20px 0 26px; }
+  .home-hero-lead, .catalog-teaser > header p, .page-heading p, .stores-intro { font-size: 15px; line-height: 1.5; }
+  .home-hero-lead { margin-top: 12px; }
+  .home-link-form { margin-top: 18px; }
+  .home-link-field input { font-size: 16px; }
+  .home-link-form .home-cta { min-height: 50px; font-size: 16px; }
+
+  /* Catalog head: title, one line of counters, short banners. */
+  .catalog-head { gap: 10px; margin: 4px 0 14px; }
+  .catalog-head h1 { margin-bottom: 6px; }
+  .catalog-head-side { flex-direction: row; gap: 6px; }
+  .catalog-stats, .catalog-saved { gap: 6px; min-height: 36px; padding: 0 11px; font-size: 12.5px; }
+  .catalog-stats svg { display: none; }
+  .catalog-head h1 + p { font-size: 14px; }
+  .catalog-banner { gap: 2px 10px; margin-bottom: 10px; padding: 10px 12px; border-radius: 12px; font-size: 14px; }
+  .catalog-banner > svg { width: 18px; height: 18px; }
+  .catalog-banner p { line-height: 1.45; }
+  .catalog-banner > div { gap: 0 16px; }
+  .catalog-page .catalog-banner :is(.text-button, .text-link) { min-height: 36px; font-size: 14px; }
+  .catalog-search { min-height: 48px; }
+  .catalog-search input { min-height: 44px; }
+  :is(.catalog-categories, .catalog-sets, .catalog-chips, .catalog-active) > button:not(.text-button) { min-height: 40px; padding: 0 12px; font-size: 13.5px; }
+  .catalog-facets-button, .catalog-sort select { min-height: 42px; }
+  .catalog-bar { gap: 10px; margin-bottom: 14px; }
+}

@@ -11,7 +11,7 @@ import { dealCopy } from '@/lib/market/deal-copy';
 import { catalogCopy, allowanceMonth } from '@/lib/market/catalog-copy';
 import { catalogAllowance } from '@/lib/market/allowance';
 import { courierAllowanceUsd } from '@/lib/market/customs';
-import { supportedStoreRoots } from '@/lib/importer/stores';
+import { storeBrands } from '@/lib/market/store-brands';
 import {
   activeFilterCount, activeFilters, applyCatalogQuery, catalogFacets, catalogItems, catalogQueryString, cartParcelStores,
   categorySlugs, emptyCatalogQuery, fitsDutyFree, parcelExtra, priceBands, readCatalogQuery, relaxations, sizedCategories, storeLabel, withoutFilter,
@@ -22,7 +22,8 @@ import { CatalogCard, CatalogSkeleton, StoreMark } from './catalog-card';
 import { ProductSheet } from './product-sheet';
 
 const pageSize = 12;
-const storeCount = new Set<string>(supportedStoreRoots).size;
+// Stores as the directory counts them: brands, with their country storefronts as one store.
+const storeCount = storeBrands.length;
 type Copy = (typeof catalogCopy)['ru'];
 type Facets = ReturnType<typeof catalogFacets>;
 

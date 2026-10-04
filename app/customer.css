@@ -49,6 +49,10 @@ html[data-theme="dark"] {
 .basket-parcel-title svg { flex-shrink: 0; color: var(--home-accent); }
 .basket-parcel-title span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .basket-parcel-title small { margin-left: auto; color: var(--home-muted); font-size: 13px; font-weight: 600; white-space: nowrap; }
+/* Store-delivery reserve of this store order: how to drop it, or that it is not taken. */
+.basket-parcel-note { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 10px 16px; border-top: 1px solid var(--home-line); background: color-mix(in srgb, var(--home-accent) 6%, transparent); color: var(--home-ink); font-size: 13.5px; line-height: 1.45; }
+.basket-parcel-note svg { flex-shrink: 0; margin-top: 1px; color: var(--home-accent); }
+.basket-parcel-note.ok { background: transparent; color: var(--home-muted); }
 
 .basket-item { display: grid; grid-template-columns: 76px minmax(0, 1fr); grid-template-areas: "photo info" "photo price" "controls controls" "services services"; gap: 6px 14px; padding: 16px; }
 .basket-item + .basket-item { border-top: 1px solid var(--home-line); }
@@ -649,7 +653,7 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
 .field-vitals table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
 .field-vitals :is(th, td) { padding: 10px 12px; border-bottom: 1px solid var(--atlas-line); text-align: right; white-space: nowrap; }
 .field-vitals :is(thead th, tbody th) { text-align: left; }
-.field-vitals thead th { color: #5b6578; font-weight: 650; }
+.field-vitals thead th { color: #56695f; font-weight: 650; }
 .field-vitals tbody tr:last-child :is(th, td) { border-bottom: 0; }
 .field-vitals td[data-verdict="ok"] { color: #2f6b45; }
 .field-vitals td[data-verdict="slow"] { color: #a33236; font-weight: 700; }

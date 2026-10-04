@@ -1,5 +1,14 @@
 # Atlas TODO and known limitations
 
+## Store-delivery reserve, light theme, phone scale and stores — 4 October 2026
+
+- [x] Unknown store delivery: one $10 reserve per store order instead of per line × quantity, none from $50 of items from that store (pricing setting `storeShippingFreeFromUsd`); the cart says how much more removes it; "no reserve" instead of "free".
+- [x] Removing a cart line reprices the rest of the cart (parcel shares and the reserve were left stale).
+- [x] Light theme follows one palette (Atlas Day); phones get a 60 px header, smaller titles and chips; catalog totals and "+N to your parcel" no longer leave the card at 320–390 px.
+- [x] `/stores`: collapsed type shelves with "show all", "Stores you ordered from", catalog counts on tiles, similar stores in the store card, "Store not listed?".
+- [ ] Carts saved before this change keep their old reserve until the quote is renewed (15 minutes at most) — no migration needed, but a cart open at release time may show the reserve hint and the old line together until "Refresh estimate".
+- [ ] Operators should know that waived-reserve orders still need "confirm store shipping" (actual $0 when the store shipped free) before buyout, as before.
+- [ ] Atlas Day was checked on the main customer pages (home, catalog, stores, cart, account, orders) and by the e2e snapshots; operator pages (`/admin`, `/operations`) only by the automated contrast audit.
 ## Stores, logos and phones — 4 October 2026
 
 - [x] `/stores`: 207 brands instead of 266 lowercase domains, proper names, logos, types and storefront countries, search and filters in the address, a store card with country storefronts, catalog products and iPhone copy instructions, a link field with paste.
@@ -18,7 +27,7 @@ The public catalog had 6 products, so the home section (shown from 8) never appe
 - [x] "With your parcel": for stores already in the cart, cards show what the product would add to the cart total (priced by `repriceCart`).
 - [x] Empty results suggest which single filter to drop; the catalog ends with "order by link" and the store directory.
 - [ ] Product cards are rendered on the client after `/api/catalog`; the server HTML of `/catalog` has the heading, filters and placeholders but no product names. Server-rendering the first page of products would help search engines.
-- [ ] The unconfirmed store-shipping reserve ($10) is charged per cart line even when several products come from one store; a per-store-parcel reserve would make "add to your parcel" much cheaper. Product decision: it changes quotes and refunds.
+- [x] The unconfirmed store-shipping reserve ($10) was charged per cart line; since 4 October 2026 it is one per store order and waived from $50 (see the section above).
 - [ ] The allowance follows the primary recipient; a recipient switcher in the catalog would help households that order for several people.
 - [ ] Sizes come from the store's own size list. US stores mix systems (men's/women's, "US 9" and "9"); "US " is normalized, but there is no conversion to EU/UZ sizes yet.
 - [ ] `scripts/audit-ui.mjs` (not run in CI) still expects the old home catalog and the pre-#8 guest order link; `npm run e2e` covers the same ground. Update or remove it.

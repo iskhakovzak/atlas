@@ -3,14 +3,14 @@
    Every tap target is at least 44px; colours resolve to the home tokens or the Atlas Night tokens. */
 :root {
   --cat-accent: #204e3d;
-  --cat-ink: #142344;
-  --cat-muted: #55627a;
-  --cat-line: #dce1e8;
-  --cat-soft: #f3f5f2;
+  --cat-ink: #16211c;
+  --cat-muted: #5b665f;
+  --cat-line: #e4e2da;
+  --cat-soft: #f5f3ee;
   --cat-surface: #fff;
   --cat-on: #204e3d;
   --cat-on-ink: #fff;
-  --cat-switch-off: #7c879a;
+  --cat-switch-off: #738c7f;
   --cat-ok: #1d6b47;
   --cat-ok-bg: #e9f4ee;
   --cat-ok-line: #b9dcc8;

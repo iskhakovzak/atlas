@@ -148,6 +148,9 @@ export const pricingSchema = z.object({
   optionalServices: z.number().finite().min(0).max(10_000_000).default(0),
   reserve: z.number().finite().min(0).max(2),
   divisor: positive.max(100_000),
+  // Unknown store delivery is reserved once per store parcel, and not at all from this much
+  // merchandise (USD) from that store: most stores ship such orders free. Old rows get $50.
+  storeShippingFreeFromUsd: z.number().finite().min(0).max(10_000).default(50),
   rates: z.record(z.string(), positive).default(usdRates),
   // Warehouse service options are versioned with pricing. Old settings receive
   // the safe starter catalogue; submitted orders keep their own snapshots.
@@ -179,6 +182,7 @@ export const tariff: Pricing = {
   optionalServices: 0,
   reserve: 0.2,
   divisor: 5000,
+  storeShippingFreeFromUsd: 50,
   rates: usdRates,
   serviceCatalog: defaultServiceOfferings,
   countryOverrides: {},
@@ -722,9 +726,9 @@ export function declineWarehouseService(state: State, id: string, requestId: str
   }), "Услуга недоступна", `${request.title.ru}: ${note}`, id, now);
 }
 
-export function merchantParcelKey(item: CartItem) {
-  if (!item.product.sourceUrl || item.product.boxedWeight === undefined)
-    return `item:${item.id}`;
+/** One store order: the same store host shipping from the same country. */
+export function storeParcelKey(item: Pick<CartItem, "id" | "product">) {
+  if (!item.product.sourceUrl) return `item:${item.id}`;
   try {
     const host = new URL(item.product.sourceUrl).hostname.toLowerCase().replace(/^www\./, "");
     return `store:${host}:${item.product.country ?? ""}`;
@@ -733,7 +737,39 @@ export function merchantParcelKey(item: CartItem) {
   }
 }
 
-/** Recalculate international delivery once per merchant parcel. */
+/** One international shipment: a store order whose items all have a boxed weight. */
+export function merchantParcelKey(item: CartItem) {
+  return item.product.boxedWeight === undefined ? `item:${item.id}` : storeParcelKey(item);
+}
+
+/**
+ * Store delivery for a quote. A stated charge is used as is. An unknown one is a reserve,
+ * waived from `storeShippingFreeFromUsd` of merchandise from that store. A store that still
+ * charges is settled by confirmStoreShipping, and any extra waits for the customer's approval.
+ */
+export function storeShippingUsd(product: Pick<Product, "sourceShippingUsd" | "sourceShippingEstimated">, storeSubtotalUsd: number, config: Pricing = tariff) {
+  const usd = product.sourceShippingUsd ?? 0;
+  return product.sourceShippingEstimated && storeSubtotalUsd >= (config.storeShippingFreeFromUsd ?? tariff.storeShippingFreeFromUsd) ? 0 : usd;
+}
+
+/** Unknown store delivery per store order in the cart: one reserve below the threshold, none from it. */
+export function storeShippingReserves(items: CartItem[], config: Pricing = tariff) {
+  const groups = new Map<string, CartItem[]>();
+  for (const item of items) {
+    const key = storeParcelKey(item);
+    groups.set(key, [...(groups.get(key) ?? []), item]);
+  }
+  return [...groups].flatMap(([key, group]) => {
+    const estimated = group.filter((item) => item.product.sourceShippingEstimated);
+    if (!estimated.length) return [];
+    const subtotalUsd = group.reduce((sum, item) => sum + item.product.usd * item.quantity, 0);
+    const freeFromUsd = config.storeShippingFreeFromUsd ?? tariff.storeShippingFreeFromUsd;
+    const reserveUsd = Math.max(...estimated.map((item) => storeShippingUsd(item.product, subtotalUsd, config)));
+    return [{ key, itemIds: estimated.map((item) => item.id), subtotalUsd, reserveUsd, freeFromUsd, missingUsd: reserveUsd > 0 ? Math.max(0, freeFromUsd - subtotalUsd) : 0 }];
+  });
+}
+
+/** Recalculate international delivery once per merchant parcel, and unknown store delivery once per store order. */
 export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing = tariff) {
   const next = items.map((item) => {
     const itemPricing = pricingForCountry(config, item.product.country);
@@ -787,6 +823,19 @@ export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing
         weight,
         total: item.quote.total - item.quote.shipping - item.quote.reserve - (item.quote.deliveryMargin ?? 0) + shipping + reserve + deliveryMargin,
       };
+    });
+  }
+  for (const parcel of storeShippingReserves(next, config)) {
+    const indexes = parcel.itemIds.map((id) => next.findIndex((item) => item.id === id));
+    const reserveTotal = Math.ceil(parcel.reserveUsd * config.fx);
+    const merchandiseTotal = indexes.reduce((sum, index) => sum + next[index].quote.merchandise, 0);
+    let left = reserveTotal;
+    indexes.forEach((index, position) => {
+      const item = next[index];
+      const share = merchandiseTotal ? item.quote.merchandise / merchandiseTotal : 1 / indexes.length;
+      const sourceShipping = position === indexes.length - 1 ? left : Math.min(left, Math.round(reserveTotal * share));
+      left -= sourceShipping;
+      item.quote = { ...item.quote, sourceShipping, total: item.quote.total - (item.quote.sourceShipping ?? 0) + sourceShipping };
     });
   }
   return next;

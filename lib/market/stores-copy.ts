@@ -22,6 +22,9 @@ const ru = {
   open: (domain: string) => `Открыть ${domain}`, storefronts: 'Витрины по странам', inCatalog: (count: number) => `${count} ${ruPlural(count, ['товар', 'товара', 'товаров'])} в каталоге Atlas`,
   viewCatalog: 'Смотреть', howTitle: 'Как заказать', close: 'Закрыть', newTab: 'откроется в новой вкладке',
   note: 'Список означает, что домен разрешён для заказа по ссылке через Atlas. Он не гарантирует доступность каждой страницы, наличие или цену. Логотипы принадлежат их владельцам; Atlas не является официальным представителем магазинов.',
+  mine: 'Вы уже заказывали', showAll: (count: number) => `Показать все ${count}`, showLess: 'Свернуть', popularFirst: 'сначала популярные',
+  inCatalogShort: (count: number) => `${count} в каталоге`, similar: 'Похожие магазины',
+  missingTitle: 'Нет нужного магазина?', missingText: 'Вставьте ссылку на товар: если магазин поддерживается, сразу покажем расчёт. Если нет — подскажем, что делать.', missingAction: 'Вставить ссылку',
 };
 type Copy = typeof ru;
 
@@ -40,6 +43,9 @@ const uz: Copy = {
   open: (domain: string) => `${domain} saytini ochish`, storefronts: 'Mamlakatlar bo‘yicha vitrinalar', inCatalog: (count: number) => `Atlas katalogida ${count} ta tovar`,
   viewCatalog: 'Ko‘rish', howTitle: 'Qanday buyurtma berish', close: 'Yopish', newTab: 'yangi oynada ochiladi',
   note: 'Ro‘yxat ushbu domendan Atlas orqali havola bo‘yicha buyurtma berish mumkinligini bildiradi. Har bir sahifa, mavjudlik yoki narx kafolatlanmaydi. Logotiplar egalariga tegishli; Atlas do‘konlarning rasmiy vakili emas.',
+  mine: 'Siz buyurtma bergan do‘konlar', showAll: (count: number) => `Barchasini ko‘rsatish: ${count}`, showLess: 'Yig‘ish', popularFirst: 'avval mashhurlari',
+  inCatalogShort: (count: number) => `katalogda ${count} ta`, similar: 'O‘xshash do‘konlar',
+  missingTitle: 'Kerakli do‘kon yo‘qmi?', missingText: 'Tovar havolasini qo‘ying: do‘kon qo‘llab-quvvatlansa, darhol hisobni ko‘rsatamiz. Bo‘lmasa — nima qilishni aytamiz.', missingAction: 'Havolani qo‘yish',
 };
 
 const en: Copy = {
@@ -57,6 +63,9 @@ const en: Copy = {
   open: (domain: string) => `Open ${domain}`, storefronts: 'Storefronts by country', inCatalog: (count: number) => `${count} ${count === 1 ? 'product' : 'products'} in the Atlas catalog`,
   viewCatalog: 'View', howTitle: 'How to order', close: 'Close', newTab: 'opens in a new tab',
   note: 'A listed store means its domain is allowed for link orders through Atlas. It does not guarantee every page, stock or price. Logos belong to their owners; Atlas is not an official representative of these stores.',
+  mine: 'Stores you ordered from', showAll: (count: number) => `Show all ${count}`, showLess: 'Show less', popularFirst: 'popular first',
+  inCatalogShort: (count: number) => `${count} in catalog`, similar: 'Similar stores',
+  missingTitle: 'Store not listed?', missingText: 'Paste a product link: if the store is supported, the estimate opens right away. If not, we tell you what to do.', missingAction: 'Paste a link',
 };
 
 export const storesCopy: Record<Locale, Copy> = { ru, uz, en };

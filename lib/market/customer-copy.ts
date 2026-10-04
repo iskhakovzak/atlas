@@ -80,10 +80,14 @@ export type CartCopy = {
   loading: string;
   signin: { title: string; text: string; action: string };
   empty: { title: string; text: string; paste: string; stores: string };
-  item: { remove: string; decrease: string; increase: string; quantity: string; storePrice: string; openStore: string; parcelFrom: (store: string) => string; forQuantity: (count: number) => string };
+  item: {
+    remove: string; decrease: string; increase: string; quantity: string; storePrice: string; openStore: string; parcelFrom: (store: string) => string; forQuantity: (count: number) => string;
+    /** Store-delivery reserve of one store order: how much more removes it, or that it is not taken. */
+    parcelReserve: (missing: string, reserve: string) => string; parcelFree: (freeFrom: string) => string;
+  };
   services: { title: string; optional: string; hint: string; fixed: string; quote: string; notIncluded: string; quantity: string; required: string; units: { package: string; item: string; day: string; photo: string; 'half-hour': string } };
   summary: {
-    title: string; items: string; storeShipping: string; service: string; serviceHelp: string; serviceHelpLabel: string;
+    title: string; items: string; storeShipping: string; storeNoReserve: string; storeShippingHelp: (freeFrom: string) => string; service: string; serviceHelp: string; serviceHelpLabel: string;
     international: string; internationalHelp: string; internationalHelpLabel: string; reserve: string; reserveHelp: string; reserveHelpLabel: string;
     optional: string; balance: string; available: string; fromBalance: string; payable: string; checkout: string; renew: string;
     validFor: (time: string) => string; checking: string; expired: string; assurance: string; simulation: string; continue: string;
@@ -137,7 +141,9 @@ export const cartCopy: Record<Locale, CartCopy> = {
     loading: 'Загружаем корзину…',
     signin: { title: 'Войдите, чтобы открыть корзину', text: 'Корзина и заказы хранятся в вашем профиле Atlas.', action: 'Войти' },
     empty: { title: 'Корзина пуста', text: 'Вставьте ссылку на товар из любого магазина — посчитаем цену с доставкой до Ташкента.', paste: 'Вставить ссылку', stores: 'Смотреть магазины' },
-    item: { remove: 'Удалить', decrease: 'Уменьшить количество', increase: 'Увеличить количество', quantity: 'Количество', storePrice: 'В магазине', openStore: 'Открыть в магазине', parcelFrom: store => `Посылка из ${store}`, forQuantity: count => `за ${count} шт.` },
+    item: { remove: 'Удалить', decrease: 'Уменьшить количество', increase: 'Увеличить количество', quantity: 'Количество', storePrice: 'В магазине', openStore: 'Открыть в магазине', parcelFrom: store => `Посылка из ${store}`, forQuantity: count => `за ${count} шт.`,
+      parcelReserve: (missing, reserve) => `Ещё ${missing} из этого магазина — и резерв ${reserve} на его доставку не понадобится.`,
+      parcelFree: freeFrom => `Из этого магазина от ${freeFrom} — резерв на его доставку не берём.` },
     services: {
       title: 'Услуги склада', optional: 'по желанию',
       hint: 'Отметьте пожелания. Оператор проверит возможность после приёмки; услугу выполнят только после показа точной суммы и вашего согласия.',
@@ -145,7 +151,8 @@ export const cartCopy: Record<Locale, CartCopy> = {
       units: { package: 'посылка', item: 'шт.', day: 'день', photo: 'фото', 'half-hour': '30 мин' },
     },
     summary: {
-      title: 'Итого', items: 'Товары', storeShipping: 'Доставка магазина', service: 'Сервис Atlas',
+      title: 'Итого', items: 'Товары', storeShipping: 'Доставка магазина', storeNoReserve: 'Без резерва', service: 'Сервис Atlas',
+      storeShippingHelp: freeFrom => `Если магазин не указал цену доставки до нашего склада, закладываем резерв $10 — один на заказ из магазина. От ${freeFrom} товаров из одного магазина резерв не берём: такие заказы обычно везут бесплатно. Если магазин всё же возьмёт плату, сначала спросим вас.`,
       serviceHelp: 'Выкуп товара, оплата в валюте магазина и сопровождение заказа до выдачи.', serviceHelpLabel: 'Что входит в сервис Atlas',
       international: 'Международная доставка',
       internationalHelp: 'Товары одного магазина едут одной посылкой: вес складывается, упаковка учитывается один раз. Минимальный оплачиваемый вес посылки — 1 кг.',
@@ -185,7 +192,9 @@ export const cartCopy: Record<Locale, CartCopy> = {
     loading: 'Savat yuklanmoqda…',
     signin: { title: 'Savatni ochish uchun kiring', text: 'Savat va buyurtmalar Atlas profilingizda saqlanadi.', action: 'Kirish' },
     empty: { title: 'Savat bo‘sh', text: 'Istalgan do‘kondagi tovar havolasini qo‘ying — Toshkentgacha yetkazish bilan narxini hisoblaymiz.', paste: 'Havolani qo‘yish', stores: 'Do‘konlarni ko‘rish' },
-    item: { remove: 'O‘chirish', decrease: 'Miqdorni kamaytirish', increase: 'Miqdorni oshirish', quantity: 'Miqdor', storePrice: 'Do‘konda', openStore: 'Do‘konda ochish', parcelFrom: store => `${store} posilkasi`, forQuantity: count => `${count} dona uchun` },
+    item: { remove: 'O‘chirish', decrease: 'Miqdorni kamaytirish', increase: 'Miqdorni oshirish', quantity: 'Miqdor', storePrice: 'Do‘konda', openStore: 'Do‘konda ochish', parcelFrom: store => `${store} posilkasi`, forQuantity: count => `${count} dona uchun`,
+      parcelReserve: (missing, reserve) => `Bu do‘kondan yana ${missing} lik tovar qo‘shing — ${reserve} yetkazish zaxirasi kerak bo‘lmaydi.`,
+      parcelFree: freeFrom => `Bu do‘kondan ${freeFrom} va undan ko‘p — yetkazish zaxirasi olinmaydi.` },
     services: {
       title: 'Ombor xizmatlari', optional: 'ixtiyoriy',
       hint: 'Istaklaringizni belgilang. Operator qabuldan keyin imkoniyatni tekshiradi; xizmat faqat aniq narx ko‘rsatilib, roziligingiz olingandan so‘ng bajariladi.',
@@ -193,7 +202,8 @@ export const cartCopy: Record<Locale, CartCopy> = {
       units: { package: 'posilka', item: 'dona', day: 'kun', photo: 'foto', 'half-hour': '30 daqiqa' },
     },
     summary: {
-      title: 'Jami', items: 'Tovarlar', storeShipping: 'Do‘kon yetkazishi', service: 'Atlas xizmati',
+      title: 'Jami', items: 'Tovarlar', storeShipping: 'Do‘kon yetkazishi', storeNoReserve: 'Zaxirasiz', service: 'Atlas xizmati',
+      storeShippingHelp: freeFrom => `Do‘kon omborimizgacha yetkazish narxini ko‘rsatmasa, $10 zaxira qo‘yamiz — do‘kondan bitta buyurtmaga bir marta. Bitta do‘kondan ${freeFrom} va undan ortiq tovarga zaxira olinmaydi: bunday buyurtmalar odatda bepul yetkaziladi. Do‘kon baribir haq olsa, avval sizdan so‘raymiz.`,
       serviceHelp: 'Tovarni sotib olish, do‘kon valyutasida to‘lash va buyurtmani topshirishgacha kuzatib borish.', serviceHelpLabel: 'Atlas xizmatiga nimalar kiradi',
       international: 'Xalqaro yetkazish',
       internationalHelp: 'Bir do‘kon tovarlari bitta posilkada keladi: vazn qo‘shiladi, qadoq bir marta hisoblanadi. Posilkaning minimal to‘lovli vazni — 1 kg.',
@@ -233,7 +243,9 @@ export const cartCopy: Record<Locale, CartCopy> = {
     loading: 'Loading cart…',
     signin: { title: 'Sign in to open your cart', text: 'Your cart and orders are saved to your Atlas profile.', action: 'Sign in' },
     empty: { title: 'Your cart is empty', text: 'Paste a product link from any store — we will calculate the price with delivery to Tashkent.', paste: 'Paste a link', stores: 'Browse stores' },
-    item: { remove: 'Remove', decrease: 'Decrease quantity', increase: 'Increase quantity', quantity: 'Quantity', storePrice: 'In store', openStore: 'Open in store', parcelFrom: store => `Parcel from ${store}`, forQuantity: count => `for ${count}` },
+    item: { remove: 'Remove', decrease: 'Decrease quantity', increase: 'Increase quantity', quantity: 'Quantity', storePrice: 'In store', openStore: 'Open in store', parcelFrom: store => `Parcel from ${store}`, forQuantity: count => `for ${count}`,
+      parcelReserve: (missing, reserve) => `Add ${missing} more from this store and the ${reserve} store-delivery reserve goes away.`,
+      parcelFree: freeFrom => `${freeFrom} or more from this store — no store-delivery reserve.` },
     services: {
       title: 'Warehouse services', optional: 'optional',
       hint: 'Choose preferences. An operator checks feasibility after intake; work starts only after the exact price is shown and you approve it.',
@@ -241,7 +253,8 @@ export const cartCopy: Record<Locale, CartCopy> = {
       units: { package: 'package', item: 'item', day: 'day', photo: 'photo', 'half-hour': '30 min' },
     },
     summary: {
-      title: 'Summary', items: 'Items', storeShipping: 'Store delivery', service: 'Atlas service',
+      title: 'Summary', items: 'Items', storeShipping: 'Store delivery', storeNoReserve: 'No reserve', service: 'Atlas service',
+      storeShippingHelp: freeFrom => `When a store does not state delivery to our warehouse, we add a $10 reserve — once per store order. From ${freeFrom} of items from one store there is no reserve: such orders usually ship free. If the store still charges, we ask you first.`,
       serviceHelp: 'Buying the item, paying in the store’s currency and handling the order until pickup.', serviceHelpLabel: 'What the Atlas service covers',
       international: 'International delivery',
       internationalHelp: 'Items from one store travel as one parcel: weights add up and packaging counts once. The minimum billable parcel weight is 1 kg.',

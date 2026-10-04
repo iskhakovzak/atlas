@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type FormEvent, type RefObject } from 'react';
-import { ArrowRight, ArrowUpRight, ClipboardPaste, Link2, Search, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, ChevronDown, ClipboardPaste, Link2, Search, X } from 'lucide-react';
 import Link from '@/components/site-link';
 import { validateSource } from '@/lib/market/domain';
 import { useMarket } from '@/lib/market/store';
@@ -16,9 +16,18 @@ import type { Locale } from '@/lib/market/i18n';
 import { StoreLogo } from './store-logo';
 
 type Copy = (typeof storesCopy)['ru'];
+type CatalogCounts = Map<string, { count: number; hosts: Set<string> }>;
 const focusKeys = new Set<string>(storeFocusOrder);
 const regionKeys = new Set<string>(storeRegionOrder);
 const popular = popularBrandKeys.map((key) => storeBrands.find((brand) => brand.key === key)).filter((brand): brand is StoreBrand => !!brand);
+/** Popular brands first, then the bigger ones (more country storefronts), then by name. */
+const byRank = (a: StoreBrand, b: StoreBrand) => {
+  const pa = popularBrandKeys.indexOf(a.key), pb = popularBrandKeys.indexOf(b.key);
+  if (pa !== pb) return (pa < 0 ? 99 : pa) - (pb < 0 ? 99 : pb);
+  return b.storefronts.length - a.storefronts.length || a.name.localeCompare(b.name);
+};
+/** A collapsed group shows this many stores: two rows on phones, two rows of five on wide screens (CSS hides the rest). */
+const collapsedCount = 6;
 
 /**
  * Store directory: brands with logos (country storefronts of one store grouped), search, type and
@@ -32,6 +41,7 @@ export function StoresDirectory() {
   const [focus, setFocus] = useState<StoreFocus | ''>('');
   const [region, setRegion] = useState<StoreRegion | ''>('');
   const [open, setOpen] = useState<StoreBrand | null>(null);
+  const [expanded, setExpanded] = useState<StoreFocus[]>([]);
   const field = useRef<HTMLInputElement>(null);
   useEffect(() => { void loadCatalog(); }, [loadCatalog]);
   // Home store chips and shared links arrive as ?q=, ?focus= and ?region=; read them after hydration.
@@ -53,7 +63,7 @@ export function StoresDirectory() {
   }, [query, focus, region]);
 
   const catalogByBrand = useMemo(() => {
-    const map = new Map<string, { count: number; hosts: Set<string> }>();
+    const map: CatalogCounts = new Map();
     for (const product of catalogProducts) {
       const host = storeHost(product), brand = brandForHost(host);
       if (!brand) continue;
@@ -62,6 +72,16 @@ export function StoresDirectory() {
     }
     return map;
   }, [catalogProducts]);
+  // Stores from the cart and earlier orders, the latest first: the quickest way back to a store.
+  const mine = useMemo(() => {
+    const products = [...state.cart.map((item) => item.product), ...[...state.orders].sort((a, b) => b.createdAt - a.createdAt).map((order) => order.product)];
+    const brands: StoreBrand[] = [];
+    for (const product of products) {
+      const brand = brandForHost(storeHost(product));
+      if (brand && !brands.includes(brand)) brands.push(brand);
+    }
+    return brands.slice(0, 12);
+  }, [state.cart, state.orders]);
 
   const search = query.trim().toLocaleLowerCase();
   const matchesSearch = (brand: StoreBrand) => !search || [brand.name, brand.key, storeFocusNames[brand.focus][locale], ...brand.storefronts.flatMap((s) => [s.root, storeCountryNames[s.country][locale]])].join(' ').toLocaleLowerCase().includes(search);
@@ -81,9 +101,14 @@ export function StoresDirectory() {
       <ol className="stores-steps">{c.steps.map(([title, hint], index) => <li key={title}><span aria-hidden="true">{index + 1}</span><div><b>{title}</b><small>{hint}</small></div></li>)}</ol>
     </header>
 
-    <section className="stores-popular" aria-labelledby="stores-popular-title">
+    {mine.length > 0 && <section className="stores-shelf stores-mine" aria-labelledby="stores-mine-title">
+      <h2 id="stores-mine-title">{c.mine}</h2>
+      <ul>{mine.map((brand) => <li key={brand.key}><button type="button" onClick={() => setOpen(brand)}><StoreLogo brand={brand} size={44} /><span>{brand.name}</span></button></li>)}</ul>
+    </section>}
+
+    <section className="stores-shelf stores-popular" aria-labelledby="stores-popular-title">
       <h2 id="stores-popular-title">{c.popular}</h2>
-      <ul>{popular.map((brand) => <li key={brand.key}><button type="button" onClick={() => setOpen(brand)}><StoreLogo brand={brand} size={52} /><span>{brand.name}</span></button></li>)}</ul>
+      <ul>{popular.map((brand) => <li key={brand.key}><button type="button" onClick={() => setOpen(brand)}><StoreLogo brand={brand} size={44} /><span>{brand.name}</span></button></li>)}</ul>
     </section>
 
     <section className="stores-browse" aria-labelledby="stores-browse-title">
@@ -99,25 +124,42 @@ export function StoresDirectory() {
       </div>
       {!list.length ? <div className="stores-empty" role="status"><p>{c.noResults}</p><button type="button" className="btn primary" onClick={() => { setQuery(''); setFocus(''); setRegion(''); field.current?.focus(); }}><Link2 size={18} aria-hidden="true" />{c.pasteLabel}</button></div>
         : grouped ? storeFocusOrder.map((key) => {
-          const items = list.filter((brand) => brand.focus === key);
-          return items.length ? <section className="stores-group" key={key} aria-labelledby={'stores-' + key}><h3 id={'stores-' + key}>{storeFocusNames[key][locale]}<span>{items.length}</span></h3><StoreGrid items={items} locale={locale} c={c} onOpen={setOpen} /></section> : null;
+          // Without a search or a type filter each type is a short shelf, popular stores first, opened on demand.
+          const items = list.filter((brand) => brand.focus === key).sort(byRank);
+          const isOpen = expanded.includes(key);
+          // le8/le9/le10: everything fits in the collapsed rows of that breakpoint, so no "show all" there.
+          const fits = [8, 9, 10].filter((limit) => items.length <= limit).map((limit) => ' le' + limit).join('');
+          return items.length ? <section className={'stores-group' + (isOpen ? ' open' : '') + fits} key={key} aria-labelledby={'stores-' + key}>
+            <h3 id={'stores-' + key}>{storeFocusNames[key][locale]}<span>{items.length}</span></h3>
+            <StoreGrid items={items} locale={locale} c={c} catalog={catalogByBrand} onOpen={setOpen} />
+            {items.length > collapsedCount && <button type="button" className="stores-more" aria-expanded={isOpen} aria-controls={'stores-grid-' + key} onClick={() => setExpanded(isOpen ? expanded.filter((value) => value !== key) : [...expanded, key])}>
+              {isOpen ? c.showLess : c.showAll(items.length)}<ChevronDown size={18} aria-hidden="true" />
+            </button>}
+          </section> : null;
         })
-        : <StoreGrid items={list} locale={locale} c={c} onOpen={setOpen} />}
+        : <StoreGrid items={list} locale={locale} c={c} catalog={catalogByBrand} onOpen={setOpen} />}
+      <div className="stores-missing">
+        <div><h3>{c.missingTitle}</h3><p>{c.missingText}</p></div>
+        <button type="button" className="btn secondary" onClick={() => { field.current?.scrollIntoView({ block: 'center' }); field.current?.focus(); }}><Link2 size={18} aria-hidden="true" />{c.missingAction}</button>
+      </div>
       <p className="stores-note">{c.note}</p>
     </section>
-    <StoreDialog brand={open} c={c} locale={locale} catalog={open ? catalogByBrand.get(open.key) : undefined} onClose={() => setOpen(null)} onPaste={() => { setOpen(null); field.current?.scrollIntoView({ block: 'center' }); field.current?.focus(); }} />
+    <StoreDialog brand={open} c={c} locale={locale} catalog={open ? catalogByBrand.get(open.key) : undefined} onOpen={setOpen} onClose={() => setOpen(null)} onPaste={() => { setOpen(null); field.current?.scrollIntoView({ block: 'center' }); field.current?.focus(); }} />
   </div>;
 }
 
-function StoreGrid({ items, locale, c, onOpen }: { items: StoreBrand[]; locale: Locale; c: Copy; onOpen: (brand: StoreBrand) => void }) {
-  return <ul className="stores-grid">{items.map((brand) => <li key={brand.key}><button type="button" className="store-tile" onClick={() => onOpen(brand)}>
-    <StoreLogo brand={brand} size={44} />
-    <span className="store-tile-text"><b>{brand.name}</b><small>{storeCountryNames[brand.storefronts[0].country][locale]}{brand.storefronts.length > 1 && <> · {c.countries(new Set(brand.storefronts.map((s) => s.country)).size)}</>}</small></span>
-  </button></li>)}</ul>;
+function StoreGrid({ items, locale, c, catalog, onOpen }: { items: StoreBrand[]; locale: Locale; c: Copy; catalog: CatalogCounts; onOpen: (brand: StoreBrand) => void }) {
+  return <ul className="stores-grid" id={items[0] ? 'stores-grid-' + items[0].focus : undefined}>{items.map((brand) => {
+    const countries = new Set(brand.storefronts.map((s) => s.country)).size, inCatalog = catalog.get(brand.key)?.count ?? 0;
+    return <li key={brand.key}><button type="button" className="store-tile" onClick={() => onOpen(brand)}>
+      <StoreLogo brand={brand} size={36} />
+      <span className="store-tile-text"><b>{brand.name}</b><small>{inCatalog > 0 ? <em>{c.inCatalogShort(inCatalog)}</em> : countries > 1 ? c.countries(countries) : storeCountryNames[brand.storefronts[0].country][locale]}</small></span>
+    </button></li>;
+  })}</ul>;
 }
 
 /** Native modal dialog: a sheet from the bottom on phones, a centred card on larger screens. */
-function StoreDialog({ brand, c, locale, catalog, onClose, onPaste }: { brand: StoreBrand | null; c: Copy; locale: Locale; catalog?: { count: number; hosts: Set<string> }; onClose: () => void; onPaste: () => void }) {
+function StoreDialog({ brand, c, locale, catalog, onOpen, onClose, onPaste }: { brand: StoreBrand | null; c: Copy; locale: Locale; catalog?: { count: number; hosts: Set<string> }; onOpen: (brand: StoreBrand) => void; onClose: () => void; onPaste: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const dialog = ref.current;
@@ -126,6 +168,9 @@ function StoreDialog({ brand, c, locale, catalog, onClose, onPaste }: { brand: S
     if (!brand && dialog.open) dialog.close();
   }, [brand]);
   const main = brand?.storefronts[0];
+  // Same type of store, popular first and preferably from the same part of the world.
+  const similar = brand ? storeBrands.filter((other) => other.focus === brand.focus && other.key !== brand.key)
+    .sort((a, b) => Number(b.country === brand.country) - Number(a.country === brand.country) || byRank(a, b)).slice(0, 6) : [];
   return <dialog ref={ref} className="store-dialog" aria-labelledby="store-dialog-title" onClose={onClose} onClick={(event) => { if (event.target === ref.current) ref.current?.close(); }}>
     {brand && main && <div className="store-dialog-body">
       <button type="button" className="icon-btn store-dialog-close" aria-label={c.close} onClick={() => ref.current?.close()}><X size={20} /></button>
@@ -135,6 +180,7 @@ function StoreDialog({ brand, c, locale, catalog, onClose, onPaste }: { brand: S
       {catalog && catalog.count > 0 && <Link className="store-dialog-catalog" href={'/catalog?store=' + [...catalog.hosts].join(',')}><span>{c.inCatalog(catalog.count)}</span><b>{c.viewCatalog}<ArrowRight size={16} aria-hidden="true" /></b></Link>}
       <div className="store-dialog-section"><h3>{c.howTitle}</h3><ol className="store-dialog-steps">{c.steps.map(([title, hint]) => <li key={title}><b>{title}</b><small>{hint}</small></li>)}</ol></div>
       <button type="button" className="btn secondary store-dialog-paste" onClick={onPaste}><Link2 size={18} aria-hidden="true" />{c.pastePlaceholder}</button>
+      {similar.length > 0 && <div className="store-dialog-section"><h3>{c.similar}</h3><ul className="store-dialog-similar">{similar.map((other) => <li key={other.key}><button type="button" onClick={() => { onOpen(other); ref.current?.querySelector('.store-dialog-body')?.scrollTo({ top: 0 }); }}><StoreLogo brand={other} size={32} /><span>{other.name}</span></button></li>)}</ul></div>}
     </div>}
   </dialog>;
 }

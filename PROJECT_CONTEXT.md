@@ -256,7 +256,7 @@ Supported source currencies: USD, EUR, GBP, RON, CNY, TRY, JPY, KRW, AED, CAD an
 
 ## Shipping, balance and recalculation
 
-Unknown store shipping uses editable $10 and sourceShippingEstimated true. Before a reserve-based order leaves status Ожидает выкупа, an operator enters actual total merchant shipping in USD:
+Unknown store shipping uses editable $10 and sourceShippingEstimated true. Since 4 October 2026 the reserve is taken once per store order (lines with the same store host and dispatch country; `storeShippingReserves` in `lib/market/domain.ts`, split across them by merchandise) and not at all from `pricing.storeShippingFreeFromUsd` ($50 by default, editable in the tariff form) of items from that store, because stores usually ship such orders free. The cart tells the customer how much more from that store removes the reserve; a waived reserve shows as "no reserve", never "free". Removing a cart line reprices the rest. Before an order with estimated store shipping leaves status Ожидает выкупа (reserved or waived), an operator enters actual total merchant shipping in USD:
 
 - actual lower than reserve: customer-credit ledger entry immediately;
 - equal: no adjustment;

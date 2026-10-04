@@ -44,17 +44,17 @@
 
 /* Catalog card: price breakdown and honest action labels. */
 .find-breakdown { margin-top:6px; font-size:13px; }
-.find-breakdown > summary { cursor:pointer; color:var(--atlas-link,#2346ba); font-weight:600; list-style:none; display:inline-flex; align-items:center; gap:4px; }
+.find-breakdown > summary { cursor:pointer; color:var(--atlas-link,#255b45); font-weight:600; list-style:none; display:inline-flex; align-items:center; gap:4px; }
 .find-breakdown > summary::-webkit-details-marker { display:none; }
 .find-breakdown > summary::after { content:"▾"; font-size:11px; }
 .find-breakdown[open] > summary::after { content:"▴"; }
-.find-breakdown dl { display:grid; gap:4px; margin:8px 0 0; padding:10px; border-radius:10px; background:var(--atlas-soft,#f3f5f8); }
+.find-breakdown dl { display:grid; gap:4px; margin:8px 0 0; padding:10px; border-radius:10px; background:var(--atlas-soft,#f5f3ee); }
 .find-breakdown dl > div { display:flex; justify-content:space-between; gap:10px; }
-.find-breakdown dt { color:#53637c; }
+.find-breakdown dt { color:#54665d; }
 .find-breakdown dd { margin:0; font-weight:600; white-space:nowrap; font-variant-numeric:tabular-nums; }
-.find-breakdown p { margin:6px 0 0; color:#53637c; line-height:1.45; }
+.find-breakdown p { margin:6px 0 0; color:#54665d; line-height:1.45; }
 html[data-theme="dark"] .find-breakdown dl { background:var(--night-surface); }
 html[data-theme="dark"] .find-breakdown dt, html[data-theme="dark"] .find-breakdown p { color:var(--night-ink-2); }
-.find-origin span { color:#53637c; font-size:13px; }
+.find-origin span { color:#54665d; font-size:13px; }
 
 /* Popular stores: each chip opens the store directory filtered to that store. */

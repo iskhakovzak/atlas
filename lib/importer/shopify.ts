@@ -98,7 +98,7 @@ export function extractShopify(data: unknown, currencyData: unknown, sourceUrl: 
   const price = selected ? selected.price : prices.length === 1 ? prices[0] : undefined;
   const title = label(product.title), brand = label(product.vendor);
   const category = categoryByStore[storeRoot(source.hostname)] ?? inferProductCategory(`${title} ${label(product.type)}`, brand);
-  const warnings = ['Доставка магазина не опубликована — добавлен изменяемый резерв $10.', 'Вес с упаковкой нужно проверить.'];
+  const warnings = ['Доставка магазина не опубликована — указан изменяемый резерв $10; для заказа из магазина от $50 его не берём.', 'Вес с упаковкой нужно проверить.'];
   if (price === undefined) warnings.push('Выберите вариант, чтобы получить его точную цену.');
   if (selected && !selected.available) warnings.push('Вариант из ссылки отсутствует в наличии. Выберите другой вариант.');
   if (selectedId && !selected) warnings.push('Вариант из ссылки не найден. Проверьте размер или цвет.');
