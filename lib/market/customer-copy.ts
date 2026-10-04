@@ -86,7 +86,7 @@ export type CartCopy = {
     parcelReserve: (missing: string, reserve: string) => string; parcelFree: (freeFrom: string) => string;
     /** Results of the live check with the store. */
     priceUp: (from: string, to: string) => string; priceDown: (from: string, to: string) => string; shippingChanged: (from: string, to: string) => string;
-    issues: { currency: string; variant: string; price: string; unreachable: string }; reload: string; checked: (time: string) => string;
+    issues: { currency: string; variant: string; price: string; unreachable: string; stock: string }; reload: string; checked: (time: string) => string;
   };
   services: { title: string; optional: string; hint: string; fixed: string; quote: string; notIncluded: string; quantity: string; required: string; units: { package: string; item: string; day: string; photo: string; 'half-hour': string } };
   summary: {
@@ -151,7 +151,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
       priceUp: (from, to) => `Цена в магазине выросла: ${from} → ${to}. Итог пересчитан.`,
       priceDown: (from, to) => `Цена в магазине снизилась: ${from} → ${to}. Итог пересчитан.`,
       shippingChanged: (from, to) => `Доставка магазина изменилась: ${from} → ${to}.`,
-      issues: { currency: 'Магазин сменил валюту витрины — откройте товар заново.', variant: 'Этот вариант больше не найден в магазине — выберите его заново.', price: 'Магазин не подтвердил цену — откройте товар заново.', unreachable: 'Магазин не ответил при проверке. Atlas сверит цену перед выкупом.' },
+      issues: { currency: 'Магазин сменил валюту витрины — откройте товар заново.', variant: 'Этот вариант больше не найден в магазине — выберите его заново.', price: 'Магазин не подтвердил цену — откройте товар заново.', unreachable: 'Магазин не ответил при проверке. Atlas сверит цену перед выкупом.', stock: 'У магазина осталось меньше, чем в корзине, — уменьшите количество.' },
       reload: 'Открыть товар', checked: time => `Цена сверена с магазином в ${time}` },
     services: {
       title: 'Услуги склада', optional: 'по желанию',
@@ -208,7 +208,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
       priceUp: (from, to) => `Do‘kondagi narx oshdi: ${from} → ${to}. Jami qayta hisoblandi.`,
       priceDown: (from, to) => `Do‘kondagi narx tushdi: ${from} → ${to}. Jami qayta hisoblandi.`,
       shippingChanged: (from, to) => `Do‘kon yetkazishi o‘zgardi: ${from} → ${to}.`,
-      issues: { currency: 'Do‘kon valyutani o‘zgartirdi — tovarni qayta oching.', variant: 'Bu variant do‘konda topilmadi — uni qayta tanlang.', price: 'Do‘kon narxni tasdiqlamadi — tovarni qayta oching.', unreachable: 'Tekshiruvda do‘kon javob bermadi. Atlas xariddan oldin narxni tekshiradi.' },
+      issues: { currency: 'Do‘kon valyutani o‘zgartirdi — tovarni qayta oching.', variant: 'Bu variant do‘konda topilmadi — uni qayta tanlang.', price: 'Do‘kon narxni tasdiqlamadi — tovarni qayta oching.', unreachable: 'Tekshiruvda do‘kon javob bermadi. Atlas xariddan oldin narxni tekshiradi.', stock: 'Do‘konda savatdagidan kam qoldi — sonini kamaytiring.' },
       reload: 'Tovarni ochish', checked: time => `Narx do‘kon bilan ${time} da tekshirildi` },
     services: {
       title: 'Ombor xizmatlari', optional: 'ixtiyoriy',
@@ -265,7 +265,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
       priceUp: (from, to) => `The store price went up: ${from} → ${to}. Total recalculated.`,
       priceDown: (from, to) => `The store price went down: ${from} → ${to}. Total recalculated.`,
       shippingChanged: (from, to) => `Store delivery changed: ${from} → ${to}.`,
-      issues: { currency: 'The store changed its currency — open the item again.', variant: 'This option is no longer listed — choose it again.', price: 'The store did not confirm the price — open the item again.', unreachable: 'The store did not answer the check. Atlas confirms the price before buying.' },
+      issues: { currency: 'The store changed its currency — open the item again.', variant: 'This option is no longer listed — choose it again.', price: 'The store did not confirm the price — open the item again.', unreachable: 'The store did not answer the check. Atlas confirms the price before buying.', stock: 'The store has fewer left than your cart asks for — lower the quantity.' },
       reload: 'Open item', checked: time => `Price checked with the store at ${time}` },
     services: {
       title: 'Warehouse services', optional: 'optional',

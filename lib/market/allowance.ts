@@ -1,13 +1,16 @@
-import type { Order, State } from './domain.ts';
-import { courierAllowanceUsd } from './customs.ts';
+import { statuses, type CartCustoms, type CustomsEstimate, type IdentityProfile, type Order, type Pricing, type SavedDeliveryProfile, type State } from './domain.ts';
+import { courierAllowanceUsd, customsCheckedOn, customsParams } from './customs.ts';
 
 export type RecipientAllowance = { key: string; name: string; usedUsd: number; orders: number };
+/** One person for the allowance: a normalized name, and the masked passport when one is linked. */
+export type AllowancePerson = { name: string; passport?: string };
 
-/** The duty-free allowance belongs to a person, so orders are grouped by the recipient's name:
- * a saved recipient's name, else the name typed at checkout. Two addresses of one person share it. */
-export function recipientKey(name: string | undefined) {
-  const normalized = (name ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('ru');
-  return normalized ? `name:${normalized}` : 'unknown';
+const normalizedName = (name: string | undefined) => (name ?? '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('ru');
+
+/** The duty-free allowance belongs to a person, so it is grouped by the recipient's name (not the address). */
+export function recipientKey(name: string | undefined, passport?: string) {
+  const normalized = normalizedName(name);
+  return normalized ? `name:${normalized}${passport ? `|${passport}` : ''}` : 'unknown';
 }
 
 export function orderRecipientName(state: State, order: Order) {
@@ -15,28 +18,78 @@ export function orderRecipientName(state: State, order: Order) {
   return profile?.recipient ?? order.delivery?.recipient ?? '';
 }
 
-/** Merchandise value in USD of this calendar month's non-cancelled orders, per recipient.
- * Atlas counts by order date: the customs arrival date is not known yet. */
-export function monthlyAllowance(state: State, fallbackFx: number, now = Date.now()): RecipientAllowance[] {
-  const month = new Date(now);
-  const groups = new Map<string, RecipientAllowance>();
-  for (const order of state.orders) {
-    const created = new Date(order.createdAt);
-    if (order.cancelled || created.getMonth() !== month.getMonth() || created.getFullYear() !== month.getFullYear()) continue;
-    const name = orderRecipientName(state, order);
-    const key = recipientKey(name);
-    const group = groups.get(key) ?? { key, name: name.trim(), usedUsd: 0, orders: 0 };
-    group.usedUsd += order.quote.merchandise / (order.quote.fx ?? fallbackFx);
-    group.orders += 1;
-    groups.set(key, group);
-  }
-  return [...groups.values()].map((group) => ({ ...group, usedUsd: Math.round(group.usedUsd) })).sort((a, b) => b.usedUsd - a.usedUsd);
+const identities = (state: State): IdentityProfile[] => state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
+
+/** The person a saved recipient stands for: their name and, when confirmed, their passport. */
+export function profilePerson(state: State, profile: SavedDeliveryProfile): AllowancePerson {
+  const passport = identities(state).find((identity) => identity.recipientProfileId === profile.id)?.passportMasked;
+  return { name: normalizedName(profile.recipient), passport };
 }
 
-/** This month's USD already counted for one person (0 when there is nothing yet). */
-export function monthlyUsedFor(state: State, name: string | undefined, fallbackFx: number, now = Date.now()) {
-  const key = recipientKey(name);
-  return monthlyAllowance(state, fallbackFx, now).find((group) => group.key === key)?.usedUsd ?? 0;
+export function orderPerson(state: State, order: Order): AllowancePerson {
+  const profile = order.deliveryProfileId ? state.deliveryProfiles.find((item) => item.id === order.deliveryProfileId) : undefined;
+  const passport = order.identity?.passportMasked ?? (profile ? profilePerson(state, profile).passport : undefined);
+  return { name: normalizedName(orderRecipientName(state, order)), passport };
+}
+
+/** Same person: the same name, and the same passport whenever both sides have one. */
+export function samePerson(a: AllowancePerson, b: AllowancePerson) {
+  return Boolean(a.name) && a.name === b.name && (!a.passport || !b.passport || a.passport === b.passport);
+}
+
+/**
+ * Orders that use the allowance: bought (status "Выкуплен" or later), paid and not cancelled. Unpaid,
+ * not yet bought or cancelled orders are not imported, so they do not count (owner's rule, 4 October 2026).
+ */
+export function countsTowardAllowance(order: Order) {
+  return !order.cancelled && order.status >= 1 && (!order.payment || order.payment.status === 'paid');
+}
+
+const monthOf = (at: number) => { const date = new Date(at); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; };
+
+/**
+ * The calendar month the order uses the allowance in. CM resolution No. 244 §3(b) applies the norm "within one
+ * calendar month" to goods imported for a person, so it is the month of import. Atlas does not record the customs
+ * date: a delivered order counts in the month it was delivered, one still on its way counts in the current month.
+ */
+export function allowanceMonth(order: Order, now = Date.now()) {
+  if (order.status >= 5) {
+    const delivered = [...order.history].reverse().find((event) => event.text === statuses[5]);
+    return monthOf(delivered?.at ?? order.createdAt);
+  }
+  return monthOf(now);
+}
+
+const orderUsd = (order: Order, fallbackFx: number) => order.quote.merchandise / (order.quote.fx ?? fallbackFx);
+
+/** This month's counted merchandise (USD) per person. */
+export function monthlyAllowance(state: State, fallbackFx: number, now = Date.now()): RecipientAllowance[] {
+  const month = monthOf(now);
+  const groups: (RecipientAllowance & { person: AllowancePerson })[] = [];
+  for (const order of state.orders) {
+    if (!countsTowardAllowance(order) || allowanceMonth(order, now) !== month) continue;
+    const person = orderPerson(state, order);
+    if (!person.name) continue;
+    let group = groups.find((item) => samePerson(item.person, person));
+    if (!group) {
+      group = { key: recipientKey(person.name, person.passport), name: orderRecipientName(state, order).trim(), usedUsd: 0, orders: 0, person };
+      groups.push(group);
+    } else if (!group.person.passport && person.passport) group.person = person;
+    group.usedUsd += orderUsd(order, fallbackFx);
+    group.orders += 1;
+  }
+  return groups.map(({ person: _person, ...group }) => ({ ...group, usedUsd: Math.round(group.usedUsd) })).sort((a, b) => b.usedUsd - a.usedUsd);
+}
+
+/** This month's counted USD for one person (0 when there is nothing yet). */
+export function monthlyUsedFor(state: State, who: string | AllowancePerson | undefined, fallbackFx: number, now = Date.now()) {
+  const person = typeof who === 'object' ? who : { name: normalizedName(who) };
+  if (!person.name) return 0;
+  const month = monthOf(now);
+  const used = state.orders
+    .filter((order) => countsTowardAllowance(order) && allowanceMonth(order, now) === month && samePerson(orderPerson(state, order), person))
+    .reduce((sum, order) => sum + orderUsd(order, fallbackFx), 0);
+  return Math.round(used);
 }
 
 /** The allowance the catalog shows: for the primary saved recipient, else the first saved one,
@@ -46,6 +99,46 @@ export function catalogAllowance(state: State, fallbackFx: number, now = Date.no
   const latest = [...state.orders].sort((a, b) => b.createdAt - a.createdAt)[0];
   const name = (profile?.recipient ?? (latest ? orderRecipientName(state, latest) : '')).trim();
   if (!name) return null;
-  const usedUsd = monthlyUsedFor(state, name, fallbackFx, now);
+  const usedUsd = monthlyUsedFor(state, profile ? profilePerson(state, profile) : name, fallbackFx, now);
   return { name, usedUsd, remainingUsd: Math.max(0, courierAllowanceUsd - usedUsd) };
+}
+
+/**
+ * The customs estimate for this cart and one recipient: the allowance left this month after counted Atlas orders
+ * and what the customer used elsewhere, the dutiable part of the cart, the estimated payment and the optional
+ * "Atlas helps pay customs" fee. Informational: none of it is part of the cart total.
+ */
+export function cartCustomsEstimate(
+  state: State,
+  pricing: Pricing,
+  recipient: { profile?: SavedDeliveryProfile; name?: string },
+  choices: CartCustoms | undefined = state.cartCustoms,
+  now = Date.now(),
+): CustomsEstimate {
+  const person: AllowancePerson = recipient.profile ? profilePerson(state, recipient.profile) : { name: normalizedName(recipient.name) };
+  const params = customsParams(pricing, new Date(now).toISOString().slice(0, 10));
+  const cents = (value: number) => Math.round(value * 100) / 100;
+  const valueUsd = cents(state.cart.reduce((sum, item) => sum + item.product.usd * item.quantity, 0));
+  const atlasUsedUsd = monthlyUsedFor(state, person, pricing.fx, now);
+  const outsideUnknown = Boolean(choices?.outsideUsed) && choices?.outsideUsd === undefined;
+  const outsideUsedUsd = choices?.outsideUsed ? cents(choices.outsideUsd ?? 0) : 0;
+  const remaining = outsideUnknown ? 0 : Math.max(0, params.allowanceUsd - atlasUsedUsd - outsideUsedUsd);
+  const dutiableUsd = cents(Math.max(0, valueUsd - remaining));
+  const helpRequested = Boolean(choices?.help) && dutiableUsd > 0;
+  return {
+    recipientKey: recipientKey(person.name, person.passport),
+    recipientName: (recipient.profile?.recipient ?? recipient.name ?? '').trim().slice(0, 100) || undefined,
+    month: monthOf(now),
+    allowanceUsd: params.allowanceUsd,
+    atlasUsedUsd,
+    ...(choices?.outsideUsed ? { outsideUsedUsd } : {}),
+    ...(outsideUnknown ? { outsideUnknown } : {}),
+    valueUsd,
+    dutiableUsd,
+    rate: params.rate,
+    minimumPerKg: params.minimumPerKg,
+    estimateUsd: cents(dutiableUsd * params.rate),
+    ...(helpRequested ? { helpRequested, helpFeeUsd: cents(dutiableUsd * (pricing.customsHelpFee ?? 0.03)) } : {}),
+    checkedOn: customsCheckedOn,
+  };
 }
