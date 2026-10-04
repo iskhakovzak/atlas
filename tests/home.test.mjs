@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { homeCopy, formatSum, groupDigits } from '../lib/market/home-copy.ts';
+import { homeCopy, formatSum, formatUsd, groupDigits } from '../lib/market/home-copy.ts';
 import { siteContent, deliveryRegions, paymentLabels } from '../lib/market/site-content.ts';
 
 function shape(value) {
@@ -35,12 +35,23 @@ test('soum amounts use space-grouped digits in every language', () => {
   assert.equal(formatSum(465233, 'ru'), '465 233 сум');
   assert.equal(formatSum(465233, 'uz'), '465 233 so‘m');
   assert.equal(formatSum(465233, 'en'), '465 233 UZS');
-  assert.equal(homeCopy.ru.tariffs.days(10, 21), '10–21 день');
-  assert.equal(homeCopy.ru.tariffs.days(3, 4), '3–4 дня');
-  assert.equal(homeCopy.ru.tariffs.days(10, 14), '10–14 дней');
+  assert.equal(homeCopy.ru.tariffs.days(10, 21), '10–21 рабочий день');
+  assert.equal(homeCopy.ru.tariffs.days(3, 4), '3–4 рабочих дня');
+  assert.equal(homeCopy.ru.tariffs.days(5, 10), '5–10 рабочих дней');
+  assert.equal(homeCopy.uz.tariffs.days(7, 9), '7–9 ish kuni');
+  assert.equal(formatUsd(15, 'ru'), '$15');
+  assert.equal(formatUsd(1.5, 'ru'), '$1,5');
+  assert.equal(formatUsd(1.5, 'en'), '$1.5');
+  assert.equal(formatUsd(1.25, 'uz'), '$1,25');
 });
 
-test('site content holds only verified data: empty by default and well-formed when filled', () => {
+test('delivery table lists the express routes with their approximate business days', () => {
+  assert.deepEqual(deliveryRegions.map(region => [region.countries.join(), siteContent.deliveryDays[region.id]]), [
+    ['США', [5, 10]], ['Великобритания', [7, 10]], ['Китай', [7, 12]], ['Германия', [7, 9]], ['Италия', [7, 9]], ['Испания', [7, 9]],
+  ]);
+});
+
+test('site content holds only verified data and is well-formed when filled', () => {
   for (const region of deliveryRegions) {
     const days = siteContent.deliveryDays[region.id];
     if (days) assert.ok(Number.isInteger(days[0]) && Number.isInteger(days[1]) && days[0] > 0 && days[0] <= days[1], `${region.id} delivery days`);

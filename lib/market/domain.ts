@@ -144,7 +144,10 @@ export const products: Product[] = [
 ];
 export const pricingSchema = z.object({
   fx: positive.max(1_000_000),
+  // International delivery per kg in soum, as quotes and settlements use it. When `perKgUsd` is set
+  // (the carrier prices in USD), `normalizePricing` derives this from it at the current rate.
   perKg: positive.max(10_000_000),
+  perKgUsd: positive.max(1_000).optional(),
   margin: z.number().finite().min(0).max(1),
   buyoutFee: z.number().finite().min(0).max(1).default(0),
   conversionFee: z.number().finite().min(0).max(1).default(0),
@@ -164,6 +167,7 @@ export const pricingSchema = z.object({
   // Old centrally managed pricing rows remain valid and inherit the base tariff.
   countryOverrides: z.record(z.string().min(1).max(80), z.object({
     perKg: positive.max(10_000_000).optional(),
+    perKgUsd: positive.max(1_000).optional(),
     margin: z.number().finite().min(0).max(1).optional(),
     buyoutFee: z.number().finite().min(0).max(1).optional(),
     conversionFee: z.number().finite().min(0).max(1).optional(),
@@ -176,9 +180,12 @@ export const pricingSchema = z.object({
   managedBy: z.string().max(160).optional(),
 });
 export type Pricing = z.infer<typeof pricingSchema>;
+/** Atlas express delivery from the US, UK, China, Germany, Italy and Spain: $15 per kg ($1.5 per 100 g). */
+export const deliveryPerKgUsd = 15;
 export const tariff: Pricing = {
   fx: 12800,
-  perKg: 90000,
+  perKg: deliveryPerKgUsd * 12800,
+  perKgUsd: deliveryPerKgUsd,
   margin: 0.12,
   buyoutFee: 0,
   conversionFee: 0,
@@ -193,6 +200,29 @@ export const tariff: Pricing = {
   version: "demo-1",
   updatedAt: 0,
 };
+/** Derive soum per kg from USD per kg at the tariff's rate, for the base rate and each country override. */
+export function normalizePricing(config: Pricing): Pricing {
+  const soum = (usd: number) => Math.round(usd * config.fx);
+  const countryOverrides = Object.fromEntries(Object.entries(config.countryOverrides ?? {}).map(([country, override]) =>
+    [country, override.perKgUsd === undefined ? override : { ...override, perKg: soum(override.perKgUsd) }]));
+  return { ...config, perKg: config.perKgUsd === undefined ? config.perKg : soum(config.perKgUsd), countryOverrides };
+}
+/**
+ * A tariff saved before delivery was priced in USD carries only soum per kg. It moves to the
+ * $15 rate under a new version, so carts quoted under the old one are shown again, not accepted.
+ */
+export function upgradePricing(config: Pricing): Pricing {
+  if (config.perKgUsd !== undefined) return normalizePricing(config);
+  return normalizePricing({ ...config, perKgUsd: deliveryPerKgUsd, version: `${config.version.slice(0, 70)}+usd${deliveryPerKgUsd}` });
+}
+/** Delivery per kg in USD for a dispatch country, as the customer pays it (with the delivery margin). */
+export function deliveryPerKgUsdFor(config: Pricing, country?: string) {
+  const p = pricingForCountry(config, country);
+  const override = country ? config.countryOverrides?.[country] : undefined;
+  // A soum-only country override wins over the base USD rate.
+  const usd = override?.perKg !== undefined && override.perKgUsd === undefined ? p.perKg / p.fx : (p.perKgUsd ?? p.perKg / p.fx);
+  return Math.round(usd * (1 + p.deliveryMargin) * 100) / 100;
+}
 /** Resolve only the pricing dimensions explicitly overridden for this item's
  * actual dispatch country. FX rates stay currency-based in `rates`. */
 export function pricingForCountry(config: Pricing, country?: string): Pricing {

@@ -1759,7 +1759,8 @@ export function PricingManager({
       default: "по умолчанию",
       estimateNotice: "Настройки расчёта Atlas не являются предложением перевозчика, склада или платёжного провайдера. Новые значения применяются к новым и обновляемым расчётам; уже оформленные заказы сохраняют исходные условия.",
       fx: "Сум за 1 USD",
-      perKg: "Международная доставка за кг, сум",
+      perKg: "Международная доставка за кг, USD",
+      perKgNote: (usd: string, soum: string) => `В сумах доставка за кг считается по курсу: ${usd} = ${soum}.`,
       service: "Сервисный сбор Atlas",
       buyout: "Комиссия за выкуп",
       conversion: "Комиссия за конвертацию",
@@ -1788,7 +1789,8 @@ export function PricingManager({
       default: "standart",
       estimateNotice: "Atlas hisob sozlamalari tashuvchi, ombor yoki to‘lov provayderining taklifi yoki amaldagi tarifi emas. Yangi qiymatlar yangi va yangilanadigan hisob-kitoblarga qo‘llanadi; rasmiylashtirilgan buyurtmalar o‘zgarmaydi.",
       fx: "1 USD uchun so‘m",
-      perKg: "Xalqaro yetkazib berish, kg uchun so‘m",
+      perKg: "Xalqaro yetkazib berish, kg uchun USD",
+      perKgNote: (usd: string, soum: string) => `Kg uchun yetkazib berish so‘mda kurs bo‘yicha hisoblanadi: ${usd} = ${soum}.`,
       service: "Atlas xizmat haqi",
       buyout: "Xarid komissiyasi",
       conversion: "Konvertatsiya komissiyasi",
@@ -1817,7 +1819,8 @@ export function PricingManager({
       default: "default",
       estimateNotice: "Atlas calculation settings are not a carrier, warehouse or payment-provider quote or tariff. New values apply to new or refreshed estimates; existing orders keep their original terms.",
       fx: "UZS per 1 USD",
-      perKg: "International delivery per kg, UZS",
+      perKg: "International delivery per kg, USD",
+      perKgNote: (usd: string, soum: string) => `Delivery per kg in soum follows the rate: ${usd} = ${soum}.`,
       service: "Atlas service fee",
       buyout: "Buyout commission",
       conversion: "Conversion commission",
@@ -1859,8 +1862,11 @@ export function PricingManager({
   };
   const updateService = (index: number, patch: Partial<ServiceOffering>) => setDraft((current) => ({ ...current, serviceCatalog: current.serviceCatalog.map((service, serviceIndex) => serviceIndex === index ? { ...service, ...patch } : service) }));
   const addService = () => setDraft((current) => ({ ...current, serviceCatalog: [...current.serviceCatalog, { id: `custom-service-${crypto.randomUUID().slice(0, 8)}`, title: { ru: "Новая услуга", uz: "Yangi xizmat", en: "New service" }, description: { ru: "", uz: "", en: "" }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: false, required: false }] }));
-  const setNumber = (key: "fx" | "perKg" | "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "optionalServices" | "reserve" | "divisor" | "storeShippingFreeFromUsd", raw: string) =>
+  const setNumber = (key: "fx" | "perKgUsd" | "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "optionalServices" | "reserve" | "divisor" | "storeShippingFreeFromUsd", raw: string) =>
     setDraft((current) => ({ ...current, [key]: Number(raw) }));
+  // A tariff saved before delivery was priced in USD shows its soum rate converted at the current rate.
+  const usdOf = (soum: number) => Math.round((soum / draft.fx) * 100) / 100;
+  const perKgUsd = draft.perKgUsd ?? usdOf(draft.perKg);
   async function save() {
     setSaving(true);
     try {
@@ -1871,7 +1877,8 @@ export function PricingManager({
           kind: "pricing",
           value: {
             fx: draft.fx,
-            perKg: draft.perKg,
+            perKg: Math.max(1, Math.round(perKgUsd * draft.fx)),
+            perKgUsd,
             margin: draft.margin,
             buyoutFee: draft.buyoutFee,
             conversionFee: draft.conversionFee,
@@ -1921,7 +1928,7 @@ export function PricingManager({
         <div className="pricing-grid">
           {[
             ["fx", pricingWords.fx, 1],
-            ["perKg", pricingWords.perKg, 1],
+            ["perKgUsd", pricingWords.perKg, 0.01],
             ["margin", pricingWords.service, 0.01],
             ["buyoutFee", pricingWords.buyout, 0.01],
             ["conversionFee", pricingWords.conversion, 0.01],
@@ -1940,10 +1947,10 @@ export function PricingManager({
                 min={["margin", "buyoutFee", "conversionFee", "deliveryMargin", "reserve", "optionalServices", "storeShippingFreeFromUsd"].includes(String(key)) ? 0 : Number(step)}
                 max={["margin", "buyoutFee", "conversionFee", "deliveryMargin"].includes(String(key)) ? 100 : key === "reserve" ? 200 : undefined}
                 step={["margin", "buyoutFee", "conversionFee", "deliveryMargin", "reserve"].includes(String(key)) ? 0.1 : Number(step)}
-                value={["margin", "buyoutFee", "conversionFee", "deliveryMargin", "reserve"].includes(String(key)) ? draft[key as "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "reserve"] * 100 : draft[key as "fx" | "perKg" | "optionalServices" | "divisor" | "storeShippingFreeFromUsd"]}
+                value={["margin", "buyoutFee", "conversionFee", "deliveryMargin", "reserve"].includes(String(key)) ? draft[key as "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "reserve"] * 100 : key === "perKgUsd" ? perKgUsd : draft[key as "fx" | "optionalServices" | "divisor" | "storeShippingFreeFromUsd"]}
                 onChange={(event) =>
                   setNumber(
-                    key as "fx" | "perKg" | "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "optionalServices" | "reserve" | "divisor" | "storeShippingFreeFromUsd",
+                    key as "fx" | "perKgUsd" | "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "optionalServices" | "reserve" | "divisor" | "storeShippingFreeFromUsd",
                     ["margin", "buyoutFee", "conversionFee", "deliveryMargin", "reserve"].includes(String(key)) ? String(Number(event.target.value) / 100) : event.target.value,
                   )
                 }
@@ -1951,7 +1958,7 @@ export function PricingManager({
             </div>
           ))}
         </div>
-        <p className="micro">{pricingWords.lineFeeNote}</p>
+        <p className="micro">{pricingWords.perKgNote(`$${perKgUsd}`, money(Math.round(perKgUsd * draft.fx)))} {pricingWords.lineFeeNote}</p>
         <details className="country-pricing">
           <summary>{pricingWords.countryTitle}</summary>
           <p className="micro">{pricingWords.countryNote}</p>
@@ -1967,12 +1974,14 @@ export function PricingManager({
               ["buyoutFee", pricingWords.buyout, "%"],
               ["conversionFee", pricingWords.conversion, "%"],
               ["deliveryMargin", pricingWords.deliveryMargin, "%"],
-              ["perKg", pricingWords.perKgCountry, locale === "en" ? "UZS" : locale === "uz" ? "so‘m" : "сум"],
+              ["perKgUsd", pricingWords.perKgCountry, "USD"],
               ["reserve", pricingWords.reserve, "%"],
               ["optionalServices", pricingWords.lineFeeCountry, locale === "en" ? "UZS" : locale === "uz" ? "so‘m" : "сум"],
             ] as const).map(([key, label, unit]) => {
-              const override = draft.countryOverrides[selectedCountry]?.[key];
-              const base = draft[key];
+              const values = draft.countryOverrides[selectedCountry];
+              // An override saved in soum before USD rates shows converted and is replaced on edit.
+              const override = key === "perKgUsd" ? values?.perKgUsd ?? (values?.perKg === undefined ? undefined : usdOf(values.perKg)) : values?.[key];
+              const base = key === "perKgUsd" ? perKgUsd : draft[key];
               const isRate = unit === "%";
               return <div className="field" key={key}>
                 <label htmlFor={`country-pricing-${key}`}>{label}, {unit}</label>
@@ -1980,13 +1989,14 @@ export function PricingManager({
                   id={`country-pricing-${key}`}
                   type="number"
                   min="0"
-                  step={isRate ? "0.1" : "1"}
+                  step={isRate ? "0.1" : key === "perKgUsd" ? "0.01" : "1"}
                   max={isRate ? (key === "reserve" ? 200 : 100) : undefined}
                   value={override === undefined ? "" : isRate ? override * 100 : override}
                   placeholder={`${isRate ? base * 100 : base} (${pricingWords.baseRate})`}
                   onChange={(event) => setDraft((current) => {
                     const countryOverrides = { ...current.countryOverrides };
                     const countryValues = { ...(countryOverrides[selectedCountry] ?? {}) };
+                    if (key === "perKgUsd") delete countryValues.perKg;
                     if (event.target.value === "") delete countryValues[key];
                     else countryValues[key] = Number(event.target.value) / (isRate ? 100 : 1);
                     if (Object.keys(countryValues).length) countryOverrides[selectedCountry] = countryValues;

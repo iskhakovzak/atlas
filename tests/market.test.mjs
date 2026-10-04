@@ -46,7 +46,7 @@ test('API errors use the validated locale cookie and localize fallback copy',()=
 test('pricing uses full delivered totals and validated quantities',()=>{
 const p=price(99,2.1,2);assert.equal(p.total,p.merchandise+p.service+p.shipping+p.reserve);assert.equal(p.weight,4.2);assert.throws(()=>price(99,2.1,0));assert.throws(()=>price(99,2.1,11));assert.throws(()=>price(NaN,2));assert.throws(()=>price(1,Infinity));
 assert.equal(price(10,.4).weight,1);assert.equal(price(10,.4).shipping,tariff.perKg);
-const configured=price(100,1,1,5,{...tariff,buyoutFee:.03,conversionFee:.02,deliveryMargin:.1,optionalServices:7000});assert.equal(configured.shipping,90000);assert.equal(configured.deliveryMargin,9000);assert.equal(configured.total,configured.merchandise+configured.service+configured.buyout+configured.conversion+configured.shipping+configured.deliveryMargin+configured.optionalServices+configured.reserve+configured.sourceShipping);
+const configured=price(100,1,1,5,{...tariff,buyoutFee:.03,conversionFee:.02,deliveryMargin:.1,optionalServices:7000});assert.equal(configured.shipping,tariff.perKg);assert.equal(configured.deliveryMargin,tariff.perKg*.1);assert.equal(configured.total,configured.merchandise+configured.service+configured.buyout+configured.conversion+configured.shipping+configured.deliveryMargin+configured.optionalServices+configured.reserve+configured.sourceShipping);
 });
 test('legacy state retains old orders and credits while adding cart defaults',()=>{
 const q=quote(99,2.1,1000);delete q.perKg;delete q.divisor;
@@ -63,8 +63,8 @@ let s=addToCart(blank(),products[0],'US 9',1000);const sig=cartSignature(s.cart)
 s=renewCart(s,2000);s=checkoutCart(s,'a',cartSignature(s.cart),false,2001);assert.equal(s.cart.length,0);assert.equal(checkoutCart(s,'a',sig,false,2002).orders.length,1);
 });
 test('settlement keeps quote immutable, refunds once and holds its original tariff',()=>{
-let s=warehouse();const id=s.orders[0].id;const original=JSON.stringify(s.orders[0].quote);const previous=tariff.perKg;tariff.perKg=120000;
-try{s=receiveOrder(s,id,[1.8,30,20,15]);assert.equal(s.orders[0].settlement.shipping,162000);assert.equal(balanceOf(s),64800);assert.equal(JSON.stringify(s.orders[0].quote),original);const again=receiveOrder(s,id,[1.8,30,20,15]);assert.equal(again.entries.length,2);assert.equal(balanceOf(again),64800)}finally{tariff.perKg=previous}
+let s=warehouse();const id=s.orders[0].id;const original=JSON.stringify(s.orders[0].quote);const previous=tariff.perKg;tariff.perKg=250000;
+try{s=receiveOrder(s,id,[1.8,30,20,15]);assert.equal(s.orders[0].settlement.shipping,345600);assert.equal(balanceOf(s),138240);assert.equal(JSON.stringify(s.orders[0].quote),original);const again=receiveOrder(s,id,[1.8,30,20,15]);assert.equal(again.entries.length,2);assert.equal(balanceOf(again),138240)}finally{tariff.perKg=previous}
 });
 test('dimensional weight dominates and extra payment blocks shipment until approved',()=>{
 let s=warehouse();const id=s.orders[0].id;s=receiveOrder(s,id,[1,50,50,50]);assert.equal(s.orders[0].settlement.chargeableWeight,25);assert.equal(balanceOf(s),0);assert.throws(()=>advanceOrder(s,id,3));assert.throws(()=>approveExtra(s,id,1));

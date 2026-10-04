@@ -25,11 +25,11 @@ test('units, one-kilo minimum and boxed weight margin are explicit',()=>{assert.
 test('same-store cart items share one parcel allowance and one-kilo minimum',()=>{
  const make=(id,path,boxed)=>({...products[0],id,sourceUrl:`https://apple.com/shop/${path}`,sourcePrice:20,sourceCurrency:'USD',sourceShipping:0,sourceShippingUsd:0,sourceShippingCurrency:'USD',sourceShippingEstimated:false,shippingKnown:true,boxedWeight:boxed,weight:paddedWeight(boxed),country:'США',usd:20,variants:['Один']});
  let state=addToCart(blank(),make('tag','tag',.2),'Один',1);
- assert.equal(state.cart[0].quote.weight,1);assert.equal(state.cart[0].quote.shipping,90000);
+ assert.equal(state.cart[0].quote.weight,1);assert.equal(state.cart[0].quote.shipping,192000);
  state=addToCart(state,make('case','case',.3),'Один',2);
  assert.equal(state.cart.reduce((sum,item)=>sum+item.quote.weight,0),1);
- assert.equal(state.cart.reduce((sum,item)=>sum+item.quote.shipping,0),90000);
- assert.equal(state.cart.reduce((sum,item)=>sum+item.quote.reserve,0),18000);
+ assert.equal(state.cart.reduce((sum,item)=>sum+item.quote.shipping,0),192000);
+ assert.equal(state.cart.reduce((sum,item)=>sum+item.quote.reserve,0),38400);
  assert.equal(totalOf(state.cart),state.cart.reduce((sum,item)=>sum+item.quote.total,0));
 });
 test('storefront and product text infer Apple shipping country and AirTag category',()=>{const p=extractProduct('<script type="application/ld+json">{"@type":"Product","name":"AirTag 1 pack","category":"Bluetooth trackers","offers":{"price":29,"priceCurrency":"USD"}}</script>','https://www.apple.com/shop/buy-airtag/airtag/1-pack');assert.equal(p.country,'США');assert.equal(p.category,'Электроника')});

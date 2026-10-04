@@ -1,5 +1,9 @@
 # Atlas — project context
 
+## Delivery tariff — 4 October 2026
+
+The owner set express delivery at $15 per kg ($1.5 per 100 g) from the US, the UK, China, Germany, Italy and Spain, with approximate times of 5–10 business days from the US, 7–10 from the UK, 7–12 from China and 7–9 from Germany, Italy and Spain. The rate is stored in USD and converted at the Atlas exchange rate, so it follows the rate set by the operator. The home page shows the times and prices per country. Tariffs saved earlier in soum are read as $15 under a new version until an operator saves the form.
+
 ## Post-merge polish — 3 October 2026
 
 After the UX redesign reached `main` (#8), a full review found no broken flows but several rough edges, now fixed: every public page (home, stores, customs, legal) has Uzbek, Russian and English versions at `?lang=uz|ru|en`, rendered in that language on the server with matching titles and hreflang, so search engines can show each language; private pages are titled in the page language. Unknown addresses show a localized "page not found" inside the site with ways back. Text contrast meets WCAG AA in both themes, and the operator analytics card is readable in the light theme again. Each page loads only its own code, and unused CSS was removed.
