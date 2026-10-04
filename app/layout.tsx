@@ -20,6 +20,8 @@ import "./home.css";
 import "./customer.css";
 import "./theme-night.css";
 import "./catalog.css";
+import "./stores.css";
+import "./mobile.css";
 import { MarketProvider } from "@/lib/market/store";
 import { StorageNotice } from "./storage-notice";
 import { AtlasThemeProvider } from "./theme-control";

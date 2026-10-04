@@ -655,6 +655,3 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
 .field-vitals td[data-verdict="slow"] { color: #a33236; font-weight: 700; }
 
 /* Long store names wrap to two lines on phones instead of being cut off. */
-@media (max-width: 600px) {
-  .store-card-name h3 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; line-height: 1.25; }
-}

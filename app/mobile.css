@@ -1,0 +1,52 @@
+/* Phones and iPhone Safari: bottom bar, safe areas and touch behaviour. Loaded last.
+   Colours come from the --cat-* tokens (catalog.css), which follow the light and Atlas Night themes. */
+
+/* Safari enlarges text after rotation unless told not to; a grey flash on every tap looks broken. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { -webkit-tap-highlight-color: transparent; }
+/* Pressed state instead of the tap flash. */
+:is(.btn, .store-tile, .stores-popular button, .catalog-categories > button, .home-stores a, .mobile-nav a):active { transform: scale(.98); }
+
+/* Touch screens keep :hover after a tap; lifted cards would stay lifted. */
+@media (hover: none) {
+  .find-card:hover { transform: none; box-shadow: none; }
+  .find-photo:hover .product-img { transform: none; }
+}
+
+@media (max-width: 760px) {
+  :root { --atlas-mobile-nav-clearance: calc(64px + env(safe-area-inset-bottom)); }
+
+  /* One bottom bar for guests (4 items) and members (5 items). */
+  .mobile-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 40; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); min-height: 0; padding: 4px 4px env(safe-area-inset-bottom); border-top: 1px solid var(--cat-line); background: color-mix(in srgb, var(--cat-surface) 94%, transparent); -webkit-backdrop-filter: saturate(1.4) blur(18px); backdrop-filter: saturate(1.4) blur(18px); }
+  .mobile-nav.guest { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .mobile-nav a { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0; min-height: 56px; padding: 4px 2px; color: var(--cat-muted); font-size: 11px; font-weight: 650; line-height: 1.15; text-align: center; }
+  .mobile-nav a > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-nav a.active { color: var(--cat-accent); }
+  .mobile-nav a.active::before { content: ""; position: absolute; top: -4px; left: 30%; right: 30%; height: 3px; border-radius: 0 0 3px 3px; background: var(--cat-accent); }
+  .mobile-nav a b { position: absolute; top: 4px; right: calc(50% - 22px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--cat-on); color: var(--cat-on-ink); font-size: 11px; line-height: 18px; text-align: center; }
+  html[data-theme="dark"] .mobile-nav { background: color-mix(in srgb, var(--night-canvas) 90%, transparent); }
+  /* The page ends above the bar. */
+  body:has(.mobile-nav) .site-main { padding-bottom: calc(var(--atlas-mobile-nav-clearance) + 12px); }
+  .home-sticky.above-nav { bottom: calc(var(--atlas-mobile-nav-clearance) + 10px); }
+  body:has(.mobile-nav) .storage-notice { bottom: calc(var(--atlas-mobile-nav-clearance) + 8px); }
+
+  /* Header: the bottom bar carries navigation and sign-in, so the top bar stays light. */
+  .site-header { padding-top: env(safe-area-inset-top); padding-left: max(18px, env(safe-area-inset-left)); padding-right: max(18px, env(safe-area-inset-right)); }
+
+  /* Radix checkboxes: 24px boxes, still tappable through their labels. */
+  [data-slot="checkbox"] { width: 24px; height: 24px; border-radius: 7px; }
+
+  /* How it works: four short rows instead of four tall cards. */
+  .home-steps { gap: 8px; }
+  .home-step { display: grid; grid-template-columns: 44px minmax(0, 1fr); column-gap: 14px; padding: 14px 16px; }
+  .home-step-icon { grid-row: 1 / span 3; }
+  .home-step-number { top: 12px; right: 14px; font-size: 22px; }
+  .home-step h3 { margin: 2px 28px 4px 0; font-size: 16.5px; }
+  .home-step p { font-size: 14px; line-height: 1.45; }
+  .home-step > :is(ul, .home-step-extra, .home-missing) { grid-column: 2; }
+}
+
+/* Footer links in two columns on phones instead of one long list. */
+@media (max-width: 600px) {
+  .home-footer :is(nav, section) ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; }
+}

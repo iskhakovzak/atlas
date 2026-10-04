@@ -18,7 +18,7 @@ import {
   type CatalogContext, type CatalogQuery, type CatalogSort, type FilterKey,
 } from '@/lib/market/catalog-query';
 import type { Locale } from '@/lib/market/i18n';
-import { CatalogCard, CatalogSkeleton } from './catalog-card';
+import { CatalogCard, CatalogSkeleton, StoreMark } from './catalog-card';
 import { ProductSheet } from './product-sheet';
 
 const pageSize = 12;
@@ -79,7 +79,7 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
   return <TooltipProvider delayDuration={300}><div className="catalog-page finds-page" data-mode={mode}>
     <header className="catalog-head">
       <div><h1>{mode === 'favorites' ? copy.savedTitle : cc.title}</h1><p>{mode === 'favorites' ? copy.savedIntro : cc.intro}</p></div>
-      {mode === 'catalog' && catalogReady && items.length > 0 && <p className="catalog-stats"><Store size={16} aria-hidden="true" />{cc.stats(items.length, storesInCatalog)}</p>}
+      {mode === 'catalog' && catalogReady && items.length > 0 && <div className="catalog-head-side"><p className="catalog-stats"><Store size={16} aria-hidden="true" />{cc.stats(items.length, storesInCatalog)}</p>{ready && <Link className="catalog-saved" href="/favorites"><Heart size={16} aria-hidden="true" />{copy.saved}<b>{state.favorites.filter((id) => items.some((item) => item.product.id === id)).length}</b></Link>}</div>}
     </header>
     {catalogError && <div className="notice catalog-fallback-message" role="status"><span>{catalogError}</span><button type="button" className="text-button catalog-retry" disabled={retrying} onClick={() => void retry()}>{retrying ? (locale === 'ru' ? 'Обновляем…' : locale === 'uz' ? 'Yangilanmoqda…' : 'Refreshing…') : (locale === 'ru' ? 'Повторить' : locale === 'uz' ? 'Qayta urinish' : 'Retry')}</button></div>}
     {mode === 'catalog' && allowance && allowance.usedUsd > 0 && <div className={'catalog-banner' + (allowance.remainingUsd > 0 ? '' : ' catalog-banner-warn')}>
@@ -89,7 +89,7 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
     </div>}
     {mode === 'catalog' && parcels.length > 0 && <div className="catalog-banner catalog-banner-parcel">
       <PackageCheck size={20} aria-hidden="true" />
-      <p>{cc.parcelBanner(parcels.map(storeLabel).join(', '))}</p>
+      <p>{cc.parcelBanner(parcels.map((store) => storeLabel(store, locale)).join(', '))}</p>
       {query.stores.join() !== parcels.join() && <div><button type="button" className="text-button" onClick={() => setQuery({ ...query, stores: parcels })}>{cc.parcelShow}</button></div>}
     </div>}
     {mode === 'catalog' && collections.length > 0 && <nav className="catalog-sets" aria-label={cc.collections}>
@@ -109,7 +109,7 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
       <ActiveFilters query={query} setQuery={setQuery} cc={cc} collections={collections} locale={locale} />
     </section>}
     <div className={'catalog-layout' + (showControls ? '' : ' catalog-layout-plain')}>
-      {showControls && <aside className="catalog-sidebar" aria-label={cc.filtersTitle}><FilterPanel query={query} setQuery={setQuery} facets={facets} cc={cc} pool={pool.length} dutyHint={allowance && allowance.usedUsd > 0 ? cc.dutyMember(allowance.remainingUsd, allowance.name) : cc.dutyGuest} /></aside>}
+      {showControls && <aside className="catalog-sidebar" aria-label={cc.filtersTitle}><FilterPanel query={query} setQuery={setQuery} facets={facets} cc={cc} pool={pool.length} locale={locale} dutyHint={allowance && allowance.usedUsd > 0 ? cc.dutyMember(allowance.remainingUsd, allowance.name) : cc.dutyGuest} /></aside>}
       <section className="catalog-results" aria-label={mode === 'favorites' ? copy.saved : cc.title}>
         {!catalogReady ? <CatalogSkeleton label={cc.loading} /> : visible.length > 0 ? <div className="finds-grid">
           {visible.map((item) => <CatalogCard key={item.product.id} item={item} locale={locale} select={setSelected}
@@ -129,7 +129,7 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
     <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
       <SheetContent side={side} showCloseButton={false} className={'catalog-sheet catalog-sheet-' + side}>
         <header><SheetTitle>{cc.filtersTitle}</SheetTitle><SheetDescription className="sr-only">{cc.found(list.length, pool.length)}</SheetDescription><button type="button" className="icon-btn" aria-label={cc.close} onClick={() => setFiltersOpen(false)}><X size={20} /></button></header>
-        <div className="catalog-sheet-scroll"><FilterPanel query={query} setQuery={setQuery} facets={facets} cc={cc} pool={pool.length} dutyHint={allowance && allowance.usedUsd > 0 ? cc.dutyMember(allowance.remainingUsd, allowance.name) : cc.dutyGuest} /></div>
+        <div className="catalog-sheet-scroll"><FilterPanel query={query} setQuery={setQuery} facets={facets} cc={cc} pool={pool.length} locale={locale} dutyHint={allowance && allowance.usedUsd > 0 ? cc.dutyMember(allowance.remainingUsd, allowance.name) : cc.dutyGuest} /></div>
         <footer>{filterCount > 0 && <button type="button" className="btn secondary" onClick={() => setQuery({ ...emptyCatalogQuery, q: query.q, category: query.category, sort: query.sort, collection: query.collection })}>{cc.reset}</button>}<button type="button" className="btn primary" onClick={() => setFiltersOpen(false)}>{cc.show(list.length)}</button></footer>
       </SheetContent>
     </Sheet>
@@ -137,7 +137,7 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
   </div></TooltipProvider>;
 }
 
-function FilterPanel({ query, setQuery, facets, cc, pool, dutyHint }: { query: CatalogQuery; setQuery: (query: CatalogQuery) => void; facets: Facets; cc: Copy; pool: number; dutyHint: string }) {
+function FilterPanel({ query, setQuery, facets, cc, pool, dutyHint, locale }: { query: CatalogQuery; setQuery: (query: CatalogQuery) => void; facets: Facets; cc: Copy; pool: number; dutyHint: string; locale: Locale }) {
   const id = useId();
   const [allStores, setAllStores] = useState(false);
   const stores = facets.stores.filter(([store, count]) => count > 0 || query.stores.includes(store));
@@ -148,7 +148,7 @@ function FilterPanel({ query, setQuery, facets, cc, pool, dutyHint }: { query: C
   if (!pool) return null;
   return <div className="catalog-facets">
     {stores.length > 1 && <fieldset><legend>{cc.store}</legend>
-      {shownStores.map(([store, count]) => <label key={store} className="catalog-check"><input type="checkbox" checked={query.stores.includes(store)} onChange={() => setQuery({ ...query, stores: toggle(query.stores, store) })} /><span>{storeLabel(store)}</span><span className="catalog-count">{count}</span></label>)}
+      {shownStores.map(([store, count]) => <label key={store} className="catalog-check"><input type="checkbox" checked={query.stores.includes(store)} onChange={() => setQuery({ ...query, stores: toggle(query.stores, store) })} /><StoreMark host={store} /><span>{storeLabel(store, locale)}</span><span className="catalog-count">{count}</span></label>)}
       {stores.length > 6 && <button type="button" className="text-button" aria-expanded={allStores} onClick={() => setAllStores(!allStores)}>{allStores ? cc.storesLess : cc.storesMore(stores.length - 6)}</button>}
     </fieldset>}
     <fieldset><legend>{cc.price}</legend><div className="catalog-chips">
@@ -179,7 +179,7 @@ function filterLabel(key: FilterKey, query: CatalogQuery, cc: Copy, collections:
     case 'q': return `${cc.chip.search}: ${query.q.trim()}`;
     case 'collection': { const set = collections.find((item) => item.id === query.collection); return set ? (locale === 'en' ? set.nameEn || set.name : locale === 'uz' ? set.nameUz || set.name : set.name) : cc.chip.collection; }
     case 'category': return cc.categories[query.category] ?? query.category;
-    case 'store': return storeLabel(key.value);
+    case 'store': return storeLabel(key.value, locale);
     case 'price': return query.price ? cc.bands[query.price] : cc.chip.price;
     case 'size': return `${cc.chip.size} ${key.value}`;
     case 'duty': return cc.duty;

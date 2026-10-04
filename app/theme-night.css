@@ -282,7 +282,6 @@ html[data-theme="dark"] :is(.rf-chips button, .orders-recipients button, .notice
   color: var(--night-ink-2);
 }
 html[data-theme="dark"] :is(.rf-chips button, .orders-recipients button, .notices-page .notice-filters button, .lo-page .variant-options button, .home-stores a):hover { border-color: rgba(235, 228, 210, 0.42); color: var(--night-ink); }
-html[data-theme="dark"] .home-store-mark { background: rgba(203, 180, 135, 0.12); color: var(--night-champagne); }
 html[data-theme="dark"] .order-tabs,
 html[data-theme="dark"] [data-slot="tabs-list"] { border: 1px solid var(--night-line); background: rgba(255, 255, 255, 0.025); }
 html[data-theme="dark"] [data-slot="tabs-trigger"] { color: var(--night-muted); }

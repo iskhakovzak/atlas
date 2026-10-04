@@ -95,6 +95,15 @@ window.__e2e = (() => {
       for (const el of document.querySelectorAll('input:not([type=hidden]), select, textarea, button, a[href], [role=button], [role=checkbox], [role=tab], summary')) if (visible(el) && !name(el)) issues.push('unnamed control ' + label(el));
       const ids = {}; for (const el of document.querySelectorAll('[id]')) ids[el.id] = (ids[el.id] || 0) + 1; for (const [id, count] of Object.entries(ids)) if (count > 1) issues.push('duplicate id #' + id + ' x' + count);
       const h1 = [...document.querySelectorAll('h1')].filter(visible).length; if (h1 !== 1) issues.push(h1 + ' visible h1');
+      if (width <= 760) {
+        // iPhone Safari zooms the page into any text field below 16px and leaves it zoomed.
+        for (const el of document.querySelectorAll('input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]), select, textarea')) if (visible(el) && parseFloat(getComputedStyle(el).fontSize) < 16) issues.push('iPhone zooms into field (font-size ' + getComputedStyle(el).fontSize + ') ' + label(el));
+        // WCAG 2.5.8: controls at least 24x24 CSS px; a control inside a <label> uses the label as its target.
+        for (const el of document.querySelectorAll('button, [role=button], [role=tab], summary, select, input[type=checkbox], input[type=radio]')) {
+          if (!visible(el) || el.closest('.sr-only, [aria-hidden="true"]') || (el.tagName === 'INPUT' && el.closest('label'))) continue;
+          const r = el.getBoundingClientRect(); if (r.width < 24 || r.height < 24) issues.push('tap target ' + Math.round(r.width) + 'x' + Math.round(r.height) + ' ' + label(el));
+        }
+      }
       return issues;
     },
     fingerprint() {
@@ -226,7 +235,7 @@ try {
 
   // 1. Guest: public pages, language versions and the link calculator.
   await setViewport(1280); await open("/"); await setPreferences("light");
-  for (const path of ["/", "/catalog", "/catalog?cat=shoes&sort=cheap", "/stores", "/customs", "/legal", "/login", "/order-by-link", "/e2e-missing-page"]) await snapshot("guest", path);
+  for (const path of ["/", "/catalog", "/catalog?cat=shoes&sort=cheap", "/stores", "/stores?focus=beauty", "/customs", "/legal", "/login", "/order-by-link", "/e2e-missing-page"]) await snapshot("guest", path);
   for (const [path, locale] of [["/?lang=uz", "uz"], ["/catalog?lang=en", "en"], ["/stores?lang=en", "en"], ["/customs?lang=ru", "ru"]]) {
     await open(path);
     const seen = await evaluate("({ lang: document.documentElement.lang, title: document.title, canonical: document.querySelector('link[rel=canonical]')?.getAttribute('href') })");
@@ -243,6 +252,13 @@ try {
   if (!(filtered.shown > 0 && filtered.shown <= catalogTotal)) fail("guest /catalog", `category ${filtered.cat} shows ${filtered.shown} of ${catalogTotal}`);
   await open(`/catalog?cat=${filtered.cat}`);
   await eventually(`document.querySelector('.catalog-categories [aria-pressed=true]') && document.querySelectorAll('.catalog-results .find-card:not(.catalog-skeleton-card)').length === ${filtered.shown}`, "category restored from the address");
+  // Store directory: search goes to the address, a store card opens with the store's own link.
+  await open("/stores?lang=ru");
+  await eventually("document.querySelectorAll('.store-tile').length > 100", "store directory");
+  await evaluate("(() => { const input = document.querySelector('.stores-search input'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'zara'); input.dispatchEvent(new Event('input', { bubbles: true })); return true; })()");
+  await eventually("new URLSearchParams(location.search).get('q') === 'zara' && [...document.querySelectorAll('.store-tile b')].some((b) => b.textContent === 'Zara')", "store search kept in the address");
+  await evaluate("[...document.querySelectorAll('.store-tile')].find((tile) => tile.querySelector('b')?.textContent === 'Zara').click(), true");
+  await eventually("document.querySelector('.store-dialog[open] a.store-dialog-open')?.getAttribute('href') === 'https://zara.com'", "store card opens with the store link");
   await open("/order-by-link");
   if (!(await evaluate("!!document.querySelector('main input')"))) fail("guest /order-by-link", "link field missing");
 

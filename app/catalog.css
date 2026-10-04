@@ -43,6 +43,10 @@ html[data-theme="dark"] {
 .catalog-head p { margin: 0; max-width: 62ch; color: var(--cat-muted); line-height: 1.55; }
 .catalog-stats { display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 8px 14px; border: 1px solid var(--cat-line); border-radius: 999px; background: var(--cat-surface); color: var(--cat-ink); font-size: 14px; font-weight: 650; white-space: nowrap; }
 .catalog-stats svg { color: var(--cat-accent); }
+.catalog-head-side { display: flex; flex-wrap: wrap; gap: 8px; }
+.catalog-saved { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border: 1px solid var(--cat-line); border-radius: 999px; background: var(--cat-surface); color: var(--cat-ink); font-size: 14px; font-weight: 650; text-decoration: none; }
+.catalog-saved svg { color: var(--cat-accent); }
+.catalog-saved b { color: var(--cat-muted); font-size: 12px; }
 
 .catalog-banner { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; align-items: start; margin: 0 0 14px; padding: 12px 16px; border: 1px solid var(--cat-ok-line); border-radius: 14px; background: var(--cat-ok-bg); color: var(--cat-ink); }
 .catalog-banner > svg { margin-top: 2px; color: var(--cat-ok); }
@@ -174,24 +178,24 @@ html[data-theme="dark"] .catalog-search { background: var(--night-inset); }
 /* ---------- Breakpoints ---------- */
 /* Phones: two compact cards per row, so a shelf shows more than one product per screen. */
 @media (max-width: 600px) {
-  .catalog-page .finds-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  .catalog-page .find-card { border-radius: 16px; }
-  .catalog-page .find-card .find-photo { aspect-ratio: 1; }
-  .catalog-page .find-card .find-content { padding: 10px 10px 12px; }
-  .catalog-page .find-card .find-meta { font-size: 11.5px; }
-  .catalog-page .find-card .find-meta > span:last-child { display: none; }
-  .catalog-page .find-card .find-content .find-title { min-height: 0; margin: 4px 0 8px; font-size: 14.5px; line-height: 1.3; }
-  .catalog-page .find-card .find-content .find-store-price { padding-bottom: 8px; }
-  .catalog-page .find-card .find-store-price > span { font-size: 11.5px; }
-  .catalog-page .find-card .find-store-price b { font-size: 14px; }
-  .catalog-page .find-card .find-content .find-total { padding: 8px 0; }
-  .catalog-page .find-card .find-total > span { font-size: 11.5px; }
-  .catalog-page .find-card .find-total > strong { margin: 2px 0 0; font-size: 17px; letter-spacing: -.03em; }
-  .catalog-page .find-card .find-info { right: -6px; }
-  .catalog-page .find-card .find-parcel { flex-wrap: wrap; gap: 2px 6px; padding: 6px 8px; font-size: 12px; }
-  .catalog-page .find-card .find-limit { font-size: 12px; }
-  .catalog-page .find-card .find-purchase .btn { min-height: 44px; padding: 0 8px; font-size: 14px; }
-  .catalog-page .find-card .find-save { width: 44px; height: 44px; top: 6px; right: 6px; }
+  :is(.catalog-page, .catalog-home .catalog-teaser) .finds-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  :is(.catalog-page, .catalog-teaser) .find-card { border-radius: 16px; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-photo { aspect-ratio: 1; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-content { padding: 10px 10px 12px; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-meta { font-size: 11.5px; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-meta > span:last-child { display: none; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-content .find-title { min-height: 0; margin: 4px 0 8px; font-size: 14.5px; line-height: 1.3; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-content .find-store-price { padding-bottom: 8px; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-store-price > span { font-size: 11.5px; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-store-price b { font-size: 14px; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-content .find-total { padding: 8px 0; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-total > span { font-size: 11.5px; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-total > strong { margin: 2px 0 0; font-size: 17px; letter-spacing: -.03em; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-info { right: -6px; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-parcel { flex-wrap: wrap; gap: 2px 6px; padding: 6px 8px; font-size: 12px; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-limit { font-size: 12px; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-purchase .btn { min-height: 44px; padding: 0 8px; font-size: 14px; }
+  :is(.catalog-page, .catalog-teaser) .find-card .find-save { width: 44px; height: 44px; top: 6px; right: 6px; }
 }
 @media (max-width: 760px) {
   .catalog-bar-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }

@@ -12,6 +12,8 @@ import { atlasServiceBreakdown } from '@/lib/market/quote-presentation';
 import { formatSum, homeCopy } from '@/lib/market/home-copy';
 import type { Locale } from '@/lib/market/i18n';
 import { ProductImage } from './market-ui';
+import { StoreLogo } from './store-logo';
+import { brandForHost } from '@/lib/market/store-brands';
 
 const breakdownCopy = {
   ru: { item: 'Товар', store: 'Доставка магазина до склада', storeReserve: 'Доставка магазина — резерв', international: 'Доставка в Узбекистан', kg: 'кг', service: 'Сервис Atlas', fee: 'Общий сбор Atlas', reserve: 'Возвратный резерв', storeReserveNote: (amount: string) => `Магазин не указал цену доставки до склада, поэтому заложен резерв ${amount}. Если доставка выйдет дешевле, разницу вернём на баланс Atlas.`, reserveNote: 'Возвратный резерв — запас на случай, если посылка окажется тяжелее. Неиспользованная часть вернётся на баланс Atlas, а доплату сверх резерва согласуем с вами заранее.' },
@@ -56,7 +58,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
       {canSave && <Tooltip><TooltipTrigger asChild><button type="button" disabled={saving} className={'find-save ' + (saved ? 'saved' : '')} aria-pressed={saved} aria-label={(saved ? copy.remove : copy.save) + ': ' + name} onClick={onSave}><Heart size={20} /></button></TooltipTrigger><TooltipContent>{saving ? copy.savingState : saved ? copy.remove : copy.save}</TooltipContent></Tooltip>}
     </div>
     <div className="find-content">
-      <div className="find-meta"><span>{storeLabel(item.store) || product.brand || category}</span><span>{category}</span></div>
+      <div className="find-meta"><span className="find-store"><StoreMark host={item.store} />{storeLabel(item.store, locale) || product.brand || category}</span><span>{category}</span></div>
       {needsPrice ? <a className="find-title" href={orderUrl}>{name}</a> : <button type="button" className="find-title" onClick={() => select(product)}>{name}</button>}
       <div className={'find-store-price' + (needsPrice ? ' needs-confirmation' : '')}>
         <span>{needsPrice ? (hasRecordedPrice ? label('Последняя цена магазина', 'Do‘kondagi oxirgi narx', 'Last recorded store price') : label('Цена в магазине', 'Do‘kondagi narx', 'Store price')) : copy.productPrice}</span>
@@ -66,7 +68,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
       {costs
         ? <FindPrice costs={costs} product={product} label={needsPrice && hasRecordedPrice ? label('Ориентир с доставкой', 'Yetkazish bilan taxmin', 'Delivery estimate') : hc.catalog.total} breakdownLabel={hc.catalog.breakdown} fmt={fmt} numberLocale={numberLocale} bd={breakdownCopy[locale]} />
         : <div className="find-total"><span>{label('Расчёт после проверки цены', 'Narx tekshirilgach hisob', 'Estimate after price check')}</span><strong>{label('Рассчитаем после проверки цены', 'Narx tekshirilgach hisoblaymiz', 'Calculated after price check')}</strong></div>}
-      {parcel && costs && <p className="find-parcel" title={cc.parcelHint(fmt(costs.total))}><PackageCheck size={16} aria-hidden="true" /><span>{cc.parcelLine(storeLabel(parcel.store))}</span><b>+{fmt(parcel.extra)}</b></p>}
+      {parcel && costs && <p className="find-parcel" title={cc.parcelHint(fmt(costs.total))}><PackageCheck size={16} aria-hidden="true" /><span>{cc.parcelLine(storeLabel(parcel.store, locale))}</span><b>+{fmt(parcel.extra)}</b></p>}
       {overLimit && <p className="find-limit" title={cc.overLimitHint}><TriangleAlert size={15} aria-hidden="true" />{cc.overLimit}</p>}
       {/* No merchant link on the card: it would send customers away from the order flow. */}
       <div className="find-purchase"><a className="btn primary" href={orderUrl}>{hc.catalog.order}<ArrowRight size={17} aria-hidden="true" /></a></div>
@@ -98,4 +100,10 @@ export function CatalogSkeleton({ count = 6, label }: { count?: number; label: s
   return <div className="finds-grid catalog-skeleton" role="status" aria-label={label}>
     {Array.from({ length: count }, (_, index) => <div className="find-card catalog-skeleton-card" key={index} aria-hidden="true"><div className="find-visual" /><div className="find-content"><span /><span /><span /></div></div>)}
   </div>;
+}
+
+/** Small brand icon next to a store name; nothing for stores outside the directory. */
+export function StoreMark({ host }: { host: string }) {
+  const brand = brandForHost(host);
+  return brand ? <StoreLogo brand={brand} size={18} /> : null;
 }

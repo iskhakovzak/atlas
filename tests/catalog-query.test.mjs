@@ -150,7 +150,10 @@ test('the catalog shows the allowance of the primary recipient', () => {
   assert.deepEqual(catalogAllowance(state, tariff.fx, now), { name: 'Zarina Karimova', usedUsd: 120, remainingUsd: 80 });
 });
 
-test('store labels use known names and fall back to the domain', () => {
+test('store labels use brand names, name other storefronts by country and fall back to the domain', () => {
   assert.equal(storeLabel('zara.com'), 'Zara');
-  assert.equal(storeLabel('brooksrunning.com'), 'brooksrunning.com');
+  assert.equal(storeLabel('brooksrunning.com'), 'Brooks Running');
+  assert.equal(storeLabel('amazon.de'), 'Amazon · Германия');
+  assert.equal(storeLabel('amazon.de', 'en'), 'Amazon · Germany');
+  assert.equal(storeLabel('unknown-shop.example'), 'unknown-shop.example');
 });

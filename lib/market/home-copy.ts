@@ -22,11 +22,11 @@ type Faq = { q: string; a: string };
 
 export type HomeCopy = {
   nav: { catalog: string; stores: string; how: string; tariffs: string; orders: string; signin: string; account: string; language: string };
-  hero: { title: string; lead: string; label: string; placeholder: string; calculate: string; invalid: string; guestNote: string; memberNote: string; popular: string; openStore: string; batch: string; catalog: string };
+  hero: { title: string; lead: string; label: string; placeholder: string; calculate: string; invalid: string; guestNote: string; memberNote: string; popular: string; openStore: string; batch: string; catalog: string; allStores: string };
   how: { title: string; steps: [Step, Step, Step, Step]; paymentsLabel: string; pickupLabel: string };
   example: { title: string; lead: string; product: string; meta: string; item: string; service: string; serviceDetail: (percent: string) => string; delivery: string; reserve: string; reserveHelpLabel: string; reserveHelp: string; total: string; note: string };
   catalog: { title: string; intro: string; order: string; storePrice: string; total: string; breakdown: string };
-  tariffs: { title: string; lead: string; from: string; time: string; perKg: string; days: (min: number, max: number) => string; pending: string; regions: Record<DeliveryRegion, string>; weightNote: string; rateNote: string };
+  tariffs: { title: string; lead: string; from: string; time: string; perKg: string; days: (min: number, max: number) => string; pending: string; noDays: string; regions: Record<DeliveryRegion, string>; weightNote: string; rateNote: string };
   trust: { title: string; ordersDone: string; points: [Step, Step, Step]; trackingTitle: string; example: string; trackingItem: string; trackingNote: string; reviewsTitle: string; photosTitle: string; legalTitle: string; entity: string; inn: string; address: string; legalLink: string };
   faq: { title: string; timesQuestion: string; timesKnown: (list: string) => string; timesUnknown: string; customsLink: string; prohibitedOfficial: string; prohibitedRules: string; items: { customs: Faq; returns: Faq; prohibited: Faq; weight: Faq; account: Faq } };
   footer: { tagline: string; buyers: string; contacts: string; legal: string; support: string; rules: string; privacy: string; customs: string; faq: string; telegramSupport: string; telegramChannel: string; phone: string; instagram: string; pickup: string; theme: string };
@@ -42,7 +42,7 @@ export const homeCopy: Record<Locale, HomeCopy> = {
       label: 'Ссылка на товар', placeholder: 'Вставьте ссылку на товар', calculate: 'Рассчитать',
       invalid: 'Вставьте полную ссылку на страницу товара — она начинается с https://',
       guestNote: 'Расчёт бесплатный и без регистрации.', memberNote: 'Расчёт бесплатный и ни к чему не обязывает.',
-      popular: 'Популярные магазины', openStore: 'откроется в новой вкладке', batch: 'Добавить несколько ссылок', catalog: 'Смотреть подборку товаров',
+      popular: 'Популярные магазины', openStore: 'откроется в новой вкладке', batch: 'Добавить несколько ссылок', catalog: 'Смотреть подборку товаров', allStores: 'Все магазины',
     },
     how: {
       title: 'Как это работает',
@@ -68,7 +68,7 @@ export const homeCopy: Record<Locale, HomeCopy> = {
     tariffs: {
       title: 'Сроки и тарифы', lead: 'Цена доставки зависит от веса посылки. Сроки примерные: они зависят от магазина и таможни.',
       from: 'Откуда', time: 'Срок доставки', perKg: 'Цена за 1 кг',
-      days: (min, max) => `${min}–${max} ${ruDays(max)}`, pending: 'уточняется',
+      days: (min, max) => `${min}–${max} ${ruDays(max)}`, pending: 'уточняется', noDays: 'Срок зависит от магазина и рейса — покажем его в расчёте по вашей ссылке.',
       regions: { us: 'США', tr: 'Турция', cn: 'Китай', eu: 'Европа (ЕС)' },
       weightNote: 'Вес считаем с коробкой и добавляем 0,5 кг на упаковку и запас. Минимум — 1 кг на посылку из одного магазина.',
       rateNote: 'Текущие тарифы Atlas, не оферта.',
@@ -112,7 +112,7 @@ export const homeCopy: Record<Locale, HomeCopy> = {
       label: 'Tovar havolasi', placeholder: 'Tovar havolasini qo‘ying', calculate: 'Hisoblash',
       invalid: 'Tovar sahifasining to‘liq havolasini qo‘ying — u https:// bilan boshlanadi',
       guestNote: 'Hisoblash bepul va ro‘yxatdan o‘tmasdan.', memberNote: 'Hisoblash bepul va hech narsaga majburlamaydi.',
-      popular: 'Mashhur do‘konlar', openStore: 'yangi oynada ochiladi', batch: 'Bir nechta havola qo‘shish', catalog: 'Tovarlar to‘plamini ko‘rish',
+      popular: 'Mashhur do‘konlar', openStore: 'yangi oynada ochiladi', batch: 'Bir nechta havola qo‘shish', catalog: 'Tovarlar to‘plamini ko‘rish', allStores: 'Barcha do‘konlar',
     },
     how: {
       title: 'Bu qanday ishlaydi',
@@ -138,7 +138,7 @@ export const homeCopy: Record<Locale, HomeCopy> = {
     tariffs: {
       title: 'Muddatlar va tariflar', lead: 'Yetkazib berish narxi jo‘natma og‘irligiga bog‘liq. Muddatlar taxminiy: ular do‘kon va bojxonaga bog‘liq.',
       from: 'Qayerdan', time: 'Yetkazish muddati', perKg: '1 kg narxi',
-      days: (min, max) => `${min}–${max} kun`, pending: 'aniqlanmoqda',
+      days: (min, max) => `${min}–${max} kun`, pending: 'aniqlanmoqda', noDays: 'Muddat do‘kon va reysga bog‘liq — uni havolangiz bo‘yicha hisobda ko‘rsatamiz.',
       regions: { us: 'AQSh', tr: 'Turkiya', cn: 'Xitoy', eu: 'Yevropa (YeI)' },
       weightNote: 'Og‘irlikni quti bilan hisoblaymiz va qadoq hamda zaxira uchun 0,5 kg qo‘shamiz. Bitta do‘kondan kelgan jo‘natma uchun kamida 1 kg.',
       rateNote: 'Atlasning joriy tariflari, oferta emas.',
@@ -182,7 +182,7 @@ export const homeCopy: Record<Locale, HomeCopy> = {
       label: 'Product link', placeholder: 'Paste a product link', calculate: 'Calculate',
       invalid: 'Paste the full product page link — it starts with https://',
       guestNote: 'The estimate is free and needs no sign-up.', memberNote: 'The estimate is free and commits you to nothing.',
-      popular: 'Popular stores', openStore: 'opens in a new tab', batch: 'Add several links', catalog: 'Browse the product selection',
+      popular: 'Popular stores', openStore: 'opens in a new tab', batch: 'Add several links', catalog: 'Browse the product selection', allStores: 'All stores',
     },
     how: {
       title: 'How it works',
@@ -208,7 +208,7 @@ export const homeCopy: Record<Locale, HomeCopy> = {
     tariffs: {
       title: 'Delivery times and rates', lead: 'Delivery cost depends on parcel weight. Times are approximate and depend on the store and customs.',
       from: 'From', time: 'Delivery time', perKg: 'Price per kg',
-      days: (min, max) => `${min}–${max} days`, pending: 'to be confirmed',
+      days: (min, max) => `${min}–${max} days`, pending: 'to be confirmed', noDays: 'Timing depends on the store and the flight — we show it in the estimate for your link.',
       regions: { us: 'USA', tr: 'Turkey', cn: 'China', eu: 'Europe (EU)' },
       weightNote: 'We weigh the item with its box and add 0.5 kg for packaging and a buffer. Minimum 1 kg per parcel from one store.',
       rateNote: 'Current Atlas rates, not an offer.',

@@ -1,5 +1,14 @@
 # Atlas TODO and known limitations
 
+## Stores, logos and phones — 4 October 2026
+
+- [x] `/stores`: 207 brands instead of 266 lowercase domains, proper names, logos, types and storefront countries, search and filters in the address, a store card with country storefronts, catalog products and iPhone copy instructions, a link field with paste.
+- [x] Phones: a bottom bar for guests too (they had no navigation and no sign-in on phones), brand colours instead of the old blue, safe areas, no tap flash or stuck hover, 24 px checkboxes, compact "How it works" and footer.
+- [x] e2e fails on phone text fields under 16 px (iPhone zoom) and controls under 24×24 px.
+- [ ] Logos missing for Aéropostale, Carrefour, Converse, Druni, END., Gap, Reserved and Springfield (monograms shown); GOAT's icon was rejected. Re-run `node --experimental-strip-types scripts/store-logos.mjs` after adding stores.
+- [ ] Storefront countries for `.com` sites are the brand's main market; multi-country `.com` sites (Zara, H&M, UNIQLO) actually depend on the visitor's region. The US egress proxy sees the US version.
+- [ ] Checked in Chrome's phone emulation and against Safari-specific CSS, not on a physical iPhone: open the site on one (Safari and "Add to Home Screen") before launch.
+- [ ] `scripts/audit-ui.mjs` also still expects the old store directory markup.
 ## Catalog and filters — 4 October 2026
 
 The public catalog had 6 products, so the home section (shown from 8) never appeared; filters were hidden below 16 products, lived only in component state and did not separate real data (every product ships from the US; budget steps of 1–2 million soum against products of 275–500 thousand).

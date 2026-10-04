@@ -1,7 +1,8 @@
 import { quote, repriceCart, merchantParcelKey, type CartItem, type Pricing, type Product } from './domain.ts';
 import { dealQuote } from './deals.ts';
 import { bundledMerchantFinds, type MerchantFind } from './catalog.ts';
-import { featuredStoreGroups } from '../importer/stores.ts';
+import { brandForHost, storefrontLabel } from './store-brands.ts';
+import type { Locale } from './i18n.ts';
 
 /** Catalog categories as stored in product snapshots, with the URL slug of each. */
 export const categorySlugs: Record<string, string> = {
@@ -73,14 +74,14 @@ export function activeFilterCount(query: CatalogQuery) {
   return Number(Boolean(query.category)) + query.stores.length + Number(Boolean(query.price)) + query.sizes.length + Number(query.duty) + Number(query.sale) + Number(query.fresh) + Number(Boolean(query.collection));
 }
 
-const featuredNames = new Map<string, string>(featuredStoreGroups.flatMap((group) => group.stores.map((store) => [store.root, store.name] as const)));
+
 export function storeHost(product: Product & { store?: string }) {
   try { if (product.sourceUrl) return new URL(product.sourceUrl).hostname.toLowerCase().replace(/^www\./, ''); } catch { /* fall back to the label */ }
   return (product.store ?? '').toLowerCase();
 }
-/** A known store's name, otherwise its domain (always recognisable, never guessed). */
-export function storeLabel(host: string) {
-  return featuredNames.get(host) ?? featuredNames.get(host.split('.').slice(-2).join('.')) ?? host;
+/** The store's brand name ("Amazon", "Amazon · Germany" for another storefront), otherwise its domain. */
+export function storeLabel(host: string, locale: Locale = 'ru') {
+  return brandForHost(host) ? storefrontLabel(host, locale) : host;
 }
 
 const letterSizes = ['XXXS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', 'XXXL', '3XL', '4XL', '5XL'];

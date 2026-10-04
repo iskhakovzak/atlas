@@ -8,13 +8,11 @@ import {atlasServiceBreakdown} from '@/lib/market/quote-presentation';
 import {formatSum,groupDigits,homeCopy} from '@/lib/market/home-copy';
 import {deliveryRegions,paymentLabels,siteContent} from '@/lib/market/site-content';
 import {localizedStatuses,type Locale} from '@/lib/market/i18n';
+import {storeBrands} from '@/lib/market/store-brands';
+import {StoreLogo} from './store-logo';
 
 const isDev=(import.meta as {env?:{DEV?:boolean}}).env?.DEV===true;
-const heroStores=[
- {name:'Nike',url:'https://www.nike.com/'},{name:'Zara',url:'https://www.zara.com/'},{name:'Amazon',url:'https://www.amazon.com/'},
- {name:'Apple',url:'https://www.apple.com/'},{name:'iHerb',url:'https://www.iherb.com/'},{name:'Adidas',url:'https://www.adidas.com/'},
- {name:'H&M',url:'https://www.hm.com/'},{name:'Sephora',url:'https://www.sephora.com/'},
-];
+const heroStores=['nike','zara','amazon','apple','iherb','adidas','hm','sephora'].map(key=>storeBrands.find(brand=>brand.key===key)!).filter(Boolean);
 
 export function useHomeCopy(){
  const {state}=useMarket();
@@ -70,7 +68,7 @@ export function HomeHero({showCatalogLink}:{showCatalogLink:boolean}){
   {error?<p id="home-link-error" className="home-link-error" role="alert">{error}</p>:<p id="home-link-note" className="home-link-note">{status==='authenticated'?c.hero.memberNote:c.hero.guestNote}</p>}
   <div className="home-stores">
    <p className="home-stores-label">{c.hero.popular}</p>
-   <ul>{heroStores.map(store=><li key={store.name}><a href={store.url} target="_blank" rel="noopener noreferrer"><span className="home-store-mark" aria-hidden="true">{store.name[0]}</span>{store.name}<span className="sr-only"> ({c.hero.openStore})</span></a></li>)}</ul>
+   <ul>{heroStores.map(store=><li key={store.key}><a href={'https://'+store.storefronts[0].root} target="_blank" rel="noopener noreferrer"><StoreLogo brand={store} size={26}/>{store.name}<span className="sr-only"> ({c.hero.openStore})</span></a></li>)}<li><Link className="home-stores-all" href="/stores">{c.hero.allStores}<ArrowRight size={15} aria-hidden="true"/></Link></li></ul>
   </div>
   <div className="home-hero-links"><Link href="/batch-import">{c.hero.batch}<ArrowRight size={16} aria-hidden="true"/></Link>{showCatalogLink&&<Link href="/catalog">{c.hero.catalog}<ArrowRight size={16} aria-hidden="true"/></Link>}</div>
  </section>;
@@ -119,19 +117,21 @@ export function DeliveryTariffs(){
  const {pricing}=useMarket();
  const {locale,c}=useHomeCopy();
  const missingDays=deliveryRegions.some(region=>!siteContent.deliveryDays[region.id]);
+ // Without any confirmed delivery times the column would only repeat "to be confirmed": leave it out.
+ const anyDays=deliveryRegions.some(region=>siteContent.deliveryDays[region.id]);
  return <section id="tariffs" className="home-section" aria-labelledby="tariffs-title">
   <h2 id="tariffs-title">{c.tariffs.title}</h2>
   <p className="home-section-lead">{c.tariffs.lead}</p>
   <div className="home-table-wrap"><table className="home-tariffs">
-   <thead><tr><th scope="col">{c.tariffs.from}</th><th scope="col">{c.tariffs.time}</th><th scope="col">{c.tariffs.perKg}</th></tr></thead>
+   <thead><tr><th scope="col">{c.tariffs.from}</th>{anyDays&&<th scope="col">{c.tariffs.time}</th>}<th scope="col">{c.tariffs.perKg}</th></tr></thead>
    <tbody>{deliveryRegions.map(region=>{
     const days=siteContent.deliveryDays[region.id];
     const country=region.countries.find(name=>pricing.countryOverrides?.[name])??region.countries[0];
-    return <tr key={region.id}><th scope="row">{c.tariffs.regions[region.id]}</th><td className={days?undefined:'home-pending'}>{days?c.tariffs.days(days[0],days[1]):c.tariffs.pending}</td><td>{formatSum(perKgFor(pricing,country),locale)}</td></tr>;
+    return <tr key={region.id}><th scope="row">{c.tariffs.regions[region.id]}</th>{anyDays&&<td className={days?undefined:'home-pending'}>{days?c.tariffs.days(days[0],days[1]):c.tariffs.pending}</td>}<td>{formatSum(perKgFor(pricing,country),locale)}</td></tr>;
    })}</tbody>
   </table></div>
   {missingDays&&<MissingContent what="сроки доставки по странам (дни, от–до)"/>}
-  <p className="home-note">{c.tariffs.weightNote} {c.tariffs.rateNote}</p>
+  <p className="home-note">{!anyDays&&<>{c.tariffs.noDays} </>}{c.tariffs.weightNote} {c.tariffs.rateNote}</p>
  </section>;
 }
 

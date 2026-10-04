@@ -10,10 +10,10 @@ import {ProductSheet} from './product-sheet';
 // (a teaser once the catalog has enough products; the full list is /catalog), delivery
 // times and rates, trust, FAQ; footer is shared.
 export function HomeCatalog(){
-  const {ready,catalogProducts,catalogReady,loadCatalog}=useMarket();
+  const {status,catalogProducts,catalogReady,loadCatalog}=useMarket();
   useEffect(()=>{void loadCatalog()},[loadCatalog]);
   const [selected,setSelected]=useState<Product|null>(null);
   const showTeaser=catalogReady&&catalogProducts.length>=teaserMinimum;
-  return <><HomeHero showCatalogLink={catalogProducts.length>0}/><HowItWorks/><ExampleQuote/>{showTeaser&&<CatalogTeaser select={setSelected}/>}<DeliveryTariffs/><TrustSection/><HomeFaq/><StickyLinkCta aboveNav={ready}/>
+  return <><HomeHero showCatalogLink={catalogProducts.length>0}/><HowItWorks/><ExampleQuote/>{showTeaser&&<CatalogTeaser select={setSelected}/>}<DeliveryTariffs/><TrustSection/><HomeFaq/><StickyLinkCta aboveNav={status!=='loading'}/>
   <ProductSheet product={selected} onClose={()=>setSelected(null)}/></>;
 }
