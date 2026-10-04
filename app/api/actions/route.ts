@@ -15,10 +15,10 @@ export async function POST(request:Request){try{
   const payload=await requestJson(request) as {action:unknown;revision:number};
   const parsed=actionSchema.safeParse(payload.action);
   if(!parsed.success)throw new HttpError(400, 'err_10');
-  const status=await customerStatus(user.userId);
+  // Independent reads go out together: one D1 round trip instead of three in a row on every action.
+  const [status,current,settings]=await Promise.all([customerStatus(user.userId),account(user),pricingAndPolicy()]);
   if(status==='blocked')throw new HttpError(403, 'err_11');
   if(status==='review'&&['checkout','payment-demo'].includes(parsed.data.type))throw new HttpError(403, 'err_12');
-  const current=await account(user);
   if(parsed.data.type==='identity-confirm'){
     const identityAction=parsed.data;
     const owned=await database().prepare('SELECT id FROM market_identity_documents WHERE id=? AND user_id=?').bind(identityAction.documentId,user.userId).first();
@@ -32,7 +32,7 @@ export async function POST(request:Request){try{
   // saved and shown, and the action itself is refused, so an old total never passes unnoticed.
   let refusal:string|undefined;
   try{
-    const {pricing:currentPricing,policy:currentPolicy}=await pricingAndPolicy();
+    const {pricing:currentPricing,policy:currentPolicy}=settings;
     const action=parsed.data,now=Date.now();
     let state=current.state;
     if(action.type==='cart-add'||action.type==='cart-add-many'){

@@ -9,6 +9,8 @@ import {
   Check,
   ChevronDown,
   Clock3,
+  IdCard,
+  Loader2,
   Package,
   Scale,
   Search,
@@ -64,8 +66,9 @@ import { countries } from "@/lib/market/world";
 import { localizedStatuses, type Locale } from "@/lib/market/i18n";
 import { formatSum } from "@/lib/market/home-copy";
 import { balanceCopy, countryLabel, formatDateTime, formatShortDate, noticesCopy, orderCount, ordersCopy } from "@/lib/market/customer-copy";
-import { monthlyAllowance, orderRecipientName, recipientKey } from "@/lib/market/allowance";
+import { allowanceMonth, countsTowardAllowance, monthOf, monthlyUsedFor, orderPerson, orderRecipientName, recipientKey } from "@/lib/market/allowance";
 import { courierAllowanceUsd } from "@/lib/market/customs";
+import { calcCopy } from "@/lib/market/calc-copy";
 import {
   PageHeading,
   Empty,
@@ -73,6 +76,12 @@ import {
   CostLines,
   ProductImage,
 } from "./market-ui";
+// Payments are simulated: the notice speaks of a placed request, never of a payment received.
+const passportCopy: Record<Locale, { title: (name: string) => string; text: string; action: string }> = {
+  ru: { title: name => `Нужен паспорт получателя: ${name}`, text: "Заявка оформлена. Чтобы подготовить декларацию и таможенное оформление, привяжите паспорт именно этого получателя. Оплата на сайте пока не подключена — деньги не списывались.", action: "Привязать паспорт" },
+  uz: { title: name => `Qabul qiluvchi pasporti kerak: ${name}`, text: "Ariza rasmiylashtirildi. Deklaratsiya va bojxona rasmiylashtiruvi uchun aynan shu qabul qiluvchining pasportini biriktiring. Saytda to‘lov hali ulanmagan — pul yechilmagan.", action: "Pasportni biriktirish" },
+  en: { title: name => `Recipient passport needed: ${name}`, text: "The request is placed. To prepare the declaration and customs clearance, link this recipient’s own passport. Online payment is not connected yet — no money was charged.", action: "Link passport" },
+};
 const storeShippingExtra = (o: Order) =>
   !o.storeShippingExtraApproved ? (o.storeShippingSettlement?.extra ?? 0) : 0;
 const warehouseExtra = (o: Order) =>
@@ -680,7 +689,8 @@ function CustomerWarehouseServices({
         {!["package", "item"].includes(selected.unit) && <div className="field"><label htmlFor={`warehouse-service-units-${order.id}`}>{words.amount} · {unitLabel(selected.unit)}</label><input id={`warehouse-service-units-${order.id}`} type="number" min="1" max="100" step="1" value={units} onChange={(event) => setUnits(event.target.value)} /></div>}
         {selected.id === "special-request" && <div className="field"><label htmlFor={`warehouse-service-note-${order.id}`}>{words.note}</label><textarea id={`warehouse-service-note-${order.id}`} rows={3} maxLength={500} required value={customerNote} placeholder={words.noteHint} onChange={(event) => setCustomerNote(event.target.value)} /></div>}
         <p className="micro">{configuredAmount !== undefined ? `${words.fixed}: ${money(serviceFeeForCountry(selected, order.product.country))} × ${requestedUnits} = ${money(configuredAmount)}. ${words.fixedPending}` : words.quote}</p>
-        <button className="btn secondary" disabled={busy || sending || (selected.id === "special-request" && !customerNote.trim())} onClick={async () => { setSending(true); try { const ok = await run({ type: "warehouse-service-request", id: order.id, serviceId: selected.id, units: requestedUnits, customerNote: customerNote.trim() || undefined }); if (ok) { setCustomerNote(""); setUnits("1"); } } finally { setSending(false); } }}>{sending ? "…" : words.request}</button>
+        <button className="btn secondary" disabled={busy || sending || (selected.id === "special-request" && !customerNote.trim())} onClick={async () => { setSending(true); try { const ok = await run({ type: "warehouse-service-request", id: order.id, serviceId: selected.id, units: requestedUnits, customerNote: customerNote.trim() || undefined }); if (ok) { setCustomerNote(""); setUnits("1"); toast.success(words.send); } } finally { setSending(false); } }} aria-busy={sending || undefined}>{sending ? <><Loader2 size={16} className="spin" aria-hidden="true" />{locale === "ru" ? "Отправляем запрос…" : locale === "uz" ? "So‘rov yuborilmoqda…" : "Sending the request…"}</> : words.request}</button>
+        {sending && <p className="micro" role="status">{locale === "ru" ? "Это запрос: оператор сначала проверит возможность и цену, услуга не считается выполненной." : locale === "uz" ? "Bu so‘rov: operator avval imkoniyat va narxni tekshiradi, xizmat bajarilgan hisoblanmaydi." : "This is a request: an operator checks feasibility and price first; the service is not done yet."}</p>}
       </div>}
       {!requests.length && !available.length && <p className="micro">{words.empty}</p>}
     </div>
@@ -779,8 +789,13 @@ function CustomerOrderCard({ order: o, locale, pricing, busy, expanded, onToggle
       </section>}
 
       {!o.cancelled && o.status === 0 && o.product.sourceShippingEstimated && !o.storeShippingSettlement && <div className="order-x-note info">
-        <Clock3 size={18} aria-hidden="true" /><div><b>{ow.managerChecking}</b><p>{o.quote.sourceShipping ? <>{ow.reserveIncluded} {formatSum(o.quote.sourceShipping, locale)}. {ow.beforeBuyout}</> : ow.reserveWaived}</p></div>
+        <Clock3 size={18} aria-hidden="true" /><div><b>{ow.managerChecking}</b><p>{o.quote.storeShippingHold !== undefined
+          // Since 4 October 2026 the hold is apart from the order sum; older orders included it.
+          ? o.quote.storeShippingHold > 0 ? <>{calcCopy[locale].hold}: {formatSum(o.quote.storeShippingHold, locale)} — {calcCopy[locale].holdNote.toLocaleLowerCase(locale === "en" ? "en-US" : "ru-RU")}. {ow.beforeBuyout}</> : calcCopy[locale].lines.free
+          : o.quote.sourceShipping ? <>{ow.reserveIncluded} {formatSum(o.quote.sourceShipping, locale)}. {ow.beforeBuyout}</> : ow.reserveWaived}</p></div>
       </div>}
+      {o.note && <div className="order-x-note muted"><MessageSquareText size={18} aria-hidden="true" /><div><b>{calcCopy[locale].blocks.comment}</b><p>{o.note}</p></div></div>}
+      {o.customs && o.customs.dutiableUsd > 0 && <div className="order-x-note info"><Scale size={18} aria-hidden="true" /><div><b>{calcCopy[locale].customs.title}</b><p>{calcCopy[locale].customs.dutiable}: ${o.customs.dutiableUsd} · {calcCopy[locale].customs.estimate} ≈ ${o.customs.estimateUsd}{o.customs.helpRequested ? ` · ${calcCopy[locale].customs.help}` : ""}. {calcCopy[locale].customs.separate}</p></div></div>}
 
       <dl className="order-x-details">
         <div><dt>{c.orderNumber}</dt><dd><span className="order-x-id">{o.id}</span><CopyText text={o.id} locale={locale} /></dd></div>
@@ -810,7 +825,7 @@ function CustomerOrderCard({ order: o, locale, pricing, busy, expanded, onToggle
         <div>
           <b>{ow.managerConfirmed}</b>
           <p>{ow.actual}: {usd(o.storeShippingSettlement.actualUsd)} · {formatSum(o.storeShippingSettlement.actual, locale)}. {ow.reservedAtCheckout}: {formatSum(o.storeShippingSettlement.estimated, locale)}.</p>
-          <p><strong>{o.storeShippingSettlement.refund ? `${ow.refundToBalance} ${formatSum(o.storeShippingSettlement.refund, locale)}` : o.storeShippingExtraApproved ? `${ow.extraApproved}: ${formatSum(o.storeShippingSettlement.extra, locale)}` : o.storeShippingSettlement.extra ? `${ow.needApprove} ${formatSum(o.storeShippingSettlement.extra, locale)}` : ow.reserveMatch}</strong></p>
+          <p><strong>{o.storeShippingSettlement.refund ? `${ow.refundToBalance} ${formatSum(o.storeShippingSettlement.refund, locale)}` : o.storeShippingExtraApproved ? `${ow.extraApproved}: ${formatSum(o.storeShippingSettlement.extra, locale)}` : o.storeShippingSettlement.extra ? `${ow.needApprove} ${formatSum(o.storeShippingSettlement.extra, locale)}` : o.storeShippingSettlement.held && o.storeShippingSettlement.released ? `${locale === "ru" ? "В пределах резерва. Освобождается" : locale === "uz" ? "Zaxira doirasida. Bo‘shatiladi" : "Within the reserve. Released"}: ${formatSum(o.storeShippingSettlement.released, locale)}` : ow.reserveMatch}</strong></p>
           {o.storeShippingSettlement.refund > 0 && <Link className="order-x-link" href="/balance">{ow.balance}<ArrowRight size={14} aria-hidden="true" /></Link>}
         </div>
       </div>}
@@ -939,8 +954,15 @@ export function OrdersView({ operations }: { operations: boolean }) {
   // Customers who order for several people can narrow the list to one recipient.
   const recipientOf = (order: Order) => recipientKey(orderRecipientName(state, order));
   const recipientOptions = operations ? [] : [...new Map(orders.map(order => [recipientOf(order), orderRecipientName(state, order).trim()] as const)).entries()].filter(([key]) => key !== "unknown");
-  const allowanceByRecipient = new Map(monthlyAllowance(state, pricing.fx).map(group => [group.key, group.usedUsd]));
-  const thisMonth = (order: Order) => { const created = new Date(order.createdAt), now = new Date(); return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear(); };
+  // The allowance an order counts against: bought, paid orders of that person in the month of import.
+  const currentMonth = monthOf(new Date().getTime());
+  const allowanceFor = (order: Order) => !order.cancelled && countsTowardAllowance(order) && allowanceMonth(order) === currentMonth ? monthlyUsedFor(state, orderPerson(state, order), pricing.fx) : undefined;
+  // Recipients of placed orders whose passport is not linked yet: the declaration needs it.
+  const identityList = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
+  const passportMissing = operations ? [] : [...new Map(orders
+    .filter(order => !order.cancelled && order.status < 5 && !order.identity && order.deliveryProfileId && !identityList.some(profile => profile.recipientProfileId === order.deliveryProfileId))
+    .map(order => [order.deliveryProfileId!, state.deliveryProfiles.find(profile => profile.id === order.deliveryProfileId)] as const)).entries()]
+    .filter((entry): entry is [string, NonNullable<typeof entry[1]>] => Boolean(entry[1]));
   const filtered = (
     tab === "active" ? active : tab === "attention" ? need : tab === "refunds" && operations ? refunds : done
   ).filter((o) => operations || recipientFilter === "all" || recipientOptions.length < 2 || recipientOf(o) === recipientFilter).filter((o) => {
@@ -1096,6 +1118,11 @@ export function OrdersView({ operations }: { operations: boolean }) {
           </Link>
         )}
       </PageHeading>}
+      {!operations && viewReady && passportMissing.map(([profileId, profile]) => <div className="orders-passport" key={profileId} role="note">
+        <IdCard size={20} aria-hidden="true" />
+        <div><b>{passportCopy[locale].title(profile.recipient)}</b><small>{passportCopy[locale].text}</small></div>
+        <Link className="btn secondary" href={`/identity?recipient=${encodeURIComponent(profileId)}`}>{passportCopy[locale].action}<ArrowRight size={16} aria-hidden="true" /></Link>
+      </div>)}
       {!operations && viewReady && need.length > 0 && tab !== "attention" && <button type="button" className="orders-attention" onClick={() => setTab("attention")}>
         <AlertCircle size={20} aria-hidden="true" /><span>{oc.attention(need.length)}</span><span className="orders-attention-go">{oc.showAttention}<ArrowRight size={16} aria-hidden="true" /></span>
       </button>}
@@ -1183,7 +1210,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
           description={ow.filteredDescription}
         />
       ) : (
-        filtered.map((o) => !operations ? <CustomerOrderCard key={o.id} order={o} locale={locale} pricing={pricing} busy={busy} expanded={expanded.includes(o.id)} onToggle={open => setExpanded(ids => open ? [...new Set([...ids, o.id])] : ids.filter(id => id !== o.id))} run={runOrderAction} confirm={setConfirmation} loadPhoto={order => void loadPhoto(order)} allowanceUsd={!o.cancelled && thisMonth(o) ? allowanceByRecipient.get(recipientOf(o)) : undefined} /> : (
+        filtered.map((o) => !operations ? <CustomerOrderCard key={o.id} order={o} locale={locale} pricing={pricing} busy={busy} expanded={expanded.includes(o.id)} onToggle={open => setExpanded(ids => open ? [...new Set([...ids, o.id])] : ids.filter(id => id !== o.id))} run={runOrderAction} confirm={setConfirmation} loadPhoto={order => void loadPhoto(order)} allowanceUsd={allowanceFor(o)} /> : (
           <details className="surface order-card compact-order" key={o.id} id={o.id} onToggle={event=>{const open=event.currentTarget.open;setExpanded(ids=>open?[...new Set([...ids,o.id])]:ids.filter(id=>id!==o.id))}}>
             <summary className="compact-order-summary">
               <ProductImage product={o.product} decorative locale={state.communication.language} />
@@ -1295,6 +1322,10 @@ export function OrdersView({ operations }: { operations: boolean }) {
                  <div><h3>{ow.recipient}: {o.delivery.recipient}</h3><p>{o.delivery.region}, {o.delivery.city}, {o.delivery.address}</p><p>{locale==='ru'?'Телефон получателя':locale==='uz'?'Qabul qiluvchi telefoni':'Recipient phone'}: <a href={`tel:${o.delivery.phone.replace(/[^\d+]/g,'')}`}>{o.delivery.phone}</a></p></div>
               </div>
             )}
+            {/* The customer's comment and the customs estimate they saw: for Atlas only, never sent to the store. */}
+            {o.note && <div className="settlement-box"><MessageSquareText size={22} /><div><h3>{calcCopy[locale].blocks.comment}</h3><p>{o.note}</p></div></div>}
+            {o.customs && <div className="settlement-box"><Scale size={22} /><div><h3>{calcCopy[locale].customs.title} · {o.customs.month}</h3><p>{calcCopy[locale].customs.limitShort}: ${o.customs.allowanceUsd} · {calcCopy[locale].customs.atlasShort}: ${o.customs.atlasUsedUsd}{o.customs.outsideUnknown ? ` · ${calcCopy[locale].customs.outsideUnknown}` : o.customs.outsideUsedUsd !== undefined ? ` · ${calcCopy[locale].customs.outsideShort}: $${o.customs.outsideUsedUsd}` : ""}</p><p>{calcCopy[locale].customs.dutiable}: <b>${o.customs.dutiableUsd}</b> · {calcCopy[locale].customs.estimate} ≈ ${o.customs.estimateUsd}{o.customs.helpRequested ? ` · ${calcCopy[locale].customs.help}: $${o.customs.helpFeeUsd ?? 0}` : ""}</p></div></div>}
+            {o.quote.storeShippingHold !== undefined && o.quote.storeShippingHold > 0 && !o.storeShippingSettlement && <div className="settlement-box"><Wallet size={22} /><div><h3>{calcCopy[locale].hold}</h3><p>{money(o.quote.storeShippingHold)} — {calcCopy[locale].holdNote}</p></div></div>}
             {o.parcel && (
               <div className="settlement-box parcel-box">
                 <Truck size={22} />
@@ -1864,6 +1895,12 @@ export function PricingManager({
   const addService = () => setDraft((current) => ({ ...current, serviceCatalog: [...current.serviceCatalog, { id: `custom-service-${crypto.randomUUID().slice(0, 8)}`, title: { ru: "Новая услуга", uz: "Yangi xizmat", en: "New service" }, description: { ru: "", uz: "", en: "" }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: false, required: false }] }));
   const setNumber = (key: "fx" | "perKgUsd" | "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "optionalServices" | "reserve" | "divisor" | "storeShippingFreeFromUsd", raw: string) =>
     setDraft((current) => ({ ...current, [key]: Number(raw) }));
+  const [fxBusy, setFxBusy] = useState(false);
+  const fxWords = {
+    ru: { title: "Курс USD → сум", source: "Источник курса", cbu: "Курс ЦБ Узбекистана × наценка", manual: "Установленный курс (вручную)", markup: "Наценка к курсу ЦБ", none: "Курс ЦБ ещё не получен: действует установленный курс.", last: (rate: string, date: string, at: string) => `ЦБ: ${rate} сум на ${date}; проверено ${at}. Сервер обновляет курс раз в 6 часов.`, refresh: "Обновить курс ЦБ сейчас", failed: "Не удалось получить курс ЦБ.", updated: (fx: string) => `Курс обновлён: ${fx} сум за $1.`, customsTitle: "Таможня (ориентир для клиента)", allowance: "Лимит в месяц на получателя, $", rate: "Ставка, %", perKg: "Минимум за кг, $", helpFee: "Комиссия «Atlas поможет оплатить», %", customsNote: "Пустое поле — правило, проверенное на lex.uz 04.10.2026 (ПКМ №244, ПП-4508, УП-174). Таможня в сумму заказа не входит." },
+    uz: { title: "USD → so‘m kursi", source: "Kurs manbai", cbu: "O‘zbekiston MB kursi × ustama", manual: "Belgilangan kurs (qo‘lda)", markup: "MB kursiga ustama", none: "MB kursi hali olinmagan: belgilangan kurs amal qiladi.", last: (rate: string, date: string, at: string) => `MB: ${date} uchun ${rate} so‘m; ${at} da tekshirildi. Server kursni har 6 soatda yangilaydi.`, refresh: "MB kursini hozir yangilash", failed: "MB kursini olib bo‘lmadi.", updated: (fx: string) => `Kurs yangilandi: $1 uchun ${fx} so‘m.`, customsTitle: "Bojxona (mijoz uchun taxmin)", allowance: "Qabul qiluvchiga oylik limit, $", rate: "Stavka, %", perKg: "Kg uchun minimum, $", helpFee: "«Atlas to‘lashga yordam beradi» komissiyasi, %", customsNote: "Bo‘sh maydon — lex.uz da 04.10.2026 tekshirilgan qoida (VMQ №244, PP-4508, PF-174). Bojxona buyurtma summasiga kirmaydi." },
+    en: { title: "USD → UZS rate", source: "Rate source", cbu: "Central Bank of Uzbekistan rate × markup", manual: "Set rate (manual)", markup: "Markup on the CBU rate", none: "No CBU rate yet: the set rate applies.", last: (rate: string, date: string, at: string) => `CBU: ${rate} UZS for ${date}; checked ${at}. The server refreshes it every 6 hours.`, refresh: "Refresh the CBU rate now", failed: "Could not get the CBU rate.", updated: (fx: string) => `Rate updated: ${fx} UZS per $1.`, customsTitle: "Customs (estimate shown to customers)", allowance: "Monthly allowance per recipient, $", rate: "Rate, %", perKg: "Minimum per kg, $", helpFee: "“Atlas helps pay” fee, %", customsNote: "Empty = the rule checked on lex.uz on 04.10.2026 (CM No. 244, PP-4508, UP-174). Customs is not part of the order sum." },
+  }[locale];
   // A tariff saved before delivery was priced in USD shows its soum rate converted at the current rate.
   const usdOf = (soum: number) => Math.round((soum / draft.fx) * 100) / 100;
   const perKgUsd = draft.perKgUsd ?? usdOf(draft.perKg);
@@ -1887,6 +1924,12 @@ export function PricingManager({
             reserve: draft.reserve,
             divisor: draft.divisor,
             storeShippingFreeFromUsd: draft.storeShippingFreeFromUsd,
+            fxSource: draft.fxSource ?? "manual",
+            fxMarkup: draft.fxMarkup ?? 1.012,
+            customsAllowanceUsd: draft.customsAllowanceUsd,
+            customsRate: draft.customsRate,
+            customsMinimumPerKg: draft.customsMinimumPerKg,
+            customsHelpFee: draft.customsHelpFee ?? 0.03,
             rates: draft.rates,
             countryOverrides: draft.countryOverrides,
             serviceCatalog: draft.serviceCatalog,
@@ -1925,6 +1968,27 @@ export function PricingManager({
         }}
       >
         <p className="notice warning" role="note">{pricingWords.estimateNotice}</p>
+        {/* Where the soum rate comes from: the Central Bank's USD rate × markup (read by the server), or a set rate. */}
+        <fieldset className="pricing-fx">
+          <legend>{fxWords.title}</legend>
+          <div className="pricing-grid">
+            <div className="field"><label htmlFor="pricing-fx-source">{fxWords.source}</label>
+              <select id="pricing-fx-source" value={draft.fxSource ?? "manual"} onChange={(event) => setDraft((current) => ({ ...current, fxSource: event.target.value as "cbu" | "manual" }))}>
+                <option value="cbu">{fxWords.cbu}</option><option value="manual">{fxWords.manual}</option>
+              </select></div>
+            <div className="field"><label htmlFor="pricing-fx-markup">{fxWords.markup}</label><input id="pricing-fx-markup" type="number" min="1" max="1.2" step="0.001" value={draft.fxMarkup ?? 1.012} disabled={(draft.fxSource ?? "manual") !== "cbu"} onChange={(event) => setDraft((current) => ({ ...current, fxMarkup: Number(event.target.value) }))} /></div>
+          </div>
+          <p className="micro">{draft.fxCbuRate ? fxWords.last(String(draft.fxCbuRate), draft.fxCbuDate ?? "", draft.fxUpdatedAt ? new Date(draft.fxUpdatedAt).toLocaleString(localeTag(locale)) : "—") : fxWords.none}</p>
+          <button type="button" className="btn secondary" disabled={fxBusy} onClick={async () => {
+            setFxBusy(true);
+            try {
+              const response = await fetch("/api/operations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "fx-refresh" }) });
+              const data = (await response.json()) as { pricing?: Pricing; error?: string };
+              if (!response.ok || !data.pricing) throw Error(data.error ?? fxWords.failed);
+              setDraft(data.pricing); onSaved(data.pricing); toast.success(fxWords.updated(String(data.pricing.fx)));
+            } catch (error) { toast.error((error as Error).message); } finally { setFxBusy(false); }
+          }}>{fxBusy ? "…" : fxWords.refresh}</button>
+        </fieldset>
         <div className="pricing-grid">
           {[
             ["fx", pricingWords.fx, 1],
@@ -1959,6 +2023,18 @@ export function PricingManager({
           ))}
         </div>
         <p className="micro">{pricingWords.perKgNote(`$${perKgUsd}`, money(Math.round(perKgUsd * draft.fx)))} {pricingWords.lineFeeNote}</p>
+        {/* Customs estimate parameters: informational, never part of an order sum; empty = the rule checked on lex.uz. */}
+        <fieldset className="pricing-fx">
+          <legend>{fxWords.customsTitle}</legend>
+          <div className="pricing-grid">
+            {([["customsAllowanceUsd", fxWords.allowance, 1, 1], ["customsRate", fxWords.rate, 0.1, 100], ["customsMinimumPerKg", fxWords.perKg, 0.1, 1], ["customsHelpFee", fxWords.helpFee, 0.1, 100]] as const).map(([key, label, step, scale]) => <div className="field" key={key}>
+              <label htmlFor={`pricing-${key}`}>{label}</label>
+              <input id={`pricing-${key}`} type="number" min="0" step={step} value={draft[key] === undefined ? "" : Math.round(draft[key]! * scale * 1000) / 1000} placeholder={key === "customsAllowanceUsd" ? "200" : key === "customsRate" ? "20" : key === "customsMinimumPerKg" ? "2" : "3"}
+                onChange={(event) => setDraft((current) => ({ ...current, [key]: event.target.value === "" ? (key === "customsHelpFee" ? 0.03 : undefined) : Number(event.target.value) / scale }))} />
+            </div>)}
+          </div>
+          <p className="micro">{fxWords.customsNote}</p>
+        </fieldset>
         <details className="country-pricing">
           <summary>{pricingWords.countryTitle}</summary>
           <p className="micro">{pricingWords.countryNote}</p>

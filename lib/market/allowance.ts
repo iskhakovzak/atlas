@@ -45,7 +45,8 @@ export function countsTowardAllowance(order: Order) {
   return !order.cancelled && order.status >= 1 && (!order.payment || order.payment.status === 'paid');
 }
 
-const monthOf = (at: number) => { const date = new Date(at); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; };
+/** "2026-10" for a moment in local time: the calendar month the allowance is counted in. */
+export const monthOf = (at: number) => { const date = new Date(at); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; };
 
 /**
  * The calendar month the order uses the allowance in. CM resolution No. 244 §3(b) applies the norm "within one
@@ -78,7 +79,7 @@ export function monthlyAllowance(state: State, fallbackFx: number, now = Date.no
     group.usedUsd += orderUsd(order, fallbackFx);
     group.orders += 1;
   }
-  return groups.map(({ person: _person, ...group }) => ({ ...group, usedUsd: Math.round(group.usedUsd) })).sort((a, b) => b.usedUsd - a.usedUsd);
+  return groups.map((group) => ({ key: group.key, name: group.name, orders: group.orders, usedUsd: Math.round(group.usedUsd) })).sort((a, b) => b.usedUsd - a.usedUsd);
 }
 
 /** This month's counted USD for one person (0 when there is nothing yet). */

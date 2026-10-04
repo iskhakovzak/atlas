@@ -78,7 +78,7 @@ function parsePolicyValue(value:string|undefined):Policy{if(!value)return defaul
 export async function pricing():Promise<Pricing>{const row=await database().prepare("SELECT value FROM market_settings WHERE key='pricing'").first<{value:string}>();return scheduleFxRefresh(parsePricingValue(row?.value))}
 export async function pricingAndPolicy():Promise<{pricing:Pricing;policy:Policy}>{const rows=await database().prepare("SELECT key,value FROM market_settings WHERE key IN ('pricing','policy')").all<{key:string;value:string}>();const values=new Map(rows.results.map(row=>[row.key,row.value]));return {pricing:scheduleFxRefresh(parsePricingValue(values.get('pricing'))),policy:parsePolicyValue(values.get('policy'))}}
 /** A tariff on the Central Bank rate reads it again in the background when it is older than 6 hours. */
-function scheduleFxRefresh(current:Pricing){if(fxRefreshDue(current))deferBackground(refreshCbuFx().catch(()=>undefined),'CBU rate refresh failed');return current}
+function scheduleFxRefresh(current:Pricing){if(fxRefreshDue(current))deferBackground(refreshCbuFx(),'CBU rate refresh failed');return current}
 /**
  * Read the CBU USD rate and store it in the tariff (rate × markup, new version when the soum rate changes).
  * One refresh at a time (D1 lease); the write applies only if the tariff did not change meanwhile.
@@ -88,8 +88,9 @@ export async function refreshCbuFx(now=Date.now()):Promise<Pricing|null>{
  const lease=await db.prepare('INSERT INTO market_rate_limits (key,count,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=1,expires_at=excluded.expires_at WHERE market_rate_limits.expires_at<? RETURNING key').bind('atlas:fx-refresh:lease',now+120000,now).first<{key:string}>();
  if(!lease)return null;
  // A failed attempt keeps the 2-minute lease, so the bank is not asked again on every request.
- const response=await fetch(cbuUsdUrl,{headers:{Accept:'application/json'},redirect:'error',signal:AbortSignal.timeout(8000)});
- const text=response.ok?await response.text():'';
+ // Workers support only "follow" or "manual": a redirect is not followed and counts as a failed read.
+ const response=await fetch(cbuUsdUrl,{headers:{Accept:'application/json'},redirect:'manual',signal:AbortSignal.timeout(8000)});
+ const text=response.status===200?await response.text():'';
  const cbu=text.length<64000?parseCbuRate(JSON.parse(text||'null')):null;
  if(!cbu)throw Error('CBU rate response was not usable');
  const row=await db.prepare("SELECT value FROM market_settings WHERE key='pricing'").first<{value:string}>();

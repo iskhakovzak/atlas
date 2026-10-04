@@ -1,5 +1,17 @@
 # Atlas TODO and known limitations
 
+## Order calculation — 5 October 2026
+
+- [x] 0.3 kg packaging once per parcel; weight from the store or an editable, labelled estimate.
+- [x] 9.98% Atlas fee on merchandise only; CBU USD rate × 1.012 with the rate and time shown.
+- [x] Unknown store delivery: free strictly above $50 from a store, else a hold outside the amount to pay.
+- [x] Several options with quantities, eBay stock, order comments, customs per recipient with outside use and the help request, passport notices, faster service actions.
+- [ ] Confirm the customs rate start date with Customs (PP-4508 consolidated 01.09.2026 vs UP-174 §8 01.01.2027) and set `customsRate`/`customsMinimumPerKg` in the tariff form if needed.
+- [ ] The allowance month is the month of import; Atlas has no customs date and uses the delivery month (or the current month while in transit). Record the real customs clearance date when the carrier provides it.
+- [ ] Payments are simulated: the passport notice speaks of a placed request. When a real provider confirms payment, show the notice only for paid orders and say so.
+- [ ] Stock is known only for eBay (Browse API estimate). Shopify `/products/*.js` exposes only availability; do not infer counts from cart-limit errors.
+- [ ] A store-stated delivery charge stays a charge even above $50 (the owner's "free above $50" applies to unknown delivery); confirm with the owner.
+- [ ] After deploy: check that the Worker can reach `cbu.uz` from Sites; if not, switch the tariff to a set rate.
 ## Checkout and form controls — 4 October 2026
 
 - [x] The checkout phone field turned "9" into "99 89" and could not be erased; it now keeps the caret and handles deleting, pasting and a tenth digit.

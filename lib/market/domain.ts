@@ -881,7 +881,7 @@ export function merchantParcelKey(item: CartItem) {
  * charged: it is free above `storeShippingFreeFromUsd` of items from that store, else held separately
  * (storeShippingHoldUsd). A store that still charges is settled by confirmStoreShipping with consent.
  */
-export function storeShippingUsd(product: Pick<Product, "sourceShippingUsd" | "sourceShippingEstimated">, _storeSubtotalUsd = 0, _config: Pricing = tariff) {
+export function storeShippingUsd(product: Pick<Product, "sourceShippingUsd" | "sourceShippingEstimated">) {
   return product.sourceShippingEstimated ? 0 : product.sourceShippingUsd ?? 0;
 }
 /** Unknown store delivery is free when items from that store cost strictly more than the threshold ($50). */
