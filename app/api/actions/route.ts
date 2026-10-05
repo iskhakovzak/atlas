@@ -6,7 +6,7 @@ import {merchantRequest} from '@/lib/importer/worker-fetch';
 import {manualFallbackAllowed,requiresMerchantSnapshot} from '@/lib/importer/manual-fallback';
 import {compareProductSnapshot} from '@/lib/importer/verify';
 import {checkCartSources,recentCheckMs} from '@/lib/market/cart-check';
-import {cartSignature,renewCart,type State} from '@/lib/market/domain';
+import {cartSignature,customsHelpChosen,renewCart,type State} from '@/lib/market/domain';
 import {addCustomerLinkDraft} from '@/lib/market/catalog-server';
 import {validBoxedWeight} from '@/lib/market/weight';
 export async function POST(request:Request){try{
@@ -66,7 +66,8 @@ export async function POST(request:Request){try{
     if(action.type==='cart-check'||action.type==='checkout'){
       const checked=await checkCartSources(state.cart,url=>fetchProduct(url,merchantRequest),currentPricing,now,recentCheckMs);
       state={...state,cart:checked.cart};
-      const tariffChanged=state.cart.some(item=>item.quote.tariffVersion!==currentPricing.version);
+      // A line priced before the tariff changed, or without (with) the customs fee the customer (no longer) chose.
+      const tariffChanged=state.cart.some(item=>item.quote.tariffVersion!==currentPricing.version||Boolean(item.quote.customsHelp)!==customsHelpChosen(state));
       const unreachableOnly=checked.blocked.length>0&&checked.blocked.every(id=>state.cart.find(item=>item.id===id)?.sourceIssue?.kind==='unreachable');
       refusal=checked.blocked.length?(unreachableOnly?'err_38':'err_36'):checked.changed.length?'err_35':tariffChanged?'err_37':undefined;
       if(refusal)state=renewCart(state,now,currentPricing);

@@ -1,5 +1,9 @@
 # Atlas — project context
 
+## Simpler bill, customs paid through Atlas, checkout straight to the order — 5 October 2026
+
+The owner found the bill confusing. The refundable international reserve is gone from the bill (tariff revision 3): the parcel is billed on its estimated weight, and after weighing the difference goes back to the balance or is asked for with consent. Customs is one short block — no duty up to $200 a month, per recipient, including purchases outside Atlas — plus the estimated duty when the cart goes over. "Atlas pays customs for me" is offered in every cart for 4.98% of the cart's amount to pay and goes into the bill at once (the duty itself stays outside and is agreed after customs charges it). When a store does not state delivery and the order from it is above $50, the delivery field shows 0. "Оформить заказ" now opens the new order in My orders, where it waits for payment; a payment provider's page will go in between once one is connected.
+
 ## Books, customs at checkout, discounts, ID card OCR — 6 October 2026
 
 The owner asked for a database the accountant can work from, with profit tax. Atlas is treated as a purchasing agent: money for goods, store delivery and customs is transit, Atlas income is its fee, delivery, the 1.2% rate markup and services; operators record real costs in a ledger; a month shows profit and profit tax at a rate the owner sets (15% until the accountant confirms) and exports CSVs for Excel. Customs choices (limit already used, help paying customs at 3% of the goods) moved to the checkout confirmation; store discounts are shown crossed out wherever a store price appears; passport OCR now works in every browser and reads the Uzbek ID card; delivery days are edited in the admin.
@@ -262,7 +266,7 @@ Default pricing lives in lib/market/domain.ts and lib/market/world.ts. The opera
 | UZS per USD | 12,800 |
 | Service fee | 12% of merchandise |
 | International freight | 90,000 UZS / chargeable kg |
-| International reserve | 20% of international freight |
+| International reserve | none since 5 October 2026 (was 20% of international freight) |
 | Dimensional divisor | 5,000 |
 | Shipping mass | boxed kg + 0.3 kg + 0.2 kg |
 

@@ -29,7 +29,10 @@ test('same-store cart items share one parcel allowance and one-kilo minimum',()=
  state=addToCart(state,make('case','case',.3),'Один',2);
  assert.equal(state.cart.reduce((sum,item)=>sum+item.quote.weight,0),1);
  assert.equal(state.cart.reduce((sum,item)=>sum+item.quote.shipping,0),tariff.perKg);
- assert.equal(state.cart.reduce((sum,item)=>sum+item.quote.reserve,0),Math.ceil(tariff.perKg*.2));
+ assert.equal(state.cart.reduce((sum,item)=>sum+item.quote.reserve,0),0,'no reserve on top of delivery since 5 October 2026');
+ // A tariff that still sets a reserve takes it once per parcel too.
+ const reserved={...tariff,reserve:.2};let withReserve=addToCart(blank(),make('tag','tag',.2),'Один',1,reserved);withReserve=addToCart(withReserve,make('case','case',.3),'Один',2,reserved);
+ assert.equal(withReserve.cart.reduce((sum,item)=>sum+item.quote.reserve,0),Math.ceil(tariff.perKg*.2));
  assert.equal(totalOf(state.cart),state.cart.reduce((sum,item)=>sum+item.quote.total,0));
 });
 test('storefront and product text infer Apple shipping country and AirTag category',()=>{const p=extractProduct('<script type="application/ld+json">{"@type":"Product","name":"AirTag 1 pack","category":"Bluetooth trackers","offers":{"price":29,"priceCurrency":"USD"}}</script>','https://www.apple.com/shop/buy-airtag/airtag/1-pack');assert.equal(p.country,'США');assert.equal(p.category,'Электроника')});

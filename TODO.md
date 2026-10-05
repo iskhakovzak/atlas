@@ -1,5 +1,18 @@
 # Atlas TODO and known limitations
 
+## Simpler bill and customs paid through Atlas — 5 October 2026
+
+- [x] No international reserve in the bill (tariff revision 3); weighing refunds the difference or asks for consent.
+- [x] Customs block: no duty up to $200 a month per recipient, including purchases outside Atlas; duty estimate when over.
+- [x] "Atlas pays customs for me": 4.98% of the cart's amount to pay, in the bill at once, counted as service income.
+- [x] Unknown store delivery above $50 shows 0 in the link-order field.
+- [x] "Оформить заказ" opens the new order in My orders.
+- [ ] Owner: confirm the base of the 4.98% fee — the whole amount to pay (goods, Atlas fee and delivery) is used now, not the goods alone.
+- [ ] Decide how Atlas collects the duty itself when it pays customs for the customer (today: agreed after customs charges it, outside the order amount); a change-request kind for it would make the step explicit.
+- [ ] Without the reserve, a parcel heavier than estimated needs the customer's approval of the extra before it ships; watch how often weighing asks for more.
+- [ ] Connect a payment provider and redirect to its page between checkout and My orders; until then payment stays simulated.
+- [ ] The "already over the limit outside Atlas" checkbox is hidden; if the owner wants it back, it is still supported by `cartCustoms.outsideUsed`.
+
 ## Security audit, stage 1 — 5 October 2026
 
 - [x] Removed the `import-legacy` action (a customer could write their own balance, paid orders and staff fields).

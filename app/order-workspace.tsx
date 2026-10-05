@@ -60,6 +60,7 @@ import {
   type Communication,
   type ServiceOffering,
   type WarehouseServiceRequest,
+  customsHelpShare,
 } from "@/lib/market/domain";
 import type { Action } from "@/lib/market/actions";
 import { countries } from "@/lib/market/world";
@@ -70,6 +71,7 @@ import { balanceCopy, countryLabel, formatDateTime, formatShortDate, noticesCopy
 import { allowanceMonth, countsTowardAllowance, monthOf, monthlyUsedFor, orderPerson, orderRecipientName, recipientKey } from "@/lib/market/allowance";
 import { courierAllowanceUsd } from "@/lib/market/customs";
 import { calcCopy } from "@/lib/market/calc-copy";
+import { usdText } from "./calc-summary";
 import {
   PageHeading,
   Empty,
@@ -792,7 +794,7 @@ function CustomerOrderCard({ order: o, locale, pricing, busy, expanded, onToggle
       {!o.cancelled && o.status === 0 && o.product.sourceShippingEstimated && !o.storeShippingSettlement && <div className="order-x-note info">
         <Clock3 size={18} aria-hidden="true" /><div><b>{ow.managerChecking}</b><p>{o.quote.storeShippingHold !== undefined
           // Since 4 October 2026 the hold is apart from the order sum; older orders included it.
-          ? o.quote.storeShippingHold > 0 ? <>{calcCopy[locale].hold}: {formatSum(o.quote.storeShippingHold, locale)} — {calcCopy[locale].holdNote.toLocaleLowerCase(locale === "en" ? "en-US" : "ru-RU")}. {ow.beforeBuyout}</> : calcCopy[locale].lines.free
+          ? o.quote.storeShippingHold > 0 ? <>{calcCopy[locale].hold}: {formatSum(o.quote.storeShippingHold, locale)} — {calcCopy[locale].holdNote.toLocaleLowerCase(locale === "en" ? "en-US" : "ru-RU")}. {ow.beforeBuyout}</> : calcCopy[locale].freeNote(usdText(pricing.storeShippingFreeFromUsd ?? 50, locale))
           : o.quote.sourceShipping ? <>{ow.reserveIncluded} {formatSum(o.quote.sourceShipping, locale)}. {ow.beforeBuyout}</> : ow.reserveWaived}</p></div>
       </div>}
       {o.note && <div className="order-x-note muted"><MessageSquareText size={18} aria-hidden="true" /><div><b>{calcCopy[locale].blocks.comment}</b><p>{o.note}</p></div></div>}
@@ -1898,9 +1900,9 @@ export function PricingManager({
     setDraft((current) => ({ ...current, [key]: Number(raw) }));
   const [fxBusy, setFxBusy] = useState(false);
   const fxWords = {
-    ru: { title: "Курс USD → сум", source: "Источник курса", cbu: "Курс ЦБ Узбекистана × наценка", manual: "Установленный курс (вручную)", markup: "Наценка к курсу ЦБ", none: "Курс ЦБ ещё не получен: действует установленный курс.", last: (rate: string, date: string, at: string) => `ЦБ: ${rate} сум на ${date}; проверено ${at}. Сервер обновляет курс раз в 6 часов.`, refresh: "Обновить курс ЦБ сейчас", failed: "Не удалось получить курс ЦБ.", updated: (fx: string) => `Курс обновлён: ${fx} сум за $1.`, customsTitle: "Таможня (ориентир для клиента)", allowance: "Лимит в месяц на получателя, $", rate: "Ставка, %", perKg: "Минимум за кг, $", helpFee: "Комиссия «Atlas поможет оплатить», %", customsNote: "Пустое поле — правило, проверенное на lex.uz 04.10.2026 (ПКМ №244, ПП-4508, УП-174). Таможня в сумму заказа не входит." },
-    uz: { title: "USD → so‘m kursi", source: "Kurs manbai", cbu: "O‘zbekiston MB kursi × ustama", manual: "Belgilangan kurs (qo‘lda)", markup: "MB kursiga ustama", none: "MB kursi hali olinmagan: belgilangan kurs amal qiladi.", last: (rate: string, date: string, at: string) => `MB: ${date} uchun ${rate} so‘m; ${at} da tekshirildi. Server kursni har 6 soatda yangilaydi.`, refresh: "MB kursini hozir yangilash", failed: "MB kursini olib bo‘lmadi.", updated: (fx: string) => `Kurs yangilandi: $1 uchun ${fx} so‘m.`, customsTitle: "Bojxona (mijoz uchun taxmin)", allowance: "Qabul qiluvchiga oylik limit, $", rate: "Stavka, %", perKg: "Kg uchun minimum, $", helpFee: "«Atlas to‘lashga yordam beradi» komissiyasi, %", customsNote: "Bo‘sh maydon — lex.uz da 04.10.2026 tekshirilgan qoida (VMQ №244, PP-4508, PF-174). Bojxona buyurtma summasiga kirmaydi." },
-    en: { title: "USD → UZS rate", source: "Rate source", cbu: "Central Bank of Uzbekistan rate × markup", manual: "Set rate (manual)", markup: "Markup on the CBU rate", none: "No CBU rate yet: the set rate applies.", last: (rate: string, date: string, at: string) => `CBU: ${rate} UZS for ${date}; checked ${at}. The server refreshes it every 6 hours.`, refresh: "Refresh the CBU rate now", failed: "Could not get the CBU rate.", updated: (fx: string) => `Rate updated: ${fx} UZS per $1.`, customsTitle: "Customs (estimate shown to customers)", allowance: "Monthly allowance per recipient, $", rate: "Rate, %", perKg: "Minimum per kg, $", helpFee: "“Atlas helps pay” fee, %", customsNote: "Empty = the rule checked on lex.uz on 04.10.2026 (CM No. 244, PP-4508, UP-174). Customs is not part of the order sum." },
+    ru: { title: "Курс USD → сум", source: "Источник курса", cbu: "Курс ЦБ Узбекистана × наценка", manual: "Установленный курс (вручную)", markup: "Наценка к курсу ЦБ", none: "Курс ЦБ ещё не получен: действует установленный курс.", last: (rate: string, date: string, at: string) => `ЦБ: ${rate} сум на ${date}; проверено ${at}. Сервер обновляет курс раз в 6 часов.`, refresh: "Обновить курс ЦБ сейчас", failed: "Не удалось получить курс ЦБ.", updated: (fx: string) => `Курс обновлён: ${fx} сум за $1.`, customsTitle: "Таможня (ориентир для клиента)", allowance: "Лимит в месяц на получателя, $", rate: "Ставка, %", perKg: "Минимум за кг, $", helpFee: "«Atlas оплатит таможню», % от суммы корзины", customsNote: "Пустое поле — правило, проверенное на lex.uz 04.10.2026 (ПКМ №244, ПП-4508, УП-174). Пошлина в сумму заказа не входит; комиссия «Atlas оплатит таможню» входит, если клиент её выбрал." },
+    uz: { title: "USD → so‘m kursi", source: "Kurs manbai", cbu: "O‘zbekiston MB kursi × ustama", manual: "Belgilangan kurs (qo‘lda)", markup: "MB kursiga ustama", none: "MB kursi hali olinmagan: belgilangan kurs amal qiladi.", last: (rate: string, date: string, at: string) => `MB: ${date} uchun ${rate} so‘m; ${at} da tekshirildi. Server kursni har 6 soatda yangilaydi.`, refresh: "MB kursini hozir yangilash", failed: "MB kursini olib bo‘lmadi.", updated: (fx: string) => `Kurs yangilandi: $1 uchun ${fx} so‘m.`, customsTitle: "Bojxona (mijoz uchun taxmin)", allowance: "Qabul qiluvchiga oylik limit, $", rate: "Stavka, %", perKg: "Kg uchun minimum, $", helpFee: "«Bojxonani Atlas to‘laydi», savat summasidan %", customsNote: "Bo‘sh maydon — lex.uz da 04.10.2026 tekshirilgan qoida (VMQ №244, PP-4508, PF-174). Boj buyurtma summasiga kirmaydi; mijoz tanlasa, «Bojxonani Atlas to‘laydi» komissiyasi kiradi." },
+    en: { title: "USD → UZS rate", source: "Rate source", cbu: "Central Bank of Uzbekistan rate × markup", manual: "Set rate (manual)", markup: "Markup on the CBU rate", none: "No CBU rate yet: the set rate applies.", last: (rate: string, date: string, at: string) => `CBU: ${rate} UZS for ${date}; checked ${at}. The server refreshes it every 6 hours.`, refresh: "Refresh the CBU rate now", failed: "Could not get the CBU rate.", updated: (fx: string) => `Rate updated: ${fx} UZS per $1.`, customsTitle: "Customs (estimate shown to customers)", allowance: "Monthly allowance per recipient, $", rate: "Rate, %", perKg: "Minimum per kg, $", helpFee: "“Atlas pays customs”, % of the cart", customsNote: "Empty = the rule checked on lex.uz on 04.10.2026 (CM No. 244, PP-4508, UP-174). Duty is not part of the order sum; the “Atlas pays customs” fee is, when the customer chooses it." },
   }[locale];
   // A tariff saved before delivery was priced in USD shows its soum rate converted at the current rate.
   const usdOf = (soum: number) => Math.round((soum / draft.fx) * 100) / 100;
@@ -2029,10 +2031,10 @@ export function PricingManager({
         <fieldset className="pricing-fx">
           <legend>{fxWords.customsTitle}</legend>
           <div className="pricing-grid">
-            {([["customsAllowanceUsd", fxWords.allowance, 1, 1], ["customsRate", fxWords.rate, 0.1, 100], ["customsMinimumPerKg", fxWords.perKg, 0.1, 1], ["customsHelpFee", fxWords.helpFee, 0.1, 100]] as const).map(([key, label, step, scale]) => <div className="field" key={key}>
+            {([["customsAllowanceUsd", fxWords.allowance, 1, 1], ["customsRate", fxWords.rate, 0.1, 100], ["customsMinimumPerKg", fxWords.perKg, 0.1, 1], ["customsHelpFee", fxWords.helpFee, 0.01, 100]] as const).map(([key, label, step, scale]) => <div className="field" key={key}>
               <label htmlFor={`pricing-${key}`}>{label}</label>
-              <input id={`pricing-${key}`} type="number" min="0" step={step} value={draft[key] === undefined ? "" : Math.round(draft[key]! * scale * 1000) / 1000} placeholder={key === "customsAllowanceUsd" ? "200" : key === "customsRate" ? "20" : key === "customsMinimumPerKg" ? "2" : "3"}
-                onChange={(event) => setDraft((current) => ({ ...current, [key]: event.target.value === "" ? (key === "customsHelpFee" ? 0.03 : undefined) : Number(event.target.value) / scale }))} />
+              <input id={`pricing-${key}`} type="number" min="0" step={step} value={draft[key] === undefined ? "" : Math.round(draft[key]! * scale * 1000) / 1000} placeholder={key === "customsAllowanceUsd" ? "200" : key === "customsRate" ? "20" : key === "customsMinimumPerKg" ? "2" : "4.98"}
+                onChange={(event) => setDraft((current) => ({ ...current, [key]: event.target.value === "" ? (key === "customsHelpFee" ? customsHelpShare : undefined) : Number(event.target.value) / scale }))} />
             </div>)}
           </div>
           <p className="micro">{fxWords.customsNote}</p>

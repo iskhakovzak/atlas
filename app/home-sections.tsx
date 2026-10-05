@@ -107,7 +107,8 @@ export function ExampleQuote(){
     <div><dt>{c.example.item}</dt><dd>{formatSum(quote.merchandise,locale)}</dd><dd className="bill-note">{cbu?c.example.itemNoteCbu(usd,groupDigits(pricing.fx),markup):c.example.itemNoteSet(usd,groupDigits(pricing.fx))}</dd></div>
     <div><dt>{c.example.service}</dt><dd>{formatSum(parts.service,locale)}</dd><dd className="bill-note">{c.example.serviceDetail(fee)}</dd></div>
     <div><dt>{c.example.delivery}</dt><dd>{formatSum(parts.international,locale)}</dd><dd className="bill-note">{c.example.deliveryNote(formatKg(exampleBoxedKg,locale),formatKg(packagingKg,locale),formatUsd(deliveryPerKgUsdFor(pricing),locale))}</dd></div>
-    <div><dt><span className="home-dt-with-tip">{c.example.reserve}<InfoTip label={c.example.reserveHelpLabel}>{c.example.reserveHelp}</InfoTip></span></dt><dd>{formatSum(quote.reserve,locale)}</dd><dd className="bill-note">{c.example.reserveNote}</dd></div>
+    {/* A reserve on top of delivery only while the tariff sets one (none since 5 October 2026). */}
+    {quote.reserve>0&&<div><dt><span className="home-dt-with-tip">{c.example.reserve}<InfoTip label={c.example.reserveHelpLabel}>{c.example.reserveHelp}</InfoTip></span></dt><dd>{formatSum(quote.reserve,locale)}</dd><dd className="bill-note">{c.example.reserveNote}</dd></div>}
    </dl>
    <p className="bill-total home-quote-total"><span>{c.example.total}</span><strong><Money value={quote.total} locale={locale}/></strong></p>
   </div>

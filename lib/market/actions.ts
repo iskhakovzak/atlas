@@ -5,6 +5,7 @@ import {
   changeQuantity,
   renewCart,
   repriceCart,
+  customsHelpChosen,
   checkoutCart,
   advanceOrder,
   receiveOrder,
@@ -271,12 +272,12 @@ export function applyAction(
     case "cart-note":
       return setCartNote(s, a.id, a.note);
     case "cart-customs":
-      return setCartCustoms(s, a.value);
+      return setCartCustoms(s, a.value, Date.now(), pricing);
     case "cart-quantity":
       { const next = changeQuantity(s, a.id, a.quantity, Date.now(), pricing); assertCartPolicy(next.cart, policy); return next; }
     case "cart-remove":
       // The rest of that store's parcel is priced again: its shipping share and store-delivery reserve change.
-      return { ...s, cart: repriceCart(s.cart.filter((i) => i.id !== a.id), Date.now(), pricing) };
+      return { ...s, cart: repriceCart(s.cart.filter((i) => i.id !== a.id), Date.now(), pricing, customsHelpChosen(s)) };
     case "cart-services":
       return setCartServices(s, a.id, a.serviceIds, pricing, a.serviceUnits);
     case "cart-renew":

@@ -128,10 +128,8 @@ export function CartView() {
   const [saveRecipient, setSaveRecipient] = useState(true);
   const [savingServiceItemId, setSavingServiceItemId] = useState<string | null>(null);
   const [savingServiceId, setSavingServiceId] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [checkoutKey, setCheckoutKey] = useState("");
-  const [paymentBusy, setPaymentBusy] = useState(false);
-  const [paidFromCart, setPaidFromCart] = useState(false);
+  // The checkout that was just placed: the page moves on to its order as soon as the orders arrive.
+  const [placedKey, setPlacedKey] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [summaryCta, setSummaryCta] = useState<HTMLButtonElement | null>(null);
   const [customsRecipient, setCustomsRecipient] = useState("");
@@ -183,9 +181,10 @@ export function CartView() {
   const balance = balanceOf(state);
   const credit = useBalance ? Math.min(total, Math.max(0, balance)) : 0;
   const payable = total - credit;
-  const checkoutOrders = checkoutKey ? state.orders.filter(order => order.batchId === checkoutKey) : [];
-  const pendingCheckoutOrders = checkoutOrders.filter(order => order.payment?.status === "pending");
-  const pendingCheckoutAmount = pendingCheckoutOrders.reduce((sum, order) => sum + (order.payment?.amount ?? 0), 0);
+  // "Atlas pays customs for me": the same per-line rounding as the server; once chosen, the fee is in the bill.
+  const customsHelpAmount = customsChoices.help
+    ? state.cart.reduce((sum, item) => sum + (item.quote.customsHelp ?? 0), 0)
+    : state.cart.reduce((sum, item) => sum + Math.round(item.quote.total * pricing.customsHelpFee), 0);
   const checkoutServices = pricing.serviceCatalog.filter((service) => service.enabled && service.requestStage === "checkout");
   const identityProfiles = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
   const sums = sumQuotes(state.cart.map(item => item.quote));
@@ -224,28 +223,24 @@ export function CartView() {
     const selectedIdentity = selectedProfile === "manual" ? undefined : identityProfiles.find(profile => profile.recipientProfileId === selectedProfile);
     const savedPostal = savedNeedsPostal ? delivery.postalCode : undefined;
     const key = crypto.randomUUID();
-    setCheckoutKey(key);
-    setPaidFromCart(false);
     const ok = await act({ type: "checkout", key, signature: cartSignature(state.cart), useBalance, expectedCredit: credit, consentVersion: customsVersion, delivery, deliveryProfileId: selectedProfile === "manual" ? undefined : selectedProfile, identityProfileId: selectedIdentity?.documentId, postalCode: savedPostal,
       // A recipient typed here is kept for the next order and the passport, unless the customer opts out.
       saveRecipientLabel: selectedProfile === "manual" && saveRecipient ? (state.deliveryProfiles.length ? delivery.recipient.trim().slice(0, 60) : recipientCopy[locale].labels.home) : undefined });
     setBusy(false);
-    if (ok) { setCheckoutOpen(false); setSuccess(true); }
+    if (ok) { setCheckoutOpen(false); setPlacedKey(key); }
     else if (cartChangedCodes.has(lastActionError()?.code ?? "")) setCheckoutOpen(false);
   }
 
-  async function payFromCart() {
-    if (paymentBusy) return;
-    const pendingIds = pendingCheckoutOrders.map(order => order.id);
-    if (!pendingIds.length) { setPaidFromCart(true); return; }
-    setPaymentBusy(true);
-    let completed = true;
-    for (const id of pendingIds) {
-      if (!await act({ type: "payment-demo", id })) { completed = false; break; }
-    }
-    setPaymentBusy(false);
-    if (completed) setPaidFromCart(true);
-  }
+  // After checkout the customer goes straight to the new order in My orders, where it waits for payment. When a
+  // payment provider is connected, its payment page goes in between; until then nothing is charged.
+  useEffect(() => {
+    if (!placedKey) return;
+    const placed = state.orders.find(order => order.batchId === placedKey);
+    if (placed) { window.location.assign("/orders#" + encodeURIComponent(placed.id)); return; }
+    // The orders normally arrive with the checkout answer; if not, My orders loads them itself.
+    const fallback = window.setTimeout(() => window.location.assign("/orders"), 3000);
+    return () => window.clearTimeout(fallback);
+  }, [placedKey, state.orders]);
 
   function renderItem(item: CartItem) {
     const selectedServices = item.requestedServiceIds ?? [];
@@ -320,18 +315,9 @@ export function CartView() {
     {credit > 0 && <div className="basket-lines basket-lines-credit"><div className="basket-line"><span className="basket-line-label">{c.summary.fromBalance}</span><b>−{formatSum(credit, locale)}</b></div></div>}
   </CalcLines>;
   const saveCustoms = async (next: typeof customsChoices) => { setCustomsBusy(true); try { await act({ type: "cart-customs", value: next }); } finally { setCustomsBusy(false); } };
-  // The cart shows the estimate only; the two customs choices are made at checkout, for the chosen recipient.
-  const customsPanel = <CustomsPanel estimate={customs} choices={customsChoices} locale={locale} pricing={pricing} profiles={state.deliveryProfiles} recipientId={customsProfile?.id} onRecipient={setCustomsRecipient} compact />;
+  // The allowance in two lines and "Atlas pays customs for me", which adds its fee to the bill right away.
+  const customsPanel = <CustomsPanel estimate={customs} choices={customsChoices} locale={locale} pricing={pricing} profiles={state.deliveryProfiles} recipientId={customsProfile?.id} onRecipient={setCustomsRecipient} onChoices={(next) => void saveCustoms(next)} helpAmount={customsHelpAmount} busy={customsBusy} compact />;
 
-  // Rendered after checkout empties the cart, so it lives outside the cart layout.
-  const successDialog = <Modal open={success} onClose={() => setSuccess(false)} locale={locale} title={paidFromCart ? c.success.statusTitle : c.success.title} description={paidFromCart ? c.success.saved : pendingCheckoutOrders.length ? c.success.pending : checkoutOrders.length ? c.success.saved : c.success.hint}>
-    <div className="success-icon"><Check size={35} aria-hidden="true" /></div>
-    {!paidFromCart && pendingCheckoutOrders.length > 0 && <div className="basket-total"><span>{c.summary.payable}</span><strong>{formatSum(pendingCheckoutAmount, locale)}</strong></div>}
-    {!paidFromCart && pendingCheckoutOrders.length > 0
-      ? <button className="btn primary full" disabled={paymentBusy} onClick={() => void payFromCart()}>{paymentBusy ? c.success.updating : c.success.confirm} {paymentBusy ? <Loader2 size={18} className="spin" aria-hidden="true" /> : <ArrowRight size={18} aria-hidden="true" />}</button>
-      : <button className="btn secondary full" onClick={() => { setSuccess(false); window.location.assign("/orders"); }}>{c.success.orders} <ArrowRight size={18} aria-hidden="true" /></button>}
-    <p className="micro center">{c.success.noCharge}</p>
-  </Modal>;
 
   if (!ready) return <div className="basket-page">
     <header className="basket-head"><h1>{c.title}</h1></header>
@@ -340,12 +326,16 @@ export function CartView() {
       : <div className="basket-loading" role="status">{c.loading}</div>}
   </div>;
 
+  if (placedKey) return <div className="basket-page">
+    <header className="basket-head"><h1>{c.success.title}</h1></header>
+    <div className="basket-loading" role="status"><Loader2 size={18} className="spin" aria-hidden="true" /> <Link href="/orders">{c.success.orders}</Link></div>
+  </div>;
+
   if (!state.cart.length) return <div className="basket-page">
     <header className="basket-head"><h1>{c.title}</h1></header>
     <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><ShoppingBag size={28} /></span><h2>{c.empty.title}</h2><p>{c.empty.text}</p>
       <div className="basket-empty-actions"><Link className="btn primary" href="/order-by-link"><ClipboardPaste size={18} aria-hidden="true" />{c.empty.paste}</Link><Link className="btn secondary" href="/stores">{c.empty.stores}</Link></div>
     </section>
-    {successDialog}
   </div>;
 
   return <div className="basket-page has-sticky">
@@ -371,16 +361,16 @@ export function CartView() {
         <div className="folio-sheet">
           <h2 id="basket-summary-title">{c.summary.title}</h2>
           {summaryLines}
+          {customsPanel}
           {balance > 0 && <div className="basket-balance"><Checkbox id="use-balance" checked={useBalance} onCheckedChange={(value) => setUseBalance(value === true)} /><label htmlFor="use-balance">{c.summary.balance}<small>{c.summary.available}: {formatSum(balance, locale)}</small></label></div>}
           <div className="basket-total bill-total"><span>{c.summary.payable}</span><strong><Money value={payable} locale={locale} /></strong></div>
           <PriceHold expiresAt={earliestExpiry} locale={locale} c={c} />
           <button ref={setSummaryCta} type="button" className="btn primary basket-cta" disabled={verifying} aria-busy={verifying} onClick={() => void openCheckout()}>{verifying ? <>{c.summary.verifying}<Loader2 size={18} className="spin" aria-hidden="true" /></> : c.summary.checkout}</button>
         </div>
-        <section className="folio-outside" aria-labelledby="basket-outside-title">
+        {sums.storeShippingHold > 0 && <section className="folio-outside" aria-labelledby="basket-outside-title">
           <h3 id="basket-outside-title">{c.summary.outside}</h3>
           <HoldNote amount={sums.storeShippingHold} locale={locale} pricing={pricing} />
-          {customsPanel}
-        </section>
+        </section>}
       </aside>
     </div>
 
@@ -452,7 +442,7 @@ export function CartView() {
           {summaryLines}
           <HoldNote amount={sums.storeShippingHold} locale={locale} pricing={pricing} />
           {/* The estimate for the person chosen in this checkout; the server works it out again and keeps it with the orders. */}
-          <CustomsPanel estimate={cartCustomsEstimate(state, pricing, { profile: state.deliveryProfiles.find(profile => profile.id === selectedProfile), name: delivery.recipient }, customsChoices)} choices={customsChoices} locale={locale} pricing={pricing} profiles={[]} onChoices={(next) => void saveCustoms(next)} busy={customsBusy} />
+          <CustomsPanel estimate={cartCustomsEstimate(state, pricing, { profile: state.deliveryProfiles.find(profile => profile.id === selectedProfile), name: delivery.recipient }, customsChoices)} choices={customsChoices} locale={locale} pricing={pricing} profiles={[]} onChoices={(next) => void saveCustoms(next)} helpAmount={customsHelpAmount} busy={customsBusy} />
           <div className={"basket-consent" + (consentError ? " invalid" : "")}>
             <Checkbox id="checkout-consent" checked={consent} aria-invalid={consentError} aria-describedby={consentError ? "checkout-consent-error" : undefined} onCheckedChange={(value) => { setConsent(value === true); if (value === true) setConsentError(false); }} />
             <label htmlFor="checkout-consent">{c.checkout.consent.before}<Link href="/customs" target="_blank">{c.checkout.consent.link}</Link>{c.checkout.consent.after}</label>
@@ -465,7 +455,6 @@ export function CartView() {
       </form>
     </Modal>
 
-    {successDialog}
   </div>;
 
 }

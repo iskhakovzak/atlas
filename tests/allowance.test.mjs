@@ -51,7 +51,7 @@ test('two people with the same name are told apart by their passports', () => {
 });
 
 test('customs is charged on the part above the allowance left; outside use and the help fee are separate', () => {
-  const cart = [{ id: 'c', product: { usd: 1100 }, quantity: 1 }];
+  const cart = [{ id: 'c', product: { usd: 1100 }, quantity: 1, quote: { total: 20_000_000 } }];
   const state = { ...blank(), cart, deliveryProfiles: [profile('a', 'Zarina Karimova')] };
   const who = { profile: state.deliveryProfiles[0] };
   const base = cartCustomsEstimate(state, tariff, who, undefined, now);
@@ -60,8 +60,10 @@ test('customs is charged on the part above the allowance left; outside use and t
   assert.equal(outside.dutiableUsd, 1050);
   const unknown = cartCustomsEstimate(state, tariff, who, { outsideUsed: true, help: false }, now);
   assert.deepEqual([unknown.outsideUnknown, unknown.dutiableUsd], [true, 1100], 'used elsewhere without an amount: the allowance counts as used up');
-  const help = cartCustomsEstimate(state, tariff, who, { outsideUsed: false, help: true }, now);
-  assert.deepEqual([help.helpRequested, help.helpFeeUsd], [true, 33], 'Atlas help: 3% of the $1 100 goods value');
-  const small = cartCustomsEstimate({ ...state, cart: [{ id: 'c', product: { usd: 120 }, quantity: 1 }] }, tariff, who, { outsideUsed: false, help: true }, now);
-  assert.deepEqual([small.dutiableUsd, small.estimateUsd, small.helpRequested], [0, 0, undefined], 'nothing dutiable, nothing to help with');
+  // Since 5 October 2026 the fee is a line of the bill (4.98% of the cart, repriceCart); the record keeps its USD value.
+  const helped = { ...state, cart: [{ ...cart[0], quote: { total: 20_996_000, customsHelp: 996_000 } }] };
+  const help = cartCustomsEstimate(helped, tariff, who, { outsideUsed: false, help: true }, now);
+  assert.deepEqual([help.helpRequested, help.helpFeeUsd], [true, Math.round(996_000 / tariff.fx * 100) / 100], 'the chosen fee in USD');
+  const small = cartCustomsEstimate({ ...state, cart: [{ id: 'c', product: { usd: 120 }, quantity: 1, quote: { total: 2_000_000, customsHelp: 99_600 } }] }, tariff, who, { outsideUsed: false, help: true }, now);
+  assert.deepEqual([small.dutiableUsd, small.estimateUsd, small.helpRequested], [0, 0, true], 'offered in every cart: the limit includes purchases outside Atlas');
 });

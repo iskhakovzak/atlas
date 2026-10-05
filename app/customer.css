@@ -805,11 +805,15 @@ html[data-theme="dark"] .orders-passport { border-color: var(--night-warn-line);
 
 /* Customs panel, compact (5 October 2026): one status line, one sentence, choices at checkout, a link to the rules. */
 .calc-customs-sum { margin: 0; color: var(--home-muted); font-size: 13.5px; line-height: 1.45; }
+/* The cart goes over the allowance: the duty estimate, still outside the amount to pay. */
+.calc-customs-over { margin: 0; color: var(--home-ink); font-size: 13.5px; font-weight: 600; line-height: 1.45; }
+/* Inside the bill sheet the block sits between the lines and the total. */
+.folio-sheet .calc-customs { margin: 12px 0; }
 .calc-customs .calc-check small { display: block; margin-top: 2px; color: var(--home-muted); font-size: 12.5px; font-weight: 500; }
 .calc-customs-link { justify-self: start; color: var(--home-accent); font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 html[data-theme="dark"] .calc-customs header b.ok { color: var(--night-jade); }
 .calc-customs .calc-check > span { display: block; }
-.calc-customs .calc-check > span svg { vertical-align: -2px; color: var(--home-accent); }
+.calc-customs .calc-check > span svg { display: inline-block; vertical-align: -2px; color: var(--home-accent); }
 
 /* Screen-reader-only stays 1px even when a field rule (".field input { width: 100% }") also matches it:
    a stretched hidden radio once made the order page 49px wider than the phone screen. */

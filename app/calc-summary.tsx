@@ -1,5 +1,5 @@
 'use client';
-import {useId,useState} from 'react';
+import {useId} from 'react';
 import {HandCoins,Scale,Wallet} from 'lucide-react';
 import {formatKg,formatPercent,formatSum,formatUsd} from '@/lib/market/home-copy';
 import {calcCopy} from '@/lib/market/calc-copy';
@@ -9,11 +9,11 @@ import {packagingKg} from '@/lib/market/world';
 import type {Locale} from '@/lib/market/i18n';
 import {SummaryLine} from './price-summary';
 
-type Sums=Pick<Quote,'merchandise'|'service'|'shipping'|'reserve'|'total'>&{buyout?:number;conversion?:number;sourceShipping?:number;deliveryMargin?:number;optionalServices?:number;storeShippingHold?:number};
+type Sums=Pick<Quote,'merchandise'|'service'|'shipping'|'reserve'|'total'>&{buyout?:number;conversion?:number;sourceShipping?:number;deliveryMargin?:number;optionalServices?:number;storeShippingHold?:number;customsHelp?:number};
 
 /** Sum of quote lines, for a cart or the link-order preview. */
 export function sumQuotes(quotes:Partial<Sums>[]):Required<Sums>{
- const keys=['merchandise','service','shipping','reserve','total','buyout','conversion','sourceShipping','deliveryMargin','optionalServices','storeShippingHold'] as const;
+ const keys=['merchandise','service','shipping','reserve','total','buyout','conversion','sourceShipping','deliveryMargin','optionalServices','storeShippingHold','customsHelp'] as const;
  return Object.fromEntries(keys.map(key=>[key,quotes.reduce((sum,quote)=>sum+(quote[key]??0),0)])) as Required<Sums>;
 }
 
@@ -44,6 +44,7 @@ export function CalcLines({sums,locale,pricing,weightKg,storeShippingState,anyFr
    <SummaryLine label={c.lines.international(kg)} amount={sums.shipping+sums.deliveryMargin} locale={locale} help={c.weightRule} helpLabel={c.blocks.weight}/>
    {sums.reserve>0&&<SummaryLine label={c.lines.intlReserve} amount={sums.reserve} locale={locale} help={c.intlReserveHelp} helpLabel={c.lines.intlReserve}/>}
    {sums.optionalServices>0&&<SummaryLine label={c.lines.optional} amount={sums.optionalServices} locale={locale}/>}
+   {sums.customsHelp>0&&<SummaryLine label={c.lines.customsHelp(percent(pricing.customsHelpFee,locale))} amount={sums.customsHelp} locale={locale} help={c.customsHelpHelp} helpLabel={c.lines.customsHelp('')}/>}
   </div>
   {children}
  </>;
@@ -72,7 +73,8 @@ export function BlankBill({pricing,locale}:{pricing:Pricing;locale:Locale}){
   [b.item,cbu?b.itemCbu(formatPercent((pricing.fxMarkup??1.012)-1,locale)):b.itemSet],
   [b.fee,b.feeRule(formatPercent(pricing.margin+pricing.buyoutFee+pricing.conversionFee,locale))],
   [b.delivery,b.deliveryRule(formatUsd(deliveryPerKgUsdFor(pricing),locale),formatKg(packagingKg,locale))],
-  [b.reserve,b.reserveRule],
+  // A reserve on top of delivery only when the tariff still sets one (none since 5 October 2026).
+  ...(pricing.reserve>0?[[b.reserve,b.reserveRule] as [string,string]]:[]),
  ];
  return <section className="bill-blank" aria-labelledby="bill-blank-title">
   <h2 id="bill-blank-title">{b.title}</h2>
@@ -87,27 +89,22 @@ export function BlankBill({pricing,locale}:{pricing:Pricing;locale:Locale}){
 }
 
 /**
- * The customs estimate for one recipient, with the customer's choices: allowance used outside Atlas and the
- * "Atlas helps pay customs" request. Only shown amounts; the server works the figures out again at checkout.
+ * Customs in one short block: the monthly allowance per recipient, the estimated duty when this cart goes over it,
+ * and — where the customer can choose — "Atlas pays customs for me", a line in the bill at `customsHelpFee` of the
+ * cart. `helpAmount` is that fee in soum (already in the bill when chosen). The server works the figures out again.
  */
-export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipientId,onRecipient,onChoices,compact=false,busy=false}:{estimate:CustomsEstimate;choices:CartCustoms;locale:Locale;pricing:Pricing;profiles:SavedDeliveryProfile[];recipientId?:string;onRecipient?:(id:string)=>void;onChoices?:(next:CartCustoms)=>void;compact?:boolean;busy?:boolean}){
+export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipientId,onRecipient,onChoices,helpAmount,compact=false,busy=false}:{estimate:CustomsEstimate;choices:CartCustoms;locale:Locale;pricing:Pricing;profiles:SavedDeliveryProfile[];recipientId?:string;onRecipient?:(id:string)=>void;onChoices?:(next:CartCustoms)=>void;helpAmount?:number;compact?:boolean;busy?:boolean}){
  const c=calcCopy[locale].customs;
  const id=useId();
- const [outsideText,setOutsideText]=useState(choices.outsideUsd===undefined?'':String(choices.outsideUsd));
- const remaining=Math.max(0,estimate.allowanceUsd-estimate.atlasUsedUsd-(estimate.outsideUsedUsd??0));
  const usd=(value:number)=>usdText(value,locale);
- const save=(patch:Partial<CartCustoms>)=>onChoices?.({...choices,...patch});
  const over=estimate.dutiableUsd>0;
- const fee=Math.round(estimate.valueUsd*(pricing.customsHelpFee??0.03)*100)/100;
  return <section className={'calc-customs'+(compact?' compact':'')} aria-labelledby={id+'-title'}>
-  <header><Scale size={17} aria-hidden="true"/><h3 id={id+'-title'}>{c.title}</h3><b className={over?undefined:'ok'}>{over?`≈ ${formatSum(Math.round(estimate.estimateUsd*pricing.fx),locale)}`:c.notNeeded}</b></header>
-  <p className="calc-customs-sum">{over?c.summaryOver(usd(estimate.dutiableUsd),`${Math.round(estimate.rate*100)}%`,usd(estimate.minimumPerKg)):estimate.outsideUnknown?c.outsideUnknown:c.summaryNone(usd(estimate.allowanceUsd),usd(remaining))}</p>
+  <header><Scale size={17} aria-hidden="true"/><h3 id={id+'-title'}>{c.allowanceTitle(usd(estimate.allowanceUsd))}</h3></header>
+  <p className="calc-customs-sum">{c.allowanceNote}</p>
+  {over&&<p className="calc-customs-over">{c.overNote(usd(estimate.dutiableUsd),formatSum(Math.round(estimate.estimateUsd*pricing.fx),locale))}</p>}
   {profiles.length>1&&onRecipient&&<div className="field calc-customs-recipient"><label htmlFor={id+'-recipient'}>{c.recipient}</label><select id={id+'-recipient'} value={recipientId} onChange={event=>onRecipient(event.target.value)}>{profiles.map(profile=><option key={profile.id} value={profile.id}>{profile.recipient}</option>)}</select></div>}
-  {onChoices&&<div className="calc-customs-choices">
-   <label className="calc-check"><input type="checkbox" disabled={busy} checked={choices.outsideUsed} onChange={event=>save({outsideUsed:event.target.checked,outsideUsd:event.target.checked&&outsideText.trim()?Number(outsideText):undefined})}/><span>{c.outside}</span></label>
-   {choices.outsideUsed&&<div className="field calc-outside"><label htmlFor={id+'-outside'}>{c.outsideAmount}</label><input id={id+'-outside'} type="number" inputMode="decimal" min="0" max="100000" step="0.01" value={outsideText} onChange={event=>setOutsideText(event.target.value)} onBlur={()=>{const value=outsideText.trim()===''?undefined:Number(outsideText);if(value===undefined||(Number.isFinite(value)&&value>=0&&value<=100000))save({outsideUsd:value})}}/></div>}
-   {over&&<label className="calc-check"><input type="checkbox" disabled={busy} checked={choices.help} onChange={event=>save({help:event.target.checked})}/><span><HandCoins size={15} aria-hidden="true"/> {c.help}<small>{c.helpFee(`${Math.round((pricing.customsHelpFee??0.03)*100)}%`,usd(fee))}</small></span></label>}
-   {estimate.helpRequested&&<p className="calc-help-fee">{c.helpNote}</p>}
+  {onChoices&&helpAmount!==undefined&&<div className="calc-customs-choices">
+   <label className="calc-check"><input type="checkbox" disabled={busy} checked={choices.help} onChange={event=>onChoices({...choices,help:event.target.checked})}/><span><HandCoins size={15} aria-hidden="true"/> {c.helpOption}<small>{choices.help?c.helpChosen(formatSum(helpAmount,locale)):c.helpOptionNote(percent(pricing.customsHelpFee,locale),formatSum(helpAmount,locale))}</small></span></label>
   </div>}
   <a className="calc-customs-link" href="/customs">{c.howLink}</a>
  </section>;
