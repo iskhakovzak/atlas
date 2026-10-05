@@ -12,6 +12,8 @@ export type ProductVariant = {
   /** False means the merchant omitted a definitive stock signal. */
   availabilityKnown?: boolean;
   price?: number;
+  /** The store's own "before the discount" price for this option (Shopify compare_at_price), only when above `price`. */
+  compareAtPrice?: number;
   image?: string;
   /** Units left as the store itself reports them (eBay Browse API); never inferred from other signals. */
   quantity?: number;
@@ -38,6 +40,8 @@ export type Extracted = {
   /** Color belonging to the exact article selected by the source URL. */
   selectedVariantColor?: string;
   price?: number;
+  /** The store's "before the discount" price for `price`, in `currency`; display only. */
+  referencePrice?: number;
   currency?: string;
   variants?: ProductVariant[];
   shipping?: number;

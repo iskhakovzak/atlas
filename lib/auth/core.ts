@@ -5,7 +5,9 @@ export type AuthUser={userId:string;email:string;displayName:string;contact:stri
 
 export const SESSION_COOKIE='__Host-atlas_session';
 export const OAUTH_STATE_COOKIE='__Host-atlas_oauth';
-export const SESSION_TTL_MS=30*24*60*60*1000;
+// A session lasts 60 days from the last visit: each use (at most once a day) moves the end forward.
+export const SESSION_TTL_MS=60*24*60*60*1000;
+export const SESSION_RENEW_MS=24*60*60*1000;
 export const CODE_TTL_MS=10*60*1000;
 export const OAUTH_TTL_MS=10*60*1000;
 export const MAX_CODE_ATTEMPTS=5;
@@ -66,6 +68,18 @@ export function identityFor(method:AuthMethod,subject:string,profile:{name?:stri
  }
  if(method==='phone')return {userId:'phone:'+subject,email:'',displayName:name||subject,contact:subject,method};
  return {userId:'tg:'+subject,email:'',displayName:name||'Telegram '+subject,contact:name?`${name} · Telegram`:'Telegram',method};
+}
+
+const accountKeys=['orders','entries','cart','favorites','deliveryProfiles','identityProfiles','declarations','supportTickets'];
+/** Nothing in it yet: no orders, balance, cart, favorites, recipients, passports, declarations or support requests. */
+export function emptyAccountState(serialized:string){
+ try{const state=JSON.parse(serialized) as Record<string,unknown>;return accountKeys.every(key=>!Array.isArray(state[key])||!(state[key] as unknown[]).length)}catch{return false}
+}
+/** The method an account was created with, read from its user ID ("email:…", "phone:…", "tg:…"). */
+export function ownMethod(userId:string):{method:AuthMethod;contact:string}{
+ if(userId.startsWith('email:'))return {method:'email',contact:userId.slice(6)};
+ if(userId.startsWith('phone:'))return {method:'phone',contact:userId.slice(6)};
+ return {method:'telegram',contact:'Telegram'};
 }
 
 export type TelegramFields=Record<string,string|number|undefined|null>;

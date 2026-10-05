@@ -5,6 +5,8 @@ import { pageLocaleHeader, supportedLocale } from "@/lib/market/i18n";
 // so crawlers that do not run scripts see the same text as the title. The browser then saves the
 // choice (lib/market/store.tsx). A client-sent header is always replaced, never trusted.
 export function middleware(request: NextRequest) {
+  // The session cookie belongs to one host: www is sent to the main address so a customer is not signed out by it.
+  if (request.nextUrl.hostname === "www.atlasmarket.uz") return NextResponse.redirect(new URL(request.nextUrl.pathname + request.nextUrl.search, "https://atlasmarket.uz"), 308);
   const requested = supportedLocale(request.nextUrl.searchParams.get("lang"));
   if (!requested && !request.headers.has(pageLocaleHeader)) return NextResponse.next();
   const headers = new Headers(request.headers);

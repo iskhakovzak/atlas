@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { pageLocale } from "./page-locale";
 import { rootMetadata } from "./route-metadata";
+import "@fontsource-variable/inter/opsz.css";
 import "@fontsource-variable/manrope/wght.css";
 import "./globals.css";
 import "./atlas-design.css";
@@ -23,6 +24,7 @@ import "./catalog.css";
 import "./stores.css";
 import "./mobile.css";
 import "./refine.css";
+import "./day-folio.css";
 import { MarketProvider } from "@/lib/market/store";
 import { StorageNotice } from "./storage-notice";
 import { AtlasThemeProvider } from "./theme-control";

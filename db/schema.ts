@@ -51,6 +51,24 @@ export const authChallenges=sqliteTable('market_auth_challenges',{
  id:text('id').primaryKey(),kind:text('kind').notNull(),target:text('target').notNull(),secret:text('secret').notNull(),attempts:integer('attempts').notNull().default(0),returnTo:text('return_to'),createdAt:integer('created_at').notNull(),expiresAt:integer('expires_at').notNull(),
 },table=>[index('idx_market_auth_challenges_expires').on(table.expiresAt)]);
 
+// Extra sign-in methods attached to an account: signing in as `subject` ("tg:123", "phone:+998…", "email:…")
+// opens the account `user_id`. An account's own first method has no row here.
+export const authLinks=sqliteTable('market_auth_links',{
+ subject:text('subject').primaryKey(),userId:text('user_id').notNull(),method:text('method').notNull(),contact:text('contact').notNull(),createdAt:integer('created_at').notNull(),
+},table=>[index('idx_market_auth_links_user').on(table.userId)]);
+
+// Accounting (lib/market/finance.ts). One money movement per row, in soum; rows are voided, never deleted.
+export const ledgerEntries=sqliteTable('market_ledger_entries',{
+ id:text('id').primaryKey(),kind:text('kind').notNull(),amountUzs:integer('amount_uzs').notNull(),originalAmount:real('original_amount'),originalCurrency:text('original_currency'),occurredOn:text('occurred_on').notNull(),orderId:text('order_id'),counterparty:text('counterparty'),note:text('note'),createdBy:text('created_by').notNull(),createdAt:integer('created_at').notNull(),voidedAt:integer('voided_at'),voidedBy:text('voided_by'),voidReason:text('void_reason'),
+},table=>[index('idx_market_ledger_entries_occurred').on(table.occurredOn),index('idx_market_ledger_entries_order').on(table.orderId),index('idx_market_ledger_entries_kind').on(table.kind)]);
+
+// Each order in the books, rebuilt from the account state with the rest of the operational projection.
+export const orderFinance=sqliteTable('market_order_finance',{
+ orderId:text('order_id').primaryKey(),customerId:text('customer_id').notNull(),status:text('status').notNull(),createdAt:integer('created_at').notNull(),paidAt:integer('paid_at'),month:text('month'),
+ goods:integer('goods').notNull(),storeShipping:integer('store_shipping').notNull(),reserve:integer('reserve').notNull(),payable:integer('payable').notNull(),
+ commission:integer('commission').notNull(),delivery:integer('delivery').notNull(),fxGain:integer('fx_gain').notNull(),services:integer('services').notNull(),revenue:integer('revenue').notNull(),updatedAt:integer('updated_at').notNull(),
+},table=>[index('idx_market_order_finance_month').on(table.month),index('idx_market_order_finance_customer').on(table.customerId)]);
+
 export const backupExports=sqliteTable('market_backup_exports',{
  id:text('id').primaryKey(),requestedBy:text('requested_by').notNull(),recordCount:integer('record_count').notNull(),checksum:text('checksum').notNull(),createdAt:integer('created_at').notNull(),
 },table=>[index('idx_market_backup_exports_created').on(table.createdAt)]);

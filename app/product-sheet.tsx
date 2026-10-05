@@ -3,12 +3,12 @@ import {useState} from 'react';
 import {ArrowUpRight,ArrowRight,ShieldCheck,ShoppingBag,X} from 'lucide-react';
 import {Sheet,SheetContent,SheetTitle,SheetDescription,SheetClose} from '@/components/ui/sheet';
 import {Tabs,TabsList,TabsTrigger,TabsContent} from '@/components/ui/tabs';
-import {price,money,storeShippingHoldUsd,storeShippingUsd,type Product} from '@/lib/market/domain';
+import {price,money,storeDiscount,storeShippingHoldUsd,storeShippingUsd,type Product} from '@/lib/market/domain';
 import {useMarket} from '@/lib/market/store';
 import {findOrderUrl} from '@/lib/market/catalog';
 import {countryName} from '@/lib/market/world';
 import type {Locale} from '@/lib/market/i18n';
-import {Choice,CostLines} from './market-ui';
+import {Choice,CostLines,WasPrice} from './market-ui';
 import {ProductGallery} from './product-gallery';
 import {marketplaceWords} from './marketplace-words';
 const navigate=(href:string)=>window.location.assign(href);
@@ -33,6 +33,14 @@ function ProductDetails({product:selected,onClose}:{product:Product;onClose:()=>
   return <><SheetClose asChild><button className="icon-btn sheet-close" aria-label={modalWords.close}><X size={20}/></button></SheetClose>
    <div className={'detail-image detail-'+selected.id}><ProductGallery product={selected} locale={locale}/><span className="floating-label">{selected.sourceUrl?countryLabel:modalWords.item}</span></div>
    <div className="sheet-body"><div className="eyebrow">{selected.brand.includes(country)?selected.brand:selected.brand+' · '+countryLabel}</div><SheetTitle className="product-title">{selected.name}</SheetTitle>
+    {(()=>{
+     // Store price with its discount: the catalog's "before" price for a current card, or the one kept on the product.
+     if(selected.priceNeedsConfirmation)return null;
+     const now=selected.sourcePrice??selected.usd,currency=selected.sourceCurrency??'USD';
+     const off=storeDiscount({usd:selected.usd,sourcePrice:now,sourceReferencePrice:currency==='USD'?curated?.referenceUsd??selected.sourceReferencePrice:selected.sourceReferencePrice});
+     const format=(value:number)=>{try{return new Intl.NumberFormat(locale==='en'?'en-US':'ru-RU',{style:'currency',currency,maximumFractionDigits:2}).format(value)}catch{return `${value} ${currency}`}};
+     return <p className="sheet-store-price">{modalWords.storePrice}: <b>{format(now)}</b>{off&&<WasPrice was={off.was} percent={off.percent} format={format}/>}</p>;
+    })()}
     <SheetDescription>{curated?`${modalWords.offerFrom} ${curated.store}. ${modalWords.priceOn} ${curated.observedOn}. ${modalWords.checkOption}`:modalWords.review}</SheetDescription>
     <Tabs defaultValue="about" className="detail-tabs"><TabsList variant="line"><TabsTrigger value="about">{modalWords.about}</TabsTrigger><TabsTrigger value="price">{modalWords.price}</TabsTrigger></TabsList>
      <TabsContent value="about"><p>{selected.description??modalWords.manual}</p>{selected.sourceUrl&&<a className="text-link" href={selected.sourceUrl} target="_blank" rel="noopener noreferrer">{modalWords.source}<ArrowUpRight size={16}/></a>}<div className="product-facts"><span>{modalWords.storePrice} <b>{selected.sourcePrice??selected.usd} {selected.sourceCurrency??'USD'}</b></span></div></TabsContent>

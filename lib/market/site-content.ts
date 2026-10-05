@@ -35,6 +35,11 @@ export type SiteContent = {
   prohibitedListUrl: string | null;
 };
 
+/** Delivery days for a region: the admin's setting (pricing.deliveryDays), else the value below. */
+export function deliveryDaysFor(pricing: { deliveryDays?: Partial<Record<DeliveryRegion, readonly [number, number]>> }, region: DeliveryRegion): readonly [number, number] | null {
+  return pricing.deliveryDays?.[region] ?? siteContent.deliveryDays[region];
+}
+
 export const siteContent: SiteContent = {
   contacts: { telegramSupport: null, telegramChannel: null, phone: null, instagram: null, pickupAddress: null },
   legal: { entityName: null, inn: null, address: null },

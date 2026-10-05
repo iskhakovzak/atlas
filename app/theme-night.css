@@ -3,10 +3,13 @@
    Every dark colour elsewhere resolves to the --night-* tokens defined here. */
 
 /* ---------- Typography (both themes) ---------- */
+/* Inter: even, compact figures for long soum amounts; its optical size axis tightens large totals.
+   The wordmark keeps Manrope, the face the logo was drawn in. */
 :root {
-  --font-sans: "Manrope Variable", "Manrope", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  --font-sans: "Inter Variable", "Inter", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
 }
 html body { font-family: var(--font-sans); font-optical-sizing: auto; text-rendering: optimizeLegibility; }
+html .wordmark { font-family: "Manrope Variable", "Manrope", var(--font-sans); }
 html :is(button, input, select, textarea) { font-family: inherit; }
 html :is(h1, h2, h3) { letter-spacing: -0.022em; }
 html h1 { font-weight: 800; }
@@ -459,3 +462,64 @@ html[data-theme="dark"] .login-form .field small { color: var(--night-muted); }
   html .site-header .wordmark { font-size: 32px; }
   html .site-header .header-actions { gap: 6px; }
 }
+/* ---------- Folio markup (home, cart, link order) in Atlas Night ----------
+   The light theme's look lives in day-folio.css; these rules give the same markup a Night finish. */
+@media (min-width: 1100px) {
+  html[data-theme="dark"] .home-top { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(400px, .92fr); column-gap: 56px; align-items: center; padding-bottom: 40px; }
+  html[data-theme="dark"] .home-top .home-hero { max-width: none; }
+}
+html[data-theme="dark"] .home-top { display: grid; gap: 32px; }
+html[data-theme="dark"] .home-folio { display: grid; gap: 10px; padding: 16px 12px 12px; border: 1px solid var(--night-line-strong); border-radius: 22px; background: var(--night-inset); box-shadow: var(--night-shadow-pop); }
+html[data-theme="dark"] .folio-cap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; margin: 0; padding: 0 10px 2px; color: var(--night-muted); font-size: 14px; }
+html[data-theme="dark"] .folio-cap b { color: var(--night-champagne); font-weight: 600; }
+html[data-theme="dark"] .folio-foot { margin: 0; padding: 0 10px 2px; color: var(--night-muted); font-size: 13px; line-height: 1.45; }
+html[data-theme="dark"] .home-folio .folio-sheet { display: grid; gap: 14px; padding: 22px 24px 18px; border: 1px solid var(--night-line); border-radius: 12px; background: var(--night-sheen), var(--night-raised); box-shadow: none; }
+html[data-theme="dark"] .bill-route { display: grid; grid-template-columns: auto minmax(24px, 1fr) auto; align-items: center; gap: 10px; margin: 0; color: var(--night-ink); font-size: 13.5px; font-weight: 600; }
+html[data-theme="dark"] .bill-route-line { position: relative; height: 0; border-top: 1px dashed var(--night-line-strong); }
+html[data-theme="dark"] .bill-route-line::before, html[data-theme="dark"] .bill-route-line::after { content: ""; position: absolute; top: -4px; width: 7px; height: 7px; box-sizing: border-box; border-radius: 50%; }
+html[data-theme="dark"] .bill-route-line::before { left: 0; background: var(--night-jade); }
+html[data-theme="dark"] .bill-route-line::after { right: 0; border: 1.5px solid var(--night-jade); background: var(--night-raised); }
+html[data-theme="dark"] .bill-days { margin: -8px 0 0; color: var(--night-muted); font-size: 13px; }
+html[data-theme="dark"] .bill { display: grid; gap: 14px; margin: 0; }
+html[data-theme="dark"] .bill > div { display: grid; grid-template-columns: minmax(0, auto) minmax(16px, 1fr) auto; column-gap: 8px; align-items: baseline; padding: 0; border: 0; }
+html[data-theme="dark"] .bill > div::before { content: ""; grid-column: 2; grid-row: 1; align-self: end; margin-bottom: .32em; border-bottom: 1px dotted var(--night-line-strong); }
+html[data-theme="dark"] .bill dt { display: block; grid-column: 1; grid-row: 1; margin: 0; color: var(--night-ink); font-size: 15px; font-weight: 500; }
+html[data-theme="dark"] .bill dd { grid-column: 3; grid-row: 1; margin: 0; color: var(--night-ink); font-size: 15px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+html[data-theme="dark"] .bill dd.bill-note { grid-column: 1 / -1; grid-row: 2; margin-top: 2px; color: var(--night-muted); font-size: 13px; font-weight: 400; white-space: normal; }
+html[data-theme="dark"] .bill-total { display: grid; gap: 2px; margin: 0; padding-top: 14px; border-top: 1.5px solid var(--night-line-strong); }
+html[data-theme="dark"] .bill-total > span { color: var(--night-ink-2); font-size: 14px; font-weight: 600; }
+html[data-theme="dark"] .home-folio .bill-total .money { font-size: 44px; line-height: 1.05; }
+@media (min-width: 600px) {
+  html[data-theme="dark"] .home-folio .bill-total { grid-template-columns: auto minmax(0, 1fr); align-items: baseline; }
+  html[data-theme="dark"] .home-folio .bill-total strong { justify-self: end; }
+}
+html[data-theme="dark"] .basket-summary .bill-total .money { font-size: 34px; line-height: 1.1; }
+html[data-theme="dark"] .money-unit { color: var(--night-muted); font-size: max(13px, .42em); font-weight: 600; }
+html[data-theme="dark"] .folio-sheet .calc-fx { margin: 0; color: var(--night-muted); font-size: 13px; }
+html[data-theme="dark"] .home-folio .folio-outside { display: grid; gap: 10px; padding: 16px 18px; border: 1px solid var(--night-line); border-radius: 12px; background: var(--night-surface); }
+html[data-theme="dark"] .folio-outside > h3 { margin: 0; color: var(--night-ink); font-size: 15px; font-weight: 600; }
+html[data-theme="dark"] .outside-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: baseline; margin: 0; color: var(--night-ink); font-size: 15px; }
+html[data-theme="dark"] .outside-row > b { font-weight: 600; white-space: nowrap; }
+html[data-theme="dark"] .outside-row > small { grid-column: 1 / -1; color: var(--night-muted); font-size: 13px; line-height: 1.4; }
+@media (max-width: 600px) {
+  html[data-theme="dark"] .home-folio { padding: 14px 10px 10px; border-radius: 18px; }
+  html[data-theme="dark"] .home-folio .folio-sheet { padding: 16px; }
+  html[data-theme="dark"] .home-folio .bill-total .money { font-size: 34px; }
+  html[data-theme="dark"] .bill > div { grid-template-columns: minmax(0, 1fr) minmax(0, auto) auto; }
+}
+/* Steps, rates and money facts from the Folio pass, in Night. */
+html[data-theme="dark"] .home-step-station { display: grid; place-items: center; width: 30px; height: 30px; margin-bottom: 10px; box-sizing: border-box; border: 1.5px solid var(--night-jade); border-radius: 50%; color: var(--night-jade); font-size: 13px; font-weight: 700; }
+html[data-theme="dark"] .days-bar { position: relative; display: block; max-width: 240px; height: 4px; margin-top: 8px; border-radius: 2px; background: var(--night-line-strong); }
+html[data-theme="dark"] .days-bar::after { content: ""; position: absolute; top: 0; bottom: 0; border-radius: 2px; background: var(--night-jade); left: calc(var(--from) / 14 * 100%); right: calc(100% - var(--to) / 14 * 100%); }
+html[data-theme="dark"] #tariffs > .calc-fx { margin: 6px 0 0; color: var(--night-muted); font-size: 13px; }
+html[data-theme="dark"] .home-facts { display: grid; gap: 0 40px; margin: 18px 0 0; padding: 0; list-style: none; }
+@media (min-width: 900px) { html[data-theme="dark"] .home-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+html[data-theme="dark"] .home-facts li { position: relative; padding: 14px 0 14px 32px; border-bottom: 1px solid var(--night-line); color: var(--night-ink-2); line-height: 1.5; }
+html[data-theme="dark"] .home-facts li::before { content: ""; position: absolute; left: 3px; top: 21px; width: 12px; height: 6px; border-left: 2px solid var(--night-jade); border-bottom: 2px solid var(--night-jade); transform: rotate(-45deg); }
+html[data-theme="dark"] .home-trust-grid { margin-top: 32px; }
+html[data-theme="dark"] .home-trust-grid.single { grid-template-columns: minmax(0, 1fr); }
+html[data-theme="dark"] .home-tracking-item { display: grid; gap: 2px; }
+html[data-theme="dark"] .home-tracking-item span { color: var(--night-muted); font-size: 14px; }
+html[data-theme="dark"] .home-faq-head > h2 { margin: 0 0 12px; }
+html[data-theme="dark"] .home-stores-hint { margin: 6px 0 0; color: var(--night-muted); font-size: 14px; }
+html[data-theme="dark"] .home-closing p { color: var(--night-muted); }

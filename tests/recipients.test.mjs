@@ -4,7 +4,7 @@ import { addToCart, blank, cartSignature, products } from '../lib/market/domain.
 import { applyAction } from '../lib/market/actions.ts';
 import { customsVersion } from '../lib/market/world.ts';
 
-const home = { recipient: 'Анна Каримова', phone: '+998 90 123 45 67', region: 'Ташкент', city: 'Ташкент', address: 'ул. Амира Темура, 1', postalCode: '', comment: '' };
+const home = { recipient: 'Анна Каримова', phone: '+998 90 123 45 67', region: 'Ташкент', city: 'Ташкент', address: 'ул. Амира Темура, 1', postalCode: '100000', comment: '' };
 const parents = { ...home, recipient: 'Ольга Каримова', address: 'ул. Навои, 15' };
 const save = (state, extra) => applyAction(state, { type: 'delivery-profile-save', ...extra }, false);
 
@@ -54,4 +54,28 @@ test('checkout can keep a typed address as a saved recipient and link the orders
   const plain = checkout(cart, {});
   assert.equal(plain.deliveryProfiles.length, 0);
   assert.equal(plain.orders[0].deliveryProfileId, undefined);
+});
+
+test('a new or edited recipient needs a six-digit postal code; making an older one the default does not', () => {
+  assert.throws(() => save(blank(), { value: { ...home, postalCode: '' }, label: 'Дом' }), /индекс/);
+  assert.throws(() => save(blank(), { value: { ...home, postalCode: '1000' }, label: 'Дом' }), /индекс/);
+  const older = { ...home, postalCode: '', id: 'older', label: 'Родители', primary: false };
+  let state = save(blank(), { value: home, label: 'Дом' });
+  state = { ...state, deliveryProfiles: [...state.deliveryProfiles, older] };
+  state = save(state, { id: 'older', value: { ...home, postalCode: '' }, label: 'Родители', primary: true });
+  assert.equal(state.deliveryProfiles.find(profile => profile.id === 'older').primary, true);
+  assert.throws(() => save(state, { id: 'older', value: { ...home, postalCode: '', phone: '+998 91 000 00 00' }, label: 'Родители' }), /индекс/);
+});
+
+test('checkout needs a postal code; a recipient saved without one gets it at checkout', () => {
+  const cart = addToCart(blank(), products[0], products[0].variants[0], Date.now());
+  const checkout = (state, extra) => applyAction(state, { type: 'checkout', key: 'postal-' + Math.random(), signature: cartSignature(state.cart), useBalance: false, expectedCredit: 0, consentVersion: customsVersion, ...extra }, false);
+  assert.throws(() => checkout(cart, { delivery: { ...home, postalCode: '' } }), /индекс/);
+  const older = { ...home, postalCode: '', id: 'older', label: 'Дом', primary: true };
+  const withOlder = { ...cart, deliveryProfiles: [older], deliveryProfile: { ...home, postalCode: '' } };
+  assert.throws(() => checkout(withOlder, { delivery: older, deliveryProfileId: 'older' }), /индекс/);
+  const placed = checkout(withOlder, { delivery: older, deliveryProfileId: 'older', postalCode: '100011' });
+  assert.equal(placed.orders.length, 1);
+  assert.equal(placed.deliveryProfiles[0].postalCode, '100011');
+  assert.equal(placed.orders[0].delivery.postalCode, '100011');
 });

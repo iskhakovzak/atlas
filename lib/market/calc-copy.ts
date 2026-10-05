@@ -13,13 +13,18 @@ export type CalcCopy = {
   commentPlaceholder: string; commentHint: string; commentShort: string;
   lines: { items: string; atlasFee: (percent: string) => string; buyout: string; conversion: string; storeShipping: string; free: string; international: (kg: string) => string; intlReserve: string; optional: string; total: string; holdOutside: string };
   hold: string; holdNote: string; holdHelp: (freeFrom: string) => string; freeNote: (freeFrom: string) => string;
-  feeHelp: string; intlReserveHelp: string;
-  fxCbu: (rate: string, cbu: string, markup: string, when: string) => string; fxSet: (rate: string) => string;
+  feeHelp: string; intlReserveHelp: string; outside: string;
+  blank: {
+    title: string; lead: string; item: string; itemCbu: (markup: string) => string; itemSet: string; fee: string; feeRule: (percent: string) => string;
+    delivery: string; deliveryRule: (perKg: string, packaging: string) => string; reserve: string; reserveRule: string; total: string;
+    storeRule: (freeFrom: string, hold: string) => string; customsRule: (allowance: string) => string;
+  };
   customs: {
-    title: string; recipient: string; noRecipient: string; limitShort: string; atlasShort: string; outsideShort: string; itemsShort: string; notNeeded: string; allowance: (limit: string) => string; atlasUsed: (usd: string) => string;
-    outside: string; outsideAmount: string; outsideUnknown: string; dutiable: string; estimate: string; none: (left: string) => string;
-    minimum: (perKg: string) => string; help: string; helpFee: (percent: string, base: string, fee: string) => string; helpNote: string;
-    separate: string; rule: string; dispute: string; sources: string; relative: string;
+    title: string; recipient: string; limitShort: string; atlasShort: string; outsideShort: string; notNeeded: string;
+    outside: string; outsideAmount: string; outsideUnknown: string; dutiable: string; estimate: string;
+    help: string; helpFee: (percent: string, fee: string) => string; helpNote: string;
+    summaryNone: (limit: string, left: string) => string; summaryOver: (over: string, rate: string, perKg: string) => string; howLink: string;
+    separate: string; rule: string;  relative: string;
   };
 };
 
@@ -35,24 +40,30 @@ export const calcCopy: Record<Locale, CalcCopy> = {
     weightStore: 'Вес с упаковкой указан магазином.', weightEstimate: category => `Оценка Atlas для категории «${category}» — исправьте, если знаете точнее.`, weightTitle: 'Оценка Atlas по названию товара — исправьте, если знаете точнее.', weightCustomer: 'Вес указан вами.', weightCatalog: 'Вес задан Atlas для товара каталога.',
     weightRule: 'К весу посылки добавляем 0,3 кг на упаковку — один раз на посылку из одного магазина. Минимум — 1 кг. Склад взвесит посылку, и доставка пересчитается по факту.', parcelWeight: kg => `Платный вес посылки: ${kg} кг`,
     commentPlaceholder: 'Пожелание или важная информация, которую нам нужно учесть перед заказом', commentHint: 'Видит только Atlas, магазину не отправляется.', commentShort: 'Комментарий',
-    lines: { items: 'Товары', atlasFee: p => `Комиссия Atlas · ${p}`, buyout: 'Выкуп', conversion: 'Конвертация', storeShipping: 'Доставка магазина', free: 'Бесплатно', international: kg => `Международная доставка · ${kg} кг`, intlReserve: 'Резерв международной доставки', optional: 'Дополнительные услуги', total: 'Итого к оплате', holdOutside: 'резерв отдельно' },
+    lines: { items: 'Товары', atlasFee: p => p ? `Комиссия Atlas ${p}` : 'Комиссия Atlas', buyout: 'Выкуп', conversion: 'Конвертация', storeShipping: 'Доставка магазина', free: 'Бесплатно', international: kg => kg ? `Международная доставка, ${kg} кг` : 'Международная доставка', intlReserve: 'Резерв международной доставки', optional: 'Дополнительные услуги', total: 'Итого к оплате', holdOutside: 'резерв отдельно' },
     hold: 'Предварительный резерв доставки магазина', holdNote: 'Удерживается отдельно, в сумму заказа не входит',
     holdHelp: freeFrom => `Магазин не указал доставку до склада. Мы удерживаем этот резерв отдельно от оплаты заказа, пока менеджер не узнает фактическую сумму. Если доставка окажется дешевле — остаток освободим; если дороже — сначала спросим вас. При заказе из магазина больше чем на ${freeFrom} доставка бесплатна и резерв не нужен.`,
     freeNote: freeFrom => `Заказ из магазина больше ${freeFrom}: доставка до склада бесплатна.`,
     feeHelp: 'Комиссия Atlas — 9,98% от стоимости товаров. На доставку и таможню не начисляется.',
     intlReserveHelp: 'Запас на случай, если посылка окажется тяжелее расчётной. После взвешивания неиспользованную часть вернём на баланс Atlas; если доставка выйдет дороже — сначала согласуем доплату.',
-    fxCbu: (rate, cbu, markup, when) => `Курс: $1 = ${rate} — курс ЦБ ${cbu} × ${markup}, обновлён ${when}.`,
-    fxSet: rate => `Курс: $1 = ${rate} — установленный курс Atlas, не курс ЦБ в реальном времени.`,
+    outside: 'Не входит в сумму к оплате',
+    blank: {
+      title: 'Так будет выглядеть счёт', lead: 'Вставьте ссылку, и мы заполним каждую строку в сумах.',
+      item: 'Цена товара', itemCbu: markup => `по курсу ЦБ плюс ${markup}`, itemSet: 'по установленному курсу Atlas',
+      fee: 'Комиссия Atlas', feeRule: percent => `${percent} от цены товара`,
+      delivery: 'Доставка в Узбекистан', deliveryRule: (perKg, packaging) => `${perKg} за кг, плюс ${packaging} кг упаковки, минимум 1 кг`,
+      reserve: 'Возвратный резерв', reserveRule: 'запас на вес; остаток вернём на баланс', total: 'К оплате',
+      storeRule: (freeFrom, hold) => `Доставка магазина до склада, если он её не указал: бесплатно при заказе дороже ${freeFrom}, иначе резерв ${hold} отдельно.`,
+      customsRule: allowance => `Таможенная пошлина: до ${allowance} в месяц на получателя не нужна.`,
+    },
     customs: {
-      title: 'Таможня, ориентир', recipient: 'Получатель', limitShort: 'Лимит в этом месяце', atlasShort: 'Учтено заказов Atlas', outsideShort: 'Покупки вне Atlas', itemsShort: 'Товары в корзине', notNeeded: 'не требуется', noRecipient: 'Получатель ещё не выбран — считаем полный лимит.', allowance: limit => `Лимит без пошлины — ${limit} в календарный месяц на каждого получателя.`,
-      atlasUsed: usd => `Уже учтено заказов Atlas этого получателя в этом месяце: ${usd}.`,
-      outside: 'Я уже использовал(а) часть месячного лимита вне Atlas', outsideAmount: 'Сумма покупок вне Atlas в этом месяце, $', outsideUnknown: 'Сумма не указана — считаем, что лимит этого месяца уже использован полностью.',
-      dutiable: 'Облагается сверх лимита', estimate: 'Таможенный платёж, ориентир', none: left => `Не требуется: остаток лимита ${left}.`,
-      minimum: perKg => `не меньше ${perKg} за кг облагаемого веса — итог подтверждает таможня`,
-      help: 'Atlas поможет оплатить таможню', helpFee: (p, base, fee) => `Комиссия Atlas ${p} от ${base} = ${fee}`, helpNote: 'Это запрос, а не платёж: комиссия Atlas не является таможенным платежом и не входит в сумму заказа. Сумму подтвердит оператор.',
+      title: 'Таможенная пошлина', recipient: 'Получатель', limitShort: 'Лимит в этом месяце', atlasShort: 'Учтено заказов Atlas', outsideShort: 'Покупки вне Atlas', notNeeded: 'не нужна',
+      outside: 'Я уже превысил(а) лимит в этом месяце (покупки вне Atlas)', outsideAmount: 'Сколько уже потрачено вне Atlas, $ (если знаете)', outsideUnknown: 'Сумма не указана — считаем, что лимит этого месяца уже использован полностью.',
+      dutiable: 'Облагается сверх лимита', estimate: 'Таможенный платёж, ориентир',
+      help: 'Atlas поможет оплатить таможню', helpFee: (p, fee) => `Комиссия Atlas ${p} от стоимости товара: ${fee}`, helpNote: 'Это запрос: пошлину и комиссию оператор подтвердит отдельно, в сумму заказа они не входят.',
+      summaryNone: (limit, left) => `Без пошлины до ${limit} в месяц на получателя. Остаток: ${left}.`, summaryOver: (over, rate, perKg) => `Сверх лимита ${over}: пошлина ${rate}, не меньше ${perKg} за кг. Точную сумму подтверждает таможня.`, howLink: 'Как считается таможня',
       separate: 'Таможня не входит в сумму заказа и оплачивается отдельно.', rule: 'Пошлина берётся только с суммы сверх лимита (ПКМ №244). Месяц — календарный месяц ввоза посылки.',
-      dispute: 'Ставка 20%, но не меньше $2 за кг: сводная редакция ПП-4508 применяет её с 01.09.2026, а УП-174 — с 01.01.2027. Точную ставку подтверждает таможня.',
-      sources: 'Источники', relative: 'Лимит исчерпан? Оформите заказ на родственника — если получать будет он и укажет свои данные и паспорт.',
+      relative: 'Лимит исчерпан? Оформите заказ на родственника — если получать будет он и укажет свои данные и паспорт.',
     },
   },
   uz: {
@@ -66,24 +77,30 @@ export const calcCopy: Record<Locale, CalcCopy> = {
     weightStore: 'Qadoqli vaznni do‘kon ko‘rsatgan.', weightEstimate: category => `«${category}» uchun Atlas bahosi — aniqroq bilsangiz, tuzating.`, weightTitle: 'Tovar nomi bo‘yicha Atlas bahosi — aniqroq bilsangiz, tuzating.', weightCustomer: 'Vaznni siz kiritdingiz.', weightCatalog: 'Katalog tovari vaznini Atlas belgilagan.',
     weightRule: 'Jo‘natma vazniga qadoq uchun 0,3 kg qo‘shamiz — bitta do‘kondan kelgan jo‘natmaga bir marta. Kamida 1 kg. Ombor jo‘natmani tortadi va yetkazish haqiqiy vazn bo‘yicha qayta hisoblanadi.', parcelWeight: kg => `Jo‘natmaning pullik vazni: ${kg} kg`,
     commentPlaceholder: 'Buyurtmadan oldin hisobga olishimiz kerak bo‘lgan istak yoki muhim ma’lumot', commentHint: 'Faqat Atlas ko‘radi, do‘konga yuborilmaydi.', commentShort: 'Izoh',
-    lines: { items: 'Tovarlar', atlasFee: p => `Atlas komissiyasi · ${p}`, buyout: 'Xarid', conversion: 'Konvertatsiya', storeShipping: 'Do‘kon yetkazishi', free: 'Bepul', international: kg => `Xalqaro yetkazish · ${kg} kg`, intlReserve: 'Xalqaro yetkazish zaxirasi', optional: 'Qo‘shimcha xizmatlar', total: 'To‘lov uchun jami', holdOutside: 'zaxira alohida' },
+    lines: { items: 'Tovarlar', atlasFee: p => p ? `Atlas komissiyasi ${p}` : 'Atlas komissiyasi', buyout: 'Xarid', conversion: 'Konvertatsiya', storeShipping: 'Do‘kon yetkazishi', free: 'Bepul', international: kg => kg ? `Xalqaro yetkazish, ${kg} kg` : 'Xalqaro yetkazish', intlReserve: 'Xalqaro yetkazish zaxirasi', optional: 'Qo‘shimcha xizmatlar', total: 'To‘lov uchun jami', holdOutside: 'zaxira alohida' },
     hold: 'Do‘kon yetkazishi uchun dastlabki zaxira', holdNote: 'Alohida ushlab turiladi, buyurtma summasiga kirmaydi',
     holdHelp: freeFrom => `Do‘kon omborgacha yetkazishni ko‘rsatmagan. Menejer haqiqiy summani bilguncha bu zaxirani buyurtma to‘lovidan alohida ushlab turamiz. Arzon chiqsa — qoldig‘ini bo‘shatamiz; qimmat chiqsa — avval sizdan so‘raymiz. Do‘kondan ${freeFrom} dan ortiq buyurtmada yetkazish bepul va zaxira kerak emas.`,
     freeNote: freeFrom => `Do‘kondan ${freeFrom} dan ortiq buyurtma: omborgacha yetkazish bepul.`,
     feeHelp: 'Atlas komissiyasi — tovarlar qiymatining 9,98%. Yetkazish va bojxonaga qo‘llanmaydi.',
     intlReserveHelp: 'Jo‘natma hisobdagidan og‘ir chiqsa, zaxira. Tortishdan keyin ishlatilmagan qismini Atlas balansiga qaytaramiz; qimmatroq chiqsa — avval qo‘shimcha to‘lovni kelishamiz.',
-    fxCbu: (rate, cbu, markup, when) => `Kurs: $1 = ${rate} — MB kursi ${cbu} × ${markup}, ${when} da yangilangan.`,
-    fxSet: rate => `Kurs: $1 = ${rate} — Atlas belgilagan kurs, real vaqtdagi MB kursi emas.`,
+    outside: 'To‘lov summasiga kirmaydi',
+    blank: {
+      title: 'Hisob shunday ko‘rinadi', lead: 'Havolani qo‘ying, har bir satrni so‘mda to‘ldiramiz.',
+      item: 'Tovar narxi', itemCbu: markup => `MB kursi va ${markup} ustama bilan`, itemSet: 'Atlas belgilagan kurs bilan',
+      fee: 'Atlas komissiyasi', feeRule: percent => `tovar narxining ${percent}`,
+      delivery: 'O‘zbekistonga yetkazib berish', deliveryRule: (perKg, packaging) => `har kg uchun ${perKg}, qadoq uchun ${packaging} kg, kamida 1 kg`,
+      reserve: 'Qaytariladigan zaxira', reserveRule: 'og‘irlik uchun zaxira; qolgani balansga qaytadi', total: 'To‘lov uchun',
+      storeRule: (freeFrom, hold) => `Do‘kon omborgacha yetkazish narxini ko‘rsatmasa: ${freeFrom} dan qimmat buyurtmada bepul, aks holda ${hold} zaxira alohida.`,
+      customsRule: allowance => `Bojxona to‘lovi: bitta oluvchiga oyiga ${allowance} gacha kerak emas.`,
+    },
     customs: {
-      title: 'Taxminiy bojxona', recipient: 'Qabul qiluvchi', limitShort: 'Shu oy limiti', atlasShort: 'Atlas buyurtmalari hisobga olindi', outsideShort: 'Atlasdan tashqari xaridlar', itemsShort: 'Savatdagi tovarlar', notNeeded: 'kerak emas', noRecipient: 'Qabul qiluvchi hali tanlanmagan — to‘liq limit hisoblanadi.', allowance: limit => `Bojsiz limit — har bir qabul qiluvchiga kalendar oyida ${limit}.`,
-      atlasUsed: usd => `Shu oy bu qabul qiluvchining Atlas buyurtmalari hisobga olindi: ${usd}.`,
-      outside: 'Oylik limitning bir qismini Atlasdan tashqarida ishlatganman', outsideAmount: 'Shu oy Atlasdan tashqari xaridlar summasi, $', outsideUnknown: 'Summa ko‘rsatilmagan — shu oy limiti to‘liq ishlatilgan deb hisoblaymiz.',
-      dutiable: 'Limitdan oshgan qism', estimate: 'Taxminiy bojxona to‘lovi', none: left => `Kerak emas: limit qoldig‘i ${left}.`,
-      minimum: perKg => `soliq solinadigan har kg uchun kamida ${perKg} — yakuniy summani bojxona tasdiqlaydi`,
-      help: 'Atlas bojxonani to‘lashga yordam beradi', helpFee: (p, base, fee) => `Atlas komissiyasi ${base} dan ${p} = ${fee}`, helpNote: 'Bu so‘rov, to‘lov emas: Atlas komissiyasi bojxona to‘lovi emas va buyurtma summasiga kirmaydi. Summani operator tasdiqlaydi.',
+      title: 'Bojxona boji', recipient: 'Qabul qiluvchi', limitShort: 'Shu oy limiti', atlasShort: 'Atlas buyurtmalari hisobga olindi', outsideShort: 'Atlasdan tashqari xaridlar', notNeeded: 'kerak emas',
+      outside: 'Shu oy limitni oshirib bo‘lganman (Atlasdan tashqari xaridlar)', outsideAmount: 'Atlasdan tashqari qancha sarflangan, $ (bilsangiz)', outsideUnknown: 'Summa ko‘rsatilmagan — shu oy limiti to‘liq ishlatilgan deb hisoblaymiz.',
+      dutiable: 'Limitdan oshgan qism', estimate: 'Taxminiy bojxona to‘lovi',
+      help: 'Atlas bojxonani to‘lashga yordam beradi', helpFee: (p, fee) => `Atlas komissiyasi tovar narxidan ${p}: ${fee}`, helpNote: 'Bu so‘rov: boj va komissiyani operator alohida tasdiqlaydi, ular buyurtma summasiga kirmaydi.',
+      summaryNone: (limit, left) => `Har bir qabul qiluvchiga oyiga ${limit} gacha bojsiz. Qoldiq: ${left}.`, summaryOver: (over, rate, perKg) => `Limitdan oshgan ${over}: boj ${rate}, har kg uchun kamida ${perKg}. Aniq summani bojxona tasdiqlaydi.`, howLink: 'Bojxona qanday hisoblanadi',
       separate: 'Bojxona buyurtma summasiga kirmaydi va alohida to‘lanadi.', rule: 'Boj faqat limitdan oshgan qismdan olinadi (VMQ №244). Oy — jo‘natma olib kirilgan kalendar oyi.',
-      dispute: 'Stavka 20%, lekin har kg uchun kamida $2: PP-4508 jamlangan tahririda 01.09.2026 dan, PF-174 da esa 01.01.2027 dan. Aniq stavkani bojxona tasdiqlaydi.',
-      sources: 'Manbalar', relative: 'Limit tugadimi? Buyurtmani qarindoshingizga rasmiylashtiring — agar u qabul qilsa va o‘z ma’lumotlari va pasportini ko‘rsatsa.',
+      relative: 'Limit tugadimi? Buyurtmani qarindoshingizga rasmiylashtiring — agar u qabul qilsa va o‘z ma’lumotlari va pasportini ko‘rsatsa.',
     },
   },
   en: {
@@ -97,24 +114,30 @@ export const calcCopy: Record<Locale, CalcCopy> = {
     weightStore: 'The store states the packed weight.', weightEstimate: category => `Atlas estimate for “${category}” — correct it if you know better.`, weightTitle: 'Atlas estimate from the product name — correct it if you know better.', weightCustomer: 'You entered the weight.', weightCatalog: 'Atlas set the weight for this catalog item.',
     weightRule: 'We add 0.3 kg for packaging to the parcel weight — once per parcel from one store. Minimum 1 kg. The warehouse weighs the parcel and delivery is recalculated on the actual weight.', parcelWeight: kg => `Billable parcel weight: ${kg} kg`,
     commentPlaceholder: 'A wish or important information we should take into account before ordering', commentHint: 'Only Atlas sees it; it is not sent to the store.', commentShort: 'Comment',
-    lines: { items: 'Items', atlasFee: p => `Atlas fee · ${p}`, buyout: 'Buyout', conversion: 'Conversion', storeShipping: 'Store delivery', free: 'Free', international: kg => `International delivery · ${kg} kg`, intlReserve: 'International delivery reserve', optional: 'Extra services', total: 'Total to pay', holdOutside: 'held separately' },
+    lines: { items: 'Items', atlasFee: p => p ? `Atlas fee ${p}` : 'Atlas fee', buyout: 'Buyout', conversion: 'Conversion', storeShipping: 'Store delivery', free: 'Free', international: kg => kg ? `International delivery, ${kg} kg` : 'International delivery', intlReserve: 'International delivery reserve', optional: 'Extra services', total: 'Total to pay', holdOutside: 'held separately' },
     hold: 'Preliminary store-delivery reserve', holdNote: 'Held separately, not part of the order amount',
     holdHelp: freeFrom => `The store did not state delivery to the warehouse. We hold this reserve apart from the order payment until a manager learns the actual amount. If delivery costs less, the rest is released; if more, we ask you first. For orders from a store over ${freeFrom} delivery is free and no reserve is needed.`,
     freeNote: freeFrom => `Order from this store over ${freeFrom}: delivery to the warehouse is free.`,
     feeHelp: 'The Atlas fee is 9.98% of the item value. It is not charged on delivery or customs.',
     intlReserveHelp: 'A buffer in case the parcel is heavier than estimated. After weighing, the unused part goes back to your Atlas balance; if delivery costs more, we agree the extra with you first.',
-    fxCbu: (rate, cbu, markup, when) => `Rate: $1 = ${rate} — Central Bank rate ${cbu} × ${markup}, updated ${when}.`,
-    fxSet: rate => `Rate: $1 = ${rate} — a rate set by Atlas, not the live Central Bank rate.`,
+    outside: 'Not in the amount to pay',
+    blank: {
+      title: 'This is how the bill will look', lead: 'Paste a link and we fill in every line in soum.',
+      item: 'Item price', itemCbu: markup => `at the Central Bank rate plus ${markup}`, itemSet: 'at the rate set by Atlas',
+      fee: 'Atlas fee', feeRule: percent => `${percent} of the item price`,
+      delivery: 'Delivery to Uzbekistan', deliveryRule: (perKg, packaging) => `${perKg} per kg, plus ${packaging} kg packaging, at least 1 kg`,
+      reserve: 'Refundable reserve', reserveRule: 'a weight buffer; what is left returns to your balance', total: 'To pay',
+      storeRule: (freeFrom, hold) => `Store delivery to the warehouse, when the store does not state it: free on orders over ${freeFrom}, otherwise a ${hold} reserve kept apart.`,
+      customsRule: allowance => `Customs duty: not needed up to ${allowance} a month per recipient.`,
+    },
     customs: {
-      title: 'Customs, estimate', recipient: 'Recipient', limitShort: 'Allowance this month', atlasShort: 'Atlas orders counted', outsideShort: 'Purchases outside Atlas', itemsShort: 'Items in the cart', notNeeded: 'not needed', noRecipient: 'No recipient chosen yet — the full allowance is assumed.', allowance: limit => `Duty-free allowance: ${limit} per calendar month for each recipient.`,
-      atlasUsed: usd => `Already counted this month from this recipient’s Atlas orders: ${usd}.`,
-      outside: 'I have already used part of this month’s allowance outside Atlas', outsideAmount: 'Purchases outside Atlas this month, $', outsideUnknown: 'No amount given — we treat this month’s allowance as fully used.',
-      dutiable: 'Dutiable above the allowance', estimate: 'Customs payment, estimate', none: left => `Not needed: ${left} of the allowance left.`,
-      minimum: perKg => `at least ${perKg} per dutiable kg — customs confirms the final amount`,
-      help: 'Atlas helps pay customs', helpFee: (p, base, fee) => `Atlas fee ${p} of ${base} = ${fee}`, helpNote: 'This is a request, not a payment: the Atlas fee is not a customs payment and is not part of the order amount. An operator confirms the amount.',
+      title: 'Customs duty', recipient: 'Recipient', limitShort: 'Allowance this month', atlasShort: 'Atlas orders counted', outsideShort: 'Purchases outside Atlas', notNeeded: 'not needed',
+      outside: 'I have already gone over this month’s allowance (purchases outside Atlas)', outsideAmount: 'Already spent outside Atlas, $ (if you know)', outsideUnknown: 'No amount given — we treat this month’s allowance as fully used.',
+      dutiable: 'Dutiable above the allowance', estimate: 'Customs payment, estimate',
+      help: 'Atlas helps pay customs', helpFee: (p, fee) => `Atlas fee ${p} of the item value: ${fee}`, helpNote: 'This is a request: an operator confirms the duty and the fee separately; neither is part of the order amount.',
+      summaryNone: (limit, left) => `No duty up to ${limit} a month per recipient. Left: ${left}.`, summaryOver: (over, rate, perKg) => `Over the allowance by ${over}: duty ${rate}, at least ${perKg} per kg. Customs confirms the exact amount.`, howLink: 'How customs is calculated',
       separate: 'Customs is not part of the order amount and is paid separately.', rule: 'Duty applies only to the amount above the allowance (CM resolution No. 244). The month is the calendar month the parcel is imported.',
-      dispute: 'Rate 20%, at least $2 per kg: the consolidated PP-4508 applies it from 01.09.2026, UP-174 from 01.01.2027. Customs confirms the exact rate.',
-      sources: 'Sources', relative: 'Allowance used up? Order for a relative — if they receive the parcel and give their own details and passport.',
+      relative: 'Allowance used up? Order for a relative — if they receive the parcel and give their own details and passport.',
     },
   },
 };

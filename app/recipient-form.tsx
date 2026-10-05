@@ -5,7 +5,7 @@ import {Checkbox} from '@/components/ui/checkbox';
 import {recipientCopy} from '@/lib/market/customer-copy';
 import {cities,regionCapital,regionLabel,regions,streets,suggestions,uzPhone,uzPhoneDigits} from '@/lib/market/addresses';
 import {UzPhoneInput} from './phone-input';
-import type {DeliveryProfile,SavedDeliveryProfile} from '@/lib/market/domain';
+import {isPostalCode,type DeliveryProfile,type SavedDeliveryProfile} from '@/lib/market/domain';
 import type {Locale} from '@/lib/market/i18n';
 
 export type RecipientDraft={label:string;profile:DeliveryProfile;primary:boolean};
@@ -24,7 +24,7 @@ export function RecipientForm({locale,initial,isFirst,onSave}:{locale:Locale;ini
  const [primary,setPrimary]=useState(lockedPrimary);
  const [touched,setTouched]=useState(false),[saving,setSaving]=useState(false);
  const label=(labelChoice==='other'?customLabel:labelChoice).trim();
- const errors={label:!label,recipient:value.recipient.trim().length<2,phone:phoneDigits.length!==9,region:!value.region,city:value.city.trim().length<2,address:value.address.trim().length<5};
+ const errors={label:!label,recipient:value.recipient.trim().length<2,phone:phoneDigits.length!==9,region:!value.region,city:value.city.trim().length<2,address:value.address.trim().length<5,postal:!isPostalCode(value.postalCode)};
  const show=(field:keyof typeof errors)=>touched&&errors[field];
  async function submit(event:FormEvent){
   event.preventDefault();
@@ -35,7 +35,7 @@ export function RecipientForm({locale,initial,isFirst,onSave}:{locale:Locale;ini
   try{await onSave({label,primary,profile:{...value,recipient:value.recipient.trim(),phone:uzPhone(phoneDigits),city:value.city.trim(),address:value.address.trim(),postalCode:value.postalCode.trim(),comment:value.comment.trim()}})}
   finally{setSaving(false)}
  }
- const hint=(field:keyof typeof errors,text?:string)=>show(field)?<small id={`${uid}-${field}-hint`} className="rf-error" role="alert">{field==='phone'?c.phoneError:c.required}</small>:text?<small id={`${uid}-${field}-hint`}>{text}</small>:null;
+ const hint=(field:keyof typeof errors,text?:string)=>show(field)?<small id={`${uid}-${field}-hint`} className="rf-error" role="alert">{field==='phone'?c.phoneError:field==='postal'?c.postalError:c.required}</small>:text?<small id={`${uid}-${field}-hint`}>{text}</small>:null;
  return <form className="rf" onSubmit={submit} noValidate>
   <fieldset className={'rf-labels'+(show('label')?' invalid':'')}>
    <legend>{c.labelLegend}</legend>
@@ -76,8 +76,8 @@ export function RecipientForm({locale,initial,isFirst,onSave}:{locale:Locale;ini
    {hint('address',c.privacy)}
   </div>
   <div className="rf-row">
-   <div className="rf-field"><label htmlFor={`${uid}-postal`}>{c.postal} <span className="rf-optional">· {c.optional}</span></label><input id={`${uid}-postal`} inputMode="numeric" autoComplete="postal-code" maxLength={20} value={value.postalCode} onChange={event=>setValue({...value,postalCode:event.target.value})}/></div>
-   <div className="rf-field"><label htmlFor={`${uid}-comment`}>{c.comment} <span className="rf-optional">· {c.optional}</span></label><input id={`${uid}-comment`} maxLength={300} placeholder={c.commentPlaceholder} value={value.comment} onChange={event=>setValue({...value,comment:event.target.value})}/></div>
+   <div className={'rf-field'+(show('postal')?' invalid':'')}><label htmlFor={`${uid}-postal`}>{c.postal}</label><input id={`${uid}-postal`} inputMode="numeric" autoComplete="postal-code" maxLength={6} value={value.postalCode} aria-invalid={show('postal')} aria-describedby={`${uid}-postal-hint`} onChange={event=>setValue({...value,postalCode:event.target.value.replace(/\D/g,'').slice(0,6)})}/>{hint('postal',c.postalHint)}</div>
+   <div className="rf-field"><label htmlFor={`${uid}-comment`}>{c.comment} <span className="rf-optional">({c.optional})</span></label><input id={`${uid}-comment`} maxLength={300} placeholder={c.commentPlaceholder} value={value.comment} onChange={event=>setValue({...value,comment:event.target.value})}/></div>
   </div>
   <div className="basket-consent rf-primary"><Checkbox id={`${uid}-primary`} checked={primary} disabled={lockedPrimary} onCheckedChange={checked=>setPrimary(checked===true)}/><label htmlFor={`${uid}-primary`}>{c.primary}</label></div>
   <button className="btn primary basket-cta" disabled={saving}>{saving?<Loader2 size={18} className="spin" aria-hidden="true"/>:<Check size={18} aria-hidden="true"/>}{saving?c.saving:c.save}</button>

@@ -25,6 +25,8 @@ npm run build
 npm run dev
 ~~~
 
+`npm run dev` and `npm run build` first copy the passport OCR engine (Tesseract.js worker, cores and the English model, about 14 MB) from node_modules into `public/ocr/` (`scripts/copy-ocr-assets.mjs`); the folder is git-ignored.
+
 For built Worker preview:
 
 ~~~
@@ -81,7 +83,7 @@ node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js \
   --persist-to .wrangler/state --file drizzle/0000_overrated_justice.sql
 ~~~
 
-Repeat the `d1 execute` command for each later drizzle/*.sql file through the newest (`0007_web_vitals.sql` on 3 October 2026). Stopping early leaves tables such as the import cache, identity documents, audit events, sign-in sessions or page-speed samples missing. Do not replay a migration already applied to the same local state.
+Repeat the `d1 execute` command for each later drizzle/*.sql file through the newest (`0009_accounting.sql` on 6 October 2026). Stopping early leaves tables such as the import cache, identity documents, audit events, sign-in sessions or page-speed samples missing. Do not replay a migration already applied to the same local state.
 
 Local D1 is separate from production. To start fresh locally, delete .wrangler/state intentionally, then apply all migrations again in order.
 

@@ -64,3 +64,27 @@ test('site content holds only verified data and is well-formed when filled', () 
   const { phone } = siteContent.contacts;
   assert.ok(phone === null || /^\+998\d{9}$/.test(phone.replace(/\s/g, '')));
 });
+
+test('fees, store prices and dates are written exactly, never rounded into a different number', async () => {
+  const { formatPercent, formatPriceUsd, formatDayMonth } = await import('../lib/market/home-copy.ts');
+  assert.equal(formatPercent(0.0998, 'ru'), '9,98%');
+  assert.equal(formatPercent(0.0998, 'en'), '9.98%');
+  assert.equal(formatPercent(1.012 - 1, 'uz'), '1,2%');
+  assert.equal(formatPriceUsd(2.72, 'ru'), '$2,72');
+  assert.equal(formatPriceUsd(2.7, 'ru'), '$2,70');
+  assert.equal(formatPriceUsd(2.72, 'en'), '$2.72');
+  assert.equal(formatPriceUsd(100, 'uz'), '$100');
+  const october3 = Date.parse('2026-10-03T00:00:00Z');
+  assert.equal(formatDayMonth(october3, 'ru'), '3 октября');
+  assert.equal(formatDayMonth(october3, 'uz'), '3-oktabr');
+  assert.equal(formatDayMonth(october3, 'en'), '3 October');
+});
+
+test('the home example bill is priced like a real order: packed weight plus 0.3 kg', async () => {
+  const { price, tariff } = await import('../lib/market/domain.ts');
+  const { combinedShipmentWeight } = await import('../lib/market/world.ts');
+  const quote = price(100, combinedShipmentWeight(1), 1, 0, tariff);
+  assert.equal(quote.weight, 1.3);
+  assert.equal(quote.shipping, Math.ceil(1.3 * tariff.perKg));
+  assert.equal(quote.service, Math.round(quote.merchandise * tariff.margin));
+});

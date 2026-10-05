@@ -6,7 +6,7 @@ import Link from "@/components/site-link";
 import { AlertCircle, ArrowRight, ArrowUpRight, Bell, Check, FileCheck2, LogOut, MapPin, MessageCircle, Package, Pencil, Plus, ScanLine, ShoppingBag, Wallet } from "lucide-react";
 import { useMarket } from "@/lib/market/store";
 import { courierAllowanceUsd } from "@/lib/market/customs";
-import { balanceOf, totalOf, type SavedDeliveryProfile } from "@/lib/market/domain";
+import { balanceOf, orderPayable, totalOf, type SavedDeliveryProfile } from "@/lib/market/domain";
 import { monthlyAllowance, recipientKey, type RecipientAllowance } from "@/lib/market/allowance";
 import { localizedStatuses, type Locale } from "@/lib/market/i18n";
 import { calcCopy } from "@/lib/market/calc-copy";
@@ -15,9 +15,12 @@ import { accountCopy, formatLongDate, itemCount, recipientCopy, type AccountCopy
 import { siteContent } from "@/lib/market/site-content";
 import { toast } from "sonner";
 import { Modal } from "./market-ui";
+import { Money } from "./money";
 import { SafeDeleteButton } from "./safe-delete-button";
 import { ThemeToggle } from "./theme-control";
 import { RecipientForm } from "./recipient-form";
+import { SignInMethods } from "./sign-in-methods";
+import { AllowanceMeter } from "./allowance-meter";
 
 // Account home, mobile-first: one "what needs you now" card, four quick tiles, then
 // recipients, customs allowance, documents, support and settings — each shown once.
@@ -59,6 +62,7 @@ export function AccountView() {
     : state.cart.length ? { title: c.next.cart, hint: c.next.cartHint(itemCount(cartCount, lang)), href: "/cart", icon: <ShoppingBag aria-hidden="true" />, tone: "info" }
     : !state.deliveryProfiles.length ? { title: c.next.recipient, hint: c.next.recipientHint, icon: <MapPin aria-hidden="true" />, tone: "info" }
     : null;
+  const dueOrder = !pendingApproval && pendingPayment ? pendingPayment : undefined;
 
   async function signOut() {
     await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => undefined);
@@ -74,18 +78,23 @@ export function AccountView() {
 
     <div className="cabinet-grid">
       <div className="cabinet-main">
-        <section className={"cabinet-next" + (next ? ` ${next.tone}` : " done")} aria-labelledby="cabinet-next-title">
-          <p className="cabinet-eyebrow">{c.next.label}</p>
-          <div className="cabinet-next-body">
-            <span className="cabinet-next-icon">{next ? next.icon : <Check aria-hidden="true" />}</span>
-            <div><h2 id="cabinet-next-title">{next ? next.title : c.next.allSet}</h2><p>{next ? next.hint : c.next.allSetHint}</p></div>
+        {/* An order waiting for payment is shown as its bill: the amount on paper, the demo note on the plate. */}
+        <section className={"cabinet-next" + (next ? ` ${next.tone}` : " done") + (dueOrder ? " folio" : "")} aria-labelledby="cabinet-next-title">
+          {dueOrder ? <p className="folio-cap"><b>{c.next.label}</b><span>{c.next.orderNo(dueOrder.id)}</span></p> : <p className="cabinet-eyebrow">{c.next.label}</p>}
+          <div className={dueOrder ? "folio-sheet" : "cabinet-next-inner"}>
+            <div className="cabinet-next-body">
+              <span className="cabinet-next-icon">{next ? next.icon : <Check aria-hidden="true" />}</span>
+              <div><h2 id="cabinet-next-title">{next ? next.title : c.next.allSet}</h2><p>{next ? next.hint : c.next.allSetHint}</p></div>
+            </div>
+            {dueOrder && <p className="bill-total"><span>{c.next.due}</span><strong><Money value={orderPayable(dueOrder)} locale={lang} /></strong></p>}
+            {next?.order && <div className="cabinet-progress">
+              <div className="cabinet-bar" role="progressbar" aria-label={statuses[next.order.status]} aria-valuemin={1} aria-valuemax={statuses.length} aria-valuenow={next.order.status + 1}><span style={{ width: `${(next.order.status + 1) / statuses.length * 100}%` }} /></div>
+              <small>{c.next.stage(next.order.status + 1, statuses.length)}: {statuses[next.order.status]}</small>
+            </div>}
+            {next ? (next.href ? <Link className="btn primary" href={next.href}>{c.next.open}</Link> : <button type="button" className="btn primary" onClick={() => setEditor("new")}>{c.next.add}<Plus size={17} aria-hidden="true" /></button>)
+              : <Link className="btn primary" href="/order-by-link">{c.next.newOrder}</Link>}
           </div>
-          {next?.order && <div className="cabinet-progress">
-            <div className="cabinet-bar" role="progressbar" aria-label={statuses[next.order.status]} aria-valuemin={1} aria-valuemax={statuses.length} aria-valuenow={next.order.status + 1}><span style={{ width: `${(next.order.status + 1) / statuses.length * 100}%` }} /></div>
-            <small>{c.next.stage(next.order.status + 1, statuses.length)} · {statuses[next.order.status]}</small>
-          </div>}
-          {next ? (next.href ? <Link className="btn primary" href={next.href}>{c.next.open}<ArrowRight size={17} aria-hidden="true" /></Link> : <button type="button" className="btn primary" onClick={() => setEditor("new")}>{c.next.add}<Plus size={17} aria-hidden="true" /></button>)
-            : <Link className="btn primary" href="/order-by-link">{c.next.newOrder}<ArrowRight size={17} aria-hidden="true" /></Link>}
+          {dueOrder && <p className="folio-foot">{c.next.noCharge}</p>}
         </section>
 
         <nav className="cabinet-tiles" aria-label={c.tiles.label}>
@@ -105,7 +114,7 @@ export function AccountView() {
             return <li key={profile.id}>
               <div className="cabinet-recipient-top"><b>{named ? profile.label : profile.recipient}</b>{profile.primary && <span className="cabinet-badge">{c.recipients.primary}</span>}</div>
               <p>{named && <>{profile.recipient} · </>}<span className="nowrap">{profile.phone}</span></p>
-              <p className="cabinet-muted">{profile.region}, {profile.city}, {profile.address}</p>
+              <p className="cabinet-muted">{[profile.region, profile.city, profile.address, profile.postalCode].filter(Boolean).join(", ")}</p>
               <div className="cabinet-recipient-foot">
                 {passport ? <span className="cabinet-chip ok"><Check size={14} aria-hidden="true" />{c.recipients.passportOk(passport.passportMasked)}</span> : <Link className="cabinet-chip warn" href={`/identity?recipient=${encodeURIComponent(profile.id)}`}><ScanLine size={14} aria-hidden="true" />{c.recipients.addPassport}</Link>}
               </div>
@@ -149,6 +158,8 @@ export function AccountView() {
           <p className="cabinet-note">{c.documents.note}</p>
         </section>
 
+        <SignInMethods locale={lang} />
+
         <section className="cabinet-card" aria-labelledby="cabinet-settings-title">
           <h2 id="cabinet-settings-title">{c.settings.title}</h2>
           <div className="cabinet-setting"><span>{c.settings.theme}</span><ThemeToggle locale={lang} /></div>
@@ -180,7 +191,7 @@ function CustomsAllowance({ groups, primaryName, cartUsd, c, locale }: { groups:
       const over = row.usedUsd > limit;
       return <li key={row.key} className={over ? "over" : undefined}>
         <div className="cabinet-allowance-head"><b>{row.name || c.customs.unnamed}</b><strong>{c.customs.used(row.usedUsd, limit)}</strong></div>
-        <div className="cabinet-bar" role="progressbar" aria-label={row.name || c.customs.unnamed} aria-valuemin={0} aria-valuemax={limit} aria-valuenow={Math.min(row.usedUsd, limit)}><span style={{ width: `${Math.min(100, row.usedUsd / limit * 100)}%` }} /></div>
+        <AllowanceMeter limit={limit} orders={row.parts ?? []} cartUsd={row.name === primaryName || rows.length === 1 ? cartUsd : 0} locale={locale} label={row.name || c.customs.unnamed} />
         <small>{over ? c.customs.over(row.usedUsd - limit) : c.customs.left(limit - row.usedUsd)}</small>
       </li>;
     })}</ul> : <p className="cabinet-empty">{c.customs.empty}</p>}

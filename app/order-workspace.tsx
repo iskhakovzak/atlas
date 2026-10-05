@@ -64,7 +64,8 @@ import {
 import type { Action } from "@/lib/market/actions";
 import { countries } from "@/lib/market/world";
 import { localizedStatuses, type Locale } from "@/lib/market/i18n";
-import { formatSum } from "@/lib/market/home-copy";
+import { formatSum, homeCopy } from "@/lib/market/home-copy";
+import { deliveryRegions, siteContent } from "@/lib/market/site-content";
 import { balanceCopy, countryLabel, formatDateTime, formatShortDate, noticesCopy, orderCount, ordersCopy } from "@/lib/market/customer-copy";
 import { allowanceMonth, countsTowardAllowance, monthOf, monthlyUsedFor, orderPerson, orderRecipientName, recipientKey } from "@/lib/market/allowance";
 import { courierAllowanceUsd } from "@/lib/market/customs";
@@ -805,7 +806,7 @@ function CustomerOrderCard({ order: o, locale, pricing, busy, expanded, onToggle
           {o.product.sourceUrl && !o.product.image && <button type="button" className="text-button" disabled={busy} onClick={() => loadPhoto(o)}>{busy ? ow.loadingPhoto : ow.loadPhoto}</button>}
         </dd></div>
         {o.payment && <div><dt>{c.payment}</dt><dd>{o.payment.status === "pending" ? ow.paymentWaiting : o.payment.status === "paid" ? ow.paymentPaid : ow.paymentRefunded}<small>{o.payment.id} · {ow.providerPassed}</small></dd></div>}
-        {o.delivery && <div><dt>{c.delivery}</dt><dd>{o.delivery.recipient}<small>{o.delivery.region}, {o.delivery.city}, {o.delivery.address}</small><a className="order-x-link" href={`tel:${o.delivery.phone.replace(/[^\d+]/g, "")}`}>{o.delivery.phone}</a></dd></div>}
+        {o.delivery && <div><dt>{c.delivery}</dt><dd>{o.delivery.recipient}<small>{[o.delivery.region, o.delivery.city, o.delivery.address, o.delivery.postalCode].filter(Boolean).join(", ")}</small><a className="order-x-link" href={`tel:${o.delivery.phone.replace(/[^\d+]/g, "")}`}>{o.delivery.phone}</a></dd></div>}
         {allowanceUsd !== undefined && <div><dt>{c.allowance}</dt><dd className={allowanceUsd > courierAllowanceUsd ? "order-x-over" : undefined}>{c.allowanceValue(allowanceUsd, courierAllowanceUsd)}</dd></div>}
         {o.parcel && <div><dt>{c.tracking}</dt><dd>{o.parcel.carrier}<span className="order-x-track"><span className="order-x-id">{o.parcel.trackingNumber}</span><CopyText text={o.parcel.trackingNumber} locale={locale} /></span><small>{lastParcelEvent ?? ow.parcelRegistered}{o.parcel.warehouseCode ? ` · ${locale === "ru" ? "склад" : locale === "uz" ? "ombor" : "warehouse"} ${o.parcel.warehouseCode}` : ""}</small></dd></div>}
       </dl>
@@ -1319,7 +1320,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
             {o.delivery && (
               <div className="settlement-box delivery-box">
                 <Package size={22} />
-                 <div><h3>{ow.recipient}: {o.delivery.recipient}</h3><p>{o.delivery.region}, {o.delivery.city}, {o.delivery.address}</p><p>{locale==='ru'?'Телефон получателя':locale==='uz'?'Qabul qiluvchi telefoni':'Recipient phone'}: <a href={`tel:${o.delivery.phone.replace(/[^\d+]/g,'')}`}>{o.delivery.phone}</a></p></div>
+                 <div><h3>{ow.recipient}: {o.delivery.recipient}</h3><p>{[o.delivery.region, o.delivery.city, o.delivery.address, o.delivery.postalCode].filter(Boolean).join(", ")}</p><p>{locale==='ru'?'Телефон получателя':locale==='uz'?'Qabul qiluvchi telefoni':'Recipient phone'}: <a href={`tel:${o.delivery.phone.replace(/[^\d+]/g,'')}`}>{o.delivery.phone}</a></p></div>
               </div>
             )}
             {/* The customer's comment and the customs estimate they saw: for Atlas only, never sent to the store. */}
@@ -1932,6 +1933,7 @@ export function PricingManager({
             customsHelpFee: draft.customsHelpFee ?? 0.03,
             rates: draft.rates,
             countryOverrides: draft.countryOverrides,
+            deliveryDays: draft.deliveryDays,
             serviceCatalog: draft.serviceCatalog,
           },
         }),
@@ -2080,6 +2082,34 @@ export function PricingManager({
                     return { ...current, countryOverrides };
                   })}
                 />
+              </div>;
+            })}
+          </div>
+        </details>
+        {/* Delivery time per region, shown in the home rates table, the example bill and the FAQ. */}
+        <details className="country-pricing delivery-days-pricing">
+          <summary>{locale === "en" ? "Delivery times by country" : locale === "uz" ? "Mamlakatlar bo‘yicha yetkazish muddati" : "Сроки доставки по странам"}</summary>
+          <p className="micro">{locale === "en" ? "Business days from our warehouse abroad to Uzbekistan, from and to. Empty fields keep the current value." : locale === "uz" ? "Xorijdagi omborimizdan O‘zbekistongacha ish kunlari, dan va gacha. Bo‘sh maydon joriy qiymatni saqlaydi." : "Рабочие дни от нашего склада за рубежом до Узбекистана, от и до. Пустое поле оставляет текущее значение."}</p>
+          <div className="pricing-grid">
+            {deliveryRegions.map((region) => {
+              const current = draft.deliveryDays?.[region.id] ?? siteContent.deliveryDays[region.id];
+              const set = (index: 0 | 1, raw: string) => setDraft((value) => {
+                const days = { ...(value.deliveryDays ?? {}) };
+                const pair: [number, number] = [...(days[region.id] ?? siteContent.deliveryDays[region.id] ?? [1, 1])] as [number, number];
+                const parsed = Math.round(Number(raw));
+                if (!raw || !Number.isFinite(parsed) || parsed < 1) return value;
+                pair[index] = Math.min(120, parsed);
+                if (pair[0] > pair[1]) pair[index === 0 ? 1 : 0] = pair[index];
+                days[region.id] = pair;
+                return { ...value, deliveryDays: days };
+              });
+              return <div className="field" key={region.id}>
+                <label htmlFor={`days-${region.id}-from`}>{homeCopy[locale].tariffs.regions[region.id]}</label>
+                <span className="days-range">
+                  <input id={`days-${region.id}-from`} type="number" min="1" max="120" step="1" aria-label={locale === "en" ? "from" : locale === "uz" ? "dan" : "от"} value={current?.[0] ?? ""} onChange={(event) => set(0, event.target.value)} />
+                  <span aria-hidden="true">–</span>
+                  <input id={`days-${region.id}-to`} type="number" min="1" max="120" step="1" aria-label={locale === "en" ? "to" : locale === "uz" ? "gacha" : "до"} value={current?.[1] ?? ""} onChange={(event) => set(1, event.target.value)} />
+                </span>
               </div>;
             })}
           </div>
