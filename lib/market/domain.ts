@@ -214,8 +214,8 @@ export const pricingSchema = z.object({
   customsAllowanceUsd: z.number().finite().min(0).max(10_000).optional(),
   customsRate: z.number().finite().min(0).max(1).optional(),
   customsMinimumPerKg: z.number().finite().min(0).max(100).optional(),
-  // "Atlas pays customs for me": this share of the cart's amount to pay, a line in the bill when the customer
-  // chooses it (owner's decision, 5 October 2026: 4.98% of the cart). The duty itself stays outside the bill.
+  // "Atlas pays customs for me": this share of the goods price (no delivery), a line in the bill when the customer
+  // chooses it, with the estimated duty prepaid in the order and settled later (owner's decisions, 5 October 2026).
   customsHelpFee: z.number().finite().min(0).max(0.2).default(0.0498),
   // Owner decisions already applied to this row (see upgradePricing).
   revision: z.number().int().min(0).max(1000).optional(),
@@ -228,7 +228,7 @@ export type Pricing = z.infer<typeof pricingSchema>;
 export const deliveryPerKgUsd = 15;
 /** Atlas service fee on merchandise only (owner's decision, 4 October 2026); never on delivery or customs. */
 export const atlasServiceFee = 0.0998;
-/** Atlas pays the customer's customs for this share of the cart's amount to pay (owner, 5 October 2026). */
+/** Atlas pays the customer's customs for this share of the goods price, delivery excluded (owner, 5 October 2026). */
 export const customsHelpShare = 0.0498;
 /**
  * Owner decisions that tariffs saved earlier still lack: 1 = $15 per kg, 2 = 9.98% fee and the CBU rate × 1.012,
@@ -352,8 +352,10 @@ const quoteSchema = z.object({
   conversion: amount.optional(),
   deliveryMargin: amount.optional(),
   optionalServices: amount.optional(),
-  /** "Atlas pays customs for me": `customsHelpRate` of the rest of this line's total, included in `total`. */
+  /** "Atlas pays customs for me": `customsHelpRate` of this line's goods (`merchandise`), included in `total`. */
   customsHelp: amount.optional(),
+  /** With "Atlas pays customs for me": this line's share of the estimated duty, prepaid in `total` (settled later). */
+  customsDuty: amount.optional(),
   customsHelpRate: z.number().finite().min(0).max(0.2).optional(),
   buyoutFeeRate: z.number().finite().min(0).max(1).optional(),
   conversionFeeRate: z.number().finite().min(0).max(1).optional(),
@@ -457,6 +459,16 @@ const storeShippingSettlementSchema = z.object({
 export type StoreShippingSettlement = z.infer<
   typeof storeShippingSettlementSchema
 >;
+/** The duty customs actually charged against the prepaid estimate: the rest back to the balance, more with consent. */
+const customsSettlementSchema = z.object({
+  estimated: amount,
+  actual: amount,
+  actualUsd: z.number().finite().nonnegative(),
+  refund: amount,
+  extra: amount,
+  at: amount,
+});
+export type CustomsSettlement = z.infer<typeof customsSettlementSchema>;
 export function settle(
   q: Quote,
   w: number,
@@ -676,6 +688,8 @@ const orderSchema = z.object({
   extraApproved: z.boolean().optional(),
   storeShippingSettlement: storeShippingSettlementSchema.optional(),
   storeShippingExtraApproved: z.boolean().optional(),
+  customsSettlement: customsSettlementSchema.optional(),
+  customsExtraApproved: z.boolean().optional(),
   quantity: z.number().int().min(1).max(10).default(1),
   cancelled: z.boolean().default(false),
   batchId: z.string().optional(),
@@ -1031,7 +1045,7 @@ export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing
   if (customsHelp) {
     const rate = config.customsHelpFee ?? customsHelpShare;
     for (const item of next) {
-      const fee = Math.round(item.quote.total * rate);
+      const fee = Math.round(item.quote.merchandise * rate);
       item.quote = { ...item.quote, customsHelp: fee, customsHelpRate: rate, total: item.quote.total + fee };
     }
   }
@@ -1200,6 +1214,7 @@ export const orderNeedsOperatorAttention = (order: Order) =>
   (!order.cancelled && (
     Boolean(order.settlement?.extra && !order.extraApproved) ||
     Boolean(order.storeShippingSettlement?.extra && !order.storeShippingExtraApproved) ||
+    Boolean(order.customsSettlement?.extra && !order.customsExtraApproved) ||
     (order.changeRequests ?? []).some((request) => request.status === "pending") ||
     order.warehouseInspection?.condition === "damaged" ||
     order.warehouseInspection?.condition === "mismatch"
@@ -1341,6 +1356,7 @@ export function checkoutCart(
   identityProfileId?: string,
   config: Pricing = tariff,
   customs?: CustomsEstimate,
+  expectedCustomsDuty?: number,
 ): State {
   if (state.checkoutKeys.includes(key)) return state;
   if (!state.cart.length) throw Error("Корзина пуста.");
@@ -1378,6 +1394,18 @@ export function checkoutCart(
   // The customs payment fee is in the bill exactly when the customer chose it; the server reprices on every change.
   if (state.cart.some((i) => Boolean(i.quote.customsHelp) !== customsHelpChosen(state)))
     throw Error("Корзина пересчитана. Проверьте новый итог перед оформлением.");
+  // "Atlas pays customs for me": the duty estimated for this recipient is prepaid with the order, split by goods value.
+  // The customer saw this amount on the confirmation step; a different one means the recipient or the month changed.
+  const dutyTotal = customsHelpChosen(state) && customs ? Math.ceil(customs.estimateUsd * config.fx) : 0;
+  if (customsHelpChosen(state) && (expectedCustomsDuty ?? 0) !== dutyTotal)
+    throw Error("Пошлина пересчитана для выбранного получателя. Проверьте итог перед оформлением.");
+  const merchandiseTotal = state.cart.reduce((sum, i) => sum + i.quote.merchandise, 0);
+  let dutyLeft = dutyTotal;
+  const cart = !customsHelpChosen(state) ? state.cart : state.cart.map((i, index, items) => {
+    const duty = index === items.length - 1 ? dutyLeft : Math.min(dutyLeft, Math.round(dutyTotal * (merchandiseTotal ? i.quote.merchandise / merchandiseTotal : 1 / items.length)));
+    dutyLeft -= duty;
+    return { ...i, quote: { ...i.quote, customsDuty: duty, total: i.quote.total + duty } };
+  });
   const overStock = state.cart.find((i) => i.quantity > maxLineQuantity(i.product));
   if (overStock) throw Error(`В магазине осталось ${overStock.product.stockQuantity} шт. «${overStock.product.name}». Уменьшите количество.`);
   let available = useBalance ? Math.max(0, balanceOf(state)) : 0;
@@ -1392,7 +1420,7 @@ export function checkoutCart(
   const selectedIdentity = identityProfileId ? profiles.find((profile) => profile.documentId === identityProfileId) : undefined;
   if (identityProfileId && (!selectedDelivery || !selectedIdentity || selectedIdentity.recipientProfileId !== selectedDelivery.id)) throw Error("Паспорт не привязан к выбранному получателю.");
   const entries = [...state.entries];
-  const orders = state.cart.map((i) => {
+  const orders = cart.map((i) => {
     // 48 random bits: order numbers are global across customers, so 8 hex digits would start to collide.
     const id = "AT-" + crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
     const balanceUsed = Math.min(i.quote.total, available);
@@ -1454,7 +1482,7 @@ export function checkoutCart(
           ? [{ at: now, text: "Предварительный резерв доставки магазина " + money(i.quote.storeShippingHold) + " удерживается отдельно и не входит в сумму заказа. Менеджер уточнит фактическую доставку." }]
           : []),
         ...(i.quote.customsHelp
-          ? [{ at: now, text: "Покупатель выбрал оплату таможни через Atlas: " + money(i.quote.customsHelp) + " входит в сумму заказа. Пошлину, если таможня её начислит, Atlas оплатит и согласует сумму с покупателем." }]
+          ? [{ at: now, text: "Покупатель выбрал оплату таможни через Atlas: сбор " + money(i.quote.customsHelp) + " и предоплата пошлины " + money(i.quote.customsDuty ?? 0) + " входят в сумму заказа. Остаток пошлины вернётся на баланс, доплата — только с согласия покупателя." }]
           : []),
         ...sourceCheckHistory(i, now),
       ],
@@ -1831,6 +1859,38 @@ export function confirmStoreShipping(
   );
 }
 
+/** The operator enters the duty customs charged; the prepaid estimate is settled: the rest to the balance, more with consent. */
+export function confirmCustomsDuty(state: State, id: string, actualUsd: number, now = Date.now()): State {
+  const o = getOrder(state, id);
+  if (o.customsSettlement) return state;
+  if (o.cancelled || !o.quote.customsHelp)
+    throw Error("Atlas не оплачивает таможню по этому заказу.");
+  if (!Number.isFinite(actualUsd) || actualUsd < 0 || actualUsd > 100000)
+    throw Error("Укажите начисленную пошлину в USD.");
+  const estimated = o.quote.customsDuty ?? 0;
+  const actual = Math.ceil(actualUsd * (o.quote.fx ?? tariff.fx));
+  const settlement: CustomsSettlement = { estimated, actual, actualUsd, refund: Math.max(0, estimated - actual), extra: Math.max(0, actual - estimated), at: now };
+  const text = settlement.extra
+    ? `Таможня начислила пошлину ${money(actual)}. Это больше предоплаты ${money(estimated)}: нужно согласие покупателя на разницу ${money(settlement.extra)}.`
+    : `Таможня начислила пошлину ${money(actual)}. Atlas оплатил её из предоплаты ${money(estimated)}.` + (settlement.refund ? ` Остаток ${money(settlement.refund)} возвращён на баланс.` : "");
+  const next = replace(state, { ...o, customsSettlement: settlement, history: [...o.history, { at: now, text }] });
+  if (settlement.refund)
+    next.entries = [...state.entries, { id: "customs-duty:" + id, orderId: id, at: now, amount: settlement.refund, debit: "customs-duty-prepaid", credit: "customer-credit", description: "Возврат остатка предоплаты пошлины" }];
+  return withNotification(
+    next,
+    settlement.extra ? "Нужно согласовать пошлину" : "Пошлина оплачена",
+    settlement.extra ? "Таможня начислила больше предоплаты. Откройте заказ и подтвердите доплату." : settlement.refund ? "Остаток предоплаты пошлины учтён на внутреннем балансе Atlas. Банковский перевод не выполнялся." : "Пошлина совпала с предоплатой.",
+    id,
+    now,
+  );
+}
+export function approveCustomsExtra(state: State, id: string, expectedAmount: number, now = Date.now()): State {
+  const o = getOrder(state, id);
+  if (o.customsExtraApproved) return state;
+  if (o.cancelled || !o.customsSettlement?.extra || o.customsSettlement.extra !== expectedAmount)
+    throw Error("Сумма изменилась. Проверьте расчёт.");
+  return replace(state, { ...o, customsExtraApproved: true, history: [...o.history, { at: now, text: "Покупатель подтвердил доплату пошлины " + money(o.customsSettlement.extra) }] });
+}
 export function approveStoreShippingExtra(
   state: State,
   id: string,
@@ -1878,6 +1938,8 @@ export function advanceOrder(
     (o.settlement?.extra && !o.extraApproved) ||
     (o.product.sourceShippingEstimated && !o.storeShippingSettlement) ||
     (o.storeShippingSettlement?.extra && !o.storeShippingExtraApproved)
+    // Atlas pays customs for this order: the actual duty is settled before the order is marked delivered.
+    || (o.status === 4 && Boolean(o.quote.customsHelp) && (!o.customsSettlement || Boolean(o.customsSettlement.extra && !o.customsExtraApproved)))
     || (o.changeRequests ?? []).some((request) => request.status === "pending")
     || (o.status >= 2 && (o.warehouseServiceRequests ?? []).some((request) => ["requested", "quoted", "approved"].includes(request.status)))
   )

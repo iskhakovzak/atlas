@@ -4,11 +4,12 @@
 
 - [x] No international reserve in the bill (tariff revision 3); weighing refunds the difference or asks for consent.
 - [x] Customs block: no duty up to $200 a month per recipient, including purchases outside Atlas; duty estimate when over.
-- [x] "Atlas pays customs for me": 4.98% of the cart's amount to pay, in the bill at once, counted as service income.
+- [x] "Atlas pays customs for me": 4.98% of the goods price (no delivery), in the bill at once, counted as service income; the estimated duty is prepaid in the order, the rest returns to the balance and a higher duty needs consent before delivery.
 - [x] Unknown store delivery above $50 shows 0 in the link-order field.
 - [x] "Оформить заказ" opens the new order in My orders.
-- [ ] Owner: confirm the base of the 4.98% fee — the whole amount to pay (goods, Atlas fee and delivery) is used now, not the goods alone.
-- [ ] Decide how Atlas collects the duty itself when it pays customs for the customer (today: agreed after customs charges it, outside the order amount); a change-request kind for it would make the step explicit.
+- [ ] The duty estimate is the value-based lower bound (20% of the part above the allowance); the $2/kg minimum can make customs charge more, which then needs the customer's approval. Consider prepaying the higher of the two once parcel weights are reliable.
+- [ ] An approved duty extra (like an approved store-delivery extra) is recorded on the order but not added to `orderPayable`; collect it once a payment provider is connected.
+- [ ] The books keep the prepaid duty inside `payable` only; add a transit column for duty if the accountant needs it separately.
 - [ ] Without the reserve, a parcel heavier than estimated needs the customer's approval of the extra before it ships; watch how often weighing asks for more.
 - [ ] Connect a payment provider and redirect to its page between checkout and My orders; until then payment stays simulated.
 - [ ] The "already over the limit outside Atlas" checkbox is hidden; if the owner wants it back, it is still supported by `cartCustoms.outsideUsed`.

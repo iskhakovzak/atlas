@@ -9,11 +9,11 @@ import {packagingKg} from '@/lib/market/world';
 import type {Locale} from '@/lib/market/i18n';
 import {SummaryLine} from './price-summary';
 
-type Sums=Pick<Quote,'merchandise'|'service'|'shipping'|'reserve'|'total'>&{buyout?:number;conversion?:number;sourceShipping?:number;deliveryMargin?:number;optionalServices?:number;storeShippingHold?:number;customsHelp?:number};
+type Sums=Pick<Quote,'merchandise'|'service'|'shipping'|'reserve'|'total'>&{buyout?:number;conversion?:number;sourceShipping?:number;deliveryMargin?:number;optionalServices?:number;storeShippingHold?:number;customsHelp?:number;customsDuty?:number};
 
 /** Sum of quote lines, for a cart or the link-order preview. */
 export function sumQuotes(quotes:Partial<Sums>[]):Required<Sums>{
- const keys=['merchandise','service','shipping','reserve','total','buyout','conversion','sourceShipping','deliveryMargin','optionalServices','storeShippingHold','customsHelp'] as const;
+ const keys=['merchandise','service','shipping','reserve','total','buyout','conversion','sourceShipping','deliveryMargin','optionalServices','storeShippingHold','customsHelp','customsDuty'] as const;
  return Object.fromEntries(keys.map(key=>[key,quotes.reduce((sum,quote)=>sum+(quote[key]??0),0)])) as Required<Sums>;
 }
 
@@ -45,6 +45,7 @@ export function CalcLines({sums,locale,pricing,weightKg,storeShippingState,anyFr
    {sums.reserve>0&&<SummaryLine label={c.lines.intlReserve} amount={sums.reserve} locale={locale} help={c.intlReserveHelp} helpLabel={c.lines.intlReserve}/>}
    {sums.optionalServices>0&&<SummaryLine label={c.lines.optional} amount={sums.optionalServices} locale={locale}/>}
    {sums.customsHelp>0&&<SummaryLine label={c.lines.customsHelp(percent(pricing.customsHelpFee,locale))} amount={sums.customsHelp} locale={locale} help={c.customsHelpHelp} helpLabel={c.lines.customsHelp('')}/>}
+   {sums.customsDuty>0&&<SummaryLine label={c.lines.customsDuty} amount={sums.customsDuty} locale={locale} help={c.customsDutyHelp} helpLabel={c.lines.customsDuty}/>}
   </div>
   {children}
  </>;
@@ -93,6 +94,9 @@ export function BlankBill({pricing,locale}:{pricing:Pricing;locale:Locale}){
  * and — where the customer can choose — "Atlas pays customs for me", a line in the bill at `customsHelpFee` of the
  * cart. `helpAmount` is that fee in soum (already in the bill when chosen). The server works the figures out again.
  */
+/** The duty prepaid with "Atlas pays customs for me": the server rounds the same way at checkout (checkoutCart). */
+export const customsDutyAmount=(estimate:Pick<CustomsEstimate,'estimateUsd'>,pricing:Pick<Pricing,'fx'>)=>Math.ceil(estimate.estimateUsd*pricing.fx);
+
 export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipientId,onRecipient,onChoices,helpAmount,compact=false,busy=false}:{estimate:CustomsEstimate;choices:CartCustoms;locale:Locale;pricing:Pricing;profiles:SavedDeliveryProfile[];recipientId?:string;onRecipient?:(id:string)=>void;onChoices?:(next:CartCustoms)=>void;helpAmount?:number;compact?:boolean;busy?:boolean}){
  const c=calcCopy[locale].customs;
  const id=useId();
@@ -101,7 +105,7 @@ export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipient
  return <section className={'calc-customs'+(compact?' compact':'')} aria-labelledby={id+'-title'}>
   <header><Scale size={17} aria-hidden="true"/><h3 id={id+'-title'}>{c.allowanceTitle(usd(estimate.allowanceUsd))}</h3></header>
   <p className="calc-customs-sum">{c.allowanceNote}</p>
-  {over&&<p className="calc-customs-over">{c.overNote(usd(estimate.dutiableUsd),formatSum(Math.round(estimate.estimateUsd*pricing.fx),locale))}</p>}
+  {over&&<p className="calc-customs-over">{(choices.help?c.overIncluded:c.overNote)(usd(estimate.dutiableUsd),formatSum(customsDutyAmount(estimate,pricing),locale))}</p>}
   {profiles.length>1&&onRecipient&&<div className="field calc-customs-recipient"><label htmlFor={id+'-recipient'}>{c.recipient}</label><select id={id+'-recipient'} value={recipientId} onChange={event=>onRecipient(event.target.value)}>{profiles.map(profile=><option key={profile.id} value={profile.id}>{profile.recipient}</option>)}</select></div>}
   {onChoices&&helpAmount!==undefined&&<div className="calc-customs-choices">
    <label className="calc-check"><input type="checkbox" disabled={busy} checked={choices.help} onChange={event=>onChoices({...choices,help:event.target.checked})}/><span><HandCoins size={15} aria-hidden="true"/> {c.helpOption}<small>{choices.help?c.helpChosen(formatSum(helpAmount,locale)):c.helpOptionNote(percent(pricing.customsHelpFee,locale),formatSum(helpAmount,locale))}</small></span></label>

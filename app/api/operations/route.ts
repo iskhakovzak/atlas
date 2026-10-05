@@ -168,6 +168,7 @@ export async function POST(request: Request) {
         "advance",
         "receive",
         "confirm-store-shipping",
+        "confirm-customs-duty",
         "order-image",
         "assign-order",
         "staff-note",
