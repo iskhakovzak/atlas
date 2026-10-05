@@ -1,5 +1,19 @@
 # Atlas TODO and known limitations
 
+## Home sheets — 5 October 2026
+
+- [x] The home page is a stack of full-screen sheets on the root scroller: mandatory snap where sheets fit, proximity on windows 700px tall or less, none under reduced motion.
+- [x] Phones: the example bill, the money facts and the order tracking are sheets of their own; the "Вставить ссылку" dock sits on the bottom bar; rates are 2-column tiles.
+- [x] Closing card and footer form one end sheet; the FAQ title is no longer sticky; anchors re-scroll once after the teaser loads.
+- [x] Teaser: all 8 cards in one swipeable row, ‹ › buttons from 761px.
+- [ ] Physical iPhone Safari check: lvh vs svh with the toolbars in and out, mandatory vs proximity, a sideways swipe on the teaser row against the vertical snap, the on-screen keyboard over the dock when the hero input is focused.
+- [ ] Mac trackpad check in Safari and Chrome (momentum flicks, small drags snapping back).
+- [ ] Windows mouse-wheel check: if one 100px notch snaps back instead of moving a sheet, enable the commented `(hover:hover) and (pointer:fine)` proximity fallback in `app/home-chapters.css`. Headless Chromium treats synthetic wheel deltas like a trackpad (100px snaps back; 0.6 of the screen moves one sheet), so this needs real hardware.
+- [ ] UZ/EN copy fit at 375×812 on real devices (measured in Chromium: fits; the bill sheet in Uzbek with Atlas Night needs 659 of 683px, so its padding is 10px on short phones).
+- [ ] Atlas Night screenshots of every sheet for the owner (dark was measured and fits, but its hero and tracking card are taller; on wide windows ≤860px tall the Night hero title is capped at `clamp(40px,6.4svh,56px)`).
+- [ ] Re-snap after a language switch and after closing the product dialog (sheet heights change with the copy; the page may rest between two sheets until the next scroll).
+- [ ] Owner decisions from the spec: one desktop row of 4 cards instead of two visible rows; footer-only last sheet on phones; the sparse phone tracking sheet (merge with the money facts until reviews and photos exist?); mandatory vs proximity on desktop; the airy desktop How-it-works sheet.
+
 ## Simpler bill and customs paid through Atlas — 5 October 2026
 
 - [x] No international reserve in the bill (tariff revision 3); weighing refunds the difference or asks for consent.

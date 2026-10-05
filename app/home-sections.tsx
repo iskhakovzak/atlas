@@ -173,10 +173,14 @@ export function TrustSection(){
   freeFrom:formatUsd(pricing.storeShippingFreeFromUsd??50,locale),
   allowance:formatUsd(pricing.customsAllowanceUsd??courierAllowanceUsd,locale),
  });
+ // Two parts so phones can show each as a sheet of its own: the money facts, then the proof (tracking, photos, legal).
  return <section id="trust" className="home-section" aria-labelledby="trust-title">
+  <div className="home-trust-money">
   <h2 id="trust-title">{c.trust.title}</h2>
   {completedOrders!==null?<p className="home-counter"><strong>{groupDigits(completedOrders)}</strong> {c.trust.ordersDone}</p>:<MissingContent what="число реально выполненных заказов"/>}
   <ul className="home-facts">{facts.map(fact=><li key={fact}>{fact}</li>)}</ul>
+  </div>
+  <div className="home-trust-proof">
   <div className={'home-trust-grid'+(reviews.length?'':' single')}>
    <article className="home-tracking" aria-labelledby="tracking-title">
     <header><h3 id="tracking-title">{c.trust.trackingTitle}</h3><span className="home-badge">{c.trust.example}</span></header>
@@ -197,6 +201,7 @@ export function TrustSection(){
    <dl>{legal.entityName&&<div><dt>{c.trust.entity}</dt><dd>{legal.entityName}</dd></div>}{legal.inn&&<div><dt>{c.trust.inn}</dt><dd>{legal.inn}</dd></div>}{legalAddress&&<div><dt>{c.trust.address}</dt><dd>{legalAddress}</dd></div>}</dl>
    <Link href="/legal#offer">{c.trust.legalLink}</Link>
   </div>:<MissingContent what="юрлицо, ИНН и адрес"/>}
+  </div>
  </section>;
 }
 

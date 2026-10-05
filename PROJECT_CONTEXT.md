@@ -1,5 +1,9 @@
 # Atlas — project context
 
+## Home sheets — 5 October 2026
+
+The owner asked for the home page to read as separate full-screen parts that snap into place "like a magnet", with nothing of the next block showing at the bottom of a screen. Each part is now one screen (`app/home-chapters.css`): on phones the hero, the example bill, how it works, product selection, rates, money, order tracking, FAQ and the footer; on wide screens the hero with the bill, then one sheet per section and a last sheet with the closing card and the footer. The product selection is one swipeable row of 8 cards (‹ › on wide screens). Real iPhone, Mac trackpad and Windows wheel checks are still open (TODO.md).
+
 ## Simpler bill, customs paid through Atlas, checkout straight to the order — 5 October 2026
 
 The owner found the bill confusing. The refundable international reserve is gone from the bill (tariff revision 3): the parcel is billed on its estimated weight, and after weighing the difference goes back to the balance or is asked for with consent. Customs is one short block — no duty up to $200 a month, per recipient, including purchases outside Atlas — plus the estimated duty when the cart goes over. "Atlas pays customs for me" is offered in every cart for 4.98% of the goods price (no delivery) and goes into the bill at once, together with the estimated duty for the chosen recipient as a prepayment; when customs names the actual duty, the operator confirms it — the rest returns to the balance, a higher amount needs the customer's consent before delivery. When a store does not state delivery and the order from it is above $50, the delivery field shows 0. "Оформить заказ" now opens the new order in My orders, where it waits for payment; a payment provider's page will go in between once one is connected.
