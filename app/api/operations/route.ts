@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { env } from "cloudflare:workers";
 import { actionSchema, applyAction } from "@/lib/market/actions";
 import { normalizePricing, pricingRevision, pricingSchema, validateServiceCatalog } from "@/lib/market/domain";
 import { policySchema } from "@/lib/market/policy";
@@ -103,7 +104,9 @@ export async function GET(request:Request) {
       // Before migration 0007 is applied the table is missing; the dashboard then shows no field data.
       vitalsSummary().catch(() => null),
     ]);
-    return json({ accounts, pricing: settings.pricing, policy: settings.policy, staff, audit, health, customerStatuses, errors, vitals });
+    // Configuration the operator must fix in the hosting secrets; names only, never values.
+    const setupWarnings = env.ATLAS_AUTH_SECRET ? [] : ["Не задан секрет ATLAS_AUTH_SECRET: коды входа хранятся без секретной соли. Задайте его в секретах хостинга по AUTH_SETUP.md."];
+    return json({ accounts, pricing: settings.pricing, policy: settings.policy, staff, audit, health, customerStatuses, errors, vitals, setupWarnings });
   } catch (error) {
     return failure(error,request);
   }

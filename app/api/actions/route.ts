@@ -1,5 +1,5 @@
 import {actionSchema,applyAction} from '@/lib/market/actions';
-import {account,customerStatus,database,identity,operator,sameOrigin,persist,json,failure,HttpError,requestJson,pricingAndPolicy,deferBackground} from '@/lib/market/server';
+import {account,customerStatus,database,identity,operator,sameOrigin,persist,json,failure,HttpError,rateLimit,requestJson,pricingAndPolicy,deferBackground} from '@/lib/market/server';
 import {apiErrorMessage,requestLocale,serverError} from '@/lib/market/i18n';
 import {fetchProduct} from '@/lib/importer/fetch';
 import {merchantRequest} from '@/lib/importer/worker-fetch';
@@ -15,6 +15,9 @@ export async function POST(request:Request){try{
   const payload=await requestJson(request) as {action:unknown;revision:number};
   const parsed=actionSchema.safeParse(payload.action);
   if(!parsed.success)throw new HttpError(400, 'err_10');
+  // Every action writes the account; adding to the cart and checking it also ask the stores through the proxy.
+  await rateLimit(`${user.userId}:actions`,60,60_000);
+  if(['cart-add','cart-add-many','cart-check','checkout'].includes(parsed.data.type))await rateLimit(`${user.userId}:store-checks`,40,10*60_000,'err_39');
   // Independent reads go out together: one D1 round trip instead of three in a row on every action.
   const [status,current,settings]=await Promise.all([customerStatus(user.userId),account(user),pricingAndPolicy()]);
   if(status==='blocked')throw new HttpError(403, 'err_11');

@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:workers';
-import { database, failure, HttpError, identity, json, sameOrigin } from '@/lib/market/server';
+import { database, failure, HttpError, identity, json, rateLimit, sameOrigin } from '@/lib/market/server';
 
 const allowed = new Set(['image/jpeg', 'image/png', 'application/pdf']);
 
@@ -30,6 +30,8 @@ export async function POST(request: Request) {
   try {
     sameOrigin(request);
     const user = await identity();
+    // Each upload keeps up to 8 MB in the bucket: a day's uploads per account are capped.
+    await rateLimit(`${user.userId}:passport-upload`, 20, 24 * 60 * 60_000, 'err_40');
     const length = Number(request.headers.get('content-length') ?? 0);
     if (length > 9_000_000) throw new HttpError(413, 'err_22');
     const form = await request.formData();

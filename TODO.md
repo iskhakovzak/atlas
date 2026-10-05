@@ -1,5 +1,18 @@
 # Atlas TODO and known limitations
 
+## Security audit, stage 1 — 5 October 2026
+
+- [x] Removed the `import-legacy` action (a customer could write their own balance, paid orders and staff fields).
+- [x] Rate limits on `/api/actions` (60 a minute; 40 store checks per 10 minutes) and passport uploads (20 a day per account).
+- [x] Order numbers have 12 hex digits; the operational tables and books never overwrite another customer's order with the same number.
+- [x] `X-Frame-Options: DENY` while the CSP is report-only.
+- [x] Administration → Система warns when `ATLAS_AUTH_SECRET` is not set.
+- [ ] Enforce the CSP (now report-only) once nonces replace the inline scripts; then `frame-ancestors` takes over from `X-Frame-Options`.
+- [ ] `/api/actions` still returns the text of internal exceptions to the customer as a 400 message; map them to stable codes.
+- [ ] Staff roles in `market_staff_directory` grant nothing: only `ATLAS_OPERATOR_EMAIL` is an operator. Decide whether roles should get scoped access before inviting staff.
+- [ ] `payment-demo` lets a customer mark their own order paid, and the books count it as paid; remove it when a payment provider is connected.
+- [ ] Rate limits use fixed windows in D1; repeated sign-ins on the local Worker reach them (reset: `DELETE FROM market_rate_limits` in the local D1 only).
+
 ## Accounting, customs, discounts, OCR, delivery days — 6 October 2026
 
 - [x] Books: order finance split (transit vs Atlas income), money ledger with voids, monthly profit and profit tax, three CSV exports for Excel (Admin → Финансы → Бухгалтерия).
@@ -445,7 +458,7 @@ Checked `main` at `fedd1e7` (the squash of #8), then fixed the findings on `fix/
 ## Auth/data/operations
 
 - [ ] Choose and integrate standalone auth (email password or email code, recovery, optional Google OAuth, rate limits and consent records). Do not collect passwords until an identity provider or audited password implementation is selected.
-- [ ] Remove or redesign the compatible `import-legacy` path before introducing real payment, shipment, entitlement or stored-value capability. It accepts local prototype state and must never become a path to a real monetary balance.
+- [x] (5 October 2026: removed.) Remove or redesign the compatible `import-legacy` path before introducing real payment, shipment, entitlement or stored-value capability. It accepts local prototype state and must never become a path to a real monetary balance.
 - [ ] Connect a verified email sender for actual notification delivery; current email/SMS history is preview-only.
 - [ ] Select a phone-verification provider and retention policy before requiring a phone at payment/delivery.
 - [ ] Add encrypted off-platform D1/R2 backups with retention and a tested restore runbook; administrator integrity/rebuild is not an external backup.

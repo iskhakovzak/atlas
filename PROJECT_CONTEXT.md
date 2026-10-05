@@ -138,7 +138,7 @@ The account's high-priority next-action panel explicitly retains its dark ink su
 
 This is a reviewable visual override, not yet the settled Atlas brand palette. The owner should confirm or ask to revert the green palette before further design-system consolidation. No global test suite was run for this visual iteration; production build is the deployment check.
 
-The customer account no longer displays the legacy browser-data migration panel. The server-side `import-legacy` action remains in place and must still be removed or redesigned before real payment, shipment or stored-value capability is introduced; hiding the UI does not retire that action.
+The customer account no longer displays the legacy browser-data migration panel. The server-side `import-legacy` action was removed on 5 October 2026: it let a customer write their own balance and orders.
 
 ## Import recovery and API error localization — 26 September 2026
 

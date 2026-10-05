@@ -1365,7 +1365,8 @@ export function checkoutCart(
   if (identityProfileId && (!selectedDelivery || !selectedIdentity || selectedIdentity.recipientProfileId !== selectedDelivery.id)) throw Error("Паспорт не привязан к выбранному получателю.");
   const entries = [...state.entries];
   const orders = state.cart.map((i) => {
-    const id = "AT-" + crypto.randomUUID().slice(0, 8).toUpperCase();
+    // 48 random bits: order numbers are global across customers, so 8 hex digits would start to collide.
+    const id = "AT-" + crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
     const balanceUsed = Math.min(i.quote.total, available);
     const payable = i.quote.total - balanceUsed;
     available -= balanceUsed;
