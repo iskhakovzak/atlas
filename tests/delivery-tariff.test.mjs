@@ -27,11 +27,14 @@ test('a tariff saved before the owner decisions gets $15/kg, the 9.98% fee and t
   const legacy = pricingSchema.parse({ ...tariff, perKgUsd: undefined, perKg: 90000, fx: 12600, margin: 0.12, fxSource: undefined, revision: undefined, version: 'managed-1' });
   assert.equal(legacy.fxSource, 'manual');
   const upgraded = upgradePricing(legacy);
-  assert.deepEqual([upgraded.perKgUsd, upgraded.margin, upgraded.fxSource, upgraded.fxMarkup, upgraded.revision], [15, 0.0998, 'cbu', 1.012, 2]);
+  assert.deepEqual([upgraded.perKgUsd, upgraded.margin, upgraded.fxSource, upgraded.fxMarkup, upgraded.revision], [15, 0.0998, 'cbu', 1.012, 3]);
   // Until the server reads the bank's rate, the stored rate stands.
   assert.equal(upgraded.fx, 12600);
   assert.equal(upgraded.perKg, 15 * 12600);
-  assert.equal(upgraded.version, 'managed-1+r2');
+  assert.equal(upgraded.version, 'managed-1+r3');
+  // Revision 3 (5 October 2026): no international reserve in the bill, customs paid through Atlas at 4.98% of the cart.
+  const second = upgradePricing(pricingSchema.parse({ ...tariff, revision: 2, margin: 0.1, reserve: 0.2, customsHelpFee: 0.03, countryOverrides: { Китай: { perKgUsd: 14, reserve: 0.3 } }, version: 'managed-3' }));
+  assert.deepEqual([second.reserve, second.customsHelpFee, second.margin, second.countryOverrides['Китай'].perKgUsd, 'reserve' in second.countryOverrides['Китай'], second.version], [0, 0.0498, 0.1, 14, false, 'managed-3+r3'], 'a revision-2 row keeps its own fee and rates');
   const saved = upgradePricing(pricingSchema.parse({ ...tariff, perKgUsd: 13, fx: 12600, fxSource: 'manual', margin: 0.1, version: 'managed-2' }));
   assert.deepEqual([saved.perKg, saved.margin, saved.version], [13 * 12600, 0.1, 'managed-2'], 'a tariff saved after them keeps its own values');
   assert.ok(upgradePricing({ ...legacy, version: 'v'.repeat(80) }).version.length <= 80);

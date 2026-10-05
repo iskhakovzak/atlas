@@ -574,6 +574,7 @@ export function GlobalLinkOrder() {
   const previewWeight = Math.round(previewItems.reduce((sum, item) => sum + item.quote.weight, 0) * 100) / 100;
   const previewHold = storeShippingReserves(previewItems, pricing)[0];
   const storeShippingState: "stated" | "free" | "hold" | "none" = !shippingEstimated ? (Number(shipping) > 0 ? "stated" : "none") : !previewItems.length ? "none" : previewHold?.reserveUsd ? "hold" : "free";
+  const shippingFree = shippingEstimated && storeShippingState === "free";
   const primaryProfile = state.deliveryProfiles.find(profile => profile.primary) ?? state.deliveryProfiles[0];
   const customsPreview = previewItems.length ? cartCustomsEstimate({ ...state, cart: previewItems }, pricing, { profile: primaryProfile }, { outsideUsed: false, help: false }) : null;
   const k = calcCopy[lang];
@@ -833,12 +834,13 @@ export function GlobalLinkOrder() {
               {previewSums ? <>
                 <CalcLines sums={previewSums} locale={lang} pricing={pricing} weightKg={previewWeight} storeShippingState={storeShippingState}/>
                 <div className="basket-total bill-total"><span>{units > 1 ? `${k.lines.total} (${units} ${lang === "en" ? "pcs" : lang === "uz" ? "dona" : "шт."})` : k.lines.total}</span><strong><Money value={previewSums.total} locale={lang}/></strong></div>
+                {/* The allowance in two lines; "Atlas pays customs for me" is chosen in the cart, for the whole order. */}
+                {customsPreview && <CustomsPanel estimate={customsPreview} choices={{ outsideUsed: false, help: false }} locale={lang} pricing={pricing} profiles={primaryProfile ? [primaryProfile] : []} compact/>}
               </> : <p className="cabinet-empty">{picks.length ? lc.emptyTotal : tx("Выберите вариант, и мы покажем итог.", "Variantni tanlang, jamini ko‘rsatamiz.", "Choose an option to see the total.")}</p>}
             </div>
-            {previewSums && (previewSums.storeShippingHold > 0 || customsPreview) && <section className="folio-outside" aria-labelledby="lo-outside-title">
+            {previewSums && previewSums.storeShippingHold > 0 && <section className="folio-outside" aria-labelledby="lo-outside-title">
               <h3 id="lo-outside-title">{k.outside}</h3>
               <HoldNote amount={previewSums.storeShippingHold} locale={lang} pricing={pricing}/>
-              {customsPreview && <CustomsPanel estimate={customsPreview} choices={{ outsideUsed: false, help: false }} locale={lang} pricing={pricing} profiles={primaryProfile ? [primaryProfile] : []} compact/>}
             </section>}
           </aside>
 
@@ -876,7 +878,8 @@ export function GlobalLinkOrder() {
                   <div className="lo-block-row">
                     <div className="field">
                       <label htmlFor="shipping">{k.storeShippingAmount}, {shippingCurrency}</label>
-                      <input id="shipping" type="number" inputMode="decimal" required min="0" step=".01" value={shipping} readOnly={catalogProductFlow} className={catalogProductFlow?"catalog-locked-field":undefined} onChange={(e) => { setShipping(e.target.value); setShippingEstimated(true); setVerified(false); }} />
+                      {/* Unknown delivery from a store order above the threshold is free: the field shows the 0 that applies. */}
+                      <input id="shipping" type="number" inputMode="decimal" required min="0" step=".01" value={shippingFree ? "0" : shipping} readOnly={catalogProductFlow || shippingFree} className={catalogProductFlow || shippingFree ? "catalog-locked-field" : undefined} onChange={(e) => { setShipping(e.target.value); setShippingEstimated(true); setVerified(false); }} />
                     </div>
                     <p className="lo-block-state">{shippingEstimated ? (storeShippingState === "free" ? k.lines.free : k.storeShippingUnknown) : k.storeShippingStated}</p>
                   </div>

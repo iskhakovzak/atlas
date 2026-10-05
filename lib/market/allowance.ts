@@ -128,7 +128,9 @@ export function cartCustomsEstimate(
   const outsideUsedUsd = choices?.outsideUsed ? cents(choices.outsideUsd ?? 0) : 0;
   const remaining = outsideUnknown ? 0 : Math.max(0, params.allowanceUsd - atlasUsedUsd - outsideUsedUsd);
   const dutiableUsd = cents(Math.max(0, valueUsd - remaining));
-  const helpRequested = Boolean(choices?.help) && dutiableUsd > 0;
+  const helpRequested = Boolean(choices?.help);
+  // The fee is a line of the bill (repriceCart); here only its USD equivalent for the order's customs record.
+  const helpFee = state.cart.reduce((sum, item) => sum + (item.quote.customsHelp ?? 0), 0);
   return {
     recipientKey: recipientKey(person.name, person.passport),
     recipientName: (recipient.profile?.recipient ?? recipient.name ?? '').trim().slice(0, 100) || undefined,
@@ -142,8 +144,8 @@ export function cartCustomsEstimate(
     rate: params.rate,
     minimumPerKg: params.minimumPerKg,
     estimateUsd: cents(dutiableUsd * params.rate),
-    // Owner's rule (5.10.2026): the help fee is 3% of the goods value, offered only when some duty is due.
-    ...(helpRequested ? { helpRequested, helpFeeUsd: cents(valueUsd * (pricing.customsHelpFee ?? 0.03)) } : {}),
+    // Owner's rule (5.10.2026): Atlas pays customs for 4.98% of the cart's amount to pay, offered in every cart.
+    ...(helpRequested ? { helpRequested, helpFeeUsd: cents(helpFee / pricing.fx) } : {}),
     checkedOn: customsCheckedOn,
   };
 }

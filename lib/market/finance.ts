@@ -73,7 +73,7 @@ export function orderFinance(order: Order, customerId: string): OrderFinance {
   const shipping = order.settlement ? order.settlement.shipping : q.shipping;
   const commission = q.service + (q.buyout ?? 0) + (q.conversion ?? 0);
   const delivery = shipping + (q.deliveryMargin ?? 0);
-  const services = (q.optionalServices ?? 0) + delta(["warehouse-service"]);
+  const services = (q.optionalServices ?? 0) + (q.customsHelp ?? 0) + delta(["warehouse-service"]);
   const goods = q.merchandise - fxGain + delta(["price", "variant", "substitution"]);
   const storeShipping = (order.storeShippingSettlement ? order.storeShippingSettlement.actual : q.sourceShipping ?? 0) + delta(["source-shipping"]);
   const status = order.cancelled ? "cancelled" : order.payment?.status === "paid" ? "paid" : order.payment?.status === "refunded" ? "refunded" : "pending";
