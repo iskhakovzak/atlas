@@ -1,7 +1,6 @@
 import { z } from "zod";
 import {
   productSchema,
-  parseState,
   addToCart,
   changeQuantity,
   renewCart,
@@ -169,7 +168,8 @@ export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("identity-confirm"), documentId: z.string().min(1).max(100), recipientProfileId: z.string().min(1).max(80).optional(), firstName: z.string().trim().min(1).max(80), lastName: z.string().trim().min(1).max(80), birthDate: z.string(), passportNumber: z.string().min(6).max(24), nationality: z.string().trim().max(80) }),
   z.object({ type: z.literal("identity-clear"), documentId: z.string().min(1).max(100) }),
   z.object({ type: z.literal("declaration-preview"), orderIds: z.array(z.string().max(100)).min(1).max(30) }),
-  z.object({ type: z.literal("import-legacy"), data: z.string().max(1000000) }),
+  // No action may replace the account document wholesale: the former "import-legacy" took client JSON
+  // as the whole state, so a customer could write their own balance, paid orders and staff fields.
 ]);
 export type Action = z.infer<typeof actionSchema>;
 /** A product as the server accepts it into the cart: USD, store delivery and weight recomputed from the store data. */
@@ -388,14 +388,5 @@ export function applyAction(
       return clearIdentity(s, a.documentId);
     case "declaration-preview":
       return submitDeclarationPreview(s, a.orderIds);
-    case "import-legacy":
-      if (
-        s.orders.length ||
-        s.entries.length ||
-        s.cart.length ||
-        s.favorites.length
-      )
-        throw Error("Импорт возможен только в пустой профиль.");
-      return parseState(a.data);
   }
 }

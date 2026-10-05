@@ -118,6 +118,8 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_36': 'Магазин изменил данные товара: валюту, вариант или цену. Откройте отмеченный товар и добавьте его заново.',
     'err_37': 'Тарифы Atlas обновились. Корзина пересчитана — проверьте новый итог и оформите заказ ещё раз.',
     'err_38': 'Магазин сейчас не отвечает, поэтому цену не удалось сверить. Попробуйте через несколько минут.',
+    'err_39': 'Слишком много проверок цен у магазинов. Подождите несколько минут и повторите.',
+    'err_40': 'На сегодня загружено слишком много файлов документа. Попробуйте завтра или напишите в поддержку.',
   },
   uz: {
     'err_1': 'Davom etish uchun tizimga kiring.',
@@ -158,6 +160,8 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_36': 'Do‘kon tovar ma’lumotlarini o‘zgartirdi: valyuta, variant yoki narx. Belgilangan tovarni ochib, qayta qo‘shing.',
     'err_37': 'Atlas tariflari yangilandi. Savat qayta hisoblandi — yangi jamini tekshirib, buyurtmani qayta rasmiylashtiring.',
     'err_38': 'Do‘kon hozir javob bermayapti, shuning uchun narxni tekshirib bo‘lmadi. Bir necha daqiqadan so‘ng urinib ko‘ring.',
+    'err_39': 'Do‘konlarda narx tekshiruvi juda ko‘p bo‘ldi. Bir necha daqiqa kutib, qayta urinib ko‘ring.',
+    'err_40': 'Bugun hujjat fayllari juda ko‘p yuklandi. Ertaga urinib ko‘ring yoki qo‘llab-quvvatlashga yozing.',
   },
   en: {
     'err_1': 'Sign in to continue.',
@@ -198,6 +202,8 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_36': 'The store changed the item’s currency, option or price. Open the marked item and add it again.',
     'err_37': 'Atlas rates were updated. Your cart was recalculated — check the new total and check out again.',
     'err_38': 'The store is not responding, so the price could not be checked. Try again in a few minutes.',
+    'err_39': 'Too many price checks with the stores. Wait a few minutes and try again.',
+    'err_40': 'Too many document files uploaded today. Try again tomorrow or contact support.',
   },
 };
 export function serverError(locale:Locale, key:string){

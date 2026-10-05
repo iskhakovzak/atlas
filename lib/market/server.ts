@@ -12,6 +12,12 @@ export async function identity(){const user=await currentUser();if(!user)throw n
 export function operator(email:string){return !!email&&!!env.ATLAS_OPERATOR_EMAIL&&email.toLowerCase()===env.ATLAS_OPERATOR_EMAIL.toLowerCase()}
 export class HttpError extends Error{constructor(public status:number,message:string){super(message)}}
 export function sameOrigin(request:Request){const origin=request.headers.get('origin');if(!origin||origin!==new URL(request.url).origin)throw new HttpError(403, 'err_2')}
+/** Counts one use of `name` in a fixed window; past `max`, refuses with 429 and the given error code. */
+export async function rateLimit(name:string,max:number,windowMs:number,errorCode='err_20'){
+ const now=Date.now(),key=`${name}:${Math.floor(now/windowMs)}`;
+ const row=await database().prepare('INSERT INTO market_rate_limits (key,count,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count').bind(key,now+windowMs).first<{count:number}>();
+ if(!row||row.count>max)throw new HttpError(429,errorCode);
+}
 export const json=(body:unknown,status=200)=>Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
 export async function account(user:{userId:string;platformUserId?:string|null;displayName:string}){
  const db=database();
@@ -48,11 +54,27 @@ async function syncLatestOperationalProjection(id:string){
  console.error('Operational projection sync remains behind canonical account state');
 }
 
+/** Order IDs from `orders` that the operational tables already hold for another customer. */
+async function foreignOrderIds(id:string,orders:State['orders']){
+ const db=database(),foreign=new Set<string>();
+ // D1 binds at most 100 values per statement.
+ for(let start=0;start<orders.length;start+=90){
+  const chunk=orders.slice(start,start+90).map(order=>order.id);
+  const rows=await db.prepare(`SELECT id FROM market_order_records WHERE customer_id<>? AND id IN (${chunk.map(()=>'?').join(',')})`).bind(id,...chunk).all<{id:string}>();
+  for(const row of rows.results)foreign.add(row.id);
+ }
+ return foreign;
+}
+
 export async function syncOperationalProjection(id:string,state:State,now=Date.now()){
  const db=database(),email=id.startsWith('email:')?id.slice(6):id;
+ // An order number already used by another customer never overwrites their rows, fee lines or books.
+ const foreign=await foreignOrderIds(id,state.orders);
+ if(foreign.size)console.error('Order IDs already belong to another customer; not synced',[...foreign].slice(0,10));
+ const orders=state.orders.filter(order=>!foreign.has(order.id));
  const statements=[db.prepare("INSERT INTO market_customers (id,email,name,phone,locale,status,created_at,updated_at) VALUES (?,?,?,?,?,'active',?,?) ON CONFLICT(id) DO UPDATE SET email=excluded.email,name=excluded.name,phone=excluded.phone,locale=excluded.locale,updated_at=excluded.updated_at").bind(id,email,state.deliveryProfile?.recipient??email,state.deliveryProfile?.phone??null,state.communication.language,now,now)];
- for(const order of state.orders){
-  statements.push(db.prepare('INSERT INTO market_order_records (id,customer_id,status,source_store,source_url,currency,total,assigned_role,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET status=excluded.status,source_store=excluded.source_store,source_url=excluded.source_url,currency=excluded.currency,total=excluded.total,assigned_role=excluded.assigned_role,updated_at=excluded.updated_at').bind(order.id,id,order.cancelled?'cancelled':String(order.status),order.product.brand,order.product.sourceUrl??null,'UZS',orderPayable(order),order.assignment?.team??null,order.createdAt,now));
+ for(const order of orders){
+  statements.push(db.prepare('INSERT INTO market_order_records (id,customer_id,status,source_store,source_url,currency,total,assigned_role,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET status=excluded.status,source_store=excluded.source_store,source_url=excluded.source_url,currency=excluded.currency,total=excluded.total,assigned_role=excluded.assigned_role,updated_at=excluded.updated_at WHERE market_order_records.customer_id=excluded.customer_id').bind(order.id,id,order.cancelled?'cancelled':String(order.status),order.product.brand,order.product.sourceUrl??null,'UZS',orderPayable(order),order.assignment?.team??null,order.createdAt,now));
   statements.push(db.prepare('DELETE FROM market_order_fee_lines WHERE order_id=?').bind(order.id));
   const fees=[['item','Товар',order.quote.merchandise],['service','Сервис Atlas',order.quote.service],['buyout','Комиссия за выкуп',order.quote.buyout??0],['conversion','Конвертация',order.quote.conversion??0],['merchant_shipping','Доставка магазина',order.quote.sourceShipping??0],['international_shipping','Международная доставка',order.quote.shipping],['delivery_margin','Маржа доставки',order.quote.deliveryMargin??0],['international_reserve','Резерв доставки',order.quote.reserve],['optional_services','Дополнительные услуги',order.quote.optionalServices??0]] as const;
   for(const [kind,label,amount] of fees)statements.push(db.prepare('INSERT INTO market_order_fee_lines (id,order_id,kind,label,amount,currency,created_at) VALUES (?,?,?,?,?,?,?)').bind(`${order.id}:${kind}`,order.id,kind,label,amount,'UZS',order.createdAt));
@@ -61,8 +83,8 @@ export async function syncOperationalProjection(id:string,state:State,now=Date.n
  }
  await db.batch(statements);
  // The books (migration 0009) in their own batch: a database without the table still syncs everything above.
- if(state.orders.length)try{
-  await db.batch(state.orders.map(order=>{const f=orderFinance(order,id);return db.prepare('INSERT INTO market_order_finance (order_id,customer_id,status,created_at,paid_at,month,goods,store_shipping,reserve,payable,commission,delivery,fx_gain,services,revenue,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(order_id) DO UPDATE SET customer_id=excluded.customer_id,status=excluded.status,paid_at=excluded.paid_at,month=excluded.month,goods=excluded.goods,store_shipping=excluded.store_shipping,reserve=excluded.reserve,payable=excluded.payable,commission=excluded.commission,delivery=excluded.delivery,fx_gain=excluded.fx_gain,services=excluded.services,revenue=excluded.revenue,updated_at=excluded.updated_at').bind(f.orderId,f.customerId,f.status,f.createdAt,f.paidAt??null,f.month??null,f.goods,f.storeShipping,f.reserve,f.payable,f.commission,f.delivery,f.fxGain,f.services,f.revenue,now)}));
+ if(orders.length)try{
+  await db.batch(orders.map(order=>{const f=orderFinance(order,id);return db.prepare('INSERT INTO market_order_finance (order_id,customer_id,status,created_at,paid_at,month,goods,store_shipping,reserve,payable,commission,delivery,fx_gain,services,revenue,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(order_id) DO UPDATE SET customer_id=excluded.customer_id,status=excluded.status,paid_at=excluded.paid_at,month=excluded.month,goods=excluded.goods,store_shipping=excluded.store_shipping,reserve=excluded.reserve,payable=excluded.payable,commission=excluded.commission,delivery=excluded.delivery,fx_gain=excluded.fx_gain,services=excluded.services,revenue=excluded.revenue,updated_at=excluded.updated_at WHERE market_order_finance.customer_id=excluded.customer_id').bind(f.orderId,f.customerId,f.status,f.createdAt,f.paidAt??null,f.month??null,f.goods,f.storeShipping,f.reserve,f.payable,f.commission,f.delivery,f.fxGain,f.services,f.revenue,now)}));
  }catch(error){console.error('Order finance projection failed',error)}
 }
 
