@@ -273,3 +273,14 @@ test('fresh verification accepts a matching variant when the merchant omits stoc
   const fresh={sourceUrl:p.sourceUrl,currency:'USD',price:76.97,variants:[{id:'00197600816527',label:'White · 6',available:true,availabilityKnown:false,price:76.97}],warnings:[],method:'JSON-LD'};
   assert.equal(verifyProductSnapshot(p,'White · 6',fresh,5000).sourcePrice,76.97);
 });
+
+test('Shopify keeps the store\'s "before the discount" price only when it is above the price',()=>{
+  const sale={...product,variants:[
+    {id:1,title:'Black / 8',option1:'Black',option2:'8',price:7397,compare_at_price:12500,available:true},
+    {id:2,title:'Black / 9',option1:'Black',option2:'9',price:7397,compare_at_price:7397,available:true},
+  ]};
+  const chosen=extractShopify(sale,{currency:'USD'},url+'?variant=1');
+  assert.equal(chosen.price,73.97);assert.equal(chosen.referencePrice,125);assert.equal(chosen.variants[0].compareAtPrice,125);
+  assert.equal(chosen.variants[1].compareAtPrice,undefined,'a compare price equal to the price is no discount');
+  assert.equal(extractShopify(sale,{currency:'USD'},url+'?variant=2').referencePrice,undefined);
+});

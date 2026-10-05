@@ -12,31 +12,11 @@ import {docsCopy,formatDateTime,formatLongDate,orderCount,recipientCopy} from "@
 import {courierAllowanceUsd} from "@/lib/market/customs";
 import {Empty,Modal} from "./market-ui";
 import {RecipientForm,type RecipientDraft} from "./recipient-form";
+import {normalizeDocument,readDocument} from "./passport-ocr";
 
 type DocumentRow={id:string;filename:string;content_type?:string;contentType?:string;size:number;status:string;created_at?:number;createdAt?:number};
 type IdentityForm={firstName:string;lastName:string;birthDate:string;passportNumber:string;nationality:string};
 const empty:IdentityForm={firstName:"",lastName:"",birthDate:"",passportNumber:"",nationality:""};
-
-function birthDate(value:string){
-  if(!/^\d{6}$/.test(value))return "";
-  const yy=Number(value.slice(0,2)),current=new Date().getFullYear()%100,year=yy>current?1900+yy:2000+yy;
-  return `${year}-${value.slice(2,4)}-${value.slice(4,6)}`;
-}
-export function parseMrz(text:string):Partial<IdentityForm>{
-  const lines=text.toUpperCase().split(/\r?\n/).map(line=>line.replace(/[^A-Z0-9<]/g,"")).filter(line=>line.length>=35);
-  const first=lines.find(line=>line.startsWith("P<"));
-  const second=first?lines[lines.indexOf(first)+1]:undefined;
-  if(!first||!second)return {};
-  const names=first.slice(5).split("<<"),lastName=(names[0]??"").replaceAll("<"," ").trim(),firstName=(names[1]??"").replaceAll("<"," ").trim();
-  return {lastName,firstName,passportNumber:second.slice(0,9).replaceAll("<",""),nationality:second.slice(10,13).replaceAll("<",""),birthDate:birthDate(second.slice(13,19))};
-}
-
-async function readImage(file:File){
-  const Detector=(window as unknown as {TextDetector?:new()=>{detect:(source:ImageBitmap)=>Promise<Array<{rawValue:string}>>}}).TextDetector;
-  if(!Detector||!file.type.startsWith("image/"))return null;
-  const bitmap=await createImageBitmap(file),blocks=await new Detector().detect(bitmap);bitmap.close();
-  return blocks.map(block=>block.rawValue).join("\n");
-}
 
 /** Adds a recipient from a document page, then selects it once the saved state comes back. */
 function useInlineRecipient(onAdded:(id:string)=>void){
@@ -62,6 +42,7 @@ export function IdentityView(){
   const c={ru:{notReady:'Войдите, чтобы подтвердить личность',notReadyText:'Скан и подтверждённые данные доступны только владельцу профиля.',open:'Открыть вход',over:'ЗАЩИЩЁННЫЕ ДОКУМЕНТЫ',title:'Паспорт для декларации.',intro:'Загрузите разворот с фото. Atlas попробует прочитать машиночитаемую зону, а вы обязательно проверите результат.',replace:'Заменить документ',uploadTitle:'Загрузите паспорт',how:'Как сфотографировать паспорт',howText:'JPG, PNG или PDF до 8 МБ. Чёткое фото без бликов, весь разворот и две строки внизу документа.',choose:'Выбрать файл или фото',consent:'Согласен на',processing:'обработку паспортных данных',recognize:'Распознать и загрузить',private:'Изображение доступно только вашему аккаунту. Его можно удалить ниже.',check:'Проверьте данные',after:'После загрузки здесь появятся распознанные поля.',last:'Фамилия',first:'Имя',birth:'Дата рождения',nationality:'Гражданство / код',number:'Номер паспорта',confirmed:'Подтверждено',confirm:'Подтверждаю, данные верны',docs:'Загруженные документы',confirmedData:'данные подтверждены',pending:'ожидает подтверждения',delete:'Удалить скан',none:'Сканов пока нет.',warning:'Atlas не выполняет государственную проверку документа и не отправляет его в таможню автоматически.'},uz:{notReady:'Shaxsni tasdiqlash uchun kiring',notReadyText:'Skan va tasdiqlangan ma’lumotlar faqat profil egasiga ko‘rinadi.',open:'Kirishni ochish',over:'HIMOYALANGAN HUJJATLAR',title:'Deklaratsiya uchun pasport.',intro:'Suratli sahifani yuklang. Atlas MRZ zonasini o‘qishga harakat qiladi, natijani esa siz tekshirasiz.',replace:'Hujjatni almashtirish',uploadTitle:'Pasportni yuklang',how:'Pasportni qanday suratga olish kerak',howText:'JPG, PNG yoki PDF, 8 MB gacha. Yaltiroqsiz aniq surat, to‘liq yoyilma va pastdagi ikki qator.',choose:'Fayl yoki suratni tanlang',consent:'Men roziman:',processing:'pasport ma’lumotlarini qayta ishlashga',recognize:'Tanib olish va yuklash',private:'Rasm faqat akkauntingizga ochiq. Uni quyida o‘chirishingiz mumkin.',check:'Ma’lumotlarni tekshiring',after:'Yuklangandan so‘ng tanilgan maydonlar shu yerda paydo bo‘ladi.',last:'Familiya',first:'Ism',birth:'Tug‘ilgan sana',nationality:'Fuqarolik / kod',number:'Pasport raqami',confirmed:'Tasdiqlangan',confirm:'Ma’lumotlar to‘g‘ri',docs:'Yuklangan hujjatlar',confirmedData:'ma’lumotlar tasdiqlangan',pending:'tasdiq kutilmoqda',delete:'Skanerlangan nusxani o‘chirish',none:'Hali skanlar yo‘q.',warning:'Atlas hujjatni davlat tomonidan tekshirmaydi va uni bojxonaga avtomatik yubormaydi.'},en:{notReady:'Sign in to confirm your identity',notReadyText:'Scans and confirmed details are available only to the profile owner.',open:'Open sign in',over:'PROTECTED DOCUMENTS',title:'Passport for your declaration.',intro:'Upload the photo page. Atlas will try to read the machine-readable zone, and you must verify the result.',replace:'Replace document',uploadTitle:'Upload your passport',how:'How to photograph your passport',howText:'JPG, PNG or PDF up to 8 MB. Use a clear, glare-free photo of the full spread and the two lines at the bottom.',choose:'Choose a file or photo',consent:'I agree to',processing:'passport data processing',recognize:'Read and upload',private:'The image is available only to your account. You can delete it below.',check:'Check the details',after:'Recognized fields will appear here after upload.',last:'Last name',first:'First name',birth:'Date of birth',nationality:'Nationality / code',number:'Passport number',confirmed:'Confirmed',confirm:'The details are correct',docs:'Uploaded documents',confirmedData:'details confirmed',pending:'awaiting confirmation',delete:'Delete scan',none:'No scans yet.',warning:'Atlas does not perform government document verification and does not send it to customs automatically.'}}[lang];
   const d=docsCopy[lang];
   const requested=useSearchParams().get('recipient')??'';
+  const [reading,setReading]=useState(false);
   const [docs,setDocs]=useState<DocumentRow[]>([]),[file,setFile]=useState<File|null>(null),[consent,setConsent]=useState(false),[form,setForm]=useState<IdentityForm>(empty),[busy,setBusy]=useState(false),[documentId,setDocumentId]=useState(""),[recipientProfileId,setRecipientProfileId]=useState("");
   const recipientProfiles=state.deliveryProfiles;
   const identities=useMemo(()=>state.identityProfiles??(state.identityProfile?[state.identityProfile]:[]),[state.identityProfiles,state.identityProfile]);
@@ -74,8 +55,12 @@ export function IdentityView(){
     if(!file||!consent||busy)return;setBusy(true);
     try{
       let extracted:Partial<IdentityForm>={};
-      try{const text=await readImage(file);if(text)extracted=parseMrz(text)}catch{toast.message(d.autoFailed)}
-      const body=new FormData();body.append('file',file);const response=await fetch('/api/passport',{method:'POST',body});const data=await response.json() as {document?:DocumentRow;error?:string};if(!response.ok||!data.document)throw Error(data.error??d.uploadError);
+      // iPhone HEIC and very large photos become a JPEG first; the reading happens in this browser (/ocr/).
+      const prepared=await normalizeDocument(file).catch(()=>file);
+      setReading(true);
+      try{const found=await readDocument(prepared);extracted=Object.fromEntries(Object.entries({firstName:found.firstName,lastName:found.lastName,birthDate:found.birthDate,passportNumber:found.passportNumber,nationality:found.nationality}).filter(([,value])=>value)) as Partial<IdentityForm>;if(prepared.type.startsWith('image/')&&!Object.keys(extracted).length)toast.message(d.autoFailed)}catch{toast.message(d.autoFailed)}
+      finally{setReading(false)}
+      const body=new FormData();body.append('file',prepared);const response=await fetch('/api/passport',{method:'POST',body});const data=await response.json() as {document?:DocumentRow;error?:string};if(!response.ok||!data.document)throw Error(data.error??d.uploadError);
       setDocs(list=>[data.document!,...list]);setDocumentId(data.document.id);setForm({...empty,...extracted});toast.success(Object.keys(extracted).length?d.uploadedFilled:d.uploaded);
     }catch(error){toast.error((error as Error).message)}finally{setBusy(false)}
   }
@@ -103,7 +88,7 @@ export function IdentityView(){
         <details className="docs-how"><summary>{c.how}</summary><p>{c.howText}</p></details>
         <label className="docs-drop"><Upload aria-hidden="true"/><span>{file?file.name:c.choose}</span><input type="file" accept="image/jpeg,image/png,application/pdf" onChange={event=>setFile(event.target.files?.[0]??null)}/></label>
         <div className="basket-consent"><Checkbox id="passport-consent" checked={consent} onCheckedChange={value=>setConsent(value===true)}/><label htmlFor="passport-consent">{c.consent} <Link href="/legal#passport-consent" target="_blank" rel="noopener noreferrer">{c.processing}</Link>.</label></div>
-        <button type="button" className="btn primary basket-cta" disabled={!file||!consent||busy||!selectedRecipientProfileId} onClick={()=>void upload()}>{busy?<LoaderCircle className="spin" aria-hidden="true"/>:<ScanLine aria-hidden="true"/>}{c.recognize}</button>
+        <button type="button" className="btn primary basket-cta" disabled={!file||!consent||busy||!selectedRecipientProfileId} onClick={()=>void upload()}>{busy?<LoaderCircle className="spin" aria-hidden="true"/>:<ScanLine aria-hidden="true"/>}{reading?d.reading:c.recognize}</button>
         <p className="cabinet-note">{selectedRecipientProfileId?c.private:d.pickFirst}</p>
       </li>
       <li className="cabinet-card docs-step">
@@ -166,7 +151,7 @@ export function DeclarationView(){
       </li>)}</ul>
     </section>
     {readyToDeclare&&<div className="docs-declare">
-      <section className="cabinet-card"><h2>{c.recipientData}</h2>{displayIdentity?<dl className="order-x-details"><div><dt>{c.recipientLabel}</dt><dd>{displayIdentity.lastName} {displayIdentity.firstName}</dd></div><div><dt>{c.birth}</dt><dd>{displayIdentity.birthDate}</dd></div><div><dt>{c.passportLabel}</dt><dd>{displayIdentity.passportMasked}</dd></div>{displayDelivery&&<div><dt>{c.address}</dt><dd>{displayDelivery.recipient}<small>{displayDelivery.region}, {displayDelivery.city}, {displayDelivery.address}</small></dd></div>}</dl>:<p className="cabinet-empty">{c.notConfirmed}</p>}</section>
+      <section className="cabinet-card"><h2>{c.recipientData}</h2>{displayIdentity?<dl className="order-x-details"><div><dt>{c.recipientLabel}</dt><dd>{displayIdentity.lastName} {displayIdentity.firstName}</dd></div><div><dt>{c.birth}</dt><dd>{displayIdentity.birthDate}</dd></div><div><dt>{c.passportLabel}</dt><dd>{displayIdentity.passportMasked}</dd></div>{displayDelivery&&<div><dt>{c.address}</dt><dd>{displayDelivery.recipient}<small>{[displayDelivery.region, displayDelivery.city, displayDelivery.address, displayDelivery.postalCode].filter(Boolean).join(", ")}</small></dd></div>}</dl>:<p className="cabinet-empty">{c.notConfirmed}</p>}</section>
       <section className="cabinet-card docs-orders"><h2>{c.items}</h2>
         {groups.map(group=><div className="docs-group" key={group.key}>
           <div className="docs-group-head"><b>{d.ordersFor(group.name)}</b><button type="button" className="cabinet-text-btn" onClick={()=>setSelected(group.orders.map(order=>order.id))}>{d.selectGroup}</button></div>

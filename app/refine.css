@@ -1,23 +1,55 @@
-/* Final layer, loaded last: Atlas Day (the light theme) and the phone scale.
-   Atlas Day mirrors Atlas Night (theme-night.css): green-black ink, one brand green, warm neutral surfaces,
-   so both themes read as one brand. Older layers still name --home-*, --cat-* and --atlas-* tokens;
-   here they all resolve to the same day palette. */
+/* Atlas Day (the light theme) tokens and the phone scale. The look itself lives in day-folio.css,
+   loaded after this file. Older layers still name --home-*, --cat-* and --atlas-* tokens; here they
+   all resolve to the same day palette. */
 
-/* ---------- Atlas Day palette ---------- */
+/* ---------- Atlas Day palette: light canvas, white cards, ink, the brand green; light accents only where they carry news ---------- */
 :root:not([data-theme="dark"]) {
-  --day-canvas: #f7f6f2;
-  --day-surface: #ffffff;
-  --day-soft: #f2f0ea;
-  --day-line: #e4e2da;
-  --day-line-strong: #d3d1c6;
+  --day-canvas: #f6f6f2;          /* page: ink 15.4:1, muted 5.78:1, accent 8.88:1 */
+  --day-surface: #ffffff;         /* cards, sheets, header, inputs, photo stages, dialogs */
+  --day-soft: #efefe9;            /* segmented tracks, opened breakdowns, quiet fills */
+  --day-tint: #e8f1ea;            /* soft mint: selected chip or language, badges, good-news wells (ok text 5.61:1) */
+  --day-tint-2: #d6e6db;          /* mint borders and the plate's edge */
+  --day-line: #e2e2da;            /* decorative hairlines only */
+  --day-line-strong: #cbccc3;     /* chip outlines; chips are identified by their text */
+  --day-line-strong-2: #d5d6cd;   /* the not-yet part of step and tracking rails */
+  --day-field: #80877f;           /* form-control borders: 3.69:1 on white */
+  --day-leader: #a9aea6;          /* dotted bill leaders (decorative) */
   --day-ink: #16211c;
-  --day-muted: #5b665f;
-  --day-accent: #1f4d3b;
+  --day-muted: #58635c;           /* stays AA on soft and mint */
+  --day-accent: #1f4d3b;          /* the brand green: actions, links, focus (white on it 9.62:1) */
   --day-accent-hover: #173b2d;
+  --day-fresh: #6f9a83;           /* soft sage for marks only (bars, rails): 3.17:1, never for text */
+  --day-folio: #edf3ee;           /* the light plate behind a bill */
+  --day-slip: #fdf8ec;            /* the "not in the amount to pay" slip (muted 5.91:1) */
+  --day-slip-line: #f0e5c6;
+  --day-deal: #efe2bb;            /* top-deal gold */
   --day-ok: #1d6b47;
-  --day-ok-bg: #e9f3ed;
+  --day-ok-bg: var(--day-tint);
   --day-ok-line: #bfdccb;
+  --day-warn: #8a5a00;
+  --day-warn-bg: #fff4dc;
+  --day-error: #b42318;
   --day-shadow: 0 1px 2px rgba(22, 33, 28, .04), 0 6px 18px rgba(22, 33, 28, .05);
+  --day-shadow-lift: 0 2px 4px rgba(22, 33, 28, .04), 0 14px 32px rgba(22, 33, 28, .08);
+  --day-raise-form: 0 1px 0 rgba(22, 33, 28, .04), 0 18px 36px -24px rgba(22, 33, 28, .28);
+  --day-ring: 0 0 0 3px rgba(31, 77, 59, .16);
+
+  --day-sans: "Inter Variable", "Inter", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  --day-fs-lead: 18px;
+  --day-fs-h3: 18px;
+  --day-fs-h2-sheet: 20px;
+  --day-fs-h2: 34px;
+  --day-fs-h1-page: clamp(30px, 3vw, 38px);
+  --day-fs-h1: clamp(38px, 4.2vw, 54px);
+  --day-money-xl: 40px;           /* home bill */
+  --day-money-l: 34px;            /* cart and link-order total */
+  --day-money-m: 32px;            /* cabinet amount due */
+  --day-r-control: 10px;
+  --day-r-sheet: 14px;
+  --day-r-card: 18px;
+  --day-r-stage: 14px;
+  --day-r-plate: 22px;
+  --day-section: 96px;
 
   --home-ink: var(--day-ink); --home-muted: var(--day-muted); --home-line: var(--day-line);
   --home-soft: var(--day-soft); --home-surface: var(--day-surface); --home-accent: var(--day-accent);
@@ -79,11 +111,11 @@ html:not([data-theme="dark"]) .breadcrumb { color: var(--day-muted); }
 html:not([data-theme="dark"]) :is(.find-card, .store-tile, .stores-shelf button, .basket-parcel, .basket-summary, .cabinet-card, .order-x, .surface) { box-shadow: var(--day-shadow); }
 html:not([data-theme="dark"]) :is(.find-card, .store-tile, .stores-shelf button, .surface, .cabinet-card, .order-x) { border-color: var(--day-line); }
 html:not([data-theme="dark"]) .btn.primary:not(:disabled):hover { background: var(--day-accent-hover); }
-html:not([data-theme="dark"]) .find-card .find-visual { background: linear-gradient(180deg, #fbfaf7 0%, #f3f1eb 100%) !important; }
+html:not([data-theme="dark"]) .find-card .find-visual { background: linear-gradient(180deg, #fbfbf8 0%, #f2f2ec 100%) !important; }
 html:not([data-theme="dark"]) .find-card .find-photo .product-img { mix-blend-mode: multiply; }
 
 /* ---------- Catalog cards: long soum totals never leave the card ---------- */
-.find-card .find-total > strong { display: block; white-space: nowrap; font-feature-settings: "tnum" 1; }
+.find-card .find-total > strong { display: block; white-space: nowrap; }
 .find-card .find-store-price > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
 @media (max-width: 600px) {
   /* The "i" sits on the label row, so the total gets the full card width. */

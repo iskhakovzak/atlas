@@ -83,10 +83,12 @@ export function extractShopify(data: unknown, currencyData: unknown, sourceUrl: 
   const choiceIndexes = options.map((_, index) => index).filter(index => index !== colorIndex);
   const variants: ProductVariant[] = product.variants.slice(0, 250).map(raw => {
     const v = object(raw), values = [v.option1, v.option2, v.option3].map(label);
+    const variantPrice = amount(v.price), compareAt = amount(v.compare_at_price);
     const chosenIndexes = choiceIndexes.filter(index => values[index] && !/^default title$/i.test(values[index]));
     return {id: v.id === undefined ? undefined : String(v.id), label: label(v.public_title ?? v.title) || 'Стандартный', available: v.available === true,
       availabilityKnown: typeof v.available === 'boolean',
-      price: amount(v.price), image: gallery([v.featured_image, product.featured_image])[0],
+      price: variantPrice, ...(compareAt !== undefined && variantPrice !== undefined && compareAt > variantPrice ? { compareAtPrice: compareAt } : {}),
+      image: gallery([v.featured_image, product.featured_image])[0],
       size: chosenIndexes.map(index => values[index]).join(' / ') || undefined,
       sizeLabel: chosenIndexes.map(index => options[index]).join(' / ') || undefined,
       color: values[colorIndex] || undefined};
@@ -96,6 +98,9 @@ export function extractShopify(data: unknown, currencyData: unknown, sourceUrl: 
   // A range/minimum never becomes the quoted price of an unselected variant.
   const prices = [...new Set(variants.map(v => v.price).filter(v => v !== undefined))];
   const price = selected ? selected.price : prices.length === 1 ? prices[0] : undefined;
+  // The "before" price follows the same rule: the selected option's, or one shared by every option at that price.
+  const compares = [...new Set(variants.filter(v => v.price === price).map(v => v.compareAtPrice))];
+  const referencePrice = price === undefined ? undefined : selected ? selected.compareAtPrice : compares.length === 1 ? compares[0] : undefined;
   const title = label(product.title), brand = label(product.vendor);
   const category = categoryByStore[storeRoot(source.hostname)] ?? inferProductCategory(`${title} ${label(product.type)}`, brand);
   const warnings = ['Доставка магазина не опубликована — указан изменяемый резерв $10; для заказа из магазина от $50 его не берём.', 'Вес с упаковкой нужно проверить.'];
@@ -103,5 +108,5 @@ export function extractShopify(data: unknown, currencyData: unknown, sourceUrl: 
   if (selected && !selected.available) warnings.push('Вариант из ссылки отсутствует в наличии. Выберите другой вариант.');
   if (selectedId && !selected) warnings.push('Вариант из ссылки не найден. Проверьте размер или цвет.');
   if (!variants.some(v => v.available)) warnings.push('Магазин не указал доступных вариантов этого товара.');
-  return {title, brand, category, declarationDescription: declarationFor(category, title, brand), image: selected?.image ?? images[0], images: gallery([selected?.image, ...images]), price, currency, variants, warnings, sourceUrl, method: 'Shopify product API', country: storefrontCountry(source)?.name};
+  return {title, brand, category, declarationDescription: declarationFor(category, title, brand), image: selected?.image ?? images[0], images: gallery([selected?.image, ...images]), price, ...(referencePrice !== undefined ? { referencePrice } : {}), currency, variants, warnings, sourceUrl, method: 'Shopify product API', country: storefrontCountry(source)?.name};
 }

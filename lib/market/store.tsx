@@ -24,6 +24,8 @@ export function MarketProvider({children,initialLocale='uz'}:{children:ReactNode
  const revision=useRef(0),busy=useRef(false),generation=useRef(0),localeRef=useRef<Locale>(initialLocale),serverLocaleRef=useRef<Locale>('ru'),localeSyncRef=useRef<Locale|null>(null);
  const catalogLoaded=useRef(false),catalogRequest=useRef<Promise<void>|null>(null);
  const lastError=useRef<{code?:string;message?:string}|null>(null);
+ // Signed in as of the last successful read. A network or server hiccup must not sign the customer out.
+ const signedIn=useRef(false),retryTimer=useRef<ReturnType<typeof setTimeout>|null>(null),lastRefresh=useRef(0);
  const lastActionError=useCallback(()=>lastError.current,[]);
  const loadCatalog=useCallback((force=false)=>{
   if(force)catalogLoaded.current=false;
@@ -50,17 +52,28 @@ export function MarketProvider({children,initialLocale='uz'}:{children:ReactNode
  const readStoredLocale=useCallback(()=>{try{return supportedLocale(localStorage.getItem('atlas-language'))}catch{return null}},[]);
  const ready=status==='authenticated';
  const clearPrivate=useCallback(()=>{setUser(null);revision.current=0;setState({...blank(),communication:{...blank().communication,language:localeRef.current}});setPolicy(defaultPolicy)},[]);
- const refresh=useCallback(async()=>{
+ const refresh=useCallback(async function load(retry?:unknown):Promise<void>{
+  // Only the internal retries pass a number; a click or event handler calling refresh starts over.
+  const attempt=typeof retry==='number'?retry:0;
   const current=++generation.current;
+  lastRefresh.current=Date.now();
+  if(retryTimer.current){clearTimeout(retryTimer.current);retryTimer.current=null}
   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),15000);
+  // While signed in, a failed read keeps what is on screen and quietly tries again.
+  const keepAndRetry=()=>{if(attempt<5)retryTimer.current=setTimeout(()=>void load(attempt+1),Math.min(30000,2000*2**attempt))};
   try{
-   const res=await fetch('/api/account',{cache:'no-store',signal:controller.signal});
-   const data=await res.json() as {state?:unknown;pricing?:unknown;policy?:unknown;revision:number;user:AccountUser;error?:string; errorCode?:string};
+   const res=await fetch('/api/account',{cache:'no-store',credentials:'same-origin',signal:controller.signal});
+   const data=await res.json().catch(()=>({})) as {state?:unknown;pricing?:unknown;policy?:unknown;revision:number;user:AccountUser;error?:string; errorCode?:string};
    if(current!==generation.current)return;
    if(!res.ok){
+    if(res.status===401){
+     // A session that worked a moment ago is asked once more before the customer is shown as signed out.
+     if(signedIn.current&&attempt===0){retryTimer.current=setTimeout(()=>void load(1),1500);return}
+     signedIn.current=false;clearPrivate();setStatus('guest');setError(null);return;
+    }
+    if(signedIn.current){keepAndRetry();return}
     clearPrivate();
-    if(res.status===401){setStatus('guest');setError(null);return}
-     setStatus('error');setError((data.errorCode ? serverError(localeRef.current, data.errorCode) : undefined) ?? marketMessages[localeRef.current].accountLoad);return;
+    setStatus('error');setError((data.errorCode ? serverError(localeRef.current, data.errorCode) : undefined) ?? marketMessages[localeRef.current].accountLoad);return;
    }
    const parsed=parseState(JSON.stringify(data.state));
    serverLocaleRef.current=parsed.communication.language;
@@ -73,8 +86,12 @@ export function MarketProvider({children,initialLocale='uz'}:{children:ReactNode
    setState(next);
    const parsedPricing=pricingSchema.safeParse(data.pricing);setPricing(parsedPricing.success?parsedPricing.data:tariff);
    const parsedPolicy=policySchema.safeParse(data.policy);setPolicy(parsedPolicy.success?parsedPolicy.data:defaultPolicy);
-   revision.current=data.revision;setUser(data.user);setStatus('authenticated');setError(null);
-  }catch{if(current===generation.current){clearPrivate();setStatus('error');setError(marketMessages[localeRef.current].connection)}}
+   revision.current=data.revision;setUser(data.user);setStatus('authenticated');setError(null);signedIn.current=true;
+  }catch{
+   if(current!==generation.current)return;
+   if(signedIn.current){keepAndRetry();return}
+   clearPrivate();setStatus('error');setError(marketMessages[localeRef.current].connection);
+  }
   finally{clearTimeout(timeout)}
  },[clearPrivate,readStoredLocale]);
  useEffect(()=>{
@@ -91,8 +108,10 @@ export function MarketProvider({children,initialLocale='uz'}:{children:ReactNode
    queueMicrotask(()=>setState(s=>({...s,communication:{...s.communication,language:locale}})))
   }
   queueMicrotask(()=>void refresh());
-  const focus=()=>{if(!busy.current)void refresh()};window.addEventListener('focus',focus);
-  return()=>{window.removeEventListener('focus',focus)};
+  // Coming back to the tab or back online reloads the account, at most every 10 seconds.
+  const wake=()=>{if(!busy.current&&document.visibilityState!=='hidden'&&Date.now()-lastRefresh.current>10000)void refresh()};
+  window.addEventListener('focus',wake);window.addEventListener('online',wake);document.addEventListener('visibilitychange',wake);
+  return()=>{window.removeEventListener('focus',wake);window.removeEventListener('online',wake);document.removeEventListener('visibilitychange',wake);if(retryTimer.current)clearTimeout(retryTimer.current)};
  },[readStoredLocale,refresh,initialLocale]);
  useEffect(()=>{document.documentElement.lang=state.communication.language},[state.communication.language]);
  const act=useCallback(async(action:Action)=>{
@@ -105,7 +124,7 @@ export function MarketProvider({children,initialLocale='uz'}:{children:ReactNode
    const res=await fetch('/api/actions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,revision:revision.current})});
    const data=await res.json() as {state?:unknown;revision:number;error?:string; errorCode?:string};
    if(current!==generation.current)return false;
-   if(res.status===401){clearPrivate();setStatus('guest');setError(null);toast.message(marketMessages[localeRef.current].sessionEnded);return false}
+   if(res.status===401){signedIn.current=false;clearPrivate();setStatus('guest');setError(null);toast.message(marketMessages[localeRef.current].sessionEnded);return false}
    if(data.state){const next=parseState(JSON.stringify(data.state));serverLocaleRef.current=next.communication.language;setState(next);revision.current=data.revision}
    // The server's reason ("the price changed…") is the useful part; the generic text is only a fallback.
    if(!res.ok){lastError.current={code:data.errorCode,message:data.error};toast.error((data.errorCode ? serverError(localeRef.current, data.errorCode) : undefined) ?? data.error ?? marketMessages[localeRef.current].saveFailed);if(res.status===409&&!data.state)await refresh();return false}

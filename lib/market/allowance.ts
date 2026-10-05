@@ -1,7 +1,8 @@
 import { statuses, type CartCustoms, type CustomsEstimate, type IdentityProfile, type Order, type Pricing, type SavedDeliveryProfile, type State } from './domain.ts';
 import { courierAllowanceUsd, customsCheckedOn, customsParams } from './customs.ts';
 
-export type RecipientAllowance = { key: string; name: string; usedUsd: number; orders: number };
+/** `parts`: each counted order this month (order ID and USD), for the cabinet meter. */
+export type RecipientAllowance = { key: string; name: string; usedUsd: number; orders: number; parts?: { id: string; usd: number }[] };
 /** One person for the allowance: a normalized name, and the masked passport when one is linked. */
 export type AllowancePerson = { name: string; passport?: string };
 
@@ -73,13 +74,15 @@ export function monthlyAllowance(state: State, fallbackFx: number, now = Date.no
     if (!person.name) continue;
     let group = groups.find((item) => samePerson(item.person, person));
     if (!group) {
-      group = { key: recipientKey(person.name, person.passport), name: orderRecipientName(state, order).trim(), usedUsd: 0, orders: 0, person };
+      group = { key: recipientKey(person.name, person.passport), name: orderRecipientName(state, order).trim(), usedUsd: 0, orders: 0, parts: [], person };
       groups.push(group);
     } else if (!group.person.passport && person.passport) group.person = person;
-    group.usedUsd += orderUsd(order, fallbackFx);
+    const usd = orderUsd(order, fallbackFx);
+    group.usedUsd += usd;
     group.orders += 1;
+    group.parts!.push({ id: order.id, usd: Math.round(usd * 100) / 100 });
   }
-  return groups.map((group) => ({ key: group.key, name: group.name, orders: group.orders, usedUsd: Math.round(group.usedUsd) })).sort((a, b) => b.usedUsd - a.usedUsd);
+  return groups.map((group) => ({ key: group.key, name: group.name, orders: group.orders, usedUsd: Math.round(group.usedUsd), parts: group.parts })).sort((a, b) => b.usedUsd - a.usedUsd);
 }
 
 /** This month's counted USD for one person (0 when there is nothing yet). */
@@ -139,7 +142,8 @@ export function cartCustomsEstimate(
     rate: params.rate,
     minimumPerKg: params.minimumPerKg,
     estimateUsd: cents(dutiableUsd * params.rate),
-    ...(helpRequested ? { helpRequested, helpFeeUsd: cents(dutiableUsd * (pricing.customsHelpFee ?? 0.03)) } : {}),
+    // Owner's rule (5.10.2026): the help fee is 3% of the goods value, offered only when some duty is due.
+    ...(helpRequested ? { helpRequested, helpFeeUsd: cents(valueUsd * (pricing.customsHelpFee ?? 0.03)) } : {}),
     checkedOn: customsCheckedOn,
   };
 }

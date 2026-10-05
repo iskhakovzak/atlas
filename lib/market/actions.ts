@@ -19,6 +19,8 @@ import {
   tariff,
   markNotificationsRead,
   deliveryProfileSchema,
+  assertDeliveryAddress,
+  storeDiscount,
   communicationSchema,
   confirmDemoPayment,
   updateCommunication,
@@ -96,6 +98,8 @@ export const actionSchema = z.discriminatedUnion("type", [
     identityProfileId: z.string().min(1).max(100).optional(),
     // Keeps an address typed at checkout as a saved recipient; the orders then refer to it.
     saveRecipientLabel: z.string().trim().min(1).max(60).optional(),
+    // The postal code for a recipient saved before it was required; saved into that recipient.
+    postalCode: z.string().trim().max(20).optional(),
   }),
   z.object({ type: z.literal("payment-demo"), id }),
   z.object({ type: z.literal("communication-save"), value: communicationSchema }),
@@ -169,7 +173,9 @@ export const actionSchema = z.discriminatedUnion("type", [
 ]);
 export type Action = z.infer<typeof actionSchema>;
 /** A product as the server accepts it into the cart: USD, store delivery and weight recomputed from the store data. */
-function checkedCartProduct(product: Product, pricing: Pricing, policy: Policy): Product {
+function checkedCartProduct(sent: Product, pricing: Pricing, policy: Policy): Product {
+  // The "before the discount" price is display only; one that is not above the price is dropped.
+  const product: Product = storeDiscount(sent) ? sent : { ...sent, sourceReferencePrice: undefined };
   const restriction = productRestriction(product, policy);
   if (restriction) throw Error(restriction);
   if (!product.sourceUrl) return product;
@@ -292,6 +298,13 @@ export function applyAction(
         next = saveDeliveryProfile(s, value, a.saveRecipientLabel, undefined, !s.deliveryProfiles.length);
         deliveryProfileId = next.deliveryProfiles.find((profile) => JSON.stringify(deliveryProfileSchema.parse(profile)) === JSON.stringify(value))?.id;
       }
+      if (deliveryProfileId && a.postalCode) {
+        const stored = next.deliveryProfiles.find((profile) => profile.id === deliveryProfileId);
+        if (stored) next = saveDeliveryProfile(next, { ...deliveryProfileSchema.parse(stored), postalCode: a.postalCode }, stored.label, stored.id, stored.primary);
+      }
+      // An order needs the street address and a six-digit postal code. A missing saved recipient is reported by checkoutCart.
+      const address = deliveryProfileId ? next.deliveryProfiles.find((profile) => profile.id === deliveryProfileId) : a.delivery ?? next.deliveryProfile;
+      if (!deliveryProfileId || address) assertDeliveryAddress(address);
       // The server works out the customs estimate for the chosen recipient; the browser's figures are not used.
       const recipientProfile = deliveryProfileId ? next.deliveryProfiles.find((profile) => profile.id === deliveryProfileId) : undefined;
       const customs = cartCustomsEstimate(next, pricing, { profile: recipientProfile, name: a.delivery?.recipient });
@@ -313,8 +326,14 @@ export function applyAction(
       return confirmDemoPayment(s, a.id);
     case "communication-save":
       return updateCommunication(s, a.value);
-    case "delivery-profile-save":
-      return saveDeliveryProfile(s, deliveryProfileSchema.parse(a.value), a.label, a.id, a.primary);
+    case "delivery-profile-save": {
+      const value = deliveryProfileSchema.parse(a.value);
+      const stored = a.id ? s.deliveryProfiles.find((profile) => profile.id === a.id) : undefined;
+      // Making an older recipient the default does not ask for the postal code it was saved without; any edit does.
+      const unchanged = stored && JSON.stringify(deliveryProfileSchema.parse(stored)) === JSON.stringify(value);
+      if (!unchanged) assertDeliveryAddress(value);
+      return saveDeliveryProfile(s, value, a.label, a.id, a.primary);
+    }
     case "delivery-profile-remove": {
       const rest = s.deliveryProfiles.filter((item) => item.id !== a.id);
       const remaining = rest.length && !rest.some((item) => item.primary) ? rest.map((item, index) => ({ ...item, primary: index === 0 })) : rest;

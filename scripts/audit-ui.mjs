@@ -141,7 +141,7 @@ try {
   if(!catalogReady&&process.env.ATLAS_AUDIT_REQUIRE_CATALOG==='1')throw Error('Fresh published catalog cards are required for this release audit. Import, review and publish a real merchant snapshot before retrying.');
   if(catalogReady){
     await check("document.querySelectorAll('.find-card .find-total strong').length>0","catalog shows delivered estimates");
-    await check("document.querySelector('.find-purchase a.btn.primary')?.getAttribute('href')?.startsWith('/login?return_to=')","guest catalog order requires sign-in");
+    await check("document.querySelector('.find-purchase a.btn')?.getAttribute('href')?.startsWith('/login?return_to=')","guest catalog order requires sign-in");
     await check("document.querySelectorAll('.find-origin a').length===0 && document.querySelectorAll('.find-origin span').length>0","catalog names the store without sending customers away");
     await check("document.querySelectorAll('.find-breakdown').length>0","catalog cards explain the delivered price");
   }else checks.push('catalog-card checks skipped: no fresh published snapshot');
@@ -167,7 +167,7 @@ try {
     await evaluate("document.querySelector('button[aria-label=\"Закрыть карточку\"]').click()");
   }
   await evaluate("document.querySelector('.lang-switch button[lang=en]').click()");
-  await check("document.documentElement.lang==='en' && document.querySelector('.home-hero h1').textContent.includes('Shop any store in the world')","guest language works without saving an account");
+  await check("document.documentElement.lang==='en' && document.querySelector('.home-hero h1').textContent.includes('We buy from stores in the USA')","guest language works without saving an account");
   await check("document.querySelector('.home-link-form button')?.textContent.includes('Calculate') && document.querySelector('.home-link-note')?.textContent.includes('no sign-up')","guest link CTA is honest in English");
   if(catalogReady){
     await evaluate("document.querySelector('.find-photo').click()");
@@ -202,7 +202,7 @@ try {
   await visit("/order-by-link");
   await check("!!document.querySelector(\'#source-url\') && !document.querySelector(\'#source-url\').disabled","authenticated product form opens");
   await visit('/');
-  await check(`!!document.querySelector('header a[href=\"/cart\"]') && !document.querySelector('.home-link-note')?.textContent.includes('без регистрации') && ${catalogReady?"!!document.querySelector('.find-save')":"!!document.querySelector('.home-link-form')"}`,"member home differs from guest");
+  await check(`!!document.querySelector('header a[href=\"/cart\"]') && !document.querySelector('.home-link-note')?.textContent.includes('регистрация не нужна') && ${catalogReady?"!!document.querySelector('.find-save')":"!!document.querySelector('.home-link-form')"}`,"member home differs from guest");
   if (process.env.ATLAS_AUDIT_IMPORT === '1') {
     await visit('/order-by-link?url='+encodeURIComponent('https://www.stevemadden.com/products/possession-black'));
     await check("!!document.querySelector('#source-url') && !document.querySelector('#source-url').disabled",'import ready');

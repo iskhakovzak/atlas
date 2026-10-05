@@ -1,5 +1,34 @@
 # Atlas TODO and known limitations
 
+## Accounting, customs, discounts, OCR, delivery days — 6 October 2026
+
+- [x] Books: order finance split (transit vs Atlas income), money ledger with voids, monthly profit and profit tax, three CSV exports for Excel (Admin → Финансы → Бухгалтерия).
+- [ ] Before publishing: apply migrations `0008_auth_links` and `0009_accounting` to production D1 (without 0009 the books are empty and adding entries fails; everything else works).
+- [ ] Owner + accountant: confirm the profit tax rate (default 15%) and that Atlas books goods as an agent (transit). If the contract makes Atlas the seller, the goods become revenue and cost of goods, and the model in `lib/market/finance.ts` changes.
+- [ ] Operators: record real costs in the ledger (carrier invoices, payment and bank fees, payments to stores); until then profit equals income.
+- [ ] Payments are still simulated: "paid" orders in the books are test marks until a payment provider is connected.
+- [x] Customs choices at checkout (limit already used outside Atlas, help paying customs at 3% of the goods value); compact customs block in the cart.
+- [x] Store discount (crossed "before" price and −N%) on the order page, in the cart and the product sheet; Shopify compare-at prices are imported.
+- [x] Passport and Uzbek ID card OCR in the browser (Tesseract.js from /ocr/, TD1 + TD3 with check digits); HEIC photos converted to JPEG.
+- [ ] Check OCR on real photos of an Uzbek ID card back and a passport page; names from OCR may need correction (the customer reviews every field).
+- [x] Delivery days per country editable in the admin (Тарифы); the rate line and extra footnotes removed from bills.
+
+## Atlas Day — 5 October 2026
+
+- [x] Light theme: bill as a folio (white sheet in a light mint folder, cream slip for what is outside the amount to pay) on the home example, link order, cart and cabinet; white cards with shadows; Inter only; the brand green for actions, light accents only on the discount pill, top deals and good news (a brighter emerald everywhere read as "acid"); no all-caps labels.
+- [x] Owner feedback the same day: Piazzolla removed (its digits read badly), then Manrope replaced by Inter across the site (long soum amounts looked uneven; the wordmark keeps Manrope), the previous catalog card restored (−N% pill, gold top-deal badge, green total, filled Order button), the rates table shows each country's own price, the desktop cart summary is one compact sticky card aligned with the items.
+- [ ] Before publishing: apply migration `0008_auth_links` to production D1 (sign-in works without it, but attaching methods in the cabinet answers "unavailable"), then set the provider keys from `AUTH_SETUP.md`.
+- [x] Sign-in no longer drops: transient errors keep the account on screen, sessions slide to 60 days from the last visit, www redirects to the main host, Eskiz re-signs in on a revoked token; Telegram, phone, email and Google can be attached to one account in the cabinet.
+- [x] Layout check across current iPhone widths (375–440) and 1280–1920: operator header overflow, header edges vs content, phone rates table fixed; e2e keeps checking overflow, clipped text, card rows and missing spaces.
+- [x] Buttons with a gradient, top highlight and shadow like in Night; one spacing rhythm in the catalog card; the reassurance list under "Оформить заказ" removed from the cart.
+- [x] Postal code is required (six digits) for new and edited recipients and at checkout; a recipient saved without one is asked once at checkout and updated.
+- [x] Fixed on screen: the example fee showed "10%" (now 9.98%), the example ignored the 0.3 kg packaging, the home FAQ and the customs page quoted different rates (the FAQ now points to the customs page, which explains the PP-4508 / UP-174 date conflict like the calculator), stretched store-filter logos, the "доступны только вам" overclaim.
+- [ ] Owner: fill `lib/market/site-content.ts` (contacts, legal entity and INN, pickup address, payment methods). Until then the contacts column and the legal card are not shown; nothing must be invented in their place.
+- [ ] Owner decision: rename "Возвратный резерв" to a plainer name ("Запас на вес посылки"?) on every screen at once, or keep it.
+- [ ] Owner decision: order the home teaser toward $30–150 items, so the first cards are not $3 lip gloss priced mostly by the 1 kg minimum.
+- [ ] Do not claim that passport access is logged until `app/api/passport/route.ts` writes an audit event for staff reads.
+- [ ] Operators: there is no postal-code lookup; a six-digit code is checked for shape only. Recipients saved before 5 October 2026 may still have no code until their next order.
+
 ## Order calculation — 5 October 2026
 
 - [x] 0.3 kg packaging once per parcel; weight from the store or an editable, labelled estimate.

@@ -2,19 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "@/components/site-link";
-import { ArrowRight, ArrowUpRight, BadgeCheck, Check, ClipboardPaste, Clock3, Info, Loader2, MessageSquare, Minus, Plus, ShieldCheck, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BadgeCheck, Check, ClipboardPaste, Clock3, Info, Loader2, MessageSquare, Minus, Plus, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
-import { balanceOf, cartSignature, maxLineQuantity, merchantParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, type CartItem, type DeliveryProfile } from "@/lib/market/domain";
+import { balanceOf, cartSignature, isPostalCode, maxLineQuantity, storeDiscount, merchantParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, type CartItem, type DeliveryProfile } from "@/lib/market/domain";
 import { countryName, customsVersion } from "@/lib/market/world";
 import { formatSum } from "@/lib/market/home-copy";
 import { cartCopy, countryLabel, itemCount, minutesLeft, parcelCount, recipientCopy, type CartCopy } from "@/lib/market/customer-copy";
 import { cartCustomsEstimate } from "@/lib/market/allowance";
 import { calcCopy } from "@/lib/market/calc-copy";
-import { CalcLines, CustomsPanel, FxNote, HoldNote, sumQuotes } from "./calc-summary";
+import { CalcLines, CustomsPanel, HoldNote, sumQuotes } from "./calc-summary";
 import { storefrontLabel } from "@/lib/market/store-brands";
 import type { Locale } from "@/lib/market/i18n";
-import { Modal, ProductImage } from "./market-ui";
+import { Modal, ProductImage, WasPrice } from "./market-ui";
+import { Money } from "./money";
 import { SafeDeleteButton } from "./safe-delete-button";
 import { cities, regionCapital, regionLabel, regions, streets, suggestions, uzPhone, uzPhoneDigits } from "@/lib/market/addresses";
 import { UzPhoneInput } from "./phone-input";
@@ -120,6 +121,9 @@ export function CartView() {
   const [review, setReview] = useState(false);
   const [delivery, setDelivery] = useState<DeliveryProfile>(emptyDelivery);
   const [selectedProfile, setSelectedProfile] = useState("");
+  // Recipients saved before postal codes were required may have none: checkout asks for it once.
+  const savedRecipient = state.deliveryProfiles.find(profile => profile.id === selectedProfile);
+  const savedNeedsPostal = Boolean(savedRecipient && !isPostalCode(savedRecipient.postalCode));
   const [busy, setBusy] = useState(false);
   const [saveRecipient, setSaveRecipient] = useState(true);
   const [savingServiceItemId, setSavingServiceItemId] = useState<string | null>(null);
@@ -218,10 +222,11 @@ export function CartView() {
     if (busy) return;
     setBusy(true);
     const selectedIdentity = selectedProfile === "manual" ? undefined : identityProfiles.find(profile => profile.recipientProfileId === selectedProfile);
+    const savedPostal = savedNeedsPostal ? delivery.postalCode : undefined;
     const key = crypto.randomUUID();
     setCheckoutKey(key);
     setPaidFromCart(false);
-    const ok = await act({ type: "checkout", key, signature: cartSignature(state.cart), useBalance, expectedCredit: credit, consentVersion: customsVersion, delivery, deliveryProfileId: selectedProfile === "manual" ? undefined : selectedProfile, identityProfileId: selectedIdentity?.documentId,
+    const ok = await act({ type: "checkout", key, signature: cartSignature(state.cart), useBalance, expectedCredit: credit, consentVersion: customsVersion, delivery, deliveryProfileId: selectedProfile === "manual" ? undefined : selectedProfile, identityProfileId: selectedIdentity?.documentId, postalCode: savedPostal,
       // A recipient typed here is kept for the next order and the passport, unless the customer opts out.
       saveRecipientLabel: selectedProfile === "manual" && saveRecipient ? (state.deliveryProfiles.length ? delivery.recipient.trim().slice(0, 60) : recipientCopy[locale].labels.home) : undefined });
     setBusy(false);
@@ -254,7 +259,7 @@ export function CartView() {
         {item.product.brand && <p className="basket-brand">{item.product.brand}</p>}
         <ItemName name={item.product.name} />
         <p className="basket-meta">{meta}</p>
-        <p className="basket-meta">{item.product.sourceUrl ? <a className="basket-source" href={item.product.sourceUrl} target="_blank" rel="noopener noreferrer">{c.item.storePrice}: {storePrice(item, locale)}<ArrowUpRight size={14} aria-hidden="true" /><span className="sr-only"> ({c.item.openStore})</span></a> : <>{c.item.storePrice}: {storePrice(item, locale)}</>}{item.quantity > 1 ? ` × ${item.quantity}` : ""}</p>
+        <p className="basket-meta">{item.product.sourceUrl ? <a className="basket-source" href={item.product.sourceUrl} target="_blank" rel="noopener noreferrer">{c.item.storePrice}: {storePrice(item, locale)}<ArrowUpRight size={14} aria-hidden="true" /><span className="sr-only"> ({c.item.openStore})</span></a> : <>{c.item.storePrice}: {storePrice(item, locale)}</>}{item.quantity > 1 ? ` × ${item.quantity}` : ""}{(() => { const off = storeDiscount(item.product); return off && <WasPrice was={off.was} percent={off.percent} format={value => sourceMoney(value, item.product.sourceCurrency ?? "USD", locale)} />; })()}</p>
         {!change && !issue && item.product.sourceCheckedAt && <p className="basket-meta basket-checked"><BadgeCheck size={14} aria-hidden="true" />{c.item.checked(clock(item.product.sourceCheckedAt, locale))}</p>}
         {item.product.stockQuantity !== undefined
           ? <p className={"basket-meta basket-stock" + (item.product.stockQuantity <= 3 ? " low" : "")}>{item.product.stockQuantity ? k.stockLeft(item.product.stockQuantity) : k.outOfStock} · {k.stockByEbay}</p>
@@ -315,7 +320,8 @@ export function CartView() {
     {credit > 0 && <div className="basket-lines basket-lines-credit"><div className="basket-line"><span className="basket-line-label">{c.summary.fromBalance}</span><b>−{formatSum(credit, locale)}</b></div></div>}
   </CalcLines>;
   const saveCustoms = async (next: typeof customsChoices) => { setCustomsBusy(true); try { await act({ type: "cart-customs", value: next }); } finally { setCustomsBusy(false); } };
-  const customsPanel = <CustomsPanel estimate={customs} choices={customsChoices} locale={locale} pricing={pricing} profiles={state.deliveryProfiles} recipientId={customsProfile?.id} onRecipient={setCustomsRecipient} onChoices={(next) => void saveCustoms(next)} busy={customsBusy} />;
+  // The cart shows the estimate only; the two customs choices are made at checkout, for the chosen recipient.
+  const customsPanel = <CustomsPanel estimate={customs} choices={customsChoices} locale={locale} pricing={pricing} profiles={state.deliveryProfiles} recipientId={customsProfile?.id} onRecipient={setCustomsRecipient} compact />;
 
   // Rendered after checkout empties the cart, so it lives outside the cart layout.
   const successDialog = <Modal open={success} onClose={() => setSuccess(false)} locale={locale} title={paidFromCart ? c.success.statusTitle : c.success.title} description={paidFromCart ? c.success.saved : pendingCheckoutOrders.length ? c.success.pending : checkoutOrders.length ? c.success.saved : c.success.hint}>
@@ -360,17 +366,21 @@ export function CartView() {
         })}
         <Link className="basket-continue" href="/">{c.summary.continue}<ArrowRight size={16} aria-hidden="true" /></Link>
       </div>
-      <aside className="basket-summary" aria-labelledby="basket-summary-title">
-        <h2 id="basket-summary-title">{c.summary.title}</h2>
-        {summaryLines}
-        {balance > 0 && <div className="basket-balance"><Checkbox id="use-balance" checked={useBalance} onCheckedChange={(value) => setUseBalance(value === true)} /><label htmlFor="use-balance">{c.summary.balance}<small>{c.summary.available}: {formatSum(balance, locale)}</small></label></div>}
-        <div className="basket-total"><span>{c.summary.payable}</span><strong>{formatSum(payable, locale)}</strong></div>
-        <PriceHold expiresAt={earliestExpiry} locale={locale} c={c} />
-        <HoldNote amount={sums.storeShippingHold} locale={locale} pricing={pricing} />
-        {customsPanel}
-        <FxNote pricing={pricing} locale={locale} />
-        <button ref={setSummaryCta} type="button" className="btn primary basket-cta" disabled={verifying} aria-busy={verifying} onClick={() => void openCheckout()}>{verifying ? <>{c.summary.verifying}<Loader2 size={18} className="spin" aria-hidden="true" /></> : <>{c.summary.checkout}<ArrowRight size={18} aria-hidden="true" /></>}</button>
-        <ul className="basket-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{c.summary.assurance}</li><li><Info size={16} aria-hidden="true" />{c.summary.simulation}</li></ul>
+      {/* The bill in a folder: the sheet is the amount to pay, the slip below holds what stays outside it. */}
+      <aside className="basket-summary folio" aria-labelledby="basket-summary-title">
+        <div className="folio-sheet">
+          <h2 id="basket-summary-title">{c.summary.title}</h2>
+          {summaryLines}
+          {balance > 0 && <div className="basket-balance"><Checkbox id="use-balance" checked={useBalance} onCheckedChange={(value) => setUseBalance(value === true)} /><label htmlFor="use-balance">{c.summary.balance}<small>{c.summary.available}: {formatSum(balance, locale)}</small></label></div>}
+          <div className="basket-total bill-total"><span>{c.summary.payable}</span><strong><Money value={payable} locale={locale} /></strong></div>
+          <PriceHold expiresAt={earliestExpiry} locale={locale} c={c} />
+          <button ref={setSummaryCta} type="button" className="btn primary basket-cta" disabled={verifying} aria-busy={verifying} onClick={() => void openCheckout()}>{verifying ? <>{c.summary.verifying}<Loader2 size={18} className="spin" aria-hidden="true" /></> : c.summary.checkout}</button>
+        </div>
+        <section className="folio-outside" aria-labelledby="basket-outside-title">
+          <h3 id="basket-outside-title">{c.summary.outside}</h3>
+          <HoldNote amount={sums.storeShippingHold} locale={locale} pricing={pricing} />
+          {customsPanel}
+        </section>
       </aside>
     </div>
 
@@ -398,7 +408,7 @@ export function CartView() {
                 <span className="recipient-choice-body">
                   <strong>{named ? profile.label : profile.recipient}{profile.primary && <em>{c.checkout.primary}</em>}</strong>
                   <span>{named && <>{profile.recipient} · </>}<span className="nowrap">{profile.phone}</span></span>
-                  <small>{profile.region}, {profile.city}, {profile.address}</small>
+                  <small>{[profile.region, profile.city, profile.address, profile.postalCode].filter(Boolean).join(", ")}</small>
                   <small className={passport ? "recipient-passport-ok" : "recipient-passport-missing"}>{passport ? c.checkout.passportOk : c.checkout.passportMissing}</small>
                 </span>
               </label>;
@@ -408,6 +418,8 @@ export function CartView() {
               <span className="recipient-choice-body"><strong><Plus size={16} aria-hidden="true" />{c.checkout.newRecipient}</strong></span>
             </label>
           </fieldset>}
+          {/* A recipient saved before postal codes were required gets one here; it is saved into that recipient. */}
+          {savedNeedsPostal && <div className="field checkout-postal"><label htmlFor="saved-postal-code">{c.checkout.postal}</label><input id="saved-postal-code" autoComplete="postal-code" inputMode="numeric" required pattern="\d{6}" maxLength={6} title={c.checkout.postalHint} aria-describedby="saved-postal-hint" value={delivery.postalCode} onChange={(event) => setDelivery({ ...delivery, postalCode: event.target.value.replace(/\D/g, "").slice(0, 6) })} /><small id="saved-postal-hint">{c.checkout.postalMissing}</small></div>}
           {/* A saved recipient is complete as chosen; the address fields are for a new one. */}
           {(selectedProfile === "manual" || !state.deliveryProfiles.length) && <>
           <div className="two-fields">
@@ -417,19 +429,15 @@ export function CartView() {
             <div className="field"><label htmlFor="city">{c.checkout.city}</label><input id="city" list="city-suggestions" autoComplete="address-level2" required minLength={2} maxLength={100} value={delivery.city} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, city: event.target.value }); }} /><datalist id="city-suggestions">{suggestions(cities, delivery.city).map(value => <option key={value} value={value} />)}</datalist></div>
           </div>
           <div className="field"><label htmlFor="delivery-address">{c.checkout.street}</label><input id="delivery-address" list="street-suggestions" autoComplete="street-address" required minLength={5} maxLength={220} placeholder={c.checkout.streetPlaceholder} value={delivery.address} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, address: event.target.value }); }} /><datalist id="street-suggestions">{suggestions(streets, delivery.address).map(value => <option key={value} value={value} />)}</datalist></div>
-          {/* Optional details stay folded unless they are already filled. */}
-          <details className="checkout-optional" open={Boolean(delivery.postalCode || delivery.comment) || undefined}>
-            <summary>{c.checkout.optionalFields}</summary>
-            <div className="two-fields">
-              <div className="field"><label htmlFor="postal-code">{c.checkout.postal}</label><input id="postal-code" autoComplete="postal-code" inputMode="numeric" maxLength={20} value={delivery.postalCode} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, postalCode: event.target.value }); }} /></div>
-              <div className="field"><label htmlFor="delivery-comment">{c.checkout.comment}</label><input id="delivery-comment" maxLength={300} value={delivery.comment} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, comment: event.target.value }); }} /></div>
-            </div>
-          </details>
+          <div className="two-fields">
+            <div className="field"><label htmlFor="postal-code">{c.checkout.postal}</label><input id="postal-code" autoComplete="postal-code" inputMode="numeric" required pattern="\d{6}" maxLength={6} title={c.checkout.postalHint} aria-describedby="postal-code-hint" value={delivery.postalCode} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, postalCode: event.target.value.replace(/\D/g, "").slice(0, 6) }); }} /><small id="postal-code-hint">{c.checkout.postalHint}</small></div>
+            <div className="field"><label htmlFor="delivery-comment">{c.checkout.comment} <span className="rf-optional">({recipientCopy[locale].optional})</span></label><input id="delivery-comment" maxLength={300} value={delivery.comment} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, comment: event.target.value }); }} /></div>
+          </div>
           <div className="basket-consent"><Checkbox id="save-recipient" checked={saveRecipient} onCheckedChange={(value) => setSaveRecipient(value === true)} /><label htmlFor="save-recipient">{c.checkout.saveRecipient}</label></div>
           </>}
         </>}
         {review && <section className="checkout-review">
-          <div className="basket-review-recipient"><div><h3>{delivery.recipient}</h3><p>{delivery.phone}</p><p>{delivery.region}, {delivery.city}, {delivery.address}</p></div><button type="button" className="text-button" onClick={() => setReview(false)}>{c.checkout.edit}</button></div>
+          <div className="basket-review-recipient"><div><h3>{delivery.recipient}</h3><p>{delivery.phone}</p><p>{[delivery.region, delivery.city, delivery.address, delivery.postalCode].filter(Boolean).join(", ")}</p></div><button type="button" className="text-button" onClick={() => setReview(false)}>{c.checkout.edit}</button></div>
           <ul className="basket-review-items">{state.cart.map(item => <li key={item.id}>
             <span>{item.product.name}<small>{[shownVariant(item.variant), `× ${item.quantity}`].filter(Boolean).join(" · ")}</small>
               {(item.requestedServiceIds ?? []).map(id => {
@@ -444,7 +452,7 @@ export function CartView() {
           {summaryLines}
           <HoldNote amount={sums.storeShippingHold} locale={locale} pricing={pricing} />
           {/* The estimate for the person chosen in this checkout; the server works it out again and keeps it with the orders. */}
-          <CustomsPanel estimate={cartCustomsEstimate(state, pricing, { profile: state.deliveryProfiles.find(profile => profile.id === selectedProfile), name: delivery.recipient }, customsChoices)} choices={customsChoices} locale={locale} pricing={pricing} profiles={[]} />
+          <CustomsPanel estimate={cartCustomsEstimate(state, pricing, { profile: state.deliveryProfiles.find(profile => profile.id === selectedProfile), name: delivery.recipient }, customsChoices)} choices={customsChoices} locale={locale} pricing={pricing} profiles={[]} onChoices={(next) => void saveCustoms(next)} busy={customsBusy} />
           <div className={"basket-consent" + (consentError ? " invalid" : "")}>
             <Checkbox id="checkout-consent" checked={consent} aria-invalid={consentError} aria-describedby={consentError ? "checkout-consent-error" : undefined} onCheckedChange={(value) => { setConsent(value === true); if (value === true) setConsentError(false); }} />
             <label htmlFor="checkout-consent">{c.checkout.consent.before}<Link href="/customs" target="_blank">{c.checkout.consent.link}</Link>{c.checkout.consent.after}</label>

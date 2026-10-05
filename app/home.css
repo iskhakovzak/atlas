@@ -34,10 +34,19 @@ html[data-theme="dark"] {
 .site-header .wallet-link { display: inline-flex; align-items: center; white-space: nowrap; }
 .site-header .desktop-nav a { white-space: nowrap; }
 .site-header .icon-btn { min-width: 44px; min-height: 44px; }
+/* The header's edges line up with the page content (site-main: max 1500px, padding clamp(20px, 4.7vw, 72px)). */
+@media (min-width: 761px) {
+  html .site-header { padding-inline: max(clamp(20px, 4.7vw, 72px), calc((100% - 1500px) / 2 + 72px)); }
+}
 /* Signed-in header below 1400px: the home anchors and theme switch (also in the footer and account) make room. */
 @media (min-width: 761px) and (max-width: 1399px) {
   .site-header:has(.header-account.member) .desktop-nav a:is([data-nav="how"], [data-nav="tariffs"]),
   .site-header:has(.header-account.member) .header-theme { display: none; }
+}
+/* The operator has one more entry ("Управление"): the same room is made up to 1600px. */
+@media (min-width: 761px) and (max-width: 1599px) {
+  .site-header:has(.operator-entry) .desktop-nav a:is([data-nav="how"], [data-nav="tariffs"]),
+  .site-header:has(.operator-entry) .header-theme { display: none; }
 }
 @media (max-width: 760px) {
   .site-header { gap: 8px; }
