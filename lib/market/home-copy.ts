@@ -69,8 +69,8 @@ export type HomeCopy = {
     title: string; product: string; routeLabel: string; to: string; days: (min: number, max: number) => string;
     item: string; itemNoteCbu: (usd: string, rate: string, markup: string) => string; itemNoteSet: (usd: string, rate: string) => string;
     service: string; serviceDetail: (percent: string) => string;
-    delivery: string; deliveryNote: (boxed: string, packaging: string, perKg: string) => string;
-    reserve: string; reserveNote: string; reserveHelpLabel: string; reserveHelp: string; total: string;
+    delivery: string; deliveryNote: (weight: string, perKg: string) => string;
+    reserve: string; reserveNote: (packaging: string) => string; reserveHelpLabel: string; reserveHelp: string; total: string;
     outsideTitle: string; dutyLabel: string; dutyStatus: string; dutyNote: (allowance: string) => string;
   };
   catalog: { title: string; intro: string; order: string; storePrice: string; total: string; breakdown: string };
@@ -112,8 +112,8 @@ export const homeCopy: Record<Locale, HomeCopy> = {
       itemNoteCbu: (usd, rate, markup) => `${usd} по курсу ${rate} сум: ЦБ плюс ${markup}`,
       itemNoteSet: (usd, rate) => `${usd} по курсу Atlas ${rate} сум`,
       service: 'Комиссия Atlas', serviceDetail: (percent) => `${percent} от цены товара`,
-      delivery: 'Доставка в Узбекистан', deliveryNote: (boxed, packaging, perKg) => `${boxed} кг в коробке и ${packaging} кг упаковки по ${perKg} за кг`,
-      reserve: 'Возвратный резерв', reserveNote: 'неиспользованное вернём на баланс после взвешивания', reserveHelpLabel: 'Что такое возвратный резерв',
+      delivery: 'Доставка в Узбекистан', deliveryNote: (weight, perKg) => `${weight} кг расчётного веса по ${perKg} за кг`,
+      reserve: 'Возвратный резерв', reserveNote: packaging => `В расчёт веса заложено ${packaging} кг запаса на упаковку. После взвешивания неиспользованную сумму вернём на баланс.`, reserveHelpLabel: 'Что такое возвратный резерв',
       reserveHelp: 'Запас на случай, если посылка окажется тяжелее расчётной. После взвешивания на складе неиспользованную часть вернём на ваш баланс Atlas. Если доставка выйдет дороже резерва, сначала согласуем доплату с вами.',
       total: 'К оплате',
       outsideTitle: 'Не входит в сумму к оплате',
@@ -194,8 +194,8 @@ export const homeCopy: Record<Locale, HomeCopy> = {
       itemNoteCbu: (usd, rate, markup) => `${usd}, kurs ${rate} so‘m: MB kursi va ${markup}`,
       itemNoteSet: (usd, rate) => `${usd}, Atlas kursi ${rate} so‘m`,
       service: 'Atlas komissiyasi', serviceDetail: (percent) => `tovar narxining ${percent}`,
-      delivery: 'O‘zbekistonga yetkazib berish', deliveryNote: (boxed, packaging, perKg) => `qutisi bilan ${boxed} kg va qadoq ${packaging} kg, har kg uchun ${perKg}`,
-      reserve: 'Qaytariladigan zaxira', reserveNote: 'ishlatilmagan qismi tortilgandan keyin balansga qaytadi', reserveHelpLabel: 'Qaytariladigan zaxira nima',
+      delivery: 'O‘zbekistonga yetkazib berish', deliveryNote: (weight, perKg) => `hisobiy vazn ${weight} kg, har kg uchun ${perKg}`,
+      reserve: 'Qaytariladigan zaxira', reserveNote: packaging => `Vazn hisobiga qadoq uchun ${packaging} kg zaxira kiritilgan. Omborda tortilgach, ishlatilmagan summa balansga qaytariladi.`, reserveHelpLabel: 'Qaytariladigan zaxira nima',
       reserveHelp: 'Jo‘natma hisoblangandan og‘irroq chiqsa, ehtiyot uchun qo‘yiladi. Omborda tortilgandan keyin ishlatilmagan qismi Atlas balansingizga qaytariladi. Yetkazib berish zaxiradan qimmatroq bo‘lsa, qo‘shimcha to‘lovni avval siz bilan kelishamiz.',
       total: 'To‘lov uchun',
       outsideTitle: 'To‘lov summasiga kirmaydi',
@@ -276,8 +276,8 @@ export const homeCopy: Record<Locale, HomeCopy> = {
       itemNoteCbu: (usd, rate, markup) => `${usd} at ${rate} soum: Central Bank rate plus ${markup}`,
       itemNoteSet: (usd, rate) => `${usd} at the Atlas rate of ${rate} soum`,
       service: 'Atlas fee', serviceDetail: (percent) => `${percent} of the item price`,
-      delivery: 'Delivery to Uzbekistan', deliveryNote: (boxed, packaging, perKg) => `${boxed} kg boxed and ${packaging} kg packaging at ${perKg} per kg`,
-      reserve: 'Refundable reserve', reserveNote: 'what is unused returns to your balance after weighing', reserveHelpLabel: 'What is the refundable reserve',
+      delivery: 'Delivery to Uzbekistan', deliveryNote: (weight, perKg) => `${weight} kg estimated weight at ${perKg} per kg`,
+      reserve: 'Refundable reserve', reserveNote: packaging => `Estimated weight includes a ${packaging} kg packaging allowance. Any unused amount returns to your balance after weighing.`, reserveHelpLabel: 'What is the refundable reserve',
       reserveHelp: 'A buffer in case the parcel is heavier than estimated. After warehouse weighing, any unused part returns to your Atlas balance. If delivery costs more than the reserve, we agree the extra payment with you first.',
       total: 'To pay',
       outsideTitle: 'Not in the amount to pay',
