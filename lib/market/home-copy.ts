@@ -71,7 +71,7 @@ export type HomeCopy = {
     service: string; serviceDetail: (percent: string) => string;
     delivery: string; deliveryNote: (weight: string, perKg: string) => string;
     reserve: string; reserveNote: (packaging: string) => string; reserveHelpLabel: string; reserveHelp: string; total: string;
-    outsideTitle: string; dutyLabel: string; dutyStatus: string; dutyNote: (allowance: string) => string;
+    dutyTitle: (allowance: string) => string; dutyNote: string;
   };
   catalog: { title: string; intro: string; order: string; storePrice: string; total: string; breakdown: string };
   tariffs: { title: string; lead: string; from: string; time: string; perKg: string; per100g: (usd: string) => string; days: (min: number, max: number) => string; pending: string; noDays: string; regions: Record<DeliveryRegion, string>; weightNote: string; rateNote: string };
@@ -116,9 +116,8 @@ export const homeCopy: Record<Locale, HomeCopy> = {
       reserve: 'Возвратный резерв', reserveNote: packaging => `В расчёт веса заложено ${packaging} кг запаса на упаковку. После взвешивания неиспользованную сумму вернём на баланс.`, reserveHelpLabel: 'Что такое возвратный резерв',
       reserveHelp: 'Запас на случай, если посылка окажется тяжелее расчётной. После взвешивания на складе неиспользованную часть вернём на ваш баланс Atlas. Если доставка выйдет дороже резерва, сначала согласуем доплату с вами.',
       total: 'К оплате',
-      outsideTitle: 'Не входит в сумму к оплате',
-      dutyLabel: 'Таможенная пошлина', dutyStatus: 'не нужна',
-      dutyNote: (allowance) => `Без пошлины можно ввезти до ${allowance} в месяц на одного получателя, с учётом покупок вне Atlas.`,
+      dutyTitle: allowance => `Без таможенной пошлины — до ${allowance} в месяц`,
+      dutyNote: 'На одного получателя, включая покупки вне Atlas.',
     },
     catalog: { title: 'Подборка товаров', intro: 'Товары из зарубежных магазинов, отобранные Atlas, с итогом в сумах.', order: 'Заказать', storePrice: 'Цена в магазине', total: 'С доставкой в Узбекистан', breakdown: 'Из чего сумма' },
     tariffs: {
@@ -198,9 +197,8 @@ export const homeCopy: Record<Locale, HomeCopy> = {
       reserve: 'Qaytariladigan zaxira', reserveNote: packaging => `Vazn hisobiga qadoq uchun ${packaging} kg zaxira kiritilgan. Omborda tortilgach, ishlatilmagan summa balansga qaytariladi.`, reserveHelpLabel: 'Qaytariladigan zaxira nima',
       reserveHelp: 'Jo‘natma hisoblangandan og‘irroq chiqsa, ehtiyot uchun qo‘yiladi. Omborda tortilgandan keyin ishlatilmagan qismi Atlas balansingizga qaytariladi. Yetkazib berish zaxiradan qimmatroq bo‘lsa, qo‘shimcha to‘lovni avval siz bilan kelishamiz.',
       total: 'To‘lov uchun',
-      outsideTitle: 'To‘lov summasiga kirmaydi',
-      dutyLabel: 'Bojxona to‘lovi', dutyStatus: 'kerak emas',
-      dutyNote: (allowance) => `Bitta oluvchiga oyiga ${allowance} gacha bojsiz olib kirish mumkin, Atlasdan tashqari xaridlar ham hisobga olinadi.`,
+      dutyTitle: allowance => `Oyiga ${allowance} gacha — bojxona bojisiz`,
+      dutyNote: 'Bitta oluvchiga, Atlasdan tashqari xaridlar ham hisobga olinadi.',
     },
     catalog: { title: 'Tovarlar to‘plami', intro: 'Atlas tanlagan xorijiy do‘kon tovarlari, yakuniy narxi so‘mda.', order: 'Buyurtma berish', storePrice: 'Do‘kondagi narx', total: 'O‘zbekistonga yetkazish bilan', breakdown: 'Summa nimadan iborat' },
     tariffs: {
@@ -280,9 +278,8 @@ export const homeCopy: Record<Locale, HomeCopy> = {
       reserve: 'Refundable reserve', reserveNote: packaging => `Estimated weight includes a ${packaging} kg packaging allowance. Any unused amount returns to your balance after weighing.`, reserveHelpLabel: 'What is the refundable reserve',
       reserveHelp: 'A buffer in case the parcel is heavier than estimated. After warehouse weighing, any unused part returns to your Atlas balance. If delivery costs more than the reserve, we agree the extra payment with you first.',
       total: 'To pay',
-      outsideTitle: 'Not in the amount to pay',
-      dutyLabel: 'Customs duty', dutyStatus: 'not needed',
-      dutyNote: (allowance) => `Up to ${allowance} a month per recipient enters duty-free, counting purchases outside Atlas.`,
+      dutyTitle: allowance => `No customs duty — up to ${allowance} per month`,
+      dutyNote: 'Per recipient, including purchases outside Atlas.',
     },
     catalog: { title: 'Product selection', intro: 'Products from international stores, selected by Atlas, with the total in soum.', order: 'Order', storePrice: 'Store price', total: 'With delivery to Uzbekistan', breakdown: 'What’s in the total' },
     tariffs: {

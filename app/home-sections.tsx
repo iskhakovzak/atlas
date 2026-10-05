@@ -111,9 +111,9 @@ export function ExampleQuote(){
    </dl>
    <p className="bill-total home-quote-total"><span>{c.example.total}</span><strong><Money value={quote.total} locale={locale}/></strong></p>
   </div>
-  <section className="folio-outside" aria-labelledby="example-outside">
-   <h3 id="example-outside">{c.example.outsideTitle}</h3>
-   <p className="outside-row"><span>{c.example.dutyLabel}</span><b className="ok">{c.example.dutyStatus}</b><small>{c.example.dutyNote(formatUsd(allowance,locale))}</small></p>
+  <section className="folio-outside home-customs-slip" aria-labelledby="example-outside">
+   <h3 id="example-outside">{c.example.dutyTitle(formatUsd(allowance,locale))}</h3>
+   <p className="home-customs-note">{c.example.dutyNote}</p>
   </section>
  </aside>;
 }
