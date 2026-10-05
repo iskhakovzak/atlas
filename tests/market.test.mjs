@@ -169,3 +169,20 @@ const blocked={...defaultPolicy,blockedCategories:['Электроника']};as
 let state=applyAction(blank(),{type:'cart-add',product:products[0],variant:products[0].variants[0]},false,tariff,{...defaultPolicy,maxCartLines:1});assert.throws(()=>applyAction(state,{type:'cart-add',product:products[2],variant:products[2].variants[0]},false,tariff,{...defaultPolicy,maxCartLines:1}),/до 1/);
 assert.throws(()=>applyAction(blank(),{type:'cart-add',product:{...products[0],name:'Collectible weapon'},variant:products[0].variants[0]},false,tariff,defaultPolicy),/ручной проверки/);
 });
+
+test('a store discount is shown only when the "before" price is believable',async()=>{
+  const {storeDiscount}=await import('../lib/market/domain.ts');
+  assert.deepEqual(storeDiscount({usd:73.97,sourcePrice:73.97,sourceReferencePrice:125}),{was:125,percent:41});
+  assert.equal(storeDiscount({usd:73.97,sourcePrice:73.97,sourceReferencePrice:73.97}),null);
+  assert.equal(storeDiscount({usd:10,sourcePrice:10,sourceReferencePrice:500}),null,'more than ten times the price is not believable');
+  assert.equal(storeDiscount({usd:10,sourcePrice:10}),null);
+});
+
+test('delivery days set in the admin override the built-in ones per region',async()=>{
+  const {pricingSchema,tariff}=await import('../lib/market/domain.ts');
+  const {deliveryDaysFor}=await import('../lib/market/site-content.ts');
+  const pricing=pricingSchema.parse({...tariff,deliveryDays:{us:[4,8]}});
+  assert.deepEqual(deliveryDaysFor(pricing,'us'),[4,8]);
+  assert.deepEqual(deliveryDaysFor(pricing,'cn'),[7,12],'a region left out keeps the built-in days');
+  assert.throws(()=>pricingSchema.parse({...tariff,deliveryDays:{us:[9,4]}}),'from must not be after to');
+});

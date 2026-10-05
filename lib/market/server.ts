@@ -3,6 +3,7 @@ import {currentUser} from '@/lib/auth/server';
 import {blank,parseState,pricingSchema,tariff,upgradePricing,orderPayable,type Pricing,type State} from './domain';
 import {defaultPolicy,policySchema,type Policy} from './policy';
 import {cbuUsdUrl,fxRefreshDue,parseCbuRate,withCbuRate} from './fx';
+import {orderFinance} from './finance';
 import {apiErrorMessage,requestLocale,serverError} from './i18n';
 export function database(){if(!env.DB)throw Error('Серверное хранилище пока недоступно.');return env.DB}
 export function deferBackground(task:Promise<unknown>,label:string){waitUntil(task.catch(error=>console.error(label,error)))}
@@ -59,6 +60,10 @@ export async function syncOperationalProjection(id:string,state:State,now=Date.n
   for(const event of order.history)statements.push(db.prepare('INSERT OR IGNORE INTO market_order_events (id,order_id,actor_id,event_type,payload,created_at) VALUES (?,?,?,?,?,?)').bind(`${order.id}:status:${event.at}`,order.id,null,'status',JSON.stringify({text:event.text}),event.at));
  }
  await db.batch(statements);
+ // The books (migration 0009) in their own batch: a database without the table still syncs everything above.
+ if(state.orders.length)try{
+  await db.batch(state.orders.map(order=>{const f=orderFinance(order,id);return db.prepare('INSERT INTO market_order_finance (order_id,customer_id,status,created_at,paid_at,month,goods,store_shipping,reserve,payable,commission,delivery,fx_gain,services,revenue,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(order_id) DO UPDATE SET customer_id=excluded.customer_id,status=excluded.status,paid_at=excluded.paid_at,month=excluded.month,goods=excluded.goods,store_shipping=excluded.store_shipping,reserve=excluded.reserve,payable=excluded.payable,commission=excluded.commission,delivery=excluded.delivery,fx_gain=excluded.fx_gain,services=excluded.services,revenue=excluded.revenue,updated_at=excluded.updated_at').bind(f.orderId,f.customerId,f.status,f.createdAt,f.paidAt??null,f.month??null,f.goods,f.storeShipping,f.reserve,f.payable,f.commission,f.delivery,f.fxGain,f.services,f.revenue,now)}));
+ }catch(error){console.error('Order finance projection failed',error)}
 }
 
 export async function rebuildOperationalProjection(){

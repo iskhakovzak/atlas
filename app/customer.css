@@ -792,3 +792,98 @@ html[data-theme="dark"] .orders-passport { border-color: var(--night-warn-line);
 .field-vitals td[data-verdict="slow"] { color: #a33236; font-weight: 700; }
 
 /* Long store names wrap to two lines on phones instead of being cut off. */
+/* Cabinet: sign-in methods attached to one account (app/sign-in-methods.tsx). */
+.signin-methods { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+.signin-method { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 10px 14px; border: 1px solid var(--home-line); border-radius: 12px; }
+.signin-method-icon { display: grid; place-items: center; flex: 0 0 34px; width: 34px; height: 34px; border-radius: 10px; background: var(--home-soft); color: var(--home-accent); }
+.signin-method-body { display: grid; flex: 1; min-width: 0; gap: 1px; }
+.signin-method-body small { overflow: hidden; color: var(--home-muted); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.signin-method-tag { padding: 3px 9px; border-radius: 999px; background: var(--home-soft); color: var(--home-muted); font-size: 12.5px; font-style: normal; font-weight: 600; }
+.signin-method-remove { min-height: 44px; padding: 0 4px; font-size: 13.5px; }
+.signin-add { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.signin-add .btn { min-height: 44px; gap: 6px; padding: 8px 14px; font-size: 14px; }
+
+/* Customs panel, compact (5 October 2026): one status line, one sentence, choices at checkout, a link to the rules. */
+.calc-customs-sum { margin: 0; color: var(--home-muted); font-size: 13.5px; line-height: 1.45; }
+.calc-customs .calc-check small { display: block; margin-top: 2px; color: var(--home-muted); font-size: 12.5px; font-weight: 500; }
+.calc-customs-link { justify-self: start; color: var(--home-accent); font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+html[data-theme="dark"] .calc-customs header b.ok { color: var(--night-jade); }
+.calc-customs .calc-check > span { display: block; }
+.calc-customs .calc-check > span svg { vertical-align: -2px; color: var(--home-accent); }
+
+/* Screen-reader-only stays 1px even when a field rule (".field input { width: 100% }") also matches it:
+   a stretched hidden radio once made the order page 49px wider than the phone screen. */
+.sr-only, input.sr-only { position: absolute !important; width: 1px !important; height: 1px !important; min-width: 0 !important; min-height: 0 !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
+
+/* Cabinet: the month's allowance as an interactive bar (app/allowance-meter.tsx). Segments are 24px tap targets
+   with a 12px bar drawn inside; the fill grows in once. */
+.allowance-meter { margin: 10px 0 2px; }
+.allowance-track { position: relative; display: flex; gap: 3px; min-height: 24px; }
+.allowance-part { position: relative; flex-basis: 0; min-width: 24px; height: 24px; padding: 0; border: 0; background: none; cursor: pointer; }
+.allowance-part::before { content: ""; position: absolute; left: 0; right: 0; top: 6px; height: 12px; border-radius: 4px; background: var(--home-soft); transform-origin: left center; transform: scaleX(0); }
+.allowance-meter.shown .allowance-part::before { transform: none; }
+.allowance-part:first-child::before { border-top-left-radius: 999px; border-bottom-left-radius: 999px; }
+.allowance-part:last-child::before { border-top-right-radius: 999px; border-bottom-right-radius: 999px; }
+.allowance-part.order::before { background: var(--home-accent); }
+.allowance-part.cart::before { background: repeating-linear-gradient(135deg, var(--home-accent) 0 4px, transparent 4px 8px); box-shadow: inset 0 0 0 1.5px var(--home-accent); }
+.allowance-part.left::before { background: var(--home-soft); box-shadow: inset 0 0 0 1px var(--home-line); transform: none; }
+.allowance-part.active::before, .allowance-part:hover::before { filter: brightness(1.18); }
+.allowance-part:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 2px; border-radius: 6px; }
+.allowance-limit { position: absolute; top: 2px; bottom: 2px; width: 2px; margin-left: -1px; border-radius: 1px; background: #b45309; pointer-events: none; }
+.allowance-scale { position: relative; height: 16px; margin-top: 4px; color: var(--home-muted); font-size: 12px; }
+.allowance-scale span { position: absolute; top: 0; white-space: nowrap; }
+.allowance-scale span:first-child { left: 0; }
+.allowance-scale span + span { transform: translateX(-100%); }
+.allowance-readout { min-height: 20px; margin: 6px 0 0; color: var(--home-muted); font-size: 13.5px; }
+.allowance-readout b { color: var(--home-ink); font-weight: 700; }
+@media (prefers-reduced-motion: no-preference) {
+  .allowance-part::before { transition: transform .7s cubic-bezier(.2, .7, .2, 1), filter .15s; }
+}
+
+/* A store discount wherever a store price is shown (cart, order page, product sheet): the "before" price crossed out
+   and the percentage in the same mint pill as on the catalog card. */
+.price-was-group { display: inline-flex; align-items: baseline; gap: 6px; margin-left: 8px; white-space: nowrap; }
+.price-was { color: #687f74; font-weight: 500; }
+.price-off { align-self: center; padding: 2px 7px; border-radius: 6px; background: #e7f4e9; color: #226d39; font-size: 12.5px; font-weight: 700; line-height: 1.3; }
+.sheet-store-price { margin: 8px 0 4px; color: var(--home-muted); font-size: 15px; }
+.sheet-store-price b { color: var(--home-ink); }
+html[data-theme="dark"] .price-was { color: var(--night-muted); }
+html[data-theme="dark"] .price-off { background: var(--night-jade-soft-strong); color: var(--night-jade); }
+
+/* Admin tariffs: delivery days "from – to" per country. */
+.days-range { display: flex; align-items: center; gap: 8px; }
+.days-range input { width: 84px; }
+
+/* Admin → Финансы → Бухгалтерия (app/accounting-view.tsx). */
+.accounting { display: grid; gap: 18px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--home-line); }
+.accounting h3 { margin: 0; font-size: 20px; }
+.accounting h4 { margin: 0 0 10px; font-size: 16px; }
+.accounting-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 24px; align-items: flex-end; }
+.accounting-head > div { max-width: 760px; }
+.accounting-month input { min-height: 44px; }
+.accounting-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.accounting-cards article { display: grid; gap: 4px; padding: 14px 16px; border: 1px solid var(--home-line); border-radius: 14px; background: var(--home-surface); }
+.accounting-cards span { color: var(--home-muted); font-size: 13px; font-weight: 600; }
+.accounting-cards strong { font-size: 20px; font-variant-numeric: tabular-nums; }
+.accounting-cards small { color: var(--home-muted); font-size: 12.5px; line-height: 1.4; }
+.accounting-cards .loss strong { color: #b42318; }
+.accounting-rate { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.accounting-rate .field { margin: 0; }
+.accounting-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 14px; }
+.accounting-grid .field { margin: 0; }
+.accounting-grid :is(input, select) { width: 100%; min-height: 44px; }
+.accounting-currency { display: flex; gap: 6px; }
+.accounting-currency select { width: 90px; flex: none; }
+.accounting-note { grid-column: 1 / -1; }
+.accounting-form { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--home-line); border-radius: 14px; }
+.accounting-form > .btn { justify-self: start; }
+.accounting-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.accounting-table :is(th, td) { padding: 10px 8px; border-bottom: 1px solid var(--home-line); text-align: left; vertical-align: top; }
+.accounting-table th { color: var(--home-muted); font-size: 12.5px; }
+.accounting-table small { display: block; color: var(--home-muted); font-size: 12.5px; }
+.accounting-table td.in { color: #1d6b47; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.accounting-table td.out { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.accounting-table tr.voided td { color: var(--home-muted); text-decoration: line-through; }
+.accounting-table tr.voided td small { text-decoration: none; }
+.accounting-downloads { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 6px; }
+@media (max-width: 700px) { .accounting-table { display: block; overflow-x: auto; } }

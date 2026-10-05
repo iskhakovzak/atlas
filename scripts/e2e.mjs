@@ -4,8 +4,11 @@
 //   npm start -- --var ATLAS_AUTH_DEV_CODES:true --var ATLAS_OPERATOR_EMAIL:operator@atlas.local
 //   npm run e2e -- http://127.0.0.1:8787/ [--compare outputs/e2e/<earlier run>]
 //
-// Each page is opened in both themes at 390 and 1280 px. The run fails on script errors,
-// horizontal overflow, text below WCAG AA contrast, broken images, unnamed controls,
+// Each page is opened in both themes at 390 and 1280 px (ATLAS_E2E_WIDTHS="375,393,402,440,1280,1440,1920"
+// and ATLAS_E2E_THEMES="light" widen or narrow the matrix). The run fails on script errors,
+// horizontal overflow, elements sticking out of the screen, clipped text, catalog cards whose
+// prices or buttons do not line up in a row, words glued together without a space,
+// text below WCAG AA contrast, broken images, unnamed controls,
 // duplicate ids or a missing/duplicated h1. Screenshots and a computed-style fingerprint
 // of every page land in outputs/e2e/<time>/; --compare lists elements whose styles changed.
 import { spawn } from "node:child_process";
@@ -22,8 +25,8 @@ const outDir = resolve(option("--out") ?? join("outputs", "e2e", new Date().toIS
 const compareDir = option("--compare");
 const operatorEmail = process.env.ATLAS_E2E_OPERATOR ?? "operator@atlas.local";
 const customerEmail = `e2e-${Date.now()}@atlas.local`;
-const themes = ["light", "dark"];
-const widths = [390, 1280];
+const themes = (process.env.ATLAS_E2E_THEMES ?? "light,dark").split(",").map((value) => value.trim()).filter(Boolean);
+const widths = (process.env.ATLAS_E2E_WIDTHS ?? "390,1280").split(",").map(Number).filter((value) => value >= 320);
 
 const browserPath = [
   process.env.ATLAS_BROWSER_PATH,
@@ -92,9 +95,10 @@ window.__e2e = (() => {
         if (worst < need) issues.push('contrast ' + worst.toFixed(2) + ' < ' + need + ' "' + text.slice(0, 40) + '" ' + label(el));
       }
       for (const img of document.images) if (img.complete && img.getAttribute('src') && img.naturalWidth === 0) issues.push('broken image ' + img.getAttribute('src').slice(0, 80));
-      for (const el of document.querySelectorAll('input:not([type=hidden]), select, textarea, button, a[href], [role=button], [role=checkbox], [role=tab], summary')) if (visible(el) && !name(el)) issues.push('unnamed control ' + label(el));
+      for (const el of document.querySelectorAll('input:not([type=hidden]), select, textarea, button, a[href], [role=button], [role=checkbox], [role=tab], summary')) if (visible(el) && !el.closest('[aria-hidden="true"]') && !name(el)) issues.push('unnamed control ' + label(el));
       const ids = {}; for (const el of document.querySelectorAll('[id]')) ids[el.id] = (ids[el.id] || 0) + 1; for (const [id, count] of Object.entries(ids)) if (count > 1) issues.push('duplicate id #' + id + ' x' + count);
       const h1 = [...document.querySelectorAll('h1')].filter(visible).length; if (h1 !== 1) issues.push(h1 + ' visible h1');
+      issues.push(...this.layout(width));
       if (width <= 760) {
         // iPhone Safari zooms the page into any text field below 16px and leaves it zoomed.
         for (const el of document.querySelectorAll('input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]), select, textarea')) if (visible(el) && parseFloat(getComputedStyle(el).fontSize) < 16) issues.push('iPhone zooms into field (font-size ' + getComputedStyle(el).fontSize + ') ' + label(el));
@@ -103,6 +107,40 @@ window.__e2e = (() => {
           if (!visible(el) || el.closest('.sr-only, [aria-hidden="true"]') || (el.tagName === 'INPUT' && el.closest('label'))) continue;
           const r = el.getBoundingClientRect(); if (r.width < 24 || r.height < 24) issues.push('tap target ' + Math.round(r.width) + 'x' + Math.round(r.height) + ' ' + label(el));
         }
+      }
+      return issues;
+    },
+    // Layout: nothing sticks out of the screen, no text is cut off, cards in a row line up, words keep their spaces.
+    layout(width) {
+      const issues = [];
+      const scrolls = (n) => { for (let p = n.parentElement; p && p !== document.body; p = p.parentElement) { const o = getComputedStyle(p).overflowX; if (o !== 'visible') return true; } return false; };
+      const placed = (n) => { for (let p = n; p && p !== document.body; p = p.parentElement) { const pos = getComputedStyle(p).position; if (pos === 'fixed' || pos === 'sticky') return true; } return false; };
+      for (const el of document.body.querySelectorAll('*')) {
+        if (/^(SCRIPT|STYLE|NOSCRIPT|OPTION|TEMPLATE|path)$/i.test(el.tagName) || !visible(el) || el.closest('.sr-only, [aria-hidden="true"], dialog:not([open])')) continue;
+        const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+        if ((r.right > width + 1 || r.left < -1) && !scrolls(el) && !placed(el)) issues.push('sticks out ' + Math.round(Math.max(r.right - width, -r.left)) + 'px ' + label(el));
+        // Text hidden for sight but kept for screen readers (1px box, clipped) is intentional.
+        const own = r.width > 1 && r.height > 1 && cs.clip === 'auto' && [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+        if (own && /hidden|clip/.test(cs.overflowX + cs.overflowY) && cs.textOverflow !== 'ellipsis' && cs.webkitLineClamp === 'none') {
+          if (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 2) issues.push('text cut off "' + el.textContent.trim().slice(0, 30) + '" ' + label(el));
+        }
+      }
+      for (const grid of document.querySelectorAll('.finds-grid')) {
+        const rows = new Map();
+        for (const card of grid.querySelectorAll(':scope > .find-card')) { if (!visible(card)) continue; const top = Math.round(card.getBoundingClientRect().top); rows.set(top, [...(rows.get(top) ?? []), card]); }
+        for (const row of rows.values()) {
+          if (row.length < 2 || row.some((card) => card.querySelector('.find-breakdown, .find-parcel, .find-limit'))) continue;
+          for (const part of ['.find-store-price', '.find-total', '.find-purchase .btn']) {
+            const tops = row.map((card) => card.querySelector(part)).filter(Boolean).map((el) => el.getBoundingClientRect().top);
+            if (tops.length > 1 && Math.max(...tops) - Math.min(...tops) > 1.5) issues.push('cards in a row not aligned: ' + part + ' differs by ' + Math.round(Math.max(...tops) - Math.min(...tops)) + 'px');
+          }
+        }
+      }
+      for (const el of document.body.querySelectorAll('p, li, dt, dd, h1, h2, h3, h4, label, td, th, button, a, small, strong, b, span, div')) {
+        if (!visible(el) || el.closest('.sr-only, [aria-hidden="true"], input, textarea, select')) continue;
+        if (![...el.childNodes].some((n) => n.nodeType === 1) || [...el.children].some((c) => /^(DIV|P|UL|OL|LI|SECTION|ARTICLE|TABLE|DL)$/.test(c.tagName))) continue;
+        const text = el.innerText || '', m = text.match(/[а-яё][А-ЯЁ]|[а-яё]\d|\d[а-яё]/);
+        if (m) issues.push('no space at "' + text.slice(Math.max(0, m.index - 12), m.index + 14).replace(/\s+/g, ' ') + '" ' + label(el));
       }
       return issues;
     },
@@ -168,6 +206,8 @@ try {
       // Guests always get 401 from /api/account, and the 404 check requests a missing page on purpose.
       if (/status of 401/.test(text) && url.includes("/api/account")) return;
       if (/status of 404/.test(text) && url.includes("/e2e-missing-page")) return;
+      // A local Worker cannot reach the stores without the US proxy: the import answers 422 and the order page keeps the catalog data.
+      if (/status of 422/.test(text) && url.includes("/api/import")) return;
       pageErrors.push("log: " + text.slice(0, 160) + " " + url.replace(base.origin, ""));
     }
   });
@@ -221,7 +261,7 @@ try {
   const snapshot = async (group, path) => {
     for (const theme of themes) for (const width of widths) {
       await setViewport(width); await setPreferences(theme); await open(path);
-      const key = `${group}-${path === "/" ? "home" : path.slice(1).replace(/[^a-z0-9]+/gi, "-")}-${theme}-${width}`;
+      const key = `${group}-${path === "/" ? "home" : path.slice(1).replace(/[^a-z0-9]+/gi, "-").slice(0, 48)}-${theme}-${width}`;
       const where = `${group} ${path} ${theme} ${width}px`;
       for (const issue of await evaluate("window.__e2e.audit()")) fail(where, issue);
       for (const error of pageErrors) fail(where, error);
@@ -235,7 +275,9 @@ try {
 
   // 1. Guest: public pages, language versions and the link calculator.
   await setViewport(1280); await open("/"); await setPreferences("light");
-  for (const path of ["/", "/catalog", "/catalog?cat=shoes&sort=cheap", "/stores", "/stores?focus=beauty", "/customs", "/legal", "/login", "/order-by-link", "/e2e-missing-page"]) await snapshot("guest", path);
+  // The order page with a catalog product loaded (no live import): its variant and sticky bar once overflowed phones.
+  const loadedOrder = "/order-by-link?url=" + encodeURIComponent("https://www.target.com/p/nyx-professional-makeup-butter-lip-gloss-16-praline-0-27-fl-oz/-/A-51033539") + "&catalog=nyx-butter-gloss";
+  for (const path of ["/", "/catalog", "/catalog?cat=shoes&sort=cheap", "/stores", "/stores?focus=beauty", "/customs", "/legal", "/login", "/order-by-link", loadedOrder, "/e2e-missing-page"]) await snapshot("guest", path);
   for (const [path, locale] of [["/?lang=uz", "uz"], ["/catalog?lang=en", "en"], ["/stores?lang=en", "en"], ["/customs?lang=ru", "ru"]]) {
     await open(path);
     const seen = await evaluate("({ lang: document.documentElement.lang, title: document.title, canonical: document.querySelector('link[rel=canonical]')?.getAttribute('href') })");
@@ -283,6 +325,12 @@ try {
   })()`);
   await sleep(150);
   await evaluate(`(() => { const el = document.querySelector('#delivery-address'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, 'Amir Temur ko‘chasi, 10'); el.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
+  // The postal code is required: without it the form does not move on to the review step.
+  await evaluate("document.querySelector('form.basket-checkout button.btn.primary.full').click(), true");
+  await sleep(300);
+  if (await evaluate("!!document.querySelector('#checkout-consent')")) throw Error("checkout reached the review step without a postal code");
+  await evaluate(`(() => { const el = document.querySelector('#postal-code'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, '100000'); el.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
+  await sleep(150);
   await evaluate("document.querySelector('form.basket-checkout button.btn.primary.full').click(), true");
   await eventually("!!document.querySelector('#checkout-consent')", "review step");
   await evaluate("document.querySelector('form.basket-checkout button.btn.primary.full').click(), true");

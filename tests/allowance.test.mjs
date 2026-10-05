@@ -61,7 +61,7 @@ test('customs is charged on the part above the allowance left; outside use and t
   const unknown = cartCustomsEstimate(state, tariff, who, { outsideUsed: true, help: false }, now);
   assert.deepEqual([unknown.outsideUnknown, unknown.dutiableUsd], [true, 1100], 'used elsewhere without an amount: the allowance counts as used up');
   const help = cartCustomsEstimate(state, tariff, who, { outsideUsed: false, help: true }, now);
-  assert.deepEqual([help.helpRequested, help.helpFeeUsd], [true, 27], 'Atlas help: 3% of the $900 dutiable value');
+  assert.deepEqual([help.helpRequested, help.helpFeeUsd], [true, 33], 'Atlas help: 3% of the $1 100 goods value');
   const small = cartCustomsEstimate({ ...state, cart: [{ id: 'c', product: { usd: 120 }, quantity: 1 }] }, tariff, who, { outsideUsed: false, help: true }, now);
   assert.deepEqual([small.dutiableUsd, small.estimateUsd, small.helpRequested], [0, 0, undefined], 'nothing dutiable, nothing to help with');
 });

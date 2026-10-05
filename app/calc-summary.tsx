@@ -1,10 +1,11 @@
 'use client';
-import {useEffect,useId,useState} from 'react';
-import {ExternalLink,HandCoins,Landmark,Scale,Wallet} from 'lucide-react';
-import {formatSum} from '@/lib/market/home-copy';
+import {useId,useState} from 'react';
+import {HandCoins,Scale,Wallet} from 'lucide-react';
+import {formatKg,formatPercent,formatSum,formatUsd} from '@/lib/market/home-copy';
 import {calcCopy} from '@/lib/market/calc-copy';
-import {customsReferences} from '@/lib/market/customs';
-import type {CartCustoms,CustomsEstimate,Pricing,Quote,SavedDeliveryProfile} from '@/lib/market/domain';
+import {courierAllowanceUsd} from '@/lib/market/customs';
+import {deliveryPerKgUsdFor,unknownStoreShippingUsd,type CartCustoms,type CustomsEstimate,type Pricing,type Quote,type SavedDeliveryProfile} from '@/lib/market/domain';
+import {packagingKg} from '@/lib/market/world';
 import type {Locale} from '@/lib/market/i18n';
 import {SummaryLine} from './price-summary';
 
@@ -40,7 +41,7 @@ export function CalcLines({sums,locale,pricing,weightKg,storeShippingState,anyFr
    {stated&&<SummaryLine label={c.lines.storeShipping} amount={sums.sourceShipping} locale={locale}/>}
    {free&&<SummaryLine label={c.lines.storeShipping} amount={0} value={c.lines.free} locale={locale} help={c.freeNote(freeFrom)} helpLabel={c.lines.storeShipping}/>}
    {hold&&<SummaryLine label={c.lines.storeShipping} amount={0} value={c.lines.holdOutside} locale={locale} help={c.holdHelp(freeFrom)} helpLabel={c.lines.storeShipping}/>}
-   <SummaryLine label={kg?c.lines.international(kg):c.lines.international('').replace(/ · $/,'')} amount={sums.shipping+sums.deliveryMargin} locale={locale} help={c.weightRule} helpLabel={c.blocks.weight}/>
+   <SummaryLine label={c.lines.international(kg)} amount={sums.shipping+sums.deliveryMargin} locale={locale} help={c.weightRule} helpLabel={c.blocks.weight}/>
    {sums.reserve>0&&<SummaryLine label={c.lines.intlReserve} amount={sums.reserve} locale={locale} help={c.intlReserveHelp} helpLabel={c.lines.intlReserve}/>}
    {sums.optionalServices>0&&<SummaryLine label={c.lines.optional} amount={sums.optionalServices} locale={locale}/>}
   </div>
@@ -60,15 +61,29 @@ export function HoldNote({amount,locale,pricing}:{amount:number;locale:Locale;pr
  </div>;
 }
 
-/** Which rate the amounts use, and since when. */
-export function FxNote({pricing,locale}:{pricing:Pricing;locale:Locale}){
- const c=calcCopy[locale];
- const [now,setNow]=useState(0);
- useEffect(()=>{const timer=setTimeout(()=>setNow(Date.now()),0);return()=>clearTimeout(timer)},[]);
- const rate=formatSum(pricing.fx,locale);
- const live=pricing.fxSource==='cbu'&&pricing.fxCbuRate&&pricing.fxUpdatedAt;
- const when=live&&now?new Intl.DateTimeFormat(locale==='en'?'en-GB':'ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(pricing.fxUpdatedAt):'';
- return <p className="calc-fx"><Landmark size={14} aria-hidden="true"/>{live?c.fxCbu(rate,new Intl.NumberFormat(locale==='en'?'en-US':'ru-RU',{maximumFractionDigits:2}).format(pricing.fxCbuRate!),String(pricing.fxMarkup??1.012).replace('.',locale==='en'?'.':','),when):c.fxSet(rate)}</p>;
+/**
+ * The bill before a link is pasted: the same rows as a real bill, the amounts left as blanks, each row
+ * stating its live rule from the tariff. It shows the shape of the answer instead of a list of promises.
+ */
+export function BlankBill({pricing,locale}:{pricing:Pricing;locale:Locale}){
+ const c=calcCopy[locale],b=c.blank;
+ const cbu=pricing.fxSource==='cbu'&&Boolean(pricing.fxCbuRate);
+ const rows:[string,string][]=[
+  [b.item,cbu?b.itemCbu(formatPercent((pricing.fxMarkup??1.012)-1,locale)):b.itemSet],
+  [b.fee,b.feeRule(formatPercent(pricing.margin+pricing.buyoutFee+pricing.conversionFee,locale))],
+  [b.delivery,b.deliveryRule(formatUsd(deliveryPerKgUsdFor(pricing),locale),formatKg(packagingKg,locale))],
+  [b.reserve,b.reserveRule],
+ ];
+ return <section className="bill-blank" aria-labelledby="bill-blank-title">
+  <h2 id="bill-blank-title">{b.title}</h2>
+  <p className="bill-blank-lead">{b.lead}</p>
+  <dl className="bill">{rows.map(([label,rule])=><div key={label}><dt>{label}</dt><dd className="bill-fill" aria-hidden="true"/><dd className="bill-note">{rule}</dd></div>)}</dl>
+  <p className="bill-total"><span>{b.total}</span><span className="bill-fill" aria-hidden="true"/></p>
+  <div className="bill-blank-outside"><h3>{c.outside}</h3><ul>
+   <li>{b.storeRule(formatUsd(pricing.storeShippingFreeFromUsd??50,locale),formatUsd(unknownStoreShippingUsd,locale))}</li>
+   <li>{b.customsRule(formatUsd(pricing.customsAllowanceUsd??courierAllowanceUsd,locale))}</li>
+  </ul></div>
+ </section>;
 }
 
 /**
@@ -82,28 +97,18 @@ export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipient
  const remaining=Math.max(0,estimate.allowanceUsd-estimate.atlasUsedUsd-(estimate.outsideUsedUsd??0));
  const usd=(value:number)=>usdText(value,locale);
  const save=(patch:Partial<CartCustoms>)=>onChoices?.({...choices,...patch});
+ const over=estimate.dutiableUsd>0;
+ const fee=Math.round(estimate.valueUsd*(pricing.customsHelpFee??0.03)*100)/100;
  return <section className={'calc-customs'+(compact?' compact':'')} aria-labelledby={id+'-title'}>
-  <header><Scale size={17} aria-hidden="true"/><h3 id={id+'-title'}>{c.title}</h3><b>{estimate.dutiableUsd>0?`≈ ${formatSum(Math.round(estimate.estimateUsd*pricing.fx),locale)}`:c.notNeeded}</b></header>
-  {profiles.length>1&&onRecipient&&<div className="field calc-customs-recipient"><label htmlFor={id+'-recipient'}>{c.recipient}</label><select id={id+'-recipient'} value={recipientId} onChange={event=>onRecipient(event.target.value)}>{profiles.map(profile=><option key={profile.id} value={profile.id}>{profile.recipient}{profile.label&&profile.label!==profile.recipient?` · ${profile.label}`:''}</option>)}</select></div>}
-  {!(profiles.length>1&&onRecipient)&&(estimate.recipientName?<p className="micro">{c.recipient}: <b>{estimate.recipientName}</b></p>:<p className="micro">{c.noRecipient}</p>)}
-  <dl className="calc-customs-lines">
-   <div><dt>{c.limitShort}</dt><dd>{usd(estimate.allowanceUsd)}</dd></div>
-   {estimate.atlasUsedUsd>0&&<div><dt>{c.atlasShort}</dt><dd>−{usd(estimate.atlasUsedUsd)}</dd></div>}
-   {(estimate.outsideUsedUsd??0)>0&&<div><dt>{c.outsideShort}</dt><dd>−{usd(estimate.outsideUsedUsd!)}</dd></div>}
-   <div><dt>{c.itemsShort}</dt><dd>{usd(estimate.valueUsd)}</dd></div>
-   <div className="strong"><dt>{c.dutiable}</dt><dd>{usd(estimate.dutiableUsd)}</dd></div>
-   {estimate.dutiableUsd>0&&<div className="strong"><dt>{c.estimate} · {Math.round(estimate.rate*100)}%</dt><dd>≈ {usd(estimate.estimateUsd)}</dd></div>}
-  </dl>
-  {estimate.dutiableUsd>0?<p className="micro">{c.minimum(usd(estimate.minimumPerKg))}</p>:<p className="micro">{c.none(usd(remaining))}</p>}
+  <header><Scale size={17} aria-hidden="true"/><h3 id={id+'-title'}>{c.title}</h3><b className={over?undefined:'ok'}>{over?`≈ ${formatSum(Math.round(estimate.estimateUsd*pricing.fx),locale)}`:c.notNeeded}</b></header>
+  <p className="calc-customs-sum">{over?c.summaryOver(usd(estimate.dutiableUsd),`${Math.round(estimate.rate*100)}%`,usd(estimate.minimumPerKg)):estimate.outsideUnknown?c.outsideUnknown:c.summaryNone(usd(estimate.allowanceUsd),usd(remaining))}</p>
+  {profiles.length>1&&onRecipient&&<div className="field calc-customs-recipient"><label htmlFor={id+'-recipient'}>{c.recipient}</label><select id={id+'-recipient'} value={recipientId} onChange={event=>onRecipient(event.target.value)}>{profiles.map(profile=><option key={profile.id} value={profile.id}>{profile.recipient}</option>)}</select></div>}
   {onChoices&&<div className="calc-customs-choices">
-   <label className="calc-check"><input type="checkbox" disabled={busy} checked={choices.outsideUsed} onChange={event=>save({outsideUsed:event.target.checked,outsideUsd:event.target.checked&&outsideText.trim()?Number(outsideText):undefined})}/>{c.outside}</label>
-   {choices.outsideUsed&&<div className="field calc-outside"><label htmlFor={id+'-outside'}>{c.outsideAmount}</label><input id={id+'-outside'} type="number" inputMode="decimal" min="0" max="100000" step="0.01" value={outsideText} onChange={event=>setOutsideText(event.target.value)} onBlur={()=>{const value=outsideText.trim()===''?undefined:Number(outsideText);if(value===undefined||(Number.isFinite(value)&&value>=0&&value<=100000))save({outsideUsd:value})}}/>{estimate.outsideUnknown&&<small className="calc-warn" role="status">{c.outsideUnknown}</small>}</div>}
-   {estimate.dutiableUsd>0&&<label className="calc-check"><input type="checkbox" disabled={busy} checked={choices.help} onChange={event=>save({help:event.target.checked})}/><span><HandCoins size={15} aria-hidden="true"/> {c.help}</span></label>}
-   {estimate.helpRequested&&<p className="calc-help-fee"><span>{c.helpFee(`${Math.round((pricing.customsHelpFee??0.03)*100)}%`,usd(estimate.dutiableUsd),usd(estimate.helpFeeUsd??0))}</span><small>{c.helpNote}</small></p>}
+   <label className="calc-check"><input type="checkbox" disabled={busy} checked={choices.outsideUsed} onChange={event=>save({outsideUsed:event.target.checked,outsideUsd:event.target.checked&&outsideText.trim()?Number(outsideText):undefined})}/><span>{c.outside}</span></label>
+   {choices.outsideUsed&&<div className="field calc-outside"><label htmlFor={id+'-outside'}>{c.outsideAmount}</label><input id={id+'-outside'} type="number" inputMode="decimal" min="0" max="100000" step="0.01" value={outsideText} onChange={event=>setOutsideText(event.target.value)} onBlur={()=>{const value=outsideText.trim()===''?undefined:Number(outsideText);if(value===undefined||(Number.isFinite(value)&&value>=0&&value<=100000))save({outsideUsd:value})}}/></div>}
+   {over&&<label className="calc-check"><input type="checkbox" disabled={busy} checked={choices.help} onChange={event=>save({help:event.target.checked})}/><span><HandCoins size={15} aria-hidden="true"/> {c.help}<small>{c.helpFee(`${Math.round((pricing.customsHelpFee??0.03)*100)}%`,usd(fee))}</small></span></label>}
+   {estimate.helpRequested&&<p className="calc-help-fee">{c.helpNote}</p>}
   </div>}
-  <details className="calc-customs-more"><summary>{c.sources}</summary>
-   <p>{c.separate} {c.rule}</p><p>{c.dispute}</p><p>{c.relative}</p>
-   <ul>{customsReferences.slice(0,3).map(ref=><li key={ref.url}><a href={ref.url} target="_blank" rel="noopener noreferrer">{ref.title}<ExternalLink size={12} aria-hidden="true"/></a></li>)}</ul>
-  </details>
+  <a className="calc-customs-link" href="/customs">{c.howLink}</a>
  </section>;
 }

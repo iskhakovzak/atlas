@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHmac,createHash} from 'node:crypto';
-import {normalizeEmail,normalizeUzPhone,randomCode,randomToken,hashCode,constantTimeEqual,identityFor,verifyTelegramAuth,pkceChallenge,decodeJwtPayload,googleIdentity,readCookie,cookie,SESSION_COOKIE} from '../lib/auth/core.ts';
+import {emptyAccountState,ownMethod,SESSION_TTL_MS,SESSION_RENEW_MS,normalizeEmail,normalizeUzPhone,randomCode,randomToken,hashCode,constantTimeEqual,identityFor,verifyTelegramAuth,pkceChallenge,decodeJwtPayload,googleIdentity,readCookie,cookie,SESSION_COOKIE} from '../lib/auth/core.ts';
 import {safeReturnTo,loginPath} from '../lib/auth/return-to.ts';
 
 test('emails are normalized and malformed addresses rejected',()=>{
@@ -86,4 +86,24 @@ test('session cookie is host-only, HttpOnly, Secure and SameSite=Lax',()=>{
  assert.equal(readCookie('a=1; __Host-atlas_session=abc; b=2',SESSION_COOKIE),'abc');
  assert.equal(readCookie('x__Host-atlas_session=abc',SESSION_COOKIE),null);
  assert.equal(readCookie(null,SESSION_COOKIE),null);
+});
+
+test('a sign-in method can join another account only while its own account holds nothing',()=>{
+ assert.equal(emptyAccountState(JSON.stringify({orders:[],cart:[],entries:[],favorites:[],deliveryProfiles:[],identityProfiles:[],notifications:[{id:'welcome'}]})),true);
+ assert.equal(emptyAccountState(JSON.stringify({orders:[{id:'AT-1'}]})),false);
+ assert.equal(emptyAccountState(JSON.stringify({cart:[],entries:[{amount:100}]})),false);
+ assert.equal(emptyAccountState(JSON.stringify({deliveryProfiles:[{id:'home'}]})),false);
+ assert.equal(emptyAccountState('not json'),false);
+});
+
+test('an account\'s own sign-in method is read from its user ID',()=>{
+ assert.deepEqual(ownMethod('email:seedy@example.uz'),{method:'email',contact:'seedy@example.uz'});
+ assert.deepEqual(ownMethod('phone:+998901234567'),{method:'phone',contact:'+998901234567'});
+ assert.deepEqual(ownMethod('tg:123456'),{method:'telegram',contact:'Telegram'});
+});
+
+test('sessions last 60 days from the last visit and are renewed at most once a day',()=>{
+ assert.equal(SESSION_TTL_MS,60*24*60*60*1000);
+ assert.equal(SESSION_RENEW_MS,24*60*60*1000);
+ assert.match(cookie(SESSION_COOKIE,'x'.repeat(43),SESSION_TTL_MS/1000),/Max-Age=5184000; HttpOnly; Secure; SameSite=Lax/);
 });

@@ -1,0 +1,459 @@
+/* Atlas Day. The light theme look, loaded last.
+   White cards on a light canvas, the brand green for actions only; light accents (mint discount pill, gold top deal,
+   green good news) sit in a few places, so the page stays calm.
+   Money is shown as a bill: on the home example, the link order, the cart and the cabinet card waiting for
+   payment, the bill sits in a light mint folder; what is not in the amount to pay is on a separate slip.
+   One typeface (Inter) everywhere; the wordmark keeps Manrope. Every rule is scoped to the light theme; Atlas Night keeps its own look. */
+
+@media (max-width: 760px) {
+  :root:not([data-theme="dark"]) {
+    --day-section: 56px;
+    --day-fs-h2: 26px; --day-fs-h1: 32px; --day-fs-h1-page: 28px; --day-fs-h3: 17px; --day-fs-lead: 16px;
+    --day-money-xl: 32px; --day-money-l: 30px; --day-money-m: 28px;
+    --day-r-plate: 18px;
+  }
+}
+@media (max-width: 359px) {
+  :root:not([data-theme="dark"]) { --day-fs-h1: 28px; --day-fs-h1-page: 26px; --day-money-xl: 28px; --day-money-l: 28px; }
+}
+
+/* ---------- Type: Inter, heavy and tight in titles ---------- */
+html:not([data-theme="dark"]) main.site-main:not([data-view="admin"]):not([data-view="operations"]):not([data-view="analytics"]) h1 {
+  font-family: var(--day-sans); font-weight: 750;
+  font-size: var(--day-h1-size, var(--day-fs-h1-page)); line-height: var(--day-h1-leading, 1.1); letter-spacing: var(--day-h1-tracking, -.028em);
+  text-wrap: balance;
+}
+html:not([data-theme="dark"]) .site-main :is(.home-section > h2, .home-faq-head > h2, .catalog-teaser > header h2) {
+  font-family: var(--day-sans); font-weight: 750; font-size: var(--day-fs-h2); line-height: 1.12; letter-spacing: -.024em; text-wrap: balance;
+}
+html:not([data-theme="dark"]) .site-main h3 { font-family: var(--day-sans); font-weight: 700; letter-spacing: -.01em; }
+/* Overlines repeat what the title says and are typed in capitals: the light theme leaves them out. */
+html:not([data-theme="dark"]) .page-heading .eyebrow { display: none; }
+html:not([data-theme="dark"]) :is(.home-tariffs th, .home-footer-title, .catalog-facets legend, .basket-brand, .cabinet-eyebrow, .order-x-eyebrow, .stores-overline, .store-dialog-section h3, .legal-document > header span) {
+  text-transform: none; letter-spacing: 0;
+}
+
+/* ---------- Money: bold lining digits, the unit smaller ---------- */
+.money { white-space: nowrap; font-variant-numeric: lining-nums proportional-nums; }
+/* Older rules size every span inside a total (.basket-total span): the digits follow the total, the unit stays small. */
+.money > .money-n { font-size: 1em; }
+.money > .money-unit { font-size: max(13px, .5em); }
+html:not([data-theme="dark"]) .money-n { font-family: var(--day-sans); font-weight: 700; letter-spacing: -.02em; font-feature-settings: "lnum" 1; }
+html:not([data-theme="dark"]) .money-unit { font-family: var(--day-sans); font-weight: 600; color: var(--day-muted); letter-spacing: 0; }
+
+/* ---------- Header ---------- */
+html:not([data-theme="dark"]) .site-header { background: var(--day-surface); border-bottom: 1px solid var(--day-line); box-shadow: none; }
+html:not([data-theme="dark"]) .site-header .wordmark { color: var(--day-ink); }
+html:not([data-theme="dark"]) .site-header .wordmark svg { color: var(--day-accent); }
+html:not([data-theme="dark"]) .desktop-nav a { font-weight: 500; color: rgba(22, 33, 28, .78); }
+html:not([data-theme="dark"]) .desktop-nav a:hover { color: var(--day-ink); }
+html:not([data-theme="dark"]) .desktop-nav a.active { color: var(--day-ink); font-weight: 600; text-decoration: underline 2px var(--day-accent); text-underline-offset: 7px; }
+/* Language: a mint pill inside a 44px hit area. */
+html:not([data-theme="dark"]) .lang-switch { padding: 0; border: 0; background: none; }
+html:not([data-theme="dark"]) .lang-switch button { padding: 7px 3px; border-radius: 12px; background-clip: content-box; color: var(--day-muted); font-weight: 600; letter-spacing: .02em; }
+html:not([data-theme="dark"]) .lang-switch button[aria-pressed="true"] { background-color: var(--day-tint); color: var(--day-ok); }
+html:not([data-theme="dark"]) .lang-switch button:focus-visible { outline: 2px solid var(--day-accent); outline-offset: -2px; }
+html:not([data-theme="dark"]) .header-account { border: 1.5px solid var(--day-accent); border-radius: var(--day-r-control); background: transparent; color: var(--day-accent); font-weight: 600; }
+html:not([data-theme="dark"]) .header-account:hover { background: var(--day-tint); }
+
+/* ---------- Home: the hero beside the example bill ---------- */
+.home-top > * { min-width: 0; }
+html:not([data-theme="dark"]) .home-top { display: grid; gap: 40px; padding: 32px 0 calc(var(--day-section) / 2); }
+@media (min-width: 1100px) {
+  html:not([data-theme="dark"]) .home-top { grid-template-columns: minmax(0, 1.08fr) minmax(400px, .92fr); column-gap: 64px; align-items: center; padding: 56px 0 72px; }
+}
+@media (min-width: 761px) and (max-width: 1099px) { html:not([data-theme="dark"]) .home-top { max-width: 720px; } }
+html:not([data-theme="dark"]) .home-hero { max-width: none; padding: 0; --day-h1-size: var(--day-fs-h1); --day-h1-leading: 1.04; --day-h1-tracking: -.03em; }
+html:not([data-theme="dark"]) .home-hero h1 { max-width: 13em; color: var(--day-ink); }
+html:not([data-theme="dark"]) .home-hero-lead { max-width: 34em; margin-top: 20px; font-size: var(--day-fs-lead); line-height: 1.55; color: var(--day-muted); }
+/* The link form: the one raised object beside the folio. */
+html:not([data-theme="dark"]) .home-link-form { margin-top: 28px; padding: 6px; border: 1px solid var(--day-field); border-radius: 14px; background: var(--day-surface); box-shadow: var(--day-raise-form); }
+html:not([data-theme="dark"]) .home-link-form:focus-within { border-color: var(--day-accent); box-shadow: 0 0 0 1px var(--day-accent), var(--day-ring), var(--day-raise-form); }
+html:not([data-theme="dark"]) .home-link-field { min-height: 52px; color: var(--day-muted); }
+html:not([data-theme="dark"]) .home-link-field input { min-height: 48px; font-size: 16px; }
+html:not([data-theme="dark"]) .home-link-form .home-cta { min-height: 52px; padding-inline: 28px; border-radius: var(--day-r-control); font-size: 16px; }
+html:not([data-theme="dark"]) .home-link-note { margin-top: 10px; font-size: 14px; color: var(--day-muted); }
+/* Stores: a quiet list with their own marks, not a wall of chips. */
+html:not([data-theme="dark"]) .home-stores { margin-top: 22px; }
+html:not([data-theme="dark"]) .home-stores ul { gap: 0 20px; padding: 0; }
+html:not([data-theme="dark"]) .home-stores a { gap: 8px; padding: 0; border: 0; border-radius: 0; background: none; color: var(--day-ink); font-size: 15px; font-weight: 500; }
+html:not([data-theme="dark"]) .home-stores a:hover { border: 0; text-decoration: underline; text-underline-offset: 4px; }
+html:not([data-theme="dark"]) .home-stores .home-stores-all { color: var(--day-accent); font-weight: 600; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+html:not([data-theme="dark"]) .home-stores-hint { max-width: 40em; margin: 4px 0 0; font-size: 14px; line-height: 1.5; color: var(--day-muted); }
+html:not([data-theme="dark"]) .home-hero-links { gap: 0 24px; margin-top: 8px; }
+html:not([data-theme="dark"]) .home-hero-links a { font-weight: 600; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+@media (max-width: 640px) {
+  html:not([data-theme="dark"]) .home-stores ul { flex-wrap: nowrap; margin-inline: -16px; padding-inline: 16px; -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent); }
+  html:not([data-theme="dark"]) .home-stores li { flex: 0 0 auto; }
+  html:not([data-theme="dark"]) .home-link-form .home-cta { width: 100%; }
+}
+@media (max-width: 600px) {
+  html:not([data-theme="dark"]) .home-top { padding-top: 20px; gap: 32px; }
+  html:not([data-theme="dark"]) .home-hero-lead { margin-top: 14px; }
+  html:not([data-theme="dark"]) .home-link-form { margin-top: 20px; }
+}
+/* ---------- The folio: a bill in a light mint folder ---------- */
+/* The white sheet is what you pay; the cream slip under it is what is kept apart. */
+html:not([data-theme="dark"]) .folio { display: grid; gap: 10px; padding: 14px 12px 12px; border: 1px solid var(--day-tint-2); border-radius: var(--day-r-plate);
+  background: var(--day-folio); color: var(--day-ink); box-shadow: var(--day-shadow-lift); }
+html:not([data-theme="dark"]) .folio > * { min-width: 0; }
+html:not([data-theme="dark"]) .folio-cap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; margin: 0; padding: 0 10px 2px;
+  font: 600 14px/1.35 var(--day-sans); color: var(--day-muted); }
+html:not([data-theme="dark"]) .folio-cap b { font-weight: 700; color: var(--day-ink); }
+html:not([data-theme="dark"]) .folio-foot { margin: 0; padding: 0 10px 2px; font-size: 13px; line-height: 1.45; color: var(--day-muted); }
+html:not([data-theme="dark"]) .folio-sheet { display: grid; gap: 14px; padding: 22px 24px 18px; border: 0; border-radius: var(--day-r-sheet);
+  background: var(--day-surface); color: var(--day-ink); box-shadow: 0 1px 2px rgba(22, 33, 28, .05), 0 4px 14px rgba(22, 33, 28, .05); }
+/* Route: the only motif from the parcel world. */
+html:not([data-theme="dark"]) .bill-route { display: grid; grid-template-columns: auto minmax(24px, 1fr) auto; align-items: center; gap: 10px; margin: 0;
+  font-size: 13.5px; font-weight: 700; color: var(--day-ink); }
+html:not([data-theme="dark"]) .bill-route-line { position: relative; height: 0; border-top: 1.5px dashed var(--day-line-strong); }
+html:not([data-theme="dark"]) .bill-route-line::before, html:not([data-theme="dark"]) .bill-route-line::after { content: ""; position: absolute; top: -5px; width: 8px; height: 8px; box-sizing: border-box; border-radius: 50%; }
+html:not([data-theme="dark"]) .bill-route-line::before { left: 0; background: var(--day-accent); }
+html:not([data-theme="dark"]) .bill-route-line::after { right: 0; border: 2px solid var(--day-accent); background: var(--day-surface); }
+html:not([data-theme="dark"]) .bill-days { margin: -8px 0 0; font-size: 13px; color: var(--day-muted); }
+/* Rows: label, dotted leader, amount; the derivation under each row. */
+html:not([data-theme="dark"]) .bill { display: grid; gap: 14px; margin: 0; }
+html:not([data-theme="dark"]) .bill > div { display: grid; grid-template-columns: minmax(0, auto) minmax(16px, 1fr) auto; column-gap: 8px; align-items: baseline; padding: 0; border: 0; }
+html:not([data-theme="dark"]) .bill > div::before { content: ""; grid-column: 2; grid-row: 1; align-self: end; margin-bottom: .32em; border-bottom: 1px dotted var(--day-leader); }
+html:not([data-theme="dark"]) .bill dt { display: block; grid-column: 1; grid-row: 1; margin: 0; font-size: 15px; font-weight: 500; line-height: 1.35; color: var(--day-ink); }
+html:not([data-theme="dark"]) .bill dd { grid-column: 3; grid-row: 1; margin: 0; font-size: 15px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--day-ink); }
+html:not([data-theme="dark"]) .bill dd.bill-note { grid-column: 1 / -1; grid-row: 2; margin-top: 2px; font-size: 13px; font-weight: 400; line-height: 1.4; white-space: normal; color: var(--day-muted); }
+html:not([data-theme="dark"]) .bill .home-tip-button { width: 36px; height: 36px; margin: -10px -6px; }
+/* Total: a ruled line, then the amount large in ink. */
+html:not([data-theme="dark"]) .bill-total { display: grid; gap: 2px; margin: 0; padding-top: 14px; border-top: 1.5px solid var(--day-ink); }
+html:not([data-theme="dark"]) .bill-total > span { font-size: 14px; font-weight: 700; color: var(--day-ink); }
+html:not([data-theme="dark"]) .bill-total .money { font-size: var(--day-money-xl); line-height: 1.05; }
+html:not([data-theme="dark"]) .bill-total .money-n { color: var(--day-ink); }
+@media (min-width: 600px) {
+  html:not([data-theme="dark"]) .home-folio .bill-total { grid-template-columns: auto minmax(0, 1fr); align-items: baseline; }
+  html:not([data-theme="dark"]) .home-folio .bill-total strong { justify-self: end; }
+}
+html:not([data-theme="dark"]) .folio-sheet .calc-fx { display: block; margin: 0; font-size: 13px; line-height: 1.45; color: var(--day-muted); }
+html:not([data-theme="dark"]) .folio-sheet .calc-fx svg { display: none; }
+/* The slip: what is NOT in the amount to pay, on readable cream paper rather than as fine print. */
+html:not([data-theme="dark"]) .folio-outside { display: grid; gap: 10px; padding: 16px 18px; border: 1px solid var(--day-slip-line); border-radius: var(--day-r-sheet); background: var(--day-slip); color: var(--day-ink); }
+html:not([data-theme="dark"]) .folio-outside > h3 { margin: 0; font: 700 15px/1.35 var(--day-sans); color: var(--day-ink); }
+html:not([data-theme="dark"]) .outside-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: baseline; margin: 0; }
+html:not([data-theme="dark"]) .outside-row > span { font-size: 15px; font-weight: 500; }
+html:not([data-theme="dark"]) .outside-row > b { font-size: 15px; font-weight: 700; white-space: nowrap; text-align: right; }
+html:not([data-theme="dark"]) .outside-row > small { grid-column: 1 / -1; font-size: 13px; line-height: 1.4; color: var(--day-muted); }
+@media (max-width: 600px) {
+  html:not([data-theme="dark"]) .folio { padding: 12px 8px 8px; }
+  html:not([data-theme="dark"]) .folio-sheet { padding: 16px; }
+  html:not([data-theme="dark"]) .folio-outside { padding: 14px 16px; }
+  html:not([data-theme="dark"]) .bill > div { grid-template-columns: minmax(0, 1fr) minmax(0, auto) auto; }
+}
+/* The one orchestrated moment: on the home bill the route draws itself once. Amounts are visible from the first paint. */
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-theme="dark"]) .home-folio .bill-route-line { transform-origin: left center; animation: day-route-draw 700ms cubic-bezier(.2, .7, .2, 1) 200ms both; }
+  html:not([data-theme="dark"]) .home-folio .bill-route-line::after { animation: day-route-arrive 160ms ease-out 900ms both; }
+}
+@keyframes day-route-draw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes day-route-arrive { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+/* Good news on the slip and in the customs estimate (no duty, free store delivery) is written in the success green. */
+html:not([data-theme="dark"]) :is(.outside-row > b, .calc-customs header b).ok { color: var(--day-ok); }
+/* Phones: the bill rows sit a little closer, so the whole example fits with less scrolling. */
+@media (max-width: 600px) {
+  html:not([data-theme="dark"]) .bill { gap: 10px; }
+  html:not([data-theme="dark"]) .bill dd.bill-note { margin-top: 0; }
+}
+
+/* ---------- Home sections: separated by space; the content sits on white cards ---------- */
+html:not([data-theme="dark"]) .home-section { padding-block: calc(var(--day-section) / 2); border-top: 0; }
+html:not([data-theme="dark"]) .home-section > h2 { margin: 0 0 12px; color: var(--day-ink); }
+html:not([data-theme="dark"]) .home-section-lead { max-width: 52ch; margin-bottom: 24px; font-size: var(--day-fs-lead); line-height: 1.55; color: var(--day-muted); }
+html:not([data-theme="dark"]) .home-note { color: var(--day-muted); }
+/* How it works: a real sequence. Phones draw it as stations on a rail; wide screens as four white cards. */
+html:not([data-theme="dark"]) .home-steps { position: relative; gap: 28px; margin-top: 28px; }
+html:not([data-theme="dark"]) .home-step { display: block; padding: 0 0 0 46px; border: 0; border-radius: 0; background: none; box-shadow: none; }
+html:not([data-theme="dark"]) .home-step-station { position: absolute; left: 0; top: 0; z-index: 1; display: grid; place-items: center; width: 30px; height: 30px; box-sizing: border-box;
+  border: 1.5px solid var(--day-line-strong); border-radius: 50%; background: var(--day-surface); color: var(--day-ink); font: 700 13px/1 var(--day-sans); box-shadow: 0 0 0 5px var(--day-canvas); }
+html:not([data-theme="dark"]) .home-step:first-child .home-step-station { border-color: var(--day-accent); background: var(--day-accent); color: #fff; }
+html:not([data-theme="dark"]) .home-steps::before { content: ""; position: absolute; left: 14px; top: 15px; bottom: 15px; width: 2px; background: linear-gradient(var(--day-accent) 0 25%, var(--day-line-strong-2) 25% 100%); }
+html:not([data-theme="dark"]) .home-step h3 { margin: 4px 0 6px; font-size: var(--day-fs-h3); color: var(--day-ink); }
+html:not([data-theme="dark"]) .home-step p { max-width: 30ch; font-size: 15px; line-height: 1.55; color: var(--day-muted); }
+@media (min-width: 1024px) {
+  html:not([data-theme="dark"]) .home-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  html:not([data-theme="dark"]) .home-steps::before { display: none; }
+  html:not([data-theme="dark"]) .home-step { position: relative; padding: 22px 22px 24px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }
+  html:not([data-theme="dark"]) .home-step-station { position: static; width: 36px; height: 36px; margin-bottom: 18px; font-size: 14px; box-shadow: none; }
+}
+/* Rates: every country with its own price per kilogram and per 100 g, and the days with a small range bar. */
+html:not([data-theme="dark"]) .home-table-wrap { max-width: none; overflow: hidden; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }
+html:not([data-theme="dark"]) .home-tariffs :is(th, td) { padding: 14px 20px; border-bottom: 1px solid var(--day-line); font-size: 15px; vertical-align: middle; }
+html:not([data-theme="dark"]) .home-tariffs tbody tr:last-child :is(th, td) { border-bottom: 0; }
+html:not([data-theme="dark"]) .home-tariffs thead th { background: var(--day-soft); color: var(--day-muted); font-size: 13.5px; font-weight: 700; }
+html:not([data-theme="dark"]) .home-tariffs tbody th { font-weight: 700; color: var(--day-ink); }
+html:not([data-theme="dark"]) .home-tariffs td { font-variant-numeric: tabular-nums; }
+html:not([data-theme="dark"]) .home-tariff-price b { display: block; font-size: 18px; font-weight: 750; letter-spacing: -.02em; color: var(--day-ink); }
+html:not([data-theme="dark"]) .home-tariff-price small { display: block; margin-top: 2px; font-size: 13px; color: var(--day-muted); }
+html:not([data-theme="dark"]) .days-bar { position: relative; display: block; max-width: 200px; height: 4px; margin-top: 8px; border-radius: 2px; background: var(--day-soft); }
+html:not([data-theme="dark"]) .days-bar::after { content: ""; position: absolute; top: 0; bottom: 0; border-radius: 2px; background: var(--day-fresh);
+  left: calc(var(--from) / 14 * 100%); right: calc(100% - var(--to) / 14 * 100%); }
+html:not([data-theme="dark"]) #tariffs > .calc-fx { display: block; max-width: none; margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: var(--day-muted); }
+html:not([data-theme="dark"]) #tariffs > .calc-fx svg { display: none; }
+/* Phones, both themes: one compact row per country, the country and its days on the left, the price on the right. */
+@media (max-width: 600px) {
+  .home-tariffs, .home-tariffs tbody { display: block; }
+  .home-tariffs thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .home-tariffs tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 12px; row-gap: 2px; padding: 12px 16px; border-bottom: 1px solid var(--home-line); }
+  .home-tariffs tbody tr:last-child { border-bottom: 0; }
+  .home-tariffs tbody :is(th, td) { padding: 0 !important; border: 0 !important; font-size: 15px; }
+  .home-tariffs tbody th { grid-column: 1; grid-row: 1; }
+  .home-tariffs tbody td:not(.home-tariff-price) { grid-column: 1; grid-row: 2; font-size: 13.5px; font-weight: 500; }
+  .home-tariffs tbody td.home-tariff-price { grid-column: 2; grid-row: 1 / span 2; text-align: right; }
+  .home-tariffs .days-bar { max-width: 160px; margin-top: 6px; }
+  html:not([data-theme="dark"]) .home-tariffs tbody td:not(.home-tariff-price) { color: var(--day-muted); }
+  html:not([data-theme="dark"]) .home-tariff-price b { font-size: 16px; }
+}
+/* On phones mobile.css lays a step out as a grid: the station takes the old icon column in both themes. */
+.home-step-station { grid-row: 1 / span 3; }
+@media (max-width: 1023px) { html:not([data-theme="dark"]) .home-steps { grid-template-columns: minmax(0, 1fr); } }
+
+/* How we handle your money: plain true facts on a white card, each with a small green tick. */
+html:not([data-theme="dark"]) .home-facts { display: grid; gap: 0 40px; max-width: none; margin: 20px 0 0; padding: 10px 28px; list-style: none;
+  border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }
+@media (min-width: 900px) { html:not([data-theme="dark"]) .home-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+html:not([data-theme="dark"]) .home-facts li { position: relative; padding: 16px 0 16px 38px; border-bottom: 1px solid var(--day-line); font-size: 16px; line-height: 1.5; color: var(--day-ink); }
+html:not([data-theme="dark"]) .home-facts li { padding-left: 30px; }
+html:not([data-theme="dark"]) .home-facts li::after { content: ""; position: absolute; left: 3px; top: 22px; width: 11px; height: 5px; border-left: 2px solid var(--day-accent); border-bottom: 2px solid var(--day-accent); transform: rotate(-45deg); }
+@media (min-width: 900px) { html:not([data-theme="dark"]) .home-facts li:nth-last-child(-n + 2) { border-bottom: 0; } }
+@media (max-width: 899px) { html:not([data-theme="dark"]) .home-facts li:last-child { border-bottom: 0; } }
+@media (max-width: 600px) { html:not([data-theme="dark"]) .home-facts { padding: 4px 18px; } }
+/* Tracking demo: a white card with a horizontal route on wide screens. */
+html:not([data-theme="dark"]) .home-trust-grid { margin-top: 24px; }
+html:not([data-theme="dark"]) .home-trust-grid.single { grid-template-columns: minmax(0, 1fr); }
+html:not([data-theme="dark"]) .home-tracking { padding: 24px 28px 28px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }
+html:not([data-theme="dark"]) .home-tracking header { justify-content: flex-start; gap: 12px; }
+html:not([data-theme="dark"]) .home-tracking h3 { font-size: var(--day-fs-h3); }
+html:not([data-theme="dark"]) .home-badge { padding: 3px 10px; border-radius: 999px; background: var(--day-tint); color: var(--day-ok); font-size: 13px; font-weight: 700; }
+html:not([data-theme="dark"]) .home-tracking-item { display: grid; gap: 2px; margin: 8px 0 22px; color: var(--day-ink); font-size: 15px; }
+html:not([data-theme="dark"]) .home-tracking-item span { font-size: 14px; color: var(--day-muted); }
+html:not([data-theme="dark"]) .home-tracking ol { position: relative; gap: 14px; }
+html:not([data-theme="dark"]) .home-tracking li { position: relative; font-size: 15px; color: var(--day-muted); }
+html:not([data-theme="dark"]) .home-tracking li:is([data-state="done"], [data-state="current"]) { color: var(--day-ink); }
+html:not([data-theme="dark"]) .home-tracking-dot { position: relative; z-index: 1; flex: 0 0 22px; border: 1.5px solid var(--day-line-strong); background: var(--day-surface); box-sizing: border-box; }
+html:not([data-theme="dark"]) .home-tracking li[data-state="done"] .home-tracking-dot { border-color: var(--day-accent); background: var(--day-accent); color: #fff; }
+html:not([data-theme="dark"]) .home-tracking li[data-state="current"] .home-tracking-dot { border: 6px solid var(--day-accent); box-shadow: 0 0 0 5px var(--day-tint); }
+@media (min-width: 900px) {
+  html:not([data-theme="dark"]) .home-tracking ol { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+  html:not([data-theme="dark"]) .home-tracking li { flex-direction: column; align-items: flex-start; gap: 12px; font-size: 14px; }
+  html:not([data-theme="dark"]) .home-tracking ol::before { content: ""; position: absolute; left: 11px; right: calc(100% / 6 - 11px); top: 10px; height: 2px; background: linear-gradient(90deg, var(--day-accent) 0 80%, var(--day-line-strong-2) 80% 100%); }
+}
+@media (max-width: 600px) { html:not([data-theme="dark"]) .home-tracking { padding: 18px; } }
+html:not([data-theme="dark"]) .home-legal { padding: 0; border: 0; background: none; margin-top: 32px; }
+
+/* FAQ: white rows; on wide screens the title stays beside them. */
+@media (min-width: 1024px) {
+  html:not([data-theme="dark"]) #faq { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 48px; align-items: start; }
+  html:not([data-theme="dark"]) .home-faq-head { position: sticky; top: 104px; }
+}
+html:not([data-theme="dark"]) .home-faq-head > h2 { margin: 0 0 12px; }
+html:not([data-theme="dark"]) .home-faq { display: grid; gap: 10px; margin-top: 8px; border: 0; }
+html:not([data-theme="dark"]) .home-faq details { border: 1px solid var(--day-line); border-radius: 14px; background: var(--day-surface); box-shadow: var(--day-shadow); }
+html:not([data-theme="dark"]) .home-faq details[open] { border-color: var(--day-line-strong); }
+html:not([data-theme="dark"]) .home-faq summary { min-height: 60px; padding: 10px 20px; font-size: 16.5px; font-weight: 700; color: var(--day-ink); }
+html:not([data-theme="dark"]) .home-faq summary::after { display: grid; place-items: center; flex: 0 0 28px; width: 28px; height: 28px; box-sizing: border-box; border: 1.5px solid var(--day-line-strong); border-radius: 50%; background: var(--day-surface); color: var(--day-ink); font-size: 17px; font-weight: 500; }
+html:not([data-theme="dark"]) .home-faq summary:focus-visible { border-radius: 14px; }
+html:not([data-theme="dark"]) .home-faq details > div { max-width: 64ch; padding: 0 20px 18px; }
+html:not([data-theme="dark"]) .home-faq p { font-size: 16px; line-height: 1.6; color: var(--day-muted); }
+html:not([data-theme="dark"]) .home-faq a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-theme="dark"]) .home-faq details[open] > div { animation: day-fade-in 180ms ease-out; }
+}
+@keyframes day-fade-in { from { opacity: 0; transform: translateY(-2px); } to { opacity: 1; transform: none; } }
+
+/* Closing: a white card with one line and the action; phones already have the sticky button. */
+.home-closing { display: grid; justify-items: start; gap: 12px; }
+.home-closing p { margin: 0; }
+@media (max-width: 760px) { .home-closing { display: none; } }
+html:not([data-theme="dark"]) .home-closing { margin-top: calc(var(--day-section) / 2); padding: 36px 40px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }
+html:not([data-theme="dark"]) .home-closing > h2 { margin: 0; }
+html:not([data-theme="dark"]) .home-closing p { font-size: 16px; color: var(--day-muted); }
+html:not([data-theme="dark"]) .home-closing .home-cta { min-height: 52px; margin-top: 6px; padding-inline: 24px; border-radius: var(--day-r-control); }
+
+/* ---------- Footer ---------- */
+@media (min-width: 761px) { .home-footer.no-contacts { grid-template-columns: 1.3fr 1fr 1fr; } }
+html:not([data-theme="dark"]) .home-footer { margin-top: calc(var(--day-section) / 2); padding-top: 48px; border-top: 1px solid var(--day-line); }
+html:not([data-theme="dark"]) .home-footer-title { font-size: 14px; font-weight: 600; color: var(--day-ink); }
+html:not([data-theme="dark"]) .home-footer a:not(.wordmark) { font-size: 15px; font-weight: 500; color: var(--day-muted); }
+html:not([data-theme="dark"]) .home-footer a:not(.wordmark):hover { color: var(--day-ink); }
+html:not([data-theme="dark"]) .home-footer-brand p { color: var(--day-muted); }
+
+/* ---------- Buttons and fields ---------- */
+html:not([data-theme="dark"]) .btn { border-radius: var(--day-r-control); font-weight: 600; letter-spacing: 0; }
+/* Primary buttons get the same finish as in Night: a soft top-to-bottom gradient, a light edge on top and a shadow in their own green. */
+html:not([data-theme="dark"]) :is(.btn.primary, .cart-link) {
+  border-color: #1a4233; color: #fff;
+  background: linear-gradient(180deg, #2b5e49 0%, var(--day-accent) 55%, #1a4233 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), inset 0 -1px 0 rgba(0, 0, 0, .14), 0 10px 22px -12px rgba(31, 77, 59, .6);
+}
+html:not([data-theme="dark"]) :is(.btn.primary, .cart-link):hover:not(:disabled) { background: linear-gradient(180deg, #2f6650 0%, #22533f 55%, #1c4636 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22), inset 0 -1px 0 rgba(0, 0, 0, .14), 0 14px 28px -12px rgba(31, 77, 59, .65); }
+html:not([data-theme="dark"]) :is(.btn.primary, .cart-link):active:not(:disabled) { transform: translateY(1px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 6px 14px -10px rgba(31, 77, 59, .6); }
+html:not([data-theme="dark"]) .btn.primary:disabled { border-color: var(--day-line-strong); background: var(--day-soft); color: var(--day-muted); box-shadow: none; }
+/* Secondary buttons: white with a hairline in green and a light lift. */
+html:not([data-theme="dark"]) .btn.secondary { border: 1.5px solid var(--day-accent); background: linear-gradient(180deg, #fff 0%, #f9faf7 100%); color: var(--day-accent);
+  box-shadow: inset 0 1px 0 #fff, 0 6px 14px -10px rgba(22, 33, 28, .35); }
+html:not([data-theme="dark"]) .btn.secondary:not(:disabled):hover { background: var(--day-tint); box-shadow: inset 0 1px 0 #fff, 0 8px 18px -10px rgba(31, 77, 59, .4); }
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-theme="dark"]) :is(.btn, .cart-link) { transition: background-color .15s, border-color .15s, color .15s, box-shadow .18s, transform .08s; }
+}
+html:not([data-theme="dark"]) .field :is(input, select, textarea) { border-color: var(--day-field); }
+html:not([data-theme="dark"]) .field :is(input, select, textarea):focus { border-color: var(--day-accent); box-shadow: var(--day-ring); }
+
+/* ---------- Page titles and the home teaser ---------- */
+html:not([data-theme="dark"]) .page-heading p { color: var(--day-muted); }
+html:not([data-theme="dark"]) .catalog-teaser { padding-block: calc(var(--day-section) / 2); border-top: 0; }
+html:not([data-theme="dark"]) .catalog-teaser > header p { color: var(--day-muted); }
+
+/* ---------- Catalog card: white card (finds.css) with one spacing rhythm ----------
+   Meta, title, store price with the discount pill, the delivered total, the button: 6 / 12 / 2 / 12 | 12 / 2 / 14.
+   Titles always take two lines, so the price blocks and buttons line up across a row. */
+html:not([data-theme="dark"]) .site-main .find-card .find-visual { background: #fff !important; }
+html:not([data-theme="dark"]) .site-main .find-card .find-content { gap: 0; padding: 16px 18px 18px; }
+html:not([data-theme="dark"]) .site-main .find-card .find-meta { margin: 0; font-size: 12.5px; line-height: 1.3; }
+html:not([data-theme="dark"]) .site-main .find-card .find-content .find-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+  min-height: 2.6em; margin: 6px 0 0; font-size: 18px; font-weight: 600; line-height: 1.3; letter-spacing: -.015em; color: var(--day-ink); }
+html:not([data-theme="dark"]) .site-main .find-card .find-title:hover { color: var(--day-accent); }
+html:not([data-theme="dark"]) .site-main .find-card .find-content .find-store-price { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin: 12px 0 0; padding: 0 0 12px; border-bottom: 1px solid var(--day-line); }
+html:not([data-theme="dark"]) .site-main .find-card .find-store-price > span:first-child { flex-basis: 100%; font-size: 13px; line-height: 1.35; color: var(--day-muted); }
+html:not([data-theme="dark"]) .site-main .find-card .find-store-price > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; margin: 0; }
+html:not([data-theme="dark"]) .site-main .find-card .find-store-price b { font-size: 17px; font-weight: 600; line-height: 1.4; letter-spacing: -.01em; color: var(--day-muted); }
+html:not([data-theme="dark"]) .site-main .find-card .find-store-price del { font-size: 14px; color: #687f74; }
+/* The discount: a mint pill on the price line; top deals also get the gold badge on the photo. */
+html:not([data-theme="dark"]) .site-main .find-card .find-store-price .find-discount { position: static; display: inline-flex; margin: 0; padding: 3px 8px; border-radius: 7px;
+  background: #e7f4e9; color: #226d39; font-size: 13px; font-weight: 700; line-height: 1.25; box-shadow: none; }
+html:not([data-theme="dark"]) .site-main .find-card .find-top-deal { background: var(--day-deal); }
+html:not([data-theme="dark"]) .site-main .find-card .find-content .find-total { position: relative; margin: 0; padding: 12px 0 0; }
+html:not([data-theme="dark"]) .site-main .find-card .find-total > span { display: block; padding-right: 0; font-size: 13px; line-height: 1.35; color: #51645a; }
+html:not([data-theme="dark"]) .site-main .find-card .find-total > strong { display: block; margin: 2px 0 0; padding-right: 40px; font-size: 26px; font-weight: 700; line-height: 1.15; letter-spacing: -.02em; color: var(--day-ink); }
+html:not([data-theme="dark"]) .site-main .find-card .find-info { top: auto; bottom: -5px; right: -8px; width: 40px; height: 40px; color: var(--day-accent); }
+html:not([data-theme="dark"]) .site-main .find-card .find-breakdown { margin: 10px 0 0; }
+html:not([data-theme="dark"]) .site-main .find-card :is(.find-parcel, .find-limit) { margin: 10px 0 0; }
+html:not([data-theme="dark"]) .site-main .find-card .find-purchase { margin-top: auto; padding-top: 14px; }
+html:not([data-theme="dark"]) .site-main .find-card .find-purchase .btn { width: 100%; min-height: 46px; padding: 10px 14px; font-size: 15px; }
+@media (max-width: 600px) {
+  html:not([data-theme="dark"]) .site-main .find-card .find-content { padding: 10px 10px 12px; }
+  html:not([data-theme="dark"]) .site-main .find-card .find-meta { font-size: 11.5px; }
+  html:not([data-theme="dark"]) .site-main .find-card .find-content .find-title { margin-top: 4px; font-size: 14.5px; }
+  html:not([data-theme="dark"]) .site-main .find-card .find-content .find-store-price { margin-top: 8px; padding-bottom: 8px; column-gap: 6px; }
+  html:not([data-theme="dark"]) .site-main .find-card .find-store-price > span:first-child { font-size: 11.5px; }
+  html:not([data-theme="dark"]) .site-main .find-card .find-store-price b { font-size: 13.5px; }
+  html:not([data-theme="dark"]) .site-main .find-card .find-store-price del { font-size: 12px; }
+  html:not([data-theme="dark"]) .site-main .find-card .find-store-price .find-discount { padding: 2px 6px; font-size: 11.5px; }
+  html:not([data-theme="dark"]) .site-main .find-card .find-content .find-total { padding: 8px 0 0; }
+  html:not([data-theme="dark"]) .site-main .find-card .find-total > span { font-size: 11.5px; }
+  html:not([data-theme="dark"]) .site-main .find-card .find-total > strong { padding-right: 30px; font-size: clamp(15px, 4.4vw, 17px); }
+  html:not([data-theme="dark"]) .site-main .find-card .find-info { bottom: -9px; right: -9px; width: 36px; height: 36px; }
+  html:not([data-theme="dark"]) .site-main .find-card .find-purchase { padding-top: 10px; }
+  html:not([data-theme="dark"]) .site-main .find-card .find-purchase .btn { min-height: 44px; padding: 0 8px; font-size: 14px; }
+}
+/* Store filter: the logo is a fixed 22px mark and the name takes the rest (the first-span rule used to stretch the logo). Both themes. */
+.catalog-check > span.store-logo:first-of-type { flex: 0 0 22px; width: 22px; height: 22px; }
+.catalog-check > span.store-logo + span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+
+/* Atlas Night keeps its own card colours but the same rhythm, so cards line up in a row there too. */
+html[data-theme="dark"] .site-main .find-card .find-content { gap: 0; padding: 16px 18px 18px; }
+html[data-theme="dark"] .site-main .find-card .find-meta { margin: 0; line-height: 1.3; }
+html[data-theme="dark"] .site-main .find-card .find-content .find-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+  min-height: 2.6em; margin: 6px 0 0; font-size: 18px; line-height: 1.3; }
+html[data-theme="dark"] .site-main .find-card .find-content .find-store-price { row-gap: 2px; margin: 12px 0 0; padding-bottom: 12px; }
+html[data-theme="dark"] .site-main .find-card .find-store-price > div { margin: 0; }
+html[data-theme="dark"] .site-main .find-card .find-content .find-total { margin: 0; padding-top: 12px; }
+html[data-theme="dark"] .site-main .find-card .find-total > strong { margin: 2px 0 0; line-height: 1.15; }
+html[data-theme="dark"] .site-main .find-card .find-purchase { margin-top: auto; padding-top: 14px; }
+@media (max-width: 600px) {
+  html[data-theme="dark"] .site-main .find-card .find-content { padding: 10px 10px 12px; }
+  html[data-theme="dark"] .site-main .find-card .find-content .find-title { margin-top: 4px; font-size: 14.5px; }
+  html[data-theme="dark"] .site-main .find-card .find-content .find-store-price { margin-top: 8px; padding-bottom: 8px; }
+  html[data-theme="dark"] .site-main .find-card .find-content .find-total { padding-top: 8px; }
+  html[data-theme="dark"] .site-main .find-card .find-purchase { padding-top: 10px; }
+}
+
+/* ---------- Cart and link-order summaries: one compact white card ---------- */
+/* On the cart and the link order the folder would frame a tall column: the card itself is the sheet, the slip sits inside it. */
+html:not([data-theme="dark"]) .basket-summary.folio { gap: 16px; padding: 22px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow-lift); }
+@media (min-width: 960px) { html:not([data-theme="dark"]) .basket-summary.folio { position: sticky; top: 88px; } }
+html:not([data-theme="dark"]) .basket-summary.folio .folio-sheet { gap: 12px; padding: 0; border-radius: 0; box-shadow: none; }
+html:not([data-theme="dark"]) .basket-summary.folio .folio-sheet > h2 { margin: 0; font: 750 var(--day-fs-h2-sheet)/1.2 var(--day-sans); letter-spacing: -.02em; color: var(--day-ink); }
+html:not([data-theme="dark"]) .folio-sheet .basket-line { border-bottom: 1px solid var(--day-line); }
+html:not([data-theme="dark"]) .folio-sheet .basket-lines > .basket-line:last-child { border-bottom: 0; }
+html:not([data-theme="dark"]) .folio-sheet .basket-line-label { color: var(--day-ink); }
+html:not([data-theme="dark"]) .folio-sheet .basket-line > b { font-weight: 700; color: var(--day-ink); }
+/* Amount to pay: the label on the left, the amount on the right, in one line when it fits. */
+html:not([data-theme="dark"]) .basket-summary .bill-total { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; }
+html:not([data-theme="dark"]) .basket-summary .bill-total > span { font-size: 15px; font-weight: 700; }
+html:not([data-theme="dark"]) .basket-summary .bill-total .money { font-size: var(--day-money-l); line-height: 1.1; }
+html:not([data-theme="dark"]) .basket-summary .basket-cta { min-height: 54px; border-radius: var(--day-r-control); font-size: 17px; }
+html:not([data-theme="dark"]) .basket-summary .basket-balance { border-color: var(--day-tint-2); background: var(--day-tint); }
+html:not([data-theme="dark"]) .basket-summary.folio .folio-outside { padding: 14px 16px; }
+/* On the slip, the hold and the customs estimate read as rows, not as boxes inside a box. */
+html:not([data-theme="dark"]) .folio-outside :is(.calc-hold, .calc-customs) { margin: 0; padding: 0; border: 0; border-radius: 0; background: none; }
+html:not([data-theme="dark"]) .folio-outside .calc-hold + .calc-customs { padding-top: 10px; border-top: 1px solid var(--day-slip-line); }
+html:not([data-theme="dark"]) .folio-outside :is(.calc-hold small, .calc-hold-help, .calc-customs .micro, .calc-customs-lines div) { color: var(--day-muted); }
+html:not([data-theme="dark"]) .folio-outside :is(.calc-hold > svg, .calc-customs header svg) { color: var(--day-warn); }
+html:not([data-theme="dark"]) .lo-summary .folio-foot { padding: 0; }
+html:not([data-theme="dark"]) .lo-summary .cabinet-empty { margin: 0; color: var(--day-muted); }
+@media (max-width: 600px) {
+  html:not([data-theme="dark"]) .basket-summary.folio { padding: 18px 16px; }
+}
+/* Cart items: the parcel cards line up with the summary and stay compact. */
+html:not([data-theme="dark"]) .basket-parcel { border-color: var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); }
+html:not([data-theme="dark"]) .basket-parcel-title { background: var(--day-soft); }
+html:not([data-theme="dark"]) .basket-parcel-note.ok { background: var(--day-tint); color: var(--day-ok); }
+
+/* Atlas Night: the new wrappers keep the summary own surface and spacing. */
+html[data-theme="dark"] .basket-summary .folio-sheet, html[data-theme="dark"] .basket-summary .folio-outside { display: grid; gap: 14px; }
+html[data-theme="dark"] .folio-outside > h3 { margin: 4px 0 0; color: var(--night-ink); font-size: 15px; }
+html[data-theme="dark"] .lo-summary .folio-foot { margin: 0; color: var(--night-muted); font-size: 13px; }
+/* The link field on /order-by-link matches the home form: a field-grey frame, one soft shadow, focus in green. */
+html:not([data-theme="dark"]) .lo-link { padding: 6px; border: 1px solid var(--day-field); border-radius: 14px; box-shadow: var(--day-raise-form); }
+html:not([data-theme="dark"]) .lo-link:focus-within { border-color: var(--day-accent); box-shadow: 0 0 0 1px var(--day-accent), var(--day-ring), var(--day-raise-form); }
+html:not([data-theme="dark"]) .lo-link-submit { min-height: 52px; border-radius: var(--day-r-control); font-size: 16px; }
+
+/* ---------- Cabinet: the order waiting for payment is shown as its bill ---------- */
+.cabinet-next-inner, .cabinet-next > .folio-sheet { display: grid; gap: 14px; }
+html:not([data-theme="dark"]) .cabinet-next.folio { gap: 10px; padding: 14px 12px 12px; }
+html:not([data-theme="dark"]) .cabinet-next.folio .cabinet-next-icon { background: var(--day-tint); color: var(--day-ok); }
+html:not([data-theme="dark"]) .cabinet-next.folio .bill-total .money { font-size: var(--day-money-m); }
+html:not([data-theme="dark"]) .cabinet-next .cabinet-eyebrow { font-size: 13.5px; font-weight: 700; color: var(--day-muted); }
+html:not([data-theme="dark"]) .cabinet-next h2 { font-weight: 750; letter-spacing: -.02em; }
+html:not([data-theme="dark"]) .cabinet-bar span { background: var(--day-accent); }
+html:not([data-theme="dark"]) .cabinet-next:not(.folio):not(.done) { border-color: var(--day-line); background: var(--day-surface); box-shadow: var(--day-shadow); }
+html:not([data-theme="dark"]) .cabinet-next.warn:not(.folio) { border-color: #e7c98d; background: var(--day-warn-bg); }
+/* Other cabinet surfaces: white cards on the canvas. */
+html:not([data-theme="dark"]) :is(.cabinet-card, .cabinet-tiles a) { border-color: var(--day-line); background: var(--day-surface); box-shadow: var(--day-shadow); }
+html:not([data-theme="dark"]) .cabinet-tiles svg { color: var(--day-accent); }
+html:not([data-theme="dark"]) .cabinet-avatar { background: var(--day-accent); }
+html[data-theme="dark"] .cabinet-next.folio .bill-total .money { font-size: 32px; }
+html[data-theme="dark"] .cabinet-next .folio-cap { padding: 0; }
+html[data-theme="dark"] .cabinet-next .folio-foot { padding: 0; }
+
+/* ---------- The blank bill on /order-by-link before a link is pasted ---------- */
+.bill-blank { display: grid; gap: 14px; max-width: 560px; margin-top: 24px; }
+.bill-blank > * { margin: 0; }
+.bill-blank-outside ul { display: grid; gap: 6px; margin: 6px 0 0; padding-left: 0; list-style: none; }
+html:not([data-theme="dark"]) .bill-blank { padding: 22px 24px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }
+html:not([data-theme="dark"]) .bill-blank > h2 { font: 750 var(--day-fs-h2-sheet)/1.2 var(--day-sans); letter-spacing: -.02em; color: var(--day-ink); }
+html:not([data-theme="dark"]) .bill-blank-lead { margin-top: -6px; font-size: 14px; color: var(--day-muted); }
+html:not([data-theme="dark"]) .bill-fill { display: block; width: 88px; height: 1em; border-bottom: 1.5px dotted var(--day-field); }
+html:not([data-theme="dark"]) .bill-blank .bill-total { grid-template-columns: auto minmax(0, 1fr); align-items: end; }
+html:not([data-theme="dark"]) .bill-blank .bill-total .bill-fill { justify-self: end; width: 160px; height: 1.6em; }
+html:not([data-theme="dark"]) .bill-blank-outside { padding: 14px 16px; border-radius: var(--day-r-sheet); background: var(--day-slip); border: 1px solid var(--day-slip-line); }
+html:not([data-theme="dark"]) .bill-blank-outside h3 { margin: 0; font-size: 15px; color: var(--day-ink); }
+html:not([data-theme="dark"]) .bill-blank-outside li { font-size: 14px; line-height: 1.45; color: var(--day-muted); }
+html[data-theme="dark"] .bill-blank { padding: 22px 24px; border: 1px solid var(--night-line-strong); border-radius: 16px; background: var(--night-sheen), var(--night-raised); }
+html[data-theme="dark"] .bill-blank-lead, html[data-theme="dark"] .bill-blank-outside li { color: var(--night-muted); font-size: 14px; }
+html[data-theme="dark"] .bill-fill { display: block; width: 88px; height: 1em; border-bottom: 1.5px dotted var(--night-line-strong); }
+html[data-theme="dark"] .bill-blank-outside h3 { margin: 0; color: var(--night-ink); font-size: 15px; }
+
+/* ---------- Stores: white hero card; store tiles stay separate white cards ---------- */
+html:not([data-theme="dark"]) .stores-overline { display: none; }
+html:not([data-theme="dark"]) .stores-hero { padding: 26px 24px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }
+html:not([data-theme="dark"]) .stores-intro { color: var(--day-muted); }
+html:not([data-theme="dark"]) :is(.stores-link-field, .stores-search) { border: 1px solid var(--day-field); background: var(--day-surface); }
+html:not([data-theme="dark"]) .stores-shelf > h2, html:not([data-theme="dark"]) .stores-browse-head h2 { font: 750 26px/1.15 var(--day-sans); letter-spacing: -.03em; color: var(--day-ink); }
+html:not([data-theme="dark"]) .store-tile:hover { border-color: var(--day-tint-2); box-shadow: var(--day-shadow-lift); }
+html:not([data-theme="dark"]) .stores-more { border: 0; background: none; color: var(--day-accent); font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }
+html:not([data-theme="dark"]) .stores-missing { border: 1px solid var(--day-line); background: var(--day-surface); }
+html:not([data-theme="dark"]) .stores-note { color: var(--day-muted); }

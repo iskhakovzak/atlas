@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     "output/**",
     ".playwright-cli/**",
     "work/**",
+    // The in-browser OCR engine copied from node_modules (scripts/copy-ocr-assets.mjs).
+    "public/ocr/**",
     "next-env.d.ts",
   ]),
   {

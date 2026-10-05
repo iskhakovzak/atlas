@@ -13,6 +13,7 @@ import { formatSum, homeCopy } from '@/lib/market/home-copy';
 import type { Locale } from '@/lib/market/i18n';
 import { ProductImage } from './market-ui';
 import { StoreLogo } from './store-logo';
+
 import { brandForHost } from '@/lib/market/store-brands';
 import { useMarket } from '@/lib/market/store';
 
@@ -101,7 +102,7 @@ function FindPrice({ costs, product, label, breakdownLabel, fmt, numberLocale, b
       {costs.sourceShipping > 0 && <div><dt>{bd.store}</dt><dd>{fmt(costs.sourceShipping)}</dd></div>}
       {storeReserve && <div><dt>{bd.storeReserve}</dt><dd>{fmt(Math.ceil(holdUsd * pricing.fx))}</dd></div>}
       {storeFree && <div><dt>{bd.store}</dt><dd>{bd.storeFree}</dd></div>}
-      <div><dt>{bd.international} · {new Intl.NumberFormat(numberLocale, { maximumFractionDigits: 1 }).format(costs.weight)} {bd.kg}</dt><dd>{fmt(parts.international)}</dd></div>
+      <div><dt>{bd.international}, {new Intl.NumberFormat(numberLocale, { maximumFractionDigits: 1 }).format(costs.weight)} {bd.kg}</dt><dd>{fmt(parts.international)}</dd></div>
       {parts.service > 0 && <div><dt>{bd.service}</dt><dd>{fmt(parts.service)}</dd></div>}
       {costs.optionalServices > 0 && <div><dt>{bd.fee}</dt><dd>{fmt(costs.optionalServices)}</dd></div>}
       {costs.reserve > 0 && <div><dt>{bd.reserve}</dt><dd>{fmt(costs.reserve)}</dd></div>}

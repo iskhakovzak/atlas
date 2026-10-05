@@ -82,6 +82,8 @@ export const productSchema = z.object({
   country: z.string().optional(),
   sourceCurrency: z.string().optional(),
   sourcePrice: z.number().nonnegative().optional(),
+  /** The store's price before its discount, in sourceCurrency. Shown crossed out next to sourcePrice; never part of a total. */
+  sourceReferencePrice: z.number().positive().max(1_000_000).optional(),
   sourceShippingUsd: z.number().nonnegative().optional(),
   sourceShipping: z.number().nonnegative().optional(),
   sourceShippingCurrency: z.string().optional(),
@@ -108,6 +110,16 @@ export const productSchema = z.object({
   weightBasis: z.enum(["store", "estimate", "catalog", "customer"]).optional(),
 });
 export type Product = z.infer<typeof productSchema>;
+/**
+ * The store's discount on a product: the crossed-out price (in the store's currency) and the percentage off.
+ * Null when there is none, or when the "before" price is not believable (not above the price, or over 10 times it).
+ */
+export function storeDiscount(product: Pick<Product, "usd" | "sourcePrice" | "sourceReferencePrice">): { was: number; percent: number } | null {
+  const now = product.sourcePrice ?? product.usd, was = product.sourceReferencePrice;
+  if (!was || !(now > 0) || !(was > now) || was > now * 10) return null;
+  const percent = Math.round((was - now) / was * 100);
+  return percent > 0 ? { was, percent } : null;
+}
 /** The most units of one line the customer may choose: 10, or fewer when the store reports less stock. */
 export const maxLineQuantity = (product: Pick<Product, "stockQuantity">) =>
   Math.max(0, Math.min(10, product.stockQuantity ?? 10));
@@ -188,6 +200,9 @@ export const pricingSchema = z.object({
     optionalServices: z.number().finite().min(0).max(10_000_000).optional(),
     reserve: z.number().finite().min(0).max(2).optional(),
   }).strict()).default({}),
+  // Delivery time per region in business days [from, to], edited in the admin (Тарифы). A region left out
+  // falls back to lib/market/site-content.ts; the home rates table and the example bill read it.
+  deliveryDays: z.record(z.enum(["us", "uk", "cn", "de", "it", "es"]), z.tuple([z.number().int().min(1).max(120), z.number().int().min(1).max(120)]).refine(([from, to]) => from <= to, "from ≤ to")).optional(),
   // Where `fx` comes from: the Central Bank of Uzbekistan's USD rate × `fxMarkup`, fetched by the server
   // (lib/market/fx-server.ts), or a rate the operator sets. Customers see which one and when it was set.
   fxSource: z.enum(["cbu", "manual"]).default("manual"),
@@ -315,6 +330,8 @@ const quoteSchema = z.object({
   weight: positive,
   tariffVersion: z.string(),
   fx: positive.optional(),
+  /** The Atlas markup on the Central Bank rate inside `fx` (1.012 = 1.2%), when the rate was the CBU one. For accounting. */
+  fxMarkup: z.number().finite().min(1).max(1.2).optional(),
   margin: z.number().finite().min(0).max(1).optional(),
   reserveRate: z.number().finite().min(0).max(2).optional(),
   perKg: positive.optional(),
@@ -395,6 +412,7 @@ export function quote(
     ...price(usd, weight, quantity, sourceShippingUsd, config),
     tariffVersion: config.version,
     fx: config.fx,
+    ...(config.fxSource === "cbu" ? { fxMarkup: config.fxMarkup ?? 1.012 } : {}),
     margin: config.margin,
     buyoutFeeRate: config.buyoutFee,
     conversionFeeRate: config.conversionFee,
@@ -475,6 +493,15 @@ export const deliveryProfileSchema = z.object({
   comment: z.string().trim().max(300).default(""),
 });
 export type DeliveryProfile = z.infer<typeof deliveryProfileSchema>;
+/**
+ * Uzbekistan postal codes are six digits. Every new address needs one (owner's decision, 5.10.2026);
+ * recipients and orders saved earlier may have none, so the stored schema keeps the field optional.
+ */
+export const isPostalCode = (value?: string) => /^\d{6}$/.test(value ?? "");
+export function assertDeliveryAddress(delivery?: DeliveryProfile) {
+  if (!delivery || delivery.address.trim().length < 5) throw Error("Укажите адрес доставки.");
+  if (!isPostalCode(delivery.postalCode)) throw Error("Укажите почтовый индекс получателя: 6 цифр.");
+}
 const savedDeliveryProfileSchema = deliveryProfileSchema.extend({
   id: z.string().min(1).max(80),
   label: z.string().trim().min(1).max(60),
@@ -881,6 +908,8 @@ export function merchantParcelKey(item: CartItem) {
  * charged: it is free above `storeShippingFreeFromUsd` of items from that store, else held separately
  * (storeShippingHoldUsd). A store that still charges is settled by confirmStoreShipping with consent.
  */
+/** The hold a link order starts with when the store does not state its delivery (USD, editable by the customer). */
+export const unknownStoreShippingUsd = 10;
 export function storeShippingUsd(product: Pick<Product, "sourceShippingUsd" | "sourceShippingEstimated">) {
   return product.sourceShippingEstimated ? 0 : product.sourceShippingUsd ?? 0;
 }

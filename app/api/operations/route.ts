@@ -64,6 +64,7 @@ const updateSchema = z.discriminatedUnion("kind", [
       customsHelpFee: true,
       rates: true,
       countryOverrides: true,
+      deliveryDays: true,
       serviceCatalog: true,
     }),
   }),
