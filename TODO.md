@@ -3,15 +3,15 @@
 ## Tariff r4, link-order sheets, swipe gallery, Telegram bot sign-in — 6 October 2026
 
 - [x] Tariff revision 4: $14.98 per kg everywhere and the fee exactly 9.98% (a saved buyout/conversion percent made it 10.98%); per-country per-kg and fee overrides are dropped once.
-- [x] Link order on phones: three snapping sheets (choose, the bill, data and button); the grey "set by Atlas" note is gone.
+- [x] Link order: the grey "set by Atlas" note is gone. The snapping sheets were removed the same day: the magnet made choosing a size hard.
 - [x] Product photos slide with the finger and settle one at a time (all galleries); arrows, thumbnails, keys and a mouse drag animate.
 - [x] Sideways chip and card rows settle on a card edge; the catalog snaps only at its top and its footer.
 - [x] Capital letters while typing: every word in names, the first letter in city and address.
 - [x] Sign-in through the Telegram bot (one tap opens the app, confirm in the chat, the page signs in); `/login` shows Telegram first and the other methods as a column of buttons.
-- [ ] Owner: in Admin → System press "Подключить бота" once on the published site (sets the bot webhook). Until then the old widget stays. Reconnect after changing the site address, `TELEGRAM_BOT_TOKEN` or `ATLAS_AUTH_SECRET` (the webhook secret is derived from both).
+- [x] The published site (atlasmarket.uz over https) connects the bot webhook by itself on the first sign-in page load; "Подключить бота" in Admin → System does it by hand. Until it is connected the old widget stays. Reconnect after changing the site address, `TELEGRAM_BOT_TOKEN` or `ATLAS_AUTH_SECRET` (the webhook secret is derived from both).
 - [ ] Real-device check of the bot sign-in: iPhone and Android with Telegram installed (t.me opens the app), Telegram Desktop on Windows/macOS (tg:// opens it), and a computer without Telegram (the "open in the browser" link).
 - [ ] The bot asks for one confirm tap after Start (protects against someone sending a sign-in link to another person); if the owner wants zero taps, that protection is lost.
-- [ ] Link-order sheets and the catalog magnet are checked in Chromium only; check iPhone Safari (the measured bottom bars, the keyboard over the sheets).
+- [ ] The catalog magnet is checked in Chromium only; check iPhone Safari (the measured bottom bars, the keyboard over the sheets).
 
 ## Home sheets — 5 October 2026
 
