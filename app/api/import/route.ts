@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { fetchProduct, isAmazonUsUrl, ManualEntryFallbackError, validateManualSourceUrl } from '@/lib/importer/fetch';
+import { fetchProduct, isAmazonUsUrl, ManualEntryFallbackError, UnsupportedStoreError, validateManualSourceUrl } from '@/lib/importer/fetch';
 import { isSupportedStoreHost } from '@/lib/importer/stores';
 import { merchantRequest } from '@/lib/importer/worker-fetch';
 import { database, sameOrigin, json, failure, HttpError, requestJson } from '@/lib/market/server';
 import { currentUser } from '@/lib/auth/server';
 import { importRateBuckets } from '@/lib/market/import-preview';
-import { apiErrorMessage, importManualEntryMessage, requestLocale } from '@/lib/market/i18n';
+import { apiErrorMessage, importManualEntryMessage, requestLocale, serverError } from '@/lib/market/i18n';
 
 const importRequestSchema = z.object({ url: z.string().max(3000), fresh: z.boolean().optional() });
 
@@ -68,11 +68,14 @@ export async function POST(request: Request) {
     } catch (error) {
       const locale = requestLocale(request);
       const canManuallyEnter = error instanceof ManualEntryFallbackError || error instanceof Error && error.name === 'AbortError';
+      // A link outside the store list is answered in the customer's language, with the number of supported stores.
+      const unsupported = error instanceof UnsupportedStoreError ? error : undefined;
       const message = canManuallyEnter
         ? importManualEntryMessage(locale)
+        : unsupported ? serverError(locale, unsupported.code, { count: unsupported.supportedStoreCount })
         : locale === 'ru' ? (error as Error).message : apiErrorMessage(422, locale);
       const partial = error instanceof ManualEntryFallbackError ? error.partial : undefined;
-      return json({ ...partial, error: message, manualEntryAvailable: canManuallyEnter }, 422);
+      return json({ ...partial, error: message, ...(unsupported ? { errorCode: unsupported.code } : {}), manualEntryAvailable: canManuallyEnter }, 422);
     }
   } catch (error) {
     return failure(error, request);

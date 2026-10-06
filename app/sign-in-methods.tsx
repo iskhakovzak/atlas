@@ -49,7 +49,12 @@ export function SignInMethods({locale}:{locale:Locale}){
   setBusy(subject);
   try{
    const response=await fetch('/api/auth/links',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({remove:subject})});
-   if(!response.ok)throw Error(String(response.status));
+   if(!response.ok){
+    // A stable code from the server (for example link_current) explains the refusal; anything else is the generic message.
+    const failure=await response.json().catch(()=>null) as {error?:unknown}|null;
+    toast.error(typeof failure?.error==='string'?errorText(failure.error):lc.errors.fallback);
+    return;
+   }
    setLinks(await response.json() as Links);toast.success(c.removed);
   }catch{toast.error(lc.errors.fallback)}
   finally{setBusy(null)}

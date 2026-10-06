@@ -2,7 +2,7 @@ import { ManualEntryFallbackError } from '../importer/fetch.ts';
 import type { Extracted } from '../importer/extract.ts';
 import { manualFallbackAllowed, requiresMerchantSnapshot } from '../importer/manual-fallback.ts';
 import { compareProductSnapshot } from '../importer/verify.ts';
-import type { CartItem, Pricing } from './domain.ts';
+import type { CartItem, Pricing, Product } from './domain.ts';
 import { toUsd } from './world.ts';
 
 /** A cart line counts as checked for this long, so the checkout right after "Check out" does not fetch again. */
@@ -25,13 +25,20 @@ export type CartCheck = {
 const transient = (error: unknown) => error instanceof ManualEntryFallbackError
   || (error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError' || error.name === 'TypeError'));
 
+export type CartCheckOptions = {
+  /** Lines whose store delivery is an Atlas catalog record (resolved by the server, never from the request). */
+  editorial?: (product: Product) => boolean;
+};
+
 /**
  * Checks every cart line from a supported store against the live store, one request per product URL.
  * Prices are updated in place (and marked) instead of failing, so the customer sees the new total; the
  * caller reprices the cart. Lines checked within `freshWithinMs` and buyer-confirmed manual lines from
- * stores that hide their data are left as they are, as before.
+ * stores that hide their data are left as they are, as before. Store delivery follows the store: a stated delivery replaces a
+ * claimed reserve or amount, and a claimed delivery the store does not state becomes Atlas's reserve, unless
+ * `options.editorial` says the line's delivery is an Atlas catalog record.
  */
-export async function checkCartSources(cart: CartItem[], fetchSource: (url: string) => Promise<Extracted>, pricing: Pricing, now = Date.now(), freshWithinMs = recentCheckMs): Promise<CartCheck> {
+export async function checkCartSources(cart: CartItem[], fetchSource: (url: string) => Promise<Extracted>, pricing: Pricing, now = Date.now(), freshWithinMs = recentCheckMs, options: CartCheckOptions = {}): Promise<CartCheck> {
   const result: CartCheck = { cart: [...cart], changed: [], blocked: [], unreachable: [] };
   const groups = new Map<string, number[]>();
   cart.forEach((item, index) => {
@@ -74,7 +81,7 @@ export async function checkCartSources(cart: CartItem[], fetchSource: (url: stri
     }
     for (const index of indexes) {
       const item = cart[index];
-      const check = compareProductSnapshot(item.product, item.variant, extracted, now);
+      const check = compareProductSnapshot(item.product, item.variant, extracted, now, { editorialShipping: options.editorial?.(item.product) ?? false });
       if (check.status === 'blocked') {
         update(index, { sourceIssue: { kind: check.kind, at: now } });
         result.blocked.push(item.id);

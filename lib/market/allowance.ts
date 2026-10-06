@@ -1,5 +1,6 @@
 import { statuses, type CartCustoms, type CustomsEstimate, type IdentityProfile, type Order, type Pricing, type SavedDeliveryProfile, type State } from './domain.ts';
 import { courierAllowanceUsd, customsCheckedOn, customsParams } from './customs.ts';
+import { tashkentDay, tashkentMonth } from './world.ts';
 
 /** `parts`: each counted order this month (order ID and USD), for the cabinet meter. */
 export type RecipientAllowance = { key: string; name: string; usedUsd: number; orders: number; parts?: { id: string; usd: number }[] };
@@ -46,8 +47,9 @@ export function countsTowardAllowance(order: Order) {
   return !order.cancelled && order.status >= 1 && (!order.payment || order.payment.status === 'paid');
 }
 
-/** "2026-10" for a moment in local time: the calendar month the allowance is counted in. */
-export const monthOf = (at: number) => { const date = new Date(at); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; };
+/** "2026-10" for a moment in Tashkent time (UTC+5): the calendar month the allowance is counted in, whatever the
+ * time zone of the Worker or the browser, and the same calendar as accounting. */
+export const monthOf = tashkentMonth;
 
 /**
  * The calendar month the order uses the allowance in. CM resolution No. 244 §3(b) applies the norm "within one
@@ -120,7 +122,7 @@ export function cartCustomsEstimate(
   now = Date.now(),
 ): CustomsEstimate {
   const person: AllowancePerson = recipient.profile ? profilePerson(state, recipient.profile) : { name: normalizedName(recipient.name) };
-  const params = customsParams(pricing, new Date(now).toISOString().slice(0, 10));
+  const params = customsParams(pricing, tashkentDay(now));
   const cents = (value: number) => Math.round(value * 100) / 100;
   const valueUsd = cents(state.cart.reduce((sum, item) => sum + item.product.usd * item.quantity, 0));
   const atlasUsedUsd = monthlyUsedFor(state, person, pricing.fx, now);

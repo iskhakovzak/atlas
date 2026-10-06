@@ -1,4 +1,5 @@
 import type { Locale } from './i18n.ts';
+import { tashkentMonth } from './world.ts';
 import type { CatalogSort, PriceBand } from './catalog-query.ts';
 
 const usd = (value: number) => '$' + Math.max(0, Math.floor(value));
@@ -139,7 +140,8 @@ function plural(count: number, [one, few, many]: [string, string, string]) {
 export const catalogCopy: Record<Locale, Copy> = { ru, uz, en };
 /** Month in the form the allowance sentences need ("октябре", "oktabr", "October"). */
 export function allowanceMonth(locale: Locale, now = Date.now()) {
-  const month = new Date(now).getMonth();
+  // Tashkent calendar, like the allowance itself (lib/market/allowance.ts monthOf), not the browser time zone.
+  const month = Number(tashkentMonth(now).slice(5, 7)) - 1;
   if (locale === 'ru') return ['январе', 'феврале', 'марте', 'апреле', 'мае', 'июне', 'июле', 'августе', 'сентябре', 'октябре', 'ноябре', 'декабре'][month];
   if (locale === 'uz') return ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'][month];
   return ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][month];

@@ -1,16 +1,18 @@
 import {env} from 'cloudflare:workers';
 import {headers} from 'next/headers';
 import {
- APPLE_STATE_COOKIE,CODE_TTL_MS,HANDOFF_TTL_MS,LINK_TICKET_TTL_MS,MAX_CODE_ATTEMPTS,OAUTH_STATE_COOKIE,OAUTH_TTL_MS,SESSION_COOKIE,SESSION_RENEW_MS,SESSION_TTL_MS,
+ APPLE_STATE_COOKIE,AuthError,CODE_TTL_MS,HANDOFF_TTL_MS,LINK_TICKET_TTL_MS,OAUTH_STATE_COOKIE,OAUTH_TTL_MS,SESSION_COOKIE,SESSION_TTL_MS,
  constantTimeEqual,cookie,decodeChallengeMeta,decodeHandoffSecret,decodeJwtPayload,encodeChallengeMeta,encodeHandoffSecret,googleIdentity,hashCode,identityFor,isPkceValue,normalizeEmail,normalizeUzPhone,
  emptyAccountState,openToken,ownMethod,parseAuthUser,parseReviewAccounts,pkceChallenge,randomCode,randomToken,readCookie,sealToken,serializeAuthUser,sha256Hex,verifyHandoffProof,verifyTelegramAuth,
  type AuthMethod,type AuthUser,type ChallengeMeta,type TelegramFields,
 } from './core';
 import {appleAuthorizeUrl,appleClientSecret,appleUserName,exchangeAppleCode,revokeAppleToken,verifyAppleIdTokenLive} from './apple';
 import {loginPath,safeReturnTo} from './return-to';
+import {consumeChallenge,detachLinkedMethod,renewSessionRow} from './session-store';
 import {TG_ANIMATION_SETTING,TG_BOT_SETTING,TG_CHALLENGE_KINDS,TG_WELCOME_ANIMATION,TG_LOGIN_COOKIE,TG_LOGIN_TTL_MS,botLinks,botText,parseBotUpdate,validStartToken,type TgChallengeKind} from './telegram-bot';
 
-export class AuthError extends Error{constructor(public status:number,public code:string){super(code)}}
+// AuthError lives in core.ts (no parameter properties there, so tests load it); routes keep importing it from here.
+export {AuthError};
 export type OtpChannel='email'|'phone';
 
 function db(){if(!env.DB)throw new AuthError(503,'unavailable');return env.DB}
@@ -106,16 +108,15 @@ export async function currentUser():Promise<AuthUser|null>{
 export async function renewSession(request:Request){
  const token=sessionToken(request.headers.get('cookie'));
  if(!token||!env.DB)return null;
- const now=Date.now();
- const row=await env.DB.prepare('UPDATE market_auth_sessions SET expires_at=? WHERE id=? AND expires_at>? AND expires_at<? RETURNING id')
-  .bind(now+SESSION_TTL_MS,await sha256Hex(token),now,now+SESSION_TTL_MS-SESSION_RENEW_MS).first();
- return row?cookie(SESSION_COOKIE,token,SESSION_TTL_MS/1000):null;
+ return await renewSessionRow(env.DB,await sha256Hex(token),Date.now())?cookie(SESSION_COOKIE,token,SESSION_TTL_MS/1000):null;
 }
 
 /** Attaches a verified method to the signed-in account. Refused when that method already has data of its own. */
 async function attachMethod(current:AuthUser,added:AuthUser){
  const subject=added.userId;
  if(subject===current.userId)throw new AuthError(409,'link_same');
+ // One Telegram per account: Telegram sessions carry no unique contact, so detaching one could end the other's sessions.
+ if(subject.startsWith('tg:')&&(current.userId.startsWith('tg:')||await db().prepare('SELECT 1 AS found FROM market_auth_links WHERE user_id=? AND subject LIKE ? LIMIT 1').bind(current.userId,'tg:%').first()))throw new AuthError(409,'link_telegram_one');
  const existing=await db().prepare('SELECT user_id FROM market_auth_links WHERE subject=?').bind(subject).first<{user_id:string}>();
  if(existing)throw new AuthError(409,existing.user_id===current.userId?'link_same':'link_taken');
  // The method's own account must hold nothing, and no other method may already lead to it: either would be orphaned.
@@ -139,9 +140,10 @@ export async function linkedMethods(){
  return {own:ownMethod(user.userId),linked,current:user.method};
 }
 
+/** Detaching a method also ends the account's sessions opened through it, on every device (session-store.ts). */
 export async function detachMethod(subject:string){
  const user=await signedInUser();
- await db().prepare('DELETE FROM market_auth_links WHERE subject=? AND user_id=?').bind(subject,user.userId).run();
+ await detachLinkedMethod(db(),{userId:user.userId,subject,current:user});
  return linkedMethods();
 }
 
@@ -263,14 +265,7 @@ async function consumeOtp(channel:OtpChannel,challengeId:unknown,code:unknown,re
  if(typeof challengeId!=='string'||!/^[A-Za-z0-9_-]{24}$/.test(challengeId))throw new AuthError(400,'code_expired');
  if(typeof code!=='string'||!/^\d{6}$/.test(code))throw new AuthError(400,'invalid_code');
  await limit(`verify-ip:${await clientKey(request)}`,60,60*60*1000);
- const row=await db().prepare('UPDATE market_auth_challenges SET attempts=attempts+1 WHERE id=? AND kind=? AND expires_at>? AND attempts<? RETURNING target,secret')
-  .bind(challengeId,channel,Date.now(),MAX_CODE_ATTEMPTS).first<{target:string;secret:string}>();
- if(!row)throw new AuthError(400,'code_expired');
- if(!constantTimeEqual(await hashCode(challengeId,code,pepper()),row.secret))throw new AuthError(400,'invalid_code');
- // Deleting with RETURNING makes the code single-use even under concurrent submissions.
- const used=await db().prepare('DELETE FROM market_auth_challenges WHERE id=? RETURNING id').bind(challengeId).first();
- if(!used)throw new AuthError(400,'code_expired');
- return row.target;
+ return consumeChallenge(db(),{challengeId,channel,code,pepper:pepper(),now:Date.now()});
 }
 
 async function telegramUser(fields:TelegramFields,request:Request){

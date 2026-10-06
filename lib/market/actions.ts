@@ -53,6 +53,7 @@ import {
   setCartNote,
   setCartCustoms,
   acceptConsents,
+  products,
   consentKeySchema,
   type Pricing,
   type Product,
@@ -168,6 +169,8 @@ export const actionSchema = z.discriminatedUnion("type", [
     type: z.literal("receive"),
     id,
     dimensions: z.tuple([z.number(), z.number(), z.number(), z.number()]),
+    /** Bought orders of the same store parcel that have not reached the warehouse: weigh the rest without them. */
+    without: z.array(id).max(200).optional(),
   }),
   z.object({ type: z.literal("approve-extra"), id, amount }),
   z.object({ type: z.literal("confirm-store-shipping"), id, actualUsd: amount }),
@@ -192,7 +195,15 @@ function checkedCartProduct(sent: Product, pricing: Pricing, policy: Policy): Pr
   const product: Product = storeDiscount(sent) ? sent : { ...sent, sourceReferencePrice: undefined };
   const restriction = productRestriction(product, policy);
   if (restriction) throw Error(restriction);
-  if (!product.sourceUrl) return product;
+  if (!product.sourceUrl) {
+    // Without a store link there is nothing to re-check: price, weight, photo and options come only from the
+    // server's own product list; the client chooses just the option (addToCart checks it against these variants).
+    const known = products.find((item) => item.id === sent.id);
+    if (!known) throw Object.assign(new Error("Товар не найден в каталоге. Добавьте его по ссылке на магазин."), { code: "err_73" });
+    const knownRestriction = productRestriction(known, policy);
+    if (knownRestriction) throw Error(knownRestriction);
+    return structuredClone(known);
+  }
   if (product.boxedWeight === undefined || !product.country || !product.shippingKnown)
     throw Error("Укажите страну, вес с коробкой и доставку магазина.");
   const sourceUrl = validateSource(product.sourceUrl);
@@ -354,7 +365,12 @@ export function applyAction(
     case "delivery-profile-remove": {
       const rest = s.deliveryProfiles.filter((item) => item.id !== a.id);
       const remaining = rest.length && !rest.some((item) => item.primary) ? rest.map((item, index) => ({ ...item, primary: index === 0 })) : rest;
-      return { ...s, deliveryProfiles: remaining, deliveryProfile: remaining.find((item) => item.primary) ?? remaining[0], identityProfiles: s.identityProfiles?.map((profile) => profile.recipientProfileId === a.id ? { ...profile, recipientProfileId: undefined } : profile) };
+      // The removed recipient's passport goes too: an orphaned one would be offered as ready for someone else's declaration.
+      // Orders keep their own identity snapshots; D1 document rows and R2 scans are removed with the account.
+      const profiles = s.identityProfiles ?? (s.identityProfile ? [s.identityProfile] : []);
+      const removed = new Set(profiles.filter((profile) => profile.recipientProfileId === a.id).map((profile) => profile.documentId));
+      const ownIdentity = s.identityProfile && (s.identityProfile.recipientProfileId === a.id || removed.has(s.identityProfile.documentId));
+      return { ...s, deliveryProfiles: remaining, deliveryProfile: remaining.find((item) => item.primary) ?? remaining[0], identityProfile: ownIdentity ? undefined : s.identityProfile, identityProfiles: s.identityProfiles ? s.identityProfiles.filter((profile) => profile.recipientProfileId !== a.id) : s.identityProfiles };
     }
     case "support-create": {
       const now = Date.now();
@@ -388,7 +404,7 @@ export function applyAction(
     case "advance":
       return advanceOrder(s, a.id, a.expected);
     case "receive":
-      return receiveOrder(s, a.id, a.dimensions);
+      return receiveOrder(s, a.id, a.dimensions, Date.now(), a.without ?? []);
     case "approve-extra":
       return approveExtra(s, a.id, a.amount);
     case "confirm-customs-duty":

@@ -45,7 +45,10 @@ import { useMarket } from "@/lib/market/store";
 import { hasPermission } from "@/lib/market/access";
 import {
   balanceOf,
+  cancelRefundAmount,
   money,
+  parcelOrders,
+  readyToWeigh,
   settle,
   orderPayable,
   orderNeedsOperatorAttention,
@@ -68,6 +71,7 @@ import type { Action } from "@/lib/market/actions";
 import { countries } from "@/lib/market/world";
 import { localizedStatuses, type Locale } from "@/lib/market/i18n";
 import { formatSum, homeCopy } from "@/lib/market/home-copy";
+import { localizeLegacyStoredCopy, renderHistory, renderNotification } from "@/lib/market/history-copy";
 import { deliveryDaysFor, deliveryRegions, siteContent, type DeliveryRegion } from "@/lib/market/site-content";
 import { groupOrders, groupStoreNames, orderGroupCopy, storeGroupName, type OrderGroup } from "@/lib/market/order-groups";
 import { balanceCopy, countryLabel, formatDateTime, formatShortDate, itemCount, noticesCopy, orderCount, ordersCopy } from "@/lib/market/customer-copy";
@@ -110,150 +114,23 @@ const usd = (n: number) =>
     currency: "USD",
     minimumFractionDigits: 2,
   }).format(n);
-const localeTag = (locale: Locale) => locale === "ru" ? "ru-RU" : locale === "uz" ? "uz-UZ" : "en-US";
-const legacyStoredCopy: Record<string, Record<Locale, string>> = {
-  "Оплата заказа из внутреннего баланса Atlas": {
-    ru: "Учтено во внутреннем балансе Atlas",
-    uz: "Atlas ichki balansida hisobga olindi",
-    en: "Accounted for in the Atlas internal balance",
-  },
-  "Статус оплаты записан в Atlas; провайдер не подключён": {
-    ru: "Отметка оплаты записана в Atlas; провайдер не подключён",
-    uz: "To‘lov holati Atlasda qayd etildi; provayder ulanmagan",
-    en: "Payment status recorded in Atlas; provider not connected",
-  },
-  "Статус оплаты отмечен в Atlas. Платёжный провайдер не подтвердил списание.": {
-    ru: "Статус отмечен в Atlas; провайдер не подтвердил списание.",
-    uz: "Holat Atlasda qayd etildi; provayder pul yechilishini tasdiqlamadi.",
-    en: "Status recorded in Atlas; the provider did not confirm a charge.",
-  },
-  "Статус оплаты обновлён в Atlas": {
-    ru: "Статус оплаты записан в Atlas",
-    uz: "To‘lov holati Atlasda qayd etildi",
-    en: "Payment status recorded in Atlas",
-  },
-  "Платёжный провайдер не подключён: списания и банковского подтверждения нет.": {
-    ru: "Платёжный провайдер не подключён: списания и банковского подтверждения нет.",
-    uz: "To‘lov provayderi ulanmagan: pul yechilmagan va bank tasdig‘i yo‘q.",
-    en: "No payment provider is connected; no charge or bank confirmation exists.",
-  },
-  "Черновик декларации подготовлен": {
-    ru: "Черновик декларации сохранён в Atlas",
-    uz: "Deklaratsiya qoralamasi Atlasda saqlandi",
-    en: "Declaration draft saved in Atlas",
-  },
-  "Разница учтена на внутреннем балансе Atlas. Банковский перевод не выполнялся.": {
-    ru: "Разница учтена на внутреннем балансе Atlas. Банковский перевод не выполнялся.",
-    uz: "Farq Atlas ichki balansida qayd etildi. Bank o‘tkazmasi bajarilmadi.",
-    en: "The difference was recorded in the Atlas internal balance. No bank transfer was made.",
-  },
-  "Остаток учтён на внутреннем балансе Atlas. Банковский перевод не выполнялся.": {
-    ru: "Остаток учтён на внутреннем балансе Atlas. Банковский перевод не выполнялся.",
-    uz: "Qoldiq Atlas ichki balansida qayd etildi. Bank o‘tkazmasi bajarilmadi.",
-    en: "The remainder was recorded in the Atlas internal balance. No bank transfer was made.",
-  },
-  "Заказ отменён до выкупа. Сумма учтена на внутреннем балансе Atlas; банковский перевод не выполнялся.": {
-    ru: "Заказ отменён до выкупа. Сумма учтена на внутреннем балансе Atlas; банковский перевод не выполнялся.",
-    uz: "Buyurtma xariddan oldin bekor qilindi. Summa Atlas ichki balansida qayd etildi; bank o‘tkazmasi bajarilmadi.",
-    en: "Order cancelled before purchase. The amount was recorded in the Atlas internal balance; no bank transfer was made.",
-  },
-  "Оплата заказа демобалансом": {
-    ru: "Учтено во внутреннем балансе Atlas",
-    uz: "Atlas ichki balansida hisobga olindi",
-    en: "Accounted for in the Atlas internal balance",
-  },
-  "Тестовая оплата по платёжной ссылке": {
-    ru: "Отметка оплаты записана в Atlas",
-    uz: "To‘lov holati Atlasda qayd etildi",
-    en: "Payment status recorded in Atlas",
-  },
-  "Тестовый платёж подтверждён. Реального списания не было.": {
-    ru: "В Atlas записана отметка; платёж провайдером не подтверждён и деньги не списывались.",
-    uz: "Atlasda qayd yozildi; to‘lov provayder tomonidan tasdiqlanmagan va pul yechilmagan.",
-    en: "Recorded in Atlas; not confirmed by a payment provider and no money was charged.",
-  },
-  "Предрелизный платёж принят в тестовом режиме. Реального списания не было.": {
-    ru: "Статус записан в Atlas. Платёжный провайдер не подключён, деньги не списывались.",
-    uz: "Holat Atlasda qayd etildi. To‘lov provayderi ulanmagan, pul yechilmagan.",
-    en: "Status recorded in Atlas. No payment provider is connected and no money was charged.",
-  },
-  "Оплата подтверждена": {
-    ru: "Статус оплаты записан в Atlas",
-    uz: "To‘lov holati Atlasda qayd etildi",
-    en: "Payment status recorded in Atlas",
-  },
-  "Тестовая декларация подготовлена": {
-    ru: "Предпросмотр декларации сохранён в Atlas",
-    uz: "Deklaratsiya ko‘rib chiqish uchun Atlasda saqlandi",
-    en: "Declaration preview saved in Atlas",
-  },
-  "Разница с резервом возвращена на демобаланс.": {
-    ru: "Разница учтена во внутреннем балансе Atlas; перевод не выполнялся.",
-    uz: "Farq Atlas ichki balansida qayd etildi; pul o‘tkazilmadi.",
-    en: "The difference was recorded in the Atlas internal balance; no transfer was made.",
-  },
-  "Остаток доставки возвращён на демобаланс.": {
-    ru: "Остаток доставки учтён во внутреннем балансе Atlas; перевод не выполнялся.",
-    uz: "Yetkazib berish qoldig‘i Atlas ichki balansida qayd etildi; pul o‘tkazilmadi.",
-    en: "The shipping remainder was recorded in the Atlas internal balance; no transfer was made.",
-  },
-  "Отменён до выкупа. Вся сумма возвращена на демобаланс.": {
-    ru: "Заказ отменён; сумма учтена во внутреннем балансе Atlas. Перевод денег не выполнялся.",
-    uz: "Buyurtma bekor qilindi; summa Atlas ichki balansida qayd etildi. Pul o‘tkazilmadi.",
-    en: "Order cancelled; the amount was recorded in the Atlas internal balance. No transfer was made.",
-  },
+// Operator copy for weighing a store parcel as one shipment.
+const weighWords: Record<Locale, { parcel: (ids: string) => string; together: (id: string) => string; waiting: (ids: string) => string; without: string; waitHint: string }> = {
+  ru: { parcel: (ids) => `Одна посылка магазина: ${ids}. Вес и размеры — всей посылки; доставка распределится между заказами.`, together: (id) => `Взвешивается вместе с заказом ${id}.`, waiting: (ids) => `Ещё не готовы к взвешиванию (в пути или ждут решения): ${ids}.`, without: "Взвесить без них — их взвесят отдельно, когда они будут готовы", waitHint: "Посылку можно взвесить, когда все её заказы готовы, или без остальных." },
+  uz: { parcel: (ids) => `Do‘konning bitta jo‘natmasi: ${ids}. Vazn va o‘lchamlar — butun jo‘natmaniki; yetkazib berish buyurtmalar o‘rtasida taqsimlanadi.`, together: (id) => `${id} buyurtmasi bilan birga tortiladi.`, waiting: (ids) => `Tortishga hali tayyor emas (yo‘lda yoki qaror kutmoqda): ${ids}.`, without: "Ularsiz tortish — tayyor bo‘lganda alohida tortiladi", waitHint: "Jo‘natmani barcha buyurtmalari tayyor bo‘lganda yoki qolganlarisiz tortish mumkin." },
+  en: { parcel: (ids) => `One store parcel: ${ids}. Weight and dimensions are for the whole parcel; delivery is split between the orders.`, together: (id) => `Weighed together with order ${id}.`, waiting: (ids) => `Not ready to weigh yet (on the way or awaiting a decision): ${ids}.`, without: "Weigh without them — they are weighed separately once ready", waitHint: "The parcel can be weighed once all its orders are ready, or without the others." },
 };
-function localizeLegacyStoredCopy(value: string, locale: Locale): string {
-  const exact = legacyStoredCopy[value];
-  if (exact) return exact[locale];
-
-  const checkout = value.match(/^Предрелизный заказ оформлен\. Сумма (.+)\. (Ожидается тестовая оплата|Оплачен демобалансом)\.$/);
-  if (checkout) {
-    const status = checkout[2] === "Оплачен демобалансом";
-    const suffix = status
-      ? { ru: "Учтено во внутреннем балансе Atlas", uz: "Atlas ichki balansida hisobga olindi", en: "Accounted for in the Atlas internal balance" }[locale]
-      : { ru: "Платёжный провайдер не подключён", uz: "To‘lov provayderi ulanmagan", en: "Payment provider not connected" }[locale];
-    return { ru: "Заказ сохранён в Atlas. Сумма", uz: "Buyurtma Atlasda saqlandi. Summa", en: "Order saved in Atlas. Total" }[locale] + ` ${checkout[1]}. ${suffix}.`;
-  }
-
-  const currentCheckout = value.match(/^Заказ оформлен в Atlas\. Сумма (.+)\. (Ожидается подтверждение платёжного провайдера|Учтено из внутреннего баланса Atlas)\.$/);
-  if (currentCheckout) {
-    const accounted = currentCheckout[2] === "Учтено из внутреннего баланса Atlas";
-    const suffix = accounted
-      ? { ru: "Учтено во внутреннем балансе Atlas", uz: "Atlas ichki balansida hisobga olindi", en: "Accounted for in the Atlas internal balance" }[locale]
-      : { ru: "Ожидается подтверждение платёжного провайдера", uz: "To‘lov provayderi tasdig‘i kutilmoqda", en: "Awaiting payment-provider confirmation" }[locale];
-    return { ru: "Заказ сохранён в Atlas. Сумма", uz: "Buyurtma Atlasda saqlandi. Summa", en: "Order saved in Atlas. Total" }[locale] + ` ${currentCheckout[1]}. ${suffix}.`;
-  }
-
-  const extraApproval = value.match(/^Покупатель подтвердил тестовую доплату (.+)$/);
-  if (extraApproval) {
-    return {
-      ru: `В Atlas записано согласие на доплату ${extraApproval[1]}; списания нет.`,
-      uz: `Atlasda ${extraApproval[1]} qo‘shimcha summa bo‘yicha rozilik qayd etildi; pul yechilmadi.`,
-      en: `Approval for the additional amount ${extraApproval[1]} was recorded in Atlas; no charge was made.`,
-    }[locale];
-  }
-
-  const currentExtraApproval = value.match(/^Покупатель согласовал доплату (.+)$/);
-  if (currentExtraApproval) {
-    return {
-      ru: `В Atlas записано согласие на доплату ${currentExtraApproval[1]}; списания нет.`,
-      uz: `Atlasda ${currentExtraApproval[1]} qo‘shimcha summa bo‘yicha rozilik qayd etildi; pul yechilmadi.`,
-      en: `Approval for the additional amount ${currentExtraApproval[1]} was recorded in Atlas; no charge was made.`,
-    }[locale];
-  }
-
-  const declaration = value.match(/^Пакет ([A-Z0-9-]+) сохранён внутри Atlas\. В таможню он не отправлялся\.$/);
-  if (declaration) {
-    return {
-      ru: `Пакет ${declaration[1]} сохранён в Atlas; в таможню не отправлялся.`,
-      uz: `${declaration[1]} paketi Atlasda saqlandi; bojxonaga yuborilmadi.`,
-      en: `Package ${declaration[1]} was saved in Atlas and was not sent to customs.`,
-    }[locale];
-  }
-
-  return value;
-}
+/**
+ * Older orders (no separate hold) credit a cheaper store delivery only up to the money recorded for the order:
+ * show what actually reached the balance, never a refund that was not recorded.
+ */
+const storeShippingCredited = (entries: State["entries"], o: Order) => entries.find((entry) => entry.id === "store-shipping:" + o.id)?.amount ?? 0;
+const storeShippingNotCredited: Record<Locale, (amount: string) => string> = {
+  ru: (amount) => `Доставка дешевле резерва на ${amount}; оплата по заказу не записана — на баланс ничего не зачислено`,
+  uz: (amount) => `Yetkazib berish zaxiradan ${amount} arzonroq; buyurtma bo‘yicha to‘lov qayd etilmagan — balansga hech narsa yozilmadi`,
+  en: (amount) => `Delivery is ${amount} below the reserve; no payment is recorded for the order, so nothing was credited to the balance`,
+};
+const localeTag = (locale: Locale) => locale === "ru" ? "ru-RU" : locale === "uz" ? "uz-UZ" : "en-US";
 const customerOrderCopy = {
   ru: {
     loginTitle: "Войдите, чтобы открыть заказы", loginDescription: "История покупок, фото и расчёты доступны в вашем профиле Atlas.", loginLabel: "Открыть вход", loading: "Загружаем заказы…", emptyTitle: "Здесь начнётся путь вашей покупки", emptyDescription: "Оформите заказ из корзины, чтобы попробовать выкуп, склад и доставку.", choose: "Выбрать товар", filteredTitle: "В этом разделе пока пусто", filteredDescription: "Измените фильтр или поисковый запрос.", search: "Поиск заказа", source: "Источник товара", loadPhoto: "Загрузить фото из ссылки", loadingPhoto: "Загружаем…", checkoutTotal: "Сумма при оформлении", checkoutAt: "При оформлении", buyer: "Покупатель", cancelled: "Отменён", needDecision: "Нужно решение", extra: "Требуется доплата", awaitingPayment: "Ожидает оплаты", paymentWaiting: "Платёжный провайдер не подключён", paymentPaid: "Отметка сохранена в Atlas; провайдером не подтверждена", paymentRefunded: "Возврат отмечен во внутреннем балансе Atlas; перевода нет", paymentLine: "Платёж", noCharge: "Платёжный провайдер не подключён", providerPassed: "Платёжный провайдер не подключён", recordPayment: "Записать статус в Atlas", recipient: "Получатель", tracking: "Трек-номер", parcelRegistered: "Посылка зарегистрирована", warehouseDone: "Приёмка на складе завершена", warehouseProblem: "Склад зафиксировал проблему", received: "Получено", operations: "Операции", noOperations: "Дополнительные операции не назначены", agreements: "Согласования по заказу", pending: "НУЖНО РЕШЕНИЕ", approved: "ПОДТВЕРЖДЕНО", declined: "ОТКЛОНЕНО", reject: "Отклонить", confirm: "Подтвердить", managerChecking: "Менеджер уточняет доставку магазина", reserveIncluded: "В сумму заказа пока включён резерв", reserveWaived: "Резерв на доставку магазина не включён: заказы на такую сумму магазины обычно доставляют бесплатно. Если магазин всё же возьмёт плату, сначала спросим вас.", beforeBuyout: "Перед выкупом вы увидите подтверждённую стоимость.", managerConfirmed: "Менеджер подтвердил доставку магазина", actual: "Фактическая стоимость", reservedAtCheckout: "Резерв при оформлении", refundToBalance: "Вернули на баланс", extraApproved: "Доплата подтверждена", needApprove: "Нужно согласовать", reserveMatch: "Сумма совпала с резервом", balance: "Баланс", shippingOver: "Доставка превысила резерв", shippingCheaper: "Доставка оказалась дешевле", shippingRecalculated: "Доставка пересчитана", payableWeight: "Оплачиваемый вес", cost: "Стоимость", noExtra: "Доплата не требуется", checkExtra: "Проверить доплату", confirmStore: "Подтвердить доставку магазина", confirmBuyout: "Подтвердить выкуп", receiveWarehouse: "Принять на склад", weigh: "Взвесить и пересчитать", sendUzbekistan: "Отправить в Узбекистан", confirmDelivery: "Подтвердить доставку", sendAfterApproval: "Отправка станет доступна после подтверждения в разделе «Мои заказы».", saveReceivingFirst: "Сначала сохраните приёмку товара в блоке оператора.", payFirst: "Выкуп станет доступен после подключения платёжного провайдера и подтверждения оплаты.", trackingFirst: "Перед отправкой добавьте перевозчика и трек-номер.", calculationHistory: "Расчёт и история", customsAccepted: "Таможенные условия приняты", balanceUsed: "Учтено во внутреннем балансе Atlas", actualWeight: "Фактический вес", dimensional: "Объёмный", cancelOrder: "Отменить заказ", storeModalTitle: "Доставка от магазина до склада", storeModalDescription: "Укажите фактическую итоговую стоимость в долларах. Если она ниже резерва, разница сразу вернётся покупателю на баланс.", actualStoreShipping: "Фактическая доставка магазина, USD", reserved: "Было заложено", saveRecalculate: "Подтвердить и пересчитать", warehouseModalTitle: "Взвешивание на складе", warehouseModalDescription: "Вес и размеры всей посылки, включая упаковку. Тариф зафиксирован в заказе.", dimensions: ["Фактический вес, кг", "Длина, см", "Ширина, см", "Высота, см"], volumeWeight: "Объёмный вес", paidShipping: "Было оплачено за доставку", afterWeighing: "После взвешивания", requestExtra: "Запросить доплату", returnBalance: "Зачислить во внутренний баланс Atlas", invalidValues: "Укажите корректные положительные значения.", confirmRecalculate: "Подтвердить перерасчёт", cancelTitle: "Отменить заказ до выкупа?", paymentTitle: "Записать статус оплаты в Atlas?", extraTitle: "Подтвердить сумму доплаты?", cancelDescription: "Заказ будет отменён, а запись внутреннего баланса Atlas пересчитана. Перевод денег не выполняется.", paymentDescription: "Действие изменит только статус заказа в Atlas. Платёжный провайдер не подключён: деньги не списываются, подтверждения банка нет.", extraDescription: "Подтверждение сохранит сумму для дальнейшего согласования. Платёжный провайдер не подключён, деньги не списываются.", refund: "К зачислению на внутренний баланс Atlas", paymentStatusLabel: "Статус оплаты в Atlas", toPay: "К доплате", back: "Назад", saveChanges: "Изменения сохранены", saving: "Сохраняем…", statusUpdated: "Статус заказа обновлён", photoUpdated: "Фото заказа обновлено"
@@ -733,9 +610,11 @@ const intakeTagCopy = {
 } as const;
 
 /** Customer order, mobile-first: what needs you first, then progress, details, settlements and history. */
-function CustomerOrderCard({ order: o, locale, pricing, busy, expanded, onToggle, run, confirm, loadPhoto, allowanceUsd }: {
+function CustomerOrderCard({ order: o, locale, pricing, busy, expanded, onToggle, run, confirm, loadPhoto, allowanceUsd, storeCredited = 0 }: {
   order: Order;
   allowanceUsd?: number;
+  /** Store-delivery difference actually credited to the balance (legacy orders without a separate hold). */
+  storeCredited?: number;
   locale: Locale;
   pricing: Pricing;
   busy: boolean;
@@ -826,7 +705,7 @@ function CustomerOrderCard({ order: o, locale, pricing, busy, expanded, onToggle
           {o.product.sourceUrl && !o.product.image && <button type="button" className="text-button" disabled={busy} onClick={() => loadPhoto(o)}>{busy ? ow.loadingPhoto : ow.loadPhoto}</button>}
         </dd></div>
         <div><dt>{gc.delivery}</dt><dd>{gc.speed[speed]}{days && <small>{gc.days(days[0], days[1])}</small>}</dd></div>
-        {o.payment && <div><dt>{c.payment}</dt><dd>{o.payment.status === "pending" ? ow.paymentWaiting : o.payment.status === "paid" ? ow.paymentPaid : ow.paymentRefunded}<small>{o.payment.id} · {ow.providerPassed}</small></dd></div>}
+        {o.payment && <div><dt>{c.payment}</dt><dd>{o.payment.status === "pending" ? (o.cancelled ? ow.cancelled : ow.paymentWaiting) : o.payment.status === "paid" ? ow.paymentPaid : ow.paymentRefunded}<small>{o.payment.id} · {ow.providerPassed}</small></dd></div>}
         {o.delivery && <div><dt>{c.delivery}</dt><dd>{o.delivery.recipient}<small>{[o.delivery.region, o.delivery.city, o.delivery.address, o.delivery.postalCode].filter(Boolean).join(", ")}</small><a className="order-x-link" href={`tel:${o.delivery.phone.replace(/[^\d+]/g, "")}`}>{o.delivery.phone}</a></dd></div>}
         {allowanceUsd !== undefined && <div><dt>{c.allowance}</dt><dd className={allowanceUsd > courierAllowanceUsd ? "order-x-over" : undefined}>{c.allowanceValue(allowanceUsd, courierAllowanceUsd)}</dd></div>}
         {o.parcel && <div><dt>{c.tracking}</dt><dd>{o.parcel.carrier}<span className="order-x-track"><span className="order-x-id">{o.parcel.trackingNumber}</span><CopyText text={o.parcel.trackingNumber} locale={locale} /></span><small>{lastParcelEvent ?? ow.parcelRegistered}{o.parcel.warehouseCode ? ` · ${locale === "ru" ? "склад" : locale === "uz" ? "ombor" : "warehouse"} ${o.parcel.warehouseCode}` : ""}</small></dd></div>}
@@ -847,8 +726,8 @@ function CustomerOrderCard({ order: o, locale, pricing, busy, expanded, onToggle
         <div>
           <b>{ow.managerConfirmed}</b>
           <p>{ow.actual}: {usd(o.storeShippingSettlement.actualUsd)} · {formatSum(o.storeShippingSettlement.actual, locale)}. {ow.reservedAtCheckout}: {formatSum(o.storeShippingSettlement.estimated, locale)}.</p>
-          <p><strong>{o.storeShippingSettlement.refund ? `${ow.refundToBalance} ${formatSum(o.storeShippingSettlement.refund, locale)}` : o.storeShippingExtraApproved ? `${ow.extraApproved}: ${formatSum(o.storeShippingSettlement.extra, locale)}` : o.storeShippingSettlement.extra ? `${ow.needApprove} ${formatSum(o.storeShippingSettlement.extra, locale)}` : o.storeShippingSettlement.held && o.storeShippingSettlement.released ? `${locale === "ru" ? "В пределах резерва. Освобождается" : locale === "uz" ? "Zaxira doirasida. Bo‘shatiladi" : "Within the reserve. Released"}: ${formatSum(o.storeShippingSettlement.released, locale)}` : ow.reserveMatch}</strong></p>
-          {o.storeShippingSettlement.refund > 0 && <Link className="order-x-link" href="/balance">{ow.balance}<ArrowRight size={14} aria-hidden="true" /></Link>}
+          <p><strong>{o.storeShippingSettlement.refund ? (storeCredited ? `${ow.refundToBalance} ${formatSum(storeCredited, locale)}` : storeShippingNotCredited[locale](formatSum(o.storeShippingSettlement.refund, locale))) : o.storeShippingExtraApproved ? `${ow.extraApproved}: ${formatSum(o.storeShippingSettlement.extra, locale)}` : o.storeShippingSettlement.extra ? `${ow.needApprove} ${formatSum(o.storeShippingSettlement.extra, locale)}` : o.storeShippingSettlement.held && o.storeShippingSettlement.released ? `${locale === "ru" ? "В пределах резерва. Освобождается" : locale === "uz" ? "Zaxira doirasida. Bo‘shatiladi" : "Within the reserve. Released"}: ${formatSum(o.storeShippingSettlement.released, locale)}` : ow.reserveMatch}</strong></p>
+          {storeCredited > 0 && <Link className="order-x-link" href="/balance">{ow.balance}<ArrowRight size={14} aria-hidden="true" /></Link>}
         </div>
       </div>}
 
@@ -877,7 +756,7 @@ function CustomerOrderCard({ order: o, locale, pricing, busy, expanded, onToggle
           {o.customsConsent && <p className="micro">{ow.customsAccepted}: {formatDateTime(o.customsConsent.acceptedAt, locale)}.</p>}
           {o.balanceUsed > 0 && <p className="micro">{ow.balanceUsed}: {formatSum(o.balanceUsed, locale)}</p>}
           {o.settlement && <p className="micro">{ow.actualWeight}: {o.settlement.actualWeight.toFixed(2)} {kg} · {ow.dimensional}: {o.settlement.dimensionalWeight.toFixed(2)} {kg}</p>}
-          <ol className="order-x-history">{[...o.history].reverse().map((entry, index) => <li key={index}><time>{formatDateTime(entry.at, locale)}</time><p>{localizeLegacyStoredCopy(entry.text, locale)}</p></li>)}</ol>
+          <ol className="order-x-history">{[...o.history].reverse().map((entry, index) => <li key={index}><time>{formatDateTime(entry.at, locale)}</time><p>{renderHistory(entry, locale)}</p></li>)}</ol>
         </div>
       </details>
 
@@ -923,6 +802,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
   const [tab, setTab] = useState("active"),
     [query, setQuery] = useState(""),
     [warehouse, setWarehouse] = useState<string | null>(null),
+    [weighWithout, setWeighWithout] = useState(false),
     [storeShippingOrder, setStoreShippingOrder] = useState<string | null>(null),
     [customsOrder, setCustomsOrder] = useState<string | null>(null),
     [actualCustoms, setActualCustoms] = useState("0"),
@@ -1028,14 +908,28 @@ export function OrdersView({ operations }: { operations: boolean }) {
     return searchable.filter(Boolean).join(" ").toLocaleLowerCase().includes(needle)
       || normalizedPhoneNeedle.length>=4&&phoneNumbers.includes(normalizedPhoneNeedle);
   });
+  // The warehouse weighs a store parcel once (parcelOrders): every order of it shares the weight and the delivery.
+  // Bought orders still on the way (status 1) hold the parcel until they arrive or the operator weighs without them.
+  const weighGroup = (order: Order) => {
+    const owner = operations ? orderAccount.get(order.id)?.state : state;
+    const parcel = owner ? parcelOrders(owner, order) : [order];
+    return parcel.length > 1 && !parcel.some((item) => item.settlement) ? parcel : [order];
+  };
+  const weighLead = (order: Order) => weighGroup(order).find((item) => item.status === 2 && readyToWeigh(item)) ?? weighGroup(order).find((item) => item.status === 2) ?? order;
+  const receivingGroup = receiving ? weighGroup(receiving) : [];
+  // Not ready: still on the way, or at the warehouse with an open problem or service. The operator may weigh without them.
+  const receivingWaiting = receivingGroup.filter((item) => item.id !== receiving?.id && (item.status < 2 || !readyToWeigh(item)));
+  const receivingParcel = weighWithout ? receivingGroup.filter((item) => !receivingWaiting.includes(item)) : receivingGroup;
+  const receivingPaid = receivingParcel.reduce((sum, item) => sum + item.quote.shipping + item.quote.reserve, 0);
   let calc: ReturnType<typeof settle> | null = null;
   try {
     if (receiving)
       calc = settle(
-        receiving.quote,
+        receivingParcel[0].quote,
         ...(dims.map(Number) as [number, number, number, number]),
       );
   } catch {}
+  const calcDiff = calc ? receivingPaid - calc.shipping : 0;
   async function runOrderAction(action: Action) {
     if (!operations) return act(action);
     const orderId = "id" in action ? action.id ?? "" : "";
@@ -1103,13 +997,15 @@ export function OrdersView({ operations }: { operations: boolean }) {
     }
   }
   async function finishReceiving() {
-    if (!receiving || busy) return;
+    if (!receiving || busy || (receivingWaiting.length && !weighWithout)) return;
     setBusy(true);
+    // `without`: the bought orders of this parcel that have not arrived; the server checks they belong to it.
     const ok = await runOrderAction({
       type: "receive",
       id: receiving.id,
       dimensions: dims.map(Number) as [number, number, number, number],
-    });
+      ...(weighWithout && receivingWaiting.length ? { without: receivingWaiting.map((item) => item.id) } : {}),
+    } as Action);
     setBusy(false);
     if (ok) {
       setWarehouse(null);
@@ -1270,7 +1166,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
         />
       ) : (
         !operations ? groupOrders(filtered).map((group) => {
-          const card = (o: Order) => <CustomerOrderCard key={o.id} order={o} locale={locale} pricing={pricing} busy={busy} expanded={expanded.includes(o.id)} onToggle={open => setExpanded(ids => open ? [...new Set([...ids, o.id])] : ids.filter(id => id !== o.id))} run={runOrderAction} confirm={setConfirmation} loadPhoto={order => void loadPhoto(order)} allowanceUsd={allowanceFor(o)} />;
+          const card = (o: Order) => <CustomerOrderCard key={o.id} order={o} locale={locale} pricing={pricing} busy={busy} expanded={expanded.includes(o.id)} onToggle={open => setExpanded(ids => open ? [...new Set([...ids, o.id])] : ids.filter(id => id !== o.id))} run={runOrderAction} confirm={setConfirmation} loadPhoto={order => void loadPhoto(order)} allowanceUsd={allowanceFor(o)} storeCredited={storeShippingCredited(state.entries, o)} />;
           // One line = the plain card; one checkout with several lines = a group with a section per store and dispatch country.
           return group.orders.length === 1 ? card(group.orders[0]) : <OrderGroupCard key={group.key} group={group} locale={locale} card={card} />;
         }) : filtered.map((o) => (
@@ -1364,15 +1260,15 @@ export function OrdersView({ operations }: { operations: boolean }) {
               </ol>
             )}
             {o.payment && (
-              <div className={"settlement-box payment-box " + (o.payment.status === "pending" ? "attention" : "")}>
+              <div className={"settlement-box payment-box " + (o.payment.status === "pending" && !o.cancelled ? "attention" : "")}>
                 <CreditCard size={22} />
                 <div>
-                   <h3>{o.payment.status === "pending" ? ow.paymentWaiting : o.payment.status === "paid" ? ow.paymentPaid : ow.paymentRefunded}</h3>
+                   <h3>{o.payment.status === "pending" ? (o.cancelled ? ow.cancelled : ow.paymentWaiting) : o.payment.status === "paid" ? ow.paymentPaid : ow.paymentRefunded}</h3>
                    <p>{ow.paymentLine} {o.payment.id} · {money(o.payment.amount)}.</p>
                    <strong>{o.payment.status === "pending" ? ow.noCharge : ow.providerPassed}</strong>
                    {!operations&&!o.cancelled&&o.status===0&&o.product.sourceShippingEstimated&&!o.storeShippingSettlement&&<div className="payment-reserve-hint"><Clock3 size={16}/><div><b>{ow.managerChecking}</b><p>{ow.reserveIncluded} {money(o.quote.sourceShipping??0)}. {ow.beforeBuyout}</p><small>{locale==='ru'?'Резерв — часть предварительного расчёта, это не отметка об оплате.':locale==='uz'?'Zaxira dastlabki hisobning bir qismi, bu to‘lov qaydi emas.':'This reserve is part of the preliminary total, not a payment status.'}</small></div></div>}
                 </div>
-                {!operations && o.payment.status === "pending" && (
+                {!operations && !o.cancelled && o.payment.status === "pending" && (
                   <button className="btn primary" onClick={() => setConfirmation({ id: o.id, cancel: false, amount: o.payment!.amount, payment: true })}>
                      {ow.recordPayment} <ArrowRight size={16} />
                   </button>
@@ -1423,9 +1319,10 @@ export function OrdersView({ operations }: { operations: boolean }) {
                   </p>
                   <strong>
                     {o.storeShippingSettlement.refund
-                       ? ow.refundToBalance + " " +
-                        money(o.storeShippingSettlement.refund) +
-                         ""
+                       ? storeShippingCredited((operations ? orderAccount.get(o.id)?.state : state)?.entries ?? [], o)
+                         ? ow.refundToBalance + " " +
+                          money(storeShippingCredited((operations ? orderAccount.get(o.id)?.state : state)?.entries ?? [], o))
+                         : storeShippingNotCredited[locale](money(o.storeShippingSettlement.refund))
                       : o.storeShippingExtraApproved
                          ? ow.extraApproved + ": " +
                           money(o.storeShippingSettlement.extra)
@@ -1521,9 +1418,14 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 <ArrowRight size={16} />
               </button>
             )}
+            {operations && o.status === 2 && !o.cancelled && weighLead(o).id !== o.id && (
+              <p className="micro">{weighWords[locale].together(weighLead(o).id)}</p>
+            )}
             {operations &&
               !o.cancelled &&
               o.status < 5 &&
+              // A store parcel is weighed once, from its first order.
+              !(o.status === 2 && weighLead(o).id !== o.id) &&
               !(
                 o.status === 0 &&
                 o.product.sourceShippingEstimated &&
@@ -1535,11 +1437,12 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 onClick={async () => {
                   if (o.status === 2) {
                     setWarehouse(o.id);
+                    setWeighWithout(false);
                     setDims([
                       String(
                         Math.max(
                           0.1,
-                          Math.round(o.quote.weight * 0.85 * 100) / 100,
+                          Math.round(weighGroup(o).filter((item) => item.status >= 2).reduce((sum, item) => sum + item.quote.weight, 0) * 0.85 * 100) / 100,
                         ),
                       ),
                       "30",
@@ -1576,7 +1479,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
               </p>
             )}
             {operations && o.status === 2 && !o.warehouseInspection && <p className="micro">{ow.saveReceivingFirst}</p>}
-            {operations && o.status === 0 && o.payment?.status === "pending" && (
+            {operations && !o.cancelled && o.status === 0 && o.payment?.status === "pending" && (
               <p className="micro">{ow.payFirst}</p>
             )}
             {operations && o.status === 3 && !o.parcel && (
@@ -1615,7 +1518,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
                     {[...o.history].reverse().map((h, i) => (
                       <li key={i}>
                         <time>{new Date(h.at).toLocaleString("ru-RU")}</time>
-                        <p>{localizeLegacyStoredCopy(h.text, locale)}</p>
+                        <p>{renderHistory(h, locale)}</p>
                       </li>
                     ))}
                   </ol>
@@ -1628,7 +1531,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
                     setConfirmation({
                       id: o.id,
                       cancel: true,
-                      amount: o.quote.total,
+                      // Only the money actually recorded for the order returns: nothing for an unpaid one.
+                      amount: cancelRefundAmount(state, o),
                     })
                   }
                 >
@@ -1735,6 +1639,15 @@ export function OrdersView({ operations }: { operations: boolean }) {
               </div>
             ))}
           </div>
+          {receivingParcel.length > 1 && (
+            <p className="micro">{weighWords[locale].parcel(receivingParcel.map((item) => item.id).join(", "))}</p>
+          )}
+          {receivingWaiting.length > 0 && (
+            <div className="field">
+              <p className="micro warning-text">{weighWords[locale].waiting(receivingWaiting.map((item) => item.id).join(", "))} {weighWords[locale].waitHint}</p>
+              <label><input type="checkbox" checked={weighWithout} onChange={(event) => setWeighWithout(event.target.checked)} /> {weighWords[locale].without}</label>
+            </div>
+          )}
           {calc && receiving ? (
             <div className="receiving-preview">
               <dl className="cost-lines">
@@ -1749,21 +1662,21 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 <div>
                    <dt>{ow.paidShipping}</dt>
                   <dd>
-                    {money(receiving.quote.shipping + receiving.quote.reserve)}
+                    {formatSum(receivingPaid, locale)}
                   </dd>
                 </div>
                 <div>
                    <dt>{ow.afterWeighing}</dt>
-                  <dd>{money(calc.shipping)}</dd>
+                  <dd>{formatSum(calc.shipping, locale)}</dd>
                 </div>
               </dl>
               <div
-                className={"result-line " + (calc.extra ? "warning-text" : "")}
+                className={"result-line " + (calcDiff < 0 ? "warning-text" : "")}
               >
                 <span>
-                   {calc.extra ? ow.requestExtra : ow.returnBalance}
+                   {calcDiff < 0 ? ow.requestExtra : ow.returnBalance}
                 </span>
-                <strong>{money(calc.extra || calc.refund)}</strong>
+                <strong>{formatSum(Math.abs(calcDiff), locale)}</strong>
               </div>
             </div>
           ) : (
@@ -1771,7 +1684,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
                {ow.invalidValues}
             </p>
           )}
-          <button className="btn primary full" disabled={!calc || busy}>
+          <button className="btn primary full" disabled={!calc || busy || (receivingWaiting.length > 0 && !weighWithout)}>
              {busy ? ow.saving : ow.confirmRecalculate}
             <Check size={18} />
           </button>
@@ -1798,10 +1711,10 @@ export function OrdersView({ operations }: { operations: boolean }) {
                  ? ow.paymentDescription
                  : ow.extraDescription}
           </AlertDialogDescription>
-          <div className="confirm-price">
+          {!(confirmation?.cancel && !confirmation.amount) && <div className="confirm-price">
             <span>{confirmation?.cancel ? ow.refund : confirmation?.payment ? ow.paymentStatusLabel : ow.toPay}</span>
             <strong>{formatSum(confirmation?.amount ?? 0, locale)}</strong>
-          </div>
+          </div>}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={busy}>{ow.back}</AlertDialogCancel>
             <AlertDialogAction
@@ -2355,10 +2268,10 @@ export function NotificationsView() {
             {groups.map(([item, ...history]) => <li key={item.id} className={"notice-x" + (!item.read ? " unread" : "")}>
               <span className="notice-x-icon" aria-hidden="true"><Bell size={18} /></span>
               <div className="notice-x-body">
-                <div className="notice-x-head"><h2>{localizeLegacyStoredCopy(item.title, locale)}</h2>{!item.read && <span className="notice-x-new">{c.newBadge}</span>}</div>
-                <p>{localizeLegacyStoredCopy(item.message, locale)}</p>
+                <div className="notice-x-head"><h2>{renderNotification(item, locale).title}</h2>{!item.read && <span className="notice-x-new">{c.newBadge}</span>}</div>
+                <p>{renderNotification(item, locale).message}</p>
                 <div className="notice-x-foot"><time dateTime={new Date(item.at).toISOString()}>{formatDateTime(item.at, locale)}</time>{item.orderId && <Link className="order-x-link" href={"/orders#" + item.orderId}>{c.openOrder} {item.orderId}<ArrowRight size={14} aria-hidden="true" /></Link>}</div>
-                {history.length > 0 && <details className="notice-x-history"><summary>{c.more(history.length)}</summary><ol>{history.map(previous => <li key={previous.id}><b>{localizeLegacyStoredCopy(previous.title, locale)}</b><p>{localizeLegacyStoredCopy(previous.message, locale)}</p><time dateTime={new Date(previous.at).toISOString()}>{formatDateTime(previous.at, locale)}</time></li>)}</ol></details>}
+                {history.length > 0 && <details className="notice-x-history"><summary>{c.more(history.length)}</summary><ol>{history.map(previous => <li key={previous.id}><b>{renderNotification(previous, locale).title}</b><p>{renderNotification(previous, locale).message}</p><time dateTime={new Date(previous.at).toISOString()}>{formatDateTime(previous.at, locale)}</time></li>)}</ol></details>}
               </div>
             </li>)}
           </ul>}
