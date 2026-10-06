@@ -13,7 +13,7 @@ const contentSecurityPolicy = [
   "connect-src 'self'",
   "frame-src https://oauth.telegram.org",
   "frame-ancestors 'none'",
-  "form-action 'self' https://accounts.google.com https://oauth.telegram.org",
+  "form-action 'self' https://accounts.google.com https://appleid.apple.com https://oauth.telegram.org",
   "base-uri 'self'",
   "object-src 'none'",
   "report-uri /api/telemetry",

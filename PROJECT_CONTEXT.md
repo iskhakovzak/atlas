@@ -1,5 +1,18 @@
 # Atlas — project context
 
+## Мобильные приложения для App Store и Google Play — 6 октября 2026
+
+Владелец принёс чек-лист из 10 требований сторов, и Atlas получил тонкую нативную оболочку на Capacitor (`mobile/`, ветка `feat/mobile-apps`) поверх сайта `atlasmarket.uz`, а не отдельное приложение. Как закрыт каждый пункт (подробно — `MOBILE.md` §2): не «просто обёртка» — нативный Sign in with Apple, системный браузер с возвратом в приложение, share sheet, haptics, офлайн-страница, universal links; раскрытие ИИ — раздел политики и текст на экране распознавания документа (OCR на устройстве, без сторонних сервисов и генеративного ИИ); политика и условия — публичные `/privacy` и `/terms` (те же документы, что на `/legal`, с новыми разделами о приложениях, входе через провайдеров, удалении, согласии и возрасте); удаление аккаунта — из кабинета (Настройки → Удалить аккаунт) и по публичной инструкции `/delete-account`; «Восстановить покупки» — честная строка: встроенных покупок и подписок нет, кнопка лишь перечитывает аккаунт; Sign in with Apple — рядом с Google; никаких придуманных рейтингов, отзывов и счётчиков — контакты и ссылки на сторы берутся только из `siteContent` и до заполнения не показываются; согласие на обработку данных — плашка при первом визите, запись в аккаунте и в `market_legal_consents`; страница приложения `/app` и поддержки `/support`.
+
+Что остаётся симуляцией: оплата, выкуп и доставка — как и прежде; в приложении нет покупок через App Store/Google Play, поэтому Apple и Google не являются сторонами договора. Push-уведомления, биометрия и приём ссылок через системный share запланированы, но не реализованы.
+
+Что должен дать владелец до подачи: аккаунт Apple Developer (Team ID, App ID `uz.atlasmarket.app`, Services ID, ключ `.p8`) и Google Play Console (Play App Signing, SHA-256 ключей), переменные `APPLE_*`, `ANDROID_*` и `ATLAS_REVIEW_ACCOUNTS` в Sites, миграцию 0010 на рабочей D1, контакты поддержки и реквизиты в `siteContent`, скриншоты, описания RU/UZ/EN и ответы App Privacy / Data safety, юридическую проверку новых разделов документов и решение о переводах на узбекский и английский, возрастной рейтинг «только для взрослых» (17+ в App Store, 18+ по IARC). Сборка iOS возможна только на macOS с Xcode; живые потоки Apple не проверялись.
+
+## Две скорости доставки, тарифы на главной, роли сотрудников, бухгалтерия — 6 октября 2026 (вечер)
+
+Владелец ввёл два тарифа международной доставки: экспресс $15,98/кг (5–9 рабочих дней из США, 7–9 из остальных стран) и обычная $13,98/кг (9–14 рабочих дней); клиент выбирает скорость в корзине и в расчёте по ссылке, по умолчанию — экспресс, одна скорость на всю корзину; комиссия Atlas — ровно 9,98 % от товаров. Раздел «Сроки и тарифы» на главной стал карточками стран с флагами и обеими скоростями, а цифры больше не меняются после загрузки страницы, потому что первый рендер берёт тариф с сервера. «Мои заказы» группируются по оформлению и магазинам; отменить заказ теперь может только оператор. Сотрудники из справочника получили роли с реальными правами (администратор, финансы, поддержка, закупки, склад) — вход только по коду на email или через Google. Бухгалтерия дополнена годовой таблицей с кварталами, фактической маржой по заказам, закрытием периода, обязательствами, курсами для записей журнала и исправлением записей; ставка налога и схема по-прежнему ждут подтверждения бухгалтера.
+
+Вторая волна того же вечера. Книги ведутся почти сами: при каждом изменении заказа сервер создаёт и поддерживает автозаписи журнала (оплата, оплата балансом, выкуп, доставка магазина, пошлина, возвраты на внутренний баланс), а оператор вводит вручную только перевозчика, комиссии банка и прочие расходы; есть сверка месяца с объяснениями, денежная позиция, налоговый календарь-ориентир, полная книга месяца, JSON-бэкап, импорт банковской выписки с отдельным подтверждением администратора и печатный счёт-расчёт по заказу (не фискальный документ — оплата, выкуп и доставка по-прежнему симулируются). Бухгалтерия и админка разбиты на вкладки: обзор с KPI и списком «Требуют внимания», карточка клиента с заметками операторов, команда с отключением сотрудника по причине, фильтруемый журнал, статус системы и сводка действующего тарифа. Контакты, юрлицо, способы оплаты, отзывы (только с согласием клиента), фото посылок и число доставленных заказов владелец редактирует во вкладке «Контент сайта», а не в коде.
 ## Tariff r4, link-order sheets, swipe gallery, Telegram bot sign-in — 6 October 2026
 
 The owner saw a 10.98% fee "everywhere" and asked for $14.98 per kg. The code fee was already 9.98%; a saved tariff carried a 1% buyout or conversion percent on top. Tariff revision 4 sets $14.98/kg, 9.98%, zero buyout/conversion/delivery margin and drops per-country rate and fee overrides once; later admin edits stay. The link order lost the grey "set by Atlas" note (its snapping sheets were tried and removed the same day: they made choosing a size hard); product photos slide and settle with animation everywhere; chip rows settle on a card edge; the catalog snaps only at its ends. Names get capitals on every word and addresses on the first letter while typing. Sign-in through Telegram no longer goes through the widget's oauth.telegram.org page: one tap opens the Telegram app with a one-time token, the bot asks to confirm, and the page signs in by itself; `/login` shows Telegram first and the other methods as a column of buttons (Google included).
@@ -261,9 +274,9 @@ This is a UX refinement, not a commercial launch or a new authentication system.
 
 ## Roles and authentication
 
-The public catalog, customs guide and legal terms are available to guests. Saved finds, import, cart, orders, balance, messages, account, passport and declarations require platform-owned ChatGPT sign-in. Atlas account identity is email:<lowercase email>. This was intentional: some hosted requests provide authenticated email but omit platform user ID. app/chatgpt-auth.ts treats platform ID as optional; lib/market/server.ts migrates an old platform-ID row into the email-based account. Do not reverse this without a migration.
+The public catalog, customs guide and legal terms are available to guests. Saved finds, import, cart, orders, balance, messages, account, passport and declarations require Atlas sign-in (Telegram, phone code, email code, Google, Apple; lib/auth/). Email, Google and Apple map to the account identity email:<lowercase email>, which also keeps accounts created under the former ChatGPT sign-in. lib/market/server.ts migrates an old platform-ID row into the email-based account; do not reverse this without a migration.
 
-An operator is an authenticated customer whose email matches secret ATLAS_OPERATOR_EMAIL. Client UI is not authorization: operator checks occur in server actions. There is no standalone email/password/phone registration; the user asked to postpone it. The public site access policy does not grant operator rights.
+An operator is an authenticated customer whose email matches secret ATLAS_OPERATOR_EMAIL. Client UI is not authorization: operator checks occur in server actions. There are no passwords: every method signs in with a one-time code or a provider (see AUTH_SETUP.md). The public site access policy does not grant operator rights.
 
 ## Business logic and price calculation
 
@@ -271,12 +284,12 @@ Default pricing lives in lib/market/domain.ts and lib/market/world.ts. The opera
 
 | Item | Current demo rule |
 | --- | --- |
-| UZS per USD | 12,800 |
-| Service fee | 12% of merchandise |
-| International freight | 90,000 UZS / chargeable kg |
+| UZS per USD | CBU rate × 1.012 (`fxSource: "cbu"`), or an explicitly labelled set rate |
+| Atlas fee | 9.98% of merchandise only |
+| International freight | express $15.98 / kg, standard $13.98 / kg (`Pricing.perKgUsd`, `standardPerKgUsd`), converted at the Atlas rate |
 | International reserve | none since 5 October 2026 (was 20% of international freight) |
 | Dimensional divisor | 5,000 |
-| Shipping mass | boxed kg + 0.3 kg + 0.2 kg |
+| Shipping mass | boxed kg of the parcel + 0.3 kg once, at least 1 kg |
 
 Quote is merchandise + merchant-to-warehouse shipping + service fee + international freight + international reserve. Source shipping is per unit and quantity currently multiplies it conservatively.
 
@@ -508,7 +521,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - These are dated observations, not inventory or guarantees. Before cart/checkout the server attempts a protected price/currency/option recheck. If the merchant is unreachable or omits public details, only an explicitly customer-confirmed request can proceed; mismatches and definite not-found responses stop. Customer ordering does not gate on stock status.
 - The link-order notice always includes the exact merchant-page link, including successful partial imports. Zero-cost shipping is labelled as merchant delivery to the Atlas warehouse rather than customer delivery.
 - Generic imports infer the storefront dispatch country from explicit shipping origin, locale path, regional domain or a bounded merchant map; currency continues to come from the store and falls back from the inferred country only when the page omits it. Category inference also uses structured product category/description and recognizes common trackers such as AirTag.
-- International freight now has a one-kilogram minimum per merchant parcel. Cart rows from the same source host and dispatch country combine boxed weight, add the 0.3 kg packaging and 0.2 kg safety allowance once, and allocate the resulting freight and reserve across their immutable line quotes.
+- International freight now has a one-kilogram minimum per merchant parcel. Cart rows from the same source host and dispatch country combine boxed weight, add the 0.3 kg packaging once (the former 0.2 kg allowance was removed on 5 October 2026), and allocate the resulting freight and reserve across their immutable line quotes.
 
 ## Pricing, approvals, warehouse and catalog release — 12 September 2026
 

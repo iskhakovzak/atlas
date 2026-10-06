@@ -34,10 +34,20 @@ export function validateManualSourceUrl(value: string) {
   return u;
 }
 
+/** A link outside the store allowlist; `code` is localized by serverError with {count} = supportedStoreCount. */
+export class UnsupportedStoreError extends Error {
+  readonly code = 'err_72';
+  readonly supportedStoreCount: number;
+  constructor(count = supportedStoreCount) {
+    super('Этого магазина нет в списке поддерживаемых. Вставьте ссылку из одного из ' + count + ' магазинов или заполните товар вручную.');
+    this.name = 'UnsupportedStoreError';
+    this.supportedStoreCount = count;
+  }
+}
+
 export function allowedUrl(value: string) {
   const u = validateManualSourceUrl(value);
-  if (!isSupportedStoreHost(u.hostname))
-    throw Error('Этот магазин пока не в списке поддерживаемых. Вставьте ссылку из одного из ' + supportedStoreCount + ' магазинов или заполните товар вручную.');
+  if (!isSupportedStoreHost(u.hostname)) throw new UnsupportedStoreError();
   return u;
 }
 

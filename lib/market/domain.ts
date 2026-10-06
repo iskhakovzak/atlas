@@ -3,6 +3,11 @@ import { combinedShipmentWeight, customsVersion, usdRates } from "./world.ts";
 
 export const money = (n: number) =>
   new Intl.NumberFormat("ru-RU").format(n) + " сум";
+/**
+ * A domain error the API can localize: `code` (err_NN) picks the uz/en/ru text in lib/market/i18n.ts, `message`
+ * stays the Russian text written into carts, logs and operator screens.
+ */
+export const codedError = (code: string, message: string) => Object.assign(new Error(message), { code });
 const positive = z.number().finite().positive();
 const amount = z.number().int().nonnegative();
 const storeAmount = z.number().finite().nonnegative().max(1_000_000);
@@ -173,6 +178,8 @@ export const pricingSchema = z.object({
   // (the carrier prices in USD), `normalizePricing` derives this from it at the current rate.
   perKg: positive.max(10_000_000),
   perKgUsd: positive.max(1_000).optional(),
+  /** Standard (slower) international delivery per kg in USD; the owner's $13.98 when unset (6 October 2026). */
+  standardPerKgUsd: positive.max(1_000).optional(),
   margin: z.number().finite().min(0).max(1),
   buyoutFee: z.number().finite().min(0).max(1).default(0),
   conversionFee: z.number().finite().min(0).max(1).default(0),
@@ -193,6 +200,7 @@ export const pricingSchema = z.object({
   countryOverrides: z.record(z.string().min(1).max(80), z.object({
     perKg: positive.max(10_000_000).optional(),
     perKgUsd: positive.max(1_000).optional(),
+    standardPerKgUsd: positive.max(1_000).optional(),
     margin: z.number().finite().min(0).max(1).optional(),
     buyoutFee: z.number().finite().min(0).max(1).optional(),
     conversionFee: z.number().finite().min(0).max(1).optional(),
@@ -203,6 +211,8 @@ export const pricingSchema = z.object({
   // Delivery time per region in business days [from, to], edited in the admin (Тарифы). A region left out
   // falls back to lib/market/site-content.ts; the home rates table and the example bill read it.
   deliveryDays: z.record(z.enum(["us", "uk", "cn", "de", "it", "es"]), z.tuple([z.number().int().min(1).max(120), z.number().int().min(1).max(120)]).refine(([from, to]) => from <= to, "from ≤ to")).optional(),
+  /** Standard delivery in business days per dispatch region (admin override of site-content's 9–14). */
+  standardDeliveryDays: z.record(z.enum(["us", "uk", "cn", "de", "it", "es"]), z.tuple([z.number().int().min(1).max(120), z.number().int().min(1).max(120)]).refine(([from, to]) => from <= to, "from ≤ to")).optional(),
   // Where `fx` comes from: the Central Bank of Uzbekistan's USD rate × `fxMarkup`, fetched by the server
   // (lib/market/fx-server.ts), or a rate the operator sets. Customers see which one and when it was set.
   fxSource: z.enum(["cbu", "manual"]).default("manual"),
@@ -224,24 +234,33 @@ export const pricingSchema = z.object({
   managedBy: z.string().max(160).optional(),
 });
 export type Pricing = z.infer<typeof pricingSchema>;
-/** Atlas express delivery from the US, UK, China, Germany, Italy and Spain: $14.98 per kg (owner, 6 October 2026). */
-export const deliveryPerKgUsd = 14.98;
+/** Atlas express delivery from the US, UK, China, Germany, Italy and Spain: $15.98 per kg (owner, 6 October 2026). */
+export const deliveryPerKgUsd = 15.98;
+/** Atlas standard delivery (9–14 business days): $13.98 per kg (owner, 6 October 2026). */
+export const standardDeliveryPerKgUsd = 13.98;
+/** How fast the parcel travels from the Atlas warehouse abroad; the price and days differ, the rest of the quote does not. */
+export const deliverySpeeds = ["express", "standard"] as const;
+export type DeliverySpeed = (typeof deliverySpeeds)[number];
+export const deliverySpeedSchema = z.enum(deliverySpeeds);
+export const defaultDeliverySpeed: DeliverySpeed = "express";
 /** Atlas service fee on merchandise only (owner's decision, 4 October 2026); never on delivery or customs. */
 export const atlasServiceFee = 0.0998;
 /** Atlas pays the customer's customs for this share of the goods price, delivery excluded (owner, 5 October 2026). */
 export const customsHelpShare = 0.0498;
 /**
- * Owner decisions that tariffs saved earlier still lack: 1 = $15 per kg (now $14.98), 2 = 9.98% fee and the CBU rate × 1.012,
+ * Owner decisions that tariffs saved earlier still lack: 1 = $15 per kg, 2 = 9.98% fee and the CBU rate × 1.012,
  * 3 = no international reserve in the bill and customs payment at 4.98% of the cart (5 October 2026),
- * 4 = $14.98 per kg everywhere and the fee exactly 9.98%: no buyout or conversion percent on top (6 October 2026).
+ * 4 = $14.98 per kg everywhere and the fee exactly 9.98%: no buyout or conversion percent on top (6 October 2026),
+ * 5 = express $15.98 and standard $13.98 per kg (6 October 2026, evening); $15 and $14.98 saved earlier become $15.98.
  */
-export const pricingRevision = 4;
+export const pricingRevision = 5;
 /** Until the server reads the Central Bank rate, the owner's estimate stands in, shown as a set rate. */
 const startingFx = 11990;
 export const tariff: Pricing = {
   fx: startingFx,
   perKg: Math.round(deliveryPerKgUsd * startingFx),
   perKgUsd: deliveryPerKgUsd,
+  standardPerKgUsd: standardDeliveryPerKgUsd,
   fxSource: "cbu",
   fxMarkup: 1.012,
   customsHelpFee: customsHelpShare,
@@ -275,7 +294,7 @@ export function normalizePricing(config: Pricing): Pricing {
   return { ...config, fx, perKg: config.perKgUsd === undefined ? config.perKg : soum(config.perKgUsd), countryOverrides };
 }
 /**
- * A tariff saved before the owner's decisions lacks them: $14.98 per kg, the 9.98% fee and the Central Bank
+ * A tariff saved before the owner's decisions lacks them: $15.98 express and $13.98 standard per kg, the 9.98% fee and the Central Bank
  * rate × 1.012. It gets them under a new version, so carts quoted under the old one are shown again.
  */
 export function upgradePricing(config: Pricing): Pricing {
@@ -284,9 +303,17 @@ export function upgradePricing(config: Pricing): Pricing {
   const earlier = revision >= 2 ? config : { ...config, margin: atlasServiceFee, fxSource: "cbu" as const, fxMarkup: 1.012 };
   // A saved buyout or conversion percent showed as a 10.98% fee; per-country rates and fees gave other prices.
   const strip = ["reserve", ...(revision < 4 ? ["perKg", "perKgUsd", "margin", "buyoutFee", "conversionFee", "deliveryMargin"] : [])] as const;
+  // Revision 5: the old $15 and $14.98 defaults become express $15.98; standard $13.98 is added; the commission
+  // is exactly the 9.98% fee (no buyout or conversion fee on top).
+  const legacyPerKg = [undefined, 15, 14.98];
   return normalizePricing({
     ...earlier,
-    ...(revision < 4 ? { perKgUsd: deliveryPerKgUsd, margin: atlasServiceFee, buyoutFee: 0, conversionFee: 0, deliveryMargin: 0 } : {}),
+    ...(revision < 4 ? { deliveryMargin: 0 } : {}),
+    perKgUsd: revision < 4 || legacyPerKg.includes(earlier.perKgUsd) ? deliveryPerKgUsd : earlier.perKgUsd,
+    standardPerKgUsd: earlier.standardPerKgUsd ?? standardDeliveryPerKgUsd,
+    margin: atlasServiceFee,
+    buyoutFee: 0,
+    conversionFee: 0,
     reserve: 0,
     customsHelpFee: customsHelpShare,
     countryOverrides: Object.fromEntries(Object.entries(earlier.countryOverrides ?? {})
@@ -296,13 +323,18 @@ export function upgradePricing(config: Pricing): Pricing {
     version: `${config.version.slice(0, 70)}+r${pricingRevision}`,
   });
 }
-/** Delivery per kg in USD for a dispatch country, as the customer pays it (with the delivery margin). */
-export function deliveryPerKgUsdFor(config: Pricing, country?: string) {
+/** Delivery per kg in USD for a dispatch country and speed, as the customer pays it (with the delivery margin). */
+export function deliveryPerKgUsdFor(config: Pricing, country?: string, speed: DeliverySpeed = defaultDeliverySpeed) {
   const p = pricingForCountry(config, country);
   const override = country ? config.countryOverrides?.[country] : undefined;
+  if (speed === "standard") return Math.round((p.standardPerKgUsd ?? standardDeliveryPerKgUsd) * (1 + p.deliveryMargin) * 100) / 100;
   // A soum-only country override wins over the base USD rate.
   const usd = override?.perKg !== undefined && override.perKgUsd === undefined ? p.perKg / p.fx : (p.perKgUsd ?? p.perKg / p.fx);
   return Math.round(usd * (1 + p.deliveryMargin) * 100) / 100;
+}
+/** Soum per kg for a speed from a tariff already resolved for the country (pricingForCountry). */
+export function perKgSoumFor(config: Pricing, speed: DeliverySpeed = defaultDeliverySpeed) {
+  return speed === "standard" ? Math.round((config.standardPerKgUsd ?? standardDeliveryPerKgUsd) * config.fx) : config.perKg;
 }
 /** Resolve only the pricing dimensions explicitly overridden for this item's
  * actual dispatch country. FX rates stay currency-based in `rates`. */
@@ -350,6 +382,8 @@ const quoteSchema = z.object({
   margin: z.number().finite().min(0).max(1).optional(),
   reserveRate: z.number().finite().min(0).max(2).optional(),
   perKg: positive.optional(),
+  /** Which international delivery the customer chose; quotes saved before 6 October 2026 are express. */
+  deliverySpeed: deliverySpeedSchema.optional(),
   divisor: positive.optional(),
   sourceShipping: amount.optional(),
   /** Unknown store delivery, held separately: never part of `total` or the amount to pay (4 October 2026). */
@@ -374,6 +408,7 @@ export function price(
   quantity = 1,
   sourceShippingUsd = 0,
   config: Pricing = tariff,
+  speed: DeliverySpeed = defaultDeliverySpeed,
 ) {
   if (
     !Number.isFinite(usd) ||
@@ -386,7 +421,7 @@ export function price(
     quantity < 1 ||
     quantity > 10
   )
-    throw Error("Проверьте цену, вес и количество (от 1 до 10).");
+    throw codedError("err_62", "Проверьте цену, вес и количество (от 1 до 10).");
   if (
     !Number.isFinite(sourceShippingUsd) ||
     sourceShippingUsd < 0 ||
@@ -399,7 +434,7 @@ export function price(
     service = Math.round(merchandise * config.margin),
     buyout = Math.round(merchandise * config.buyoutFee),
     conversion = Math.round(merchandise * config.conversionFee),
-    shippingBase = Math.ceil(billableUnitWeight * quantity * config.perKg),
+    shippingBase = Math.ceil(billableUnitWeight * quantity * perKgSoumFor(config, speed)),
     deliveryMargin = Math.round(shippingBase * config.deliveryMargin),
     shipping = shippingBase,
     reserve = Math.ceil(shippingBase * config.reserve);
@@ -424,12 +459,14 @@ export function quote(
   quantity = 1,
   sourceShippingUsd = 0,
   config: Pricing = tariff,
+  speed: DeliverySpeed = defaultDeliverySpeed,
 ): Quote {
   return {
     id: crypto.randomUUID(),
     createdAt: now,
     expiresAt: now + 15 * 60000,
-    ...price(usd, weight, quantity, sourceShippingUsd, config),
+    ...price(usd, weight, quantity, sourceShippingUsd, config, speed),
+    deliverySpeed: speed,
     tariffVersion: config.version,
     fx: config.fx,
     ...(config.fxSource === "cbu" ? { fxMarkup: config.fxMarkup ?? 1.012 } : {}),
@@ -438,7 +475,7 @@ export function quote(
     conversionFeeRate: config.conversionFee,
     deliveryMarginRate: config.deliveryMargin,
     reserveRate: config.reserve,
-    perKg: config.perKg,
+    perKg: perKgSoumFor(config, speed),
     divisor: config.divisor,
   };
 }
@@ -450,6 +487,9 @@ const settlementSchema = z.object({
   refund: amount,
   extra: amount,
   dimensions: z.array(positive).length(3).optional(),
+  /** Weighed as one store parcel (since 6 October 2026): the orders weighed together and the parcel's whole delivery. */
+  parcelOrderIds: z.array(z.string().max(80)).max(500).optional(),
+  parcelShipping: amount.optional(),
 });
 export type Settlement = z.infer<typeof settlementSchema>;
 const storeShippingSettlementSchema = z.object({
@@ -491,7 +531,8 @@ export function settle(
       "Введите вес до 500 кг и размеры до 300 см. Все значения должны быть больше нуля.",
     );
   const dimensionalWeight = (l * h * d) / (q.divisor ?? 5000),
-    chargeableWeight = Math.max(w, dimensionalWeight),
+    // The owner's minimum: a parcel is billed at least 1 kg, as it was quoted (combinedShipmentWeight).
+    chargeableWeight = Math.max(1, w, dimensionalWeight),
     shipping = Math.ceil(chargeableWeight * (q.perKg ?? 90000)),
     diff = q.shipping + q.reserve - shipping;
   return {
@@ -512,7 +553,14 @@ export const statuses = [
   "В пути",
   "Доставлен",
 ];
-const historySchema = z.object({ at: amount, text: z.string() });
+/**
+ * `text` stays the Russian line (operators, exports, older clients). Since 6 October 2026 customer-visible events also
+ * carry `code` and `params` (soum amounts as numbers), and lib/market/history-copy.ts renders them in ru/uz/en.
+ */
+const historyParamsSchema = z.record(z.union([z.number(), z.string()]));
+export type HistoryParams = z.infer<typeof historyParamsSchema>;
+const historySchema = z.object({ at: amount, text: z.string(), code: z.string().max(60).optional(), params: historyParamsSchema.optional() });
+export type HistoryEntry = z.infer<typeof historySchema>;
 export const deliveryProfileSchema = z.object({
   recipient: z.string().trim().min(2).max(100),
   phone: z.string().trim().min(7).max(30),
@@ -529,8 +577,8 @@ export type DeliveryProfile = z.infer<typeof deliveryProfileSchema>;
  */
 export const isPostalCode = (value?: string) => /^\d{6}$/.test(value ?? "");
 export function assertDeliveryAddress(delivery?: DeliveryProfile) {
-  if (!delivery || delivery.address.trim().length < 5) throw Error("Укажите адрес доставки.");
-  if (!isPostalCode(delivery.postalCode)) throw Error("Укажите почтовый индекс получателя: 6 цифр.");
+  if (!delivery || delivery.address.trim().length < 5) throw codedError("err_60", "Укажите адрес доставки.");
+  if (!isPostalCode(delivery.postalCode)) throw codedError("err_61", "Укажите почтовый индекс получателя: 6 цифр.");
 }
 const savedDeliveryProfileSchema = deliveryProfileSchema.extend({
   id: z.string().min(1).max(80),
@@ -737,6 +785,8 @@ const notificationSchema = z.object({
   message: z.string().max(300),
   read: z.boolean().default(false),
   orderId: z.string().optional(),
+  code: z.string().max(60).optional(),
+  params: historyParamsSchema.optional(),
 });
 export type Notification = z.infer<typeof notificationSchema>;
 export const communicationSchema = z.object({
@@ -787,6 +837,8 @@ const cartSchema = z.object({
   }).optional(),
   /** The last live check could not confirm the item. Only "unreachable" with a recent earlier check lets checkout go on. */
   sourceIssue: z.object({ kind: z.enum(["currency", "variant", "price", "unreachable", "stock"]), at: amount }).optional(),
+  /** International delivery speed for this line; lines saved before 6 October 2026 are express. */
+  deliverySpeed: deliverySpeedSchema.optional(),
   /** The customer's note for Atlas about this item; kept through repricing, shown to operators, never sent to the store. */
   note: z.string().trim().max(500).optional(),
 });
@@ -841,7 +893,7 @@ export function setCartServices(
       throw Error("Проверьте количество дополнительной услуги.");
   }
   for (const required of allowed.filter((service) => service.required)) {
-    if (!selected.includes(required.id)) throw Error("Выберите обязательные услуги перед оформлением.");
+    if (!selected.includes(required.id)) throw codedError("err_64", "Выберите обязательные услуги перед оформлением.");
   }
   return {
     ...state,
@@ -853,6 +905,11 @@ export function setCartServices(
   };
 }
 
+/** A warehouse service's name in every language, for coded history and notifications. */
+const serviceParams = (service: Pick<ServiceOffering, "id" | "title"> | WarehouseServiceRequest): HistoryParams => ({
+  service: "serviceId" in service ? service.serviceId : service.id,
+  titleRu: service.title.ru, titleUz: service.title.uz, titleEn: service.title.en,
+});
 export function requestWarehouseService(
   state: State,
   id: string,
@@ -884,8 +941,8 @@ export function requestWarehouseService(
   return withNotification(replace(state, {
     ...order,
     warehouseServiceRequests: [...previous, request],
-    history: [...order.history, { at: now, text: `Клиент запросил услугу склада «${service.title.ru}»; оператор проверит выполнимость и отправит стоимость на согласование.` }],
-  }), "Запрос передан оператору", `${service.title.ru}. Цена и возможность будут подтверждены до выполнения.`, id, now);
+    history: [...order.history, { at: now, text: `Клиент запросил услугу склада «${service.title.ru}»; оператор проверит выполнимость и отправит стоимость на согласование.`, code: "service-requested", params: serviceParams(service) }],
+  }), "Запрос передан оператору", `${service.title.ru}. Цена и возможность будут подтверждены до выполнения.`, id, now, { code: "service-requested", params: serviceParams(service) });
 }
 
 export function completeWarehouseService(state: State, id: string, requestId: string, now = Date.now()): State {
@@ -898,8 +955,8 @@ export function completeWarehouseService(state: State, id: string, requestId: st
   return withNotification(replace(state, {
     ...order,
     warehouseServiceRequests: (order.warehouseServiceRequests ?? []).map((item) => item.id === requestId ? completed : item),
-    history: [...order.history, { at: now, text: `Склад отметил услугу «${request.title.ru}» выполненной.` }],
-  }), "Услуга выполнена", request.title.ru, id, now);
+    history: [...order.history, { at: now, text: `Склад отметил услугу «${request.title.ru}» выполненной.`, code: "service-done", params: serviceParams(request) }],
+  }), "Услуга выполнена", request.title.ru, id, now, { code: "service-done", params: serviceParams(request) });
 }
 
 export function declineWarehouseService(state: State, id: string, requestId: string, reason: string, now = Date.now()): State {
@@ -915,8 +972,8 @@ export function declineWarehouseService(state: State, id: string, requestId: str
   return withNotification(replace(state, {
     ...order,
     warehouseServiceRequests: (order.warehouseServiceRequests ?? []).map((item) => item.id === requestId ? { ...item, status: "declined" as const } : item),
-    history: [...order.history, { at: now, text: `Оператор отклонил услугу «${request.title.ru}»: ${note}` }],
-  }), "Услуга недоступна", `${request.title.ru}: ${note}`, id, now);
+    history: [...order.history, { at: now, text: `Оператор отклонил услугу «${request.title.ru}»: ${note}`, code: "service-declined", params: { ...serviceParams(request), reason: note } }],
+  }), "Услуга недоступна", `${request.title.ru}: ${note}`, id, now, { code: "service-declined", params: { ...serviceParams(request), reason: note } });
 }
 
 /** One store order: the same store host shipping from the same country. */
@@ -975,6 +1032,16 @@ export function storeShippingReserves(items: CartItem[], config: Pricing = tarif
 
 /** Whether this cart's lines carry the "Atlas pays customs for me" fee. */
 export const customsHelpChosen = (state: Pick<State, "cartCustoms">) => Boolean(state.cartCustoms?.help);
+/** The customer picks express or standard delivery for the whole cart; every line is requoted at that rate. */
+export function setCartDeliverySpeed(state: State, speed: DeliverySpeed, now = Date.now(), config: Pricing = tariff): State {
+  if (!deliverySpeeds.includes(speed)) throw Error("Выберите экспресс или обычную доставку.");
+  if (!state.cart.length) throw Error("Корзина пуста.");
+  return { ...state, cart: repriceCart(state.cart.map((item) => ({ ...item, deliverySpeed: speed })), now, config, customsHelpChosen(state)) };
+}
+/** The speed the cart is quoted at (all lines share it); an older cart without the field is express. */
+export function cartDeliverySpeed(cart: Pick<CartItem, "deliverySpeed">[]): DeliverySpeed {
+  return cart.find((item) => item.deliverySpeed)?.deliverySpeed ?? defaultDeliverySpeed;
+}
 /**
  * Recalculate international delivery once per merchant parcel, and unknown store delivery once per store order.
  * With `customsHelp`, every line also carries the customs payment fee on the rest of its total.
@@ -991,6 +1058,7 @@ export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing
         item.quantity,
         storeShippingUsd(item.product),
         itemPricing,
+        item.deliverySpeed ?? defaultDeliverySpeed,
       ),
     };
   });
@@ -1005,7 +1073,7 @@ export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing
     const boxedTotal = contributions.reduce((sum, value) => sum + value, 0);
     const chargeableWeight = combinedShipmentWeight(boxedTotal);
     const countryPricing = pricingForCountry(config, next[indexes[0]].product.country);
-    const shippingTotal = Math.ceil(chargeableWeight * countryPricing.perKg);
+    const shippingTotal = Math.ceil(chargeableWeight * perKgSoumFor(countryPricing, next[indexes[0]].deliverySpeed ?? defaultDeliverySpeed));
     const reserveTotal = Math.ceil(shippingTotal * countryPricing.reserve);
     const deliveryMarginTotal = Math.round(shippingTotal * countryPricing.deliveryMargin);
     let shippingLeft = shippingTotal;
@@ -1060,6 +1128,11 @@ export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing
 /** The separate hold for unknown store delivery across cart lines (soum); never part of the amount to pay. */
 export const holdOf = (items: { quote: Pick<Quote, "storeShippingHold"> }[]) =>
   items.reduce((sum, item) => sum + (item.quote.storeShippingHold ?? 0), 0);
+/** The legal documents a customer consents to (lib/market/account-delete.ts holds the current version). */
+export const consentKeys = ["privacy", "terms"] as const;
+export const consentKeySchema = z.enum(consentKeys);
+const consentSchema = z.object({ key: consentKeySchema, version: z.string().min(1).max(40), acceptedAt: amount });
+export type Consent = z.infer<typeof consentSchema>;
 export const stateSchema = z.object({
   orders: z.array(orderSchema),
   entries: z.array(entrySchema),
@@ -1082,6 +1155,8 @@ export const stateSchema = z.object({
   messageDeliveries: z.array(messageDeliverySchema).default([]),
   supportTickets: z.array(supportTicketSchema).default([]),
   cartCustoms: cartCustomsSchema.optional(),
+  /** Data-processing consents (privacy policy, terms of use): one entry per document, latest version wins. Absent in older documents. */
+  consents: z.array(consentSchema).max(10).optional(),
   version: z.number().default(3),
 });
 export type State = z.infer<typeof stateSchema>;
@@ -1113,6 +1188,7 @@ const withNotification = (
   message: string,
   orderId?: string,
   now = Date.now(),
+  coded?: { code: string; params?: HistoryParams },
 ): State => {
   const deliveries: MessageDelivery[] = [];
   if (state.communication.emailEnabled && state.communication.email)
@@ -1138,7 +1214,7 @@ const withNotification = (
   return {
     ...state,
     notifications: [
-      { id: crypto.randomUUID(), at: now, title, message, read: false, orderId },
+      { id: crypto.randomUUID(), at: now, title, message, read: false, orderId, ...(coded ? { code: coded.code, ...(coded.params ? { params: coded.params } : {}) } : {}) },
       ...state.notifications,
     ].slice(0, 80),
     messageDeliveries: [...deliveries, ...state.messageDeliveries].slice(0, 120),
@@ -1148,6 +1224,18 @@ export const markNotificationsRead = (state: State): State => ({
   ...state,
   notifications: state.notifications.map((item) => ({ ...item, read: true })),
 });
+/**
+ * Records consent to the given documents at `version`: one entry per document, a newer acceptance of the
+ * same document replaces the older one. Accepting a version already held changes nothing (same state object).
+ */
+export function acceptConsents(state: State, documents: readonly Consent["key"][], version: string, now = Date.now()): State {
+  const keys = [...new Set(documents)];
+  const current = state.consents ?? [];
+  if (keys.every((key) => current.some((item) => item.key === key && item.version === version))) return state;
+  const kept = current.filter((item) => !keys.includes(item.key));
+  const added = keys.map((key) => ({ key, version, acceptedAt: now }));
+  return { ...state, consents: [...kept, ...added].slice(-10) };
+}
 export const updateCommunication = (
   state: State,
   value: Communication,
@@ -1191,13 +1279,20 @@ export function submitDeclarationPreview(state: State, orderIds: string[], now =
   if (recipientIds.size > 1) throw Error("Подготовьте отдельную декларацию для каждого получателя.");
   const first = selected[0];
   const profiles = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
-  const identity = first.identity ?? profiles.find((profile) => profile.recipientProfileId === first.deliveryProfileId) ?? state.identityProfile;
+  // An order for a saved recipient takes only that recipient's passport: never the last confirmed one or another person's.
+  // Orders without a saved recipient (older ones, or a typed address) keep the earlier fallback.
+  const recipientId = first.deliveryProfileId;
+  const identity = recipientId
+    ? (first.identity && (!first.identity.recipientProfileId || first.identity.recipientProfileId === recipientId) ? first.identity : undefined)
+      ?? profiles.find((profile) => profile.recipientProfileId === recipientId)
+    : first.identity ?? profiles.find((profile) => profile.recipientProfileId === undefined) ?? state.identityProfile;
   const delivery = first.delivery ?? (first.deliveryProfileId ? state.deliveryProfiles.find((profile) => profile.id === first.deliveryProfileId) : undefined) ?? state.deliveryProfile;
+  if (!identity && recipientId) throw codedError("err_66", "Сначала подтвердите паспорт этого получателя.");
   if (!identity) throw Error("Сначала подтвердите паспортные данные получателя.");
-  if (!delivery) throw Error("Сначала сохраните адрес доставки.");
+  if (!delivery) throw codedError("err_65", "Сначала сохраните адрес доставки.");
   const lines = selected.map((order) => ({ orderId: order.id, description: order.product.declarationDescription ?? order.product.name, country: order.product.country ?? "Не указана", quantity: order.quantity, value: order.quote.merchandise }));
   const declaration: Declaration = { id: "DEC-" + crypto.randomUUID().slice(0, 8).toUpperCase(), createdAt: now, status: "submitted-preview", identity, delivery, orderIds: selected.map((order) => order.id), lines, totalValue: lines.reduce((sum, line) => sum + line.value, 0) };
-  return withNotification({ ...state, declarations: [declaration, ...state.declarations].slice(0, 20) }, "Черновик декларации подготовлен", `Пакет ${declaration.id} сохранён внутри Atlas. В таможню он не отправлялся.`);
+  return withNotification({ ...state, declarations: [declaration, ...state.declarations].slice(0, 20) }, "Черновик декларации подготовлен", `Пакет ${declaration.id} сохранён внутри Atlas. В таможню он не отправлялся.`, undefined, now, { code: "declaration-saved", params: { declaration: declaration.id } });
 }
 export const balanceOf = (state: State) =>
   state.entries.reduce(
@@ -1235,7 +1330,7 @@ export function addToCart(
   note?: string,
 ): State {
   if (!p.variants.includes(variant)) throw Error("Выберите вариант товара.");
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) throw Error("Количество — от 1 до 10.");
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) throw codedError("err_63", "Количество — от 1 до 10.");
   const comment = note?.trim().slice(0, 500) || undefined;
   const item = state.cart.find(
     (i) => i.product.id === p.id && i.variant === variant,
@@ -1247,6 +1342,8 @@ export function addToCart(
   }
   if (quantity > maxLineQuantity(p)) throw Error(`В магазине осталось ${p.stockQuantity} шт. этого варианта.`);
   const itemPricing = pricingForCountry(config, p.country);
+  // A new line travels at the speed the cart already has (all lines share one choice).
+  const speed = cartDeliverySpeed(state.cart);
   const cart = [
     ...state.cart,
     {
@@ -1254,8 +1351,9 @@ export function addToCart(
       product: p,
       variant,
       quantity,
+      deliverySpeed: speed,
       requestedServiceIds: config.serviceCatalog.filter((service) => service.enabled && service.required && service.requestStage === "checkout").map((service) => service.id),
-      quote: quote(p.usd, p.weight, now, quantity, storeShippingUsd(p), itemPricing),
+      quote: quote(p.usd, p.weight, now, quantity, storeShippingUsd(p), itemPricing, speed),
       ...(comment ? { note: comment } : {}),
     },
   ];
@@ -1282,7 +1380,7 @@ export function changeQuantity(
 ): State {
   const item = state.cart.find((i) => i.id === id);
   if (!item) throw Error("Товар уже удалён из корзины.");
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) throw Error("Количество — от 1 до 10.");
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10) throw codedError("err_63", "Количество — от 1 до 10.");
   // Only a stock count the store itself reported limits the quantity; an unknown stock does not.
   if (quantity > maxLineQuantity(item.product)) throw Error(`В магазине осталось ${item.product.stockQuantity} шт. этого варианта.`);
   const itemPricing = pricingForCountry(config, item.product.country);
@@ -1337,16 +1435,16 @@ export const cartSignature = (items: CartItem[]) =>
   }).join("|");
 /** What the live store check said about this item, kept in the order history. */
 function sourceCheckHistory(item: CartItem, now: number) {
-  const notes: { at: number; text: string }[] = [];
+  const notes: HistoryEntry[] = [];
   const change = item.priceChange;
   if (change && change.previousPrice !== change.price)
-    notes.push({ at: now, text: `Цена в магазине изменилась до оформления: ${change.previousPrice} → ${change.price} ${change.currency}. Покупатель оформил заказ по новому расчёту.` });
+    notes.push({ at: now, text: `Цена в магазине изменилась до оформления: ${change.previousPrice} → ${change.price} ${change.currency}. Покупатель оформил заказ по новому расчёту.`, code: "source-price-changed", params: { from: change.previousPrice, to: change.price, currency: change.currency } });
   if (change?.shipping !== undefined && change.previousShipping !== change.shipping)
-    notes.push({ at: now, text: `Доставка магазина изменилась до оформления: ${change.previousShipping ?? 0} → ${change.shipping} ${item.product.sourceShippingCurrency ?? change.currency}.` });
+    notes.push({ at: now, text: `Доставка магазина изменилась до оформления: ${change.previousShipping ?? 0} → ${change.shipping} ${item.product.sourceShippingCurrency ?? change.currency}.`, code: "source-shipping-changed", params: { from: change.previousShipping ?? 0, to: change.shipping, currency: item.product.sourceShippingCurrency ?? change.currency } });
   if (item.sourceIssue?.kind === "unreachable")
-    notes.push({ at: now, text: "Магазин не ответил при оформлении; цена была сверена незадолго до этого. Оператор сверит её перед выкупом." });
+    notes.push({ at: now, text: "Магазин не ответил при оформлении; цена была сверена незадолго до этого. Оператор сверит её перед выкупом.", code: "source-unreachable" });
   else if (item.product.sourceCheckedAt && now - item.product.sourceCheckedAt <= 10 * 60_000)
-    notes.push({ at: now, text: "Цена и вариант сверены с магазином перед оформлением." });
+    notes.push({ at: now, text: "Цена и вариант сверены с магазином перед оформлением.", code: "source-checked" });
   return notes;
 }
 
@@ -1388,7 +1486,7 @@ export function checkoutCart(
       return !selected.includes(serviceId) || !service || ["package", "item"].includes(service.unit) || !Number.isInteger(units) || units < 1 || units > 100;
     })) throw Error("Количество дополнительной услуги изменилось. Проверьте корзину заново.");
     if (availableServices.some((service) => service.required && !selected.includes(service.id)))
-      throw Error("Выберите обязательные услуги перед оформлением.");
+      throw codedError("err_64", "Выберите обязательные услуги перед оформлением.");
   }
   if (state.cart.some((i) => now >= i.quote.expiresAt))
     throw Error("Расчёт истёк. Обновите его перед оформлением.");
@@ -1483,12 +1581,14 @@ export function checkoutCart(
             "Заказ оформлен в Atlas. Сумма " +
             money(i.quote.total) +
             (payable ? ". Ожидается подтверждение платёжного провайдера." : ". Учтено из внутреннего баланса Atlas."),
+          code: "checkout",
+          params: { total: i.quote.total, fromBalance: payable ? 0 : 1 },
         },
         ...(i.quote.storeShippingHold
-          ? [{ at: now, text: "Предварительный резерв доставки магазина " + money(i.quote.storeShippingHold) + " удерживается отдельно и не входит в сумму заказа. Менеджер уточнит фактическую доставку." }]
+          ? [{ at: now, text: "Предварительный резерв доставки магазина " + money(i.quote.storeShippingHold) + " удерживается отдельно и не входит в сумму заказа. Менеджер уточнит фактическую доставку.", code: "store-hold", params: { hold: i.quote.storeShippingHold } }]
           : []),
         ...(i.quote.customsHelp
-          ? [{ at: now, text: "Покупатель выбрал оплату таможни через Atlas: сбор " + money(i.quote.customsHelp) + " и предоплата пошлины " + money(i.quote.customsDuty ?? 0) + " входят в сумму заказа. Остаток пошлины вернётся на баланс, доплата — только с согласия покупателя." }]
+          ? [{ at: now, text: "Покупатель выбрал оплату таможни через Atlas: сбор " + money(i.quote.customsHelp) + " и предоплата пошлины " + money(i.quote.customsDuty ?? 0) + " входят в сумму заказа. Остаток пошлины вернётся на баланс, доплата — только с согласия покупателя.", code: "customs-help", params: { fee: i.quote.customsHelp, duty: i.quote.customsDuty ?? 0 } }]
           : []),
         ...sourceCheckHistory(i, now),
       ],
@@ -1528,7 +1628,7 @@ export function confirmDemoPayment(
     payment: { ...o.payment, status: "paid", updatedAt: now },
     history: [
       ...o.history,
-      { at: now, text: "Статус оплаты отмечен в Atlas. Платёжный провайдер не подтвердил списание." },
+      { at: now, text: "Статус оплаты отмечен в Atlas. Платёжный провайдер не подтвердил списание.", code: "payment-recorded" },
     ],
   });
   next.entries = [
@@ -1549,6 +1649,7 @@ export function confirmDemoPayment(
     "Платёжный провайдер не подключён: списания и банковского подтверждения нет.",
     id,
     now,
+    { code: "payment-recorded" },
   );
 }
 
@@ -1684,12 +1785,13 @@ export function createChangeRequest(
       ...o,
       changeRequests: [...(o.changeRequests ?? []), request],
       warehouseServiceRequests,
-      history: [...o.history, { at: now, text: `Запрошено согласование: ${request.title}.` }],
+      history: [...o.history, { at: now, text: `Запрошено согласование: ${request.title}.`, code: "change-requested", params: { title: request.title } }],
     }),
     "Нужно ваше решение",
     `${request.title}${request.amountDelta ? ` · изменение ${money(request.amountDelta)}` : ""}.`,
     id,
     now,
+    { code: "change-requested", params: { title: request.title, delta: request.amountDelta } },
   );
 }
 
@@ -1718,7 +1820,7 @@ export function respondToChangeRequest(
       : o.variant,
     changeRequests: (o.changeRequests ?? []).map((item) => item.id === requestId ? nextRequest : item),
     warehouseServiceRequests,
-    history: [...o.history, { at: now, text: decision === "approved" ? `Покупатель подтвердил: ${request.title}.` : `Покупатель отклонил: ${request.title}.` }],
+    history: [...o.history, { at: now, text: decision === "approved" ? `Покупатель подтвердил: ${request.title}.` : `Покупатель отклонил: ${request.title}.`, code: decision === "approved" ? "change-approved" : "change-declined", params: { title: request.title } }],
   };
   return withNotification(
     replace(state, nextOrder),
@@ -1726,6 +1828,7 @@ export function respondToChangeRequest(
     request.title,
     id,
     now,
+    { code: decision === "approved" ? "change-approved" : "change-declined", params: { title: request.title } },
   );
 }
 
@@ -1744,12 +1847,13 @@ export function inspectWarehouseOrder(
     replace(state, {
       ...o,
       warehouseInspection,
-      history: [...o.history, { at: now, text: warehouseInspection.condition === "ok" ? "Склад подтвердил комплектность и состояние товара." : "Склад зафиксировал проблему; требуется решение оператора и покупателя." }],
+      history: [...o.history, { at: now, text: warehouseInspection.condition === "ok" ? "Склад подтвердил комплектность и состояние товара." : "Склад зафиксировал проблему; требуется решение оператора и покупателя.", code: warehouseInspection.condition === "ok" ? "warehouse-ok" : "warehouse-problem" }],
     }),
     warehouseInspection.condition === "ok" ? "Товар принят на складе" : "На складе обнаружена проблема",
     warehouseInspection.condition === "ok" ? "Комплектность и состояние подтверждены." : "Откройте заказ: оператор подготовит вариант решения.",
     id,
     now,
+    { code: warehouseInspection.condition === "ok" ? "warehouse-ok" : "warehouse-problem" },
   );
 }
 
@@ -1777,13 +1881,29 @@ export function setParcel(
     replace(state, {
       ...o,
       parcel,
-      history: [...o.history, { at: now, text: `Добавлен трек-номер ${parcel.trackingNumber}.` }],
+      history: [...o.history, { at: now, text: `Добавлен трек-номер ${parcel.trackingNumber}.`, code: "tracking-added", params: { carrier: parcel.carrier, tracking: parcel.trackingNumber } }],
     }),
     "Добавлен трек-номер",
     `${parcel.carrier}: ${parcel.trackingNumber}`,
     id,
     now,
+    { code: "tracking-added", params: { carrier: parcel.carrier, tracking: parcel.trackingNumber } },
   );
+}
+/**
+ * The money recorded for this order in the ledger (balance used at checkout, a recorded payment, later movements),
+ * less what already went back to the customer from it (store delivery, duty or delivery remainders). An unpaid
+ * order has none: cancelling it credits nothing.
+ */
+export function cancelRefundAmount(state: Pick<State, "entries">, order: Pick<Order, "id">) {
+  let left = 0;
+  for (const entry of state.entries) {
+    if (entry.orderId !== order.id) continue;
+    if (entry.credit === "order-funds") left += entry.amount;
+    if (entry.debit === "order-funds") left -= entry.amount;
+    else if (entry.credit === "customer-credit") left -= entry.amount;
+  }
+  return Math.max(0, left);
 }
 export function confirmStoreShipping(
   state: State,
@@ -1807,12 +1927,14 @@ export function confirmStoreShipping(
     const text = held.extra
       ? `Менеджер подтвердил доставку магазина ${money(actual)}. Это больше резерва ${money(hold)}: нужно согласие покупателя на разницу ${money(held.extra)}.`
       : `Менеджер подтвердил доставку магазина ${money(actual)} в пределах резерва ${money(hold)}.` + (held.released ? ` Неиспользованная часть резерва ${money(held.released)} освобождается.` : "");
+    const coded = { code: held.extra ? "store-shipping-over" : "store-shipping-within", params: { actual, hold, extra: held.extra, released: held.released ?? 0 } };
     return withNotification(
-      replace(state, { ...o, storeShippingSettlement: held, history: [...o.history, { at: now, text }] }),
+      replace(state, { ...o, storeShippingSettlement: held, history: [...o.history, { at: now, text, ...coded }] }),
       held.extra ? "Нужно согласовать доставку" : "Доставка магазина уточнена",
       held.extra ? "Фактическая доставка магазина больше резерва. Откройте заказ и подтвердите разницу." : "Фактическая доставка магазина в пределах резерва. Списаний не было: оплата пока не подключена.",
       id,
       now,
+      coded,
     );
   }
   const estimated = o.quote.sourceShipping ?? 0;
@@ -1824,6 +1946,8 @@ export function confirmStoreShipping(
     refund: Math.max(0, diff),
     extra: Math.max(0, -diff),
   };
+  // Older orders paid the estimate inside the order sum: only money actually recorded for the order goes back.
+  const credited = Math.min(settlement.refund, cancelRefundAmount(state, o));
   const next = replace(state, {
     ...o,
     storeShippingSettlement: settlement,
@@ -1834,34 +1958,49 @@ export function confirmStoreShipping(
         text: settlement.extra
           ? "Менеджер подтвердил доставку магазина. Требуется согласование доплаты " +
             money(settlement.extra)
-          : "Менеджер подтвердил доставку магазина. Возврат разницы: " +
-            money(settlement.refund),
+          : credited < settlement.refund
+            // Nothing (or only part) was recorded for the order: no "refund" the customer never had.
+            ? `Менеджер подтвердил доставку магазина. Она дешевле резерва на ${money(settlement.refund)}; ` +
+              (credited
+                ? `оплата по заказу записана не полностью — на внутренний баланс Atlas зачислено ${money(credited)}.`
+                : "оплата по заказу не записана — на баланс ничего не зачислено.")
+            : "Менеджер подтвердил доставку магазина. Возврат разницы: " +
+              money(settlement.refund),
+        ...(settlement.extra
+          ? { code: "store-shipping-extra-legacy", params: { actual, extra: settlement.extra } }
+          : credited < settlement.refund
+            ? { code: "store-shipping-partial-legacy", params: { actual, refund: settlement.refund, credited } }
+            : { code: "store-shipping-refund-legacy", params: { actual, refund: settlement.refund, credited } }),
       },
     ],
   });
-  if (settlement.refund)
+  if (credited)
     next.entries = [
       ...state.entries,
       {
         id: "store-shipping:" + id,
         orderId: id,
         at: now,
-        amount: settlement.refund,
+        amount: credited,
         debit: "store-shipping-reserve",
         credit: "customer-credit",
         description: "Возврат разницы доставки магазина",
       },
     ];
+  const notice = settlement.extra ? "store-shipping-extra-legacy" : credited ? "store-shipping-refund-legacy" : settlement.refund ? "store-shipping-unpaid-legacy" : "store-shipping-match-legacy";
   return withNotification(
     next,
     settlement.extra ? "Нужно согласовать доставку" : "Доставка магазина уточнена",
     settlement.extra
       ? "Менеджер уточнил стоимость. Откройте заказ и подтвердите доплату."
-      : settlement.refund
+      : credited
         ? "Разница учтена на внутреннем балансе Atlas. Банковский перевод не выполнялся."
-        : "Стоимость совпала с резервом заказа.",
+        : settlement.refund
+          ? "Доставка магазина дешевле резерва. Оплата по заказу не записана, поэтому на баланс ничего не зачислено."
+          : "Стоимость совпала с резервом заказа.",
     id,
     now,
+    { code: notice, params: { actual, extra: settlement.extra, refund: settlement.refund, credited } },
   );
 }
 
@@ -1879,7 +2018,8 @@ export function confirmCustomsDuty(state: State, id: string, actualUsd: number, 
   const text = settlement.extra
     ? `Таможня начислила пошлину ${money(actual)}. Это больше предоплаты ${money(estimated)}: нужно согласие покупателя на разницу ${money(settlement.extra)}.`
     : `Таможня начислила пошлину ${money(actual)}. Atlas оплатил её из предоплаты ${money(estimated)}.` + (settlement.refund ? ` Остаток ${money(settlement.refund)} возвращён на баланс.` : "");
-  const next = replace(state, { ...o, customsSettlement: settlement, history: [...o.history, { at: now, text }] });
+  const params = { actual, estimated, extra: settlement.extra, refund: settlement.refund };
+  const next = replace(state, { ...o, customsSettlement: settlement, history: [...o.history, { at: now, text, code: settlement.extra ? "customs-duty-over" : "customs-duty-paid", params }] });
   if (settlement.refund)
     next.entries = [...state.entries, { id: "customs-duty:" + id, orderId: id, at: now, amount: settlement.refund, debit: "customs-duty-prepaid", credit: "customer-credit", description: "Возврат остатка предоплаты пошлины" }];
   return withNotification(
@@ -1888,6 +2028,7 @@ export function confirmCustomsDuty(state: State, id: string, actualUsd: number, 
     settlement.extra ? "Таможня начислила больше предоплаты. Откройте заказ и подтвердите доплату." : settlement.refund ? "Остаток предоплаты пошлины учтён на внутреннем балансе Atlas. Банковский перевод не выполнялся." : "Пошлина совпала с предоплатой.",
     id,
     now,
+    { code: settlement.extra ? "customs-duty-over" : settlement.refund ? "customs-duty-refund" : "customs-duty-match", params },
   );
 }
 export function approveCustomsExtra(state: State, id: string, expectedAmount: number, now = Date.now()): State {
@@ -1895,7 +2036,7 @@ export function approveCustomsExtra(state: State, id: string, expectedAmount: nu
   if (o.customsExtraApproved) return state;
   if (o.cancelled || !o.customsSettlement?.extra || o.customsSettlement.extra !== expectedAmount)
     throw Error("Сумма изменилась. Проверьте расчёт.");
-  return replace(state, { ...o, customsExtraApproved: true, history: [...o.history, { at: now, text: "Покупатель подтвердил доплату пошлины " + money(o.customsSettlement.extra) }] });
+  return replace(state, { ...o, customsExtraApproved: true, history: [...o.history, { at: now, text: "Покупатель подтвердил доплату пошлины " + money(o.customsSettlement.extra), code: "customs-extra-approved", params: { extra: o.customsSettlement.extra } }] });
 }
 export function approveStoreShippingExtra(
   state: State,
@@ -1921,6 +2062,8 @@ export function approveStoreShippingExtra(
         text:
           "Покупатель подтвердил доплату за доставку магазина " +
           money(o.storeShippingSettlement.extra),
+        code: "store-shipping-extra-approved",
+        params: { extra: o.storeShippingSettlement.extra },
       },
     ],
   });
@@ -1973,17 +2116,32 @@ export function advanceOrder(
     ...o,
     status: nextStatus,
     parcel,
-    history: [...o.history, { at: now, text: statuses[nextStatus] }],
-  }), "Статус заказа изменён", statuses[nextStatus], id, now);
+    history: [...o.history, { at: now, text: statuses[nextStatus], code: "status", params: { status: nextStatus } }],
+  }), "Статус заказа изменён", statuses[nextStatus], id, now, { code: "status", params: { status: nextStatus } });
 }
-export function receiveOrder(
-  state: State,
-  id: string,
-  dimensions: [number, number, number, number],
-  now = Date.now(),
-): State {
-  const o = getOrder(state, id);
-  if (o.settlement) return state;
+/**
+ * The orders weighed together with this one: lines of one checkout from the same store host and dispatch country,
+ * each with a source link and a boxed weight. repriceCart quoted their international delivery as one parcel
+ * (merchantParcelKey), so the warehouse weighs them once. Other and older orders weigh alone. Cancelled lines and
+ * lines not bought yet (status 0) are not in the box and never hold the parcel back.
+ */
+export function parcelOrders(state: Pick<State, "orders">, order: Order): Order[] {
+  if (order.cancelled || !order.batchId || !order.product.sourceUrl || order.product.boxedWeight === undefined) return [order];
+  const key = storeParcelKey(order);
+  const parcel = state.orders.filter((candidate) =>
+    !candidate.cancelled &&
+    (candidate.id === order.id || candidate.status > 0) &&
+    candidate.batchId === order.batchId &&
+    Boolean(candidate.product.sourceUrl) &&
+    candidate.product.boxedWeight !== undefined &&
+    storeParcelKey(candidate) === key);
+  return parcel.length ? parcel : [order];
+}
+/** The order is at the warehouse and nothing is open that must be settled before weighing. */
+export function readyToWeigh(o: Order) {
+  try { assertReadyToWeigh(o); return true; } catch { return false; }
+}
+function assertReadyToWeigh(o: Order) {
   if (o.cancelled || o.status !== 2)
     throw Error("Заказ ещё не готов к взвешиванию.");
   if (!o.warehouseInspection)
@@ -2000,7 +2158,9 @@ export function receiveOrder(
       !!request.proposedValue?.trim(),
     )
   ) throw Error("Сначала согласуйте с покупателем решение по проблеме на складе.");
-  const s = settle(o.quote, ...dimensions);
+}
+/** Records one order's weighing: status, parcel event, history, the refund entry and the customer notification. */
+function recordWeighing(state: State, o: Order, s: Settlement, now: number): State {
   const next = replace(state, {
     ...o,
     settlement: s,
@@ -2022,6 +2182,7 @@ export function receiveOrder(
           ? "Взвешивание завершено. Требуется согласование доплаты " +
             money(s.extra)
           : "Взвешивание завершено. Возврат остатка: " + money(s.refund),
+        ...(s.extra ? { code: "parcel-extra", params: { extra: s.extra } } : { code: "parcel-weighed", params: { refund: s.refund } }),
       },
     ],
   });
@@ -2029,8 +2190,8 @@ export function receiveOrder(
     next.entries = [
       ...state.entries,
       {
-        id: "settlement:" + id,
-        orderId: id,
+        id: "settlement:" + o.id,
+        orderId: o.id,
         at: now,
         amount: s.refund,
         debit: "shipping-reserve",
@@ -2046,9 +2207,70 @@ export function receiveOrder(
       : s.refund
         ? "Остаток учтён на внутреннем балансе Atlas. Банковский перевод не выполнялся."
         : "Фактическая стоимость доставки подтверждена.",
-    id,
+    o.id,
     now,
+    { code: s.extra ? "parcel-extra" : s.refund ? "parcel-refund" : "parcel-weighed", params: { extra: s.extra, refund: s.refund } },
   );
+}
+/**
+ * The warehouse weighs the whole store parcel at once (6 October 2026): every order of it must be ready, the parcel's
+ * delivery is ceil(max(weight, volume weight) × the quoted rate) once, split by the orders' quoted delivery (the
+ * shares repriceCart gave them) with the remainder on the last one. A parcel weighed exactly at its quoted weight
+ * leaves every order at its quote. `without` lists bought orders of this parcel that have not reached the warehouse
+ * (status 1): the operator weighs the rest without them, and they are weighed alone later. A single order, or a
+ * parcel already partly weighed, is weighed alone. Weighing again changes nothing.
+ */
+export function receiveOrder(
+  state: State,
+  id: string,
+  dimensions: [number, number, number, number],
+  now = Date.now(),
+  without: string[] = [],
+): State {
+  const o = getOrder(state, id);
+  if (o.settlement) return state;
+  const whole = parcelOrders(state, o);
+  for (const skipped of without) {
+    const order = whole.find((candidate) => candidate.id === skipped);
+    // Left out: a bought order still on the way, or one at the warehouse with something open (a problem, a service).
+    if (!order || order.id === o.id || order.settlement || order.status > 2 || (order.status === 2 && readyToWeigh(order)))
+      throw Error("Без взвешивания можно оставить только заказ этой посылки, который ещё не пришёл на склад или ждёт решения.");
+  }
+  const parcel = whole.filter((order) => !without.includes(order.id));
+  if (parcel.length < 2 || whole.some((order) => order.settlement)) {
+    assertReadyToWeigh(o);
+    return recordWeighing(state, o, settle(o.quote, ...dimensions), now);
+  }
+  for (const order of parcel) {
+    try { assertReadyToWeigh(order); } catch (error) { throw Error(`Заказ ${order.id}: ${(error as Error).message}`); }
+  }
+  const weighed = settle(parcel[0].quote, ...dimensions);
+  const shippingTotal = weighed.shipping;
+  const byShipping = parcel.map((order) => order.quote.shipping);
+  const byWeight = parcel.map((order) => order.quote.weight);
+  const sum = (values: number[]) => values.reduce((total, value) => total + value, 0);
+  const basis = sum(byShipping) > 0 ? byShipping : sum(byWeight) > 0 ? byWeight : parcel.map(() => 1);
+  const basisTotal = sum(basis);
+  const parcelOrderIds = parcel.map((order) => order.id);
+  let left = shippingTotal;
+  let next = state;
+  parcel.forEach((order, position) => {
+    const shipping = position === parcel.length - 1 ? left : Math.min(left, Math.round(shippingTotal * basis[position] / basisTotal));
+    left -= shipping;
+    const diff = order.quote.shipping + order.quote.reserve - shipping;
+    next = recordWeighing(next, order, {
+      actualWeight: weighed.actualWeight,
+      dimensionalWeight: weighed.dimensionalWeight,
+      chargeableWeight: weighed.chargeableWeight,
+      shipping,
+      refund: Math.max(0, diff),
+      extra: Math.max(0, -diff),
+      dimensions: weighed.dimensions,
+      parcelOrderIds,
+      parcelShipping: shippingTotal,
+    }, now);
+  });
+  return next;
 }
 export function approveExtra(
   state: State,
@@ -2073,29 +2295,37 @@ export function approveExtra(
         at: now,
         text:
           "Покупатель согласовал доплату " + money(o.settlement.extra),
+        code: "extra-approved",
+        params: { extra: o.settlement.extra },
       },
     ],
   });
 }
+/**
+ * Cancels an order before purchase. Only the funds actually recorded for it go back to the internal balance
+ * (cancelRefundAmount): nothing for an unpaid order, the balance used for a partly paid one. A pending payment
+ * stays pending on the cancelled order; only a recorded payment is marked refunded.
+ */
 export function cancelOrder(state: State, id: string, now = Date.now()): State {
   const o = getOrder(state, id);
   if (o.cancelled) return state;
   if (o.status !== 0)
     throw Error("Заказ уже выкуплен. Автоматическая отмена недоступна.");
+  const refund = cancelRefundAmount(state, o);
   const next = replace(state, {
     ...o,
     cancelled: true,
-    payment: o.payment
+    payment: o.payment?.status === "paid"
       ? { ...o.payment, status: "refunded", updatedAt: now }
       : o.payment,
     history: [
       ...o.history,
-      {
-        at: now,
-        text: "Заказ отменён до выкупа. Сумма учтена на внутреннем балансе Atlas; банковский перевод не выполнялся.",
-      },
+      refund
+        ? { at: now, text: "Заказ отменён до выкупа. Сумма учтена на внутреннем балансе Atlas; банковский перевод не выполнялся.", code: "cancel-refund", params: { refund } }
+        : { at: now, text: "Заказ отменён до оплаты. Списаний не было.", code: "cancel-unpaid" },
     ],
   });
+  if (!refund) return next;
   return {
     ...next,
     entries: [
@@ -2104,7 +2334,7 @@ export function cancelOrder(state: State, id: string, now = Date.now()): State {
         id: "cancel:" + id,
         orderId: id,
         at: now,
-        amount: o.quote.total,
+        amount: refund,
         debit: "order-funds",
         credit: "customer-credit",
         description: "Возврат отменённого заказа",

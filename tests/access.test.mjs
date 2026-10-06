@@ -33,3 +33,12 @@ test('customer support replies return a ticket to awaiting support, not answered
  assert.equal(next.supportTickets[0].status,'open');
  assert.equal(next.supportTickets[0].replies.at(-1).author,'customer');
 });
+test('admin pages accept the account user shape: role permissions open only their sections',()=>{
+ const support={operator:false,permissions:['operations.read','support.reply','customers.manage']};
+ assert.equal(viewAccess('admin','authenticated',support),'allow');
+ assert.equal(viewAccess('operations','authenticated',support),'allow');
+ assert.equal(viewAccess('analytics','authenticated',support),'forbidden');
+ assert.equal(viewAccess('admin','authenticated',{operator:false,permissions:[]}),'forbidden');
+ assert.equal(viewAccess('admin','authenticated',{operator:true,permissions:[]}),'allow');
+ assert.equal(viewAccess('analytics','authenticated',{operator:false,permissions:['finance.read']}),'allow');
+});

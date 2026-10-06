@@ -3,16 +3,18 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "@/components/site-link";
-import { AlertCircle, ArrowRight, ArrowUpRight, Bell, Check, FileCheck2, LogOut, MapPin, MessageCircle, Package, Pencil, Plus, ScanLine, ShoppingBag, Wallet } from "lucide-react";
+import { AlertCircle, ArrowRight, ArrowUpRight, Bell, Check, FileCheck2, Info, LifeBuoy, LogOut, MapPin, MessageCircle, Package, Pencil, Plus, RefreshCw, ScanLine, Shield, ShoppingBag, Trash2, Wallet } from "lucide-react";
 import { useMarket } from "@/lib/market/store";
 import { courierAllowanceUsd } from "@/lib/market/customs";
-import { balanceOf, orderPayable, totalOf, type SavedDeliveryProfile } from "@/lib/market/domain";
+import { balanceOf, orderPayable, totalOf, type SavedDeliveryProfile, type State } from "@/lib/market/domain";
+import type { Action } from "@/lib/market/actions";
 import { monthlyAllowance, recipientKey, type RecipientAllowance } from "@/lib/market/allowance";
-import { localizedStatuses, type Locale } from "@/lib/market/i18n";
+import { localizedStatuses, serverError, type Locale } from "@/lib/market/i18n";
 import { calcCopy } from "@/lib/market/calc-copy";
 import { formatSum } from "@/lib/market/home-copy";
 import { accountCopy, formatLongDate, itemCount, recipientCopy, type AccountCopy } from "@/lib/market/customer-copy";
-import { siteContent } from "@/lib/market/site-content";
+import { consentDocuments, consentVersion, deletionBlockers, deletionSummary, missingConsents } from "@/lib/market/account-delete";
+import { appInfo, isNative, nativePlatform, type AppInfo } from "@/lib/native/bridge";
 import { toast } from "sonner";
 import { Modal } from "./market-ui";
 import { Money } from "./money";
@@ -25,7 +27,7 @@ import { AllowanceMeter } from "./allowance-meter";
 // Account home, mobile-first: one "what needs you now" card, four quick tiles, then
 // recipients, customs allowance, documents, support and settings — each shown once.
 export function AccountView() {
-  const { user, state, ready, act, pricing } = useMarket();
+  const { user, state, ready, act, pricing, refresh, siteContent } = useMarket();
   const lang = state.communication.language;
   const c = accountCopy[lang];
   const [editor, setEditor] = useState<SavedDeliveryProfile | "new" | null>(null);
@@ -73,7 +75,7 @@ export function AccountView() {
     <header className="cabinet-head">
       <span className="cabinet-avatar" aria-hidden="true">{(user.name || contact || "A").trim().charAt(0).toUpperCase()}</span>
       <div className="cabinet-identity"><h1>{c.title}</h1><p><b>{user.name}</b>{contact && contact !== user.name ? <> · {contact}</> : null}<small>{c.since(since)}</small></p></div>
-      {user.operator && <Link className="btn secondary cabinet-manage" href="/admin">{c.manage}<ArrowUpRight size={17} aria-hidden="true" /></Link>}
+      {(user.operator || !!user.permissions?.length) && <Link className="btn secondary cabinet-manage" href="/admin">{c.manage}<ArrowUpRight size={17} aria-hidden="true" /></Link>}
     </header>
 
     <div className="cabinet-grid">
@@ -160,12 +162,11 @@ export function AccountView() {
 
         <SignInMethods locale={lang} />
 
-        <section className="cabinet-card" aria-labelledby="cabinet-settings-title">
-          <h2 id="cabinet-settings-title">{c.settings.title}</h2>
-          <div className="cabinet-setting"><span>{c.settings.theme}</span><ThemeToggle locale={lang} /></div>
-          <Link className="cabinet-setting cabinet-setting-link" href="/legal">{c.settings.rules}<ArrowRight size={18} aria-hidden="true" /></Link>
-          <button type="button" className="cabinet-signout" onClick={() => void signOut()}><LogOut size={18} aria-hidden="true" />{c.settings.signOut}</button>
-        </section>
+        <SettingsCard c={c} locale={lang} state={state} ready={ready} act={act} refresh={refresh} onSignOut={signOut} onSupport={() => {
+          setTicket(current => ({ ...current, subject: current.subject || c.deletion.supportSubject }));
+          setTicketOpen(true);
+          window.setTimeout(() => document.getElementById("support")?.scrollIntoView({ block: "start" }), 50);
+        }} />
       </div>
     </div>
 
@@ -201,4 +202,98 @@ function CustomsAllowance({ groups, primaryName, cartUsd, c, locale }: { groups:
     <p className="cabinet-note">{calcCopy[locale].customs.relative} {calcCopy[locale].customs.rule}</p>
     <Link className="cabinet-link" href="/customs">{c.customs.link}<ArrowRight size={16} aria-hidden="true" /></Link>
   </section>;
+}
+
+type SettingsProps = { c: AccountCopy; locale: Locale; state: State; ready: boolean; act: (action: Action) => Promise<boolean>; refresh: () => Promise<void>; onSignOut: () => void; onSupport: () => void };
+
+/** Settings rows the stores expect in the app: help, legal documents, consents, "restore purchases", about, sign out, delete. */
+function SettingsCard({ c, locale, state, ready, act, refresh, onSignOut, onSupport }: SettingsProps) {
+  const [native, setNative] = useState(false);
+  const [info, setInfo] = useState<AppInfo | null>(null);
+  const [restored, setRestored] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  useEffect(() => {
+    if (!isNative()) return;
+    queueMicrotask(() => setNative(true));
+    void appInfo().then(value => { if (value) setInfo(value); });
+  }, []);
+  const consents = state.consents ?? [];
+  const missing = missingConsents(state);
+  const platform = info?.platform ?? nativePlatform();
+  return <>
+    <section className="cabinet-card" aria-labelledby="cabinet-settings-title">
+      <h2 id="cabinet-settings-title">{c.settings.title}</h2>
+      <div className="cabinet-setting"><span>{c.settings.theme}</span><ThemeToggle locale={locale} /></div>
+      <Link className="cabinet-setting cabinet-setting-link" href="/support"><span className="cabinet-setting-label"><LifeBuoy size={18} aria-hidden="true" />{c.settings.support}</span><ArrowRight size={18} aria-hidden="true" /></Link>
+      <Link className="cabinet-setting cabinet-setting-link" href="/privacy"><span className="cabinet-setting-label"><Shield size={18} aria-hidden="true" />{c.settings.privacy}</span><ArrowRight size={18} aria-hidden="true" /></Link>
+      <Link className="cabinet-setting cabinet-setting-link" href="/terms"><span className="cabinet-setting-label"><FileCheck2 size={18} aria-hidden="true" />{c.settings.terms}</span><ArrowRight size={18} aria-hidden="true" /></Link>
+      <div className="cabinet-setting cabinet-setting-block">
+        <span>{c.settings.consents}</span>
+        {consents.length ? <ul className="cabinet-consents">{consents.map(item => <li key={item.key}><b>{c.settings.consentDoc[item.key]}</b><small>{c.settings.consentVersion(item.version)} · {formatLongDate(item.acceptedAt, locale)}</small></li>)}</ul> : <p className="cabinet-muted">{c.settings.consentsNone}</p>}
+        {missing.length > 0 && <button type="button" className="btn secondary" disabled={!ready} onClick={() => void act({ type: "consent-accept", documents: [...consentDocuments], version: consentVersion })}>{c.settings.consentsAccept}</button>}
+      </div>
+      {native && <div className="cabinet-setting cabinet-setting-block">
+        <button type="button" className="cabinet-text-btn" disabled={restoring} onClick={async () => {
+          setRestoring(true);
+          // Nothing is bought through the stores: "restore" only reloads the account the orders live in.
+          try { await refresh(); setRestored(c.settings.restored(state.orders.length)); } finally { setRestoring(false); }
+        }}><RefreshCw size={16} aria-hidden="true" />{c.settings.restore}</button>
+        {restored && <p className="cabinet-muted" role="status">{restored}</p>}
+      </div>}
+      {native && <div className="cabinet-setting cabinet-setting-block">
+        <span className="cabinet-setting-label"><Info size={18} aria-hidden="true" />{c.settings.about}</span>
+        <p className="cabinet-muted">{info ? c.settings.aboutVersion(info.version, info.build) : null}{info && platform ? " · " : null}{platform ? c.settings.aboutPlatform[platform] : null}</p>
+        <Link className="cabinet-link" href="/app">{c.settings.aboutLink}<ArrowRight size={16} aria-hidden="true" /></Link>
+      </div>}
+      <button type="button" className="cabinet-signout" onClick={onSignOut}><LogOut size={18} aria-hidden="true" />{c.settings.signOut}</button>
+    </section>
+
+    <section className="cabinet-card cabinet-danger" aria-labelledby="cabinet-delete-title">
+      <h2 id="cabinet-delete-title">{c.deletion.title}</h2>
+      <p className="cabinet-lead">{c.deletion.lead}</p>
+      <button type="button" className="cabinet-signout cabinet-delete-open" onClick={() => setDeleting(true)}><Trash2 size={18} aria-hidden="true" />{c.deletion.open}</button>
+    </section>
+    <DeleteAccountDialog open={deleting} onClose={() => setDeleting(false)} c={c} locale={locale} state={state} onSupport={() => { setDeleting(false); onSupport(); }} />
+  </>;
+}
+
+/** Confirmation sheet: what goes, what stays, what still blocks, the lost balance, and the final button. */
+function DeleteAccountDialog({ open, onClose, c, locale, state, onSupport }: { open: boolean; onClose: () => void; c: AccountCopy; locale: Locale; state: State; onSupport: () => void }) {
+  const [acknowledge, setAcknowledge] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const summary = deletionSummary(state);
+  const blockers = deletionBlockers(state);
+  const d = c.deletion;
+  const canDelete = !blockers.length && (summary.balance <= 0 || acknowledge) && !busy;
+  async function remove() {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/account/delete", { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify({ confirm: true, acknowledgeBalance: acknowledge }) });
+      const data = await res.json().catch(() => ({})) as { deleted?: boolean; errorCode?: string; error?: string };
+      if (!res.ok || !data.deleted) { toast.error((data.errorCode ? serverError(locale, data.errorCode) : undefined) ?? data.error ?? d.failed); return; }
+      toast.success(d.done);
+      window.location.assign("/");
+    } catch { toast.error(d.failed); }
+    finally { setBusy(false); }
+  }
+  return <Modal open={open} onClose={onClose} title={d.title} description={d.lead} locale={locale}>
+    <div className="delete-account">
+      <div className="delete-account-lists">
+        <div><b>{d.removed}</b><ul>{d.removedList.map(item => <li key={item}>{item}</li>)}</ul></div>
+        <div><b>{d.kept}</b><ul>{d.keptList.map(item => <li key={item}>{item}</li>)}</ul></div>
+      </div>
+      {blockers.length > 0 && <div className="notice warning delete-account-blocked">
+        <p><b>{d.blocked(blockers.length)}</b> {d.blockedHint}</p>
+        <ul>{blockers.map(order => <li key={order.id}><Link href={`/orders#${order.id}`}>{order.id}</Link> · {order.product.name}</li>)}</ul>
+        <div className="delete-account-actions"><Link className="btn secondary" href="/orders">{d.orders}</Link><button type="button" className="btn secondary" onClick={onSupport}><MessageCircle size={16} aria-hidden="true" />{d.support}</button></div>
+      </div>}
+      {summary.orders.autoCancel > 0 && <p className="cabinet-note">{d.autoCancel(summary.orders.autoCancel)}</p>}
+      {summary.balance > 0 && <label className="delete-account-ack"><input type="checkbox" checked={acknowledge} onChange={event => setAcknowledge(event.target.checked)} /><span>{d.balance(formatSum(summary.balance, locale))}</span></label>}
+      <div className="delete-account-actions">
+        <button type="button" className="btn secondary" onClick={onClose} disabled={busy}>{d.cancel}</button>
+        <button type="button" className="btn primary delete-account-confirm" disabled={!canDelete} onClick={() => void remove()}><Trash2 size={16} aria-hidden="true" />{d.confirm}</button>
+      </div>
+    </div>
+  </Modal>;
 }

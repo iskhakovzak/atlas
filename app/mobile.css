@@ -29,6 +29,9 @@ body { -webkit-tap-highlight-color: transparent; }
   body:has(.mobile-nav) .site-main { padding-bottom: calc(var(--atlas-mobile-nav-clearance) + 12px); }
   .home-sticky.above-nav { bottom: calc(var(--atlas-mobile-nav-clearance) + 10px); }
   body:has(.mobile-nav) .storage-notice { bottom: calc(var(--atlas-mobile-nav-clearance) + 8px); }
+  /* ...and above a sticky total or call-to-action bar (cart and link-order total ~69px, home dock 68px), so their buttons stay tappable. */
+  body:has(.basket-sticky:not(.is-hidden)) .storage-notice, body:has(.home-sticky.above-nav) .storage-notice { bottom: calc(var(--atlas-mobile-nav-clearance) + 84px); }
+  body:not(:has(.mobile-nav)):has(.basket-sticky:not(.is-hidden)) .storage-notice { bottom: calc(84px + env(safe-area-inset-bottom)); }
 
   /* Header: the bottom bar carries navigation and sign-in, so the top bar stays light. */
   .site-header { padding-top: env(safe-area-inset-top); padding-left: max(18px, env(safe-area-inset-left)); padding-right: max(18px, env(safe-area-inset-right)); }

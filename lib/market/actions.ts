@@ -15,6 +15,8 @@ import {
   confirmStoreShipping,
   approveStoreShippingExtra,
   cancelOrder,
+  deliverySpeedSchema,
+  setCartDeliverySpeed,
   balanceOf,
   totalOf,
   validateSource,
@@ -50,6 +52,9 @@ import {
   cartCustomsSchema,
   setCartNote,
   setCartCustoms,
+  acceptConsents,
+  products,
+  consentKeySchema,
   type Pricing,
   type Product,
   type State,
@@ -164,6 +169,8 @@ export const actionSchema = z.discriminatedUnion("type", [
     type: z.literal("receive"),
     id,
     dimensions: z.tuple([z.number(), z.number(), z.number(), z.number()]),
+    /** Bought orders of the same store parcel that have not reached the warehouse: weigh the rest without them. */
+    without: z.array(id).max(200).optional(),
   }),
   z.object({ type: z.literal("approve-extra"), id, amount }),
   z.object({ type: z.literal("confirm-store-shipping"), id, actualUsd: amount }),
@@ -171,10 +178,13 @@ export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("confirm-customs-duty"), id, actualUsd: amount }),
   z.object({ type: z.literal("approve-customs-extra"), id, amount }),
   z.object({ type: z.literal("cancel"), id }),
+  z.object({ type: z.literal("cart-delivery-speed"), speed: deliverySpeedSchema }),
   z.object({ type: z.literal("notifications-read") }),
   z.object({ type: z.literal("identity-confirm"), documentId: z.string().min(1).max(100), recipientProfileId: z.string().min(1).max(80).optional(), firstName: z.string().trim().min(1).max(80), lastName: z.string().trim().min(1).max(80), birthDate: z.string(), passportNumber: z.string().min(6).max(24), nationality: z.string().trim().max(80) }),
   z.object({ type: z.literal("identity-clear"), documentId: z.string().min(1).max(100) }),
   z.object({ type: z.literal("declaration-preview"), orderIds: z.array(z.string().max(100)).min(1).max(30) }),
+  // Data-processing consent (privacy policy, terms of use) at a document version; the server also writes it to market_legal_consents.
+  z.object({ type: z.literal("consent-accept"), documents: z.array(consentKeySchema).min(1).max(2), version: z.string().trim().min(1).max(40) }),
   // No action may replace the account document wholesale: the former "import-legacy" took client JSON
   // as the whole state, so a customer could write their own balance, paid orders and staff fields.
 ]);
@@ -185,7 +195,15 @@ function checkedCartProduct(sent: Product, pricing: Pricing, policy: Policy): Pr
   const product: Product = storeDiscount(sent) ? sent : { ...sent, sourceReferencePrice: undefined };
   const restriction = productRestriction(product, policy);
   if (restriction) throw Error(restriction);
-  if (!product.sourceUrl) return product;
+  if (!product.sourceUrl) {
+    // Without a store link there is nothing to re-check: price, weight, photo and options come only from the
+    // server's own product list; the client chooses just the option (addToCart checks it against these variants).
+    const known = products.find((item) => item.id === sent.id);
+    if (!known) throw Object.assign(new Error("Товар не найден в каталоге. Добавьте его по ссылке на магазин."), { code: "err_73" });
+    const knownRestriction = productRestriction(known, policy);
+    if (knownRestriction) throw Error(knownRestriction);
+    return structuredClone(known);
+  }
   if (product.boxedWeight === undefined || !product.country || !product.shippingKnown)
     throw Error("Укажите страну, вес с коробкой и доставку магазина.");
   const sourceUrl = validateSource(product.sourceUrl);
@@ -347,7 +365,12 @@ export function applyAction(
     case "delivery-profile-remove": {
       const rest = s.deliveryProfiles.filter((item) => item.id !== a.id);
       const remaining = rest.length && !rest.some((item) => item.primary) ? rest.map((item, index) => ({ ...item, primary: index === 0 })) : rest;
-      return { ...s, deliveryProfiles: remaining, deliveryProfile: remaining.find((item) => item.primary) ?? remaining[0], identityProfiles: s.identityProfiles?.map((profile) => profile.recipientProfileId === a.id ? { ...profile, recipientProfileId: undefined } : profile) };
+      // The removed recipient's passport goes too: an orphaned one would be offered as ready for someone else's declaration.
+      // Orders keep their own identity snapshots; D1 document rows and R2 scans are removed with the account.
+      const profiles = s.identityProfiles ?? (s.identityProfile ? [s.identityProfile] : []);
+      const removed = new Set(profiles.filter((profile) => profile.recipientProfileId === a.id).map((profile) => profile.documentId));
+      const ownIdentity = s.identityProfile && (s.identityProfile.recipientProfileId === a.id || removed.has(s.identityProfile.documentId));
+      return { ...s, deliveryProfiles: remaining, deliveryProfile: remaining.find((item) => item.primary) ?? remaining[0], identityProfile: ownIdentity ? undefined : s.identityProfile, identityProfiles: s.identityProfiles ? s.identityProfiles.filter((profile) => profile.recipientProfileId !== a.id) : s.identityProfiles };
     }
     case "support-create": {
       const now = Date.now();
@@ -381,7 +404,7 @@ export function applyAction(
     case "advance":
       return advanceOrder(s, a.id, a.expected);
     case "receive":
-      return receiveOrder(s, a.id, a.dimensions);
+      return receiveOrder(s, a.id, a.dimensions, Date.now(), a.without ?? []);
     case "approve-extra":
       return approveExtra(s, a.id, a.amount);
     case "confirm-customs-duty":
@@ -394,6 +417,8 @@ export function applyAction(
       return approveStoreShippingExtra(s, a.id, a.amount);
     case "cancel":
       return cancelOrder(s, a.id);
+    case "cart-delivery-speed":
+      return setCartDeliverySpeed(s, a.speed, Date.now(), pricing);
     case "notifications-read":
       return markNotificationsRead(s);
     case "identity-confirm":
@@ -402,5 +427,7 @@ export function applyAction(
       return clearIdentity(s, a.documentId);
     case "declaration-preview":
       return submitDeclarationPreview(s, a.orderIds);
+    case "consent-accept":
+      return acceptConsents(s, a.documents, a.version);
   }
 }

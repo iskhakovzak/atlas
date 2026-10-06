@@ -47,7 +47,10 @@ test('issue updates are operator-only and reject invalid refund proposals', () =
 test('operator API keeps issue updates inside the authenticated operator allowlist', async () => {
   const route = await readFile(new URL('../app/api/operations/route.ts', import.meta.url), 'utf8');
   assert.match(route, /await requireOperator\(\)/);
-  assert.match(route, /"order-issue-update"/);
+  // The operator allowlist lives in lib/market/access.ts (operatorActions); the route refuses anything outside it.
+  const access = await readFile(new URL('../lib/market/access.ts', import.meta.url), 'utf8');
+  assert.match(access, /'order-issue-update': \{ permission: 'operations\.act'/);
+  assert.match(route, /operatorActionTypes\.includes\(parsedAction\.data\.type\)/);
   assert.match(route, /sameOrigin\(request\)/);
-  assert.match(route, /persist\(current\.id, next, current\.revision\)/);
+  assert.match(route, /persist\(current\.id, next, current\.revision, current\.state\)/);
 });

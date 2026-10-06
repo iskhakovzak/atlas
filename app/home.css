@@ -37,16 +37,46 @@ html[data-theme="dark"] {
 /* The header's edges line up with the page content (site-main: max 1500px, padding clamp(20px, 4.7vw, 72px)). */
 @media (min-width: 761px) {
   html .site-header { padding-inline: max(clamp(20px, 4.7vw, 72px), calc((100% - 1500px) / 2 + 72px)); }
-}
-/* Signed-in header below 1400px: the home anchors and theme switch (also in the footer and account) make room. */
-@media (min-width: 761px) and (max-width: 1399px) {
-  .site-header:has(.header-account.member) .desktop-nav a:is([data-nav="how"], [data-nav="tariffs"]),
+  /* Never wider than the screen. The compact rules below make every menu item fit from 1151px up (e2e checks it);
+     only as a last resort (a longer language, an 8-digit balance) the menu shrinks and scrolls inside the header,
+     so the wordmark, account, cart and balance stay whole. The inline padding keeps focus rings unclipped. */
+  .site-header .desktop-nav { min-width: 0; padding-inline: 4px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+  .site-header .desktop-nav::-webkit-scrollbar { display: none; }
+  .site-header .header-actions, .site-header .wordmark { flex-shrink: 0; }
+  /* Signed in, the header has a balance, bell, favourites and cart, so the theme switch moves to the footer
+     (on desktop shown only to signed-in users, see .home-footer-theme below) and stays in /account settings. */
   .site-header:has(.header-account.member) .header-theme { display: none; }
-}
-/* The operator has one more entry ("Управление"): the same room is made up to 1600px. */
-@media (min-width: 761px) and (max-width: 1599px) {
+  /* The operator has one more entry ("Управление"): at the content's 1356px cap the anchors still do not fit next to it,
+     so they stay in the footer at every desktop width. */
   .site-header:has(.operator-entry) .desktop-nav a:is([data-nav="how"], [data-nav="tariffs"]),
   .site-header:has(.operator-entry) .header-theme { display: none; }
+}
+/* Signed-in header below 1500px: the home anchors (also in the footer) make room for a 7-digit balance. */
+@media (min-width: 761px) and (max-width: 1499px) {
+  .site-header:has(.header-account.member) .desktop-nav a:is([data-nav="how"], [data-nav="tariffs"]) { display: none; }
+}
+/* Up to 1399px (iPad 768/1024, small laptops): tighter gaps. */
+@media (min-width: 761px) and (max-width: 1399px) {
+  .site-header { gap: 16px; }
+}
+/* Up to 1459px the operator's "Управление" is an icon (its name stays for screen readers): with the full label and a
+   7–8 digit balance the menu ran 20px short at 1400–1459px. */
+@media (min-width: 761px) and (max-width: 1459px) {
+  .site-header .header-actions .operator-entry { width: 44px; min-width: 44px; min-height: 44px; justify-content: center; padding-inline: 0; font-size: 0; }
+  .site-header .header-actions .operator-entry svg { width: 20px; height: 20px; flex: 0 0 auto; }
+}
+/* Tablets (iPad 768/1024): a signed-in menu (Каталог, Магазины, Мои заказы) did not fit beside the balance, bell and cart;
+   «Магазины» stays in the footer and on the home page. */
+@media (min-width: 761px) and (max-width: 1150px) {
+  .site-header:has(.header-account.member) .desktop-nav a[data-nav="stores"] { display: none; }
+}
+/* Up to 1299px the balance is the wallet icon (globals.css does this up to 1150px); the amount is on /balance. */
+@media (min-width: 761px) and (max-width: 1299px) {
+  .site-header .wallet-link span { display: none; }
+}
+/* 1151–1199px: the operator's menu still needs ~13px in Night, so the header's own gaps tighten once more. */
+@media (min-width: 761px) and (max-width: 1199px) {
+  .site-header { gap: 8px; }
 }
 @media (max-width: 760px) {
   .site-header { gap: 8px; }
@@ -179,6 +209,11 @@ html[data-theme="dark"] .home-missing { border-color: #c9a23f; background: #3a31
 
 /* FAQ. */
 .home-faq { display: grid; gap: 8px; margin-top: 16px; }
+/* Wide screens: the title on top, the questions in two columns up to ~1100px, so the section has no empty side. */
+@media (min-width: 1024px) {
+  .home-faq-head { max-width: 1100px; }
+  .home-faq { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; max-width: 1100px; column-gap: 16px; }
+}
 .home-faq details { border: 1px solid var(--home-line); border-radius: var(--home-radius); background: var(--home-surface); }
 .home-faq summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 56px; padding: 14px 18px; color: var(--home-ink); font-weight: 700; cursor: pointer; list-style: none; }
 .home-faq summary::-webkit-details-marker { display: none; }
@@ -208,16 +243,32 @@ html[data-theme="dark"] .home-missing { border-color: #c9a23f; background: #3a31
 }
 
 /* Footer. */
-.home-footer { display: grid; gap: 24px; margin-top: 40px; padding: 36px 0 calc(24px + env(safe-area-inset-bottom)); border-top: 1px solid var(--home-line); }
-@media (min-width: 761px) { .home-footer { grid-template-columns: 1.3fr 1fr 1fr 1fr; } }
-.home-footer-brand p { max-width: 300px; margin: 10px 0 0; color: var(--home-muted); line-height: 1.5; }
-.home-footer-title { margin: 0 0 6px; color: var(--home-muted); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+/* Compact: brand + tagline on the left, link groups on the right, one bottom line. Groups are a flex row, so a
+   missing contacts group leaves no empty column. */
+.home-footer { display: grid; gap: 20px; margin-top: 40px; padding: 28px 0 calc(16px + env(safe-area-inset-bottom)); border-top: 1px solid var(--home-line); }
+.home-footer-brand p { max-width: 300px; margin: 8px 0 0; color: var(--home-muted); font-size: 14px; line-height: 1.5; }
+.home-footer-groups { display: grid; gap: 16px; min-width: 0; }
+.home-footer-title { margin: 0 0 2px; color: var(--home-muted); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .home-footer ul { display: grid; margin: 0; padding: 0; list-style: none; }
-.home-footer li { color: var(--home-ink); line-height: 1.5; }
+.home-footer li { display: flex; align-items: center; min-height: 36px; color: var(--home-ink); font-size: 14px; line-height: 1.4; }
 .home-footer li span { color: var(--home-muted); }
 .home-footer a { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; color: var(--home-ink); text-decoration: none; }
 .home-footer a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .home-footer .wordmark { min-height: 0; }
-.home-footer-bottom { display: flex; grid-column: 1 / -1; justify-content: space-between; align-items: center; gap: 12px; padding-top: 16px; border-top: 1px solid var(--home-line); color: var(--home-muted); font-size: 14px; }
+.home-footer-bottom { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; padding-top: 10px; border-top: 1px solid var(--home-line); color: var(--home-muted); font-size: 13px; }
 .home-footer-theme { display: inline-flex; align-items: center; gap: 8px; }
-@media (min-width: 761px) { .home-footer-theme { display: none; } }
+@media (min-width: 761px) {
+  .home-footer { grid-template-columns: minmax(200px, 1fr) auto; column-gap: 48px; align-items: start; }
+  /* Each group is one aligned row: a fixed title column, then its links in a line. */
+  .home-footer-groups { grid-column: 2; display: grid; gap: 6px; align-content: start; }
+  .home-footer-groups > * { display: grid; grid-template-columns: 180px minmax(0, 1fr); column-gap: 24px; align-items: baseline; min-width: 0; }
+  .home-footer-groups .home-footer-title { margin: 0; padding-top: 12px; }
+  .home-footer :is(nav, section) ul { display: flex; flex-wrap: wrap; gap: 0 18px; }
+  .home-footer-bottom { grid-column: 1 / -1; }
+  .home-footer-theme { display: none; }
+  /* Signed-in users have no theme switch in the desktop header, so the footer keeps it for them. */
+  body:has(.header-account.member) .home-footer-theme { display: inline-flex; }
+}
+@media (max-width: 760px) {
+  body:has(.mobile-nav) .home-footer { padding-bottom: 4px; }
+}

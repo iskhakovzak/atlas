@@ -57,6 +57,11 @@ export const authLinks=sqliteTable('market_auth_links',{
  subject:text('subject').primaryKey(),userId:text('user_id').notNull(),method:text('method').notNull(),contact:text('contact').notNull(),createdAt:integer('created_at').notNull(),
 },table=>[index('idx_market_auth_links_user').on(table.userId)]);
 
+// Refresh tokens from sign-in providers (Apple), sealed with a key from ATLAS_AUTH_SECRET; revoked and deleted with the account.
+export const authTokens=sqliteTable('market_auth_tokens',{
+ subject:text('subject').primaryKey(),userId:text('user_id').notNull(),provider:text('provider').notNull(),clientId:text('client_id').notNull(),token:text('token').notNull(),createdAt:integer('created_at').notNull(),
+},table=>[index('idx_market_auth_tokens_user').on(table.userId)]);
+
 // Accounting (lib/market/finance.ts). One money movement per row, in soum; rows are voided, never deleted.
 export const ledgerEntries=sqliteTable('market_ledger_entries',{
  id:text('id').primaryKey(),kind:text('kind').notNull(),amountUzs:integer('amount_uzs').notNull(),originalAmount:real('original_amount'),originalCurrency:text('original_currency'),occurredOn:text('occurred_on').notNull(),orderId:text('order_id'),counterparty:text('counterparty'),note:text('note'),createdBy:text('created_by').notNull(),createdAt:integer('created_at').notNull(),voidedAt:integer('voided_at'),voidedBy:text('voided_by'),voidReason:text('void_reason'),
@@ -78,3 +83,8 @@ export const backupExports=sqliteTable('market_backup_exports',{
 export const webVitals=sqliteTable('market_web_vitals',{
  id:text('id').primaryKey(),route:text('route').notNull(),device:text('device').notNull(),ttfbMs:real('ttfb_ms'),fcpMs:real('fcp_ms'),lcpMs:real('lcp_ms'),inpMs:real('inp_ms'),cls:real('cls'),apiSlow:integer('api_slow'),createdAt:integer('created_at').notNull(),
 },table=>[index('idx_market_web_vitals_created').on(table.createdAt),index('idx_market_web_vitals_route').on(table.route,table.createdAt)]);
+
+// Operator notes about a customer (admin → Клиенты → карточка). Append-only; never passport or address data.
+export const customerNotes=sqliteTable('market_customer_notes',{
+ id:text('id').primaryKey(),customerId:text('customer_id').notNull(),authorId:text('author_id').notNull(),authorEmail:text('author_email').notNull(),text:text('text').notNull(),createdAt:integer('created_at').notNull(),
+},table=>[index('idx_market_customer_notes_customer_created').on(table.customerId,table.createdAt)]);

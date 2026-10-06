@@ -180,4 +180,184 @@
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
+  <url>
+    <loc>https://atlasmarket.uz/support</loc>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://atlasmarket.uz/support?lang=uz"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://atlasmarket.uz/support?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://atlasmarket.uz/support?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://atlasmarket.uz/support"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://atlasmarket.uz/support?lang=uz</loc>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://atlasmarket.uz/support?lang=uz"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://atlasmarket.uz/support?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://atlasmarket.uz/support?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://atlasmarket.uz/support"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://atlasmarket.uz/support?lang=ru</loc>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://atlasmarket.uz/support?lang=uz"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://atlasmarket.uz/support?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://atlasmarket.uz/support?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://atlasmarket.uz/support"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://atlasmarket.uz/support?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://atlasmarket.uz/support?lang=uz"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://atlasmarket.uz/support?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://atlasmarket.uz/support?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://atlasmarket.uz/support"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://atlasmarket.uz/app</loc>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://atlasmarket.uz/app?lang=uz"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://atlasmarket.uz/app?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://atlasmarket.uz/app?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://atlasmarket.uz/app"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://atlasmarket.uz/app?lang=uz</loc>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://atlasmarket.uz/app?lang=uz"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://atlasmarket.uz/app?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://atlasmarket.uz/app?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://atlasmarket.uz/app"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://atlasmarket.uz/app?lang=ru</loc>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://atlasmarket.uz/app?lang=uz"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://atlasmarket.uz/app?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://atlasmarket.uz/app?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://atlasmarket.uz/app"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://atlasmarket.uz/app?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://atlasmarket.uz/app?lang=uz"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://atlasmarket.uz/app?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://atlasmarket.uz/app?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://atlasmarket.uz/app"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://atlasmarket.uz/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://atlasmarket.uz/privacy?lang=uz"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://atlasmarket.uz/privacy?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://atlasmarket.uz/privacy?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://atlasmarket.uz/privacy"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://atlasmarket.uz/privacy?lang=uz</loc>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://atlasmarket.uz/privacy?lang=uz"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://atlasmarket.uz/privacy?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://atlasmarket.uz/privacy?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://atlasmarket.uz/privacy"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://atlasmarket.uz/privacy?lang=ru</loc>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://atlasmarket.uz/privacy?lang=uz"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://atlasmarket.uz/privacy?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://atlasmarket.uz/privacy?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://atlasmarket.uz/privacy"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://atlasmarket.uz/privacy?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://atlasmarket.uz/privacy?lang=uz"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://atlasmarket.uz/privacy?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://atlasmarket.uz/privacy?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://atlasmarket.uz/privacy"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://atlasmarket.uz/terms</loc>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://atlasmarket.uz/terms?lang=uz"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://atlasmarket.uz/terms?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://atlasmarket.uz/terms?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://atlasmarket.uz/terms"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://atlasmarket.uz/terms?lang=uz</loc>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://atlasmarket.uz/terms?lang=uz"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://atlasmarket.uz/terms?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://atlasmarket.uz/terms?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://atlasmarket.uz/terms"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://atlasmarket.uz/terms?lang=ru</loc>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://atlasmarket.uz/terms?lang=uz"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://atlasmarket.uz/terms?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://atlasmarket.uz/terms?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://atlasmarket.uz/terms"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://atlasmarket.uz/terms?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://atlasmarket.uz/terms?lang=uz"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://atlasmarket.uz/terms?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://atlasmarket.uz/terms?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://atlasmarket.uz/terms"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://atlasmarket.uz/delete-account</loc>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://atlasmarket.uz/delete-account?lang=uz"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://atlasmarket.uz/delete-account?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://atlasmarket.uz/delete-account?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://atlasmarket.uz/delete-account"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://atlasmarket.uz/delete-account?lang=uz</loc>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://atlasmarket.uz/delete-account?lang=uz"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://atlasmarket.uz/delete-account?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://atlasmarket.uz/delete-account?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://atlasmarket.uz/delete-account"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://atlasmarket.uz/delete-account?lang=ru</loc>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://atlasmarket.uz/delete-account?lang=uz"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://atlasmarket.uz/delete-account?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://atlasmarket.uz/delete-account?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://atlasmarket.uz/delete-account"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://atlasmarket.uz/delete-account?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="uz" href="https://atlasmarket.uz/delete-account?lang=uz"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://atlasmarket.uz/delete-account?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://atlasmarket.uz/delete-account?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://atlasmarket.uz/delete-account"/>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
 </urlset>

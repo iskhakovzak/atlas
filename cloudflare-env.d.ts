@@ -19,5 +19,17 @@ declare namespace Cloudflare {
     TELEGRAM_BOT_USERNAME?: string;
     GOOGLE_CLIENT_ID?: string;
     GOOGLE_CLIENT_SECRET?: string;
+    // Sign in with Apple: the web flow uses the Services ID, the iOS app sends tokens for its bundle ID;
+    // the key signs the client secret for token exchange and revocation (AUTH_SETUP.md).
+    APPLE_SERVICES_ID?: string;
+    APPLE_APP_BUNDLE_ID?: string;
+    APPLE_TEAM_ID?: string;
+    APPLE_KEY_ID?: string;
+    APPLE_PRIVATE_KEY?: string;
+    // App Store / Google Play reviewers: "email=code" pairs whose email code is fixed and never sent.
+    ATLAS_REVIEW_ACCOUNTS?: string;
+    // Android App Links (/.well-known/assetlinks.json): package name and signing certificate SHA-256 fingerprints.
+    ANDROID_PACKAGE_NAME?: string;
+    ANDROID_CERT_SHA256?: string;
   }
 }

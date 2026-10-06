@@ -1,15 +1,18 @@
 import {env} from 'cloudflare:workers';
 import {headers} from 'next/headers';
 import {
- CODE_TTL_MS,MAX_CODE_ATTEMPTS,OAUTH_STATE_COOKIE,OAUTH_TTL_MS,SESSION_COOKIE,SESSION_RENEW_MS,SESSION_TTL_MS,
- constantTimeEqual,cookie,decodeJwtPayload,googleIdentity,hashCode,identityFor,normalizeEmail,normalizeUzPhone,
- emptyAccountState,ownMethod,pkceChallenge,randomCode,randomToken,readCookie,sha256Hex,verifyTelegramAuth,
- type AuthMethod,type AuthUser,type TelegramFields,
+ APPLE_STATE_COOKIE,AuthError,CODE_TTL_MS,HANDOFF_TTL_MS,LINK_TICKET_TTL_MS,OAUTH_STATE_COOKIE,OAUTH_TTL_MS,SESSION_COOKIE,SESSION_TTL_MS,
+ constantTimeEqual,cookie,decodeChallengeMeta,decodeHandoffSecret,decodeJwtPayload,encodeChallengeMeta,encodeHandoffSecret,googleIdentity,hashCode,identityFor,isPkceValue,normalizeEmail,normalizeUzPhone,
+ emptyAccountState,openToken,ownMethod,parseAuthUser,parseReviewAccounts,pkceChallenge,randomCode,randomToken,readCookie,sealToken,serializeAuthUser,sha256Hex,verifyHandoffProof,verifyTelegramAuth,
+ type AuthMethod,type AuthUser,type ChallengeMeta,type TelegramFields,
 } from './core';
+import {appleAuthorizeUrl,appleClientSecret,appleUserName,exchangeAppleCode,revokeAppleToken,verifyAppleIdTokenLive} from './apple';
 import {loginPath,safeReturnTo} from './return-to';
-import {TG_BOT_SETTING,TG_CHALLENGE_KINDS,TG_LOGIN_COOKIE,TG_LOGIN_TTL_MS,botLinks,botText,parseBotUpdate,validStartToken,type TgChallengeKind} from './telegram-bot';
+import {consumeChallenge,detachLinkedMethod,renewSessionRow} from './session-store';
+import {TG_ANIMATION_SETTING,TG_BOT_SETTING,TG_CHALLENGE_KINDS,TG_WELCOME_ANIMATION,TG_LOGIN_COOKIE,TG_LOGIN_TTL_MS,botLinks,botText,parseBotUpdate,validStartToken,type TgChallengeKind} from './telegram-bot';
 
-export class AuthError extends Error{constructor(public status:number,public code:string){super(code)}}
+// AuthError lives in core.ts (no parameter properties there, so tests load it); routes keep importing it from here.
+export {AuthError};
 export type OtpChannel='email'|'phone';
 
 function db(){if(!env.DB)throw new AuthError(503,'unavailable');return env.DB}
@@ -19,7 +22,15 @@ const configured={
  phone:()=>!!(env.ESKIZ_EMAIL&&env.ESKIZ_PASSWORD),
  telegram:()=>!!(env.TELEGRAM_BOT_TOKEN&&env.TELEGRAM_BOT_USERNAME),
  google:()=>!!(env.GOOGLE_CLIENT_ID&&env.GOOGLE_CLIENT_SECRET),
+ // The web flow needs the Services ID and the team key (client secret). The native sheet needs the bundle ID
+ // and the same key material plus the sealing secret: Apple requires the refresh token to be revoked when the
+ // account is deleted, so the sheet is only offered when Atlas can obtain, keep and revoke that token.
+ apple:()=>!!(env.APPLE_SERVICES_ID&&appleKey()),
+ appleNative:()=>!!(env.APPLE_APP_BUNDLE_ID&&appleKey()&&env.ATLAS_AUTH_SECRET),
 };
+function appleKey(){
+ return env.APPLE_TEAM_ID&&env.APPLE_KEY_ID&&env.APPLE_PRIVATE_KEY?{teamId:env.APPLE_TEAM_ID,keyId:env.APPLE_KEY_ID,privateKeyPem:env.APPLE_PRIVATE_KEY}:null;
+}
 
 // Codes are shown on screen only for loopback development requests, never on a public host.
 function devCodes(request:Request){
@@ -35,7 +46,8 @@ export async function authMethods(request:Request){
   telegram:configured.telegram()?env.TELEGRAM_BOT_USERNAME!:null,
   // The bot sign-in replaces the widget once the operator has connected the bot's webhook.
   telegramBot:configured.telegram()&&await telegramBotReady(request),
-  google:configured.google(),devCodes:dev,
+  google:configured.google(),
+  apple:configured.apple(),appleNative:configured.appleNative(),devCodes:dev,
  };
 }
 
@@ -96,16 +108,15 @@ export async function currentUser():Promise<AuthUser|null>{
 export async function renewSession(request:Request){
  const token=sessionToken(request.headers.get('cookie'));
  if(!token||!env.DB)return null;
- const now=Date.now();
- const row=await env.DB.prepare('UPDATE market_auth_sessions SET expires_at=? WHERE id=? AND expires_at>? AND expires_at<? RETURNING id')
-  .bind(now+SESSION_TTL_MS,await sha256Hex(token),now,now+SESSION_TTL_MS-SESSION_RENEW_MS).first();
- return row?cookie(SESSION_COOKIE,token,SESSION_TTL_MS/1000):null;
+ return await renewSessionRow(env.DB,await sha256Hex(token),Date.now())?cookie(SESSION_COOKIE,token,SESSION_TTL_MS/1000):null;
 }
 
 /** Attaches a verified method to the signed-in account. Refused when that method already has data of its own. */
 async function attachMethod(current:AuthUser,added:AuthUser){
  const subject=added.userId;
  if(subject===current.userId)throw new AuthError(409,'link_same');
+ // One Telegram per account: Telegram sessions carry no unique contact, so detaching one could end the other's sessions.
+ if(subject.startsWith('tg:')&&(current.userId.startsWith('tg:')||await db().prepare('SELECT 1 AS found FROM market_auth_links WHERE user_id=? AND subject LIKE ? LIMIT 1').bind(current.userId,'tg:%').first()))throw new AuthError(409,'link_telegram_one');
  const existing=await db().prepare('SELECT user_id FROM market_auth_links WHERE subject=?').bind(subject).first<{user_id:string}>();
  if(existing)throw new AuthError(409,existing.user_id===current.userId?'link_same':'link_taken');
  // The method's own account must hold nothing, and no other method may already lead to it: either would be orphaned.
@@ -129,10 +140,81 @@ export async function linkedMethods(){
  return {own:ownMethod(user.userId),linked,current:user.method};
 }
 
+/** Detaching a method also ends the account's sessions opened through it, on every device (session-store.ts). */
 export async function detachMethod(subject:string){
  const user=await signedInUser();
- await db().prepare('DELETE FROM market_auth_links WHERE subject=? AND user_id=?').bind(subject,user.userId).run();
+ await detachLinkedMethod(db(),{userId:user.userId,subject,current:user});
  return linkedMethods();
+}
+
+// ---------- Provider tokens (market_auth_tokens, migration 0010) ----------
+// Apple hands out a refresh token at sign-in; Apple requires it to be revoked when the account is deleted.
+// Tokens rest sealed with a key derived from ATLAS_AUTH_SECRET; without the secret or the table nothing is kept.
+// The subject (one Apple ID) belongs to the user who just proved it: the previous row, whoever held it, goes.
+async function storeProviderToken(subject:string,userId:string,provider:string,clientId:string,token:string){
+ const secret=env.ATLAS_AUTH_SECRET;
+ if(!secret)return;
+ try{
+  const sealed=await sealToken(token,secret);
+  await db().batch([
+   db().prepare('DELETE FROM market_auth_tokens WHERE subject=?').bind(subject),
+   db().prepare('INSERT INTO market_auth_tokens (subject,user_id,provider,client_id,token,created_at) VALUES (?,?,?,?,?,?)').bind(subject,userId,provider,clientId,sealed,Date.now()),
+  ]);
+ }catch(error){console.warn('Provider token not stored',String(error).slice(0,200))}
+}
+/**
+ * Best effort after an Apple sign-in: trade the authorization code for the refresh token and keep it for
+ * revocation. Called only once the identity really signed in to, or was attached to, `userId`.
+ */
+async function keepAppleToken(sub:string,userId:string,clientId:string,code:string|null|undefined,redirectUri?:string){
+ const key=appleKey();
+ if(!code||!key)return;
+ try{
+  const refreshToken=await exchangeAppleCode({code,clientId,clientSecret:await appleClientSecret({...key,clientId}),redirectUri});
+  if(refreshToken)await storeProviderToken('apple:'+sub,userId,'apple',clientId,refreshToken);
+ }catch(error){console.warn('Apple token exchange failed',String(error).slice(0,200))}
+}
+
+/** A problem the operator must see (admin monitor, market_operational_errors). Never throws; details hold no token. */
+async function recordAuthProblem(message:string,details:Record<string,unknown>){
+ console.error(message,JSON.stringify(details).slice(0,300));
+ try{
+  await db().prepare('INSERT INTO market_operational_errors (id,area,message,details,created_at) VALUES (?,?,?,?,?)')
+   .bind(crypto.randomUUID(),'auth',message,JSON.stringify(details).slice(0,1800),Date.now()).run();
+ }catch(error){console.error('Auth problem not recorded',String(error).slice(0,200))}
+}
+
+/**
+ * Account deletion: revokes tokens Atlas holds at sign-in providers (Sign in with Apple requires it) and
+ * forgets them. Best effort: never throws, so a provider outage cannot keep an account from being deleted.
+ * A row goes only after Apple confirmed the revocation (HTTP 200) or when no secret exists to ever open it;
+ * anything else stays in the table and is reported to the operator, who can revoke by hand.
+ */
+export async function revokeProviderTokens(userId:string):Promise<void>{
+ try{
+  const secret=env.ATLAS_AUTH_SECRET,key=appleKey();
+  const rows=await db().prepare('SELECT subject,provider,client_id,token FROM market_auth_tokens WHERE user_id=?').bind(userId).all<{subject:string;provider:string;client_id:string;token:string}>();
+  for(const row of rows.results){
+   const subject=row.subject.slice(0,80);
+   const report=(reason:string,extra:Record<string,unknown>={})=>recordAuthProblem('Apple token revocation failed',{reason,subject,provider:row.provider,clientId:row.client_id,userId,...extra});
+   let forget=false;
+   try{
+    if(!secret){
+     // Sealed under a secret that is gone: nobody can ever read it, keeping the row serves no one.
+     await report('no_secret_to_open');
+     forget=true;
+    }else{
+     let token:string|null=null;
+     try{token=await openToken(row.token,secret)}catch(error){await report('decrypt_failed',{error:String(error).slice(0,120)})}
+     if(token&&row.provider==='apple'&&key){
+      const revoked=await revokeAppleToken({token,clientId:row.client_id,clientSecret:await appleClientSecret({...key,clientId:row.client_id})});
+      if(revoked)forget=true;else await report('apple_refused');
+     }else if(token)await report(row.provider==='apple'?'apple_key_missing':'provider_unknown');
+    }
+   }catch(error){await report('exception',{error:String(error).slice(0,120)})}
+   if(forget)await db().prepare('DELETE FROM market_auth_tokens WHERE subject=? AND user_id=?').bind(row.subject,userId).run();
+  }
+ }catch(error){console.error('Provider tokens not revoked',String(error).slice(0,200))}
 }
 
 export async function endSession(request:Request){
@@ -145,15 +227,18 @@ export async function startOtp(channel:OtpChannel,rawTarget:unknown,request:Requ
  const target=channel==='email'?normalizeEmail(rawTarget):normalizeUzPhone(rawTarget);
  if(!target)throw new AuthError(400,channel==='email'?'invalid_email':'invalid_phone');
  const dev=devCodes(request);
- if(!configured[channel]()&&!dev)throw new AuthError(503,'method_unavailable');
+ // App-store reviewers sign in with a fixed code from ATLAS_REVIEW_ACCOUNTS: nothing is sent and nothing is revealed.
+ const reviewCode=channel==='email'?parseReviewAccounts(env.ATLAS_REVIEW_ACCOUNTS).get(target):undefined;
+ if(!configured[channel]()&&!dev&&!reviewCode)throw new AuthError(503,'method_unavailable');
  const targetKey=(await sha256Hex(channel+':'+target)).slice(0,32);
  await limit(`send:${targetKey}:10m`,3,10*60*1000);
  await limit(`send:${targetKey}:day`,10,24*60*60*1000);
  await limit(`send-ip:${await clientKey(request)}`,20,60*60*1000);
  await cleanup();
- const id=randomToken(18),code=randomCode(),now=Date.now();
+ const id=randomToken(18),code=reviewCode??randomCode(),now=Date.now();
  await db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,created_at,expires_at) VALUES (?,?,?,?,0,?,?)')
   .bind(id,channel,target,await hashCode(id,code,pepper()),now,now+CODE_TTL_MS).run();
+ if(reviewCode)return {challengeId:id};
  if(configured[channel]()){
   try{await (channel==='email'?sendEmail(target,code):sendSms(target,code))}
   catch(error){
@@ -180,14 +265,7 @@ async function consumeOtp(channel:OtpChannel,challengeId:unknown,code:unknown,re
  if(typeof challengeId!=='string'||!/^[A-Za-z0-9_-]{24}$/.test(challengeId))throw new AuthError(400,'code_expired');
  if(typeof code!=='string'||!/^\d{6}$/.test(code))throw new AuthError(400,'invalid_code');
  await limit(`verify-ip:${await clientKey(request)}`,60,60*60*1000);
- const row=await db().prepare('UPDATE market_auth_challenges SET attempts=attempts+1 WHERE id=? AND kind=? AND expires_at>? AND attempts<? RETURNING target,secret')
-  .bind(challengeId,channel,Date.now(),MAX_CODE_ATTEMPTS).first<{target:string;secret:string}>();
- if(!row)throw new AuthError(400,'code_expired');
- if(!constantTimeEqual(await hashCode(challengeId,code,pepper()),row.secret))throw new AuthError(400,'invalid_code');
- // Deleting with RETURNING makes the code single-use even under concurrent submissions.
- const used=await db().prepare('DELETE FROM market_auth_challenges WHERE id=? RETURNING id').bind(challengeId).first();
- if(!used)throw new AuthError(400,'code_expired');
- return row.target;
+ return consumeChallenge(db(),{challengeId,channel,code,pepper:pepper(),now:Date.now()});
 }
 
 async function telegramUser(fields:TelegramFields,request:Request){
@@ -200,18 +278,107 @@ async function telegramUser(fields:TelegramFields,request:Request){
 export async function signInWithTelegram(fields:TelegramFields,request:Request){return createSession(await telegramUser(fields,request))}
 export async function linkTelegram(fields:TelegramFields,request:Request){const current=await signedInUser();await attachMethod(current,await telegramUser(fields,request))}
 
+// ---------- OAuth in the browser (Google, Apple), also on behalf of the apps ----------
+// The apps open these flows in the system browser (?native=1): Google refuses embedded web views and Apple
+// prefers Safari. That browser holds no Atlas session, so a link started from the app carries a short
+// ticket naming the account to join, and the result travels back through a single-use handoff code.
+
+/** Who starts an OAuth flow and where it must end; read from the start request's query. */
+async function oauthIntent(request:Request):Promise<ChallengeMeta&{link:boolean}>{
+ const params=new URL(request.url).searchParams;
+ const link=params.get('link')==='1',native=params.get('native')==='1';
+ const returnTo=safeReturnTo(params.get('return_to'));
+ // A flow for the app must carry the PKCE challenge of the instance that opened it (RFC 8252 §8.6).
+ const pkce=params.get('pkce');
+ if(native&&!isPkceValue(pkce))throw new AuthError(400,'bad_request');
+ let linkUserId:string|null=null;
+ if(link&&native)linkUserId=await consumeLinkTicket(params.get('ticket'));
+ else if(link)linkUserId=(await signedInUser()).userId;
+ return {returnTo,native,linkUserId,pkce:native?pkce:null,link};
+}
+
+/** The signed-in web view asks for a ticket before opening a link flow in the system browser. */
+export async function issueLinkTicket(request:Request){
+ const user=await signedInUser();
+ await limit(`ticket-ip:${await clientKey(request)}`,30,60*60*1000);
+ const id=randomToken(18),now=Date.now();
+ await db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,created_at,expires_at) VALUES (?,?,?,?,0,?,?)')
+  .bind(id,'link-ticket',serializeAuthUser(user),'',now,now+LINK_TICKET_TTL_MS).run();
+ return {ticket:id};
+}
+async function consumeLinkTicket(ticket:string|null){
+ if(!ticket||!/^[A-Za-z0-9_-]{24}$/.test(ticket))throw new AuthError(401,'signed_out');
+ const row=await db().prepare("DELETE FROM market_auth_challenges WHERE id=? AND kind='link-ticket' AND expires_at>? RETURNING target").bind(ticket,Date.now()).first<{target:string}>();
+ const user=row?parseAuthUser(row.target):null;
+ if(!user)throw new AuthError(401,'signed_out');
+ return user.userId;
+}
+
+/**
+ * Finishes a flow started for the app: a handoff code on /auth/return, which the app trades for the session.
+ * The row keeps the app instance's PKCE challenge (RFC 8252 §8.6); a flow without one cannot be handed off.
+ */
+async function handoffToApp(user:AuthUser,returnTo:string,pkce:string|null,cookies:string[],link=false){
+ if(!pkce)throw new AuthError(400,'bad_request');
+ const id=randomToken(18),now=Date.now();
+ await db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,return_to,created_at,expires_at) VALUES (?,?,?,?,0,?,?,?)')
+  .bind(id,'handoff',serializeAuthUser(user),encodeHandoffSecret({link,pkce}),returnTo,now,now+HANDOFF_TTL_MS).run();
+ return redirect('/auth/return?code='+encodeURIComponent(id)+'&return_to='+encodeURIComponent(returnTo),cookies);
+}
+/**
+ * The app's web view presents the handoff code with the PKCE verifier it kept: single use, two minutes,
+ * and only the instance whose challenge the row holds gets the session (code_expired for a used or unknown
+ * code, handoff_invalid when the proof does not match or the row carries no challenge).
+ */
+export async function claimHandoff(input:{code:unknown;verifier:unknown},request:Request):Promise<{body:{ok:true;returnTo:string;linked?:true};cookie?:string}>{
+ const {code,verifier}=input;
+ if(typeof code!=='string'||!/^[A-Za-z0-9_-]{24}$/.test(code))throw new AuthError(400,'code_expired');
+ if(!isPkceValue(verifier))throw new AuthError(400,'handoff_invalid');
+ await limit(`handoff-ip:${await clientKey(request)}`,60,60*60*1000);
+ const row=await db().prepare("DELETE FROM market_auth_challenges WHERE id=? AND kind='handoff' AND expires_at>? RETURNING target,secret,return_to").bind(code,Date.now()).first<{target:string;secret:string;return_to:string|null}>();
+ const user=row?parseAuthUser(row.target):null;
+ if(!row||!user)throw new AuthError(400,'code_expired');
+ const secret=decodeHandoffSecret(row.secret);
+ if(!(await verifyHandoffProof(secret,verifier)))throw new AuthError(400,'handoff_invalid');
+ const returnTo=safeReturnTo(row.return_to);
+ if(secret.link)return {body:{ok:true,returnTo,linked:true}};
+ return {body:{ok:true,returnTo},cookie:await createSession(user)};
+}
+
+/**
+ * Shared ending of the Google and Apple web flows: attach, or sign in; in the browser, or back to the app.
+ * `ownerId` names the account the identity now opens (signed in, or attached to); null when nothing changed
+ * (a refused link), so callers never keep provider tokens for an account the identity does not belong to.
+ */
+async function finishOAuth(provider:'google'|'apple',verified:AuthUser,kind:string,meta:ChallengeMeta,clearState:string,fail:(returnTo:string)=>Response):Promise<{response:Response;ownerId:string|null}>{
+ const {returnTo}=meta;
+ if(kind.endsWith('-link')){
+  const result=(code:string)=>returnTo+(returnTo.includes('?')?'&':'?')+code;
+  // In the browser the account signed in there (same state cookie) gets the method; from the app, the ticketed one.
+  const current=meta.linkUserId?{...verified,userId:meta.linkUserId}:await currentUser();
+  if(!current)return {response:fail(returnTo),ownerId:null};
+  let outcome:string,ownerId:string|null=null;
+  try{await attachMethod(current,verified);outcome='linked='+provider;ownerId=current.userId}
+  catch(error){if(error instanceof AuthError)outcome='link_error='+error.code;else throw error}
+  const response=meta.native?await handoffToApp(current,result(outcome),meta.pkce,[clearState],true):redirect(result(outcome),[clearState]);
+  return {response,ownerId};
+ }
+ const account=await resolveAccount(verified);
+ if(meta.native)return {response:await handoffToApp(account,returnTo,meta.pkce,[clearState]),ownerId:account.userId};
+ return {response:redirect(returnTo,[clearState,await createSession(verified)]),ownerId:account.userId};
+}
+
 const googleRedirect=(request:Request)=>new URL('/api/auth/google/callback',request.url).href;
 
 export async function startGoogle(request:Request){
  if(!configured.google())throw new AuthError(503,'method_unavailable');
  await limit(`google-ip:${await clientKey(request)}`,30,60*60*1000);
  // ?link=1 attaches the Google address to the signed-in account instead of signing in.
- const link=new URL(request.url).searchParams.get('link')==='1';
- if(link)await signedInUser();
+ const intent=await oauthIntent(request);
  await cleanup();
  const state=randomToken(24),verifier=randomToken(48),nonce=randomToken(18),now=Date.now();
  await db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,return_to,created_at,expires_at) VALUES (?,?,?,?,0,?,?,?)')
-  .bind(state,link?'google-link':'google',nonce,verifier,safeReturnTo(new URL(request.url).searchParams.get('return_to')),now,now+OAUTH_TTL_MS).run();
+  .bind(state,intent.link?'google-link':'google',nonce,verifier,encodeChallengeMeta(intent),now,now+OAUTH_TTL_MS).run();
  const url=new URL('https://accounts.google.com/o/oauth2/v2/auth');
  url.search=new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID!,redirect_uri:googleRedirect(request),response_type:'code',scope:'openid email profile',state,nonce,code_challenge:await pkceChallenge(verifier),code_challenge_method:'S256',prompt:'select_account'}).toString();
  return redirect(url.href,[cookie(OAUTH_STATE_COOKIE,state,OAUTH_TTL_MS/1000)]);
@@ -227,23 +394,89 @@ export async function finishGoogle(request:Request){
  const row=await db().prepare("DELETE FROM market_auth_challenges WHERE id=? AND kind IN ('google','google-link') AND expires_at>? RETURNING kind,target,secret,return_to")
   .bind(state,Date.now()).first<{kind:string;target:string;secret:string;return_to:string|null}>();
  if(!row)return fail();
- const returnTo=safeReturnTo(row.return_to);
+ const meta=decodeChallengeMeta(row.return_to,safeReturnTo),returnTo=meta.returnTo;
  if(!code||params.get('error'))return fail(returnTo);
  const response=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:AbortSignal.timeout(10000),
   body:new URLSearchParams({code,client_id:env.GOOGLE_CLIENT_ID!,client_secret:env.GOOGLE_CLIENT_SECRET!,redirect_uri:googleRedirect(request),grant_type:'authorization_code',code_verifier:row.secret})});
  const token=response.ok?await response.json().catch(()=>null) as {id_token?:unknown}|null:null;
  const identity=typeof token?.id_token==='string'?googleIdentity(decodeJwtPayload(token.id_token),{clientId:env.GOOGLE_CLIENT_ID!,nonce:row.target}):null;
  if(!identity){console.error('Google sign-in rejected',response.status);return fail(returnTo)}
- const google=identityFor('google',identity.email,{name:identity.name});
- if(row.kind==='google-link'){
-  // The same browser (state cookie) and the account signed in there now get the address attached.
-  const back=(result:string)=>redirect(returnTo+(returnTo.includes('?')?'&':'?')+result,[clearState]);
-  const current=await currentUser();
-  if(!current)return fail(returnTo);
-  try{await attachMethod(current,google);return back('linked=google')}
-  catch(error){if(error instanceof AuthError)return back('link_error='+error.code);throw error}
+ return (await finishOAuth('google',identityFor('google',identity.email,{name:identity.name}),row.kind,meta,clearState,fail)).response;
+}
+
+const appleRedirect=(request:Request)=>new URL('/api/auth/apple/callback',request.url).href;
+
+/** GET /api/auth/apple: the Services ID flow in a browser (also the one the apps open in the system browser). */
+export async function startApple(request:Request){
+ if(!configured.apple())throw new AuthError(503,'method_unavailable');
+ await limit(`apple-ip:${await clientKey(request)}`,30,60*60*1000);
+ const intent=await oauthIntent(request);
+ await cleanup();
+ const state=randomToken(24),nonce=randomToken(18),now=Date.now();
+ await db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,return_to,created_at,expires_at) VALUES (?,?,?,?,0,?,?,?)')
+  .bind(state,intent.link?'apple-link':'apple',nonce,'',encodeChallengeMeta(intent),now,now+OAUTH_TTL_MS).run();
+ // Apple posts the result cross-site, so only a SameSite=None cookie comes back with it.
+ return redirect(appleAuthorizeUrl({clientId:env.APPLE_SERVICES_ID!,redirectUri:appleRedirect(request),state,nonce}),[cookie(APPLE_STATE_COOKIE,state,OAUTH_TTL_MS/1000,'None')]);
+}
+
+/** POST /api/auth/apple/callback (form_post from appleid.apple.com). */
+export async function finishApple(request:Request){
+ const form=await request.formData().catch(()=>null);
+ const field=(name:string)=>{const value=form?.get(name);return typeof value==='string'?value:''};
+ const state=field('state'),code=field('code'),idToken=field('id_token');
+ const expected=readCookie(request.headers.get('cookie'),APPLE_STATE_COOKIE)??'';
+ const clearState=cookie(APPLE_STATE_COOKIE,'',0,'None');
+ const fail=(returnTo='/')=>redirect(loginPath(returnTo)+'&error=apple',[clearState]);
+ if(!configured.apple()||!state||!constantTimeEqual(state,expected))return fail();
+ const row=await db().prepare("DELETE FROM market_auth_challenges WHERE id=? AND kind IN ('apple','apple-link') AND expires_at>? RETURNING kind,target,return_to")
+  .bind(state,Date.now()).first<{kind:string;target:string;return_to:string|null}>();
+ if(!row)return fail();
+ const meta=decodeChallengeMeta(row.return_to,safeReturnTo),returnTo=meta.returnTo;
+ if(!idToken||field('error'))return fail(returnTo);
+ let identity;
+ try{identity=await verifyAppleIdTokenLive(idToken,{audiences:[env.APPLE_SERVICES_ID!],nonce:row.target})}
+ catch(error){console.error('Apple sign-in rejected',String(error).slice(0,200));return fail(returnTo)}
+ const apple=identityFor('apple',identity.email,{name:appleUserName(field('user'))});
+ const {response,ownerId}=await finishOAuth('apple',apple,row.kind,meta,clearState,fail);
+ // The refresh token is only for revocation on account deletion; failing to get it never fails the sign-in.
+ // It is kept only for the account the Apple ID really signed in to or joined: a refused link keeps nothing.
+ if(ownerId)await keepAppleToken(identity.sub,ownerId,env.APPLE_SERVICES_ID!,code,appleRedirect(request));
+ return response;
+}
+
+// ---------- Sign in with Apple inside the iOS app (the system sheet) ----------
+export async function startAppleNative(request:Request){
+ if(!configured.appleNative())throw new AuthError(503,'method_unavailable');
+ await limit(`apple-ip:${await clientKey(request)}`,30,60*60*1000);
+ await cleanup();
+ const id=randomToken(18),nonce=randomToken(24),now=Date.now();
+ await db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,created_at,expires_at) VALUES (?,?,?,?,0,?,?)')
+  .bind(id,'apple-native',nonce,'',now,now+OAUTH_TTL_MS).run();
+ return {challengeId:id,nonce};
+}
+export type AppleNativeInput={challengeId:unknown;identityToken:unknown;authorizationCode?:unknown;user?:{givenName?:unknown;familyName?:unknown}|null;link?:boolean};
+/** Verifies the sheet's identity token against the stored nonce and the app's bundle ID; signs in or attaches. */
+export async function verifyAppleNative(input:AppleNativeInput,request:Request){
+ if(!configured.appleNative())throw new AuthError(503,'method_unavailable');
+ if(typeof input.challengeId!=='string'||!/^[A-Za-z0-9_-]{24}$/.test(input.challengeId)||typeof input.identityToken!=='string')throw new AuthError(400,'code_expired');
+ await limit(`verify-ip:${await clientKey(request)}`,60,60*60*1000);
+ const current=input.link?await signedInUser():null;
+ const row=await db().prepare("DELETE FROM market_auth_challenges WHERE id=? AND kind='apple-native' AND expires_at>? RETURNING target").bind(input.challengeId,Date.now()).first<{target:string}>();
+ if(!row)throw new AuthError(400,'code_expired');
+ let identity;
+ try{identity=await verifyAppleIdTokenLive(input.identityToken,{audiences:[env.APPLE_APP_BUNDLE_ID!],nonce:row.target})}
+ catch(error){console.error('Apple native sign-in rejected',String(error).slice(0,200));throw new AuthError(400,'apple')}
+ const name=[input.user?.givenName,input.user?.familyName].filter(value=>typeof value==='string'&&value.trim()).join(' ');
+ const apple=identityFor('apple',identity.email,{name});
+ const code=typeof input.authorizationCode==='string'?input.authorizationCode:null;
+ if(current){
+  await attachMethod(current,apple);
+  await keepAppleToken(identity.sub,current.userId,env.APPLE_APP_BUNDLE_ID!,code);
+  return {body:{ok:true as const,linked:true as const}};
  }
- return redirect(returnTo,[clearState,await createSession(google)]);
+ const sessionCookie=await createSession(apple);
+ await keepAppleToken(identity.sub,(await resolveAccount(apple)).userId,env.APPLE_APP_BUNDLE_ID!,code);
+ return {body:{ok:true as const},cookie:sessionCookie};
 }
 
 function redirect(location:string,cookies:string[]){
@@ -297,7 +530,7 @@ async function telegramBotReady(request:Request){
 async function webhookSecret(){return (await sha256Hex('telegram-webhook:'+pepper()+':'+(env.TELEGRAM_BOT_TOKEN??''))).slice(0,48)}
 async function botApi(method:string,body:Record<string,unknown>){
  const response=await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${method}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(8000)});
- const data=await response.json().catch(()=>({})) as {ok?:boolean;description?:string};
+ const data=await response.json().catch(()=>({})) as {ok?:boolean;description?:string;result?:{animation?:{file_id?:string};document?:{file_id?:string}}};
  if(!response.ok||!data.ok)throw Error(`Telegram ${method}: ${data.description??response.status}`);
  return data;
 }
@@ -340,6 +573,25 @@ export async function checkTelegramBot(request:Request,token:unknown):Promise<{s
 }
 
 /** Telegram posts the bot's updates here; only requests carrying the webhook secret are read. */
+/**
+ * The first message after Start: the welcome animation with the text and buttons as its caption. The first
+ * send passes the site's file URL; Telegram's file_id is kept and reused, so later sends are instant.
+ */
+async function sendWelcome(chatId:number,caption:string,replyMarkup:unknown,site:string){
+ let cached:string|undefined;
+ try{cached=(await db().prepare('SELECT value FROM market_settings WHERE key=?').bind(TG_ANIMATION_SETTING).first<{value:string}>())?.value}catch{/* no cache */}
+ try{
+  const sent=await botApi('sendAnimation',{chat_id:chatId,animation:cached??site+TG_WELCOME_ANIMATION,caption,parse_mode:'HTML',reply_markup:replyMarkup});
+  const fileId=sent.result?.animation?.file_id??sent.result?.document?.file_id;
+  if(fileId&&fileId!==cached)await db().prepare('INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES (?,?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at').bind(TG_ANIMATION_SETTING,fileId,Date.now(),'telegram-bot').run();
+ }catch(error){
+  // A stale file_id (new bot token) or an unreachable file: forget it and send the text alone.
+  console.error('Telegram welcome animation failed',error);
+  if(cached)await db().prepare('DELETE FROM market_settings WHERE key=?').bind(TG_ANIMATION_SETTING).run().catch(()=>undefined);
+  await botApi('sendMessage',{chat_id:chatId,text:caption,parse_mode:'HTML',reply_markup:replyMarkup});
+ }
+}
+
 export async function telegramWebhook(request:Request){
  if(!configured.telegram())throw new AuthError(503,'method_unavailable');
  if(!constantTimeEqual(request.headers.get('x-telegram-bot-api-secret-token')??'',await webhookSecret()))throw new AuthError(403,'forbidden_origin');
@@ -353,9 +605,13 @@ export async function telegramWebhook(request:Request){
  };
  if(update.kind==='start'){
   const row=update.token?await pending(update.token):null;
-  if(!row){await botApi('sendMessage',{chat_id:update.chatId,text:update.token?t.expired:t.hello,reply_markup:openSite});return}
+  if(!row){
+   if(update.token)await botApi('sendMessage',{chat_id:update.chatId,text:t.expired,reply_markup:openSite});
+   else await sendWelcome(update.chatId,t.hello,openSite,site);
+   return;
+  }
   const isLink=row.kind==='telegram-link';
-  await botApi('sendMessage',{chat_id:update.chatId,text:isLink?t.linkConfirm:t.confirm,reply_markup:{inline_keyboard:[[{text:isLink?t.linkButton:t.confirmButton,callback_data:'ok:'+update.token}]]}});
+  await sendWelcome(update.chatId,isLink?t.linkConfirm:t.confirm,{inline_keyboard:[[{text:isLink?t.linkButton:t.confirmButton,callback_data:'ok:'+update.token}]]},site);
   return;
  }
  await limit(`telegram-bot-confirm:${update.user.id}`,30,60*60*1000);
@@ -363,7 +619,8 @@ export async function telegramWebhook(request:Request){
  const saved=row?await db().prepare("UPDATE market_auth_challenges SET target=? WHERE id=? AND target=''").bind(JSON.stringify(update.user),await sha256Hex(update.token)).run():null;
  const ok=!!saved?.meta.changes;
  await botApi('answerCallbackQuery',{callback_query_id:update.callbackId,text:ok?t.toast:t.expired.split('.')[0]});
- await botApi('editMessageText',{chat_id:update.chatId,message_id:update.messageId,text:ok?(row?.kind==='telegram-link'?t.linked:t.done):t.expired,reply_markup:openSite});
+ const result=ok?(row?.kind==='telegram-link'?t.linked:t.done):t.expired;
+ await botApi(update.media?'editMessageCaption':'editMessageText',{chat_id:update.chatId,message_id:update.messageId,...(update.media?{caption:result}:{text:result}),parse_mode:'HTML',reply_markup:openSite});
 }
 
 /** Operator: point the bot at this site's webhook. After that the sign-in button opens the bot instead of the widget. */

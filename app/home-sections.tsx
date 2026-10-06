@@ -1,17 +1,18 @@
 'use client';
-import {useEffect,useId,useState,type CSSProperties,type FormEvent,type ReactNode} from 'react';
+import {useEffect,useId,useState,type FormEvent,type ReactNode} from 'react';
 import {Check,ClipboardPaste,Info,Link2} from 'lucide-react';
 import Link from '@/components/site-link';
 import {useMarket} from '@/lib/market/store';
-import {deliveryPerKgUsdFor,price,validateSource} from '@/lib/market/domain';
+import {deliveryPerKgUsdFor,deliverySpeeds,price,validateSource,type DeliverySpeed} from '@/lib/market/domain';
 import {atlasServiceBreakdown} from '@/lib/market/quote-presentation';
 import {courierAllowanceUsd} from '@/lib/market/customs';
 import {combinedShipmentWeight,packagingKg} from '@/lib/market/world';
-import {formatKg,formatPercent,formatSum,formatUsd,groupDigits,homeCopy} from '@/lib/market/home-copy';
-import {deliveryDaysFor,deliveryRegions,paymentLabels,siteContent} from '@/lib/market/site-content';
+import {formatKg,formatPercent,formatPriceUsd,formatSum,formatUsd,groupDigits,homeCopy} from '@/lib/market/home-copy';
+import {deliveryDaysFor,deliveryRegions,paymentLabels} from '@/lib/market/site-content';
 import {localizedStatuses,type Locale} from '@/lib/market/i18n';
 import {storeBrands} from '@/lib/market/store-brands';
 import {StoreLogo} from './store-logo';
+import {Flag} from './flags';
 import {Money} from './money';
 
 const isDev=(import.meta as {env?:{DEV?:boolean}}).env?.DEV===true;
@@ -28,7 +29,7 @@ export function useHomeCopy(){
 /** Dev-only marker for business data that is not filled yet; production renders nothing. */
 export function MissingContent({what}:{what:string}){
  if(!isDev)return null;
- return <p className="home-missing" role="note">Нужно заполнить: {what} — <code>lib/market/site-content.ts</code></p>;
+ return <p className="home-missing" role="note">Нужно заполнить: {what} — в админке, раздел «Контент сайта»</p>;
 }
 
 /** Scrolls to the home link field and focuses it (no smooth scroll under reduced motion). */
@@ -121,6 +122,7 @@ export function ExampleQuote(){
 
 export function HowItWorks(){
  const {locale,c}=useHomeCopy();
+ const {siteContent}=useMarket();
  const pickup=siteContent.contacts.pickupAddress?.[locale];
  return <section id="how" className="home-section" aria-labelledby="how-title">
   <h2 id="how-title">{c.how.title}</h2>
@@ -136,31 +138,31 @@ export function HowItWorks(){
 export function DeliveryTariffs(){
  const {pricing}=useMarket();
  const {locale,c}=useHomeCopy();
- const missingDays=deliveryRegions.some(region=>!deliveryDaysFor(pricing,region.id));
- // Without any confirmed delivery times the column would only repeat "to be confirmed": leave it out.
- const anyDays=deliveryRegions.some(region=>deliveryDaysFor(pricing,region.id));
- const rows=deliveryRegions.map(region=>{
+ const missingDays=deliveryRegions.some(region=>deliverySpeeds.some(speed=>!deliveryDaysFor(pricing,region.id,speed)));
+ // Every country shows its own prices: the owner changes rates per country and per speed.
+ const cards=deliveryRegions.map(region=>{
   const country=region.countries.find(name=>pricing.countryOverrides?.[name])??region.countries[0];
-  return {region,days:deliveryDaysFor(pricing,region.id),usd:deliveryPerKgUsdFor(pricing,country)};
+  const options=deliverySpeeds.map((speed:DeliverySpeed)=>({speed,days:deliveryDaysFor(pricing,region.id,speed),usd:deliveryPerKgUsdFor(pricing,country,speed)}));
+  return {region,options};
  });
- // Every country shows its own price: the owner changes rates per country.
- return <section id="tariffs" className="home-section" aria-labelledby="tariffs-title">
+ return <section id="tariffs" className="home-section tariff-section" aria-labelledby="tariffs-title">
   <h2 id="tariffs-title">{c.tariffs.title}</h2>
   <p className="home-section-lead">{c.tariffs.lead}</p>
-  <div className="home-table-wrap"><table className="home-tariffs">
-   <thead><tr><th scope="col">{c.tariffs.from}</th>{anyDays&&<th scope="col">{c.tariffs.time}</th>}<th scope="col">{c.tariffs.perKg}</th></tr></thead>
-   <tbody>{rows.map(({region,days,usd})=><tr key={region.id}><th scope="row">{c.tariffs.regions[region.id]}</th>
-    {anyDays&&<td className={days?undefined:'home-pending'}>{days?<>{c.tariffs.days(days[0],days[1])}<span className="days-bar" style={{'--from':days[0],'--to':days[1]} as CSSProperties} aria-hidden="true"/></>:c.tariffs.pending}</td>}
-    <td className="home-tariff-price"><b>{formatUsd(usd,locale)}</b><small>{c.tariffs.per100g(formatUsd(usd/10,locale))}</small></td>
-   </tr>)}</tbody>
-  </table></div>
-  {missingDays&&<MissingContent what="сроки доставки по странам (дни, от–до)"/>}
-  <p className="home-note">{!anyDays&&<>{c.tariffs.noDays} </>}{c.tariffs.weightNote} {c.tariffs.rateNote}</p>
+  <ul className="tariff-grid" aria-label={c.tariffs.from}>{cards.map(({region,options})=><li key={region.id} className="tariff-card">
+   <h3 className="tariff-country"><Flag region={region.id}/><span>{c.tariffs.regions[region.id]}</span></h3>
+   <dl className="tariff-options" aria-label={c.tariffs.speedsLabel}>{options.map(({speed,days,usd})=><div key={speed} className={`tariff-option tariff-${speed}`}>
+    <dt className="tariff-speed">{c.tariffs.speeds[speed]}</dt>
+    <dd className={days?'tariff-days':'tariff-days tariff-pending'}><span className="sr-only">{c.tariffs.time}: </span>{days?c.tariffs.days(days[0],days[1]):c.tariffs.pending}</dd>
+    <dd className="tariff-price"><span className="sr-only">{c.tariffs.perKg}: </span><b>{formatUsd(usd,locale)}<small>{c.tariffs.perKgUnit}</small></b><span className="tariff-100g">{c.tariffs.per100g(formatPriceUsd(usd/10,locale))}</span></dd>
+   </div>)}</dl>
+  </li>)}</ul>
+  {missingDays&&<MissingContent what="сроки доставки по странам и скоростям (дни, от–до)"/>}
+  <p className="home-note tariff-note">{c.tariffs.weightNote} {c.tariffs.rateNote}</p>
  </section>;
 }
 
 export function TrustSection(){
- const {pricing}=useMarket();
+ const {pricing,siteContent}=useMarket();
  const {locale,c}=useHomeCopy();
  const statuses=localizedStatuses(locale);
  const current=4;
@@ -207,8 +209,11 @@ export function TrustSection(){
 
 export function HomeFaq(){
  const {c}=useHomeCopy();
- const {pricing}=useMarket();
- const known=deliveryRegions.flatMap(region=>{const days=deliveryDaysFor(pricing,region.id);return days?[`${c.tariffs.regions[region.id]}: ${c.tariffs.days(days[0],days[1])}`]:[]});
+ const {pricing,siteContent}=useMarket();
+ const known=deliveryRegions.flatMap(region=>{
+  const parts=deliverySpeeds.flatMap(speed=>{const days=deliveryDaysFor(pricing,region.id,speed);return days?[`${c.tariffs.speeds[speed].toLowerCase()} ${c.tariffs.days(days[0],days[1])}`]:[];});
+  return parts.length?[`${c.tariffs.regions[region.id]}: ${parts.join(', ')}`]:[];
+ });
  const prohibitedUrl=siteContent.prohibitedListUrl;
  const items:{q:string;a:string;link?:ReactNode}[]=[
   {q:c.faq.timesQuestion,a:known.length?c.faq.timesKnown(known.join('; ')):c.faq.timesUnknown},

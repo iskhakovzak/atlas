@@ -46,9 +46,9 @@ export function apiErrorMessage(status:number,locale:Locale):string{
 
 export function importManualEntryMessage(locale:Locale):string{
   return {
-    ru:"Не все данные магазина загрузились. Подтвердите цену, валюту и вариант, затем добавьте товар в корзину. Atlas сверит цену и валюту, если магазин ответит.",
-    uz:"Do‘kon ma’lumotlarining hammasi yuklanmadi. Narx, valyuta va variantni tasdiqlab, savatga qo‘shing. Do‘kon javob bersa, Atlas narx va valyutani solishtiradi.",
-    en:"Some store details did not load. Confirm the price, currency and option, then add it to your cart. Atlas compares them when the store responds.",
+    ru:"Не все данные магазина загрузились. Подтвердите цену, валюту и вариант, затем добавьте товар в корзину — Atlas сверит их с магазином перед выкупом.",
+    uz:"Do‘kon ma’lumotlarining hammasi yuklanmadi. Narx, valyuta va variantni tasdiqlab, savatga qo‘shing — Atlas xariddan oldin ularni do‘kon bilan solishtiradi.",
+    en:"Some store details did not load. Confirm the price, currency and option, then add it to your cart — Atlas checks them with the store before buying.",
   }[locale];
 }
 
@@ -72,9 +72,9 @@ const orderStatuses = {
 };
 export function localizedStatuses(locale:Locale){return orderStatuses[locale]}
 const routeTitles:Record<Locale,Record<string,string>>={
-  ru:{catalog:'Каталог',products:'Каталог',favorites:'Избранное',link:'Заказ по ссылке',stores:'Магазины',cart:'Корзина',orders:'Мои заказы',balance:'Баланс',operations:'Кабинет оператора',notifications:'Уведомления',account:'Личный кабинет',customs:'Таможенные условия',analytics:'Аналитика',legal:'Правила Atlas',identity:'Паспорт',declaration:'Декларация',batch:'Импорт списка',admin:'Администрирование',login:'Вход',notfound:'Страница не найдена'},
-  uz:{catalog:'Katalog',products:'Katalog',favorites:'Saqlanganlar',link:'Havola orqali buyurtma',stores:'Do‘konlar',cart:'Savat',orders:'Buyurtmalarim',balance:'Balans',operations:'Operator kabineti',notifications:'Bildirishnomalar',account:'Shaxsiy kabinet',customs:'Bojxona shartlari',analytics:'Tahlil',legal:'Atlas qoidalari',identity:'Pasport',declaration:'Deklaratsiya',batch:'Ro‘yxat importi',admin:'Boshqaruv',login:'Kirish',notfound:'Sahifa topilmadi'},
-  en:{catalog:'Catalog',products:'Catalog',favorites:'Saved',link:'Order by link',stores:'Stores',cart:'Cart',orders:'My orders',balance:'Balance',operations:'Operator workspace',notifications:'Notifications',account:'Account',customs:'Customs terms',analytics:'Analytics',legal:'Atlas terms',identity:'Passport',declaration:'Declaration',batch:'List import',admin:'Administration',login:'Sign in',notfound:'Page not found'},
+  ru:{catalog:'Каталог',products:'Каталог',favorites:'Избранное',link:'Заказ по ссылке',stores:'Магазины',cart:'Корзина',orders:'Мои заказы',balance:'Баланс',operations:'Кабинет оператора',notifications:'Уведомления',account:'Личный кабинет',customs:'Таможенные условия',analytics:'Аналитика',legal:'Правила Atlas',identity:'Паспорт',declaration:'Декларация',batch:'Импорт списка',admin:'Администрирование',login:'Вход',notfound:'Страница не найдена',privacy:'Политика конфиденциальности',terms:'Условия использования',support:'Поддержка',app:'Приложение','delete-account':'Удаление аккаунта'},
+  uz:{catalog:'Katalog',products:'Katalog',favorites:'Saqlanganlar',link:'Havola orqali buyurtma',stores:'Do‘konlar',cart:'Savat',orders:'Buyurtmalarim',balance:'Balans',operations:'Operator kabineti',notifications:'Bildirishnomalar',account:'Shaxsiy kabinet',customs:'Bojxona shartlari',analytics:'Tahlil',legal:'Atlas qoidalari',identity:'Pasport',declaration:'Deklaratsiya',batch:'Ro‘yxat importi',admin:'Boshqaruv',login:'Kirish',notfound:'Sahifa topilmadi',privacy:'Maxfiylik siyosati',terms:'Foydalanish shartlari',support:'Yordam',app:'Ilova','delete-account':'Akkauntni o‘chirish'},
+  en:{catalog:'Catalog',products:'Catalog',favorites:'Saved',link:'Order by link',stores:'Stores',cart:'Cart',orders:'My orders',balance:'Balance',operations:'Operator workspace',notifications:'Notifications',account:'Account',customs:'Customs terms',analytics:'Analytics',legal:'Atlas terms',identity:'Passport',declaration:'Declaration',batch:'List import',admin:'Administration',login:'Sign in',notfound:'Page not found',privacy:'Privacy policy',terms:'Terms of use',support:'Support',app:'App','delete-account':'Delete account'},
 };
 export function routeTitle(locale:Locale,view:string){return routeTitles[locale][view]??view}
 
@@ -120,6 +120,31 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_38': 'Магазин сейчас не отвечает, поэтому цену не удалось сверить. Попробуйте через несколько минут.',
     'err_39': 'Слишком много проверок цен у магазинов. Подождите несколько минут и повторите.',
     'err_40': 'На сегодня загружено слишком много файлов документа. Попробуйте завтра или напишите в поддержку.',
+    'err_41': 'Сначала завершите или отмените оплаченные заказы в работе — или напишите в поддержку, и мы поможем закрыть их.',
+    'err_42': 'Подтвердите удаление аккаунта.',
+    'err_43': 'Отметьте, что понимаете: баланс Atlas будет потерян.',
+    'err_44': 'Слишком много попыток удаления. Попробуйте через час.',
+    'err_50': 'У вашей роли нет доступа к этому действию.',
+    'err_51': 'Заблокировать клиента может только администратор.',
+    'err_60': 'Укажите адрес доставки.',
+    'err_61': 'Укажите почтовый индекс получателя: 6 цифр.',
+    'err_62': 'Проверьте цену, вес и количество (от 1 до 10).',
+    'err_63': 'Количество — от 1 до 10.',
+    'err_64': 'Выберите обязательные услуги перед оформлением.',
+    'err_65': 'Сначала сохраните адрес доставки.',
+    'err_66': 'Сначала подтвердите паспорт этого получателя.',
+    'err_67': 'Для проверки не хватает ссылки, цены или валюты товара.',
+    'err_68': 'Магазин изменил валюту витрины. Загрузите товар заново.',
+    'err_69': 'Выбранный вариант не удалось сверить с данными магазина. Подтвердите его вручную.',
+    'err_70': 'Магазин не подтвердил цену выбранного варианта.',
+    'err_71': 'Этого варианта больше нет в наличии у магазина.',
+    'err_72': 'Этого магазина нет в списке поддерживаемых. Вставьте ссылку из одного из {count} магазинов или заполните товар вручную.',
+    'err_73': 'Товар не найден в каталоге. Добавьте его по ссылке на магазин.',
+    'err_55': 'Нельзя отключить собственный доступ.',
+    'err_56': 'Основного администратора из настроек хостинга отключить нельзя.',
+    'err_57': 'Заметки о клиентах пока недоступны: примените миграцию базы 0011.',
+    'err_52': 'Контент сайта изменён в другой вкладке. Загружена актуальная версия — проверьте поля и сохраните снова.',
+    'err_53': 'В контенте сайта есть ошибки. Исправьте отмеченные поля и сохраните снова.',
   },
   uz: {
     'err_1': 'Davom etish uchun tizimga kiring.',
@@ -162,6 +187,31 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_38': 'Do‘kon hozir javob bermayapti, shuning uchun narxni tekshirib bo‘lmadi. Bir necha daqiqadan so‘ng urinib ko‘ring.',
     'err_39': 'Do‘konlarda narx tekshiruvi juda ko‘p bo‘ldi. Bir necha daqiqa kutib, qayta urinib ko‘ring.',
     'err_40': 'Bugun hujjat fayllari juda ko‘p yuklandi. Ertaga urinib ko‘ring yoki qo‘llab-quvvatlashga yozing.',
+    'err_41': 'Avval jarayondagi to‘langan buyurtmalarni yakunlang yoki bekor qiling — yoki yordam xizmatiga yozing, ularni yopishga yordam beramiz.',
+    'err_42': 'Akkauntni o‘chirishni tasdiqlang.',
+    'err_43': 'Atlas balansi yo‘qolishini tushunganingizni belgilang.',
+    'err_44': 'O‘chirishga urinishlar juda ko‘p. Bir soatdan so‘ng urinib ko‘ring.',
+    'err_50': 'Sizning rolingizda bu amalga ruxsat yo‘q.',
+    'err_51': 'Mijozni faqat administrator bloklashi mumkin.',
+    'err_60': 'Yetkazib berish manzilini kiriting.',
+    'err_61': 'Qabul qiluvchining pochta indeksini kiriting: 6 ta raqam.',
+    'err_62': 'Narx, vazn va miqdorni tekshiring (1 dan 10 gacha).',
+    'err_63': 'Miqdor — 1 dan 10 gacha.',
+    'err_64': 'Rasmiylashtirishdan oldin majburiy xizmatlarni tanlang.',
+    'err_65': 'Avval yetkazib berish manzilini saqlang.',
+    'err_66': 'Avval ushbu qabul qiluvchining pasportini tasdiqlang.',
+    'err_67': 'Tekshirish uchun tovar havolasi, narxi yoki valyutasi yetishmayapti.',
+    'err_68': 'Do‘kon vitrina valyutasini o‘zgartirdi. Tovarni qayta yuklang.',
+    'err_69': 'Tanlangan variantni do‘kon ma’lumotlari bilan solishtirib bo‘lmadi. Uni qo‘lda tasdiqlang.',
+    'err_70': 'Do‘kon tanlangan variant narxini tasdiqlamadi.',
+    'err_71': 'Bu variant do‘konda endi mavjud emas.',
+    'err_72': 'Bu do‘kon qo‘llab-quvvatlanadiganlar ro‘yxatida yo‘q. {count} ta do‘kondan biridagi havolani qo‘ying yoki tovarni qo‘lda to‘ldiring.',
+    'err_73': 'Tovar katalogda topilmadi. Uni do‘kon havolasi orqali qo‘shing.',
+    'err_55': 'O‘z ruxsatingizni o‘chirib bo‘lmaydi.',
+    'err_56': 'Hosting sozlamalaridagi asosiy administratorni o‘chirib bo‘lmaydi.',
+    'err_57': 'Mijozlar haqidagi eslatmalar hozircha mavjud emas: 0011 migratsiyasini qo‘llang.',
+    'err_52': 'Sayt kontenti boshqa oynada o‘zgartirilgan. Joriy versiya yuklandi — maydonlarni tekshirib, qayta saqlang.',
+    'err_53': 'Sayt kontentida xatolar bor. Belgilangan maydonlarni tuzatib, qayta saqlang.',
   },
   en: {
     'err_1': 'Sign in to continue.',
@@ -204,12 +254,39 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_38': 'The store is not responding, so the price could not be checked. Try again in a few minutes.',
     'err_39': 'Too many price checks with the stores. Wait a few minutes and try again.',
     'err_40': 'Too many document files uploaded today. Try again tomorrow or contact support.',
+    'err_41': 'Finish or cancel your paid orders in progress first — or write to support and we will help close them.',
+    'err_42': 'Confirm the account deletion.',
+    'err_43': 'Tick that you understand the Atlas balance will be lost.',
+    'err_44': 'Too many deletion attempts. Try again in an hour.',
+    'err_50': 'Your role does not allow this action.',
+    'err_51': 'Only an administrator can block a customer.',
+    'err_60': 'Enter the delivery address.',
+    'err_61': 'Enter the recipient’s postal code: 6 digits.',
+    'err_62': 'Check the price, weight and quantity (from 1 to 10).',
+    'err_63': 'The quantity must be from 1 to 10.',
+    'err_64': 'Choose the required services before checking out.',
+    'err_65': 'Save the delivery address first.',
+    'err_66': 'Confirm this recipient’s passport first.',
+    'err_67': 'The item’s link, price or currency is missing, so it can’t be checked.',
+    'err_68': 'The store changed its currency. Load the item again.',
+    'err_69': 'The selected option couldn’t be matched with the store’s data. Confirm it manually.',
+    'err_70': 'The store didn’t confirm the price of the selected option.',
+    'err_71': 'This option is no longer in stock at the store.',
+    'err_72': 'This store isn’t on the supported list. Paste a link from one of the {count} stores or fill in the item manually.',
+    'err_73': 'Item not found in the catalog. Add it with a link to the store.',
+    'err_55': 'You cannot disable your own access.',
+    'err_56': 'The primary administrator from the hosting settings cannot be disabled.',
+    'err_57': 'Customer notes are not available yet: apply database migration 0011.',
+    'err_52': 'The site content was changed in another tab. The current version is loaded — check the fields and save again.',
+    'err_53': 'The site content has errors. Fix the marked fields and save again.',
   },
 };
-export function serverError(locale:Locale, key:string){
-  return serverErrors[locale][key] ?? {
+/** The localized text of an error code; `{name}` placeholders take the given values. */
+export function serverError(locale:Locale, key:string, params?:Record<string,string|number>){
+  const text = serverErrors[locale][key] ?? {
     ru: 'Не удалось выполнить запрос. Попробуйте ещё раз.',
     uz: 'So‘rovni bajarib bo‘lmadi. Qayta urinib ko‘ring.',
     en: 'The request could not be completed. Please try again.',
   }[locale];
+  return params ? text.replace(/\{(\w+)\}/g, (match, name:string) => name in params ? String(params[name]) : match) : text;
 }

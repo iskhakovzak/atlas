@@ -1,5 +1,81 @@
 # Atlas TODO and known limitations
 
+## Аудит и исправления — 6 октября 2026
+
+- [x] Серьёзные находки аудита перепроверены и исправлены (см. ARCHITECTURE.md, раздел 6 октября «Аудит»); полный список сырых находок — локально `outputs/audit-2026-10-06.md` (не в git).
+- [ ] 104 средних и 130 мелких находок аудита не перепроверены; разобрать по `outputs/audit-2026-10-06.md`.
+- [ ] Перевести `app/admin-view.tsx` и `app/prelaunch-views.tsx` с полного `GET /api/operations` (до 200 полных документов) на компактные секции.
+- [ ] Проверить `?queue=1` на продовой D1 (`json_each`, время сводки); при росте клиентов — колонки-флаги очереди в `market_order_records`.
+- [ ] Проекция: заказ, у которого упали и инкрементальная, и полная синхронизация, отстаёт до следующего изменения или «Синхронизировать всё» — нужна периодическая сверка.
+- [ ] Отзыв сессий при отвязке сопоставляет способ входа и контакт; надёжнее хранить subject в `market_auth_sessions` (миграция).
+- [ ] Юридические документы (`app/legal-documents.tsx`) ещё содержат «предварительный расчёт», «пока не подключены»; менять после решения владельца.
+- [ ] CLAUDE.md называет сбор «Atlas оплатит таможню» 3%, в коде с 5.10 — 4,98% (`customsHelpShare`); сверить с владельцем и поправить документ.
+
+## Мобильные приложения, Apple, удаление аккаунта и согласия — 6 октября 2026
+
+- [x] Оболочка Capacitor 8.5.2 в `mobile/` (android/, ios/ через SPM, www/ с офлайн-страницей, иконки и splash через `npm run assets`); `tsconfig`/eslint исключают `mobile`.
+- [x] Мост `lib/native/bridge.ts`, шелл `app/native-shell.tsx` и `app/native.css`; разбор ссылок `lib/native/links.ts`; маршруты `/.well-known/apple-app-site-association` и `assetlinks.json` (404 без env).
+- [x] Вход через Apple: веб (`form_post`, cookie `__Host-atlas_apple` SameSite=None) и нативный iOS; refresh-токены в `market_auth_tokens` (миграция 0010), отзыв при удалении аккаунта с отчётом о неудаче в `market_operational_errors`.
+- [x] Handoff из системного браузера в приложение только с PKCE (`lib/native/pkce.ts`, `POST /api/auth/handoff {code, verifier}`); `/auth/return` в `reservedPaths`.
+- [x] Аккаунты проверяющих `ATLAS_REVIEW_ACCOUNTS` (фиксированный код по почте, без отправки).
+- [x] Удаление аккаунта: `POST /api/account/delete`, диалог в кабинете, `/delete-account`; псевдоним — HMAC под `ATLAS_AUTH_SECRET`; `err_41`–`err_44`.
+- [x] Согласия: `State.consents`, действие `consent-accept`, запись в `market_legal_consents`, плашка-гейт `app/storage-notice.tsx` (запись только по клику).
+- [x] Публичные страницы `/privacy`, `/terms`, `/support`, `/delete-account`, `/app`; новые разделы оферты (11) и политики; sitemap/robots/llms; футер и карточка «Настройки» в кабинете.
+- [x] `android:allowBackup="false"`; абзац о возрастном рейтинге в `MOBILE.md` §3; блокер контактов в `MOBILE.md` §6.
+- [ ] Прод: применить `drizzle/0010_apple_auth.sql` к рабочей D1 (без таблицы вход через Apple работает, но токены не сохраняются и не отзываются).
+- [ ] Владелец: Apple Developer Program — Team ID, App ID `uz.atlasmarket.app` (Sign in with Apple, Associated Domains), Services ID с return URL `https://atlasmarket.uz/api/auth/apple/callback`, ключ `.p8`; задать `APPLE_SERVICES_ID`, `APPLE_APP_BUNDLE_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` в Sites; зарегистрировать домен и адрес отправителя в «Sign in with Apple for Email Communication» (AUTH_SETUP.md §7).
+- [ ] Владелец: Google Play Console — приложение `uz.atlasmarket.app`, Play App Signing, SHA-256 upload- и signing-ключей → `ANDROID_CERT_SHA256`, `ANDROID_PACKAGE_NAME`; upload keystore хранить в `secrets/`.
+- [ ] Владелец: задать `ATLAS_REVIEW_ACCOUNTS` и Review Notes по шаблону `MOBILE.md` §3; удалить переменную после одобрения.
+- [ ] Владелец: скриншоты, описания RU/UZ/EN, ответы App Privacy / Data safety (согласованы с `/privacy`), URL политики/поддержки/удаления/условий при подаче.
+- [ ] Владелец: заполнить `siteContent.contacts` (минимум `supportEmail`), `siteContent.apps` после публикации и реквизиты юрлица — блокер подачи (`MOBILE.md` §6, п. 0).
+- [ ] Юрист: проверить раздел 11 оферты и новые разделы политики (приложения, ИИ/OCR, вход через провайдеров, удаление, согласие, возраст); подтвердить текст согласия и `consentVersion='2026-10-06'`; решить, нужны ли переводы тел документов на uz/en (сейчас на `/privacy`, `/terms` локализована только шапка).
+- [ ] Владелец: возрастной рейтинг — документы определяют сервис как для совершеннолетних: 17+ в App Store, 18+ по IARC в Google Play (`MOBILE.md` §3).
+- [ ] Бухгалтер: срок хранения обезличенных записей о заказах и бухгалтерии после удаления аккаунта (в UI срок не называется).
+- [ ] Сборка iOS только на macOS с Xcode 16+: проверить компиляцию `@capacitor-community/apple-sign-in` 7.1.0 под Capacitor 8 и автоподхват `App.entitlements`; iOS-проект сгенерирован на Windows и проверен только текстово.
+- [ ] Android: сборка Gradle не запускалась (нет Android Studio/SDK в сессии); прогнать чек-лист релиза `MOBILE.md` §6.
+- [ ] Живые потоки Apple не проверялись (нет ключей): `form_post`, обмен кода, отзыв токена, системное окно iOS, вариант «Скрыть почту», cookie SameSite=None в Safari/Chrome, привязка Apple в кабинете.
+- [ ] Удаление аккаунта и плашка согласия не прогонялись вживую против D1/R2 и в браузере — только юнит-тесты, eslint и tsc; проверить в реальных сборках iOS/Android (строки «Восстановить покупки» и «О приложении» видны только при `isNative()`).
+- [ ] `npm run build` в спринте не запускался: проверить сборку маршрутов с точкой в имени каталога (`app/.well-known/*`); при отказе `assetlinks.json` можно отдать статикой из `public/.well-known/`, AASA требует маршрута.
+- [ ] Визуально проверить новые страницы и карточку «Настройки» (Day/Night, 375–1920 px); Night-правила для `.cabinet-danger`/`.delete-account` опираются на токены `customer.css`, отдельных правил в `theme-night.css` нет.
+- [ ] Оператору следить за строками «Apple token revocation failed» в `market_operational_errors` (area `auth`) и повторять отзыв; политика обещает именно это.
+- [ ] Локализовать код ошибки `handoff_invalid` в копии `/login` (сейчас шелл показывает общий тост о неудачном возврате).
+- [ ] Запланировано, не реализовано: push-уведомления (APNs/FCM), биометрическая блокировка, приём ссылок через системный share; кнопка «Открыть настройки аккаунта» на `/delete-account` ведёт на `/account` без якоря.
+- [ ] Риск Apple 4.2 («просто обёртка») остаётся: список смягчений — `MOBILE.md` §7.
+
+## 6 октября 2026 (вечер): тарифы экспресс/обычная, группировка заказов, роли, бухгалтерия
+
+- [x] Слито с main #18: `pricingRevision` = 5 (экспресс $15,98 вместо $14,98 из main, обычная $13,98), остальные решения main сохранены.
+- [x] Две скорости доставки: экспресс $15,98/кг (5–9 рабочих дней из США, 7–9 из остальных стран) и обычная $13,98/кг (9–14), переключатель в корзине и в расчёте по ссылке; `pricingRevision = 3` (комиссия ровно 9,98 %, `buyoutFee`/`conversionFee` → 0).
+- [x] Решение владельца: скорость по умолчанию — экспресс (`defaultDeliverySpeed`); старые заказы без `quote.deliverySpeed` читаются как экспресс.
+- [x] «Сроки и тарифы» на главной — карточки стран с SVG-флагами и обеими скоростями; первый рендер с серверным тарифом, числа не «прыгают».
+- [x] «Мои заказы» сгруппированы по оформлению и магазинам; клиентская кнопка «Отменить заказ» убрана (отмена только оператором).
+- [x] Роли сотрудников (`admin`/`finance`/`support`/`procurement`/`warehouse`) дают права с серверной проверкой; `/api/finance`, `/operations` и `/analytics` переведены на права.
+- [x] Бухгалтерия: годовая таблица и кварталы, маржа по заказам, закрытие периода, обязательства, курсы для записей, исправление записи, спарклайны.
+- [ ] Курсы EUR/GBP/CNY/RUB для записей журнала вводятся владельцем вручную в Администрирование → Финансы (источника курсов нет); USD берётся из тарифа.
+- [ ] Сузить данные `GET /api/operations` для ролей `support` и `warehouse`: аккаунты сейчас отдаются целиком (адреса, телефоны), хотя секции справочника/аудита/ошибок уже скрыты по правам.
+- [ ] Визуально проверить новые экраны на 375 px и в тёмной теме (`npm run e2e` после сборки): переключатель скорости в корзине и в расчёте по ссылке, карточки тарифов на главной, группы заказов на `/orders`, бухгалтерия (таблицы в `.acc-scroll`), «таблетка» активного пункта меню (контраст `--night-jade` на rgba .14), перенос ссылок футера на ПК, `/admin` под ролью `support` (видны только Обзор/Клиенты/Поддержка). Сборка, smoke и e2e в спринте не запускались.
+- [ ] Удалить мёртвый CSS старой таблицы тарифов и расчёта: `.home-tariffs*`, `.home-table-wrap`, `.days-bar`, `.home-tariff-price`, `.calc-fx`, `#tariffs > .calc-fx` в `app/home.css`, `app/day-folio.css`, `app/theme-night.css`, `app/customer.css` (отчёт `node scripts/css-unused.mjs`; там же `.home-step-icon`, `.home-trust-points`, `.checkout-optional`, `.calc-customs-*`).
+- [ ] Поиск и пагинация журнала — на клиенте (сервер отдаёт до 5000 записей за месяц); при >5000 записей перенести на сервер. Балансы клиентов для обязательств считаются перебором `market_accounts` (LIMIT 5000).
+- [ ] Прод: миграций нет; старые заказы попадут в заказы месяца бухгалтерии после «Синхронизировать всё» (проекция `market_order_finance`); после публикации задать ставку налога и при необходимости курсы для журнала.
+- [ ] Коды ошибок `err_28`/`err_29` («Доступ только администратору») маршрутами больше не используются (теперь `err_50`); тексты в `lib/market/i18n.ts` удалить при следующей чистке.
+- [ ] Сотрудник с ролью `admin` в справочнике может отключить сам себя — ожидаемо, но стоит подтвердить у владельца; основной администратор из `ATLAS_OPERATOR_EMAIL` не изменяем.
+- [ ] Опционально: экспортировать `parsePricingValue` из `lib/market/server.ts`, чтобы `lib/market/pricing-equal.ts` не дублировал его логику; строка «Доставка: экспресс/обычная» есть только в клиентской карточке заказа, в операторской — при необходимости.
+
+## 6 октября 2026 (вечер), вторая волна: автоматизация бухгалтерии, админка, контент сайта
+
+- [x] Автопроводки `AUTO-…` из проекции заказа (оплата, оплата балансом, выкуп, доставка магазина, пошлина, возвраты на баланс), сверка `?check=1`, денежная позиция, налоговый календарь-ориентир, `fx` в ответе, полная книга месяца и JSON-бэкап, импорт выписки с отдельным подтверждением, счёт-расчёт `?invoice=` (не фискальный документ).
+- [x] Бухгалтерия разбита на вкладки (`app/accounting-*.tsx`), админка — на `app/admin-*.tsx` с серверным дашбордом, карточкой клиента, заметками, фильтруемым журналом и статусом системы; контент сайта редактируется из вкладки «Контент сайта» и хранится в D1.
+- [ ] Миграция `drizzle/0011_admin_customer_notes.sql`: запись в `drizzle/meta/_journal.json` добавлена вручную (после слияния с feat/mobile-store — idx 11 после 0010_apple_auth, tag `0011_admin_customer_notes`), снапшота `drizzle/meta/0011_snapshot.json` нет, номер 0010 пропущен — при следующем `npm run db:generate` сверить, что drizzle-kit не создаёт `market_customer_notes` повторно.
+- [ ] Прод: применить 0011 к продакшен-D1 при деплое (локально применена). После деплоя выполнить «Пересобрать проекцию» в `/admin` — это создаст автозаписи для существующих заказов; попавшие в закрытые месяцы окажутся в `accounting.auto-skipped` и в сверке. Затем проверить в браузере, что `GET ?month=&check=1` отдаёт `reconcile`/`fx`/`cash`, `?year=` — `taxCalendar`, `?invoice=` — `{invoice}` и 404 для неизвестного заказа.
+- [ ] `app/order-workspace.tsx` в двух местах по-прежнему проверяет `user?.operator` (ссылка на операторский вид и блок после заказов), а не права через `hasPermission`; `app/prelaunch-views.tsx` уже переведён. Проверить и перевести на `permissions`.
+- [ ] Вопрос владельцу: `cancelOrder` в `lib/market/domain.ts` зачисляет на баланс `quote.total` даже у неоплаченного заказа; автопроводки считают только фактически полученное (`payment.amount` + `balanceUsed`), поэтому книги и баланс клиента могут разойтись. Решить, менять ли домен.
+- [ ] Производительность: `syncAutoLedger` выполняется при каждой записи операционной проекции (2 SELECT + batch при изменениях). При росте нагрузки вынести в фоновую очередь или ограничить заказами, изменившимися с прошлой ревизии.
+- [ ] `closings` в ответе `GET /api/finance?month=` движок пока не отдаёт; UI читает его через `normalizeClosings` и показывает ссылку на аудит вместо «Истории закрытий». Движку — добавить последние события `accounting.lock`/`accounting.unlock` в ответ.
+- [ ] `bank-confirm` принимает только `customer_payment` с `orderId`; расходы из выписки записываются через `entry` (id `LED-`, без пометки «выписка»). Если нужно помечать их `BANK-`, расширить `bank-confirm` или добавить `source` в `entry`. Проверить, что заголовки дебет/кредит и запятые в CSV не ломают серверный разбор `bank-import`.
+- [ ] Фото посылок в контенте сайта — только путь из `public/`, кладутся в репозиторий вручную; загрузки в R2 из админки нет.
+- [ ] Вкладка «Система» показывает только дату и число записей последнего бэкапа: размер файла в `market_backup_exports` не хранится. Переключателя техрежима нет (механизм не реализован).
+- [ ] Визуально проверить `/admin` на 375/393/1280 px в обеих темах (`npm run e2e` после сборки): вкладки `.admin-tabs-icons` с отрицательными полями, таблицы `.admin-grid` в `.admin-scroll`, модалка карточки клиента, контраст `.admin-tab-count`/`.admin-count`; бухгалтерия — карточки `.acc-cards-on-phone`, вкладки `.acc-tabs`, бейджи `acc-badge-warn`/`acc-badge-error`, печать счёта (Ctrl+P — только лист); форма контента (`fieldset.catalog-editor` без рамки сверху — добавить правило для `.site-content-admin .catalog-editor`). Сборка, smoke, e2e и браузер во второй волне не запускались.
+- [ ] При желании: тест в `tests/access.test.mjs`, что `content.manage` есть только у `admin`; список валют формы записи (`currencies` в `app/accounting-shared.tsx`) можно строить из `fx.rates`.
 ## Tariff r4, link-order sheets, swipe gallery, Telegram bot sign-in — 6 October 2026
 
 - [x] Tariff revision 4: $14.98 per kg everywhere and the fee exactly 9.98% (a saved buyout/conversion percent made it 10.98%); per-country per-kg and fee overrides are dropped once.
@@ -9,6 +85,7 @@
 - [x] Capital letters while typing: every word in names, the first letter in city and address.
 - [x] Sign-in through the Telegram bot (one tap opens the app, confirm in the chat, the page signs in); `/login` shows Telegram first and the other methods as a column of buttons.
 - [x] The published site (atlasmarket.uz over https) connects the bot webhook by itself on the first sign-in page load; "Подключить бота" in Admin → System does it by hand. Until it is connected the old widget stays. Reconnect after changing the site address, `TELEGRAM_BOT_TOKEN` or `ATLAS_AUTH_SECRET` (the webhook secret is derived from both).
+- [x] The bot's first message after Start is the welcome animation (`public/telegram/atlas-welcome.mp4`, 960×540, 5 s loop) with the text and the confirm button as its caption; its Telegram file_id is cached in `market_settings` (`telegram-bot-animation`); on any failure the bot forgets it and sends the text alone.
 - [ ] Real-device check of the bot sign-in: iPhone and Android with Telegram installed (t.me opens the app), Telegram Desktop on Windows/macOS (tg:// opens it), and a computer without Telegram (the "open in the browser" link).
 - [ ] The bot asks for one confirm tap after Start (protects against someone sending a sign-in link to another person); if the owner wants zero taps, that protection is lost.
 - [ ] The catalog magnet is checked in Chromium only; check iPhone Safari (the measured bottom bars, the keyboard over the sheets).
@@ -50,7 +127,7 @@
 - [x] Administration → Система warns when `ATLAS_AUTH_SECRET` is not set.
 - [ ] Enforce the CSP (now report-only) once nonces replace the inline scripts; then `frame-ancestors` takes over from `X-Frame-Options`.
 - [ ] `/api/actions` still returns the text of internal exceptions to the customer as a 400 message; map them to stable codes.
-- [ ] Staff roles in `market_staff_directory` grant nothing: only `ATLAS_OPERATOR_EMAIL` is an operator. Decide whether roles should get scoped access before inviting staff.
+- [x] Staff roles in `market_staff_directory` grant nothing: only `ATLAS_OPERATOR_EMAIL` is an operator. — Сделано 6 октября 2026: роли дают права с серверной проверкой (`lib/market/access.ts`, `STAFF_ROLES.md`).
 - [ ] `payment-demo` lets a customer mark their own order paid, and the books count it as paid; remove it when a payment provider is connected.
 - [ ] Rate limits use fixed windows in D1; repeated sign-ins on the local Worker reach them (reset: `DELETE FROM market_rate_limits` in the local D1 only).
 

@@ -129,7 +129,18 @@ export type AccountCopy = {
     team: string; you: string; replyPlaceholder: string; reply: string; none: string; newTicket: string; subject: string; question: string; send: string; sent: string;
     aboutOrder: (id: string) => string;
   };
-  settings: { title: string; language: string; theme: string; rules: string; signOut: string };
+  settings: {
+    title: string; language: string; theme: string; rules: string; signOut: string;
+    support: string; privacy: string; terms: string;
+    consents: string; consentsNone: string; consentsAccept: string; consentVersion: (version: string) => string; consentDoc: Record<'privacy' | 'terms', string>;
+    restore: string; restored: (orders: number) => string;
+    about: string; aboutVersion: (version: string, build: string) => string; aboutPlatform: Record<'ios' | 'android', string>; aboutLink: string;
+  };
+  deletion: {
+    title: string; lead: string; open: string; removed: string; removedList: string[]; kept: string; keptList: string[];
+    blocked: (count: number) => string; blockedHint: string; orders: string; support: string; supportSubject: string;
+    autoCancel: (count: number) => string; balance: (sum: string) => string; confirm: string; cancel: string; done: string; failed: string;
+  };
 };
 
 const reserveHelp = {
@@ -147,7 +158,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
     signin: { title: 'Войдите, чтобы открыть корзину', text: 'Корзина и заказы хранятся в вашем профиле Atlas.', action: 'Войти' },
     empty: { title: 'Корзина пуста', text: 'Вставьте ссылку на товар из зарубежного магазина, и мы посчитаем цену с доставкой до Ташкента.', paste: 'Вставить ссылку', stores: 'Смотреть магазины' },
     item: { remove: 'Удалить', decrease: 'Уменьшить количество', increase: 'Увеличить количество', quantity: 'Количество', storePrice: 'В магазине', openStore: 'Открыть в магазине', parcelFrom: store => `Посылка из ${store}`, forQuantity: count => `за ${count} шт.`,
-      parcelReserve: (missing, reserve) => `Доставка магазина неизвестна: резерв ${reserve} удерживается отдельно и не входит в сумму. Ещё ${missing} из этого магазина — и доставка будет бесплатной.`,
+      parcelReserve: (missing, reserve) => `Магазин не указал доставку: резерв ${reserve} держим отдельно, в сумму к оплате он не входит. Ещё ${missing} из этого магазина — и доставка будет бесплатной.`,
       parcelFree: freeFrom => `Из этого магазина больше чем на ${freeFrom} — доставка до склада бесплатна.`,
       priceUp: (from, to) => `Цена в магазине выросла: ${from} → ${to}. Итог пересчитан.`,
       priceDown: (from, to) => `Цена в магазине снизилась: ${from} → ${to}. Итог пересчитан.`,
@@ -157,12 +168,12 @@ export const cartCopy: Record<Locale, CartCopy> = {
     services: {
       title: 'Услуги склада', optional: 'по желанию',
       hint: 'Отметьте пожелания. Оператор проверит возможность после приёмки; услугу выполнят только после показа точной суммы и вашего согласия.',
-      fixed: 'Тариф', quote: 'Стоимость уточнит оператор', notIncluded: 'не входит в сумму заказа', quantity: 'Количество', required: 'обязательно',
+      fixed: 'Тариф', quote: 'Цену назовёт оператор', notIncluded: 'не входит в сумму заказа', quantity: 'Количество', required: 'обязательно',
       units: { package: 'посылка', item: 'шт.', day: 'день', photo: 'фото', 'half-hour': '30 мин' },
     },
     summary: {
       title: 'Итого', items: 'Товары', storeShipping: 'Доставка магазина', storeNoReserve: 'Без резерва', service: 'Сервис Atlas',
-      storeShippingHelp: freeFrom => `Если магазин не указал цену доставки до нашего склада, закладываем резерв $10 — один на заказ из магазина. От ${freeFrom} товаров из одного магазина резерв не берём: такие заказы обычно везут бесплатно. Если магазин всё же возьмёт плату, сначала спросим вас.`,
+      storeShippingHelp: freeFrom => `Если магазин не указал цену доставки до нашего склада, держим резерв $10 — один на заказ из магазина, отдельно от суммы к оплате. При товарах из одного магазина дороже ${freeFrom} резерва нет: доставка магазина для вас бесплатна. Если магазин всё же возьмёт плату, доплата — только с вашего согласия.`,
       serviceHelp: 'Выкуп товара, оплата в валюте магазина и сопровождение заказа до выдачи.', serviceHelpLabel: 'Что входит в сервис Atlas',
       international: 'Доставка в Узбекистан',
       internationalHelp: 'Товары одного магазина едут одной посылкой: вес складывается, упаковка учитывается один раз. Минимальный оплачиваемый вес посылки — 1 кг.',
@@ -170,7 +181,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
       reserve: 'Возвратный резерв', reserveHelp: reserveHelp.ru, reserveHelpLabel: 'Что такое возвратный резерв',
       optional: 'Общий сбор Atlas', balance: 'Оплатить с баланса Atlas', available: 'Доступно', fromBalance: 'С баланса Atlas', payable: 'К оплате',
       checkout: 'Оформить заказ', renew: 'Обновить расчёт', validFor: time => `Цена зафиксирована ещё ${time}`, checking: 'Проверяем срок цены…',
-      expired: 'Срок расчёта истёк — обновите цену перед оформлением.', assurance: 'Доплата — только с вашего согласия',
+      expired: 'Срок расчёта истёк — обновите цену перед оформлением.', assurance: 'Оплата — только с вашего согласия',
       continue: 'Продолжить покупки', outside: 'Не входит в сумму к оплате',
       verifying: 'Сверяем цены…', recheckNote: 'Перед оформлением сверим цены с магазинами.',
     },
@@ -182,18 +193,18 @@ export const cartCopy: Record<Locale, CartCopy> = {
       region: 'Область', city: 'Город', street: 'Улица, дом, квартира', streetPlaceholder: 'Начните вводить улицу',
       postal: 'Почтовый индекс', postalHint: '6 цифр, например 100000.', postalMissing: 'У этого получателя не указан индекс. Сохраним его в профиле получателя.', comment: 'Комментарий для курьера',
       next: 'Далее: проверка', edit: 'Изменить',
-      consent: { before: 'Я ознакомлен(а) с ', link: 'таможенными условиями', after: ' и понимаю, что сверх месячного лимита возможна пошлина.' },
+      consent: { before: 'Я ознакомлен(а) с ', link: 'таможенными условиями', after: ' и понимаю, что сверх месячного лимита платится пошлина.' },
       consentRequired: 'Отметьте согласие с таможенными условиями.',
       serviceNotAdded: 'не входит в итог до вашего согласия', servicePriceLater: 'цена после проверки оператора',
       confirm: 'Подтвердить предзаказ', saving: 'Сохраняем заказ…',
-      preorderNote: 'Предзаказ сохранится в Atlas. Реальная оплата и доставка ещё не подключены.', estimated: 'К оплате',
+      preorderNote: 'Предзаказ сохранится в вашем кабинете Atlas. Оплата и доставка через сайт не подключены — деньги не списываются.', estimated: 'К оплате',
       saveRecipient: 'Сохранить получателя в профиле — для следующих заказов и паспорта',
     },
     success: {
-      title: 'Предзаказ оформлен', hint: 'Провайдер оплаты ещё не подключён. Atlas не списывает деньги и не создаёт отправку.',
+      title: 'Предзаказ оформлен', hint: 'Оплата на сайте не подключена: Atlas не списывает деньги и не создаёт отправку.',
       statusTitle: 'Статус заказа обновлён', saved: 'В Atlas записана отметка об оплате. Провайдер не подключён, деньги не списывались.',
-      pending: 'Заказ сохранён. Для реальной оплаты Atlas должен подключить платёжного провайдера.', confirm: 'Записать отметку в Atlas',
-      updating: 'Обновляем…', orders: 'Открыть заказы', noCharge: 'Реальных списаний, писем, SMS и доставки не происходит.',
+      pending: 'Заказ сохранён в кабинете. Оплата на сайте не подключена, поэтому деньги не списываются.', confirm: 'Записать отметку в Atlas',
+      updating: 'Обновляем…', orders: 'Открыть заказы', noCharge: 'Деньги не списываются, письма и SMS не отправляются, доставка не создаётся.',
     },
   },
   uz: {
@@ -204,7 +215,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
     signin: { title: 'Savatni ochish uchun kiring', text: 'Savat va buyurtmalar Atlas profilingizda saqlanadi.', action: 'Kirish' },
     empty: { title: 'Savat bo‘sh', text: 'Xorijiy do‘kondagi tovar havolasini qo‘ying, Toshkentgacha yetkazish bilan narxini hisoblaymiz.', paste: 'Havolani qo‘yish', stores: 'Do‘konlarni ko‘rish' },
     item: { remove: 'O‘chirish', decrease: 'Miqdorni kamaytirish', increase: 'Miqdorni oshirish', quantity: 'Miqdor', storePrice: 'Do‘konda', openStore: 'Do‘konda ochish', parcelFrom: store => `${store} posilkasi`, forQuantity: count => `${count} dona uchun`,
-      parcelReserve: (missing, reserve) => `Do‘kon yetkazishi noma’lum: ${reserve} zaxira alohida ushlab turiladi va summaga kirmaydi. Bu do‘kondan yana ${missing} — va yetkazish bepul bo‘ladi.`,
+      parcelReserve: (missing, reserve) => `Do‘kon yetkazishni ko‘rsatmagan: ${reserve} zaxirani alohida ushlab turamiz, u to‘lov summasiga kirmaydi. Bu do‘kondan yana ${missing} — va yetkazish bepul bo‘ladi.`,
       parcelFree: freeFrom => `Bu do‘kondan ${freeFrom} dan ortiq — omborgacha yetkazish bepul.`,
       priceUp: (from, to) => `Do‘kondagi narx oshdi: ${from} → ${to}. Jami qayta hisoblandi.`,
       priceDown: (from, to) => `Do‘kondagi narx tushdi: ${from} → ${to}. Jami qayta hisoblandi.`,
@@ -214,12 +225,12 @@ export const cartCopy: Record<Locale, CartCopy> = {
     services: {
       title: 'Ombor xizmatlari', optional: 'ixtiyoriy',
       hint: 'Istaklaringizni belgilang. Operator qabuldan keyin imkoniyatni tekshiradi; xizmat faqat aniq narx ko‘rsatilib, roziligingiz olingandan so‘ng bajariladi.',
-      fixed: 'Tarif', quote: 'Narxni operator aniqlaydi', notIncluded: 'buyurtma summasiga kirmaydi', quantity: 'Miqdor', required: 'majburiy',
+      fixed: 'Tarif', quote: 'Narxni operator aytadi', notIncluded: 'buyurtma summasiga kirmaydi', quantity: 'Miqdor', required: 'majburiy',
       units: { package: 'posilka', item: 'dona', day: 'kun', photo: 'foto', 'half-hour': '30 daqiqa' },
     },
     summary: {
       title: 'Jami', items: 'Tovarlar', storeShipping: 'Do‘kon yetkazishi', storeNoReserve: 'Zaxirasiz', service: 'Atlas xizmati',
-      storeShippingHelp: freeFrom => `Do‘kon omborimizgacha yetkazish narxini ko‘rsatmasa, $10 zaxira qo‘yamiz — do‘kondan bitta buyurtmaga bir marta. Bitta do‘kondan ${freeFrom} va undan ortiq tovarga zaxira olinmaydi: bunday buyurtmalar odatda bepul yetkaziladi. Do‘kon baribir haq olsa, avval sizdan so‘raymiz.`,
+      storeShippingHelp: freeFrom => `Do‘kon omborimizgacha yetkazish narxini ko‘rsatmasa, $10 zaxira ushlab turamiz — do‘kondan bitta buyurtmaga bir marta, to‘lov summasidan alohida. Bitta do‘kondan ${freeFrom} dan qimmat tovarlarga zaxira yo‘q: do‘kon yetkazishi siz uchun bepul. Do‘kon baribir haq olsa, qo‘shimcha to‘lov — faqat roziligingiz bilan.`,
       serviceHelp: 'Tovarni sotib olish, do‘kon valyutasida to‘lash va buyurtmani topshirishgacha kuzatib borish.', serviceHelpLabel: 'Atlas xizmatiga nimalar kiradi',
       international: 'O‘zbekistonga yetkazish',
       internationalHelp: 'Bir do‘kon tovarlari bitta posilkada keladi: vazn qo‘shiladi, qadoq bir marta hisoblanadi. Posilkaning minimal to‘lovli vazni — 1 kg.',
@@ -227,7 +238,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
       reserve: 'Qaytariladigan zaxira', reserveHelp: reserveHelp.uz, reserveHelpLabel: 'Qaytariladigan zaxira nima',
       optional: 'Atlas umumiy yig‘imi', balance: 'Atlas balansidan to‘lash', available: 'Mavjud', fromBalance: 'Atlas balansidan', payable: 'To‘lash uchun',
       checkout: 'Buyurtmani rasmiylashtirish', renew: 'Hisobni yangilash', validFor: time => `Narx yana ${time} amal qiladi`, checking: 'Narx muddati tekshirilmoqda…',
-      expired: 'Hisob muddati tugadi — rasmiylashtirishdan oldin narxni yangilang.', assurance: 'Qo‘shimcha to‘lov — faqat roziligingiz bilan',
+      expired: 'Hisob muddati tugadi — rasmiylashtirishdan oldin narxni yangilang.', assurance: 'To‘lov — faqat roziligingiz bilan',
       continue: 'Xaridni davom ettirish', outside: 'To‘lov summasiga kirmaydi',
       verifying: 'Narxlar tekshirilmoqda…', recheckNote: 'Rasmiylashtirishdan oldin narxlarni do‘konlar bilan tekshiramiz.',
     },
@@ -239,18 +250,18 @@ export const cartCopy: Record<Locale, CartCopy> = {
       region: 'Viloyat', city: 'Shahar', street: 'Ko‘cha, uy, xonadon', streetPlaceholder: 'Ko‘cha nomini yozing',
       postal: 'Pochta indeksi', postalHint: '6 ta raqam, masalan 100000.', postalMissing: 'Bu qabul qiluvchida indeks ko‘rsatilmagan. Uni qabul qiluvchi profilida saqlaymiz.', comment: 'Kuryer uchun izoh',
       next: 'Keyingi: tekshirish', edit: 'O‘zgartirish',
-      consent: { before: '', link: 'Bojxona shartlari', after: ' bilan tanishdim va oylik limitdan oshsa, boj to‘lovi bo‘lishi mumkinligini tushunaman.' },
+      consent: { before: '', link: 'Bojxona shartlari', after: ' bilan tanishdim va oylik limitdan oshgan qismga boj to‘lanishini tushunaman.' },
       consentRequired: 'Bojxona shartlariga roziligingizni belgilang.',
       serviceNotAdded: 'roziligingizgacha jamiga kirmaydi', servicePriceLater: 'narx operator tekshiruvidan so‘ng',
       confirm: 'Oldindan buyurtmani tasdiqlash', saving: 'Buyurtma saqlanmoqda…',
-      preorderNote: 'Oldindan buyurtma Atlas’da saqlanadi. Haqiqiy to‘lov va yetkazish hali ulanmagan.', estimated: 'To‘lov uchun',
+      preorderNote: 'Oldindan buyurtma Atlas kabinetingizda saqlanadi. Sayt orqali to‘lov va yetkazish ulanmagan — pul yechilmaydi.', estimated: 'To‘lov uchun',
       saveRecipient: 'Qabul qiluvchini profilga saqlash — keyingi buyurtmalar va pasport uchun',
     },
     success: {
-      title: 'Oldindan buyurtma yaratildi', hint: 'To‘lov provayderi hali ulanmagan. Atlas pul yechmaydi va jo‘natma yaratmaydi.',
+      title: 'Oldindan buyurtma yaratildi', hint: 'Saytda to‘lov ulanmagan: Atlas pul yechmaydi va jo‘natma yaratmaydi.',
       statusTitle: 'Buyurtma holati yangilandi', saved: 'To‘lov belgisi Atlas’da qayd etildi. Provayder ulanmagan, pul yechilmadi.',
-      pending: 'Buyurtma saqlandi. Haqiqiy to‘lov uchun Atlas to‘lov provayderini ulashi kerak.', confirm: 'Atlas’da belgini qayd etish',
-      updating: 'Yangilanmoqda…', orders: 'Buyurtmalarni ochish', noCharge: 'Haqiqiy yechib olish, xat, SMS va yetkazish amalga oshirilmaydi.',
+      pending: 'Buyurtma kabinetda saqlandi. Saytda to‘lov ulanmagan, shuning uchun pul yechilmaydi.', confirm: 'Atlas’da belgini qayd etish',
+      updating: 'Yangilanmoqda…', orders: 'Buyurtmalarni ochish', noCharge: 'Pul yechilmaydi, xat va SMS yuborilmaydi, yetkazish yaratilmaydi.',
     },
   },
   en: {
@@ -261,7 +272,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
     signin: { title: 'Sign in to open your cart', text: 'Your cart and orders are saved to your Atlas profile.', action: 'Sign in' },
     empty: { title: 'Your cart is empty', text: 'Paste a product link from a store abroad and we calculate the price with delivery to Tashkent.', paste: 'Paste a link', stores: 'Browse stores' },
     item: { remove: 'Remove', decrease: 'Decrease quantity', increase: 'Increase quantity', quantity: 'Quantity', storePrice: 'In store', openStore: 'Open in store', parcelFrom: store => `Parcel from ${store}`, forQuantity: count => `for ${count}`,
-      parcelReserve: (missing, reserve) => `Store delivery is unknown: a ${reserve} reserve is held separately, outside the total. Add ${missing} more from this store and delivery is free.`,
+      parcelReserve: (missing, reserve) => `The store did not state delivery: we hold a ${reserve} reserve separately, outside the amount to pay. Add ${missing} more from this store and delivery is free.`,
       parcelFree: freeFrom => `Over ${freeFrom} from this store — delivery to the warehouse is free.`,
       priceUp: (from, to) => `The store price went up: ${from} → ${to}. Total recalculated.`,
       priceDown: (from, to) => `The store price went down: ${from} → ${to}. Total recalculated.`,
@@ -276,7 +287,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
     },
     summary: {
       title: 'Summary', items: 'Items', storeShipping: 'Store delivery', storeNoReserve: 'No reserve', service: 'Atlas service',
-      storeShippingHelp: freeFrom => `When a store does not state delivery to our warehouse, we add a $10 reserve — once per store order. From ${freeFrom} of items from one store there is no reserve: such orders usually ship free. If the store still charges, we ask you first.`,
+      storeShippingHelp: freeFrom => `When a store does not state delivery to our warehouse, we hold a $10 reserve — once per store order, apart from the amount to pay. Over ${freeFrom} of items from one store there is no reserve: store delivery is free for you. If the store still charges, any extra payment needs your consent.`,
       serviceHelp: 'Buying the item, paying in the store’s currency and handling the order until pickup.', serviceHelpLabel: 'What the Atlas service covers',
       international: 'Delivery to Uzbekistan',
       internationalHelp: 'Items from one store travel as one parcel: weights add up and packaging counts once. The minimum billable parcel weight is 1 kg.',
@@ -284,7 +295,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
       reserve: 'Refundable reserve', reserveHelp: reserveHelp.en, reserveHelpLabel: 'What the refundable reserve is',
       optional: 'General Atlas fee', balance: 'Pay from Atlas balance', available: 'Available', fromBalance: 'From Atlas balance', payable: 'To pay',
       checkout: 'Check out', renew: 'Refresh estimate', validFor: time => `Price held for ${time}`, checking: 'Checking price validity…',
-      expired: 'The estimate expired — refresh the price before checkout.', assurance: 'Extra charges only with your approval',
+      expired: 'The estimate expired — refresh the price before checkout.', assurance: 'Payment only with your approval',
       continue: 'Continue shopping', outside: 'Not in the amount to pay',
       verifying: 'Checking prices…', recheckNote: 'We check prices with the stores before checkout.',
     },
@@ -296,18 +307,18 @@ export const cartCopy: Record<Locale, CartCopy> = {
       region: 'Region', city: 'City', street: 'Street, building, apartment', streetPlaceholder: 'Start typing a street',
       postal: 'Postal code', postalHint: '6 digits, for example 100000.', postalMissing: 'This recipient has no postal code yet. We will save it to the recipient.', comment: 'Note for the courier',
       next: 'Next: review', edit: 'Edit',
-      consent: { before: 'I have read the ', link: 'customs terms', after: ' and understand that duty may apply above the monthly allowance.' },
+      consent: { before: 'I have read the ', link: 'customs terms', after: ' and understand that duty applies above the monthly allowance.' },
       consentRequired: 'Please confirm the customs terms.',
       serviceNotAdded: 'not added until you approve', servicePriceLater: 'price after operator review',
       confirm: 'Confirm pre-order', saving: 'Saving order…',
-      preorderNote: 'Your pre-order is saved in Atlas. Real payments and delivery are not connected yet.', estimated: 'To pay',
+      preorderNote: 'Your pre-order is saved in your Atlas account. Payment and delivery through the site are not connected — no money is charged.', estimated: 'To pay',
       saveRecipient: 'Save this recipient to your profile — for next orders and the passport',
     },
     success: {
-      title: 'Pre-order created', hint: 'A payment provider is not connected yet. Atlas does not charge or ship orders.',
+      title: 'Pre-order created', hint: 'Online payment is not connected: Atlas does not charge or ship orders.',
       statusTitle: 'Order status updated', saved: 'Atlas recorded a payment status. No provider is connected and no money was charged.',
-      pending: 'The order is saved. Atlas must connect a payment provider before accepting real payments.', confirm: 'Record status in Atlas',
-      updating: 'Updating…', orders: 'View orders', noCharge: 'No real charge, email, SMS or delivery occurs.',
+      pending: 'The order is saved in your account. Online payment is not connected, so no money is charged.', confirm: 'Record status in Atlas',
+      updating: 'Updating…', orders: 'View orders', noCharge: 'No money is charged, no email or SMS is sent, and no delivery is created.',
     },
   },
 };
@@ -324,7 +335,7 @@ export const accountCopy: Record<Locale, AccountCopy> = {
       recipient: 'Добавьте получателя', recipientHint: 'Адрес подставится при оформлении заказа.',
       allSet: 'Всё в порядке', allSetHint: 'Сейчас от вас ничего не требуется.', open: 'Открыть', add: 'Добавить', newOrder: 'Заказать по ссылке',
       stage: (current, total) => `Этап ${current} из ${total}`,
-      due: 'К оплате', orderNo: id => `Заказ ${id}`, noCharge: 'Оплата на сайте пока не подключена: деньги не списываются.',
+      due: 'К оплате', orderNo: id => `Заказ ${id}`, noCharge: 'Оплата на сайте не подключена: деньги не списываются.',
     },
     tiles: {
       label: 'Коротко о покупках', orders: 'Заказы', ordersActive: count => `${count} в работе`, ordersTotal: count => `всего ${count}`, none: 'пока нет',
@@ -333,7 +344,7 @@ export const accountCopy: Record<Locale, AccountCopy> = {
     },
     customs: {
       title: 'Таможенный лимит месяца', used: (used, limit) => `$${used} из $${limit}`, left: amount => `Ещё $${amount} без пошлины`,
-      over: amount => `Превышение $${amount}: возможен таможенный платёж`,
+      over: amount => `Сверх лимита $${amount} — с этой суммы платится пошлина`,
       note: 'Считаются только покупки через Atlas в этом месяце, по дате заказа. Покупки в других сервисах учитывайте сами.', link: 'Как считается таможня',
       perPerson: 'Лимит $200 — на каждого получателя.', empty: 'В этом месяце заказов ещё не было — лимит свободен.', unnamed: 'Получатель не указан', cart: amount => `В корзине ещё $${amount} — учтите при оформлении.`,
     },
@@ -351,7 +362,22 @@ export const accountCopy: Record<Locale, AccountCopy> = {
       replyPlaceholder: 'Ваш ответ', reply: 'Ответить', none: 'Обращений пока нет.', newTicket: 'Новое обращение', subject: 'Тема', question: 'Опишите вопрос',
       send: 'Отправить', sent: 'Обращение отправлено.', aboutOrder: id => `Вопрос по заказу ${id}`,
     },
-    settings: { title: 'Настройки', language: 'Язык', theme: 'Тема', rules: 'Правила и обработка данных', signOut: 'Выйти из аккаунта' },
+    settings: {
+      title: 'Настройки', language: 'Язык', theme: 'Тема', rules: 'Правила и обработка данных', signOut: 'Выйти из аккаунта',
+      support: 'Поддержка и помощь', privacy: 'Политика конфиденциальности', terms: 'Условия использования',
+      consents: 'Согласия', consentsNone: 'Не зафиксированы', consentsAccept: 'Принять', consentVersion: version => `редакция ${version}`, consentDoc: { privacy: 'Политика конфиденциальности', terms: 'Условия использования' },
+      restore: 'Восстановить покупки', restored: orders => `В Atlas нет встроенных покупок App Store и Google Play. Заказы (${orders}) и баланс восстановлены из вашего аккаунта.`,
+      about: 'О приложении', aboutVersion: (version, build) => `Версия ${version} (${build})`, aboutPlatform: { ios: 'iOS', android: 'Android' }, aboutLink: 'Подробнее о приложении',
+    },
+    deletion: {
+      title: 'Удалить аккаунт', lead: 'Аккаунт и личные данные будут удалены без возможности восстановления.', open: 'Удалить аккаунт',
+      removed: 'Будет удалено', removedList: ['профиль и контакты', 'получатели и адреса', 'сканы паспортов', 'корзина и избранное', 'уведомления', 'способы входа', 'история обращений в поддержку'],
+      kept: 'Останется без личных данных', keptList: ['записи о заказах и бухгалтерские записи, которые требует хранить закон, — на установленный законом срок, под обезличенным идентификатором'],
+      blocked: count => count === 1 ? 'Один оплаченный заказ ещё в работе.' : `Оплаченных заказов в работе: ${count}.`, blockedHint: 'Сначала дождитесь доставки или отмените их — или напишите в поддержку, и мы поможем закрыть их.',
+      orders: 'Открыть заказы', support: 'Написать в поддержку', supportSubject: 'Удаление аккаунта',
+      autoCancel: count => count === 1 ? 'Один неоплаченный запрос будет отменён автоматически.' : `Неоплаченные запросы (${count}) будут отменены автоматически.`,
+      balance: sum => `Понимаю, что баланс ${sum} будет потерян`, confirm: 'Удалить аккаунт навсегда', cancel: 'Отмена', done: 'Аккаунт удалён.', failed: 'Не удалось удалить аккаунт.',
+    },
   },
   uz: {
     title: 'Shaxsiy kabinet',
@@ -364,7 +390,7 @@ export const accountCopy: Record<Locale, AccountCopy> = {
       recipient: 'Qabul qiluvchini qo‘shing', recipientHint: 'Manzil buyurtma rasmiylashtirishda avtomatik qo‘yiladi.',
       allSet: 'Hammasi joyida', allSetHint: 'Hozir sizdan hech narsa talab qilinmaydi.', open: 'Ochish', add: 'Qo‘shish', newOrder: 'Havola orqali buyurtma',
       stage: (current, total) => `Bosqich: ${current} / ${total}`,
-      due: 'To‘lov uchun', orderNo: id => `${id} buyurtma`, noCharge: 'Saytda to‘lov hali ulanmagan: pul yechilmaydi.',
+      due: 'To‘lov uchun', orderNo: id => `${id} buyurtma`, noCharge: 'Saytda to‘lov ulanmagan: pul yechilmaydi.',
     },
     tiles: {
       label: 'Xaridlar haqida qisqacha', orders: 'Buyurtmalar', ordersActive: count => `${count} ta jarayonda`, ordersTotal: count => `jami ${count} ta`, none: 'hali yo‘q',
@@ -373,7 +399,7 @@ export const accountCopy: Record<Locale, AccountCopy> = {
     },
     customs: {
       title: 'Oylik bojxona limiti', used: (used, limit) => `$${used} / $${limit}`, left: amount => `Yana $${amount} bojsiz`,
-      over: amount => `$${amount} ortiqcha: bojxona to‘lovi bo‘lishi mumkin`,
+      over: amount => `Limitdan $${amount} ortiq — bu summadan boj to‘lanadi`,
       note: 'Faqat shu oy Atlas orqali qilingan xaridlar buyurtma sanasi bo‘yicha hisoblanadi. Boshqa xizmatlardagi xaridlarni o‘zingiz hisobga oling.', link: 'Bojxona qanday hisoblanadi',
       perPerson: '$200 limit — har bir qabul qiluvchiga.', empty: 'Bu oy hali buyurtma yo‘q — limit bo‘sh.', unnamed: 'Qabul qiluvchi ko‘rsatilmagan', cart: amount => `Savatda yana $${amount} — rasmiylashtirishda hisobga oling.`,
     },
@@ -391,7 +417,22 @@ export const accountCopy: Record<Locale, AccountCopy> = {
       replyPlaceholder: 'Javobingiz', reply: 'Javob berish', none: 'Hali murojaatlar yo‘q.', newTicket: 'Yangi murojaat', subject: 'Mavzu', question: 'Savolingizni yozing',
       send: 'Yuborish', sent: 'Murojaat yuborildi.', aboutOrder: id => `${id} buyurtma bo‘yicha savol`,
     },
-    settings: { title: 'Sozlamalar', language: 'Til', theme: 'Ko‘rinish', rules: 'Qoidalar va ma’lumotlarga ishlov berish', signOut: 'Akkauntdan chiqish' },
+    settings: {
+      title: 'Sozlamalar', language: 'Til', theme: 'Ko‘rinish', rules: 'Qoidalar va ma’lumotlarga ishlov berish', signOut: 'Akkauntdan chiqish',
+      support: 'Yordam va qo‘llab-quvvatlash', privacy: 'Maxfiylik siyosati', terms: 'Foydalanish shartlari',
+      consents: 'Roziliklar', consentsNone: 'Qayd etilmagan', consentsAccept: 'Qabul qilish', consentVersion: version => `${version} tahriri`, consentDoc: { privacy: 'Maxfiylik siyosati', terms: 'Foydalanish shartlari' },
+      restore: 'Xaridlarni tiklash', restored: orders => `Atlasda App Store va Google Play ichki xaridlari yo‘q. Buyurtmalar (${orders}) va balans akkauntingizdan tiklandi.`,
+      about: 'Ilova haqida', aboutVersion: (version, build) => `Versiya ${version} (${build})`, aboutPlatform: { ios: 'iOS', android: 'Android' }, aboutLink: 'Ilova haqida batafsil',
+    },
+    deletion: {
+      title: 'Akkauntni o‘chirish', lead: 'Akkaunt va shaxsiy ma’lumotlar qaytarib bo‘lmaydigan tarzda o‘chiriladi.', open: 'Akkauntni o‘chirish',
+      removed: 'O‘chiriladi', removedList: ['profil va kontaktlar', 'qabul qiluvchilar va manzillar', 'pasport skanlari', 'savat va sevimlilar', 'bildirishnomalar', 'kirish usullari', 'yordam xizmatiga murojaatlar tarixi'],
+      kept: 'Shaxsiy ma’lumotlarsiz saqlanadi', keptList: ['qonun saqlashni talab qiladigan buyurtma va buxgalteriya yozuvlari — qonunda belgilangan muddatga, shaxssizlantirilgan identifikator ostida'],
+      blocked: count => count === 1 ? 'Bitta to‘langan buyurtma hali jarayonda.' : `Jarayondagi to‘langan buyurtmalar: ${count}.`, blockedHint: 'Avval yetkazilishini kuting yoki ularni bekor qiling — yoki yordam xizmatiga yozing, yopishga yordam beramiz.',
+      orders: 'Buyurtmalarni ochish', support: 'Yordam xizmatiga yozish', supportSubject: 'Akkauntni o‘chirish',
+      autoCancel: count => count === 1 ? 'Bitta to‘lanmagan so‘rov avtomatik bekor qilinadi.' : `To‘lanmagan so‘rovlar (${count}) avtomatik bekor qilinadi.`,
+      balance: sum => `${sum} balans yo‘qolishini tushunaman`, confirm: 'Akkauntni butunlay o‘chirish', cancel: 'Bekor qilish', done: 'Akkaunt o‘chirildi.', failed: 'Akkauntni o‘chirib bo‘lmadi.',
+    },
   },
   en: {
     title: 'Your account',
@@ -404,7 +445,7 @@ export const accountCopy: Record<Locale, AccountCopy> = {
       recipient: 'Add a recipient', recipientHint: 'The address will be filled in at checkout.',
       allSet: 'You’re all set', allSetHint: 'Nothing needs your attention right now.', open: 'Open', add: 'Add', newOrder: 'Order by link',
       stage: (current, total) => `Step ${current} of ${total}`,
-      due: 'To pay', orderNo: id => `Order ${id}`, noCharge: 'Online payment is not connected yet: no money is charged.',
+      due: 'To pay', orderNo: id => `Order ${id}`, noCharge: 'Online payment is not connected: no money is charged.',
     },
     tiles: {
       label: 'Your shopping at a glance', orders: 'Orders', ordersActive: count => `${count} in progress`, ordersTotal: count => `${count} total`, none: 'none yet',
@@ -413,7 +454,7 @@ export const accountCopy: Record<Locale, AccountCopy> = {
     },
     customs: {
       title: 'Monthly customs allowance', used: (used, limit) => `$${used} of $${limit}`, left: amount => `$${amount} left duty-free`,
-      over: amount => `$${amount} over: customs duty may apply`,
+      over: amount => `$${amount} over the allowance — duty applies to this amount`,
       note: 'Only this month’s purchases through Atlas are counted, by order date. Track purchases made through other services yourself.', link: 'How customs is calculated',
       perPerson: 'The $200 allowance is per recipient.', empty: 'No orders this month yet — the allowance is free.', unnamed: 'No recipient given', cart: amount => `$${amount} more in the cart — keep it in mind at checkout.`,
     },
@@ -431,7 +472,22 @@ export const accountCopy: Record<Locale, AccountCopy> = {
       replyPlaceholder: 'Your reply', reply: 'Reply', none: 'No tickets yet.', newTicket: 'New request', subject: 'Subject', question: 'Describe your question',
       send: 'Send', sent: 'Request sent.', aboutOrder: id => `Question about order ${id}`,
     },
-    settings: { title: 'Settings', language: 'Language', theme: 'Theme', rules: 'Terms and data processing', signOut: 'Sign out' },
+    settings: {
+      title: 'Settings', language: 'Language', theme: 'Theme', rules: 'Terms and data processing', signOut: 'Sign out',
+      support: 'Support and help', privacy: 'Privacy policy', terms: 'Terms of use',
+      consents: 'Consents', consentsNone: 'Not recorded', consentsAccept: 'Accept', consentVersion: version => `edition ${version}`, consentDoc: { privacy: 'Privacy policy', terms: 'Terms of use' },
+      restore: 'Restore purchases', restored: orders => `Atlas has no App Store or Google Play in-app purchases. Your orders (${orders}) and balance were restored from your account.`,
+      about: 'About the app', aboutVersion: (version, build) => `Version ${version} (${build})`, aboutPlatform: { ios: 'iOS', android: 'Android' }, aboutLink: 'More about the app',
+    },
+    deletion: {
+      title: 'Delete account', lead: 'The account and personal data will be deleted permanently.', open: 'Delete account',
+      removed: 'Will be deleted', removedList: ['profile and contacts', 'recipients and addresses', 'passport scans', 'cart and favourites', 'notifications', 'sign-in methods', 'support history'],
+      kept: 'Kept without personal data', keptList: ['order and accounting records the law requires us to keep — for the statutory period, under an anonymised identifier'],
+      blocked: count => count === 1 ? 'One paid order is still in progress.' : `Paid orders in progress: ${count}.`, blockedHint: 'Wait for delivery or cancel them first — or write to support and we will help close them.',
+      orders: 'Open orders', support: 'Write to support', supportSubject: 'Account deletion',
+      autoCancel: count => count === 1 ? 'One unpaid request will be cancelled automatically.' : `Unpaid requests (${count}) will be cancelled automatically.`,
+      balance: sum => `I understand the balance of ${sum} will be lost`, confirm: 'Delete account permanently', cancel: 'Cancel', done: 'Account deleted.', failed: 'Could not delete the account.',
+    },
   },
 };
 
@@ -538,32 +594,32 @@ export const ordersCopy: Record<Locale, OrdersCopy> = {
 export const balanceCopy: Record<Locale, BalanceCopy> = {
   ru: {
     title: 'Баланс', label: 'Баланс Atlas', note: 'Внутренний счёт для расчётов по заказам — не банковская карта и не кошелёк.',
-    spend: 'Заказать по ссылке', withdraw: 'Вывести', withdrawTitle: 'Вывод пока не подключён',
-    withdrawText: 'Atlas ещё не подключил платёжного провайдера для перечисления средств. Этот экран не отправит запрос и не выполнит перевод. Баланс — внутренний учёт заказов, не банковский счёт.',
-    close: 'Понятно', reserve: 'Резерв доставки в заказах', reserveText: 'Уже входит в суммы заказов. После взвешивания посылок остаток вернётся на баланс, а доплату выше резерва согласуем отдельно.',
+    spend: 'Заказать по ссылке', withdraw: 'Вывести', withdrawTitle: 'Вывод на сайте не подключён',
+    withdrawText: 'Перечисление средств с баланса на сайте не подключено: этот экран не отправляет запрос и не переводит деньги. Баланс — внутренний учёт заказов, не банковский счёт.',
+    close: 'Понятно', reserve: 'Резерв доставки в заказах', reserveText: 'Уже входит в суммы заказов. После взвешивания посылок остаток вернётся на баланс, а доплата выше резерва — только с вашего согласия.',
     orders: 'Мои заказы', history: 'История операций', operations: count => `${count} ${ruPlural(count, 'операция', 'операции', 'операций')}`, order: 'Заказ',
     emptyTitle: 'Операций пока нет', emptyText: 'Здесь появятся возвраты разницы после взвешивания и оплата заказов с баланса.',
-    notice: 'Платёжный провайдер и вывод средств пока не подключены. Переводы не выполняются.',
+    notice: 'Оплата и вывод средств на сайте не подключены — деньги не переводятся.',
     signin: { title: 'Войдите, чтобы открыть баланс', text: 'Расчёты по заказам и возвратам хранятся в вашем профиле.', action: 'Войти' }, loading: 'Загружаем операции…',
   },
   uz: {
     title: 'Balans', label: 'Atlas balansi', note: 'Buyurtmalar bo‘yicha hisob-kitob uchun ichki hisob — bank kartasi yoki hamyon emas.',
-    spend: 'Havola orqali buyurtma', withdraw: 'Yechib olish', withdrawTitle: 'Yechib olish hali ulanmagan',
-    withdrawText: 'Atlas hali mablag‘ o‘tkazish uchun to‘lov provayderini ulamagan. Bu ekran so‘rov yubormaydi va pul o‘tkazmaydi. Balans — buyurtmalarning ichki hisobi, bank hisob raqami emas.',
-    close: 'Tushunarli', reserve: 'Buyurtmalardagi yetkazish zaxirasi', reserveText: 'Buyurtma summalariga allaqachon kiritilgan. Posilkalar tortilgach qoldiq balansga qaytadi, zaxiradan ortiq to‘lov alohida kelishiladi.',
+    spend: 'Havola orqali buyurtma', withdraw: 'Yechib olish', withdrawTitle: 'Saytda yechib olish ulanmagan',
+    withdrawText: 'Saytda balansdan pul o‘tkazish ulanmagan: bu ekran so‘rov yubormaydi va pul o‘tkazmaydi. Balans — buyurtmalarning ichki hisobi, bank hisob raqami emas.',
+    close: 'Tushunarli', reserve: 'Buyurtmalardagi yetkazish zaxirasi', reserveText: 'Buyurtma summalariga allaqachon kiritilgan. Posilkalar tortilgach qoldiq balansga qaytadi, zaxiradan ortiq to‘lov — faqat roziligingiz bilan.',
     orders: 'Buyurtmalarim', history: 'Amallar tarixi', operations: count => `${count} ta amal`, order: 'Buyurtma',
     emptyTitle: 'Hali amallar yo‘q', emptyText: 'Tortishdan keyingi farq qaytarilishi va balansdan to‘langan buyurtmalar shu yerda ko‘rinadi.',
-    notice: 'To‘lov provayderi va pul yechib olish hali ulanmagan. O‘tkazmalar bajarilmaydi.',
+    notice: 'Saytda to‘lov va pul yechib olish ulanmagan — pul o‘tkazilmaydi.',
     signin: { title: 'Balansni ochish uchun kiring', text: 'Buyurtma va qaytarishlar hisobi profilingizda saqlanadi.', action: 'Kirish' }, loading: 'Amallar yuklanmoqda…',
   },
   en: {
     title: 'Balance', label: 'Atlas balance', note: 'An internal account for order settlements — not a bank card or a wallet.',
     spend: 'Order by link', withdraw: 'Withdraw', withdrawTitle: 'Withdrawals are not connected',
-    withdrawText: 'Atlas has not connected a payment provider for payouts. This screen will not submit a request or transfer funds. The balance is internal order accounting, not a bank account.',
-    close: 'Got it', reserve: 'Delivery reserve in orders', reserveText: 'Already included in order totals. After parcels are weighed, any remainder returns to your balance; charges above the reserve are agreed separately.',
+    withdrawText: 'Payouts from the balance are not connected on the site: this screen does not submit a request or transfer funds. The balance is internal order accounting, not a bank account.',
+    close: 'Got it', reserve: 'Delivery reserve in orders', reserveText: 'Already included in order totals. After parcels are weighed, any remainder returns to your balance; anything above the reserve needs your consent.',
     orders: 'My orders', history: 'Transaction history', operations: count => `${count} ${count === 1 ? 'transaction' : 'transactions'}`, order: 'Order',
     emptyTitle: 'No transactions yet', emptyText: 'Refunds after weighing and orders paid from the balance will appear here.',
-    notice: 'A payment provider and withdrawals are not connected yet. No transfers are made.',
+    notice: 'Payments and withdrawals are not connected on the site — no money is transferred.',
     signin: { title: 'Sign in to open your balance', text: 'Order and refund settlements are saved in your profile.', action: 'Sign in' }, loading: 'Loading transactions…',
   },
 };
@@ -721,7 +777,7 @@ export const docsCopy: Record<Locale, DocsCopy> = {
     loadError: 'Не удалось загрузить документы.', uploadError: 'Не удалось загрузить документ.', deleteError: 'Не удалось удалить документ.', scans: 'Загруженные сканы',
     declTitle: 'Декларация', declLead: 'Соберём черновик из ваших заказов и подтверждённого паспорта — без повторного ввода.', need: 'Что нужно для декларации',
     needRecipient: 'Получатель', needPassport: 'Паспорт получателя', needOrders: 'Хотя бы один заказ', addPassport: 'Добавить паспорт', newOrder: 'Заказать по ссылке',
-    ordersFor: name => `Заказы для: ${name}`, selectGroup: 'Выбрать все', usd: amount => `≈ $${amount}`, overLimit: 'Больше $200 — сверх лимита возможна пошлина.', history: 'Черновики деклараций',
+    ordersFor: name => `Заказы для: ${name}`, selectGroup: 'Выбрать все', usd: amount => `≈ $${amount}`, overLimit: 'Больше $200 — с превышения платится пошлина.', history: 'Черновики деклараций',
   },
   uz: {
     title: 'Qabul qiluvchi pasporti yoki ID-kartasi', lead: 'Posilkani bojxonada rasmiylashtirish uchun kerak. Skanni siz va posilkani rasmiylashtiradigan Atlas xodimlari ko‘radi.',
@@ -732,7 +788,7 @@ export const docsCopy: Record<Locale, DocsCopy> = {
     loadError: 'Hujjatlarni yuklab bo‘lmadi.', uploadError: 'Hujjatni yuklab bo‘lmadi.', deleteError: 'Hujjatni o‘chirib bo‘lmadi.', scans: 'Yuklangan skanlar',
     declTitle: 'Deklaratsiya', declLead: 'Buyurtmalaringiz va tasdiqlangan pasportdan qoralama tayyorlaymiz — qayta kiritmasdan.', need: 'Deklaratsiya uchun nima kerak',
     needRecipient: 'Qabul qiluvchi', needPassport: 'Qabul qiluvchi pasporti', needOrders: 'Kamida bitta buyurtma', addPassport: 'Pasport qo‘shish', newOrder: 'Havola orqali buyurtma',
-    ordersFor: name => `Buyurtmalar: ${name}`, selectGroup: 'Hammasini tanlash', usd: amount => `≈ $${amount}`, overLimit: '$200 dan ko‘p — limitdan ortiq qismga boj bo‘lishi mumkin.', history: 'Deklaratsiya qoralamalari',
+    ordersFor: name => `Buyurtmalar: ${name}`, selectGroup: 'Hammasini tanlash', usd: amount => `≈ $${amount}`, overLimit: '$200 dan ko‘p — limitdan ortiq qismga boj to‘lanadi.', history: 'Deklaratsiya qoralamalari',
   },
   en: {
     title: 'Recipient passport or ID card', lead: 'Needed to clear the parcel through customs. The scan is seen by you and by the Atlas staff who process the parcel.',
@@ -743,7 +799,7 @@ export const docsCopy: Record<Locale, DocsCopy> = {
     loadError: 'Could not load documents.', uploadError: 'Could not upload the document.', deleteError: 'Could not delete the document.', scans: 'Uploaded scans',
     declTitle: 'Declaration', declLead: 'We build a draft from your orders and the confirmed passport — nothing to retype.', need: 'What a declaration needs',
     needRecipient: 'A recipient', needPassport: 'The recipient’s passport', needOrders: 'At least one order', addPassport: 'Add passport', newOrder: 'Order by link',
-    ordersFor: name => `Orders for: ${name}`, selectGroup: 'Select all', usd: amount => `≈ $${amount}`, overLimit: 'Over $200 — duty may apply above the allowance.', history: 'Declaration drafts',
+    ordersFor: name => `Orders for: ${name}`, selectGroup: 'Select all', usd: amount => `≈ $${amount}`, overLimit: 'Over $200 — duty applies to the excess.', history: 'Declaration drafts',
   },
 };
 
@@ -753,5 +809,5 @@ type NotFoundCopy = { title: string; text: string; home: string; paste: string; 
 export const notFoundCopy: Record<Locale, NotFoundCopy> = {
   ru: { title: 'Страница не найдена', text: 'Ссылка устарела или в адресе опечатка. Начните с главной или вставьте ссылку на товар — посчитаем итог в сумах.', home: 'На главную', paste: 'Вставить ссылку на товар', stores: 'Магазины' },
   uz: { title: 'Sahifa topilmadi', text: 'Havola eskirgan yoki manzilda xato bor. Bosh sahifadan boshlang yoki tovar havolasini qo‘ying — yakuniy narxni so‘mda hisoblab beramiz.', home: 'Bosh sahifa', paste: 'Tovar havolasini qo‘yish', stores: 'Do‘konlar' },
-  en: { title: 'Page not found', text: 'The link may be out of date or the address has a typo. Start from the home page or paste a product link and we’ll work out the total in soum.', home: 'Home page', paste: 'Paste a product link', stores: 'Stores' },
+  en: { title: 'Page not found', text: 'The link is out of date or the address has a typo. Start from the home page or paste a product link and we’ll work out the total in soum.', home: 'Home page', paste: 'Paste a product link', stores: 'Stores' },
 };

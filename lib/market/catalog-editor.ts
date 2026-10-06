@@ -24,6 +24,8 @@ export const catalogDraftSchema=z.object({
   collectionIds:z.array(text.max(80)).max(20),description:text.max(600),checkedAt:z.number().int().nonnegative(),
   warnings:z.array(text.max(500)).max(20),soldOut:z.boolean().optional(),reviewReasons:z.array(text.max(240)).max(10).optional(),lastCheckError:text.max(500).optional(),
   importFailureReason:z.enum(['blocked','network','upstream','response','redirect','timeout','incomplete','unknown']).optional(),
+  /** Where boxedWeight came from; legacy drafts without it are treated as possibly operator-edited. */
+  weightBasis:z.enum(['store','estimate','operator']).optional(),
 });
 export type CatalogDraft=z.infer<typeof catalogDraftSchema>;
 export const collectionSchema=z.object({id:text.min(1).max(80),name:text.min(1).max(80),nameUz:text.max(80).default(''),nameEn:text.max(80).default(''),description:text.max(240).default(''),visible:z.boolean(),position:z.number().int().min(0).max(1000)});
@@ -117,7 +119,7 @@ export function synchronizeBundledCatalog(current:CatalogDocument){
 }
 export function importDraft(data:Extracted,collectionIds:string[],country:string,now=Date.now()):CatalogDraft{
  const images=dedupeSafeImages([data.image??'',...(data.images??[])],data.sourceUrl,12);
- return catalogDraftSchema.parse({sourceUrl:canonicalCatalogUrl(data.sourceUrl),name:data.title??'',brand:data.brand??new URL(data.sourceUrl).hostname,category:data.category??'Другое',image:safeImage(data.image,data.sourceUrl)??images[0]??'',images,price:data.price,currency:data.currency??'',country:data.country??country,boxedWeight:data.boxedWeight??estimatedBoxedWeight(data.category??'Другое'),sourceShippingUsd:10,sourceShippingEstimated:true,variants:(data.variants??[]).map(v=>({id:v.id,label:v.label,size:v.size,sizeLabel:v.sizeLabel,color:v.color,available:v.available,...(v.availabilityKnown===undefined?{}:{availabilityKnown:v.availabilityKnown}),price:v.price,image:safeImage(v.image,data.sourceUrl)})),collectionIds,description:'',checkedAt:now,warnings:data.warnings,soldOut:Boolean(data.variants?.length&&!data.variants.some(v=>v.available))});
+ return catalogDraftSchema.parse({sourceUrl:canonicalCatalogUrl(data.sourceUrl),name:data.title??'',brand:data.brand??new URL(data.sourceUrl).hostname,category:data.category??'Другое',image:safeImage(data.image,data.sourceUrl)??images[0]??'',images,price:data.price,currency:data.currency??'',country:data.country??country,boxedWeight:data.boxedWeight??estimatedBoxedWeight(data.category??'Другое'),weightBasis:data.boxedWeight===undefined?'estimate':'store',sourceShippingUsd:10,sourceShippingEstimated:true,variants:(data.variants??[]).map(v=>({id:v.id,label:v.label,size:v.size,sizeLabel:v.sizeLabel,color:v.color,available:v.available,...(v.availabilityKnown===undefined?{}:{availabilityKnown:v.availabilityKnown}),price:v.price,image:safeImage(v.image,data.sourceUrl)})),collectionIds,description:'',checkedAt:now,warnings:data.warnings,soldOut:Boolean(data.variants?.length&&!data.variants.some(v=>v.available))});
 }
 
 /** Keep a supported merchant link reviewable when its public importer is blocked. */
@@ -128,7 +130,7 @@ export function manualFallbackCatalogDraft(data:Extracted|undefined,sourceUrl:st
   variants:(data?.variants??[]).map(variant=>({...variant,price:undefined,available:false,availabilityKnown:false})),
   warnings:[...(data?.warnings??[]),'Автоимпорт не подтвердил данные магазина. Проверьте карточку вручную перед публикацией.'],
  },collectionIds,country,now);
- return catalogDraftSchema.parse({...draft,reviewReasons:['Требуется ручная проверка цены, варианта и фото перед публикацией.'],lastCheckError:(failureMessage||'Магазин не подтвердил цену и наличие.').slice(0,500),importFailureReason:failureReason});
+ return catalogDraftSchema.parse({...draft,weightBasis:'estimate',reviewReasons:['Требуется ручная проверка цены, варианта и фото перед публикацией.'],lastCheckError:(failureMessage||'Магазин не подтвердил цену и наличие.').slice(0,500),importFailureReason:failureReason});
 }
 
 const generatedCatalogDescriptions = new Set([
@@ -175,7 +177,9 @@ export function customerLinkDraft(product:Product,source:Extracted,now=Date.now(
     warnings:[...source.warnings,customerLinkReviewReason],
   };
   const draft=importDraft(merged,[],product.country??merged.country??'',now);
-  return catalogDraftSchema.parse({...draft,sourceShippingUsd:product.sourceShippingUsd??10,sourceShippingEstimated:product.sourceShippingEstimated??true,description:cleanGeneratedCatalogDescription(product.description??''),reviewReasons:[customerLinkReviewReason]});
+  // A customer-entered weight is never authoritative; only a store-published one is.
+  const weightBasis=source.boxedWeight!==undefined?'store':'estimate';
+  return catalogDraftSchema.parse({...draft,weightBasis,sourceShippingUsd:product.sourceShippingUsd??10,sourceShippingEstimated:product.sourceShippingEstimated??true,description:cleanGeneratedCatalogDescription(product.description??''),reviewReasons:[customerLinkReviewReason]});
 }
 export function catalogIssues(draft:CatalogDraft,now=Date.now(),rates=tariff.rates){
   const issues:string[]=[];
@@ -204,7 +208,13 @@ export function recheckedDraft(previous:CatalogDraft,fresh:CatalogDraft){
   const before=previous.variants.filter(v=>v.available).length,after=fresh.variants.filter(v=>v.available).length;
   if(before!==after)reasons.push(`Доступные варианты: ${before} → ${after}`);
   if(previous.soldOut!==fresh.soldOut)reasons.push(fresh.soldOut?'Товар закончился':'Товар снова доступен');
-  return catalogDraftSchema.parse({...fresh,referencePrice:previous.referencePrice,sourceShippingUsd:previous.sourceShippingUsd??10,sourceShippingEstimated:previous.sourceShippingEstimated??true,description:previous.description,collectionIds:previous.collectionIds,reviewReasons:reasons,lastCheckError:undefined});
+  // Editorial fields stay as the operator left them; the store's values are surfaced for review instead.
+  const name=previous.name||fresh.name;
+  if(fresh.name&&fresh.name!==name)reasons.push(`Название в магазине: ${fresh.name}`.slice(0,240));
+  const storeWeight=fresh.weightBasis==='store'&&(previous.weightBasis==='store'||previous.weightBasis==='estimate');
+  if(fresh.weightBasis==='store'&&fresh.boxedWeight!==previous.boxedWeight)reasons.push(`Вес магазина: ${previous.boxedWeight} → ${fresh.boxedWeight} кг${storeWeight?'':' (оставлен вес редактора)'}`);
+  const image=previous.image||fresh.image,images=previous.images.length?previous.images:fresh.images;
+  return catalogDraftSchema.parse({...fresh,name,brand:previous.brand||fresh.brand,category:previous.category,country:previous.country||fresh.country,image,images,boxedWeight:storeWeight?fresh.boxedWeight:previous.boxedWeight,weightBasis:storeWeight?'store':previous.weightBasis,referencePrice:previous.referencePrice,sourceShippingUsd:previous.sourceShippingUsd??10,sourceShippingEstimated:previous.sourceShippingEstimated??true,description:previous.description,collectionIds:previous.collectionIds,reviewReasons:reasons,lastCheckError:undefined});
 }
 
 export function catalogRefreshDueAt(entry:CatalogEntry){
@@ -212,13 +222,17 @@ export function catalogRefreshDueAt(entry:CatalogEntry){
 }
 
 /**
- * Pick a bounded, merchant-fair batch. Only a published card (or one hidden by
- * this job) is watched; manually hidden drafts are deliberately left alone.
+ * Pick a bounded, merchant-fair batch. Only a published card (or one this job
+ * hid while it was still in its published lifecycle) is watched; manually
+ * hidden or re-queued drafts are deliberately left alone, including legacy
+ * archived/queued entries that still carry an auto-hide marker.
  */
+/** The scheduler checks a published card and an auto-hidden one it may bring back; never one an operator hid. */
+export function isWatchedCatalogEntry(entry:CatalogEntry){return Boolean(entry.published||(entry.autoHiddenAt&&(entry.queueState==='published'||entry.queueState===undefined)))}
 export function dueCatalogEntries(document:CatalogDocument,now=Date.now(),limit=catalogRefreshBatchSize){
   const selected:CatalogEntry[]=[],hosts=new Set<string>();
   const candidates=document.entries
-    .filter(entry=>Boolean(entry.published||entry.autoHiddenAt))
+    .filter(entry=>isWatchedCatalogEntry(entry))
     .filter(entry=>catalogRefreshDueAt(entry)<=now)
     .sort((left,right)=>catalogRefreshDueAt(left)-catalogRefreshDueAt(right));
   for(const entry of candidates){
@@ -277,7 +291,8 @@ export function applyScheduledCatalogRefresh(current:CatalogDocument,id:string,f
   if(!availableVariantCount){
     entry.draft=candidate;
     entry.refresh={...successBase,status:'sold-out'};
-    if(entry.published){delete entry.published;delete entry.publishedAt;entry.autoHiddenAt=now;entry.autoHideReason='source-sold-out'};
+    if(entry.published){delete entry.published;delete entry.publishedAt;entry.autoHiddenAt=now;entry.autoHideReason='source-sold-out'}
+    else if(!isWatchedCatalogEntry(entry)){delete entry.autoHiddenAt;delete entry.autoHideReason}
     resolveAvailabilityReports(next,id,now);
     next.revision++;
     return {document:catalogDocumentSchema.parse(next),outcome:'sold-out'};
@@ -291,9 +306,9 @@ export function applyScheduledCatalogRefresh(current:CatalogDocument,id:string,f
   }
   entry.draft=candidate;
   entry.refresh={...successBase,status:'available'};
-  if(entry.published||entry.autoHiddenAt){
+  if(isWatchedCatalogEntry(entry)){
     entry.published=structuredClone(candidate);entry.publishedAt=now;delete entry.autoHiddenAt;delete entry.autoHideReason;
-  }
+  }else{delete entry.autoHiddenAt;delete entry.autoHideReason}
   resolveAvailabilityReports(next,id,now);
   next.revision++;
   return {document:catalogDocumentSchema.parse(next),outcome:'available'};
@@ -366,6 +381,8 @@ export function changeCatalog(current:CatalogDocument,command:CatalogCommand,now
     const draft=catalogDraftSchema.parse(command.draft);
     // Source identity and observation time come only from server imports.
     draft.sourceUrl=entry.draft.sourceUrl;draft.checkedAt=entry.draft.checkedAt;draft.soldOut=entry.draft.soldOut;draft.reviewReasons=[];draft.lastCheckError=undefined;
+    // Weight provenance is server-owned: a changed weight is the operator's and outranks later store refreshes.
+    draft.weightBasis=draft.boxedWeight!==entry.draft.boxedWeight?'operator':entry.draft.weightBasis;
     draft.image=safeImage(draft.image,draft.sourceUrl)??'';
     draft.images=draft.images.map(i=>safeImage(i,draft.sourceUrl)).filter((i):i is string=>!!i);
     if(draft.collectionIds.some(id=>!next.collections.some(c=>c.id===id)))throw Error('Подборка не найдена');
@@ -382,10 +399,11 @@ export function changeCatalog(current:CatalogDocument,command:CatalogCommand,now
   }else{
     for(const id of command.ids){
       const entry=next.entries.find(e=>e.id===id);if(!entry)throw Error('Товар не найден');
-      if(command.kind==='hide'){delete entry.published;delete entry.publishedAt;entry.queueState='archived';next.availabilityReports=next.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:now}:report);continue}
+      // A manual hide outranks an earlier auto-hide, so the scheduler stops watching the card.
+      if(command.kind==='hide'){delete entry.published;delete entry.publishedAt;delete entry.autoHiddenAt;delete entry.autoHideReason;entry.queueState='archived';next.availabilityReports=next.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:now}:report);continue}
       const issues=catalogIssues(entry.draft,now,pricing.rates);
       if(issues.length)throw Error(`${entry.draft.name||'Товар'}: ${issues.join(', ')}`);
-      entry.published=structuredClone(entry.draft);entry.publishedAt=now;entry.queueState='published';
+      entry.published=structuredClone(entry.draft);entry.publishedAt=now;entry.queueState='published';delete entry.autoHiddenAt;delete entry.autoHideReason;
     }
   }
   next.revision++;return catalogDocumentSchema.parse(next);

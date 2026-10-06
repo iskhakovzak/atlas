@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { homeMetadata, privateMetadata, privateRouteMetadata, publicMetadata, rootMetadata } from '../app/route-metadata.ts';
 import { renderLocale } from '../lib/market/i18n.ts';
 
-const paths = { home: '/', stores: '/stores', customs: '/customs', legal: '/legal' };
+const paths = { home: '/', stores: '/stores', customs: '/customs', legal: '/legal', privacy: '/privacy', terms: '/terms', support: '/support', app: '/app', 'delete-account': '/delete-account' };
 
 test('every public page has self-canonical ?lang versions and an x-default', () => {
   for (const [page, path] of Object.entries(paths)) {
@@ -28,6 +28,9 @@ test('the x-default page is titled in the language it renders in', () => {
   assert.match(publicMetadata('stores', undefined, 'ru').title, /Магазины/);
   assert.match(publicMetadata('stores', undefined, 'uz').title, /do‘konlar/);
   assert.match(publicMetadata('customs', 'en', 'ru').title, /Customs/);
+  assert.match(publicMetadata('support', undefined, 'ru').title, /Поддержка/);
+  assert.match(publicMetadata('delete-account', 'en', 'uz').title, /Delete/);
+  assert.match(publicMetadata('app', 'uz').title, /ilovasi/);
   assert.deepEqual(homeMetadata('en').title, { absolute: 'Atlas — shop international stores with delivery to Uzbekistan' });
 });
 

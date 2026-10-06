@@ -50,7 +50,7 @@ const apply = async (action) => {
 };
 
 await apply({ type: "communication-save", value: { emailEnabled: true, smsEnabled: true, email: customerEmail, phone: "+998901234567", language: "ru" } });
-await apply({ type: "cart-add", product: { ...products[0], id: `smoke-${Date.now()}` }, variant: products[0].variants[0] });
+await apply({ type: "cart-add", product: products[0], variant: products[0].variants[0] });
 const delivery = { recipient: "Atlas Customer", phone: "+998901234567", region: "Ташкент", city: "Ташкент", address: "ул. Амира Темура, 10", postalCode: "100000", comment: "Предрелизный тест" };
 await apply({ type: "checkout", key: crypto.randomUUID(), signature: cartSignature(account.state.cart), useBalance: false, expectedCredit: 0, consentVersion: customsVersion, delivery });
 const orderId = account.state.orders[0].id;

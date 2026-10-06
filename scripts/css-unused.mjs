@@ -3,11 +3,13 @@
 //   node scripts/css-unused.mjs --write  rewrite the files
 //
 // A class counts as used when its name appears anywhere in app/, components/ or lib/ sources
-// (strings, identifiers, comments), which errs on the side of keeping CSS. A word ending in "-"
-// (for example `status-${x}` or 'detail-'+id) counts as a prefix. A selector is removed
-// only when a class outside :not()/:has() is missing, or when every alternative of an :is()/:where()
-// is; :is() lists are never rewritten because that could change specificity. Whole rules go when
-// none of their selectors is left. Check the result with `npm run e2e -- --compare <run>`.
+// (strings, identifiers, comments), which errs on the side of keeping CSS. A lowercase word ending
+// in "-" (for example `status-${x}` or 'detail-'+id) counts as a prefix. A selector is removed
+// when a class outside :not() is missing, or when every alternative of an :is()/:where()/:has() is
+// (:has(.gone) never matches, so `body:has(.gone) .x` is dead as well). :is() lists are never
+// rewritten because that could change specificity: their dead alternatives are only reported, to be
+// removed by hand. Whole rules go when none of their selectors is left. Check the result with
+// `npm run e2e -- --compare <run>`.
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { extname, join } from "node:path";
 import postcss from "postcss";
@@ -34,7 +36,7 @@ for (const file of ["app", "components", "lib"].flatMap((dir) => files(join(root
     for (const piece of token.split(/[^\w-]+/)) {
       if (!piece) continue;
       used.add(piece);
-      if (piece.endsWith("-") && piece.length >= 3) prefixes.add(piece);
+      if (/^[a-z][a-z0-9-]+-$/.test(piece)) prefixes.add(piece);
     }
   }
 }
@@ -55,8 +57,9 @@ function splitTopLevel(value, separator = ",") {
   return out.map((part) => part.trim()).filter(Boolean);
 }
 
-// Returns false when the selector can never match because of a class nobody uses.
-function alive(selector) {
+// Returns false when the selector can never match because of a class nobody uses. Dead alternatives
+// of a list that still matches through another alternative go to `deadParts` (report only).
+function alive(selector, deadParts) {
   let rest = "", i = 0;
   while (i < selector.length) {
     const fn = selector.slice(i).match(/^:(is|where|not|has|matches|any)\(/i);
@@ -65,7 +68,11 @@ function alive(selector) {
     for (; j < selector.length && depth; j++) { if (selector[j] === "(") depth++; else if (selector[j] === ")") depth--; }
     const inner = selector.slice(i + fn[0].length, j - 1);
     const name = fn[1].toLowerCase();
-    if ((name === "is" || name === "where" || name === "matches" || name === "any") && !splitTopLevel(inner).some(alive)) return false;
+    if (name !== "not") {
+      const parts = splitTopLevel(inner), dead = parts.filter((part) => !alive(part, deadParts));
+      if (dead.length === parts.length) return false;
+      deadParts?.push(...dead.map((part) => `:${name}(… ${part} …)`));
+    }
     rest += " ";
     i = j;
   }
@@ -76,7 +83,7 @@ function alive(selector) {
   return true;
 }
 
-const report = [];
+const report = [], partial = [];
 let before = 0, after = 0;
 for (const name of readdirSync(join(root, "app")).filter((file) => file.endsWith(".css"))) {
   const path = join(root, "app", name);
@@ -86,7 +93,10 @@ for (const name of readdirSync(join(root, "app")).filter((file) => file.endsWith
   ast.walkRules((rule) => {
     if (rule.parent?.type === "atrule" && /keyframes$/i.test(rule.parent.name)) return;
     const selectors = splitTopLevel(rule.selector);
-    const keep = selectors.filter(alive);
+    const keep = selectors.filter((selector) => alive(selector));
+    const deadParts = [];
+    for (const selector of keep) alive(selector, deadParts);
+    if (deadParts.length) partial.push(`${name}:${rule.source.start.line}  ${deadParts.join(" , ").replace(/\s+/g, " ")}`);
     if (keep.length === selectors.length) return;
     removedSelectors += selectors.length - keep.length;
     report.push(`${name}:${rule.source.start.line}  ${selectors.filter((selector) => !alive(selector)).join(" , ").replace(/\s+/g, " ").slice(0, 200)}`);
@@ -100,5 +110,6 @@ for (const name of readdirSync(join(root, "app")).filter((file) => file.endsWith
   if (write && output !== css) writeFileSync(path, output);
 }
 console.log(report.join("\n"));
+if (partial.length) console.log(`\nDead alternatives inside :is()/:where()/:has() lists that still match otherwise (not rewritten; remove by hand):\n${partial.join("\n")}`);
 console.log(`\napp/*.css: ${before} → ${after} bytes (−${before - after}, ${((1 - after / before) * 100).toFixed(1)}%)${write ? " written" : " (report only)"}`);
 console.log(`classes known from sources: ${used.size}, dynamic prefixes: ${[...prefixes].filter((p) => !runtimePrefixes.includes(p)).slice(0, 40).join(" ")}`);
