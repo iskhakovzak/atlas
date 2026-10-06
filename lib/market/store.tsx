@@ -8,7 +8,9 @@ import {serverError,setLocaleCookie,supportedLocale,type Locale} from './i18n';
 import type {SessionStatus} from './access';
 import {keepCatalogVisible,visibleMerchantFinds,type MerchantFind} from './catalog';
 import type {CatalogCollection} from './catalog-editor';
-export type AccountUser={name:string;email:string;contact?:string;method?:'email'|'phone'|'telegram'|'google'|'apple';operator:boolean;createdAt:number};
+import {nextPricing} from './pricing-equal';
+/** "operator" = full admin access. "role" and "permissions" come from the staff directory for other staff (lib/market/access.ts). */
+export type AccountUser={name:string;email:string;contact?:string;method?:'email'|'phone'|'telegram'|'google'|'apple';operator:boolean;role?:string;permissions?:string[];createdAt:number};
 type Store={catalogProducts:MerchantFind[];/** The public catalog request finished (with or without data). */catalogReady:boolean;collections:Array<CatalogCollection&{productIds:string[]}>;catalogError:string;loadCatalog:(force?:boolean)=>Promise<void>;state:State;pricing:Pricing;policy:Policy;ready:boolean;status:SessionStatus;error:string|null;user:AccountUser|null;setLocale:(locale:Locale)=>void;act:(action:Action)=>Promise<boolean>;/** Why the last refused action was refused (server error code and text), until the next success. */lastActionError:()=>{code?:string;message?:string}|null;refresh:()=>Promise<void>};
 const Context=createContext<Store|null>(null);
 const marketMessages:Record<Locale,{catalogLoad:string;accountLoad:string;connection:string;signin:string;sessionEnded:string;saveFailed:string;actionConnection:string}>={
@@ -18,9 +20,11 @@ const marketMessages:Record<Locale,{catalogLoad:string;accountLoad:string;connec
 };
 // initialLocale comes from the server (saved cookie, Accept-Language, then the Uzbek default),
 // so the first render already matches the server HTML.
-export function MarketProvider({children,initialLocale='uz'}:{children:ReactNode;initialLocale?:Locale}) {
+// initialPricing is the tariff the server rendered with (lib/market/initial-data.ts); the client keeps it
+// until the API returns a different one, so the example bill and tariffs do not change numbers on hydration.
+export function MarketProvider({children,initialLocale='uz',initialPricing=null}:{children:ReactNode;initialLocale?:Locale;initialPricing?:Pricing|null}) {
  const [catalogProducts,setCatalogProducts]=useState<MerchantFind[]>(()=>visibleMerchantFinds()),[collections,setCollections]=useState<Array<CatalogCollection&{productIds:string[]}>>([]),[catalogError,setCatalogError]=useState(''),[catalogReady,setCatalogReady]=useState(false);
- const [state,setState]=useState<State>(()=>{const initial=blank();return {...initial,communication:{...initial.communication,language:initialLocale}}}),[pricing,setPricing]=useState<Pricing>(tariff),[policy,setPolicy]=useState<Policy>(defaultPolicy),[status,setStatus]=useState<SessionStatus>('loading'),[error,setError]=useState<string|null>(null),[user,setUser]=useState<AccountUser|null>(null);
+ const [state,setState]=useState<State>(()=>{const initial=blank();return {...initial,communication:{...initial.communication,language:initialLocale}}}),[pricing,setPricing]=useState<Pricing>(()=>initialPricing??tariff),[policy,setPolicy]=useState<Policy>(defaultPolicy),[status,setStatus]=useState<SessionStatus>('loading'),[error,setError]=useState<string|null>(null),[user,setUser]=useState<AccountUser|null>(null);
  const revision=useRef(0),busy=useRef(false),generation=useRef(0),localeRef=useRef<Locale>(initialLocale),serverLocaleRef=useRef<Locale>('ru'),localeSyncRef=useRef<Locale|null>(null);
  const catalogLoaded=useRef(false),catalogRequest=useRef<Promise<void>|null>(null);
  const lastError=useRef<{code?:string;message?:string}|null>(null);
@@ -42,7 +46,7 @@ export function MarketProvider({children,initialLocale='uz'}:{children:ReactNode
     setCatalogError(data.products.length?'':marketMessages[localeRef.current].catalogLoad);
     setCollections(data.collections);
     const publicPricing=pricingSchema.safeParse(data.pricing);
-    if(publicPricing.success)setPricing(publicPricing.data);
+    if(publicPricing.success)setPricing(previous=>nextPricing(previous,publicPricing.data));
    }catch{setCatalogError(marketMessages[localeRef.current].catalogLoad)}
    finally{catalogRequest.current=null;setCatalogReady(true)}
   })();
@@ -84,7 +88,7 @@ export function MarketProvider({children,initialLocale='uz'}:{children:ReactNode
    localeRef.current=next.communication.language;
    setLocaleCookie(next.communication.language);
    setState(next);
-   const parsedPricing=pricingSchema.safeParse(data.pricing);setPricing(parsedPricing.success?parsedPricing.data:tariff);
+   const parsedPricing=pricingSchema.safeParse(data.pricing);setPricing(previous=>nextPricing(previous,parsedPricing.success?parsedPricing.data:tariff));
    const parsedPolicy=policySchema.safeParse(data.policy);setPolicy(parsedPolicy.success?parsedPolicy.data:defaultPolicy);
    revision.current=data.revision;setUser(data.user);setStatus('authenticated');setError(null);signedIn.current=true;
   }catch{

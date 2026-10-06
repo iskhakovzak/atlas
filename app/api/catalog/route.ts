@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import {database,identity,operator,sameOrigin,requestJson,json,failure,HttpError,pricing} from '@/lib/market/server';
+import {database,identity,requirePermission,sameOrigin,requestJson,json,failure,HttpError,pricing} from '@/lib/market/server';
 import {readCatalog,persistCatalog} from '@/lib/market/catalog-server';
 import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,manualFallbackCatalogDraft,recheckedDraft,changeCatalog,publicCatalog,catalogMaxEntries,catalogRecheckBatchSize} from '@/lib/market/catalog-editor';
 import type {CatalogDraft} from '@/lib/market/catalog-editor';
@@ -21,13 +21,13 @@ const commandSchema=z.discriminatedUnion('kind',[
 ]);
 export async function GET(request:Request){try{
   const admin=new URL(request.url).searchParams.get('admin')==='1';
-  if(admin){const user=await identity();if(!operator(user.email))throw new HttpError(403, 'err_28');}
+  if(admin){const user=await identity();await requirePermission(user,'catalog.manage');}
   const {document}=await readCatalog();
   const currentPricing=await pricing();
   return json(admin?{document}:{...publicCatalog(document,currentPricing),pricing:currentPricing});
 }catch(error){return failure(error,request)}}
 export async function POST(request:Request){try{
-  sameOrigin(request);const user=await identity();if(!operator(user.email))throw new HttpError(403, 'err_29');
+  sameOrigin(request);const user=await identity();await requirePermission(user,'catalog.manage');
   const payload=z.object({revision:z.number().int().nonnegative(),command:commandSchema}).safeParse(await requestJson(request,200000));
   if(!payload.success)throw new HttpError(400, 'err_30');
   const {command,revision}=payload.data,{document,raw}=await readCatalog();

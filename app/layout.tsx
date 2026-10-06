@@ -28,7 +28,11 @@ import "./refine.css";
 import "./day-folio.css";
 import "./native.css";
 import "./home-chapters.css";
+import "./tariffs.css";
+import "./orders-groups.css";
+import "./accounting.css";
 import { MarketProvider } from "@/lib/market/store";
+import { initialPricing } from "@/lib/market/initial-data";
 import { StorageNotice } from "./storage-notice";
 import { AtlasThemeProvider } from "./theme-control";
 import { PerformanceProbe } from "./performance-probe";
@@ -75,12 +79,13 @@ export default async function RootLayout({
 }>) {
   // Render in the visitor's language from the first byte: a `?lang=` version, the saved choice,
   // the browser language, then Uzbek.
-  const locale = await pageLocale();
+  // The tariff from D1 goes into the first render too, so the sums on the home page do not change after /api/account answers.
+  const [locale, pricing] = await Promise.all([pageLocale(), initialPricing()]);
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className="antialiased">
         <AtlasThemeProvider>
-          <MarketProvider initialLocale={locale}>{children}<StorageNotice /><PerformanceProbe /><NativeShell /></MarketProvider>
+          <MarketProvider initialLocale={locale} initialPricing={pricing}>{children}<StorageNotice /><PerformanceProbe /><NativeShell /></MarketProvider>
         </AtlasThemeProvider>
         <script
           type="application/ld+json"

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { homeCopy, formatSum, formatUsd, groupDigits } from '../lib/market/home-copy.ts';
-import { siteContent, deliveryRegions, paymentLabels } from '../lib/market/site-content.ts';
+import { siteContent, deliveryRegions, deliveryDaysFor, paymentLabels } from '../lib/market/site-content.ts';
 
 function shape(value) {
   if (Array.isArray(value)) return value.map(shape);
@@ -45,10 +45,31 @@ test('soum amounts use space-grouped digits in every language', () => {
   assert.equal(formatUsd(1.25, 'uz'), '$1,25');
 });
 
-test('delivery table lists the express routes with their approximate business days', () => {
+test('delivery table lists the express and standard routes with their approximate business days', () => {
   assert.deepEqual(deliveryRegions.map(region => [region.countries.join(), siteContent.deliveryDays[region.id]]), [
-    ['США', [5, 10]], ['Великобритания', [7, 10]], ['Китай', [7, 12]], ['Германия', [7, 9]], ['Италия', [7, 9]], ['Испания', [7, 9]],
+    ['США', [5, 9]], ['Великобритания', [7, 9]], ['Китай', [7, 9]], ['Германия', [7, 9]], ['Италия', [7, 9]], ['Испания', [7, 9]],
   ]);
+  for (const region of deliveryRegions) assert.deepEqual(siteContent.standardDeliveryDays[region.id], [9, 14]);
+  assert.deepEqual(deliveryDaysFor({ standardDeliveryDays: { us: [10, 15] } }, 'us', 'standard'), [10, 15]);
+  assert.deepEqual(deliveryDaysFor({ standardDeliveryDays: { us: [10, 15] } }, 'uk', 'standard'), [9, 14]);
+  assert.deepEqual(deliveryDaysFor({}, 'us'), [5, 9]);
+});
+
+test('home tariff copy names both delivery speeds and prints the per-100 g price with two decimals', async () => {
+  const { formatPriceUsd } = await import('../lib/market/home-copy.ts');
+  const { deliveryPerKgUsdFor, tariff } = await import('../lib/market/domain.ts');
+  for (const locale of ['ru', 'uz', 'en']) {
+    const copy = homeCopy[locale].tariffs;
+    assert.ok(copy.speeds.express && copy.speeds.standard && copy.speedsLabel && copy.perKgUnit, `${locale}: speed labels`);
+    assert.ok(homeCopy[locale].faq.timesKnown('x').length > 20);
+  }
+  assert.equal(formatUsd(deliveryPerKgUsdFor(tariff, undefined, 'express'), 'ru'), '$15,98');
+  assert.equal(formatUsd(deliveryPerKgUsdFor(tariff, undefined, 'standard'), 'ru'), '$13,98');
+  assert.equal(homeCopy.ru.tariffs.per100g(formatPriceUsd(15.98 / 10, 'ru')), '$1,60 за 100 г');
+  assert.equal(homeCopy.en.tariffs.per100g(formatPriceUsd(13.98 / 10, 'en')), '$1.40 per 100 g');
+  assert.equal(homeCopy.ru.example.days(5, 9), 'экспресс, примерно 5–9 рабочих дней');
+  assert.match(homeCopy.ru.tariffs.lead, /обычная/i);
+  assert.match(homeCopy.ru.faq.timesKnown('США: экспресс 5–9 рабочих дней, обычная 9–14 рабочих дней'), /обычная 9–14/);
 });
 
 test('site content holds only verified data and is well-formed when filled', () => {

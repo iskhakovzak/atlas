@@ -1,0 +1,111 @@
+/* Admin → Финансы → Бухгалтерия: the additions of 6.10.2026 (app/accounting-view.tsx). The base .accounting* rules
+   live in app/customer.css; this layer adds the month/year toolbar, period lock, obligations, orders with margin,
+   ledger search and paging, the year table and the sparkline. Light theme under html:not([data-theme="dark"]),
+   dark under html[data-theme="dark"]. Phone first (375–440 px), then desktop. */
+
+/* ---------- shared layout ---------- */
+.accounting .acc-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 14px; }
+.accounting .acc-seg { display: inline-flex; padding: 3px; border-radius: 10px; }
+.accounting .acc-seg button { min-height: 38px; padding: 0 16px; border: 0; border-radius: 8px; background: transparent; font-size: 14px; font-weight: 600; }
+.accounting .acc-period { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.accounting .acc-badge { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+.accounting .acc-block { display: grid; gap: 10px; }
+.accounting .acc-block-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.accounting .acc-block-head h4 { margin: 0; }
+.accounting .acc-block-head .text-button { display: inline-flex; align-items: center; gap: 4px; }
+.accounting .acc-inline { margin: 0; min-width: 0; }
+.accounting .acc-inline :is(input, select) { width: 100%; min-height: 40px; }
+.accounting .acc-scroll { width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; border-radius: 12px; }
+.accounting .acc-scroll > table { min-width: 720px; }
+.accounting .acc-table th, .accounting .acc-table td { white-space: nowrap; }
+.accounting .acc-table td.num, .accounting .acc-year-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.accounting .acc-table th:not(:first-child) { text-align: right; }
+.accounting .acc-table:not(.acc-year-table) th:nth-child(2) { text-align: left; }
+.accounting .acc-table td b { font-weight: 600; }
+.accounting .acc-table tr.muted-row td { opacity: .62; }
+.accounting .acc-table td.loss b, .accounting .acc-year-table td.loss b { color: var(--day-error, #b42318); }
+.accounting .acc-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.accounting .acc-actions small { white-space: nowrap; }
+.accounting .acc-settings { display: grid; gap: 10px; }
+.accounting .acc-rates { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 12px; }
+.accounting .acc-rates .acc-inline { width: 118px; }
+.accounting .acc-rates-title { flex-basis: 100%; font-size: 13px; font-weight: 600; }
+.accounting .acc-rate-usd { display: grid; gap: 2px; min-height: 40px; align-content: center; font-size: 14px; font-variant-numeric: tabular-nums; }
+.accounting .acc-rate-usd small { font-size: 12px; }
+.accounting .acc-hint, .accounting .acc-warn { display: block; margin-top: 4px; font-size: 12px; line-height: 1.4; }
+.accounting .acc-fixing { box-shadow: inset 3px 0 0 var(--day-accent, #1f4d3b); }
+.accounting .acc-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 12px; }
+.accounting .acc-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 14px; margin-top: 10px; font-size: 13px; }
+.accounting .acc-pager .btn { min-height: 40px; padding: 8px 14px; }
+.accounting .acc-year-table th[scope="row"] { font-weight: 500; white-space: nowrap; }
+.accounting .acc-year-table tr.quarter :is(th, td) { font-weight: 600; }
+.accounting .acc-year-table tr.total :is(th, td) { font-weight: 700; border-bottom: 0; }
+.accounting .acc-spark { display: grid; gap: 8px; margin: 0; padding: 14px 16px 12px; border-radius: 14px; }
+.accounting .acc-spark svg { display: block; width: 100%; height: 96px; overflow: visible; }
+.accounting .acc-spark path { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.accounting .acc-spark .acc-spark-area { stroke: none; }
+.accounting .acc-spark figcaption { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; }
+.accounting .acc-legend { display: inline-flex; align-items: center; gap: 6px; }
+.accounting .acc-legend::before { content: ""; width: 14px; height: 3px; border-radius: 2px; }
+.accounting .acc-obligations { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+
+@media (max-width: 700px) {
+  .accounting .acc-toolbar { width: 100%; }
+  .accounting .acc-toolbar .accounting-month { flex: 1; min-width: 160px; }
+  .accounting .acc-seg { width: 100%; }
+  .accounting .acc-seg button { flex: 1; }
+  .accounting .acc-period .btn { width: 100%; }
+  .accounting .acc-scroll > table { min-width: 640px; }
+  .accounting .acc-filters { grid-template-columns: 1fr 1fr; }
+  .accounting .acc-rates .acc-inline { width: calc(50% - 6px); }
+  .accounting .acc-rates .btn { width: 100%; }
+  .accounting .acc-pager { justify-content: space-between; }
+  .accounting .acc-block-head .acc-inline { width: 100%; }
+}
+
+/* ---------- Atlas Day ---------- */
+html:not([data-theme="dark"]) .accounting .acc-seg { background: var(--day-soft); border: 1px solid var(--day-line); }
+html:not([data-theme="dark"]) .accounting .acc-seg button { color: var(--day-muted); }
+html:not([data-theme="dark"]) .accounting .acc-seg button[aria-pressed="true"] { background: var(--day-surface); color: var(--day-ink); box-shadow: var(--day-shadow); }
+html:not([data-theme="dark"]) .accounting .acc-badge { background: var(--day-soft); color: var(--day-muted); }
+html:not([data-theme="dark"]) .accounting .acc-badge.locked { background: var(--day-tint); color: var(--day-ok); }
+html:not([data-theme="dark"]) .accounting .accounting-cards article { border-color: var(--day-line); background: var(--day-surface); box-shadow: var(--day-shadow); }
+html:not([data-theme="dark"]) .accounting .accounting-form { background: var(--day-surface); border-color: var(--day-line); box-shadow: var(--day-shadow); }
+html:not([data-theme="dark"]) .accounting .acc-scroll { border: 1px solid var(--day-line); background: var(--day-surface); }
+html:not([data-theme="dark"]) .accounting .acc-scroll .accounting-table :is(th, td) { padding-inline: 12px; }
+html:not([data-theme="dark"]) .accounting .acc-year-table tr.quarter :is(th, td) { background: var(--day-soft); }
+html:not([data-theme="dark"]) .accounting .acc-year-table tr.total :is(th, td) { background: var(--day-tint); color: var(--day-ink); }
+html:not([data-theme="dark"]) .accounting .acc-spark { border: 1px solid var(--day-line); background: var(--day-surface); box-shadow: var(--day-shadow); }
+html:not([data-theme="dark"]) .accounting .acc-spark .acc-spark-area { fill: var(--day-tint); }
+html:not([data-theme="dark"]) .accounting .acc-spark .acc-spark-income { stroke: var(--day-accent); }
+html:not([data-theme="dark"]) .accounting .acc-spark .acc-spark-profit { stroke: var(--day-fresh); stroke-dasharray: 4 3; }
+html:not([data-theme="dark"]) .accounting .acc-legend.income::before { background: var(--day-accent); }
+html:not([data-theme="dark"]) .accounting .acc-legend.profit::before { background: var(--day-fresh); }
+html:not([data-theme="dark"]) .accounting .acc-spark figcaption, html:not([data-theme="dark"]) .accounting .acc-hint, html:not([data-theme="dark"]) .accounting .acc-rate-usd small, html:not([data-theme="dark"]) .accounting .acc-pager, html:not([data-theme="dark"]) .accounting .acc-rates-title { color: var(--day-muted); }
+html:not([data-theme="dark"]) .accounting .acc-warn { color: var(--day-warn); }
+html:not([data-theme="dark"]) .accounting .acc-table .text-link { color: var(--day-accent); }
+
+/* ---------- Atlas Night ---------- */
+html[data-theme="dark"] .accounting { border-top-color: var(--night-line); }
+html[data-theme="dark"] .accounting .acc-seg { background: var(--night-inset); border: 1px solid var(--night-line); }
+html[data-theme="dark"] .accounting .acc-seg button { color: var(--night-muted); }
+html[data-theme="dark"] .accounting .acc-seg button[aria-pressed="true"] { background: var(--night-raised); color: var(--night-ink); box-shadow: var(--night-shadow); }
+html[data-theme="dark"] .accounting .acc-badge { background: var(--night-raised); color: var(--night-muted); }
+html[data-theme="dark"] .accounting .acc-badge.locked { background: var(--night-jade-soft-strong); color: var(--night-jade); }
+html[data-theme="dark"] .accounting .accounting-cards article, html[data-theme="dark"] .accounting .accounting-form, html[data-theme="dark"] .accounting .acc-scroll, html[data-theme="dark"] .accounting .acc-spark { border: 1px solid var(--night-line); background: var(--night-surface); }
+html[data-theme="dark"] .accounting .accounting-cards :is(span, small), html[data-theme="dark"] .accounting .accounting-table th, html[data-theme="dark"] .accounting .accounting-table small, html[data-theme="dark"] .accounting .acc-spark figcaption, html[data-theme="dark"] .accounting .acc-hint, html[data-theme="dark"] .accounting .acc-rate-usd small, html[data-theme="dark"] .accounting .acc-pager, html[data-theme="dark"] .accounting .acc-rates-title { color: var(--night-muted); }
+html[data-theme="dark"] .accounting .accounting-cards strong, html[data-theme="dark"] .accounting .accounting-table td, html[data-theme="dark"] .accounting .acc-year-table th[scope="row"] { color: var(--night-ink); }
+html[data-theme="dark"] .accounting .accounting-cards .loss strong, html[data-theme="dark"] .accounting .acc-table td.loss b, html[data-theme="dark"] .accounting .acc-year-table td.loss b { color: var(--night-error-ink); }
+html[data-theme="dark"] .accounting .accounting-table td.in { color: var(--night-jade); }
+html[data-theme="dark"] .accounting .accounting-table :is(th, td) { border-bottom-color: var(--night-line); }
+html[data-theme="dark"] .accounting .acc-scroll .accounting-table :is(th, td) { padding-inline: 12px; }
+html[data-theme="dark"] .accounting .acc-year-table tr.quarter :is(th, td) { background: var(--night-raised); }
+html[data-theme="dark"] .accounting .acc-year-table tr.total :is(th, td) { background: var(--night-jade-soft); }
+html[data-theme="dark"] .accounting .acc-spark .acc-spark-area { fill: var(--night-jade-soft); }
+html[data-theme="dark"] .accounting .acc-spark .acc-spark-income { stroke: var(--night-jade); }
+html[data-theme="dark"] .accounting .acc-spark .acc-spark-profit { stroke: var(--night-champagne); stroke-dasharray: 4 3; }
+html[data-theme="dark"] .accounting .acc-legend.income::before { background: var(--night-jade); }
+html[data-theme="dark"] .accounting .acc-legend.profit::before { background: var(--night-champagne); }
+html[data-theme="dark"] .accounting .acc-warn { color: var(--night-warn-ink); }
+html[data-theme="dark"] .accounting .acc-fixing { box-shadow: inset 3px 0 0 var(--night-jade); }
+html[data-theme="dark"] .accounting .acc-table .text-link, html[data-theme="dark"] .accounting .text-button { color: var(--night-jade); }

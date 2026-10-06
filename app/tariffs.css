@@ -1,0 +1,54 @@
+/* Home «Сроки и тарифы»: a card per country with the express and standard options side by side.
+   Light theme under html:not([data-theme="dark"]), dark under html[data-theme="dark"]; tokens from refine.css / theme-night.css. */
+
+.tariff-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.tariff-card { min-width: 0; padding: 16px 18px 14px; border-radius: 16px; }
+.tariff-country { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; font-size: 17px; font-weight: 700; line-height: 1.2; letter-spacing: -.01em; }
+.tariff-country .flag { flex: 0 0 auto; width: 24px; height: 16px; border-radius: 3px; }
+.tariff-options { display: grid; grid-template-columns: 1fr; gap: 0; margin: 0; }
+.tariff-option { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "speed price" "days price"; align-items: center; column-gap: 12px; row-gap: 1px; padding: 10px 0; }
+.tariff-option + .tariff-option { border-top: 1px solid transparent; }
+.tariff-speed { grid-area: speed; display: flex; align-items: center; gap: 7px; margin: 0; font-size: 14.5px; font-weight: 650; line-height: 1.3; }
+.tariff-speed::before { content: ""; flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; }
+.tariff-days { grid-area: days; margin: 0; font-size: 13.5px; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.tariff-price { grid-area: price; margin: 0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tariff-price b { display: block; font-size: 18px; font-weight: 750; line-height: 1.15; letter-spacing: -.02em; }
+.tariff-price b small { margin-left: 1px; font-size: 13px; font-weight: 600; letter-spacing: 0; }
+.tariff-100g { display: block; margin-top: 2px; font-size: 12.5px; line-height: 1.3; }
+.tariff-note { max-width: 66ch; }
+
+@media (min-width: 640px) { .tariff-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; } }
+@media (min-width: 1024px) {
+  .tariff-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .tariff-card { padding: 18px 20px 14px; }
+  .tariff-country { font-size: 18px; margin-bottom: 12px; }
+  .tariff-price b { font-size: 20px; }
+}
+@media (max-width: 359px) { .tariff-card { padding-inline: 14px; } .tariff-price b { font-size: 17px; } }
+
+/* Light: white card with the Day shadow, express marked with the brand green, standard with the muted ink. */
+html:not([data-theme="dark"]) .tariff-card { background: var(--day-surface); box-shadow: var(--day-shadow); border-radius: var(--day-r-card); }
+html:not([data-theme="dark"]) .tariff-country { color: var(--day-ink); }
+html:not([data-theme="dark"]) .tariff-option + .tariff-option { border-top-color: var(--day-line); }
+html:not([data-theme="dark"]) .tariff-speed { color: var(--day-ink); }
+html:not([data-theme="dark"]) .tariff-express .tariff-speed::before { background: var(--day-accent); }
+html:not([data-theme="dark"]) .tariff-standard .tariff-speed::before { background: var(--day-tint-2); box-shadow: inset 0 0 0 1.5px var(--day-muted); }
+html:not([data-theme="dark"]) .tariff-days { color: var(--day-muted); }
+html:not([data-theme="dark"]) .tariff-pending { font-style: italic; }
+html:not([data-theme="dark"]) .tariff-price b { color: var(--day-ink); }
+html:not([data-theme="dark"]) .tariff-price b small { color: var(--day-muted); }
+html:not([data-theme="dark"]) .tariff-100g { color: var(--day-muted); }
+
+/* Night: raised surface, hairlines from the theme, jade only for the express dot. */
+html[data-theme="dark"] .tariff-card { background: var(--night-raised); border: 1px solid var(--night-line); box-shadow: var(--night-shadow); }
+html[data-theme="dark"] .tariff-country { color: var(--night-ink); }
+html[data-theme="dark"] .tariff-country .flag { opacity: .92; }
+html[data-theme="dark"] .tariff-option + .tariff-option { border-top-color: var(--night-line); }
+html[data-theme="dark"] .tariff-speed { color: var(--night-ink-2); }
+html[data-theme="dark"] .tariff-express .tariff-speed::before { background: var(--night-jade); }
+html[data-theme="dark"] .tariff-standard .tariff-speed::before { background: transparent; box-shadow: inset 0 0 0 1.5px var(--night-muted); }
+html[data-theme="dark"] .tariff-days { color: var(--night-muted); }
+html[data-theme="dark"] .tariff-pending { font-style: italic; }
+html[data-theme="dark"] .tariff-price b { color: var(--night-ink); }
+html[data-theme="dark"] .tariff-price b small { color: var(--night-muted); }
+html[data-theme="dark"] .tariff-100g { color: var(--night-muted); }

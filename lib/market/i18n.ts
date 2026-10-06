@@ -124,6 +124,8 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_42': 'Подтвердите удаление аккаунта.',
     'err_43': 'Отметьте, что понимаете: баланс Atlas будет потерян.',
     'err_44': 'Слишком много попыток удаления. Попробуйте через час.',
+    'err_50': 'У вашей роли нет доступа к этому действию.',
+    'err_51': 'Заблокировать клиента может только администратор.',
   },
   uz: {
     'err_1': 'Davom etish uchun tizimga kiring.',
@@ -170,6 +172,8 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_42': 'Akkauntni o‘chirishni tasdiqlang.',
     'err_43': 'Atlas balansi yo‘qolishini tushunganingizni belgilang.',
     'err_44': 'O‘chirishga urinishlar juda ko‘p. Bir soatdan so‘ng urinib ko‘ring.',
+    'err_50': 'Sizning rolingizda bu amalga ruxsat yo‘q.',
+    'err_51': 'Mijozni faqat administrator bloklashi mumkin.',
   },
   en: {
     'err_1': 'Sign in to continue.',
@@ -216,6 +220,8 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_42': 'Confirm the account deletion.',
     'err_43': 'Tick that you understand the Atlas balance will be lost.',
     'err_44': 'Too many deletion attempts. Try again in an hour.',
+    'err_50': 'Your role does not allow this action.',
+    'err_51': 'Only an administrator can block a customer.',
   },
 };
 export function serverError(locale:Locale, key:string){

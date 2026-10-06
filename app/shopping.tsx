@@ -6,13 +6,14 @@ import Link from "@/components/site-link";
 import { ArrowRight, ArrowUpRight, BadgeCheck, Check, ClipboardPaste, Clock3, Info, Loader2, MessageSquare, Minus, Plus, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
-import { balanceOf, cartSignature, isPostalCode, maxLineQuantity, storeDiscount, merchantParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, type CartItem, type DeliveryProfile } from "@/lib/market/domain";
+import { balanceOf, cartDeliverySpeed, cartSignature, isPostalCode, maxLineQuantity, storeDiscount, merchantParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
+import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, savingText } from "@/lib/market/delivery-speed";
 import { countryName, customsVersion } from "@/lib/market/world";
 import { formatSum } from "@/lib/market/home-copy";
 import { cartCopy, countryLabel, itemCount, minutesLeft, parcelCount, recipientCopy, type CartCopy } from "@/lib/market/customer-copy";
 import { cartCustomsEstimate } from "@/lib/market/allowance";
 import { calcCopy } from "@/lib/market/calc-copy";
-import { CalcLines, CustomsPanel, HoldNote, customsDutyAmount, sumQuotes } from "./calc-summary";
+import { CalcLines, CustomsPanel, DeliverySpeedSwitch, HoldNote, customsDutyAmount, sumQuotes } from "./calc-summary";
 import { storefrontLabel } from "@/lib/market/store-brands";
 import type { Locale } from "@/lib/market/i18n";
 import { Modal, ProductImage, WasPrice } from "./market-ui";
@@ -20,6 +21,9 @@ import { Money } from "./money";
 import { SafeDeleteButton } from "./safe-delete-button";
 import { cities, regionCapital, regionLabel, regions, streets, suggestions, uzPhone, uzPhoneDigits } from "@/lib/market/addresses";
 import { UzPhoneInput } from "./phone-input";
+
+/** More than one dispatch country in the cart: the speed note says it applies to every parcel. */
+const parcelsDiffer = (countries: string[]) => new Set(countries).size > 1;
 
 const emptyDelivery: DeliveryProfile = { recipient: "", phone: "", region: "Ташкент", city: "Ташкент", address: "", postalCode: "", comment: "" };
 
@@ -136,6 +140,7 @@ export function CartView() {
   const [customsRecipient, setCustomsRecipient] = useState("");
   const [customsBusy, setCustomsBusy] = useState(false);
   const [summaryCtaInView, setSummaryCtaInView] = useState(false);
+  const [speedBusy, setSpeedBusy] = useState(false);
 
   // The phone bar repeats the total and the button; it steps aside while the summary's own button is on screen.
   useEffect(() => {
@@ -195,17 +200,30 @@ export function CartView() {
   const identityProfiles = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
   const sums = sumQuotes(state.cart.map(item => item.quote));
   const cartWeight = Math.round(state.cart.reduce((sum, item) => sum + item.quote.weight, 0) * 100) / 100;
+  // One delivery speed for the whole cart; the windows and rates cover every dispatch country in it.
+  const speed = cartDeliverySpeed(state.cart);
+  const speedCountries = state.cart.map(item => countryName(item.product));
+  const speedOptions = deliverySpeedOptions(pricing, speedCountries, locale);
+  const speedNote = [savingText(state.cart, pricing, locale), parcelsDiffer(speedCountries) ? deliverySpeedCopy[locale].appliesToCart : ""].filter(Boolean).join(" ");
+  const speedDays = (country: string) => { const range = daysRangeFor(pricing, [country], speed); return range ? deliverySpeedCopy[locale].days(range[0], range[1]) : ""; };
   // Store orders whose delivery price is unknown: a separate hold up to the threshold, free above it.
   const reserves = storeShippingReserves(state.cart, pricing);
   const freeFrom = usd(pricing.storeShippingFreeFromUsd ?? 50, locale);
   // Same grouping as the server's parcel allocation: one store and one origin country share a parcel.
-  const parcels = state.cart.reduce<{ key: string; title: string; country: string; items: CartItem[] }[]>((groups, item) => {
+  const parcels = state.cart.reduce<{ key: string; title: string; country: string; origin: string; items: CartItem[] }[]>((groups, item) => {
     const key = merchantParcelKey(item);
     const group = groups.find(entry => entry.key === key);
     if (group) group.items.push(item);
-    else { const host = storeHost(item); groups.push({ key, title: c.item.parcelFrom((host && storefrontLabel(host, locale)) || item.product.brand), country: countryLabel(countryName(item.product), locale), items: [item] }); }
+    else { const host = storeHost(item); groups.push({ key, title: c.item.parcelFrom((host && storefrontLabel(host, locale)) || item.product.brand), country: countryLabel(countryName(item.product), locale), origin: countryName(item.product), items: [item] }); }
     return groups;
   }, []);
+
+  async function changeSpeed(next: DeliverySpeed) {
+    if (speedBusy) return;
+    setSpeedBusy(true);
+    try { await act({ type: "cart-delivery-speed", speed: next }); }
+    finally { setSpeedBusy(false); }
+  }
 
   async function openCheckout() {
     if (verifying) return;
@@ -317,7 +335,7 @@ export function CartView() {
   }
 
   // Each fee on its own line; the store-delivery hold and customs stay outside the amount to pay.
-  const linesFor = (duty: number, fromBalance: number) => <CalcLines sums={{ ...sums, customsDuty: duty, total: sums.total + duty }} locale={locale} pricing={pricing} weightKg={cartWeight} storeShippingState="none" anyFree={reserves.some(entry => entry.free)}>
+  const linesFor = (duty: number, fromBalance: number) => <CalcLines sums={{ ...sums, customsDuty: duty, total: sums.total + duty }} locale={locale} pricing={pricing} weightKg={cartWeight} storeShippingState="none" anyFree={reserves.some(entry => entry.free)} speed={speed}>
     {fromBalance > 0 && <div className="basket-lines basket-lines-credit"><div className="basket-line"><span className="basket-line-label">{c.summary.fromBalance}</span><b>−{formatSum(fromBalance, locale)}</b></div></div>}
   </CalcLines>;
   const summaryLines = linesFor(cartDuty, credit);
@@ -353,7 +371,7 @@ export function CartView() {
         {parcels.map(parcel => {
           const reserve = reserves.find(entry => parcel.items.some(item => entry.itemIds.includes(item.id)));
           return <section className="basket-parcel" key={parcel.key} aria-label={parcel.title}>
-            <h2 className="basket-parcel-title"><Store size={16} aria-hidden="true" /><span>{parcel.title}</span><small>{parcel.country}</small></h2>
+            <h2 className="basket-parcel-title"><Store size={16} aria-hidden="true" /><span>{parcel.title}</span><small>{[parcel.country, speedDays(parcel.origin)].filter(Boolean).join(" · ")}</small></h2>
             {parcel.items.map(renderItem)}
             {reserve && <p className={"basket-parcel-note" + (reserve.reserveUsd ? "" : " ok")}>
               {reserve.reserveUsd ? <Truck size={16} aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
@@ -367,6 +385,7 @@ export function CartView() {
       <aside className="basket-summary folio" aria-labelledby="basket-summary-title">
         <div className="folio-sheet">
           <h2 id="basket-summary-title">{c.summary.title}</h2>
+          <DeliverySpeedSwitch value={speed} options={speedOptions} locale={locale} busy={speedBusy} note={speedNote} onChange={(next) => void changeSpeed(next)} />
           {summaryLines}
           {customsPanel}
           {balance > 0 && <div className="basket-balance"><Checkbox id="use-balance" checked={useBalance} onCheckedChange={(value) => setUseBalance(value === true)} /><label htmlFor="use-balance">{c.summary.balance}<small>{c.summary.available}: {formatSum(balance, locale)}</small></label></div>}

@@ -179,6 +179,11 @@ html[data-theme="dark"] .home-missing { border-color: #c9a23f; background: #3a31
 
 /* FAQ. */
 .home-faq { display: grid; gap: 8px; margin-top: 16px; }
+/* Wide screens: the title on top, the questions in two columns up to ~1100px, so the section has no empty side. */
+@media (min-width: 1024px) {
+  .home-faq-head { max-width: 1100px; }
+  .home-faq { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; max-width: 1100px; column-gap: 16px; }
+}
 .home-faq details { border: 1px solid var(--home-line); border-radius: var(--home-radius); background: var(--home-surface); }
 .home-faq summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 56px; padding: 14px 18px; color: var(--home-ink); font-weight: 700; cursor: pointer; list-style: none; }
 .home-faq summary::-webkit-details-marker { display: none; }
@@ -208,16 +213,30 @@ html[data-theme="dark"] .home-missing { border-color: #c9a23f; background: #3a31
 }
 
 /* Footer. */
-.home-footer { display: grid; gap: 24px; margin-top: 40px; padding: 36px 0 calc(24px + env(safe-area-inset-bottom)); border-top: 1px solid var(--home-line); }
-@media (min-width: 761px) { .home-footer { grid-template-columns: 1.3fr 1fr 1fr 1fr; } }
-.home-footer-brand p { max-width: 300px; margin: 10px 0 0; color: var(--home-muted); line-height: 1.5; }
-.home-footer-title { margin: 0 0 6px; color: var(--home-muted); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+/* Compact: brand + tagline on the left, link groups on the right, one bottom line. Groups are a flex row, so a
+   missing contacts group leaves no empty column. */
+.home-footer { display: grid; gap: 20px; margin-top: 40px; padding: 28px 0 calc(16px + env(safe-area-inset-bottom)); border-top: 1px solid var(--home-line); }
+.home-footer-brand p { max-width: 300px; margin: 8px 0 0; color: var(--home-muted); font-size: 14px; line-height: 1.5; }
+.home-footer-groups { display: grid; gap: 16px; min-width: 0; }
+.home-footer-title { margin: 0 0 2px; color: var(--home-muted); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .home-footer ul { display: grid; margin: 0; padding: 0; list-style: none; }
-.home-footer li { color: var(--home-ink); line-height: 1.5; }
+.home-footer li { display: flex; align-items: center; min-height: 36px; color: var(--home-ink); font-size: 14px; line-height: 1.4; }
 .home-footer li span { color: var(--home-muted); }
 .home-footer a { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; color: var(--home-ink); text-decoration: none; }
 .home-footer a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .home-footer .wordmark { min-height: 0; }
-.home-footer-bottom { display: flex; grid-column: 1 / -1; justify-content: space-between; align-items: center; gap: 12px; padding-top: 16px; border-top: 1px solid var(--home-line); color: var(--home-muted); font-size: 14px; }
+.home-footer-bottom { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; padding-top: 10px; border-top: 1px solid var(--home-line); color: var(--home-muted); font-size: 13px; }
 .home-footer-theme { display: inline-flex; align-items: center; gap: 8px; }
-@media (min-width: 761px) { .home-footer-theme { display: none; } }
+@media (min-width: 761px) {
+  .home-footer { grid-template-columns: minmax(200px, 1fr) auto; column-gap: 48px; align-items: start; }
+  /* Each group is one aligned row: a fixed title column, then its links in a line. */
+  .home-footer-groups { grid-column: 2; display: grid; gap: 6px; align-content: start; }
+  .home-footer-groups > * { display: grid; grid-template-columns: 180px minmax(0, 1fr); column-gap: 24px; align-items: baseline; min-width: 0; }
+  .home-footer-groups .home-footer-title { margin: 0; padding-top: 12px; }
+  .home-footer :is(nav, section) ul { display: flex; flex-wrap: wrap; gap: 0 18px; }
+  .home-footer-bottom { grid-column: 1 / -1; }
+  .home-footer-theme { display: none; }
+}
+@media (max-width: 760px) {
+  body:has(.mobile-nav) .home-footer { padding-bottom: 4px; }
+}

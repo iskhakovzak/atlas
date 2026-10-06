@@ -3,7 +3,10 @@ import { env } from "cloudflare:workers";
 import { actionSchema, applyAction } from "@/lib/market/actions";
 import { normalizePricing, pricingRevision, pricingSchema, validateServiceCatalog } from "@/lib/market/domain";
 import { policySchema } from "@/lib/market/policy";
+import { canPerformAction, customerStatusAllowed, hasPermission, hasStaffAccess, operationsKindPermissions, operatorActionTypes, type Permission } from "@/lib/market/access";
 import {
+  accessFor,
+  assertPermission,
   failure,
   HttpError,
   identity,
@@ -49,6 +52,7 @@ const updateSchema = z.discriminatedUnion("kind", [
       fx: true,
       perKg: true,
       perKgUsd: true,
+      standardPerKgUsd: true,
       margin: true,
       buyoutFee: true,
       conversionFee: true,
@@ -66,6 +70,7 @@ const updateSchema = z.discriminatedUnion("kind", [
       rates: true,
       countryOverrides: true,
       deliveryDays: true,
+      standardDeliveryDays: true,
       serviceCatalog: true,
     }),
   }),
@@ -83,30 +88,35 @@ const updateSchema = z.discriminatedUnion("kind", [
   z.object({kind:z.literal("customer-status"),accountId:z.string().min(1).max(320),status:z.enum(["active","review","blocked"])}),
 ]);
 
+/** Any active staff member (or the administrator); the caller checks the finer permission on `access`. */
 async function requireOperator() {
   const user = await identity();
-  if (!operator(user.email)) throw new HttpError(403, 'err_15');
-  return user;
+  const access = await accessFor(user);
+  if (!hasStaffAccess(access)) throw new HttpError(403, 'err_15');
+  return { user, access };
 }
 
 export async function GET(request:Request) {
   try {
-    const user=await requireOperator();
-    await ensurePrimaryOperator(user);
+    const {user,access}=await requireOperator();
+    assertPermission(access,'operations.read');
+    if(operator(user.email))await ensurePrimaryOperator(user);
+    const can=(permission:Permission)=>hasPermission(access,permission);
+    // Each section only for the matching right; empty values keep the response shape for every client.
     const [accounts, settings, staff, audit, health, customerStatuses, errors, vitals] = await Promise.all([
       operatorAccounts(),
       pricingAndPolicy(),
-      staffMembers(),
-      auditEvents(),
+      can('staff.manage')?staffMembers():[],
+      can('audit.read')?auditEvents():[],
       operationalHealth(),
       operationalCustomers(),
-      errorSummary(),
+      can('system.manage')?errorSummary():[],
       // Before migration 0007 is applied the table is missing; the dashboard then shows no field data.
-      vitalsSummary().catch(() => null),
+      can('system.manage')?vitalsSummary().catch(() => null):null,
     ]);
     // Configuration the operator must fix in the hosting secrets; names only, never values.
-    const setupWarnings = env.ATLAS_AUTH_SECRET ? [] : ["Не задан секрет ATLAS_AUTH_SECRET: коды входа хранятся без секретной соли. Задайте его в секретах хостинга по AUTH_SETUP.md."];
-    return json({ accounts, pricing: settings.pricing, policy: settings.policy, staff, audit, health, customerStatuses, errors, vitals, setupWarnings });
+    const setupWarnings = !can('system.manage')||env.ATLAS_AUTH_SECRET ? [] : ["Не задан секрет ATLAS_AUTH_SECRET: коды входа хранятся без секретной соли. Задайте его в секретах хостинга по AUTH_SETUP.md."];
+    return json({ accounts, pricing: settings.pricing, policy: settings.policy, staff, audit, health, customerStatuses, errors, vitals, setupWarnings, access:{operator:access.operator,role:access.role,permissions:access.permissions} });
   } catch (error) {
     return failure(error,request);
   }
@@ -115,11 +125,13 @@ export async function GET(request:Request) {
 export async function POST(request: Request) {
   try {
     sameOrigin(request);
-    const user = await requireOperator();
+    const {user,access} = await requireOperator();
     const payload = updateSchema.safeParse(await requestJson(request));
     if (!payload.success) throw new HttpError(400, 'err_16');
+    // Every update kind needs its own right; actions are checked per action type below.
+    if (payload.data.kind !== 'action') assertPermission(access, operationsKindPermissions[payload.data.kind]);
     if(payload.data.kind==='projection-rebuild'){const count=await rebuildOperationalProjection();await recordAudit(user,'projection.rebuild','system',undefined,{accounts:count});return json({health:await operationalHealth(),audit:await auditEvents()});}
-    if(payload.data.kind==='customer-status'){await setCustomerStatus(payload.data.accountId,payload.data.status);await recordAudit(user,'customer.status','customer',payload.data.accountId,{status:payload.data.status});return json({health:await operationalHealth(),audit:await auditEvents()});}
+    if(payload.data.kind==='customer-status'){if(!customerStatusAllowed(access,payload.data.status))throw new HttpError(403, 'err_51');await setCustomerStatus(payload.data.accountId,payload.data.status);await recordAudit(user,'customer.status','customer',payload.data.accountId,{status:payload.data.status});return json({health:await operationalHealth(),audit:await auditEvents()});}
     if(payload.data.kind==='staff'){
       const isPrimary=operator(payload.data.value.email);
       const value=isPrimary?{...payload.data.value,role:'admin' as const,status:'active' as const}:payload.data.value;
@@ -163,26 +175,9 @@ export async function POST(request: Request) {
     const parsedAction = actionSchema.safeParse(payload.data.action);
     if (!parsedAction.success)
       throw new HttpError(400, 'err_17');
-    if (
-      ![
-        "advance",
-        "receive",
-        "confirm-store-shipping",
-        "confirm-customs-duty",
-        "order-image",
-        "assign-order",
-        "staff-note",
-        "customer-notification",
-        "order-issue-update",
-        "parcel-set",
-        "change-request-create",
-        "warehouse-inspect",
-        "warehouse-service-complete",
-        "warehouse-service-decline",
-        "support-reply",
-      ].includes(parsedAction.data.type)
-    )
-      throw new HttpError(403, 'err_18');
+    // Customer-only actions are never operator actions (err_18); staff actions need the role's right (err_50).
+    if (!operatorActionTypes.includes(parsedAction.data.type)) throw new HttpError(403, 'err_18');
+    if (!canPerformAction(access, parsedAction.data.type)) throw new HttpError(403, 'err_50');
     const current = await storedAccount(payload.data.accountId);
     if (current.revision !== payload.data.revision) {
       const locale=requestLocale(request);
