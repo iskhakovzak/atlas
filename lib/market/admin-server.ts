@@ -4,7 +4,9 @@ import {database,HttpError,operatorAccounts,pricingAndPolicy,staffMembers,type A
 import {readCatalog} from './catalog-server';
 import {adminSettingsSchema,attentionFor,attentionItems,dashboardKpis,defaultAdminSettings,orderFunnel,parseAdminSettings,auditPageSize,type AdminSettings,type AttentionItem,type DashboardAccount,type DashboardKpis,type FunnelStage} from './admin-dashboard';
 import type {Permission} from './access';
-import type {Pricing} from './domain';
+import {statuses,type Pricing} from './domain';
+import type {OrderFinance} from './finance';
+import {buildInvestorSnapshot,hostOf,isExpenseKind,type InvestorSnapshot} from './investor-metrics';
 
 // ---------- Thresholds ----------
 export async function adminSettings():Promise<AdminSettings>{
@@ -152,4 +154,36 @@ export async function systemStatus():Promise<SystemStatus>{
 export async function dashboardFor(can:(permission:Permission)=>boolean,accounts?:DashboardAccount[],pricing?:Pricing,staff?:StaffMember[]){
  const [rows,settings,current,members]=await Promise.all([accounts??operatorAccounts(),adminSettings(),pricing?Promise.resolve(pricing):pricingAndPolicy().then(value=>value.pricing),staff??(can('staff.manage')?staffMembers():Promise.resolve([]))]);
  return {settings,dashboard:await adminDashboard({accounts:rows,pricing:current,staff:members,settings,can})};
+}
+
+// ---------- Investor showcase (Admin → «Для инвестора», GET /api/operations?investor=1) ----------
+/**
+ * The anonymised snapshot behind the investor tab: every order in the books (market_order_finance) with its stage and
+ * source host (market_order_records), the «Доставлен» date (market_order_events), the ledger expenses linked to it
+ * (market_ledger_entries) and, from the account documents, the product country / category and the customers' carts.
+ * Customers become c1, c2, … — no emails or names leave the server; the test flag is computed here from the email domain.
+ * A source that cannot be read gives nothing for its part instead of failing the page; `coverage` says what answered.
+ */
+export async function investorSnapshot(now=Date.now()):Promise<InvestorSnapshot>{
+ const db=database();
+ const read=async<T,>(label:string,work:()=>Promise<T>,fallback:T)=>{try{return await work()}catch(error){console.error(`Investor snapshot: ${label} read failed`,error);return fallback}};
+ const [financeRows,recordRows,customerRows,ledgerRows,deliveredRows,accounts]=await Promise.all([
+  read('finance',()=>db.prepare('SELECT order_id,customer_id,status,created_at,paid_at,month,goods,store_shipping,reserve,payable,commission,delivery,fx_gain,services,revenue FROM market_order_finance ORDER BY created_at ASC LIMIT 20000').all<{order_id:string;customer_id:string;status:OrderFinance['status'];created_at:number;paid_at:number|null;month:string|null;goods:number;store_shipping:number;reserve:number;payable:number;commission:number;delivery:number;fx_gain:number;services:number;revenue:number}>().then(rows=>rows.results),[]),
+  read('records',()=>db.prepare('SELECT id,status,source_store,source_url FROM market_order_records LIMIT 20000').all<{id:string;status:string;source_store:string|null;source_url:string|null}>().then(rows=>rows.results),[]),
+  read('customers',()=>db.prepare('SELECT id,email,created_at FROM market_customers LIMIT 20000').all<{id:string;email:string;created_at:number}>().then(rows=>rows.results),[]),
+  read('ledger',()=>db.prepare('SELECT order_id,kind,SUM(amount_uzs) total FROM market_ledger_entries WHERE voided_at IS NULL AND order_id IS NOT NULL GROUP BY order_id,kind LIMIT 20000').all<{order_id:string;kind:string;total:number}>().then(rows=>rows.results),[]),
+  read('events',()=>db.prepare("SELECT order_id,MIN(created_at) at FROM market_order_events WHERE event_type='status' AND payload=? GROUP BY order_id LIMIT 20000").bind(JSON.stringify({text:statuses[5]})).all<{order_id:string;at:number}>().then(rows=>rows.results),[]),
+  read('accounts',()=>operatorAccounts(),[]),
+ ]);
+ const finance:OrderFinance[]=financeRows.map(r=>({orderId:r.order_id,customerId:r.customer_id,status:r.status,createdAt:r.created_at,...(r.paid_at!==null?{paidAt:r.paid_at}:{}),...(r.month?{month:r.month}:{}),goods:r.goods,storeShipping:r.store_shipping,reserve:r.reserve,payable:r.payable,commission:r.commission,delivery:r.delivery,fxGain:r.fx_gain,services:r.services,revenue:r.revenue}));
+ const records=Object.fromEntries(recordRows.map(row=>[row.id,{status:row.status,sourceUrl:row.source_url,sourceStore:row.source_store}]));
+ const linkedExpenses:Record<string,number>={};
+ for(const row of ledgerRows)if(isExpenseKind(row.kind))linkedExpenses[row.order_id]=(linkedExpenses[row.order_id]??0)+row.total;
+ const deliveredAt=Object.fromEntries(deliveredRows.map(row=>[row.order_id,row.at]));
+ const orderMeta:Record<string,{country?:string;category?:string;host?:string}>={},cartLines:Record<string,number>={};
+ for(const account of accounts){
+  cartLines[account.id]=account.state.cart.length;
+  for(const order of account.state.orders)orderMeta[order.id]={...(order.product.country?{country:order.product.country}:{}),...(order.product.category?{category:order.product.category}:{}),...(hostOf(order.product.sourceUrl)?{host:hostOf(order.product.sourceUrl)}:{})};
+ }
+ return buildInvestorSnapshot({finance,records,customers:customerRows.map(row=>({id:row.id,email:row.email,createdAt:row.created_at})),linkedExpenses,deliveredAt,orderMeta,cartLines,accountsRead:accounts.length,now});
 }

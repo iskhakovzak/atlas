@@ -69,11 +69,14 @@ export function AccountingStatement({ctx}:{ctx:AccountingContext}){
   <div className="acc-block">
    <div className="acc-block-head"><h4>Загрузить выписку банка</h4></div>
    <p className="micro">CSV из интернет-банка: колонки «дата», «сумма» (или «дебет»/«кредит»), «назначение», «контрагент» — разделитель и заголовок определяются автоматически. Строки сопоставляются с журналом (по сумме и дате ±5 дней) и с заказами (по номеру AT-… в назначении или по сумме к оплате). Ничего не записывается, пока вы не подтвердите выбранные строки.</p>
-   <div className="acc-upload">
-    <label className="btn secondary acc-file"><FileUp size={16} aria-hidden="true"/>{fileName?`Файл: ${fileName}`:'Выбрать CSV'}<input type="file" accept=".csv,text/csv,text/plain" className="sr-only" onChange={event=>void readFile(event)}/></label>
-    {text&&<button type="button" className="btn secondary" onClick={reset}>Очистить</button>}
+   <div className="acc-upload-box">
+    <div className="acc-upload">
+     <label className="btn secondary acc-file"><FileUp size={16} aria-hidden="true"/>{fileName?`Файл: ${fileName}`:'Выбрать CSV'}<input type="file" accept=".csv,text/csv,text/plain" className="sr-only" onChange={event=>void readFile(event)}/></label>
+     {text&&<button type="button" className="btn secondary" onClick={reset}>Очистить</button>}
+     <span className="micro">или вставьте строки выписки ниже</span>
+    </div>
+    <label className="field acc-inline"><span className="sr-only">Строки выписки</span><textarea rows={4} value={text} placeholder={'Дата;Сумма;Назначение;Контрагент\n03.10.2026;-1 250 000;DHL счёт 123;DHL'} onChange={event=>{setText(event.target.value);setResult(null)}}/></label>
    </div>
-   <label className="field"><span>Или вставьте строки выписки</span><textarea rows={4} value={text} placeholder={'Дата;Сумма;Назначение;Контрагент\n03.10.2026;-1 250 000;DHL Express счёт 123;DHL\n05.10.2026;2 480 000;Оплата заказа AT-1234ABCD;Клиент'} onChange={event=>{setText(event.target.value);setResult(null)}}/></label>
    {isAdmin&&text.trim()&&<div className="acc-toolbar"><button type="button" className="btn secondary acc-compact" disabled={checking||busy} onClick={()=>void checkOnServer(text)}>{checking?'Сверяем с сервером…':proposals&&proposals.csv===text?'Сверить с сервером ещё раз':'Сверить с сервером'}</button><span className="micro">{proposals&&proposals.csv===text?`Сервер разобрал ${proposals.lines} ${plural(proposals.lines,['строку','строки','строк'])}: номера заказов в назначении и уже записанные оплаты учтены.`:'Сервер найдёт номера заказов в назначении и уже записанные оплаты; ничего не запишет.'}</span></div>}
    {checking&&<p className="micro" role="status">Сверяем выписку с книгами…</p>}
    {checkError&&<p className="notice error" role="alert">Сверка на сервере не удалась: {checkError}. Ниже — сопоставление на клиенте.</p>}

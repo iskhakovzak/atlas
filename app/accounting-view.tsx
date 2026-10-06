@@ -1,13 +1,13 @@
 'use client';
 
 import {useCallback,useEffect,useRef,useState,type KeyboardEvent} from 'react';
-import {Download} from 'lucide-react';
+import {Download,PiggyBank,Receipt,TrendingUp,Wallet} from 'lucide-react';
 import {toast} from 'sonner';
 import {useMarket} from '@/lib/market/store';
 import {effectiveFx} from '@/lib/market/domain';
 import {hasPermission} from '@/lib/market/access';
 import {sparkline,type MonthSummary,type PeriodTotal} from '@/lib/market/finance';
-import {Alert,load,money,Status,type AccountingContext,type MonthBooks,type YearBooks} from './accounting-shared';
+import {Alert,Kpi,load,money,Status,type AccountingContext,type MonthBooks,type YearBooks} from './accounting-shared';
 import {monthNamesShort,nextMonth,previousMonth,todayTashkent} from './accounting-helpers';
 import {AccountingOverview} from './accounting-overview';
 import {AccountingLedger} from './accounting-ledger';
@@ -71,17 +71,15 @@ export function AccountingView(){
 
  const head=<div className="accounting-head">
   <div><h3 id="accounting-title">Бухгалтерия</h3><p className="micro">Atlas работает как агент: деньги за товар, доставку магазина и пошлины — транзит. Доход Atlas — комиссия, международная доставка, курсовая наценка и услуги по оплаченным заказам месяца плюс прочие доходы; расходы — записи журнала. Оплаты на сайте симулируются: «оплачен» — отметка в Atlas, не поступление денег. Ставку налога и схему сверьте с бухгалтером.</p></div>
-  <div className="acc-toolbar">
-   <div className="acc-month-nav" role="group" aria-label="Месяц отчёта">
-    <button type="button" className="btn secondary acc-compact" aria-label="Предыдущий месяц" onClick={()=>setMonth(previousMonth(month))}>‹</button>
-    <label className="field accounting-month"><span>Месяц</span><input type="month" value={month} max={nextMonth(thisMonth)} onChange={event=>/^\d{4}-\d{2}$/.test(event.target.value)&&setMonth(event.target.value)}/></label>
-    <button type="button" className="btn secondary acc-compact" aria-label="Следующий месяц" disabled={month>=nextMonth(thisMonth)} onClick={()=>setMonth(nextMonth(month))}>›</button>
-   </div>
-   {!canWrite&&<span className="acc-badge" title="Право finance.write не выдано">только чтение</span>}
-  </div>
+  {!canWrite&&<span className="acc-badge" title="Право finance.write не выдано">только чтение</span>}
+ </div>;
+ const monthNav=<div className="acc-month-nav" role="group" aria-label="Месяц отчёта">
+  <button type="button" className="btn secondary acc-compact" aria-label="Предыдущий месяц" onClick={()=>setMonth(previousMonth(month))}>‹</button>
+  <label className="field accounting-month"><span className="sr-only">Месяц</span><input type="month" aria-label="Месяц отчёта" value={month} max={nextMonth(thisMonth)} onChange={event=>/^\d{4}-\d{2}$/.test(event.target.value)&&setMonth(event.target.value)}/></label>
+  <button type="button" className="btn secondary acc-compact" aria-label="Следующий месяц" disabled={month>=nextMonth(thisMonth)} onClick={()=>setMonth(nextMonth(month))}>›</button>
  </div>;
 
- if(!books)return <section className="accounting" aria-labelledby="accounting-title">{head}{error?<Alert>{error}</Alert>:<Status>Загружаем бухгалтерию…</Status>}</section>;
+ if(!books)return <section className="accounting" aria-labelledby="accounting-title">{head}<div className="acc-nav">{monthNav}</div>{error?<Alert>{error}</Alert>:<Status>Загружаем бухгалтерию…</Status>}</section>;
  // The engine's fx.usd is the same tariff rate the server used for the books; the client tariff is the fallback.
  const ctx:AccountingContext={books,yearBooks,month,setMonth,usdRate:books.fx?.usd??usdRate,canWrite,isAdmin,canBackup,busy,run,reload};
 
@@ -89,8 +87,11 @@ export function AccountingView(){
   {head}
   {error&&<Alert>{error}</Alert>}
   {loading&&!error&&<Status>Обновляем данные…</Status>}
-  <div id="acc-tabs" className="acc-tabs" role="tablist" aria-label="Разделы бухгалтерии" onKeyDown={onTabKey}>
-   {visibleTabs.map(([id,label])=><button key={id} ref={element=>{tabRefs.current[id]=element}} type="button" role="tab" id={`acc-tab-${id}`} aria-selected={tab===id} aria-controls={`acc-panel-${id}`} tabIndex={tab===id?0:-1} onClick={()=>setTab(id)}>{label}</button>)}
+  <div className="acc-nav">
+   <div id="acc-tabs" className="acc-tabs" role="tablist" aria-label="Разделы бухгалтерии" onKeyDown={onTabKey}>
+    {visibleTabs.map(([id,label])=><button key={id} ref={element=>{tabRefs.current[id]=element}} type="button" role="tab" id={`acc-tab-${id}`} aria-selected={tab===id} aria-controls={`acc-panel-${id}`} tabIndex={tab===id?0:-1} onClick={()=>setTab(id)}>{label}</button>)}
+   </div>
+   {monthNav}
   </div>
   <div id={`acc-panel-${tab}`} role="tabpanel" aria-labelledby={`acc-tab-${tab}`} className="acc-panel">
    {tab==='overview'&&<AccountingOverview ctx={ctx} onOpenTab={openTab}/>}
@@ -112,10 +113,10 @@ function YearView({data}:{data:YearBooks}){
  const row=(label:string,p:MonthSummary|PeriodTotal,className?:string,key?:string)=><tr key={key??label} className={className}><th scope="row">{label}</th><td className="num">{p.orders}</td><td className="num">{money(p.income.commission)}</td><td className="num">{money(p.income.delivery)}</td><td className="num">{money(p.income.fxGain)}</td><td className="num">{money(p.income.services)}</td><td className="num">{money(p.income.other)}</td><td className="num"><b>{money(p.income.total)}</b></td><td className="num">{money(p.expenses.total)}</td><td className={p.profit<0?'num loss':'num'}><b>{money(p.profit)}</b></td><td className="num">{money(p.tax)}</td><td className="num"><b>{money(p.net)}</b></td><td className="num">{money(p.taxPaid)}</td></tr>;
  return <div className="acc-tab-body acc-year">
   <div className="accounting-cards">
-   <article><span>Доход Atlas за {s.year}</span><strong>{money(s.total.income.total)}</strong><small>{s.total.orders} оплаченных заказов</small></article>
-   <article><span>Расходы</span><strong>{money(s.total.expenses.total)}</strong><small>по записям журнала</small></article>
-   <article className={s.total.profit<0?'loss':undefined}><span>Прибыль до налога</span><strong>{money(s.total.profit)}</strong><small>налог {Math.round(s.taxRate*1000)/10} % — ориентир: {money(s.total.tax)}</small></article>
-   <article><span>Чистая прибыль</span><strong>{money(s.total.net)}</strong><small>Налог отмечен уплаченным: {money(s.total.taxPaid)}</small></article>
+   <Kpi icon={Wallet} label={`Доход Atlas за ${s.year}`} value={money(s.total.income.total)} note={`${s.total.orders} оплаченных заказов`}/>
+   <Kpi icon={Receipt} label="Расходы" value={money(s.total.expenses.total)} note="по записям журнала"/>
+   <Kpi icon={TrendingUp} label="Прибыль до налога" value={money(s.total.profit)} loss={s.total.profit<0} note={`налог ${Math.round(s.taxRate*1000)/10} % — ориентир: ${money(s.total.tax)}`}/>
+   <Kpi icon={PiggyBank} label="Чистая прибыль" value={money(s.total.net)} note={`уплачено по отметкам: ${money(s.total.taxPaid)}`}/>
   </div>
   <figure className="acc-spark acc-spark-year">
    <svg viewBox="0 0 320 64" role="img" aria-label={describe('Доход',s.months.map(m=>m.income.total))+'. '+describe('Прибыль',s.months.map(m=>m.profit))} preserveAspectRatio="none">

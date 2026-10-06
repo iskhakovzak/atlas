@@ -152,11 +152,12 @@ export const operationsQueryPermissions: Record<string, Permission> = {
   'customers': 'customers.manage',
   'customer': 'customers.manage',
   'system': 'system.manage',
+  'investor': 'finance.read',
 };
 /** Admin tabs → permission (`null` = any staff member). */
 export const adminTabPermissions: Record<string, Permission | null> = {
   overview: null, catalog: 'catalog.manage', content: 'content.manage', customers: 'customers.manage', support: 'support.reply', finance: 'finance.read',
-  pricing: 'pricing.manage', staff: 'staff.manage', rules: 'policy.manage', system: 'system.manage', audit: 'audit.read',
+  pricing: 'pricing.manage', staff: 'staff.manage', rules: 'policy.manage', system: 'system.manage', audit: 'audit.read', investor: 'finance.read',
 };
 /** Admin views → permission: /operations needs the queue, /analytics the books, /admin any staff right. */
 export const adminViewPermissions: Record<string, Permission | null> = { operations: 'operations.read', analytics: 'finance.read', admin: null };

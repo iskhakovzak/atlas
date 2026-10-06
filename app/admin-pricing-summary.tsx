@@ -16,7 +16,7 @@ export function PricingSummary({pricing}:{pricing:Pricing}){
    <div><dt>Комиссия Atlas</dt><dd>{s.marginPercent.toLocaleString('ru-RU')} %</dd><small>только от товаров</small></div>
    <div><dt>Резерв доставки</dt><dd>{s.reserve?`${Math.round(s.reserve*100)} %`:'нет'}</dd><small>{s.reserve?'отдельная строка в счёте':'в счёте не показывается'}</small></div>
    <div><dt>Таможня через Atlas</dt><dd>{s.customsHelpPercent.toLocaleString('ru-RU')} %</dd><small>от стоимости товара, по выбору клиента</small></div>
-   <div><dt>Доставка магазина</dt><dd>бесплатно от {usd(s.storeShippingFreeFromUsd)}</dd><small>когда магазин её не указал</small></div>
+   <div><dt>Доставка магазина бесплатно</dt><dd>от {usd(s.storeShippingFreeFromUsd)}</dd><small>когда магазин её не указал; ниже — резерв</small></div>
   </dl>
  </section>;
 }

@@ -1,10 +1,10 @@
 'use client';
 
 import {useMemo,useState} from 'react';
-import {FileText,Printer} from 'lucide-react';
+import {FileText,Printer,ShoppingBag,TrendingUp,Wallet} from 'lucide-react';
 import {orderMargin,type OrderFinance} from '@/lib/market/finance';
 import {Modal} from './market-ui';
-import {Amount,load,money,stageNames,statusNames,type AccountingContext} from './accounting-shared';
+import {Amount,Kpi,load,money,stageNames,statusNames,type AccountingContext} from './accounting-shared';
 import {entryDirection,invoiceFromOrder,monthLabel,normalizeInvoice,type InvoiceView} from './accounting-helpers';
 
 type SortKey='date'|'revenue'|'margin';
@@ -31,9 +31,9 @@ export function AccountingOrders({ctx,onShowInLedger}:{ctx:AccountingContext;onS
  }
  return <div className="acc-tab-body">
   <div className="accounting-cards acc-cards-3">
-   <article><span>Оплаченных заказов за {monthLabel(books.month)}</span><strong>{totals.count}</strong><small>по отметке «оплачен» в Atlas (платежи симулируются)</small></article>
-   <article><span>Доход Atlas по ним</span><strong><Amount value={totals.revenue}/></strong><small>товар в транзите: {money(totals.goods)}</small></article>
-   <article className={totals.margin<0?'loss':undefined}><span>Фактическая маржа</span><strong><Amount value={totals.margin}/></strong><small>доход − привязанные расходы журнала</small></article>
+   <Kpi icon={ShoppingBag} label={`Оплаченных заказов за ${monthLabel(books.month)}`} value={totals.count} note="по отметке «оплачен» в Atlas, платежи симулируются"/>
+   <Kpi icon={Wallet} label="Доход Atlas по ним" value={<Amount value={totals.revenue}/>} note={`товар в транзите: ${money(totals.goods)}`}/>
+   <Kpi icon={TrendingUp} label="Фактическая маржа" value={<Amount value={totals.margin}/>} loss={totals.margin<0} note="доход − привязанные расходы журнала"/>
   </div>
   <div className="acc-block">
    <div className="acc-block-head"><h4>Заказы месяца</h4>

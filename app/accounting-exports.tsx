@@ -22,19 +22,19 @@ export function AccountingExports({ctx}:{ctx:AccountingContext}){
    </div>
    {!valid&&<p className="notice error" role="alert">Начало периода позже конца.</p>}
    <ul className="acc-export-list">
-    {csvKinds.map(([kind,label,hint])=><li key={kind}><a className={valid?'btn secondary':'btn secondary acc-disabled'} aria-disabled={!valid} href={valid?exportUrl(kind):undefined} download><Download size={16} aria-hidden="true"/>{label}</a><small>{hint}</small></li>)}
-    <li><a className="btn secondary" href={`/api/finance?export=year&year=${from.slice(0,4)}`} download><Download size={16} aria-hidden="true"/>Год {from.slice(0,4)} по месяцам</a><small>12 месяцев, кварталы и итог года с налогом-ориентиром</small></li>
-    <li><a className="btn secondary" href={`/api/finance?export=book&month=${month}`} download><Download size={16} aria-hidden="true"/>Полная книга {month}</a><small>все записи журнала месяца (авто, вручную, выписка, аннулированные) и строки заказов</small></li>
+    {csvKinds.map(([kind,label,hint])=><li key={kind}><a className={valid?'acc-export':'acc-export acc-disabled'} aria-disabled={!valid} href={valid?exportUrl(kind):undefined} download><Download size={18} aria-hidden="true"/><b>{label}</b><small>{hint}</small></a></li>)}
+    <li><a className="acc-export" href={`/api/finance?export=year&year=${from.slice(0,4)}`} download><Download size={18} aria-hidden="true"/><b>Год {from.slice(0,4)} по месяцам</b><small>12 месяцев, кварталы и итог года с налогом-ориентиром</small></a></li>
+    <li><a className="acc-export" href={`/api/finance?export=book&month=${month}`} download><Download size={18} aria-hidden="true"/><b>Полная книга {month}</b><small>все записи журнала месяца и строки заказов</small></a></li>
    </ul>
    <p className="micro">CSV с разделителем «;», UTF-8 с BOM и десятичной запятой — открывается в Excel без настроек. Суммы в сумах. Платёжные статусы — отметки в Atlas, не движение денег.</p>
   </div>
   <div className="acc-block">
    <div className="acc-block-head"><h4>JSON-бэкап</h4></div>
    <ul className="acc-export-list">
-    <li><a className={valid?'btn secondary':'btn secondary acc-disabled'} aria-disabled={!valid} href={valid?`/api/finance?export=backup&from=${from}&to=${to}`:undefined} download><FileJson size={16} aria-hidden="true"/>Книги за период (JSON)</a><small>настройки, заказы, журнал и сводки за выбранные месяцы — с сервера</small></li>
-    <li><button type="button" className="btn secondary" onClick={()=>downloadText(`atlas-accounting-${books.month}-${todayTashkent()}.json`,monthBackup(books))}><FileJson size={16} aria-hidden="true"/>Месяц {books.month} как на экране (JSON)</button><small>то, что сейчас загружено в этот раздел, без запроса к серверу</small></li>
-    {canBackup?<li><a className="btn secondary" href="/api/backup" download><DatabaseBackup size={16} aria-hidden="true"/>Полный бэкап базы (JSON)</a><small>все таблицы D1, включая клиентов и документы — храните как секрет</small></li>
-    :<li><span className="btn secondary acc-disabled" aria-disabled="true"><DatabaseBackup size={16} aria-hidden="true"/>Полный бэкап базы</span><small>доступен только с правом system.manage (администратор)</small></li>}
+    <li><a className={valid?'acc-export':'acc-export acc-disabled'} aria-disabled={!valid} href={valid?`/api/finance?export=backup&from=${from}&to=${to}`:undefined} download><FileJson size={18} aria-hidden="true"/><b>Книги за период (JSON)</b><small>настройки, заказы, журнал и сводки за выбранные месяцы — с сервера</small></a></li>
+    <li><button type="button" className="acc-export" onClick={()=>downloadText(`atlas-accounting-${books.month}-${todayTashkent()}.json`,monthBackup(books))}><FileJson size={18} aria-hidden="true"/><b>Месяц {books.month} как на экране (JSON)</b><small>то, что сейчас загружено в этот раздел, без запроса к серверу</small></button></li>
+    {canBackup?<li><a className="acc-export" href="/api/backup" download><DatabaseBackup size={18} aria-hidden="true"/><b>Полный бэкап базы (JSON)</b><small>все таблицы D1, включая клиентов и документы — храните как секрет</small></a></li>
+    :<li><span className="acc-export acc-disabled" aria-disabled="true"><DatabaseBackup size={18} aria-hidden="true"/><b>Полный бэкап базы</b><small>доступен только с правом system.manage (администратор)</small></span></li>}
    </ul>
   </div>
  </div>;

@@ -32,7 +32,7 @@ export function PerformanceSummary({ field }: { field?: { since: number; routes:
     {label: 'CLS · сдвиг макета', value: value(summary.cls, 3), limit: limits.cls, measured: summary.cls},
   ];
   const routes = field?.routes ?? [];
-  return <section className="performance-summary" aria-labelledby="performance-summary-title">
+  return <section className="surface admin-section performance-summary" aria-labelledby="performance-summary-title">
     <div className="admin-section-head"><div><h3 id="performance-summary-title">Скорость у покупателей</h3><p>p75 за 7 дней по страницам: анонимные замеры из браузеров посетителей.</p></div></div>
     {routes.length ? <div className="field-vitals" role="region" aria-label="Скорость по страницам" tabIndex={0}><table>
       <thead><tr><th scope="col">Страница</th><th scope="col">Замеров</th><th scope="col">Телефоны</th><th scope="col">LCP</th><th scope="col">INP</th><th scope="col">CLS</th><th scope="col">TTFB</th></tr></thead>

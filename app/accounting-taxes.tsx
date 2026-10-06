@@ -1,8 +1,8 @@
 'use client';
 
 import {useMemo,useState,type FormEvent} from 'react';
-import {BadgeCheck,CalendarDays} from 'lucide-react';
-import {Amount,ConfirmDialog,money,post,type AccountingContext} from './accounting-shared';
+import {BadgeCheck,CalendarDays,Landmark,Scale} from 'lucide-react';
+import {Amount,ConfirmDialog,Kpi,money,post,type AccountingContext} from './accounting-shared';
 import {normalizeTaxCalendar,taxCalendar,taxStatusNames,taxStatusTone,todayTashkent,type TaxQuarter} from './accounting-helpers';
 
 /** Налоги: the quarter calendar (accrued vs marked paid), "mark paid" = a tax_paid ledger entry, and the rate setting. */
@@ -35,15 +35,15 @@ export function AccountingTaxes({ctx}:{ctx:AccountingContext}){
  return <div className="acc-tab-body">
   <p className="micro">Налог на прибыль в Узбекистане отчитывается поквартально. Здесь — ориентир по ставке из настроек: начислено = прибыль месяцев квартала × ставка (без взаимозачёта убыточных месяцев), уплачено = записи «Уплаченный налог на прибыль» в журнале. Это не расчёт декларации: сроки, базу и ставку сверьте с бухгалтером. НДС, соцналоги и другие платежи здесь не считаются.</p>
   <div className="accounting-cards acc-cards-3">
-   <article><span>Начислено за {year}, ориентир</span><strong><Amount value={total.accrued}/></strong><small>ставка {Math.round(books.settings.profitTaxRate*1000)/10} %</small></article>
-   <article><span>Отмечено уплаченным</span><strong><Amount value={total.paid}/></strong><small>по записям журнала за {year}</small></article>
-   <article className={total.accrued-total.paid>0?'loss':undefined}><span>Разница</span><strong><Amount value={total.accrued-total.paid}/></strong><small>{total.accrued-total.paid>0?'к уплате по ориентиру':total.accrued-total.paid<0?'уплачено больше ориентира':'расхождений нет'}</small></article>
+   <Kpi icon={Landmark} label={`Начислено за ${year}, ориентир`} value={<Amount value={total.accrued}/>} note={`ставка ${Math.round(books.settings.profitTaxRate*1000)/10} %`}/>
+   <Kpi icon={BadgeCheck} label="Отмечено уплаченным" value={<Amount value={total.paid}/>} note={`по записям журнала за ${year}`}/>
+   <Kpi icon={Scale} label="Разница" value={<Amount value={total.accrued-total.paid}/>} loss={total.accrued-total.paid>0} note={total.accrued-total.paid>0?'к уплате по ориентиру':total.accrued-total.paid<0?'уплачено больше ориентира':'расхождений нет'}/>
   </div>
   <div className="acc-block">
    <div className="acc-block-head"><h4>Кварталы {year}</h4><span className="micro">{fromServer?'календарь движка: сроки — ориентир (20-е число после квартала, за IV квартал — 1 марта)':'по данным вкладки «Год»'}</span></div>
    {quarters.length?<div className="acc-quarters">{quarters.map(quarter=><article key={quarter.index} className={`acc-quarter acc-quarter-${quarter.status}`}>
     <header><CalendarDays size={16} aria-hidden="true"/><b>{quarter.label}</b><span className={`acc-badge acc-badge-${taxStatusTone(quarter.status)}`}>{taxStatusNames[quarter.status]}</span></header>
-    <dl className="acc-details acc-details-inline">
+    <dl className="acc-details acc-quarter-facts">
      <div><dt>Период</dt><dd>{quarter.months[0]} — {quarter.periodEnd}</dd></div>
      {quarter.deadline&&<div><dt>Срок (ориентир)</dt><dd>{quarter.deadline}</dd></div>}
      {quarter.profit!==undefined&&<div><dt>Прибыль до налога</dt><dd><Amount value={quarter.profit}/></dd></div>}
