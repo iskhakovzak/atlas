@@ -31,6 +31,7 @@ import "./home-chapters.css";
 import "./tariffs.css";
 import "./home-wide-rail.css";
 import "./home-wide-content.css";
+import "./store-marks.css";
 import "./home-wide-decor.css";
 import "./orders-groups.css";
 import "./accounting.css";

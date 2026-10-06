@@ -1,0 +1,48 @@
+'use client';
+import type {CSSProperties} from 'react';
+import Link from '@/components/site-link';
+import {popularBrandKeys,storeBrands,type StoreBrand} from '@/lib/market/store-brands';
+import {StoreMark,hasStoreMark,storeWordmarks} from './store-logo';
+
+/**
+ * The stores in the hero: the popular ones first (Nike, Zara, Amazon…), then every other store of the catalog with a
+ * vector mark. Owner, 7.10.2026: a moving ribbon — two rows going opposite ways on a wide screen, one on a phone.
+ * It stops under the pointer and while a link in it has focus (owner, 7.10.2026: no pause button).
+ * With reduced motion it is a still row that scrolls by hand.
+ */
+const popular=popularBrandKeys.map(key=>storeBrands.find(brand=>brand.key===key)).filter((brand):brand is StoreBrand=>Boolean(brand));
+export const marqueeStores=[...popular,...storeBrands.filter(brand=>!popularBrandKeys.includes(brand.key)&&hasStoreMark(brand.key))];
+
+function Item({store,hidden,openStore}:{store:StoreBrand;hidden:boolean;openStore:string}){
+ const mark=hasStoreMark(store.key);
+ return <li>
+  <a href={'https://'+store.storefronts[0].root} target="_blank" rel="noopener noreferrer" tabIndex={hidden?-1:undefined} aria-label={mark&&storeWordmarks.has(store.key)?`${store.name} (${openStore})`:undefined}>
+   {mark&&<StoreMark brandKey={store.key} height={30} maxWidth={140}/>}
+   {(!mark||!storeWordmarks.has(store.key))&&<span className="store-marquee-name">{store.name}</span>}
+   {!(mark&&storeWordmarks.has(store.key))&&<span className="sr-only"> ({openStore})</span>}
+  </a>
+ </li>;
+}
+
+/** One row: the list and an inert copy right after it, so the loop has no seam (the track moves by half its width). */
+function Row({stores,reverse,openStore,className}:{stores:StoreBrand[];reverse?:boolean;openStore:string;className:string}){
+ return <div className={'store-marquee-row '+className+(reverse?' reverse':'')} style={{'--marquee-s':`${Math.max(30,stores.length*2.6)}s`} as CSSProperties}>
+  <div className="store-marquee-track">
+   <ul>{stores.map(store=><Item key={store.key} store={store} hidden={false} openStore={openStore}/>)}</ul>
+   <ul className="store-marquee-copy" aria-hidden="true" inert>{stores.map(store=><Item key={store.key} store={store} hidden openStore={openStore}/>)}</ul>
+  </div>
+ </div>;
+}
+
+export function StoreMarquee({label,openStore,allStores}:{label:string;openStore:string;allStores:string}){
+ // Wide screen: popular stores spread over both rows, so Nike, Zara and Amazon are in view from the start.
+ const top=marqueeStores.filter((_,index)=>index%2===0),bottom=marqueeStores.filter((_,index)=>index%2===1);
+ return <section className="store-marquee" aria-label={label}>
+  <Row stores={marqueeStores} openStore={openStore} className="single"/>
+  <Row stores={top} openStore={openStore} className="double"/>
+  <Row stores={bottom} reverse openStore={openStore} className="double"/>
+  <div className="store-marquee-foot">
+   <Link className="home-stores-all" href="/stores">{allStores}</Link>
+  </div>
+ </section>;
+}

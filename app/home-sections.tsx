@@ -13,6 +13,7 @@ import {deliveryDaysFor,deliveryRegions,paymentLabels} from '@/lib/market/site-c
 import {localizedStatuses,routeTitle,type Locale} from '@/lib/market/i18n';
 import {storeBrands} from '@/lib/market/store-brands';
 import {StoreLogo} from './store-logo';
+import {StoreMarquee} from './store-marquee';
 import {Flag} from './flags';
 import {Money} from './money';
 
@@ -85,8 +86,8 @@ export function HomeHero({showCatalogLink}:{showCatalogLink:boolean}){
    <button type="submit" className="btn primary home-cta">{c.hero.calculate}</button>
   </form>
   {error?<p id="home-link-error" className="home-link-error" role="alert">{error}</p>:<p id="home-link-note" className="home-link-note">{status==='authenticated'?c.hero.memberNote:c.hero.guestNote}</p>}
-  <div className="home-stores">
-   <HomeStoreList label={c.hero.popular}/>
+  <div className="home-stores home-stores-marquee">
+   <StoreMarquee label={c.hero.popular} openStore={c.hero.openStore} allStores={c.hero.allStores(storeBrands.length)}/>
    <p className="home-stores-hint">{c.hero.storesHint}</p>
   </div>
   <div className="home-hero-links"><Link href="/batch-import">{c.hero.batch}</Link>{showCatalogLink&&<Link href="/catalog">{c.hero.catalog}</Link>}</div>

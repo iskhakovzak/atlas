@@ -1,0 +1,43 @@
+/* Store marks (app/store-logo.tsx StoreMark) and the hero's moving store ribbon (app/store-marquee.tsx).
+   A mark is a vector file used as a mask over the text colour: crisp at any size, readable in both themes. */
+.store-mark { display: inline-block; flex: none; background: currentColor; -webkit-mask: var(--mark) center / contain no-repeat; mask: var(--mark) center / contain no-repeat; }
+
+/* A plate with a vector mark: the page's surface and ink, so it sits right on light and dark pages alike. */
+.store-logo.store-logo-vector { border-color: var(--home-line); background: var(--home-surface); color: var(--home-ink); }
+html[data-theme="dark"] .store-logo.store-logo-vector { border-color: var(--home-line); background: var(--home-surface); }
+
+/* Ribbon. Selectors start at .home-stores.home-stores-marquee (links at html body …) to win over the hero's pill list (home.css, day-folio.css,
+   theme-night.css), which the closing card on wide screens still uses. */
+.home-stores.home-stores-marquee { margin-top: 24px; }
+.store-marquee-row { overflow: hidden; padding-block: 0; -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); }
+.store-marquee-row.double { display: none; }
+.store-marquee-track { display: flex; width: max-content; animation: store-marquee var(--marquee-s, 60s) linear infinite; }
+.store-marquee-row.reverse .store-marquee-track { animation-direction: reverse; }
+@keyframes store-marquee { to { transform: translateX(-50%); } }
+/* Stops under the pointer and while a link in it has focus. */
+.store-marquee:is(:hover, :focus-within) .store-marquee-track { animation-play-state: paused; }
+
+.home-stores.home-stores-marquee .store-marquee ul { display: flex; flex-wrap: nowrap; gap: 0; margin: 0; padding: 0; overflow: visible; list-style: none; -webkit-mask-image: none; mask-image: none; }
+.home-stores.home-stores-marquee .store-marquee li { flex: none; }
+html body .home-stores.home-stores-marquee .store-marquee a {
+  display: inline-flex; align-items: center; gap: 9px; min-height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: none;
+  color: var(--home-ink); font-size: 16px; font-weight: 650; letter-spacing: -.01em; white-space: nowrap; text-decoration: none; opacity: .78; transition: opacity .2s;
+}
+html body .home-stores.home-stores-marquee .store-marquee a:hover { border: 0; opacity: 1; text-decoration: none; }
+html body .home-stores.home-stores-marquee .store-marquee a:focus-visible { opacity: 1; outline: 2px solid var(--home-accent); outline-offset: -4px; }
+
+.store-marquee-foot { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+
+@media (min-width: 960px) {
+  .store-marquee-row.single { display: none; }
+  .store-marquee-row.double { display: block; }
+  html body .home-stores.home-stores-marquee .store-marquee a { min-height: 50px; padding: 0 20px; font-size: 17px; }
+  .home-stores.home-stores-marquee .store-marquee .store-mark { zoom: 1.1; }
+}
+
+/* Reduced motion: a still row that scrolls by hand, without the copy that made the loop. */
+@media (prefers-reduced-motion: reduce) {
+  .store-marquee-track { animation: none; }
+  .store-marquee-copy,   .store-marquee-row { overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .store-marquee-row::-webkit-scrollbar { display: none; }
+}
