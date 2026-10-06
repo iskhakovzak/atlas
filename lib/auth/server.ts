@@ -7,7 +7,7 @@ import {
  type AuthMethod,type AuthUser,type TelegramFields,
 } from './core';
 import {loginPath,safeReturnTo} from './return-to';
-import {TG_BOT_SETTING,TG_CHALLENGE_KINDS,TG_LOGIN_COOKIE,TG_LOGIN_TTL_MS,botLinks,botText,parseBotUpdate,validStartToken,type TgChallengeKind} from './telegram-bot';
+import {TG_ANIMATION_SETTING,TG_BOT_SETTING,TG_CHALLENGE_KINDS,TG_WELCOME_ANIMATION,TG_LOGIN_COOKIE,TG_LOGIN_TTL_MS,botLinks,botText,parseBotUpdate,validStartToken,type TgChallengeKind} from './telegram-bot';
 
 export class AuthError extends Error{constructor(public status:number,public code:string){super(code)}}
 export type OtpChannel='email'|'phone';
@@ -297,7 +297,7 @@ async function telegramBotReady(request:Request){
 async function webhookSecret(){return (await sha256Hex('telegram-webhook:'+pepper()+':'+(env.TELEGRAM_BOT_TOKEN??''))).slice(0,48)}
 async function botApi(method:string,body:Record<string,unknown>){
  const response=await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${method}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(8000)});
- const data=await response.json().catch(()=>({})) as {ok?:boolean;description?:string};
+ const data=await response.json().catch(()=>({})) as {ok?:boolean;description?:string;result?:{animation?:{file_id?:string};document?:{file_id?:string}}};
  if(!response.ok||!data.ok)throw Error(`Telegram ${method}: ${data.description??response.status}`);
  return data;
 }
@@ -340,6 +340,25 @@ export async function checkTelegramBot(request:Request,token:unknown):Promise<{s
 }
 
 /** Telegram posts the bot's updates here; only requests carrying the webhook secret are read. */
+/**
+ * The first message after Start: the welcome animation with the text and buttons as its caption. The first
+ * send passes the site's file URL; Telegram's file_id is kept and reused, so later sends are instant.
+ */
+async function sendWelcome(chatId:number,caption:string,replyMarkup:unknown,site:string){
+ let cached:string|undefined;
+ try{cached=(await db().prepare('SELECT value FROM market_settings WHERE key=?').bind(TG_ANIMATION_SETTING).first<{value:string}>())?.value}catch{/* no cache */}
+ try{
+  const sent=await botApi('sendAnimation',{chat_id:chatId,animation:cached??site+TG_WELCOME_ANIMATION,caption,parse_mode:'HTML',reply_markup:replyMarkup});
+  const fileId=sent.result?.animation?.file_id??sent.result?.document?.file_id;
+  if(fileId&&fileId!==cached)await db().prepare('INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES (?,?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at').bind(TG_ANIMATION_SETTING,fileId,Date.now(),'telegram-bot').run();
+ }catch(error){
+  // A stale file_id (new bot token) or an unreachable file: forget it and send the text alone.
+  console.error('Telegram welcome animation failed',error);
+  if(cached)await db().prepare('DELETE FROM market_settings WHERE key=?').bind(TG_ANIMATION_SETTING).run().catch(()=>undefined);
+  await botApi('sendMessage',{chat_id:chatId,text:caption,parse_mode:'HTML',reply_markup:replyMarkup});
+ }
+}
+
 export async function telegramWebhook(request:Request){
  if(!configured.telegram())throw new AuthError(503,'method_unavailable');
  if(!constantTimeEqual(request.headers.get('x-telegram-bot-api-secret-token')??'',await webhookSecret()))throw new AuthError(403,'forbidden_origin');
@@ -353,9 +372,13 @@ export async function telegramWebhook(request:Request){
  };
  if(update.kind==='start'){
   const row=update.token?await pending(update.token):null;
-  if(!row){await botApi('sendMessage',{chat_id:update.chatId,text:update.token?t.expired:t.hello,reply_markup:openSite});return}
+  if(!row){
+   if(update.token)await botApi('sendMessage',{chat_id:update.chatId,text:t.expired,reply_markup:openSite});
+   else await sendWelcome(update.chatId,t.hello,openSite,site);
+   return;
+  }
   const isLink=row.kind==='telegram-link';
-  await botApi('sendMessage',{chat_id:update.chatId,text:isLink?t.linkConfirm:t.confirm,reply_markup:{inline_keyboard:[[{text:isLink?t.linkButton:t.confirmButton,callback_data:'ok:'+update.token}]]}});
+  await sendWelcome(update.chatId,isLink?t.linkConfirm:t.confirm,{inline_keyboard:[[{text:isLink?t.linkButton:t.confirmButton,callback_data:'ok:'+update.token}]]},site);
   return;
  }
  await limit(`telegram-bot-confirm:${update.user.id}`,30,60*60*1000);
@@ -363,7 +386,8 @@ export async function telegramWebhook(request:Request){
  const saved=row?await db().prepare("UPDATE market_auth_challenges SET target=? WHERE id=? AND target=''").bind(JSON.stringify(update.user),await sha256Hex(update.token)).run():null;
  const ok=!!saved?.meta.changes;
  await botApi('answerCallbackQuery',{callback_query_id:update.callbackId,text:ok?t.toast:t.expired.split('.')[0]});
- await botApi('editMessageText',{chat_id:update.chatId,message_id:update.messageId,text:ok?(row?.kind==='telegram-link'?t.linked:t.done):t.expired,reply_markup:openSite});
+ const result=ok?(row?.kind==='telegram-link'?t.linked:t.done):t.expired;
+ await botApi(update.media?'editMessageCaption':'editMessageText',{chat_id:update.chatId,message_id:update.messageId,...(update.media?{caption:result}:{text:result}),parse_mode:'HTML',reply_markup:openSite});
 }
 
 /** Operator: point the bot at this site's webhook. After that the sign-in button opens the bot instead of the widget. */

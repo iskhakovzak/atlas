@@ -25,7 +25,10 @@ test('/start with a token in a private chat asks to confirm; a group, a bot or a
 
 test('the confirm tap carries who confirmed; anything else is ignored', () => {
   const tap = (data) => parseBotUpdate({ callback_query: { id: 'cb1', from, data, message: { message_id: 9, chat: { id: 5, type: 'private' } } } });
-  assert.deepEqual(tap('ok:' + token), { kind: 'confirm', callbackId: 'cb1', chatId: 5, messageId: 9, token, lang: 'uz', user: { id: '123456789', name: 'Zarina Karimova' } });
+  assert.deepEqual(tap('ok:' + token), { kind: 'confirm', callbackId: 'cb1', chatId: 5, messageId: 9, token, lang: 'uz', user: { id: '123456789', name: 'Zarina Karimova' }, media: false });
+  // The welcome animation's message is edited by its caption.
+  const onAnimation = parseBotUpdate({ callback_query: { id: 'cb2', from, data: 'ok:' + token, message: { message_id: 10, chat: { id: 5, type: 'private' }, animation: { file_id: 'x' }, caption: 'Вход' } } });
+  assert.equal(onAnimation.media, true);
   assert.equal(tap('no:' + token), null);
   assert.equal(tap('ok:x'), null);
   assert.equal(parseBotUpdate(null), null);

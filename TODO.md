@@ -9,6 +9,7 @@
 - [x] Capital letters while typing: every word in names, the first letter in city and address.
 - [x] Sign-in through the Telegram bot (one tap opens the app, confirm in the chat, the page signs in); `/login` shows Telegram first and the other methods as a column of buttons.
 - [x] The published site (atlasmarket.uz over https) connects the bot webhook by itself on the first sign-in page load; "Подключить бота" in Admin → System does it by hand. Until it is connected the old widget stays. Reconnect after changing the site address, `TELEGRAM_BOT_TOKEN` or `ATLAS_AUTH_SECRET` (the webhook secret is derived from both).
+- [x] The bot's first message after Start is the welcome animation (`public/telegram/atlas-welcome.mp4`, 960×540, 5 s loop) with the text and the confirm button as its caption; its Telegram file_id is cached in `market_settings` (`telegram-bot-animation`); on any failure the bot forgets it and sends the text alone.
 - [ ] Real-device check of the bot sign-in: iPhone and Android with Telegram installed (t.me opens the app), Telegram Desktop on Windows/macOS (tg:// opens it), and a computer without Telegram (the "open in the browser" link).
 - [ ] The bot asks for one confirm tap after Start (protects against someone sending a sign-in link to another person); if the owner wants zero taps, that protection is lost.
 - [ ] The catalog magnet is checked in Chromium only; check iPhone Safari (the measured bottom bars, the keyboard over the sheets).
