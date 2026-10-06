@@ -549,28 +549,6 @@ export function GlobalLinkOrder() {
     // `load` intentionally reads the current form state; this effect runs once per requested product.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestedUrl, catalogId, catalogContextLoaded]);
-  // Sheets: where the first one starts and how much of the screen the bottom bars cover, measured, so the
-  // next sheet never peeks in (app/customer.css, "Link order sheets").
-  const sheetsShown = Boolean(source && !busy);
-  useEffect(() => {
-    if (!sheetsShown) return;
-    const root = document.documentElement;
-    const measure = () => {
-      const form = document.getElementById("link-order-form");
-      if (!form) return;
-      const covered = Array.from(document.querySelectorAll<HTMLElement>(".mobile-nav, .lo-sticky"))
-        .map(bar => bar.getBoundingClientRect())
-        // Fixed bars in the lower half: the bottom navigation and the sticky total stacked on it.
-        .filter(rect => rect.height > 0 && rect.top > window.innerHeight / 2 && rect.top < window.innerHeight)
-        .reduce((top, rect) => Math.min(top, rect.top), window.innerHeight);
-      root.style.setProperty("--lo-top", `${Math.round(form.getBoundingClientRect().top + window.scrollY)}px`);
-      root.style.setProperty("--lo-bottom", `${Math.max(0, Math.round(window.innerHeight - covered))}px`);
-    };
-    measure();
-    const late = window.setTimeout(measure, 400);
-    window.addEventListener("resize", measure);
-    return () => { window.clearTimeout(late); window.removeEventListener("resize", measure); root.style.removeProperty("--lo-top"); root.style.removeProperty("--lo-bottom"); };
-  }, [sheetsShown, added, ready]);
   // The options the customer chose, with quantities: from the option buttons, or the typed option.
   const picks: [string, number][] = variants.length
     ? Object.entries(picked).filter(([label]) => variants.some(item => item.label === label))
@@ -797,7 +775,6 @@ export function GlobalLinkOrder() {
             }
           }}
         >
-          {/* Three sheets on phones that snap like the home page: choose, the bill, then the data and the button. */}
           <div className="lo-sheet lo-sheet-pick">
           <section className={"lo-product" + (image ? "" : " lo-product-plain")} aria-labelledby="lo-product-name">
             {image && <div className="lo-gallery"><ProductGallery product={previewProduct} images={images.length?images:[image]} activeImage={image} onImageChange={setImage} locale={lang}/></div>}
