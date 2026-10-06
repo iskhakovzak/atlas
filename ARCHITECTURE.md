@@ -1,5 +1,21 @@
 # Atlas architecture
 
+## Корзина: варианты одного товара, «Удалить», кто платит пошлину, калькулятор таможни — 7 октября 2026
+
+По трём голосовым владельца (ветка `feat/cart-customs-choice`).
+
+- **Варианты одного товара** (`productGroups` в `app/shopping.tsx`). Строки посылки с одним товаром стоят рядом (`.basket-group`), у каждого размера свои количество и «Удалить», а «Комментарий к заказу» и «Услуги склада» — один общий блок `.basket-shared` под ними (`renderExtras(lines)`). Ключ товара — `sourceUrl` + `name`: у импортированного товара `product.id` вида «ссылка#вариант», поэтому по id группировать нельзя; без ссылки (каталог) — `product.id`. Разные товары и магазины — по-прежнему по отдельности. Каждая строка остаётся отдельным заказом, поэтому общий выбор пишется в каждую строку одним действием: `cart-note` / `cart-services` с необязательным `ids` (1–20 строк, `lib/market/actions.ts`); без `ids` меняется одна строка, как раньше. Общий блок показывает объединение выбранных услуг и наибольшее число единиц. Фиксированная цена в подсказке суммируется по строкам — так сейчас и начисляется: услуга «за посылку» берётся с каждого варианта. Убрать это — задача отдельной сессии, см. TODO.md.
+- **«Удалить» в корзине** — приглушённый красный: Day `#a5484c`, при наведении `#8e2f33` на розовом фоне; Night — смесь `--night-error-ink` и `--night-muted`. Новых кнопок удаления нет: владелец опасается промахов.
+- **Кто платит пошлину** (`CustomsPanel` в `app/calc-summary.tsx`). Вместо галочки — `fieldset.customs-choice` с двумя карточками-радио. «Atlas оплатит таможню» — мятная карточка, бейдж «Удобнее» на рамке, три коротких преимущества, сбор `pricing.customsHelpFee` от цены товаров. «Оплачу сам(а)» честно говорит: нужно дождаться счёта таможни и оплатить его самому, пока посылка стоит. Выбор — то же действие `cart-customs` (`state.cartCustoms.help`); по умолчанию Atlas не выбран. Карточки есть в корзине и на шаге подтверждения; на странице заказа по ссылке (без `onChoices`) их нет. Тексты — `calcCopy.customs.choice` (ru/uz/en). Слова «гарантированно» нет: сроки таможни Atlas не контролирует.
+- **«Как считается таможня»** (`app/customs-how.tsx`) — вместо ссылки на /customs всплывающее окно Radix Popover в портале.
+  - **Где открывается.** На ПК (≥960 px, корзина в две колонки) — слева от итога, сумму и кнопку не закрывает. На телефоне — над ссылкой; если окно там не помещается, страница сдвигается, но ссылка не уходит под нижние панели (`.basket-sticky`, `.mobile-nav`).
+  - **Закрытие.** Само закрывается через `customsHowMs` = 5 с, полоска внизу показывает отсчёт. Окно не закрывается, пока на нём курсор или клавиатурный фокус (`:focus-visible`; клик мышью по кнопкам окно не держит). После касания на телефоне окно остаётся до крестика, Esc или касания вне окна.
+  - **Фокус.** Открытое кликом окно фокус не забирает, иначе отсчёт бы не шёл; открытое с клавиатуры — забирает.
+  - **Калькулятор.** Правило лимита и остаток лимита получателя в этом месяце (`allowanceLeftUsd`; если покупки вне Atlas неизвестны — 0). Суммы $100–1000 и «Эта корзина» (точная сумма товаров до цента), кнопки −/+ по $50, ответ в сумах. `dutyFor` считает по тем же формуле и округлению, что `cartCustomsEstimate` / `customsDutyAmount`, поэтому для «Этой корзины» пошлина совпадает с итогом.
+  - **Прокрутка.** Прокручивается только `.customs-how-body`, иначе стрелка Radix давала горизонтальную полосу.
+- **Липкий итог** (`app/sticky-fit.ts`, `useStickyFit` — ref-колбэк на `aside.basket-summary`). С карточками колонка «Итого» вырастает примерно до 1400 px, выше окна. Раньше она прилипала верхом, и «Оформить заказ» не был виден, пока не долистаешь до конца. Теперь хук пишет `--sticky-top = min(88px, высота окна − высота колонки − 16px)`: высокая колонка прилипает низом, кнопка всегда видна. CSS — `top: var(--sticky-top, 88px)` в `customer.css` и `day-folio.css`.
+- **CSS** — в конце `app/customer.css` (обе темы через `--home-*`, уточнения Day под `html:not([data-theme="dark"])`) и в конце `app/theme-night.css`. Тексты общего блока — `cartCopy.shared` (`lib/market/customer-copy.ts`). Тест — последний в `tests/market.test.mjs`: общий комментарий и услуги через `ids`, чужая строка не меняется, пустой `ids` и несуществующая строка — ошибка.
+
 ## Главная на широких экранах: лента глав, атмосфера, вставки — 7 октября 2026
 
 На мониторах 27"+ главная выглядела пустой. Владелец одобрил совмещённый прототип «Лента глав + Атмосфера + полезные вставки»; он перенесён в код.
@@ -728,3 +744,9 @@ On a legacy item HTTP 400 without an explicit child variation, the official Brow
 - `app/product-gallery.tsx` is a horizontal scroll-snap strip (`scroll-snap-stop: always`); touch and trackpads scroll natively, a mouse drags it, arrows/thumbnails/keys `scrollTo` smoothly; the index follows the settled scroll position.
 - Sideways rows (`app/mobile-polish.css`) use x proximity snap; the catalog (`app/catalog.css`) snaps y proximity only at the header, the search bar and the footer.
 - `lib/market/text-case.ts`: `capitalizeWords` (names) and `capitalizeFirst` (city, address) while typing in the recipient form, checkout and the ID form.
+
+## Cart favourites and compact option groups — 7 October 2026
+
+- Built on PR #26 (`productGroups`, shared `cart-note`/`cart-services` with `ids[]`). `cart-remove` takes the same optional `ids[]`: "remove all options" and "save for later" on a group are one request and one `repriceCart`. Old clients without `ids` work unchanged.
+- The cart matches lines to catalog products through a `Map` keyed by `catalogUrlKey` (exported from `lib/market/catalog-query.ts`, the same key `sameCatalogProduct` uses), built once per catalog with `useMemo`. `loadCatalog()` runs only when a line has a store page, after first paint (`requestIdleCallback`, else a 300 ms timeout).
+- No new state. Favourites use the existing `favorite` toggle. `HoldNote` ignores `pricing` (kept optional for callers). `cartCopy.item.parcelFree` was removed and `parcelReserve` takes only the missing amount. `ordersCopy.attention`/`showAttention` were removed with the banner.
