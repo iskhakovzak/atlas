@@ -1382,6 +1382,12 @@ export const orderNeedsOperatorAttention = (order: Order) =>
     order.warehouseInspection?.condition === "damaged" ||
     order.warehouseInspection?.condition === "mismatch"
   ));
+/** One model in the cart: the sizes or colors of one store item (one link, one name), or one catalog product. */
+export const cartModelKey = (product: Pick<Product, "id" | "name" | "sourceUrl">) => product.sourceUrl ? `${product.sourceUrl}\n${product.name}` : product.id;
+/** The model's note as the cart shows it: the distinct notes of its options, one per line. */
+export function modelNotes(lines: Pick<CartItem, "note">[]) {
+  return [...new Set(lines.map((line) => line.note?.trim()).filter(Boolean))].join("\n").slice(0, 500) || undefined;
+}
 export function addToCart(
   state: State,
   p: Product,
@@ -1410,6 +1416,8 @@ export function addToCart(
   const id = crypto.randomUUID();
   const sibling = state.cart.find((line) => storeParcelKey(line) === storeParcelKey({ id, product: p }));
   const services = currentCartServices(sibling ?? {}, config);
+  // The note belongs to the model: a new size or color of it gets the note its other options already have.
+  const modelNote = comment ?? modelNotes(state.cart.filter((line) => cartModelKey(line.product) === cartModelKey(p)));
   const cart = [
     ...state.cart,
     {
@@ -1421,7 +1429,7 @@ export function addToCart(
       requestedServiceIds: services.requestedServiceIds,
       ...(Object.keys(services.requestedServiceUnits).length ? { requestedServiceUnits: services.requestedServiceUnits } : {}),
       quote: quote(p.usd, p.weight, now, quantity, storeShippingUsd(p), itemPricing, speed),
-      ...(comment ? { note: comment } : {}),
+      ...(modelNote ? { note: modelNote } : {}),
     },
   ];
   return { ...state, cart: repriceCart(cart, now, config, customsHelpChosen(state))};
@@ -1621,6 +1629,7 @@ export function checkoutCart(
       ...(ids.length > 1 ? { parcelOrderIds: ids } : {}),
     })));
   }
+  const groupNote = (line: CartItem) => modelNotes(cart.filter((other) => cartModelKey(other.product) === cartModelKey(line.product)));
   const orders = cart.map((i, index) => {
     const id = orderIds[index];
     const balanceUsed = Math.min(i.quote.total, available);
@@ -1661,7 +1670,8 @@ export function checkoutCart(
         updatedAt: now,
       },
       customsConsent: { version: customsVersion, acceptedAt: now },
-      ...(i.note ? { note: i.note } : {}),
+      // Every option of a model leaves with the same note the customer saw for the model.
+      ...(groupNote(i) ? { note: groupNote(i) } : {}),
       ...(customs ? { customs } : {}),
       history: [
         {

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {products,blank,addToCart,cartSignature,checkoutCart as checkoutCore,setCartSelection,setCartServices,storeParcelKey,parcelServiceUnits,checkoutLines,tariff} from '../lib/market/domain.ts';
+import {products,blank,addToCart,cartSignature,checkoutCart as checkoutCore,setCartSelection,setCartNote,setCartServices,storeParcelKey,parcelServiceUnits,checkoutLines,tariff} from '../lib/market/domain.ts';
 import {actionSchema,applyAction} from '../lib/market/actions.ts';
 import {customsVersion} from '../lib/market/world.ts';
 const checkoutCart=(s,key,now)=>checkoutCore(s,key,cartSignature(s.cart),false,now,customsVersion);
@@ -69,4 +69,24 @@ test('cart-select action is validated and applied',()=>{
  const next=applyAction(s,action,false);
  assert.equal(checkoutLines(next.cart).length,3);
  assert.equal(actionSchema.safeParse({type:'cart-select',ids:[],selected:true}).success,false);
+});
+
+test('a model keeps one note: a new size inherits it and every order of the model leaves with the same note and services',()=>{
+ let s=blank();for(const size of nike.variants.slice(0,2))s=addToCart(s,nike,size,1000);
+ for(const line of s.cart)s=setCartNote(s,line.id,'Без коробки');
+ s=setCartServices(s,s.cart[0].id,['detailed-photos'],tariff,{'detailed-photos':3});
+ s=addToCart(s,nike,nike.variants[2],1001);
+ assert.equal(s.cart[2].note,'Без коробки','the new size gets the model note');
+ assert.deepEqual(s.cart[2].requestedServiceIds,s.cart[0].requestedServiceIds,'and the parcel services');
+ s=checkoutCart(s,'model',1002);
+ assert.deepEqual(s.orders.map(o=>o.note),['Без коробки','Без коробки','Без коробки']);
+ const requests=s.orders.flatMap(o=>o.warehouseServiceRequests??[]).filter(r=>r.serviceId==='detailed-photos');
+ assert.equal(requests.length,1,'one request for the parcel');
+});
+
+test('different notes of one model leave the same way on every order, as the cart shows them',()=>{
+ let s=blank();for(const size of nike.variants.slice(0,2))s=addToCart(s,nike,size,1000);
+ s=setCartNote(s,s.cart[0].id,'A');s=setCartNote(s,s.cart[1].id,'B');
+ s=checkoutCart(s,'notes',1001);
+ assert.deepEqual(s.orders.map(o=>o.note),['A\nB','A\nB']);
 });
