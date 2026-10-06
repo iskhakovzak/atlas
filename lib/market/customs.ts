@@ -41,15 +41,15 @@ export function customsParams(pricing: Partial<Pick<Pricing, 'customsAllowanceUs
   };
 }
 /**
- * The single customs payment on the part above the allowance: `rate` of it, but at least `minimumPerKg` for each kg of
- * the goods over the allowance (PP-4508). Customs weighs those goods itself; the cart estimates their weight as the
- * same share of the parcel's weight as their share of its value (`weightKg` × excess ÷ `valueUsd`). The cart, its
- * checkout and the "How customs is calculated" window all use this one formula, so their amounts match.
+ * The single customs payment when the parcel is over the allowance: `rate` of the excess, but at least `minimumPerKg`
+ * for each kg of the whole parcel (PP-4508). Owner, 7.10.2026: the parcel's full weight, not a share of it — the upper
+ * end of the range `estimateCourierCustoms` shows, so the prepaid duty rarely needs topping up; what customs charges
+ * less returns to the balance. The cart, its checkout and the "How customs is calculated" window all use this one
+ * formula, so their amounts match.
  */
-export function customsDutyUsd({ excessUsd, rate, minimumPerKg, weightKg = 0, valueUsd = 0 }: { excessUsd: number; rate: number; minimumPerKg: number; weightKg?: number; valueUsd?: number }) {
+export function customsDutyUsd({ excessUsd, rate, minimumPerKg, weightKg = 0 }: { excessUsd: number; rate: number; minimumPerKg: number; weightKg?: number }) {
   if (!(excessUsd > 0)) return 0;
-  const excessKg = weightKg > 0 && valueUsd > 0 ? excessUsd * weightKg / valueUsd : 0;
-  return Math.round(Math.max(excessUsd * rate, excessKg * minimumPerKg) * 100) / 100;
+  return Math.round(Math.max(excessUsd * rate, (weightKg > 0 ? weightKg : 0) * minimumPerKg) * 100) / 100;
 }
 export function estimateCourierCustoms({ valueUsd, usedUsd = 0, grossKg, date }: { valueUsd: number; usedUsd?: number; grossKg?: number; date: string }) {
   const rule = courierRule(date);

@@ -22,13 +22,12 @@ export function allowanceLeftUsd(estimate:Pick<CustomsEstimate,'allowanceUsd'|'a
  return estimate.outsideUnknown?0:Math.max(0,estimate.allowanceUsd-estimate.atlasUsedUsd-(estimate.outsideUsedUsd??0));
 }
 /**
- * Duty for goods worth `amountUsd` with `leftUsd` of allowance: the cart's own formula (customsDutyUsd), the weight
- * taken in the same proportion as in this cart, and the same rounding to soum as the bill.
+ * Duty for goods worth `amountUsd` with `leftUsd` of allowance, in this cart's parcel: the cart's own formula
+ * (customsDutyUsd, its weight included) and the same rounding to soum as the bill.
  */
-export function dutyFor(amountUsd:number,leftUsd:number,estimate:Pick<CustomsEstimate,'rate'|'minimumPerKg'|'weightKg'|'valueUsd'>,fx:number){
+export function dutyFor(amountUsd:number,leftUsd:number,estimate:Pick<CustomsEstimate,'rate'|'minimumPerKg'|'weightKg'>,fx:number){
  const excessUsd=Math.round(Math.max(0,amountUsd-leftUsd)*100)/100;
- // The calculator's amount stands for goods like this cart's: the cart's kg per dollar, exactly as the bill counts it.
- return {excessUsd,dutySoum:Math.ceil(customsDutyUsd({excessUsd,rate:estimate.rate,minimumPerKg:estimate.minimumPerKg,weightKg:estimate.weightKg,valueUsd:estimate.valueUsd})*fx)};
+ return {excessUsd,dutySoum:Math.ceil(customsDutyUsd({excessUsd,rate:estimate.rate,minimumPerKg:estimate.minimumPerKg,weightKg:estimate.weightKg})*fx)};
 }
 
 const usd=(value:number,locale:Locale)=>new Intl.NumberFormat(locale==='en'?'en-US':'ru-RU',{style:'currency',currency:'USD',maximumFractionDigits:Number.isInteger(value)?0:2}).format(value);

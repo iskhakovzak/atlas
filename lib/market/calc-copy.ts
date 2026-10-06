@@ -84,7 +84,7 @@ export const calcCopy: Record<Locale, CalcCopy> = {
         noDuty: left => `Пошлины нет · в этом месяце осталось ${left}`,
       },
       how: {
-        title: 'Как считается таможня', rule: (limit, rate, perKg) => `До ${limit} в месяц на получателя — без пошлины. Сверх лимита — ${rate} от превышения, не меньше ${perKg} за кг.`,
+        title: 'Как считается таможня', rule: (limit, rate, perKg) => `До ${limit} в месяц на получателя — без пошлины. Сверх лимита — ${rate} от превышения, но не меньше ${perKg} за каждый кг посылки.`,
         left: amount => `У получателя в этом месяце осталось ${amount} лимита`, leftNone: 'Лимит получателя в этом месяце уже использован',
         try: 'Проверьте на сумме', minus: 'Меньше на $50', plus: 'Больше на $50', amount: 'Стоимость товаров',
         none: 'Пошлины нет — сумма в пределах лимита', over: (excess, duty) => `Сверх лимита ${excess} → пошлина ≈ ${duty}`,
@@ -140,7 +140,7 @@ export const calcCopy: Record<Locale, CalcCopy> = {
         noDuty: left => `Boj yo‘q · shu oy ${left} qoldi`,
       },
       how: {
-        title: 'Bojxona qanday hisoblanadi', rule: (limit, rate, perKg) => `Bitta qabul qiluvchiga oyiga ${limit} gacha — bojsiz. Limitdan oshgan qismdan ${rate}, har kg uchun kamida ${perKg}.`,
+        title: 'Bojxona qanday hisoblanadi', rule: (limit, rate, perKg) => `Bitta qabul qiluvchiga oyiga ${limit} gacha — bojsiz. Limitdan oshgan qismdan ${rate}, lekin posilkaning har kg uchun kamida ${perKg}.`,
         left: amount => `Qabul qiluvchida shu oy ${amount} limit qoldi`, leftNone: 'Qabul qiluvchining shu oydagi limiti ishlatib bo‘lingan',
         try: 'Summada tekshiring', minus: '$50 kamroq', plus: '$50 ko‘proq', amount: 'Tovarlar qiymati',
         none: 'Boj yo‘q — summa limit doirasida', over: (excess, duty) => `Limitdan ${excess} ortiq → boj ≈ ${duty}`,
@@ -196,7 +196,7 @@ export const calcCopy: Record<Locale, CalcCopy> = {
         noDuty: left => `No duty · ${left} of allowance left this month`,
       },
       how: {
-        title: 'How customs is calculated', rule: (limit, rate, perKg) => `Up to ${limit} a month per recipient: no duty. Above it: ${rate} of the excess, at least ${perKg} per kg.`,
+        title: 'How customs is calculated', rule: (limit, rate, perKg) => `Up to ${limit} a month per recipient: no duty. Above it: ${rate} of the excess, but at least ${perKg} per kg of the parcel.`,
         left: amount => `This recipient has ${amount} of allowance left this month`, leftNone: 'This recipient’s allowance for the month is used up',
         try: 'Try an amount', minus: '$50 less', plus: '$50 more', amount: 'Goods value',
         none: 'No duty: the amount is within the allowance', over: (excess, duty) => `${excess} over the allowance → duty ≈ ${duty}`,

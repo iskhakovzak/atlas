@@ -132,7 +132,7 @@ export function cartCustomsEstimate(
   const dutiableUsd = cents(Math.max(0, valueUsd - remaining));
   // The parcel's estimated weight (the one the bill charges delivery on), for the per-kg minimum of the duty.
   const weightKg = cents(state.cart.reduce((sum, item) => sum + item.quote.weight, 0));
-  const estimateUsd = customsDutyUsd({ excessUsd: dutiableUsd, rate: params.rate, minimumPerKg: params.minimumPerKg, weightKg, valueUsd });
+  const estimateUsd = customsDutyUsd({ excessUsd: dutiableUsd, rate: params.rate, minimumPerKg: params.minimumPerKg, weightKg });
   // Owner's rule (7.10.2026): with no duty there is nothing for Atlas to pay, so no fee and no request on record.
   const helpRequested = Boolean(choices ? choices.help : customsHelpChosen(state)) && customsDutySoum({ estimateUsd }, pricing.fx) > 0;
   // The fee is a line of the bill (repriceCart); here only its USD equivalent for the order's customs record.

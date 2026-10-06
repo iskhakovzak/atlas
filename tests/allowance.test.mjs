@@ -69,16 +69,17 @@ test('customs is charged on the part above the allowance left; outside use and t
   assert.deepEqual([small.dutiableUsd, small.estimateUsd, small.helpRequested], [0, 0, undefined], 'no duty: nothing for Atlas to pay, no request on record (owner, 7.10.2026)');
 });
 
-test('the duty is at least $2 for each kg of the goods over the allowance (owner, 7.10.2026)', () => {
+test('the duty is at least $2 for each kg of the whole parcel (owner, 7.10.2026)', () => {
   const state = (usd, weight) => ({ ...blank(), cart: [{ id: 'c', product: { usd }, quantity: 1, quote: { total: 1, weight } }], deliveryProfiles: [profile('a', 'Zarina Karimova')] });
   const estimate = (usd, weight) => cartCustomsEstimate(state(usd, weight), tariff, { profile: state(usd, weight).deliveryProfiles[0] }, undefined, now);
-  // $250 with $200 left: $50 over, a fifth of the value, so a fifth of the weight.
-  const light = estimate(250, 10);
-  assert.deepEqual([light.dutiableUsd, light.weightKg, light.estimateUsd], [50, 10, 10], '2 kg × $2 = $4 < 20% of $50: the rate wins');
-  assert.equal(estimate(250, 40).estimateUsd, 16, '8 kg × $2 = $16 > $10: the per-kg minimum wins');
+  // $250 with $200 left: $50 over, 20% of it is $10.
+  const light = estimate(250, 4);
+  assert.deepEqual([light.dutiableUsd, light.weightKg, light.estimateUsd], [50, 4, 10], '4 kg × $2 = $8 < $10: the rate wins');
+  assert.equal(estimate(250, 10).estimateUsd, 20, '10 kg × $2 = $20 > $10: the weight of the whole parcel wins');
+  assert.equal(estimate(250, 40).estimateUsd, 80);
   assert.equal(estimate(150, 40).estimateUsd, 0, 'within the allowance: no duty however heavy');
   // Carts saved without a weight keep the rate alone.
   assert.equal(cartCustomsEstimate({ ...blank(), cart: [{ id: 'c', product: { usd: 250 }, quantity: 1, quote: { total: 1 } }] }, tariff, { name: 'Zarina Karimova' }, undefined, now).estimateUsd, 10);
-  assert.equal(customsDutyUsd({ excessUsd: 0, rate: 0.2, minimumPerKg: 2, weightKg: 50, valueUsd: 100 }), 0);
+  assert.equal(customsDutyUsd({ excessUsd: 0, rate: 0.2, minimumPerKg: 2, weightKg: 50 }), 0);
   assert.equal(customsDutyUsd({ excessUsd: 33.33, rate: 0.2, minimumPerKg: 2 }), 6.67, 'no weight: the rate, rounded to the cent');
 });
