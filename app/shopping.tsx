@@ -28,9 +28,9 @@ import { sameCatalogProduct } from "@/lib/market/catalog-query";
 
 /** Favourites and removal in the cart: saving keeps the line; "save for later" saves and then removes it. */
 const keepCopy = {
-  ru: { save: "В избранное", saved: "В избранном", later: "Отложить в избранное", laterDone: "Отложено в избранное", open: "Открыть избранное", removeVariant: "Удалить вариант", removeGroup: (n: number) => `Удалить товар · все варианты (${n})` },
-  uz: { save: "Saralanganlarga", saved: "Saralanganlarda", later: "Saralanganlarga qoldirish", laterDone: "Saralanganlarga qoldirildi", open: "Saralanganlarni ochish", removeVariant: "Variantni o‘chirish", removeGroup: (n: number) => `Tovarni o‘chirish · barcha variantlar (${n})` },
-  en: { save: "Save", saved: "Saved", later: "Save for later", laterDone: "Moved to favourites", open: "Open favourites", removeVariant: "Remove option", removeGroup: (n: number) => `Remove item · all options (${n})` },
+  ru: { save: "В избранное", saved: "В избранном", later: "Отложить в избранное", laterDone: "Отложено в избранное", open: "Открыть избранное", removeVariant: "Удалить вариант", removeGroup: (n: number) => `Удалить все варианты (${n})` },
+  uz: { save: "Saralanganlarga", saved: "Saralanganlarda", later: "Saralanganlarga qoldirish", laterDone: "Saralanganlarga qoldirildi", open: "Saralanganlarni ochish", removeVariant: "Variantni o‘chirish", removeGroup: (n: number) => `Barcha variantlarni o‘chirish (${n})` },
+  en: { save: "Save", saved: "Saved", later: "Save for later", laterDone: "Moved to favourites", open: "Open favourites", removeVariant: "Remove option", removeGroup: (n: number) => `Remove all options (${n})` },
 };
 
 /** Lines of the same product (one source page, several options) side by side, in the order they were added. */
