@@ -146,7 +146,7 @@ export function siteContentIssues(error: z.ZodError): string[] {
 export function siteContentToDocument(view: SiteContentView): SiteContentDocument {
   return siteContentDocumentSchema.parse({
     revision: view.revision, updatedAt: view.updatedAt,
-    contacts: view.contacts, legal: view.legal, paymentMethods: view.paymentMethods,
+    contacts: view.contacts, apps: view.apps, legal: view.legal, paymentMethods: view.paymentMethods,
     reviews: view.reviews.map(review => ({...review, consent: true})),
     parcelPhotos: view.parcelPhotos, completedOrders: view.completedOrders, prohibitedListUrl: view.prohibitedListUrl,
   });
