@@ -46,9 +46,9 @@ export function apiErrorMessage(status:number,locale:Locale):string{
 
 export function importManualEntryMessage(locale:Locale):string{
   return {
-    ru:"Не все данные магазина загрузились. Подтвердите цену, валюту и вариант, затем добавьте товар в корзину. Atlas сверит цену и валюту, если магазин ответит.",
-    uz:"Do‘kon ma’lumotlarining hammasi yuklanmadi. Narx, valyuta va variantni tasdiqlab, savatga qo‘shing. Do‘kon javob bersa, Atlas narx va valyutani solishtiradi.",
-    en:"Some store details did not load. Confirm the price, currency and option, then add it to your cart. Atlas compares them when the store responds.",
+    ru:"Не все данные магазина загрузились. Подтвердите цену, валюту и вариант, затем добавьте товар в корзину — Atlas сверит их с магазином перед выкупом.",
+    uz:"Do‘kon ma’lumotlarining hammasi yuklanmadi. Narx, valyuta va variantni tasdiqlab, savatga qo‘shing — Atlas xariddan oldin ularni do‘kon bilan solishtiradi.",
+    en:"Some store details did not load. Confirm the price, currency and option, then add it to your cart — Atlas checks them with the store before buying.",
   }[locale];
 }
 
@@ -138,7 +138,7 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_69': 'Выбранный вариант не удалось сверить с данными магазина. Подтвердите его вручную.',
     'err_70': 'Магазин не подтвердил цену выбранного варианта.',
     'err_71': 'Этого варианта больше нет в наличии у магазина.',
-    'err_72': 'Этот магазин пока не в списке поддерживаемых. Вставьте ссылку из одного из {count} магазинов или заполните товар вручную.',
+    'err_72': 'Этого магазина нет в списке поддерживаемых. Вставьте ссылку из одного из {count} магазинов или заполните товар вручную.',
     'err_73': 'Товар не найден в каталоге. Добавьте его по ссылке на магазин.',
     'err_55': 'Нельзя отключить собственный доступ.',
     'err_56': 'Основного администратора из настроек хостинга отключить нельзя.',
@@ -205,7 +205,7 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_69': 'Tanlangan variantni do‘kon ma’lumotlari bilan solishtirib bo‘lmadi. Uni qo‘lda tasdiqlang.',
     'err_70': 'Do‘kon tanlangan variant narxini tasdiqlamadi.',
     'err_71': 'Bu variant do‘konda endi mavjud emas.',
-    'err_72': 'Bu do‘kon hozircha qo‘llab-quvvatlanadiganlar ro‘yxatida yo‘q. {count} ta do‘kondan biridagi havolani qo‘ying yoki tovarni qo‘lda to‘ldiring.',
+    'err_72': 'Bu do‘kon qo‘llab-quvvatlanadiganlar ro‘yxatida yo‘q. {count} ta do‘kondan biridagi havolani qo‘ying yoki tovarni qo‘lda to‘ldiring.',
     'err_73': 'Tovar katalogda topilmadi. Uni do‘kon havolasi orqali qo‘shing.',
     'err_55': 'O‘z ruxsatingizni o‘chirib bo‘lmaydi.',
     'err_56': 'Hosting sozlamalaridagi asosiy administratorni o‘chirib bo‘lmaydi.',
@@ -272,7 +272,7 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_69': 'The selected option couldn’t be matched with the store’s data. Confirm it manually.',
     'err_70': 'The store didn’t confirm the price of the selected option.',
     'err_71': 'This option is no longer in stock at the store.',
-    'err_72': 'This store isn’t supported yet. Paste a link from one of the {count} stores or fill in the item manually.',
+    'err_72': 'This store isn’t on the supported list. Paste a link from one of the {count} stores or fill in the item manually.',
     'err_73': 'Item not found in the catalog. Add it with a link to the store.',
     'err_55': 'You cannot disable your own access.',
     'err_56': 'The primary administrator from the hosting settings cannot be disabled.',

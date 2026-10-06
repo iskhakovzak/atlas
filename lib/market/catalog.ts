@@ -9,7 +9,7 @@ export function catalogOrderVariants(product:Product){
   if(product.priceNeedsConfirmation)return [];
   return product.variants.map(label=>({label,available:true}));
 }
-const estimate = { country: 'США', sourceCurrency: 'USD', sourceShippingUsd: 10, sourceShipping: 10, sourceShippingCurrency: 'USD', sourceShippingEstimated: true, shippingKnown: false, weightOrigin: 'Оценка Atlas; уточняется перед оформлением', variants: ['Уточнить вариант в магазине'], sourceExpiresAt: Date.parse('2026-09-19T00:00:00Z') };
+const estimate = { country: 'США', sourceCurrency: 'USD', sourceShippingUsd: 10, sourceShipping: 10, sourceShippingCurrency: 'USD', sourceShippingEstimated: true, shippingKnown: false, weightOrigin: 'Оценка Atlas; склад взвесит посылку', variants: ['Уточнить вариант в магазине'], sourceExpiresAt: Date.parse('2026-09-19T00:00:00Z') };
 export const merchantFinds: MerchantFind[] = [
   {
     ...estimate, id: 'nike-club-fn3859-657', name: 'Nike Club · Fleece Hoodie', brand: 'Nike', store: 'Nike', category: 'Одежда',

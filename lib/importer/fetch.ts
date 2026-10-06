@@ -39,7 +39,7 @@ export class UnsupportedStoreError extends Error {
   readonly code = 'err_72';
   readonly supportedStoreCount: number;
   constructor(count = supportedStoreCount) {
-    super('Этот магазин пока не в списке поддерживаемых. Вставьте ссылку из одного из ' + count + ' магазинов или заполните товар вручную.');
+    super('Этого магазина нет в списке поддерживаемых. Вставьте ссылку из одного из ' + count + ' магазинов или заполните товар вручную.');
     this.name = 'UnsupportedStoreError';
     this.supportedStoreCount = count;
   }

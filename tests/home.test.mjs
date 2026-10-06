@@ -71,7 +71,7 @@ test('home tariff copy names both delivery speeds and prints the per-100 g price
   assert.equal(formatUsd(deliveryPerKgUsdFor(tariff, undefined, 'standard'), 'ru'), '$13,98');
   assert.equal(homeCopy.ru.tariffs.per100g(formatPriceUsd(15.98 / 10, 'ru')), '$1,60 за 100 г');
   assert.equal(homeCopy.en.tariffs.per100g(formatPriceUsd(13.98 / 10, 'en')), '$1.40 per 100 g');
-  assert.equal(homeCopy.ru.example.days(5, 9), 'экспресс, примерно 5–9 рабочих дней');
+  assert.equal(homeCopy.ru.example.days(5, 9), 'экспресс, обычно 5–9 рабочих дней');
   assert.match(homeCopy.ru.tariffs.lead, /обычная/i);
   assert.match(homeCopy.ru.faq.timesKnown('США: экспресс 5–9 рабочих дней, обычная 9–14 рабочих дней'), /обычная 9–14/);
 });

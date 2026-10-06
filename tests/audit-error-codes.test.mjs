@@ -54,7 +54,7 @@ test('a blocked store check carries a code whose Russian text is its message', (
 test('an unsupported store link is a coded error with the number of stores', () => {
   assert.throws(() => allowedUrl('https://example.org/products/shoe'), (error) => error instanceof UnsupportedStoreError && error.code === 'err_72' && error.supportedStoreCount === supportedStoreCount);
   const error = new UnsupportedStoreError();
-  assert.equal(error.message, 'Этот магазин пока не в списке поддерживаемых. Вставьте ссылку из одного из ' + supportedStoreCount + ' магазинов или заполните товар вручную.');
+  assert.equal(error.message, 'Этого магазина нет в списке поддерживаемых. Вставьте ссылку из одного из ' + supportedStoreCount + ' магазинов или заполните товар вручную.');
   assert.equal(serverError('ru', 'err_72', { count: supportedStoreCount }), error.message);
   for (const locale of ['uz', 'en']) {
     const text = serverError(locale, 'err_72', { count: supportedStoreCount });

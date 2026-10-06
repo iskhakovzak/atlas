@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "@/components/site-link";
 import {
   AlertCircle,
@@ -43,6 +43,7 @@ import { toast } from "sonner";
 import { CopyText } from "./copy-text";
 import { useMarket } from "@/lib/market/store";
 import { hasPermission } from "@/lib/market/access";
+import { mergeQueueAccounts, operatorQueueTabs, queueMatches, queueSearchFields, slimQueueAccount, type OperatorQueueCounts, type OperatorQueueResponse } from "@/lib/market/operator-queue";
 import {
   balanceOf,
   cancelRefundAmount,
@@ -88,9 +89,9 @@ import {
 } from "./market-ui";
 // Payments are simulated: the notice speaks of a placed request, never of a payment received.
 const passportCopy: Record<Locale, { title: (name: string) => string; text: string; action: string }> = {
-  ru: { title: name => `Нужен паспорт получателя: ${name}`, text: "Заявка оформлена. Чтобы подготовить декларацию и таможенное оформление, привяжите паспорт именно этого получателя. Оплата на сайте пока не подключена — деньги не списывались.", action: "Привязать паспорт" },
-  uz: { title: name => `Qabul qiluvchi pasporti kerak: ${name}`, text: "Ariza rasmiylashtirildi. Deklaratsiya va bojxona rasmiylashtiruvi uchun aynan shu qabul qiluvchining pasportini biriktiring. Saytda to‘lov hali ulanmagan — pul yechilmagan.", action: "Pasportni biriktirish" },
-  en: { title: name => `Recipient passport needed: ${name}`, text: "The request is placed. To prepare the declaration and customs clearance, link this recipient’s own passport. Online payment is not connected yet — no money was charged.", action: "Link passport" },
+  ru: { title: name => `Нужен паспорт получателя: ${name}`, text: "Заявка оформлена. Чтобы подготовить декларацию и таможенное оформление, привяжите паспорт именно этого получателя. Оплата на сайте не подключена — деньги не списывались.", action: "Привязать паспорт" },
+  uz: { title: name => `Qabul qiluvchi pasporti kerak: ${name}`, text: "Ariza rasmiylashtirildi. Deklaratsiya va bojxona rasmiylashtiruvi uchun aynan shu qabul qiluvchining pasportini biriktiring. Saytda to‘lov ulanmagan — pul yechilmagan.", action: "Pasportni biriktirish" },
+  en: { title: name => `Recipient passport needed: ${name}`, text: "The request is placed. To prepare the declaration and customs clearance, link this recipient’s own passport. Online payment is not connected — no money was charged.", action: "Link passport" },
 };
 const storeShippingExtra = (o: Order) =>
   !o.storeShippingExtraApproved ? (o.storeShippingSettlement?.extra ?? 0) : 0;
@@ -133,19 +134,19 @@ const storeShippingNotCredited: Record<Locale, (amount: string) => string> = {
 const localeTag = (locale: Locale) => locale === "ru" ? "ru-RU" : locale === "uz" ? "uz-UZ" : "en-US";
 const customerOrderCopy = {
   ru: {
-    loginTitle: "Войдите, чтобы открыть заказы", loginDescription: "История покупок, фото и расчёты доступны в вашем профиле Atlas.", loginLabel: "Открыть вход", loading: "Загружаем заказы…", emptyTitle: "Здесь начнётся путь вашей покупки", emptyDescription: "Оформите заказ из корзины, чтобы попробовать выкуп, склад и доставку.", choose: "Выбрать товар", filteredTitle: "В этом разделе пока пусто", filteredDescription: "Измените фильтр или поисковый запрос.", search: "Поиск заказа", source: "Источник товара", loadPhoto: "Загрузить фото из ссылки", loadingPhoto: "Загружаем…", checkoutTotal: "Сумма при оформлении", checkoutAt: "При оформлении", buyer: "Покупатель", cancelled: "Отменён", needDecision: "Нужно решение", extra: "Требуется доплата", awaitingPayment: "Ожидает оплаты", paymentWaiting: "Платёжный провайдер не подключён", paymentPaid: "Отметка сохранена в Atlas; провайдером не подтверждена", paymentRefunded: "Возврат отмечен во внутреннем балансе Atlas; перевода нет", paymentLine: "Платёж", noCharge: "Платёжный провайдер не подключён", providerPassed: "Платёжный провайдер не подключён", recordPayment: "Записать статус в Atlas", recipient: "Получатель", tracking: "Трек-номер", parcelRegistered: "Посылка зарегистрирована", warehouseDone: "Приёмка на складе завершена", warehouseProblem: "Склад зафиксировал проблему", received: "Получено", operations: "Операции", noOperations: "Дополнительные операции не назначены", agreements: "Согласования по заказу", pending: "НУЖНО РЕШЕНИЕ", approved: "ПОДТВЕРЖДЕНО", declined: "ОТКЛОНЕНО", reject: "Отклонить", confirm: "Подтвердить", managerChecking: "Менеджер уточняет доставку магазина", reserveIncluded: "В сумму заказа пока включён резерв", reserveWaived: "Резерв на доставку магазина не включён: заказы на такую сумму магазины обычно доставляют бесплатно. Если магазин всё же возьмёт плату, сначала спросим вас.", beforeBuyout: "Перед выкупом вы увидите подтверждённую стоимость.", managerConfirmed: "Менеджер подтвердил доставку магазина", actual: "Фактическая стоимость", reservedAtCheckout: "Резерв при оформлении", refundToBalance: "Вернули на баланс", extraApproved: "Доплата подтверждена", needApprove: "Нужно согласовать", reserveMatch: "Сумма совпала с резервом", balance: "Баланс", shippingOver: "Доставка превысила резерв", shippingCheaper: "Доставка оказалась дешевле", shippingRecalculated: "Доставка пересчитана", payableWeight: "Оплачиваемый вес", cost: "Стоимость", noExtra: "Доплата не требуется", checkExtra: "Проверить доплату", confirmStore: "Подтвердить доставку магазина", confirmBuyout: "Подтвердить выкуп", receiveWarehouse: "Принять на склад", weigh: "Взвесить и пересчитать", sendUzbekistan: "Отправить в Узбекистан", confirmDelivery: "Подтвердить доставку", sendAfterApproval: "Отправка станет доступна после подтверждения в разделе «Мои заказы».", saveReceivingFirst: "Сначала сохраните приёмку товара в блоке оператора.", payFirst: "Выкуп станет доступен после подключения платёжного провайдера и подтверждения оплаты.", trackingFirst: "Перед отправкой добавьте перевозчика и трек-номер.", calculationHistory: "Расчёт и история", customsAccepted: "Таможенные условия приняты", balanceUsed: "Учтено во внутреннем балансе Atlas", actualWeight: "Фактический вес", dimensional: "Объёмный", cancelOrder: "Отменить заказ", storeModalTitle: "Доставка от магазина до склада", storeModalDescription: "Укажите фактическую итоговую стоимость в долларах. Если она ниже резерва, разница сразу вернётся покупателю на баланс.", actualStoreShipping: "Фактическая доставка магазина, USD", reserved: "Было заложено", saveRecalculate: "Подтвердить и пересчитать", warehouseModalTitle: "Взвешивание на складе", warehouseModalDescription: "Вес и размеры всей посылки, включая упаковку. Тариф зафиксирован в заказе.", dimensions: ["Фактический вес, кг", "Длина, см", "Ширина, см", "Высота, см"], volumeWeight: "Объёмный вес", paidShipping: "Было оплачено за доставку", afterWeighing: "После взвешивания", requestExtra: "Запросить доплату", returnBalance: "Зачислить во внутренний баланс Atlas", invalidValues: "Укажите корректные положительные значения.", confirmRecalculate: "Подтвердить перерасчёт", cancelTitle: "Отменить заказ до выкупа?", paymentTitle: "Записать статус оплаты в Atlas?", extraTitle: "Подтвердить сумму доплаты?", cancelDescription: "Заказ будет отменён, а запись внутреннего баланса Atlas пересчитана. Перевод денег не выполняется.", paymentDescription: "Действие изменит только статус заказа в Atlas. Платёжный провайдер не подключён: деньги не списываются, подтверждения банка нет.", extraDescription: "Подтверждение сохранит сумму для дальнейшего согласования. Платёжный провайдер не подключён, деньги не списываются.", refund: "К зачислению на внутренний баланс Atlas", paymentStatusLabel: "Статус оплаты в Atlas", toPay: "К доплате", back: "Назад", saveChanges: "Изменения сохранены", saving: "Сохраняем…", statusUpdated: "Статус заказа обновлён", photoUpdated: "Фото заказа обновлено"
+    loginTitle: "Войдите, чтобы открыть заказы", loginDescription: "История покупок, фото и расчёты доступны в вашем профиле Atlas.", loginLabel: "Открыть вход", loading: "Загружаем заказы…", emptyTitle: "Здесь начнётся путь вашей покупки", emptyDescription: "Оформите заказ из корзины, чтобы попробовать выкуп, склад и доставку.", choose: "Выбрать товар", filteredTitle: "В этом разделе пока пусто", filteredDescription: "Измените фильтр или поисковый запрос.", search: "Поиск заказа", source: "Источник товара", loadPhoto: "Загрузить фото из ссылки", loadingPhoto: "Загружаем…", checkoutTotal: "Сумма при оформлении", checkoutAt: "При оформлении", buyer: "Покупатель", cancelled: "Отменён", needDecision: "Нужно решение", extra: "Требуется доплата", awaitingPayment: "Ожидает оплаты", paymentWaiting: "Платёжный провайдер не подключён", paymentPaid: "Отметка сохранена в Atlas; провайдером не подтверждена", paymentRefunded: "Возврат отмечен во внутреннем балансе Atlas; перевода нет", paymentLine: "Платёж", noCharge: "Платёжный провайдер не подключён", providerPassed: "Платёжный провайдер не подключён", recordPayment: "Записать статус в Atlas", recipient: "Получатель", tracking: "Трек-номер", parcelRegistered: "Посылка зарегистрирована", warehouseDone: "Приёмка на складе завершена", warehouseProblem: "Склад зафиксировал проблему", received: "Получено", operations: "Операции", noOperations: "Дополнительные операции не назначены", agreements: "Согласования по заказу", pending: "НУЖНО РЕШЕНИЕ", approved: "ПОДТВЕРЖДЕНО", declined: "ОТКЛОНЕНО", reject: "Отклонить", confirm: "Подтвердить", managerChecking: "Менеджер подтверждает доставку у магазина", reserveIncluded: "В сумму заказа включён резерв", reserveWaived: "Резерв на доставку магазина не включён: при товарах из магазина дороже $50 доставка магазина для вас бесплатна. Если магазин всё же возьмёт плату, доплата — только с вашего согласия.", beforeBuyout: "Перед выкупом вы увидите подтверждённую стоимость.", managerConfirmed: "Менеджер подтвердил доставку магазина", actual: "Фактическая стоимость", reservedAtCheckout: "Резерв при оформлении", refundToBalance: "Вернули на баланс", extraApproved: "Доплата подтверждена", needApprove: "Нужно согласовать", reserveMatch: "Сумма совпала с резервом", balance: "Баланс", shippingOver: "Доставка превысила резерв", shippingCheaper: "Доставка оказалась дешевле", shippingRecalculated: "Доставка пересчитана", payableWeight: "Оплачиваемый вес", cost: "Стоимость", noExtra: "Доплата не требуется", checkExtra: "Проверить доплату", confirmStore: "Подтвердить доставку магазина", confirmBuyout: "Подтвердить выкуп", receiveWarehouse: "Принять на склад", weigh: "Взвесить и пересчитать", sendUzbekistan: "Отправить в Узбекистан", confirmDelivery: "Подтвердить доставку", sendAfterApproval: "Отправка станет доступна после подтверждения в разделе «Мои заказы».", saveReceivingFirst: "Сначала сохраните приёмку товара в блоке оператора.", payFirst: "Выкуп станет доступен после подключения платёжного провайдера и подтверждения оплаты.", trackingFirst: "Перед отправкой добавьте перевозчика и трек-номер.", calculationHistory: "Расчёт и история", customsAccepted: "Таможенные условия приняты", balanceUsed: "Учтено во внутреннем балансе Atlas", actualWeight: "Фактический вес", dimensional: "Объёмный", cancelOrder: "Отменить заказ", storeModalTitle: "Доставка от магазина до склада", storeModalDescription: "Укажите фактическую итоговую стоимость в долларах. Если она ниже резерва, разница сразу вернётся покупателю на баланс.", actualStoreShipping: "Фактическая доставка магазина, USD", reserved: "Было заложено", saveRecalculate: "Подтвердить и пересчитать", warehouseModalTitle: "Взвешивание на складе", warehouseModalDescription: "Вес и размеры всей посылки, включая упаковку. Тариф зафиксирован в заказе.", dimensions: ["Фактический вес, кг", "Длина, см", "Ширина, см", "Высота, см"], volumeWeight: "Объёмный вес", paidShipping: "Было оплачено за доставку", afterWeighing: "После взвешивания", requestExtra: "Запросить доплату", returnBalance: "Зачислить во внутренний баланс Atlas", invalidValues: "Укажите корректные положительные значения.", confirmRecalculate: "Подтвердить перерасчёт", cancelTitle: "Отменить заказ до выкупа?", paymentTitle: "Записать статус оплаты в Atlas?", extraTitle: "Подтвердить сумму доплаты?", cancelDescription: "Заказ будет отменён, а запись внутреннего баланса Atlas пересчитана. Перевод денег не выполняется.", paymentDescription: "Действие изменит только статус заказа в Atlas. Платёжный провайдер не подключён: деньги не списываются, подтверждения банка нет.", extraDescription: "Подтверждение сохранит сумму для дальнейшего согласования. Платёжный провайдер не подключён, деньги не списываются.", refund: "К зачислению на внутренний баланс Atlas", paymentStatusLabel: "Статус оплаты в Atlas", toPay: "К доплате", back: "Назад", saveChanges: "Изменения сохранены", saving: "Сохраняем…", statusUpdated: "Статус заказа обновлён", photoUpdated: "Фото заказа обновлено"
   },
   uz: {
-    loginTitle: "Buyurtmalarni ochish uchun kiring", loginDescription: "Xaridlar tarixi, rasmlar va hisob-kitoblar Atlas profilingizda mavjud.", loginLabel: "Kirishni ochish", loading: "Buyurtmalar yuklanmoqda…", emptyTitle: "Xaridingiz yo‘li shu yerda boshlanadi", emptyDescription: "Xarid, ombor va yetkazib berishni sinash uchun savatdan buyurtma bering.", choose: "Tovar tanlash", filteredTitle: "Bu bo‘lim hozircha bo‘sh", filteredDescription: "Filtr yoki qidiruv so‘rovini o‘zgartiring.", search: "Buyurtmani qidirish", source: "Tovar manbasi", loadPhoto: "Havoladan rasm yuklash", loadingPhoto: "Yuklanmoqda…", checkoutTotal: "Rasmiylashtirish summasi", checkoutAt: "Rasmiylashtirishda", buyer: "Xaridor", cancelled: "Bekor qilingan", needDecision: "Qaror kerak", extra: "Qo‘shimcha to‘lov kerak", awaitingPayment: "To‘lov kutilmoqda", paymentWaiting: "To‘lov provayderi ulanmagan", paymentPaid: "Atlasda qayd etildi; to‘lov provayderi tasdiqlamagan", paymentRefunded: "Qaytarish Atlas ichki balansida qayd etildi; pul o‘tkazilmadi", paymentLine: "To‘lov", noCharge: "To‘lov provayderi ulanmagan", providerPassed: "To‘lov provayderi ulanmagan", recordPayment: "To‘lov holatini Atlasda qayd etish", recipient: "Qabul qiluvchi", tracking: "Kuzatuv raqami", parcelRegistered: "Jo‘natma ro‘yxatga olindi", warehouseDone: "Omborda qabul qilish yakunlandi", warehouseProblem: "Ombor muammo qayd etdi", received: "Qabul qilindi", operations: "Amallar", noOperations: "Qo‘shimcha amallar tayinlanmagan", agreements: "Buyurtma bo‘yicha kelishuvlar", pending: "QAROR KERAK", approved: "TASDIQLANGAN", declined: "RAD ETILGAN", reject: "Rad etish", confirm: "Tasdiqlash", managerChecking: "Menejer do‘kon yetkazib berishini aniqlamoqda", reserveIncluded: "Buyurtma summasiga hozircha zaxira kiritilgan", reserveWaived: "Do‘kon yetkazishi uchun zaxira kiritilmagan: bunday summadagi buyurtmalarni do‘konlar odatda bepul yetkazadi. Do‘kon baribir haq olsa, avval sizdan so‘raymiz.", beforeBuyout: "Xariddan oldin tasdiqlangan narxni ko‘rasiz.", managerConfirmed: "Menejer do‘kon yetkazib berishini tasdiqladi", actual: "Haqiqiy summa", reservedAtCheckout: "Rasmiylashtirishdagi zaxira", refundToBalance: "Balansga qaytarildi", extraApproved: "Qo‘shimcha to‘lov tasdiqlandi", needApprove: "Kelishish kerak", reserveMatch: "Summa zaxiraga teng", balance: "Balans", shippingOver: "Yetkazib berish zaxiradan oshdi", shippingCheaper: "Yetkazib berish arzonroq chiqdi", shippingRecalculated: "Yetkazib berish qayta hisoblandi", payableWeight: "Hisoblanadigan vazn", cost: "Narx", noExtra: "Qo‘shimcha to‘lov talab qilinmaydi", checkExtra: "Qo‘shimcha to‘lovni tekshirish", confirmStore: "Do‘kon yetkazib berishini tasdiqlash", confirmBuyout: "Xaridni tasdiqlash", receiveWarehouse: "Omborga qabul qilish", weigh: "Tortish va qayta hisoblash", sendUzbekistan: "O‘zbekistonga jo‘natish", confirmDelivery: "Yetkazib berishni tasdiqlash", sendAfterApproval: "Jo‘natish «Buyurtmalarim» bo‘limida tasdiqlangandan keyin mavjud bo‘ladi.", saveReceivingFirst: "Avval operator blokida tovar qabulini saqlang.", payFirst: "Xarid to‘lov provayderi ulanib, to‘lovni tasdiqlagandan keyin mavjud bo‘ladi.", trackingFirst: "Jo‘natishdan oldin tashuvchi va kuzatuv raqamini kiriting.", calculationHistory: "Hisob-kitob va tarix", customsAccepted: "Bojxona shartlari qabul qilindi", balanceUsed: "Atlas ichki balansida hisobga olindi", actualWeight: "Haqiqiy vazn", dimensional: "Hajmiy", cancelOrder: "Buyurtmani bekor qilish", storeModalTitle: "Do‘kondan omborgacha yetkazib berish", storeModalDescription: "Dollar hisobidagi yakuniy haqiqiy summani kiriting. Zaxiradan kam bo‘lsa, farq xaridor balansiga qaytariladi.", actualStoreShipping: "Do‘konning haqiqiy yetkazib berishi, USD", reserved: "Kiritilgan zaxira", saveRecalculate: "Tasdiqlash va qayta hisoblash", warehouseModalTitle: "Omborda tortish", warehouseModalDescription: "Qadoq bilan birga jo‘natmaning vazni va o‘lchamlari. Tarif buyurtmada qayd etilgan.", dimensions: ["Haqiqiy vazn, kg", "Uzunlik, sm", "Eni, sm", "Balandlik, sm"], volumeWeight: "Hajmiy vazn", paidShipping: "Yetkazib berish uchun to‘langan", afterWeighing: "Tortishdan keyin", requestExtra: "Qo‘shimcha to‘lov so‘rash", returnBalance: "Atlas ichki balansiga qayd etish", invalidValues: "Musbat qiymatlarni to‘g‘ri kiriting.", confirmRecalculate: "Qayta hisoblashni tasdiqlash", cancelTitle: "Xariddan oldin buyurtma bekor qilinsinmi?", paymentTitle: "To‘lov holatini Atlasda qayd etasizmi?", extraTitle: "Qo‘shimcha to‘lov summasini tasdiqlaysizmi?", cancelDescription: "Buyurtma bekor qilinadi va Atlas ichki balansi qayta hisoblanadi. Pul o‘tkazilmaydi.", paymentDescription: "Bu amal faqat Atlasdagi buyurtma holatini o‘zgartiradi. To‘lov provayderi ulanmagan: pul yechilmaydi, bank tasdig‘i olinmaydi.", extraDescription: "Tasdiq summa bo‘yicha kelishuvni qayd etadi. To‘lov provayderi ulanmagan, pul yechilmaydi.", refund: "Atlas ichki balansiga qayd etiladigan summa", paymentStatusLabel: "Atlasda qayd etilgan to‘lov", toPay: "Qo‘shimcha to‘lov", back: "Ortga", saveChanges: "O‘zgarishlar saqlandi", saving: "Saqlanmoqda…", statusUpdated: "Buyurtma holati yangilandi", photoUpdated: "Buyurtma rasmi yangilandi"
+    loginTitle: "Buyurtmalarni ochish uchun kiring", loginDescription: "Xaridlar tarixi, rasmlar va hisob-kitoblar Atlas profilingizda mavjud.", loginLabel: "Kirishni ochish", loading: "Buyurtmalar yuklanmoqda…", emptyTitle: "Xaridingiz yo‘li shu yerda boshlanadi", emptyDescription: "Xarid, ombor va yetkazib berishni sinash uchun savatdan buyurtma bering.", choose: "Tovar tanlash", filteredTitle: "Bu bo‘lim hozircha bo‘sh", filteredDescription: "Filtr yoki qidiruv so‘rovini o‘zgartiring.", search: "Buyurtmani qidirish", source: "Tovar manbasi", loadPhoto: "Havoladan rasm yuklash", loadingPhoto: "Yuklanmoqda…", checkoutTotal: "Rasmiylashtirish summasi", checkoutAt: "Rasmiylashtirishda", buyer: "Xaridor", cancelled: "Bekor qilingan", needDecision: "Qaror kerak", extra: "Qo‘shimcha to‘lov kerak", awaitingPayment: "To‘lov kutilmoqda", paymentWaiting: "To‘lov provayderi ulanmagan", paymentPaid: "Atlasda qayd etildi; to‘lov provayderi tasdiqlamagan", paymentRefunded: "Qaytarish Atlas ichki balansida qayd etildi; pul o‘tkazilmadi", paymentLine: "To‘lov", noCharge: "To‘lov provayderi ulanmagan", providerPassed: "To‘lov provayderi ulanmagan", recordPayment: "To‘lov holatini Atlasda qayd etish", recipient: "Qabul qiluvchi", tracking: "Kuzatuv raqami", parcelRegistered: "Jo‘natma ro‘yxatga olindi", warehouseDone: "Omborda qabul qilish yakunlandi", warehouseProblem: "Ombor muammo qayd etdi", received: "Qabul qilindi", operations: "Amallar", noOperations: "Qo‘shimcha amallar tayinlanmagan", agreements: "Buyurtma bo‘yicha kelishuvlar", pending: "QAROR KERAK", approved: "TASDIQLANGAN", declined: "RAD ETILGAN", reject: "Rad etish", confirm: "Tasdiqlash", managerChecking: "Menejer do‘kon yetkazishini do‘kondan tasdiqlamoqda", reserveIncluded: "Buyurtma summasiga zaxira kiritilgan", reserveWaived: "Do‘kon yetkazishi uchun zaxira yo‘q: do‘kondan $50 dan qimmat tovarlarda do‘kon yetkazishi siz uchun bepul. Do‘kon baribir haq olsa, qo‘shimcha to‘lov — faqat roziligingiz bilan.", beforeBuyout: "Xariddan oldin tasdiqlangan narxni ko‘rasiz.", managerConfirmed: "Menejer do‘kon yetkazib berishini tasdiqladi", actual: "Haqiqiy summa", reservedAtCheckout: "Rasmiylashtirishdagi zaxira", refundToBalance: "Balansga qaytarildi", extraApproved: "Qo‘shimcha to‘lov tasdiqlandi", needApprove: "Kelishish kerak", reserveMatch: "Summa zaxiraga teng", balance: "Balans", shippingOver: "Yetkazib berish zaxiradan oshdi", shippingCheaper: "Yetkazib berish arzonroq chiqdi", shippingRecalculated: "Yetkazib berish qayta hisoblandi", payableWeight: "Hisoblanadigan vazn", cost: "Narx", noExtra: "Qo‘shimcha to‘lov talab qilinmaydi", checkExtra: "Qo‘shimcha to‘lovni tekshirish", confirmStore: "Do‘kon yetkazib berishini tasdiqlash", confirmBuyout: "Xaridni tasdiqlash", receiveWarehouse: "Omborga qabul qilish", weigh: "Tortish va qayta hisoblash", sendUzbekistan: "O‘zbekistonga jo‘natish", confirmDelivery: "Yetkazib berishni tasdiqlash", sendAfterApproval: "Jo‘natish «Buyurtmalarim» bo‘limida tasdiqlangandan keyin mavjud bo‘ladi.", saveReceivingFirst: "Avval operator blokida tovar qabulini saqlang.", payFirst: "Xarid to‘lov provayderi ulanib, to‘lovni tasdiqlagandan keyin mavjud bo‘ladi.", trackingFirst: "Jo‘natishdan oldin tashuvchi va kuzatuv raqamini kiriting.", calculationHistory: "Hisob-kitob va tarix", customsAccepted: "Bojxona shartlari qabul qilindi", balanceUsed: "Atlas ichki balansida hisobga olindi", actualWeight: "Haqiqiy vazn", dimensional: "Hajmiy", cancelOrder: "Buyurtmani bekor qilish", storeModalTitle: "Do‘kondan omborgacha yetkazib berish", storeModalDescription: "Dollar hisobidagi yakuniy haqiqiy summani kiriting. Zaxiradan kam bo‘lsa, farq xaridor balansiga qaytariladi.", actualStoreShipping: "Do‘konning haqiqiy yetkazib berishi, USD", reserved: "Kiritilgan zaxira", saveRecalculate: "Tasdiqlash va qayta hisoblash", warehouseModalTitle: "Omborda tortish", warehouseModalDescription: "Qadoq bilan birga jo‘natmaning vazni va o‘lchamlari. Tarif buyurtmada qayd etilgan.", dimensions: ["Haqiqiy vazn, kg", "Uzunlik, sm", "Eni, sm", "Balandlik, sm"], volumeWeight: "Hajmiy vazn", paidShipping: "Yetkazib berish uchun to‘langan", afterWeighing: "Tortishdan keyin", requestExtra: "Qo‘shimcha to‘lov so‘rash", returnBalance: "Atlas ichki balansiga qayd etish", invalidValues: "Musbat qiymatlarni to‘g‘ri kiriting.", confirmRecalculate: "Qayta hisoblashni tasdiqlash", cancelTitle: "Xariddan oldin buyurtma bekor qilinsinmi?", paymentTitle: "To‘lov holatini Atlasda qayd etasizmi?", extraTitle: "Qo‘shimcha to‘lov summasini tasdiqlaysizmi?", cancelDescription: "Buyurtma bekor qilinadi va Atlas ichki balansi qayta hisoblanadi. Pul o‘tkazilmaydi.", paymentDescription: "Bu amal faqat Atlasdagi buyurtma holatini o‘zgartiradi. To‘lov provayderi ulanmagan: pul yechilmaydi, bank tasdig‘i olinmaydi.", extraDescription: "Tasdiq summa bo‘yicha kelishuvni qayd etadi. To‘lov provayderi ulanmagan, pul yechilmaydi.", refund: "Atlas ichki balansiga qayd etiladigan summa", paymentStatusLabel: "Atlasda qayd etilgan to‘lov", toPay: "Qo‘shimcha to‘lov", back: "Ortga", saveChanges: "O‘zgarishlar saqlandi", saving: "Saqlanmoqda…", statusUpdated: "Buyurtma holati yangilandi", photoUpdated: "Buyurtma rasmi yangilandi"
   },
   en: {
-    loginTitle: "Sign in to open your orders", loginDescription: "Purchase history, photos and calculations are available in your Atlas profile.", loginLabel: "Open sign in", loading: "Loading orders…", emptyTitle: "Your purchase journey starts here", emptyDescription: "Place an order from the cart to try purchase, warehouse and delivery steps.", choose: "Choose an item", filteredTitle: "Nothing in this section yet", filteredDescription: "Change the filter or search query.", search: "Search orders", source: "Product source", loadPhoto: "Load photo from link", loadingPhoto: "Loading…", checkoutTotal: "Checkout total", checkoutAt: "At checkout", buyer: "Buyer", cancelled: "Cancelled", needDecision: "Decision needed", extra: "Additional payment needed", awaitingPayment: "Awaiting payment", paymentWaiting: "Payment provider not connected", paymentPaid: "Recorded in Atlas; not confirmed by a payment provider", paymentRefunded: "Refund recorded in Atlas internal balance; no transfer was made", paymentLine: "Payment", noCharge: "Payment provider is not connected", providerPassed: "Payment provider is not connected", recordPayment: "Record payment status in Atlas", recipient: "Recipient", tracking: "Tracking number", parcelRegistered: "Parcel registered", warehouseDone: "Warehouse intake complete", warehouseProblem: "Warehouse flagged an issue", received: "Received", operations: "Operations", noOperations: "No extra operations assigned", agreements: "Order approvals", pending: "DECISION NEEDED", approved: "APPROVED", declined: "DECLINED", reject: "Decline", confirm: "Approve", managerChecking: "Manager is confirming store shipping", reserveIncluded: "A reserve is included in the order for now", reserveWaived: "No store-delivery reserve is included: stores usually ship orders of this size free. If the store still charges, we ask you first.", beforeBuyout: "You will see the confirmed amount before purchase.", managerConfirmed: "Manager confirmed store shipping", actual: "Actual amount", reservedAtCheckout: "Checkout reserve", refundToBalance: "Refunded to balance", extraApproved: "Additional payment approved", needApprove: "Approval needed", reserveMatch: "Amount matched the reserve", balance: "Balance", shippingOver: "Shipping exceeded the reserve", shippingCheaper: "Shipping was lower", shippingRecalculated: "Shipping recalculated", payableWeight: "Chargeable weight", cost: "Cost", noExtra: "No additional payment required", checkExtra: "Review additional payment", confirmStore: "Confirm store shipping", confirmBuyout: "Confirm purchase", receiveWarehouse: "Receive at warehouse", weigh: "Weigh and recalculate", sendUzbekistan: "Ship to Uzbekistan", confirmDelivery: "Confirm delivery", sendAfterApproval: "Shipping becomes available after approval in My orders.", saveReceivingFirst: "Save the warehouse intake in the operator block first.", payFirst: "Purchase becomes available after a payment provider is connected and confirms payment.", trackingFirst: "Add a carrier and tracking number before shipping.", calculationHistory: "Calculation and history", customsAccepted: "Customs terms accepted", balanceUsed: "Accounted for in Atlas internal balance", actualWeight: "Actual weight", dimensional: "Dimensional", cancelOrder: "Cancel order", storeModalTitle: "Store-to-warehouse shipping", storeModalDescription: "Enter the final actual amount in USD. If it is below the reserve, the difference is returned to the customer balance.", actualStoreShipping: "Actual store shipping, USD", reserved: "Reserved", saveRecalculate: "Confirm and recalculate", warehouseModalTitle: "Warehouse weighing", warehouseModalDescription: "Parcel weight and dimensions including packaging. The tariff is recorded on the order.", dimensions: ["Actual weight, kg", "Length, cm", "Width, cm", "Height, cm"], volumeWeight: "Dimensional weight", paidShipping: "Shipping paid", afterWeighing: "After weighing", requestExtra: "Request additional payment", returnBalance: "Record in Atlas internal balance", invalidValues: "Enter valid positive values.", confirmRecalculate: "Confirm recalculation", cancelTitle: "Cancel before purchase?", paymentTitle: "Record payment status in Atlas?", extraTitle: "Approve the additional amount?", cancelDescription: "The order will be cancelled and the Atlas internal balance entry recalculated. No money transfer is made.", paymentDescription: "This only updates the order status in Atlas. No payment provider is connected, so no money is charged and no bank confirmation is received.", extraDescription: "This records the amount for follow-up only. No payment provider is connected and no money is charged.", refund: "To internal Atlas balance", paymentStatusLabel: "Payment status in Atlas", toPay: "To pay", back: "Back", saveChanges: "Changes saved", saving: "Saving…", statusUpdated: "Order status updated", photoUpdated: "Order photo updated"
+    loginTitle: "Sign in to open your orders", loginDescription: "Purchase history, photos and calculations are available in your Atlas profile.", loginLabel: "Open sign in", loading: "Loading orders…", emptyTitle: "Your purchase journey starts here", emptyDescription: "Place an order from the cart to try purchase, warehouse and delivery steps.", choose: "Choose an item", filteredTitle: "Nothing in this section yet", filteredDescription: "Change the filter or search query.", search: "Search orders", source: "Product source", loadPhoto: "Load photo from link", loadingPhoto: "Loading…", checkoutTotal: "Checkout total", checkoutAt: "At checkout", buyer: "Buyer", cancelled: "Cancelled", needDecision: "Decision needed", extra: "Additional payment needed", awaitingPayment: "Awaiting payment", paymentWaiting: "Payment provider not connected", paymentPaid: "Recorded in Atlas; not confirmed by a payment provider", paymentRefunded: "Refund recorded in Atlas internal balance; no transfer was made", paymentLine: "Payment", noCharge: "Payment provider is not connected", providerPassed: "Payment provider is not connected", recordPayment: "Record payment status in Atlas", recipient: "Recipient", tracking: "Tracking number", parcelRegistered: "Parcel registered", warehouseDone: "Warehouse intake complete", warehouseProblem: "Warehouse flagged an issue", received: "Received", operations: "Operations", noOperations: "No extra operations assigned", agreements: "Order approvals", pending: "DECISION NEEDED", approved: "APPROVED", declined: "DECLINED", reject: "Decline", confirm: "Approve", managerChecking: "A manager is confirming store delivery with the store", reserveIncluded: "A reserve is included in the order", reserveWaived: "No store-delivery reserve: over $50 of items from a store, store delivery is free for you. If the store still charges, any extra payment needs your consent.", beforeBuyout: "You will see the confirmed amount before purchase.", managerConfirmed: "Manager confirmed store shipping", actual: "Actual amount", reservedAtCheckout: "Checkout reserve", refundToBalance: "Refunded to balance", extraApproved: "Additional payment approved", needApprove: "Approval needed", reserveMatch: "Amount matched the reserve", balance: "Balance", shippingOver: "Shipping exceeded the reserve", shippingCheaper: "Shipping was lower", shippingRecalculated: "Shipping recalculated", payableWeight: "Chargeable weight", cost: "Cost", noExtra: "No additional payment required", checkExtra: "Review additional payment", confirmStore: "Confirm store shipping", confirmBuyout: "Confirm purchase", receiveWarehouse: "Receive at warehouse", weigh: "Weigh and recalculate", sendUzbekistan: "Ship to Uzbekistan", confirmDelivery: "Confirm delivery", sendAfterApproval: "Shipping becomes available after approval in My orders.", saveReceivingFirst: "Save the warehouse intake in the operator block first.", payFirst: "Purchase becomes available after a payment provider is connected and confirms payment.", trackingFirst: "Add a carrier and tracking number before shipping.", calculationHistory: "Calculation and history", customsAccepted: "Customs terms accepted", balanceUsed: "Accounted for in Atlas internal balance", actualWeight: "Actual weight", dimensional: "Dimensional", cancelOrder: "Cancel order", storeModalTitle: "Store-to-warehouse shipping", storeModalDescription: "Enter the final actual amount in USD. If it is below the reserve, the difference is returned to the customer balance.", actualStoreShipping: "Actual store shipping, USD", reserved: "Reserved", saveRecalculate: "Confirm and recalculate", warehouseModalTitle: "Warehouse weighing", warehouseModalDescription: "Parcel weight and dimensions including packaging. The tariff is recorded on the order.", dimensions: ["Actual weight, kg", "Length, cm", "Width, cm", "Height, cm"], volumeWeight: "Dimensional weight", paidShipping: "Shipping paid", afterWeighing: "After weighing", requestExtra: "Request additional payment", returnBalance: "Record in Atlas internal balance", invalidValues: "Enter valid positive values.", confirmRecalculate: "Confirm recalculation", cancelTitle: "Cancel before purchase?", paymentTitle: "Record payment status in Atlas?", extraTitle: "Approve the additional amount?", cancelDescription: "The order will be cancelled and the Atlas internal balance entry recalculated. No money transfer is made.", paymentDescription: "This only updates the order status in Atlas. No payment provider is connected, so no money is charged and no bank confirmation is received.", extraDescription: "This records the amount for follow-up only. No payment provider is connected and no money is charged.", refund: "To internal Atlas balance", paymentStatusLabel: "Payment status in Atlas", toPay: "To pay", back: "Back", saveChanges: "Changes saved", saving: "Saving…", statusUpdated: "Order status updated", photoUpdated: "Order photo updated"
   }
 } as const;
 const customerOrderDisclosureCopy = {
-  ru: {paymentWaiting:'Оплата ожидается',paymentPaid:'В Atlas записана отметка; платёж не подтверждён провайдером',paymentRefunded:'Возврат учтён во внутреннем балансе Atlas',providerPassed:'Платёжный провайдер не подключён',recordPayment:'Отметить оплату в Atlas',payFirst:'Выкуп станет доступен после подключения оплаты и её подтверждения провайдером.',balanceUsed:'Учтено по внутреннему балансу Atlas',returnBalance:'Вернуть на внутренний баланс',cancelDescription:'Заказ будет отменён, а внутренняя запись баланса пересчитана. Внешний перевод не выполняется.',paymentTitle:'Записать отметку об оплате?',paymentDescription:'Действие изменит только статус заказа в Atlas. Платёжный провайдер не подключён: деньги не списываются, подтверждения банка нет.',extraTitle:'Подтвердить сумму доплаты?',extraDescription:'Это подтверждает сумму для дальнейшего согласования. Оплата через провайдера ещё не подключена.',refund:'К зачислению на внутренний баланс',paymentStatusLabel:'Отметка оплаты в Atlas'},
-  uz: {paymentWaiting:'To‘lov kutilmoqda',paymentPaid:'Atlasda qayd yozildi; to‘lov provayder tomonidan tasdiqlanmagan',paymentRefunded:'Qaytarish Atlas ichki balansida qayd etildi',providerPassed:'To‘lov provayderi ulanmagan',recordPayment:'To‘lovni Atlasda qayd etish',payFirst:'Xarid to‘lov provayderi ulanib, to‘lov tasdiqlangandan keyin mavjud bo‘ladi.',balanceUsed:'Atlas ichki balansida hisobga olindi',returnBalance:'Ichki balansga qaytarish',cancelDescription:'Buyurtma bekor qilinadi va ichki balans qayta hisoblanadi. Tashqi pul o‘tkazmasi bajarilmaydi.',paymentTitle:'To‘lov belgisini qayd etasizmi?',paymentDescription:'Bu amal faqat Atlasdagi buyurtma holatini o‘zgartiradi. To‘lov provayderi ulanmagan: pul yechilmaydi va bank tasdig‘i olinmaydi.',extraTitle:'Qo‘shimcha to‘lov summasini tasdiqlaysizmi?',extraDescription:'Bu summa keyingi kelishuv uchun tasdiqlanadi. Provayder orqali to‘lov hali ulanmagan.',refund:'Ichki balansga yoziladigan summa',paymentStatusLabel:'Atlasdagi to‘lov qaydi'},
-  en: {paymentWaiting:'Payment pending',paymentPaid:'Recorded in Atlas; not confirmed by a payment provider',paymentRefunded:'Refund recorded in Atlas internal balance',providerPassed:'Payment provider is not connected',recordPayment:'Record payment status in Atlas',payFirst:'Purchase is available after a payment provider is connected and confirms payment.',balanceUsed:'Accounted for in Atlas internal balance',returnBalance:'Return to internal balance',cancelDescription:'The order will be cancelled and the internal balance entry recalculated. No external transfer is made.',paymentTitle:'Record a payment status?',paymentDescription:'This only updates the order status in Atlas. No payment provider is connected, so no money is charged and no bank confirmation is received.',extraTitle:'Approve the additional amount?',extraDescription:'This confirms the amount for follow-up. Provider-backed payment is not connected.',refund:'To internal balance',paymentStatusLabel:'Payment status in Atlas'},
+  ru: {paymentWaiting:'Оплата ожидается',paymentPaid:'В Atlas записана отметка; платёж не подтверждён провайдером',paymentRefunded:'Возврат учтён во внутреннем балансе Atlas',providerPassed:'Платёжный провайдер не подключён',recordPayment:'Отметить оплату в Atlas',payFirst:'Выкуп станет доступен после подключения оплаты и её подтверждения провайдером.',balanceUsed:'Учтено по внутреннему балансу Atlas',returnBalance:'Вернуть на внутренний баланс',cancelDescription:'Заказ будет отменён, а внутренняя запись баланса пересчитана. Внешний перевод не выполняется.',paymentTitle:'Записать отметку об оплате?',paymentDescription:'Действие изменит только статус заказа в Atlas. Платёжный провайдер не подключён: деньги не списываются, подтверждения банка нет.',extraTitle:'Подтвердить сумму доплаты?',extraDescription:'Это подтверждает сумму для согласования. Оплата на сайте не подключена — деньги не списываются.',refund:'К зачислению на внутренний баланс',paymentStatusLabel:'Отметка оплаты в Atlas'},
+  uz: {paymentWaiting:'To‘lov kutilmoqda',paymentPaid:'Atlasda qayd yozildi; to‘lov provayder tomonidan tasdiqlanmagan',paymentRefunded:'Qaytarish Atlas ichki balansida qayd etildi',providerPassed:'To‘lov provayderi ulanmagan',recordPayment:'To‘lovni Atlasda qayd etish',payFirst:'Xarid to‘lov provayderi ulanib, to‘lov tasdiqlangandan keyin mavjud bo‘ladi.',balanceUsed:'Atlas ichki balansida hisobga olindi',returnBalance:'Ichki balansga qaytarish',cancelDescription:'Buyurtma bekor qilinadi va ichki balans qayta hisoblanadi. Tashqi pul o‘tkazmasi bajarilmaydi.',paymentTitle:'To‘lov belgisini qayd etasizmi?',paymentDescription:'Bu amal faqat Atlasdagi buyurtma holatini o‘zgartiradi. To‘lov provayderi ulanmagan: pul yechilmaydi va bank tasdig‘i olinmaydi.',extraTitle:'Qo‘shimcha to‘lov summasini tasdiqlaysizmi?',extraDescription:'Bu summa kelishuv uchun tasdiqlanadi. Saytda to‘lov ulanmagan — pul yechilmaydi.',refund:'Ichki balansga yoziladigan summa',paymentStatusLabel:'Atlasdagi to‘lov qaydi'},
+  en: {paymentWaiting:'Payment pending',paymentPaid:'Recorded in Atlas; not confirmed by a payment provider',paymentRefunded:'Refund recorded in Atlas internal balance',providerPassed:'Payment provider is not connected',recordPayment:'Record payment status in Atlas',payFirst:'Purchase is available after a payment provider is connected and confirms payment.',balanceUsed:'Accounted for in Atlas internal balance',returnBalance:'Return to internal balance',cancelDescription:'The order will be cancelled and the internal balance entry recalculated. No external transfer is made.',paymentTitle:'Record a payment status?',paymentDescription:'This only updates the order status in Atlas. No payment provider is connected, so no money is charged and no bank confirmation is received.',extraTitle:'Approve the additional amount?',extraDescription:'This confirms the amount for approval. Online payment is not connected — no money is charged.',refund:'To internal balance',paymentStatusLabel:'Payment status in Atlas'},
 } as const;
 const customerOrderEmptyCopy = {
   ru: 'Оформите заказ из корзины, чтобы начать покупки через Atlas.',
@@ -820,7 +821,20 @@ export function OrdersView({ operations }: { operations: boolean }) {
     [opsAccounts, setOpsAccounts] = useState<OperationsAccount[]>([]),
     [opsReady, setOpsReady] = useState(false),
     [opsRefreshing, setOpsRefreshing] = useState(false),
-    [opsError, setOpsError] = useState<string | null>(null);
+    [opsError, setOpsError] = useState<string | null>(null),
+    // The operator queue comes in pages (GET /api/operations?queue=1): ids of the listed orders, server counts.
+    [opsPage, setOpsPage] = useState<string[]>([]),
+    [opsCounts, setOpsCounts] = useState<OperatorQueueCounts | null>(null),
+    [opsCursor, setOpsCursor] = useState<string | null>(null),
+    [opsTotal, setOpsTotal] = useState(0),
+    [opsQuery, setOpsQuery] = useState("");
+  const revealRequested = useRef(new Set<string>());
+  // Search runs on the server too; wait for a pause in typing.
+  useEffect(() => {
+    if (!operations) return;
+    const timer = setTimeout(() => setOpsQuery(query.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [operations, query]);
   useEffect(() => {
     if (!ready) return;
     const reveal = () => {
@@ -828,23 +842,33 @@ export function OrdersView({ operations }: { operations: boolean }) {
       try { id = decodeURIComponent(window.location.hash.slice(1)); } catch { return; }
       const row = document.getElementById(id);
       if (row instanceof HTMLDetailsElement) { row.open = true; row.scrollIntoView({block:'start'}); }
-      else { const order=(operations?opsAccounts.flatMap(profile=>profile.state.orders):state.orders).find(item=>item.id===id);if(order)queueMicrotask(()=>{setQuery('');const hasCredit=operations&&opsAccounts.some(profile=>profile.state.entries.some(entry=>entry.orderId===order.id&&entry.credit==='customer-credit'&&entry.amount>0));setTab(operations&&(order.cancelled||order.payment?.status==='refunded'||hasCredit)?'refunds':order.cancelled||order.status===5?'done':'active')}); }
+      else { const order=(operations?opsAccounts.flatMap(profile=>profile.state.orders):state.orders).find(item=>item.id===id);
+        // A linked order not loaded yet: fetch it alone, then the branch below finds it and searches its tab for it.
+        if(!order&&operations&&opsReady&&id&&!revealRequested.current.has(id)){revealRequested.current.add(id);void fetch(`/api/operations?queue=1&order=${encodeURIComponent(id)}`,{cache:"no-store"}).then(response=>response.ok?response.json() as Promise<Partial<OperatorQueueResponse>>:null).then(data=>{if(data?.accounts?.length)setOpsAccounts(current=>mergeQueueAccounts(current,data.accounts!))}).catch(()=>{});}
+        if(order)queueMicrotask(()=>{setQuery(operations?order.id:'');const hasCredit=operations&&opsAccounts.some(profile=>profile.state.entries.some(entry=>entry.orderId===order.id&&entry.credit==='customer-credit'&&entry.amount>0));setTab(operations&&(order.cancelled||order.payment?.status==='refunded'||hasCredit)?'refunds':order.cancelled||order.status===5?'done':'active')}); }
     };
     reveal(); window.addEventListener('hashchange', reveal);
     return () => window.removeEventListener('hashchange', reveal);
   }, [ready, tab, query, opsReady, state.orders, operations, opsAccounts]);
+  const queueTab = (operatorQueueTabs as readonly string[]).includes(tab) ? tab : "active";
+  const queueUrl = useCallback((extra: Record<string, string> = {}) => `/api/operations?${new URLSearchParams({ queue: "1", tab: queueTab, ...(opsQuery ? { q: opsQuery } : {}), ...extra })}`, [queueTab, opsQuery]);
+  const fetchQueue = useCallback(async (extra: Record<string, string> = {}) => {
+    const response = await fetch(queueUrl(extra), { cache: "no-store" });
+    const data = (await response.json()) as Partial<OperatorQueueResponse> & { error?: string };
+    if (!response.ok || !data.accounts || !data.orderIds || !data.counts)
+      throw Error(data.error ?? "Не удалось загрузить очередь.");
+    return data as OperatorQueueResponse;
+  }, [queueUrl]);
   const refreshOperations = useCallback(async () => {
     if (!operations || !canReadOperations) return;
     setOpsRefreshing(true);
     try {
-      const response = await fetch("/api/operations", { cache: "no-store" });
-      const data = (await response.json()) as {
-        accounts?: OperationsAccount[];
-        error?: string;
-      };
-      if (!response.ok || !data.accounts)
-        throw Error(data.error ?? "Не удалось загрузить очередь.");
+      const data = await fetchQueue();
       setOpsAccounts(data.accounts);
+      setOpsPage(data.orderIds);
+      setOpsCounts(data.counts);
+      setOpsCursor(data.nextCursor);
+      setOpsTotal(data.total);
       setOpsError(null);
       setOpsReady(true);
     } catch (nextError) {
@@ -853,7 +877,31 @@ export function OrdersView({ operations }: { operations: boolean }) {
     } finally {
       setOpsRefreshing(false);
     }
-  }, [operations, canReadOperations]);
+  }, [operations, canReadOperations, fetchQueue]);
+  async function loadMoreOperations() {
+    if (!opsCursor || opsRefreshing) return;
+    setOpsRefreshing(true);
+    try {
+      const data = await fetchQueue({ cursor: opsCursor });
+      setOpsAccounts((current) => mergeQueueAccounts(current, data.accounts));
+      setOpsPage((current) => [...current, ...data.orderIds.filter((id) => !current.includes(id))]);
+      setOpsCounts(data.counts);
+      setOpsCursor(data.nextCursor);
+      setOpsTotal(data.total);
+    } catch (nextError) {
+      toast.error((nextError as Error).message);
+    } finally {
+      setOpsRefreshing(false);
+    }
+  }
+  // After an action the tab counts move; they come without any order data.
+  const refreshCounts = useCallback(async () => {
+    try {
+      const response = await fetch("/api/operations?queue=counts", { cache: "no-store" });
+      const data = (await response.json()) as { counts?: OperatorQueueCounts };
+      if (response.ok && data.counts) setOpsCounts(data.counts);
+    } catch {}
+  }, []);
   useEffect(() => {
     queueMicrotask(() => void refreshOperations());
   }, [refreshOperations]);
@@ -865,6 +913,13 @@ export function OrdersView({ operations }: { operations: boolean }) {
       profile.state.orders.map((order) => [order.id, profile] as const),
     ),
   );
+  // Operators see the loaded page in server order; siblings of a store parcel are loaded but not listed.
+  const listed = operations
+    ? opsPage.flatMap((id) => orderAccount.get(id)?.state.orders.filter((order) => order.id === id) ?? [])
+    : orders;
+  const queueEmpty = operations
+    ? !opsCounts || opsCounts.active + opsCounts.attention + opsCounts.done + opsCounts.refunds === 0
+    : !orders.length;
   const viewReady = operations ? opsReady : ready;
   const viewError = operations ? opsError : error;
   const locale = state.communication.language as Locale;
@@ -879,10 +934,10 @@ export function OrdersView({ operations }: { operations: boolean }) {
   const confirmingStoreShipping = orders.find(
     (o) => o.id === storeShippingOrder,
   );
-  const active = orders.filter((o) => !o.cancelled && o.status < 5),
-    need = orders.filter((order) => orderNeedsOperatorAttention(order) || (!operations && !order.cancelled && order.payment?.status === "pending")),
-    done = orders.filter((o) => (o.cancelled || o.status === 5) && (!o.issueCase || o.issueCase.status === "resolved")),
-    refunds = operations ? orders.filter((o) => o.cancelled || o.payment?.status === "refunded" || atlasCreditForOrder(orderAccount.get(o.id), o.id) > 0) : [];
+  const active = listed.filter((o) => !o.cancelled && o.status < 5),
+    need = listed.filter((order) => orderNeedsOperatorAttention(order) || (!operations && !order.cancelled && order.payment?.status === "pending")),
+    done = listed.filter((o) => (o.cancelled || o.status === 5) && (!o.issueCase || o.issueCase.status === "resolved")),
+    refunds = operations ? listed.filter((o) => o.cancelled || o.payment?.status === "refunded" || atlasCreditForOrder(orderAccount.get(o.id), o.id) > 0) : [];
   // Customers who order for several people can narrow the list to one recipient.
   const recipientOf = (order: Order) => recipientKey(orderRecipientName(state, order));
   const recipientOptions = operations ? [] : [...new Map(orders.map(order => [recipientOf(order), orderRecipientName(state, order).trim()] as const)).entries()].filter(([key]) => key !== "unknown");
@@ -898,15 +953,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
   const filtered = (
     tab === "active" ? active : tab === "attention" ? need : tab === "refunds" && operations ? refunds : done
   ).filter((o) => operations || recipientFilter === "all" || recipientOptions.length < 2 || recipientOf(o) === recipientFilter).filter((o) => {
-    const profile=orderAccount.get(o.id);
-    const profilePhone=profile?.state.communication.phone??"";
-    const recipientPhone=o.delivery?.phone??"";
-    const searchable=[o.id,o.product.name,o.product.brand,o.variant,profile?.name,profile?.id,profilePhone,o.delivery?.recipient,recipientPhone,o.delivery?.city];
-    const needle=query.trim().toLocaleLowerCase();
-    const normalizedPhoneNeedle=query.replace(/\D/g,"");
-    const phoneNumbers=`${profilePhone} ${recipientPhone}`.replace(/\D/g,"");
-    return searchable.filter(Boolean).join(" ").toLocaleLowerCase().includes(needle)
-      || normalizedPhoneNeedle.length>=4&&phoneNumbers.includes(normalizedPhoneNeedle);
+    // The same rule the server search applies (lib/market/operator-queue.ts).
+    return queueMatches(queueSearchFields(o,orderAccount.get(o.id)),query);
   });
   // The warehouse weighs a store parcel once (parcelOrders): every order of it shares the weight and the delivery.
   // Bought orders still on the way (status 1) hold the parcel until they arrive or the operator weighs without them.
@@ -953,12 +1001,14 @@ export function OrdersView({ operations }: { operations: boolean }) {
         account?: OperationsAccount;
         error?: string;
       };
+      // The answer holds the whole document of that customer: keep only the orders already on screen.
       if (data.account)
         setOpsAccounts((current) =>
           current.map((item) =>
-            item.id === data.account!.id ? data.account! : item,
+            item.id === data.account!.id ? slimQueueAccount(data.account!, new Set(item.state.orders.map((order) => order.id))) : item,
           ),
         );
+      void refreshCounts();
       if (!response.ok) {
          toast.error(data.error ?? (locale === "ru" ? "Не удалось сохранить действие." : locale === "uz" ? "Amalni saqlab bo‘lmadi." : "Could not save the action."));
         if (!data.account) await refreshOperations();
@@ -1085,36 +1135,36 @@ export function OrdersView({ operations }: { operations: boolean }) {
         <div className="ops-stats">
           <div>
               <span>{wc.active}</span>
-            <strong>{active.length}</strong>
+            <strong>{operations ? opsCounts?.active ?? 0 : active.length}</strong>
             <Package />
           </div>
           <div>
               <span>{wc.attention}</span>
-            <strong>{need.length}</strong>
+            <strong>{operations ? opsCounts?.attention ?? 0 : need.length}</strong>
             <Clock3 />
           </div>
           <div>
               <span>{locale === "ru" ? "Ожидают взвешивания" : locale === "uz" ? "Tortish kutilmoqda" : "Awaiting weighing"}</span>
-            <strong>{active.filter((o) => o.status === 2).length}</strong>
+            <strong>{operations ? opsCounts?.weighing ?? 0 : active.filter((o) => o.status === 2).length}</strong>
             <Scale />
           </div>
         </div>
       )}
-      {orders.length > 0 && (
+      {(operations ? !queueEmpty : orders.length > 0) && (
         <div className="order-controls">
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList className={`order-tabs${operations ? " has-refund-tab" : ""}`}>
               <TabsTrigger value="active">
-                {wc.active} <b>{active.length}</b>
+                {wc.active} <b>{operations ? opsCounts?.active ?? 0 : active.length}</b>
               </TabsTrigger>
               <TabsTrigger value="attention">
-                {wc.attention} <b>{need.length}</b>
+                {wc.attention} <b>{operations ? opsCounts?.attention ?? 0 : need.length}</b>
               </TabsTrigger>
               <TabsTrigger value="done">
-                {wc.done} <b>{done.length}</b>
+                {wc.done} <b>{operations ? opsCounts?.done ?? 0 : done.length}</b>
               </TabsTrigger>
               {operations && <TabsTrigger value="refunds">
-                {refundTabLabel} <b>{refunds.length}</b>
+                {refundTabLabel} <b>{opsCounts?.refunds ?? 0}</b>
               </TabsTrigger>}
             </TabsList>
               <TabsContent value={tab} className="sr-only">
@@ -1152,7 +1202,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
         <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><Package size={28} /></span><h2>{ow.emptyTitle}</h2><p>{ow.emptyDescription}</p>
           <div className="basket-empty-actions"><Link className="btn primary" href="/order-by-link">{ordersCopy[locale].newOrder}<ArrowRight size={18} aria-hidden="true" /></Link><Link className="btn secondary" href="/cart">{ordersCopy[locale].cart}</Link></div>
         </section>
-      ) : !orders.length ? (
+      ) : queueEmpty ? (
         <Empty
           title={operations ? (locale === "ru" ? "Очередь заказов пуста" : locale === "uz" ? "Buyurtmalar navbati bo‘sh" : "The order queue is empty") : ow.emptyTitle}
           description={operations ? (locale === "ru" ? "Новых клиентских заказов пока нет." : locale === "uz" ? "Yangi mijoz buyurtmalari yo‘q." : "There are no new customer orders yet.") : ow.emptyDescription}
@@ -1544,6 +1594,9 @@ export function OrdersView({ operations }: { operations: boolean }) {
           </details>
         ))
       )}
+      {operations && viewReady && opsCursor && <button type="button" className="btn secondary full" disabled={opsRefreshing} onClick={() => void loadMoreOperations()}>
+        {locale === "ru" ? `Показать ещё · ${opsPage.length} из ${opsTotal}` : locale === "uz" ? `Yana ko‘rsatish · ${opsPage.length} / ${opsTotal}` : `Show more · ${opsPage.length} of ${opsTotal}`}
+      </button>}
       <Modal
         open={!!confirmingCustoms}
         onClose={() => { if (!busy) setCustomsOrder(null); }}
@@ -2210,7 +2263,7 @@ function CommunicationPanel({
   });
   const [saving, setSaving] = useState(false);
   const communicationWords={ru:{eyebrow:'КАНАЛЫ СВЯЗИ',title:'Email и SMS',emailHint:'Статусы, оплата и возвраты',smsHint:'Только важные изменения',phone:'Телефон',language:'Язык интерфейса и уведомлений',save:'Сохранить настройки',saved:'Настройки email и SMS сохранены'},uz:{eyebrow:'ALOQA KANALLARI',title:'Email va SMS',emailHint:'Holatlar, to‘lov va qaytarishlar',smsHint:'Faqat muhim o‘zgarishlar',phone:'Telefon',language:'Interfeys va bildirishnomalar tili',save:'Sozlamalarni saqlash',saved:'Email va SMS sozlamalari saqlandi'},en:{eyebrow:'CONTACT CHANNELS',title:'Email and SMS',emailHint:'Status, payment and refunds',smsHint:'Important changes only',phone:'Phone',language:'Interface and notification language',save:'Save settings',saved:'Email and SMS settings saved'}}[value.language];
-  const communicationCopy=value.language==='ru'?{description:'Настройки сохраняются в профиле. Отправка email и SMS пока не подключена.',status:'Отправка не подключена'}:value.language==='uz'?{description:'Sozlamalar profilda saqlanadi. Email va SMS yuborish hali ulanmagan.',status:'Yuborish ulanmagan'}:{description:'Preferences are saved to your account. Email and SMS delivery is not connected yet.',status:'Delivery not connected'};
+  const communicationCopy=value.language==='ru'?{description:'Настройки сохраняются в профиле. Отправка email и SMS не подключена.',status:'Отправка не подключена'}:value.language==='uz'?{description:'Sozlamalar profilda saqlanadi. Email va SMS yuborish ulanmagan.',status:'Yuborish ulanmagan'}:{description:'Preferences are saved to your account. Email and SMS delivery is not connected.',status:'Delivery not connected'};
   async function submit() {
     setSaving(true);
     const ok = await save(draft);
@@ -2281,7 +2334,7 @@ export function NotificationsView() {
       {ready && user?.operator && (
         <section className="message-log-section">
           <div className="section-heading"><h2>Журнал внешних сообщений</h2><span>{state.messageDeliveries.length} подготовлено</span></div>
-          {!state.messageDeliveries.length ? <div className="surface message-log-empty"><Mail size={23} /><div><h3>{locale==='ru'?'Сообщений пока нет':locale==='uz'?'Hozircha xabarlar yo‘q':'No messages yet'}</h3><p>{locale==='ru'?'Настройки email и SMS можно сохранить, но отправка пока не подключена.':locale==='uz'?'Email va SMS sozlamalarini saqlash mumkin, lekin yuborish hali ulanmagan.':'Email and SMS preferences can be saved, but delivery is not connected yet.'}</p></div></div> : <div className="surface message-log">{state.messageDeliveries.map((item) => <article key={item.id}><span className="message-channel">{item.channel === "email" ? <Mail size={17} /> : <MessageSquareText size={17} />}{item.channel.toUpperCase()}</span><div><b>{item.title}</b><p>{item.orderId ? `${item.orderId} · ` : ""}{item.destination}</p></div><span className="status-badge">{locale==='ru'?'Не отправлено':locale==='uz'?'Yuborilmadi':'Not sent'}</span><time>{formatDateTime(item.at, locale)}</time></article>)}</div>}
+          {!state.messageDeliveries.length ? <div className="surface message-log-empty"><Mail size={23} /><div><h3>{locale==='ru'?'Сообщений пока нет':locale==='uz'?'Hozircha xabarlar yo‘q':'No messages yet'}</h3><p>{locale==='ru'?'Настройки email и SMS можно сохранить, но отправка не подключена.':locale==='uz'?'Email va SMS sozlamalarini saqlash mumkin, lekin yuborish ulanmagan.':'Email and SMS preferences can be saved, but delivery is not connected.'}</p></div></div> : <div className="surface message-log">{state.messageDeliveries.map((item) => <article key={item.id}><span className="message-channel">{item.channel === "email" ? <Mail size={17} /> : <MessageSquareText size={17} />}{item.channel.toUpperCase()}</span><div><b>{item.title}</b><p>{item.orderId ? `${item.orderId} · ` : ""}{item.destination}</p></div><span className="status-badge">{locale==='ru'?'Не отправлено':locale==='uz'?'Yuborilmadi':'Not sent'}</span><time>{formatDateTime(item.at, locale)}</time></article>)}</div>}
         </section>
       )}
     </div>

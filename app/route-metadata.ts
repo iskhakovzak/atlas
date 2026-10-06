@@ -68,9 +68,9 @@ const pageText: Record<PublicPage, Record<Locale, { title: string; description: 
 };
 
 const rootText: Record<Locale, { title: string; description: string; social: string }> = {
-  uz: { title: 'Atlas — butun dunyodan xaridlar', description: 'Xorijiy do‘konlardan tovar toping, variantlarni tekshiring va O‘zbekistonga yetkazib berishning dastlabki hisobini oling.', social: 'Xorijiy do‘konlar, tushunarli dastlabki hisob va O‘zbekistonga yetkazib berish.' },
-  ru: { title: 'Atlas — покупки со всего мира', description: 'Находите товары в зарубежных магазинах, проверяйте варианты и получайте предварительный расчёт доставки в Узбекистан.', social: 'Зарубежные магазины, понятный предварительный расчёт и доставка в Узбекистан.' },
-  en: { title: 'Atlas — shopping from around the world', description: 'Find products in international stores, check the options and get a preliminary delivery estimate to Uzbekistan.', social: 'International stores, a clear preliminary estimate and delivery to Uzbekistan.' },
+  uz: { title: 'Atlas — butun dunyodan xaridlar', description: 'Xorijiy do‘konlardan tovar toping, variantlarni tekshiring va O‘zbekistonga yetkazib berish bilan hisobni so‘mda oling.', social: 'Xorijiy do‘konlar, so‘mda shaffof hisob va O‘zbekistonga yetkazib berish.' },
+  ru: { title: 'Atlas — покупки со всего мира', description: 'Находите товары в зарубежных магазинах, проверяйте варианты и получайте расчёт в сумах с доставкой в Узбекистан.', social: 'Зарубежные магазины, прозрачный расчёт в сумах и доставка в Узбекистан.' },
+  en: { title: 'Atlas — shopping from around the world', description: 'Find products in international stores, check the options and get the total in soum with delivery to Uzbekistan.', social: 'International stores, transparent pricing in soum and delivery to Uzbekistan.' },
 };
 
 /**

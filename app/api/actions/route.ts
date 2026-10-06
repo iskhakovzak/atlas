@@ -63,7 +63,7 @@ export async function POST(request:Request){try{
     if(coded)throw new HttpError(coded.status,coded.code);
     throw new HttpError(400,(e as Error).message)
   }
-  await persist(user.userId,next,current.revision);
+  await persist(user.userId,next,current.revision,current.state);
   if(refusal)return json({error:serverError(requestLocale(request),refusal),errorCode:refusal,state:next,revision:current.revision+1},409);
   const addedProduct=parsed.data.type==='cart-add'?parsed.data.product:parsed.data.type==='cart-add-many'?parsed.data.items[0].product:undefined;
   if(addedProduct?.sourceUrl&&verifiedSource){

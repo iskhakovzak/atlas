@@ -33,14 +33,14 @@ function render(table: Record<string, Copy>, item: Coded, locale: Locale): strin
 
 const historyCopy: Record<string, Copy> = {
   checkout: {
-    ru: v => `Заказ оформлен в Atlas. Сумма ${v.sum('total')}. ${v.has('fromBalance') ? 'Учтено из внутреннего баланса Atlas.' : 'Ожидается подтверждение платёжного провайдера.'}`,
-    uz: v => `Buyurtma Atlasda rasmiylashtirildi. Summa ${v.sum('total')}. ${v.has('fromBalance') ? 'Atlas ichki balansidan hisobga olindi.' : 'To‘lov provayderi tasdig‘i kutilmoqda.'}`,
-    en: v => `Order placed in Atlas. Total ${v.sum('total')}. ${v.has('fromBalance') ? 'Accounted for from the Atlas internal balance.' : 'Awaiting payment-provider confirmation.'}`,
+    ru: v => `Заказ оформлен в Atlas. Сумма ${v.sum('total')}. ${v.has('fromBalance') ? 'Учтено из внутреннего баланса Atlas.' : 'Оплата на сайте не подключена, деньги не списывались.'}`,
+    uz: v => `Buyurtma Atlasda rasmiylashtirildi. Summa ${v.sum('total')}. ${v.has('fromBalance') ? 'Atlas ichki balansidan hisobga olindi.' : 'Saytda to‘lov ulanmagan, pul yechilmagan.'}`,
+    en: v => `Order placed in Atlas. Total ${v.sum('total')}. ${v.has('fromBalance') ? 'Accounted for from the Atlas internal balance.' : 'Online payment is not connected; no money was charged.'}`,
   },
   'store-hold': {
-    ru: v => `Предварительный резерв доставки магазина ${v.sum('hold')} удерживается отдельно и не входит в сумму заказа. Менеджер уточнит фактическую доставку.`,
-    uz: v => `Do‘kon yetkazib berishi uchun dastlabki zaxira ${v.sum('hold')} alohida turadi va buyurtma summasiga kirmaydi. Menejer haqiqiy yetkazib berishni aniqlaydi.`,
-    en: v => `A preliminary store-delivery hold of ${v.sum('hold')} is kept separately and is not part of the order total. A manager will confirm the actual delivery.`,
+    ru: v => `Резерв на доставку магазина ${v.sum('hold')} держим отдельно, в сумму заказа он не входит. Фактическую доставку менеджер подтвердит у магазина.`,
+    uz: v => `Do‘kon yetkazib berishi uchun ${v.sum('hold')} zaxira alohida turadi va buyurtma summasiga kirmaydi. Haqiqiy yetkazib berishni menejer do‘kondan tasdiqlaydi.`,
+    en: v => `A store-delivery hold of ${v.sum('hold')} is kept separately and is not part of the order total. A manager will confirm the actual delivery with the store.`,
   },
   'customs-help': {
     ru: v => `Покупатель выбрал оплату таможни через Atlas: сбор ${v.sum('fee')} и предоплата пошлины ${v.sum('duty')} входят в сумму заказа. Остаток пошлины вернётся на баланс, доплата — только с согласия покупателя.`,
@@ -183,9 +183,9 @@ const noticeCopy: Record<string, NoticeCopy> = {
     en: v => `The store’s actual delivery of ${v.sum('actual')} is above the ${v.sum('hold')} hold. Open the order and approve the ${v.sum('extra')} difference.`,
   } },
   'store-shipping-within': { title: noticeTitles.storeDone, message: {
-    ru: v => `Фактическая доставка магазина ${v.sum('actual')} в пределах резерва ${v.sum('hold')}. Списаний не было: оплата пока не подключена.`,
-    uz: v => `Do‘konning haqiqiy yetkazib berishi ${v.sum('actual')} — ${v.sum('hold')} zaxira doirasida. Pul yechilmagan: to‘lov hali ulanmagan.`,
-    en: v => `The store’s actual delivery of ${v.sum('actual')} is within the ${v.sum('hold')} hold. Nothing was charged: payment is not connected yet.`,
+    ru: v => `Фактическая доставка магазина ${v.sum('actual')} в пределах резерва ${v.sum('hold')}. Деньги не списывались: оплата на сайте не подключена.`,
+    uz: v => `Do‘konning haqiqiy yetkazib berishi ${v.sum('actual')} — ${v.sum('hold')} zaxira doirasida. Pul yechilmagan: saytda to‘lov ulanmagan.`,
+    en: v => `The store’s actual delivery of ${v.sum('actual')} is within the ${v.sum('hold')} hold. Nothing was charged: online payment is not connected.`,
   } },
   'store-shipping-extra-legacy': { title: noticeTitles.approval, message: {
     ru: v => `Менеджер уточнил стоимость. Откройте заказ и подтвердите доплату ${v.sum('extra')}.`,
@@ -241,9 +241,9 @@ const noticeCopy: Record<string, NoticeCopy> = {
     ru: v => `${v.text('carrier')}: ${v.text('tracking')}`, uz: v => `${v.text('carrier')}: ${v.text('tracking')}`, en: v => `${v.text('carrier')}: ${v.text('tracking')}`,
   } },
   'service-requested': { title: { ru: 'Запрос передан оператору', uz: 'So‘rov operatorga yuborildi', en: 'Request sent to an operator' }, message: {
-    ru: v => `${v.title()}. Цена и возможность будут подтверждены до выполнения.`,
-    uz: v => `${v.title()}. Narx va imkoniyat bajarilishdan oldin tasdiqlanadi.`,
-    en: v => `${v.title()}. Price and feasibility will be confirmed before it is done.`,
+    ru: v => `${v.title()}. Оператор подтвердит цену и выполнимость до начала работы.`,
+    uz: v => `${v.title()}. Operator narx va bajarish imkonini ish boshlanishidan oldin tasdiqlaydi.`,
+    en: v => `${v.title()}. An operator confirms the price and feasibility before the work starts.`,
   } },
   'service-done': { title: { ru: 'Услуга выполнена', uz: 'Xizmat bajarildi', en: 'Service done' }, message: { ru: v => v.title(), uz: v => v.title(), en: v => v.title() } },
   'service-declined': { title: { ru: 'Услуга недоступна', uz: 'Xizmat mavjud emas', en: 'Service unavailable' }, message: {
@@ -391,9 +391,9 @@ export const legacyStoredCopy: Record<string, Record<Locale, string>> = {
     en: "The store’s actual delivery is above the hold. Open the order and approve the difference.",
   },
   "Фактическая доставка магазина в пределах резерва. Списаний не было: оплата пока не подключена.": {
-    ru: "Фактическая доставка магазина в пределах резерва. Списаний не было: оплата пока не подключена.",
-    uz: "Do‘konning haqiqiy yetkazib berishi zaxira doirasida. Pul yechilmagan: to‘lov hali ulanmagan.",
-    en: "The store’s actual delivery is within the hold. Nothing was charged: payment is not connected yet.",
+    ru: "Фактическая доставка магазина в пределах резерва. Деньги не списывались: оплата на сайте не подключена.",
+    uz: "Do‘konning haqiqiy yetkazib berishi zaxira doirasida. Pul yechilmagan: saytda to‘lov ulanmagan.",
+    en: "The store’s actual delivery is within the hold. Nothing was charged: online payment is not connected.",
   },
   "Менеджер уточнил стоимость. Откройте заказ и подтвердите доплату.": {
     ru: "Менеджер уточнил стоимость. Откройте заказ и подтвердите доплату.",
