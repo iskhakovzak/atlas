@@ -21,8 +21,10 @@ import { useMarket } from '@/lib/market/store';
 import { ProductImage } from './market-ui';
 import { Money } from './money';
 import { StoreLogo } from './store-logo';
+import {withCyrillic,uzText} from '@/lib/market/uz-cyrl';
+import {isUzbek} from '@/lib/market/i18n';
 
-const breakdownCopy = {
+const breakdownCopy = withCyrillic({
   ru: { item: 'Товар', store: 'Доставка магазина до склада', storeReserve: 'Резерв доставки магазина (отдельно, не в итоге)', storeFree: 'бесплатно', international: 'Доставка в Узбекистан', kg: 'кг', service: 'Комиссия Atlas', fee: 'Общий сбор Atlas', reserve: 'Возвратный резерв',
     storeReserveNote: (amount: string, freeFrom: string) => `Магазин не указал цену доставки до склада: резерв ${amount} удерживается отдельно и в итог не входит — один на заказ из этого магазина. Больше чем на ${freeFrom} из магазина — доставка бесплатна.`,
     storeFreeNote: (freeFrom: string) => `Магазин не указал цену доставки до склада, но при заказе больше чем на ${freeFrom} она бесплатна. Если магазин всё же возьмёт плату, доплата — только с вашего согласия.`, reserveNote: 'Возвратный резерв — запас на случай, если посылка окажется тяжелее. Неиспользованная часть вернётся на баланс Atlas, а доплата сверх резерва — только с вашего согласия.',
@@ -35,12 +37,12 @@ const breakdownCopy = {
     storeReserveNote: (amount: string, freeFrom: string) => `The store did not state delivery to our warehouse: a ${amount} reserve is held separately and is not in the total — once per order from this store. Over ${freeFrom} from the store, delivery is free.`,
     storeFreeNote: (freeFrom: string) => `The store did not state delivery to our warehouse, but orders over ${freeFrom} ship free. If the store still charges, any extra payment needs your consent.`, reserveNote: 'The refundable reserve covers a heavier-than-estimated parcel. Any unused part returns to your Atlas balance; anything above it needs your consent.',
     staleNote: 'An estimate at the last recorded store price: Atlas checks the price when you add the item to the cart.' },
-};
+});
 type Breakdown = (typeof breakdownCopy)['ru'];
 type Costs = NonNullable<CatalogItem['costs']>;
 
 export function catalogFormatter(locale: Locale) {
-  const numberLocale = locale === 'ru' ? 'ru-RU' : locale === 'uz' ? 'uz-UZ' : 'en-US';
+  const numberLocale = locale === 'ru' ? 'ru-RU' : isUzbek(locale) ? uzText(locale, 'uz-UZ') : 'en-US';
   const fmt = (value: number, currency = 'UZS') => currency === 'UZS'
     ? formatSum(value, locale)
     : new Intl.NumberFormat(numberLocale, { style: 'currency', currency, minimumFractionDigits: Number.isInteger(value) ? 0 : 2, maximumFractionDigits: 2 }).format(value);

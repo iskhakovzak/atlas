@@ -10,15 +10,16 @@ import {keepCatalogVisible,visibleMerchantFinds,type MerchantFind} from './catal
 import type {CatalogCollection} from './catalog-editor';
 import {nextPricing} from './pricing-equal';
 import {mergeSiteContent,type SiteContentView} from './site-content-schema';
+import {withCyrillic,htmlLang} from './uz-cyrl.ts';
 /** "operator" = full admin access. "role" and "permissions" come from the staff directory for other staff (lib/market/access.ts). */
 export type AccountUser={name:string;email:string;contact?:string;method?:'email'|'phone'|'telegram'|'google'|'apple';operator:boolean;role?:string;permissions?:string[];createdAt:number};
 type Store={catalogProducts:MerchantFind[];/** The public catalog request finished (with or without data). */catalogReady:boolean;collections:Array<CatalogCollection&{productIds:string[]}>;catalogError:string;loadCatalog:(force?:boolean)=>Promise<void>;state:State;pricing:Pricing;policy:Policy;/** Contacts, legal entity, payment methods, reviews, parcel photos: the admin document merged with the code defaults (server-rendered, no flicker). */siteContent:SiteContentView;/** The admin form replaces the document after a successful save so the footer updates without a reload. */setSiteContent:(next:SiteContentView)=>void;ready:boolean;status:SessionStatus;error:string|null;user:AccountUser|null;setLocale:(locale:Locale)=>void;act:(action:Action)=>Promise<boolean>;/** Why the last refused action was refused (server error code and text), until the next success. */lastActionError:()=>{code?:string;message?:string}|null;refresh:()=>Promise<void>};
 const Context=createContext<Store|null>(null);
-const marketMessages:Record<Locale,{catalogLoad:string;accountLoad:string;connection:string;signin:string;sessionEnded:string;saveFailed:string;actionConnection:string}>={
+const marketMessages:Record<Locale,{catalogLoad:string;accountLoad:string;connection:string;signin:string;sessionEnded:string;saveFailed:string;actionConnection:string}>=withCyrillic({
   ru:{catalogLoad:'Не удалось обновить витрину. Сохранённые ссылки остаются доступны; актуальную цену нужно подтвердить перед заказом.',accountLoad:'Не удалось загрузить кабинет. Повторите попытку.',connection:'Не удалось связаться с сервером. Проверьте подключение и повторите попытку.',signin:'Войдите, чтобы сохранить изменения.',sessionEnded:'Сессия завершилась. Войдите снова, чтобы продолжить.',saveFailed:'Не удалось сохранить изменения.',actionConnection:'Ответ сервера не получен. Проверяем состояние заказа.'},
   uz:{catalogLoad:'Vitrinani yangilab bo‘lmadi. Saqlangan havolalar mavjud; buyurtmadan oldin joriy narxni tasdiqlang.',accountLoad:'Kabinet yuklanmadi. Qayta urinib ko‘ring.',connection:'Server bilan bog‘lanib bo‘lmadi. Ulanishni tekshirib, qayta urinib ko‘ring.',signin:'O‘zgarishlarni saqlash uchun kiring.',sessionEnded:'Sessiya tugadi. Davom etish uchun qayta kiring.',saveFailed:'O‘zgarishlarni saqlab bo‘lmadi.',actionConnection:'Serverdan javob olinmadi. Buyurtma holatini tekshiramiz.'},
   en:{catalogLoad:'The storefront could not refresh. Saved links remain available; confirm the current price before ordering.',accountLoad:'Could not load your account. Try again.',connection:'Could not reach the server. Check your connection and try again.',signin:'Sign in to save changes.',sessionEnded:'Your session ended. Sign in again to continue.',saveFailed:'Could not save changes.',actionConnection:'No response from the server. Checking your order state.'},
-};
+});
 // initialLocale comes from the server (saved cookie, Accept-Language, then the Uzbek default),
 // so the first render already matches the server HTML.
 // initialPricing is the tariff the server rendered with (lib/market/initial-data.ts); the client keeps it
@@ -118,7 +119,7 @@ export function MarketProvider({children,initialLocale='uz',initialPricing=null,
   window.addEventListener('focus',wake);window.addEventListener('online',wake);document.addEventListener('visibilitychange',wake);
   return()=>{window.removeEventListener('focus',wake);window.removeEventListener('online',wake);document.removeEventListener('visibilitychange',wake);if(retryTimer.current)clearTimeout(retryTimer.current)};
  },[readStoredLocale,refresh,initialLocale]);
- useEffect(()=>{document.documentElement.lang=state.communication.language},[state.communication.language]);
+ useEffect(()=>{document.documentElement.lang=htmlLang(state.communication.language)},[state.communication.language]);
  const act=useCallback(async(action:Action)=>{
   if(!ready){toast.error(marketMessages[localeRef.current].signin);return false}
   if(busy.current)return false;

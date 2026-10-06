@@ -7,8 +7,8 @@ const paths = { home: '/', stores: '/stores', customs: '/customs', legal: '/lega
 
 test('every public page has self-canonical ?lang versions and an x-default', () => {
   for (const [page, path] of Object.entries(paths)) {
-    const languages = { uz: `${path}?lang=uz`, ru: `${path}?lang=ru`, en: `${path}?lang=en`, 'x-default': path };
-    for (const [lang, ogLocale] of [['uz', 'uz_UZ'], ['ru', 'ru_RU'], ['en', 'en_US']]) {
+    const languages = { uz: `${path}?lang=uz`, 'uz-Cyrl': `${path}?lang=oz`, ru: `${path}?lang=ru`, en: `${path}?lang=en`, 'x-default': path };
+    for (const [lang, ogLocale] of [['uz', 'uz_UZ'], ['oz', 'uz_UZ'], ['ru', 'ru_RU'], ['en', 'en_US']]) {
       const metadata = publicMetadata(page, lang, 'ru');
       assert.equal(metadata.alternates.canonical, `${path}?lang=${lang}`, `${page} ${lang}`);
       assert.equal(metadata.openGraph.url, `${path}?lang=${lang}`);

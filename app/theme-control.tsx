@@ -5,6 +5,8 @@ import { ThemeProvider as NextThemeProvider, useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import type { Locale } from "@/lib/market/i18n";
+import {uzText} from '@/lib/market/uz-cyrl';
+import {isUzbek} from '@/lib/market/i18n';
 
 const subscribeNever = () => () => {};
 const getMountedSnapshot = () => true;
@@ -42,8 +44,8 @@ export function ThemeToggle({ locale }: { locale: Locale }) {
   const dark = mounted && resolvedTheme === "dark";
   const labels = locale === "ru"
     ? { dark: "Включить тёмную тему", light: "Включить светлую тему" }
-    : locale === "uz"
-      ? { dark: "Tungi mavzuni yoqish", light: "Yorug‘ mavzuni yoqish" }
+    : isUzbek(locale)
+      ? uzText(locale, { dark: "Tungi mavzuni yoqish", light: "Yorug‘ mavzuni yoqish" })
       : { dark: "Switch to dark theme", light: "Switch to light theme" };
   const label = dark ? labels.light : labels.dark;
 

@@ -166,7 +166,7 @@ try {
     await check("!!document.querySelector('.product-sheet') && !!document.querySelector('.sheet-total a[href^=\"/login\"]')","guest product asks for sign-in");
     await evaluate("document.querySelector('button[aria-label=\"Закрыть карточку\"]').click()");
   }
-  await evaluate("document.querySelector('.lang-switch button[lang=en]').click()");
+  await evaluate("document.querySelector('.lang-menu-list button[data-locale=en]').click()");
   await check("document.documentElement.lang==='en' && document.querySelector('.home-hero h1').textContent.includes('We buy from stores in the USA')","guest language works without saving an account");
   await check("document.querySelector('.home-link-form button')?.textContent.includes('Calculate') && document.querySelector('.home-link-note')?.textContent.includes('no sign-up')","guest link CTA is honest in English");
   if(catalogReady){
@@ -174,7 +174,7 @@ try {
     await check("document.querySelector('.product-sheet')?.textContent.includes('Cost calculation')","product details localize to English");
     await evaluate("document.querySelector('button[aria-label=\"Close item details\"]').click()");
   }
-  await evaluate("document.querySelector('.lang-switch button[lang=uz]').click()");
+  await evaluate("document.querySelector('.lang-menu-list button[data-locale=uz]').click()");
   await check("document.documentElement.lang==='uz' && document.querySelector('.home-link-form button')?.textContent.includes('Hisoblash')","guest link CTA localizes to Uzbek");
   if(catalogReady){
     await evaluate("document.querySelector('.find-photo').click()");
@@ -183,7 +183,7 @@ try {
   }
   await visit('/');
   await check("document.documentElement.lang==='uz'","guest language survives reload");
-  await evaluate("document.querySelector('.lang-switch button[lang=ru]').click()");
+  await evaluate("document.querySelector('.lang-menu-list button[data-locale=ru]').click()");
   await check("document.documentElement.lang==='ru'","guest language switches back to Russian");
   const protectedRoutes=['account','favorites','cart','orders','balance','notifications','identity','declaration','batch-import','order-by-link','admin','operations','analytics'];
   for(const route of protectedRoutes){

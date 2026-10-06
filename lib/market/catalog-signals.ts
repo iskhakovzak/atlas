@@ -2,6 +2,7 @@ import { storeShippingHoldUsd, tariff, type Pricing } from './domain.ts';
 import { formatSum, formatUsd, ruPlural } from './home-copy.ts';
 import { storeLabel, type CatalogItem } from './catalog-query.ts';
 import type { Locale } from './i18n.ts';
+import {withCyrillic} from './uz-cyrl.ts';
 
 /**
  * The chips of a catalog card: at most two, at most one of them coloured (mint for a win, amber
@@ -29,7 +30,7 @@ export type SignalContext = {
   dutyLimitUsd: number;
 };
 
-const copy = {
+const copy = withCyrillic({
   ru: {
     parcel: (extra: string, store: string) => `+${extra} к посылке ${store}`,
     parcelHint: (alone: string) => `Посчитано, как в корзине: одна посылка на магазин, минимум 1 кг. Отдельной посылкой — ${alone}.`,
@@ -84,7 +85,7 @@ const copy = {
     sizes: (count: number) => `${count} sizes`,
     sizesHint: 'From the store’s size list; Atlas checks the chosen size when you add it to the cart.',
   },
-} satisfies Record<Locale, unknown>;
+}) satisfies Record<Locale, unknown>;
 
 /** Whole dollars for a chip: $45,20 over the allowance reads as "$46". */
 const wholeUsd = (amount: number, locale: Locale) => formatUsd(Math.ceil(amount - 1e-9), locale);

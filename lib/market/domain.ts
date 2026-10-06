@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { combinedShipmentWeight, customsVersion, usdRates } from "./world.ts";
+import {pickLocale} from './uz-cyrl.ts';
+import type {Locale} from './i18n.ts';
 
 export const money = (n: number) =>
   new Intl.NumberFormat("ru-RU").format(n) + " сум";
@@ -342,8 +344,8 @@ export function pricingForCountry(config: Pricing, country?: string): Pricing {
   const override = country ? config.countryOverrides?.[country] : undefined;
   return override ? { ...config, ...override } : config;
 }
-export const serviceTitle = (service: ServiceOffering | WarehouseServiceRequest, locale: "ru" | "uz" | "en") => service.title[locale];
-export const serviceDescription = (service: ServiceOffering | WarehouseServiceRequest, locale: "ru" | "uz" | "en") => service.description[locale];
+export const serviceTitle = (service: ServiceOffering | WarehouseServiceRequest, locale: Locale) => pickLocale(service.title, locale);
+export const serviceDescription = (service: ServiceOffering | WarehouseServiceRequest, locale: Locale) => pickLocale(service.description, locale);
 export function serviceFeeForCountry(service: ServiceOffering, country?: string) {
   return country && service.countryPrices[country] !== undefined
     ? service.countryPrices[country]
@@ -794,7 +796,7 @@ export const communicationSchema = z.object({
   smsEnabled: z.boolean().default(false),
   email: z.string().trim().email().or(z.literal("")),
   phone: z.string().trim().max(30),
-  language: z.enum(["ru", "uz", "en"]).default("ru"),
+  language: z.enum(["ru", "uz", "en", "oz"]).default("ru"),
 });
 export type Communication = z.infer<typeof communicationSchema>;
 const messageDeliverySchema = z.object({

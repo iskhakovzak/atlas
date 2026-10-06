@@ -43,13 +43,9 @@ html[data-theme="dark"] {
   .site-header .desktop-nav { min-width: 0; padding-inline: 4px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
   .site-header .desktop-nav::-webkit-scrollbar { display: none; }
   .site-header .header-actions, .site-header .wordmark { flex-shrink: 0; }
-  /* Signed in, the header has a balance, bell, favourites and cart, so the theme switch moves to the footer
-     (on desktop shown only to signed-in users, see .home-footer-theme below) and stays in /account settings. */
-  .site-header:has(.header-account.member) .header-theme { display: none; }
   /* The operator has one more entry ("Управление"): at the content's 1356px cap the anchors still do not fit next to it,
      so they stay in the footer at every desktop width. */
-  .site-header:has(.operator-entry) .desktop-nav a:is([data-nav="how"], [data-nav="tariffs"]),
-  .site-header:has(.operator-entry) .header-theme { display: none; }
+  .site-header:has(.operator-entry) .desktop-nav a:is([data-nav="how"], [data-nav="tariffs"]) { display: none; }
 }
 /* Signed-in header below 1500px: the home anchors (also in the footer) make room for a 7-digit balance. */
 @media (min-width: 761px) and (max-width: 1499px) {
@@ -81,9 +77,8 @@ html[data-theme="dark"] {
 @media (max-width: 760px) {
   .site-header { gap: 8px; }
   .site-header .header-actions { gap: 8px; }
-  .site-header .desktop-nav, .header-theme, .header-account.member { display: none; }
+  .site-header .desktop-nav, .header-account.member { display: none; }
   .header-account { padding: 0 12px; }
-  .lang-switch button { min-width: 40px; padding: 0 4px; }
 }
 
 /* Hero. */
@@ -266,8 +261,6 @@ html[data-theme="dark"] .home-missing { border-color: #c9a23f; background: #3a31
   .home-footer :is(nav, section) ul { display: flex; flex-wrap: wrap; gap: 0 18px; }
   .home-footer-bottom { grid-column: 1 / -1; }
   .home-footer-theme { display: none; }
-  /* Signed-in users have no theme switch in the desktop header, so the footer keeps it for them. */
-  body:has(.header-account.member) .home-footer-theme { display: inline-flex; }
 }
 @media (max-width: 760px) {
   body:has(.mobile-nav) .home-footer { padding-bottom: 4px; }

@@ -23,6 +23,8 @@ import type { Locale } from '@/lib/market/i18n';
 import { CatalogCard, CatalogSkeleton, StoreMark } from './catalog-card';
 import { ProductSheet } from './product-sheet';
 import { useSheetSide } from './use-sheet-side';
+import {uzText} from '@/lib/market/uz-cyrl';
+import {isUzbek} from '@/lib/market/i18n';
 
 const pageSize = 12;
 // Stores as the directory counts them: brands, with their country storefronts as one store.
@@ -36,7 +38,7 @@ type Collection = { id: string; name: string; nameUz?: string; nameEn?: string; 
 /** A set on the strip: a query preset with the products it shows (covers come from the first four). */
 type CatalogSet = { id: string; name: string; patch: Partial<CatalogQuery>; items: CatalogItem[] };
 
-const collectionName = (set: { name: string; nameUz?: string; nameEn?: string }, locale: Locale) => locale === 'en' ? set.nameEn || set.name : locale === 'uz' ? set.nameUz || set.name : set.name;
+const collectionName = (set: { name: string; nameUz?: string; nameEn?: string }, locale: Locale) => locale === 'en' ? set.nameEn || set.name : isUzbek(locale) ? uzText(locale, set.nameUz || set.name) : set.name;
 
 /**
  * The catalog and the saved-products page. Filters live in the URL (`?cat=shoes&size=9`), so a
@@ -111,7 +113,7 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
       <div><h1>{mode === 'favorites' ? copy.savedTitle : cc.title}</h1><p>{mode === 'favorites' ? copy.savedIntro : cc.intro}</p></div>
       {mode === 'catalog' && catalogReady && items.length > 0 && <div className="catalog-head-side"><p className="catalog-stats"><Store size={16} aria-hidden="true" />{cc.stats(items.length, storesInCatalog)}</p>{ready && <Link className="catalog-saved" href="/favorites"><Heart size={16} aria-hidden="true" />{copy.saved}<b>{state.favorites.filter((id) => items.some((item) => item.product.id === id)).length}</b></Link>}</div>}
     </header>
-    {catalogError && <div className="notice catalog-fallback-message" role="status"><span>{catalogError}</span><button type="button" className="text-button catalog-retry" disabled={retrying} onClick={() => void retry()}>{retrying ? (locale === 'ru' ? 'Обновляем…' : locale === 'uz' ? 'Yangilanmoqda…' : 'Refreshing…') : (locale === 'ru' ? 'Повторить' : locale === 'uz' ? 'Qayta urinish' : 'Retry')}</button></div>}
+    {catalogError && <div className="notice catalog-fallback-message" role="status"><span>{catalogError}</span><button type="button" className="text-button catalog-retry" disabled={retrying} onClick={() => void retry()}>{retrying ? (locale === 'ru' ? 'Обновляем…' : isUzbek(locale) ? uzText(locale, 'Yangilanmoqda…') : 'Refreshing…') : (locale === 'ru' ? 'Повторить' : isUzbek(locale) ? uzText(locale, 'Qayta urinish') : 'Retry')}</button></div>}
     {mode === 'catalog' && allowance && allowance.usedUsd > 0 && <CompactBanner tone={allowance.remainingUsd > 0 ? 'ok' : 'warn'} icon={ShieldCheck} cc={cc}
       short={allowance.remainingUsd > 0 ? cc.bannerLimit(allowance.remainingUsd, limitUsd) : cc.bannerLimitSpent}
       detail={allowance.remainingUsd > 0 ? cc.allowanceLeft(allowance.remainingUsd, allowance.name, allowanceMonth(locale), limitUsd) : cc.allowanceSpent(allowance.name, allowanceMonth(locale))}

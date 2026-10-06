@@ -1,4 +1,4 @@
-import type { Locale } from './i18n.ts';
+import type { TextLocale } from './i18n.ts';
 
 // Business facts for the home page and footer. The owner fills them in the admin panel
 // (app/site-content-admin.tsx → POST /api/site-content → market_settings 'site-content'); the
@@ -7,8 +7,8 @@ import type { Locale } from './i18n.ts';
 // so the site never shows invented contacts, reviews, delivery times or payment methods.
 export type DeliveryRegion = 'us' | 'uk' | 'cn' | 'de' | 'it' | 'es';
 export type PaymentMethod = 'click' | 'payme' | 'uzcard' | 'humo' | 'visa' | 'mastercard' | 'crypto';
-export type Review = { name: string; city?: string; text: Record<Locale, string>; /** The customer agreed to publication (required by the admin form). */ consent?: true };
-export type ParcelPhoto = { src: string; alt: Record<Locale, string> };
+export type Review = { name: string; city?: string; text: Record<TextLocale, string>; /** The customer agreed to publication (required by the admin form). */ consent?: true };
+export type ParcelPhoto = { src: string; alt: Record<TextLocale, string> };
 
 export type SiteContent = {
   contacts: {
@@ -22,9 +22,9 @@ export type SiteContent = {
     instagram: string | null;
     /** Support mailbox shown on /support; null until the owner has one. */
     supportEmail: string | null;
-    pickupAddress: Record<Locale, string> | null;
+    pickupAddress: Record<TextLocale, string> | null;
   };
-  legal: { entityName: string | null; inn: string | null; address: Record<Locale, string> | null };
+  legal: { entityName: string | null; inn: string | null; address: Record<TextLocale, string> | null };
   /** Store listings of the Atlas apps; null until published, so /app never shows a dead store button. */
   apps: { appStoreUrl: string | null; playStoreUrl: string | null };
   /** Approximate express delivery in business days per dispatch region; null until confirmed with the carrier. */

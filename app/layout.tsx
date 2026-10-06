@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { pageLocale } from "./page-locale";
 import { rootMetadata } from "./route-metadata";
+import { htmlLang } from "@/lib/market/uz-cyrl";
 import "@fontsource-variable/inter/opsz.css";
 import "@fontsource-variable/manrope/wght.css";
 import "./globals.css";
@@ -37,6 +38,7 @@ import "./accounting.css";
 import "./admin-investor.css";
 import "./site-content-admin.css";
 import "./press.css";
+import "./header-panel.css";
 import { MarketProvider } from "@/lib/market/store";
 import { initialPricing, initialSiteContent } from "@/lib/market/initial-data";
 import { StorageNotice } from "./storage-notice";
@@ -90,7 +92,7 @@ export default async function RootLayout({
   // The site content (contacts, legal entity, reviews…) comes from D1 as well, so the footer does not flicker after hydration.
   const [locale, pricing, siteContent] = await Promise.all([pageLocale(), initialPricing(), initialSiteContent()]);
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={htmlLang(locale)} suppressHydrationWarning>
       <body className="antialiased">
         <AtlasThemeProvider>
           <MarketProvider initialLocale={locale} initialPricing={pricing} initialSiteContent={siteContent}>{children}<StorageNotice /><PerformanceProbe /><NativeShell /><PressFeedback /></MarketProvider>

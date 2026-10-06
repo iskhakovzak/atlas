@@ -5,6 +5,8 @@ import { ChevronLeft, ChevronRight, Package } from 'lucide-react';
 import { dedupeSafeImages } from '@/lib/importer/extract';
 import { gallerySwipeStep } from '@/lib/market/gallery';
 import type { Product } from '@/lib/market/domain';
+import {pickLocale} from '@/lib/market/uz-cyrl';
+import type {Locale} from '@/lib/market/i18n';
 
 /**
  * UI-only gallery: selected photos never change the purchased variant or its price.
@@ -14,7 +16,7 @@ import type { Product } from '@/lib/market/domain';
  */
 export function ProductGallery({ product, images, activeImage, onImageChange, locale = 'ru', compact = false }: {
   product: Product; images?: string[]; activeImage?: string; onImageChange?: (image: string) => void;
-  locale?: 'ru' | 'uz' | 'en'; compact?: boolean;
+  locale?: Locale; compact?: boolean;
 }) {
   const photos = dedupeSafeImages(images ?? [product.image, ...(product.sourceImages ?? [])], product.sourceUrl ?? 'https://atlasmarket.uz/', 12);
   const [selection, setSelection] = useState('');
@@ -25,11 +27,11 @@ export function ProductGallery({ product, images, activeImage, onImageChange, lo
   const settle = useRef<number | undefined>(undefined);
   const wanted = activeImage ?? selection;
   const index = Math.max(0, photos.indexOf(wanted));
-  const copy = {
+  const copy = pickLocale({
     ru: { gallery: 'Фотографии товара', previous: 'Предыдущее фото', next: 'Следующее фото', hint: 'Листайте фото влево или вправо', photo: 'Фото', of: 'из', missing: 'Фото недоступно' },
     uz: { gallery: 'Tovar suratlari', previous: 'Oldingi surat', next: 'Keyingi surat', hint: 'Suratni chapga yoki o‘ngga suring', photo: 'Surat', of: '/', missing: 'Surat mavjud emas' },
     en: { gallery: 'Product photos', previous: 'Previous photo', next: 'Next photo', hint: 'Swipe left or right to browse photos', photo: 'Photo', of: 'of', missing: 'Photo unavailable' },
-  }[locale];
+  }, locale);
   const smooth = () => typeof window !== 'undefined' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'smooth' as const : 'auto' as const;
   function shownIndex() {
     const el = stage.current;

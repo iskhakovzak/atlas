@@ -24,6 +24,8 @@ import { UzPhoneInput } from "./phone-input";
 import { toast } from "sonner";
 import { usePendingCartAdd } from "./pending-cart-add";
 import { pendingCartFreshMs } from "@/lib/market/link-order-draft";
+import {uzText} from '@/lib/market/uz-cyrl';
+import {isUzbek} from '@/lib/market/i18n';
 
 /** More than one dispatch country in the cart: the speed note says it applies to every parcel. */
 const parcelsDiffer = (countries: string[]) => new Set(countries).size > 1;
@@ -41,7 +43,7 @@ function sourceMoney(amount: number, currency: string, locale: Locale) {
 }
 /** Store price as the shop shows it. */
 const storePrice = (item: CartItem, locale: Locale) => sourceMoney(item.product.sourcePrice ?? item.product.usd, item.product.sourceCurrency ?? "USD", locale);
-const clock = (at: number, locale: Locale) => new Date(at).toLocaleTimeString(locale === "ru" ? "ru-RU" : locale === "uz" ? "uz-UZ" : "en-US", { hour: "2-digit", minute: "2-digit" });
+const clock = (at: number, locale: Locale) => new Date(at).toLocaleTimeString(locale === "ru" ? "ru-RU" : isUzbek(locale) ? uzText(locale, "uz-UZ") : "en-US", { hour: "2-digit", minute: "2-digit" });
 /** Refusals that repriced or marked the cart: the dialog closes so the customer sees what changed. */
 const cartChangedCodes = new Set(["err_35", "err_36", "err_37", "err_38"]);
 
@@ -339,7 +341,7 @@ export function CartView() {
           const saving = savingServiceItemId === item.id && savingServiceId === service.id;
           return <div className="basket-service" key={service.id} aria-busy={saving || undefined}>
             <Checkbox aria-label={serviceTitle(service, locale)} checked={checked} disabled={service.required || savingServiceItemId !== null} onCheckedChange={(value) => void updateService(value === true)} />
-            <span className="basket-service-copy"><b>{serviceTitle(service, locale)}{service.required && <em>{c.services.required}</em>}{saving && <span className="basket-service-saving" role="status"><Loader2 size={13} className="spin" aria-hidden="true" />{locale === "ru" ? "Сохраняем…" : locale === "uz" ? "Saqlanmoqda…" : "Saving…"}</span>}</b><small>{serviceDescription(service, locale)}</small>
+            <span className="basket-service-copy"><b>{serviceTitle(service, locale)}{service.required && <em>{c.services.required}</em>}{saving && <span className="basket-service-saving" role="status"><Loader2 size={13} className="spin" aria-hidden="true" />{locale === "ru" ? "Сохраняем…" : isUzbek(locale) ? uzText(locale, "Saqlanmoqda…") : "Saving…"}</span>}</b><small>{serviceDescription(service, locale)}</small>
               <small className="basket-service-rate">{service.pricingMode === "fixed"
                 ? `${c.services.fixed}: ${formatSum(unitFee, locale)} / ${unitName}${units > 1 ? ` · ${units} × ${formatSum(unitFee, locale)} = ${formatSum(amount, locale)}` : ""} · ${c.services.notIncluded}`
                 : `${c.services.quote} · ${c.services.notIncluded}`}</small>

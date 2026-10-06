@@ -11,6 +11,7 @@ import {formatKg,formatPercent,formatPriceUsd,formatSum,formatUsd,groupDigits,ho
 import {tariffRows} from '@/lib/market/home-facts';
 import {deliveryDaysFor,deliveryRegions,paymentLabels} from '@/lib/market/site-content';
 import {localizedStatuses,routeTitle,type Locale} from '@/lib/market/i18n';
+import {pickLocale} from '@/lib/market/uz-cyrl';
 import {storeBrands} from '@/lib/market/store-brands';
 import {StoreLogo} from './store-logo';
 import {Flag} from './flags';
@@ -138,7 +139,7 @@ export function ExampleQuote(){
 export function HowItWorks(){
  const {locale,c}=useHomeCopy();
  const {siteContent}=useMarket();
- const pickup=siteContent.contacts.pickupAddress?.[locale];
+ const pickup=(siteContent.contacts.pickupAddress?pickLocale(siteContent.contacts.pickupAddress,locale):undefined);
  return <section id="how" className="home-section" data-chapter="how" aria-labelledby="how-title">
   <h2 id="how-title">{c.how.title}</h2>
   <ol className="home-steps">{c.how.steps.map((step,index)=><li key={step.title} className="home-step">
@@ -214,7 +215,7 @@ export function TrustSection(){
  const statuses=localizedStatuses(locale);
  const current=trackingCurrent;
  const {legal,reviews,parcelPhotos,completedOrders}=siteContent;
- const legalAddress=legal.address?.[locale];
+ const legalAddress=(legal.address?pickLocale(legal.address,locale):undefined);
  const facts=c.trust.facts({
   fee:formatPercent(pricing.margin+pricing.buyoutFee+pricing.conversionFee,locale),
   markup:formatPercent((pricing.fxMarkup??1.012)-1,locale),
@@ -237,12 +238,12 @@ export function TrustSection(){
     <ol>{statuses.map((status,index)=><li key={status} data-state={index<current?'done':index===current?'current':'next'} aria-current={index===current?'step':undefined}><span className="home-tracking-dot" aria-hidden="true">{index<current&&<Check size={12}/>}</span>{status}</li>)}</ol>
     <p className="home-note">{c.trust.trackingNote}</p>
    </article>
-   {reviews.length?<div className="home-reviews"><h3>{c.trust.reviewsTitle}</h3>{reviews.map(review=><figure key={review.name+review.text.ru}><blockquote>{review.text[locale]}</blockquote><figcaption>{review.name}{review.city?`, ${review.city}`:''}</figcaption></figure>)}</div>:<MissingContent what="отзывы реальных клиентов (с их согласия)"/>}
+   {reviews.length?<div className="home-reviews"><h3>{c.trust.reviewsTitle}</h3>{reviews.map(review=><figure key={review.name+review.text.ru}><blockquote>{pickLocale(review.text,locale)}</blockquote><figcaption>{review.name}{review.city?`, ${review.city}`:''}</figcaption></figure>)}</div>:<MissingContent what="отзывы реальных клиентов (с их согласия)"/>}
   </div>
   {parcelPhotos.length?<div className="home-parcels"><h3>{c.trust.photosTitle}</h3><ul>{parcelPhotos.map(photo=><li key={photo.src}>
    {/* Static photos from public/ are small and lazy-loaded; next/image is not used in this app. */}
    {/* eslint-disable-next-line @next/next/no-img-element */}
-   <img src={photo.src} alt={photo.alt[locale]} loading="lazy" decoding="async" width={320} height={240}/>
+   <img src={photo.src} alt={pickLocale(photo.alt,locale)} loading="lazy" decoding="async" width={320} height={240}/>
   </li>)}</ul></div>:<MissingContent what="фото реальных посылок (файлы в public/)"/>}
   {/* Without company details the block would hold only a link that the FAQ and the footer already give. */}
   {legal.entityName||legal.inn||legalAddress?<div className="home-legal">

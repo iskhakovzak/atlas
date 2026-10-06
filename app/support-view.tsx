@@ -7,9 +7,10 @@ import {signInPath} from "@/lib/market/access";
 import type {Locale} from "@/lib/market/i18n";
 import {PageHeading} from "./market-ui";
 import {MissingContent,useHomeCopy} from "./home-sections";
+import {withCyrillic} from '@/lib/market/uz-cyrl';
 
 // Public support page (/support): real contacts only when siteContent has them, the account route always.
-const copy={
+const copy=withCyrillic({
  ru:{
   overline:"ПОМОЩЬ",title:"Поддержка Atlas.",description:"Ответы приходят в личный кабинет и в уведомления. Здесь — как связаться и где искать ответы на частые вопросы.",
   contacts:"Как связаться",account:"Написать из кабинета",accountText:"Обращение сохраняется в вашем аккаунте: вы увидите ответ в кабинете и в уведомлениях.",accountGuest:"Чтобы написать в поддержку, войдите в аккаунт — обращение привяжется к вашим заказам, а ответ придёт в кабинет и в уведомления.",signin:"Войти и написать",open:"Открыть кабинет",email:"Почта",
@@ -43,7 +44,7 @@ const copy={
   docs:"Documents",docsText:"The privacy policy and the terms of use, including the terms for the apps.",privacy:"Privacy policy",terms:"Terms of use",
   apps:"Apps",appsText:"The Atlas app for iOS and Android — the same account and orders as on the website.",appsLink:"About the app",
  },
-};
+});
 
 export function SupportView(){
  const {status,siteContent}=useMarket();
@@ -87,7 +88,7 @@ export function SupportView(){
  </>;
 }
 
-const deleteCopy:Record<Locale,{overline:string;title:string;description:string;steps:string;step:string[];what:string;removed:string;removedList:string[];kept:string;keptText:string;blockers:string;blockersText:string;alt:string;altText:string;subject:string;open:string;signin:string;support:string;privacy:string}>={
+const deleteCopy:Record<Locale,{overline:string;title:string;description:string;steps:string;step:string[];what:string;removed:string;removedList:string[];kept:string;keptText:string;blockers:string;blockersText:string;alt:string;altText:string;subject:string;open:string;signin:string;support:string;privacy:string}>=withCyrillic({
  ru:{
   overline:"АККАУНТ",title:"Как удалить аккаунт Atlas.",description:"Аккаунт удаляется самостоятельно на сайте и в приложении. Инструкция одинакова для iOS, Android и браузера.",
   steps:"Шаги в приложении или на сайте",step:["Войдите в аккаунт и откройте «Кабинет».","Перейдите в «Настройки» внизу кабинета.","Нажмите «Удалить аккаунт», прочитайте, что будет удалено, и подтвердите."],
@@ -115,7 +116,7 @@ const deleteCopy:Record<Locale,{overline:string;title:string;description:string;
   alt:"If you cannot sign in",altText:"Write to support with the subject “Account deletion” from the sign-in method linked to the account. We will check that the request comes from the owner and delete the account.",subject:"Account deletion",
   open:"Open account settings",signin:"Sign in and open settings",support:"Support",privacy:"Deletion section of the policy",
  },
-};
+});
 
 export function DeleteAccountView(){
  const {status,state}=useMarket();

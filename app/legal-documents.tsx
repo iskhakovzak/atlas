@@ -6,14 +6,15 @@ import {CircleAlert,FileCheck2,FileText,LockKeyhole,ReceiptText,ShieldCheck} fro
 import {useMarket} from "@/lib/market/store";
 import type {Locale} from "@/lib/market/i18n";
 import {PageHeading} from "./market-ui";
+import {withCyrillic} from '@/lib/market/uz-cyrl';
 
 /** Edition date shared by every public legal page (/legal, /privacy, /terms). */
 export const legalEdition="11.09.2026";
-const copy={
+const copy=withCyrillic({
  ru:{overline:"ЮРИДИЧЕСКИЕ ДОКУМЕНТЫ",title:"Правила работы Atlas.",description:"Atlas действует как посредник по выкупу и логистический агент. Здесь собраны условия сервиса, комиссии, обработка данных и возвраты.",draft:"Проект до заполнения реквизитов и проверки юристом",language:"Основная проектная редакция документов подготовлена на русском языке. Узбекская и английская юридические версии должны быть сверены после утверждения текста.",edition:"Редакция"},
  uz:{overline:"HUQUQIY HUJJATLAR",title:"Atlas ishlash qoidalari.",description:"Atlas xarid bo‘yicha vositachi va logistika agenti sifatida ishlaydi. Bu yerda xizmat shartlari, komissiyalar, ma’lumotlarni qayta ishlash va qaytarish qoidalari jamlangan.",draft:"Rekvizitlar to‘ldirilishi va yurist tekshiruvigacha loyiha",language:"Hujjatlarning asosiy loyiha tahriri rus tilida tayyorlangan. O‘zbek va ingliz tillaridagi yuridik tahrirlar matn tasdiqlangandan keyin solishtirilishi kerak.",edition:"Tahrir"},
  en:{overline:"LEGAL DOCUMENTS",title:"How Atlas works.",description:"Atlas acts as a purchasing intermediary and logistics agent. These documents cover the service terms, fees, data processing and refunds.",draft:"Draft pending company details and legal review",language:"The primary draft is currently in Russian. Legally reviewed Uzbek and English versions must be prepared after the governing text is approved.",edition:"Edition"},
-};
+});
 export const legalCopy=copy;
 
 /** Draft badge and the "governing text is Russian" note shared by the legal pages. */

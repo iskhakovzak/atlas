@@ -1,6 +1,7 @@
 import type { Locale } from './i18n.ts';
 import type { DeliveryRegion } from './site-content.ts';
 import type { StoreCountry, StoreRegion } from './store-brands.ts';
+import {withCyrillic} from './uz-cyrl.ts';
 
 function ruPlural(count: number, [one, few, many]: [string, string, string]) {
   const tens = count % 100, units = count % 10;
@@ -136,4 +137,4 @@ const en: Copy = {
   missingTitle: 'Store not listed?', missingText: 'Paste a product link: if the store is supported, the estimate opens right away. If not, we tell you what to do.', missingAction: 'Paste a link',
 };
 
-export const storesCopy: Record<Locale, Copy> = { ru, uz, en };
+export const storesCopy: Record<Locale, Copy> = withCyrillic({ ru, uz, en });

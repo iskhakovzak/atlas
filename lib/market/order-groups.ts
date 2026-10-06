@@ -1,6 +1,7 @@
 import { orderPayable, type DeliverySpeed, type Order } from './domain.ts';
 import type { Locale } from './i18n.ts';
 import { storefrontLabel } from './store-brands.ts';
+import {withCyrillic} from './uz-cyrl.ts';
 
 /**
  * "My orders" shows one checkout as one group: every cart line becomes its own Order at checkout
@@ -157,7 +158,7 @@ export type OrderGroupCopy = {
   days: (min: number, max: number) => string;
 };
 
-export const orderGroupCopy: Record<Locale, OrderGroupCopy> = {
+export const orderGroupCopy: Record<Locale, OrderGroupCopy> = withCyrillic({
   ru: {
     title: (date) => `Заказ от ${date}`,
     from: (store, country) => country ? `Из ${store} (${country})` : `Из ${store}`,
@@ -188,4 +189,4 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = {
     speed: { express: 'Express', standard: 'Standard delivery' },
     days: (min, max) => `${min}–${max} business days`,
   },
-};
+});

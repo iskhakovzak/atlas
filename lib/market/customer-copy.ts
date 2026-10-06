@@ -1,4 +1,6 @@
 import type { Locale } from './i18n.ts';
+import {withCyrillic,uzText} from './uz-cyrl.ts';
+import {isUzbek} from './i18n.ts';
 
 function ruPlural(count: number, one: string, few: string, many: string) {
   const tail = count % 100, last = count % 10;
@@ -9,21 +11,21 @@ function ruPlural(count: number, one: string, few: string, many: string) {
 /** "3 товара" / "3 ta tovar" / "3 items". */
 export function itemCount(count: number, locale: Locale) {
   if (locale === 'ru') return `${count} ${ruPlural(count, 'товар', 'товара', 'товаров')}`;
-  if (locale === 'uz') return `${count} ta tovar`;
+  if (isUzbek(locale)) return uzText(locale, `${count} ta tovar`);
   return `${count} ${count === 1 ? 'item' : 'items'}`;
 }
 
 /** "2 посылки" / "2 ta posilka" / "2 parcels". */
 export function parcelCount(count: number, locale: Locale) {
   if (locale === 'ru') return `${count} ${ruPlural(count, 'посылка', 'посылки', 'посылок')}`;
-  if (locale === 'uz') return `${count} ta posilka`;
+  if (isUzbek(locale)) return uzText(locale, `${count} ta posilka`);
   return `${count} ${count === 1 ? 'parcel' : 'parcels'}`;
 }
 
 /** Whole minutes left on a price, never "0": "14 мин" / "14 daqiqa" / "14 min". */
 export function minutesLeft(milliseconds: number, locale: Locale) {
   const minutes = Math.max(1, Math.ceil(milliseconds / 60000));
-  return `${minutes} ${locale === 'uz' ? 'daqiqa' : locale === 'ru' ? 'мин' : 'min'}`;
+  return `${minutes} ${isUzbek(locale) ? uzText(locale, 'daqiqa') : locale === 'ru' ? 'мин' : 'min'}`;
 }
 
 const countryNames: Record<string, { uz: string; en: string }> = {
@@ -39,7 +41,7 @@ const uzMonths = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'a
 /** Long date; Uzbek is built by hand because browser Intl data renders it as "2026 M10 3". */
 export function formatLongDate(timestamp: number, locale: Locale) {
   const date = new Date(timestamp);
-  if (locale === 'uz') return `${date.getDate()}-${uzMonths[date.getMonth()]}, ${date.getFullYear()}-yil`;
+  if (isUzbek(locale)) return uzText(locale, `${date.getDate()}-${uzMonths[date.getMonth()]}, ${date.getFullYear()}-yil`);
   return date.toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
@@ -47,7 +49,7 @@ export function formatLongDate(timestamp: number, locale: Locale) {
 export function formatDateTime(timestamp: number, locale: Locale, now = Date.now()) {
   const date = new Date(timestamp), sameYear = date.getFullYear() === new Date(now).getFullYear();
   const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-  if (locale === 'uz') return `${date.getDate()}-${uzMonths[date.getMonth()]}${sameYear ? '' : ` ${date.getFullYear()}-yil`}, ${time}`;
+  if (isUzbek(locale)) return uzText(locale, `${date.getDate()}-${uzMonths[date.getMonth()]}${sameYear ? '' : ` ${date.getFullYear()}-yil`}, ${time}`);
   const day = date.toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-US', sameYear ? { day: 'numeric', month: 'long' } : { day: 'numeric', month: 'long', year: 'numeric' });
   return `${day}, ${time}`;
 }
@@ -55,20 +57,21 @@ export function formatDateTime(timestamp: number, locale: Locale, now = Date.now
 /** Date without time, year only when it is not the current one: "3 октября" / "3-oktabr". */
 export function formatShortDate(timestamp: number, locale: Locale, now = Date.now()) {
   const date = new Date(timestamp), sameYear = date.getFullYear() === new Date(now).getFullYear();
-  if (locale === 'uz') return `${date.getDate()}-${uzMonths[date.getMonth()]}${sameYear ? '' : ` ${date.getFullYear()}-yil`}`;
+  if (isUzbek(locale)) return uzText(locale, `${date.getDate()}-${uzMonths[date.getMonth()]}${sameYear ? '' : ` ${date.getFullYear()}-yil`}`);
   return date.toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-US', sameYear ? { day: 'numeric', month: 'long' } : { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 /** "3 заказа" / "3 ta buyurtma" / "3 orders". */
 export function orderCount(count: number, locale: Locale) {
   if (locale === 'ru') return `${count} ${ruPlural(count, 'заказ', 'заказа', 'заказов')}`;
-  if (locale === 'uz') return `${count} ta buyurtma`;
+  if (isUzbek(locale)) return uzText(locale, `${count} ta buyurtma`);
   return `${count} ${count === 1 ? 'order' : 'orders'}`;
 }
 
 /** Stored country names are Russian; show them in the interface language. */
 export function countryLabel(country: string, locale: Locale) {
-  return locale === 'ru' ? country : countryNames[country]?.[locale] ?? country;
+  const names = countryNames[country];
+  return locale === 'ru' || !names ? country : locale === 'en' ? names.en : uzText(locale, names.uz);
 }
 
 type Sentence = { before: string; link: string; after: string };
@@ -143,13 +146,13 @@ export type AccountCopy = {
   };
 };
 
-const reserveHelp = {
+const reserveHelp = withCyrillic({
   ru: 'Резерв закладывается, пока не известны точный вес и габариты посылки. Если доставка выйдет дешевле, разница вернётся на баланс Atlas. Если дороже — сначала сообщим сумму и спросим вашего согласия.',
   uz: 'Posilkaning aniq vazni va o‘lchami ma’lum bo‘lguncha zaxira qo‘yiladi. Yetkazish arzonroq bo‘lsa, farq Atlas balansiga qaytadi. Qimmatroq bo‘lsa — avval summani aytamiz va roziligingizni so‘raymiz.',
   en: 'The reserve covers the parcel until its exact weight and size are known. If delivery costs less, the difference returns to your Atlas balance. If it costs more, we tell you the amount and ask for your approval first.',
-};
+});
 
-export const cartCopy: Record<Locale, CartCopy> = {
+export const cartCopy: Record<Locale, CartCopy> = withCyrillic({
   ru: {
     title: 'Корзина',
     steps: ['Корзина', 'Получатель', 'Подтверждение'],
@@ -321,9 +324,9 @@ export const cartCopy: Record<Locale, CartCopy> = {
       updating: 'Updating…', orders: 'View orders', noCharge: 'No money is charged, no email or SMS is sent, and no delivery is created.',
     },
   },
-};
+});
 
-export const accountCopy: Record<Locale, AccountCopy> = {
+export const accountCopy: Record<Locale, AccountCopy> = withCyrillic({
   ru: {
     title: 'Личный кабинет',
     manage: 'Управление Atlas',
@@ -489,7 +492,7 @@ export const accountCopy: Record<Locale, AccountCopy> = {
       balance: sum => `I understand the balance of ${sum} will be lost`, confirm: 'Delete account permanently', cancel: 'Cancel', done: 'Account deleted.', failed: 'Could not delete the account.',
     },
   },
-};
+});
 
 export type OrdersCopy = {
   title: string;
@@ -561,7 +564,7 @@ export type NoticesCopy = {
   loading: string;
 };
 
-export const ordersCopy: Record<Locale, OrdersCopy> = {
+export const ordersCopy: Record<Locale, OrdersCopy> = withCyrillic({
   ru: {
     title: 'Мои заказы', active: count => `${count} в работе`,
     attention: count => `Нужно ваше решение: ${orderCount(count, 'ru')}`, showAttention: 'Показать',
@@ -589,9 +592,9 @@ export const ordersCopy: Record<Locale, OrdersCopy> = {
     orderNumber: 'Order number', newOrder: 'Order by link', cart: 'Cart',
     repeat: 'Order again', ask: 'Ask about this order', allowance: 'Recipient allowance', allowanceValue: (used, limit) => `$${used} of $${limit} this month`, recipients: 'Recipient', allRecipients: 'All',
   },
-};
+});
 
-export const balanceCopy: Record<Locale, BalanceCopy> = {
+export const balanceCopy: Record<Locale, BalanceCopy> = withCyrillic({
   ru: {
     title: 'Баланс', label: 'Баланс Atlas', note: 'Внутренний счёт для расчётов по заказам — не банковская карта и не кошелёк.',
     spend: 'Заказать по ссылке', withdraw: 'Вывести', withdrawTitle: 'Вывод на сайте не подключён',
@@ -622,9 +625,9 @@ export const balanceCopy: Record<Locale, BalanceCopy> = {
     notice: 'Payments and withdrawals are not connected on the site — no money is transferred.',
     signin: { title: 'Sign in to open your balance', text: 'Order and refund settlements are saved in your profile.', action: 'Sign in' }, loading: 'Loading transactions…',
   },
-};
+});
 
-export const noticesCopy: Record<Locale, NoticesCopy> = {
+export const noticesCopy: Record<Locale, NoticesCopy> = withCyrillic({
   ru: {
     title: 'Уведомления', unread: count => `${count} ${ruPlural(count, 'непрочитанное', 'непрочитанных', 'непрочитанных')}`, allRead: 'Всё прочитано',
     readAll: 'Прочитать все', filtersLabel: 'Показать', filters: { all: 'Все', unread: 'Непрочитанные', orders: 'По заказам' }, newBadge: 'Новое',
@@ -649,7 +652,7 @@ export const noticesCopy: Record<Locale, NoticesCopy> = {
     orders: 'My orders', settings: 'Email and SMS settings',
     signin: { title: 'Sign in to open notifications', text: 'Atlas messages are saved in your profile.', action: 'Sign in' }, loading: 'Loading notifications…',
   },
-};
+});
 
 export type LinkOrderCopy = {
   title: string;
@@ -705,7 +708,7 @@ export type LinkOrderCopy = {
   };
 };
 
-export const linkOrderCopy: Record<Locale, LinkOrderCopy> = {
+export const linkOrderCopy: Record<Locale, LinkOrderCopy> = withCyrillic({
   ru: {
     title: 'Заказ по ссылке', lead: 'Вставьте ссылку на товар из зарубежного магазина, и мы посчитаем итог с доставкой до Ташкента.', leadLoaded: 'Выберите вариант и проверьте расчёт.',
     label: 'Ссылка на товар', placeholder: 'Вставьте ссылку на товар', calculate: 'Рассчитать', loading: 'Загружаем цену и варианты из магазина…',
@@ -817,7 +820,7 @@ export const linkOrderCopy: Record<Locale, LinkOrderCopy> = {
       notKept: 'This device could not keep the item. Sign in, then add it again.',
     },
   },
-};
+});
 
 export type RecipientCopy = {
   addTitle: string; editTitle: string; note: string;
@@ -828,7 +831,7 @@ export type RecipientCopy = {
   primary: string; save: string; saving: string; saved: string; updated: string; required: string; privacy: string;
 };
 
-export const recipientCopy: Record<Locale, RecipientCopy> = {
+export const recipientCopy: Record<Locale, RecipientCopy> = withCyrillic({
   ru: {
     addTitle: 'Новый получатель', editTitle: 'Изменить получателя', note: 'Тот, кто заберёт посылку. ФИО — как в паспорте.',
     labelLegend: 'Как подписать', labels: { home: 'Дом', work: 'Работа', parents: 'Родители', other: 'Другое' }, customLabel: 'Своя подпись',
@@ -859,7 +862,7 @@ export const recipientCopy: Record<Locale, RecipientCopy> = {
     primary: 'Default recipient — filled in at checkout', save: 'Save recipient', saving: 'Saving…', saved: 'Recipient saved.', updated: 'Changes saved.',
     required: 'Fill in this field.', privacy: 'Suggestions run on your device — the address is not sent to third-party search.',
   },
-};
+});
 
 export type DocsCopy = {
   title: string; lead: string; whose: string; whoseHint: string; noRecipient: string; addRecipient: string;
@@ -870,7 +873,7 @@ export type DocsCopy = {
   ordersFor: (name: string) => string; selectGroup: string; usd: (amount: number) => string; overLimit: string; history: string;
 };
 
-export const docsCopy: Record<Locale, DocsCopy> = {
+export const docsCopy: Record<Locale, DocsCopy> = withCyrillic({
   ru: {
     title: 'Паспорт или ID-карта получателя', lead: 'Нужны для таможенного оформления посылки. Скан видите вы и сотрудники Atlas, которые оформляют посылку.',
     whose: 'Чей паспорт', whoseHint: 'Паспорт привязывается к получателю — тому, кто заберёт посылку.', noRecipient: 'Сначала добавьте получателя.', addRecipient: 'Добавить получателя',
@@ -904,13 +907,13 @@ export const docsCopy: Record<Locale, DocsCopy> = {
     needRecipient: 'A recipient', needPassport: 'The recipient’s passport', needOrders: 'At least one order', addPassport: 'Add passport', newOrder: 'Order by link',
     ordersFor: name => `Orders for: ${name}`, selectGroup: 'Select all', usd: amount => `≈ $${amount}`, overLimit: 'Over $200 — duty applies to the excess.', history: 'Declaration drafts',
   },
-};
+});
 
 type NotFoundCopy = { title: string; text: string; home: string; paste: string; stores: string };
 
 /** Unknown addresses keep the site shell and offer the main ways back. */
-export const notFoundCopy: Record<Locale, NotFoundCopy> = {
+export const notFoundCopy: Record<Locale, NotFoundCopy> = withCyrillic({
   ru: { title: 'Страница не найдена', text: 'Ссылка устарела или в адресе опечатка. Начните с главной или вставьте ссылку на товар — посчитаем итог в сумах.', home: 'На главную', paste: 'Вставить ссылку на товар', stores: 'Магазины' },
   uz: { title: 'Sahifa topilmadi', text: 'Havola eskirgan yoki manzilda xato bor. Bosh sahifadan boshlang yoki tovar havolasini qo‘ying — yakuniy narxni so‘mda hisoblab beramiz.', home: 'Bosh sahifa', paste: 'Tovar havolasini qo‘yish', stores: 'Do‘konlar' },
   en: { title: 'Page not found', text: 'The link is out of date or the address has a typo. Start from the home page or paste a product link and we’ll work out the total in soum.', home: 'Home page', paste: 'Paste a product link', stores: 'Stores' },
-};
+});

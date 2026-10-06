@@ -2,13 +2,14 @@
 
 import {useEffect,useId,useState} from 'react';
 import type {Locale} from '@/lib/market/i18n';
+import {withCyrillic} from '@/lib/market/uz-cyrl';
 
 type Part={key:string;kind:'order'|'cart'|'left'|'over';usd:number;label:string};
-const copy={
+const copy=withCyrillic({
  ru:{order:(id:string)=>`Заказ ${id}`,cart:'В корзине, ещё не учтено',left:'Остаток без пошлины',over:'Сверх лимита',limit:'лимит',hint:'Нажмите на часть полосы, чтобы увидеть, из чего она.'},
  uz:{order:(id:string)=>`Buyurtma ${id}`,cart:'Savatda, hali hisobga olinmagan',left:'Bojsiz qoldiq',over:'Limitdan oshgan',limit:'limit',hint:'Tarkibini ko‘rish uchun chiziq qismiga bosing.'},
  en:{order:(id:string)=>`Order ${id}`,cart:'In the cart, not counted yet',left:'Left duty-free',over:'Over the allowance',limit:'limit',hint:'Tap a part of the bar to see what it is.'},
-} satisfies Record<Locale,unknown>;
+}) satisfies Record<Locale,unknown>;
 const money=(usd:number)=>'$'+(Math.round(usd*100)/100).toLocaleString('en-US',{maximumFractionDigits:2});
 
 /**

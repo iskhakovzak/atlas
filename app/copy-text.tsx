@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import type { Locale } from "@/lib/market/i18n";
+import {withCyrillic} from '@/lib/market/uz-cyrl';
 
-const copyLabels: Record<Locale, { copy: string; copied: string; failed: string }> = {
+const copyLabels: Record<Locale, { copy: string; copied: string; failed: string }> = withCyrillic({
   ru: { copy: "Скопировать номер заказа", copied: "Номер заказа скопирован", failed: "Не удалось скопировать номер" },
   uz: { copy: "Buyurtma raqamini nusxalash", copied: "Buyurtma raqami nusxalandi", failed: "Raqamni nusxalab bo‘lmadi" },
   en: { copy: "Copy order number", copied: "Order number copied", failed: "Could not copy order number" },
-};
+});
 
 export function CopyText({ text, locale }: { text: string; locale: Locale }) {
   const [result, setResult] = useState<"idle" | "copied" | "failed">("idle");
