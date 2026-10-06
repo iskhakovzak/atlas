@@ -152,8 +152,12 @@ try {
   await evaluate("document.querySelector('a.wordmark[href=\"/\"]')?.click()");
   await eventually("location.pathname === '/' && document.querySelector('.home-hero') !== null", "home navigation");
   await evaluate("location.assign('/order-by-link')");
+  await eventually("location.pathname === '/order-by-link' && !!document.querySelector('main input')", "guest order-by-link: link field");
+  // The guest note appears once there is a link to estimate (since 0db3f0f); a catalog item needs no network.
+  const catalogLink = "/order-by-link?url=" + encodeURIComponent("https://www.target.com/p/nyx-professional-makeup-butter-lip-gloss-16-praline-0-27-fl-oz/-/A-51033539") + "&catalog=nyx-butter-gloss";
+  await evaluate(`location.assign(${JSON.stringify(catalogLink)})`);
   await eventually(
-    "location.pathname === '/order-by-link' && !!document.querySelector('main input') && document.querySelector('main').textContent.includes('без входа')",
+    "location.pathname === '/order-by-link' && document.querySelector('.lo-guest')?.textContent?.includes('без входа')",
     "guest order-by-link: the estimate works without signing in",
   );
   await evaluate("location.assign('/e2e-missing-page')");
