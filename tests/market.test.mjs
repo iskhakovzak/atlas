@@ -183,6 +183,6 @@ test('delivery days set in the admin override the built-in ones per region',asyn
   const {deliveryDaysFor}=await import('../lib/market/site-content.ts');
   const pricing=pricingSchema.parse({...tariff,deliveryDays:{us:[4,8]}});
   assert.deepEqual(deliveryDaysFor(pricing,'us'),[4,8]);
-  assert.deepEqual(deliveryDaysFor(pricing,'cn'),[7,12],'a region left out keeps the built-in days');
+  assert.deepEqual(deliveryDaysFor(pricing,'cn'),[7,9],'a region left out keeps the built-in days');
   assert.throws(()=>pricingSchema.parse({...tariff,deliveryDays:{us:[9,4]}}),'from must not be after to');
 });

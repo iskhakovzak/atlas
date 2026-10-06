@@ -120,6 +120,8 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_38': 'Магазин сейчас не отвечает, поэтому цену не удалось сверить. Попробуйте через несколько минут.',
     'err_39': 'Слишком много проверок цен у магазинов. Подождите несколько минут и повторите.',
     'err_40': 'На сегодня загружено слишком много файлов документа. Попробуйте завтра или напишите в поддержку.',
+    'err_50': 'У вашей роли нет доступа к этому действию.',
+    'err_51': 'Заблокировать клиента может только администратор.',
   },
   uz: {
     'err_1': 'Davom etish uchun tizimga kiring.',
@@ -162,6 +164,8 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_38': 'Do‘kon hozir javob bermayapti, shuning uchun narxni tekshirib bo‘lmadi. Bir necha daqiqadan so‘ng urinib ko‘ring.',
     'err_39': 'Do‘konlarda narx tekshiruvi juda ko‘p bo‘ldi. Bir necha daqiqa kutib, qayta urinib ko‘ring.',
     'err_40': 'Bugun hujjat fayllari juda ko‘p yuklandi. Ertaga urinib ko‘ring yoki qo‘llab-quvvatlashga yozing.',
+    'err_50': 'Sizning rolingizda bu amalga ruxsat yo‘q.',
+    'err_51': 'Mijozni faqat administrator bloklashi mumkin.',
   },
   en: {
     'err_1': 'Sign in to continue.',
@@ -204,6 +208,8 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_38': 'The store is not responding, so the price could not be checked. Try again in a few minutes.',
     'err_39': 'Too many price checks with the stores. Wait a few minutes and try again.',
     'err_40': 'Too many document files uploaded today. Try again tomorrow or contact support.',
+    'err_50': 'Your role does not allow this action.',
+    'err_51': 'Only an administrator can block a customer.',
   },
 };
 export function serverError(locale:Locale, key:string){

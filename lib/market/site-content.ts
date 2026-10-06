@@ -23,6 +23,8 @@ export type SiteContent = {
   legal: { entityName: string | null; inn: string | null; address: Record<Locale, string> | null };
   /** Approximate express delivery in business days per dispatch region; null until confirmed with the carrier. */
   deliveryDays: Record<DeliveryRegion, readonly [number, number] | null>;
+  /** Approximate standard (slower, cheaper) delivery in business days per dispatch region. */
+  standardDeliveryDays: Record<DeliveryRegion, readonly [number, number] | null>;
   /** Only methods that are actually connected. Payments are simulated until a provider is live. */
   paymentMethods: PaymentMethod[];
   /** Real customer reviews only, with the customer's consent. */
@@ -35,16 +37,23 @@ export type SiteContent = {
   prohibitedListUrl: string | null;
 };
 
-/** Delivery days for a region: the admin's setting (pricing.deliveryDays), else the value below. */
-export function deliveryDaysFor(pricing: { deliveryDays?: Partial<Record<DeliveryRegion, readonly [number, number]>> }, region: DeliveryRegion): readonly [number, number] | null {
+/** Delivery days for a region and speed: the admin's setting (pricing.deliveryDays / standardDeliveryDays), else the value below. */
+export function deliveryDaysFor(
+  pricing: { deliveryDays?: Partial<Record<DeliveryRegion, readonly [number, number]>>; standardDeliveryDays?: Partial<Record<DeliveryRegion, readonly [number, number]>> },
+  region: DeliveryRegion,
+  speed: 'express' | 'standard' = 'express',
+): readonly [number, number] | null {
+  if (speed === 'standard') return pricing.standardDeliveryDays?.[region] ?? siteContent.standardDeliveryDays[region];
   return pricing.deliveryDays?.[region] ?? siteContent.deliveryDays[region];
 }
 
 export const siteContent: SiteContent = {
   contacts: { telegramSupport: null, telegramChannel: null, phone: null, instagram: null, pickupAddress: null },
   legal: { entityName: null, inn: null, address: null },
-  // Express routes and approximate times from the owner (4 October 2026); the price is the tariff's $14.98 per kg.
-  deliveryDays: { us: [5, 10], uk: [7, 10], cn: [7, 12], de: [7, 9], it: [7, 9], es: [7, 9] },
+  // Express routes and approximate times from the owner (6 October 2026): 5–9 business days from the US, 7–9 elsewhere,
+  // $15.98 per kg; standard delivery is 9–14 business days at $13.98 per kg (lib/market/domain.ts).
+  deliveryDays: { us: [5, 9], uk: [7, 9], cn: [7, 9], de: [7, 9], it: [7, 9], es: [7, 9] },
+  standardDeliveryDays: { us: [9, 14], uk: [9, 14], cn: [9, 14], de: [9, 14], it: [9, 14], es: [9, 14] },
   paymentMethods: [],
   reviews: [],
   parcelPhotos: [],

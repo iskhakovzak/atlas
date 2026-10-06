@@ -15,6 +15,8 @@ import {
   confirmStoreShipping,
   approveStoreShippingExtra,
   cancelOrder,
+  deliverySpeedSchema,
+  setCartDeliverySpeed,
   balanceOf,
   totalOf,
   validateSource,
@@ -171,6 +173,7 @@ export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("confirm-customs-duty"), id, actualUsd: amount }),
   z.object({ type: z.literal("approve-customs-extra"), id, amount }),
   z.object({ type: z.literal("cancel"), id }),
+  z.object({ type: z.literal("cart-delivery-speed"), speed: deliverySpeedSchema }),
   z.object({ type: z.literal("notifications-read") }),
   z.object({ type: z.literal("identity-confirm"), documentId: z.string().min(1).max(100), recipientProfileId: z.string().min(1).max(80).optional(), firstName: z.string().trim().min(1).max(80), lastName: z.string().trim().min(1).max(80), birthDate: z.string(), passportNumber: z.string().min(6).max(24), nationality: z.string().trim().max(80) }),
   z.object({ type: z.literal("identity-clear"), documentId: z.string().min(1).max(100) }),
@@ -394,6 +397,8 @@ export function applyAction(
       return approveStoreShippingExtra(s, a.id, a.amount);
     case "cancel":
       return cancelOrder(s, a.id);
+    case "cart-delivery-speed":
+      return setCartDeliverySpeed(s, a.speed, Date.now(), pricing);
     case "notifications-read":
       return markNotificationsRead(s);
     case "identity-confirm":

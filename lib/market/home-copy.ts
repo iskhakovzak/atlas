@@ -74,7 +74,7 @@ export type HomeCopy = {
     outsideTitle: string; dutyLabel: string; dutyStatus: string; dutyNote: (allowance: string) => string;
   };
   catalog: { title: string; intro: string; order: string; storePrice: string; total: string; breakdown: string };
-  tariffs: { title: string; lead: string; from: string; time: string; perKg: string; per100g: (usd: string) => string; days: (min: number, max: number) => string; pending: string; noDays: string; regions: Record<DeliveryRegion, string>; weightNote: string; rateNote: string };
+  tariffs: { title: string; lead: string; from: string; time: string; perKg: string; perKgUnit: string; per100g: (usd: string) => string; days: (min: number, max: number) => string; pending: string; noDays: string; regions: Record<DeliveryRegion, string>; speeds: { express: string; standard: string }; speedsLabel: string; weightNote: string; rateNote: string };
   trust: { title: string; facts: (facts: Facts) => string[]; ordersDone: string; trackingTitle: string; example: string; trackingProduct: string; trackingOrder: string; trackingNote: string; reviewsTitle: string; photosTitle: string; legalTitle: string; entity: string; inn: string; address: string; legalLink: string };
   faq: { title: string; timesQuestion: string; timesKnown: (list: string) => string; timesUnknown: string; customsLink: string; prohibitedOfficial: string; prohibitedRules: string; items: { customs: Faq; returns: Faq; prohibited: Faq; weight: Faq; account: Faq } };
   closing: { title: string; text: string };
@@ -107,7 +107,7 @@ export const homeCopy: Record<Locale, HomeCopy> = {
     },
     example: {
       title: 'Пример счёта', product: 'кроссовки Nike за $100', routeLabel: 'Маршрут', to: 'Ташкент',
-      days: (min, max) => `примерно ${min}–${max} ${ruDays(max)}`,
+      days: (min, max) => `экспресс, примерно ${min}–${max} ${ruDays(max)}`,
       item: 'Цена товара',
       itemNoteCbu: (usd, rate, markup) => `${usd} по курсу ${rate} сум: ЦБ плюс ${markup}`,
       itemNoteSet: (usd, rate) => `${usd} по курсу Atlas ${rate} сум`,
@@ -122,10 +122,11 @@ export const homeCopy: Record<Locale, HomeCopy> = {
     },
     catalog: { title: 'Подборка товаров', intro: 'Товары из зарубежных магазинов, отобранные Atlas, с итогом в сумах.', order: 'Заказать', storePrice: 'Цена в магазине', total: 'С доставкой в Узбекистан', breakdown: 'Из чего сумма' },
     tariffs: {
-      title: 'Сроки и тарифы', lead: 'Экспресс-доставка от нашего склада за рубежом до Узбекистана. Сроки примерные, в рабочих днях. Доставка магазина до склада и таможня идут сверх них.',
-      from: 'Откуда', time: 'Срок доставки', perKg: 'Цена за 1 кг',
+      title: 'Сроки и тарифы', lead: 'Экспресс или обычная доставка от нашего склада за рубежом до Узбекистана — на выбор при оформлении. Сроки примерные, в рабочих днях. Доставка магазина до склада и таможня идут сверх них.',
+      from: 'Откуда', time: 'Срок доставки', perKg: 'Цена за 1 кг', perKgUnit: '/кг',
       per100g: (usd) => `${usd} за 100 г`,
-      days: (min, max) => `${min}–${max} ${ruDays(max)}`, pending: 'уточняется', noDays: 'Срок зависит от магазина и рейса, покажем его в расчёте по вашей ссылке.',
+      days: (min, max) => `${min}–${max} ${ruDays(max)}`, pending: 'уточняется',
+      speeds: { express: 'Экспресс', standard: 'Обычная' }, speedsLabel: 'Скорость доставки', noDays: 'Срок зависит от магазина и рейса, покажем его в расчёте по вашей ссылке.',
       regions: { us: 'США', uk: 'Великобритания', cn: 'Китай', de: 'Германия', it: 'Италия', es: 'Испания' },
       weightNote: 'Вес считаем с коробкой и добавляем 0,3 кг на упаковку, один раз на посылку. Минимум 1 кг на посылку из одного магазина.',
       rateNote: 'Текущие тарифы Atlas, не оферта.',
@@ -146,7 +147,7 @@ export const homeCopy: Record<Locale, HomeCopy> = {
     },
     faq: {
       title: 'Частые вопросы', timesQuestion: 'Сколько ждать заказ?',
-      timesKnown: (list) => `Экспресс от нашего склада за рубежом, ориентировочно: ${list}. К этому добавьте доставку магазина до склада; точный срок зависит от магазина и таможни.`,
+      timesKnown: (list) => `От нашего склада за рубежом, ориентировочно: ${list}. Скорость выбираете при оформлении. К этому добавьте доставку магазина до склада; точный срок зависит от магазина и таможни.`,
       timesUnknown: 'Срок складывается из доставки магазина до нашего склада, перевозки в Узбекистан и таможни. Ориентиры по странам — в таблице «Сроки и тарифы», точный срок покажем в заказе.',
       customsLink: 'Подробнее о таможне', prohibitedOfficial: 'Официальный список', prohibitedRules: 'Правила сервиса',
       items: {
@@ -189,7 +190,7 @@ export const homeCopy: Record<Locale, HomeCopy> = {
     },
     example: {
       title: 'Hisob namunasi', product: 'Nike krossovkalari, $100', routeLabel: 'Yo‘nalish', to: 'Toshkent',
-      days: (min, max) => `taxminan ${min}–${max} ish kuni`,
+      days: (min, max) => `ekspress, taxminan ${min}–${max} ish kuni`,
       item: 'Tovar narxi',
       itemNoteCbu: (usd, rate, markup) => `${usd}, kurs ${rate} so‘m: MB kursi va ${markup}`,
       itemNoteSet: (usd, rate) => `${usd}, Atlas kursi ${rate} so‘m`,
@@ -204,10 +205,11 @@ export const homeCopy: Record<Locale, HomeCopy> = {
     },
     catalog: { title: 'Tovarlar to‘plami', intro: 'Atlas tanlagan xorijiy do‘kon tovarlari, yakuniy narxi so‘mda.', order: 'Buyurtma berish', storePrice: 'Do‘kondagi narx', total: 'O‘zbekistonga yetkazish bilan', breakdown: 'Summa nimadan iborat' },
     tariffs: {
-      title: 'Muddatlar va tariflar', lead: 'Xorijdagi omborimizdan O‘zbekistonga ekspress yetkazib berish. Muddatlar taxminiy, ish kunlarida. Do‘kondan omborgacha yetkazish va bojxona bunga kirmaydi.',
-      from: 'Qayerdan', time: 'Yetkazish muddati', perKg: '1 kg narxi',
+      title: 'Muddatlar va tariflar', lead: 'Xorijdagi omborimizdan O‘zbekistonga ekspress yoki oddiy yetkazib berish — rasmiylashtirishda tanlaysiz. Muddatlar taxminiy, ish kunlarida. Do‘kondan omborgacha yetkazish va bojxona bunga kirmaydi.',
+      from: 'Qayerdan', time: 'Yetkazish muddati', perKg: '1 kg narxi', perKgUnit: '/kg',
       per100g: (usd) => `100 g uchun ${usd}`,
-      days: (min, max) => `${min}–${max} ish kuni`, pending: 'aniqlanmoqda', noDays: 'Muddat do‘kon va reysga bog‘liq, uni havolangiz bo‘yicha hisobda ko‘rsatamiz.',
+      days: (min, max) => `${min}–${max} ish kuni`, pending: 'aniqlanmoqda',
+      speeds: { express: 'Ekspress', standard: 'Oddiy' }, speedsLabel: 'Yetkazish tezligi', noDays: 'Muddat do‘kon va reysga bog‘liq, uni havolangiz bo‘yicha hisobda ko‘rsatamiz.',
       regions: { us: 'AQSh', uk: 'Buyuk Britaniya', cn: 'Xitoy', de: 'Germaniya', it: 'Italiya', es: 'Ispaniya' },
       weightNote: 'Og‘irlikni quti bilan hisoblaymiz va qadoq uchun 0,3 kg qo‘shamiz, jo‘natmaga bir marta. Bitta do‘kondan kelgan jo‘natma uchun kamida 1 kg.',
       rateNote: 'Atlasning joriy tariflari, oferta emas.',
@@ -228,7 +230,7 @@ export const homeCopy: Record<Locale, HomeCopy> = {
     },
     faq: {
       title: 'Ko‘p beriladigan savollar', timesQuestion: 'Buyurtmani qancha kutish kerak?',
-      timesKnown: (list) => `Xorijdagi omborimizdan ekspress, taxminan: ${list}. Bunga do‘kondan omborgacha yetkazishni qo‘shing; aniq muddat do‘kon va bojxonaga bog‘liq.`,
+      timesKnown: (list) => `Xorijdagi omborimizdan, taxminan: ${list}. Tezlikni rasmiylashtirishda tanlaysiz. Bunga do‘kondan omborgacha yetkazishni qo‘shing; aniq muddat do‘kon va bojxonaga bog‘liq.`,
       timesUnknown: 'Muddat do‘kondan omborimizgacha yetkazish, O‘zbekistonga tashish va bojxonadan iborat. Mamlakatlar bo‘yicha taxminiy muddatlar «Muddatlar va tariflar» jadvalida, aniq muddatni buyurtmada ko‘rsatamiz.',
       customsLink: 'Bojxona haqida batafsil', prohibitedOfficial: 'Rasmiy ro‘yxat', prohibitedRules: 'Xizmat qoidalari',
       items: {
@@ -271,7 +273,7 @@ export const homeCopy: Record<Locale, HomeCopy> = {
     },
     example: {
       title: 'Example bill', product: 'Nike sneakers, $100', routeLabel: 'Route', to: 'Tashkent',
-      days: (min, max) => `about ${min}–${max} business days`,
+      days: (min, max) => `express, about ${min}–${max} business days`,
       item: 'Item price',
       itemNoteCbu: (usd, rate, markup) => `${usd} at ${rate} soum: Central Bank rate plus ${markup}`,
       itemNoteSet: (usd, rate) => `${usd} at the Atlas rate of ${rate} soum`,
@@ -286,10 +288,11 @@ export const homeCopy: Record<Locale, HomeCopy> = {
     },
     catalog: { title: 'Product selection', intro: 'Products from international stores, selected by Atlas, with the total in soum.', order: 'Order', storePrice: 'Store price', total: 'With delivery to Uzbekistan', breakdown: 'What’s in the total' },
     tariffs: {
-      title: 'Delivery times and rates', lead: 'Express delivery from our warehouse abroad to Uzbekistan. Times are approximate, in business days. The store’s shipping to the warehouse and customs come on top.',
-      from: 'From', time: 'Delivery time', perKg: 'Price per kg',
+      title: 'Delivery times and rates', lead: 'Express or standard delivery from our warehouse abroad to Uzbekistan — you choose at checkout. Times are approximate, in business days. The store’s shipping to the warehouse and customs come on top.',
+      from: 'From', time: 'Delivery time', perKg: 'Price per kg', perKgUnit: '/kg',
       per100g: (usd) => `${usd} per 100 g`,
-      days: (min, max) => `${min}–${max} business days`, pending: 'to be confirmed', noDays: 'Timing depends on the store and the flight; we show it in the estimate for your link.',
+      days: (min, max) => `${min}–${max} business days`, pending: 'to be confirmed',
+      speeds: { express: 'Express', standard: 'Standard' }, speedsLabel: 'Delivery speed', noDays: 'Timing depends on the store and the flight; we show it in the estimate for your link.',
       regions: { us: 'USA', uk: 'United Kingdom', cn: 'China', de: 'Germany', it: 'Italy', es: 'Spain' },
       weightNote: 'We count the item with its box and add 0.3 kg for packaging, once per parcel. Minimum 1 kg per parcel from one store.',
       rateNote: 'Current Atlas rates, not an offer.',
@@ -310,7 +313,7 @@ export const homeCopy: Record<Locale, HomeCopy> = {
     },
     faq: {
       title: 'Frequently asked questions', timesQuestion: 'How long does delivery take?',
-      timesKnown: (list) => `Express from our warehouse abroad, approximately: ${list}. Add the store’s shipping to the warehouse; the exact time depends on the store and customs.`,
+      timesKnown: (list) => `From our warehouse abroad, approximately: ${list}. You choose the speed at checkout. Add the store’s shipping to the warehouse; the exact time depends on the store and customs.`,
       timesUnknown: 'Delivery time covers the store’s shipping to our warehouse, transport to Uzbekistan and customs. See “Delivery times and rates” for country estimates; your order shows the exact time.',
       customsLink: 'More about customs', prohibitedOfficial: 'Official list', prohibitedRules: 'Terms of service',
       items: {

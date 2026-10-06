@@ -73,7 +73,7 @@ export function AccountView() {
     <header className="cabinet-head">
       <span className="cabinet-avatar" aria-hidden="true">{(user.name || contact || "A").trim().charAt(0).toUpperCase()}</span>
       <div className="cabinet-identity"><h1>{c.title}</h1><p><b>{user.name}</b>{contact && contact !== user.name ? <> · {contact}</> : null}<small>{c.since(since)}</small></p></div>
-      {user.operator && <Link className="btn secondary cabinet-manage" href="/admin">{c.manage}<ArrowUpRight size={17} aria-hidden="true" /></Link>}
+      {(user.operator || !!user.permissions?.length) && <Link className="btn secondary cabinet-manage" href="/admin">{c.manage}<ArrowUpRight size={17} aria-hidden="true" /></Link>}
     </header>
 
     <div className="cabinet-grid">

@@ -159,10 +159,12 @@ html[data-theme="dark"] .site-header {
 }
 html[data-theme="dark"] .wordmark { color: var(--night-ink); }
 html[data-theme="dark"] .wordmark svg { color: var(--night-jade); }
-html[data-theme="dark"] .site-header .desktop-nav a { color: var(--night-muted); }
-html[data-theme="dark"] .site-header .desktop-nav a:hover,
-html[data-theme="dark"] .site-header .desktop-nav a.active { color: var(--night-ink); }
-html[data-theme="dark"] .site-header .desktop-nav a.active { box-shadow: inset 0 -2px 0 var(--night-jade); }
+/* Nav: the current page sits on a translucent jade pill; no underline or bottom border. */
+html[data-theme="dark"] .site-header .desktop-nav { gap: 2px; margin-left: 8px; }
+html[data-theme="dark"] .site-header .desktop-nav a { min-height: 40px; padding: 0 10px; border: 0; border-radius: 10px; color: var(--night-muted); text-decoration: none; }
+html[data-theme="dark"] .site-header .desktop-nav a:hover { background: rgba(255, 255, 255, 0.05); color: var(--night-ink); }
+html[data-theme="dark"] .site-header .desktop-nav a.active { background: rgba(128, 208, 172, 0.14); color: var(--night-jade); box-shadow: none; }
+html[data-theme="dark"] .site-header .desktop-nav a:focus-visible { outline: 2px solid var(--night-jade); outline-offset: 2px; }
 html[data-theme="dark"] .lang-switch { border-color: var(--night-line-strong); background: rgba(255, 255, 255, 0.02); }
 html[data-theme="dark"] .lang-switch button { color: var(--night-muted); }
 html[data-theme="dark"] .lang-switch button[aria-pressed="true"],
@@ -208,7 +210,7 @@ html[data-theme="dark"] :is(.basket-parcel-title, .home-tariffs thead th) { back
 html[data-theme="dark"] :is(.cabinet-recipients li, .docs-group, .basket-balance, .basket-review-recipient, .cabinet-empty, .wallet-empty, .docs-placeholder, .basket-line-help, .home-trust-points li, .lo-guest, .cabinet-customs-cart) { background: rgba(255, 255, 255, 0.028); }
 html[data-theme="dark"] .basket-summary { background: var(--night-sheen), var(--night-raised); border-color: var(--night-line-strong); }
 html[data-theme="dark"] .home-footer { border-top-color: var(--night-line); }
-html[data-theme="dark"] .breadcrumb { color: var(--night-faint); }
+html[data-theme="dark"] .breadcrumb { padding: 14px 0 10px; color: var(--night-faint); }
 
 /* ---------- Buttons ---------- */
 html[data-theme="dark"] .btn { transition: background-color 0.18s, border-color 0.18s, box-shadow 0.18s, filter 0.18s, transform 0.08s; }
@@ -523,3 +525,12 @@ html[data-theme="dark"] .home-tracking-item span { color: var(--night-muted); fo
 html[data-theme="dark"] .home-faq-head > h2 { margin: 0 0 12px; }
 html[data-theme="dark"] .home-stores-hint { margin: 6px 0 0; color: var(--night-muted); font-size: 14px; }
 html[data-theme="dark"] .home-closing p { color: var(--night-muted); }
+
+/* Delivery speed switch (cart and link-order preview) in Night. */
+html[data-theme="dark"] .speed-switch-title { color: var(--night-ink); }
+html[data-theme="dark"] .speed-switch-saving, html[data-theme="dark"] .speed-switch-note, html[data-theme="dark"] .speed-option small { color: var(--night-muted); }
+html[data-theme="dark"] .speed-option { border-color: var(--night-line); background: var(--night-surface, transparent); color: var(--night-ink); }
+html[data-theme="dark"] .speed-option span { color: var(--night-ink-2, var(--night-ink)); }
+html[data-theme="dark"] .speed-option:hover, html[data-theme="dark"] .speed-option.selected { border-color: var(--night-jade); }
+html[data-theme="dark"] .speed-option.selected { box-shadow: inset 0 0 0 1px var(--night-jade); background: color-mix(in srgb, var(--night-jade) 12%, transparent); }
+html[data-theme="dark"] .speed-option:focus-visible { outline-color: var(--night-jade); }

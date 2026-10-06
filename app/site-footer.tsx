@@ -18,8 +18,10 @@ export function SiteFooter(){
  const legalAddress=legal.address?.[locale];
  // No real contacts yet: no column that would only say "support in your account"; that link joins the shoppers' list.
  const hasContacts=contactLinks.length>0||Boolean(pickup);
- return <footer className={'home-footer'+(hasContacts?'':' no-contacts')}>
+ // Compact footer: brand and tagline on the left, link groups on the right (flex, so a missing contacts group leaves no hole), one bottom line.
+ return <footer className="home-footer">
   <div className="home-footer-brand"><Link className="wordmark" href="/" aria-label="Atlas">atlas<ArrowUpRight aria-hidden="true"/></Link><p>{c.footer.tagline}</p></div>
+  <div className="home-footer-groups">
   <nav aria-labelledby="footer-buyers"><h2 id="footer-buyers" className="home-footer-title">{c.footer.buyers}</h2><ul>
    <li><Link href="/catalog">{c.nav.catalog}</Link></li><li><Link href="/stores">{c.nav.stores}</Link></li><li><Link href="/#how">{c.nav.how}</Link></li><li><Link href="/#tariffs">{c.nav.tariffs}</Link></li>
    <li><Link href="/customs">{c.footer.customs}</Link></li><li><Link href="/#faq">{c.footer.faq}</Link></li>
@@ -36,6 +38,7 @@ export function SiteFooter(){
    {legalAddress&&<li>{legalAddress}</li>}
    <li><Link href="/legal#offer">{c.footer.rules}</Link></li><li><Link href="/legal#privacy">{c.footer.privacy}</Link></li>
   </ul>{!legal.entityName&&<MissingContent what="юрлицо и ИНН"/>}</section>
+  </div>
   <div className="home-footer-bottom"><span>© Atlas</span><span className="home-footer-theme"><span>{c.footer.theme}</span><ThemeToggle locale={locale}/></span></div>
  </footer>;
 }

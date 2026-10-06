@@ -1,0 +1,43 @@
+/* orders-groups: one checkout with several lines in "My orders" (app/order-workspace.tsx, OrderGroupCard).
+   A group is a quiet plate: a heading with the date, item count, stores and sum, then a section per store with the
+   usual .order-x cards inside. Light theme under html:not([data-theme="dark"]), dark under html[data-theme="dark"]. */
+
+.order-group { margin-bottom: 14px; padding: 12px 12px 4px; border: 1px solid var(--home-line); border-radius: 22px; background: var(--home-soft); }
+.order-group-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 6px 16px; padding: 2px 4px 12px; }
+.order-group-main { display: grid; gap: 4px; min-width: 0; flex: 1 1 200px; }
+.order-group-title { font-size: 16px; font-weight: 800; line-height: 1.25; color: var(--home-ink); }
+.order-group-main > small { color: var(--home-muted); font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+.order-group-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.order-group-sum { display: grid; gap: 2px; margin: 0; text-align: right; }
+.order-group-sum small { color: var(--home-muted); font-size: 12px; font-weight: 600; }
+.order-group-sum strong { font-size: 18px; font-weight: 800; line-height: 1.2; letter-spacing: -0.01em; color: var(--home-ink); font-feature-settings: "tnum" 1; white-space: nowrap; }
+.order-group-store { display: grid; gap: 0; }
+.order-group-store-title { display: flex; align-items: center; gap: 6px; margin: 4px 4px 8px; color: var(--home-muted); font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.order-group-store-title svg { flex-shrink: 0; opacity: .8; }
+.order-group-store + .order-group-store { margin-top: 2px; padding-top: 8px; border-top: 1px dashed var(--home-line); }
+.order-group .order-x { margin-bottom: 8px; }
+.order-group .order-x:last-child { margin-bottom: 8px; }
+.order-group[data-stage="cancelled"] .order-group-title { color: var(--home-muted); }
+
+@media (min-width: 640px) {
+  .order-group { padding: 16px 16px 8px; }
+  .order-group-head { padding: 0 4px 14px; align-items: center; }
+  .order-group-title { font-size: 17px; }
+  .order-group-sum strong { font-size: 20px; }
+}
+
+/* Atlas Day: a white group plate with the card shadow; the store cards inside sit on the soft tone. */
+html:not([data-theme="dark"]) .order-group { background: var(--day-surface); border-color: var(--day-line); box-shadow: var(--day-shadow); }
+html:not([data-theme="dark"]) .order-group .order-x { background: var(--day-surface); border-color: var(--day-line-strong); box-shadow: none; }
+html:not([data-theme="dark"]) .order-group-store-title { color: var(--day-muted); }
+html:not([data-theme="dark"]) .order-group-sum strong { color: var(--day-ink); }
+html:not([data-theme="dark"]) .order-group[data-stage="attention"] { border-color: #f0e5c6; }
+
+/* Atlas Night: an inset plate so the raised cards read as its content. */
+html[data-theme="dark"] .order-group { background: var(--night-inset); border-color: var(--night-line); }
+html[data-theme="dark"] .order-group-title { color: var(--night-ink); }
+html[data-theme="dark"] .order-group-main > small, html[data-theme="dark"] .order-group-sum small, html[data-theme="dark"] .order-group-store-title { color: var(--night-muted); }
+html[data-theme="dark"] .order-group-sum strong { color: var(--night-ivory); }
+html[data-theme="dark"] .order-group-store + .order-group-store { border-top-color: var(--night-line-strong); }
+html[data-theme="dark"] .order-group[data-stage="attention"] { border-color: var(--night-warn-line); }
+html[data-theme="dark"] .order-group[data-stage="cancelled"] .order-group-title { color: var(--night-muted); }
