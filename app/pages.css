@@ -1,0 +1,70 @@
+/* Public pages added for the apps and the stores: support, privacy, terms, the app landing page and
+   account deletion. Loaded after the theme files and before the phone overrides (app/layout.tsx).
+   Light theme first (Atlas Day tokens), Night rules at the end under html[data-theme="dark"]. */
+
+.page-block { max-width: 980px; margin: 0 auto 36px; }
+.page-block > h2 { margin: 0 0 14px; font-size: clamp(22px, 3.6vw, 28px); line-height: 1.2; letter-spacing: -.02em; }
+.page-lead { max-width: 720px; margin: 0; color: var(--day-muted, #4f6057); line-height: 1.65; }
+.page-more { margin: 14px 0 0; }
+.page-more a, .page-card-links a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--day-accent, #1f4d3b); font-weight: 600; text-decoration: none; }
+.page-more a:hover, .page-card-links a:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+/* Cards: the same white sheet with a shadow as the rest of Atlas Day. */
+.page-grid { display: grid; gap: 12px; }
+.page-card { display: flex; flex-direction: column; gap: 8px; padding: 20px; }
+.page-card > svg { width: 24px; height: 24px; color: var(--day-accent, #1f4d3b); }
+.page-card h3 { margin: 2px 0 0; font-size: 18px; line-height: 1.3; }
+.page-card p { margin: 0; color: var(--day-muted, #4f6057); line-height: 1.6; }
+.page-card-links { display: flex; flex-wrap: wrap; gap: 0 18px; margin-top: auto; }
+.page-links-row { gap: 0 24px; }
+.page-list { margin: 0; padding-left: 20px; color: var(--day-muted, #4f6057); line-height: 1.6; }
+.page-list li { margin: 4px 0; }
+
+/* Contact rows on /support: the account route first, real contacts after it. */
+.page-contacts { display: grid; gap: 12px; }
+.page-contact { display: flex; align-items: flex-start; gap: 14px; padding: 18px 20px; color: inherit; text-decoration: none; }
+.page-contact > svg:first-child { flex-shrink: 0; width: 24px; height: 24px; margin-top: 2px; color: var(--day-accent, #1f4d3b); }
+.page-contact > svg:last-child { flex-shrink: 0; margin-left: auto; color: var(--day-muted, #4f6057); }
+.page-contact > div { display: grid; gap: 4px; min-width: 0; }
+.page-contact h3 { margin: 0; font-size: 17px; line-height: 1.3; }
+.page-contact p { margin: 0; color: var(--day-muted, #4f6057); line-height: 1.55; overflow-wrap: anywhere; }
+.page-contact .btn { margin-top: 10px; width: max-content; max-width: 100%; }
+a.page-contact:hover h3 { text-decoration: underline; text-underline-offset: 4px; }
+
+/* Numbered steps on /delete-account. */
+.page-steps { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; counter-reset: none; }
+.page-steps li { display: flex; gap: 14px; align-items: flex-start; }
+.page-steps p { margin: 0; padding-top: 4px; line-height: 1.6; }
+.page-step-number { display: grid; place-items: center; flex-shrink: 0; width: 32px; height: 32px; border: 1.5px solid var(--day-accent, #1f4d3b); border-radius: 50%; color: var(--day-accent, #1f4d3b); font-size: 14px; font-weight: 700; }
+.page-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.page-actions .btn { min-height: 48px; }
+.page-pending { align-items: center; }
+.page-pending > svg { flex-shrink: 0; }
+
+/* Related-document line under /privacy and /terms. */
+.legal-related { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; max-width: 980px; margin: 0 auto 20px; padding: 14px 18px; border: 1px solid var(--day-line, #dbe8db); border-radius: 13px; background: var(--day-surface, #fff); color: var(--day-muted, #4f6057); font-size: 14px; }
+.legal-related > svg { flex-shrink: 0; width: 18px; height: 18px; color: var(--day-accent, #1f4d3b); }
+.legal-related a { display: inline-flex; align-items: center; min-height: 40px; color: var(--day-accent, #1f4d3b); font-weight: 600; text-decoration: none; }
+.legal-related a:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+@media (min-width: 720px) {
+  .page-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .page-contacts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .page-contact-main { grid-column: 1 / -1; }
+}
+@media (min-width: 1100px) {
+  .page-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .page-block { margin-bottom: 28px; }
+  .page-card, .page-contact { padding: 16px; }
+  .page-actions .btn { width: 100%; }
+}
+
+/* Night: ink and lines from theme-night.css tokens; the cards keep their surface. */
+html[data-theme="dark"] .page-lead, html[data-theme="dark"] .page-card p, html[data-theme="dark"] .page-contact p, html[data-theme="dark"] .page-list, html[data-theme="dark"] .legal-related { color: var(--night-muted); }
+html[data-theme="dark"] .page-card h3, html[data-theme="dark"] .page-contact h3, html[data-theme="dark"] .page-steps p { color: var(--night-ink); }
+html[data-theme="dark"] .page-card > svg, html[data-theme="dark"] .page-contact > svg:first-child, html[data-theme="dark"] .legal-related > svg { color: var(--night-jade); }
+html[data-theme="dark"] .page-more a, html[data-theme="dark"] .page-card-links a, html[data-theme="dark"] .legal-related a { color: var(--night-jade); }
+html[data-theme="dark"] .page-step-number { border-color: var(--night-jade); color: var(--night-jade); }
+html[data-theme="dark"] .legal-related { border-color: var(--night-line); background: var(--night-surface, transparent); }

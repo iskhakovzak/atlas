@@ -3,6 +3,7 @@ import {ArrowUpRight} from 'lucide-react';
 import Link from '@/components/site-link';
 import {siteContent} from '@/lib/market/site-content';
 import {ThemeToggle} from './theme-control';
+import {routeTitle} from '@/lib/market/i18n';
 import {MissingContent,useHomeCopy} from './home-sections';
 
 export function SiteFooter(){
@@ -23,7 +24,7 @@ export function SiteFooter(){
   <nav aria-labelledby="footer-buyers"><h2 id="footer-buyers" className="home-footer-title">{c.footer.buyers}</h2><ul>
    <li><Link href="/catalog">{c.nav.catalog}</Link></li><li><Link href="/stores">{c.nav.stores}</Link></li><li><Link href="/#how">{c.nav.how}</Link></li><li><Link href="/#tariffs">{c.nav.tariffs}</Link></li>
    <li><Link href="/customs">{c.footer.customs}</Link></li><li><Link href="/#faq">{c.footer.faq}</Link></li>
-   {!hasContacts&&<li><Link href="/account">{c.footer.support}</Link></li>}
+   <li><Link href="/support">{routeTitle(locale,'support')}</Link></li><li><Link href="/app">{routeTitle(locale,'app')}</Link></li>
   </ul>{!hasContacts&&<MissingContent what="Telegram-бот поддержки и канал, телефон, Instagram, адрес пункта выдачи"/>}</nav>
   {hasContacts&&<section aria-labelledby="footer-contacts"><h2 id="footer-contacts" className="home-footer-title">{c.footer.contacts}</h2><ul>
    {contactLinks.map(item=><li key={item.href}><a href={item.href} target={item.href.startsWith('tel:')?undefined:'_blank'} rel={item.href.startsWith('tel:')?undefined:'noopener noreferrer'}><span>{item.label}</span> {item.value}</a></li>)}
@@ -34,7 +35,7 @@ export function SiteFooter(){
    {legal.entityName&&<li>{legal.entityName}</li>}
    {legal.inn&&<li>{c.trust.inn}: {legal.inn}</li>}
    {legalAddress&&<li>{legalAddress}</li>}
-   <li><Link href="/legal#offer">{c.footer.rules}</Link></li><li><Link href="/legal#privacy">{c.footer.privacy}</Link></li>
+   <li><Link href="/terms">{routeTitle(locale,'terms')}</Link></li><li><Link href="/privacy">{routeTitle(locale,'privacy')}</Link></li><li><Link href="/legal">{c.footer.rules}</Link></li>
   </ul>{!legal.entityName&&<MissingContent what="юрлицо и ИНН"/>}</section>
   <div className="home-footer-bottom"><span>© Atlas</span><span className="home-footer-theme"><span>{c.footer.theme}</span><ThemeToggle locale={locale}/></span></div>
  </footer>;

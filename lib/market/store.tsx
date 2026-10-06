@@ -8,7 +8,7 @@ import {serverError,setLocaleCookie,supportedLocale,type Locale} from './i18n';
 import type {SessionStatus} from './access';
 import {keepCatalogVisible,visibleMerchantFinds,type MerchantFind} from './catalog';
 import type {CatalogCollection} from './catalog-editor';
-export type AccountUser={name:string;email:string;contact?:string;method?:'email'|'phone'|'telegram'|'google';operator:boolean;createdAt:number};
+export type AccountUser={name:string;email:string;contact?:string;method?:'email'|'phone'|'telegram'|'google'|'apple';operator:boolean;createdAt:number};
 type Store={catalogProducts:MerchantFind[];/** The public catalog request finished (with or without data). */catalogReady:boolean;collections:Array<CatalogCollection&{productIds:string[]}>;catalogError:string;loadCatalog:(force?:boolean)=>Promise<void>;state:State;pricing:Pricing;policy:Policy;ready:boolean;status:SessionStatus;error:string|null;user:AccountUser|null;setLocale:(locale:Locale)=>void;act:(action:Action)=>Promise<boolean>;/** Why the last refused action was refused (server error code and text), until the next success. */lastActionError:()=>{code?:string;message?:string}|null;refresh:()=>Promise<void>};
 const Context=createContext<Store|null>(null);
 const marketMessages:Record<Locale,{catalogLoad:string;accountLoad:string;connection:string;signin:string;sessionEnded:string;saveFailed:string;actionConnection:string}>={

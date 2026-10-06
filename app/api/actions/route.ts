@@ -93,5 +93,11 @@ export async function POST(request:Request){try{
     const confirmed=next.identityProfiles?.find(profile=>profile.documentId===identityAction.documentId)??next.identityProfile;
     await database().prepare('UPDATE market_identity_documents SET status=?, confirmed_data=?, updated_at=? WHERE id=? AND user_id=?').bind('confirmed',JSON.stringify(confirmed),Date.now(),identityAction.documentId,user.userId).run();
   }
+  if(parsed.data.type==='consent-accept'){
+    // Proof of consent outside the account document (migration 0004); kept, pseudonymised, after the account is deleted.
+    const consent=parsed.data,acceptedAt=Date.now(),db=database();
+    const rows=consent.documents.map(key=>db.prepare('INSERT OR IGNORE INTO market_legal_consents (id,customer_id,document_key,document_version,accepted_at) VALUES (?,?,?,?,?)').bind(crypto.randomUUID(),user.userId,key,consent.version,acceptedAt));
+    try{await db.batch(rows)}catch(error){console.error('Legal consent record failed',error)}
+  }
   return json({state:next,revision:current.revision+1})
 }catch(e){return failure(e,request)}}

@@ -1,5 +1,36 @@
 # Atlas TODO and known limitations
 
+## Мобильные приложения, Apple, удаление аккаунта и согласия — 6 октября 2026
+
+- [x] Оболочка Capacitor 8.5.2 в `mobile/` (android/, ios/ через SPM, www/ с офлайн-страницей, иконки и splash через `npm run assets`); `tsconfig`/eslint исключают `mobile`.
+- [x] Мост `lib/native/bridge.ts`, шелл `app/native-shell.tsx` и `app/native.css`; разбор ссылок `lib/native/links.ts`; маршруты `/.well-known/apple-app-site-association` и `assetlinks.json` (404 без env).
+- [x] Вход через Apple: веб (`form_post`, cookie `__Host-atlas_apple` SameSite=None) и нативный iOS; refresh-токены в `market_auth_tokens` (миграция 0010), отзыв при удалении аккаунта с отчётом о неудаче в `market_operational_errors`.
+- [x] Handoff из системного браузера в приложение только с PKCE (`lib/native/pkce.ts`, `POST /api/auth/handoff {code, verifier}`); `/auth/return` в `reservedPaths`.
+- [x] Аккаунты проверяющих `ATLAS_REVIEW_ACCOUNTS` (фиксированный код по почте, без отправки).
+- [x] Удаление аккаунта: `POST /api/account/delete`, диалог в кабинете, `/delete-account`; псевдоним — HMAC под `ATLAS_AUTH_SECRET`; `err_41`–`err_44`.
+- [x] Согласия: `State.consents`, действие `consent-accept`, запись в `market_legal_consents`, плашка-гейт `app/storage-notice.tsx` (запись только по клику).
+- [x] Публичные страницы `/privacy`, `/terms`, `/support`, `/delete-account`, `/app`; новые разделы оферты (11) и политики; sitemap/robots/llms; футер и карточка «Настройки» в кабинете.
+- [x] `android:allowBackup="false"`; абзац о возрастном рейтинге в `MOBILE.md` §3; блокер контактов в `MOBILE.md` §6.
+- [ ] Прод: применить `drizzle/0010_apple_auth.sql` к рабочей D1 (без таблицы вход через Apple работает, но токены не сохраняются и не отзываются).
+- [ ] Владелец: Apple Developer Program — Team ID, App ID `uz.atlasmarket.app` (Sign in with Apple, Associated Domains), Services ID с return URL `https://atlasmarket.uz/api/auth/apple/callback`, ключ `.p8`; задать `APPLE_SERVICES_ID`, `APPLE_APP_BUNDLE_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` в Sites; зарегистрировать домен и адрес отправителя в «Sign in with Apple for Email Communication» (AUTH_SETUP.md §7).
+- [ ] Владелец: Google Play Console — приложение `uz.atlasmarket.app`, Play App Signing, SHA-256 upload- и signing-ключей → `ANDROID_CERT_SHA256`, `ANDROID_PACKAGE_NAME`; upload keystore хранить в `secrets/`.
+- [ ] Владелец: задать `ATLAS_REVIEW_ACCOUNTS` и Review Notes по шаблону `MOBILE.md` §3; удалить переменную после одобрения.
+- [ ] Владелец: скриншоты, описания RU/UZ/EN, ответы App Privacy / Data safety (согласованы с `/privacy`), URL политики/поддержки/удаления/условий при подаче.
+- [ ] Владелец: заполнить `siteContent.contacts` (минимум `supportEmail`), `siteContent.apps` после публикации и реквизиты юрлица — блокер подачи (`MOBILE.md` §6, п. 0).
+- [ ] Юрист: проверить раздел 11 оферты и новые разделы политики (приложения, ИИ/OCR, вход через провайдеров, удаление, согласие, возраст); подтвердить текст согласия и `consentVersion='2026-10-06'`; решить, нужны ли переводы тел документов на uz/en (сейчас на `/privacy`, `/terms` локализована только шапка).
+- [ ] Владелец: возрастной рейтинг — документы определяют сервис как для совершеннолетних: 17+ в App Store, 18+ по IARC в Google Play (`MOBILE.md` §3).
+- [ ] Бухгалтер: срок хранения обезличенных записей о заказах и бухгалтерии после удаления аккаунта (в UI срок не называется).
+- [ ] Сборка iOS только на macOS с Xcode 16+: проверить компиляцию `@capacitor-community/apple-sign-in` 7.1.0 под Capacitor 8 и автоподхват `App.entitlements`; iOS-проект сгенерирован на Windows и проверен только текстово.
+- [ ] Android: сборка Gradle не запускалась (нет Android Studio/SDK в сессии); прогнать чек-лист релиза `MOBILE.md` §6.
+- [ ] Живые потоки Apple не проверялись (нет ключей): `form_post`, обмен кода, отзыв токена, системное окно iOS, вариант «Скрыть почту», cookie SameSite=None в Safari/Chrome, привязка Apple в кабинете.
+- [ ] Удаление аккаунта и плашка согласия не прогонялись вживую против D1/R2 и в браузере — только юнит-тесты, eslint и tsc; проверить в реальных сборках iOS/Android (строки «Восстановить покупки» и «О приложении» видны только при `isNative()`).
+- [ ] `npm run build` в спринте не запускался: проверить сборку маршрутов с точкой в имени каталога (`app/.well-known/*`); при отказе `assetlinks.json` можно отдать статикой из `public/.well-known/`, AASA требует маршрута.
+- [ ] Визуально проверить новые страницы и карточку «Настройки» (Day/Night, 375–1920 px); Night-правила для `.cabinet-danger`/`.delete-account` опираются на токены `customer.css`, отдельных правил в `theme-night.css` нет.
+- [ ] Оператору следить за строками «Apple token revocation failed» в `market_operational_errors` (area `auth`) и повторять отзыв; политика обещает именно это.
+- [ ] Локализовать код ошибки `handoff_invalid` в копии `/login` (сейчас шелл показывает общий тост о неудачном возврате).
+- [ ] Запланировано, не реализовано: push-уведомления (APNs/FCM), биометрическая блокировка, приём ссылок через системный share; кнопка «Открыть настройки аккаунта» на `/delete-account` ведёт на `/account` без якоря.
+- [ ] Риск Apple 4.2 («просто обёртка») остаётся: список смягчений — `MOBILE.md` §7.
+
 ## Tariff r4, link-order sheets, swipe gallery, Telegram bot sign-in — 6 October 2026
 
 - [x] Tariff revision 4: $14.98 per kg everywhere and the fee exactly 9.98% (a saved buyout/conversion percent made it 10.98%); per-country per-kg and fee overrides are dropped once.

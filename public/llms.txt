@@ -22,9 +22,14 @@
 - Store directory: https://atlasmarket.uz/stores
 - Customs guidance: https://atlasmarket.uz/customs
 - Terms and privacy drafts: https://atlasmarket.uz/legal
+- Privacy policy: https://atlasmarket.uz/privacy
+- Terms of use (public offer, app terms): https://atlasmarket.uz/terms
+- Support: https://atlasmarket.uz/support
+- Mobile app (iOS and Android): https://atlasmarket.uz/app
+- Account deletion instructions: https://atlasmarket.uz/delete-account
 
 Every public page has Uzbek, Russian and English versions: add `?lang=uz`, `?lang=ru` or `?lang=en` (for example https://atlasmarket.uz/customs?lang=ru). Without the parameter a page follows the visitor's saved or browser language and defaults to Uzbek. The legal documents themselves are drafted in Russian until the reviewed translations are ready.
 
 ## Discovery and access
 
-The public catalog, store directory, customs guidance and legal page are crawlable. Account, order, passport, declaration, operator, API and other private paths require authentication and are excluded from public discovery.
+The public catalog, store directory, customs guidance, legal, privacy, terms, support, app and account-deletion pages are crawlable. Account, order, passport, declaration, operator, API and other private paths require authentication and are excluded from public discovery.

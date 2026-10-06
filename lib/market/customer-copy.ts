@@ -129,7 +129,18 @@ export type AccountCopy = {
     team: string; you: string; replyPlaceholder: string; reply: string; none: string; newTicket: string; subject: string; question: string; send: string; sent: string;
     aboutOrder: (id: string) => string;
   };
-  settings: { title: string; language: string; theme: string; rules: string; signOut: string };
+  settings: {
+    title: string; language: string; theme: string; rules: string; signOut: string;
+    support: string; privacy: string; terms: string;
+    consents: string; consentsNone: string; consentsAccept: string; consentVersion: (version: string) => string; consentDoc: Record<'privacy' | 'terms', string>;
+    restore: string; restored: (orders: number) => string;
+    about: string; aboutVersion: (version: string, build: string) => string; aboutPlatform: Record<'ios' | 'android', string>; aboutLink: string;
+  };
+  deletion: {
+    title: string; lead: string; open: string; removed: string; removedList: string[]; kept: string; keptList: string[];
+    blocked: (count: number) => string; blockedHint: string; orders: string; support: string; supportSubject: string;
+    autoCancel: (count: number) => string; balance: (sum: string) => string; confirm: string; cancel: string; done: string; failed: string;
+  };
 };
 
 const reserveHelp = {
@@ -351,7 +362,22 @@ export const accountCopy: Record<Locale, AccountCopy> = {
       replyPlaceholder: 'Ваш ответ', reply: 'Ответить', none: 'Обращений пока нет.', newTicket: 'Новое обращение', subject: 'Тема', question: 'Опишите вопрос',
       send: 'Отправить', sent: 'Обращение отправлено.', aboutOrder: id => `Вопрос по заказу ${id}`,
     },
-    settings: { title: 'Настройки', language: 'Язык', theme: 'Тема', rules: 'Правила и обработка данных', signOut: 'Выйти из аккаунта' },
+    settings: {
+      title: 'Настройки', language: 'Язык', theme: 'Тема', rules: 'Правила и обработка данных', signOut: 'Выйти из аккаунта',
+      support: 'Поддержка и помощь', privacy: 'Политика конфиденциальности', terms: 'Условия использования',
+      consents: 'Согласия', consentsNone: 'Не зафиксированы', consentsAccept: 'Принять', consentVersion: version => `редакция ${version}`, consentDoc: { privacy: 'Политика конфиденциальности', terms: 'Условия использования' },
+      restore: 'Восстановить покупки', restored: orders => `В Atlas нет встроенных покупок App Store и Google Play. Заказы (${orders}) и баланс восстановлены из вашего аккаунта.`,
+      about: 'О приложении', aboutVersion: (version, build) => `Версия ${version} (${build})`, aboutPlatform: { ios: 'iOS', android: 'Android' }, aboutLink: 'Подробнее о приложении',
+    },
+    deletion: {
+      title: 'Удалить аккаунт', lead: 'Аккаунт и личные данные будут удалены без возможности восстановления.', open: 'Удалить аккаунт',
+      removed: 'Будет удалено', removedList: ['профиль и контакты', 'получатели и адреса', 'сканы паспортов', 'корзина и избранное', 'уведомления', 'способы входа', 'история обращений в поддержку'],
+      kept: 'Останется без личных данных', keptList: ['записи о заказах и бухгалтерские записи, которые требует хранить закон, — на установленный законом срок, под обезличенным идентификатором'],
+      blocked: count => count === 1 ? 'Один оплаченный заказ ещё в работе.' : `Оплаченных заказов в работе: ${count}.`, blockedHint: 'Сначала дождитесь доставки или отмените их — или напишите в поддержку, и мы поможем закрыть их.',
+      orders: 'Открыть заказы', support: 'Написать в поддержку', supportSubject: 'Удаление аккаунта',
+      autoCancel: count => count === 1 ? 'Один неоплаченный запрос будет отменён автоматически.' : `Неоплаченные запросы (${count}) будут отменены автоматически.`,
+      balance: sum => `Понимаю, что баланс ${sum} будет потерян`, confirm: 'Удалить аккаунт навсегда', cancel: 'Отмена', done: 'Аккаунт удалён.', failed: 'Не удалось удалить аккаунт.',
+    },
   },
   uz: {
     title: 'Shaxsiy kabinet',
@@ -391,7 +417,22 @@ export const accountCopy: Record<Locale, AccountCopy> = {
       replyPlaceholder: 'Javobingiz', reply: 'Javob berish', none: 'Hali murojaatlar yo‘q.', newTicket: 'Yangi murojaat', subject: 'Mavzu', question: 'Savolingizni yozing',
       send: 'Yuborish', sent: 'Murojaat yuborildi.', aboutOrder: id => `${id} buyurtma bo‘yicha savol`,
     },
-    settings: { title: 'Sozlamalar', language: 'Til', theme: 'Ko‘rinish', rules: 'Qoidalar va ma’lumotlarga ishlov berish', signOut: 'Akkauntdan chiqish' },
+    settings: {
+      title: 'Sozlamalar', language: 'Til', theme: 'Ko‘rinish', rules: 'Qoidalar va ma’lumotlarga ishlov berish', signOut: 'Akkauntdan chiqish',
+      support: 'Yordam va qo‘llab-quvvatlash', privacy: 'Maxfiylik siyosati', terms: 'Foydalanish shartlari',
+      consents: 'Roziliklar', consentsNone: 'Qayd etilmagan', consentsAccept: 'Qabul qilish', consentVersion: version => `${version} tahriri`, consentDoc: { privacy: 'Maxfiylik siyosati', terms: 'Foydalanish shartlari' },
+      restore: 'Xaridlarni tiklash', restored: orders => `Atlasda App Store va Google Play ichki xaridlari yo‘q. Buyurtmalar (${orders}) va balans akkauntingizdan tiklandi.`,
+      about: 'Ilova haqida', aboutVersion: (version, build) => `Versiya ${version} (${build})`, aboutPlatform: { ios: 'iOS', android: 'Android' }, aboutLink: 'Ilova haqida batafsil',
+    },
+    deletion: {
+      title: 'Akkauntni o‘chirish', lead: 'Akkaunt va shaxsiy ma’lumotlar qaytarib bo‘lmaydigan tarzda o‘chiriladi.', open: 'Akkauntni o‘chirish',
+      removed: 'O‘chiriladi', removedList: ['profil va kontaktlar', 'qabul qiluvchilar va manzillar', 'pasport skanlari', 'savat va sevimlilar', 'bildirishnomalar', 'kirish usullari', 'yordam xizmatiga murojaatlar tarixi'],
+      kept: 'Shaxsiy ma’lumotlarsiz saqlanadi', keptList: ['qonun saqlashni talab qiladigan buyurtma va buxgalteriya yozuvlari — qonunda belgilangan muddatga, shaxssizlantirilgan identifikator ostida'],
+      blocked: count => count === 1 ? 'Bitta to‘langan buyurtma hali jarayonda.' : `Jarayondagi to‘langan buyurtmalar: ${count}.`, blockedHint: 'Avval yetkazilishini kuting yoki ularni bekor qiling — yoki yordam xizmatiga yozing, yopishga yordam beramiz.',
+      orders: 'Buyurtmalarni ochish', support: 'Yordam xizmatiga yozish', supportSubject: 'Akkauntni o‘chirish',
+      autoCancel: count => count === 1 ? 'Bitta to‘lanmagan so‘rov avtomatik bekor qilinadi.' : `To‘lanmagan so‘rovlar (${count}) avtomatik bekor qilinadi.`,
+      balance: sum => `${sum} balans yo‘qolishini tushunaman`, confirm: 'Akkauntni butunlay o‘chirish', cancel: 'Bekor qilish', done: 'Akkaunt o‘chirildi.', failed: 'Akkauntni o‘chirib bo‘lmadi.',
+    },
   },
   en: {
     title: 'Your account',
@@ -431,7 +472,22 @@ export const accountCopy: Record<Locale, AccountCopy> = {
       replyPlaceholder: 'Your reply', reply: 'Reply', none: 'No tickets yet.', newTicket: 'New request', subject: 'Subject', question: 'Describe your question',
       send: 'Send', sent: 'Request sent.', aboutOrder: id => `Question about order ${id}`,
     },
-    settings: { title: 'Settings', language: 'Language', theme: 'Theme', rules: 'Terms and data processing', signOut: 'Sign out' },
+    settings: {
+      title: 'Settings', language: 'Language', theme: 'Theme', rules: 'Terms and data processing', signOut: 'Sign out',
+      support: 'Support and help', privacy: 'Privacy policy', terms: 'Terms of use',
+      consents: 'Consents', consentsNone: 'Not recorded', consentsAccept: 'Accept', consentVersion: version => `edition ${version}`, consentDoc: { privacy: 'Privacy policy', terms: 'Terms of use' },
+      restore: 'Restore purchases', restored: orders => `Atlas has no App Store or Google Play in-app purchases. Your orders (${orders}) and balance were restored from your account.`,
+      about: 'About the app', aboutVersion: (version, build) => `Version ${version} (${build})`, aboutPlatform: { ios: 'iOS', android: 'Android' }, aboutLink: 'More about the app',
+    },
+    deletion: {
+      title: 'Delete account', lead: 'The account and personal data will be deleted permanently.', open: 'Delete account',
+      removed: 'Will be deleted', removedList: ['profile and contacts', 'recipients and addresses', 'passport scans', 'cart and favourites', 'notifications', 'sign-in methods', 'support history'],
+      kept: 'Kept without personal data', keptList: ['order and accounting records the law requires us to keep — for the statutory period, under an anonymised identifier'],
+      blocked: count => count === 1 ? 'One paid order is still in progress.' : `Paid orders in progress: ${count}.`, blockedHint: 'Wait for delivery or cancel them first — or write to support and we will help close them.',
+      orders: 'Open orders', support: 'Write to support', supportSubject: 'Account deletion',
+      autoCancel: count => count === 1 ? 'One unpaid request will be cancelled automatically.' : `Unpaid requests (${count}) will be cancelled automatically.`,
+      balance: sum => `I understand the balance of ${sum} will be lost`, confirm: 'Delete account permanently', cancel: 'Cancel', done: 'Account deleted.', failed: 'Could not delete the account.',
+    },
   },
 };
 

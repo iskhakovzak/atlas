@@ -71,6 +71,13 @@
       "when": 1791230317594,
       "tag": "0009_accounting",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1791258791853,
+      "tag": "0010_apple_auth",
+      "breakpoints": true
     }
   ]
 }
