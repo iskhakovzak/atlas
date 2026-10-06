@@ -6,7 +6,7 @@ import { applyAction, type Action } from './actions.ts';
 import { checkCartSources } from './cart-check.ts';
 import { canonicalCatalogUrl, type CatalogDocument } from './catalog-editor.ts';
 import { communityCatalogProducts } from './community-deals.ts';
-import { cartSignature, customsHelpChosen, products as serverProducts, renewCart, unknownStoreShippingUsd, type Pricing, type Product, type State } from './domain.ts';
+import { cartSignature, checkoutLines, customsHelpChosen, inCheckout, products as serverProducts, renewCart, unknownStoreShippingUsd, type Pricing, type Product, type State } from './domain.ts';
 import type { Policy } from './policy.ts';
 import { validBoxedWeight } from './weight.ts';
 import { toUsd } from './world.ts';
@@ -183,19 +183,22 @@ export async function prepareAction(state: State, action: Action, deps: PrepareD
       raised = true;
       return { ...item, product };
     });
-    const checked = await checkCartSources(floored, deps.fetchProduct, currentPricing, now, deps.recentCheckMs, { editorial });
-    state = { ...state, cart: checked.cart };
+    // Only the lines ticked for this checkout are asked from the stores; the ones left for later wait for their turn.
+    const checked = await checkCartSources(checkoutLines(floored), deps.fetchProduct, currentPricing, now, deps.recentCheckMs, { editorial });
+    const fresh = new Map(checked.cart.map(item => [item.id, item]));
+    state = { ...state, cart: floored.map(item => fresh.get(item.id) ?? item) };
+    const lines = checkoutLines(state.cart);
     // A line priced before the tariff changed, or without (with) the customs fee the customer (no longer) chose.
-    const tariffChanged = state.cart.some(item => item.quote.tariffVersion !== currentPricing.version || Boolean(item.quote.customsHelp) !== customsHelpChosen(state));
+    const tariffChanged = lines.some(item => item.quote.tariffVersion !== currentPricing.version || Boolean(item.quote.customsHelp) !== customsHelpChosen(state));
     // The raised reserve is outside the total, but the customer sees the new hold before the order is placed.
     const holdChanged = raised && renewCart(state, now, currentPricing).cart.some((item, index) => (item.quote.storeShippingHold ?? 0) !== (state.cart[index].quote.storeShippingHold ?? 0) || item.quote.total !== state.cart[index].quote.total);
     const unreachableOnly = checked.blocked.length > 0 && checked.blocked.every(id => state.cart.find(item => item.id === id)?.sourceIssue?.kind === 'unreachable');
     refusal = checked.blocked.length ? (unreachableOnly ? 'err_38' : 'err_36') : checked.changed.length ? 'err_35' : tariffChanged || holdChanged ? 'err_37' : undefined;
     if (refusal) state = renewCart(state, now, currentPricing);
-    else if (action.type === 'checkout' && state.cart.some(item => now >= item.quote.expiresAt)) {
+    else if (action.type === 'checkout' && lines.some(item => now >= item.quote.expiresAt)) {
       // Only the 15-minute hold ran out: with the same amounts the customer already saw, go on.
       const renewed = renewCart(state, now, currentPricing);
-      const sameTotals = renewed.cart.every((item, index) => item.quote.total === state.cart[index].quote.total);
+      const sameTotals = renewed.cart.every((item, index) => !inCheckout(item) || item.quote.total === state.cart[index].quote.total);
       if (!sameTotals) refusal = 'err_37';
       else if (action.signature === cartSignature(state.cart)) action.signature = cartSignature(renewed.cart);
       state = renewed;

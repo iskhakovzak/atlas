@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { products, tariff, blank, addToCart, changeQuantity, setCartCustoms, cartSignature, checkoutCart, totalOf, balanceOf, confirmCustomsDuty, approveCustomsExtra, advanceOrder, orderPayable } from '../lib/market/domain.ts';
+import { products, tariff, blank, addToCart, changeQuantity, setCartCustoms, cartSignature, checkoutCart, totalOf, balanceOf, confirmCustomsDuty, approveCustomsExtra, advanceOrder, orderPayable, withCustomsHelpFor } from '../lib/market/domain.ts';
 import { cartCustomsEstimate } from '../lib/market/allowance.ts';
 import { orderFinance } from '../lib/market/finance.ts';
 import { customsVersion } from '../lib/market/world.ts';
@@ -24,17 +24,38 @@ test('"Atlas pays customs for me" adds 4.98% of the goods price (no delivery) to
   assert.equal(totalOf(removed.cart), totalOf(more.cart) - more.cart[0].quote.customsHelp);
 });
 
-test('the fee is part of the order amount; the next cart starts without it; the books count it as income', () => {
+test('no duty for the recipient: the chosen fee comes off at checkout, nothing is prepaid (owner, 7.10.2026)', () => {
   const chosen = setCartCustoms(addToCart(blank(), products[0], products[0].variants[0], 1000), help, 1000, tariff);
-  const placed = checkoutCart(chosen, 'k1', cartSignature(chosen.cart), false, 2000, customsVersion);
+  assert.ok(chosen.cart[0].quote.customsHelp > 0, 'the cart line carries the fee while the choice stands');
+  const customs = cartCustomsEstimate(chosen, tariff, { name: 'Zarina Karimova' }, chosen.cartCustoms, 2000);
+  assert.equal(customs.estimateUsd, 0);
+  assert.equal(customs.helpRequested, undefined);
+  assert.deepEqual(withCustomsHelpFor(chosen.cart, customs, tariff.fx).map((line) => line.quote.customsHelp), [undefined]);
+  const placed = checkoutCart(chosen, 'k1', cartSignature(chosen.cart), false, 2000, customsVersion, undefined, undefined, undefined, tariff, customs, 0);
   const order = placed.orders[0];
-  assert.equal(order.quote.customsHelp, chosen.cart[0].quote.customsHelp);
-  assert.equal(order.payment.amount, chosen.cart[0].quote.total);
-  assert.ok(order.history.some((entry) => entry.text.includes('оплату таможни через Atlas')));
+  assert.equal(order.quote.customsHelp, undefined);
+  assert.equal(order.quote.customsDuty, undefined);
+  assert.equal(order.payment.amount, chosen.cart[0].quote.total - chosen.cart[0].quote.customsHelp);
+  assert.ok(!order.history.some((entry) => entry.code === 'customs-help'));
   assert.equal(placed.cartCustoms, undefined, 'the choice belonged to that checkout');
-  const books = orderFinance(order, 'c');
-  assert.equal(books.services, order.quote.customsHelp);
-  assert.equal(books.revenue, books.commission + books.delivery + books.fxGain + books.services);
+});
+
+test('"remember for next orders" carries the choice into the next cart; unticked, the account forgets it', () => {
+  const remembered = setCartCustoms(addToCart(blank(), products[0], products[0].variants[0], 1000), { ...help, remember: true }, 1000, tariff);
+  assert.deepEqual(remembered.customsPreference, { help: true });
+  assert.equal(remembered.cartCustoms.remember, undefined, 'the flag is not kept in the cart');
+  const customs = cartCustomsEstimate(remembered, tariff, { name: 'Zarina Karimova' }, remembered.cartCustoms, 2000);
+  const placed = checkoutCart(remembered, 'r1', cartSignature(remembered.cart), false, 2000, customsVersion, undefined, undefined, undefined, tariff, customs, 0);
+  const next = addToCart(placed, products[0], products[0].variants[0], 3000);
+  assert.equal(next.cartCustoms, undefined);
+  assert.ok(next.cart[0].quote.customsHelp > 0, 'the new cart starts with the remembered choice');
+  const self = setCartCustoms(next, { ...none, remember: true }, 4000, tariff);
+  assert.deepEqual(self.customsPreference, { help: false });
+  assert.equal(self.cart[0].quote.customsHelp, undefined);
+  const once = setCartCustoms(next, { ...none, remember: false }, 4000, tariff);
+  assert.equal(once.customsPreference, undefined);
+  const kept = setCartCustoms(next, none, 4000, tariff);
+  assert.deepEqual(kept.customsPreference, { help: true }, 'an older client without the flag leaves the remembered choice as it is');
 });
 
 test('a cart whose lines do not match the customs choice is repriced before checkout', () => {
@@ -60,8 +81,11 @@ test('the estimated duty is prepaid in the order amount, exactly as the confirma
   assert.equal(order.quote.customsDuty, duty);
   assert.equal(order.quote.total, cart.cart[0].quote.total + duty);
   assert.equal(order.payment.amount, order.quote.total);
+  assert.equal(order.quote.customsHelp, cart.cart[0].quote.customsHelp, 'with duty to pay, the fee stays');
+  assert.ok(order.history.some((entry) => entry.text.includes('оплату таможни через Atlas')));
   const books = orderFinance(order, 'c');
   assert.equal(books.services, order.quote.customsHelp, 'the duty is transit, not Atlas income');
+  assert.equal(books.revenue, books.commission + books.delivery + books.fxGain + books.services);
 });
 
 test('customs charging less returns the rest to the balance; more waits for consent and blocks delivery', () => {
