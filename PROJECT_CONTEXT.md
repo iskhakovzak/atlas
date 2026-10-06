@@ -274,9 +274,9 @@ This is a UX refinement, not a commercial launch or a new authentication system.
 
 ## Roles and authentication
 
-The public catalog, customs guide and legal terms are available to guests. Saved finds, import, cart, orders, balance, messages, account, passport and declarations require platform-owned ChatGPT sign-in. Atlas account identity is email:<lowercase email>. This was intentional: some hosted requests provide authenticated email but omit platform user ID. app/chatgpt-auth.ts treats platform ID as optional; lib/market/server.ts migrates an old platform-ID row into the email-based account. Do not reverse this without a migration.
+The public catalog, customs guide and legal terms are available to guests. Saved finds, import, cart, orders, balance, messages, account, passport and declarations require Atlas sign-in (Telegram, phone code, email code, Google, Apple; lib/auth/). Email, Google and Apple map to the account identity email:<lowercase email>, which also keeps accounts created under the former ChatGPT sign-in. lib/market/server.ts migrates an old platform-ID row into the email-based account; do not reverse this without a migration.
 
-An operator is an authenticated customer whose email matches secret ATLAS_OPERATOR_EMAIL. Client UI is not authorization: operator checks occur in server actions. There is no standalone email/password/phone registration; the user asked to postpone it. The public site access policy does not grant operator rights.
+An operator is an authenticated customer whose email matches secret ATLAS_OPERATOR_EMAIL. Client UI is not authorization: operator checks occur in server actions. There are no passwords: every method signs in with a one-time code or a provider (see AUTH_SETUP.md). The public site access policy does not grant operator rights.
 
 ## Business logic and price calculation
 
@@ -284,12 +284,12 @@ Default pricing lives in lib/market/domain.ts and lib/market/world.ts. The opera
 
 | Item | Current demo rule |
 | --- | --- |
-| UZS per USD | 12,800 |
-| Service fee | 12% of merchandise |
-| International freight | 90,000 UZS / chargeable kg |
+| UZS per USD | CBU rate × 1.012 (`fxSource: "cbu"`), or an explicitly labelled set rate |
+| Atlas fee | 9.98% of merchandise only |
+| International freight | express $15.98 / kg, standard $13.98 / kg (`Pricing.perKgUsd`, `standardPerKgUsd`), converted at the Atlas rate |
 | International reserve | none since 5 October 2026 (was 20% of international freight) |
 | Dimensional divisor | 5,000 |
-| Shipping mass | boxed kg + 0.3 kg + 0.2 kg |
+| Shipping mass | boxed kg of the parcel + 0.3 kg once, at least 1 kg |
 
 Quote is merchandise + merchant-to-warehouse shipping + service fee + international freight + international reserve. Source shipping is per unit and quantity currently multiplies it conservatively.
 
@@ -521,7 +521,7 @@ The customs page explains $200 monthly courier and separate $100 postal norms, s
 - These are dated observations, not inventory or guarantees. Before cart/checkout the server attempts a protected price/currency/option recheck. If the merchant is unreachable or omits public details, only an explicitly customer-confirmed request can proceed; mismatches and definite not-found responses stop. Customer ordering does not gate on stock status.
 - The link-order notice always includes the exact merchant-page link, including successful partial imports. Zero-cost shipping is labelled as merchant delivery to the Atlas warehouse rather than customer delivery.
 - Generic imports infer the storefront dispatch country from explicit shipping origin, locale path, regional domain or a bounded merchant map; currency continues to come from the store and falls back from the inferred country only when the page omits it. Category inference also uses structured product category/description and recognizes common trackers such as AirTag.
-- International freight now has a one-kilogram minimum per merchant parcel. Cart rows from the same source host and dispatch country combine boxed weight, add the 0.3 kg packaging and 0.2 kg safety allowance once, and allocate the resulting freight and reserve across their immutable line quotes.
+- International freight now has a one-kilogram minimum per merchant parcel. Cart rows from the same source host and dispatch country combine boxed weight, add the 0.3 kg packaging once (the former 0.2 kg allowance was removed on 5 October 2026), and allocate the resulting freight and reserve across their immutable line quotes.
 
 ## Pricing, approvals, warehouse and catalog release — 12 September 2026
 
