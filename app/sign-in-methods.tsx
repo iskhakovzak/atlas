@@ -5,10 +5,10 @@ import {KeyRound,Mail,MessageCircle,Plus,Smartphone} from 'lucide-react';
 import {toast} from 'sonner';
 import type {Locale} from '@/lib/market/i18n';
 import {Modal} from './market-ui';
-import {OtpLogin,TelegramLogin,loginCopy} from './login-view';
+import {OtpLogin,TelegramBotLogin,TelegramLogin,loginCopy} from './login-view';
 
 type Method='email'|'phone'|'telegram'|'google';
-type Available={email:boolean;phone:boolean;telegram:string|null;google:boolean;devCodes:boolean};
+type Available={email:boolean;phone:boolean;telegram:string|null;telegramBot?:boolean;google:boolean;devCodes:boolean};
 type Links={own:{method:Method;contact:string};linked:Array<{subject:string;method:Method;contact:string;createdAt:number}>;current:Method};
 
 const copy={
@@ -72,7 +72,7 @@ export function SignInMethods({locale}:{locale:Locale}){
    :<button key={method} type="button" className="btn secondary" onClick={()=>{setError(null);setAdding(method)}}><Plus size={16} aria-hidden="true"/><Icon size={16} aria-hidden="true"/>{c.names[method]}</button>})}</div>}
   <Modal open={adding!==null} onClose={()=>setAdding(null)} title={adding?c.attach(c.names[adding]):''} description={c.attachHint} locale={locale}>
    {error&&<div className="notice error" role="alert">{error}</div>}
-   {adding==='telegram'&&available?.telegram&&<TelegramLogin link bot={available.telegram} hint={lc.telegramHint} onDone={attached} onError={showError}/>}
+   {adding==='telegram'&&available?.telegram&&(available.telegramBot?<TelegramBotLogin link locale={locale} onDone={attached} onError={showError}/>:<TelegramLogin link bot={available.telegram} hint={lc.telegramHint} onDone={attached} onError={showError}/>)}
    {(adding==='phone'||adding==='email')&&<OtpLogin link key={adding} channel={adding} c={lc} dev={!!available?.devCodes} onDone={attached} onError={showError}/>}
   </Modal>
  </section>;

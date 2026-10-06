@@ -1,8 +1,11 @@
 /* Photo gestures preserve vertical document scrolling and browser pinch zoom. */
 .product-gallery{width:100%;min-width:0}
-.product-gallery-stage{width:100%;aspect-ratio:1;overflow:hidden;border-radius:10px;background:var(--atlas-soft,#f6f8f6);touch-action:pan-y pinch-zoom;user-select:none;cursor:grab}
-.product-gallery-stage:active{cursor:grabbing}
-.product-gallery-stage .product-img,.product-gallery-stage .no-photo{display:flex;width:100%;height:100%;object-fit:contain}
+.product-gallery-stage{display:flex;width:100%;aspect-ratio:1;overflow-x:auto;overflow-y:hidden;border-radius:10px;background:var(--atlas-soft,#f6f8f6);scroll-snap-type:x mandatory;scroll-behavior:smooth;overscroll-behavior-x:contain;scrollbar-width:none;touch-action:pan-x pan-y pinch-zoom;user-select:none;cursor:grab}
+.product-gallery-stage::-webkit-scrollbar{display:none}
+.product-gallery-stage.dragging{cursor:grabbing;scroll-snap-type:none;scroll-behavior:auto}
+.product-gallery-slide{flex:0 0 100%;width:100%;height:100%;scroll-snap-align:center;scroll-snap-stop:always}
+.product-gallery-slide .product-img,.product-gallery-slide .no-photo{display:flex;width:100%;height:100%;object-fit:contain}
+@media (prefers-reduced-motion:reduce){.product-gallery-stage{scroll-behavior:auto}}
 .product-gallery-stage:focus-visible{outline:2px solid var(--atlas-accent,#214e40);outline-offset:3px}
 .product-gallery-controls{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:6px;font-size:13px;color:var(--muted-foreground)}
 .product-gallery-controls button{display:grid;place-items:center;width:44px;min-height:44px;border:1px solid var(--atlas-line);border-radius:50%;color:var(--atlas-ink);background:var(--background,#fff)}
@@ -53,3 +56,8 @@ body:has([role=dialog][data-state=open]) .storage-notice{visibility:hidden}
   .notice-filters{flex-wrap:wrap}
   .notice-filters button{min-height:44px}
 }
+/* Sideways rows settle on the edge of a card or chip instead of stopping halfway (proximity: a short flick
+   still stops where the finger leaves it). The product gallery and the home catalog row snap on their own. */
+:is(.home-stores ul,.find-collections,.catalog-sets,.stores-chips,.orders-recipients,.notice-filters,.product-gallery-thumbnails,.import-gallery,.catalog-photo-gallery>div,.audit-folders,.admin-tabs,.legal-nav){scroll-snap-type:x proximity;scroll-padding-inline:16px}
+:is(.home-stores ul,.find-collections,.catalog-sets,.stores-chips,.orders-recipients,.notice-filters,.product-gallery-thumbnails,.import-gallery,.catalog-photo-gallery>div,.audit-folders,.admin-tabs,.legal-nav)>*{scroll-snap-align:start}
+@media (prefers-reduced-motion:no-preference){.product-gallery-thumbnails,.find-collections,.catalog-sets,.stores-chips{scroll-behavior:smooth}}

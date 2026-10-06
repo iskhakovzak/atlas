@@ -1,9 +1,9 @@
 import {HttpError} from '@/lib/market/server';
 import {AuthError} from './server';
 
-export function authJson(body:unknown,status=200,setCookie?:string){
+export function authJson(body:unknown,status=200,setCookie?:string|string[]){
  const response=Response.json(body,{status,headers:{'Cache-Control':'no-store'}});
- if(setCookie)response.headers.append('Set-Cookie',setCookie);
+ for(const value of [setCookie??[]].flat())response.headers.append('Set-Cookie',value);
  return response;
 }
 

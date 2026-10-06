@@ -120,7 +120,6 @@ export function GlobalLinkOrder() {
   const requestedUrl = searchParams.get("url") ?? "";
   const catalogId = searchParams.get("catalog") ?? "";
   const isSourcedFlow = Boolean(requestedUrl);
-  const catalogFixedText=tx('Название, категория, вес и доставка заданы Atlas для товара каталога. Выберите вариант и проверьте расчёт.','Katalog tovarining nomi, kategoriyasi, vazni va yetkazishini Atlas belgilagan. Variantni tanlab, hisobni tekshiring.','Atlas set the catalog item’s name, category, weight and store delivery. Choose an option and review the estimate.');
   const dealSeed = communityDeals.find(item => item.id === searchParams.get("deal") && item.url === requestedUrl);
   const dealOptions: ProductVariant[] = dealSeed ? communityFallbackOptions(dealSeed).map(item => ({ ...item, available: true })) : [];
   const dealBoxedWeight = dealSeed ? Math.max(0.1, communityEstimatedWeight(dealSeed) - 0.5) : undefined;
@@ -550,6 +549,28 @@ export function GlobalLinkOrder() {
     // `load` intentionally reads the current form state; this effect runs once per requested product.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestedUrl, catalogId, catalogContextLoaded]);
+  // Sheets: where the first one starts and how much of the screen the bottom bars cover, measured, so the
+  // next sheet never peeks in (app/customer.css, "Link order sheets").
+  const sheetsShown = Boolean(source && !busy);
+  useEffect(() => {
+    if (!sheetsShown) return;
+    const root = document.documentElement;
+    const measure = () => {
+      const form = document.getElementById("link-order-form");
+      if (!form) return;
+      const covered = Array.from(document.querySelectorAll<HTMLElement>(".mobile-nav, .lo-sticky"))
+        .map(bar => bar.getBoundingClientRect())
+        // Fixed bars in the lower half: the bottom navigation and the sticky total stacked on it.
+        .filter(rect => rect.height > 0 && rect.top > window.innerHeight / 2 && rect.top < window.innerHeight)
+        .reduce((top, rect) => Math.min(top, rect.top), window.innerHeight);
+      root.style.setProperty("--lo-top", `${Math.round(form.getBoundingClientRect().top + window.scrollY)}px`);
+      root.style.setProperty("--lo-bottom", `${Math.max(0, Math.round(window.innerHeight - covered))}px`);
+    };
+    measure();
+    const late = window.setTimeout(measure, 400);
+    window.addEventListener("resize", measure);
+    return () => { window.clearTimeout(late); window.removeEventListener("resize", measure); root.style.removeProperty("--lo-top"); root.style.removeProperty("--lo-bottom"); };
+  }, [sheetsShown, added, ready]);
   // The options the customer chose, with quantities: from the option buttons, or the typed option.
   const picks: [string, number][] = variants.length
     ? Object.entries(picked).filter(([label]) => variants.some(item => item.label === label))
@@ -776,13 +797,14 @@ export function GlobalLinkOrder() {
             }
           }}
         >
+          {/* Three sheets on phones that snap like the home page: choose, the bill, then the data and the button. */}
+          <div className="lo-sheet lo-sheet-pick">
           <section className={"lo-product" + (image ? "" : " lo-product-plain")} aria-labelledby="lo-product-name">
             {image && <div className="lo-gallery"><ProductGallery product={previewProduct} images={images.length?images:[image]} activeImage={image} onImageChange={setImage} locale={lang}/></div>}
             <div className="lo-product-copy">
               <p className="basket-brand">{[brand, sourceHost && brand !== sourceHost ? sourceHost : ""].filter(Boolean).join(" · ")}</p>
               <h2 id="lo-product-name">{name || (sourceCheckStatus === "failed" ? lc.unnamed : c.empty)}</h2>
               <p className="lo-store-price">{lc.storePrice}: <b>{storePriceText}</b>{discount && <WasPrice was={discount.was} percent={discount.percent} format={sourceFormat} />}{sourceCheckStatus === "verified" && checkedTime && <small> · {lc.checkedAt(checkedTime)}</small>}</p>
-              {catalogProductFlow && <p className="lo-note" role="status">{catalogFixedText}</p>}
               {sourceCheckStatus === "failed" && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{catalogProductFlow && amount
                 ? tx('Магазин не подтвердил все данные. Расчёт предварительный: при отсутствии новой цены используется сохранённая цена каталога. Перед выкупом оператор уточнит стоимость. Проверьте вариант и подтвердите данные.','Do‘kon barcha ma’lumotlarni tasdiqlamadi. Hisob taxminiy: yangi narx bo‘lmasa, katalogdagi saqlangan narx ishlatiladi. Operator xariddan oldin narxni aniqlaydi. Variantni tekshirib, ma’lumotlarni tasdiqlang.','The store did not confirm all details. This is a preliminary estimate; without a new price, the saved catalog amount is used. An operator will confirm the cost before buyout. Review the option and confirm the details.')
                 : lc.unconfirmed}</p>}
@@ -826,8 +848,10 @@ export function GlobalLinkOrder() {
             </>}
             {variants.length > 0 && !variants.some(item => item.quantity !== undefined || item.quantityMoreThan !== undefined) && <p className="lo-hint-line muted">{k.stockUnknown}</p>}
           </section>
+          </div>
 
           {/* The bill in a folder: the sheet is the amount to pay, the slip holds the hold and customs that stay outside it. */}
+          <div className="lo-sheet lo-sheet-bill">
           <aside className="lo-summary basket-summary folio" aria-labelledby="lo-summary-title">
             <div className="folio-sheet">
               <h2 id="lo-summary-title">{lc.total}</h2>
@@ -843,7 +867,9 @@ export function GlobalLinkOrder() {
               <HoldNote amount={previewSums.storeShippingHold} locale={lang} pricing={pricing}/>
             </section>}
           </aside>
+          </div>
 
+          <div className="lo-sheet lo-sheet-finish">
           <section className={"lo-card lo-data" + (dataExpanded ? " open" : "")}>
             <button type="button" className="lo-data-toggle" aria-expanded={dataExpanded} aria-controls="lo-data-fields" onClick={() => setDataOpen(!dataExpanded)}>
               <span><b>{lc.data}</b><small>{!dataExpanded ? dataSummary : sourceCheckStatus === "verified" ? lc.dataHint : lc.fillFromStore}</small></span>
@@ -962,6 +988,7 @@ export function GlobalLinkOrder() {
             <button className="btn primary basket-cta" disabled={adding || status==='loading'}>{adding ? c.adding : ready ? k.addOptions(Math.max(1, picks.length), Math.max(1, units)) : lc.signinAdd}<ArrowRight size={18} aria-hidden="true" /></button>
             <ul className="basket-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{cc.summary.assurance}</li><li><Info size={16} aria-hidden="true" />{c.freshText}</li></ul>
           </section>
+          </div>
         </form>
       )}
 
