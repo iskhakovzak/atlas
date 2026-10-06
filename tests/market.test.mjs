@@ -186,3 +186,19 @@ test('delivery days set in the admin override the built-in ones per region',asyn
   assert.deepEqual(deliveryDaysFor(pricing,'cn'),[7,9],'a region left out keeps the built-in days');
   assert.throws(()=>pricingSchema.parse({...tariff,deliveryDays:{us:[9,4]}}),'from must not be after to');
 });
+test('one product in several sizes: the shared note and services go to each of its lines in one action',()=>{
+ const photo={...tariff.serviceCatalog.find(service=>service.id==='detailed-photos'),requestStage:'checkout',unit:'photo',pricingMode:'fixed',feeUzs:5000,enabled:true};const config={...tariff,serviceCatalog:[photo]};
+ let state=addToCart(blank(),products[0],'US 9',1000,config);state=addToCart(state,products[0],'US 10',1000,config);state=addToCart(state,products[1],products[1].variants[0],1000,config);
+ const [nine,ten,other]=state.cart;assert.notEqual(nine.id,ten.id);
+ const note=actionSchema.parse({type:'cart-note',id:nine.id,ids:[nine.id,ten.id],note:'Без коробки'});
+ state=applyAction(state,note,false,config);
+ assert.deepEqual(state.cart.map(line=>line.note),['Без коробки','Без коробки',undefined]);
+ const services=actionSchema.parse({type:'cart-services',id:nine.id,ids:[nine.id,ten.id],serviceIds:[photo.id],serviceUnits:{[photo.id]:3}});
+ state=applyAction(state,services,false,config);
+ for(const line of state.cart.slice(0,2)){assert.deepEqual(line.requestedServiceIds,[photo.id]);assert.equal(line.requestedServiceUnits[photo.id],3)}
+ assert.deepEqual(state.cart[2].requestedServiceIds??[],[],'another product keeps its own choice');
+ state=applyAction(state,actionSchema.parse({type:'cart-note',id:other.id,note:'Подарок'}),false,config);
+ assert.equal(state.cart[2].note,'Подарок');assert.equal(state.cart[0].note,'Без коробки','one line without ids changes only itself');
+ assert.throws(()=>applyAction(state,actionSchema.parse({type:'cart-note',id:nine.id,ids:[nine.id,'missing-line'],note:'x'}),false,config));
+ assert.throws(()=>actionSchema.parse({type:'cart-note',id:nine.id,ids:[],note:'x'}),'ids, when sent, is not empty');
+});

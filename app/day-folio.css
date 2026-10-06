@@ -370,7 +370,7 @@ html[data-theme="dark"] .site-main .find-card .find-purchase { margin-top: auto;
 /* ---------- Cart and link-order summaries: one compact white card ---------- */
 /* On the cart and the link order the folder would frame a tall column: the card itself is the sheet, the slip sits inside it. */
 html:not([data-theme="dark"]) .basket-summary.folio { gap: 16px; padding: 22px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow-lift); }
-@media (min-width: 960px) { html:not([data-theme="dark"]) .basket-summary.folio { position: sticky; top: 88px; } }
+@media (min-width: 960px) { html:not([data-theme="dark"]) .basket-summary.folio { position: sticky; top: var(--sticky-top, 88px); } }
 html:not([data-theme="dark"]) .basket-summary.folio .folio-sheet { gap: 12px; padding: 0; border-radius: 0; box-shadow: none; }
 html:not([data-theme="dark"]) .basket-summary.folio .folio-sheet > h2 { margin: 0; font: 750 var(--day-fs-h2-sheet)/1.2 var(--day-sans); letter-spacing: -.02em; color: var(--day-ink); }
 html:not([data-theme="dark"]) .folio-sheet .basket-line { border-bottom: 1px solid var(--day-line); }

@@ -119,7 +119,7 @@ html[data-theme="dark"] .basket-item-note.issue { border-color: rgba(255, 140, 1
 .basket-service-units input { width: 76px; min-height: 44px; padding: 0 10px; border: 1px solid var(--home-line); border-radius: 10px; background: var(--home-surface); color: var(--home-ink); font-size: 16px; }
 
 .basket-summary { display: grid; gap: 14px; padding: 20px; border: 1px solid var(--home-line); border-radius: 18px; background: var(--home-surface); box-shadow: 0 8px 24px rgba(20, 35, 68, .06); }
-@media (min-width: 960px) { .basket-summary { position: sticky; top: 88px; } }
+@media (min-width: 960px) { .basket-summary { position: sticky; top: var(--sticky-top, 88px); } }
 .basket-summary h2 { margin: 0; color: var(--home-ink); font-size: 20px; font-weight: 800; }
 .basket-lines { display: grid; }
 .basket-line { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 12px; min-height: 44px; padding: 6px 0; border-bottom: 1px dashed var(--home-line); }
@@ -957,3 +957,79 @@ html[data-theme="dark"] .price-off { background: var(--night-jade-soft-strong); 
 .delete-account-confirm.btn.primary:disabled { opacity: .55; cursor: not-allowed; }
 @media (min-width: 700px) { .delete-account-lists { grid-template-columns: 1fr 1fr; } }
 html[data-theme="dark"] .delete-account-confirm.btn.primary { color: #2b0e0a; }
+
+/* ---------- Cart, 7.10.2026: options of one product share a note and services; who pays customs; customs calculator ---------- */
+/* Options of one product (sizes, colors) sit together; their note and warehouse services come once, below them. */
+:is(.basket-item, .basket-group) + :is(.basket-item, .basket-group) { border-top: 1px solid var(--home-line); }
+.basket-group > .basket-item + .basket-item { border-top-style: dashed; }
+.basket-shared { display: grid; gap: 8px; padding: 0 16px 16px; }
+.basket-shared > .basket-services { grid-area: auto; order: -1; margin-top: 0; }
+.basket-shared > .basket-shared-title { order: -2; }
+.basket-shared-title { display: flex; align-items: flex-start; gap: 7px; margin: 0; padding-top: 10px; border-top: 1px dashed var(--home-line); color: var(--home-muted); font-size: 13px; font-weight: 600; line-height: 1.4; }
+.basket-shared-title svg { flex: none; margin-top: 1px; color: var(--home-accent); }
+@media (min-width: 640px) { .basket-shared { padding: 0 20px 18px 130px; } }
+
+/* Delete in the cart: a quiet red, a little stronger on hover (owner: visible, but not loud). */
+.basket-controls .remove-item { padding: 0 10px; margin-right: -10px; border-radius: 10px; }
+html:not([data-theme="dark"]) .basket-controls .remove-item:not(.confirming) { color: #a5484c; }
+html:not([data-theme="dark"]) .basket-controls .remove-item:not(.confirming):hover { background: #fbeeee; color: #8e2f33; }
+
+/* Who pays the duty: two cards instead of one checkbox; "Atlas pays" is set apart as the easier way. */
+.customs-choice { display: grid; gap: 8px; min-width: 0; margin: 2px 0 0; padding: 10px 0 0; border: 0; border-top: 1px solid var(--home-line); }
+.customs-choice > legend { float: left; width: 100%; margin: 0 0 2px; padding: 0; color: var(--home-ink); font-size: 13.5px; font-weight: 700; }
+.customs-choice[disabled] .customs-option { cursor: progress; opacity: .72; }
+.customs-option { position: relative; display: flex; align-items: flex-start; gap: 10px; padding: 11px 12px; border: 1px solid var(--home-line); border-radius: 12px; background: var(--home-surface); cursor: pointer; transition: border-color .15s, box-shadow .15s, background-color .15s; }
+.customs-option > input { flex: none; width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--home-accent); cursor: inherit; }
+.customs-option:has(> input:focus-visible) { outline: 3px solid color-mix(in srgb, var(--home-accent) 35%, transparent); outline-offset: 2px; }
+.customs-option.selected { border-color: var(--home-accent); box-shadow: inset 0 0 0 1px var(--home-accent); }
+.customs-option-body { display: grid; gap: 6px; min-width: 0; }
+.customs-option-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 7px; color: var(--home-ink); font-size: 14px; line-height: 1.3; }
+.customs-option-head svg { flex: none; color: var(--home-accent); }
+.customs-option-head b { font-weight: 700; }
+.customs-option-head em { position: absolute; top: -9px; right: 10px; padding: 1px 8px; border-radius: 999px; background: var(--home-accent); color: var(--home-accent-ink); font-size: 11px; font-style: normal; font-weight: 700; line-height: 1.5; }
+.customs-option-head small { color: var(--home-muted); font-size: 12.5px; font-weight: 500; }
+.customs-option-perks { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; }
+.customs-option-perks > span { display: flex; align-items: flex-start; gap: 6px; color: var(--home-ink); font-size: 13px; line-height: 1.4; }
+.customs-option-perks svg { flex: none; margin-top: 2px; color: var(--home-accent); }
+.customs-option-body > small { color: var(--home-muted); font-size: 12.5px; line-height: 1.45; }
+.customs-option-body > .customs-option-fee { color: var(--home-ink); font-weight: 600; }
+.customs-option.self .customs-option-head b { font-weight: 650; }
+html:not([data-theme="dark"]) .customs-option.atlas { border-color: var(--day-tint-2); background: var(--day-tint); }
+html:not([data-theme="dark"]) .customs-option.atlas.selected { border-color: var(--day-accent); box-shadow: inset 0 0 0 1px var(--day-accent), var(--day-shadow); }
+html:not([data-theme="dark"]) .customs-option.self:not(.selected) { background: var(--day-surface); }
+
+/* "How customs is calculated": a link-like button that opens a small window with a calculator. */
+.customs-how-trigger { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0; border: 0; background: none; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.customs-how-trigger svg { flex: none; }
+.customs-how-trigger[data-state="open"] { text-decoration-color: transparent; }
+.customs-how { position: relative; z-index: 60; box-sizing: border-box; width: min(340px, calc(100vw - 24px)); padding: 14px 16px 18px; border: 1px solid var(--home-line); border-radius: 16px; background: var(--home-surface); color: var(--home-ink); box-shadow: 0 24px 48px -20px rgba(22, 33, 28, .36), 0 2px 6px rgba(22, 33, 28, .06); font-size: 13.5px; line-height: 1.45; transform-origin: var(--radix-popover-content-transform-origin); animation: customs-how-in .16s ease-out; }
+/* Only the body scrolls on a short screen: the arrow sits outside the window's edge and must not add a scrollbar. */
+.customs-how-body { display: grid; gap: 10px; max-height: calc(var(--radix-popover-content-available-height, 80vh) - 34px); padding-right: 4px; margin-right: -4px; overflow-y: auto; overscroll-behavior: contain; }
+@keyframes customs-how-in { from { opacity: 0; transform: scale(.97); } }
+.customs-how-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.customs-how-head h3 { margin: 0; color: var(--home-ink); font-size: 15px; font-weight: 750; }
+.customs-how-close { display: grid; place-items: center; flex: none; width: 32px; height: 32px; margin: -6px -4px -6px 0; border: 0; border-radius: 50%; background: none; color: var(--home-muted); cursor: pointer; }
+.customs-how-close:hover { background: var(--home-soft); color: var(--home-ink); }
+.customs-how-rule { margin: 0; color: var(--home-ink); }
+.customs-how-left { margin: 0; color: var(--home-muted); font-size: 12.5px; }
+.customs-how-calc { display: grid; gap: 9px; padding: 12px; border-radius: 12px; background: var(--home-soft); }
+.customs-how-label { color: var(--home-muted); font-size: 12px; font-weight: 700; }
+.customs-how-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.customs-how-chips button { min-height: 32px; padding: 0 11px; border: 1px solid var(--home-line); border-radius: 999px; background: var(--home-surface); color: var(--home-ink); font: inherit; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; }
+.customs-how-chips button:hover { border-color: var(--home-accent); }
+.customs-how-chips button.on { border-color: var(--home-accent); background: var(--home-accent); color: var(--home-accent-ink); }
+.customs-how-stepper { display: grid; grid-template-columns: 38px minmax(0, 1fr) 38px; align-items: center; gap: 6px; }
+.customs-how-stepper button { display: grid; place-items: center; height: 38px; border: 1px solid var(--home-line); border-radius: 10px; background: var(--home-surface); color: var(--home-ink); cursor: pointer; }
+.customs-how-stepper button:hover:not(:disabled) { border-color: var(--home-accent); }
+.customs-how-stepper button:disabled { opacity: .4; cursor: default; }
+.customs-how-stepper output { color: var(--home-ink); font-size: 19px; font-weight: 750; text-align: center; font-variant-numeric: tabular-nums; }
+.customs-how-result { margin: 0; padding-top: 9px; border-top: 1px solid var(--home-line); color: var(--home-ink); font-size: 14px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.customs-how-final { margin: 0; color: var(--home-muted); font-size: 12.5px; }
+.customs-how-final a { color: var(--home-accent); font-weight: 700; white-space: nowrap; }
+.customs-how-timer { position: absolute; right: 16px; bottom: 7px; left: 16px; height: 3px; border-radius: 3px; background: var(--home-accent); opacity: .3; transform-origin: left center; animation: customs-how-timer 5s linear forwards; pointer-events: none; }
+.customs-how[data-held] .customs-how-timer { opacity: 0; animation: none; }
+@keyframes customs-how-timer { to { transform: scaleX(0); } }
+.customs-how-arrow { fill: var(--home-surface); filter: drop-shadow(0 1px 0 var(--home-line)); }
+html:not([data-theme="dark"]) .customs-how { border-color: var(--day-line); box-shadow: var(--day-shadow-lift); }
+html:not([data-theme="dark"]) .customs-how-calc { background: var(--day-folio); }
+@media (prefers-reduced-motion: reduce) { .customs-how { animation: none; } .customs-how-timer { display: none; } }
