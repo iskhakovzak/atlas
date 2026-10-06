@@ -1136,9 +1136,6 @@ export function OrdersView({ operations }: { operations: boolean }) {
         <div><b>{passportCopy[locale].title(profile.recipient)}</b><small>{passportCopy[locale].text}</small></div>
         <Link className="btn secondary" href={`/identity?recipient=${encodeURIComponent(profileId)}`}>{passportCopy[locale].action}<ArrowRight size={16} aria-hidden="true" /></Link>
       </div>)}
-      {!operations && viewReady && need.length > 0 && tab !== "attention" && <button type="button" className="orders-attention" onClick={() => setTab("attention")}>
-        <AlertCircle size={20} aria-hidden="true" /><span>{oc.attention(need.length)}</span><span className="orders-attention-go">{oc.showAttention}<ArrowRight size={16} aria-hidden="true" /></span>
-      </button>}
       {operations && (
         <div className="ops-stats">
           <div>
@@ -1165,7 +1162,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
               <TabsTrigger value="active">
                 {wc.active} <b>{operations ? opsCounts?.active ?? 0 : active.length}</b>
               </TabsTrigger>
-              <TabsTrigger value="attention">
+              {/* The count of orders waiting on the customer is said here once, in warning colour, not again in a banner above. */}
+              <TabsTrigger value="attention" className={!operations && need.length > 0 ? "has-attention" : undefined}>
                 {wc.attention} <b>{operations ? opsCounts?.attention ?? 0 : need.length}</b>
               </TabsTrigger>
               <TabsTrigger value="done">

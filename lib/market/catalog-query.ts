@@ -81,7 +81,7 @@ export function storeHost(product: Product & { store?: string }) {
   return (product.store ?? '').toLowerCase();
 }
 /** A store URL as compared between the catalog and the cart: lower-case host without "www.", no hash, no tracking parameters, sorted query. */
-function comparableUrl(value: string) {
+export function catalogUrlKey(value: string) {
   try {
     const url = new URL(value);
     url.hash = '';
@@ -97,7 +97,7 @@ function comparableUrl(value: string) {
  */
 export function sameCatalogProduct(a: Pick<Product, 'id' | 'sourceUrl'>, b: Pick<Product, 'id' | 'sourceUrl'>) {
   if (a.id === b.id && (a.sourceUrl ?? '') === (b.sourceUrl ?? '')) return true;
-  return Boolean(a.sourceUrl && b.sourceUrl) && comparableUrl(a.sourceUrl!) === comparableUrl(b.sourceUrl!);
+  return Boolean(a.sourceUrl && b.sourceUrl) && catalogUrlKey(a.sourceUrl!) === catalogUrlKey(b.sourceUrl!);
 }
 /** The store's brand name ("Amazon", "Amazon · Germany" for another storefront), otherwise its domain. */
 export function storeLabel(host: string, locale: Locale = 'ru') {

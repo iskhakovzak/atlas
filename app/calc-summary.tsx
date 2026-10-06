@@ -1,6 +1,6 @@
 'use client';
 import {useId} from 'react';
-import {HandCoins,Scale,Wallet} from 'lucide-react';
+import {Check,HandCoins,Scale,Wallet} from 'lucide-react';
 import {formatKg,formatPercent,formatSum,formatUsd} from '@/lib/market/home-copy';
 import {calcCopy} from '@/lib/market/calc-copy';
 import {courierAllowanceUsd} from '@/lib/market/customs';
@@ -9,6 +9,7 @@ import {daysRangeFor,deliverySpeedCopy,type DeliverySpeedOption} from '@/lib/mar
 import {packagingKg} from '@/lib/market/world';
 import type {Locale} from '@/lib/market/i18n';
 import {SummaryLine} from './price-summary';
+import {CustomsHow} from './customs-how';
 
 type Sums=Pick<Quote,'merchandise'|'service'|'shipping'|'reserve'|'total'>&{buyout?:number;conversion?:number;sourceShipping?:number;deliveryMargin?:number;optionalServices?:number;storeShippingHold?:number;customsHelp?:number;customsDuty?:number};
 
@@ -112,8 +113,9 @@ export function BlankBill({pricing,locale}:{pricing:Pricing;locale:Locale}){
 
 /**
  * Customs in one short block: the monthly allowance per recipient, the estimated duty when this cart goes over it,
- * and — where the customer can choose — "Atlas pays customs for me", a line in the bill at `customsHelpFee` of the
- * cart. `helpAmount` is that fee in soum (already in the bill when chosen). The server works the figures out again.
+ * and — where the customer can choose — who pays the duty: "Atlas pays customs" (a line in the bill at `customsHelpFee`
+ * of the cart) or the customer at customs. `helpAmount` is that fee in soum (already in the bill when chosen). The
+ * server works the figures out again. "How customs is calculated" opens a small calculator (CustomsHow).
  */
 /** The duty prepaid with "Atlas pays customs for me": the server rounds the same way at checkout (checkoutCart). */
 export const customsDutyAmount=(estimate:Pick<CustomsEstimate,'estimateUsd'>,pricing:Pick<Pricing,'fx'>)=>Math.ceil(estimate.estimateUsd*pricing.fx);
@@ -128,9 +130,25 @@ export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipient
   <p className="calc-customs-sum">{c.allowanceNote}</p>
   {over&&<p className="calc-customs-over">{(choices.help?c.overIncluded:c.overNote)(usd(estimate.dutiableUsd),formatSum(customsDutyAmount(estimate,pricing),locale))}</p>}
   {profiles.length>1&&onRecipient&&<div className="field calc-customs-recipient"><label htmlFor={id+'-recipient'}>{c.recipient}</label><select id={id+'-recipient'} value={recipientId} onChange={event=>onRecipient(event.target.value)}>{profiles.map(profile=><option key={profile.id} value={profile.id}>{profile.recipient}</option>)}</select></div>}
-  {onChoices&&helpAmount!==undefined&&<div className="calc-customs-choices">
-   <label className="calc-check"><input type="checkbox" disabled={busy} checked={choices.help} onChange={event=>onChoices({...choices,help:event.target.checked})}/><span><HandCoins size={15} aria-hidden="true"/> {c.helpOption}<small>{choices.help?c.helpChosen:c.helpOptionNote(percent(pricing.customsHelpFee,locale),formatSum(helpAmount,locale))}</small></span></label>
-  </div>}
-  <a className="calc-customs-link" href="/customs">{c.howLink}</a>
+  {/* Who pays the duty: Atlas (set apart as the easier way) or the customer, when the parcel arrives. */}
+  {onChoices&&helpAmount!==undefined&&<fieldset className="customs-choice" disabled={busy} aria-busy={busy||undefined}>
+   <legend>{c.choice.title}</legend>
+   <label className={'customs-option atlas'+(choices.help?' selected':'')}>
+    <input type="radio" name={id+'-payer'} checked={choices.help} onChange={()=>onChoices({...choices,help:true})}/>
+    <span className="customs-option-body">
+     <span className="customs-option-head"><HandCoins size={16} aria-hidden="true"/><b>{c.choice.atlas}</b><em>{c.choice.badge}</em></span>
+     <span className="customs-option-perks" role="list">{c.choice.perks.map(perk=><span role="listitem" key={perk}><Check size={14} aria-hidden="true"/>{perk}</span>)}</span>
+     <small className="customs-option-fee">{choices.help?c.helpChosen(formatSum(helpAmount,locale)):c.choice.fee(percent(pricing.customsHelpFee,locale),formatSum(helpAmount,locale))}</small>
+    </span>
+   </label>
+   <label className={'customs-option self'+(!choices.help?' selected':'')}>
+    <input type="radio" name={id+'-payer'} checked={!choices.help} onChange={()=>onChoices({...choices,help:false})}/>
+    <span className="customs-option-body">
+     <span className="customs-option-head"><b>{c.choice.self}</b><small>{c.choice.selfFee}</small></span>
+     <small>{over?c.choice.selfOver:c.choice.selfUnder}</small>
+    </span>
+   </label>
+  </fieldset>}
+  <CustomsHow estimate={estimate} pricing={pricing} locale={locale}/>
  </section>;
 }
