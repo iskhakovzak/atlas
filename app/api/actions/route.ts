@@ -1,12 +1,12 @@
 import {actionSchema,applyAction} from '@/lib/market/actions';
-import {account,customerStatus,database,identity,operator,sameOrigin,persist,json,failure,HttpError,requestJson,pricingAndPolicy,deferBackground} from '@/lib/market/server';
+import {account,customerStatus,database,identity,operator,sameOrigin,persist,json,failure,HttpError,rateLimit,requestJson,pricingAndPolicy,deferBackground} from '@/lib/market/server';
 import {apiErrorMessage,requestLocale,serverError} from '@/lib/market/i18n';
 import {fetchProduct} from '@/lib/importer/fetch';
 import {merchantRequest} from '@/lib/importer/worker-fetch';
 import {manualFallbackAllowed,requiresMerchantSnapshot} from '@/lib/importer/manual-fallback';
 import {compareProductSnapshot} from '@/lib/importer/verify';
 import {checkCartSources,recentCheckMs} from '@/lib/market/cart-check';
-import {cartSignature,renewCart,type State} from '@/lib/market/domain';
+import {cartSignature,customsHelpChosen,renewCart,type State} from '@/lib/market/domain';
 import {addCustomerLinkDraft} from '@/lib/market/catalog-server';
 import {validBoxedWeight} from '@/lib/market/weight';
 export async function POST(request:Request){try{
@@ -15,6 +15,9 @@ export async function POST(request:Request){try{
   const payload=await requestJson(request) as {action:unknown;revision:number};
   const parsed=actionSchema.safeParse(payload.action);
   if(!parsed.success)throw new HttpError(400, 'err_10');
+  // Every action writes the account; adding to the cart and checking it also ask the stores through the proxy.
+  await rateLimit(`${user.userId}:actions`,60,60_000);
+  if(['cart-add','cart-add-many','cart-check','checkout'].includes(parsed.data.type))await rateLimit(`${user.userId}:store-checks`,40,10*60_000,'err_39');
   // Independent reads go out together: one D1 round trip instead of three in a row on every action.
   const [status,current,settings]=await Promise.all([customerStatus(user.userId),account(user),pricingAndPolicy()]);
   if(status==='blocked')throw new HttpError(403, 'err_11');
@@ -63,7 +66,8 @@ export async function POST(request:Request){try{
     if(action.type==='cart-check'||action.type==='checkout'){
       const checked=await checkCartSources(state.cart,url=>fetchProduct(url,merchantRequest),currentPricing,now,recentCheckMs);
       state={...state,cart:checked.cart};
-      const tariffChanged=state.cart.some(item=>item.quote.tariffVersion!==currentPricing.version);
+      // A line priced before the tariff changed, or without (with) the customs fee the customer (no longer) chose.
+      const tariffChanged=state.cart.some(item=>item.quote.tariffVersion!==currentPricing.version||Boolean(item.quote.customsHelp)!==customsHelpChosen(state));
       const unreachableOnly=checked.blocked.length>0&&checked.blocked.every(id=>state.cart.find(item=>item.id===id)?.sourceIssue?.kind==='unreachable');
       refusal=checked.blocked.length?(unreachableOnly?'err_38':'err_36'):checked.changed.length?'err_35':tariffChanged?'err_37':undefined;
       if(refusal)state=renewCart(state,now,currentPricing);

@@ -60,6 +60,7 @@ import {
   type Communication,
   type ServiceOffering,
   type WarehouseServiceRequest,
+  customsHelpShare,
 } from "@/lib/market/domain";
 import type { Action } from "@/lib/market/actions";
 import { countries } from "@/lib/market/world";
@@ -70,6 +71,7 @@ import { balanceCopy, countryLabel, formatDateTime, formatShortDate, noticesCopy
 import { allowanceMonth, countsTowardAllowance, monthOf, monthlyUsedFor, orderPerson, orderRecipientName, recipientKey } from "@/lib/market/allowance";
 import { courierAllowanceUsd } from "@/lib/market/customs";
 import { calcCopy } from "@/lib/market/calc-copy";
+import { usdText } from "./calc-summary";
 import {
   PageHeading,
   Empty,
@@ -87,8 +89,17 @@ const storeShippingExtra = (o: Order) =>
   !o.storeShippingExtraApproved ? (o.storeShippingSettlement?.extra ?? 0) : 0;
 const warehouseExtra = (o: Order) =>
   !o.extraApproved ? (o.settlement?.extra ?? 0) : 0;
+// Atlas paid more duty than the prepaid estimate: the difference waits for the customer's approval.
+const customsExtra = (o: Order) =>
+  !o.customsExtraApproved ? (o.customsSettlement?.extra ?? 0) : 0;
 const isExtra = (o: Order) =>
-  !o.cancelled && Boolean(storeShippingExtra(o) || warehouseExtra(o));
+  !o.cancelled && Boolean(storeShippingExtra(o) || warehouseExtra(o) || customsExtra(o));
+const extraAmount = (o: Order) => storeShippingExtra(o) || warehouseExtra(o) || customsExtra(o);
+const customsWords = {
+  ru: { over: "Пошлина больше предоплаты", confirm: "Подтвердить пошлину", title: "Пошлина, начисленная таможней", description: "Введите фактическую пошлину в USD. Если она меньше предоплаты, остаток сразу вернётся на баланс покупателя; если больше — разницу покупатель подтвердит.", actual: "Начисленная пошлина, USD", prepaid: "Предоплата пошлины", settled: (actual: string) => `Таможня начислила ${actual}.`, refund: (amount: string) => `Остаток ${amount} возвращён на баланс.`, extra: (amount: string) => `Доплата ${amount}`, saved: "Пошлина подтверждена" },
+  uz: { over: "Boj oldindan to‘lovdan ko‘p", confirm: "Bojni tasdiqlash", title: "Bojxona hisoblagan boj", description: "Haqiqiy bojni USD da kiriting. Oldindan to‘lovdan kam bo‘lsa, qoldiq darhol xaridor balansiga qaytadi; ko‘p bo‘lsa — farqni xaridor tasdiqlaydi.", actual: "Hisoblangan boj, USD", prepaid: "Bojning oldindan to‘lovi", settled: (actual: string) => `Bojxona ${actual} hisobladi.`, refund: (amount: string) => `Qoldiq ${amount} balansga qaytarildi.`, extra: (amount: string) => `Qo‘shimcha to‘lov ${amount}`, saved: "Boj tasdiqlandi" },
+  en: { over: "Duty above the prepayment", confirm: "Confirm duty", title: "Duty charged by customs", description: "Enter the actual duty in USD. If it is below the prepayment, the rest returns to the customer’s balance at once; if above, the customer approves the difference.", actual: "Duty charged, USD", prepaid: "Duty prepaid", settled: (actual: string) => `Customs charged ${actual}.`, refund: (amount: string) => `${amount} returned to the balance.`, extra: (amount: string) => `Extra ${amount}`, saved: "Duty confirmed" },
+};
 const pendingChange = (o: Order) => (o.changeRequests ?? []).some((request) => request.status === "pending");
 const usd = (n: number) =>
   new Intl.NumberFormat("en-US", {
@@ -708,7 +719,7 @@ function OrderDocuments({orderId,accountId,operatorMode,locale}:{orderId:string;
  const labels:Record<string,string>={invoice:words.invoice,'purchase-proof':words.proof,'warehouse-photo':words.photo,'warehouse-report':words.report};
  return <details className="order-documents"><summary>{words.title}<span>{documents.length}</span></summary><div className="document-list">{documents.length?documents.map(item=><a key={item.id} href={`/api/order-documents?id=${encodeURIComponent(item.id)}`}><span><b>{labels[item.kind]??item.kind}</b><small>{item.filename}</small></span><strong>{words.open}</strong></a>):<p className="micro">{words.empty}</p>}</div>{operatorMode&&accountId&&<form className="document-upload" onSubmit={event=>{event.preventDefault();void upload(event.currentTarget)}}><select name="kind" aria-label="Тип документа"><option value="invoice">{words.invoice}</option><option value="purchase-proof">{words.proof}</option><option value="warehouse-photo">{words.photo}</option><option value="warehouse-report">{words.report}</option></select><input name="file" type="file" accept="image/jpeg,image/png,application/pdf" required/><button className="btn secondary" disabled={busy}>{busy?'…':words.upload}</button></form>}</details>
 }
-type OrderConfirmation = { id: string; cancel: boolean; amount: number; storeShipping?: boolean; payment?: boolean };
+type OrderConfirmation = { id: string; cancel: boolean; amount: number; storeShipping?: boolean; customs?: boolean; payment?: boolean };
 const refundMarkerCopy = { ru: "Отметка возврата в Atlas", uz: "Atlasdagi qaytarish belgisi", en: "Refund marker in Atlas" } as const;
 const intakeTagCopy = {
   photo: { ru: "Фото", uz: "Foto", en: "Photo requested at intake" },
@@ -779,8 +790,8 @@ function CustomerOrderCard({ order: o, locale, pricing, busy, expanded, onToggle
         </div>)}
         {extra && !changePending && <div className="order-x-action-item">
           <Scale size={20} aria-hidden="true" />
-          <div><h3>{storeShippingExtra(o) ? ow.shippingOver : ow.extra}</h3><p>{ow.needApprove} {formatSum(storeShippingExtra(o) || warehouseExtra(o), locale)}</p></div>
-          <button type="button" className="btn primary" onClick={() => confirm({ id: o.id, cancel: false, amount: storeShippingExtra(o) || warehouseExtra(o), storeShipping: Boolean(storeShippingExtra(o)) })}>{ow.checkExtra}<ArrowRight size={16} aria-hidden="true" /></button>
+          <div><h3>{storeShippingExtra(o) ? ow.shippingOver : warehouseExtra(o) ? ow.extra : customsWords[locale].over}</h3><p>{ow.needApprove} {formatSum(extraAmount(o), locale)}</p></div>
+          <button type="button" className="btn primary" onClick={() => confirm({ id: o.id, cancel: false, amount: extraAmount(o), storeShipping: Boolean(storeShippingExtra(o)), customs: !storeShippingExtra(o) && !warehouseExtra(o) })}>{ow.checkExtra}<ArrowRight size={16} aria-hidden="true" /></button>
         </div>}
       </section>}
 
@@ -792,10 +803,11 @@ function CustomerOrderCard({ order: o, locale, pricing, busy, expanded, onToggle
       {!o.cancelled && o.status === 0 && o.product.sourceShippingEstimated && !o.storeShippingSettlement && <div className="order-x-note info">
         <Clock3 size={18} aria-hidden="true" /><div><b>{ow.managerChecking}</b><p>{o.quote.storeShippingHold !== undefined
           // Since 4 October 2026 the hold is apart from the order sum; older orders included it.
-          ? o.quote.storeShippingHold > 0 ? <>{calcCopy[locale].hold}: {formatSum(o.quote.storeShippingHold, locale)} — {calcCopy[locale].holdNote.toLocaleLowerCase(locale === "en" ? "en-US" : "ru-RU")}. {ow.beforeBuyout}</> : calcCopy[locale].lines.free
+          ? o.quote.storeShippingHold > 0 ? <>{calcCopy[locale].hold}: {formatSum(o.quote.storeShippingHold, locale)} — {calcCopy[locale].holdNote.toLocaleLowerCase(locale === "en" ? "en-US" : "ru-RU")}. {ow.beforeBuyout}</> : calcCopy[locale].freeNote(usdText(pricing.storeShippingFreeFromUsd ?? 50, locale))
           : o.quote.sourceShipping ? <>{ow.reserveIncluded} {formatSum(o.quote.sourceShipping, locale)}. {ow.beforeBuyout}</> : ow.reserveWaived}</p></div>
       </div>}
       {o.note && <div className="order-x-note muted"><MessageSquareText size={18} aria-hidden="true" /><div><b>{calcCopy[locale].blocks.comment}</b><p>{o.note}</p></div></div>}
+      {o.customsSettlement && <div className="order-x-note info"><Scale size={18} aria-hidden="true" /><div><b>{calcCopy[locale].lines.customsDuty}</b><p>{customsWords[locale].settled(formatSum(o.customsSettlement.actual, locale))} {o.customsSettlement.refund ? customsWords[locale].refund(formatSum(o.customsSettlement.refund, locale)) : o.customsSettlement.extra ? customsWords[locale].extra(formatSum(o.customsSettlement.extra, locale)) + (o.customsExtraApproved ? " ✓" : "") : ""}</p></div></div>}
       {o.customs && o.customs.dutiableUsd > 0 && <div className="order-x-note info"><Scale size={18} aria-hidden="true" /><div><b>{calcCopy[locale].customs.title}</b><p>{calcCopy[locale].customs.dutiable}: ${o.customs.dutiableUsd} · {calcCopy[locale].customs.estimate} ≈ ${o.customs.estimateUsd}{o.customs.helpRequested ? ` · ${calcCopy[locale].customs.help}` : ""}. {calcCopy[locale].customs.separate}</p></div></div>}
 
       <dl className="order-x-details">
@@ -877,6 +889,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
     [query, setQuery] = useState(""),
     [warehouse, setWarehouse] = useState<string | null>(null),
     [storeShippingOrder, setStoreShippingOrder] = useState<string | null>(null),
+    [customsOrder, setCustomsOrder] = useState<string | null>(null),
+    [actualCustoms, setActualCustoms] = useState("0"),
     [actualStoreShipping, setActualStoreShipping] = useState("10"),
     [dims, setDims] = useState(["1.8", "30", "20", "15"]),
     [confirmation, setConfirmation] = useState<{
@@ -884,6 +898,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
       cancel: boolean;
       amount: number;
       storeShipping?: boolean;
+      customs?: boolean;
       payment?: boolean;
     } | null>(null),
     [busy, setBusy] = useState(false),
@@ -945,6 +960,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
   const refundStatusLabel={ru:"Отметка возврата в Atlas",uz:"Atlasdagi qaytarish belgisi",en:"Refund marker in Atlas"}[locale];
   const refundQueueCopy={ru:"Здесь отменённые заказы и заказы с отметкой о возврате. Сумма ниже — проводки Atlas, зачисленные во внутренний баланс покупателя по этому заказу; перевод на карту, в банк или кошелёк не выполняется.",uz:"Bu yerda bekor qilingan buyurtmalar va qaytarish belgisi bor buyurtmalar ko‘rsatiladi. Quyidagi summa — shu buyurtma bo‘yicha xaridorning Atlas ichki balansiga yozilgan hisob; karta, bank yoki hamyonga pul o‘tkazilmaydi.",en:"This queue includes cancelled orders and orders marked refunded. The amount shown is Atlas ledger entries credited to the customer’s internal balance for this order; no card, bank, or wallet transfer is made."}[locale];
   const receiving = orders.find((o) => o.id === warehouse);
+  const confirmingCustoms = orders.find((o) => o.id === customsOrder);
   const confirmingStoreShipping = orders.find(
     (o) => o.id === storeShippingOrder,
   );
@@ -1064,6 +1080,13 @@ export function OrdersView({ operations }: { operations: boolean }) {
       setWarehouse(null);
        toast.success(locale === "ru" ? "Взвешивание и перерасчёт сохранены" : locale === "uz" ? "Tortish va qayta hisoblash saqlandi" : "Weighing and recalculation saved");
     }
+  }
+  async function finishCustoms() {
+    if (!confirmingCustoms || busy) return;
+    setBusy(true);
+    const ok = await runOrderAction({ type: "confirm-customs-duty", id: confirmingCustoms.id, actualUsd: Number(actualCustoms) });
+    setBusy(false);
+    if (ok) { setCustomsOrder(null); toast.success(customsWords[locale].saved); }
   }
   async function finishStoreShipping() {
     if (!confirmingStoreShipping || busy) return;
@@ -1424,8 +1447,9 @@ export function OrdersView({ operations }: { operations: boolean }) {
                   setConfirmation({
                     id: o.id,
                     cancel: false,
-                    amount: storeShippingExtra(o) || warehouseExtra(o),
+                    amount: extraAmount(o),
                     storeShipping: Boolean(storeShippingExtra(o)),
+                    customs: !storeShippingExtra(o) && !warehouseExtra(o),
                   })
                 }
               >
@@ -1451,6 +1475,13 @@ export function OrdersView({ operations }: { operations: boolean }) {
                   <ArrowRight size={16} />
                 </button>
               )}
+            {/* Atlas pays customs for this order: the operator enters the duty customs charged, before delivery. */}
+            {operations && !o.cancelled && Boolean(o.quote.customsHelp) && !o.customsSettlement && (
+              <button className="btn secondary" onClick={() => { setActualCustoms(String(Math.round((o.quote.customsDuty ?? 0) / (o.quote.fx ?? pricing.fx) * 100) / 100)); setCustomsOrder(o.id); }}>
+                {customsWords[locale].confirm}
+                <ArrowRight size={16} />
+              </button>
+            )}
             {operations &&
               !o.cancelled &&
               o.status < 5 &&
@@ -1570,6 +1601,21 @@ export function OrdersView({ operations }: { operations: boolean }) {
           </details>
         ))
       )}
+      <Modal
+        open={!!confirmingCustoms}
+        onClose={() => { if (!busy) setCustomsOrder(null); }}
+        title={customsWords[locale].title}
+        description={customsWords[locale].description}
+      >
+        <form onSubmit={(e) => { e.preventDefault(); void finishCustoms(); }}>
+          <div className="field">
+            <label htmlFor="actual-customs">{customsWords[locale].actual}</label>
+            <input id="actual-customs" type="number" inputMode="decimal" required min="0" max="100000" step=".01" value={actualCustoms} onChange={(e) => setActualCustoms(e.target.value)} />
+          </div>
+          {confirmingCustoms && <div className="confirm-price"><span>{customsWords[locale].prepaid}</span><strong>{money(confirmingCustoms.quote.customsDuty ?? 0)}</strong></div>}
+          <button className="btn primary full" disabled={busy}>{busy ? ow.saving : ow.saveRecalculate}<Check size={18} /></button>
+        </form>
+      </Modal>
       <Modal
         open={!!confirmingStoreShipping}
         onClose={() => {
@@ -1730,6 +1776,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
                     ? { type: "cancel", id: confirmation.id }
                     : confirmation.payment
                       ? { type: "payment-demo", id: confirmation.id }
+                    : confirmation.customs
+                      ? { type: "approve-customs-extra", id: confirmation.id, amount: confirmation.amount }
                     : confirmation.storeShipping
                       ? {
                           type: "approve-store-shipping-extra",
@@ -1898,9 +1946,9 @@ export function PricingManager({
     setDraft((current) => ({ ...current, [key]: Number(raw) }));
   const [fxBusy, setFxBusy] = useState(false);
   const fxWords = {
-    ru: { title: "Курс USD → сум", source: "Источник курса", cbu: "Курс ЦБ Узбекистана × наценка", manual: "Установленный курс (вручную)", markup: "Наценка к курсу ЦБ", none: "Курс ЦБ ещё не получен: действует установленный курс.", last: (rate: string, date: string, at: string) => `ЦБ: ${rate} сум на ${date}; проверено ${at}. Сервер обновляет курс раз в 6 часов.`, refresh: "Обновить курс ЦБ сейчас", failed: "Не удалось получить курс ЦБ.", updated: (fx: string) => `Курс обновлён: ${fx} сум за $1.`, customsTitle: "Таможня (ориентир для клиента)", allowance: "Лимит в месяц на получателя, $", rate: "Ставка, %", perKg: "Минимум за кг, $", helpFee: "Комиссия «Atlas поможет оплатить», %", customsNote: "Пустое поле — правило, проверенное на lex.uz 04.10.2026 (ПКМ №244, ПП-4508, УП-174). Таможня в сумму заказа не входит." },
-    uz: { title: "USD → so‘m kursi", source: "Kurs manbai", cbu: "O‘zbekiston MB kursi × ustama", manual: "Belgilangan kurs (qo‘lda)", markup: "MB kursiga ustama", none: "MB kursi hali olinmagan: belgilangan kurs amal qiladi.", last: (rate: string, date: string, at: string) => `MB: ${date} uchun ${rate} so‘m; ${at} da tekshirildi. Server kursni har 6 soatda yangilaydi.`, refresh: "MB kursini hozir yangilash", failed: "MB kursini olib bo‘lmadi.", updated: (fx: string) => `Kurs yangilandi: $1 uchun ${fx} so‘m.`, customsTitle: "Bojxona (mijoz uchun taxmin)", allowance: "Qabul qiluvchiga oylik limit, $", rate: "Stavka, %", perKg: "Kg uchun minimum, $", helpFee: "«Atlas to‘lashga yordam beradi» komissiyasi, %", customsNote: "Bo‘sh maydon — lex.uz da 04.10.2026 tekshirilgan qoida (VMQ №244, PP-4508, PF-174). Bojxona buyurtma summasiga kirmaydi." },
-    en: { title: "USD → UZS rate", source: "Rate source", cbu: "Central Bank of Uzbekistan rate × markup", manual: "Set rate (manual)", markup: "Markup on the CBU rate", none: "No CBU rate yet: the set rate applies.", last: (rate: string, date: string, at: string) => `CBU: ${rate} UZS for ${date}; checked ${at}. The server refreshes it every 6 hours.`, refresh: "Refresh the CBU rate now", failed: "Could not get the CBU rate.", updated: (fx: string) => `Rate updated: ${fx} UZS per $1.`, customsTitle: "Customs (estimate shown to customers)", allowance: "Monthly allowance per recipient, $", rate: "Rate, %", perKg: "Minimum per kg, $", helpFee: "“Atlas helps pay” fee, %", customsNote: "Empty = the rule checked on lex.uz on 04.10.2026 (CM No. 244, PP-4508, UP-174). Customs is not part of the order sum." },
+    ru: { title: "Курс USD → сум", source: "Источник курса", cbu: "Курс ЦБ Узбекистана × наценка", manual: "Установленный курс (вручную)", markup: "Наценка к курсу ЦБ", none: "Курс ЦБ ещё не получен: действует установленный курс.", last: (rate: string, date: string, at: string) => `ЦБ: ${rate} сум на ${date}; проверено ${at}. Сервер обновляет курс раз в 6 часов.`, refresh: "Обновить курс ЦБ сейчас", failed: "Не удалось получить курс ЦБ.", updated: (fx: string) => `Курс обновлён: ${fx} сум за $1.`, customsTitle: "Таможня (ориентир для клиента)", allowance: "Лимит в месяц на получателя, $", rate: "Ставка, %", perKg: "Минимум за кг, $", helpFee: "«Atlas оплатит таможню», % от суммы корзины", customsNote: "Пустое поле — правило, проверенное на lex.uz 04.10.2026 (ПКМ №244, ПП-4508, УП-174). Пошлина в сумму заказа не входит; комиссия «Atlas оплатит таможню» входит, если клиент её выбрал." },
+    uz: { title: "USD → so‘m kursi", source: "Kurs manbai", cbu: "O‘zbekiston MB kursi × ustama", manual: "Belgilangan kurs (qo‘lda)", markup: "MB kursiga ustama", none: "MB kursi hali olinmagan: belgilangan kurs amal qiladi.", last: (rate: string, date: string, at: string) => `MB: ${date} uchun ${rate} so‘m; ${at} da tekshirildi. Server kursni har 6 soatda yangilaydi.`, refresh: "MB kursini hozir yangilash", failed: "MB kursini olib bo‘lmadi.", updated: (fx: string) => `Kurs yangilandi: $1 uchun ${fx} so‘m.`, customsTitle: "Bojxona (mijoz uchun taxmin)", allowance: "Qabul qiluvchiga oylik limit, $", rate: "Stavka, %", perKg: "Kg uchun minimum, $", helpFee: "«Bojxonani Atlas to‘laydi», savat summasidan %", customsNote: "Bo‘sh maydon — lex.uz da 04.10.2026 tekshirilgan qoida (VMQ №244, PP-4508, PF-174). Boj buyurtma summasiga kirmaydi; mijoz tanlasa, «Bojxonani Atlas to‘laydi» komissiyasi kiradi." },
+    en: { title: "USD → UZS rate", source: "Rate source", cbu: "Central Bank of Uzbekistan rate × markup", manual: "Set rate (manual)", markup: "Markup on the CBU rate", none: "No CBU rate yet: the set rate applies.", last: (rate: string, date: string, at: string) => `CBU: ${rate} UZS for ${date}; checked ${at}. The server refreshes it every 6 hours.`, refresh: "Refresh the CBU rate now", failed: "Could not get the CBU rate.", updated: (fx: string) => `Rate updated: ${fx} UZS per $1.`, customsTitle: "Customs (estimate shown to customers)", allowance: "Monthly allowance per recipient, $", rate: "Rate, %", perKg: "Minimum per kg, $", helpFee: "“Atlas pays customs”, % of the cart", customsNote: "Empty = the rule checked on lex.uz on 04.10.2026 (CM No. 244, PP-4508, UP-174). Duty is not part of the order sum; the “Atlas pays customs” fee is, when the customer chooses it." },
   }[locale];
   // A tariff saved before delivery was priced in USD shows its soum rate converted at the current rate.
   const usdOf = (soum: number) => Math.round((soum / draft.fx) * 100) / 100;
@@ -2029,10 +2077,10 @@ export function PricingManager({
         <fieldset className="pricing-fx">
           <legend>{fxWords.customsTitle}</legend>
           <div className="pricing-grid">
-            {([["customsAllowanceUsd", fxWords.allowance, 1, 1], ["customsRate", fxWords.rate, 0.1, 100], ["customsMinimumPerKg", fxWords.perKg, 0.1, 1], ["customsHelpFee", fxWords.helpFee, 0.1, 100]] as const).map(([key, label, step, scale]) => <div className="field" key={key}>
+            {([["customsAllowanceUsd", fxWords.allowance, 1, 1], ["customsRate", fxWords.rate, 0.1, 100], ["customsMinimumPerKg", fxWords.perKg, 0.1, 1], ["customsHelpFee", fxWords.helpFee, 0.01, 100]] as const).map(([key, label, step, scale]) => <div className="field" key={key}>
               <label htmlFor={`pricing-${key}`}>{label}</label>
-              <input id={`pricing-${key}`} type="number" min="0" step={step} value={draft[key] === undefined ? "" : Math.round(draft[key]! * scale * 1000) / 1000} placeholder={key === "customsAllowanceUsd" ? "200" : key === "customsRate" ? "20" : key === "customsMinimumPerKg" ? "2" : "3"}
-                onChange={(event) => setDraft((current) => ({ ...current, [key]: event.target.value === "" ? (key === "customsHelpFee" ? 0.03 : undefined) : Number(event.target.value) / scale }))} />
+              <input id={`pricing-${key}`} type="number" min="0" step={step} value={draft[key] === undefined ? "" : Math.round(draft[key]! * scale * 1000) / 1000} placeholder={key === "customsAllowanceUsd" ? "200" : key === "customsRate" ? "20" : key === "customsMinimumPerKg" ? "2" : "4.98"}
+                onChange={(event) => setDraft((current) => ({ ...current, [key]: event.target.value === "" ? (key === "customsHelpFee" ? customsHelpShare : undefined) : Number(event.target.value) / scale }))} />
             </div>)}
           </div>
           <p className="micro">{fxWords.customsNote}</p>

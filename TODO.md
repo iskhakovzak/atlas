@@ -1,5 +1,46 @@
 # Atlas TODO and known limitations
 
+## Home sheets — 5 October 2026
+
+- [x] The home page is a stack of full-screen sheets on the root scroller: mandatory snap where sheets fit, proximity on windows 700px tall or less, none under reduced motion.
+- [x] Phones: the example bill, the money facts and the order tracking are sheets of their own; the "Вставить ссылку" dock sits on the bottom bar; rates are 2-column tiles.
+- [x] Closing card and footer form one end sheet; the FAQ title is no longer sticky; anchors re-scroll once after the teaser loads.
+- [x] Teaser: all 8 cards in one swipeable row, ‹ › buttons from 761px.
+- [ ] Physical iPhone Safari check: lvh vs svh with the toolbars in and out, mandatory vs proximity, a sideways swipe on the teaser row against the vertical snap, the on-screen keyboard over the dock when the hero input is focused.
+- [ ] Mac trackpad check in Safari and Chrome (momentum flicks, small drags snapping back).
+- [ ] Windows mouse-wheel check: if one 100px notch snaps back instead of moving a sheet, enable the commented `(hover:hover) and (pointer:fine)` proximity fallback in `app/home-chapters.css`. Headless Chromium treats synthetic wheel deltas like a trackpad (100px snaps back; 0.6 of the screen moves one sheet), so this needs real hardware.
+- [ ] UZ/EN copy fit at 375×812 on real devices (measured in Chromium: fits; the bill sheet in Uzbek with Atlas Night needs 659 of 683px, so its padding is 10px on short phones).
+- [ ] Atlas Night screenshots of every sheet for the owner (dark was measured and fits, but its hero and tracking card are taller; on wide windows ≤860px tall the Night hero title is capped at `clamp(40px,6.4svh,56px)`).
+- [ ] Re-snap after a language switch and after closing the product dialog (sheet heights change with the copy; the page may rest between two sheets until the next scroll).
+- [ ] Owner decisions from the spec: one desktop row of 4 cards instead of two visible rows; footer-only last sheet on phones; the sparse phone tracking sheet (merge with the money facts until reviews and photos exist?); mandatory vs proximity on desktop; the airy desktop How-it-works sheet.
+
+## Simpler bill and customs paid through Atlas — 5 October 2026
+
+- [x] No international reserve in the bill (tariff revision 3); weighing refunds the difference or asks for consent.
+- [x] Customs block: no duty up to $200 a month per recipient, including purchases outside Atlas; duty estimate when over.
+- [x] "Atlas pays customs for me": 4.98% of the goods price (no delivery), in the bill at once, counted as service income; the estimated duty is prepaid in the order, the rest returns to the balance and a higher duty needs consent before delivery.
+- [x] Unknown store delivery above $50 shows 0 in the link-order field.
+- [x] "Оформить заказ" opens the new order in My orders.
+- [ ] The duty estimate is the value-based lower bound (20% of the part above the allowance); the $2/kg minimum can make customs charge more, which then needs the customer's approval. Consider prepaying the higher of the two once parcel weights are reliable.
+- [ ] An approved duty extra (like an approved store-delivery extra) is recorded on the order but not added to `orderPayable`; collect it once a payment provider is connected.
+- [ ] The books keep the prepaid duty inside `payable` only; add a transit column for duty if the accountant needs it separately.
+- [ ] Without the reserve, a parcel heavier than estimated needs the customer's approval of the extra before it ships; watch how often weighing asks for more.
+- [ ] Connect a payment provider and redirect to its page between checkout and My orders; until then payment stays simulated.
+- [ ] The "already over the limit outside Atlas" checkbox is hidden; if the owner wants it back, it is still supported by `cartCustoms.outsideUsed`.
+
+## Security audit, stage 1 — 5 October 2026
+
+- [x] Removed the `import-legacy` action (a customer could write their own balance, paid orders and staff fields).
+- [x] Rate limits on `/api/actions` (60 a minute; 40 store checks per 10 minutes) and passport uploads (20 a day per account).
+- [x] Order numbers have 12 hex digits; the operational tables and books never overwrite another customer's order with the same number.
+- [x] `X-Frame-Options: DENY` while the CSP is report-only.
+- [x] Administration → Система warns when `ATLAS_AUTH_SECRET` is not set.
+- [ ] Enforce the CSP (now report-only) once nonces replace the inline scripts; then `frame-ancestors` takes over from `X-Frame-Options`.
+- [ ] `/api/actions` still returns the text of internal exceptions to the customer as a 400 message; map them to stable codes.
+- [ ] Staff roles in `market_staff_directory` grant nothing: only `ATLAS_OPERATOR_EMAIL` is an operator. Decide whether roles should get scoped access before inviting staff.
+- [ ] `payment-demo` lets a customer mark their own order paid, and the books count it as paid; remove it when a payment provider is connected.
+- [ ] Rate limits use fixed windows in D1; repeated sign-ins on the local Worker reach them (reset: `DELETE FROM market_rate_limits` in the local D1 only).
+
 ## Accounting, customs, discounts, OCR, delivery days — 6 October 2026
 
 - [x] Books: order finance split (transit vs Atlas income), money ledger with voids, monthly profit and profit tax, three CSV exports for Excel (Admin → Финансы → Бухгалтерия).
@@ -445,7 +486,7 @@ Checked `main` at `fedd1e7` (the squash of #8), then fixed the findings on `fix/
 ## Auth/data/operations
 
 - [ ] Choose and integrate standalone auth (email password or email code, recovery, optional Google OAuth, rate limits and consent records). Do not collect passwords until an identity provider or audited password implementation is selected.
-- [ ] Remove or redesign the compatible `import-legacy` path before introducing real payment, shipment, entitlement or stored-value capability. It accepts local prototype state and must never become a path to a real monetary balance.
+- [x] (5 October 2026: removed.) Remove or redesign the compatible `import-legacy` path before introducing real payment, shipment, entitlement or stored-value capability. It accepts local prototype state and must never become a path to a real monetary balance.
 - [ ] Connect a verified email sender for actual notification delivery; current email/SMS history is preview-only.
 - [ ] Select a phone-verification provider and retention policy before requiring a phone at payment/delivery.
 - [ ] Add encrypted off-platform D1/R2 backups with retention and a tested restore runbook; administrator integrity/rebuild is not an external backup.

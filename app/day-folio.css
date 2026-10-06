@@ -23,7 +23,7 @@ html:not([data-theme="dark"]) main.site-main:not([data-view="admin"]):not([data-
   font-size: var(--day-h1-size, var(--day-fs-h1-page)); line-height: var(--day-h1-leading, 1.1); letter-spacing: var(--day-h1-tracking, -.028em);
   text-wrap: balance;
 }
-html:not([data-theme="dark"]) .site-main :is(.home-section > h2, .home-faq-head > h2, .catalog-teaser > header h2) {
+html:not([data-theme="dark"]) .site-main :is(.home-section > h2, .home-trust-money > h2, .home-faq-head > h2, .catalog-teaser > header h2) {
   font-family: var(--day-sans); font-weight: 750; font-size: var(--day-fs-h2); line-height: 1.12; letter-spacing: -.024em; text-wrap: balance;
 }
 html:not([data-theme="dark"]) .site-main h3 { font-family: var(--day-sans); font-weight: 700; letter-spacing: -.01em; }
@@ -167,7 +167,7 @@ html:not([data-theme="dark"]) :is(.outside-row > b, .calc-customs header b).ok {
 
 /* ---------- Home sections: separated by space; the content sits on white cards ---------- */
 html:not([data-theme="dark"]) .home-section { padding-block: calc(var(--day-section) / 2); border-top: 0; }
-html:not([data-theme="dark"]) .home-section > h2 { margin: 0 0 12px; color: var(--day-ink); }
+html:not([data-theme="dark"]) :is(.home-section, .home-trust-money) > h2 { margin: 0 0 12px; color: var(--day-ink); }
 html:not([data-theme="dark"]) .home-section-lead { max-width: 52ch; margin-bottom: 24px; font-size: var(--day-fs-lead); line-height: 1.55; color: var(--day-muted); }
 html:not([data-theme="dark"]) .home-note { color: var(--day-muted); }
 /* How it works: a real sequence. Phones draw it as stations on a rail; wide screens as four white cards. */

@@ -25,6 +25,7 @@ import "./stores.css";
 import "./mobile.css";
 import "./refine.css";
 import "./day-folio.css";
+import "./home-chapters.css";
 import { MarketProvider } from "@/lib/market/store";
 import { StorageNotice } from "./storage-notice";
 import { AtlasThemeProvider } from "./theme-control";

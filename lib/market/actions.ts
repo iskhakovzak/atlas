@@ -1,11 +1,13 @@
 import { z } from "zod";
 import {
   productSchema,
-  parseState,
   addToCart,
   changeQuantity,
   renewCart,
   repriceCart,
+  customsHelpChosen,
+  confirmCustomsDuty,
+  approveCustomsExtra,
   checkoutCart,
   advanceOrder,
   receiveOrder,
@@ -100,6 +102,8 @@ export const actionSchema = z.discriminatedUnion("type", [
     saveRecipientLabel: z.string().trim().min(1).max(60).optional(),
     // The postal code for a recipient saved before it was required; saved into that recipient.
     postalCode: z.string().trim().max(20).optional(),
+    // "Atlas pays customs for me": the duty the confirmation step showed for this recipient (soum).
+    customsDuty: amount.optional(),
   }),
   z.object({ type: z.literal("payment-demo"), id }),
   z.object({ type: z.literal("communication-save"), value: communicationSchema }),
@@ -164,12 +168,15 @@ export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("approve-extra"), id, amount }),
   z.object({ type: z.literal("confirm-store-shipping"), id, actualUsd: amount }),
   z.object({ type: z.literal("approve-store-shipping-extra"), id, amount }),
+  z.object({ type: z.literal("confirm-customs-duty"), id, actualUsd: amount }),
+  z.object({ type: z.literal("approve-customs-extra"), id, amount }),
   z.object({ type: z.literal("cancel"), id }),
   z.object({ type: z.literal("notifications-read") }),
   z.object({ type: z.literal("identity-confirm"), documentId: z.string().min(1).max(100), recipientProfileId: z.string().min(1).max(80).optional(), firstName: z.string().trim().min(1).max(80), lastName: z.string().trim().min(1).max(80), birthDate: z.string(), passportNumber: z.string().min(6).max(24), nationality: z.string().trim().max(80) }),
   z.object({ type: z.literal("identity-clear"), documentId: z.string().min(1).max(100) }),
   z.object({ type: z.literal("declaration-preview"), orderIds: z.array(z.string().max(100)).min(1).max(30) }),
-  z.object({ type: z.literal("import-legacy"), data: z.string().max(1000000) }),
+  // No action may replace the account document wholesale: the former "import-legacy" took client JSON
+  // as the whole state, so a customer could write their own balance, paid orders and staff fields.
 ]);
 export type Action = z.infer<typeof actionSchema>;
 /** A product as the server accepts it into the cart: USD, store delivery and weight recomputed from the store data. */
@@ -205,6 +212,7 @@ export function applyAction(
     (a.type === "advance" ||
       a.type === "receive" ||
       a.type === "confirm-store-shipping" ||
+      a.type === "confirm-customs-duty" ||
       a.type === "assign-order" ||
       a.type === "staff-note" ||
       a.type === "customer-notification" ||
@@ -271,12 +279,12 @@ export function applyAction(
     case "cart-note":
       return setCartNote(s, a.id, a.note);
     case "cart-customs":
-      return setCartCustoms(s, a.value);
+      return setCartCustoms(s, a.value, Date.now(), pricing);
     case "cart-quantity":
       { const next = changeQuantity(s, a.id, a.quantity, Date.now(), pricing); assertCartPolicy(next.cart, policy); return next; }
     case "cart-remove":
       // The rest of that store's parcel is priced again: its shipping share and store-delivery reserve change.
-      return { ...s, cart: repriceCart(s.cart.filter((i) => i.id !== a.id), Date.now(), pricing) };
+      return { ...s, cart: repriceCart(s.cart.filter((i) => i.id !== a.id), Date.now(), pricing, customsHelpChosen(s)) };
     case "cart-services":
       return setCartServices(s, a.id, a.serviceIds, pricing, a.serviceUnits);
     case "cart-renew":
@@ -286,7 +294,8 @@ export function applyAction(
       if (s.checkoutKeys.includes(a.key)) return s;
       if (
         (a.useBalance
-          ? Math.min(totalOf(s.cart), Math.max(0, balanceOf(s)))
+          // The prepaid duty (checked against the server's figure in checkoutCart) is part of what the balance can pay.
+          ? Math.min(totalOf(s.cart) + (customsHelpChosen(s) ? a.customsDuty ?? 0 : 0), Math.max(0, balanceOf(s)))
           : 0) !== a.expectedCredit
       )
         throw Error("Баланс изменился. Проверьте итог заново.");
@@ -320,6 +329,7 @@ export function applyAction(
         a.identityProfileId,
         pricing,
         customs,
+        a.customsDuty,
       );
     }
     case "payment-demo":
@@ -374,6 +384,10 @@ export function applyAction(
       return receiveOrder(s, a.id, a.dimensions);
     case "approve-extra":
       return approveExtra(s, a.id, a.amount);
+    case "confirm-customs-duty":
+      return confirmCustomsDuty(s, a.id, a.actualUsd);
+    case "approve-customs-extra":
+      return approveCustomsExtra(s, a.id, a.amount);
     case "confirm-store-shipping":
       return confirmStoreShipping(s, a.id, a.actualUsd);
     case "approve-store-shipping-extra":
@@ -388,14 +402,5 @@ export function applyAction(
       return clearIdentity(s, a.documentId);
     case "declaration-preview":
       return submitDeclarationPreview(s, a.orderIds);
-    case "import-legacy":
-      if (
-        s.orders.length ||
-        s.entries.length ||
-        s.cart.length ||
-        s.favorites.length
-      )
-        throw Error("Импорт возможен только в пустой профиль.");
-      return parseState(a.data);
   }
 }
