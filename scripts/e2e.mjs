@@ -342,6 +342,8 @@ try {
   await eventually("new URLSearchParams(location.search).get('q') === 'zara' && [...document.querySelectorAll('.store-tile b')].some((b) => b.textContent === 'Zara')", "store search kept in the address");
   await evaluate("[...document.querySelectorAll('.store-tile')].find((tile) => tile.querySelector('b')?.textContent === 'Zara').click(), true");
   await eventually("document.querySelector('.store-dialog[open] a.store-dialog-open')?.getAttribute('href') === 'https://zara.com'", "store card opens with the store link");
+  await open("/stores?brand=zara&lang=ru");
+  await eventually("document.querySelector('.store-dialog[open] a.store-dialog-open')?.getAttribute('href') === 'https://zara.com'", "store deep link opens the card");
   await open("/order-by-link");
   if (!(await evaluate("!!document.querySelector('main input')"))) fail("guest /order-by-link", "link field missing");
 

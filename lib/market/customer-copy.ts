@@ -670,7 +670,6 @@ export type LinkOrderCopy = {
   total: string;
   emptyTotal: string;
   data: string;
-  dataHint: string;
   shippingReserve: string;
   storeShipping: (amount: string) => string;
   kg: string;
@@ -681,6 +680,29 @@ export type LinkOrderCopy = {
   details: string;
   unnamed: string;
   fillFromStore: string;
+  /** Short sign-in label for the phone total bar; `signinAdd` says the item goes to the cart after sign-in. */
+  signinAddShort: string;
+  /** Where this device keeps nothing (blocked storage): an honest sign-in label and guest note, no promise. */
+  signinContinue: string;
+  guestNoKeep: string;
+  /** Opening the page without a link brought back the unfinished draft. */
+  resumed: (host: string) => string;
+  startNew: string;
+  /** An earlier choice that cannot be applied as it was: the store did not answer, or now lists its own options. */
+  choice: { unanswered: (list: string) => string; typed: (item: string) => string };
+  /** Calculation details Atlas loaded from the store: shown as read-only lines with a lock. */
+  locked: {
+    badge: string; catalogBadge: string; hint: string; catalogHint: string; value: string;
+    note: (time: string) => string; partNote: string; catalogNote: string; manualNote: string;
+    reserve: (amount: string) => string; byOption: string; weight: string;
+  };
+  /** A chosen option the reloaded product no longer sells; another one is never picked silently. */
+  optionGone: (labels: string[]) => string;
+  /** The cart add a guest asked for, sent after sign-in; `…Elsewhere` when it was sent from the cart, not the item page. */
+  pending: {
+    added: (units: number) => string; addedItem: (name: string, units: number) => string; changed: string; failed: string;
+    changedElsewhere: string; failedElsewhere: string; open: string; sending: string; speedKept: string; notKept: string;
+  };
 };
 
 export const linkOrderCopy: Record<Locale, LinkOrderCopy> = {
@@ -690,9 +712,36 @@ export const linkOrderCopy: Record<Locale, LinkOrderCopy> = {
     hint: 'Нужна ссылка на страницу товара: Nike, Zara, Amazon, eBay и другие магазины.', stores: 'Где это работает', batch: 'Добавить несколько ссылок',
     openStore: 'Открыть в магазине', change: 'Другая ссылка', storePrice: 'Цена в магазине', checkedAt: time => `проверено в ${time}`,
     unconfirmed: 'Магазин не подтвердил все данные — проверьте их ниже.', total: 'Итого с доставкой до Ташкента', emptyTotal: 'Укажите цену и вес — покажем итог.',
-    data: 'Данные для расчёта', dataHint: 'Откройте, если что-то не совпадает со страницей магазина.', shippingReserve: 'доставка магазина: резерв', storeShipping: amount => `доставка магазина ${amount}`, kg: 'кг',
-    add: 'Добавить в корзину', addShort: 'В корзину', signinAdd: 'Войти и продолжить', guest: 'Расчёт доступен без входа. Чтобы добавить товар в корзину, понадобится войти.', details: 'Подробности загрузки',
+    data: 'Данные для расчёта', shippingReserve: 'доставка магазина: резерв', storeShipping: amount => `доставка магазина ${amount}`, kg: 'кг',
+    add: 'Добавить в корзину', addShort: 'В корзину', signinAdd: 'Войти — товар добавится в корзину', guest: 'Расчёт доступен без входа. Нажмите кнопку внизу и войдите — товар сам добавится в корзину, выбранные варианты и количество сохранятся.', details: 'Подробности загрузки',
     unnamed: 'Название не получено — укажите его ниже', fillFromStore: 'Заполните по странице товара в магазине.',
+    signinAddShort: 'Войти и добавить',
+    locked: {
+      badge: 'Загружено Atlas', catalogBadge: 'Из каталога Atlas', hint: 'Только для просмотра — Atlas получил их из магазина.', catalogHint: 'Только для просмотра — значения из каталога Atlas.', value: 'изменить нельзя',
+      note: time => `Эти данные Atlas получил из магазина${time ? ` в ${time}` : ''} — изменить их нельзя. Если что-то не совпадает с магазином, напишите в комментарии к заказу.`,
+      partNote: 'Поля без замка магазин не сообщил — заполните их по странице товара.',
+      catalogNote: 'Значения с замком взяты из каталога Atlas — изменить их нельзя. Если что-то не совпадает с магазином, напишите в комментарии к заказу.',
+      manualNote: 'Atlas не смог загрузить эти данные из магазина — заполните их по странице товара. Перед выкупом Atlas сверит их с магазином.',
+      reserve: amount => `резерв ${amount}`, byOption: 'по выбранному варианту', weight: 'Вес — оценка Atlas. Склад взвесит посылку, поэтому точный вес указывать не нужно.',
+    },
+    optionGone: labels => labels.length > 1 ? `Варианты ${labels.map(label => `«${label}»`).join(', ')} больше не продаются — выберите другие.` : `Вариант «${labels[0] ?? ''}» больше не продаётся — выберите другой.`,
+    signinContinue: 'Войти и продолжить',
+    guestNoKeep: 'Расчёт доступен без входа. Это устройство не сохраняет данные сайта, поэтому после входа товар нужно будет добавить ещё раз.',
+    resumed: host => `Вернули незавершённый заказ: ${host}`, startNew: 'Начать с новой ссылки',
+    choice: {
+      unanswered: list => `Магазин сейчас не ответил, поэтому варианты не загрузились. Раньше вы выбрали: ${list} — укажите вариант вручную.`,
+      typed: item => `Раньше вы указали «${item}». Теперь магазин показал свои варианты — выберите подходящий.`,
+    },
+    pending: {
+      added: units => `Товар добавлен в корзину: +${units} шт.`, addedItem: (name, units) => `Добавлено в корзину: «${name}», ${units} шт.`,
+      changed: 'Пока вы входили, цена в магазине изменилась — товар не добавлен. Проверьте новый итог и добавьте его снова.',
+      failed: 'Не удалось добавить товар после входа. Проверьте данные и добавьте его ещё раз.',
+      changedElsewhere: 'Пока вы входили, цена в магазине изменилась — товар не добавлен. Откройте товар, проверьте новый итог и добавьте его снова.',
+      failedElsewhere: 'Не удалось добавить товар после входа. Откройте товар и добавьте его ещё раз.',
+      open: 'Открыть товар', sending: 'Добавляем товар в корзину после входа…',
+      speedKept: 'В корзине оставлена прежняя скорость доставки — её можно сменить в корзине.',
+      notKept: 'Не удалось запомнить товар на этом устройстве. Войдите — после входа добавьте его ещё раз.',
+    },
   },
   uz: {
     title: 'Havola orqali buyurtma', lead: 'Xorijiy do‘kondagi tovar havolasini qo‘ying, Toshkentgacha yetkazish bilan jami summani hisoblaymiz.', leadLoaded: 'Variantni tanlang va hisobni tekshiring.',
@@ -700,9 +749,36 @@ export const linkOrderCopy: Record<Locale, LinkOrderCopy> = {
     hint: 'Tovar sahifasi havolasi kerak: Nike, Zara, Amazon, eBay va boshqa do‘konlar.', stores: 'Qayerlarda ishlaydi', batch: 'Bir nechta havola qo‘shish',
     openStore: 'Do‘konda ochish', change: 'Boshqa havola', storePrice: 'Do‘kondagi narx', checkedAt: time => `${time} da tekshirildi`,
     unconfirmed: 'Do‘kon barcha ma’lumotlarni tasdiqlamadi — quyida tekshiring.', total: 'Toshkentgacha yetkazish bilan jami', emptyTotal: 'Narx va vaznni kiriting — jami summani ko‘rsatamiz.',
-    data: 'Hisob uchun ma’lumotlar', dataHint: 'Do‘kon sahifasiga mos kelmasa, oching.', shippingReserve: 'do‘kon yetkazishi: zaxira', storeShipping: amount => `do‘kon yetkazishi ${amount}`, kg: 'kg',
-    add: 'Savatga qo‘shish', addShort: 'Savatga', signinAdd: 'Kirish va davom etish', guest: 'Hisobni kirmasdan ko‘rish mumkin. Tovarni savatga qo‘shish uchun kirish kerak.', details: 'Yuklash tafsilotlari',
+    data: 'Hisob uchun ma’lumotlar', shippingReserve: 'do‘kon yetkazishi: zaxira', storeShipping: amount => `do‘kon yetkazishi ${amount}`, kg: 'kg',
+    add: 'Savatga qo‘shish', addShort: 'Savatga', signinAdd: 'Kirish — tovar savatga qo‘shiladi', guest: 'Hisobni kirmasdan ko‘rish mumkin. Pastdagi tugmani bosib kiring — tovar o‘zi savatga qo‘shiladi, tanlangan variantlar va soni saqlanadi.', details: 'Yuklash tafsilotlari',
     unnamed: 'Nomi olinmadi — quyida kiriting', fillFromStore: 'Do‘kondagi tovar sahifasiga qarab to‘ldiring.',
+    signinAddShort: 'Kirib qo‘shish',
+    locked: {
+      badge: 'Atlas yukladi', catalogBadge: 'Atlas katalogidan', hint: 'Faqat ko‘rish uchun — Atlas ularni do‘kondan oldi.', catalogHint: 'Faqat ko‘rish uchun — qiymatlar Atlas katalogidan.', value: 'o‘zgartirib bo‘lmaydi',
+      note: time => `Bu ma’lumotlarni Atlas do‘kondan${time ? ` ${time} da` : ''} oldi — ularni o‘zgartirib bo‘lmaydi. Do‘kondagi bilan mos kelmasa, buyurtmaga izohda yozing.`,
+      partNote: 'Qulfsiz maydonlarni do‘kon ko‘rsatmagan — ularni tovar sahifasiga qarab to‘ldiring.',
+      catalogNote: 'Qulfli qiymatlar Atlas katalogidan olingan — ularni o‘zgartirib bo‘lmaydi. Do‘kondagi bilan mos kelmasa, buyurtmaga izohda yozing.',
+      manualNote: 'Atlas bu ma’lumotlarni do‘kondan yuklay olmadi — ularni tovar sahifasiga qarab to‘ldiring. Xariddan oldin Atlas ularni do‘kon bilan solishtiradi.',
+      reserve: amount => `zaxira ${amount}`, byOption: 'tanlangan variant bo‘yicha', weight: 'Vazn — Atlas bahosi. Ombor jo‘natmani tortadi, shuning uchun aniq vaznni kiritish shart emas.',
+    },
+    optionGone: labels => labels.length > 1 ? `${labels.map(label => `«${label}»`).join(', ')} variantlari endi sotilmaydi — boshqasini tanlang.` : `«${labels[0] ?? ''}» varianti endi sotilmaydi — boshqasini tanlang.`,
+    signinContinue: 'Kirish va davom etish',
+    guestNoKeep: 'Hisobni kirmasdan ko‘rish mumkin. Bu qurilma sayt ma’lumotlarini saqlamaydi, shuning uchun kirgandan keyin tovarni qayta qo‘shish kerak bo‘ladi.',
+    resumed: host => `Tugallanmagan buyurtma qaytarildi: ${host}`, startNew: 'Yangi havoladan boshlash',
+    choice: {
+      unanswered: list => `Do‘kon hozir javob bermadi, shuning uchun variantlar yuklanmadi. Avval tanlaganingiz: ${list} — variantni qo‘lda kiriting.`,
+      typed: item => `Avval «${item}» ni kiritgansiz. Endi do‘kon o‘z variantlarini ko‘rsatdi — mosini tanlang.`,
+    },
+    pending: {
+      added: units => `Tovar savatga qo‘shildi: +${units} dona`, addedItem: (name, units) => `Savatga qo‘shildi: «${name}», ${units} dona`,
+      changed: 'Siz kirayotganingizda do‘kondagi narx o‘zgardi — tovar qo‘shilmadi. Yangi jamini tekshirib, uni qayta qo‘shing.',
+      failed: 'Kirgandan keyin tovarni qo‘shib bo‘lmadi. Ma’lumotlarni tekshirib, uni qayta qo‘shing.',
+      changedElsewhere: 'Siz kirayotganingizda do‘kondagi narx o‘zgardi — tovar qo‘shilmadi. Tovarni ochib, yangi jamini tekshiring va qayta qo‘shing.',
+      failedElsewhere: 'Kirgandan keyin tovarni qo‘shib bo‘lmadi. Tovarni ochib, uni qayta qo‘shing.',
+      open: 'Tovarni ochish', sending: 'Kirgandan keyin tovarni savatga qo‘shyapmiz…',
+      speedKept: 'Savatda avvalgi yetkazish tezligi qoldirildi — uni savatda o‘zgartirish mumkin.',
+      notKept: 'Tovarni bu qurilmada eslab qolib bo‘lmadi. Kiring — kirgandan keyin uni qayta qo‘shing.',
+    },
   },
   en: {
     title: 'Order by link', lead: 'Paste a product link from a store abroad and we calculate the total with delivery to Tashkent.', leadLoaded: 'Choose an option and review the estimate.',
@@ -710,9 +786,36 @@ export const linkOrderCopy: Record<Locale, LinkOrderCopy> = {
     hint: 'Use a product page link: Nike, Zara, Amazon, eBay and other stores.', stores: 'Where it works', batch: 'Add several links',
     openStore: 'Open in store', change: 'Another link', storePrice: 'Store price', checkedAt: time => `checked at ${time}`,
     unconfirmed: 'The store did not confirm every detail — review them below.', total: 'Total with delivery to Tashkent', emptyTotal: 'Enter a price and weight to see the total.',
-    data: 'Calculation details', dataHint: 'Open if anything differs from the store page.', shippingReserve: 'store delivery: reserve', storeShipping: amount => `store delivery ${amount}`, kg: 'kg',
-    add: 'Add to cart', addShort: 'Add', signinAdd: 'Sign in and continue', guest: 'You can see the estimate without signing in. Sign in to add the item to your cart.', details: 'Import details',
+    data: 'Calculation details', shippingReserve: 'store delivery: reserve', storeShipping: amount => `store delivery ${amount}`, kg: 'kg',
+    add: 'Add to cart', addShort: 'Add', signinAdd: 'Sign in — the item goes to your cart', guest: 'You can see the estimate without signing in. Press the button below and sign in — the item is added to your cart by itself, with the options and quantities you chose.', details: 'Import details',
     unnamed: 'No name received — enter it below', fillFromStore: 'Fill these in from the product page in the store.',
+    signinAddShort: 'Sign in & add',
+    locked: {
+      badge: 'Loaded by Atlas', catalogBadge: 'From the Atlas catalog', hint: 'View only — Atlas got these from the store.', catalogHint: 'View only — values from the Atlas catalog.', value: 'cannot be changed',
+      note: time => `Atlas got these details from the store${time ? ` at ${time}` : ''} — they cannot be changed. If something differs from the store, say so in the order comment.`,
+      partNote: 'The store did not give the fields without a lock — fill them in from the product page.',
+      catalogNote: 'Values with a lock come from the Atlas catalog and cannot be changed. If something differs from the store, say so in the order comment.',
+      manualNote: 'Atlas could not load these details from the store — fill them in from the product page. Atlas checks them with the store before buying.',
+      reserve: amount => `reserve ${amount}`, byOption: 'per chosen option', weight: 'Weight is an Atlas estimate. The warehouse weighs the parcel, so you do not need the exact weight.',
+    },
+    optionGone: labels => labels.length > 1 ? `Options ${labels.map(label => `“${label}”`).join(', ')} are no longer sold — choose others.` : `Option “${labels[0] ?? ''}” is no longer sold — choose another.`,
+    signinContinue: 'Sign in and continue',
+    guestNoKeep: 'You can see the estimate without signing in. This device does not keep site data, so after signing in you will need to add the item again.',
+    resumed: host => `Your unfinished order is back: ${host}`, startNew: 'Start with a new link',
+    choice: {
+      unanswered: list => `The store did not answer just now, so its options did not load. You chose earlier: ${list} — enter the option by hand.`,
+      typed: item => `You entered “${item}” earlier. The store now lists its own options — choose the matching one.`,
+    },
+    pending: {
+      added: units => `Added to your cart: ${units} pcs`, addedItem: (name, units) => `Added to your cart: “${name}”, ${units} pcs`,
+      changed: 'The store price changed while you were signing in — the item was not added. Check the new total and add it again.',
+      failed: 'Could not add the item after sign-in. Check the details and add it again.',
+      changedElsewhere: 'The store price changed while you were signing in — the item was not added. Open the item, check the new total and add it again.',
+      failedElsewhere: 'Could not add the item after sign-in. Open the item and add it again.',
+      open: 'Open item', sending: 'Adding the item to your cart after sign-in…',
+      speedKept: 'Your cart keeps its earlier delivery speed — you can change it in the cart.',
+      notKept: 'This device could not keep the item. Sign in, then add it again.',
+    },
   },
 };
 

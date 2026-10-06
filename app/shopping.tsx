@@ -10,7 +10,7 @@ import { balanceOf, cartDeliverySpeed, cartSignature, isPostalCode, maxLineQuant
 import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, savingText } from "@/lib/market/delivery-speed";
 import { countryName, customsVersion } from "@/lib/market/world";
 import { formatSum } from "@/lib/market/home-copy";
-import { cartCopy, countryLabel, itemCount, minutesLeft, parcelCount, recipientCopy, type CartCopy } from "@/lib/market/customer-copy";
+import { cartCopy, countryLabel, itemCount, linkOrderCopy, minutesLeft, parcelCount, recipientCopy, type CartCopy } from "@/lib/market/customer-copy";
 import { cartCustomsEstimate } from "@/lib/market/allowance";
 import { calcCopy } from "@/lib/market/calc-copy";
 import { CalcLines, CustomsPanel, DeliverySpeedSwitch, HoldNote, customsDutyAmount, sumQuotes } from "./calc-summary";
@@ -21,6 +21,9 @@ import { Money } from "./money";
 import { SafeDeleteButton } from "./safe-delete-button";
 import { cities, regionCapital, regionLabel, regions, streets, suggestions, uzPhone, uzPhoneDigits } from "@/lib/market/addresses";
 import { UzPhoneInput } from "./phone-input";
+import { toast } from "sonner";
+import { usePendingCartAdd } from "./pending-cart-add";
+import { pendingCartFreshMs } from "@/lib/market/link-order-draft";
 
 /** More than one dispatch country in the cart: the speed note says it applies to every parcel. */
 const parcelsDiffer = (countries: string[]) => new Set(countries).size > 1;
@@ -176,6 +179,20 @@ export function CartView() {
   const locale = state.communication.language;
   const c = cartCopy[locale];
   const k = calcCopy[locale];
+  // A link-order item a guest asked for before signing in lands here too when the cart is opened first, if it was asked
+  // for minutes ago (an older one waits for its own item page). The toast names it, so nobody gets an item unnoticed.
+  const pendingWords = linkOrderCopy[locale].pending;
+  const pendingAdd = usePendingCartAdd(true, (result) => {
+    const action = result.pending.action;
+    if (result.status === "added") {
+      const name = action.type === "cart-add" ? action.product.name : action.items[0]?.product.name ?? "";
+      toast.success(pendingWords.addedItem(name, result.pending.units) + (result.speedKept ? " " + pendingWords.speedKept : ""));
+      return;
+    }
+    // act() already showed the server's reason, worded for the item page ("we loaded the new price"); here one message.
+    toast.dismiss();
+    toast.error(result.status === "changed" ? pendingWords.changedElsewhere : pendingWords.failedElsewhere, { action: { label: pendingWords.open, onClick: () => window.location.assign(result.pending.returnTo) } });
+  }, { maxAgeMs: pendingCartFreshMs });
   const earliestExpiry = state.cart.reduce((min, item) => Math.min(min, item.quote.expiresAt), Infinity);
   const total = totalOf(state.cart);
   const count = state.cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -358,9 +375,9 @@ export function CartView() {
 
   if (!state.cart.length) return <div className="basket-page">
     <header className="basket-head"><h1>{c.title}</h1></header>
-    <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><ShoppingBag size={28} /></span><h2>{c.empty.title}</h2><p>{c.empty.text}</p>
+    {pendingAdd.sending ? <div className="basket-loading" role="status"><Loader2 size={18} className="spin" aria-hidden="true" /> {pendingWords.sending}</div> : <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><ShoppingBag size={28} /></span><h2>{c.empty.title}</h2><p>{c.empty.text}</p>
       <div className="basket-empty-actions"><Link className="btn primary" href="/order-by-link"><ClipboardPaste size={18} aria-hidden="true" />{c.empty.paste}</Link><Link className="btn secondary" href="/stores">{c.empty.stores}</Link></div>
-    </section>
+    </section>}
   </div>;
 
   return <div className="basket-page has-sticky">

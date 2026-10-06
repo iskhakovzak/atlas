@@ -31,7 +31,7 @@ html:not([data-theme="dark"]) .site-main :is(.home-section > h2, .home-trust-mon
 html:not([data-theme="dark"]) .site-main h3 { font-family: var(--day-sans); font-weight: 700; letter-spacing: -.01em; }
 /* Overlines repeat what the title says and are typed in capitals: the light theme leaves them out. */
 html:not([data-theme="dark"]) .page-heading .eyebrow { display: none; }
-html:not([data-theme="dark"]) :is(.home-tariffs th, .home-footer-title, .catalog-facets legend, .basket-brand, .cabinet-eyebrow, .order-x-eyebrow, .stores-overline, .store-dialog-section h3, .legal-document > header span) {
+html:not([data-theme="dark"]) :is(.home-tariffs th, .home-footer-title, .catalog-facets legend, .basket-brand, .cabinet-eyebrow, .order-x-eyebrow, .store-dialog-section h3, .legal-document > header span) {
   text-transform: none; letter-spacing: 0;
 }
 
@@ -315,45 +315,41 @@ html:not([data-theme="dark"]) .page-heading p { color: var(--day-muted); }
 html:not([data-theme="dark"]) .catalog-teaser { padding-block: calc(var(--day-section) / 2); border-top: 0; }
 html:not([data-theme="dark"]) .catalog-teaser > header p { color: var(--day-muted); }
 
-/* ---------- Catalog card: white card (finds.css) with one spacing rhythm ----------
-   Meta, title, store price with the discount pill, the delivered total, the button: 6 / 12 / 2 / 12 | 12 / 2 / 14.
-   Titles always take two lines, so the price blocks and buttons line up across a row. */
+/* ---------- Catalog card 2.0: white card (finds.css + catalog.css) in the Day colours ----------
+   Meta, a two-line title, one store-price line with the mint pill, the total with its in-flow "i",
+   the facts and chips slots (fixed heights), the button. Slots keep cards in a row aligned. */
 html:not([data-theme="dark"]) .site-main .find-card .find-visual { background: #fff !important; }
-html:not([data-theme="dark"]) .site-main .find-card .find-content { gap: 0; padding: 16px 18px 18px; }
-html:not([data-theme="dark"]) .site-main .find-card .find-meta { margin: 0; font-size: 12.5px; line-height: 1.3; }
+html:not([data-theme="dark"]) .site-main .find-card .find-content { gap: 0; padding: 14px 16px 16px; }
+html:not([data-theme="dark"]) .site-main .find-card .find-meta { margin: 0; font-size: 12.5px; line-height: 1.3; color: var(--day-muted); }
 html:not([data-theme="dark"]) .site-main .find-card .find-content .find-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
-  min-height: 2.6em; margin: 6px 0 0; font-size: 18px; font-weight: 600; line-height: 1.3; letter-spacing: -.015em; color: var(--day-ink); }
+  min-height: 2.6em; margin: 6px 0 0; font-size: 17px; font-weight: 600; line-height: 1.3; letter-spacing: -.015em; color: var(--day-ink); }
 html:not([data-theme="dark"]) .site-main .find-card .find-title:hover { color: var(--day-accent); }
-html:not([data-theme="dark"]) .site-main .find-card .find-content .find-store-price { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin: 12px 0 0; padding: 0 0 12px; border-bottom: 1px solid var(--day-line); }
-html:not([data-theme="dark"]) .site-main .find-card .find-store-price > span:first-child { flex-basis: 100%; font-size: 13px; line-height: 1.35; color: var(--day-muted); }
-html:not([data-theme="dark"]) .site-main .find-card .find-store-price > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; margin: 0; }
-html:not([data-theme="dark"]) .site-main .find-card .find-store-price b { font-size: 17px; font-weight: 600; line-height: 1.4; letter-spacing: -.01em; color: var(--day-muted); }
-html:not([data-theme="dark"]) .site-main .find-card .find-store-price del { font-size: 14px; color: #687f74; }
-/* The discount: a mint pill on the price line; top deals also get the gold badge on the photo. */
-html:not([data-theme="dark"]) .site-main .find-card .find-store-price .find-discount { position: static; display: inline-flex; margin: 0; padding: 3px 8px; border-radius: 7px;
-  background: #e7f4e9; color: #226d39; font-size: 13px; font-weight: 700; line-height: 1.25; box-shadow: none; }
+html:not([data-theme="dark"]) .site-main .find-card .find-content .find-store-price { margin: 10px 0 0; padding: 0 0 10px; border-bottom: 1px solid var(--day-line); }
+html:not([data-theme="dark"]) .site-main .find-card .find-store-price > span:first-child { font-size: 13px; line-height: 1.35; color: var(--day-muted); }
+html:not([data-theme="dark"]) .site-main .find-card .find-store-price > b { color: var(--day-ink); }
+html:not([data-theme="dark"]) .site-main .find-card .find-store-price > del { color: var(--day-muted); }
+/* The discount: the one mint element of the card; top deals also get the gold badge on the photo. */
+html:not([data-theme="dark"]) .site-main .find-card .find-store-price > .find-discount { border-color: var(--day-ok-line); background: var(--day-ok-bg); color: var(--day-ok); }
 html:not([data-theme="dark"]) .site-main .find-card .find-top-deal { background: var(--day-deal); }
-html:not([data-theme="dark"]) .site-main .find-card .find-content .find-total { position: relative; margin: 0; padding: 12px 0 0; }
-html:not([data-theme="dark"]) .site-main .find-card .find-total > span { display: block; padding-right: 0; font-size: 13px; line-height: 1.35; color: #51645a; }
-html:not([data-theme="dark"]) .site-main .find-card .find-total > strong { display: block; margin: 2px 0 0; padding-right: 40px; font-size: 26px; font-weight: 700; line-height: 1.15; letter-spacing: -.02em; color: var(--day-ink); }
-html:not([data-theme="dark"]) .site-main .find-card .find-info { top: auto; bottom: -5px; right: -8px; width: 40px; height: 40px; color: var(--day-accent); }
-html:not([data-theme="dark"]) .site-main .find-card .find-breakdown { margin: 10px 0 0; }
-html:not([data-theme="dark"]) .site-main .find-card :is(.find-parcel, .find-limit) { margin: 10px 0 0; }
-html:not([data-theme="dark"]) .site-main .find-card .find-purchase { margin-top: auto; padding-top: 14px; }
+html:not([data-theme="dark"]) .site-main .find-card .find-total-head > span { color: var(--day-muted); }
+html:not([data-theme="dark"]) .site-main .find-card .find-total > strong { color: var(--day-ink); }
+html:not([data-theme="dark"]) .site-main .find-card .find-info { color: var(--day-accent); }
+html:not([data-theme="dark"]) .site-main .find-card .find-info:hover, html:not([data-theme="dark"]) .site-main .find-card .find-info[data-state="open"] { background: var(--day-soft); }
+html:not([data-theme="dark"]) .site-main .find-card :is(.find-facts, .find-total-note, .find-chip) { color: var(--day-muted); }
+html:not([data-theme="dark"]) .site-main .find-card .find-chip { border-color: var(--day-line-strong); }
+html:not([data-theme="dark"]) .site-main .find-card .find-chip[data-tone="mint"] { border-color: var(--day-ok-line); background: var(--day-ok-bg); color: var(--day-ok); }
+html:not([data-theme="dark"]) .site-main .find-card .find-chip[data-tone="amber"] { border-color: var(--cat-warn-line); background: var(--day-warn-bg); color: var(--day-warn); }
+html:not([data-theme="dark"]) .site-main .find-card .find-purchase { margin-top: auto; padding-top: 12px; }
 html:not([data-theme="dark"]) .site-main .find-card .find-purchase .btn { width: 100%; min-height: 46px; padding: 10px 14px; font-size: 15px; }
+html:not([data-theme="dark"]) .find-breakdown-popover { border-color: var(--day-line); box-shadow: var(--day-shadow-lift); }
+html:not([data-theme="dark"]) .catalog-page .catalog-sets > .catalog-set { border-color: var(--day-line); box-shadow: var(--day-shadow); }
+html:not([data-theme="dark"]) .catalog-page .catalog-sets > .catalog-set[aria-pressed="true"] { border-color: var(--day-accent); box-shadow: inset 0 0 0 1px var(--day-accent); }
 @media (max-width: 600px) {
   html:not([data-theme="dark"]) .site-main .find-card .find-content { padding: 10px 10px 12px; }
   html:not([data-theme="dark"]) .site-main .find-card .find-meta { font-size: 11.5px; }
   html:not([data-theme="dark"]) .site-main .find-card .find-content .find-title { margin-top: 4px; font-size: 14.5px; }
-  html:not([data-theme="dark"]) .site-main .find-card .find-content .find-store-price { margin-top: 8px; padding-bottom: 8px; column-gap: 6px; }
+  html:not([data-theme="dark"]) .site-main .find-card .find-content .find-store-price { margin-top: 8px; padding-bottom: 8px; }
   html:not([data-theme="dark"]) .site-main .find-card .find-store-price > span:first-child { font-size: 11.5px; }
-  html:not([data-theme="dark"]) .site-main .find-card .find-store-price b { font-size: 13.5px; }
-  html:not([data-theme="dark"]) .site-main .find-card .find-store-price del { font-size: 12px; }
-  html:not([data-theme="dark"]) .site-main .find-card .find-store-price .find-discount { padding: 2px 6px; font-size: 11.5px; }
-  html:not([data-theme="dark"]) .site-main .find-card .find-content .find-total { padding: 8px 0 0; }
-  html:not([data-theme="dark"]) .site-main .find-card .find-total > span { font-size: 11.5px; }
-  html:not([data-theme="dark"]) .site-main .find-card .find-total > strong { padding-right: 30px; font-size: clamp(15px, 4.4vw, 17px); }
-  html:not([data-theme="dark"]) .site-main .find-card .find-info { bottom: -9px; right: -9px; width: 36px; height: 36px; }
   html:not([data-theme="dark"]) .site-main .find-card .find-purchase { padding-top: 10px; }
   html:not([data-theme="dark"]) .site-main .find-card .find-purchase .btn { min-height: 44px; padding: 0 8px; font-size: 14px; }
 }
@@ -361,21 +357,20 @@ html:not([data-theme="dark"]) .site-main .find-card .find-purchase .btn { width:
 .catalog-check > span.store-logo:first-of-type { flex: 0 0 22px; width: 22px; height: 22px; }
 .catalog-check > span.store-logo + span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 
-/* Atlas Night keeps its own card colours but the same rhythm, so cards line up in a row there too. */
-html[data-theme="dark"] .site-main .find-card .find-content { gap: 0; padding: 16px 18px 18px; }
+/* Atlas Night keeps its own card colours but the same rhythm (catalog.css), so cards line up in a row there too. */
+html[data-theme="dark"] .site-main .find-card .find-content { gap: 0; padding: 14px 16px 16px; }
 html[data-theme="dark"] .site-main .find-card .find-meta { margin: 0; line-height: 1.3; }
 html[data-theme="dark"] .site-main .find-card .find-content .find-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
-  min-height: 2.6em; margin: 6px 0 0; font-size: 18px; line-height: 1.3; }
-html[data-theme="dark"] .site-main .find-card .find-content .find-store-price { row-gap: 2px; margin: 12px 0 0; padding-bottom: 12px; }
-html[data-theme="dark"] .site-main .find-card .find-store-price > div { margin: 0; }
-html[data-theme="dark"] .site-main .find-card .find-content .find-total { margin: 0; padding-top: 12px; }
-html[data-theme="dark"] .site-main .find-card .find-total > strong { margin: 2px 0 0; line-height: 1.15; }
-html[data-theme="dark"] .site-main .find-card .find-purchase { margin-top: auto; padding-top: 14px; }
+  min-height: 2.6em; margin: 6px 0 0; font-size: 17px; line-height: 1.3; }
+html[data-theme="dark"] .site-main .find-card .find-content .find-store-price { margin: 10px 0 0; padding-bottom: 10px; }
+html[data-theme="dark"] .site-main .find-card .find-content .find-total { margin: 0; padding: 10px 0 0; }
+html[data-theme="dark"] .site-main .find-card .find-total > strong { margin: 0; line-height: 1.15; }
+html[data-theme="dark"] .site-main .find-card .find-purchase { margin-top: auto; padding-top: 12px; }
 @media (max-width: 600px) {
   html[data-theme="dark"] .site-main .find-card .find-content { padding: 10px 10px 12px; }
   html[data-theme="dark"] .site-main .find-card .find-content .find-title { margin-top: 4px; font-size: 14.5px; }
   html[data-theme="dark"] .site-main .find-card .find-content .find-store-price { margin-top: 8px; padding-bottom: 8px; }
-  html[data-theme="dark"] .site-main .find-card .find-content .find-total { padding-top: 8px; }
+  html[data-theme="dark"] .site-main .find-card .find-content .find-total { padding: 8px 0 0; }
   html[data-theme="dark"] .site-main .find-card .find-purchase { padding-top: 10px; }
 }
 
@@ -457,7 +452,6 @@ html[data-theme="dark"] .bill-fill { display: block; width: 88px; height: 1em; b
 html[data-theme="dark"] .bill-blank-outside h3 { margin: 0; color: var(--night-ink); font-size: 15px; }
 
 /* ---------- Stores: white hero card; store tiles stay separate white cards ---------- */
-html:not([data-theme="dark"]) .stores-overline { display: none; }
 html:not([data-theme="dark"]) .stores-hero { padding: 26px 24px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }
 html:not([data-theme="dark"]) .stores-intro { color: var(--day-muted); }
 html:not([data-theme="dark"]) :is(.stores-link-field, .stores-search) { border: 1px solid var(--day-field); background: var(--day-surface); }
@@ -466,3 +460,16 @@ html:not([data-theme="dark"]) .store-tile:hover { border-color: var(--day-tint-2
 html:not([data-theme="dark"]) .stores-more { border: 0; background: none; color: var(--day-accent); font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }
 html:not([data-theme="dark"]) .stores-missing { border: 1px solid var(--day-line); background: var(--day-surface); }
 html:not([data-theme="dark"]) .stores-note { color: var(--day-muted); }
+html:not([data-theme="dark"]) .stores-showcase > h2 { font: 750 26px/1.15 var(--day-sans); letter-spacing: -.03em; color: var(--day-ink); }
+html:not([data-theme="dark"]) :is(.stores-region-card, .store-showcase-card, .store-dialog-terms, .store-dialog-products a) { border-color: var(--day-line); background: var(--day-surface); box-shadow: var(--day-shadow); }
+html:not([data-theme="dark"]) .stores-region-card[aria-pressed="true"] { border-color: var(--day-ink); box-shadow: var(--day-shadow), inset 0 0 0 1px var(--day-ink); }
+html:not([data-theme="dark"]) :is(.store-showcase-card, .stores-region-card:not([aria-pressed="true"]), .store-dialog-products a):hover { border-color: var(--day-tint-2); box-shadow: var(--day-shadow-lift); }
+html:not([data-theme="dark"]) :is(.stores-terms-note, .store-tile-geo, .store-showcase-terms, .store-dialog-terms dt, .store-dialog-terms small, .store-dialog-front-meta, .store-dialog-mark) { color: var(--day-muted); }
+html:not([data-theme="dark"]) :is(.store-tile-count, .store-showcase-card > header > span) { color: var(--day-ok); }
+html:not([data-theme="dark"]) :is(.store-showcase-total, .store-dialog-terms dd, .store-dialog-products .money, .store-dialog-product-name) { color: var(--day-ink); }
+html:not([data-theme="dark"]) :is(.store-dialog-currency, .store-dialog-front-meta em) { color: var(--day-warn); }
+html:not([data-theme="dark"]) :is(.stores-howto, .store-dialog-howto) summary, html:not([data-theme="dark"]) .store-dialog-all { color: var(--day-accent); }
+html:not([data-theme="dark"]) :is(.store-dialog-fronts, .store-dialog-note, .store-dialog-mark) { border-color: var(--day-line); }
+html:not([data-theme="dark"]) .store-tile-mark { background: var(--day-ink); border-color: var(--day-surface); }
+/* Phones: the Day hero card keeps the compact padding and the 24px title of stores.css (the page h1 size is a token), so the stores start sooner. */
+@media (max-width: 599px) { html:not([data-theme="dark"]) .stores-hero { --day-h1-size: 24px; padding: 14px 14px 12px; } }

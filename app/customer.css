@@ -478,6 +478,11 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
 .lo-source-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .lo-source-loading { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--home-muted); font-size: 14px; }
 .lo-guest { margin: 0 0 14px; padding: 10px 14px; border-radius: 12px; background: var(--home-soft); color: var(--home-muted); font-size: 14px; line-height: 1.5; }
+/* The unfinished draft brought back by opening the page, and the guest's add being sent after sign-in. */
+.lo-resumed, .lo-pending { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin: 0 0 14px; padding: 4px 14px; border-radius: 12px; background: var(--home-soft); color: var(--home-ink); font-size: 14px; line-height: 1.45; }
+.lo-resumed > span { flex: 1 1 200px; min-width: 0; padding: 8px 0; overflow-wrap: anywhere; }
+.lo-resumed > svg, .lo-pending > svg { flex: none; color: var(--home-accent); }
+.lo-pending { min-height: 44px; font-weight: 600; }
 .lo-loading { display: flex; justify-content: center; align-items: center; gap: 8px; }
 
 .lo-layout { display: grid; grid-template-areas: "product" "variant" "summary" "data" "comment" "confirm"; gap: 14px; }
@@ -506,7 +511,7 @@ a.lo-source-host:hover span { text-decoration: underline; text-underline-offset:
 .lo-stepper button:focus-visible { outline: 2px solid var(--home-accent); outline-offset: -2px; border-radius: 10px; }
 .lo-stepper output { min-width: 28px; color: var(--home-ink); font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
 .lo-single-option { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; padding: 12px 14px; border: 1px solid var(--home-line); border-radius: 14px; }
-.lo-single-option > span { display: grid; gap: 2px; min-width: 0; }
+.lo-single-option > span:not(.lo-stepper) { display: grid; gap: 2px; min-width: 0; }
 .lo-single-option small { color: var(--home-muted); font-size: 12.5px; font-weight: 600; }
 .lo-single-option b { color: var(--home-ink); font-size: 16px; overflow-wrap: anywhere; }
 .lo-stock { color: var(--home-muted); font-size: 12.5px; font-style: normal; font-weight: 600; }
@@ -642,7 +647,34 @@ html[data-theme="dark"] .orders-passport { border-color: var(--night-warn-line);
 .lo-data-toggle:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 4px; border-radius: 8px; }
 .lo-data-fields { display: grid; gap: 2px; margin-top: 10px; }
 .lo-data-fields[hidden] { display: none; }
+/* Calculation details Atlas loaded (from the store or its catalog): read-only "label — value" lines with a lock, never
+   inputs that look editable; what Atlas could not load stays an ordinary field next to them. */
+.lo-data-title { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.lo-data-badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 9px 1px 7px; border: 1px solid var(--day-ok-line, #bfdccb); border-radius: 999px; background: var(--day-ok-bg, #e9f3ed); color: var(--day-ok, #1d6b47); font-size: 12px; font-weight: 700; line-height: 1.6; white-space: nowrap; }
+.lo-data-badge svg { flex: none; }
+.lo-data-note { margin: 0 0 10px; }
+.lo-data-note > span { min-width: 0; }
+.lo-facts { display: grid; min-width: 0; margin: 0; }
+.lo-facts > div { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 14px; min-width: 0; padding: 8px 0; border-bottom: 1px dashed var(--home-line); scroll-margin: 120px; }
+.lo-facts > div:first-child { padding-top: 2px; }
+.lo-facts > div:last-child { padding-bottom: 2px; border-bottom: 0; }
+.lo-facts > div:focus { outline: none; }
+.lo-facts > div:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 2px; border-radius: 6px; }
+.lo-facts dt { color: var(--home-muted); font-size: 13.5px; line-height: 1.4; }
+.lo-facts dd { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; max-width: 100%; margin: 0 0 0 auto; color: var(--home-ink); font-size: 15px; font-weight: 700; line-height: 1.4; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.lo-facts dd svg { flex: none; align-self: center; color: var(--home-muted); }
+/* The product name: label above, the name below, in the same frame as the blocks. */
+.lo-facts.stack { margin-bottom: 10px; padding: 10px 14px; border: 1px solid var(--home-line); border-radius: 14px; }
+.lo-facts.stack > div { display: grid; gap: 2px; padding: 0; }
+.lo-facts.stack dd { margin: 0; text-align: left; }
+.lo-facts + .lo-block-state { margin: 0; }
+/* A value set by an Atlas rule (free store delivery above the threshold), not loaded data: an info mark, accent colour. */
+.lo-facts.rule dd svg { color: var(--home-accent); }
 .lo-page .field input, .lo-page .field select, .lo-page .select-control { min-height: 48px; font-size: 16px; }
+/* Manual entry: selects fill their column (the global 180px minimum pushed them out of two-column blocks),
+   and the currency trigger reads as editable as the price field beside it. */
+.lo-page .lo-block .select-control { min-width: 0; width: 100%; }
+html:not([data-theme="dark"]) .lo-page .lo-block .select-control:not(:disabled) { color: var(--day-ink); border-color: var(--day-field); }
 .lo-found-shipping { justify-self: start; min-height: 44px; margin: 4px 0 8px; }
 .lo-confirm { display: grid; gap: 12px; }
 .lo-confirm .basket-consent { margin-top: 0; }

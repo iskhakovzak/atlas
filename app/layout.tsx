@@ -29,16 +29,21 @@ import "./day-folio.css";
 import "./native.css";
 import "./home-chapters.css";
 import "./tariffs.css";
+import "./home-wide-rail.css";
+import "./home-wide-content.css";
+import "./home-wide-decor.css";
 import "./orders-groups.css";
 import "./accounting.css";
 import "./admin-investor.css";
 import "./site-content-admin.css";
+import "./press.css";
 import { MarketProvider } from "@/lib/market/store";
 import { initialPricing, initialSiteContent } from "@/lib/market/initial-data";
 import { StorageNotice } from "./storage-notice";
 import { AtlasThemeProvider } from "./theme-control";
 import { PerformanceProbe } from "./performance-probe";
 import { NativeShell } from "./native-shell";
+import { PressFeedback } from "./press-feedback";
 
 const structuredData = {
   "@context": "https://schema.org",
@@ -88,7 +93,7 @@ export default async function RootLayout({
     <html lang={locale} suppressHydrationWarning>
       <body className="antialiased">
         <AtlasThemeProvider>
-          <MarketProvider initialLocale={locale} initialPricing={pricing} initialSiteContent={siteContent}>{children}<StorageNotice /><PerformanceProbe /><NativeShell /></MarketProvider>
+          <MarketProvider initialLocale={locale} initialPricing={pricing} initialSiteContent={siteContent}>{children}<StorageNotice /><PerformanceProbe /><NativeShell /><PressFeedback /></MarketProvider>
         </AtlasThemeProvider>
         <script
           type="application/ld+json"

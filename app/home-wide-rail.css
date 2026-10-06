@@ -1,0 +1,145 @@
+/* Home on wide screens, part 1 of 3: the chapter rail, the next-chapter cues, the field geometry and the 27"+ scale.
+   The rail and the cues are rendered by app/home-rail.tsx, loaded lazily by app/home-wide.tsx from 1680px.
+   Inserts: app/home-wide-content.css; decor: app/home-wide-decor.css. Loaded after tariffs.css, before press.css.
+   Phones, tablets, laptops and short windows see no change: the new nodes are display:none by default, every other rule
+   sits in a min-width media query (the inert --hw-z: 1 aside). The media strings are homeWideMedia (lib/market/home-wide.ts).
+   Sheets are addressed by [data-chapter], never :is() with ids.
+   Write this file atomically (temp file + rename): Vite dev can cache an empty file. */
+
+/* ---------- Off by default ---------- */
+.hw-rail, .hw-next { display: none; }
+/* The composition zoom: always a plain number (homeWideZoom() reads it). 1 changes nothing; the steps are at the end. */
+html:has(main.catalog-home) { --hw-z: 1; }
+
+/* =================================== >= 1680px: the chapter rail =================================== */
+@media (min-width: 1680px) {
+  /* Rail + gap + content form one block; spare room goes to the right field, where the decor's medallions live.
+     1680–1919: a compact rail (dots and numbers), 96/124px fields at 1680. From 1920: the full rail. */
+  html:has(main.catalog-home) {
+    --hw-rail-w: 60px; --hw-rail-gap: 40px; --hw-col: 1360px; --hw-rail-min: 40px;
+    --hw-free: calc(100% - var(--hw-rail-w) - var(--hw-rail-gap) - var(--hw-col));
+    --hw-x: clamp(0px, calc(var(--hw-free) - 192px), calc(200px * var(--hw-z)));
+    --hw-ml: max(var(--hw-rail-min), calc((var(--hw-free) - var(--hw-x)) / 2));
+    --hw-mr: max(var(--hw-rail-min), calc((var(--hw-free) + var(--hw-x)) / 2));
+    /* Rail and cue colours, Atlas Day */
+    --hwr-ink: var(--day-ink); --hwr-muted: var(--day-muted); --hwr-accent: var(--day-accent);
+    --hwr-track: var(--day-line-strong-2); --hwr-fill: var(--day-fresh); --hwr-dot-bg: var(--day-canvas);
+    --hwr-card: var(--day-surface); --hwr-card-line: var(--day-line); --hwr-card-shadow: var(--day-shadow); --hwr-hover: var(--day-soft);
+  }
+  /* Atlas Night */
+  html[data-theme="dark"]:has(main.catalog-home) {
+    --hwr-ink: var(--night-ink); --hwr-muted: var(--night-muted); --hwr-accent: var(--night-jade);
+    --hwr-track: color-mix(in srgb, var(--night-ink-2) 20%, transparent); --hwr-fill: color-mix(in srgb, var(--night-jade) 50%, transparent); --hwr-dot-bg: var(--night-canvas);
+    --hwr-card: var(--night-raised); --hwr-card-line: var(--night-line-strong); --hwr-card-shadow: var(--night-shadow); --hwr-hover: var(--night-hover);
+  }
+  html:has(main.catalog-home) main.catalog-home {
+    max-width: none; padding-inline: 0;
+    margin-left: calc(var(--hw-ml) + var(--hw-rail-w) + var(--hw-rail-gap)); margin-right: var(--hw-mr);
+  }
+  /* The header starts where the rail does and ends with the content */
+  html:has(main.catalog-home) .site-header { padding-left: var(--hw-ml); padding-right: var(--hw-mr); }
+
+  html:has(main.catalog-home) .hw-rail {
+    display: block; position: fixed; z-index: 20; top: 50%; left: var(--hw-ml); transform: translateY(-50%);
+    width: var(--hw-rail-w); font-family: var(--font-sans, Inter, system-ui, sans-serif);
+  }
+  .hw-rail-inner { display: flex; flex-direction: column; gap: 26px; }
+  .hw-rail-steps { position: relative; }
+  .hw-rail-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+  /* --hw-rail-t0 / --hw-rail-len: the first and last items' centres, measured by app/home-rail.tsx */
+  .hw-rail-track, .hw-rail-fill { position: absolute; left: 7px; top: var(--hw-rail-t0, 21px); width: 2px; height: var(--hw-rail-len, 0px); border-radius: 2px; pointer-events: none; }
+  .hw-rail-track { background: var(--hwr-track); }
+  /* Progress is an inline transform (compositor), not a height. No transition: the scroll itself animates it,
+     and a running transition would restyle the rail every frame. */
+  .hw-rail-fill { background: var(--hwr-fill); transform-origin: 50% 0; transform: scaleY(0); will-change: transform; }
+  .hw-rail-item { position: relative; display: grid; grid-template-columns: 16px minmax(0, 1fr); align-items: center; column-gap: 14px; min-height: 44px; color: var(--hwr-muted); text-decoration: none; border-radius: 12px; }
+  .hw-rail-dot { position: relative; z-index: 1; justify-self: center; width: 10px; height: 10px; box-sizing: border-box; border: 2px solid var(--hwr-track); border-radius: 50%; background: var(--hwr-dot-bg); transition: background-color .2s, border-color .2s; }
+  .hw-rail-card { display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: center; column-gap: 10px; min-height: 40px; padding: 0 14px; box-sizing: border-box; border: 1px solid transparent; border-radius: 12px; transition: background-color .2s, border-color .2s, box-shadow .2s, color .2s; }
+  /* Full strength in the compact rail, where the number is the only visible text of a link; dimmed from 1920 next to its name */
+  .hw-rail-num { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+  .hw-rail-label { overflow: hidden; font-size: 15px; font-weight: 550; line-height: 1.25; white-space: nowrap; text-overflow: ellipsis; }
+  .hw-rail-item:hover .hw-rail-card { color: var(--hwr-ink); }
+  .hw-rail-item:not([aria-current]):hover .hw-rail-card { background: var(--hwr-hover); }
+  .hw-rail .hw-rail-item:focus-visible { outline: none; box-shadow: none; }
+  .hw-rail-item:focus-visible .hw-rail-card { outline: 2px solid var(--hwr-accent); outline-offset: 2px; }
+  .hw-rail-item[data-state="done"] .hw-rail-dot { border-color: var(--hwr-fill); background: var(--hwr-fill); }
+  .hw-rail-item[aria-current] .hw-rail-card { border-color: var(--hwr-card-line); background: var(--hwr-card); box-shadow: var(--hwr-card-shadow); color: var(--hwr-ink); }
+  .hw-rail-item[aria-current] .hw-rail-num { color: var(--hwr-accent); opacity: 1; font-weight: 700; }
+  .hw-rail-item[aria-current] .hw-rail-label { font-weight: 650; }
+  .hw-rail-item[aria-current] .hw-rail-dot { width: 14px; height: 14px; border: 3px solid var(--hwr-accent); background: var(--hwr-dot-bg); }
+  /* The rail's action is a quiet outline button: the filled green stays on the page's own main actions.
+     It shows only on sheets without main buttons of their own (data-cta, app/home-rail.tsx). */
+  .hw-rail-cta.btn { display: none; align-self: flex-start; gap: 8px; min-height: 42px; margin-left: 30px; padding: 0 16px; border-radius: 10px; font-size: 14px; font-weight: 650; white-space: nowrap; transition: opacity .2s, visibility .2s, transform .2s; }
+  html:not([data-theme="dark"]) .hw-rail-cta.btn.secondary { border: 1px solid var(--day-line-strong); background: var(--day-surface); color: var(--day-ink); box-shadow: var(--day-shadow); }
+  html:not([data-theme="dark"]) .hw-rail-cta.btn.secondary:not(:disabled):hover { border-color: var(--day-tint-2); background: var(--day-tint); }
+  html:not([data-theme="dark"]) .hw-rail-cta.btn svg { color: var(--day-accent); }
+  html[data-theme="dark"] .hw-rail-cta.btn svg { color: var(--night-jade); }
+  .hw-rail:not([data-cta]) .hw-rail-cta { opacity: 0; visibility: hidden; transform: translateY(4px); }
+  /* A chapter's heading takes focus when the rail or a cue leads to it (app/home-rail.tsx), so the next Tab starts there.
+     It is not a control: no ring (the rail marks the chapter), as on skip-link targets; the next stop has its own. */
+  html:has(main.catalog-home) .catalog-home > [data-chapter] :is(h1, h2)[tabindex="-1"]:focus { outline: none; }
+}
+/* 1680–1919: compact rail — dots and numbers; the chapter name shows next to the number on hover and focus.
+   The name stays in the accessibility tree (clip-path, not display:none), so every link keeps its name. */
+@media (min-width: 1680px) and (max-width: 1919.98px) {
+  .hw-rail-item { grid-template-columns: 16px auto; justify-content: start; column-gap: 8px; }
+  .hw-rail-card { grid-template-columns: auto; justify-items: center; min-width: 36px; padding: 0 8px; }
+  .hw-rail-label {
+    position: absolute; z-index: 2; left: calc(100% + 6px); top: 50%; transform: translateY(-50%); overflow: visible;
+    padding: 7px 12px; border: 1px solid var(--hwr-card-line); border-radius: 10px; background: var(--hwr-card); box-shadow: var(--hwr-card-shadow);
+    color: var(--hwr-ink); font-size: 14px; pointer-events: none; opacity: 0; clip-path: inset(50%); transition: opacity .15s;
+  }
+  .hw-rail-item:is(:hover, :focus-visible) .hw-rail-label { opacity: 1; clip-path: none; }
+}
+/* From 1920: the full rail and its button; the columns follow the composition zoom.
+   The content narrows to 1320px at 1920 so the right field has room for a compact medallion. */
+@media (min-width: 1920px) {
+  html:has(main.catalog-home) {
+    --hw-rail-w: calc(224px * var(--hw-z)); --hw-rail-gap: calc(64px * var(--hw-z));
+    --hw-col: clamp(calc(1320px * var(--hw-z)), calc(100% - 600px * var(--hw-z)), calc(1360px * var(--hw-z)));
+  }
+  .hw-rail-cta.btn { display: inline-flex; }
+  .hw-rail-num { opacity: .75; }
+}
+
+/* ---------- Next-chapter cue at the bottom of every sheet but the last, where the window is tall enough ---------- */
+/* It replaces the hero's «How it works» cue, numbered; the old cue stays if the rail's chunk never arrives. */
+@media (min-width: 1680px) and (min-height: 880px) {
+  html:has(main.catalog-home) body .catalog-home > :where([data-chapter]) { position: relative; }
+  html:has(main.catalog-home) body .catalog-home .home-top:has(> .hw-next) > .home-next-how { display: none; }
+  html:has(main.catalog-home) body .catalog-home .hw-next {
+    display: inline-flex; position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%);
+    align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 999px;
+    color: var(--hwr-muted); font-size: 14px; font-weight: 600; line-height: 1.2; text-decoration: none; white-space: nowrap;
+  }
+  html:has(main.catalog-home) body .catalog-home .hw-next b { color: var(--hwr-accent); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+  html:has(main.catalog-home) body .catalog-home .hw-next:hover { color: var(--hwr-ink); }
+  html:has(main.catalog-home) body .catalog-home .hw-next:focus-visible { outline: 2px solid var(--hwr-accent); outline-offset: 2px; }
+}
+/* 1680–1919: while the consent notice (bottom right) is up, the cue moves to the content's left edge so the notice never
+   covers it. The app removes the notice once it is answered. */
+@media (min-width: 1680px) and (max-width: 1919.98px) and (min-height: 880px) {
+  html:has(body > .storage-notice) body .catalog-home .hw-next { left: 0; transform: none; }
+}
+
+/* ---------- 27" and larger: the same composition, scaled; every sheet still exactly one screen ---------- */
+/* Only the sheets, the header's contents and the rail's contents are zoomed, never main: the decor measures main in
+   window pixels. Under zoom app/press-feedback.tsx divides the press light's coordinates by currentCSSZoom. */
+@media (min-width: 2200px) and (min-height: 1200px) { html:has(main.catalog-home) { --hw-z: 1.15; } }
+@media (min-width: 2400px) and (min-height: 1350px) { html:has(main.catalog-home) { --hw-z: 1.25; } }
+@media (min-width: 2880px) and (min-height: 1600px) { html:has(main.catalog-home) { --hw-z: 1.4; } }
+@media (min-width: 2880px) and (min-height: 1950px) { html:has(main.catalog-home) { --hw-z: 1.6; } }
+@media (min-width: 2200px) and (min-height: 1200px) {
+  /* Zoom scales viewport units too: the sheet heights are divided back so each sheet is one window tall. */
+  html:has(main.catalog-home) main.catalog-home > :where([data-chapter]) {
+    zoom: var(--hw-z);
+    --ch-h: calc((100svh - var(--ch-nav) - var(--ch-dock)) / var(--hw-z));
+    --ch-h1: calc((100svh - var(--ch-header) - var(--ch-nav)) / var(--hw-z));
+  }
+  html:has(main.catalog-home) .site-header > * { zoom: var(--hw-z); }
+  html:has(main.catalog-home) .hw-rail-inner { zoom: var(--hw-z); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hw-rail-fill, .hw-rail-dot, .hw-rail-card, .hw-rail-cta, .hw-rail-label { transition: none !important; }
+}

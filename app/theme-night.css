@@ -534,3 +534,10 @@ html[data-theme="dark"] .speed-option span { color: var(--night-ink-2, var(--nig
 html[data-theme="dark"] .speed-option:hover, html[data-theme="dark"] .speed-option.selected { border-color: var(--night-jade); }
 html[data-theme="dark"] .speed-option.selected { box-shadow: inset 0 0 0 1px var(--night-jade); background: color-mix(in srgb, var(--night-jade) 12%, transparent); }
 html[data-theme="dark"] .speed-option:focus-visible { outline-color: var(--night-jade); }
+
+/* Link order: calculation details Atlas loaded, shown read-only with a lock (app/customer.css). */
+html[data-theme="dark"] .lo-data-badge { border-color: rgba(128, 208, 172, .32); background: rgba(128, 208, 172, .1); color: var(--night-jade); }
+html[data-theme="dark"] .lo-facts > div { border-bottom-color: rgba(226, 238, 231, .14); }
+html[data-theme="dark"] .lo-facts.stack { border-color: var(--night-line); }
+html[data-theme="dark"] :is(.lo-resumed, .lo-pending) { background: rgba(255, 255, 255, 0.028); color: var(--night-ink, inherit); }
+html[data-theme="dark"] :is(.lo-resumed, .lo-pending) > svg, html[data-theme="dark"] .lo-facts.rule dd svg { color: var(--night-jade); }

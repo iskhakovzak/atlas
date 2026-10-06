@@ -5,8 +5,9 @@ import { catalogCategories } from '../lib/market/catalog-editor.ts';
 import { catalogAllowance } from '../lib/market/allowance.ts';
 import {
   categorySlugs, readCatalogQuery, catalogQueryString, emptyCatalogQuery, normalizeSize, compareSizes, productSizes,
-  catalogItems, applyCatalogQuery, catalogFacets, relaxations, withoutFilter, activeFilterCount, parcelExtra, cartParcelStores, storeLabel,
+  catalogItems, applyCatalogQuery, catalogFacets, relaxations, withoutFilter, activeFilterCount, parcelExtra, cartParcelStores, storeLabel, sameCatalogProduct,
 } from '../lib/market/catalog-query.ts';
+import { searchWords } from '../lib/market/catalog-synonyms.ts';
 
 const base = { brand: 'Brand', country: 'США', image: 'https://example.com/i.jpg', variants: ['Уточнить вариант в магазине'], sourceShippingUsd: 10, sourceShippingEstimated: true, observedOn: '2026-10-01' };
 const item = (id, overrides) => ({ ...base, id, name: id, store: 'x', category: 'Обувь', usd: 50, boxedWeight: 1, weight: 1.5, sourceUrl: `https://www.amazon.com/dp/${id}`, ...overrides });
@@ -81,6 +82,21 @@ test('search needs every word and also finds the store and translated category',
   assert.deepEqual(applyCatalogQuery(items, { ...emptyCatalogQuery, q: 'kiyim' }, { ...context, words }).map((entry) => entry.product.id), ['hoodie']);
 });
 
+test('search speaks the customer’s language: synonyms and Russian brand spellings through context.words, "ё" as "е", transliteration', () => {
+  const spoken = { ...context, words: (entry) => searchWords(entry) };
+  const find = (q, ctx = spoken) => applyCatalogQuery(items, { ...emptyCatalogQuery, q }, ctx).map((entry) => entry.product.id).sort();
+  assert.deepEqual(find('кроссовки'), ['runner', 'trail']);
+  assert.deepEqual(find('Найк'), ['runner']);
+  assert.deepEqual(find('найк кроссовки'), ['runner']);
+  assert.deepEqual(find('кроссовки', context), [], 'the synonyms come from context.words');
+  // Transliteration needs no dictionary: "ибей" is listed, "ебей" too, and "лаптоп" is read as "laptop".
+  assert.deepEqual(find('ебей'), ['laptop']);
+  assert.deepEqual(find('лаптоп', context), ['laptop']);
+  const yo = catalogItems([item('tree', { name: 'Ёлка искусственная' })], tariff);
+  assert.equal(applyCatalogQuery(yo, { ...emptyCatalogQuery, q: 'елка' }, context).length, 1);
+  assert.equal(applyCatalogQuery(yo, { ...emptyCatalogQuery, q: '  ЁЛКА   искусств ' }, context).length, 1);
+});
+
 test('price bands use the delivered total, lower bound inclusive', () => {
   const totals = Object.fromEntries(items.map((entry) => [entry.product.id, entry.costs.total]));
   for (const entry of items) {
@@ -108,6 +124,30 @@ test('recommended order puts confirmed prices first, then discounts, then the lo
   assert.deepEqual(expensive, [...expensive].sort((a, b) => b - a));
   const newest = catalogItems([{ ...products[2], addedAt: 5 }, { ...products[0], addedAt: 9 }], tariff, []);
   assert.deepEqual(applyCatalogQuery(newest, { ...emptyCatalogQuery, sort: 'new' }, context).map((entry) => entry.product.id), ['runner', 'hoodie']);
+});
+
+test('the operator’s storefront position comes before freshness; unranked products follow in the usual order', () => {
+  const ranked = catalogItems([products[0], { ...products[3], rank: 0 }, { ...products[2], rank: 5 }, products[1], { ...products[4], rank: 2 }], tariff, []);
+  assert.deepEqual(applyCatalogQuery(ranked, emptyCatalogQuery, context).map((entry) => entry.product.id), ['gloss', 'laptop', 'hoodie', 'runner', 'trail']);
+  assert.equal(ranked[0].rank, undefined);
+  assert.equal(ranked[1].rank, 0);
+  // Other sorts ignore the position.
+  const cheap = applyCatalogQuery(ranked, { ...emptyCatalogQuery, sort: 'cheap' }, context).map((entry) => entry.costs.total);
+  assert.deepEqual(cheap, [...cheap].sort((a, b) => a - b));
+});
+
+test('items carry when the store last confirmed the snapshot, else the day it was observed', () => {
+  const checked = catalogItems([item('a', { sourceCheckedAt: 1_700_000_000_000 }), item('b', { observedOn: '2026-09-13' }), item('c', { observedOn: undefined })], tariff, []);
+  assert.deepEqual(checked.map((entry) => entry.checkedAt), [1_700_000_000_000, Date.parse('2026-09-13'), 0]);
+});
+
+test('by default the products themselves are the records, so an imported snapshot shows its store discount', () => {
+  const sale = item('sale', { usd: 60, referenceUsd: 100 });
+  const [withDiscount] = catalogItems([sale], tariff);
+  assert.equal(withDiscount.discount, 40);
+  assert.equal(withDiscount.referenceUsd, 100);
+  assert.equal(catalogItems([sale], tariff, [])[0].discount, 0, 'explicit records still decide');
+  assert.equal(catalogItems([{ ...sale, priceNeedsConfirmation: true, sourcePrice: 60, sourceCurrency: 'USD' }], tariff)[0].discount, 0, 'an unconfirmed price has no discount');
 });
 
 test('an empty result suggests the single filter whose removal brings most products back', () => {
@@ -157,4 +197,16 @@ test('store labels use brand names, name other storefronts by country and fall b
   assert.equal(storeLabel('amazon.de'), 'Amazon · Германия');
   assert.equal(storeLabel('amazon.de', 'en'), 'Amazon · Germany');
   assert.equal(storeLabel('unknown-shop.example'), 'unknown-shop.example');
+});
+
+test('a cart line made by the link order is the catalog product it came from', () => {
+  const runner = { id: 'runner', sourceUrl: 'https://www.nike.com/t/runner' };
+  // The link order keys a line by URL and option; tracking parameters, the hash and "www." do not matter.
+  assert.ok(sameCatalogProduct({ id: 'https://www.nike.com/t/runner#Black · US 9', sourceUrl: 'https://www.nike.com/t/runner' }, runner));
+  assert.ok(sameCatalogProduct({ id: 'x', sourceUrl: 'https://nike.com/t/runner?utm_source=atlas#top' }, runner));
+  assert.equal(sameCatalogProduct({ id: 'x', sourceUrl: 'https://www.nike.com/t/other' }, runner), false);
+  assert.equal(sameCatalogProduct({ id: 'x', sourceUrl: 'https://www.nike.com/t/runner?color=red' }, runner), false);
+  // Products without a store link compare by id alone.
+  assert.ok(sameCatalogProduct({ id: 'manual' }, { id: 'manual' }));
+  assert.equal(sameCatalogProduct({ id: 'manual' }, { id: 'manual', sourceUrl: 'https://www.nike.com/t/runner' }), false);
 });

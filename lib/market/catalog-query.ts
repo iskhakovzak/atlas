@@ -1,7 +1,8 @@
 import { quote, repriceCart, merchantParcelKey, type CartItem, type Pricing, type Product } from './domain.ts';
 import { dealQuote } from './deals.ts';
-import { bundledMerchantFinds, type MerchantFind } from './catalog.ts';
+import type { MerchantFind } from './catalog.ts';
 import { brandForHost, storefrontLabel } from './store-brands.ts';
+import { normalizeSearch, wordMatches } from './catalog-synonyms.ts';
 import type { Locale } from './i18n.ts';
 
 /** Catalog categories as stored in product snapshots, with the URL slug of each. */
@@ -79,6 +80,25 @@ export function storeHost(product: Product & { store?: string }) {
   try { if (product.sourceUrl) return new URL(product.sourceUrl).hostname.toLowerCase().replace(/^www\./, ''); } catch { /* fall back to the label */ }
   return (product.store ?? '').toLowerCase();
 }
+/** A store URL as compared between the catalog and the cart: lower-case host without "www.", no hash, no tracking parameters, sorted query. */
+function comparableUrl(value: string) {
+  try {
+    const url = new URL(value);
+    url.hash = '';
+    url.hostname = url.hostname.toLowerCase().replace(/^www\./, '');
+    for (const key of [...url.searchParams.keys()]) if (/^(utm_.+|gclid|fbclid)$/i.test(key)) url.searchParams.delete(key);
+    url.searchParams.sort();
+    return url.href;
+  } catch { return value.trim(); }
+}
+/**
+ * The same store product in the cart and in the catalog. The link order keys a cart line by URL and
+ * option (`<url>#<option>`), so the ids differ; the source URL is what both share.
+ */
+export function sameCatalogProduct(a: Pick<Product, 'id' | 'sourceUrl'>, b: Pick<Product, 'id' | 'sourceUrl'>) {
+  if (a.id === b.id && (a.sourceUrl ?? '') === (b.sourceUrl ?? '')) return true;
+  return Boolean(a.sourceUrl && b.sourceUrl) && comparableUrl(a.sourceUrl!) === comparableUrl(b.sourceUrl!);
+}
 /** The store's brand name ("Amazon", "Amazon · Germany" for another storefront), otherwise its domain. */
 export function storeLabel(host: string, locale: Locale = 'ru') {
   return brandForHost(host) ? storefrontLabel(host, locale) : host;
@@ -110,17 +130,29 @@ export function productSizes(product: Product) {
   return [...new Set(sizes)].sort(compareSizes);
 }
 
-export type CatalogItem = ReturnType<typeof dealQuote> & {
+/** A published catalog record priced for the storefront; `product` keeps the record's own fields (`rank`, `confirmedAt`, `sourceCheckedAt`). */
+export type CatalogItem = Omit<ReturnType<typeof dealQuote>, 'product'> & {
+  product: MerchantFind;
   /** Product price in USD for the duty-free check: the current price, or the last recorded one. */
   usd?: number;
   store: string; sizes: string[]; fresh: boolean; addedAt: number;
+  /** The operator's position on the storefront (lower first); unranked products follow the ranked ones. */
+  rank?: number;
+  /** When the store last confirmed the snapshot (`sourceCheckedAt`), else the day it was observed. */
+  checkedAt: number;
 };
-export function catalogItems(products: MerchantFind[], pricing: Pricing, records: MerchantFind[] = bundledMerchantFinds): CatalogItem[] {
+/**
+ * Catalog items priced for the storefront. `records` are the records whose `referenceUsd` gives the
+ * store discount: by default the products themselves, so an imported snapshot's discount shows too.
+ */
+export function catalogItems(products: MerchantFind[], pricing: Pricing, records: MerchantFind[] = products): CatalogItem[] {
   return products.map((product) => {
     const deal = dealQuote(product, pricing, records);
     const usd = deal.costs ? deal.costs.merchandise / pricing.fx : undefined;
     const addedAt = product.addedAt ?? (Date.parse(product.observedOn ?? '') || 0);
-    return { ...deal, usd, store: storeHost(product), sizes: productSizes(product), fresh: !product.priceNeedsConfirmation, addedAt };
+    const checkedAt = product.sourceCheckedAt ?? (Date.parse(product.observedOn ?? '') || 0);
+    // `rank` is spread in only when set, so items without a position compare deep-equal to the plain shape.
+    return { ...deal, product, usd, store: storeHost(product), sizes: productSizes(product), fresh: !product.priceNeedsConfirmation, addedAt, checkedAt, ...(product.rank !== undefined ? { rank: product.rank } : {}) };
   });
 }
 
@@ -142,10 +174,10 @@ export function fitsDutyFree(item: CatalogItem, limitUsd: number) {
   return item.usd !== undefined && item.usd <= limitUsd + 1e-9;
 }
 function matches(item: CatalogItem, query: CatalogQuery, context: CatalogContext, skip?: Facet) {
-  const search = query.q.trim().toLocaleLowerCase();
+  const search = normalizeSearch(query.q);
   if (search) {
-    const text = [item.product.name, item.product.brand, item.product.category, item.product.country, item.store, storeLabel(item.store), context.words?.(item)].join(' ').toLocaleLowerCase();
-    if (!search.split(/\s+/).every((word) => text.includes(word))) return false;
+    const text = normalizeSearch([item.product.name, item.product.brand, item.product.category, item.product.country, item.store, storeLabel(item.store), context.words?.(item)].join(' '));
+    if (!search.split(' ').every((word) => wordMatches(text, word))) return false;
   }
   if (skip !== 'category' && query.category && item.product.category !== query.category) return false;
   if (skip !== 'stores' && query.stores.length && !query.stores.includes(item.store)) return false;
@@ -162,13 +194,18 @@ const byTotal = (a: CatalogItem, b: CatalogItem, direction: 1 | -1) => {
   if (!a.costs || !b.costs) return Number(!a.costs) - Number(!b.costs);
   return direction * (a.costs.total - b.costs.total);
 };
-/** "Recommended": a confirmed price first, then the larger store discount, then the lower delivered total. */
+/** Ranked products first, in rank order; unranked ones keep their place after them. */
+const byRank = (a: CatalogItem, b: CatalogItem) => {
+  if (a.rank === undefined || b.rank === undefined) return Number(a.rank === undefined) - Number(b.rank === undefined);
+  return a.rank - b.rank;
+};
+/** "Recommended": the operator's storefront position, then a confirmed price, then the larger store discount, then the lower delivered total. */
 function compare(sort: CatalogSort) {
   return (a: CatalogItem, b: CatalogItem) => {
     if (sort === 'cheap') return byTotal(a, b, 1);
     if (sort === 'expensive') return byTotal(a, b, -1);
     if (sort === 'new' && a.addedAt !== b.addedAt) return b.addedAt - a.addedAt;
-    return Number(b.fresh) - Number(a.fresh) || b.discount - a.discount || byTotal(a, b, 1);
+    return byRank(a, b) || Number(b.fresh) - Number(a.fresh) || b.discount - a.discount || byTotal(a, b, 1);
   };
 }
 export function applyCatalogQuery(items: CatalogItem[], query: CatalogQuery, context: CatalogContext) {
