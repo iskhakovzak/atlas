@@ -3,10 +3,10 @@ import { capitalizeFirst, capitalizeWords } from "@/lib/market/text-case";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "@/components/site-link";
-import { ArrowRight, ArrowUpRight, BadgeCheck, Check, ClipboardPaste, Clock3, Info, Layers, Loader2, MessageSquare, Minus, Plus, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BadgeCheck, Check, ClipboardPaste, Clock3, Info, Loader2, MessageSquare, Minus, Plus, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
-import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, inCheckout, isPostalCode, maxLineQuantity, modelNotes, parcelServiceUnits, storeDiscount, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
+import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, inCheckout, isPostalCode, maxLineQuantity, parcelServiceUnits, storeDiscount, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
 import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, savingText } from "@/lib/market/delivery-speed";
 import { countryName, customsVersion } from "@/lib/market/world";
 import { formatSum } from "@/lib/market/home-copy";
@@ -287,7 +287,7 @@ export function CartView() {
     return () => window.clearTimeout(fallback);
   }, [placedKey, state.orders]);
 
-  function renderItem(item: CartItem, shared = false) {
+  function renderItem(item: CartItem) {
     const meta = [shownVariant(item.variant), countryLabel(countryName(item.product), locale)].filter(Boolean).join(" · ");
     const change = item.priceChange, issue = item.sourceIssue, currency = change?.currency ?? item.product.sourceCurrency ?? "USD";
     const reopen = item.product.sourceUrl ? `/order-by-link?url=${encodeURIComponent(item.product.sourceUrl)}` : "";
@@ -318,17 +318,14 @@ export function CartView() {
         <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity })} />
         <SafeDeleteButton label={c.item.remove} itemName={item.product.name} locale={locale} onConfirm={() => act({ type: "cart-remove", id: item.id })} />
       </div>
-      {!shared && renderExtras([item])}
+      {renderNote(item)}
     </article>;
   }
 
-  /** The note of one line, or one note for every option of one product (`lines`), saved to each line in one request. */
-  function renderExtras(lines: CartItem[]) {
-    const lead = lines[0];
-    const ids = lines.length > 1 ? lines.map(line => line.id) : undefined;
-    // The same text the order of every option will carry (checkout joins the model's notes the same way).
-    const note = modelNotes(lines) ?? "";
-    return <ItemNote key={`${lead.id}:${note}`} id={lead.id} note={note} locale={locale} save={(text) => act({ type: "cart-note", id: lead.id, ids, note: text })} />;
+  /** The customer's note on one option (owner, 7.10.2026: each size keeps its own note; nothing is merged). */
+  function renderNote(item: CartItem) {
+    const note = item.note ?? "";
+    return <ItemNote key={`${item.id}:${note}`} id={item.id} note={note} locale={locale} save={(text) => act({ type: "cart-note", id: item.id, note: text })} />;
   }
 
   /**
@@ -426,8 +423,7 @@ export function CartView() {
             <h2 className="basket-parcel-title">{parcels.length > 1 || parcel.items.length > 1 ? selectBox(parcel.items, s.selectStore(parcel.store)) : <Store size={16} aria-hidden="true" />}<span>{parcel.title}</span><small>{[parcel.country, speedDays(parcel.origin)].filter(Boolean).join(" · ")}</small></h2>
             {productGroups(parcel.items).map(lines => lines.length === 1 ? renderItem(lines[0]) : <div className="basket-group" key={`group:${lines[0].id}`}>
               <p className="basket-group-head">{selectBox(lines, s.selectGroup(lines[0].product.name))}{s.selectGroup(lines[0].product.name)}</p>
-              {lines.map(item => renderItem(item, true))}
-              <div className="basket-shared"><p className="basket-shared-title"><Layers size={15} aria-hidden="true" />{c.shared.title}</p>{renderExtras(lines)}</div>
+              {lines.map(item => renderItem(item))}
             </div>)}
             {reserve && <p className={"basket-parcel-note" + (reserve.reserveUsd ? "" : " ok")}>
               {reserve.reserveUsd ? <Truck size={16} aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
@@ -523,7 +519,7 @@ export function CartView() {
               { key: "variants", label: s.review.variants, value: s.review.variantsValue(lines.length, count), ok: !lines.some(blockingSourceIssue) },
               { key: "recipient", label: s.review.recipient, value: <>{delivery.recipient}, {delivery.phone}<br />{[delivery.region, delivery.city, delivery.address, delivery.postalCode].filter(Boolean).join(", ")}</>, onChange: () => setReview(false) },
               { key: "speed", label: s.review.speed, value: deliverySpeedCopy[locale].names[speed] },
-              { key: "services", label: s.review.services, value: (() => { const services = new Set(lines.flatMap(item => item.requestedServiceIds ?? [])).size, notes = new Set(lines.map(item => item.note?.trim()).filter(Boolean)).size; return services || notes ? s.review.servicesValue(services, notes) : s.review.servicesNone; })() },
+              { key: "services", label: s.review.services, value: (() => { const services = new Set(lines.flatMap(item => item.requestedServiceIds ?? [])).size, notes = lines.filter(item => item.note?.trim()).length; return services || notes ? s.review.servicesValue(services, notes) : s.review.servicesNone; })() },
               { key: "customs", label: s.review.customs, value: customsChoices.help ? s.review.customsHelp : s.review.customsSelf },
               { key: "total", label: s.review.total, value: <>{formatSum(reviewPayable, locale)}{sums.storeShippingHold > 0 && <> · {s.review.held}: {formatSum(sums.storeShippingHold, locale)}</>}</> },
             ]} />

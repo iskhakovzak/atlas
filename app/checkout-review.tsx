@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Check, Info, TriangleAlert } from "lucide-react";
-import { cartModelKey, modelNotes, serviceTitle, storeParcels, parcelServiceUnits, type CartItem, type Pricing } from "@/lib/market/domain";
+import { cartModelKey, serviceTitle, storeParcels, parcelServiceUnits, type CartItem, type Pricing } from "@/lib/market/domain";
 import { cartSelectCopy } from "@/lib/market/cart-select-copy";
 import { countryLabel } from "@/lib/market/customer-copy";
 import { countryName } from "@/lib/market/world";
@@ -31,7 +31,7 @@ export const shownVariant = (variant?: string) => variant && variant !== "Выб
 /**
  * The order on the confirmation step as a compact table (owner, 7.10.2026): numbered lines grouped by store parcel and
  * model, columns Item · Option · Qty · Price · Amount; a changed price or a store problem is shown on its own line.
- * The parcel's services and the model's note sit under their group. On a phone the columns fold into one card per line.
+ * The parcel's services sit under it; each option's own note sits under its line. On a phone the columns fold into one card per line.
  */
 export function CheckoutReviewTable({ lines, locale, pricing, onLeaveForLater, busy }: {
   lines: CartItem[]; locale: Locale; pricing: Pricing;
@@ -52,11 +52,12 @@ export function CheckoutReviewTable({ lines, locale, pricing, onLeaveForLater, b
     </div>
     {storeParcels(lines).map(parcel => {
       const lead = parcel.items[0];
+      // A catalog line has no store link: its brand label may already name the country.
+      const name = storeName(lead, locale), country = countryLabel(countryName(lead.product), locale);
       const services = pricing.serviceCatalog.filter(service => parcel.items.some(line => line.requestedServiceIds?.includes(service.id)));
       return <div className="review-parcel" role="rowgroup" key={parcel.key}>
-        <div className="review-parcel-title" role="row"><span role="cell">{r.parcel(storeName(lead, locale), countryLabel(countryName(lead.product), locale))}</span></div>
+        <div className="review-parcel-title" role="row"><span role="cell">{country && !name.includes(country) ? r.parcel(name, country) : name}</span></div>
         {productGroups(parcel.items).map(group => {
-          const notes = modelNotes(group)?.split("\n") ?? [];
           return <div className="review-model" key={group[0].id}>
             {group.map((item, index) => {
               const issue = item.sourceIssue && item.sourceIssue.kind !== "unreachable";
@@ -75,9 +76,9 @@ export function CheckoutReviewTable({ lines, locale, pricing, onLeaveForLater, b
                     : item.priceChange ? <span className="review-flag change" role="status"><Info size={14} aria-hidden="true" />{r.lineChanged}</span> : null}
                   {onLeaveForLater && lines.length > 1 && <button type="button" className="text-button review-later" disabled={busy} onClick={() => onLeaveForLater(item.id)}>{s.leaveForLater}</button>}
                 </span>}
+                {item.note?.trim() && <span className="review-row-note" role="cell"><b>{r.note}:</b> {item.note.trim()}</span>}
               </div>;
             })}
-            {notes.length > 0 && <p className="review-note" role="row"><span role="cell"><b>{r.note}:</b> {notes.join(" · ")}</span></p>}
           </div>;
         })}
         {services.length > 0 && <p className="review-services" role="row"><span role="cell"><b>{r.services_}:</b> {services.map(service => {

@@ -71,22 +71,15 @@ test('cart-select action is validated and applied',()=>{
  assert.equal(actionSchema.safeParse({type:'cart-select',ids:[],selected:true}).success,false);
 });
 
-test('a model keeps one note: a new size inherits it and every order of the model leaves with the same note and services',()=>{
- let s=blank();for(const size of nike.variants.slice(0,2))s=addToCart(s,nike,size,1000);
- for(const line of s.cart)s=setCartNote(s,line.id,'Без коробки');
- s=setCartServices(s,s.cart[0].id,['detailed-photos'],tariff,{'detailed-photos':3});
- s=addToCart(s,nike,nike.variants[2],1001);
- assert.equal(s.cart[2].note,'Без коробки','the new size gets the model note');
- assert.deepEqual(s.cart[2].requestedServiceIds,s.cart[0].requestedServiceIds,'and the parcel services');
- s=checkoutCart(s,'model',1002);
- assert.deepEqual(s.orders.map(o=>o.note),['Без коробки','Без коробки','Без коробки']);
- const requests=s.orders.flatMap(o=>o.warehouseServiceRequests??[]).filter(r=>r.serviceId==='detailed-photos');
- assert.equal(requests.length,1,'one request for the parcel');
-});
-
-test('different notes of one model leave the same way on every order, as the cart shows them',()=>{
+test('each size keeps its own note; a new size starts without one and joins the parcel services',()=>{
  let s=blank();for(const size of nike.variants.slice(0,2))s=addToCart(s,nike,size,1000);
  s=setCartNote(s,s.cart[0].id,'A');s=setCartNote(s,s.cart[1].id,'B');
- s=checkoutCart(s,'notes',1001);
- assert.deepEqual(s.orders.map(o=>o.note),['A\nB','A\nB']);
+ s=setCartServices(s,s.cart[0].id,['detailed-photos'],tariff,{'detailed-photos':3});
+ s=addToCart(s,nike,nike.variants[2],1001);
+ assert.equal(s.cart[2].note,undefined,'the new size has no note of its own');
+ assert.deepEqual(s.cart[2].requestedServiceIds,s.cart[0].requestedServiceIds,'but gets the parcel services');
+ s=checkoutCart(s,'notes',1002);
+ assert.deepEqual(s.orders.map(o=>o.note),['A','B',undefined],'notes are not merged');
+ const requests=s.orders.flatMap(o=>o.warehouseServiceRequests??[]).filter(r=>r.serviceId==='detailed-photos');
+ assert.equal(requests.length,1,'one request for the parcel');
 });

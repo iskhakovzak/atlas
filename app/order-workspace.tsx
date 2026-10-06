@@ -827,7 +827,6 @@ function OrderGroupCard({ group, locale, line }: { group: OrderGroup; locale: Lo
       </div>
       {group.stage !== "cancelled" && <p className="order-group-sum"><small>{gc.total}</small><strong><Money value={group.payable} locale={locale} /></strong></p>}
     </header>
-    {group.latest && <p className="og-latest og-group-latest"><Clock3 size={15} aria-hidden="true" /><span><b>{gc.latest}</b> · <time>{formatDateTime(group.latest.entry.at, locale)}</time>{group.orders.length > 1 && <> · {group.latest.order.product.name}{group.latest.order.variant ? `, ${group.latest.order.variant}` : ""}</>}<span className="og-latest-text">{renderHistory(group.latest.entry, locale)}</span></span></p>}
     {group.stores.map((store) => <div className="order-group-store" key={store.key}>
       <div className="og-store-head">
         <p className="order-group-store-title"><Package size={15} aria-hidden="true" />{gc.from(storeGroupName(store, locale), store.country && !storeGroupName(store, locale).includes(store.country) ? countryLabel(store.country, locale) : "")}</p>
