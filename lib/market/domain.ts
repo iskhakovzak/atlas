@@ -690,6 +690,11 @@ const warehouseServiceRequestSchema = z.object({
   quotedAmount: amount.max(100_000_000).optional(),
   quoteChangeRequestId: z.string().max(100).optional(),
   completedAt: amount.optional(),
+  /**
+   * One request for a whole store parcel (since 7 October 2026): the orders of one checkout from one store and
+   * country it covers, this one included. Kept on one order so the parcel is not charged once per size or color.
+   */
+  parcelOrderIds: z.array(z.string().max(80)).max(50).optional(),
 });
 export type WarehouseServiceRequest = z.infer<typeof warehouseServiceRequestSchema>;
 export const warehouseConditionSchema = z.enum(["ok", "damaged", "mismatch"]);
@@ -841,8 +846,14 @@ const cartSchema = z.object({
   deliverySpeed: deliverySpeedSchema.optional(),
   /** The customer's note for Atlas about this item; kept through repricing, shown to operators, never sent to the store. */
   note: z.string().trim().max(500).optional(),
+  /** `false`: left in the cart for later, outside the next checkout and its parcel prices (owner, 7.10.2026). Absent = chosen. */
+  selected: z.boolean().optional(),
 });
 export type CartItem = z.infer<typeof cartSchema>;
+/** The line goes into the next checkout: everything the customer did not leave for later. */
+export const inCheckout = (item: Pick<CartItem, "selected">) => item.selected !== false;
+/** The lines of the next checkout, in cart order. */
+export const checkoutLines = <T extends Pick<CartItem, "selected">>(cart: T[]) => cart.filter(inCheckout);
 export type SourceIssueKind = NonNullable<CartItem["sourceIssue"]>["kind"];
 /** Problems the customer has to resolve (reload the product); an unreachable store after a recent check is not one. */
 export const blockingSourceIssue = (item: Pick<CartItem, "sourceIssue">) => Boolean(item.sourceIssue && item.sourceIssue.kind !== "unreachable");
@@ -905,6 +916,43 @@ export function setCartServices(
   };
 }
 
+/**
+ * The checkout services a line can carry now: services switched off since are dropped, required ones added, and
+ * units kept only for counted services (photos, days). Done on the server when the cart is renewed, so the cart
+ * page no longer sends a fix-up request of its own per line.
+ */
+function currentCartServices(item: Partial<Pick<CartItem, "requestedServiceIds" | "requestedServiceUnits">>, config: Pricing) {
+  const allowed = config.serviceCatalog.filter((service) => service.enabled && service.requestStage === "checkout");
+  const kept = (item.requestedServiceIds ?? []).filter((serviceId) => allowed.some((service) => service.id === serviceId));
+  const requestedServiceIds = [...kept, ...allowed.filter((service) => service.required && !kept.includes(service.id)).map((service) => service.id)];
+  const requestedServiceUnits = Object.fromEntries(Object.entries(item.requestedServiceUnits ?? {}).filter(([serviceId]) =>
+    requestedServiceIds.includes(serviceId) && allowed.some((service) => service.id === serviceId && !["package", "item"].includes(service.unit))));
+  return { requestedServiceIds, requestedServiceUnits };
+}
+
+/**
+ * How many units one store parcel's request for a checkout service covers (owner, 7.10.2026): a package service
+ * once per parcel, an item service once per piece, a counted one (photos, days) as the customer typed it. The
+ * lines are one parcel's lines; three sizes of one model never make the parcel service count three times.
+ */
+export function parcelServiceUnits(service: Pick<ServiceOffering, "id" | "unit">, lines: Pick<CartItem, "quantity" | "requestedServiceUnits">[]) {
+  if (service.unit === "package") return 1;
+  if (service.unit === "item") return Math.min(100, Math.max(1, lines.reduce((sum, line) => sum + line.quantity, 0)));
+  return Math.min(100, Math.max(1, ...lines.map((line) => line.requestedServiceUnits?.[service.id] ?? 0)));
+}
+
+/** Cart lines by store parcel (one store shipping from one country), in cart order. */
+export function storeParcels<T extends Pick<CartItem, "id" | "product">>(items: T[]) {
+  const parcels: { key: string; items: T[] }[] = [];
+  for (const item of items) {
+    const key = storeParcelKey(item);
+    const parcel = parcels.find((entry) => entry.key === key);
+    if (parcel) parcel.items.push(item);
+    else parcels.push({ key, items: [item] });
+  }
+  return parcels;
+}
+
 /** A warehouse service's name in every language, for coded history and notifications. */
 const serviceParams = (service: Pick<ServiceOffering, "id" | "title"> | WarehouseServiceRequest): HistoryParams => ({
   service: "serviceId" in service ? service.serviceId : service.id,
@@ -933,11 +981,21 @@ export function requestWarehouseService(
     throw Error("Опишите, что именно нужно сделать на складе.");
   if (note && note.length > 500) throw Error("Комментарий к услуге должен быть не длиннее 500 символов.");
   const previous = order.warehouseServiceRequests ?? [];
-  if (previous.some((request) => request.serviceId === serviceId && ["requested", "quoted", "approved"].includes(request.status)))
+  const active = (request: WarehouseServiceRequest) => request.serviceId === serviceId && ["requested", "quoted", "approved"].includes(request.status);
+  if (previous.some(active))
     throw Error("Эта услуга уже запрошена для заказа.");
+  // A parcel service covers every order of the same checkout and store parcel: asked on a sibling, it is not asked again.
+  const parcelOrderIds = service.unit !== "package" || !order.batchId ? [] : state.orders
+    .filter((other) => other.batchId === order.batchId && !other.cancelled && storeParcelKey(other) === storeParcelKey(order))
+    .map((other) => other.id);
+  if (state.orders.some((other) => other.id !== id && (other.warehouseServiceRequests ?? []).some((request) => active(request) && request.parcelOrderIds?.includes(id))))
+    throw Error("Эта услуга уже запрошена для посылки этого магазина.");
   const count = service.unit === "package" ? 1 : service.unit === "item" ? order.quantity : units;
   if (!Number.isInteger(count) || count < 1 || count > 100) throw Error("Проверьте количество услуги.");
-  const request = buildServiceRequest(service, order.product.country, count, "warehouse", now, note);
+  const request = {
+    ...buildServiceRequest(service, order.product.country, count, "warehouse", now, note),
+    ...(parcelOrderIds.length > 1 ? { parcelOrderIds } : {}),
+  };
   return withNotification(replace(state, {
     ...order,
     warehouseServiceRequests: [...previous, request],
@@ -1011,11 +1069,14 @@ export function storeShippingHoldUsd(product: Pick<Product, "sourceShippingUsd" 
   return product.sourceShippingEstimated && !storeShippingFree(product, storeSubtotalUsd, config) ? product.sourceShippingUsd ?? 0 : 0;
 }
 
-/** Unknown store delivery per store order in the cart: one hold up to the threshold, free above it. */
+/**
+ * Unknown store delivery per store order in the cart: one hold up to the threshold, free above it. Lines left for
+ * later form their own store order, so the one being checked out is held (or free) for what it holds.
+ */
 export function storeShippingReserves(items: CartItem[], config: Pricing = tariff) {
   const groups = new Map<string, CartItem[]>();
   for (const item of items) {
-    const key = storeParcelKey(item);
+    const key = storeParcelKey(item) + (inCheckout(item) ? "" : ":later");
     groups.set(key, [...(groups.get(key) ?? []), item]);
   }
   return [...groups].flatMap(([key, group]) => {
@@ -1065,7 +1126,8 @@ export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing
   const groups = new Map<string, number[]>();
   next.forEach((item, index) => {
     if (!item.product.sourceUrl || item.product.boxedWeight === undefined) return;
-    const key = merchantParcelKey(item);
+    // The lines left for later make their own parcel: the one being checked out is priced for what it holds.
+    const key = merchantParcelKey(item) + (inCheckout(item) ? "" : ":later");
     groups.set(key, [...(groups.get(key) ?? []), index]);
   });
   for (const indexes of groups.values()) {
@@ -1344,20 +1406,37 @@ export function addToCart(
   const itemPricing = pricingForCountry(config, p.country);
   // A new line travels at the speed the cart already has (all lines share one choice).
   const speed = cartDeliverySpeed(state.cart);
+  // Warehouse services are chosen per store parcel: a new line joins the services its parcel already has.
+  const id = crypto.randomUUID();
+  const sibling = state.cart.find((line) => storeParcelKey(line) === storeParcelKey({ id, product: p }));
+  const services = currentCartServices(sibling ?? {}, config);
   const cart = [
     ...state.cart,
     {
-      id: crypto.randomUUID(),
+      id,
       product: p,
       variant,
       quantity,
       deliverySpeed: speed,
-      requestedServiceIds: config.serviceCatalog.filter((service) => service.enabled && service.required && service.requestStage === "checkout").map((service) => service.id),
+      requestedServiceIds: services.requestedServiceIds,
+      ...(Object.keys(services.requestedServiceUnits).length ? { requestedServiceUnits: services.requestedServiceUnits } : {}),
       quote: quote(p.usd, p.weight, now, quantity, storeShippingUsd(p), itemPricing, speed),
       ...(comment ? { note: comment } : {}),
     },
   ];
   return { ...state, cart: repriceCart(cart, now, config, customsHelpChosen(state))};
+}
+/**
+ * Chooses which lines go into the next checkout (owner, 7.10.2026). The rest stay in the cart; the cart is priced
+ * again, so the parcel being checked out carries the delivery, minimum weight and store reserve of what it holds.
+ */
+export function setCartSelection(state: State, ids: string[], selected: boolean, now = Date.now(), config: Pricing = tariff): State {
+  const chosen = new Set(ids);
+  if (!chosen.size || [...chosen].some((id) => !state.cart.some((item) => item.id === id)))
+    throw Error("Товар уже удалён из корзины. Обновите страницу.");
+  if (state.cart.every((item) => !chosen.has(item.id) || inCheckout(item) === selected)) return state;
+  const cart = state.cart.map((item) => chosen.has(item.id) ? { ...item, selected: selected ? undefined : false } : item);
+  return { ...state, cart: repriceCart(cart, now, config, customsHelpChosen(state)) };
 }
 /** The customer's note on a cart line; an empty text removes it. */
 export function setCartNote(state: State, id: string, note: string): State {
@@ -1415,6 +1494,8 @@ export function renewCart(
     ...state,
     cart: repriceCart(state.cart.map((i) => ({
       ...i,
+      // The services follow the current catalog (one switched off is dropped, a required one added).
+      ...currentCartServices(i, config),
       quote: quote(
         i.product.usd,
         i.product.weight,
@@ -1464,10 +1545,13 @@ export function checkoutCart(
 ): State {
   if (state.checkoutKeys.includes(key)) return state;
   if (!state.cart.length) throw Error("Корзина пуста.");
+  // Only the chosen lines are ordered; the ones left for later stay in the cart (owner, 7.10.2026).
+  const lines = checkoutLines(state.cart);
+  if (!lines.length) throw codedError("err_74", "Выберите товары для оформления.");
   if (consentVersion !== customsVersion)
     throw Error("Подтвердите таможенные условия.");
   if (
-    state.cart.some(
+    lines.some(
       (i) => i.product.sourceUrl && i.product.shippingKnown !== true,
     )
   )
@@ -1477,7 +1561,7 @@ export function checkoutCart(
   if (cartSignature(state.cart) !== signature)
     throw Error("Корзина изменилась. Проверьте новый итог перед оформлением.");
   const availableServices = config.serviceCatalog.filter((service) => service.enabled && service.requestStage === "checkout");
-  for (const item of state.cart) {
+  for (const item of lines) {
     const selected = item.requestedServiceIds ?? [];
     if (selected.some((serviceId) => !availableServices.some((service) => service.id === serviceId)))
       throw Error("Одна из выбранных услуг больше недоступна. Обновите корзину.");
@@ -1488,29 +1572,29 @@ export function checkoutCart(
     if (availableServices.some((service) => service.required && !selected.includes(service.id)))
       throw codedError("err_64", "Выберите обязательные услуги перед оформлением.");
   }
-  if (state.cart.some((i) => now >= i.quote.expiresAt))
+  if (lines.some((i) => now >= i.quote.expiresAt))
     throw Error("Расчёт истёк. Обновите его перед оформлением.");
   // A quote made before the operator changed the tariff must be shown again, not accepted silently.
-  if (state.cart.some((i) => i.quote.tariffVersion !== config.version))
+  if (lines.some((i) => i.quote.tariffVersion !== config.version))
     throw Error("Тарифы Atlas обновились. Проверьте новый итог перед оформлением.");
-  if (state.cart.some(blockingSourceIssue))
+  if (lines.some(blockingSourceIssue))
     throw Error("Магазин изменил данные товара. Загрузите отмеченные товары заново.");
   // The customs payment fee is in the bill exactly when the customer chose it; the server reprices on every change.
-  if (state.cart.some((i) => Boolean(i.quote.customsHelp) !== customsHelpChosen(state)))
+  if (lines.some((i) => Boolean(i.quote.customsHelp) !== customsHelpChosen(state)))
     throw Error("Корзина пересчитана. Проверьте новый итог перед оформлением.");
   // "Atlas pays customs for me": the duty estimated for this recipient is prepaid with the order, split by goods value.
   // The customer saw this amount on the confirmation step; a different one means the recipient or the month changed.
   const dutyTotal = customsHelpChosen(state) && customs ? Math.ceil(customs.estimateUsd * config.fx) : 0;
   if (customsHelpChosen(state) && (expectedCustomsDuty ?? 0) !== dutyTotal)
     throw Error("Пошлина пересчитана для выбранного получателя. Проверьте итог перед оформлением.");
-  const merchandiseTotal = state.cart.reduce((sum, i) => sum + i.quote.merchandise, 0);
+  const merchandiseTotal = lines.reduce((sum, i) => sum + i.quote.merchandise, 0);
   let dutyLeft = dutyTotal;
-  const cart = !customsHelpChosen(state) ? state.cart : state.cart.map((i, index, items) => {
+  const cart = !customsHelpChosen(state) ? lines : lines.map((i, index, items) => {
     const duty = index === items.length - 1 ? dutyLeft : Math.min(dutyLeft, Math.round(dutyTotal * (merchandiseTotal ? i.quote.merchandise / merchandiseTotal : 1 / items.length)));
     dutyLeft -= duty;
     return { ...i, quote: { ...i.quote, customsDuty: duty, total: i.quote.total + duty } };
   });
-  const overStock = state.cart.find((i) => i.quantity > maxLineQuantity(i.product));
+  const overStock = lines.find((i) => i.quantity > maxLineQuantity(i.product));
   if (overStock) throw Error(`В магазине осталось ${overStock.product.stockQuantity} шт. «${overStock.product.name}». Уменьшите количество.`);
   let available = useBalance ? Math.max(0, balanceOf(state)) : 0;
   const selectedDelivery = deliveryProfileId ? state.deliveryProfiles.find((profile) => profile.id === deliveryProfileId) : undefined;
@@ -1524,9 +1608,21 @@ export function checkoutCart(
   const selectedIdentity = identityProfileId ? profiles.find((profile) => profile.documentId === identityProfileId) : undefined;
   if (identityProfileId && (!selectedDelivery || !selectedIdentity || selectedIdentity.recipientProfileId !== selectedDelivery.id)) throw Error("Паспорт не привязан к выбранному получателю.");
   const entries = [...state.entries];
-  const orders = cart.map((i) => {
-    // 48 random bits: order numbers are global across customers, so 8 hex digits would start to collide.
-    const id = "AT-" + crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
+  // 48 random bits: order numbers are global across customers, so 8 hex digits would start to collide.
+  const orderIds = cart.map(() => "AT-" + crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase());
+  // Checkout services are asked once per store parcel, on its first order, for every order of that parcel
+  // (owner, 7.10.2026): three sizes of one model no longer make three requests for one "contents photo".
+  const parcelRequests = new Map<string, WarehouseServiceRequest[]>();
+  for (const parcel of storeParcels(cart)) {
+    const chosen = availableServices.filter((service) => parcel.items.some((line) => (line.requestedServiceIds ?? []).includes(service.id)));
+    const ids = parcel.items.map((line) => orderIds[cart.indexOf(line)]);
+    parcelRequests.set(ids[0], chosen.map((service) => ({
+      ...buildServiceRequest(service, parcel.items[0].product.country, parcelServiceUnits(service, parcel.items), "checkout", now),
+      ...(ids.length > 1 ? { parcelOrderIds: ids } : {}),
+    })));
+  }
+  const orders = cart.map((i, index) => {
+    const id = orderIds[index];
     const balanceUsed = Math.min(i.quote.total, available);
     const payable = i.quote.total - balanceUsed;
     available -= balanceUsed;
@@ -1540,14 +1636,7 @@ export function checkoutCart(
         credit: "order-funds",
         description: "Оплата заказа из внутреннего баланса Atlas",
       });
-    const serviceRequests = (i.requestedServiceIds ?? []).map((serviceId) => {
-      const service = availableServices.find((candidate) => candidate.id === serviceId);
-      if (!service) throw Error("Одна из выбранных услуг больше недоступна. Обновите корзину.");
-      const units = service.unit === "item" ? i.quantity
-        : service.unit === "package" ? 1
-        : i.requestedServiceUnits?.[serviceId] ?? 1;
-      return buildServiceRequest(service, i.product.country, units, "checkout", now);
-    });
+    const serviceRequests = parcelRequests.get(id) ?? [];
     return {
       id,
       product: i.product,
@@ -1594,11 +1683,14 @@ export function checkoutCart(
       ],
     } as Order;
   });
+  const later = state.cart.filter((item) => !inCheckout(item));
   return {
     ...state,
-    cart: [],
-    // The customs choice belongs to this checkout: the next cart starts without the fee.
-    cartCustoms: undefined,
+    // The lines left for later stay, already priced as their own parcels.
+    cart: later,
+    // The customs choice belongs to this checkout: the next cart starts without the fee. Lines left for later
+    // keep it, so their totals still match it.
+    cartCustoms: later.length ? state.cartCustoms : undefined,
     orders: [...orders, ...state.orders],
     entries,
     checkoutKeys: [...state.checkoutKeys, key],
