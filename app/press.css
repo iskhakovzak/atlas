@@ -1,0 +1,137 @@
+/* Feedback: presses, page transitions and waiting states. Loaded last (app/layout.tsx); the behaviour is in press-feedback.tsx.
+   Colours come from the --home-* tokens, which follow Atlas Day and Atlas Night. Under reduced motion globals.css switches every animation off. */
+
+/* ---------- Press: sink under the finger, spring back ---------- */
+@property --press-r { syntax: "<length>"; inherits: false; initial-value: 0px; }
+
+/* mobile.css snaps these to scale(.98) with no motion; the animated press below takes its place. */
+:is(.btn, .store-tile, .stores-popular button, .catalog-categories > button, .home-stores a, .mobile-nav a):active { transform: none; }
+
+/* How deep each kind sinks: big tiles barely, small round icons the most. */
+:is(.store-tile, .home-stores a) { --press-scale: .98; }
+:is(.icon-btn, .find-save, .lo-stepper button) { --press-scale: .86; }
+
+[data-press="down"] { animation: press-down .11s cubic-bezier(.3, .7, .4, 1) forwards; }
+[data-press="up"] { animation: press-up .46s cubic-bezier(.2, .8, .3, 1); }
+@keyframes press-down { to { scale: var(--press-scale, .965); } }
+@keyframes press-up {
+  from { scale: var(--press-scale, .965); }
+  45% { scale: 1.012; }
+  to { scale: 1; }
+}
+
+/* A soft light spreads from the point that was pressed, in the button's own text colour
+   (white on the green Day button, dark on the ivory Night one, green on outlined ones). */
+:where(.btn, .cart-link) { position: relative; }
+:where(.btn, .cart-link)::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0;
+  background: radial-gradient(circle at var(--press-x, 50%) var(--press-y, 50%),
+    color-mix(in srgb, currentColor 24%, transparent) 0,
+    color-mix(in srgb, currentColor 10%, transparent) calc(var(--press-r) * .65),
+    transparent var(--press-r));
+}
+/* Shorter than the spring back, which clears data-press when it ends. */
+:is(.btn, .cart-link)[data-press]::after { animation: press-light .45s cubic-bezier(.2, .7, .3, 1); }
+@keyframes press-light {
+  0% { opacity: 1; --press-r: 8px; }
+  55% { opacity: .85; }
+  100% { opacity: 0; --press-r: var(--press-size, 260px); }
+}
+
+/* A link button that opens the next page: a light runs across it until the page arrives. */
+:is(.btn, .cart-link)[data-opening]::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, currentColor 26%, transparent) 50%, transparent 70%) no-repeat;
+  background-size: 50% 100%;
+  animation: press-sheen 1.1s cubic-bezier(.4, 0, .2, 1) infinite;
+}
+@keyframes press-sheen { from { background-position: -120% 0; } to { background-position: 220% 0; } }
+
+/* ---------- Between pages: a thin line at the top ---------- */
+.nav-progress {
+  position: fixed; z-index: 1000; top: env(safe-area-inset-top, 0px); right: 0; left: 0; height: 3px; pointer-events: none;
+  border-radius: 0 3px 3px 0; opacity: 0; transform: scaleX(0); transform-origin: 0 50%;
+  background: linear-gradient(90deg, var(--home-accent), color-mix(in srgb, var(--home-accent) 55%, #9be0bd));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--home-accent) 45%, transparent);
+  transition: opacity .2s ease;
+}
+html[data-navigating] .nav-progress { opacity: 1; animation: nav-progress 9s cubic-bezier(.08, .7, .2, 1) forwards; }
+@keyframes nav-progress {
+  0% { transform: scaleX(0); }
+  8% { transform: scaleX(.32); }
+  35% { transform: scaleX(.68); }
+  100% { transform: scaleX(.94); }
+}
+@media (prefers-reduced-motion: reduce) { html[data-navigating] .nav-progress { transform: scaleX(.6); } }
+
+/* ---------- Order by link: checking the product with the store ---------- */
+/* The page keeps its shape while the store answers: the product stays, the option picker becomes the check,
+   the bill and the price are outlined; when the answer comes the real parts fade in where the outlines were. */
+.lo-page {
+  --skel-a: color-mix(in srgb, var(--home-ink) 6%, var(--home-surface));
+  --skel-b: color-mix(in srgb, var(--home-ink) 12%, var(--home-surface));
+}
+.lo-skel {
+  display: block; height: 14px; border-radius: 8px;
+  background: linear-gradient(90deg, var(--skel-a) 25%, var(--skel-b) 50%, var(--skel-a) 75%) 0 0 / 220% 100%;
+  animation: lo-shimmer 1.5s ease-in-out infinite;
+}
+@keyframes lo-shimmer { from { background-position: 110% 0; } to { background-position: -110% 0; } }
+.lo-skel-photo { width: 100%; height: auto; aspect-ratio: 1; max-height: 260px; border-radius: 14px; }
+.lo-skel-brand { width: 38%; height: 12px; margin: 4px 0 12px; }
+.lo-skel-title { width: min(82%, 360px); height: 22px; margin: 4px 0 10px; }
+.lo-store-price .lo-skel-price { display: inline-block; width: 88px; height: 16px; vertical-align: -2px; }
+.lo-skel-sum { display: inline-block; width: 120px; height: 20px; vertical-align: middle; }
+
+.lo-skel-bill { display: grid; gap: 15px; margin-top: 18px; }
+.lo-skel-bill > div { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.lo-skel-bill > div > .lo-skel:first-child { width: 46%; }
+.lo-skel-bill > div:nth-child(2) > .lo-skel:first-child { width: 58%; }
+.lo-skel-bill > div:nth-child(3) > .lo-skel:first-child { width: 36%; }
+.lo-skel-bill > div > .lo-skel:last-child { width: 22%; }
+.lo-skel-bill > div:nth-child(2) .lo-skel { animation-delay: .08s; }
+.lo-skel-bill > div:nth-child(3) .lo-skel { animation-delay: .16s; }
+.lo-skel-bill > .lo-skel-total { margin-top: 4px; padding-top: 16px; border-top: 1px solid var(--home-line); }
+.lo-skel-bill > .lo-skel-total .lo-skel { animation-delay: .24s; }
+.lo-skel-bill > .lo-skel-total > .lo-skel:first-child { width: 30%; }
+.lo-skel-bill > .lo-skel-total > .lo-skel:last-child { width: 44%; height: 30px; border-radius: 10px; }
+
+.lo-check { display: grid; gap: 16px; }
+.lo-check-head { display: flex; align-items: center; gap: 12px; }
+.lo-check-head > span:last-child { display: grid; gap: 2px; min-width: 0; }
+.lo-check-head b { color: var(--home-ink); font-size: 16px; font-weight: 700; line-height: 1.35; }
+.lo-check-head small { color: var(--home-muted); font-size: 13px; line-height: 1.45; }
+.lo-check-orb {
+  display: grid; flex-shrink: 0; place-items: center; width: 42px; height: 42px; border-radius: 50%;
+  background: color-mix(in srgb, var(--home-accent) 11%, var(--home-surface)); color: var(--home-accent);
+  animation: lo-orb 2s ease-out infinite;
+}
+@keyframes lo-orb {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--home-accent) 26%, transparent); }
+  70%, 100% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--home-accent) 0%, transparent); }
+}
+.lo-check-steps { display: grid; gap: 11px; margin: 0; padding: 0; list-style: none; }
+.lo-check-steps li { display: flex; align-items: center; gap: 10px; color: var(--home-muted); font-size: 14px; line-height: 1.4; transition: color .3s ease, opacity .3s ease; }
+.lo-check-mark {
+  display: grid; flex-shrink: 0; place-items: center; width: 20px; height: 20px; border: 1.5px solid var(--home-line); border-radius: 50%;
+  color: var(--home-accent-ink); transition: background-color .3s ease, border-color .3s ease;
+}
+.lo-check-steps li[data-state="done"] { color: var(--home-ink); }
+.lo-check-steps li[data-state="done"] .lo-check-mark { border-color: var(--home-accent); background: var(--home-accent); animation: lo-check-pop .4s cubic-bezier(.2, .9, .3, 1.4); }
+.lo-check-steps li[data-state="current"] { color: var(--home-ink); font-weight: 600; }
+.lo-check-steps li[data-state="current"] .lo-check-mark { border-color: var(--home-accent); border-top-color: transparent; animation: spin .9s linear infinite; }
+.lo-check-steps li[data-state="next"] { opacity: .75; }
+@keyframes lo-check-pop { from { scale: .4; } }
+.lo-check-bar { height: 3px; overflow: hidden; border-radius: 3px; background: color-mix(in srgb, var(--home-accent) 12%, transparent); }
+.lo-check-bar i { display: block; width: 38%; height: 100%; border-radius: inherit; background: var(--home-accent); animation: lo-indeterminate 1.5s cubic-bezier(.4, 0, .2, 1) infinite; }
+@keyframes lo-indeterminate { from { transform: translateX(-105%); } to { transform: translateX(270%); } }
+
+/* The answer arrives: what was outlined fades in, one part after another; the product card itself stays still. */
+.lo-reveal,
+.lo-layout.is-ready :is(.lo-variant, .lo-data, .lo-comment, .lo-confirm),
+.lo-layout.is-ready .lo-summary .folio-sheet > :not(h2) { animation: lo-reveal .4s cubic-bezier(.2, .8, .2, 1) both; }
+.lo-layout.is-ready .lo-summary .folio-sheet > :not(h2) { animation-delay: .06s; }
+.lo-layout.is-ready .lo-data { animation-delay: .12s; }
+.lo-layout.is-ready .lo-comment { animation-delay: .16s; }
+.lo-layout.is-ready .lo-confirm { animation-delay: .2s; }
+@keyframes lo-reveal { from { opacity: 0; transform: translateY(6px); } }
