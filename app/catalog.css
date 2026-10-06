@@ -217,3 +217,13 @@ html[data-theme="dark"] .catalog-search { background: var(--night-inset); }
   .catalog-facets-button { display: none; }
   .catalog-page .finds-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* Magnet only at the ends of the catalog (owner, 6 October 2026): the top settles either on the page start or
+   with the search and categories at the top edge, and the end settles on the footer. The grid in between scrolls
+   freely (proximity: with no snap point near, nothing pulls), so browsing rows of cards is never interrupted. */
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.catalog-page) { scroll-snap-type: y proximity; }
+  html:has(.catalog-page) .site-header { scroll-snap-align: start; }
+  html:has(.catalog-page) .catalog-page .catalog-bar { scroll-snap-align: start; scroll-margin-top: 8px; }
+  html:has(.catalog-page) :is(.site-footer, .home-footer) { scroll-snap-align: end; }
+}

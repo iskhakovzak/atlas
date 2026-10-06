@@ -1,4 +1,5 @@
 'use client';
+import {capitalizeFirst,capitalizeWords} from '@/lib/market/text-case';
 import {useId,useState,type FormEvent} from 'react';
 import {Check,Loader2} from 'lucide-react';
 import {Checkbox} from '@/components/ui/checkbox';
@@ -45,7 +46,7 @@ export function RecipientForm({locale,initial,isFirst,onSave}:{locale:Locale;ini
   </fieldset>
   <div className={'rf-field'+(show('recipient')?' invalid':'')}>
    <label htmlFor={`${uid}-recipient`}>{c.name}</label>
-   <input id={`${uid}-recipient`} autoComplete="name" maxLength={100} value={value.recipient} aria-invalid={show('recipient')} aria-describedby={`${uid}-recipient-hint`} onChange={event=>setValue({...value,recipient:event.target.value})}/>
+   <input id={`${uid}-recipient`} autoComplete="name" autoCapitalize="words" maxLength={100} value={value.recipient} aria-invalid={show('recipient')} aria-describedby={`${uid}-recipient-hint`} onChange={event=>setValue({...value,recipient:capitalizeWords(event.target.value)})}/>
    {hint('recipient',c.nameHint)}
   </div>
   <div className={'rf-field'+(show('phone')?' invalid':'')}>
@@ -64,14 +65,14 @@ export function RecipientForm({locale,initial,isFirst,onSave}:{locale:Locale;ini
    </div>
    <div className={'rf-field'+(show('city')?' invalid':'')}>
     <label htmlFor={`${uid}-city`}>{c.city}</label>
-    <input id={`${uid}-city`} list={`${uid}-cities`} autoComplete="address-level2" maxLength={100} value={value.city} aria-invalid={show('city')} onChange={event=>setValue({...value,city:event.target.value})}/>
+    <input id={`${uid}-city`} list={`${uid}-cities`} autoComplete="address-level2" autoCapitalize="sentences" maxLength={100} value={value.city} aria-invalid={show('city')} onChange={event=>setValue({...value,city:capitalizeFirst(event.target.value)})}/>
     <datalist id={`${uid}-cities`}>{suggestions(cities,value.city).map(city=><option key={city} value={city}/>)}</datalist>
     {hint('city')}
    </div>
   </div>
   <div className={'rf-field'+(show('address')?' invalid':'')}>
    <label htmlFor={`${uid}-address`}>{c.address}</label>
-   <input id={`${uid}-address`} list={`${uid}-streets`} autoComplete="street-address" maxLength={220} placeholder={c.addressPlaceholder} value={value.address} aria-invalid={show('address')} aria-describedby={`${uid}-address-hint`} onChange={event=>setValue({...value,address:event.target.value})}/>
+   <input id={`${uid}-address`} list={`${uid}-streets`} autoComplete="street-address" autoCapitalize="sentences" maxLength={220} placeholder={c.addressPlaceholder} value={value.address} aria-invalid={show('address')} aria-describedby={`${uid}-address-hint`} onChange={event=>setValue({...value,address:capitalizeFirst(event.target.value)})}/>
    <datalist id={`${uid}-streets`}>{suggestions(streets,value.address).map(street=><option key={street} value={street}/>)}</datalist>
    {hint('address',c.privacy)}
   </div>

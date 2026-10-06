@@ -1,5 +1,9 @@
 # Atlas — project context
 
+## Tariff r4, link-order sheets, swipe gallery, Telegram bot sign-in — 6 October 2026
+
+The owner saw a 10.98% fee "everywhere" and asked for $14.98 per kg. The code fee was already 9.98%; a saved tariff carried a 1% buyout or conversion percent on top. Tariff revision 4 sets $14.98/kg, 9.98%, zero buyout/conversion/delivery margin and drops per-country rate and fee overrides once; later admin edits stay. The link order now reads as three snapping sheets on phones like the home page, without the grey "set by Atlas" note; product photos slide and settle with animation everywhere; chip rows settle on a card edge; the catalog snaps only at its ends. Names get capitals on every word and addresses on the first letter while typing. Sign-in through Telegram no longer goes through the widget's oauth.telegram.org page: one tap opens the Telegram app with a one-time token, the bot asks to confirm, and the page signs in by itself; `/login` shows Telegram first and the other methods as a column of buttons (Google included).
+
 ## Home sheets — 5 October 2026
 
 The owner asked for the home page to read as separate full-screen parts that snap into place "like a magnet", with nothing of the next block showing at the bottom of a screen. Each part is now one screen (`app/home-chapters.css`): on phones the hero, the example bill, how it works, product selection, rates, money, order tracking, FAQ and the footer; on wide screens the hero with the bill, then one sheet per section and a last sheet with the closing card and the footer. The product selection is one swipeable row of 8 cards (‹ › on wide screens). Real iPhone, Mac trackpad and Windows wheel checks are still open (TODO.md).

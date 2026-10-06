@@ -43,7 +43,7 @@ export function deliveryDaysFor(pricing: { deliveryDays?: Partial<Record<Deliver
 export const siteContent: SiteContent = {
   contacts: { telegramSupport: null, telegramChannel: null, phone: null, instagram: null, pickupAddress: null },
   legal: { entityName: null, inn: null, address: null },
-  // Express routes and approximate times from the owner (4 October 2026); the price is the tariff's $15 per kg.
+  // Express routes and approximate times from the owner (4 October 2026); the price is the tariff's $14.98 per kg.
   deliveryDays: { us: [5, 10], uk: [7, 10], cn: [7, 12], de: [7, 9], it: [7, 9], es: [7, 9] },
   paymentMethods: [],
   reviews: [],

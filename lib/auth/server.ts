@@ -7,6 +7,7 @@ import {
  type AuthMethod,type AuthUser,type TelegramFields,
 } from './core';
 import {loginPath,safeReturnTo} from './return-to';
+import {TG_BOT_SETTING,TG_CHALLENGE_KINDS,TG_LOGIN_COOKIE,TG_LOGIN_TTL_MS,botLinks,botText,parseBotUpdate,validStartToken,type TgChallengeKind} from './telegram-bot';
 
 export class AuthError extends Error{constructor(public status:number,public code:string){super(code)}}
 export type OtpChannel='email'|'phone';
@@ -27,11 +28,14 @@ function devCodes(request:Request){
  return dev&&['localhost','127.0.0.1','::1'].includes(host);
 }
 
-export function authMethods(request:Request){
+export async function authMethods(request:Request){
  const dev=devCodes(request);
  return {
   email:configured.email()||dev,phone:configured.phone()||dev,
-  telegram:configured.telegram()?env.TELEGRAM_BOT_USERNAME!:null,google:configured.google(),devCodes:dev,
+  telegram:configured.telegram()?env.TELEGRAM_BOT_USERNAME!:null,
+  // The bot sign-in replaces the widget once the operator has connected the bot's webhook.
+  telegramBot:configured.telegram()&&await telegramBotConnected(),
+  google:configured.google(),devCodes:dev,
  };
 }
 
@@ -275,4 +279,94 @@ async function sendSms(phone:string,code:string){
  // Eskiz revokes tokens on its side too: sign in again once and resend instead of failing the customer's code.
  if(response.status===401){eskizToken=null;await eskizLogin();response=await send()}
  if(!response.ok)throw new Error(`Eskiz responded ${response.status}`);
+}
+
+// ---------- Telegram bot sign-in (lib/auth/telegram-bot.ts) ----------
+async function telegramBotConnected(){
+ try{return !!(await db().prepare('SELECT 1 AS found FROM market_settings WHERE key=?').bind(TG_BOT_SETTING).first())}catch{return false}
+}
+async function webhookSecret(){return (await sha256Hex('telegram-webhook:'+pepper()+':'+(env.TELEGRAM_BOT_TOKEN??''))).slice(0,48)}
+async function botApi(method:string,body:Record<string,unknown>){
+ const response=await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${method}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(8000)});
+ const data=await response.json().catch(()=>({})) as {ok?:boolean;description?:string};
+ if(!response.ok||!data.ok)throw Error(`Telegram ${method}: ${data.description??response.status}`);
+ return data;
+}
+function browserSecret(request:Request){
+ const value=readCookie(request.headers.get('cookie'),TG_LOGIN_COOKIE);
+ return value&&/^[A-Za-z0-9_-]{43}$/.test(value)?value:null;
+}
+
+/** A one-time start token for this browser; the links open the Telegram app with it. */
+export async function startTelegramBot(request:Request,link:boolean){
+ if(!configured.telegram())throw new AuthError(503,'method_unavailable');
+ if(link)await signedInUser();
+ await limit(`telegram-bot-start:${await clientKey(request)}`,60,60*60*1000);
+ const token=randomToken(24),secret=browserSecret(request)??randomToken(32),now=Date.now();
+ const kind:TgChallengeKind=link?'telegram-link':'telegram-bot';
+ await db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,return_to,created_at,expires_at) VALUES (?,?,?,?,0,NULL,?,?)')
+  .bind(await sha256Hex(token),kind,'',await sha256Hex(secret),now,now+TG_LOGIN_TTL_MS).run();
+ if(Math.random()<0.05)await cleanup();
+ return {body:{token,expiresAt:now+TG_LOGIN_TTL_MS,links:botLinks(env.TELEGRAM_BOT_USERNAME!,token)},cookie:cookie(TG_LOGIN_COOKIE,secret,TG_LOGIN_TTL_MS/1000*6)};
+}
+
+/** The page asks whether the bot confirmed its token; once it has, this browser signs in (or attaches Telegram). */
+export async function checkTelegramBot(request:Request,token:unknown):Promise<{status:'pending'|'expired'|'linked'}|{status:'done';cookie:string}>{
+ if(!validStartToken(token))throw new AuthError(400,'telegram_invalid');
+ await limit(`telegram-bot-check:${await clientKey(request)}`,900,10*60*1000);
+ const id=await sha256Hex(token);
+ const row=await db().prepare(`SELECT kind,target,secret,expires_at FROM market_auth_challenges WHERE id=? AND kind IN (${TG_CHALLENGE_KINDS.map(()=>'?').join(',')})`)
+  .bind(id,...TG_CHALLENGE_KINDS).first<{kind:TgChallengeKind;target:string;secret:string;expires_at:number}>();
+ if(!row||row.expires_at<Date.now())return {status:'expired'};
+ const secret=browserSecret(request);
+ if(!secret||!constantTimeEqual(await sha256Hex(secret),row.secret))throw new AuthError(403,'telegram_invalid');
+ if(!row.target)return {status:'pending'};
+ // Used once: the first check that deletes the confirmed row signs in.
+ const used=await db().prepare('DELETE FROM market_auth_challenges WHERE id=? AND target=?').bind(id,row.target).run();
+ if(!used.meta.changes)return {status:'expired'};
+ const confirmed=JSON.parse(row.target) as {id:string;name?:string};
+ const user=identityFor('telegram',confirmed.id,{name:confirmed.name});
+ if(row.kind==='telegram-link'){await attachMethod(await signedInUser(),user);return {status:'linked'}}
+ return {status:'done',cookie:await createSession(user)};
+}
+
+/** Telegram posts the bot's updates here; only requests carrying the webhook secret are read. */
+export async function telegramWebhook(request:Request){
+ if(!configured.telegram())throw new AuthError(503,'method_unavailable');
+ if(!constantTimeEqual(request.headers.get('x-telegram-bot-api-secret-token')??'',await webhookSecret()))throw new AuthError(403,'forbidden_origin');
+ const update=parseBotUpdate(await request.json().catch(()=>null));
+ if(!update)return;
+ const t=botText[update.lang],site=new URL(request.url).origin,openSite={inline_keyboard:[[{text:t.open,url:site}]]};
+ const pending=async(token:string)=>{
+  const row=await db().prepare(`SELECT kind,target,expires_at FROM market_auth_challenges WHERE id=? AND kind IN (${TG_CHALLENGE_KINDS.map(()=>'?').join(',')})`)
+   .bind(await sha256Hex(token),...TG_CHALLENGE_KINDS).first<{kind:TgChallengeKind;target:string;expires_at:number}>();
+  return row&&!row.target&&row.expires_at>=Date.now()?row:null;
+ };
+ if(update.kind==='start'){
+  const row=update.token?await pending(update.token):null;
+  if(!row){await botApi('sendMessage',{chat_id:update.chatId,text:update.token?t.expired:t.hello,reply_markup:openSite});return}
+  const isLink=row.kind==='telegram-link';
+  await botApi('sendMessage',{chat_id:update.chatId,text:isLink?t.linkConfirm:t.confirm,reply_markup:{inline_keyboard:[[{text:isLink?t.linkButton:t.confirmButton,callback_data:'ok:'+update.token}]]}});
+  return;
+ }
+ await limit(`telegram-bot-confirm:${update.user.id}`,30,60*60*1000);
+ const row=await pending(update.token);
+ const saved=row?await db().prepare("UPDATE market_auth_challenges SET target=? WHERE id=? AND target=''").bind(JSON.stringify(update.user),await sha256Hex(update.token)).run():null;
+ const ok=!!saved?.meta.changes;
+ await botApi('answerCallbackQuery',{callback_query_id:update.callbackId,text:ok?t.toast:t.expired.split('.')[0]});
+ await botApi('editMessageText',{chat_id:update.chatId,message_id:update.messageId,text:ok?(row?.kind==='telegram-link'?t.linked:t.done):t.expired,reply_markup:openSite});
+}
+
+/** Operator: point the bot at this site's webhook. After that the sign-in button opens the bot instead of the widget. */
+export async function connectTelegramBot(origin:string,operatorEmail:string){
+ if(!configured.telegram())throw new AuthError(503,'method_unavailable');
+ const url=origin+'/api/auth/telegram/webhook';
+ await botApi('setWebhook',{url,secret_token:await webhookSecret(),allowed_updates:['message','callback_query'],drop_pending_updates:true});
+ await db().prepare('INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES (?,?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at,updated_by=excluded.updated_by')
+  .bind(TG_BOT_SETTING,JSON.stringify({url}),Date.now(),operatorEmail).run();
+ return {url};
+}
+export async function telegramBotStatus(){
+ if(!configured.telegram())return {configured:false,connected:false};
+ return {configured:true,connected:await telegramBotConnected()};
 }

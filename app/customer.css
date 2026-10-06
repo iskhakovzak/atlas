@@ -891,3 +891,24 @@ html[data-theme="dark"] .price-off { background: var(--night-jade-soft-strong); 
 .accounting-table tr.voided td small { text-decoration: none; }
 .accounting-downloads { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 6px; }
 @media (max-width: 700px) { .accounting-table { display: block; overflow-x: auto; } }
+
+/* ---------- Link order sheets ----------
+   Below 960px the order reads as three screen-tall sheets that snap like the home page: choose (photo and
+   options), the bill, then the data and the button. --lo-top (where the form starts) and --lo-bottom (the
+   bottom bar and the sticky total) are measured in app/global-link-order.tsx. From 960px the bill stays
+   pinned beside the form, so the sheets dissolve into the two-column grid. */
+.lo-sheet { display: contents; }
+@media (max-width: 959px) {
+  html:has(#link-order-form) { scroll-padding-bottom: var(--lo-bottom, 0px); }
+  .lo-sheet { box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; gap: 14px; min-height: calc(100svh - var(--lo-bottom, 0px)); padding-block: 14px; scroll-snap-align: start; }
+  .lo-sheet-pick { justify-content: flex-start; min-height: calc(100svh - var(--lo-bottom, 0px) - var(--lo-top, 0px)); padding-top: 0; scroll-snap-align: none; }
+  .lo-layout:has(.lo-sheet) { gap: 0; }
+  html:has(#link-order-form) .site-header { scroll-snap-align: start; }
+  main[data-view="link"]:has(.lo-sticky) { padding-bottom: var(--lo-bottom, 96px); }
+}
+@media (max-width: 959px) and (prefers-reduced-motion: no-preference) {
+  html:has(#link-order-form) { scroll-snap-type: y mandatory; }
+}
+@media (max-width: 959px) and (prefers-reduced-motion: no-preference) and (max-height: 700px) {
+  html:has(#link-order-form) { scroll-snap-type: y proximity; }
+}

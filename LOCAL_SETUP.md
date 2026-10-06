@@ -96,7 +96,7 @@ Local D1 is separate from production. To start fresh locally, delete .wrangler/s
 | ATLAS_AUTH_SECRET | Recommended secret pepper for stored sign-in code hashes |
 | RESEND_API_KEY, ATLAS_AUTH_EMAIL_FROM | Email-code sign-in through Resend; the sender domain must be verified in Resend |
 | ESKIZ_EMAIL, ESKIZ_PASSWORD | Phone sign-in through Eskiz.uz SMS (+998 numbers only). Optional: ESKIZ_FROM (default `4546`), ATLAS_SMS_TEMPLATE with `{code}`; Eskiz must approve the message text |
-| TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_USERNAME | Telegram Login Widget. Create the bot with @BotFather and set its domain to the public site with `/setdomain` |
+| TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_USERNAME | Telegram sign-in. Create the bot with @BotFather and set its domain with `/setdomain` (widget fallback); then press «Подключить бота» in Admin → System to use the bot sign-in |
 | GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET | Google sign-in (OAuth web client). Authorized redirect URI: `https://<site>/api/auth/google/callback` |
 | ATLAS_AUTH_DEV_CODES | Local only: `true` shows sign-in codes on screen for loopback requests of a built Worker. Never set it on a hosted site |
 
