@@ -4,25 +4,33 @@ import {useEffect} from "react";
 import Link from "@/components/site-link";
 import {CircleAlert,FileCheck2,FileText,LockKeyhole,ReceiptText,ShieldCheck} from "lucide-react";
 import {useMarket} from "@/lib/market/store";
+import type {Locale} from "@/lib/market/i18n";
 import {PageHeading} from "./market-ui";
 
-const edition="11.09.2026";
+/** Edition date shared by every public legal page (/legal, /privacy, /terms). */
+export const legalEdition="11.09.2026";
 const copy={
- ru:{overline:"ЮРИДИЧЕСКИЕ ДОКУМЕНТЫ",title:"Правила работы Atlas.",description:"Atlas действует как посредник по выкупу и логистический агент. Здесь собраны условия сервиса, комиссии, обработка данных и возвраты.",draft:"Проект до заполнения реквизитов и проверки юристом",language:"Основная проектная редакция документов подготовлена на русском языке. Узбекская и английская юридические версии должны быть сверены после утверждения текста."},
- uz:{overline:"HUQUQIY HUJJATLAR",title:"Atlas ishlash qoidalari.",description:"Atlas xarid bo‘yicha vositachi va logistika agenti sifatida ishlaydi. Bu yerda xizmat shartlari, komissiyalar, ma’lumotlarni qayta ishlash va qaytarish qoidalari jamlangan.",draft:"Rekvizitlar to‘ldirilishi va yurist tekshiruvigacha loyiha",language:"Hujjatlarning asosiy loyiha tahriri rus tilida tayyorlangan. O‘zbek va ingliz tillaridagi yuridik tahrirlar matn tasdiqlangandan keyin solishtirilishi kerak."},
- en:{overline:"LEGAL DOCUMENTS",title:"How Atlas works.",description:"Atlas acts as a purchasing intermediary and logistics agent. These documents cover the service terms, fees, data processing and refunds.",draft:"Draft pending company details and legal review",language:"The primary draft is currently in Russian. Legally reviewed Uzbek and English versions must be prepared after the governing text is approved."},
+ ru:{overline:"ЮРИДИЧЕСКИЕ ДОКУМЕНТЫ",title:"Правила работы Atlas.",description:"Atlas действует как посредник по выкупу и логистический агент. Здесь собраны условия сервиса, комиссии, обработка данных и возвраты.",draft:"Проект до заполнения реквизитов и проверки юристом",language:"Основная проектная редакция документов подготовлена на русском языке. Узбекская и английская юридические версии должны быть сверены после утверждения текста.",edition:"Редакция"},
+ uz:{overline:"HUQUQIY HUJJATLAR",title:"Atlas ishlash qoidalari.",description:"Atlas xarid bo‘yicha vositachi va logistika agenti sifatida ishlaydi. Bu yerda xizmat shartlari, komissiyalar, ma’lumotlarni qayta ishlash va qaytarish qoidalari jamlangan.",draft:"Rekvizitlar to‘ldirilishi va yurist tekshiruvigacha loyiha",language:"Hujjatlarning asosiy loyiha tahriri rus tilida tayyorlangan. O‘zbek va ingliz tillaridagi yuridik tahrirlar matn tasdiqlangandan keyin solishtirilishi kerak.",edition:"Tahrir"},
+ en:{overline:"LEGAL DOCUMENTS",title:"How Atlas works.",description:"Atlas acts as a purchasing intermediary and logistics agent. These documents cover the service terms, fees, data processing and refunds.",draft:"Draft pending company details and legal review",language:"The primary draft is currently in Russian. Legally reviewed Uzbek and English versions must be prepared after the governing text is approved.",edition:"Edition"},
 };
+export const legalCopy=copy;
 
-export function LegalDocuments(){
- const {state}=useMarket(),t=copy[state.communication.language];
- useEffect(()=>{const reveal=()=>{const item=document.getElementById(window.location.hash.slice(1));if(item instanceof HTMLDetailsElement){item.open=true;item.scrollIntoView({block:"start"})}};reveal();window.addEventListener("hashchange",reveal);return()=>window.removeEventListener("hashchange",reveal)},[]);
- return <>
-  <PageHeading overline={t.overline} title={t.title} description={t.description}><span className="status-badge">Редакция {edition}</span></PageHeading>
-  <div className="legal-status"><CircleAlert/><div><b>{t.draft}</b><p>{t.language}</p></div></div>
-  <nav className="legal-nav" aria-label="Содержание документов"><a href="#offer">Публичная оферта</a><a href="#privacy">Конфиденциальность</a><a href="#passport-consent">Паспортные данные</a><a href="#refunds">Оплата и возвраты</a></nav>
+/** Draft badge and the "governing text is Russian" note shared by the legal pages. */
+export function LegalStatus({locale}:{locale:Locale}){
+ const t=copy[locale];
+ return <div className="legal-status"><CircleAlert/><div><b>{t.draft}</b><p>{t.language}</p></div></div>;
+}
 
-  <details className="legal-document surface legal-disclosure" id="offer">
-   <summary><FileText/><div><span>Документ 1</span><h2>Публичная оферта на посреднические и логистические услуги</h2><p>Редакция от {edition}</p></div></summary>
+export function LegalEditionBadge({locale}:{locale:Locale}){
+ return <span className="status-badge">{copy[locale].edition} {legalEdition}</span>;
+}
+
+type DocumentProps={open?:boolean;number?:string};
+
+export function OfferDocument({open,number="Документ 1"}:DocumentProps){
+ return <details className="legal-document surface legal-disclosure" id="offer" open={open}>
+   <summary><FileText/><div><span>{number}</span><h2>Публичная оферта на посреднические и логистические услуги</h2><p>Редакция от {legalEdition}</p></div></summary>
    <section><h3>1. Стороны и предмет</h3><p><b>Atlas</b> — сервис оператора, реквизиты которого должны быть указаны ниже до коммерческого запуска. Клиент поручает Atlas организовать приобретение выбранного товара у независимого иностранного продавца и связанные логистические услуги.</p><p>Atlas не является изготовителем товара и, если иное прямо не указано в карточке заказа, не выступает его продавцом. Договор купли-продажи товара заключается с иностранным магазином, а Atlas действует как посредник по выкупу и логистический агент клиента.</p></section>
    <section><h3>2. Заключение договора</h3><p>Клиент принимает оферту после ознакомления с расчётом, условиями ввоза и документами, устанавливает необходимые согласия и подтверждает заказ. Версия оферты и время принятия должны сохраняться в Atlas. До подключения реальной оплаты действия на сайте не создают денежного обязательства.</p></section>
    <section><h3>3. Что делает Atlas</h3><ul><li>получает от клиента ссылку или выбранную позицию и формирует предварительный расчёт;</li><li>сверяет доступные сведения о цене и варианте, а также учитывает ограничения магазина и перевозки;</li><li>по поручению клиента организует оплату иностранному продавцу и выкуп;</li><li>организует доставку до зарубежного склада, приём, измерение и международную перевозку;</li><li>готовит сведения для перевозчика, брокера и таможенного оформления;</li><li>сообщает об изменениях цены, веса, доставки и необходимых согласованиях.</li></ul></section>
@@ -33,30 +41,64 @@ export function LegalDocuments(){
    <section><h3>8. Ограничения</h3><p>Atlas может отказать до выкупа, если товар запрещён законом, магазином, платёжным провайдером, перевозчиком или таможенными правилами, либо если источник и назначение товара невозможно разумно проверить.</p></section>
    <section><h3>9. Отмена, возврат и претензии</h3><p>До выкупа клиент может запросить отмену с возвратом неиспользованных средств за вычетом уже понесённых и заранее раскрытых расходов. После выкупа применяются правила иностранного продавца, перевозчика и обязательные нормы законодательства. Atlas помогает оформить обращение, но не может обещать возврат, который не принят продавцом. Жалоба подаётся через поддержку; ответ предоставляется в установленный законом срок.</p></section>
    <section><h3>10. Ограничение ответственности</h3><p>Atlas отвечает за надлежащее выполнение собственных посреднических и логистических действий. Atlas не освобождается от ответственности, которую нельзя исключить законом, и не ограничивает законные права потребителя. Независимые продавцы, перевозчики и платёжные организации отвечают за собственные услуги в пределах применимого договора и закона.</p></section>
-   <section className="legal-requisites"><h3>11. Реквизиты оператора</h3><dl><div><dt>Юридическое наименование</dt><dd>Заполнить до запуска</dd></div><div><dt>ИНН и регистрационные данные</dt><dd>Заполнить до запуска</dd></div><div><dt>Юридический и почтовый адрес</dt><dd>Заполнить до запуска</dd></div><div><dt>Email и телефон поддержки</dt><dd>Заполнить до запуска</dd></div><div><dt>Банковские реквизиты</dt><dd>Заполнить после выбора платёжной модели</dd></div></dl></section>
-  </details>
+   <section id="apps-terms"><h3>11. Условия использования приложений Atlas</h3><p>Мобильные приложения Atlas для iOS и Android — это тот же сервис, что и сайт atlasmarket.uz: один аккаунт, те же заказы, расчёты, документы и уведомления. Настоящая оферта применяется к приложениям в полном объёме.</p><ul><li><b>Аккаунт и устройство.</b> Клиент отвечает за доступ к своему устройству и способам входа (Apple, Google, Telegram, телефон, почта). Если устройство утеряно или доступ получило другое лицо, клиент завершает сеансы в кабинете или обращается в поддержку.</li><li><b>Допустимое использование.</b> Приложение используется для личных некоммерческих покупок. Запрещены попытки обойти проверки сервера, автоматизированный сбор данных, вмешательство в работу сервиса и использование чужих аккаунтов.</li><li><b>Без покупок внутри приложения.</b> В приложении нет встроенных покупок, подписок и платного контента, и оно не использует платёжные системы магазинов приложений. Оплата заказов происходит вне App Store и Google Play по правилам раздела 4 и политики оплаты; до подключения лицензированного платёжного провайдера оплата в сервисе симулируется и не создаёт денежного обязательства.</li><li><b>Ссылки на магазины.</b> Карточки и кнопки «Открыть в магазине» ведут на сайты независимых продавцов. Atlas не контролирует их содержание, цены и условия.</li><li><b>Обновления.</b> Atlas может выпускать обновления приложения, в том числе обязательные для безопасности; устаревшие версии могут перестать получать данные с сервера.</li><li><b>Прекращение.</b> Клиент может удалить приложение и аккаунт в любой момент (раздел «Удаление аккаунта» политики конфиденциальности). Atlas может ограничить доступ при нарушении этих условий или по требованию закона, сообщив причину.</li><li><b>Операторы магазинов приложений.</b> Apple Inc., Google LLC и их дочерние компании не являются сторонами этой оферты, не несут ответственности за приложение, услуги Atlas, их поддержку, содержание и претензии, связанные с ними. Клиент признаёт, что все обязательства по приложению несёт оператор Atlas, а не операторы магазинов приложений. Операторы магазинов приложений являются третьими лицами — выгодоприобретателями по этому разделу и вправе требовать его исполнения.</li></ul></section>
+   <section className="legal-requisites"><h3>12. Реквизиты оператора</h3><dl><div><dt>Юридическое наименование</dt><dd>Заполнить до запуска</dd></div><div><dt>ИНН и регистрационные данные</dt><dd>Заполнить до запуска</dd></div><div><dt>Юридический и почтовый адрес</dt><dd>Заполнить до запуска</dd></div><div><dt>Email и телефон поддержки</dt><dd>Заполнить до запуска</dd></div><div><dt>Банковские реквизиты</dt><dd>Заполнить после выбора платёжной модели</dd></div></dl></section>
+  </details>;
+}
 
-  <details className="legal-document surface legal-disclosure" id="privacy">
-   <summary><LockKeyhole/><div><span>Документ 2</span><h2>Политика конфиденциальности</h2><p>Версия privacy-{edition}</p></div></summary>
+export function PrivacyDocument({open,number="Документ 2"}:DocumentProps){
+ return <details className="legal-document surface legal-disclosure" id="privacy" open={open}>
+   <summary><LockKeyhole/><div><span>{number}</span><h2>Политика конфиденциальности</h2><p>Версия privacy-{legalEdition}</p></div></summary>
    <section><h3>Какие данные обрабатываются</h3><p>Контактные данные, адреса и получатели, история заказов и обращений, выбранные товары, согласия, технические события безопасности и документы, необходимые для перевозки и таможенного оформления. Кроме того, браузер отправляет обезличенные технические замеры: адрес страницы без параметров, тип устройства, скорость загрузки и ошибки скриптов. Они не связываются с аккаунтом, cookie и IP-адресом и удаляются через 30 дней.</p></section>
    <section><h3>Для чего они нужны</h3><p>Создание и исполнение поручения клиента, расчёт и доставка заказа, связь, исправление ошибок и ускорение сайта, предотвращение злоупотреблений, выполнение требований закона, разрешение споров и предоставление экспорта или удаления данных.</p></section>
    <section><h3>Кому данные могут передаваться</h3><p>Только тем продавцам, платёжным организациям, складам, перевозчикам, брокерам и государственным органам, которым конкретные данные необходимы для выбранной операции или выполнения закона. До подключения таких организаций данные не должны объявляться переданными.</p></section>
    <section><h3>Хранение и права клиента</h3><p>Сроки хранения устанавливаются отдельно для аккаунта, заказов, финансовых документов, обращений и паспорта. Клиент может запросить доступ, исправление, экспорт, ограничение или удаление, если обязательное хранение не требуется законом. Паспортные файлы не входят в обычный экспорт профиля.</p></section>
    <section><h3>Безопасность</h3><p>Доступ предоставляется по минимально необходимой роли, действия сотрудников журналируются, документы хранятся отдельно от публичных файлов, а резервные копии должны быть зашифрованы и регулярно проверяться восстановлением.</p></section>
-  </details>
+   <section id="privacy-apps"><h3>Мобильные приложения Atlas для iOS и Android</h3><p>Приложения работают с тем же аккаунтом и теми же данными, что и сайт; отдельного профиля для приложения не создаётся. Доступ к камере или фотогалерее запрашивается только в момент, когда клиент сам выбирает фото документа, и не используется в фоне. Приложения не собирают рекламные идентификаторы и не отслеживают клиента в других приложениях и на сайтах; разрешение App Tracking Transparency не запрашивается. Как и на сайте, отправляются только обезличенные замеры скорости и ошибок, не связанные с аккаунтом.</p><p>Push-уведомления пока не отправляются. Когда они появятся, токен устройства планируется хранить только для сообщений о статусе заказа и обращений; отключить их можно будет в системных настройках устройства. Политика будет обновлена до запуска этой функции.</p></section>
+   <section id="privacy-ai"><h3>Автоматическое распознавание и искусственный интеллект</h3><p>Распознавание паспорта или ID-карты выполняется на устройстве клиента (библиотека Tesseract.js, загружаемая с сайта Atlas из раздела /ocr/). Изображение документа не передаётся ни в какой внешний сервис распознавания. Результат — только подсказка: клиент обязан проверить и подтвердить каждое поле, а Atlas сохраняет подтверждённые значения.</p><p>Импорт по ссылке на магазин — автоматический разбор общедоступных страниц магазина. Это подсказка для расчёта, а не гарантия наличия, цены или условий продавца.</p><p>Atlas не использует генеративный искусственный интеллект для создания контента, расчёта цен, рекомендаций и советов клиентам. Если такая функция появится, настоящая политика будет обновлена до её запуска с описанием данных, которые при этом обрабатываются.</p></section>
+   <section id="privacy-signin"><h3>Вход через Apple, Google и Telegram</h3><p>При входе через внешний провайдер Atlas получает только идентификатор, имя и адрес электронной почты, которыми делится провайдер. Apple может передать скрытый адрес-ретранслятор вместо настоящего; Google — адрес почты и имя профиля; Telegram — идентификатор и имя в Telegram; вход по SMS использует номер телефона, по почте — адрес. Atlas не получает и не хранит пароли от учётных записей провайдеров. Объединение нескольких способов входа в один аккаунт выполняется только действием клиента в кабинете. При удалении аккаунта связи со всеми провайдерами удаляются; если Atlas хранит токен входа через Apple, он отзывается у Apple при удалении, а неудавшийся отзыв фиксируется и повторяется оператором.</p></section>
+   <section id="privacy-delete"><h3>Удаление аккаунта</h3><p>Клиент может удалить аккаунт самостоятельно на сайте и в приложении: Кабинет → Настройки → Удалить аккаунт, — либо отправить обращение в поддержку с темой «Удаление аккаунта». Сразу удаляются профиль и контакты, получатели и адреса, документы и сканы, корзина, избранное, уведомления, способы входа, история обращений и все сеансы.</p><p>Записи о заказах и платежах сохраняются без персональных данных клиента в течение срока, установленного законодательством о бухгалтерском учёте и иными обязательными нормами. Если у клиента есть активные оплаченные заказы, они должны быть завершены или отменены до удаления.</p></section>
+   <section id="privacy-consent"><h3>Согласие и его отзыв</h3><p>Согласие на обработку данных фиксируется вместе с версией документа и датой принятия. Отозвать согласие можно, удалив аккаунт или написав в поддержку. Отзыв не прекращает обработку, которая обязательна для уже исполняемого заказа или предусмотрена законом.</p></section>
+   <section id="privacy-age"><h3>Возраст</h3><p>Сервис предназначен для совершеннолетних: таможенное оформление требует паспорта получателя. Несовершеннолетние не должны создавать аккаунты. Если Atlas узнаёт, что аккаунт создан несовершеннолетним, он удаляется.</p></section>
+  </details>;
+}
 
-  <details className="legal-document surface legal-disclosure" id="passport-consent">
-   <summary><FileCheck2/><div><span>Документ 3</span><h2>Согласие на обработку паспортных данных</h2><p>Отдельное подтверждение перед загрузкой</p></div></summary>
-   <section><p>Клиент добровольно предоставляет изображение документа и подтверждённые им имя, фамилию, дату рождения, номер документа и гражданство исключительно для идентификации получателя, подготовки перевозочных и таможенных документов и выполнения законных запросов уполномоченных органов.</p><p>Автоматическое распознавание является подсказкой: клиент проверяет и подтверждает каждое поле. Atlas должен показывать конкретных получателей данных, срок хранения и способ отзыва согласия до начала реальной обработки. Отзыв не отменяет обработку, которая обязательна для уже исполняемого заказа или предусмотрена законом.</p></section>
-  </details>
+export function PassportConsentDocument({open,number="Документ 3"}:DocumentProps){
+ return <details className="legal-document surface legal-disclosure" id="passport-consent" open={open}>
+   <summary><FileCheck2/><div><span>{number}</span><h2>Согласие на обработку паспортных данных</h2><p>Отдельное подтверждение перед загрузкой</p></div></summary>
+   <section><p>Клиент добровольно предоставляет изображение документа и подтверждённые им имя, фамилию, дату рождения, номер документа и гражданство исключительно для идентификации получателя, подготовки перевозочных и таможенных документов и выполнения законных запросов уполномоченных органов.</p><p>Автоматическое распознавание выполняется на устройстве клиента и является подсказкой: клиент проверяет и подтверждает каждое поле. Atlas должен показывать конкретных получателей данных, срок хранения и способ отзыва согласия до начала реальной обработки. Отзыв не отменяет обработку, которая обязательна для уже исполняемого заказа или предусмотрена законом.</p></section>
+  </details>;
+}
 
-  <details className="legal-document surface legal-disclosure" id="refunds">
-   <summary><ReceiptText/><div><span>Документ 4</span><h2>Политика оплаты, отмены и возврата</h2><p>Провайдеры пока не подключены</p></div></summary>
+export function RefundsDocument({open,number="Документ 4"}:DocumentProps){
+ return <details className="legal-document surface legal-disclosure" id="refunds" open={open}>
+   <summary><ReceiptText/><div><span>{number}</span><h2>Политика оплаты, отмены и возврата</h2><p>Провайдеры пока не подключены</p></div></summary>
    <section><h3>Способы оплаты</h3><p>Архитектура предусматривает Uzcard, Humo, Visa и отдельный криптоплатёжный канал после выбора лицензированных провайдеров. Atlas не должен хранить полные данные банковской карты. Доступность конкретного метода показывается только после его фактического подключения.</p></section>
    <section><h3>Возврат</h3><p>Возврат проводится на исходный платёжный метод, когда это технически и юридически возможно. Клиент видит основание, сумму, удержанные фактические расходы и статус обработки. Криптоплатежи требуют отдельной политики курса, комиссий сети, проверки адреса и требований финансового контроля до запуска.</p></section>
-  </details>
+  </details>;
+}
 
-  <aside className="legal-sources"><ShieldCheck/><div><b>Нормативная основа для юридической проверки</b><p><a href="https://lex.uz/ru/docs/6213428" target="_blank" rel="noopener noreferrer">Закон «Об электронной коммерции» № ЗРУ-792</a><a href="https://lex.uz/docs/4396428" target="_blank" rel="noopener noreferrer">Закон «О персональных данных» № ЗРУ-547</a><a href="https://lex.uz/acts/1715" target="_blank" rel="noopener noreferrer">Закон «О защите прав потребителей» № 221-I</a></p></div></aside>
+export function LegalSources(){
+ return <aside className="legal-sources"><ShieldCheck/><div><b>Нормативная основа для юридической проверки</b><p><a href="https://lex.uz/ru/docs/6213428" target="_blank" rel="noopener noreferrer">Закон «Об электронной коммерции» № ЗРУ-792</a><a href="https://lex.uz/docs/4396428" target="_blank" rel="noopener noreferrer">Закон «О персональных данных» № ЗРУ-547</a><a href="https://lex.uz/acts/1715" target="_blank" rel="noopener noreferrer">Закон «О защите прав потребителей» № 221-I</a></p></div></aside>;
+}
+
+/** Opens the document named in the hash (#privacy-delete opens the privacy policy) and scrolls to it. */
+export function useLegalHash(){
+ useEffect(()=>{const reveal=()=>{const item=document.getElementById(window.location.hash.slice(1));if(!item)return;const holder=item instanceof HTMLDetailsElement?item:item.closest("details");if(holder instanceof HTMLDetailsElement)holder.open=true;item.scrollIntoView({block:"start"})};reveal();window.addEventListener("hashchange",reveal);return()=>window.removeEventListener("hashchange",reveal)},[]);
+}
+
+export function LegalDocuments(){
+ const {state}=useMarket(),locale=state.communication.language,t=copy[locale];
+ useLegalHash();
+ return <>
+  <PageHeading overline={t.overline} title={t.title} description={t.description}><LegalEditionBadge locale={locale}/></PageHeading>
+  <LegalStatus locale={locale}/>
+  <nav className="legal-nav" aria-label="Содержание документов"><a href="#offer">Публичная оферта</a><a href="#privacy">Конфиденциальность</a><a href="#passport-consent">Паспортные данные</a><a href="#refunds">Оплата и возвраты</a></nav>
+  <OfferDocument/>
+  <PrivacyDocument/>
+  <PassportConsentDocument/>
+  <RefundsDocument/>
+  <LegalSources/>
   <div className="notice"><ShieldCheck/><span>Таможенные правила и предварительный калькулятор находятся отдельно. <Link href="/customs">Открыть таможенный раздел</Link>.</span></div>
  </>;
 }

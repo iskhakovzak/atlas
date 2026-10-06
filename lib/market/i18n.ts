@@ -72,9 +72,9 @@ const orderStatuses = {
 };
 export function localizedStatuses(locale:Locale){return orderStatuses[locale]}
 const routeTitles:Record<Locale,Record<string,string>>={
-  ru:{catalog:'Каталог',products:'Каталог',favorites:'Избранное',link:'Заказ по ссылке',stores:'Магазины',cart:'Корзина',orders:'Мои заказы',balance:'Баланс',operations:'Кабинет оператора',notifications:'Уведомления',account:'Личный кабинет',customs:'Таможенные условия',analytics:'Аналитика',legal:'Правила Atlas',identity:'Паспорт',declaration:'Декларация',batch:'Импорт списка',admin:'Администрирование',login:'Вход',notfound:'Страница не найдена'},
-  uz:{catalog:'Katalog',products:'Katalog',favorites:'Saqlanganlar',link:'Havola orqali buyurtma',stores:'Do‘konlar',cart:'Savat',orders:'Buyurtmalarim',balance:'Balans',operations:'Operator kabineti',notifications:'Bildirishnomalar',account:'Shaxsiy kabinet',customs:'Bojxona shartlari',analytics:'Tahlil',legal:'Atlas qoidalari',identity:'Pasport',declaration:'Deklaratsiya',batch:'Ro‘yxat importi',admin:'Boshqaruv',login:'Kirish',notfound:'Sahifa topilmadi'},
-  en:{catalog:'Catalog',products:'Catalog',favorites:'Saved',link:'Order by link',stores:'Stores',cart:'Cart',orders:'My orders',balance:'Balance',operations:'Operator workspace',notifications:'Notifications',account:'Account',customs:'Customs terms',analytics:'Analytics',legal:'Atlas terms',identity:'Passport',declaration:'Declaration',batch:'List import',admin:'Administration',login:'Sign in',notfound:'Page not found'},
+  ru:{catalog:'Каталог',products:'Каталог',favorites:'Избранное',link:'Заказ по ссылке',stores:'Магазины',cart:'Корзина',orders:'Мои заказы',balance:'Баланс',operations:'Кабинет оператора',notifications:'Уведомления',account:'Личный кабинет',customs:'Таможенные условия',analytics:'Аналитика',legal:'Правила Atlas',identity:'Паспорт',declaration:'Декларация',batch:'Импорт списка',admin:'Администрирование',login:'Вход',notfound:'Страница не найдена',privacy:'Политика конфиденциальности',terms:'Условия использования',support:'Поддержка',app:'Приложение','delete-account':'Удаление аккаунта'},
+  uz:{catalog:'Katalog',products:'Katalog',favorites:'Saqlanganlar',link:'Havola orqali buyurtma',stores:'Do‘konlar',cart:'Savat',orders:'Buyurtmalarim',balance:'Balans',operations:'Operator kabineti',notifications:'Bildirishnomalar',account:'Shaxsiy kabinet',customs:'Bojxona shartlari',analytics:'Tahlil',legal:'Atlas qoidalari',identity:'Pasport',declaration:'Deklaratsiya',batch:'Ro‘yxat importi',admin:'Boshqaruv',login:'Kirish',notfound:'Sahifa topilmadi',privacy:'Maxfiylik siyosati',terms:'Foydalanish shartlari',support:'Yordam',app:'Ilova','delete-account':'Akkauntni o‘chirish'},
+  en:{catalog:'Catalog',products:'Catalog',favorites:'Saved',link:'Order by link',stores:'Stores',cart:'Cart',orders:'My orders',balance:'Balance',operations:'Operator workspace',notifications:'Notifications',account:'Account',customs:'Customs terms',analytics:'Analytics',legal:'Atlas terms',identity:'Passport',declaration:'Declaration',batch:'List import',admin:'Administration',login:'Sign in',notfound:'Page not found',privacy:'Privacy policy',terms:'Terms of use',support:'Support',app:'App','delete-account':'Delete account'},
 };
 export function routeTitle(locale:Locale,view:string){return routeTitles[locale][view]??view}
 
@@ -120,6 +120,10 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_38': 'Магазин сейчас не отвечает, поэтому цену не удалось сверить. Попробуйте через несколько минут.',
     'err_39': 'Слишком много проверок цен у магазинов. Подождите несколько минут и повторите.',
     'err_40': 'На сегодня загружено слишком много файлов документа. Попробуйте завтра или напишите в поддержку.',
+    'err_41': 'Сначала завершите или отмените оплаченные заказы в работе — или напишите в поддержку, и мы поможем закрыть их.',
+    'err_42': 'Подтвердите удаление аккаунта.',
+    'err_43': 'Отметьте, что понимаете: баланс Atlas будет потерян.',
+    'err_44': 'Слишком много попыток удаления. Попробуйте через час.',
     'err_50': 'У вашей роли нет доступа к этому действию.',
     'err_51': 'Заблокировать клиента может только администратор.',
     'err_55': 'Нельзя отключить собственный доступ.',
@@ -169,6 +173,10 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_38': 'Do‘kon hozir javob bermayapti, shuning uchun narxni tekshirib bo‘lmadi. Bir necha daqiqadan so‘ng urinib ko‘ring.',
     'err_39': 'Do‘konlarda narx tekshiruvi juda ko‘p bo‘ldi. Bir necha daqiqa kutib, qayta urinib ko‘ring.',
     'err_40': 'Bugun hujjat fayllari juda ko‘p yuklandi. Ertaga urinib ko‘ring yoki qo‘llab-quvvatlashga yozing.',
+    'err_41': 'Avval jarayondagi to‘langan buyurtmalarni yakunlang yoki bekor qiling — yoki yordam xizmatiga yozing, ularni yopishga yordam beramiz.',
+    'err_42': 'Akkauntni o‘chirishni tasdiqlang.',
+    'err_43': 'Atlas balansi yo‘qolishini tushunganingizni belgilang.',
+    'err_44': 'O‘chirishga urinishlar juda ko‘p. Bir soatdan so‘ng urinib ko‘ring.',
     'err_50': 'Sizning rolingizda bu amalga ruxsat yo‘q.',
     'err_51': 'Mijozni faqat administrator bloklashi mumkin.',
     'err_55': 'O‘z ruxsatingizni o‘chirib bo‘lmaydi.',
@@ -218,6 +226,10 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_38': 'The store is not responding, so the price could not be checked. Try again in a few minutes.',
     'err_39': 'Too many price checks with the stores. Wait a few minutes and try again.',
     'err_40': 'Too many document files uploaded today. Try again tomorrow or contact support.',
+    'err_41': 'Finish or cancel your paid orders in progress first — or write to support and we will help close them.',
+    'err_42': 'Confirm the account deletion.',
+    'err_43': 'Tick that you understand the Atlas balance will be lost.',
+    'err_44': 'Too many deletion attempts. Try again in an hour.',
     'err_50': 'Your role does not allow this action.',
     'err_51': 'Only an administrator can block a customer.',
     'err_55': 'You cannot disable your own access.',

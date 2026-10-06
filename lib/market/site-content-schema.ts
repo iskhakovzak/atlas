@@ -72,7 +72,13 @@ export const siteContentDocumentSchema = z.object({
       return normalized;
     }),
     instagram: shortOrNull(30, instagramPattern, 'Instagram: до 30 латинских символов без @'),
+    supportEmail: shortOrNull(254, /^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Почта поддержки: адрес вида support@example.com'),
     pickupAddress: localizedOrNull,
+  }).partial().default({}),
+  /** Store listings of the Atlas apps (https only); null until published. */
+  apps: z.object({
+    appStoreUrl: shortOrNull(500, /^https:\/\/\S+$/, 'Ссылка App Store: только https://'),
+    playStoreUrl: shortOrNull(500, /^https:\/\/\S+$/, 'Ссылка Google Play: только https://'),
   }).partial().default({}),
   legal: z.object({
     entityName: shortOrNull(200),
@@ -105,9 +111,11 @@ export function mergeSiteContent(document: Partial<SiteContentDocument> | null |
       telegramChannel: contacts.telegramChannel ?? base.contacts.telegramChannel,
       phone: contacts.phone ?? base.contacts.phone,
       instagram: contacts.instagram ?? base.contacts.instagram,
+      supportEmail: contacts.supportEmail ?? base.contacts.supportEmail,
       pickupAddress: contacts.pickupAddress ?? base.contacts.pickupAddress,
     },
     legal: {entityName: legal.entityName ?? base.legal.entityName, inn: legal.inn ?? base.legal.inn, address: legal.address ?? base.legal.address},
+    apps: {appStoreUrl: document?.apps?.appStoreUrl ?? base.apps.appStoreUrl, playStoreUrl: document?.apps?.playStoreUrl ?? base.apps.playStoreUrl},
     deliveryDays: base.deliveryDays,
     standardDeliveryDays: base.standardDeliveryDays,
     paymentMethods: document?.paymentMethods ?? base.paymentMethods,
@@ -138,7 +146,7 @@ export function siteContentIssues(error: z.ZodError): string[] {
 export function siteContentToDocument(view: SiteContentView): SiteContentDocument {
   return siteContentDocumentSchema.parse({
     revision: view.revision, updatedAt: view.updatedAt,
-    contacts: view.contacts, legal: view.legal, paymentMethods: view.paymentMethods,
+    contacts: view.contacts, apps: view.apps, legal: view.legal, paymentMethods: view.paymentMethods,
     reviews: view.reviews.map(review => ({...review, consent: true})),
     parcelPhotos: view.parcelPhotos, completedOrders: view.completedOrders, prohibitedListUrl: view.prohibitedListUrl,
   });

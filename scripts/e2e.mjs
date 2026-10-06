@@ -277,8 +277,8 @@ try {
   await setViewport(1280); await open("/"); await setPreferences("light");
   // The order page with a catalog product loaded (no live import): its variant and sticky bar once overflowed phones.
   const loadedOrder = "/order-by-link?url=" + encodeURIComponent("https://www.target.com/p/nyx-professional-makeup-butter-lip-gloss-16-praline-0-27-fl-oz/-/A-51033539") + "&catalog=nyx-butter-gloss";
-  for (const path of ["/", "/catalog", "/catalog?cat=shoes&sort=cheap", "/stores", "/stores?focus=beauty", "/customs", "/legal", "/login", "/order-by-link", loadedOrder, "/e2e-missing-page"]) await snapshot("guest", path);
-  for (const [path, locale] of [["/?lang=uz", "uz"], ["/catalog?lang=en", "en"], ["/stores?lang=en", "en"], ["/customs?lang=ru", "ru"]]) {
+  for (const path of ["/", "/catalog", "/catalog?cat=shoes&sort=cheap", "/stores", "/stores?focus=beauty", "/customs", "/legal", "/privacy", "/terms", "/support", "/app", "/delete-account", "/login", "/order-by-link", loadedOrder, "/e2e-missing-page"]) await snapshot("guest", path);
+  for (const [path, locale] of [["/?lang=uz", "uz"], ["/catalog?lang=en", "en"], ["/stores?lang=en", "en"], ["/customs?lang=ru", "ru"], ["/privacy?lang=ru", "ru"], ["/support?lang=uz", "uz"], ["/app?lang=en", "en"]]) {
     await open(path);
     const seen = await evaluate("({ lang: document.documentElement.lang, title: document.title, canonical: document.querySelector('link[rel=canonical]')?.getAttribute('href') })");
     if (seen.lang !== locale) fail(`guest ${path}`, `html lang is ${seen.lang}, expected ${locale}`);

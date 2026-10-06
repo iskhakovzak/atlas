@@ -892,3 +892,32 @@ html[data-theme="dark"] .price-off { background: var(--night-jade-soft-strong); 
 
 /* Link order groups (pick, bill, finish) stay plain grid items: the magnet made choosing a size hard (owner, 6 October 2026). */
 .lo-sheet { display: contents; }
+
+/* Settings rows the stores require (support, legal, consents, restore, about) and the delete-account sheet. */
+.cabinet-setting-label { display: inline-flex; align-items: center; gap: 10px; }
+.cabinet-setting-label svg { flex: none; color: var(--home-muted); }
+.cabinet-setting-block { flex-direction: column; align-items: stretch; gap: 8px; padding: 14px 0; }
+.cabinet-setting-block > .btn { align-self: flex-start; min-height: 40px; }
+.cabinet-setting-block p { margin: 0; font-size: 13px; font-weight: 500; line-height: 1.45; }
+.cabinet-consents { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.cabinet-consents li { display: grid; gap: 2px; font-weight: 500; }
+.cabinet-consents b { font-size: 14px; }
+.cabinet-consents small { color: var(--home-muted); font-size: 12px; }
+.cabinet-danger h2 { color: var(--cx-danger); }
+.cabinet-delete-open { margin-top: 4px; }
+.delete-account { display: grid; gap: 16px; margin-top: 8px; }
+.delete-account-lists { display: grid; gap: 14px; }
+.delete-account-lists b { display: block; margin-bottom: 4px; font-size: 14px; }
+.delete-account-lists ul, .delete-account-blocked ul { margin: 0; padding-left: 18px; color: var(--home-muted); font-size: 14px; line-height: 1.5; }
+.delete-account-blocked { margin: 0; }
+.delete-account-blocked p { margin: 0 0 8px; }
+.delete-account-blocked ul { margin-bottom: 10px; }
+.delete-account-ack { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 1.45; cursor: pointer; }
+.delete-account-ack input { flex: none; width: 18px; height: 18px; margin-top: 2px; accent-color: var(--cx-danger); }
+.delete-account-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+.delete-account-actions .btn { min-height: 44px; }
+.delete-account-confirm.btn.primary { background: var(--cx-danger); border-color: var(--cx-danger); }
+.delete-account-confirm.btn.primary:hover:not(:disabled) { filter: brightness(.92); }
+.delete-account-confirm.btn.primary:disabled { opacity: .55; cursor: not-allowed; }
+@media (min-width: 700px) { .delete-account-lists { grid-template-columns: 1fr 1fr; } }
+html[data-theme="dark"] .delete-account-confirm.btn.primary { color: #2b0e0a; }

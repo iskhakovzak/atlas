@@ -57,6 +57,11 @@ export const authLinks=sqliteTable('market_auth_links',{
  subject:text('subject').primaryKey(),userId:text('user_id').notNull(),method:text('method').notNull(),contact:text('contact').notNull(),createdAt:integer('created_at').notNull(),
 },table=>[index('idx_market_auth_links_user').on(table.userId)]);
 
+// Refresh tokens from sign-in providers (Apple), sealed with a key from ATLAS_AUTH_SECRET; revoked and deleted with the account.
+export const authTokens=sqliteTable('market_auth_tokens',{
+ subject:text('subject').primaryKey(),userId:text('user_id').notNull(),provider:text('provider').notNull(),clientId:text('client_id').notNull(),token:text('token').notNull(),createdAt:integer('created_at').notNull(),
+},table=>[index('idx_market_auth_tokens_user').on(table.userId)]);
+
 // Accounting (lib/market/finance.ts). One money movement per row, in soum; rows are voided, never deleted.
 export const ledgerEntries=sqliteTable('market_ledger_entries',{
  id:text('id').primaryKey(),kind:text('kind').notNull(),amountUzs:integer('amount_uzs').notNull(),originalAmount:real('original_amount'),originalCurrency:text('original_currency'),occurredOn:text('occurred_on').notNull(),orderId:text('order_id'),counterparty:text('counterparty'),note:text('note'),createdBy:text('created_by').notNull(),createdAt:integer('created_at').notNull(),voidedAt:integer('voided_at'),voidedBy:text('voided_by'),voidReason:text('void_reason'),

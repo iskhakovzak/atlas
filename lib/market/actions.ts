@@ -52,6 +52,8 @@ import {
   cartCustomsSchema,
   setCartNote,
   setCartCustoms,
+  acceptConsents,
+  consentKeySchema,
   type Pricing,
   type Product,
   type State,
@@ -178,6 +180,8 @@ export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("identity-confirm"), documentId: z.string().min(1).max(100), recipientProfileId: z.string().min(1).max(80).optional(), firstName: z.string().trim().min(1).max(80), lastName: z.string().trim().min(1).max(80), birthDate: z.string(), passportNumber: z.string().min(6).max(24), nationality: z.string().trim().max(80) }),
   z.object({ type: z.literal("identity-clear"), documentId: z.string().min(1).max(100) }),
   z.object({ type: z.literal("declaration-preview"), orderIds: z.array(z.string().max(100)).min(1).max(30) }),
+  // Data-processing consent (privacy policy, terms of use) at a document version; the server also writes it to market_legal_consents.
+  z.object({ type: z.literal("consent-accept"), documents: z.array(consentKeySchema).min(1).max(2), version: z.string().trim().min(1).max(40) }),
   // No action may replace the account document wholesale: the former "import-legacy" took client JSON
   // as the whole state, so a customer could write their own balance, paid orders and staff fields.
 ]);
@@ -407,5 +411,7 @@ export function applyAction(
       return clearIdentity(s, a.documentId);
     case "declaration-preview":
       return submitDeclarationPreview(s, a.orderIds);
+    case "consent-accept":
+      return acceptConsents(s, a.documents, a.version);
   }
 }
