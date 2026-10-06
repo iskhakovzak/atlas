@@ -83,3 +83,8 @@ export const backupExports=sqliteTable('market_backup_exports',{
 export const webVitals=sqliteTable('market_web_vitals',{
  id:text('id').primaryKey(),route:text('route').notNull(),device:text('device').notNull(),ttfbMs:real('ttfb_ms'),fcpMs:real('fcp_ms'),lcpMs:real('lcp_ms'),inpMs:real('inp_ms'),cls:real('cls'),apiSlow:integer('api_slow'),createdAt:integer('created_at').notNull(),
 },table=>[index('idx_market_web_vitals_created').on(table.createdAt),index('idx_market_web_vitals_route').on(table.route,table.createdAt)]);
+
+// Operator notes about a customer (admin → Клиенты → карточка). Append-only; never passport or address data.
+export const customerNotes=sqliteTable('market_customer_notes',{
+ id:text('id').primaryKey(),customerId:text('customer_id').notNull(),authorId:text('author_id').notNull(),authorEmail:text('author_email').notNull(),text:text('text').notNull(),createdAt:integer('created_at').notNull(),
+},table=>[index('idx_market_customer_notes_customer_created').on(table.customerId,table.createdAt)]);

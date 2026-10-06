@@ -5,9 +5,11 @@
    payment, the bill sits in a light mint folder; what is not in the amount to pay is on a separate slip.
    One typeface (Inter) everywhere; the wordmark keeps Manrope. Every rule is scoped to the light theme; Atlas Night keeps its own look. */
 
+/* One vertical rhythm: 56px between sections on desktop (28px each side), 36px on phones. */
+:root:not([data-theme="dark"]) { --day-section: 56px; }
 @media (max-width: 760px) {
   :root:not([data-theme="dark"]) {
-    --day-section: 56px;
+    --day-section: 36px;
     --day-fs-h2: 26px; --day-fs-h1: 32px; --day-fs-h1-page: 28px; --day-fs-h3: 17px; --day-fs-lead: 16px;
     --day-money-xl: 32px; --day-money-l: 30px; --day-money-m: 28px;
     --day-r-plate: 18px;
@@ -45,9 +47,12 @@ html:not([data-theme="dark"]) .money-unit { font-family: var(--day-sans); font-w
 html:not([data-theme="dark"]) .site-header { background: var(--day-surface); border-bottom: 1px solid var(--day-line); box-shadow: none; }
 html:not([data-theme="dark"]) .site-header .wordmark { color: var(--day-ink); }
 html:not([data-theme="dark"]) .site-header .wordmark svg { color: var(--day-accent); }
-html:not([data-theme="dark"]) .desktop-nav a { font-weight: 500; color: rgba(22, 33, 28, .78); }
-html:not([data-theme="dark"]) .desktop-nav a:hover { color: var(--day-ink); }
-html:not([data-theme="dark"]) .desktop-nav a.active { color: var(--day-ink); font-weight: 600; text-decoration: underline 2px var(--day-accent); text-underline-offset: 7px; }
+/* Nav: one soft mint pill marks the current page; no underline, no bottom border (they used to show together). */
+html:not([data-theme="dark"]) .desktop-nav { gap: 2px; margin-left: 8px; }
+html:not([data-theme="dark"]) .desktop-nav a { min-height: 40px; padding: 0 10px; border: 0; border-radius: var(--day-r-control); font-weight: 500; color: rgba(22, 33, 28, .78); text-decoration: none; }
+html:not([data-theme="dark"]) .desktop-nav a:hover { background: var(--day-soft); color: var(--day-ink); }
+html:not([data-theme="dark"]) .desktop-nav a.active { background: var(--day-tint); color: var(--day-ok); font-weight: 600; box-shadow: none; }
+html:not([data-theme="dark"]) .desktop-nav a:focus-visible { outline: 2px solid var(--day-accent); outline-offset: 2px; }
 /* Language: a mint pill inside a 44px hit area. */
 html:not([data-theme="dark"]) .lang-switch { padding: 0; border: 0; background: none; }
 html:not([data-theme="dark"]) .lang-switch button { padding: 7px 3px; border-radius: 12px; background-clip: content-box; color: var(--day-muted); font-weight: 600; letter-spacing: .02em; }
@@ -58,9 +63,9 @@ html:not([data-theme="dark"]) .header-account:hover { background: var(--day-tint
 
 /* ---------- Home: the hero beside the example bill ---------- */
 .home-top > * { min-width: 0; }
-html:not([data-theme="dark"]) .home-top { display: grid; gap: 40px; padding: 32px 0 calc(var(--day-section) / 2); }
+html:not([data-theme="dark"]) .home-top { display: grid; gap: 32px; padding: 24px 0 calc(var(--day-section) / 2); }
 @media (min-width: 1100px) {
-  html:not([data-theme="dark"]) .home-top { grid-template-columns: minmax(0, 1.08fr) minmax(400px, .92fr); column-gap: 64px; align-items: center; padding: 56px 0 72px; }
+  html:not([data-theme="dark"]) .home-top { grid-template-columns: minmax(0, 1.08fr) minmax(400px, .92fr); column-gap: 64px; align-items: center; padding: 36px 0 40px; }
 }
 @media (min-width: 761px) and (max-width: 1099px) { html:not([data-theme="dark"]) .home-top { max-width: 720px; } }
 html:not([data-theme="dark"]) .home-hero { max-width: none; padding: 0; --day-h1-size: var(--day-fs-h1); --day-h1-leading: 1.04; --day-h1-tracking: -.03em; }
@@ -241,15 +246,13 @@ html:not([data-theme="dark"]) .home-tracking li[data-state="current"] .home-trac
   html:not([data-theme="dark"]) .home-tracking ol::before { content: ""; position: absolute; left: 11px; right: calc(100% / 6 - 11px); top: 10px; height: 2px; background: linear-gradient(90deg, var(--day-accent) 0 80%, var(--day-line-strong-2) 80% 100%); }
 }
 @media (max-width: 600px) { html:not([data-theme="dark"]) .home-tracking { padding: 18px; } }
-html:not([data-theme="dark"]) .home-legal { padding: 0; border: 0; background: none; margin-top: 32px; }
+html:not([data-theme="dark"]) .home-legal { padding: 0; border: 0; background: none; margin-top: 24px; }
+/* Breadcrumb: a short line above the page title, not a band of air. */
+html:not([data-theme="dark"]) .breadcrumb { padding: 14px 0 10px; }
 
-/* FAQ: white rows; on wide screens the title stays beside them. */
-@media (min-width: 1024px) {
-  html:not([data-theme="dark"]) #faq { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 48px; align-items: start; }
-  html:not([data-theme="dark"]) .home-faq-head { position: sticky; top: 104px; }
-}
+/* FAQ: white rows under the title; on wide screens two columns (home.css), no empty side column. */
 html:not([data-theme="dark"]) .home-faq-head > h2 { margin: 0 0 12px; }
-html:not([data-theme="dark"]) .home-faq { display: grid; gap: 10px; margin-top: 8px; border: 0; }
+html:not([data-theme="dark"]) .home-faq { gap: 10px; margin-top: 8px; border: 0; }
 html:not([data-theme="dark"]) .home-faq details { border: 1px solid var(--day-line); border-radius: 14px; background: var(--day-surface); box-shadow: var(--day-shadow); }
 html:not([data-theme="dark"]) .home-faq details[open] { border-color: var(--day-line-strong); }
 html:not([data-theme="dark"]) .home-faq summary { min-height: 60px; padding: 10px 20px; font-size: 16.5px; font-weight: 700; color: var(--day-ink); }
@@ -267,16 +270,15 @@ html:not([data-theme="dark"]) .home-faq a { text-decoration: underline; text-dec
 .home-closing { display: grid; justify-items: start; gap: 12px; }
 .home-closing p { margin: 0; }
 @media (max-width: 760px) { .home-closing { display: none; } }
-html:not([data-theme="dark"]) .home-closing { margin-top: calc(var(--day-section) / 2); padding: 36px 40px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }
+html:not([data-theme="dark"]) .home-closing { margin-top: calc(var(--day-section) / 2); padding: 28px 32px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }
 html:not([data-theme="dark"]) .home-closing > h2 { margin: 0; }
 html:not([data-theme="dark"]) .home-closing p { font-size: 16px; color: var(--day-muted); }
 html:not([data-theme="dark"]) .home-closing .home-cta { min-height: 52px; margin-top: 6px; padding-inline: 24px; border-radius: var(--day-r-control); }
 
 /* ---------- Footer ---------- */
-@media (min-width: 761px) { .home-footer.no-contacts { grid-template-columns: 1.3fr 1fr 1fr; } }
-html:not([data-theme="dark"]) .home-footer { margin-top: calc(var(--day-section) / 2); padding-top: 48px; border-top: 1px solid var(--day-line); }
-html:not([data-theme="dark"]) .home-footer-title { font-size: 14px; font-weight: 600; color: var(--day-ink); }
-html:not([data-theme="dark"]) .home-footer a:not(.wordmark) { font-size: 15px; font-weight: 500; color: var(--day-muted); }
+html:not([data-theme="dark"]) .home-footer { margin-top: calc(var(--day-section) / 2); padding-top: 28px; border-top: 1px solid var(--day-line); }
+html:not([data-theme="dark"]) .home-footer-title { font-size: 13px; font-weight: 600; letter-spacing: .04em; color: var(--day-ink); }
+html:not([data-theme="dark"]) .home-footer a:not(.wordmark) { font-size: 14px; font-weight: 500; color: var(--day-muted); }
 html:not([data-theme="dark"]) .home-footer a:not(.wordmark):hover { color: var(--day-ink); }
 html:not([data-theme="dark"]) .home-footer-brand p { color: var(--day-muted); }
 

@@ -391,8 +391,6 @@ html[data-theme="dark"] .basket-item-note.issue { border-color: rgba(255, 140, 1
 .order-x-history li { padding-left: 12px; border-left: 2px solid var(--home-line); }
 .order-x-history time { color: var(--home-muted); font-size: 12px; }
 .order-x-history p { margin: 2px 0 0; color: var(--home-ink); font-size: 14px; line-height: 1.45; }
-.order-x-cancel { justify-self: start; min-height: 44px; padding: 0; border: 0; background: transparent; color: var(--cx-danger); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
-.order-x-cancel:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 /* Order tabs: shared Tabs component, restyled for customers only. */
 main[data-view="orders"] .order-controls { margin-bottom: 14px; }
@@ -754,8 +752,8 @@ html[data-theme="dark"] .orders-passport { border-color: var(--night-warn-line);
 @media (max-width: 420px) { .docs-order { grid-template-columns: auto minmax(0, 1fr); } .docs-order strong { grid-column: 2; } }
 
 /* Orders: actions under an order, recipient filter, allowance row. */
+/* Repeat and ask only: the customer "cancel order" button was removed (owner, 6 October 2026). */
 .order-x-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0 18px; padding-top: 4px; border-top: 1px solid var(--home-line); }
-.order-x-actions .order-x-cancel { margin-left: auto; }
 .order-x-details dd.order-x-over { color: var(--cx-danger); font-weight: 700; }
 .orders-recipients { display: flex; gap: 8px; margin: 0 0 14px; overflow-x: auto; scrollbar-width: none; }
 .orders-recipients button { display: inline-flex; flex-shrink: 0; align-items: center; min-height: 44px; padding: 0 14px; border: 1px solid var(--home-line); border-radius: 999px; background: var(--home-surface); color: var(--home-ink); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }

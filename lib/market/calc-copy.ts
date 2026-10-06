@@ -14,6 +14,8 @@ export type CalcCopy = {
   lines: { items: string; atlasFee: (percent: string) => string; buyout: string; conversion: string; storeShipping: string; free: string; international: (kg: string) => string; intlReserve: string; optional: string; total: string; holdOutside: string; customsHelp: (percent: string) => string; customsDuty: string };
   hold: string; holdNote: string; holdHelp: (freeFrom: string) => string; freeNote: (freeFrom: string) => string;
   feeHelp: string; intlReserveHelp: string; customsHelpHelp: string; customsDutyHelp: string; outside: string;
+  /** Delivery speed words for the international line and the blank bill. */
+  speeds: { express: string; standard: string }; speedRule: (express: string, expressDays: string, standard: string, standardDays: string) => string;
   blank: {
     title: string; lead: string; item: string; itemCbu: (markup: string) => string; itemSet: string; fee: string; feeRule: (percent: string) => string;
     delivery: string; deliveryRule: (perKg: string, packaging: string) => string; reserve: string; reserveRule: string; total: string;
@@ -50,6 +52,7 @@ export const calcCopy: Record<Locale, CalcCopy> = {
     intlReserveHelp: 'Запас на случай, если посылка окажется тяжелее расчётной. После взвешивания неиспользованную часть вернём на баланс Atlas; если доставка выйдет дороже — сначала согласуем доплату.',
     customsHelpHelp: 'Сбор за оплату таможни через Atlas: 4,98% от цены товаров, без доставки.',
     customsDutyHelp: 'Ориентир по правилам таможни для этого получателя. Atlas оплатит пошлину на таможне: если она выйдет меньше — остаток вернём на баланс, если больше — доплата только с вашего согласия.',
+    speeds: { express: 'экспресс', standard: 'обычная' }, speedRule: (express, expressDays, standard, standardDays) => `экспресс ${expressDays} — ${express}, обычная ${standardDays} — ${standard}`,
     outside: 'Не входит в сумму к оплате',
     blank: {
       title: 'Так будет выглядеть счёт', lead: 'Вставьте ссылку, и мы заполним каждую строку в сумах.',
@@ -91,6 +94,7 @@ export const calcCopy: Record<Locale, CalcCopy> = {
     intlReserveHelp: 'Jo‘natma hisobdagidan og‘ir chiqsa, zaxira. Tortishdan keyin ishlatilmagan qismini Atlas balansiga qaytaramiz; qimmatroq chiqsa — avval qo‘shimcha to‘lovni kelishamiz.',
     customsHelpHelp: 'Bojxonani Atlas orqali to‘lash yig‘imi: tovarlar narxining 4,98%, yetkazishsiz.',
     customsDutyHelp: 'Bu qabul qiluvchi uchun bojxona qoidalari bo‘yicha taxmin. Bojni Atlas bojxonada to‘laydi: kam chiqsa — qoldiqni balansga qaytaramiz, ko‘p chiqsa — qo‘shimcha to‘lov faqat roziligingiz bilan.',
+    speeds: { express: 'ekspress', standard: 'oddiy' }, speedRule: (express, expressDays, standard, standardDays) => `ekspress ${expressDays} — ${express}, oddiy ${standardDays} — ${standard}`,
     outside: 'To‘lov summasiga kirmaydi',
     blank: {
       title: 'Hisob shunday ko‘rinadi', lead: 'Havolani qo‘ying, har bir satrni so‘mda to‘ldiramiz.',
@@ -132,6 +136,7 @@ export const calcCopy: Record<Locale, CalcCopy> = {
     intlReserveHelp: 'A buffer in case the parcel is heavier than estimated. After weighing, the unused part goes back to your Atlas balance; if delivery costs more, we agree the extra with you first.',
     customsHelpHelp: 'The fee for customs paid through Atlas: 4.98% of the goods price, delivery excluded.',
     customsDutyHelp: 'An estimate under the customs rules for this recipient. Atlas pays the duty at customs: if it comes out lower, the rest returns to your balance; if higher, any extra needs your consent.',
+    speeds: { express: 'express', standard: 'standard' }, speedRule: (express, expressDays, standard, standardDays) => `express ${expressDays} at ${express}, standard ${standardDays} at ${standard}`,
     outside: 'Not in the amount to pay',
     blank: {
       title: 'This is how the bill will look', lead: 'Paste a link and we fill in every line in soum.',

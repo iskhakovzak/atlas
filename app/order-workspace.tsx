@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Link from "@/components/site-link";
 import {
   AlertCircle,
@@ -42,12 +42,14 @@ import {
 import { toast } from "sonner";
 import { CopyText } from "./copy-text";
 import { useMarket } from "@/lib/market/store";
+import { hasPermission } from "@/lib/market/access";
 import {
   balanceOf,
   money,
   settle,
   orderPayable,
   orderNeedsOperatorAttention,
+  standardDeliveryPerKgUsd,
   serviceDescription,
   serviceFeeForCountry,
   serviceTitle,
@@ -66,8 +68,9 @@ import type { Action } from "@/lib/market/actions";
 import { countries } from "@/lib/market/world";
 import { localizedStatuses, type Locale } from "@/lib/market/i18n";
 import { formatSum, homeCopy } from "@/lib/market/home-copy";
-import { deliveryRegions, siteContent } from "@/lib/market/site-content";
-import { balanceCopy, countryLabel, formatDateTime, formatShortDate, noticesCopy, orderCount, ordersCopy } from "@/lib/market/customer-copy";
+import { deliveryDaysFor, deliveryRegions, siteContent, type DeliveryRegion } from "@/lib/market/site-content";
+import { groupOrders, groupStoreNames, orderGroupCopy, storeGroupName, type OrderGroup } from "@/lib/market/order-groups";
+import { balanceCopy, countryLabel, formatDateTime, formatShortDate, itemCount, noticesCopy, orderCount, ordersCopy } from "@/lib/market/customer-copy";
 import { allowanceMonth, countsTowardAllowance, monthOf, monthlyUsedFor, orderPerson, orderRecipientName, recipientKey } from "@/lib/market/allowance";
 import { courierAllowanceUsd } from "@/lib/market/customs";
 import { calcCopy } from "@/lib/market/calc-copy";
@@ -755,6 +758,11 @@ function CustomerOrderCard({ order: o, locale, pricing, busy, expanded, onToggle
   const kg = locale === "ru" ? "кг" : "kg";
   const country = countryLabel(o.product.country ?? "США", locale);
   const lastParcelEvent = o.parcel?.events.at(-1)?.status;
+  // Delivery speed of the order's quote snapshot (orders placed before the choice are express); days by dispatch region.
+  const gc = orderGroupCopy[locale];
+  const speed = o.quote.deliverySpeed ?? "express";
+  const region = deliveryRegions.find(item => item.countries.includes(o.product.country ?? "США"))?.id as DeliveryRegion | undefined;
+  const days = region ? deliveryDaysFor(pricing, region, speed) : null;
   return <details className="order-x" id={o.id} onToggle={event => onToggle(event.currentTarget.open)}>
     <summary className="order-x-summary">
       <span className="order-x-photo"><ProductImage product={o.product} decorative locale={locale} /></span>
@@ -817,6 +825,7 @@ function CustomerOrderCard({ order: o, locale, pricing, busy, expanded, onToggle
           {o.product.sourceUrl && <a className="order-x-link" href={o.product.sourceUrl} target="_blank" rel="noopener noreferrer">{c.openStore}<ArrowUpRight size={14} aria-hidden="true" /></a>}
           {o.product.sourceUrl && !o.product.image && <button type="button" className="text-button" disabled={busy} onClick={() => loadPhoto(o)}>{busy ? ow.loadingPhoto : ow.loadPhoto}</button>}
         </dd></div>
+        <div><dt>{gc.delivery}</dt><dd>{gc.speed[speed]}{days && <small>{gc.days(days[0], days[1])}</small>}</dd></div>
         {o.payment && <div><dt>{c.payment}</dt><dd>{o.payment.status === "pending" ? ow.paymentWaiting : o.payment.status === "paid" ? ow.paymentPaid : ow.paymentRefunded}<small>{o.payment.id} · {ow.providerPassed}</small></dd></div>}
         {o.delivery && <div><dt>{c.delivery}</dt><dd>{o.delivery.recipient}<small>{[o.delivery.region, o.delivery.city, o.delivery.address, o.delivery.postalCode].filter(Boolean).join(", ")}</small><a className="order-x-link" href={`tel:${o.delivery.phone.replace(/[^\d+]/g, "")}`}>{o.delivery.phone}</a></dd></div>}
         {allowanceUsd !== undefined && <div><dt>{c.allowance}</dt><dd className={allowanceUsd > courierAllowanceUsd ? "order-x-over" : undefined}>{c.allowanceValue(allowanceUsd, courierAllowanceUsd)}</dd></div>}
@@ -874,15 +883,41 @@ function CustomerOrderCard({ order: o, locale, pricing, busy, expanded, onToggle
 
       <div className="order-x-actions">
         {o.product.sourceUrl && <Link className="cabinet-text-btn" href={`/order-by-link?url=${encodeURIComponent(o.product.sourceUrl)}`}><RotateCcw size={15} aria-hidden="true" />{c.repeat}</Link>}
+        {/* No "cancel order" button for customers (owner's decision, 6 October 2026): cancellation goes through support or an operator. */}
         <Link className="cabinet-text-btn" href={`/account?order=${encodeURIComponent(o.id)}#support`}><MessageCircle size={15} aria-hidden="true" />{c.ask}</Link>
-        {o.status === 0 && !o.cancelled && <button type="button" className="order-x-cancel" onClick={() => confirm({ id: o.id, cancel: true, amount: o.quote.total })}>{ow.cancelOrder}</button>}
       </div>
     </div>}
   </details>;
 }
 
+/** One checkout with several lines: a heading with the date, item count, stores and sum, then a section per store. */
+function OrderGroupCard({ group, locale, card }: { group: OrderGroup; locale: Locale; card: (order: Order) => ReactNode }) {
+  const gc = orderGroupCopy[locale];
+  const stores = groupStoreNames(group, locale);
+  const tone = group.stage === "attention" ? "warn" : group.stage === "cancelled" ? "muted" : group.stage === "done" ? "ok" : "info";
+  const live = group.orders.length - group.cancelled;
+  return <section className="order-group" data-stage={group.stage} aria-label={gc.title(formatShortDate(group.createdAt, locale))}>
+    <header className="order-group-head">
+      <div className="order-group-main">
+        <b className="order-group-title">{gc.title(formatShortDate(group.createdAt, locale))}</b>
+        <small>{[itemCount(group.items || live, locale), stores.join(", ")].filter(Boolean).join(" · ")}</small>
+        <span className="order-group-badges">
+          <span className={"order-x-status " + tone}>{gc.stage[group.stage]}</span>
+          {group.cancelled > 0 && group.stage !== "cancelled" && <span className="order-x-status muted">{gc.cancelledLines(group.cancelled)}</span>}
+        </span>
+      </div>
+      {group.stage !== "cancelled" && <p className="order-group-sum"><small>{gc.payable}</small><strong>{formatSum(group.payable, locale)}</strong></p>}
+    </header>
+    {group.stores.map((store) => <div className="order-group-store" key={store.key}>
+      {group.stores.length > 1 && <p className="order-group-store-title"><Package size={15} aria-hidden="true" />{gc.from(storeGroupName(store, locale), store.country ? countryLabel(store.country, locale) : "")}</p>}
+      {store.orders.map(card)}
+    </div>)}
+  </section>;
+}
+
 export function OrdersView({ operations }: { operations: boolean }) {
   const { state, pricing, ready, error, act, user } = useMarket();
+  const canReadOperations = hasPermission(user, "operations.read");
   const [expanded,setExpanded]=useState<string[]>([]);
   const [recipientFilter,setRecipientFilter]=useState("all");
   const [tab, setTab] = useState("active"),
@@ -919,7 +954,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
     return () => window.removeEventListener('hashchange', reveal);
   }, [ready, tab, query, opsReady, state.orders, operations, opsAccounts]);
   const refreshOperations = useCallback(async () => {
-    if (!operations || !user?.operator) return;
+    if (!operations || !canReadOperations) return;
     setOpsRefreshing(true);
     try {
       const response = await fetch("/api/operations", { cache: "no-store" });
@@ -938,7 +973,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
     } finally {
       setOpsRefreshing(false);
     }
-  }, [operations, user?.operator]);
+  }, [operations, canReadOperations]);
   useEffect(() => {
     queueMicrotask(() => void refreshOperations());
   }, [refreshOperations]);
@@ -1102,7 +1137,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
        toast.success(locale === "ru" ? "Доставка магазина подтверждена и пересчитана" : locale === "uz" ? "Do‘kon yetkazib berishi tasdiqlandi va qayta hisoblandi" : "Store shipping confirmed and recalculated");
     }
   }
-  if (operations && ready && !user?.operator)
+  if (operations && ready && !canReadOperations)
     return (
       <Empty
         title={locale === "ru" ? "Доступ только оператору" : locale === "uz" ? "Faqat operatorlar uchun" : "Operator access only"}
@@ -1116,7 +1151,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
     <>
       {!operations ? <header className="orders-head">
         <div><h1>{oc.title}</h1>{orders.length > 0 && <p>{orderCount(orders.length, locale)}{active.length ? ` · ${oc.active(active.length)}` : ""}</p>}</div>
-        {user?.operator && <Link className="btn secondary" href="/operations">{wc.operatorView}<ArrowUpRight size={16} aria-hidden="true" /></Link>}
+        {canReadOperations && <Link className="btn secondary" href="/operations">{wc.operatorView}<ArrowUpRight size={16} aria-hidden="true" /></Link>}
       </header> : <PageHeading
         overline={
           operations ? wc.operatorOver : wc.customerOver
@@ -1234,7 +1269,11 @@ export function OrdersView({ operations }: { operations: boolean }) {
           description={ow.filteredDescription}
         />
       ) : (
-        filtered.map((o) => !operations ? <CustomerOrderCard key={o.id} order={o} locale={locale} pricing={pricing} busy={busy} expanded={expanded.includes(o.id)} onToggle={open => setExpanded(ids => open ? [...new Set([...ids, o.id])] : ids.filter(id => id !== o.id))} run={runOrderAction} confirm={setConfirmation} loadPhoto={order => void loadPhoto(order)} allowanceUsd={allowanceFor(o)} /> : (
+        !operations ? groupOrders(filtered).map((group) => {
+          const card = (o: Order) => <CustomerOrderCard key={o.id} order={o} locale={locale} pricing={pricing} busy={busy} expanded={expanded.includes(o.id)} onToggle={open => setExpanded(ids => open ? [...new Set([...ids, o.id])] : ids.filter(id => id !== o.id))} run={runOrderAction} confirm={setConfirmation} loadPhoto={order => void loadPhoto(order)} allowanceUsd={allowanceFor(o)} />;
+          // One line = the plain card; one checkout with several lines = a group with a section per store and dispatch country.
+          return group.orders.length === 1 ? card(group.orders[0]) : <OrderGroupCard key={group.key} group={group} locale={locale} card={card} />;
+        }) : filtered.map((o) => (
           <details className="surface order-card compact-order" key={o.id} id={o.id} onToggle={event=>{const open=event.currentTarget.open;setExpanded(ids=>open?[...new Set([...ids,o.id])]:ids.filter(id=>id!==o.id))}}>
             <summary className="compact-order-summary">
               <ProductImage product={o.product} decorative locale={state.communication.language} />
@@ -1839,7 +1878,8 @@ export function PricingManager({
       default: "по умолчанию",
       estimateNotice: "Настройки расчёта Atlas не являются предложением перевозчика, склада или платёжного провайдера. Новые значения применяются к новым и обновляемым расчётам; уже оформленные заказы сохраняют исходные условия.",
       fx: "Сум за 1 USD",
-      perKg: "Международная доставка за кг, USD",
+      perKg: "Экспресс-доставка за кг, USD",
+      standardPerKg: "Обычная доставка за кг, USD",
       perKgNote: (usd: string, soum: string) => `В сумах доставка за кг считается по курсу: ${usd} = ${soum}.`,
       service: "Сервисный сбор Atlas",
       buyout: "Комиссия за выкуп",
@@ -1856,7 +1896,8 @@ export function PricingManager({
       baseRate: "общий тариф",
       currencies: "Курсы валют к USD",
       currencyNote: "Курсы задаются вручную и не подключены к онлайн-источнику. Значение USD фиксировано.",
-      perKgCountry: "Доставка за кг",
+      perKgCountry: "Экспресс-доставка за кг",
+      standardPerKgCountry: "Обычная доставка за кг",
       lineFeeCountry: "Общий сбор за позицию",
       newQuotes: "Новые значения используются при создании или обновлении расчёта. Снимки оформленных заказов остаются неизменными.",
       save: "Сохранить тарифы",
@@ -1869,7 +1910,8 @@ export function PricingManager({
       default: "standart",
       estimateNotice: "Atlas hisob sozlamalari tashuvchi, ombor yoki to‘lov provayderining taklifi yoki amaldagi tarifi emas. Yangi qiymatlar yangi va yangilanadigan hisob-kitoblarga qo‘llanadi; rasmiylashtirilgan buyurtmalar o‘zgarmaydi.",
       fx: "1 USD uchun so‘m",
-      perKg: "Xalqaro yetkazib berish, kg uchun USD",
+      perKg: "Ekspress yetkazib berish, kg uchun USD",
+      standardPerKg: "Oddiy yetkazib berish, kg uchun USD",
       perKgNote: (usd: string, soum: string) => `Kg uchun yetkazib berish so‘mda kurs bo‘yicha hisoblanadi: ${usd} = ${soum}.`,
       service: "Atlas xizmat haqi",
       buyout: "Xarid komissiyasi",
@@ -1886,7 +1928,8 @@ export function PricingManager({
       baseRate: "umumiy tarif",
       currencies: "USD ga nisbatan valyuta kurslari",
       currencyNote: "Kurslar qo‘lda kiritiladi va onlayn manbaga ulanmagan. USD qiymati o‘zgarmaydi.",
-      perKgCountry: "Yetkazib berish, kg uchun",
+      perKgCountry: "Ekspress yetkazib berish, kg uchun",
+      standardPerKgCountry: "Oddiy yetkazib berish, kg uchun",
       lineFeeCountry: "Har bir tovar qatori uchun umumiy yig‘im",
       newQuotes: "Yangi qiymatlar yangi yoki yangilanadigan hisob-kitobda ishlatiladi. Rasmiylashtirilgan buyurtma nusxalari o‘zgarmaydi.",
       save: "Tariflarni saqlash",
@@ -1899,7 +1942,8 @@ export function PricingManager({
       default: "default",
       estimateNotice: "Atlas calculation settings are not a carrier, warehouse or payment-provider quote or tariff. New values apply to new or refreshed estimates; existing orders keep their original terms.",
       fx: "UZS per 1 USD",
-      perKg: "International delivery per kg, USD",
+      perKg: "Express delivery per kg, USD",
+      standardPerKg: "Standard delivery per kg, USD",
       perKgNote: (usd: string, soum: string) => `Delivery per kg in soum follows the rate: ${usd} = ${soum}.`,
       service: "Atlas service fee",
       buyout: "Buyout commission",
@@ -1916,7 +1960,8 @@ export function PricingManager({
       baseRate: "global rate",
       currencies: "Currency rates to USD",
       currencyNote: "Rates are entered manually and are not connected to a live market feed. USD is fixed.",
-      perKgCountry: "Delivery per kg",
+      perKgCountry: "Express delivery per kg",
+      standardPerKgCountry: "Standard delivery per kg",
       lineFeeCountry: "General fee per item line",
       newQuotes: "New values are used when a quote is created or refreshed. Existing order snapshots remain unchanged.",
       save: "Save tariffs",
@@ -1942,7 +1987,7 @@ export function PricingManager({
   };
   const updateService = (index: number, patch: Partial<ServiceOffering>) => setDraft((current) => ({ ...current, serviceCatalog: current.serviceCatalog.map((service, serviceIndex) => serviceIndex === index ? { ...service, ...patch } : service) }));
   const addService = () => setDraft((current) => ({ ...current, serviceCatalog: [...current.serviceCatalog, { id: `custom-service-${crypto.randomUUID().slice(0, 8)}`, title: { ru: "Новая услуга", uz: "Yangi xizmat", en: "New service" }, description: { ru: "", uz: "", en: "" }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: false, required: false }] }));
-  const setNumber = (key: "fx" | "perKgUsd" | "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "optionalServices" | "reserve" | "divisor" | "storeShippingFreeFromUsd", raw: string) =>
+  const setNumber = (key: "fx" | "perKgUsd" | "standardPerKgUsd" | "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "optionalServices" | "reserve" | "divisor" | "storeShippingFreeFromUsd", raw: string) =>
     setDraft((current) => ({ ...current, [key]: Number(raw) }));
   const [fxBusy, setFxBusy] = useState(false);
   const fxWords = {
@@ -1953,6 +1998,7 @@ export function PricingManager({
   // A tariff saved before delivery was priced in USD shows its soum rate converted at the current rate.
   const usdOf = (soum: number) => Math.round((soum / draft.fx) * 100) / 100;
   const perKgUsd = draft.perKgUsd ?? usdOf(draft.perKg);
+  const standardPerKgUsd = draft.standardPerKgUsd ?? standardDeliveryPerKgUsd;
   async function save() {
     setSaving(true);
     try {
@@ -1965,6 +2011,7 @@ export function PricingManager({
             fx: draft.fx,
             perKg: Math.max(1, Math.round(perKgUsd * draft.fx)),
             perKgUsd,
+            standardPerKgUsd,
             margin: draft.margin,
             buyoutFee: draft.buyoutFee,
             conversionFee: draft.conversionFee,
@@ -1982,6 +2029,7 @@ export function PricingManager({
             rates: draft.rates,
             countryOverrides: draft.countryOverrides,
             deliveryDays: draft.deliveryDays,
+            standardDeliveryDays: draft.standardDeliveryDays,
             serviceCatalog: draft.serviceCatalog,
           },
         }),
@@ -2043,6 +2091,7 @@ export function PricingManager({
           {[
             ["fx", pricingWords.fx, 1],
             ["perKgUsd", pricingWords.perKg, 0.01],
+            ["standardPerKgUsd", pricingWords.standardPerKg, 0.01],
             ["margin", pricingWords.service, 0.01],
             ["buyoutFee", pricingWords.buyout, 0.01],
             ["conversionFee", pricingWords.conversion, 0.01],
@@ -2061,10 +2110,10 @@ export function PricingManager({
                 min={["margin", "buyoutFee", "conversionFee", "deliveryMargin", "reserve", "optionalServices", "storeShippingFreeFromUsd"].includes(String(key)) ? 0 : Number(step)}
                 max={["margin", "buyoutFee", "conversionFee", "deliveryMargin"].includes(String(key)) ? 100 : key === "reserve" ? 200 : undefined}
                 step={["margin", "buyoutFee", "conversionFee", "deliveryMargin", "reserve"].includes(String(key)) ? 0.1 : Number(step)}
-                value={["margin", "buyoutFee", "conversionFee", "deliveryMargin", "reserve"].includes(String(key)) ? draft[key as "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "reserve"] * 100 : key === "perKgUsd" ? perKgUsd : draft[key as "fx" | "optionalServices" | "divisor" | "storeShippingFreeFromUsd"]}
+                value={["margin", "buyoutFee", "conversionFee", "deliveryMargin", "reserve"].includes(String(key)) ? draft[key as "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "reserve"] * 100 : key === "perKgUsd" ? perKgUsd : key === "standardPerKgUsd" ? standardPerKgUsd : draft[key as "fx" | "optionalServices" | "divisor" | "storeShippingFreeFromUsd"]}
                 onChange={(event) =>
                   setNumber(
-                    key as "fx" | "perKgUsd" | "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "optionalServices" | "reserve" | "divisor" | "storeShippingFreeFromUsd",
+                    key as "fx" | "perKgUsd" | "standardPerKgUsd" | "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "optionalServices" | "reserve" | "divisor" | "storeShippingFreeFromUsd",
                     ["margin", "buyoutFee", "conversionFee", "deliveryMargin", "reserve"].includes(String(key)) ? String(Number(event.target.value) / 100) : event.target.value,
                   )
                 }
@@ -2072,7 +2121,7 @@ export function PricingManager({
             </div>
           ))}
         </div>
-        <p className="micro">{pricingWords.perKgNote(`$${perKgUsd}`, money(Math.round(perKgUsd * draft.fx)))} {pricingWords.lineFeeNote}</p>
+        <p className="micro">{pricingWords.perKgNote(`$${perKgUsd}`, money(Math.round(perKgUsd * draft.fx)))} {pricingWords.perKgNote(`$${standardPerKgUsd}`, money(Math.round(standardPerKgUsd * draft.fx)))} {pricingWords.lineFeeNote}</p>
         {/* Customs estimate parameters: informational, never part of an order sum; empty = the rule checked on lex.uz. */}
         <fieldset className="pricing-fx">
           <legend>{fxWords.customsTitle}</legend>
@@ -2101,13 +2150,14 @@ export function PricingManager({
               ["conversionFee", pricingWords.conversion, "%"],
               ["deliveryMargin", pricingWords.deliveryMargin, "%"],
               ["perKgUsd", pricingWords.perKgCountry, "USD"],
+              ["standardPerKgUsd", pricingWords.standardPerKgCountry, "USD"],
               ["reserve", pricingWords.reserve, "%"],
               ["optionalServices", pricingWords.lineFeeCountry, locale === "en" ? "UZS" : locale === "uz" ? "so‘m" : "сум"],
             ] as const).map(([key, label, unit]) => {
               const values = draft.countryOverrides[selectedCountry];
               // An override saved in soum before USD rates shows converted and is replaced on edit.
               const override = key === "perKgUsd" ? values?.perKgUsd ?? (values?.perKg === undefined ? undefined : usdOf(values.perKg)) : values?.[key];
-              const base = key === "perKgUsd" ? perKgUsd : draft[key];
+              const base = key === "perKgUsd" ? perKgUsd : key === "standardPerKgUsd" ? standardPerKgUsd : draft[key];
               const isRate = unit === "%";
               return <div className="field" key={key}>
                 <label htmlFor={`country-pricing-${key}`}>{label}, {unit}</label>
@@ -2115,7 +2165,7 @@ export function PricingManager({
                   id={`country-pricing-${key}`}
                   type="number"
                   min="0"
-                  step={isRate ? "0.1" : key === "perKgUsd" ? "0.01" : "1"}
+                  step={isRate ? "0.1" : unit === "USD" ? "0.01" : "1"}
                   max={isRate ? (key === "reserve" ? 200 : 100) : undefined}
                   value={override === undefined ? "" : isRate ? override * 100 : override}
                   placeholder={`${isRate ? base * 100 : base} (${pricingWords.baseRate})`}
@@ -2134,34 +2184,38 @@ export function PricingManager({
             })}
           </div>
         </details>
-        {/* Delivery time per region, shown in the home rates table, the example bill and the FAQ. */}
-        <details className="country-pricing delivery-days-pricing">
-          <summary>{locale === "en" ? "Delivery times by country" : locale === "uz" ? "Mamlakatlar bo‘yicha yetkazish muddati" : "Сроки доставки по странам"}</summary>
+        {/* Delivery time per region and speed, shown in the home rates table, the example bill, the FAQ and order details. */}
+        {([
+          ["deliveryDays", siteContent.deliveryDays, locale === "en" ? "Express delivery times by country" : locale === "uz" ? "Mamlakatlar bo‘yicha ekspress yetkazish muddati" : "Сроки экспресс-доставки по странам"],
+          ["standardDeliveryDays", siteContent.standardDeliveryDays, locale === "en" ? "Standard delivery times by country" : locale === "uz" ? "Mamlakatlar bo‘yicha oddiy yetkazish muddati" : "Сроки обычной доставки по странам"],
+        ] as const).map(([field, fallback, title]) => <details className="country-pricing delivery-days-pricing" key={field}>
+          <summary>{title}</summary>
           <p className="micro">{locale === "en" ? "Business days from our warehouse abroad to Uzbekistan, from and to. Empty fields keep the current value." : locale === "uz" ? "Xorijdagi omborimizdan O‘zbekistongacha ish kunlari, dan va gacha. Bo‘sh maydon joriy qiymatni saqlaydi." : "Рабочие дни от нашего склада за рубежом до Узбекистана, от и до. Пустое поле оставляет текущее значение."}</p>
           <div className="pricing-grid">
             {deliveryRegions.map((region) => {
-              const current = draft.deliveryDays?.[region.id] ?? siteContent.deliveryDays[region.id];
+              const current = draft[field]?.[region.id] ?? fallback[region.id];
               const set = (index: 0 | 1, raw: string) => setDraft((value) => {
-                const days = { ...(value.deliveryDays ?? {}) };
-                const pair: [number, number] = [...(days[region.id] ?? siteContent.deliveryDays[region.id] ?? [1, 1])] as [number, number];
+                const days = { ...(value[field] ?? {}) };
+                const pair: [number, number] = [...(days[region.id] ?? fallback[region.id] ?? [1, 1])] as [number, number];
                 const parsed = Math.round(Number(raw));
                 if (!raw || !Number.isFinite(parsed) || parsed < 1) return value;
                 pair[index] = Math.min(120, parsed);
                 if (pair[0] > pair[1]) pair[index === 0 ? 1 : 0] = pair[index];
                 days[region.id] = pair;
-                return { ...value, deliveryDays: days };
+                return { ...value, [field]: days };
               });
+              const id = `${field === "deliveryDays" ? "days" : "std-days"}-${region.id}`;
               return <div className="field" key={region.id}>
-                <label htmlFor={`days-${region.id}-from`}>{homeCopy[locale].tariffs.regions[region.id]}</label>
+                <label htmlFor={`${id}-from`}>{homeCopy[locale].tariffs.regions[region.id]}</label>
                 <span className="days-range">
-                  <input id={`days-${region.id}-from`} type="number" min="1" max="120" step="1" aria-label={locale === "en" ? "from" : locale === "uz" ? "dan" : "от"} value={current?.[0] ?? ""} onChange={(event) => set(0, event.target.value)} />
+                  <input id={`${id}-from`} type="number" min="1" max="120" step="1" aria-label={locale === "en" ? "from" : locale === "uz" ? "dan" : "от"} value={current?.[0] ?? ""} onChange={(event) => set(0, event.target.value)} />
                   <span aria-hidden="true">–</span>
-                  <input id={`days-${region.id}-to`} type="number" min="1" max="120" step="1" aria-label={locale === "en" ? "to" : locale === "uz" ? "gacha" : "до"} value={current?.[1] ?? ""} onChange={(event) => set(1, event.target.value)} />
+                  <input id={`${id}-to`} type="number" min="1" max="120" step="1" aria-label={locale === "en" ? "to" : locale === "uz" ? "gacha" : "до"} value={current?.[1] ?? ""} onChange={(event) => set(1, event.target.value)} />
                 </span>
               </div>;
             })}
           </div>
-        </details>
+        </details>)}
         <section className="warehouse-service-catalog">
           <div className="warehouse-service-catalog-heading"><div><h3>{serviceWords.title}</h3><p className="micro">{serviceWords.intro}</p></div><button type="button" className="btn secondary" disabled={draft.serviceCatalog.length >= 40} onClick={addService}>{serviceWords.add}</button></div>
           {draft.serviceCatalog.some((service) => service.id === "shipping-insurance") && <p className="notice warning">{serviceWords.insurance}</p>}

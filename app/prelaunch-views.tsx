@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "@/components/site-link";
 import { ArrowRight, Check, CircleAlert, FileText, Package, ShieldCheck, Truck, UsersRound, WalletCards } from "lucide-react";
 import { useMarket } from "@/lib/market/store";
+import { hasPermission } from "@/lib/market/access";
 import { money, statuses, type State } from "@/lib/market/domain";
 import { Empty, PageHeading } from "./market-ui";
 
@@ -11,11 +12,12 @@ type OperationsAccount = { id: string; name: string; state: State; revision: num
 
 export function AnalyticsView() {
   const { user, ready } = useMarket();
+  const canReadFinance = hasPermission(user, "finance.read");
   const [accounts, setAccounts] = useState<OperationsAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const load = useCallback(async () => {
-    if (!user?.operator) return;
+    if (!canReadFinance) return;
     setLoading(true);
     try {
       const response = await fetch("/api/operations", { cache: "no-store" });
@@ -24,7 +26,7 @@ export function AnalyticsView() {
       setAccounts(data.accounts); setError(null);
     } catch (nextError) { setError((nextError as Error).message); }
     finally { setLoading(false); }
-  }, [user?.operator]);
+  }, [canReadFinance]);
   useEffect(() => { queueMicrotask(() => void load()); }, [load]);
   const report = useMemo(() => {
     const orders = accounts.flatMap((account) => account.state.orders);
@@ -43,7 +45,7 @@ export function AnalyticsView() {
       messages,
     };
   }, [accounts]);
-  if (ready && !user?.operator) return <Empty title="Доступ только администратору" description="Аналитика содержит сводные данные всех заказов." href="/account" label="Личный кабинет" />;
+  if (ready && !canReadFinance) return <Empty title="Доступ только администратору или роли «Финансы»" description="Аналитика содержит сводные данные всех заказов." href="/account" label="Личный кабинет" />;
   return <>
     <PageHeading overline="ОПЕРАЦИОННЫЙ КОНТРОЛЬ" title="Бизнес в одном экране." description="Заказы, платежи, логистика и готовность процессов."><Link className="btn secondary" href="/operations">Открыть очередь <ArrowRight size={16} /></Link></PageHeading>
     {loading ? <div className="surface loading-state">Собираем показатели…</div> : error ? <Empty title="Отчёт пока недоступен" description={error} href="/analytics" label="Повторить" /> : <>

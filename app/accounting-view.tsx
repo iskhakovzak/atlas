@@ -1,105 +1,136 @@
 'use client';
 
-import {useCallback,useEffect,useState,type FormEvent} from 'react';
-import {Download,Plus} from 'lucide-react';
+import {useCallback,useEffect,useRef,useState,type KeyboardEvent} from 'react';
+import {Download,PiggyBank,Receipt,TrendingUp,Wallet} from 'lucide-react';
 import {toast} from 'sonner';
-import {formatSum} from '@/lib/market/home-copy';
-import type {LedgerEntry,LedgerKind,MonthSummary,OrderFinance} from '@/lib/market/finance';
+import {useMarket} from '@/lib/market/store';
+import {effectiveFx} from '@/lib/market/domain';
+import {hasPermission} from '@/lib/market/access';
+import {sparkline,type MonthSummary,type PeriodTotal} from '@/lib/market/finance';
+import {Alert,Kpi,load,money,Status,type AccountingContext,type MonthBooks,type YearBooks} from './accounting-shared';
+import {monthNamesShort,nextMonth,previousMonth,todayTashkent} from './accounting-helpers';
+import {AccountingOverview} from './accounting-overview';
+import {AccountingLedger} from './accounting-ledger';
+import {AccountingOrders} from './accounting-orders';
+import {AccountingClosing} from './accounting-closing';
+import {AccountingStatement} from './accounting-statement';
+import {AccountingTaxes} from './accounting-taxes';
+import {AccountingExports} from './accounting-exports';
 
-type Kinds=Record<LedgerKind,{direction:'in'|'out';group:'transit'|'expense'|'income'|'tax';ru:string}>;
-type Books={month:string;summary:MonthSummary;entries:LedgerEntry[];orders:OrderFinance[];settings:{profitTaxRate:number};kinds:Kinds};
-const money=(value:number)=>formatSum(value,'ru');
-const groups:[string,string][]=[['expense','Расходы'],['income','Доходы'],['transit','Транзит (товар, доставка магазина, пошлины, возвраты)'],['tax','Налог']];
-const today=()=>new Date(Date.now()+5*3600_000).toISOString().slice(0,10);
-const post=(body:unknown)=>fetch('/api/finance',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(body)}).then(async response=>{const data=await response.json().catch(()=>({})) as {error?:string};if(!response.ok)throw Error(data.error??'Не удалось сохранить.');return data});
+type Tab='overview'|'ledger'|'orders'|'closing'|'statement'|'taxes'|'exports'|'year';
+const tabs:[Tab,string][]=[['overview','Обзор'],['ledger','Журнал'],['orders','Заказы'],['closing','Закрытие'],['statement','Выписка'],['taxes','Налоги'],['exports','Выгрузки'],['year','Год']];
+const writeTabs:Tab[]=['statement'];
 
 /**
- * The books for the operator: a month's Atlas income, expenses, profit and profit tax (lib/market/finance.ts),
- * the money ledger with additions and voids, and CSV exports for the accountant.
+ * The books for the operator (lib/market/finance.ts), split into tabs: overview with sparklines, positions and the
+ * reconcile; the ledger with fixes and voids; the month's orders with their margin and a printable invoice; the
+ * closing checklist; a bank statement import; the tax calendar; exports; the year table. Editing needs finance.write
+ * (lib/market/access.ts); everyone else reads. Payments on the site are simulated: "paid" is a mark in Atlas.
  */
 export function AccountingView(){
- const [month,setMonth]=useState(()=>today().slice(0,7));
- const [books,setBooks]=useState<Books|null>(null),[error,setError]=useState('');
+ const {pricing,user}=useMarket();
+ const usdRate=effectiveFx(pricing);
+ const canWrite=hasPermission(user,'finance.write'),isAdmin=!!user?.operator,canBackup=hasPermission(user,'system.manage');
+ const [month,setMonth]=useState(()=>todayTashkent().slice(0,7));
+ const [tab,setTab]=useState<Tab>('overview');
+ const [books,setBooks]=useState<MonthBooks|null>(null),[yearBooks,setYearBooks]=useState<YearBooks|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(true);
  const [busy,setBusy]=useState(false);
- const load=useCallback(async(selected:string)=>{
-  try{const response=await fetch('/api/finance?month='+selected,{credentials:'same-origin',cache:'no-store'});const data=await response.json() as Books&{error?:string};if(!response.ok)throw Error(data.error??'Не удалось загрузить бухгалтерию.');setBooks(data);setError('')}
-  catch(failure){setError((failure as Error).message)}
- },[]);
- useEffect(()=>{queueMicrotask(()=>void load(month))},[month,load]);
- // New ledger entry: the amount is in soum; a foreign amount is kept as a note of what was actually paid.
- const [draft,setDraft]=useState({kind:'carrier' as LedgerKind,amountUzs:'',originalAmount:'',originalCurrency:'USD',occurredOn:today(),orderId:'',counterparty:'',note:''});
- async function add(event:FormEvent){
-  event.preventDefault();if(busy)return;setBusy(true);
+ const [ledgerOrder,setLedgerOrder]=useState({id:'',key:0});
+ const requested=useRef(0);
+ const reload=useCallback(async()=>{
+  const ticket=++requested.current;
+  setLoading(true);
   try{
-   await post({kind:'entry',value:{kind:draft.kind,amountUzs:Math.round(Number(draft.amountUzs)),occurredOn:draft.occurredOn,
-    ...(draft.originalAmount?{originalAmount:Number(draft.originalAmount),originalCurrency:draft.originalCurrency}:{}),
-    ...(draft.orderId.trim()?{orderId:draft.orderId.trim()}:{}),...(draft.counterparty.trim()?{counterparty:draft.counterparty.trim()}:{}),...(draft.note.trim()?{note:draft.note.trim()}:{})}});
-   toast.success('Запись добавлена.');setDraft(value=>({...value,amountUzs:'',originalAmount:'',orderId:'',note:''}));await load(draft.occurredOn.slice(0,7)===month?month:month);
-  }catch(failure){toast.error((failure as Error).message)}finally{setBusy(false)}
- }
- async function voidEntry(entry:LedgerEntry){
-  const reason=window.prompt('Почему аннулировать запись? Она останется в журнале с пометкой.');if(!reason||reason.trim().length<3)return;
-  try{await post({kind:'void',id:entry.id,reason:reason.trim()});toast.success('Запись аннулирована.');await load(month)}catch(failure){toast.error((failure as Error).message)}
- }
- const [rate,setRate]=useState('');
- async function saveRate(){
-  const value=Number(rate.replace(',','.'))/100;if(!Number.isFinite(value)||value<0||value>0.5){toast.error('Ставка от 0 до 50%.');return}
-  try{await post({kind:'settings',value:{profitTaxRate:value}});toast.success('Ставка сохранена.');setRate('');await load(month)}catch(failure){toast.error((failure as Error).message)}
- }
- const [from,setFrom]=useState(()=>today().slice(0,4)+'-01'),[to,setTo]=useState(()=>today().slice(0,7));
- const exportUrl=(kind:string)=>`/api/finance?export=${kind}&from=${from}&to=${to}`;
- if(!books)return <section className="accounting" aria-labelledby="accounting-title"><h3 id="accounting-title">Бухгалтерия</h3><p className="micro" role="status">{error||'Загружаем бухгалтерию…'}</p></section>;
- const s=books.summary,kinds=books.kinds;
- return <section className="accounting" aria-labelledby="accounting-title">
-  <div className="accounting-head">
-   <div><h3 id="accounting-title">Бухгалтерия</h3><p className="micro">Atlas работает как агент: деньги за товар, доставку магазина и пошлины — транзит. Доход Atlas — комиссия, международная доставка, курсовая наценка и услуги по оплаченным заказам месяца плюс прочие доходы. Расходы — записи журнала. Ставку налога на прибыль сверьте с бухгалтером.</p></div>
-   <label className="field accounting-month"><span>Месяц</span><input type="month" value={month} onChange={event=>event.target.value&&setMonth(event.target.value)}/></label>
-  </div>
-  {error&&<p className="notice error" role="alert">{error}</p>}
-  <div className="accounting-cards">
-   <article><span>Доход Atlas</span><strong>{money(s.income.total)}</strong><small>Комиссия {money(s.income.commission)}, доставка {money(s.income.delivery)}, курс {money(s.income.fxGain)}, услуги {money(s.income.services)}, прочее {money(s.income.other)}</small></article>
-   <article><span>Расходы</span><strong>{money(s.expenses.total)}</strong><small>{Object.entries(s.expenses).filter(([key])=>key!=='total').map(([key,value])=>`${kinds[key as LedgerKind]?.ru}: ${money(value as number)}`).join('; ')||'Записей о расходах нет'}</small></article>
-   <article className={s.profit<0?'loss':undefined}><span>Прибыль до налога</span><strong>{money(s.profit)}</strong><small>{s.orders} оплаченных заказов</small></article>
-   <article><span>Налог на прибыль, {Math.round(s.taxRate*1000)/10}%</span><strong>{money(s.tax)}</strong><small>Уплачено за месяц: {money(s.taxPaid)}</small></article>
-   <article><span>Чистая прибыль</span><strong>{money(s.net)}</strong><small>Транзит: за товары получено {money(s.transit.goodsCharged)}, приход {money(s.transit.in)}, расход {money(s.transit.out)}</small></article>
-  </div>
-  <div className="accounting-rate"><label className="field"><span>Ставка налога на прибыль, %</span><input inputMode="decimal" placeholder={String(Math.round(books.settings.profitTaxRate*1000)/10)} value={rate} onChange={event=>setRate(event.target.value)}/></label><button type="button" className="btn secondary" disabled={!rate} onClick={()=>void saveRate()}>Сохранить ставку</button></div>
-  <form className="accounting-form" onSubmit={add}>
-   <h4>Добавить запись</h4>
-   <div className="accounting-grid">
-    <label className="field"><span>Вид</span><select value={draft.kind} onChange={event=>setDraft({...draft,kind:event.target.value as LedgerKind})}>{groups.map(([group,label])=><optgroup key={group} label={label}>{(Object.keys(kinds) as LedgerKind[]).filter(kind=>kinds[kind].group===group).map(kind=><option key={kind} value={kind}>{kinds[kind].ru}</option>)}</optgroup>)}</select></label>
-    <label className="field"><span>Дата</span><input type="date" required value={draft.occurredOn} onChange={event=>setDraft({...draft,occurredOn:event.target.value})}/></label>
-    <label className="field"><span>Сумма, сум</span><input inputMode="numeric" required value={draft.amountUzs} onChange={event=>setDraft({...draft,amountUzs:event.target.value.replace(/\D/g,'')})}/></label>
-    <label className="field"><span>Сумма в валюте (если была)</span><span className="accounting-currency"><input inputMode="decimal" value={draft.originalAmount} onChange={event=>setDraft({...draft,originalAmount:event.target.value.replace(',','.').replace(/[^\d.]/g,'')})}/><select aria-label="Валюта" value={draft.originalCurrency} onChange={event=>setDraft({...draft,originalCurrency:event.target.value})}>{['USD','EUR','GBP','CNY','RUB'].map(code=><option key={code}>{code}</option>)}</select></span></label>
-    <label className="field"><span>Заказ</span><input placeholder="AT-…" value={draft.orderId} onChange={event=>setDraft({...draft,orderId:event.target.value})}/></label>
-    <label className="field"><span>Контрагент</span><input value={draft.counterparty} onChange={event=>setDraft({...draft,counterparty:event.target.value})}/></label>
-    <label className="field accounting-note"><span>Комментарий</span><input value={draft.note} onChange={event=>setDraft({...draft,note:event.target.value})}/></label>
+   const year=Number(month.slice(0,4));
+   // &check=1 adds the engine's reconcile report (lib/market/finance-api.md); older engines ignore the flag.
+   const [nextBooks,nextYear]=await Promise.all([load<MonthBooks>('month='+month+'&check=1'),load<YearBooks>('year='+year).catch(()=>null)]);
+   if(ticket!==requested.current)return;
+   setBooks(nextBooks);setYearBooks(nextYear);setError('');
+  }catch(failure){if(ticket===requested.current)setError((failure as Error).message)}
+  finally{if(ticket===requested.current)setLoading(false)}
+ },[month]);
+ useEffect(()=>{queueMicrotask(()=>void reload())},[reload]);
+ const run=useCallback(async(work:()=>Promise<void>,done?:string)=>{
+  if(busy)return false;
+  setBusy(true);
+  try{await work();if(done)toast.success(done);await reload();return true}
+  catch(failure){toast.error((failure as Error).message);return false}
+  finally{setBusy(false)}
+ },[busy,reload]);
+
+ const visibleTabs=tabs.filter(([id])=>canWrite||!writeTabs.includes(id));
+ const tabRefs=useRef<Record<string,HTMLButtonElement|null>>({});
+ const onTabKey=(event:KeyboardEvent<HTMLDivElement>)=>{
+  const index=visibleTabs.findIndex(([id])=>id===tab);if(index<0)return;
+  const next=event.key==='ArrowRight'?(index+1)%visibleTabs.length:event.key==='ArrowLeft'?(index-1+visibleTabs.length)%visibleTabs.length:event.key==='Home'?0:event.key==='End'?visibleTabs.length-1:-1;
+  if(next<0)return;event.preventDefault();const id=visibleTabs[next][0];setTab(id);tabRefs.current[id]?.focus();
+ };
+ const openTab=(next:Tab)=>{setTab(next);document.getElementById('acc-tabs')?.scrollIntoView({behavior:'smooth',block:'start'})};
+ const showInLedger=(orderId:string)=>{setLedgerOrder(current=>({id:orderId,key:current.key+1}));openTab('ledger')};
+ const thisMonth=todayTashkent().slice(0,7);
+
+ const head=<div className="accounting-head">
+  <div><h3 id="accounting-title">Бухгалтерия</h3><p className="micro">Atlas работает как агент: деньги за товар, доставку магазина и пошлины — транзит. Доход Atlas — комиссия, международная доставка, курсовая наценка и услуги по оплаченным заказам месяца плюс прочие доходы; расходы — записи журнала. Оплаты на сайте симулируются: «оплачен» — отметка в Atlas, не поступление денег. Ставку налога и схему сверьте с бухгалтером.</p></div>
+  {!canWrite&&<span className="acc-badge" title="Право finance.write не выдано">только чтение</span>}
+ </div>;
+ const monthNav=<div className="acc-month-nav" role="group" aria-label="Месяц отчёта">
+  <button type="button" className="btn secondary acc-compact" aria-label="Предыдущий месяц" onClick={()=>setMonth(previousMonth(month))}>‹</button>
+  <label className="field accounting-month"><span className="sr-only">Месяц</span><input type="month" aria-label="Месяц отчёта" value={month} max={nextMonth(thisMonth)} onChange={event=>/^\d{4}-\d{2}$/.test(event.target.value)&&setMonth(event.target.value)}/></label>
+  <button type="button" className="btn secondary acc-compact" aria-label="Следующий месяц" disabled={month>=nextMonth(thisMonth)} onClick={()=>setMonth(nextMonth(month))}>›</button>
+ </div>;
+
+ if(!books)return <section className="accounting" aria-labelledby="accounting-title">{head}<div className="acc-nav">{monthNav}</div>{error?<Alert>{error}</Alert>:<Status>Загружаем бухгалтерию…</Status>}</section>;
+ // The engine's fx.usd is the same tariff rate the server used for the books; the client tariff is the fallback.
+ const ctx:AccountingContext={books,yearBooks,month,setMonth,usdRate:books.fx?.usd??usdRate,canWrite,isAdmin,canBackup,busy,run,reload};
+
+ return <section className="accounting" aria-labelledby="accounting-title" aria-busy={loading||busy}>
+  {head}
+  {error&&<Alert>{error}</Alert>}
+  {loading&&!error&&<Status>Обновляем данные…</Status>}
+  <div className="acc-nav">
+   <div id="acc-tabs" className="acc-tabs" role="tablist" aria-label="Разделы бухгалтерии" onKeyDown={onTabKey}>
+    {visibleTabs.map(([id,label])=><button key={id} ref={element=>{tabRefs.current[id]=element}} type="button" role="tab" id={`acc-tab-${id}`} aria-selected={tab===id} aria-controls={`acc-panel-${id}`} tabIndex={tab===id?0:-1} onClick={()=>setTab(id)}>{label}</button>)}
    </div>
-   <button className="btn primary" disabled={busy||!draft.amountUzs}><Plus size={16} aria-hidden="true"/>Добавить</button>
-  </form>
-  <div className="accounting-ledger">
-   <h4>Журнал за {books.month}</h4>
-   {books.entries.length?<table className="accounting-table"><thead><tr><th scope="col">Дата</th><th scope="col">Вид</th><th scope="col">Сумма</th><th scope="col">Заказ, контрагент</th><th scope="col"><span className="sr-only">Действие</span></th></tr></thead>
-    <tbody>{books.entries.map(entry=><tr key={entry.id} className={entry.voidedAt?'voided':undefined}>
-     <td>{entry.occurredOn}</td>
-     <td>{kinds[entry.kind]?.ru}{entry.note&&<small>{entry.note}</small>}{entry.voidedAt&&<small>Аннулировано: {entry.voidReason}</small>}</td>
-     <td className={kinds[entry.kind]?.direction==='in'?'in':'out'}>{kinds[entry.kind]?.direction==='in'?'+':'−'}{money(entry.amountUzs)}{entry.originalAmount&&<small>{entry.originalAmount} {entry.originalCurrency}</small>}</td>
-     <td>{[entry.orderId,entry.counterparty].filter(Boolean).join(', ')||'—'}</td>
-     <td>{!entry.voidedAt&&<button type="button" className="text-button" onClick={()=>void voidEntry(entry)}>Аннулировать</button>}</td>
-    </tr>)}</tbody></table>:<p className="micro">Записей за этот месяц нет.</p>}
+   {monthNav}
   </div>
-  <div className="accounting-export">
-   <h4>Выгрузка для бухгалтера</h4>
-   <div className="accounting-grid">
-    <label className="field"><span>С месяца</span><input type="month" value={from} onChange={event=>event.target.value&&setFrom(event.target.value)}/></label>
-    <label className="field"><span>По месяц</span><input type="month" value={to} onChange={event=>event.target.value&&setTo(event.target.value)}/></label>
-   </div>
-   <div className="accounting-downloads">
-    <a className="btn secondary" href={exportUrl('summary')}><Download size={16} aria-hidden="true"/>Сводка по месяцам</a>
-    <a className="btn secondary" href={exportUrl('orders')}><Download size={16} aria-hidden="true"/>Заказы</a>
-    <a className="btn secondary" href={exportUrl('ledger')}><Download size={16} aria-hidden="true"/>Журнал операций</a>
-   </div>
-   <p className="micro">CSV с разделителем «;» открывается в Excel без настроек. Суммы в сумах.</p>
+  <div id={`acc-panel-${tab}`} role="tabpanel" aria-labelledby={`acc-tab-${tab}`} className="acc-panel">
+   {tab==='overview'&&<AccountingOverview ctx={ctx} onOpenTab={openTab}/>}
+   {tab==='ledger'&&<AccountingLedger key={ledgerOrder.key} ctx={ctx} initialOrderId={ledgerOrder.id}/>}
+   {tab==='orders'&&<AccountingOrders ctx={ctx} onShowInLedger={showInLedger}/>}
+   {tab==='closing'&&<AccountingClosing ctx={ctx}/>}
+   {tab==='statement'&&canWrite&&<AccountingStatement ctx={ctx}/>}
+   {tab==='taxes'&&<AccountingTaxes ctx={ctx}/>}
+   {tab==='exports'&&<AccountingExports ctx={ctx}/>}
+   {tab==='year'&&(yearBooks?<YearView data={yearBooks}/>:<Status>Годовые данные загружаются…</Status>)}
   </div>
  </section>;
+}
+
+function YearView({data}:{data:YearBooks}){
+ const s=data.summary;
+ const incomeLine=sparkline(s.months.map(m=>m.income.total)),profitLine=sparkline(s.months.map(m=>m.profit));
+ const describe=(label:string,values:number[])=>`${label} по месяцам ${s.year}: `+values.map((value,index)=>`${monthNamesShort[index]} ${money(value)}`).join(', ');
+ const row=(label:string,p:MonthSummary|PeriodTotal,className?:string,key?:string)=><tr key={key??label} className={className}><th scope="row">{label}</th><td className="num">{p.orders}</td><td className="num">{money(p.income.commission)}</td><td className="num">{money(p.income.delivery)}</td><td className="num">{money(p.income.fxGain)}</td><td className="num">{money(p.income.services)}</td><td className="num">{money(p.income.other)}</td><td className="num"><b>{money(p.income.total)}</b></td><td className="num">{money(p.expenses.total)}</td><td className={p.profit<0?'num loss':'num'}><b>{money(p.profit)}</b></td><td className="num">{money(p.tax)}</td><td className="num"><b>{money(p.net)}</b></td><td className="num">{money(p.taxPaid)}</td></tr>;
+ return <div className="acc-tab-body acc-year">
+  <div className="accounting-cards">
+   <Kpi icon={Wallet} label={`Доход Atlas за ${s.year}`} value={money(s.total.income.total)} note={`${s.total.orders} оплаченных заказов`}/>
+   <Kpi icon={Receipt} label="Расходы" value={money(s.total.expenses.total)} note="по записям журнала"/>
+   <Kpi icon={TrendingUp} label="Прибыль до налога" value={money(s.total.profit)} loss={s.total.profit<0} note={`налог ${Math.round(s.taxRate*1000)/10} % — ориентир: ${money(s.total.tax)}`}/>
+   <Kpi icon={PiggyBank} label="Чистая прибыль" value={money(s.total.net)} note={`уплачено по отметкам: ${money(s.total.taxPaid)}`}/>
+  </div>
+  <figure className="acc-spark acc-spark-year">
+   <svg viewBox="0 0 320 64" role="img" aria-label={describe('Доход',s.months.map(m=>m.income.total))+'. '+describe('Прибыль',s.months.map(m=>m.profit))} preserveAspectRatio="none">
+    {incomeLine.area&&<path className="acc-spark-area" d={incomeLine.area}/>}
+    {incomeLine.path&&<path className="acc-spark-income" d={incomeLine.path}/>}
+    {profitLine.path&&<path className="acc-spark-profit" d={profitLine.path}/>}
+   </svg>
+   <figcaption><span className="acc-legend income">Доход</span><span className="acc-legend profit">Прибыль до налога</span><span>{monthNamesShort[0]} – {monthNamesShort[11]} {s.year}</span></figcaption>
+  </figure>
+  <p className="micro">Налог на прибыль в Узбекистане отчитывается поквартально; итоги кварталов здесь — ориентир по ставке из настроек, не расчёт декларации. Сверьте с бухгалтером.</p>
+  <div className="acc-scroll"><table className="accounting-table acc-table acc-year-table">
+   <thead><tr><th scope="col">Период</th><th scope="col">Заказы</th><th scope="col">Комиссия</th><th scope="col">Доставка</th><th scope="col">Курс</th><th scope="col">Услуги</th><th scope="col">Прочее</th><th scope="col">Доход</th><th scope="col">Расходы</th><th scope="col">Прибыль</th><th scope="col">Налог</th><th scope="col">Чистая</th><th scope="col">Налог уплачен</th></tr></thead>
+   <tbody>{s.quarters.flatMap((quarter,index)=>[...s.months.slice(index*3,index*3+3).map(m=>row(`${monthNamesShort[Number(m.month.slice(5))-1]} ${m.month.slice(0,4)}`,m,undefined,m.month)),row(quarter.label,quarter,'quarter')])}{row(s.total.label,s.total,'total')}</tbody>
+  </table></div>
+  <div className="accounting-downloads"><a className="btn secondary" href={`/api/finance?export=year&year=${s.year}`} download><Download size={16} aria-hidden="true"/>Год по месяцам (CSV)</a></div>
+ </div>;
 }

@@ -5,11 +5,30 @@ import {defaultPolicy,policySchema,type Policy} from './policy';
 import {cbuUsdUrl,fxRefreshDue,parseCbuRate,withCbuRate} from './fx';
 import {orderFinance} from './finance';
 import {apiErrorMessage,requestLocale,serverError} from './i18n';
+import {emailVerifiedSignIn,hasPermission,resolveAccess,type Permission,type StaffAccess,type StaffRole,type StaffStatus} from './access';
+export type {Permission,StaffAccess,StaffRole,StaffStatus};
 export function database(){if(!env.DB)throw Error('Серверное хранилище пока недоступно.');return env.DB}
 export function deferBackground(task:Promise<unknown>,label:string){waitUntil(task.catch(error=>console.error(label,error)))}
 export async function identity(){const user=await currentUser();if(!user)throw new HttpError(401, 'err_1');return user}
 // Only a verified email sign-in (email code or Google) carries an email, so phone/Telegram users can never match.
 export function operator(email:string){return !!email&&!!env.ATLAS_OPERATOR_EMAIL&&email.toLowerCase()===env.ATLAS_OPERATOR_EMAIL.toLowerCase()}
+/**
+ * Access of the signed-in user: ATLAS_OPERATOR_EMAIL is always admin; otherwise an `active` row of
+ * market_staff_directory with the same email, and only when the sign-in method verified that email
+ * (email code, Google, Apple). Before migration 0005 the table may be missing: then staff get nothing.
+ */
+export async function accessFor(user:{email:string;method?:string}):Promise<StaffAccess>{
+ const operatorEmail=env.ATLAS_OPERATOR_EMAIL??null;
+ const direct=resolveAccess({email:user.email,method:user.method,operatorEmail});
+ if(direct.operator||!emailVerifiedSignIn(user))return direct;
+ let staff:{role:string;status:string}|null=null;
+ try{staff=await database().prepare('SELECT role,status FROM market_staff_directory WHERE email=?').bind(user.email.trim().toLowerCase()).first<{role:string;status:string}>()}catch(error){console.error('Staff directory read failed',error)}
+ return resolveAccess({email:user.email,method:user.method,operatorEmail,staff});
+}
+/** 403 `err_50` unless the resolved access holds the permission (admin holds all). */
+export function assertPermission(access:StaffAccess,permission:Permission){if(!hasPermission(access,permission))throw new HttpError(403, 'err_50');return access}
+/** Resolves the user's access and requires one permission; returns the access for further checks. */
+export async function requirePermission(user:{email:string;method?:string},permission:Permission){return assertPermission(await accessFor(user),permission)}
 export class HttpError extends Error{constructor(public status:number,message:string){super(message)}}
 export function sameOrigin(request:Request){const origin=request.headers.get('origin');if(!origin||origin!==new URL(request.url).origin)throw new HttpError(403, 'err_2')}
 /** Counts one use of `name` in a fixed window; past `max`, refuses with 429 and the given error code. */
@@ -86,6 +105,8 @@ export async function syncOperationalProjection(id:string,state:State,now=Date.n
  if(orders.length)try{
   await db.batch(orders.map(order=>{const f=orderFinance(order,id);return db.prepare('INSERT INTO market_order_finance (order_id,customer_id,status,created_at,paid_at,month,goods,store_shipping,reserve,payable,commission,delivery,fx_gain,services,revenue,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(order_id) DO UPDATE SET customer_id=excluded.customer_id,status=excluded.status,paid_at=excluded.paid_at,month=excluded.month,goods=excluded.goods,store_shipping=excluded.store_shipping,reserve=excluded.reserve,payable=excluded.payable,commission=excluded.commission,delivery=excluded.delivery,fx_gain=excluded.fx_gain,services=excluded.services,revenue=excluded.revenue,updated_at=excluded.updated_at WHERE market_order_finance.customer_id=excluded.customer_id').bind(f.orderId,f.customerId,f.status,f.createdAt,f.paidAt??null,f.month??null,f.goods,f.storeShipping,f.reserve,f.payable,f.commission,f.delivery,f.fxGain,f.services,f.revenue,now)}));
  }catch(error){console.error('Order finance projection failed',error)}
+ // Auto ledger entries from order events (lib/market/finance-auto.ts): idempotent, manual rows untouched. Loaded lazily to avoid an import cycle.
+ if(orders.length)try{const {syncAutoLedger}=await import('./finance-server');await syncAutoLedger(id,orders,state.entries,now)}catch(error){console.error('Auto ledger sync failed',error)}
 }
 
 export async function rebuildOperationalProjection(){
@@ -140,8 +161,6 @@ export async function savePolicy(next:Policy,userId:string){await database().pre
 export async function operatorAccounts(){const rows=await database().prepare('SELECT user_id,name,state,revision,updated_at FROM market_accounts ORDER BY updated_at DESC LIMIT 200').all<{user_id:string;name:string;state:string;revision:number;updated_at:number}>();return rows.results.map(row=>({id:row.user_id,name:row.name,state:parseState(row.state),revision:row.revision,updatedAt:row.updated_at}))}
 export async function storedAccount(id:string){const row=await database().prepare('SELECT user_id,name,state,revision,updated_at FROM market_accounts WHERE user_id=?').bind(id).first<{user_id:string;name:string;state:string;revision:number;updated_at:number}>();if(!row)throw new HttpError(404, 'err_6');return {id:row.user_id,name:row.name,state:parseState(row.state),revision:row.revision,updatedAt:row.updated_at}}
 
-export type StaffRole='support'|'procurement'|'warehouse'|'finance'|'admin';
-export type StaffStatus='invited'|'active'|'disabled';
 export type StaffMember={id:string;email:string;displayName:string;role:StaffRole;status:StaffStatus;createdAt:number;updatedAt:number};
 export type AuditEvent={id:string;actorId:string;actorEmail:string;action:string;entityType:string;entityId?:string;details?:string;createdAt:number};
 
