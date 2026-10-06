@@ -1,9 +1,9 @@
 "use client";
 import { capitalizeFirst, capitalizeWords } from "@/lib/market/text-case";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "@/components/site-link";
-import { ArrowRight, ArrowUpRight, BadgeCheck, Check, ClipboardPaste, Clock3, Info, Loader2, MessageSquare, Minus, Plus, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ClipboardPaste, Clock3, Heart, Info, Loader2, MessageSquare, Minus, Plus, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
 import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, customsHelpChosen, inCheckout, isPostalCode, maxLineQuantity, parcelServiceUnits, storeDiscount, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, withCustomsHelpFor, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
@@ -23,6 +23,14 @@ import { UzPhoneInput } from "./phone-input";
 import { toast } from "sonner";
 import { usePendingCartAdd } from "./pending-cart-add";
 import { pendingCartFreshMs } from "@/lib/market/link-order-draft";
+import { catalogUrlKey } from "@/lib/market/catalog-query";
+
+/** Favourites and removal in the cart: saving keeps the line; "save for later" saves and then removes it. */
+const keepCopy = {
+  ru: { save: "В избранное", saved: "В избранном", later: "Отложить", laterLabel: "Отложить в избранное", laterDone: "Отложено в избранное", open: "Открыть избранное", removeVariant: "Удалить вариант", removeAll: (n: number) => `Удалить все (${n})`, variants: "Варианты этого товара" },
+  uz: { save: "Saralanganlarga", saved: "Saralanganlarda", later: "Qoldirish", laterLabel: "Saralanganlarga qoldirish", laterDone: "Saralanganlarga qoldirildi", open: "Saralanganlarni ochish", removeVariant: "Variantni o‘chirish", removeAll: (n: number) => `Hammasini o‘chirish (${n})`, variants: "Shu tovar variantlari" },
+  en: { save: "Save", saved: "Saved", later: "Later", laterLabel: "Save for later", laterDone: "Moved to favourites", open: "Open favourites", removeVariant: "Remove option", removeAll: (n: number) => `Remove all (${n})`, variants: "Options of this product" },
+};
 import { useStickyFit } from "./sticky-fit";
 import { CheckoutChecklist, CheckoutReviewTable, productGroups, shownVariant, storeName } from "./checkout-review";
 import { cartSelectCopy } from "@/lib/market/cart-select-copy";
@@ -118,7 +126,19 @@ function CheckoutSteps({ current, c }: { current: number; c: CartCopy }) {
 }
 
 export function CartView() {
-  const { state, act, lastActionError, ready, error, user, pricing } = useMarket();
+  const { state, act, lastActionError, ready, error, user, pricing, catalogProducts, loadCatalog } = useMarket();
+  const [favoriteBusy, setFavoriteBusy] = useState("");
+  // Catalog products by their store page, built once per catalog, so each line finds its product in one lookup.
+  const catalogByUrl = useMemo(() => new Map(catalogProducts.flatMap((product) => product.sourceUrl ? [[catalogUrlKey(product.sourceUrl), product] as const] : [])), [catalogProducts]);
+  // Favourites hold catalog products: a cart line can be saved when it is a product from the Atlas catalog.
+  // Only lines with a store page can be catalog products; the catalog loads once the cart is on screen, never before it.
+  const needsCatalog = ready && state.cart.some((line) => line.product.sourceUrl);
+  useEffect(() => {
+    if (!needsCatalog) return;
+    if ("requestIdleCallback" in window) { const handle = window.requestIdleCallback(() => void loadCatalog(), { timeout: 2000 }); return () => window.cancelIdleCallback(handle); }
+    const timer = setTimeout(() => void loadCatalog(), 300);
+    return () => clearTimeout(timer);
+  }, [needsCatalog, loadCatalog]);
   const [useBalance, setUseBalance] = useState(false);
   const [consent, setConsent] = useState(false);
   const [consentError, setConsentError] = useState(false);
@@ -229,7 +249,6 @@ export function CartView() {
   const speedDays = (country: string) => { const range = daysRangeFor(pricing, [country], speed); return range ? deliverySpeedCopy[locale].days(range[0], range[1]) : ""; };
   // Store orders whose delivery price is unknown: a separate hold up to the threshold, free above it.
   const reserves = storeShippingReserves(lines, pricing);
-  const freeFrom = usd(pricing.storeShippingFreeFromUsd ?? 50, locale);
   // One block per store parcel: one store shipping from one country (a second dispatch country is a second block).
   const parcels = state.cart.reduce<{ key: string; store: string; title: string; country: string; origin: string; items: CartItem[] }[]>((groups, item) => {
     const key = storeParcelKey(item);
@@ -301,10 +320,50 @@ export function CartView() {
     return () => window.clearTimeout(fallback);
   }, [placedKey, state.orders]);
 
-  function renderItem(item: CartItem) {
-    const meta = [shownVariant(item.variant), countryLabel(countryName(item.product), locale)].filter(Boolean).join(" · ");
+  const kc = keepCopy[locale];
+  const catalogMatch = (item: CartItem) => item.product.sourceUrl ? catalogByUrl.get(catalogUrlKey(item.product.sourceUrl)) : undefined;
+  async function toggleFavorite(id: string) {
+    if (favoriteBusy) return false;
+    setFavoriteBusy(id);
+    try { return await act({ type: "favorite", id }); } finally { setFavoriteBusy(""); }
+  }
+  /** Saved, then every given line leaves the cart in one request. */
+  async function saveForLater(lines: CartItem[], id: string) {
+    if (!state.favorites.includes(id) && !await toggleFavorite(id)) return;
+    const ids = lines.map((line) => line.id);
+    if (await act({ type: "cart-remove", id: ids[0], ids: ids.length > 1 ? ids : undefined })) toast.success(kc.laterDone, { action: { label: kc.open, onClick: () => window.location.assign("/favorites") } });
+  }
+  /** The heart (keeps the line) and "save for later" (saves, then removes), for a catalog product only. */
+  function keepActions(lines: CartItem[]) {
+    const match = catalogMatch(lines[0]);
+    if (!match) return null;
+    const saved = state.favorites.includes(match.id);
+    return <>
+      <button type="button" className={"basket-fav" + (saved ? " saved" : "")} aria-pressed={saved} aria-label={kc.save} title={saved ? kc.saved : kc.save} disabled={Boolean(favoriteBusy)} aria-busy={favoriteBusy === match.id || undefined} onClick={() => void toggleFavorite(match.id)}><Heart size={18} aria-hidden="true" /></button>
+      <button type="button" className="basket-later" aria-label={kc.laterLabel} title={kc.laterLabel} disabled={Boolean(favoriteBusy)} onClick={() => void saveForLater(lines, match.id)}><Bookmark size={16} aria-hidden="true" /><span>{kc.later}</span></button>
+    </>;
+  }
+  /** What the last check with the store found: a new price (already in the total) or something to fix. */
+  function itemNotes(item: CartItem) {
     const change = item.priceChange, issue = item.sourceIssue, currency = change?.currency ?? item.product.sourceCurrency ?? "USD";
     const reopen = item.product.sourceUrl ? `/order-by-link?url=${encodeURIComponent(item.product.sourceUrl)}` : "";
+    return <>
+      {change && <p className={"basket-item-note " + (change.price > change.previousPrice || (change.shipping ?? 0) > (change.previousShipping ?? 0) ? "up" : "down")} role="status">
+        <Info size={16} aria-hidden="true" /><span>
+          {change.price !== change.previousPrice && (change.price > change.previousPrice ? c.item.priceUp : c.item.priceDown)(sourceMoney(change.previousPrice, currency, locale), sourceMoney(change.price, currency, locale))}
+          {change.shipping !== undefined && change.shipping !== change.previousShipping && <> {c.item.shippingChanged(sourceMoney(change.previousShipping ?? 0, item.product.sourceShippingCurrency ?? currency, locale), sourceMoney(change.shipping, item.product.sourceShippingCurrency ?? currency, locale))}</>}
+        </span></p>}
+      {issue && <p className={"basket-item-note " + (issue.kind === "unreachable" ? "soft" : "issue")} role={issue.kind === "unreachable" ? "status" : "alert"}>
+        <TriangleAlert size={16} aria-hidden="true" /><span>{c.item.issues[issue.kind]}{issue.kind !== "unreachable" && reopen && <> <Link href={reopen}>{c.item.reload}</Link></>}</span></p>}
+    </>;
+  }
+  const stockText = (item: CartItem) => item.product.stockQuantity !== undefined
+    ? `${item.product.stockQuantity ? k.stockLeft(item.product.stockQuantity) : k.outOfStock} · ${k.stockByEbay}`
+    : item.product.stockMoreThan !== undefined ? `${k.stockMore(item.product.stockMoreThan)} · ${k.stockByEbay}` : "";
+
+  function renderItem(item: CartItem) {
+    const meta = [shownVariant(item.variant), countryLabel(countryName(item.product), locale)].filter(Boolean).join(" · ");
+    const issue = item.sourceIssue, stock = stockText(item);
     return <article className={"basket-item" + (issue && issue.kind !== "unreachable" ? " has-issue" : "") + (ticked(item) ? "" : " is-later")} key={item.id}>
       {selectBox([item], s.selectLine([item.product.name, shownVariant(item.variant)].filter(Boolean).join(" · ")))}
       <div className="basket-photo"><ProductImage product={item.product} locale={locale} decorative /></div>
@@ -314,22 +373,14 @@ export function CartView() {
         {!ticked(item) && <span className="basket-later-tag">{s.later}</span>}
         <p className="basket-meta">{meta}</p>
         <p className="basket-meta">{item.product.sourceUrl ? <a className="basket-source" href={item.product.sourceUrl} target="_blank" rel="noopener noreferrer">{c.item.storePrice}: {storePrice(item, locale)}<ArrowUpRight size={14} aria-hidden="true" /><span className="sr-only"> ({c.item.openStore})</span></a> : <>{c.item.storePrice}: {storePrice(item, locale)}</>}{item.quantity > 1 ? ` × ${item.quantity}` : ""}{(() => { const off = storeDiscount(item.product); return off && <WasPrice was={off.was} percent={off.percent} format={value => sourceMoney(value, item.product.sourceCurrency ?? "USD", locale)} />; })()}</p>
-        {!change && !issue && item.product.sourceCheckedAt && <p className="basket-meta basket-checked"><BadgeCheck size={14} aria-hidden="true" />{c.item.checked(clock(item.product.sourceCheckedAt, locale))}</p>}
-        {item.product.stockQuantity !== undefined
-          ? <p className={"basket-meta basket-stock" + (item.product.stockQuantity <= 3 ? " low" : "")}>{item.product.stockQuantity ? k.stockLeft(item.product.stockQuantity) : k.outOfStock} · {k.stockByEbay}</p>
-          : item.product.stockMoreThan !== undefined && <p className="basket-meta basket-stock">{k.stockMore(item.product.stockMoreThan)} · {k.stockByEbay}</p>}
+        {!item.priceChange && !issue && item.product.sourceCheckedAt && <p className="basket-meta basket-checked"><BadgeCheck size={14} aria-hidden="true" />{c.item.checked(clock(item.product.sourceCheckedAt, locale))}</p>}
+        {stock && <p className={"basket-meta basket-stock" + ((item.product.stockQuantity ?? 99) <= 3 ? " low" : "")}>{stock}</p>}
       </div>
       <div className="basket-price"><strong>{formatSum(lineTotal(item), locale)}</strong>{item.quantity > 1 && <small>{c.item.forQuantity(item.quantity)}</small>}</div>
-      {/* What the last check with the store found: a new price (already in the total) or something to fix. */}
-      {change && <p className={"basket-item-note " + (change.price > change.previousPrice || (change.shipping ?? 0) > (change.previousShipping ?? 0) ? "up" : "down")} role="status">
-        <Info size={16} aria-hidden="true" /><span>
-          {change.price !== change.previousPrice && (change.price > change.previousPrice ? c.item.priceUp : c.item.priceDown)(sourceMoney(change.previousPrice, currency, locale), sourceMoney(change.price, currency, locale))}
-          {change.shipping !== undefined && change.shipping !== change.previousShipping && <> {c.item.shippingChanged(sourceMoney(change.previousShipping ?? 0, item.product.sourceShippingCurrency ?? currency, locale), sourceMoney(change.shipping, item.product.sourceShippingCurrency ?? currency, locale))}</>}
-        </span></p>}
-      {issue && <p className={"basket-item-note " + (issue.kind === "unreachable" ? "soft" : "issue")} role={issue.kind === "unreachable" ? "status" : "alert"}>
-        <TriangleAlert size={16} aria-hidden="true" /><span>{c.item.issues[issue.kind]}{issue.kind !== "unreachable" && reopen && <> <Link href={reopen}>{c.item.reload}</Link></>}</span></p>}
+      {itemNotes(item)}
       <div className="basket-controls">
         <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity })} />
+        {keepActions([item])}
         <SafeDeleteButton label={c.item.remove} itemName={item.product.name} locale={locale} onConfirm={() => act({ type: "cart-remove", id: item.id })} />
       </div>
       {renderNote(item)}
@@ -340,6 +391,47 @@ export function CartView() {
   function renderNote(item: CartItem) {
     const note = item.note ?? "";
     return <ItemNote key={`${item.id}:${note}`} id={item.id} note={note} locale={locale} save={(text) => act({ type: "cart-note", id: item.id, note: text })} />;
+  }
+
+  /**
+   * Options of one product: the product once (tick for all, photo, name, store, total, favourites, "remove all"), then
+   * one compact row per option (tick, option, quantity, sum, remove) with that option's own note. Warehouse services
+   * are chosen for the whole store parcel below.
+   */
+  function renderGroup(lines: CartItem[]) {
+    const lead = lines[0], ids = lines.map((line) => line.id);
+    const total = lines.reduce((sum, line) => sum + lineTotal(line), 0), units = lines.reduce((sum, line) => sum + line.quantity, 0);
+    return <div className="basket-group" key={`group:${lead.id}`}>
+      <article className="basket-item basket-group-head">
+        {selectBox(lines, s.selectGroup(lead.product.name))}
+        <div className="basket-photo"><ProductImage product={lead.product} locale={locale} decorative /></div>
+        <div className="basket-info">
+          {lead.product.brand && <p className="basket-brand">{lead.product.brand}</p>}
+          <ItemName name={lead.product.name} />
+          <p className="basket-meta">{countryLabel(countryName(lead.product), locale)}{lead.product.sourceUrl && <> · <a className="basket-source" href={lead.product.sourceUrl} target="_blank" rel="noopener noreferrer">{c.item.openStore}<ArrowUpRight size={14} aria-hidden="true" /></a></>}</p>
+        </div>
+        <div className="basket-price"><strong>{formatSum(total, locale)}</strong><small>{c.item.forQuantity(units)}</small></div>
+        <div className="basket-controls">
+          {keepActions(lines)}
+          <SafeDeleteButton label={kc.removeAll(lines.length)} itemName={lead.product.name} locale={locale} onConfirm={() => act({ type: "cart-remove", id: lead.id, ids })} />
+        </div>
+      </article>
+      <ul className="basket-variants" aria-label={kc.variants}>{lines.map((item) => {
+        const issue = item.sourceIssue, stock = stockText(item), checked = !item.priceChange && !issue && item.product.sourceCheckedAt;
+        return <li className={"basket-variant" + (issue && issue.kind !== "unreachable" ? " has-issue" : "") + (ticked(item) ? "" : " is-later")} key={item.id}>
+          {selectBox([item], s.selectLine([item.product.name, shownVariant(item.variant)].filter(Boolean).join(" · ")))}
+          <div className="basket-variant-info">
+            <b>{shownVariant(item.variant) || item.variant}</b>{!ticked(item) && <span className="basket-later-tag">{s.later}</span>}
+            <small>{storePrice(item, locale)}{item.quantity > 1 ? ` × ${item.quantity}` : ""}{checked ? <> · <BadgeCheck size={13} role="img" aria-label={c.item.checked(clock(item.product.sourceCheckedAt!, locale))} /></> : null}{stock ? ` · ${stock}` : ""}</small>
+          </div>
+          <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity })} />
+          <strong className="basket-variant-sum">{formatSum(lineTotal(item), locale)}</strong>
+          <SafeDeleteButton label={kc.removeVariant} itemName={[item.product.name, shownVariant(item.variant)].filter(Boolean).join(" · ")} locale={locale} onConfirm={() => act({ type: "cart-remove", id: item.id })} />
+          {itemNotes(item)}
+          {renderNote(item)}
+        </li>;
+      })}</ul>
+    </div>;
   }
 
   /**
@@ -435,13 +527,10 @@ export function CartView() {
           const reserve = reserves.find(entry => parcel.items.some(item => entry.itemIds.includes(item.id)));
           return <section className="basket-parcel" key={parcel.key} aria-label={parcel.title}>
             <h2 className="basket-parcel-title">{parcels.length > 1 || parcel.items.length > 1 ? selectBox(parcel.items, s.selectStore(parcel.store)) : <Store size={16} aria-hidden="true" />}<span>{parcel.title}</span><small>{[parcel.country, speedDays(parcel.origin)].filter(Boolean).join(" · ")}</small></h2>
-            {productGroups(parcel.items).map(lines => lines.length === 1 ? renderItem(lines[0]) : <div className="basket-group" key={`group:${lines[0].id}`}>
-              <p className="basket-group-head">{selectBox(lines, s.selectGroup(lines[0].product.name))}{s.selectGroup(lines[0].product.name)}</p>
-              {lines.map(item => renderItem(item))}
-            </div>)}
-            {reserve && <p className={"basket-parcel-note" + (reserve.reserveUsd ? "" : " ok")}>
-              {reserve.reserveUsd ? <Truck size={16} aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
-              <span>{reserve.reserveUsd ? c.item.parcelReserve(usd(reserve.missingUsd, locale), usd(reserve.reserveUsd, locale)) : c.item.parcelFree(freeFrom)}</span>
+            {productGroups(parcel.items).map(lines => lines.length === 1 ? renderItem(lines[0]) : renderGroup(lines))}
+            {/* Only an open question goes here; free store delivery is its own line in the bill. */}
+            {reserve && reserve.reserveUsd > 0 && <p className="basket-parcel-note">
+              <Truck size={16} aria-hidden="true" /><span>{c.item.parcelReserve(usd(reserve.missingUsd, locale))}</span>
             </p>}
             {renderParcelServices(parcel.key, parcel.items)}
           </section>;

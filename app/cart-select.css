@@ -15,7 +15,21 @@
 .basket-item.is-later { opacity: .62; }
 .basket-item.is-later:focus-within, .basket-item.is-later:hover { opacity: .85; }
 .basket-later-tag { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 20px; font-size: 12px; font-weight: 500; background: var(--day-soft, #efefe9); color: var(--day-muted, #58635c); }
-.basket-group-head { display: flex; align-items: center; gap: 10px; padding: 8px 12px 0; font-size: 13px; color: var(--day-muted, #58635c); }
+/* Option rows of one product: the tick gets its own first column; the option's note spans the row under it. */
+.basket-variant { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: "sel info qty del" "sel sum qty del"; }
+.basket-variant > .basket-select { grid-area: sel; align-self: center; }
+.basket-variant > :is(.basket-note, .basket-note-add) { grid-column: 2 / -1; margin: 2px 0 0; }
+.basket-variant.is-later > :not(.basket-select) { opacity: .62; }
+.basket-variant-info .basket-later-tag { margin-left: 0; white-space: nowrap; }
+/* The one-line row needs room: it follows the card's width (the cart column is narrow next to the bill), not the window. */
+.basket-group { container-type: inline-size; }
+.basket-variants { padding: 0 16px 6px; }
+.basket-variant-sum { text-align: left; }
+@container (min-width: 560px) {
+  .basket-variants { padding: 0 20px 6px 130px; }
+  .basket-variant { grid-template-columns: auto minmax(0, 1fr) auto minmax(116px, auto) auto; grid-template-areas: "sel info qty sum del"; gap: 6px 12px; }
+  .basket-variant-sum { font-size: 15px; text-align: right; }
+}
 .basket-none-hint { display: flex; align-items: center; gap: 8px; margin: 10px 0 0; font-size: 14px; color: var(--day-muted, #58635c); }
 .basket-later-note { margin: 8px 0 0; font-size: 13px; color: var(--day-muted, #58635c); }
 .basket-cta[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
@@ -99,7 +113,7 @@
 /* ---------- Night ---------- */
 html[data-theme="dark"] .basket-select-bar, html[data-theme="dark"] .review-table, html[data-theme="dark"] .review-checklist { background: var(--night-surface); border-color: var(--night-line-strong); }
 html[data-theme="dark"] .basket-select-bar label, html[data-theme="dark"] .review-sum, html[data-theme="dark"] .review-name, html[data-theme="dark"] .review-variant, html[data-theme="dark"] .review-check-body > b, html[data-theme="dark"] .review-note b, html[data-theme="dark"] .review-row-note b, html[data-theme="dark"] .review-services b { color: var(--night-ink); }
-html[data-theme="dark"] .basket-select-bar small, html[data-theme="dark"] .basket-group-head, html[data-theme="dark"] .basket-none-hint, html[data-theme="dark"] .basket-later-note, html[data-theme="dark"] .review-n, html[data-theme="dark"] .review-note, html[data-theme="dark"] .review-row-note, html[data-theme="dark"] .review-services, html[data-theme="dark"] .review-check-body > span, html[data-theme="dark"] .basket-service-unit { color: var(--night-muted); }
+html[data-theme="dark"] .basket-select-bar small, html[data-theme="dark"] .basket-none-hint, html[data-theme="dark"] .basket-later-note, html[data-theme="dark"] .review-n, html[data-theme="dark"] .review-note, html[data-theme="dark"] .review-row-note, html[data-theme="dark"] .review-services, html[data-theme="dark"] .review-check-body > span, html[data-theme="dark"] .basket-service-unit { color: var(--night-muted); }
 html[data-theme="dark"] .basket-item > .basket-select { background: color-mix(in srgb, var(--night-surface) 88%, transparent); }
 html[data-theme="dark"] .basket-later-tag, html[data-theme="dark"] .review-head, html[data-theme="dark"] .review-photo { background: var(--night-raised); color: var(--night-muted); }
 html[data-theme="dark"] .review-parcel + .review-parcel { border-top-color: var(--night-line-strong); }

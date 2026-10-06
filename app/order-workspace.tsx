@@ -89,10 +89,11 @@ import {
   ProductImage,
 } from "./market-ui";
 // Payments are simulated: the notice speaks of a placed request, never of a payment received.
+// The payment note is said once, in the order's own action block.
 const passportCopy: Record<Locale, { title: (name: string) => string; text: string; action: string }> = {
-  ru: { title: name => `Нужен паспорт получателя: ${name}`, text: "Заявка оформлена. Чтобы подготовить декларацию и таможенное оформление, привяжите паспорт именно этого получателя. Оплата на сайте не подключена — деньги не списывались.", action: "Привязать паспорт" },
-  uz: { title: name => `Qabul qiluvchi pasporti kerak: ${name}`, text: "Ariza rasmiylashtirildi. Deklaratsiya va bojxona rasmiylashtiruvi uchun aynan shu qabul qiluvchining pasportini biriktiring. Saytda to‘lov ulanmagan — pul yechilmagan.", action: "Pasportni biriktirish" },
-  en: { title: name => `Recipient passport needed: ${name}`, text: "The request is placed. To prepare the declaration and customs clearance, link this recipient’s own passport. Online payment is not connected — no money was charged.", action: "Link passport" },
+  ru: { title: name => `Нужен паспорт получателя: ${name}`, text: "Заявка оформлена. Чтобы подготовить декларацию и таможенное оформление, привяжите паспорт именно этого получателя.", action: "Привязать паспорт" },
+  uz: { title: name => `Qabul qiluvchi pasporti kerak: ${name}`, text: "Ariza rasmiylashtirildi. Deklaratsiya va bojxona rasmiylashtiruvi uchun aynan shu qabul qiluvchining pasportini biriktiring.", action: "Pasportni biriktirish" },
+  en: { title: name => `Recipient passport needed: ${name}`, text: "The request is placed. To prepare the declaration and customs clearance, link this recipient’s own passport.", action: "Link passport" },
 };
 const storeShippingExtra = (o: Order) =>
   !o.storeShippingExtraApproved ? (o.storeShippingSettlement?.extra ?? 0) : 0;
@@ -105,9 +106,9 @@ const isExtra = (o: Order) =>
   !o.cancelled && Boolean(storeShippingExtra(o) || warehouseExtra(o) || customsExtra(o));
 const extraAmount = (o: Order) => storeShippingExtra(o) || warehouseExtra(o) || customsExtra(o);
 const customsWords = {
-  ru: { over: "Пошлина больше предоплаты", confirm: "Подтвердить пошлину", title: "Пошлина, начисленная таможней", description: "Введите фактическую пошлину в USD. Если она меньше предоплаты, остаток сразу вернётся на баланс покупателя; если больше — разницу покупатель подтвердит.", actual: "Начисленная пошлина, USD", prepaid: "Предоплата пошлины", settled: (actual: string) => `Таможня начислила ${actual}.`, refund: (amount: string) => `Остаток ${amount} возвращён на баланс.`, extra: (amount: string) => `Доплата ${amount}`, saved: "Пошлина подтверждена" },
-  uz: { over: "Boj oldindan to‘lovdan ko‘p", confirm: "Bojni tasdiqlash", title: "Bojxona hisoblagan boj", description: "Haqiqiy bojni USD da kiriting. Oldindan to‘lovdan kam bo‘lsa, qoldiq darhol xaridor balansiga qaytadi; ko‘p bo‘lsa — farqni xaridor tasdiqlaydi.", actual: "Hisoblangan boj, USD", prepaid: "Bojning oldindan to‘lovi", settled: (actual: string) => `Bojxona ${actual} hisobladi.`, refund: (amount: string) => `Qoldiq ${amount} balansga qaytarildi.`, extra: (amount: string) => `Qo‘shimcha to‘lov ${amount}`, saved: "Boj tasdiqlandi" },
-  en: { over: "Duty above the prepayment", confirm: "Confirm duty", title: "Duty charged by customs", description: "Enter the actual duty in USD. If it is below the prepayment, the rest returns to the customer’s balance at once; if above, the customer approves the difference.", actual: "Duty charged, USD", prepaid: "Duty prepaid", settled: (actual: string) => `Customs charged ${actual}.`, refund: (amount: string) => `${amount} returned to the balance.`, extra: (amount: string) => `Extra ${amount}`, saved: "Duty confirmed" },
+  ru: { over: "Пошлина больше предоплаты", confirm: "Подтвердить пошлину", title: "Пошлина, начисленная таможней", description: "Введите фактическую пошлину в USD. Если она меньше предоплаты, остаток сразу вернётся на баланс покупателя; если больше — разницу покупатель подтвердит.", actual: "Начисленная пошлина, USD", prepaid: "Предоплата пошлины", settled: (actual: string) => `Таможня начислила ${actual}.`, refund: (amount: string) => `Остаток ${amount} возвращён на баланс.`, extra: (amount: string) => `Доплата ${amount}`, saved: "Пошлина подтверждена", helpTitle: "Таможню оформляет Atlas", helpDuty: (estimate: string) => `Поручение принято. Предоплата пошлины ≈ ${estimate}: после выпуска сверим с таможней — остаток вернём на баланс, доплата только с вашего согласия.`, helpNoDuty: "Поручение принято. Посылка в пределах лимита — пошлина не ожидается, декларацию подготовит Atlas." },
+  uz: { over: "Boj oldindan to‘lovdan ko‘p", confirm: "Bojni tasdiqlash", title: "Bojxona hisoblagan boj", description: "Haqiqiy bojni USD da kiriting. Oldindan to‘lovdan kam bo‘lsa, qoldiq darhol xaridor balansiga qaytadi; ko‘p bo‘lsa — farqni xaridor tasdiqlaydi.", actual: "Hisoblangan boj, USD", prepaid: "Bojning oldindan to‘lovi", settled: (actual: string) => `Bojxona ${actual} hisobladi.`, refund: (amount: string) => `Qoldiq ${amount} balansga qaytarildi.`, extra: (amount: string) => `Qo‘shimcha to‘lov ${amount}`, saved: "Boj tasdiqlandi", helpTitle: "Bojxonani Atlas rasmiylashtiradi", helpDuty: (estimate: string) => `Topshiriq qabul qilindi. Boj oldindan to‘lovi ≈ ${estimate}: chiqarilgandan keyin bojxona bilan solishtiramiz — qoldiq balansga qaytadi, qo‘shimcha to‘lov faqat roziligingiz bilan.`, helpNoDuty: "Topshiriq qabul qilindi. Jo‘natma limit doirasida — boj kutilmaydi, deklaratsiyani Atlas tayyorlaydi." },
+  en: { over: "Duty above the prepayment", confirm: "Confirm duty", title: "Duty charged by customs", description: "Enter the actual duty in USD. If it is below the prepayment, the rest returns to the customer’s balance at once; if above, the customer approves the difference.", actual: "Duty charged, USD", prepaid: "Duty prepaid", settled: (actual: string) => `Customs charged ${actual}.`, refund: (amount: string) => `${amount} returned to the balance.`, extra: (amount: string) => `Extra ${amount}`, saved: "Duty confirmed", helpTitle: "Atlas handles customs", helpDuty: (estimate: string) => `Request accepted. Duty prepaid ≈ ${estimate}: after release we settle it with customs — the rest returns to your balance, any extra only with your consent.`, helpNoDuty: "Request accepted. The parcel is within the allowance — no duty expected; Atlas prepares the declaration." },
 };
 const pendingChange = (o: Order) => (o.changeRequests ?? []).some((request) => request.status === "pending");
 const usd = (n: number) =>
@@ -765,8 +766,15 @@ function CustomerOrderLine({ order: o, siblings, showThumb, locale, pricing, bus
               {o.settlement.refund > 0 && <Link className="order-x-link" href="/balance">{ow.balance}<ArrowRight size={14} aria-hidden="true" /></Link>}
             </div>
           </div>}
-          {o.customsSettlement && <div className="order-x-note info"><Scale size={18} aria-hidden="true" /><div><b>{calcCopy[locale].lines.customsDuty}</b><p>{customsWords[locale].settled(formatSum(o.customsSettlement.actual, locale))} {o.customsSettlement.refund ? customsWords[locale].refund(formatSum(o.customsSettlement.refund, locale)) : o.customsSettlement.extra ? customsWords[locale].extra(formatSum(o.customsSettlement.extra, locale)) + (o.customsExtraApproved ? " ✓" : "") : ""}</p></div></div>}
-          {o.customs && o.customs.dutiableUsd > 0 && <div className="order-x-note info"><Scale size={18} aria-hidden="true" /><div><b>{calcCopy[locale].customs.title}</b><p>{calcCopy[locale].customs.dutiable}: ${o.customs.dutiableUsd} · {calcCopy[locale].customs.estimate} ≈ ${o.customs.estimateUsd}{o.customs.helpRequested ? ` · ${calcCopy[locale].customs.help}` : ""}. {calcCopy[locale].customs.separate}</p></div></div>}
+          {/* Customs in one note: the settled duty, else the status of "Atlas pays customs for me", else the estimate. */}
+          {(o.customsSettlement || o.customs?.helpRequested || (o.customs && o.customs.dutiableUsd > 0)) && <div className="order-x-note info"><Scale size={18} aria-hidden="true" /><div>
+            <b>{o.customs?.helpRequested ? customsWords[locale].helpTitle : o.customsSettlement ? calcCopy[locale].lines.customsDuty : calcCopy[locale].customs.title}</b>
+            <p>{o.customsSettlement
+              ? <>{customsWords[locale].settled(formatSum(o.customsSettlement.actual, locale))} {o.customsSettlement.refund ? customsWords[locale].refund(formatSum(o.customsSettlement.refund, locale)) : o.customsSettlement.extra ? customsWords[locale].extra(formatSum(o.customsSettlement.extra, locale)) + (o.customsExtraApproved ? " ✓" : "") : ""}</>
+              : o.customs?.helpRequested
+                ? o.customs.dutiableUsd > 0 ? customsWords[locale].helpDuty(`$${o.customs.estimateUsd}`) : customsWords[locale].helpNoDuty
+                : <>{calcCopy[locale].customs.dutiable}: ${o.customs!.dutiableUsd} · {calcCopy[locale].customs.estimate} ≈ ${o.customs!.estimateUsd}. {calcCopy[locale].customs.separate}</>}</p>
+          </div></div>}
           <dl className="order-x-details">
             {o.payment && <div><dt>{c.payment}</dt><dd>{o.payment.status === "pending" ? (o.cancelled ? ow.cancelled : ow.paymentWaiting) : o.payment.status === "paid" ? ow.paymentPaid : ow.paymentRefunded}<small>{o.payment.id} · {ow.providerPassed}</small></dd></div>}
             {allowanceUsd !== undefined && <div><dt>{c.allowance}</dt><dd className={allowanceUsd > courierAllowanceUsd ? "order-x-over" : undefined}>{c.allowanceValue(allowanceUsd, courierAllowanceUsd)}</dd></div>}
@@ -1210,9 +1218,6 @@ export function OrdersView({ operations }: { operations: boolean }) {
         <div><b>{passportCopy[locale].title(profile.recipient)}</b><small>{passportCopy[locale].text}</small></div>
         <Link className="btn secondary" href={`/identity?recipient=${encodeURIComponent(profileId)}`}>{passportCopy[locale].action}<ArrowRight size={16} aria-hidden="true" /></Link>
       </div>)}
-      {!operations && viewReady && groupTabs.attention.length > 0 && tab !== "attention" && <button type="button" className="orders-attention" onClick={() => setTab("attention")}>
-        <AlertCircle size={20} aria-hidden="true" /><span>{oc.attention(groupTabs.attention.length)}</span><span className="orders-attention-go">{oc.showAttention}<ArrowRight size={16} aria-hidden="true" /></span>
-      </button>}
       {operations && (
         <div className="ops-stats">
           <div>
@@ -1239,7 +1244,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
               <TabsTrigger value="active">
                 {wc.active} <b>{operations ? opsCounts?.active ?? 0 : groupTabs.active.length}</b>
               </TabsTrigger>
-              <TabsTrigger value="attention">
+              {/* The count of orders waiting on the customer is said here once, in warning colour, not again in a banner above. */}
+              <TabsTrigger value="attention" className={!operations && groupTabs.attention.length > 0 ? "has-attention" : undefined}>
                 {wc.attention} <b>{operations ? opsCounts?.attention ?? 0 : groupTabs.attention.length}</b>
               </TabsTrigger>
               <TabsTrigger value="done">

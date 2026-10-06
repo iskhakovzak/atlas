@@ -202,3 +202,12 @@ test('one product in several sizes: the shared note and services go to each of i
  assert.throws(()=>applyAction(state,actionSchema.parse({type:'cart-note',id:nine.id,ids:[nine.id,'missing-line'],note:'x'}),false,config));
  assert.throws(()=>actionSchema.parse({type:'cart-note',id:nine.id,ids:[],note:'x'}),'ids, when sent, is not empty');
 });
+test('removing every option of one product is one action and one repricing; other lines stay',()=>{
+ let state=addToCart(blank(),products[0],'US 9',1000);state=addToCart(state,products[0],'US 10',1000);state=addToCart(state,products[1],products[1].variants[0],1000);
+ const [nine,ten,other]=state.cart;
+ state=applyAction(state,actionSchema.parse({type:'cart-remove',id:nine.id,ids:[nine.id,ten.id]}),false);
+ assert.deepEqual(state.cart.map(line=>line.id),[other.id]);
+ state=applyAction(state,actionSchema.parse({type:'cart-remove',id:other.id}),false);
+ assert.equal(state.cart.length,0,'a single remove without ids still works');
+ assert.throws(()=>actionSchema.parse({type:'cart-remove',id:nine.id,ids:[]}),'ids, when sent, is not empty');
+});
