@@ -224,22 +224,23 @@ export const pricingSchema = z.object({
   managedBy: z.string().max(160).optional(),
 });
 export type Pricing = z.infer<typeof pricingSchema>;
-/** Atlas express delivery from the US, UK, China, Germany, Italy and Spain: $15 per kg ($1.5 per 100 g). */
-export const deliveryPerKgUsd = 15;
+/** Atlas express delivery from the US, UK, China, Germany, Italy and Spain: $14.98 per kg (owner, 6 October 2026). */
+export const deliveryPerKgUsd = 14.98;
 /** Atlas service fee on merchandise only (owner's decision, 4 October 2026); never on delivery or customs. */
 export const atlasServiceFee = 0.0998;
 /** Atlas pays the customer's customs for this share of the goods price, delivery excluded (owner, 5 October 2026). */
 export const customsHelpShare = 0.0498;
 /**
- * Owner decisions that tariffs saved earlier still lack: 1 = $15 per kg, 2 = 9.98% fee and the CBU rate × 1.012,
- * 3 = no international reserve in the bill and customs payment at 4.98% of the cart (5 October 2026).
+ * Owner decisions that tariffs saved earlier still lack: 1 = $15 per kg (now $14.98), 2 = 9.98% fee and the CBU rate × 1.012,
+ * 3 = no international reserve in the bill and customs payment at 4.98% of the cart (5 October 2026),
+ * 4 = $14.98 per kg everywhere and the fee exactly 9.98%: no buyout or conversion percent on top (6 October 2026).
  */
-export const pricingRevision = 3;
+export const pricingRevision = 4;
 /** Until the server reads the Central Bank rate, the owner's estimate stands in, shown as a set rate. */
 const startingFx = 11990;
 export const tariff: Pricing = {
   fx: startingFx,
-  perKg: deliveryPerKgUsd * startingFx,
+  perKg: Math.round(deliveryPerKgUsd * startingFx),
   perKgUsd: deliveryPerKgUsd,
   fxSource: "cbu",
   fxMarkup: 1.012,
@@ -274,18 +275,23 @@ export function normalizePricing(config: Pricing): Pricing {
   return { ...config, fx, perKg: config.perKgUsd === undefined ? config.perKg : soum(config.perKgUsd), countryOverrides };
 }
 /**
- * A tariff saved before the owner's decisions lacks them: $15 per kg, the 9.98% fee and the Central Bank
+ * A tariff saved before the owner's decisions lacks them: $14.98 per kg, the 9.98% fee and the Central Bank
  * rate × 1.012. It gets them under a new version, so carts quoted under the old one are shown again.
  */
 export function upgradePricing(config: Pricing): Pricing {
   const revision = config.revision ?? 0;
   if (revision >= pricingRevision) return normalizePricing(config);
-  const earlier = revision >= 2 ? config : { ...config, perKgUsd: config.perKgUsd ?? deliveryPerKgUsd, margin: atlasServiceFee, fxSource: "cbu" as const, fxMarkup: 1.012 };
+  const earlier = revision >= 2 ? config : { ...config, margin: atlasServiceFee, fxSource: "cbu" as const, fxMarkup: 1.012 };
+  // A saved buyout or conversion percent showed as a 10.98% fee; per-country rates and fees gave other prices.
+  const strip = ["reserve", ...(revision < 4 ? ["perKg", "perKgUsd", "margin", "buyoutFee", "conversionFee", "deliveryMargin"] : [])] as const;
   return normalizePricing({
     ...earlier,
+    ...(revision < 4 ? { perKgUsd: deliveryPerKgUsd, margin: atlasServiceFee, buyoutFee: 0, conversionFee: 0, deliveryMargin: 0 } : {}),
     reserve: 0,
     customsHelpFee: customsHelpShare,
-    countryOverrides: Object.fromEntries(Object.entries(earlier.countryOverrides ?? {}).map(([country, override]) => { const rest = { ...override }; delete rest.reserve; return [country, rest]; })),
+    countryOverrides: Object.fromEntries(Object.entries(earlier.countryOverrides ?? {})
+      .map(([country, override]) => { const rest: Record<string, unknown> = { ...override }; for (const key of strip) delete rest[key]; return [country, rest]; })
+      .filter(([, rest]) => Object.keys(rest).length > 0)),
     revision: pricingRevision,
     version: `${config.version.slice(0, 70)}+r${pricingRevision}`,
   });

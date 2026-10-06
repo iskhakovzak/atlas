@@ -1,11 +1,11 @@
 'use client';
 import {useCallback,useEffect,useRef,useState,type FormEvent} from 'react';
-import {ArrowLeft,ArrowRight,KeyRound,Mail,MessageCircle,Smartphone} from 'lucide-react';
+import {ArrowLeft,ArrowRight,Loader2,Mail,Send,Smartphone} from 'lucide-react';
 import {useMarket} from '@/lib/market/store';
 import {safeReturnTo} from '@/lib/auth/return-to';
 import type {Locale} from '@/lib/market/i18n';
 
-type Methods={email:boolean;phone:boolean;telegram:string|null;google:boolean;devCodes:boolean};
+type Methods={email:boolean;phone:boolean;telegram:string|null;telegramBot?:boolean;google:boolean;devCodes:boolean};
 type Tab='telegram'|'phone'|'email'|'google';
 
 const copy={
@@ -22,6 +22,14 @@ async function post(url:string,body:unknown):Promise<PostResult>{
  }catch{return {ok:false,data:{error:'unavailable'}}}
 }
 
+const choiceCopy={
+ ru:{or:'или',phone:'По номеру телефона',email:'По электронной почте',back:'Все способы входа'},
+ uz:{or:'yoki',phone:'Telefon raqami orqali',email:'Elektron pochta orqali',back:'Barcha kirish usullari'},
+ en:{or:'or',phone:'With a phone number',email:'With email',back:'All sign-in methods'},
+} satisfies Record<Locale,unknown>;
+/** Google's "G" in its four colours, as Google asks sign-in buttons to show it. */
+function GoogleMark(){return <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>}
+
 export function LoginView(){
  const {status,state}=useMarket();
  const c=copy[state.communication.language as Locale]??copy.ru;
@@ -36,7 +44,10 @@ export function LoginView(){
   const params=new URLSearchParams(window.location.search);
   queueMicrotask(()=>{setReturnTo(safeReturnTo(params.get('return_to')));if(params.get('error')==='google')setError(c.errors.google)});
   fetch('/api/auth/methods',{credentials:'same-origin'}).then(response=>response.ok?response.json() as Promise<Methods>:Promise.reject(new Error(String(response.status)))).then(value=>{
-   setMethods(value);setTab(value.telegram?'telegram':value.phone?'phone':value.email?'email':value.google?'google':null);
+   setMethods(value);
+   // With Telegram off and a single other method, its form opens at once.
+   const others=(['phone','email'] as const).filter(key=>value[key]);
+   setTab(!value.telegram&&!value.google&&others.length===1?others[0]:null);
   }).catch(()=>setFailed(true));
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[]);
@@ -44,18 +55,26 @@ export function LoginView(){
  useEffect(()=>{if(status==='authenticated')done()},[status,done]);
 
  if(status==='authenticated')return <section className="surface access-card" role="status"><span className="access-spinner"/>{c.signedIn}</section>;
- const tabs=methods?([['telegram',!!methods.telegram,MessageCircle],['phone',methods.phone,Smartphone],['email',methods.email,Mail],['google',methods.google,KeyRound]] as const).filter(([,enabled])=>enabled):[];
+ const tabs=methods?([['telegram',!!methods.telegram],['phone',methods.phone],['email',methods.email],['google',methods.google]] as const).filter(([,enabled])=>enabled):[];
+ const locale=(state.communication.language as Locale)??'ru',w=choiceCopy[locale]??choiceCopy.ru;
  return <section className="surface login-card">
   <span className="eyebrow">{c.eyebrow}</span><h1>{c.title}</h1><p className="login-intro">{c.intro}</p>
   {error&&<div className="notice error" role="alert">{error}</div>}
   {!methods&&!failed&&<div className="login-status" role="status"><span className="access-spinner"/>{c.loading}</div>}
   {(failed||(methods&&!tabs.length))&&<div className="notice" role="status">{c.none}</div>}
-  {tabs.length>1&&<div className="login-tabs" role="tablist" aria-label={c.eyebrow}>{tabs.map(([key,,Icon])=><button key={key} type="button" role="tab" aria-selected={tab===key} className={tab===key?'active':''} onClick={()=>{setTab(key);setError(null)}}><Icon size={17} aria-hidden="true"/>{c[key]}</button>)}</div>}
-  <div className="login-panel" role="tabpanel">
-   {tab==='telegram'&&methods?.telegram&&<TelegramLogin bot={methods.telegram} hint={c.telegramHint} onDone={done} onError={showError}/>}
-   {(tab==='phone'||tab==='email')&&<OtpLogin key={tab} channel={tab} c={c} dev={!!methods?.devCodes} onDone={done} onError={showError}/>}
-   {tab==='google'&&<div className="login-google"><p>{c.googleHint}</p><a className="btn primary" href={'/api/auth/google?return_to='+encodeURIComponent(returnTo)}>{c.googleButton}<ArrowRight size={18}/></a></div>}
-  </div>
+  {/* One method at a time: Telegram on top, the others as a column of buttons; phone and email open their form. */}
+  {methods&&(tab===null||tab==='telegram'||tab==='google')?<div className="login-panel">
+   {methods.telegram&&(methods.telegramBot?<TelegramBotLogin locale={locale} onDone={done} onError={showError}/>:<TelegramLogin bot={methods.telegram} hint={c.telegramHint} onDone={done} onError={showError}/>)}
+   {methods.telegram&&tabs.length>1&&<div className="login-or" role="separator"><span>{w.or}</span></div>}
+   <div className="login-choices">
+    {methods.phone&&<button type="button" className="btn secondary login-choice" onClick={()=>{setTab('phone');setError(null)}}><Smartphone size={18} aria-hidden="true"/>{w.phone}</button>}
+    {methods.email&&<button type="button" className="btn secondary login-choice" onClick={()=>{setTab('email');setError(null)}}><Mail size={18} aria-hidden="true"/>{w.email}</button>}
+    {methods.google&&<a className="btn secondary login-choice" href={'/api/auth/google?return_to='+encodeURIComponent(returnTo)}><GoogleMark/>{c.googleButton}</a>}
+   </div>
+  </div>:methods&&(tab==='phone'||tab==='email')&&<div className="login-panel">
+   <button type="button" className="text-button login-back" onClick={()=>{setTab(null);setError(null)}}><ArrowLeft size={16} aria-hidden="true"/>{w.back}</button>
+   <OtpLogin key={tab} channel={tab} c={c} dev={!!methods.devCodes} onDone={done} onError={showError}/>
+  </div>}
   <small className="login-legal">{c.legal}</small>
  </section>;
 }
@@ -117,4 +136,61 @@ export function TelegramLogin({bot,hint,onDone,onError,link=false}:{bot:string;h
   return ()=>{target?.replaceChildren();delete window.atlasTelegramAuth};
  },[bot,onDone,onError,link]);
  return <div className="login-telegram"><p>{hint}</p><div ref={holder} className="login-telegram-widget"/></div>;
+}
+
+const botCopy={
+ ru:{button:'Войти через Telegram',linkButton:'Привязать Telegram',hint:'Откроется Telegram — подтвердите вход в чате с ботом Atlas.',waiting:'Подтвердите вход в Telegram и вернитесь сюда — страница откроется сама.',again:'Открыть Telegram ещё раз',web:'Не открылось? Открыть в браузере',preparing:'Готовим вход…'},
+ uz:{button:'Telegram orqali kirish',linkButton:'Telegramni bog‘lash',hint:'Telegram ochiladi — Atlas boti bilan chatda kirishni tasdiqlang.',waiting:'Telegramda kirishni tasdiqlang va bu yerga qayting — sahifa o‘zi ochiladi.',again:'Telegramni yana ochish',web:'Ochilmadimi? Brauzerda ochish',preparing:'Kirish tayyorlanmoqda…'},
+ en:{button:'Sign in with Telegram',linkButton:'Attach Telegram',hint:'Telegram opens — confirm in the chat with the Atlas bot.',waiting:'Confirm in Telegram and come back — this page opens by itself.',again:'Open Telegram again',web:'Did not open? Open in the browser',preparing:'Preparing sign-in…'},
+} satisfies Record<Locale,unknown>;
+type BotStart={token:string;expiresAt:number;links:{app:string;web:string}};
+/**
+ * Sign-in through the Atlas bot: one tap opens the Telegram app (t.me on phones, which opens the app;
+ * tg:// on computers, which opens Telegram Desktop), the person confirms in the chat, and this page signs
+ * in by itself. With `link` the Telegram account is attached to the signed-in account instead.
+ */
+export function TelegramBotLogin({locale,onDone,onError,link=false}:{locale:Locale;onDone:()=>void;onError:(code?:string)=>void;link?:boolean}){
+ const t=botCopy[locale]??botCopy.ru;
+ const [start,setStart]=useState<BotStart|null>(null),[waiting,setWaiting]=useState(false);
+ const [phone]=useState(()=>typeof navigator!=='undefined'&&(/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1)));
+ const finished=useRef(false);
+ const begin=useCallback(async()=>{
+  setStart(null);
+  try{
+   const response=await fetch('/api/auth/telegram/bot',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({step:'start',...(link?{link:true}:{})})});
+   const data=await response.json().catch(()=>({})) as BotStart&{error?:string};
+   if(!response.ok)throw Error(data.error??'unavailable');
+   setStart(data);
+  }catch(error){onError((error as Error).message||'unavailable')}
+ },[link,onError]);
+ useEffect(()=>{queueMicrotask(()=>void begin())},[begin]);
+ useEffect(()=>{
+  if(!waiting||!start)return;
+  let busy=false;
+  const check=async()=>{
+   if(busy||finished.current)return;busy=true;
+   try{
+    const response=await fetch('/api/auth/telegram/bot',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({step:'check',token:start.token})});
+    const data=await response.json().catch(()=>({})) as {status?:string;error?:string};
+    if(!response.ok){setWaiting(false);onError(data.error);return}
+    if(data.status==='done'||data.status==='linked'){finished.current=true;onDone();return}
+    if(data.status==='expired'){setWaiting(false);void begin()}
+   }catch{/* the next check tries again */}
+   finally{busy=false}
+  };
+  const timer=window.setInterval(()=>void check(),2000);
+  // Back from Telegram: check at once instead of waiting for the next tick.
+  const back=()=>{if(document.visibilityState==='visible')void check()};
+  document.addEventListener('visibilitychange',back);window.addEventListener('focus',back);
+  return ()=>{window.clearInterval(timer);document.removeEventListener('visibilitychange',back);window.removeEventListener('focus',back)};
+ },[waiting,start,begin,onDone,onError]);
+ const href=start?(phone?start.links.web:start.links.app):undefined;
+ return <div className="login-telegram">
+  <a className={'btn tg-login'+(start?'':' is-busy')} href={href} aria-disabled={!start} onClick={event=>{if(!start){event.preventDefault();return}onError();setWaiting(true)}}>
+   {start?<Send size={19} aria-hidden="true"/>:<Loader2 className="spin" size={19} aria-hidden="true"/>}{start?(link?t.linkButton:t.button):t.preparing}
+  </a>
+  {!waiting&&<small className="tg-login-hint">{t.hint}</small>}
+  {waiting&&<div className="tg-login-wait" role="status"><Loader2 className="spin" size={16} aria-hidden="true"/><span>{t.waiting}</span></div>}
+  {waiting&&start&&!phone&&<a className="text-button tg-login-web" href={start.links.web} target="_blank" rel="noopener noreferrer">{t.web}</a>}
+ </div>;
 }

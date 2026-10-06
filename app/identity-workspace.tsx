@@ -1,4 +1,5 @@
 "use client";
+import {capitalizeWords} from "@/lib/market/text-case";
 
 import {useEffect,useMemo,useRef,useState} from "react";
 import {useSearchParams} from "next/navigation";
@@ -94,7 +95,7 @@ export function IdentityView(){
       <li className="cabinet-card docs-step">
         <h2><span className="docs-num" aria-hidden="true">3</span>{d.checkStep}</h2>
         {!selectedRecipientProfileId?<p className="cabinet-empty">{d.pickFirst}</p>:!documentId&&!current?<div className="docs-placeholder"><FileText aria-hidden="true"/><p>{c.after}</p></div>:<div className="docs-fields">
-          <div className="rf-row"><div className="rf-field"><label htmlFor="last-name">{c.last}</label><input id="last-name" required autoComplete="family-name" value={form.lastName||(current?.lastName??"")} onChange={e=>setForm({...form,lastName:e.target.value})}/></div><div className="rf-field"><label htmlFor="first-name">{c.first}</label><input id="first-name" required autoComplete="given-name" value={form.firstName||(current?.firstName??"")} onChange={e=>setForm({...form,firstName:e.target.value})}/></div></div>
+          <div className="rf-row"><div className="rf-field"><label htmlFor="last-name">{c.last}</label><input id="last-name" required autoComplete="family-name" autoCapitalize="words" value={form.lastName||(current?.lastName??"")} onChange={e=>setForm({...form,lastName:capitalizeWords(e.target.value)})}/></div><div className="rf-field"><label htmlFor="first-name">{c.first}</label><input id="first-name" required autoComplete="given-name" autoCapitalize="words" value={form.firstName||(current?.firstName??"")} onChange={e=>setForm({...form,firstName:capitalizeWords(e.target.value)})}/></div></div>
           <div className="rf-row"><div className="rf-field"><label htmlFor="birth-date">{c.birth}</label><input id="birth-date" type="date" required value={form.birthDate||(current?.birthDate??"")} onChange={e=>setForm({...form,birthDate:e.target.value})}/></div><div className="rf-field"><label htmlFor="nationality">{c.nationality}</label><input id="nationality" value={form.nationality||(current?.nationality??"")} onChange={e=>setForm({...form,nationality:e.target.value})}/></div></div>
           <div className="rf-field"><label htmlFor="passport-number">{c.number}</label><input id="passport-number" required minLength={6} maxLength={24} autoComplete="off" value={form.passportNumber} placeholder={current?.passportMasked??"AA 1234567"} onChange={e=>setForm({...form,passportNumber:e.target.value})}/></div>
           {current&&<p className="lo-note"><Check size={16} aria-hidden="true"/>{c.confirmed} {formatLongDate(current.confirmedAt,lang)}: {current.lastName} {current.firstName}, {current.birthDate}, {current.passportMasked}</p>}
