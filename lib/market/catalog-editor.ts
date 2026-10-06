@@ -26,6 +26,10 @@ export const catalogDraftSchema=z.object({
   importFailureReason:z.enum(['blocked','network','upstream','response','redirect','timeout','incomplete','unknown']).optional(),
   /** Where boxedWeight came from; legacy drafts without it are treated as possibly operator-edited. */
   weightBasis:z.enum(['store','estimate','operator']).optional(),
+  /** Operator-set showcase position: lower comes first; empty means no position. */
+  rank:z.number().int().min(0).max(1000).optional(),
+  /** The operator confirmed stock without a store response; a later successful store check replaces it. */
+  confirmedBy:z.enum(['operator']).optional(),confirmedAt:z.number().int().nonnegative().optional(),
 });
 export type CatalogDraft=z.infer<typeof catalogDraftSchema>;
 export const collectionSchema=z.object({id:text.min(1).max(80),name:text.min(1).max(80),nameUz:text.max(80).default(''),nameEn:text.max(80).default(''),description:text.max(240).default(''),visible:z.boolean(),position:z.number().int().min(0).max(1000)});
@@ -119,7 +123,9 @@ export function synchronizeBundledCatalog(current:CatalogDocument){
 }
 export function importDraft(data:Extracted,collectionIds:string[],country:string,now=Date.now()):CatalogDraft{
  const images=dedupeSafeImages([data.image??'',...(data.images??[])],data.sourceUrl,12);
- return catalogDraftSchema.parse({sourceUrl:canonicalCatalogUrl(data.sourceUrl),name:data.title??'',brand:data.brand??new URL(data.sourceUrl).hostname,category:data.category??'Другое',image:safeImage(data.image,data.sourceUrl)??images[0]??'',images,price:data.price,currency:data.currency??'',country:data.country??country,boxedWeight:data.boxedWeight??estimatedBoxedWeight(data.category??'Другое'),weightBasis:data.boxedWeight===undefined?'estimate':'store',sourceShippingUsd:10,sourceShippingEstimated:true,variants:(data.variants??[]).map(v=>({id:v.id,label:v.label,size:v.size,sizeLabel:v.sizeLabel,color:v.color,available:v.available,...(v.availabilityKnown===undefined?{}:{availabilityKnown:v.availabilityKnown}),price:v.price,image:safeImage(v.image,data.sourceUrl)})),collectionIds,description:'',checkedAt:now,warnings:data.warnings,soldOut:Boolean(data.variants?.length&&!data.variants.some(v=>v.available))});
+ // The store's own "before the discount" price is kept only when it is really above the price; display only.
+ const referencePrice=typeof data.referencePrice==='number'&&Number.isFinite(data.referencePrice)&&typeof data.price==='number'&&data.referencePrice>data.price?data.referencePrice:undefined;
+ return catalogDraftSchema.parse({sourceUrl:canonicalCatalogUrl(data.sourceUrl),name:data.title??'',brand:data.brand??new URL(data.sourceUrl).hostname,category:data.category??'Другое',image:safeImage(data.image,data.sourceUrl)??images[0]??'',images,price:data.price,currency:data.currency??'',referencePrice,country:data.country??country,boxedWeight:data.boxedWeight??estimatedBoxedWeight(data.category??'Другое'),weightBasis:data.boxedWeight===undefined?'estimate':'store',sourceShippingUsd:10,sourceShippingEstimated:true,variants:(data.variants??[]).map(v=>({id:v.id,label:v.label,size:v.size,sizeLabel:v.sizeLabel,color:v.color,available:v.available,...(v.availabilityKnown===undefined?{}:{availabilityKnown:v.availabilityKnown}),price:v.price,image:safeImage(v.image,data.sourceUrl)})),collectionIds,description:'',checkedAt:now,warnings:data.warnings,soldOut:Boolean(data.variants?.length&&!data.variants.some(v=>v.available))});
 }
 
 /** Keep a supported merchant link reviewable when its public importer is blocked. */
@@ -197,7 +203,9 @@ export function catalogIssues(draft:CatalogDraft,now=Date.now(),rates=tariff.rat
   if(draft.variants.some(variant=>variant.availabilityKnown===false))issues.push('Наличие не подтверждено магазином');
   if(draft.lastCheckError)issues.push('Ошибка проверки магазина');
   if(draft.reviewReasons?.length)issues.push(...draft.reviewReasons);
-  if(!draft.checkedAt||draft.checkedAt>now||now-draft.checkedAt>=catalogLifetime)issues.push('Обновите источник');
+  // The operator's own stock confirmation keeps a card current for one lifetime; the price keeps its own date (checkedAt).
+  const confirmedFresh=draft.confirmedAt!==undefined&&draft.confirmedAt<=now&&now-draft.confirmedAt<catalogLifetime;
+  if(!draft.checkedAt||draft.checkedAt>now||(now-draft.checkedAt>=catalogLifetime&&!confirmedFresh))issues.push('Обновите источник');
   return issues;
 }
 
@@ -214,7 +222,8 @@ export function recheckedDraft(previous:CatalogDraft,fresh:CatalogDraft){
   const storeWeight=fresh.weightBasis==='store'&&(previous.weightBasis==='store'||previous.weightBasis==='estimate');
   if(fresh.weightBasis==='store'&&fresh.boxedWeight!==previous.boxedWeight)reasons.push(`Вес магазина: ${previous.boxedWeight} → ${fresh.boxedWeight} кг${storeWeight?'':' (оставлен вес редактора)'}`);
   const image=previous.image||fresh.image,images=previous.images.length?previous.images:fresh.images;
-  return catalogDraftSchema.parse({...fresh,name,brand:previous.brand||fresh.brand,category:previous.category,country:previous.country||fresh.country,image,images,boxedWeight:storeWeight?fresh.boxedWeight:previous.boxedWeight,weightBasis:storeWeight?'store':previous.weightBasis,referencePrice:previous.referencePrice,sourceShippingUsd:previous.sourceShippingUsd??10,sourceShippingEstimated:previous.sourceShippingEstimated??true,description:previous.description,collectionIds:previous.collectionIds,reviewReasons:reasons,lastCheckError:undefined});
+  // A fresh store answer outranks the operator's own stock confirmation, so confirmedBy/confirmedAt are not carried over.
+  return catalogDraftSchema.parse({...fresh,name,brand:previous.brand||fresh.brand,category:previous.category,country:previous.country||fresh.country,image,images,boxedWeight:storeWeight?fresh.boxedWeight:previous.boxedWeight,weightBasis:storeWeight?'store':previous.weightBasis,referencePrice:fresh.referencePrice??previous.referencePrice,sourceShippingUsd:previous.sourceShippingUsd??10,sourceShippingEstimated:previous.sourceShippingEstimated??true,description:previous.description,collectionIds:previous.collectionIds,rank:previous.rank,reviewReasons:reasons,lastCheckError:undefined,confirmedBy:undefined,confirmedAt:undefined});
 }
 
 export function catalogRefreshDueAt(entry:CatalogEntry){
@@ -359,7 +368,7 @@ export function publicCatalog(document:CatalogDocument,pricing:Pricing,now=Date.
     const hasRecordedPrice=typeof d.price==='number'&&d.price>0&&Boolean(pricing.rates[d.currency]);
     const recordedUsd=hasRecordedPrice?toUsd(d.price!,d.currency,pricing.rates):undefined;
     const sourceShippingUsd=d.sourceShippingUsd??10,sourceShippingEstimated=d.sourceShippingEstimated??true;
-    return [{id:entry.id,name:d.name,brand:d.brand,category:d.category,store:new URL(d.sourceUrl).hostname.replace(/^www\./,''),observedOn:new Date(d.checkedAt).toISOString().slice(0,10),usd:recordedUsd??1,sourcePrice:hasRecordedPrice?d.price:undefined,sourceCurrency:hasRecordedPrice?d.currency:undefined,referenceUsd:!priceNeedsConfirmation&&d.referencePrice&&d.referencePrice>d.price!?toUsd(d.referencePrice,d.currency,pricing.rates):undefined,image:sourceImages[0]??'',sourceImages,sourceVariants,sourceUrl:d.sourceUrl,description:cleanGeneratedCatalogDescription(d.description),country:d.country,boxedWeight:d.boxedWeight,weight:paddedWeight(d.boxedWeight),variants:priceNeedsConfirmation?['Уточнить вариант в магазине']:variants.length?variants:['Уточнить вариант в магазине'],sourceShipping:sourceShippingUsd,sourceShippingUsd,sourceShippingCurrency:'USD',sourceShippingEstimated,shippingKnown:!sourceShippingEstimated,sourceExpiresAt:d.checkedAt+catalogLifetime,collectionIds:d.collectionIds,priceNeedsConfirmation,...(entry.publishedAt??entry.createdAt?{addedAt:entry.publishedAt??entry.createdAt}:{})}];
+    return [{id:entry.id,name:d.name,brand:d.brand,category:d.category,store:new URL(d.sourceUrl).hostname.replace(/^www\./,''),observedOn:new Date(d.checkedAt).toISOString().slice(0,10),usd:recordedUsd??1,sourcePrice:hasRecordedPrice?d.price:undefined,sourceCurrency:hasRecordedPrice?d.currency:undefined,referenceUsd:!priceNeedsConfirmation&&d.referencePrice&&d.referencePrice>d.price!?toUsd(d.referencePrice,d.currency,pricing.rates):undefined,image:sourceImages[0]??'',sourceImages,sourceVariants,sourceUrl:d.sourceUrl,description:cleanGeneratedCatalogDescription(d.description),country:d.country,boxedWeight:d.boxedWeight,weight:paddedWeight(d.boxedWeight),variants:priceNeedsConfirmation?['Уточнить вариант в магазине']:variants.length?variants:['Уточнить вариант в магазине'],sourceShipping:sourceShippingUsd,sourceShippingUsd,sourceShippingCurrency:'USD',sourceShippingEstimated,shippingKnown:!sourceShippingEstimated,sourceExpiresAt:Math.max(d.checkedAt,d.confirmedAt??0)+catalogLifetime,sourceCheckedAt:d.checkedAt,collectionIds:d.collectionIds,priceNeedsConfirmation,...(entry.publishedAt??entry.createdAt?{addedAt:entry.publishedAt??entry.createdAt}:{}),...(d.rank===undefined?{}:{rank:d.rank}),...(d.confirmedAt===undefined?{}:{confirmedAt:d.confirmedAt})}];
   });
   const collections=document.collections.filter(c=>c.visible).sort((a,b)=>a.position-b.position).map(c=>({...c,productIds:products.filter(p=>p.collectionIds?.includes(c.id)).map(p=>p.id)})).filter(c=>c.productIds.length);
   return {products,collections};
@@ -368,9 +377,26 @@ export function publicCatalog(document:CatalogDocument,pricing:Pricing,now=Date.
 export type CatalogCommand=
   |{kind:'edit';id:string;draft:CatalogDraft}
   |{kind:'publish';ids:string[]}
+  /** The operator confirmed stock themselves (for example by opening the store page) and publishes without a store response. */
+  |{kind:'confirm';ids:string[]}
   |{kind:'hide';ids:string[]}
   |{kind:'delete-drafts';ids:string[]}
   |{kind:'collection';collection:CatalogCollection};
+
+/**
+ * The operator's own stock confirmation: every listed option becomes a known stock state and the check
+ * errors are cleared. The price was not re-read, so `checkedAt` (the date of the price) stays as it was:
+ * `catalogIssues` treats the card as current for one lifetime from `confirmedAt`, and the storefront keeps
+ * printing the price with its date. Publication still has to pass the same review as `publish`, so a
+ * card without a price or a photo stays unpublished.
+ */
+function confirmedDraft(draft:CatalogDraft,now:number):CatalogDraft{
+  return catalogDraftSchema.parse({
+    ...draft,soldOut:false,reviewReasons:[],lastCheckError:undefined,importFailureReason:undefined,
+    variants:draft.variants.map(variant=>({...variant,available:variant.available!==false,availabilityKnown:true})),
+    confirmedBy:'operator',confirmedAt:now,
+  });
+}
 export function changeCatalog(current:CatalogDocument,command:CatalogCommand,now=Date.now(),pricing:Pricing=tariff):CatalogDocument{
   const next=structuredClone(current);
   if(command.kind==='collection'){
@@ -381,12 +407,16 @@ export function changeCatalog(current:CatalogDocument,command:CatalogCommand,now
     const draft=catalogDraftSchema.parse(command.draft);
     // Source identity and observation time come only from server imports.
     draft.sourceUrl=entry.draft.sourceUrl;draft.checkedAt=entry.draft.checkedAt;draft.soldOut=entry.draft.soldOut;draft.reviewReasons=[];draft.lastCheckError=undefined;
+    // The operator's stock confirmation is server-recorded too: an edit neither grants nor removes it.
+    draft.confirmedBy=entry.draft.confirmedBy;draft.confirmedAt=entry.draft.confirmedAt;
     // Weight provenance is server-owned: a changed weight is the operator's and outranks later store refreshes.
     draft.weightBasis=draft.boxedWeight!==entry.draft.boxedWeight?'operator':entry.draft.weightBasis;
     draft.image=safeImage(draft.image,draft.sourceUrl)??'';
     draft.images=draft.images.map(i=>safeImage(i,draft.sourceUrl)).filter((i):i is string=>!!i);
     if(draft.collectionIds.some(id=>!next.collections.some(c=>c.id===id)))throw Error('Подборка не найдена');
     entry.draft=draft;
+    // The showcase position is ordering, not a claim about the product, so a published card takes it at once.
+    if(entry.published){if(draft.rank===undefined)delete entry.published.rank;else entry.published.rank=draft.rank}
   }else if(command.kind==='delete-drafts'){
     const ids=[...new Set(command.ids)];
     for(const id of ids){
@@ -401,9 +431,12 @@ export function changeCatalog(current:CatalogDocument,command:CatalogCommand,now
       const entry=next.entries.find(e=>e.id===id);if(!entry)throw Error('Товар не найден');
       // A manual hide outranks an earlier auto-hide, so the scheduler stops watching the card.
       if(command.kind==='hide'){delete entry.published;delete entry.publishedAt;delete entry.autoHiddenAt;delete entry.autoHideReason;entry.queueState='archived';next.availabilityReports=next.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:now}:report);continue}
-      const issues=catalogIssues(entry.draft,now,pricing.rates);
-      if(issues.length)throw Error(`${entry.draft.name||'Товар'}: ${issues.join(', ')}`);
-      entry.published=structuredClone(entry.draft);entry.publishedAt=now;entry.queueState='published';delete entry.autoHiddenAt;delete entry.autoHideReason;
+      const draft=command.kind==='confirm'?confirmedDraft(entry.draft,now):entry.draft;
+      const issues=catalogIssues(draft,now,pricing.rates);
+      if(issues.length)throw Error(`${draft.name||'Товар'}: ${issues.join(', ')}`);
+      entry.draft=draft;
+      entry.published=structuredClone(draft);entry.publishedAt=now;entry.queueState='published';delete entry.autoHiddenAt;delete entry.autoHideReason;
+      if(command.kind==='confirm')resolveAvailabilityReports(next,id,now);
     }
   }
   next.revision++;return catalogDocumentSchema.parse(next);
