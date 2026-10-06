@@ -27,15 +27,15 @@ html[data-theme="dark"] .login-tabs button{color:var(--night-muted)}
 html[data-theme="dark"] .login-tabs button.active{background:var(--night-hover);color:var(--night-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
 @media(max-width:600px){.login-card{margin:16px 0 36px}}
 /* Telegram bot sign-in: one wide Telegram-blue button that opens the app. */
-.btn.tg-login{width:100%;min-height:52px;border-radius:12px;background:#2aabee;border-color:#2aabee;color:#fff;font-size:16px;font-weight:600;gap:10px}
-.btn.tg-login:hover{background:#1d97d6;border-color:#1d97d6}
+.btn.tg-login{width:100%;min-height:52px;border-radius:12px;background:#1679bf;border-color:#1679bf;color:#fff;font-size:16px;font-weight:600;gap:10px}
+.btn.tg-login:hover{background:#1468a8;border-color:#1468a8}
 .btn.tg-login.is-busy{opacity:.7;cursor:progress}
 .tg-login-wait{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:#eaf6fd;color:#1f5f80;font-size:14px;line-height:1.5}
 .tg-login-wait svg{flex-shrink:0;margin-top:2px}
 .tg-login-web{align-self:center;font-size:13px}
 html[data-theme="dark"] .tg-login-wait{background:#12303f;color:#bfe3f6}
 /* Sign-in methods: Telegram first, then "or" and one full-width button per method, spaced, never in one cramped row. */
-.login-or{display:flex;align-items:center;gap:12px;margin:2px 0;color:#7a8a82;font-size:13px}
+.login-or{display:flex;align-items:center;gap:12px;margin:2px 0;color:#64746c;font-size:13px}
 .login-or::before,.login-or::after{content:"";flex:1;height:1px;background:#e1e7e4}
 .login-choices{display:grid;gap:10px}
 .btn.login-choice{width:100%;min-height:52px;border-radius:12px;justify-content:center;gap:10px;font-size:15px;font-weight:600}
@@ -43,5 +43,5 @@ html[data-theme="dark"] .tg-login-wait{background:#12303f;color:#bfe3f6}
 .login-back{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;min-height:40px}
 html[data-theme="dark"] .login-or{color:var(--night-muted)}
 html[data-theme="dark"] .login-or::before,html[data-theme="dark"] .login-or::after{background:var(--night-line)}
-.tg-login-hint{margin-top:-4px;color:#6b7a73;font-size:13px;line-height:1.45;text-align:center}
+.tg-login-hint{margin-top:-4px;color:#64746c;font-size:13px;line-height:1.45;text-align:center}
 html[data-theme="dark"] .tg-login-hint{color:var(--night-muted)}
