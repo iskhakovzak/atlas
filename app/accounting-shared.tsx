@@ -1,6 +1,7 @@
 'use client';
 
 import {useEffect,useId,useState,type ReactNode} from 'react';
+import type {LucideIcon} from 'lucide-react';
 import {formatSum} from '@/lib/market/home-copy';
 import {Modal} from './market-ui';
 import {ledgerKinds,type AccountingSettings,type LedgerKind,type MonthSummary,type Obligations,type OrderFinance,type YearSummary} from '@/lib/market/finance';
@@ -49,6 +50,16 @@ export function KindSelect({value,onChange,kinds,allowEmpty=false,label='Вид'
  </select></label>;
 }
 export function Badge({tone='neutral',children}:{tone?:'neutral'|'ok'|'warn'|'error'|'auto'|'bank';children:ReactNode}){return <span className={`acc-badge acc-badge-${tone}${tone==='bank'?' acc-badge-auto':''}`}>{children}</span>}
+/** A KPI card: a muted label with an optional icon, the value in one line, a one-line note pinned to the bottom (hover shows the full text). */
+export function Kpi({label,value,note,icon:Icon,loss=false}:{label:ReactNode;value:ReactNode;note?:ReactNode;icon?:LucideIcon;loss?:boolean}){
+ return <article className={loss?'acc-kpi loss':'acc-kpi'}>
+  <span className="acc-kpi-label"><span>{label}</span>{Icon&&<Icon size={18} aria-hidden="true"/>}</span>
+  <strong>{value}</strong>
+  {note!==undefined&&note!==''&&<small title={typeof note==='string'?note:undefined}>{note}</small>}
+ </article>;
+}
+/** A label/value fact in an even grid (.acc-facts): the month summary, the income breakdown. */
+export function Fact({label,children}:{label:ReactNode;children:ReactNode}){return <div className="acc-fact"><dt>{label}</dt><dd>{children}</dd></div>}
 export function Status({children}:{children:ReactNode}){return <p className="micro acc-status" role="status">{children}</p>}
 export function Alert({children}:{children:ReactNode}){return <p className="notice error" role="alert">{children}</p>}
 

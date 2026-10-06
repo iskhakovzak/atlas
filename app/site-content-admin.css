@@ -1,0 +1,109 @@
+/* Admin → «Контент сайта» (app/site-content-admin.tsx). Every block is a card of the shared admin system:
+   radius 14, 1px line, 16px inside (12 on phones), header «icon 18px + h3 16/700» on one line, 13px note.
+   Fields sit in a repeat(auto-fit, minmax(220px, 1fr)) grid; ru/uz/en triples take three equal columns.
+   The toolbar with the revision and Save/Cancel is sticky at the top of the form and repeated at the bottom.
+   Light rules under html:not([data-theme="dark"]), night rules under html[data-theme="dark"]. */
+
+.site-content-admin { --sc-gap: 16px; --sc-radius: 14px; }
+.site-content-admin .sc-head { margin-bottom: 24px; }
+.site-content-admin .sc-head h2 { margin: 0; font-size: 20px; line-height: 1.25; font-weight: 700; }
+.site-content-admin .sc-head p { margin: 6px 0 0; max-width: 70ch; font-size: 14px; line-height: 1.5; color: var(--day-muted, #58635c); }
+
+.sc-form { display: grid; gap: 24px; min-width: 0; }
+
+/* ---------- Toolbar: revision + actions ---------- */
+.sc-toolbar {
+  position: sticky; top: 12px; z-index: 5;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px;
+  padding: 12px 16px; border: 1px solid var(--day-line, #e2e2da); border-radius: var(--sc-radius);
+  background: var(--day-surface, #fff); box-shadow: var(--day-shadow, 0 1px 2px rgba(22, 33, 28, .04), 0 6px 18px rgba(22, 33, 28, .05));
+}
+.sc-toolbar-bottom { position: static; }
+.sc-revision { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; font-size: 13px; font-weight: 500; color: var(--day-muted, #58635c); font-variant-numeric: tabular-nums; }
+.sc-dirty { display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 999px; background: var(--day-warn-bg, #fff4dd); color: var(--day-warn, #8a5a00); font-size: 12px; font-weight: 600; }
+.sc-toolbar-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.sc-toolbar .btn { margin: 0; width: auto; min-height: 40px; padding: 8px 16px; border-radius: 10px; font-size: 14px; white-space: nowrap; }
+.sc-footnote { flex: 1 0 100%; margin: 4px 0 0; max-width: 70ch; font-size: 12px; line-height: 1.5; color: var(--day-muted, #58635c); }
+
+/* ---------- Cards ---------- */
+.sc-card {
+  display: flex; flex-direction: column; gap: var(--sc-gap); min-width: 0; margin: 0;
+  padding: var(--sc-gap); border: 1px solid var(--day-line, #e2e2da); border-radius: var(--sc-radius);
+  background: var(--day-surface, #fff); box-shadow: var(--day-shadow, 0 1px 2px rgba(22, 33, 28, .04), 0 6px 18px rgba(22, 33, 28, .05));
+}
+.sc-card-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.sc-card-head svg { flex: 0 0 18px; width: 18px; height: 18px; color: var(--day-ok, #1d6b47); }
+.sc-card-head h3 { margin: 0; font-size: 16px; line-height: 1.3; font-weight: 700; }
+.sc-count { margin-left: auto; display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; background: var(--day-soft, #efefe9); color: var(--day-muted, #58635c); font-size: 12px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sc-card-note { margin: -6px 0 0; max-width: 70ch; font-size: 13px; line-height: 1.5; color: var(--day-muted, #58635c); }
+.sc-card-note-warn { display: flex; align-items: flex-start; gap: 8px; max-width: none; padding: 10px 12px; border-radius: 10px; background: var(--day-warn-bg, #fff4dd); color: var(--day-warn, #8a5a00); }
+.sc-card-note-warn svg { flex: 0 0 14px; margin-top: 2px; }
+.sc-card-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sc-card-actions .btn, .sc-item-delete.btn { margin: 0; width: auto; flex: 0 0 auto; gap: 6px; min-height: 40px; padding: 8px 14px; border-radius: 10px; font-size: 14px; white-space: nowrap; }
+
+/* ---------- Field grid ---------- */
+.sc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; min-width: 0; }
+.sc-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sc-field { display: grid; grid-template-rows: auto 1fr auto; gap: 6px; margin: 0; max-width: none; min-width: 0; }
+.sc-field-wide { grid-column: 1 / -1; }
+.sc-field label { margin: 0; font-size: 13px; font-weight: 600; line-height: 1.35; color: var(--day-ink, #16211c); }
+.sc-field input, .sc-field textarea { width: 100%; min-height: 40px; padding: 8px 12px; border-radius: 10px; font-size: 14px; line-height: 1.4; }
+.sc-field textarea { min-height: 88px; resize: vertical; }
+.sc-counter, .sc-hint { display: block; margin: 0; font-size: 12px; line-height: 1.4; color: var(--day-muted, #58635c); font-variant-numeric: tabular-nums; }
+.sc-counter { text-align: right; }
+
+/* ---------- Payment chips ---------- */
+.sc-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.sc-chip {
+  position: relative; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 999px; cursor: pointer; user-select: none;
+  border: 1px solid var(--day-line, #e2e2da); background: var(--day-surface, #fff); color: var(--day-ink, #16211c); font-size: 13px; font-weight: 600; white-space: nowrap;
+}
+.site-content-admin .sc-chip input { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.sc-chip.checked { border-color: var(--day-ok, #1d6b47); background: var(--day-tint, #e8f1ea); color: var(--day-ok, #1d6b47); }
+.sc-chip:has(input:focus-visible) { outline: 2px solid var(--day-ok, #1d6b47); outline-offset: 2px; }
+.sc-chip svg { flex: 0 0 14px; }
+
+/* ---------- List items (reviews, photos) ---------- */
+.sc-items { display: grid; gap: 12px; }
+.sc-item { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 12px; border: 1px solid var(--day-line, #e2e2da); border-radius: 12px; background: var(--day-soft, #efefe9); }
+.sc-item-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sc-item-head h4 { margin: 0; font-size: 14px; font-weight: 700; line-height: 1.3; }
+.sc-item .sc-field input, .sc-item .sc-field textarea { background: var(--day-surface, #fff); }
+.sc-check { display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: 14px; font-weight: 500; cursor: pointer; }
+.sc-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--day-ok, #1d6b47); flex: 0 0 18px; }
+
+/* ---------- Validation list ---------- */
+.sc-issues { margin: 0; padding: 12px 16px; border: 1px solid #f5cfcf; border-radius: var(--sc-radius); background: #fdeaea; color: #9b2c2c; font-size: 13px; line-height: 1.5; }
+.sc-issues ul { margin: 6px 0 0; padding-left: 18px; }
+
+/* ---------- Night ---------- */
+html[data-theme="dark"] .site-content-admin .sc-head p,
+html[data-theme="dark"] .sc-revision, html[data-theme="dark"] .sc-footnote, html[data-theme="dark"] .sc-card-note,
+html[data-theme="dark"] .sc-counter, html[data-theme="dark"] .sc-hint { color: var(--night-muted, #9ba6a0); }
+html[data-theme="dark"] .sc-toolbar, html[data-theme="dark"] .sc-card { border-color: var(--night-line, rgba(226, 238, 231, .085)); background: var(--night-surface, #111714); box-shadow: var(--night-shadow, none); }
+html[data-theme="dark"] .sc-card-head svg { color: var(--night-jade, #80d0ac); }
+html[data-theme="dark"] .sc-card-head h3, html[data-theme="dark"] .sc-item-head h4, html[data-theme="dark"] .sc-field label, html[data-theme="dark"] .sc-check { color: var(--night-ink, #f1eee5); }
+html[data-theme="dark"] .sc-count { background: var(--night-raised, #161d19); color: var(--night-muted, #9ba6a0); }
+html[data-theme="dark"] .sc-dirty, html[data-theme="dark"] .sc-card-note-warn { background: var(--night-warn-bg, rgba(232, 189, 112, .09)); color: var(--night-warn-ink, #e8bd70); }
+html[data-theme="dark"] .sc-chip { border-color: var(--night-line-strong, rgba(226, 238, 231, .15)); background: var(--night-raised, #161d19); color: var(--night-ink, #f1eee5); }
+html[data-theme="dark"] .sc-chip.checked { border-color: var(--night-jade-strong, #4fb98b); background: var(--night-jade-soft-strong, rgba(128, 208, 172, .17)); color: var(--night-jade, #80d0ac); }
+html[data-theme="dark"] .sc-chip:has(input:focus-visible) { outline-color: var(--night-jade, #80d0ac); }
+html[data-theme="dark"] .sc-item { border-color: var(--night-line, rgba(226, 238, 231, .085)); background: var(--night-inset, #0d1210); }
+html[data-theme="dark"] .sc-item .sc-field input, html[data-theme="dark"] .sc-item .sc-field textarea { background: var(--night-surface, #111714); }
+html[data-theme="dark"] .sc-check input { accent-color: var(--night-jade, #80d0ac); }
+html[data-theme="dark"] .sc-issues { border-color: var(--night-error-line, rgba(240, 152, 141, .32)); background: var(--night-error-bg, rgba(240, 152, 141, .09)); color: var(--night-error-ink, #f0988d); }
+
+/* ---------- Phone ---------- */
+@media (max-width: 720px) {
+  .sc-grid-3 { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .site-content-admin { --sc-gap: 12px; }
+  .sc-form { gap: 16px; }
+  .sc-toolbar { top: 8px; padding: 10px 12px; }
+  .sc-toolbar-actions { width: 100%; margin-left: 0; }
+  .sc-toolbar .btn { flex: 1 1 auto; }
+  .site-content-admin .sc-head { margin-bottom: 16px; }
+  .sc-card-note { margin-top: -2px; }
+  .sc-item-head { flex-wrap: wrap; }
+}

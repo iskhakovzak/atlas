@@ -282,7 +282,7 @@ export function pricingSnapshot(pricing: Pricing): PricingSnapshot {
 }
 
 // ---------- Tabs ----------
-export const adminTabIds = ["overview", "catalog", "content", "customers", "support", "finance", "pricing", "staff", "rules", "system", "audit"] as const;
+export const adminTabIds = ["overview", "catalog", "content", "customers", "support", "finance", "investor", "pricing", "staff", "rules", "system", "audit"] as const;
 export type AdminTabId = typeof adminTabIds[number];
 export function isAdminTab(value: unknown): value is AdminTabId { return typeof value === "string" && (adminTabIds as readonly string[]).includes(value); }
 /** The tab from `?tab=`; unknown or missing → "overview". */

@@ -34,19 +34,19 @@ export function AdminTeam({data,userEmail,copy,onChanged}:{data:AdminData;userEm
    <label className="field"><span>Статус</span><select value={status} onChange={event=>setStatus(event.target.value)}><option value="all">Все статусы</option><option value="active">Активен</option><option value="invited">Приглашён</option><option value="disabled">Отключён</option></select></label>
    <p className="micro admin-filter-count">{rows.length} из {data.staff.length}</p>
   </div>
-  <div className="admin-scroll"><table className="admin-grid"><thead><tr><th>Сотрудник</th><th>Роль</th><th>Статус</th><th>Последний вход</th><th>Обновлён</th><th><span className="sr-only">Действия</span></th></tr></thead><tbody>
+  <div className="admin-scroll"><table className="admin-grid"><thead><tr><th>Сотрудник</th><th>Роль</th><th>Статус</th><th>Последний вход</th><th className="num">Обновлён</th><th className="num"><span className="sr-only">Действия</span></th></tr></thead><tbody>
    {rows.map(member=>{const last=data.staffSignIns?.[member.email];const self=member.email===userEmail.toLowerCase();return <tr key={member.id}>
     <td><button type="button" className="admin-link" onClick={()=>setForm({email:member.email,displayName:member.displayName,role:member.role,status:member.status})}><b>{member.displayName}</b><small>{member.email}{self?' · это вы':''}</small></button></td>
     <td>{roleLabels[member.role]}</td>
     <td><i className={`staff-status ${member.status}`}>{staffStatusLabels[member.status]}</i></td>
     <td>{last?<span title={dateTime(last)}>{ago(last)}</span>:<span className="micro">не входил</span>}</td>
-    <td>{dateTime(member.updatedAt)}</td>
-    <td>{member.status!=='disabled'&&!self&&<button type="button" className="btn secondary admin-btn-small" disabled={busy} onClick={()=>{setDeactivate(member);setReason('')}}><UserX size={15}/>Отключить</button>}</td>
+    <td className="num">{dateTime(member.updatedAt)}</td>
+    <td className="num admin-cell-control">{member.status!=='disabled'&&!self&&<button type="button" className="btn secondary admin-btn-small" disabled={busy} onClick={()=>{setDeactivate(member);setReason('')}}><UserX size={15}/>Отключить</button>}</td>
    </tr>})}
    {!rows.length&&<tr><td colSpan={6} className="micro">Никого не найдено.</td></tr>}
   </tbody></table></div>
   <h3 className="admin-subhead"><ShieldCheck size={17} aria-hidden="true"/> {copy.rolesTitle}</h3>
-  <div className="admin-scroll"><table className="admin-grid admin-rights"><thead><tr><th>Право</th>{staffRoles.map(value=><th key={value}>{roleLabels[value]}</th>)}</tr></thead><tbody>
+  <div className="admin-scroll"><table className="admin-grid admin-rights"><thead><tr><th>Право</th>{staffRoles.map(value=><th key={value} className="center">{roleLabels[value]}</th>)}</tr></thead><tbody>
    {permissions.map(permission=><tr key={permission}><td><b>{permissionLabels[permission]}</b><small>{permission}</small></td>{staffRoles.map(value=><td key={value} className="center">{rolePermissions[value].includes(permission)?<span aria-label="есть">✓</span>:<span className="micro" aria-label="нет">—</span>}</td>)}</tr>)}
   </tbody></table></div>
   <p className="micro">Поддержка переводит клиента на проверку и обратно; блокирует только администратор. Права меняются в коде (lib/market/access.ts), не здесь.</p>

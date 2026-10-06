@@ -4,7 +4,8 @@ import { actionSchema, applyAction } from "@/lib/market/actions";
 import { normalizePricing, pricingRevision, pricingSchema, validateServiceCatalog } from "@/lib/market/domain";
 import { policySchema } from "@/lib/market/policy";
 import { canPerformAction, customerStatusAllowed, hasPermission, hasStaffAccess, operationsKindPermissions, operationsQueryPermissions, operatorActionTypes, type Permission } from "@/lib/market/access";
-import { addCustomerNote, auditExport, auditFacets, auditPage, customerNotes, dashboardFor, disableStaffMember, saveAdminSettings, staffLastSignIns, systemStatus } from "@/lib/market/admin-server";
+import { addCustomerNote, auditExport, auditFacets, auditPage, customerNotes, dashboardFor, disableStaffMember, investorSnapshot, saveAdminSettings, staffLastSignIns, systemStatus } from "@/lib/market/admin-server";
+import { investorCsv, investorPeriods, investorReport } from "@/lib/market/investor-metrics";
 import { adminSettingsSchema, auditCsv, customerRow, customersCsv, dayEnd, dayStart, staffDeactivationError } from "@/lib/market/admin-dashboard";
 import { orderPayable } from "@/lib/market/domain";
 import {
@@ -101,7 +102,7 @@ const csv=(body:string,filename:string)=>new Response(body,{headers:{'Content-Ty
 /** Query sections of GET: each one only for its right, each answers alone (no account documents in these responses). */
 async function querySection(request:Request,user:{userId:string;email:string},access:Awaited<ReturnType<typeof accessFor>>){
   const params=new URL(request.url).searchParams;
-  const section=['audit','customers','customer','system'].find(name=>params.has(name));
+  const section=['audit','customers','customer','system','investor'].find(name=>params.has(name));
   if(!section)return null;
   assertPermission(access,operationsQueryPermissions[section]);
   if(section==='audit'){
@@ -123,6 +124,18 @@ async function querySection(request:Request,user:{userId:string;email:string},ac
     const tickets=account.state.supportTickets.map(ticket=>({id:ticket.id,subject:ticket.subject,status:ticket.status,updatedAt:ticket.updatedAt,replies:ticket.replies.length})).sort((a,b)=>b.updatedAt-a.updatedAt);
     const recipients=(account.state.deliveryProfiles??[]).map(profile=>({recipient:profile.recipient,city:profile.city??'',phone:profile.phone??''}));
     return json({customer:customerRow(account,status as 'active'|'review'|'blocked'),revision:account.revision,orders,tickets,notes,recipients,language:account.state.communication.language});
+  }
+  if(section==='investor'){
+    // The investor showcase: an anonymised snapshot (customers are c1, c2, …; no emails). `?investor=csv` exports the report for the chosen period and filters.
+    const snapshot=await investorSnapshot();
+    if(params.get('investor')==='csv'){
+      const period=(investorPeriods.find(item=>item.id===params.get('period'))?.id??'12m');
+      const filter={paidOnly:params.get('paid')==='1',excludeTest:params.get('test')!=='1'};
+      const report=investorReport(snapshot,period,filter);
+      await recordAudit(user,'investor.export','system',undefined,{period,...filter,orders:snapshot.orders.length});
+      return csv(investorCsv(report),`atlas-investor-${period}-${new Date().toISOString().slice(0,10)}.csv`);
+    }
+    return json({investor:snapshot});
   }
   return json({system:await systemStatus()});
 }

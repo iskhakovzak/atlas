@@ -31,6 +31,8 @@ import "./home-chapters.css";
 import "./tariffs.css";
 import "./orders-groups.css";
 import "./accounting.css";
+import "./admin-investor.css";
+import "./site-content-admin.css";
 import { MarketProvider } from "@/lib/market/store";
 import { initialPricing, initialSiteContent } from "@/lib/market/initial-data";
 import { StorageNotice } from "./storage-notice";

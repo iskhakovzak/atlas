@@ -2,7 +2,7 @@
 
 import {useMemo,useState} from 'react';
 import {CircleCheck,CircleX,Lock,LockOpen,TriangleAlert} from 'lucide-react';
-import {Amount,ConfirmDialog,currencies,dateTime,money,post,type AccountingContext} from './accounting-shared';
+import {Amount,ConfirmDialog,currencies,dateTime,Fact,money,post,type AccountingContext} from './accounting-shared';
 import {clientReconcile,closingChecklist,monthLabel,normalizeClosings,normalizeIssues,previousMonth,sortIssues,todayTashkent} from './accounting-helpers';
 
 /** Закрытие: the checklist, close / reopen with a reason (reopen is for the administrator), the history and the ledger fx rates. */
@@ -43,13 +43,15 @@ export function AccountingClosing({ctx}:{ctx:AccountingContext}){
 
   <div className="acc-block">
    <div className="acc-block-head"><h4>Итог месяца к закрытию</h4></div>
-   <dl className="acc-details acc-details-inline">
-    <div><dt>Доход Atlas</dt><dd><Amount value={books.summary.income.total}/></dd></div>
-    <div><dt>Расходы</dt><dd><Amount value={-books.summary.expenses.total}/></dd></div>
-    <div><dt>Прибыль до налога</dt><dd><Amount value={books.summary.profit}/></dd></div>
-    <div><dt>Налог ({Math.round(books.summary.taxRate*1000)/10} %, ориентир)</dt><dd><Amount value={books.summary.tax}/></dd></div>
-    <div><dt>Чистая прибыль</dt><dd><Amount value={books.summary.net}/></dd></div>
-    <div><dt>Записей журнала</dt><dd>{books.entries.filter(entry=>!entry.voidedAt).length} действующих, {books.entries.filter(entry=>entry.voidedAt).length} аннулированных</dd></div>
+   <dl className="acc-facts">
+    <Fact label="Доход Atlas"><Amount value={books.summary.income.total}/></Fact>
+    <Fact label="Расходы"><Amount value={-books.summary.expenses.total}/></Fact>
+    <Fact label="Прибыль до налога"><Amount value={books.summary.profit}/></Fact>
+    <Fact label={`Налог ${Math.round(books.summary.taxRate*1000)/10} %, ориентир`}><Amount value={books.summary.tax}/></Fact>
+    <Fact label="Чистая прибыль"><Amount value={books.summary.net}/></Fact>
+    <Fact label="Записей действует">{books.entries.filter(entry=>!entry.voidedAt).length}</Fact>
+    <Fact label="Записей аннулировано">{books.entries.filter(entry=>entry.voidedAt).length}</Fact>
+    <Fact label="Оплаченных заказов">{books.summary.orders}</Fact>
    </dl>
   </div>
 
@@ -62,12 +64,12 @@ export function AccountingClosing({ctx}:{ctx:AccountingContext}){
   <div className="acc-block">
    <div className="acc-block-head"><h4>Курсы для журнала</h4><span className="micro">сум за 1 единицу валюты</span></div>
    <div className="acc-rates">
-    <span className="acc-rate-usd">USD {money(usdRate)}<small>из тарифа (ЦБ × наценка)</small></span>
+    <label className="field acc-inline"><span>USD</span><input value={money(usdRate)} readOnly aria-describedby="acc-rate-usd-hint"/></label>
     {currencies.filter(code=>code!=='USD').map(code=><label key={code} className="field acc-inline"><span>{code}</span><input inputMode="decimal" placeholder={fxRates?.[code]?String(fxRates[code]):'не задан'} value={rates[code]??''} disabled={!canWrite} onChange={event=>setRates({...rates,[code]:event.target.value.replace(/[^\d.,]/g,'')})}/></label>)}
     {canWrite&&<button type="button" className="btn secondary" disabled={busy||!Object.keys(rates).length} onClick={()=>void saveRates()}>Сохранить курсы</button>}
    </div>
    {ratesError&&<p className="notice error" role="alert">{ratesError}</p>}
-   <p className="micro">Курсы задаёт владелец вручную для пересчёта валютных записей в сумы; сверьте с банком и бухгалтером. Пустое поле убирает курс.</p>
+   <p className="micro" id="acc-rate-usd-hint">USD — из тарифа (ЦБ × наценка), не редактируется. Остальные курсы задаёт владелец вручную для пересчёта валютных записей в сумы; сверьте с банком и бухгалтером. Пустое поле убирает курс.</p>
   </div>
 
   <ConfirmDialog open={closing} title={`Закрыть ${monthLabel(month)}?`} description={`Записи журнала за ${month} и все более ранние месяцы станут неизменяемыми. Открыть заново сможет только администратор с указанием причины — она попадёт в аудит.`} confirmLabel="Закрыть месяц" busy={busy} onClose={()=>setClosing(false)}

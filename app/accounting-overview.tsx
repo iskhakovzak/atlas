@@ -1,9 +1,9 @@
 'use client';
 
 import {useMemo} from 'react';
-import {AlertTriangle,CircleAlert,Info} from 'lucide-react';
+import {AlertTriangle,CircleAlert,Info,Landmark,PiggyBank,Receipt,TrendingUp,Wallet} from 'lucide-react';
 import type {LedgerKind} from '@/lib/market/finance';
-import {Amount,money,Spark,type AccountingContext} from './accounting-shared';
+import {Amount,Fact,Kpi,money,Spark,type AccountingContext} from './accounting-shared';
 import {clientReconcile,moneyPositions,monthLabel,monthNamesShort,normalizeIssues,sortIssues,type ReconcileIssue} from './accounting-helpers';
 
 /** Обзор: the month's cards, twelve-month sparklines, money positions and the reconcile warnings. */
@@ -17,12 +17,22 @@ export function AccountingOverview({ctx,onOpenTab}:{ctx:AccountingContext;onOpen
  const expenseLines=Object.entries(s.expenses).filter(([key,value])=>key!=='total'&&(value as number)>0).sort((a,b)=>(b[1] as number)-(a[1] as number));
  return <div className="acc-tab-body">
   <div className="accounting-cards">
-   <article><span>Доход Atlas за {monthLabel(books.month)}</span><strong><Amount value={s.income.total}/></strong><small>Комиссия {money(s.income.commission)} · доставка {money(s.income.delivery)} · курс {money(s.income.fxGain)} · услуги {money(s.income.services)} · прочее {money(s.income.other)}</small></article>
-   <article><span>Расходы</span><strong><Amount value={-s.expenses.total}/></strong><small>{expenseLines.length?expenseLines.slice(0,4).map(([key,value])=>`${books.kinds[key as LedgerKind]?.ru}: ${money(value as number)}`).join('; ')+(expenseLines.length>4?'…':''):'Записей о расходах нет'}</small></article>
-   <article className={s.profit<0?'loss':undefined}><span>Прибыль до налога</span><strong><Amount value={s.profit}/></strong><small>{s.orders} оплаченных заказов (отметка в Atlas, не поступление денег)</small></article>
-   <article><span>Налог на прибыль, {Math.round(s.taxRate*1000)/10} %</span><strong><Amount value={s.tax}/></strong><small>Ориентир, сверьте с бухгалтером. Отмечено уплаченным: {money(s.taxPaid)}</small></article>
-   <article className={s.net<0?'loss':undefined}><span>Чистая прибыль</span><strong><Amount value={s.net}/></strong><small>Транзит: за товары начислено {money(s.transit.goodsCharged)}, приход по журналу {money(s.transit.in)}, расход {money(s.transit.out)}</small></article>
+   <Kpi icon={Wallet} label={`Доход Atlas за ${monthLabel(books.month)}`} value={<Amount value={s.income.total}/>} note="состав дохода — в таблице ниже"/>
+   <Kpi icon={Receipt} label="Расходы" value={<Amount value={-s.expenses.total}/>} note={expenseLines.length?expenseLines.map(([key,value])=>`${books.kinds[key as LedgerKind]?.ru}: ${money(value as number)}`).join('; '):'записей о расходах нет'}/>
+   <Kpi icon={TrendingUp} label="Прибыль до налога" value={<Amount value={s.profit}/>} loss={s.profit<0} note={`${s.orders} оплаченных заказов — отметка в Atlas`}/>
+   <Kpi icon={Landmark} label={`Налог на прибыль, ${Math.round(s.taxRate*1000)/10} %`} value={<Amount value={s.tax}/>} note={`ориентир · уплачено ${money(s.taxPaid)}`}/>
+   <Kpi icon={PiggyBank} label="Чистая прибыль" value={<Amount value={s.net}/>} loss={s.net<0} note="после налога-ориентира"/>
   </div>
+  <dl className="acc-facts" aria-label="Состав дохода и транзит месяца">
+   <Fact label="Комиссия"><Amount value={s.income.commission}/></Fact>
+   <Fact label="Международная доставка"><Amount value={s.income.delivery}/></Fact>
+   <Fact label="Курсовая наценка"><Amount value={s.income.fxGain}/></Fact>
+   <Fact label="Услуги"><Amount value={s.income.services}/></Fact>
+   <Fact label="Прочие доходы"><Amount value={s.income.other}/></Fact>
+   <Fact label="Транзит: начислено за товары"><Amount value={s.transit.goodsCharged}/></Fact>
+   <Fact label="Транзит: приход по журналу"><Amount value={s.transit.in}/></Fact>
+   <Fact label="Транзит: расход по журналу"><Amount value={s.transit.out}/></Fact>
+  </dl>
 
   {months.length?<div className="acc-sparks" aria-label={`Динамика за ${yearBooks?.year}`}>
    <Spark title="Доход Atlas" tone="income" labels={labels} values={months.map(m=>m.income.total)}/>
@@ -50,8 +60,8 @@ function IssueRow({issue,onOpenTab}:{issue:ReconcileIssue;onOpenTab:(tab:'ledger
  const Icon=issue.severity==='error'?CircleAlert:issue.severity==='warn'?AlertTriangle:Info;
  const target=issue.entryId?'ledger':issue.orderId?'orders':issue.code==='fx-missing'?'closing':issue.code==='tax-rate'?'taxes':null;
  return <li className={`acc-issue acc-issue-${issue.severity}`}>
-  <Icon size={16} aria-hidden="true"/>
-  <span><span className="sr-only">{issue.severity==='error'?'Ошибка: ':issue.severity==='warn'?'Предупреждение: ':'К сведению: '}</span>{issue.message}</span>
+  <Icon size={18} aria-hidden="true"/>
+  <div><b>{issue.severity==='error'?'Ошибка':issue.severity==='warn'?'Внимание':'К сведению'}</b><span>{issue.message}</span></div>
   {target&&<button type="button" className="text-button" onClick={()=>onOpenTab(target)}>{target==='ledger'?'К журналу':target==='orders'?'К заказам':target==='closing'?'К курсам':'К налогам'}</button>}
  </li>;
 }

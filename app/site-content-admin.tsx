@@ -1,6 +1,6 @@
 'use client';
 import {useCallback,useEffect,useId,useState,type FormEvent} from 'react';
-import {Globe2,ImagePlus,MessageSquareQuote,Plus,Trash2,TriangleAlert} from 'lucide-react';
+import {Building2,Check,CreditCard,Globe2,Hash,ImagePlus,MessageSquareQuote,Plus,Trash2,TriangleAlert} from 'lucide-react';
 import {toast} from 'sonner';
 import {useMarket} from '@/lib/market/store';
 import {paymentLabels,type PaymentMethod} from '@/lib/market/site-content';
@@ -109,71 +109,111 @@ export function SiteContentAdmin(){
   const reset=()=>{setForm(toForm(siteContent));setRevision(siteContent.revision);setIssues([]);setDirty(false)};
   const counter=(value:string)=>`${value.length}/${siteContentTextMax}`;
 
+  // One text field with its "n/500" counter under the right edge; `multiline` renders a textarea.
+  const textField=(fieldId:string,label:string,value:string,onChange:(value:string)=>void,options:{multiline?:boolean;max?:number;placeholder?:string;counter?:boolean}={})=>{
+    const max=options.max??siteContentTextMax;
+    return <div className="field sc-field" key={fieldId}>
+      <label htmlFor={fieldId}>{label}</label>
+      {options.multiline
+        ?<textarea id={fieldId} rows={3} value={value} maxLength={max} onChange={e=>onChange(e.target.value)}/>
+        :<input id={fieldId} value={value} maxLength={max} placeholder={options.placeholder} onChange={e=>onChange(e.target.value)}/>}
+      {options.counter!==false&&<small className="sc-counter">{counter(value)}</small>}
+    </div>;
+  };
+  const revisionLabel=`Ревизия ${revision}${updatedAt?` · ${new Date(updatedAt).toLocaleString('ru-RU')}`:''}`;
+  const paymentMethods=Object.keys(paymentLabels) as PaymentMethod[];
+
   return <section className="surface admin-section site-content-admin">
-    <div className="admin-section-head"><div><h2>Контент сайта</h2><p>Контакты, юрлицо, способы оплаты, отзывы и фото посылок на главной и в подвале. Заполняйте только проверенные данные: пустой блок на сайте не показывается, а выдуманный контакт или отзыв — это обман клиента.</p></div><span className="micro">Ревизия {revision}{updatedAt?` · ${new Date(updatedAt).toLocaleString('ru-RU')}`:''}</span></div>
-    <form onSubmit={submit} noValidate>
-      <fieldset className="catalog-editor"><legend><Globe2 aria-hidden="true"/> Контакты</legend>
-        <div className="pricing-grid">
-          <div className="field"><label htmlFor={`${id}-tg-support`}>Telegram-бот поддержки (без @)</label><input id={`${id}-tg-support`} value={form.contacts.telegramSupport} onChange={e=>setContacts('telegramSupport',e.target.value)} placeholder="atlas_support_bot" autoComplete="off"/></div>
-          <div className="field"><label htmlFor={`${id}-tg-channel`}>Telegram-канал (без @)</label><input id={`${id}-tg-channel`} value={form.contacts.telegramChannel} onChange={e=>setContacts('telegramChannel',e.target.value)} placeholder="atlas_uz" autoComplete="off"/></div>
-          <div className="field"><label htmlFor={`${id}-phone`}>Телефон (+998 и 9 цифр)</label><input id={`${id}-phone`} type="tel" inputMode="tel" value={form.contacts.phone} onChange={e=>setContacts('phone',e.target.value)} placeholder="+998901234567" autoComplete="off"/></div>
-          <div className="field"><label htmlFor={`${id}-instagram`}>Instagram (без @)</label><input id={`${id}-instagram`} value={form.contacts.instagram} onChange={e=>setContacts('instagram',e.target.value)} placeholder="atlas.uz" autoComplete="off"/></div>
+    <div className="admin-section-head sc-head"><div><h2>Контент сайта</h2><p>Контакты, юрлицо, способы оплаты, отзывы и фото посылок на главной и в подвале. Заполняйте только проверенные данные: пустой блок на сайте не показывается, а выдуманный контакт или отзыв — это обман клиента.</p></div></div>
+    <form onSubmit={submit} noValidate className="sc-form">
+      <div className="sc-toolbar">
+        <span className="sc-revision">{revisionLabel}{dirty&&<b className="sc-dirty">не сохранено</b>}</span>
+        <div className="sc-toolbar-actions">
+          <button type="button" className="btn secondary" disabled={saving||!dirty} onClick={reset}>Отменить изменения</button>
+          <button type="submit" className="btn primary" disabled={saving||!dirty}>{saving?'Сохраняем…':'Сохранить контент сайта'}</button>
         </div>
-        <p className="micro">Адрес пункта выдачи в Ташкенте — на трёх языках или нигде. Это не склад за рубежом: сюда клиент приходит за посылкой.</p>
-        <div className="pricing-grid">{locales.map(locale=><div className="field" key={locale.id}><label htmlFor={`${id}-pickup-${locale.id}`}>Пункт выдачи · {locale.label}</label><input id={`${id}-pickup-${locale.id}`} value={form.contacts.pickupAddress[locale.id]} maxLength={siteContentTextMax} onChange={e=>setTriple('contacts.pickupAddress',locale.id,e.target.value)}/><small className="micro">{counter(form.contacts.pickupAddress[locale.id])}</small></div>)}</div>
-      </fieldset>
+      </div>
 
-      <fieldset className="catalog-editor"><legend>Юрлицо</legend>
-        <div className="pricing-grid">
-          <div className="field"><label htmlFor={`${id}-entity`}>Название юрлица</label><input id={`${id}-entity`} value={form.legal.entityName} maxLength={200} onChange={e=>setLegal('entityName',e.target.value)} placeholder="ООО «…»"/></div>
-          <div className="field"><label htmlFor={`${id}-inn`}>ИНН (9 цифр)</label><input id={`${id}-inn`} inputMode="numeric" value={form.legal.inn} maxLength={9} onChange={e=>setLegal('inn',e.target.value)}/></div>
+      <section className="sc-card" aria-labelledby={`${id}-h-contacts`}>
+        <header className="sc-card-head"><Globe2 size={18} aria-hidden="true"/><h3 id={`${id}-h-contacts`}>Контакты</h3></header>
+        <p className="sc-card-note">Telegram, телефон и Instagram показываются в блоке контактов на сайте. Указывайте имя без @ и без ссылки.</p>
+        <div className="sc-grid">
+          <div className="field sc-field"><label htmlFor={`${id}-tg-support`}>Telegram-бот поддержки (без @)</label><input id={`${id}-tg-support`} value={form.contacts.telegramSupport} onChange={e=>setContacts('telegramSupport',e.target.value)} placeholder="atlas_support_bot" autoComplete="off"/></div>
+          <div className="field sc-field"><label htmlFor={`${id}-tg-channel`}>Telegram-канал (без @)</label><input id={`${id}-tg-channel`} value={form.contacts.telegramChannel} onChange={e=>setContacts('telegramChannel',e.target.value)} placeholder="atlas_uz" autoComplete="off"/></div>
+          <div className="field sc-field"><label htmlFor={`${id}-phone`}>Телефон (+998 и 9 цифр)</label><input id={`${id}-phone`} type="tel" inputMode="tel" value={form.contacts.phone} onChange={e=>setContacts('phone',e.target.value)} placeholder="+998901234567" autoComplete="off"/></div>
+          <div className="field sc-field"><label htmlFor={`${id}-instagram`}>Instagram (без @)</label><input id={`${id}-instagram`} value={form.contacts.instagram} onChange={e=>setContacts('instagram',e.target.value)} placeholder="atlas.uz" autoComplete="off"/></div>
         </div>
-        <div className="pricing-grid">{locales.map(locale=><div className="field" key={locale.id}><label htmlFor={`${id}-address-${locale.id}`}>Юридический адрес · {locale.label}</label><input id={`${id}-address-${locale.id}`} value={form.legal.address[locale.id]} maxLength={siteContentTextMax} onChange={e=>setTriple('legal.address',locale.id,e.target.value)}/><small className="micro">{counter(form.legal.address[locale.id])}</small></div>)}</div>
-      </fieldset>
+        <p className="sc-card-note">Адрес пункта выдачи в Ташкенте — на трёх языках или нигде. Это не склад за рубежом: сюда клиент приходит за посылкой.</p>
+        <div className="sc-grid sc-grid-3">{locales.map(locale=>textField(`${id}-pickup-${locale.id}`,`Пункт выдачи · ${locale.label}`,form.contacts.pickupAddress[locale.id],value=>setTriple('contacts.pickupAddress',locale.id,value)))}</div>
+      </section>
 
-      <fieldset className="catalog-editor"><legend>Способы оплаты</legend>
-        <div className="notice warning"><TriangleAlert aria-hidden="true"/><span>Отмечайте только реально подключённые провайдеры. Пока оплата в Atlas симулируется, список на сайте — это обещание, которое должно быть правдой.</span></div>
-        <div className="catalog-import-options"><fieldset><legend className="micro">Показывать на главной</legend><div>{(Object.keys(paymentLabels) as PaymentMethod[]).map(method=><label key={method}><input type="checkbox" checked={form.paymentMethods.includes(method)} onChange={()=>togglePayment(method)}/> {paymentLabels[method]}</label>)}</div></fieldset></div>
-      </fieldset>
-
-      <fieldset className="catalog-editor"><legend><MessageSquareQuote aria-hidden="true"/> Отзывы клиентов</legend>
-        <p className="micro">Только реальные отзывы и только с согласия клиента на публикацию. Текст нужен на трёх языках; до {siteContentMaxReviews} отзывов.</p>
-        {form.reviews.map((review,index)=><fieldset key={review.key}><legend className="micro">Отзыв №{index+1}</legend>
-          <div className="pricing-grid">
-            <div className="field"><label htmlFor={`${id}-review-${review.key}-name`}>Имя клиента</label><input id={`${id}-review-${review.key}-name`} value={review.name} maxLength={80} onChange={e=>setReview(review.key,{name:e.target.value})}/></div>
-            <div className="field"><label htmlFor={`${id}-review-${review.key}-city`}>Город (необязательно)</label><input id={`${id}-review-${review.key}-city`} value={review.city} maxLength={80} onChange={e=>setReview(review.key,{city:e.target.value})}/></div>
-          </div>
-          <div className="pricing-grid">{locales.map(locale=><div className="field" key={locale.id}><label htmlFor={`${id}-review-${review.key}-${locale.id}`}>Текст · {locale.label}</label><textarea id={`${id}-review-${review.key}-${locale.id}`} rows={3} value={review.text[locale.id]} maxLength={siteContentTextMax} onChange={e=>setReviewText(review.key,locale.id,e.target.value)}/><small className="micro">{counter(review.text[locale.id])}</small></div>)}</div>
-          <div className="catalog-editor-actions">
-            <label className="warehouse-service-toggle"><input type="checkbox" checked={review.consent} onChange={e=>setReview(review.key,{consent:e.target.checked})}/> Клиент согласен на публикацию (обязательно)</label>
-            <button type="button" className="btn secondary" onClick={()=>update(f=>({...f,reviews:f.reviews.filter(r=>r.key!==review.key)}))}><Trash2 aria-hidden="true"/> Удалить отзыв</button>
-          </div>
-        </fieldset>)}
-        <div className="catalog-editor-actions"><button type="button" className="btn secondary" disabled={form.reviews.length>=siteContentMaxReviews} onClick={()=>update(f=>({...f,reviews:[...f.reviews,{key:key(),name:'',city:'',text:emptyTriple(),consent:false}]}))}><Plus aria-hidden="true"/> Добавить отзыв</button></div>
-      </fieldset>
-
-      <fieldset className="catalog-editor"><legend><ImagePlus aria-hidden="true"/> Фото посылок</legend>
-        <p className="micro">Фотографии реальных посылок. Файл кладётся в папку public/ сайта (например, public/parcels/2026-10.jpg), здесь указывается путь /parcels/2026-10.jpg и подпись на трёх языках; до {siteContentMaxPhotos} фото. Загрузки с чужих сайтов не принимаются.</p>
-        {form.parcelPhotos.map((photo,index)=><fieldset key={photo.key}><legend className="micro">Фото №{index+1}</legend>
-          <div className="field"><label htmlFor={`${id}-photo-${photo.key}-src`}>Путь к файлу в public/</label><input id={`${id}-photo-${photo.key}-src`} value={photo.src} maxLength={300} onChange={e=>setPhoto(photo.key,{src:e.target.value})} placeholder="/parcels/2026-10-01.jpg"/></div>
-          <div className="pricing-grid">{locales.map(locale=><div className="field" key={locale.id}><label htmlFor={`${id}-photo-${photo.key}-${locale.id}`}>Подпись · {locale.label}</label><input id={`${id}-photo-${photo.key}-${locale.id}`} value={photo.alt[locale.id]} maxLength={siteContentTextMax} onChange={e=>setPhotoAlt(photo.key,locale.id,e.target.value)}/></div>)}</div>
-          <div className="catalog-editor-actions"><button type="button" className="btn secondary" onClick={()=>update(f=>({...f,parcelPhotos:f.parcelPhotos.filter(p=>p.key!==photo.key)}))}><Trash2 aria-hidden="true"/> Удалить фото</button></div>
-        </fieldset>)}
-        <div className="catalog-editor-actions"><button type="button" className="btn secondary" disabled={form.parcelPhotos.length>=siteContentMaxPhotos} onClick={()=>update(f=>({...f,parcelPhotos:[...f.parcelPhotos,{key:key(),src:'',alt:emptyTriple()}]}))}><Plus aria-hidden="true"/> Добавить фото</button></div>
-      </fieldset>
-
-      <fieldset className="catalog-editor"><legend>Цифры и ссылки</legend>
-        <div className="pricing-grid">
-          <div className="field"><label htmlFor={`${id}-completed`}>Доставлено заказов (только реальные)</label><input id={`${id}-completed`} type="number" inputMode="numeric" min={0} step={1} value={form.completedOrders} onChange={e=>update(f=>({...f,completedOrders:e.target.value}))} placeholder="пусто — блок скрыт"/><small className="micro">Симулированные и тестовые заказы не считаются.</small></div>
-          <div className="field"><label htmlFor={`${id}-prohibited`}>Официальный перечень запрещённых к ввозу товаров (https://)</label><input id={`${id}-prohibited`} type="url" inputMode="url" value={form.prohibitedListUrl} maxLength={500} onChange={e=>update(f=>({...f,prohibitedListUrl:e.target.value}))} placeholder="https://…"/></div>
+      <section className="sc-card" aria-labelledby={`${id}-h-legal`}>
+        <header className="sc-card-head"><Building2 size={18} aria-hidden="true"/><h3 id={`${id}-h-legal`}>Юрлицо</h3></header>
+        <p className="sc-card-note">Название и ИНН из регистрационных документов; юридический адрес — на трёх языках. Показываются в подвале сайта.</p>
+        <div className="sc-grid">
+          <div className="field sc-field"><label htmlFor={`${id}-entity`}>Название юрлица</label><input id={`${id}-entity`} value={form.legal.entityName} maxLength={200} onChange={e=>setLegal('entityName',e.target.value)} placeholder="ООО «…»"/></div>
+          <div className="field sc-field"><label htmlFor={`${id}-inn`}>ИНН (9 цифр)</label><input id={`${id}-inn`} inputMode="numeric" value={form.legal.inn} maxLength={9} onChange={e=>setLegal('inn',e.target.value)}/></div>
         </div>
-      </fieldset>
+        <div className="sc-grid sc-grid-3">{locales.map(locale=>textField(`${id}-address-${locale.id}`,`Юридический адрес · ${locale.label}`,form.legal.address[locale.id],value=>setTriple('legal.address',locale.id,value)))}</div>
+      </section>
 
-      {issues.length>0&&<div className="catalog-issues" role="alert"><b>Исправьте перед сохранением:</b><ul>{issues.map(issue=><li key={issue}>{issue}</li>)}</ul></div>}
-      <div className="catalog-editor-actions">
-        <button type="submit" className="btn primary" disabled={saving||!dirty}>{saving?'Сохраняем…':'Сохранить контент сайта'}</button>
-        <button type="button" className="btn secondary" disabled={saving||!dirty} onClick={reset}>Отменить изменения</button>
-        <span className="micro">Сохранение пишется в журнал действий. Если контент одновременно меняли в другой вкладке, подгрузится актуальная версия — проверьте поля и сохраните снова.</span>
+      <section className="sc-card" aria-labelledby={`${id}-h-payments`}>
+        <header className="sc-card-head"><CreditCard size={18} aria-hidden="true"/><h3 id={`${id}-h-payments`}>Способы оплаты</h3></header>
+        <p className="sc-card-note sc-card-note-warn"><TriangleAlert size={14} aria-hidden="true"/><span>Отмечайте только реально подключённые провайдеры. Пока оплата в Atlas симулируется, список на сайте — это обещание, которое должно быть правдой.</span></p>
+        <div className="sc-chips" role="group" aria-label="Показывать на главной">
+          {paymentMethods.map(method=>{const checked=form.paymentMethods.includes(method);return <label key={method} className={checked?'sc-chip checked':'sc-chip'}><input type="checkbox" checked={checked} onChange={()=>togglePayment(method)}/>{checked&&<Check size={14} aria-hidden="true"/>}<span>{paymentLabels[method]}</span></label>})}
+        </div>
+      </section>
+
+      <section className="sc-card" aria-labelledby={`${id}-h-reviews`}>
+        <header className="sc-card-head"><MessageSquareQuote size={18} aria-hidden="true"/><h3 id={`${id}-h-reviews`}>Отзывы клиентов</h3><span className="sc-count">{form.reviews.length} / {siteContentMaxReviews}</span></header>
+        <p className="sc-card-note">Только реальные отзывы и только с согласия клиента на публикацию. Текст нужен на трёх языках; до {siteContentMaxReviews} отзывов.</p>
+        {form.reviews.length>0&&<div className="sc-items">
+          {form.reviews.map((review,index)=><article className="sc-item" key={review.key} aria-label={`Отзыв №${index+1}`}>
+            <header className="sc-item-head"><h4>Отзыв №{index+1}</h4><button type="button" className="btn secondary sc-item-delete" aria-label={`Удалить отзыв №${index+1}`} onClick={()=>update(f=>({...f,reviews:f.reviews.filter(r=>r.key!==review.key)}))}><Trash2 size={16} aria-hidden="true"/><span>Удалить</span></button></header>
+            <div className="sc-grid">
+              <div className="field sc-field"><label htmlFor={`${id}-review-${review.key}-name`}>Имя клиента</label><input id={`${id}-review-${review.key}-name`} value={review.name} maxLength={80} onChange={e=>setReview(review.key,{name:e.target.value})}/></div>
+              <div className="field sc-field"><label htmlFor={`${id}-review-${review.key}-city`}>Город (необязательно)</label><input id={`${id}-review-${review.key}-city`} value={review.city} maxLength={80} onChange={e=>setReview(review.key,{city:e.target.value})}/></div>
+            </div>
+            <div className="sc-grid sc-grid-3">{locales.map(locale=>textField(`${id}-review-${review.key}-${locale.id}`,`Текст · ${locale.label}`,review.text[locale.id],value=>setReviewText(review.key,locale.id,value),{multiline:true}))}</div>
+            <label className="sc-check"><input type="checkbox" checked={review.consent} onChange={e=>setReview(review.key,{consent:e.target.checked})}/><span>Клиент согласен на публикацию (обязательно)</span></label>
+          </article>)}
+        </div>}
+        <div className="sc-card-actions"><button type="button" className="btn secondary" disabled={form.reviews.length>=siteContentMaxReviews} onClick={()=>update(f=>({...f,reviews:[...f.reviews,{key:key(),name:'',city:'',text:emptyTriple(),consent:false}]}))}><Plus size={16} aria-hidden="true"/><span>Добавить отзыв</span></button></div>
+      </section>
+
+      <section className="sc-card" aria-labelledby={`${id}-h-photos`}>
+        <header className="sc-card-head"><ImagePlus size={18} aria-hidden="true"/><h3 id={`${id}-h-photos`}>Фото посылок</h3><span className="sc-count">{form.parcelPhotos.length} / {siteContentMaxPhotos}</span></header>
+        <p className="sc-card-note">Фотографии реальных посылок. Файл кладётся в папку public/ сайта (например, public/parcels/2026-10.jpg), здесь указывается путь /parcels/2026-10.jpg и подпись на трёх языках; до {siteContentMaxPhotos} фото. Загрузки с чужих сайтов не принимаются.</p>
+        {form.parcelPhotos.length>0&&<div className="sc-items">
+          {form.parcelPhotos.map((photo,index)=><article className="sc-item" key={photo.key} aria-label={`Фото №${index+1}`}>
+            <header className="sc-item-head"><h4>Фото №{index+1}</h4><button type="button" className="btn secondary sc-item-delete" aria-label={`Удалить фото №${index+1}`} onClick={()=>update(f=>({...f,parcelPhotos:f.parcelPhotos.filter(p=>p.key!==photo.key)}))}><Trash2 size={16} aria-hidden="true"/><span>Удалить</span></button></header>
+            <div className="sc-grid">
+              <div className="field sc-field sc-field-wide"><label htmlFor={`${id}-photo-${photo.key}-src`}>Путь к файлу в public/</label><input id={`${id}-photo-${photo.key}-src`} value={photo.src} maxLength={300} onChange={e=>setPhoto(photo.key,{src:e.target.value})} placeholder="/parcels/2026-10-01.jpg"/></div>
+            </div>
+            <div className="sc-grid sc-grid-3">{locales.map(locale=>textField(`${id}-photo-${photo.key}-${locale.id}`,`Подпись · ${locale.label}`,photo.alt[locale.id],value=>setPhotoAlt(photo.key,locale.id,value)))}</div>
+          </article>)}
+        </div>}
+        <div className="sc-card-actions"><button type="button" className="btn secondary" disabled={form.parcelPhotos.length>=siteContentMaxPhotos} onClick={()=>update(f=>({...f,parcelPhotos:[...f.parcelPhotos,{key:key(),src:'',alt:emptyTriple()}]}))}><Plus size={16} aria-hidden="true"/><span>Добавить фото</span></button></div>
+      </section>
+
+      <section className="sc-card" aria-labelledby={`${id}-h-numbers`}>
+        <header className="sc-card-head"><Hash size={18} aria-hidden="true"/><h3 id={`${id}-h-numbers`}>Цифры и ссылки</h3></header>
+        <p className="sc-card-note">Счётчик доставленных заказов и официальный перечень запрещённых к ввозу товаров. Пустое поле — блок на сайте скрыт.</p>
+        <div className="sc-grid">
+          <div className="field sc-field"><label htmlFor={`${id}-completed`}>Доставлено заказов (только реальные)</label><input id={`${id}-completed`} type="number" inputMode="numeric" min={0} step={1} value={form.completedOrders} onChange={e=>update(f=>({...f,completedOrders:e.target.value}))} placeholder="пусто — блок скрыт"/><small className="sc-hint">Симулированные и тестовые заказы не считаются.</small></div>
+          <div className="field sc-field"><label htmlFor={`${id}-prohibited`}>Перечень запрещённых к ввозу товаров (https://)</label><input id={`${id}-prohibited`} type="url" inputMode="url" value={form.prohibitedListUrl} maxLength={500} onChange={e=>update(f=>({...f,prohibitedListUrl:e.target.value}))} placeholder="https://…"/><small className="sc-hint">Только официальная страница таможенного органа.</small></div>
+        </div>
+      </section>
+
+      {issues.length>0&&<div className="catalog-issues sc-issues" role="alert"><b>Исправьте перед сохранением:</b><ul>{issues.map(issue=><li key={issue}>{issue}</li>)}</ul></div>}
+      <div className="sc-toolbar sc-toolbar-bottom">
+        <span className="sc-revision">{revisionLabel}</span>
+        <div className="sc-toolbar-actions">
+          <button type="button" className="btn secondary" disabled={saving||!dirty} onClick={reset}>Отменить изменения</button>
+          <button type="submit" className="btn primary" disabled={saving||!dirty}>{saving?'Сохраняем…':'Сохранить контент сайта'}</button>
+        </div>
+        <p className="sc-footnote">Сохранение пишется в журнал действий. Если контент одновременно меняли в другой вкладке, подгрузится актуальная версия — проверьте поля и сохраните снова.</p>
       </div>
     </form>
   </section>;

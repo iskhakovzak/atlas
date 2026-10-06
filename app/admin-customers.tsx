@@ -25,14 +25,14 @@ export function AdminCustomers({data,busy,canBlock,onStatus,initialCustomer}:{da
    <label className="field"><span>Доступ</span><select value={statusFilter} onChange={event=>setStatusFilter(event.target.value as 'all'|CustomerStatus)}><option value="all">Все</option><option value="active">Активные</option><option value="review">На проверке</option><option value="blocked">Заблокированные</option></select></label>
    <p className="micro admin-filter-count">{rows.length} из {data.accounts.length}</p>
   </div>
-  <div className="admin-scroll"><table className="admin-grid"><thead><tr><th>Клиент</th><th>Заказы</th><th>К оплате</th><th>Баланс</th><th>Обращения</th><th>Доступ</th></tr></thead><tbody>
+  <div className="admin-scroll"><table className="admin-grid"><thead><tr><th>Клиент</th><th className="num">Заказы</th><th className="num">К оплате</th><th className="num">Баланс</th><th className="num">Обращения</th><th>Доступ</th></tr></thead><tbody>
    {rows.map(row=><tr key={row.id}>
     <td><button type="button" className="admin-link" onClick={()=>setOpen(row.id)}><b>{row.name}</b><small>{row.email||row.phone||row.id}</small></button>{row.cartPriceChanges>0&&<i className="admin-flag">цена изменилась в корзине</i>}</td>
-    <td>{row.orders}{row.activeOrders?<small> · {row.activeOrders} в работе</small>:null}</td>
+    <td className="num"><b>{row.orders}</b>{row.activeOrders?<small>{row.activeOrders} в работе</small>:null}</td>
     <td className="num">{money(row.payable)}</td>
     <td className="num">{money(row.balance)}</td>
-    <td>{row.openTickets}</td>
-    <td><select aria-label={`Доступ ${row.name}`} disabled={busy} value={row.status} onChange={event=>void onStatus(row.id,event.target.value as CustomerStatus)}><option value="active">Активен</option><option value="review">На проверке</option><option value="blocked" disabled={!canBlock}>Заблокирован</option></select></td>
+    <td className="num">{row.openTickets}</td>
+    <td className="admin-cell-control"><select aria-label={`Доступ ${row.name}`} disabled={busy} value={row.status} onChange={event=>void onStatus(row.id,event.target.value as CustomerStatus)}><option value="active">Активен</option><option value="review">На проверке</option><option value="blocked" disabled={!canBlock}>Заблокирован</option></select></td>
    </tr>)}
    {!rows.length&&<tr><td colSpan={6} className="micro">Никого не найдено.</td></tr>}
   </tbody></table></div>
@@ -56,7 +56,7 @@ function CustomerCard({id,busy,canBlock,onClose,onStatus,status}:{id:string|null
    <label className="field admin-card-status"><span>Доступ</span><select disabled={busy} value={status} onChange={event=>void onStatus(customer.id,event.target.value as CustomerStatus)}><option value="active">{customerStatusLabels.active}</option><option value="review">{customerStatusLabels.review}</option><option value="blocked" disabled={!canBlock}>{customerStatusLabels.blocked}</option></select></label>
    {card.recipients.length>0&&<p className="micro">Получатели: {card.recipients.map(item=>`${item.recipient}${item.city?` (${item.city})`:''}`).join(', ')}. Полные адреса и документы в карточке не показываются.</p>}
    <h3>Заказы</h3>
-   {card.orders.length?<div className="admin-scroll"><table className="admin-grid"><thead><tr><th>Заказ</th><th>Товар</th><th>Этап</th><th>К оплате</th><th>Оплата</th><th>Создан</th></tr></thead><tbody>{card.orders.map(order=><tr key={order.id} className={order.cancelled?'muted':''}><td><Link href={`/operations#${encodeURIComponent(order.id)}`}>{order.id}</Link></td><td>{order.brand} · {order.name}</td><td>{order.cancelled?'Отменён':statuses[order.status]}</td><td className="num">{money(order.payable)}</td><td>{order.payment?paymentLabels[order.payment]??order.payment:'нет записи'}</td><td>{dateOnly(order.createdAt)}</td></tr>)}</tbody></table></div>:<p className="micro">Заказов ещё нет.</p>}
+   {card.orders.length?<div className="admin-scroll"><table className="admin-grid"><thead><tr><th>Заказ</th><th>Товар</th><th>Этап</th><th className="num">К оплате</th><th>Оплата</th><th className="num">Создан</th></tr></thead><tbody>{card.orders.map(order=><tr key={order.id} className={order.cancelled?'muted':''}><td><Link href={`/operations#${encodeURIComponent(order.id)}`}>{order.id}</Link></td><td>{order.brand} · {order.name}</td><td>{order.cancelled?'Отменён':statuses[order.status]}</td><td className="num">{money(order.payable)}</td><td>{order.payment?paymentLabels[order.payment]??order.payment:'нет записи'}</td><td className="num">{dateOnly(order.createdAt)}</td></tr>)}</tbody></table></div>:<p className="micro">Заказов ещё нет.</p>}
    <h3>Обращения</h3>
    {card.tickets.length?<ul className="admin-plain-list">{card.tickets.map(ticket=><li key={ticket.id}><b>{ticket.subject}</b><span>{ticket.status==='open'?'ждёт ответа':ticket.status==='answered'?'отвечено':'закрыто'} · {ticket.replies} сообщений · {ago(ticket.updatedAt)}</span></li>)}</ul>:<p className="micro">Обращений нет.</p>}
    <h3><UserRound size={16} aria-hidden="true"/> Заметки операторов</h3>
