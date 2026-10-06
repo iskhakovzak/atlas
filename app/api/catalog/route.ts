@@ -16,7 +16,7 @@ const commandSchema=z.discriminatedUnion('kind',[
   z.object({kind:z.literal('recheck'),ids:z.array(z.string().min(1).max(100)).min(1).max(catalogRecheckBatchSize)}),
   z.object({kind:z.literal('refresh-due')}),
   z.object({kind:z.literal('edit'),id:z.string().max(100),draft:catalogDraftSchema}),
-  z.object({kind:z.literal('publish'),ids}),z.object({kind:z.literal('hide'),ids}),z.object({kind:z.literal('delete-drafts'),ids}),
+  z.object({kind:z.literal('publish'),ids}),z.object({kind:z.literal('confirm'),ids}),z.object({kind:z.literal('hide'),ids}),z.object({kind:z.literal('delete-drafts'),ids}),
   z.object({kind:z.literal('collection'),collection:collectionSchema}),
 ]);
 export async function GET(request:Request){try{

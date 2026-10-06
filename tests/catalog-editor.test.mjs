@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {applyScheduledCatalogRefresh,catalogDocumentSchema,catalogIssues,catalogRefreshInterval,catalogRecheckBatches,catalogRecheckBatchSize,changeCatalog,cleanGeneratedCatalogDescription,customerLinkDraft,dueCatalogEntries,importDraft,initialCatalog,isBundledCatalogEntry,manualFallbackCatalogDraft,markCatalogRefreshFailed,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
+import {applyScheduledCatalogRefresh,catalogDocumentSchema,catalogIssues,catalogLifetime,catalogRefreshInterval,catalogRecheckBatches,catalogRecheckBatchSize,changeCatalog,cleanGeneratedCatalogDescription,customerLinkDraft,dueCatalogEntries,importDraft,initialCatalog,isBundledCatalogEntry,manualFallbackCatalogDraft,markCatalogRefreshFailed,publicCatalog,recheckedDraft,reportCatalogAvailability,synchronizeBundledCatalog} from '../lib/market/catalog-editor.ts';
 import {catalogRefreshPath,isAuthorizedCatalogRefresh,signCatalogRefreshRequest} from '../lib/market/catalog-refresh-auth.ts';
 import {communityCatalogProducts} from '../lib/market/community-deals.ts';
 import {catalogOrderVariants,keepCatalogVisible} from '../lib/market/catalog.ts';
@@ -254,4 +254,94 @@ test('the internal refresh endpoint signature expires and cannot be replayed as 
  assert(!(await isAuthorizedCatalogRefresh(request,secret,now+6*60*1000)));
  const wrongPath=new Request('https://atlas.test/api/catalog',{method:'POST',headers:request.headers});
  assert(!(await isAuthorizedCatalogRefresh(wrongPath,secret,now)));
+});
+test('imported drafts keep the store’s own before-discount price and the public feed shows it as a discount',()=>{
+ const draft=importDraft({...extracted,price:35,referencePrice:50},[],'США',1000);
+ assert.equal(draft.referencePrice,50);
+ assert.equal(importDraft({...extracted,price:35,referencePrice:35},[],'США',1000).referencePrice,undefined);
+ assert.equal(importDraft({...extracted,price:35,referencePrice:20},[],'США',1000).referencePrice,undefined);
+ assert.equal(importDraft({...extracted,price:undefined,referencePrice:50},[],'США',1000).referencePrice,undefined);
+ const doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'sale',draft,published:structuredClone(draft),publishedAt:1000}]});
+ const product=publicCatalog(doc,tariff,1001).products[0];
+ assert.equal(product.referenceUsd,50);assert.equal(product.sourceCheckedAt,1000);
+ // A recheck takes the store's current before-discount price and falls back to the recorded one.
+ assert.equal(recheckedDraft(draft,importDraft({...extracted,price:30,referencePrice:45},[],'США',2000)).referencePrice,45);
+ assert.equal(recheckedDraft(draft,importDraft(extracted,[],'США',2000)).referencePrice,50);
+});
+test('operator confirmation publishes a stale card with unconfirmed stock and resolves customer reports',()=>{
+ const base=importDraft({...extracted,variants:[{...extracted.variants[0],available:true,availabilityKnown:false},{id:'rose',label:'Rosé',available:false,availabilityKnown:false}]},[],'США',1000);
+ const now=1000+8*24*60*60*1000;
+ const stale={...base,lastCheckError:'Магазин не ответил',importFailureReason:'timeout',reviewReasons:['Покупатель сообщил, что товар отсутствует']};
+ assert(catalogIssues(stale,now).includes('Обновите источник'));assert(catalogIssues(stale,now).includes('Наличие не подтверждено магазином'));
+ const doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'lip',draft:stale,queueState:'queued',autoHiddenAt:5,autoHideReason:'source-sold-out'}],availabilityReports:[{id:'r1',productId:'lip',sourceUrl:stale.sourceUrl,answer:'unavailable',reporterId:'c1',createdAt:999},{id:'r2',productId:'other',sourceUrl:stale.sourceUrl,answer:'unavailable',reporterId:'c2',createdAt:999}]});
+ assert.throws(()=>changeCatalog(doc,{kind:'publish',ids:['lip']},now,tariff),/Обновите источник/);
+ const confirmed=changeCatalog(doc,{kind:'confirm',ids:['lip']},now,tariff);
+ const entry=confirmed.entries[0];
+ assert.equal(entry.queueState,'published');assert.equal(entry.publishedAt,now);assert.equal(entry.autoHiddenAt,undefined);assert.equal(entry.autoHideReason,undefined);
+ for(const draft of [entry.draft,entry.published]){
+  // The price was not re-read: its date stays, the operator's mark carries the freshness.
+  assert.equal(draft.checkedAt,base.checkedAt);assert.equal(draft.confirmedBy,'operator');assert.equal(draft.confirmedAt,now);
+  assert.equal(draft.soldOut,false);assert.equal(draft.lastCheckError,undefined);assert.equal(draft.importFailureReason,undefined);assert.deepEqual(draft.reviewReasons,[]);
+  assert.deepEqual(draft.variants.map(({available,availabilityKnown})=>({available,availabilityKnown})),[{available:true,availabilityKnown:true},{available:false,availabilityKnown:true}]);
+ }
+ assert.deepEqual(catalogIssues(entry.published,now+1),[]);
+ // The confirmation lasts one catalog lifetime, like a store answer would.
+ assert(catalogIssues(entry.published,now+catalogLifetime).includes('Обновите источник'));
+ assert.equal(confirmed.availabilityReports[0].resolvedAt,now);assert.equal(confirmed.availabilityReports[1].resolvedAt,undefined);
+ const product=publicCatalog(confirmed,tariff,now+1).products[0];
+ assert.equal(product.priceNeedsConfirmation,false);assert.equal(product.confirmedAt,now);
+ // The storefront keeps printing the price with its own date, while the card lives until the confirmation ages out.
+ assert.equal(product.sourceCheckedAt,base.checkedAt);assert.equal(product.observedOn,new Date(base.checkedAt).toISOString().slice(0,10));assert.equal(product.sourceExpiresAt,now+catalogLifetime);
+ assert.deepEqual(product.variants,['Bare · Full size']);
+ // A draft whose variants the store never listed keeps that gap: confirmation does not invent an option.
+ const noVariants=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'bare',draft:{...base,variants:[]}}]});
+ assert.throws(()=>changeCatalog(noVariants,{kind:'confirm',ids:['bare']},now,tariff),/Доступный вариант/);
+});
+test('operator confirmation does not publish a card with other problems and leaves the document untouched',()=>{
+ const base=importDraft(extracted,[],'США',1000),now=1000+8*24*60*60*1000;
+ const doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'lip',draft:{...base,price:undefined,image:''}}]});
+ assert.throws(()=>changeCatalog(doc,{kind:'confirm',ids:['lip']},now,tariff),error=>/Matte Lip Kit: /.test(error.message)&&/Фото/.test(error.message)&&/Цена/.test(error.message)&&!/Обновите источник/.test(error.message));
+ assert.equal(doc.entries[0].draft.confirmedAt,undefined);assert.equal(doc.entries[0].published,undefined);
+ assert.throws(()=>changeCatalog(doc,{kind:'confirm',ids:['missing']},now,tariff),/Товар не найден/);
+});
+test('showcase position travels from the draft through edits to the public feed',()=>{
+ const base=importDraft(extracted,[],'США',1000);
+ let doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'lip',draft:base}]});
+ doc=changeCatalog(doc,{kind:'edit',id:'lip',draft:{...base,rank:3}},1001,tariff);
+ assert.equal(doc.entries[0].draft.rank,3);
+ doc=changeCatalog(doc,{kind:'publish',ids:['lip']},1002,tariff);
+ assert.equal(publicCatalog(doc,tariff,1003).products[0].rank,3);
+ // Ordering is not a product claim: a published card takes a new position without a republish.
+ doc=changeCatalog(doc,{kind:'edit',id:'lip',draft:{...doc.entries[0].draft,rank:1,name:'Draft only'}},1004,tariff);
+ const product=publicCatalog(doc,tariff,1005).products[0];
+ assert.equal(product.rank,1);assert.equal(product.name,'Matte Lip Kit');
+ doc=changeCatalog(doc,{kind:'edit',id:'lip',draft:{...doc.entries[0].draft,rank:undefined}},1006,tariff);
+ assert.equal(doc.entries[0].published.rank,undefined);assert.equal('rank' in publicCatalog(doc,tariff,1007).products[0],false);
+ assert.throws(()=>changeCatalog(doc,{kind:'edit',id:'lip',draft:{...doc.entries[0].draft,rank:1001}},1008,tariff));
+ assert.throws(()=>changeCatalog(doc,{kind:'edit',id:'lip',draft:{...doc.entries[0].draft,rank:1.5}},1008,tariff));
+ // A recheck keeps the operator's position.
+ assert.equal(recheckedDraft({...base,rank:7},importDraft(extracted,[],'США',2000)).rank,7);
+});
+test('operator confirmation survives edits and failed checks but yields to a fresh store answer',()=>{
+ const base=importDraft(extracted,[],'США',1000),now=1000+8*24*60*60*1000;
+ let doc=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'lip',draft:base}]});
+ doc=changeCatalog(doc,{kind:'confirm',ids:['lip']},now,tariff);
+ // An edit neither grants nor removes the confirmation, whatever the client sends.
+ doc=changeCatalog(doc,{kind:'edit',id:'lip',draft:{...doc.entries[0].draft,name:'Edited',confirmedBy:undefined,confirmedAt:undefined}},now+1,tariff);
+ assert.equal(doc.entries[0].draft.confirmedBy,'operator');assert.equal(doc.entries[0].draft.confirmedAt,now);
+ const plain=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'lip',draft:base}]});
+ const claimed=changeCatalog(plain,{kind:'edit',id:'lip',draft:{...base,confirmedBy:'operator',confirmedAt:now}},now+1,tariff);
+ assert.equal(claimed.entries[0].draft.confirmedBy,undefined);assert.equal(claimed.entries[0].draft.confirmedAt,undefined);
+ // A failed scheduled check keeps the operator's mark; a successful store answer replaces it.
+ const failed=markCatalogRefreshFailed(doc,'lip',Error('timeout'),now+2).document.entries[0];
+ assert.equal(failed.draft.confirmedAt,now);assert(failed.published);
+ const unknown=applyScheduledCatalogRefresh(doc,'lip',importDraft({...extracted,variants:[]},[],'США',now+3),now+4).document.entries[0];
+ assert.equal(unknown.draft.confirmedAt,now);
+ const refreshed=applyScheduledCatalogRefresh(doc,'lip',importDraft(extracted,[],'США',now+5),now+6);
+ assert.equal(refreshed.outcome,'available');
+ assert.equal(refreshed.document.entries[0].draft.confirmedBy,undefined);assert.equal(refreshed.document.entries[0].draft.confirmedAt,undefined);
+ assert.equal(refreshed.document.entries[0].published.confirmedAt,undefined);
+ const rechecked=recheckedDraft(doc.entries[0].draft,importDraft(extracted,[],'США',now+7));
+ assert.equal(rechecked.confirmedBy,undefined);assert.equal(rechecked.confirmedAt,undefined);
+ assert.equal('confirmedAt' in publicCatalog(refreshed.document,tariff,now+8).products[0],false);
 });

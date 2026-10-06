@@ -1,5 +1,7 @@
 import {useId,type ReactNode} from 'react';
 import type {DeliveryRegion} from '@/lib/market/site-content';
+import type {StoreCountry} from '@/lib/market/store-brands';
+import {storeGeo} from '@/lib/market/store-geo';
 
 /**
  * Inline SVG flags for the delivery regions, 24×16 with rounded corners. Emoji flags are not used: Windows
@@ -54,12 +56,75 @@ const flags:Record<DeliveryRegion,ReactNode>={
  </>,
 };
 
+/** Three equal vertical bands, left to right. */
+const vertical=(left:string,middle:string,right:string)=><>
+ <rect width="24" height="16" fill={middle}/>
+ <rect width="8" height="16" fill={left}/>
+ <rect x="16" width="8" height="16" fill={right}/>
+</>;
+/** Three equal horizontal bands, top to bottom. */
+const horizontal=(top:string,middle:string,bottom:string)=><>
+ <rect width="24" height="16" fill={middle}/>
+ <rect width="24" height="5.33" fill={top}/>
+ <rect y="10.67" width="24" height="5.33" fill={bottom}/>
+</>;
+/** Nordic cross: the upright sits left of centre. */
+const nordic=(field:string,cross:string)=><>
+ <rect width="24" height="16" fill={field}/>
+ <rect x="7" width="3" height="16" fill={cross}/>
+ <rect y="6.5" width="24" height="3" fill={cross}/>
+</>;
+
+/** Simple flags of store countries Atlas has no dispatch region for yet; the rest fall back to the two-letter code. */
+const countryFlags:Partial<Record<StoreCountry,ReactNode>>={
+ fr:vertical('#0055a4','#fff','#ef4135'),
+ ie:vertical('#169b62','#fff','#ff883e'),
+ be:vertical('#000','#fdda24','#ef3340'),
+ nl:horizontal('#ae1c28','#fff','#21468b'),
+ at:horizontal('#ed2939','#fff','#ed2939'),
+ pl:<>
+  <rect width="24" height="16" fill="#dc143c"/>
+  <rect width="24" height="8" fill="#fff"/>
+ </>,
+ se:nordic('#006aa7','#fecc00'),
+ dk:nordic('#c8102e','#fff'),
+ ch:<>
+  <rect width="24" height="16" fill="#da291c"/>
+  <rect x="10.75" y="3" width="2.5" height="10" fill="#fff"/>
+  <rect x="7" y="6.75" width="10" height="2.5" fill="#fff"/>
+ </>,
+ jp:<>
+  <rect width="24" height="16" fill="#fff"/>
+  <circle cx="12" cy="8" r="4.8" fill="#bc002d"/>
+ </>,
+};
+
+function FlagFrame({id,className,children}:{id:string;className?:string;children:ReactNode}){
+ return <svg className={className?`flag ${className}`:'flag'} width="24" height="16" viewBox="0 0 24 16" aria-hidden="true" focusable="false">
+  <defs><clipPath id={id}><rect width="24" height="16" rx="3"/></clipPath></defs>
+  <g clipPath={`url(#${id})`}>{children}</g>
+  <rect width="24" height="16" rx="3" fill="none" stroke="rgba(0,0,0,.14)" strokeWidth="1"/>
+ </svg>;
+}
+
 export function Flag({region,className}:{region:DeliveryRegion;className?:string}){
  // useId: the same flag may appear several times on a page, and duplicate clipPath ids would break clipping.
  const id=`flag-${region}-${useId().replace(/[^a-zA-Z0-9]/g,'')}`;
- return <svg className={className?`flag ${className}`:'flag'} width="24" height="16" viewBox="0 0 24 16" aria-hidden="true" focusable="false">
-  <defs><clipPath id={id}><rect width="24" height="16" rx="3"/></clipPath></defs>
-  <g clipPath={`url(#${id})`}>{flags[region]}</g>
-  <rect width="24" height="16" rx="3" fill="none" stroke="rgba(0,0,0,.14)" strokeWidth="1"/>
- </svg>;
+ return <FlagFrame id={id} className={className}>{flags[region]}</FlagFrame>;
+}
+
+/**
+ * Flag of a store country: the region flag for the six dispatch countries, a drawn flag for the other European
+ * and Japanese storefronts, and the two-letter code on a soft field for the rest. Decorative: the country name
+ * always stands next to it as text.
+ */
+export function CountryFlag({code,className}:{code:StoreCountry;className?:string}){
+ const id=`flag-${code}-${useId().replace(/[^a-zA-Z0-9]/g,'')}`;
+ const region=storeGeo[code]?.region;
+ const art=region?flags[region]:countryFlags[code];
+ if(art) return <FlagFrame id={id} className={className}>{art}</FlagFrame>;
+ return <FlagFrame id={id} className={className?`flag-code ${className}`:'flag-code'}>
+  <rect width="24" height="16" fill="var(--cat-soft)"/>
+  <text x="12" y="8.6" textAnchor="middle" dominantBaseline="middle" fontFamily="inherit" fontSize="8" fontWeight="700" letterSpacing=".4" fill="var(--cat-muted)">{code.toUpperCase()}</text>
+ </FlagFrame>;
 }

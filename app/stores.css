@@ -1,5 +1,6 @@
 /* Store directory (/stores), store logos everywhere and the store card dialog. Loaded after catalog.css,
-   whose --cat-* tokens it uses. Mobile-first; tap targets are at least 44px. */
+   whose --cat-* tokens it uses. Mobile-first; tap targets are at least 44px. Night rules for the new
+   storefront markup are at the end under "Night". */
 
 /* ---------- Logo plate ---------- */
 /* Store icons are drawn for light backgrounds, so the plate stays white in both themes. */
@@ -11,35 +12,94 @@ html[data-theme="dark"] .store-logo { border-color: transparent; }
 .find-card .find-meta .store-logo { padding: 2px !important; border-radius: 5px; }
 .catalog-check .store-logo { padding: 2px !important; border-radius: 5px; }
 
-/* ---------- Hero with the link field ---------- */
+/* ---------- Hero with the link field and the dispatch countries ---------- */
 .stores-page { padding-bottom: 8px; }
-.stores-hero { margin: 8px 0 28px; padding: 22px 18px; border: 1px solid var(--cat-line); border-radius: 22px; background: linear-gradient(160deg, var(--cat-surface) 0%, var(--cat-soft) 100%); }
-.stores-overline { margin: 0 0 8px; color: var(--cat-accent); font-size: 12.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-.stores-hero h1 { max-width: 20ch; margin: 0 0 10px; color: var(--cat-ink); font-size: clamp(28px, 5vw, 44px); line-height: 1.1; }
-.stores-intro { max-width: 60ch; margin: 0 0 18px; color: var(--cat-muted); line-height: 1.55; }
+.stores-hero { display: grid; gap: 18px; margin: 8px 0 28px; padding: 22px 18px; border: 1px solid var(--cat-line); border-radius: 22px; background: linear-gradient(160deg, var(--cat-surface) 0%, var(--cat-soft) 100%); }
+.stores-hero-main, .stores-hero-aside { min-width: 0; }
+.stores-hero h1 { max-width: 20ch; margin: 0 0 8px; color: var(--cat-ink); font-size: clamp(28px, 5vw, 44px); line-height: 1.1; }
+.stores-intro { max-width: 60ch; margin: 0 0 16px; color: var(--cat-muted); line-height: 1.55; }
 .stores-link { display: grid; gap: 10px; max-width: 720px; }
 .stores-link-field { display: flex; align-items: center; gap: 10px; min-height: 54px; padding: 0 6px 0 16px; border: 1.5px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); color: var(--cat-muted); }
 .stores-link-field:focus-within { border-color: var(--cat-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cat-accent) 18%, transparent); }
 .stores-link-field input { flex: 1; min-width: 0; min-height: 50px; padding: 0; border: 0; border-radius: 0; outline: 0; background: transparent; box-shadow: none; color: var(--cat-ink); font: inherit; font-size: 16px; }
+.stores-link-field input::placeholder { color: var(--cat-muted); opacity: 1; }
 html[data-theme="dark"] .stores-link-field, html[data-theme="dark"] .stores-search { background: var(--night-inset); }
 .stores-link-field .icon-btn, .stores-search .icon-btn { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; border: 0; border-radius: 10px; background: transparent; color: var(--cat-accent); cursor: pointer; }
 .stores-link > .btn { justify-content: center; min-height: 52px; }
 .stores-link-error { margin: 0; color: #b42318; font-size: 14px; font-weight: 600; }
 html[data-theme="dark"] .stores-link-error { color: #ffb4a8; }
-.stores-steps { display: grid; gap: 12px; margin: 20px 0 0; padding: 0; list-style: none; }
-.stores-steps li { display: flex; align-items: flex-start; gap: 12px; }
-.stores-steps li > span { display: inline-grid; flex: none; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--cat-on); color: var(--cat-on-ink); font-size: 14px; font-weight: 800; }
-.stores-steps b { display: block; color: var(--cat-ink); font-weight: 700; }
-.stores-steps small { display: block; margin-top: 2px; color: var(--cat-muted); font-size: 13.5px; line-height: 1.45; }
+/* "How to copy a link": collapsed by default, three short columns (iPhone / Android / computer). */
+.stores-howto, .store-dialog-howto { margin: 0; }
+.stores-howto { margin-top: 10px; }
+:is(.stores-howto, .store-dialog-howto) summary { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--cat-accent); font-size: 14px; font-weight: 700; list-style: none; cursor: pointer; }
+:is(.stores-howto, .store-dialog-howto) summary::-webkit-details-marker { display: none; }
+:is(.stores-howto, .store-dialog-howto) summary svg { transition: transform .15s; }
+:is(.stores-howto, .store-dialog-howto)[open] summary svg { transform: rotate(180deg); }
+:is(.stores-howto, .store-dialog-howto) ul { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 2px 0 0; padding: 0; list-style: none; }
+:is(.stores-howto, .store-dialog-howto) li { display: grid; gap: 2px; min-width: 0; }
+:is(.stores-howto, .store-dialog-howto) li b { color: var(--cat-ink); font-size: 13.5px; font-weight: 700; }
+:is(.stores-howto, .store-dialog-howto) li span { color: var(--cat-muted); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+/* Dispatch countries: a card per region with both speeds; a tap filters the directory by that country. */
+.stores-regions-cards { display: flex; gap: 8px; margin: -2px -16px 0; padding: 4px 44px 6px 16px; overflow-x: auto; scroll-padding-inline: 16px; scroll-snap-type: x proximity; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); }
+.stores-regions-cards::-webkit-scrollbar { display: none; }
+/* Wide enough for "экспресс 5–9 раб. дн · $15,98/кг" in one line; narrower cards wrap the rate under the days. */
+.stores-region-card { display: grid; flex: none; gap: 5px; width: 240px; padding: 10px 12px; border: 1px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); color: var(--cat-ink); font: inherit; text-align: left; cursor: pointer; scroll-snap-align: start; }
+.stores-region-card[aria-pressed="true"] { border-color: var(--cat-ink); box-shadow: inset 0 0 0 1px var(--cat-ink); }
+.stores-region-head { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+.stores-region-head .flag { flex: none; width: 24px; height: 16px; margin-top: 1px; }
+/* A long name ("Великобритания") goes a step smaller and may take a second line instead of ending in an ellipsis; the count keeps the top right corner. */
+.stores-region-head b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; flex: 1; min-width: 0; overflow: hidden; font-size: 14px; font-weight: 700; line-height: 1.25; overflow-wrap: normal; hyphens: manual; }
+.stores-region-head b[data-long] { font-size: 13px; }
+.stores-region-head > span { flex: none; margin-left: auto; padding-top: 2px; color: var(--cat-muted); font-size: 12px; font-weight: 650; line-height: 1.25; white-space: nowrap; }
+/* The days are the point of the card: they never end in an ellipsis; the rate wraps to a second line, right-aligned, when the card is narrow. */
+.stores-region-line { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 8px; color: var(--cat-muted); font-size: 12.5px; line-height: 1.3; }
+.stores-region-line > span { min-width: 0; }
+.stores-region-line b { flex: none; margin-left: auto; color: var(--cat-ink); font-weight: 700; font-feature-settings: "tnum" 1; white-space: nowrap; }
+.stores-terms-note { margin: 8px 0 0; color: var(--cat-muted); font-size: 12.5px; line-height: 1.45; }
+.stores-browse > .stores-terms-note { margin-top: 14px; }
 
 /* ---------- Shelves: your stores and popular ---------- */
 .stores-shelf { margin-bottom: 26px; }
-.stores-shelf h2, .stores-browse-head h2 { margin: 0; color: var(--cat-ink); font-size: clamp(20px, 3vw, 26px); letter-spacing: -.02em; }
-.stores-shelf ul { display: flex; gap: 8px; margin: 12px -16px 0; padding: 2px 16px 6px; overflow-x: auto; list-style: none; scroll-padding-inline: 16px; scroll-snap-type: x proximity; scrollbar-width: none; }
+.stores-shelf h2, .stores-showcase > h2, .stores-browse-head h2 { margin: 0; color: var(--cat-ink); font-size: clamp(20px, 3vw, 26px); letter-spacing: -.02em; }
+/* 4px on top (the margin gives them back): the scrolling row clips, and a focused button's ring needs the room. */
+.stores-shelf ul { display: flex; gap: 8px; margin: 10px -16px 0; padding: 4px 44px 6px 16px; overflow-x: auto; list-style: none; scroll-padding-inline: 16px; scroll-snap-type: x proximity; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); }
 .stores-shelf li { flex: none; scroll-snap-align: start; }
 .stores-shelf button { display: grid; justify-items: center; gap: 6px; width: 84px; padding: 10px 4px 9px; border: 1px solid var(--cat-line); border-radius: 16px; background: var(--cat-surface); color: var(--cat-ink); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
 .stores-shelf button > span:last-child { display: block; max-width: 100%; overflow: hidden; line-height: 1.2; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
 .stores-mine button { border-color: var(--cat-ok-line); background: var(--cat-ok-bg); }
+
+/* ---------- Storefronts with catalog products ---------- */
+.stores-showcase { margin-bottom: 26px; }
+.stores-showcase-list { display: flex; gap: 10px; margin: 10px -16px 0; padding: 4px 44px 8px 16px; overflow-x: auto; list-style: none; scroll-padding-inline: 16px; scroll-snap-type: x proximity; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); }
+.stores-showcase-list::-webkit-scrollbar { display: none; }
+.stores-showcase-list > li { flex: none; width: 260px; scroll-snap-align: start; }
+.store-showcase-card { display: grid; gap: 10px; height: 100%; padding: 14px; border: 1px solid var(--cat-line); border-radius: 18px; background: var(--cat-surface); color: var(--cat-ink); }
+.store-showcase-card > header { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.store-showcase-card > header > div { display: grid; gap: 2px; min-width: 0; }
+.store-showcase-card > header b { overflow: hidden; font-size: 15px; font-weight: 700; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.store-showcase-card > header small { display: inline-flex; align-items: center; gap: 6px; min-width: 0; color: var(--cat-muted); font-size: 12px; }
+.store-showcase-card > header small .flag { flex: none; width: 18px; height: 12px; }
+/* The country name is its own box, so a long one ends in an ellipsis instead of being clipped. */
+.store-showcase-card > header small > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The one mint element of the card: how many of its products the catalog has. */
+.store-showcase-card > header > span { flex: none; margin-left: auto; color: var(--cat-ok); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.store-showcase-photos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+/* As many slots as photos (at most three): one photo takes the whole stage, two share it; the logo stands in only for a photo that failed to load. */
+.store-showcase-photos[data-count="1"] { grid-template-columns: minmax(0, 1fr); }
+.store-showcase-photos[data-count="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.store-showcase-photos[data-count="1"] .store-showcase-photo { aspect-ratio: 2; }
+.store-showcase-photos[data-count="1"] .store-showcase-photo img { padding: 8px; }
+/* Product photos stand on the catalog's stage (white by day, ivory in Night, like .find-visual); the logo stand-in keeps its own white plate. */
+/* The stage is positioned and the photo absolute: in a grid cell with aspect-ratio a percentage height would not resolve and the photo overflowed. */
+.store-showcase-photo { position: relative; display: block; aspect-ratio: 1; overflow: hidden; border: 1px solid var(--cat-line); border-radius: 12px; background: var(--cat-stage); }
+.store-showcase-photo img { position: absolute; inset: 0; width: 100%; height: 100%; padding: 6px; object-fit: contain; mix-blend-mode: multiply; }
+.store-showcase-photo > :not(img) { position: absolute; inset: 0; display: grid; place-items: center; }
+.store-showcase-total { display: grid; gap: 2px; margin: 0; color: var(--cat-ink); font-size: 14px; font-weight: 600; line-height: 1.35; }
+.store-showcase-total > span { min-width: 0; overflow-wrap: anywhere; }
+.store-showcase-total .money { font-size: 17px; }
+.store-showcase-total small { color: var(--cat-muted); font-size: 12px; font-weight: 500; }
+.store-showcase-terms { margin: -4px 0 0; color: var(--cat-muted); font-size: 12.5px; line-height: 1.4; }
+.store-showcase-card > .btn { justify-content: center; min-height: 44px; margin-top: auto; }
 
 /* ---------- Directory ---------- */
 .stores-browse-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
@@ -53,17 +113,26 @@ html[data-theme="dark"] .stores-link-error { color: #ffb4a8; }
 .stores-chips > button > span { color: var(--cat-muted); font-size: 12px; font-weight: 750; font-feature-settings: "tnum" 1; }
 .stores-chips > button[aria-pressed="true"] { border-color: var(--cat-on); background: var(--cat-on); color: var(--cat-on-ink); }
 .stores-chips > button[aria-pressed="true"] > span { color: inherit; opacity: .85; }
-.stores-regions > button { min-height: 40px; font-size: 13.5px; }
+.stores-regions > button { font-size: 13.5px; }
+/* The country picked on a dispatch card, shown among the region chips so it can be cleared there too. */
+.stores-country-chip .flag { width: 18px; height: 12px; }
 .stores-group { margin-top: 22px; }
 .stores-group h3 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 10px; color: var(--cat-ink); font-size: 17px; letter-spacing: -.01em; }
 .stores-group h3 span { color: var(--cat-muted); font-size: 13px; font-weight: 700; }
 .stores-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
-.store-tile { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 56px; padding: 9px 10px; border: 1px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); color: var(--cat-ink); font: inherit; text-align: left; cursor: pointer; }
-.store-tile-text { display: grid; min-width: 0; }
-/* One line each: a store name never breaks inside a word. */
-.store-tile-text b { overflow: hidden; font-size: 14px; font-weight: 700; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
-.store-tile-text small { overflow: hidden; margin-top: 2px; color: var(--cat-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.store-tile-text em { color: var(--cat-ok); font-style: normal; font-weight: 700; }
+/* Tile 2.0: logo (with a mark when the visitor ordered here), name with the catalog count, and a geography line.
+   Full height of its grid cell, so tiles in a row stay level when a name wraps to a second line. */
+.store-tile { display: flex; align-items: center; gap: 10px; width: 100%; height: 100%; min-height: 64px; padding: 10px; border: 1px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); color: var(--cat-ink); font: inherit; text-align: left; cursor: pointer; }
+.store-tile-logo { position: relative; display: inline-grid; flex: none; }
+.store-tile-mark { position: absolute; right: -3px; bottom: -3px; width: 11px; height: 11px; border: 2px solid var(--cat-surface); border-radius: 50%; background: var(--cat-ink); }
+.store-tile-text { display: grid; flex: 1; gap: 3px; min-width: 0; }
+.store-tile-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; min-width: 0; }
+/* The name keeps its ending: refine.css (loaded later) wraps it to a second line and clamps it there. */
+.store-tile-text b { min-width: 0; overflow: hidden; font-size: 14px; font-weight: 700; line-height: 1.25; }
+.store-tile-count { flex: none; color: var(--cat-ok); font-size: 12px; font-style: normal; font-weight: 700; white-space: nowrap; }
+.store-tile-geo { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 5px; min-width: 0; color: var(--cat-muted); font-size: 12px; line-height: 1.3; }
+.store-tile-geo .flag { flex: none; width: 18px; height: 12px; }
+.store-tile-geo > span + span::before { content: "· "; }
 /* Collapsed groups: two rows of the current grid; "show all" opens the rest. */
 .stores-group:not(.open) .stores-grid > li:nth-child(n + 7) { display: none; }
 .stores-more { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 44px; margin-top: 8px; border: 1px dashed var(--cat-line); border-radius: 12px; background: transparent; color: var(--cat-accent); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
@@ -76,57 +145,101 @@ html[data-theme="dark"] .stores-link-error { color: #ffb4a8; }
 .stores-empty { padding: 28px 18px; border: 1px dashed var(--cat-line); border-radius: 18px; text-align: center; }
 .stores-empty p { max-width: 52ch; margin: 0 auto 16px; color: var(--cat-muted); line-height: 1.5; }
 .stores-note { max-width: 80ch; margin: 24px 0 0; color: var(--cat-muted); font-size: 13px; line-height: 1.55; }
-:is(.stores-page, .store-dialog) :is(button, a, input):focus-visible { outline: 2px solid var(--cat-accent); outline-offset: 2px; }
+:is(.stores-page, .store-dialog) :is(button, a, input, summary):focus-visible { outline: 2px solid var(--cat-accent); outline-offset: 2px; }
 @media (hover: hover) {
-  .stores-shelf button:hover, .store-tile:hover, .store-dialog-similar button:hover { border-color: var(--cat-accent); }
-  .stores-chips > button:not([aria-pressed="true"]):hover, .stores-more:hover { border-color: var(--cat-accent); }
+  .stores-shelf button:hover, .store-tile:hover, .store-dialog-similar button:hover, .store-showcase-card:hover, .stores-region-card:not([aria-pressed="true"]):hover { border-color: var(--cat-accent); }
+  .stores-chips > button:not([aria-pressed="true"]):hover, .stores-more:hover, .store-dialog-products a:hover { border-color: var(--cat-accent); }
 }
 .stores-shelf button:active, .store-tile:active { background: var(--cat-soft); }
 
 /* ---------- Store dialog ---------- */
-.store-dialog { width: min(520px, calc(100% - 32px)); max-height: min(720px, calc(100dvh - 48px)); padding: 0; border: 0; border-radius: 22px; background: var(--cat-surface); color: var(--cat-ink); box-shadow: 0 24px 60px rgba(10, 20, 15, .25); }
+.store-dialog { width: min(560px, calc(100% - 32px)); max-height: min(760px, calc(100dvh - 48px)); padding: 0; border: 0; border-radius: 22px; background: var(--cat-surface); color: var(--cat-ink); box-shadow: 0 24px 60px rgba(10, 20, 15, .25); }
+.store-dialog[open] { display: grid; grid-template-rows: minmax(0, 1fr) auto; }
 .store-dialog::backdrop { background: rgba(8, 12, 10, .55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
 html:has(.store-dialog[open]) { overflow: hidden; }
-.store-dialog-body { position: relative; display: grid; gap: 16px; padding: 22px 20px 20px; }
+.store-dialog-body { position: relative; display: grid; gap: 16px; min-height: 0; padding: 22px 20px 20px; overflow-y: auto; overscroll-behavior: contain; }
+.store-dialog-handle, .store-dialog-foot { display: none; }
 .store-dialog-close { position: absolute; top: 10px; right: 10px; display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; border: 0; border-radius: 12px; background: transparent; color: var(--cat-ink); cursor: pointer; }
 .store-dialog-head { display: flex; align-items: center; gap: 14px; padding-right: 40px; }
-.store-dialog-head h2 { margin: 0 0 4px; color: var(--cat-ink); font-size: 24px; line-height: 1.15; }
-.store-dialog-head p { margin: 0; color: var(--cat-muted); font-size: 14px; }
+.store-dialog-head > div { display: grid; gap: 4px; min-width: 0; justify-items: start; }
+.store-dialog-head h2 { margin: 0; color: var(--cat-ink); font-size: 24px; line-height: 1.15; }
+.store-dialog-head p { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; margin: 0; color: var(--cat-muted); font-size: 14px; }
+.store-dialog-head p .flag { width: 18px; height: 12px; }
+/* The one personal mark: a grey outlined chip, never mint. */
+.store-dialog-mark { display: inline-flex; align-items: center; min-height: 26px; margin-top: 2px; padding: 0 9px; border: 1px solid var(--cat-line); border-radius: 999px; color: var(--cat-muted); font-size: 12px; font-weight: 650; }
+.store-dialog-link { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.store-dialog-link .stores-link-field { min-height: 50px; }
+.store-dialog-calc { justify-content: center; min-height: 50px; padding: 0 18px; }
+.store-dialog-link .stores-link-error { grid-column: 1 / -1; }
 .store-dialog-open, .store-dialog-paste { justify-content: center; min-height: 52px; }
 .store-dialog-section h3 { margin: 0 0 8px; color: var(--cat-muted); font-size: 12.5px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+/* Delivery terms from the store's country: a white card, sums dark, one footnote. */
+.store-dialog-terms { display: grid; gap: 10px; padding: 14px 16px; border: 1px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); }
+.store-dialog-terms h3 { margin: 0; color: var(--cat-ink); font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+.store-dialog-terms dl { display: grid; gap: 8px; margin: 0; }
+.store-dialog-terms dl > div { display: grid; grid-template-columns: minmax(96px, 30%) minmax(0, 1fr); gap: 2px 10px; font-size: 13.5px; line-height: 1.4; }
+.store-dialog-terms dt { color: var(--cat-muted); }
+.store-dialog-terms dd { margin: 0; color: var(--cat-ink); font-weight: 600; overflow-wrap: anywhere; }
+.store-dialog-terms p { margin: 0; color: var(--cat-muted); font-size: 13.5px; line-height: 1.45; }
+.store-dialog-terms .store-dialog-currency { color: var(--cat-warn); font-weight: 600; }
+.store-dialog-terms small { color: var(--cat-muted); font-size: 12px; line-height: 1.4; }
+/* Products of the store in the catalog: compact rows with a white photo scene and the dark total. */
+.store-dialog-products { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.store-dialog-products a { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 76px; padding: 5px 12px 5px 5px; border: 1px solid var(--cat-line); border-radius: 14px; color: var(--cat-ink); text-decoration: none; }
+.store-dialog-photo { display: grid; place-items: center; width: 64px; height: 64px; overflow: hidden; border: 1px solid var(--cat-line); border-radius: 10px; background: var(--cat-stage); }
+.store-dialog-photo .product-img, .store-dialog-photo .no-photo { width: 100%; height: 100%; min-height: 0; padding: 4px; border-radius: 0; object-fit: contain; }
+.store-dialog-photo .product-img { mix-blend-mode: multiply; }
+.store-dialog-photo .no-photo { display: grid; place-items: center; background: transparent; color: var(--cat-muted); }
+.store-dialog-photo .no-photo span { display: none; }
+.store-dialog-product-name { min-width: 0; overflow: hidden; font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.store-dialog-products .money { font-size: 15px; font-weight: 700; white-space: nowrap; }
+.store-dialog-all { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 2px; color: var(--cat-accent); font-size: 14px; font-weight: 700; text-decoration: none; }
+/* Country storefronts: flag · country · domain, then currency · days; an amber note for a currency without a rate. */
 .store-dialog-fronts { display: grid; margin: 0; padding: 0; border: 1px solid var(--cat-line); border-radius: 14px; list-style: none; }
 .store-dialog-fronts li + li { border-top: 1px solid var(--cat-line); }
-.store-dialog-fronts a { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 10px; min-height: 46px; padding: 0 14px; color: var(--cat-ink); font-weight: 650; text-decoration: none; }
-.store-dialog-fronts small { color: var(--cat-muted); font-size: 13px; font-weight: 500; }
-.store-dialog-fronts svg { color: var(--cat-muted); }
-.store-dialog-catalog { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 0 16px; border: 1px solid var(--cat-ok-line); border-radius: 14px; background: var(--cat-ok-bg); color: var(--cat-ink); font-weight: 650; text-decoration: none; }
-.store-dialog-catalog b { display: inline-flex; align-items: center; gap: 6px; color: var(--cat-accent); }
-.store-dialog-steps { display: grid; gap: 10px; margin: 0; padding: 0 0 0 22px; }
-.store-dialog-steps b { display: block; font-weight: 700; }
-.store-dialog-steps small { display: block; color: var(--cat-muted); font-size: 13.5px; line-height: 1.45; }
+.store-dialog-fronts a { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 3px 10px; min-height: 52px; padding: 8px 14px; color: var(--cat-ink); font-weight: 650; text-decoration: none; }
+.store-dialog-fronts .flag { width: 24px; height: 16px; }
+.store-dialog-front-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; min-width: 0; }
+.store-dialog-front-main small, .store-dialog-fronts svg { color: var(--cat-muted); font-size: 13px; font-weight: 500; }
+.store-dialog-front-meta { grid-column: 2; display: flex; flex-wrap: wrap; gap: 2px 5px; color: var(--cat-muted); font-size: 12.5px; font-weight: 500; }
+.store-dialog-front-meta > * + *::before { content: "· "; }
+.store-dialog-front-meta em { color: var(--cat-warn); font-style: normal; font-weight: 600; }
+.store-dialog-fronts a > svg { grid-column: 3; grid-row: 1 / 3; }
+/* A note about the store (used goods, supplements, duty above the limit): neutral, with an icon. */
+.store-dialog-note { display: flex; gap: 10px; margin: 0; padding: 12px 14px; border: 1px solid var(--cat-line); border-radius: 12px; color: var(--cat-ink); font-size: 13.5px; line-height: 1.45; }
+.store-dialog-note svg { flex: none; margin-top: 1px; color: var(--cat-muted); }
 .store-dialog-similar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
 .store-dialog-similar button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 6px 10px; border: 1px solid var(--cat-line); border-radius: 12px; background: var(--cat-surface); color: var(--cat-ink); font: inherit; font-size: 14px; font-weight: 650; text-align: left; cursor: pointer; }
 .store-dialog-similar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---------- Breakpoints ---------- */
-/* Phones: the three steps fit in one row (the store card repeats the details), so stores start sooner. */
+/* Phones: a compact hero (the dispatch cards scroll under the field), so stores start sooner. */
 @media (max-width: 599px) {
-  .stores-hero { margin-bottom: 22px; padding: 16px 14px; border-radius: 18px; }
-  .stores-overline { margin-bottom: 6px; font-size: 11.5px; }
-  .stores-hero h1 { margin-bottom: 8px; font-size: 24px; letter-spacing: -.025em; }
-  .stores-intro { margin-bottom: 14px; font-size: 14.5px; line-height: 1.5; }
-  .stores-link-field { min-height: 50px; }
-  .stores-link > .btn { min-height: 48px; }
-  .stores-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
-  .stores-steps li { flex-direction: column; gap: 6px; }
-  .stores-steps li > span { width: 22px; height: 22px; font-size: 12px; }
-  .stores-steps b { font-size: 12.5px; line-height: 1.3; }
-  .stores-steps small { display: none; }
-  .stores-shelf { margin-bottom: 20px; }
+  .stores-hero { gap: 12px; margin-bottom: 22px; padding: 14px 14px 12px; border-radius: 18px; }
+  .stores-hero h1 { margin-bottom: 6px; font-size: 24px; letter-spacing: -.025em; }
+  .stores-intro { margin-bottom: 10px; font-size: 14.5px; line-height: 1.5; }
+  .stores-link { gap: 8px; }
+  .stores-link-field { min-height: 48px; }
+  .stores-link > .btn { min-height: 46px; }
+  .stores-howto { margin-top: 2px; }
+  .stores-howto summary { font-size: 13.5px; }
+  .stores-howto ul { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .stores-regions-cards { margin-inline: -14px; padding: 4px 42px 4px 14px; scroll-padding-inline: 14px; }
+  .stores-region-card { gap: 4px; padding: 9px 10px; }
+  .stores-region-head b { font-size: 13.5px; }
+  .stores-region-line { font-size: 12px; }
+  /* The same footnote stands under "All stores"; the hero keeps to one screen (≤ 380px). */
+  .stores-hero-aside > .stores-terms-note { display: none; }
+  .stores-terms-note { margin-top: 4px; font-size: 12px; }
+  .stores-shelf, .stores-showcase { margin-bottom: 20px; }
+  .stores-showcase-list > li { width: 240px; }
   .stores-search { min-height: 48px; }
-  .stores-chips > button { min-height: 40px; padding: 0 12px; font-size: 13.5px; }
-  .stores-regions > button { min-height: 36px; font-size: 13px; }
+  .stores-chips > button { padding: 0 12px; font-size: 13.5px; }
+  .stores-regions > button { font-size: 13px; }
   .stores-group { margin-top: 18px; }
+  .store-tile { gap: 8px; min-height: 60px; padding: 9px 8px; }
+  /* Two tiles in a row: country and days fit, the rate waits for the store card. */
+  .store-tile-rate { display: none; }
 }
 /* Three columns: three rows collapsed. */
 @media (min-width: 600px) {
@@ -134,11 +247,23 @@ html:has(.store-dialog[open]) { overflow: hidden; }
   .stores-group:not(.open) .stores-grid > li:nth-child(n + 10) { display: none; }
   .stores-group.le9 .stores-more { display: none; }
   .stores-missing { grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 20px 24px; }
+  .stores-regions-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; overflow: visible; -webkit-mask-image: none; mask-image: none; }
+  .stores-region-card { width: auto; }
 }
 @media (max-width: 760px) {
-  /* A bottom sheet on phones, above the home indicator. */
-  .store-dialog { width: 100%; max-width: 100%; max-height: 90dvh; margin: auto 0 0; border-radius: 22px 22px 0 0; }
-  .store-dialog-body { padding-bottom: calc(20px + env(safe-area-inset-bottom)); overflow-y: auto; max-height: 90dvh; }
+  /* The storefront row scrolls sideways with every card in it: nothing to show or fold. */
+  .stores-showcase .stores-more { display: none; }
+  /* A bottom sheet on phones: a handle on top, the card scrolls, "Calculate" stays at the bottom. */
+  .store-dialog { width: 100%; max-width: 100%; max-height: 92dvh; margin: auto 0 0; border-radius: 22px 22px 0 0; }
+  .store-dialog-body { padding: 10px 16px 18px; }
+  .store-dialog-handle { display: block; justify-self: center; width: 40px; height: 4px; margin-bottom: -4px; border-radius: 2px; background: var(--cat-line); }
+  .store-dialog-close { top: 8px; right: 8px; }
+  .store-dialog-head { padding-top: 6px; }
+  .store-dialog-link { grid-template-columns: minmax(0, 1fr); }
+  .store-dialog-calc { display: none; }
+  .store-dialog-foot { display: block; position: sticky; bottom: 0; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--cat-line); background: var(--cat-surface); }
+  .store-dialog-foot .btn { width: 100%; justify-content: center; min-height: 50px; }
+  .store-dialog-terms dl > div { grid-template-columns: minmax(0, 1fr); }
   @media (prefers-reduced-motion: no-preference) { .store-dialog[open] { animation: store-sheet-in .28s cubic-bezier(.2, .8, .2, 1); } }
 }
 @keyframes store-sheet-in { from { transform: translateY(40px); opacity: .4; } }
@@ -149,12 +274,14 @@ html:has(.store-dialog[open]) { overflow: hidden; }
   .stores-link-error { grid-column: 1 / -1; }
 }
 @media (min-width: 761px) {
-  .stores-hero { padding: 32px; }
-  .stores-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+  .stores-hero { padding: 30px 32px; }
   .stores-chips, .stores-shelf ul { flex-wrap: wrap; margin-inline: 0; padding-inline: 0; overflow: visible; }
-  .stores-shelf ul { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .stores-shelf ul { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); -webkit-mask-image: none; mask-image: none; }
   .stores-shelf button { width: 100%; }
-  .store-dialog-body { max-height: inherit; overflow-y: auto; }
+  .stores-showcase-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-inline: 0; padding-inline: 0; overflow: visible; -webkit-mask-image: none; mask-image: none; }
+  .stores-showcase-list > li { width: auto; }
+  /* Storefronts: two rows of three collapsed; "show all" opens the rest. */
+  .stores-showcase:not(.open) .stores-showcase-list > li:nth-child(n + 7) { display: none; }
   .store-dialog-similar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 /* Four and five columns: two rows collapsed. */
@@ -165,10 +292,40 @@ html:has(.store-dialog[open]) { overflow: hidden; }
   .stores-group.le9 .stores-more { display: flex; }
   .stores-group.le8 .stores-more { display: none; }
 }
+/* Wide: the dispatch countries stand to the right of the link field, two cards per row (480px keeps a card's terms in one line). */
+@media (min-width: 1024px) {
+  .stores-hero { grid-template-columns: minmax(0, 1fr) 480px; align-items: start; column-gap: 32px; }
+  .stores-regions-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (min-width: 1200px) {
   .stores-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .stores-shelf ul { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  .stores-showcase-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  /* Storefronts: two rows of four collapsed (le8: everything fits, so no "show all"). */
+  .stores-showcase:not(.open) .stores-showcase-list > li:nth-child(n + 7) { display: list-item; }
+  .stores-showcase:not(.open) .stores-showcase-list > li:nth-child(n + 9) { display: none; }
+  .stores-showcase.le8 .stores-more { display: none; }
   .stores-group:not(.open) .stores-grid > li:nth-child(n + 9) { display: list-item; }
   .stores-group:not(.open) .stores-grid > li:nth-child(n + 11) { display: none; }
   .stores-group.le9 .stores-more, .stores-group.le10 .stores-more { display: none; }
+}
+
+/* ---------- Night ---------- */
+/* Raised surfaces with the theme's hairlines; ivory for the selected dispatch card and the personal mark. */
+html[data-theme="dark"] .stores-hero { border-color: var(--night-line); background: var(--night-raised); }
+html[data-theme="dark"] :is(.stores-region-card, .store-showcase-card, .store-dialog-terms, .store-dialog-products a, .store-dialog-fronts, .store-dialog-note) { border-color: var(--night-line-strong); background: var(--night-surface); }
+html[data-theme="dark"] :is(.stores-region-card, .store-showcase-card) { box-shadow: var(--night-shadow); }
+html[data-theme="dark"] .stores-region-card[aria-pressed="true"] { border-color: var(--night-ivory); box-shadow: inset 0 0 0 1px var(--night-ivory); }
+html[data-theme="dark"] :is(.store-showcase-photo, .store-dialog-photo) { border-color: transparent; }
+html[data-theme="dark"] .store-tile-mark { border-color: var(--night-surface); background: var(--night-ivory); }
+html[data-theme="dark"] :is(.store-tile-count, .store-showcase-card > header > span) { color: var(--night-ok-ink); }
+html[data-theme="dark"] :is(.store-showcase-total, .store-dialog-terms dd, .store-dialog-products .money, .store-dialog-product-name) { color: var(--night-ink); }
+html[data-theme="dark"] :is(.stores-terms-note, .store-tile-geo, .store-showcase-terms, .store-dialog-terms dt, .store-dialog-terms small, .store-dialog-front-meta) { color: var(--night-muted); }
+html[data-theme="dark"] :is(.store-dialog-currency, .store-dialog-front-meta em) { color: var(--night-warn-ink); }
+html[data-theme="dark"] .store-dialog-mark { border-color: var(--night-line-strong); color: var(--night-ink-2); }
+html[data-theme="dark"] .store-dialog-handle { background: var(--night-line-strong); }
+html[data-theme="dark"] .store-dialog-foot { border-color: var(--night-line); background: var(--night-surface); }
+html[data-theme="dark"] :is(.stores-howto, .store-dialog-howto) summary { color: var(--night-jade); }
+@media (hover: hover) {
+  html[data-theme="dark"] :is(.store-showcase-card, .stores-region-card:not([aria-pressed="true"]), .store-dialog-products a):hover { border-color: var(--night-jade); }
 }
