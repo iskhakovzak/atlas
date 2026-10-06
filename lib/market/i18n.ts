@@ -122,6 +122,11 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_40': 'На сегодня загружено слишком много файлов документа. Попробуйте завтра или напишите в поддержку.',
     'err_50': 'У вашей роли нет доступа к этому действию.',
     'err_51': 'Заблокировать клиента может только администратор.',
+    'err_55': 'Нельзя отключить собственный доступ.',
+    'err_56': 'Основного администратора из настроек хостинга отключить нельзя.',
+    'err_57': 'Заметки о клиентах пока недоступны: примените миграцию базы 0011.',
+    'err_52': 'Контент сайта изменён в другой вкладке. Загружена актуальная версия — проверьте поля и сохраните снова.',
+    'err_53': 'В контенте сайта есть ошибки. Исправьте отмеченные поля и сохраните снова.',
   },
   uz: {
     'err_1': 'Davom etish uchun tizimga kiring.',
@@ -166,6 +171,11 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_40': 'Bugun hujjat fayllari juda ko‘p yuklandi. Ertaga urinib ko‘ring yoki qo‘llab-quvvatlashga yozing.',
     'err_50': 'Sizning rolingizda bu amalga ruxsat yo‘q.',
     'err_51': 'Mijozni faqat administrator bloklashi mumkin.',
+    'err_55': 'O‘z ruxsatingizni o‘chirib bo‘lmaydi.',
+    'err_56': 'Hosting sozlamalaridagi asosiy administratorni o‘chirib bo‘lmaydi.',
+    'err_57': 'Mijozlar haqidagi eslatmalar hozircha mavjud emas: 0011 migratsiyasini qo‘llang.',
+    'err_52': 'Sayt kontenti boshqa oynada o‘zgartirilgan. Joriy versiya yuklandi — maydonlarni tekshirib, qayta saqlang.',
+    'err_53': 'Sayt kontentida xatolar bor. Belgilangan maydonlarni tuzatib, qayta saqlang.',
   },
   en: {
     'err_1': 'Sign in to continue.',
@@ -210,6 +220,11 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_40': 'Too many document files uploaded today. Try again tomorrow or contact support.',
     'err_50': 'Your role does not allow this action.',
     'err_51': 'Only an administrator can block a customer.',
+    'err_55': 'You cannot disable your own access.',
+    'err_56': 'The primary administrator from the hosting settings cannot be disabled.',
+    'err_57': 'Customer notes are not available yet: apply database migration 0011.',
+    'err_52': 'The site content was changed in another tab. The current version is loaded — check the fields and save again.',
+    'err_53': 'The site content has errors. Fix the marked fields and save again.',
   },
 };
 export function serverError(locale:Locale, key:string){

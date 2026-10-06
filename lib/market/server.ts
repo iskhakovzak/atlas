@@ -105,6 +105,8 @@ export async function syncOperationalProjection(id:string,state:State,now=Date.n
  if(orders.length)try{
   await db.batch(orders.map(order=>{const f=orderFinance(order,id);return db.prepare('INSERT INTO market_order_finance (order_id,customer_id,status,created_at,paid_at,month,goods,store_shipping,reserve,payable,commission,delivery,fx_gain,services,revenue,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(order_id) DO UPDATE SET customer_id=excluded.customer_id,status=excluded.status,paid_at=excluded.paid_at,month=excluded.month,goods=excluded.goods,store_shipping=excluded.store_shipping,reserve=excluded.reserve,payable=excluded.payable,commission=excluded.commission,delivery=excluded.delivery,fx_gain=excluded.fx_gain,services=excluded.services,revenue=excluded.revenue,updated_at=excluded.updated_at WHERE market_order_finance.customer_id=excluded.customer_id').bind(f.orderId,f.customerId,f.status,f.createdAt,f.paidAt??null,f.month??null,f.goods,f.storeShipping,f.reserve,f.payable,f.commission,f.delivery,f.fxGain,f.services,f.revenue,now)}));
  }catch(error){console.error('Order finance projection failed',error)}
+ // Auto ledger entries from order events (lib/market/finance-auto.ts): idempotent, manual rows untouched. Loaded lazily to avoid an import cycle.
+ if(orders.length)try{const {syncAutoLedger}=await import('./finance-server');await syncAutoLedger(id,orders,state.entries,now)}catch(error){console.error('Auto ledger sync failed',error)}
 }
 
 export async function rebuildOperationalProjection(){

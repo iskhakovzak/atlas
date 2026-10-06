@@ -8,7 +8,7 @@ import {atlasServiceBreakdown} from '@/lib/market/quote-presentation';
 import {courierAllowanceUsd} from '@/lib/market/customs';
 import {combinedShipmentWeight,packagingKg} from '@/lib/market/world';
 import {formatKg,formatPercent,formatPriceUsd,formatSum,formatUsd,groupDigits,homeCopy} from '@/lib/market/home-copy';
-import {deliveryDaysFor,deliveryRegions,paymentLabels,siteContent} from '@/lib/market/site-content';
+import {deliveryDaysFor,deliveryRegions,paymentLabels} from '@/lib/market/site-content';
 import {localizedStatuses,type Locale} from '@/lib/market/i18n';
 import {storeBrands} from '@/lib/market/store-brands';
 import {StoreLogo} from './store-logo';
@@ -29,7 +29,7 @@ export function useHomeCopy(){
 /** Dev-only marker for business data that is not filled yet; production renders nothing. */
 export function MissingContent({what}:{what:string}){
  if(!isDev)return null;
- return <p className="home-missing" role="note">Нужно заполнить: {what} — <code>lib/market/site-content.ts</code></p>;
+ return <p className="home-missing" role="note">Нужно заполнить: {what} — в админке, раздел «Контент сайта»</p>;
 }
 
 /** Scrolls to the home link field and focuses it (no smooth scroll under reduced motion). */
@@ -122,6 +122,7 @@ export function ExampleQuote(){
 
 export function HowItWorks(){
  const {locale,c}=useHomeCopy();
+ const {siteContent}=useMarket();
  const pickup=siteContent.contacts.pickupAddress?.[locale];
  return <section id="how" className="home-section" aria-labelledby="how-title">
   <h2 id="how-title">{c.how.title}</h2>
@@ -161,7 +162,7 @@ export function DeliveryTariffs(){
 }
 
 export function TrustSection(){
- const {pricing}=useMarket();
+ const {pricing,siteContent}=useMarket();
  const {locale,c}=useHomeCopy();
  const statuses=localizedStatuses(locale);
  const current=4;
@@ -208,7 +209,7 @@ export function TrustSection(){
 
 export function HomeFaq(){
  const {c}=useHomeCopy();
- const {pricing}=useMarket();
+ const {pricing,siteContent}=useMarket();
  const known=deliveryRegions.flatMap(region=>{
   const parts=deliverySpeeds.flatMap(speed=>{const days=deliveryDaysFor(pricing,region.id,speed);return days?[`${c.tariffs.speeds[speed].toLowerCase()} ${c.tariffs.days(days[0],days[1])}`]:[];});
   return parts.length?[`${c.tariffs.regions[region.id]}: ${parts.join(', ')}`]:[];

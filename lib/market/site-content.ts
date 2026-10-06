@@ -1,11 +1,13 @@
 import type { Locale } from './i18n.ts';
 
-// Business facts for the home page and footer. Fill these only with verified data:
-// an empty value hides its block in production builds (dev builds show a placeholder),
+// Business facts for the home page and footer. The owner fills them in the admin panel
+// (app/site-content-admin.tsx → POST /api/site-content → market_settings 'site-content'); the
+// constant below is the code default merged under the stored document (lib/market/site-content-schema.ts).
+// An empty value hides its block in production builds (dev builds show a placeholder),
 // so the site never shows invented contacts, reviews, delivery times or payment methods.
 export type DeliveryRegion = 'us' | 'uk' | 'cn' | 'de' | 'it' | 'es';
 export type PaymentMethod = 'click' | 'payme' | 'uzcard' | 'humo' | 'visa' | 'mastercard' | 'crypto';
-export type Review = { name: string; city?: string; text: Record<Locale, string> };
+export type Review = { name: string; city?: string; text: Record<Locale, string>; /** The customer agreed to publication (required by the admin form). */ consent?: true };
 export type ParcelPhoto = { src: string; alt: Record<Locale, string> };
 
 export type SiteContent = {
@@ -27,7 +29,7 @@ export type SiteContent = {
   standardDeliveryDays: Record<DeliveryRegion, readonly [number, number] | null>;
   /** Only methods that are actually connected. Payments are simulated until a provider is live. */
   paymentMethods: PaymentMethod[];
-  /** Real customer reviews only, with the customer's consent. */
+  /** Real customer reviews only, with the customer's consent (`consent: true` is enforced on save). */
   reviews: Review[];
   /** Photos of real parcels; files go to public/. */
   parcelPhotos: ParcelPhoto[];
@@ -47,6 +49,7 @@ export function deliveryDaysFor(
   return pricing.deliveryDays?.[region] ?? siteContent.deliveryDays[region];
 }
 
+/** Code defaults: nothing is filled here. Pages read the stored document through `useMarket().siteContent`. */
 export const siteContent: SiteContent = {
   contacts: { telegramSupport: null, telegramChannel: null, phone: null, instagram: null, pickupAddress: null },
   legal: { entityName: null, inn: null, address: null },
@@ -60,6 +63,7 @@ export const siteContent: SiteContent = {
   completedOrders: null,
   prohibitedListUrl: null,
 };
+export const defaultSiteContent = siteContent;
 
 export const paymentLabels: Record<PaymentMethod, string> = {
   click: 'Click', payme: 'Payme', uzcard: 'Uzcard', humo: 'Humo', visa: 'Visa', mastercard: 'Mastercard', crypto: 'Crypto',
