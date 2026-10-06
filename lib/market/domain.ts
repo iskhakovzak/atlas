@@ -728,8 +728,12 @@ export const cartCustomsSchema = z.object({
   outsideUsed: z.boolean().default(false),
   outsideUsd: z.number().finite().min(0).max(100_000).optional(),
   help: z.boolean().default(false),
+  /** "Remember for next orders" (owner, 7.10.2026): true saves `help` as the account's choice, false forgets it. */
+  remember: z.boolean().optional(),
 });
 export type CartCustoms = z.infer<typeof cartCustomsSchema>;
+/** Who pays customs in later carts, as the customer asked Atlas to remember it. */
+export const customsPreferenceSchema = z.object({ help: z.boolean() });
 const orderSchema = z.object({
   id: z.string(),
   product: productSchema,
@@ -1030,8 +1034,27 @@ export function storeShippingReserves(items: CartItem[], config: Pricing = tarif
   });
 }
 
-/** Whether this cart's lines carry the "Atlas pays customs for me" fee. */
-export const customsHelpChosen = (state: Pick<State, "cartCustoms">) => Boolean(state.cartCustoms?.help);
+/**
+ * Whether this cart's lines carry the "Atlas pays customs for me" fee: the choice made in this cart, else the one the
+ * customer asked to remember. The fee is charged only when there is duty to pay (`withCustomsHelpFor`).
+ */
+export const customsHelpChosen = (state: Pick<State, "cartCustoms" | "customsPreference">) =>
+  state.cartCustoms ? Boolean(state.cartCustoms.help) : Boolean(state.customsPreference?.help);
+/** The estimated duty in soum, rounded up as it is prepaid with the order. */
+export const customsDutySoum = (estimate: Pick<CustomsEstimate, "estimateUsd">, fx: number) => Math.ceil(estimate.estimateUsd * fx);
+/** Cart lines without the customs payment fee. */
+export function withoutCustomsHelp<T extends { quote: Quote }>(items: T[]): T[] {
+  return items.map((item) => item.quote.customsHelp === undefined ? item : {
+    ...item,
+    quote: { ...item.quote, total: item.quote.total - item.quote.customsHelp, customsHelp: undefined, customsHelpRate: undefined },
+  });
+}
+/**
+ * The lines as billed for one recipient (owner, 7.10.2026): with no duty to pay there is nothing for Atlas to pay,
+ * so the fee comes off even when the customer chose "Atlas pays customs".
+ */
+export const withCustomsHelpFor = <T extends { quote: Quote }>(items: T[], estimate: Pick<CustomsEstimate, "estimateUsd"> | undefined, fx: number) =>
+  estimate && customsDutySoum(estimate, fx) > 0 ? items : withoutCustomsHelp(items);
 /** The customer picks express or standard delivery for the whole cart; every line is requoted at that rate. */
 export function setCartDeliverySpeed(state: State, speed: DeliverySpeed, now = Date.now(), config: Pricing = tariff): State {
   if (!deliverySpeeds.includes(speed)) throw Error("Выберите экспресс или обычную доставку.");
@@ -1155,6 +1178,8 @@ export const stateSchema = z.object({
   messageDeliveries: z.array(messageDeliverySchema).default([]),
   supportTickets: z.array(supportTicketSchema).default([]),
   cartCustoms: cartCustomsSchema.optional(),
+  /** Who pays customs, remembered from an earlier cart; used while the current cart has no choice of its own. */
+  customsPreference: customsPreferenceSchema.optional(),
   /** Data-processing consents (privacy policy, terms of use): one entry per document, latest version wins. Absent in older documents. */
   consents: z.array(consentSchema).max(10).optional(),
   version: z.number().default(3),
@@ -1367,8 +1392,9 @@ export function setCartNote(state: State, id: string, note: string): State {
 }
 /** Customs choices for this cart; "Atlas pays customs for me" adds or removes its fee in every line at once. */
 export function setCartCustoms(state: State, value: CartCustoms, now = Date.now(), config: Pricing = tariff): State {
-  const checked = cartCustomsSchema.parse(value);
-  const next = { ...state, cartCustoms: { ...checked, outsideUsd: checked.outsideUsed ? checked.outsideUsd : undefined } };
+  const { remember, ...checked } = cartCustomsSchema.parse(value);
+  const customsPreference = remember === true ? { help: checked.help } : remember === false ? undefined : state.customsPreference;
+  const next = { ...state, customsPreference, cartCustoms: { ...checked, outsideUsd: checked.outsideUsed ? checked.outsideUsd : undefined } };
   return checked.help === customsHelpChosen(state) ? next : renewCart(next, now, config);
 }
 export function changeQuantity(
@@ -1500,12 +1526,13 @@ export function checkoutCart(
     throw Error("Корзина пересчитана. Проверьте новый итог перед оформлением.");
   // "Atlas pays customs for me": the duty estimated for this recipient is prepaid with the order, split by goods value.
   // The customer saw this amount on the confirmation step; a different one means the recipient or the month changed.
-  const dutyTotal = customsHelpChosen(state) && customs ? Math.ceil(customs.estimateUsd * config.fx) : 0;
+  const dutyTotal = customsHelpChosen(state) && customs ? customsDutySoum(customs, config.fx) : 0;
   if (customsHelpChosen(state) && (expectedCustomsDuty ?? 0) !== dutyTotal)
     throw Error("Пошлина пересчитана для выбранного получателя. Проверьте итог перед оформлением.");
   const merchandiseTotal = state.cart.reduce((sum, i) => sum + i.quote.merchandise, 0);
   let dutyLeft = dutyTotal;
-  const cart = !customsHelpChosen(state) ? state.cart : state.cart.map((i, index, items) => {
+  // No duty for this recipient: no fee either (owner, 7.10.2026).
+  const cart = !dutyTotal ? withoutCustomsHelp(state.cart) : state.cart.map((i, index, items) => {
     const duty = index === items.length - 1 ? dutyLeft : Math.min(dutyLeft, Math.round(dutyTotal * (merchandiseTotal ? i.quote.merchandise / merchandiseTotal : 1 / items.length)));
     dutyLeft -= duty;
     return { ...i, quote: { ...i.quote, customsDuty: duty, total: i.quote.total + duty } };
@@ -1597,7 +1624,7 @@ export function checkoutCart(
   return {
     ...state,
     cart: [],
-    // The customs choice belongs to this checkout: the next cart starts without the fee.
+    // The customs choice belongs to this checkout; the next cart starts from the remembered one (`customsPreference`).
     cartCustoms: undefined,
     orders: [...orders, ...state.orders],
     entries,

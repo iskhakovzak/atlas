@@ -6,6 +6,7 @@ import {
   renewCart,
   repriceCart,
   customsHelpChosen,
+  withCustomsHelpFor,
   confirmCustomsDuty,
   approveCustomsExtra,
   checkoutCart,
@@ -311,13 +312,6 @@ export function applyAction(
       return renewCart(s, Date.now(), pricing);
     case "checkout": {
       if (s.checkoutKeys.includes(a.key)) return s;
-      if (
-        (a.useBalance
-          // The prepaid duty (checked against the server's figure in checkoutCart) is part of what the balance can pay.
-          ? Math.min(totalOf(s.cart) + (customsHelpChosen(s) ? a.customsDuty ?? 0 : 0), Math.max(0, balanceOf(s)))
-          : 0) !== a.expectedCredit
-      )
-        throw Error("Баланс изменился. Проверьте итог заново.");
       assertCartPolicy(s.cart, policy);
       // Saved in the same revision as the orders, so a failed checkout saves nothing.
       let next = s, deliveryProfileId = a.deliveryProfileId;
@@ -336,6 +330,15 @@ export function applyAction(
       // The server works out the customs estimate for the chosen recipient; the browser's figures are not used.
       const recipientProfile = deliveryProfileId ? next.deliveryProfiles.find((profile) => profile.id === deliveryProfileId) : undefined;
       const customs = cartCustomsEstimate(next, pricing, { profile: recipientProfile, name: a.delivery?.recipient });
+      // The prepaid duty (checked against the server's figure in checkoutCart) is part of what the balance can pay;
+      // with no duty for this recipient the customs fee is not in the bill.
+      const billed = withCustomsHelpFor(s.cart, customs, pricing.fx);
+      if (
+        (a.useBalance
+          ? Math.min(totalOf(billed) + (customsHelpChosen(s) ? a.customsDuty ?? 0 : 0), Math.max(0, balanceOf(s)))
+          : 0) !== a.expectedCredit
+      )
+        throw Error("Баланс изменился. Проверьте итог заново.");
       return checkoutCart(
         next,
         a.key,

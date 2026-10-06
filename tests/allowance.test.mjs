@@ -65,5 +65,5 @@ test('customs is charged on the part above the allowance left; outside use and t
   const help = cartCustomsEstimate(helped, tariff, who, { outsideUsed: false, help: true }, now);
   assert.deepEqual([help.helpRequested, help.helpFeeUsd], [true, Math.round(996_000 / tariff.fx * 100) / 100], 'the chosen fee in USD');
   const small = cartCustomsEstimate({ ...state, cart: [{ id: 'c', product: { usd: 120 }, quantity: 1, quote: { total: 2_000_000, customsHelp: 99_600 } }] }, tariff, who, { outsideUsed: false, help: true }, now);
-  assert.deepEqual([small.dutiableUsd, small.estimateUsd, small.helpRequested], [0, 0, true], 'offered in every cart: the limit includes purchases outside Atlas');
+  assert.deepEqual([small.dutiableUsd, small.estimateUsd, small.helpRequested], [0, 0, undefined], 'no duty: nothing for Atlas to pay, no request on record (owner, 7.10.2026)');
 });

@@ -1,4 +1,4 @@
-import { statuses, type CartCustoms, type CustomsEstimate, type IdentityProfile, type Order, type Pricing, type SavedDeliveryProfile, type State } from './domain.ts';
+import { customsDutySoum, customsHelpChosen, statuses, type CartCustoms, type CustomsEstimate, type IdentityProfile, type Order, type Pricing, type SavedDeliveryProfile, type State } from './domain.ts';
 import { courierAllowanceUsd, customsCheckedOn, customsParams } from './customs.ts';
 import { tashkentDay, tashkentMonth } from './world.ts';
 
@@ -130,7 +130,9 @@ export function cartCustomsEstimate(
   const outsideUsedUsd = choices?.outsideUsed ? cents(choices.outsideUsd ?? 0) : 0;
   const remaining = outsideUnknown ? 0 : Math.max(0, params.allowanceUsd - atlasUsedUsd - outsideUsedUsd);
   const dutiableUsd = cents(Math.max(0, valueUsd - remaining));
-  const helpRequested = Boolean(choices?.help);
+  const estimateUsd = cents(dutiableUsd * params.rate);
+  // Owner's rule (7.10.2026): with no duty there is nothing for Atlas to pay, so no fee and no request on record.
+  const helpRequested = Boolean(choices ? choices.help : customsHelpChosen(state)) && customsDutySoum({ estimateUsd }, pricing.fx) > 0;
   // The fee is a line of the bill (repriceCart); here only its USD equivalent for the order's customs record.
   const helpFee = state.cart.reduce((sum, item) => sum + (item.quote.customsHelp ?? 0), 0);
   return {
@@ -145,8 +147,8 @@ export function cartCustomsEstimate(
     dutiableUsd,
     rate: params.rate,
     minimumPerKg: params.minimumPerKg,
-    estimateUsd: cents(dutiableUsd * params.rate),
-    // Owner's rule (5.10.2026): Atlas pays customs for 4.98% of the cart's amount to pay, offered in every cart.
+    estimateUsd,
+    // Owner's rule (5.10.2026): Atlas pays customs for 4.98% of the goods; offered when the cart has duty to pay.
     ...(helpRequested ? { helpRequested, helpFeeUsd: cents(helpFee / pricing.fx) } : {}),
     checkedOn: customsCheckedOn,
   };

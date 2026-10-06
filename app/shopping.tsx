@@ -6,7 +6,7 @@ import Link from "@/components/site-link";
 import { ArrowRight, ArrowUpRight, BadgeCheck, Check, ClipboardPaste, Clock3, Info, Layers, Loader2, MessageSquare, Minus, Plus, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
-import { balanceOf, cartDeliverySpeed, cartSignature, isPostalCode, maxLineQuantity, storeDiscount, merchantParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
+import { balanceOf, cartDeliverySpeed, cartSignature, customsHelpChosen, withCustomsHelpFor, isPostalCode, maxLineQuantity, storeDiscount, merchantParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
 import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, savingText } from "@/lib/market/delivery-speed";
 import { countryName, customsVersion } from "@/lib/market/world";
 import { formatSum } from "@/lib/market/home-copy";
@@ -210,28 +210,42 @@ export function CartView() {
     toast.error(result.status === "changed" ? pendingWords.changedElsewhere : pendingWords.failedElsewhere, { action: { label: pendingWords.open, onClick: () => window.location.assign(result.pending.returnTo) } });
   }, { maxAgeMs: pendingCartFreshMs });
   const earliestExpiry = state.cart.reduce((min, item) => Math.min(min, item.quote.expiresAt), Infinity);
-  const total = totalOf(state.cart);
   const count = state.cart.reduce((sum, item) => sum + item.quantity, 0);
   // Customs: the allowance is per recipient and calendar month; the customer picks whose it is.
   const primaryProfile = state.deliveryProfiles.find(profile => profile.primary) ?? state.deliveryProfiles[0];
   const customsProfile = state.deliveryProfiles.find(profile => profile.id === customsRecipient) ?? primaryProfile;
-  const customsChoices = state.cartCustoms ?? { outsideUsed: false, help: false };
+  // This cart's choice, else the one remembered from an earlier cart (the server prices the lines the same way).
+  const customsChoices = state.cartCustoms ?? { outsideUsed: false, help: customsHelpChosen(state) };
+  const customsRemembered = !state.cartCustoms && state.customsPreference !== undefined;
   const customs = cartCustomsEstimate(state, pricing, { profile: customsProfile, name: customsProfile ? undefined : state.deliveryProfile?.recipient }, customsChoices);
   const balance = balanceOf(state);
   // "Atlas pays customs for me" prepays the estimated duty: for the cart's recipient here, for the chosen one at checkout.
   const cartDuty = customsChoices.help ? customsDutyAmount(customs, pricing) : 0;
   const reviewCustoms = cartCustomsEstimate(state, pricing, { profile: state.deliveryProfiles.find(profile => profile.id === selectedProfile), name: delivery.recipient }, customsChoices);
   const reviewDuty = customsChoices.help ? customsDutyAmount(reviewCustoms, pricing) : 0;
-  const creditFor = (duty: number) => useBalance ? Math.min(total + duty, Math.max(0, balance)) : 0;
-  const credit = creditFor(cartDuty), reviewCredit = creditFor(reviewDuty);
-  const payable = total + cartDuty - credit, reviewPayable = total + reviewDuty - reviewCredit;
+  // No duty for the recipient: the customs fee is not in the bill (owner, 7.10.2026); the server bills the same way.
+  const billed = withCustomsHelpFor(state.cart, customs, pricing.fx), reviewBilled = withCustomsHelpFor(state.cart, reviewCustoms, pricing.fx);
+  const total = totalOf(billed), reviewTotal = totalOf(reviewBilled);
+  const creditFor = (sum: number, duty: number) => useBalance ? Math.min(sum + duty, Math.max(0, balance)) : 0;
+  const credit = creditFor(total, cartDuty), reviewCredit = creditFor(reviewTotal, reviewDuty);
+  const payable = total + cartDuty - credit, reviewPayable = reviewTotal + reviewDuty - reviewCredit;
+  const lineTotal = (item: CartItem, lines = billed) => lines.find(line => line.id === item.id)?.quote.total ?? item.quote.total;
+  // Owner, 7.10.2026: with duty to pay and nothing chosen yet, "Atlas pays customs" is the starting choice. Sent once;
+  // the fee then shows on the card and in the bill, and "I will pay myself" is one tap away.
+  const customsDefaulted = useRef(false);
+  const customsDefault = !state.cartCustoms && state.customsPreference === undefined && state.cart.length > 0 && customsDutyAmount(customs, pricing) > 0;
+  useEffect(() => {
+    if (!customsDefault || customsDefaulted.current || customsBusy) return;
+    customsDefaulted.current = true;
+    void act({ type: "cart-customs", value: { outsideUsed: false, help: true } });
+  }, [customsDefault, customsBusy, act]);
   // "Atlas pays customs for me": the same per-line rounding as the server; once chosen, the fee is in the bill.
   const customsHelpAmount = customsChoices.help
     ? state.cart.reduce((sum, item) => sum + (item.quote.customsHelp ?? 0), 0)
     : state.cart.reduce((sum, item) => sum + Math.round(item.quote.merchandise * pricing.customsHelpFee), 0);
   const checkoutServices = pricing.serviceCatalog.filter((service) => service.enabled && service.requestStage === "checkout");
   const identityProfiles = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
-  const sums = sumQuotes(state.cart.map(item => item.quote));
+  const sums = sumQuotes(billed.map(item => item.quote)), reviewSums = sumQuotes(reviewBilled.map(item => item.quote));
   const cartWeight = Math.round(state.cart.reduce((sum, item) => sum + item.quote.weight, 0) * 100) / 100;
   // One delivery speed for the whole cart; the windows and rates cover every dispatch country in it.
   const speed = cartDeliverySpeed(state.cart);
@@ -315,7 +329,7 @@ export function CartView() {
           ? <p className={"basket-meta basket-stock" + (item.product.stockQuantity <= 3 ? " low" : "")}>{item.product.stockQuantity ? k.stockLeft(item.product.stockQuantity) : k.outOfStock} · {k.stockByEbay}</p>
           : item.product.stockMoreThan !== undefined && <p className="basket-meta basket-stock">{k.stockMore(item.product.stockMoreThan)} · {k.stockByEbay}</p>}
       </div>
-      <div className="basket-price"><strong>{formatSum(item.quote.total, locale)}</strong>{item.quantity > 1 && <small>{c.item.forQuantity(item.quantity)}</small>}</div>
+      <div className="basket-price"><strong>{formatSum(lineTotal(item), locale)}</strong>{item.quantity > 1 && <small>{c.item.forQuantity(item.quantity)}</small>}</div>
       {/* What the last check with the store found: a new price (already in the total) or something to fix. */}
       {change && <p className={"basket-item-note " + (change.price > change.previousPrice || (change.shipping ?? 0) > (change.previousShipping ?? 0) ? "up" : "down")} role="status">
         <Info size={16} aria-hidden="true" /><span>
@@ -387,13 +401,13 @@ export function CartView() {
   }
 
   // Each fee on its own line; the store-delivery hold and customs stay outside the amount to pay.
-  const linesFor = (duty: number, fromBalance: number) => <CalcLines sums={{ ...sums, customsDuty: duty, total: sums.total + duty }} locale={locale} pricing={pricing} weightKg={cartWeight} storeShippingState="none" anyFree={reserves.some(entry => entry.free)} speed={speed}>
+  const linesFor = (duty: number, fromBalance: number, lines = sums) => <CalcLines sums={{ ...lines, customsDuty: duty, total: lines.total + duty }} locale={locale} pricing={pricing} weightKg={cartWeight} storeShippingState="none" anyFree={reserves.some(entry => entry.free)} speed={speed}>
     {fromBalance > 0 && <div className="basket-lines basket-lines-credit"><div className="basket-line"><span className="basket-line-label">{c.summary.fromBalance}</span><b>−{formatSum(fromBalance, locale)}</b></div></div>}
   </CalcLines>;
   const summaryLines = linesFor(cartDuty, credit);
   const saveCustoms = async (next: typeof customsChoices) => { setCustomsBusy(true); try { await act({ type: "cart-customs", value: next }); } finally { setCustomsBusy(false); } };
   // The allowance in two lines and "Atlas pays customs for me", which adds its fee to the bill right away.
-  const customsPanel = <CustomsPanel estimate={customs} choices={customsChoices} locale={locale} pricing={pricing} profiles={state.deliveryProfiles} recipientId={customsProfile?.id} onRecipient={setCustomsRecipient} onChoices={(next) => void saveCustoms(next)} helpAmount={customsHelpAmount} busy={customsBusy} compact />;
+  const customsPanel = <CustomsPanel estimate={customs} choices={customsChoices} locale={locale} pricing={pricing} profiles={state.deliveryProfiles} recipientId={customsProfile?.id} onRecipient={setCustomsRecipient} onChoices={(next) => void saveCustoms(next)} helpAmount={customsHelpAmount} remembered={customsRemembered} busy={customsBusy} compact />;
 
 
   if (!ready) return <div className="basket-page">
@@ -518,12 +532,12 @@ export function CartView() {
                 const fee = serviceFeeForCountry(service, item.product.country) * units;
                 return <small className="review-service" key={id}>+ {serviceTitle(service, locale)} · {service.pricingMode === "fixed" ? `${formatSum(fee, locale)} · ${c.checkout.serviceNotAdded}` : c.checkout.servicePriceLater}</small>;
               })}
-            </span><b>{formatSum(item.quote.total, locale)}</b>
+            </span><b>{formatSum(lineTotal(item, reviewBilled), locale)}</b>
           </li>)}</ul>
-          {linesFor(reviewDuty, reviewCredit)}
+          {linesFor(reviewDuty, reviewCredit, reviewSums)}
           <HoldNote amount={sums.storeShippingHold} locale={locale} pricing={pricing} />
           {/* The estimate for the person chosen in this checkout; the server works it out again and keeps it with the orders. */}
-          <CustomsPanel estimate={reviewCustoms} choices={customsChoices} locale={locale} pricing={pricing} profiles={[]} onChoices={(next) => void saveCustoms(next)} helpAmount={customsHelpAmount} busy={customsBusy} />
+          <CustomsPanel estimate={reviewCustoms} choices={customsChoices} locale={locale} pricing={pricing} profiles={[]} onChoices={(next) => void saveCustoms(next)} helpAmount={customsHelpAmount} remembered={customsRemembered} busy={customsBusy} />
           <div className={"basket-consent" + (consentError ? " invalid" : "")}>
             <Checkbox id="checkout-consent" checked={consent} aria-invalid={consentError} aria-describedby={consentError ? "checkout-consent-error" : undefined} onCheckedChange={(value) => { setConsent(value === true); if (value === true) setConsentError(false); }} />
             <label htmlFor="checkout-consent">{c.checkout.consent.before}<Link href="/customs" target="_blank">{c.checkout.consent.link}</Link>{c.checkout.consent.after}</label>
