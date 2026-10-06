@@ -34,7 +34,7 @@ export async function authMethods(request:Request){
   email:configured.email()||dev,phone:configured.phone()||dev,
   telegram:configured.telegram()?env.TELEGRAM_BOT_USERNAME!:null,
   // The bot sign-in replaces the widget once the operator has connected the bot's webhook.
-  telegramBot:configured.telegram()&&await telegramBotConnected(),
+  telegramBot:configured.telegram()&&await telegramBotReady(request),
   google:configured.google(),devCodes:dev,
  };
 }
@@ -284,6 +284,15 @@ async function sendSms(phone:string,code:string){
 // ---------- Telegram bot sign-in (lib/auth/telegram-bot.ts) ----------
 async function telegramBotConnected(){
  try{return !!(await db().prepare('SELECT 1 AS found FROM market_settings WHERE key=?').bind(TG_BOT_SETTING).first())}catch{return false}
+}
+/** The public site connects the bot by itself the first time its sign-in page asks, so no admin step is needed. */
+const publicHosts=['atlasmarket.uz','www.atlasmarket.uz'];
+async function telegramBotReady(request:Request){
+ if(await telegramBotConnected())return true;
+ const url=new URL(request.url);
+ if(url.protocol!=='https:'||!publicHosts.includes(url.hostname))return false;
+ try{await connectTelegramBot('https://atlasmarket.uz','auto');return true}
+ catch(error){console.error('Telegram bot auto-connect failed',error);return false}
 }
 async function webhookSecret(){return (await sha256Hex('telegram-webhook:'+pepper()+':'+(env.TELEGRAM_BOT_TOKEN??''))).slice(0,48)}
 async function botApi(method:string,body:Record<string,unknown>){
