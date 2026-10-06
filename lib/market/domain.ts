@@ -714,6 +714,8 @@ export const customsEstimateSchema = z.object({
   /** The customer used part of the allowance elsewhere but did not say how much: counted as fully used. */
   outsideUnknown: z.boolean().optional(),
   valueUsd: z.number().finite().nonnegative(),
+  /** The cart's estimated weight, for the per-kg minimum of the duty (customsDutyUsd); estimates before 7.10.2026 have none. */
+  weightKg: z.number().finite().nonnegative().optional(),
   dutiableUsd: z.number().finite().nonnegative(),
   rate: z.number().finite().min(0).max(1),
   minimumPerKg: z.number().finite().min(0),

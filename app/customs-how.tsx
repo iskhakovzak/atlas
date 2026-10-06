@@ -3,6 +3,7 @@ import {useCallback,useEffect,useRef,useState,useSyncExternalStore} from 'react'
 import {Popover as PopoverPrimitive} from 'radix-ui';
 import {Calculator,Minus,Plus,X} from 'lucide-react';
 import {calcCopy} from '@/lib/market/calc-copy';
+import {customsDutyUsd} from '@/lib/market/customs';
 import {formatSum} from '@/lib/market/home-copy';
 import type {CustomsEstimate,Pricing} from '@/lib/market/domain';
 import type {Locale} from '@/lib/market/i18n';
@@ -20,10 +21,14 @@ function useWide(){
 export function allowanceLeftUsd(estimate:Pick<CustomsEstimate,'allowanceUsd'|'atlasUsedUsd'|'outsideUsedUsd'|'outsideUnknown'>){
  return estimate.outsideUnknown?0:Math.max(0,estimate.allowanceUsd-estimate.atlasUsedUsd-(estimate.outsideUsedUsd??0));
 }
-/** Duty for goods worth `valueUsd` with `leftUsd` of allowance: the same formula and rounding as the cart's estimate. */
-export function dutyFor(valueUsd:number,leftUsd:number,rate:number,fx:number){
- const excessUsd=Math.round(Math.max(0,valueUsd-leftUsd)*100)/100;
- return {excessUsd,dutySoum:Math.ceil(Math.round(excessUsd*rate*100)/100*fx)};
+/**
+ * Duty for goods worth `amountUsd` with `leftUsd` of allowance: the cart's own formula (customsDutyUsd), the weight
+ * taken in the same proportion as in this cart, and the same rounding to soum as the bill.
+ */
+export function dutyFor(amountUsd:number,leftUsd:number,estimate:Pick<CustomsEstimate,'rate'|'minimumPerKg'|'weightKg'|'valueUsd'>,fx:number){
+ const excessUsd=Math.round(Math.max(0,amountUsd-leftUsd)*100)/100;
+ // The calculator's amount stands for goods like this cart's: the cart's kg per dollar, exactly as the bill counts it.
+ return {excessUsd,dutySoum:Math.ceil(customsDutyUsd({excessUsd,rate:estimate.rate,minimumPerKg:estimate.minimumPerKg,weightKg:estimate.weightKg,valueUsd:estimate.valueUsd})*fx)};
 }
 
 const usd=(value:number,locale:Locale)=>new Intl.NumberFormat(locale==='en'?'en-US':'ru-RU',{style:'currency',currency:'USD',maximumFractionDigits:Number.isInteger(value)?0:2}).format(value);
@@ -67,7 +72,7 @@ export function CustomsHow({estimate,pricing,locale}:{estimate:CustomsEstimate;p
   if(next){setDialog(triggerRef.current?.closest<HTMLElement>('[role="dialog"]')??null);if(cartUsd>0)setAmount(cartUsd)}
   setOpen(next);
  };
- const result=dutyFor(amount,left,estimate.rate,pricing.fx);
+ const result=dutyFor(amount,left,estimate,pricing.fx);
  const percent=new Intl.NumberFormat(locale==='en'?'en-US':'ru-RU',{maximumFractionDigits:2}).format(estimate.rate*100)+'%';
 
  return <PopoverPrimitive.Root open={open} onOpenChange={change}>

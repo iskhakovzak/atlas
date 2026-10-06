@@ -1,5 +1,5 @@
 import { customsDutySoum, customsHelpChosen, statuses, type CartCustoms, type CustomsEstimate, type IdentityProfile, type Order, type Pricing, type SavedDeliveryProfile, type State } from './domain.ts';
-import { courierAllowanceUsd, customsCheckedOn, customsParams } from './customs.ts';
+import { courierAllowanceUsd, customsCheckedOn, customsDutyUsd, customsParams } from './customs.ts';
 import { tashkentDay, tashkentMonth } from './world.ts';
 
 /** `parts`: each counted order this month (order ID and USD), for the cabinet meter. */
@@ -130,7 +130,9 @@ export function cartCustomsEstimate(
   const outsideUsedUsd = choices?.outsideUsed ? cents(choices.outsideUsd ?? 0) : 0;
   const remaining = outsideUnknown ? 0 : Math.max(0, params.allowanceUsd - atlasUsedUsd - outsideUsedUsd);
   const dutiableUsd = cents(Math.max(0, valueUsd - remaining));
-  const estimateUsd = cents(dutiableUsd * params.rate);
+  // The parcel's estimated weight (the one the bill charges delivery on), for the per-kg minimum of the duty.
+  const weightKg = cents(state.cart.reduce((sum, item) => sum + item.quote.weight, 0));
+  const estimateUsd = customsDutyUsd({ excessUsd: dutiableUsd, rate: params.rate, minimumPerKg: params.minimumPerKg, weightKg, valueUsd });
   // Owner's rule (7.10.2026): with no duty there is nothing for Atlas to pay, so no fee and no request on record.
   const helpRequested = Boolean(choices ? choices.help : customsHelpChosen(state)) && customsDutySoum({ estimateUsd }, pricing.fx) > 0;
   // The fee is a line of the bill (repriceCart); here only its USD equivalent for the order's customs record.
@@ -144,6 +146,7 @@ export function cartCustomsEstimate(
     ...(choices?.outsideUsed ? { outsideUsedUsd } : {}),
     ...(outsideUnknown ? { outsideUnknown } : {}),
     valueUsd,
+    ...(weightKg > 0 ? { weightKg } : {}),
     dutiableUsd,
     rate: params.rate,
     minimumPerKg: params.minimumPerKg,
