@@ -29,6 +29,10 @@ export type CalcCopy = {
     help: string; helpFee: (percent: string, fee: string) => string; helpNote: string;
     summaryNone: (limit: string, left: string) => string; summaryOver: (over: string, rate: string, perKg: string) => string; howLink: string;
     separate: string; rule: string;  relative: string;
+    /** Who pays the duty: two cards in the cart instead of one checkbox (owner, 7.10.2026). */
+    choice: { title: string; atlas: string; badge: string; perks: string[]; fee: (percent: string, amount: string) => string; self: string; selfOver: string; selfUnder: string; selfFee: string };
+    /** "How customs is calculated": a popover with a small calculator instead of a link away from the cart. */
+    how: { title: string; rule: (limit: string, rate: string, perKg: string) => string; left: (amount: string) => string; leftNone: string; try: string; thisCart: string; minus: string; plus: string; amount: string; none: string; over: (excess: string, duty: string) => string; final: string; details: string; close: string };
   };
 };
 
@@ -73,6 +77,20 @@ export const calcCopy: Record<Locale, CalcCopy> = {
       summaryNone: (limit, left) => `Без пошлины до ${limit} в месяц на получателя. Остаток: ${left}.`, summaryOver: (over, rate, perKg) => `Сверх лимита ${over}: пошлина ${rate}, не меньше ${perKg} за кг. Точную сумму подтверждает таможня.`, howLink: 'Как считается таможня',
       separate: 'Таможня не входит в сумму заказа и оплачивается отдельно.', rule: 'Пошлина берётся только с суммы сверх лимита (ПКМ №244). Месяц — календарный месяц ввоза посылки.',
       relative: 'Лимит исчерпан? Оформите заказ на родственника — если получать будет он и укажет свои данные и паспорт.',
+      choice: {
+        title: 'Как оплатить таможню', atlas: 'Atlas оплатит таможню', badge: 'Удобнее',
+        perks: ['Не ждёте счёт от таможни и SMS', 'Посылка не ждёт оплаты пошлины', 'Один счёт, остаток — на баланс'],
+        fee: (p, amount) => `Сбор ${p} от товаров · ${amount}`,
+        self: 'Оплачу сам(а)', selfOver: 'Ждёте счёт от таможни и оплачиваете сами. Пока он не оплачен, посылка стоит на таможне.',
+        selfUnder: 'Сейчас пошлины нет. Если появится — ждёте счёт от таможни и оплачиваете сами.', selfFee: 'без сбора',
+      },
+      how: {
+        title: 'Как считается таможня', rule: (limit, rate, perKg) => `До ${limit} в месяц на получателя — без пошлины. Сверх лимита — ${rate} от превышения, не меньше ${perKg} за кг.`,
+        left: amount => `У получателя в этом месяце осталось ${amount} лимита`, leftNone: 'Лимит получателя в этом месяце уже использован',
+        try: 'Проверьте на сумме', thisCart: 'Эта корзина', minus: 'Меньше на $50', plus: 'Больше на $50', amount: 'Стоимость товаров',
+        none: 'Пошлины нет — сумма в пределах лимита', over: (excess, duty) => `Сверх лимита ${excess} → пошлина ≈ ${duty}`,
+        final: 'Окончательную сумму начисляет таможня.', details: 'Подробнее о таможне', close: 'Закрыть',
+      },
     },
   },
   uz: {
@@ -115,6 +133,20 @@ export const calcCopy: Record<Locale, CalcCopy> = {
       summaryNone: (limit, left) => `Har bir qabul qiluvchiga oyiga ${limit} gacha bojsiz. Qoldiq: ${left}.`, summaryOver: (over, rate, perKg) => `Limitdan oshgan ${over}: boj ${rate}, har kg uchun kamida ${perKg}. Aniq summani bojxona tasdiqlaydi.`, howLink: 'Bojxona qanday hisoblanadi',
       separate: 'Bojxona buyurtma summasiga kirmaydi va alohida to‘lanadi.', rule: 'Boj faqat limitdan oshgan qismdan olinadi (VMQ №244). Oy — jo‘natma olib kirilgan kalendar oyi.',
       relative: 'Limit tugadimi? Buyurtmani qarindoshingizga rasmiylashtiring — agar u qabul qilsa va o‘z ma’lumotlari va pasportini ko‘rsatsa.',
+      choice: {
+        title: 'Bojxonani qanday to‘lash', atlas: 'Bojxonani Atlas to‘laydi', badge: 'Qulayroq',
+        perks: ['Bojxona hisobi va SMSni kutmaysiz', 'Jo‘natma boj to‘lovini kutmaydi', 'Bitta hisob, qoldiq — balansga'],
+        fee: (p, amount) => `Tovarlardan ${p} yig‘im · ${amount}`,
+        self: 'O‘zim to‘layman', selfOver: 'Bojxona hisobini kutib, o‘zingiz to‘laysiz. To‘lanmaguncha jo‘natma bojxonada turadi.',
+        selfUnder: 'Hozir boj yo‘q. Paydo bo‘lsa — bojxona hisobini kutib, o‘zingiz to‘laysiz.', selfFee: 'yig‘imsiz',
+      },
+      how: {
+        title: 'Bojxona qanday hisoblanadi', rule: (limit, rate, perKg) => `Bitta qabul qiluvchiga oyiga ${limit} gacha — bojsiz. Limitdan oshgan qismdan ${rate}, har kg uchun kamida ${perKg}.`,
+        left: amount => `Qabul qiluvchida shu oy ${amount} limit qoldi`, leftNone: 'Qabul qiluvchining shu oydagi limiti ishlatib bo‘lingan',
+        try: 'Summada tekshiring', thisCart: 'Shu savat', minus: '$50 kamroq', plus: '$50 ko‘proq', amount: 'Tovarlar qiymati',
+        none: 'Boj yo‘q — summa limit doirasida', over: (excess, duty) => `Limitdan ${excess} ortiq → boj ≈ ${duty}`,
+        final: 'Yakuniy summani bojxona hisoblaydi.', details: 'Bojxona haqida batafsil', close: 'Yopish',
+      },
     },
   },
   en: {
@@ -157,6 +189,20 @@ export const calcCopy: Record<Locale, CalcCopy> = {
       summaryNone: (limit, left) => `No duty up to ${limit} a month per recipient. Left: ${left}.`, summaryOver: (over, rate, perKg) => `Over the allowance by ${over}: duty ${rate}, at least ${perKg} per kg. Customs confirms the exact amount.`, howLink: 'How customs is calculated',
       separate: 'Customs is not part of the order amount and is paid separately.', rule: 'Duty applies only to the amount above the allowance (CM resolution No. 244). The month is the calendar month the parcel is imported.',
       relative: 'Allowance used up? Order for a relative — if they receive the parcel and give their own details and passport.',
+      choice: {
+        title: 'How to pay customs', atlas: 'Atlas pays customs', badge: 'Easier',
+        perks: ['No waiting for a customs bill or SMS', 'The parcel does not wait on duty', 'One bill; the rest back to balance'],
+        fee: (p, amount) => `A ${p} fee on goods · ${amount}`,
+        self: 'I will pay myself', selfOver: 'You wait for the customs bill and pay it yourself; until then the parcel stays at customs.',
+        selfUnder: 'No duty now. If some comes up, you wait for the customs bill and pay it yourself.', selfFee: 'no fee',
+      },
+      how: {
+        title: 'How customs is calculated', rule: (limit, rate, perKg) => `Up to ${limit} a month per recipient: no duty. Above it: ${rate} of the excess, at least ${perKg} per kg.`,
+        left: amount => `This recipient has ${amount} of allowance left this month`, leftNone: 'This recipient’s allowance for the month is used up',
+        try: 'Try an amount', thisCart: 'This cart', minus: '$50 less', plus: '$50 more', amount: 'Goods value',
+        none: 'No duty: the amount is within the allowance', over: (excess, duty) => `${excess} over the allowance → duty ≈ ${duty}`,
+        final: 'Customs sets the final amount.', details: 'More about customs', close: 'Close',
+      },
     },
   },
 };
