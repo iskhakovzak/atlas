@@ -81,7 +81,8 @@ export const actionSchema = z.discriminatedUnion("type", [
     items: z.array(z.object({ product: productSchema, variant: z.string(), quantity: z.number().int().min(1).max(10) })).min(1).max(20),
     note: z.string().max(500).optional(),
   }),
-  z.object({ type: z.literal("cart-note"), id, note: z.string().max(500) }),
+  // `ids`: one product in several sizes shares one note and one set of services, written to each of its lines at once.
+  z.object({ type: z.literal("cart-note"), id, note: z.string().max(500), ids: z.array(id).min(1).max(20).optional() }),
   z.object({ type: z.literal("cart-customs"), value: cartCustomsSchema }),
   z.object({
     type: z.literal("cart-quantity"),
@@ -89,7 +90,7 @@ export const actionSchema = z.discriminatedUnion("type", [
     quantity: z.number().int().min(1).max(10),
   }),
   z.object({ type: z.literal("cart-remove"), id }),
-  z.object({ type: z.literal("cart-services"), id, serviceIds: z.array(z.string().min(2).max(80)).max(40), serviceUnits: z.record(z.string().min(2).max(80), z.number().int().min(1).max(100)).optional() }),
+  z.object({ type: z.literal("cart-services"), id, serviceIds: z.array(z.string().min(2).max(80)).max(40), serviceUnits: z.record(z.string().min(2).max(80), z.number().int().min(1).max(100)).optional(), ids: z.array(id).min(1).max(20).optional() }),
   z.object({ type: z.literal("cart-renew") }),
   // Before checkout: the server checks prices with the stores and reprices the cart (app/api/actions/route.ts).
   z.object({ type: z.literal("cart-check") }),
@@ -295,7 +296,7 @@ export function applyAction(
       return next;
     }
     case "cart-note":
-      return setCartNote(s, a.id, a.note);
+      return (a.ids ?? [a.id]).reduce((state, line) => setCartNote(state, line, a.note), s);
     case "cart-customs":
       return setCartCustoms(s, a.value, Date.now(), pricing);
     case "cart-quantity":
@@ -304,7 +305,7 @@ export function applyAction(
       // The rest of that store's parcel is priced again: its shipping share and store-delivery reserve change.
       return { ...s, cart: repriceCart(s.cart.filter((i) => i.id !== a.id), Date.now(), pricing, customsHelpChosen(s)) };
     case "cart-services":
-      return setCartServices(s, a.id, a.serviceIds, pricing, a.serviceUnits);
+      return (a.ids ?? [a.id]).reduce((state, line) => setCartServices(state, line, a.serviceIds, pricing, a.serviceUnits), s);
     case "cart-renew":
     case "cart-check":
       return renewCart(s, Date.now(), pricing);

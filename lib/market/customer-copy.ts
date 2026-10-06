@@ -89,6 +89,8 @@ export type CartCopy = {
     issues: { currency: string; variant: string; price: string; unreachable: string; stock: string }; reload: string; checked: (time: string) => string;
   };
   services: { title: string; optional: string; hint: string; fixed: string; quote: string; notIncluded: string; quantity: string; required: string; units: { package: string; item: string; day: string; photo: string; 'half-hour': string } };
+  /** Several options of one product (sizes, colors): one note and one set of services for all of them (owner, 7.10.2026). */
+  shared: { title: string; services: string };
   summary: {
     title: string; items: string; storeShipping: string; storeNoReserve: string; storeShippingHelp: (freeFrom: string) => string; service: string; serviceHelp: string; serviceHelpLabel: string;
     international: string; internationalHelp: string; internationalHelpLabel: string; reserve: string; reserveHelp: string; reserveHelpLabel: string;
@@ -171,6 +173,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
       fixed: 'Тариф', quote: 'Цену назовёт оператор', notIncluded: 'не входит в сумму заказа', quantity: 'Количество', required: 'обязательно',
       units: { package: 'посылка', item: 'шт.', day: 'день', photo: 'фото', 'half-hour': '30 мин' },
     },
+    shared: { title: 'Комментарий и услуги склада — общие для всех вариантов этого товара', services: 'Выбранные услуги применяются к каждому варианту.' },
     summary: {
       title: 'Итого', items: 'Товары', storeShipping: 'Доставка магазина', storeNoReserve: 'Без резерва', service: 'Сервис Atlas',
       storeShippingHelp: freeFrom => `Если магазин не указал цену доставки до нашего склада, держим резерв $10 — один на заказ из магазина, отдельно от суммы к оплате. При товарах из одного магазина дороже ${freeFrom} резерва нет: доставка магазина для вас бесплатна. Если магазин всё же возьмёт плату, доплата — только с вашего согласия.`,
@@ -228,6 +231,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
       fixed: 'Tarif', quote: 'Narxni operator aytadi', notIncluded: 'buyurtma summasiga kirmaydi', quantity: 'Miqdor', required: 'majburiy',
       units: { package: 'posilka', item: 'dona', day: 'kun', photo: 'foto', 'half-hour': '30 daqiqa' },
     },
+    shared: { title: 'Izoh va ombor xizmatlari — shu tovarning barcha variantlari uchun umumiy', services: 'Tanlangan xizmatlar har bir variantga qo‘llanadi.' },
     summary: {
       title: 'Jami', items: 'Tovarlar', storeShipping: 'Do‘kon yetkazishi', storeNoReserve: 'Zaxirasiz', service: 'Atlas xizmati',
       storeShippingHelp: freeFrom => `Do‘kon omborimizgacha yetkazish narxini ko‘rsatmasa, $10 zaxira ushlab turamiz — do‘kondan bitta buyurtmaga bir marta, to‘lov summasidan alohida. Bitta do‘kondan ${freeFrom} dan qimmat tovarlarga zaxira yo‘q: do‘kon yetkazishi siz uchun bepul. Do‘kon baribir haq olsa, qo‘shimcha to‘lov — faqat roziligingiz bilan.`,
@@ -285,6 +289,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
       fixed: 'Rate', quote: 'Operator will quote', notIncluded: 'not included in the order total', quantity: 'Quantity', required: 'required',
       units: { package: 'package', item: 'item', day: 'day', photo: 'photo', 'half-hour': '30 min' },
     },
+    shared: { title: 'Note and warehouse services are shared by every option of this item', services: 'Chosen services apply to each option.' },
     summary: {
       title: 'Summary', items: 'Items', storeShipping: 'Store delivery', storeNoReserve: 'No reserve', service: 'Atlas service',
       storeShippingHelp: freeFrom => `When a store does not state delivery to our warehouse, we hold a $10 reserve — once per store order, apart from the amount to pay. Over ${freeFrom} of items from one store there is no reserve: store delivery is free for you. If the store still charges, any extra payment needs your consent.`,
