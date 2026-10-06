@@ -1,5 +1,7 @@
-import { database, recordAudit } from "./server";
-import { accountingSettingsSchema, monthSummary, type AccountingSettings, type LedgerEntry, type LedgerEntryInput, type LedgerKind, type OrderFinance } from "./finance";
+import { database, HttpError, recordAudit } from "./server";
+import { balanceOf, parseState, type Entry, type Order } from "./domain";
+import { autoActor, invoiceData, planAutoLedger, syncOrderLedger, type InvoiceLine, type SkippedAuto } from "./finance-auto";
+import { accountingSettingsSchema, isPeriodLocked, lockedPeriodMessage, monthKey, monthSummary, obligations, yearMonths, yearSummary, type AccountingSettings, type LedgerEntry, type LedgerEntryInput, type LedgerKind, type OrderFinance } from "./finance";
 
 type Operator = { userId: string; email: string };
 
@@ -7,10 +9,37 @@ export async function accountingSettings(): Promise<AccountingSettings> {
   const row = await database().prepare("SELECT value FROM market_settings WHERE key='accounting'").first<{ value: string }>();
   try { return accountingSettingsSchema.parse(row ? JSON.parse(row.value) : {}); } catch { return accountingSettingsSchema.parse({}); }
 }
-export async function saveAccountingSettings(value: AccountingSettings, user: Operator) {
-  const next = accountingSettingsSchema.parse(value), now = Date.now();
-  await database().prepare("INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES ('accounting',?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at,updated_by=excluded.updated_by").bind(JSON.stringify(next), now, user.userId).run();
-  await recordAudit(user, "accounting.settings", "settings", "accounting", next);
+async function writeAccountingSettings(next: AccountingSettings, user: Operator) {
+  await database().prepare("INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES ('accounting',?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at,updated_by=excluded.updated_by").bind(JSON.stringify(next), Date.now(), user.userId).run();
+}
+/** Saves the editable settings (tax rate, ledger fx rates); the period lock changes only through lockPeriod / unlockPeriod. */
+export async function saveAccountingSettings(value: Partial<AccountingSettings>, user: Operator) {
+  const current = await accountingSettings();
+  const patch = Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined));
+  const next = accountingSettingsSchema.parse({ ...current, ...patch, lockedThrough: current.lockedThrough });
+  await writeAccountingSettings(next, user);
+  await recordAudit(user, "accounting.settings", "settings", "accounting", { profitTaxRate: next.profitTaxRate, fxRates: next.fxRates });
+  return next;
+}
+/** Closes every month up to `month` inclusive: the ledger there becomes read-only. Only forward; reopening needs a reason. */
+export async function lockPeriod(month: string, user: Operator) {
+  monthKey.parse(month);
+  const current = await accountingSettings();
+  if (current.lockedThrough && month < current.lockedThrough) throw new HttpError(409, `Период уже закрыт по ${current.lockedThrough}. Чтобы закрыть по ${month}, сначала откройте его заново.`);
+  const next = { ...current, lockedThrough: month };
+  await writeAccountingSettings(next, user);
+  await recordAudit(user, "accounting.lock", "settings", "accounting", { lockedThrough: month, before: current.lockedThrough ?? null });
+  return next;
+}
+/** Reopens closed months (all of them, or back to `through`); the reason goes to the audit log. */
+export async function unlockPeriod(reason: string, user: Operator, through?: string) {
+  const current = await accountingSettings();
+  if (!current.lockedThrough) throw new HttpError(409, "Закрытых периодов нет.");
+  if (through) { monthKey.parse(through); if (through >= current.lockedThrough) throw new HttpError(400, "Укажите месяц раньше текущей границы закрытия."); }
+  const next: AccountingSettings = { ...current };
+  if (through) next.lockedThrough = through; else delete next.lockedThrough;
+  await writeAccountingSettings(next, user);
+  await recordAudit(user, "accounting.unlock", "settings", "accounting", { reason, before: current.lockedThrough, after: next.lockedThrough ?? null });
   return next;
 }
 
@@ -26,27 +55,179 @@ export async function ledger(from: string, to: string) {
   const rows = await database().prepare("SELECT * FROM market_ledger_entries WHERE occurred_on >= ? AND occurred_on <= ? ORDER BY occurred_on DESC, created_at DESC LIMIT 5000").bind(from + "-01", to + "-31").all<LedgerRow>();
   return rows.results.map(entryOf);
 }
-export async function addLedgerEntry(input: LedgerEntryInput, user: Operator) {
-  const id = "LED-" + crypto.randomUUID(), now = Date.now();
+/** Every ledger row linked to one of the orders, whatever its date: an order's margin must see a carrier paid next month. */
+export async function ledgerForOrders(orderIds: string[]) {
+  const out: LedgerEntry[] = [], db = database();
+  for (let index = 0; index < orderIds.length; index += 90) {
+    const chunk = orderIds.slice(index, index + 90);
+    const rows = await db.prepare(`SELECT * FROM market_ledger_entries WHERE order_id IN (${chunk.map(() => "?").join(",")}) ORDER BY occurred_on DESC LIMIT 5000`).bind(...chunk).all<LedgerRow>();
+    out.push(...rows.results.map(entryOf));
+  }
+  return out;
+}
+/** `prefix` marks the source in the id: LED- entered by hand, BANK- confirmed from a bank statement (AUTO- is reserved for syncAutoLedger). */
+export async function addLedgerEntry(input: LedgerEntryInput, user: Operator, prefix: "LED-" | "BANK-" = "LED-") {
+  if (isPeriodLocked(await accountingSettings(), input.occurredOn)) throw new HttpError(409, lockedPeriodMessage(input.occurredOn.slice(0, 7)));
+  const id = prefix + crypto.randomUUID(), now = Date.now();
   await database().prepare("INSERT INTO market_ledger_entries (id,kind,amount_uzs,original_amount,original_currency,occurred_on,order_id,counterparty,note,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
     .bind(id, input.kind, input.amountUzs, input.originalAmount ?? null, input.originalCurrency ?? null, input.occurredOn, input.orderId || null, input.counterparty || null, input.note || null, user.email || user.userId, now).run();
   await recordAudit(user, "ledger.add", "ledger", id, { kind: input.kind, amountUzs: input.amountUzs, occurredOn: input.occurredOn });
   return id;
 }
 export async function voidLedgerEntry(id: string, reason: string, user: Operator) {
+  const row = await database().prepare("SELECT occurred_on, voided_at FROM market_ledger_entries WHERE id=?").bind(id).first<{ occurred_on: string; voided_at: number | null }>();
+  if (!row || row.voided_at !== null) return false;
+  if (isPeriodLocked(await accountingSettings(), row.occurred_on)) throw new HttpError(409, lockedPeriodMessage(row.occurred_on.slice(0, 7)));
   const result = await database().prepare("UPDATE market_ledger_entries SET voided_at=?,voided_by=?,void_reason=? WHERE id=? AND voided_at IS NULL").bind(Date.now(), user.email || user.userId, reason, id).run();
   if (result.meta.changes) await recordAudit(user, "ledger.void", "ledger", id, { reason });
   return Boolean(result.meta.changes);
 }
+/** Fixing an entry = voiding it and adding the corrected copy; the corrected copy's date must be open too, so check it first. */
+export async function replaceLedgerEntry(id: string, reason: string, input: LedgerEntryInput, user: Operator) {
+  if (isPeriodLocked(await accountingSettings(), input.occurredOn)) throw new HttpError(409, lockedPeriodMessage(input.occurredOn.slice(0, 7)));
+  if (!(await voidLedgerEntry(id, reason, user))) throw new HttpError(404, "Запись не найдена или уже аннулирована.");
+  const nextId = await addLedgerEntry(input, user);
+  await recordAudit(user, "ledger.replace", "ledger", nextId, { replaces: id, reason });
+  return nextId;
+}
 
 type FinanceRow = { order_id: string; customer_id: string; status: OrderFinance["status"]; created_at: number; paid_at: number | null; month: string | null; goods: number; store_shipping: number; reserve: number; payable: number; commission: number; delivery: number; fx_gain: number; services: number; revenue: number };
+const financeOf = (r: FinanceRow): OrderFinance => ({ orderId: r.order_id, customerId: r.customer_id, status: r.status, createdAt: r.created_at, ...(r.paid_at !== null ? { paidAt: r.paid_at } : {}), ...(r.month ? { month: r.month } : {}), goods: r.goods, storeShipping: r.store_shipping, reserve: r.reserve, payable: r.payable, commission: r.commission, delivery: r.delivery, fxGain: r.fx_gain, services: r.services, revenue: r.revenue });
 /** Orders paid in [from, to], plus the ones created then (pending, cancelled), for the books and the export. */
 export async function orderBooks(from: string, to: string): Promise<OrderFinance[]> {
   const start = Date.parse(from + "-01T00:00:00+05:00"), end = Date.parse(to + "-01T00:00:00+05:00") + 31 * 86400_000;
   const rows = await database().prepare("SELECT * FROM market_order_finance WHERE (month >= ? AND month <= ?) OR (created_at >= ? AND created_at < ?) ORDER BY coalesce(paid_at, created_at) DESC LIMIT 20000").bind(from, to, start, end).all<FinanceRow>();
-  return rows.results.map((r) => ({ orderId: r.order_id, customerId: r.customer_id, status: r.status, createdAt: r.created_at, ...(r.paid_at !== null ? { paidAt: r.paid_at } : {}), ...(r.month ? { month: r.month } : {}), goods: r.goods, storeShipping: r.store_shipping, reserve: r.reserve, payable: r.payable, commission: r.commission, delivery: r.delivery, fxGain: r.fx_gain, services: r.services, revenue: r.revenue }));
+  return rows.results.map(financeOf);
 }
 export async function books(from: string, to: string, months: string[]) {
   const [orders, entries, settings] = await Promise.all([orderBooks(from, to), ledger(from, to), accountingSettings()]);
   return { orders, entries, settings, summaries: months.map((month) => monthSummary(month, orders, entries, settings.profitTaxRate)) };
+}
+export async function yearBooks(year: number) {
+  const months = yearMonths(year);
+  const [orders, entries, settings] = await Promise.all([orderBooks(months[0], months[11]), ledger(months[0], months[11]), accountingSettings()]);
+  return { settings, orders, entries, summary: yearSummary(year, orders, entries, settings.profitTaxRate) };
+}
+
+/** Order stage from the operational projection: "0" waiting for buyout … "5" delivered, or "cancelled". */
+export async function orderStages(orderIds: string[]) {
+  const stages: Record<string, string> = {}, db = database();
+  for (let index = 0; index < orderIds.length; index += 90) {
+    const chunk = orderIds.slice(index, index + 90);
+    const rows = await db.prepare(`SELECT id, status FROM market_order_records WHERE id IN (${chunk.map(() => "?").join(",")})`).bind(...chunk).all<{ id: string; status: string }>();
+    for (const row of rows.results) stages[row.id] = row.status;
+  }
+  return stages;
+}
+/** What Atlas still expects or owes: unpaid orders, customers' internal balances, paid orders not yet bought from the store. */
+export async function obligationsSnapshot() {
+  const db = database();
+  const [open, accounts] = await Promise.all([
+    db.prepare("SELECT * FROM market_order_finance WHERE status IN ('pending','paid') ORDER BY created_at DESC LIMIT 5000").all<FinanceRow>(),
+    db.prepare("SELECT state FROM market_accounts LIMIT 5000").all<{ state: string }>(),
+  ]);
+  const orders = open.results.map(financeOf);
+  const stages = await orderStages(orders.filter((order) => order.status === "paid").map((order) => order.orderId));
+  const balances = accounts.results.map((row) => { try { return balanceOf(parseState(row.state)); } catch { return 0; } });
+  return obligations(orders, stages, balances);
+}
+
+// ---------- Auto entries from order events (lib/market/finance-auto.ts), written by the projection hook ----------
+const skippedKey = "accounting.auto-skipped", skippedLimit = 500;
+/** Auto entries that could not be written or voided because their month was closed; reconcile shows them. */
+export async function skippedAutoEntries(): Promise<SkippedAuto[]> {
+  const row = await database().prepare("SELECT value FROM market_settings WHERE key=?").bind(skippedKey).first<{ value: string }>();
+  try { const list = row ? JSON.parse(row.value) : []; return Array.isArray(list) ? list.filter((item) => item && typeof item.id === "string") : []; } catch { return []; }
+}
+async function writeSkippedAuto(list: SkippedAuto[]) {
+  await database().prepare("INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES (?,?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at,updated_by=excluded.updated_by").bind(skippedKey, JSON.stringify(list.slice(-skippedLimit)), Date.now(), autoActor).run();
+}
+async function autoEntriesForOrders(orderIds: string[]) {
+  const out: LedgerEntry[] = [], db = database();
+  for (let index = 0; index < orderIds.length; index += 90) {
+    const chunk = orderIds.slice(index, index + 90);
+    const rows = await db.prepare(`SELECT * FROM market_ledger_entries WHERE id LIKE 'AUTO-%' AND order_id IN (${chunk.map(() => "?").join(",")}) ORDER BY created_at ASC LIMIT 5000`).bind(...chunk).all<LedgerRow>();
+    out.push(...rows.results.map(entryOf));
+  }
+  return out;
+}
+/**
+ * Brings the auto entries of a customer's orders in line with the orders: inserts the missing ones, voids
+ * those whose condition no longer holds (reason "auto: …"), never touches manual rows. Idempotent: a second
+ * run with unchanged orders writes nothing. Entries in a closed month go to the skipped list instead.
+ */
+export async function syncAutoLedger(customerId: string, orders: Order[], balanceEntries: Entry[], now = Date.now()) {
+  if (!orders.length) return null;
+  const db = database(), settings = await accountingSettings();
+  const expected = orders.flatMap((order) => syncOrderLedger(order, customerId, { balanceEntries }));
+  const existing = await autoEntriesForOrders(orders.map((order) => order.id));
+  const plan = planAutoLedger(expected, existing, settings, now);
+  const orderIds = new Set(orders.map((order) => order.id));
+  const statements = [
+    ...plan.insert.map((entry) => db.prepare("INSERT OR IGNORE INTO market_ledger_entries (id,kind,amount_uzs,original_amount,original_currency,occurred_on,order_id,counterparty,note,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
+      .bind(entry.id, entry.kind, entry.amountUzs, null, null, entry.occurredOn, entry.orderId ?? null, entry.counterparty ?? null, entry.note ?? null, autoActor, now)),
+    ...plan.void.map((item) => db.prepare("UPDATE market_ledger_entries SET voided_at=?,voided_by=?,void_reason=? WHERE id=? AND voided_at IS NULL").bind(now, autoActor, item.reason, item.id)),
+  ];
+  if (statements.length) await db.batch(statements);
+  const skippedBefore = await skippedAutoEntries();
+  const touched = skippedBefore.some((item) => orderIds.has(item.orderId));
+  if (plan.skipped.length || touched) await writeSkippedAuto([...skippedBefore.filter((item) => !orderIds.has(item.orderId)), ...plan.skipped]);
+  if (statements.length || plan.skipped.length) await recordAudit({ userId: autoActor, email: autoActor }, "ledger.auto", "customer", customerId, { inserted: plan.insert.map((entry) => entry.id), voided: plan.void.map((item) => item.id), skipped: plan.skipped.map((item) => item.id) });
+  return plan;
+}
+
+// ---------- Lookups for reconcile, the tax calendar, the bank statement and the invoice ----------
+/** Live rows of one kind dated within [fromDay, toDay]. */
+export async function ledgerByKind(kind: LedgerKind, fromDay: string, toDay: string) {
+  const rows = await database().prepare("SELECT * FROM market_ledger_entries WHERE kind=? AND voided_at IS NULL AND occurred_on >= ? AND occurred_on <= ? ORDER BY occurred_on ASC LIMIT 5000").bind(kind, fromDay, toDay).all<LedgerRow>();
+  return rows.results.map(entryOf);
+}
+/** Which of the ids exist in the books (market_order_finance). */
+export async function existingOrderIds(orderIds: string[]) {
+  const found = new Set<string>(), db = database(), ids = [...new Set(orderIds)];
+  for (let index = 0; index < ids.length; index += 90) {
+    const chunk = ids.slice(index, index + 90);
+    const rows = await db.prepare(`SELECT order_id FROM market_order_finance WHERE order_id IN (${chunk.map(() => "?").join(",")})`).bind(...chunk).all<{ order_id: string }>();
+    for (const row of rows.results) found.add(row.order_id);
+  }
+  return found;
+}
+export async function orderFinanceByIds(orderIds: string[]) {
+  const out: Record<string, OrderFinance> = {}, db = database(), ids = [...new Set(orderIds)];
+  for (let index = 0; index < ids.length; index += 90) {
+    const chunk = ids.slice(index, index + 90);
+    const rows = await db.prepare(`SELECT * FROM market_order_finance WHERE order_id IN (${chunk.map(() => "?").join(",")})`).bind(...chunk).all<FinanceRow>();
+    for (const row of rows.results) out[row.order_id] = financeOf(row);
+  }
+  return out;
+}
+/** Order id → sum of live customer_payment entries (auto, bank or manual). */
+export async function recordedPayments(orderIds: string[]) {
+  const out: Record<string, number> = {}, db = database(), ids = [...new Set(orderIds)];
+  for (let index = 0; index < ids.length; index += 90) {
+    const chunk = ids.slice(index, index + 90);
+    const rows = await db.prepare(`SELECT order_id, SUM(amount_uzs) AS total FROM market_ledger_entries WHERE kind='customer_payment' AND voided_at IS NULL AND order_id IN (${chunk.map(() => "?").join(",")}) GROUP BY order_id`).bind(...chunk).all<{ order_id: string; total: number }>();
+    for (const row of rows.results) out[row.order_id] = row.total;
+  }
+  return out;
+}
+/** Confirmed bank statement lines become BANK- entries; one audit event sums them up. */
+export async function confirmBankEntries(entries: LedgerEntryInput[], user: Operator) {
+  const ids: string[] = [];
+  for (const entry of entries) ids.push(await addLedgerEntry(entry, user, "BANK-"));
+  await recordAudit(user, "ledger.bank-import", "ledger", ids.join(",").slice(0, 320), { count: ids.length, orderIds: entries.map((entry) => entry.orderId) });
+  return ids;
+}
+/** The invoice-calculation of one order from the projection tables (books, fee lines, order record, customer). */
+export async function invoiceFor(orderId: string) {
+  const db = database();
+  const finance = await db.prepare("SELECT * FROM market_order_finance WHERE order_id=?").bind(orderId).first<FinanceRow>();
+  if (!finance) return null;
+  const [record, lines, customer] = await Promise.all([
+    db.prepare("SELECT total FROM market_order_records WHERE id=?").bind(orderId).first<{ total: number }>(),
+    db.prepare("SELECT kind, label, amount FROM market_order_fee_lines WHERE order_id=? ORDER BY created_at ASC, id ASC").bind(orderId).all<InvoiceLine>(),
+    db.prepare("SELECT id, name, email, phone FROM market_customers WHERE id=?").bind(finance.customer_id).first<{ id: string; name: string | null; email: string | null; phone: string | null }>(),
+  ]);
+  const who = { id: finance.customer_id, ...(customer?.name ? { name: customer.name } : {}), ...(customer?.email ? { email: customer.email } : {}), ...(customer?.phone ? { phone: customer.phone } : {}) };
+  return invoiceData(financeOf(finance), lines.results, who, record?.total ?? undefined);
 }

@@ -1,5 +1,39 @@
 # Atlas TODO and known limitations
 
+## 6 октября 2026 (вечер): тарифы экспресс/обычная, группировка заказов, роли, бухгалтерия
+
+- [x] Слито с main #18: `pricingRevision` = 5 (экспресс $15,98 вместо $14,98 из main, обычная $13,98), остальные решения main сохранены.
+- [x] Две скорости доставки: экспресс $15,98/кг (5–9 рабочих дней из США, 7–9 из остальных стран) и обычная $13,98/кг (9–14), переключатель в корзине и в расчёте по ссылке; `pricingRevision = 3` (комиссия ровно 9,98 %, `buyoutFee`/`conversionFee` → 0).
+- [x] Решение владельца: скорость по умолчанию — экспресс (`defaultDeliverySpeed`); старые заказы без `quote.deliverySpeed` читаются как экспресс.
+- [x] «Сроки и тарифы» на главной — карточки стран с SVG-флагами и обеими скоростями; первый рендер с серверным тарифом, числа не «прыгают».
+- [x] «Мои заказы» сгруппированы по оформлению и магазинам; клиентская кнопка «Отменить заказ» убрана (отмена только оператором).
+- [x] Роли сотрудников (`admin`/`finance`/`support`/`procurement`/`warehouse`) дают права с серверной проверкой; `/api/finance`, `/operations` и `/analytics` переведены на права.
+- [x] Бухгалтерия: годовая таблица и кварталы, маржа по заказам, закрытие периода, обязательства, курсы для записей, исправление записи, спарклайны.
+- [ ] Курсы EUR/GBP/CNY/RUB для записей журнала вводятся владельцем вручную в Администрирование → Финансы (источника курсов нет); USD берётся из тарифа.
+- [ ] Сузить данные `GET /api/operations` для ролей `support` и `warehouse`: аккаунты сейчас отдаются целиком (адреса, телефоны), хотя секции справочника/аудита/ошибок уже скрыты по правам.
+- [ ] Визуально проверить новые экраны на 375 px и в тёмной теме (`npm run e2e` после сборки): переключатель скорости в корзине и в расчёте по ссылке, карточки тарифов на главной, группы заказов на `/orders`, бухгалтерия (таблицы в `.acc-scroll`), «таблетка» активного пункта меню (контраст `--night-jade` на rgba .14), перенос ссылок футера на ПК, `/admin` под ролью `support` (видны только Обзор/Клиенты/Поддержка). Сборка, smoke и e2e в спринте не запускались.
+- [ ] Удалить мёртвый CSS старой таблицы тарифов и расчёта: `.home-tariffs*`, `.home-table-wrap`, `.days-bar`, `.home-tariff-price`, `.calc-fx`, `#tariffs > .calc-fx` в `app/home.css`, `app/day-folio.css`, `app/theme-night.css`, `app/customer.css` (отчёт `node scripts/css-unused.mjs`; там же `.home-step-icon`, `.home-trust-points`, `.checkout-optional`, `.calc-customs-*`).
+- [ ] Поиск и пагинация журнала — на клиенте (сервер отдаёт до 5000 записей за месяц); при >5000 записей перенести на сервер. Балансы клиентов для обязательств считаются перебором `market_accounts` (LIMIT 5000).
+- [ ] Прод: миграций нет; старые заказы попадут в заказы месяца бухгалтерии после «Синхронизировать всё» (проекция `market_order_finance`); после публикации задать ставку налога и при необходимости курсы для журнала.
+- [ ] Коды ошибок `err_28`/`err_29` («Доступ только администратору») маршрутами больше не используются (теперь `err_50`); тексты в `lib/market/i18n.ts` удалить при следующей чистке.
+- [ ] Сотрудник с ролью `admin` в справочнике может отключить сам себя — ожидаемо, но стоит подтвердить у владельца; основной администратор из `ATLAS_OPERATOR_EMAIL` не изменяем.
+- [ ] Опционально: экспортировать `parsePricingValue` из `lib/market/server.ts`, чтобы `lib/market/pricing-equal.ts` не дублировал его логику; строка «Доставка: экспресс/обычная» есть только в клиентской карточке заказа, в операторской — при необходимости.
+
+## 6 октября 2026 (вечер), вторая волна: автоматизация бухгалтерии, админка, контент сайта
+
+- [x] Автопроводки `AUTO-…` из проекции заказа (оплата, оплата балансом, выкуп, доставка магазина, пошлина, возвраты на баланс), сверка `?check=1`, денежная позиция, налоговый календарь-ориентир, `fx` в ответе, полная книга месяца и JSON-бэкап, импорт выписки с отдельным подтверждением, счёт-расчёт `?invoice=` (не фискальный документ).
+- [x] Бухгалтерия разбита на вкладки (`app/accounting-*.tsx`), админка — на `app/admin-*.tsx` с серверным дашбордом, карточкой клиента, заметками, фильтруемым журналом и статусом системы; контент сайта редактируется из вкладки «Контент сайта» и хранится в D1.
+- [ ] Миграция `drizzle/0011_admin_customer_notes.sql`: запись в `drizzle/meta/_journal.json` добавлена вручную (idx 10, tag `0011_admin_customer_notes`), снапшота `drizzle/meta/0011_snapshot.json` нет, номер 0010 пропущен — при следующем `npm run db:generate` сверить, что drizzle-kit не создаёт `market_customer_notes` повторно.
+- [ ] Прод: применить 0011 к продакшен-D1 при деплое (локально применена). После деплоя выполнить «Пересобрать проекцию» в `/admin` — это создаст автозаписи для существующих заказов; попавшие в закрытые месяцы окажутся в `accounting.auto-skipped` и в сверке. Затем проверить в браузере, что `GET ?month=&check=1` отдаёт `reconcile`/`fx`/`cash`, `?year=` — `taxCalendar`, `?invoice=` — `{invoice}` и 404 для неизвестного заказа.
+- [ ] `app/order-workspace.tsx` в двух местах по-прежнему проверяет `user?.operator` (ссылка на операторский вид и блок после заказов), а не права через `hasPermission`; `app/prelaunch-views.tsx` уже переведён. Проверить и перевести на `permissions`.
+- [ ] Вопрос владельцу: `cancelOrder` в `lib/market/domain.ts` зачисляет на баланс `quote.total` даже у неоплаченного заказа; автопроводки считают только фактически полученное (`payment.amount` + `balanceUsed`), поэтому книги и баланс клиента могут разойтись. Решить, менять ли домен.
+- [ ] Производительность: `syncAutoLedger` выполняется при каждой записи операционной проекции (2 SELECT + batch при изменениях). При росте нагрузки вынести в фоновую очередь или ограничить заказами, изменившимися с прошлой ревизии.
+- [ ] `closings` в ответе `GET /api/finance?month=` движок пока не отдаёт; UI читает его через `normalizeClosings` и показывает ссылку на аудит вместо «Истории закрытий». Движку — добавить последние события `accounting.lock`/`accounting.unlock` в ответ.
+- [ ] `bank-confirm` принимает только `customer_payment` с `orderId`; расходы из выписки записываются через `entry` (id `LED-`, без пометки «выписка»). Если нужно помечать их `BANK-`, расширить `bank-confirm` или добавить `source` в `entry`. Проверить, что заголовки дебет/кредит и запятые в CSV не ломают серверный разбор `bank-import`.
+- [ ] Фото посылок в контенте сайта — только путь из `public/`, кладутся в репозиторий вручную; загрузки в R2 из админки нет.
+- [ ] Вкладка «Система» показывает только дату и число записей последнего бэкапа: размер файла в `market_backup_exports` не хранится. Переключателя техрежима нет (механизм не реализован).
+- [ ] Визуально проверить `/admin` на 375/393/1280 px в обеих темах (`npm run e2e` после сборки): вкладки `.admin-tabs-icons` с отрицательными полями, таблицы `.admin-grid` в `.admin-scroll`, модалка карточки клиента, контраст `.admin-tab-count`/`.admin-count`; бухгалтерия — карточки `.acc-cards-on-phone`, вкладки `.acc-tabs`, бейджи `acc-badge-warn`/`acc-badge-error`, печать счёта (Ctrl+P — только лист); форма контента (`fieldset.catalog-editor` без рамки сверху — добавить правило для `.site-content-admin .catalog-editor`). Сборка, smoke, e2e и браузер во второй волне не запускались.
+- [ ] При желании: тест в `tests/access.test.mjs`, что `content.manage` есть только у `admin`; список валют формы записи (`currencies` в `app/accounting-shared.tsx`) можно строить из `fx.rates`.
 ## Tariff r4, link-order sheets, swipe gallery, Telegram bot sign-in — 6 October 2026
 
 - [x] Tariff revision 4: $14.98 per kg everywhere and the fee exactly 9.98% (a saved buyout/conversion percent made it 10.98%); per-country per-kg and fee overrides are dropped once.
@@ -51,7 +85,7 @@
 - [x] Administration → Система warns when `ATLAS_AUTH_SECRET` is not set.
 - [ ] Enforce the CSP (now report-only) once nonces replace the inline scripts; then `frame-ancestors` takes over from `X-Frame-Options`.
 - [ ] `/api/actions` still returns the text of internal exceptions to the customer as a 400 message; map them to stable codes.
-- [ ] Staff roles in `market_staff_directory` grant nothing: only `ATLAS_OPERATOR_EMAIL` is an operator. Decide whether roles should get scoped access before inviting staff.
+- [x] Staff roles in `market_staff_directory` grant nothing: only `ATLAS_OPERATOR_EMAIL` is an operator. — Сделано 6 октября 2026: роли дают права с серверной проверкой (`lib/market/access.ts`, `STAFF_ROLES.md`).
 - [ ] `payment-demo` lets a customer mark their own order paid, and the books count it as paid; remove it when a payment provider is connected.
 - [ ] Rate limits use fixed windows in D1; repeated sign-ins on the local Worker reach them (reset: `DELETE FROM market_rate_limits` in the local D1 only).
 

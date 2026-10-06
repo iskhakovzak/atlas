@@ -8,6 +8,7 @@ import {useMarket} from '@/lib/market/store';
 import {findOrderUrl} from '@/lib/market/catalog';
 import {countryName} from '@/lib/market/world';
 import type {Locale} from '@/lib/market/i18n';
+import {daysRangeFor,deliverySpeedCopy} from '@/lib/market/delivery-speed';
 import {Choice,CostLines,WasPrice} from './market-ui';
 import {ProductGallery} from './product-gallery';
 import {marketplaceWords} from './marketplace-words';
@@ -44,7 +45,7 @@ function ProductDetails({product:selected,onClose}:{product:Product;onClose:()=>
     <SheetDescription>{curated?`${modalWords.offerFrom} ${curated.store}. ${modalWords.priceOn} ${curated.observedOn}. ${modalWords.checkOption}`:modalWords.review}</SheetDescription>
     <Tabs defaultValue="about" className="detail-tabs"><TabsList variant="line"><TabsTrigger value="about">{modalWords.about}</TabsTrigger><TabsTrigger value="price">{modalWords.price}</TabsTrigger></TabsList>
      <TabsContent value="about"><p>{selected.description??modalWords.manual}</p>{selected.sourceUrl&&<a className="text-link" href={selected.sourceUrl} target="_blank" rel="noopener noreferrer">{modalWords.source}<ArrowUpRight size={16}/></a>}<div className="product-facts"><span>{modalWords.storePrice} <b>{selected.sourcePrice??selected.usd} {selected.sourceCurrency??'USD'}</b></span></div></TabsContent>
-     <TabsContent value="price"><p className="micro">{modalWords.weight}: {selected.weight} {modalWords.kg}.{selected.boxedWeight!==undefined&&<> {modalWords.box} {selected.boxedWeight} {modalWords.kg} + 0.3 {modalWords.kg} {modalWords.packaging}.</>}</p>{curated&&<p className="micro">{modalWords.estimate}</p>}<CostLines q={estimate} storeReserveWaived={selected.sourceShippingEstimated===true} locale={locale}/><small className="muted">{modalWords.rate}: {money(pricing.fx)} / USD</small></TabsContent>
+     <TabsContent value="price"><p className="micro">{modalWords.weight}: {selected.weight} {modalWords.kg}.{selected.boxedWeight!==undefined&&<> {modalWords.box} {selected.boxedWeight} {modalWords.kg} + 0.3 {modalWords.kg} {modalWords.packaging}.</>}</p>{(()=>{const sc=deliverySpeedCopy[locale];const range=daysRangeFor(pricing,[countryName(selected)],'express');return <p className="micro">{sc.names.express}: {range?sc.days(range[0],range[1]):sc.daysUnknown}.</p>;})()}{curated&&<p className="micro">{modalWords.estimate}</p>}<CostLines q={estimate} storeReserveWaived={selected.sourceShippingEstimated===true} locale={locale}/><small className="muted">{modalWords.rate}: {money(pricing.fx)} / USD</small></TabsContent>
     </Tabs>
     {!curated&&<div className="field"><label>{modalWords.variant}</label><Choice label={modalWords.variant} value={variant} onChange={setVariant} options={selected.variants}/></div>}
     <div className="notice"><ShieldCheck size={19}/><span>{modalWords.delivery}</span></div>

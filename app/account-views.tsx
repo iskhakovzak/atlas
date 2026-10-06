@@ -12,7 +12,6 @@ import { localizedStatuses, type Locale } from "@/lib/market/i18n";
 import { calcCopy } from "@/lib/market/calc-copy";
 import { formatSum } from "@/lib/market/home-copy";
 import { accountCopy, formatLongDate, itemCount, recipientCopy, type AccountCopy } from "@/lib/market/customer-copy";
-import { siteContent } from "@/lib/market/site-content";
 import { toast } from "sonner";
 import { Modal } from "./market-ui";
 import { Money } from "./money";
@@ -25,7 +24,7 @@ import { AllowanceMeter } from "./allowance-meter";
 // Account home, mobile-first: one "what needs you now" card, four quick tiles, then
 // recipients, customs allowance, documents, support and settings — each shown once.
 export function AccountView() {
-  const { user, state, ready, act, pricing } = useMarket();
+  const { user, state, ready, act, pricing, siteContent } = useMarket();
   const lang = state.communication.language;
   const c = accountCopy[lang];
   const [editor, setEditor] = useState<SavedDeliveryProfile | "new" | null>(null);
@@ -73,7 +72,7 @@ export function AccountView() {
     <header className="cabinet-head">
       <span className="cabinet-avatar" aria-hidden="true">{(user.name || contact || "A").trim().charAt(0).toUpperCase()}</span>
       <div className="cabinet-identity"><h1>{c.title}</h1><p><b>{user.name}</b>{contact && contact !== user.name ? <> · {contact}</> : null}<small>{c.since(since)}</small></p></div>
-      {user.operator && <Link className="btn secondary cabinet-manage" href="/admin">{c.manage}<ArrowUpRight size={17} aria-hidden="true" /></Link>}
+      {(user.operator || !!user.permissions?.length) && <Link className="btn secondary cabinet-manage" href="/admin">{c.manage}<ArrowUpRight size={17} aria-hidden="true" /></Link>}
     </header>
 
     <div className="cabinet-grid">

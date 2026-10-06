@@ -173,6 +173,8 @@ export const pricingSchema = z.object({
   // (the carrier prices in USD), `normalizePricing` derives this from it at the current rate.
   perKg: positive.max(10_000_000),
   perKgUsd: positive.max(1_000).optional(),
+  /** Standard (slower) international delivery per kg in USD; the owner's $13.98 when unset (6 October 2026). */
+  standardPerKgUsd: positive.max(1_000).optional(),
   margin: z.number().finite().min(0).max(1),
   buyoutFee: z.number().finite().min(0).max(1).default(0),
   conversionFee: z.number().finite().min(0).max(1).default(0),
@@ -193,6 +195,7 @@ export const pricingSchema = z.object({
   countryOverrides: z.record(z.string().min(1).max(80), z.object({
     perKg: positive.max(10_000_000).optional(),
     perKgUsd: positive.max(1_000).optional(),
+    standardPerKgUsd: positive.max(1_000).optional(),
     margin: z.number().finite().min(0).max(1).optional(),
     buyoutFee: z.number().finite().min(0).max(1).optional(),
     conversionFee: z.number().finite().min(0).max(1).optional(),
@@ -203,6 +206,8 @@ export const pricingSchema = z.object({
   // Delivery time per region in business days [from, to], edited in the admin (Тарифы). A region left out
   // falls back to lib/market/site-content.ts; the home rates table and the example bill read it.
   deliveryDays: z.record(z.enum(["us", "uk", "cn", "de", "it", "es"]), z.tuple([z.number().int().min(1).max(120), z.number().int().min(1).max(120)]).refine(([from, to]) => from <= to, "from ≤ to")).optional(),
+  /** Standard delivery in business days per dispatch region (admin override of site-content's 9–14). */
+  standardDeliveryDays: z.record(z.enum(["us", "uk", "cn", "de", "it", "es"]), z.tuple([z.number().int().min(1).max(120), z.number().int().min(1).max(120)]).refine(([from, to]) => from <= to, "from ≤ to")).optional(),
   // Where `fx` comes from: the Central Bank of Uzbekistan's USD rate × `fxMarkup`, fetched by the server
   // (lib/market/fx-server.ts), or a rate the operator sets. Customers see which one and when it was set.
   fxSource: z.enum(["cbu", "manual"]).default("manual"),
@@ -224,24 +229,33 @@ export const pricingSchema = z.object({
   managedBy: z.string().max(160).optional(),
 });
 export type Pricing = z.infer<typeof pricingSchema>;
-/** Atlas express delivery from the US, UK, China, Germany, Italy and Spain: $14.98 per kg (owner, 6 October 2026). */
-export const deliveryPerKgUsd = 14.98;
+/** Atlas express delivery from the US, UK, China, Germany, Italy and Spain: $15.98 per kg (owner, 6 October 2026). */
+export const deliveryPerKgUsd = 15.98;
+/** Atlas standard delivery (9–14 business days): $13.98 per kg (owner, 6 October 2026). */
+export const standardDeliveryPerKgUsd = 13.98;
+/** How fast the parcel travels from the Atlas warehouse abroad; the price and days differ, the rest of the quote does not. */
+export const deliverySpeeds = ["express", "standard"] as const;
+export type DeliverySpeed = (typeof deliverySpeeds)[number];
+export const deliverySpeedSchema = z.enum(deliverySpeeds);
+export const defaultDeliverySpeed: DeliverySpeed = "express";
 /** Atlas service fee on merchandise only (owner's decision, 4 October 2026); never on delivery or customs. */
 export const atlasServiceFee = 0.0998;
 /** Atlas pays the customer's customs for this share of the goods price, delivery excluded (owner, 5 October 2026). */
 export const customsHelpShare = 0.0498;
 /**
- * Owner decisions that tariffs saved earlier still lack: 1 = $15 per kg (now $14.98), 2 = 9.98% fee and the CBU rate × 1.012,
+ * Owner decisions that tariffs saved earlier still lack: 1 = $15 per kg, 2 = 9.98% fee and the CBU rate × 1.012,
  * 3 = no international reserve in the bill and customs payment at 4.98% of the cart (5 October 2026),
- * 4 = $14.98 per kg everywhere and the fee exactly 9.98%: no buyout or conversion percent on top (6 October 2026).
+ * 4 = $14.98 per kg everywhere and the fee exactly 9.98%: no buyout or conversion percent on top (6 October 2026),
+ * 5 = express $15.98 and standard $13.98 per kg (6 October 2026, evening); $15 and $14.98 saved earlier become $15.98.
  */
-export const pricingRevision = 4;
+export const pricingRevision = 5;
 /** Until the server reads the Central Bank rate, the owner's estimate stands in, shown as a set rate. */
 const startingFx = 11990;
 export const tariff: Pricing = {
   fx: startingFx,
   perKg: Math.round(deliveryPerKgUsd * startingFx),
   perKgUsd: deliveryPerKgUsd,
+  standardPerKgUsd: standardDeliveryPerKgUsd,
   fxSource: "cbu",
   fxMarkup: 1.012,
   customsHelpFee: customsHelpShare,
@@ -275,7 +289,7 @@ export function normalizePricing(config: Pricing): Pricing {
   return { ...config, fx, perKg: config.perKgUsd === undefined ? config.perKg : soum(config.perKgUsd), countryOverrides };
 }
 /**
- * A tariff saved before the owner's decisions lacks them: $14.98 per kg, the 9.98% fee and the Central Bank
+ * A tariff saved before the owner's decisions lacks them: $15.98 express and $13.98 standard per kg, the 9.98% fee and the Central Bank
  * rate × 1.012. It gets them under a new version, so carts quoted under the old one are shown again.
  */
 export function upgradePricing(config: Pricing): Pricing {
@@ -284,9 +298,17 @@ export function upgradePricing(config: Pricing): Pricing {
   const earlier = revision >= 2 ? config : { ...config, margin: atlasServiceFee, fxSource: "cbu" as const, fxMarkup: 1.012 };
   // A saved buyout or conversion percent showed as a 10.98% fee; per-country rates and fees gave other prices.
   const strip = ["reserve", ...(revision < 4 ? ["perKg", "perKgUsd", "margin", "buyoutFee", "conversionFee", "deliveryMargin"] : [])] as const;
+  // Revision 5: the old $15 and $14.98 defaults become express $15.98; standard $13.98 is added; the commission
+  // is exactly the 9.98% fee (no buyout or conversion fee on top).
+  const legacyPerKg = [undefined, 15, 14.98];
   return normalizePricing({
     ...earlier,
-    ...(revision < 4 ? { perKgUsd: deliveryPerKgUsd, margin: atlasServiceFee, buyoutFee: 0, conversionFee: 0, deliveryMargin: 0 } : {}),
+    ...(revision < 4 ? { deliveryMargin: 0 } : {}),
+    perKgUsd: revision < 4 || legacyPerKg.includes(earlier.perKgUsd) ? deliveryPerKgUsd : earlier.perKgUsd,
+    standardPerKgUsd: earlier.standardPerKgUsd ?? standardDeliveryPerKgUsd,
+    margin: atlasServiceFee,
+    buyoutFee: 0,
+    conversionFee: 0,
     reserve: 0,
     customsHelpFee: customsHelpShare,
     countryOverrides: Object.fromEntries(Object.entries(earlier.countryOverrides ?? {})
@@ -296,13 +318,18 @@ export function upgradePricing(config: Pricing): Pricing {
     version: `${config.version.slice(0, 70)}+r${pricingRevision}`,
   });
 }
-/** Delivery per kg in USD for a dispatch country, as the customer pays it (with the delivery margin). */
-export function deliveryPerKgUsdFor(config: Pricing, country?: string) {
+/** Delivery per kg in USD for a dispatch country and speed, as the customer pays it (with the delivery margin). */
+export function deliveryPerKgUsdFor(config: Pricing, country?: string, speed: DeliverySpeed = defaultDeliverySpeed) {
   const p = pricingForCountry(config, country);
   const override = country ? config.countryOverrides?.[country] : undefined;
+  if (speed === "standard") return Math.round((p.standardPerKgUsd ?? standardDeliveryPerKgUsd) * (1 + p.deliveryMargin) * 100) / 100;
   // A soum-only country override wins over the base USD rate.
   const usd = override?.perKg !== undefined && override.perKgUsd === undefined ? p.perKg / p.fx : (p.perKgUsd ?? p.perKg / p.fx);
   return Math.round(usd * (1 + p.deliveryMargin) * 100) / 100;
+}
+/** Soum per kg for a speed from a tariff already resolved for the country (pricingForCountry). */
+export function perKgSoumFor(config: Pricing, speed: DeliverySpeed = defaultDeliverySpeed) {
+  return speed === "standard" ? Math.round((config.standardPerKgUsd ?? standardDeliveryPerKgUsd) * config.fx) : config.perKg;
 }
 /** Resolve only the pricing dimensions explicitly overridden for this item's
  * actual dispatch country. FX rates stay currency-based in `rates`. */
@@ -350,6 +377,8 @@ const quoteSchema = z.object({
   margin: z.number().finite().min(0).max(1).optional(),
   reserveRate: z.number().finite().min(0).max(2).optional(),
   perKg: positive.optional(),
+  /** Which international delivery the customer chose; quotes saved before 6 October 2026 are express. */
+  deliverySpeed: deliverySpeedSchema.optional(),
   divisor: positive.optional(),
   sourceShipping: amount.optional(),
   /** Unknown store delivery, held separately: never part of `total` or the amount to pay (4 October 2026). */
@@ -374,6 +403,7 @@ export function price(
   quantity = 1,
   sourceShippingUsd = 0,
   config: Pricing = tariff,
+  speed: DeliverySpeed = defaultDeliverySpeed,
 ) {
   if (
     !Number.isFinite(usd) ||
@@ -399,7 +429,7 @@ export function price(
     service = Math.round(merchandise * config.margin),
     buyout = Math.round(merchandise * config.buyoutFee),
     conversion = Math.round(merchandise * config.conversionFee),
-    shippingBase = Math.ceil(billableUnitWeight * quantity * config.perKg),
+    shippingBase = Math.ceil(billableUnitWeight * quantity * perKgSoumFor(config, speed)),
     deliveryMargin = Math.round(shippingBase * config.deliveryMargin),
     shipping = shippingBase,
     reserve = Math.ceil(shippingBase * config.reserve);
@@ -424,12 +454,14 @@ export function quote(
   quantity = 1,
   sourceShippingUsd = 0,
   config: Pricing = tariff,
+  speed: DeliverySpeed = defaultDeliverySpeed,
 ): Quote {
   return {
     id: crypto.randomUUID(),
     createdAt: now,
     expiresAt: now + 15 * 60000,
-    ...price(usd, weight, quantity, sourceShippingUsd, config),
+    ...price(usd, weight, quantity, sourceShippingUsd, config, speed),
+    deliverySpeed: speed,
     tariffVersion: config.version,
     fx: config.fx,
     ...(config.fxSource === "cbu" ? { fxMarkup: config.fxMarkup ?? 1.012 } : {}),
@@ -438,7 +470,7 @@ export function quote(
     conversionFeeRate: config.conversionFee,
     deliveryMarginRate: config.deliveryMargin,
     reserveRate: config.reserve,
-    perKg: config.perKg,
+    perKg: perKgSoumFor(config, speed),
     divisor: config.divisor,
   };
 }
@@ -787,6 +819,8 @@ const cartSchema = z.object({
   }).optional(),
   /** The last live check could not confirm the item. Only "unreachable" with a recent earlier check lets checkout go on. */
   sourceIssue: z.object({ kind: z.enum(["currency", "variant", "price", "unreachable", "stock"]), at: amount }).optional(),
+  /** International delivery speed for this line; lines saved before 6 October 2026 are express. */
+  deliverySpeed: deliverySpeedSchema.optional(),
   /** The customer's note for Atlas about this item; kept through repricing, shown to operators, never sent to the store. */
   note: z.string().trim().max(500).optional(),
 });
@@ -975,6 +1009,16 @@ export function storeShippingReserves(items: CartItem[], config: Pricing = tarif
 
 /** Whether this cart's lines carry the "Atlas pays customs for me" fee. */
 export const customsHelpChosen = (state: Pick<State, "cartCustoms">) => Boolean(state.cartCustoms?.help);
+/** The customer picks express or standard delivery for the whole cart; every line is requoted at that rate. */
+export function setCartDeliverySpeed(state: State, speed: DeliverySpeed, now = Date.now(), config: Pricing = tariff): State {
+  if (!deliverySpeeds.includes(speed)) throw Error("Выберите экспресс или обычную доставку.");
+  if (!state.cart.length) throw Error("Корзина пуста.");
+  return { ...state, cart: repriceCart(state.cart.map((item) => ({ ...item, deliverySpeed: speed })), now, config, customsHelpChosen(state)) };
+}
+/** The speed the cart is quoted at (all lines share it); an older cart without the field is express. */
+export function cartDeliverySpeed(cart: Pick<CartItem, "deliverySpeed">[]): DeliverySpeed {
+  return cart.find((item) => item.deliverySpeed)?.deliverySpeed ?? defaultDeliverySpeed;
+}
 /**
  * Recalculate international delivery once per merchant parcel, and unknown store delivery once per store order.
  * With `customsHelp`, every line also carries the customs payment fee on the rest of its total.
@@ -991,6 +1035,7 @@ export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing
         item.quantity,
         storeShippingUsd(item.product),
         itemPricing,
+        item.deliverySpeed ?? defaultDeliverySpeed,
       ),
     };
   });
@@ -1005,7 +1050,7 @@ export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing
     const boxedTotal = contributions.reduce((sum, value) => sum + value, 0);
     const chargeableWeight = combinedShipmentWeight(boxedTotal);
     const countryPricing = pricingForCountry(config, next[indexes[0]].product.country);
-    const shippingTotal = Math.ceil(chargeableWeight * countryPricing.perKg);
+    const shippingTotal = Math.ceil(chargeableWeight * perKgSoumFor(countryPricing, next[indexes[0]].deliverySpeed ?? defaultDeliverySpeed));
     const reserveTotal = Math.ceil(shippingTotal * countryPricing.reserve);
     const deliveryMarginTotal = Math.round(shippingTotal * countryPricing.deliveryMargin);
     let shippingLeft = shippingTotal;
@@ -1247,6 +1292,8 @@ export function addToCart(
   }
   if (quantity > maxLineQuantity(p)) throw Error(`В магазине осталось ${p.stockQuantity} шт. этого варианта.`);
   const itemPricing = pricingForCountry(config, p.country);
+  // A new line travels at the speed the cart already has (all lines share one choice).
+  const speed = cartDeliverySpeed(state.cart);
   const cart = [
     ...state.cart,
     {
@@ -1254,8 +1301,9 @@ export function addToCart(
       product: p,
       variant,
       quantity,
+      deliverySpeed: speed,
       requestedServiceIds: config.serviceCatalog.filter((service) => service.enabled && service.required && service.requestStage === "checkout").map((service) => service.id),
-      quote: quote(p.usd, p.weight, now, quantity, storeShippingUsd(p), itemPricing),
+      quote: quote(p.usd, p.weight, now, quantity, storeShippingUsd(p), itemPricing, speed),
       ...(comment ? { note: comment } : {}),
     },
   ];
