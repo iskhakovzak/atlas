@@ -51,6 +51,9 @@
   html:has(main.catalog-home) body .catalog-home .home-end > .home-closing {
     display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto 1fr;
     column-gap: 64px; row-gap: 14px; align-items: start; align-self: end; margin-bottom: 56px; padding: 48px 52px;
+    /* The sky is guaranteed (owner, 7.10.2026: the map was gone): the decor draws the map only with 300px+ above the
+       card, and the one-screen end sheet (app/home-chapters.css) left none once the footer grew. */
+    margin-top: clamp(330px, 40vh, 460px);
   }
   html:has(main.catalog-home) body .catalog-home .home-end > .home-closing > :not(.hw-closing-stores) { grid-column: 1; }
   html:has(main.catalog-home) body .catalog-home .home-end > .home-closing > h2 { margin: 0; font-size: calc(var(--day-fs-h2, 46px) * 1.12); }
@@ -116,15 +119,22 @@
     border: 1px solid var(--hwc-tint-2); border-radius: 14px; background: var(--hwc-plate); color: var(--hwc-ink); font-size: 13.5px; line-height: 1.35;
   }
   html[data-theme="dark"]:has(main.catalog-home) body .catalog-home #how .hw-demo { border-color: rgba(128, 208, 172, .16); }
-  /* 1: the hero field as a quiet illustration (light edge, mint arrow tile — not a dark button) and the hero's own note */
+  /* 1: a working copy of the hero field (owner, 7.10.2026: "make it active"): light edge, mint arrow tile as the submit
+     button, the hero's own note or the validation error underneath */
   html:has(main.catalog-home) body .catalog-home #how .hw-demo-field { align-content: center; gap: 10px; padding-inline: 12px; }
   html:has(main.catalog-home) body .catalog-home #how .hw-demo-input { display: flex; min-width: 0; align-items: center; gap: 6px; min-height: 40px; padding: 3px 3px 3px 9px; border: 1px solid var(--hwc-line-strong); border-radius: 10px; background: var(--hwc-card); color: var(--hwc-muted); font-size: 12.5px; }
   html[data-theme="dark"]:has(main.catalog-home) body .catalog-home #how .hw-demo-input { background: var(--night-inset); }
   html:has(main.catalog-home) body .catalog-home #how .hw-demo-input > svg { flex: none; }
-  html:has(main.catalog-home) body .catalog-home #how .hw-demo-input > span { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-  html:has(main.catalog-home) body .catalog-home #how .hw-demo-input > b { display: grid; place-items: center; flex: 0 0 28px; width: 28px; height: 30px; border-radius: 7px; background: var(--hwc-tint); color: var(--hwc-accent); }
-  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home #how .hw-demo-input > b { background: rgba(128, 208, 172, .14); }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-input > input { flex: 1; min-width: 0; height: 32px; padding: 0; border: 0; outline: 0; background: transparent; color: var(--hwc-ink); font: inherit; font-size: 13px; }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-input > input::placeholder { color: var(--hwc-muted); opacity: 1; }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-input:focus-within { border-color: var(--hwc-accent); box-shadow: 0 0 0 3px var(--hwc-tint); }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-input > button { display: grid; padding: 0; border: 0; cursor: pointer; transition: background-color .15s ease, color .15s ease; place-items: center; flex: 0 0 28px; width: 28px; height: 30px; border-radius: 7px; background: var(--hwc-tint); color: var(--hwc-accent); }
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home #how .hw-demo-input > button { background: rgba(128, 208, 172, .14); }
   html:has(main.catalog-home) body .catalog-home #how .hw-demo-note { color: var(--hwc-muted); font-size: 13px; text-wrap: balance; }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-input > button:hover { background: var(--hwc-accent); color: var(--hwc-card); }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-input > button:focus-visible { outline: 2px solid var(--hwc-accent); outline-offset: 2px; }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-note.error { color: var(--day-danger, #b3261e); }
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home #how .hw-demo-note.error { color: #f2a59d; }
   /* 2: the example bill, marked as an example */
   html:has(main.catalog-home) body .catalog-home #how .hw-demo-bill { gap: 6px; padding-inline: 12px; font-size: 13px; }
   html:has(main.catalog-home) body .catalog-home #how :where(.hw-demo-row, .hw-demo-total) { display: flex; align-items: last baseline; gap: 6px; }

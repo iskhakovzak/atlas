@@ -131,7 +131,7 @@ html[data-theme="dark"] .home-missing { border-color: #c9a23f; background: #3a31
 .home-step h3 { margin: 14px 0 6px; color: var(--home-ink); font-size: 18px; }
 .home-step p { margin: 0; color: var(--home-muted); line-height: 1.5; }
 .home-step .home-step-extra { margin-top: 10px; font-size: 14px; }
-.home-payments { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0; padding: 0; list-style: none; }
+.home-payments { display: flex; flex-wrap: wrap; align-items: flex-start; align-self: start; gap: 6px; margin: 12px 0 0; padding: 0; list-style: none; }
 .home-payments li { padding: 4px 10px; border: 1px solid var(--home-line); border-radius: 8px; color: var(--home-ink); font-size: 13px; font-weight: 700; }
 @media (min-width: 640px) { .home-steps { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 1024px) { .home-steps { grid-template-columns: repeat(4, 1fr); } }

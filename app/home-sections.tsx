@@ -67,8 +67,8 @@ export function HomeStoreList({label,labelledBy}:{label?:string;labelledBy?:stri
  return <ul aria-label={label} aria-labelledby={labelledBy}>{heroStores.map(store=><li key={store.key}><a href={'https://'+store.storefronts[0].root} target="_blank" rel="noopener noreferrer"><StoreLogo brand={store} size={20}/>{store.name}<span className="sr-only"> ({c.hero.openStore})</span></a></li>)}<li><Link className="home-stores-all" href="/stores">{c.hero.allStores(storeBrands.length)}</Link></li></ul>;
 }
 
-export function HomeHero({showCatalogLink}:{showCatalogLink:boolean}){
- const {status}=useMarket();
+/** A product link field: a valid link opens the order by link with it, anything else shows the hero's hint. */
+function useLinkSubmit(){
  const {c}=useHomeCopy();
  const [url,setUrl]=useState('');
  const [error,setError]=useState('');
@@ -77,12 +77,19 @@ export function HomeHero({showCatalogLink}:{showCatalogLink:boolean}){
   try{const target=validateSource(url.trim());setError('');window.location.assign('/order-by-link?url='+encodeURIComponent(target))}
   catch{setError(c.hero.invalid)}
  }
+ return {url,error,submit,change:(value:string)=>{setUrl(value);setError('')}};
+}
+
+export function HomeHero({showCatalogLink}:{showCatalogLink:boolean}){
+ const {status}=useMarket();
+ const {c}=useHomeCopy();
+ const {url,error,submit,change}=useLinkSubmit();
  return <section className="home-hero" aria-labelledby="home-title">
   <h1 id="home-title">{c.hero.title}</h1>
   <p className="home-hero-lead">{c.hero.lead}</p>
   <form id="home-link-form" className="home-link-form" onSubmit={submit} noValidate>
    <label className="sr-only" htmlFor="finds-product-url">{c.hero.label}</label>
-   <span className="home-link-field"><Link2 size={20} aria-hidden="true"/><input id="finds-product-url" name="url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.hero.placeholder} aria-invalid={!!error} aria-describedby={error?'home-link-error':'home-link-note'} onChange={event=>{setUrl(event.target.value);setError('')}}/></span>
+   <span className="home-link-field"><Link2 size={20} aria-hidden="true"/><input id="finds-product-url" name="url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.hero.placeholder} aria-invalid={!!error} aria-describedby={error?'home-link-error':'home-link-note'} onChange={event=>change(event.target.value)}/></span>
    <button type="submit" className="btn primary home-cta">{c.hero.calculate}</button>
   </form>
   {error?<p id="home-link-error" className="home-link-error" role="alert">{error}</p>:<p id="home-link-note" className="home-link-note">{status==='authenticated'?c.hero.memberNote:c.hero.guestNote}</p>}
@@ -137,31 +144,40 @@ export function ExampleQuote(){
 }
 
 export function HowItWorks(){
- const {locale,c}=useHomeCopy();
+ const {c}=useHomeCopy();
  const {siteContent}=useMarket();
- const pickup=siteContent.contacts.pickupAddress?.[locale];
  return <section id="how" className="home-section" data-chapter="how" aria-labelledby="how-title">
   <h2 id="how-title">{c.how.title}</h2>
   <ol className="home-steps">{c.how.steps.map((step,index)=><li key={step.title} className="home-step">
    <span className="home-step-station" aria-hidden="true">{index+1}</span>
    <h3>{step.title}</h3><p>{step.text}</p>
    {index===2&&(siteContent.paymentMethods.length?<ul className="home-payments" aria-label={c.how.paymentsLabel}>{siteContent.paymentMethods.map(method=><li key={method}>{paymentLabels[method]}</li>)}</ul>:<MissingContent what="способы оплаты — только реально подключённые провайдеры"/>)}
-   {index===3&&(pickup?<p className="home-step-extra"><b>{c.how.pickupLabel}:</b> {pickup}</p>:<MissingContent what="адрес пункта выдачи в Ташкенте"/>)}
-   {/* Wide screens only (app/home-wide-content.css): a small picture of the step, built from the page's own copy and numbers. */}
-   <div className="hw-demo-wrap" aria-hidden="true"><StepDemo index={index}/></div>
+   {/* Owner, 7.10.2026: the parcel goes to the door by courier. */}
+   {index===3&&<ul className="home-payments" aria-label={c.how.deliveryLabel}><li>{c.how.courier}</li></ul>}
+   {/* Wide screens only (app/home-wide-content.css): a small picture of the step, built from the page's own copy and numbers.
+       The first one is a working link field (owner, 7.10.2026), the rest are pictures. */}
+   <div className="hw-demo-wrap" aria-hidden={index===0?undefined:true}><StepDemo index={index}/></div>
   </li>)}</ol>
  </section>;
 }
 
+/** The first step's working link field: the same check and destination as the hero's form. */
+function StepLinkForm(){
+ const {status}=useMarket();
+ const {c}=useHomeCopy();
+ const {url,error,submit,change}=useLinkSubmit();
+ return <form className="hw-demo hw-demo-field" onSubmit={submit} noValidate>
+  <label className="sr-only" htmlFor="how-product-url">{c.hero.label}</label>
+  <span className="hw-demo-input"><Link2 size={15} strokeWidth={2} aria-hidden="true"/><input id="how-product-url" name="url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.hero.placeholder} aria-invalid={!!error} aria-describedby="how-link-note" onChange={event=>change(event.target.value)}/><button type="submit" aria-label={c.hero.calculate} title={c.hero.calculate}><ArrowRight size={15} strokeWidth={2.2} aria-hidden="true"/></button></span>
+  <span id="how-link-note" className={'hw-demo-note'+(error?' error':'')} role={error?'alert':undefined}>{error||(status==='authenticated'?c.hero.memberNote:c.hero.guestNote)}</span>
+ </form>;
+}
+
 /** The example inside a step card: the link field, the example bill, what is checked before the order, the tracking example. */
 function StepDemo({index}:{index:number}){
- const {status}=useMarket();
  const {locale,c}=useHomeCopy();
  const {quote,parts}=useExampleBill();
- if(index===0)return <div className="hw-demo hw-demo-field">
-  <span className="hw-demo-input"><Link2 size={15} strokeWidth={2}/><span>{c.hero.placeholder}</span><b title={c.hero.calculate}><ArrowRight size={15} strokeWidth={2.2}/></b></span>
-  <span className="hw-demo-note">{status==='authenticated'?c.hero.memberNote:c.hero.guestNote}</span>
- </div>;
+ if(index===0)return <StepLinkForm/>;
  if(index===1){
   const rows:[string,number][]=[[c.example.item,quote.merchandise],[c.example.service,parts.service],[c.example.delivery,parts.international],...(quote.reserve>0?[[c.example.reserve,quote.reserve] as [string,number]]:[])];
   return <div className="hw-demo hw-demo-bill"><span className="hw-tag">{c.example.title}</span>

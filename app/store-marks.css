@@ -14,8 +14,8 @@ html[data-theme="dark"] .store-logo.store-logo-vector { border-color: var(--home
 .store-marquee-track { display: flex; width: max-content; animation: store-marquee var(--marquee-s, 60s) linear infinite; }
 .store-marquee-row.reverse .store-marquee-track { animation-direction: reverse; }
 @keyframes store-marquee { to { transform: translateX(-50%); } }
-/* Stops under the pointer and while a link in it has focus. */
-.store-marquee:is(:hover, :focus-within) .store-marquee-track { animation-play-state: paused; }
+/* Keeps moving under the pointer (owner); stops while a link in it has keyboard focus, so it can be reached. */
+.store-marquee:has(a:focus-visible) .store-marquee-track { animation-play-state: paused; }
 
 .home-stores.home-stores-marquee .store-marquee ul { display: flex; flex-wrap: nowrap; gap: 0; margin: 0; padding: 0; overflow: visible; list-style: none; -webkit-mask-image: none; mask-image: none; }
 .home-stores.home-stores-marquee .store-marquee li { flex: none; }
@@ -28,6 +28,69 @@ html body .home-stores.home-stores-marquee .store-marquee a:focus-visible { opac
 
 .store-marquee-foot { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
 
+/* Backdrop (owner, 7.10.2026: "effects behind the ribbon, softer colours, something creative instead of the strips"):
+   a soft aurora and the delivery sky (app/delivery-sky.tsx). */
+.store-marquee { position: relative; isolation: isolate; padding-top: 8px; }
+.store-marquee::before {
+  content: ""; position: absolute; z-index: -2; inset: -18px 0 -10px; pointer-events: none; border-radius: 40px; filter: blur(26px);
+  background:
+    radial-gradient(40% 70% at 16% 50%, rgba(76, 170, 128, .2), transparent 72%),
+    radial-gradient(34% 70% at 86% 56%, rgba(214, 168, 92, .18), transparent 72%);
+  animation: store-aurora 18s ease-in-out infinite alternate;
+}
+html[data-theme="dark"] .store-marquee::before {
+  background:
+    radial-gradient(40% 70% at 16% 50%, rgba(140, 214, 180, .12), transparent 72%),
+    radial-gradient(34% 70% at 86% 56%, rgba(232, 200, 140, .1), transparent 72%);
+}
+@keyframes store-aurora {
+  0% { transform: translate3d(-3%, 0, 0) scale(1); }
+  100% { transform: translate3d(3%, -4%, 0) scale(1.06); }
+}
+.store-marquee-sky { inset: -10px 0 34px; }
+
+/* Delivery sky (app/delivery-sky.tsx): dotted routes, a pulse of light along each, faint sparks. Compositor-friendly
+   animation; still with reduced motion; on phones one route and half the sparks less. */
+.delivery-sky {
+  position: absolute; z-index: -1; overflow: hidden; pointer-events: none;
+  --sky-mint: 76, 170, 128; --sky-gold: 214, 168, 92; --sky-route-a: .45; --sky-pulse-a: .8;
+}
+html[data-theme="dark"] .delivery-sky { --sky-mint: 140, 214, 180; --sky-gold: 232, 200, 140; --sky-route-a: .3; --sky-pulse-a: .75; }
+.delivery-sky svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.sky-route path { fill: none; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+.sky-route-dots { stroke: rgba(var(--sky-mint), var(--sky-route-a)); stroke-width: 2.4; stroke-dasharray: 0 8; }
+.sky-route.r1 .sky-route-dots { stroke: rgba(var(--sky-gold), var(--sky-route-a)); }
+.sky-route.r2 .sky-route-dots { opacity: .7; }
+.sky-route-pulse {
+  stroke: rgba(var(--sky-mint), var(--sky-pulse-a)); stroke-width: 2.8; stroke-dasharray: 14 86; stroke-dashoffset: 114;
+  filter: drop-shadow(0 0 3px rgba(var(--sky-mint), .6));
+  animation: sky-route 7s cubic-bezier(.45, .05, .35, 1) infinite;
+}
+.sky-route.r1 .sky-route-pulse { stroke: rgba(var(--sky-gold), var(--sky-pulse-a)); filter: drop-shadow(0 0 3px rgba(var(--sky-gold), .6)); animation-duration: 9s; animation-delay: 2.5s; }
+.sky-route.r2 .sky-route-pulse { animation-duration: 11s; animation-delay: 5s; }
+@keyframes sky-route { 0% { stroke-dashoffset: 114; opacity: 0; } 8% { opacity: 1; } 85% { opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+.sky-spark {
+  position: absolute; background: rgb(var(--sky-mint)); opacity: 0;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 0C5.6 3.4 6.6 4.4 10 5 6.6 5.6 5.6 6.6 5 10 4.4 6.6 3.4 5.6 0 5 3.4 4.4 4.4 3.4 5 0Z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 0C5.6 3.4 6.6 4.4 10 5 6.6 5.6 5.6 6.6 5 10 4.4 6.6 3.4 5.6 0 5 3.4 4.4 4.4 3.4 5 0Z'/%3E%3C/svg%3E") center / contain no-repeat;
+  animation: sky-twinkle 6.4s ease-in-out infinite;
+}
+.sky-spark.gold { background: rgb(var(--sky-gold)); }
+@keyframes sky-twinkle { 0%, 100% { opacity: 0; transform: scale(.5); } 50% { opacity: .55; transform: scale(1) rotate(45deg); } }
+@media (max-width: 759px) { .sky-route.r2, .sky-spark:nth-of-type(2n) { display: none; } }
+
+/* Around the home picks (#finds, app/home-sections.tsx): routes sweep behind the cards and show in the gaps. */
+.catalog-home #finds { position: relative; isolation: isolate; }
+.home-finds-sky { inset: -24px 0 -24px; }
+/* Wide screens have the medallion decor in this sheet (app/home-wide-decor.css). */
+@media (min-width: 1440px) and (min-height: 820px) { .home-finds-sky { display: none; } }
+.home-finds-sky::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; filter: blur(40px);
+  background:
+    radial-gradient(26% 36% at 16% 20%, rgba(var(--sky-mint), .16), transparent 72%),
+    radial-gradient(24% 36% at 84% 80%, rgba(var(--sky-gold), .14), transparent 72%);
+}
+
 @media (min-width: 960px) {
   .store-marquee-row.single { display: none; }
   .store-marquee-row.double { display: block; }
@@ -37,7 +100,9 @@ html body .home-stores.home-stores-marquee .store-marquee a:focus-visible { opac
 
 /* Reduced motion: a still row that scrolls by hand, without the copy that made the loop. */
 @media (prefers-reduced-motion: reduce) {
-  .store-marquee-track { animation: none; }
-  .store-marquee-copy,   .store-marquee-row { overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .store-marquee-track, .store-marquee::before, .sky-route-pulse { animation: none; }
+  .store-marquee-copy, .sky-route-pulse { display: none; }
+  .sky-spark { animation: none; opacity: .4; }
+  .store-marquee-row { overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
   .store-marquee-row::-webkit-scrollbar { display: none; }
 }
