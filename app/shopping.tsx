@@ -225,7 +225,7 @@ export function CartView() {
   const speed = cartDeliverySpeed(state.cart);
   const speedCountries = state.cart.map(item => countryName(item.product));
   const speedOptions = deliverySpeedOptions(pricing, speedCountries, locale);
-  const speedNote = [savingText(state.cart, pricing, locale), parcelsDiffer(speedCountries) ? deliverySpeedCopy[locale].appliesToCart : ""].filter(Boolean).join(" ");
+  const speedNote = [savingText(lines, pricing, locale), parcelsDiffer(speedCountries) ? deliverySpeedCopy[locale].appliesToCart : ""].filter(Boolean).join(" ");
   const speedDays = (country: string) => { const range = daysRangeFor(pricing, [country], speed); return range ? deliverySpeedCopy[locale].days(range[0], range[1]) : ""; };
   // Store orders whose delivery price is unknown: a separate hold up to the threshold, free above it.
   const reserves = storeShippingReserves(lines, pricing);
@@ -457,7 +457,7 @@ export function CartView() {
           {customsPanel}
           {balance > 0 && <div className="basket-balance"><Checkbox id="use-balance" checked={useBalance} onCheckedChange={(value) => setUseBalance(value === true)} /><label htmlFor="use-balance">{c.summary.balance}<small>{c.summary.available}: {formatSum(balance, locale)}</small></label></div>}
           <div className="basket-total bill-total"><span>{c.summary.payable}</span><strong><Money value={payable} locale={locale} /></strong></div>
-          <PriceHold expiresAt={earliestExpiry} locale={locale} c={c} />
+          {lines.length > 0 && <PriceHold expiresAt={earliestExpiry} locale={locale} c={c} />}
           <button ref={setSummaryCta} type="button" className="btn primary basket-cta" disabled={verifying} aria-busy={verifying || selecting} aria-disabled={!lines.length || selecting || undefined} aria-describedby={!lines.length ? "basket-none-hint" : undefined} onClick={() => void openCheckout()}>{verifying ? <>{c.summary.verifying}<Loader2 size={18} className="spin" aria-hidden="true" /></> : selecting ? <>{s.saving}<Loader2 size={18} className="spin" aria-hidden="true" /></> : s.checkoutN(count)}</button>
           {!lines.length && <p id="basket-none-hint" className="basket-none-hint" role="status"><Info size={16} aria-hidden="true" />{s.noneSelected}</p>}
           {lines.length > 0 && laterCount > 0 && <p className="basket-later-note">{s.laterCount(laterCount)}</p>}

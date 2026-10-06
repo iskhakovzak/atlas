@@ -1178,7 +1178,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
   return (
     <>
       {!operations ? <header className="orders-head">
-        <div><h1>{oc.title}</h1>{orders.length > 0 && <p>{orderCount(customerGroups.length, locale)}{groupTabs.active.length + groupTabs.attention.length ? ` · ${oc.active(groupTabs.active.length + groupTabs.attention.length)}` : ""}</p>}</div>
+        <div><h1>{oc.title}</h1>{orders.length > 0 && <p>{orderCount(customerGroups.length, locale)}{groupTabs.active.length ? ` · ${oc.active(groupTabs.active.length)}` : ""}</p>}</div>
         {canReadOperations && <Link className="btn secondary" href="/operations">{wc.operatorView}<ArrowUpRight size={16} aria-hidden="true" /></Link>}
       </header> : <PageHeading
         overline={

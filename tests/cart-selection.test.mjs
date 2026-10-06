@@ -18,6 +18,8 @@ test('a line left for later stays in the cart and the checkout takes only the ti
  assert.equal(s.orders.length,3);
  assert.deepEqual(s.cart.map(i=>i.id),[later]);
  assert.ok(s.orders.every(o=>o.product.id!==later));
+ // What was left for later is the next checkout: ticked again, not an empty selection.
+ assert.equal(checkoutLines(s.cart).length,1);
 });
 
 test('nothing ticked: checkout is refused with a hint and the cart is kept',()=>{

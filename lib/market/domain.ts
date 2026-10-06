@@ -1715,7 +1715,8 @@ export function checkoutCart(
       ],
     } as Order;
   });
-  const later = state.cart.filter((item) => !inCheckout(item));
+  // The lines left for later become the next checkout: selected again, so the cart is not left with nothing chosen.
+  const later = state.cart.filter((item) => !inCheckout(item)).map((item) => ({ ...item, selected: undefined }));
   return {
     ...state,
     // The lines left for later stay, already priced as their own parcels.
