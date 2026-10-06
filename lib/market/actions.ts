@@ -89,7 +89,8 @@ export const actionSchema = z.discriminatedUnion("type", [
     id,
     quantity: z.number().int().min(1).max(10),
   }),
-  z.object({ type: z.literal("cart-remove"), id }),
+  // `ids`: every option of one product at once ("remove all", "save for later"): one request, one repricing.
+  z.object({ type: z.literal("cart-remove"), id, ids: z.array(id).min(1).max(20).optional() }),
   z.object({ type: z.literal("cart-services"), id, serviceIds: z.array(z.string().min(2).max(80)).max(40), serviceUnits: z.record(z.string().min(2).max(80), z.number().int().min(1).max(100)).optional(), ids: z.array(id).min(1).max(20).optional() }),
   z.object({ type: z.literal("cart-renew") }),
   // Before checkout: the server checks prices with the stores and reprices the cart (app/api/actions/route.ts).
@@ -303,7 +304,8 @@ export function applyAction(
       { const next = changeQuantity(s, a.id, a.quantity, Date.now(), pricing); assertCartPolicy(next.cart, policy); return next; }
     case "cart-remove":
       // The rest of that store's parcel is priced again: its shipping share and store-delivery reserve change.
-      return { ...s, cart: repriceCart(s.cart.filter((i) => i.id !== a.id), Date.now(), pricing, customsHelpChosen(s)) };
+      { const gone = new Set(a.ids ?? [a.id]);
+        return { ...s, cart: repriceCart(s.cart.filter((i) => !gone.has(i.id)), Date.now(), pricing, customsHelpChosen(s)) }; }
     case "cart-services":
       return (a.ids ?? [a.id]).reduce((state, line) => setCartServices(state, line, a.serviceIds, pricing, a.serviceUnits), s);
     case "cart-renew":

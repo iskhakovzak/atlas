@@ -82,7 +82,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
 
   if (variant === 'compact') {
     // The whole card is one button (phrasing content only, so spans), with the heart beside it, not inside.
-    return <article className="find-card find-card-compact">
+    return <article className="find-card find-card-compact" data-saved={saved || undefined}>
       <button type="button" className="find-compact" onClick={open} aria-label={cc.open(name)} aria-describedby={costs ? priceId : undefined}>
         <span className="find-visual"><span className="find-photo"><ProductImage product={product} decorative locale={locale} /></span>{discount >= 40 && <span className="find-top-deal"><Flame size={14} />{copy.topDeal}</span>}</span>
         <span className="find-content">
@@ -102,7 +102,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   // One mint element per card: the discount pill wins, so a mint chip next to it turns neutral.
   const hasDiscountPill = !needsPrice && discount > 0;
   const chips = signals.slice(0, 2).map((signal) => hasDiscountPill && signal.tone === 'mint' ? { ...signal, tone: 'neutral' as const } : signal);
-  return <article className="find-card" data-stale={needsPrice || undefined}>
+  return <article className="find-card" data-stale={needsPrice || undefined} data-saved={saved || undefined}>
     <div className="find-visual">
       <button className="find-photo" type="button" onClick={open} aria-label={cc.open(name)}><ProductImage product={product} locale={locale} /></button>
       {discount >= 40 && <span className="find-top-deal"><Flame size={14} />{copy.topDeal}</span>}

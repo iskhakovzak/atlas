@@ -73,14 +73,13 @@ export function DeliverySpeedSwitch({value,options,locale,onChange,busy=false,no
 }
 
 /** The hold for unknown store delivery, shown apart from the amount to pay. */
-export function HoldNote({amount,locale,pricing}:{amount:number;locale:Locale;pricing:Pricing}){
+export function HoldNote({amount,locale}:{amount:number;locale:Locale;/** Kept for callers; the rule itself is the help of the bill's store-delivery line. */pricing?:Pricing}){
  const c=calcCopy[locale];
  if(amount<=0)return null;
  return <div className="calc-hold" role="note">
   <Wallet size={17} aria-hidden="true"/>
   <div><span>{c.hold}</span><small>{c.holdNote}</small></div>
   <b>{formatSum(amount,locale)}</b>
-  <p className="calc-hold-help">{c.holdHelp(usdText(pricing.storeShippingFreeFromUsd??50,locale)).split('. ').slice(1,3).join('. ')}.</p>
  </div>;
 }
 
