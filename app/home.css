@@ -37,16 +37,46 @@ html[data-theme="dark"] {
 /* The header's edges line up with the page content (site-main: max 1500px, padding clamp(20px, 4.7vw, 72px)). */
 @media (min-width: 761px) {
   html .site-header { padding-inline: max(clamp(20px, 4.7vw, 72px), calc((100% - 1500px) / 2 + 72px)); }
-}
-/* Signed-in header below 1400px: the home anchors and theme switch (also in the footer and account) make room. */
-@media (min-width: 761px) and (max-width: 1399px) {
-  .site-header:has(.header-account.member) .desktop-nav a:is([data-nav="how"], [data-nav="tariffs"]),
+  /* Never wider than the screen. The compact rules below make every menu item fit from 1151px up (e2e checks it);
+     only as a last resort (a longer language, an 8-digit balance) the menu shrinks and scrolls inside the header,
+     so the wordmark, account, cart and balance stay whole. The inline padding keeps focus rings unclipped. */
+  .site-header .desktop-nav { min-width: 0; padding-inline: 4px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+  .site-header .desktop-nav::-webkit-scrollbar { display: none; }
+  .site-header .header-actions, .site-header .wordmark { flex-shrink: 0; }
+  /* Signed in, the header has a balance, bell, favourites and cart, so the theme switch moves to the footer
+     (on desktop shown only to signed-in users, see .home-footer-theme below) and stays in /account settings. */
   .site-header:has(.header-account.member) .header-theme { display: none; }
-}
-/* The operator has one more entry ("Управление"): the same room is made up to 1600px. */
-@media (min-width: 761px) and (max-width: 1599px) {
+  /* The operator has one more entry ("Управление"): at the content's 1356px cap the anchors still do not fit next to it,
+     so they stay in the footer at every desktop width. */
   .site-header:has(.operator-entry) .desktop-nav a:is([data-nav="how"], [data-nav="tariffs"]),
   .site-header:has(.operator-entry) .header-theme { display: none; }
+}
+/* Signed-in header below 1500px: the home anchors (also in the footer) make room for a 7-digit balance. */
+@media (min-width: 761px) and (max-width: 1499px) {
+  .site-header:has(.header-account.member) .desktop-nav a:is([data-nav="how"], [data-nav="tariffs"]) { display: none; }
+}
+/* Up to 1399px (iPad 768/1024, small laptops): tighter gaps. */
+@media (min-width: 761px) and (max-width: 1399px) {
+  .site-header { gap: 16px; }
+}
+/* Up to 1459px the operator's "Управление" is an icon (its name stays for screen readers): with the full label and a
+   7–8 digit balance the menu ran 20px short at 1400–1459px. */
+@media (min-width: 761px) and (max-width: 1459px) {
+  .site-header .header-actions .operator-entry { width: 44px; min-width: 44px; min-height: 44px; justify-content: center; padding-inline: 0; font-size: 0; }
+  .site-header .header-actions .operator-entry svg { width: 20px; height: 20px; flex: 0 0 auto; }
+}
+/* Tablets (iPad 768/1024): a signed-in menu (Каталог, Магазины, Мои заказы) did not fit beside the balance, bell and cart;
+   «Магазины» stays in the footer and on the home page. */
+@media (min-width: 761px) and (max-width: 1150px) {
+  .site-header:has(.header-account.member) .desktop-nav a[data-nav="stores"] { display: none; }
+}
+/* Up to 1299px the balance is the wallet icon (globals.css does this up to 1150px); the amount is on /balance. */
+@media (min-width: 761px) and (max-width: 1299px) {
+  .site-header .wallet-link span { display: none; }
+}
+/* 1151–1199px: the operator's menu still needs ~13px in Night, so the header's own gaps tighten once more. */
+@media (min-width: 761px) and (max-width: 1199px) {
+  .site-header { gap: 8px; }
 }
 @media (max-width: 760px) {
   .site-header { gap: 8px; }
@@ -236,6 +266,8 @@ html[data-theme="dark"] .home-missing { border-color: #c9a23f; background: #3a31
   .home-footer :is(nav, section) ul { display: flex; flex-wrap: wrap; gap: 0 18px; }
   .home-footer-bottom { grid-column: 1 / -1; }
   .home-footer-theme { display: none; }
+  /* Signed-in users have no theme switch in the desktop header, so the footer keeps it for them. */
+  body:has(.header-account.member) .home-footer-theme { display: inline-flex; }
 }
 @media (max-width: 760px) {
   body:has(.mobile-nav) .home-footer { padding-bottom: 4px; }

@@ -57,7 +57,7 @@ test('unsupported stores enter a no-network manual fallback while auto import st
  const original=globalThis.fetch;let requests=0;globalThis.fetch=async()=>{requests++;throw Error('should not fetch an unsupported host')};
  try{
   await assert.rejects(()=>fetchProduct('https://shop.example.com/products/coat'),error=>error instanceof ManualEntryFallbackError&&error.partial?.sourceUrl==='https://shop.example.com/products/coat');
-  assert.equal(requests,0);assert.throws(()=>allowedUrl('https://shop.example.com/products/coat'),/не в списке поддерживаемых/);
+  assert.equal(requests,0);assert.throws(()=>allowedUrl('https://shop.example.com/products/coat'),/нет в списке поддерживаемых/);
   await assert.rejects(()=>fetchProduct('https://localhost/products/coat'));
   await assert.rejects(()=>fetchProduct('https://shop.example.com:8443/products/coat'));
  }finally{globalThis.fetch=original}

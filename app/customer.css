@@ -650,7 +650,11 @@ html[data-theme="dark"] .orders-passport { border-color: var(--night-warn-line);
 .lo-foot { margin: 0; color: var(--home-muted); font-size: 12px; line-height: 1.5; }
 @media (max-width: 760px) {
   main[data-view="link"]:has(.lo-sticky) { padding-bottom: 96px; }
-  .basket-sticky.lo-sticky.guest { bottom: 0; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+  /* Guests and members alike: the total bar sits above the bottom bar (.basket-sticky), and the form ends above both.
+     These beat mobile.css `body:has(.mobile-nav) .site-main`; the cart had the same gap under its bar. */
+  body:has(.mobile-nav) main.site-main:is([data-view="link"]:has(.lo-sticky), [data-view="cart"]:has(.basket-sticky)) { padding-bottom: calc(var(--atlas-mobile-nav-clearance) + 96px); }
+  /* While the session is checked there is no bottom bar yet: the bar keeps to the screen edge. */
+  body:not(:has(.mobile-nav)) .basket-sticky.lo-sticky { bottom: 0; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
 }
 
 /* ---------- Recipient form and recipient actions ---------- */

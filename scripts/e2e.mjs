@@ -7,7 +7,9 @@
 // Each page is opened in both themes at 390 and 1280 px (ATLAS_E2E_WIDTHS="375,393,402,440,1280,1440,1920"
 // and ATLAS_E2E_THEMES="light" widen or narrow the matrix). The run fails on script errors,
 // horizontal overflow, elements sticking out of the screen, clipped text, catalog cards whose
-// prices or buttons do not line up in a row, words glued together without a space,
+// prices or buttons do not line up in a row, words glued together without a space, a header wider than
+// the screen or hiding menu items (from 1151px), phone sticky bars or the storage notice covering the bottom bar
+// or a call to action (on the home page also checked once scrolled below the link form, where its dock appears),
 // text below WCAG AA contrast, broken images, unnamed controls,
 // duplicate ids or a missing/duplicated h1. Screenshots and a computed-style fingerprint
 // of every page land in outputs/e2e/<time>/; --compare lists elements whose styles changed.
@@ -142,6 +144,32 @@ window.__e2e = (() => {
         const text = el.innerText || '', m = text.match(/[а-яё][А-ЯЁ]|[а-яё]\d|\d[а-яё]/);
         if (m) issues.push('no space at "' + text.slice(Math.max(0, m.index - 12), m.index + 14).replace(/\s+/g, ' ') + '" ' + label(el));
       }
+      // Header: never wider than the screen (operator, long balances); the account link ends inside its padding.
+      const header = document.querySelector('.site-header');
+      if (header && visible(header)) {
+        if (header.scrollWidth > header.clientWidth + 1) issues.push('header content overflows by ' + (header.scrollWidth - header.clientWidth) + 'px');
+        const account = header.querySelector('.header-account'), edge = Math.min(window.innerWidth, header.getBoundingClientRect().right) - parseFloat(getComputedStyle(header).paddingRight);
+        if (account && visible(account) && account.getBoundingClientRect().right > edge + 1) issues.push('header account link ends ' + Math.round(account.getBoundingClientRect().right - edge) + 'px past the header padding');
+        // The menu takes any shortage on itself (it scrolls without a scrollbar), so from 1151px every item must fit whole.
+        const menu = header.querySelector('.desktop-nav');
+        if (width >= 1151 && menu && visible(menu) && menu.scrollWidth > menu.clientWidth + 1) issues.push('header menu items hidden ' + (menu.scrollWidth - menu.clientWidth) + 'px');
+      }
+      // Phones: sticky total/CTA bars stay above the bottom bar, the storage notice stays above their buttons,
+      // and every bottom-bar item (the guest's sign-in too) receives its own taps.
+      if (width <= 760) {
+        const shown = (el) => visible(el) && parseFloat(getComputedStyle(el).opacity) > 0.01 && !el.closest('[aria-hidden="true"]');
+        const meets = (a, b) => { const x = a.getBoundingClientRect(), y = b.getBoundingClientRect(); return x.left < y.right - 1 && y.left < x.right - 1 && x.top < y.bottom - 1 && y.top < x.bottom - 1; };
+        const nav = document.querySelector('.mobile-nav'), bars = [...document.querySelectorAll('.basket-sticky:not(.is-hidden), .home-sticky')].filter(shown);
+        if (nav && shown(nav)) {
+          for (const bar of bars) if (meets(bar, nav)) issues.push('sticky bar overlaps the bottom navigation ' + label(bar));
+          for (const link of nav.querySelectorAll('a')) {
+            const r = link.getBoundingClientRect(), hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+            if (r.width >= 1 && !(hit && link.contains(hit))) issues.push('bottom navigation item covered by ' + (hit ? label(hit) : 'nothing') + ': "' + link.textContent.trim() + '"');
+          }
+        }
+        const notice = document.querySelector('.storage-notice');
+        if (notice && shown(notice)) for (const cta of document.querySelectorAll('.basket-sticky:not(.is-hidden) .btn, .home-sticky .home-cta')) if (shown(cta) && meets(notice, cta)) issues.push('storage notice covers ' + label(cta));
+      }
       return issues;
     },
     fingerprint() {
@@ -264,6 +292,19 @@ try {
       const key = `${group}-${path === "/" ? "home" : path.slice(1).replace(/[^a-z0-9]+/gi, "-").slice(0, 48)}-${theme}-${width}`;
       const where = `${group} ${path} ${theme} ${width}px`;
       for (const issue of await evaluate("window.__e2e.audit()")) fail(where, issue);
+      // Phones, home: the sticky "paste a link" dock only appears once the hero form scrolls away,
+      // so the bottom-bar and storage-notice checks run once more below the form, then the page returns to the top.
+      if (width <= 760 && (path === "/" || path.startsWith("/?"))) {
+        await evaluate("window.scrollTo({ top: Math.max(window.innerHeight * 1.5, (document.getElementById('home-link-form')?.getBoundingClientRect().bottom ?? 0) + window.scrollY + window.innerHeight), behavior: 'instant' }), true");
+        try {
+          await eventually("!!document.querySelector('.home-sticky')", "home sticky dock after scrolling", 50);
+          await sleep(200);
+          for (const issue of await evaluate("window.__e2e.audit()")) if (/sticky bar|storage notice|bottom navigation/.test(issue)) fail(where + " (scrolled)", issue);
+        } catch (error) { fail(where, error.message); }
+        await evaluate("window.scrollTo({ top: 0, behavior: 'instant' }), true");
+        await eventually("!document.querySelector('.home-sticky')", "home sticky dock hidden at the top", 50).catch(() => {});
+        await sleep(200);
+      }
       for (const error of pageErrors) fail(where, error);
       fingerprints[key] = await evaluate("window.__e2e.fingerprint()");
       const { contentSize } = await send("Page.getLayoutMetrics");
@@ -308,7 +349,7 @@ try {
   await setViewport(1280); await setPreferences("light"); await signIn(customerEmail);
   const added = await evaluate(`(async () => {
     const account = await fetch('/api/account').then((r) => r.json());
-    const response = await fetch('/api/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ revision: account.revision, action: { type: 'cart-add', product: ${JSON.stringify({ ...products[0], id: `e2e-${Date.now()}` })}, variant: ${JSON.stringify(products[0].variants[0])} } }) });
+    const response = await fetch('/api/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ revision: account.revision, action: { type: 'cart-add', product: ${JSON.stringify(products[0])}, variant: ${JSON.stringify(products[0].variants[0])} } }) });
     return response.status;
   })()`);
   if (added !== 200) throw Error(`cart-add returned ${added}`);

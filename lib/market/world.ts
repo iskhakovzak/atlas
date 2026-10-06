@@ -12,3 +12,6 @@ export function paddedWeight(boxed:number){if(!Number.isFinite(boxed)||boxed<=0|
 export const countryName=(p:{country?:string})=>p.country??'США';
 export const customsVersion='uz-personal-import-2026-09-09-v1';
 export { customsReferences as customsSources } from './customs.ts';
+/** Atlas counts calendar months and days in Tashkent time (UTC+5, Uzbekistan has no DST), the same on the Worker (UTC), in browsers and in accounting. */
+export const tashkentMonth=(at:number)=>new Date(at+5*3600_000).toISOString().slice(0,7);
+export const tashkentDay=(at:number)=>new Date(at+5*3600_000).toISOString().slice(0,10);

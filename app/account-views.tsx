@@ -27,7 +27,7 @@ import { AllowanceMeter } from "./allowance-meter";
 // Account home, mobile-first: one "what needs you now" card, four quick tiles, then
 // recipients, customs allowance, documents, support and settings — each shown once.
 export function AccountView() {
-  const { user, state, ready, act, pricing, siteContent, refresh } = useMarket();
+  const { user, state, ready, act, pricing, refresh, siteContent } = useMarket();
   const lang = state.communication.language;
   const c = accountCopy[lang];
   const [editor, setEditor] = useState<SavedDeliveryProfile | "new" | null>(null);

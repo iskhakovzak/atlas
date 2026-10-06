@@ -52,5 +52,5 @@ test('operator API keeps issue updates inside the authenticated operator allowli
   assert.match(access, /'order-issue-update': \{ permission: 'operations\.act'/);
   assert.match(route, /operatorActionTypes\.includes\(parsedAction\.data\.type\)/);
   assert.match(route, /sameOrigin\(request\)/);
-  assert.match(route, /persist\(current\.id, next, current\.revision\)/);
+  assert.match(route, /persist\(current\.id, next, current\.revision, current\.state\)/);
 });

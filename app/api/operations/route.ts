@@ -39,6 +39,9 @@ import {
 } from "@/lib/market/server";
 import {apiErrorMessage,requestLocale} from "@/lib/market/i18n";
 import { vitalsSummary } from "@/lib/market/telemetry-store";
+import { database } from "@/lib/market/server";
+import { operatorQueue, operatorQueueCounts } from "@/lib/market/operator-queue-server";
+import { operatorQueueTabs, type OperatorQueueTab } from "@/lib/market/operator-queue";
 
 const updateSchema = z.discriminatedUnion("kind", [
   z.object({
@@ -137,6 +140,20 @@ async function querySection(request:Request,user:{userId:string;email:string},ac
   return json({system:await systemStatus()});
 }
 
+/**
+ * The operator queue without whole customer documents (lib/market/operator-queue-server.ts), for the same
+ * `operations.read` right as the full response: ?queue=1&tab=&q=&cursor=&limit= gives one page, ?queue=1&order=ID
+ * the page with one order (a link to it), ?queue=counts only the tab counts.
+ */
+async function queueSection(request:Request){
+  const params=new URL(request.url).searchParams;
+  if(!params.has('queue'))return null;
+  if(params.get('queue')==='counts')return json({counts:await operatorQueueCounts(database())});
+  const tab=(operatorQueueTabs as readonly string[]).includes(params.get('tab')??'')?params.get('tab') as OperatorQueueTab:'active';
+  const order=params.get('order')?.slice(0,120)||undefined;
+  return json(await operatorQueue(database(),{tab,q:params.get('q')?.slice(0,200)??'',cursor:params.get('cursor'),limit:Number(params.get('limit')??'')||undefined,order}));
+}
+
 /** Any active staff member (or the administrator); the caller checks the finer permission on `access`. */
 async function requireOperator() {
   const user = await identity();
@@ -151,6 +168,8 @@ export async function GET(request:Request) {
     assertPermission(access,'operations.read');
     if(operator(user.email))await ensurePrimaryOperator(user);
     const can=(permission:Permission)=>hasPermission(access,permission);
+    const queue=await queueSection(request);
+    if(queue)return queue;
     const section=await querySection(request,user,access);
     if(section)return section;
     // Each section only for the matching right; empty values keep the response shape for every client.
@@ -264,7 +283,7 @@ export async function POST(request: Request) {
     } catch (error) {
       throw new HttpError(400, (error as Error).message);
     }
-    await persist(current.id, next, current.revision);
+    await persist(current.id, next, current.revision, current.state);
     const orderId='id' in parsedAction.data?String(parsedAction.data.id):undefined;
     await recordAudit(user,`order.${parsedAction.data.type}`,'order',orderId,{accountId:current.id});
     return json({

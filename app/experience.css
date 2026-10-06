@@ -149,9 +149,6 @@ a, button, input, textarea, select, summary, .surface, .find-card{transition:col
 .copy-text-btn:hover,.copy-text-btn:focus-visible{border-color:#cddccc;background:#f1f7ef;color:#204e3d}
 @keyframes atlas-loading-shimmer{to{background-position-x:-220%}}
 @keyframes atlas-status-pulse{0%{box-shadow:0 0 0 0 #d2a95166}70%{box-shadow:0 0 0 5px #d2a95100}100%{box-shadow:0 0 0 0 #d2a95100}}
-@media(max-width:700px){
-  main:has(.cart-mobile-sticky){padding-bottom:calc(100px + env(safe-area-inset-bottom))}
-}
 @media(max-width:600px){
   :root{--atlas-mobile-nav-clearance:max(68px,calc(56px + env(safe-area-inset-bottom)))}
   .site-header{min-width:0;justify-content:space-between}
@@ -163,7 +160,6 @@ a, button, input, textarea, select, summary, .surface, .find-card{transition:col
   .mobile-nav{min-height:var(--atlas-mobile-nav-clearance)}
   .mobile-nav a{min-height:44px}
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,textarea{min-height:48px;font-size:16px!important}
-  main:has(.cart-mobile-sticky){padding-bottom:calc(100px + var(--atlas-mobile-nav-clearance))}
 }
 @media(hover:none) and (pointer:coarse){
   .find-save{min-width:44px;min-height:44px}

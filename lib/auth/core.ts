@@ -3,6 +3,8 @@
 export type AuthMethod='email'|'phone'|'telegram'|'google'|'apple';
 export type AuthUser={userId:string;email:string;displayName:string;contact:string;method:AuthMethod};
 const authMethods:readonly string[]=['email','phone','telegram','google','apple'];
+/** A sign-in failure with a stable machine code; the routes answer {error:code} with this status. */
+export class AuthError extends Error{status:number;code:string;constructor(status:number,code:string){super(code);this.status=status;this.code=code}}
 
 export const SESSION_COOKIE='__Host-atlas_session';
 export const OAUTH_STATE_COOKIE='__Host-atlas_oauth';
@@ -90,6 +92,23 @@ export function ownMethod(userId:string):{method:AuthMethod;contact:string}{
  if(userId.startsWith('email:'))return {method:'email',contact:userId.slice(6)};
  if(userId.startsWith('phone:'))return {method:'phone',contact:userId.slice(6)};
  return {method:'telegram',contact:'Telegram'};
+}
+
+/**
+ * Which sessions of an account a detached method leaves behind, by the columns market_auth_sessions has
+ * (method, contact). identityFor gives email, Google and Apple one "email:" subject with the address as
+ * contact; a phone's contact is the number. A Telegram session's contact is only a display name, so
+ * detaching Telegram revokes every Telegram session of the account. Null for anything else.
+ */
+export type SessionRevocation={methods:AuthMethod[];contact?:string};
+export function sessionRevocationFor(subject:string):SessionRevocation|null{
+ if(subject.startsWith('email:')&&subject.length>6)return {methods:['email','google','apple'],contact:subject.slice(6)};
+ if(subject.startsWith('phone:')&&subject.length>6)return {methods:['phone'],contact:subject.slice(6)};
+ if(subject.startsWith('tg:')&&subject.length>3)return {methods:['telegram']};
+ return null;
+}
+export function sessionMatchesRevocation(user:{method:string;contact:string},rule:SessionRevocation){
+ return (rule.methods as string[]).includes(user.method)&&(rule.contact===undefined||user.contact===rule.contact);
 }
 
 export type TelegramFields=Record<string,string|number|undefined|null>;

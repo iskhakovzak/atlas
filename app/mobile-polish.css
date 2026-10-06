@@ -47,7 +47,6 @@ body:has([role=dialog][data-state=open]) .storage-notice{visibility:hidden}
   .product-sheet .sheet-total{align-items:stretch;flex-direction:column;gap:12px}
   .product-sheet .sheet-total .btn{width:100%;white-space:normal;min-height:48px}
   .storage-notice{bottom:calc(var(--atlas-mobile-nav-clearance) + 8px);max-height:35dvh;overflow-y:auto}
-  body:has(.cart-mobile-sticky) .storage-notice{bottom:calc(var(--atlas-mobile-nav-clearance) + 84px)}
   .cost-lines>div{gap:8px}
   .cost-lines dt{min-width:0;overflow-wrap:anywhere}
   .cost-lines dd{min-width:0}
