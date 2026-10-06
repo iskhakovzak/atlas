@@ -1004,3 +1004,11 @@ html[data-theme="dark"] .lo-cart-entry b { background: #9fdeb8; color: #10241a; 
 @keyframes lo-cart-bump { 0% { transform: scale(.6); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .lo-cart-entry b { animation: none; } }
 @media (max-width: 420px) { .lo-cta-row .lo-cart-entry span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } }
+/* Narrow phones: the total must stay whole, so the cart becomes an icon with a corner badge and the add button drops its arrow. */
+@media (max-width: 379px) {
+  .lo-sticky:has(.lo-cart-entry) { gap: 8px; }
+  .lo-sticky:has(.lo-cart-entry) .btn { padding-inline: 12px; }
+  .lo-sticky:has(.lo-cart-entry) .btn > svg:last-child { display: none; }
+  .lo-cart-entry.compact { justify-content: center; width: 48px; padding: 0; }
+  .lo-cart-entry.compact b { position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; padding: 0 5px; font-size: 12px; box-shadow: 0 0 0 2px var(--home-surface, #fff); }
+}

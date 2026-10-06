@@ -28,9 +28,9 @@ import { sameCatalogProduct } from "@/lib/market/catalog-query";
 
 /** Favourites and removal in the cart: saving keeps the line; "save for later" saves and then removes it. */
 const keepCopy = {
-  ru: { save: "В избранное", saved: "В избранном", later: "Отложить в избранное", laterDone: "Отложено в избранное", removeVariant: "Удалить вариант", removeGroup: (n: number) => `Удалить товар · все варианты (${n})` },
-  uz: { save: "Saralanganlarga", saved: "Saralanganlarda", later: "Saralanganlarga qoldirish", laterDone: "Saralanganlarga qoldirildi", removeVariant: "Variantni o‘chirish", removeGroup: (n: number) => `Tovarni o‘chirish · barcha variantlar (${n})` },
-  en: { save: "Save", saved: "Saved", later: "Save for later", laterDone: "Moved to favourites", removeVariant: "Remove option", removeGroup: (n: number) => `Remove item · all options (${n})` },
+  ru: { save: "В избранное", saved: "В избранном", later: "Отложить в избранное", laterDone: "Отложено в избранное", open: "Открыть избранное", removeVariant: "Удалить вариант", removeGroup: (n: number) => `Удалить товар · все варианты (${n})` },
+  uz: { save: "Saralanganlarga", saved: "Saralanganlarda", later: "Saralanganlarga qoldirish", laterDone: "Saralanganlarga qoldirildi", open: "Saralanganlarni ochish", removeVariant: "Variantni o‘chirish", removeGroup: (n: number) => `Tovarni o‘chirish · barcha variantlar (${n})` },
+  en: { save: "Save", saved: "Saved", later: "Save for later", laterDone: "Moved to favourites", open: "Open favourites", removeVariant: "Remove option", removeGroup: (n: number) => `Remove item · all options (${n})` },
 };
 
 /** Lines of the same product (one source page, several options) side by side, in the order they were added. */
@@ -312,7 +312,7 @@ export function CartView() {
   }
   async function saveForLater(item: CartItem, id: string) {
     if (!state.favorites.includes(id) && !await toggleFavorite(id)) return;
-    if (await act({ type: "cart-remove", id: item.id })) toast.success(kc.laterDone, { action: { label: kc.saved, onClick: () => window.location.assign("/favorites") } });
+    if (await act({ type: "cart-remove", id: item.id })) toast.success(kc.laterDone, { action: { label: kc.open, onClick: () => window.location.assign("/favorites") } });
   }
 
   function renderItem(item: CartItem, siblings = 1) {
