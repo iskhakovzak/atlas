@@ -124,9 +124,9 @@ test('customer status: support flags for review, only the administrator blocks',
 });
 
 test('operations update kinds and admin tabs each name a permission',()=>{
- for(const kind of ['pricing','fx-refresh','policy','staff','customer-status','projection-rebuild'])assert.ok(permissions.includes(operationsKindPermissions[kind]),kind);
+ for(const kind of ['pricing','fx-refresh','policy','staff','customer-status','customer-note','staff-deactivate','admin-settings','projection-rebuild'])assert.ok(permissions.includes(operationsKindPermissions[kind]),kind);
  assert.equal(operationsKindPermissions['action'],undefined);
- for(const tab of ['overview','catalog','customers','support','finance','pricing','staff','rules','system','audit'])assert.ok(tab in adminTabPermissions,tab);
+ for(const tab of ['overview','catalog','content','customers','support','finance','pricing','staff','rules','system','audit'])assert.ok(tab in adminTabPermissions,tab);
  assert.equal(adminTabPermissions.overview,null);
  assert.equal(adminTabPermissions.staff,'staff.manage');
  assert.equal(adminTabPermissions.system,'system.manage');

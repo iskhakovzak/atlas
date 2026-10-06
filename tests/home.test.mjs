@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { homeCopy, formatSum, formatUsd, groupDigits } from '../lib/market/home-copy.ts';
-import { siteContent, deliveryRegions, deliveryDaysFor, paymentLabels } from '../lib/market/site-content.ts';
+import { siteContent as defaultSiteContent, deliveryRegions, deliveryDaysFor, paymentLabels } from '../lib/market/site-content.ts';
+import { mergeSiteContent, parseStoredSiteContent } from '../lib/market/site-content-schema.ts';
+
+// What the pages render with an empty admin document: the code defaults (lib/market/site-content.ts).
+const siteContent = mergeSiteContent(parseStoredSiteContent(null));
 
 function shape(value) {
   if (Array.isArray(value)) return value.map(shape);
@@ -73,6 +77,8 @@ test('home tariff copy names both delivery speeds and prints the per-100 g price
 });
 
 test('site content holds only verified data and is well-formed when filled', () => {
+  assert.deepEqual({ ...siteContent, revision: undefined }, { ...defaultSiteContent, revision: undefined }, 'an empty admin document renders exactly the code defaults');
+  assert.equal(siteContent.revision, 0);
   for (const region of deliveryRegions) {
     const days = siteContent.deliveryDays[region.id];
     if (days) assert.ok(Number.isInteger(days[0]) && Number.isInteger(days[1]) && days[0] > 0 && days[0] <= days[1], `${region.id} delivery days`);

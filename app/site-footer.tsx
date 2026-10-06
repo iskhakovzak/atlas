@@ -1,13 +1,14 @@
 'use client';
 import {ArrowUpRight} from 'lucide-react';
 import Link from '@/components/site-link';
-import {siteContent} from '@/lib/market/site-content';
+import {useMarket} from '@/lib/market/store';
 import {ThemeToggle} from './theme-control';
 import {routeTitle} from '@/lib/market/i18n';
 import {MissingContent,useHomeCopy} from './home-sections';
 
 export function SiteFooter(){
  const {locale,c}=useHomeCopy();
+ const {siteContent}=useMarket();
  const {contacts,legal}=siteContent;
  const pickup=contacts.pickupAddress?.[locale];
  const contactLinks=[

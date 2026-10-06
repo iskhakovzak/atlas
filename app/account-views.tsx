@@ -13,7 +13,6 @@ import { localizedStatuses, serverError, type Locale } from "@/lib/market/i18n";
 import { calcCopy } from "@/lib/market/calc-copy";
 import { formatSum } from "@/lib/market/home-copy";
 import { accountCopy, formatLongDate, itemCount, recipientCopy, type AccountCopy } from "@/lib/market/customer-copy";
-import { siteContent } from "@/lib/market/site-content";
 import { consentDocuments, consentVersion, deletionBlockers, deletionSummary, missingConsents } from "@/lib/market/account-delete";
 import { appInfo, isNative, nativePlatform, type AppInfo } from "@/lib/native/bridge";
 import { toast } from "sonner";
@@ -28,7 +27,7 @@ import { AllowanceMeter } from "./allowance-meter";
 // Account home, mobile-first: one "what needs you now" card, four quick tiles, then
 // recipients, customs allowance, documents, support and settings — each shown once.
 export function AccountView() {
-  const { user, state, ready, act, pricing, refresh } = useMarket();
+  const { user, state, ready, act, pricing, refresh, siteContent } = useMarket();
   const lang = state.communication.language;
   const c = accountCopy[lang];
   const [editor, setEditor] = useState<SavedDeliveryProfile | "new" | null>(null);

@@ -21,6 +21,7 @@ export const permissions = [
   'finance.write',     // ledger entries, voiding, accounting settings
   'system.manage',     // projection rebuild, backup export, server errors and vitals
   'audit.read',        // the audit log
+  'content.manage',    // site content: contacts, legal entity, payment methods, reviews, parcel photos (POST /api/site-content)
 ] as const;
 export type Permission = typeof permissions[number];
 export const allPermissions: readonly Permission[] = permissions;
@@ -140,11 +141,21 @@ export const operationsKindPermissions: Record<string, Permission> = {
   'policy': 'policy.manage',
   'staff': 'staff.manage',
   'customer-status': 'customers.manage',
+  'customer-note': 'customers.manage',
+  'staff-deactivate': 'staff.manage',
+  'admin-settings': 'system.manage',
   'projection-rebuild': 'system.manage',
+};
+/** GET /api/operations query sections (`?audit=1`, `?audit=csv`, `?customers=csv`, `?customer=<id>`, `?system=1`) → permission. */
+export const operationsQueryPermissions: Record<string, Permission> = {
+  'audit': 'audit.read',
+  'customers': 'customers.manage',
+  'customer': 'customers.manage',
+  'system': 'system.manage',
 };
 /** Admin tabs → permission (`null` = any staff member). */
 export const adminTabPermissions: Record<string, Permission | null> = {
-  overview: null, catalog: 'catalog.manage', customers: 'customers.manage', support: 'support.reply', finance: 'finance.read',
+  overview: null, catalog: 'catalog.manage', content: 'content.manage', customers: 'customers.manage', support: 'support.reply', finance: 'finance.read',
   pricing: 'pricing.manage', staff: 'staff.manage', rules: 'policy.manage', system: 'system.manage', audit: 'audit.read',
 };
 /** Admin views → permission: /operations needs the queue, /analytics the books, /admin any staff right. */

@@ -26,6 +26,10 @@ export const ledgerKinds = {
   other_expense: { direction: "out", group: "expense", ru: "Прочий расход", uz: "Boshqa xarajat", en: "Other expense" },
   tax_paid: { direction: "out", group: "tax", ru: "Уплаченный налог на прибыль", uz: "To‘langan foyda solig‘i", en: "Profit tax paid" },
   customer_payment: { direction: "in", group: "transit", ru: "Оплата от клиента", uz: "Mijozdan to‘lov", en: "Payment from a customer" },
+  /** The customer paid an order from the internal balance: an internal movement, not new money (auto entry). */
+  balance_payment: { direction: "in", group: "transit", ru: "Оплата с внутреннего баланса", uz: "Ichki balansdan to‘lov", en: "Paid from the internal balance" },
+  /** Money credited back to the customer's internal balance (weighing, store delivery, customs, cancellation): no bank transfer. */
+  balance_refund: { direction: "out", group: "transit", ru: "Возврат на внутренний баланс", uz: "Ichki balansga qaytarish", en: "Credited back to the internal balance" },
   customs_reimbursed: { direction: "in", group: "transit", ru: "Клиент вернул пошлину", uz: "Mijoz bojni qaytardi", en: "Customs reimbursed by a customer" },
   customs_help_fee: { direction: "in", group: "income", ru: "Комиссия за помощь с таможней", uz: "Bojxona yordami komissiyasi", en: "Customs-help fee" },
   other_income: { direction: "in", group: "income", ru: "Прочий доход", uz: "Boshqa daromad", en: "Other income" },
@@ -146,10 +150,13 @@ export function ordersCsv(orders: OrderFinance[]) {
 
 export function ledgerCsv(entries: LedgerEntry[]) {
   return toCsv([
-    ["Дата", "Вид", "Группа", "Направление", "Сумма, сум", "Сумма в валюте", "Валюта", "Заказ", "Контрагент", "Комментарий", "Внёс", "Аннулировано", "Причина"],
-    ...entries.map((e) => { const k = ledgerKinds[e.kind]; return [e.occurredOn, k.ru, { transit: "транзит", expense: "расход", income: "доход", tax: "налог" }[k.group], k.direction === "in" ? "приход" : "расход", e.amountUzs, e.originalAmount === undefined ? "" : String(e.originalAmount).replace(".", ","), e.originalCurrency ?? "", e.orderId ?? "", e.counterparty ?? "", e.note ?? "", e.createdBy, day(e.voidedAt), e.voidReason ?? ""]; }),
+    ["Дата", "Вид", "Группа", "Направление", "Сумма, сум", "Сумма в валюте", "Валюта", "Заказ", "Контрагент", "Комментарий", "Внёс", "Аннулировано", "Причина", "Источник", "Номер"],
+    ...entries.map((e) => { const k = ledgerKinds[e.kind]; return [e.occurredOn, k.ru, { transit: "транзит", expense: "расход", income: "доход", tax: "налог" }[k.group], k.direction === "in" ? "приход" : "расход", e.amountUzs, e.originalAmount === undefined ? "" : String(e.originalAmount).replace(".", ","), e.originalCurrency ?? "", e.orderId ?? "", e.counterparty ?? "", e.note ?? "", e.createdBy, day(e.voidedAt), e.voidReason ?? "", entrySourceRu(e.id), e.id]; }),
   ]);
 }
+/** Where an entry came from, by its id prefix: AUTO- (from order events), BANK- (bank statement import), LED- (entered by hand). */
+export const entrySource = (id: string): "auto" | "bank" | "manual" => id.startsWith("AUTO-") ? "auto" : id.startsWith("BANK-") ? "bank" : "manual";
+export const entrySourceRu = (id: string) => ({ auto: "авто", bank: "выписка", manual: "вручную" })[entrySource(id)];
 
 export function summaryCsv(months: MonthSummary[]) {
   const expenseKinds = (Object.keys(ledgerKinds) as LedgerKind[]).filter((kind) => ledgerKinds[kind].group === "expense");

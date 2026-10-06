@@ -140,6 +140,11 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_71': 'Этого варианта больше нет в наличии у магазина.',
     'err_72': 'Этот магазин пока не в списке поддерживаемых. Вставьте ссылку из одного из {count} магазинов или заполните товар вручную.',
     'err_73': 'Товар не найден в каталоге. Добавьте его по ссылке на магазин.',
+    'err_55': 'Нельзя отключить собственный доступ.',
+    'err_56': 'Основного администратора из настроек хостинга отключить нельзя.',
+    'err_57': 'Заметки о клиентах пока недоступны: примените миграцию базы 0011.',
+    'err_52': 'Контент сайта изменён в другой вкладке. Загружена актуальная версия — проверьте поля и сохраните снова.',
+    'err_53': 'В контенте сайта есть ошибки. Исправьте отмеченные поля и сохраните снова.',
   },
   uz: {
     'err_1': 'Davom etish uchun tizimga kiring.',
@@ -202,6 +207,11 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_71': 'Bu variant do‘konda endi mavjud emas.',
     'err_72': 'Bu do‘kon hozircha qo‘llab-quvvatlanadiganlar ro‘yxatida yo‘q. {count} ta do‘kondan biridagi havolani qo‘ying yoki tovarni qo‘lda to‘ldiring.',
     'err_73': 'Tovar katalogda topilmadi. Uni do‘kon havolasi orqali qo‘shing.',
+    'err_55': 'O‘z ruxsatingizni o‘chirib bo‘lmaydi.',
+    'err_56': 'Hosting sozlamalaridagi asosiy administratorni o‘chirib bo‘lmaydi.',
+    'err_57': 'Mijozlar haqidagi eslatmalar hozircha mavjud emas: 0011 migratsiyasini qo‘llang.',
+    'err_52': 'Sayt kontenti boshqa oynada o‘zgartirilgan. Joriy versiya yuklandi — maydonlarni tekshirib, qayta saqlang.',
+    'err_53': 'Sayt kontentida xatolar bor. Belgilangan maydonlarni tuzatib, qayta saqlang.',
   },
   en: {
     'err_1': 'Sign in to continue.',
@@ -264,6 +274,11 @@ export const serverErrors: Record<Locale, Record<string, string>> = {
     'err_71': 'This option is no longer in stock at the store.',
     'err_72': 'This store isn’t supported yet. Paste a link from one of the {count} stores or fill in the item manually.',
     'err_73': 'Item not found in the catalog. Add it with a link to the store.',
+    'err_55': 'You cannot disable your own access.',
+    'err_56': 'The primary administrator from the hosting settings cannot be disabled.',
+    'err_57': 'Customer notes are not available yet: apply database migration 0011.',
+    'err_52': 'The site content was changed in another tab. The current version is loaded — check the fields and save again.',
+    'err_53': 'The site content has errors. Fix the marked fields and save again.',
   },
 };
 /** The localized text of an error code; `{name}` placeholders take the given values. */
