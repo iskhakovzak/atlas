@@ -32,9 +32,12 @@ export function PressFeedback() {
       if (!element || element.matches(':disabled, [aria-disabled="true"]')) return;
       release();
       const box = element.getBoundingClientRect();
-      element.style.setProperty('--press-x', `${Math.round(event.clientX - box.left)}px`);
-      element.style.setProperty('--press-y', `${Math.round(event.clientY - box.top)}px`);
-      element.style.setProperty('--press-size', `${Math.round(Math.hypot(box.width, box.height))}px`);
+      // The box and the pointer are window pixels; under CSS zoom (the 27"+ home sheets, app/home-wide-rail.css)
+      // the light's own pixels are smaller, so divide by the element's zoom (1 everywhere else and in older browsers).
+      const zoom = (element as HTMLElement & { currentCSSZoom?: number }).currentCSSZoom || 1;
+      element.style.setProperty('--press-x', `${Math.round((event.clientX - box.left) / zoom)}px`);
+      element.style.setProperty('--press-y', `${Math.round((event.clientY - box.top) / zoom)}px`);
+      element.style.setProperty('--press-size', `${Math.round(Math.hypot(box.width, box.height) / zoom)}px`);
       // Restart the animation when the same button is pressed again quickly.
       delete element.dataset.press;
       void element.offsetWidth;
