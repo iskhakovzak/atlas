@@ -172,16 +172,19 @@ html:has(main.catalog-home) .catalog-home #finds .finds-grid > .find-card { disp
   html:has(main.catalog-home) .catalog-home #finds .finds-pager { display: none; }
 }
 
-/* ---------- Rates: text left, table right on wide screens; 2-column tiles on phones ---------- */
+/* ---------- Rates: text left, country cards right (two per row) on wide screens ---------- */
 @media (min-width: 1100px) {
   html:has(main.catalog-home) .catalog-home #tariffs {
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-rows: 1fr auto auto auto 1fr;
+    /* 580px keeps two cards per row at ~282px each, enough for the days and the price side by side (1100-1190px windows). */
+    grid-template-columns: minmax(0, 5fr) minmax(580px, 7fr); grid-template-rows: 1fr auto auto auto 1fr;
     column-gap: clamp(48px, 6vw, 112px); align-content: stretch;
   }
   html:has(main.catalog-home) .catalog-home #tariffs > h2 { grid-area: 2 / 1; }
   html:has(main.catalog-home) .catalog-home #tariffs > .home-section-lead { grid-area: 3 / 1; margin-bottom: 0; }
   html:has(main.catalog-home) .catalog-home #tariffs > .home-note { grid-area: 4 / 1; margin-top: 20px; max-width: 46ch; }
-  html:has(main.catalog-home) .catalog-home #tariffs > .home-table-wrap { grid-area: 1 / 2 / 6 / 3; align-self: center; }
+  /* The cards take the whole right column; three per row would squeeze the days under the price. */
+  html:has(main.catalog-home) .catalog-home #tariffs > .tariff-grid { grid-area: 1 / 2 / 6 / 3; align-self: center; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html:has(main.catalog-home) .catalog-home #tariffs > .home-missing { grid-area: 5 / 1; align-self: start; }
 }
 @media (max-width: 760px) {
   html:has(main.catalog-home) .catalog-home #tariffs { --ch-tile-line: var(--day-line, var(--home-line)); --ch-tile-surface: var(--day-surface, var(--home-surface)); }
