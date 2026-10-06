@@ -4,7 +4,6 @@ import {ArrowRight,ArrowUpRight,FileText,LifeBuoy,MessageCircle,Package,ShieldCh
 import Link from "@/components/site-link";
 import {useMarket} from "@/lib/market/store";
 import {signInPath} from "@/lib/market/access";
-import {siteContent} from "@/lib/market/site-content";
 import type {Locale} from "@/lib/market/i18n";
 import {PageHeading} from "./market-ui";
 import {MissingContent,useHomeCopy} from "./home-sections";
@@ -47,7 +46,7 @@ const copy={
 };
 
 export function SupportView(){
- const {status}=useMarket();
+ const {status,siteContent}=useMarket();
  const {locale,c}=useHomeCopy();
  const t=copy[locale];
  const {contacts}=siteContent;

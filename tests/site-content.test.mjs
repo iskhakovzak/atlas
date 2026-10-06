@@ -8,7 +8,7 @@ import {
 
 const filled = {
   revision: 3,
-  contacts: { telegramSupport: 'atlas_support', telegramChannel: 'atlas_uz', phone: '+998 90 123-45-67', instagram: 'atlas.uz', supportEmail: 'support@atlasmarket.uz', pickupAddress: { ru: 'Ташкент, ул. Амира Темура, 1', uz: 'Toshkent, Amir Temur ko‘chasi, 1', en: 'Tashkent, Amir Temur St, 1' } },
+  contacts: { telegramSupport: 'atlas_support', telegramChannel: 'atlas_uz', phone: '+998 90 123-45-67', instagram: 'atlas.uz', supportEmail: 'support@atlas.uz', pickupAddress: { ru: 'Ташкент, ул. Амира Темура, 1', uz: 'Toshkent, Amir Temur ko‘chasi, 1', en: 'Tashkent, Amir Temur St, 1' } },
   legal: { entityName: 'ООО «Atlas»', inn: '123456789', address: { ru: 'Ташкент', uz: 'Toshkent', en: 'Tashkent' } },
   paymentMethods: ['click', 'payme', 'click'],
   reviews: [{ name: 'Дильноза', city: 'Самарканд', text: { ru: 'Всё пришло', uz: 'Hammasi keldi', en: 'Everything arrived' }, consent: true }],
@@ -50,6 +50,8 @@ test('a filled document is normalized: phone without spaces, unique payment meth
   const back = siteContentToDocument(view);
   assert.deepEqual(back.contacts, document.contacts);
   assert.deepEqual(back.reviews, document.reviews);
+  assert.equal(view.contacts.supportEmail, 'support@atlas.uz');
+  assert.deepEqual(back.apps, { appStoreUrl: null, playStoreUrl: null });
   assert.equal(back.revision, 3);
 });
 

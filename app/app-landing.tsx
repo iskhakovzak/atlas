@@ -3,7 +3,6 @@
 import {ArrowRight,ArrowUpRight,Bell,Calculator,FileCheck2,Link2,Package,Smartphone} from "lucide-react";
 import Link from "@/components/site-link";
 import {useMarket} from "@/lib/market/store";
-import {siteContent} from "@/lib/market/site-content";
 import type {Locale} from "@/lib/market/i18n";
 import {PageHeading} from "./market-ui";
 import {MissingContent} from "./home-sections";
@@ -56,7 +55,7 @@ const copy:Record<Locale,{overline:string;title:string;description:string;featur
 };
 
 export function AppLanding(){
- const {state}=useMarket();
+ const {state,siteContent}=useMarket();
  const t=copy[state.communication.language];
  const {apps}=siteContent;
  const hasStores=Boolean(apps.appStoreUrl||apps.playStoreUrl);

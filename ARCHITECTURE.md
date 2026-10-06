@@ -254,7 +254,7 @@ The UI's legacy fallback option arrays are explicitly typed and optional country
 | Native shell (mobile) | mobile/ (Capacitor project: capacitor.config.ts, android/, ios/, www/, scripts/icons.mjs, README.md), lib/native/bridge.ts, lib/native/links.ts, lib/native/pkce.ts, lib/native/well-known.ts, app/native-shell.tsx, app/native.css, app/.well-known/apple-app-site-association, app/.well-known/assetlinks.json, MOBILE.md |
 | Account deletion and consents | lib/market/account-delete.ts (pure: blockers, summary, pseudonym, consentVersion), lib/market/account-delete-server.ts (deleteAccount), app/api/account/delete/route.ts, app/storage-notice.tsx (consent gate), lib/market/domain.ts (`consents`, `acceptConsents`) |
 | Public store pages | app/legal-documents.tsx (exported documents), app/legal-pages.tsx (/privacy, /terms), app/support-view.tsx (/support, /delete-account), app/app-landing.tsx (/app), app/pages.css, public/sitemap.xml, public/robots.txt, public/llms.txt |
-| API | app/api/account, app/api/actions, app/api/import, app/api/catalog, app/api/internal/catalog-refresh, app/api/operations, app/api/finance, app/api/site-content, app/api/backup |
+| API | app/api/account, app/api/actions, app/api/import, app/api/catalog, app/api/internal/catalog-refresh, app/api/operations, app/api/finance, app/api/site-content, app/api/backup (+ app/api/account/delete) |
 | Domain/security | lib/market/domain.ts, actions.ts, server.ts, world.ts |
 | Importing | lib/importer/stores.ts, fetch.ts, extract.ts, shopify.ts |
 | Database | db/schema.ts, drizzle/0000_overrated_justice.sql … drizzle/0010_apple_auth.sql, drizzle/0011_admin_customer_notes.sql |
