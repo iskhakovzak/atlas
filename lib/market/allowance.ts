@@ -1,4 +1,4 @@
-import { customsDutySoum, customsHelpChosen, statuses, type CartCustoms, type CustomsEstimate, type IdentityProfile, type Order, type Pricing, type SavedDeliveryProfile, type State } from './domain.ts';
+import { checkoutLines, customsDutySoum, customsHelpChosen, statuses, type CartCustoms, type CustomsEstimate, type IdentityProfile, type Order, type Pricing, type SavedDeliveryProfile, type State } from './domain.ts';
 import { courierAllowanceUsd, customsCheckedOn, customsDutyUsd, customsParams } from './customs.ts';
 import { tashkentDay, tashkentMonth } from './world.ts';
 
@@ -124,19 +124,19 @@ export function cartCustomsEstimate(
   const person: AllowancePerson = recipient.profile ? profilePerson(state, recipient.profile) : { name: normalizedName(recipient.name) };
   const params = customsParams(pricing, tashkentDay(now));
   const cents = (value: number) => Math.round(value * 100) / 100;
-  const valueUsd = cents(state.cart.reduce((sum, item) => sum + item.product.usd * item.quantity, 0));
+  const valueUsd = cents(checkoutLines(state.cart).reduce((sum, item) => sum + item.product.usd * item.quantity, 0));
   const atlasUsedUsd = monthlyUsedFor(state, person, pricing.fx, now);
   const outsideUnknown = Boolean(choices?.outsideUsed) && choices?.outsideUsd === undefined;
   const outsideUsedUsd = choices?.outsideUsed ? cents(choices.outsideUsd ?? 0) : 0;
   const remaining = outsideUnknown ? 0 : Math.max(0, params.allowanceUsd - atlasUsedUsd - outsideUsedUsd);
   const dutiableUsd = cents(Math.max(0, valueUsd - remaining));
   // The parcel's estimated weight (the one the bill charges delivery on), for the per-kg minimum of the duty.
-  const weightKg = cents(state.cart.reduce((sum, item) => sum + item.quote.weight, 0));
+  const weightKg = cents(checkoutLines(state.cart).reduce((sum, item) => sum + item.quote.weight, 0));
   const estimateUsd = customsDutyUsd({ excessUsd: dutiableUsd, rate: params.rate, minimumPerKg: params.minimumPerKg, weightKg });
   // Owner's rule (7.10.2026): with no duty there is nothing for Atlas to pay, so no fee and no request on record.
   const helpRequested = Boolean(choices ? choices.help : customsHelpChosen(state)) && customsDutySoum({ estimateUsd }, pricing.fx) > 0;
   // The fee is a line of the bill (repriceCart); here only its USD equivalent for the order's customs record.
-  const helpFee = state.cart.reduce((sum, item) => sum + (item.quote.customsHelp ?? 0), 0);
+  const helpFee = checkoutLines(state.cart).reduce((sum, item) => sum + (item.quote.customsHelp ?? 0), 0);
   return {
     recipientKey: recipientKey(person.name, person.passport),
     recipientName: (recipient.profile?.recipient ?? recipient.name ?? '').trim().slice(0, 100) || undefined,

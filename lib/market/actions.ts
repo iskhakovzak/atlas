@@ -52,6 +52,8 @@ import {
   orderIssueStatusSchema,
   cartCustomsSchema,
   setCartNote,
+  setCartSelection,
+  checkoutLines,
   setCartCustoms,
   acceptConsents,
   products,
@@ -92,6 +94,8 @@ export const actionSchema = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("cart-remove"), id }),
   z.object({ type: z.literal("cart-services"), id, serviceIds: z.array(z.string().min(2).max(80)).max(40), serviceUnits: z.record(z.string().min(2).max(80), z.number().int().min(1).max(100)).optional(), ids: z.array(id).min(1).max(20).optional() }),
+  // Checkboxes in the cart: unticked lines stay in the cart for later and are left out of the next checkout.
+  z.object({ type: z.literal("cart-select"), ids: z.array(id).min(1).max(20), selected: z.boolean() }),
   z.object({ type: z.literal("cart-renew") }),
   // Before checkout: the server checks prices with the stores and reprices the cart (app/api/actions/route.ts).
   z.object({ type: z.literal("cart-check") }),
@@ -307,12 +311,14 @@ export function applyAction(
       return { ...s, cart: repriceCart(s.cart.filter((i) => i.id !== a.id), Date.now(), pricing, customsHelpChosen(s)) };
     case "cart-services":
       return (a.ids ?? [a.id]).reduce((state, line) => setCartServices(state, line, a.serviceIds, pricing, a.serviceUnits), s);
+    case "cart-select":
+      return setCartSelection(s, a.ids, a.selected, Date.now(), pricing);
     case "cart-renew":
     case "cart-check":
       return renewCart(s, Date.now(), pricing);
     case "checkout": {
       if (s.checkoutKeys.includes(a.key)) return s;
-      assertCartPolicy(s.cart, policy);
+      assertCartPolicy(checkoutLines(s.cart), policy);
       // Saved in the same revision as the orders, so a failed checkout saves nothing.
       let next = s, deliveryProfileId = a.deliveryProfileId;
       if (a.saveRecipientLabel && !deliveryProfileId && a.delivery) {
@@ -332,7 +338,7 @@ export function applyAction(
       const customs = cartCustomsEstimate(next, pricing, { profile: recipientProfile, name: a.delivery?.recipient });
       // The prepaid duty (checked against the server's figure in checkoutCart) is part of what the balance can pay;
       // with no duty for this recipient the customs fee is not in the bill.
-      const billed = withCustomsHelpFor(s.cart, customs, pricing.fx);
+      const billed = withCustomsHelpFor(checkoutLines(s.cart), customs, pricing.fx);
       if (
         (a.useBalance
           ? Math.min(totalOf(billed) + (customsHelpChosen(s) ? a.customsDuty ?? 0 : 0), Math.max(0, balanceOf(s)))
