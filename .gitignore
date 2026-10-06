@@ -54,3 +54,27 @@ next-env.d.ts
 
 # In-browser OCR engine, copied from node_modules by scripts/copy-ocr-assets.mjs
 /public/ocr/
+
+# Capacitor shell (mobile/): dependencies and build outputs. The generated android/ and ios/ projects
+# are committed; their own .gitignore files skip the copies Capacitor makes on `cap sync`.
+/mobile/node_modules/
+/mobile/android/.gradle/
+/mobile/android/build/
+/mobile/android/app/build/
+/mobile/android/local.properties
+/mobile/android/.idea/
+/mobile/android/app/src/main/assets/public/
+/mobile/android/app/src/main/assets/capacitor.config.json
+/mobile/android/app/src/main/assets/capacitor.plugins.json
+/mobile/android/app/src/main/res/xml/config.xml
+/mobile/android/capacitor-cordova-android-plugins/
+/mobile/ios/App/Pods/
+/mobile/ios/App/build/
+/mobile/ios/App/output/
+/mobile/ios/App/App/public/
+/mobile/ios/App/App/capacitor.config.json
+/mobile/ios/App/App/config.xml
+/mobile/ios/capacitor-cordova-ios-plugins/
+/mobile/ios/DerivedData/
+/mobile/ios/App/App.xcodeproj/xcuserdata/
+/mobile/ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/

@@ -1,0 +1,16 @@
+/* Inside the Atlas apps (html[data-native="ios" | "android"], set by app/native-shell.tsx). Loaded last.
+   Every rule is scoped to html[data-native], so the website is untouched. */
+
+/* The Settings screen of the cabinet carries the legal, support and store links; the long footer only
+   duplicates them under the tab bar. Stays on the web. */
+html[data-native] .home-footer { display: none; }
+
+/* Safe areas on every width (tablets and iPads too; mobile.css only pads them below 760px). The bottom
+   bar is already padded in mobile.css. On Android 15+ the status bar overlays the WebView
+   (SystemBars insetsHandling "native" in mobile/capacitor.config.ts). */
+html[data-native] .site-header { padding-top: env(safe-area-inset-top); padding-left: max(18px, env(safe-area-inset-left)); padding-right: max(18px, env(safe-area-inset-right)); }
+
+/* No text selection callouts or link previews on long press, as in a native screen; inputs keep selection. */
+html[data-native] body { -webkit-touch-callout: none; overscroll-behavior-y: none; }
+html[data-native] :is(a, button, .btn, .mobile-nav a) { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+

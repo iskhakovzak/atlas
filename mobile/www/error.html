@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Atlas — нет соединения</title>
+<style>
+/* Atlas Day without the site's stylesheets: white card with a soft shadow, Inter (system fallback), green only on the action. */
+html,body{margin:0;min-height:100%;background:#f6f7f5;color:#16211c;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-text-size-adjust:100%}
+body{display:flex;align-items:center;justify-content:center;min-height:100vh;min-height:100dvh;padding:calc(24px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));box-sizing:border-box}
+main{width:100%;max-width:420px;padding:28px 24px;border-radius:16px;background:#fff;box-shadow:0 10px 30px rgba(22,33,28,.08),0 1px 2px rgba(22,33,28,.06);text-align:center}
+.mark{display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;margin-bottom:18px;border-radius:16px;background:#1f4d3b;color:#e6f0cf}
+h1{margin:0 0 8px;font-size:22px;font-weight:650;letter-spacing:-.02em;line-height:1.25}
+p{margin:0;color:#5b665f;font-size:15px;line-height:1.5}
+.alt{margin-top:10px;font-size:14px}
+button{display:block;width:100%;margin-top:22px;padding:14px 18px;border:0;border-radius:12px;background:#1f4d3b;color:#fff;font:inherit;font-size:16px;font-weight:600;cursor:pointer}
+button:active{transform:scale(.98)}
+small{display:block;margin-top:14px;color:#8a938d;font-size:12px;line-height:1.5}
+@media (prefers-color-scheme:dark){html,body{background:#0a0e0c;color:#e8ede9}main{background:#121a16;box-shadow:none;border:1px solid #1f2a24}p,.alt{color:#9aa69f}button{background:#2f6a52}small{color:#6f7b74}}
+</style>
+</head>
+<body>
+<main>
+ <span class="mark" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg></span>
+ <h1 lang="ru">Нет соединения с Atlas</h1>
+ <p lang="ru">Проверьте интернет и попробуйте снова. Ваши заказы и корзина сохранены на сервере.</p>
+ <p class="alt" lang="uz">Atlas bilan aloqa yo‘q. Internetni tekshirib, qayta urinib ko‘ring.</p>
+ <p class="alt" lang="en">No connection to Atlas. Check your internet and try again.</p>
+ <button type="button" id="retry"><span lang="ru">Повторить</span> · <span lang="uz">Qayta urinish</span> · <span lang="en">Retry</span></button>
+ <small>atlasmarket.uz</small>
+</main>
+<script>
+(function(){
+ var cap=window.Capacitor;
+ // iOS gives this page the bridge; Android does not (the splash auto-hides there, capacitor.config.ts).
+ try{if(cap&&cap.Plugins&&cap.Plugins.SplashScreen)cap.Plugins.SplashScreen.hide();}catch(e){}
+ document.getElementById('retry').addEventListener('click',function(){window.location.replace('https://atlasmarket.uz/');});
+ window.addEventListener('online',function(){window.location.replace('https://atlasmarket.uz/');});
+})();
+</script>
+</body>
+</html>

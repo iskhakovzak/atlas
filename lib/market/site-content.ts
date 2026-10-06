@@ -18,9 +18,13 @@ export type SiteContent = {
     phone: string | null;
     /** Instagram username without @. */
     instagram: string | null;
+    /** Support mailbox shown on /support; null until the owner has one. */
+    supportEmail: string | null;
     pickupAddress: Record<Locale, string> | null;
   };
   legal: { entityName: string | null; inn: string | null; address: Record<Locale, string> | null };
+  /** Store listings of the Atlas apps; null until published, so /app never shows a dead store button. */
+  apps: { appStoreUrl: string | null; playStoreUrl: string | null };
   /** Approximate express delivery in business days per dispatch region; null until confirmed with the carrier. */
   deliveryDays: Record<DeliveryRegion, readonly [number, number] | null>;
   /** Only methods that are actually connected. Payments are simulated until a provider is live. */
@@ -41,8 +45,9 @@ export function deliveryDaysFor(pricing: { deliveryDays?: Partial<Record<Deliver
 }
 
 export const siteContent: SiteContent = {
-  contacts: { telegramSupport: null, telegramChannel: null, phone: null, instagram: null, pickupAddress: null },
+  contacts: { telegramSupport: null, telegramChannel: null, phone: null, instagram: null, supportEmail: null, pickupAddress: null },
   legal: { entityName: null, inn: null, address: null },
+  apps: { appStoreUrl: null, playStoreUrl: null },
   // Express routes and approximate times from the owner (4 October 2026); the price is the tariff's $14.98 per kg.
   deliveryDays: { us: [5, 10], uk: [7, 10], cn: [7, 12], de: [7, 9], it: [7, 9], es: [7, 9] },
   paymentMethods: [],

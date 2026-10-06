@@ -1060,6 +1060,11 @@ export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing
 /** The separate hold for unknown store delivery across cart lines (soum); never part of the amount to pay. */
 export const holdOf = (items: { quote: Pick<Quote, "storeShippingHold"> }[]) =>
   items.reduce((sum, item) => sum + (item.quote.storeShippingHold ?? 0), 0);
+/** The legal documents a customer consents to (lib/market/account-delete.ts holds the current version). */
+export const consentKeys = ["privacy", "terms"] as const;
+export const consentKeySchema = z.enum(consentKeys);
+const consentSchema = z.object({ key: consentKeySchema, version: z.string().min(1).max(40), acceptedAt: amount });
+export type Consent = z.infer<typeof consentSchema>;
 export const stateSchema = z.object({
   orders: z.array(orderSchema),
   entries: z.array(entrySchema),
@@ -1082,6 +1087,8 @@ export const stateSchema = z.object({
   messageDeliveries: z.array(messageDeliverySchema).default([]),
   supportTickets: z.array(supportTicketSchema).default([]),
   cartCustoms: cartCustomsSchema.optional(),
+  /** Data-processing consents (privacy policy, terms of use): one entry per document, latest version wins. Absent in older documents. */
+  consents: z.array(consentSchema).max(10).optional(),
   version: z.number().default(3),
 });
 export type State = z.infer<typeof stateSchema>;
@@ -1148,6 +1155,18 @@ export const markNotificationsRead = (state: State): State => ({
   ...state,
   notifications: state.notifications.map((item) => ({ ...item, read: true })),
 });
+/**
+ * Records consent to the given documents at `version`: one entry per document, a newer acceptance of the
+ * same document replaces the older one. Accepting a version already held changes nothing (same state object).
+ */
+export function acceptConsents(state: State, documents: readonly Consent["key"][], version: string, now = Date.now()): State {
+  const keys = [...new Set(documents)];
+  const current = state.consents ?? [];
+  if (keys.every((key) => current.some((item) => item.key === key && item.version === version))) return state;
+  const kept = current.filter((item) => !keys.includes(item.key));
+  const added = keys.map((key) => ({ key, version, acceptedAt: now }));
+  return { ...state, consents: [...kept, ...added].slice(-10) };
+}
 export const updateCommunication = (
   state: State,
   value: Communication,

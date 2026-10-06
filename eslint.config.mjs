@@ -19,6 +19,8 @@ const eslintConfig = defineConfig([
     // The in-browser OCR engine copied from node_modules (scripts/copy-ocr-assets.mjs).
     "public/ocr/**",
     "next-env.d.ts",
+    // The Capacitor shell (mobile/) has its own package and generated native projects.
+    "mobile/**",
   ]),
   {
     files: ["components/ui/**/*.{ts,tsx}", "hooks/use-mobile.ts"],

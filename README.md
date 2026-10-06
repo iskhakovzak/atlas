@@ -59,6 +59,10 @@ Atlas owns customer sign-in; ChatGPT identity headers (`oai-authenticated-*`) ar
 
 Dispatch still reserves `/signin-with-chatgpt`, `/signout-with-chatgpt` and `/callback` on Sites; Atlas does not use or link to them.
 
+## Mobile apps
+
+`mobile/` holds the Capacitor shell for iOS and Android (a thin wrapper over the hosted site with native Apple sign-in, system-browser handoff and app links). Build steps, store checklist coverage, required environment variables and the owner's tasks are in `MOBILE.md`; Apple sign-in and reviewer accounts are in `AUTH_SETUP.md` §7–8.
+
 ## Local D1 migrations
 
 For a D1-backed local preview, generate SQL with `npm run db:generate`. Build once through the Sites skill's build entrypoint (or `npm run build` for standalone use) to generate `dist/server/wrangler.json`, rebuilding if bindings change. From the project root, apply each pending migration in order:

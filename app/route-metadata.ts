@@ -11,8 +11,8 @@ const imageAlt: Record<Locale, string> = {
 // Route-level openGraph replaces the root object, so each route repeats the preview image.
 const images = (locale: Locale) => [{ url: ogImage[locale], width: 1200, height: 630, alt: imageAlt[locale] }];
 
-export type PublicPage = 'home' | 'catalog' | 'stores' | 'customs' | 'legal';
-const paths: Record<PublicPage, string> = { home: '/', catalog: '/catalog', stores: '/stores', customs: '/customs', legal: '/legal' };
+export type PublicPage = 'home' | 'catalog' | 'stores' | 'customs' | 'legal' | 'privacy' | 'terms' | 'support' | 'app' | 'delete-account';
+const paths: Record<PublicPage, string> = { home: '/', catalog: '/catalog', stores: '/stores', customs: '/customs', legal: '/legal', privacy: '/privacy', terms: '/terms', support: '/support', app: '/app', 'delete-account': '/delete-account' };
 
 const pageText: Record<PublicPage, Record<Locale, { title: string; description: string }>> = {
   home: {
@@ -39,6 +39,31 @@ const pageText: Record<PublicPage, Record<Locale, { title: string; description: 
     uz: { title: 'Huquqiy ma’lumotlar', description: 'Atlas xizmati qoidalari, buyurtma berish, hisob-kitob va ma’lumotlarni qayta ishlash tartibi.' },
     ru: { title: 'Правовая информация', description: 'Правила сервиса Atlas, порядок заказа, расчётов и обработки информации.' },
     en: { title: 'Legal information', description: 'Atlas service terms: ordering, payments and how information is processed.' },
+  },
+  privacy: {
+    uz: { title: 'Maxfiylik siyosati', description: 'Atlas sayti va ilovalari qanday ma’lumotlarni qayta ishlashi, ular kimga uzatilishi mumkinligi, akkauntni o‘chirish va rozilikni qaytarib olish tartibi.' },
+    ru: { title: 'Политика конфиденциальности', description: 'Какие данные обрабатывают сайт и приложения Atlas, кому они могут передаваться, как удалить аккаунт и отозвать согласие.' },
+    en: { title: 'Privacy policy', description: 'Which data the Atlas website and apps process, who it may be shared with, how to delete your account and withdraw consent.' },
+  },
+  terms: {
+    uz: { title: 'Foydalanish shartlari', description: 'Atlas ommaviy ofertasi: vositachilik va logistika xizmatlari, iOS va Android ilovalari shartlari, to‘lov va qaytarish.' },
+    ru: { title: 'Условия использования', description: 'Публичная оферта Atlas: посреднические и логистические услуги, условия приложений для iOS и Android, оплата и возврат.' },
+    en: { title: 'Terms of use', description: 'The Atlas public offer: intermediary and logistics services, terms for the iOS and Android apps, payment and refunds.' },
+  },
+  support: {
+    uz: { title: 'Atlas yordam xizmati', description: 'Atlas bilan qanday bog‘lanish, buyurtma holatini qayerdan ko‘rish, bojxona, hujjatlar va akkauntni o‘chirish bo‘yicha javoblar.' },
+    ru: { title: 'Поддержка Atlas', description: 'Как связаться с Atlas, где смотреть статус заказа, ответы о таможне, документах и удалении аккаунта.' },
+    en: { title: 'Atlas support', description: 'How to reach Atlas, where to check your order status, answers about customs, documents and account deletion.' },
+  },
+  app: {
+    uz: { title: 'Atlas ilovasi iOS va Android uchun', description: 'Atlas ilovasi sayt bilan bir xil ishlaydi: havola bo‘yicha hisob, buyurtmalar, hujjatlar va bildirishnomalar bitta akkauntda.' },
+    ru: { title: 'Приложение Atlas для iOS и Android', description: 'Приложение Atlas делает то же, что и сайт: расчёт по ссылке, заказы, документы и уведомления в одном аккаунте.' },
+    en: { title: 'Atlas app for iOS and Android', description: 'The Atlas app does the same as the website: link estimates, orders, documents and notifications in one account.' },
+  },
+  'delete-account': {
+    uz: { title: 'Akkauntni o‘chirish', description: 'Atlas akkauntini ilovada yoki saytda qanday o‘chirish, nima darhol o‘chirilishi va nima qonun bo‘yicha shaxsiy ma’lumotlarsiz saqlanishi.' },
+    ru: { title: 'Удаление аккаунта', description: 'Как удалить аккаунт Atlas в приложении или на сайте, что удаляется сразу и что хранится без личных данных по закону.' },
+    en: { title: 'Delete your account', description: 'How to delete your Atlas account in the app or on the website, what is removed immediately and what is kept without personal data by law.' },
   },
 };
 

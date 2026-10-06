@@ -45,3 +45,17 @@ html[data-theme="dark"] .login-or{color:var(--night-muted)}
 html[data-theme="dark"] .login-or::before,html[data-theme="dark"] .login-or::after{background:var(--night-line)}
 .tg-login-hint{margin-top:-4px;color:#64746c;font-size:13px;line-height:1.45;text-align:center}
 html[data-theme="dark"] .tg-login-hint{color:var(--night-muted)}
+.login-providers{display:flex;flex-direction:column;gap:14px;align-items:stretch}
+.login-providers p{color:#51645a}
+.login-providers .btn{min-height:46px;justify-content:center}
+.btn.apple{background:#000;border-color:#000;color:#fff;font-weight:600;gap:10px}
+.btn.apple:hover{background:#1a1a1a}
+.btn.apple svg{width:18px;height:18px;flex-shrink:0;fill:currentColor}
+.signin-add .btn.apple{color:#fff}
+.login-legal a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+.login-return{display:flex;justify-content:center;padding:24px 16px}
+.login-return-card{align-items:center;text-align:center;max-width:420px}
+.login-return-card .wordmark{font-size:34px;letter-spacing:-.05em}
+.login-return-card h1{font-size:clamp(22px,4vw,28px)}
+.login-return-card .btn{min-width:200px;justify-content:center}
+html[data-theme="dark"] .login-providers p{color:var(--night-muted)}
