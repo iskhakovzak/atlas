@@ -1,24 +1,28 @@
 'use client';
 import {useEffect,useId,useState,type FormEvent,type ReactNode} from 'react';
-import {Check,ClipboardPaste,Info,Link2} from 'lucide-react';
+import {ArrowRight,Check,ClipboardPaste,Info,Landmark,Link2,Plane,Store} from 'lucide-react';
 import Link from '@/components/site-link';
 import {useMarket} from '@/lib/market/store';
-import {deliveryPerKgUsdFor,deliverySpeeds,price,validateSource,type DeliverySpeed} from '@/lib/market/domain';
+import {deliveryPerKgUsdFor,deliverySpeeds,price,validateSource} from '@/lib/market/domain';
 import {atlasServiceBreakdown} from '@/lib/market/quote-presentation';
 import {courierAllowanceUsd} from '@/lib/market/customs';
 import {combinedShipmentWeight,packagingKg} from '@/lib/market/world';
 import {formatKg,formatPercent,formatPriceUsd,formatSum,formatUsd,groupDigits,homeCopy} from '@/lib/market/home-copy';
+import {tariffRows} from '@/lib/market/home-facts';
 import {deliveryDaysFor,deliveryRegions,paymentLabels} from '@/lib/market/site-content';
-import {localizedStatuses,type Locale} from '@/lib/market/i18n';
+import {localizedStatuses,routeTitle,type Locale} from '@/lib/market/i18n';
 import {storeBrands} from '@/lib/market/store-brands';
 import {StoreLogo} from './store-logo';
 import {Flag} from './flags';
 import {Money} from './money';
 
 const isDev=(import.meta as {env?:{DEV?:boolean}}).env?.DEV===true;
-const heroStores=['nike','zara','amazon','apple','iherb','adidas','hm','sephora'].map(key=>storeBrands.find(brand=>brand.key===key)!).filter(Boolean);
+/** The hero's popular stores; the wide-screen facts row and closing card show the same list (app/home-facts.tsx, HomeClosing). */
+export const heroStores=['nike','zara','amazon','apple','iherb','adidas','hm','sephora'].map(key=>storeBrands.find(brand=>brand.key===key)!).filter(Boolean);
 /** The worked example on the home page: $100 sneakers, 1 kg in the box, priced by the same function as a real order. */
 const exampleUsd=100,exampleBoxedKg=1;
+/** The step the tracking example stands at ("In transit"): the money sheet and the wide-screen step example agree. */
+export const trackingCurrent=4;
 
 export function useHomeCopy(){
  const {state}=useMarket();
@@ -56,6 +60,12 @@ export function InfoTip({label,children}:{label:string;children:ReactNode}){
  </span>;
 }
 
+/** The popular stores and "All N stores": the hero's list, repeated in the wide-screen closing card. */
+export function HomeStoreList({label,labelledBy}:{label?:string;labelledBy?:string}){
+ const {c}=useHomeCopy();
+ return <ul aria-label={label} aria-labelledby={labelledBy}>{heroStores.map(store=><li key={store.key}><a href={'https://'+store.storefronts[0].root} target="_blank" rel="noopener noreferrer"><StoreLogo brand={store} size={20}/>{store.name}<span className="sr-only"> ({c.hero.openStore})</span></a></li>)}<li><Link className="home-stores-all" href="/stores">{c.hero.allStores(storeBrands.length)}</Link></li></ul>;
+}
+
 export function HomeHero({showCatalogLink}:{showCatalogLink:boolean}){
  const {status}=useMarket();
  const {c}=useHomeCopy();
@@ -76,11 +86,18 @@ export function HomeHero({showCatalogLink}:{showCatalogLink:boolean}){
   </form>
   {error?<p id="home-link-error" className="home-link-error" role="alert">{error}</p>:<p id="home-link-note" className="home-link-note">{status==='authenticated'?c.hero.memberNote:c.hero.guestNote}</p>}
   <div className="home-stores">
-   <ul aria-label={c.hero.popular}>{heroStores.map(store=><li key={store.key}><a href={'https://'+store.storefronts[0].root} target="_blank" rel="noopener noreferrer"><StoreLogo brand={store} size={20}/>{store.name}<span className="sr-only"> ({c.hero.openStore})</span></a></li>)}<li><Link className="home-stores-all" href="/stores">{c.hero.allStores(storeBrands.length)}</Link></li></ul>
+   <HomeStoreList label={c.hero.popular}/>
    <p className="home-stores-hint">{c.hero.storesHint}</p>
   </div>
   <div className="home-hero-links"><Link href="/batch-import">{c.hero.batch}</Link>{showCatalogLink&&<Link href="/catalog">{c.hero.catalog}</Link>}</div>
  </section>;
+}
+
+/** The worked example's amounts, priced like a real order: the bill card and the wide-screen step example show the same numbers. */
+export function useExampleBill(){
+ const {pricing}=useMarket();
+ const quote=price(exampleUsd,combinedShipmentWeight(exampleBoxedKg),1,0,pricing);
+ return {quote,parts:atlasServiceBreakdown(quote)};
 }
 
 /**
@@ -90,9 +107,7 @@ export function HomeHero({showCatalogLink}:{showCatalogLink:boolean}){
 export function ExampleQuote(){
  const {pricing}=useMarket();
  const {locale,c}=useHomeCopy();
- const packed=combinedShipmentWeight(exampleBoxedKg);
- const quote=price(exampleUsd,packed,1,0,pricing);
- const parts=atlasServiceBreakdown(quote);
+ const {quote,parts}=useExampleBill();
  const fee=formatPercent(pricing.margin+pricing.buyoutFee+pricing.conversionFee,locale);
  const markup=formatPercent((pricing.fxMarkup??1.012)-1,locale);
  const cbu=pricing.fxSource==='cbu'&&Boolean(pricing.fxCbuRate);
@@ -124,15 +139,42 @@ export function HowItWorks(){
  const {locale,c}=useHomeCopy();
  const {siteContent}=useMarket();
  const pickup=siteContent.contacts.pickupAddress?.[locale];
- return <section id="how" className="home-section" aria-labelledby="how-title">
+ return <section id="how" className="home-section" data-chapter="how" aria-labelledby="how-title">
   <h2 id="how-title">{c.how.title}</h2>
   <ol className="home-steps">{c.how.steps.map((step,index)=><li key={step.title} className="home-step">
    <span className="home-step-station" aria-hidden="true">{index+1}</span>
    <h3>{step.title}</h3><p>{step.text}</p>
    {index===2&&(siteContent.paymentMethods.length?<ul className="home-payments" aria-label={c.how.paymentsLabel}>{siteContent.paymentMethods.map(method=><li key={method}>{paymentLabels[method]}</li>)}</ul>:<MissingContent what="способы оплаты — только реально подключённые провайдеры"/>)}
    {index===3&&(pickup?<p className="home-step-extra"><b>{c.how.pickupLabel}:</b> {pickup}</p>:<MissingContent what="адрес пункта выдачи в Ташкенте"/>)}
+   {/* Wide screens only (app/home-wide-content.css): a small picture of the step, built from the page's own copy and numbers. */}
+   <div className="hw-demo-wrap" aria-hidden="true"><StepDemo index={index}/></div>
   </li>)}</ol>
  </section>;
+}
+
+/** The example inside a step card: the link field, the example bill, what is checked before the order, the tracking example. */
+function StepDemo({index}:{index:number}){
+ const {status}=useMarket();
+ const {locale,c}=useHomeCopy();
+ const {quote,parts}=useExampleBill();
+ if(index===0)return <div className="hw-demo hw-demo-field">
+  <span className="hw-demo-input"><Link2 size={15} strokeWidth={2}/><span>{c.hero.placeholder}</span><b title={c.hero.calculate}><ArrowRight size={15} strokeWidth={2.2}/></b></span>
+  <span className="hw-demo-note">{status==='authenticated'?c.hero.memberNote:c.hero.guestNote}</span>
+ </div>;
+ if(index===1){
+  const rows:[string,number][]=[[c.example.item,quote.merchandise],[c.example.service,parts.service],[c.example.delivery,parts.international],...(quote.reserve>0?[[c.example.reserve,quote.reserve] as [string,number]]:[])];
+  return <div className="hw-demo hw-demo-bill"><span className="hw-tag">{c.example.title}</span>
+   {rows.map(([label,amount])=><span key={label} className="hw-demo-row"><span>{label}</span><i/><b>{formatSum(amount,locale)}</b></span>)}
+   <span className="hw-demo-total"><span>{c.example.total}</span><b>{formatSum(quote.total,locale)}</b></span>
+  </div>;
+ }
+ // Before the order nothing is done yet: neutral points, not ticks.
+ if(index===2)return <div className="hw-demo hw-demo-check">{c.wide.stepCheck.map(text=><span key={text} className="hw-demo-point"><span className="hw-demo-dot"/>{text}</span>)}</div>;
+ const statuses=localizedStatuses(locale),start=Math.max(0,statuses.length-3);
+ return <div className="hw-demo hw-demo-track"><span className="hw-tag">{c.trust.example}</span><span className="hw-demo-item">{`${c.trust.trackingProduct} · ${c.trust.trackingOrder}`}</span>
+  <span className="hw-demo-list">{statuses.slice(start).map((label,offset)=>{const at=start+offset,state=at<trackingCurrent?'done':at===trackingCurrent?'current':'next';
+   return <span key={label} className="hw-demo-status" data-state={state}><span className="hw-demo-status-dot">{state==='done'&&<Check size={11} strokeWidth={3}/>}</span>{label}</span>;})}</span>
+ </div>;
 }
 
 export function DeliveryTariffs(){
@@ -140,12 +182,8 @@ export function DeliveryTariffs(){
  const {locale,c}=useHomeCopy();
  const missingDays=deliveryRegions.some(region=>deliverySpeeds.some(speed=>!deliveryDaysFor(pricing,region.id,speed)));
  // Every country shows its own prices: the owner changes rates per country and per speed.
- const cards=deliveryRegions.map(region=>{
-  const country=region.countries.find(name=>pricing.countryOverrides?.[name])??region.countries[0];
-  const options=deliverySpeeds.map((speed:DeliverySpeed)=>({speed,days:deliveryDaysFor(pricing,region.id,speed),usd:deliveryPerKgUsdFor(pricing,country,speed)}));
-  return {region,options};
- });
- return <section id="tariffs" className="home-section tariff-section" aria-labelledby="tariffs-title">
+ const cards=tariffRows(pricing);
+ return <section id="tariffs" className="home-section tariff-section" data-chapter="tariffs" aria-labelledby="tariffs-title">
   <h2 id="tariffs-title">{c.tariffs.title}</h2>
   <p className="home-section-lead">{c.tariffs.lead}</p>
   <ul className="tariff-grid" aria-label={c.tariffs.from}>{cards.map(({region,options})=><li key={region.id} className="tariff-card">
@@ -158,6 +196,15 @@ export function DeliveryTariffs(){
   </li>)}</ul>
   {missingDays&&<MissingContent what="сроки доставки по странам и скоростям (дни, от–до)"/>}
   <p className="home-note tariff-note">{c.tariffs.weightNote} {c.tariffs.rateNote}</p>
+  {/* Wide screens only: what the table's days cover. No days here — they stay in the table. */}
+  <div className="hw-route" role="group" aria-label={c.wide.routeTitle}>
+   <h3>{c.wide.routeTitle}</h3>
+   <ol>
+    <li><span className="hw-route-icon" aria-hidden="true"><Store size={20} strokeWidth={1.8}/></span><span><b>{c.wide.routeStore}</b><small>{c.wide.routeStoreNote}</small></span></li>
+    <li className="hw-route-main"><span className="hw-route-icon" aria-hidden="true"><Plane size={20} strokeWidth={1.8}/></span><span><b>{c.wide.routeFly} <em>{c.wide.routeFlyNote}</em></b><small>{`${c.tariffs.speeds.express} ${c.wide.or} ${c.tariffs.speeds.standard.toLocaleLowerCase(locale)}`}</small></span></li>
+    <li><span className="hw-route-icon" aria-hidden="true"><Landmark size={20} strokeWidth={1.8}/></span><span><b>{c.wide.routeCustoms}</b><small>{c.wide.routeCustomsNote}</small></span></li>
+   </ol>
+  </div>
  </section>;
 }
 
@@ -165,7 +212,7 @@ export function TrustSection(){
  const {pricing,siteContent}=useMarket();
  const {locale,c}=useHomeCopy();
  const statuses=localizedStatuses(locale);
- const current=4;
+ const current=trackingCurrent;
  const {legal,reviews,parcelPhotos,completedOrders}=siteContent;
  const legalAddress=legal.address?.[locale];
  const facts=c.trust.facts({
@@ -176,7 +223,7 @@ export function TrustSection(){
   allowance:formatUsd(pricing.customsAllowanceUsd??courierAllowanceUsd,locale),
  });
  // Two parts so phones can show each as a sheet of its own: the money facts, then the proof (tracking, photos, legal).
- return <section id="trust" className="home-section" aria-labelledby="trust-title">
+ return <section id="trust" className="home-section" data-chapter="trust" aria-labelledby="trust-title">
   <div className="home-trust-money">
   <h2 id="trust-title">{c.trust.title}</h2>
   {completedOrders!==null?<p className="home-counter"><strong>{groupDigits(completedOrders)}</strong> {c.trust.ordersDone}</p>:<MissingContent what="число реально выполненных заказов"/>}
@@ -208,7 +255,7 @@ export function TrustSection(){
 }
 
 export function HomeFaq(){
- const {c}=useHomeCopy();
+ const {locale,c}=useHomeCopy();
  const {pricing,siteContent}=useMarket();
  const known=deliveryRegions.flatMap(region=>{
   const parts=deliverySpeeds.flatMap(speed=>{const days=deliveryDaysFor(pricing,region.id,speed);return days?[`${c.tariffs.speeds[speed].toLowerCase()} ${c.tariffs.days(days[0],days[1])}`]:[];});
@@ -223,8 +270,11 @@ export function HomeFaq(){
   c.faq.items.weight,
   c.faq.items.account,
  ];
- return <section id="faq" className="home-section" aria-labelledby="faq-title">
-  <div className="home-faq-head"><h2 id="faq-title">{c.faq.title}</h2></div>
+ return <section id="faq" className="home-section" data-chapter="faq" aria-labelledby="faq-title">
+  <div className="home-faq-head"><h2 id="faq-title">{c.faq.title}</h2>
+   {/* Wide screens only: where to go when the six answers are not enough (existing page names). */}
+   <div className="hw-faq-more"><p>{c.wide.faqMore} <Link href="/support">{routeTitle(locale,'support')}</Link></p><ul><li><Link href="/customs">{c.faq.customsLink}</Link></li><li><Link href="/legal">{c.footer.rules}</Link></li></ul></div>
+  </div>
   <div className="home-faq">{items.map(item=><details key={item.q}><summary>{item.q}</summary><div><p>{item.a}</p>{item.link}</div></details>)}</div>
  </section>;
 }
@@ -236,6 +286,8 @@ export function HomeClosing(){
   <h2 id="closing-title">{c.closing.title}</h2>
   <p>{c.closing.text}</p>
   <button type="button" className="btn primary home-cta" onClick={focusLinkInput}><ClipboardPaste size={18} aria-hidden="true"/>{c.sticky.paste}</button>
+  {/* Wide screens only: the hero's stores again, without the "field above" hint. */}
+  <div className="hw-closing-stores"><p id="closing-stores-label" className="hw-closing-stores-label">{c.hero.popular}</p><div className="home-stores"><HomeStoreList labelledBy="closing-stores-label"/></div></div>
  </section>;
 }
 

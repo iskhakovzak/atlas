@@ -55,7 +55,7 @@ export function CatalogTeaser({ select }: { select: (product: Product) => void }
     setSaving(product.id);
     try { await act({ type: 'favorite', id: product.id }); } finally { setSaving(null); }
   }
-  return <TooltipProvider delayDuration={300}><section className="catalog-teaser finds-page" id="finds" aria-labelledby="finds-title">
+  return <TooltipProvider delayDuration={300}><section className="catalog-teaser finds-page" id="finds" data-chapter="finds" aria-labelledby="finds-title">
     <header><div><h2 id="finds-title">{cc.teaserTitle}</h2><p>{cc.teaserIntro}</p></div><div className="finds-actions"><Link className="btn secondary" href="/catalog">{items.length >= countFrom ? cc.viewAll(items.length) : cc.viewAllShort}<ArrowRight size={17} aria-hidden="true" /></Link>{edges.scrolls && <span className="finds-pager"><button type="button" className="icon-btn" aria-label={cc.teaserPrev} aria-controls={gridId} disabled={edges.start} onClick={() => page(-1)}><ChevronLeft size={20} aria-hidden="true" /></button><button type="button" className="icon-btn" aria-label={cc.teaserNext} aria-controls={gridId} disabled={edges.end} onClick={() => page(1)}><ChevronRight size={20} aria-hidden="true" /></button></span>}</div></header>
     <div className="finds-grid finds-grid-compact" id={gridId} ref={grid}>{shown.map((item) => <CatalogCard key={item.product.id} item={item} locale={locale} select={select} variant="compact" saved={state.favorites.includes(item.product.id)} canSave={ready} saving={saving !== null} onSave={() => void save(item.product)} />)}</div>
   </section></TooltipProvider>;

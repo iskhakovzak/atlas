@@ -1,0 +1,216 @@
+/* Home page on wide screens: useful inserts built from the page's own data (app/home-facts.tsx, app/home-sections.tsx).
+   The facts row under the hero, a small example in every "How it works" card, "What the delivery time is made of"
+   next to the rates, the FAQ as title-left / questions-right with links, the closing card with the hero's stores,
+   the footer in columns and, in Atlas Night, the tracking example across its card.
+   Every node is rendered on the server and hidden here by default; every other rule sits inside a media query:
+   (min-width: 1440px) and (min-height: 820px) for the inserts, (min-height: 1000px) for the facts row and the footer.
+   Laptops, tablets, phones and short windows see no change. Loaded after tariffs.css (app/layout.tsx).
+   Selectors start with html:has(main.catalog-home) body .catalog-home so they win over day-folio.css and
+   home-chapters.css; sheets are addressed by id or [data-chapter], never :is() with ids. Tokens: --hwc-*. */
+
+/* ---------- Off by default ---------- */
+.hw-facts, .hw-demo-wrap, .hw-route, .hw-faq-more, .hw-closing-stores { display: none; }
+
+/* =================================== >= 1440 x 820 =================================== */
+@media (min-width: 1440px) and (min-height: 820px) {
+  html:has(main.catalog-home) {
+    --hwc-card: #fff; --hwc-line: var(--day-line); --hwc-line-strong: var(--day-line-strong); --hwc-shadow: var(--day-shadow);
+    --hwc-ink: var(--day-ink); --hwc-muted: var(--day-muted); --hwc-accent: var(--day-accent); --hwc-on-accent: #fff; --hwc-ok: var(--day-ok);
+    --hwc-tint: var(--day-tint); --hwc-tint-2: var(--day-tint-2); --hwc-plate: var(--day-folio); --hwc-soft: #f8f8f4;
+    --hwc-rail: var(--day-line-strong-2); --hwc-canvas: var(--day-canvas); --hwc-leader: var(--day-leader); --hwc-total-line: var(--day-ink);
+  }
+  html[data-theme="dark"]:has(main.catalog-home) {
+    --hwc-card: var(--night-surface); --hwc-line: var(--night-line); --hwc-line-strong: var(--night-line-strong); --hwc-shadow: var(--night-shadow);
+    --hwc-ink: var(--night-ink); --hwc-muted: var(--night-muted); --hwc-accent: var(--night-jade); --hwc-on-accent: var(--night-on-ivory); --hwc-ok: var(--night-ok-ink);
+    --hwc-tint: var(--night-jade-soft); --hwc-tint-2: rgba(128, 208, 172, .24); --hwc-plate: rgba(128, 208, 172, .06); --hwc-soft: rgba(255, 255, 255, .03);
+    --hwc-rail: rgba(226, 238, 231, .2); --hwc-canvas: var(--night-canvas); --hwc-leader: var(--night-line-strong); --hwc-total-line: var(--night-line-strong);
+  }
+
+  /* ---------- FAQ: the title on the left, the six questions in one column on the right. Rows 60–72px by the window height.
+     Centred, but never so low that the longest answer (~225px) would push the sheet past one screen. ---------- */
+  html:has(main.catalog-home) body .catalog-home :where(.home-faq-head, .home-faq) { max-width: none; }
+  html:has(main.catalog-home) body .catalog-home #faq {
+    --hwc-faq-row: clamp(60px, calc(var(--ch-h) / 16), 72px); --hwc-faq-list: calc(var(--hwc-faq-row) * 6 + 62px);
+    grid-template-columns: minmax(0, 5fr) minmax(0, 9fr); column-gap: 72px; align-items: start;
+    padding-top: max(var(--ch-pad), min(calc((var(--ch-h) - var(--hwc-faq-list)) / 2), calc(var(--ch-h) - var(--hwc-faq-list) - 228px - var(--ch-pad))));
+  }
+  html:has(main.catalog-home) body .catalog-home #faq > .home-faq-head { grid-column: 1; grid-row: 1; align-self: stretch; display: flex; flex-direction: column; }
+  html:has(main.catalog-home) body .catalog-home #faq > .home-faq { grid-column: 2; grid-row: 1; grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 0; }
+  html:has(main.catalog-home) body .catalog-home #faq .home-faq summary { min-height: var(--hwc-faq-row); padding: 8px 24px 8px 26px; font-size: 18px; }
+  html:has(main.catalog-home) body .catalog-home #faq .home-faq details > div { padding: 0 26px 20px; }
+  /* «Не нашли ответ? Поддержка», then the two pages the answers point to — level with the last question */
+  html:has(main.catalog-home) body .catalog-home #faq .hw-faq-more { display: grid; gap: 10px; margin: auto 0 0; padding-top: 18px; color: var(--hwc-muted); font-size: 16px; line-height: 1.5; }
+  html:has(main.catalog-home) body .catalog-home #faq .hw-faq-more p { margin: 0; }
+  html:has(main.catalog-home) body .catalog-home #faq .hw-faq-more ul { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 0; padding: 0; list-style: none; }
+  html:has(main.catalog-home) body .catalog-home #faq .hw-faq-more a { color: var(--hwc-accent); font-weight: 650; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+  html:has(main.catalog-home) body .catalog-home #faq .hw-faq-more a:hover { text-decoration-thickness: 2px; }
+  html:has(main.catalog-home) body .catalog-home #faq .hw-faq-more a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 4px; }
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home #faq .hw-faq-more a { font-weight: 700; }
+
+  /* ---------- Closing card: text on the left, the hero's store list on the right; pushed down so the map has the sky ---------- */
+  html:has(main.catalog-home) body .catalog-home .home-end > .home-closing {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto 1fr;
+    column-gap: 64px; row-gap: 14px; align-items: start; align-self: end; margin-bottom: 56px; padding: 48px 52px;
+  }
+  html:has(main.catalog-home) body .catalog-home .home-end > .home-closing > :not(.hw-closing-stores) { grid-column: 1; }
+  html:has(main.catalog-home) body .catalog-home .home-end > .home-closing > h2 { margin: 0; font-size: calc(var(--day-fs-h2, 46px) * 1.12); }
+  /* Uzbek: «Buyurtmangizni hisoblang» is ~7% longer than the ru/en title; a step smaller it keeps to one line in the half-width
+     column (1440–2560), so the card stays low and the route map keeps its sky (app/home-decor.tsx draws it from 300px) */
+  html[lang="uz"]:has(main.catalog-home) body .catalog-home .home-end > .home-closing > h2 { font-size: calc(var(--day-fs-h2, 46px) * 1.04); }
+  html:has(main.catalog-home) body .catalog-home .home-end > .home-closing > p { max-width: 34em; margin: 0; font-size: 17px; line-height: 1.55; }
+  html:has(main.catalog-home) body .catalog-home .home-end > .home-closing > .home-cta { justify-self: start; margin-top: 8px; }
+  /* Atlas Night: the closing is a Night card too (no text floating in the dark, and the map keeps off it) */
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home .home-end > .home-closing {
+    border: 1px solid var(--night-line); border-radius: 14px; background: var(--night-sheen), var(--night-surface); box-shadow: var(--night-shadow);
+  }
+  html:has(main.catalog-home) body .catalog-home .hw-closing-stores {
+    display: flex; flex-direction: column; justify-content: center; grid-column: 2; grid-row: 1 / span 3; align-self: stretch;
+    box-sizing: border-box; padding: 24px 26px 22px; border: 1px solid var(--hwc-tint-2); border-radius: 16px; background: var(--hwc-plate);
+  }
+  html:has(main.catalog-home) body .catalog-home .hw-closing-stores-label { margin: 0 0 14px; color: var(--hwc-muted); font-size: 14px; font-weight: 600; line-height: 1.3; }
+  html:has(main.catalog-home) body .catalog-home .hw-closing-stores .home-stores { margin: 0; }
+  html:has(main.catalog-home) body .catalog-home .hw-closing-stores .home-stores ul { flex-wrap: wrap; gap: 10px; margin: 0; padding: 0; overflow: visible; -webkit-mask-image: none; mask-image: none; }
+  html:has(main.catalog-home) body .catalog-home .hw-closing-stores .home-stores li { scroll-snap-align: none; }
+  html:not([data-theme="dark"]):has(main.catalog-home) body .catalog-home .hw-closing-stores .home-stores a {
+    min-height: 40px; padding: 5px 14px 5px 6px; border: 1px solid var(--day-line); border-radius: 999px;
+    background: var(--day-surface); box-shadow: 0 1px 2px rgba(22, 33, 28, .04); color: var(--day-ink); font-size: 15px; font-weight: 600; text-decoration: none;
+  }
+  html:not([data-theme="dark"]):has(main.catalog-home) body .catalog-home .hw-closing-stores .home-stores a:hover { border-color: var(--day-line-strong); }
+  html:not([data-theme="dark"]):has(main.catalog-home) body .catalog-home .hw-closing-stores .home-stores .home-stores-all { padding-left: 14px; border-color: var(--day-tint-2); background: var(--day-tint); color: var(--day-accent); font-weight: 650; }
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home .hw-closing-stores { border-color: var(--night-line); background: var(--night-raised); }
+
+  /* ---------- Atlas Night: the tracking example runs across the card; «Пример» is a mint chip next to the title, as in Atlas Day ---------- */
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home .home-tracking { padding: 28px 32px 30px; }
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home .home-tracking header { justify-content: flex-start; gap: 12px; }
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home .home-tracking .home-badge { padding: 3px 10px; border-radius: 999px; background: rgba(128, 208, 172, .14); color: var(--night-jade); font-size: 13px; font-weight: 700; }
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home .home-tracking-item { margin: 8px 0 26px; }
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home .home-tracking ol { position: relative; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home .home-tracking li { position: relative; flex-direction: column; align-items: flex-start; gap: 14px; font-size: 15px; }
+  /* the line runs dot to dot; 80% = four of the five spans done (the example stands at "In transit") */
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home .home-tracking ol::before { content: ""; position: absolute; left: 11px; right: calc(100% / 6 - 11px); top: 10px; height: 2px; background: linear-gradient(90deg, var(--night-jade) 0 80%, var(--night-line-strong) 80% 100%); }
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home .home-tracking-dot { position: relative; z-index: 1; box-sizing: border-box; background: linear-gradient(rgba(255, 255, 255, .07), rgba(255, 255, 255, .07)), var(--night-surface); }
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home .home-tracking li[data-state="done"] .home-tracking-dot { background: var(--night-jade); }
+
+  /* shared: the "Example" chip of the inserts */
+  html:has(main.catalog-home) body .catalog-home .hw-tag { display: inline-flex; align-items: center; width: max-content; padding: 2px 8px; border-radius: 999px; background: var(--hwc-tint); color: var(--hwc-ok); font-size: 12px; font-weight: 700; line-height: 1.5; letter-spacing: 0; }
+
+  /* ---------- How it works: one quiet station line and a small example in every card ---------- */
+  /* Four subgrid rows: title / text / the step's own extra (payments, pickup point, dev notes) / the example, so nothing overlaps it. */
+  html:has(main.catalog-home) body .catalog-home #how .home-steps { position: relative; gap: 20px; padding-top: 70px; grid-template-rows: repeat(4, auto); row-gap: 0; }
+  html:has(main.catalog-home) body .catalog-home #how .home-steps::before {
+    content: ""; display: block; position: absolute; top: 23px; left: 48px; right: calc((100% - 60px) / 4 - 48px); width: auto; bottom: auto; height: 2px; border-radius: 2px;
+    background: var(--hwc-rail);
+  }
+  html:has(main.catalog-home) body .catalog-home #how .home-step { display: grid; grid-row: span 4; grid-template-rows: subgrid; row-gap: 0; align-content: start; position: relative; min-height: 0; padding: 26px 24px 24px; }
+  html:has(main.catalog-home) body .catalog-home #how .home-step-station {
+    position: absolute; grid-area: auto; top: -70px; left: 24px; z-index: 1; width: 48px; height: 48px; margin: 0; font-size: 17px; font-weight: 750;
+    border: 2px solid var(--hwc-tint-2); background: var(--hwc-card); color: var(--hwc-ink); box-shadow: 0 0 0 8px var(--hwc-canvas);
+  }
+  html:has(main.catalog-home) body .catalog-home #how .home-step:first-child .home-step-station { border-color: var(--hwc-accent); background: var(--hwc-accent); color: var(--hwc-on-accent); }
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home #how .home-step-station { background: var(--night-canvas); color: var(--night-jade); border-color: rgba(128, 208, 172, .45); }
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home #how .home-step:first-child .home-step-station { background: var(--night-jade); border-color: var(--night-jade); color: var(--night-on-ivory); }
+  html:has(main.catalog-home) body .catalog-home #how .home-step h3 { margin-top: 0; }
+  html:has(main.catalog-home) body .catalog-home #how .home-step > .hw-demo-wrap { display: grid; grid-row: 4; margin-top: 0; padding-top: 20px; }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo {
+    display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 8px; min-height: 0; box-sizing: border-box; padding: 14px 16px;
+    border: 1px solid var(--hwc-tint-2); border-radius: 14px; background: var(--hwc-plate); color: var(--hwc-ink); font-size: 13.5px; line-height: 1.35;
+  }
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home #how .hw-demo { border-color: rgba(128, 208, 172, .16); }
+  /* 1: the hero field as a quiet illustration (light edge, mint arrow tile — not a dark button) and the hero's own note */
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-field { align-content: center; gap: 10px; padding-inline: 12px; }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-input { display: flex; min-width: 0; align-items: center; gap: 6px; min-height: 40px; padding: 3px 3px 3px 9px; border: 1px solid var(--hwc-line-strong); border-radius: 10px; background: var(--hwc-card); color: var(--hwc-muted); font-size: 12.5px; }
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home #how .hw-demo-input { background: var(--night-inset); }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-input > svg { flex: none; }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-input > span { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-input > b { display: grid; place-items: center; flex: 0 0 28px; width: 28px; height: 30px; border-radius: 7px; background: var(--hwc-tint); color: var(--hwc-accent); }
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home #how .hw-demo-input > b { background: rgba(128, 208, 172, .14); }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-note { color: var(--hwc-muted); font-size: 13px; text-wrap: balance; }
+  /* 2: the example bill, marked as an example */
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-bill { gap: 6px; padding-inline: 12px; font-size: 13px; }
+  html:has(main.catalog-home) body .catalog-home #how :where(.hw-demo-row, .hw-demo-total) { display: flex; align-items: last baseline; gap: 6px; }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-row > span { min-width: 0; color: var(--hwc-muted); }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-row > i { flex: 1; min-width: 6px; border-bottom: 1px dotted var(--hwc-leader, #a9aea6); transform: translateY(-3px); }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-row > b { font-weight: 650; white-space: nowrap; font-feature-settings: "tnum" 1; }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-total { justify-content: space-between; margin-top: 2px; padding-top: 7px; border-top: 1px solid var(--hwc-total-line); font-weight: 700; }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-total > b { font-size: 16px; font-weight: 750; white-space: nowrap; font-feature-settings: "tnum" 1; }
+  /* 3: what happens before the order is placed — neutral points, not ticks (nothing is "done" yet) */
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-check { gap: 12px; align-content: center; }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-point { display: flex; align-items: baseline; gap: 11px; font-weight: 550; }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-dot { flex: 0 0 8px; width: 8px; height: 8px; box-sizing: border-box; border: 2px solid var(--hwc-accent); border-radius: 50%; transform: translateY(-1px); }
+  /* 4: the tracking example of «Ваши деньги», marked as an example */
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-track { gap: 6px; }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-item { color: var(--hwc-muted); }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-list { position: relative; display: grid; gap: 7px; margin-top: 2px; }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-list::before { content: ""; position: absolute; left: 8px; top: 9px; bottom: 9px; width: 2px; background: linear-gradient(var(--hwc-accent) 0 55%, var(--hwc-rail) 55% 100%); }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-status { position: relative; display: flex; align-items: center; gap: 10px; color: var(--hwc-muted); }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-status-dot { z-index: 1; display: grid; place-items: center; flex: 0 0 18px; width: 18px; height: 18px; box-sizing: border-box; border: 2px solid var(--hwc-rail); border-radius: 50%; background: var(--hwc-card); color: var(--hwc-on-accent); }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-status[data-state="done"] .hw-demo-status-dot { border-color: var(--hwc-accent); background: var(--hwc-accent); }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-status[data-state="current"] { color: var(--hwc-ink); font-weight: 700; }
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-status[data-state="current"] .hw-demo-status-dot { border: 5px solid var(--hwc-accent); background: var(--hwc-card); }
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home #how .hw-demo-status[data-state="current"] .hw-demo-status-dot { border-color: var(--night-ivory); }
+
+  /* ---------- Rates: «Из чего складывается срок» under the note — what the table's days cover (the days stay in the table).
+     Six rows: h2 / lead / note / route card next to the country cards (rows 2–5, so both end on one line) / dev notes. ---------- */
+  html:has(main.catalog-home) body .catalog-home #tariffs { grid-template-rows: 1fr auto auto auto auto 1fr; }
+  html:has(main.catalog-home) body .catalog-home #tariffs > .tariff-grid { grid-area: 2 / 2 / 6 / 3; }
+  html:has(main.catalog-home) body .catalog-home #tariffs > .home-missing { grid-area: 6 / 1; }
+  html:has(main.catalog-home) body .catalog-home #tariffs > .hw-route {
+    grid-area: 5 / 1; align-self: end; display: grid; gap: 12px; margin-top: 26px; padding: 22px 24px 20px;
+    border: 1px solid var(--hwc-line); border-radius: 18px; background: var(--hwc-card); box-shadow: var(--hwc-shadow);
+  }
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home #tariffs > .hw-route { background: var(--night-sheen), var(--night-surface); }
+  html:has(main.catalog-home) body .catalog-home .hw-route > h3 { margin: 0; color: var(--hwc-ink); font-size: 18px; }
+  html:has(main.catalog-home) body .catalog-home .hw-route ol { position: relative; display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  html:has(main.catalog-home) body .catalog-home .hw-route ol::before { content: ""; position: absolute; left: 21px; top: 22px; bottom: 22px; width: 2px; background: var(--hwc-tint-2); }
+  html:has(main.catalog-home) body .catalog-home .hw-route li { position: relative; display: flex; align-items: center; gap: 14px; padding: 6px 12px 6px 0; border-radius: 12px; }
+  html:has(main.catalog-home) body .catalog-home .hw-route li > span:nth-child(2) { display: grid; gap: 1px; flex: 1; min-width: 0; }
+  html:has(main.catalog-home) body .catalog-home .hw-route li b { color: var(--hwc-ink); font-size: 15.5px; font-weight: 650; }
+  html:has(main.catalog-home) body .catalog-home .hw-route li small { color: var(--hwc-muted); font-size: 14px; line-height: 1.4; }
+  html:has(main.catalog-home) body .catalog-home .hw-route-icon { position: relative; z-index: 1; display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; box-sizing: border-box; border: 1px solid var(--hwc-tint-2); border-radius: 50%; background: var(--hwc-card); color: var(--hwc-muted); }
+  html:has(main.catalog-home) body .catalog-home .hw-route li.hw-route-main { margin-left: -8px; padding-block: 10px; padding-left: 8px; background: var(--hwc-tint); }
+  /* the highlighted step is outlined, not filled: dark green stays on actions */
+  html:has(main.catalog-home) body .catalog-home .hw-route li.hw-route-main .hw-route-icon { border-color: var(--hwc-accent); background: var(--hwc-card); color: var(--hwc-accent); }
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home .hw-route li.hw-route-main .hw-route-icon { border-color: rgba(128, 208, 172, .55); background: rgba(128, 208, 172, .12); }
+  html:has(main.catalog-home) body .catalog-home .hw-route li.hw-route-main small { color: var(--hwc-ink); }
+  html:has(main.catalog-home) body .catalog-home .hw-route li b > em { display: inline-block; margin-left: 8px; padding: 1px 9px; border-radius: 999px; background: var(--hwc-card); color: var(--hwc-ok); font-size: 12px; font-style: normal; font-weight: 700; line-height: 1.6; white-space: nowrap; vertical-align: 1px; }
+}
+/* 1440–2199: the step cards are narrower (the composition is not scaled yet) */
+@media (min-width: 1440px) and (max-width: 2199.98px) and (min-height: 820px) {
+  html:has(main.catalog-home) body .catalog-home #how .hw-demo-bill { padding-inline: 10px; font-size: 12.5px; }
+  html:has(main.catalog-home) body .catalog-home #how .home-step { padding-inline: 20px; }
+  html:has(main.catalog-home) body .catalog-home #how .home-step-station { left: 20px; }
+}
+
+/* =================================== >= 1440 x 1000: the facts row and the footer need ~120px more each =================================== */
+@media (min-width: 1440px) and (min-height: 1000px) {
+  /* ---------- Footer in columns: brand | «Покупателям» 2 x 4 | «Юридическая информация» ---------- */
+  html:has(main.catalog-home) body .catalog-home .home-end > .home-footer { grid-template-columns: minmax(0, 1fr) auto; column-gap: 64px; row-gap: 22px; padding-top: 32px; }
+  html:has(main.catalog-home) body .catalog-home .home-end .home-footer-groups { display: flex; align-items: start; gap: 0 88px; }
+  html:has(main.catalog-home) body .catalog-home .home-end .home-footer-groups > * { display: block; }
+  html:has(main.catalog-home) body .catalog-home .home-end .home-footer-groups .home-footer-title { margin: 0 0 6px; padding-top: 0; }
+  html:has(main.catalog-home) body .catalog-home .home-end .home-footer :is(nav, section) ul { display: grid; grid-auto-flow: column; grid-template-rows: repeat(4, auto); justify-content: start; gap: 0 52px; }
+  html:has(main.catalog-home) body .catalog-home .home-end .home-footer :is(nav, section) li { min-height: 38px; }
+  html:has(main.catalog-home) body .catalog-home .home-end .home-footer :is(nav, section) a { min-height: 38px; }
+
+  /* ---------- Facts row under the hero: stores | countries | price | days (the US-only days stand apart from the six flags) ---------- */
+  html:has(main.catalog-home) body .catalog-home .home-top > .hw-facts {
+    grid-column: 1 / -1; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); margin: clamp(24px, 3.4svh, 44px) 0 0; padding: 0; list-style: none;
+    border: 1px solid var(--hwc-line); border-radius: 18px; background: var(--hwc-card); box-shadow: var(--hwc-shadow); overflow: hidden;
+  }
+  html[data-theme="dark"]:has(main.catalog-home) body .catalog-home .home-top > .hw-facts { background: var(--night-sheen), var(--night-surface); }
+  html:has(main.catalog-home) body .catalog-home .hw-facts > li { display: flex; min-width: 0; }
+  html:has(main.catalog-home) body .catalog-home .hw-facts > li + li { border-left: 1px solid var(--hwc-line); }
+  html:has(main.catalog-home) body .catalog-home .hw-fact { flex: 1; display: flex; align-items: center; gap: 16px; min-width: 0; min-height: 0; padding: 18px 24px; color: inherit; text-decoration: none; transition: background-color .18s; }
+  html:has(main.catalog-home) body .catalog-home .hw-fact:hover { background: var(--hwc-soft); }
+  html:has(main.catalog-home) body .catalog-home .hw-fact:focus-visible { outline: 2px solid var(--hwc-accent); outline-offset: -4px; }
+  html:has(main.catalog-home) body .catalog-home .hw-fact-icon { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; border-radius: 13px; background: var(--hwc-tint); color: var(--hwc-accent); }
+  html:has(main.catalog-home) body .catalog-home .hw-fact-body { display: grid; gap: 3px; min-width: 0; }
+  html:has(main.catalog-home) body .catalog-home .hw-fact-value { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; color: var(--hwc-ink); line-height: 1.1; }
+  html:has(main.catalog-home) body .catalog-home .hw-fact-value.is-tight { gap: 1px; }
+  html:has(main.catalog-home) body .catalog-home .hw-fact-value > b { font-size: 27px; font-weight: 750; letter-spacing: -.02em; font-feature-settings: "tnum" 1; }
+  html:has(main.catalog-home) body .catalog-home .hw-fact-value > span { font-size: 15px; font-weight: 650; }
+  html:has(main.catalog-home) body .catalog-home .hw-fact-sub { overflow: hidden; color: var(--hwc-muted); font-size: 13.5px; line-height: 1.4; white-space: nowrap; text-overflow: ellipsis; }
+  html:has(main.catalog-home) body .catalog-home .hw-fact-value > .hw-fact-flags { display: inline-flex; align-items: center; gap: 3px; margin-left: 4px; align-self: center; }
+  html:has(main.catalog-home) body .catalog-home .hw-fact-value > .hw-fact-lead { display: inline-flex; align-self: center; margin-right: 4px; }
+  html:has(main.catalog-home) body .catalog-home :is(.hw-fact-flags, .hw-fact-lead) .flag { width: 18px; height: 12px; }
+}

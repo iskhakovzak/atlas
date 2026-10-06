@@ -80,6 +80,13 @@ export type HomeCopy = {
   closing: { title: string; text: string };
   footer: { tagline: string; buyers: string; contacts: string; legal: string; support: string; rules: string; privacy: string; customs: string; faq: string; telegramSupport: string; telegramChannel: string; phone: string; instagram: string; pickup: string; theme: string };
   sticky: { paste: string };
+  /** Wide screens only (app/home-facts.tsx and the inserts in app/home-sections.tsx): facts row, step examples, route card, FAQ links. */
+  wide: {
+    factsLabel: string; andMore: string; storesUnit: (count: number) => string; countriesUnit: (count: number) => string; countriesSub: string;
+    priceFrom: (price: string) => string; daysUnit: (max: number) => string; fromWarehouse: string; stepCheck: [string, string];
+    routeTitle: string; routeStore: string; routeStoreNote: string; routeFly: string; routeFlyNote: string; routeCustoms: string; routeCustomsNote: string;
+    or: string; faqMore: string;
+  };
 };
 
 export const homeCopy: Record<Locale, HomeCopy> = {
@@ -165,6 +172,17 @@ export const homeCopy: Record<Locale, HomeCopy> = {
       telegramSupport: 'Telegram-бот', telegramChannel: 'Telegram-канал', phone: 'Телефон', instagram: 'Instagram', pickup: 'Пункт выдачи', theme: 'Тема',
     },
     sticky: { paste: 'Вставить ссылку' },
+    wide: {
+      factsLabel: 'Atlas в цифрах', andMore: 'и другие',
+      storesUnit: (count) => ruPlural(count, ['магазин', 'магазина', 'магазинов']), countriesUnit: (count) => ruPlural(count, ['страна', 'страны', 'стран']), countriesSub: 'откуда везём',
+      priceFrom: (price) => `от ${price}`, daysUnit: (max) => ruDays(max), fromWarehouse: 'от склада',
+      stepCheck: ['Если цена изменилась, сначала покажем новую сумму.', 'Оплата сверх счёта — только с вашего согласия.'],
+      routeTitle: 'Из чего складывается срок',
+      routeStore: 'Магазин → наш склад', routeStoreNote: 'срок магазина, сверх таблицы',
+      routeFly: 'Склад → Узбекистан', routeFlyNote: 'по таблице',
+      routeCustoms: 'Таможня', routeCustomsNote: 'оформление, сверх таблицы',
+      or: 'или', faqMore: 'Не нашли ответ?',
+    },
   },
   uz: {
     nav: { catalog: 'Katalog', stores: 'Do‘konlar', how: 'Qanday ishlaydi', tariffs: 'Tariflar', orders: 'Buyurtmalarim', signin: 'Kirish', account: 'Kabinet', language: 'Sayt tili' },
@@ -248,6 +266,17 @@ export const homeCopy: Record<Locale, HomeCopy> = {
       telegramSupport: 'Telegram-bot', telegramChannel: 'Telegram-kanal', phone: 'Telefon', instagram: 'Instagram', pickup: 'Topshirish punkti', theme: 'Mavzu',
     },
     sticky: { paste: 'Havolani qo‘yish' },
+    wide: {
+      factsLabel: 'Atlas raqamlarda', andMore: 'va boshqalar',
+      storesUnit: () => 'ta do‘kon', countriesUnit: () => 'ta davlat', countriesSub: 'qayerdan olib kelamiz',
+      priceFrom: (price) => `${price} dan`, daysUnit: () => 'ish kuni', fromWarehouse: 'ombordan',
+      stepCheck: ['Narx o‘zgargan bo‘lsa, avval yangi summani ko‘rsatamiz.', 'Hisobdan ortiq to‘lov — faqat roziligingiz bilan.'],
+      routeTitle: 'Muddat nimalardan iborat',
+      routeStore: 'Do‘kon → omborimiz', routeStoreNote: 'do‘kon muddati, jadvalga kirmaydi',
+      routeFly: 'Ombor → O‘zbekiston', routeFlyNote: 'jadval bo‘yicha',
+      routeCustoms: 'Bojxona', routeCustomsNote: 'rasmiylashtiruv, jadvalga kirmaydi',
+      or: 'yoki', faqMore: 'Javob topmadingizmi?',
+    },
   },
   en: {
     nav: { catalog: 'Catalog', stores: 'Stores', how: 'How it works', tariffs: 'Rates', orders: 'My orders', signin: 'Sign in', account: 'Account', language: 'Site language' },
@@ -331,5 +360,16 @@ export const homeCopy: Record<Locale, HomeCopy> = {
       telegramSupport: 'Telegram bot', telegramChannel: 'Telegram channel', phone: 'Phone', instagram: 'Instagram', pickup: 'Pickup point', theme: 'Theme',
     },
     sticky: { paste: 'Paste a link' },
+    wide: {
+      factsLabel: 'Atlas in numbers', andMore: 'and more',
+      storesUnit: (count) => (count === 1 ? 'store' : 'stores'), countriesUnit: (count) => (count === 1 ? 'country' : 'countries'), countriesSub: 'where we ship from',
+      priceFrom: (price) => `from ${price}`, daysUnit: () => 'business days', fromWarehouse: 'from warehouse',
+      stepCheck: ['If the price has changed, we show the new total first.', 'Paying more than the bill — only with your consent.'],
+      routeTitle: 'What the delivery time is made of',
+      routeStore: 'Store → our warehouse', routeStoreNote: 'the store’s shipping, on top of the table',
+      routeFly: 'Warehouse → Uzbekistan', routeFlyNote: 'per the table',
+      routeCustoms: 'Customs', routeCustomsNote: 'clearance, on top of the table',
+      or: 'or', faqMore: 'Didn’t find an answer?',
+    },
   },
 };

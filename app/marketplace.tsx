@@ -12,6 +12,7 @@ import {useTheme} from 'next-themes';
 import {ThemeToggle} from './theme-control';
 import {SiteFooter} from './site-footer';
 import {HomeClosing} from './home-sections';
+import {HomeDecorSlot,HomeRailSlot} from './home-wide';
 import {marketplaceWords} from './marketplace-words';
 import {signInPath} from '@/lib/market/access';
 
@@ -31,10 +32,14 @@ export default function Marketplace({view,children}:{view:string;children?:React
   const languages:[Locale,string][]=[['uz','O‘zbekcha'],['ru','Русский'],['en','English']];
   return <><a className="skip-link" href="#main">{modalWords.skip}</a><Toaster position="top-right" richColors theme={theme==='dark'?'dark':theme==='light'?'light':'system'}/>
   <header className="site-header"><Link className="wordmark" href="/" aria-label={modalWords.homeLabel}>atlas<ArrowUpRight aria-hidden="true"/></Link><nav className="desktop-nav" aria-label={modalWords.navigation}>{navItems.map(([href,key,label])=><Link key={key} data-nav={key} className={key===view?'active':''} aria-current={key===view?'page':undefined} href={href}>{label}</Link>)}</nav><div className="header-actions">{(user?.operator||!!user?.permissions?.length)&&<Link className="operator-entry text-link" href="/admin"><Settings2 size={16}/>{modalWords.manage}</Link>}<div className="lang-switch" role="group" aria-label={hc.nav.language}>{languages.map(([code,name])=><button type="button" key={code} lang={code} aria-label={name} aria-pressed={locale===code} onClick={()=>setLocale(code)}>{code.toUpperCase()}</button>)}</div><span className="header-theme"><ThemeToggle locale={locale}/></span>{ready&&<><Link href="/balance" className="wallet-link"><Wallet size={19}/><span>{locale==='ru'?money(balance):new Intl.NumberFormat(locale==='uz'?'uz-UZ':'en-US').format(balance)+(locale==='uz'?' so‘m':' UZS')}</span></Link><Link aria-label={modalWords.notifications+unread} href="/notifications" className={'icon-btn notice-link '+(view==='notifications'?'active':'')}><Bell size={20}/>{unread>0&&<b>{Math.min(unread,99)}</b>}</Link><Link aria-label={modalWords.favorites} href="/favorites" className={'icon-btn desktop-only '+(view==='favorites'?'active':'')}><Heart size={20}/></Link><Link href="/cart" className="cart-link" aria-label={modalWords.cart+count}><ShoppingBag size={19}/><span className="desktop-only">{words.cart}</span><b>{count}</b></Link></>}<Link className={'header-account'+(ready?' member':'')} href="/account">{user?hc.nav.account:hc.nav.signin}</Link></div></header>
+  {/* Wide screens: the chapter rail after the header (Tab: header → rail → main; the skip link passes it), lazily loaded. */}
+  {view==='catalog'&&<HomeRailSlot/>}
   <main className={view==='catalog'?'site-main catalog-home':'site-main'} id="main" data-view={view}>{view!=='catalog'&&<div className="breadcrumb"><Link href="/">{words.home}</Link><span>/</span><span>{routeTitle(state.communication.language,view)}</span></div>}{error&&view==='catalog'&&<div className="notice error account-error" role="alert"><span>{error}</span><div><button type="button" className="text-button" onClick={()=>void refresh()}>{words.retry}</button>{!user&&<Link className="text-link" href="/account">{words.openSignIn}<ArrowRight size={15}/></Link>}</div></div>}
   <AccessView view={view}>{children}</AccessView>
    {/* Home: the closing call and the footer share the last sheet (app/home-chapters.css). */}
-   {view==='catalog'?<div className="home-end"><HomeClosing/><SiteFooter/></div>:<SiteFooter/>}</main>
+   {view==='catalog'?<div className="home-end" data-chapter="end"><HomeClosing/><SiteFooter/></div>:<SiteFooter/>}
+   {/* Wide screens: the decor behind the sheets (app/home-decor.tsx), the last child of main. */}
+   {view==='catalog'&&<HomeDecorSlot/>}</main>
   {/* Phones: one bottom bar for everyone (guests get sign-in in it); hidden while the session is checked. */}
   {status!=='loading'&&<nav className={'mobile-nav '+(ready?'member':'guest')} aria-label={modalWords.navigation}>{(ready?[['/','catalog',House,words.home],['/catalog','products',LayoutGrid,words.catalog],['/orders','orders',Package,{ru:'Заказы',uz:'Buyurtmalar',en:'Orders'}[locale]],['/cart','cart',ShoppingBag,words.cart],['/account','account',UserRound,words.account]]:[['/','catalog',House,words.home],['/catalog','products',LayoutGrid,words.catalog],['/stores','stores',Store,hc.nav.stores],[signInPath(view==='login'?'/':returnPath()),'login',LogIn,hc.nav.signin]]).map(([href,key,Icon,label])=>{const I=Icon as typeof LayoutGrid;return <Link href={href as string} key={key as string} className={key===view?'active':''} aria-current={key===view?'page':undefined}><I size={21} aria-hidden="true"/><span>{label as string}</span>{key==='cart'&&count>0&&<b>{count}</b>}</Link>})}</nav>}
 </>;
