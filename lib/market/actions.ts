@@ -6,6 +6,7 @@ import {
   renewCart,
   repriceCart,
   customsHelpChosen,
+  withCustomsHelpFor,
   confirmCustomsDuty,
   approveCustomsExtra,
   checkoutCart,
@@ -51,6 +52,8 @@ import {
   orderIssueStatusSchema,
   cartCustomsSchema,
   setCartNote,
+  setCartSelection,
+  checkoutLines,
   setCartCustoms,
   acceptConsents,
   products,
@@ -81,15 +84,19 @@ export const actionSchema = z.discriminatedUnion("type", [
     items: z.array(z.object({ product: productSchema, variant: z.string(), quantity: z.number().int().min(1).max(10) })).min(1).max(20),
     note: z.string().max(500).optional(),
   }),
-  z.object({ type: z.literal("cart-note"), id, note: z.string().max(500) }),
+  // `ids`: one product in several sizes shares one note and one set of services, written to each of its lines at once.
+  z.object({ type: z.literal("cart-note"), id, note: z.string().max(500), ids: z.array(id).min(1).max(20).optional() }),
   z.object({ type: z.literal("cart-customs"), value: cartCustomsSchema }),
   z.object({
     type: z.literal("cart-quantity"),
     id,
     quantity: z.number().int().min(1).max(10),
   }),
-  z.object({ type: z.literal("cart-remove"), id }),
-  z.object({ type: z.literal("cart-services"), id, serviceIds: z.array(z.string().min(2).max(80)).max(40), serviceUnits: z.record(z.string().min(2).max(80), z.number().int().min(1).max(100)).optional() }),
+  // `ids`: every option of one product at once ("remove all", "save for later"): one request, one repricing.
+  z.object({ type: z.literal("cart-remove"), id, ids: z.array(id).min(1).max(20).optional() }),
+  z.object({ type: z.literal("cart-services"), id, serviceIds: z.array(z.string().min(2).max(80)).max(40), serviceUnits: z.record(z.string().min(2).max(80), z.number().int().min(1).max(100)).optional(), ids: z.array(id).min(1).max(20).optional() }),
+  // Checkboxes in the cart: unticked lines stay in the cart for later and are left out of the next checkout.
+  z.object({ type: z.literal("cart-select"), ids: z.array(id).min(1).max(20), selected: z.boolean() }),
   z.object({ type: z.literal("cart-renew") }),
   // Before checkout: the server checks prices with the stores and reprices the cart (app/api/actions/route.ts).
   z.object({ type: z.literal("cart-check") }),
@@ -295,29 +302,25 @@ export function applyAction(
       return next;
     }
     case "cart-note":
-      return setCartNote(s, a.id, a.note);
+      return (a.ids ?? [a.id]).reduce((state, line) => setCartNote(state, line, a.note), s);
     case "cart-customs":
       return setCartCustoms(s, a.value, Date.now(), pricing);
     case "cart-quantity":
       { const next = changeQuantity(s, a.id, a.quantity, Date.now(), pricing); assertCartPolicy(next.cart, policy); return next; }
     case "cart-remove":
       // The rest of that store's parcel is priced again: its shipping share and store-delivery reserve change.
-      return { ...s, cart: repriceCart(s.cart.filter((i) => i.id !== a.id), Date.now(), pricing, customsHelpChosen(s)) };
+      { const gone = new Set(a.ids ?? [a.id]);
+        return { ...s, cart: repriceCart(s.cart.filter((i) => !gone.has(i.id)), Date.now(), pricing, customsHelpChosen(s)) }; }
     case "cart-services":
-      return setCartServices(s, a.id, a.serviceIds, pricing, a.serviceUnits);
+      return (a.ids ?? [a.id]).reduce((state, line) => setCartServices(state, line, a.serviceIds, pricing, a.serviceUnits), s);
+    case "cart-select":
+      return setCartSelection(s, a.ids, a.selected, Date.now(), pricing);
     case "cart-renew":
     case "cart-check":
       return renewCart(s, Date.now(), pricing);
     case "checkout": {
       if (s.checkoutKeys.includes(a.key)) return s;
-      if (
-        (a.useBalance
-          // The prepaid duty (checked against the server's figure in checkoutCart) is part of what the balance can pay.
-          ? Math.min(totalOf(s.cart) + (customsHelpChosen(s) ? a.customsDuty ?? 0 : 0), Math.max(0, balanceOf(s)))
-          : 0) !== a.expectedCredit
-      )
-        throw Error("Баланс изменился. Проверьте итог заново.");
-      assertCartPolicy(s.cart, policy);
+      assertCartPolicy(checkoutLines(s.cart), policy);
       // Saved in the same revision as the orders, so a failed checkout saves nothing.
       let next = s, deliveryProfileId = a.deliveryProfileId;
       if (a.saveRecipientLabel && !deliveryProfileId && a.delivery) {
@@ -335,6 +338,15 @@ export function applyAction(
       // The server works out the customs estimate for the chosen recipient; the browser's figures are not used.
       const recipientProfile = deliveryProfileId ? next.deliveryProfiles.find((profile) => profile.id === deliveryProfileId) : undefined;
       const customs = cartCustomsEstimate(next, pricing, { profile: recipientProfile, name: a.delivery?.recipient });
+      // The prepaid duty (checked against the server's figure in checkoutCart) is part of what the balance can pay;
+      // with no duty for this recipient the customs fee is not in the bill.
+      const billed = withCustomsHelpFor(checkoutLines(s.cart), customs, pricing.fx);
+      if (
+        (a.useBalance
+          ? Math.min(totalOf(billed) + (customsHelpChosen(s) ? a.customsDuty ?? 0 : 0), Math.max(0, balanceOf(s)))
+          : 0) !== a.expectedCredit
+      )
+        throw Error("Баланс изменился. Проверьте итог заново.");
       return checkoutCart(
         next,
         a.key,

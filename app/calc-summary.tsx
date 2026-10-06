@@ -1,14 +1,15 @@
 'use client';
-import {useId} from 'react';
-import {HandCoins,Scale,Wallet} from 'lucide-react';
+import {useId,useState} from 'react';
+import {Check,HandCoins,Scale,Wallet} from 'lucide-react';
 import {formatKg,formatPercent,formatSum,formatUsd} from '@/lib/market/home-copy';
 import {calcCopy} from '@/lib/market/calc-copy';
 import {courierAllowanceUsd} from '@/lib/market/customs';
-import {deliveryPerKgUsdFor,unknownStoreShippingUsd,type CartCustoms,type CustomsEstimate,type DeliverySpeed,type Pricing,type Quote,type SavedDeliveryProfile} from '@/lib/market/domain';
+import {customsDutySoum,deliveryPerKgUsdFor,unknownStoreShippingUsd,type CartCustoms,type CustomsEstimate,type DeliverySpeed,type Pricing,type Quote,type SavedDeliveryProfile} from '@/lib/market/domain';
 import {daysRangeFor,deliverySpeedCopy,type DeliverySpeedOption} from '@/lib/market/delivery-speed';
 import {packagingKg} from '@/lib/market/world';
 import type {Locale} from '@/lib/market/i18n';
 import {SummaryLine} from './price-summary';
+import {CustomsHow,allowanceLeftUsd} from './customs-how';
 
 type Sums=Pick<Quote,'merchandise'|'service'|'shipping'|'reserve'|'total'>&{buyout?:number;conversion?:number;sourceShipping?:number;deliveryMargin?:number;optionalServices?:number;storeShippingHold?:number;customsHelp?:number;customsDuty?:number};
 
@@ -72,14 +73,13 @@ export function DeliverySpeedSwitch({value,options,locale,onChange,busy=false,no
 }
 
 /** The hold for unknown store delivery, shown apart from the amount to pay. */
-export function HoldNote({amount,locale,pricing}:{amount:number;locale:Locale;pricing:Pricing}){
+export function HoldNote({amount,locale}:{amount:number;locale:Locale;/** Kept for callers; the rule itself is the help of the bill's store-delivery line. */pricing?:Pricing}){
  const c=calcCopy[locale];
  if(amount<=0)return null;
  return <div className="calc-hold" role="note">
   <Wallet size={17} aria-hidden="true"/>
   <div><span>{c.hold}</span><small>{c.holdNote}</small></div>
   <b>{formatSum(amount,locale)}</b>
-  <p className="calc-hold-help">{c.holdHelp(usdText(pricing.storeShippingFreeFromUsd??50,locale)).split('. ').slice(1,3).join('. ')}.</p>
  </div>;
 }
 
@@ -113,25 +113,53 @@ export function BlankBill({pricing,locale}:{pricing:Pricing;locale:Locale}){
 
 /**
  * Customs in one short block: the monthly allowance per recipient, the estimated duty when this cart goes over it,
- * and — where the customer can choose — "Atlas pays customs for me", a line in the bill at `customsHelpFee` of the
- * cart. `helpAmount` is that fee in soum (already in the bill when chosen). The server works the figures out again.
+ * and — where the customer can choose — who pays the duty: "Atlas pays customs" (a line in the bill at `customsHelpFee`
+ * of the cart) or the customer at customs. `helpAmount` is that fee in soum (already in the bill when chosen). The
+ * server works the figures out again. "How customs is calculated" opens a small calculator (CustomsHow).
  */
-/** The duty prepaid with "Atlas pays customs for me": the server rounds the same way at checkout (checkoutCart). */
-export const customsDutyAmount=(estimate:Pick<CustomsEstimate,'estimateUsd'>,pricing:Pick<Pricing,'fx'>)=>Math.ceil(estimate.estimateUsd*pricing.fx);
+/** The duty prepaid with "Atlas pays customs for me": the same rounding as the server at checkout (checkoutCart). */
+export const customsDutyAmount=(estimate:Pick<CustomsEstimate,'estimateUsd'>,pricing:Pick<Pricing,'fx'>)=>customsDutySoum(estimate,pricing.fx);
 
-export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipientId,onRecipient,onChoices,helpAmount,compact=false,busy=false}:{estimate:CustomsEstimate;choices:CartCustoms;locale:Locale;pricing:Pricing;profiles:SavedDeliveryProfile[];recipientId?:string;onRecipient?:(id:string)=>void;onChoices?:(next:CartCustoms)=>void;helpAmount?:number;compact?:boolean;busy?:boolean}){
+/**
+ * Owner, 7.10.2026: no duty → one line, no choice (nothing for Atlas to pay, no fee). Duty → two cards, "Atlas pays"
+ * first and chosen unless the customer picked otherwise. A choice remembered from an earlier cart shows as one line
+ * with "Change" until the customer opens it.
+ */
+export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipientId,onRecipient,onChoices,helpAmount,remembered=false,compact=false,busy=false}:{estimate:CustomsEstimate;choices:CartCustoms;locale:Locale;pricing:Pricing;profiles:SavedDeliveryProfile[];recipientId?:string;onRecipient?:(id:string)=>void;onChoices?:(next:CartCustoms)=>void;helpAmount?:number;/** The choice comes from "remember for next orders", not from this cart. */remembered?:boolean;compact?:boolean;busy?:boolean}){
  const c=calcCopy[locale].customs;
  const id=useId();
+ const [open,setOpen]=useState(false);
+ const [remember,setRemember]=useState(true);
  const usd=(value:number)=>usdText(value,locale);
- const over=estimate.dutiableUsd>0;
+ const over=customsDutyAmount(estimate,pricing)>0;
+ // While a choice is saving the cards stay focusable (a disabled fieldset would drop keyboard focus); a second pick waits.
+ const pick=(help:boolean)=>{if(!busy)onChoices?.({...choices,help,remember})};
  return <section className={'calc-customs'+(compact?' compact':'')} aria-labelledby={id+'-title'}>
   <header><Scale size={17} aria-hidden="true"/><h3 id={id+'-title'}>{c.allowanceTitle(usd(estimate.allowanceUsd))}</h3></header>
-  <p className="calc-customs-sum">{c.allowanceNote}</p>
-  {over&&<p className="calc-customs-over">{(choices.help?c.overIncluded:c.overNote)(usd(estimate.dutiableUsd),formatSum(customsDutyAmount(estimate,pricing),locale))}</p>}
+  {over?<p className="calc-customs-over">{(choices.help?c.overIncluded:c.overNote)(usd(estimate.dutiableUsd),formatSum(customsDutyAmount(estimate,pricing),locale))}</p>
+   :<p className="calc-customs-none"><Check size={15} aria-hidden="true"/>{c.choice.noDuty(usd(allowanceLeftUsd(estimate)))}</p>}
   {profiles.length>1&&onRecipient&&<div className="field calc-customs-recipient"><label htmlFor={id+'-recipient'}>{c.recipient}</label><select id={id+'-recipient'} value={recipientId} onChange={event=>onRecipient(event.target.value)}>{profiles.map(profile=><option key={profile.id} value={profile.id}>{profile.recipient}</option>)}</select></div>}
-  {onChoices&&helpAmount!==undefined&&<div className="calc-customs-choices">
-   <label className="calc-check"><input type="checkbox" disabled={busy} checked={choices.help} onChange={event=>onChoices({...choices,help:event.target.checked})}/><span><HandCoins size={15} aria-hidden="true"/> {c.helpOption}<small>{choices.help?c.helpChosen(formatSum(helpAmount,locale)):c.helpOptionNote(percent(pricing.customsHelpFee,locale),formatSum(helpAmount,locale))}</small></span></label>
-  </div>}
-  <a className="calc-customs-link" href="/customs">{c.howLink}</a>
+  {over&&onChoices&&helpAmount!==undefined&&(remembered&&!open
+   ?<p className="customs-remembered">{choices.help?<HandCoins size={15} aria-hidden="true"/>:null}<span>{choices.help?c.choice.rememberedAtlas:c.choice.rememberedSelf}{choices.help&&<small>{c.choice.fee(percent(pricing.customsHelpFee,locale),formatSum(helpAmount,locale))}</small>}</span><button type="button" onClick={()=>setOpen(true)}>{c.choice.change}</button></p>
+   :<fieldset className="customs-choice" aria-busy={busy||undefined}>
+    <legend>{c.choice.title}</legend>
+    <label className={'customs-option atlas'+(choices.help?' selected':'')}>
+     <input type="radio" name={id+'-payer'} checked={choices.help} onChange={()=>pick(true)}/>
+     <span className="customs-option-body">
+      <span className="customs-option-head"><HandCoins size={16} aria-hidden="true"/><b>{c.choice.atlas}</b><em>{c.choice.badge}</em></span>
+      <small>{c.choice.perk}</small>
+      <small className="customs-option-fee">{c.choice.fee(percent(pricing.customsHelpFee,locale),formatSum(helpAmount,locale))}</small>
+     </span>
+    </label>
+    <label className={'customs-option self'+(!choices.help?' selected':'')}>
+     <input type="radio" name={id+'-payer'} checked={!choices.help} onChange={()=>pick(false)}/>
+     <span className="customs-option-body">
+      <span className="customs-option-head"><b>{c.choice.self}</b><small>{c.choice.selfFee}</small></span>
+      <small>{c.choice.selfOver}</small>
+     </span>
+    </label>
+    <label className="calc-check customs-remember"><input type="checkbox" checked={remember} onChange={event=>{if(busy)return;const next=event.target.checked;setRemember(next);onChoices({...choices,remember:next})}}/><span>{c.choice.remember}</span></label>
+   </fieldset>)}
+  <CustomsHow estimate={estimate} pricing={pricing} locale={locale}/>
  </section>;
 }

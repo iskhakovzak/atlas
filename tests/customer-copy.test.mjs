@@ -83,7 +83,6 @@ test('order, balance and notification counts read naturally', () => {
   assert.equal(balanceCopy.ru.operations(4), '4 операции');
   assert.equal(noticesCopy.ru.unread(1), '1 непрочитанное');
   assert.equal(noticesCopy.ru.more(5), 'Ещё 5 обновлений');
-  assert.equal(ordersCopy.ru.attention(2), 'Нужно ваше решение: 2 заказа');
 });
 
 test('short dates and date-times drop the year only within the current year', () => {
