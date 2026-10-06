@@ -17,6 +17,8 @@
   --cat-warn: #8a5a00;
   --cat-warn-bg: #fdf4e3;
   --cat-warn-line: #ecd3a2;
+  --cat-shadow: 0 1px 2px rgba(22, 33, 28, .04), 0 6px 18px rgba(22, 33, 28, .05);
+  --cat-stage: #fff;
 }
 html[data-theme="dark"] {
   --cat-accent: var(--night-jade);
@@ -34,13 +36,15 @@ html[data-theme="dark"] {
   --cat-warn: var(--night-warn-ink);
   --cat-warn-bg: var(--night-warn-bg);
   --cat-warn-line: var(--night-warn-line);
+  --cat-shadow: var(--night-shadow);
+  --cat-stage: radial-gradient(120% 110% at 50% 8%, #f6f3ec 0%, #e6e1d5 100%);
 }
 
 /* ---------- Heading, banners ---------- */
 .catalog-page { padding-bottom: 8px; }
-.catalog-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin: 8px 0 18px; }
-.catalog-head h1 { margin: 0 0 8px; color: var(--cat-ink); font-size: clamp(30px, 4vw, 44px); line-height: 1.1; }
-.catalog-head p { margin: 0; max-width: 62ch; color: var(--cat-muted); line-height: 1.55; }
+.catalog-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin: 8px 0 16px; }
+.catalog-head h1 { margin: 0 0 6px; color: var(--cat-ink); font-size: clamp(28px, 4vw, 44px); line-height: 1.1; }
+.catalog-head p { margin: 0; max-width: 70ch; color: var(--cat-muted); font-size: 15px; line-height: 1.5; }
 .catalog-stats { display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 8px 14px; border: 1px solid var(--cat-line); border-radius: 999px; background: var(--cat-surface); color: var(--cat-ink); font-size: 14px; font-weight: 650; white-space: nowrap; }
 .catalog-stats svg { color: var(--cat-accent); }
 .catalog-head-side { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -48,29 +52,55 @@ html[data-theme="dark"] {
 .catalog-saved svg { color: var(--cat-accent); }
 .catalog-saved b { color: var(--cat-muted); font-size: 12px; }
 
-.catalog-banner { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; align-items: start; margin: 0 0 14px; padding: 12px 16px; border: 1px solid var(--cat-ok-line); border-radius: 14px; background: var(--cat-ok-bg); color: var(--cat-ink); }
-.catalog-banner > svg { margin-top: 2px; color: var(--cat-ok); }
-.catalog-banner p { margin: 0; line-height: 1.5; }
-.catalog-banner > div { grid-column: 2; display: flex; flex-wrap: wrap; gap: 0 18px; }
-.catalog-banner.catalog-banner-warn { border-color: var(--cat-warn-line); background: var(--cat-warn-bg); }
-.catalog-banner.catalog-banner-warn > svg { color: var(--cat-warn); }
-.catalog-page .catalog-banner :is(.text-button, .text-link) { display: inline-flex; align-items: center; min-height: 44px; padding: 0; border: 0; background: none; color: var(--cat-accent); font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+/* One line: icon, the short fact, the action; the sentence and the "how it works" link open on tap (≤ 56px on phones). */
+.catalog-page .catalog-banner { display: block; margin: 0 0 10px; padding: 0 12px; border: 1px solid var(--cat-ok-line); border-radius: 12px; background: var(--cat-ok-bg); color: var(--cat-ink); }
+.catalog-page .catalog-banner-row { display: flex; align-items: center; gap: 8px; min-height: 48px; }
+.catalog-page .catalog-banner-row > svg { flex: none; color: var(--cat-ok); }
+.catalog-page .catalog-banner-toggle { display: inline-flex; flex: 1 1 auto; align-items: center; gap: 6px; min-width: 0; min-height: 44px; padding: 0; border: 0; background: none; color: var(--cat-ink); font: inherit; font-size: 14px; font-weight: 650; text-align: left; cursor: pointer; }
+.catalog-page .catalog-banner-toggle > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.catalog-page .catalog-banner-toggle > svg { flex: none; color: var(--cat-muted); transition: transform .15s; }
+.catalog-page .catalog-banner-toggle[aria-expanded="true"] > svg { transform: rotate(180deg); }
+.catalog-page .catalog-banner-detail { display: flex; flex-wrap: wrap; gap: 0 18px; padding: 0 0 10px 26px; }
+.catalog-page .catalog-banner-detail[hidden] { display: none; }
+.catalog-page .catalog-banner-detail p { flex-basis: 100%; margin: 0 0 2px; font-size: 14px; line-height: 1.5; }
+.catalog-page .catalog-banner.catalog-banner-warn { border-color: var(--cat-warn-line); background: var(--cat-warn-bg); }
+.catalog-page .catalog-banner-warn .catalog-banner-row > svg { color: var(--cat-warn); }
+/* The parcel banner is a neutral fact beside the mint allowance banner: a white card with a mint icon. */
+.catalog-page .catalog-banner.catalog-banner-parcel { border-color: var(--cat-line); background: var(--cat-surface); }
+/* Specific enough to keep the 44px tap target over refine.css's 36px phone rule for banner actions. */
+.catalog-page .catalog-banner :is(.catalog-banner-row, .catalog-banner-detail) > :is(.text-button, .text-link) { display: inline-flex; flex: none; align-items: center; min-height: 44px; padding: 0; border: 0; background: none; color: var(--cat-accent); font: inherit; font-size: 14px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; cursor: pointer; }
 
-/* ---------- Chips (categories, collections, prices, sizes, active filters) ---------- */
-:is(.catalog-categories, .catalog-sets, .catalog-chips, .catalog-active) > button:not(.text-button) {
+/* ---------- Chips (categories, prices, sizes, active filters) ---------- */
+:is(.catalog-categories, .catalog-chips, .catalog-active) > button:not(.text-button) {
   display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px;
   border: 1px solid var(--cat-line); border-radius: 999px; background: var(--cat-surface); color: var(--cat-ink);
   font: inherit; font-size: 14px; font-weight: 650; white-space: nowrap; cursor: pointer;
   transition: background-color .15s, border-color .15s, color .15s;
 }
-:is(.catalog-categories, .catalog-sets, .catalog-chips) > button > span { color: var(--cat-muted); font-size: 12px; font-weight: 750; font-feature-settings: "tnum" 1; }
-:is(.catalog-categories, .catalog-sets, .catalog-chips) > button:hover { border-color: var(--cat-accent); }
+:is(.catalog-categories, .catalog-chips) > button > span { color: var(--cat-muted); font-size: 12px; font-weight: 750; font-feature-settings: "tnum" 1; }
+:is(.catalog-categories, .catalog-chips) > button:hover { border-color: var(--cat-accent); }
 .catalog-categories > button[data-empty]:not([aria-pressed="true"]) { border-style: dashed; color: var(--cat-muted); }
-:is(.catalog-categories, .catalog-sets, .catalog-chips) > button[aria-pressed="true"] { border-color: var(--cat-on); background: var(--cat-on); color: var(--cat-on-ink); }
-:is(.catalog-categories, .catalog-sets, .catalog-chips) > button[aria-pressed="true"] > span { color: inherit; opacity: .85; }
+:is(.catalog-categories, .catalog-chips) > button[aria-pressed="true"] { border-color: var(--cat-on); background: var(--cat-on); color: var(--cat-on-ink); }
+:is(.catalog-categories, .catalog-chips) > button[aria-pressed="true"] > span { color: inherit; opacity: .85; }
 :is(.catalog-page, .catalog-sheet) :is(button, a, input, select):focus-visible { outline: 2px solid var(--cat-accent); outline-offset: 2px; }
-.catalog-sets { display: flex; gap: 8px; margin: 0 -16px 12px; padding: 2px 16px 4px; overflow-x: auto; scrollbar-width: none; }
-.catalog-sets > button b { font-weight: 700; }
+
+/* ---------- Sets: the operator's collections and query presets with photo covers ---------- */
+/* Room on the right for the fade mask (the last set scrolls out of it), on top for the focus ring, below for the shadow. */
+.catalog-sets { display: flex; gap: 10px; margin: -2px -16px 14px; padding: 4px 44px 14px 16px; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; scroll-padding-inline: 16px; }
+.catalog-sets::-webkit-scrollbar { display: none; }
+.catalog-page .catalog-sets > .catalog-set {
+  display: grid; grid-template-columns: 64px minmax(0, 1fr); grid-template-rows: auto auto; align-content: center; column-gap: 10px; row-gap: 2px;
+  flex: none; width: 212px; min-height: 80px; padding: 7px; border: 1px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); color: var(--cat-ink);
+  box-shadow: var(--cat-shadow); font: inherit; text-align: left; cursor: pointer; scroll-snap-align: start;
+  transition: border-color .15s, box-shadow .15s;
+}
+.catalog-page .catalog-sets > .catalog-set:hover { border-color: var(--cat-accent); }
+.catalog-page .catalog-sets > .catalog-set[aria-pressed="true"] { border-color: var(--cat-accent); box-shadow: inset 0 0 0 1px var(--cat-accent); }
+.catalog-page .catalog-sets > .catalog-set > b { align-self: end; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 700; line-height: 1.3; }
+.catalog-page .catalog-sets > .catalog-set > span:last-child { align-self: start; color: var(--cat-muted); font-size: 12.5px; font-weight: 600; line-height: 1.3; font-feature-settings: "tnum" 1; }
+.catalog-set-cover { grid-row: 1 / span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; aspect-ratio: 1; padding: 3px; border: 1px solid var(--cat-line); border-radius: 10px; background: var(--cat-stage); overflow: hidden; }
+.catalog-set-cover[data-single] { grid-template-columns: 1fr; }
+.catalog-set-cover img { display: block; width: 100%; height: 100%; aspect-ratio: 1; object-fit: contain; mix-blend-mode: multiply; }
 
 /* ---------- Toolbar ---------- */
 .catalog-bar { display: grid; gap: 12px; margin-bottom: 18px; }
@@ -121,6 +151,9 @@ html[data-theme="dark"] .catalog-switch input:checked + .catalog-switch-track::a
 .catalog-switch-text b { display: block; color: var(--cat-ink); font-weight: 700; line-height: 1.35; }
 .catalog-switch-text small { display: block; margin-top: 3px; color: var(--cat-muted); font-size: 13px; line-height: 1.45; }
 .catalog-switch .catalog-count { margin-top: 4px; }
+/* A condition nothing matches stays listed with its zero, greyed, instead of disappearing. */
+.catalog-switch[data-disabled] { cursor: default; }
+.catalog-switch[data-disabled] :is(.catalog-switch-track, .catalog-switch-text, .catalog-count) { opacity: .5; }
 
 /* ---------- Filter sheet ---------- */
 .catalog-sheet { gap: 0 !important; padding: 0; background: var(--cat-surface) !important; color: var(--cat-ink); }
@@ -133,13 +166,65 @@ html[data-theme="dark"] .catalog-switch input:checked + .catalog-switch-track::a
 .catalog-sheet > footer .btn { flex: 1; justify-content: center; min-height: 48px; }
 .catalog-sheet > footer .btn.secondary { flex: 0 0 auto; }
 
-/* ---------- Card additions ---------- */
-.find-card .find-parcel { display: flex; align-items: center; gap: 8px; margin: 10px 0 0; padding: 8px 10px; border-radius: 10px; background: var(--cat-ok-bg); color: var(--cat-ok); font-size: 13px; font-weight: 650; line-height: 1.35; }
-.find-card .find-parcel > svg { flex: none; }
-.find-card .find-parcel > span { flex: 1; min-width: 0; }
-.find-card .find-parcel > b { white-space: nowrap; font-feature-settings: "tnum" 1; }
-.find-card .find-limit { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; color: var(--cat-warn); font-size: 13px; font-weight: 650; line-height: 1.35; }
-.find-card .find-limit > svg { flex: none; }
+/* ---------- Card 2.0 (both themes; day-folio.css adjusts the Day colours) ----------
+   Meta, two-line title, one store-price line, the total with an in-flow "i", the facts slot (24px),
+   the chips slot (24px), the button. Fixed slot heights keep cards in a row aligned. */
+.site-main .find-card .find-content { display: flex; flex: 1; flex-direction: column; gap: 0; min-width: 0; padding: 14px 16px 16px; }
+.site-main .find-card .find-meta { display: flex; justify-content: space-between; gap: 10px; min-width: 0; margin: 0; color: var(--cat-muted); font-size: 12.5px; line-height: 1.3; }
+.site-main .find-card .find-meta > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.site-main .find-card .find-meta > .find-store { display: inline-flex; align-items: center; gap: 6px; }
+.site-main .find-card .find-content .find-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-height: 2.6em; margin: 6px 0 0; padding: 0; border: 0; background: none; color: var(--cat-ink); font: inherit; font-size: 17px; font-weight: 600; line-height: 1.3; letter-spacing: -.015em; text-align: left; cursor: pointer; }
+.site-main .find-card .find-content .find-title:hover { color: var(--cat-accent); }
+.site-main .find-card .find-content .find-store-price { display: flex; flex-wrap: nowrap; align-items: baseline; gap: 0 6px; min-height: 24px; margin: 10px 0 0; padding: 0 0 10px; border-bottom: 1px solid var(--cat-line); color: var(--cat-muted); font-size: 13px; line-height: 1.35; }
+.site-main .find-card .find-store-price > span:first-child { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.site-main .find-card .find-store-price > b { flex: none; color: var(--cat-ink); font-size: 15px; font-weight: 650; letter-spacing: -.01em; white-space: nowrap; }
+.site-main .find-card .find-store-price > del { flex: none; color: var(--cat-muted); font-size: 13px; white-space: nowrap; }
+.site-main .find-card .find-store-price > .find-discount { position: static; flex: none; display: inline-flex; align-items: center; align-self: center; margin: 0; padding: 2px 7px; border: 1px solid var(--cat-ok-line); border-radius: 7px; background: var(--cat-ok-bg); color: var(--cat-ok); font-size: 12px; font-style: normal; font-weight: 700; line-height: 1.3; box-shadow: none; }
+.site-main .find-card .find-content .find-total { position: static; margin: 0; padding: 10px 0 0; }
+.site-main .find-card .find-total-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 28px; }
+.site-main .find-card .find-total-head > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--cat-muted); font-size: 13px; line-height: 1.35; }
+.site-main .find-card .find-info { position: static; display: grid; flex: none; place-items: center; width: 40px; height: 40px; margin: -6px -10px -6px 0; border: 0; border-radius: 50%; background: transparent; color: var(--cat-accent); cursor: pointer; }
+.site-main .find-card .find-info:hover, .site-main .find-card .find-info[data-state="open"] { background: var(--cat-soft); }
+.site-main .find-card .find-total > strong { display: block; margin: 0; padding: 0; color: var(--cat-ink); font-size: 26px; font-weight: 700; line-height: 1.15; letter-spacing: -.02em; white-space: nowrap; }
+.site-main .find-card .find-total > strong .money-unit { font-size: 13px; }
+/* "Calculated after the price check" keeps the total's line box (smaller text inside), so rows stay aligned. */
+.site-main .find-card .find-total > strong.find-total-pending { overflow: hidden; text-overflow: ellipsis; }
+.site-main .find-card .find-total > strong.find-total-pending > span { font-size: .58em; font-weight: 650; letter-spacing: 0; }
+/* One line always (the full sentence is in the title), so a confirmed card is as tall as its neighbours. */
+.site-main .find-card .find-total-note { display: block; height: 15px; margin-top: 2px; overflow: hidden; color: var(--cat-muted); font-size: 11px; line-height: 1.35; white-space: nowrap; text-overflow: ellipsis; }
+.site-main .find-card .find-facts { display: flex; align-items: center; height: 24px; margin: 6px 0 0; color: var(--cat-muted); font-size: 12.5px; line-height: 1.3; }
+.site-main .find-card .find-facts > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.site-main .find-card .find-chips { display: flex; flex-wrap: nowrap; gap: 6px; height: 24px; margin: 6px 0 0; overflow: hidden; }
+.site-main .find-card .find-chip { display: inline-block; flex: 0 1 auto; min-width: 0; max-width: 100%; height: 24px; padding: 0 8px; border: 1px solid var(--cat-line); border-radius: 999px; color: var(--cat-muted); font-size: 12px; font-weight: 650; line-height: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.site-main .find-card .find-chip[data-tone="mint"] { border-color: var(--cat-ok-line); background: var(--cat-ok-bg); color: var(--cat-ok); }
+.site-main .find-card .find-chip[data-tone="amber"] { border-color: var(--cat-warn-line); background: var(--cat-warn-bg); color: var(--cat-warn); }
+.site-main .find-card .find-purchase { margin-top: auto; padding-top: 12px; }
+.site-main .find-card .find-purchase .btn { width: 100%; min-height: 46px; padding: 10px 14px; font-size: 15px; }
+
+/* The breakdown popover (portalled, so it is styled by its own class). */
+.find-breakdown-popover { width: min(360px, calc(100vw - 24px)); padding: 14px 16px; border: 1px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); color: var(--cat-ink); box-shadow: 0 12px 32px rgba(21, 43, 34, .14); font-size: 13.5px; line-height: 1.5; }
+.find-breakdown-title { margin: 0 0 8px; color: var(--cat-muted); font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.find-breakdown-popover dl { display: grid; gap: 8px; margin: 0; }
+.find-breakdown-popover dl > div { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.find-breakdown-popover dt { color: var(--cat-muted); }
+.find-breakdown-popover dd { margin: 0; color: var(--cat-ink); font-weight: 650; text-align: right; white-space: nowrap; font-feature-settings: "tnum" 1; }
+.find-breakdown-popover p { margin: 10px 0 0; color: var(--cat-muted); font-size: 12.5px; }
+
+/* Compact card: photo, one-line name, "store price → total"; the whole card opens the product sheet. */
+.find-card.find-card-compact { position: relative; }
+.find-card .find-compact { display: flex; flex-direction: column; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.find-card.find-card-compact .find-visual { display: block; }
+/* The card clips overflow, so the focus ring of the whole-card button and of the photo button is drawn inside. */
+.find-card .find-compact:focus-visible, .site-main .find-card .find-photo:focus-visible { outline: 2px solid var(--cat-accent); outline-offset: -3px; }
+/* Square photo (the home strip's id-scoped 1.25 rule in home-chapters.css would otherwise win). */
+.find-card.find-card-compact .find-visual > .find-photo { display: block; aspect-ratio: 1 !important; }
+.site-main .find-card.find-card-compact .find-content { gap: 4px; padding: 10px 12px 12px; }
+.site-main .find-card.find-card-compact .find-meta { font-size: 12px; }
+.site-main .find-card.find-card-compact .find-compact-title { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--cat-ink); font-size: 14.5px; font-weight: 600; line-height: 1.3; }
+.site-main .find-card.find-card-compact .find-compact-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 5px; color: var(--cat-muted); font-size: 13px; line-height: 1.3; }
+.site-main .find-card.find-card-compact .find-compact-price .money { color: var(--cat-ink); font-size: 16px; font-weight: 700; }
+.site-main .find-card.find-card-compact .find-compact-price .money-unit { font-size: 12px; }
+.finds-grid-compact { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 /* ---------- Loading, empty and end ---------- */
 .catalog-skeleton-card { pointer-events: none; }
@@ -169,33 +254,83 @@ html[data-theme="dark"] .catalog-switch input:checked + .catalog-switch-track::a
 .catalog-teaser > header p { max-width: 52ch; margin: 0; color: var(--cat-muted); line-height: 1.55; }
 .catalog-teaser > header .btn { min-height: 48px; }
 
+/* ---------- Product sheet: a bottom sheet on phones, a side panel elsewhere ---------- */
+.product-sheet .sheet-handle { display: block; flex: none; width: 40px; height: 4px; margin: 8px auto 0; border-radius: 2px; background: var(--cat-line); }
+.product-sheet.product-sheet-bottom { width: 100% !important; max-width: 100% !important; height: 92dvh; max-height: 92dvh; padding-bottom: 0; border-radius: 20px 20px 0 0; }
+.product-sheet.product-sheet-bottom .sheet-close { top: 12px; right: 12px; }
+.product-sheet.product-sheet-bottom .sheet-body { padding: 16px 20px 0; }
+.product-sheet.product-sheet-bottom .sheet-total { position: sticky; bottom: 0; z-index: 2; display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; margin: 16px -20px 0; padding: 12px 20px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--cat-line); background: var(--cat-surface); }
+.product-sheet.product-sheet-bottom .sheet-total > span { flex: 1 1 140px; }
+.product-sheet.product-sheet-bottom .sheet-total .btn { flex: 1 1 150px; width: auto; min-height: 48px; }
+.product-sheet .sheet-stale { margin: 10px 0 0; }
+.product-sheet .sheet-speed { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 10px 0 6px; padding: 4px; border: 1px solid var(--cat-line); border-radius: 12px; background: var(--cat-soft); }
+.product-sheet .sheet-speed > button { display: grid; gap: 2px; min-height: 48px; padding: 6px 10px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--cat-ink); font: inherit; text-align: left; cursor: pointer; }
+.product-sheet .sheet-speed > button b { font-size: 14px; font-weight: 700; line-height: 1.3; }
+.product-sheet .sheet-speed > button small { color: var(--cat-muted); font-size: 12px; line-height: 1.3; }
+.product-sheet .sheet-speed > button[aria-pressed="true"] { border-color: var(--cat-line); background: var(--cat-surface); box-shadow: 0 1px 2px rgba(22, 33, 28, .06); }
+.product-sheet .sheet-speed > button[aria-pressed="true"] b { color: var(--cat-accent); }
+.product-sheet .sheet-speed > button:focus-visible { outline: 2px solid var(--cat-accent); outline-offset: 2px; }
+.product-sheet .sheet-speed-note { margin: 0 0 8px; }
+
 /* Dark inputs get the inset fill from theme-night.css; the search box takes the same fill so it reads as one field. */
 html .catalog-search input[type="search"] { border: 0; border-radius: 0; box-shadow: none; }
 html[data-theme="dark"] .catalog-search { background: var(--night-inset); }
-.catalog-categories, .catalog-sets { scroll-padding-inline: 16px; }
+.catalog-categories { scroll-padding-inline: 16px; }
 .catalog-sidebar { scrollbar-width: thin; scrollbar-color: var(--cat-line) transparent; }
 
 /* ---------- Breakpoints ---------- */
 /* Phones: two compact cards per row, so a shelf shows more than one product per screen. */
 @media (max-width: 600px) {
+  .catalog-head { margin: 4px 0 12px; }
+  .catalog-head h1 { font-size: 26px; }
+  .catalog-head p { font-size: 13.5px; line-height: 1.45; }
+  /* 375px: the first card within ~500px of the top (owner, 6 October 2026) — a short breadcrumb, a tighter head,
+     strip and bar; the intro stays. Scoped to .catalog-page so it wins over refine.css's phone scale (loaded later). */
+  .catalog-page.finds-page { padding-top: 0; }
+  .site-main > .breadcrumb:has(+ .catalog-page) { padding: 4px 0; }
+  .catalog-page .catalog-head { gap: 8px 16px; margin: 0 0 10px; }
+  .catalog-page .catalog-head h1 { margin-bottom: 4px; }
+  .catalog-page .catalog-head h1 + p { line-height: 1.4; }
+  .catalog-page .catalog-stats { min-height: 32px; }
+  .catalog-page .catalog-sets { margin: -2px -16px 10px; padding: 4px 44px 10px 16px; }
+  .catalog-page .catalog-bar { gap: 8px; margin-bottom: 12px; }
+  .catalog-page .catalog-bar-row { gap: 6px 10px; }
+  .catalog-page .catalog-found { font-size: 13px; }
+  .catalog-page .catalog-search input { min-height: 44px; }
   :is(.catalog-page, .catalog-home .catalog-teaser) .finds-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   :is(.catalog-page, .catalog-teaser) .find-card { border-radius: 16px; }
   :is(.catalog-page, .catalog-teaser) .find-card .find-photo { aspect-ratio: 1; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-content { padding: 10px 10px 12px; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-meta { font-size: 11.5px; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-meta > span:last-child { display: none; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-content .find-title { min-height: 0; margin: 4px 0 8px; font-size: 14.5px; line-height: 1.3; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-content .find-store-price { padding-bottom: 8px; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-store-price > span { font-size: 11.5px; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-store-price b { font-size: 14px; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-content .find-total { padding: 8px 0; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-total > span { font-size: 11.5px; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-total > strong { margin: 2px 0 0; font-size: 17px; letter-spacing: -.03em; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-info { right: -6px; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-parcel { flex-wrap: wrap; gap: 2px 6px; padding: 6px 8px; font-size: 12px; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-limit { font-size: 12px; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-purchase .btn { min-height: 44px; padding: 0 8px; font-size: 14px; }
+  .site-main .find-card .find-content { padding: 10px 10px 12px; }
+  .site-main .find-card .find-meta { font-size: 11.5px; }
+  .site-main .find-card .find-meta > span:last-child { display: none; }
+  .site-main .find-card .find-content .find-title { margin-top: 4px; font-size: 14.5px; line-height: 1.3; }
+  /* The label takes its own line; the price and the pill share the next one (the old price waits for the sheet).
+     A fixed two-line height keeps the totals of a row aligned whatever the price length. */
+  .site-main .find-card .find-content .find-store-price { flex-wrap: wrap; align-content: flex-start; align-items: center; gap: 0 5px; height: 44px; min-height: 0; margin-top: 8px; padding-bottom: 8px; overflow: hidden; }
+  .site-main .find-card .find-store-price > span:first-child { flex-basis: 100%; font-size: 11.5px; }
+  .site-main .find-card .find-store-price > b { font-size: 14px; }
+  .site-main .find-card .find-store-price > del { display: none; }
+  .site-main .find-card .find-store-price > .find-discount { padding: 1px 6px; font-size: 11.5px; }
+  .site-main .find-card .find-content .find-total { padding: 8px 0 0; }
+  .site-main .find-card .find-total-head { min-height: 24px; }
+  .site-main .find-card .find-total-head > span { font-size: 11.5px; }
+  .site-main .find-card .find-info { width: 36px; height: 36px; margin: -6px -8px -6px 0; }
+  .site-main .find-card .find-total > strong { font-size: clamp(15px, 4.4vw, 17px); letter-spacing: -.02em; }
+  .site-main .find-card .find-total > strong .money-unit { font-size: 11px; }
+  .site-main .find-card .find-facts { font-size: 11.5px; }
+  .site-main .find-card .find-chips { gap: 4px; }
+  .site-main .find-card .find-chip { font-size: 11px; padding: 0 7px; }
+  /* One chip fits a phone card. */
+  .site-main .find-card .find-chip + .find-chip { display: none; }
+  .site-main .find-card .find-purchase { padding-top: 10px; }
+  .site-main .find-card .find-purchase .btn { min-height: 44px; padding: 0 8px; font-size: 14px; }
   :is(.catalog-page, .catalog-teaser) .find-card .find-save { width: 44px; height: 44px; top: 6px; right: 6px; }
+  .site-main .find-card.find-card-compact .find-content { padding: 8px 10px 10px; }
+  .site-main .find-card.find-card-compact .find-compact-title { font-size: 13.5px; }
+  .site-main .find-card.find-card-compact .find-compact-price { font-size: 12px; }
+  .site-main .find-card.find-card-compact .find-compact-price .money { font-size: 14.5px; }
+  /* 72px: the 60px cover plus its padding, nothing taller. */
+  .catalog-page .catalog-sets > .catalog-set { width: 196px; min-height: 72px; padding: 6px; grid-template-columns: 60px minmax(0, 1fr); }
 }
 @media (max-width: 760px) {
   .catalog-bar-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
@@ -204,11 +339,23 @@ html[data-theme="dark"] .catalog-search { background: var(--night-inset); }
   .catalog-sort > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .catalog-sort, .catalog-sort select { width: 100%; }
   .catalog-end > div:last-child, .catalog-end .btn { width: 100%; justify-content: center; }
-  .catalog-teaser .find-card:nth-child(n + 5) { display: none; }
   .catalog-teaser > header .btn { width: 100%; justify-content: center; }
+  /* iPhone Safari zooms into a select under 16px (refine.css keeps 14px up to 400px). */
+  .catalog-page .catalog-sort select { font-size: 16px; }
+  /* The scrolling strips fade out at the right edge so the next card peeks through. */
+  .catalog-sets { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); }
 }
 @media (min-width: 761px) {
-  .catalog-categories, .catalog-sets { flex-wrap: wrap; margin: 0; padding: 0; overflow: visible; }
+  .catalog-categories { flex-wrap: wrap; margin: 0; padding: 0; overflow: visible; }
+  /* Sets as a grid of tiles with the collage on top. */
+  .catalog-sets { display: grid; grid-template-columns: repeat(auto-fill, minmax(164px, 1fr)); gap: 12px; margin: 0 0 18px; padding: 0; overflow: visible; }
+  .catalog-page .catalog-sets > .catalog-set { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto; row-gap: 0; width: auto; min-height: 0; padding: 8px 8px 10px; }
+  .catalog-page .catalog-sets > .catalog-set > b { margin-top: 8px; padding: 0 2px; font-size: 14.5px; }
+  .catalog-page .catalog-sets > .catalog-set > span:last-child { padding: 0 2px; }
+  .catalog-set-cover { grid-row: auto; gap: 3px; padding: 6px; }
+}
+@media (min-width: 761px) and (max-width: 1023px) {
+  .finds-grid-compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (min-width: 1024px) {
   .catalog-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 32px; align-items: start; }
@@ -216,6 +363,10 @@ html[data-theme="dark"] .catalog-search { background: var(--night-inset); }
   .catalog-sidebar { position: sticky; top: 16px; display: block; max-height: calc(100vh - 32px); padding-right: 4px; overflow: auto; }
   .catalog-facets-button { display: none; }
   .catalog-page .finds-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+/* Beside the sidebar a third column would leave ~170px for the price line and an eight-digit total: two columns until 1150px. */
+@media (min-width: 1024px) and (max-width: 1150px) {
+  .catalog-page .finds-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* Magnet only at the ends of the catalog (owner, 6 October 2026): the top settles either on the page start or
@@ -227,3 +378,20 @@ html[data-theme="dark"] .catalog-search { background: var(--night-inset); }
   html:has(.catalog-page) .catalog-page .catalog-bar { scroll-snap-align: start; scroll-margin-top: 8px; }
   html:has(.catalog-page) :is(.site-footer, .home-footer) { scroll-snap-align: end; }
 }
+
+/* ---------- Night ---------- */
+/* The new marks keep the graphite card colours; photo plates stay ivory, as everywhere in Atlas Night. */
+html[data-theme="dark"] .catalog-set-cover { border-color: transparent; }
+html[data-theme="dark"] .catalog-page .catalog-sets > .catalog-set { box-shadow: none; }
+html[data-theme="dark"] .catalog-page .catalog-sets > .catalog-set[aria-pressed="true"] { border-color: var(--night-jade); box-shadow: inset 0 0 0 1px var(--night-jade); }
+html[data-theme="dark"] .site-main .find-card .find-store-price > .find-discount { border-color: var(--cat-ok-line); background: var(--cat-ok-bg); color: var(--cat-ok); }
+html[data-theme="dark"] .site-main .find-card .find-total > strong { color: var(--night-ivory-hi); }
+html[data-theme="dark"] .site-main .find-card .find-info:hover, html[data-theme="dark"] .site-main .find-card .find-info[data-state="open"] { background: var(--night-hover); }
+html[data-theme="dark"] .site-main .find-card .find-chip[data-tone="neutral"] { border-color: var(--night-line-strong); color: var(--night-muted); }
+html[data-theme="dark"] .find-breakdown-popover { box-shadow: var(--night-shadow-pop); }
+html[data-theme="dark"] .catalog-page .catalog-banner.catalog-banner-parcel { border-color: var(--night-line-strong); background: var(--night-raised); }
+html[data-theme="dark"] .product-sheet .sheet-handle { background: var(--night-line-strong); }
+html[data-theme="dark"] .product-sheet.product-sheet-bottom .sheet-total { border-color: var(--night-line-strong); background: var(--night-raised); }
+html[data-theme="dark"] .product-sheet .sheet-speed { border-color: var(--night-line-strong); background: var(--night-inset); }
+html[data-theme="dark"] .product-sheet .sheet-speed > button[aria-pressed="true"] { border-color: var(--night-line-strong); background: var(--night-raised); box-shadow: none; }
+html[data-theme="dark"] .site-main .find-card.find-card-compact .find-compact-price .money { color: var(--night-ivory-hi); }

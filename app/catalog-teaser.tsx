@@ -14,10 +14,13 @@ import { CatalogCard } from './catalog-card';
 
 /** The home page shows a teaser from this many catalog products; the full list lives on /catalog. */
 export const teaserMinimum = 4;
+/** Below this many products the link reads "Full catalog" without a count that would only underline how few there are. */
+const countFrom = 12;
 
 /**
- * One horizontal row of up to 8 recommended products on the home page with a link to the whole catalog.
- * Phones swipe the row; wider screens also get ‹ › buttons that move it by one screen of cards.
+ * One horizontal row of up to 8 recommended products (compact cards: photo, name, store price → total)
+ * on the home page with a link to the whole catalog. The order is the storefront's: the operator's position,
+ * then a confirmed price, then the larger discount. Phones swipe the row; wider screens also get ‹ › buttons.
  */
 export function CatalogTeaser({ select }: { select: (product: Product) => void }) {
   const { state, pricing, ready, act, catalogProducts } = useMarket();
@@ -53,7 +56,7 @@ export function CatalogTeaser({ select }: { select: (product: Product) => void }
     try { await act({ type: 'favorite', id: product.id }); } finally { setSaving(null); }
   }
   return <TooltipProvider delayDuration={300}><section className="catalog-teaser finds-page" id="finds" aria-labelledby="finds-title">
-    <header><div><h2 id="finds-title">{cc.teaserTitle}</h2><p>{cc.teaserIntro}</p></div><div className="finds-actions"><Link className="btn secondary" href="/catalog">{cc.viewAll(items.length)}<ArrowRight size={17} aria-hidden="true" /></Link>{edges.scrolls && <span className="finds-pager"><button type="button" className="icon-btn" aria-label={cc.teaserPrev} aria-controls={gridId} disabled={edges.start} onClick={() => page(-1)}><ChevronLeft size={20} aria-hidden="true" /></button><button type="button" className="icon-btn" aria-label={cc.teaserNext} aria-controls={gridId} disabled={edges.end} onClick={() => page(1)}><ChevronRight size={20} aria-hidden="true" /></button></span>}</div></header>
-    <div className="finds-grid" id={gridId} ref={grid}>{shown.map((item) => <CatalogCard key={item.product.id} item={item} locale={locale} select={select} saved={state.favorites.includes(item.product.id)} canSave={ready} saving={saving !== null} onSave={() => void save(item.product)} />)}</div>
+    <header><div><h2 id="finds-title">{cc.teaserTitle}</h2><p>{cc.teaserIntro}</p></div><div className="finds-actions"><Link className="btn secondary" href="/catalog">{items.length >= countFrom ? cc.viewAll(items.length) : cc.viewAllShort}<ArrowRight size={17} aria-hidden="true" /></Link>{edges.scrolls && <span className="finds-pager"><button type="button" className="icon-btn" aria-label={cc.teaserPrev} aria-controls={gridId} disabled={edges.start} onClick={() => page(-1)}><ChevronLeft size={20} aria-hidden="true" /></button><button type="button" className="icon-btn" aria-label={cc.teaserNext} aria-controls={gridId} disabled={edges.end} onClick={() => page(1)}><ChevronRight size={20} aria-hidden="true" /></button></span>}</div></header>
+    <div className="finds-grid finds-grid-compact" id={gridId} ref={grid}>{shown.map((item) => <CatalogCard key={item.product.id} item={item} locale={locale} select={select} variant="compact" saved={state.favorites.includes(item.product.id)} canSave={ready} saving={saving !== null} onSave={() => void save(item.product)} />)}</div>
   </section></TooltipProvider>;
 }

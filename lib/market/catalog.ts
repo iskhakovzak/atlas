@@ -3,7 +3,12 @@ import {communityCatalogProducts} from './community-deals.ts';
 
 // Editorial snapshots from the linked official US product pages, not an inventory feed.
 // Prices/options must be fetched and confirmed in the link-order flow before checkout.
-export type MerchantFind = Product & { store: string; observedOn: string; referenceUsd?: number; collectionIds?: string[]; /** When the card was published (for "newest first"). */ addedAt?: number };
+export type MerchantFind = Product & {
+  store: string; observedOn: string; referenceUsd?: number; collectionIds?: string[];
+  /** When the card was published (for "newest first"). */ addedAt?: number;
+  /** Operator-set position on the showcase: lower comes first; cards without one follow. */ rank?: number;
+  /** The operator confirmed stock themselves (for example by opening the store page) without a store response. */ confirmedAt?: number;
+};
 export function catalogOrderVariants(product:Product){
   if(product.sourceVariants?.length)return product.sourceVariants;
   if(product.priceNeedsConfirmation)return [];
