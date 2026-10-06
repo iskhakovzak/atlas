@@ -506,7 +506,7 @@ a.lo-source-host:hover span { text-decoration: underline; text-underline-offset:
 .lo-stepper button:focus-visible { outline: 2px solid var(--home-accent); outline-offset: -2px; border-radius: 10px; }
 .lo-stepper output { min-width: 28px; color: var(--home-ink); font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; }
 .lo-single-option { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; padding: 12px 14px; border: 1px solid var(--home-line); border-radius: 14px; }
-.lo-single-option > span { display: grid; gap: 2px; min-width: 0; }
+.lo-single-option > span:not(.lo-stepper) { display: grid; gap: 2px; min-width: 0; }
 .lo-single-option small { color: var(--home-muted); font-size: 12.5px; font-weight: 600; }
 .lo-single-option b { color: var(--home-ink); font-size: 16px; overflow-wrap: anywhere; }
 .lo-stock { color: var(--home-muted); font-size: 12.5px; font-style: normal; font-weight: 600; }

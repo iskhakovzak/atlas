@@ -112,6 +112,47 @@ function OptionChips({ variants, picked, k, onToggle }: { variants: ProductVaria
   </button>)}</div>;
 }
 
+/**
+ * While the store is being asked, in place of the option picker: what is happening and what comes next.
+ * Only the first step moves on by time (the request to the store is out); the price is never shown as checked before the answer.
+ */
+function StoreCheck({ host, locale }: { host: string; locale: string }) {
+  const [step, setStep] = useState(0);
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const timers = [window.setTimeout(() => setStep(1), 1200), window.setTimeout(() => setSlow(true), 9000)];
+    return () => timers.forEach(window.clearTimeout);
+  }, []);
+  const tx = (ru: string, uz: string, en: string) => locale === "ru" ? ru : locale === "uz" ? uz : en;
+  const store = host || tx("магазина", "do‘kon", "store");
+  const steps = [
+    tx(`Открываем страницу ${store}`, `${store} sahifasini ochyapmiz`, `Opening the ${store} page`),
+    tx("Сверяем цену и варианты", "Narx va variantlarni solishtiryapmiz", "Checking the price and options"),
+    tx("Считаем итог с доставкой в Узбекистан", "O‘zbekistonga yetkazish bilan jamini hisoblaymiz", "Working out the total with delivery to Uzbekistan"),
+  ];
+  return <section className="lo-card lo-variant lo-check" role="status" aria-live="polite">
+    <div className="lo-check-head">
+      <span className="lo-check-orb" aria-hidden="true"><Loader2 className="spin" size={20} /></span>
+      <span><b>{tx("Проверяем товар в магазине", "Tovarni do‘konda tekshiryapmiz", "Checking the item with the store")}</b>
+        <small>{slow ? tx("Магазин отвечает дольше обычного — подождите ещё немного.", "Do‘kon odatdagidan sekinroq javob bermoqda — biroz kuting.", "The store is slower than usual — please wait a little longer.") : tx("Обычно это занимает несколько секунд.", "Odatda bu bir necha soniya oladi.", "This usually takes a few seconds.")}</small></span>
+    </div>
+    <ol className="lo-check-steps">{steps.map((label, index) => <li key={index} data-state={index < step ? "done" : index === step ? "current" : "next"}>
+      <span className="lo-check-mark" aria-hidden="true">{index < step && <Check size={13} strokeWidth={3} />}</span>{label}
+    </li>)}</ol>
+    <div className="lo-check-bar" aria-hidden="true"><i /></div>
+  </section>;
+}
+
+/** The bill's outline while the price is checked, so the total does not jump in from nowhere. */
+function BillPlaceholder() {
+  return <div className="lo-skel-bill" aria-hidden="true">
+    <div><span className="lo-skel" /><span className="lo-skel" /></div>
+    <div><span className="lo-skel" /><span className="lo-skel" /></div>
+    <div><span className="lo-skel" /><span className="lo-skel" /></div>
+    <div className="lo-skel-total"><span className="lo-skel" /><span className="lo-skel" /></div>
+  </div>;
+}
+
 export function GlobalLinkOrder() {
   const { ready, status, pricing, state, act, lastActionError, catalogProducts, loadCatalog } = useMarket();
   // Express by default; a cart that already chose standard keeps it, since the added line inherits the cart's speed.
@@ -186,6 +227,10 @@ export function GlobalLinkOrder() {
   const [weightBasis, setWeightBasis] = useState<"store" | "estimate" | "title" | "catalog" | "customer">(seed ? "catalog" : "estimate");
   const [added, setAdded] = useState<{ lines: number; units: number } | null>(null);
   const automaticallyLoaded = useRef<string | null>(null);
+  const autoLoadKey=`${catalogId}:${requestedUrl}`;
+  const [autoLoadStarted,setAutoLoadStarted]=useState("");
+  // From the first frame until the store answers the page keeps its shape: the product stays, the rest waits in placeholders.
+  const checking=busy||(Boolean(requestedUrl)&&autoLoadStarted!==autoLoadKey);
   const [catalogContextLoaded,setCatalogContextLoaded]=useState<string|null>(()=>catalogId?null:'');
   const draftStorageKey=`atlas:link-order:${catalogId?'catalog:'+catalogId:requestedUrl||'manual'}`;
   const draftRestored=useRef(false),draftCanSkipAutomaticLoad=useRef(false),draftPersistenceReady=useRef(false);
@@ -544,8 +589,9 @@ export function GlobalLinkOrder() {
     }
   }
   useEffect(() => {
-    const loadKey=`${catalogId}:${requestedUrl}`;
+    const loadKey=autoLoadKey;
     if (!requestedUrl || (catalogId&&catalogContextLoaded!==catalogId) || automaticallyLoaded.current === loadKey) return;
+    setAutoLoadStarted(loadKey);
     if(draftRestored.current&&draftCanSkipAutomaticLoad.current){
       automaticallyLoaded.current=loadKey;
       setShowSourceForm(false);
@@ -626,7 +672,7 @@ export function GlobalLinkOrder() {
   const dataSummary = [countryText, amount ? `${amount} ${currency}` : "", validBoxedWeight(weight) !== undefined ? `${weight} ${lc.kg}` : "", shippingEstimated ? `${lc.shippingReserve} ${shipping} ${shippingCurrency}` : lc.storeShipping(`${shipping} ${shippingCurrency}`)].filter(Boolean).join(" · ");
   return (
     <div className="lo-page">
-      <header className="orders-head"><div><h1>{lc.title}</h1><p>{source && !busy ? lc.leadLoaded : lc.lead}</p></div></header>
+      <header className="orders-head"><div><h1>{lc.title}</h1><p>{(source || isSourcedFlow) && !showSourceForm ? lc.leadLoaded : lc.lead}</p></div></header>
 
       {(showSourceForm || !requestedUrl) && <form className="lo-link" onSubmit={(e) => { e.preventDefault(); void load(); }} aria-busy={busy}>
         <label className="sr-only" htmlFor="source-url">{lc.label}</label>
@@ -654,11 +700,11 @@ export function GlobalLinkOrder() {
       {(showSourceForm || !requestedUrl) && !source && !busy && <><div className="lo-hints"><p>{lc.hint}</p><div className="home-hero-links"><Link href="/stores">{lc.stores}</Link><Link href="/batch-import">{lc.batch}</Link></div></div><BlankBill pricing={pricing} locale={lang}/></>}
 
       {(isSourcedFlow || source) && !showSourceForm && <div className="lo-source" aria-live="polite">
-        {source && !busy
+        {source && !checking
           ? <a className="lo-source-host" href={source} target="_blank" rel="noopener noreferrer" title={source}><Link2 size={16} aria-hidden="true" /><span>{sourceShort}</span><ExternalLink size={13} aria-hidden="true" /><span className="sr-only"> ({lc.openStore})</span></a>
           : <span className="lo-source-host"><Link2 size={16} aria-hidden="true" /><span>{sourceShort}</span></span>}
-        {busy ? <span className="lo-source-loading" role="status"><Loader2 className="spin" size={16} aria-hidden="true" />{lc.loading}</span>
-          : <button type="button" className="lo-source-link" onClick={() => setShowSourceForm(true)}>{lc.change}</button>}
+        {/* The check itself is told in the card below; here only the way back to another link, once it is done. */}
+        {!checking && <button type="button" className="lo-source-link" onClick={() => setShowSourceForm(true)}>{lc.change}</button>}
       </div>}
 
       {added && <div className="lo-added" role="status">
@@ -671,15 +717,16 @@ export function GlobalLinkOrder() {
       </div>}
       {!ready && <p className="lo-guest">{lc.guest}</p>}
       {note && !source && <div className="notice" role="status"><p>{note}</p></div>}
-      {busy && <div className="basket-loading lo-loading" role="status"><Loader2 className="spin" size={18} aria-hidden="true" /> {lc.loading}</div>}
 
-      {source && !busy && (
+      {(source || checking) && (
         <form
           id="link-order-form"
-          className="lo-layout link-order-data-form"
+          className={"lo-layout link-order-data-form" + (checking ? " is-checking" : " is-ready")}
           noValidate
+          aria-busy={checking}
           onSubmit={async (e) => {
             e.preventDefault();
+            if (checking) return;
             try {
               if(sourceCheckStatus==='checking'||sourceCheckStatus==='idle'){
                 const message=tx('Загрузка ещё не завершилась. Дождитесь результата или вставьте ссылку повторно.','Yuklash hali tugamadi. Natijani kuting yoki havolani qayta kiriting.','Import has not finished. Wait for the result or enter the link again.');
@@ -792,19 +839,25 @@ export function GlobalLinkOrder() {
           }}
         >
           <div className="lo-sheet lo-sheet-pick">
-          <section className={"lo-product" + (image ? "" : " lo-product-plain")} aria-labelledby="lo-product-name">
-            {image && <div className="lo-gallery"><ProductGallery product={previewProduct} images={images.length?images:[image]} activeImage={image} onImageChange={setImage} locale={lang}/></div>}
+          <section className={"lo-product" + (image || checking ? "" : " lo-product-plain")} aria-labelledby="lo-product-name">
+            {/* A catalog product keeps its photo and name through the check; a bare link gets their outline. */}
+            {image ? <div className="lo-gallery"><ProductGallery product={previewProduct} images={images.length?images:[image]} activeImage={image} onImageChange={setImage} locale={lang}/></div>
+              : checking && <div className="lo-gallery lo-skel lo-skel-photo" aria-hidden="true" />}
             <div className="lo-product-copy">
-              <p className="basket-brand">{[brand, sourceHost && brand !== sourceHost ? sourceHost : ""].filter(Boolean).join(" · ")}</p>
-              <h2 id="lo-product-name">{name || (sourceCheckStatus === "failed" ? lc.unnamed : c.empty)}</h2>
-              <p className="lo-store-price">{lc.storePrice}: <b>{storePriceText}</b>{discount && <WasPrice was={discount.was} percent={discount.percent} format={sourceFormat} />}{sourceCheckStatus === "verified" && checkedTime && <small> · {lc.checkedAt(checkedTime)}</small>}</p>
-              {sourceCheckStatus === "failed" && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{catalogProductFlow && amount
+              {brand || sourceHost || !checking
+                ? <p className="basket-brand">{[brand, sourceHost && brand !== sourceHost ? sourceHost : ""].filter(Boolean).join(" · ")}</p>
+                : <span className="lo-skel lo-skel-brand" aria-hidden="true" />}
+              <h2 id="lo-product-name">{name || (checking ? <><span className="sr-only">{c.get}</span><span className="lo-skel lo-skel-title" aria-hidden="true" /></> : sourceCheckStatus === "failed" ? lc.unnamed : c.empty)}</h2>
+              {checking
+                ? <p className="lo-store-price">{lc.storePrice}: <span className="lo-skel lo-skel-price" aria-hidden="true" /></p>
+                : <p className="lo-store-price lo-reveal">{lc.storePrice}: <b>{storePriceText}</b>{discount && <WasPrice was={discount.was} percent={discount.percent} format={sourceFormat} />}{sourceCheckStatus === "verified" && checkedTime && <small> · {lc.checkedAt(checkedTime)}</small>}</p>}
+              {!checking && sourceCheckStatus === "failed" && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{catalogProductFlow && amount
                 ? tx('Магазин не подтвердил все данные, поэтому расчёт сделан по сохранённой цене каталога. Atlas сверит цену с магазином перед выкупом. Проверьте вариант и подтвердите данные.','Do‘kon barcha ma’lumotlarni tasdiqlamadi, shuning uchun hisob katalogdagi saqlangan narx bo‘yicha qilindi. Atlas xariddan oldin narxni do‘kon bilan solishtiradi. Variantni tekshirib, ma’lumotlarni tasdiqlang.','The store did not confirm every detail, so the estimate uses the saved catalog price. Atlas checks the price with the store before buying. Review the option and confirm the details.')
                 : lc.unconfirmed}</p>}
             </div>
           </section>
 
-          <section className="lo-card lo-variant">
+          {checking ? <StoreCheck host={(() => { try { return new URL(source || url).hostname.replace(/^www\./, ""); } catch { return ""; } })()} locale={lang} /> : <section className="lo-card lo-variant">
             <div className="field variant-matrix" data-order-variant tabIndex={-1}>
               <label htmlFor="variant">{c.variant}</label>
               {variants.length===1 ? <div className="single-variant-selection lo-single-option">
@@ -840,7 +893,7 @@ export function GlobalLinkOrder() {
               })}</ul>}
             </>}
             {variants.length > 0 && !variants.some(item => item.quantity !== undefined || item.quantityMoreThan !== undefined) && <p className="lo-hint-line muted">{k.stockUnknown}</p>}
-          </section>
+          </section>}
           </div>
 
           {/* The bill in a folder: the sheet is the amount to pay, the slip holds the hold and customs that stay outside it. */}
@@ -848,7 +901,7 @@ export function GlobalLinkOrder() {
           <aside className="lo-summary basket-summary folio" aria-labelledby="lo-summary-title">
             <div className="folio-sheet">
               <h2 id="lo-summary-title">{lc.total}</h2>
-              {previewSums ? <>
+              {checking ? <BillPlaceholder /> : previewSums ? <>
                 <DeliverySpeedSwitch value={previewSpeed} options={speedOptions} locale={lang} note={speedNote} compact onChange={(next) => { speedTouched.current = true; setPreviewSpeed(next); }}/>
                 <CalcLines sums={previewSums} locale={lang} pricing={pricing} weightKg={previewWeight} storeShippingState={storeShippingState} speed={previewSpeed}/>
                 <div className="basket-total bill-total"><span>{units > 1 ? `${k.lines.total} (${units} ${lang === "en" ? "pcs" : lang === "uz" ? "dona" : "шт."})` : k.lines.total}</span><strong><Money value={previewSums.total} locale={lang}/></strong></div>
@@ -856,14 +909,14 @@ export function GlobalLinkOrder() {
                 {customsPreview && <CustomsPanel estimate={customsPreview} choices={{ outsideUsed: false, help: false }} locale={lang} pricing={pricing} profiles={primaryProfile ? [primaryProfile] : []} compact/>}
               </> : <p className="cabinet-empty">{picks.length ? lc.emptyTotal : tx("Выберите вариант, и мы покажем итог.", "Variantni tanlang, jamini ko‘rsatamiz.", "Choose an option to see the total.")}</p>}
             </div>
-            {previewSums && previewSums.storeShippingHold > 0 && <section className="folio-outside" aria-labelledby="lo-outside-title">
+            {!checking && previewSums && previewSums.storeShippingHold > 0 && <section className="folio-outside" aria-labelledby="lo-outside-title">
               <h3 id="lo-outside-title">{k.outside}</h3>
               <HoldNote amount={previewSums.storeShippingHold} locale={lang} pricing={pricing}/>
             </section>}
           </aside>
           </div>
 
-          <div className="lo-sheet lo-sheet-finish">
+          {!checking && <div className="lo-sheet lo-sheet-finish">
           <section className={"lo-card lo-data" + (dataExpanded ? " open" : "")}>
             <button type="button" className="lo-data-toggle" aria-expanded={dataExpanded} aria-controls="lo-data-fields" onClick={() => setDataOpen(!dataExpanded)}>
               <span><b>{lc.data}</b><small>{!dataExpanded ? dataSummary : sourceCheckStatus === "verified" ? lc.dataHint : lc.fillFromStore}</small></span>
@@ -979,16 +1032,17 @@ export function GlobalLinkOrder() {
               <Checkbox id="data-verified" checked={verified} onCheckedChange={(v) => setVerified(v === true)} />
               <label htmlFor="data-verified">{c.verified}</label>
             </div>
-            <button className="btn primary basket-cta" disabled={adding || status==='loading'}>{adding ? c.adding : ready ? k.addOptions(Math.max(1, picks.length), Math.max(1, units)) : lc.signinAdd}<ArrowRight size={18} aria-hidden="true" /></button>
+            <button className="btn primary basket-cta" disabled={adding || status==='loading'}>{adding && <Loader2 className="spin" size={18} aria-hidden="true" />}{adding ? c.adding : ready ? k.addOptions(Math.max(1, picks.length), Math.max(1, units)) : lc.signinAdd}{!adding && <ArrowRight size={18} aria-hidden="true" />}</button>
             <ul className="basket-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{cc.summary.assurance}</li><li>{sourceCheckStatus === "verified" ? <ShieldCheck size={16} aria-hidden="true" /> : <Info size={16} aria-hidden="true" />}{sourceCheckStatus === "verified" ? checkedText : c.freshText}</li></ul>
           </section>
-          </div>
+          </div>}
         </form>
       )}
 
-      {source && !busy && <div className={"basket-sticky lo-sticky" + (ready ? "" : " guest")} role="region" aria-label={lc.total}>
-        <div><span>{k.lines.total}</span><strong>{previewSums ? formatSum(previewSums.total, lang) : "—"}</strong></div>
-        <button type="submit" form="link-order-form" className="btn primary" disabled={adding || status==='loading'}>{ready ? (adding ? c.adding : lc.addShort) : lc.signinAdd}<ArrowRight size={18} aria-hidden="true" /></button>
+      {/* On phones the total bar stays put through the check, so the page does not jump when the price arrives. */}
+      {(source || checking) && <div className={"basket-sticky lo-sticky" + (ready ? "" : " guest")} role="region" aria-label={lc.total}>
+        <div><span>{k.lines.total}</span><strong>{checking ? <span className="lo-skel lo-skel-sum" aria-hidden="true" /> : previewSums ? formatSum(previewSums.total, lang) : "—"}</strong></div>
+        <button type="submit" form="link-order-form" className="btn primary" disabled={checking || adding || status==='loading'}>{(checking || adding) && <Loader2 className="spin" size={18} aria-hidden="true" />}{checking ? tx("Проверяем…", "Tekshiryapmiz…", "Checking…") : ready ? (adding ? c.adding : lc.addShort) : lc.signinAdd}{!checking && !adding && <ArrowRight size={18} aria-hidden="true" />}</button>
       </div>}
     </div>
   );
