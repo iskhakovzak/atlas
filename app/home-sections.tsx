@@ -108,6 +108,7 @@ export function ExampleQuote(){
  const {pricing}=useMarket();
  const {locale,c}=useHomeCopy();
  const {quote,parts}=useExampleBill();
+ const packed=combinedShipmentWeight(exampleBoxedKg);
  const fee=formatPercent(pricing.margin+pricing.buyoutFee+pricing.conversionFee,locale);
  const markup=formatPercent((pricing.fxMarkup??1.012)-1,locale);
  const cbu=pricing.fxSource==='cbu'&&Boolean(pricing.fxCbuRate);
