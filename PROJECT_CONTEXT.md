@@ -752,3 +752,11 @@ Parent variation listings rejected by the legacy Browse endpoint with HTTP 400 n
 
 Added only the exact `shop.simon.com` storefront to the importer allowlist and US store directory. Its public Shopify product/currency endpoints use the existing anonymous, bounded pipeline; color, Shoe Size, per-variant price/stock and galleries are retained. The NYC proxy allowlist was updated with exactly this one host (no removals), backed up and restarted successfully. Local live checks: Nike toddler Dunk USD 60, four variants/one available/two photos; NVLT crochet jacket USD 229, ten available variants/four photos. Two older adidas URLs returned zero available variants and must not be labelled in stock. Production UI verification is still a release check. No account/cart/order schema or tariff change.
 
+
+## Cart and order messages, favourites — 7 October 2026
+
+- Each cart/order message now says one thing in one place. Cart: free store delivery is only the bill line (the parcel note is gone); an unknown store delivery is a short status under the parcel ("уточняется, ещё $X — бесплатно"), the hold amount stays in "Не входит в сумму к оплате" without repeating the bill line's help; "Atlas оплатит таможню за меня" when chosen says "Поручение принято…" instead of repeating the fee amount already in the bill.
+- Orders: the payment-pending note is said once (the action block); the payment row shows only the status and id while it is pending; the passport banner keeps its action and link without the payment sentence; customs is one note — the settled duty, else the status of the customer's "Atlas pays customs" request (with or without expected duty), else the estimate.
+- Favourites: an empty heart means not saved, a filled heart on a green circle means saved; a saved catalog card has a thin green frame and soft green tint (both themes).
+- Cart: catalog products get "В избранное" (keeps the line) and "Отложить в избранное" (saves, then removes). "Удалить" is a small red button; options of one product sit together, each with "Удалить вариант", plus "Удалить товар · все варианты (N)" under them.
+- Link order: a cart entry with the unit count sits beside "Добавить в корзину" and in the phone total bar; the count bumps after an add, the existing banner on top confirms it.

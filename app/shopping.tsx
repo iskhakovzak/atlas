@@ -3,7 +3,7 @@ import { capitalizeFirst, capitalizeWords } from "@/lib/market/text-case";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "@/components/site-link";
-import { ArrowRight, ArrowUpRight, BadgeCheck, Check, ClipboardPaste, Clock3, Info, Loader2, MessageSquare, Minus, Plus, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ClipboardPaste, Clock3, Heart, Info, Loader2, MessageSquare, Minus, Plus, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
 import { balanceOf, cartDeliverySpeed, cartSignature, isPostalCode, maxLineQuantity, storeDiscount, merchantParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
@@ -24,6 +24,24 @@ import { UzPhoneInput } from "./phone-input";
 import { toast } from "sonner";
 import { usePendingCartAdd } from "./pending-cart-add";
 import { pendingCartFreshMs } from "@/lib/market/link-order-draft";
+import { sameCatalogProduct } from "@/lib/market/catalog-query";
+
+/** Favourites and removal in the cart: saving keeps the line; "save for later" saves and then removes it. */
+const keepCopy = {
+  ru: { save: "В избранное", saved: "В избранном", later: "Отложить в избранное", laterDone: "Отложено в избранное", removeVariant: "Удалить вариант", removeGroup: (n: number) => `Удалить товар · все варианты (${n})` },
+  uz: { save: "Saralanganlarga", saved: "Saralanganlarda", later: "Saralanganlarga qoldirish", laterDone: "Saralanganlarga qoldirildi", removeVariant: "Variantni o‘chirish", removeGroup: (n: number) => `Tovarni o‘chirish · barcha variantlar (${n})` },
+  en: { save: "Save", saved: "Saved", later: "Save for later", laterDone: "Moved to favourites", removeVariant: "Remove option", removeGroup: (n: number) => `Remove item · all options (${n})` },
+};
+
+/** Lines of the same product (one source page, several options) side by side, in the order they were added. */
+function productGroups(items: CartItem[]) {
+  const groups: CartItem[][] = [];
+  for (const item of items) {
+    const group = groups.find(entry => sameCatalogProduct({ id: "", sourceUrl: entry[0].product.sourceUrl }, { id: "-", sourceUrl: item.product.sourceUrl }));
+    if (group && item.product.sourceUrl) group.push(item); else groups.push([item]);
+  }
+  return groups;
+}
 
 /** More than one dispatch country in the cart: the speed note says it applies to every parcel. */
 const parcelsDiffer = (countries: string[]) => new Set(countries).size > 1;
@@ -121,7 +139,10 @@ function CheckoutSteps({ current, c }: { current: number; c: CartCopy }) {
 }
 
 export function CartView() {
-  const { state, act, lastActionError, ready, error, user, pricing } = useMarket();
+  const { state, act, lastActionError, ready, error, user, pricing, catalogProducts, loadCatalog } = useMarket();
+  const [favoriteBusy, setFavoriteBusy] = useState("");
+  // Favourites hold catalog products: a cart line can be saved when it is a product from the Atlas catalog.
+  useEffect(() => { if (ready && state.cart.length) void loadCatalog(); }, [ready, state.cart.length, loadCatalog]);
   const [useBalance, setUseBalance] = useState(false);
   const [consent, setConsent] = useState(false);
   const [consentError, setConsentError] = useState(false);
@@ -225,7 +246,6 @@ export function CartView() {
   const speedDays = (country: string) => { const range = daysRangeFor(pricing, [country], speed); return range ? deliverySpeedCopy[locale].days(range[0], range[1]) : ""; };
   // Store orders whose delivery price is unknown: a separate hold up to the threshold, free above it.
   const reserves = storeShippingReserves(state.cart, pricing);
-  const freeFrom = usd(pricing.storeShippingFreeFromUsd ?? 50, locale);
   // Same grouping as the server's parcel allocation: one store and one origin country share a parcel.
   const parcels = state.cart.reduce<{ key: string; title: string; country: string; origin: string; items: CartItem[] }[]>((groups, item) => {
     const key = merchantParcelKey(item);
@@ -283,7 +303,19 @@ export function CartView() {
     return () => window.clearTimeout(fallback);
   }, [placedKey, state.orders]);
 
-  function renderItem(item: CartItem) {
+  const kc = keepCopy[locale];
+  const catalogMatch = (item: CartItem) => catalogProducts.find((product) => sameCatalogProduct(item.product, product));
+  async function toggleFavorite(id: string) {
+    if (favoriteBusy) return false;
+    setFavoriteBusy(id);
+    try { return await act({ type: "favorite", id }); } finally { setFavoriteBusy(""); }
+  }
+  async function saveForLater(item: CartItem, id: string) {
+    if (!state.favorites.includes(id) && !await toggleFavorite(id)) return;
+    if (await act({ type: "cart-remove", id: item.id })) toast.success(kc.laterDone, { action: { label: kc.saved, onClick: () => window.location.assign("/favorites") } });
+  }
+
+  function renderItem(item: CartItem, siblings = 1) {
     const selectedServices = item.requestedServiceIds ?? [];
     const serviceUnits = item.requestedServiceUnits ?? {};
     const meta = [shownVariant(item.variant), countryLabel(countryName(item.product), locale)].filter(Boolean).join(" · ");
@@ -312,7 +344,16 @@ export function CartView() {
         <TriangleAlert size={16} aria-hidden="true" /><span>{c.item.issues[issue.kind]}{issue.kind !== "unreachable" && reopen && <> <Link href={reopen}>{c.item.reload}</Link></>}</span></p>}
       <div className="basket-controls">
         <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity })} />
-        <SafeDeleteButton label={c.item.remove} itemName={item.product.name} locale={locale} onConfirm={() => act({ type: "cart-remove", id: item.id })} />
+        <SafeDeleteButton label={siblings > 1 ? kc.removeVariant : c.item.remove} itemName={[item.product.name, shownVariant(item.variant)].filter(Boolean).join(" · ")} locale={locale} onConfirm={() => act({ type: "cart-remove", id: item.id })} />
+        {(() => {
+          const match = catalogMatch(item);
+          if (!match) return null;
+          const saved = state.favorites.includes(match.id), busyHere = favoriteBusy === match.id;
+          return <div className="basket-keep">
+            <button type="button" className={"basket-keep-save" + (saved ? " saved" : "")} aria-pressed={saved} disabled={Boolean(favoriteBusy)} aria-busy={busyHere || undefined} onClick={() => void toggleFavorite(match.id)}><Heart size={16} aria-hidden="true" />{saved ? kc.saved : kc.save}</button>
+            <button type="button" className="basket-keep-later" disabled={Boolean(favoriteBusy)} onClick={() => void saveForLater(item, match.id)}><Bookmark size={16} aria-hidden="true" />{kc.later}</button>
+          </div>;
+        })()}
       </div>
       <ItemNote key={`${item.id}:${item.note ?? ""}`} item={item} locale={locale} save={(note) => act({ type: "cart-note", id: item.id, note })} />
       {checkoutServices.length > 0 && <details className="basket-services">
@@ -389,10 +430,13 @@ export function CartView() {
           const reserve = reserves.find(entry => parcel.items.some(item => entry.itemIds.includes(item.id)));
           return <section className="basket-parcel" key={parcel.key} aria-label={parcel.title}>
             <h2 className="basket-parcel-title"><Store size={16} aria-hidden="true" /><span>{parcel.title}</span><small>{[parcel.country, speedDays(parcel.origin)].filter(Boolean).join(" · ")}</small></h2>
-            {parcel.items.map(renderItem)}
-            {reserve && <p className={"basket-parcel-note" + (reserve.reserveUsd ? "" : " ok")}>
-              {reserve.reserveUsd ? <Truck size={16} aria-hidden="true" /> : <Check size={16} aria-hidden="true" />}
-              <span>{reserve.reserveUsd ? c.item.parcelReserve(usd(reserve.missingUsd, locale), usd(reserve.reserveUsd, locale)) : c.item.parcelFree(freeFrom)}</span>
+            {productGroups(parcel.items).map(group => group.length === 1 ? renderItem(group[0]) : <div className="basket-group" key={group[0].id}>
+              {group.map(item => renderItem(item, group.length))}
+              <div className="basket-group-foot"><SafeDeleteButton label={kc.removeGroup(group.length)} itemName={group[0].product.name} locale={locale} onConfirm={async () => { for (const item of group) if (!await act({ type: "cart-remove", id: item.id })) return false; return true; }} /></div>
+            </div>)}
+            {/* Only an open question goes here; free store delivery is its own line in the bill. */}
+            {reserve && reserve.reserveUsd > 0 && <p className="basket-parcel-note">
+              <Truck size={16} aria-hidden="true" /><span>{c.item.parcelReserve(usd(reserve.missingUsd, locale))}</span>
             </p>}
           </section>;
         })}

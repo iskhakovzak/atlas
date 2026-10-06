@@ -52,7 +52,6 @@ html[data-theme="dark"] {
 /* Store-delivery reserve of this store order: how to drop it, or that it is not taken. */
 .basket-parcel-note { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 10px 16px; border-top: 1px solid var(--home-line); background: color-mix(in srgb, var(--home-accent) 6%, transparent); color: var(--home-ink); font-size: 13.5px; line-height: 1.45; }
 .basket-parcel-note svg { flex-shrink: 0; margin-top: 1px; color: var(--home-accent); }
-.basket-parcel-note.ok { background: transparent; color: var(--home-muted); }
 
 .basket-item { display: grid; grid-template-columns: 76px minmax(0, 1fr); grid-template-areas: "photo info" "photo price" "controls controls" "services services"; gap: 6px 14px; padding: 16px; }
 .basket-item + .basket-item { border-top: 1px solid var(--home-line); }
@@ -562,7 +561,6 @@ html[data-theme="dark"] .lo-added { border-color: rgba(128, 208, 172, .35); back
 .calc-hold small { color: var(--home-muted); font-size: 12.5px; line-height: 1.35; }
 .calc-hold b { color: var(--home-ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .calc-hold { grid-template-columns: auto minmax(0, 1fr) auto; }
-.calc-hold-help { grid-column: 1 / -1; margin: 2px 0 0; color: var(--home-muted); font-size: 12.5px; line-height: 1.45; }
 .calc-fx { display: flex; align-items: flex-start; gap: 6px; margin: 12px 0 0; color: var(--home-muted); font-size: 12.5px; line-height: 1.45; }
 .calc-fx svg { flex: none; margin-top: 2px; }
 .calc-customs { display: grid; gap: 8px; margin: 12px 0 0; padding: 12px 14px; border: 1px solid var(--home-line); border-radius: 14px; background: var(--home-surface); }
@@ -957,3 +955,52 @@ html[data-theme="dark"] .price-off { background: var(--night-jade-soft-strong); 
 .delete-account-confirm.btn.primary:disabled { opacity: .55; cursor: not-allowed; }
 @media (min-width: 700px) { .delete-account-lists { grid-template-columns: 1fr 1fr; } }
 html[data-theme="dark"] .delete-account-confirm.btn.primary { color: #2b0e0a; }
+
+/* ---------- Favourites, cart entry and removal (owner, 6 October 2026) ----------
+   An empty heart means "not saved", a filled one "saved"; a saved card gets a thin green frame and a soft tint
+   that keep the photo and price readable in both themes. */
+.site-main .find-save:not(.saved) svg { fill: none; }
+.site-main .find-save.saved { border-color: var(--fav-ink, #1f6a43); background: var(--fav-ink, #1f6a43); color: #fff; }
+.site-main .find-save.saved svg { fill: currentColor; }
+.site-main .find-save.saved:hover { background: var(--fav-ink-hover, #17553a); color: #fff; }
+.site-main .find-card[data-saved] { --fav-ring: #2f8a5b; border-color: var(--fav-ring); box-shadow: 0 0 0 1px var(--fav-ring); background: #f3faf5; }
+.site-main .find-card[data-saved] .find-content { background: #f3faf5; }
+html[data-theme="dark"] .site-main .find-save.saved { --fav-ink: #7fd1a1; --fav-ink-hover: #9fdeb8; border-color: var(--fav-ink); background: var(--fav-ink); color: #10241a; }
+html[data-theme="dark"] .site-main .find-save.saved:hover { color: #10241a; }
+html[data-theme="dark"] .site-main .find-card[data-saved], html[data-theme="dark"] .site-main .find-card[data-saved]:hover { --fav-ring: #6fd39c; border-color: var(--fav-ring); box-shadow: 0 0 0 1px var(--fav-ring), 0 10px 28px rgba(0, 0, 0, .35); background: #1b2a22; }
+html[data-theme="dark"] .site-main .find-card[data-saved] .find-content { background: #1b2a22; }
+
+/* Cart: keep a line in favourites (it stays in the cart) or set it aside (saved, then removed). */
+.basket-keep { display: flex; flex-basis: 100%; flex-wrap: wrap; gap: 8px; }
+.basket-keep button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 11px; border: 1px solid var(--home-line); border-radius: 999px; background: transparent; color: var(--home-ink); font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; }
+.basket-keep button:hover { border-color: currentColor; }
+.basket-keep button:disabled { opacity: .55; cursor: progress; }
+.basket-keep .basket-keep-save.saved { border-color: #2f8a5b; background: #eaf6ee; color: #1f6a43; }
+.basket-keep .basket-keep-save.saved svg { fill: currentColor; }
+html[data-theme="dark"] .basket-keep .basket-keep-save.saved { border-color: #5fbf8a; background: rgba(95, 191, 138, .14); color: #9fdeb8; }
+
+/* "Remove" in the cart is small and red; a product with several options also gets "remove all options" under them. */
+.basket-page .remove-item:not(.confirming), .basket-page .remove-item { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border: 1px solid #efc6c6; border-radius: 10px; background: #fff5f5; color: #a33236; font-size: 13.5px; font-weight: 650; }
+.basket-page .remove-item:hover { border-color: #a33236; background: #fdeaea; color: #7d2428; }
+.basket-page .remove-item.confirming { border-color: #a33236; background: #a33236; color: #fff; }
+html[data-theme="dark"] .basket-page .remove-item, html[data-theme="dark"] .basket-page .remove-item:not(.confirming) { border-color: rgba(255, 140, 140, .4); background: rgba(255, 110, 110, .1); color: #ffaaaa; }
+html[data-theme="dark"] .basket-page .remove-item:hover { background: rgba(255, 110, 110, .18); color: #ffc4c4; }
+html[data-theme="dark"] .basket-page .remove-item.confirming { border-color: #ff9d9d; background: #ff9d9d; color: #2a1010; }
+.basket-group { border-top: 1px solid var(--home-line); }
+.basket-parcel-title + .basket-group { border-top: 0; }
+.basket-group > .basket-item + .basket-item { border-top: 1px dashed var(--home-line); }
+.basket-group-foot { display: flex; justify-content: flex-end; padding: 0 16px 14px; }
+@media (min-width: 640px) { .basket-group-foot { padding: 0 20px 16px; } }
+.basket-group + .basket-item { border-top: 1px solid var(--home-line); }
+
+/* The cart beside the order button on the link-order page: count bumps when something is added. */
+.lo-cta-row { display: flex; align-items: stretch; gap: 10px; }
+.lo-cta-row > .basket-cta { flex: 1; min-width: 0; }
+.lo-cart-entry { position: relative; display: inline-flex; flex-shrink: 0; align-items: center; gap: 8px; min-height: 52px; padding: 0 16px; border: 1.5px solid var(--home-accent, #1f4d3b); border-radius: 14px; background: var(--home-surface, #fff); color: var(--home-accent, #1f4d3b); font-size: 14.5px; font-weight: 700; text-decoration: none; }
+.lo-cart-entry b { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; background: var(--home-accent, #1f4d3b); color: #fff; font-size: 13px; font-variant-numeric: tabular-nums; animation: lo-cart-bump .45s ease-out; }
+.lo-cart-entry.compact { min-height: 48px; padding: 0 12px; gap: 6px; border-radius: 12px; }
+html[data-theme="dark"] .lo-cart-entry { border-color: #9fdeb8; background: transparent; color: #9fdeb8; }
+html[data-theme="dark"] .lo-cart-entry b { background: #9fdeb8; color: #10241a; }
+@keyframes lo-cart-bump { 0% { transform: scale(.6); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .lo-cart-entry b { animation: none; } }
+@media (max-width: 420px) { .lo-cta-row .lo-cart-entry span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } }

@@ -23,7 +23,7 @@ export type CalcCopy = {
   };
   customs: {
     title: string; allowanceTitle: (limit: string) => string; allowanceNote: string; overNote: (over: string, estimate: string) => string; overIncluded: (over: string, estimate: string) => string;
-    helpOption: string; helpOptionNote: (percent: string, amount: string) => string; helpChosen: (amount: string) => string;
+    helpOption: string; helpOptionNote: (percent: string, amount: string) => string; helpChosen: string;
     recipient: string; limitShort: string; atlasShort: string; outsideShort: string; notNeeded: string;
     outside: string; outsideAmount: string; outsideUnknown: string; dutiable: string; estimate: string;
     help: string; helpFee: (percent: string, fee: string) => string; helpNote: string;
@@ -65,7 +65,7 @@ export const calcCopy: Record<Locale, CalcCopy> = {
     },
     customs: {
       title: 'Таможенная пошлина', allowanceTitle: limit => `Без таможенной пошлины — до ${limit} в месяц`, allowanceNote: 'На одного получателя, включая покупки вне Atlas.', overNote: (over, estimate) => `В этой корзине ${over} сверх лимита: таможня начислит пошлину ≈ ${estimate}. Она не входит в сумму заказа.`, overIncluded: (over, estimate) => `В этой корзине ${over} сверх лимита: пошлина ≈ ${estimate} уже в счёте. Если таможня начислит меньше — остаток вернём на баланс.`,
-      helpOption: 'Atlas оплатит таможню за меня', helpOptionNote: (p, amount) => `Сбор ${p} от цены товаров, ${amount}. Если пошлина нужна, её расчётная сумма сразу войдёт в счёт, а неиспользованный остаток вернём на баланс.`, helpChosen: amount => `Добавлено в счёт: ${amount}`,
+      helpOption: 'Atlas оплатит таможню за меня', helpOptionNote: (p, amount) => `Сбор ${p} от цены товаров, ${amount}. Если пошлина нужна, её расчётная сумма сразу войдёт в счёт, а неиспользованный остаток вернём на баланс.`, helpChosen: 'Поручение принято — таможней займётся Atlas. Сбор уже в расчёте выше.',
       recipient: 'Получатель', limitShort: 'Лимит в этом месяце', atlasShort: 'Учтено заказов Atlas', outsideShort: 'Покупки вне Atlas', notNeeded: 'не нужна',
       outside: 'Я уже превысил(а) лимит в этом месяце (покупки вне Atlas)', outsideAmount: 'Сколько уже потрачено вне Atlas, $ (если знаете)', outsideUnknown: 'Сумма не указана — считаем, что лимит этого месяца уже использован полностью.',
       dutiable: 'Облагается сверх лимита', estimate: 'Таможенный платёж по расчёту',
@@ -107,7 +107,7 @@ export const calcCopy: Record<Locale, CalcCopy> = {
     },
     customs: {
       title: 'Bojxona boji', allowanceTitle: limit => `Bojxona bojisiz — oyiga ${limit} gacha`, allowanceNote: 'Bitta qabul qiluvchiga, Atlasdan tashqari xaridlar bilan birga.', overNote: (over, estimate) => `Bu savatda limitdan ${over} ortiq: bojxona taxminan ${estimate} boj hisoblaydi. U buyurtma summasiga kirmaydi.`, overIncluded: (over, estimate) => `Bu savatda limitdan ${over} ortiq: taxminan ${estimate} boj hisobga kiritildi. Bojxona kamroq hisoblasa — qoldiqni balansga qaytaramiz.`,
-      helpOption: 'Bojxonani men uchun Atlas to‘laydi', helpOptionNote: (p, amount) => `Tovarlar narxidan ${p} yig‘im, ${amount}. Boj kerak bo‘lsa, uning hisoblangan summasi darhol hisobga kiradi, ishlatilmagan qoldig‘i balansga qaytariladi.`, helpChosen: amount => `Hisobga qo‘shildi: ${amount}`,
+      helpOption: 'Bojxonani men uchun Atlas to‘laydi', helpOptionNote: (p, amount) => `Tovarlar narxidan ${p} yig‘im, ${amount}. Boj kerak bo‘lsa, uning hisoblangan summasi darhol hisobga kiradi, ishlatilmagan qoldig‘i balansga qaytariladi.`, helpChosen: 'Topshiriq qabul qilindi — bojxona bilan Atlas shug‘ullanadi. Yig‘im yuqoridagi hisobda.',
       recipient: 'Qabul qiluvchi', limitShort: 'Shu oy limiti', atlasShort: 'Atlas buyurtmalari hisobga olindi', outsideShort: 'Atlasdan tashqari xaridlar', notNeeded: 'kerak emas',
       outside: 'Shu oy limitni oshirib bo‘lganman (Atlasdan tashqari xaridlar)', outsideAmount: 'Atlasdan tashqari qancha sarflangan, $ (bilsangiz)', outsideUnknown: 'Summa ko‘rsatilmagan — shu oy limiti to‘liq ishlatilgan deb hisoblaymiz.',
       dutiable: 'Limitdan oshgan qism', estimate: 'Hisoblangan bojxona to‘lovi',
@@ -149,7 +149,7 @@ export const calcCopy: Record<Locale, CalcCopy> = {
     },
     customs: {
       title: 'Customs duty', allowanceTitle: limit => `No customs duty up to ${limit} a month`, allowanceNote: 'Per recipient, including purchases outside Atlas.', overNote: (over, estimate) => `This cart is ${over} over the allowance: customs will charge about ${estimate}. It is not part of the order amount.`, overIncluded: (over, estimate) => `This cart is ${over} over the allowance: about ${estimate} of duty is already in the bill. If customs charges less, the rest returns to your balance.`,
-      helpOption: 'Atlas pays customs for me', helpOptionNote: (p, amount) => `A ${p} fee on the goods price, ${amount}. If duty is due, its calculated amount goes into the bill at once and any unused rest returns to your balance.`, helpChosen: amount => `Added to the bill: ${amount}`,
+      helpOption: 'Atlas pays customs for me', helpOptionNote: (p, amount) => `A ${p} fee on the goods price, ${amount}. If duty is due, its calculated amount goes into the bill at once and any unused rest returns to your balance.`, helpChosen: 'Request accepted — Atlas handles customs. The fee is already in the bill above.',
       recipient: 'Recipient', limitShort: 'Allowance this month', atlasShort: 'Atlas orders counted', outsideShort: 'Purchases outside Atlas', notNeeded: 'not needed',
       outside: 'I have already gone over this month’s allowance (purchases outside Atlas)', outsideAmount: 'Already spent outside Atlas, $ (if you know)', outsideUnknown: 'No amount given — we treat this month’s allowance as fully used.',
       dutiable: 'Dutiable above the allowance', estimate: 'Calculated customs payment',

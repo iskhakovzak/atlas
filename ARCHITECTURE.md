@@ -728,3 +728,8 @@ On a legacy item HTTP 400 without an explicit child variation, the official Brow
 - `app/product-gallery.tsx` is a horizontal scroll-snap strip (`scroll-snap-stop: always`); touch and trackpads scroll natively, a mouse drags it, arrows/thumbnails/keys `scrollTo` smoothly; the index follows the settled scroll position.
 - Sideways rows (`app/mobile-polish.css`) use x proximity snap; the catalog (`app/catalog.css`) snaps y proximity only at the header, the search bar and the footer.
 - `lib/market/text-case.ts`: `capitalizeWords` (names) and `capitalizeFirst` (city, address) while typing in the recipient form, checkout and the ID form.
+
+## Cart favourites and grouped removal — 7 October 2026
+
+- No new state or actions. The cart matches a line to a catalog product with `sameCatalogProduct` (source URL) after `loadCatalog()`, and uses the existing `favorite` toggle; "save for later" is `favorite` then `cart-remove`. Grouped removal is client-side `productGroups` (same source URL within a parcel) and one `cart-remove` per line.
+- `calcCopy.customs.helpChosen` is now a string; `HoldNote` ignores `pricing` (kept optional for callers); `cartCopy.item.parcelFree` was removed and `parcelReserve` takes only the missing amount.

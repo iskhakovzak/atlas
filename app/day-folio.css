@@ -387,7 +387,7 @@ html:not([data-theme="dark"]) .basket-summary.folio .folio-outside { padding: 14
 /* On the slip, the hold and the customs estimate read as rows, not as boxes inside a box. */
 html:not([data-theme="dark"]) .folio-outside :is(.calc-hold, .calc-customs) { margin: 0; padding: 0; border: 0; border-radius: 0; background: none; }
 html:not([data-theme="dark"]) .folio-outside .calc-hold + .calc-customs { padding-top: 10px; border-top: 1px solid var(--day-slip-line); }
-html:not([data-theme="dark"]) .folio-outside :is(.calc-hold small, .calc-hold-help, .calc-customs .micro, .calc-customs-lines div) { color: var(--day-muted); }
+html:not([data-theme="dark"]) .folio-outside :is(.calc-hold small, .calc-customs .micro, .calc-customs-lines div) { color: var(--day-muted); }
 html:not([data-theme="dark"]) .folio-outside :is(.calc-hold > svg, .calc-customs header svg) { color: var(--day-warn); }
 html:not([data-theme="dark"]) .lo-summary .folio-foot { padding: 0; }
 html:not([data-theme="dark"]) .lo-summary .cabinet-empty { margin: 0; color: var(--day-muted); }
@@ -397,7 +397,6 @@ html:not([data-theme="dark"]) .lo-summary .cabinet-empty { margin: 0; color: var
 /* Cart items: the parcel cards line up with the summary and stay compact. */
 html:not([data-theme="dark"]) .basket-parcel { border-color: var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); }
 html:not([data-theme="dark"]) .basket-parcel-title { background: var(--day-soft); }
-html:not([data-theme="dark"]) .basket-parcel-note.ok { background: var(--day-tint); color: var(--day-ok); }
 
 /* Atlas Night: the new wrappers keep the summary own surface and spacing. */
 html[data-theme="dark"] .basket-summary .folio-sheet, html[data-theme="dark"] .basket-summary .folio-outside { display: grid; gap: 14px; }
