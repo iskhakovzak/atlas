@@ -17,12 +17,12 @@ export const supportedStoreRoots = [
   'aloyoga.com','rarebeauty.com','rhodeskin.com','glossier.com','summerfridays.com','fentybeauty.com',
   'kith.com','cncpts.com','sneakersnstuff.com','satechi.com','satechi.net','spigen.com',
   '3ina.com','abercrombie.com','adorama.com','ae.com','aboutyou.de','aboutyou.es','aboutyou.fr','aboutyou.it',
-  'adidas.com','aeropostale.com','aliexpress.com','amazon.ae','amazon.ca','amazon.com','amazon.com.au','amazon.com.tr','amazon.co.jp','amazon.co.uk','amazon.de','amazon.es','amazon.fr','amazon.it','anker.com','anthropologie.com','apple.com','aritzia.com','arket.com','asos.com','asics.com','bestbuy.com','bershka.com','bhphotovideo.com','birkenstock.com','bloomingdales.com','boohoo.com','bose.com','brooksrunning.com','burberry.com','calvinklein.us','carhartt.com','chanel.com','columbia.com','converse.com','costco.com','cos.com','crocs.com','cultbeauty.com','dell.com','dior.com','drmartens.com','dyson.com',...ebayStoreRoots,'elcorteingles.es','etsy.com','farfetch.com','fnac.es','freepeople.com','gap.com','google.com','gopro.com','gucci.com','gymshark.com','hm.com','hoka.com','hollisterco.com','hp.com','iherb.com','ikea.com','jbl.com','lacoste.com','lenovo.com','levi.com','lg.com','logitech.com','lookfantastic.com','lululemon.com','louisvuitton.com','macys.com','mango.com','marksandspencer.com','massimodutti.com','merrell.com','mi.com','microcenter.com','microsoft.com','moncler.com','mytheresa.com','newegg.com','newbalance.com','next.co.uk','nike.com','nikon.com','nothing.tech','nordstrom.com','northface.com','on.com','oneplus.com','oysho.com','pandora.net','patagonia.com','philips.com','prada.com','pullandbear.com','puma.com','razer.com','reebok.com','reserved.com','salomon.com','samsung.com','sephora.com','sephora.es','skechers.com','sony.com','ssense.com','stradivarius.com','swarovski.com','target.com','tiffany.com','timberland.com','ugg.com','underarmour.com','uniqlo.com','urbanoutfitters.com','ulta.com','valentino.com','vans.com','victoriassecret.com','walmart.com','wayfair.com','xiaomi.com','zara.com','zarahome.com','zalando.com'
+  'adidas.com','aeropostale.com','aliexpress.com','amazon.ae','amazon.ca','amazon.com','amazon.com.au','amazon.com.tr','amazon.co.jp','amazon.co.uk','amazon.de','amazon.es','amazon.fr','amazon.it','anker.com','anthropologie.com','apple.com','arenal.com','aritzia.com','arket.com','asos.com','asics.com','bestbuy.com','bershka.com','bhphotovideo.com','birkenstock.com','bloomingdales.com','boohoo.com','bose.com','brooksrunning.com','burberry.com','calvinklein.us','carhartt.com','chanel.com','columbia.com','converse.com','costco.com','cos.com','crocs.com','cultbeauty.com','dell.com','dior.com','drmartens.com','dyson.com',...ebayStoreRoots,'elcorteingles.es','etsy.com','farfetch.com','fnac.es','freepeople.com','gap.com','google.com','gopro.com','gucci.com','gymshark.com','hm.com','hoka.com','hollisterco.com','hp.com','iherb.com','ikea.com','jbl.com','lacoste.com','lenovo.com','levi.com','lg.com','logitech.com','lookfantastic.com','lululemon.com','louisvuitton.com','macys.com','mango.com','marksandspencer.com','massimodutti.com','merrell.com','mi.com','microcenter.com','microsoft.com','moncler.com','mytheresa.com','newegg.com','newbalance.com','next.co.uk','nike.com','nikon.com','nothing.tech','nordstrom.com','northface.com','on.com','oneplus.com','oysho.com','pandora.net','patagonia.com','philips.com','prada.com','pullandbear.com','puma.com','razer.com','reebok.com','reserved.com','salomon.com','samsung.com','sephora.com','sephora.es','skechers.com','sony.com','ssense.com','stradivarius.com','swarovski.com','target.com','tiffany.com','timberland.com','ugg.com','underarmour.com','uniqlo.com','urbanoutfitters.com','ulta.com','valentino.com','vans.com','victoriassecret.com','walmart.com','wayfair.com','xiaomi.com','zara.com','zarahome.com','zalando.com'
   ,'backmarket.com','bananarepublic.gap.com','beautylish.com','bimbaylola.com','bluebananabrand.com','breuninger.com',
-  'carrefour.es','champssports.com','coolblue.nl','cortefiel.com','credobeauty.com','decathlon.de','decathlon.es','decathlon.fr','decathlon.it','dermstore.com','desigual.com','douglas.de','douglas.es','douglas.fr','douglas.it','druni.es','dsw.com',
-  'endclothing.com','fahertybrand.com','finishline.com','footdistrict.com','footlocker.com','footlocker.es','es.victoriassecret.com','galaxus.de','gamestop.com','goat.com','goodamerican.com',
+  'carrefour.es','champssports.com','charlottetilbury.com','coolblue.nl','cortefiel.com','credobeauty.com','decathlon.de','decathlon.es','decathlon.fr','decathlon.it','dermstore.com','desigual.com','douglas.de','douglas.es','douglas.fr','douglas.it','druni.es','dsw.com',
+  'elfcosmetics.com','endclothing.com','fahertybrand.com','finishline.com','footdistrict.com','footlocker.com','footlocker.es','es.victoriassecret.com','galaxus.de','gamestop.com','goat.com','goodamerican.com',
   'jcpenney.com','jcrew.com','jdsports.com','jdsports.es','kiabi.es','kikomilano.com','kohls.com','kosas.com','laredoute.fr','lefties.com','lounge.com','luisaviaroma.com',
-  'madewell.com','mediamarkt.de','mediamarkt.es','mediamarkt.it','meritbeauty.com','milkmakeup.com','monoprice.com','nakedcph.com','neimanmarcus.com','nordstromrack.com','notino.de','notino.es','notino.fr','notino.it','nude-project.com',
+  'maccosmetics.com','madewell.com','mediamarkt.de','mediamarkt.es','mediamarkt.it','meritbeauty.com','milkmakeup.com','monoprice.com','morphe.com','nakedcph.com','neimanmarcus.com','nordstromrack.com','notino.de','notino.es','notino.fr','notino.it','nude-project.com',
   'ohpolly.com','oldnavy.gap.com','otto.de','patrickta.com','pccomponentes.com','pdpaola.com','perfumeriasprimor.eu','primor.eu','representclo.com','revolve.com','saigucosmetics.com','saksfifthavenue.com','saturn.de','scalperscompany.com','shopbop.com','sivasdescalzo.com','slamjam.com','spacenk.com','springfield.com','stockx.com','tartecosmetics.com','tower28beauty.com','womensecret.com','yoox.com','zalando.de','zalando.es','zalando.fr','zalando.it','zappos.com'
 ] as const;
 
@@ -44,7 +44,7 @@ export const featuredStoreGroups: FeaturedStoreGroup[] = [
     {root:'pullandbear.com',name:'Pull&Bear',focus:'Одежда'},{root:'massimodutti.com',name:'Massimo Dutti',focus:'Одежда'},{root:'stradivarius.com',name:'Stradivarius',focus:'Одежда'},
     {root:'footdistrict.com',name:'FOOTDISTRICT',focus:'Кроссовки'},{root:'sivasdescalzo.com',name:'SVD',focus:'Кроссовки'},{root:'jdsports.es',name:'JD Sports España',focus:'Кроссовки'},
     {root:'druni.es',name:'Druni',focus:'Красота'},{root:'perfumeriasprimor.eu',name:'Primor',focus:'Красота'},{root:'douglas.es',name:'Douglas España',focus:'Красота'},
-    {root:'sephora.es',name:'Sephora España',focus:'Красота'},{root:'es.victoriassecret.com',name:"Victoria's Secret España",focus:'Одежда'},
+    {root:'sephora.es',name:'Sephora España',focus:'Красота'},{root:'arenal.com',name:'Perfumerías Arenal',focus:'Красота'},{root:'es.victoriassecret.com',name:"Victoria's Secret España",focus:'Одежда'},
     {root:'pccomponentes.com',name:'PcComponentes',focus:'Техника'},{root:'mediamarkt.es',name:'MediaMarkt España',focus:'Техника'},{root:'elcorteingles.es',name:'El Corte Inglés',focus:'Универмаг'},
   ]},
   { region: 'Европа', hint: 'Сравнивайте витрины по стране: цена, НДС и распродажи могут отличаться.', stores: [
@@ -58,19 +58,22 @@ export const featuredStoreGroups: FeaturedStoreGroup[] = [
     {root:'amazon.com',name:'Amazon US',focus:'Универмаг'},{root:'nike.com',name:'Nike',focus:'Кроссовки'},{root:'adidas.com',name:'adidas',focus:'Кроссовки'},{root:'nordstrom.com',name:'Nordstrom',focus:'Одежда'},{root:'nordstromrack.com',name:'Nordstrom Rack',focus:'Одежда'},{root:'macys.com',name:"Macy's",focus:'Универмаг'},
     {root:'ebay.com',name:'eBay',focus:'Универмаг'},{root:'walmart.com',name:'Walmart',focus:'Универмаг'},{root:'target.com',name:'Target',focus:'Универмаг'},
     {root:'footlocker.com',name:'Foot Locker',focus:'Кроссовки'},{root:'dsw.com',name:'DSW',focus:'Кроссовки'},{root:'zappos.com',name:'Zappos',focus:'Кроссовки'},
-    {root:'sephora.com',name:'Sephora US',focus:'Красота'},{root:'victoriassecret.com',name:"Victoria's Secret US",focus:'Одежда'},{root:'newbalance.com',name:'New Balance US',focus:'Кроссовки'},{root:'ulta.com',name:'Ulta Beauty',focus:'Красота'},{root:'dermstore.com',name:'Dermstore',focus:'Красота'},
+    {root:'sephora.com',name:'Sephora US',focus:'Красота'},{root:'victoriassecret.com',name:"Victoria's Secret US",focus:'Одежда'},{root:'newbalance.com',name:'New Balance US',focus:'Кроссовки'},{root:'ulta.com',name:'Ulta Beauty',focus:'Красота'},{root:'dermstore.com',name:'Dermstore',focus:'Красота'},{root:'maccosmetics.com',name:'MAC Cosmetics',focus:'Красота'},{root:'elfcosmetics.com',name:'e.l.f. Cosmetics',focus:'Красота'},{root:'morphe.com',name:'Morphe',focus:'Красота'},{root:'charlottetilbury.com',name:'Charlotte Tilbury US',focus:'Красота'},
     {root:'bestbuy.com',name:'Best Buy',focus:'Техника'},{root:'bhphotovideo.com',name:'B&H Photo',focus:'Техника'},{root:'adorama.com',name:'Adorama',focus:'Техника'},{root:'apple.com',name:'Apple US',focus:'Техника'},
   ]},
 ];
 
 const shopSubdomains = new Set(['mango.com','hm.com','uniqlo.com','nike.com','adidas.com','on.com']);
 // Zalando's German storefront sends English-language requests to this exact
-// same-country host. Keep the exception explicit instead of allowing arbitrary
-// merchant subdomains through the SSRF boundary.
-const localizedHosts = new Set(['en.zalando.de']);
+// same-country host, and H&M serves every US product page from www2. Keep the
+// exceptions explicit instead of allowing arbitrary merchant subdomains through
+// the SSRF boundary.
+const localizedHosts = new Set(['en.zalando.de', 'www2.hm.com']);
+// Public product documents some storefronts load from a separate API host (no credentials, exact product id).
+const storeApiHosts = new Set(['api.victoriassecret.com']);
 
 // Precompute the explicit allowlist for constant-time URL validation.
-const allowedHostsCache = new Set<string>(localizedHosts);
+const allowedHostsCache = new Set<string>([...localizedHosts, ...storeApiHosts]);
 for (const root of supportedStoreRoots) {
   allowedHostsCache.add(root);
   if (root !== 'shop.simon.com') allowedHostsCache.add('www.' + root);
