@@ -1,4 +1,5 @@
 import { extractMacysProduct } from './macys.ts';
+import { extractCharlotteTilburyProduct } from './charlottetilbury.ts';
 import { priorityMerchantProfiles } from './merchant-profiles.ts';
 import { isEbayStoreHost } from './stores.ts';
 import { inferNikeFootwearSizeSystem } from '../market/nike-size-chart.ts';
@@ -1120,6 +1121,8 @@ function extractZara(html: string, sourceUrl: string) {
 export function extractProduct(html: string, sourceUrl: string): Extracted {
   const macys = extractMacysProduct(html, sourceUrl, { safeImage, inferCategory: inferProductCategory, declarationFor });
   if (macys) return macys;
+  const charlotteTilbury = extractCharlotteTilburyProduct(html, sourceUrl, { safeImage, declarationFor });
+  if (charlotteTilbury) return charlotteTilbury;
   const anker = extractAnker(html, sourceUrl);
   if (anker) return anker;
   const amazon = extractAmazon(html, sourceUrl);
@@ -1250,12 +1253,18 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
         meta["product:price:currency"] ??
         meta["og:price:currency"],
     ).toUpperCase() || undefined);
+  // Douglas and some pharmacies put the pack size ("30 ML", "50 g") into the JSON-LD name; the page title names the product.
+  const sizeOnlyName = /^\s*\d+(?:[.,]\d+)?\s*(?:ml|mL|cl|l|g|gr|kg|mg|oz|fl\.?\s?oz|мл|г|шт|uds?\.?|pcs?)\.?\s*$/i;
+  const ldName = typeof p?.name === "string" && !sizeOnlyName.test(p.name) ? p.name : undefined;
+  // When the structured name was only a size, the page heading beats the SEO <title> ("… ✔️ dulzura | DOUGLAS").
+  const headingName = typeof p?.name === "string" && ldName === undefined ? html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1] : undefined;
   const title =
     (zara?.title ??
       clean(
-        p?.name ??
+        ldName ??
           meta["og:title"] ??
           meta["twitter:title"] ??
+          headingName ??
           html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1],
       ).slice(0, 140)) || undefined;
   const gross = parseWeight(p?.shippingWeight);

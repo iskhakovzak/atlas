@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { pageLocale } from "./page-locale";
 import { rootMetadata } from "./route-metadata";
+import { env } from "cloudflare:workers";
 import "@fontsource-variable/inter/opsz.css";
 import "@fontsource-variable/manrope/wght.css";
 import "./globals.css";
@@ -50,30 +51,11 @@ import { PerformanceProbe } from "./performance-probe";
 import { NativeShell } from "./native-shell";
 import { PressFeedback } from "./press-feedback";
 import { AmbientBackdrop } from "./ambient-backdrop";
-
-const structuredData = {
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "Organization",
-      name: "Atlas",
-      url: "https://atlasmarket.uz",
-      logo: "https://atlasmarket.uz/og-image.png",
-      description:
-        "Purchasing intermediary and logistics agent for international shopping in Uzbekistan.",
-      areaServed: "UZ",
-    },
-    {
-      "@type": "WebSite",
-      name: "Atlas",
-      url: "https://atlasmarket.uz",
-      inLanguage: ["ru", "uz", "en"],
-    },
-  ],
-};
+import { JsonLd } from "./json-ld";
+import { siteGraph } from "@/lib/seo/structured-data";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return rootMetadata(await pageLocale());
+  return rootMetadata(await pageLocale(), { google: env.ATLAS_GOOGLE_SITE_VERIFICATION, yandex: env.ATLAS_YANDEX_VERIFICATION });
 }
 
 // Browser chrome matches the header. The site theme is chosen in the app, not by the OS,
@@ -102,10 +84,7 @@ export default async function RootLayout({
         <AtlasThemeProvider>
           <MarketProvider initialLocale={locale} initialPricing={pricing} initialSiteContent={siteContent}>{children}<StorageNotice /><PerformanceProbe /><NativeShell /><PressFeedback /></MarketProvider>
         </AtlasThemeProvider>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-        />
+        <JsonLd data={siteGraph(locale, siteContent.contacts, siteContent.legal)} />
       </body>
     </html>
   );

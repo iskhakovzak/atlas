@@ -33,4 +33,7 @@
 .catalog-import-progress li>small{color:var(--muted-foreground);font-size:12px;text-align:right}
 .catalog-import-progress .import-saved>span{color:#277246}
 .catalog-import-progress .import-failed>span{color:#a34432}
+.catalog-import-progress .import-review>span{color:#8a5a00}
+.catalog-import-progress .import-importing>small::after{content:"";display:inline-block;width:8px;height:8px;margin-left:6px;border-radius:50%;background:var(--atlas-blue);animation:catalog-import-pulse 1s ease-in-out infinite alternate}
+@keyframes catalog-import-pulse{from{opacity:.25}to{opacity:1}}
 @media(max-width:600px){.catalog-variant-panel{padding:12px}.catalog-variant-panel>header{flex-direction:column}.catalog-import-progress-head{align-items:flex-start;flex-direction:column;gap:3px}.catalog-import-progress li{align-items:flex-start;flex-direction:column;gap:2px}.catalog-import-progress li>small{text-align:left}.catalog-photo-gallery img{width:72px;height:72px}}

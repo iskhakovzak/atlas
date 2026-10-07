@@ -16,6 +16,8 @@ import {StoreLogo,StoreMark,hasStoreMark} from './store-logo';
 import {StoreMarquee} from './store-marquee';
 import {CountryFlag,Flag} from './flags';
 import {Money} from './money';
+import {JsonLd} from './json-ld';
+import {faqPage} from '@/lib/seo/structured-data';
 
 const isDev=(import.meta as {env?:{DEV?:boolean}}).env?.DEV===true;
 /** The hero's popular stores; the wide-screen facts row and closing card show the same list (app/home-facts.tsx, HomeClosing). */
@@ -314,6 +316,7 @@ export function HomeFaq(){
    <div className="hw-faq-more"><p>{c.wide.faqMore} <Link href="/support">{routeTitle(locale,'support')}</Link></p><ul><li><Link href="/customs">{c.faq.customsLink}</Link></li><li><Link href="/legal">{c.footer.rules}</Link></li></ul></div>
   </div>
   {/* One answer open at a time (name): the sheet keeps to one screen. */}
+  <JsonLd data={faqPage(items)}/>
   <div className="home-faq">{items.map(item=><details key={item.q} name="home-faq"><summary>{item.q}</summary><div><p>{item.a}</p>{item.link}</div></details>)}</div>
  </section>;
 }

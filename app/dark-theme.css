@@ -1140,6 +1140,11 @@ html[data-theme="dark"] .catalog-import-progress .import-failed > span {
   color: var(--night-error-ink);
 }
 
+html[data-theme="dark"] .catalog-import-progress .import-review > span {
+  background-color: var(--night-warn-bg);
+  color: var(--night-warn-ink);
+}
+
 html[data-theme="dark"] .catalog-variant-table input,
 html[data-theme="dark"] .catalog-variant-table select {
   background-color: var(--atlas-surface);
