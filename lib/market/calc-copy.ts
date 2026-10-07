@@ -23,12 +23,15 @@ export type CalcCopy = {
   };
   customs: {
     title: string; allowanceTitle: (limit: string) => string; allowanceNote: string; overNote: (over: string, estimate: string) => string; overIncluded: (over: string, estimate: string) => string;
-    helpOption: string; helpOptionNote: (percent: string, amount: string) => string; helpChosen: (amount: string) => string;
     recipient: string; limitShort: string; atlasShort: string; outsideShort: string; notNeeded: string;
     outside: string; outsideAmount: string; outsideUnknown: string; dutiable: string; estimate: string;
     help: string; helpFee: (percent: string, fee: string) => string; helpNote: string;
-    summaryNone: (limit: string, left: string) => string; summaryOver: (over: string, rate: string, perKg: string) => string; howLink: string;
     separate: string; rule: string;  relative: string;
+    /** Who pays the duty: two cards in the cart instead of one checkbox (owner, 7.10.2026). */
+    choice: { title: string; atlas: string; badge: string; perk: string; fee: (percent: string, amount: string) => string; self: string; selfOver: string; selfFee: string;
+      remember: string; rememberedAtlas: string; rememberedSelf: string; change: string; noDuty: (left: string) => string };
+    /** "How customs is calculated": a popover with a small calculator instead of a link away from the cart. */
+    how: { title: string; rule: (limit: string, rate: string, perKg: string) => string; left: (amount: string) => string; leftNone: string; try: string; minus: string; plus: string; amount: string; none: string; over: (excess: string, duty: string) => string; final: string; details: string; close: string };
   };
 };
 
@@ -65,14 +68,28 @@ export const calcCopy: Record<Locale, CalcCopy> = {
     },
     customs: {
       title: 'Таможенная пошлина', allowanceTitle: limit => `Без таможенной пошлины — до ${limit} в месяц`, allowanceNote: 'На одного получателя, включая покупки вне Atlas.', overNote: (over, estimate) => `В этой корзине ${over} сверх лимита: таможня начислит пошлину ≈ ${estimate}. Она не входит в сумму заказа.`, overIncluded: (over, estimate) => `В этой корзине ${over} сверх лимита: пошлина ≈ ${estimate} уже в счёте. Если таможня начислит меньше — остаток вернём на баланс.`,
-      helpOption: 'Atlas оплатит таможню за меня', helpOptionNote: (p, amount) => `Сбор ${p} от цены товаров, ${amount}. Если пошлина нужна, её расчётная сумма сразу войдёт в счёт, а неиспользованный остаток вернём на баланс.`, helpChosen: amount => `Добавлено в счёт: ${amount}`,
       recipient: 'Получатель', limitShort: 'Лимит в этом месяце', atlasShort: 'Учтено заказов Atlas', outsideShort: 'Покупки вне Atlas', notNeeded: 'не нужна',
       outside: 'Я уже превысил(а) лимит в этом месяце (покупки вне Atlas)', outsideAmount: 'Сколько уже потрачено вне Atlas, $ (если знаете)', outsideUnknown: 'Сумма не указана — считаем, что лимит этого месяца уже использован полностью.',
       dutiable: 'Облагается сверх лимита', estimate: 'Таможенный платёж по расчёту',
       help: 'Таможню оплачивает Atlas', helpFee: (p, fee) => `Комиссия Atlas ${p} от стоимости товара: ${fee}`, helpNote: 'Это запрос: пошлину и комиссию оператор подтвердит отдельно, в сумму заказа они не входят.',
-      summaryNone: (limit, left) => `Без пошлины до ${limit} в месяц на получателя. Остаток: ${left}.`, summaryOver: (over, rate, perKg) => `Сверх лимита ${over}: пошлина ${rate}, не меньше ${perKg} за кг. Точную сумму подтверждает таможня.`, howLink: 'Как считается таможня',
       separate: 'Таможня не входит в сумму заказа и оплачивается отдельно.', rule: 'Пошлина берётся только с суммы сверх лимита (ПКМ №244). Месяц — календарный месяц ввоза посылки.',
       relative: 'Лимит исчерпан? Оформите заказ на родственника — если получать будет он и укажет свои данные и паспорт.',
+      choice: {
+        title: 'Как оплатить таможню', atlas: 'Atlas оплатит таможню', badge: 'Удобнее',
+        perk: 'Пошлину по расчёту вносим сразу с заказом. Если таможня начислит больше — доплата только с вашего согласия',
+        fee: (p, amount) => `+ ${amount} · сбор ${p} от товаров`,
+        self: 'Оплачу сам(а)', selfOver: 'Ждёте счёт от таможни и оплачиваете сами. Пока он не оплачен, посылка стоит на таможне.',
+        selfFee: 'без сбора',
+        remember: 'Запомнить для следующих заказов', rememberedAtlas: 'Таможню оплачивает Atlas', rememberedSelf: 'Таможню оплачиваете вы', change: 'Изменить',
+        noDuty: left => `Пошлины нет · в этом месяце осталось ${left}`,
+      },
+      how: {
+        title: 'Как считается таможня', rule: (limit, rate, perKg) => `До ${limit} в месяц на получателя — без пошлины. Сверх лимита — ${rate} от превышения, но не меньше ${perKg} за каждый кг посылки.`,
+        left: amount => `У получателя в этом месяце осталось ${amount} лимита`, leftNone: 'Лимит получателя в этом месяце уже использован',
+        try: 'Проверьте на сумме', minus: 'Меньше на $50', plus: 'Больше на $50', amount: 'Стоимость товаров',
+        none: 'Пошлины нет — сумма в пределах лимита', over: (excess, duty) => `Сверх лимита ${excess} → пошлина ≈ ${duty}`,
+        final: 'Окончательную сумму начисляет таможня.', details: 'Подробнее о таможне', close: 'Закрыть',
+      },
     },
   },
   uz: {
@@ -107,14 +124,28 @@ export const calcCopy: Record<Locale, CalcCopy> = {
     },
     customs: {
       title: 'Bojxona boji', allowanceTitle: limit => `Bojxona bojisiz — oyiga ${limit} gacha`, allowanceNote: 'Bitta qabul qiluvchiga, Atlasdan tashqari xaridlar bilan birga.', overNote: (over, estimate) => `Bu savatda limitdan ${over} ortiq: bojxona taxminan ${estimate} boj hisoblaydi. U buyurtma summasiga kirmaydi.`, overIncluded: (over, estimate) => `Bu savatda limitdan ${over} ortiq: taxminan ${estimate} boj hisobga kiritildi. Bojxona kamroq hisoblasa — qoldiqni balansga qaytaramiz.`,
-      helpOption: 'Bojxonani men uchun Atlas to‘laydi', helpOptionNote: (p, amount) => `Tovarlar narxidan ${p} yig‘im, ${amount}. Boj kerak bo‘lsa, uning hisoblangan summasi darhol hisobga kiradi, ishlatilmagan qoldig‘i balansga qaytariladi.`, helpChosen: amount => `Hisobga qo‘shildi: ${amount}`,
       recipient: 'Qabul qiluvchi', limitShort: 'Shu oy limiti', atlasShort: 'Atlas buyurtmalari hisobga olindi', outsideShort: 'Atlasdan tashqari xaridlar', notNeeded: 'kerak emas',
       outside: 'Shu oy limitni oshirib bo‘lganman (Atlasdan tashqari xaridlar)', outsideAmount: 'Atlasdan tashqari qancha sarflangan, $ (bilsangiz)', outsideUnknown: 'Summa ko‘rsatilmagan — shu oy limiti to‘liq ishlatilgan deb hisoblaymiz.',
       dutiable: 'Limitdan oshgan qism', estimate: 'Hisoblangan bojxona to‘lovi',
       help: 'Bojxonani Atlas to‘laydi', helpFee: (p, fee) => `Atlas komissiyasi tovar narxidan ${p}: ${fee}`, helpNote: 'Bu so‘rov: boj va komissiyani operator alohida tasdiqlaydi, ular buyurtma summasiga kirmaydi.',
-      summaryNone: (limit, left) => `Har bir qabul qiluvchiga oyiga ${limit} gacha bojsiz. Qoldiq: ${left}.`, summaryOver: (over, rate, perKg) => `Limitdan oshgan ${over}: boj ${rate}, har kg uchun kamida ${perKg}. Aniq summani bojxona tasdiqlaydi.`, howLink: 'Bojxona qanday hisoblanadi',
       separate: 'Bojxona buyurtma summasiga kirmaydi va alohida to‘lanadi.', rule: 'Boj faqat limitdan oshgan qismdan olinadi (VMQ №244). Oy — jo‘natma olib kirilgan kalendar oyi.',
       relative: 'Limit tugadimi? Buyurtmani qarindoshingizga rasmiylashtiring — agar u qabul qilsa va o‘z ma’lumotlari va pasportini ko‘rsatsa.',
+      choice: {
+        title: 'Bojxonani qanday to‘lash', atlas: 'Bojxonani Atlas to‘laydi', badge: 'Qulayroq',
+        perk: 'Hisoblangan bojni buyurtma bilan darhol to‘laymiz. Bojxona ko‘proq hisoblasa — qo‘shimcha to‘lov faqat roziligingiz bilan',
+        fee: (p, amount) => `+ ${amount} · tovarlardan ${p} yig‘im`,
+        self: 'O‘zim to‘layman', selfOver: 'Bojxona hisobini kutib, o‘zingiz to‘laysiz. To‘lanmaguncha jo‘natma bojxonada turadi.',
+        selfFee: 'yig‘imsiz',
+        remember: 'Keyingi buyurtmalar uchun eslab qolish', rememberedAtlas: 'Bojxonani Atlas to‘laydi', rememberedSelf: 'Bojxonani o‘zingiz to‘laysiz', change: 'O‘zgartirish',
+        noDuty: left => `Boj yo‘q · shu oy ${left} qoldi`,
+      },
+      how: {
+        title: 'Bojxona qanday hisoblanadi', rule: (limit, rate, perKg) => `Bitta qabul qiluvchiga oyiga ${limit} gacha — bojsiz. Limitdan oshgan qismdan ${rate}, lekin posilkaning har kg uchun kamida ${perKg}.`,
+        left: amount => `Qabul qiluvchida shu oy ${amount} limit qoldi`, leftNone: 'Qabul qiluvchining shu oydagi limiti ishlatib bo‘lingan',
+        try: 'Summada tekshiring', minus: '$50 kamroq', plus: '$50 ko‘proq', amount: 'Tovarlar qiymati',
+        none: 'Boj yo‘q — summa limit doirasida', over: (excess, duty) => `Limitdan ${excess} ortiq → boj ≈ ${duty}`,
+        final: 'Yakuniy summani bojxona hisoblaydi.', details: 'Bojxona haqida batafsil', close: 'Yopish',
+      },
     },
   },
   en: {
@@ -149,14 +180,28 @@ export const calcCopy: Record<Locale, CalcCopy> = {
     },
     customs: {
       title: 'Customs duty', allowanceTitle: limit => `No customs duty up to ${limit} a month`, allowanceNote: 'Per recipient, including purchases outside Atlas.', overNote: (over, estimate) => `This cart is ${over} over the allowance: customs will charge about ${estimate}. It is not part of the order amount.`, overIncluded: (over, estimate) => `This cart is ${over} over the allowance: about ${estimate} of duty is already in the bill. If customs charges less, the rest returns to your balance.`,
-      helpOption: 'Atlas pays customs for me', helpOptionNote: (p, amount) => `A ${p} fee on the goods price, ${amount}. If duty is due, its calculated amount goes into the bill at once and any unused rest returns to your balance.`, helpChosen: amount => `Added to the bill: ${amount}`,
       recipient: 'Recipient', limitShort: 'Allowance this month', atlasShort: 'Atlas orders counted', outsideShort: 'Purchases outside Atlas', notNeeded: 'not needed',
       outside: 'I have already gone over this month’s allowance (purchases outside Atlas)', outsideAmount: 'Already spent outside Atlas, $ (if you know)', outsideUnknown: 'No amount given — we treat this month’s allowance as fully used.',
       dutiable: 'Dutiable above the allowance', estimate: 'Calculated customs payment',
       help: 'Atlas pays customs', helpFee: (p, fee) => `Atlas fee ${p} of the item value: ${fee}`, helpNote: 'This is a request: an operator confirms the duty and the fee separately; neither is part of the order amount.',
-      summaryNone: (limit, left) => `No duty up to ${limit} a month per recipient. Left: ${left}.`, summaryOver: (over, rate, perKg) => `Over the allowance by ${over}: duty ${rate}, at least ${perKg} per kg. Customs confirms the exact amount.`, howLink: 'How customs is calculated',
       separate: 'Customs is not part of the order amount and is paid separately.', rule: 'Duty applies only to the amount above the allowance (CM resolution No. 244). The month is the calendar month the parcel is imported.',
       relative: 'Allowance used up? Order for a relative — if they receive the parcel and give their own details and passport.',
+      choice: {
+        title: 'How to pay customs', atlas: 'Atlas pays customs', badge: 'Easier',
+        perk: 'We pay the calculated duty with the order. If customs charges more, any extra only with your consent',
+        fee: (p, amount) => `+ ${amount} · a ${p} fee on goods`,
+        self: 'I will pay myself', selfOver: 'You wait for the customs bill and pay it yourself; until then the parcel stays at customs.',
+        selfFee: 'no fee',
+        remember: 'Remember for next orders', rememberedAtlas: 'Atlas pays customs', rememberedSelf: 'You pay customs', change: 'Change',
+        noDuty: left => `No duty · ${left} of allowance left this month`,
+      },
+      how: {
+        title: 'How customs is calculated', rule: (limit, rate, perKg) => `Up to ${limit} a month per recipient: no duty. Above it: ${rate} of the excess, but at least ${perKg} per kg of the parcel.`,
+        left: amount => `This recipient has ${amount} of allowance left this month`, leftNone: 'This recipient’s allowance for the month is used up',
+        try: 'Try an amount', minus: '$50 less', plus: '$50 more', amount: 'Goods value',
+        none: 'No duty: the amount is within the allowance', over: (excess, duty) => `${excess} over the allowance → duty ≈ ${duty}`,
+        final: 'Customs sets the final amount.', details: 'More about customs', close: 'Close',
+      },
     },
   },
 };

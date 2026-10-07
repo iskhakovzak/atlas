@@ -18,7 +18,8 @@
 
 ## Public pages
 
-- Home catalog: https://atlasmarket.uz/
+- Home page (link estimate, tariffs, FAQ): https://atlasmarket.uz/
+- Product catalog with search (`?q=`): https://atlasmarket.uz/catalog
 - Store directory: https://atlasmarket.uz/stores
 - Customs guidance: https://atlasmarket.uz/customs
 - Terms and privacy drafts: https://atlasmarket.uz/legal

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ActionError, codedActionError, editorialShippingFor, prepareAction, staleRevision } from '../lib/market/actions-server.ts';
-import { addToCart, blank, cartSignature, holdOf, products, storeShippingReserves, tariff } from '../lib/market/domain.ts';
+import { addToCart, blank, cartSignature, holdOf, products, setCartCustoms, storeShippingReserves, tariff } from '../lib/market/domain.ts';
 import { defaultPolicy } from '../lib/market/policy.ts';
 import { initialCatalog } from '../lib/market/catalog-editor.ts';
 import { communityCatalogProducts } from '../lib/market/community-deals.ts';
@@ -73,6 +73,19 @@ test('(e) a customs-help choice the quotes do not carry is refused with err_37',
   assert.equal(result.refusal, 'err_37');
   assert.ok(result.next.cart.every((item) => item.quote.customsHelp));
   assert.equal(result.next.orders.length, 0);
+});
+
+test('(e2) "Atlas pays customs" with no duty: the balance pays the bill without the fee, the order carries none', async () => {
+  const chosen = setCartCustoms(addToCart(blank(), product('e2', 40, { sourceCheckedAt: now }), 'Black · 9', now, tariff), { outsideUsed: false, help: true }, now, tariff);
+  const fee = chosen.cart[0].quote.customsHelp;
+  assert.ok(fee > 0);
+  const state = { ...chosen, entries: [{ id: 'top-up', at: now, amount: 100_000_000, debit: 'cash', credit: 'customer-credit', description: 'test' }] };
+  const billed = chosen.cart[0].quote.total - fee;
+  await assert.rejects(prepareAction(state, { ...checkout(state), useBalance: true, expectedCredit: billed + fee }, deps()), /Баланс изменился/, 'a credit counted with the fee is refused');
+  const result = await prepareAction(state, { ...checkout(state), useBalance: true, expectedCredit: billed }, deps());
+  assert.equal(result.next.orders.length, 1);
+  assert.equal(result.next.orders[0].quote.customsHelp, undefined);
+  assert.equal(result.next.orders[0].balanceUsed, billed);
 });
 
 test('(f) only unreachable stores give err_38; any other blocked line gives err_36', async () => {

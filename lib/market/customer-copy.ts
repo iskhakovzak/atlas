@@ -83,12 +83,14 @@ export type CartCopy = {
   item: {
     remove: string; decrease: string; increase: string; quantity: string; storePrice: string; openStore: string; parcelFrom: (store: string) => string; forQuantity: (count: number) => string;
     /** Store-delivery reserve of one store order: how much more removes it, or that it is not taken. */
-    parcelReserve: (missing: string, reserve: string) => string; parcelFree: (freeFrom: string) => string;
+    parcelReserve: (missing: string) => string;
     /** Results of the live check with the store. */
     priceUp: (from: string, to: string) => string; priceDown: (from: string, to: string) => string; shippingChanged: (from: string, to: string) => string;
     issues: { currency: string; variant: string; price: string; unreachable: string; stock: string }; reload: string; checked: (time: string) => string;
   };
   services: { title: string; optional: string; hint: string; fixed: string; quote: string; notIncluded: string; quantity: string; required: string; units: { package: string; item: string; day: string; photo: string; 'half-hour': string } };
+  /** Several options of one product (sizes, colors): one note and one set of services for all of them (owner, 7.10.2026). */
+  shared: { title: string; services: string };
   summary: {
     title: string; items: string; storeShipping: string; storeNoReserve: string; storeShippingHelp: (freeFrom: string) => string; service: string; serviceHelp: string; serviceHelpLabel: string;
     international: string; internationalHelp: string; internationalHelpLabel: string; reserve: string; reserveHelp: string; reserveHelpLabel: string;
@@ -158,8 +160,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
     signin: { title: 'Войдите, чтобы открыть корзину', text: 'Корзина и заказы хранятся в вашем профиле Atlas.', action: 'Войти' },
     empty: { title: 'Корзина пуста', text: 'Вставьте ссылку на товар из зарубежного магазина, и мы посчитаем цену с доставкой до Ташкента.', paste: 'Вставить ссылку', stores: 'Смотреть магазины' },
     item: { remove: 'Удалить', decrease: 'Уменьшить количество', increase: 'Увеличить количество', quantity: 'Количество', storePrice: 'В магазине', openStore: 'Открыть в магазине', parcelFrom: store => `Посылка из ${store}`, forQuantity: count => `за ${count} шт.`,
-      parcelReserve: (missing, reserve) => `Магазин не указал доставку: резерв ${reserve} держим отдельно, в сумму к оплате он не входит. Ещё ${missing} из этого магазина — и доставка будет бесплатной.`,
-      parcelFree: freeFrom => `Из этого магазина больше чем на ${freeFrom} — доставка до склада бесплатна.`,
+      parcelReserve: missing => `Доставка магазина уточняется. Ещё ${missing} из этого магазина — и она бесплатна.`,
       priceUp: (from, to) => `Цена в магазине выросла: ${from} → ${to}. Итог пересчитан.`,
       priceDown: (from, to) => `Цена в магазине снизилась: ${from} → ${to}. Итог пересчитан.`,
       shippingChanged: (from, to) => `Доставка магазина изменилась: ${from} → ${to}.`,
@@ -171,6 +172,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
       fixed: 'Тариф', quote: 'Цену назовёт оператор', notIncluded: 'не входит в сумму заказа', quantity: 'Количество', required: 'обязательно',
       units: { package: 'посылка', item: 'шт.', day: 'день', photo: 'фото', 'half-hour': '30 мин' },
     },
+    shared: { title: 'Комментарий и услуги склада — общие для всех вариантов этого товара', services: 'Выбранные услуги применяются к каждому варианту.' },
     summary: {
       title: 'Итого', items: 'Товары', storeShipping: 'Доставка магазина', storeNoReserve: 'Без резерва', service: 'Сервис Atlas',
       storeShippingHelp: freeFrom => `Если магазин не указал цену доставки до нашего склада, держим резерв $10 — один на заказ из магазина, отдельно от суммы к оплате. При товарах из одного магазина дороже ${freeFrom} резерва нет: доставка магазина для вас бесплатна. Если магазин всё же возьмёт плату, доплата — только с вашего согласия.`,
@@ -215,8 +217,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
     signin: { title: 'Savatni ochish uchun kiring', text: 'Savat va buyurtmalar Atlas profilingizda saqlanadi.', action: 'Kirish' },
     empty: { title: 'Savat bo‘sh', text: 'Xorijiy do‘kondagi tovar havolasini qo‘ying, Toshkentgacha yetkazish bilan narxini hisoblaymiz.', paste: 'Havolani qo‘yish', stores: 'Do‘konlarni ko‘rish' },
     item: { remove: 'O‘chirish', decrease: 'Miqdorni kamaytirish', increase: 'Miqdorni oshirish', quantity: 'Miqdor', storePrice: 'Do‘konda', openStore: 'Do‘konda ochish', parcelFrom: store => `${store} posilkasi`, forQuantity: count => `${count} dona uchun`,
-      parcelReserve: (missing, reserve) => `Do‘kon yetkazishni ko‘rsatmagan: ${reserve} zaxirani alohida ushlab turamiz, u to‘lov summasiga kirmaydi. Bu do‘kondan yana ${missing} — va yetkazish bepul bo‘ladi.`,
-      parcelFree: freeFrom => `Bu do‘kondan ${freeFrom} dan ortiq — omborgacha yetkazish bepul.`,
+      parcelReserve: missing => `Do‘kon yetkazishi aniqlanmoqda. Bu do‘kondan yana ${missing} — va u bepul.`,
       priceUp: (from, to) => `Do‘kondagi narx oshdi: ${from} → ${to}. Jami qayta hisoblandi.`,
       priceDown: (from, to) => `Do‘kondagi narx tushdi: ${from} → ${to}. Jami qayta hisoblandi.`,
       shippingChanged: (from, to) => `Do‘kon yetkazishi o‘zgardi: ${from} → ${to}.`,
@@ -228,6 +229,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
       fixed: 'Tarif', quote: 'Narxni operator aytadi', notIncluded: 'buyurtma summasiga kirmaydi', quantity: 'Miqdor', required: 'majburiy',
       units: { package: 'posilka', item: 'dona', day: 'kun', photo: 'foto', 'half-hour': '30 daqiqa' },
     },
+    shared: { title: 'Izoh va ombor xizmatlari — shu tovarning barcha variantlari uchun umumiy', services: 'Tanlangan xizmatlar har bir variantga qo‘llanadi.' },
     summary: {
       title: 'Jami', items: 'Tovarlar', storeShipping: 'Do‘kon yetkazishi', storeNoReserve: 'Zaxirasiz', service: 'Atlas xizmati',
       storeShippingHelp: freeFrom => `Do‘kon omborimizgacha yetkazish narxini ko‘rsatmasa, $10 zaxira ushlab turamiz — do‘kondan bitta buyurtmaga bir marta, to‘lov summasidan alohida. Bitta do‘kondan ${freeFrom} dan qimmat tovarlarga zaxira yo‘q: do‘kon yetkazishi siz uchun bepul. Do‘kon baribir haq olsa, qo‘shimcha to‘lov — faqat roziligingiz bilan.`,
@@ -272,8 +274,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
     signin: { title: 'Sign in to open your cart', text: 'Your cart and orders are saved to your Atlas profile.', action: 'Sign in' },
     empty: { title: 'Your cart is empty', text: 'Paste a product link from a store abroad and we calculate the price with delivery to Tashkent.', paste: 'Paste a link', stores: 'Browse stores' },
     item: { remove: 'Remove', decrease: 'Decrease quantity', increase: 'Increase quantity', quantity: 'Quantity', storePrice: 'In store', openStore: 'Open in store', parcelFrom: store => `Parcel from ${store}`, forQuantity: count => `for ${count}`,
-      parcelReserve: (missing, reserve) => `The store did not state delivery: we hold a ${reserve} reserve separately, outside the amount to pay. Add ${missing} more from this store and delivery is free.`,
-      parcelFree: freeFrom => `Over ${freeFrom} from this store — delivery to the warehouse is free.`,
+      parcelReserve: missing => `Store delivery is being confirmed. Add ${missing} more from this store and it is free.`,
       priceUp: (from, to) => `The store price went up: ${from} → ${to}. Total recalculated.`,
       priceDown: (from, to) => `The store price went down: ${from} → ${to}. Total recalculated.`,
       shippingChanged: (from, to) => `Store delivery changed: ${from} → ${to}.`,
@@ -285,6 +286,7 @@ export const cartCopy: Record<Locale, CartCopy> = {
       fixed: 'Rate', quote: 'Operator will quote', notIncluded: 'not included in the order total', quantity: 'Quantity', required: 'required',
       units: { package: 'package', item: 'item', day: 'day', photo: 'photo', 'half-hour': '30 min' },
     },
+    shared: { title: 'Note and warehouse services are shared by every option of this item', services: 'Chosen services apply to each option.' },
     summary: {
       title: 'Summary', items: 'Items', storeShipping: 'Store delivery', storeNoReserve: 'No reserve', service: 'Atlas service',
       storeShippingHelp: freeFrom => `When a store does not state delivery to our warehouse, we hold a $10 reserve — once per store order, apart from the amount to pay. Over ${freeFrom} of items from one store there is no reserve: store delivery is free for you. If the store still charges, any extra payment needs your consent.`,
@@ -494,8 +496,6 @@ export const accountCopy: Record<Locale, AccountCopy> = {
 export type OrdersCopy = {
   title: string;
   active: (count: number) => string;
-  attention: (count: number) => string;
-  showAttention: string;
   search: string;
   actionNeeded: string;
   stage: (current: number, total: number) => string;
@@ -564,7 +564,6 @@ export type NoticesCopy = {
 export const ordersCopy: Record<Locale, OrdersCopy> = {
   ru: {
     title: 'Мои заказы', active: count => `${count} в работе`,
-    attention: count => `Нужно ваше решение: ${orderCount(count, 'ru')}`, showAttention: 'Показать',
     search: 'Номер заказа или товар', actionNeeded: 'Нужно ваше действие', stage: (current, total) => `Этап ${current} из ${total}`, progress: 'Ход заказа',
     placed: date => `Оформлен ${date}`, quantity: count => `${count} шт.`, openStore: 'Открыть в магазине', item: 'Товар', total: 'Сумма заказа',
     atCheckout: amount => `при оформлении ${amount}`, delivery: 'Получатель', tracking: 'Отслеживание', payment: 'Оплата',
@@ -573,7 +572,6 @@ export const ordersCopy: Record<Locale, OrdersCopy> = {
   },
   uz: {
     title: 'Buyurtmalarim', active: count => `${count} ta jarayonda`,
-    attention: count => `Qaroringiz kerak: ${orderCount(count, 'uz')}`, showAttention: 'Ko‘rsatish',
     search: 'Buyurtma raqami yoki tovar', actionNeeded: 'Sizdan harakat kerak', stage: (current, total) => `Bosqich: ${current} / ${total}`, progress: 'Buyurtma jarayoni',
     placed: date => `Rasmiylashtirilgan: ${date}`, quantity: count => `${count} dona`, openStore: 'Do‘konda ochish', item: 'Tovar', total: 'Buyurtma summasi',
     atCheckout: amount => `rasmiylashtirishda ${amount}`, delivery: 'Qabul qiluvchi', tracking: 'Kuzatish', payment: 'To‘lov',
@@ -582,7 +580,6 @@ export const ordersCopy: Record<Locale, OrdersCopy> = {
   },
   en: {
     title: 'My orders', active: count => `${count} in progress`,
-    attention: count => `Your decision is needed: ${orderCount(count, 'en')}`, showAttention: 'Show',
     search: 'Order number or item', actionNeeded: 'Action needed', stage: (current, total) => `Step ${current} of ${total}`, progress: 'Order progress',
     placed: date => `Placed ${date}`, quantity: count => `${count} pcs`, openStore: 'Open in store', item: 'Item', total: 'Order total',
     atCheckout: amount => `${amount} at checkout`, delivery: 'Recipient', tracking: 'Tracking', payment: 'Payment',
