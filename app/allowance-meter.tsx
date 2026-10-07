@@ -6,16 +6,16 @@ import {withCyrillic} from '@/lib/market/uz-cyrl';
 
 type Part={key:string;kind:'order'|'cart'|'left'|'over';usd:number;label:string};
 const copy=withCyrillic({
- ru:{order:(id:string)=>`Заказ ${id}`,cart:'В корзине, ещё не учтено',left:'Остаток без пошлины',over:'Сверх лимита',limit:'лимит',hint:'Нажмите на часть полосы, чтобы увидеть, из чего она.'},
- uz:{order:(id:string)=>`Buyurtma ${id}`,cart:'Savatda, hali hisobga olinmagan',left:'Bojsiz qoldiq',over:'Limitdan oshgan',limit:'limit',hint:'Tarkibini ko‘rish uchun chiziq qismiga bosing.'},
- en:{order:(id:string)=>`Order ${id}`,cart:'In the cart, not counted yet',left:'Left duty-free',over:'Over the allowance',limit:'limit',hint:'Tap a part of the bar to see what it is.'},
+ ru:{order:(id:string)=>`Заказ ${id}`,orders:'Заказы',inCart:'В корзине',afterCart:'Останется после корзины',cart:'В корзине, ещё не учтено',left:'Остаток без пошлины',over:'Сверх лимита',limit:'лимит'},
+ uz:{order:(id:string)=>`Buyurtma ${id}`,orders:'Buyurtmalar',inCart:'Savatda',afterCart:'Savatdan keyin qoladi',cart:'Savatda, hali hisobga olinmagan',left:'Bojsiz qoldiq',over:'Limitdan oshgan',limit:'limit'},
+ en:{order:(id:string)=>`Order ${id}`,orders:'Orders',inCart:'In the cart',afterCart:'Left after the cart',cart:'In the cart, not counted yet',left:'Left duty-free',over:'Over the allowance',limit:'limit'},
 }) satisfies Record<Locale,unknown>;
 const money=(usd:number)=>'$'+(Math.round(usd*100)/100).toLocaleString('en-US',{maximumFractionDigits:2});
 
 /**
  * The month's duty-free allowance for one recipient as a bar: each counted order is a segment, the cart a dashed one,
  * the rest is what is left; anything over the limit shows past the limit mark. Segments are buttons: tap, hover or
- * focus one to read it below the bar.
+ * focus one to read it below the bar; otherwise the line below is a legend of the totals.
  */
 export function AllowanceMeter({limit,orders,cartUsd=0,locale,label}:{limit:number;orders:{id:string;usd:number}[];cartUsd?:number;locale:Locale;label:string}){
  const c=copy[locale],id=useId();
@@ -41,7 +41,11 @@ export function AllowanceMeter({limit,orders,cartUsd=0,locale,label}:{limit:numb
   </div>
   <div className="allowance-scale" aria-hidden="true"><span>$0</span><span style={{left:`${limit/scale*100}%`}}>{money(limit)} {c.limit}</span></div>
   <p id={id+'-readout'} className="allowance-readout" aria-live="polite">
-   {current?<><b>{current.label}</b> {money(current.usd)}</>:overUsd>0?<><b>{c.over}</b> {money(overUsd)}</>:<span>{c.hint}</span>}
+   {current?<span className={'allowance-key '+current.kind}><i/><b>{current.label}</b> {money(current.usd)}</span>:<>
+    {used>0&&<span className="allowance-key order"><i/>{c.orders} <b>{money(used)}</b></span>}
+    {cartUsd>0&&<span className="allowance-key cart"><i/>{c.inCart} <b>{money(cartUsd)}</b></span>}
+    {overUsd>0?<span className="allowance-key over"><i/>{c.over} <b>{money(overUsd)}</b></span>:<span className="allowance-key left"><i/>{cartUsd>0?c.afterCart:c.left} <b>{money(limit-total)}</b></span>}
+   </>}
   </p>
  </div>;
 }

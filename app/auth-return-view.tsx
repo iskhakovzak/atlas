@@ -23,6 +23,7 @@ export function AuthReturnView({locale,appUrl}:{locale:Locale;appUrl:string|null
   <section className="surface login-card login-return-card" role="status" aria-live="polite">
    <span className="wordmark" aria-hidden="true">Atlas</span>
    {appUrl?<>
+    <span className="atlas-loader" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></svg></span>
     <h1>{c.title}</h1>
     <p className="login-intro">{c.hint}</p>
     <a className="btn primary" href={appUrl}>{c.open}</a>

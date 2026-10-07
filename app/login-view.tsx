@@ -122,13 +122,18 @@ export function LoginView(){
  const done=useCallback(()=>window.location.replace(returnTo),[returnTo]);
  useEffect(()=>{if(status==='authenticated')done()},[status,done]);
 
- if(status==='authenticated')return <section className="surface access-card" role="status"><span className="access-spinner"/>{c.signedIn}</section>;
+ // Signed in: a check draws itself while the page heads back (app/motion.css, "Sign-in screens").
+ if(status==='authenticated')return <section className="surface login-card login-done" role="status" aria-live="polite">
+  <span className="login-done-mark" aria-hidden="true"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="23"/><path d="M16 27l7 7 14-15"/></svg></span>
+  <p>{c.signedIn}</p>
+  <span className="login-done-bar" aria-hidden="true"/>
+ </section>;
  const tabs=methods?([['telegram',!!methods.telegram],['phone',methods.phone],['email',methods.email],['google',methods.google],['apple',appleOffered(methods)]] as const).filter(([,enabled])=>enabled):[];
  const locale=(state.communication.language as Locale)??'ru',w=choiceCopy[locale]??choiceCopy.ru;
  return <section className="surface login-card">
   <span className="eyebrow">{c.eyebrow}</span><h1>{c.title}</h1><p className="login-intro">{c.intro}</p>
   {error&&<div className="notice error" role="alert">{error}</div>}
-  {!methods&&!failed&&<div className="login-status" role="status"><span className="access-spinner"/>{c.loading}</div>}
+  {!methods&&!failed&&<div className="login-skeleton" role="status"><span className="sr-only">{c.loading}</span><i aria-hidden="true"/><b aria-hidden="true"/><i aria-hidden="true"/><i aria-hidden="true"/></div>}
   {(failed||(methods&&!tabs.length))&&<div className="notice" role="status">{c.none}</div>}
   {/* One method at a time: Telegram on top, the others as a column of buttons; phone and email open their form. */}
   {methods&&(tab===null||tab==='telegram'||tab==='google'||tab==='apple')?<div className="login-panel">

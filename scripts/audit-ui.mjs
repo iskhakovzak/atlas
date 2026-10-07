@@ -241,7 +241,7 @@ try {
   await cdp.send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:3,mobile:true},sessionId);
   for(const route of ['account','cart','order-by-link']){
    await visit('/'+route);
-   await check("!document.querySelector('.access-card[role=status]')","iPhone session resolves /"+route);
+   await check("!document.querySelector('.access-card[role=status], .access-loading')","iPhone session resolves /"+route);
    await auditPage('iPhone member /'+route);
    if(route==='order-by-link')await check("(()=>{const input=document.querySelector('#source-url');if(!input)return false;const style=getComputedStyle(input);return parseFloat(style.fontSize)>=16&&parseFloat(style.minHeight)>=48})()",'iPhone link field avoids zoom and remains tappable');
    if(route==='cart')await check("(()=>{const bar=document.querySelector('.basket-sticky'),nav=document.querySelector('.mobile-nav');return !bar||bar.getBoundingClientRect().bottom<=nav.getBoundingClientRect().top+1})()",'iPhone cart action clears bottom navigation');

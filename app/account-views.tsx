@@ -185,21 +185,32 @@ function CustomsAllowance({ groups, primaryName, cartUsd, c, locale }: { groups:
   // Show the default recipient even before their first order, so the empty state still says "for whom".
   const rows = groups.length ? groups : primaryName ? [{ key: recipientKey(primaryName), name: primaryName, usedUsd: 0, orders: 0 }] : [];
   const anyOver = rows.some(row => row.usedUsd > limit);
+  const month = new Intl.DateTimeFormat(locale === "oz" ? "uz-Cyrl" : locale, { month: "long" }).format(new Date());
   return <section className={"cabinet-card cabinet-customs" + (anyOver ? " over" : "")} aria-labelledby="cabinet-customs-title">
-    <h2 id="cabinet-customs-title">{c.customs.title}</h2>
+    <div className="cabinet-customs-top">
+      <h2 id="cabinet-customs-title">{c.customs.title}</h2>
+      <span className="cabinet-month">{month}</span>
+    </div>
     <p className="cabinet-lead">{c.customs.perPerson}</p>
     {rows.length ? <ul className="cabinet-allowance">{rows.map(row => {
       const over = row.usedUsd > limit;
+      const name = row.name || c.customs.unnamed;
       return <li key={row.key} className={over ? "over" : undefined}>
-        <div className="cabinet-allowance-head"><b>{row.name || c.customs.unnamed}</b><strong>{c.customs.used(row.usedUsd, limit)}</strong></div>
-        <AllowanceMeter limit={limit} orders={row.parts ?? []} cartUsd={row.name === primaryName || rows.length === 1 ? cartUsd : 0} locale={locale} label={row.name || c.customs.unnamed} />
-        <small>{over ? c.customs.over(row.usedUsd - limit) : c.customs.left(limit - row.usedUsd)}</small>
+        <div className="cabinet-allowance-head">
+          <span className="cabinet-allowance-who"><i aria-hidden="true">{name.trim().charAt(0).toUpperCase()}</i><b>{name}</b></span>
+          <span className="cabinet-allowance-figure"><strong>${Math.round((over ? row.usedUsd - limit : limit - row.usedUsd) * 100) / 100}</strong><small>{over ? c.customs.overLabel : c.customs.leftLabel}</small></span>
+        </div>
+        <AllowanceMeter limit={limit} orders={row.parts ?? []} cartUsd={row.name === primaryName || rows.length === 1 ? cartUsd : 0} locale={locale} label={name} />
+        <p className="cabinet-allowance-status">{over ? c.customs.over(row.usedUsd - limit) : c.customs.used(row.usedUsd, limit)}</p>
       </li>;
     })}</ul> : <p className="cabinet-empty">{c.customs.empty}</p>}
-    {cartUsd > 0 && <p className="cabinet-customs-cart">{c.customs.cart(cartUsd)}</p>}
-    <p className="cabinet-note">{c.customs.note}</p>
+    {cartUsd > 0 && <p className="cabinet-customs-cart"><ShoppingBag size={16} aria-hidden="true" />{c.customs.cart(cartUsd)}</p>}
     {/* Each person has their own allowance: a relative may be the recipient only with their own details. */}
-    <p className="cabinet-note">{calcCopy[locale].customs.relative} {calcCopy[locale].customs.rule}</p>
+    <details className="cabinet-customs-more">
+      <summary><Info size={16} aria-hidden="true" />{c.customs.how}</summary>
+      <p className="cabinet-note">{c.customs.note}</p>
+      <p className="cabinet-note">{calcCopy[locale].customs.relative} {calcCopy[locale].customs.rule}</p>
+    </details>
     <Link className="cabinet-link" href="/customs">{c.customs.link}<ArrowRight size={16} aria-hidden="true" /></Link>
   </section>;
 }
