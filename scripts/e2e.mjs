@@ -383,7 +383,8 @@ try {
   await eventually("fetch('/api/account').then((r) => r.json()).then((a) => a.state.orders.length === 1)", "order placed", 200);
   const orderId = await evaluate("fetch('/api/account').then((r) => r.json()).then((a) => a.state.orders[0].id)");
   await open("/orders");
-  await eventually(`document.querySelector('main').textContent.includes(${JSON.stringify(orderId)})`, "order shown in My orders");
+  // The compact list (#29) shows the number only inside the expanded line; the line carries it as its id and label.
+  await eventually(`!!document.getElementById(${JSON.stringify(orderId)})?.querySelector('summary')?.getAttribute('aria-label')?.includes(${JSON.stringify(orderId)})`, "order shown in My orders");
   for (const path of ["/orders", "/account", "/notifications", "/balance", "/identity", "/declaration", "/favorites", "/catalog"]) await snapshot("customer", path);
 
   // 3. Operator pages.
