@@ -51,9 +51,9 @@ const rows: [key: string, name: string, focus: StoreFocus, country: StoreCountry
   ['sephora', 'Sephora', 'beauty', 'us'], ['ulta', 'Ulta Beauty', 'beauty', 'us'], ['dermstore', 'Dermstore', 'beauty', 'us'], ['beautylish', 'Beautylish', 'beauty', 'us'],
   ['credobeauty', 'Credo Beauty', 'beauty', 'us'], ['glossier', 'Glossier', 'beauty', 'us'], ['fentybeauty', 'Fenty Beauty', 'beauty', 'us'], ['rarebeauty', 'Rare Beauty', 'beauty', 'us'],
   ['rhodeskin', 'rhode', 'beauty', 'us'], ['kyliecosmetics', 'Kylie Cosmetics', 'beauty', 'us'], ['colourpop', 'ColourPop', 'beauty', 'us'], ['summerfridays', 'Summer Fridays', 'beauty', 'us'],
-  ['tartecosmetics', 'tarte', 'beauty', 'us'], ['kosas', 'Kosas', 'beauty', 'us'], ['meritbeauty', 'Merit', 'beauty', 'us'], ['milkmakeup', 'Milk Makeup', 'beauty', 'us'],
+  ['tartecosmetics', 'tarte', 'beauty', 'us'], ['maccosmetics', 'MAC Cosmetics', 'beauty', 'us'], ['elfcosmetics', 'e.l.f. Cosmetics', 'beauty', 'us'], ['morphe', 'Morphe', 'beauty', 'us'], ['charlottetilbury', 'Charlotte Tilbury', 'beauty', 'us'], ['kosas', 'Kosas', 'beauty', 'us'], ['meritbeauty', 'Merit', 'beauty', 'us'], ['milkmakeup', 'Milk Makeup', 'beauty', 'us'],
   ['patrickta', 'Patrick Ta', 'beauty', 'us'], ['tower28beauty', 'Tower 28', 'beauty', 'us'], ['cultbeauty', 'Cult Beauty', 'beauty', 'uk'], ['lookfantastic', 'LOOKFANTASTIC', 'beauty', 'uk'],
-  ['spacenk', 'Space NK', 'beauty', 'uk'], ['douglas', 'Douglas', 'beauty', 'de'], ['notino', 'Notino', 'beauty', 'cz'], ['druni', 'Druni', 'beauty', 'es'], ['primor', 'Primor', 'beauty', 'es'],
+  ['spacenk', 'Space NK', 'beauty', 'uk'], ['douglas', 'Douglas', 'beauty', 'de'], ['notino', 'Notino', 'beauty', 'cz'], ['druni', 'Druni', 'beauty', 'es'], ['arenal', 'Perfumerías Arenal', 'beauty', 'es'], ['primor', 'Primor', 'beauty', 'es'],
   ['3ina', '3INA', 'beauty', 'es'], ['saigucosmetics', 'Saigu', 'beauty', 'es'], ['kikomilano', 'KIKO Milano', 'beauty', 'it'],
 
   ['apple', 'Apple', 'tech', 'us'], ['samsung', 'Samsung', 'tech', 'us'], ['google', 'Google Store', 'tech', 'us'], ['microsoft', 'Microsoft Store', 'tech', 'us'], ['sony', 'Sony', 'tech', 'us'],

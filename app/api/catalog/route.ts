@@ -10,8 +10,56 @@ import {merchantRequest} from '@/lib/importer/worker-fetch';
 import {apiErrorMessage,requestLocale} from '@/lib/market/i18n';
 
 const ids=z.array(z.string().min(1).max(100)).min(1).max(100);
+/** Links per pasted batch; every link in it is read from its store at the same time. */
+const catalogImportBatchMax=25;
+/** How many stores one batch reads concurrently (each read is bounded to 15 s). */
+const catalogImportConcurrency=8;
+/** Operator link reads per minute: one full batch plus retries and one collection discovery. */
+const catalogImportRateLimitPerMinute=60;
+function importFailureText(error:unknown){
+  const message=error instanceof Error?error.message.trim():'';
+  return (message&&/[А-Яа-яЁё]/.test(message)?message:'Не удалось загрузить страницу товара. Проверьте ссылку и повторите позже.').slice(0,500);
+}
+function invalidLinkText(error:unknown){
+  return error instanceof Error&&error.message.startsWith('Используйте')?error.message:'Это не ссылка на страницу товара. Нужна HTTPS-ссылка поддерживаемого магазина.';
+}
+type ImportOutcome={url:string;status:'saved'|'failed';id?:string;note?:string;reason?:string;importFailureReason?:CatalogDraft['importFailureReason']};
+/** Read one store page; never throws for recoverable merchant failures — those become a reviewable draft. */
+async function readForImport(sourceUrl:string,collectionIds:string[],country:string){
+  let data:Extracted|undefined,sourceUnavailable=false,failureMessage='',failureReason:CatalogDraft['importFailureReason']='unknown';
+  try{data=await fetchProduct(sourceUrl,merchantRequest)}catch(error){
+    const canSaveManualDraft=error instanceof ManualEntryFallbackError||error instanceof Error&&error.name==='AbortError';
+    // A confirmed "not found"/ended listing or an unexpected importer error must not become a draft; tell the operator why instead of a generic 503.
+    if(!canSaveManualDraft)throw new HttpError(422,importFailureText(error));
+    sourceUnavailable=true;
+    failureMessage=error instanceof Error&&error.name!=='AbortError'?error.message:'Магазин не ответил вовремя. Повторите проверку позже.';
+    failureReason=error instanceof ManualEntryFallbackError?error.reason:error instanceof Error&&error.name==='AbortError'?'timeout':'unknown';
+    data=error instanceof ManualEntryFallbackError?error.partial:undefined;
+  }
+  const now=Date.now();
+  const draft=sourceUnavailable
+    ?manualFallbackCatalogDraft(data,sourceUrl,collectionIds,country,now,failureMessage,failureReason)
+    :importDraft(data!,collectionIds,country,now);
+  return {draft,sourceUnavailable,failureMessage,failureReason};
+}
+/** Merge a read draft into the document: refresh an existing card or append a queued one. */
+function applyImportedDraft(document:Awaited<ReturnType<typeof readCatalog>>['document'],sourceUrl:string,read:Awaited<ReturnType<typeof readForImport>>,collectionIds:string[],now:number){
+  const {draft,sourceUnavailable,failureMessage,failureReason}=read;
+  const existing=document.entries.find(e=>{try{return canonicalCatalogUrl(e.draft.sourceUrl)===draft.sourceUrl||canonicalCatalogUrl(e.draft.sourceUrl)===sourceUrl}catch{return e.draft.sourceUrl===sourceUrl}});
+  if(existing){const mergedCollections=[...new Set([...existing.draft.collectionIds,...collectionIds])];if(sourceUnavailable){existing.draft.lastCheckError=failureMessage.slice(0,500);existing.draft.importFailureReason=failureReason;}else{existing.draft=recheckedDraft(existing.draft,draft);if(!existing.published){existing.createdAt??=now;existing.origin??='operator-import';existing.queueState='queued';}}existing.draft.collectionIds=mergedCollections;return existing.id;}
+  if(document.entries.length>=catalogMaxEntries)throw new HttpError(400,`В каталоге уже ${catalogMaxEntries} товаров.`);
+  const id='find-'+crypto.randomUUID();
+  document.entries.push({id,draft,createdAt:now,origin:'operator-import',queueState:'queued'});
+  return id;
+}
+async function mapConcurrent<T,R>(items:T[],limit:number,task:(item:T,index:number)=>Promise<R>){
+  const results:R[]=new Array(items.length);let next=0;
+  await Promise.all(Array.from({length:Math.min(limit,items.length)},async()=>{while(next<items.length){const index=next++;results[index]=await task(items[index],index)}}));
+  return results;
+}
 const commandSchema=z.discriminatedUnion('kind',[
   z.object({kind:z.literal('import'),url:z.string().max(3000),collectionIds:z.array(z.string().max(80)).max(20),country:z.string().max(80)}),
+  z.object({kind:z.literal('import-batch'),urls:z.array(z.string().max(3000)).min(1).max(catalogImportBatchMax),collectionIds:z.array(z.string().max(80)).max(20),country:z.string().max(80)}),
   z.object({kind:z.literal('discover'),url:z.string().max(3000)}),
   z.object({kind:z.literal('recheck'),ids:z.array(z.string().min(1).max(100)).min(1).max(catalogRecheckBatchSize)}),
   z.object({kind:z.literal('refresh-due')}),
@@ -41,31 +89,46 @@ export async function POST(request:Request){try{
     for(const id of command.ids){const entry=document.entries.find(item=>item.id===id);if(!entry){results.push(`${id}: товар не найден`);continue}try{const data=await fetchProduct(entry.draft.sourceUrl,merchantRequest),fresh=importDraft(data,entry.draft.collectionIds,entry.draft.country,Date.now());entry.draft=recheckedDraft(entry.draft,fresh);document.availabilityReports=document.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:Date.now()}:report);results.push(`${entry.draft.name}: проверено`)}catch(error){entry.draft.lastCheckError=(error as Error).message.slice(0,500);entry.draft.importFailureReason=error instanceof ManualEntryFallbackError?error.reason:error instanceof Error&&error.name==='AbortError'?'timeout':undefined;const locale=requestLocale(request);results.push(`${entry.draft.name}: ${locale==='ru'?(error as Error).message:apiErrorMessage(422,locale)}`)}}
     document.revision++;await persistCatalog(document,raw,user,'catalog.recheck',{ids:command.ids});return json({document,recheckResults:results});
   }
-  if(command.kind==='import'||command.kind==='discover'){
-    const sourceUrl=canonicalCatalogUrl(command.url),now=Date.now(),db=database();
-    const key=user.userId+':catalog-import:'+Math.floor(now/60000);
-    const limit=await db.prepare('INSERT INTO market_rate_limits (key,count,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count').bind(key,now+120000).first<{count:number}>();
-    if(!limit||limit.count>20)throw new HttpError(429, 'err_32');
+  if(command.kind==='import'||command.kind==='discover'||command.kind==='import-batch'){
+    const now=Date.now(),db=database();
+    const key=user.userId+':catalog-import:'+Math.floor(now/60000),reads=command.kind==='import-batch'?command.urls.length:1;
+    const limit=await db.prepare('INSERT INTO market_rate_limits (key,count,expires_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET count=count+? RETURNING count').bind(key,reads,now+120000,reads).first<{count:number}>();
+    if(!limit||limit.count>catalogImportRateLimitPerMinute)throw new HttpError(429, 'err_32');
     await db.prepare('DELETE FROM market_rate_limits WHERE expires_at < ?').bind(now).run();
-    if(command.kind==='discover')return json({urls:await fetchCollectionLinks(sourceUrl,merchantRequest)});
-    if(command.collectionIds.some(id=>!document.collections.some(c=>c.id===id)))throw new HttpError(400, 'err_33');
-    let data:Extracted|undefined,sourceUnavailable=false,failureMessage='',failureReason:CatalogDraft['importFailureReason']='unknown';
-    try{data=await fetchProduct(sourceUrl,merchantRequest)}catch(error){
-      const canSaveManualDraft=error instanceof ManualEntryFallbackError||error instanceof Error&&error.name==='AbortError';
-      if(!canSaveManualDraft)throw error;
-      sourceUnavailable=true;
-      failureMessage=error instanceof Error&&error.name!=='AbortError'?error.message:'Магазин не ответил вовремя. Повторите проверку позже.';
-      failureReason=error instanceof ManualEntryFallbackError?error.reason:error instanceof Error&&error.name==='AbortError'?'timeout':'unknown';
-      data=error instanceof ManualEntryFallbackError?error.partial:undefined;
+    if(command.kind==='import-batch'){
+      if(command.collectionIds.some(id=>!document.collections.some(c=>c.id===id)))throw new HttpError(400, 'err_33');
+      const urls=[...new Set(command.urls.map(value=>value.trim()).filter(Boolean))];
+      // Every store is read at the same time; the catalog is written once, so the operator sees one revision and one result list.
+      const reads=await mapConcurrent(urls,catalogImportConcurrency,async(url):Promise<ImportOutcome|{url:string;sourceUrl:string;read:Awaited<ReturnType<typeof readForImport>>}>=>{
+        let sourceUrl:string;
+        try{sourceUrl=canonicalCatalogUrl(url)}catch(error){return {url,status:'failed',reason:invalidLinkText(error)}}
+        try{return {url,sourceUrl,read:await readForImport(sourceUrl,command.collectionIds,command.country)}}
+        catch(error){return {url,status:'failed',reason:error instanceof HttpError?error.message:importFailureText(error)}}
+      });
+      const results:ImportOutcome[]=[];let saved=0;
+      for(const item of reads){
+        if('status' in item){results.push(item);continue}
+        try{
+          const id=applyImportedDraft(document,item.sourceUrl,item.read,command.collectionIds,now);saved++;
+          results.push({url:item.url,status:'saved',id,...(item.read.sourceUnavailable?{note:item.read.failureMessage.slice(0,500),importFailureReason:item.read.failureReason}:{})});
+        }catch(error){results.push({url:item.url,status:'failed',reason:error instanceof HttpError?error.message:importFailureText(error)})}
+      }
+      if(saved){document.revision++;await persistCatalog(document,raw,user,'catalog.import-batch',{count:saved,failed:results.length-saved});}
+      return json({document,results});
     }
-    const draft=sourceUnavailable
-      ?manualFallbackCatalogDraft(data,sourceUrl,command.collectionIds,command.country,Date.now(),failureMessage,failureReason)
-      :importDraft(data!,command.collectionIds,command.country,Date.now());
-    const existing=document.entries.find(e=>canonicalCatalogUrl(e.draft.sourceUrl)===draft.sourceUrl||canonicalCatalogUrl(e.draft.sourceUrl)===sourceUrl);
-    if(existing){const mergedCollections=[...new Set([...existing.draft.collectionIds,...command.collectionIds])];if(sourceUnavailable){existing.draft.lastCheckError=failureMessage.slice(0,500);existing.draft.importFailureReason=failureReason;}else{existing.draft=recheckedDraft(existing.draft,draft);if(!existing.published){existing.createdAt??=now;existing.origin??='operator-import';existing.queueState='queued';}}existing.draft.collectionIds=mergedCollections;}
-    else{if(document.entries.length>=catalogMaxEntries)throw new HttpError(400,`В каталоге уже ${catalogMaxEntries} товаров.`);document.entries.push({id:'find-'+crypto.randomUUID(),draft,createdAt:now,origin:'operator-import',queueState:'queued'});}
+    // A link outside the store list or a malformed line is the operator's input error, not a service failure.
+    let sourceUrl:string;
+    try{sourceUrl=canonicalCatalogUrl(command.url)}catch(error){throw new HttpError(400,invalidLinkText(error))}
+    if(command.kind==='discover'){
+      try{return json({urls:await fetchCollectionLinks(sourceUrl,merchantRequest)})}
+      catch(error){throw new HttpError(422,importFailureText(error))}
+    }
+    if(command.collectionIds.some(id=>!document.collections.some(c=>c.id===id)))throw new HttpError(400, 'err_33');
+    const read=await readForImport(sourceUrl,command.collectionIds,command.country);
+    const importedId=applyImportedDraft(document,sourceUrl,read,command.collectionIds,now);
     document.revision++;
-    await persistCatalog(document,raw,user,'catalog.import');return json({document,importedId:existing?.id??document.entries.at(-1)!.id});
+    await persistCatalog(document,raw,user,'catalog.import');
+    return json({document,importedId,...(read.sourceUnavailable?{importNote:read.failureMessage.slice(0,500),importFailureReason:read.failureReason}:{})});
   }
   let next;try{next=changeCatalog(document,command,Date.now(),await pricing())}catch(error){throw new HttpError(400,(error as Error).message)}
   const auditDetails='ids' in command?{ids:command.ids}:undefined;

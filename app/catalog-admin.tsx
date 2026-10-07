@@ -4,15 +4,17 @@ import {useCallback,useEffect,useMemo,useState} from 'react';
 import {BadgeCheck,Check,ChevronDown,EyeOff,FolderPlus,ImageIcon,Link2,Loader2,RefreshCw,Send,Trash2} from 'lucide-react';
 import {toast} from 'sonner';
 import {Modal} from './market-ui';
-import {canonicalCatalogUrl,catalogCategories,catalogIssues,catalogRefreshDueAt,catalogRefreshInterval,cleanGeneratedCatalogDescription,dueCatalogEntries,isBundledCatalogEntry,isWatchedCatalogEntry,type CatalogCollection,type CatalogDocument,type CatalogDraft,type CatalogEntry} from '@/lib/market/catalog-editor';
+import {catalogCategories,catalogIssues,catalogRefreshDueAt,catalogRefreshInterval,cleanGeneratedCatalogDescription,dueCatalogEntries,isBundledCatalogEntry,isWatchedCatalogEntry,type CatalogCollection,type CatalogDocument,type CatalogDraft,type CatalogEntry} from '@/lib/market/catalog-editor';
 import {chunkCatalogIds,parseCatalogImportQueue,removeImportedCatalogLinks} from '@/lib/market/catalog-import-queue';
 import {dedupeSafeImages,safeImage} from '@/lib/importer/extract';
 
-type Result={document?:CatalogDocument;urls?:string[];importedId?:string;recheckResults?:string[];refreshResult?:{selected:number;checked:number;available:number;soldOut:number;unknown:number;failed:number;skipped:number};error?:string};
-type ImportStatus='queued'|'importing'|'saved'|'failed';
+type ImportOutcome={url:string;status:'saved'|'failed';id?:string;note?:string;reason?:string};
+type Result={document?:CatalogDocument;urls?:string[];importedId?:string;importNote?:string;results?:ImportOutcome[];recheckResults?:string[];refreshResult?:{selected:number;checked:number;available:number;soldOut:number;unknown:number;failed:number;skipped:number};error?:string};
+type ImportStatus='queued'|'importing'|'saved'|'review'|'failed';
 type ImportProgress={url:string;status:ImportStatus;detail?:string};
 type CatalogScope='queue'|'customer'|'published'|'previous'|'all';
-const catalogAdminImportBatchSize=16;
+/** Matches the server's batch ceiling: every link in a run is read from its store at the same time. */
+const catalogAdminImportBatchSize=25;
 const collectionPresets=[
  {name:'Осенняя подборка',nameUz:'Kuzgi to‘plam',nameEn:'Autumn collection'},
  {name:'Готовый образ',nameUz:'Tayyor obraz',nameEn:'Complete outfit'},
@@ -34,41 +36,30 @@ export function CatalogAdmin(){
  const call=async(command:unknown,revision=document?.revision)=>{if(!document||revision===undefined)throw new Error('Каталог загружается.');const r=await fetch('/api/catalog',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({revision,command})});let data:Result={};try{data=await r.json() as Result}catch{}if(!r.ok)throw new CatalogRequestError(data.error??'Не удалось сохранить каталог.',r.status);if(data.document)setDocument(data.document);return data};
  async function importAll(){
    const parsed=parseCatalogImportQueue(urls),batch=parsed.links.slice(0,catalogAdminImportBatchSize);if(!batch.length||!document)return;
-   setBusy('import');setImportProgress(batch.map(url=>({url,status:'queued'})));let saved=0,failed=0,revision=document.revision,currentDocument=document,firstImportedId:string|undefined,halted=false;
-  const updateProgress=(index:number,progress:ImportProgress)=>setImportProgress(items=>items.map((item,i)=>i===index?progress:item));
-  const finishItem=(url:string,id?:string)=>{saved++;setUrls(value=>removeImportedCatalogLinks(value,[url]));if(id&&!firstImportedId)firstImportedId=id};
-  try{
-   for(let index=0;index<batch.length;index++){
-    const url=batch[index];updateProgress(index,{url,status:'importing'});let completed=false,reason='Не удалось добавить черновик.',stop=false;
-    for(let attempt=0;attempt<2&&!completed;attempt++){
-     const requestedAt=Date.now();
-     try{
-       const suggested=collectionIds.length?collectionIds:inheritedCollections(url,currentDocument);
-       const data=await call({kind:'import',url,collectionIds:suggested,country},revision);
-       if(data.document){currentDocument=data.document;revision=data.document.revision}
-      finishItem(url,data.importedId);updateProgress(index,{url,status:'saved',detail:'Черновик сохранён'});completed=true;
-     }catch(error){
-      const failure=error as CatalogRequestError;reason=failure.message;
-      if(failure.status===429){reason='Достигнут лимит импорта. Повторите оставшиеся ссылки позже.';stop=true;break}
-      const recoverable=failure.status===409||failure.status===undefined||failure.status>=500;
-      if(!recoverable)break;
-      try{
-       const latest=await load();revision=latest.revision;
-       let canonical='';try{canonical=canonicalCatalogUrl(url)}catch{}
-       const committed=canonical?latest.entries.find(entry=>canonicalCatalogUrl(entry.draft.sourceUrl)===canonical&&entry.draft.checkedAt>=requestedAt-5000):undefined;
-       if(committed){finishItem(url,committed.id);updateProgress(index,{url,status:'saved',detail:'Состояние восстановлено'});completed=true;break}
-      }catch{reason='Не удалось обновить каталог для безопасного повтора.';stop=true;break}
-      if(attempt===1&&failure.status===409)stop=true;
+   setBusy('import');setImportProgress(batch.map(url=>({url,status:'importing'})));
+   let revision=document.revision,data:Result|undefined,failureMessage='';
+   try{
+    // One request reads every store concurrently and writes the catalog once; a 409 only means another tab saved first, so reload and send again.
+    for(let attempt=0;attempt<2&&!data;attempt++){
+     const suggested=collectionIds.length?collectionIds:inheritedCollections(batch[0],document);
+     try{data=await call({kind:'import-batch',urls:batch,collectionIds:suggested,country},revision)}
+     catch(error){
+      const failure=error as CatalogRequestError;failureMessage=failure.message;
+      if(failure.status===409&&attempt===0){try{revision=(await load()).revision;continue}catch{}}
+      break;
      }
     }
-    if(!completed){failed++;updateProgress(index,{url,status:'failed',detail:reason})}
-    if(stop){halted=true;break}
-   }
-   if(halted){setImportProgress(items=>items.map(item=>item.status==='queued'?{...item,detail:'Ожидает повтора'}:item))}
-   if(firstImportedId){setOpen(firstImportedId);window.setTimeout(()=>window.document.getElementById(`catalog-${firstImportedId}`)?.scrollIntoView({behavior:'smooth',block:'center'}),80)}
-   if(failed||halted)toast.warning(`Черновиков добавлено: ${saved}. Остальные ссылки оставлены в очереди для повтора.`);
-   else toast.success(`Черновиков добавлено: ${saved}. Они сохранены в каталоге и готовы к проверке.`);
-  }finally{setBusy('')}
+    if(!data){setImportProgress(batch.map(url=>({url,status:'failed',detail:failureMessage||'Не удалось добавить черновики.'})));toast.error(failureMessage||'Не удалось добавить черновики.');return}
+    const results=data.results??[];
+    const saved=results.filter(item=>item.status==='saved'),review=saved.filter(item=>item.note),failed=results.filter(item=>item.status==='failed');
+    setImportProgress(batch.map(url=>{const outcome=results.find(item=>item.url===url);if(!outcome)return {url,status:'failed',detail:'Сервер не вернул результат для этой ссылки.'};if(outcome.status==='failed')return {url,status:'failed',detail:outcome.reason??'Не удалось добавить черновик.'};return outcome.note?{url,status:'review',detail:`Черновик на ручную проверку: ${outcome.note}`}:{url,status:'saved',detail:'Черновик сохранён'}}));
+    setUrls(value=>removeImportedCatalogLinks(value,saved.map(item=>item.url)));
+    const firstImportedId=saved[0]?.id;
+    if(firstImportedId){setOpen(firstImportedId);window.setTimeout(()=>window.document.getElementById(`catalog-${firstImportedId}`)?.scrollIntoView({behavior:'smooth',block:'center'}),80)}
+    const summary=`Черновиков добавлено: ${saved.length}${review.length?`, из них на ручную проверку: ${review.length}`:''}.`;
+    if(failed.length)toast.warning(`${summary} Не добавлено: ${failed.length} — ссылки остались в поле.`);
+    else toast.success(`${summary} Они сохранены в каталоге и готовы к проверке.`);
+   }finally{setBusy('')}
  }
  async function discover(){const {links}=parseCatalogImportQueue(urls);if(links.length!==1)return;setBusy('discover');try{const data=await call({kind:'discover',url:links[0]});setUrls((data.urls??[]).join('\n'));setImportProgress([]);toast.success(`Найдено ссылок: ${data.urls?.length??0}`)}catch(error){toast.error((error as Error).message)}finally{setBusy('')}}
  async function command(value:unknown,message:string){setBusy('save');try{await call(value);setSelected([]);toast.success(message)}catch(error){toast.error((error as Error).message)}finally{setBusy('')}}
@@ -110,17 +101,17 @@ export function CatalogAdmin(){
   const dueEntryIds=new Set(dueCatalogEntries(document,refreshClock).map(entry=>entry.id));
  const filteredEntries=[...scopeEntries].filter(entry=>[entry.draft.name,entry.draft.brand,entry.draft.sourceUrl].join(' ').toLocaleLowerCase().includes(search.toLocaleLowerCase())).filter(entry=>filter==='all'||(filter==='stale'&&dueEntryIds.has(entry.id))||(filter==='published'&&!!entry.published)||(filter==='draft'&&!entry.published)||(filter==='attention'&&catalogIssues(entry.draft).length>0)||(filter==='no-image'&&!entry.draft.image)||(filter==='no-variants'&&!entry.draft.variants.some(v=>v.available))).sort((a,b)=>Number(Boolean(catalogIssues(b.draft).length))-Number(Boolean(catalogIssues(a.draft).length))||(b.createdAt??0)-(a.createdAt??0));
  const matchingIds=filteredEntries.map(entry=>entry.id),allMatchingSelected=matchingIds.length>0&&matchingIds.every(id=>selected.includes(id)),selectedDraftIds=selected.filter(id=>{const entry=document.entries.find(item=>item.id===id);return !!entry&&!entry.published&&!isBundledCatalogEntry(id)});
-  const importQueue=parseCatalogImportQueue(urls),importBatch=importQueue.links.slice(0,catalogAdminImportBatchSize),settledImports=importProgress.filter(item=>item.status==='saved'||item.status==='failed').length,savedImports=importProgress.filter(item=>item.status==='saved').length;
+  const importQueue=parseCatalogImportQueue(urls),importBatch=importQueue.links.slice(0,catalogAdminImportBatchSize),settledImports=importProgress.filter(item=>item.status!=='importing'&&item.status!=='queued').length,savedImports=importProgress.filter(item=>item.status==='saved'||item.status==='review').length;
   const reports=(document.availabilityReports??[]).filter(report=>!report.resolvedAt);
  const due=dueCatalogEntries(document,refreshClock).length;
  return <section className="catalog-workspace">
-  <section className="surface catalog-importer"><div><span className="eyebrow">БЫСТРОЕ ДОБАВЛЕНИЕ</span><h2>Ссылки магазинов → черновики каталога</h2><p>Вставьте страницы товаров, по одной ссылке на строку. Atlas соберёт название, цену, фотографии и доступную матрицу цветов и размеров. Если магазин уже есть в каталоге, товары унаследуют его основные подборки. Импорт создаёт черновики — публикация остаётся за вами.</p></div>
+  <section className="surface catalog-importer"><div><span className="eyebrow">БЫСТРОЕ ДОБАВЛЕНИЕ</span><h2>Ссылки магазинов → черновики каталога</h2><p>Вставьте ссылки на страницы товаров — списком, из чата или таблицы, лишний текст вокруг ссылок не мешает. Atlas прочитает все магазины одновременно и соберёт название, цену, фотографии и матрицу цветов и размеров. Если магазин уже есть в каталоге, товары унаследуют его основные подборки. Магазин с антибот-защитой станет черновиком на ручную проверку с указанием причины. Импорт создаёт черновики — публикация остаётся за вами.</p></div>
    <textarea aria-label="Ссылки товаров или коллекции" disabled={busy==='import'} value={urls} onChange={e=>{setUrls(e.target.value);setImportProgress([])}} placeholder={'https://магазин.com/products/товар-1\nhttps://магазин.com/products/товар-2'}/>
-   <div className="catalog-import-queue-summary" aria-live="polite"><span>{importQueue.links.length} уникальных ссылок</span><span>За один запуск: до {catalogAdminImportBatchSize}</span>{importQueue.duplicates>0&&<span>Повторы пропущены: {importQueue.duplicates}</span>}{importQueue.links.length>catalogAdminImportBatchSize&&<span>В очереди останется: {importQueue.links.length-catalogAdminImportBatchSize}</span>}</div>
+   <div className="catalog-import-queue-summary" aria-live="polite"><span>{importQueue.links.length} уникальных ссылок</span><span>За один запуск: до {catalogAdminImportBatchSize}</span>{importQueue.duplicates>0&&<span>Повторы пропущены: {importQueue.duplicates}</span>}{importQueue.invalid.length>0&&<span>Строк без ссылки: {importQueue.invalid.length}</span>}{importQueue.links.length>catalogAdminImportBatchSize&&<span>В очереди останется: {importQueue.links.length-catalogAdminImportBatchSize}</span>}</div>
    {importQueue.links.length>catalogAdminImportBatchSize&&<p className="catalog-import-hint">За один запуск обрабатывается до {catalogAdminImportBatchSize} ссылок. Остальные остаются в поле — вставлять их повторно не нужно.</p>}
    {importProgress.length>0&&<div className="catalog-import-progress" aria-live="polite"><div className="catalog-import-progress-head"><strong>Импорт: {settledImports} из {importProgress.length}</strong><span>Добавлено черновиков: {savedImports}</span></div><progress max={importProgress.length} value={settledImports}/><ul>{importProgress.map(item=><li key={item.url} className={`import-${item.status}`}><span>{hostLabel(item.url)}</span><small>{item.detail??(item.status==='importing'?'Читаем магазин…':item.status==='queued'?'В очереди':'')}</small></li>)}</ul></div>}
    <div className="catalog-import-options"><label>Страна отправки<input value={country} maxLength={80} onChange={e=>setCountry(e.target.value)}/></label><fieldset><legend>Подборки</legend><p className="micro">Выберите подборки для всех ссылок. Если выбор пустой, товары знакомого магазина автоматически попадут в его наиболее используемые подборки.</p><div>{document.collections.map(c=><label key={c.id}><input type="checkbox" checked={collectionIds.includes(c.id)} onChange={e=>setCollectionIds(e.target.checked?[...collectionIds,c.id]:collectionIds.filter(id=>id!==c.id))}/>{c.name}</label>)}<button type="button" className="text-button" onClick={()=>setNewCollection({name:'',nameUz:'',nameEn:''})}><FolderPlus size={16}/>Новая подборка</button></div></fieldset></div>
-   <div className="catalog-import-actions"><button className="btn primary" disabled={!!busy||!importBatch.length} onClick={()=>void importAll()}>{busy==='import'?<Loader2 className="spin"/>:<Link2/>}{busy==='import'?'Добавляем…':`Импортировать черновики (${importBatch.length})`}</button><button className="btn secondary" disabled={!!busy||importQueue.links.length!==1} onClick={()=>void discover()}><RefreshCw/>Найти товары на странице коллекции</button></div>
+   <div className="catalog-import-actions"><button className="btn primary" disabled={!!busy||!importBatch.length} onClick={()=>void importAll()}>{busy==='import'?<Loader2 className="spin"/>:<Link2/>}{busy==='import'?`Читаем ${importBatch.length} магазинов…`:`Импортировать черновики (${importBatch.length})`}</button><button className="btn secondary" disabled={!!busy||importQueue.links.length!==1} onClick={()=>void discover()}><RefreshCw/>Найти товары на странице коллекции</button></div>
   </section>
   <section className="surface admin-section"><div className="admin-section-head"><div><h2>Подборки на главной</h2><p>Используйте их для одежды, косметики, распродаж, брендов или сезонных предложений.</p></div><button className="btn secondary" onClick={()=>setNewCollection({name:'',nameUz:'',nameEn:''})}><FolderPlus/>Создать</button></div>
    <div className="catalog-collections">{document.collections.length?[...document.collections].sort((a,b)=>a.position-b.position).map(c=><CollectionRow key={`${c.id}:${document.revision}`} value={c} disabled={!!busy} onSave={collection=>void command({kind:'collection',collection},'Подборка сохранена')}/>):<p className="micro">Создайте первую подборку и выберите её при импорте.</p>}</div>
