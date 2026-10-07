@@ -2,6 +2,8 @@ import type { Locale } from './i18n.ts';
 import { tashkentMonth } from './world.ts';
 import { storeCountryNames } from './store-brands.ts';
 import type { CatalogSort, PriceBand } from './catalog-query.ts';
+import {withCyrillic,uzText} from './uz-cyrl.ts';
+import {isUzbek} from './i18n.ts';
 
 const usd = (value: number) => '$' + Math.max(0, Math.floor(value));
 // `limit` in the allowance strings is the monthly duty-free allowance the page counts with (one source, never a literal).
@@ -197,13 +199,13 @@ function plural(count: number, [one, few, many]: [string, string, string]) {
   return units === 1 ? one : units >= 2 && units <= 4 ? few : many;
 }
 
-export const catalogCopy: Record<Locale, Copy> = { ru, uz, en };
+export const catalogCopy: Record<Locale, Copy> = withCyrillic({ ru, uz, en });
 
 /**
  * Product.country labels are Russian; the storefront names the country in the customer's language.
  * The names come from the store directory (all 32 store countries), plus the tariff countries it lacks.
  */
-const extraCountryNames: Record<string, Record<Locale, string>> = { 'Румыния': { ru: 'Румыния', uz: 'Ruminiya', en: 'Romania' } };
+const extraCountryNames: Record<string, Record<Locale, string>> = { 'Румыния': withCyrillic({ ru: 'Румыния', uz: 'Ruminiya', en: 'Romania' }) };
 const countryByRussianName = new Map<string, Record<Locale, string>>([
   ...Object.values(storeCountryNames).map((names) => [names.ru, names] as const),
   ...Object.entries(extraCountryNames).map(([ru, names]) => [ru, names] as const),
@@ -217,7 +219,7 @@ export function countryLabel(country: string | undefined, locale: Locale) {
 export function shortDate(time: number, locale: Locale) {
   if (!Number.isFinite(time) || time <= 0) return '';
   try {
-    const text = new Intl.DateTimeFormat(locale === 'ru' ? 'ru-RU' : locale === 'uz' ? 'uz-UZ' : 'en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Tashkent' }).format(time);
+    const text = new Intl.DateTimeFormat(locale === 'ru' ? 'ru-RU' : isUzbek(locale) ? uzText(locale, 'uz-UZ') : 'en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Tashkent' }).format(time);
     return text.replace(/\.$/, '');
   } catch {
     const date = new Date(time + 5 * 3_600_000);
@@ -229,6 +231,6 @@ export function allowanceMonth(locale: Locale, now = Date.now()) {
   // Tashkent calendar, like the allowance itself (lib/market/allowance.ts monthOf), not the browser time zone.
   const month = Number(tashkentMonth(now).slice(5, 7)) - 1;
   if (locale === 'ru') return ['январе', 'феврале', 'марте', 'апреле', 'мае', 'июне', 'июле', 'августе', 'сентябре', 'октябре', 'ноябре', 'декабре'][month];
-  if (locale === 'uz') return ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'][month];
+  if (isUzbek(locale)) return uzText(locale, ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'][month]);
   return ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][month];
 }

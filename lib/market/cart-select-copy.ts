@@ -1,8 +1,9 @@
-import type { Locale } from "./i18n.ts";
+import { isUzbek, type Locale } from "./i18n.ts";
+import { uzText, withCyrillic } from "./uz-cyrl.ts";
 
 /** Plural of "item" (товар) for a count. */
 function itemsWord(count: number, locale: Locale) {
-  if (locale === "uz") return "ta tovar";
+  if (isUzbek(locale)) return uzText(locale, "ta tovar");
   if (locale === "en") return count === 1 ? "item" : "items";
   const tens = count % 100, ones = count % 10;
   if (tens >= 11 && tens <= 14) return "товаров";
@@ -15,7 +16,7 @@ function itemsWord(count: number, locale: Locale) {
  * Cart checkboxes and the checkout review (owner, 7.10.2026): the customer ticks what to check out now, the rest
  * stays in the cart; the review lists the order as a numbered table grouped by store and model.
  */
-export const cartSelectCopy = {
+export const cartSelectCopy = withCyrillic({
   ru: {
     selectAll: "Выбрать все",
     selectStore: (store: string) => `Выбрать все товары ${store}`,
@@ -136,5 +137,5 @@ export const cartSelectCopy = {
       note: "Note",
     },
   },
-} satisfies Record<Locale, unknown>;
+});
 export type CartSelectCopy = (typeof cartSelectCopy)["ru"];

@@ -1,4 +1,5 @@
-import type { Locale } from '../market/i18n.ts';
+import type { Locale, TextLocale } from '../market/i18n.ts';
+import { pickLocale, withCyrillic } from '../market/uz-cyrl.ts';
 
 // schema.org JSON-LD for the public pages. Only facts the site already shows: no prices, stock,
 // ratings or delivery promises (imported products are editable estimates, see CLAUDE.md).
@@ -12,14 +13,14 @@ type Contacts = {
   instagram: string | null;
   supportEmail: string | null;
 };
-type Legal = { entityName: string | null; inn: string | null; address: Record<Locale, string> | null };
+type Legal = { entityName: string | null; inn: string | null; address: Record<TextLocale, string> | null };
 
-const organizationText: Record<Locale, string> = {
+const organizationText: Record<Locale, string> = withCyrillic({
   uz: 'Xorijiy do‘konlardan xarid qilishda vositachi va logistika agenti: tovarni xorijda sotib olib, O‘zbekistonga yetkazib beradi.',
   ru: 'Посредник и логистический агент для покупок в зарубежных магазинах: выкупает товар за рубежом и доставляет его в Узбекистан.',
   en: 'Purchasing intermediary and logistics agent for international shopping: buys items abroad and delivers them to Uzbekistan.',
-};
-const homeName: Record<Locale, string> = { uz: 'Bosh sahifa', ru: 'Главная', en: 'Home' };
+});
+const homeName: Record<Locale, string> = withCyrillic({ uz: 'Bosh sahifa', ru: 'Главная', en: 'Home' });
 
 /** `/path` → `https://atlasmarket.uz/path?lang=xx`, the self-canonical language version of a public page. */
 export function localizedUrl(path: string, locale: Locale): string {
@@ -57,7 +58,7 @@ export function siteGraph(locale: Locale, contacts: Contacts, legal?: Legal) {
         ...(legal?.entityName ? { legalName: legal.entityName } : {}),
         // INN is the Uzbek taxpayer number.
         ...(legal?.inn ? { taxID: legal.inn } : {}),
-        ...(legal?.address?.[locale] ? { address: { '@type': 'PostalAddress', streetAddress: legal.address[locale], addressCountry: 'UZ' } } : {}),
+        ...(legal?.address && pickLocale(legal.address, locale) ? { address: { '@type': 'PostalAddress', streetAddress: pickLocale(legal.address, locale), addressCountry: 'UZ' } } : {}),
         ...(sameAs.length ? { sameAs } : {}),
         ...(contactPoint ? { contactPoint } : {}),
       },

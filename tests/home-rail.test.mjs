@@ -11,7 +11,8 @@ function shape(value) {
 }
 
 test('rail copy has the same keys in Uzbek, Russian and English, with no empty strings', () => {
-  assert.deepEqual(Object.keys(homeRailCopy).sort(), ['en', 'ru', 'uz']);
+  assert.deepEqual(Object.keys(homeRailCopy).sort(), ['en', 'oz', 'ru', 'uz']);
+  assert.deepEqual(shape(homeRailCopy.oz), shape(homeRailCopy.ru));
   assert.deepEqual(shape(homeRailCopy.uz), shape(homeRailCopy.ru));
   assert.deepEqual(shape(homeRailCopy.en), shape(homeRailCopy.ru));
   for (const [locale, copy] of Object.entries(homeRailCopy)) {

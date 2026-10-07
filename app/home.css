@@ -83,9 +83,8 @@ html[data-theme="dark"] {
 @media (max-width: 760px) {
   .site-header { gap: 8px; }
   .site-header .header-actions { gap: 8px; }
-  .site-header .desktop-nav, .header-theme, .header-account.member { display: none; }
+  .site-header .desktop-nav, .header-account.member { display: none; }
   .header-account { padding: 0 12px; }
-  .lang-switch button { min-width: 40px; padding: 0 4px; }
 }
 
 /* Hero. */

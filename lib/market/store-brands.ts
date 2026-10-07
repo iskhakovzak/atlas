@@ -1,6 +1,7 @@
 import { supportedStoreRoots } from '../importer/stores.ts';
 import type { Locale } from './i18n.ts';
 import { storeLogoKeys } from './store-logos.ts';
+import {withCyrillic} from './uz-cyrl.ts';
 
 export type StoreFocus = 'clothing' | 'shoes' | 'beauty' | 'tech' | 'home' | 'marketplace';
 export type StoreCountry = 'us' | 'uk' | 'es' | 'de' | 'fr' | 'it' | 'nl' | 'se' | 'dk' | 'pl' | 'ch' | 'cz' | 'ca' | 'au' | 'jp' | 'kr' | 'tr' | 'ae' | 'cn'
@@ -119,25 +120,25 @@ export function brandForHost(host: string) {
 }
 
 export const storeCountryNames: Record<StoreCountry, Record<Locale, string>> = {
-  us: { ru: 'США', uz: 'AQSh', en: 'USA' }, uk: { ru: 'Великобритания', uz: 'Buyuk Britaniya', en: 'United Kingdom' }, es: { ru: 'Испания', uz: 'Ispaniya', en: 'Spain' },
-  de: { ru: 'Германия', uz: 'Germaniya', en: 'Germany' }, fr: { ru: 'Франция', uz: 'Fransiya', en: 'France' }, it: { ru: 'Италия', uz: 'Italiya', en: 'Italy' },
-  nl: { ru: 'Нидерланды', uz: 'Niderlandiya', en: 'Netherlands' }, se: { ru: 'Швеция', uz: 'Shvetsiya', en: 'Sweden' }, dk: { ru: 'Дания', uz: 'Daniya', en: 'Denmark' },
-  pl: { ru: 'Польша', uz: 'Polsha', en: 'Poland' }, ch: { ru: 'Швейцария', uz: 'Shveytsariya', en: 'Switzerland' }, cz: { ru: 'Чехия', uz: 'Chexiya', en: 'Czechia' },
-  ca: { ru: 'Канада', uz: 'Kanada', en: 'Canada' }, au: { ru: 'Австралия', uz: 'Avstraliya', en: 'Australia' }, jp: { ru: 'Япония', uz: 'Yaponiya', en: 'Japan' },
-  kr: { ru: 'Южная Корея', uz: 'Janubiy Koreya', en: 'South Korea' }, tr: { ru: 'Турция', uz: 'Turkiya', en: 'Turkey' }, ae: { ru: 'ОАЭ', uz: 'BAA', en: 'UAE' },
-  cn: { ru: 'Китай', uz: 'Xitoy', en: 'China' }, at: { ru: 'Австрия', uz: 'Avstriya', en: 'Austria' }, be: { ru: 'Бельгия', uz: 'Belgiya', en: 'Belgium' },
-  ie: { ru: 'Ирландия', uz: 'Irlandiya', en: 'Ireland' }, ph: { ru: 'Филиппины', uz: 'Filippin', en: 'Philippines' }, hk: { ru: 'Гонконг', uz: 'Gonkong', en: 'Hong Kong' },
-  my: { ru: 'Малайзия', uz: 'Malayziya', en: 'Malaysia' }, sg: { ru: 'Сингапур', uz: 'Singapur', en: 'Singapore' }, nz: { ru: 'Новая Зеландия', uz: 'Yangi Zelandiya', en: 'New Zealand' },
-  in: { ru: 'Индия', uz: 'Hindiston', en: 'India' }, mx: { ru: 'Мексика', uz: 'Meksika', en: 'Mexico' }, br: { ru: 'Бразилия', uz: 'Braziliya', en: 'Brazil' },
-  ar: { ru: 'Аргентина', uz: 'Argentina', en: 'Argentina' }, tw: { ru: 'Тайвань', uz: 'Tayvan', en: 'Taiwan' },
+  us: withCyrillic({ ru: 'США', uz: 'AQSh', en: 'USA' }), uk: withCyrillic({ ru: 'Великобритания', uz: 'Buyuk Britaniya', en: 'United Kingdom' }), es: withCyrillic({ ru: 'Испания', uz: 'Ispaniya', en: 'Spain' }),
+  de: withCyrillic({ ru: 'Германия', uz: 'Germaniya', en: 'Germany' }), fr: withCyrillic({ ru: 'Франция', uz: 'Fransiya', en: 'France' }), it: withCyrillic({ ru: 'Италия', uz: 'Italiya', en: 'Italy' }),
+  nl: withCyrillic({ ru: 'Нидерланды', uz: 'Niderlandiya', en: 'Netherlands' }), se: withCyrillic({ ru: 'Швеция', uz: 'Shvetsiya', en: 'Sweden' }), dk: withCyrillic({ ru: 'Дания', uz: 'Daniya', en: 'Denmark' }),
+  pl: withCyrillic({ ru: 'Польша', uz: 'Polsha', en: 'Poland' }), ch: withCyrillic({ ru: 'Швейцария', uz: 'Shveytsariya', en: 'Switzerland' }), cz: withCyrillic({ ru: 'Чехия', uz: 'Chexiya', en: 'Czechia' }),
+  ca: withCyrillic({ ru: 'Канада', uz: 'Kanada', en: 'Canada' }), au: withCyrillic({ ru: 'Австралия', uz: 'Avstraliya', en: 'Australia' }), jp: withCyrillic({ ru: 'Япония', uz: 'Yaponiya', en: 'Japan' }),
+  kr: withCyrillic({ ru: 'Южная Корея', uz: 'Janubiy Koreya', en: 'South Korea' }), tr: withCyrillic({ ru: 'Турция', uz: 'Turkiya', en: 'Turkey' }), ae: withCyrillic({ ru: 'ОАЭ', uz: 'BAA', en: 'UAE' }),
+  cn: withCyrillic({ ru: 'Китай', uz: 'Xitoy', en: 'China' }), at: withCyrillic({ ru: 'Австрия', uz: 'Avstriya', en: 'Austria' }), be: withCyrillic({ ru: 'Бельгия', uz: 'Belgiya', en: 'Belgium' }),
+  ie: withCyrillic({ ru: 'Ирландия', uz: 'Irlandiya', en: 'Ireland' }), ph: withCyrillic({ ru: 'Филиппины', uz: 'Filippin', en: 'Philippines' }), hk: withCyrillic({ ru: 'Гонконг', uz: 'Gonkong', en: 'Hong Kong' }),
+  my: withCyrillic({ ru: 'Малайзия', uz: 'Malayziya', en: 'Malaysia' }), sg: withCyrillic({ ru: 'Сингапур', uz: 'Singapur', en: 'Singapore' }), nz: withCyrillic({ ru: 'Новая Зеландия', uz: 'Yangi Zelandiya', en: 'New Zealand' }),
+  in: withCyrillic({ ru: 'Индия', uz: 'Hindiston', en: 'India' }), mx: withCyrillic({ ru: 'Мексика', uz: 'Meksika', en: 'Mexico' }), br: withCyrillic({ ru: 'Бразилия', uz: 'Braziliya', en: 'Brazil' }),
+  ar: withCyrillic({ ru: 'Аргентина', uz: 'Argentina', en: 'Argentina' }), tw: withCyrillic({ ru: 'Тайвань', uz: 'Tayvan', en: 'Taiwan' }),
 };
 export const storeFocusNames: Record<StoreFocus, Record<Locale, string>> = {
-  clothing: { ru: 'Одежда и аксессуары', uz: 'Kiyim va aksessuarlar', en: 'Clothing & accessories' },
-  shoes: { ru: 'Обувь и кроссовки', uz: 'Poyabzal va krossovkalar', en: 'Shoes & sneakers' },
-  beauty: { ru: 'Красота и здоровье', uz: 'Go‘zallik va salomatlik', en: 'Beauty & health' },
-  tech: { ru: 'Техника', uz: 'Texnika', en: 'Electronics' },
-  home: { ru: 'Дом и спорт', uz: 'Uy va sport', en: 'Home & sport' },
-  marketplace: { ru: 'Маркетплейсы и универмаги', uz: 'Marketpleyslar va univermaglar', en: 'Marketplaces & department stores' },
+  clothing: withCyrillic({ ru: 'Одежда и аксессуары', uz: 'Kiyim va aksessuarlar', en: 'Clothing & accessories' }),
+  shoes: withCyrillic({ ru: 'Обувь и кроссовки', uz: 'Poyabzal va krossovkalar', en: 'Shoes & sneakers' }),
+  beauty: withCyrillic({ ru: 'Красота и здоровье', uz: 'Go‘zallik va salomatlik', en: 'Beauty & health' }),
+  tech: withCyrillic({ ru: 'Техника', uz: 'Texnika', en: 'Electronics' }),
+  home: withCyrillic({ ru: 'Дом и спорт', uz: 'Uy va sport', en: 'Home & sport' }),
+  marketplace: withCyrillic({ ru: 'Маркетплейсы и универмаги', uz: 'Marketpleyslar va univermaglar', en: 'Marketplaces & department stores' }),
 };
 export const storeFocusOrder: StoreFocus[] = ['marketplace', 'clothing', 'shoes', 'beauty', 'tech', 'home'];
 

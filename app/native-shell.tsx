@@ -10,12 +10,13 @@ import {useMarket} from '@/lib/market/store';
 import {closeExternal,hideSplash,nativePlatform,onAppUrlOpen,onBackButton,openExternal,setStatusBarTheme} from '@/lib/native/bridge';
 import {isExternalHref,parseAppLink} from '@/lib/native/links';
 import {takeVerifier} from '@/lib/native/pkce';
+import {withCyrillic} from '@/lib/market/uz-cyrl';
 
-const messages={
+const messages=withCyrillic({
  ru:{handoffFailed:'Не удалось завершить вход. Попробуйте войти ещё раз.',handoffConnection:'Нет связи с сервером. Проверьте интернет и войдите ещё раз.'},
  uz:{handoffFailed:'Kirishni yakunlab bo‘lmadi. Qayta kirib ko‘ring.',handoffConnection:'Server bilan aloqa yo‘q. Internetni tekshirib, qayta kiring.'},
  en:{handoffFailed:'Could not finish signing in. Please sign in again.',handoffConnection:'No connection to the server. Check your internet and sign in again.'},
-};
+});
 
 export function NativeShell(){
  const {state,refresh}=useMarket();

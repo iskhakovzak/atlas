@@ -4,27 +4,29 @@ import { Info } from 'lucide-react';
 import Link from '@/components/site-link';
 import { estimateCourierCustoms } from '@/lib/market/customs';
 import type { Locale } from '@/lib/market/i18n';
+import {withCyrillic,uzText} from '@/lib/market/uz-cyrl';
+import {isUzbek} from '@/lib/market/i18n';
 
-const labels = {
+const labels = withCyrillic({
   ru: { title:'Расчёт таможенного платежа', from:'от', unavailable:'Уточните данные', assumption:'Лимит $200 в календарный месяц', separate:'Не входит в сумму Atlas', used:'Уже ввезено в месяц прибытия, USD', date:'Дата прибытия на таможню', extra:'Дополнительно в таможенную стоимость, USD', extraHint:'Например, расходы, которые перевозчик включает в таможенную стоимость.', base:'Стоимость товаров', excess:'Превышение лимита', rule:'Ставка', minimum:'минимум', perKg:'за кг', note:'Для личной курьерской посылки: учитывается только превышение месячного лимита. Окончательную сумму по стоимости и облагаемому весу начисляет таможня.', rateNote:'Сводная редакция ПП-4508 на 01.09.2026 показывает 20% и минимум $2/кг, но УП-174 прямо указывает дату начала 01.01.2027. Пока даты расходятся, калькулятор считает по 20% и $2/кг; окончательную ставку определяет таможня.', details:'Условия и источники', adjust:'Уточнить данные месяца', how:'Как считается', invalid:'Введите неотрицательные суммы и корректную дату не ранее 01.05.2025.', calculator:'Рассчитать таможенный платёж', value:'Стоимость товаров, USD', weight:'Вес отправления с упаковкой, кг' },
   uz: { title:'Bojxona to‘lovi hisobi', from:'dan', unavailable:'Ma’lumotlarni tekshiring', assumption:'Kalendar oyida $200 limit', separate:'Atlas summasiga kiritilmagan', used:'Kelish oyida avval olib kirilgan, USD', date:'Bojxonaga kelish sanasi', extra:'Bojxona qiymatiga qo‘shimcha, USD', extraHint:'Masalan, tashuvchi bojxona qiymatiga kiritadigan xarajatlar.', base:'Mahsulotlar qiymati', excess:'Limitdan oshgan qism', rule:'Stavka', minimum:'kamida', perKg:'har kg uchun', note:'Shaxsiy kuryer jo‘natmasi uchun: faqat oylik limitdan oshgan qism hisoblanadi. Yakuniy summani qiymat va soliq solinadigan vazn bo‘yicha bojxona hisoblaydi.', rateNote:'PP-4508 ning 01.09.2026 dagi jamlangan tahririda 20% va kamida $2/kg ko‘rsatilgan, ammo PF-174 da boshlanish sanasi 01.01.2027 deb belgilangan. Sanalar mos kelmaguncha kalkulyator 20% va $2/kg bo‘yicha hisoblaydi; yakuniy stavkani bojxona belgilaydi.', details:'Shartlar va manbalar', adjust:'Oy ma’lumotlarini aniqlashtirish', how:'Qanday hisoblanadi', invalid:'Manfiy bo‘lmagan summalar va 01.05.2025 dan keyingi to‘g‘ri sanani kiriting.', calculator:'Bojxona to‘lovini hisoblash', value:'Mahsulotlar qiymati, USD', weight:'Qadoq bilan jo‘natma vazni, kg' },
   en: { title:'Customs payment calculation', from:'from', unavailable:'Check the inputs', assumption:'$200 per calendar month', separate:'Not included in the Atlas amount', used:'Already imported in the arrival month, USD', date:'Expected customs arrival date', extra:'Additional customs value, USD', extraHint:'For example, costs your carrier includes in customs value.', base:'Merchandise value', excess:'Value above allowance', rule:'Rate', minimum:'minimum', perKg:'per kg', note:'Personal courier parcels only: this counts the amount above the monthly allowance. Customs sets the final amount from the value and dutiable weight.', rateNote:'The consolidated PP-4508 text dated 2026-09-01 shows 20% / $2 per kg, while UP-174 expressly names 2027-01-01 as the start date. While the dates disagree, the calculator uses 20% and $2 per kg; customs sets the final rate.', details:'Conditions and sources', adjust:'Refine monthly inputs', how:'How it is calculated', invalid:'Enter non-negative amounts and a valid date on or after 2025-05-01.', calculator:'Calculate customs charges', value:'Merchandise value, USD', weight:'Gross shipment weight, kg' },
-};
+});
 labels.ru.assumption = 'Расчёт исходит из того, что лимит $200 за этот месяц ещё не использован';
 labels.uz.assumption = 'Hisob bu oy uchun $200 limit hali ishlatilmagan deb olingan';
 labels.en.assumption = 'Assumes the full $200 monthly allowance remains';
 // Prefilled from this month's Atlas orders for the same recipient; the customer can still adjust it.
-const counted = {
+const counted = withCyrillic({
   ru: (usd: number) => `Учтено $${usd}, уже заказанных этому получателю в этом месяце через Atlas`,
   uz: (usd: number) => `Shu oy Atlas orqali bu qabul qiluvchiga buyurtma qilingan $${usd} hisobga olindi`,
   en: (usd: number) => `Counts $${usd} already ordered for this recipient this month through Atlas`,
-};
+});
 export function CustomsEstimate({ valueUsd, grossKg, fx, locale = 'ru', compact = false, initialUsedUsd = 0 }: { valueUsd: number; grossKg?: number; fx: number; locale?: Locale; compact?: boolean; initialUsedUsd?: number }) {
   const id = useId(), copy = labels[locale];
   const [used, setUsed] = useState(String(initialUsedUsd)), [extra, setExtra] = useState('0');
   const [date, setDate] = useState(() => new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString().slice(0, 10));
   const estimate = estimateCourierCustoms({ valueUsd: valueUsd + (extra.trim() ? Number(extra) : NaN), usedUsd: used.trim() ? Number(used) : NaN, grossKg, date });
-  const format = (usd: number) => new Intl.NumberFormat(locale === 'ru' ? 'ru-RU' : locale === 'uz' ? 'uz-UZ' : 'en-US', { maximumFractionDigits:0 }).format(Math.round(usd * fx)) + (locale === 'ru' ? ' сум' : locale === 'uz' ? ' so‘m' : ' UZS');
+  const format = (usd: number) => new Intl.NumberFormat(locale === 'ru' ? 'ru-RU' : isUzbek(locale) ? uzText(locale, 'uz-UZ') : 'en-US', { maximumFractionDigits:0 }).format(Math.round(usd * fx)) + (locale === 'ru' ? ' сум' : isUzbek(locale) ? uzText(locale, ' so‘m') : ' UZS');
   const result = !estimate ? copy.unavailable : estimate.upperUsd === undefined ? copy.from + ' ' + format(estimate.lowerUsd) : estimate.upperUsd > estimate.lowerUsd ? format(estimate.lowerUsd) + ' – ' + format(estimate.upperUsd) : '≈ ' + format(estimate.lowerUsd);
   if (compact) return <div className="customs-estimate-wrap customs-estimate-compact">
     <div className="customs-compact-row">

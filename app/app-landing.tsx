@@ -6,10 +6,11 @@ import {useMarket} from "@/lib/market/store";
 import type {Locale} from "@/lib/market/i18n";
 import {PageHeading} from "./market-ui";
 import {MissingContent} from "./home-sections";
+import {withCyrillic} from '@/lib/market/uz-cyrl';
 
 // Public landing page for the mobile apps (/app). Store buttons appear only when the owner has filled
 // siteContent.apps; no ratings, reviews, counters or screenshots are shown.
-const copy:Record<Locale,{overline:string;title:string;description:string;features:string;list:{icon:typeof Link2;title:string;text:string}[];stores:string;appStore:string;playStore:string;pending:string;same:string;sameText:string;links:string;support:string;privacy:string;terms:string;del:string;web:string}>={
+const copy:Record<Locale,{overline:string;title:string;description:string;features:string;list:{icon:typeof Link2;title:string;text:string}[];stores:string;appStore:string;playStore:string;pending:string;same:string;sameText:string;links:string;support:string;privacy:string;terms:string;del:string;web:string}>=withCyrillic({
  ru:{
   overline:"ПРИЛОЖЕНИЕ",title:"Atlas на телефоне.",description:"Приложение Atlas для iOS и Android делает то же, что и сайт: расчёт по ссылке, заказы, документы и уведомления — в одном аккаунте.",
   features:"Что умеет приложение",
@@ -52,7 +53,7 @@ const copy:Record<Locale,{overline:string;title:string;description:string;featur
   same:"One account",sameText:"Sign in to the app the same way as on the website: Apple, Google, Telegram, phone or email. There are no in-app purchases or subscriptions; order payment is not connected on the website or in the app — no money is charged.",
   links:"Documents and help",support:"Support",privacy:"Privacy policy",terms:"Terms of use",del:"Account deletion",web:"Open the website",
  },
-};
+});
 
 export function AppLanding(){
  const {state,siteContent}=useMarket();

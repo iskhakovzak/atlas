@@ -23,14 +23,16 @@ import { UzPhoneInput } from "./phone-input";
 import { toast } from "sonner";
 import { usePendingCartAdd } from "./pending-cart-add";
 import { pendingCartFreshMs } from "@/lib/market/link-order-draft";
+import {uzText,withCyrillic} from '@/lib/market/uz-cyrl';
+import {isUzbek} from '@/lib/market/i18n';
 import { catalogUrlKey } from "@/lib/market/catalog-query";
 
 /** Favourites and removal in the cart: saving keeps the line; "save for later" saves and then removes it. */
-const keepCopy = {
+const keepCopy = withCyrillic({
   ru: { save: "В избранное", saved: "В избранном", later: "Отложить", laterLabel: "Отложить в избранное", laterDone: "Отложено в избранное", open: "Открыть избранное", removeVariant: "Удалить вариант", removeAll: (n: number) => `Удалить все (${n})`, variants: "Варианты этого товара" },
   uz: { save: "Saralanganlarga", saved: "Saralanganlarda", later: "Qoldirish", laterLabel: "Saralanganlarga qoldirish", laterDone: "Saralanganlarga qoldirildi", open: "Saralanganlarni ochish", removeVariant: "Variantni o‘chirish", removeAll: (n: number) => `Hammasini o‘chirish (${n})`, variants: "Shu tovar variantlari" },
   en: { save: "Save", saved: "Saved", later: "Later", laterLabel: "Save for later", laterDone: "Moved to favourites", open: "Open favourites", removeVariant: "Remove option", removeAll: (n: number) => `Remove all (${n})`, variants: "Options of this product" },
-};
+});
 import { useStickyFit } from "./sticky-fit";
 import { CheckoutChecklist, CheckoutReviewTable, productGroups, shownVariant, storeName } from "./checkout-review";
 import { cartSelectCopy } from "@/lib/market/cart-select-copy";
@@ -49,7 +51,7 @@ function sourceMoney(amount: number, currency: string, locale: Locale) {
 }
 /** Store price as the shop shows it. */
 const storePrice = (item: CartItem, locale: Locale) => sourceMoney(item.product.sourcePrice ?? item.product.usd, item.product.sourceCurrency ?? "USD", locale);
-const clock = (at: number, locale: Locale) => new Date(at).toLocaleTimeString(locale === "ru" ? "ru-RU" : locale === "uz" ? "uz-UZ" : "en-US", { hour: "2-digit", minute: "2-digit" });
+const clock = (at: number, locale: Locale) => new Date(at).toLocaleTimeString(locale === "ru" ? "ru-RU" : isUzbek(locale) ? uzText(locale, "uz-UZ") : "en-US", { hour: "2-digit", minute: "2-digit" });
 /** Refusals that repriced or marked the cart: the dialog closes so the customer sees what changed. */
 const cartChangedCodes = new Set(["err_35", "err_36", "err_37", "err_38"]);
 

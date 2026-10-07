@@ -1,0 +1,99 @@
+/* Header language menu and the notifications sheet (app/header-language.tsx, app/notifications-panel.tsx).
+   Light values come from the Day tokens (refine.css); Night overrides follow each block. */
+
+/* ---------- Language menu ---------- */
+.lang-menu { position: relative; display: inline-flex; flex: none; }
+.lang-trigger { display: inline-flex; align-items: center; gap: 5px; min-width: 44px; min-height: 44px; padding: 0 9px; border: 1px solid var(--day-line, #e2e2da); border-radius: var(--day-r-control, 10px); background: transparent; color: var(--day-ink, #16211c); font: inherit; font-size: 13px; font-weight: 650; letter-spacing: .03em; cursor: pointer; }
+.lang-trigger:hover, .lang-trigger[aria-expanded="true"] { background: var(--day-soft, #efefe9); }
+.lang-trigger:focus-visible, .lang-menu-list button:focus-visible { outline: 2px solid var(--day-accent, #1f4d3b); outline-offset: 2px; }
+.lang-trigger svg { flex: none; color: var(--day-muted, #58635c); }
+.lang-trigger .lang-chevron { transition: transform .15s; }
+.lang-trigger[aria-expanded="true"] .lang-chevron { transform: rotate(180deg); }
+.lang-menu-list { position: absolute; top: calc(100% + 6px); right: 0; z-index: 60; display: grid; gap: 2px; min-width: 220px; padding: 6px; border: 1px solid var(--day-line, #e2e2da); border-radius: 14px; background: var(--day-surface, #fff); box-shadow: 0 18px 40px -18px rgba(22, 33, 28, .35); }
+.lang-menu-list[hidden] { display: none; }
+/* The header is static and blurred (its own stacking layer): while the list is open it is lifted above the page. */
+.site-header:has(.lang-menu-list:not([hidden])) { position: relative; z-index: 45; }
+.lang-menu-list button { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 6px 12px; border: 0; border-radius: 10px; background: transparent; color: var(--day-ink, #16211c); font: inherit; text-align: left; cursor: pointer; }
+.lang-menu-list button:hover { background: var(--day-soft, #efefe9); }
+.lang-menu-list button[aria-current="true"] { background: var(--day-tint, #e8f1ea); color: var(--day-ok, #1d6b47); }
+.lang-menu-list button > span { display: grid; line-height: 1.25; }
+.lang-menu-list b { font-size: 15px; font-weight: 600; }
+.lang-menu-list small { color: var(--day-muted, #58635c); font-size: 12.5px; }
+.lang-menu-list svg { flex: none; }
+html[data-theme="dark"] .lang-trigger { border-color: var(--night-line-strong, rgba(226, 238, 231, .16)); color: var(--night-ink, #f1eee5); }
+html[data-theme="dark"] .lang-trigger svg, html[data-theme="dark"] .lang-menu-list small { color: var(--night-muted, #9ba6a0); }
+html[data-theme="dark"] :is(.lang-trigger:hover, .lang-trigger[aria-expanded="true"], .lang-menu-list button:hover) { background: rgba(255, 255, 255, .06); }
+html[data-theme="dark"] .lang-menu-list { border-color: var(--night-line-strong, rgba(226, 238, 231, .16)); background: var(--night-surface, #111714); box-shadow: 0 18px 40px -16px rgba(0, 0, 0, .7); }
+html[data-theme="dark"] .lang-menu-list button { color: var(--night-ink, #f1eee5); }
+html[data-theme="dark"] .lang-menu-list button[aria-current="true"] { background: rgba(235, 228, 210, .1); color: var(--night-ivory, #ebe4d2); }
+html[data-theme="dark"] :is(.lang-trigger, .lang-menu-list button):focus-visible { outline-color: var(--night-ivory, #ebe4d2); }
+
+/* The theme switch stays in the header at every width (it used to move to the footer). */
+.site-header .header-theme { display: inline-flex; flex: none; }
+.site-header .header-theme .theme-toggle { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; }
+.site-header .notice-link { display: inline-flex; align-items: center; justify-content: center; border: 0; background: transparent; color: inherit; cursor: pointer; }
+
+/* Up to 1299px (tablets, small laptops; the balance is an icon there too) the trigger is just the language code,
+   so the signed-in menu still fits from 1151px. */
+@media (max-width: 1299px) {
+  .lang-trigger { padding: 0 8px; justify-content: center; }
+  .lang-trigger > svg { display: none; }
+}
+/* Phones: the compact trigger keeps the language code; the list opens under it, inside the screen. */
+@media (max-width: 600px) {
+  .lang-trigger { min-width: 40px; min-height: 40px; padding: 0 7px; gap: 3px; }
+  .lang-trigger .lang-chevron { display: none; }
+  .site-header .header-theme .theme-toggle { min-width: 40px; min-height: 40px; }
+  .lang-menu-list { position: fixed; top: 64px; right: 12px; left: auto; max-width: calc(100vw - 24px); }
+}
+@media (max-width: 359px) {
+  .lang-trigger { padding: 0 5px; font-size: 12px; }
+  .lang-trigger > svg:first-child { display: none; }
+  .site-header .header-theme .theme-toggle { min-width: 36px; }
+}
+
+/* ---------- Notifications sheet: left side, content width up to half the window; full screen on phones ---------- */
+[data-slot="sheet-content"].notice-panel { width: max-content; min-width: min(380px, 100vw); max-width: min(50vw, 720px); gap: 0; padding: 0; border-right: 1px solid var(--day-line, #e2e2da); background: var(--day-surface, #fff); color: var(--day-ink, #16211c); }
+.notice-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 12px 14px 22px; border-bottom: 1px solid var(--day-line, #e2e2da); }
+.notice-panel-head h2 { margin: 0; font-size: 21px; line-height: 1.2; }
+.notice-panel-head p { margin: 4px 0 0; color: var(--day-muted, #58635c); font-size: 14px; }
+.notice-panel-head .icon-btn { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; border: 0; border-radius: 12px; background: transparent; color: inherit; cursor: pointer; }
+.notice-panel-scroll { flex: 1; min-height: 0; padding: 16px 22px 20px; overflow: auto; overscroll-behavior: contain; }
+.notice-panel-read { margin-bottom: 18px; }
+.notice-panel section + section { margin-top: 22px; }
+.notice-panel h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; color: var(--day-muted, #58635c); font-size: 13px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
+.notice-panel h3 b { min-width: 20px; padding: 1px 6px; border-radius: 10px; background: #c55235; color: #fff; font-size: 12px; text-align: center; letter-spacing: 0; }
+.notice-panel-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.notice-panel-item { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; padding: 12px 14px; border: 1px solid var(--day-line, #e2e2da); border-radius: 12px; }
+.notice-panel-item.unread { background: var(--day-tint, #e8f1ea); border-color: transparent; }
+.notice-panel-item.attention { border-color: #e5b9a9; background: #fdf3ee; }
+.notice-panel-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--day-soft, #efefe9); color: var(--day-accent, #1f4d3b); }
+.notice-panel-item > div { min-width: 0; }
+.notice-panel-item b { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 15px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.notice-panel-item p { margin: 4px 0 0; color: var(--day-muted, #58635c); font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; max-width: 56ch; }
+.notice-panel-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 14px; margin-top: 8px; font-size: 13px; color: var(--day-muted, #58635c); }
+.notice-panel-foot .order-x-link { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; color: var(--day-accent, #1f4d3b); font-weight: 600; }
+.notice-panel-empty { margin: 0; color: var(--day-muted, #58635c); }
+.notice-panel-footer { padding: 12px 22px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--day-line, #e2e2da); }
+.notice-panel-footer .btn { width: 100%; justify-content: center; min-height: 48px; }
+.notice-panel :is(a, button):focus-visible { outline: 2px solid var(--day-accent, #1f4d3b); outline-offset: 2px; }
+@media (max-width: 600px) {
+  [data-slot="sheet-content"].notice-panel { width: 100vw; min-width: 0; max-width: 100vw; height: 100dvh; border-right: 0; }
+  .notice-panel-head { padding: 12px 8px 12px 18px; padding-top: max(12px, env(safe-area-inset-top)); }
+  .notice-panel-scroll { padding: 14px 18px 18px; }
+  .notice-panel-footer { padding-inline: 18px; }
+}
+html[data-theme="dark"] [data-slot="sheet-content"].notice-panel { border-color: var(--night-line-strong, rgba(226, 238, 231, .16)); background: var(--night-surface, #111714); color: var(--night-ink, #f1eee5); }
+html[data-theme="dark"] :is(.notice-panel-head, .notice-panel-footer) { border-color: var(--night-line, rgba(226, 238, 231, .085)); }
+html[data-theme="dark"] :is(.notice-panel-head p, .notice-panel h3, .notice-panel-item p, .notice-panel-foot, .notice-panel-empty) { color: var(--night-muted, #9ba6a0); }
+html[data-theme="dark"] .notice-panel-item { border-color: var(--night-line-strong, rgba(226, 238, 231, .16)); }
+html[data-theme="dark"] .notice-panel-item.unread { background: rgba(235, 228, 210, .06); border-color: transparent; }
+html[data-theme="dark"] .notice-panel-item.attention { background: rgba(200, 80, 63, .12); border-color: rgba(200, 80, 63, .45); }
+html[data-theme="dark"] .notice-panel-icon { background: rgba(255, 255, 255, .06); color: var(--night-ivory, #ebe4d2); }
+html[data-theme="dark"] .notice-panel-foot .order-x-link { color: var(--night-ivory, #ebe4d2); }
+html[data-theme="dark"] .notice-panel :is(a, button):focus-visible { outline-color: var(--night-ivory, #ebe4d2); }
+
+/* /notifications?id=… or #…: the linked message is highlighted. */
+.notices-page :is(.notice-x, .notice-x-history li).linked { outline: 2px solid var(--day-accent, #1f4d3b); outline-offset: 3px; border-radius: 12px; }
+html[data-theme="dark"] .notices-page :is(.notice-x, .notice-x-history li).linked { outline-color: var(--night-ivory, #ebe4d2); }
+.notices-page :is(.notice-x, .notice-x-history li):focus { outline-style: solid; }

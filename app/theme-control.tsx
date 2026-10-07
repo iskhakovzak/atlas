@@ -4,6 +4,8 @@ import { type ReactNode, useEffect, useState } from "react";
 import { ThemeProvider as NextThemeProvider, useTheme } from "next-themes";
 import { useSyncExternalStore } from "react";
 import type { Locale } from "@/lib/market/i18n";
+import {uzText} from '@/lib/market/uz-cyrl';
+import {isUzbek} from '@/lib/market/i18n';
 
 const subscribeNever = () => () => {};
 const getMountedSnapshot = () => true;
@@ -41,8 +43,8 @@ export function ThemeToggle({ locale }: { locale: Locale }) {
   const dark = mounted && resolvedTheme === "dark";
   const labels = locale === "ru"
     ? { dark: "Включить тёмную тему", light: "Включить светлую тему" }
-    : locale === "uz"
-      ? { dark: "Tungi mavzuni yoqish", light: "Yorug‘ mavzuni yoqish" }
+    : isUzbek(locale)
+      ? uzText(locale, { dark: "Tungi mavzuni yoqish", light: "Yorug‘ mavzuni yoqish" })
       : { dark: "Switch to dark theme", light: "Switch to light theme" };
   const label = dark ? labels.light : labels.dark;
   // Owner, 7.10.2026: "improve the icon", then "I don't like the sun": one contrast disc, half filled, that turns half

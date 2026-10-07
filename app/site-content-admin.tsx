@@ -5,7 +5,7 @@ import {toast} from 'sonner';
 import {useMarket} from '@/lib/market/store';
 import {paymentLabels,type PaymentMethod} from '@/lib/market/site-content';
 import {siteContentDocumentSchema,siteContentIssues,siteContentMaxPhotos,siteContentMaxReviews,siteContentTextMax,type SiteContentDocumentInput,type SiteContentView} from '@/lib/market/site-content-schema';
-import type {Locale} from '@/lib/market/i18n';
+import type {TextLocale} from '@/lib/market/i18n';
 
 /**
  * The "Site content" admin tab: the owner fills the contacts, legal entity, payment methods, reviews,
@@ -13,7 +13,7 @@ import type {Locale} from '@/lib/market/i18n';
  * Saves go to POST /api/site-content with the document revision (CAS); a 409 reloads the current document.
  * Russian only, like the rest of the admin panel. Nothing here is a promise to customers: an empty block stays hidden.
  */
-type Triple=Record<Locale,string>;
+type Triple=Record<TextLocale,string>;
 type Form={
   contacts:{telegramSupport:string;telegramChannel:string;phone:string;instagram:string;pickupAddress:Triple};
   legal:{entityName:string;inn:string;address:Triple};
@@ -23,7 +23,7 @@ type Form={
   completedOrders:string;
   prohibitedListUrl:string;
 };
-const locales:{id:Locale;label:string}[]=[{id:'ru',label:'Русский'},{id:'uz',label:'O‘zbekcha'},{id:'en',label:'English'}];
+const locales:{id:TextLocale;label:string}[]=[{id:'ru',label:'Русский'},{id:'uz',label:'O‘zbekcha'},{id:'en',label:'English'}];
 const emptyTriple=():Triple=>({ru:'',uz:'',en:''});
 const key=()=>Math.random().toString(36).slice(2,10);
 function toForm(view:SiteContentView):Form{
@@ -83,12 +83,12 @@ export function SiteContentAdmin(){
   const update=(patch:(current:Form)=>Form)=>{setForm(current=>patch(current));setDirty(true)};
   const setContacts=(field:keyof Form['contacts'],value:string)=>update(f=>({...f,contacts:{...f.contacts,[field]:value}}));
   const setLegal=(field:keyof Form['legal'],value:string)=>update(f=>({...f,legal:{...f.legal,[field]:value}}));
-  const setTriple=(path:'contacts.pickupAddress'|'legal.address',locale:Locale,value:string)=>update(f=>path==='contacts.pickupAddress'?{...f,contacts:{...f.contacts,pickupAddress:{...f.contacts.pickupAddress,[locale]:value}}}:{...f,legal:{...f.legal,address:{...f.legal.address,[locale]:value}}});
+  const setTriple=(path:'contacts.pickupAddress'|'legal.address',locale:TextLocale,value:string)=>update(f=>path==='contacts.pickupAddress'?{...f,contacts:{...f.contacts,pickupAddress:{...f.contacts.pickupAddress,[locale]:value}}}:{...f,legal:{...f.legal,address:{...f.legal.address,[locale]:value}}});
   const togglePayment=(method:PaymentMethod)=>update(f=>({...f,paymentMethods:f.paymentMethods.includes(method)?f.paymentMethods.filter(m=>m!==method):[...f.paymentMethods,method]}));
   const setReview=(k:string,patch:Partial<Form['reviews'][number]>)=>update(f=>({...f,reviews:f.reviews.map(r=>r.key===k?{...r,...patch}:r)}));
-  const setReviewText=(k:string,locale:Locale,value:string)=>update(f=>({...f,reviews:f.reviews.map(r=>r.key===k?{...r,text:{...r.text,[locale]:value}}:r)}));
+  const setReviewText=(k:string,locale:TextLocale,value:string)=>update(f=>({...f,reviews:f.reviews.map(r=>r.key===k?{...r,text:{...r.text,[locale]:value}}:r)}));
   const setPhoto=(k:string,patch:Partial<Form['parcelPhotos'][number]>)=>update(f=>({...f,parcelPhotos:f.parcelPhotos.map(p=>p.key===k?{...p,...patch}:p)}));
-  const setPhotoAlt=(k:string,locale:Locale,value:string)=>update(f=>({...f,parcelPhotos:f.parcelPhotos.map(p=>p.key===k?{...p,alt:{...p.alt,[locale]:value}}:p)}));
+  const setPhotoAlt=(k:string,locale:TextLocale,value:string)=>update(f=>({...f,parcelPhotos:f.parcelPhotos.map(p=>p.key===k?{...p,alt:{...p.alt,[locale]:value}}:p)}));
 
   const submit=async(event:FormEvent)=>{
     event.preventDefault();
