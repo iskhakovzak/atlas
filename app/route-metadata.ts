@@ -14,6 +14,11 @@ const images = (locale: Locale) => [{ url: ogImage[locale], width: 1200, height:
 export type PublicPage = 'home' | 'catalog' | 'stores' | 'customs' | 'legal' | 'privacy' | 'terms' | 'support' | 'app' | 'delete-account';
 const paths: Record<PublicPage, string> = { home: '/', catalog: '/catalog', stores: '/stores', customs: '/customs', legal: '/legal', privacy: '/privacy', terms: '/terms', support: '/support', app: '/app', 'delete-account': '/delete-account' };
 
+export function publicPath(page: PublicPage): string {
+  return paths[page];
+}
+
+// Titles that already name Atlas are used as is, so the "%s · Atlas" template does not repeat the brand.
 const pageText: Record<PublicPage, Record<Locale, { title: string; description: string }>> = {
   home: {
     uz: { title: 'Atlas — xorijiy do‘konlardan O‘zbekistonga yetkazib berish', description: 'Istalgan xorijiy do‘kondagi tovar havolasini qo‘ying va yakuniy narxni so‘mda biling: tovar, xizmat va yetkazib berish alohida satrlarda.' },
@@ -85,16 +90,22 @@ export function publicMetadata(page: PublicPage, lang: string | undefined, fallb
   const version = (code: Locale) => `${path}?lang=${code}`;
   const url = requested ? version(requested) : path;
   const text = pageText[page][locale];
-  // The home title carries the brand; other pages use the root "%s · Atlas" template.
-  const socialTitle = page === 'home' ? text.title : `${text.title} · Atlas`;
+  // Titles that already carry the brand stand alone; the rest use the root "%s · Atlas" template.
+  const branded = text.title.includes('Atlas');
+  const socialTitle = branded ? text.title : `${text.title} · Atlas`;
   return {
-    title: page === 'home' ? { absolute: text.title } : text.title,
+    title: branded ? { absolute: text.title } : text.title,
     description: text.description,
+    robots: publicRobots,
     alternates: { canonical: url, languages: { uz: version('uz'), ru: version('ru'), en: version('en'), 'x-default': path } },
     openGraph: { type: 'website', url, title: socialTitle, description: text.description, locale: ogLocale[locale], images: images(locale) },
     twitter: { card: 'summary_large_image', title: socialTitle, description: text.description, images: [ogImage[locale]] },
   };
 }
+
+// Set on public pages only: a root-level `index, follow` would be repeated next to the
+// framework's `noindex` on the 404 page.
+const publicRobots: Metadata['robots'] = { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 } };
 
 export function homeMetadata(lang?: string, fallback: Locale = 'uz'): Metadata {
   return publicMetadata('home', lang, fallback);
@@ -119,7 +130,6 @@ export function rootMetadata(locale: Locale): Metadata {
     applicationName: 'Atlas',
     category: 'shopping',
     creator: 'Atlas',
-    robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large' } },
     openGraph: {
       type: 'website', locale: ogLocale[locale], alternateLocale: (['uz', 'ru', 'en'] as const).filter((code) => code !== locale).map((code) => ogLocale[code]),
       siteName: 'Atlas', title: text.title, description: text.social, images: images(locale),

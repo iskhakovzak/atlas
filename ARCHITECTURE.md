@@ -1,5 +1,14 @@
 # Atlas architecture
 
+## SEO: структурированные данные, заголовки, 404 — 7 октября 2026
+
+Ветка `feat/seo`.
+
+- **JSON-LD** (`lib/seo/structured-data.ts`, вывод — `app/json-ld.tsx`, `<` экранируется). На всех страницах — `Organization` + `WebSite` на языке страницы: квадратный логотип `icon-512.png` (раньше баннер 1200×630), `sameAs` и `contactPoint` только из опубликованных контактов `siteContent.contacts`, `SearchAction` на `/catalog?q=`. Публичные подстраницы (`publicViewPaths`) получают `BreadcrumbList` в `app/marketplace.tsx` рядом с видимой крошкой; FAQ главной и `/support` — `FAQPage` с теми же вопросами, что на странице. Цен, наличия и рейтингов в разметке нет — импорт остаётся подсказкой.
+- **Заголовки.** Если заголовок страницы уже содержит «Atlas», он не дополняется шаблоном `%s · Atlas` (было «Поддержка Atlas · Atlas»).
+- **robots.** `index, follow` + `max-image-preview: large` объявляют только публичные страницы (`publicMetadata`); в корневых метаданных robots нет, поэтому у 404 остаётся один `noindex` (раньше рядом стоял `index, follow`). У 404 один `<title>` из `generateMetadata` в `app/not-found.tsx`.
+- `public/llms.txt` — добавлен `/catalog` с поиском `?q=`.
+
 ## Корзина: варианты одного товара, «Удалить», кто платит пошлину, калькулятор таможни — 7 октября 2026
 
 По трём голосовым владельца (ветка `feat/cart-customs-choice`).

@@ -44,27 +44,8 @@ import { AtlasThemeProvider } from "./theme-control";
 import { PerformanceProbe } from "./performance-probe";
 import { NativeShell } from "./native-shell";
 import { PressFeedback } from "./press-feedback";
-
-const structuredData = {
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "Organization",
-      name: "Atlas",
-      url: "https://atlasmarket.uz",
-      logo: "https://atlasmarket.uz/og-image.png",
-      description:
-        "Purchasing intermediary and logistics agent for international shopping in Uzbekistan.",
-      areaServed: "UZ",
-    },
-    {
-      "@type": "WebSite",
-      name: "Atlas",
-      url: "https://atlasmarket.uz",
-      inLanguage: ["ru", "uz", "en"],
-    },
-  ],
-};
+import { JsonLd } from "./json-ld";
+import { siteGraph } from "@/lib/seo/structured-data";
 
 export async function generateMetadata(): Promise<Metadata> {
   return rootMetadata(await pageLocale());
@@ -95,10 +76,7 @@ export default async function RootLayout({
         <AtlasThemeProvider>
           <MarketProvider initialLocale={locale} initialPricing={pricing} initialSiteContent={siteContent}>{children}<StorageNotice /><PerformanceProbe /><NativeShell /><PressFeedback /></MarketProvider>
         </AtlasThemeProvider>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-        />
+        <JsonLd data={siteGraph(locale, siteContent.contacts)} />
       </body>
     </html>
   );
