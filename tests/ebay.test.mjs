@@ -6,6 +6,25 @@ import {fetchProduct, ManualEntryFallbackError} from '../lib/importer/fetch.ts';
 const credentials = {clientId: 'app-client-id', clientSecret: 'private-cert-secret', environment: 'production'};
 const listingId = '123456789012';
 
+test('exact eBay variation remains importable when the full group exceeds the body limit',async()=>{
+  clearEbayTokenCacheForTests();
+  const {fetcher}=createEbayApiMock();
+  const exactFetcher=async(input,init)=>new URL(String(input)).pathname.endsWith('/get_items_by_item_group')
+    ?json({oversized:'x'.repeat(1_000_001)}) :fetcher(input,init);
+  const product=await fetchEbayProduct(`https://www.ebay.com/itm/${listingId}?var=9002&campid=5337259887`,credentials,exactFetcher);
+  assert.equal(product.price,91.25);assert.equal(product.selectedVariantId,'9002');
+  assert.equal(product.variants.length,1);assert.equal(product.variants[0].id,'9002');
+  assert.equal(product.variants[0].size,'9');assert.equal(product.currency,'USD');
+});
+
+test('eBay parent does not select a child when the full group exceeds the body limit',async()=>{
+  clearEbayTokenCacheForTests();
+  const {fetcher}=createEbayApiMock();
+  const oversized=async(input,init)=>new URL(String(input)).pathname.endsWith('/get_items_by_item_group')
+    ?json({oversized:'x'.repeat(1_000_001)}) :fetcher(input,init);
+  await assert.rejects(fetchEbayProduct(`https://www.ebay.com/itm/${listingId}`,credentials,oversized),EbayBrowseApiError);
+});
+
 function json(value, status = 200) {
   return new Response(JSON.stringify(value), {status, headers: {'Content-Type': 'application/json'}});
 }

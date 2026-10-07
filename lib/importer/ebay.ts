@@ -644,7 +644,17 @@ export async function fetchEbayProduct(sourceUrl: string, config: EbayBrowseConf
   const groupUrl = new URL(`${base}/buy/browse/v1/item/get_items_by_item_group`);
   groupUrl.searchParams.set('item_group_id', groupId);
   const recoveredParent = Boolean(group);
-  group ??= await browseGet(groupUrl, token, marketplace, fetcher, signal, 'browse_variants', false, endUser?.header);
+  try {
+    group ??= await browseGet(groupUrl, token, marketplace, fetcher, signal, 'browse_variants', false, endUser?.header);
+  } catch (error) {
+    // The legacy endpoint already returned this exact child. A large or failed
+    // group response must not invalidate its authoritative price and identity.
+    // Parent links still require the group; never substitute its first child.
+    if (selectedVariation && !recoveredParent && error instanceof EbayBrowseApiError) {
+      return {...mapSingleItem(item, listingId, url, shipToCountry), selectedVariantId:selectedVariation};
+    }
+    throw error;
+  }
   const items = Array.isArray(group.items) ? group.items.map(record).filter((value): value is EbayItem => Boolean(value)) : [];
   const exactItems = items.filter(value => variationId(value, listingId) !== undefined);
   if (exactItems.length && exactItems.every(value => {
