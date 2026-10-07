@@ -13,7 +13,7 @@ import {mergeSiteContent,type SiteContentView} from './site-content-schema';
 import {withCyrillic,htmlLang} from './uz-cyrl.ts';
 /** "operator" = full admin access. "role" and "permissions" come from the staff directory for other staff (lib/market/access.ts). */
 export type AccountUser={name:string;email:string;contact?:string;method?:'email'|'phone'|'telegram'|'google'|'apple';operator:boolean;role?:string;permissions?:string[];createdAt:number};
-type Store={catalogProducts:MerchantFind[];/** The public catalog request finished (with or without data). */catalogReady:boolean;collections:Array<CatalogCollection&{productIds:string[]}>;catalogError:string;loadCatalog:(force?:boolean)=>Promise<void>;state:State;pricing:Pricing;policy:Policy;/** Contacts, legal entity, payment methods, reviews, parcel photos: the admin document merged with the code defaults (server-rendered, no flicker). */siteContent:SiteContentView;/** The admin form replaces the document after a successful save so the footer updates without a reload. */setSiteContent:(next:SiteContentView)=>void;ready:boolean;status:SessionStatus;error:string|null;user:AccountUser|null;setLocale:(locale:Locale)=>void;act:(action:Action)=>Promise<boolean>;/** Why the last refused action was refused (server error code and text), until the next success. */lastActionError:()=>{code?:string;message?:string}|null;refresh:()=>Promise<void>};
+type Store={catalogProducts:MerchantFind[];/** The public catalog request finished (with or without data). */catalogReady:boolean;collections:Array<CatalogCollection&{productIds:string[]}>;catalogError:string;loadCatalog:(force?:boolean)=>Promise<void>;state:State;pricing:Pricing;policy:Policy;/** Contacts, legal entity, payment methods, reviews, parcel photos: the admin document merged with the code defaults (server-rendered, no flicker). */siteContent:SiteContentView;/** The admin form replaces the document after a successful save so the footer updates without a reload. */setSiteContent:(next:SiteContentView)=>void;ready:boolean;status:SessionStatus;error:string|null;user:AccountUser|null;setLocale:(locale:Locale)=>void;/** `queue`: wait for the action in flight instead of being dropped (cart checkboxes and services clicked in a row). */act:(action:Action,options?:{queue?:boolean})=>Promise<boolean>;/** Why the last refused action was refused (server error code and text), until the next success. */lastActionError:()=>{code?:string;message?:string}|null;refresh:()=>Promise<void>};
 const Context=createContext<Store|null>(null);
 const marketMessages:Record<Locale,{catalogLoad:string;accountLoad:string;connection:string;signin:string;sessionEnded:string;saveFailed:string;actionConnection:string}>=withCyrillic({
   ru:{catalogLoad:'Не удалось обновить витрину. Сохранённые ссылки остаются доступны; актуальную цену нужно подтвердить перед заказом.',accountLoad:'Не удалось загрузить кабинет. Повторите попытку.',connection:'Не удалось связаться с сервером. Проверьте подключение и повторите попытку.',signin:'Войдите, чтобы сохранить изменения.',sessionEnded:'Сессия завершилась. Войдите снова, чтобы продолжить.',saveFailed:'Не удалось сохранить изменения.',actionConnection:'Ответ сервера не получен. Проверяем состояние заказа.'},
@@ -29,7 +29,7 @@ export function MarketProvider({children,initialLocale='uz',initialPricing=null,
  const [state,setState]=useState<State>(()=>{const initial=blank();return {...initial,communication:{...initial.communication,language:initialLocale}}}),[pricing,setPricing]=useState<Pricing>(()=>initialPricing??tariff),[policy,setPolicy]=useState<Policy>(defaultPolicy),[siteContent,setSiteContent]=useState<SiteContentView>(()=>initialSiteContent??mergeSiteContent(null)),[status,setStatus]=useState<SessionStatus>('loading'),[error,setError]=useState<string|null>(null),[user,setUser]=useState<AccountUser|null>(null);
  const revision=useRef(0),busy=useRef(false),generation=useRef(0),localeRef=useRef<Locale>(initialLocale),serverLocaleRef=useRef<Locale>('ru'),localeSyncRef=useRef<Locale|null>(null);
  const catalogLoaded=useRef(false),catalogRequest=useRef<Promise<void>|null>(null);
- const lastError=useRef<{code?:string;message?:string}|null>(null);
+ const lastError=useRef<{code?:string;message?:string}|null>(null),inflight=useRef<Promise<void>|null>(null);
  // Signed in as of the last successful read. A network or server hiccup must not sign the customer out.
  const signedIn=useRef(false),retryTimer=useRef<ReturnType<typeof setTimeout>|null>(null),lastRefresh=useRef(0);
  const lastActionError=useCallback(()=>lastError.current,[]);
@@ -120,10 +120,13 @@ export function MarketProvider({children,initialLocale='uz',initialPricing=null,
   return()=>{window.removeEventListener('focus',wake);window.removeEventListener('online',wake);document.removeEventListener('visibilitychange',wake);if(retryTimer.current)clearTimeout(retryTimer.current)};
  },[readStoredLocale,refresh,initialLocale]);
  useEffect(()=>{document.documentElement.lang=htmlLang(state.communication.language)},[state.communication.language]);
- const act=useCallback(async(action:Action)=>{
+ const act=useCallback(async(action:Action,options?:{queue?:boolean})=>{
   if(!ready){toast.error(marketMessages[localeRef.current].signin);return false}
+  // Without `queue` a second click during a save is dropped (a double-clicked "Pay" must not pay twice).
+  while(busy.current&&options?.queue&&inflight.current)await inflight.current;
   if(busy.current)return false;
   busy.current=true;
+  let settle=()=>{};inflight.current=new Promise<void>(resolve=>{settle=resolve});
   // A pending read must not overwrite the result of this newer mutation.
   const current=++generation.current;
   try{
@@ -137,7 +140,7 @@ export function MarketProvider({children,initialLocale='uz',initialPricing=null,
    lastError.current=null;
    return true;
   }catch{toast.error(marketMessages[localeRef.current].actionConnection);await refresh();return false}
-  finally{busy.current=false}
+  finally{busy.current=false;settle()}
  },[ready,refresh,clearPrivate]);
  useEffect(()=>{
   if(status!=='authenticated')return;

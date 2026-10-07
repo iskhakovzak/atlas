@@ -1,5 +1,6 @@
 import {dedupeSafeImages,extractAdidasProduct,extractProduct,type Extracted} from './extract.ts';
 import {extractShopify, shopifyEndpoints} from './shopify.ts';
+import {extractVictoriasSecret, victoriasSecretRequest} from './victoriassecret.ts';
 import {isEbayStoreHost,isSupportedStoreHost,supportedStoreCount} from './stores.ts';
 import {applyMerchantProfile} from './merchant-profiles.ts';
 import {EbayBrowseApiError, EbayListingUnavailableError, EbayManualReviewError, fetchEbayProduct, type EbayBrowseConfig} from './ebay.ts';
@@ -57,9 +58,10 @@ function finalizeExtraction(extracted:Extracted,sourceUrl:string){
   const hasProductPrice=typeof result.price==='number'&&Number.isFinite(result.price)&&result.price>0;
   const hasVariantPrice=(result.variants??[]).some(variant=>typeof variant.price==='number'&&Number.isFinite(variant.price)&&variant.price>0);
   if(!result.title||(!hasProductPrice&&!hasVariantPrice)||!result.currency){
+    const missing=[!result.title?'название':'',!hasProductPrice&&!hasVariantPrice?'цену':'',!result.currency?'валюту':''].filter(Boolean).join(', ');
     throw new ManualEntryFallbackError(/^ebay\./i.test(new URL(sourceUrl).hostname)
       ? 'eBay не предоставил полные публичные данные объявления. Проверьте карточку и подтвердите цену и вариант вручную.'
-      : 'Магазин не отдал полные данные товара. Заполните и подтвердите недостающие поля вручную.',result,'incomplete');
+      : `Магазин отдал страницу без структурированных данных товара (не найдено: ${missing}). Заполните и подтвердите недостающие поля вручную.`,result,'incomplete');
   }
   return result;
 }
@@ -278,6 +280,33 @@ async function readAmazonUs(start: URL, signal: AbortSignal, fetcher: MerchantFe
   throw Error('Не удалось проверить регион Amazon.');
 }
 
+/**
+ * Bot-management interstitials answer with HTTP 200 and a tiny page instead of
+ * the product. Name the wall so the operator knows the link itself is fine.
+ */
+export function detectBotChallenge(html: string) {
+  const head = html.slice(0, 60000);
+  // A page that still carries its Product JSON-LD was served: vendor scripts and form reCAPTCHA on it are not a wall.
+  if (/"@type"\s*:\s*"Product"/i.test(html)) return undefined;
+  if (/bm-verify|_sec\/verify|akam-logo|ak_bmsc_challenge|<title>\s*Access Denied\s*<\/title>/i.test(head)) return 'Akamai';
+  if (/px-captcha|_pxhd|_pxAppId|PerimeterX|window\._pxUuid/i.test(head)) return 'PerimeterX';
+  if (/cf-chl|cf_chl_opt|<title>\s*Just a moment/i.test(head)) return 'Cloudflare';
+  if (/distil_r_captcha|datadome|dd\.captcha|geo\.captcha-delivery\.com/i.test(head)) return 'DataDome';
+  if (/captcha|verify you are human|pardon our interruption|robot check|are you a human/i.test(head.replace(/g?recaptcha/gi, ''))) return 'CAPTCHA';
+  if (html.length < 20000 && /<title>\s*Too many requests\s*<\/title>/i.test(head)) return 'лимит запросов';
+  return undefined;
+}
+
+function botChallengeError(kind: string) {
+  return new ManualEntryFallbackError(`Магазин закрыл страницу антибот-проверкой (${kind}) и не отдал данные товара. Ссылка верна; заполните и подтвердите цену, валюту и вариант вручную или повторите позже.`, undefined, 'blocked');
+}
+
+/** The egress proxy marks a direct retry so the import can warn about regional pricing. */
+function directEgress(response: Response) {
+  return response.headers.get('x-atlas-egress') === 'direct';
+}
+const directEgressWarning = 'Данные получены напрямую, без US-прокси (магазин ограничил его запросы): цена и валюта могут соответствовать другому региону — проверьте их.';
+
 async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'json', options: PublicRequestOptions = {}, fetcher: MerchantFetch = fetch) {
   let url = start;
   for (let i = 0; i < 4; i++) {
@@ -299,9 +328,19 @@ async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'jso
       if (format === 'json' && url.origin !== start.origin && !options.allowedOrigins?.includes(url.origin)) throw new ManualEntryFallbackError('Магазин изменил регион API. Заполните данные вручную; новый адрес не открывался.',undefined,'redirect');
       continue;
     }
-    return {text: await readBody(response, format), url};
+    const direct = directEgress(response);
+    const text = await readBody(response, format);
+    if (format === 'html') {
+      const challenge = detectBotChallenge(text);
+      if (challenge) throw botChallengeError(challenge);
+    }
+    return {text, url, direct};
   }
   throw Error('Не удалось загрузить товар.');
+}
+
+function withEgressWarning<T extends Extracted>(extracted: T, direct: boolean | undefined): T {
+  return direct ? {...extracted, warnings: [...(extracted.warnings ?? []), directEgressWarning]} : extracted;
 }
 
 export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch) {
@@ -312,19 +351,27 @@ export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch
   }
   const url = allowedUrl(manualUrl.href), controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);
+  // Why the official eBay path did not answer; carried into the manual-review draft so the operator sees it.
+  let ebayApiNote: string | undefined;
   try {
     if (isEbayStoreHost(url.hostname)) {
       const config = fetcher.ebayBrowseConfig?.();
       if (!config?.clientId?.trim() || !config.clientSecret || !config.environment) {
         console.warn('[eBay import] stage=configuration status=missing');
+        ebayApiNote = 'eBay Browse API не настроен на сервере (EBAY_CLIENT_ID, EBAY_CLIENT_SECRET, EBAY_ENV).';
+      } else if (!/^\/itm\//i.test(url.pathname) || !/^\d{8,15}$/.test(url.pathname.split('/').filter(Boolean).at(-1) ?? '')) {
+        ebayApiNote = 'Для eBay нужна ссылка на объявление вида ebay.com/itm/<номер>; страницы поиска, магазинов и категорий не импортируются.';
       } else {
         try {
           const ebayProduct = await fetchEbayProduct(url.href, config, fetcher, controller.signal);
           if (ebayProduct) return finalizeExtraction(ebayProduct, url.href);
+          ebayApiNote = 'Площадка eBay этого домена не поддерживается Browse API Atlas.';
         } catch (error) {
           if (error instanceof EbayBrowseApiError || error instanceof EbayListingUnavailableError || error instanceof EbayManualReviewError) {
             console.warn(`[eBay import] stage=${error.stage} status=${error.status ?? 'network'}${error instanceof EbayBrowseApiError && error.errorId ? ` errorId=${error.errorId}` : ''}`);
           }
+          if (error instanceof EbayBrowseApiError) ebayApiNote = error.describe();
+          else if (error instanceof Error && error.name === 'AbortError') ebayApiNote = 'eBay Browse API не ответил вовремя.';
           if (error instanceof EbayListingUnavailableError || error instanceof ManualEntryFallbackError) throw error;
           if (error instanceof EbayManualReviewError) {
             throw new ManualEntryFallbackError(error.message, {
@@ -398,6 +445,20 @@ export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch
       if (!extracted) { const e = new Error('Adidas не вернул карточку товара. Проверьте ссылку и повторите проверку.'); e.name = 'AbortError'; throw e; }
       return finalizeExtraction(extracted,url.href);
     }
+    const victoriasSecret = victoriasSecretRequest(url);
+    if (victoriasSecret) {
+      // The storefront page is an empty shell; its own public product document carries colour, sizes, prices and stock.
+      try {
+        const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(8_000)]);
+        const payload = await readPublic(victoriasSecret.api, signal, 'json', {referer: url.href}, fetcher);
+        const extracted = extractVictoriasSecret(JSON.parse(payload.text), url.href, victoriasSecret);
+        if (extracted) return finalizeExtraction(withEgressWarning(extracted, payload.direct), url.href);
+      } catch (error) {
+        if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
+        if (error instanceof ManualEntryFallbackError && error.reason === 'blocked') throw error;
+        // Otherwise the page shell still yields the title for a manual-review draft.
+      }
+    }
     const endpoints = shopifyEndpoints(url);
     if (endpoints) {
       try {
@@ -405,17 +466,17 @@ export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch
         const [product, currency] = await Promise.all([
           readPublic(endpoints.product, signal, 'json', {}, fetcher), readPublic(endpoints.currency, signal, 'json', {}, fetcher),
         ]);
-        const extracted = extractShopify(JSON.parse(product.text), JSON.parse(currency.text), url.href);
+        const extracted = withEgressWarning(extractShopify(JSON.parse(product.text), JSON.parse(currency.text), url.href), product.direct || currency.direct);
         return finalizeExtraction(extracted,url.href);
       } catch {
         // The ordinary product page remains usable if a merchant disables Ajax.
         if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
       }
     }
-    const page = isAmazonUsUrl(url) ? await readAmazonUs(url, controller.signal, fetcher) : await readPublic(url, controller.signal, 'html', {}, fetcher);
+    const page: {text: string; url: URL; direct?: boolean} = isAmazonUsUrl(url) ? await readAmazonUs(url, controller.signal, fetcher) : await readPublic(url, controller.signal, 'html', {}, fetcher);
     if (/\/products\//.test(url.pathname) && !/\/products\//.test(page.url.pathname)) throw Error('Магазин убрал карточку товара. Укажите другую ссылку.');
-    if (/captcha|verify you are human|pardon our interruption|robot check/i.test(page.text.slice(0, 60000)))
-      throw new ManualEntryFallbackError('Магазин ограничил автоматическую загрузку. Заполните и подтвердите данные товара вручную.');
+    const challenge = detectBotChallenge(page.text);
+    if (challenge) throw botChallengeError(challenge);
     let extracted:Extracted;
     try {
       extracted = applyMerchantProfile(extractProduct(page.text, page.url.href), page.url.href);
@@ -426,7 +487,7 @@ export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch
         ? 'eBay не предоставил данные объявления в доступном формате. Проверьте и подтвердите цену и вариант вручную.'
         : 'Страница магазина не предоставила данные товара в доступном формате. Проверьте и подтвердите цену и вариант вручную.');
     }
-    return finalizeExtraction(extracted,page.url.href);
+    return finalizeExtraction(withEgressWarning(extracted, page.direct),page.url.href);
   } catch(error) {
     // eBay blocks or reshapes public listing responses often. Keep those links
     // in the manual-confirmation flow instead of stranding the customer on a
@@ -435,15 +496,20 @@ export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch
     if (isEbayStoreHost(url.hostname)) {
       if (error instanceof EbayListingUnavailableError) throw error;
       if (error instanceof Error && /карточка товара не найдена/i.test(error.message)) throw error;
-      if (error instanceof ManualEntryFallbackError && error.partial) throw error;
-      const message = error instanceof ManualEntryFallbackError
+      if (error instanceof ManualEntryFallbackError && error.partial && !ebayApiNote) throw error;
+      const pageMessage = error instanceof ManualEntryFallbackError
         ? error.message
         : 'eBay не предоставил данные объявления. Заполните и подтвердите цену, валюту и вариант вручную.';
+      // The public page is a bot wall for servers; the API note is what the operator can act on.
+      const message = ebayApiNote
+        ? `${ebayApiNote} Публичная страница eBay тоже не отдала данные (${error instanceof ManualEntryFallbackError ? error.reason : 'ошибка'}). Проверьте объявление и заполните цену, валюту и вариант вручную.`
+        : pageMessage;
       throw new ManualEntryFallbackError(message, {
+        ...(error instanceof ManualEntryFallbackError ? error.partial : undefined),
         sourceUrl: url.href,
         brand: 'eBay',
         warnings: [],
-      });
+      }, error instanceof ManualEntryFallbackError ? error.reason : 'unknown');
     }
     throw error;
   } finally {clearTimeout(timer);}

@@ -188,6 +188,13 @@ function LockedFacts({ rows, hint, stack = false, rule = false }: { rows: { id: 
   </div>)}</dl>;
 }
 
+/** The cart beside the order button: its unit count bumps when something is added (the banner on top confirms what). */
+function CartEntry({ count, label, compact = false }: { count: number; label: string; compact?: boolean }) {
+  return <Link className={"lo-cart-entry" + (compact ? " compact" : "")} href="/cart" aria-label={`${label}: ${count}`}>
+    <ShoppingBag size={compact ? 20 : 18} aria-hidden="true" />{!compact && <span>{label}</span>}<b key={count}>{count}</b>
+  </Link>;
+}
+
 export function GlobalLinkOrder() {
   const { ready, status, error: accountError, user, refresh, pricing, state, act, lastActionError, catalogProducts, loadCatalog } = useMarket();
   // Express by default; a cart that already chose standard keeps it, since the added line inherits the cart's speed.
@@ -874,6 +881,9 @@ export function GlobalLinkOrder() {
   useEffect(() => { if (status === "guest") discardPendingCartAdd(browserStorage(), draftKey); }, [status, draftKey, picked, manualQuantity, variant, comment, previewSpeed]);
   const addBusy = adding || pendingAdd.sending;
   const isGuest = status === "guest";
+  // Units already in the cart, for the entry beside the order button (signed-in customers only).
+  const cartUnits = ready && !isGuest ? state.cart.reduce((sum, line) => sum + line.quantity, 0) : 0;
+  const cartLabel = tx("Корзина", "Savat", "Cart");
   // The store link at the top: domain and path, no tracking parameters; the full address opens on click.
   const sourceShort = (() => { try { const parsed = new URL(source || url); return parsed.hostname.replace(/^www\./, "") + (parsed.pathname === "/" ? "" : parsed.pathname); } catch { return sourceHost || url; } })();
   const weightNote = weightBasis === "store" ? k.weightStore : weightBasis === "catalog" ? k.weightCatalog : weightBasis === "customer" ? k.weightCustomer : weightBasis === "title" ? k.weightTitle : k.weightEstimate(displayCategoryName(category, lang));
@@ -1310,7 +1320,10 @@ export function GlobalLinkOrder() {
               <Checkbox id="data-verified" checked={verified} onCheckedChange={(v) => setVerified(v === true)} />
               <label htmlFor="data-verified">{c.verified}</label>
             </div>
+            <div className={"lo-cta-row" + (cartUnits ? " has-cart" : "")}>
             <button className="btn primary basket-cta" disabled={addBusy || status==='loading'}>{(addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{pendingAdd.sending ? lc.pending.sending : adding ? c.adding : isGuest ? (canKeep ? lc.signinAdd : lc.signinContinue) : k.addOptions(Math.max(1, picks.length), Math.max(1, units))}{!addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>
+            {cartUnits > 0 && <CartEntry count={cartUnits} label={cartLabel} />}
+            </div>
             <ul className="basket-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{cc.summary.assurance}</li><li>{sourceCheckStatus === "verified" ? <ShieldCheck size={16} aria-hidden="true" /> : <Info size={16} aria-hidden="true" />}{sourceCheckStatus === "verified" ? checkedText : c.freshText}</li></ul>
           </section>
           </div>}
@@ -1321,6 +1334,7 @@ export function GlobalLinkOrder() {
       {(source || checking) && <div className={"basket-sticky lo-sticky" + (isGuest ? " guest" : "")} role="region" aria-label={lc.total}>
         <div><span>{k.lines.total}</span><strong>{checking ? <span className="lo-skel lo-skel-sum" aria-hidden="true" /> : previewSums ? formatSum(previewSums.total, lang) : "—"}</strong></div>
         <button type="submit" form="link-order-form" className="btn primary" disabled={checking || addBusy || status==='loading'}>{(checking || addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{checking ? tx("Проверяем…", "Tekshiryapmiz…", "Checking…") : addBusy ? c.adding : isGuest ? (canKeep ? lc.signinAddShort : lc.signinContinue) : lc.addShort}{!checking && !addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>
+        {cartUnits > 0 && <CartEntry count={cartUnits} label={cartLabel} compact />}
       </div>}
     </div>
   );

@@ -8,6 +8,7 @@ export const shopifyStoreRoots = [
   'kith.com', 'cncpts.com', 'sneakersnstuff.com', 'satechi.com', 'satechi.net', 'spigen.com',
   '3ina.com', 'bluebananabrand.com', 'footdistrict.com', 'nakedcph.com', 'nude-project.com', 'pdpaola.com', 'saigucosmetics.com', 'scalperscompany.com',
   'representclo.com', 'tower28beauty.com', 'meritbeauty.com', 'goodamerican.com', 'kosas.com', 'fahertybrand.com',
+  'maccosmetics.com', 'morphe.com', 'tartecosmetics.com',
 ] as const;
 
 export const hasEnhancedStoreImport = (root: string) =>

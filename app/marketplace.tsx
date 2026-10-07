@@ -17,9 +17,12 @@ import {HomeClosing} from './home-sections';
 import {HomeDecorSlot,HomeRailSlot} from './home-wide';
 import {marketplaceWords} from './marketplace-words';
 import {signInPath} from '@/lib/market/access';
-import {pickLocale,uzText} from '@/lib/market/uz-cyrl';
+import {pickLocale,uzText,withCyrillic} from '@/lib/market/uz-cyrl';
 import {isUzbek} from '@/lib/market/i18n';
+import {breadcrumbs,publicViewPaths} from '@/lib/seo/structured-data';
+import {JsonLd} from './json-ld';
 
+const breadcrumbLabel:Record<Locale,string>=withCyrillic({uz:'Sahifa yo‘li',ru:'Путь по сайту',en:'Breadcrumb'});
 const returnPath=()=>typeof window==='undefined'?'/':window.location.pathname+window.location.search;
 
 // Page shell shared by every route: header, breadcrumb, footer and the members' bottom bar.
@@ -38,7 +41,7 @@ export default function Marketplace({view,children}:{view:string;children?:React
   <header className="site-header"><Link className="wordmark" href="/" aria-label={modalWords.homeLabel}>atlas<ArrowUpRight aria-hidden="true"/></Link><nav className="desktop-nav" aria-label={modalWords.navigation}>{navItems.map(([href,key,label])=><Link key={key} data-nav={key} className={key===view?'active':''} aria-current={key===view?'page':undefined} href={href}>{label}</Link>)}</nav><div className="header-actions">{(user?.operator||!!user?.permissions?.length)&&<Link className="operator-entry text-link" href="/admin"><Settings2 size={16}/>{modalWords.manage}</Link>}<HeaderLanguage locale={locale} label={hc.nav.language} onChange={setLocale}/><span className="header-theme"><ThemeToggle locale={locale}/></span>{ready&&<><Link href="/balance" className="wallet-link"><Wallet size={19}/><span>{locale==='ru'?money(balance):new Intl.NumberFormat(isUzbek(locale)?uzText(locale, 'uz-UZ'):'en-US').format(balance)+(isUzbek(locale)?uzText(locale, ' so‘m'):' UZS')}</span></Link><NotificationsPanel open={noticesOpen} onOpenChange={setNoticesOpen} label={modalWords.notifications} active={view==='notifications'}/><Link aria-label={modalWords.favorites} href="/favorites" className={'icon-btn desktop-only '+(view==='favorites'?'active':'')}><Heart size={20}/></Link><Link href="/cart" className="cart-link" aria-label={modalWords.cart+count}><ShoppingBag size={19}/><span className="desktop-only">{words.cart}</span><b>{count}</b></Link></>}<Link className={'header-account'+(ready?' member':'')} href="/account">{user?hc.nav.account:hc.nav.signin}</Link></div></header>
   {/* Wide screens: the chapter rail after the header (Tab: header → rail → main; the skip link passes it), lazily loaded. */}
   {view==='catalog'&&<HomeRailSlot/>}
-  <main className={view==='catalog'?'site-main catalog-home':'site-main'} id="main" data-view={view}>{view!=='catalog'&&<div className="breadcrumb"><Link href="/">{words.home}</Link><span>/</span><span>{routeTitle(state.communication.language,view)}</span></div>}{error&&view==='catalog'&&<div className="notice error account-error" role="alert"><span>{error}</span><div><button type="button" className="text-button" onClick={()=>void refresh()}>{words.retry}</button>{!user&&<Link className="text-link" href="/account">{words.openSignIn}<ArrowRight size={15}/></Link>}</div></div>}
+  <main className={view==='catalog'?'site-main catalog-home':'site-main'} id="main" data-view={view}>{publicViewPaths[view]&&<JsonLd data={breadcrumbs(locale,publicViewPaths[view],routeTitle(locale,view))}/>}{view!=='catalog'&&<nav className="breadcrumb" aria-label={breadcrumbLabel[locale]}><Link href="/">{words.home}</Link><span aria-hidden="true">/</span><span aria-current="page">{routeTitle(state.communication.language,view)}</span></nav>}{error&&view==='catalog'&&<div className="notice error account-error" role="alert"><span>{error}</span><div><button type="button" className="text-button" onClick={()=>void refresh()}>{words.retry}</button>{!user&&<Link className="text-link" href="/account">{words.openSignIn}<ArrowRight size={15}/></Link>}</div></div>}
   <AccessView view={view}>{children}</AccessView>
    {/* Home: the closing call and the footer share the last sheet (app/home-chapters.css). */}
    {view==='catalog'?<div className="home-end" data-chapter="end"><HomeClosing/><SiteFooter/></div>:<SiteFooter/>}

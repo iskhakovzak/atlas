@@ -1,0 +1,136 @@
+/*
+ * Cart checkboxes, parcel services and the checkout review (owner, 7.10.2026).
+ * Light ("Atlas Day") values first, Night at the end under html[data-theme="dark"].
+ */
+
+/* ---------- cart: selection ---------- */
+.basket-select-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 12px; padding: 10px 14px; border-radius: 12px; background: var(--day-surface, #fff); border: 1px solid var(--day-line, #e2e2da); font-size: 14px; }
+.basket-select-bar label { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; color: var(--day-ink, #16211c); }
+.basket-select-bar small { color: var(--day-muted, #58635c); font-size: 13px; }
+.basket-select { display: inline-flex; align-items: center; flex-shrink: 0; }
+.basket-select [data-slot="checkbox"] { width: 20px; height: 20px; }
+.basket-parcel-title .basket-select { margin-right: 2px; }
+.basket-item { position: relative; }
+.basket-item > .basket-select { position: absolute; top: 12px; left: 12px; z-index: 1; padding: 3px; border-radius: 7px; background: color-mix(in srgb, var(--day-surface, #fff) 88%, transparent); }
+.basket-item.is-later { opacity: .62; }
+.basket-item.is-later:focus-within, .basket-item.is-later:hover { opacity: .85; }
+.basket-later-tag { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 20px; font-size: 12px; font-weight: 500; background: var(--day-soft, #efefe9); color: var(--day-muted, #58635c); }
+/* Option rows of one product: the tick gets its own first column; the option's note spans the row under it. */
+.basket-variant { grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-areas: "sel info qty del" "sel sum qty del"; }
+.basket-variant > .basket-select { grid-area: sel; align-self: center; }
+.basket-variant > :is(.basket-note, .basket-note-add) { grid-column: 2 / -1; margin: 2px 0 0; }
+.basket-variant.is-later > :not(.basket-select) { opacity: .62; }
+.basket-variant-info .basket-later-tag { margin-left: 0; white-space: nowrap; }
+/* The one-line row needs room: it follows the card's width (the cart column is narrow next to the bill), not the window. */
+.basket-group { container-type: inline-size; }
+.basket-variants { padding: 0 16px 6px; }
+.basket-variant-sum { text-align: left; }
+@container (min-width: 560px) {
+  .basket-variants { padding: 0 20px 6px 130px; }
+  .basket-variant { grid-template-columns: auto minmax(0, 1fr) auto minmax(116px, auto) auto; grid-template-areas: "sel info qty sum del"; gap: 6px 12px; }
+  .basket-variant-sum { font-size: 15px; text-align: right; }
+}
+.basket-none-hint { display: flex; align-items: center; gap: 8px; margin: 10px 0 0; font-size: 14px; color: var(--day-muted, #58635c); }
+.basket-later-note { margin: 8px 0 0; font-size: 13px; color: var(--day-muted, #58635c); }
+.basket-cta[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
+
+/* ---------- cart: services of a store parcel ---------- */
+.basket-parcel-services { margin: 4px 0 0; }
+.basket-parcel-services > summary { cursor: pointer; }
+.basket-service[aria-busy="true"] { opacity: .8; }
+.basket-service-unit { margin-left: 6px; font-size: 12px; font-weight: 500; color: var(--day-muted, #58635c); }
+
+/* ---------- checkout review: wide dialog with a sticky total ---------- */
+/* The dialog jumps to its wide size (no width transition), and the two columns follow the dialog's own width. */
+.atlas-modal:has(.review-layout) { width: min(1120px, calc(100vw - 48px)) !important; max-width: min(1120px, calc(100vw - 48px)) !important; transition-property: opacity, transform !important; }
+.basket-checkout:has(.review-layout) { container-type: inline-size; }
+.review-layout { display: grid; gap: 18px; }
+@container (min-width: 820px) {
+  .review-layout { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; gap: 24px; }
+  .review-aside { position: sticky; top: 0; max-height: calc(92dvh - 120px); overflow: auto; }
+}
+.review-main { min-width: 0; display: grid; gap: 14px; container-type: inline-size; }
+.review-aside { display: grid; gap: 12px; align-content: start; }
+
+.review-table { display: grid; font-size: 14px; border: 1px solid var(--day-line, #e2e2da); border-radius: 12px; overflow: hidden; background: var(--day-surface, #fff); }
+.review-row { display: grid; grid-template-columns: 24px minmax(150px, 1fr) minmax(56px, .45fr) 58px minmax(84px, max-content) minmax(92px, max-content); align-items: center; gap: 10px 16px; padding: 8px 12px; }
+.review-head { background: var(--day-soft, #efefe9); color: var(--day-muted, #58635c); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; padding-block: 7px; }
+.review-n { color: var(--day-muted, #58635c); font-variant-numeric: tabular-nums; text-align: right; }
+.review-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.review-sum { font-weight: 600; color: var(--day-ink, #16211c); }
+.review-item { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.review-photo { width: 40px; height: 40px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: var(--day-soft, #efefe9); }
+.review-photo .no-photo { min-height: 0; font-size: 0; }
+.review-photo .no-photo svg { width: 18px; height: 18px; }
+.review-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.35; color: var(--day-ink, #16211c); }
+.review-variant { color: var(--day-ink, #16211c); overflow-wrap: anywhere; }
+.review-parcel + .review-parcel { border-top: 1px solid var(--day-line-strong, #cbccc3); }
+.review-parcel-title { padding: 10px 12px 4px; font-size: 13px; font-weight: 700; color: var(--day-accent, #1f4d3b); }
+.review-model + .review-model { border-top: 1px dashed var(--day-line, #e2e2da); }
+.review-row-extra { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px; margin-top: -2px; }
+.review-flag { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.review-flag.issue { color: var(--day-error, #a3341f); }
+.review-flag.change { color: var(--day-warn, #8a5a12); }
+.review-row.has-issue { background: color-mix(in srgb, var(--day-error, #a3341f) 6%, transparent); }
+.review-row.has-change { background: color-mix(in srgb, var(--day-warn, #8a5a12) 6%, transparent); }
+.review-later { font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+.review-row-note { grid-column: 2 / -1; font-size: 13px; color: var(--day-muted, #58635c); line-height: 1.45; overflow-wrap: anywhere; }
+.review-row-note b { color: var(--day-ink, #16211c); font-weight: 600; }
+.review-note, .review-services { margin: 0; padding: 4px 12px 8px 54px; font-size: 13px; color: var(--day-muted, #58635c); line-height: 1.5; }
+.review-note b, .review-services b { color: var(--day-ink, #16211c); font-weight: 600; }
+
+.review-checklist { border: 1px solid var(--day-line, #e2e2da); border-radius: 12px; padding: 12px 14px; background: var(--day-surface, #fff); }
+.review-checklist h3 { font-size: 14px; margin: 0 0 8px; }
+.review-checklist ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.review-checklist li { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 8px; align-items: start; font-size: 13px; }
+.review-check-mark { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--day-tint, #e8f1ea); color: var(--day-ok, #1d6b47); }
+.review-checklist li[data-ok="no"] .review-check-mark { background: color-mix(in srgb, var(--day-error, #a3341f) 12%, transparent); color: var(--day-error, #a3341f); }
+.review-check-body { display: grid; gap: 1px; min-width: 0; }
+.review-check-body > span { color: var(--day-muted, #58635c); }
+.review-check-body > b { font-weight: 600; color: var(--day-ink, #16211c); overflow-wrap: anywhere; }
+.review-checklist .text-button { font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Phone and narrow dialog: one card per line, the numbers in a row with their names. */
+/* A narrow list (laptop with the summary beside it): the per-piece price goes, the amount stays. */
+@container (max-width: 620px) {
+  .review-row { grid-template-columns: 24px minmax(0, 1fr) minmax(48px, .5fr) 58px max-content; }
+  .review-price { display: none; }
+}
+@container (max-width: 460px) {
+  .review-head { display: none; }
+  .review-row { grid-template-columns: 22px minmax(0, 1fr) auto; gap: 2px 10px; padding: 10px 12px; }
+  .review-n { grid-row: 1 / span 3; align-self: start; padding-top: 2px; }
+  .review-item { grid-column: 2 / -1; grid-row: 1; margin-bottom: 4px; }
+  .review-variant { grid-column: 2; grid-row: 2; font-size: 13px; }
+  .review-sum { grid-column: 3; grid-row: 2; }
+  .review-num[data-label]:not(.review-sum):not(.review-price) { grid-column: 2; grid-row: 3; justify-self: start; font-size: 13px; color: var(--day-muted, #58635c); }
+  .review-num[data-label]:not(.review-sum):not(.review-price)::before { content: attr(data-label) ": "; }
+  .review-row-extra { grid-column: 2 / -1; grid-row: 4; margin-top: 4px; }
+  .review-note, .review-services { padding-left: 44px; }
+  .review-row-note { grid-column: 2 / -1; grid-row: 5; }
+}
+
+/* ---------- Night ---------- */
+html[data-theme="dark"] .basket-select-bar, html[data-theme="dark"] .review-table, html[data-theme="dark"] .review-checklist { background: var(--night-surface); border-color: var(--night-line-strong); }
+html[data-theme="dark"] .basket-select-bar label, html[data-theme="dark"] .review-sum, html[data-theme="dark"] .review-name, html[data-theme="dark"] .review-variant, html[data-theme="dark"] .review-check-body > b, html[data-theme="dark"] .review-note b, html[data-theme="dark"] .review-row-note b, html[data-theme="dark"] .review-services b { color: var(--night-ink); }
+html[data-theme="dark"] .basket-select-bar small, html[data-theme="dark"] .basket-none-hint, html[data-theme="dark"] .basket-later-note, html[data-theme="dark"] .review-n, html[data-theme="dark"] .review-note, html[data-theme="dark"] .review-row-note, html[data-theme="dark"] .review-services, html[data-theme="dark"] .review-check-body > span, html[data-theme="dark"] .basket-service-unit { color: var(--night-muted); }
+html[data-theme="dark"] .basket-item > .basket-select { background: color-mix(in srgb, var(--night-surface) 88%, transparent); }
+html[data-theme="dark"] .basket-later-tag, html[data-theme="dark"] .review-head, html[data-theme="dark"] .review-photo { background: var(--night-raised); color: var(--night-muted); }
+html[data-theme="dark"] .review-parcel + .review-parcel { border-top-color: var(--night-line-strong); }
+html[data-theme="dark"] .review-model + .review-model { border-top-color: var(--night-line); }
+html[data-theme="dark"] .review-parcel-title { color: var(--night-jade); }
+html[data-theme="dark"] .review-flag.issue, html[data-theme="dark"] .review-checklist li[data-ok="no"] .review-check-mark { color: var(--night-error-ink, #f0a593); }
+html[data-theme="dark"] .review-flag.change { color: var(--night-warn-ink); }
+html[data-theme="dark"] .review-row.has-issue { background: rgba(240, 165, 147, .07); }
+html[data-theme="dark"] .review-row.has-change { background: rgba(232, 189, 112, .07); }
+html[data-theme="dark"] .review-check-mark { background: var(--night-jade-soft); color: var(--night-ok-ink); }
+@container (max-width: 460px) {
+  html[data-theme="dark"] .review-num[data-label]:not(.review-sum):not(.review-price) { color: var(--night-muted); }
+}
+
+/* "Some of them" on a store or model checkbox: a dash instead of the tick. */
+.basket-select [data-slot="checkbox"][data-state="indeterminate"] { background: var(--day-accent, #1f4d3b); border-color: var(--day-accent, #1f4d3b); position: relative; }
+.basket-select [data-slot="checkbox"][data-state="indeterminate"] svg { display: none; }
+.basket-select [data-slot="checkbox"][data-state="indeterminate"]::after { content: ""; position: absolute; inset: 50% 4px auto; height: 2px; margin-top: -1px; border-radius: 1px; background: #fff; }
+html[data-theme="dark"] .basket-select [data-slot="checkbox"][data-state="indeterminate"] { background: var(--night-jade); border-color: var(--night-jade); }
+html[data-theme="dark"] .basket-select [data-slot="checkbox"][data-state="indeterminate"]::after { background: var(--night-on-ivory); }

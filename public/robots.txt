@@ -78,4 +78,7 @@ Disallow: /orders
 Disallow: /order-by-link
 Disallow: /login
 
+# Yandex: ad and click tags do not change the page.
+Clean-param: utm_source&utm_medium&utm_campaign&utm_content&utm_term&gclid&fbclid&yclid&ysclid
+
 Sitemap: https://atlasmarket.uz/sitemap.xml

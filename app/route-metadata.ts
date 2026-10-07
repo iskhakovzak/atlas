@@ -15,6 +15,11 @@ const images = (locale: Locale) => [{ url: ogImage[locale], width: 1200, height:
 export type PublicPage = 'home' | 'catalog' | 'stores' | 'customs' | 'legal' | 'privacy' | 'terms' | 'support' | 'app' | 'delete-account';
 const paths: Record<PublicPage, string> = { home: '/', catalog: '/catalog', stores: '/stores', customs: '/customs', legal: '/legal', privacy: '/privacy', terms: '/terms', support: '/support', app: '/app', 'delete-account': '/delete-account' };
 
+export function publicPath(page: PublicPage): string {
+  return paths[page];
+}
+
+// Titles that already name Atlas are used as is, so the "%s · Atlas" template does not repeat the brand.
 const pageText: Record<PublicPage, Record<Locale, { title: string; description: string }>> = {
   home: withCyrillic({
     uz: { title: 'Atlas — xorijiy do‘konlardan O‘zbekistonga yetkazib berish', description: 'Istalgan xorijiy do‘kondagi tovar havolasini qo‘ying va yakuniy narxni so‘mda biling: tovar, xizmat va yetkazib berish alohida satrlarda.' },
@@ -22,19 +27,19 @@ const pageText: Record<PublicPage, Record<Locale, { title: string; description: 
     en: { title: 'Atlas — shop international stores with delivery to Uzbekistan', description: 'Paste a link from any international store and see the total in soum: item, service and delivery on separate lines.' },
   }),
   catalog: withCyrillic({
-    uz: { title: 'Xorijiy do‘konlar tovarlari katalogi', description: 'Poyabzal, kiyim, elektronika va go‘zallik mahsulotlari — yakuniy narxi so‘mda, O‘zbekistongacha yetkazish bilan. Do‘kon, narx, o‘lcham va bojsiz limit bo‘yicha filtrlar.' },
-    ru: { title: 'Каталог товаров из зарубежных магазинов', description: 'Обувь, одежда, электроника и красота с итогом в сумах и доставкой в Узбекистан. Фильтры по магазину, цене, размеру и беспошлинному лимиту.' },
-    en: { title: 'Catalog of products from international stores', description: 'Shoes, clothing, electronics and beauty with the total in soum and delivery to Uzbekistan. Filter by store, price, size and duty-free allowance.' },
+    uz: { title: 'Xorijiy tovarlar katalogi — O‘zbekistonga yetkazib berish', description: 'Poyabzal, kiyim, elektronika va go‘zallik mahsulotlari — yakuniy narxi so‘mda, O‘zbekistongacha yetkazish bilan. Do‘kon, narx, o‘lcham va bojsiz limit bo‘yicha filtrlar.' },
+    ru: { title: 'Каталог зарубежных товаров с доставкой в Узбекистан', description: 'Обувь, одежда, электроника и красота с итогом в сумах и доставкой в Узбекистан. Фильтры по магазину, цене, размеру и беспошлинному лимиту.' },
+    en: { title: 'Catalog of international products with delivery to Uzbekistan', description: 'Shoes, clothing, electronics and beauty with the total in soum and delivery to Uzbekistan. Filter by store, price, size and duty-free allowance.' },
   }),
   stores: withCyrillic({
-    uz: { title: 'Buyurtma berish mumkin bo‘lgan do‘konlar', description: 'Atlas orqali havola bo‘yicha buyurtma berish mumkin bo‘lgan xorijiy do‘konlar katalogi.' },
-    ru: { title: 'Магазины для заказа', description: 'Каталог зарубежных магазинов, откуда можно оформить заказ по ссылке через Atlas.' },
-    en: { title: 'Stores you can order from', description: 'A directory of international stores you can order from by link through Atlas.' },
+    uz: { title: 'AQSh, Yevropa va Xitoy do‘konlaridan O‘zbekistonga buyurtma', description: 'AQSh, Yevropa, Xitoy va boshqa mamlakatlardagi do‘konlar: Atlas havolangiz bo‘yicha tovarni sotib olib, O‘zbekistonga yetkazadi. Har bir do‘kon uchun muddat, 1 kg narxi va valyuta.' },
+    ru: { title: 'Магазины США, Европы и Китая для заказа в Узбекистан', description: 'Магазины США, Европы, Китая и других стран: Atlas выкупит товар по вашей ссылке и доставит в Узбекистан. Для каждого магазина — срок, цена за 1 кг и валюта.' },
+    en: { title: 'Order from US, European and Chinese stores to Uzbekistan', description: 'Stores in the US, Europe, China and other countries: Atlas buys the item from your link and delivers it to Uzbekistan. Delivery time, price per kg and currency for each store.' },
   }),
   customs: withCyrillic({
-    uz: { title: 'Bojxona shartlari', description: 'Bojsiz limit qanday ishlashi, qanday ma’lumotlar kerakligi va O‘zbekistonga buyurtmalarda bojxona to‘lovlari qanday hisoblanishi.' },
-    ru: { title: 'Таможенные условия', description: 'Как работает беспошлинный лимит, какие данные нужны и как рассчитываются таможенные платежи при заказе в Узбекистан.' },
-    en: { title: 'Customs terms', description: 'How the duty-free allowance works, which details are needed and how customs payments are calculated for orders to Uzbekistan.' },
+    uz: { title: 'O‘zbekistonga jo‘natmalar uchun bojsiz limit va bojxona to‘lovi', description: 'Bojsiz limit qanday ishlashi, qanday ma’lumotlar kerakligi va O‘zbekistonga buyurtmalarda bojxona to‘lovlari qanday hisoblanishi.' },
+    ru: { title: 'Таможенный лимит и пошлина на посылки в Узбекистан', description: 'Как работает беспошлинный лимит, какие данные нужны и как рассчитываются таможенные платежи при заказе в Узбекистан.' },
+    en: { title: 'Customs duty and duty-free allowance for parcels to Uzbekistan', description: 'How the duty-free allowance works, which details are needed and how customs payments are calculated for orders to Uzbekistan.' },
   }),
   legal: withCyrillic({
     uz: { title: 'Huquqiy ma’lumotlar', description: 'Atlas xizmati qoidalari, buyurtma berish, hisob-kitob va ma’lumotlarni qayta ishlash tartibi.' },
@@ -86,16 +91,22 @@ export function publicMetadata(page: PublicPage, lang: string | undefined, fallb
   const version = (code: Locale) => `${path}?lang=${code}`;
   const url = requested ? version(requested) : path;
   const text = pageText[page][locale];
-  // The home title carries the brand; other pages use the root "%s · Atlas" template.
-  const socialTitle = page === 'home' ? text.title : `${text.title} · Atlas`;
+  // Titles that already carry the brand stand alone; the rest use the root "%s · Atlas" template.
+  const branded = text.title.includes('Atlas');
+  const socialTitle = branded ? text.title : `${text.title} · Atlas`;
   return {
-    title: page === 'home' ? { absolute: text.title } : text.title,
+    title: branded ? { absolute: text.title } : text.title,
     description: text.description,
+    robots: publicRobots,
     alternates: { canonical: url, languages: { uz: version('uz'), 'uz-Cyrl': version('oz'), ru: version('ru'), en: version('en'), 'x-default': path } },
     openGraph: { type: 'website', url, title: socialTitle, description: text.description, locale: ogLocale[locale], images: images(locale) },
     twitter: { card: 'summary_large_image', title: socialTitle, description: text.description, images: [ogImage[locale]] },
   };
 }
+
+// Set on public pages only: a root-level `index, follow` would be repeated next to the
+// framework's `noindex` on the 404 page.
+const publicRobots: Metadata['robots'] = { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 } };
 
 export function homeMetadata(lang?: string, fallback: Locale = 'uz'): Metadata {
   return publicMetadata('home', lang, fallback);
@@ -110,17 +121,21 @@ export function privateMetadata(view: string, locale: Locale): Metadata {
   return { ...privateRouteMetadata, title: routeTitle(locale, view) };
 }
 
+/** Meta-tag codes from Google Search Console and Yandex Webmaster; empty values add no tag. */
+export type SiteVerification = { google?: string; yandex?: string };
+
 /** Root defaults in the page language; pages without their own title (such as the 404 page) use them. */
-export function rootMetadata(locale: Locale): Metadata {
+export function rootMetadata(locale: Locale, codes: SiteVerification = {}): Metadata {
   const text = rootText[locale];
+  const google = codes.google?.trim(), yandex = codes.yandex?.trim();
   return {
+    ...(google || yandex ? { verification: { ...(google ? { google } : {}), ...(yandex ? { yandex } : {}) } } : {}),
     metadataBase: new URL('https://atlasmarket.uz'),
     title: { default: text.title, template: '%s · Atlas' },
     description: text.description,
     applicationName: 'Atlas',
     category: 'shopping',
     creator: 'Atlas',
-    robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large' } },
     openGraph: {
       type: 'website', locale: ogLocale[locale], alternateLocale: (['uz', 'ru', 'en'] as const).filter((code) => code !== locale).map((code) => ogLocale[code]),
       siteName: 'Atlas', title: text.title, description: text.social, images: images(locale),

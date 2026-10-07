@@ -40,6 +40,17 @@ export function customsParams(pricing: Partial<Pick<Pricing, 'customsAllowanceUs
     needsConfirmation: pricing?.customsRate === undefined && courierRateNeedsConfirmation(date),
   };
 }
+/**
+ * The single customs payment when the parcel is over the allowance: `rate` of the excess, but at least `minimumPerKg`
+ * for each kg of the whole parcel (PP-4508). Owner, 7.10.2026: the parcel's full weight, not a share of it — the upper
+ * end of the range `estimateCourierCustoms` shows, so the prepaid duty rarely needs topping up; what customs charges
+ * less returns to the balance. The cart, its checkout and the "How customs is calculated" window all use this one
+ * formula, so their amounts match.
+ */
+export function customsDutyUsd({ excessUsd, rate, minimumPerKg, weightKg = 0 }: { excessUsd: number; rate: number; minimumPerKg: number; weightKg?: number }) {
+  if (!(excessUsd > 0)) return 0;
+  return Math.round(Math.max(excessUsd * rate, (weightKg > 0 ? weightKg : 0) * minimumPerKg) * 100) / 100;
+}
 export function estimateCourierCustoms({ valueUsd, usedUsd = 0, grossKg, date }: { valueUsd: number; usedUsd?: number; grossKg?: number; date: string }) {
   const rule = courierRule(date);
   if (!rule || ![valueUsd, usedUsd].every(n => Number.isFinite(n) && n >= 0 && n <= 1_000_000) || (grossKg !== undefined && (!Number.isFinite(grossKg) || grossKg <= 0 || grossKg > 1000))) return null;
