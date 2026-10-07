@@ -8,7 +8,6 @@
 .basket-select-bar label { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; color: var(--day-ink, #16211c); }
 .basket-select-bar small { color: var(--day-muted, #58635c); font-size: 13px; }
 .basket-select { display: inline-flex; align-items: center; flex-shrink: 0; }
-.basket-select [data-slot="checkbox"] { width: 20px; height: 20px; }
 .basket-parcel-title .basket-select { margin-right: 2px; }
 .basket-item { position: relative; }
 .basket-item > .basket-select { position: absolute; top: 12px; left: 12px; z-index: 1; padding: 3px; border-radius: 7px; background: color-mix(in srgb, var(--day-surface, #fff) 88%, transparent); }
@@ -128,9 +127,4 @@ html[data-theme="dark"] .review-check-mark { background: var(--night-jade-soft);
   html[data-theme="dark"] .review-num[data-label]:not(.review-sum):not(.review-price) { color: var(--night-muted); }
 }
 
-/* "Some of them" on a store or model checkbox: a dash instead of the tick. */
-.basket-select [data-slot="checkbox"][data-state="indeterminate"] { background: var(--day-accent, #1f4d3b); border-color: var(--day-accent, #1f4d3b); position: relative; }
-.basket-select [data-slot="checkbox"][data-state="indeterminate"] svg { display: none; }
-.basket-select [data-slot="checkbox"][data-state="indeterminate"]::after { content: ""; position: absolute; inset: 50% 4px auto; height: 2px; margin-top: -1px; border-radius: 1px; background: #fff; }
-html[data-theme="dark"] .basket-select [data-slot="checkbox"][data-state="indeterminate"] { background: var(--night-jade); border-color: var(--night-jade); }
-html[data-theme="dark"] .basket-select [data-slot="checkbox"][data-state="indeterminate"]::after { background: var(--night-on-ivory); }
+/* "Some of them" on a store or model checkbox: a dash instead of the tick (app/checkbox.css). */

@@ -7,13 +7,13 @@ import { routeTitle } from '../lib/market/i18n.ts';
 // The pages the app stores require: privacy policy, terms, support, app landing and deletion instructions.
 const pages = ['/privacy', '/terms', '/support', '/app', '/delete-account'];
 
-test('sitemap lists every store-required page with its three ?lang versions and an x-default', async () => {
+test('sitemap lists every store-required page with its ?lang versions (uz, uz-Cyrl, ru, en) and an x-default', async () => {
   const xml = await readFile(new URL('../public/sitemap.xml', import.meta.url), 'utf8');
   for (const path of pages) {
     assert.match(xml, new RegExp(`<loc>https://atlasmarket.uz${path}</loc>`), path);
-    for (const lang of ['uz', 'ru', 'en']) {
+    for (const [lang, hreflang] of [['uz', 'uz'], ['oz', 'uz-Cyrl'], ['ru', 'ru'], ['en', 'en']]) {
       assert.match(xml, new RegExp(`<loc>https://atlasmarket.uz${path}\\?lang=${lang}</loc>`), `${path} ${lang}`);
-      assert.match(xml, new RegExp(`hreflang="${lang}" href="https://atlasmarket.uz${path}\\?lang=${lang}"`));
+      assert.match(xml, new RegExp(`hreflang="${hreflang}" href="https://atlasmarket.uz${path}\\?lang=${lang}"`));
     }
     assert.match(xml, new RegExp(`hreflang="x-default" href="https://atlasmarket.uz${path}"`));
   }

@@ -8,17 +8,19 @@
 .hw-decor { display: none; }
 
 @media (min-width: 1440px) and (min-height: 820px) {
-  html:has(main.catalog-home) main.catalog-home { position: relative; }
+  html[data-view="catalog"]:is(html) main.catalog-home { position: relative; }
 
   /* ---------- Tokens: Atlas Day (--day-* from refine.css) ---------- */
-  html:has(main.catalog-home) .hw-decor {
+  html[data-view="catalog"]:is(html) .hw-decor {
     --hwd-mint: color-mix(in srgb, var(--day-tint-2) 84%, transparent);
     --hwd-mint-2: color-mix(in srgb, var(--day-tint-2) 42%, transparent);
     --hwd-fill: color-mix(in srgb, var(--day-surface) 72%, transparent);
     --hwd-fill-2: color-mix(in srgb, var(--day-tint) 90%, transparent);
-    --hwd-dot: var(--day-accent); --hwd-dot-a: .15;
+    --hwd-dot: var(--day-accent); --hwd-dot-a: .6;
     --hwd-arc: var(--day-accent); --hwd-arc-a: .42;
     --hwd-pin: var(--day-accent); --hwd-halo: var(--day-canvas);
+    --hwd-gold: #c9974a; --hwd-plane: var(--day-accent);
+    --hwd-plane-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M22.5 12c0-.9-.8-1.5-1.7-1.5h-5.6L9.6 2.2H7.4l2.8 8.3H5.3L3.4 7.8H1.5l1.2 4.2-1.2 4.2h1.9l1.9-2.7h4.9l-2.8 8.3h2.2l5.6-8.3h5.6c.9 0 1.7-.6 1.7-1.5z'/%3E%3C/svg%3E");
     --hwd-label: var(--day-muted); --hwd-label-strong: var(--day-ink); --hwd-node: var(--day-surface);
     --hwd-ink: color-mix(in srgb, var(--day-accent) 50%, transparent);
     --hwd-ink-soft: color-mix(in srgb, var(--day-accent) 24%, transparent);
@@ -32,14 +34,15 @@
     overflow: hidden; pointer-events: none; user-select: none; contain: layout paint;
   }
   /* ---------- Tokens: Atlas Night (--night-* from theme-night.css) ---------- */
-  html[data-theme="dark"]:has(main.catalog-home) .hw-decor {
+  html[data-theme="dark"][data-view="catalog"]:is(html) .hw-decor {
     --hwd-mint: color-mix(in srgb, var(--night-jade) 7.5%, transparent);
     --hwd-mint-2: color-mix(in srgb, var(--night-jade) 4%, transparent);
     --hwd-fill: color-mix(in srgb, var(--night-surface) 90%, transparent);
     --hwd-fill-2: color-mix(in srgb, var(--night-jade) 6%, transparent);
-    --hwd-dot: color-mix(in srgb, var(--night-ink) 85%, var(--night-jade)); --hwd-dot-a: .15;
+    --hwd-dot: color-mix(in srgb, var(--night-ink) 40%, var(--night-jade)); --hwd-dot-a: .62;
     --hwd-arc: var(--night-jade); --hwd-arc-a: .5;
     --hwd-pin: var(--night-jade); --hwd-halo: var(--night-canvas);
+    --hwd-gold: #e8c88c; --hwd-plane: #f1e6c8;
     --hwd-label: var(--night-muted); --hwd-label-strong: var(--night-ink); --hwd-node: var(--night-surface);
     --hwd-ink: color-mix(in srgb, var(--night-jade) 62%, transparent);
     --hwd-ink-soft: color-mix(in srgb, var(--night-jade) 26%, transparent);
@@ -50,62 +53,86 @@
   }
 
   /* ---------- One layer per sheet, as tall as the sheet and as wide as the window ---------- */
-  html:has(main.catalog-home) .hw-decor-layer { position: absolute; left: 0; width: 100%; top: 0; height: 0; overflow: hidden; contain: layout paint; }
-  html:has(main.catalog-home) .hw-decor-layer > * { position: absolute; }
-  html:has(main.catalog-home) .hw-decor-glow {
+  html[data-view="catalog"]:is(html) .hw-decor-layer { position: absolute; left: 0; width: 100%; top: 0; height: 0; overflow: hidden; contain: layout paint; }
+  html[data-view="catalog"]:is(html) .hw-decor-layer > * { position: absolute; }
+  html[data-view="catalog"]:is(html) .hw-decor-glow {
     inset: 0;
     -webkit-mask: linear-gradient(180deg, transparent 0, #000 14%, #000 86%, transparent 100%);
     mask: linear-gradient(180deg, transparent 0, #000 14%, #000 86%, transparent 100%);
   }
-  html:has(main.catalog-home) .hw-decor-layer svg { overflow: visible; }
-  html:has(main.catalog-home) .hw-decor text { paint-order: stroke; stroke: var(--hwd-halo); stroke-width: 5px; stroke-linejoin: round; }
+  html[data-view="catalog"]:is(html) .hw-decor-layer svg { overflow: visible; }
+  html[data-view="catalog"]:is(html) .hw-decor text { paint-order: stroke; stroke: var(--hwd-halo); stroke-width: 5px; stroke-linejoin: round; }
 
   /* ---------- Medallions: line art on a pearl disk with dotted orbits ---------- */
-  html:has(main.catalog-home) .hw-decor-art { color: var(--hwd-ink); fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-  html:has(main.catalog-home) .hw-decor-art .hw-decor-orbit { stroke: var(--hwd-orbit); stroke-width: 1.6; stroke-dasharray: .5 7; }
-  html:has(main.catalog-home) .hw-decor-art .hw-decor-orbit2 { stroke-dasharray: .5 11; opacity: .7; }
-  html:has(main.catalog-home) .hw-decor-art .hw-decor-sat { fill: var(--hwd-pin); stroke: none; opacity: .5; }
-  html:has(main.catalog-home) .hw-decor-art .hw-decor-sat2 { opacity: .32; }
-  html:has(main.catalog-home) .hw-decor-art .hw-decor-disk { stroke: var(--hwd-disk-ring); stroke-width: 1.2; }
-  html:has(main.catalog-home) .hw-decor-art .hw-decor-da { stop-color: var(--hwd-disk-a); }
-  html:has(main.catalog-home) .hw-decor-art .hw-decor-db { stop-color: var(--hwd-disk-b); }
-  html:has(main.catalog-home) .hw-decor-art .hw-decor-dot { fill: currentColor; stroke: none; }
-  html:has(main.catalog-home) .hw-decor-art .hw-decor-hole { fill: var(--hwd-node); stroke: none; }
-  html:has(main.catalog-home) .hw-decor-art .hw-decor-f1 { fill: var(--hwd-fill); }
-  html:has(main.catalog-home) .hw-decor-art .hw-decor-f2 { fill: var(--hwd-fill-2); }
-  html:has(main.catalog-home) .hw-decor-art .hw-decor-soft { stroke: var(--hwd-ink-soft); }
-  html:has(main.catalog-home) .hw-decor-art .hw-decor-dots { stroke-dasharray: .5 5; }
-  html:has(main.catalog-home) .hw-decor-art .hw-decor-pin { fill: var(--hwd-pin); stroke: none; opacity: .8; }
+  html[data-view="catalog"]:is(html) .hw-decor-art { color: var(--hwd-ink); fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  html[data-view="catalog"]:is(html) .hw-decor-art .hw-decor-orbit { stroke: var(--hwd-orbit); stroke-width: 1.6; stroke-dasharray: .5 7; }
+  html[data-view="catalog"]:is(html) .hw-decor-art .hw-decor-orbit2 { stroke-dasharray: .5 11; opacity: .7; }
+  html[data-view="catalog"]:is(html) .hw-decor-art .hw-decor-sat { fill: var(--hwd-pin); stroke: none; opacity: .5; }
+  html[data-view="catalog"]:is(html) .hw-decor-art .hw-decor-sat2 { opacity: .32; }
+  html[data-view="catalog"]:is(html) .hw-decor-art .hw-decor-disk { stroke: var(--hwd-disk-ring); stroke-width: 1.2; }
+  html[data-view="catalog"]:is(html) .hw-decor-art .hw-decor-da { stop-color: var(--hwd-disk-a); }
+  html[data-view="catalog"]:is(html) .hw-decor-art .hw-decor-db { stop-color: var(--hwd-disk-b); }
+  html[data-view="catalog"]:is(html) .hw-decor-art .hw-decor-dot { fill: currentColor; stroke: none; }
+  html[data-view="catalog"]:is(html) .hw-decor-art .hw-decor-hole { fill: var(--hwd-node); stroke: none; }
+  html[data-view="catalog"]:is(html) .hw-decor-art .hw-decor-f1 { fill: var(--hwd-fill); }
+  html[data-view="catalog"]:is(html) .hw-decor-art .hw-decor-f2 { fill: var(--hwd-fill-2); }
+  html[data-view="catalog"]:is(html) .hw-decor-art .hw-decor-soft { stroke: var(--hwd-ink-soft); }
+  html[data-view="catalog"]:is(html) .hw-decor-art .hw-decor-dots { stroke-dasharray: .5 5; }
+  html[data-view="catalog"]:is(html) .hw-decor-art .hw-decor-pin { fill: var(--hwd-pin); stroke: none; opacity: .8; }
 
-  /* ---------- The closing sheet: land dots, route arcs, country labels ---------- */
-  html:has(main.catalog-home) .hw-decor-map .hw-decor-land { fill: none; stroke: var(--hwd-dot); stroke-linecap: round; }
-  html:has(main.catalog-home) .hw-decor-routes .hw-decor-arc { fill: none; stroke: var(--hwd-arc); stroke-width: 1.4; stroke-linecap: round; opacity: var(--hwd-arc-a); }
-  html:has(main.catalog-home) .hw-decor-routes .hw-decor-from { fill: var(--hwd-pin); }
-  html:has(main.catalog-home) .hw-decor-routes .hw-decor-from-halo { fill: var(--hwd-pin); opacity: .12; }
-  html:has(main.catalog-home) .hw-decor-routes .hw-decor-to { fill: var(--hwd-pin); }
-  html:has(main.catalog-home) .hw-decor-routes .hw-decor-to-ring { fill: none; stroke: var(--hwd-pin); stroke-width: 1.2; opacity: .35; }
-  html:has(main.catalog-home) .hw-decor-routes .hw-decor-lbl { font-size: var(--hwd-lbl, 13px); font-weight: 600; letter-spacing: .01em; fill: var(--hwd-label); }
-  html:has(main.catalog-home) .hw-decor-routes .hw-decor-lbl-to { font-size: calc(var(--hwd-lbl, 13px) + 1.5px); font-weight: 700; fill: var(--hwd-label-strong); }
+  /* ---------- The delivery sky across sheets 2 and 3 (drawSky in app/home-decor.tsx); it replaces the picks' own sky ---------- */
+  html[data-view="catalog"]:is(html) .home-finds-sky { display: none; }
+  html[data-view="catalog"]:is(html) :is(.hw-decor-sky, .hw-decor-sky-sparks) { --sky-mint: 76, 170, 128; --sky-gold: 214, 168, 92; --sky-route-a: .45; --sky-pulse-a: .8; }
+  /* The still routes fade at the sides; the sparks and comets get no mask (a mask over moving things repaints it all). */
+  html[data-view="catalog"]:is(html) .hw-decor-sky {
+    -webkit-mask-image: linear-gradient(90deg, transparent 6%, #000 20%, #000 88%, transparent); mask-image: linear-gradient(90deg, transparent 6%, #000 20%, #000 88%, transparent);
+  }
+  html[data-theme="dark"][data-view="catalog"]:is(html) :is(.hw-decor-sky, .hw-decor-sky-sparks) { --sky-mint: 140, 214, 180; --sky-gold: 232, 200, 140; --sky-route-a: .3; --sky-pulse-a: .75; }
+  /* Comets (drawSky): longer on the wide sheets. */
+  html[data-view="catalog"]:is(html) .hw-decor-sky-sparks .sky-comet { left: calc(var(--hwd-u, 1px) * -46); width: calc(var(--hwd-u, 1px) * 46); }
 
-  /* Parcels and the Tashkent pulse: HTML nodes animated on transform and opacity only (compositor), paused off screen */
-  html:has(main.catalog-home) .hw-decor-parcels { left: 0; top: 0; }
-  html:has(main.catalog-home) .hw-decor-parcel {
-    position: absolute; left: 0; top: 0; box-sizing: border-box; width: calc(var(--hwd-u) * 9); height: calc(var(--hwd-u) * 9);
-    margin: calc(var(--hwd-u) * -4.5) 0 0 calc(var(--hwd-u) * -4.5); border: calc(var(--hwd-u) * 1.4) solid var(--hwd-pin); border-radius: calc(var(--hwd-u) * 1.8);
-    background: var(--hwd-node); opacity: 0; will-change: transform, opacity;
+  /* ---------- The closing sheet: the canvas globe (drawMap in app/home-decor.tsx) and its HTML name tags ----------
+     The canvas reads these colours when it draws (plain colours: no color-mix, the canvas parses them itself). */
+  html[data-view="catalog"]:is(html) .hw-decor {
+    --hwg-body-0: #ffffff; --hwg-body-1: #f1f6f3; --hwg-body-2: #cfe0d6;
+    --hwg-air: 76, 170, 128; --hwg-air-a: .34;
+    --hwg-dot: #1f4d3b; --hwg-dot-a: .8; --hwg-sea: #1f4d3b; --hwg-sea-a: .16; --hwg-hot: #2f8f63; --hwg-gold: #c9974a;
+    --hwg-grid: rgba(31, 77, 59, .08); --hwg-shade: rgba(16, 48, 35, .26); --hwg-spec: rgba(255, 255, 255, .7); --hwg-limb: rgba(31, 77, 59, .22);
+    --hwg-arc: #1f4d3b; --hwg-arc-a: .62; --hwg-plane: #1f4d3b; --hwg-pin: #1f4d3b; --hwg-city: #3fae7c; --hwg-ring: #ffffff;
   }
-  html:has(main.catalog-home) .hw-decor-parcel::after {
-    content: ""; position: absolute; left: 0; right: 0; top: 50%; height: calc(var(--hwd-u) * 1.1); transform: translateY(-50%);
-    background: var(--hwd-pin); opacity: .7;
+  html[data-theme="dark"][data-view="catalog"]:is(html) .hw-decor {
+    --hwg-body-0: #24463a; --hwg-body-1: #142a21; --hwg-body-2: #08130e;
+    --hwg-air: 143, 216, 177; --hwg-air-a: .26;
+    --hwg-dot: #9fe0be; --hwg-dot-a: .78; --hwg-sea: #80d0ac; --hwg-sea-a: .2; --hwg-hot: #c8f5de; --hwg-gold: #e8c88c;
+    --hwg-grid: rgba(128, 208, 172, .1); --hwg-shade: rgba(0, 0, 0, .55); --hwg-spec: rgba(170, 240, 205, .12); --hwg-limb: rgba(128, 208, 172, .35);
+    --hwg-arc: #80d0ac; --hwg-arc-a: .7; --hwg-plane: #f1e6c8; --hwg-pin: #80d0ac; --hwg-city: #d8fff0; --hwg-ring: #111714;
   }
-  html:has(main.catalog-home) .hw-decor-pulse {
-    position: absolute; box-sizing: border-box; width: calc(var(--hwd-u) * 14); height: calc(var(--hwd-u) * 14); margin: calc(var(--hwd-u) * -7) 0 0 calc(var(--hwd-u) * -7);
-    border: calc(var(--hwd-u) * 1.2) solid var(--hwd-pin); border-radius: 50%; opacity: 0; will-change: transform, opacity;
-    animation: hw-decor-pulse 2.8s ease-out infinite; animation-play-state: paused;
+  html[data-view="catalog"]:is(html) :is(.hw-decor-globe, .hw-decor-globe-fx) { display: block; }
+  html[data-view="catalog"]:is(html) .hw-decor-pins { left: 0; top: 0; }
+  html[data-view="catalog"]:is(html) .hw-decor-pin { position: absolute; left: 0; top: 0; width: 0; height: 0; opacity: 0; will-change: transform; }
+  /* Name tags: small pills beside the points; Tashkent's is filled with the accent. */
+  html[data-view="catalog"]:is(html) .hw-decor-tag {
+    position: absolute; left: 0; top: 0; padding: calc(var(--hwd-u) * 3) calc(var(--hwd-u) * 9); border-radius: 999px; white-space: nowrap;
+    background: color-mix(in srgb, var(--day-surface) 92%, transparent); color: var(--day-ink);
+    border: 1px solid color-mix(in srgb, var(--day-accent) 14%, transparent); box-shadow: 0 2px 10px rgba(20, 50, 38, .08);
+    font-size: calc(var(--hwd-u) * 12.5); font-weight: 600; line-height: 1.3; letter-spacing: .01em;
   }
-  html:has(main.catalog-home) .hw-decor-layer[data-live="1"] .hw-decor-pulse { animation-play-state: running; }
+  html[data-theme="dark"][data-view="catalog"]:is(html) .hw-decor-tag {
+    background: color-mix(in srgb, var(--night-surface) 90%, transparent); color: var(--night-ink);
+    border-color: color-mix(in srgb, var(--night-jade) 22%, transparent); box-shadow: 0 2px 12px rgba(0, 0, 0, .3);
+  }
+  html[data-view="catalog"]:is(html) .hw-decor-tag-l { transform: translate(calc(-100% - var(--hwd-u) * 14), -50%); }
+  html[data-view="catalog"]:is(html) .hw-decor-tag-r { transform: translate(calc(var(--hwd-u) * 14), -50%); }
+  html[data-view="catalog"]:is(html) .hw-decor-tag-b { transform: translate(-50%, calc(var(--hwd-u) * 14)); }
+  html[data-view="catalog"]:is(html) .hw-decor-tag-far { transform: translate(calc(-100% - var(--hwd-u) * 8), -110%); }
+  html[data-view="catalog"]:is(html) .hw-decor-tag-to {
+    transform: translate(-50%, calc(var(--hwd-u) * 22)); padding: calc(var(--hwd-u) * 4) calc(var(--hwd-u) * 12);
+    background: var(--day-accent); color: #fff; border-color: transparent; font-size: calc(var(--hwd-u) * 14); font-weight: 700;
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--day-accent) 30%, transparent);
+  }
+  html[data-theme="dark"][data-view="catalog"]:is(html) .hw-decor-tag-to { background: var(--night-jade); color: var(--night-canvas); border-color: transparent; }
 }
 @media (min-width: 1440px) and (min-height: 820px) and (prefers-reduced-motion: reduce) {
-  html:has(main.catalog-home) .hw-decor * { animation: none !important; }
+  html[data-view="catalog"]:is(html) .hw-decor * { animation: none !important; }
+  html[data-view="catalog"]:is(html) .hw-decor .sky-comet { display: none; }
 }
-@keyframes hw-decor-pulse { 0% { opacity: .5; transform: scale(1); } 100% { opacity: 0; transform: scale(2.6); } }

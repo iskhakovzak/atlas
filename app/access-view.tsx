@@ -4,12 +4,13 @@ import {ArrowRight,LockKeyhole,ShieldCheck} from 'lucide-react';
 import Link from '@/components/site-link';
 import {useMarket} from '@/lib/market/store';
 import {hasStaffAccess,signInPath,viewAccess} from '@/lib/market/access';
+import {withCyrillic} from '@/lib/market/uz-cyrl';
 
-const copy={
+const copy=withCyrillic({
  ru:{loading:'Проверяем вход…',title:'Ваши покупки — в одном кабинете',intro:'Войдите, чтобы сохранять товары, оформлять заказы и управлять документами.',signin:'Войти или зарегистрироваться',back:'Смотреть находки',denied:'Этот раздел доступен сотрудникам Atlas',deniedHint:'В вашем аккаунте доступны покупки, заказы и личные документы.',roleDenied:'У вашей роли нет доступа к этому разделу',roleDeniedHint:'Доступ к разделам задаёт администратор во вкладке «Команда». Если раздел нужен для работы, попросите расширить роль.',retry:'Повторить',error:'Не удалось открыть кабинет',session:'Вход в Atlas',hint:'После входа вернём вас к выбранному действию.'},
  uz:{loading:'Kirish tekshirilmoqda…',title:'Xaridlaringiz bitta kabinetda',intro:'Mahsulotlarni saqlash, buyurtma berish va hujjatlarni boshqarish uchun kiring.',signin:'Kirish yoki ro‘yxatdan o‘tish',back:'Topilmalarni ko‘rish',denied:'Bu bo‘lim Atlas xodimlari uchun',deniedHint:'Siz xaridlar, buyurtmalar va shaxsiy hujjatlarni boshqarishingiz mumkin.',roleDenied:'Sizning rolingizda bu bo‘limga ruxsat yo‘q',roleDeniedHint:'Bo‘limlarga ruxsatni administrator «Jamoa» bo‘limida belgilaydi. Bo‘lim ish uchun kerak bo‘lsa, rolni kengaytirishni so‘rang.',retry:'Qayta urinish',error:'Kabinet ochilmadi',session:'Atlasga kirish',hint:'Kirgandan so‘ng tanlangan amalga qaytasiz.'},
  en:{loading:'Checking your session…',title:'Your purchases, all in one account',intro:'Sign in to save finds, place orders and manage your documents.',signin:'Sign in or sign up',back:'Explore finds',denied:'This area is for Atlas staff',deniedHint:'Your account provides access to purchases, orders and your personal documents.',roleDenied:'Your role does not include this section',roleDeniedHint:'An administrator sets section access in the Team tab. Ask to extend your role if you need it for work.',retry:'Try again',error:'Could not open your account',session:'Sign in to Atlas',hint:'After signing in, you’ll return to your selected action.'},
-};
+});
 export function AccessView({view,children}:{view:string;children:ReactNode}){
  const {status,user,state,error,refresh}=useMarket(),c=copy[state.communication.language];
  const access=viewAccess(view,status,{operator:!!user?.operator,permissions:user?.permissions});

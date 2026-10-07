@@ -1,5 +1,7 @@
 import type { Locale } from './i18n.ts';
 import type { DeliveryRegion } from './site-content.ts';
+import {withCyrillic,uzText} from './uz-cyrl.ts';
+import {isUzbek} from './i18n.ts';
 
 /** Whole number with non-breaking-space thousand groups: 1234567 → "1 234 567". */
 export function groupDigits(amount: number) {
@@ -9,7 +11,7 @@ export function groupDigits(amount: number) {
 /** Soum amounts with space-grouped digits in every language: "1 234 567 сум".
  * Digits never split; the currency word may wrap as a whole on narrow cards. */
 export function formatSum(amount: number, locale: Locale) {
-  return `${groupDigits(amount)} ${locale === 'ru' ? 'сум' : locale === 'uz' ? 'so‘m' : 'UZS'}`;
+  return `${groupDigits(amount)} ${locale === 'ru' ? 'сум' : isUzbek(locale) ? uzText(locale, 'so‘m') : 'UZS'}`;
 }
 
 function ruDays(max: number) {
@@ -35,16 +37,16 @@ export function formatPriceUsd(amount: number, locale: Locale) {
   return `$${Number.isInteger(value) ? value : value.toFixed(2).replace('.', locale === 'en' ? '.' : ',')}`;
 }
 
-const monthNames: Record<Locale, string[]> = {
+const monthNames: Record<Locale, string[]> = withCyrillic({
   ru: ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'],
   uz: ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'],
   en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-};
+});
 /** Day and month in Tashkent time, spelled the same on the server and in the browser: "3 октября", "3-oktabr", "3 October". */
 export function formatDayMonth(time: number, locale: Locale) {
   const date = new Date(time + 5 * 3_600_000);
   const day = date.getUTCDate(), month = monthNames[locale][date.getUTCMonth()];
-  return locale === 'uz' ? `${day}-${month}` : `${day} ${month}`;
+  return isUzbek(locale) ? uzText(locale, `${day}-${month}`) : `${day} ${month}`;
 }
 
 /** A share as people write it: 0.0998 → "9,98%" (ru/uz) or "9.98%" (en); never rounded to "10%". */
@@ -64,7 +66,7 @@ type Facts = { fee: string; markup: string; cbu: boolean; freeFrom: string; allo
 export type HomeCopy = {
   nav: { catalog: string; stores: string; how: string; tariffs: string; orders: string; signin: string; account: string; language: string };
   hero: { title: string; lead: string; label: string; placeholder: string; calculate: string; invalid: string; guestNote: string; memberNote: string; popular: string; openStore: string; batch: string; catalog: string; allStores: (count: number) => string; storesHint: string };
-  how: { title: string; steps: [Step, Step, Step, Step]; paymentsLabel: string; pickupLabel: string };
+  how: { title: string; steps: [Step, Step, Step, Step]; paymentsLabel: string; pickupLabel: string; deliveryLabel: string; courier: string; moreStores: (count: number) => string; confirm: string };
   example: {
     title: string; product: string; routeLabel: string; to: string; days: (min: number, max: number) => string;
     item: string; itemNoteCbu: (usd: string, rate: string, markup: string) => string; itemNoteSet: (usd: string, rate: string) => string;
@@ -89,7 +91,7 @@ export type HomeCopy = {
   };
 };
 
-export const homeCopy: Record<Locale, HomeCopy> = {
+export const homeCopy: Record<Locale, HomeCopy> = withCyrillic({
   ru: {
     nav: { catalog: 'Каталог', stores: 'Магазины', how: 'Как это работает', tariffs: 'Тарифы', orders: 'Мои заказы', signin: 'Войти', account: 'Кабинет', language: 'Язык сайта' },
     hero: {
@@ -110,7 +112,8 @@ export const homeCopy: Record<Locale, HomeCopy> = {
         { title: 'Подтвердите заказ', text: 'Подтвердите расчёт в личном кабинете. Перед этим мы ещё раз сверим цену с магазином, а товар выкупим сами.' },
         { title: 'Получите в Ташкенте', text: 'Привезём посылку в Узбекистан. Статус заказа виден в кабинете на каждом этапе.' },
       ],
-      paymentsLabel: 'Способы оплаты', pickupLabel: 'Пункт выдачи',
+      paymentsLabel: 'Способы оплаты', pickupLabel: 'Пункт выдачи', deliveryLabel: 'Доставка', courier: 'Курьерская доставка',
+      moreStores: (count) => `и ещё ${count}`, confirm: 'Подтвердить расчёт',
     },
     example: {
       title: 'Пример счёта', product: 'кроссовки Nike за $100', routeLabel: 'Маршрут', to: 'Ташкент',
@@ -203,7 +206,8 @@ export const homeCopy: Record<Locale, HomeCopy> = {
         { title: 'Buyurtmani tasdiqlang', text: 'Hisobni shaxsiy kabinetda tasdiqlang. Undan oldin narxni do‘kon bilan yana bir bor solishtiramiz, tovarni esa o‘zimiz sotib olamiz.' },
         { title: 'Toshkentda qabul qiling', text: 'Jo‘natmani O‘zbekistonga olib kelamiz. Buyurtma holati har bir bosqichda kabinetda ko‘rinadi.' },
       ],
-      paymentsLabel: 'To‘lov usullari', pickupLabel: 'Topshirish punkti',
+      paymentsLabel: 'To‘lov usullari', pickupLabel: 'Topshirish punkti', deliveryLabel: 'Yetkazib berish', courier: 'Kuryer orqali yetkazib berish',
+      moreStores: (count) => `va yana ${count} ta`, confirm: 'Hisobni tasdiqlash',
     },
     example: {
       title: 'Hisob namunasi', product: 'Nike krossovkalari, $100', routeLabel: 'Yo‘nalish', to: 'Toshkent',
@@ -296,7 +300,8 @@ export const homeCopy: Record<Locale, HomeCopy> = {
         { title: 'Confirm the order', text: 'Confirm the estimate in your account. Before that we check the price with the store once more, and we buy the item ourselves.' },
         { title: 'Collect it in Tashkent', text: 'We bring the parcel to Uzbekistan. Your account shows the order status at every stage.' },
       ],
-      paymentsLabel: 'Payment methods', pickupLabel: 'Pickup point',
+      paymentsLabel: 'Payment methods', pickupLabel: 'Pickup point', deliveryLabel: 'Delivery', courier: 'Courier delivery',
+      moreStores: (count) => `and ${count} more`, confirm: 'Confirm the bill',
     },
     example: {
       title: 'Example bill', product: 'Nike sneakers, $100', routeLabel: 'Route', to: 'Tashkent',
@@ -369,4 +374,4 @@ export const homeCopy: Record<Locale, HomeCopy> = {
       or: 'or', faqMore: 'Didn’t find an answer?',
     },
   },
-};
+});

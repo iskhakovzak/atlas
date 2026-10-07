@@ -1,3 +1,5 @@
+import type { Locale } from "./i18n.ts";
+import { uzText } from "./uz-cyrl.ts";
 export const regions = ["Ташкент", "Республика Каракалпакстан", "Андижанская область", "Бухарская область", "Джизакская область", "Кашкадарьинская область", "Навоийская область", "Наманганская область", "Самаркандская область", "Сурхандарьинская область", "Сырдарьинская область", "Ташкентская область", "Ферганская область", "Хорезмская область"];
 
 export const cities = ["Ташкент", "Нукус", "Андижан", "Бухара", "Джизак", "Карши", "Навои", "Наманган", "Самарканд", "Термез", "Гулистан", "Нурафшан", "Фергана", "Ургенч", "Коканд", "Чирчик", "Алмалык", "Бекабад"];
@@ -22,8 +24,9 @@ const regionNames: Record<string, { uz: string; en: string; capital: string }> =
   "Хорезмская область": { uz: "Xorazm viloyati", en: "Khorezm Region", capital: "Ургенч" },
 };
 
-export function regionLabel(region: string, locale: "ru" | "uz" | "en") {
-  return locale === "ru" ? region : regionNames[region]?.[locale] ?? region;
+export function regionLabel(region: string, locale: Locale) {
+  const names = regionNames[region];
+  return locale === "ru" || !names ? region : locale === "en" ? names.en : uzText(locale, names.uz);
 }
 
 /** The regional centre, used to prefill an empty city when a region is picked. */

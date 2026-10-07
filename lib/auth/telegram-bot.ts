@@ -1,3 +1,4 @@
+import {withCyrillic} from '../market/uz-cyrl.ts';
 /**
  * Sign-in through the Atlas Telegram bot (owner, 6 October 2026): the button opens the Telegram app with a
  * one-time start token, the bot asks to confirm, and the page that started it signs in by itself.
@@ -29,7 +30,7 @@ export function botLang(code: unknown): Lang {
   const value = typeof code === 'string' ? code.toLowerCase() : '';
   return value.startsWith('uz') ? 'uz' : value.startsWith('en') ? 'en' : 'ru';
 }
-export const botText = {
+export const botText = withCyrillic({
   ru: {
     confirm: '<b>Вход на сайт Atlas</b>\n\nНажмите «Подтвердить вход», и сайт откроется сам.\n\nЕсли вы не начинали вход — ничего не нажимайте.',
     confirmButton: '✅ Подтвердить вход',
@@ -66,7 +67,7 @@ export const botText = {
     open: 'Open Atlas',
     toast: 'Sign-in confirmed',
   },
-} satisfies Record<Lang, Record<string, string>>;
+}) satisfies Record<Lang, Record<string, string>>;
 
 export type BotUpdate =
   | { kind: 'start'; chatId: number; token?: string; lang: Lang }

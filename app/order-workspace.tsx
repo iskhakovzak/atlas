@@ -88,13 +88,15 @@ import {
   CostLines,
   ProductImage,
 } from "./market-ui";
+import {withCyrillic,pickLocale,uzText} from '@/lib/market/uz-cyrl';
+import {isUzbek} from '@/lib/market/i18n';
 // Payments are simulated: the notice speaks of a placed request, never of a payment received.
 // The payment note is said once, in the order's own action block.
-const passportCopy: Record<Locale, { title: (name: string) => string; text: string; action: string }> = {
+const passportCopy: Record<Locale, { title: (name: string) => string; text: string; action: string }> = withCyrillic({
   ru: { title: name => `Нужен паспорт получателя: ${name}`, text: "Заявка оформлена. Чтобы подготовить декларацию и таможенное оформление, привяжите паспорт именно этого получателя.", action: "Привязать паспорт" },
   uz: { title: name => `Qabul qiluvchi pasporti kerak: ${name}`, text: "Ariza rasmiylashtirildi. Deklaratsiya va bojxona rasmiylashtiruvi uchun aynan shu qabul qiluvchining pasportini biriktiring.", action: "Pasportni biriktirish" },
   en: { title: name => `Recipient passport needed: ${name}`, text: "The request is placed. To prepare the declaration and customs clearance, link this recipient’s own passport.", action: "Link passport" },
-};
+});
 const storeShippingExtra = (o: Order) =>
   !o.storeShippingExtraApproved ? (o.storeShippingSettlement?.extra ?? 0) : 0;
 const warehouseExtra = (o: Order) =>
@@ -105,11 +107,11 @@ const customsExtra = (o: Order) =>
 const isExtra = (o: Order) =>
   !o.cancelled && Boolean(storeShippingExtra(o) || warehouseExtra(o) || customsExtra(o));
 const extraAmount = (o: Order) => storeShippingExtra(o) || warehouseExtra(o) || customsExtra(o);
-const customsWords = {
+const customsWords = withCyrillic({
   ru: { over: "Пошлина больше предоплаты", confirm: "Подтвердить пошлину", title: "Пошлина, начисленная таможней", description: "Введите фактическую пошлину в USD. Если она меньше предоплаты, остаток сразу вернётся на баланс покупателя; если больше — разницу покупатель подтвердит.", actual: "Начисленная пошлина, USD", prepaid: "Предоплата пошлины", settled: (actual: string) => `Таможня начислила ${actual}.`, refund: (amount: string) => `Остаток ${amount} возвращён на баланс.`, extra: (amount: string) => `Доплата ${amount}`, saved: "Пошлина подтверждена", helpTitle: "Таможню оформляет Atlas", helpDuty: (estimate: string) => `Поручение принято. Предоплата пошлины ≈ ${estimate}: после выпуска сверим с таможней — остаток вернём на баланс, доплата только с вашего согласия.`, helpNoDuty: "Поручение принято. Посылка в пределах лимита — пошлина не ожидается, декларацию подготовит Atlas." },
   uz: { over: "Boj oldindan to‘lovdan ko‘p", confirm: "Bojni tasdiqlash", title: "Bojxona hisoblagan boj", description: "Haqiqiy bojni USD da kiriting. Oldindan to‘lovdan kam bo‘lsa, qoldiq darhol xaridor balansiga qaytadi; ko‘p bo‘lsa — farqni xaridor tasdiqlaydi.", actual: "Hisoblangan boj, USD", prepaid: "Bojning oldindan to‘lovi", settled: (actual: string) => `Bojxona ${actual} hisobladi.`, refund: (amount: string) => `Qoldiq ${amount} balansga qaytarildi.`, extra: (amount: string) => `Qo‘shimcha to‘lov ${amount}`, saved: "Boj tasdiqlandi", helpTitle: "Bojxonani Atlas rasmiylashtiradi", helpDuty: (estimate: string) => `Topshiriq qabul qilindi. Boj oldindan to‘lovi ≈ ${estimate}: chiqarilgandan keyin bojxona bilan solishtiramiz — qoldiq balansga qaytadi, qo‘shimcha to‘lov faqat roziligingiz bilan.`, helpNoDuty: "Topshiriq qabul qilindi. Jo‘natma limit doirasida — boj kutilmaydi, deklaratsiyani Atlas tayyorlaydi." },
   en: { over: "Duty above the prepayment", confirm: "Confirm duty", title: "Duty charged by customs", description: "Enter the actual duty in USD. If it is below the prepayment, the rest returns to the customer’s balance at once; if above, the customer approves the difference.", actual: "Duty charged, USD", prepaid: "Duty prepaid", settled: (actual: string) => `Customs charged ${actual}.`, refund: (amount: string) => `${amount} returned to the balance.`, extra: (amount: string) => `Extra ${amount}`, saved: "Duty confirmed", helpTitle: "Atlas handles customs", helpDuty: (estimate: string) => `Request accepted. Duty prepaid ≈ ${estimate}: after release we settle it with customs — the rest returns to your balance, any extra only with your consent.`, helpNoDuty: "Request accepted. The parcel is within the allowance — no duty expected; Atlas prepares the declaration." },
-};
+});
 const pendingChange = (o: Order) => (o.changeRequests ?? []).some((request) => request.status === "pending");
 const usd = (n: number) =>
   new Intl.NumberFormat("en-US", {
@@ -118,23 +120,23 @@ const usd = (n: number) =>
     minimumFractionDigits: 2,
   }).format(n);
 // Operator copy for weighing a store parcel as one shipment.
-const weighWords: Record<Locale, { parcel: (ids: string) => string; together: (id: string) => string; waiting: (ids: string) => string; without: string; waitHint: string }> = {
+const weighWords: Record<Locale, { parcel: (ids: string) => string; together: (id: string) => string; waiting: (ids: string) => string; without: string; waitHint: string }> = withCyrillic({
   ru: { parcel: (ids) => `Одна посылка магазина: ${ids}. Вес и размеры — всей посылки; доставка распределится между заказами.`, together: (id) => `Взвешивается вместе с заказом ${id}.`, waiting: (ids) => `Ещё не готовы к взвешиванию (в пути или ждут решения): ${ids}.`, without: "Взвесить без них — их взвесят отдельно, когда они будут готовы", waitHint: "Посылку можно взвесить, когда все её заказы готовы, или без остальных." },
   uz: { parcel: (ids) => `Do‘konning bitta jo‘natmasi: ${ids}. Vazn va o‘lchamlar — butun jo‘natmaniki; yetkazib berish buyurtmalar o‘rtasida taqsimlanadi.`, together: (id) => `${id} buyurtmasi bilan birga tortiladi.`, waiting: (ids) => `Tortishga hali tayyor emas (yo‘lda yoki qaror kutmoqda): ${ids}.`, without: "Ularsiz tortish — tayyor bo‘lganda alohida tortiladi", waitHint: "Jo‘natmani barcha buyurtmalari tayyor bo‘lganda yoki qolganlarisiz tortish mumkin." },
   en: { parcel: (ids) => `One store parcel: ${ids}. Weight and dimensions are for the whole parcel; delivery is split between the orders.`, together: (id) => `Weighed together with order ${id}.`, waiting: (ids) => `Not ready to weigh yet (on the way or awaiting a decision): ${ids}.`, without: "Weigh without them — they are weighed separately once ready", waitHint: "The parcel can be weighed once all its orders are ready, or without the others." },
-};
+});
 /**
  * Older orders (no separate hold) credit a cheaper store delivery only up to the money recorded for the order:
  * show what actually reached the balance, never a refund that was not recorded.
  */
 const storeShippingCredited = (entries: State["entries"], o: Order) => entries.find((entry) => entry.id === "store-shipping:" + o.id)?.amount ?? 0;
-const storeShippingNotCredited: Record<Locale, (amount: string) => string> = {
+const storeShippingNotCredited: Record<Locale, (amount: string) => string> = withCyrillic({
   ru: (amount) => `Доставка дешевле резерва на ${amount}; оплата по заказу не записана — на баланс ничего не зачислено`,
   uz: (amount) => `Yetkazib berish zaxiradan ${amount} arzonroq; buyurtma bo‘yicha to‘lov qayd etilmagan — balansga hech narsa yozilmadi`,
   en: (amount) => `Delivery is ${amount} below the reserve; no payment is recorded for the order, so nothing was credited to the balance`,
-};
-const localeTag = (locale: Locale) => locale === "ru" ? "ru-RU" : locale === "uz" ? "uz-UZ" : "en-US";
-const customerOrderCopy = {
+});
+const localeTag = (locale: Locale) => locale === "ru" ? "ru-RU" : isUzbek(locale) ? uzText(locale, "uz-UZ") : "en-US";
+const customerOrderCopy = withCyrillic({
   ru: {
     loginTitle: "Войдите, чтобы открыть заказы", loginDescription: "История покупок, фото и расчёты доступны в вашем профиле Atlas.", loginLabel: "Открыть вход", loading: "Загружаем заказы…", emptyTitle: "Здесь начнётся путь вашей покупки", emptyDescription: "Оформите заказ из корзины, чтобы попробовать выкуп, склад и доставку.", choose: "Выбрать товар", filteredTitle: "В этом разделе пока пусто", filteredDescription: "Измените фильтр или поисковый запрос.", search: "Поиск заказа", source: "Источник товара", loadPhoto: "Загрузить фото из ссылки", loadingPhoto: "Загружаем…", checkoutTotal: "Сумма при оформлении", checkoutAt: "При оформлении", buyer: "Покупатель", cancelled: "Отменён", needDecision: "Нужно решение", extra: "Требуется доплата", awaitingPayment: "Ожидает оплаты", paymentWaiting: "Платёжный провайдер не подключён", paymentPaid: "Отметка сохранена в Atlas; провайдером не подтверждена", paymentRefunded: "Возврат отмечен во внутреннем балансе Atlas; перевода нет", paymentLine: "Платёж", noCharge: "Платёжный провайдер не подключён", providerPassed: "Платёжный провайдер не подключён", recordPayment: "Записать статус в Atlas", recipient: "Получатель", tracking: "Трек-номер", parcelRegistered: "Посылка зарегистрирована", warehouseDone: "Приёмка на складе завершена", warehouseProblem: "Склад зафиксировал проблему", received: "Получено", operations: "Операции", noOperations: "Дополнительные операции не назначены", agreements: "Согласования по заказу", pending: "НУЖНО РЕШЕНИЕ", approved: "ПОДТВЕРЖДЕНО", declined: "ОТКЛОНЕНО", reject: "Отклонить", confirm: "Подтвердить", managerChecking: "Менеджер подтверждает доставку у магазина", reserveIncluded: "В сумму заказа включён резерв", reserveWaived: "Резерв на доставку магазина не включён: при товарах из магазина дороже $50 доставка магазина для вас бесплатна. Если магазин всё же возьмёт плату, доплата — только с вашего согласия.", beforeBuyout: "Перед выкупом вы увидите подтверждённую стоимость.", managerConfirmed: "Менеджер подтвердил доставку магазина", actual: "Фактическая стоимость", reservedAtCheckout: "Резерв при оформлении", refundToBalance: "Вернули на баланс", extraApproved: "Доплата подтверждена", needApprove: "Нужно согласовать", reserveMatch: "Сумма совпала с резервом", balance: "Баланс", shippingOver: "Доставка превысила резерв", shippingCheaper: "Доставка оказалась дешевле", shippingRecalculated: "Доставка пересчитана", payableWeight: "Оплачиваемый вес", cost: "Стоимость", noExtra: "Доплата не требуется", checkExtra: "Проверить доплату", confirmStore: "Подтвердить доставку магазина", confirmBuyout: "Подтвердить выкуп", receiveWarehouse: "Принять на склад", weigh: "Взвесить и пересчитать", sendUzbekistan: "Отправить в Узбекистан", confirmDelivery: "Подтвердить доставку", sendAfterApproval: "Отправка станет доступна после подтверждения в разделе «Мои заказы».", saveReceivingFirst: "Сначала сохраните приёмку товара в блоке оператора.", payFirst: "Выкуп станет доступен после подключения платёжного провайдера и подтверждения оплаты.", trackingFirst: "Перед отправкой добавьте перевозчика и трек-номер.", calculationHistory: "Расчёт и история", customsAccepted: "Таможенные условия приняты", balanceUsed: "Учтено во внутреннем балансе Atlas", actualWeight: "Фактический вес", dimensional: "Объёмный", cancelOrder: "Отменить заказ", storeModalTitle: "Доставка от магазина до склада", storeModalDescription: "Укажите фактическую итоговую стоимость в долларах. Если она ниже резерва, разница сразу вернётся покупателю на баланс.", actualStoreShipping: "Фактическая доставка магазина, USD", reserved: "Было заложено", saveRecalculate: "Подтвердить и пересчитать", warehouseModalTitle: "Взвешивание на складе", warehouseModalDescription: "Вес и размеры всей посылки, включая упаковку. Тариф зафиксирован в заказе.", dimensions: ["Фактический вес, кг", "Длина, см", "Ширина, см", "Высота, см"], volumeWeight: "Объёмный вес", paidShipping: "Было оплачено за доставку", afterWeighing: "После взвешивания", requestExtra: "Запросить доплату", returnBalance: "Зачислить во внутренний баланс Atlas", invalidValues: "Укажите корректные положительные значения.", confirmRecalculate: "Подтвердить перерасчёт", cancelTitle: "Отменить заказ до выкупа?", paymentTitle: "Записать статус оплаты в Atlas?", extraTitle: "Подтвердить сумму доплаты?", cancelDescription: "Заказ будет отменён, а запись внутреннего баланса Atlas пересчитана. Перевод денег не выполняется.", paymentDescription: "Действие изменит только статус заказа в Atlas. Платёжный провайдер не подключён: деньги не списываются, подтверждения банка нет.", extraDescription: "Подтверждение сохранит сумму для дальнейшего согласования. Платёжный провайдер не подключён, деньги не списываются.", refund: "К зачислению на внутренний баланс Atlas", paymentStatusLabel: "Статус оплаты в Atlas", toPay: "К доплате", back: "Назад", saveChanges: "Изменения сохранены", saving: "Сохраняем…", statusUpdated: "Статус заказа обновлён", photoUpdated: "Фото заказа обновлено"
   },
@@ -144,17 +146,17 @@ const customerOrderCopy = {
   en: {
     loginTitle: "Sign in to open your orders", loginDescription: "Purchase history, photos and calculations are available in your Atlas profile.", loginLabel: "Open sign in", loading: "Loading orders…", emptyTitle: "Your purchase journey starts here", emptyDescription: "Place an order from the cart to try purchase, warehouse and delivery steps.", choose: "Choose an item", filteredTitle: "Nothing in this section yet", filteredDescription: "Change the filter or search query.", search: "Search orders", source: "Product source", loadPhoto: "Load photo from link", loadingPhoto: "Loading…", checkoutTotal: "Checkout total", checkoutAt: "At checkout", buyer: "Buyer", cancelled: "Cancelled", needDecision: "Decision needed", extra: "Additional payment needed", awaitingPayment: "Awaiting payment", paymentWaiting: "Payment provider not connected", paymentPaid: "Recorded in Atlas; not confirmed by a payment provider", paymentRefunded: "Refund recorded in Atlas internal balance; no transfer was made", paymentLine: "Payment", noCharge: "Payment provider is not connected", providerPassed: "Payment provider is not connected", recordPayment: "Record payment status in Atlas", recipient: "Recipient", tracking: "Tracking number", parcelRegistered: "Parcel registered", warehouseDone: "Warehouse intake complete", warehouseProblem: "Warehouse flagged an issue", received: "Received", operations: "Operations", noOperations: "No extra operations assigned", agreements: "Order approvals", pending: "DECISION NEEDED", approved: "APPROVED", declined: "DECLINED", reject: "Decline", confirm: "Approve", managerChecking: "A manager is confirming store delivery with the store", reserveIncluded: "A reserve is included in the order", reserveWaived: "No store-delivery reserve: over $50 of items from a store, store delivery is free for you. If the store still charges, any extra payment needs your consent.", beforeBuyout: "You will see the confirmed amount before purchase.", managerConfirmed: "Manager confirmed store shipping", actual: "Actual amount", reservedAtCheckout: "Checkout reserve", refundToBalance: "Refunded to balance", extraApproved: "Additional payment approved", needApprove: "Approval needed", reserveMatch: "Amount matched the reserve", balance: "Balance", shippingOver: "Shipping exceeded the reserve", shippingCheaper: "Shipping was lower", shippingRecalculated: "Shipping recalculated", payableWeight: "Chargeable weight", cost: "Cost", noExtra: "No additional payment required", checkExtra: "Review additional payment", confirmStore: "Confirm store shipping", confirmBuyout: "Confirm purchase", receiveWarehouse: "Receive at warehouse", weigh: "Weigh and recalculate", sendUzbekistan: "Ship to Uzbekistan", confirmDelivery: "Confirm delivery", sendAfterApproval: "Shipping becomes available after approval in My orders.", saveReceivingFirst: "Save the warehouse intake in the operator block first.", payFirst: "Purchase becomes available after a payment provider is connected and confirms payment.", trackingFirst: "Add a carrier and tracking number before shipping.", calculationHistory: "Calculation and history", customsAccepted: "Customs terms accepted", balanceUsed: "Accounted for in Atlas internal balance", actualWeight: "Actual weight", dimensional: "Dimensional", cancelOrder: "Cancel order", storeModalTitle: "Store-to-warehouse shipping", storeModalDescription: "Enter the final actual amount in USD. If it is below the reserve, the difference is returned to the customer balance.", actualStoreShipping: "Actual store shipping, USD", reserved: "Reserved", saveRecalculate: "Confirm and recalculate", warehouseModalTitle: "Warehouse weighing", warehouseModalDescription: "Parcel weight and dimensions including packaging. The tariff is recorded on the order.", dimensions: ["Actual weight, kg", "Length, cm", "Width, cm", "Height, cm"], volumeWeight: "Dimensional weight", paidShipping: "Shipping paid", afterWeighing: "After weighing", requestExtra: "Request additional payment", returnBalance: "Record in Atlas internal balance", invalidValues: "Enter valid positive values.", confirmRecalculate: "Confirm recalculation", cancelTitle: "Cancel before purchase?", paymentTitle: "Record payment status in Atlas?", extraTitle: "Approve the additional amount?", cancelDescription: "The order will be cancelled and the Atlas internal balance entry recalculated. No money transfer is made.", paymentDescription: "This only updates the order status in Atlas. No payment provider is connected, so no money is charged and no bank confirmation is received.", extraDescription: "This records the amount for follow-up only. No payment provider is connected and no money is charged.", refund: "To internal Atlas balance", paymentStatusLabel: "Payment status in Atlas", toPay: "To pay", back: "Back", saveChanges: "Changes saved", saving: "Saving…", statusUpdated: "Order status updated", photoUpdated: "Order photo updated"
   }
-} as const;
-const customerOrderDisclosureCopy = {
+} as const);
+const customerOrderDisclosureCopy = withCyrillic({
   ru: {paymentWaiting:'Оплата ожидается',paymentPaid:'В Atlas записана отметка; платёж не подтверждён провайдером',paymentRefunded:'Возврат учтён во внутреннем балансе Atlas',providerPassed:'Платёжный провайдер не подключён',recordPayment:'Отметить оплату в Atlas',payFirst:'Выкуп станет доступен после подключения оплаты и её подтверждения провайдером.',balanceUsed:'Учтено по внутреннему балансу Atlas',returnBalance:'Вернуть на внутренний баланс',cancelDescription:'Заказ будет отменён, а внутренняя запись баланса пересчитана. Внешний перевод не выполняется.',paymentTitle:'Записать отметку об оплате?',paymentDescription:'Действие изменит только статус заказа в Atlas. Платёжный провайдер не подключён: деньги не списываются, подтверждения банка нет.',extraTitle:'Подтвердить сумму доплаты?',extraDescription:'Это подтверждает сумму для согласования. Оплата на сайте не подключена — деньги не списываются.',refund:'К зачислению на внутренний баланс',paymentStatusLabel:'Отметка оплаты в Atlas'},
   uz: {paymentWaiting:'To‘lov kutilmoqda',paymentPaid:'Atlasda qayd yozildi; to‘lov provayder tomonidan tasdiqlanmagan',paymentRefunded:'Qaytarish Atlas ichki balansida qayd etildi',providerPassed:'To‘lov provayderi ulanmagan',recordPayment:'To‘lovni Atlasda qayd etish',payFirst:'Xarid to‘lov provayderi ulanib, to‘lov tasdiqlangandan keyin mavjud bo‘ladi.',balanceUsed:'Atlas ichki balansida hisobga olindi',returnBalance:'Ichki balansga qaytarish',cancelDescription:'Buyurtma bekor qilinadi va ichki balans qayta hisoblanadi. Tashqi pul o‘tkazmasi bajarilmaydi.',paymentTitle:'To‘lov belgisini qayd etasizmi?',paymentDescription:'Bu amal faqat Atlasdagi buyurtma holatini o‘zgartiradi. To‘lov provayderi ulanmagan: pul yechilmaydi va bank tasdig‘i olinmaydi.',extraTitle:'Qo‘shimcha to‘lov summasini tasdiqlaysizmi?',extraDescription:'Bu summa kelishuv uchun tasdiqlanadi. Saytda to‘lov ulanmagan — pul yechilmaydi.',refund:'Ichki balansga yoziladigan summa',paymentStatusLabel:'Atlasdagi to‘lov qaydi'},
   en: {paymentWaiting:'Payment pending',paymentPaid:'Recorded in Atlas; not confirmed by a payment provider',paymentRefunded:'Refund recorded in Atlas internal balance',providerPassed:'Payment provider is not connected',recordPayment:'Record payment status in Atlas',payFirst:'Purchase is available after a payment provider is connected and confirms payment.',balanceUsed:'Accounted for in Atlas internal balance',returnBalance:'Return to internal balance',cancelDescription:'The order will be cancelled and the internal balance entry recalculated. No external transfer is made.',paymentTitle:'Record a payment status?',paymentDescription:'This only updates the order status in Atlas. No payment provider is connected, so no money is charged and no bank confirmation is received.',extraTitle:'Approve the additional amount?',extraDescription:'This confirms the amount for approval. Online payment is not connected — no money is charged.',refund:'To internal balance',paymentStatusLabel:'Payment status in Atlas'},
-} as const;
-const customerOrderEmptyCopy = {
+} as const);
+const customerOrderEmptyCopy = withCyrillic({
   ru: 'Оформите заказ из корзины, чтобы начать покупки через Atlas.',
   uz: 'Atlas orqali xaridni boshlash uchun savatdan buyurtma bering.',
   en: 'Place an order from your cart to start shopping with Atlas.',
-} as const;
+} as const);
 type OperationsAccount = {
   id: string;
   name: string;
@@ -168,11 +170,11 @@ const operatorPhoneHref = (value: string | undefined) => {
 };
 function OperatorOrderContacts({order,account,locale}:{order:Order;account:OperationsAccount|undefined;locale:Locale}) {
   if (!account) return null;
-  const copy={
+  const copy=pickLocale({
     ru:{title:"Контакты заказа",buyer:"Покупатель · аккаунт",email:"Email аккаунта",profilePhone:"Телефон в профиле",recipient:"Получатель по заказу",recipientPhone:"Телефон получателя",notVerified:"Указан в профиле · не подтверждён",missing:"Не указан",call:"Позвонить",write:"Написать"},
     uz:{title:"Buyurtma kontaktlari",buyer:"Xaridor · akkaunt",email:"Akkaunt emaili",profilePhone:"Profildagi telefon",recipient:"Buyurtma oluvchisi",recipientPhone:"Oluvchi telefoni",notVerified:"Profilda ko‘rsatilgan · tasdiqlanmagan",missing:"Ko‘rsatilmagan",call:"Qo‘ng‘iroq qilish",write:"Yozish"},
     en:{title:"Order contacts",buyer:"Purchaser · account",email:"Account email",profilePhone:"Profile phone",recipient:"Order recipient",recipientPhone:"Recipient phone",notVerified:"Listed in profile · not verified",missing:"Not provided",call:"Call",write:"Email"},
-  }[locale];
+  }, locale);
   const email=account.id.replace(/^email:/i,"");
   const validEmail=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)?email:"";
   const profilePhone=account.state.communication.phone?.trim()||"";
@@ -212,7 +214,7 @@ const atlasCreditForOrder = (account: OperationsAccount | undefined, orderId: st
     0,
   ) ?? 0;
 
-const orderIssueWords = {
+const orderIssueWords = withCyrillic({
   ru: {
     title: "Проблема / возврат", intro: "Зафиксируйте причину и следующий шаг. Предлагаемая сумма — только для разбора: платёж и баланс не меняются.",
     category: "Причина", categories: { stalled: "Заказ задержан", merchant: "Проблема магазина", payment: "Платёж или сумма", warehouse: "Склад или товар", delivery: "Доставка", other: "Другое" },
@@ -231,7 +233,7 @@ const orderIssueWords = {
     status: "Case status", statuses: { open: "Open", investigating: "Investigating", "waiting-customer": "Waiting for customer", "waiting-merchant": "Waiting for store / carrier", "refund-review": "Refund under review", resolved: "Resolved" },
     refund: "Proposed refund amount, UZS", refundHint: "This does not issue a refund or change the payment status.", save: "Save case update", saving: "Saving…", saved: "Case update saved", invalid: "Enter a whole amount from 0 to 100,000,000 UZS, or leave the field empty.", history: "Case history", noHistory: "No changes recorded yet.", noAmount: "No amount proposed", messages: "Order notifications in the customer account",
   },
-} as const;
+} as const);
 
 function OrderIssueCasePanel({ order, notifications, run, locale }: {
   order: Order; notifications: Notification[]; run: (action: Action) => Promise<boolean>; locale: Locale;
@@ -321,7 +323,7 @@ function OperatorOrderTools({
       {(order.warehouseServiceRequests ?? []).some((request) => ["requested", "approved"].includes(request.status)) && <section className="warehouse-service-ops">
         <h3>Услуги склада</h3>
         <p className="micro">Тарифы и пожелания — настройки Atlas. Перед подтверждением оператор проверяет возможности склада, точную стоимость и условия выполнения; эта запись не означает списание или выполненную операцию.</p>
-        {pendingChange(order) && <p className="notice warning">{locale === "ru" ? "Сейчас ждём решения покупателя. Новую цену или услугу можно предложить после его ответа." : locale === "uz" ? "Hozir xaridor javobi kutilmoqda. Javobdan keyin yangi narx yoki xizmat taklif qilishingiz mumkin." : "Waiting for the customer’s decision. Offer another price or service after they respond."}</p>}
+        {pendingChange(order) && <p className="notice warning">{locale === "ru" ? "Сейчас ждём решения покупателя. Новую цену или услугу можно предложить после его ответа." : isUzbek(locale) ? uzText(locale, "Hozir xaridor javobi kutilmoqda. Javobdan keyin yangi narx yoki xizmat taklif qilishingiz mumkin.") : "Waiting for the customer’s decision. Offer another price or service after they respond."}</p>}
         {(order.warehouseServiceRequests ?? []).filter((request) => ["requested", "approved"].includes(request.status)).map((request) => {
           const expectedAmount = (request.feeUzs ?? 0) * request.units;
           const amountValue = serviceQuoteAmounts[request.id] ?? String(expectedAmount);
@@ -366,7 +368,7 @@ function OperatorOrderTools({
           <h3>Приёмка на складе</h3>
           <div className="two-fields"><div className="field"><label htmlFor={`condition-${order.id}`}>Состояние</label><select id={`condition-${order.id}`} value={condition} onChange={(event)=>setCondition(event.target.value as typeof condition)}><option value="ok">В порядке</option><option value="damaged">Повреждение</option><option value="mismatch">Не совпадает с заказом</option></select></div><div className="field"><label htmlFor={`received-${order.id}`}>Получено, шт.</label><input id={`received-${order.id}`} type="number" min="0" max="100" required value={received} onChange={(event)=>setReceived(event.target.value)}/></div></div>
           <div className="field"><label htmlFor={`group-${order.id}`}>Группа посылки</label><input id={`group-${order.id}`} maxLength={80} placeholder="Например, BOX-24" value={packageGroup} onChange={(event)=>setPackageGroup(event.target.value)}/></div>
-          <fieldset className="service-options"><legend>{locale === "ru" ? "Отметки приёмки" : locale === "uz" ? "Qabul belgilari" : "Intake tags"}</legend><p className="micro">{locale === "ru" ? "Внутренняя фиксация при осмотре — это не выбранная клиентом услуга и не основание для оплаты." : locale === "uz" ? "Ko‘rik paytidagi ichki qayd — mijoz tanlagan xizmat ham, to‘lov uchun asos ham emas." : "Internal inspection notes only — not a customer-requested service or a charge."}</p>{[["photo","Фото"],["repack","Переупаковка"],["consolidate","Объединение"],["split","Разделение"],["fragile","Хрупкий груз"]].map(([value,label])=><label key={value}><input type="checkbox" checked={services.includes(value as typeof services[number])} onChange={(event)=>setServices(event.target.checked?[...new Set([...services,value as typeof services[number]])]:services.filter(item=>item!==value))}/>{label}</label>)}</fieldset>
+          <fieldset className="service-options"><legend>{locale === "ru" ? "Отметки приёмки" : isUzbek(locale) ? uzText(locale, "Qabul belgilari") : "Intake tags"}</legend><p className="micro">{locale === "ru" ? "Внутренняя фиксация при осмотре — это не выбранная клиентом услуга и не основание для оплаты." : isUzbek(locale) ? uzText(locale, "Ko‘rik paytidagi ichki qayd — mijoz tanlagan xizmat ham, to‘lov uchun asos ham emas.") : "Internal inspection notes only — not a customer-requested service or a charge."}</p>{[["photo","Фото"],["repack","Переупаковка"],["consolidate","Объединение"],["split","Разделение"],["fragile","Хрупкий груз"]].map(([value,label])=><label key={value}><input type="checkbox" checked={services.includes(value as typeof services[number])} onChange={(event)=>setServices(event.target.checked?[...new Set([...services,value as typeof services[number]])]:services.filter(item=>item!==value))}/>{label}</label>)}</fieldset>
           <div className="field"><label htmlFor={`warehouse-note-${order.id}`}>Комментарий приёмки</label><textarea id={`warehouse-note-${order.id}`} rows={3} maxLength={500} value={warehouseNotes} onChange={(event)=>setWarehouseNotes(event.target.value)}/></div>
           <button className="btn secondary" disabled={busy || order.status !== 2}>Сохранить приёмку</button>
           {order.status !== 2 && <p className="micro">Доступно, когда заказ прибыл на зарубежный склад.</p>}
@@ -376,7 +378,7 @@ function OperatorOrderTools({
           <div className="field"><label htmlFor={`change-kind-${order.id}`}>Тип</label><select id={`change-kind-${order.id}`} value={changeKind} onChange={(event)=>{setChangeKind(event.target.value as typeof changeKind);if(event.target.value!=="substitution")setResolvesWarehouseIssue(false)}}><option value="price">Цена</option><option value="variant">Вариант</option><option value="substitution">Замена товара</option><option value="source-shipping">Доставка магазина</option><option value="warehouse-service">Услуга склада</option><option value="customs">Таможенные данные</option></select></div>
           <div className="field"><label htmlFor={`change-title-${order.id}`}>Что изменилось</label><input id={`change-title-${order.id}`} required minLength={2} maxLength={120} value={changeTitle} onChange={(event)=>setChangeTitle(event.target.value)}/></div>
           <div className="two-fields"><div className="field"><label htmlFor={`previous-${order.id}`}>Было</label><input id={`previous-${order.id}`} maxLength={240} value={previousValue} onChange={(event)=>setPreviousValue(event.target.value)}/></div><div className="field"><label htmlFor={`proposed-${order.id}`}>Стало</label><input id={`proposed-${order.id}`} maxLength={240} value={proposedValue} onChange={(event)=>setProposedValue(event.target.value)}/></div></div>
-          {order.warehouseInspection && order.warehouseInspection.condition !== "ok" && <label className="warehouse-issue-resolution"><input type="checkbox" checked={resolvesWarehouseIssue} disabled={changeKind !== "substitution"} onChange={(event)=>setResolvesWarehouseIssue(event.target.checked)}/><span>{locale === "ru" ? "Это замена решает проблему, зафиксированную складом" : locale === "uz" ? "Bu almashtirish ombor qayd etgan muammoni hal qiladi" : "This substitution resolves the issue flagged by the warehouse"}<small>{locale === "ru" ? "Взвешивание разблокируется только после явного согласия покупателя и заполнения поля «Стало»." : locale === "uz" ? "Tortish faqat xaridor aniq rozilik bildirgach va «Yangi qiymat» maydoni to‘ldirilgach ochiladi." : "Weighing unlocks only after the customer explicitly approves and a replacement is specified."}</small></span></label>}
+          {order.warehouseInspection && order.warehouseInspection.condition !== "ok" && <label className="warehouse-issue-resolution"><input type="checkbox" checked={resolvesWarehouseIssue} disabled={changeKind !== "substitution"} onChange={(event)=>setResolvesWarehouseIssue(event.target.checked)}/><span>{locale === "ru" ? "Это замена решает проблему, зафиксированную складом" : isUzbek(locale) ? uzText(locale, "Bu almashtirish ombor qayd etgan muammoni hal qiladi") : "This substitution resolves the issue flagged by the warehouse"}<small>{locale === "ru" ? "Взвешивание разблокируется только после явного согласия покупателя и заполнения поля «Стало»." : isUzbek(locale) ? uzText(locale, "Tortish faqat xaridor aniq rozilik bildirgach va «Yangi qiymat» maydoni to‘ldirilgach ochiladi.") : "Weighing unlocks only after the customer explicitly approves and a replacement is specified."}</small></span></label>}
           <div className="field"><label htmlFor={`change-amount-${order.id}`}>Изменение суммы, сум</label><input id={`change-amount-${order.id}`} type="number" min="-100000000" max="100000000" step="1" value={amountDelta} onChange={(event)=>setAmountDelta(event.target.value)}/></div>
           <div className="field"><label htmlFor={`change-reason-${order.id}`}>Причина</label><textarea id={`change-reason-${order.id}`} required minLength={2} maxLength={500} rows={3} value={changeReason} onChange={(event)=>setChangeReason(event.target.value)}/></div>
           <button className="btn secondary" disabled={busy || !changeTitle.trim() || !changeReason.trim() || pendingChange(order)}>Отправить на согласование</button>
@@ -406,7 +408,7 @@ function OperatorOrderCommunication({
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const words = {
+  const words = pickLocale({
     ru: {
       panel: "Заметки и сообщение покупателю",
       internalTitle: "Внутренняя заметка",
@@ -464,7 +466,7 @@ function OperatorOrderCommunication({
       titlePlaceholder: "For example, Details needed for your refund",
       messagePlaceholder: "Write what the customer needs to know",
     },
-  }[locale];
+  }, locale);
   const saveNote = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (busy || !note.trim()) return;
@@ -557,11 +559,11 @@ function CustomerWarehouseServices({
   const [units, setUnits] = useState("1");
   const [customerNote, setCustomerNote] = useState("");
   const [sending, setSending] = useState(false);
-  const words = {
+  const words = pickLocale({
     ru: { title: "Услуги склада", intro: "Выберите нужное после приёмки и до взвешивания. Тариф показан заранее, но сначала оператор подтвердит возможность, затем вы отдельно согласуете точную сумму. Без согласия услугу не выполнят.", empty: "Дополнительных услуг не запрошено", add: "Услуга", quote: "Цена будет предложена оператором", fixed: "Тариф по настройкам", package: "посылка", item: "шт.", day: "дней", photo: "фото", halfHour: "интервалов по 30 мин.", requested: "Проверяется складом", quoted: "Ожидает вашего решения", approved: "Вы одобрили · ожидает выполнения", declined: "Вы отклонили", completed: "Отмечено оператором", checkout: "Отмечено в корзине", amount: "Количество", request: "Отправить запрос", note: "Опишите, что нужно сделать", noteHint: "До 500 символов", fixedPending: "Тариф зафиксирован; сумма будет добавлена только после подтверждения услуги и вашего согласия.", send: "Запрос передан оператору" },
     uz: { title: "Ombor xizmatlari", intro: "Kerakli xizmatni qabuldan keyin va tortishdan oldin tanlang. Tarif oldindan ko‘rsatiladi, lekin avval operator imkoniyatni, so‘ng siz aniq summani tasdiqlaysiz. Roziligingizsiz xizmat bajarilmaydi.", empty: "Qo‘shimcha xizmat so‘ralmagan", add: "Xizmat", quote: "Narxni operator taklif qiladi", fixed: "Sozlamalardagi tarif", package: "posilka", item: "dona", day: "kun", photo: "foto", halfHour: "30 daqiqalik interval", requested: "Ombor tekshirmoqda", quoted: "Qaroringiz kutilmoqda", approved: "Tasdiqlandi · bajarilishi kutilmoqda", declined: "Rad etildi", completed: "Operator bajardi deb belgiladi", checkout: "Savatda belgilangan", amount: "Miqdor", request: "So‘rov yuborish", note: "Nima qilish kerakligini yozing", noteHint: "500 belgigacha", fixedPending: "Tarif qayd etilgan; xizmat imkoniyati tasdiqlanib, rozilik berganingizdan keyingina summa qo‘shiladi.", send: "So‘rov operatorga yuborildi" },
     en: { title: "Warehouse services", intro: "Choose a service after intake and before weighing. The rate is shown up front; the operator first checks feasibility, then you approve the exact amount. Nothing is done without approval.", empty: "No optional service requested", add: "Service", quote: "Operator will provide a quote", fixed: "Configured rate", package: "package", item: "items", day: "days", photo: "photos", halfHour: "30-minute units", requested: "Warehouse is checking", quoted: "Awaiting your decision", approved: "Approved by you · awaiting fulfilment", declined: "Declined by you", completed: "Marked by operator", checkout: "Selected in cart", amount: "Quantity", request: "Send request", note: "Describe what you need", noteHint: "Up to 500 characters", fixedPending: "The rate is set; the amount is added only after the service is confirmed and you approve it.", send: "Request sent to operator" },
-  }[locale];
+  }, locale);
   // A parcel-wide request is shown once on the store section; here only this order's own, and no second ask for it.
   const requests = (order.warehouseServiceRequests ?? []).filter((request) => !isParcelServiceRequest(request));
   const activeIds = new Set([...requests, ...parcel.map((item) => item.request)].filter((request) => ["requested", "quoted", "approved"].includes(request.status)).map((request) => request.serviceId));
@@ -588,8 +590,8 @@ function CustomerWarehouseServices({
         {!["package", "item"].includes(selected.unit) && <div className="field"><label htmlFor={`warehouse-service-units-${order.id}`}>{words.amount} · {unitLabel(selected.unit)}</label><input id={`warehouse-service-units-${order.id}`} type="number" min="1" max="100" step="1" value={units} onChange={(event) => setUnits(event.target.value)} /></div>}
         {selected.id === "special-request" && <div className="field"><label htmlFor={`warehouse-service-note-${order.id}`}>{words.note}</label><textarea id={`warehouse-service-note-${order.id}`} rows={3} maxLength={500} required value={customerNote} placeholder={words.noteHint} onChange={(event) => setCustomerNote(event.target.value)} /></div>}
         <p className="micro">{configuredAmount !== undefined ? `${words.fixed}: ${money(serviceFeeForCountry(selected, order.product.country))} × ${requestedUnits} = ${money(configuredAmount)}. ${words.fixedPending}` : words.quote}</p>
-        <button className="btn secondary" disabled={busy || sending || (selected.id === "special-request" && !customerNote.trim())} onClick={async () => { setSending(true); try { const ok = await run({ type: "warehouse-service-request", id: order.id, serviceId: selected.id, units: requestedUnits, customerNote: customerNote.trim() || undefined }); if (ok) { setCustomerNote(""); setUnits("1"); toast.success(words.send); } } finally { setSending(false); } }} aria-busy={sending || undefined}>{sending ? <><Loader2 size={16} className="spin" aria-hidden="true" />{locale === "ru" ? "Отправляем запрос…" : locale === "uz" ? "So‘rov yuborilmoqda…" : "Sending the request…"}</> : words.request}</button>
-        {sending && <p className="micro" role="status">{locale === "ru" ? "Это запрос: оператор сначала проверит возможность и цену, услуга не считается выполненной." : locale === "uz" ? "Bu so‘rov: operator avval imkoniyat va narxni tekshiradi, xizmat bajarilgan hisoblanmaydi." : "This is a request: an operator checks feasibility and price first; the service is not done yet."}</p>}
+        <button className="btn secondary" disabled={busy || sending || (selected.id === "special-request" && !customerNote.trim())} onClick={async () => { setSending(true); try { const ok = await run({ type: "warehouse-service-request", id: order.id, serviceId: selected.id, units: requestedUnits, customerNote: customerNote.trim() || undefined }); if (ok) { setCustomerNote(""); setUnits("1"); toast.success(words.send); } } finally { setSending(false); } }} aria-busy={sending || undefined}>{sending ? <><Loader2 size={16} className="spin" aria-hidden="true" />{locale === "ru" ? "Отправляем запрос…" : isUzbek(locale) ? uzText(locale, "So‘rov yuborilmoqda…") : "Sending the request…"}</> : words.request}</button>
+        {sending && <p className="micro" role="status">{locale === "ru" ? "Это запрос: оператор сначала проверит возможность и цену, услуга не считается выполненной." : isUzbek(locale) ? uzText(locale, "Bu so‘rov: operator avval imkoniyat va narxni tekshiradi, xizmat bajarilgan hisoblanmaydi.") : "This is a request: an operator checks feasibility and price first; the service is not done yet."}</p>}
       </div>}
       {!requests.length && !available.length && <p className="micro">{words.empty}</p>}
     </div>
@@ -597,9 +599,9 @@ function CustomerWarehouseServices({
 }
 
 type OrderDocument={id:string;order_id:string;kind:string;filename:string;content_type:string;size:number;created_at:number};
-function OrderDocuments({orderId,accountId,operatorMode,locale}:{orderId:string;accountId?:string;operatorMode:boolean;locale:"ru"|"uz"|"en"}){
+function OrderDocuments({orderId,accountId,operatorMode,locale}:{orderId:string;accountId?:string;operatorMode:boolean;locale:Locale}){
  const [documents,setDocuments]=useState<OrderDocument[]>([]),[busy,setBusy]=useState(false);
- const words={ru:{title:'Документы заказа',empty:'Документов пока нет',invoice:'Счёт',proof:'Подтверждение покупки',photo:'Фото со склада',report:'Акт склада',upload:'Добавить документ',open:'Скачать'},uz:{title:'Buyurtma hujjatlari',empty:'Hujjatlar hali yo‘q',invoice:'Hisob',proof:'Xarid tasdig‘i',photo:'Ombor fotosi',report:'Ombor dalolatnomasi',upload:'Hujjat qo‘shish',open:'Yuklab olish'},en:{title:'Order documents',empty:'No documents yet',invoice:'Invoice',proof:'Purchase proof',photo:'Warehouse photo',report:'Warehouse report',upload:'Add document',open:'Download'}}[locale];
+ const words=pickLocale({ru:{title:'Документы заказа',empty:'Документов пока нет',invoice:'Счёт',proof:'Подтверждение покупки',photo:'Фото со склада',report:'Акт склада',upload:'Добавить документ',open:'Скачать'},uz:{title:'Buyurtma hujjatlari',empty:'Hujjatlar hali yo‘q',invoice:'Hisob',proof:'Xarid tasdig‘i',photo:'Ombor fotosi',report:'Ombor dalolatnomasi',upload:'Hujjat qo‘shish',open:'Yuklab olish'},en:{title:'Order documents',empty:'No documents yet',invoice:'Invoice',proof:'Purchase proof',photo:'Warehouse photo',report:'Warehouse report',upload:'Add document',open:'Download'}}, locale);
  const load=useCallback(async()=>{const response=await fetch(`/api/order-documents${operatorMode&&accountId?`?accountId=${encodeURIComponent(accountId)}`:''}`,{cache:'no-store'});const data=await response.json() as {documents?:OrderDocument[]};if(response.ok)setDocuments((data.documents??[]).filter(item=>item.order_id===orderId))},[accountId,operatorMode,orderId]);
  useEffect(()=>{queueMicrotask(()=>void load())},[load]);
  async function upload(form:HTMLFormElement){const body=new FormData(form);body.set('orderId',orderId);body.set('customerId',accountId??'');setBusy(true);try{const response=await fetch('/api/order-documents',{method:'POST',body});const data=await response.json() as {error?:string};if(!response.ok)throw Error(data.error??'Upload failed');form.reset();await load();toast.success(words.upload)}catch(error){toast.error((error as Error).message)}finally{setBusy(false)}}
@@ -607,13 +609,13 @@ function OrderDocuments({orderId,accountId,operatorMode,locale}:{orderId:string;
  return <details className="order-documents"><summary>{words.title}<span>{documents.length}</span></summary><div className="document-list">{documents.length?documents.map(item=><a key={item.id} href={`/api/order-documents?id=${encodeURIComponent(item.id)}`}><span><b>{labels[item.kind]??item.kind}</b><small>{item.filename}</small></span><strong>{words.open}</strong></a>):<p className="micro">{words.empty}</p>}</div>{operatorMode&&accountId&&<form className="document-upload" onSubmit={event=>{event.preventDefault();void upload(event.currentTarget)}}><select name="kind" aria-label="Тип документа"><option value="invoice">{words.invoice}</option><option value="purchase-proof">{words.proof}</option><option value="warehouse-photo">{words.photo}</option><option value="warehouse-report">{words.report}</option></select><input name="file" type="file" accept="image/jpeg,image/png,application/pdf" required/><button className="btn secondary" disabled={busy}>{busy?'…':words.upload}</button></form>}</details>
 }
 type OrderConfirmation = { id: string; cancel: boolean; amount: number; storeShipping?: boolean; customs?: boolean; payment?: boolean };
-const refundMarkerCopy = { ru: "Отметка возврата в Atlas", uz: "Atlasdagi qaytarish belgisi", en: "Refund marker in Atlas" } as const;
+const refundMarkerCopy = withCyrillic({ ru: "Отметка возврата в Atlas", uz: "Atlasdagi qaytarish belgisi", en: "Refund marker in Atlas" } as const);
 const intakeTagCopy = {
-  photo: { ru: "Фото", uz: "Foto", en: "Photo requested at intake" },
-  repack: { ru: "Переупаковка", uz: "Qayta qadoqlash", en: "Repacking noted" },
-  consolidate: { ru: "Объединение", uz: "Birlashtirish", en: "Consolidation noted" },
-  split: { ru: "Разделение", uz: "Bo‘lish", en: "Split shipment noted" },
-  fragile: { ru: "Хрупкий груз", uz: "Mo‘rt yuk", en: "Fragile handling noted" },
+  photo: withCyrillic({ ru: "Фото", uz: "Foto", en: "Photo requested at intake" }),
+  repack: withCyrillic({ ru: "Переупаковка", uz: "Qayta qadoqlash", en: "Repacking noted" }),
+  consolidate: withCyrillic({ ru: "Объединение", uz: "Birlashtirish", en: "Consolidation noted" }),
+  split: withCyrillic({ ru: "Разделение", uz: "Bo‘lish", en: "Split shipment noted" }),
+  fragile: withCyrillic({ ru: "Хрупкий груз", uz: "Mo‘rt yuk", en: "Fragile handling noted" }),
 } as const;
 
 /**
@@ -696,7 +698,7 @@ function CustomerOrderLine({ order: o, siblings, showThumb, locale, pricing, bus
           <AlertCircle size={20} aria-hidden="true" />
           <div>
             <h3>{request.title}</h3><p>{request.reason}</p>
-            {request.warehouseServiceRequestId && <p className="micro">{locale === "ru" ? "Подтверждение относится только к этой услуге. Платёжный провайдер не подключён, а выполнение ещё не подтверждено." : locale === "uz" ? "Tasdiq faqat shu xizmatga tegishli. To‘lov provayderi ulanmagan, xizmat bajarilgani hali tasdiqlanmagan." : "Approval applies only to this service. No payment provider is connected, and fulfilment has not been confirmed."}</p>}
+            {request.warehouseServiceRequestId && <p className="micro">{locale === "ru" ? "Подтверждение относится только к этой услуге. Платёжный провайдер не подключён, а выполнение ещё не подтверждено." : isUzbek(locale) ? uzText(locale, "Tasdiq faqat shu xizmatga tegishli. To‘lov provayderi ulanmagan, xizmat bajarilgani hali tasdiqlanmagan.") : "Approval applies only to this service. No payment provider is connected, and fulfilment has not been confirmed."}</p>}
             {(request.previousValue || request.proposedValue) && <p className="change-values"><span>{request.previousValue || "—"}</span><ArrowRight size={15} aria-hidden="true" /><b>{request.proposedValue || "—"}</b></p>}
             {request.amountDelta !== 0 && <strong className="order-x-delta">{request.amountDelta > 0 ? "+" : "−"}{formatSum(Math.abs(request.amountDelta), locale)}</strong>}
           </div>
@@ -722,7 +724,7 @@ function CustomerOrderLine({ order: o, siblings, showThumb, locale, pricing, bus
         {o.delivery && <div><dt>{gc.recipient}</dt><dd>{o.delivery.recipient}{where && <small>{where}</small>}{o.delivery.phone && <a className="order-x-link" href={`tel:${o.delivery.phone.replace(/[^\d+]/g, "")}`}>{o.delivery.phone}</a>}</dd></div>}
         <div><dt>{gc.delivery}</dt><dd>{gc.speed[speed]}{days && <small>{gc.days(days[0], days[1])}</small>}</dd></div>
         <div><dt>{c.total}</dt><dd><b><Money value={payable} locale={locale} /></b>{payable !== o.quote.total && <small>{c.atCheckout(formatSum(o.quote.total, locale))}</small>}</dd></div>
-        {o.parcel && <div><dt>{c.tracking}</dt><dd>{o.parcel.carrier}<span className="order-x-track"><span className="order-x-id">{o.parcel.trackingNumber}</span><CopyText text={o.parcel.trackingNumber} locale={locale} /></span><small>{lastParcelEvent ?? ow.parcelRegistered}{o.parcel.warehouseCode ? ` · ${locale === "ru" ? "склад" : locale === "uz" ? "ombor" : "warehouse"} ${o.parcel.warehouseCode}` : ""}</small></dd></div>}
+        {o.parcel && <div><dt>{c.tracking}</dt><dd>{o.parcel.carrier}<span className="order-x-track"><span className="order-x-id">{o.parcel.trackingNumber}</span><CopyText text={o.parcel.trackingNumber} locale={locale} /></span><small>{lastParcelEvent ?? ow.parcelRegistered}{o.parcel.warehouseCode ? ` · ${locale === "ru" ? "склад" : isUzbek(locale) ? uzText(locale, "ombor") : "warehouse"} ${o.parcel.warehouseCode}` : ""}</small></dd></div>}
       </dl>
 
       {latest && <p className="og-latest"><Clock3 size={16} aria-hidden="true" /><span><b>{gc.latest}</b> · <time>{formatDateTime(latest.at, locale)}</time><span className="og-latest-text">{renderHistory(latest, locale)}</span></span></p>}
@@ -738,8 +740,8 @@ function CustomerOrderLine({ order: o, siblings, showThumb, locale, pricing, bus
         <Package size={18} aria-hidden="true" />
         <div>
           <b>{o.warehouseInspection.condition === "ok" ? ow.warehouseDone : ow.warehouseProblem}</b>
-          <p>{ow.received}: {o.warehouseInspection.quantityReceived} {locale === "ru" ? "шт." : locale === "uz" ? "dona" : "pcs"}{o.warehouseInspection.packageGroup ? ` · ${locale === "ru" ? "группа" : locale === "uz" ? "guruh" : "group"} ${o.warehouseInspection.packageGroup}` : ""}</p>
-          {o.warehouseInspection.services.length > 0 && <p>{locale === "ru" ? "Отметки приёмки" : locale === "uz" ? "Qabul belgilari" : "Intake tags"}: {o.warehouseInspection.services.map(tag => intakeTagCopy[tag][locale]).join(", ")}. <small>{locale === "ru" ? "Это отметки осмотра, не подтверждение выполненной или платной услуги." : locale === "uz" ? "Bu ko‘rik belgilari, bajarilgan yoki pullik xizmat tasdig‘i emas." : "These are inspection notes, not proof of a completed or paid service."}</small></p>}
+          <p>{ow.received}: {o.warehouseInspection.quantityReceived} {locale === "ru" ? "шт." : isUzbek(locale) ? uzText(locale, "dona") : "pcs"}{o.warehouseInspection.packageGroup ? ` · ${locale === "ru" ? "группа" : isUzbek(locale) ? uzText(locale, "guruh") : "group"} ${o.warehouseInspection.packageGroup}` : ""}</p>
+          {o.warehouseInspection.services.length > 0 && <p>{locale === "ru" ? "Отметки приёмки" : isUzbek(locale) ? uzText(locale, "Qabul belgilari") : "Intake tags"}: {o.warehouseInspection.services.map(tag => intakeTagCopy[tag][locale]).join(", ")}. <small>{locale === "ru" ? "Это отметки осмотра, не подтверждение выполненной или платной услуги." : isUzbek(locale) ? uzText(locale, "Bu ko‘rik belgilari, bajarilgan yoki pullik xizmat tasdig‘i emas.") : "These are inspection notes, not proof of a completed or paid service."}</small></p>}
           {o.warehouseInspection.notes && <p>{o.warehouseInspection.notes}</p>}
         </div>
       </div>}
@@ -753,7 +755,7 @@ function CustomerOrderLine({ order: o, siblings, showThumb, locale, pricing, bus
             <div>
               <b>{ow.managerConfirmed}</b>
               <p>{ow.actual}: {usd(o.storeShippingSettlement.actualUsd)} · {formatSum(o.storeShippingSettlement.actual, locale)}. {ow.reservedAtCheckout}: {formatSum(o.storeShippingSettlement.estimated, locale)}.</p>
-              <p><strong>{o.storeShippingSettlement.refund ? (storeCredited ? `${ow.refundToBalance} ${formatSum(storeCredited, locale)}` : storeShippingNotCredited[locale](formatSum(o.storeShippingSettlement.refund, locale))) : o.storeShippingExtraApproved ? `${ow.extraApproved}: ${formatSum(o.storeShippingSettlement.extra, locale)}` : o.storeShippingSettlement.extra ? `${ow.needApprove} ${formatSum(o.storeShippingSettlement.extra, locale)}` : o.storeShippingSettlement.held && o.storeShippingSettlement.released ? `${locale === "ru" ? "В пределах резерва. Освобождается" : locale === "uz" ? "Zaxira doirasida. Bo‘shatiladi" : "Within the reserve. Released"}: ${formatSum(o.storeShippingSettlement.released, locale)}` : ow.reserveMatch}</strong></p>
+              <p><strong>{o.storeShippingSettlement.refund ? (storeCredited ? `${ow.refundToBalance} ${formatSum(storeCredited, locale)}` : storeShippingNotCredited[locale](formatSum(o.storeShippingSettlement.refund, locale))) : o.storeShippingExtraApproved ? `${ow.extraApproved}: ${formatSum(o.storeShippingSettlement.extra, locale)}` : o.storeShippingSettlement.extra ? `${ow.needApprove} ${formatSum(o.storeShippingSettlement.extra, locale)}` : o.storeShippingSettlement.held && o.storeShippingSettlement.released ? `${locale === "ru" ? "В пределах резерва. Освобождается" : isUzbek(locale) ? uzText(locale, "Zaxira doirasida. Bo‘shatiladi") : "Within the reserve. Released"}: ${formatSum(o.storeShippingSettlement.released, locale)}` : ow.reserveMatch}</strong></p>
               {storeCredited > 0 && <Link className="order-x-link" href="/balance">{ow.balance}<ArrowRight size={14} aria-hidden="true" /></Link>}
             </div>
           </div>}
@@ -995,10 +997,10 @@ export function OrdersView({ operations }: { operations: boolean }) {
   const locale = state.communication.language as Locale;
   const ow = {...customerOrderCopy[locale],...customerOrderDisclosureCopy[locale],emptyDescription:customerOrderEmptyCopy[locale]};
   const displayStatuses = localizedStatuses(locale);
-  const wc={ru:{customerOver:"ВАШИ ПОКУПКИ В ПУТИ",customerTitle:"От магазина до вашей двери.",customerIntro:"Статусы, расчёты и история каждого заказа.",operatorOver:"РАБОЧЕЕ МЕСТО ОПЕРАТОРА",operatorTitle:"Всё готово к следующему шагу.",operatorIntro:"Выкупайте, принимайте на склад и согласовывайте исключения.",customerView:"Вид покупателя",operatorView:"Открыть обработку",active:"В работе",attention:"Нужно решение",done:"Завершённые",searchCustomer:"Номер или товар",searchOperator:"Номер, товар или покупатель"},uz:{customerOver:"BUYURTMALARINGIZ YO‘LDA",customerTitle:"Do‘kondan eshigingizgacha.",customerIntro:"Har bir buyurtmaning holati, hisobi va tarixi.",operatorOver:"OPERATOR ISH JOYI",operatorTitle:"Keyingi qadam uchun hammasi tayyor.",operatorIntro:"Xaridni, ombor qabulini va istisnolarni boshqaring.",customerView:"Mijoz ko‘rinishi",operatorView:"Qayta ishlashni ochish",active:"Jarayonda",attention:"Qaror kerak",done:"Yakunlangan",searchCustomer:"Raqam yoki tovar",searchOperator:"Raqam, tovar yoki mijoz"},en:{customerOver:"YOUR PURCHASES IN TRANSIT",customerTitle:"From the store to your door.",customerIntro:"Status, calculation and history for every order.",operatorOver:"OPERATOR WORKSPACE",operatorTitle:"Everything is ready for the next step.",operatorIntro:"Manage purchase, warehouse intake and exceptions.",customerView:"Customer view",operatorView:"Open processing",active:"In progress",attention:"Decision needed",done:"Completed",searchCustomer:"Order number or item",searchOperator:"Order number, item or customer"}}[state.communication.language];
-  const refundTabLabel={ru:"Возвраты и отмены",uz:"Qaytarishlar va bekor qilinganlar",en:"Refunds and cancellations"}[locale];
-  const refundStatusLabel={ru:"Отметка возврата в Atlas",uz:"Atlasdagi qaytarish belgisi",en:"Refund marker in Atlas"}[locale];
-  const refundQueueCopy={ru:"Здесь отменённые заказы и заказы с отметкой о возврате. Сумма ниже — проводки Atlas, зачисленные во внутренний баланс покупателя по этому заказу; перевод на карту, в банк или кошелёк не выполняется.",uz:"Bu yerda bekor qilingan buyurtmalar va qaytarish belgisi bor buyurtmalar ko‘rsatiladi. Quyidagi summa — shu buyurtma bo‘yicha xaridorning Atlas ichki balansiga yozilgan hisob; karta, bank yoki hamyonga pul o‘tkazilmaydi.",en:"This queue includes cancelled orders and orders marked refunded. The amount shown is Atlas ledger entries credited to the customer’s internal balance for this order; no card, bank, or wallet transfer is made."}[locale];
+  const wc=pickLocale({ru:{customerOver:"ВАШИ ПОКУПКИ В ПУТИ",customerTitle:"От магазина до вашей двери.",customerIntro:"Статусы, расчёты и история каждого заказа.",operatorOver:"РАБОЧЕЕ МЕСТО ОПЕРАТОРА",operatorTitle:"Всё готово к следующему шагу.",operatorIntro:"Выкупайте, принимайте на склад и согласовывайте исключения.",customerView:"Вид покупателя",operatorView:"Открыть обработку",active:"В работе",attention:"Нужно решение",done:"Завершённые",searchCustomer:"Номер или товар",searchOperator:"Номер, товар или покупатель"},uz:{customerOver:"BUYURTMALARINGIZ YO‘LDA",customerTitle:"Do‘kondan eshigingizgacha.",customerIntro:"Har bir buyurtmaning holati, hisobi va tarixi.",operatorOver:"OPERATOR ISH JOYI",operatorTitle:"Keyingi qadam uchun hammasi tayyor.",operatorIntro:"Xaridni, ombor qabulini va istisnolarni boshqaring.",customerView:"Mijoz ko‘rinishi",operatorView:"Qayta ishlashni ochish",active:"Jarayonda",attention:"Qaror kerak",done:"Yakunlangan",searchCustomer:"Raqam yoki tovar",searchOperator:"Raqam, tovar yoki mijoz"},en:{customerOver:"YOUR PURCHASES IN TRANSIT",customerTitle:"From the store to your door.",customerIntro:"Status, calculation and history for every order.",operatorOver:"OPERATOR WORKSPACE",operatorTitle:"Everything is ready for the next step.",operatorIntro:"Manage purchase, warehouse intake and exceptions.",customerView:"Customer view",operatorView:"Open processing",active:"In progress",attention:"Decision needed",done:"Completed",searchCustomer:"Order number or item",searchOperator:"Order number, item or customer"}}, state.communication.language);
+  const refundTabLabel=pickLocale({ru:"Возвраты и отмены",uz:"Qaytarishlar va bekor qilinganlar",en:"Refunds and cancellations"}, locale);
+  const refundStatusLabel=pickLocale({ru:"Отметка возврата в Atlas",uz:"Atlasdagi qaytarish belgisi",en:"Refund marker in Atlas"}, locale);
+  const refundQueueCopy=pickLocale({ru:"Здесь отменённые заказы и заказы с отметкой о возврате. Сумма ниже — проводки Atlas, зачисленные во внутренний баланс покупателя по этому заказу; перевод на карту, в банк или кошелёк не выполняется.",uz:"Bu yerda bekor qilingan buyurtmalar va qaytarish belgisi bor buyurtmalar ko‘rsatiladi. Quyidagi summa — shu buyurtma bo‘yicha xaridorning Atlas ichki balansiga yozilgan hisob; karta, bank yoki hamyonga pul o‘tkazilmaydi.",en:"This queue includes cancelled orders and orders marked refunded. The amount shown is Atlas ledger entries credited to the customer’s internal balance for this order; no card, bank, or wallet transfer is made."}, locale);
   const receiving = orders.find((o) => o.id === warehouse);
   const confirmingCustoms = orders.find((o) => o.id === customsOrder);
   const confirmingStoreShipping = orders.find(
@@ -1073,7 +1075,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
     const orderId = "id" in action ? action.id ?? "" : "";
     const profile = orderAccount.get(orderId);
     if (!profile) {
-      toast.error(locale === "ru" ? "Профиль покупателя не найден. Обновите очередь." : locale === "uz" ? "Mijoz profili topilmadi. Navbatni yangilang." : "Customer profile not found. Refresh the queue.");
+      toast.error(locale === "ru" ? "Профиль покупателя не найден. Обновите очередь." : isUzbek(locale) ? uzText(locale, "Mijoz profili topilmadi. Navbatni yangilang.") : "Customer profile not found. Refresh the queue.");
       return false;
     }
     try {
@@ -1100,13 +1102,13 @@ export function OrdersView({ operations }: { operations: boolean }) {
         );
       void refreshCounts();
       if (!response.ok) {
-         toast.error(data.error ?? (locale === "ru" ? "Не удалось сохранить действие." : locale === "uz" ? "Amalni saqlab bo‘lmadi." : "Could not save the action."));
+         toast.error(data.error ?? (locale === "ru" ? "Не удалось сохранить действие." : isUzbek(locale) ? uzText(locale, "Amalni saqlab bo‘lmadi.") : "Could not save the action."));
         if (!data.account) await refreshOperations();
         return false;
       }
       return true;
     } catch {
-      toast.error(locale === "ru" ? "Нет связи с сервером. Обновите очередь перед повтором." : locale === "uz" ? "Server bilan aloqa yo‘q. Qayta urinishdan oldin navbatni yangilang." : "The server is unreachable. Refresh the queue before retrying.");
+      toast.error(locale === "ru" ? "Нет связи с сервером. Обновите очередь перед повтором." : isUzbek(locale) ? uzText(locale, "Server bilan aloqa yo‘q. Qayta urinishdan oldin navbatni yangilang.") : "The server is unreachable. Refresh the queue before retrying.");
       await refreshOperations();
       return false;
     }
@@ -1125,7 +1127,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
         error?: string;
       };
       if (!response.ok || !data.image)
-         throw Error(data.error ?? (locale === "ru" ? "На странице не найдено фото." : locale === "uz" ? "Sahifada rasm topilmadi." : "No photo found on the page."));
+         throw Error(data.error ?? (locale === "ru" ? "На странице не найдено фото." : isUzbek(locale) ? uzText(locale, "Sahifada rasm topilmadi.") : "No photo found on the page."));
       if (
         await runOrderAction({ type: "order-image", id: o.id, image: data.image })
       )
@@ -1149,7 +1151,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
     setBusy(false);
     if (ok) {
       setWarehouse(null);
-       toast.success(locale === "ru" ? "Взвешивание и перерасчёт сохранены" : locale === "uz" ? "Tortish va qayta hisoblash saqlandi" : "Weighing and recalculation saved");
+       toast.success(locale === "ru" ? "Взвешивание и перерасчёт сохранены" : isUzbek(locale) ? uzText(locale, "Tortish va qayta hisoblash saqlandi") : "Weighing and recalculation saved");
     }
   }
   async function finishCustoms() {
@@ -1170,16 +1172,16 @@ export function OrdersView({ operations }: { operations: boolean }) {
     setBusy(false);
     if (ok) {
       setStoreShippingOrder(null);
-       toast.success(locale === "ru" ? "Доставка магазина подтверждена и пересчитана" : locale === "uz" ? "Do‘kon yetkazib berishi tasdiqlandi va qayta hisoblandi" : "Store shipping confirmed and recalculated");
+       toast.success(locale === "ru" ? "Доставка магазина подтверждена и пересчитана" : isUzbek(locale) ? uzText(locale, "Do‘kon yetkazib berishi tasdiqlandi va qayta hisoblandi") : "Store shipping confirmed and recalculated");
     }
   }
   if (operations && ready && !canReadOperations)
     return (
       <Empty
-        title={locale === "ru" ? "Доступ только оператору" : locale === "uz" ? "Faqat operatorlar uchun" : "Operator access only"}
-        description={locale === "ru" ? "В личном кабинете доступны ваши покупки и баланс." : locale === "uz" ? "Xaridlar va balansingiz shaxsiy kabinetda mavjud." : "Your purchases and balance are available in your account."}
+        title={locale === "ru" ? "Доступ только оператору" : isUzbek(locale) ? uzText(locale, "Faqat operatorlar uchun") : "Operator access only"}
+        description={locale === "ru" ? "В личном кабинете доступны ваши покупки и баланс." : isUzbek(locale) ? uzText(locale, "Xaridlar va balansingiz shaxsiy kabinetda mavjud.") : "Your purchases and balance are available in your account."}
         href="/orders"
-        label={locale === "ru" ? "Мои заказы" : locale === "uz" ? "Buyurtmalarim" : "My orders"}
+        label={locale === "ru" ? "Мои заказы" : isUzbek(locale) ? uzText(locale, "Buyurtmalarim") : "My orders"}
       />
     );
   const oc = ordersCopy[locale];
@@ -1231,7 +1233,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
             <Clock3 />
           </div>
           <div>
-              <span>{locale === "ru" ? "Ожидают взвешивания" : locale === "uz" ? "Tortish kutilmoqda" : "Awaiting weighing"}</span>
+              <span>{locale === "ru" ? "Ожидают взвешивания" : isUzbek(locale) ? uzText(locale, "Tortish kutilmoqda") : "Awaiting weighing"}</span>
             <strong>{operations ? opsCounts?.weighing ?? 0 : active.filter((o) => o.status === 2).length}</strong>
             <Scale />
           </div>
@@ -1256,7 +1258,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
               </TabsTrigger>}
             </TabsList>
               <TabsContent value={tab} className="sr-only">
-               {locale === "ru" ? "Фильтр заказов: " : locale === "uz" ? "Buyurtma filtri: " : "Order filter: "}
+               {locale === "ru" ? "Фильтр заказов: " : isUzbek(locale) ? uzText(locale, "Buyurtma filtri: ") : "Order filter: "}
                {tab === "active" ? wc.active : tab === "attention" ? wc.attention : tab === "refunds" && operations ? refundTabLabel : wc.done}
             </TabsContent>
           </Tabs>
@@ -1265,12 +1267,12 @@ export function OrdersView({ operations }: { operations: boolean }) {
             <Search size={18} />
             <input
               aria-label={ow.search}
-              placeholder={operations ? (locale === "ru" ? "Номер, товар, имя, телефон или email" : locale === "uz" ? "Raqam, tovar, ism, telefon yoki email" : "Order, item, name, phone or email") : oc.search}
+              placeholder={operations ? (locale === "ru" ? "Номер, товар, имя, телефон или email" : isUzbek(locale) ? uzText(locale, "Raqam, tovar, ism, telefon yoki email") : "Order, item, name, phone or email") : oc.search}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
           </label>}
-          {operations&&<button type="button" className="btn secondary order-refresh" disabled={opsRefreshing} onClick={()=>void refreshOperations()}><RefreshCw size={16} className={opsRefreshing?"spin":""}/>{locale==='ru'?(opsRefreshing?'Обновляем…':'Обновить очередь'):locale==='uz'?(opsRefreshing?'Yangilanmoqda…':'Navbatni yangilash'):(opsRefreshing?'Refreshing…':'Refresh queue')}</button>}
+          {operations&&<button type="button" className="btn secondary order-refresh" disabled={opsRefreshing} onClick={()=>void refreshOperations()}><RefreshCw size={16} className={opsRefreshing?"spin":""}/>{locale==='ru'?(opsRefreshing?'Обновляем…':'Обновить очередь'):isUzbek(locale)?uzText(locale, (opsRefreshing?'Yangilanmoqda…':'Navbatni yangilash')):(opsRefreshing?'Refreshing…':'Refresh queue')}</button>}
         </div>
       )}
       {!operations && recipientOptions.length > 1 && <div className="notice-filters orders-recipients" role="group" aria-label={oc.recipients}>{[["all", oc.allRecipients] as const, ...recipientOptions].map(([key, name]) => <button type="button" key={key} aria-pressed={recipientFilter === key} className={recipientFilter === key ? "active" : ""} onClick={() => setRecipientFilter(key)}>{name}</button>)}</div>}
@@ -1278,10 +1280,10 @@ export function OrdersView({ operations }: { operations: boolean }) {
       {!viewReady ? (
         viewError ? (
           <Empty
-            title={operations ? (locale === "ru" ? "Очередь пока недоступна" : locale === "uz" ? "Navbat hozircha mavjud emas" : "Queue is unavailable") : ow.loginTitle}
-            description={operations ? viewError ?? (locale === "ru" ? "Повторите загрузку очереди." : locale === "uz" ? "Navbatni qayta yuklang." : "Reload the queue and try again.") : ow.loginDescription}
+            title={operations ? (locale === "ru" ? "Очередь пока недоступна" : isUzbek(locale) ? uzText(locale, "Navbat hozircha mavjud emas") : "Queue is unavailable") : ow.loginTitle}
+            description={operations ? viewError ?? (locale === "ru" ? "Повторите загрузку очереди." : isUzbek(locale) ? uzText(locale, "Navbatni qayta yuklang.") : "Reload the queue and try again.") : ow.loginDescription}
             href={operations ? "/operations" : "/account"}
-            label={operations ? (locale === "ru" ? "Повторить" : locale === "uz" ? "Qayta urinish" : "Try again") : ow.loginLabel}
+            label={operations ? (locale === "ru" ? "Повторить" : isUzbek(locale) ? uzText(locale, "Qayta urinish") : "Try again") : ow.loginLabel}
           />
         ) : (
           <div className="loading-state">{ow.loading}</div>
@@ -1292,8 +1294,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
         </section>
       ) : queueEmpty ? (
         <Empty
-          title={operations ? (locale === "ru" ? "Очередь заказов пуста" : locale === "uz" ? "Buyurtmalar navbati bo‘sh" : "The order queue is empty") : ow.emptyTitle}
-          description={operations ? (locale === "ru" ? "Новых клиентских заказов пока нет." : locale === "uz" ? "Yangi mijoz buyurtmalari yo‘q." : "There are no new customer orders yet.") : ow.emptyDescription}
+          title={operations ? (locale === "ru" ? "Очередь заказов пуста" : isUzbek(locale) ? uzText(locale, "Buyurtmalar navbati bo‘sh") : "The order queue is empty") : ow.emptyTitle}
+          description={operations ? (locale === "ru" ? "Новых клиентских заказов пока нет." : isUzbek(locale) ? uzText(locale, "Yangi mijoz buyurtmalari yo‘q.") : "There are no new customer orders yet.") : ow.emptyDescription}
           href="/"
           label={ow.choose}
         />
@@ -1311,7 +1313,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
           <details className="surface order-card compact-order" key={o.id} id={o.id} onToggle={event=>{const open=event.currentTarget.open;setExpanded(ids=>open?[...new Set([...ids,o.id])]:ids.filter(id=>id!==o.id))}}>
             <summary className="compact-order-summary">
               <ProductImage product={o.product} decorative locale={state.communication.language} />
-               <span className="compact-order-name"><small>{o.id}{operations ? ` · ${orderAccount.get(o.id)?.name ?? ''}` : ''}</small><b>{o.product.name}</b><span>{o.variant} · {o.quantity}</span>{operations && tab === "refunds" && <small>{atlasCreditForOrder(orderAccount.get(o.id), o.id) > 0 ? `${locale === "ru" ? "Зачислено во внутренний баланс Atlas" : locale === "uz" ? "Atlas ichki balansiga yozildi" : "Credited to Atlas internal balance"}: ${money(atlasCreditForOrder(orderAccount.get(o.id), o.id))}` : locale === "ru" ? "Зачислений во внутренний баланс Atlas по заказу нет" : locale === "uz" ? "Buyurtma bo‘yicha Atlas ichki balansiga yozuv yo‘q" : "No Atlas internal-balance credit recorded for this order"}</small>}</span>
+               <span className="compact-order-name"><small>{o.id}{operations ? ` · ${orderAccount.get(o.id)?.name ?? ''}` : ''}</small><b>{o.product.name}</b><span>{o.variant} · {o.quantity}</span>{operations && tab === "refunds" && <small>{atlasCreditForOrder(orderAccount.get(o.id), o.id) > 0 ? `${locale === "ru" ? "Зачислено во внутренний баланс Atlas" : isUzbek(locale) ? uzText(locale, "Atlas ichki balansiga yozildi") : "Credited to Atlas internal balance"}: ${money(atlasCreditForOrder(orderAccount.get(o.id), o.id))}` : locale === "ru" ? "Зачислений во внутренний баланс Atlas по заказу нет" : isUzbek(locale) ? uzText(locale, "Buyurtma bo‘yicha Atlas ichki balansiga yozuv yo‘q") : "No Atlas internal-balance credit recorded for this order"}</small>}</span>
                <span className={'status-badge '+(isExtra(o)||pendingChange(o)||(!operations&&o.payment?.status==='pending')?'needs-action':'')}>{o.cancelled ? ow.cancelled : o.payment?.status==='refunded' ? refundStatusLabel : isExtra(o)||pendingChange(o) ? ow.needDecision : o.payment?.status==='pending' ? ow.awaitingPayment : displayStatuses[o.status]}</span>
               <strong>{money(orderPayable(o))}</strong><ArrowRight size={18}/>
             </summary>
@@ -1349,7 +1351,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
               <div>
                 <h2>{o.product.name}</h2>
                 <p>
-                  {o.variant} · {o.quantity} {locale === "ru" ? "шт." : locale === "uz" ? "dona" : "pcs"} · {o.product.country ?? (locale === "ru" ? "США" : locale === "uz" ? "AQSh" : "USA")}
+                  {o.variant} · {o.quantity} {locale === "ru" ? "шт." : isUzbek(locale) ? uzText(locale, "dona") : "pcs"} · {o.product.country ?? (locale === "ru" ? "США" : isUzbek(locale) ? uzText(locale, "AQSh") : "USA")}
                 </p>
                 {o.product.sourceUrl && (
                   <a
@@ -1404,7 +1406,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
                    <h3>{o.payment.status === "pending" ? (o.cancelled ? ow.cancelled : ow.paymentWaiting) : o.payment.status === "paid" ? ow.paymentPaid : ow.paymentRefunded}</h3>
                    <p>{ow.paymentLine} {o.payment.id} · {money(o.payment.amount)}.</p>
                    <strong>{o.payment.status === "pending" ? ow.noCharge : ow.providerPassed}</strong>
-                   {!operations&&!o.cancelled&&o.status===0&&o.product.sourceShippingEstimated&&!o.storeShippingSettlement&&<div className="payment-reserve-hint"><Clock3 size={16}/><div><b>{ow.managerChecking}</b><p>{ow.reserveIncluded} {money(o.quote.sourceShipping??0)}. {ow.beforeBuyout}</p><small>{locale==='ru'?'Резерв — часть предварительного расчёта, это не отметка об оплате.':locale==='uz'?'Zaxira dastlabki hisobning bir qismi, bu to‘lov qaydi emas.':'This reserve is part of the preliminary total, not a payment status.'}</small></div></div>}
+                   {!operations&&!o.cancelled&&o.status===0&&o.product.sourceShippingEstimated&&!o.storeShippingSettlement&&<div className="payment-reserve-hint"><Clock3 size={16}/><div><b>{ow.managerChecking}</b><p>{ow.reserveIncluded} {money(o.quote.sourceShipping??0)}. {ow.beforeBuyout}</p><small>{locale==='ru'?'Резерв — часть предварительного расчёта, это не отметка об оплате.':isUzbek(locale)?uzText(locale, 'Zaxira dastlabki hisobning bir qismi, bu to‘lov qaydi emas.'):'This reserve is part of the preliminary total, not a payment status.'}</small></div></div>}
                 </div>
                 {!operations && !o.cancelled && o.payment.status === "pending" && (
                   <button className="btn primary" onClick={() => setConfirmation({ id: o.id, cancel: false, amount: o.payment!.amount, payment: true })}>
@@ -1416,7 +1418,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
             {o.delivery && (
               <div className="settlement-box delivery-box">
                 <Package size={22} />
-                 <div><h3>{ow.recipient}: {o.delivery.recipient}</h3><p>{[o.delivery.region, o.delivery.city, o.delivery.address, o.delivery.postalCode].filter(Boolean).join(", ")}</p><p>{locale==='ru'?'Телефон получателя':locale==='uz'?'Qabul qiluvchi telefoni':'Recipient phone'}: <a href={`tel:${o.delivery.phone.replace(/[^\d+]/g,'')}`}>{o.delivery.phone}</a></p></div>
+                 <div><h3>{ow.recipient}: {o.delivery.recipient}</h3><p>{[o.delivery.region, o.delivery.city, o.delivery.address, o.delivery.postalCode].filter(Boolean).join(", ")}</p><p>{locale==='ru'?'Телефон получателя':isUzbek(locale)?uzText(locale, 'Qabul qiluvchi telefoni'):'Recipient phone'}: <a href={`tel:${o.delivery.phone.replace(/[^\d+]/g,'')}`}>{o.delivery.phone}</a></p></div>
               </div>
             )}
             {/* The customer's comment and the customs estimate they saw: for Atlas only, never sent to the store. */}
@@ -1426,16 +1428,16 @@ export function OrdersView({ operations }: { operations: boolean }) {
             {o.parcel && (
               <div className="settlement-box parcel-box">
                 <Truck size={22} />
-                 <div><h3>{o.parcel.carrier}</h3><p>{ow.tracking}: {o.parcel.trackingNumber}{o.parcel.warehouseCode ? ` · ${locale === "ru" ? "склад" : locale === "uz" ? "ombor" : "warehouse"} ${o.parcel.warehouseCode}` : ""}</p><strong>{o.parcel.events.at(-1)?.status ?? ow.parcelRegistered}</strong></div>
+                 <div><h3>{o.parcel.carrier}</h3><p>{ow.tracking}: {o.parcel.trackingNumber}{o.parcel.warehouseCode ? ` · ${locale === "ru" ? "склад" : isUzbek(locale) ? uzText(locale, "ombor") : "warehouse"} ${o.parcel.warehouseCode}` : ""}</p><strong>{o.parcel.events.at(-1)?.status ?? ow.parcelRegistered}</strong></div>
               </div>
             )}
             {o.warehouseInspection && (
               <div className={"settlement-box warehouse-box " + (o.warehouseInspection.condition === "ok" ? "" : "attention")}>
-                 <Package size={22}/><div><h3>{o.warehouseInspection.condition === "ok" ? ow.warehouseDone : ow.warehouseProblem}</h3><p>{ow.received}: {o.warehouseInspection.quantityReceived} {locale === "ru" ? "шт." : locale === "uz" ? "dona" : "pcs"}{o.warehouseInspection.packageGroup ? ` · ${locale === "ru" ? "группа" : locale === "uz" ? "guruh" : "group"} ${o.warehouseInspection.packageGroup}` : ""}</p><strong>{o.warehouseInspection.services.length ? `${locale === "ru" ? "Отметки приёмки" : locale === "uz" ? "Qabul belgilari" : "Intake tags"}: ${o.warehouseInspection.services.map((tag) => ({ photo: locale === "ru" ? "Фото" : locale === "uz" ? "Foto" : "Photo requested at intake", repack: locale === "ru" ? "Переупаковка" : locale === "uz" ? "Qayta qadoqlash" : "Repacking noted", consolidate: locale === "ru" ? "Объединение" : locale === "uz" ? "Birlashtirish" : "Consolidation noted", split: locale === "ru" ? "Разделение" : locale === "uz" ? "Bo‘lish" : "Split shipment noted", fragile: locale === "ru" ? "Хрупкий груз" : locale === "uz" ? "Mo‘rt yuk" : "Fragile handling noted" }[tag])).join(", ")}` : ow.noOperations}</strong>{o.warehouseInspection.services.length > 0 && <small className="micro">{locale === "ru" ? "Это отметки осмотра, не подтверждение выполненной или платной услуги." : locale === "uz" ? "Bu ko‘rik belgilari, bajarilgan yoki pullik xizmat tasdig‘i emas." : "These are inspection notes, not proof of a completed or paid service."}</small>}{o.warehouseInspection.notes && <p>{o.warehouseInspection.notes}</p>}</div>
+                 <Package size={22}/><div><h3>{o.warehouseInspection.condition === "ok" ? ow.warehouseDone : ow.warehouseProblem}</h3><p>{ow.received}: {o.warehouseInspection.quantityReceived} {locale === "ru" ? "шт." : isUzbek(locale) ? uzText(locale, "dona") : "pcs"}{o.warehouseInspection.packageGroup ? ` · ${locale === "ru" ? "группа" : isUzbek(locale) ? uzText(locale, "guruh") : "group"} ${o.warehouseInspection.packageGroup}` : ""}</p><strong>{o.warehouseInspection.services.length ? `${locale === "ru" ? "Отметки приёмки" : isUzbek(locale) ? uzText(locale, "Qabul belgilari") : "Intake tags"}: ${o.warehouseInspection.services.map((tag) => ({ photo: locale === "ru" ? "Фото" : isUzbek(locale) ? uzText(locale, "Foto") : "Photo requested at intake", repack: locale === "ru" ? "Переупаковка" : isUzbek(locale) ? uzText(locale, "Qayta qadoqlash") : "Repacking noted", consolidate: locale === "ru" ? "Объединение" : isUzbek(locale) ? uzText(locale, "Birlashtirish") : "Consolidation noted", split: locale === "ru" ? "Разделение" : isUzbek(locale) ? uzText(locale, "Bo‘lish") : "Split shipment noted", fragile: locale === "ru" ? "Хрупкий груз" : isUzbek(locale) ? uzText(locale, "Mo‘rt yuk") : "Fragile handling noted" }[tag])).join(", ")}` : ow.noOperations}</strong>{o.warehouseInspection.services.length > 0 && <small className="micro">{locale === "ru" ? "Это отметки осмотра, не подтверждение выполненной или платной услуги." : isUzbek(locale) ? uzText(locale, "Bu ko‘rik belgilari, bajarilgan yoki pullik xizmat tasdig‘i emas.") : "These are inspection notes, not proof of a completed or paid service."}</small>}{o.warehouseInspection.notes && <p>{o.warehouseInspection.notes}</p>}</div>
               </div>
             )}
             {!operations && <CustomerWarehouseServices order={o} pricing={pricing} locale={locale} busy={busy} run={runOrderAction} />}
-             {!!o.changeRequests?.length && <section className="change-request-list" aria-label={ow.agreements}>{[...o.changeRequests].reverse().map(request=><article className={`change-request ${request.status}`} key={request.id}><div><span className="eyebrow">{request.status === "pending" ? ow.pending : request.status === "approved" ? ow.approved : ow.declined}</span><h3>{request.title}</h3><p>{request.reason}</p>{request.warehouseServiceRequestId&&<p className="micro">{locale==='ru'?'Подтверждение относится только к этой услуге. Платёжный провайдер не подключён, а выполнение ещё не подтверждено.':locale==='uz'?'Tasdiq faqat shu xizmatga tegishli. To‘lov provayderi ulanmagan, xizmat bajarilgani hali tasdiqlanmagan.':'Approval applies only to this service. No payment provider is connected, and fulfilment has not been confirmed.'}</p>}{(request.previousValue||request.proposedValue)&&<p className="change-values"><span>{request.previousValue||"—"}</span><ArrowRight size={15}/><b>{request.proposedValue||"—"}</b></p>}</div><div className="change-amount">{request.amountDelta !== 0 && <strong>{request.amountDelta > 0 ? "+" : ""}{money(request.amountDelta)}</strong>}{!operations && request.status === "pending" && <div className="change-actions"><button className="btn secondary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"declined",expectedAmountDelta:request.amountDelta})}>{ow.reject}</button><button className="btn primary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"approved",expectedAmountDelta:request.amountDelta})}>{ow.confirm}</button></div>}</div></article>)}</section>}
+             {!!o.changeRequests?.length && <section className="change-request-list" aria-label={ow.agreements}>{[...o.changeRequests].reverse().map(request=><article className={`change-request ${request.status}`} key={request.id}><div><span className="eyebrow">{request.status === "pending" ? ow.pending : request.status === "approved" ? ow.approved : ow.declined}</span><h3>{request.title}</h3><p>{request.reason}</p>{request.warehouseServiceRequestId&&<p className="micro">{locale==='ru'?'Подтверждение относится только к этой услуге. Платёжный провайдер не подключён, а выполнение ещё не подтверждено.':isUzbek(locale)?uzText(locale, 'Tasdiq faqat shu xizmatga tegishli. To‘lov provayderi ulanmagan, xizmat bajarilgani hali tasdiqlanmagan.'):'Approval applies only to this service. No payment provider is connected, and fulfilment has not been confirmed.'}</p>}{(request.previousValue||request.proposedValue)&&<p className="change-values"><span>{request.previousValue||"—"}</span><ArrowRight size={15}/><b>{request.proposedValue||"—"}</b></p>}</div><div className="change-amount">{request.amountDelta !== 0 && <strong>{request.amountDelta > 0 ? "+" : ""}{money(request.amountDelta)}</strong>}{!operations && request.status === "pending" && <div className="change-actions"><button className="btn secondary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"declined",expectedAmountDelta:request.amountDelta})}>{ow.reject}</button><button className="btn primary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"approved",expectedAmountDelta:request.amountDelta})}>{ow.confirm}</button></div>}</div></article>)}</section>}
             {o.storeShippingSettlement && (
               <div
                 className={
@@ -1683,7 +1685,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
         ))
       )}
       {operations && viewReady && opsCursor && <button type="button" className="btn secondary full" disabled={opsRefreshing} onClick={() => void loadMoreOperations()}>
-        {locale === "ru" ? `Показать ещё · ${opsPage.length} из ${opsTotal}` : locale === "uz" ? `Yana ko‘rsatish · ${opsPage.length} / ${opsTotal}` : `Show more · ${opsPage.length} of ${opsTotal}`}
+        {locale === "ru" ? `Показать ещё · ${opsPage.length} из ${opsTotal}` : isUzbek(locale) ? uzText(locale, `Yana ko‘rsatish · ${opsPage.length} / ${opsTotal}`) : `Show more · ${opsPage.length} of ${opsTotal}`}
       </button>}
       <Modal
         open={!!confirmingCustoms}
@@ -1920,12 +1922,12 @@ export function PricingManager({
   useEffect(() => {
     onDirtyChange(isDirty);
   }, [isDirty, onDirtyChange]);
-  const serviceWords = {
+  const serviceWords = pickLocale({
     ru: { title: "Услуги и тарифы склада", intro: "Настройте цену за единицу и при необходимости отдельные тарифы по стране отправки. Фиксированная цена показывается клиенту, но не входит в заказ к оплате: оператор сначала подтверждает возможность, клиент отдельно одобряет точную сумму. Снимок условий сохраняется в заказе; списаний и реального выполнения пока нет.", add: "Добавить услугу", enabled: "Доступна клиентам", required: "Обязательна при оформлении", stage: "Когда показывать", checkout: "В корзине", warehouse: "После приёмки", unit: "Единица тарифа", pricing: "Ценообразование", fixed: "Фиксированный тариф", quote: "Цена после проверки оператором", baseFee: "Базовый тариф за единицу, сум", countryFee: "Тариф за единицу для страны, сум", titleLabel: "Название", description: "Описание", remove: "Отключить", insurance: "Страхование заблокировано до подтверждения страховщика, покрытия и порядка претензий." },
     uz: { title: "Ombor xizmatlari va tariflari", intro: "Birlik narxini va kerak bo‘lsa jo‘natish mamlakati bo‘yicha alohida tarifni belgilang. Belgilangan tarif buyurtma summasiga kiritilmaydi: operator imkoniyatni tasdiqlaydi, mijoz esa aniq summaga alohida rozilik beradi. Shartlar buyurtmada saqlanadi; haqiqiy yechib olish va bajarish hali yo‘q.", add: "Xizmat qo‘shish", enabled: "Mijozlarga ochiq", required: "Rasmiylashtirishda majburiy", stage: "Qachon ko‘rsatish", checkout: "Savatda", warehouse: "Qabuldan keyin", unit: "Tarif birligi", pricing: "Narxlash", fixed: "Belgilangan tarif", quote: "Operator tekshirgach narx", baseFee: "Birlik uchun asosiy tarif, so‘m", countryFee: "Mamlakat uchun birlik tarifi, so‘m", titleLabel: "Nomi", description: "Tavsif", remove: "O‘chirish", insurance: "Sug‘urtalovchi, qoplama va da’vo tartibi tasdiqlanmaguncha sug‘urta bloklangan." },
     en: { title: "Warehouse services and rates", intro: "Set a per-unit rate and optional dispatch-country overrides. A fixed rate is shown to customers but excluded from the checkout amount: an operator confirms feasibility, then the customer separately approves the exact amount. Terms are snapshotted on the order; no real charge or fulfilment is connected yet.", add: "Add service", enabled: "Available to customers", required: "Required at checkout", stage: "When to offer", checkout: "In cart", warehouse: "After intake", unit: "Pricing unit", pricing: "Pricing mode", fixed: "Fixed tariff", quote: "Operator quote after review", baseFee: "Base rate per unit, UZS", countryFee: "Rate per unit for country, UZS", titleLabel: "Title", description: "Description", remove: "Deactivate", insurance: "Insurance is locked until the insurer, coverage and claims process are confirmed." },
-  }[locale];
-  const pricingWords = {
+  }, locale);
+  const pricingWords = pickLocale({
     ru: {
       title: "Единые тарифы Atlas",
       updated: "Обновлено",
@@ -2022,33 +2024,33 @@ export function PricingManager({
       saving: "Saving…",
       saved: "Central tariffs updated. New calculations will use them.",
     },
-  }[locale];
+  }, locale);
   const countryLabels: Record<string, Record<Locale, string>> = {
-    "США": { ru: "США", uz: "AQSh", en: "United States" },
-    "Испания": { ru: "Испания", uz: "Ispaniya", en: "Spain" },
-    "Германия": { ru: "Германия", uz: "Germaniya", en: "Germany" },
-    "Великобритания": { ru: "Великобритания", uz: "Buyuk Britaniya", en: "United Kingdom" },
-    "Франция": { ru: "Франция", uz: "Fransiya", en: "France" },
-    "Италия": { ru: "Италия", uz: "Italiya", en: "Italy" },
-    "Румыния": { ru: "Румыния", uz: "Ruminiya", en: "Romania" },
-    "Китай": { ru: "Китай", uz: "Xitoy", en: "China" },
-    "Турция": { ru: "Турция", uz: "Turkiya", en: "Turkey" },
-    "Япония": { ru: "Япония", uz: "Yaponiya", en: "Japan" },
-    "Южная Корея": { ru: "Южная Корея", uz: "Janubiy Koreya", en: "South Korea" },
-    "ОАЭ": { ru: "ОАЭ", uz: "BAA", en: "UAE" },
-    "Канада": { ru: "Канада", uz: "Kanada", en: "Canada" },
-    "Австралия": { ru: "Австралия", uz: "Avstraliya", en: "Australia" },
+    "США": withCyrillic({ ru: "США", uz: "AQSh", en: "United States" }),
+    "Испания": withCyrillic({ ru: "Испания", uz: "Ispaniya", en: "Spain" }),
+    "Германия": withCyrillic({ ru: "Германия", uz: "Germaniya", en: "Germany" }),
+    "Великобритания": withCyrillic({ ru: "Великобритания", uz: "Buyuk Britaniya", en: "United Kingdom" }),
+    "Франция": withCyrillic({ ru: "Франция", uz: "Fransiya", en: "France" }),
+    "Италия": withCyrillic({ ru: "Италия", uz: "Italiya", en: "Italy" }),
+    "Румыния": withCyrillic({ ru: "Румыния", uz: "Ruminiya", en: "Romania" }),
+    "Китай": withCyrillic({ ru: "Китай", uz: "Xitoy", en: "China" }),
+    "Турция": withCyrillic({ ru: "Турция", uz: "Turkiya", en: "Turkey" }),
+    "Япония": withCyrillic({ ru: "Япония", uz: "Yaponiya", en: "Japan" }),
+    "Южная Корея": withCyrillic({ ru: "Южная Корея", uz: "Janubiy Koreya", en: "South Korea" }),
+    "ОАЭ": withCyrillic({ ru: "ОАЭ", uz: "BAA", en: "UAE" }),
+    "Канада": withCyrillic({ ru: "Канада", uz: "Kanada", en: "Canada" }),
+    "Австралия": withCyrillic({ ru: "Австралия", uz: "Avstraliya", en: "Australia" }),
   };
   const updateService = (index: number, patch: Partial<ServiceOffering>) => setDraft((current) => ({ ...current, serviceCatalog: current.serviceCatalog.map((service, serviceIndex) => serviceIndex === index ? { ...service, ...patch } : service) }));
-  const addService = () => setDraft((current) => ({ ...current, serviceCatalog: [...current.serviceCatalog, { id: `custom-service-${crypto.randomUUID().slice(0, 8)}`, title: { ru: "Новая услуга", uz: "Yangi xizmat", en: "New service" }, description: { ru: "", uz: "", en: "" }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: false, required: false }] }));
+  const addService = () => setDraft((current) => ({ ...current, serviceCatalog: [...current.serviceCatalog, { id: `custom-service-${crypto.randomUUID().slice(0, 8)}`, title: withCyrillic({ ru: "Новая услуга", uz: "Yangi xizmat", en: "New service" }), description: withCyrillic({ ru: "", uz: "", en: "" }), requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: false, required: false }] }));
   const setNumber = (key: "fx" | "perKgUsd" | "standardPerKgUsd" | "margin" | "buyoutFee" | "conversionFee" | "deliveryMargin" | "optionalServices" | "reserve" | "divisor" | "storeShippingFreeFromUsd", raw: string) =>
     setDraft((current) => ({ ...current, [key]: Number(raw) }));
   const [fxBusy, setFxBusy] = useState(false);
-  const fxWords = {
+  const fxWords = pickLocale({
     ru: { title: "Курс USD → сум", source: "Источник курса", cbu: "Курс ЦБ Узбекистана × наценка", manual: "Установленный курс (вручную)", markup: "Наценка к курсу ЦБ", none: "Курс ЦБ ещё не получен: действует установленный курс.", last: (rate: string, date: string, at: string) => `ЦБ: ${rate} сум на ${date}; проверено ${at}. Сервер обновляет курс раз в 6 часов.`, refresh: "Обновить курс ЦБ сейчас", failed: "Не удалось получить курс ЦБ.", updated: (fx: string) => `Курс обновлён: ${fx} сум за $1.`, customsTitle: "Таможня (ориентир для клиента)", allowance: "Лимит в месяц на получателя, $", rate: "Ставка, %", perKg: "Минимум за кг, $", helpFee: "«Atlas оплатит таможню», % от суммы корзины", customsNote: "Пустое поле — правило, проверенное на lex.uz 04.10.2026 (ПКМ №244, ПП-4508, УП-174). Пошлина в сумму заказа не входит; комиссия «Atlas оплатит таможню» входит, если клиент её выбрал." },
     uz: { title: "USD → so‘m kursi", source: "Kurs manbai", cbu: "O‘zbekiston MB kursi × ustama", manual: "Belgilangan kurs (qo‘lda)", markup: "MB kursiga ustama", none: "MB kursi hali olinmagan: belgilangan kurs amal qiladi.", last: (rate: string, date: string, at: string) => `MB: ${date} uchun ${rate} so‘m; ${at} da tekshirildi. Server kursni har 6 soatda yangilaydi.`, refresh: "MB kursini hozir yangilash", failed: "MB kursini olib bo‘lmadi.", updated: (fx: string) => `Kurs yangilandi: $1 uchun ${fx} so‘m.`, customsTitle: "Bojxona (mijoz uchun taxmin)", allowance: "Qabul qiluvchiga oylik limit, $", rate: "Stavka, %", perKg: "Kg uchun minimum, $", helpFee: "«Bojxonani Atlas to‘laydi», savat summasidan %", customsNote: "Bo‘sh maydon — lex.uz da 04.10.2026 tekshirilgan qoida (VMQ №244, PP-4508, PF-174). Boj buyurtma summasiga kirmaydi; mijoz tanlasa, «Bojxonani Atlas to‘laydi» komissiyasi kiradi." },
     en: { title: "USD → UZS rate", source: "Rate source", cbu: "Central Bank of Uzbekistan rate × markup", manual: "Set rate (manual)", markup: "Markup on the CBU rate", none: "No CBU rate yet: the set rate applies.", last: (rate: string, date: string, at: string) => `CBU: ${rate} UZS for ${date}; checked ${at}. The server refreshes it every 6 hours.`, refresh: "Refresh the CBU rate now", failed: "Could not get the CBU rate.", updated: (fx: string) => `Rate updated: ${fx} UZS per $1.`, customsTitle: "Customs (estimate shown to customers)", allowance: "Monthly allowance per recipient, $", rate: "Rate, %", perKg: "Minimum per kg, $", helpFee: "“Atlas pays customs”, % of the cart", customsNote: "Empty = the rule checked on lex.uz on 04.10.2026 (CM No. 244, PP-4508, UP-174). Duty is not part of the order sum; the “Atlas pays customs” fee is, when the customer chooses it." },
-  }[locale];
+  }, locale);
   // A tariff saved before delivery was priced in USD shows its soum rate converted at the current rate.
   const usdOf = (soum: number) => Math.round((soum / draft.fx) * 100) / 100;
   const perKgUsd = draft.perKgUsd ?? usdOf(draft.perKg);
@@ -2111,7 +2113,7 @@ export function PricingManager({
               : pricingWords.default}
           </small>
         </span>
-         <span className="status-badge">{isDirty?(locale==="ru"?"Не сохранено":locale==="uz"?"Saqlanmagan":"Unsaved"):value.version}</span>
+         <span className="status-badge">{isDirty?(locale==="ru"?"Не сохранено":isUzbek(locale)?uzText(locale, "Saqlanmagan"):"Unsaved"):value.version}</span>
       </summary>
       <form
         onSubmit={(event) => {
@@ -2206,7 +2208,7 @@ export function PricingManager({
               ["perKgUsd", pricingWords.perKgCountry, "USD"],
               ["standardPerKgUsd", pricingWords.standardPerKgCountry, "USD"],
               ["reserve", pricingWords.reserve, "%"],
-              ["optionalServices", pricingWords.lineFeeCountry, locale === "en" ? "UZS" : locale === "uz" ? "so‘m" : "сум"],
+              ["optionalServices", pricingWords.lineFeeCountry, locale === "en" ? "UZS" : isUzbek(locale) ? uzText(locale, "so‘m") : "сум"],
             ] as const).map(([key, label, unit]) => {
               const values = draft.countryOverrides[selectedCountry];
               // An override saved in soum before USD rates shows converted and is replaced on edit.
@@ -2240,11 +2242,11 @@ export function PricingManager({
         </details>
         {/* Delivery time per region and speed, shown in the home rates table, the example bill, the FAQ and order details. */}
         {([
-          ["deliveryDays", siteContent.deliveryDays, locale === "en" ? "Express delivery times by country" : locale === "uz" ? "Mamlakatlar bo‘yicha ekspress yetkazish muddati" : "Сроки экспресс-доставки по странам"],
-          ["standardDeliveryDays", siteContent.standardDeliveryDays, locale === "en" ? "Standard delivery times by country" : locale === "uz" ? "Mamlakatlar bo‘yicha oddiy yetkazish muddati" : "Сроки обычной доставки по странам"],
+          ["deliveryDays", siteContent.deliveryDays, locale === "en" ? "Express delivery times by country" : isUzbek(locale) ? uzText(locale, "Mamlakatlar bo‘yicha ekspress yetkazish muddati") : "Сроки экспресс-доставки по странам"],
+          ["standardDeliveryDays", siteContent.standardDeliveryDays, locale === "en" ? "Standard delivery times by country" : isUzbek(locale) ? uzText(locale, "Mamlakatlar bo‘yicha oddiy yetkazish muddati") : "Сроки обычной доставки по странам"],
         ] as const).map(([field, fallback, title]) => <details className="country-pricing delivery-days-pricing" key={field}>
           <summary>{title}</summary>
-          <p className="micro">{locale === "en" ? "Business days from our warehouse abroad to Uzbekistan, from and to. Empty fields keep the current value." : locale === "uz" ? "Xorijdagi omborimizdan O‘zbekistongacha ish kunlari, dan va gacha. Bo‘sh maydon joriy qiymatni saqlaydi." : "Рабочие дни от нашего склада за рубежом до Узбекистана, от и до. Пустое поле оставляет текущее значение."}</p>
+          <p className="micro">{locale === "en" ? "Business days from our warehouse abroad to Uzbekistan, from and to. Empty fields keep the current value." : isUzbek(locale) ? uzText(locale, "Xorijdagi omborimizdan O‘zbekistongacha ish kunlari, dan va gacha. Bo‘sh maydon joriy qiymatni saqlaydi.") : "Рабочие дни от нашего склада за рубежом до Узбекистана, от и до. Пустое поле оставляет текущее значение."}</p>
           <div className="pricing-grid">
             {deliveryRegions.map((region) => {
               const current = draft[field]?.[region.id] ?? fallback[region.id];
@@ -2262,9 +2264,9 @@ export function PricingManager({
               return <div className="field" key={region.id}>
                 <label htmlFor={`${id}-from`}>{homeCopy[locale].tariffs.regions[region.id]}</label>
                 <span className="days-range">
-                  <input id={`${id}-from`} type="number" min="1" max="120" step="1" aria-label={locale === "en" ? "from" : locale === "uz" ? "dan" : "от"} value={current?.[0] ?? ""} onChange={(event) => set(0, event.target.value)} />
+                  <input id={`${id}-from`} type="number" min="1" max="120" step="1" aria-label={locale === "en" ? "from" : isUzbek(locale) ? uzText(locale, "dan") : "от"} value={current?.[0] ?? ""} onChange={(event) => set(0, event.target.value)} />
                   <span aria-hidden="true">–</span>
-                  <input id={`${id}-to`} type="number" min="1" max="120" step="1" aria-label={locale === "en" ? "to" : locale === "uz" ? "gacha" : "до"} value={current?.[1] ?? ""} onChange={(event) => set(1, event.target.value)} />
+                  <input id={`${id}-to`} type="number" min="1" max="120" step="1" aria-label={locale === "en" ? "to" : isUzbek(locale) ? uzText(locale, "gacha") : "до"} value={current?.[1] ?? ""} onChange={(event) => set(1, event.target.value)} />
                 </span>
               </div>;
             })}
@@ -2274,15 +2276,15 @@ export function PricingManager({
           <div className="warehouse-service-catalog-heading"><div><h3>{serviceWords.title}</h3><p className="micro">{serviceWords.intro}</p></div><button type="button" className="btn secondary" disabled={draft.serviceCatalog.length >= 40} onClick={addService}>{serviceWords.add}</button></div>
           {draft.serviceCatalog.some((service) => service.id === "shipping-insurance") && <p className="notice warning">{serviceWords.insurance}</p>}
           <div className="warehouse-service-catalog-list">{draft.serviceCatalog.map((service, index) => <details className="warehouse-service-config" key={service.id}>
-            <summary><span><b>{serviceTitle(service, locale)}</b><small>{service.id} · {service.enabled ? serviceWords.enabled : serviceWords.remove}</small></span><span className="status-badge">{service.pricingMode === "fixed" ? `${serviceFeeForCountry(service, selectedCountry).toLocaleString("ru-RU")} сум / ${service.unit === "package" ? (locale === "ru" ? "посылка" : locale === "uz" ? "posilka" : "package") : service.unit === "item" ? (locale === "ru" ? "шт." : locale === "uz" ? "dona" : "item") : service.unit === "photo" ? (locale === "ru" ? "фото" : locale === "uz" ? "foto" : "photo") : service.unit === "day" ? (locale === "ru" ? "день" : locale === "uz" ? "kun" : "day") : (locale === "ru" ? "30 мин." : locale === "uz" ? "30 daq." : "30 min")}` : serviceWords.quote}</span></summary>
+            <summary><span><b>{serviceTitle(service, locale)}</b><small>{service.id} · {service.enabled ? serviceWords.enabled : serviceWords.remove}</small></span><span className="status-badge">{service.pricingMode === "fixed" ? `${serviceFeeForCountry(service, selectedCountry).toLocaleString("ru-RU")} сум / ${service.unit === "package" ? (locale === "ru" ? "посылка" : isUzbek(locale) ? uzText(locale, "posilka") : "package") : service.unit === "item" ? (locale === "ru" ? "шт." : isUzbek(locale) ? uzText(locale, "dona") : "item") : service.unit === "photo" ? (locale === "ru" ? "фото" : isUzbek(locale) ? uzText(locale, "foto") : "photo") : service.unit === "day" ? (locale === "ru" ? "день" : isUzbek(locale) ? uzText(locale, "kun") : "day") : (locale === "ru" ? "30 мин." : isUzbek(locale) ? uzText(locale, "30 daq.") : "30 min")}` : serviceWords.quote}</span></summary>
             <div className="warehouse-service-config-body">
               <label className="warehouse-service-toggle"><input type="checkbox" checked={service.enabled} disabled={service.id === "shipping-insurance"} onChange={(event) => updateService(index, { enabled: event.target.checked, required: event.target.checked ? service.required : false })} />{serviceWords.enabled}</label>
               <div className="pricing-grid">
                 <div className="field"><label htmlFor={`service-stage-${service.id}`}>{serviceWords.stage}</label><select id={`service-stage-${service.id}`} value={service.requestStage} onChange={(event) => updateService(index, { requestStage: event.target.value as ServiceOffering["requestStage"], required: event.target.value === "checkout" ? service.required : false })}><option value="checkout">{serviceWords.checkout}</option><option value="warehouse">{serviceWords.warehouse}</option></select></div>
-                <div className="field"><label htmlFor={`service-unit-${service.id}`}>{serviceWords.unit}</label><select id={`service-unit-${service.id}`} value={service.unit} onChange={(event) => updateService(index, { unit: event.target.value as ServiceOffering["unit"] })}><option value="package">{locale === "ru" ? "посылка" : locale === "uz" ? "posilka" : "package"}</option><option value="item">{locale === "ru" ? "товар" : locale === "uz" ? "tovar" : "item"}</option><option value="day">{locale === "ru" ? "день" : locale === "uz" ? "kun" : "day"}</option><option value="photo">{locale === "ru" ? "фото" : locale === "uz" ? "foto" : "photo"}</option><option value="half-hour">{locale === "ru" ? "30 минут" : locale === "uz" ? "30 daqiqa" : "30 minutes"}</option></select></div>
+                <div className="field"><label htmlFor={`service-unit-${service.id}`}>{serviceWords.unit}</label><select id={`service-unit-${service.id}`} value={service.unit} onChange={(event) => updateService(index, { unit: event.target.value as ServiceOffering["unit"] })}><option value="package">{locale === "ru" ? "посылка" : isUzbek(locale) ? uzText(locale, "posilka") : "package"}</option><option value="item">{locale === "ru" ? "товар" : isUzbek(locale) ? uzText(locale, "tovar") : "item"}</option><option value="day">{locale === "ru" ? "день" : isUzbek(locale) ? uzText(locale, "kun") : "day"}</option><option value="photo">{locale === "ru" ? "фото" : isUzbek(locale) ? uzText(locale, "foto") : "photo"}</option><option value="half-hour">{locale === "ru" ? "30 минут" : isUzbek(locale) ? uzText(locale, "30 daqiqa") : "30 minutes"}</option></select></div>
                 <div className="field"><label htmlFor={`service-pricing-${service.id}`}>{serviceWords.pricing}</label><select id={`service-pricing-${service.id}`} value={service.pricingMode} onChange={(event) => updateService(index, { pricingMode: event.target.value as ServiceOffering["pricingMode"], required: event.target.value === "fixed" ? service.required : false })}><option value="operator-quote">{serviceWords.quote}</option><option value="fixed">{serviceWords.fixed}</option></select></div>
                 <div className="field"><label htmlFor={`service-fee-${service.id}`}>{serviceWords.baseFee}</label><input id={`service-fee-${service.id}`} type="number" min="0" max="20000000" step="1" disabled={service.pricingMode !== "fixed"} value={service.feeUzs} onChange={(event) => updateService(index, { feeUzs: Number(event.target.value) })} /></div>
-                <div className="field"><label htmlFor={`service-country-fee-${service.id}`}>{serviceWords.countryFee} · {selectedCountry}</label><input id={`service-country-fee-${service.id}`} type="number" min="0" max="20000000" step="1" disabled={service.pricingMode !== "fixed"} value={service.countryPrices[selectedCountry] ?? ""} placeholder={`${service.feeUzs} (${locale === "ru" ? "общий тариф" : locale === "uz" ? "asosiy tarif" : "base price"})`} onChange={(event) => {
+                <div className="field"><label htmlFor={`service-country-fee-${service.id}`}>{serviceWords.countryFee} · {selectedCountry}</label><input id={`service-country-fee-${service.id}`} type="number" min="0" max="20000000" step="1" disabled={service.pricingMode !== "fixed"} value={service.countryPrices[selectedCountry] ?? ""} placeholder={`${service.feeUzs} (${locale === "ru" ? "общий тариф" : isUzbek(locale) ? uzText(locale, "asosiy tarif") : "base price"})`} onChange={(event) => {
                   const countryPrices = { ...service.countryPrices };
                   if (event.target.value === "") delete countryPrices[selectedCountry]; else countryPrices[selectedCountry] = Number(event.target.value);
                   updateService(index, { countryPrices });
@@ -2290,7 +2292,7 @@ export function PricingManager({
               </div>
               <label className="warehouse-service-toggle"><input type="checkbox" checked={service.required} disabled={!service.enabled || service.requestStage !== "checkout" || service.pricingMode !== "fixed"} onChange={(event) => updateService(index, { required: event.target.checked })} />{serviceWords.required}</label>
               <div className="warehouse-service-locales">{(["ru", "uz", "en"] as const).map((language) => <fieldset key={language}><legend>{serviceWords.titleLabel} / {serviceWords.description} · {language.toUpperCase()}</legend><div className="field"><label htmlFor={`service-title-${service.id}-${language}`}>{serviceWords.titleLabel}</label><input id={`service-title-${service.id}-${language}`} required maxLength={120} value={service.title[language]} onChange={(event) => updateService(index, { title: { ...service.title, [language]: event.target.value } })} /></div><div className="field"><label htmlFor={`service-description-${service.id}-${language}`}>{serviceWords.description}</label><textarea id={`service-description-${service.id}-${language}`} maxLength={500} rows={3} value={service.description[language]} onChange={(event) => updateService(index, { description: { ...service.description, [language]: event.target.value } })} /></div></fieldset>)}</div>
-              <p className="micro">{locale === "ru" ? "Чтобы скрыть существующую услугу, снимите флажок доступности. Удаление отключено, чтобы не ломать историю заказов." : locale === "uz" ? "Mavjud xizmatni yashirish uchun ochiqlik belgisini olib tashlang. Buyurtma tarixini saqlash uchun o‘chirish yo‘q." : "Deactivate an existing offer instead of deleting it so old orders keep their references."}</p>
+              <p className="micro">{locale === "ru" ? "Чтобы скрыть существующую услугу, снимите флажок доступности. Удаление отключено, чтобы не ломать историю заказов." : isUzbek(locale) ? uzText(locale, "Mavjud xizmatni yashirish uchun ochiqlik belgisini olib tashlang. Buyurtma tarixini saqlash uchun o‘chirish yo‘q.") : "Deactivate an existing offer instead of deleting it so old orders keep their references."}</p>
             </div>
           </details>)}</div>
         </section>
@@ -2350,8 +2352,8 @@ function CommunicationPanel({
     phone: value.phone || phone,
   });
   const [saving, setSaving] = useState(false);
-  const communicationWords={ru:{eyebrow:'КАНАЛЫ СВЯЗИ',title:'Email и SMS',emailHint:'Статусы, оплата и возвраты',smsHint:'Только важные изменения',phone:'Телефон',language:'Язык интерфейса и уведомлений',save:'Сохранить настройки',saved:'Настройки email и SMS сохранены'},uz:{eyebrow:'ALOQA KANALLARI',title:'Email va SMS',emailHint:'Holatlar, to‘lov va qaytarishlar',smsHint:'Faqat muhim o‘zgarishlar',phone:'Telefon',language:'Interfeys va bildirishnomalar tili',save:'Sozlamalarni saqlash',saved:'Email va SMS sozlamalari saqlandi'},en:{eyebrow:'CONTACT CHANNELS',title:'Email and SMS',emailHint:'Status, payment and refunds',smsHint:'Important changes only',phone:'Phone',language:'Interface and notification language',save:'Save settings',saved:'Email and SMS settings saved'}}[value.language];
-  const communicationCopy=value.language==='ru'?{description:'Настройки сохраняются в профиле. Отправка email и SMS не подключена.',status:'Отправка не подключена'}:value.language==='uz'?{description:'Sozlamalar profilda saqlanadi. Email va SMS yuborish ulanmagan.',status:'Yuborish ulanmagan'}:{description:'Preferences are saved to your account. Email and SMS delivery is not connected.',status:'Delivery not connected'};
+  const communicationWords=pickLocale({ru:{eyebrow:'КАНАЛЫ СВЯЗИ',title:'Email и SMS',emailHint:'Статусы, оплата и возвраты',smsHint:'Только важные изменения',phone:'Телефон',language:'Язык интерфейса и уведомлений',save:'Сохранить настройки',saved:'Настройки email и SMS сохранены'},uz:{eyebrow:'ALOQA KANALLARI',title:'Email va SMS',emailHint:'Holatlar, to‘lov va qaytarishlar',smsHint:'Faqat muhim o‘zgarishlar',phone:'Telefon',language:'Interfeys va bildirishnomalar tili',save:'Sozlamalarni saqlash',saved:'Email va SMS sozlamalari saqlandi'},en:{eyebrow:'CONTACT CHANNELS',title:'Email and SMS',emailHint:'Status, payment and refunds',smsHint:'Important changes only',phone:'Phone',language:'Interface and notification language',save:'Save settings',saved:'Email and SMS settings saved'}}, value.language);
+  const communicationCopy=value.language==='ru'?{description:'Настройки сохраняются в профиле. Отправка email и SMS не подключена.',status:'Отправка не подключена'}:isUzbek(value.language)?uzText(value.language, {description:'Sozlamalar profilda saqlanadi. Email va SMS yuborish ulanmagan.',status:'Yuborish ulanmagan'}):{description:'Preferences are saved to your account. Email and SMS delivery is not connected.',status:'Delivery not connected'};
   async function submit() {
     setSaving(true);
     const ok = await save(draft);
@@ -2365,13 +2367,13 @@ function CommunicationPanel({
          <span className="status-badge">{communicationCopy.status}</span>
       </div>
       <div className="communication-grid">
-         <label className="channel-card"><input type="checkbox" checked={draft.emailEnabled} onChange={(event) => setDraft({ ...draft, emailEnabled: event.target.checked })} /><Mail size={22} /><span><b>Email</b><small>{communicationWords.emailHint}</small></span></label>
-         <label className="channel-card"><input type="checkbox" checked={draft.smsEnabled} onChange={(event) => setDraft({ ...draft, smsEnabled: event.target.checked })} /><MessageSquareText size={22} /><span><b>SMS</b><small>{communicationWords.smsHint}</small></span></label>
+         <label className={draft.emailEnabled ? "channel-card checked" : "channel-card"}><input type="checkbox" checked={draft.emailEnabled} onChange={(event) => setDraft({ ...draft, emailEnabled: event.target.checked })} /><Mail size={22} /><span><b>Email</b><small>{communicationWords.emailHint}</small></span></label>
+         <label className={draft.smsEnabled ? "channel-card checked" : "channel-card"}><input type="checkbox" checked={draft.smsEnabled} onChange={(event) => setDraft({ ...draft, smsEnabled: event.target.checked })} /><MessageSquareText size={22} /><span><b>SMS</b><small>{communicationWords.smsHint}</small></span></label>
       </div>
       <div className="communication-fields">
         <div className="field"><label htmlFor="notice-email">Email</label><input id="notice-email" type="email" required={draft.emailEnabled} value={draft.email} onChange={(event) => setDraft({ ...draft, email: event.target.value })} /></div>
          <div className="field"><label htmlFor="notice-phone">{communicationWords.phone}</label><input id="notice-phone" type="tel" required={draft.smsEnabled} placeholder="+998 90 123 45 67" value={draft.phone} onChange={(event) => setDraft({ ...draft, phone: event.target.value })} /></div>
-         <div className="field"><label htmlFor="notice-language">{communicationWords.language}</label><select id="notice-language" value={draft.language} onChange={(event) => setDraft({ ...draft, language: event.target.value as "ru" | "uz" | "en" })}><option value="ru">Русский</option><option value="uz">O‘zbekcha</option><option value="en">English</option></select></div>
+         <div className="field"><label htmlFor="notice-language">{communicationWords.language}</label><select id="notice-language" value={draft.language} onChange={(event) => setDraft({ ...draft, language: event.target.value as Locale })}><option value="ru">Русский</option><option value="uz">O‘zbekcha (lotin)</option><option value="oz">Ўзбекча (кирилл)</option><option value="en">English</option></select></div>
       </div>
        <button className="btn secondary" disabled={saving || (draft.emailEnabled && !draft.email) || (draft.smsEnabled && !draft.phone)} onClick={() => void submit()}>{saving ? "…" : communicationWords.save}<Check size={17} /></button>
     </section>
@@ -2390,6 +2392,28 @@ export function NotificationsView() {
   const groups = [...grouped.values()];
   const unread = state.notifications.filter(item => !item.read).length;
   const counts = { all: state.notifications.length, unread, orders: state.notifications.filter(item => item.orderId).length };
+  // Direct links to one message (/notifications?id=… or #…) keep working: show it, open its group and highlight it.
+  const [linked, setLinked] = useState("");
+  useEffect(() => {
+    const read = () => { const url = new URL(window.location.href); setLinked(decodeURIComponent(url.hash.slice(1)) || url.searchParams.get("id") || ""); };
+    queueMicrotask(read);
+    window.addEventListener("hashchange", read);
+    return () => window.removeEventListener("hashchange", read);
+  }, []);
+  const linkedFound = ready && !!linked && state.notifications.some(item => item.id === linked);
+  useEffect(() => {
+    if (!linkedFound) return;
+    queueMicrotask(() => setNoticeFilter("all"));
+    const timer = window.setTimeout(() => {
+      const target = document.getElementById("notice-" + linked);
+      if (!target) return;
+      const group = target.closest("details");
+      if (group) group.open = true;
+      target.scrollIntoView({ block: "center" });
+      target.focus({ preventScroll: true });
+    }, 60);
+    return () => window.clearTimeout(timer);
+  }, [linkedFound, linked]);
   return (
     <div className="notices-page">
       <header className="orders-head">
@@ -2406,13 +2430,13 @@ export function NotificationsView() {
         <>
           <div className="notice-filters" role="group" aria-label={c.filtersLabel}>{(["all", "unread", "orders"] as const).map(value => <button type="button" key={value} className={noticeFilter === value ? "active" : ""} aria-pressed={noticeFilter === value} onClick={() => setNoticeFilter(value)}>{c.filters[value]}<b>{counts[value]}</b></button>)}</div>
           {!groups.length ? <p className="cabinet-empty">{c.emptyFilter}</p> : <ul className="notices-list">
-            {groups.map(([item, ...history]) => <li key={item.id} className={"notice-x" + (!item.read ? " unread" : "")}>
+            {groups.map(([item, ...history]) => <li key={item.id} id={"notice-" + item.id} tabIndex={-1} className={"notice-x" + (!item.read ? " unread" : "") + (linked === item.id ? " linked" : "")}>
               <span className="notice-x-icon" aria-hidden="true"><Bell size={18} /></span>
               <div className="notice-x-body">
                 <div className="notice-x-head"><h2>{renderNotification(item, locale).title}</h2>{!item.read && <span className="notice-x-new">{c.newBadge}</span>}</div>
                 <p>{renderNotification(item, locale).message}</p>
                 <div className="notice-x-foot"><time dateTime={new Date(item.at).toISOString()}>{formatDateTime(item.at, locale)}</time>{item.orderId && <Link className="order-x-link" href={"/orders#" + item.orderId}>{c.openOrder} {item.orderId}<ArrowRight size={14} aria-hidden="true" /></Link>}</div>
-                {history.length > 0 && <details className="notice-x-history"><summary>{c.more(history.length)}</summary><ol>{history.map(previous => <li key={previous.id}><b>{renderNotification(previous, locale).title}</b><p>{renderNotification(previous, locale).message}</p><time dateTime={new Date(previous.at).toISOString()}>{formatDateTime(previous.at, locale)}</time></li>)}</ol></details>}
+                {history.length > 0 && <details className="notice-x-history"><summary>{c.more(history.length)}</summary><ol>{history.map(previous => <li key={previous.id} id={"notice-" + previous.id} tabIndex={-1} className={linked === previous.id ? "linked" : undefined}><b>{renderNotification(previous, locale).title}</b><p>{renderNotification(previous, locale).message}</p><time dateTime={new Date(previous.at).toISOString()}>{formatDateTime(previous.at, locale)}</time></li>)}</ol></details>}
               </div>
             </li>)}
           </ul>}
@@ -2422,7 +2446,7 @@ export function NotificationsView() {
       {ready && user?.operator && (
         <section className="message-log-section">
           <div className="section-heading"><h2>Журнал внешних сообщений</h2><span>{state.messageDeliveries.length} подготовлено</span></div>
-          {!state.messageDeliveries.length ? <div className="surface message-log-empty"><Mail size={23} /><div><h3>{locale==='ru'?'Сообщений пока нет':locale==='uz'?'Hozircha xabarlar yo‘q':'No messages yet'}</h3><p>{locale==='ru'?'Настройки email и SMS можно сохранить, но отправка не подключена.':locale==='uz'?'Email va SMS sozlamalarini saqlash mumkin, lekin yuborish ulanmagan.':'Email and SMS preferences can be saved, but delivery is not connected.'}</p></div></div> : <div className="surface message-log">{state.messageDeliveries.map((item) => <article key={item.id}><span className="message-channel">{item.channel === "email" ? <Mail size={17} /> : <MessageSquareText size={17} />}{item.channel.toUpperCase()}</span><div><b>{item.title}</b><p>{item.orderId ? `${item.orderId} · ` : ""}{item.destination}</p></div><span className="status-badge">{locale==='ru'?'Не отправлено':locale==='uz'?'Yuborilmadi':'Not sent'}</span><time>{formatDateTime(item.at, locale)}</time></article>)}</div>}
+          {!state.messageDeliveries.length ? <div className="surface message-log-empty"><Mail size={23} /><div><h3>{locale==='ru'?'Сообщений пока нет':isUzbek(locale)?uzText(locale, 'Hozircha xabarlar yo‘q'):'No messages yet'}</h3><p>{locale==='ru'?'Настройки email и SMS можно сохранить, но отправка не подключена.':isUzbek(locale)?uzText(locale, 'Email va SMS sozlamalarini saqlash mumkin, lekin yuborish ulanmagan.'):'Email and SMS preferences can be saved, but delivery is not connected.'}</p></div></div> : <div className="surface message-log">{state.messageDeliveries.map((item) => <article key={item.id}><span className="message-channel">{item.channel === "email" ? <Mail size={17} /> : <MessageSquareText size={17} />}{item.channel.toUpperCase()}</span><div><b>{item.title}</b><p>{item.orderId ? `${item.orderId} · ` : ""}{item.destination}</p></div><span className="status-badge">{locale==='ru'?'Не отправлено':isUzbek(locale)?uzText(locale, 'Yuborilmadi'):'Not sent'}</span><time>{formatDateTime(item.at, locale)}</time></article>)}</div>}
         </section>
       )}
     </div>

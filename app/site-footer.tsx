@@ -4,20 +4,21 @@ import Link from '@/components/site-link';
 import {useMarket} from '@/lib/market/store';
 import {ThemeToggle} from './theme-control';
 import {routeTitle} from '@/lib/market/i18n';
+import {pickLocale} from '@/lib/market/uz-cyrl';
 import {MissingContent,useHomeCopy} from './home-sections';
 
 export function SiteFooter(){
  const {locale,c}=useHomeCopy();
  const {siteContent}=useMarket();
  const {contacts,legal}=siteContent;
- const pickup=contacts.pickupAddress?.[locale];
+ const pickup=(contacts.pickupAddress?pickLocale(contacts.pickupAddress,locale):undefined);
  const contactLinks=[
   contacts.telegramSupport&&{href:`https://t.me/${contacts.telegramSupport}`,label:c.footer.telegramSupport,value:'@'+contacts.telegramSupport},
   contacts.telegramChannel&&{href:`https://t.me/${contacts.telegramChannel}`,label:c.footer.telegramChannel,value:'@'+contacts.telegramChannel},
   contacts.phone&&{href:`tel:${contacts.phone.replace(/[^+\d]/g,'')}`,label:c.footer.phone,value:contacts.phone},
   contacts.instagram&&{href:`https://instagram.com/${contacts.instagram}`,label:c.footer.instagram,value:'@'+contacts.instagram},
  ].filter((item):item is {href:string;label:string;value:string}=>Boolean(item));
- const legalAddress=legal.address?.[locale];
+ const legalAddress=(legal.address?pickLocale(legal.address,locale):undefined);
  // No real contacts yet: no column that would only say "support in your account"; that link joins the shoppers' list.
  const hasContacts=contactLinks.length>0||Boolean(pickup);
  // Compact footer: brand and tagline on the left, link groups on the right (flex, so a missing contacts group leaves no hole), one bottom line.

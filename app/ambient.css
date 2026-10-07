@@ -1,0 +1,44 @@
+/* Site-wide backdrop (app/ambient-backdrop.tsx): glows and tilted Atlas watermarks behind every page.
+   Fixed, z-index -1 in the root stacking context (like .hw-decor): it shows through the page canvas between
+   cards and sheets, never over content. Glows move by transform only (compositor) and only on wide screens;
+   phones get a still, fainter version with a single watermark so nothing competes with the text. */
+.ambient {
+  position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; user-select: none; contain: strict;
+  --amb-mint: rgba(120, 210, 168, .30); --amb-green: rgba(32, 78, 61, .10); --amb-gold: rgba(240, 190, 100, .22);
+  --amb-mark: #1f4d3b; --amb-mark-a: .035;
+}
+html[data-theme="dark"] .ambient {
+  --amb-mint: rgba(92, 196, 150, .14); --amb-green: rgba(174, 187, 220, .07); --amb-gold: rgba(222, 178, 98, .09);
+  --amb-mark: #ebe4d2; --amb-mark-a: .03;
+}
+
+.ambient-glow { position: absolute; border-radius: 50%; filter: blur(60px); will-change: transform; }
+.ambient-glow-1 { width: 46vmax; height: 46vmax; top: -16vmax; left: -14vmax; background: radial-gradient(closest-side, var(--amb-mint), transparent); animation: ambient-drift-a 38s ease-in-out infinite alternate; }
+.ambient-glow-2 { width: 40vmax; height: 40vmax; top: 30%; right: -16vmax; background: radial-gradient(closest-side, var(--amb-gold), transparent); animation: ambient-drift-b 46s ease-in-out infinite alternate; }
+.ambient-glow-3 { width: 52vmax; height: 52vmax; bottom: -26vmax; left: 22%; background: radial-gradient(closest-side, var(--amb-green), transparent); animation: ambient-drift-a 54s ease-in-out infinite alternate-reverse; }
+@keyframes ambient-drift-a { to { transform: translate3d(6vmax, 4vmax, 0) scale(1.08); } }
+@keyframes ambient-drift-b { to { transform: translate3d(-5vmax, -6vmax, 0) scale(.94); } }
+
+/* Watermarks: the Atlas wordmark (Manrope, like the header), large, tilted and nearly transparent. */
+.ambient-mark {
+  position: absolute; display: inline-flex; align-items: flex-start; gap: .02em;
+  color: var(--amb-mark); opacity: var(--amb-mark-a); transform: rotate(-14deg); transform-origin: center;
+  font-family: "Manrope Variable", Manrope, sans-serif; font-weight: 800; letter-spacing: -.06em; line-height: 1; white-space: nowrap;
+}
+.ambient-mark svg { width: .42em; height: .42em; margin-top: .06em; }
+.ambient-mark-1 { top: 14%; right: -3vw; font-size: clamp(140px, 17vw, 300px); }
+.ambient-mark-2 { bottom: 6%; left: -4vw; font-size: clamp(160px, 21vw, 380px); }
+.ambient-mark-3 { top: 52%; left: 38%; font-size: clamp(90px, 9vw, 160px); transform: rotate(-14deg) translateX(-50%); opacity: calc(var(--amb-mark-a) * .8); }
+
+/* Phones: still, fainter, one watermark low on the side, glows only at the edges. */
+@media (max-width: 759px) {
+  .ambient-glow { animation: none; filter: blur(48px); opacity: .7; }
+  .ambient-glow-3 { display: none; }
+  .ambient-mark-1, .ambient-mark-3 { display: none; }
+  .ambient-mark-2 { bottom: 14%; left: -10vw; font-size: 46vw; opacity: calc(var(--amb-mark-a) * .8); }
+}
+@media (prefers-reduced-motion: reduce) { .ambient-glow { animation: none; } }
+
+/* Work screens and the home page on wide screens (it has its own decor, app/home-wide-decor.css) go without it. */
+html:has(main[data-view="operations"], main[data-view="admin"], .operator-admin) .ambient { display: none; }
+@media (min-width: 1440px) and (min-height: 820px) { html[data-view="catalog"]:is(html) .ambient { display: none; } }

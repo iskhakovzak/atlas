@@ -2,6 +2,7 @@ import type { Locale } from './i18n.ts';
 import { formatSum, formatUsd } from './home-copy.ts';
 import { deliveryRegions, deliveryDaysFor, type DeliveryRegion } from './site-content.ts';
 import { cartDeliverySpeed, deliveryPerKgUsdFor, deliverySpeeds, repriceCart, totalOf, type CartItem, type DeliverySpeed, type Pricing } from './domain.ts';
+import {withCyrillic} from './uz-cyrl.ts';
 
 /** Customer wording for the express / standard delivery choice (the cart switch and the link-order preview). */
 export type DeliverySpeedCopy = {
@@ -17,7 +18,7 @@ export type DeliverySpeedCopy = {
   saving: string;
 };
 
-export const deliverySpeedCopy: Record<Locale, DeliverySpeedCopy> = {
+export const deliverySpeedCopy: Record<Locale, DeliverySpeedCopy> = withCyrillic({
   ru: {
     title: 'Скорость доставки в Узбекистан',
     names: { express: 'Экспресс', standard: 'Обычная' },
@@ -54,7 +55,7 @@ export const deliverySpeedCopy: Record<Locale, DeliverySpeedCopy> = {
     appliesToCart: 'One speed for the whole cart: it applies to every parcel.',
     saving: 'Saving…',
   },
-};
+});
 
 /** The dispatch region of a Product.country label; unknown countries are priced like the US. */
 export function regionForCountry(country?: string): DeliveryRegion {

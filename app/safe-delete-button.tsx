@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { AlertTriangle, Trash2 } from "lucide-react";
+import {pickLocale} from '@/lib/market/uz-cyrl';
+import type {Locale} from '@/lib/market/i18n';
 
 export function SafeDeleteButton({ onConfirm, label, itemName, locale }: {
   onConfirm: () => Promise<boolean> | boolean;
   label: string;
   itemName: string;
-  locale: "ru" | "uz" | "en";
+  locale: Locale;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
@@ -16,7 +18,7 @@ export function SafeDeleteButton({ onConfirm, label, itemName, locale }: {
     const timer = window.setTimeout(() => setConfirming(false), 5000);
     return () => window.clearTimeout(timer);
   }, [confirming, pending]);
-  const text = { ru: "Подтвердить удаление", uz: "O‘chirishni tasdiqlash", en: "Confirm removal" }[locale];
+  const text = pickLocale({ ru: "Подтвердить удаление", uz: "O‘chirishni tasdiqlash", en: "Confirm removal" }, locale);
   return <button type="button" className={`remove-item${confirming ? " confirming" : ""}`} disabled={pending}
     aria-label={`${confirming ? text : label}: ${itemName}`}
     onClick={async () => {

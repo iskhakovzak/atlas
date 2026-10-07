@@ -1,4 +1,5 @@
 import type { Locale } from './i18n.ts';
+import {withCyrillic} from './uz-cyrl.ts';
 
 /** Shared wording of the order calculation: the link-order page, the cart and the orders. */
 export type CalcCopy = {
@@ -35,7 +36,7 @@ export type CalcCopy = {
   };
 };
 
-export const calcCopy: Record<Locale, CalcCopy> = {
+export const calcCopy: Record<Locale, CalcCopy> = withCyrillic({
   ru: {
     onlyOption: 'Единственный доступный вариант', chooseOptions: 'Можно выбрать несколько вариантов', chosen: 'Выбрано', quantity: 'Количество', less: 'Меньше', more: 'Больше', removeOption: 'Убрать вариант',
     stockLeft: n => `Осталось ${n} шт.`, stockMore: n => `Больше ${n} шт.`, stockUnknown: 'Остаток магазин не сообщает', stockByEbay: 'по данным eBay', outOfStock: 'Нет в наличии',
@@ -204,4 +205,4 @@ export const calcCopy: Record<Locale, CalcCopy> = {
       },
     },
   },
-};
+});

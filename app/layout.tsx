@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { pageLocale } from "./page-locale";
 import { rootMetadata } from "./route-metadata";
+import { htmlLang } from "@/lib/market/uz-cyrl";
 import { env } from "cloudflare:workers";
 import "@fontsource-variable/inter/opsz.css";
 import "@fontsource-variable/manrope/wght.css";
@@ -32,13 +33,18 @@ import "./home-chapters.css";
 import "./tariffs.css";
 import "./home-wide-rail.css";
 import "./home-wide-content.css";
+import "./store-marks.css";
+import "./ambient.css";
+import "./folio-outside.css";
 import "./home-wide-decor.css";
 import "./orders-groups.css";
 import "./cart-select.css";
 import "./accounting.css";
 import "./admin-investor.css";
 import "./site-content-admin.css";
+import "./checkbox.css";
 import "./press.css";
+import "./header-panel.css";
 import { MarketProvider } from "@/lib/market/store";
 import { initialPricing, initialSiteContent } from "@/lib/market/initial-data";
 import { StorageNotice } from "./storage-notice";
@@ -46,6 +52,7 @@ import { AtlasThemeProvider } from "./theme-control";
 import { PerformanceProbe } from "./performance-probe";
 import { NativeShell } from "./native-shell";
 import { PressFeedback } from "./press-feedback";
+import { AmbientBackdrop } from "./ambient-backdrop";
 import { JsonLd } from "./json-ld";
 import { siteGraph } from "@/lib/seo/structured-data";
 
@@ -73,8 +80,9 @@ export default async function RootLayout({
   // The site content (contacts, legal entity, reviews…) comes from D1 as well, so the footer does not flicker after hydration.
   const [locale, pricing, siteContent] = await Promise.all([pageLocale(), initialPricing(), initialSiteContent()]);
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={htmlLang(locale)} suppressHydrationWarning>
       <body className="antialiased">
+        <AmbientBackdrop />
         <AtlasThemeProvider>
           <MarketProvider initialLocale={locale} initialPricing={pricing} initialSiteContent={siteContent}>{children}<StorageNotice /><PerformanceProbe /><NativeShell /><PressFeedback /></MarketProvider>
         </AtlasThemeProvider>

@@ -5,9 +5,10 @@ import {ShieldCheck} from "lucide-react";
 import {useMarket} from "@/lib/market/store";
 import {PageHeading} from "./market-ui";
 import {LegalEditionBadge,LegalSources,LegalStatus,OfferDocument,PrivacyDocument,RefundsDocument,useLegalHash} from "./legal-documents";
+import {withCyrillic} from '@/lib/market/uz-cyrl';
 
 // Standalone /privacy and /terms: the same documents as /legal, opened on load, with their own headings.
-const copy={
+const copy=withCyrillic({
  ru:{
   privacy:{overline:"КОНФИДЕНЦИАЛЬНОСТЬ",title:"Политика конфиденциальности Atlas.",description:"Какие данные обрабатывает сайт и приложения Atlas, зачем, кому они могут передаваться, как удалить аккаунт и отозвать согласие."},
   terms:{overline:"УСЛОВИЯ",title:"Условия использования Atlas.",description:"Публичная оферта на посреднические и логистические услуги, условия приложений для iOS и Android и политика оплаты и возврата."},
@@ -23,7 +24,7 @@ const copy={
   terms:{overline:"TERMS",title:"Atlas terms of use.",description:"The public offer for intermediary and logistics services, the terms for the iOS and Android apps, and the payment and refund policy."},
   related:"Related documents",allDocs:"All documents",privacyLink:"Privacy policy",termsLink:"Terms of use",support:"Support",deleteLink:"Account deletion",
  },
-};
+});
 
 function RelatedLinks({locale,current}:{locale:keyof typeof copy;current:"privacy"|"terms"}){
  const t=copy[locale];

@@ -1,4 +1,5 @@
 import type { Locale } from './i18n';
+import {pickLocale} from './uz-cyrl.ts';
 
 const ru = {
   title: 'Каталог зарубежных товаров.', intro: 'Товары из зарубежных магазинов, отобранные Atlas, — с расчётом доставки в Узбекистан.',
@@ -67,4 +68,4 @@ const en: Copy = {
   sourceMissing: 'No store page given', sourceOpen: 'Store page',
   shoeName: 'Everyday sneakers', audioName: 'Wireless headphones', bagName: 'City backpack',
 };
-export const dealCopy = (locale: Locale): Copy => ({ ...({ ru, uz, en })[locale] });
+export const dealCopy = (locale: Locale): Copy => ({ ...pickLocale({ ru, uz, en }, locale) });
