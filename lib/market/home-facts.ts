@@ -1,6 +1,7 @@
 import { deliveryPerKgUsdFor, deliverySpeeds, type DeliverySpeed, type Pricing } from './domain.ts';
 import { deliveryDaysFor, deliveryRegions, type DeliveryRegion } from './site-content.ts';
-import { formatUsd, homeCopy } from './home-copy.ts';
+import { homeCopy } from './home-copy.ts';
+import { formatUsd } from './format.ts';
 import type { Locale } from './i18n.ts';
 
 // Home rates as data: the country cards (app/home-sections.tsx DeliveryTariffs) and the wide-screen facts row

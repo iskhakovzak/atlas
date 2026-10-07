@@ -1,6 +1,8 @@
 import type { Locale } from './i18n.ts';
 import {withCyrillic,uzText} from './uz-cyrl.ts';
 import {isUzbek} from './i18n.ts';
+import {uzMonths} from './notices-copy.ts';
+export {formatDateTime,noticesCopy,type NoticesCopy} from './notices-copy.ts';
 
 function ruPlural(count: number, one: string, few: string, many: string) {
   const tail = count % 100, last = count % 10;
@@ -36,22 +38,12 @@ const countryNames: Record<string, { uz: string; en: string }> = {
   'Канада': { uz: 'Kanada', en: 'Canada' }, 'Австралия': { uz: 'Avstraliya', en: 'Australia' }, 'Другая страна': { uz: 'Boshqa mamlakat', en: 'Other country' },
 };
 
-const uzMonths = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'];
 
 /** Long date; Uzbek is built by hand because browser Intl data renders it as "2026 M10 3". */
 export function formatLongDate(timestamp: number, locale: Locale) {
   const date = new Date(timestamp);
   if (isUzbek(locale)) return uzText(locale, `${date.getDate()}-${uzMonths[date.getMonth()]}, ${date.getFullYear()}-yil`);
   return date.toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' });
-}
-
-/** Short date with time, year only when it is not the current one: "3 октября, 14:05" / "3-oktabr, 14:05". */
-export function formatDateTime(timestamp: number, locale: Locale, now = Date.now()) {
-  const date = new Date(timestamp), sameYear = date.getFullYear() === new Date(now).getFullYear();
-  const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-  if (isUzbek(locale)) return uzText(locale, `${date.getDate()}-${uzMonths[date.getMonth()]}${sameYear ? '' : ` ${date.getFullYear()}-yil`}, ${time}`);
-  const day = date.toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'en-US', sameYear ? { day: 'numeric', month: 'long' } : { day: 'numeric', month: 'long', year: 'numeric' });
-  return `${day}, ${time}`;
 }
 
 /** Date without time, year only when it is not the current one: "3 октября" / "3-oktabr". */
@@ -126,7 +118,7 @@ export type AccountCopy = {
     label: string; orders: string; ordersActive: (count: number) => string; ordersTotal: (count: number) => string; none: string;
     cart: string; cartEmpty: string; balance: string; balanceSub: string; notifications: string; unread: (count: number) => string; noUnread: string;
   };
-  customs: { title: string; used: (used: number, limit: number) => string; left: (amount: number) => string; over: (amount: number) => string; note: string; link: string; perPerson: string; empty: string; unnamed: string; cart: (amount: number) => string };
+  customs: { title: string; used: (used: number, limit: number) => string; left: (amount: number) => string; over: (amount: number) => string; note: string; link: string; perPerson: string; empty: string; unnamed: string; cart: (amount: number) => string; leftLabel: string; overLabel: string; how: string };
   recipients: { title: string; lead: string; primary: string; passportOk: (masked: string) => string; passportMissing: string; addPassport: string; remove: string; add: string; empty: string; edit: string; makePrimary: string };
   documents: { title: string; passport: string; passportCount: (count: number) => string; missing: string; declarations: string; declarationsCount: (count: number) => string; note: string };
   support: {
@@ -148,13 +140,13 @@ export type AccountCopy = {
   };
 };
 
-const reserveHelp = withCyrillic({
+const reserveHelp = /*@__PURE__*/withCyrillic({
   ru: 'Резерв закладывается, пока не известны точный вес и габариты посылки. Если доставка выйдет дешевле, разница вернётся на баланс Atlas. Если дороже — сначала сообщим сумму и спросим вашего согласия.',
   uz: 'Posilkaning aniq vazni va o‘lchami ma’lum bo‘lguncha zaxira qo‘yiladi. Yetkazish arzonroq bo‘lsa, farq Atlas balansiga qaytadi. Qimmatroq bo‘lsa — avval summani aytamiz va roziligingizni so‘raymiz.',
   en: 'The reserve covers the parcel until its exact weight and size are known. If delivery costs less, the difference returns to your Atlas balance. If it costs more, we tell you the amount and ask for your approval first.',
 });
 
-export const cartCopy: Record<Locale, CartCopy> = withCyrillic({
+export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
   ru: {
     title: 'Корзина',
     steps: ['Корзина', 'Получатель', 'Подтверждение'],
@@ -328,7 +320,7 @@ export const cartCopy: Record<Locale, CartCopy> = withCyrillic({
   },
 });
 
-export const accountCopy: Record<Locale, AccountCopy> = withCyrillic({
+export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrillic({
   ru: {
     title: 'Личный кабинет',
     manage: 'Управление Atlas',
@@ -351,7 +343,7 @@ export const accountCopy: Record<Locale, AccountCopy> = withCyrillic({
       title: 'Таможенный лимит месяца', used: (used, limit) => `$${used} из $${limit}`, left: amount => `Ещё $${amount} без пошлины`,
       over: amount => `Сверх лимита $${amount} — с этой суммы платится пошлина`,
       note: 'Считаются только покупки через Atlas в этом месяце, по дате заказа. Покупки в других сервисах учитывайте сами.', link: 'Как считается таможня',
-      perPerson: 'Лимит $200 — на каждого получателя.', empty: 'В этом месяце заказов ещё не было — лимит свободен.', unnamed: 'Получатель не указан', cart: amount => `В корзине ещё $${amount} — учтите при оформлении.`,
+      perPerson: 'Лимит $200 — на каждого получателя.', empty: 'В этом месяце заказов ещё не было — лимит свободен.', unnamed: 'Получатель не указан', leftLabel: 'осталось без пошлины', overLabel: 'сверх лимита', how: 'Как работает лимит', cart: amount => `В корзине ещё $${amount} — учтите при оформлении.`,
     },
     recipients: {
       title: 'Получатели и адреса', lead: 'Подставляются при оформлении заказа.', primary: 'основной', passportOk: masked => `Паспорт ${masked}`,
@@ -406,7 +398,7 @@ export const accountCopy: Record<Locale, AccountCopy> = withCyrillic({
       title: 'Oylik bojxona limiti', used: (used, limit) => `$${used} / $${limit}`, left: amount => `Yana $${amount} bojsiz`,
       over: amount => `Limitdan $${amount} ortiq — bu summadan boj to‘lanadi`,
       note: 'Faqat shu oy Atlas orqali qilingan xaridlar buyurtma sanasi bo‘yicha hisoblanadi. Boshqa xizmatlardagi xaridlarni o‘zingiz hisobga oling.', link: 'Bojxona qanday hisoblanadi',
-      perPerson: '$200 limit — har bir qabul qiluvchiga.', empty: 'Bu oy hali buyurtma yo‘q — limit bo‘sh.', unnamed: 'Qabul qiluvchi ko‘rsatilmagan', cart: amount => `Savatda yana $${amount} — rasmiylashtirishda hisobga oling.`,
+      perPerson: '$200 limit — har bir qabul qiluvchiga.', empty: 'Bu oy hali buyurtma yo‘q — limit bo‘sh.', unnamed: 'Qabul qiluvchi ko‘rsatilmagan', leftLabel: 'bojsiz qoldi', overLabel: 'limitdan ortiq', how: 'Limit qanday ishlaydi', cart: amount => `Savatda yana $${amount} — rasmiylashtirishda hisobga oling.`,
     },
     recipients: {
       title: 'Qabul qiluvchilar va manzillar', lead: 'Buyurtma rasmiylashtirishda avtomatik qo‘yiladi.', primary: 'asosiy', passportOk: masked => `Pasport ${masked}`,
@@ -461,7 +453,7 @@ export const accountCopy: Record<Locale, AccountCopy> = withCyrillic({
       title: 'Monthly customs allowance', used: (used, limit) => `$${used} of $${limit}`, left: amount => `$${amount} left duty-free`,
       over: amount => `$${amount} over the allowance — duty applies to this amount`,
       note: 'Only this month’s purchases through Atlas are counted, by order date. Track purchases made through other services yourself.', link: 'How customs is calculated',
-      perPerson: 'The $200 allowance is per recipient.', empty: 'No orders this month yet — the allowance is free.', unnamed: 'No recipient given', cart: amount => `$${amount} more in the cart — keep it in mind at checkout.`,
+      perPerson: 'The $200 allowance is per recipient.', empty: 'No orders this month yet — the allowance is free.', unnamed: 'No recipient given', leftLabel: 'left duty-free', overLabel: 'over the allowance', how: 'How the allowance works', cart: amount => `$${amount} more in the cart — keep it in mind at checkout.`,
     },
     recipients: {
       title: 'Recipients & addresses', lead: 'Filled in automatically at checkout.', primary: 'primary', passportOk: masked => `Passport ${masked}`,
@@ -545,26 +537,7 @@ export type BalanceCopy = {
   loading: string;
 };
 
-export type NoticesCopy = {
-  title: string;
-  unread: (count: number) => string;
-  allRead: string;
-  readAll: string;
-  filtersLabel: string;
-  filters: { all: string; unread: string; orders: string };
-  newBadge: string;
-  more: (count: number) => string;
-  openOrder: string;
-  emptyTitle: string;
-  emptyText: string;
-  emptyFilter: string;
-  orders: string;
-  settings: string;
-  signin: { title: string; text: string; action: string };
-  loading: string;
-};
-
-export const ordersCopy: Record<Locale, OrdersCopy> = withCyrillic({
+export const ordersCopy: Record<Locale, OrdersCopy> = /*@__PURE__*/withCyrillic({
   ru: {
     title: 'Мои заказы', active: count => `${count} в работе`,
     search: 'Номер заказа или товар', actionNeeded: 'Нужно ваше действие', stage: (current, total) => `Этап ${current} из ${total}`, progress: 'Ход заказа',
@@ -591,7 +564,7 @@ export const ordersCopy: Record<Locale, OrdersCopy> = withCyrillic({
   },
 });
 
-export const balanceCopy: Record<Locale, BalanceCopy> = withCyrillic({
+export const balanceCopy: Record<Locale, BalanceCopy> = /*@__PURE__*/withCyrillic({
   ru: {
     title: 'Баланс', label: 'Баланс Atlas', note: 'Внутренний счёт для расчётов по заказам — не банковская карта и не кошелёк.',
     spend: 'Заказать по ссылке', withdraw: 'Вывести', withdrawTitle: 'Вывод на сайте не подключён',
@@ -621,33 +594,6 @@ export const balanceCopy: Record<Locale, BalanceCopy> = withCyrillic({
     emptyTitle: 'No transactions yet', emptyText: 'Refunds after weighing and orders paid from the balance will appear here.',
     notice: 'Payments and withdrawals are not connected on the site — no money is transferred.',
     signin: { title: 'Sign in to open your balance', text: 'Order and refund settlements are saved in your profile.', action: 'Sign in' }, loading: 'Loading transactions…',
-  },
-});
-
-export const noticesCopy: Record<Locale, NoticesCopy> = withCyrillic({
-  ru: {
-    title: 'Уведомления', unread: count => `${count} ${ruPlural(count, 'непрочитанное', 'непрочитанных', 'непрочитанных')}`, allRead: 'Всё прочитано',
-    readAll: 'Отметить все прочитанными', filtersLabel: 'Показать', filters: { all: 'Все', unread: 'Непрочитанные', orders: 'По заказам' }, newBadge: 'Новое',
-    more: count => `Ещё ${count} ${ruPlural(count, 'обновление', 'обновления', 'обновлений')}`, openOrder: 'Открыть заказ',
-    emptyTitle: 'Пока всё спокойно', emptyText: 'Здесь появятся изменения статусов, возвраты и вопросы по вашим заказам.', emptyFilter: 'Таких уведомлений нет.',
-    orders: 'Мои заказы', settings: 'Настройки email и SMS',
-    signin: { title: 'Войдите, чтобы открыть уведомления', text: 'Сообщения Atlas хранятся в вашем профиле.', action: 'Войти' }, loading: 'Загружаем уведомления…',
-  },
-  uz: {
-    title: 'Bildirishnomalar', unread: count => `${count} ta o‘qilmagan`, allRead: 'Hammasi o‘qilgan',
-    readAll: 'Hammasini o‘qilgan deb belgilash', filtersLabel: 'Ko‘rsatish', filters: { all: 'Barchasi', unread: 'O‘qilmagan', orders: 'Buyurtmalar bo‘yicha' }, newBadge: 'Yangi',
-    more: count => `Yana ${count} ta yangilanish`, openOrder: 'Buyurtmani ochish',
-    emptyTitle: 'Hozircha hammasi tinch', emptyText: 'Holat o‘zgarishlari, qaytarishlar va buyurtmalaringiz bo‘yicha savollar shu yerda ko‘rinadi.', emptyFilter: 'Bunday bildirishnomalar yo‘q.',
-    orders: 'Buyurtmalarim', settings: 'Email va SMS sozlamalari',
-    signin: { title: 'Bildirishnomalarni ochish uchun kiring', text: 'Atlas xabarlari profilingizda saqlanadi.', action: 'Kirish' }, loading: 'Bildirishnomalar yuklanmoqda…',
-  },
-  en: {
-    title: 'Notifications', unread: count => `${count} unread`, allRead: 'All caught up',
-    readAll: 'Mark all as read', filtersLabel: 'Show', filters: { all: 'All', unread: 'Unread', orders: 'Orders' }, newBadge: 'New',
-    more: count => `${count} more ${count === 1 ? 'update' : 'updates'}`, openOrder: 'Open order',
-    emptyTitle: 'All quiet for now', emptyText: 'Status changes, refunds and questions about your orders will appear here.', emptyFilter: 'No matching notifications.',
-    orders: 'My orders', settings: 'Email and SMS settings',
-    signin: { title: 'Sign in to open notifications', text: 'Atlas messages are saved in your profile.', action: 'Sign in' }, loading: 'Loading notifications…',
   },
 });
 
@@ -705,7 +651,7 @@ export type LinkOrderCopy = {
   };
 };
 
-export const linkOrderCopy: Record<Locale, LinkOrderCopy> = withCyrillic({
+export const linkOrderCopy: Record<Locale, LinkOrderCopy> = /*@__PURE__*/withCyrillic({
   ru: {
     title: 'Заказ по ссылке', lead: 'Вставьте ссылку на товар из зарубежного магазина, и мы посчитаем итог с доставкой до Ташкента.', leadLoaded: 'Выберите вариант и проверьте расчёт.',
     label: 'Ссылка на товар', placeholder: 'Вставьте ссылку на товар', calculate: 'Рассчитать', loading: 'Загружаем цену и варианты из магазина…',
@@ -828,7 +774,7 @@ export type RecipientCopy = {
   primary: string; save: string; saving: string; saved: string; updated: string; required: string; privacy: string;
 };
 
-export const recipientCopy: Record<Locale, RecipientCopy> = withCyrillic({
+export const recipientCopy: Record<Locale, RecipientCopy> = /*@__PURE__*/withCyrillic({
   ru: {
     addTitle: 'Новый получатель', editTitle: 'Изменить получателя', note: 'Тот, кто заберёт посылку. ФИО — как в паспорте.',
     labelLegend: 'Как подписать', labels: { home: 'Дом', work: 'Работа', parents: 'Родители', other: 'Другое' }, customLabel: 'Своя подпись',
@@ -870,7 +816,7 @@ export type DocsCopy = {
   ordersFor: (name: string) => string; selectGroup: string; usd: (amount: number) => string; overLimit: string; history: string;
 };
 
-export const docsCopy: Record<Locale, DocsCopy> = withCyrillic({
+export const docsCopy: Record<Locale, DocsCopy> = /*@__PURE__*/withCyrillic({
   ru: {
     title: 'Паспорт или ID-карта получателя', lead: 'Нужны для таможенного оформления посылки. Скан видите вы и сотрудники Atlas, которые оформляют посылку.',
     whose: 'Чей паспорт', whoseHint: 'Паспорт привязывается к получателю — тому, кто заберёт посылку.', noRecipient: 'Сначала добавьте получателя.', addRecipient: 'Добавить получателя',
@@ -904,13 +850,4 @@ export const docsCopy: Record<Locale, DocsCopy> = withCyrillic({
     needRecipient: 'A recipient', needPassport: 'The recipient’s passport', needOrders: 'At least one order', addPassport: 'Add passport', newOrder: 'Order by link',
     ordersFor: name => `Orders for: ${name}`, selectGroup: 'Select all', usd: amount => `≈ $${amount}`, overLimit: 'Over $200 — duty applies to the excess.', history: 'Declaration drafts',
   },
-});
-
-type NotFoundCopy = { title: string; text: string; home: string; paste: string; stores: string };
-
-/** Unknown addresses keep the site shell and offer the main ways back. */
-export const notFoundCopy: Record<Locale, NotFoundCopy> = withCyrillic({
-  ru: { title: 'Страница не найдена', text: 'Ссылка устарела или в адресе опечатка. Начните с главной или вставьте ссылку на товар — посчитаем итог в сумах.', home: 'На главную', paste: 'Вставить ссылку на товар', stores: 'Магазины' },
-  uz: { title: 'Sahifa topilmadi', text: 'Havola eskirgan yoki manzilda xato bor. Bosh sahifadan boshlang yoki tovar havolasini qo‘ying — yakuniy narxni so‘mda hisoblab beramiz.', home: 'Bosh sahifa', paste: 'Tovar havolasini qo‘yish', stores: 'Do‘konlar' },
-  en: { title: 'Page not found', text: 'The link is out of date or the address has a typo. Start from the home page or paste a product link and we’ll work out the total in soum.', home: 'Home page', paste: 'Paste a product link', stores: 'Stores' },
 });

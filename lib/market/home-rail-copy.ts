@@ -8,7 +8,7 @@ export type HomeRailCopy = {
   chapters: { top: string; finds: string; trust: string; faq: string; end: string };
 };
 
-export const homeRailCopy: Record<Locale, HomeRailCopy> = withCyrillic({
+export const homeRailCopy: Record<Locale, HomeRailCopy> = /*@__PURE__*/withCyrillic({
   ru: {
     label: 'Разделы главной',
     chapters: { top: 'Расчёт', finds: 'Подборка', trust: 'Ваши деньги', faq: 'Вопросы', end: 'Заказать' },

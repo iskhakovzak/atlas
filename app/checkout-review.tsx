@@ -4,7 +4,7 @@ import { cartModelKey, serviceTitle, storeParcels, parcelServiceUnits, type Cart
 import { cartSelectCopy } from "@/lib/market/cart-select-copy";
 import { countryLabel } from "@/lib/market/customer-copy";
 import { countryName } from "@/lib/market/world";
-import { formatSum } from "@/lib/market/home-copy";
+import { formatSum } from "@/lib/market/format";
 import { storefrontLabel } from "@/lib/market/store-brands";
 import type { Locale } from "@/lib/market/i18n";
 import { ProductImage } from "./market-ui";

@@ -14,7 +14,8 @@ import { regionForCountryLabel } from '@/lib/market/store-geo';
 import { deliveryDaysFor } from '@/lib/market/site-content';
 import { deliverySpeedCopy } from '@/lib/market/delivery-speed';
 import { atlasServiceBreakdown } from '@/lib/market/quote-presentation';
-import { formatKg, formatSum, homeCopy } from '@/lib/market/home-copy';
+import { homeCopy } from '@/lib/market/home-copy';
+import { formatKg, formatSum } from '@/lib/market/format';
 import type { Locale } from '@/lib/market/i18n';
 import { brandForHost } from '@/lib/market/store-brands';
 import { useMarket } from '@/lib/market/store';
@@ -24,7 +25,7 @@ import { StoreLogo } from './store-logo';
 import {withCyrillic,uzText} from '@/lib/market/uz-cyrl';
 import {isUzbek} from '@/lib/market/i18n';
 
-const breakdownCopy = withCyrillic({
+const breakdownCopy = /*@__PURE__*/withCyrillic({
   ru: { item: 'Товар', store: 'Доставка магазина до склада', storeReserve: 'Резерв доставки магазина (отдельно, не в итоге)', storeFree: 'бесплатно', international: 'Доставка в Узбекистан', kg: 'кг', service: 'Комиссия Atlas', fee: 'Общий сбор Atlas', reserve: 'Возвратный резерв',
     storeReserveNote: (amount: string, freeFrom: string) => `Магазин не указал цену доставки до склада: резерв ${amount} удерживается отдельно и в итог не входит — один на заказ из этого магазина. Больше чем на ${freeFrom} из магазина — доставка бесплатна.`,
     storeFreeNote: (freeFrom: string) => `Магазин не указал цену доставки до склада, но при заказе больше чем на ${freeFrom} она бесплатна. Если магазин всё же возьмёт плату, доплата — только с вашего согласия.`, reserveNote: 'Возвратный резерв — запас на случай, если посылка окажется тяжелее. Неиспользованная часть вернётся на баланс Atlas, а доплата сверх резерва — только с вашего согласия.',

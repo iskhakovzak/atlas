@@ -16,7 +16,7 @@ function itemsWord(count: number, locale: Locale) {
  * Cart checkboxes and the checkout review (owner, 7.10.2026): the customer ticks what to check out now, the rest
  * stays in the cart; the review lists the order as a numbered table grouped by store and model.
  */
-export const cartSelectCopy = withCyrillic({
+export const cartSelectCopy = /*@__PURE__*/withCyrillic({
   ru: {
     selectAll: "Выбрать все",
     selectStore: (store: string) => `Выбрать все товары ${store}`,

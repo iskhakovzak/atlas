@@ -555,3 +555,8 @@ html[data-theme="dark"] .customs-how-stepper button { border-color: var(--night-
 html[data-theme="dark"] .customs-how-stepper button:hover:not(:disabled) { border-color: var(--night-jade); }
 html[data-theme="dark"] :is(.customs-how-final a, .customs-how-trigger, .customs-remembered button) { color: var(--night-jade); }
 html[data-theme="dark"] .customs-how-close:hover { background: var(--night-hover); }
+
+/* Night: the monthly customs allowance card in the cabinet (7.10.2026). */
+html[data-theme="dark"] .cabinet-allowance li { border-color: var(--night-line); background: rgba(255, 255, 255, 0.022); }
+html[data-theme="dark"] .cabinet-allowance-who i { color: var(--night-on-ivory); }
+html[data-theme="dark"] .cabinet-month { background: var(--night-raised); }

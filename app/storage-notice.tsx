@@ -10,7 +10,7 @@ const KEY = "atlas-consent-v1";
 // The previous storage notice: a visitor who dismissed it is not asked twice for the same thing.
 const LEGACY_KEY = "atlas-storage-notice-v1";
 
-const copy = withCyrillic({
+const copy = /*@__PURE__*/withCyrillic({
   ru: { text: "Atlas обрабатывает ваши данные, чтобы считать заказы и доставлять посылки.", privacy: "Политика конфиденциальности", terms: "Условия использования", more: "Подробнее", accept: "Принимаю", label: "Согласие на обработку данных" },
   uz: { text: "Atlas buyurtmalarni hisoblash va jo‘natmalarni yetkazish uchun ma’lumotlaringizga ishlov beradi.", privacy: "Maxfiylik siyosati", terms: "Foydalanish shartlari", more: "Batafsil", accept: "Qabul qilaman", label: "Ma’lumotlarga ishlov berishga rozilik" },
   en: { text: "Atlas processes your data to price orders and deliver parcels.", privacy: "Privacy policy", terms: "Terms of use", more: "Learn more", accept: "I accept", label: "Data-processing consent" },

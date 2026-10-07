@@ -8,11 +8,12 @@ import type {Locale} from "@/lib/market/i18n";
 import {PageHeading} from "./market-ui";
 import {JsonLd} from "./json-ld";
 import {faqPage} from "@/lib/seo/structured-data";
-import {MissingContent,useHomeCopy} from "./home-sections";
+import {useHomeCopy} from "./home-sections";
+import {MissingContent} from "./site-footer";
 import {withCyrillic} from '@/lib/market/uz-cyrl';
 
 // Public support page (/support): real contacts only when siteContent has them, the account route always.
-const copy=withCyrillic({
+const copy=/*@__PURE__*/withCyrillic({
  ru:{
   overline:"ПОМОЩЬ",title:"Поддержка Atlas.",description:"Ответы приходят в личный кабинет и в уведомления. Здесь — как связаться и где искать ответы на частые вопросы.",
   contacts:"Как связаться",account:"Написать из кабинета",accountText:"Обращение сохраняется в вашем аккаунте: вы увидите ответ в кабинете и в уведомлениях.",accountGuest:"Чтобы написать в поддержку, войдите в аккаунт — обращение привяжется к вашим заказам, а ответ придёт в кабинет и в уведомления.",signin:"Войти и написать",open:"Открыть кабинет",email:"Почта",
@@ -91,7 +92,7 @@ export function SupportView(){
  </>;
 }
 
-const deleteCopy:Record<Locale,{overline:string;title:string;description:string;steps:string;step:string[];what:string;removed:string;removedList:string[];kept:string;keptText:string;blockers:string;blockersText:string;alt:string;altText:string;subject:string;open:string;signin:string;support:string;privacy:string}>=withCyrillic({
+const deleteCopy:Record<Locale,{overline:string;title:string;description:string;steps:string;step:string[];what:string;removed:string;removedList:string[];kept:string;keptText:string;blockers:string;blockersText:string;alt:string;altText:string;subject:string;open:string;signin:string;support:string;privacy:string}>=/*@__PURE__*/withCyrillic({
  ru:{
   overline:"АККАУНТ",title:"Как удалить аккаунт Atlas.",description:"Аккаунт удаляется самостоятельно на сайте и в приложении. Инструкция одинакова для iOS, Android и браузера.",
   steps:"Шаги в приложении или на сайте",step:["Войдите в аккаунт и откройте «Кабинет».","Перейдите в «Настройки» внизу кабинета.","Нажмите «Удалить аккаунт», прочитайте, что будет удалено, и подтвердите."],
