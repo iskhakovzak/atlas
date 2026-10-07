@@ -60,7 +60,7 @@ test('every customer-visible history entry and notification carries a code and r
   assert.ok(renderNotification(extra, 'en').message.includes(formatSum(extra.params.extra, 'en')));
   // The hold is never called charged money.
   const hold = history.find((entry) => entry.code === 'store-hold');
-  assert.match(renderHistory(hold, 'en'), /hold of .* kept separately and is not part of the order total/);
+  assert.match(renderHistory(hold, 'en'), /reserve of .* kept separately and is not part of the order total/);
   assert.doesNotMatch(renderHistory(hold, 'en'), /charged/);
   assert.ok(hold.text.includes('удерживается отдельно'));
   // Stored documents with codes and params still parse.

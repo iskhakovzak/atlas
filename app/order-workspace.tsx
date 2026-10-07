@@ -85,6 +85,7 @@ import {
   PageHeading,
   Empty,
   Modal,
+  LoadingCards,
   CostLines,
   ProductImage,
 } from "./market-ui";
@@ -911,7 +912,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
       let id: string;
       try { id = decodeURIComponent(window.location.hash.slice(1)); } catch { return; }
       const row = document.getElementById(id);
-      if (row instanceof HTMLDetailsElement) { row.open = true; row.scrollIntoView({block:'start'}); }
+      // data-linked: the opened order glows once (app/motion.css); :target does not match rows rendered after the load.
+      if (row instanceof HTMLDetailsElement) { row.open = true; row.scrollIntoView({block:'start'}); if (!('linked' in row.dataset)) row.dataset.linked = ''; }
       else { const order=(operations?opsAccounts.flatMap(profile=>profile.state.orders):state.orders).find(item=>item.id===id);
         // A linked order not loaded yet: fetch it alone, then the branch below finds it and searches its tab for it.
         if(!order&&operations&&opsReady&&id&&!revealRequested.current.has(id)){revealRequested.current.add(id);void fetch(`/api/operations?queue=1&order=${encodeURIComponent(id)}`,{cache:"no-store"}).then(response=>response.ok?response.json() as Promise<Partial<OperatorQueueResponse>>:null).then(data=>{if(data?.accounts?.length)setOpsAccounts(current=>mergeQueueAccounts(current,data.accounts!))}).catch(()=>{});}
@@ -1286,7 +1288,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
             label={operations ? (locale === "ru" ? "Повторить" : isUzbek(locale) ? uzText(locale, "Qayta urinish") : "Try again") : ow.loginLabel}
           />
         ) : (
-          <div className="loading-state">{ow.loading}</div>
+          <LoadingCards label={ow.loading} />
         )
       ) : !orders.length && !operations ? (
         <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><Package size={28} /></span><h2>{ow.emptyTitle}</h2><p>{ow.emptyDescription}</p>
@@ -2423,7 +2425,7 @@ export function NotificationsView() {
       {!ready ? (
         error
           ? <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><Bell size={28} /></span><h2>{c.signin.title}</h2><p>{c.signin.text}</p><div className="basket-empty-actions"><Link className="btn primary" href="/login?return_to=%2Fnotifications">{c.signin.action}<ArrowRight size={18} aria-hidden="true" /></Link></div></section>
-          : <div className="basket-loading" role="status">{c.loading}</div>
+          : <LoadingCards label={c.loading} />
       ) : !state.notifications.length ? (
         <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><Bell size={28} /></span><h2>{c.emptyTitle}</h2><p>{c.emptyText}</p><div className="basket-empty-actions"><Link className="btn secondary" href="/orders">{c.orders}</Link></div></section>
       ) : (
@@ -2466,7 +2468,7 @@ export function BalanceView() {
       {!ready ? (
         error
           ? <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><Wallet size={28} /></span><h2>{c.signin.title}</h2><p>{c.signin.text}</p><div className="basket-empty-actions"><Link className="btn primary" href="/login?return_to=%2Fbalance">{c.signin.action}<ArrowRight size={18} aria-hidden="true" /></Link></div></section>
-          : <div className="basket-loading" role="status">{c.loading}</div>
+          : <LoadingCards label={c.loading} />
       ) : <>
         <div className="wallet-grid">
           <section className="wallet-card" aria-labelledby="wallet-label">

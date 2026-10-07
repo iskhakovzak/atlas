@@ -45,6 +45,7 @@ import "./site-content-admin.css";
 import "./checkbox.css";
 import "./press.css";
 import "./header-panel.css";
+import "./motion.css";
 import { MarketProvider } from "@/lib/market/store";
 import { initialPricing, initialSiteContent } from "@/lib/market/initial-data";
 import { StorageNotice } from "./storage-notice";

@@ -2,6 +2,7 @@
 import { capitalizeFirst, capitalizeWords } from "@/lib/market/text-case";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import Link from "@/components/site-link";
 import { ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ClipboardPaste, Clock3, Heart, Info, Loader2, MessageSquare, Minus, Plus, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,7 +16,7 @@ import { cartCustomsEstimate } from "@/lib/market/allowance";
 import { calcCopy } from "@/lib/market/calc-copy";
 import { CalcLines, CustomsPanel, DeliverySpeedSwitch, HoldNote, customsDutyAmount, sumQuotes } from "./calc-summary";
 import type { Locale } from "@/lib/market/i18n";
-import { Modal, ProductImage, WasPrice } from "./market-ui";
+import { LoadingCards, Modal, ProductImage, WasPrice } from "./market-ui";
 import { Money } from "./money";
 import { SafeDeleteButton } from "./safe-delete-button";
 import { cities, regionCapital, regionLabel, regions, streets, suggestions, uzPhone, uzPhoneDigits } from "@/lib/market/addresses";
@@ -28,6 +29,11 @@ import {isUzbek} from '@/lib/market/i18n';
 import { catalogUrlKey } from "@/lib/market/catalog-query";
 
 /** Favourites and removal in the cart: saving keeps the line; "save for later" saves and then removes it. */
+const placedCopy = withCyrillic({
+  ru: { opening: "Открываем ваши заказы" },
+  uz: { opening: "Buyurtmalaringizni ochyapmiz" },
+  en: { opening: "Opening your orders" },
+});
 const keepCopy = withCyrillic({
   ru: { save: "В избранное", saved: "В избранном", later: "Отложить", laterLabel: "Отложить в избранное", laterDone: "Отложено в избранное", open: "Открыть избранное", removeVariant: "Удалить вариант", removeAll: (n: number) => `Удалить все (${n})`, variants: "Варианты этого товара" },
   uz: { save: "Saralanganlarga", saved: "Saralanganlarda", later: "Qoldirish", laterLabel: "Saralanganlarga qoldirish", laterDone: "Saralanganlarga qoldirildi", open: "Saralanganlarni ochish", removeVariant: "Variantni o‘chirish", removeAll: (n: number) => `Hammasini o‘chirish (${n})`, variants: "Shu tovar variantlari" },
@@ -162,6 +168,7 @@ export function CartView() {
   const [selectDrafts, setSelectDrafts] = useState<Record<string, boolean>>({});
   // The checkout that was just placed: the page moves on to its order as soon as the orders arrive.
   const [placedKey, setPlacedKey] = useState("");
+  const placedAt = useRef(0);
   const [verifying, setVerifying] = useState(false);
   const [summaryCta, setSummaryCta] = useState<HTMLButtonElement | null>(null);
   const [customsRecipient, setCustomsRecipient] = useState("");
@@ -296,6 +303,18 @@ export function CartView() {
     setReview(false);
   }
 
+  // Recipient ⇄ review: the dialog reshapes from narrow to wide through a view transition (a snapshot morph, so the
+  // review columns are laid out once instead of on every frame). Without support the step simply switches.
+  function showReview(next: boolean) {
+    const doc = document as Document & { startViewTransition?: (update: () => void) => { finished: Promise<unknown> } };
+    if (!doc.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) { setReview(next); return; }
+    const root = document.documentElement;
+    root.classList.add("atlas-step-morph");
+    try {
+      void doc.startViewTransition(() => flushSync(() => setReview(next))).finished.finally(() => root.classList.remove("atlas-step-morph"));
+    } catch { root.classList.remove("atlas-step-morph"); setReview(next); }
+  }
+
   async function checkout() {
     if (busy) return;
     setBusy(true);
@@ -316,9 +335,13 @@ export function CartView() {
   useEffect(() => {
     if (!placedKey) return;
     const placed = state.orders.find(order => order.batchId === placedKey);
-    if (placed) { window.location.assign("/orders#" + encodeURIComponent(placed.id)); return; }
+    // The confirmation stays at least ~1.2 s so it can be read; the page change itself cross-fades (app/motion.css).
+    // The confirmation replaces the long cart, so it starts at the top instead of the cart's scroll position.
+    if (!placedAt.current) { placedAt.current = Date.now(); window.scrollTo({ top: 0, behavior: "instant" }); }
+    const wait = Math.max(0, placedAt.current + 1200 - Date.now());
+    if (placed) { const timer = window.setTimeout(() => window.location.assign("/orders#" + encodeURIComponent(placed.id)), wait); return () => window.clearTimeout(timer); }
     // The orders normally arrive with the checkout answer; if not, My orders loads them itself.
-    const fallback = window.setTimeout(() => window.location.assign("/orders"), 3000);
+    const fallback = window.setTimeout(() => window.location.assign("/orders"), Math.max(wait, 3000));
     return () => window.clearTimeout(fallback);
   }, [placedKey, state.orders]);
 
@@ -501,12 +524,18 @@ export function CartView() {
     <header className="basket-head"><h1>{c.title}</h1></header>
     {error
       ? <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><ShoppingBag size={28} /></span><h2>{c.signin.title}</h2><p>{c.signin.text}</p><div className="basket-empty-actions"><Link className="btn primary" href="/login?return_to=%2Fcart">{c.signin.action}<ArrowRight size={18} aria-hidden="true" /></Link></div></section>
-      : <div className="basket-loading" role="status">{c.loading}</div>}
+      : <LoadingCards label={c.loading} />}
   </div>;
 
+  // Placed: a short confirmation (a drawn check and a filling bar) while My orders opens; the link is there if it takes long.
   if (placedKey) return <div className="basket-page">
-    <header className="basket-head"><h1>{c.success.title}</h1></header>
-    <div className="basket-loading" role="status"><Loader2 size={18} className="spin" aria-hidden="true" /> <Link href="/orders">{c.success.orders}</Link></div>
+    <section className="checkout-placed" role="status" aria-live="polite">
+      <svg className="checkout-placed-mark" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" /><path d="M20 33.5l8 8 16-17" /></svg>
+      <h1>{c.success.title}</h1>
+      <p>{c.success.pending}</p>
+      <div className="checkout-placed-bar" aria-hidden="true"><i /></div>
+      <Link className="checkout-placed-link" href="/orders">{placedCopy[locale].opening}<ArrowRight size={16} aria-hidden="true" /></Link>
+    </section>
   </div>;
 
   if (!state.cart.length) return <div className="basket-page">
@@ -569,7 +598,7 @@ export function CartView() {
       <CheckoutSteps current={review ? 2 : 1} c={c} />
       <form className="checkout-form basket-checkout" onSubmit={(event) => {
         event.preventDefault();
-        if (!review) { setReview(true); return; }
+        if (!review) { showReview(true); return; }
         if (!consent) { setConsentError(true); document.getElementById("checkout-consent")?.focus(); return; }
         void checkout();
       }}>
@@ -622,7 +651,7 @@ export function CartView() {
           <div className="review-aside">
             <CheckoutChecklist locale={locale} items={[
               { key: "variants", label: s.review.variants, value: s.review.variantsValue(lines.length, count), ok: !lines.some(blockingSourceIssue) },
-              { key: "recipient", label: s.review.recipient, value: <>{delivery.recipient}, {delivery.phone}<br />{[delivery.region, delivery.city, delivery.address, delivery.postalCode].filter(Boolean).join(", ")}</>, onChange: () => setReview(false) },
+              { key: "recipient", label: s.review.recipient, value: <>{delivery.recipient}, {delivery.phone}<br />{[delivery.region, delivery.city, delivery.address, delivery.postalCode].filter(Boolean).join(", ")}</>, onChange: () => showReview(false) },
               { key: "speed", label: s.review.speed, value: deliverySpeedCopy[locale].names[speed] },
               { key: "services", label: s.review.services, value: (() => { const services = new Set(lines.flatMap(item => item.requestedServiceIds ?? [])).size, notes = lines.filter(item => item.note?.trim()).length; return services || notes ? s.review.servicesValue(services, notes) : s.review.servicesNone; })() },
               { key: "customs", label: s.review.customs, value: customsChoices.help ? s.review.customsHelp : s.review.customsSelf },
