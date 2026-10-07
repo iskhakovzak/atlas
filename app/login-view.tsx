@@ -11,7 +11,7 @@ import {withCyrillic} from '@/lib/market/uz-cyrl';
 type Methods={email:boolean;phone:boolean;telegram:string|null;telegramBot?:boolean;google:boolean;apple?:boolean;appleNative?:boolean;devCodes:boolean};
 type Tab='telegram'|'phone'|'email'|'google'|'apple';
 
-const copy=withCyrillic({
+const copy=/*@__PURE__*/withCyrillic({
  ru:{eyebrow:'Вход в Atlas',title:'Войдите или создайте аккаунт',intro:'Аккаунт создаётся автоматически при первом входе. После входа вернём вас к выбранному действию.',telegram:'Telegram',phone:'Телефон',email:'Email',google:'Google',apple:'Apple',appleHint:'Войдите с помощью Apple ID.',appleButton:'Продолжить с Apple',phoneLabel:'Номер телефона',phoneHint:'Пришлём SMS с кодом. Только номера Узбекистана (+998).',emailLabel:'Электронная почта',emailHint:'Пришлём письмо с кодом.',sendCode:'Получить код',sending:'Отправляем…',codeLabel:'Код из сообщения',codeSentPhone:'Код отправлен на',codeSentEmail:'Код отправлен на',verify:'Войти',verifying:'Проверяем…',resend:'Отправить код ещё раз',resendIn:'Повторная отправка через',sec:'с',change:'Изменить',telegramHint:'Нажмите кнопку и подтвердите вход в Telegram.',googleHint:'Войдите с помощью аккаунта Google.',googleButton:'Продолжить с Google',devCode:'Режим разработки: код',loading:'Загружаем способы входа…',none:'Вход временно недоступен. Попробуйте позже.',signedIn:'Вы вошли. Возвращаем вас…',legal:{before:'Продолжая, вы принимаете ',terms:'условия использования',and:' и ',privacy:'политику конфиденциальности',after:'.'},errors:{invalid_email:'Проверьте адрес почты.',invalid_phone:'Введите номер в формате +998 90 123 45 67.',invalid_code:'Неверный код. Проверьте и попробуйте ещё раз.',code_expired:'Код устарел или попыток слишком много. Запросите новый код.',too_many_requests:'Слишком много попыток. Подождите немного и попробуйте снова.',delivery_failed:'Не удалось отправить код. Попробуйте позже или выберите другой способ.',method_unavailable:'Этот способ входа сейчас недоступен.',telegram_invalid:'Не удалось подтвердить вход через Telegram. Попробуйте ещё раз.',google:'Не удалось войти через Google. Попробуйте ещё раз.',apple:'Не удалось войти через Apple. Попробуйте ещё раз.',unavailable:'Сервис входа временно недоступен.',link_same:'Этот способ уже открывает ваш аккаунт.',link_telegram_one:'К аккаунту уже привязан Telegram. Сначала отвяжите его, потом привяжите другой.',link_taken:'Этот способ входа уже привязан к другому аккаунту.',link_has_account:'У этого способа входа уже есть свой аккаунт с данными. Войдите через него, чтобы ими воспользоваться.',signed_out:'Сессия закончилась. Войдите снова.',link_current:'Нельзя отвязать способ, которым вы сейчас вошли. Войдите другим способом и повторите.',fallback:'Не удалось войти. Попробуйте ещё раз.'},linkVerify:'Привязать'},
  uz:{eyebrow:'Atlasga kirish',title:'Kiring yoki akkaunt yarating',intro:'Akkaunt birinchi kirishda avtomatik yaratiladi. Kirgandan so‘ng tanlangan amalga qaytasiz.',telegram:'Telegram',phone:'Telefon',email:'Email',google:'Google',apple:'Apple',appleHint:'Apple ID orqali kiring.',appleButton:'Apple orqali davom etish',phoneLabel:'Telefon raqami',phoneHint:'Kod bilan SMS yuboramiz. Faqat O‘zbekiston raqamlari (+998).',emailLabel:'Elektron pochta',emailHint:'Kod bilan xat yuboramiz.',sendCode:'Kod olish',sending:'Yuborilmoqda…',codeLabel:'Xabardagi kod',codeSentPhone:'Kod yuborildi:',codeSentEmail:'Kod yuborildi:',verify:'Kirish',verifying:'Tekshirilmoqda…',resend:'Kodni qayta yuborish',resendIn:'Qayta yuborish',sec:'s',change:'O‘zgartirish',telegramHint:'Tugmani bosing va Telegramda kirishni tasdiqlang.',googleHint:'Google akkaunti orqali kiring.',googleButton:'Google orqali davom etish',devCode:'Ishlab chiqish rejimi: kod',loading:'Kirish usullari yuklanmoqda…',none:'Kirish vaqtincha mavjud emas. Keyinroq urinib ko‘ring.',signedIn:'Siz kirdingiz. Qaytarmoqdamiz…',legal:{before:'Davom etib, siz ',terms:'foydalanish shartlari',and:' va ',privacy:'maxfiylik siyosati',after:'ni qabul qilasiz.'},errors:{invalid_email:'Pochta manzilini tekshiring.',invalid_phone:'Raqamni +998 90 123 45 67 formatida kiriting.',invalid_code:'Kod noto‘g‘ri. Tekshirib, qayta urinib ko‘ring.',code_expired:'Kod eskirgan yoki urinishlar ko‘p. Yangi kod so‘rang.',too_many_requests:'Urinishlar juda ko‘p. Biroz kuting va qayta urinib ko‘ring.',delivery_failed:'Kodni yuborib bo‘lmadi. Keyinroq urinib ko‘ring yoki boshqa usulni tanlang.',method_unavailable:'Bu kirish usuli hozir mavjud emas.',telegram_invalid:'Telegram orqali kirishni tasdiqlab bo‘lmadi. Qayta urinib ko‘ring.',google:'Google orqali kirib bo‘lmadi. Qayta urinib ko‘ring.',apple:'Apple orqali kirib bo‘lmadi. Qayta urinib ko‘ring.',unavailable:'Kirish xizmati vaqtincha mavjud emas.',link_same:'Bu usul allaqachon akkauntingizni ochadi.',link_telegram_one:'Akkauntga Telegram allaqachon bog‘langan. Avval uni uzing, keyin boshqasini bog‘lang.',link_taken:'Bu kirish usuli boshqa akkauntga bog‘langan.',link_has_account:'Bu kirish usulining ma’lumotlari bor alohida akkaunti mavjud. Ulardan foydalanish uchun u orqali kiring.',signed_out:'Sessiya tugadi. Qaytadan kiring.',link_current:'Hozir kirgan usulingizni uzib bo‘lmaydi. Boshqa usul bilan kiring va qayta urinib ko‘ring.',fallback:'Kirib bo‘lmadi. Qayta urinib ko‘ring.'},linkVerify:'Bog‘lash'},
  en:{eyebrow:'Sign in to Atlas',title:'Sign in or create an account',intro:'Your account is created automatically the first time you sign in. Afterwards you’ll return to your selected action.',telegram:'Telegram',phone:'Phone',email:'Email',google:'Google',apple:'Apple',appleHint:'Sign in with your Apple ID.',appleButton:'Continue with Apple',phoneLabel:'Phone number',phoneHint:'We’ll text you a code. Uzbekistan numbers (+998) only.',emailLabel:'Email',emailHint:'We’ll email you a code.',sendCode:'Get code',sending:'Sending…',codeLabel:'Code from the message',codeSentPhone:'Code sent to',codeSentEmail:'Code sent to',verify:'Sign in',verifying:'Checking…',resend:'Send the code again',resendIn:'Resend in',sec:'s',change:'Change',telegramHint:'Press the button and confirm sign-in in Telegram.',googleHint:'Sign in with your Google account.',googleButton:'Continue with Google',devCode:'Development mode: code',loading:'Loading sign-in options…',none:'Sign-in is temporarily unavailable. Please try later.',signedIn:'You’re signed in. Taking you back…',legal:{before:'By continuing you accept the ',terms:'terms of use',and:' and ',privacy:'privacy policy',after:'.'},errors:{invalid_email:'Check the email address.',invalid_phone:'Enter the number as +998 90 123 45 67.',invalid_code:'Wrong code. Check it and try again.',code_expired:'The code expired or had too many attempts. Request a new one.',too_many_requests:'Too many attempts. Wait a little and try again.',delivery_failed:'Could not send the code. Try later or choose another method.',method_unavailable:'This sign-in method is unavailable right now.',telegram_invalid:'Could not confirm the Telegram sign-in. Try again.',google:'Could not sign in with Google. Try again.',apple:'Could not sign in with Apple. Try again.',unavailable:'Sign-in is temporarily unavailable.',link_same:'This method already opens your account.',link_telegram_one:'A Telegram account is already attached. Remove it first, then attach another one.',link_taken:'This sign-in method is already attached to another account.',link_has_account:'This sign-in method has its own account with data. Sign in with it to use that data.',signed_out:'Your session ended. Sign in again.',link_current:'You can’t remove the method you are signed in with. Sign in another way and try again.',fallback:'Could not sign in. Try again.'},linkVerify:'Attach'},
@@ -25,7 +25,7 @@ async function post(url:string,body:unknown):Promise<PostResult>{
  }catch{return {ok:false,data:{error:'unavailable'}}}
 }
 
-const choiceCopy=withCyrillic({
+const choiceCopy=/*@__PURE__*/withCyrillic({
  ru:{or:'или',phone:'По номеру телефона',email:'По электронной почте',back:'Все способы входа'},
  uz:{or:'yoki',phone:'Telefon raqami orqali',email:'Elektron pochta orqali',back:'Barcha kirish usullari'},
  en:{or:'or',phone:'With a phone number',email:'With email',back:'All sign-in methods'},
@@ -119,16 +119,23 @@ export function LoginView(){
   }).catch(()=>setFailed(true));
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[]);
- const done=useCallback(()=>window.location.replace(returnTo),[returnTo]);
- useEffect(()=>{if(status==='authenticated')done()},[status,done]);
+ // Signed in by any method: the "signed in" screen shows at once while the page heads back.
+ const [signedIn,setSignedIn]=useState(false);
+ const done=useCallback(()=>{setSignedIn(true);window.location.replace(returnTo)},[returnTo]);
+ useEffect(()=>{if(status==='authenticated')window.location.replace(returnTo)},[status,returnTo]);
 
- if(status==='authenticated')return <section className="surface access-card" role="status"><span className="access-spinner"/>{c.signedIn}</section>;
+ // Signed in: a check draws itself while the page heads back (app/motion.css, "Sign-in screens").
+ if(status==='authenticated'||signedIn)return <section className="surface login-card login-done" role="status" aria-live="polite">
+  <span className="login-done-mark" aria-hidden="true"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="23"/><path d="M16 27l7 7 14-15"/></svg></span>
+  <p>{c.signedIn}</p>
+  <span className="login-done-bar" aria-hidden="true"/>
+ </section>;
  const tabs=methods?([['telegram',!!methods.telegram],['phone',methods.phone],['email',methods.email],['google',methods.google],['apple',appleOffered(methods)]] as const).filter(([,enabled])=>enabled):[];
  const locale=(state.communication.language as Locale)??'ru',w=choiceCopy[locale]??choiceCopy.ru;
  return <section className="surface login-card">
   <span className="eyebrow">{c.eyebrow}</span><h1>{c.title}</h1><p className="login-intro">{c.intro}</p>
   {error&&<div className="notice error" role="alert">{error}</div>}
-  {!methods&&!failed&&<div className="login-status" role="status"><span className="access-spinner"/>{c.loading}</div>}
+  {!methods&&!failed&&<div className="login-skeleton" role="status"><span className="sr-only">{c.loading}</span><i aria-hidden="true"/><b aria-hidden="true"/><i aria-hidden="true"/><i aria-hidden="true"/></div>}
   {(failed||(methods&&!tabs.length))&&<div className="notice" role="status">{c.none}</div>}
   {/* One method at a time: Telegram on top, the others as a column of buttons; phone and email open their form. */}
   {methods&&(tab===null||tab==='telegram'||tab==='google'||tab==='apple')?<div className="login-panel">
@@ -179,14 +186,14 @@ export function OtpLogin({channel,c,dev,onDone,onError,link=false}:{channel:'pho
   <div className="field"><label htmlFor={'login-'+channel}>{channel==='phone'?c.phoneLabel:c.emailLabel}</label>
    <input id={'login-'+channel} type={channel==='phone'?'tel':'email'} inputMode={channel==='phone'?'tel':'email'} autoComplete={channel==='phone'?'tel':'email'} required maxLength={channel==='phone'?20:254} value={target} onChange={event=>setTarget(event.target.value)} placeholder={channel==='phone'?'+998 90 123 45 67':'name@example.com'}/>
    <small>{channel==='phone'?c.phoneHint:c.emailHint}</small></div>
-  <button className="btn primary" type="submit" disabled={busy}>{busy?c.sending:c.sendCode}<ArrowRight size={18}/></button>
+  <button className="btn primary" type="submit" disabled={busy} aria-busy={busy}>{busy?c.sending:c.sendCode}{busy?<Loader2 className="spin" size={18} aria-hidden="true"/>:<ArrowRight size={18}/>}</button>
  </form>;
  return <form className="login-form" onSubmit={verify}>
   <p className="login-sent">{channel==='phone'?c.codeSentPhone:c.codeSentEmail} <b>{target.trim()}</b> <button type="button" className="text-button" onClick={()=>{setChallenge(null);onError()}}><ArrowLeft size={14}/>{c.change}</button></p>
   {dev&&devCode&&<div className="notice" role="status">{c.devCode}: <b>{devCode}</b></div>}
   <div className="field"><label htmlFor={'code-'+channel}>{c.codeLabel}</label>
    <input ref={codeInput} id={'code-'+channel} className="login-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={event=>setCode(event.target.value.replace(/\D/g,'').slice(0,6))} placeholder="000000"/></div>
-  <button className="btn primary" type="submit" disabled={busy||code.length!==6}>{busy?c.verifying:link?c.linkVerify:c.verify}<ArrowRight size={18}/></button>
+  <button className="btn primary" type="submit" disabled={busy||code.length!==6} aria-busy={busy}>{busy?c.verifying:link?c.linkVerify:c.verify}{busy?<Loader2 className="spin" size={18} aria-hidden="true"/>:<ArrowRight size={18}/>}</button>
   <button type="button" className="text-button login-resend" disabled={busy||wait>0} onClick={()=>void send()}>{wait>0?`${c.resendIn} ${wait} ${c.sec}`:c.resend}</button>
  </form>;
 }
@@ -207,7 +214,7 @@ export function TelegramLogin({bot,hint,onDone,onError,link=false}:{bot:string;h
  return <div className="login-telegram"><p>{hint}</p><div ref={holder} className="login-telegram-widget"/></div>;
 }
 
-const botCopy=withCyrillic({
+const botCopy=/*@__PURE__*/withCyrillic({
  ru:{button:'Войти через Telegram',linkButton:'Привязать Telegram',hint:'Откроется Telegram — подтвердите вход в чате с ботом Atlas.',waiting:'Подтвердите вход в Telegram и вернитесь сюда — страница откроется сама.',again:'Открыть Telegram ещё раз',web:'Не открылось? Открыть в браузере',preparing:'Готовим вход…'},
  uz:{button:'Telegram orqali kirish',linkButton:'Telegramni bog‘lash',hint:'Telegram ochiladi — Atlas boti bilan chatda kirishni tasdiqlang.',waiting:'Telegramda kirishni tasdiqlang va bu yerga qayting — sahifa o‘zi ochiladi.',again:'Telegramni yana ochish',web:'Ochilmadimi? Brauzerda ochish',preparing:'Kirish tayyorlanmoqda…'},
  en:{button:'Sign in with Telegram',linkButton:'Attach Telegram',hint:'Telegram opens — confirm in the chat with the Atlas bot.',waiting:'Confirm in Telegram and come back — this page opens by itself.',again:'Open Telegram again',web:'Did not open? Open in the browser',preparing:'Preparing sign-in…'},

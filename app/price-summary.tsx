@@ -1,7 +1,7 @@
 'use client';
 import {useId,useState} from 'react';
 import {Info} from 'lucide-react';
-import {formatSum} from '@/lib/market/home-copy';
+import {formatSum} from '@/lib/market/format';
 import type {Locale} from '@/lib/market/i18n';
 
 /** One price row; an optional explanation opens below it instead of a floating popover. `value` replaces the amount with a word. */

@@ -81,7 +81,7 @@ window.__e2e = (() => {
   }
   const visible = (el) => { const r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false; const cs = getComputedStyle(el); return cs.visibility === 'visible' && cs.display !== 'none'; };
   return {
-    ready() { return document.readyState === 'complete' && !!document.querySelector('main, h1') && !document.querySelector('.access-spinner, [aria-busy="true"]'); },
+    ready() { return document.readyState === 'complete' && !!document.querySelector('main, h1') && !document.querySelector('.access-spinner, .access-loading, .login-skeleton, [aria-busy="true"]'); },
     audit() {
       const width = document.documentElement.clientWidth, issues = [];
       const overflow = document.documentElement.scrollWidth - width; if (overflow > 1) issues.push('horizontal overflow ' + overflow + 'px');

@@ -3,13 +3,19 @@ import {ArrowUpRight} from 'lucide-react';
 import Link from '@/components/site-link';
 import {useMarket} from '@/lib/market/store';
 import {ThemeToggle} from './theme-control';
-import {routeTitle} from '@/lib/market/i18n';
+import {footerCopy,navCopy,routeTitle,type Locale} from '@/lib/market/i18n';
 import {pickLocale} from '@/lib/market/uz-cyrl';
-import {MissingContent,useHomeCopy} from './home-sections';
+
+const isDev=(import.meta as {env?:{DEV?:boolean}}).env?.DEV===true;
+/** Dev-only marker for business data that is not filled yet; production renders nothing. */
+export function MissingContent({what}:{what:string}){
+ if(!isDev)return null;
+ return <p className="home-missing" role="note">Нужно заполнить: {what} — в админке, раздел «Контент сайта»</p>;
+}
 
 export function SiteFooter(){
- const {locale,c}=useHomeCopy();
- const {siteContent}=useMarket();
+ const {siteContent,state}=useMarket();
+ const locale=state.communication.language as Locale,c={footer:footerCopy[locale],nav:navCopy[locale],trust:{inn:footerCopy[locale].inn}};
  const {contacts,legal}=siteContent;
  const pickup=(contacts.pickupAddress?pickLocale(contacts.pickupAddress,locale):undefined);
  const contactLinks=[

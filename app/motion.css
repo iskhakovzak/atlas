@@ -46,6 +46,43 @@ html[data-theme="dark"] :is(.atlas-skeleton-card > i, .atlas-skeleton-card b) { 
 details[id]:is(:target, [data-linked]) > summary { animation: atlas-target-glow 2.2s ease-out .5s both; }
 @keyframes atlas-target-glow { 0% { box-shadow: 0 0 0 0 rgba(31, 77, 59, 0); } 25% { box-shadow: 0 0 0 4px rgba(31, 77, 59, .22); } 100% { box-shadow: 0 0 0 0 rgba(31, 77, 59, 0); } }
 
+/* ---------- Private pages: placeholders, then the page rises in ---------- */
+/* app/access-view.tsx shows page-shaped placeholders while the account loads (they appear only if it takes a moment),
+   then marks <main> with .access-arrived for a second so the page's blocks rise in one after another. */
+.access-loading { min-height: 360px; margin: 8px 0 48px; }
+#main.access-arrived > :not(.breadcrumb, footer, script, .cabinet) { animation: atlas-rise-in .44s cubic-bezier(.22, 1, .36, 1) both; }
+#main.access-arrived > :nth-child(3) { animation-delay: 50ms; }
+#main.access-arrived > :nth-child(4) { animation-delay: 100ms; }
+#main.access-arrived > :nth-child(n + 5):not(footer) { animation-delay: 140ms; }
+/* The account staggers its own blocks: the head, then the left column and the right column side by side. */
+#main.access-arrived :is(.cabinet-head, .cabinet-main > *, .cabinet-side > *) { animation: atlas-rise-in .46s cubic-bezier(.22, 1, .36, 1) both; }
+#main.access-arrived :is(.cabinet-main, .cabinet-side) > :nth-child(1) { animation-delay: 60ms; }
+#main.access-arrived :is(.cabinet-main, .cabinet-side) > :nth-child(2) { animation-delay: 110ms; }
+#main.access-arrived :is(.cabinet-main, .cabinet-side) > :nth-child(3) { animation-delay: 160ms; }
+#main.access-arrived :is(.cabinet-main, .cabinet-side) > :nth-child(n + 4) { animation-delay: 200ms; }
+
+/* ---------- Account details ---------- */
+/* Progress bars fill from the left once; tiles and rows answer the pointer; new forms rise in. */
+.cabinet-bar span { transform-origin: left center; animation: atlas-bar-grow .9s cubic-bezier(.22, 1, .36, 1) .25s both; }
+@keyframes atlas-bar-grow { from { transform: scaleX(0); } }
+.cabinet-tiles a { transition: transform .22s cubic-bezier(.22, 1, .36, 1), box-shadow .22s ease, border-color .2s ease; }
+.cabinet-tiles a:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(22, 33, 28, .04), 0 14px 28px rgba(22, 33, 28, .09); }
+.cabinet-tiles a:active { transform: translateY(0) scale(.985); transition-duration: .08s; }
+html[data-theme="dark"] .cabinet-tiles a:hover { box-shadow: 0 14px 28px rgba(0, 0, 0, .35); }
+.cabinet-rows a > svg:last-child, .cabinet-tiles a > svg { transition: transform .22s cubic-bezier(.22, 1, .36, 1); }
+.cabinet-rows a:hover > svg:last-child { transform: translateX(3px); }
+.cabinet-tiles a:hover > svg { transform: translateY(-1px) scale(1.06); }
+.cabinet-ticket-form, .support-reply-form, .cabinet-tickets > li { animation: atlas-rise-in .32s cubic-bezier(.22, 1, .36, 1) both; }
+
+/* ---------- Disclosures open and close smoothly (order cards, history, help) ---------- */
+/* Where the browser can animate to auto height (Chrome 131+); elsewhere they open at once as before. Help bubbles that
+   float over the page (popovers) keep their old behaviour so nothing clips them. */
+@supports (interpolate-size: allow-keywords) {
+  details:not(:has([class*="popover"])) { interpolate-size: allow-keywords; }
+  details:not(:has([class*="popover"]))::details-content { block-size: 0; overflow-y: clip; transition: block-size .34s cubic-bezier(.22, 1, .36, 1), content-visibility .34s allow-discrete; }
+  details:not(:has([class*="popover"]))[open]::details-content { block-size: auto; }
+}
+
 /* ---------- Checkout recipient ⇄ review ---------- */
 /* app/shopping.tsx switches the step inside a view transition: the dialog frame morphs between its narrow and wide
    sizes while the old step fades out and the new one fades in, both pinned to the top so nothing stretches. */
@@ -108,6 +145,71 @@ html[data-theme="dark"] .checkout-placed-bar { background: rgba(255, 255, 255, .
 html[data-theme="dark"] .checkout-placed-bar i { background: var(--night-jade, #80d0ac); }
 html[data-theme="dark"] .checkout-placed-link { color: var(--night-ivory, #ebe4d2); }
 
+/* ---------- Sign-in screens and the account outline (7.10.2026) ---------- */
+/* The account's outline while the session is checked (app/access-view.tsx): same columns as .cabinet-grid. */
+.account-skeleton { display: grid; gap: 16px; animation: atlas-fade-in .3s ease-out .12s both; }
+.account-skeleton .sk-head { display: flex; align-items: center; gap: 14px; padding: 6px 0 4px; }
+.account-skeleton .sk-head > i { width: 52px; height: 52px; border-radius: 50%; }
+.account-skeleton .sk-head > span { display: grid; gap: 10px; width: min(320px, 60%); }
+.account-skeleton .sk-head b:first-child { height: 30px; width: 80%; }
+.account-skeleton .sk-grid, .account-skeleton .sk-col { display: grid; gap: 16px; min-width: 0; }
+@media (min-width: 960px) { .account-skeleton .sk-grid { grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); gap: 20px; align-items: start; } }
+.account-skeleton .sk-card { display: grid; gap: 12px; align-content: start; padding: 20px; border: 1px solid var(--day-line, #e2e2da); border-radius: 18px; background: var(--day-surface, #fff); box-shadow: var(--day-shadow, 0 1px 2px rgba(22, 33, 28, .04), 0 6px 18px rgba(22, 33, 28, .05)); }
+.account-skeleton .sk-card.tall { min-height: 220px; }
+.account-skeleton .sk-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 640px) { .account-skeleton .sk-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.account-skeleton .sk-tiles .sk-card { padding: 14px; min-height: 104px; }
+.account-skeleton .sk-tiles i { width: 22px; height: 22px; border-radius: 7px; }
+.account-skeleton .sk-tiles b { width: 60%; }
+.account-skeleton :is(i, b) { display: block; border-radius: 10px; background: linear-gradient(100deg, #efefe9 30%, #f8f8f4 50%, #efefe9 70%); background-size: 240% 100%; animation: atlas-skeleton-shine 1.4s linear infinite; }
+.account-skeleton b { height: 12px; }
+.account-skeleton .sk-card > b:nth-child(1) { width: 45%; height: 18px; }
+.account-skeleton .sk-card > b:nth-child(2) { width: 85%; }
+.account-skeleton .sk-card > b:nth-child(3) { width: 62%; }
+.account-skeleton .sk-card.tall > b:nth-child(3) { margin-top: auto; }
+html[data-theme="dark"] .account-skeleton .sk-card { border-color: var(--night-line, rgba(226, 238, 231, .085)); background: var(--night-surface, #111714); box-shadow: none; }
+html[data-theme="dark"] .account-skeleton :is(i, b) { background-image: linear-gradient(100deg, rgba(255, 255, 255, .05) 30%, rgba(255, 255, 255, .1) 50%, rgba(255, 255, 255, .05) 70%); }
+
+/* Sign-in options while they load (app/login-view.tsx): button-shaped placeholders and the "or" rule. */
+.login-skeleton { display: grid; gap: 10px; animation: atlas-fade-in .25s ease-out .1s both; }
+.login-skeleton > i { display: block; height: 48px; border-radius: 12px; background: linear-gradient(100deg, #efefe9 30%, #f8f8f4 50%, #efefe9 70%); background-size: 240% 100%; animation: atlas-skeleton-shine 1.4s linear infinite; }
+.login-skeleton > i:first-child { height: 52px; }
+.login-skeleton > b { display: block; height: 1px; margin: 6px 20%; background: var(--day-line, #e2e2da); }
+html[data-theme="dark"] .login-skeleton > i { background-image: linear-gradient(100deg, rgba(255, 255, 255, .05) 30%, rgba(255, 255, 255, .1) 50%, rgba(255, 255, 255, .05) 70%); }
+html[data-theme="dark"] .login-skeleton > b { background: var(--night-line, rgba(226, 238, 231, .085)); }
+
+/* Switching between sign-in methods, the code step and the Telegram wait slide in softly instead of jumping. */
+.login-card > .login-panel, .login-panel > .login-form, .login-form .login-sent, .tg-login-wait, .login-card > .notice { animation: atlas-rise-in .3s cubic-bezier(.22, 1, .36, 1) both; }
+.tg-login-wait { position: relative; }
+.tg-login-wait > svg { border-radius: 50%; box-shadow: 0 0 0 0 rgba(36, 129, 204, .35); animation: atlas-tg-pulse 1.6s ease-out infinite; }
+@keyframes atlas-tg-pulse { 70% { box-shadow: 0 0 0 8px rgba(36, 129, 204, 0); } 100% { box-shadow: 0 0 0 0 rgba(36, 129, 204, 0); } }
+.login-form .btn[aria-busy="true"] { cursor: progress; }
+
+/* Signed in: the check draws, the line fills while the page goes back. */
+.login-done { align-items: center; justify-content: center; min-height: 300px; text-align: center; animation: atlas-placed-in .45s cubic-bezier(.22, 1, .36, 1) both; }
+.login-done > p { margin: 0; color: var(--home-ink, #16211c); font-size: 18px; font-weight: 700; }
+.login-done-mark { display: grid; place-items: center; width: 72px; height: 72px; border-radius: 50%; background: #e6f1ea; color: #1f4d3b; animation: atlas-step-pop .5s cubic-bezier(.34, 1.56, .64, 1) both; }
+.login-done-mark svg { width: 52px; height: 52px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.login-done-mark circle { stroke-dasharray: 145; stroke-dashoffset: 145; opacity: .35; animation: atlas-draw .4s ease-out forwards; }
+.login-done-mark path { stroke-dasharray: 34; stroke-dashoffset: 34; animation: atlas-draw .3s ease-out .22s forwards; }
+.login-done-bar { position: relative; width: 140px; height: 4px; overflow: hidden; border-radius: 999px; background: #e6ece8; }
+.login-done-bar::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: #1f4d3b; transform-origin: left; animation: atlas-placed-fill 2.4s cubic-bezier(.2, .7, .2, 1) .3s both; }
+html[data-theme="dark"] .login-done-mark { background: var(--night-jade-soft, rgba(128, 208, 172, .14)); color: var(--night-jade, #80d0ac); }
+html[data-theme="dark"] .login-done > p { color: var(--night-ink, #ebe4d2); }
+html[data-theme="dark"] .login-done-bar { background: rgba(255, 255, 255, .08); }
+html[data-theme="dark"] .login-done-bar::after { background: var(--night-jade, #80d0ac); }
+
+/* Back to the app (app/auth-return-view.tsx): the brand arrow inside a turning arc. */
+.atlas-loader { position: relative; display: grid; place-items: center; width: 56px; height: 56px; color: #1f4d3b; }
+.atlas-loader::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0 25%, currentColor 100%); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px)); mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px)); animation: access-spin 1s linear infinite; }
+.atlas-loader svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; animation: atlas-loader-nudge 1.6s ease-in-out infinite; }
+@keyframes atlas-loader-nudge { 50% { transform: translate(2px, -2px); } }
+html[data-theme="dark"] .atlas-loader { color: var(--night-jade, #80d0ac); }
+
+/* Product photos from the stores fade in as they arrive instead of popping in (app/market-ui.tsx, ProductImage). */
+img.product-img { transition: opacity .35s ease-out; }
+img.product-img[data-fade] { opacity: 0; }
+
 /* ---------- Reduced motion: no page, dialog or content movement; the check is drawn at once. ---------- */
 @media (prefers-reduced-motion: reduce) {
   @view-transition { navigation: none; }
@@ -115,10 +217,19 @@ html[data-theme="dark"] .checkout-placed-link { color: var(--night-ivory, #ebe4d
   :is(.basket-layout, .basket-empty, .compact-order, .notices-page > .notice-filters, .wallet-grid),
   details[id]:is(:target, [data-linked]) > summary, .atlas-modal .basket-checkout > *, .review-layout > *, .basket-steps li[data-state="current"] > span, .checkout-placed { animation: none; }
   .atlas-skeleton-card > i, .atlas-skeleton-card b { animation: none; }
+  #main.access-arrived *, #main.access-arrived > *, .cabinet-bar span, .cabinet-ticket-form, .support-reply-form, .cabinet-tickets > li { animation: none; }
+  .cabinet-tiles a, .cabinet-tiles a > svg, .cabinet-rows a > svg:last-child { transition: none; }
+  .cabinet-tiles a:hover, .cabinet-tiles a:hover > svg, .cabinet-rows a:hover > svg:last-child { transform: none; }
+  details::details-content { transition: none; }
   [data-slot="dialog-content"][data-state="open"], [data-slot="alert-dialog-content"][data-state="open"] { animation: atlas-fade-in .15s ease-out both; }
   [data-slot="dialog-content"][data-state="closed"], [data-slot="alert-dialog-content"][data-state="closed"] { animation: atlas-fade-out .12s ease-in both; }
   :is([data-slot="dialog-overlay"], [data-slot="alert-dialog-overlay"]) { -webkit-backdrop-filter: none; backdrop-filter: none; }
   .checkout-placed-mark :is(circle, path) { animation: none; stroke-dashoffset: 0; }
   .checkout-placed-bar i { animation: none; transform: scaleX(.92); }
   .basket-steps li::after { transition: none; }
+  .account-skeleton, .account-skeleton :is(i, b), .login-skeleton, .login-skeleton > i, .login-done, .login-done-mark, .atlas-loader::before, .atlas-loader svg { animation: none; }
+  .login-done-mark :is(circle, path) { animation: none; stroke-dashoffset: 0; }
+  .login-done-bar::after { animation: none; transform: scaleX(.92); }
+  img.product-img { transition: none; }
+  .login-card > .login-panel, .login-panel > .login-form, .login-form .login-sent, .tg-login-wait, .login-card > .notice, .tg-login-wait > svg { animation: none; }
 }

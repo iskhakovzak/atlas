@@ -289,7 +289,7 @@ export type OrderGroupCopy = {
   line: (id: string) => string;
 };
 
-export const orderGroupCopy: Record<Locale, OrderGroupCopy> = withCyrillic({
+export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withCyrillic({
   ru: {
     title: (date) => `Заказ от ${date}`,
     from: (store, country) => country ? `Из ${store} (${country})` : `Из ${store}`,

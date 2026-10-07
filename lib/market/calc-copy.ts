@@ -36,7 +36,7 @@ export type CalcCopy = {
   };
 };
 
-export const calcCopy: Record<Locale, CalcCopy> = withCyrillic({
+export const calcCopy: Record<Locale, CalcCopy> = /*@__PURE__*/withCyrillic({
   ru: {
     onlyOption: 'Единственный доступный вариант', chooseOptions: 'Можно выбрать несколько вариантов', chosen: 'Выбрано', quantity: 'Количество', less: 'Меньше', more: 'Больше', removeOption: 'Убрать вариант',
     stockLeft: n => `Осталось ${n} шт.`, stockMore: n => `Больше ${n} шт.`, stockUnknown: 'Остаток магазин не сообщает', stockByEbay: 'по данным eBay', outOfStock: 'Нет в наличии',

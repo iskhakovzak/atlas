@@ -13,7 +13,7 @@ export const isUzbek = (locale:Locale) => locale === "uz" || locale === "oz";
 /** Site language when neither a saved choice nor the browser language matches a supported one. */
 export const defaultLocale:Locale="uz";
 
-const apiErrors:Record<Locale,Record<number,string>>=withCyrillic({
+const apiErrors:Record<Locale,Record<number,string>>=/*@__PURE__*/withCyrillic({
   ru:{400:"Проверьте данные и попробуйте снова.",401:"Войдите, чтобы продолжить.",403:"У вас нет доступа к этому действию.",404:"Запрошенные данные не найдены.",405:"Этот способ запроса не поддерживается.",409:"Данные изменились. Обновите страницу и повторите действие.",413:"Запрос слишком большой.",422:"Не удалось обработать данные. Проверьте их и попробуйте снова.",429:"Слишком много запросов. Попробуйте позже.",503:"Не удалось выполнить запрос. Попробуйте ещё раз."},
   uz:{400:"Ma’lumotlarni tekshirib, qayta urinib ko‘ring.",401:"Davom etish uchun tizimga kiring.",403:"Bu amalni bajarish uchun ruxsat yo‘q.",404:"So‘ralgan ma’lumot topilmadi.",405:"Bu so‘rov usuli qo‘llab-quvvatlanmaydi.",409:"Ma’lumotlar o‘zgardi. Sahifani yangilab, qayta urinib ko‘ring.",413:"So‘rov hajmi juda katta.",422:"Ma’lumotlarni qayta ishlab bo‘lmadi. Tekshirib, qayta urinib ko‘ring.",429:"So‘rovlar soni oshib ketdi. Keyinroq urinib ko‘ring.",503:"So‘rov bajarilmadi. Qayta urinib ko‘ring."},
   en:{400:"Check the details and try again.",401:"Sign in to continue.",403:"You don’t have access to this action.",404:"The requested information wasn’t found.",405:"This request method isn’t supported.",409:"The data changed. Refresh the page and try again.",413:"The request is too large.",422:"Couldn’t process the information. Check it and try again.",429:"Too many requests. Try again later.",503:"The request couldn’t be completed. Please try again."},
@@ -66,7 +66,7 @@ export function setLocaleCookie(locale:Locale):void{
   const secure=window.location.protocol==="https:"?"; Secure":"";
   document.cookie=`atlas-language=${locale}; Path=/; Max-Age=31536000; SameSite=Lax${secure}`;
 }
-const copy = withCyrillic({
+const copy = /*@__PURE__*/withCyrillic({
   ru: {catalog:"Каталог",link:"Заказ по ссылке",batch:"Импорт списка",orders:"Мои заказы",account:"Кабинет",signin:"Войти",cart:"Корзина",balance:"Баланс",favorites:"Избранное",home:"Главная",terms:"Правила и данные",customs:"Таможня",retry:"Повторить",openSignIn:"Открыть вход",footer:"Atlas · Магазины мира — в одном месте.",contactTitle:"Связаться с Atlas",contactSupport:"Поддержка в личном кабинете"},
   uz: {catalog:"Katalog",link:"Havola orqali buyurtma",batch:"Ro‘yxatni import qilish",orders:"Buyurtmalarim",account:"Kabinet",signin:"Kirish",cart:"Savat",balance:"Balans",favorites:"Saqlanganlar",home:"Bosh sahifa",terms:"Qoidalar va ma’lumotlar",customs:"Bojxona",retry:"Qayta urinish",openSignIn:"Kirishni ochish",footer:"Atlas · Dunyo do‘konlari bir joyda.",contactTitle:"Atlas bilan bog‘lanish",contactSupport:"Shaxsiy kabinetdagi yordam"},
   en: {catalog:"Catalog",link:"Order by link",batch:"Import list",orders:"My orders",account:"Account",signin:"Sign in",cart:"Cart",balance:"Balance",favorites:"Saved",home:"Home",terms:"Terms & privacy",customs:"Customs",retry:"Try again",openSignIn:"Open sign in",footer:"Atlas · The world’s stores, in one place.",contactTitle:"Contact Atlas",contactSupport:"Support in your account"},
@@ -74,20 +74,20 @@ const copy = withCyrillic({
 export function ui(locale:Locale){
   return copy[locale];
 }
-const orderStatuses = withCyrillic({
+const orderStatuses = /*@__PURE__*/withCyrillic({
   ru: ["Ожидает выкупа", "Выкуплен", "На зарубежном складе", "Готов к отправке", "В пути", "Доставлен"],
   uz: ["Xarid kutilmoqda", "Xarid qilindi", "Xorijdagi omborda", "Jo‘natishga tayyor", "Yo‘lda", "Yetkazildi"],
   en: ["Awaiting purchase", "Purchased", "At overseas warehouse", "Ready to ship", "In transit", "Delivered"],
 });
 export function localizedStatuses(locale:Locale){return orderStatuses[locale]}
-const routeTitles:Record<Locale,Record<string,string>>=withCyrillic({
+const routeTitles:Record<Locale,Record<string,string>>=/*@__PURE__*/withCyrillic({
   ru:{catalog:'Каталог',products:'Каталог',favorites:'Избранное',link:'Заказ по ссылке',stores:'Магазины',cart:'Корзина',orders:'Мои заказы',balance:'Баланс',operations:'Кабинет оператора',notifications:'Уведомления',account:'Личный кабинет',customs:'Таможенные условия',analytics:'Аналитика',legal:'Правила Atlas',identity:'Паспорт',declaration:'Декларация',batch:'Импорт списка',admin:'Администрирование',login:'Вход',notfound:'Страница не найдена',privacy:'Политика конфиденциальности',terms:'Условия использования',support:'Поддержка',app:'Приложение','delete-account':'Удаление аккаунта'},
   uz:{catalog:'Katalog',products:'Katalog',favorites:'Saqlanganlar',link:'Havola orqali buyurtma',stores:'Do‘konlar',cart:'Savat',orders:'Buyurtmalarim',balance:'Balans',operations:'Operator kabineti',notifications:'Bildirishnomalar',account:'Shaxsiy kabinet',customs:'Bojxona shartlari',analytics:'Tahlil',legal:'Atlas qoidalari',identity:'Pasport',declaration:'Deklaratsiya',batch:'Ro‘yxat importi',admin:'Boshqaruv',login:'Kirish',notfound:'Sahifa topilmadi',privacy:'Maxfiylik siyosati',terms:'Foydalanish shartlari',support:'Yordam',app:'Ilova','delete-account':'Akkauntni o‘chirish'},
   en:{catalog:'Catalog',products:'Catalog',favorites:'Saved',link:'Order by link',stores:'Stores',cart:'Cart',orders:'My orders',balance:'Balance',operations:'Operator workspace',notifications:'Notifications',account:'Account',customs:'Customs terms',analytics:'Analytics',legal:'Atlas terms',identity:'Passport',declaration:'Declaration',batch:'List import',admin:'Administration',login:'Sign in',notfound:'Page not found',privacy:'Privacy policy',terms:'Terms of use',support:'Support',app:'App','delete-account':'Delete account'},
 });
 export function routeTitle(locale:Locale,view:string){return routeTitles[locale][view]??view}
 
-export const serverErrors: Record<Locale, Record<string, string>> = withCyrillic({
+export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*/withCyrillic({
   ru: {
     'err_1': 'Войдите, чтобы продолжить.',
     'err_2': 'Недопустимый источник запроса.',
@@ -302,3 +302,34 @@ export function serverError(locale:Locale, key:string, params?:Record<string,str
   }, locale);
   return params ? text.replace(/\{(\w+)\}/g, (match, name:string) => name in params ? String(params[name]) : match) : text;
 }
+
+export type NavCopy = { catalog: string; stores: string; how: string; tariffs: string; orders: string; signin: string; account: string; language: string };
+/** Header navigation words, kept here (loaded on every page) rather than in the home page copy, which uses them as `nav`. */
+export const navCopy: Record<Locale, NavCopy> = /*@__PURE__*/withCyrillic({
+  ru: { catalog: 'Каталог', stores: 'Магазины', how: 'Как это работает', tariffs: 'Тарифы', orders: 'Мои заказы', signin: 'Войти', account: 'Кабинет', language: 'Язык сайта' },
+  uz: { catalog: 'Katalog', stores: 'Do‘konlar', how: 'Qanday ishlaydi', tariffs: 'Tariflar', orders: 'Buyurtmalarim', signin: 'Kirish', account: 'Kabinet', language: 'Sayt tili' },
+  en: { catalog: 'Catalog', stores: 'Stores', how: 'How it works', tariffs: 'Rates', orders: 'My orders', signin: 'Sign in', account: 'Account', language: 'Site language' },
+});
+
+export type FooterCopy = { tagline: string; buyers: string; contacts: string; legal: string; support: string; rules: string; privacy: string; customs: string; faq: string; telegramSupport: string; telegramChannel: string; phone: string; instagram: string; pickup: string; theme: string; inn: string };
+/** Footer words (every page), apart from the home page copy, which uses them as `footer` and `trust.inn`. */
+export const footerCopy: Record<Locale, FooterCopy> = /*@__PURE__*/withCyrillic({
+  ru: {
+      tagline: 'Покупки в зарубежных магазинах с доставкой в Узбекистан.', buyers: 'Покупателям', contacts: 'Контакты', legal: 'Юридическая информация',
+      support: 'Поддержка в личном кабинете', rules: 'Правила сервиса', privacy: 'Политика данных', customs: 'Таможня', faq: 'Частые вопросы',
+      telegramSupport: 'Telegram-бот', telegramChannel: 'Telegram-канал', phone: 'Телефон', instagram: 'Instagram', pickup: 'Пункт выдачи', theme: 'Тема',
+      inn: 'ИНН',
+  },
+  uz: {
+      tagline: 'Xorijiy do‘konlardan O‘zbekistonga yetkazib berish bilan xaridlar.', buyers: 'Xaridorlarga', contacts: 'Aloqa', legal: 'Yuridik ma’lumotlar',
+      support: 'Shaxsiy kabinetdagi yordam', rules: 'Xizmat qoidalari', privacy: 'Ma’lumotlar siyosati', customs: 'Bojxona', faq: 'Savollar',
+      telegramSupport: 'Telegram-bot', telegramChannel: 'Telegram-kanal', phone: 'Telefon', instagram: 'Instagram', pickup: 'Topshirish punkti', theme: 'Mavzu',
+      inn: 'STIR',
+  },
+  en: {
+      tagline: 'Shopping in international stores with delivery to Uzbekistan.', buyers: 'For shoppers', contacts: 'Contacts', legal: 'Legal information',
+      support: 'Support in your account', rules: 'Terms of service', privacy: 'Privacy policy', customs: 'Customs', faq: 'FAQ',
+      telegramSupport: 'Telegram bot', telegramChannel: 'Telegram channel', phone: 'Phone', instagram: 'Instagram', pickup: 'Pickup point', theme: 'Theme',
+      inn: 'Tax ID (INN)',
+  },
+});

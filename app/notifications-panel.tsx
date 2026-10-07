@@ -4,12 +4,12 @@ import Link from '@/components/site-link';
 import {Sheet,SheetClose,SheetContent,SheetDescription,SheetTitle,SheetTrigger} from '@/components/ui/sheet';
 import {useMarket} from '@/lib/market/store';
 import type {Locale} from '@/lib/market/i18n';
-import {formatDateTime,noticesCopy} from '@/lib/market/customer-copy';
+import {formatDateTime,noticesCopy} from '@/lib/market/notices-copy';
 import {renderNotification} from '@/lib/market/history-copy';
 import {noticePanel,noticeTarget,type OrderAttention} from '@/lib/market/notice-panel';
 import {withCyrillic} from '@/lib/market/uz-cyrl';
 
-const panelCopy=withCyrillic({
+const panelCopy=/*@__PURE__*/withCyrillic({
   ru:{action:'Требуют действия',updates:'Последние обновления',reasons:{extra:'Подтвердите доплату',change:'Ответьте на изменение заказа',payment:'Завершите оплату'} as Record<OrderAttention,string>,order:'Заказ',open:'Открыть',document:'Открыть документ',all:'Все уведомления',close:'Закрыть уведомления',read:'Отметить все прочитанными',nothing:'Других обновлений нет.'},
   uz:{action:'Harakat kerak',updates:'So‘nggi yangilanishlar',reasons:{extra:'Qo‘shimcha to‘lovni tasdiqlang',change:'Buyurtma o‘zgarishiga javob bering',payment:'To‘lovni yakunlang'} as Record<OrderAttention,string>,order:'Buyurtma',open:'Ochish',document:'Hujjatni ochish',all:'Barcha bildirishnomalar',close:'Bildirishnomalarni yopish',read:'Hammasini o‘qilgan deb belgilash',nothing:'Boshqa yangilanishlar yo‘q.'},
   en:{action:'Action needed',updates:'Latest updates',reasons:{extra:'Approve the extra payment',change:'Answer the order change',payment:'Complete the payment'} as Record<OrderAttention,string>,order:'Order',open:'Open',document:'Open document',all:'All notifications',close:'Close notifications',read:'Mark all as read',nothing:'No other updates.'},

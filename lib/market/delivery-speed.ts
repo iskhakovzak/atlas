@@ -1,5 +1,5 @@
 import type { Locale } from './i18n.ts';
-import { formatSum, formatUsd } from './home-copy.ts';
+import { formatSum, formatUsd } from './format.ts';
 import { deliveryRegions, deliveryDaysFor, type DeliveryRegion } from './site-content.ts';
 import { cartDeliverySpeed, deliveryPerKgUsdFor, deliverySpeeds, repriceCart, totalOf, type CartItem, type DeliverySpeed, type Pricing } from './domain.ts';
 import {withCyrillic} from './uz-cyrl.ts';
@@ -18,7 +18,7 @@ export type DeliverySpeedCopy = {
   saving: string;
 };
 
-export const deliverySpeedCopy: Record<Locale, DeliverySpeedCopy> = withCyrillic({
+export const deliverySpeedCopy: Record<Locale, DeliverySpeedCopy> = /*@__PURE__*/withCyrillic({
   ru: {
     title: 'Скорость доставки в Узбекистан',
     names: { express: 'Экспресс', standard: 'Обычная' },

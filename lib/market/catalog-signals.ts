@@ -1,5 +1,5 @@
 import { storeShippingHoldUsd, tariff, type Pricing } from './domain.ts';
-import { formatSum, formatUsd, ruPlural } from './home-copy.ts';
+import { formatSum, formatUsd, ruPlural } from './format.ts';
 import { storeLabel, type CatalogItem } from './catalog-query.ts';
 import type { Locale } from './i18n.ts';
 import {withCyrillic} from './uz-cyrl.ts';
@@ -30,7 +30,7 @@ export type SignalContext = {
   dutyLimitUsd: number;
 };
 
-const copy = withCyrillic({
+const copy = /*@__PURE__*/withCyrillic({
   ru: {
     parcel: (extra: string, store: string) => `+${extra} к посылке ${store}`,
     parcelHint: (alone: string) => `Посчитано, как в корзине: одна посылка на магазин, минимум 1 кг. Отдельной посылкой — ${alone}.`,

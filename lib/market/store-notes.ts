@@ -1,6 +1,6 @@
 import type { Locale } from './i18n.ts';
 import { courierAllowanceUsd } from './customs.ts';
-import { formatUsd } from './home-copy.ts';
+import { formatUsd } from './format.ts';
 import {withCyrillic} from './uz-cyrl.ts';
 
 /**
@@ -11,28 +11,28 @@ import {withCyrillic} from './uz-cyrl.ts';
 export type StoreNoteContext = { days: string | null; limit: string };
 type Note = Record<Locale, string | ((context: StoreNoteContext) => string)>;
 
-const usedGoods: Note = withCyrillic({
+const usedGoods: Note = /*@__PURE__*/withCyrillic({
   ru: 'Часто б/у и остатки: смотрите состояние и продавца.',
   uz: 'Ko‘pincha ishlatilgan va qoldiq tovarlar: holati va sotuvchiga qarang.',
   en: 'Often used items and leftovers: check the condition and the seller.',
 });
-const supplements: Note = withCyrillic({
+const supplements: Note = /*@__PURE__*/withCyrillic({
   ru: 'БАДы и витамины: проверьте нормы ввоза.',
   uz: 'BFQ va vitaminlar: olib kirish me’yorlarini tekshiring.',
   en: 'Supplements and vitamins: check the import allowances.',
 });
-const fromChina: Note = withCyrillic({
+const fromChina: Note = /*@__PURE__*/withCyrillic({
   ru: ({ days }) => `Отправка из Китая${days ? `, сроки ${days}` : ''}.`,
   uz: ({ days }) => `Xitoydan jo‘natiladi${days ? `, muddati ${days}` : ''}.`,
   en: ({ days }) => `Ships from China${days ? `, ${days}` : ''}.`,
 });
 // Duty is customs' decision: the note names the allowance and says it is an estimate.
-const luxury: Note = withCyrillic({
+const luxury: Note = /*@__PURE__*/withCyrillic({
   ru: ({ limit }) => `При цене выше ${limit} — пошлина сверх лимита (оценка).`,
   uz: ({ limit }) => `Narx ${limit} dan yuqori bo‘lsa — limitdan ortig‘iga boj (taxmin).`,
   en: ({ limit }) => `Above ${limit}, duty applies to the excess over the allowance (estimate).`,
 });
-const resale: Note = withCyrillic({
+const resale: Note = /*@__PURE__*/withCyrillic({
   ru: 'Площадка перепродажи: цена зависит от размера.',
   uz: 'Qayta sotish maydonchasi: narx o‘lchamga bog‘liq.',
   en: 'A resale marketplace: the price depends on the size.',
