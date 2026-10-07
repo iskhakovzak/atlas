@@ -1,5 +1,10 @@
 # Atlas architecture
 
+## Impact head verification follow-up — 8 October 2026
+
+The user explicitly requested the partner tracking code in the main homepage head for Impact Add Website verification. RootLayout now emits script#atlas-impact-bootstrap in the server-rendered head with the exact partner script URL and both requested commands. This defines atlasStartImpactTracking; current consent still controls its invocation and external loading, and native shells remain excluded. The original queue-style bootstrap gains only a duplicate-load ID. Existing client bootstrap calls the head initializer when available and retains its earlier fallback. A new VM regression verifies static URL visibility, no load on head evaluation, both commands after start and no duplicate load. All 736 tests pass; final lint (zero errors; one existing unused Choice warning), TypeScript and Worker build passed before this follow-up publishes. Version 147 remains the last confirmed deployed version until the next successful deployment is recorded.
+
+
 ## Import33 / Impact integration — 8 October 2026
 
 The shared allowlisted fetchProduct path serves customer previews, operator catalog imports and authenticated server rechecks. Public-state/merchant option extraction is bounded and exact product/variant identity is checked. Transient requests retry once within a 24-second total budget; blocks, incomplete data and unsafe redirects do not retry. New automatic cart submissions fail closed with err_38/503 when the source cannot be verified. Older optional sourceManuallyConfirmed values retain compatibility. No D1 migration or pricing formula change.

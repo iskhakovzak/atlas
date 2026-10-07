@@ -1,5 +1,10 @@
 # Atlas TODO and known limitations
 
+## Impact head verification follow-up — 8 October 2026
+
+The user explicitly requested the partner tracking code in the main homepage head for Impact Add Website verification. RootLayout now emits script#atlas-impact-bootstrap in the server-rendered head with the exact partner script URL and both requested commands. This defines atlasStartImpactTracking; current consent still controls its invocation and external loading, and native shells remain excluded. The original queue-style bootstrap gains only a duplicate-load ID. Existing client bootstrap calls the head initializer when available and retains its earlier fallback. A new VM regression verifies static URL visibility, no load on head evaluation, both commands after start and no duplicate load. All 736 tests pass; final lint (zero errors; one existing unused Choice warning), TypeScript and Worker build passed before this follow-up publishes. Version 147 remains the last confirmed deployed version until the next successful deployment is recorded.
+
+
 ## Import33 / Impact release — 8 October 2026
 
 - [x] Integrate on published version 146 rather than the older primary checkout; preserve current product features and official eBay API configuration.

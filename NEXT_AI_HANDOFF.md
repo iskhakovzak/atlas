@@ -1,5 +1,10 @@
 # Atlas — handoff для следующего AI-агента
 
+## Impact head verification follow-up — 8 October 2026
+
+The user explicitly requested the partner tracking code in the main homepage head for Impact Add Website verification. RootLayout now emits script#atlas-impact-bootstrap in the server-rendered head with the exact partner script URL and both requested commands. This defines atlasStartImpactTracking; current consent still controls its invocation and external loading, and native shells remain excluded. The original queue-style bootstrap gains only a duplicate-load ID. Existing client bootstrap calls the head initializer when available and retains its earlier fallback. A new VM regression verifies static URL visibility, no load on head evaluation, both commands after start and no duplicate load. All 736 tests pass; final lint (zero errors; one existing unused Choice warning), TypeScript and Worker build passed before this follow-up publishes. Version 147 remains the last confirmed deployed version until the next successful deployment is recorded.
+
+
 ## Import33 / Impact release checkout — 8 October 2026
 
 Current prepared source is C:\Users\WS\Documents\ChatGPT\atlas\outputs\deploy-import33-20261008, based on published version 146 / 4c61312ad439e98566785e10ab2f3c55d0faa556. The older primary checkout is not the publication source and has unrelated uncommitted catalog API work; preserve it. User explicitly authorized deploying this release to https://atlasmarket.uz. Use the existing public Sites project appgprj_6aa181097a00819196698407b43a6a45 with the normal source/archive/save/deploy flow. Do not publish an older checkout or alter audience, bindings, credentials, D1, DNS or proxy secrets. Record deployment success externally before claiming live status.

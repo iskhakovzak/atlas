@@ -63,6 +63,7 @@ import { AmbientBackdrop } from "./ambient-backdrop";
 import { JsonLd } from "./json-ld";
 import { siteGraph } from "@/lib/seo/structured-data";
 import { ImpactTracking } from './impact-tracking';
+import { impactHeadScript } from '@/lib/market/impact-tracking';
 
 export async function generateMetadata(): Promise<Metadata> {
   return rootMetadata(await pageLocale(), { google: env.ATLAS_GOOGLE_SITE_VERIFICATION, yandex: env.ATLAS_YANDEX_VERIFICATION });
@@ -98,6 +99,7 @@ export default async function RootLayout({
   preload(manropeLatin, font);
   return (
     <html lang={htmlLang(locale)} suppressHydrationWarning>
+      <head><script id="atlas-impact-bootstrap" type="text/javascript" dangerouslySetInnerHTML={{__html:impactHeadScript}} /></head>
       <body className="antialiased">
         <AmbientBackdrop />
         <AtlasThemeProvider>
