@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { pageLocale } from "./page-locale";
 import { rootMetadata } from "./route-metadata";
+import { env } from "cloudflare:workers";
 import "@fontsource-variable/inter/opsz.css";
 import "@fontsource-variable/manrope/wght.css";
 import "./globals.css";
@@ -48,7 +49,7 @@ import { JsonLd } from "./json-ld";
 import { siteGraph } from "@/lib/seo/structured-data";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return rootMetadata(await pageLocale());
+  return rootMetadata(await pageLocale(), { google: env.ATLAS_GOOGLE_SITE_VERIFICATION, yandex: env.ATLAS_YANDEX_VERIFICATION });
 }
 
 // Browser chrome matches the header. The site theme is chosen in the app, not by the OS,
@@ -76,7 +77,7 @@ export default async function RootLayout({
         <AtlasThemeProvider>
           <MarketProvider initialLocale={locale} initialPricing={pricing} initialSiteContent={siteContent}>{children}<StorageNotice /><PerformanceProbe /><NativeShell /><PressFeedback /></MarketProvider>
         </AtlasThemeProvider>
-        <JsonLd data={siteGraph(locale, siteContent.contacts)} />
+        <JsonLd data={siteGraph(locale, siteContent.contacts, siteContent.legal)} />
       </body>
     </html>
   );

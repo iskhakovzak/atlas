@@ -26,19 +26,19 @@ const pageText: Record<PublicPage, Record<Locale, { title: string; description: 
     en: { title: 'Atlas — shop international stores with delivery to Uzbekistan', description: 'Paste a link from any international store and see the total in soum: item, service and delivery on separate lines.' },
   },
   catalog: {
-    uz: { title: 'Xorijiy do‘konlar tovarlari katalogi', description: 'Poyabzal, kiyim, elektronika va go‘zallik mahsulotlari — yakuniy narxi so‘mda, O‘zbekistongacha yetkazish bilan. Do‘kon, narx, o‘lcham va bojsiz limit bo‘yicha filtrlar.' },
-    ru: { title: 'Каталог товаров из зарубежных магазинов', description: 'Обувь, одежда, электроника и красота с итогом в сумах и доставкой в Узбекистан. Фильтры по магазину, цене, размеру и беспошлинному лимиту.' },
-    en: { title: 'Catalog of products from international stores', description: 'Shoes, clothing, electronics and beauty with the total in soum and delivery to Uzbekistan. Filter by store, price, size and duty-free allowance.' },
+    uz: { title: 'Xorijiy tovarlar katalogi — O‘zbekistonga yetkazib berish', description: 'Poyabzal, kiyim, elektronika va go‘zallik mahsulotlari — yakuniy narxi so‘mda, O‘zbekistongacha yetkazish bilan. Do‘kon, narx, o‘lcham va bojsiz limit bo‘yicha filtrlar.' },
+    ru: { title: 'Каталог зарубежных товаров с доставкой в Узбекистан', description: 'Обувь, одежда, электроника и красота с итогом в сумах и доставкой в Узбекистан. Фильтры по магазину, цене, размеру и беспошлинному лимиту.' },
+    en: { title: 'Catalog of international products with delivery to Uzbekistan', description: 'Shoes, clothing, electronics and beauty with the total in soum and delivery to Uzbekistan. Filter by store, price, size and duty-free allowance.' },
   },
   stores: {
-    uz: { title: 'Buyurtma berish mumkin bo‘lgan do‘konlar', description: 'Atlas orqali havola bo‘yicha buyurtma berish mumkin bo‘lgan xorijiy do‘konlar katalogi.' },
-    ru: { title: 'Магазины для заказа', description: 'Каталог зарубежных магазинов, откуда можно оформить заказ по ссылке через Atlas.' },
-    en: { title: 'Stores you can order from', description: 'A directory of international stores you can order from by link through Atlas.' },
+    uz: { title: 'AQSh, Yevropa va Xitoy do‘konlaridan O‘zbekistonga buyurtma', description: 'AQSh, Yevropa, Xitoy va boshqa mamlakatlardagi do‘konlar: Atlas havolangiz bo‘yicha tovarni sotib olib, O‘zbekistonga yetkazadi. Har bir do‘kon uchun muddat, 1 kg narxi va valyuta.' },
+    ru: { title: 'Магазины США, Европы и Китая для заказа в Узбекистан', description: 'Магазины США, Европы, Китая и других стран: Atlas выкупит товар по вашей ссылке и доставит в Узбекистан. Для каждого магазина — срок, цена за 1 кг и валюта.' },
+    en: { title: 'Order from US, European and Chinese stores to Uzbekistan', description: 'Stores in the US, Europe, China and other countries: Atlas buys the item from your link and delivers it to Uzbekistan. Delivery time, price per kg and currency for each store.' },
   },
   customs: {
-    uz: { title: 'Bojxona shartlari', description: 'Bojsiz limit qanday ishlashi, qanday ma’lumotlar kerakligi va O‘zbekistonga buyurtmalarda bojxona to‘lovlari qanday hisoblanishi.' },
-    ru: { title: 'Таможенные условия', description: 'Как работает беспошлинный лимит, какие данные нужны и как рассчитываются таможенные платежи при заказе в Узбекистан.' },
-    en: { title: 'Customs terms', description: 'How the duty-free allowance works, which details are needed and how customs payments are calculated for orders to Uzbekistan.' },
+    uz: { title: 'O‘zbekistonga jo‘natmalar uchun bojsiz limit va bojxona to‘lovi', description: 'Bojsiz limit qanday ishlashi, qanday ma’lumotlar kerakligi va O‘zbekistonga buyurtmalarda bojxona to‘lovlari qanday hisoblanishi.' },
+    ru: { title: 'Таможенный лимит и пошлина на посылки в Узбекистан', description: 'Как работает беспошлинный лимит, какие данные нужны и как рассчитываются таможенные платежи при заказе в Узбекистан.' },
+    en: { title: 'Customs duty and duty-free allowance for parcels to Uzbekistan', description: 'How the duty-free allowance works, which details are needed and how customs payments are calculated for orders to Uzbekistan.' },
   },
   legal: {
     uz: { title: 'Huquqiy ma’lumotlar', description: 'Atlas xizmati qoidalari, buyurtma berish, hisob-kitob va ma’lumotlarni qayta ishlash tartibi.' },
@@ -120,10 +120,15 @@ export function privateMetadata(view: string, locale: Locale): Metadata {
   return { ...privateRouteMetadata, title: routeTitle(locale, view) };
 }
 
+/** Meta-tag codes from Google Search Console and Yandex Webmaster; empty values add no tag. */
+export type SiteVerification = { google?: string; yandex?: string };
+
 /** Root defaults in the page language; pages without their own title (such as the 404 page) use them. */
-export function rootMetadata(locale: Locale): Metadata {
+export function rootMetadata(locale: Locale, codes: SiteVerification = {}): Metadata {
   const text = rootText[locale];
+  const google = codes.google?.trim(), yandex = codes.yandex?.trim();
   return {
+    ...(google || yandex ? { verification: { ...(google ? { google } : {}), ...(yandex ? { yandex } : {}) } } : {}),
     metadataBase: new URL('https://atlasmarket.uz'),
     title: { default: text.title, template: '%s · Atlas' },
     description: text.description,

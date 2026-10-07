@@ -16,6 +16,11 @@ test('the site graph uses a square logo, a catalog search box and only published
   assert.deepEqual(filled.sameAs, ['https://t.me/atlas_uz']);
   assert.equal(filled.contactPoint[0].email, 'help@atlasmarket.uz');
   assert.equal(filled.contactPoint[0].telephone, undefined);
+  assert.equal(filled.legalName, undefined);
+  const company = siteGraph('ru', noContacts, { entityName: 'ООО «Атлас»', inn: '123456789', address: { ru: 'Ташкент, ул. Пример, 1', uz: 'Toshkent', en: 'Tashkent' } })['@graph'][0];
+  assert.equal(company.legalName, 'ООО «Атлас»');
+  assert.equal(company.taxID, '123456789');
+  assert.equal(company.address.streetAddress, 'Ташкент, ул. Пример, 1');
 });
 
 test('breadcrumbs point at the language version of the page', () => {
@@ -46,4 +51,10 @@ test('titles never repeat the brand and only public pages declare index', () => 
     assert.equal(robots.index, true);
   }
   assert.equal(rootMetadata('ru').robots, undefined, 'the 404 page keeps a single noindex');
+});
+
+test('search-console verification tags appear only when the codes are set', () => {
+  assert.equal(rootMetadata('ru').verification, undefined);
+  assert.equal(rootMetadata('ru', { google: ' ', yandex: '' }).verification, undefined);
+  assert.deepEqual(rootMetadata('uz', { google: 'g-code', yandex: 'y-code' }).verification, { google: 'g-code', yandex: 'y-code' });
 });

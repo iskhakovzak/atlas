@@ -12,6 +12,7 @@ type Contacts = {
   instagram: string | null;
   supportEmail: string | null;
 };
+type Legal = { entityName: string | null; inn: string | null; address: Record<Locale, string> | null };
 
 const organizationText: Record<Locale, string> = {
   uz: 'Xorijiy do‘konlardan xarid qilishda vositachi va logistika agenti: tovarni xorijda sotib olib, O‘zbekistonga yetkazib beradi.',
@@ -25,8 +26,8 @@ export function localizedUrl(path: string, locale: Locale): string {
   return `${siteOrigin}${path}?lang=${locale}`;
 }
 
-/** Organization and WebSite for every page; contacts appear only once the operator has published them. */
-export function siteGraph(locale: Locale, contacts: Contacts) {
+/** Organization and WebSite for every page; contacts and legal details appear only once the operator has published them. */
+export function siteGraph(locale: Locale, contacts: Contacts, legal?: Legal) {
   const sameAs = [
     contacts.telegramChannel && `https://t.me/${contacts.telegramChannel}`,
     contacts.instagram && `https://instagram.com/${contacts.instagram}`,
@@ -53,6 +54,10 @@ export function siteGraph(locale: Locale, contacts: Contacts) {
         image: `${siteOrigin}/og-image.png`,
         description: organizationText[locale],
         areaServed: { '@type': 'Country', name: 'Uzbekistan' },
+        ...(legal?.entityName ? { legalName: legal.entityName } : {}),
+        // INN is the Uzbek taxpayer number.
+        ...(legal?.inn ? { taxID: legal.inn } : {}),
+        ...(legal?.address?.[locale] ? { address: { '@type': 'PostalAddress', streetAddress: legal.address[locale], addressCountry: 'UZ' } } : {}),
         ...(sameAs.length ? { sameAs } : {}),
         ...(contactPoint ? { contactPoint } : {}),
       },
