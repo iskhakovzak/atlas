@@ -1,11 +1,16 @@
 "use client"
 
 import * as React from "react"
-import { CheckIcon } from "lucide-react"
 import { Checkbox as CheckboxPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Atlas checkbox (styles: app/checkbox.css). The button is the tap target (44×44 on phones,
+ * 32×32 elsewhere) and pulls its margins in, so in the layout it takes only the visible 20–22px box.
+ * The tick and the dash are always in the DOM: switching is a CSS transition on data-state,
+ * nothing mounts or unmounts on a click.
+ */
 function Checkbox({
   className,
   ...props
@@ -13,18 +18,15 @@ function Checkbox({
   return (
     <CheckboxPrimitive.Root
       data-slot="checkbox"
-      className={cn(
-        "peer size-4 shrink-0 rounded-[4px] border border-input shadow-xs transition-shadow outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground dark:bg-input/30 dark:aria-invalid:ring-destructive/40 dark:data-[state=checked]:bg-primary",
-        className
-      )}
+      className={cn("atlas-check", className)}
       {...props}
     >
-      <CheckboxPrimitive.Indicator
-        data-slot="checkbox-indicator"
-        className="grid place-content-center text-current transition-none"
-      >
-        <CheckIcon className="size-3.5" />
-      </CheckboxPrimitive.Indicator>
+      <span className="atlas-check-box" aria-hidden="true">
+        <svg viewBox="0 0 16 16" focusable="false">
+          <path className="atlas-check-tick" d="M3.6 8.3 6.6 11.2 12.4 5" pathLength={1} />
+          <path className="atlas-check-dash" d="M4.5 8h7" />
+        </svg>
+      </span>
     </CheckboxPrimitive.Root>
   )
 }

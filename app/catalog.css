@@ -109,7 +109,7 @@ html[data-theme="dark"] {
 .catalog-search input { flex: 1; min-width: 0; min-height: 48px; padding: 0; border: 0; outline: 0; background: transparent; color: var(--cat-ink); font: inherit; font-size: 16px; }
 .catalog-search input::placeholder { color: var(--cat-muted); opacity: 1; }
 .catalog-search input::-webkit-search-cancel-button { display: none; }
-.catalog-page .catalog-search:has(input:focus-visible) input { outline: 0; }
+.catalog-page .catalog-search input:focus-visible { outline: 0; }
 .catalog-categories { display: flex; gap: 8px; margin: 0 -16px; padding: 2px 16px 4px; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; }
 .catalog-categories > button { scroll-snap-align: start; }
 .catalog-bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }

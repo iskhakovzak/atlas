@@ -66,7 +66,7 @@ type Facts = { fee: string; markup: string; cbu: boolean; freeFrom: string; allo
 export type HomeCopy = {
   nav: { catalog: string; stores: string; how: string; tariffs: string; orders: string; signin: string; account: string; language: string };
   hero: { title: string; lead: string; label: string; placeholder: string; calculate: string; invalid: string; guestNote: string; memberNote: string; popular: string; openStore: string; batch: string; catalog: string; allStores: (count: number) => string; storesHint: string };
-  how: { title: string; steps: [Step, Step, Step, Step]; paymentsLabel: string; pickupLabel: string };
+  how: { title: string; steps: [Step, Step, Step, Step]; paymentsLabel: string; pickupLabel: string; deliveryLabel: string; courier: string; moreStores: (count: number) => string; confirm: string };
   example: {
     title: string; product: string; routeLabel: string; to: string; days: (min: number, max: number) => string;
     item: string; itemNoteCbu: (usd: string, rate: string, markup: string) => string; itemNoteSet: (usd: string, rate: string) => string;
@@ -112,7 +112,8 @@ export const homeCopy: Record<Locale, HomeCopy> = withCyrillic({
         { title: 'Подтвердите заказ', text: 'Подтвердите расчёт в личном кабинете. Перед этим мы ещё раз сверим цену с магазином, а товар выкупим сами.' },
         { title: 'Получите в Ташкенте', text: 'Привезём посылку в Узбекистан. Статус заказа виден в кабинете на каждом этапе.' },
       ],
-      paymentsLabel: 'Способы оплаты', pickupLabel: 'Пункт выдачи',
+      paymentsLabel: 'Способы оплаты', pickupLabel: 'Пункт выдачи', deliveryLabel: 'Доставка', courier: 'Курьерская доставка',
+      moreStores: (count) => `и ещё ${count}`, confirm: 'Подтвердить расчёт',
     },
     example: {
       title: 'Пример счёта', product: 'кроссовки Nike за $100', routeLabel: 'Маршрут', to: 'Ташкент',
@@ -206,7 +207,8 @@ export const homeCopy: Record<Locale, HomeCopy> = withCyrillic({
         { title: 'Buyurtmani tasdiqlang', text: 'Hisobni shaxsiy kabinetda tasdiqlang. Undan oldin narxni do‘kon bilan yana bir bor solishtiramiz, tovarni esa o‘zimiz sotib olamiz.' },
         { title: 'Toshkentda qabul qiling', text: 'Jo‘natmani O‘zbekistonga olib kelamiz. Buyurtma holati har bir bosqichda kabinetda ko‘rinadi.' },
       ],
-      paymentsLabel: 'To‘lov usullari', pickupLabel: 'Topshirish punkti',
+      paymentsLabel: 'To‘lov usullari', pickupLabel: 'Topshirish punkti', deliveryLabel: 'Yetkazib berish', courier: 'Kuryer orqali yetkazib berish',
+      moreStores: (count) => `va yana ${count} ta`, confirm: 'Hisobni tasdiqlash',
     },
     example: {
       title: 'Hisob namunasi', product: 'Nike krossovkalari, $100', routeLabel: 'Yo‘nalish', to: 'Toshkent',
@@ -300,7 +302,8 @@ export const homeCopy: Record<Locale, HomeCopy> = withCyrillic({
         { title: 'Confirm the order', text: 'Confirm the estimate in your account. Before that we check the price with the store once more, and we buy the item ourselves.' },
         { title: 'Collect it in Tashkent', text: 'We bring the parcel to Uzbekistan. Your account shows the order status at every stage.' },
       ],
-      paymentsLabel: 'Payment methods', pickupLabel: 'Pickup point',
+      paymentsLabel: 'Payment methods', pickupLabel: 'Pickup point', deliveryLabel: 'Delivery', courier: 'Courier delivery',
+      moreStores: (count) => `and ${count} more`, confirm: 'Confirm the bill',
     },
     example: {
       title: 'Example bill', product: 'Nike sneakers, $100', routeLabel: 'Route', to: 'Tashkent',

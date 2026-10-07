@@ -36,8 +36,7 @@ body { -webkit-tap-highlight-color: transparent; }
   /* Header: the bottom bar carries navigation and sign-in, so the top bar stays light. */
   .site-header { padding-top: env(safe-area-inset-top); padding-left: max(18px, env(safe-area-inset-left)); padding-right: max(18px, env(safe-area-inset-right)); }
 
-  /* Radix checkboxes: 24px boxes, still tappable through their labels. */
-  [data-slot="checkbox"] { width: 24px; height: 24px; border-radius: 7px; }
+  /* Checkboxes: 22px boxes with a 44px target, app/checkbox.css. */
 
   /* How it works: four short rows instead of four tall cards. */
   .home-steps { gap: 8px; }

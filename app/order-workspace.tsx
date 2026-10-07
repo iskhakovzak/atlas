@@ -2367,8 +2367,8 @@ function CommunicationPanel({
          <span className="status-badge">{communicationCopy.status}</span>
       </div>
       <div className="communication-grid">
-         <label className="channel-card"><input type="checkbox" checked={draft.emailEnabled} onChange={(event) => setDraft({ ...draft, emailEnabled: event.target.checked })} /><Mail size={22} /><span><b>Email</b><small>{communicationWords.emailHint}</small></span></label>
-         <label className="channel-card"><input type="checkbox" checked={draft.smsEnabled} onChange={(event) => setDraft({ ...draft, smsEnabled: event.target.checked })} /><MessageSquareText size={22} /><span><b>SMS</b><small>{communicationWords.smsHint}</small></span></label>
+         <label className={draft.emailEnabled ? "channel-card checked" : "channel-card"}><input type="checkbox" checked={draft.emailEnabled} onChange={(event) => setDraft({ ...draft, emailEnabled: event.target.checked })} /><Mail size={22} /><span><b>Email</b><small>{communicationWords.emailHint}</small></span></label>
+         <label className={draft.smsEnabled ? "channel-card checked" : "channel-card"}><input type="checkbox" checked={draft.smsEnabled} onChange={(event) => setDraft({ ...draft, smsEnabled: event.target.checked })} /><MessageSquareText size={22} /><span><b>SMS</b><small>{communicationWords.smsHint}</small></span></label>
       </div>
       <div className="communication-fields">
         <div className="field"><label htmlFor="notice-email">Email</label><input id="notice-email" type="email" required={draft.emailEnabled} value={draft.email} onChange={(event) => setDraft({ ...draft, email: event.target.value })} /></div>

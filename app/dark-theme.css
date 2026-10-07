@@ -634,7 +634,7 @@ html[data-theme="dark"] :is(
 html[data-theme="dark"] :is(
   .recipient-choice.selected,
   .variant-options button[aria-pressed="true"],
-  .channel-card:has(input:checked),
+  .channel-card.checked,
   .find-collections button.active,
   .admin-tabs button[aria-selected="true"],
   .order-tabs [data-state="active"]
