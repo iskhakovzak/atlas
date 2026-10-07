@@ -64,8 +64,9 @@ import {
   type ProductVariant,
   type ProductColorwayGallery,
 } from "@/lib/importer/extract";
-import { Choice, WasPrice } from "./market-ui";
-import { formatSum } from "@/lib/market/home-copy";
+import { WasPrice } from "./market-ui";
+import { Choice } from "./choice";
+import { formatSum } from "@/lib/market/format";
 import { cartCopy, countryLabel, linkOrderCopy } from "@/lib/market/customer-copy";
 import { ProductGallery } from "./product-gallery";
 import {

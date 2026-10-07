@@ -2,7 +2,7 @@
 import {ArrowRight,ClipboardPaste,Compass} from 'lucide-react';
 import Link from '@/components/site-link';
 import {useMarket} from '@/lib/market/store';
-import {notFoundCopy} from '@/lib/market/customer-copy';
+import {notFoundCopy} from '@/lib/market/not-found-copy';
 
 export function NotFoundView(){
   const {state}=useMarket(),t=notFoundCopy[state.communication.language];

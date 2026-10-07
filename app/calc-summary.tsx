@@ -1,7 +1,7 @@
 'use client';
 import {useId,useState} from 'react';
 import {Check,HandCoins,Scale,Wallet} from 'lucide-react';
-import {formatKg,formatPercent,formatSum,formatUsd} from '@/lib/market/home-copy';
+import {formatKg,formatPercent,formatSum,formatUsd} from '@/lib/market/format';
 import {calcCopy} from '@/lib/market/calc-copy';
 import {courierAllowanceUsd} from '@/lib/market/customs';
 import {customsDutySoum,deliveryPerKgUsdFor,unknownStoreShippingUsd,type CartCustoms,type CustomsEstimate,type DeliverySpeed,type Pricing,type Quote,type SavedDeliveryProfile} from '@/lib/market/domain';

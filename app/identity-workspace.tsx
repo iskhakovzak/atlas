@@ -8,7 +8,7 @@ import {Checkbox} from "@/components/ui/checkbox";
 import {AlertTriangle,ArrowRight,Check,FileCheck2,FileText,LoaderCircle,Plus,ScanLine,ShieldCheck,Trash2,Upload} from "lucide-react";
 import {toast} from "sonner";
 import {useMarket} from "@/lib/market/store";
-import {formatSum} from "@/lib/market/home-copy";
+import {formatSum} from "@/lib/market/format";
 import {docsCopy,formatDateTime,formatLongDate,orderCount,recipientCopy} from "@/lib/market/customer-copy";
 import {courierAllowanceUsd} from "@/lib/market/customs";
 import {Empty,Modal} from "./market-ui";

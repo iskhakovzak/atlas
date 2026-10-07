@@ -4,7 +4,7 @@ import {Popover as PopoverPrimitive} from 'radix-ui';
 import {Calculator,Minus,Plus,X} from 'lucide-react';
 import {calcCopy} from '@/lib/market/calc-copy';
 import {customsDutyUsd} from '@/lib/market/customs';
-import {formatSum} from '@/lib/market/home-copy';
+import {formatSum} from '@/lib/market/format';
 import type {CustomsEstimate,Pricing} from '@/lib/market/domain';
 import type {Locale} from '@/lib/market/i18n';
 

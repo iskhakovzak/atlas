@@ -137,4 +137,4 @@ const en: Copy = {
   missingTitle: 'Store not listed?', missingText: 'Paste a product link: if the store is supported, the estimate opens right away. If not, we tell you what to do.', missingAction: 'Paste a link',
 };
 
-export const storesCopy: Record<Locale, Copy> = withCyrillic({ ru, uz, en });
+export const storesCopy: Record<Locale, Copy> = /*@__PURE__*/withCyrillic({ ru, uz, en });

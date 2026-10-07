@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { accountCopy, balanceCopy, cartCopy, docsCopy, linkOrderCopy, notFoundCopy, recipientCopy, countryLabel, formatDateTime, formatLongDate, formatShortDate, itemCount, minutesLeft, noticesCopy, orderCount, ordersCopy, parcelCount } from '../lib/market/customer-copy.ts';
+import { accountCopy, balanceCopy, cartCopy, docsCopy, linkOrderCopy, recipientCopy, countryLabel, formatDateTime, formatLongDate, formatShortDate, itemCount, minutesLeft, noticesCopy, orderCount, ordersCopy, parcelCount } from '../lib/market/customer-copy.ts';
+import { notFoundCopy } from '../lib/market/not-found-copy.ts';
 
 function shape(value) {
   if (Array.isArray(value)) return value.map(shape);

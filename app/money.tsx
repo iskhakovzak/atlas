@@ -1,5 +1,5 @@
 'use client';
-import {groupDigits} from '@/lib/market/home-copy';
+import {groupDigits} from '@/lib/market/format';
 import type {Locale} from '@/lib/market/i18n';
 import {uzText} from '@/lib/market/uz-cyrl';
 import {isUzbek} from '@/lib/market/i18n';

@@ -30,7 +30,7 @@ export function botLang(code: unknown): Lang {
   const value = typeof code === 'string' ? code.toLowerCase() : '';
   return value.startsWith('uz') ? 'uz' : value.startsWith('en') ? 'en' : 'ru';
 }
-export const botText = withCyrillic({
+export const botText = /*@__PURE__*/withCyrillic({
   ru: {
     confirm: '<b>Вход на сайт Atlas</b>\n\nНажмите «Подтвердить вход», и сайт откроется сам.\n\nЕсли вы не начинали вход — ничего не нажимайте.',
     confirmButton: '✅ Подтвердить вход',

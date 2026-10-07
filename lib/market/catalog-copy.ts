@@ -199,13 +199,13 @@ function plural(count: number, [one, few, many]: [string, string, string]) {
   return units === 1 ? one : units >= 2 && units <= 4 ? few : many;
 }
 
-export const catalogCopy: Record<Locale, Copy> = withCyrillic({ ru, uz, en });
+export const catalogCopy: Record<Locale, Copy> = /*@__PURE__*/withCyrillic({ ru, uz, en });
 
 /**
  * Product.country labels are Russian; the storefront names the country in the customer's language.
  * The names come from the store directory (all 32 store countries), plus the tariff countries it lacks.
  */
-const extraCountryNames: Record<string, Record<Locale, string>> = { 'Румыния': withCyrillic({ ru: 'Румыния', uz: 'Ruminiya', en: 'Romania' }) };
+const extraCountryNames: Record<string, Record<Locale, string>> = { 'Румыния': /*@__PURE__*/withCyrillic({ ru: 'Румыния', uz: 'Ruminiya', en: 'Romania' }) };
 const countryByRussianName = new Map<string, Record<Locale, string>>([
   ...Object.values(storeCountryNames).map((names) => [names.ru, names] as const),
   ...Object.entries(extraCountryNames).map(([ru, names]) => [ru, names] as const),

@@ -8,7 +8,7 @@ import {LegalEditionBadge,LegalSources,LegalStatus,OfferDocument,PrivacyDocument
 import {withCyrillic} from '@/lib/market/uz-cyrl';
 
 // Standalone /privacy and /terms: the same documents as /legal, opened on load, with their own headings.
-const copy=withCyrillic({
+const copy=/*@__PURE__*/withCyrillic({
  ru:{
   privacy:{overline:"КОНФИДЕНЦИАЛЬНОСТЬ",title:"Политика конфиденциальности Atlas.",description:"Какие данные обрабатывает сайт и приложения Atlas, зачем, кому они могут передаваться, как удалить аккаунт и отозвать согласие."},
   terms:{overline:"УСЛОВИЯ",title:"Условия использования Atlas.",description:"Публичная оферта на посреднические и логистические услуги, условия приложений для iOS и Android и политика оплаты и возврата."},

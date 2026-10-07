@@ -11,7 +11,7 @@ import type { Action } from "@/lib/market/actions";
 import { monthlyAllowance, recipientKey, type RecipientAllowance } from "@/lib/market/allowance";
 import { localizedStatuses, serverError, type Locale } from "@/lib/market/i18n";
 import { calcCopy } from "@/lib/market/calc-copy";
-import { formatSum } from "@/lib/market/home-copy";
+import { formatSum } from "@/lib/market/format";
 import { accountCopy, formatLongDate, itemCount, recipientCopy, type AccountCopy } from "@/lib/market/customer-copy";
 import { consentDocuments, consentVersion, deletionBlockers, deletionSummary, missingConsents } from "@/lib/market/account-delete";
 import { appInfo, isNative, nativePlatform, type AppInfo } from "@/lib/native/bridge";

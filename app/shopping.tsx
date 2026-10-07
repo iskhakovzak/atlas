@@ -10,7 +10,7 @@ import { useMarket } from "@/lib/market/store";
 import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, customsHelpChosen, inCheckout, isPostalCode, maxLineQuantity, parcelServiceUnits, storeDiscount, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, withCustomsHelpFor, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
 import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, savingText } from "@/lib/market/delivery-speed";
 import { countryName, customsVersion } from "@/lib/market/world";
-import { formatSum } from "@/lib/market/home-copy";
+import { formatSum } from "@/lib/market/format";
 import { cartCopy, countryLabel, itemCount, linkOrderCopy, minutesLeft, parcelCount, recipientCopy, type CartCopy } from "@/lib/market/customer-copy";
 import { cartCustomsEstimate } from "@/lib/market/allowance";
 import { calcCopy } from "@/lib/market/calc-copy";
@@ -29,12 +29,12 @@ import {isUzbek} from '@/lib/market/i18n';
 import { catalogUrlKey } from "@/lib/market/catalog-query";
 
 /** Favourites and removal in the cart: saving keeps the line; "save for later" saves and then removes it. */
-const placedCopy = withCyrillic({
+const placedCopy = /*@__PURE__*/withCyrillic({
   ru: { opening: "Открываем ваши заказы" },
   uz: { opening: "Buyurtmalaringizni ochyapmiz" },
   en: { opening: "Opening your orders" },
 });
-const keepCopy = withCyrillic({
+const keepCopy = /*@__PURE__*/withCyrillic({
   ru: { save: "В избранное", saved: "В избранном", later: "Отложить", laterLabel: "Отложить в избранное", laterDone: "Отложено в избранное", open: "Открыть избранное", removeVariant: "Удалить вариант", removeAll: (n: number) => `Удалить все (${n})`, variants: "Варианты этого товара" },
   uz: { save: "Saralanganlarga", saved: "Saralanganlarda", later: "Qoldirish", laterLabel: "Saralanganlarga qoldirish", laterDone: "Saralanganlarga qoldirildi", open: "Saralanganlarni ochish", removeVariant: "Variantni o‘chirish", removeAll: (n: number) => `Hammasini o‘chirish (${n})`, variants: "Shu tovar variantlari" },
   en: { save: "Save", saved: "Saved", later: "Later", laterLabel: "Save for later", laterDone: "Moved to favourites", open: "Open favourites", removeVariant: "Remove option", removeAll: (n: number) => `Remove all (${n})`, variants: "Options of this product" },

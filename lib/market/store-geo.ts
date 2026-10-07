@@ -3,7 +3,7 @@ import type { StoreCountry } from './store-brands.ts';
 import { deliveryRegions, deliveryDaysFor, type DeliveryRegion } from './site-content.ts';
 import { deliveryPerKgUsdFor, type Pricing } from './domain.ts';
 import { deliverySpeedCopy } from './delivery-speed.ts';
-import { formatUsd } from './home-copy.ts';
+import { formatUsd } from './format.ts';
 
 /**
  * Geography of a store country for the showcase: which Atlas dispatch region prices it (null when Atlas has no

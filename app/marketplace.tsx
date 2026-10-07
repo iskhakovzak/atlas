@@ -1,19 +1,17 @@
 'use client';
-import {useEffect,useLayoutEffect,useMemo,useState,useSyncExternalStore,type ReactNode} from 'react';
+import {Suspense,lazy,useEffect,useLayoutEffect,useMemo,useState,useSyncExternalStore,type ReactNode} from 'react';
 import Link from '@/components/site-link';
 import {ArrowUpRight,ArrowRight,Package,Wallet,ShoppingBag,Heart,LayoutGrid,Settings2,House,Store,LogIn,UserRound} from 'lucide-react';
 import {Toaster} from 'sonner';
 import {money,balanceOf} from '@/lib/market/domain';
 import {useMarket} from '@/lib/market/store';
 import {AccessView} from './access-view';
-import {routeTitle,ui,type Locale} from '@/lib/market/i18n';
-import {homeCopy} from '@/lib/market/home-copy';
+import {navCopy,routeTitle,ui,type Locale} from '@/lib/market/i18n';
 import {useTheme} from 'next-themes';
 import {ThemeToggle} from './theme-control';
 import {HeaderLanguage} from './header-language';
 import {NotificationsPanel} from './notifications-panel';
 import {SiteFooter} from './site-footer';
-import {HomeClosing} from './home-sections';
 import {HomeDecorSlot,HomeRailSlot} from './home-wide';
 import {HomeMagnet} from './home-magnet';
 import {marketplaceWords} from './marketplace-words';
@@ -23,7 +21,7 @@ import {isUzbek} from '@/lib/market/i18n';
 import {breadcrumbs,publicViewPaths} from '@/lib/seo/structured-data';
 import {JsonLd} from './json-ld';
 
-const breadcrumbLabel:Record<Locale,string>=withCyrillic({uz:'Sahifa yo‘li',ru:'Путь по сайту',en:'Breadcrumb'});
+const breadcrumbLabel:Record<Locale,string>=/*@__PURE__*/withCyrillic({uz:'Sahifa yo‘li',ru:'Путь по сайту',en:'Breadcrumb'});
 const returnPath=()=>typeof window==='undefined'?'/':window.location.pathname+window.location.search;
 
 // Page shell shared by every route: header, breadcrumb, footer and the members' bottom bar.
@@ -43,6 +41,9 @@ function ViewMark({view}:{view:string}){
 
 /** The header's last balance and cart count of this tab; read only on the client (the server renders without it). */
 const subscribeNever=()=>()=>{};
+// The closing card is home-only: a separate chunk, so other pages do not load the home sections and their copy.
+// On the home page the chunk is already loaded by the page itself (app/home-catalog.tsx).
+const HomeClosing=lazy(()=>import('./home-sections').then(module=>({default:module.HomeClosing})));
 function readSavedHeader(){try{return sessionStorage.getItem('atlas-header')}catch{return null}}
 
 export default function Marketplace({view,children}:{view:string;children?:ReactNode}) {
@@ -51,7 +52,7 @@ export default function Marketplace({view,children}:{view:string;children?:React
   const locale=state.communication.language as Locale,words=ui(locale);
   const modalWords=marketplaceWords(locale);
   const count=state.cart.reduce((s,i)=>s+i.quantity,0),balance=balanceOf(state);
-  const hc=homeCopy[locale];
+  const hc={nav:navCopy[locale]};
   const [noticesOpen,setNoticesOpen]=useState(false);
   // Every link is a page load, so the account arrives a moment after each page appears. Until it does, the header keeps
   // the member items with the last balance and cart count of this tab (sessionStorage), instead of blinking them out.
@@ -71,7 +72,7 @@ export default function Marketplace({view,children}:{view:string;children?:React
   <main className={view==='catalog'?'site-main catalog-home':'site-main'} id="main" data-view={view}>{publicViewPaths[view]&&<JsonLd data={breadcrumbs(locale,publicViewPaths[view],routeTitle(locale,view))}/>}{view!=='catalog'&&<nav className="breadcrumb" aria-label={breadcrumbLabel[locale]}><Link href="/">{words.home}</Link><span aria-hidden="true">/</span><span aria-current="page">{routeTitle(state.communication.language,view)}</span></nav>}{error&&view==='catalog'&&<div className="notice error account-error" role="alert"><span>{error}</span><div><button type="button" className="text-button" onClick={()=>void refresh()}>{words.retry}</button>{!user&&<Link className="text-link" href="/account">{words.openSignIn}<ArrowRight size={15}/></Link>}</div></div>}
   <AccessView view={view}>{children}</AccessView>
    {/* Home: the closing call and the footer share the last sheet (app/home-chapters.css). */}
-   {view==='catalog'?<div className="home-end" data-chapter="end"><HomeClosing/><SiteFooter/></div>:<SiteFooter/>}
+   {view==='catalog'?<div className="home-end" data-chapter="end"><Suspense fallback={null}><HomeClosing/></Suspense><SiteFooter/></div>:<SiteFooter/>}
    {/* Wide screens: the decor behind the sheets (app/home-decor.tsx), the last child of main. */}
    {view==='catalog'&&<HomeDecorSlot/>}</main>
   {/* Phones: one bottom bar for everyone (guests get sign-in in it); hidden while the session is checked. */}

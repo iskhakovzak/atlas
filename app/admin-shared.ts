@@ -5,7 +5,7 @@ import type {AuditEvent,StaffMember,StaffRole,StaffStatus} from "@/lib/market/se
 import type {AdminDashboard,CustomerNote,SystemStatus} from "@/lib/market/admin-server";
 import type {AdminSettings} from "@/lib/market/admin-dashboard";
 import type {RouteVitals} from "@/lib/market/telemetry";
-import {formatSum} from "@/lib/market/home-copy";
+import {formatSum} from "@/lib/market/format";
 
 export type AdminAccount={id:string;name:string;state:State;revision:number;updatedAt:number};
 export type CustomerStatus="active"|"review"|"blocked";

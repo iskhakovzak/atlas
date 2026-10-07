@@ -7,7 +7,8 @@ import {deliveryPerKgUsdFor,deliverySpeeds,price,validateSource} from '@/lib/mar
 import {atlasServiceBreakdown} from '@/lib/market/quote-presentation';
 import {courierAllowanceUsd} from '@/lib/market/customs';
 import {combinedShipmentWeight,packagingKg} from '@/lib/market/world';
-import {formatKg,formatPercent,formatPriceUsd,formatSum,formatUsd,groupDigits,homeCopy} from '@/lib/market/home-copy';
+import {homeCopy} from '@/lib/market/home-copy';
+import {formatKg,formatPercent,formatPriceUsd,formatSum,formatUsd,groupDigits} from '@/lib/market/format';
 import {tariffRows} from '@/lib/market/home-facts';
 import {deliveryDaysFor,deliveryRegions,paymentLabels} from '@/lib/market/site-content';
 import {localizedStatuses,routeTitle,type Locale} from '@/lib/market/i18n';
@@ -19,8 +20,8 @@ import {CountryFlag,Flag} from './flags';
 import {Money} from './money';
 import {JsonLd} from './json-ld';
 import {faqPage} from '@/lib/seo/structured-data';
+import {MissingContent} from './site-footer';
 
-const isDev=(import.meta as {env?:{DEV?:boolean}}).env?.DEV===true;
 /** The hero's popular stores; the wide-screen facts row and closing card show the same list (app/home-facts.tsx, HomeClosing). */
 export const heroStores=['nike','zara','amazon','apple','iherb','adidas','hm','sephora'].map(key=>storeBrands.find(brand=>brand.key===key)!).filter(Boolean);
 /** The worked example on the home page: $100 sneakers, 1 kg in the box, priced by the same function as a real order. */
@@ -32,12 +33,6 @@ export function useHomeCopy(){
  const {state}=useMarket();
  const locale=state.communication.language as Locale;
  return {locale,c:homeCopy[locale]};
-}
-
-/** Dev-only marker for business data that is not filled yet; production renders nothing. */
-export function MissingContent({what}:{what:string}){
- if(!isDev)return null;
- return <p className="home-missing" role="note">Нужно заполнить: {what} — в админке, раздел «Контент сайта»</p>;
 }
 
 /** Scrolls to the home link field and focuses it (no smooth scroll under reduced motion). */

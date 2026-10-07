@@ -5,7 +5,7 @@ import type {Locale} from '@/lib/market/i18n';
 import {withCyrillic} from '@/lib/market/uz-cyrl';
 
 type Part={key:string;kind:'order'|'cart'|'left'|'over';usd:number;label:string};
-const copy=withCyrillic({
+const copy=/*@__PURE__*/withCyrillic({
  ru:{order:(id:string)=>`Заказ ${id}`,orders:'Заказы',inCart:'В корзине',afterCart:'Останется после корзины',cart:'В корзине, ещё не учтено',left:'Остаток без пошлины',over:'Сверх лимита',limit:'лимит'},
  uz:{order:(id:string)=>`Buyurtma ${id}`,orders:'Buyurtmalar',inCart:'Savatda',afterCart:'Savatdan keyin qoladi',cart:'Savatda, hali hisobga olinmagan',left:'Bojsiz qoldiq',over:'Limitdan oshgan',limit:'limit'},
  en:{order:(id:string)=>`Order ${id}`,orders:'Orders',inCart:'In the cart',afterCart:'Left after the cart',cart:'In the cart, not counted yet',left:'Left duty-free',over:'Over the allowance',limit:'limit'},
