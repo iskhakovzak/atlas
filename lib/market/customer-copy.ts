@@ -627,15 +627,15 @@ export const balanceCopy: Record<Locale, BalanceCopy> = withCyrillic({
 export const noticesCopy: Record<Locale, NoticesCopy> = withCyrillic({
   ru: {
     title: 'Уведомления', unread: count => `${count} ${ruPlural(count, 'непрочитанное', 'непрочитанных', 'непрочитанных')}`, allRead: 'Всё прочитано',
-    readAll: 'Прочитать все', filtersLabel: 'Показать', filters: { all: 'Все', unread: 'Непрочитанные', orders: 'По заказам' }, newBadge: 'Новое',
+    readAll: 'Отметить все прочитанными', filtersLabel: 'Показать', filters: { all: 'Все', unread: 'Непрочитанные', orders: 'По заказам' }, newBadge: 'Новое',
     more: count => `Ещё ${count} ${ruPlural(count, 'обновление', 'обновления', 'обновлений')}`, openOrder: 'Открыть заказ',
-    emptyTitle: 'Пока всё спокойно', emptyText: 'Здесь появятся смена статусов, возвраты и вопросы по вашим заказам.', emptyFilter: 'Таких уведомлений нет.',
+    emptyTitle: 'Пока всё спокойно', emptyText: 'Здесь появятся изменения статусов, возвраты и вопросы по вашим заказам.', emptyFilter: 'Таких уведомлений нет.',
     orders: 'Мои заказы', settings: 'Настройки email и SMS',
     signin: { title: 'Войдите, чтобы открыть уведомления', text: 'Сообщения Atlas хранятся в вашем профиле.', action: 'Войти' }, loading: 'Загружаем уведомления…',
   },
   uz: {
     title: 'Bildirishnomalar', unread: count => `${count} ta o‘qilmagan`, allRead: 'Hammasi o‘qilgan',
-    readAll: 'Hammasini o‘qilgan qilish', filtersLabel: 'Ko‘rsatish', filters: { all: 'Barchasi', unread: 'O‘qilmagan', orders: 'Buyurtmalar bo‘yicha' }, newBadge: 'Yangi',
+    readAll: 'Hammasini o‘qilgan deb belgilash', filtersLabel: 'Ko‘rsatish', filters: { all: 'Barchasi', unread: 'O‘qilmagan', orders: 'Buyurtmalar bo‘yicha' }, newBadge: 'Yangi',
     more: count => `Yana ${count} ta yangilanish`, openOrder: 'Buyurtmani ochish',
     emptyTitle: 'Hozircha hammasi tinch', emptyText: 'Holat o‘zgarishlari, qaytarishlar va buyurtmalaringiz bo‘yicha savollar shu yerda ko‘rinadi.', emptyFilter: 'Bunday bildirishnomalar yo‘q.',
     orders: 'Buyurtmalarim', settings: 'Email va SMS sozlamalari',
