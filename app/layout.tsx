@@ -34,6 +34,7 @@ import "./home-wide-rail.css";
 import "./home-wide-content.css";
 import "./home-wide-decor.css";
 import "./orders-groups.css";
+import "./cart-select.css";
 import "./accounting.css";
 import "./admin-investor.css";
 import "./site-content-admin.css";
