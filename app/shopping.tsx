@@ -3,10 +3,10 @@ import { capitalizeFirst, capitalizeWords } from "@/lib/market/text-case";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "@/components/site-link";
-import { ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ClipboardPaste, Clock3, Heart, Info, Layers, Loader2, MessageSquare, Minus, Plus, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ClipboardPaste, Clock3, Heart, Info, Loader2, MessageSquare, Minus, Plus, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
-import { balanceOf, cartDeliverySpeed, cartSignature, isPostalCode, maxLineQuantity, storeDiscount, merchantParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
+import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, customsHelpChosen, inCheckout, isPostalCode, maxLineQuantity, parcelServiceUnits, storeDiscount, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, withCustomsHelpFor, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
 import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, savingText } from "@/lib/market/delivery-speed";
 import { countryName, customsVersion } from "@/lib/market/world";
 import { formatSum } from "@/lib/market/home-copy";
@@ -14,7 +14,6 @@ import { cartCopy, countryLabel, itemCount, linkOrderCopy, minutesLeft, parcelCo
 import { cartCustomsEstimate } from "@/lib/market/allowance";
 import { calcCopy } from "@/lib/market/calc-copy";
 import { CalcLines, CustomsPanel, DeliverySpeedSwitch, HoldNote, customsDutyAmount, sumQuotes } from "./calc-summary";
-import { storefrontLabel } from "@/lib/market/store-brands";
 import type { Locale } from "@/lib/market/i18n";
 import { Modal, ProductImage, WasPrice } from "./market-ui";
 import { Money } from "./money";
@@ -33,28 +32,15 @@ const keepCopy = {
   en: { save: "Save", saved: "Saved", later: "Later", laterLabel: "Save for later", laterDone: "Moved to favourites", open: "Open favourites", removeVariant: "Remove option", removeAll: (n: number) => `Remove all (${n})`, variants: "Options of this product" },
 };
 import { useStickyFit } from "./sticky-fit";
+import { CheckoutChecklist, CheckoutReviewTable, productGroups, shownVariant, storeName } from "./checkout-review";
+import { cartSelectCopy } from "@/lib/market/cart-select-copy";
 
 /** More than one dispatch country in the cart: the speed note says it applies to every parcel. */
 const parcelsDiffer = (countries: string[]) => new Set(countries).size > 1;
 
-/**
- * Lines of one product (sizes or colors of the same store item) sit together and share one note and one set of
- * warehouse services (owner, 7.10.2026). Each line stays its own order, so the shared choice is written to each.
- * An imported option gets its own product id (`link#option`), so one product is one page link with one name.
- */
-const productKey = (product: CartItem["product"]) => product.sourceUrl ? `${product.sourceUrl}\n${product.name}` : product.id;
-const productGroups = (items: CartItem[]) => items.reduce<CartItem[][]>((groups, item) => {
-  const group = groups.find(entry => productKey(entry[0].product) === productKey(item.product));
-  if (group) group.push(item);
-  else groups.push([item]);
-  return groups;
-}, []);
+/** Lines of one product (sizes or colors of the same store item) sit together and share one note (owner, 7.10.2026). */
 
 const emptyDelivery: DeliveryProfile = { recipient: "", phone: "", region: "Ташкент", city: "Ташкент", address: "", postalCode: "", comment: "" };
-
-function storeHost(item: CartItem) {
-  try { return item.product.sourceUrl ? new URL(item.product.sourceUrl).hostname.replace(/^www\./, "") : ""; } catch { return ""; }
-}
 
 /** An amount in the store's currency, e.g. "$29.99" or "129,90 RON". */
 function sourceMoney(amount: number, currency: string, locale: Locale) {
@@ -123,9 +109,6 @@ function usd(amount: number, locale: Locale) {
   return new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-US", { style: "currency", currency: "USD", minimumFractionDigits: digits, maximumFractionDigits: digits }).format(rounded);
 }
 
-/** The importer's name for the only option of a product: not worth showing to the customer. */
-const shownVariant = (variant?: string) => variant && variant !== "Выбранный вариант" ? variant : "";
-
 /** Long store titles are cut to three lines; a tap shows the whole name. */
 function ItemName({ name }: { name: string }) {
   const [open, setOpen] = useState(false);
@@ -168,8 +151,13 @@ export function CartView() {
   const savedNeedsPostal = Boolean(savedRecipient && !isPostalCode(savedRecipient.postalCode));
   const [busy, setBusy] = useState(false);
   const [saveRecipient, setSaveRecipient] = useState(true);
-  const [savingServiceItemId, setSavingServiceItemId] = useState<string | null>(null);
-  const [savingServiceId, setSavingServiceId] = useState<string | null>(null);
+  // Parcel services shown as chosen at once while they save (parcel key -> the choice being saved); clicks queue up.
+  // The ref holds the latest choice at once, so a second click in the same moment builds on the first one.
+  const [serviceDrafts, setServiceDrafts] = useState<Record<string, { serviceIds: string[]; units: Record<string, number>; savingId: string }>>({});
+  const serviceDraftsRef = useRef(serviceDrafts);
+  const setDrafts = (next: typeof serviceDrafts) => { serviceDraftsRef.current = next; setServiceDrafts(next); };
+  // Checkboxes shown at once while the server reprices the lines left for later (line id -> ticked).
+  const [selectDrafts, setSelectDrafts] = useState<Record<string, boolean>>({});
   // The checkout that was just placed: the page moves on to its order as soon as the orders arrive.
   const [placedKey, setPlacedKey] = useState("");
   const [verifying, setVerifying] = useState(false);
@@ -189,28 +177,7 @@ export function CartView() {
 
   const summaryRef = useStickyFit();
 
-  // Keeps cart services in line with the catalog (a service switched off or made required). It used to fire a
-  // request per item on every cart change; a request in flight then made the customer's own tap on a service do
-  // nothing. Now: one line at a time, never while the customer is saving, and never the same fix twice.
-  const normalizationSent = useRef("");
-  useEffect(() => {
-    if (!ready || savingServiceItemId !== null) return;
-    const available = pricing.serviceCatalog.filter((service) => service.enabled && service.requestStage === "checkout");
-    const allowedIds = new Set(available.map((service) => service.id));
-    for (const item of state.cart) {
-      const selected = item.requestedServiceIds ?? [];
-      const current = selected.filter((serviceId) => allowedIds.has(serviceId));
-      const missingRequired = available.filter((service) => service.required && !current.includes(service.id)).map((service) => service.id);
-      const normalized = [...current, ...missingRequired];
-      const normalizedUnits = Object.fromEntries(Object.entries(item.requestedServiceUnits ?? {}).filter(([serviceId]) => normalized.includes(serviceId) && available.some((service) => service.id === serviceId && !["package", "item"].includes(service.unit))));
-      const differs = normalized.length !== selected.length || normalized.some((serviceId, index) => serviceId !== selected[index]) || JSON.stringify(normalizedUnits) !== JSON.stringify(item.requestedServiceUnits ?? {});
-      const fix = `${item.id}:${normalized.join(",")}:${JSON.stringify(normalizedUnits)}`;
-      if (!differs || normalizationSent.current === fix) continue;
-      normalizationSent.current = fix;
-      void act({ type: "cart-services", id: item.id, serviceIds: normalized, serviceUnits: normalizedUnits });
-      return;
-    }
-  }, [act, pricing.serviceCatalog, ready, state.cart, savingServiceItemId]);
+  // Services switched off or made required are put right by the server whenever it renews the cart (renewCart).
 
   const locale = state.communication.language;
   const c = cartCopy[locale];
@@ -229,46 +196,79 @@ export function CartView() {
     toast.dismiss();
     toast.error(result.status === "changed" ? pendingWords.changedElsewhere : pendingWords.failedElsewhere, { action: { label: pendingWords.open, onClick: () => window.location.assign(result.pending.returnTo) } });
   }, { maxAgeMs: pendingCartFreshMs });
-  const earliestExpiry = state.cart.reduce((min, item) => Math.min(min, item.quote.expiresAt), Infinity);
-  const total = totalOf(state.cart);
-  const count = state.cart.reduce((sum, item) => sum + item.quantity, 0);
+  // Only the ticked lines are checked out now; the rest stay in the cart, priced as their own parcels (owner, 7.10.2026).
+  const lines = checkoutLines(state.cart);
+  const s = cartSelectCopy[locale];
+  const ticked = (item: CartItem) => selectDrafts[item.id] ?? inCheckout(item);
+  const selecting = Object.keys(selectDrafts).length > 0;
+  const earliestExpiry = lines.reduce((min, item) => Math.min(min, item.quote.expiresAt), Infinity);
+  const count = lines.reduce((sum, item) => sum + item.quantity, 0);
+  const allCount = state.cart.reduce((sum, item) => sum + item.quantity, 0);
+  const laterCount = allCount - count;
   // Customs: the allowance is per recipient and calendar month; the customer picks whose it is.
   const primaryProfile = state.deliveryProfiles.find(profile => profile.primary) ?? state.deliveryProfiles[0];
   const customsProfile = state.deliveryProfiles.find(profile => profile.id === customsRecipient) ?? primaryProfile;
-  const customsChoices = state.cartCustoms ?? { outsideUsed: false, help: false };
+  // This cart's choice, else the one remembered from an earlier cart (the server prices the lines the same way).
+  const customsChoices = state.cartCustoms ?? { outsideUsed: false, help: customsHelpChosen(state) };
+  const customsRemembered = !state.cartCustoms && state.customsPreference !== undefined;
   const customs = cartCustomsEstimate(state, pricing, { profile: customsProfile, name: customsProfile ? undefined : state.deliveryProfile?.recipient }, customsChoices);
   const balance = balanceOf(state);
   // "Atlas pays customs for me" prepays the estimated duty: for the cart's recipient here, for the chosen one at checkout.
   const cartDuty = customsChoices.help ? customsDutyAmount(customs, pricing) : 0;
   const reviewCustoms = cartCustomsEstimate(state, pricing, { profile: state.deliveryProfiles.find(profile => profile.id === selectedProfile), name: delivery.recipient }, customsChoices);
   const reviewDuty = customsChoices.help ? customsDutyAmount(reviewCustoms, pricing) : 0;
-  const creditFor = (duty: number) => useBalance ? Math.min(total + duty, Math.max(0, balance)) : 0;
-  const credit = creditFor(cartDuty), reviewCredit = creditFor(reviewDuty);
-  const payable = total + cartDuty - credit, reviewPayable = total + reviewDuty - reviewCredit;
+  // No duty for the recipient: the customs fee is not in the bill (owner, 7.10.2026); the server bills the same way.
+  const billed = withCustomsHelpFor(lines, customs, pricing.fx), reviewBilled = withCustomsHelpFor(lines, reviewCustoms, pricing.fx);
+  const total = totalOf(billed), reviewTotal = totalOf(reviewBilled);
+  const creditFor = (sum: number, duty: number) => useBalance ? Math.min(sum + duty, Math.max(0, balance)) : 0;
+  const credit = creditFor(total, cartDuty), reviewCredit = creditFor(reviewTotal, reviewDuty);
+  const payable = total + cartDuty - credit, reviewPayable = reviewTotal + reviewDuty - reviewCredit;
+  const lineTotal = (item: CartItem, lines = billed) => lines.find(line => line.id === item.id)?.quote.total ?? item.quote.total;
+  // Owner, 7.10.2026: with duty to pay and nothing chosen yet, "Atlas pays customs" is the starting choice. Sent once;
+  // the fee then shows on the card and in the bill, and "I will pay myself" is one tap away.
+  const customsDefaulted = useRef(false);
+  const customsDefault = !state.cartCustoms && state.customsPreference === undefined && lines.length > 0 && customsDutyAmount(customs, pricing) > 0;
+  useEffect(() => {
+    if (!customsDefault || customsDefaulted.current || customsBusy) return;
+    customsDefaulted.current = true;
+    void act({ type: "cart-customs", value: { outsideUsed: false, help: true } });
+  }, [customsDefault, customsBusy, act]);
   // "Atlas pays customs for me": the same per-line rounding as the server; once chosen, the fee is in the bill.
   const customsHelpAmount = customsChoices.help
-    ? state.cart.reduce((sum, item) => sum + (item.quote.customsHelp ?? 0), 0)
-    : state.cart.reduce((sum, item) => sum + Math.round(item.quote.merchandise * pricing.customsHelpFee), 0);
+    ? lines.reduce((sum, item) => sum + (item.quote.customsHelp ?? 0), 0)
+    : lines.reduce((sum, item) => sum + Math.round(item.quote.merchandise * pricing.customsHelpFee), 0);
   const checkoutServices = pricing.serviceCatalog.filter((service) => service.enabled && service.requestStage === "checkout");
   const identityProfiles = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
-  const sums = sumQuotes(state.cart.map(item => item.quote));
-  const cartWeight = Math.round(state.cart.reduce((sum, item) => sum + item.quote.weight, 0) * 100) / 100;
+  const sums = sumQuotes(billed.map(item => item.quote)), reviewSums = sumQuotes(reviewBilled.map(item => item.quote));
+  const cartWeight = Math.round(lines.reduce((sum, item) => sum + item.quote.weight, 0) * 100) / 100;
   // One delivery speed for the whole cart; the windows and rates cover every dispatch country in it.
   const speed = cartDeliverySpeed(state.cart);
   const speedCountries = state.cart.map(item => countryName(item.product));
   const speedOptions = deliverySpeedOptions(pricing, speedCountries, locale);
-  const speedNote = [savingText(state.cart, pricing, locale), parcelsDiffer(speedCountries) ? deliverySpeedCopy[locale].appliesToCart : ""].filter(Boolean).join(" ");
+  const speedNote = [savingText(lines, pricing, locale), parcelsDiffer(speedCountries) ? deliverySpeedCopy[locale].appliesToCart : ""].filter(Boolean).join(" ");
   const speedDays = (country: string) => { const range = daysRangeFor(pricing, [country], speed); return range ? deliverySpeedCopy[locale].days(range[0], range[1]) : ""; };
   // Store orders whose delivery price is unknown: a separate hold up to the threshold, free above it.
-  const reserves = storeShippingReserves(state.cart, pricing);
-  // Same grouping as the server's parcel allocation: one store and one origin country share a parcel.
-  const parcels = state.cart.reduce<{ key: string; title: string; country: string; origin: string; items: CartItem[] }[]>((groups, item) => {
-    const key = merchantParcelKey(item);
+  const reserves = storeShippingReserves(lines, pricing);
+  // One block per store parcel: one store shipping from one country (a second dispatch country is a second block).
+  const parcels = state.cart.reduce<{ key: string; store: string; title: string; country: string; origin: string; items: CartItem[] }[]>((groups, item) => {
+    const key = storeParcelKey(item);
     const group = groups.find(entry => entry.key === key);
     if (group) group.items.push(item);
-    else { const host = storeHost(item); groups.push({ key, title: c.item.parcelFrom((host && storefrontLabel(host, locale)) || item.product.brand), country: countryLabel(countryName(item.product), locale), origin: countryName(item.product), items: [item] }); }
+    else { const store = storeName(item, locale); groups.push({ key, store, title: c.item.parcelFrom(store), country: countryLabel(countryName(item.product), locale), origin: countryName(item.product), items: [item] }); }
     return groups;
   }, []);
+
+  /** Ticks or unticks lines at once on screen; the server reprices both parts. Clicks made while saving queue up. */
+  async function select(ids: string[], selected: boolean) {
+    const changed = state.cart.filter(item => ids.includes(item.id) && ticked(item) !== selected).map(item => item.id);
+    if (!changed.length) return;
+    setSelectDrafts(drafts => ({ ...drafts, ...Object.fromEntries(changed.map(id => [id, selected])) }));
+    try { await act({ type: "cart-select", ids: changed, selected }, { queue: true }); }
+    finally { setSelectDrafts(drafts => Object.fromEntries(Object.entries(drafts).filter(([id, value]) => !changed.includes(id) || value !== selected))); }
+  }
+  /** Checkbox state of several lines: all, none or some ("indeterminate"). */
+  const tickState = (items: CartItem[]) => items.every(ticked) ? true : items.some(ticked) ? "indeterminate" as const : false;
+  const selectBox = (items: CartItem[], label: string) => <span className="basket-select"><Checkbox aria-label={label} checked={tickState(items)} onCheckedChange={() => void select(items.map(item => item.id), tickState(items) !== true)} /></span>;
 
   async function changeSpeed(next: DeliverySpeed) {
     if (speedBusy) return;
@@ -278,7 +278,8 @@ export function CartView() {
   }
 
   async function openCheckout() {
-    if (verifying) return;
+    if (verifying || selecting) return;
+    if (!lines.length) { toast.message(s.noneSelected); return; }
     // The server checks prices with the stores and reprices at the current tariff; a change keeps the
     // customer in the cart with the new total and a note on the item instead of opening the form.
     setVerifying(true);
@@ -304,7 +305,8 @@ export function CartView() {
       saveRecipientLabel: selectedProfile === "manual" && saveRecipient ? (state.deliveryProfiles.length ? delivery.recipient.trim().slice(0, 60) : recipientCopy[locale].labels.home) : undefined });
     setBusy(false);
     if (ok) { setCheckoutOpen(false); setPlacedKey(key); }
-    else if (cartChangedCodes.has(lastActionError()?.code ?? "")) setCheckoutOpen(false);
+    // On the review the changed line is marked in the table, so the customer stays there; earlier the cart shows it.
+    else if (cartChangedCodes.has(lastActionError()?.code ?? "") && !review) setCheckoutOpen(false);
   }
 
   // After checkout the customer goes straight to the new order in My orders, where it waits for payment. When a
@@ -362,36 +364,46 @@ export function CartView() {
   function renderItem(item: CartItem) {
     const meta = [shownVariant(item.variant), countryLabel(countryName(item.product), locale)].filter(Boolean).join(" · ");
     const issue = item.sourceIssue, stock = stockText(item);
-    return <article className={"basket-item" + (issue && issue.kind !== "unreachable" ? " has-issue" : "")} key={item.id}>
+    return <article className={"basket-item" + (issue && issue.kind !== "unreachable" ? " has-issue" : "") + (ticked(item) ? "" : " is-later")} key={item.id}>
+      {selectBox([item], s.selectLine([item.product.name, shownVariant(item.variant)].filter(Boolean).join(" · ")))}
       <div className="basket-photo"><ProductImage product={item.product} locale={locale} decorative /></div>
       <div className="basket-info">
         {item.product.brand && <p className="basket-brand">{item.product.brand}</p>}
         <ItemName name={item.product.name} />
+        {!ticked(item) && <span className="basket-later-tag">{s.later}</span>}
         <p className="basket-meta">{meta}</p>
         <p className="basket-meta">{item.product.sourceUrl ? <a className="basket-source" href={item.product.sourceUrl} target="_blank" rel="noopener noreferrer">{c.item.storePrice}: {storePrice(item, locale)}<ArrowUpRight size={14} aria-hidden="true" /><span className="sr-only"> ({c.item.openStore})</span></a> : <>{c.item.storePrice}: {storePrice(item, locale)}</>}{item.quantity > 1 ? ` × ${item.quantity}` : ""}{(() => { const off = storeDiscount(item.product); return off && <WasPrice was={off.was} percent={off.percent} format={value => sourceMoney(value, item.product.sourceCurrency ?? "USD", locale)} />; })()}</p>
         {!item.priceChange && !issue && item.product.sourceCheckedAt && <p className="basket-meta basket-checked"><BadgeCheck size={14} aria-hidden="true" />{c.item.checked(clock(item.product.sourceCheckedAt, locale))}</p>}
         {stock && <p className={"basket-meta basket-stock" + ((item.product.stockQuantity ?? 99) <= 3 ? " low" : "")}>{stock}</p>}
       </div>
-      <div className="basket-price"><strong>{formatSum(item.quote.total, locale)}</strong>{item.quantity > 1 && <small>{c.item.forQuantity(item.quantity)}</small>}</div>
+      <div className="basket-price"><strong>{formatSum(lineTotal(item), locale)}</strong>{item.quantity > 1 && <small>{c.item.forQuantity(item.quantity)}</small>}</div>
       {itemNotes(item)}
       <div className="basket-controls">
         <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity })} />
         {keepActions([item])}
         <SafeDeleteButton label={c.item.remove} itemName={item.product.name} locale={locale} onConfirm={() => act({ type: "cart-remove", id: item.id })} />
       </div>
-      {renderExtras([item])}
+      {renderNote(item)}
     </article>;
   }
 
+  /** The customer's note on one option (owner, 7.10.2026: each size keeps its own note; nothing is merged). */
+  function renderNote(item: CartItem) {
+    const note = item.note ?? "";
+    return <ItemNote key={`${item.id}:${note}`} id={item.id} note={note} locale={locale} save={(text) => act({ type: "cart-note", id: item.id, note: text })} />;
+  }
+
   /**
-   * Options of one product: the product once (photo, name, store, total, favourites, "remove all"), then one compact
-   * row per option (option, quantity, sum, remove), then the note and services they share.
+   * Options of one product: the product once (tick for all, photo, name, store, total, favourites, "remove all"), then
+   * one compact row per option (tick, option, quantity, sum, remove) with that option's own note. Warehouse services
+   * are chosen for the whole store parcel below.
    */
   function renderGroup(lines: CartItem[]) {
     const lead = lines[0], ids = lines.map((line) => line.id);
-    const total = lines.reduce((sum, line) => sum + line.quote.total, 0), units = lines.reduce((sum, line) => sum + line.quantity, 0);
+    const total = lines.reduce((sum, line) => sum + lineTotal(line), 0), units = lines.reduce((sum, line) => sum + line.quantity, 0);
     return <div className="basket-group" key={`group:${lead.id}`}>
       <article className="basket-item basket-group-head">
+        {selectBox(lines, s.selectGroup(lead.product.name))}
         <div className="basket-photo"><ProductImage product={lead.product} locale={locale} decorative /></div>
         <div className="basket-info">
           {lead.product.brand && <p className="basket-brand">{lead.product.brand}</p>}
@@ -406,83 +418,81 @@ export function CartView() {
       </article>
       <ul className="basket-variants" aria-label={kc.variants}>{lines.map((item) => {
         const issue = item.sourceIssue, stock = stockText(item), checked = !item.priceChange && !issue && item.product.sourceCheckedAt;
-        return <li className={"basket-variant" + (issue && issue.kind !== "unreachable" ? " has-issue" : "")} key={item.id}>
+        return <li className={"basket-variant" + (issue && issue.kind !== "unreachable" ? " has-issue" : "") + (ticked(item) ? "" : " is-later")} key={item.id}>
+          {selectBox([item], s.selectLine([item.product.name, shownVariant(item.variant)].filter(Boolean).join(" · ")))}
           <div className="basket-variant-info">
-            <b>{shownVariant(item.variant) || item.variant}</b>
+            <b>{shownVariant(item.variant) || item.variant}</b>{!ticked(item) && <span className="basket-later-tag">{s.later}</span>}
             <small>{storePrice(item, locale)}{item.quantity > 1 ? ` × ${item.quantity}` : ""}{checked ? <> · <BadgeCheck size={13} role="img" aria-label={c.item.checked(clock(item.product.sourceCheckedAt!, locale))} /></> : null}{stock ? ` · ${stock}` : ""}</small>
           </div>
           <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity })} />
-          <strong className="basket-variant-sum">{formatSum(item.quote.total, locale)}</strong>
+          <strong className="basket-variant-sum">{formatSum(lineTotal(item), locale)}</strong>
           <SafeDeleteButton label={kc.removeVariant} itemName={[item.product.name, shownVariant(item.variant)].filter(Boolean).join(" · ")} locale={locale} onConfirm={() => act({ type: "cart-remove", id: item.id })} />
           {itemNotes(item)}
+          {renderNote(item)}
         </li>;
       })}</ul>
-      <div className="basket-shared"><p className="basket-shared-title"><Layers size={15} aria-hidden="true" />{c.shared.title}</p>{renderExtras(lines)}</div>
     </div>;
   }
 
   /**
-   * The note and the warehouse services of one line, or of every option of one product at once (`lines`): the shared
-   * block shows what any of them has and saves the choice to each line in one request.
+   * Warehouse services of one store parcel (owner, 7.10.2026): chosen once for the parcel, counted per parcel (a
+   * contents photo), per piece (checking each item) or as typed (extra photos). The tick shows at once with
+   * "Saving…"; a second click while saving waits its turn instead of being lost or sent twice.
    */
-  function renderExtras(lines: CartItem[]) {
-    const lead = lines[0];
-    const ids = lines.length > 1 ? lines.map(line => line.id) : undefined;
-    const note = lines.length > 1 ? [...new Set(lines.map(line => line.note?.trim()).filter(Boolean))].join("\n").slice(0, 500) : lead.note ?? "";
-    const selectedServices = lines.length > 1
-      ? checkoutServices.filter(service => lines.some(line => line.requestedServiceIds?.includes(service.id))).map(service => service.id)
-      : lead.requestedServiceIds ?? [];
-    const serviceUnits: Record<string, number> = lines.length > 1
-      ? Object.fromEntries(selectedServices.flatMap(id => { const most = Math.max(0, ...lines.map(line => line.requestedServiceUnits?.[id] ?? 0)); return most ? [[id, most]] : []; }))
-      : lead.requestedServiceUnits ?? {};
-    return <>
-      <ItemNote key={`${lead.id}:${note}`} id={lead.id} note={note} locale={locale} save={(text) => act({ type: "cart-note", id: lead.id, ids, note: text })} />
-      {checkoutServices.length > 0 && <details className="basket-services">
-        <summary><span>{c.services.title}<small>{c.services.optional}</small></span>{selectedServices.length > 0 && <b>{selectedServices.length}</b>}</summary>
-        <p>{c.services.hint}{ids && <> {c.shared.services}</>}</p>
-        <div className="basket-service-list">{checkoutServices.map((service) => {
-          const checked = selectedServices.includes(service.id) || service.required;
-          // Units per line (a package, its pieces, or what the customer typed); a fixed price adds them up over the lines.
-          const units = service.unit === "package" ? 1 : service.unit === "item" ? lead.quantity : serviceUnits[service.id] ?? 1;
-          const totalUnits = lines.reduce((sum, line) => sum + (service.unit === "package" ? 1 : service.unit === "item" ? line.quantity : units), 0);
-          const unitFee = serviceFeeForCountry(service, lead.product.country);
-          const amount = unitFee * totalUnits;
-          const serviceUnitsNext = { ...serviceUnits };
-          const updateService = async (selected: boolean, nextUnits = units) => {
-            if (savingServiceItemId !== null) return;
-            const next = selected ? [...new Set([...selectedServices, service.id])] : selectedServices.filter((id) => id !== service.id);
-            if (["package", "item"].includes(service.unit)) delete serviceUnitsNext[service.id];
-            else if (selected) serviceUnitsNext[service.id] = nextUnits;
-            else delete serviceUnitsNext[service.id];
-            setSavingServiceItemId(lead.id);
-            setSavingServiceId(service.id);
-            try { await act({ type: "cart-services", id: lead.id, ids, serviceIds: next, serviceUnits: serviceUnitsNext }); }
-            finally { setSavingServiceItemId(null); setSavingServiceId(null); }
-          };
-          const unitName = c.services.units[service.unit];
-          const saving = savingServiceItemId === lead.id && savingServiceId === service.id;
-          return <div className="basket-service" key={service.id} aria-busy={saving || undefined}>
-            <Checkbox aria-label={serviceTitle(service, locale)} checked={checked} disabled={service.required || savingServiceItemId !== null} onCheckedChange={(value) => void updateService(value === true)} />
-            <span className="basket-service-copy"><b>{serviceTitle(service, locale)}{service.required && <em>{c.services.required}</em>}{saving && <span className="basket-service-saving" role="status"><Loader2 size={13} className="spin" aria-hidden="true" />{locale === "ru" ? "Сохраняем…" : locale === "uz" ? "Saqlanmoqda…" : "Saving…"}</span>}</b><small>{serviceDescription(service, locale)}</small>
-              <small className="basket-service-rate">{service.pricingMode === "fixed"
-                ? `${c.services.fixed}: ${formatSum(unitFee, locale)} / ${unitName}${totalUnits > 1 ? ` · ${totalUnits} × ${formatSum(unitFee, locale)} = ${formatSum(amount, locale)}` : ""} · ${c.services.notIncluded}`
-                : `${c.services.quote} · ${c.services.notIncluded}`}</small>
-            </span>
-            {!["package", "item"].includes(service.unit) && checked && <span className="basket-service-units"><label htmlFor={`cart-service-units-${lead.id}-${service.id}`}>{c.services.quantity} · {unitName}</label><input key={units} id={`cart-service-units-${lead.id}-${service.id}`} type="number" inputMode="numeric" min="1" max="100" step="1" disabled={savingServiceItemId !== null} defaultValue={units} onBlur={(event) => { const nextUnits = Number(event.target.value); if (Number.isInteger(nextUnits) && nextUnits >= 1 && nextUnits <= 100 && nextUnits !== units) void updateService(true, nextUnits); else event.target.value = String(units); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); } }} /></span>}
-          </div>;
-        })}</div>
-      </details>}
-    </>;
+  function renderParcelServices(parcelKey: string, items: CartItem[]) {
+    if (!checkoutServices.length) return null;
+    const lead = items[0];
+    const ids = items.map(line => line.id);
+    const draft = serviceDrafts[parcelKey];
+    const saved = checkoutServices.filter(service => items.some(line => line.requestedServiceIds?.includes(service.id))).map(service => service.id);
+    const savedUnits: Record<string, number> = Object.fromEntries(saved.flatMap(id => { const most = Math.max(0, ...items.map(line => line.requestedServiceUnits?.[id] ?? 0)); return most ? [[id, most]] : []; }));
+    const chosen = draft?.serviceIds ?? saved, units = draft?.units ?? savedUnits;
+    const save = async (serviceId: string, serviceIds: string[], nextUnits: Record<string, number>) => {
+      const next = { serviceIds, units: nextUnits, savingId: serviceId };
+      setDrafts({ ...serviceDraftsRef.current, [parcelKey]: next });
+      try { await act({ type: "cart-services", id: lead.id, ids, serviceIds, serviceUnits: nextUnits }, { queue: true }); }
+      finally { if (serviceDraftsRef.current[parcelKey] === next) { const rest = { ...serviceDraftsRef.current }; delete rest[parcelKey]; setDrafts(rest); } }
+    };
+    return <details className="basket-services basket-parcel-services">
+      <summary><span>{s.parcelServices}<small>{c.services.optional}</small></span>{chosen.length > 0 && <b>{chosen.length}</b>}</summary>
+      <p>{s.parcelServicesHint} {c.services.hint}</p>
+      <div className="basket-service-list">{checkoutServices.map((service) => {
+        const checked = chosen.includes(service.id) || service.required;
+        const counted = !["package", "item"].includes(service.unit);
+        const count = parcelServiceUnits(service, items.map(line => ({ quantity: line.quantity, requestedServiceUnits: counted ? { [service.id]: units[service.id] ?? 1 } : undefined })));
+        const unitFee = serviceFeeForCountry(service, lead.product.country);
+        const unitLabel = service.unit === "package" ? s.unitPackage : service.unit === "item" ? s.unitItem(count) : service.unit === "photo" ? s.unitPhoto(count) : `× ${count}`;
+        const toggle = (on: boolean, typed = units[service.id] ?? 1) => {
+          const latest = serviceDraftsRef.current[parcelKey];
+          const base = latest?.serviceIds ?? chosen;
+          const serviceIds = on ? [...new Set([...base, service.id])] : base.filter(id => id !== service.id);
+          const nextUnits = { ...(latest?.units ?? units) };
+          if (on && counted) nextUnits[service.id] = typed; else delete nextUnits[service.id];
+          void save(service.id, serviceIds, nextUnits);
+        };
+        const saving = draft?.savingId === service.id;
+        const unitName = c.services.units[service.unit];
+        return <div className="basket-service" key={service.id} aria-busy={saving || undefined}>
+          <Checkbox aria-label={serviceTitle(service, locale)} checked={checked} disabled={service.required} onCheckedChange={(value) => toggle(value === true)} />
+          <span className="basket-service-copy"><b>{serviceTitle(service, locale)}{checked && <span className="basket-service-unit">{unitLabel}</span>}{service.required && <em>{c.services.required}</em>}{saving && <span className="basket-service-saving" role="status"><Loader2 size={13} className="spin" aria-hidden="true" />{s.saving}</span>}</b><small>{serviceDescription(service, locale)}</small>
+            <small className="basket-service-rate">{service.pricingMode === "fixed"
+              ? `${c.services.fixed}: ${formatSum(unitFee, locale)} / ${unitName}${count > 1 ? ` · ${count} × ${formatSum(unitFee, locale)} = ${formatSum(unitFee * count, locale)}` : ""} · ${c.services.notIncluded}`
+              : `${c.services.quote} · ${c.services.notIncluded}`}</small>
+          </span>
+          {counted && checked && <span className="basket-service-units"><label htmlFor={`cart-service-units-${parcelKey}-${service.id}`}>{c.services.quantity} · {unitName}</label><input key={units[service.id] ?? 1} id={`cart-service-units-${parcelKey}-${service.id}`} type="number" inputMode="numeric" min="1" max="100" step="1" defaultValue={units[service.id] ?? 1} onBlur={(event) => { const typed = Number(event.target.value); if (Number.isInteger(typed) && typed >= 1 && typed <= 100 && typed !== (units[service.id] ?? 1)) toggle(true, typed); else event.target.value = String(units[service.id] ?? 1); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); } }} /></span>}
+        </div>;
+      })}</div>
+    </details>;
   }
 
   // Each fee on its own line; the store-delivery hold and customs stay outside the amount to pay.
-  const linesFor = (duty: number, fromBalance: number) => <CalcLines sums={{ ...sums, customsDuty: duty, total: sums.total + duty }} locale={locale} pricing={pricing} weightKg={cartWeight} storeShippingState="none" anyFree={reserves.some(entry => entry.free)} speed={speed}>
+  const linesFor = (duty: number, fromBalance: number, lines = sums) => <CalcLines sums={{ ...lines, customsDuty: duty, total: lines.total + duty }} locale={locale} pricing={pricing} weightKg={cartWeight} storeShippingState="none" anyFree={reserves.some(entry => entry.free)} speed={speed}>
     {fromBalance > 0 && <div className="basket-lines basket-lines-credit"><div className="basket-line"><span className="basket-line-label">{c.summary.fromBalance}</span><b>−{formatSum(fromBalance, locale)}</b></div></div>}
   </CalcLines>;
   const summaryLines = linesFor(cartDuty, credit);
   const saveCustoms = async (next: typeof customsChoices) => { setCustomsBusy(true); try { await act({ type: "cart-customs", value: next }); } finally { setCustomsBusy(false); } };
   // The allowance in two lines and "Atlas pays customs for me", which adds its fee to the bill right away.
-  const customsPanel = <CustomsPanel estimate={customs} choices={customsChoices} locale={locale} pricing={pricing} profiles={state.deliveryProfiles} recipientId={customsProfile?.id} onRecipient={setCustomsRecipient} onChoices={(next) => void saveCustoms(next)} helpAmount={customsHelpAmount} busy={customsBusy} compact />;
+  const customsPanel = <CustomsPanel estimate={customs} choices={customsChoices} locale={locale} pricing={pricing} profiles={state.deliveryProfiles} recipientId={customsProfile?.id} onRecipient={setCustomsRecipient} onChoices={(next) => void saveCustoms(next)} helpAmount={customsHelpAmount} remembered={customsRemembered} busy={customsBusy} compact />;
 
 
   if (!ready) return <div className="basket-page">
@@ -505,19 +515,24 @@ export function CartView() {
   </div>;
 
   return <div className="basket-page has-sticky">
-    <header className="basket-head"><h1>{c.title}</h1><p>{itemCount(count, locale)} · {parcelCount(parcels.length, locale)}</p></header>
+    <header className="basket-head"><h1>{c.title}</h1><p>{itemCount(allCount, locale)} · {parcelCount(parcels.length, locale)}</p></header>
     <CheckoutSteps current={0} c={c} />
     <div className="basket-layout">
       <div className="basket-parcels">
+        {state.cart.length > 1 && <div className="basket-select-bar">
+          <label>{selectBox(state.cart, s.selectAll)}{s.selectAll}</label>
+          <small aria-live="polite">{selecting ? s.saving : s.selectedOf(state.cart.filter(ticked).reduce((sum, item) => sum + item.quantity, 0), allCount)}</small>
+        </div>}
         {parcels.map(parcel => {
           const reserve = reserves.find(entry => parcel.items.some(item => entry.itemIds.includes(item.id)));
           return <section className="basket-parcel" key={parcel.key} aria-label={parcel.title}>
-            <h2 className="basket-parcel-title"><Store size={16} aria-hidden="true" /><span>{parcel.title}</span><small>{[parcel.country, speedDays(parcel.origin)].filter(Boolean).join(" · ")}</small></h2>
+            <h2 className="basket-parcel-title">{parcels.length > 1 || parcel.items.length > 1 ? selectBox(parcel.items, s.selectStore(parcel.store)) : <Store size={16} aria-hidden="true" />}<span>{parcel.title}</span><small>{[parcel.country, speedDays(parcel.origin)].filter(Boolean).join(" · ")}</small></h2>
             {productGroups(parcel.items).map(lines => lines.length === 1 ? renderItem(lines[0]) : renderGroup(lines))}
             {/* Only an open question goes here; free store delivery is its own line in the bill. */}
             {reserve && reserve.reserveUsd > 0 && <p className="basket-parcel-note">
               <Truck size={16} aria-hidden="true" /><span>{c.item.parcelReserve(usd(reserve.missingUsd, locale))}</span>
             </p>}
+            {renderParcelServices(parcel.key, parcel.items)}
           </section>;
         })}
         <Link className="basket-continue" href="/">{c.summary.continue}<ArrowRight size={16} aria-hidden="true" /></Link>
@@ -531,8 +546,10 @@ export function CartView() {
           {customsPanel}
           {balance > 0 && <div className="basket-balance"><Checkbox id="use-balance" checked={useBalance} onCheckedChange={(value) => setUseBalance(value === true)} /><label htmlFor="use-balance">{c.summary.balance}<small>{c.summary.available}: {formatSum(balance, locale)}</small></label></div>}
           <div className="basket-total bill-total"><span>{c.summary.payable}</span><strong><Money value={payable} locale={locale} /></strong></div>
-          <PriceHold expiresAt={earliestExpiry} locale={locale} c={c} />
-          <button ref={setSummaryCta} type="button" className="btn primary basket-cta" disabled={verifying} aria-busy={verifying} onClick={() => void openCheckout()}>{verifying ? <>{c.summary.verifying}<Loader2 size={18} className="spin" aria-hidden="true" /></> : c.summary.checkout}</button>
+          {lines.length > 0 && <PriceHold expiresAt={earliestExpiry} locale={locale} c={c} />}
+          <button ref={setSummaryCta} type="button" className="btn primary basket-cta" disabled={verifying} aria-busy={verifying || selecting} aria-disabled={!lines.length || selecting || undefined} aria-describedby={!lines.length ? "basket-none-hint" : undefined} onClick={() => void openCheckout()}>{verifying ? <>{c.summary.verifying}<Loader2 size={18} className="spin" aria-hidden="true" /></> : selecting ? <>{s.saving}<Loader2 size={18} className="spin" aria-hidden="true" /></> : s.checkoutN(count)}</button>
+          {!lines.length && <p id="basket-none-hint" className="basket-none-hint" role="status"><Info size={16} aria-hidden="true" />{s.noneSelected}</p>}
+          {lines.length > 0 && laterCount > 0 && <p className="basket-later-note">{s.laterCount(laterCount)}</p>}
         </div>
         {sums.storeShippingHold > 0 && <section className="folio-outside" aria-labelledby="basket-outside-title">
           <h3 id="basket-outside-title">{c.summary.outside}</h3>
@@ -543,7 +560,7 @@ export function CartView() {
 
     <div className={"basket-sticky" + (summaryCtaInView ? " is-hidden" : "")} role="region" aria-label={c.sticky.label} aria-hidden={summaryCtaInView || undefined}>
       <div><span>{c.summary.payable}</span><strong>{formatSum(payable, locale)}</strong></div>
-      <button type="button" className="btn primary" disabled={verifying} aria-busy={verifying} onClick={() => void openCheckout()}>{verifying ? <Loader2 size={18} className="spin" aria-label={c.summary.verifying} /> : <>{c.sticky.checkout}<ArrowRight size={18} aria-hidden="true" /></>}</button>
+      <button type="button" className="btn primary" disabled={verifying} aria-busy={verifying || selecting} aria-disabled={!lines.length || selecting || undefined} onClick={() => void openCheckout()}>{verifying || selecting ? <Loader2 size={18} className="spin" aria-label={verifying ? c.summary.verifying : s.saving} /> : <>{lines.length ? s.checkoutN(count) : s.noneSelected}<ArrowRight size={18} aria-hidden="true" /></>}</button>
     </div>
 
     <Modal open={checkoutOpen} onClose={() => { if (!busy) setCheckoutOpen(false); }} title={review ? c.checkout.reviewTitle : c.checkout.title} description={review ? c.checkout.reviewHint : c.checkout.hint} locale={locale}>
@@ -593,32 +610,41 @@ export function CartView() {
           <div className="basket-consent"><Checkbox id="save-recipient" checked={saveRecipient} onCheckedChange={(value) => setSaveRecipient(value === true)} /><label htmlFor="save-recipient">{c.checkout.saveRecipient}</label></div>
           </>}
         </>}
-        {review && <section className="checkout-review">
-          <div className="basket-review-recipient"><div><h3>{delivery.recipient}</h3><p>{delivery.phone}</p><p>{[delivery.region, delivery.city, delivery.address, delivery.postalCode].filter(Boolean).join(", ")}</p></div><button type="button" className="text-button" onClick={() => setReview(false)}>{c.checkout.edit}</button></div>
-          <ul className="basket-review-items">{state.cart.map(item => <li key={item.id}>
-            <span>{item.product.name}<small>{[shownVariant(item.variant), `× ${item.quantity}`].filter(Boolean).join(" · ")}</small>
-              {(item.requestedServiceIds ?? []).map(id => {
-                const service = pricing.serviceCatalog.find(value => value.id === id);
-                if (!service) return null;
-                const units = service.unit === "package" ? 1 : service.unit === "item" ? item.quantity : item.requestedServiceUnits?.[id] ?? 1;
-                const fee = serviceFeeForCountry(service, item.product.country) * units;
-                return <small className="review-service" key={id}>+ {serviceTitle(service, locale)} · {service.pricingMode === "fixed" ? `${formatSum(fee, locale)} · ${c.checkout.serviceNotAdded}` : c.checkout.servicePriceLater}</small>;
-              })}
-            </span><b>{formatSum(item.quote.total, locale)}</b>
-          </li>)}</ul>
-          {linesFor(reviewDuty, reviewCredit)}
-          <HoldNote amount={sums.storeShippingHold} locale={locale} pricing={pricing} />
-          {/* The estimate for the person chosen in this checkout; the server works it out again and keeps it with the orders. */}
-          <CustomsPanel estimate={reviewCustoms} choices={customsChoices} locale={locale} pricing={pricing} profiles={[]} onChoices={(next) => void saveCustoms(next)} helpAmount={customsHelpAmount} busy={customsBusy} />
-          <div className={"basket-consent" + (consentError ? " invalid" : "")}>
-            <Checkbox id="checkout-consent" checked={consent} aria-invalid={consentError} aria-describedby={consentError ? "checkout-consent-error" : undefined} onCheckedChange={(value) => { setConsent(value === true); if (value === true) setConsentError(false); }} />
-            <label htmlFor="checkout-consent">{c.checkout.consent.before}<Link href="/customs" target="_blank">{c.checkout.consent.link}</Link>{c.checkout.consent.after}</label>
+        {/* The review (owner, 7.10.2026): the order as a numbered table on the left, the checks, the bill and the button on
+            the right, staying in view on a wide screen. A line the stores changed is marked in its row. */}
+        {review && <div className="review-layout">
+          <section className="checkout-review review-main">
+            <CheckoutReviewTable lines={reviewBilled} locale={locale} pricing={pricing} busy={busy || selecting} onLeaveForLater={(id) => void select([id], false)} />
+            {laterCount > 0 && <p className="basket-later-note">{s.laterCount(laterCount)}</p>}
+          </section>
+          <div className="review-aside">
+            <CheckoutChecklist locale={locale} items={[
+              { key: "variants", label: s.review.variants, value: s.review.variantsValue(lines.length, count), ok: !lines.some(blockingSourceIssue) },
+              { key: "recipient", label: s.review.recipient, value: <>{delivery.recipient}, {delivery.phone}<br />{[delivery.region, delivery.city, delivery.address, delivery.postalCode].filter(Boolean).join(", ")}</>, onChange: () => setReview(false) },
+              { key: "speed", label: s.review.speed, value: deliverySpeedCopy[locale].names[speed] },
+              { key: "services", label: s.review.services, value: (() => { const services = new Set(lines.flatMap(item => item.requestedServiceIds ?? [])).size, notes = lines.filter(item => item.note?.trim()).length; return services || notes ? s.review.servicesValue(services, notes) : s.review.servicesNone; })() },
+              { key: "customs", label: s.review.customs, value: customsChoices.help ? s.review.customsHelp : s.review.customsSelf },
+              { key: "total", label: s.review.total, value: <>{formatSum(reviewPayable, locale)}{sums.storeShippingHold > 0 && <> · {s.review.held}: {formatSum(sums.storeShippingHold, locale)}</>}</> },
+            ]} />
+            <div className="payment-preview"><div><span>{c.checkout.estimated}</span><b>{itemCount(count, locale)}</b></div><strong>{formatSum(reviewPayable, locale)}</strong></div>
+            <div className={"basket-consent" + (consentError ? " invalid" : "")}>
+              <Checkbox id="checkout-consent" checked={consent} aria-invalid={consentError} aria-describedby={consentError ? "checkout-consent-error" : undefined} onCheckedChange={(value) => { setConsent(value === true); if (value === true) setConsentError(false); }} />
+              <label htmlFor="checkout-consent">{c.checkout.consent.before}<Link href="/customs" target="_blank">{c.checkout.consent.link}</Link>{c.checkout.consent.after}</label>
+            </div>
+            {consentError && <p id="checkout-consent-error" className="basket-consent-error" role="alert">{c.checkout.consentRequired}</p>}
+            <button className="btn primary full" disabled={busy || selecting || !lines.length}>{busy ? c.checkout.saving : c.checkout.confirm}{busy ? <Loader2 size={18} className="spin" aria-hidden="true" /> : <Check size={18} aria-hidden="true" />}</button>
+            {/* The bill in detail stays under the button: the total and the button are what must stay in view. */}
+            {linesFor(reviewDuty, reviewCredit, reviewSums)}
+            <HoldNote amount={sums.storeShippingHold} locale={locale} pricing={pricing} />
+            {/* The estimate for the person chosen in this checkout; the server works it out again and keeps it with the orders. */}
+            <CustomsPanel estimate={reviewCustoms} choices={customsChoices} locale={locale} pricing={pricing} profiles={[]} onChoices={(next) => void saveCustoms(next)} helpAmount={customsHelpAmount} remembered={customsRemembered} busy={customsBusy} />
+            <p className="micro">{c.checkout.preorderNote}</p>
           </div>
-          {consentError && <p id="checkout-consent-error" className="basket-consent-error" role="alert">{c.checkout.consentRequired}</p>}
-        </section>}
-        <div className="payment-preview"><div><span>{c.checkout.estimated}</span><b>{itemCount(count, locale)}</b></div><strong>{formatSum(review ? reviewPayable : payable, locale)}</strong></div>
-        {review && <p className="micro">{c.checkout.preorderNote}</p>}
-        <button className="btn primary full" disabled={busy}>{busy ? c.checkout.saving : review ? c.checkout.confirm : c.checkout.next}{busy ? <Loader2 size={18} className="spin" aria-hidden="true" /> : review ? <Check size={18} aria-hidden="true" /> : <ArrowRight size={18} aria-hidden="true" />}</button>
+        </div>}
+        {!review && <>
+          <div className="payment-preview"><div><span>{c.checkout.estimated}</span><b>{itemCount(count, locale)}</b></div><strong>{formatSum(payable, locale)}</strong></div>
+          <button className="btn primary full" disabled={busy}>{c.checkout.next}<ArrowRight size={18} aria-hidden="true" /></button>
+        </>}
       </form>
     </Modal>
 

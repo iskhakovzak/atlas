@@ -53,6 +53,12 @@ html:has(main.catalog-home) {
      html:has(main.catalog-home) { scroll-snap-type: y proximity; }
    } */
 
+/* The store chips under the hero snap only while their row scrolls sideways (phones). From 640px the row wraps and
+   is no scroller, so the chips would attach to the page and stop the magnet halfway between sheets 1 and 2. */
+@media (min-width: 640px) {
+  html:has(main.catalog-home) .catalog-home .home-stores li { scroll-snap-align: none; }
+}
+
 /* Sheet 1 starts at the very top: the header is its snap edge. */
 html:has(main.catalog-home) .site-header { scroll-snap-align: start; }
 html:has(main.catalog-home) .catalog-home :where(.home-section, .finds-page) { scroll-margin-top: 0; }

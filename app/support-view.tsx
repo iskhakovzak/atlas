@@ -6,6 +6,8 @@ import {useMarket} from "@/lib/market/store";
 import {signInPath} from "@/lib/market/access";
 import type {Locale} from "@/lib/market/i18n";
 import {PageHeading} from "./market-ui";
+import {JsonLd} from "./json-ld";
+import {faqPage} from "@/lib/seo/structured-data";
 import {MissingContent,useHomeCopy} from "./home-sections";
 
 // Public support page (/support): real contacts only when siteContent has them, the account route always.
@@ -78,6 +80,7 @@ export function SupportView(){
    {links.length===0&&<><p className="page-more">{t.noContacts}</p><MissingContent what="Telegram-бот поддержки и канал, телефон, почта поддержки, Instagram"/></>}
   </section>
   <section className="page-block" aria-labelledby="support-faq"><h2 id="support-faq">{t.faq}</h2>
+   <JsonLd data={faqPage(faq)}/>
    <div className="home-faq">{faq.map(item=><details key={item.q}><summary>{item.q}</summary><div><p>{item.a}</p></div></details>)}</div>
    <p className="page-more"><Link href="/#faq">{t.faqMore}<ArrowRight size={16} aria-hidden="true"/></Link></p>
   </section>

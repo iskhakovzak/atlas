@@ -7,7 +7,6 @@ import {notFoundCopy} from '@/lib/market/customer-copy';
 export function NotFoundView(){
   const {state}=useMarket(),t=notFoundCopy[state.communication.language];
   return <section className="surface access-card not-found-card">
-    <title>{`${t.title} · Atlas`}</title>
     <span className="access-icon" aria-hidden="true"><Compass/></span>
     <span className="eyebrow">404</span>
     <h1>{t.title}</h1>
