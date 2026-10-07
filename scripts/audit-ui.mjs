@@ -185,18 +185,16 @@ try {
   await check("document.documentElement.lang==='uz'","guest language survives reload");
   await evaluate("document.querySelector('.lang-menu-list button[data-locale=ru]').click()");
   await check("document.documentElement.lang==='ru'","guest language switches back to Russian");
-  const protectedRoutes=['account','favorites','cart','orders','balance','notifications','identity','declaration','batch-import','order-by-link','admin','operations','analytics'];
+  const protectedRoutes=['account','favorites','cart','orders','balance','notifications','identity','declaration','batch-import','admin','operations','analytics'];
   for(const route of protectedRoutes){
     await visit('/'+route);
-    await check("document.querySelector('[data-access=signin]')!==null && !document.querySelector('main input,main textarea,main input[type=file]')","guest gate /"+route);
-    await check("new URL(document.querySelector('[data-access=signin] a.btn.primary').href).searchParams.get('return_to')===location.pathname","return destination /"+route);
+    // A guest is sent straight to sign-in, with the page as the return destination.
+    await check("location.pathname==='/login' && new URL(location.href).searchParams.get('return_to')==='/"+route+"'","guest gate /"+route);
   }
   for(const route of ['legal','customs']){await visit('/'+route);await check("!document.querySelector('[data-access]') && !!document.querySelector('h1')","public "+route);await auditPage('public '+route)}
-  await visit('/order-by-link?url=https%3A%2F%2Fwww.nike.com%2Ft%2Fshoe');
-  await check("new URL(document.querySelector('[data-access=signin] a.btn.primary').href).searchParams.get('return_to')===location.pathname+location.search","sign-in retains source URL");
-  const signInUrl=await evaluate("document.querySelector(\'[data-access=signin] a.btn.primary\').href");
-  await cdp.send("Page.navigate",{url:signInUrl},sessionId);
-  await check("location.pathname==='/login' && !!document.querySelector('.login-card')","sign-in opens the Atlas login screen");
+  await visit('/orders?audit=return');
+  await check("location.pathname==='/login' && new URL(location.href).searchParams.get('return_to')==='/orders?audit=return'","sign-in retains source URL");
+  await check("!!document.querySelector('.login-card')","sign-in opens the Atlas login screen");
   await signIn();
   await check("fetch(\'/api/account\',{cache:\'no-store\'}).then(r=>r.status===200)","real local sign-in creates an authenticated session");
   await visit("/order-by-link");
@@ -264,7 +262,7 @@ try {
   await check("!!document.querySelector('.cabinet-signout')","member can sign out");
   await signOut();
   await visit('/account');
-  await check("!!document.querySelector('[data-access=signin]')","local sign-out clears protected screen");
+  await check("location.pathname==='/login'","local sign-out clears protected screen");
   await check(hiddenPrivate,"sign-out clears private navigation");
   // Controlled response fixtures cover loading, connectivity failure and expiration.
   const fixtureScript=await cdp.send('Page.addScriptToEvaluateOnNewDocument',{source:`
@@ -278,7 +276,7 @@ try {
   await visit('/admin');
   await check("!!document.querySelector('[data-access=error]') && !document.querySelector('#max-lines')","failed session never exposes admin form");
   await evaluate("window.__auditMode='guest';document.querySelector('[data-access=error] button').click()");
-  await check("!!document.querySelector('[data-access=signin]')","retry recovers to guest");
+  await check("location.pathname==='/login'","retry recovers to guest");
   await cdp.send('Page.removeScriptToEvaluateOnNewDocument',{identifier:fixtureScript.identifier},sessionId);
   await visit('/');
   for(const width of [1440,800,430,402,390,360]){

@@ -119,11 +119,13 @@ export function LoginView(){
   }).catch(()=>setFailed(true));
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[]);
- const done=useCallback(()=>window.location.replace(returnTo),[returnTo]);
- useEffect(()=>{if(status==='authenticated')done()},[status,done]);
+ // Signed in by any method: the "signed in" screen shows at once while the page heads back.
+ const [signedIn,setSignedIn]=useState(false);
+ const done=useCallback(()=>{setSignedIn(true);window.location.replace(returnTo)},[returnTo]);
+ useEffect(()=>{if(status==='authenticated')window.location.replace(returnTo)},[status,returnTo]);
 
  // Signed in: a check draws itself while the page heads back (app/motion.css, "Sign-in screens").
- if(status==='authenticated')return <section className="surface login-card login-done" role="status" aria-live="polite">
+ if(status==='authenticated'||signedIn)return <section className="surface login-card login-done" role="status" aria-live="polite">
   <span className="login-done-mark" aria-hidden="true"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="23"/><path d="M16 27l7 7 14-15"/></svg></span>
   <p>{c.signedIn}</p>
   <span className="login-done-bar" aria-hidden="true"/>
@@ -184,14 +186,14 @@ export function OtpLogin({channel,c,dev,onDone,onError,link=false}:{channel:'pho
   <div className="field"><label htmlFor={'login-'+channel}>{channel==='phone'?c.phoneLabel:c.emailLabel}</label>
    <input id={'login-'+channel} type={channel==='phone'?'tel':'email'} inputMode={channel==='phone'?'tel':'email'} autoComplete={channel==='phone'?'tel':'email'} required maxLength={channel==='phone'?20:254} value={target} onChange={event=>setTarget(event.target.value)} placeholder={channel==='phone'?'+998 90 123 45 67':'name@example.com'}/>
    <small>{channel==='phone'?c.phoneHint:c.emailHint}</small></div>
-  <button className="btn primary" type="submit" disabled={busy}>{busy?c.sending:c.sendCode}<ArrowRight size={18}/></button>
+  <button className="btn primary" type="submit" disabled={busy} aria-busy={busy}>{busy?c.sending:c.sendCode}{busy?<Loader2 className="spin" size={18} aria-hidden="true"/>:<ArrowRight size={18}/>}</button>
  </form>;
  return <form className="login-form" onSubmit={verify}>
   <p className="login-sent">{channel==='phone'?c.codeSentPhone:c.codeSentEmail} <b>{target.trim()}</b> <button type="button" className="text-button" onClick={()=>{setChallenge(null);onError()}}><ArrowLeft size={14}/>{c.change}</button></p>
   {dev&&devCode&&<div className="notice" role="status">{c.devCode}: <b>{devCode}</b></div>}
   <div className="field"><label htmlFor={'code-'+channel}>{c.codeLabel}</label>
    <input ref={codeInput} id={'code-'+channel} className="login-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={event=>setCode(event.target.value.replace(/\D/g,'').slice(0,6))} placeholder="000000"/></div>
-  <button className="btn primary" type="submit" disabled={busy||code.length!==6}>{busy?c.verifying:link?c.linkVerify:c.verify}<ArrowRight size={18}/></button>
+  <button className="btn primary" type="submit" disabled={busy||code.length!==6} aria-busy={busy}>{busy?c.verifying:link?c.linkVerify:c.verify}{busy?<Loader2 className="spin" size={18} aria-hidden="true"/>:<ArrowRight size={18}/>}</button>
   <button type="button" className="text-button login-resend" disabled={busy||wait>0} onClick={()=>void send()}>{wait>0?`${c.resendIn} ${wait} ${c.sec}`:c.resend}</button>
  </form>;
 }

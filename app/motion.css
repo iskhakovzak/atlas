@@ -178,6 +178,13 @@ html[data-theme="dark"] .account-skeleton :is(i, b) { background-image: linear-g
 html[data-theme="dark"] .login-skeleton > i { background-image: linear-gradient(100deg, rgba(255, 255, 255, .05) 30%, rgba(255, 255, 255, .1) 50%, rgba(255, 255, 255, .05) 70%); }
 html[data-theme="dark"] .login-skeleton > b { background: var(--night-line, rgba(226, 238, 231, .085)); }
 
+/* Switching between sign-in methods, the code step and the Telegram wait slide in softly instead of jumping. */
+.login-card > .login-panel, .login-panel > .login-form, .login-form .login-sent, .tg-login-wait, .login-card > .notice { animation: atlas-rise-in .3s cubic-bezier(.22, 1, .36, 1) both; }
+.tg-login-wait { position: relative; }
+.tg-login-wait > svg { border-radius: 50%; box-shadow: 0 0 0 0 rgba(36, 129, 204, .35); animation: atlas-tg-pulse 1.6s ease-out infinite; }
+@keyframes atlas-tg-pulse { 70% { box-shadow: 0 0 0 8px rgba(36, 129, 204, 0); } 100% { box-shadow: 0 0 0 0 rgba(36, 129, 204, 0); } }
+.login-form .btn[aria-busy="true"] { cursor: progress; }
+
 /* Signed in: the check draws, the line fills while the page goes back. */
 .login-done { align-items: center; justify-content: center; min-height: 300px; text-align: center; animation: atlas-placed-in .45s cubic-bezier(.22, 1, .36, 1) both; }
 .login-done > p { margin: 0; color: var(--home-ink, #16211c); font-size: 18px; font-weight: 700; }
@@ -199,6 +206,10 @@ html[data-theme="dark"] .login-done-bar::after { background: var(--night-jade, #
 @keyframes atlas-loader-nudge { 50% { transform: translate(2px, -2px); } }
 html[data-theme="dark"] .atlas-loader { color: var(--night-jade, #80d0ac); }
 
+/* Product photos from the stores fade in as they arrive instead of popping in (app/market-ui.tsx, ProductImage). */
+img.product-img { transition: opacity .35s ease-out; }
+img.product-img[data-fade] { opacity: 0; }
+
 /* ---------- Reduced motion: no page, dialog or content movement; the check is drawn at once. ---------- */
 @media (prefers-reduced-motion: reduce) {
   @view-transition { navigation: none; }
@@ -219,4 +230,6 @@ html[data-theme="dark"] .atlas-loader { color: var(--night-jade, #80d0ac); }
   .account-skeleton, .account-skeleton :is(i, b), .login-skeleton, .login-skeleton > i, .login-done, .login-done-mark, .atlas-loader::before, .atlas-loader svg { animation: none; }
   .login-done-mark :is(circle, path) { animation: none; stroke-dashoffset: 0; }
   .login-done-bar::after { animation: none; transform: scaleX(.92); }
+  img.product-img { transition: none; }
+  .login-card > .login-panel, .login-panel > .login-form, .login-form .login-sent, .tg-login-wait, .login-card > .notice, .tg-login-wait > svg { animation: none; }
 }

@@ -7,6 +7,10 @@ import { htmlLang } from "@/lib/market/uz-cyrl";
 import { env } from "cloudflare:workers";
 import "@fontsource-variable/inter/opsz.css";
 import "@fontsource-variable/manrope/wght.css";
+import { preload } from "react-dom";
+import interLatin from "@fontsource-variable/inter/files/inter-latin-opsz-normal.woff2?url";
+import interCyrillic from "@fontsource-variable/inter/files/inter-cyrillic-opsz-normal.woff2?url";
+import manropeLatin from "@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2?url";
 import "./globals.css";
 import "./atlas-design.css";
 import "./catalog-admin.css";
@@ -85,6 +89,12 @@ export default async function RootLayout({
   // A session cookie (not verified here) lets the header and private pages render their signed-in shape at once
   // instead of the guest header and a "checking your session" card; /api/account still decides who is signed in.
   const sessionHint = (await cookies()).has(SESSION_COOKIE);
+  // The fonts of the first screen load with the page instead of after the stylesheet, so text does not swap faces
+  // a moment later: Inter (Latin, plus Cyrillic for Russian and Uzbek in Cyrillic) and Manrope for the wordmark.
+  const font = { as: "font", type: "font/woff2", crossOrigin: "anonymous" } as const;
+  preload(interLatin, font);
+  if (locale === "ru" || locale === "oz") preload(interCyrillic, font);
+  preload(manropeLatin, font);
   return (
     <html lang={htmlLang(locale)} suppressHydrationWarning>
       <body className="antialiased">

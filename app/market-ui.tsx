@@ -16,8 +16,10 @@ export function ProductImage({product,className='',decorative=false,locale='ru'}
  const label=locale==='ru'?'Товар по ссылке':isUzbek(locale)?uzText(locale, 'Havoladagi tovar'):'Linked item';
  if(!product.image||product.image===failedImage)return <div className={'no-photo '+className}><Package size={35}/><span>{label}</span></div>;
  // Dynamic store images are displayed without proxying or optimization.
+ // A photo still on its way fades in when it arrives (app/motion.css); one already loaded or cached shows at once.
  // eslint-disable-next-line @next/next/no-img-element
- return <img className={'product-img '+className} src={product.image} onError={()=>setFailedImage(product.image)} alt={decorative?'':product.name} loading="lazy" referrerPolicy="no-referrer"/>;
+ return <img className={'product-img '+className} src={product.image} onError={()=>setFailedImage(product.image)} alt={decorative?'':product.name} loading="lazy" decoding="async" referrerPolicy="no-referrer"
+  ref={image=>{if(image&&!image.complete)image.dataset.fade=''}} onLoad={event=>{delete event.currentTarget.dataset.fade}}/>;
 }
 export function PageHeading({overline,title,description,children}:{overline:string;title:string;description:string;children?:ReactNode}){return <div className="page-heading"><div><div className="eyebrow">{overline}</div><h1>{title.replace(/\.$/,'')}</h1><p>{description}</p></div>{children}</div>}
 export function Empty({title,description,href,label,children}:{title:string;description:string;href?:string;label?:string;children?:ReactNode}){return <div className="empty-state"><span className="empty-icon"><Package size={30}/></span><h2>{title}</h2><p>{description}</p>{href&&<Link href={href} className="btn primary">{label??'В каталог'}<ArrowUpRight size={18}/></Link>}{children}</div>}
