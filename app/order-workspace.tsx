@@ -912,7 +912,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
       let id: string;
       try { id = decodeURIComponent(window.location.hash.slice(1)); } catch { return; }
       const row = document.getElementById(id);
-      if (row instanceof HTMLDetailsElement) { row.open = true; row.scrollIntoView({block:'start'}); }
+      // data-linked: the opened order glows once (app/motion.css); :target does not match rows rendered after the load.
+      if (row instanceof HTMLDetailsElement) { row.open = true; row.scrollIntoView({block:'start'}); if (!('linked' in row.dataset)) row.dataset.linked = ''; }
       else { const order=(operations?opsAccounts.flatMap(profile=>profile.state.orders):state.orders).find(item=>item.id===id);
         // A linked order not loaded yet: fetch it alone, then the branch below finds it and searches its tab for it.
         if(!order&&operations&&opsReady&&id&&!revealRequested.current.has(id)){revealRequested.current.add(id);void fetch(`/api/operations?queue=1&order=${encodeURIComponent(id)}`,{cache:"no-store"}).then(response=>response.ok?response.json() as Promise<Partial<OperatorQueueResponse>>:null).then(data=>{if(data?.accounts?.length)setOpsAccounts(current=>mergeQueueAccounts(current,data.accounts!))}).catch(()=>{});}

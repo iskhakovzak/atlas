@@ -336,7 +336,8 @@ export function CartView() {
     if (!placedKey) return;
     const placed = state.orders.find(order => order.batchId === placedKey);
     // The confirmation stays at least ~1.2 s so it can be read; the page change itself cross-fades (app/motion.css).
-    if (!placedAt.current) placedAt.current = Date.now();
+    // The confirmation replaces the long cart, so it starts at the top instead of the cart's scroll position.
+    if (!placedAt.current) { placedAt.current = Date.now(); window.scrollTo({ top: 0, behavior: "instant" }); }
     const wait = Math.max(0, placedAt.current + 1200 - Date.now());
     if (placed) { const timer = window.setTimeout(() => window.location.assign("/orders#" + encodeURIComponent(placed.id)), wait); return () => window.clearTimeout(timer); }
     // The orders normally arrive with the checkout answer; if not, My orders loads them itself.

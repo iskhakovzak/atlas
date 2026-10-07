@@ -41,8 +41,9 @@ html[data-theme="dark"] :is(.atlas-skeleton-card > i, .atlas-skeleton-card b) { 
 @keyframes atlas-fade-in { from { opacity: 0; } }
 @keyframes atlas-rise-in { from { opacity: 0; transform: translate3d(0, 10px, 0); } }
 
-/* A linked order (/orders#AT-…, e.g. right after checkout) glows once when it opens. */
-details[id]:target > summary { animation: atlas-target-glow 2.2s ease-out .5s both; }
+/* A linked order (/orders#AT-…, e.g. right after checkout) glows once when it opens. The row renders after the
+   account loads, so app/order-workspace.tsx marks it with data-linked (:target alone would not match it). */
+details[id]:is(:target, [data-linked]) > summary { animation: atlas-target-glow 2.2s ease-out .5s both; }
 @keyframes atlas-target-glow { 0% { box-shadow: 0 0 0 0 rgba(31, 77, 59, 0); } 25% { box-shadow: 0 0 0 4px rgba(31, 77, 59, .22); } 100% { box-shadow: 0 0 0 0 rgba(31, 77, 59, 0); } }
 
 /* ---------- Checkout recipient ⇄ review ---------- */
@@ -112,7 +113,7 @@ html[data-theme="dark"] .checkout-placed-link { color: var(--night-ivory, #ebe4d
   @view-transition { navigation: none; }
   .site-header :is(.wallet-link, .notice-link, .cart-link), .atlas-skeleton, .basket-loading,
   :is(.basket-layout, .basket-empty, .compact-order, .notices-page > .notice-filters, .wallet-grid),
-  details[id]:target > summary, .atlas-modal .basket-checkout > *, .review-layout > *, .basket-steps li[data-state="current"] > span, .checkout-placed { animation: none; }
+  details[id]:is(:target, [data-linked]) > summary, .atlas-modal .basket-checkout > *, .review-layout > *, .basket-steps li[data-state="current"] > span, .checkout-placed { animation: none; }
   .atlas-skeleton-card > i, .atlas-skeleton-card b { animation: none; }
   [data-slot="dialog-content"][data-state="open"], [data-slot="alert-dialog-content"][data-state="open"] { animation: atlas-fade-in .15s ease-out both; }
   [data-slot="dialog-content"][data-state="closed"], [data-slot="alert-dialog-content"][data-state="closed"] { animation: atlas-fade-out .12s ease-in both; }
