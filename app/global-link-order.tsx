@@ -4,7 +4,6 @@ import { useSearchParams } from "next/navigation";
 import { AlertCircle, ArrowRight, Check, ExternalLink, Info, Link2, Loader2, Lock, Minus, Plus, ShieldCheck, ShoppingBag, X } from "lucide-react";
 import Link from "@/components/site-link";
 import { toast } from "sonner";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
 import { signInPath } from "@/lib/market/access";
 import { catalogOrderVariants } from "@/lib/market/catalog";
@@ -205,10 +204,10 @@ export function GlobalLinkOrder() {
   useEffect(() => { if (ready && !speedTouched.current) setPreviewSpeed(cartSpeed); }, [ready, cartSpeed]);
   const lang=state.communication.language;
   const freeFrom=`$${pricing.storeShippingFreeFromUsd??50}`;
-  const c=lang==='ru'?{over:'ПОКУПКИ СО ВСЕГО МИРА',choose:'Выберите свой вариант',order:'Заказ по ссылке',checkPrice:'Проверьте размер и цену перед добавлением.',paste:'Вставьте ссылку — Atlas заполнит доступные данные.',loading:'Загружаем цену и варианты из магазина…',selected:'Товар уже выбран. Проверьте вариант и добавьте его в корзину.',edit:'Изменить ссылку',linkStep:'Ссылка на товар',stores:'eBay, Zara, Mango, Amazon и другие магазины.',storePage:'Страница магазина',get:'Получаем данные…',load:'Загрузить товар',directory:'Магазины для заказа по ссылке',storeHint:'Выбирайте региональную витрину по ссылке. Atlas считает итог с доставкой.',search:'Магазин или категория',enhanced:'цена + варианты',otherMatches:'Другие совпадения',allStores:'Все остальные магазины',notFound:'Этого магазина нет в списке. Отправьте его оператору — он проверит магазин.',login:'Войдите в личный кабинет: автозагрузка защищена, а товар сохранится в вашей корзине.',original:'Открыть оригинал в магазине',loaded:'Что загрузилось и что нужно проверить',availability:'Проверьте наличие в магазине',availabilityHint:'Откройте страницу товара, проверьте выбранный размер или вариант и вернитесь с ответом.',openStore:'Открыть магазин',available:'Есть в наличии',unavailable:'Нет в наличии',openFirst:'Сначала откройте страницу магазина — после возврата кнопки ответа станут доступны.',thanks:'Спасибо. Можно проверить остальные данные и продолжить.',removed:'Товар не будет добавлен. Администратор получил сообщение для проверки.',dataStep:'Проверьте данные',name:'Название товара',namePlaceholder:'Название со страницы магазина',shipCountry:'Страна фактической отправки',countryLabel:'Страна отправки',currency:'Валюта магазина',otherCountry:'Укажите страну',price:'Цена товара',atlasShipping:'До склада Atlas',change:'изменить',useShipping:'Использовать доставку до склада Atlas',shippingNote:`Это доставка от магазина до склада Atlas. Если магазин её не указал, держим резерв $10 отдельно от суммы к оплате — один на заказ из магазина и только при товарах из него на ${freeFrom} или меньше.`,category:'Категория',weight:'Вес товара с коробкой, кг',weightDetails:'Как уточняется вес доставки',forCalc:'для расчёта',variant:'Вариант товара',color:'Цвет',size:'Размер / модель',selectColor:'Выберите цвет',selectVariant:'Выберите вариант',none:'Нет',photo:'Фото товара — автоматически или по ссылке',image:'Адрес изображения',verified:'Я проверил данные и выбранный вариант.',add:'В корзину',adding:'Добавляем в корзину…',gallery:'Фотографии магазина',uz:'Узбекистан',empty:'Ваш товар появится здесь',fresh:'Когда проверены данные',freshText:'Цену и валюту вы подтвердили сами — Atlas сверит их с магазином перед выкупом.',declaration:'Черновик декларации',cost:'Состав стоимости',reserve:`$10 — резерв на доставку магазина, один на заказ из этого магазина; в сумму к оплате не входит. При товарах дороже ${freeFrom} резерва нет. Фактическую сумму менеджер подтвердит после оформления.`,subtotal:'Промежуточный итог',estimate:'Итого с доставкой',emptyQuote:'Вставьте ссылку или заполните цену и вес.'}:{over:isUzbek(lang)?uzText(lang, 'DUNYODAN XARIDLAR'):'SHOP THE WORLD',choose:isUzbek(lang)?uzText(lang, 'Variantni tanlang'):'Choose your option',order:isUzbek(lang)?uzText(lang, 'Havola orqali buyurtma'):'Order by link',checkPrice:isUzbek(lang)?uzText(lang, 'Qo‘shishdan oldin o‘lcham va narxni tekshiring.'):'Check the size and price before adding.',paste:isUzbek(lang)?uzText(lang, 'Havolani kiriting — Atlas ma’lumotlarni to‘ldiradi.'):'Paste a link — Atlas will fill in the details.',loading:isUzbek(lang)?uzText(lang, 'Do‘kondan narx va variantlar yuklanmoqda…'):'Loading price and options from the store…',selected:isUzbek(lang)?uzText(lang, 'Tovar tanlandi. Variantni tekshirib savatga qo‘shing.'):'The item is selected. Check the option and add it to your cart.',edit:isUzbek(lang)?uzText(lang, 'Havolani o‘zgartirish'):'Change link',linkStep:isUzbek(lang)?uzText(lang, 'Tovar havolasi'):'Item link',stores:isUzbek(lang)?uzText(lang, 'eBay, Zara, Mango, Amazon va boshqa do‘konlar.'):'eBay, Zara, Mango, Amazon and more.',storePage:isUzbek(lang)?uzText(lang, 'Do‘kon sahifasi'):'Store page',get:isUzbek(lang)?uzText(lang, 'Ma’lumot olinmoqda…'):'Getting product data…',load:isUzbek(lang)?uzText(lang, 'Tovarni yuklash'):'Load item',directory:isUzbek(lang)?uzText(lang, 'Havola orqali buyurtma do‘konlari'):'Stores for link orders',storeHint:isUzbek(lang)?uzText(lang, 'Havola orqali mintaqaviy vitrinani tanlang. Atlas yetkazish bilan hisoblaydi.'):'Choose a regional storefront. Atlas calculates the total with delivery.',search:isUzbek(lang)?uzText(lang, 'Do‘kon yoki kategoriya'):'Store or category',enhanced:isUzbek(lang)?uzText(lang, 'narx + variantlar'):'price + options',otherMatches:isUzbek(lang)?uzText(lang, 'Boshqa moslar'):'Other matches',allStores:isUzbek(lang)?uzText(lang, 'Boshqa barcha do‘konlar'):'All other stores',notFound:isUzbek(lang)?uzText(lang, 'Bu do‘kon ro‘yxatda yo‘q. Uni operatorga yuboring — u do‘konni tekshiradi.'):'This store is not on the list. Send it to an operator — they will review the store.',login:isUzbek(lang)?uzText(lang, 'Kabinetga kiring: avtomatik yuklash himoyalangan va tovar savatda saqlanadi.'):'Sign in: automatic import is protected and the item will be saved to your cart.',original:isUzbek(lang)?uzText(lang, 'Do‘kondagi asl sahifani ochish'):'Open original store page',loaded:isUzbek(lang)?uzText(lang, 'Nimalar yuklandi va nimani tekshirish kerak'):'What loaded and what to check',availability:isUzbek(lang)?uzText(lang, 'Do‘kondagi mavjudlikni tekshiring'):'Check availability in the store',availabilityHint:isUzbek(lang)?uzText(lang, 'Tovar sahifasini oching, tanlangan o‘lcham yoki variantni tekshiring va javob bilan qayting.'):'Open the item page, check the selected size or option, and return with your answer.',openStore:isUzbek(lang)?uzText(lang, 'Do‘konni ochish'):'Open store',available:isUzbek(lang)?uzText(lang, 'Mavjud'):'In stock',unavailable:isUzbek(lang)?uzText(lang, 'Mavjud emas'):'Out of stock',openFirst:isUzbek(lang)?uzText(lang, 'Avval do‘kon sahifasini oching — qaytgach javob tugmalari yoqiladi.'):'Open the store page first; the answer buttons will unlock when you return.',thanks:isUzbek(lang)?uzText(lang, 'Rahmat. Qolgan ma’lumotlarni tekshirib davom eting.'):'Thanks. Check the remaining details to continue.',removed:isUzbek(lang)?uzText(lang, 'Tovar qo‘shilmaydi. Administrator tekshiradi.'):'The item will not be added. An administrator will review it.',dataStep:isUzbek(lang)?uzText(lang, 'Ma’lumotlarni tekshiring'):'Check the details',name:isUzbek(lang)?uzText(lang, 'Tovar nomi'):'Item name',namePlaceholder:isUzbek(lang)?uzText(lang, 'Do‘kon sahifasidagi nom'):'Name from the store page',shipCountry:isUzbek(lang)?uzText(lang, 'Haqiqiy jo‘natish mamlakati'):'Actual dispatch country',countryLabel:isUzbek(lang)?uzText(lang, 'Jo‘natish mamlakati'):'Dispatch country',currency:isUzbek(lang)?uzText(lang, 'Do‘kon valyutasi'):'Store currency',otherCountry:isUzbek(lang)?uzText(lang, 'Mamlakatni kiriting'):'Enter country',price:isUzbek(lang)?uzText(lang, 'Tovar narxi'):'Item price',atlasShipping:isUzbek(lang)?uzText(lang, 'Atlas omborigacha'):'To Atlas warehouse',change:isUzbek(lang)?uzText(lang, 'o‘zgartirish'):'edit',useShipping:isUzbek(lang)?uzText(lang, 'Atlas omborigacha yetkazishni ishlatish'):'Use delivery to Atlas warehouse',shippingNote:isUzbek(lang)?uzText(lang, `Bu do‘kondan Atlas omborigacha yetkazish. Do‘kon uni ko‘rsatmagan bo‘lsa, $10 zaxirani to‘lov summasidan alohida ushlab turamiz — do‘kondan bitta buyurtmaga bir marta va faqat tovarlar ${freeFrom} yoki undan kam bo‘lsa.`):`This is store-to-Atlas delivery. If the store does not state it, we hold a $10 reserve apart from the amount to pay — once per store order, and only when items from that store total ${freeFrom} or less.`,category:isUzbek(lang)?uzText(lang, 'Kategoriya'):'Category',weight:isUzbek(lang)?uzText(lang, 'Qutidagi og‘irlik, kg'):'Boxed weight, kg',weightDetails:isUzbek(lang)?uzText(lang, 'Yetkazish og‘irligi qanday aniqlanadi'):'How delivery weight is refined',forCalc:isUzbek(lang)?uzText(lang, 'hisoblash uchun'):'for calculation',variant:isUzbek(lang)?uzText(lang, 'Tovar varianti'):'Item option',color:isUzbek(lang)?uzText(lang, 'Rang'):'Color',size:isUzbek(lang)?uzText(lang, 'O‘lcham / model'):'Size / model',selectColor:isUzbek(lang)?uzText(lang, 'Rangni tanlang'):'Choose a color',selectVariant:isUzbek(lang)?uzText(lang, 'Variantni tanlang'):'Choose an option',none:isUzbek(lang)?uzText(lang, 'Yo‘q'):'Unavailable',photo:isUzbek(lang)?uzText(lang, 'Tovar surati — avtomatik yoki havola orqali'):'Product photo — automatic or by link',image:isUzbek(lang)?uzText(lang, 'Rasm manzili'):'Image URL',verified:isUzbek(lang)?uzText(lang, 'Ma’lumot va variantni tekshirdim.'):'I checked the details and selected option.',add:isUzbek(lang)?uzText(lang, 'Savatga'):'Add to cart',adding:isUzbek(lang)?uzText(lang, 'Savatga qo‘shilmoqda…'):'Adding to cart…',gallery:isUzbek(lang)?uzText(lang, 'Do‘kon rasmlari'):'Store photos',uz:isUzbek(lang)?uzText(lang, 'O‘zbekiston'):'Uzbekistan',empty:isUzbek(lang)?uzText(lang, 'Tovaringiz shu yerda paydo bo‘ladi'):'Your item will appear here',fresh:isUzbek(lang)?uzText(lang, 'Ma’lumot qachon tekshirildi'):'When the data was checked',freshText:isUzbek(lang)?uzText(lang, 'Narx va valyutani o‘zingiz tasdiqladingiz — Atlas xarid qilishdan oldin ularni do‘kon bilan solishtiradi.'):'You confirmed the price and currency yourself — Atlas checks them with the store before buying.',declaration:isUzbek(lang)?uzText(lang, 'Deklaratsiya qoralamasi'):'Declaration draft',cost:isUzbek(lang)?uzText(lang, 'Narx tarkibi'):'Cost breakdown',reserve:isUzbek(lang)?uzText(lang, `$10 — do‘kon yetkazishi uchun zaxira, shu do‘kondan bitta buyurtmaga bir marta; to‘lov summasiga kirmaydi. Tovarlar ${freeFrom} dan qimmat bo‘lsa, zaxira yo‘q. Haqiqiy summani menejer rasmiylashtirilgach tasdiqlaydi.`):`$10 is the store-delivery reserve, once per order from this store, kept apart from the amount to pay. Over ${freeFrom} of items there is no reserve. A manager confirms the actual amount after checkout.`,subtotal:isUzbek(lang)?uzText(lang, 'Oraliq jami'):'Interim total',estimate:isUzbek(lang)?uzText(lang, 'Yetkazish bilan jami'):'Total with delivery',emptyQuote:isUzbek(lang)?uzText(lang, 'Havolani kiriting yoki narx va og‘irlikni to‘ldiring.'):'Paste a link or enter price and weight.'};
+  const c=lang==='ru'?{over:'ПОКУПКИ СО ВСЕГО МИРА',choose:'Выберите свой вариант',order:'Заказ по ссылке',checkPrice:'Проверьте размер и цену перед добавлением.',paste:'Вставьте ссылку — Atlas заполнит доступные данные.',loading:'Загружаем цену и варианты из магазина…',selected:'Товар уже выбран. Проверьте вариант и добавьте его в корзину.',edit:'Изменить ссылку',linkStep:'Ссылка на товар',stores:'eBay, Zara, Mango, Amazon и другие магазины.',storePage:'Страница магазина',get:'Получаем данные…',load:'Загрузить товар',directory:'Магазины для заказа по ссылке',storeHint:'Выбирайте региональную витрину по ссылке. Atlas считает итог с доставкой.',search:'Магазин или категория',enhanced:'цена + варианты',otherMatches:'Другие совпадения',allStores:'Все остальные магазины',notFound:'Этого магазина нет в списке. Отправьте его оператору — он проверит магазин.',login:'Войдите в личный кабинет: автозагрузка защищена, а товар сохранится в вашей корзине.',original:'Открыть оригинал в магазине',loaded:'Что загрузилось и что нужно проверить',availability:'Проверьте наличие в магазине',availabilityHint:'Откройте страницу товара, проверьте выбранный размер или вариант и вернитесь с ответом.',openStore:'Открыть магазин',available:'Есть в наличии',unavailable:'Нет в наличии',openFirst:'Сначала откройте страницу магазина — после возврата кнопки ответа станут доступны.',thanks:'Спасибо. Можно проверить остальные данные и продолжить.',removed:'Товар не будет добавлен. Администратор получил сообщение для проверки.',dataStep:'Проверьте данные',name:'Название товара',namePlaceholder:'Название со страницы магазина',shipCountry:'Страна фактической отправки',countryLabel:'Страна отправки',currency:'Валюта магазина',otherCountry:'Укажите страну',price:'Цена товара',atlasShipping:'До склада Atlas',change:'изменить',useShipping:'Использовать доставку до склада Atlas',shippingNote:`Это доставка от магазина до склада Atlas. Если магазин её не указал, держим резерв $10 отдельно от суммы к оплате — один на заказ из магазина и только при товарах из него на ${freeFrom} или меньше.`,category:'Категория',weight:'Вес товара с коробкой, кг',weightDetails:'Как уточняется вес доставки',forCalc:'для расчёта',variant:'Вариант товара',color:'Цвет',size:'Размер / модель',selectColor:'Выберите цвет',selectVariant:'Выберите вариант',none:'Нет',photo:'Фото товара — автоматически или по ссылке',image:'Адрес изображения',verified:'Я проверил данные и выбранный вариант.',add:'В корзину',adding:'Добавляем в корзину…',gallery:'Фотографии магазина',uz:'Узбекистан',empty:'Ваш товар появится здесь',fresh:'Когда проверены данные',freshText:'Atlas автоматически сверяет цену, валюту и выбранный вариант с магазином.',declaration:'Черновик декларации',cost:'Состав стоимости',reserve:`$10 — резерв на доставку магазина, один на заказ из этого магазина; в сумму к оплате не входит. При товарах дороже ${freeFrom} резерва нет. Фактическую сумму менеджер подтвердит после оформления.`,subtotal:'Промежуточный итог',estimate:'Итого с доставкой',emptyQuote:'Вставьте ссылку или заполните цену и вес.'}:{over:isUzbek(lang)?uzText(lang, 'DUNYODAN XARIDLAR'):'SHOP THE WORLD',choose:isUzbek(lang)?uzText(lang, 'Variantni tanlang'):'Choose your option',order:isUzbek(lang)?uzText(lang, 'Havola orqali buyurtma'):'Order by link',checkPrice:isUzbek(lang)?uzText(lang, 'Qo‘shishdan oldin o‘lcham va narxni tekshiring.'):'Check the size and price before adding.',paste:isUzbek(lang)?uzText(lang, 'Havolani kiriting — Atlas ma’lumotlarni to‘ldiradi.'):'Paste a link — Atlas will fill in the details.',loading:isUzbek(lang)?uzText(lang, 'Do‘kondan narx va variantlar yuklanmoqda…'):'Loading price and options from the store…',selected:isUzbek(lang)?uzText(lang, 'Tovar tanlandi. Variantni tekshirib savatga qo‘shing.'):'The item is selected. Check the option and add it to your cart.',edit:isUzbek(lang)?uzText(lang, 'Havolani o‘zgartirish'):'Change link',linkStep:isUzbek(lang)?uzText(lang, 'Tovar havolasi'):'Item link',stores:isUzbek(lang)?uzText(lang, 'eBay, Zara, Mango, Amazon va boshqa do‘konlar.'):'eBay, Zara, Mango, Amazon and more.',storePage:isUzbek(lang)?uzText(lang, 'Do‘kon sahifasi'):'Store page',get:isUzbek(lang)?uzText(lang, 'Ma’lumot olinmoqda…'):'Getting product data…',load:isUzbek(lang)?uzText(lang, 'Tovarni yuklash'):'Load item',directory:isUzbek(lang)?uzText(lang, 'Havola orqali buyurtma do‘konlari'):'Stores for link orders',storeHint:isUzbek(lang)?uzText(lang, 'Havola orqali mintaqaviy vitrinani tanlang. Atlas yetkazish bilan hisoblaydi.'):'Choose a regional storefront. Atlas calculates the total with delivery.',search:isUzbek(lang)?uzText(lang, 'Do‘kon yoki kategoriya'):'Store or category',enhanced:isUzbek(lang)?uzText(lang, 'narx + variantlar'):'price + options',otherMatches:isUzbek(lang)?uzText(lang, 'Boshqa moslar'):'Other matches',allStores:isUzbek(lang)?uzText(lang, 'Boshqa barcha do‘konlar'):'All other stores',notFound:isUzbek(lang)?uzText(lang, 'Bu do‘kon ro‘yxatda yo‘q. Uni operatorga yuboring — u do‘konni tekshiradi.'):'This store is not on the list. Send it to an operator — they will review the store.',login:isUzbek(lang)?uzText(lang, 'Kabinetga kiring: avtomatik yuklash himoyalangan va tovar savatda saqlanadi.'):'Sign in: automatic import is protected and the item will be saved to your cart.',original:isUzbek(lang)?uzText(lang, 'Do‘kondagi asl sahifani ochish'):'Open original store page',loaded:isUzbek(lang)?uzText(lang, 'Nimalar yuklandi va nimani tekshirish kerak'):'What loaded and what to check',availability:isUzbek(lang)?uzText(lang, 'Do‘kondagi mavjudlikni tekshiring'):'Check availability in the store',availabilityHint:isUzbek(lang)?uzText(lang, 'Tovar sahifasini oching, tanlangan o‘lcham yoki variantni tekshiring va javob bilan qayting.'):'Open the item page, check the selected size or option, and return with your answer.',openStore:isUzbek(lang)?uzText(lang, 'Do‘konni ochish'):'Open store',available:isUzbek(lang)?uzText(lang, 'Mavjud'):'In stock',unavailable:isUzbek(lang)?uzText(lang, 'Mavjud emas'):'Out of stock',openFirst:isUzbek(lang)?uzText(lang, 'Avval do‘kon sahifasini oching — qaytgach javob tugmalari yoqiladi.'):'Open the store page first; the answer buttons will unlock when you return.',thanks:isUzbek(lang)?uzText(lang, 'Rahmat. Qolgan ma’lumotlarni tekshirib davom eting.'):'Thanks. Check the remaining details to continue.',removed:isUzbek(lang)?uzText(lang, 'Tovar qo‘shilmaydi. Administrator tekshiradi.'):'The item will not be added. An administrator will review it.',dataStep:isUzbek(lang)?uzText(lang, 'Ma’lumotlarni tekshiring'):'Check the details',name:isUzbek(lang)?uzText(lang, 'Tovar nomi'):'Item name',namePlaceholder:isUzbek(lang)?uzText(lang, 'Do‘kon sahifasidagi nom'):'Name from the store page',shipCountry:isUzbek(lang)?uzText(lang, 'Haqiqiy jo‘natish mamlakati'):'Actual dispatch country',countryLabel:isUzbek(lang)?uzText(lang, 'Jo‘natish mamlakati'):'Dispatch country',currency:isUzbek(lang)?uzText(lang, 'Do‘kon valyutasi'):'Store currency',otherCountry:isUzbek(lang)?uzText(lang, 'Mamlakatni kiriting'):'Enter country',price:isUzbek(lang)?uzText(lang, 'Tovar narxi'):'Item price',atlasShipping:isUzbek(lang)?uzText(lang, 'Atlas omborigacha'):'To Atlas warehouse',change:isUzbek(lang)?uzText(lang, 'o‘zgartirish'):'edit',useShipping:isUzbek(lang)?uzText(lang, 'Atlas omborigacha yetkazishni ishlatish'):'Use delivery to Atlas warehouse',shippingNote:isUzbek(lang)?uzText(lang, `Bu do‘kondan Atlas omborigacha yetkazish. Do‘kon uni ko‘rsatmagan bo‘lsa, $10 zaxirani to‘lov summasidan alohida ushlab turamiz — do‘kondan bitta buyurtmaga bir marta va faqat tovarlar ${freeFrom} yoki undan kam bo‘lsa.`):`This is store-to-Atlas delivery. If the store does not state it, we hold a $10 reserve apart from the amount to pay — once per store order, and only when items from that store total ${freeFrom} or less.`,category:isUzbek(lang)?uzText(lang, 'Kategoriya'):'Category',weight:isUzbek(lang)?uzText(lang, 'Qutidagi og‘irlik, kg'):'Boxed weight, kg',weightDetails:isUzbek(lang)?uzText(lang, 'Yetkazish og‘irligi qanday aniqlanadi'):'How delivery weight is refined',forCalc:isUzbek(lang)?uzText(lang, 'hisoblash uchun'):'for calculation',variant:isUzbek(lang)?uzText(lang, 'Tovar varianti'):'Item option',color:isUzbek(lang)?uzText(lang, 'Rang'):'Color',size:isUzbek(lang)?uzText(lang, 'O‘lcham / model'):'Size / model',selectColor:isUzbek(lang)?uzText(lang, 'Rangni tanlang'):'Choose a color',selectVariant:isUzbek(lang)?uzText(lang, 'Variantni tanlang'):'Choose an option',none:isUzbek(lang)?uzText(lang, 'Yo‘q'):'Unavailable',photo:isUzbek(lang)?uzText(lang, 'Tovar surati — avtomatik yoki havola orqali'):'Product photo — automatic or by link',image:isUzbek(lang)?uzText(lang, 'Rasm manzili'):'Image URL',verified:isUzbek(lang)?uzText(lang, 'Ma’lumot va variantni tekshirdim.'):'I checked the details and selected option.',add:isUzbek(lang)?uzText(lang, 'Savatga'):'Add to cart',adding:isUzbek(lang)?uzText(lang, 'Savatga qo‘shilmoqda…'):'Adding to cart…',gallery:isUzbek(lang)?uzText(lang, 'Do‘kon rasmlari'):'Store photos',uz:isUzbek(lang)?uzText(lang, 'O‘zbekiston'):'Uzbekistan',empty:isUzbek(lang)?uzText(lang, 'Tovaringiz shu yerda paydo bo‘ladi'):'Your item will appear here',fresh:isUzbek(lang)?uzText(lang, 'Ma’lumot qachon tekshirildi'):'When the data was checked',freshText:isUzbek(lang)?uzText(lang, 'Atlas narx, valyuta va tanlangan variantni do‘kon bilan avtomatik solishtiradi.'):'Atlas automatically verifies the price, currency and selected option with the store.',declaration:isUzbek(lang)?uzText(lang, 'Deklaratsiya qoralamasi'):'Declaration draft',cost:isUzbek(lang)?uzText(lang, 'Narx tarkibi'):'Cost breakdown',reserve:isUzbek(lang)?uzText(lang, `$10 — do‘kon yetkazishi uchun zaxira, shu do‘kondan bitta buyurtmaga bir marta; to‘lov summasiga kirmaydi. Tovarlar ${freeFrom} dan qimmat bo‘lsa, zaxira yo‘q. Haqiqiy summani menejer rasmiylashtirilgach tasdiqlaydi.`):`$10 is the store-delivery reserve, once per order from this store, kept apart from the amount to pay. Over ${freeFrom} of items there is no reserve. A manager confirms the actual amount after checkout.`,subtotal:isUzbek(lang)?uzText(lang, 'Oraliq jami'):'Interim total',estimate:isUzbek(lang)?uzText(lang, 'Yetkazish bilan jami'):'Total with delivery',emptyQuote:isUzbek(lang)?uzText(lang, 'Havolani kiriting yoki narx va og‘irlikni to‘ldiring.'):'Paste a link or enter price and weight.'};
   const tx=(ru:string,uz:string,en:string)=>lang==='ru'?ru:isUzbek(lang)?uzText(lang, uz):en;
   const lc = linkOrderCopy[lang];
-  c.freshText=tx('Цену и валюту вы подтвердили сами — Atlas сверит их с магазином перед выкупом.','Narx va valyutani o‘zingiz tasdiqladingiz — Atlas xarid qilishdan oldin ularni do‘kon bilan solishtiradi.','You confirmed the price and currency yourself — Atlas checks them with the store before buying.');
+  c.freshText=tx('Atlas автоматически сверяет цену, валюту и выбранный вариант с магазином.','Atlas narx, valyuta va tanlangan variantni do‘kon bilan avtomatik solishtiradi.','Atlas automatically verifies the price, currency and selected option with the store.');
   const checkedText=tx('Atlas уже проверил цену и валюту в магазине.','Atlas narx va valyutani do‘konda tekshirib bo‘ldi.','Atlas has already checked the price and currency with the store.');
   const searchParams = useSearchParams();
   const requestedUrl = searchParams.get("url") ?? "";
@@ -253,7 +252,6 @@ export function GlobalLinkOrder() {
     [showSourceForm, setShowSourceForm] = useState(() => !requestedUrl),
     [note, setNote] = useState(seed ? tx(`Данные из подборки ${seed.store} на ${seed.observedOn}. Atlas сверяет цену и вариант с магазином при добавлении в корзину. Вес — оценка Atlas: склад взвесит посылку.`, `${seed.store} to‘plamidagi ma’lumotlar, ${seed.observedOn}. Atlas savatga qo‘shishda narx va variantni do‘kon bilan solishtiradi. Vazn — Atlas bahosi: ombor jo‘natmani tortadi.`, `Data from the ${seed.store} selection as of ${seed.observedOn}. Atlas checks the price and option with the store when you add the item to the cart. Weight is an Atlas estimate: the warehouse weighs the parcel.`) : dealSeed ? tx(`Цена и фото сохранены из подборки на ${dealSeed.observedOn}. Atlas сейчас сверяет их с магазином.`, `Narx va surat ${dealSeed.observedOn} sanadagi to‘plamdan olingan. Atlas hozir ularni do‘kon bilan solishtirmoqda.`, `Price and photo saved from the selection on ${dealSeed.observedOn}. Atlas is checking them with the store now.`) : ""),
     [weightOrigin, setWeightOrigin] = useState(tx("Оценка по категории","Kategoriya bo‘yicha taxmin","Category estimate")),
-    [verified, setVerified] = useState(false),
     [sourceCheckStatus, setSourceCheckStatus] = useState<'idle'|'checking'|'verified'|'failed'>('idle'),
     [importedAt, setImportedAt] = useState<number | undefined>(),
     [sourceExpiresAt, setSourceExpiresAt] = useState<number | undefined>(),
@@ -356,7 +354,7 @@ export function GlobalLinkOrder() {
           setSelectedColor(draft.selectedColor);setSelectedSize(draft.selectedSize);setManualQuantity(draft.manualQuantity);setComment(draft.comment);
           if(draft.previewSpeed)setPreviewSpeed(draft.previewSpeed);
           setImage(draft.image);setImages(dedupeSafeImages(draft.images,draft.source));setColorwayImages(cleanColorwayGalleries(draft.colorwayImages,draft.source));
-          setShowSourceForm(false);setNote(draft.note);setVerified(draft.verified);
+          setShowSourceForm(false);setNote(draft.note);
           setSourceCheckStatus(draft.sourceCheckStatus);setImportedAt(draft.importedAt);setSourceExpiresAt(draft.sourceExpiresAt);
           setAtlasLocks(draft.sourceCheckStatus==='verified'?draft.locks??null:null);
         });
@@ -375,11 +373,11 @@ export function GlobalLinkOrder() {
       done:Boolean(added),owner:viewer,pageUrl:requestedUrl,catalogId,dealId,
       url,source,name,brand,declaration,currency,amount,basePrice,importReference,shipping,shippingCurrency,shippingEstimated,foundShipping,
       weight,weightBasis,weightOrigin,country,otherCountry,category,variant,variants,selectedColor,selectedSize,image,images,colorwayImages,
-      showSourceForm,note,verified,sourceCheckStatus,importedAt,sourceExpiresAt,locks:atlasLocks??undefined,
+      showSourceForm,note,verified:false,sourceCheckStatus,importedAt,sourceExpiresAt,locks:atlasLocks??undefined,
       picked,manualQuantity,comment,previewSpeed:speedTouched.current?previewSpeed:undefined,
     },Date.now(),prunedFor.current!==draftKey);
     prunedFor.current=draftKey;
-  },[draftKey,viewer,checking,choicesApplied,added,requestedUrl,catalogId,dealId,url,source,name,brand,declaration,currency,amount,basePrice,importReference,shipping,shippingCurrency,shippingEstimated,foundShipping,weight,weightBasis,weightOrigin,country,otherCountry,category,variant,variants,selectedColor,selectedSize,image,images,colorwayImages,showSourceForm,note,verified,sourceCheckStatus,importedAt,sourceExpiresAt,atlasLocks,picked,manualQuantity,comment,previewSpeed]);
+  },[draftKey,viewer,checking,choicesApplied,added,requestedUrl,catalogId,dealId,url,source,name,brand,declaration,currency,amount,basePrice,importReference,shipping,shippingCurrency,shippingEstimated,foundShipping,weight,weightBasis,weightOrigin,country,otherCountry,category,variant,variants,selectedColor,selectedSize,image,images,colorwayImages,showSourceForm,note,sourceCheckStatus,importedAt,sourceExpiresAt,atlasLocks,picked,manualQuantity,comment,previewSpeed]);
   const variantColors = useMemo(() => [...new Set(variants.map(item => item.color).filter((value): value is string => Boolean(value)))], [variants]);
   const currentCatalogSeed=catalogLinkSeed(catalogProducts,catalogId,requestedUrl,url);
   const catalogProductFlow=Boolean(currentCatalogSeed || (dealSeed && url===requestedUrl));
@@ -402,10 +400,10 @@ export function GlobalLinkOrder() {
   // The store's product price applies to options it lists without their own; only from a store check (locked there).
   const storeBasePrice=sourceCheckStatus==='verified'&&atlasLocks?.price&&!unlocked.price?basePrice:undefined;
   function applyVariantChoice(item:ProductVariant|undefined,knownCurrency=true){
-    if(!item){setVariant("");setSelectedSize("");setVerified(false);return}
+    if(!item){setVariant("");setSelectedSize("");return}
     setVariant(item.label);setSelectedColor(item.color??"");setSelectedSize(item.size??"");
     if(item.price!==undefined&&knownCurrency)setAmount(String(item.price));else if(storeBasePrice!==undefined)setAmount(String(storeBasePrice));else if(variants.some(value=>value.price!==undefined))setAmount("");
-    if(item.image&&item.color!==selectedColor)setImage(item.image);setVerified(false);
+    if(item.image&&item.color!==selectedColor)setImage(item.image);
   }
   /** Toggle an option in the selection; the last one touched sets the price shown in the form. */
   function togglePick(item:ProductVariant){
@@ -415,7 +413,7 @@ export function GlobalLinkOrder() {
   }
   function setPickQuantity(label:string,quantity:number){
     setPicked(current=>({...current,[label]:quantity}));
-    setVerified(false);
+
   }
   function selectColorway(color:string){
     const choices=variants.filter(item=>item.color===color);
@@ -427,7 +425,7 @@ export function GlobalLinkOrder() {
     }
     const gallery=colorwayImages.find(item=>item.color===color)?.images??[];
     const nextImages=gallery.length?gallery:first?.image?[first.image]:[];
-    setSelectedColor(color);setSelectedSize('');setVariant('');setVerified(false);
+    setSelectedColor(color);setSelectedSize('');setVariant('');
     setImages(nextImages);
     setImage(first?.image&&nextImages.includes(first.image)?first.image:nextImages[0]??'');
     if(choices.some(item=>item.price!==undefined))setAmount('');
@@ -484,7 +482,7 @@ export function GlobalLinkOrder() {
       if(typed.country){setCountry(canonicalCountry(typed.country));setOtherCountry(typed.otherCountry)}
       if(typed.category)setCategory(canonicalCategory(typed.category));
     }
-    setVerified(false);
+
     setChoicesApplied(count=>count+1);
   }
   // After the product is (re)loaded — a stale draft, a price change, a guest add refused after sign-in — the customer's
@@ -518,7 +516,7 @@ export function GlobalLinkOrder() {
     setUrl(link);
     setBusy(true);
     setSource(link);
-    setVerified(false);
+
     setSourceCheckStatus('checking');
     setAtlasLocks(null);setUnlocked({});setGoneOptions([]);setChoiceNote("");setBasePrice(undefined);
     setName(linkSeed?.name ?? linkDealSeed?.title ?? "");
@@ -588,11 +586,12 @@ export function GlobalLinkOrder() {
         setCategory(partialCategory);
         const receivedPartialVariants=data.variants?.length?data.variants:linkFallbackOptions;
         const partialVariants=variantsForSourceColor(receivedPartialVariants,data.selectedVariantColor);
+        const partialSelected=partialVariants.find(item=>item.id&&(item.id===data.selectedVariantId||item.id===data.sku));
         setVariants(partialVariants);
-        setVariant(partialVariants.length===1?partialVariants[0].label:"");
+        setVariant(partialSelected?.label??(partialVariants.length===1?partialVariants[0].label:""));
         setPicked(partialVariants.length===1?{[partialVariants[0].label]:1}:{});
         const partialColor=selectedImportedColor(data,partialVariants,partialGalleries);
-        setSelectedColor(partialColor);setSelectedSize("");
+        setSelectedColor(partialColor);setSelectedSize(partialSelected?.size??"");
         const partialGallery=partialGalleries.find(gallery=>gallery.color===partialColor);
         if(partialGallery){setImages(partialGallery.images);setImage(partialGallery.images[0]);}
         setCountry(partialCountry);
@@ -646,7 +645,7 @@ export function GlobalLinkOrder() {
       const selectableVariants=data.price===undefined&&hasPricedVariants?safeVariants.filter(item=>typeof item.price==='number'&&Number.isFinite(item.price)&&item.price>0):safeVariants;
       setVariants(selectableVariants);
       const sourceParams = new URL(data.sourceUrl).searchParams;
-      const selectedIds = [sourceParams.get('variant'), sourceParams.get('var')].filter((value): value is string => Boolean(value));
+      const selectedIds = [data.selectedVariantId, data.sku, sourceParams.get('variant'), sourceParams.get('var')].filter((value): value is string => Boolean(value));
       const selectedVariant = selectableVariants.find(item => item.id && selectedIds.includes(item.id))
         ?? (selectableVariants.length === 1 ? selectableVariants[0] : undefined);
       const selectedColorForLink=selectedVariant?.color??selectedImportedColor(data,selectableVariants,importedColorwayGalleries);
@@ -728,7 +727,7 @@ export function GlobalLinkOrder() {
             : tx("Не все данные опубликованы.", "Barcha ma’lumotlar e’lon qilinmagan.", "Some data is not published."),
           data.cached ? tx("Использованы недавно проверенные данные.", "Yaqinda tekshirilgan ma’lumotlar ishlatildi.", "Recently checked data was used.") : "",
           ...data.warnings,
-          !sourceHasPrice?tx("Цена или вариант не получены — заполните их вручную и подтвердите.","Narx yoki variant olinmadi — ularni qo‘lda kiriting va tasdiqlang.","Price or option was not returned — enter and confirm it manually."):"",
+          !sourceHasPrice?tx("Цена или вариант пока не получены. Повторите автоматическую загрузку позже.","Narx yoki variant hozircha olinmadi. Avtomatik yuklashni keyinroq takrorlang.","Price or option is not available yet. Retry automatic import later."):"",
           selectableVariants.length<safeVariants.length?tx("Варианты без подтверждённой цены магазина не показаны.","Do‘kon tasdiqlagan narxi yo‘q variantlar ko‘rsatilmaydi.","Options without a store-confirmed price are not shown."):"",
           shippingMessage,
           data.currency && !currencies.includes(data.currency)
@@ -862,7 +861,7 @@ export function GlobalLinkOrder() {
     setPicked(variants.length === 1 ? { [variants[0].label]: 1 } : {});
     setManualQuantity(1);
     if (!variants.length) setVariant("");
-    setVerified(false); setComment(""); setFormIssue(""); setGoneOptions([]); setChoiceNote(""); setResumedFrom("");
+     setComment(""); setFormIssue(""); setGoneOptions([]); setChoiceNote(""); setResumedFrom("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   // A guest's "add to cart" is sent once after sign-in, when this product is on screen again (app/pending-cart-add.ts).
@@ -948,7 +947,7 @@ export function GlobalLinkOrder() {
             setUrl(e.target.value);
             setSource("");
             setSourceCheckStatus('idle');
-            setVerified(false);
+
             setShowSourceForm(true);
           }}
           placeholder={lc.placeholder}
@@ -979,8 +978,12 @@ export function GlobalLinkOrder() {
           <Link className="btn primary" href="/cart"><ShoppingBag size={16} aria-hidden="true" />{tx("В корзину", "Savatga", "Go to cart")}</Link>
         </span>
       </div>}
-      {isGuest && (source || checking) && <p className="lo-guest">{canKeep ? lc.guest : lc.guestNoKeep}</p>}
+      {isGuest && (checking || sourceCheckStatus==='verified') && <p className="lo-guest">{canKeep ? lc.guest : lc.guestNoKeep}</p>}
       {note && !source && <div className="notice" role="status"><p>{note}</p></div>}
+      {source && !checking && sourceCheckStatus==='failed' && <div className="notice" role="status">
+        <p>{tx('Магазин пока не предоставил проверяемую цену или варианты. Повторите автоматическую загрузку позже.','Do‘kon hozircha tekshiriladigan narx yoki variantlarni bermadi. Avtomatik yuklashni keyinroq takrorlang.','The store has not supplied a verifiable price or options yet. Retry automatic import later.')}</p>
+        <button type="button" className="btn secondary" onClick={()=>void load(source)}>{tx('Повторить автозагрузку','Avtomatik yuklashni takrorlash','Retry automatic import')}</button>
+      </div>}
 
       {(source || checking) && (
         <form
@@ -992,7 +995,7 @@ export function GlobalLinkOrder() {
             e.preventDefault();
             if (checking) return;
             try {
-              if(sourceCheckStatus==='checking'||sourceCheckStatus==='idle'){
+              if(sourceCheckStatus!=='verified'){
                 const message=tx('Загрузка ещё не завершилась. Дождитесь результата или вставьте ссылку повторно.','Yuklash hali tugamadi. Natijani kuting yoki havolani qayta kiriting.','Import has not finished. Wait for the result or enter the link again.');
                 setFormIssue(message);toast.error(message);return;
               }
@@ -1004,7 +1007,6 @@ export function GlobalLinkOrder() {
                 {id:'amount',invalid:picks.length?picks.some(([label])=>!(priceOf(label)>0)):!(Number(amount)>0),message:tx('Укажите цену товара больше нуля.','Tovar narxini noldan katta kiriting.','Enter an item price greater than zero.')},
                 {id:'shipping',invalid:!shippingFree&&!shippingTyped,message:tx('Укажите доставку магазина до склада Atlas; 0 — только если она бесплатная.','Do‘kondan Atlas omborigacha yetkazishni kiriting; 0 faqat bepul bo‘lsa.','Enter store-to-Atlas shipping; use 0 only when it is free.')},
                 {id:'weight',invalid:validBoxedWeight(weight)===undefined,message:tx('Укажите вес товара с коробкой от 0,01 до 49,5 кг.','Qadoq bilan vaznni 0,01–49,5 kg oralig‘ida kiriting.','Enter boxed weight from 0.01 to 49.5 kg.')},
-                {id:'data-verified',invalid:!verified,message:tx('Подтвердите, что проверили введённые данные и вариант.','Kiritilgan ma’lumotlar va variantni tekshirganingizni tasdiqlang.','Confirm that you reviewed the entered details and option.')},
               ].find(field=>field.invalid);
               if(missing){
                 setFormIssue(missing.message);
@@ -1080,7 +1082,7 @@ export function GlobalLinkOrder() {
                 weightBasis: weightBasis === "title" ? "estimate" : weightBasis,
                 importedAt,
                 sourceExpiresAt,
-                sourceManuallyConfirmed:true,
+                sourceManuallyConfirmed:false,
                  imageOrigin: importedAt ? tx("страница магазина","do‘kon sahifasi","store page") : tx("ручной ввод","qo‘lda kiritish","manual entry"),
                 declarationDescription: declaration || undefined,
               };
@@ -1125,17 +1127,15 @@ export function GlobalLinkOrder() {
               {brand || sourceHost || !checking
                 ? <p className="basket-brand">{[brand, sourceHost && brand !== sourceHost ? sourceHost : ""].filter(Boolean).join(" · ")}</p>
                 : <span className="lo-skel lo-skel-brand" aria-hidden="true" />}
-              <h2 id="lo-product-name">{name || (checking ? <><span className="sr-only">{c.get}</span><span className="lo-skel lo-skel-title" aria-hidden="true" /></> : sourceCheckStatus === "failed" ? lc.unnamed : c.empty)}</h2>
+              <h2 id="lo-product-name">{name || (checking ? <><span className="sr-only">{c.get}</span><span className="lo-skel lo-skel-title" aria-hidden="true" /></> : sourceCheckStatus === "failed" ? tx('Данные товара пока недоступны','Tovar ma’lumotlari hozircha mavjud emas','Item details are not available yet') : c.empty)}</h2>
               {checking
                 ? <p className="lo-store-price">{lc.storePrice}: <span className="lo-skel lo-skel-price" aria-hidden="true" /></p>
                 : <p className="lo-store-price lo-reveal">{lc.storePrice}: <b>{storePriceText}</b>{discount && <WasPrice was={discount.was} percent={discount.percent} format={sourceFormat} />}{sourceCheckStatus === "verified" && checkedTime && <small> · {lc.checkedAt(checkedTime)}</small>}</p>}
-              {!checking && sourceCheckStatus === "failed" && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{catalogProductFlow && amount
-                ? tx('Магазин не подтвердил все данные, поэтому расчёт сделан по сохранённой цене каталога. Atlas сверит цену с магазином перед выкупом. Проверьте вариант и подтвердите данные.','Do‘kon barcha ma’lumotlarni tasdiqlamadi, shuning uchun hisob katalogdagi saqlangan narx bo‘yicha qilindi. Atlas xariddan oldin narxni do‘kon bilan solishtiradi. Variantni tekshirib, ma’lumotlarni tasdiqlang.','The store did not confirm every detail, so the estimate uses the saved catalog price. Atlas checks the price with the store before buying. Review the option and confirm the details.')
-                : lc.unconfirmed}</p>}
+              {!checking && sourceCheckStatus === "failed" && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{tx('Автоматическая проверка не завершена. Сохранённые данные предварительные.','Avtomatik tekshirish tugamadi. Saqlangan ma’lumotlar taxminiy.','Automatic verification is incomplete. Saved details are preliminary.')}</p>}
             </div>
           </section>
 
-          {checking ? <StoreCheck host={(() => { try { return new URL(source || url).hostname.replace(/^www\./, ""); } catch { return ""; } })()} locale={lang} /> : <section className="lo-card lo-variant">
+          {checking ? <StoreCheck host={(() => { try { return new URL(source || url).hostname.replace(/^www\./, ""); } catch { return ""; } })()} locale={lang} /> : sourceCheckStatus==='verified' && <section className="lo-card lo-variant">
             <div className="field variant-matrix" data-order-variant tabIndex={-1}>
               <label htmlFor="variant">{c.variant}</label>
               {variants.length===1 ? <div className="single-variant-selection lo-single-option">
@@ -1155,7 +1155,7 @@ export function GlobalLinkOrder() {
                 {!variantColors.length&&!variantSizes.length&&<OptionChips variants={variants} picked={picked} k={k} onToggle={togglePick}/>}
                 <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
               </> : variants.length ? <OptionChips variants={variants} picked={picked} k={k} onToggle={togglePick}/> : (
-                <div className="lo-manual-option"><input id="variant" required maxLength={80} value={variant} aria-label={k.optionLabel} onChange={(e) => {setVariant(e.target.value);setVerified(false);setChoiceNote("");setAdded(null)}} placeholder={k.optionPlaceholder}/><Stepper value={manualQuantity} max={10} label={k.quantity} k={k} onChange={setManualQuantity}/></div>
+                <div className="lo-manual-option"><input id="variant" required maxLength={80} value={variant} aria-label={k.optionLabel} onChange={(e) => {setVariant(e.target.value);setChoiceNote("");setAdded(null)}} placeholder={k.optionPlaceholder}/><Stepper value={manualQuantity} max={10} label={k.quantity} k={k} onChange={setManualQuantity}/></div>
               )}
             </div>
             {goneOptions.length > 0 && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{lc.optionGone(goneOptions)}</p>}
@@ -1196,7 +1196,7 @@ export function GlobalLinkOrder() {
           </aside>
           </div>
 
-          {!checking && <div className="lo-sheet lo-sheet-finish">
+          {!checking && sourceCheckStatus==='verified' && <div className="lo-sheet lo-sheet-finish">
           <section className={"lo-card lo-data" + (dataExpanded ? " open" : "")}>
             <button type="button" className="lo-data-toggle" aria-expanded={dataExpanded} aria-controls="lo-data-fields" onClick={() => setDataOpen(!dataExpanded)}>
               <span>
@@ -1210,7 +1210,7 @@ export function GlobalLinkOrder() {
               {locks.name ? <LockedFacts stack hint={lc.locked.value} rows={[{ id: "name", label: c.name, value: name }]} /> : <div className="field lo-name-field">
                 <label htmlFor="name">{c.name}</label>
                 <input id="name" required maxLength={140} value={name} onChange={(e) => {
-                  setName(e.target.value);setVerified(false);
+                  setName(e.target.value);
                   // An Atlas estimate follows the name ("boots", "t-shirt"); a weight the customer or the store gave stays.
                   if(weightBasis==="estimate"||weightBasis==="title"){const estimate=estimateBoxedWeight(category,e.target.value);setWeight(String(estimate.kg));setWeightBasis(estimate.basis==="title"?"title":"estimate")}
                 }} placeholder={c.namePlaceholder} />
@@ -1221,11 +1221,7 @@ export function GlobalLinkOrder() {
                   {locks.price ? <LockedFacts hint={lc.locked.value} rows={[{ id: "amount", label: k.price, value: lockedPriceText }, { id: "currency", label: k.currency, value: currency }]} /> : <div className="lo-block-row">
                     <div className="field">
                       <label htmlFor="amount">{k.price}</label>
-                      <input id="amount" type="number" inputMode="decimal" required min=".01" step=".01" value={amount} onChange={(e) => {setAmount(e.target.value);setVerified(false)}} />
-                    </div>
-                    <div className="field lo-currency">
-                      <label>{k.currency}</label>
-                      <Choice label={k.currency} value={currency} onChange={(v) => { setCurrency(v);setVerified(false); }} options={currencies} />
+                      <input id="amount" type="number" inputMode="decimal" required min=".01" step=".01" value={amount} onChange={(e) => {setAmount(e.target.value); }} />
                     </div>
                   </div>}
                   {variants.some(item => item.price !== undefined) && picks.length > 1 && <small className="micro">{tx("У каждого выбранного варианта своя цена магазина.","Har bir tanlangan variantning o‘z do‘kon narxi bor.","Each chosen option keeps its own store price.")}</small>}
@@ -1239,7 +1235,7 @@ export function GlobalLinkOrder() {
                   </> : <div className="lo-block-row">
                     <div className="field">
                       <label htmlFor="shipping">{k.storeShippingAmount}, {shippingCurrency}</label>
-                      <input id="shipping" type="number" inputMode="decimal" required min="0" step=".01" value={shipping} onChange={(e) => { setShipping(e.target.value); setShippingEstimated(true); setVerified(false); }} />
+                      <input id="shipping" type="number" inputMode="decimal" required min="0" step=".01" value={shipping} onChange={(e) => { setShipping(e.target.value); setShippingEstimated(true);  }} />
                     </div>
                     <p className="lo-block-state">{shippingEstimated ? k.storeShippingUnknown : k.storeShippingStated}</p>
                   </div>}
@@ -1252,7 +1248,7 @@ export function GlobalLinkOrder() {
                     setShipping(String(foundShipping.amount));
                     setShippingCurrency(foundShipping.currency);
                     setShippingEstimated(false);
-                    setVerified(false);
+
                   }}>{k.useStated}: {foundShipping.amount} {foundShipping.currency}{foundShipping.destination ? " · " + foundShipping.destination : ""}</button>}
                 </fieldset>
                 <fieldset className="lo-block">
@@ -1260,7 +1256,7 @@ export function GlobalLinkOrder() {
                   {locks.country ? <LockedFacts hint={lc.locked.value} rows={[{ id: "ship-country", label: tx("Страна", "Mamlakat", "Country"), value: countryText }]} /> : <>
                     <div className="field">
                       <label htmlFor="ship-country" className="sr-only">{c.shipCountry}</label>
-                      <select id="ship-country" className="select-control" value={canonicalCountry(country)} onChange={(e) => { setCountry(canonicalCountry(e.target.value)); setVerified(false); }}>
+                      <select id="ship-country" className="select-control" value={canonicalCountry(country)} onChange={(e) => { setCountry(canonicalCountry(e.target.value));  }}>
                         {countries.map((value) => <option key={value} value={value}>{countryLabel(value,lang)}</option>)}
                       </select>
                     </div>
@@ -1282,7 +1278,7 @@ export function GlobalLinkOrder() {
                         setWeight(String(estimate.kg));
                         setWeightBasis(estimate.basis === "title" ? "title" : "estimate");
                         setWeightOrigin(tx("Оценка Atlas","Atlas bahosi","Atlas estimate"));
-                        setVerified(false);
+
                       }}>
                         {weightCategories.map((value) => <option key={value} value={value}>{displayCategoryName(value,lang)}</option>)}
                       </select>
@@ -1290,7 +1286,7 @@ export function GlobalLinkOrder() {
                     <div className="field">
                       <label htmlFor="weight">{k.boxedWeight}</label>
                       <input id="weight" type="number" inputMode="decimal" required min=".01" max="49.5" step=".01" value={weight}
-                        onChange={(e) => { setWeight(e.target.value); setWeightBasis("customer"); setWeightOrigin(tx("Указан покупателем","Xaridor kiritdi","Entered by customer")); setVerified(false); }}
+                        onChange={(e) => { setWeight(e.target.value); setWeightBasis("customer"); setWeightOrigin(tx("Указан покупателем","Xaridor kiritdi","Entered by customer"));  }}
                         onBlur={() => {
                           const valid=validBoxedWeight(weight);
                           if(valid!==undefined){setWeight(String(valid));return}
@@ -1317,10 +1313,7 @@ export function GlobalLinkOrder() {
 
           <section className="lo-card lo-confirm">
             {formIssue && <p className="basket-consent-error" role="alert">{formIssue}</p>}
-            <div className="basket-consent">
-              <Checkbox id="data-verified" checked={verified} onCheckedChange={(v) => setVerified(v === true)} />
-              <label htmlFor="data-verified">{c.verified}</label>
-            </div>
+            <p className="micro" role="status">{tx("Atlas автоматически сверит цену, валюту и выбранный вариант перед добавлением в корзину.","Atlas savatga qo‘shishdan oldin narx, valyuta va tanlangan variantni avtomatik tekshiradi.","Atlas automatically checks the price, currency and selected option before adding it to your cart.")}</p>
             <div className={"lo-cta-row" + (cartUnits ? " has-cart" : "")}>
             <button className="btn primary basket-cta" disabled={addBusy || status==='loading'}>{(addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{pendingAdd.sending ? lc.pending.sending : adding ? c.adding : isGuest ? (canKeep ? lc.signinAdd : lc.signinContinue) : k.addOptions(Math.max(1, picks.length), Math.max(1, units))}{!addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>
             {cartUnits > 0 && <CartEntry count={cartUnits} label={cartLabel} />}
@@ -1334,7 +1327,7 @@ export function GlobalLinkOrder() {
       {/* On phones the total bar stays put through the check, so the page does not jump when the price arrives. */}
       {(source || checking) && <div className={"basket-sticky lo-sticky" + (isGuest ? " guest" : "")} role="region" aria-label={lc.total}>
         <div><span>{k.lines.total}</span><strong>{checking ? <span className="lo-skel lo-skel-sum" aria-hidden="true" /> : previewSums ? formatSum(previewSums.total, lang) : "—"}</strong></div>
-        <button type="submit" form="link-order-form" className="btn primary" disabled={checking || addBusy || status==='loading'}>{(checking || addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{checking ? tx("Проверяем…", "Tekshiryapmiz…", "Checking…") : addBusy ? c.adding : isGuest ? (canKeep ? lc.signinAddShort : lc.signinContinue) : lc.addShort}{!checking && !addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>
+        <button type="submit" form="link-order-form" className="btn primary" disabled={checking || sourceCheckStatus!=='verified' || addBusy || status==='loading'}>{(checking || addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{checking ? tx("Проверяем…", "Tekshiryapmiz…", "Checking…") : addBusy ? c.adding : isGuest ? (canKeep ? lc.signinAddShort : lc.signinContinue) : lc.addShort}{!checking && !addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>
         {cartUnits > 0 && <CartEntry count={cartUnits} label={cartLabel} compact />}
       </div>}
     </div>

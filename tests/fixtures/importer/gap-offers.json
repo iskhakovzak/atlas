@@ -1,0 +1,118 @@
+{
+  "sourceUrl": "https://www.gap.com/browse/product.do?pid=440775022",
+  "capturedOn": "2026-10-07",
+  "provenance": "Public JSON-LD offers and native size controls from New York VM; unrelated images/reviews removed.",
+  "product": {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "brand": {
+      "@type": "Brand",
+      "name": "Gap"
+    },
+    "name": "Classic T-Shirt",
+    "productID": "440775022",
+    "offers": [
+      {
+        "@type": "Offer",
+        "availability": "https://schema.org/InStock",
+        "image": "https://www.gap.com/webcontent/0020/344/738/cn20344738.jpg",
+        "itemCondition": "https://schema.org/NewCondition",
+        "price": "15.00",
+        "priceCurrency": "USD",
+        "seller": {
+          "@type": "Organization",
+          "name": "Gap"
+        },
+        "sku": "4407750220001",
+        "url": "https://www.gap.com/browse/product.do?pid=4407750220001"
+      },
+      {
+        "@type": "Offer",
+        "availability": "https://schema.org/InStock",
+        "image": "https://www.gap.com/webcontent/0020/344/738/cn20344738.jpg",
+        "itemCondition": "https://schema.org/NewCondition",
+        "price": "15.00",
+        "priceCurrency": "USD",
+        "seller": {
+          "@type": "Organization",
+          "name": "Gap"
+        },
+        "sku": "4407750220005",
+        "url": "https://www.gap.com/browse/product.do?pid=4407750220005"
+      },
+      {
+        "@type": "Offer",
+        "availability": "https://schema.org/InStock",
+        "image": "https://www.gap.com/webcontent/0020/344/738/cn20344738.jpg",
+        "itemCondition": "https://schema.org/NewCondition",
+        "price": "15.00",
+        "priceCurrency": "USD",
+        "seller": {
+          "@type": "Organization",
+          "name": "Gap"
+        },
+        "sku": "4407750220000",
+        "url": "https://www.gap.com/browse/product.do?pid=4407750220000"
+      },
+      {
+        "@type": "Offer",
+        "availability": "https://schema.org/InStock",
+        "image": "https://www.gap.com/webcontent/0020/344/738/cn20344738.jpg",
+        "itemCondition": "https://schema.org/NewCondition",
+        "price": "15.00",
+        "priceCurrency": "USD",
+        "seller": {
+          "@type": "Organization",
+          "name": "Gap"
+        },
+        "sku": "4407750220003",
+        "url": "https://www.gap.com/browse/product.do?pid=4407750220003"
+      },
+      {
+        "@type": "Offer",
+        "availability": "https://schema.org/InStock",
+        "image": "https://www.gap.com/webcontent/0020/344/738/cn20344738.jpg",
+        "itemCondition": "https://schema.org/NewCondition",
+        "price": "15.00",
+        "priceCurrency": "USD",
+        "seller": {
+          "@type": "Organization",
+          "name": "Gap"
+        },
+        "sku": "4407750220002",
+        "url": "https://www.gap.com/browse/product.do?pid=4407750220002"
+      },
+      {
+        "@type": "Offer",
+        "availability": "https://schema.org/InStock",
+        "image": "https://www.gap.com/webcontent/0020/344/738/cn20344738.jpg",
+        "itemCondition": "https://schema.org/NewCondition",
+        "price": "15.00",
+        "priceCurrency": "USD",
+        "seller": {
+          "@type": "Organization",
+          "name": "Gap"
+        },
+        "sku": "4407750220006",
+        "url": "https://www.gap.com/browse/product.do?pid=4407750220006"
+      },
+      {
+        "@type": "Offer",
+        "availability": "https://schema.org/InStock",
+        "image": "https://www.gap.com/webcontent/0020/344/738/cn20344738.jpg",
+        "itemCondition": "https://schema.org/NewCondition",
+        "price": "15.00",
+        "priceCurrency": "USD",
+        "seller": {
+          "@type": "Organization",
+          "name": "Gap"
+        },
+        "sku": "4407750220004",
+        "url": "https://www.gap.com/browse/product.do?pid=4407750220004"
+      }
+    ],
+    "image": [],
+    "color": "True black"
+  },
+  "optionsHtml": "<div id=\"440775022\"><input id=\"pdp_buybox_dimension_XS\" type=\"radio\" aria-disabled=\"false\" class=\"fds_selector__input sr-only\" data-testid=\"pdp-dimension-instock\" name=\"buybox-sizeDimension1\"/><input id=\"pdp_buybox_dimension_S\" type=\"radio\" aria-disabled=\"false\" class=\"fds_selector__input sr-only\" data-testid=\"pdp-dimension-instock\" name=\"buybox-sizeDimension1\"/><input id=\"pdp_buybox_dimension_M\" type=\"radio\" aria-disabled=\"false\" class=\"fds_selector__input sr-only\" data-testid=\"pdp-dimension-instock\" name=\"buybox-sizeDimension1\"/><input id=\"pdp_buybox_dimension_L\" type=\"radio\" aria-disabled=\"false\" class=\"fds_selector__input sr-only\" data-testid=\"pdp-dimension-instock\" name=\"buybox-sizeDimension1\"/><input id=\"pdp_buybox_dimension_XL\" type=\"radio\" aria-disabled=\"false\" class=\"fds_selector__input sr-only\" data-testid=\"pdp-dimension-instock\" name=\"buybox-sizeDimension1\"/><input id=\"pdp_buybox_dimension_XXL\" type=\"radio\" aria-disabled=\"false\" class=\"fds_selector__input sr-only\" data-testid=\"pdp-dimension-instock\" name=\"buybox-sizeDimension1\"/><input id=\"pdp_buybox_dimension_XXXL\" type=\"radio\" aria-disabled=\"false\" class=\"fds_selector__input sr-only\" data-testid=\"pdp-dimension-instock\" name=\"buybox-sizeDimension1\"/></div>"
+}

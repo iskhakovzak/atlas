@@ -65,12 +65,12 @@ test('catalog reset affordance recognizes sort-only and collection-only state', 
   assert.equal(hasActiveDealFilters(defaultDealFilters,'autumn-edit'), true);
   assert.equal(hasActiveDealFilters({...defaultDealFilters,search:'  shoes  '}), true);
 });
-test('ProductGroup selects linked color and retains size prices and availability', () => {
+test('ProductGroup retains linked colour metadata and each size price without quoting an unselected size', () => {
   const url='https://www.nike.com/t/shoe/BLUE';
   const child=(color,size,price,availability)=>({'@type':'Product',url:'https://www.nike.com/t/shoe/'+color,name:'Shoe '+color,color,size,image:'https://static.nike.com/'+color+'.jpg',offers:{url:'https://www.nike.com/t/shoe/'+color,price,priceCurrency:'USD',availability}});
   const html='<script type="application/ld+json">'+JSON.stringify({'@type':'ProductGroup',name:'Other default',brand:{name:'Nike'},hasVariant:[child('RED','8',10,'InStock'),child('BLUE','8',70,'InStock'),child('BLUE','9',75,'OutOfStock')]})+'</script>';
   const result=extractProduct(html,url);
-  assert.equal(result.price,70); assert.equal(result.title,'Shoe BLUE'); assert.equal(result.brand,'Nike');
+  assert.equal(result.price,undefined); assert.equal(result.currency,'USD'); assert.equal(result.title,'Shoe BLUE'); assert.equal(result.brand,'Nike');assert.equal(result.selectedVariantColor,'BLUE');
   assert.deepEqual(result.variants.map(v=>[v.label,v.price,v.available]),[['RED · 8',10,true],['BLUE · 8',70,true],['BLUE · 9',75,false]]);
   assert.equal(extractProduct(html,'https://www.nike.com/t/shoe/GREEN').price,undefined);
 });

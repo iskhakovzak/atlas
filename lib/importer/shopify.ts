@@ -1,4 +1,5 @@
 import {declarationFor, inferProductCategory, safeImage, type Extracted, type ProductVariant} from './extract.ts';
+import {publicJsonAssignment} from './public-state.ts';
 
 // Public Ajax endpoints only; no customer session, admin token or checkout access.
 export const shopifyStoreRoots = [
@@ -72,6 +73,17 @@ const object = (value: unknown): Json => value && typeof value === 'object' && !
 const label = (value: unknown) => typeof value === 'string' ? value.replace(/<[^>]*>/g, '').trim().slice(0, 140) : '';
 const amount = (value: unknown) => typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value / 100 : undefined;
 
+/** ShopSimon publishes the same product JSON in its ordinary HTML when Ajax is unavailable. */
+export function extractShopifyHtml(html: string, sourceUrl: string): Extracted | undefined {
+  if (new URL(sourceUrl).hostname !== 'shop.simon.com') return undefined;
+  const product = publicJsonAssignment(html, 'window.productObject');
+  const currency = object(publicJsonAssignment(html, 'Shopify.currency')).active;
+  if (!product || !/^[A-Z]{3}$/.test(typeof currency === 'string' ? currency : '')) return undefined;
+  try {
+    return {...extractShopify(product, {currency}, sourceUrl), method: 'Shopify public product JSON'};
+  } catch { return undefined; }
+}
+
 export function extractShopify(data: unknown, currencyData: unknown, sourceUrl: string): Extracted {
   const source = new URL(sourceUrl), endpoints = shopifyEndpoints(source), product = object(data);
   if (!endpoints || product.handle !== endpoints.handle || !label(product.title) || !Array.isArray(product.variants)) throw Error('Не удалось определить товар магазина.');
@@ -94,11 +106,14 @@ export function extractShopify(data: unknown, currencyData: unknown, sourceUrl: 
       sizeLabel: chosenIndexes.map(index => options[index]).join(' / ') || undefined,
       color: values[colorIndex] || undefined};
   });
-  const selectedId = source.searchParams.get('variant');
-  const selected = selectedId ? variants.find(v => v.id === selectedId) : undefined;
+  const requestedVariants = source.searchParams.getAll('variant');
+  const selectedId = requestedVariants.length === 1 ? requestedVariants[0] : undefined;
+  const matching = selectedId ? variants.filter(v => v.id === selectedId) : [];
+  const selected = matching.length === 1 ? matching[0] : undefined;
+  const missingRequestedVariant = requestedVariants.length > 0 && !selected;
   // A range/minimum never becomes the quoted price of an unselected variant.
   const prices = [...new Set(variants.map(v => v.price).filter(v => v !== undefined))];
-  const price = selected ? selected.price : prices.length === 1 ? prices[0] : undefined;
+  const price = missingRequestedVariant ? undefined : selected ? selected.price : prices.length === 1 ? prices[0] : undefined;
   // The "before" price follows the same rule: the selected option's, or one shared by every option at that price.
   const compares = [...new Set(variants.filter(v => v.price === price).map(v => v.compareAtPrice))];
   const referencePrice = price === undefined ? undefined : selected ? selected.compareAtPrice : compares.length === 1 ? compares[0] : undefined;
@@ -107,7 +122,7 @@ export function extractShopify(data: unknown, currencyData: unknown, sourceUrl: 
   const warnings = ['Доставка магазина не опубликована — указан изменяемый резерв $10; для заказа из магазина от $50 его не берём.', 'Вес с упаковкой нужно проверить.'];
   if (price === undefined) warnings.push('Выберите вариант, чтобы получить его точную цену.');
   if (selected && !selected.available) warnings.push('Вариант из ссылки отсутствует в наличии. Выберите другой вариант.');
-  if (selectedId && !selected) warnings.push('Вариант из ссылки не найден. Проверьте размер или цвет.');
+  if (missingRequestedVariant) warnings.push('Вариант из ссылки не найден или неоднозначен. Проверьте размер или цвет.');
   if (!variants.some(v => v.available)) warnings.push('Магазин не указал доступных вариантов этого товара.');
-  return {title, brand, category, declarationDescription: declarationFor(category, title, brand), image: selected?.image ?? images[0], images: gallery([selected?.image, ...images]), price, ...(referencePrice !== undefined ? { referencePrice } : {}), currency, variants, warnings, sourceUrl, method: 'Shopify product API', country: storefrontCountry(source)?.name};
+  return {title, brand, category, declarationDescription: declarationFor(category, title, brand), image: selected?.image ?? images[0], images: gallery([selected?.image, ...images]), price, ...(referencePrice !== undefined ? { referencePrice } : {}), currency, variants: missingRequestedVariant ? variants.map(v => ({...v,price:undefined,compareAtPrice:undefined})) : variants, warnings, sourceUrl, method: 'Shopify product API', country: storefrontCountry(source)?.name};
 }

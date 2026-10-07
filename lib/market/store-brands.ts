@@ -41,6 +41,7 @@ const rows: [key: string, name: string, focus: StoreFocus, country: StoreCountry
   ['ae', 'American Eagle', 'clothing', 'us'], ['aeropostale', 'Aéropostale', 'clothing', 'us'], ['gap', 'Gap', 'clothing', 'us'], ['oldnavy', 'Old Navy', 'clothing', 'us'],
   ['bananarepublic', 'Banana Republic', 'clothing', 'us'], ['jcrew', 'J.Crew', 'clothing', 'us'], ['madewell', 'Madewell', 'clothing', 'us'], ['levi', 'Levi’s', 'clothing', 'us'],
   ['calvinklein', 'Calvin Klein', 'clothing', 'us'], ['carhartt', 'Carhartt', 'clothing', 'us'], ['columbia', 'Columbia', 'clothing', 'us'], ['northface', 'The North Face', 'clothing', 'us'],
+  ['carters', 'Carter’s', 'clothing', 'us'], ['tommy', 'Tommy Hilfiger', 'clothing', 'us'], ['ralphlauren', 'Ralph Lauren', 'clothing', 'us'],
   ['patagonia', 'Patagonia', 'clothing', 'us'], ['underarmour', 'Under Armour', 'clothing', 'us'], ['fashionnova', 'Fashion Nova', 'clothing', 'us'], ['goodamerican', 'Good American', 'clothing', 'us'],
   ['fahertybrand', 'Faherty', 'clothing', 'us'], ['bombas', 'Bombas', 'clothing', 'us'], ['anthropologie', 'Anthropologie', 'clothing', 'us'], ['freepeople', 'Free People', 'clothing', 'us'],
   ['urbanoutfitters', 'Urban Outfitters', 'clothing', 'us'], ['revolve', 'REVOLVE', 'clothing', 'us'], ['shopbop', 'Shopbop', 'clothing', 'us'], ['nordstrom', 'Nordstrom', 'clothing', 'us'],
@@ -85,7 +86,7 @@ export function brandKey(root: string) {
   for (const suffix of genericSuffixes) if (host.endsWith(suffix)) return normalizeKey(host.slice(0, -suffix.length));
   return normalizeKey(host);
 }
-const normalizeKey = (key: string) => key === 'mi' ? 'xiaomi' : key.replace(/^perfumerias/, '');
+const normalizeKey = (key: string) => key === 'mi' ? 'xiaomi' : key === 'thenorthface' ? 'northface' : key.replace(/^perfumerias/, '');
 
 function storefrontCountry(root: string, fallback: StoreCountry): StoreCountry {
   if (root.startsWith('es.')) return 'es';

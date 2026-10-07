@@ -123,12 +123,13 @@ export function synchronizeBundledCatalog(current:CatalogDocument){
 }
 export function importDraft(data:Extracted,collectionIds:string[],country:string,now=Date.now()):CatalogDraft{
  const images=dedupeSafeImages([data.image??'',...(data.images??[])],data.sourceUrl,12);
+ const soldOut=Boolean(data.variants?.length&&data.variants.every(variant=>!variant.available&&variant.availabilityKnown!==false));
  // The store's own "before the discount" price is kept only when it is really above the price; display only.
  const referencePrice=typeof data.referencePrice==='number'&&Number.isFinite(data.referencePrice)&&typeof data.price==='number'&&data.referencePrice>data.price?data.referencePrice:undefined;
  // Shipping the store itself quoted to a US address in USD (eBay Browse for the warehouse, JSON-LD shippingDetails) replaces the $10 placeholder; the operator still sees the editor.
  const statedShippingUsd=typeof data.shipping==='number'&&Number.isFinite(data.shipping)&&data.shipping>=0&&data.shipping<=10000
   &&(data.shippingCurrency??data.currency)?.toUpperCase()==='USD'&&(!data.shippingDestination||/^(US|USA|United States)$/i.test(data.shippingDestination.trim()))?data.shipping:undefined;
- return catalogDraftSchema.parse({sourceUrl:canonicalCatalogUrl(data.sourceUrl),name:data.title??'',brand:data.brand??new URL(data.sourceUrl).hostname,category:data.category??'Другое',image:safeImage(data.image,data.sourceUrl)??images[0]??'',images,price:data.price,currency:data.currency??'',referencePrice,country:data.country??country,boxedWeight:data.boxedWeight??estimatedBoxedWeight(data.category??'Другое'),weightBasis:data.boxedWeight===undefined?'estimate':'store',sourceShippingUsd:statedShippingUsd??10,sourceShippingEstimated:statedShippingUsd===undefined,variants:(data.variants??[]).map(v=>({id:v.id,label:v.label,size:v.size,sizeLabel:v.sizeLabel,color:v.color,available:v.available,...(v.availabilityKnown===undefined?{}:{availabilityKnown:v.availabilityKnown}),price:v.price,image:safeImage(v.image,data.sourceUrl)})),collectionIds,description:'',checkedAt:now,warnings:data.warnings,soldOut:Boolean(data.variants?.length&&!data.variants.some(v=>v.available))});
+ return catalogDraftSchema.parse({sourceUrl:canonicalCatalogUrl(data.sourceUrl),name:data.title??'',brand:data.brand??new URL(data.sourceUrl).hostname,category:data.category??'Другое',image:safeImage(data.image,data.sourceUrl)??images[0]??'',images,price:data.price,currency:data.currency??'',referencePrice,country:data.country??country,boxedWeight:data.boxedWeight??estimatedBoxedWeight(data.category??'Другое'),weightBasis:data.boxedWeight===undefined?'estimate':'store',sourceShippingUsd:statedShippingUsd??10,sourceShippingEstimated:statedShippingUsd===undefined,variants:(data.variants??[]).map(v=>({id:v.id,label:v.label,size:v.size,sizeLabel:v.sizeLabel,color:v.color,available:v.available,...(v.availabilityKnown===undefined?{}:{availabilityKnown:v.availabilityKnown}),price:v.price,image:safeImage(v.image,data.sourceUrl)})),collectionIds,description:'',checkedAt:now,warnings:data.warnings,soldOut});
 }
 
 /** Keep a supported merchant link reviewable when its public importer is blocked. */
@@ -409,7 +410,7 @@ export function changeCatalog(current:CatalogDocument,command:CatalogCommand,now
     const entry=next.entries.find(e=>e.id===command.id);if(!entry)throw Error('Товар не найден');
     const draft=catalogDraftSchema.parse(command.draft);
     // Source identity and observation time come only from server imports.
-    draft.sourceUrl=entry.draft.sourceUrl;draft.checkedAt=entry.draft.checkedAt;draft.soldOut=entry.draft.soldOut;draft.reviewReasons=[];draft.lastCheckError=undefined;
+    draft.sourceUrl=entry.draft.sourceUrl;draft.checkedAt=entry.draft.checkedAt;draft.soldOut=entry.draft.soldOut&&!entry.draft.variants.some(variant=>variant.availabilityKnown===false);draft.reviewReasons=[];draft.lastCheckError=undefined;
     // The operator's stock confirmation is server-recorded too: an edit neither grants nor removes it.
     draft.confirmedBy=entry.draft.confirmedBy;draft.confirmedAt=entry.draft.confirmedAt;
     // Weight provenance is server-owned: a changed weight is the operator's and outranks later store refreshes.

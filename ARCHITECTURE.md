@@ -1,5 +1,12 @@
 # Atlas architecture
 
+## Import33 / Impact integration — 8 October 2026
+
+The shared allowlisted fetchProduct path serves customer previews, operator catalog imports and authenticated server rechecks. Public-state/merchant option extraction is bounded and exact product/variant identity is checked. Transient requests retry once within a 24-second total budget; blocks, incomplete data and unsafe redirects do not retry. New automatic cart submissions fail closed with err_38/503 when the source cannot be verified. Older optional sourceManuallyConfirmed values retain compatibility. No D1 migration or pricing formula change.
+
+ImpactTracking is a client component inside MarketProvider. It waits for current account consent or the guest atlas-consent-v1 value, listens for the existing consent acceptance event, skips nativePlatform(), and bootstraps the owner's async script once. The consent/legal edition was updated because external tracking is new. Customer import confirmations were removed; customs and warehouse exact-price approvals remain required.
+
+
 ## Кабинет, вход и скорость первой загрузки — 7 октября 2026
 
 - **Подсказка сессии** (`app/layout.tsx` → `MarketProvider sessionHint`): сервер видит, есть ли cookie `__Host-atlas_session` (без проверки), и шапка с первого кадра рисуется в виде участника, без мигания «Войти». Только для вида: кто вошёл, по-прежнему решает `/api/account`. Баланс и число товаров в корзине показываются, когда известны.

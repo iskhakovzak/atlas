@@ -1,0 +1,61 @@
+{
+  "sourceUrl": "https://www.thenorthface.com/en-us/p/kids-226125/teens-dryvent-mono-mountain-jacket-NF0A8BND",
+  "capturedOn": "2026-10-07",
+  "provenance": "Public merchant HTML, reduced to product fields and native option controls; no scripts, cookies, tracking or account data.",
+  "products": [
+    {
+      "@id": "https://www.thenorthface.com/en-us/p/kids/kids-featured/shop-all-kids-jackets-and-vests-730283/boys-girls-dryvent-mono-mountain-jacket-NF0A8BND/#productgroup",
+      "@type": "ProductGroup",
+      "category": "https://www.thenorthface.com/en-us/c/kids/kids-featured/shop-all-kids-jackets-and-vests-730283",
+      "description": " Material allows air or moisture vapor to pass through, helping to regulate body temperature. ",
+      "name": "Boys’ & Girls’ DRYVENT™ Mono Mountain Jacket",
+      "productGroupID": "NF0A8BND",
+      "url": "https://www.thenorthface.com/en-us/p/kids/kids-featured/shop-all-kids-jackets-and-vests-730283/boys-girls-dryvent-mono-mountain-jacket-NF0A8BND",
+      "hasVariant": [],
+      "variesBy": []
+    },
+    {
+      "@id": "https://www.thenorthface.com/en-us/p/kids/kids-featured/shop-all-kids-jackets-and-vests-730283/boys-girls-dryvent-mono-mountain-jacket-NF0A8BND/#product",
+      "@type": "Product",
+      "category": "https://www.thenorthface.com/en-us/c/kids/kids-featured/shop-all-kids-jackets-and-vests-730283",
+      "color": "",
+      "description": " Material allows air or moisture vapor to pass through, helping to regulate body temperature. ",
+      "mpn": "NF0A8BND",
+      "name": "Boys’ & Girls’ DRYVENT™ Mono Mountain Jacket",
+      "productID": "NF0A8BND",
+      "sku": "NF0A8BND",
+      "url": "https://www.thenorthface.com/en-us/p/kids/kids-featured/shop-all-kids-jackets-and-vests-730283/boys-girls-dryvent-mono-mountain-jacket-NF0A8BND",
+      "brand": {
+        "@id": "https://www.thenorthface.com/en-us#brand"
+      },
+      "image": [
+        {
+          "@type": "ImageObject",
+          "url": "https://assets.thenorthface.com/images/t_Thumbnail/NF0A8BND682-HERO/boys-and-girls-dryvent™-mono-mountain-jacket.png"
+        }
+      ],
+      "manufacturer": {
+        "@type": "Organization",
+        "@id": "https://www.thenorthface.com/en-us/#organization"
+      },
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "USD",
+        "price": 190,
+        "availability": "https://schema.org/InStock",
+        "seller": {
+          "@type": "Organization",
+          "@id": "https://www.thenorthface.com/en-us/#organization"
+        },
+        "priceValidUntil": "2027-12-31T00:00:00.000Z",
+        "hasMerchantReturnPolicy": {
+          "@id": "https://www.thenorthface.com/help/returns#returnpolicy"
+        },
+        "shippingDetails": {
+          "@id": "https://www.thenorthface.com/help/shipping#shippingdetails"
+        }
+      },
+      "review": []
+    }
+  ]
+}

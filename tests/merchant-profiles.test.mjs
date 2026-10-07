@@ -9,6 +9,9 @@ test('priority merchant registry contains the requested US and European launch g
   assert.deepEqual([...p1].sort(), [
     'amazon.com', 'nike.com', 'adidas.com', 'macys.com', 'ebay.com', 'walmart.com', 'target.com', 'bestbuy.com',
     'sephora.com', 'footlocker.com', 'victoriassecret.com', 'nordstrom.com', 'ulta.com', 'apple.com', 'newbalance.com',
+    'hm.com', 'puma.com', 'uniqlo.com', 'bershka.com', 'gap.com', 'converse.com', 'vans.com', 'skechers.com',
+    'crocs.com', 'columbia.com', 'thenorthface.com', 'underarmour.com', 'levi.com', 'pullandbear.com', 'tommy.com',
+    'ralphlauren.com', 'carters.com', 'shop.simon.com',
   ].sort());
   for (const root of ['amazon.com', 'nike.com', 'adidas.com', 'macys.com', 'ebay.com', 'walmart.com', 'target.com', 'bestbuy.com', 'sephora.com', 'footlocker.com', 'victoriassecret.com', 'nordstrom.com', 'ulta.com', 'apple.com', 'newbalance.com']) assert.ok(p1.includes(root), root);
   for (const root of ['zalando.com', 'asos.com', 'zara.com', 'mango.com', 'farfetch.com', 'primor.eu', 'druni.es', 'mediamarkt.de', 'pccomponentes.com']) assert.ok(p2.includes(root), root);

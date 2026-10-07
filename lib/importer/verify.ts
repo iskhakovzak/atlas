@@ -4,11 +4,22 @@ import { currencies } from '../market/world.ts';
 
 const sameAmount = (left: number, right: number) => Math.abs(left - right) < 0.005;
 
-function currentVariant(product: Product, selectedLabel: string, extracted: Extracted): ProductVariant | undefined {
-  const variants = extracted.variants ?? [];
+function matchingVariant(product: Pick<Product, 'sourceVariantId'>, selectedLabel: string, variants: ProductVariant[]): ProductVariant | undefined {
   const selected = product.sourceVariantId
     ? variants.find(item => item.id === product.sourceVariantId)
     : variants.find(item => item.label === selectedLabel);
+  // A legacy label may be renamed or omitted. Reject only a contradiction the
+  // merchant actually returned: the requested label belongs to another ID.
+  if (selected && product.sourceVariantId && selected.label !== selectedLabel
+    && variants.some(item => item.label === selectedLabel && item.id && item.id !== product.sourceVariantId)) {
+    throw Error('Выбранный вариант не совпадает с артикулом магазина. Загрузите товар заново.');
+  }
+  return selected;
+}
+
+function currentVariant(product: Product, selectedLabel: string, extracted: Extracted): ProductVariant | undefined {
+  const variants = extracted.variants ?? [];
+  const selected = matchingVariant(product, selectedLabel, variants);
   // Some merchants expose a single product option with a generated label. A
   // catalog/editorial fallback may use a different neutral label (for
   // example, "Указанный вариант"), even though there is no real choice to
@@ -127,7 +138,7 @@ export function verifyKnownSnapshotFields(product:Product,selectedLabel:string,p
   const currency=partial.currency?.toUpperCase();
   if(currency&&currency!==product.sourceCurrency.toUpperCase())throw Error('Магазин изменил валюту витрины. Обновите товар.');
   const variants=partial.variants??[];
-  const variant=product.sourceVariantId?variants.find(item=>item.id===product.sourceVariantId):variants.find(item=>item.label===selectedLabel);
+  const variant=matchingVariant(product,selectedLabel,variants);
   const price=variant?.price??partial.price;
   if(price!==undefined&&!currency)throw Error('Магазин показал цену без валюты. Проверьте валюту товара и загрузите ссылку заново.');
   if(price!==undefined&&!sameAmount(price,product.sourcePrice))throw Error(`Цена изменилась: было ${product.sourcePrice} ${currency}, сейчас ${price} ${currency}. Обновите товар.`);

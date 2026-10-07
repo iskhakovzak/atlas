@@ -62,6 +62,7 @@ import { PressFeedback } from "./press-feedback";
 import { AmbientBackdrop } from "./ambient-backdrop";
 import { JsonLd } from "./json-ld";
 import { siteGraph } from "@/lib/seo/structured-data";
+import { ImpactTracking } from './impact-tracking';
 
 export async function generateMetadata(): Promise<Metadata> {
   return rootMetadata(await pageLocale(), { google: env.ATLAS_GOOGLE_SITE_VERIFICATION, yandex: env.ATLAS_YANDEX_VERIFICATION });
@@ -100,7 +101,7 @@ export default async function RootLayout({
       <body className="antialiased">
         <AmbientBackdrop />
         <AtlasThemeProvider>
-          <MarketProvider initialLocale={locale} initialPricing={pricing} initialSiteContent={siteContent} sessionHint={sessionHint}>{children}<StorageNotice /><PerformanceProbe /><NativeShell /><PressFeedback /></MarketProvider>
+          <MarketProvider initialLocale={locale} initialPricing={pricing} initialSiteContent={siteContent} sessionHint={sessionHint}>{children}<StorageNotice /><PerformanceProbe /><NativeShell /><PressFeedback /><ImpactTracking /></MarketProvider>
         </AtlasThemeProvider>
         <JsonLd data={siteGraph(locale, siteContent.contacts, siteContent.legal)} />
       </body>

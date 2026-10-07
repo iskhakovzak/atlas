@@ -1,5 +1,15 @@
 # Atlas TODO and known limitations
 
+## Import33 / Impact release — 8 October 2026
+
+- [x] Integrate on published version 146 rather than the older primary checkout; preserve current product features and official eBay API configuration.
+- [x] Register the requested 33 storefronts and validate exact option selection, automatic server checks and old-state compatibility; 735 tests pass.
+- [x] Add the supplied Impact script, existing consent gating, updated legal disclosure and native-shell exclusion; synthetic browser checks pass before/after consent.
+- [ ] Publish the prepared release and record the succeeded deployment/version/source; final lint/build required.
+- [ ] Repair the older audit-ui synthetic guest-navigation harness timeout; targeted release flows pass but the broad audit does not.
+- [ ] Obtain reliable approved merchant data for blocked US pages and missing prices; 17 representative public-page merchants plus eBay API are confirmed, not all 33. Unknown stock remains unconfirmed. Test further live product/variant coverage and authenticated hosted operator/customer flows without changing real orders.
+
+
 
 ## Кабинет, вход и скорость — 7 октября 2026
 

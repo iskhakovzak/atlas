@@ -1,5 +1,16 @@
 # Atlas — project context
 
+## Import33 and Impact release preparation — 8 October 2026
+
+This release starts from the currently published Site version 146, commit 4c61312ad439e98566785e10ab2f3c55d0faa556, preserving its newer account, ordering, pricing, discount and mobile features. Source checkout: outputs/deploy-import33-20261008. User explicitly requested publication to atlasmarket.uz. Publication is pending until a succeeded Sites deployment is recorded; do not infer it from this document.
+
+All 33 requested storefronts are registered in the shared customer/operator importer. New customer additions use sourceManuallyConfirmed:false and require server verification, without a data-confirmation checkbox or manual price override. Exact option identity, public native state, partial details and bounded transient retry are improved; Zara colour/sizes/RON and old stored carts remain compatible. Representative US page evidence covers 17 merchants plus production eBay Browse API; this does not certify all 33. Blocked pages and missing prices remain unresolved.
+
+The owner's Impact tag P-A7926226-1901-4a82-b369-ac46d499149f1 loads asynchronously once in the web application after the existing current-version consent; commands are transformLinks and trackImpression. Legal text and consent version 2026-10-08 disclose partner tracking. Native Capacitor shells do not load this tag. No explicit account, passport, balance or order payload is sent by this bootstrap.
+
+735 automated tests and TypeScript pass. Targeted synthetic Chromium checks pass for size-to-cart without manual confirmation, partial Target/retry, mobile layout, exact Impact commands and zero tracking requests before guest consent. No production account/cart/order writes. The older broad audit-ui harness times out on its unchanged synthetic guest-navigation flow; retain this limitation. Final lint, TypeScript, all 735 tests and the production Worker build passed before publishing.
+
+
 ## Магазины 2.0 и Каталог 2.0 — 6 октября 2026
 
 Владелец попросил сделать разделы «Магазины» и «Каталог» «внушительно, красиво, умно и user friendly». Разбор показал, что слабость была не в дизайне, а в данных: все 24 встроенных товара устарели (срок жизни снимка 7 дней), скидки у импортированных товаров терялись, плитки 207 магазинов были одинаковыми и не отвечали на вопрос «откуда, за сколько и как быстро». Теперь страница магазинов открывается компактно: поле ссылки, свёрнутая подсказка «как скопировать ссылку», шесть карточек стран отправки с днями и тарифом обеих скоростей (клик фильтрует магазины по стране), полка «Витрины с товарами» с фото и «≈ от N сум с доставкой», плитка магазина с флагом, сроком, тарифом и счётчиком товаров в каталоге; карточка магазина начинается с поля «Вставьте ссылку с nike.com», показывает условия доставки из страны магазина, товары бренда в каталоге, витрины по странам с валютой (и честную пометку, если курс валюты ещё не поддерживается) и короткую заметку об особенностях магазина; у карточки есть адрес `/stores?brand=nike`.

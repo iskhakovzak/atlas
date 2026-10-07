@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {clearEbayTokenCacheForTests, EbayBrowseApiError, fetchEbayProduct} from '../lib/importer/ebay.ts';
+import {clearEbayTokenCacheForTests, EbayBrowseApiError, EbayManualReviewError, fetchEbayProduct} from '../lib/importer/ebay.ts';
 import {fetchProduct, ManualEntryFallbackError} from '../lib/importer/fetch.ts';
 
 const credentials = {clientId: 'app-client-id', clientSecret: 'private-cert-secret', environment: 'production'};
@@ -139,6 +139,33 @@ test('an explicit invalid child variation is not replaced with the parent group'
       : json({errors:[{errorId:11001}]}, 400);
   };
   await assert.rejects(fetchEbayProduct(`https://www.ebay.com/itm/${listingId}?var=9999`, credentials, fetcher), error => error instanceof EbayBrowseApiError && error.status === 400);
+  assert.equal(calls.length, 2);
+});
+
+test('an explicit child link rejects successful sibling data before mapping or loading its group', async () => {
+  for (const grouped of [false, true]) {
+    clearEbayTokenCacheForTests();
+    const initialItem = ebayItem({variationId: '9001', size: '8', amount: 28});
+    if (grouped) initialItem.primaryItemGroup = {itemGroupId: listingId, itemGroupType: 'SELLER_DEFINED_VARIATIONS'};
+    const {calls, fetcher} = createEbayApiMock({initialItem, items: [
+      initialItem,
+      ebayItem({variationId: '9002', size: '9', amount: 31}),
+    ]});
+    await assert.rejects(
+      fetchEbayProduct(`https://www.ebay.com/itm/${listingId}?var=9002`, credentials, fetcher),
+      error => error instanceof EbayManualReviewError && error.stage === 'variant_data' && error.status === 200,
+    );
+    assert.equal(calls.length, 2, 'sibling data must not become the requested child or a group preview');
+  }
+});
+
+test('an explicit child link preserves the matching child identity and price', async () => {
+  clearEbayTokenCacheForTests();
+  const {calls, fetcher} = createEbayApiMock({initialItem: ebayItem({variationId: '9002', size: '9', amount: 31})});
+  const product = await fetchEbayProduct(`https://www.ebay.com/itm/${listingId}?var=9002`, credentials, fetcher);
+  assert.equal(product.price, 31);
+  assert.equal(product.variants[0].id, '9002');
+  assert.equal(product.variants[0].size, '9');
   assert.equal(calls.length, 2);
 });
 

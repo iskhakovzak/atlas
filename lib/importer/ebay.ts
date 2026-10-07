@@ -632,6 +632,9 @@ export async function fetchEbayProduct(sourceUrl: string, config: EbayBrowseConf
     if (!exactItem) throw new EbayManualReviewError('eBay не вернул варианты запрошенного объявления.', 'variation_group', 200);
     item = exactItem;
   }
+  if (selectedVariation && variationId(item, listingId) !== selectedVariation) {
+    throw new EbayManualReviewError('eBay не подтвердил запрошенный вариант объявления. Проверьте точный вариант по ссылке вручную.', 'variant_data', 200);
+  }
   const primaryGroup = record(item.primaryItemGroup);
   const groupId = group ? listingId : clean(primaryGroup?.itemGroupId, 32);
   const groupType = group ? 'SELLER_DEFINED_VARIATIONS' : clean(primaryGroup?.itemGroupType, 80);

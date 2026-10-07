@@ -1,5 +1,12 @@
 # Atlas — handoff для следующего AI-агента
 
+## Import33 / Impact release checkout — 8 October 2026
+
+Current prepared source is C:\Users\WS\Documents\ChatGPT\atlas\outputs\deploy-import33-20261008, based on published version 146 / 4c61312ad439e98566785e10ab2f3c55d0faa556. The older primary checkout is not the publication source and has unrelated uncommitted catalog API work; preserve it. User explicitly authorized deploying this release to https://atlasmarket.uz. Use the existing public Sites project appgprj_6aa181097a00819196698407b43a6a45 with the normal source/archive/save/deploy flow. Do not publish an older checkout or alter audience, bindings, credentials, D1, DNS or proxy secrets. Record deployment success externally before claiming live status.
+
+Imports use exact variants and automatic server verification without customer manual confirmation; unresolved blocks/prices remain honest failures. Impact's supplied async tag and its two commands start only after current consent on web, once per document; native shells excluded. 735 tests and TypeScript pass; targeted synthetic browser QA passes with no real account/order writes. Older broad audit harness guest-navigation timeout remains known; final lint, TypeScript, all 735 tests and the production Worker build passed. Root outputs retains local reports and synthetic screenshots, never source-control runtime files/secrets.
+
+
 ## Последние мобильные изменения — 30 сентября 2026
 
 Рабочий Sites checkout: `C:\Users\WS\Documents\ChatGPT\atlas\.sites-checkout-atlas-20260927`. Добавлены общая ProductGallery (свайп по фото, клавиатура, кнопки), сохранение безопасных sourceImages в корзине и отдельные мобильные CSS для общих, клиентских и операторских экранов. Переключение фото не меняет вариант/цену. Все проверки UI используют синтетические ответы; D1 и реальные заказы не изменялись. Проверки физического Safari/iPhone и реального checkout остаются в TODO. Игнорируемые сценарии и скриншоты находятся в `output/playwright`; не коммитить runtime, cookies, D1 или сборку.

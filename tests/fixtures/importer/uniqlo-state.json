@@ -1,0 +1,219 @@
+{
+  "sourceUrl": "https://www.uniqlo.com/us/en/products/E474244-000/00?colorDisplayCode=00&sizeDisplayCode=004",
+  "capturedOn": "2026-10-07",
+  "provenance": "Public merchant HTML reduced to product fields/native controls; no account, tracking, executable scripts or cookies.",
+  "state": {
+    "pdp": {
+      "product": "E474244-000-00"
+    },
+    "entity": {
+      "pdpEntity": {
+        "E474244-000-00": {
+          "product": {
+            "productId": "E474244-000",
+            "name": "AIRism Cotton T-Shirt",
+            "prices": {
+              "base": {
+                "currency": {
+                  "code": "USD",
+                  "symbol": "$"
+                },
+                "value": 14.9
+              },
+              "promo": null,
+              "isDualPrice": false,
+              "taxPolicy": "EXCLUSIVE"
+            },
+            "colors": [
+              {
+                "code": "COL69",
+                "displayCode": "69",
+                "name": "NAVY",
+                "display": {
+                  "showFlag": true,
+                  "chipType": 0
+                },
+                "filterCode": "BLUE"
+              },
+              {
+                "code": "COL00",
+                "displayCode": "00",
+                "name": "WHITE",
+                "display": {
+                  "showFlag": true,
+                  "chipType": 0
+                },
+                "filterCode": "WHITE"
+              },
+              {
+                "code": "COL07",
+                "displayCode": "07",
+                "name": "GRAY",
+                "display": {
+                  "showFlag": true,
+                  "chipType": 0
+                },
+                "filterCode": "GRAY"
+              },
+              {
+                "code": "COL09",
+                "displayCode": "09",
+                "name": "BLACK",
+                "display": {
+                  "showFlag": true,
+                  "chipType": 0
+                },
+                "filterCode": "BLACK"
+              },
+              {
+                "code": "COL57",
+                "displayCode": "57",
+                "name": "OLIVE",
+                "display": {
+                  "showFlag": true,
+                  "chipType": 0
+                },
+                "filterCode": "GREEN"
+              }
+            ],
+            "sizes": [
+              {
+                "code": "SMA002",
+                "displayCode": "002",
+                "name": "XS",
+                "display": {
+                  "showFlag": true,
+                  "chipType": 0
+                }
+              },
+              {
+                "code": "SMA003",
+                "displayCode": "003",
+                "name": "S",
+                "display": {
+                  "showFlag": true,
+                  "chipType": 0
+                }
+              },
+              {
+                "code": "SMA004",
+                "displayCode": "004",
+                "name": "M",
+                "display": {
+                  "showFlag": true,
+                  "chipType": 0
+                }
+              },
+              {
+                "code": "SMA005",
+                "displayCode": "005",
+                "name": "L",
+                "display": {
+                  "showFlag": true,
+                  "chipType": 0
+                }
+              },
+              {
+                "code": "SMA006",
+                "displayCode": "006",
+                "name": "XL",
+                "display": {
+                  "showFlag": true,
+                  "chipType": 0
+                }
+              },
+              {
+                "code": "SMA007",
+                "displayCode": "007",
+                "name": "XXL",
+                "display": {
+                  "showFlag": true,
+                  "chipType": 0
+                }
+              },
+              {
+                "code": "SMA008",
+                "displayCode": "008",
+                "name": "3XL",
+                "display": {
+                  "showFlag": true,
+                  "chipType": 0
+                }
+              }
+            ],
+            "representative": {
+              "color": {
+                "code": "COL69",
+                "displayCode": "69",
+                "name": "NAVY",
+                "display": {
+                  "showFlag": true,
+                  "chipType": 0
+                },
+                "filterCode": "BLUE"
+              },
+              "communicationCode": "474244-69-002-000",
+              "flags": {
+                "priceFlags": [],
+                "productFlags": []
+              },
+              "l2Id": "08377334",
+              "pld": {
+                "code": "PTB000",
+                "displayCode": "000",
+                "name": "-",
+                "display": {
+                  "showFlag": false,
+                  "chipType": 0
+                }
+              },
+              "sales": true,
+              "salesType": "NORMAL",
+              "searchInStoresAvailable": true,
+              "size": {
+                "code": "SMA002",
+                "displayCode": "002",
+                "name": "XS",
+                "display": {
+                  "showFlag": true,
+                  "chipType": 0
+                }
+              }
+            },
+            "images": {
+              "main": {
+                "57": {
+                  "image": "https://image.uniqlo.com/UQ/ST3/us/imagesgoods/474244/item/usgoods_57_474244_3x4.jpg"
+                },
+                "69": {
+                  "image": "https://image.uniqlo.com/UQ/ST3/us/imagesgoods/474244/item/usgoods_69_474244_3x4.jpg"
+                },
+                "00": {
+                  "image": "https://image.uniqlo.com/UQ/ST3/us/imagesgoods/474244/item/usgoods_00_474244_3x4.jpg"
+                },
+                "07": {
+                  "image": "https://image.uniqlo.com/UQ/ST3/WesternCommon/imagesgoods/474244/item/goods_07_474244_3x4.jpg"
+                },
+                "09": {
+                  "image": "https://image.uniqlo.com/UQ/ST3/us/imagesgoods/474244/item/usgoods_09_474244_3x4.jpg"
+                }
+              },
+              "sub": [
+                {
+                  "image": "https://image.uniqlo.com/UQ/ST3/WesternCommon/imagesgoods/474244/sub/goods_474244_sub1_3x4.jpg"
+                },
+                {
+                  "image": "https://image.uniqlo.com/UQ/ST3/us/imagesgoods/474244/sub/usgoods_474244_sub3_3x4.jpg",
+                  "colorCode": "00"
+                },
+                {
+                  "image": "https://image.uniqlo.com/UQ/ST3/WesternCommon/imagesgoods/474244/sub/goods_474244_sub14_3x4.jpg"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
