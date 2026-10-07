@@ -32,12 +32,16 @@ import "./home-chapters.css";
 import "./tariffs.css";
 import "./home-wide-rail.css";
 import "./home-wide-content.css";
+import "./store-marks.css";
+import "./ambient.css";
+import "./folio-outside.css";
 import "./home-wide-decor.css";
 import "./orders-groups.css";
 import "./cart-select.css";
 import "./accounting.css";
 import "./admin-investor.css";
 import "./site-content-admin.css";
+import "./checkbox.css";
 import "./press.css";
 import { MarketProvider } from "@/lib/market/store";
 import { initialPricing, initialSiteContent } from "@/lib/market/initial-data";
@@ -46,6 +50,7 @@ import { AtlasThemeProvider } from "./theme-control";
 import { PerformanceProbe } from "./performance-probe";
 import { NativeShell } from "./native-shell";
 import { PressFeedback } from "./press-feedback";
+import { AmbientBackdrop } from "./ambient-backdrop";
 import { JsonLd } from "./json-ld";
 import { siteGraph } from "@/lib/seo/structured-data";
 
@@ -75,6 +80,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className="antialiased">
+        <AmbientBackdrop />
         <AtlasThemeProvider>
           <MarketProvider initialLocale={locale} initialPricing={pricing} initialSiteContent={siteContent}>{children}<StorageNotice /><PerformanceProbe /><NativeShell /><PressFeedback /></MarketProvider>
         </AtlasThemeProvider>

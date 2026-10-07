@@ -104,8 +104,39 @@ export function landDots(step=1.8):readonly (readonly [number,number])[]{
  dotCache.set(step,dots);return dots;
 }
 
+export type SphereDots={land:Float32Array;sea:Float32Array};
+const sphereCache=new Map<number,SphereDots>();
+/** Dots spread evenly over the whole sphere for the closing sheet's globe: rows `step` degrees apart, each row's
+ * longitude step widened by 1/cos(lat). Unit vectors (x towards 0°E on the equator, y towards 90°E, z north), three
+ * floats per dot: the land, and the sea on every other row and column. The same scanline as landDots (isLand point by
+ * point costs ~11 µs, a globe needs ~100k points); memoised per step rounded to 0.01°. */
+export function sphereDots(step:number):SphereDots{
+ const key=Math.max(.2,Math.round(step*100)/100),hit=sphereCache.get(key);if(hit)return hit;
+ const land:number[]=[],sea:number[]=[],rad=Math.PI/180;
+ for(let row=0,lat=landGrid.north;lat>=-64;row++,lat=landGrid.north-row*key){
+  const cl=Math.cos(lat*rad),sl=Math.sin(lat*rad),ls=key/Math.max(.06,cl),wantSea=row%2===0;
+  const rows=(rings:readonly Ring[])=>rings.map(ring=>({xs:rowCrossings(lat,ring),at:0})).filter(r=>r.xs.length);
+  const ground=rows(landRings),water=rows(waterRings);
+  if(!ground.length&&!wantSea)continue;
+  const inside=(r:{xs:number[];at:number},x:number)=>{while(r.at<r.xs.length&&r.xs[r.at]<=x)r.at++;return (r.xs.length-r.at)%2===1};
+  let col=0;
+  for(let lon=-180+(row%2)*ls/2;lon<180;lon+=ls,col++){
+   let on=false;for(const r of ground)if(inside(r,lon))on=true;
+   let wet=false;for(const r of water)if(inside(r,lon))wet=true;
+   const x=cl*Math.cos(lon*rad),y=cl*Math.sin(lon*rad);
+   if(on&&!wet)land.push(x,y,sl);else if(wantSea&&col%2===0)sea.push(x,y,sl);
+  }
+ }
+ const dots={land:Float32Array.from(land),sea:Float32Array.from(sea)};
+ sphereCache.set(key,dots);return dots;
+}
+/** A point [lon, lat] as a unit vector in sphereDots' frame. */
+export const unitVector=(lon:number,lat:number):[number,number,number]=>{const r=Math.PI/180,c=Math.cos(lat*r);return [c*Math.cos(lon*r),c*Math.sin(lon*r),Math.sin(lat*r)]};
+
 /** Where the route lines start: approximate country centres for the delivery regions. An illustration, not warehouse addresses. */
 export const routeOrigins:Partial<Record<DeliveryRegion,readonly [number,number]>>={us:[-97,39.5],uk:[-1.6,52.6],cn:[106,34.6],de:[10.4,51.1],it:[12.6,42.8],es:[-3.7,40.2]};
+/** The closing sheet's globe faces this point (lon, lat): Europe to China in front, America just over the horizon. */
+export const globeView=[40,18] as const;
 /** Where every route ends. */
 export const tashkent=[69.24,41.3] as const;
 /** Which side of its dot a country's label sits on: left, right or below. */

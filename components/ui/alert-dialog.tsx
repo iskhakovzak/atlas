@@ -107,7 +107,9 @@ function AlertDialogTitle({
     <AlertDialogPrimitive.Title
       data-slot="alert-dialog-title"
       className={cn(
-        "text-lg font-semibold sm:group-data-[size=default]/alert-dialog-content:group-has-data-[slot=alert-dialog-media]/alert-dialog-content:col-start-2",
+        // No group-has-…/alert-dialog-content variant for a media slot (unused here): it compiles to ":has(…) *", and Chrome
+        // then restyles the whole page after every DOM insertion (~30 ms on the home page at 1920 px).
+        "text-lg font-semibold",
         className
       )}
       {...props}

@@ -1,5 +1,7 @@
 /* Operator-only phone layout. Preserve complete forms, queues and quote lines. */
 @media (max-width: 600px) {
+  /* The operator queue is scoped by main[data-view="operations"] (app/operations/page.tsx), not by
+     .site-main:has(.ops-stats): that :has() made Chrome restyle every button of the page on any DOM change. */
   .operator-admin,
   .operator-admin :is(section, article, form, fieldset, label, .field, .two-fields, .pricing-grid, .catalog-workspace, .catalog-editor, .catalog-import-options, .catalog-variant-panel) {
     min-width: 0;
@@ -168,38 +170,38 @@
   }
 
   /* The operations route already renders this unique operator statistics block. */
-  .site-main:has(.ops-stats) :is(.order-controls, .order-card, .ops-panel, .ops-tools-grid, .ops-tools-grid > form, .operator-contact-grid, .warehouse-service-ops, .operator-order-communication) {
+  .site-main[data-view="operations"] :is(.order-controls, .order-card, .ops-panel, .ops-tools-grid, .ops-tools-grid > form, .operator-contact-grid, .warehouse-service-ops, .operator-order-communication) {
     min-width: 0;
     max-width: 100%;
   }
 
-  .site-main:has(.ops-stats) :is(button, summary, a.btn) {
+  .site-main[data-view="operations"] :is(button, summary, a.btn) {
     min-height: 44px;
   }
 
-  .site-main:has(.ops-stats) :is(.btn, .text-button, .status-badge, .operator-contact-detail, .operator-contact-person strong, .history-list, .staff-notes) {
+  .site-main[data-view="operations"] :is(.btn, .text-button, .status-badge, .operator-contact-detail, .operator-contact-person strong, .history-list, .staff-notes) {
     white-space: normal;
     overflow-wrap: anywhere;
   }
 
-  .site-main:has(.ops-stats) :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  .site-main[data-view="operations"] :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
     min-width: 0;
     max-width: 100%;
     min-height: 48px;
     font-size: 16px;
   }
 
-  .site-main:has(.ops-stats) .order-controls {
+  .site-main[data-view="operations"] .order-controls {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .site-main:has(.ops-stats) .order-controls > * {
+  .site-main[data-view="operations"] .order-controls > * {
     min-width: 0;
     width: 100%;
   }
 
-  .site-main:has(.ops-stats) .order-tabs {
+  .site-main[data-view="operations"] .order-tabs {
     max-width: 100%;
     height: auto;
     overflow-x: auto;
@@ -207,7 +209,7 @@
     overscroll-behavior-x: contain;
   }
 
-  .site-main:has(.ops-stats) .order-tabs > button {
+  .site-main[data-view="operations"] .order-tabs > button {
     flex: 0 0 auto;
     white-space: nowrap;
   }

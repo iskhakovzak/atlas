@@ -37,17 +37,17 @@ export function HomeRail(){
  // Rendered on the client only (after the slot's media query matched), so the first paint may read the page.
  const [sheets,setSheets]=useState<Sheet[]>(()=>typeof document==='undefined'?[]:findSheets());
  const [cur,setCur]=useState(0);
- const navRef=useRef<HTMLElement>(null),fillRef=useRef<HTMLSpanElement>(null);
+ const navRef=useRef<HTMLElement>(null),fillRef=useRef<HTMLSpanElement>(null),headRef=useRef<HTMLSpanElement>(null),gliderRef=useRef<HTMLSpanElement>(null);
  const announced=useRef('');
 
  // The decor keeps its route map clear of the rail: tell it when the rail goes away.
  useEffect(()=>()=>{window.dispatchEvent(new Event(homeWideLayoutEvent))},[]);
 
  useEffect(()=>{
-  const nav=navRef.current,fill=fillRef.current,main=document.querySelector('main.catalog-home');
-  if(!nav||!fill||!main)return;
+  const nav=navRef.current,fill=fillRef.current,head=headRef.current,glider=gliderRef.current,main=document.querySelector('main.catalog-home');
+  if(!nav||!fill||!head||!glider||!main)return;
   const ac=new AbortController();
-  let tops:number[]=[],centres:number[]=[],docH=0,shown=-1,drawn=-1,frame=0,scrollFrame=0,alive=true;
+  let tops:number[]=[],centres:number[]=[],docH=0,shown=-1,drawn=-1,glided=-1,frame=0,scrollFrame=0,alive=true;
   const measure=()=>{
    const y=window.scrollY;
    tops=sheets.map(sheet=>sheet.el.getBoundingClientRect().top+y);
@@ -57,7 +57,7 @@ export function HomeRail(){
     nav.style.setProperty('--hw-rail-t0',`${centres[0]}px`);
     nav.style.setProperty('--hw-rail-len',`${centres[centres.length-1]-centres[0]}px`);
    }
-   drawn=-1;
+   drawn=-1;glided=-1;
    // Compact <-> full rail, zoom steps, a chapter more or less: the decor re-measures.
    const box=nav.getBoundingClientRect(),key=[box.left,box.top,box.width,box.height].map(Math.round).join();
    if(key!==announced.current){announced.current=key;window.dispatchEvent(new Event(homeWideLayoutEvent))}
@@ -69,7 +69,18 @@ export function HomeRail(){
    if(index!==shown){shown=index;setCur(index)}
    // One inline transform on one element: no layout and no style cascade through the rail while scrolling.
    const f=railFill(tops,centres,y,index);
-   if(Math.abs(f-drawn)>0.004||(f!==drawn&&(f===0||f===1))){drawn=f;fill.style.transform=`scaleY(${f.toFixed(4)})`}
+   if(Math.abs(f-drawn)>0.004||(f!==drawn&&(f===0||f===1))){
+    drawn=f;fill.style.transform=`scaleY(${f.toFixed(4)})`;
+    // The ring rides the end of the progress line, so it slides from number to number with the scroll
+    if(centres.length>1)head.style.transform=`translateY(${(centres[0]+f*(centres[centres.length-1]-centres[0])).toFixed(1)}px)`;
+   }
+   // The current chapter's card glides to its item (a CSS transition on transform); placed without one the first time
+   if(index!==glided&&centres[index]!==undefined){
+    if(glided<0)glider.style.transition='none';
+    glider.style.transform=`translateY(${centres[index].toFixed(1)}px)`;
+    if(glided<0){void glider.offsetWidth;glider.style.transition='';glider.dataset.on=''}
+    glided=index;
+   }
   };
   const refresh=()=>{
    const next=findSheets();
@@ -114,6 +125,7 @@ export function HomeRail(){
    <div className="hw-rail-inner">
     <div className="hw-rail-steps">
      <span className="hw-rail-track" aria-hidden="true"/><span ref={fillRef} className="hw-rail-fill" aria-hidden="true"/>
+     <span ref={gliderRef} className="hw-rail-glider" aria-hidden="true"/><span ref={headRef} className="hw-rail-head" aria-hidden="true"/>
      <ol className="hw-rail-list">{sheets.map((sheet,i)=><li key={sheet.key}>
       <a className="hw-rail-item" href={homeChapterHref[sheet.key]} data-chapter={sheet.key} data-state={i<at?'done':i===at?'current':'next'} aria-current={i===at?'location':undefined} onClick={follow(i)}>
        <span className="hw-rail-dot" aria-hidden="true"/>

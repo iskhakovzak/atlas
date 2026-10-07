@@ -43,17 +43,19 @@ html[data-theme="dark"] {
   .site-header .desktop-nav { min-width: 0; padding-inline: 4px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
   .site-header .desktop-nav::-webkit-scrollbar { display: none; }
   .site-header .header-actions, .site-header .wordmark { flex-shrink: 0; }
-  /* Signed in, the header has a balance, bell, favourites and cart, so the theme switch moves to the footer
-     (on desktop shown only to signed-in users, see .home-footer-theme below) and stays in /account settings. */
-  .site-header:has(.header-account.member) .header-theme { display: none; }
+  /* Owner, 7.10.2026: the theme switch stays next to the languages after sign-in too (and in the footer for everyone). */
   /* The operator has one more entry ("Управление"): at the content's 1356px cap the anchors still do not fit next to it,
      so they stay in the footer at every desktop width. */
-  .site-header:has(.operator-entry) .desktop-nav a:is([data-nav="how"], [data-nav="tariffs"]),
-  .site-header:has(.operator-entry) .header-theme { display: none; }
+  .site-header:has(.operator-entry) .desktop-nav a:is([data-nav="how"], [data-nav="tariffs"]) { display: none; }
 }
-/* Signed-in header below 1500px: the home anchors (also in the footer) make room for a 7-digit balance. */
-@media (min-width: 761px) and (max-width: 1499px) {
+/* Signed-in header below 1680px: the home anchors (also in the footer and the home page) make room for a 7-digit
+   balance and the theme switch (at 1500–1679px the Russian menu ran 10px short with both). */
+@media (min-width: 761px) and (max-width: 1679px) {
   .site-header:has(.header-account.member) .desktop-nav a:is([data-nav="how"], [data-nav="tariffs"]) { display: none; }
+}
+/* The operator's header below 1340px has no room for the theme switch next to «Управление»: it stays in the footer. */
+@media (min-width: 761px) and (max-width: 1339px) {
+  .site-header:has(.operator-entry) .header-theme { display: none; }
 }
 /* Up to 1399px (iPad 768/1024, small laptops): tighter gaps. */
 @media (min-width: 761px) and (max-width: 1399px) {
@@ -131,7 +133,7 @@ html[data-theme="dark"] .home-missing { border-color: #c9a23f; background: #3a31
 .home-step h3 { margin: 14px 0 6px; color: var(--home-ink); font-size: 18px; }
 .home-step p { margin: 0; color: var(--home-muted); line-height: 1.5; }
 .home-step .home-step-extra { margin-top: 10px; font-size: 14px; }
-.home-payments { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0; padding: 0; list-style: none; }
+.home-payments { display: flex; flex-wrap: wrap; align-items: flex-start; align-self: start; gap: 6px; margin: 12px 0 0; padding: 0; list-style: none; }
 .home-payments li { padding: 4px 10px; border: 1px solid var(--home-line); border-radius: 8px; color: var(--home-ink); font-size: 13px; font-weight: 700; }
 @media (min-width: 640px) { .home-steps { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 1024px) { .home-steps { grid-template-columns: repeat(4, 1fr); } }
@@ -220,6 +222,19 @@ html[data-theme="dark"] .home-missing { border-color: #c9a23f; background: #3a31
 .home-faq summary::after { content: "+"; flex-shrink: 0; color: var(--home-accent); font-size: 24px; font-weight: 400; line-height: 1; }
 .home-faq details[open] summary::after { content: "−"; }
 .home-faq summary:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 2px; border-radius: var(--home-radius); }
+/* Smooth answers (owner, 7.10.2026: "they open abruptly"): the details' content grows from 0 to its height and back, the
+   plus turns into a cross. Chrome/Edge 131+ animate the height (interpolate-size); elsewhere the answer still fades in. */
+.home-faq { interpolate-size: allow-keywords; }
+.home-faq details::details-content { block-size: 0; overflow: hidden; transition: block-size .32s cubic-bezier(.3, .7, .2, 1), content-visibility .32s allow-discrete; }
+.home-faq details[open]::details-content { block-size: auto; }
+.home-faq details > div { opacity: 0; transform: translateY(-4px); transition: opacity .26s ease, transform .32s cubic-bezier(.3, .7, .2, 1); }
+.home-faq details[open] > div { opacity: 1; transform: none; }
+.home-faq summary::after { transition: transform .32s cubic-bezier(.3, .7, .2, 1), background-color .2s, color .2s; }
+html body .home-faq details[open] summary::after { content: "+"; transform: rotate(45deg); }
+.home-faq details { transition: border-color .2s, box-shadow .2s; }
+@media (prefers-reduced-motion: reduce) {
+  .home-faq details::details-content, .home-faq details > div, .home-faq summary::after { transition: none; }
+}
 .home-faq details > div { padding: 0 18px 14px; }
 .home-faq p { margin: 0; color: var(--home-muted); line-height: 1.6; }
 
@@ -265,10 +280,20 @@ html[data-theme="dark"] .home-missing { border-color: #c9a23f; background: #3a31
   .home-footer-groups .home-footer-title { margin: 0; padding-top: 12px; }
   .home-footer :is(nav, section) ul { display: flex; flex-wrap: wrap; gap: 0 18px; }
   .home-footer-bottom { grid-column: 1 / -1; }
-  .home-footer-theme { display: none; }
-  /* Signed-in users have no theme switch in the desktop header, so the footer keeps it for them. */
-  body:has(.header-account.member) .home-footer-theme { display: inline-flex; }
 }
 @media (max-width: 760px) {
   body:has(.mobile-nav) .home-footer { padding-bottom: 4px; }
+}
+
+/* Theme switch icon (app/theme-control.tsx): a ring with its right half filled; in the dark theme the half has turned
+   to the left. Transform only, and only after a click. */
+.theme-toggle .tt-icon { display: block; transition: transform .3s cubic-bezier(.3, 1.3, .5, 1); }
+.theme-toggle .tt-half { transform-box: view-box; transform-origin: 12px 12px; }
+.theme-toggle[aria-pressed="true"] .tt-half { transform: rotate(180deg); }
+.theme-toggle[data-moved] .tt-half { transition: transform .55s cubic-bezier(.5, 0, .2, 1.2); }
+.theme-toggle:hover .tt-icon { transform: rotate(-15deg); }
+/* The page cross-fades between the themes (a view transition, composited) */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .32s; animation-timing-function: ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle :is(.tt-icon, .tt-half) { transition: none !important; }
 }
