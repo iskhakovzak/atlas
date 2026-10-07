@@ -85,6 +85,7 @@ import {
   PageHeading,
   Empty,
   Modal,
+  LoadingCards,
   CostLines,
   ProductImage,
 } from "./market-ui";
@@ -1286,7 +1287,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
             label={operations ? (locale === "ru" ? "Повторить" : isUzbek(locale) ? uzText(locale, "Qayta urinish") : "Try again") : ow.loginLabel}
           />
         ) : (
-          <div className="loading-state">{ow.loading}</div>
+          <LoadingCards label={ow.loading} />
         )
       ) : !orders.length && !operations ? (
         <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><Package size={28} /></span><h2>{ow.emptyTitle}</h2><p>{ow.emptyDescription}</p>
@@ -2423,7 +2424,7 @@ export function NotificationsView() {
       {!ready ? (
         error
           ? <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><Bell size={28} /></span><h2>{c.signin.title}</h2><p>{c.signin.text}</p><div className="basket-empty-actions"><Link className="btn primary" href="/login?return_to=%2Fnotifications">{c.signin.action}<ArrowRight size={18} aria-hidden="true" /></Link></div></section>
-          : <div className="basket-loading" role="status">{c.loading}</div>
+          : <LoadingCards label={c.loading} />
       ) : !state.notifications.length ? (
         <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><Bell size={28} /></span><h2>{c.emptyTitle}</h2><p>{c.emptyText}</p><div className="basket-empty-actions"><Link className="btn secondary" href="/orders">{c.orders}</Link></div></section>
       ) : (
@@ -2466,7 +2467,7 @@ export function BalanceView() {
       {!ready ? (
         error
           ? <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><Wallet size={28} /></span><h2>{c.signin.title}</h2><p>{c.signin.text}</p><div className="basket-empty-actions"><Link className="btn primary" href="/login?return_to=%2Fbalance">{c.signin.action}<ArrowRight size={18} aria-hidden="true" /></Link></div></section>
-          : <div className="basket-loading" role="status">{c.loading}</div>
+          : <LoadingCards label={c.loading} />
       ) : <>
         <div className="wallet-grid">
           <section className="wallet-card" aria-labelledby="wallet-label">

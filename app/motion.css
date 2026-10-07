@@ -1,0 +1,123 @@
+/* Site-wide motion: page changes, dialogs, checkout steps, the placed-order screen and loading placeholders.
+   Every link is a full page load (components/site-link is a plain <a>), so page changes use cross-document view
+   transitions: the header and the phone bar stay put while the page under them fades and settles. Browsers without
+   them (Firefox for now) simply load the page as before. Reduced motion turns all of it off. */
+
+/* ---------- Page changes ---------- */
+@view-transition { navigation: auto; types: atlas-page; }
+.site-header { view-transition-name: atlas-header; }
+.mobile-nav { view-transition-name: atlas-mobile-nav; }
+html:active-view-transition-type(atlas-page)::view-transition-old(root) { animation: atlas-page-out 150ms cubic-bezier(.4, 0, 1, 1) both; }
+html:active-view-transition-type(atlas-page)::view-transition-new(root) { animation: atlas-page-in 340ms cubic-bezier(.22, 1, .36, 1) 40ms both; }
+html:active-view-transition-type(atlas-page)::view-transition-group(atlas-header),
+html:active-view-transition-type(atlas-page)::view-transition-group(atlas-mobile-nav) { animation-duration: 220ms; }
+@keyframes atlas-page-out { to { opacity: 0; } }
+@keyframes atlas-page-in { from { opacity: 0; transform: translate3d(0, 10px, 0); } }
+
+/* Header items that depend on the account fade in when they first appear (a guest signing in, a new cart count). */
+.site-header :is(.wallet-link, .notice-link, .cart-link) { animation: atlas-fade-in .25s ease-out both; }
+
+/* ---------- Content arriving after the account loads ---------- */
+/* The placeholder only shows when loading takes a moment, so a quick answer does not flash grey cards first. */
+.atlas-skeleton { display: grid; gap: 12px; animation: atlas-fade-in .3s ease-out .18s both; }
+.atlas-skeleton-card { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 16px; align-items: start; padding: 20px; border: 1px solid var(--day-line, #e2e2da); border-radius: 18px; background: var(--day-surface, #fff); box-shadow: var(--day-shadow, 0 1px 2px rgba(22, 33, 28, .04), 0 6px 18px rgba(22, 33, 28, .05)); }
+.atlas-skeleton-card > i, .atlas-skeleton-card b { display: block; border-radius: 10px; background: linear-gradient(100deg, #efefe9 30%, #f8f8f4 50%, #efefe9 70%); background-size: 240% 100%; animation: atlas-skeleton-shine 1.4s linear infinite; }
+.atlas-skeleton-card > i { width: 44px; height: 44px; border-radius: 12px; }
+.atlas-skeleton-card > span { display: grid; gap: 10px; padding-top: 3px; }
+.atlas-skeleton-card b { height: 12px; }
+.atlas-skeleton-card b:nth-child(1) { width: 46%; height: 15px; }
+.atlas-skeleton-card b:nth-child(2) { width: 82%; }
+.atlas-skeleton-card b:nth-child(3) { width: 64%; }
+.atlas-skeleton-card:nth-child(3) { opacity: .75; }
+.atlas-skeleton-card:nth-child(4) { opacity: .5; }
+@keyframes atlas-skeleton-shine { to { background-position-x: -240%; } }
+html[data-theme="dark"] .atlas-skeleton-card { border-color: var(--night-line, rgba(226, 238, 231, .085)); background: var(--night-surface, #111714); box-shadow: none; }
+html[data-theme="dark"] :is(.atlas-skeleton-card > i, .atlas-skeleton-card b) { background-image: linear-gradient(100deg, rgba(255, 255, 255, .05) 30%, rgba(255, 255, 255, .1) 50%, rgba(255, 255, 255, .05) 70%); }
+
+/* What replaces the placeholder rises in once. */
+:is(.basket-layout, .basket-empty, .compact-order, .notices-page > .notice-filters, .wallet-grid) { animation: atlas-rise-in .4s cubic-bezier(.22, 1, .36, 1) both; }
+/* "Sending to the cart" and other small waits. */
+.basket-loading { display: flex; align-items: center; justify-content: center; gap: 10px; animation: atlas-fade-in .3s ease-out both; }
+@keyframes atlas-fade-in { from { opacity: 0; } }
+@keyframes atlas-rise-in { from { opacity: 0; transform: translate3d(0, 10px, 0); } }
+
+/* A linked order (/orders#AT-…, e.g. right after checkout) glows once when it opens. */
+details[id]:target > summary { animation: atlas-target-glow 2.2s ease-out .5s both; }
+@keyframes atlas-target-glow { 0% { box-shadow: 0 0 0 0 rgba(31, 77, 59, 0); } 25% { box-shadow: 0 0 0 4px rgba(31, 77, 59, .22); } 100% { box-shadow: 0 0 0 0 rgba(31, 77, 59, 0); } }
+
+/* ---------- Checkout recipient ⇄ review ---------- */
+/* app/shopping.tsx switches the step inside a view transition: the dialog frame morphs between its narrow and wide
+   sizes while the old step fades out and the new one fades in, both pinned to the top so nothing stretches. */
+html.atlas-step-morph .atlas-modal { view-transition-name: atlas-step; }
+::view-transition-group(atlas-step) { animation-duration: .44s; animation-timing-function: cubic-bezier(.22, 1, .36, 1); overflow: clip; border-radius: 20px; }
+::view-transition-old(atlas-step), ::view-transition-new(atlas-step) { width: 100%; height: 100%; object-fit: none; object-position: top center; }
+::view-transition-old(atlas-step) { animation: atlas-page-out .16s cubic-bezier(.4, 0, 1, 1) both; }
+::view-transition-new(atlas-step) { animation: atlas-fade-in .3s ease-out .08s both; }
+
+/* ---------- Dialogs (every Atlas modal and confirm) ---------- */
+/* A soft decelerating rise and scale in, a quicker fade out; the page behind dims and blurs a little. The dialog is
+   centred with the `translate` property, so animating `transform` here does not move it off centre. */
+[data-slot="dialog-overlay"], [data-slot="alert-dialog-overlay"] { background: rgba(16, 24, 20, .4); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+[data-slot="dialog-overlay"][data-state="open"], [data-slot="alert-dialog-overlay"][data-state="open"] { animation: atlas-fade-in .28s ease-out both; }
+[data-slot="dialog-overlay"][data-state="closed"], [data-slot="alert-dialog-overlay"][data-state="closed"] { animation: atlas-fade-out .2s ease-in both; }
+[data-slot="dialog-content"][data-state="open"], [data-slot="alert-dialog-content"][data-state="open"] { animation: atlas-dialog-in .34s cubic-bezier(.22, 1, .36, 1) both; }
+[data-slot="dialog-content"][data-state="closed"], [data-slot="alert-dialog-content"][data-state="closed"] { animation: atlas-dialog-out .18s cubic-bezier(.4, 0, 1, 1) both; }
+@keyframes atlas-fade-out { to { opacity: 0; } }
+@keyframes atlas-dialog-in { from { opacity: 0; transform: translate3d(0, 14px, 0) scale(.97); } }
+@keyframes atlas-dialog-out { to { opacity: 0; transform: translate3d(0, 6px, 0) scale(.985); } }
+html[data-theme="dark"] :is([data-slot="dialog-overlay"], [data-slot="alert-dialog-overlay"]) { background: rgba(0, 0, 0, .6); }
+/* Phones: dialogs that sit at the bottom rise from below. */
+@media (max-width: 600px) {
+  @keyframes atlas-dialog-in { from { opacity: 0; transform: translate3d(0, 28px, 0); } }
+}
+
+/* ---------- Checkout steps ---------- */
+/* Recipient → review: the new step's blocks mount and settle in; the step rail fills towards the current step. */
+.atlas-modal .basket-checkout > * { animation: atlas-rise-in .36s cubic-bezier(.22, 1, .36, 1) both; }
+.atlas-modal .basket-checkout > :nth-child(2) { animation-delay: 40ms; }
+.atlas-modal .basket-checkout > :nth-child(n + 3) { animation-delay: 80ms; }
+.review-layout > * { animation: atlas-rise-in .4s cubic-bezier(.22, 1, .36, 1) both; }
+.review-layout > .review-aside { animation-delay: 70ms; }
+.basket-steps li::after { background: linear-gradient(var(--home-accent), var(--home-accent)) 0 0 / 0% 100% no-repeat, var(--home-line); transition: background-size .5s cubic-bezier(.22, 1, .36, 1); }
+.basket-steps li[data-state="done"]::after { background-size: 100% 100%, auto; }
+.basket-steps li, .basket-steps li > span { transition: color .3s ease, background-color .3s ease, border-color .3s ease, transform .3s ease; }
+.basket-steps li[data-state="current"] > span { animation: atlas-step-pop .4s cubic-bezier(.34, 1.56, .64, 1) both; }
+@keyframes atlas-step-pop { from { transform: scale(.7); } }
+
+/* ---------- Order placed ---------- */
+.checkout-placed { display: grid; justify-items: center; gap: 10px; max-width: 520px; margin: clamp(24px, 8vh, 72px) auto; padding: clamp(28px, 5vw, 44px) clamp(20px, 4vw, 40px); border: 1px solid var(--day-line, #e2e2da); border-radius: 24px; background: radial-gradient(120% 90% at 50% 0%, #e8f1ea 0%, rgba(232, 241, 234, 0) 60%), var(--day-surface, #fff); box-shadow: var(--day-shadow-lift, 0 2px 4px rgba(22, 33, 28, .04), 0 14px 32px rgba(22, 33, 28, .08)); text-align: center; animation: atlas-placed-in .5s cubic-bezier(.22, 1, .36, 1) both; }
+.checkout-placed h1 { margin: 8px 0 0; font-size: clamp(24px, 3vw, 30px); line-height: 1.15; letter-spacing: -.02em; }
+.checkout-placed p { max-width: 40ch; margin: 0; color: var(--day-muted, #58635c); font-size: 15px; line-height: 1.5; }
+.checkout-placed-mark { width: 72px; height: 72px; }
+.checkout-placed-mark circle { fill: var(--day-tint, #e8f1ea); stroke: var(--day-ok, #1d6b47); stroke-width: 3; stroke-dasharray: 183; stroke-dashoffset: 183; transform: rotate(-90deg); transform-origin: center; animation: atlas-draw .6s cubic-bezier(.65, 0, .35, 1) .1s forwards; }
+.checkout-placed-mark path { fill: none; stroke: var(--day-ok, #1d6b47); stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 40; stroke-dashoffset: 40; animation: atlas-draw .4s cubic-bezier(.65, 0, .35, 1) .55s forwards; }
+.checkout-placed-bar { width: min(240px, 70%); height: 4px; margin-top: 10px; overflow: hidden; border-radius: 4px; background: var(--day-soft, #efefe9); }
+.checkout-placed-bar i { display: block; height: 100%; border-radius: inherit; background: var(--day-accent, #1f4d3b); transform-origin: left; animation: atlas-placed-fill 1.4s cubic-bezier(.4, 0, .2, 1) .2s both; }
+.checkout-placed-link { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; color: var(--day-accent, #1f4d3b); font-weight: 650; text-decoration: none; }
+.checkout-placed-link svg { transition: transform .2s ease; }
+.checkout-placed-link:hover svg { transform: translateX(3px); }
+@keyframes atlas-placed-in { from { opacity: 0; transform: translate3d(0, 16px, 0) scale(.98); } }
+@keyframes atlas-draw { to { stroke-dashoffset: 0; } }
+@keyframes atlas-placed-fill { from { transform: scaleX(0); } to { transform: scaleX(.92); } }
+html[data-theme="dark"] .checkout-placed { border-color: var(--night-line, rgba(226, 238, 231, .085)); background: radial-gradient(120% 90% at 50% 0%, rgba(128, 208, 172, .12) 0%, rgba(128, 208, 172, 0) 60%), var(--night-surface, #111714); box-shadow: none; }
+html[data-theme="dark"] .checkout-placed p { color: var(--night-muted, #9ba6a0); }
+html[data-theme="dark"] .checkout-placed-mark circle { fill: var(--night-jade-soft, rgba(128, 208, 172, .1)); stroke: var(--night-jade, #80d0ac); }
+html[data-theme="dark"] .checkout-placed-mark path { stroke: var(--night-jade, #80d0ac); }
+html[data-theme="dark"] .checkout-placed-bar { background: rgba(255, 255, 255, .08); }
+html[data-theme="dark"] .checkout-placed-bar i { background: var(--night-jade, #80d0ac); }
+html[data-theme="dark"] .checkout-placed-link { color: var(--night-ivory, #ebe4d2); }
+
+/* ---------- Reduced motion: no page, dialog or content movement; the check is drawn at once. ---------- */
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
+  .site-header :is(.wallet-link, .notice-link, .cart-link), .atlas-skeleton, .basket-loading,
+  :is(.basket-layout, .basket-empty, .compact-order, .notices-page > .notice-filters, .wallet-grid),
+  details[id]:target > summary, .atlas-modal .basket-checkout > *, .review-layout > *, .basket-steps li[data-state="current"] > span, .checkout-placed { animation: none; }
+  .atlas-skeleton-card > i, .atlas-skeleton-card b { animation: none; }
+  [data-slot="dialog-content"][data-state="open"], [data-slot="alert-dialog-content"][data-state="open"] { animation: atlas-fade-in .15s ease-out both; }
+  [data-slot="dialog-content"][data-state="closed"], [data-slot="alert-dialog-content"][data-state="closed"] { animation: atlas-fade-out .12s ease-in both; }
+  :is([data-slot="dialog-overlay"], [data-slot="alert-dialog-overlay"]) { -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .checkout-placed-mark :is(circle, path) { animation: none; stroke-dashoffset: 0; }
+  .checkout-placed-bar i { animation: none; transform: scaleX(.92); }
+  .basket-steps li::after { transition: none; }
+}
