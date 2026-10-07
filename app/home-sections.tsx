@@ -1,6 +1,6 @@
 'use client';
-import {useEffect,useId,useState,type FormEvent,type ReactNode} from 'react';
-import {ArrowRight,Check,ClipboardPaste,Info,Landmark,Link2,Plane,Store} from 'lucide-react';
+import {Fragment,useEffect,useId,useState,type FormEvent,type ReactNode} from 'react';
+import { ArrowRight, ArrowUpRight, BadgeCheck, Check, CircleHelp, ClipboardPaste, Info, Landmark, Link2, MessagesSquare, Plane, ReceiptText, Store, Truck } from 'lucide-react';
 import Link from '@/components/site-link';
 import {useMarket} from '@/lib/market/store';
 import {deliveryPerKgUsdFor,deliverySpeeds,price,validateSource} from '@/lib/market/domain';
@@ -11,10 +11,10 @@ import {formatKg,formatPercent,formatPriceUsd,formatSum,formatUsd,groupDigits,ho
 import {tariffRows} from '@/lib/market/home-facts';
 import {deliveryDaysFor,deliveryRegions,paymentLabels} from '@/lib/market/site-content';
 import {localizedStatuses,routeTitle,type Locale} from '@/lib/market/i18n';
-import {storeBrands} from '@/lib/market/store-brands';
-import {StoreLogo} from './store-logo';
+import {popularBrandKeys,storeBrands,storeFocusNames} from '@/lib/market/store-brands';
+import {StoreLogo,StoreMark,hasStoreMark} from './store-logo';
 import {StoreMarquee} from './store-marquee';
-import {Flag} from './flags';
+import {CountryFlag,Flag} from './flags';
 import {Money} from './money';
 
 const isDev=(import.meta as {env?:{DEV?:boolean}}).env?.DEV===true;
@@ -143,6 +143,10 @@ export function ExampleQuote(){
  </aside>;
 }
 
+const stepIcons=[Link2,ReceiptText,BadgeCheck,Truck];
+/** Step 1's example: a few of the catalogue's popular stores that have a mark, and how many more there are. */
+const stepStores=popularBrandKeys.filter(key=>hasStoreMark(key)&&storeBrands.some(brand=>brand.key===key)).slice(0,4);
+
 export function HowItWorks(){
  const {c}=useHomeCopy();
  const {siteContent}=useMarket();
@@ -150,10 +154,12 @@ export function HowItWorks(){
   <h2 id="how-title">{c.how.title}</h2>
   <ol className="home-steps">{c.how.steps.map((step,index)=><li key={step.title} className="home-step">
    <span className="home-step-station" aria-hidden="true">{index+1}</span>
+   {/* Wide screens only: the stage's icon in the card's corner (owner, 7.10.2026: "fill the cards a little"). */}
+   <span className="hw-step-icon" aria-hidden="true">{(()=>{const Icon=stepIcons[index];return <Icon size={22} strokeWidth={1.9}/>})()}</span>
    <h3>{step.title}</h3><p>{step.text}</p>
    {index===2&&(siteContent.paymentMethods.length?<ul className="home-payments" aria-label={c.how.paymentsLabel}>{siteContent.paymentMethods.map(method=><li key={method}>{paymentLabels[method]}</li>)}</ul>:<MissingContent what="способы оплаты — только реально подключённые провайдеры"/>)}
    {/* Owner, 7.10.2026: the parcel goes to the door by courier. */}
-   {index===3&&<ul className="home-payments" aria-label={c.how.deliveryLabel}><li>{c.how.courier}</li></ul>}
+   {index===3&&<ul className="home-payments home-delivery" aria-label={c.how.deliveryLabel}><li>{c.how.courier}</li></ul>}
    {/* Wide screens only (app/home-wide-content.css): a small picture of the step, built from the page's own copy and numbers.
        The first one is a working link field (owner, 7.10.2026), the rest are pictures. */}
    <div className="hw-demo-wrap" aria-hidden={index===0?undefined:true}><StepDemo index={index}/></div>
@@ -169,6 +175,7 @@ function StepLinkForm(){
  return <form className="hw-demo hw-demo-field" onSubmit={submit} noValidate>
   <label className="sr-only" htmlFor="how-product-url">{c.hero.label}</label>
   <span className="hw-demo-input"><Link2 size={15} strokeWidth={2} aria-hidden="true"/><input id="how-product-url" name="url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.hero.placeholder} aria-invalid={!!error} aria-describedby="how-link-note" onChange={event=>change(event.target.value)}/><button type="submit" aria-label={c.hero.calculate} title={c.hero.calculate}><ArrowRight size={15} strokeWidth={2.2} aria-hidden="true"/></button></span>
+  <span className="hw-demo-stores" aria-hidden="true">{stepStores.map(key=><StoreMark key={key} brandKey={key} height={17} maxWidth={58}/>)}<small>{c.how.moreStores(storeBrands.length-stepStores.length)}</small></span>
   <span id="how-link-note" className={'hw-demo-note'+(error?' error':'')} role={error?'alert':undefined}>{error||(status==='authenticated'?c.hero.memberNote:c.hero.guestNote)}</span>
  </form>;
 }
@@ -186,9 +193,9 @@ function StepDemo({index}:{index:number}){
   </div>;
  }
  // Before the order nothing is done yet: neutral points, not ticks.
- if(index===2)return <div className="hw-demo hw-demo-check">{c.wide.stepCheck.map(text=><span key={text} className="hw-demo-point"><span className="hw-demo-dot"/>{text}</span>)}</div>;
+ if(index===2)return <div className="hw-demo hw-demo-check">{c.wide.stepCheck.map(text=><span key={text} className="hw-demo-point"><span className="hw-demo-dot"/>{text}</span>)}<span className="hw-demo-button"><Check size={15} strokeWidth={2.4}/>{c.how.confirm}</span></div>;
  const statuses=localizedStatuses(locale),start=Math.max(0,statuses.length-3);
- return <div className="hw-demo hw-demo-track"><span className="hw-tag">{c.trust.example}</span><span className="hw-demo-item">{`${c.trust.trackingProduct} · ${c.trust.trackingOrder}`}</span>
+ return <div className="hw-demo hw-demo-track"><span className="hw-demo-tags"><span className="hw-tag">{c.trust.example}</span><span className="hw-tag hw-tag-line">{c.how.courier}</span></span><span className="hw-demo-item">{`${c.trust.trackingProduct} · ${c.trust.trackingOrder}`}</span>
   <span className="hw-demo-list">{statuses.slice(start).map((label,offset)=>{const at=start+offset,state=at<trackingCurrent?'done':at===trackingCurrent?'current':'next';
    return <span key={label} className="hw-demo-status" data-state={state}><span className="hw-demo-status-dot">{state==='done'&&<Check size={11} strokeWidth={3}/>}</span>{label}</span>;})}</span>
  </div>;
@@ -271,6 +278,9 @@ export function TrustSection(){
  </section>;
 }
 
+// The FAQ chat: a 5s turn per question, and the answer's first sentence (at most ~120 characters).
+const chatTiming=(index:number,count:number)=>({animationDelay:`${index*5}s`,animationDuration:`${count*5}s`});
+const firstSentence=(text:string)=>{const first=text.split(/(?<=[.!?])\s/)[0]??text;return first.length>124?first.slice(0,120).replace(/\s+\S*$/,'')+'…':first};
 export function HomeFaq(){
  const {locale,c}=useHomeCopy();
  const {pricing,siteContent}=useMarket();
@@ -289,10 +299,22 @@ export function HomeFaq(){
  ];
  return <section id="faq" className="home-section" data-chapter="faq" aria-labelledby="faq-title">
   <div className="home-faq-head"><h2 id="faq-title">{c.faq.title}</h2>
+   {/* Wide screens only (owner, 7.10.2026: "add something to sheet 6", "add more"): a little support chat under the title.
+       The six questions are asked in turn (5s each); Atlas types, then answers with the first sentence of the real
+       answer. Decoration: the full answers are the list. */}
+   <div className="hw-faq-chat" aria-hidden="true">
+    <div className="hw-chat-row"><span className="hw-chat-face"><CircleHelp size={19} strokeWidth={2}/></span>
+     <span className="hw-chat-stack">{items.map((item,index)=><span key={item.q} className="hw-chat-bubble hw-chat-q" style={chatTiming(index,items.length)}>{item.q}</span>)}</span></div>
+    <div className="hw-chat-row hw-chat-answer"><span className="hw-chat-stack">{items.map((item,index)=><Fragment key={item.q}>
+      <span className="hw-chat-bubble hw-chat-typing" style={chatTiming(index,items.length)}><i/><i/><i/></span>
+      <span className="hw-chat-bubble hw-chat-a" style={chatTiming(index,items.length)}>{firstSentence(item.a)}</span></Fragment>)}</span>
+     <span className="hw-chat-face hw-chat-atlas"><MessagesSquare size={18} strokeWidth={2}/></span></div>
+   </div>
    {/* Wide screens only: where to go when the six answers are not enough (existing page names). */}
    <div className="hw-faq-more"><p>{c.wide.faqMore} <Link href="/support">{routeTitle(locale,'support')}</Link></p><ul><li><Link href="/customs">{c.faq.customsLink}</Link></li><li><Link href="/legal">{c.footer.rules}</Link></li></ul></div>
   </div>
-  <div className="home-faq">{items.map(item=><details key={item.q}><summary>{item.q}</summary><div><p>{item.a}</p>{item.link}</div></details>)}</div>
+  {/* One answer open at a time (name): the sheet keeps to one screen. */}
+  <div className="home-faq">{items.map(item=><details key={item.q} name="home-faq"><summary>{item.q}</summary><div><p>{item.a}</p>{item.link}</div></details>)}</div>
  </section>;
 }
 
@@ -304,8 +326,27 @@ export function HomeClosing(){
   <p>{c.closing.text}</p>
   <button type="button" className="btn primary home-cta" onClick={focusLinkInput}><ClipboardPaste size={18} aria-hidden="true"/>{c.sticky.paste}</button>
   {/* Wide screens only: the hero's stores again, without the "field above" hint. */}
-  <div className="hw-closing-stores"><p id="closing-stores-label" className="hw-closing-stores-label">{c.hero.popular}</p><div className="home-stores"><HomeStoreList labelledBy="closing-stores-label"/></div></div>
+  <ClosingStores/>
  </section>;
+}
+
+/** Owner, 7.10.2026: the closing's stores were a plain row of chips ("too simple"). Now tiles: the logo on its plate, the
+ * name, the home country and what the store sells; and the way to all stores with a stack of more logos. Wide screens only
+ * (app/home-wide-content.css); each tile opens the store in a new tab, as the hero's chips do. */
+const closingMore=storeBrands.filter(brand=>brand.logo&&!heroStores.includes(brand)&&popularBrandKeys.includes(brand.key)).slice(0,4);
+function ClosingStores(){
+ const {c,locale}=useHomeCopy();
+ return <div className="hw-closing-stores">
+  <p id="closing-stores-label" className="hw-closing-stores-label">{c.hero.popular}</p>
+  <ul className="hw-cs-grid" aria-labelledby="closing-stores-label">{heroStores.map(store=><li key={store.key}>
+   <a className="hw-cs-tile" href={'https://'+store.storefronts[0].root} target="_blank" rel="noopener noreferrer">
+    <StoreLogo brand={store} size={36}/>
+    <span className="hw-cs-text"><span className="hw-cs-name">{store.name}</span><span className="hw-cs-meta"><CountryFlag code={store.country} className="hw-cs-flag"/><span className="hw-cs-kind">{storeFocusNames[store.focus][locale]}</span></span></span>
+    <ArrowUpRight className="hw-cs-go" size={16} aria-hidden="true"/><span className="sr-only"> ({c.hero.openStore})</span>
+   </a>
+  </li>)}</ul>
+  <Link className="hw-cs-all" href="/stores"><span className="hw-cs-stack" aria-hidden="true">{closingMore.map(brand=><StoreLogo key={brand.key} brand={brand} size={32}/>)}</span><span className="hw-cs-all-text">{c.hero.allStores(storeBrands.length)}</span><ArrowRight size={18} aria-hidden="true"/></Link>
+ </div>;
 }
 
 /** Mobile: once the hero form scrolls away, a sticky button brings it back and focuses the input. */

@@ -41,4 +41,4 @@ html[data-theme="dark"] .ambient {
 
 /* Work screens and the home page on wide screens (it has its own decor, app/home-wide-decor.css) go without it. */
 html:has(main[data-view="operations"], main[data-view="admin"], .operator-admin) .ambient { display: none; }
-@media (min-width: 1440px) and (min-height: 820px) { html:has(main.catalog-home) .ambient { display: none; } }
+@media (min-width: 1440px) and (min-height: 820px) { html[data-view="catalog"]:is(html) .ambient { display: none; } }

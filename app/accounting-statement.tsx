@@ -91,7 +91,7 @@ export function AccountingStatement({ctx}:{ctx:AccountingContext}){
    <div className="acc-scroll acc-cards-on-phone"><table className="accounting-table acc-statement-table">
     <thead><tr>{canWrite&&<th scope="col"><span className="sr-only">Выбрать</span></th>}<th scope="col">Дата</th><th scope="col" className="num">Сумма</th><th scope="col">Назначение</th><th scope="col">Сопоставление</th><th scope="col">Вид записи</th><th scope="col">Заказ</th></tr></thead>
     <tbody>{matches.map(match=>{const draft=draftOf(match);const id=match.row.id;const disabled=match.status==='recorded'||!canWrite;const rateMissing=match.row.currency!=='UZS'&&convert(1,match.row.currency)===null;return <tr key={id} className={match.status==='recorded'?'muted-row':undefined}>
-     {canWrite&&<td data-label="Выбрать"><input type="checkbox" aria-label={`Записать строку ${match.row.date} ${money(draft.amountUzs)}`} disabled={disabled||rateMissing} checked={selected.has(id)} onChange={event=>toggle(id,event.target.checked)}/></td>}
+     {canWrite&&<td data-label="Выбрать"><label className="acc-pick"><input type="checkbox" aria-label={`Записать строку ${match.row.date} ${money(draft.amountUzs)}`} disabled={disabled||rateMissing} checked={selected.has(id)} onChange={event=>toggle(id,event.target.checked)}/></label></td>}
      <td data-label="Дата">{match.row.date}</td>
      <td data-label="Сумма" className="num"><Amount value={match.row.amount>0?draft.amountUzs:-draft.amountUzs} plus/>{match.row.currency!=='UZS'&&<small>{match.row.amount} {match.row.currency}{rateMissing?' — курс не задан':''}</small>}</td>
      <td data-label="Назначение">{match.row.description||'—'}{match.row.counterparty&&<small>{match.row.counterparty}</small>}</td>

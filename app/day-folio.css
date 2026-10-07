@@ -261,10 +261,7 @@ html:not([data-theme="dark"]) .home-faq summary:focus-visible { border-radius: 1
 html:not([data-theme="dark"]) .home-faq details > div { max-width: 64ch; padding: 0 20px 18px; }
 html:not([data-theme="dark"]) .home-faq p { font-size: 16px; line-height: 1.6; color: var(--day-muted); }
 html:not([data-theme="dark"]) .home-faq a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
-@media (prefers-reduced-motion: no-preference) {
-  html:not([data-theme="dark"]) .home-faq details[open] > div { animation: day-fade-in 180ms ease-out; }
-}
-@keyframes day-fade-in { from { opacity: 0; transform: translateY(-2px); } to { opacity: 1; transform: none; } }
+/* Opening an answer: app/home.css (the height and the fade). */
 
 /* Closing: a white card with one line and the action; phones already have the sticky button. */
 .home-closing { display: grid; justify-items: start; gap: 12px; }

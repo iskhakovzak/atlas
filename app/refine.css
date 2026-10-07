@@ -61,12 +61,7 @@
   --primary: var(--day-accent); --ring: var(--day-accent); --muted-foreground: var(--day-muted);
 }
 /* ---------- Checkboxes and choices (both themes size; day colours) ---------- */
-[data-slot="checkbox"] { width: 20px; height: 20px; border-width: 1.5px; border-radius: 6px; }
-[data-slot="checkbox"] svg { width: 15px; height: 15px; stroke-width: 3; }
-@media (max-width: 600px) { [data-slot="checkbox"] { width: 24px; height: 24px; } }
-/* The unticked box was #d3d1c6 on white (1.5:1); this border keeps 3:1 so it reads as a control. */
-html:not([data-theme="dark"]) [data-slot="checkbox"] { border-color: #8d948e; background: #fff; }
-html:not([data-theme="dark"]) [data-slot="checkbox"][data-state="checked"] { border-color: var(--day-accent); background: var(--day-accent); color: #fff; }
+/* The boxes themselves (size, colours, tick, tap target) live in app/checkbox.css. */
 html:not([data-theme="dark"]) :is(.basket-consent, .consent, .basket-balance, .basket-service):has([data-slot="checkbox"][data-state="checked"]) { border-color: var(--day-accent); background: #eef4f0; }
 html:not([data-theme="dark"]) :is(.basket-consent, .consent) { transition: border-color .15s, background-color .15s; }
 html:not([data-theme="dark"]) .recipient-choice { background: #fff; border-color: var(--day-line-strong); }

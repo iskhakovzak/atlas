@@ -40,6 +40,7 @@ import "./cart-select.css";
 import "./accounting.css";
 import "./admin-investor.css";
 import "./site-content-admin.css";
+import "./checkbox.css";
 import "./press.css";
 import { MarketProvider } from "@/lib/market/store";
 import { initialPricing, initialSiteContent } from "@/lib/market/initial-data";

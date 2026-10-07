@@ -49,12 +49,30 @@ export function CatalogTeaser({ select }: { select: (product: Product) => void }
     window.addEventListener('resize', measure);
     return () => { el.removeEventListener('scroll', measure); window.removeEventListener('resize', measure); };
   }, [measure, shown.length]);
-  function page(direction: 1 | -1) {
+  const page = useCallback((direction: 1 | -1) => {
     const el = grid.current;
     if (!el) return;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     el.scrollBy({ left: direction * el.clientWidth, behavior: reduce ? 'auto' : 'smooth' });
-  }
+  }, []);
+  // Owner, 7.10.2026: ← / → page the picks while this sheet holds the middle of the window. Fields, sliders, tabs,
+  // menus and open dialogs keep their own arrows.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+      const el = grid.current, section = el?.closest('section');
+      if (!el || !section || el.scrollWidth <= el.clientWidth + 1) return;
+      const target = e.target instanceof Element ? e.target : null;
+      if (target?.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="slider"], [role="tablist"], [role="radiogroup"], [role="listbox"], [role="menu"], [role="menubar"], [role="grid"], dialog[open], [aria-modal="true"]')) return;
+      if (document.querySelector('dialog[open], [aria-modal="true"]')) return;
+      const box = section.getBoundingClientRect(), middle = window.innerHeight / 2;
+      if (box.top > middle || box.bottom < middle) return;
+      e.preventDefault();
+      page(e.key === 'ArrowRight' ? 1 : -1);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [page]);
   async function save(product: Product) {
     setSaving(product.id);
     try { await act({ type: 'favorite', id: product.id }); } finally { setSaving(null); }

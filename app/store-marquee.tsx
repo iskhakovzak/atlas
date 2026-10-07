@@ -1,5 +1,5 @@
 'use client';
-import type {CSSProperties} from 'react';
+import type {CSSProperties,FocusEvent} from 'react';
 import Link from '@/components/site-link';
 import {popularBrandKeys,storeBrands,type StoreBrand} from '@/lib/market/store-brands';
 import {StoreMark,hasStoreMark,storeWordmarks} from './store-logo';
@@ -41,10 +41,18 @@ const sparks:Spark[]=[[6,20,7,0,false],[23,82,5,2.2,true],[41,14,6,4.1,false],[5
 /** Delivery routes across the ribbon. */
 const routes=['M-20 132 C 140 20, 380 10, 620 70','M-20 40 C 180 118, 420 128, 620 34','M60 150 C 200 60, 330 52, 470 -10'];
 
+/** A link reached by keyboard pauses the ribbon (data-key-focus). Not CSS :has(a:focus-visible): Chrome re-checks such
+ * a :has() whenever a link is inserted anywhere on the page (~30 ms each on the home page at 1920 px). */
+const keyFocus=(event:FocusEvent<HTMLElement>)=>{
+ let visible=false;try{visible=(event.target as HTMLElement).matches(':focus-visible')}catch{}
+ if(visible)event.currentTarget.dataset.keyFocus='';
+};
+const keyBlur=(event:FocusEvent<HTMLElement>)=>{delete event.currentTarget.dataset.keyFocus};
+
 export function StoreMarquee({label,openStore,allStores}:{label:string;openStore:string;allStores:string}){
  // Wide screen: popular stores spread over both rows, so Nike, Zara and Amazon are in view from the start.
  const top=marqueeStores.filter((_,index)=>index%2===0),bottom=marqueeStores.filter((_,index)=>index%2===1);
- return <section className="store-marquee" aria-label={label}>
+ return <section className="store-marquee" aria-label={label} onFocus={keyFocus} onBlur={keyBlur}>
   <DeliverySky className="store-marquee-sky" viewBox="0 0 600 150" routes={routes} sparks={sparks}/>
   <Row stores={marqueeStores} openStore={openStore} className="single"/>
   <Row stores={top} openStore={openStore} className="double"/>
