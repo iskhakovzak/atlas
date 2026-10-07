@@ -1,5 +1,12 @@
 # Atlas architecture
 
+## Full eBay group for customer and operator — 8 October 2026
+
+The user requested every in-stock colour/size from a seller group in both customer link ordering and admin catalog import. Official Browse group JSON now has a separate finite 8 MB body budget; OAuth/single-item limits remain unchanged at 32 KB/1 MB. Existing timeouts, exact group identity, 250-variant limit and safe images remain. Unknown-stock, known-unavailable and explicit zero-quantity variants are excluded from selectable eBay groups. Each returned option retains its ID, seller dimensions, price, photo and stock data. An explicit var selects its child by selectedVariantId; customer source-colour filtering exempts exact supported eBay hosts, so sibling colours remain selectable. Other stores retain their colour-bound links. Operator importDraft already preserves the shared group's full variant matrix.
+
+The preceding exact-child fix remains a fail-safe if a group request cannot be read; normal groups are always requested first. The initial 9eb2eaf source/archive was prepared but not saved/deployed; this broader group release replaces it. No migration, pricing formula, secret or real order changes. Tests include >1 MB successful colour/size group, operator draft preservation, customer eBay colour exposure versus Nike/lookalike hosts, unknown/sold-out/zero-quantity exclusion, and an oversized >8 MB fail-safe that never substitutes a parent child. 739 tests pass; complete final lint, TypeScript/build and deployed actual-user-link checks before claiming production success.
+
+
 ## eBay explicit variation / group failure fix — 8 October 2026
 
 User listing 157751149633?var=459304625551 (including affiliate parameters) reproducibly returned HTTP 422 on version 148. Worker diagnostics identify browse_variants/status=200: the complete group response was rejected by bounded JSON reading after the exact child endpoint succeeded. The fix retains the verified child from getItemByLegacyId when group reading fails, mapping only its authoritative identity/price/availability/photos, setting selectedVariantId and keeping the requested source URL. Parent links still require full group data; a mismatched, unavailable, auction or incomplete child never falls back to another variant. Existing one-megabyte limit and timeouts remain. Normal successful group imports continue unchanged.

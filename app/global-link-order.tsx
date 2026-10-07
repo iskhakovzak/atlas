@@ -585,7 +585,7 @@ export function GlobalLinkOrder() {
         const partialCategory=canonicalCategory(linkIsCatalogFlow&&linkSeed?linkSeed.category:data.category??linkSeed?.category??inferProductCategory(data.title??"",data.brand??""));
         setCategory(partialCategory);
         const receivedPartialVariants=data.variants?.length?data.variants:linkFallbackOptions;
-        const partialVariants=variantsForSourceColor(receivedPartialVariants,data.selectedVariantColor);
+        const partialVariants=variantsForSourceColor(receivedPartialVariants,data.selectedVariantColor,data.sourceUrl??link);
         const partialSelected=partialVariants.find(item=>item.id&&(item.id===data.selectedVariantId||item.id===data.sku));
         setVariants(partialVariants);
         setVariant(partialSelected?.label??(partialVariants.length===1?partialVariants[0].label:""));
@@ -639,7 +639,7 @@ export function GlobalLinkOrder() {
         : receivedVariants.length
           ? receivedVariants
           : linkFallbackOptions;
-      const importedVariants = variantsForSourceColor(allImportedVariants,data.selectedVariantColor);
+      const importedVariants = variantsForSourceColor(allImportedVariants,data.selectedVariantColor,data.sourceUrl);
       const safeVariants = knownCurrency ? importedVariants : importedVariants.map(item => ({...item, price: undefined}));
       const hasPricedVariants=knownCurrency&&safeVariants.some(item=>typeof item.price==='number'&&Number.isFinite(item.price)&&item.price>0);
       const selectableVariants=data.price===undefined&&hasPricedVariants?safeVariants.filter(item=>typeof item.price==='number'&&Number.isFinite(item.price)&&item.price>0):safeVariants;

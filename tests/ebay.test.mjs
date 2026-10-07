@@ -2,15 +2,40 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {clearEbayTokenCacheForTests, EbayBrowseApiError, EbayManualReviewError, fetchEbayProduct} from '../lib/importer/ebay.ts';
 import {fetchProduct, ManualEntryFallbackError} from '../lib/importer/fetch.ts';
+import {variantsForSourceColor} from '../lib/importer/link-selection.ts';
+import {importDraft} from '../lib/market/catalog-editor.ts';
 
 const credentials = {clientId: 'app-client-id', clientSecret: 'private-cert-secret', environment: 'production'};
 const listingId = '123456789012';
+
+test('large eBay group preserves all stocked colours and sizes for customer and operator',async()=>{
+  clearEbayTokenCacheForTests();
+  const items=[
+    ebayItem({variationId:'9001',size:'8',amount:80,color:'Blue'}),
+    ebayItem({variationId:'9002',size:'9',amount:91.25,color:'Blue'}),
+    ebayItem({variationId:'9003',size:'8',amount:84,color:'Rose'}),
+    ebayItem({variationId:'9004',size:'9',amount:85,color:'Rose',availability:'OUT_OF_STOCK'}),
+    {...ebayItem({variationId:'9005',size:'10',amount:90}),estimatedAvailabilities:[]},
+    {...ebayItem({variationId:'9006',size:'11',amount:95}),estimatedAvailabilities:[{estimatedAvailabilityStatus:'IN_STOCK',estimatedAvailableQuantity:0}]},
+  ];
+  const {fetcher}=createEbayApiMock({items});
+  const large=async(input,init)=>new URL(String(input)).pathname.endsWith('/get_items_by_item_group')
+    ?json({items,commonDescriptions:'x'.repeat(1_200_000)}):fetcher(input,init);
+  const source=`https://www.ebay.com/itm/${listingId}?var=9002`;
+  const result=await fetchEbayProduct(source,credentials,large);
+  assert.equal(result.selectedVariantId,'9002');
+  assert.deepEqual(result.variants.map(v=>[v.id,v.color,v.size,v.price]),[['9001','Blue','8',80],['9002','Blue','9',91.25],['9003','Rose','8',84]]);
+  assert.equal(variantsForSourceColor(result.variants,'Blue',source).length,3);
+  assert.equal(variantsForSourceColor(result.variants,'Blue','https://www.nike.com/t/test').length,2);
+  assert.equal(variantsForSourceColor(result.variants,'Blue','https://ebay.com.attacker.test/itm/123456789012').length,2);
+  assert.deepEqual(importDraft(result,[],'США').variants.map(v=>v.id),['9001','9002','9003']);
+});
 
 test('exact eBay variation remains importable when the full group exceeds the body limit',async()=>{
   clearEbayTokenCacheForTests();
   const {fetcher}=createEbayApiMock();
   const exactFetcher=async(input,init)=>new URL(String(input)).pathname.endsWith('/get_items_by_item_group')
-    ?json({oversized:'x'.repeat(1_000_001)}) :fetcher(input,init);
+    ?json({oversized:'x'.repeat(8_000_001)}) :fetcher(input,init);
   const product=await fetchEbayProduct(`https://www.ebay.com/itm/${listingId}?var=9002&campid=5337259887`,credentials,exactFetcher);
   assert.equal(product.price,91.25);assert.equal(product.selectedVariantId,'9002');
   assert.equal(product.variants.length,1);assert.equal(product.variants[0].id,'9002');
@@ -21,7 +46,7 @@ test('eBay parent does not select a child when the full group exceeds the body l
   clearEbayTokenCacheForTests();
   const {fetcher}=createEbayApiMock();
   const oversized=async(input,init)=>new URL(String(input)).pathname.endsWith('/get_items_by_item_group')
-    ?json({oversized:'x'.repeat(1_000_001)}) :fetcher(input,init);
+    ?json({oversized:'x'.repeat(8_000_001)}) :fetcher(input,init);
   await assert.rejects(fetchEbayProduct(`https://www.ebay.com/itm/${listingId}`,credentials,oversized),EbayBrowseApiError);
 });
 

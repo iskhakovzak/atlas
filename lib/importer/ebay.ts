@@ -43,6 +43,9 @@ const MARKETPLACES: Record<string, Marketplace> = {
 
 const API_SCOPE = 'https://api.ebay.com/oauth/api_scope';
 const MAX_JSON_BYTES = 1_000_000;
+// The official group response includes details for up to 250 seller variations.
+// Keep a finite budget separate from ordinary single-item/OAuth responses.
+const MAX_GROUP_JSON_BYTES = 8_000_000;
 const MAX_VARIANTS = 250;
 const MAX_IMAGES = 12;
 
@@ -323,7 +326,7 @@ async function browseGet(path: string | URL, token: string, marketplace: Marketp
   if (!response.ok) {
     throw await apiError(response, stage, definitive);
   }
-  return readJson(response, MAX_JSON_BYTES, stage);
+  return readJson(response, stage === 'browse_variants' ? MAX_GROUP_JSON_BYTES : MAX_JSON_BYTES, stage);
 }
 
 function aspectsFor(item: EbayItem) {
@@ -495,7 +498,7 @@ function groupVariants(items: EbayItem[], listingId: string, sourceUrl: string, 
   for (const item of validItems.slice(0, MAX_VARIANTS)) {
     if (!fixedPrice(item)) continue;
     const state = availability(item);
-    if (state.known && !state.available) continue;
+    if (!state.known || !state.available || ebayStock(item).quantity === 0) continue;
     const price = priceFor(item);
     if (!price || price.currency !== expectedCurrency) continue;
     const aspects = aspectsFor(item);
@@ -690,6 +693,7 @@ export async function fetchEbayProduct(sourceUrl: string, config: EbayBrowseConf
     currency,
     ...context.fields,
     selectedVariantColor: selectedColor,
+    selectedVariantId: selectedVariation,
     country: itemCountry(item),
     warnings: [...parsed.warnings, 'Страна отправки берётся из места товара в объявлении; если продавец её не указал, уточните страну перед заказом.', ...context.notes],
     sourceUrl: url.href,
