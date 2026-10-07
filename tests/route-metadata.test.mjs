@@ -28,9 +28,9 @@ test('the x-default page is titled in the language it renders in', () => {
   assert.match(publicMetadata('stores', undefined, 'ru').title, /Магазины/);
   assert.match(publicMetadata('stores', undefined, 'uz').title, /do‘konlar/);
   assert.match(publicMetadata('customs', 'en', 'ru').title, /Customs/);
-  assert.match(publicMetadata('support', undefined, 'ru').title, /Поддержка/);
+  assert.match(publicMetadata('support', undefined, 'ru').title.absolute, /^Поддержка Atlas$/);
   assert.match(publicMetadata('delete-account', 'en', 'uz').title, /Delete/);
-  assert.match(publicMetadata('app', 'uz').title, /ilovasi/);
+  assert.match(publicMetadata('app', 'uz').title.absolute, /ilovasi/);
   assert.deepEqual(homeMetadata('en').title, { absolute: 'Atlas — shop international stores with delivery to Uzbekistan' });
 });
 

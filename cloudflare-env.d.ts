@@ -2,6 +2,9 @@ declare namespace Cloudflare {
   interface Env {
     DB?: D1Database;
     ATLAS_OPERATOR_EMAIL?: string;
+    /** Search Console / Yandex Webmaster meta-tag codes (content of the tag only). */
+    ATLAS_GOOGLE_SITE_VERIFICATION?: string;
+    ATLAS_YANDEX_VERIFICATION?: string;
     ATLAS_CATALOG_REFRESH_SECRET?: string;
     ATLAS_IMPORT_PROXY_URL?: string;
     ATLAS_IMPORT_PROXY_SECRET?: string;

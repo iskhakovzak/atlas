@@ -1,5 +1,19 @@
 # Atlas architecture
 
+## SEO: структурированные данные, заголовки, 404 — 7 октября 2026
+
+Ветка `feat/seo`.
+
+- **JSON-LD** (`lib/seo/structured-data.ts`, вывод — `app/json-ld.tsx`, `<` экранируется). На всех страницах — `Organization` + `WebSite` на языке страницы: квадратный логотип `icon-512.png` (раньше баннер 1200×630), `sameAs` и `contactPoint` только из опубликованных контактов `siteContent.contacts`, `SearchAction` на `/catalog?q=`. Публичные подстраницы (`publicViewPaths`) получают `BreadcrumbList` в `app/marketplace.tsx` рядом с видимой крошкой; FAQ главной и `/support` — `FAQPage` с теми же вопросами, что на странице. Цен, наличия и рейтингов в разметке нет — импорт остаётся подсказкой.
+- **Заголовки.** Если заголовок страницы уже содержит «Atlas», он не дополняется шаблоном `%s · Atlas` (было «Поддержка Atlas · Atlas»).
+- **robots.** `index, follow` + `max-image-preview: large` объявляют только публичные страницы (`publicMetadata`); в корневых метаданных robots нет, поэтому у 404 остаётся один `noindex` (раньше рядом стоял `index, follow`). У 404 один `<title>` из `generateMetadata` в `app/not-found.tsx`.
+- `public/llms.txt` — добавлен `/catalog` с поиском `?q=`.
+- **Юрданные в разметке.** `legalName`, `taxID` (ИНН) и `address` берутся из `siteContent.legal`, пока поля пусты — их нет.
+- **Заголовки под запросы.** Каталог, магазины и таможня названы так, как ищут («…с доставкой в Узбекистан», «Таможенный лимит и пошлина на посылки…») на трёх языках; описание магазинов говорит о сроке, цене за 1 кг и валюте — это видно на плитках.
+- **Хлебные крошки** — `<nav aria-label>` с `aria-current="page"`; JSON-LD стоит перед ней, чтобы не ломать `.breadcrumb>span:last-child`.
+- **Подтверждение владения.** `ATLAS_GOOGLE_SITE_VERIFICATION` и `ATLAS_YANDEX_VERIFICATION` (только код из мета-тега) добавляют `google-site-verification` / `yandex-verification` в `<head>` (`rootMetadata`, `app/layout.tsx`); без переменных тегов нет.
+- `robots.txt`: `Clean-param` для меток `utm_*`, `gclid`, `fbclid`, `yclid`, `ysclid` (Яндекс не плодит дубли).
+
 ## Выбор товаров для оформления, услуги на посылку, проверка большого заказа — 7 октября 2026
 
 Ветка `feat/cart-selection-review`, поверх `feat/cart-customs-choice`.
