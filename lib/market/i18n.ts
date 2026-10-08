@@ -55,9 +55,9 @@ export function apiErrorMessage(status:number,locale:Locale):string{
 
 export function importManualEntryMessage(locale:Locale):string{
   return pickLocale({
-    ru:"Не все данные магазина загрузились. Подтвердите цену, валюту и вариант, затем добавьте товар в корзину — Atlas сверит их с магазином перед выкупом.",
-    uz:"Do‘kon ma’lumotlarining hammasi yuklanmadi. Narx, valyuta va variantni tasdiqlab, savatga qo‘shing — Atlas xariddan oldin ularni do‘kon bilan solishtiradi.",
-    en:"Some store details did not load. Confirm the price, currency and option, then add it to your cart — Atlas checks them with the store before buying.",
+    ru:"Магазин пока не подтвердил все данные. Повторите загрузку позже — для добавления нужны проверенные цена и наличие варианта.",
+    uz:"Do‘kon barcha ma’lumotlarni hali tasdiqlamadi. Keyinroq qayta yuklang — qo‘shish uchun variant narxi va mavjudligi tekshirilishi kerak.",
+    en:"The store has not confirmed all details yet. Retry later — adding an option requires a verified price and availability.",
   }, locale);
 }
 
@@ -144,7 +144,7 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_66': 'Сначала подтвердите паспорт этого получателя.',
     'err_67': 'Для проверки не хватает ссылки, цены или валюты товара.',
     'err_68': 'Магазин изменил валюту витрины. Загрузите товар заново.',
-    'err_69': 'Выбранный вариант не удалось сверить с данными магазина. Подтвердите его вручную.',
+    'err_69': 'Выбранный вариант не удалось сверить с данными магазина. Загрузите товар заново.',
     'err_70': 'Магазин не подтвердил цену выбранного варианта.',
     'err_71': 'Этого варианта больше нет в наличии у магазина.',
     'err_72': 'Этого магазина нет в списке поддерживаемых. Вставьте ссылку из одного из {count} магазинов или заполните товар вручную.',
@@ -212,7 +212,7 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_66': 'Avval ushbu qabul qiluvchining pasportini tasdiqlang.',
     'err_67': 'Tekshirish uchun tovar havolasi, narxi yoki valyutasi yetishmayapti.',
     'err_68': 'Do‘kon vitrina valyutasini o‘zgartirdi. Tovarni qayta yuklang.',
-    'err_69': 'Tanlangan variantni do‘kon ma’lumotlari bilan solishtirib bo‘lmadi. Uni qo‘lda tasdiqlang.',
+    'err_69': 'Tanlangan variantni do‘kon ma’lumotlari bilan solishtirib bo‘lmadi. Tovarni qayta yuklang.',
     'err_70': 'Do‘kon tanlangan variant narxini tasdiqlamadi.',
     'err_71': 'Bu variant do‘konda endi mavjud emas.',
     'err_72': 'Bu do‘kon qo‘llab-quvvatlanadiganlar ro‘yxatida yo‘q. {count} ta do‘kondan biridagi havolani qo‘ying yoki tovarni qo‘lda to‘ldiring.',
@@ -280,7 +280,7 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_66': 'Confirm this recipient’s passport first.',
     'err_67': 'The item’s link, price or currency is missing, so it can’t be checked.',
     'err_68': 'The store changed its currency. Load the item again.',
-    'err_69': 'The selected option couldn’t be matched with the store’s data. Confirm it manually.',
+    'err_69': 'The selected option couldn’t be matched with the store’s data. Reload the item.',
     'err_70': 'The store didn’t confirm the price of the selected option.',
     'err_71': 'This option is no longer in stock at the store.',
     'err_72': 'This store isn’t on the supported list. Paste a link from one of the {count} stores or fill in the item manually.',

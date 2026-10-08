@@ -8,7 +8,7 @@ import {priorityMerchants} from '../lib/importer/merchant-profiles.ts';
 const html = data => `<script type="application/ld+json">${JSON.stringify(data)}</script>`;
 const nike = JSON.parse(readFileSync(new URL('./fixtures/importer/nike-cortez.json', import.meta.url), 'utf8'));
 
-test('all 15 US priority roots accept an exact-source public embedded product contract', () => {
+test('all priority roots accept an exact-source public embedded product contract', () => {
   for (const [index, profile] of priorityMerchants(1).entries()) {
     const sourceUrl = `https://www.${profile.root}/product/atlas-fixture/ATLAS${String(index + 1).padStart(5, '0')}`;
     const state = {props: {pageProps: {product: {

@@ -1,7 +1,8 @@
 import type { Extracted } from '../importer/extract.ts';
-import { UnsupportedStoreError } from '../importer/fetch.ts';
+import { ManualEntryFallbackError, UnsupportedStoreError } from '../importer/fetch.ts';
 import { manualFallbackAllowed, requiresMerchantSnapshot } from '../importer/manual-fallback.ts';
 import { compareProductSnapshot } from '../importer/verify.ts';
+import { isSupportedStoreHost } from '../importer/stores.ts';
 import { applyAction, type Action } from './actions.ts';
 import { checkCartSources } from './cart-check.ts';
 import { canonicalCatalogUrl, type CatalogDocument } from './catalog-editor.ts';
@@ -123,6 +124,7 @@ export async function prepareAction(state: State, action: Action, deps: PrepareD
       item.product = { ...item.product, sourceCheckedAt: undefined, stockQuantity: undefined, stockMoreThan: undefined, stockSource: undefined };
       const url = item.product.sourceUrl;
       if (!url) continue;
+      if (isSupportedStoreHost(new URL(url).hostname)) item.product.sourceManuallyConfirmed = false;
       // A catalog card's delivery is the operator's record, whatever the request says about it.
       const editorial = await deps.editorialShipping?.(item.product);
       if (editorial) item.product = { ...item.product, sourceShipping: editorial.sourceShippingUsd, sourceShippingUsd: editorial.sourceShippingUsd, sourceShippingCurrency: 'USD', sourceShippingEstimated: editorial.sourceShippingEstimated };
@@ -130,7 +132,12 @@ export async function prepareAction(state: State, action: Action, deps: PrepareD
         let result = fetched.get(url);
         if (!result) { result = deps.fetchProduct(url).then(value => ({ value }), error => ({ error })); fetched.set(url, result); }
         const { value, error } = await result;
-        if (!value) { if (!manualFallbackAllowed(item.product, item.variant, error)) throw error; }
+        if (!value) {
+          if (!manualFallbackAllowed(item.product, item.variant, error)) {
+            if (item.product.sourceManuallyConfirmed === false && (error instanceof ManualEntryFallbackError || error instanceof Error && error.name === 'AbortError')) throw new ActionError(503, 'err_38');
+            throw error;
+          }
+        }
         else {
           verifiedSource ??= value;
           const check = compareProductSnapshot(item.product, item.variant, value, now, { editorialShipping: Boolean(editorial) });

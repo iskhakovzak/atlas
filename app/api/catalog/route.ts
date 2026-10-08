@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import {database,identity,requirePermission,sameOrigin,requestJson,json,failure,HttpError,pricing} from '@/lib/market/server';
 import {readCatalog,persistCatalog} from '@/lib/market/catalog-server';
-import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,manualFallbackCatalogDraft,recheckedDraft,changeCatalog,publicCatalog,catalogMaxEntries,catalogRecheckBatchSize} from '@/lib/market/catalog-editor';
+import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,manualFallbackCatalogDraft,recheckedDraft,changeCatalog,publicCatalog,applyAutomaticCatalogImport,catalogRecheckBatchSize} from '@/lib/market/catalog-editor';
 import type {CatalogDraft} from '@/lib/market/catalog-editor';
 import {fetchProduct,fetchCollectionLinks,ManualEntryFallbackError} from '@/lib/importer/fetch';
 import type {Extracted} from '@/lib/importer/extract';
@@ -23,7 +23,7 @@ function importFailureText(error:unknown){
 function invalidLinkText(error:unknown){
   return error instanceof Error&&error.message.startsWith('Используйте')?error.message:'Это не ссылка на страницу товара. Нужна HTTPS-ссылка поддерживаемого магазина.';
 }
-type ImportOutcome={url:string;status:'saved'|'failed';id?:string;note?:string;reason?:string;importFailureReason?:CatalogDraft['importFailureReason']};
+type ImportOutcome={url:string;status:'saved'|'failed';id?:string;published?:boolean;note?:string;reason?:string;importFailureReason?:CatalogDraft['importFailureReason']};
 /** Read one store page; never throws for recoverable merchant failures — those become a reviewable draft. */
 async function readForImport(sourceUrl:string,collectionIds:string[],country:string){
   let data:Extracted|undefined,sourceUnavailable=false,failureMessage='',failureReason:CatalogDraft['importFailureReason']='unknown';
@@ -42,20 +42,18 @@ async function readForImport(sourceUrl:string,collectionIds:string[],country:str
     :importDraft(data!,collectionIds,country,now);
   return {draft,sourceUnavailable,failureMessage,failureReason};
 }
-/** Merge a read draft into the document: refresh an existing card or append a queued one. */
-function applyImportedDraft(document:Awaited<ReturnType<typeof readCatalog>>['document'],sourceUrl:string,read:Awaited<ReturnType<typeof readForImport>>,collectionIds:string[],now:number){
-  const {draft,sourceUnavailable,failureMessage,failureReason}=read;
-  const existing=document.entries.find(e=>{try{return canonicalCatalogUrl(e.draft.sourceUrl)===draft.sourceUrl||canonicalCatalogUrl(e.draft.sourceUrl)===sourceUrl}catch{return e.draft.sourceUrl===sourceUrl}});
-  if(existing){const mergedCollections=[...new Set([...existing.draft.collectionIds,...collectionIds])];if(sourceUnavailable){existing.draft.lastCheckError=failureMessage.slice(0,500);existing.draft.importFailureReason=failureReason;}else{existing.draft=recheckedDraft(existing.draft,draft);if(!existing.published){existing.createdAt??=now;existing.origin??='operator-import';existing.queueState='queued';}}existing.draft.collectionIds=mergedCollections;return existing.id;}
-  if(document.entries.length>=catalogMaxEntries)throw new HttpError(400,`В каталоге уже ${catalogMaxEntries} товаров.`);
-  const id='find-'+crypto.randomUUID();
-  document.entries.push({id,draft,createdAt:now,origin:'operator-import',queueState:'queued'});
-  return id;
-}
 async function mapConcurrent<T,R>(items:T[],limit:number,task:(item:T,index:number)=>Promise<R>){
   const results:R[]=new Array(items.length);let next=0;
   await Promise.all(Array.from({length:Math.min(limit,items.length)},async()=>{while(next<items.length){const index=next++;results[index]=await task(items[index],index)}}));
   return results;
+}
+/** Bound both the entire batch and each merchant; one slow source cannot serialize other stores. */
+async function mapMerchantConcurrent<T>(urls:string[],task:(url:string)=>Promise<T>){
+ const groups=new Map<string,{url:string;index:number}[]>();
+ urls.forEach((url,index)=>{let host:string;try{host=new URL(url).hostname.replace(/^www\./,'')}catch{host='invalid'};groups.set(host,[...(groups.get(host)??[]),{url,index}])});
+ const results:T[]=new Array(urls.length);
+ await mapConcurrent([...groups.values()],catalogImportConcurrency/2,group=>mapConcurrent(group,2,async item=>{results[item.index]=await task(item.url)}));
+ return results;
 }
 const commandSchema=z.discriminatedUnion('kind',[
   z.object({kind:z.literal('import'),url:z.string().max(3000),collectionIds:z.array(z.string().max(80)).max(20),country:z.string().max(80)}),
@@ -85,8 +83,8 @@ export async function POST(request:Request){try{
     return json({document:next.document,refreshResult});
   }
   if(command.kind==='recheck'){
-    const results:string[]=[];
-    for(const id of command.ids){const entry=document.entries.find(item=>item.id===id);if(!entry){results.push(`${id}: товар не найден`);continue}try{const data=await fetchProduct(entry.draft.sourceUrl,merchantRequest),fresh=importDraft(data,entry.draft.collectionIds,entry.draft.country,Date.now());entry.draft=recheckedDraft(entry.draft,fresh);document.availabilityReports=document.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:Date.now()}:report);results.push(`${entry.draft.name}: проверено`)}catch(error){entry.draft.lastCheckError=(error as Error).message.slice(0,500);entry.draft.importFailureReason=error instanceof ManualEntryFallbackError?error.reason:error instanceof Error&&error.name==='AbortError'?'timeout':undefined;const locale=requestLocale(request);results.push(`${entry.draft.name}: ${locale==='ru'?(error as Error).message:apiErrorMessage(422,locale)}`)}}
+    const results:string[]=[],currentPricing=await pricing();
+    for(const id of command.ids){const entry=document.entries.find(item=>item.id===id);if(!entry){results.push(`${id}: товар не найден`);continue}try{const data=await fetchProduct(entry.draft.sourceUrl,merchantRequest),fresh=importDraft(data,entry.draft.collectionIds,entry.draft.country,Date.now());if(entry.autoManaged)applyAutomaticCatalogImport(document,fresh,Date.now(),currentPricing.rates);else entry.draft=recheckedDraft(entry.draft,fresh);document.availabilityReports=document.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:Date.now()}:report);results.push(`${entry.draft.name}: проверено`)}catch(error){entry.draft.lastCheckError=(error as Error).message.slice(0,500);entry.draft.importFailureReason=error instanceof ManualEntryFallbackError?error.reason:error instanceof Error&&error.name==='AbortError'?'timeout':undefined;const locale=requestLocale(request);results.push(`${entry.draft.name}: ${locale==='ru'?(error as Error).message:apiErrorMessage(422,locale)}`)}}
     document.revision++;await persistCatalog(document,raw,user,'catalog.recheck',{ids:command.ids});return json({document,recheckResults:results});
   }
   if(command.kind==='import'||command.kind==='discover'||command.kind==='import-batch'){
@@ -99,18 +97,19 @@ export async function POST(request:Request){try{
       if(command.collectionIds.some(id=>!document.collections.some(c=>c.id===id)))throw new HttpError(400, 'err_33');
       const urls=[...new Set(command.urls.map(value=>value.trim()).filter(Boolean))];
       // Every store is read at the same time; the catalog is written once, so the operator sees one revision and one result list.
-      const reads=await mapConcurrent(urls,catalogImportConcurrency,async(url):Promise<ImportOutcome|{url:string;sourceUrl:string;read:Awaited<ReturnType<typeof readForImport>>}>=>{
+      const reads=await mapMerchantConcurrent(urls,async(url):Promise<ImportOutcome|{url:string;sourceUrl:string;read:Awaited<ReturnType<typeof readForImport>>}>=>{
         let sourceUrl:string;
         try{sourceUrl=canonicalCatalogUrl(url)}catch(error){return {url,status:'failed',reason:invalidLinkText(error)}}
         try{return {url,sourceUrl,read:await readForImport(sourceUrl,command.collectionIds,command.country)}}
         catch(error){return {url,status:'failed',reason:error instanceof HttpError?error.message:importFailureText(error)}}
       });
+      const currentPricing=await pricing();
       const results:ImportOutcome[]=[];let saved=0;
       for(const item of reads){
         if('status' in item){results.push(item);continue}
         try{
-          const id=applyImportedDraft(document,item.sourceUrl,item.read,command.collectionIds,now);saved++;
-          results.push({url:item.url,status:'saved',id,...(item.read.sourceUnavailable?{note:item.read.failureMessage.slice(0,500),importFailureReason:item.read.failureReason}:{})});
+          const outcome=applyAutomaticCatalogImport(document,item.read.draft,Date.now(),currentPricing.rates);saved++;
+          results.push({url:item.url,status:'saved',...outcome,...(item.read.sourceUnavailable?{importFailureReason:item.read.failureReason}:{})});
         }catch(error){results.push({url:item.url,status:'failed',reason:error instanceof HttpError?error.message:importFailureText(error)})}
       }
       if(saved){document.revision++;await persistCatalog(document,raw,user,'catalog.import-batch',{count:saved,failed:results.length-saved});}
@@ -125,10 +124,10 @@ export async function POST(request:Request){try{
     }
     if(command.collectionIds.some(id=>!document.collections.some(c=>c.id===id)))throw new HttpError(400, 'err_33');
     const read=await readForImport(sourceUrl,command.collectionIds,command.country);
-    const importedId=applyImportedDraft(document,sourceUrl,read,command.collectionIds,now);
+    const outcome=applyAutomaticCatalogImport(document,read.draft,Date.now(),(await pricing()).rates),importedId=outcome.id;
     document.revision++;
     await persistCatalog(document,raw,user,'catalog.import');
-    return json({document,importedId,...(read.sourceUnavailable?{importNote:read.failureMessage.slice(0,500),importFailureReason:read.failureReason}:{})});
+    return json({document,importedId,published:outcome.published,importNote:outcome.note,...(read.sourceUnavailable?{importNote:read.failureMessage.slice(0,500),importFailureReason:read.failureReason}:{})});
   }
   let next;try{next=changeCatalog(document,command,Date.now(),await pricing())}catch(error){throw new HttpError(400,(error as Error).message)}
   const auditDetails='ids' in command?{ids:command.ids}:undefined;

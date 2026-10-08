@@ -1,4 +1,62 @@
+## Опубликовано: общая механика вариантов и автоимпорт — 9 октября 2026
+
+Sites154 опубликован: source e96dc890af3ba8a3b658e7e9ef41f2451ee8f73f, deployment appgdep_6ac7ebfd75d481918778747933de3742 succeeded; atlasmarket.uz. Канонический checkout outputs/deploy-import33-20261008; старый корневой checkout не публиковать. Добавлены optional native source/product/seller/offer/color IDs, независимые параметры, собственные галереи и полнота группы. Новые cart-add поддерживаемых магазинов требуют автоматической серверной проверки без ручного обхода. Админский пакетный импорт автоматически публикует только полные группы с точными доступными вариантами, ценами и фото; неполные остаются в очереди повторной проверки. Недоступные и неизвестные варианты не добавляются.
+
+761 тест, TypeScript и build проходят, lint 0 ошибок/2 прежних предупреждения. Свежий public API по ссылке пользователя:200,22 доступных SKU/4 цвета, Cargo US11 $32. Все22 проверены сервером и importDraft. Браузер с синтетическими API проверил22 точных cart ID/var, цены25/24/32/34, собственные галереи, US/EU/CM и mobile390. Реальное сохранение каталога проверено на тестовой SQLite через catalog-server, с CAS и аудитом; hosted operator D1 UI отдельно не проверялся. Реальные аккаунты/заказы не изменялись, окружение revision11 сохранено.
+
+Ограничение: регистрация33 магазинов не означает полную работу33 источников. Аудит: eBay/Nike/Zalando/Vans дают подтверждённые поднаборы;10 неполных,11HTTP422,6 ошибок транспорта проверки,2 без контрольной ссылки товара. Полнота Nike/generic не подтверждена, автопубликация её не выдумывает. US-egress каждого текущего запроса отдельно не сертифицирован; разрешён прямой fallback. Внешний доступ/API остаётся зависимостью. Доказательства outputs/all-stores-deployment.json, merchant-mechanics-audit.md, all-stores-*.log, release-ui-general-check.js.log.
+
 # Atlas architecture
+
+
+## Общая механика импорта — 9 октября 2026
+
+Подготовлен релиз поверх опубликованной версии 152: optional точные product/seller/offer/color IDs, native дочерние ссылки, независимые параметры, галереи и полнота группы. Клиент и сервер сохраняют цену конкретного предложения; новые добавления из поддерживаемых магазинов не обходят проверку ручным флагом. Неизвестное наличие и нулевые остатки не допускаются. Админский пакетный импорт автоматически публикует только полные подтверждённые группы и сохраняет неполные в очереди повторной проверки; скрытие останавливает автоматическое управление.
+
+Аудит 33 источников: проверенные поднаборы eBay25/Nike68/Zalando20/Vans4; это не доказательство полноты всех магазинов. 10 источников неполны, 11 ответили422, 6 транспортных ошибок проверки, 2 без контрольной ссылки товара. US-egress текущей проверки отдельно не сертифицирован; прямой fallback существует. Подробности outputs/merchant-mechanics-audit.md. Внешние API/доступ для остальных источников остаются зависимостью. Автоимпорт не гарантирует будущие цену/наличие/доставку.
+
+# Atlas architecture
+
+## eBay: цена просматриваемой расцветки — 8 октября 2026
+
+Верхняя цена и поле цены следуют просматриваемым цвету/размеру, отдельно от списка ранее выбранных вариантов и общего расчёта. Каждая расцветка показывает свою цену или диапазон; размеры показывают цену, если в группе есть разница. Серверные точные ID/цены и многовариантная корзина сохранены. Проверенный снимок eBay: красный $25, серый $24, Blanch Cargo $32, белый/лайм $34; var459336456425 — Blanch Cargo US11 $32. 745 тестов, TypeScript, lint и build проходят. Живая браузерная перепроверка и публикация выполняются после подготовки.
+
+## eBay: фото расцветок, размеры и наличие — 8 октября 2026
+
+Исправлена потеря фото из eBay Browse API: разрешён только точный официальный CDN assets.adidas.com в дополнение к i.ebayimg.com. Галереи привязаны к расцветкам; каждая строка корзины получает собственную галерею и точный var в ссылке. Сохраняются все подтверждённо доступные цвета и размеры группы; недоступные, неизвестные и нулевые остатки исключаются из импорта и выбора; сервер блокирует подтверждённо распроданные варианты. Админский черновик сохраняет остатки, обозначения размеров и галереи; новые поля схем необязательные, старые данные совместимы. Для мужской обуви adidas показаны US/UK/EU и официальная длина стопы в см; зависимые размеры eBay не считаются отдельной осью. Nike и другие таблицы сохранены.
+
+Все 744 теста и TypeScript проходят. Production build/lint проверяются перед публикацией. Живое наличие и фото проверяются после публикации; эти данные не гарантируют будущую доступность. Полный автоматический админский publish, изменение хранения и таймеры из присланного справочного текста в этот релиз не включены.
+
+## eBay colour galleries, size formats and exact child links — 8 October 2026
+
+The reported group had no photos in the version-149 import response. Image extraction now supports thumbnail images and primary group photo fields, and creates exact-child colour galleries. Customer loading retains all eBay galleries when the original link selects one colour. Each chosen cart line rewrites var to its own sourceVariantId while preserving affiliate parameters; stock/price/identity checks remain. adidas men's US footwear offers US/UK/EU display using the official adidas chart, preserving the original seller size/ID and not applying Nike, women's or unrecognized charts. Existing optional schemas and D1 remain unchanged. 742 tests, lint (existing unused Choice warning), TypeScript and Worker build passed. Regression covers gallery colour separation, affiliate URL rewriting and brand/gender size gates. Verify actual colour photographs after publication; a sparse missing-image log records only field keys/types and image hostnames, never credentials or upstream bodies. Native runtime, accounts and orders are unchanged.
+
+
+## Full eBay group for customer and operator — 8 October 2026
+
+The user requested every in-stock colour/size from a seller group in both customer link ordering and admin catalog import. Official Browse group JSON now has a separate finite 8 MB body budget; OAuth/single-item limits remain unchanged at 32 KB/1 MB. Existing timeouts, exact group identity, 250-variant limit and safe images remain. Unknown-stock, known-unavailable and explicit zero-quantity variants are excluded from selectable eBay groups. Each returned option retains its ID, seller dimensions, price, photo and stock data. An explicit var selects its child by selectedVariantId; customer source-colour filtering exempts exact supported eBay hosts, so sibling colours remain selectable. Other stores retain their colour-bound links. Operator importDraft already preserves the shared group's full variant matrix.
+
+The preceding exact-child fix remains a fail-safe if a group request cannot be read; normal groups are always requested first. The initial 9eb2eaf source/archive was prepared but not saved/deployed; this broader group release replaces it. No migration, pricing formula, secret or real order changes. Tests include >1 MB successful colour/size group, operator draft preservation, customer eBay colour exposure versus Nike/lookalike hosts, unknown/sold-out/zero-quantity exclusion, and an oversized >8 MB fail-safe that never substitutes a parent child. 739 tests pass; complete final lint, TypeScript/build and deployed actual-user-link checks before claiming production success.
+
+
+## eBay explicit variation / group failure fix — 8 October 2026
+
+User listing 157751149633?var=459304625551 (including affiliate parameters) reproducibly returned HTTP 422 on version 148. Worker diagnostics identify browse_variants/status=200: the complete group response was rejected by bounded JSON reading after the exact child endpoint succeeded. The fix retains the verified child from getItemByLegacyId when group reading fails, mapping only its authoritative identity/price/availability/photos, setting selectedVariantId and keeping the requested source URL. Parent links still require full group data; a mismatched, unavailable, auction or incomplete child never falls back to another variant. Existing one-megabyte limit and timeouts remain. Normal successful group imports continue unchanged.
+
+Regression tests cover an oversized group with an explicit matching child and rejection of a parent with the same oversized group. All 738 tests pass; final lint, TypeScript/build and a fresh deployed check of the actual user URL remain required before claiming fixed. No account/order/D1/environment changes. Deploy with the Sites hosting workflow from this current release checkout and preserve Impact and current features. This preparation snapshot does not itself confirm publication; root handoff records final deployment evidence.
+
+
+## Impact head verification follow-up — 8 October 2026
+
+The user explicitly requested the partner tracking code in the main homepage head for Impact Add Website verification. RootLayout now emits script#atlas-impact-bootstrap in the server-rendered head with the exact partner script URL and both requested commands. This defines atlasStartImpactTracking; current consent still controls its invocation and external loading, and native shells remain excluded. The original queue-style bootstrap gains only a duplicate-load ID. Existing client bootstrap calls the head initializer when available and retains its earlier fallback. A new VM regression verifies static URL visibility, no load on head evaluation, both commands after start and no duplicate load. All 736 tests pass; final lint (zero errors; one existing unused Choice warning), TypeScript and Worker build passed before this follow-up publishes. Version 147 remains the last confirmed deployed version until the next successful deployment is recorded.
+
+
+## Import33 / Impact integration — 8 October 2026
+
+The shared allowlisted fetchProduct path serves customer previews, operator catalog imports and authenticated server rechecks. Public-state/merchant option extraction is bounded and exact product/variant identity is checked. Transient requests retry once within a 24-second total budget; blocks, incomplete data and unsafe redirects do not retry. New automatic cart submissions fail closed with err_38/503 when the source cannot be verified. Older optional sourceManuallyConfirmed values retain compatibility. No D1 migration or pricing formula change.
+
+ImpactTracking is a client component inside MarketProvider. It waits for current account consent or the guest atlas-consent-v1 value, listens for the existing consent acceptance event, skips nativePlatform(), and bootstraps the owner's async script once. The consent/legal edition was updated because external tracking is new. Customer import confirmations were removed; customs and warehouse exact-price approvals remain required.
+
 
 ## Кабинет, вход и скорость первой загрузки — 7 октября 2026
 

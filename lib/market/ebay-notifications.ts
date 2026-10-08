@@ -103,7 +103,7 @@ export function parseEbaySignatureHeader(value: string): EbaySignature {
   return {alg, digest, kid, signature: signatureValue};
 }
 
-export function derEcdsaToP1363(der: Uint8Array) {
+export function derEcdsaToP1363(der: Uint8Array): Uint8Array<ArrayBuffer> {
   let offset = 0;
   const readLength = () => {
     const first = der[offset++];

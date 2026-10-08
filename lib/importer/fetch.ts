@@ -1,8 +1,11 @@
+import {normalizeMerchantVariants} from './variant-normalization.ts';
 import {dedupeSafeImages,extractAdidasProduct,extractProduct,type Extracted} from './extract.ts';
 import {extractShopify, shopifyEndpoints} from './shopify.ts';
 import {extractVictoriasSecret, victoriasSecretRequest} from './victoriassecret.ts';
 import {isEbayStoreHost,isSupportedStoreHost,supportedStoreCount} from './stores.ts';
 import {applyMerchantProfile} from './merchant-profiles.ts';
+import {isMerchantProductUrl, sameMerchantRedirect} from './source-identity.ts';
+import {isMerchantChallengePage} from './challenge.ts';
 import {EbayBrowseApiError, EbayListingUnavailableError, EbayManualReviewError, fetchEbayProduct, type EbayBrowseConfig} from './ebay.ts';
 export {supportedStoreCount};
 
@@ -54,7 +57,7 @@ export function allowedUrl(value: string) {
 
 function finalizeExtraction(extracted:Extracted,sourceUrl:string){
   const images=dedupeSafeImages([extracted.image,...(extracted.images??[])],sourceUrl);
-  const result={...extracted,image:images[0]??extracted.image,images};
+  const result=normalizeMerchantVariants({...extracted,image:images[0]??extracted.image,images});
   const hasProductPrice=typeof result.price==='number'&&Number.isFinite(result.price)&&result.price>0;
   const hasVariantPrice=(result.variants??[]).some(variant=>typeof variant.price==='number'&&Number.isFinite(variant.price)&&variant.price>0);
   if(!result.title||(!hasProductPrice&&!hasVariantPrice)||!result.currency){
@@ -292,7 +295,8 @@ export function detectBotChallenge(html: string) {
   if (/px-captcha|_pxhd|_pxAppId|PerimeterX|window\._pxUuid/i.test(head)) return 'PerimeterX';
   if (/cf-chl|cf_chl_opt|<title>\s*Just a moment/i.test(head)) return 'Cloudflare';
   if (/distil_r_captcha|datadome|dd\.captcha|geo\.captcha-delivery\.com/i.test(head)) return 'DataDome';
-  if (/captcha|verify you are human|pardon our interruption|robot check|are you a human/i.test(head.replace(/g?recaptcha/gi, ''))) return 'CAPTCHA';
+  const visibleHead = head.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/g?recaptcha/gi, '');
+  if (/captcha|verify you are human|pardon our interruption|robot check|are you a human/i.test(visibleHead)) return 'CAPTCHA';
   if (html.length < 20000 && /<title>\s*Too many requests\s*<\/title>/i.test(head)) return 'лимит запросов';
   return undefined;
 }
@@ -325,6 +329,7 @@ async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'jso
       if (!location || i === 3) throw new ManualEntryFallbackError('Магазин перенаправил запрос. Заполните данные вручную; адрес перенаправления не открывался.',undefined,'redirect');
       try { url = allowedUrl(new URL(location, url).href); }
       catch { throw new ManualEntryFallbackError('Магазин перенаправил запрос за пределы разрешённых страниц. Заполните данные вручную; новый адрес не открывался.',undefined,'redirect'); }
+      if (format === 'html' && !sameMerchantRedirect(start, url)) throw new ManualEntryFallbackError('Магазин изменил витрину или регион. Проверьте ссылку и заполните данные вручную; другой адрес не открывался.', undefined, 'redirect');
       if (format === 'json' && url.origin !== start.origin && !options.allowedOrigins?.includes(url.origin)) throw new ManualEntryFallbackError('Магазин изменил регион API. Заполните данные вручную; новый адрес не открывался.',undefined,'redirect');
       continue;
     }
@@ -343,7 +348,7 @@ function withEgressWarning<T extends Extracted>(extracted: T, direct: boolean | 
   return direct ? {...extracted, warnings: [...(extracted.warnings ?? []), directEgressWarning]} : extracted;
 }
 
-export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch) {
+async function fetchProductOnce(value: string, fetcher: MerchantFetch = fetch) {
   const manualUrl = validateManualSourceUrl(value);
   if (!isSupportedStoreHost(manualUrl.hostname)) {
     const partial: Extracted = {sourceUrl: manualUrl.href, brand: manualUrl.hostname.replace(/^www\./, ''), warnings: []};
@@ -477,6 +482,8 @@ export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch
     if (/\/products\//.test(url.pathname) && !/\/products\//.test(page.url.pathname)) throw Error('Магазин убрал карточку товара. Укажите другую ссылку.');
     const challenge = detectBotChallenge(page.text);
     if (challenge) throw botChallengeError(challenge);
+    if (isMerchantChallengePage(page.text))
+      throw new ManualEntryFallbackError('Магазин ограничил автоматическую загрузку. Заполните и подтвердите данные товара вручную.',undefined,'blocked');
     let extracted:Extracted;
     try {
       extracted = applyMerchantProfile(extractProduct(page.text, page.url.href), page.url.href);
@@ -509,21 +516,45 @@ export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch
         sourceUrl: url.href,
         brand: 'eBay',
         warnings: [],
-      }, error instanceof ManualEntryFallbackError ? error.reason : 'unknown');
+      }, error instanceof ManualEntryFallbackError ? error.reason : error instanceof Error && error.name === 'AbortError' ? 'timeout' : 'unknown');
     }
     throw error;
   } finally {clearTimeout(timer);}
+}
+
+/** One automatic retry for transient transport failures, within a shared budget.
+ * A challenge, unsafe redirect, incomplete quote or definite missing listing is
+ * not retried. Every attempt retains the ordinary allowlist/body/timeout gates. */
+export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 24_000);
+  const boundedFetch: MerchantFetch = Object.assign(async (input: string | URL, init?: RequestInit) => fetcher(input, {
+    ...init,
+    signal: init?.signal ? AbortSignal.any([controller.signal, init.signal]) : controller.signal,
+  }), {ebayBrowseConfig: fetcher.ebayBrowseConfig});
+  try {
+    for (let attempt = 0; ; attempt++) {
+      try { return await fetchProductOnce(value, boundedFetch); }
+      catch (error) {
+        const transient = error instanceof ManualEntryFallbackError && ['network', 'upstream', 'timeout'].includes(error.reason)
+          || error instanceof Error && error.name === 'AbortError';
+        if (attempt === 1 || !transient || controller.signal.aborted) throw error;
+        await new Promise(resolve => setTimeout(resolve, 250));
+      }
+    }
+  } finally { clearTimeout(timer); }
 }
 
 export async function fetchCollectionLinks(value:string, fetcher:MerchantFetch = fetch){
   const start=allowedUrl(value),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
   try{
     const page=isAmazonUsUrl(start) ? await readAmazonUs(start,controller.signal,fetcher) : await readPublic(start,controller.signal,'html',{},fetcher);
-    if(/verify you are human|robot check|pardon our interruption/i.test(page.text.slice(0,60000)))throw Error('Магазин ограничил доступ к подборке. Вставьте ссылки на товары.');
+    if(isMerchantChallengePage(page.text))throw new ManualEntryFallbackError('Магазин ограничил доступ к подборке. Вставьте ссылки на товары.',undefined,'blocked');
     const links=new Set<string>();
     for(const match of page.text.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi)){
       try{const candidate=allowedUrl(new URL(match[1].replace(/&amp;/g,'&'),page.url).href);
-        if(candidate.origin!==page.url.origin||!/(?:\/products\/[^/]+|\/p\/[^/]+|\/t\/[^/]+|\/itm\/\d+|\/dp\/[A-Z0-9]+|\.html)$/i.test(candidate.pathname))continue;
+        if (/[{}<>]|\$\{|\[\[/.test(decodeURIComponent(candidate.href))) continue;
+        if(candidate.origin!==page.url.origin||!isMerchantProductUrl(candidate))continue;
         candidate.hash='';for(const key of [...candidate.searchParams.keys()])if(/^(utm_.+|_pos|_sid|_ss)$/i.test(key))candidate.searchParams.delete(key);
         links.add(candidate.href);if(links.size===10)break;
       }catch{}

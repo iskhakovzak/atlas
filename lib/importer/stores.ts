@@ -13,6 +13,7 @@ export function isEbayStoreHost(host: string) {
 
 export const supportedStoreRoots = [
   'shop.simon.com',
+  'carters.com','tommy.com','ralphlauren.com','thenorthface.com',
   'allbirds.com','kyliecosmetics.com','colourpop.com','fashionnova.com','stevemadden.com','bombas.com',
   'aloyoga.com','rarebeauty.com','rhodeskin.com','glossier.com','summerfridays.com','fentybeauty.com',
   'kith.com','cncpts.com','sneakersnstuff.com','satechi.com','satechi.net','spigen.com',
@@ -28,6 +29,43 @@ export const supportedStoreRoots = [
 
 export type StoreRegion = 'Испания' | 'Европа' | 'США';
 export type StoreFocus = 'Одежда' | 'Кроссовки' | 'Красота' | 'Техника' | 'Универмаг';
+
+/** The owner's 33 storefronts, including the separate Zara Spain locale. */
+export const linkImportStorefronts = [
+  {name: 'Amazon', url: 'https://www.amazon.com'},
+  {name: 'eBay', url: 'https://www.ebay.com'},
+  {name: 'Walmart', url: 'https://www.walmart.com'},
+  {name: 'Target', url: 'https://www.target.com'},
+  {name: 'Nike', url: 'https://www.nike.com'},
+  {name: 'adidas', url: 'https://www.adidas.com/us'},
+  {name: 'Zara', url: 'https://www.zara.com/us'},
+  {name: 'H&M', url: 'https://www2.hm.com/en_us/index.html'},
+  {name: 'New Balance', url: 'https://www.newbalance.com'},
+  {name: 'PUMA', url: 'https://us.puma.com/us/en'},
+  {name: 'UNIQLO', url: 'https://www.uniqlo.com/us/en'},
+  {name: 'Mango', url: 'https://shop.mango.com/us/en'},
+  {name: 'Bershka', url: 'https://www.bershka.com/us'},
+  {name: 'Zalando', url: 'https://www.zalando.de'},
+  {name: 'Gap', url: 'https://www.gap.com'},
+  {name: 'Converse', url: 'https://www.converse.com'},
+  {name: 'Vans', url: 'https://www.vans.com/en-us'},
+  {name: 'Skechers', url: 'https://www.skechers.com'},
+  {name: 'Crocs', url: 'https://www.crocs.com'},
+  {name: 'Columbia', url: 'https://www.columbia.com'},
+  {name: 'The North Face', url: 'https://www.thenorthface.com/en-us'},
+  {name: 'Under Armour', url: 'https://www.underarmour.com/en-us'},
+  {name: 'Sephora', url: 'https://www.sephora.com'},
+  {name: 'Ulta Beauty', url: 'https://www.ulta.com'},
+  {name: 'Victoria’s Secret', url: 'https://www.victoriassecret.com/us'},
+  {name: 'Best Buy', url: 'https://www.bestbuy.com'},
+  {name: 'Levi’s', url: 'https://www.levi.com/US/en_US'},
+  {name: 'Pull&Bear', url: 'https://www.pullandbear.com/us'},
+  {name: 'Tommy Hilfiger', url: 'https://usa.tommy.com'},
+  {name: 'Ralph Lauren', url: 'https://www.ralphlauren.com'},
+  {name: 'Carter’s', url: 'https://www.carters.com'},
+  {name: 'Zara Spain', url: 'https://www.zara.com/es'},
+  {name: 'ShopSimon', url: 'https://shop.simon.com'},
+] as const;
 
 export type FeaturedStoreGroup = {
   region: StoreRegion;
@@ -68,7 +106,7 @@ const shopSubdomains = new Set(['mango.com','hm.com','uniqlo.com','nike.com','ad
 // same-country host, and H&M serves every US product page from www2. Keep the
 // exceptions explicit instead of allowing arbitrary merchant subdomains through
 // the SSRF boundary.
-const localizedHosts = new Set(['en.zalando.de', 'www2.hm.com']);
+const localizedHosts = new Set(['en.zalando.de', 'usa.tommy.com', 'us.puma.com', 'www2.hm.com']);
 // Public product documents some storefronts load from a separate API host (no credentials, exact product id).
 const storeApiHosts = new Set(['api.victoriassecret.com']);
 

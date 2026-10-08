@@ -1,0 +1,562 @@
+{
+  "sourceUrl": "https://www.target.com/p/-/A-89003153",
+  "capturedOn": "2026-10-07",
+  "provenance": "Public product fields only from New York VM; no visitor/query/experiment/account state.",
+  "state": {
+    "props": {
+      "dehydratedState": {
+        "queries": [
+          {
+            "state": {
+              "data": {
+                "data": {
+                  "data_source_modules": [
+                    {
+                      "module_data": {
+                        "data": {
+                          "product": {
+                            "tcin": "89115509",
+                            "variation_hierarchy": [
+                              {
+                                "name": "Size",
+                                "value": "S",
+                                "tcin": "89003153",
+                                "primary_image_url": "https://target.scene7.com/is/image/Target/GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d"
+                              },
+                              {
+                                "name": "Size",
+                                "value": "M",
+                                "tcin": "89003154",
+                                "primary_image_url": "https://target.scene7.com/is/image/Target/GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d"
+                              },
+                              {
+                                "name": "Size",
+                                "value": "L",
+                                "tcin": "89003155",
+                                "primary_image_url": "https://target.scene7.com/is/image/Target/GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d"
+                              },
+                              {
+                                "name": "Size",
+                                "value": "XL",
+                                "tcin": "89003156",
+                                "primary_image_url": "https://target.scene7.com/is/image/Target/GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d"
+                              },
+                              {
+                                "name": "Size",
+                                "value": "XXL",
+                                "tcin": "89003157",
+                                "primary_image_url": "https://target.scene7.com/is/image/Target/GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d"
+                              }
+                            ],
+                            "children": [
+                              {
+                                "tcin": "89003153",
+                                "item": {
+                                  "product_description": {
+                                    "bullet_descriptions": [
+                                      "<B>Sizing:</B> Mens",
+                                      "<B>Material:</B> 100% Cotton",
+                                      "<B>Fit:</B> Classic Fit",
+                                      "<B>Fabric Name:</B> Jersey",
+                                      "<B>Garment Style:</B> Short Sleeve, Pullover",
+                                      "<B>Length:</B> At Hip",
+                                      "<B>Neckline:</B> Crew",
+                                      "<B>Garment Details:</B> Tagless, Breathable Fabric, Moisture Wicking Fabric",
+                                      "<B>Package Quantity:</B> 5",
+                                      "<B>Fabric Weight Type:</B> Lightweight Fabric",
+                                      "<B>Garment sleeve style:</B> Basic Sleeve",
+                                      "<B>Care and Cleaning:</B> Machine Wash, Tumble Dry"
+                                    ],
+                                    "downstream_description": "Keep your everyday basics covered with these Hanes® Premium men’s crewneck undershirts designed for reliable, all-day wear. Made from 100% cotton, these men's tees offer a naturally soft, lightweight feel that’s comfortable against the skin from morning to night. All-day flex fabric moves with you while helping these t-shirts maintain their shape and fit. Cool Comfort® moisture-wicking fabric helps pull sweat away to keep you feeling cool and dry during busy days. Thoughtful details like a tag-free interior and sturdy lay-flat collar reduce discomfort, while the longer length helps the hem stay neatly tucked in. Finished in a convenient 5-pack, these crewneck tees for men make stocking up simple and stress-free.<br />",
+                                    "soft_bullets": {
+                                      "bullets": [
+                                        "EASY STOCK-UP ESSENTIAL - Simplify your routine with this convenient 5-pack of men’s crewneck undershirts, offering reliable everyday basics in one grab, so your drawer stays ready with fewer shopping trips and less hassle.",
+                                        "ALL-COTTON SOFTNESS - Made from 100% cotton, these men’s tees deliver a naturally soft, lightweight feel that’s comfortable against the skin, making them a dependable choice for daily layering or all-day wear.",
+                                        "MOVE-FRIENDLY FIT - Designed with all-day flex fabric, these men’s t-shirts move with your body while holding their shape, helping maintain a consistent, comfortable fit whether you’re active, working, or relaxing.",
+                                        "STAY COOL - Featuring Cool Comfort moisture-wicking fabric, these cotton undershirts for men help pull sweat away from the body to keep you feeling cool, dry, and fresh throughout long or busy days.",
+                                        "BUILT-IN SMART DETAILS - Finished with a smooth tag-free interior, sturdy lay-flat crewneck collar, and longer length, these men's tees are thoughtfully designed to stay tucked in and layer cleanly under any outfit."
+                                      ],
+                                      "title": "fit & style"
+                                    },
+                                    "title": "Hanes Premium Men&#39;s Short Sleeve Crew Neck T-Shirt 5pk - White S: 100% Cotton, Lightweight, Tagless, Moisture Wicking, Small",
+                                    "soft_bullet_description": "&bull;EASY STOCK-UP ESSENTIAL - Simplify your routine with this convenient 5-pack of men’s crewneck undershirts, offering reliable everyday basics in one grab, so your drawer stays ready with fewer shopping trips and less hassle.<br>&bull;ALL-COTTON SOFTNESS - Made from 100% cotton, these men’s tees deliver a naturally soft, lightweight feel that’s comfortable against the skin, making them a dependable choice for daily layering or all-day wear.<br>&bull;MOVE-FRIENDLY FIT - Designed with all-day flex fabric, these men’s t-shirts move with your body while holding their shape, helping maintain a consistent, comfortable fit whether you’re active, working, or relaxing.<br>&bull;STAY COOL - Featuring Cool Comfort moisture-wicking fabric, these cotton undershirts for men help pull sweat away from the body to keep you feeling cool, dry, and fresh throughout long or busy days.<br>&bull;BUILT-IN SMART DETAILS - Finished with a smooth tag-free interior, sturdy lay-flat crewneck collar, and longer length, these men's tees are thoughtfully designed to stay tucked in and layer cleanly under any outfit."
+                                  },
+                                  "enrichment": {
+                                    "buy_url": "https://www.target.com/p/hanes-premium-men-39-s-short-sleeve-crewneck-t-shirt-5pk-white-s/-/A-89003153",
+                                    "image_info": {
+                                      "base_url": "//target.scene7.com/is/image/Target/",
+                                      "primary_image": {
+                                        "image_name": "GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d",
+                                        "url": "https://target.scene7.com/is/image/Target/GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d"
+                                      },
+                                      "content_labels": [
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d"
+                                        },
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_1e8bd797-3972-4a70-bda9-1b0e622bc62c"
+                                        },
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_df65c443-7427-42ea-bc83-32d09d4e94fe"
+                                        },
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844"
+                                        },
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844?cropN=0.4875,0.53499985,0.07,0.07"
+                                        }
+                                      ],
+                                      "alternate_images": [
+                                        {
+                                          "url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844",
+                                          "image_name": "GUEST_c2c76d61-8b06-4688-8195-7d543986e844"
+                                        },
+                                        {
+                                          "url": "https://target.scene7.com/is/image/Target/GUEST_1e8bd797-3972-4a70-bda9-1b0e622bc62c",
+                                          "image_name": "GUEST_1e8bd797-3972-4a70-bda9-1b0e622bc62c"
+                                        },
+                                        {
+                                          "url": "https://target.scene7.com/is/image/Target/GUEST_df65c443-7427-42ea-bc83-32d09d4e94fe",
+                                          "image_name": "GUEST_df65c443-7427-42ea-bc83-32d09d4e94fe"
+                                        }
+                                      ],
+                                      "swatch_image": {
+                                        "url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844?cropN=0.4875,0.53499985,0.07,0.07",
+                                        "image_name": "GUEST_c2c76d61-8b06-4688-8195-7d543986e844?cropN=0.4875,0.53499985,0.07,0.07"
+                                      }
+                                    },
+                                    "size_chart_fragment_url": "https://digitalcontent.target.com/itemcontent/sizecharts/htmlfragments/mens-clothing/hanes/mens-undershirts.html",
+                                    "return_policies": [
+                                      {
+                                        "user_type": "best_guest",
+                                        "day_count": 120
+                                      },
+                                      {
+                                        "user_type": "regular_guest",
+                                        "day_count": 90
+                                      }
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "tcin": "89003154",
+                                "item": {
+                                  "product_description": {
+                                    "bullet_descriptions": [
+                                      "<B>Sizing:</B> Mens",
+                                      "<B>Material:</B> 100% Cotton",
+                                      "<B>Hem Style:</B> Plain Hem",
+                                      "<B>Fit:</B> Regular Fit",
+                                      "<B>Fabric Name:</B> Knit",
+                                      "<B>Garment Style:</B> Short Sleeve, Pullover",
+                                      "<B>Length:</B> Below Waist",
+                                      "<B>Neckline:</B> Crew",
+                                      "<B>Sheerness:</B> Opaque",
+                                      "<B>Garment Details:</B> No Pocket, Breathable Fabric, Moisture Wicking Fabric",
+                                      "<B>Garment back type:</B> Plain",
+                                      "<B>Fabric Weight Type:</B> Lightweight Fabric",
+                                      "<B>Garment sleeve style:</B> Basic Sleeve",
+                                      "<B>Stretch:</B> Stretch",
+                                      "<B>Care and Cleaning:</B> Machine Wash, Tumble Dry"
+                                    ],
+                                    "downstream_description": "Keep your everyday basics covered with these Hanes® Premium men’s crewneck undershirts designed for reliable, all-day wear. Made from 100% cotton, these men's tees offer a naturally soft, lightweight feel that’s comfortable against the skin from morning to night. All-day flex fabric moves with you while helping these t-shirts maintain their shape and fit. Cool Comfort® moisture-wicking fabric helps pull sweat away to keep you feeling cool and dry during busy days. Thoughtful details like a tag-free interior and sturdy lay-flat collar reduce discomfort, while the longer length helps the hem stay neatly tucked in. Finished in a convenient 5-pack, these crewneck tees for men make stocking up simple and stress-free.<br />",
+                                    "soft_bullets": {
+                                      "bullets": [
+                                        "EASY STOCK-UP ESSENTIAL - Simplify your routine with this convenient 5-pack of men’s crewneck undershirts, offering reliable everyday basics in one grab, so your drawer stays ready with fewer shopping trips and less hassle.",
+                                        "ALL-COTTON SOFTNESS - Made from 100% cotton, these men’s tees deliver a naturally soft, lightweight feel that’s comfortable against the skin, making them a dependable choice for daily layering or all-day wear.",
+                                        "MOVE-FRIENDLY FIT - Designed with all-day flex fabric, these men’s t-shirts move with your body while holding their shape, helping maintain a consistent, comfortable fit whether you’re active, working, or relaxing.",
+                                        "STAY COOL - Featuring Cool Comfort moisture-wicking fabric, these cotton undershirts for men help pull sweat away from the body to keep you feeling cool, dry, and fresh throughout long or busy days.",
+                                        "BUILT-IN SMART DETAILS - Finished with a smooth tag-free interior, sturdy lay-flat crewneck collar, and longer length, these men's tees are thoughtfully designed to stay tucked in and layer cleanly under any outfit."
+                                      ],
+                                      "title": "fit & style"
+                                    },
+                                    "title": "Hanes Premium Men&#39;s Short Sleeve Crew Neck T-Shirt 5pk - White M: Cotton Knit, Moisture Wicking,",
+                                    "soft_bullet_description": "&bull;EASY STOCK-UP ESSENTIAL - Simplify your routine with this convenient 5-pack of men’s crewneck undershirts, offering reliable everyday basics in one grab, so your drawer stays ready with fewer shopping trips and less hassle.<br>&bull;ALL-COTTON SOFTNESS - Made from 100% cotton, these men’s tees deliver a naturally soft, lightweight feel that’s comfortable against the skin, making them a dependable choice for daily layering or all-day wear.<br>&bull;MOVE-FRIENDLY FIT - Designed with all-day flex fabric, these men’s t-shirts move with your body while holding their shape, helping maintain a consistent, comfortable fit whether you’re active, working, or relaxing.<br>&bull;STAY COOL - Featuring Cool Comfort moisture-wicking fabric, these cotton undershirts for men help pull sweat away from the body to keep you feeling cool, dry, and fresh throughout long or busy days.<br>&bull;BUILT-IN SMART DETAILS - Finished with a smooth tag-free interior, sturdy lay-flat crewneck collar, and longer length, these men's tees are thoughtfully designed to stay tucked in and layer cleanly under any outfit."
+                                  },
+                                  "enrichment": {
+                                    "buy_url": "https://www.target.com/p/hanes-premium-men-39-s-short-sleeve-crewneck-t-shirt-5pk-white-m/-/A-89003154",
+                                    "image_info": {
+                                      "base_url": "//target.scene7.com/is/image/Target/",
+                                      "primary_image": {
+                                        "image_name": "GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d",
+                                        "url": "https://target.scene7.com/is/image/Target/GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d"
+                                      },
+                                      "content_labels": [
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d"
+                                        },
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_1e8bd797-3972-4a70-bda9-1b0e622bc62c"
+                                        },
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_df65c443-7427-42ea-bc83-32d09d4e94fe"
+                                        },
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844"
+                                        },
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844?cropN=0.4875,0.53499985,0.07,0.07"
+                                        }
+                                      ],
+                                      "alternate_images": [
+                                        {
+                                          "url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844",
+                                          "image_name": "GUEST_c2c76d61-8b06-4688-8195-7d543986e844"
+                                        },
+                                        {
+                                          "url": "https://target.scene7.com/is/image/Target/GUEST_1e8bd797-3972-4a70-bda9-1b0e622bc62c",
+                                          "image_name": "GUEST_1e8bd797-3972-4a70-bda9-1b0e622bc62c"
+                                        },
+                                        {
+                                          "url": "https://target.scene7.com/is/image/Target/GUEST_df65c443-7427-42ea-bc83-32d09d4e94fe",
+                                          "image_name": "GUEST_df65c443-7427-42ea-bc83-32d09d4e94fe"
+                                        }
+                                      ],
+                                      "swatch_image": {
+                                        "url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844?cropN=0.4875,0.53499985,0.07,0.07",
+                                        "image_name": "GUEST_c2c76d61-8b06-4688-8195-7d543986e844?cropN=0.4875,0.53499985,0.07,0.07"
+                                      }
+                                    },
+                                    "size_chart_fragment_url": "https://digitalcontent.target.com/itemcontent/sizecharts/htmlfragments/mens-clothing/hanes/mens-undershirts.html",
+                                    "return_policies": [
+                                      {
+                                        "user_type": "best_guest",
+                                        "day_count": 120
+                                      },
+                                      {
+                                        "user_type": "regular_guest",
+                                        "day_count": 90
+                                      }
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "tcin": "89003155",
+                                "item": {
+                                  "product_description": {
+                                    "bullet_descriptions": [
+                                      "<B>Sizing:</B> Mens",
+                                      "<B>Material:</B> 100% Cotton",
+                                      "<B>Fit:</B> Classic Fit",
+                                      "<B>Fabric Name:</B> Jersey",
+                                      "<B>Garment Style:</B> Short Sleeve, Pullover",
+                                      "<B>Length:</B> At Hip",
+                                      "<B>Neckline:</B> Crew",
+                                      "<B>Garment Details:</B> Tagless, Breathable Fabric, Moisture Wicking Fabric",
+                                      "<B>Package Quantity:</B> 5",
+                                      "<B>Fabric Weight Type:</B> Lightweight Fabric",
+                                      "<B>Garment sleeve style:</B> Basic Sleeve",
+                                      "<B>Care and Cleaning:</B> Machine Wash, Tumble Dry"
+                                    ],
+                                    "downstream_description": "Keep your everyday basics covered with these Hanes® Premium men’s crewneck undershirts designed for reliable, all-day wear. Made from 100% cotton, these men's tees offer a naturally soft, lightweight feel that’s comfortable against the skin from morning to night. All-day flex fabric moves with you while helping these t-shirts maintain their shape and fit. Cool Comfort® moisture-wicking fabric helps pull sweat away to keep you feeling cool and dry during busy days. Thoughtful details like a tag-free interior and sturdy lay-flat collar reduce discomfort, while the longer length helps the hem stay neatly tucked in. Finished in a convenient 5-pack, these crewneck tees for men make stocking up simple and stress-free.<br />",
+                                    "soft_bullets": {
+                                      "bullets": [
+                                        "EASY STOCK-UP ESSENTIAL - Simplify your routine with this convenient 5-pack of men’s crewneck undershirts, offering reliable everyday basics in one grab, so your drawer stays ready with fewer shopping trips and less hassle.",
+                                        "ALL-COTTON SOFTNESS - Made from 100% cotton, these men’s tees deliver a naturally soft, lightweight feel that’s comfortable against the skin, making them a dependable choice for daily layering or all-day wear.",
+                                        "MOVE-FRIENDLY FIT - Designed with all-day flex fabric, these men’s t-shirts move with your body while holding their shape, helping maintain a consistent, comfortable fit whether you’re active, working, or relaxing.",
+                                        "STAY COOL - Featuring Cool Comfort moisture-wicking fabric, these cotton undershirts for men help pull sweat away from the body to keep you feeling cool, dry, and fresh throughout long or busy days.",
+                                        "BUILT-IN SMART DETAILS - Finished with a smooth tag-free interior, sturdy lay-flat crewneck collar, and longer length, these men's tees are thoughtfully designed to stay tucked in and layer cleanly under any outfit."
+                                      ],
+                                      "title": "fit & style"
+                                    },
+                                    "title": "Hanes Premium Men&#39;s Short Sleeve Crew Neck T-Shirt 5pk - White L: Cotton, Lightweight, Tagless, Moisture Wicking",
+                                    "soft_bullet_description": "&bull;EASY STOCK-UP ESSENTIAL - Simplify your routine with this convenient 5-pack of men’s crewneck undershirts, offering reliable everyday basics in one grab, so your drawer stays ready with fewer shopping trips and less hassle.<br>&bull;ALL-COTTON SOFTNESS - Made from 100% cotton, these men’s tees deliver a naturally soft, lightweight feel that’s comfortable against the skin, making them a dependable choice for daily layering or all-day wear.<br>&bull;MOVE-FRIENDLY FIT - Designed with all-day flex fabric, these men’s t-shirts move with your body while holding their shape, helping maintain a consistent, comfortable fit whether you’re active, working, or relaxing.<br>&bull;STAY COOL - Featuring Cool Comfort moisture-wicking fabric, these cotton undershirts for men help pull sweat away from the body to keep you feeling cool, dry, and fresh throughout long or busy days.<br>&bull;BUILT-IN SMART DETAILS - Finished with a smooth tag-free interior, sturdy lay-flat crewneck collar, and longer length, these men's tees are thoughtfully designed to stay tucked in and layer cleanly under any outfit."
+                                  },
+                                  "enrichment": {
+                                    "buy_url": "https://www.target.com/p/hanes-premium-men-39-s-short-sleeve-crewneck-t-shirt-5pk-white-l/-/A-89003155",
+                                    "image_info": {
+                                      "base_url": "//target.scene7.com/is/image/Target/",
+                                      "primary_image": {
+                                        "image_name": "GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d",
+                                        "url": "https://target.scene7.com/is/image/Target/GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d"
+                                      },
+                                      "content_labels": [
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d"
+                                        },
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_1e8bd797-3972-4a70-bda9-1b0e622bc62c"
+                                        },
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_df65c443-7427-42ea-bc83-32d09d4e94fe"
+                                        },
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844"
+                                        },
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844?cropN=0.4875,0.53499985,0.07,0.07"
+                                        }
+                                      ],
+                                      "alternate_images": [
+                                        {
+                                          "url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844",
+                                          "image_name": "GUEST_c2c76d61-8b06-4688-8195-7d543986e844"
+                                        },
+                                        {
+                                          "url": "https://target.scene7.com/is/image/Target/GUEST_1e8bd797-3972-4a70-bda9-1b0e622bc62c",
+                                          "image_name": "GUEST_1e8bd797-3972-4a70-bda9-1b0e622bc62c"
+                                        },
+                                        {
+                                          "url": "https://target.scene7.com/is/image/Target/GUEST_df65c443-7427-42ea-bc83-32d09d4e94fe",
+                                          "image_name": "GUEST_df65c443-7427-42ea-bc83-32d09d4e94fe"
+                                        }
+                                      ],
+                                      "swatch_image": {
+                                        "url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844?cropN=0.4875,0.53499985,0.07,0.07",
+                                        "image_name": "GUEST_c2c76d61-8b06-4688-8195-7d543986e844?cropN=0.4875,0.53499985,0.07,0.07"
+                                      }
+                                    },
+                                    "size_chart_fragment_url": "https://digitalcontent.target.com/itemcontent/sizecharts/htmlfragments/mens-clothing/hanes/mens-undershirts.html",
+                                    "return_policies": [
+                                      {
+                                        "user_type": "best_guest",
+                                        "day_count": 120
+                                      },
+                                      {
+                                        "user_type": "regular_guest",
+                                        "day_count": 90
+                                      }
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "tcin": "89003156",
+                                "item": {
+                                  "product_description": {
+                                    "bullet_descriptions": [
+                                      "<B>Sizing:</B> Mens",
+                                      "<B>Material:</B> 100% Cotton",
+                                      "<B>Fit:</B> Classic Fit",
+                                      "<B>Fabric Name:</B> Jersey",
+                                      "<B>Garment Style:</B> Short Sleeve, Pullover",
+                                      "<B>Length:</B> At Hip",
+                                      "<B>Neckline:</B> Crew",
+                                      "<B>Garment Details:</B> Tagless, Breathable Fabric, Moisture Wicking Fabric",
+                                      "<B>Package Quantity:</B> 5",
+                                      "<B>Fabric Weight Type:</B> Lightweight Fabric",
+                                      "<B>Garment sleeve style:</B> Basic Sleeve",
+                                      "<B>Care and Cleaning:</B> Machine Wash, Tumble Dry"
+                                    ],
+                                    "downstream_description": "Keep your everyday basics covered with these Hanes® Premium men’s crewneck undershirts designed for reliable, all-day wear. Made from 100% cotton, these men's tees offer a naturally soft, lightweight feel that’s comfortable against the skin from morning to night. All-day flex fabric moves with you while helping these t-shirts maintain their shape and fit. Cool Comfort® moisture-wicking fabric helps pull sweat away to keep you feeling cool and dry during busy days. Thoughtful details like a tag-free interior and sturdy lay-flat collar reduce discomfort, while the longer length helps the hem stay neatly tucked in. Finished in a convenient 5-pack, these crewneck tees for men make stocking up simple and stress-free.<br />",
+                                    "soft_bullets": {
+                                      "bullets": [
+                                        "EASY STOCK-UP ESSENTIAL - Simplify your routine with this convenient 5-pack of men’s crewneck undershirts, offering reliable everyday basics in one grab, so your drawer stays ready with fewer shopping trips and less hassle.",
+                                        "ALL-COTTON SOFTNESS - Made from 100% cotton, these men’s tees deliver a naturally soft, lightweight feel that’s comfortable against the skin, making them a dependable choice for daily layering or all-day wear.",
+                                        "MOVE-FRIENDLY FIT - Designed with all-day flex fabric, these men’s t-shirts move with your body while holding their shape, helping maintain a consistent, comfortable fit whether you’re active, working, or relaxing.",
+                                        "STAY COOL - Featuring Cool Comfort moisture-wicking fabric, these cotton undershirts for men help pull sweat away from the body to keep you feeling cool, dry, and fresh throughout long or busy days.",
+                                        "BUILT-IN SMART DETAILS - Finished with a smooth tag-free interior, sturdy lay-flat crewneck collar, and longer length, these men's tees are thoughtfully designed to stay tucked in and layer cleanly under any outfit."
+                                      ],
+                                      "title": "fit & style"
+                                    },
+                                    "title": "Hanes Premium Men&#39;s Short Sleeve Crew Neck T-Shirt 5pk - White XL: Tagless, Moisture Wicking, Breathable Fabric",
+                                    "soft_bullet_description": "&bull;EASY STOCK-UP ESSENTIAL - Simplify your routine with this convenient 5-pack of men’s crewneck undershirts, offering reliable everyday basics in one grab, so your drawer stays ready with fewer shopping trips and less hassle.<br>&bull;ALL-COTTON SOFTNESS - Made from 100% cotton, these men’s tees deliver a naturally soft, lightweight feel that’s comfortable against the skin, making them a dependable choice for daily layering or all-day wear.<br>&bull;MOVE-FRIENDLY FIT - Designed with all-day flex fabric, these men’s t-shirts move with your body while holding their shape, helping maintain a consistent, comfortable fit whether you’re active, working, or relaxing.<br>&bull;STAY COOL - Featuring Cool Comfort moisture-wicking fabric, these cotton undershirts for men help pull sweat away from the body to keep you feeling cool, dry, and fresh throughout long or busy days.<br>&bull;BUILT-IN SMART DETAILS - Finished with a smooth tag-free interior, sturdy lay-flat crewneck collar, and longer length, these men's tees are thoughtfully designed to stay tucked in and layer cleanly under any outfit."
+                                  },
+                                  "enrichment": {
+                                    "buy_url": "https://www.target.com/p/hanes-premium-men-39-s-short-sleeve-crewneck-t-shirt-5pk-white-xl/-/A-89003156",
+                                    "image_info": {
+                                      "base_url": "//target.scene7.com/is/image/Target/",
+                                      "primary_image": {
+                                        "image_name": "GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d",
+                                        "url": "https://target.scene7.com/is/image/Target/GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d"
+                                      },
+                                      "content_labels": [
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d"
+                                        },
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_1e8bd797-3972-4a70-bda9-1b0e622bc62c"
+                                        },
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_df65c443-7427-42ea-bc83-32d09d4e94fe"
+                                        },
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844"
+                                        },
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844?cropN=0.4875,0.53499985,0.07,0.07"
+                                        }
+                                      ],
+                                      "alternate_images": [
+                                        {
+                                          "url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844",
+                                          "image_name": "GUEST_c2c76d61-8b06-4688-8195-7d543986e844"
+                                        },
+                                        {
+                                          "url": "https://target.scene7.com/is/image/Target/GUEST_1e8bd797-3972-4a70-bda9-1b0e622bc62c",
+                                          "image_name": "GUEST_1e8bd797-3972-4a70-bda9-1b0e622bc62c"
+                                        },
+                                        {
+                                          "url": "https://target.scene7.com/is/image/Target/GUEST_df65c443-7427-42ea-bc83-32d09d4e94fe",
+                                          "image_name": "GUEST_df65c443-7427-42ea-bc83-32d09d4e94fe"
+                                        }
+                                      ],
+                                      "swatch_image": {
+                                        "url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844?cropN=0.4875,0.53499985,0.07,0.07",
+                                        "image_name": "GUEST_c2c76d61-8b06-4688-8195-7d543986e844?cropN=0.4875,0.53499985,0.07,0.07"
+                                      }
+                                    },
+                                    "size_chart_fragment_url": "https://digitalcontent.target.com/itemcontent/sizecharts/htmlfragments/mens-clothing/hanes/mens-undershirts.html",
+                                    "return_policies": [
+                                      {
+                                        "user_type": "best_guest",
+                                        "day_count": 120
+                                      },
+                                      {
+                                        "user_type": "regular_guest",
+                                        "day_count": 90
+                                      }
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "tcin": "89003157",
+                                "item": {
+                                  "product_description": {
+                                    "bullet_descriptions": [
+                                      "<B>Sizing:</B> Mens",
+                                      "<B>Material:</B> 100% Cotton",
+                                      "<B>Fit:</B> Classic Fit",
+                                      "<B>Fabric Name:</B> Jersey",
+                                      "<B>Garment Style:</B> Short Sleeve, Pullover",
+                                      "<B>Length:</B> At Hip",
+                                      "<B>Neckline:</B> Crew",
+                                      "<B>Garment Details:</B> Tagless, Breathable Fabric, Moisture Wicking Fabric",
+                                      "<B>Package Quantity:</B> 5",
+                                      "<B>Fabric Weight Type:</B> Lightweight Fabric",
+                                      "<B>Garment sleeve style:</B> Basic Sleeve",
+                                      "<B>Care and Cleaning:</B> Machine Wash, Tumble Dry"
+                                    ],
+                                    "downstream_description": "Keep your everyday basics covered with these Hanes® Premium men’s crewneck undershirts designed for reliable, all-day wear. Made from 100% cotton, these men's tees offer a naturally soft, lightweight feel that’s comfortable against the skin from morning to night. All-day flex fabric moves with you while helping these t-shirts maintain their shape and fit. Cool Comfort® moisture-wicking fabric helps pull sweat away to keep you feeling cool and dry during busy days. Thoughtful details like a tag-free interior and sturdy lay-flat collar reduce discomfort, while the longer length helps the hem stay neatly tucked in. Finished in a convenient 5-pack, these crewneck tees for men make stocking up simple and stress-free.<br />",
+                                    "soft_bullets": {
+                                      "bullets": [
+                                        "EASY STOCK-UP ESSENTIAL - Simplify your routine with this convenient 5-pack of men’s crewneck undershirts, offering reliable everyday basics in one grab, so your drawer stays ready with fewer shopping trips and less hassle.",
+                                        "ALL-COTTON SOFTNESS - Made from 100% cotton, these men’s tees deliver a naturally soft, lightweight feel that’s comfortable against the skin, making them a dependable choice for daily layering or all-day wear.",
+                                        "MOVE-FRIENDLY FIT - Designed with all-day flex fabric, these men’s t-shirts move with your body while holding their shape, helping maintain a consistent, comfortable fit whether you’re active, working, or relaxing.",
+                                        "STAY COOL - Featuring Cool Comfort moisture-wicking fabric, these cotton undershirts for men help pull sweat away from the body to keep you feeling cool, dry, and fresh throughout long or busy days.",
+                                        "BUILT-IN SMART DETAILS - Finished with a smooth tag-free interior, sturdy lay-flat crewneck collar, and longer length, these men's tees are thoughtfully designed to stay tucked in and layer cleanly under any outfit."
+                                      ],
+                                      "title": "fit & style"
+                                    },
+                                    "title": "Hanes Premium Men&#39;s Short Sleeve Crew Neck T-Shirt 5pk - White XXL: Cotton, Tagless, Moisture Wicking",
+                                    "soft_bullet_description": "&bull;EASY STOCK-UP ESSENTIAL - Simplify your routine with this convenient 5-pack of men’s crewneck undershirts, offering reliable everyday basics in one grab, so your drawer stays ready with fewer shopping trips and less hassle.<br>&bull;ALL-COTTON SOFTNESS - Made from 100% cotton, these men’s tees deliver a naturally soft, lightweight feel that’s comfortable against the skin, making them a dependable choice for daily layering or all-day wear.<br>&bull;MOVE-FRIENDLY FIT - Designed with all-day flex fabric, these men’s t-shirts move with your body while holding their shape, helping maintain a consistent, comfortable fit whether you’re active, working, or relaxing.<br>&bull;STAY COOL - Featuring Cool Comfort moisture-wicking fabric, these cotton undershirts for men help pull sweat away from the body to keep you feeling cool, dry, and fresh throughout long or busy days.<br>&bull;BUILT-IN SMART DETAILS - Finished with a smooth tag-free interior, sturdy lay-flat crewneck collar, and longer length, these men's tees are thoughtfully designed to stay tucked in and layer cleanly under any outfit."
+                                  },
+                                  "enrichment": {
+                                    "buy_url": "https://www.target.com/p/hanes-premium-men-39-s-short-sleeve-crewneck-t-shirt-5pk-white-xxl/-/A-89003157",
+                                    "image_info": {
+                                      "base_url": "//target.scene7.com/is/image/Target/",
+                                      "primary_image": {
+                                        "image_name": "GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d",
+                                        "url": "https://target.scene7.com/is/image/Target/GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d"
+                                      },
+                                      "content_labels": [
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d"
+                                        },
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_1e8bd797-3972-4a70-bda9-1b0e622bc62c"
+                                        },
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_df65c443-7427-42ea-bc83-32d09d4e94fe"
+                                        },
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844"
+                                        },
+                                        {
+                                          "image_url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844?cropN=0.4875,0.53499985,0.07,0.07"
+                                        }
+                                      ],
+                                      "alternate_images": [
+                                        {
+                                          "url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844",
+                                          "image_name": "GUEST_c2c76d61-8b06-4688-8195-7d543986e844"
+                                        },
+                                        {
+                                          "url": "https://target.scene7.com/is/image/Target/GUEST_1e8bd797-3972-4a70-bda9-1b0e622bc62c",
+                                          "image_name": "GUEST_1e8bd797-3972-4a70-bda9-1b0e622bc62c"
+                                        },
+                                        {
+                                          "url": "https://target.scene7.com/is/image/Target/GUEST_df65c443-7427-42ea-bc83-32d09d4e94fe",
+                                          "image_name": "GUEST_df65c443-7427-42ea-bc83-32d09d4e94fe"
+                                        }
+                                      ],
+                                      "swatch_image": {
+                                        "url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844?cropN=0.4875,0.53499985,0.07,0.07",
+                                        "image_name": "GUEST_c2c76d61-8b06-4688-8195-7d543986e844?cropN=0.4875,0.53499985,0.07,0.07"
+                                      }
+                                    },
+                                    "size_chart_fragment_url": "https://digitalcontent.target.com/itemcontent/sizecharts/htmlfragments/mens-clothing/hanes/mens-undershirts.html",
+                                    "return_policies": [
+                                      {
+                                        "user_type": "best_guest",
+                                        "day_count": 120
+                                      },
+                                      {
+                                        "user_type": "regular_guest",
+                                        "day_count": 90
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "layout": {
+                    "zones": [
+                      {
+                        "module_groups": [
+                          {
+                            "modules": [
+                              {
+                                "module_data": {
+                                  "data_by_tcin": [
+                                    {
+                                      "tcin": "89003153",
+                                      "product_gallery": {
+                                        "__typename": "ProductGallery",
+                                        "assets": [
+                                          {
+                                            "__typename": "ProductGalleryAssetImage",
+                                            "url": "https://target.scene7.com/is/image/Target/GUEST_11f6ce14-3b82-4969-a1a5-e62bc743da7d"
+                                          },
+                                          {
+                                            "__typename": "ProductGalleryAssetImage",
+                                            "url": "https://target.scene7.com/is/image/Target/GUEST_c2c76d61-8b06-4688-8195-7d543986e844"
+                                          },
+                                          {
+                                            "__typename": "ProductGalleryAssetImage",
+                                            "url": "https://target.scene7.com/is/image/Target/GUEST_1e8bd797-3972-4a70-bda9-1b0e622bc62c"
+                                          },
+                                          {
+                                            "__typename": "ProductGalleryAssetImage",
+                                            "url": "https://target.scene7.com/is/image/Target/GUEST_df65c443-7427-42ea-bc83-32d09d4e94fe"
+                                          }
+                                        ],
+                                        "show_pagination_indicator": true
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

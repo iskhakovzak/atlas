@@ -1,14 +1,26 @@
 import type { Extracted, ProductVariant } from './extract.ts';
 import { unknownStoreShippingUsd, type Product, type SourceIssueKind } from '../market/domain.ts';
 import { currencies } from '../market/world.ts';
+import {variantSourceUrl,variantGallery} from './link-selection.ts';
+import {isEbayStoreHost} from './stores.ts';
 
 const sameAmount = (left: number, right: number) => Math.abs(left - right) < 0.005;
 
+function matchingVariant(product: Pick<Product, 'sourceVariantId'|'sourceSellerId'|'sourceOfferId'|'sourceProductId'>, selectedLabel: string, variants: ProductVariant[]): ProductVariant | undefined {
+  const matches=variants.filter(item=>product.sourceVariantId?item.id===product.sourceVariantId:item.label===selectedLabel).filter(item=>(!product.sourceSellerId||item.sellerId===product.sourceSellerId)&&(!product.sourceOfferId||item.offerId===product.sourceOfferId)&&(!product.sourceProductId||item.productId===product.sourceProductId));
+  const selected=matches.length===1?matches[0]:undefined;
+  // A legacy label may be renamed or omitted. Reject only a contradiction the
+  // merchant actually returned: the requested label belongs to another ID.
+  if (selected && product.sourceVariantId && selected.label !== selectedLabel
+    && variants.some(item => item.label === selectedLabel && item.id && item.id !== product.sourceVariantId)) {
+    throw Error('Выбранный вариант не совпадает с артикулом магазина. Загрузите товар заново.');
+  }
+  return selected;
+}
+
 function currentVariant(product: Product, selectedLabel: string, extracted: Extracted): ProductVariant | undefined {
   const variants = extracted.variants ?? [];
-  const selected = product.sourceVariantId
-    ? variants.find(item => item.id === product.sourceVariantId)
-    : variants.find(item => item.label === selectedLabel);
+  const selected = matchingVariant(product, selectedLabel, variants);
   // Some merchants expose a single product option with a generated label. A
   // catalog/editorial fallback may use a different neutral label (for
   // example, "Указанный вариант"), even though there is no real choice to
@@ -46,23 +58,31 @@ export function compareProductSnapshot(product: Product, selectedLabel: string, 
   if (!product.sourceUrl || !product.sourceCurrency || product.sourcePrice === undefined)
     return { status: 'blocked', kind: 'price', code: 'err_67', message: 'Для проверки не хватает ссылки, цены или валюты товара.' };
   const variant = currentVariant(product, selectedLabel, extracted);
+  if(variant&&((product.sourceSellerId&&product.sourceSellerId!==variant.sellerId)||(product.sourceOfferId&&product.sourceOfferId!==variant.offerId)||(product.sourceProductId&&product.sourceProductId!==variant.productId)))
+    return {status:'blocked',kind:'variant',code:'err_69',message:'Магазин изменил выбранный товар или предложение. Загрузите товар заново.'};
   const currency = extracted.currency?.toUpperCase();
   if (!currency || currency !== product.sourceCurrency.toUpperCase())
     return { status: 'blocked', kind: 'currency', code: 'err_68', message: 'Магазин изменил валюту витрины. Загрузите товар заново.' };
   // A merchant may omit a selected option (or all options) from its current
-  // public response. Availability is not a gate; for a customer-confirmed
-  // order we can still verify the published product price and currency.
+  // public response. A legacy confirmed snapshot can still verify its base
+  // price; a returned, explicitly sold-out option is blocked below.
   if (!variant && !product.sourceManuallyConfirmed)
-    return { status: 'blocked', kind: 'variant', code: 'err_69', message: 'Выбранный вариант не удалось сверить с данными магазина. Подтвердите его вручную.' };
-  const price = variant?.price ?? extracted.price;
+    return { status: 'blocked', kind: 'variant', code: 'err_69', message: 'Выбранный вариант не удалось сверить с данными магазина. Загрузите товар заново.' };
+  if(variant?.availabilityKnown===false)
+    return {status:'blocked',kind:'variant',code:'err_69',message:'Магазин не подтвердил наличие выбранного варианта. Повторите загрузку позже.'};
+  const price = extracted.variantScope==='group'&&(extracted.variants?.length??0)>1?variant?.price:variant?.price ?? extracted.price;
   if (price === undefined) return { status: 'blocked', kind: 'price', code: 'err_70', message: 'Магазин не подтвердил цену выбранного варианта.' };
   // Stock is known only when the store reports a count (eBay); otherwise it stays unknown, never guessed.
-  if (variant?.quantity === 0)
+  if (variant?.quantity === 0 || variant?.available === false)
     return { status: 'blocked', kind: 'stock', code: 'err_71', message: 'Этого варианта больше нет в наличии у магазина.' };
   const stockKnown = variant?.quantity !== undefined || variant?.quantityMoreThan !== undefined;
+  const checkedUrl=extracted.sourceUrl??product.sourceUrl;
+  const sourceImages=variantGallery(variant,extracted.colorwayImages??[],checkedUrl);
   const next: Product = {
     ...product, sourcePrice: price, sourceVariantId: variant?.id ?? product.sourceVariantId, image: variant?.image ?? product.image, importedAt: now, sourceExpiresAt: now + 10 * 60_000, sourceCheckedAt: now,
-    stockQuantity: variant?.quantity, stockMoreThan: variant?.quantity === undefined ? variant?.quantityMoreThan : undefined, stockSource: stockKnown ? 'ebay' : undefined,
+    sourceUrl:variantSourceUrl(checkedUrl,variant),sourceProductId:variant?.productId,sourceSellerId:variant?.sellerId,sourceOfferId:variant?.offerId,sourceColorId:variant?.colorId,sourceOptions:variant?.options,
+    ...(sourceImages.length?{sourceImages}:{}),
+    stockQuantity: variant?.quantity, stockMoreThan: variant?.quantity === undefined ? variant?.quantityMoreThan : undefined, stockSource: stockKnown ? (isEbayStoreHost(new URL(checkedUrl).hostname)?'ebay':'merchant') : undefined,
   };
   const change: SourcePriceChange = { previousPrice: product.sourcePrice, price, currency };
   let changed = !sameAmount(price, product.sourcePrice);
@@ -127,7 +147,7 @@ export function verifyKnownSnapshotFields(product:Product,selectedLabel:string,p
   const currency=partial.currency?.toUpperCase();
   if(currency&&currency!==product.sourceCurrency.toUpperCase())throw Error('Магазин изменил валюту витрины. Обновите товар.');
   const variants=partial.variants??[];
-  const variant=product.sourceVariantId?variants.find(item=>item.id===product.sourceVariantId):variants.find(item=>item.label===selectedLabel);
+  const variant=matchingVariant(product,selectedLabel,variants);
   const price=variant?.price??partial.price;
   if(price!==undefined&&!currency)throw Error('Магазин показал цену без валюты. Проверьте валюту товара и загрузите ссылку заново.');
   if(price!==undefined&&!sameAmount(price,product.sourcePrice))throw Error(`Цена изменилась: было ${product.sourcePrice} ${currency}, сейчас ${price} ${currency}. Обновите товар.`);

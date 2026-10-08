@@ -1,0 +1,266 @@
+{
+  "sourceUrl": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY",
+  "products": [
+    {
+      "@id": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY/#productgroup",
+      "@type": "ProductGroup",
+      "category": "https://www.vans.com/en-us/c/shoes/icons/old-skool-5205",
+      "description": "The Old Skool was our first footwear design to showcase the famous Vans Sidestripe, although back then, it was just a simple doodle drawn by founder Paul Van Doren. Since its debut in 1977, this low-top silhouette has established itself as an icon in the skate, music, and fashion scenes. From 90sstreet skaters and punks to current hip hop and fashion legends, the Big Kids Old Skool has consistently been the go-to shoe for creatives who do things their own way.",
+      "name": "Big Kids Old Skool Shoe",
+      "productGroupID": "VN000D2VNVY",
+      "url": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY",
+      "hasVariant": [
+        {
+          "@type": "Product",
+          "@id": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY?size=3.5%20Kids",
+          "sku": "VN:000D2V:NVY:035:M:1",
+          "gtin": "197803589860",
+          "image": "https://assets.vans.com/images/t_Thumbnail/v1748990666/VN000D2VNVY-HERO/Big-Kids-Old-Skool-Shoe-VANS-Navy-Blue-HERO.png",
+          "name": "Big Kids Old Skool Shoe",
+          "color": "Navy Blue",
+          "size": "3.5",
+          "offers": {
+            "@type": "Offer",
+            "url": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY?size=3.5%20Kids",
+            "priceCurrency": "USD",
+            "price": 55,
+            "itemCondition": "https://schema.org/NewCondition",
+            "availability": "https://schema.org/OutOfStock",
+            "shippingDetails": {
+              "@id": "https://www.vans.com/help/shipping#shippingdetails"
+            },
+            "hasMerchantReturnPolicy": {
+              "@id": "https://www.vans.com/help/returns#returnpolicy"
+            }
+          }
+        },
+        {
+          "@type": "Product",
+          "@id": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY?size=4.0%20Kids",
+          "sku": "VN:000D2V:NVY:040:M:1",
+          "gtin": "197803589990",
+          "image": "https://assets.vans.com/images/t_Thumbnail/v1748990666/VN000D2VNVY-HERO/Big-Kids-Old-Skool-Shoe-VANS-Navy-Blue-HERO.png",
+          "name": "Big Kids Old Skool Shoe",
+          "color": "Navy Blue",
+          "size": "4",
+          "offers": {
+            "@type": "Offer",
+            "url": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY?size=4.0%20Kids",
+            "priceCurrency": "USD",
+            "price": 55,
+            "itemCondition": "https://schema.org/NewCondition",
+            "availability": "https://schema.org/OutOfStock",
+            "shippingDetails": {
+              "@id": "https://www.vans.com/help/shipping#shippingdetails"
+            },
+            "hasMerchantReturnPolicy": {
+              "@id": "https://www.vans.com/help/returns#returnpolicy"
+            }
+          }
+        },
+        {
+          "@type": "Product",
+          "@id": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY?size=7.0%20Kids",
+          "sku": "VN:000D2V:NVY:070:M:1",
+          "gtin": "197803591290",
+          "image": "https://assets.vans.com/images/t_Thumbnail/v1748990666/VN000D2VNVY-HERO/Big-Kids-Old-Skool-Shoe-VANS-Navy-Blue-HERO.png",
+          "name": "Big Kids Old Skool Shoe",
+          "color": "Navy Blue",
+          "size": "7",
+          "offers": {
+            "@type": "Offer",
+            "url": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY?size=7.0%20Kids",
+            "priceCurrency": "USD",
+            "price": 55,
+            "itemCondition": "https://schema.org/NewCondition",
+            "availability": "https://schema.org/InStock",
+            "shippingDetails": {
+              "@id": "https://www.vans.com/help/shipping#shippingdetails"
+            },
+            "hasMerchantReturnPolicy": {
+              "@id": "https://www.vans.com/help/returns#returnpolicy"
+            }
+          }
+        },
+        {
+          "@type": "Product",
+          "@id": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY?size=6.0%20Kids",
+          "sku": "VN:000D2V:NVY:060:M:1",
+          "gtin": "197803591030",
+          "image": "https://assets.vans.com/images/t_Thumbnail/v1748990666/VN000D2VNVY-HERO/Big-Kids-Old-Skool-Shoe-VANS-Navy-Blue-HERO.png",
+          "name": "Big Kids Old Skool Shoe",
+          "color": "Navy Blue",
+          "size": "6",
+          "offers": {
+            "@type": "Offer",
+            "url": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY?size=6.0%20Kids",
+            "priceCurrency": "USD",
+            "price": 55,
+            "itemCondition": "https://schema.org/NewCondition",
+            "availability": "https://schema.org/InStock",
+            "shippingDetails": {
+              "@id": "https://www.vans.com/help/shipping#shippingdetails"
+            },
+            "hasMerchantReturnPolicy": {
+              "@id": "https://www.vans.com/help/returns#returnpolicy"
+            }
+          }
+        },
+        {
+          "@type": "Product",
+          "@id": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY?size=4.5%20Kids",
+          "sku": "VN:000D2V:NVY:045:M:1",
+          "gtin": "197803590194",
+          "image": "https://assets.vans.com/images/t_Thumbnail/v1748990666/VN000D2VNVY-HERO/Big-Kids-Old-Skool-Shoe-VANS-Navy-Blue-HERO.png",
+          "name": "Big Kids Old Skool Shoe",
+          "color": "Navy Blue",
+          "size": "4.5",
+          "offers": {
+            "@type": "Offer",
+            "url": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY?size=4.5%20Kids",
+            "priceCurrency": "USD",
+            "price": 55,
+            "itemCondition": "https://schema.org/NewCondition",
+            "availability": "https://schema.org/OutOfStock",
+            "shippingDetails": {
+              "@id": "https://www.vans.com/help/shipping#shippingdetails"
+            },
+            "hasMerchantReturnPolicy": {
+              "@id": "https://www.vans.com/help/returns#returnpolicy"
+            }
+          }
+        },
+        {
+          "@type": "Product",
+          "@id": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY?size=6.5%20Kids",
+          "sku": "VN:000D2V:NVY:065:M:1",
+          "gtin": "197803591214",
+          "image": "https://assets.vans.com/images/t_Thumbnail/v1748990666/VN000D2VNVY-HERO/Big-Kids-Old-Skool-Shoe-VANS-Navy-Blue-HERO.png",
+          "name": "Big Kids Old Skool Shoe",
+          "color": "Navy Blue",
+          "size": "6.5",
+          "offers": {
+            "@type": "Offer",
+            "url": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY?size=6.5%20Kids",
+            "priceCurrency": "USD",
+            "price": 55,
+            "itemCondition": "https://schema.org/NewCondition",
+            "availability": "https://schema.org/InStock",
+            "shippingDetails": {
+              "@id": "https://www.vans.com/help/shipping#shippingdetails"
+            },
+            "hasMerchantReturnPolicy": {
+              "@id": "https://www.vans.com/help/returns#returnpolicy"
+            }
+          }
+        },
+        {
+          "@type": "Product",
+          "@id": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY?size=5.5%20Kids",
+          "sku": "VN:000D2V:NVY:055:M:1",
+          "gtin": "197803590682",
+          "image": "https://assets.vans.com/images/t_Thumbnail/v1748990666/VN000D2VNVY-HERO/Big-Kids-Old-Skool-Shoe-VANS-Navy-Blue-HERO.png",
+          "name": "Big Kids Old Skool Shoe",
+          "color": "Navy Blue",
+          "size": "5.5",
+          "offers": {
+            "@type": "Offer",
+            "url": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY?size=5.5%20Kids",
+            "priceCurrency": "USD",
+            "price": 55,
+            "itemCondition": "https://schema.org/NewCondition",
+            "availability": "https://schema.org/InStock",
+            "shippingDetails": {
+              "@id": "https://www.vans.com/help/shipping#shippingdetails"
+            },
+            "hasMerchantReturnPolicy": {
+              "@id": "https://www.vans.com/help/returns#returnpolicy"
+            }
+          }
+        },
+        {
+          "@type": "Product",
+          "@id": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY?size=5.0%20Kids",
+          "sku": "VN:000D2V:NVY:050:M:1",
+          "gtin": "197803590491",
+          "image": "https://assets.vans.com/images/t_Thumbnail/v1748990666/VN000D2VNVY-HERO/Big-Kids-Old-Skool-Shoe-VANS-Navy-Blue-HERO.png",
+          "name": "Big Kids Old Skool Shoe",
+          "color": "Navy Blue",
+          "size": "5",
+          "offers": {
+            "@type": "Offer",
+            "url": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY?size=5.0%20Kids",
+            "priceCurrency": "USD",
+            "price": 55,
+            "itemCondition": "https://schema.org/NewCondition",
+            "availability": "https://schema.org/OutOfStock",
+            "shippingDetails": {
+              "@id": "https://www.vans.com/help/shipping#shippingdetails"
+            },
+            "hasMerchantReturnPolicy": {
+              "@id": "https://www.vans.com/help/returns#returnpolicy"
+            }
+          }
+        }
+      ],
+      "variesBy": [
+        "https://schema.org/color",
+        "https://schema.org/size"
+      ]
+    },
+    {
+      "@id": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY/#product",
+      "@type": "Product",
+      "category": "https://www.vans.com/en-us/c/shoes/icons/old-skool-5205",
+      "color": "Navy Blue",
+      "description": "The Old Skool was our first footwear design to showcase the famous Vans Sidestripe, although back then, it was just a simple doodle drawn by founder Paul Van Doren. Since its debut in 1977, this low-top silhouette has established itself as an icon in the skate, music, and fashion scenes. From 90sstreet skaters and punks to current hip hop and fashion legends, the Big Kids Old Skool has consistently been the go-to shoe for creatives who do things their own way.",
+      "mpn": "VN000D2VNVY",
+      "name": "Big Kids Old Skool Shoe",
+      "productID": "VN000D2VNVY",
+      "sku": "VN000D2VNVY",
+      "url": "https://www.vans.com/en-us/p/shoes/icons/old-skool-5205/big-kids-old-skool-shoe-VN000D2VNVY",
+      "brand": {
+        "@id": "https://www.vans.com/en-us#brand"
+      },
+      "image": [
+        {
+          "@type": "ImageObject",
+          "url": "https://assets.vans.com/images/t_Thumbnail/v1748990666/VN000D2VNVY-HERO/Big-Kids-Old-Skool-Shoe-VANS-Navy-Blue-HERO.png"
+        },
+        {
+          "@type": "ImageObject",
+          "url": "https://assets.vans.com/images/t_Thumbnail/v1748990657/VN000D2VNVY-ALT1/Big-Kids-Old-Skool-Shoe-VANS-Navy-Blue-ALT1.png"
+        },
+        {
+          "@type": "ImageObject",
+          "url": "https://assets.vans.com/images/t_Thumbnail/v1748990664/VN000D2VNVY-ALT2/Big-Kids-Old-Skool-Shoe-VANS-Navy-Blue-ALT2.png"
+        },
+        {
+          "@type": "ImageObject",
+          "url": "https://assets.vans.com/images/t_Thumbnail/v1748990665/VN000D2VNVY-ALT3/Big-Kids-Old-Skool-Shoe-VANS-Navy-Blue-ALT3.png"
+        }
+      ],
+      "manufacturer": {
+        "@type": "Organization",
+        "@id": "https://www.vans.com/en-us/#organization"
+      },
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "USD",
+        "price": 55,
+        "availability": "https://schema.org/InStock",
+        "seller": {
+          "@type": "Organization",
+          "@id": "https://www.vans.com/en-us/#organization"
+        },
+        "priceValidUntil": "2027-12-31T00:00:00.000Z",
+        "hasMerchantReturnPolicy": {
+          "@id": "https://www.vans.com/help/returns#returnpolicy"
+        },
+        "shippingDetails": {
+          "@id": "https://www.vans.com/help/shipping#shippingdetails"
+        }
+      }
+    }
+  ]
+}
