@@ -45,3 +45,8 @@ test('dependent US/UK sizes keep one selectable matrix and persist colour galler
  assert.deepEqual(data.variants[0].sizeAlternates,[{system:'US',value:'11'},{system:'UK',value:'10.5'}]);
  const draft=importDraft(data,[],'США');assert.deepEqual(draft.colorwayImages,data.colorwayImages);assert.equal(draft.variants[0].quantity,2);assert.deepEqual(draft.variants[0].sizeAlternates,data.variants[0].sizeAlternates);
 });
+import {variantDisplayPrices} from '../lib/importer/link-selection.ts';
+test('browsed colour and exact size price do not inherit another colour price',()=>{
+ const options=[{color:'Red',size:'11',price:25,available:true},{color:'Grey',size:'7',price:24,available:true},{color:'Cargo',size:'11',price:32,available:true},{color:'Cargo',size:'12',price:33,available:true},{color:'White',size:'11',price:34,available:true},{color:'Grey',size:'8',price:1,available:false}];
+ assert.deepEqual(variantDisplayPrices(options,'Grey'),[24]);assert.deepEqual(variantDisplayPrices(options,'Cargo'),[32,33]);assert.deepEqual(variantDisplayPrices(options,'Cargo','11'),[32]);assert.deepEqual(variantDisplayPrices(options,'White','11'),[34]);
+});

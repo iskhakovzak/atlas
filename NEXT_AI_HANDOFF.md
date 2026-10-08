@@ -1,5 +1,9 @@
 # Atlas — handoff для следующего AI-агента
 
+## eBay: цена просматриваемой расцветки — 8 октября 2026
+
+Верхняя цена и поле цены следуют просматриваемым цвету/размеру, отдельно от списка ранее выбранных вариантов и общего расчёта. Каждая расцветка показывает свою цену или диапазон; размеры показывают цену, если в группе есть разница. Серверные точные ID/цены и многовариантная корзина сохранены. Проверенный снимок eBay: красный $25, серый $24, Blanch Cargo $32, белый/лайм $34; var459336456425 — Blanch Cargo US11 $32. 745 тестов, TypeScript, lint и build проходят. Живая браузерная перепроверка и публикация выполняются после подготовки.
+
 ## eBay colour galleries, size formats and exact child links — 8 October 2026
 
 The reported group had no photos in the version-149 import response. Image extraction now supports thumbnail images and primary group photo fields, and creates exact-child colour galleries. Customer loading retains all eBay galleries when the original link selects one colour. Each chosen cart line rewrites var to its own sourceVariantId while preserving affiliate parameters; stock/price/identity checks remain. adidas men's US footwear offers US/UK/EU display using the official adidas chart, preserving the original seller size/ID and not applying Nike, women's or unrecognized charts. Existing optional schemas and D1 remain unchanged. 742 tests, lint (existing unused Choice warning), TypeScript and Worker build passed. Regression covers gallery colour separation, affiliate URL rewriting and brand/gender size gates. Verify actual colour photographs after publication; a sparse missing-image log records only field keys/types and image hostnames, never credentials or upstream bodies. Native runtime, accounts and orders are unchanged.
