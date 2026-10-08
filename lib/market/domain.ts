@@ -29,6 +29,7 @@ export const sourceVariantSchema = z.object({
   label: z.string().trim().max(140),
   size: z.string().trim().max(100).optional(),
   sizeLabel: z.string().trim().max(100).optional(),
+  sizeAlternates:z.array(z.object({system:z.string().trim().max(40),value:z.string().trim().max(100)})).max(8).optional(),
   color: z.string().trim().max(100).optional(),
   available: z.boolean(),
   availabilityKnown: z.boolean().optional(),
@@ -40,6 +41,7 @@ export const sourceVariantSchema = z.object({
   quantityMoreThan: z.number().int().min(0).max(100_000).optional(),
 });
 export type SourceVariant = z.infer<typeof sourceVariantSchema>;
+export const sourceColorwayGallerySchema=z.object({color:z.string().trim().max(120),images:z.array(z.string().max(3000)).max(12)});
 export const serviceOfferingSchema = z.object({
   id: z.string().regex(/^[a-z0-9][a-z0-9_-]{1,79}$/),
   title: localizedTextSchema,
@@ -83,6 +85,7 @@ export const productSchema = z.object({
   sourceVariants: z.array(sourceVariantSchema).max(250).optional(),
   /** Optional safe merchant gallery, with the primary image first. */
   sourceImages: z.array(z.string().max(3000)).max(12).optional(),
+  sourceColorwayImages:z.array(sourceColorwayGallerySchema).max(250).optional(),
   sourceUrl: z.string().optional(),
   sourceVariantId: z.string().max(120).optional(),
   description: z.string().optional(),

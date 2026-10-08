@@ -61,14 +61,14 @@ export function compareProductSnapshot(product: Product, selectedLabel: string, 
   if (!currency || currency !== product.sourceCurrency.toUpperCase())
     return { status: 'blocked', kind: 'currency', code: 'err_68', message: 'Магазин изменил валюту витрины. Загрузите товар заново.' };
   // A merchant may omit a selected option (or all options) from its current
-  // public response. Availability is not a gate; for a customer-confirmed
-  // order we can still verify the published product price and currency.
+  // public response. A legacy confirmed snapshot can still verify its base
+  // price; a returned, explicitly sold-out option is blocked below.
   if (!variant && !product.sourceManuallyConfirmed)
     return { status: 'blocked', kind: 'variant', code: 'err_69', message: 'Выбранный вариант не удалось сверить с данными магазина. Подтвердите его вручную.' };
   const price = variant?.price ?? extracted.price;
   if (price === undefined) return { status: 'blocked', kind: 'price', code: 'err_70', message: 'Магазин не подтвердил цену выбранного варианта.' };
   // Stock is known only when the store reports a count (eBay); otherwise it stays unknown, never guessed.
-  if (variant?.quantity === 0)
+  if (variant?.quantity === 0 || variant?.available === false && variant.availabilityKnown !== false)
     return { status: 'blocked', kind: 'stock', code: 'err_71', message: 'Этого варианта больше нет в наличии у магазина.' };
   const stockKnown = variant?.quantity !== undefined || variant?.quantityMoreThan !== undefined;
   const next: Product = {

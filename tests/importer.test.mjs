@@ -236,7 +236,7 @@ test('Amazon still rejects location API responses that do not confirm US ZIP 197
   } finally {globalThis.fetch=original;}
 });
 
-test('fresh verification checks exact price and option identity without gating on stock',()=>{
+test('fresh verification checks exact price, identity and merchant-confirmed sold-out stock',()=>{
   const p={id:'p',name:'Shoe',brand:'Allbirds',category:'Обувь',usd:110,weight:1.5,image:'',variants:['Black / 8'],sourceUrl:url,sourceVariantId:'1',sourceCurrency:'USD',sourcePrice:110};
   const fresh=extractShopify(product,{currency:'USD'},url+'?variant=1');
   const checked=verifyProductSnapshot(p,'Black / 8',fresh,5000);
@@ -244,7 +244,7 @@ test('fresh verification checks exact price and option identity without gating o
   assert.throws(()=>verifyProductSnapshot({...p,sourcePrice:109},'Black / 8',fresh),/Цена изменилась/);
   assert.throws(()=>verifyProductSnapshot({...p,sourceVariantId:'missing-id'},'Black / 8',fresh),/не удалось сверить/);
   const soldOut=extractShopify({...product,variants:product.variants.map(variant=>({...variant,available:false}))},{currency:'USD'},url+'?variant=1');
-  assert.equal(verifyProductSnapshot(p,'Black / 8',soldOut).sourcePrice,110);
+  assert.throws(()=>verifyProductSnapshot(p,'Black / 8',soldOut),/нет в наличии/);
   const confirmed={...p,sourceManuallyConfirmed:true};
   assert.equal(verifyProductSnapshot(confirmed,'Black / 8',fresh).sourceManuallyConfirmed,true);
   const optionsOmitted={...fresh,variants:[]};

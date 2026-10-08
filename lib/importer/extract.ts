@@ -12,6 +12,7 @@ export type ProductVariant = {
   id?: string;
   size?: string;
   sizeLabel?: string;
+  sizeAlternates?: {system:string;value:string}[];
   color?: string;
   label: string;
   available: boolean;

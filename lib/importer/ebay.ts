@@ -159,7 +159,8 @@ function safeEbayImage(value: unknown, sourceUrl: string) {
   if (typeof value !== 'string') return undefined;
   try {
     const image = new URL(value, sourceUrl);
-    if (image.hostname.toLowerCase() !== 'i.ebayimg.com' || image.username || image.password || image.port || !['https:', 'http:'].includes(image.protocol)) return undefined;
+    // Official adidas listings return their own exact brand CDN in Browse API.
+    if (!['i.ebayimg.com','assets.adidas.com'].includes(image.hostname.toLowerCase()) || image.username || image.password || image.port || !['https:', 'http:'].includes(image.protocol)) return undefined;
     image.protocol = 'https:';
     return safeImage(image.href, sourceUrl);
   } catch {
@@ -487,18 +488,20 @@ function groupVariants(items: EbayItem[], listingId: string, sourceUrl: string, 
   const allKeys = [...new Set(aspectMaps.flatMap(map => [...map.keys()]))];
   const varyingKeys = allKeys.filter(key => new Set(aspectMaps.map(map => map.get(key)).filter(Boolean)).size > 1);
   const colorKey = varyingKeys.find(key => /colou?r/i.test(key));
-  const sizeKey = varyingKeys.find(key => /size|width|length|waist|band|cup/i.test(key) && key !== colorKey);
-  const unknownKeys = varyingKeys.filter(key => key !== colorKey && key !== sizeKey);
+  const sizeKeys=varyingKeys.filter(key=>/size|width|length|waist|band|cup/i.test(key)&&key!==colorKey);
+  const sizeKey = sizeKeys.find(key=>/\bUS\b/i.test(key))??sizeKeys[0];
+  const dependentSizeKeys=sizeKey?sizeKeys.filter(key=>key!==sizeKey&&/\b(?:UK|EU|EUR|CM)\b/i.test(key)&&aspectMaps.every(map=>Boolean(map.get(key)&&map.get(sizeKey)))&&[...new Set(aspectMaps.map(map=>map.get(sizeKey)))].every(value=>new Set(aspectMaps.filter(map=>map.get(sizeKey)===value).map(map=>map.get(key))).size===1)):[];
+  const unknownKeys = varyingKeys.filter(key => key !== colorKey && key !== sizeKey && !dependentSizeKeys.includes(key));
   // The customer UI has a real color/size matrix. If a seller adds a third
   // independent axis (e.g. width or storage), keep each exact option intact
   // in a flat selector rather than silently merging combinations.
-  const matrixSafe = unknownKeys.length === 0 && !(colorKey && sizeKey && varyingKeys.length > 2);
+  const matrixSafe = unknownKeys.length === 0;
   const variants: ProductVariant[] = [];
   const rejected = items.length - validItems.length;
   for (const item of validItems.slice(0, MAX_VARIANTS)) {
     if (!fixedPrice(item)) continue;
     const state = availability(item);
-    if (!state.known || !state.available || ebayStock(item).quantity === 0) continue;
+    if (!state.known || !state.available || ebayStock(item).quantity===0) continue;
     const price = priceFor(item);
     if (!price || price.currency !== expectedCurrency) continue;
     const aspects = aspectsFor(item);
@@ -517,8 +520,9 @@ function groupVariants(items: EbayItem[], listingId: string, sourceUrl: string, 
       id: variationId(item, listingId),
       label: label.slice(0, 140),
       ...(size ? {size, sizeLabel: sizeKey?.slice(0, 100)} : {}),
+      ...(size?{sizeAlternates:[sizeKey!,...dependentSizeKeys].map(key=>({system:key.match(/\b(?:US|UK|EU|EUR|CM)\b/i)?.[0].toUpperCase()??key,value:aspects.get(key)??''})).filter(entry=>entry.value)}:{}),
       ...(color ? {color} : {}),
-      available: state.available,
+      available: state.known && state.available && ebayStock(item).quantity!==0,
       availabilityKnown: state.known,
       price: price.amount,
       image: images[0],
@@ -672,8 +676,9 @@ export async function fetchEbayProduct(sourceUrl: string, config: EbayBrowseConf
   const parsed = groupVariants(items, listingId, url.href, currency);
   if (parsed.warning) throw new EbayManualReviewError(parsed.warning, 'variant_data', 200);
   if (!parsed.variants.length) throw new EbayManualReviewError('eBay не вернул ни одного варианта с проверяемой ценой и размером. Откройте объявление и проверьте его вручную.', 'variant_data', 200);
-  const selectedColor = recoveredParent ? undefined : clean(item.color, 120) || [...aspectsFor(item)].find(([name]) => /colou?r/i.test(name))?.[1] || undefined;
-  const images = dedupeSafeImages([
+  const preferredChild=selectedVariation?parsed.variants.find(v=>v.id===selectedVariation):parsed.variants.find(v=>v.available);
+  const selectedColor = preferredChild?.color??(recoveredParent ? undefined : [...aspectsFor(item)].find(([name]) => /colou?r/i.test(name))?.[1] || clean(item.color,120) || undefined);
+  let images = dedupeSafeImages([
     ...itemImages(primaryGroup ?? {}, url.href),
     ...itemImages(item, url.href),
     ...exactItems.flatMap(value => itemImages(value, url.href)),
@@ -681,6 +686,7 @@ export async function fetchEbayProduct(sourceUrl: string, config: EbayBrowseConf
   const colorwayImages=[...new Set(parsed.variants.map(v=>v.color).filter((v):v is string=>Boolean(v)))].map(color=>({color,images:dedupeSafeImages(exactItems.filter(value=>{
     const child=parsed.variants.find(v=>v.id===variationId(value,listingId));return child?.color===color;
   }).flatMap(value=>itemImages(value,url.href)),url.href,MAX_IMAGES)})).filter(gallery=>gallery.images.length);
+  const selectedGallery=colorwayImages.find(gallery=>gallery.color===selectedColor);if(selectedGallery?.images.length)images=selectedGallery.images;
   if(!images.length)console.warn('[eBay images] '+JSON.stringify({fields:Object.keys(item).filter(key=>/image|picture|photo/i.test(key)),imageType:typeof item.image,imageKeys:Object.keys(record(item.image)??{}),hosts:[...new Set([item,...exactItems.slice(0,4)].flatMap(value=>[value.image,...(Array.isArray(value.additionalImages)?value.additionalImages:[])]).map(value=>{try{return new URL(String(record(value)?.imageUrl??'')).hostname}catch{return ''}}).filter(Boolean))]}));
   const category = inferCategory(item, title);
   const context = listingContext(item, shipToCountry);
