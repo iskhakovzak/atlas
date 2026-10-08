@@ -518,6 +518,7 @@ function groupVariants(items: EbayItem[], listingId: string, sourceUrl: string, 
     const images = itemImages(item, sourceUrl);
     variants.push({
       id: variationId(item, listingId),
+      productId: listingId, options: [...aspects].map(([name,value])=>({name,value})), images,
       label: label.slice(0, 140),
       ...(size ? {size, sizeLabel: sizeKey?.slice(0, 100)} : {}),
       ...(size?{sizeAlternates:[sizeKey!,...dependentSizeKeys].map(key=>({system:key.match(/\b(?:US|UK|EU|EUR|CM)\b/i)?.[0].toUpperCase()??key,value:aspects.get(key)??''})).filter(entry=>entry.value)}:{}),
@@ -701,6 +702,7 @@ export async function fetchEbayProduct(sourceUrl: string, config: EbayBrowseConf
     // A group can have different prices by size/color. Leave the form price
     // unset and carry the authoritative amount on each selectable variant.
     variants: parsed.variants,
+    variantScope: 'group', groupId: listingId, variantsComplete: items.length<=MAX_VARIANTS && exactItems.length===items.length && !group.next && exactItems.every(value=>availability(value).known && (!availability(value).available || Boolean(fixedPrice(value)&&priceFor(value)?.currency===currency))),
     currency,
     ...context.fields,
     selectedVariantColor: selectedColor,

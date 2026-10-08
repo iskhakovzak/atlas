@@ -1,3 +1,4 @@
+import {safeVariantSourceUrl} from '../importer/variant-normalization.ts';
 import { safeImage, type ProductColorwayGallery, type ProductVariant } from '../importer/extract.ts';
 import type { Action } from './actions.ts';
 import { validateSource } from './domain.ts';
@@ -141,7 +142,7 @@ function cleanVariant(value: unknown): ProductVariant | undefined {
   const label = text(value.label, 200).trim();
   if (!label) return undefined;
   const variant: ProductVariant = { label, available: value.available !== false };
-  for (const key of ['id', 'size', 'sizeLabel', 'color', 'image'] as const) if (typeof value[key] === 'string') variant[key] = text(value[key], 3000);
+  for (const key of ['id', 'size', 'sizeLabel', 'color', 'image', 'sourceUrl', 'productId', 'sellerId', 'offerId', 'colorId'] as const) if (typeof value[key] === 'string') variant[key] = text(value[key], 3000);
   if (typeof value.availabilityKnown === 'boolean') variant.availabilityKnown = value.availabilityKnown;
   for (const key of ['price', 'compareAtPrice', 'quantity', 'quantityMoreThan'] as const) { const number = finite(value[key]); if (number !== undefined && number >= 0) variant[key] = number; }
   return variant;
@@ -152,7 +153,7 @@ function cleanGalleries(value: unknown): ProductColorwayGallery[] | undefined {
   return value.slice(0, 20).flatMap(entry => {
     if (!isRecord(entry) || typeof entry.color !== 'string' || !Array.isArray(entry.images)) return [];
     const images = entry.images.filter((item): item is string => typeof item === 'string').map(item => item.slice(0, 3000)).slice(0, 12);
-    return images.length ? [{ color: entry.color.slice(0, 140), images }] : [];
+    return images.length ? [{ color: entry.color.slice(0, 140), ...(typeof entry.colorId==='string'?{colorId:entry.colorId.slice(0,120)}:{}), images }] : [];
   });
 }
 
@@ -191,6 +192,8 @@ export function parseDraft(raw: string | null | undefined, now = Date.now()): Li
     variants: Array.isArray(value.variants) ? value.variants.slice(0, 250).flatMap(item => {
       const option = cleanVariant(item);
       if (option?.image !== undefined) { const safe = photo(option.image); if (safe) option.image = safe; else delete option.image; }
+      if(option?.images)option.images=option.images.map(photo).filter(Boolean);
+      if(option?.sourceUrl)option.sourceUrl=safeVariantSourceUrl(option.sourceUrl,source);
       return option ? [option] : [];
     }) : [],
     selectedColor: text(value.selectedColor, 200), selectedSize: text(value.selectedSize, 200),
@@ -245,11 +248,11 @@ export function draftChoices(draft: LinkOrderDraft): DraftChoices {
 }
 
 /** The chosen options that the reloaded product still sells, with quantities kept within its stock; the rest are named, never swapped. */
-export function keepPicks(saved: Record<string, number>, variants: ReadonlyArray<Pick<ProductVariant, 'label' | 'quantity'>>): { picked: Record<string, number>; missing: string[] } {
+export function keepPicks(saved: Record<string, number>, variants: ReadonlyArray<Pick<ProductVariant, 'label' | 'quantity'> & Partial<Pick<ProductVariant,'available'|'availabilityKnown'>>>): { picked: Record<string, number>; missing: string[] } {
   const picked: Record<string, number> = {}, missing: string[] = [];
   for (const [label, quantity] of Object.entries(cleanPicks(saved))) {
     const option = variants.find(item => item.label === label);
-    if (!option || option.quantity === 0) { missing.push(label); continue; }
+    if (!option || option.quantity === 0 || option.available===false || option.availabilityKnown===false) { missing.push(label); continue; }
     picked[label] = Math.max(1, Math.min(quantity, maxQuantity, option.quantity ?? maxQuantity));
   }
   return { picked, missing };

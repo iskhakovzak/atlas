@@ -20,6 +20,7 @@ export const catalogDraftSchema=z.object({
   image:text.max(3000),images:z.array(text.max(3000)).max(12),price:z.number().finite().nonnegative().optional(),currency:text.max(3),
   referencePrice:z.number().finite().positive().optional(),country:text.max(80),boxedWeight:z.number().finite().positive().max(49.5),
   sourceShippingUsd:z.number().finite().nonnegative().max(10000).optional(),sourceShippingEstimated:z.boolean().optional(),
+  groupId:text.max(300).optional(),variantScope:z.enum(['group','color','item']).optional(),variantsComplete:z.boolean().optional(),
   variants:z.array(sourceVariantSchema).max(250),
   colorwayImages:z.array(sourceColorwayGallerySchema).max(250).optional(),
   collectionIds:z.array(text.max(80)).max(20),description:text.max(600),checkedAt:z.number().int().nonnegative(),
@@ -40,6 +41,7 @@ export const catalogQueueStateSchema=z.enum(['queued','published','archived']);
 export const catalogEntrySchema=z.object({
   id:text.min(1).max(100),draft:catalogDraftSchema,published:catalogDraftSchema.optional(),publishedAt:z.number().optional(),
   createdAt:z.number().int().nonnegative().optional(),origin:catalogOriginSchema.optional(),queueState:catalogQueueStateSchema.optional(),
+  autoManaged:z.boolean().optional(),
   refresh:catalogRefreshSchema.optional(),autoHiddenAt:z.number().int().nonnegative().optional(),autoHideReason:z.enum(['source-sold-out']).optional(),
 });
 export type CatalogEntry=z.infer<typeof catalogEntrySchema>;
@@ -130,7 +132,7 @@ export function importDraft(data:Extracted,collectionIds:string[],country:string
  // Shipping the store itself quoted to a US address in USD (eBay Browse for the warehouse, JSON-LD shippingDetails) replaces the $10 placeholder; the operator still sees the editor.
  const statedShippingUsd=typeof data.shipping==='number'&&Number.isFinite(data.shipping)&&data.shipping>=0&&data.shipping<=10000
   &&(data.shippingCurrency??data.currency)?.toUpperCase()==='USD'&&(!data.shippingDestination||/^(US|USA|United States)$/i.test(data.shippingDestination.trim()))?data.shipping:undefined;
- return catalogDraftSchema.parse({sourceUrl:canonicalCatalogUrl(data.sourceUrl),name:data.title??'',brand:data.brand??new URL(data.sourceUrl).hostname,category:data.category??'Другое',image:safeImage(data.image,data.sourceUrl)??images[0]??'',images,colorwayImages:data.colorwayImages?.map(g=>({color:g.color,images:dedupeSafeImages(g.images,data.sourceUrl,12)})),price:data.price,currency:data.currency??'',referencePrice,country:data.country??country,boxedWeight:data.boxedWeight??estimatedBoxedWeight(data.category??'Другое'),weightBasis:data.boxedWeight===undefined?'estimate':'store',sourceShippingUsd:statedShippingUsd??10,sourceShippingEstimated:statedShippingUsd===undefined,variants:(data.variants??[]).map(v=>({id:v.id,label:v.label,size:v.size,sizeLabel:v.sizeLabel,...(v.sizeAlternates?{sizeAlternates:v.sizeAlternates}:{}),...(v.quantity===undefined?{}:{quantity:v.quantity}),...(v.quantityMoreThan===undefined?{}:{quantityMoreThan:v.quantityMoreThan}),color:v.color,available:v.available,...(v.availabilityKnown===undefined?{}:{availabilityKnown:v.availabilityKnown}),price:v.price,image:safeImage(v.image,data.sourceUrl)})),collectionIds,description:'',checkedAt:now,warnings:data.warnings,soldOut});
+ return catalogDraftSchema.parse({sourceUrl:canonicalCatalogUrl(data.sourceUrl),name:data.title??'',brand:data.brand??new URL(data.sourceUrl).hostname,category:data.category??'Другое',image:safeImage(data.image,data.sourceUrl)??images[0]??'',images,groupId:data.groupId,variantScope:data.variantScope,variantsComplete:data.variantsComplete,colorwayImages:data.colorwayImages?.map(g=>({color:g.color,colorId:g.colorId,images:dedupeSafeImages(g.images,data.sourceUrl,12)})),price:data.price,currency:data.currency??'',referencePrice,country:data.country??country,boxedWeight:data.boxedWeight??estimatedBoxedWeight(data.category??'Другое'),weightBasis:data.boxedWeight===undefined?'estimate':'store',sourceShippingUsd:statedShippingUsd??10,sourceShippingEstimated:statedShippingUsd===undefined,variants:(data.variants??[]).map(v=>({...v,id:v.id,label:v.label,size:v.size,sizeLabel:v.sizeLabel,...(v.sizeAlternates?{sizeAlternates:v.sizeAlternates}:{}),...(v.quantity===undefined?{}:{quantity:v.quantity}),...(v.quantityMoreThan===undefined?{}:{quantityMoreThan:v.quantityMoreThan}),color:v.color,available:v.available,...(v.availabilityKnown===undefined?{}:{availabilityKnown:v.availabilityKnown}),price:v.price,image:safeImage(v.image,data.sourceUrl),...(v.images?{images:dedupeSafeImages(v.images,data.sourceUrl,12)}:{})})),collectionIds,description:'',checkedAt:now,warnings:data.warnings,soldOut});
 }
 
 /** Keep a supported merchant link reviewable when its public importer is blocked. */
@@ -214,6 +216,46 @@ export function catalogIssues(draft:CatalogDraft,now=Date.now(),rates=tariff.rat
   return issues;
 }
 
+
+/** Automatic publication is based on store evidence, never the editor's stock override. */
+export function automaticCatalogIssues(draft:CatalogDraft,now=Date.now(),rates=tariff.rates){
+ const issues=catalogIssues({...draft,reviewReasons:[]},now,rates);
+ if(draft.variantsComplete!==true)issues.push('Магазин ещё не подтвердил полноту вариантов');
+ if(draft.variants.some(v=>!v.id||v.availabilityKnown!==true||!v.available||v.quantity===0))issues.push('Не подтверждены точные доступные варианты');
+ if(draft.variants.some(v=>!v.price||v.price<=0||toUsd(v.price,draft.currency,rates)>10000))issues.push('Не подтверждена цена каждого варианта');
+ if(draft.variants.some(v=>!safeImage(v.image,draft.sourceUrl)&&!v.images?.some(image=>safeImage(image,draft.sourceUrl))))issues.push('Нет фотографии конкретного варианта');
+ const identities=draft.variants.map(v=>JSON.stringify([v.productId??'',v.id??'',v.sellerId??'',v.offerId??'']));
+ if(new Set(identities).size!==identities.length)issues.push('Повторяются идентификаторы вариантов');
+ if(draft.confirmedBy)issues.push('Ожидается подтверждение магазина');
+ return [...new Set(issues)];
+}
+/** Exact groups deduplicate only in the same storefront/region/currency context. */
+export function sameCatalogGroup(left:CatalogDraft,right:CatalogDraft){
+ if(canonicalCatalogUrl(left.sourceUrl)===canonicalCatalogUrl(right.sourceUrl))return true;
+ const a=new URL(left.sourceUrl),b=new URL(right.sourceUrl);
+ if(left.groupId&&right.groupId&&left.variantScope==='group'&&right.variantScope==='group')return left.groupId===right.groupId&&a.host===b.host&&left.currency===right.currency&&left.country===right.country&&a.pathname.split('/')[1]===b.pathname.split('/')[1];
+ return false;
+}
+/** Apply a server-imported observation; persistence is the caller's single authenticated CAS write. */
+export function applyAutomaticCatalogImport(document:CatalogDocument,fresh:CatalogDraft,now=Date.now(),rates=tariff.rates){
+ // The public minimum is a group summary; each exact option retains its own price.
+ const variants=fresh.variants.filter(v=>v.available&&v.availabilityKnown===true&&v.quantity!==0);
+ const prices=variants.map(v=>v.price).filter((p):p is number=>typeof p==='number'&&p>0);
+ const draft=catalogDraftSchema.parse({...fresh,variantsComplete:fresh.variants.some(v=>v.availabilityKnown!==true)?false:fresh.variantsComplete,variants,price:prices.length===variants.length&&prices.length?Math.min(...prices):fresh.price});
+ let entry=document.entries.find(item=>sameCatalogGroup(item.draft,draft));
+ if(!entry){if(document.entries.length>=catalogMaxEntries)throw Error(`В каталоге уже ${catalogMaxEntries} товаров.`);entry={id:'find-'+crypto.randomUUID(),draft,createdAt:now,origin:'operator-import',queueState:'queued',autoManaged:true};document.entries.push(entry)}
+ else{const collections=[...new Set([...entry.draft.collectionIds,...draft.collectionIds])];entry.draft={...recheckedDraft(entry.draft,draft),collectionIds:collections,reviewReasons:[]};if(entry.queueState!=='archived')entry.autoManaged=true;}
+ const issues=automaticCatalogIssues(entry.draft,now,rates);
+ if(entry.queueState==='archived')return {id:entry.id,published:false,note:'Карточка скрыта редактором; автоматическая публикация отключена.'};
+ const publishable=!issues.length;
+ entry.refresh={lastAttemptAt:now,...(publishable?{lastSuccessAt:now}:{}),nextCheckAt:now+(publishable?catalogRefreshInterval:catalogRefreshRetryBase),status:publishable?'available':'unknown',availableVariantCount:variants.length,lastError:issues.join(' · ').slice(0,500)||undefined,consecutiveFailures:0};
+ const confirmedSoldOut=fresh.variantsComplete===true&&fresh.variants.length>0&&fresh.variants.every(v=>v.availabilityKnown===true&&(!v.available||v.quantity===0));
+ if(confirmedSoldOut){delete entry.published;delete entry.publishedAt;entry.queueState='queued';entry.refresh.status='sold-out';}
+ if(publishable){entry.published=structuredClone(entry.draft);entry.publishedAt=now;entry.queueState='published';delete entry.autoHiddenAt;delete entry.autoHideReason;}
+ else{if(!entry.published)entry.queueState='queued';entry.draft.lastCheckError=entry.refresh.lastError;}
+ return {id:entry.id,published:publishable,note:publishable?undefined:entry.refresh.lastError};
+}
+
 export function recheckedDraft(previous:CatalogDraft,fresh:CatalogDraft){
   const reasons:string[]=[];
   if(previous.currency!==fresh.currency)reasons.push(`Валюта: ${previous.currency} → ${fresh.currency}`);
@@ -242,7 +284,7 @@ export function catalogRefreshDueAt(entry:CatalogEntry){
  * archived/queued entries that still carry an auto-hide marker.
  */
 /** The scheduler checks a published card and an auto-hidden one it may bring back; never one an operator hid. */
-export function isWatchedCatalogEntry(entry:CatalogEntry){return Boolean(entry.published||(entry.autoHiddenAt&&(entry.queueState==='published'||entry.queueState===undefined)))}
+export function isWatchedCatalogEntry(entry:CatalogEntry){return Boolean(entry.published||(entry.autoManaged&&entry.queueState==='queued')||(entry.autoHiddenAt&&(entry.queueState==='published'||entry.queueState===undefined)))}
 export function dueCatalogEntries(document:CatalogDocument,now=Date.now(),limit=catalogRefreshBatchSize){
   const selected:CatalogEntry[]=[],hosts=new Set<string>();
   const candidates=document.entries
@@ -276,9 +318,10 @@ export type ScheduledRefreshOutcome='available'|'sold-out'|'unknown'|'failed'|'s
  * option matrix. A definitive all-sold-out matrix unpublishes the card but
  * keeps its draft so a later source recovery can restore it.
  */
-export function applyScheduledCatalogRefresh(current:CatalogDocument,id:string,fresh:CatalogDraft,now=Date.now()):{document:CatalogDocument;outcome:ScheduledRefreshOutcome}{
+export function applyScheduledCatalogRefresh(current:CatalogDocument,id:string,fresh:CatalogDraft,now=Date.now(),rates=tariff.rates):{document:CatalogDocument;outcome:ScheduledRefreshOutcome}{
   const next=structuredClone(current),entry=next.entries.find(item=>item.id===id);
   if(!entry)return {document:catalogDocumentSchema.parse(next),outcome:'skipped'};
+  if(entry.autoManaged&&fresh.variants.some(v=>v.available&&v.availabilityKnown===true&&v.quantity!==0)){const outcome=applyAutomaticCatalogImport(next,fresh,now,rates);next.revision++;return {document:catalogDocumentSchema.parse(next),outcome:outcome.published?'available':'unknown'};}
   const checked=recheckedDraft(entry.draft,fresh);
   const changes=(checked.reviewReasons??[]).join(' · ').slice(0,500)||undefined;
   const candidate=catalogDraftSchema.parse({...checked,reviewReasons:[],lastCheckError:undefined});
@@ -289,7 +332,7 @@ export function applyScheduledCatalogRefresh(current:CatalogDocument,id:string,f
     ...entry.refresh,lastAttemptAt:now,lastSuccessAt:now,nextCheckAt:now+catalogRefreshInterval,
     consecutiveFailures:0,availableVariantCount,lastChange:changes,lastError:undefined,
   };
-  if(!hasExplicitMatrix){
+  if(!hasExplicitMatrix||fresh.variantsComplete===false){
     entry.refresh={...successBase,status:'unknown',lastError:'Магазин не отдал подтверждённую матрицу вариантов.'};
     entry.draft.lastCheckError=entry.refresh.lastError;
     next.revision++;
@@ -311,7 +354,7 @@ export function applyScheduledCatalogRefresh(current:CatalogDocument,id:string,f
     next.revision++;
     return {document:catalogDocumentSchema.parse(next),outcome:'sold-out'};
   }
-  const publishable=!catalogIssues(candidate,now).length;
+  const publishable=!(entry.autoManaged?automaticCatalogIssues(candidate,now,rates):catalogIssues(candidate,now,rates)).length;
   if(!publishable){
     entry.refresh={...successBase,status:'unknown',lastError:'Магазин отдал неполные данные для безопасного обновления карточки.'};
     entry.draft.lastCheckError=entry.refresh.lastError;
@@ -321,7 +364,7 @@ export function applyScheduledCatalogRefresh(current:CatalogDocument,id:string,f
   entry.draft=candidate;
   entry.refresh={...successBase,status:'available'};
   if(isWatchedCatalogEntry(entry)){
-    entry.published=structuredClone(candidate);entry.publishedAt=now;delete entry.autoHiddenAt;delete entry.autoHideReason;
+    entry.published=structuredClone(candidate);entry.publishedAt=now;entry.queueState='published';delete entry.autoHiddenAt;delete entry.autoHideReason;
   }else{delete entry.autoHiddenAt;delete entry.autoHideReason}
   resolveAvailabilityReports(next,id,now);
   next.revision++;
@@ -373,7 +416,7 @@ export function publicCatalog(document:CatalogDocument,pricing:Pricing,now=Date.
     const hasRecordedPrice=typeof d.price==='number'&&d.price>0&&Boolean(pricing.rates[d.currency]);
     const recordedUsd=hasRecordedPrice?toUsd(d.price!,d.currency,pricing.rates):undefined;
     const sourceShippingUsd=d.sourceShippingUsd??10,sourceShippingEstimated=d.sourceShippingEstimated??true;
-    return [{id:entry.id,name:d.name,brand:d.brand,category:d.category,store:new URL(d.sourceUrl).hostname.replace(/^www\./,''),observedOn:new Date(d.checkedAt).toISOString().slice(0,10),usd:recordedUsd??1,sourcePrice:hasRecordedPrice?d.price:undefined,sourceCurrency:hasRecordedPrice?d.currency:undefined,referenceUsd:!priceNeedsConfirmation&&d.referencePrice&&d.referencePrice>d.price!?toUsd(d.referencePrice,d.currency,pricing.rates):undefined,image:sourceImages[0]??'',sourceImages,sourceVariants,sourceColorwayImages:d.colorwayImages?.map(g=>({color:g.color,images:dedupeSafeImages(g.images,d.sourceUrl,12)})),sourceUrl:d.sourceUrl,description:cleanGeneratedCatalogDescription(d.description),country:d.country,boxedWeight:d.boxedWeight,weight:paddedWeight(d.boxedWeight),variants:priceNeedsConfirmation?['Уточнить вариант в магазине']:variants.length?variants:['Уточнить вариант в магазине'],sourceShipping:sourceShippingUsd,sourceShippingUsd,sourceShippingCurrency:'USD',sourceShippingEstimated,shippingKnown:!sourceShippingEstimated,sourceExpiresAt:Math.max(d.checkedAt,d.confirmedAt??0)+catalogLifetime,sourceCheckedAt:d.checkedAt,collectionIds:d.collectionIds,priceNeedsConfirmation,...(entry.publishedAt??entry.createdAt?{addedAt:entry.publishedAt??entry.createdAt}:{}),...(d.rank===undefined?{}:{rank:d.rank}),...(d.confirmedAt===undefined?{}:{confirmedAt:d.confirmedAt})}];
+    return [{id:entry.id,name:d.name,brand:d.brand,category:d.category,store:new URL(d.sourceUrl).hostname.replace(/^www\./,''),observedOn:new Date(d.checkedAt).toISOString().slice(0,10),usd:recordedUsd??1,sourcePrice:hasRecordedPrice?d.price:undefined,sourceCurrency:hasRecordedPrice?d.currency:undefined,referenceUsd:!priceNeedsConfirmation&&d.referencePrice&&d.referencePrice>d.price!?toUsd(d.referencePrice,d.currency,pricing.rates):undefined,image:sourceImages[0]??'',sourceImages,sourceVariants,sourceColorwayImages:d.colorwayImages?.map(g=>({color:g.color,colorId:g.colorId,images:dedupeSafeImages(g.images,d.sourceUrl,12)})),sourceUrl:d.sourceUrl,sourceGroupId:d.groupId,sourceVariantScope:d.variantScope,sourceVariantsComplete:d.variantsComplete,description:cleanGeneratedCatalogDescription(d.description),country:d.country,boxedWeight:d.boxedWeight,weight:paddedWeight(d.boxedWeight),variants:priceNeedsConfirmation?['Уточнить вариант в магазине']:variants.length?variants:['Уточнить вариант в магазине'],sourceShipping:sourceShippingUsd,sourceShippingUsd,sourceShippingCurrency:'USD',sourceShippingEstimated,shippingKnown:!sourceShippingEstimated,sourceExpiresAt:Math.max(d.checkedAt,d.confirmedAt??0)+catalogLifetime,sourceCheckedAt:d.checkedAt,collectionIds:d.collectionIds,priceNeedsConfirmation,...(entry.publishedAt??entry.createdAt?{addedAt:entry.publishedAt??entry.createdAt}:{}),...(d.rank===undefined?{}:{rank:d.rank}),...(d.confirmedAt===undefined?{}:{confirmedAt:d.confirmedAt})}];
   });
   const collections=document.collections.filter(c=>c.visible).sort((a,b)=>a.position-b.position).map(c=>({...c,productIds:products.filter(p=>p.collectionIds?.includes(c.id)).map(p=>p.id)})).filter(c=>c.productIds.length);
   return {products,collections};
@@ -419,6 +462,7 @@ export function changeCatalog(current:CatalogDocument,command:CatalogCommand,now
     draft.image=safeImage(draft.image,draft.sourceUrl)??'';
     draft.images=draft.images.map(i=>safeImage(i,draft.sourceUrl)).filter((i):i is string=>!!i);
     if(draft.collectionIds.some(id=>!next.collections.some(c=>c.id===id)))throw Error('Подборка не найдена');
+    if(entry.autoManaged){for(const key of ['price','currency','variants','groupId','variantScope','variantsComplete','checkedAt','image','images','colorwayImages','reviewReasons','lastCheckError','soldOut'] as const)Object.assign(draft,{[key]:entry.draft[key]});}
     entry.draft=draft;
     // The showcase position is ordering, not a claim about the product, so a published card takes it at once.
     if(entry.published){if(draft.rank===undefined)delete entry.published.rank;else entry.published.rank=draft.rank}
@@ -435,9 +479,9 @@ export function changeCatalog(current:CatalogDocument,command:CatalogCommand,now
     for(const id of command.ids){
       const entry=next.entries.find(e=>e.id===id);if(!entry)throw Error('Товар не найден');
       // A manual hide outranks an earlier auto-hide, so the scheduler stops watching the card.
-      if(command.kind==='hide'){delete entry.published;delete entry.publishedAt;delete entry.autoHiddenAt;delete entry.autoHideReason;entry.queueState='archived';next.availabilityReports=next.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:now}:report);continue}
+      if(command.kind==='hide'){entry.autoManaged=false;delete entry.published;delete entry.publishedAt;delete entry.autoHiddenAt;delete entry.autoHideReason;entry.queueState='archived';next.availabilityReports=next.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:now}:report);continue}
       const draft=command.kind==='confirm'?confirmedDraft(entry.draft,now):entry.draft;
-      const issues=catalogIssues(draft,now,pricing.rates);
+      const issues=entry.autoManaged?automaticCatalogIssues(entry.draft,now,pricing.rates):catalogIssues(draft,now,pricing.rates);
       if(issues.length)throw Error(`${draft.name||'Товар'}: ${issues.join(', ')}`);
       entry.draft=draft;
       entry.published=structuredClone(draft);entry.publishedAt=now;entry.queueState='published';delete entry.autoHiddenAt;delete entry.autoHideReason;

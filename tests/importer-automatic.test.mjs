@@ -8,7 +8,7 @@ import {blank,products,tariff} from '../lib/market/domain.ts';
 import {defaultPolicy} from '../lib/market/policy.ts';
 
 const source='https://www.nike.com/t/test/DM4044-108';
-const markup='<script type="application/ld+json">'+JSON.stringify({'@type':'Product',url:source,name:'Shoes',sku:'black-9',size:'9',color:'Black',image:'https://static.nike.com/shoes.jpg',offers:{price:25,priceCurrency:'USD'}})+'</script>';
+const markup='<script type="application/ld+json">'+JSON.stringify({'@type':'Product',url:source,name:'Shoes',sku:'black-9',size:'9',color:'Black',image:'https://static.nike.com/shoes.jpg',offers:{price:25,priceCurrency:'USD',availability:'https://schema.org/InStock'}})+'</script>';
 const ok=()=>new Response(markup,{headers:{'content-type':'text/html'}});
 
 test('shared automatic importer recovers once from upstream failure with abort limits retained',async()=>{

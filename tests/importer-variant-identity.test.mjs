@@ -39,12 +39,12 @@ test('renamed labels and neutral legacy single-option labels remain compatible',
   assert.equal(verifyProductSnapshot(neutral,neutral.variants[0],{...fresh,variants:[fresh.variants[0]]}).sourcePrice,19);
 });
 
-test('omitted matrices and unknown stock still support explicit customer confirmation',()=>{
+test('legacy omitted matrices stay readable but unknown stock blocks verification',()=>{
   const omitted={...fresh,variants:[]};
   assert.equal(verifyProductSnapshot(product,product.variants[0],omitted).sourcePrice,19);
   assert.doesNotThrow(()=>verifyKnownSnapshotFields(product,product.variants[0],omitted));
   const unknown={...fresh,variants:fresh.variants.map(item=>({...item,available:false,availabilityKnown:false}))};
-  assert.equal(verifyProductSnapshot(product,product.variants[0],unknown).sourcePrice,19);
+  assert.throws(()=>verifyProductSnapshot(product,product.variants[0],unknown),/не подтвердил наличие/);
   assert.doesNotThrow(()=>verifyKnownSnapshotFields(product,product.variants[0],unknown));
 });
 
@@ -53,4 +53,17 @@ test('duplicate labels do not contradict an ID whose own live label matches',()=
   const second={...product,variants:['Standard'],sourceVariantId:'white-85',sourcePrice:23};
   assert.equal(verifyProductSnapshot(second,'Standard',duplicate).sourcePrice,23);
   assert.doesNotThrow(()=>verifyKnownSnapshotFields(second,'Standard',duplicate));
+});
+
+test('same SKU offers require exact seller and offer identity',()=>{
+ const variants=[{...fresh.variants[0],sellerId:'seller-a',offerId:'offer-a',price:19},{...fresh.variants[0],sellerId:'seller-b',offerId:'offer-b',price:23}];
+ const snapshot={...fresh,variantScope:'group',variants};
+ assert.throws(()=>verifyProductSnapshot({...product,sourceManuallyConfirmed:false},product.variants[0],snapshot),/сверить/);
+ const selected={...product,sourceSellerId:'seller-b',sourceOfferId:'offer-b',sourcePrice:23};
+ assert.equal(verifyProductSnapshot(selected,selected.variants[0],snapshot).sourcePrice,23);
+ assert.throws(()=>verifyProductSnapshot({...selected,sourceManuallyConfirmed:false,sourceOfferId:'missing'},selected.variants[0],snapshot),/сверить/);
+});
+test('group summary price never substitutes an absent exact variant price',()=>{
+ const snapshot={...fresh,variantScope:'group',variants:fresh.variants.map(v=>({...v,price:undefined}))};
+ assert.throws(()=>verifyProductSnapshot(product,product.variants[0],snapshot),/не подтвердил цену/);
 });

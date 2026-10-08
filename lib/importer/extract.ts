@@ -7,9 +7,17 @@ import { publicJsonStates } from './public-state.ts';
 import { sameNorthFaceArticle, sourceProductIds } from './source-identity.ts';
 import { enrichMerchantOptions } from './merchant-options.ts';
 import { extractShopifyHtml } from './shopify.ts';
+import { safeVariantSourceUrl } from './variant-normalization.ts';
 import { extractZalandoProduct } from './zalando.ts';
 export type ProductVariant = {
   id?: string;
+  sourceUrl?: string;
+  productId?: string;
+  sellerId?: string;
+  offerId?: string;
+  colorId?: string;
+  options?: {name:string;value:string}[];
+  images?: string[];
   size?: string;
   sizeLabel?: string;
   sizeAlternates?: {system:string;value:string}[];
@@ -29,11 +37,15 @@ export type ProductVariant = {
 };
 
 export type ProductColorwayGallery = {
+  colorId?: string;
   color: string;
   images: string[];
 };
 
 export type Extracted = {
+  variantScope?: 'group'|'color'|'item';
+  groupId?: string;
+  variantsComplete?: boolean;
   /** Merchant identity from the selected structured product, never a guessed ID. */
   sku?: string;
   /** Exact option resolved from native URL controls; preview-only, not a stored SKU. */
@@ -289,6 +301,13 @@ function embeddedVariants(record: EmbeddedRecord, sourceUrl: string): ProductVar
     const image = embeddedImages(item, sourceUrl)[0];
     return [{
       id,
+      sourceUrl: safeVariantSourceUrl(item.url ?? item.productUrl ?? item.pdpUrl,sourceUrl),
+      productId: embeddedIdentifier(item.productId) || undefined,
+      sellerId: embeddedIdentifier(item.sellerId) || undefined,
+      offerId: embeddedIdentifier(item.offerId) || undefined,
+      colorId: embeddedIdentifier(item.colorId ?? item.colourId) || undefined,
+      options: embeddedOptionEntries(item),
+      images: embeddedImages(item,sourceUrl),
       label: variantLabel.slice(0, 120),
       color: color || undefined,
       size: size || undefined,
@@ -299,8 +318,9 @@ function embeddedVariants(record: EmbeddedRecord, sourceUrl: string): ProductVar
     } satisfies ProductVariant];
   }).slice(0, 80);
   const counts = new Map<string, number>();
-  for (const item of variants) if (item.id) counts.set(item.id, (counts.get(item.id) ?? 0) + 1);
-  for (const item of variants) if (item.id && counts.get(item.id)! > 1) delete item.id;
+  const identity=(item:ProductVariant)=>[item.id,item.productId,item.sellerId,item.offerId].join('\u0000');
+  for (const item of variants) if (item.id) counts.set(identity(item), (counts.get(identity(item)) ?? 0) + 1);
+  for (const item of variants) if (item.id && counts.get(identity(item))! > 1) delete item.id;
   return variants;
 }
 
@@ -723,7 +743,7 @@ function assignedJson(html: string, name: string) {
   return undefined;
 }
 
-type ZaraSize = { name?: string; availability?: string; price?: number };
+type ZaraSize = { id?: number|string; sku?: string; name?: string; availability?: string; price?: number };
 type ZaraMedia = {
   url?: string;
   extraInfo?: { deliveryUrl?: string };
@@ -932,6 +952,11 @@ function extractNike(html: string, sourceUrl: string): Extracted | undefined {
         if (!label) return [];
         return [{
           ...(id ? {id} : {}),
+          sourceUrl: safeVariantSourceUrl(typeof colorway.pdpUrl==='string'?colorway.pdpUrl:embeddedObject(colorway.pdpUrl).url??embeddedObject(colorway.pdpUrl).path,sourceUrl),
+          productId: clean(colorway.merchProductId ?? colorway.styleCode)||undefined,
+          colorId: clean(colorway.styleCode)||undefined,
+          options: [{name:'Color',value:variantColor??''},{name:sizeLabel,value:label}].filter(o=>o.value),
+          images: variantImages,
           size: label,
           sizeLabel,
           ...(variantColor ? {color: variantColor} : {}),
@@ -945,7 +970,7 @@ function extractNike(html: string, sourceUrl: string): Extracted | undefined {
     });
     const seenOptions = new Set<string>();
     const boundedVariants = variants.filter(value => {
-      const key = `${value.color ?? ''}\u0000${value.size ?? ''}`;
+      const key = `${value.id ?? ''}\u0000${value.color ?? ''}\u0000${value.size ?? ''}`;
       if (seenOptions.has(key)) return false;
       seenOptions.add(key);
       return true;
@@ -954,7 +979,7 @@ function extractNike(html: string, sourceUrl: string): Extracted | undefined {
     const warnings = ['Доставка магазина не опубликована — указан изменяемый резерв $10; для заказа из магазина от $50 его не берём.', 'Вес с упаковкой нужно проверить.'];
     if (price === undefined) warnings.unshift('Цена не найдена в данных Nike: выберите конкретный вариант на странице магазина.');
     if (!boundedVariants.some(value => value.available)) warnings.push('Nike не указал доступный размер в текущем снимке.');
-    return {title, brand, category, declarationDescription: declarationFor(category, title ?? '', brand), image: images[0], images, colorwayImages, selectedVariantColor: clean(product.colorDescription ?? product.styleColor) || undefined, price, currency, variants: boundedVariants, country: inferStorefrontCountry(sourceUrl, currency), warnings, sourceUrl, method: 'Nike product data', sku: clean(product.styleCode) || undefined};
+    return {title, brand, category, declarationDescription: declarationFor(category, title ?? '', brand), image: images[0], images, colorwayImages, selectedVariantColor: clean(product.colorDescription ?? product.styleColor) || undefined, price, currency, variants: boundedVariants, country: inferStorefrontCountry(sourceUrl, currency), warnings, sourceUrl, variantScope: matchedGroup?.length ? 'group' : 'color', variantsComplete: false, method: 'Nike product data', sku: clean(product.styleCode) || undefined};
   } catch {
     return;
   }
@@ -1029,6 +1054,7 @@ export function extractAdidasProduct(productValue: unknown, listingValue: unknow
     country,
     warnings,
     sourceUrl,
+    sku: id, variantScope: 'color', variantsComplete: false,
     method: 'Adidas product data',
   };
 }
@@ -1116,11 +1142,16 @@ function extractZara(html: string, sourceUrl: string) {
     );
       return (color.sizes?.length ? color.sizes : [{ name: "Стандартный" }]).map(
       (size) => ({
+        id: size.sku ?? (size.id===undefined?undefined:String(size.id)),
+        productId: color.productId===undefined?undefined:String(color.productId),
+        colorId: color.productId===undefined?undefined:String(color.productId),
+        options: [{name:'Color',value:clean(color.name)},{name:'Size',value:clean(size.name)}].filter(o=>o.value),
+        images: (color.xmedia??[]).map(media=>safeImage(media.extraInfo?.deliveryUrl??media.url?.replace('{width}','1024'),sourceUrl)).filter((v):v is string=>Boolean(v)).slice(0,12),
         size: clean(size.name) || undefined,
         color: clean(color.name) || undefined,
         label: [clean(color.name), clean(size.name)].filter(Boolean).join(" · "),
-        available: !/out_of_stock|coming_soon/i.test(size.availability ?? ""),
-        availabilityKnown: typeof size.availability === 'string' && size.availability.trim().length > 0,
+        available: /^(?:in_stock|low_on_stock)$/i.test(size.availability ?? ""),
+        availabilityKnown: /^(?:in_stock|low_on_stock|out_of_stock|coming_soon)$/i.test(size.availability ?? ''),
         price: size.price === undefined ? undefined : size.price / divisor,
         image: colorImage,
       }),
@@ -1141,6 +1172,7 @@ function extractZara(html: string, sourceUrl: string) {
     price,
     currency,
     variants: variants.filter((v) => v.label).slice(0, 80),
+    colorwayImages: colors.map(color=>({color:clean(color.name),colorId:color.productId===undefined?undefined:String(color.productId),images:(color.xmedia??[]).map(media=>safeImage(media.extraInfo?.deliveryUrl??media.url?.replace('{width}','1024'),sourceUrl)).filter((v):v is string=>Boolean(v)).slice(0,12)})).filter(gallery=>gallery.color&&gallery.images.length),
     selectedVariantColor: clean(selected.name) || undefined,
     country: regionNames[countryCode],
   };
@@ -1291,7 +1323,7 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
   const shipping = number(rate?.value ?? rate?.price);
   const destination = ship?.shippingDestination?.addressCountry;
   const zara = extractZara(html, sourceUrl);
-  const images = zara?.missingSelectedColor ? [] : dedupeSafeImages([zara?.image, ...(zara?.images ?? []), ...[p?.image].flat(), ...metaImages], sourceUrl);
+  const images = zara?.missingSelectedColor ? [] : dedupeSafeImages([zara?.image, ...(zara?.images ?? []), ...[exactParent?.image].flat(), ...[p?.image].flat(), ...metaImages], sourceUrl);
   const image = images[0];
   const price = zara?.missingSelectedColor || missingRequestedVariant ? undefined :
     zara?.price ??
@@ -1358,6 +1390,12 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     const axes = embeddedVariantAxes(child);
     return {
       id: embeddedIdentifier(child.sku ?? child.skuId ?? child.gtin ?? child.ean).slice(0, 120) || undefined,
+      sourceUrl:safeVariantSourceUrl(childOffer?.url??child.url,sourceUrl),
+      productId:embeddedIdentifier(child.productID)||undefined,
+      sellerId:embeddedIdentifier(embeddedObject(childOffer?.seller).identifier)||undefined,
+      offerId:embeddedIdentifier(childOffer?.identifier)||undefined,
+      options:embeddedOptionEntries(child),
+      images:dedupeSafeImages(Array.isArray(child.image)?child.image:[child.image],sourceUrl),
       size: axes.size || undefined,
       sizeLabel: axes.sizeLabel,
       color: axes.color || undefined,
@@ -1396,7 +1434,11 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
   if (offer?.["@type"] === "AggregateOffer")
     warnings.push("Указан диапазон цен. Нужна цена конкретного варианта.");
   const extracted: Extracted = {
+    variantScope: zara ? 'group' : groupIdentifiesListing && groupVariants.length ? 'group' : undefined,
+    groupId: zara ? undefined : groupIdentifiesListing ? embeddedIdentifier(group?.productGroupID ?? group?.productID)||undefined : undefined,
+    variantsComplete: false,
     sku: missingRequestedVariant ? undefined : sku,
+    colorwayImages:zara?.colorwayImages,
     title,
     brand,
     category,

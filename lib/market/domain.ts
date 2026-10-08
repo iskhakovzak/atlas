@@ -26,6 +26,13 @@ const localizedDescriptionSchema = z.object({
 });
 export const sourceVariantSchema = z.object({
   id: z.string().trim().max(120).optional(),
+  sourceUrl:z.string().max(3000).optional(),
+  productId:z.string().max(120).optional(),
+  sellerId:z.string().max(120).optional(),
+  offerId:z.string().max(120).optional(),
+  colorId:z.string().max(120).optional(),
+  options:z.array(z.object({name:z.string().trim().max(100),value:z.string().trim().max(140)})).max(16).optional(),
+  images:z.array(z.string().max(3000)).max(12).optional(),
   label: z.string().trim().max(140),
   size: z.string().trim().max(100).optional(),
   sizeLabel: z.string().trim().max(100).optional(),
@@ -41,7 +48,7 @@ export const sourceVariantSchema = z.object({
   quantityMoreThan: z.number().int().min(0).max(100_000).optional(),
 });
 export type SourceVariant = z.infer<typeof sourceVariantSchema>;
-export const sourceColorwayGallerySchema=z.object({color:z.string().trim().max(120),images:z.array(z.string().max(3000)).max(12)});
+export const sourceColorwayGallerySchema=z.object({color:z.string().trim().max(120),colorId:z.string().max(120).optional(),images:z.array(z.string().max(3000)).max(12)});
 export const serviceOfferingSchema = z.object({
   id: z.string().regex(/^[a-z0-9][a-z0-9_-]{1,79}$/),
   title: localizedTextSchema,
@@ -88,6 +95,14 @@ export const productSchema = z.object({
   sourceColorwayImages:z.array(sourceColorwayGallerySchema).max(250).optional(),
   sourceUrl: z.string().optional(),
   sourceVariantId: z.string().max(120).optional(),
+  sourceGroupId:z.string().max(120).optional(),
+  sourceProductId:z.string().max(120).optional(),
+  sourceSellerId:z.string().max(120).optional(),
+  sourceOfferId:z.string().max(120).optional(),
+  sourceColorId:z.string().max(120).optional(),
+  sourceOptions:z.array(z.object({name:z.string().trim().max(100),value:z.string().trim().max(140)})).max(16).optional(),
+  sourceVariantScope:z.enum(['group','color','item']).optional(),
+  sourceVariantsComplete:z.boolean().optional(),
   description: z.string().optional(),
   country: z.string().optional(),
   sourceCurrency: z.string().optional(),
@@ -115,7 +130,7 @@ export const productSchema = z.object({
   /** Units left for the chosen option as the store reports them (only eBay does); the server sets these. */
   stockQuantity: z.number().int().min(0).max(100_000).optional(),
   stockMoreThan: z.number().int().min(0).max(100_000).optional(),
-  stockSource: z.enum(["ebay"]).optional(),
+  stockSource: z.enum(["ebay","merchant"]).optional(),
   /** How the boxed weight was found: published by the store, or an editable estimate. */
   weightBasis: z.enum(["store", "estimate", "catalog", "customer"]).optional(),
 });

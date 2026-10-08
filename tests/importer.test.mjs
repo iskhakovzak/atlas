@@ -268,10 +268,10 @@ test('fresh verification normalizes a catalog label for a single live option',()
   const checked=verifyProductSnapshot(p,'Указанный вариант',fresh,5000);
   assert.equal(checked.sourcePrice,12.79);assert.equal(checked.importedAt,5000);
 });
-test('fresh verification accepts a matching variant when the merchant omits stock status',()=>{
+test('fresh verification blocks a matching variant when stock is unknown',()=>{
   const p={id:'p',name:'Shoe',brand:'Nike',category:'Обувь',usd:76.97,weight:1.5,image:'',variants:['White · 6'],sourceUrl:'https://www.nike.com/t/example/DM4044-108',sourceVariantId:'00197600816527',sourceCurrency:'USD',sourcePrice:76.97};
   const fresh={sourceUrl:p.sourceUrl,currency:'USD',price:76.97,variants:[{id:'00197600816527',label:'White · 6',available:true,availabilityKnown:false,price:76.97}],warnings:[],method:'JSON-LD'};
-  assert.equal(verifyProductSnapshot(p,'White · 6',fresh,5000).sourcePrice,76.97);
+  assert.throws(()=>verifyProductSnapshot(p,'White · 6',fresh,5000),/не подтвердил наличие/);
 });
 
 test('Shopify keeps the store\'s "before the discount" price only when it is above the price',()=>{

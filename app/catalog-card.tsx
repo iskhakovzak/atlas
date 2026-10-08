@@ -78,7 +78,9 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   const orderUrl = findOrderUrl(product);
   const category = cc.categories[product.category] ?? product.category;
   const costs = costsAt(item, speed, pricing);
-  const storePriceText = needsPrice ? (hasRecordedPrice ? fmt(product.sourcePrice!, product.sourceCurrency!) : cc.checkPrice) : fmt(product.usd, 'USD');
+  const priceRange=new Set(product.sourceVariants?.filter(v=>v.available&&v.availabilityKnown!==false&&v.quantity!==0).map(v=>v.price).filter(v=>v!==undefined)).size>1;
+  const from=locale==='ru'?'от ':locale==='en'?'from ':'';
+  const storePriceText = needsPrice ? (hasRecordedPrice ? fmt(product.sourcePrice!, product.sourceCurrency!) : cc.checkPrice) : (priceRange?from:'')+fmt(product.usd, 'USD')+(priceRange&&locale!=='ru'&&locale!=='en'?' dan':'');
   const open = () => select(product);
   const priceId = useId();
   const save = canSave ? <Tooltip><TooltipTrigger asChild><button type="button" disabled={saving} className={'find-save ' + (saved ? 'saved' : '')} aria-pressed={saved} aria-label={(saved ? copy.remove : copy.save) + ': ' + name} onClick={onSave}><Heart size={20} /></button></TooltipTrigger><TooltipContent>{saving ? copy.savingState : saved ? copy.remove : copy.save}</TooltipContent></Tooltip> : null;

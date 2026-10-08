@@ -1,4 +1,5 @@
 import {declarationFor, inferProductCategory, safeImage, type Extracted, type ProductVariant} from './extract.ts';
+import {safeVariantSourceUrl} from './variant-normalization.ts';
 import {publicJsonAssignment} from './public-state.ts';
 
 // Public Ajax endpoints only; no customer session, admin token or checkout access.
@@ -98,10 +99,13 @@ export function extractShopify(data: unknown, currencyData: unknown, sourceUrl: 
     const v = object(raw), values = [v.option1, v.option2, v.option3].map(label);
     const variantPrice = amount(v.price), compareAt = amount(v.compare_at_price);
     const chosenIndexes = choiceIndexes.filter(index => values[index] && !/^default title$/i.test(values[index]));
-    return {id: v.id === undefined ? undefined : String(v.id), label: label(v.public_title ?? v.title) || 'Стандартный', available: v.available === true,
+    const optionValues=options.map((name,index)=>({name,value:values[index]??''})).filter(option=>option.value&&!/^default title$/i.test(option.value));
+    const variantImages=gallery([v.featured_image]);
+    return {sourceUrl:safeVariantSourceUrl(v.url,sourceUrl),productId:product.id===undefined?undefined:String(product.id),options:optionValues,images:variantImages,
+      id: v.id === undefined ? undefined : String(v.id), label: label(v.public_title ?? v.title) || 'Стандартный', available: v.available === true,
       availabilityKnown: typeof v.available === 'boolean',
       price: variantPrice, ...(compareAt !== undefined && variantPrice !== undefined && compareAt > variantPrice ? { compareAtPrice: compareAt } : {}),
-      image: gallery([v.featured_image, product.featured_image])[0],
+      image: variantImages[0] ?? (colorIndex<0?images[0]:undefined),
       size: chosenIndexes.map(index => values[index]).join(' / ') || undefined,
       sizeLabel: chosenIndexes.map(index => options[index]).join(' / ') || undefined,
       color: values[colorIndex] || undefined};
@@ -124,5 +128,5 @@ export function extractShopify(data: unknown, currencyData: unknown, sourceUrl: 
   if (selected && !selected.available) warnings.push('Вариант из ссылки отсутствует в наличии. Выберите другой вариант.');
   if (missingRequestedVariant) warnings.push('Вариант из ссылки не найден или неоднозначен. Проверьте размер или цвет.');
   if (!variants.some(v => v.available)) warnings.push('Магазин не указал доступных вариантов этого товара.');
-  return {title, brand, category, declarationDescription: declarationFor(category, title, brand), image: selected?.image ?? images[0], images: gallery([selected?.image, ...images]), price, ...(referencePrice !== undefined ? { referencePrice } : {}), currency, variants: missingRequestedVariant ? variants.map(v => ({...v,price:undefined,compareAtPrice:undefined})) : variants, warnings, sourceUrl, method: 'Shopify product API', country: storefrontCountry(source)?.name};
+  return {variantScope:'group', groupId:product.id===undefined?undefined:String(product.id), variantsComplete:product.variants.length<=250, selectedVariantId:selected?.id, title, brand, category, declarationDescription: declarationFor(category, title, brand), image: selected?.image ?? images[0], images: gallery([selected?.image, ...images]), price, ...(referencePrice !== undefined ? { referencePrice } : {}), currency, variants: missingRequestedVariant ? variants.map(v => ({...v,price:undefined,compareAtPrice:undefined})) : variants, warnings, sourceUrl, method: 'Shopify product API', country: storefrontCountry(source)?.name};
 }

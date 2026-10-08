@@ -1,3 +1,4 @@
+import {normalizeMerchantVariants} from './variant-normalization.ts';
 import {dedupeSafeImages,extractAdidasProduct,extractProduct,type Extracted} from './extract.ts';
 import {extractShopify, shopifyEndpoints} from './shopify.ts';
 import {extractVictoriasSecret, victoriasSecretRequest} from './victoriassecret.ts';
@@ -56,7 +57,7 @@ export function allowedUrl(value: string) {
 
 function finalizeExtraction(extracted:Extracted,sourceUrl:string){
   const images=dedupeSafeImages([extracted.image,...(extracted.images??[])],sourceUrl);
-  const result={...extracted,image:images[0]??extracted.image,images};
+  const result=normalizeMerchantVariants({...extracted,image:images[0]??extracted.image,images});
   const hasProductPrice=typeof result.price==='number'&&Number.isFinite(result.price)&&result.price>0;
   const hasVariantPrice=(result.variants??[]).some(variant=>typeof variant.price==='number'&&Number.isFinite(variant.price)&&variant.price>0);
   if(!result.title||(!hasProductPrice&&!hasVariantPrice)||!result.currency){
