@@ -51,7 +51,8 @@ import { cartCustomsEstimate } from "@/lib/market/allowance";
 import { BlankBill, CalcLines, CustomsPanel, DeliverySpeedSwitch, HoldNote, sumQuotes } from "./calc-summary";
 import { countries, currencies, currencyForCountry, toUsd, paddedWeight } from "@/lib/market/world";
 import { describeSingleColorway } from "@/lib/market/variant-colorway";
-import { variantsForSourceColor } from "@/lib/importer/link-selection";
+import { adidasMenSize } from "@/lib/market/adidas-size-chart";
+import { variantsForSourceColor, ebayVariantSourceUrl } from "@/lib/importer/link-selection";
 import { findNikeFootwearSizeRow, getNikeFootwearSizeRows, inferNikeFootwearSizeSystem } from "@/lib/market/nike-size-chart";
 import { estimateBoxedWeight, estimatedBoxedWeight, validBoxedWeight, weightCategories } from "@/lib/market/weight";
 import {
@@ -378,6 +379,7 @@ export function GlobalLinkOrder() {
     },Date.now(),prunedFor.current!==draftKey);
     prunedFor.current=draftKey;
   },[draftKey,viewer,checking,choicesApplied,added,requestedUrl,catalogId,dealId,url,source,name,brand,declaration,currency,amount,basePrice,importReference,shipping,shippingCurrency,shippingEstimated,foundShipping,weight,weightBasis,weightOrigin,country,otherCountry,category,variant,variants,selectedColor,selectedSize,image,images,colorwayImages,showSourceForm,note,sourceCheckStatus,importedAt,sourceExpiresAt,atlasLocks,picked,manualQuantity,comment,previewSpeed]);
+  const [sizeFormat,setSizeFormat]=useState<"us"|"uk"|"eu">("us");
   const variantColors = useMemo(() => [...new Set(variants.map(item => item.color).filter((value): value is string => Boolean(value)))], [variants]);
   const currentCatalogSeed=catalogLinkSeed(catalogProducts,catalogId,requestedUrl,url);
   const catalogProductFlow=Boolean(currentCatalogSeed || (dealSeed && url===requestedUrl));
@@ -390,6 +392,8 @@ export function GlobalLinkOrder() {
     ? 'women' as const
     : variantsForColor.some(item => item.sizeLabel === 'Nike US men') ? 'men' as const
       : inferNikeFootwearSizeSystem({sourceUrl:source,currency,category,title:name});
+  const adidasSizes=variantsForColor.some(v=>/US/i.test(v.sizeLabel??"")&&adidasMenSize(brand,name,v.size??""));
+  const sizeDisplay=(size:string)=>adidasSizes?`${sizeFormat.toUpperCase()} ${adidasMenSize(brand,name,size)?.[sizeFormat]??size}`:size;
   const nikeSizeRows = nikeSizeSystem ? getNikeFootwearSizeRows(nikeSizeSystem, variantSizes) : [];
   const selectedNikeSize = nikeSizeSystem && selectedSize ? findNikeFootwearSizeRow(nikeSizeSystem, selectedSize) : undefined;
   const variantSizeLabel = nikeSizeSystem
@@ -615,9 +619,7 @@ export function GlobalLinkOrder() {
       const importedImages=dedupeSafeImages([data.image,...(data.images??[])].filter(Boolean) as string[],data.sourceUrl);
       setImages(importedImages.length?importedImages:linkSeedImages);
       const allImportedColorwayGalleries=cleanColorwayGalleries(data.colorwayImages,data.sourceUrl);
-      const importedColorwayGalleries=data.selectedVariantColor
-        ? allImportedColorwayGalleries.filter(gallery=>gallery.color===data.selectedVariantColor)
-        : allImportedColorwayGalleries;
+      const importedColorwayGalleries=variantsForSourceColor(allImportedColorwayGalleries,data.selectedVariantColor,data.sourceUrl);
       setColorwayImages(importedColorwayGalleries);
       if(importedImages.length&&!data.image)setImage(importedImages[0]);
       const nextCategory = linkIsCatalogFlow&&linkSeed
@@ -1042,7 +1044,8 @@ export function GlobalLinkOrder() {
                 const photo = optionImage || img || "";
                 return {
                 ...baseProduct,
-                id: source + "#" + label,
+                id: ebayVariantSourceUrl(source,option?.id) + "#" + label,
+                sourceUrl: ebayVariantSourceUrl(source,option?.id),
                 usd: toUsd(priceOf(label), currency, pricing.rates),
                 image: photo,
                 sourceImages: dedupeSafeImages([photo, ...images], source, 12),
@@ -1144,7 +1147,7 @@ export function GlobalLinkOrder() {
                 <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
               </div> : variants.length && (variantColors.length||variantSizes.length) ? <>
                 {variantColors.length>0&&<div className="variant-step"><div><b>{variantColors.length===1?tx('Расцветка по ссылке','Havoladagi rang','Linked colorway'):c.color}</b>{variantColors.length!==1&&<span>{selectedColor||c.selectColor}</span>}</div>{variantColors.length===1?<><div className="single-variant-selection"><span>{describeSingleColorway(variantColors[0]).primary}</span><small>{tx('Одна расцветка по этой ссылке','Bu havolada bitta rang varianti','One colorway in this link')}</small></div><p className="single-colorway-note">{tx('Для другого цвета нужна ссылка на соответствующий артикул магазина.','Boshqa rang uchun do‘kondagi tegishli artikl havolasi kerak.','Another color requires a link to its separate store item.')}</p><details className="single-colorway-source"><summary>{tx('Полное название расцветки в магазине','Do‘kondagi rangning to‘liq nomi','Full store colorway name')}</summary><span>{variantColors[0]}</span></details></>:<div className="variant-options">{variantColors.map(color=><button type="button" key={color} aria-pressed={selectedColor===color} onClick={()=>selectColorway(color)}>{color}</button>)}</div>}</div>}
-                {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize?(nikeSizeSystem?`US ${selectedSize}`:selectedSize):c.selectVariant}</span></div><div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={Boolean(choice&&picked[choice.label])} disabled={choice?.quantity===0} onClick={()=>choice&&togglePick(choice)}><span>{nikeSizeSystem?`US ${size}`:size}</span>{choice&&price!==undefined&&sizePricesDiffer&&<small>{price} {currency}</small>}{choice?.quantity!==undefined&&choice.quantity<=5&&<small className="lo-stock">{choice.quantity?k.stockLeft(choice.quantity):k.outOfStock}</small>}</button>})}</div>{nikeSizeSystem&&<div className="nike-size-guide">
+                {(variantColors.length===0||selectedColor)&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize?(nikeSizeSystem?`US ${selectedSize}`:sizeDisplay(selectedSize)):c.selectVariant}</span></div>{adidasSizes&&<div className="variant-options" aria-label="Size format">{(["us","uk","eu"] as const).map(format=><button type="button" key={format} aria-pressed={sizeFormat===format} onClick={()=>setSizeFormat(format)}>{format.toUpperCase()}</button>)}<a href="https://www.adidas.com/us/help/size_charts/men-shoes" target="_blank" rel="noopener noreferrer">adidas ↗</a></div>}<div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={Boolean(choice&&picked[choice.label])} disabled={choice?.quantity===0} onClick={()=>choice&&togglePick(choice)}><span>{nikeSizeSystem?`US ${size}`:sizeDisplay(size)}</span>{choice&&price!==undefined&&sizePricesDiffer&&<small>{price} {currency}</small>}{choice?.quantity!==undefined&&choice.quantity<=5&&<small className="lo-stock">{choice.quantity?k.stockLeft(choice.quantity):k.outOfStock}</small>}</button>})}</div>{nikeSizeSystem&&<div className="nike-size-guide">
                   {selectedNikeSize&&<p className="nike-selected-size">{tx('Выбранный размер','Tanlangan o‘lcham','Selected size')}: <strong>US {selectedNikeSize.us}</strong><span>EU {selectedNikeSize.eu}</span><span>UK {selectedNikeSize.uk}</span><span>CM/JP {selectedNikeSize.cmLabel}</span><span>{tx('Стопа','Oyoq','Foot')} {selectedNikeSize.footLengthCm===undefined?'—':selectedNikeSize.footLengthCm} {tx('см','sm','cm')}</span></p>}
                   <details className="nike-size-chart"><summary>{tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')}</summary>
                     <p>{tx('Показаны размеры, найденные для этого товара. CM/JP — маркировка обуви Nike; длина стопы указана отдельно.','Bu tovar uchun topilgan o‘lchamlar ko‘rsatilgan. CM/JP — Nike poyabzali yorlig‘i; oyoq uzunligi alohida berilgan.','Shows sizes found for this item. CM/JP is Nike’s shoe-label size; foot length is listed separately.')}</p>

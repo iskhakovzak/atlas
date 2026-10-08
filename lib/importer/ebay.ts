@@ -168,9 +168,9 @@ function safeEbayImage(value: unknown, sourceUrl: string) {
 }
 
 function itemImages(item: EbayItem, sourceUrl: string) {
-  const image = record(item.image);
-  const additional = Array.isArray(item.additionalImages) ? item.additionalImages : [];
-  const urls = [image?.imageUrl, ...additional.slice(0, MAX_IMAGES).map(value => record(value)?.imageUrl)]
+  const additional = [item.additionalImages,item.thumbnailImages,item.itemGroupAdditionalImages,item.images].flatMap(value=>Array.isArray(value)?value:[]);
+  const urls = [item.image,item.itemGroupImage,...additional.slice(0,MAX_IMAGES*2)]
+    .map(value=>typeof value==='string'?value:record(value)?.imageUrl)
     .map(value => safeEbayImage(value, sourceUrl))
     .filter((value): value is string => Boolean(value));
   return dedupeSafeImages(urls, sourceUrl, MAX_IMAGES);
@@ -678,6 +678,10 @@ export async function fetchEbayProduct(sourceUrl: string, config: EbayBrowseConf
     ...itemImages(item, url.href),
     ...exactItems.flatMap(value => itemImages(value, url.href)),
   ], url.href, MAX_IMAGES);
+  const colorwayImages=[...new Set(parsed.variants.map(v=>v.color).filter((v):v is string=>Boolean(v)))].map(color=>({color,images:dedupeSafeImages(exactItems.filter(value=>{
+    const child=parsed.variants.find(v=>v.id===variationId(value,listingId));return child?.color===color;
+  }).flatMap(value=>itemImages(value,url.href)),url.href,MAX_IMAGES)})).filter(gallery=>gallery.images.length);
+  if(!images.length)console.warn('[eBay images] '+JSON.stringify({fields:Object.keys(item).filter(key=>/image|picture|photo/i.test(key)),imageType:typeof item.image,imageKeys:Object.keys(record(item.image)??{}),hosts:[...new Set([item,...exactItems.slice(0,4)].flatMap(value=>[value.image,...(Array.isArray(value.additionalImages)?value.additionalImages:[])]).map(value=>{try{return new URL(String(record(value)?.imageUrl??'')).hostname}catch{return ''}}).filter(Boolean))]}));
   const category = inferCategory(item, title);
   const context = listingContext(item, shipToCountry);
   return {
@@ -687,6 +691,7 @@ export async function fetchEbayProduct(sourceUrl: string, config: EbayBrowseConf
     category,
     image: images[0],
     images,
+    colorwayImages,
     // A group can have different prices by size/color. Leave the form price
     // unset and carry the authoritative amount on each selectable variant.
     variants: parsed.variants,

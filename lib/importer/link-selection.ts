@@ -1,5 +1,10 @@
 import {isEbayStoreHost} from './stores.ts';
 
+export function ebayVariantSourceUrl(source:string,id?:string){
+  try { const url=new URL(source);if(url.protocol==='https:'&&!url.username&&!url.password&&!url.port&&isEbayStoreHost(url.hostname)&&id&&/^\d{1,20}$/.test(id)) {url.searchParams.set('var',id);return url.href;} }catch{ /* keep the validated source */ }
+  return source;
+}
+
 /** Most links bind one colour; eBay seller groups offer their full colour/size matrix. */
 export function variantsForSourceColor<T extends { color?: string }>(
   variants: T[],
