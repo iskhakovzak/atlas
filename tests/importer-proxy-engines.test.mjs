@@ -94,6 +94,20 @@ test('the engine ladder returns the last answer when every engine meets a wall',
   assert.deepEqual(planner.order('www.walmart.com'),['fetch','impersonate']);
 });
 
+test('an engine that stalls gets part of the deadline so the next engine still runs',async()=>{
+  const planner=createEnginePlanner(['fetch','impersonate']);
+  const stall=(_target,{signal})=>new Promise((_resolve,reject)=>signal.addEventListener('abort',()=>reject(signal.reason)));
+  const started=Date.now();
+  const result=await fetchWithEngines({
+    target:new URL('https://www.bestbuy.com/site/sku/1.p'),method:'GET',headers:{},mode:'auto',planner,deadlineMs:4000,
+    engines:{fetch:stall,impersonate:async()=>html(product)},
+  });
+  assert.equal(result.engine,'impersonate');
+  assert.deepEqual(result.attempts,['fetch:timeout','impersonate:200']);
+  assert.ok(Date.now()-started<4000);
+  assert.deepEqual(planner.order('www.bestbuy.com'),['impersonate','fetch']);
+});
+
 test('the Worker client asks for auto mode and the importer reports what the engines saw',async()=>{
   let payload;
   const fetcher=createMerchantProxyFetch({endpoint:'https://85-9-196-196.sslip.io/v1/fetch',secret,fetchImpl:async(_url,init)=>{

@@ -124,10 +124,12 @@ export async function fetchWithEngines({target, method, headers, body, mode, eng
   if (!plan.length || plan.some(name => !available.includes(name))) throw Object.assign(new Error('engine_unavailable'), {status: 400});
   const deadline = clock() + deadlineMs, attempts = [];
   let result, failure;
-  for (const engine of plan) {
+  for (const [index, engine] of plan.entries()) {
     const remaining = deadline - clock();
     if (signal?.aborted || attempts.length && remaining < 1500) break;
-    const timeout = AbortSignal.timeout(Math.max(remaining, 1000));
+    // A merchant that stalls one engine (Best Buy holds Node's connection open) must not starve the next.
+    const budget = index < plan.length - 1 ? Math.min(remaining, Math.round(deadlineMs * 0.6)) : remaining;
+    const timeout = AbortSignal.timeout(Math.max(budget, 1000));
     try {
       const upstream = await engines[engine](target, {method, headers, body, redirect: 'manual', signal: signal ? AbortSignal.any([signal, timeout]) : timeout});
       const bytes = await readUpstream(upstream);
