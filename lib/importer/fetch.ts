@@ -373,7 +373,7 @@ function botChallengeError(kind: string) {
 function directEgress(response: Response) {
   return response.headers.get('x-atlas-egress') === 'direct';
 }
-const directEgressWarning = 'Данные получены напрямую, без US-прокси (магазин ограничил его запросы): цена и валюта могут соответствовать другому региону — проверьте их.';
+const directEgressWarning = 'Данные получены без US-прокси: цена и валюта могут соответствовать другому региону — проверьте их.';
 
 async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'json', options: PublicRequestOptions = {}, fetcher: MerchantFetch = fetch) {
   let url = start;
