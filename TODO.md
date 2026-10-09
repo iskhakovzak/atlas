@@ -1,3 +1,7 @@
+## Target native API headers
+
+US VPS comparison: Target redsky returned product JSON200 with ordinary API headers and with User-Agent, but435 PerimeterX metadata after adding browser hints/X-Requested-With/Sec-Fetch headers. Target requests now retain HTTPS/Origin/Referer/allowlist/timeout and use minimalApi headers, omitting those browser-only hints. Other merchant requests are unchanged. Regression checks the actual fetchProduct headers. No IP-reputation verdict is inferred from435 alone.
+
 ## Native API Origin follow-up
 
 The signed proxy permits both Referer and Origin from the exact known storefront for credential-free GETs to redsky.target.com and api.victoriassecret.com. All other cross-host sources remain rejected; Origin must still equal its parsed HTTPS origin. Initial hosted checks exposed that requestHeaders sends both headers. Regression covers exact accepted Origin and unrelated rejected Origin. Mango source parsing verified on the US VPS and hosted site: USD79.99/18 variants.

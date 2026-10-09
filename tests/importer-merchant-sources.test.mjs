@@ -97,9 +97,12 @@ const targetPayload={data:{product:{tcin:'89115509',
 
 test('Target is read from its public product service with the variation tree and shipping availability',async()=>{
   const requested=[];
-  const result=await fetchProduct(targetUrl,async input=>{
+  const result=await fetchProduct(targetUrl,async (input,init)=>{
     const url=new URL(String(input));requested.push(url.hostname+url.pathname);
     assert.equal(url.searchParams.get('tcin'),'89003153');
+    assert.equal(new Headers(init.headers).has('x-requested-with'),false);
+    assert.equal(new Headers(init.headers).has('sec-fetch-site'),false);
+    assert.equal(new Headers(init.headers).get('origin'),'https://www.target.com');
     return json(targetPayload);
   });
   assert.deepEqual(requested,['redsky.target.com/redsky_aggregations/v1/web/pdp_client_v1']);
