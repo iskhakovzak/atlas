@@ -50,8 +50,11 @@ function validateHeaders(raw,target,body,method,allowedHosts){
     if(key==='referer'||key==='origin'){
       let referenced;
       try{referenced=new URL(value)}catch{return undefined}
+      const apiReferer=key==='referer'&&method==='GET'&&(
+        target.hostname==='redsky.target.com'&&referenced.hostname==='www.target.com'||
+        target.hostname==='api.victoriassecret.com'&&['www.victoriassecret.com','victoriassecret.com'].includes(referenced.hostname));
       if(referenced.protocol!=='https:'||referenced.username||referenced.password||referenced.port||
-        referenced.hostname.toLowerCase()!==target.hostname.toLowerCase()||!allowedHosts.has(referenced.hostname.toLowerCase()))return undefined;
+        !apiReferer&&referenced.hostname.toLowerCase()!==target.hostname.toLowerCase()||!allowedHosts.has(referenced.hostname.toLowerCase()))return undefined;
       if(key==='origin'&&referenced.origin!==value)return undefined;
     }
     result[key]=value;

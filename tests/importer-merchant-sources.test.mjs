@@ -133,3 +133,9 @@ test('a total engine failure carries the attempts',async()=>{
   }).catch(error=>error);
   assert.deepEqual(failure.attempts,['fetch:error','impersonate:error']);
 });
+
+test('Target truncated option trees are never marked complete',async()=>{
+ const p=structuredClone(targetPayload);const items=Array.from({length:121},(_,i)=>({name:'Size',value:'S'+i,tcin:String(89003153+i),availability:{is_shipping_available:true,is_sold_out:false}}));
+ p.data.product.variation_hierarchy=items;p.data.product.children=items.map(item=>child(item.tcin,27));
+ const result=await fetchProduct(targetUrl,async()=>json(p));assert.equal(result.variants.length,120);assert.equal(result.variantsComplete,false);
+});

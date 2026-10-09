@@ -1,3 +1,7 @@
+## PR39 production preparation
+
+Signed proxy validation now permits only exact GET Referer pairs www.target.com→redsky.target.com and victoriassecret.com/www.victoriassecret.com→api.victoriassecret.com; Origin restrictions and HTTPS/allowlist/credential/port checks remain. Signed HTTP regressions cover accepted pairs and rejected unrelated/insecure/credentialed sources. Target groups exceeding120 leaves remain incomplete after truncation. These fixes are required for US proxy operation and safe automatic publication. VPS host snapshot must preserve existing hosts and include redsky.target.com.
+
 ## Mango, Target и Zara без браузера — 9 октября 2026
 
 Три магазина, где страница пуста или закрыта, отдают товар из собственных источников данных — новых расходов нет:

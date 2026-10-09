@@ -77,7 +77,8 @@ export function extractTarget(payload: unknown, sourceUrl: string, selectedTcin:
   const brand = text(record(record(product.item)?.primary_brand)?.name, 80) || 'Target';
   const title = text(record(record(product.item)?.product_description)?.title, 140);
   if (!title) return undefined;
-  const variants: ProductVariant[] = leaves(product.variation_hierarchy).slice(0, MAX_VARIANTS).map(leaf => {
+  const allLeaves=leaves(product.variation_hierarchy);
+  const variants: ProductVariant[] = allLeaves.slice(0, MAX_VARIANTS).map(leaf => {
     const child = children.get(leaf.tcin);
     const price = priceOf(child?.price);
     const shipping = leaf.availability?.is_shipping_available;
@@ -116,7 +117,7 @@ export function extractTarget(payload: unknown, sourceUrl: string, selectedTcin:
   return {
     variantScope: variants.length > 1 ? 'group' : 'item',
     groupId: parentTcin || undefined,
-    variantsComplete: variants.length > 0 && variants.length <= MAX_VARIANTS && variants.every(variant => variant.availabilityKnown && variant.price !== undefined),
+    variantsComplete: variants.length > 0 && allLeaves.length <= MAX_VARIANTS && variants.every(variant => variant.availabilityKnown && variant.price !== undefined),
     sku: selectedTcin,
     ...(selected ? { selectedVariantId: selected.id } : {}),
     title,
