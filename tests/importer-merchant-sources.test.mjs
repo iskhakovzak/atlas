@@ -142,3 +142,12 @@ test('Target truncated option trees are never marked complete',async()=>{
  p.data.product.variation_hierarchy=items;p.data.product.children=items.map(item=>child(item.tcin,27));
  const result=await fetchProduct(targetUrl,async()=>json(p));assert.equal(result.variants.length,120);assert.equal(result.variantsComplete,false);
 });
+
+// --- PerimeterX: Walmart's served pages carry its config, which is not a wall ---------------------------
+test('a served Walmart page with PerimeterX config is not mistaken for its captcha',async()=>{
+  const {detectBotChallenge}=await import('../lib/importer/fetch.ts');
+  const served=`<html><head><script>window._pxAppId='PXu6b0qd2S';</script></head><body><script id="__NEXT_DATA__" type="application/json">${JSON.stringify({props:{pad:'x'.repeat(80_000)}})}</script></body></html>`;
+  assert.equal(detectBotChallenge(served),undefined);
+  assert.equal(detectBotChallenge(`<html><head><script>window._pxAppId='PXu6b0qd2S';</script></head><body><h1>Robot or human?</h1></body></html>`),'PerimeterX');
+  assert.equal(detectBotChallenge(`<html><body><div id="px-captcha"></div>${'x'.repeat(80_000)}</body></html>`),'PerimeterX');
+});
