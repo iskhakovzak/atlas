@@ -10,6 +10,30 @@ The signed proxy permits both Referer and Origin from the exact known storefront
 
 Signed proxy validation now permits only exact GET Referer pairs www.target.com→redsky.target.com and victoriassecret.com/www.victoriassecret.com→api.victoriassecret.com; Origin restrictions and HTTPS/allowlist/credential/port checks remain. Signed HTTP regressions cover accepted pairs and rejected unrelated/insecure/credentialed sources. Target groups exceeding120 leaves remain incomplete after truncation. These fixes are required for US proxy operation and safe automatic publication. VPS host snapshot must preserve existing hosts and include redsky.target.com.
 
+## Old Navy, Gap, Banana Republic и Ulta — 9 октября 2026
+
+Страницы открываются обычным запросом, но общий разбор видел только название — импорт уходил на ручную проверку. Теперь у них свои разборщики (подключены в `extractProduct` после Mango):
+- **Gap Inc.** (`lib/importer/gapinc.ts`: `oldnavy.gap.com`, `www.gap.com`, `bananarepublic.gap.com`, `athleta.gap.com`, путь `/browse/product.do?pid=`). Данные React Server Components (`self.__next_f.push`). Объект товара содержит три части:
+  - `customer_choices` — цвета с названием и фото: кадр `ZOOM`, 1500 px;
+  - `variants` по посадке (Regular / Tall / Petite) — у каждого цвета список SKU с размером, статусом наличия (`IN_STOCK` / `LOW_STOCK` / `OUT_OF_STOCK`), ценой `effective_price` и ценой до скидки `regular_price`;
+  - `styles` — название товара.
+
+  Повторы RSC (`$78:…:data:<путь>`) разворачиваются внутри того же объекта. `pid` — цвет (9–10 цифр), SKU (13–14 цифр, выбирает размер) или стиль (берётся выбранный страницей цвет). Неизвестный `pid` не подменяется другим цветом — тогда работает общий разбор. Если посадок несколько, посадка — отдельная опция варианта. У каждого варианта своя ссылка `?pid=<SKU>`. Прежний разбор Gap по JSON-LD (`merchant-options.ts`) остался запасным.
+- **Ulta** (`lib/importer/ulta.ts`, `/p/<slug>-pimprod<id>[?sku=]`). Данные лежат в `window.__APOLLO_STATE__` (модули CMS):
+  - `ProductPricing` — выбранный SKU: название, бренд, `listPrice` / `salePrice`;
+  - `ProductVariant` — все оттенки или объёмы с флагами `unavailable` / `disabled`;
+  - `MediaGallery` — фото.
+
+  Цену Ulta публикует только для выбранного варианта: у остальных цена пустая, а предупреждение предлагает открыть ссылку нужного варианта (`?sku=`). Если `?sku=` не совпадает с выбранным страницей вариантом, адаптер не срабатывает.
+
+**Macy's** по-прежнему закрыт Akamai (403 и с домашнего адреса, и с резидентного прокси). Путь — товарный фид партнёрской сети (Rakuten Advertising), см. TODO.
+
+Проверено вживую (`importer:check`, без прокси):
+- Old Navy — 160 вариантов, $14,99 (до скидки $24,99);
+- Gap — 110 вариантов, $27;
+- Banana Republic — 8 вариантов, $140;
+- Ulta — 2 оттенка, $12; по `?sku=` выбирается нужный оттенок.
+
 ## Mango, Target и Zara без браузера — 9 октября 2026
 
 Три магазина, где страница пуста или закрыта, отдают товар из собственных источников данных — новых расходов нет:
