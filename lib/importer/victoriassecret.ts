@@ -32,8 +32,9 @@ export function victoriasSecretRequest(url: URL): VictoriasSecretRequest | undef
   return {
     api,
     productId,
-    choice: url.pathname.match(/-choice-([A-Z0-9]{2,8})(?:\/|$)/i)?.[1]?.toUpperCase(),
-    genericId: url.pathname.match(/generic-(\d{4,12})-/i)?.[1],
+    // Shared links carry the colour either in the path (`generic-…-choice-6AZK`) or as `?choice=6AZK&genericId=…`.
+    choice: (url.pathname.match(/-choice-([A-Z0-9]{2,8})(?:\/|$)/i)?.[1] ?? url.searchParams.get('choice')?.match(/^[A-Z0-9]{2,8}$/i)?.[0])?.toUpperCase(),
+    genericId: url.pathname.match(/generic-(\d{4,12})-/i)?.[1] ?? url.searchParams.get('genericId')?.match(/^\d{4,12}$/)?.[0],
   };
 }
 

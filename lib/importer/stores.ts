@@ -108,7 +108,7 @@ const shopSubdomains = new Set(['mango.com','hm.com','uniqlo.com','nike.com','ad
 // the SSRF boundary.
 const localizedHosts = new Set(['en.zalando.de', 'usa.tommy.com', 'us.puma.com', 'www2.hm.com']);
 // Public product documents some storefronts load from a separate API host (no credentials, exact product id).
-const storeApiHosts = new Set(['api.victoriassecret.com']);
+const storeApiHosts = new Set(['api.victoriassecret.com', 'redsky.target.com']);
 
 // Precompute the explicit allowlist for constant-time URL validation.
 const allowedHostsCache = new Set<string>([...localizedHosts, ...storeApiHosts]);

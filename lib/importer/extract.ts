@@ -1,5 +1,6 @@
 import { extractMacysProduct } from './macys.ts';
 import { extractCharlotteTilburyProduct } from './charlottetilbury.ts';
+import { extractMangoProduct } from './mango.ts';
 import { priorityMerchantProfiles } from './merchant-profiles.ts';
 import { isEbayStoreHost } from './stores.ts';
 import { inferNikeFootwearSizeSystem } from '../market/nike-size-chart.ts';
@@ -1187,6 +1188,8 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
   if (macys) return macys;
   const charlotteTilbury = extractCharlotteTilburyProduct(html, sourceUrl, { safeImage, declarationFor });
   if (charlotteTilbury) return charlotteTilbury;
+  const mango = extractMangoProduct(html, sourceUrl, { safeImage, inferCategory: inferProductCategory, declarationFor });
+  if (mango) return mango;
   const anker = extractAnker(html, sourceUrl);
   if (anker) return anker;
   const amazon = extractAmazon(html, sourceUrl);

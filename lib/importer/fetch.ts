@@ -1,5 +1,6 @@
 import {normalizeMerchantVariants} from './variant-normalization.ts';
-import {dedupeSafeImages,extractAdidasProduct,extractProduct,type Extracted} from './extract.ts';
+import {declarationFor,dedupeSafeImages,extractAdidasProduct,extractProduct,inferProductCategory,safeImage,type Extracted} from './extract.ts';
+import {extractTarget, targetRequest} from './target.ts';
 import {extractShopify, shopifyEndpoints} from './shopify.ts';
 import {extractVictoriasSecret, victoriasSecretRequest} from './victoriassecret.ts';
 import {isEbayStoreHost,isSupportedStoreHost,supportedStoreCount} from './stores.ts';
@@ -378,6 +379,23 @@ async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'jso
   throw Error('Не удалось загрузить товар.');
 }
 
+/** Zara's product page answers `?ajax=true` with the view payload (and `clientAppConfig`) the HTML would embed. */
+function zaraPayloadUrl(url: URL) {
+  if (!/(^|\.)zara\.com$/i.test(url.hostname) || !/-p\d{8}\.html$/i.test(url.pathname)) return undefined;
+  const ajax = new URL(url.href);
+  ajax.searchParams.set('ajax', 'true');
+  return ajax;
+}
+
+/** The two objects the Zara page assigns, so the existing Zara parser reads them exactly as on the page. */
+function zaraDocument(payload: unknown) {
+  const view = payload && typeof payload === 'object' ? payload as Record<string, unknown> : undefined;
+  const config = view?.clientAppConfig;
+  if (!view?.product || !config || typeof config !== 'object') return undefined;
+  const json = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c');
+  return `<script>window.zara.appConfig = ${json(config)};window.zara.viewPayload = ${json({product: view.product})};</script>`;
+}
+
 function withEgressWarning<T extends Extracted>(extracted: T, direct: boolean | undefined): T {
   return direct ? {...extracted, warnings: [...(extracted.warnings ?? []), directEgressWarning]} : extracted;
 }
@@ -496,6 +514,34 @@ async function fetchProductOnce(value: string, fetcher: MerchantFetch = fetch) {
         if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
         if (error instanceof ManualEntryFallbackError && error.reason === 'blocked') throw error;
         // Otherwise the page shell still yields the title for a manual-review draft.
+      }
+    }
+    const target = targetRequest(url);
+    if (target) {
+      // The page draws price and options in the browser from Target's own public product service.
+      try {
+        const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(8_000)]);
+        const payload = await readPublic(target.api, signal, 'json', {referer: url.href}, fetcher);
+        const extracted = extractTarget(JSON.parse(payload.text), url.href, target.tcin, {safeImage, inferCategory: inferProductCategory, declarationFor});
+        if (extracted) return finalizeExtraction(withEgressWarning(extracted, payload.direct), url.href);
+      } catch (error) {
+        if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
+        if (error instanceof ManualEntryFallbackError && error.reason === 'blocked') throw error;
+        if (error instanceof Error && /не найдена/.test(error.message)) throw error;
+      }
+    }
+    const zara = zaraPayloadUrl(url);
+    if (zara) {
+      // The HTML sits behind Akamai; the same page answers `?ajax=true` with the view payload it would embed.
+      try {
+        const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(8_000)]);
+        const payload = await readPublic(zara, signal, 'json', {referer: url.href}, fetcher);
+        const document = zaraDocument(JSON.parse(payload.text));
+        if (document) return finalizeExtraction(withEgressWarning(applyMerchantProfile(extractProduct(document, url.href), url.href), payload.direct), url.href);
+      } catch (error) {
+        if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
+        // A removed product is definitive; anything else falls through to the page itself.
+        if (error instanceof Error && /не найдена/.test(error.message)) throw error;
       }
     }
     const endpoints = shopifyEndpoints(url);

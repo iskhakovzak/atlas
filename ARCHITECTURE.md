@@ -1,3 +1,15 @@
+## Mango, Target и Zara без браузера — 9 октября 2026
+
+Три магазина, где страница пуста или закрыта, отдают товар из собственных источников данных — новых расходов нет:
+- **Mango** (`lib/importer/mango.ts`): данные React Server Components в самой странице (`self.__next_f.push`). Берутся все цвета, размеры с флагом наличия, цена и фото каждого цвета; цвет из ссылки (`/<товар>/<цвет>` или `?c=`) задаёт цену и галерею. Если такого цвета у товара нет, адаптер ничего не подставляет.
+- **Target** (`lib/importer/target.ts`): публичный сервис страницы `redsky.target.com/redsky_aggregations/v1/web/pdp_client_v1` (ключ веб-клиента Target, `pricing_store_id=3991`). Дерево вариантов, цена ребёнка (`current_retail`, «до скидки» — `reg_retail`), наличие = доставка возможна и товар не распродан. Ответ про другой `tcin` не используется. `redsky.target.com` добавлен в allowlist (`storeApiHosts`), поэтому на VM нужно обновить `supported-store-hosts.json`.
+- **Zara** (`fetch.ts`, `zaraPayloadUrl`/`zaraDocument`): та же ссылка с `?ajax=true` отдаёт JSON страницы (`product` + `clientAppConfig`) обычному запросу, мимо Akamai. JSON заворачивается в прежний формат `window.zara.*` и разбирается существующим разборщиком Zara (цвет, размеры, RON сохраняются). 410 — «товар не найден»; прочие ошибки откатываются к обычной странице.
+- **Victoria's Secret**: цвет теперь читается и из `?choice=…&genericId=…`. Вживую из Узбекистана и страница, и API отвечают 403 — проверка только с VPS.
+
+Прокси: если все движки упали с ошибкой (таймаут, обрыв), ответ всё равно несёт `attempts` (`fetch:timeout impersonate:error`), а не безымянный 502.
+
+Проверено локально `importer:check --engines`: Mango — 18 вариантов с наличием, $79,99, выбран Sky Blue; Target — 5 размеров, $27; Zara — 4 варианта, $59,90, 7 фото.
+
 ## Свой движок загрузки страниц магазинов вместо Firecrawl — 9 октября 2026
 
 Firecrawl отклонён по цене (1 кредит за страницу, JSON +4) и не проходит трудные случаи (Sephora — reCAPTCHA). Вместо него — лестница движков в собственном прокси на UpCloud (`deploy/upcloud/merchant-engines.mjs`): `fetch` → `impersonate` (TLS/HTTP2-отпечаток Chrome, пакет `impit@0.14.5`). Worker (`lib/importer/proxy-client.mjs`) шлёт `engine: "auto"`; прокси помнит лучший движок по хосту 6 ч в памяти процесса и эскалирует только анонимные GET при стене. Старый Worker без поля `engine` и POST Amazon работают как раньше. CAPTCHA не решаем.
