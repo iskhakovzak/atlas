@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fetchProduct,ManualEntryFallbackError} from '../lib/importer/fetch.ts';
 import {extractProduct} from '../lib/importer/extract.ts';
+import {importDraft} from '../lib/market/catalog-editor.ts';
 import {isSupportedStoreHost,supportedStoreHosts} from '../lib/importer/stores.ts';
 import {fetchWithEngines,createEnginePlanner} from '../deploy/upcloud/merchant-engines.mjs';
 
@@ -32,6 +33,8 @@ test('Zara is read from the page\'s own ?ajax=true payload when the HTML is behi
   assert.equal(result.currency,'USD');
   assert.equal(result.selectedVariantColor,'Oyster-white');
   assert.equal(result.variants.length,3);
+  assert.equal(result.variants[0].id,'575658817');
+  assert.equal(importDraft(result,[],'США').variants[0].id,'575658817');
   assert.deepEqual(result.variants.map(v=>[v.label,v.available]),[['Oyster-white · S',true],['Oyster-white · M',false],['Black · S',true]]);
   // HTML strings inside the payload never become page markup.
   assert.notEqual(result.title,'Decoy');

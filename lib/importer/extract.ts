@@ -1145,7 +1145,7 @@ function extractZara(html: string, sourceUrl: string) {
     );
       return (color.sizes?.length ? color.sizes : [{ name: "Стандартный" }]).map(
       (size) => ({
-        id: size.sku ?? (size.id===undefined?undefined:String(size.id)),
+        id: size.sku == null ? (size.id===undefined?undefined:String(size.id)) : String(size.sku),
         productId: color.productId===undefined?undefined:String(color.productId),
         colorId: color.productId===undefined?undefined:String(color.productId),
         options: [{name:'Color',value:clean(color.name)},{name:'Size',value:clean(size.name)}].filter(o=>o.value),
