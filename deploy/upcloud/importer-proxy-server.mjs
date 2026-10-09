@@ -3,13 +3,13 @@ import {createHmac,timingSafeEqual} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
+import {createEnginePlanner,engineNames,fetchWithEngines,loadImpersonator} from './merchant-engines.mjs';
 
 const requestHeaderNames=new Set([
   'accept','accept-language','anti-csrftoken-a2z','cache-control','content-type','cookie','origin','referer',
   'sec-ch-ua','sec-ch-ua-mobile','sec-ch-ua-platform','sec-fetch-dest','sec-fetch-mode','sec-fetch-site','user-agent','x-requested-with',
 ]);
 const maxRequestBytes=32_768;
-const maxResponseBytes=6_000_000;
 const maxConcurrent=16;
 const maxPerMinute=240;
 
@@ -31,20 +31,6 @@ function readBody(stream,limit){
     stream.on('end',()=>resolve(Buffer.concat(chunks,size)));
     stream.on('error',error=>reject(error));
   });
-}
-
-async function readUpstream(response,limit){
-  if(!response.body)return Buffer.alloc(0);
-  const reader=response.body.getReader(),chunks=[];let size=0;
-  try{
-    while(true){
-      const {done,value}=await reader.read();if(done)break;
-      size+=value.byteLength;
-      if(size>limit){await reader.cancel();throw Object.assign(new Error('response_limit'),{status:502})}
-      chunks.push(Buffer.from(value));
-    }
-  }finally{reader.releaseLock()}
-  return Buffer.concat(chunks,size);
 }
 
 function send(res,status,body){
@@ -78,10 +64,17 @@ function validateHeaders(raw,target,body,method,allowedHosts){
   return result;
 }
 
-export function createImporterProxyServer({secret,allowedHosts,fetcher=fetch,now=Date.now}){
+/**
+ * `impersonator` is the optional Chrome-fingerprint engine; `log` receives one
+ * line per merchant request with the host and engine attempts only — never the
+ * URL, headers, cookies or bodies.
+ */
+export function createImporterProxyServer({secret,allowedHosts,fetcher=fetch,impersonator,now=Date.now,log=()=>{}}){
   if(typeof secret!=='string'||!/^[a-f0-9]{64,}$/i.test(secret))throw new Error('ATLAS_IMPORT_PROXY_SECRET must be a random 32-byte hex value.');
   if(!(allowedHosts instanceof Set)||!allowedHosts.size)throw new Error('Importer proxy store-host allowlist is empty.');
   const nonces=new Map(),recent=[];let active=0,requests=0;
+  const engines={fetch:fetcher,...(impersonator?{impersonate:impersonator}:{})};
+  const planner=createEnginePlanner(engineNames.filter(name=>engines[name]),now);
   const handler=async(req,res)=>{
     if(req.method!=='POST'||req.url!=='/v1/fetch')return send(res,404,{error:'not_found'});
     if(!/^application\/json(?:\s*;|$)/i.test(req.headers['content-type']??''))return send(res,415,{error:'unsupported_media_type'});
@@ -108,21 +101,25 @@ export function createImporterProxyServer({secret,allowedHosts,fetcher=fetch,now
     const target=payload?.version===1?safeMerchantTarget(payload.url,allowedHosts):undefined;
     const method=payload?.method;
     const body=payload?.body;
+    // Clients that predate engines send no `engine` and keep the plain Node request.
+    const mode=payload?.engine??'fetch';
     const headers=target&&(method==='GET'||method==='POST')?validateHeaders(payload.headers,target,body,method,allowedHosts):undefined;
     if(!target||!headers||body!==undefined&&typeof body!=='string'||body!==undefined&&body.length>16_384)return send(res,400,{error:'invalid_target_or_headers'});
+    if(mode!=='auto'&&!(engineNames.includes(mode)&&engines[mode]))return send(res,400,{error:'engine_unavailable'});
     active++;
+    const started=Date.now();
     try{
-      const upstream=await fetcher(target,{method,headers,redirect:'manual',signal:AbortSignal.timeout(14_000),...(body!==undefined?{body}:{})});
-      const bytes=await readUpstream(upstream,maxResponseBytes);
-      const setCookie=typeof upstream.headers.getSetCookie==='function'?upstream.headers.getSetCookie():[];
+      const result=await fetchWithEngines({target,method,headers,body,mode,engines,planner});
+      log({host:target.hostname,attempts:result.attempts,ms:Date.now()-started});
       const responseHeaders={
-        ...(upstream.headers.get('content-type')?{contentType:upstream.headers.get('content-type').slice(0,256)}:{}),
-        ...(upstream.headers.get('location')?{location:upstream.headers.get('location').slice(0,4096)}:{}),
-        setCookie:setCookie.slice(0,20).map(value=>value.slice(0,4096)),
+        ...(result.contentType?{contentType:result.contentType.slice(0,256)}:{}),
+        ...(result.location?{location:result.location.slice(0,4096)}:{}),
+        setCookie:result.setCookie.slice(0,20).map(value=>value.slice(0,4096)),
       };
-      return send(res,200,{version:1,status:upstream.status,headers:responseHeaders,body:bytes.toString('base64')});
+      return send(res,200,{version:1,status:result.status,engine:result.engine,attempts:result.attempts,headers:responseHeaders,body:result.bytes.toString('base64')});
     }catch(error){
       const status=error?.name==='TimeoutError'||error?.name==='AbortError'?504:error.status??502;
+      log({host:target.hostname,attempts:[`failed:${status}`],ms:Date.now()-started});
       return send(res,200,{version:1,status,headers:{contentType:'text/plain'},body:''});
     }finally{active--}
   };
@@ -134,6 +131,8 @@ if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.ur
   const hosts=JSON.parse(readFileSync(new URL('./supported-store-hosts.json',import.meta.url),'utf8'));
   const allowedHosts=new Set(hosts);
   const port=Number(process.env.ATLAS_IMPORT_PROXY_PORT??8787);
-  const server=createImporterProxyServer({secret,allowedHosts});
-  server.listen(port,'127.0.0.1',()=>process.stdout.write('atlas importer proxy ready\n'));
+  const impersonator=await loadImpersonator();
+  const log=entry=>process.stdout.write(JSON.stringify(entry)+'\n');
+  const server=createImporterProxyServer({secret,allowedHosts,impersonator,log});
+  server.listen(port,'127.0.0.1',()=>process.stdout.write(`atlas importer proxy ready (engines: fetch${impersonator?', impersonate':''})\n`));
 }

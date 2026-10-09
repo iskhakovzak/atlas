@@ -9,11 +9,38 @@ import {isMerchantChallengePage} from './challenge.ts';
 import {EbayBrowseApiError, EbayListingUnavailableError, EbayManualReviewError, fetchEbayProduct, type EbayBrowseConfig} from './ebay.ts';
 export {supportedStoreCount};
 
+/** HTTP status, bot-wall vendor and egress engine attempts behind a fallback. */
+export type ImportDiagnostic = {status?: number; vendor?: string; engine?: string; attempts?: string};
+
+/** The egress proxy reports the engine that answered and every attempt it made. */
+function responseDiagnostic(response: Response, extra: ImportDiagnostic = {}): ImportDiagnostic {
+  const engine = response.headers.get('x-atlas-engine') ?? undefined, attempts = response.headers.get('x-atlas-attempts') ?? undefined;
+  return {status: response.status, ...(engine ? {engine} : {}), ...(attempts ? {attempts} : {}), ...extra};
+}
+
+/** Operator-facing summary, e.g. "HTTP 403 · защита akamai · fetch:403 impersonate:200". */
+export function describeImportDiagnostic(diagnostic?: ImportDiagnostic) {
+  if (!diagnostic) return '';
+  return [diagnostic.status ? `HTTP ${diagnostic.status}` : '', diagnostic.vendor ? `защита ${diagnostic.vendor}` : '', diagnostic.attempts ?? diagnostic.engine ?? ''].filter(Boolean).join(' · ');
+}
+
+/** Logs carry the store, never the customer's product URL. */
+function hostOf(value: string) {
+  try { return new URL(value).hostname; } catch { return 'unknown'; }
+}
+
+function withDiagnostic<T extends ManualEntryFallbackError>(error: T, diagnostic: ImportDiagnostic): T {
+  error.diagnostic = {...error.diagnostic, ...diagnostic};
+  return error;
+}
+
 /** Recoverable import failure: the customer may review and explicitly confirm
  * manually entered details when a merchant does not expose a public response. */
 export class ManualEntryFallbackError extends Error {
   readonly partial?: Extracted;
   readonly reason: 'blocked' | 'network' | 'upstream' | 'response' | 'redirect' | 'timeout' | 'incomplete' | 'unknown';
+  /** What the merchant answered, for logs and the operator; never shown to customers. */
+  diagnostic?: ImportDiagnostic;
   constructor(message = 'Магазин временно не отдал данные товара. Заполните и подтвердите цену, валюту и выбранный вариант вручную; Atlas сверит цену и валюту, если получит ответ.', partial?: Extracted, reason: ManualEntryFallbackError['reason'] = 'unknown') {
     super(message);
     this.name = 'ManualEntryFallbackError';
@@ -142,12 +169,12 @@ async function readBody(response: Response, format: 'html' | 'json', maxBytes = 
   const contentType = response.headers.get('content-type') ?? '';
   const validType = format === 'html' ? /(?:text\/html|application\/xhtml\+xml)/i.test(contentType) : /json|javascript/i.test(contentType);
   if (!response.ok || !validType) {
-    console.error('Public merchant response rejected', {url: response.url, status: response.status, contentType, format});
+    console.error('Public merchant response rejected', {host: hostOf(response.url), status: response.status, contentType, format});
     await response.body?.cancel();
     const reason = !response.ok
       ? response.status === 401 || response.status === 403 || response.status === 429 ? 'blocked' : response.status >= 500 ? 'upstream' : 'response'
       : 'response';
-    throw new ManualEntryFallbackError(undefined, undefined, reason);
+    throw withDiagnostic(new ManualEntryFallbackError(undefined, undefined, reason), responseDiagnostic(response));
   }
   const reader = response.body?.getReader();
   if (!reader) throw new ManualEntryFallbackError(undefined, undefined, 'response');
@@ -321,14 +348,16 @@ async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'jso
     }
     if (response.status === 401 || response.status === 403 || response.status === 429 || response.status >= 500) {
       await response.body?.cancel();
-      throw new ManualEntryFallbackError(undefined, undefined, response.status>=500?'upstream':'blocked');
+      throw withDiagnostic(new ManualEntryFallbackError(undefined, undefined, response.status>=500?'upstream':'blocked'), responseDiagnostic(response));
     }
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get('location');
       await response.body?.cancel();
-      if (!location || i === 3) throw new ManualEntryFallbackError('Магазин перенаправил запрос. Заполните данные вручную; адрес перенаправления не открывался.',undefined,'redirect');
+      if (!location || i === 3) throw withDiagnostic(new ManualEntryFallbackError('Магазин перенаправил запрос. Заполните данные вручную; адрес перенаправления не открывался.',undefined,'redirect'), responseDiagnostic(response));
       try { url = allowedUrl(new URL(location, url).href); }
       catch { throw new ManualEntryFallbackError('Магазин перенаправил запрос за пределы разрешённых страниц. Заполните данные вручную; новый адрес не открывался.',undefined,'redirect'); }
+      // Walmart and others answer a bot with a same-site redirect to their block page.
+      if (format === 'html' && /^\/(?:blocked|captcha|challenge)\b/i.test(url.pathname)) throw withDiagnostic(new ManualEntryFallbackError(undefined, undefined, 'blocked'), responseDiagnostic(response, {vendor: 'redirect-wall'}));
       if (format === 'html' && !sameMerchantRedirect(start, url)) throw new ManualEntryFallbackError('Магазин изменил витрину или регион. Проверьте ссылку и заполните данные вручную; другой адрес не открывался.', undefined, 'redirect');
       if (format === 'json' && url.origin !== start.origin && !options.allowedOrigins?.includes(url.origin)) throw new ManualEntryFallbackError('Магазин изменил регион API. Заполните данные вручную; новый адрес не открывался.',undefined,'redirect');
       continue;
@@ -337,9 +366,9 @@ async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'jso
     const text = await readBody(response, format);
     if (format === 'html') {
       const challenge = detectBotChallenge(text);
-      if (challenge) throw botChallengeError(challenge);
+      if (challenge) throw withDiagnostic(botChallengeError(challenge), responseDiagnostic(response, {vendor: challenge}));
     }
-    return {text, url, direct};
+    return {text, url, direct, diagnostic: responseDiagnostic(response)};
   }
   throw Error('Не удалось загрузить товар.');
 }
@@ -478,12 +507,12 @@ async function fetchProductOnce(value: string, fetcher: MerchantFetch = fetch) {
         if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
       }
     }
-    const page: {text: string; url: URL; direct?: boolean} = isAmazonUsUrl(url) ? await readAmazonUs(url, controller.signal, fetcher) : await readPublic(url, controller.signal, 'html', {}, fetcher);
+    const page: {text: string; url: URL; direct?: boolean; diagnostic?: ImportDiagnostic} = isAmazonUsUrl(url) ? await readAmazonUs(url, controller.signal, fetcher) : await readPublic(url, controller.signal, 'html', {}, fetcher);
     if (/\/products\//.test(url.pathname) && !/\/products\//.test(page.url.pathname)) throw Error('Магазин убрал карточку товара. Укажите другую ссылку.');
     const challenge = detectBotChallenge(page.text);
-    if (challenge) throw botChallengeError(challenge);
+    if (challenge) throw withDiagnostic(botChallengeError(challenge), {...page.diagnostic, vendor: challenge});
     if (isMerchantChallengePage(page.text))
-      throw new ManualEntryFallbackError('Магазин ограничил автоматическую загрузку. Заполните и подтвердите данные товара вручную.',undefined,'blocked');
+      throw withDiagnostic(new ManualEntryFallbackError('Магазин ограничил автоматическую загрузку. Заполните и подтвердите данные товара вручную.',undefined,'blocked'), {...page.diagnostic, vendor: 'interstitial'});
     let extracted:Extracted;
     try {
       extracted = applyMerchantProfile(extractProduct(page.text, page.url.href), page.url.href);
@@ -538,7 +567,11 @@ export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch
       catch (error) {
         const transient = error instanceof ManualEntryFallbackError && ['network', 'upstream', 'timeout'].includes(error.reason)
           || error instanceof Error && error.name === 'AbortError';
-        if (attempt === 1 || !transient || controller.signal.aborted) throw error;
+        if (attempt === 1 || !transient || controller.signal.aborted) {
+          // One line per failed import: which store, why, and what the egress engines saw.
+          if (error instanceof ManualEntryFallbackError) console.warn('[import-fallback] ' + JSON.stringify({host: hostOf(value), reason: error.reason, ...error.diagnostic}));
+          throw error;
+        }
         await new Promise(resolve => setTimeout(resolve, 250));
       }
     }

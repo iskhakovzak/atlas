@@ -1,3 +1,11 @@
+## Свой движок загрузки страниц магазинов вместо Firecrawl — 9 октября 2026
+
+Firecrawl отклонён по цене (1 кредит за страницу, JSON +4) и не проходит трудные случаи (Sephora — reCAPTCHA). Вместо него — лестница движков в собственном прокси на UpCloud (`deploy/upcloud/merchant-engines.mjs`): `fetch` → `impersonate` (TLS/HTTP2-отпечаток Chrome, пакет `impit@0.14.5`). Worker (`lib/importer/proxy-client.mjs`) шлёт `engine: "auto"`; прокси помнит лучший движок по хосту 6 ч в памяти процесса и эскалирует только анонимные GET при стене. Старый Worker без поля `engine` и POST Amazon работают как раньше. CAPTCHA не решаем.
+
+Диагностика: `ManualEntryFallbackError.diagnostic` (`status`, `vendor`, `engine`, `attempts`) из `lib/importer/fetch.ts`; `[import-fallback]` в логе Worker — только хост и причина, без URL; оператор видит деталь в тексте ошибки импорта (`app/api/catalog/route.ts`), покупатель — нет. Редирект в пределах сайта на `/blocked|captcha|challenge` (Walmart) теперь сразу `blocked` с `redirect-wall`, страница блокировки не открывается. `scripts/check-merchant-imports.mjs --engines` гоняет ту же лестницу локально.
+
+Локальный прогон (не US-адрес) по 16 проблемным ссылкам: проходят The North Face, Under Armour, Tommy Hilfiger, Ralph Lauren, частично Carter's; `impersonate` не открывает Sephora, Best Buy, Columbia, Victoria's Secret (403), Zara (Akamai), Walmart (PerimeterX → `/blocked`); Target, H&M, New Balance, Mango, Levi's отдают страницу без данных товара (нужен рендер JS). VM не обновлена: выкатка по `deploy/upcloud/importer-proxy.md` только с разрешения владельца.
+
 ## Опубликовано: общая механика вариантов и автоимпорт — 9 октября 2026
 
 Sites154 опубликован: source e96dc890af3ba8a3b658e7e9ef41f2451ee8f73f, deployment appgdep_6ac7ebfd75d481918778747933de3742 succeeded; atlasmarket.uz. Канонический checkout outputs/deploy-import33-20261008; старый корневой checkout не публиковать. Добавлены optional native source/product/seller/offer/color IDs, независимые параметры, собственные галереи и полнота группы. Новые cart-add поддерживаемых магазинов требуют автоматической серверной проверки без ручного обхода. Админский пакетный импорт автоматически публикует только полные группы с точными доступными вариантами, ценами и фото; неполные остаются в очереди повторной проверки. Недоступные и неизвестные варианты не добавляются.

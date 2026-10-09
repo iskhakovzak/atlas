@@ -3,7 +3,7 @@ import {database,identity,requirePermission,sameOrigin,requestJson,json,failure,
 import {readCatalog,persistCatalog} from '@/lib/market/catalog-server';
 import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,manualFallbackCatalogDraft,recheckedDraft,changeCatalog,publicCatalog,applyAutomaticCatalogImport,catalogRecheckBatchSize} from '@/lib/market/catalog-editor';
 import type {CatalogDraft} from '@/lib/market/catalog-editor';
-import {fetchProduct,fetchCollectionLinks,ManualEntryFallbackError} from '@/lib/importer/fetch';
+import {fetchProduct,fetchCollectionLinks,ManualEntryFallbackError,describeImportDiagnostic} from '@/lib/importer/fetch';
 import type {Extracted} from '@/lib/importer/extract';
 import {refreshDueCatalog} from '@/lib/market/catalog-refresh';
 import {merchantRequest} from '@/lib/importer/worker-fetch';
@@ -33,6 +33,9 @@ async function readForImport(sourceUrl:string,collectionIds:string[],country:str
     if(!canSaveManualDraft)throw new HttpError(422,importFailureText(error));
     sourceUnavailable=true;
     failureMessage=error instanceof Error&&error.name!=='AbortError'?error.message:'Магазин не ответил вовремя. Повторите проверку позже.';
+    // The operator sees what the store answered; customers never get this detail.
+    const detail=error instanceof ManualEntryFallbackError?describeImportDiagnostic(error.diagnostic):'';
+    if(detail)failureMessage=`${failureMessage} (${detail})`;
     failureReason=error instanceof ManualEntryFallbackError?error.reason:error instanceof Error&&error.name==='AbortError'?'timeout':'unknown';
     data=error instanceof ManualEntryFallbackError?error.partial:undefined;
   }
