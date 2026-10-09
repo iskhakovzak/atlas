@@ -24,7 +24,13 @@ function memoryJobs() {
     jobs,
     async latest(key, since) { return jobs.filter(job => job.key === key && job.createdAt >= since).sort((a, b) => b.createdAt - a.createdAt)[0]; },
     async used() { return jobs.reduce((sum, job) => sum + (job.status === 'running' ? 1 : job.records), 0); },
-    async start(job) { jobs.push({...job, status: 'running', records: 0}); },
+    async claim(job, claimStaleBefore) {
+      const holder = jobs.find(item => item.key === job.key && item.status === 'running' && item.createdAt >= job.createdAt - 30 * 60_000 && (!item.snapshotId.startsWith('claim:') || item.createdAt >= claimStaleBefore));
+      if (holder) return false;
+      jobs.push({...job, status: 'running', records: 0});
+      return true;
+    },
+    async assign(claimId, snapshotId) { const job = jobs.find(item => item.snapshotId === claimId && item.status === 'running'); if (job) job.snapshotId = snapshotId; },
     async finish(snapshotId, status, records, at) { const job = jobs.find(item => item.snapshotId === snapshotId && item.status === 'running'); if (job) Object.assign(job, {status, records, finishedAt: at}); },
   };
 }
@@ -105,6 +111,40 @@ test('a slow collection answers "pending" and the next request polls the same sn
   assert.equal(calls.filter(call => call.path === '/datasets/v3/trigger').length, 1);
   assert.equal(rt.jobs.jobs.length, 1);
   assert.equal(rt.jobs.jobs[0].status, 'running');
+});
+
+test('two requests for the same product at once trigger and pay for one collection', async () => {
+  const {api: base, calls} = fakeApi(walmartRecord, {readyAfter: 1000});
+  // The trigger answers slowly, so the second request arrives while the first one has only reserved the product.
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  const api = async (input, init) => { if (new URL(input).pathname === '/datasets/v3/trigger') await gate; return base(input, init); };
+  const rt = runtime({api});
+  const first = fetchBrightDataProduct(walmartUrl, rt);
+  await new Promise(resolve => setTimeout(resolve, 5));
+  await assert.rejects(fetchBrightDataProduct(walmartUrl, rt), BrightDataPendingError);
+  release();
+  await assert.rejects(first, BrightDataPendingError);
+  await assert.rejects(fetchBrightDataProduct(walmartUrl, rt), BrightDataPendingError);
+  assert.equal(calls.filter(call => call.path === '/datasets/v3/trigger').length, 1);
+  assert.deepEqual(rt.jobs.jobs.map(job => [job.snapshotId, job.status]), [['sd_test1', 'running']]);
+  assert.ok(calls.every(call => !call.path.includes('claim')));
+});
+
+test('a refused trigger releases the reservation as failed; a reservation left without a snapshot stops blocking after a minute', async () => {
+  const refusing = async () => new Response('{}', {status: 401});
+  const rt = runtime({api: refusing});
+  await assert.rejects(fetchBrightDataProduct(walmartUrl, rt), error => error.stage === 'trigger');
+  assert.deepEqual(rt.jobs.jobs.map(job => [job.status, job.records]), [['failed', 0]]);
+
+  const {api, calls} = fakeApi(walmartRecord);
+  const lost = runtime({api});
+  lost.jobs.jobs.push({snapshotId: 'claim:lost', key: 'walmart:1134943499', store: 'walmart', status: 'running', records: 0, createdAt: lost.now()});
+  await assert.rejects(fetchBrightDataProduct(walmartUrl, lost), BrightDataPendingError);
+  lost.advance(61_000);
+  const product = await fetchBrightDataProduct(walmartUrl, lost);
+  assert.equal(product.price, 1.43);
+  assert.equal(calls.filter(call => call.path === '/datasets/v3/trigger').length, 1);
 });
 
 test('a finished collection is reused within reuseMinutes without a new trigger', async () => {

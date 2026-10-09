@@ -3,7 +3,7 @@ import {database, pricing, recordAudit} from './server';
 import {effectiveFx} from './domain';
 import {accountingSettings} from './finance-server';
 import {autoActor} from './finance-auto';
-import {brightDataApiOrigin, brightDataDatasets, brightDataSettingsKey, brightDataSettingsSchema, brightDataStoreNames, paidRecordsByDay, parseBrightDataSettings, tashkentMonth, type BrightDataSettings, type BrightDataStore} from '@/lib/importer/brightdata';
+import {brightDataApiOrigin, brightDataClaimPrefix, brightDataDatasets, brightDataSettingsKey, brightDataSettingsSchema, brightDataStoreNames, paidRecordsByDay, parseBrightDataSettings, tashkentMonth, type BrightDataSettings, type BrightDataStore} from '@/lib/importer/brightdata';
 import {d1BrightDataJobs, tashkentDay, type D1Like} from '@/lib/importer/brightdata-d1';
 import {brightDataLedgerPrefix, planBrightDataLedger} from './provider-ledger';
 
@@ -35,6 +35,8 @@ export async function settleBrightDataJobs(now = Date.now(), limit = 25) {
   const jobs = d1BrightDataJobs(db());
   let settled = 0;
   for (const row of rows.results) {
+    // A reservation that never got a snapshot: nothing was collected or billed.
+    if (row.snapshot_id.startsWith(brightDataClaimPrefix)) { await jobs.finish(row.snapshot_id, 'failed', 0, now, 'no snapshot'); settled++; continue; }
     try {
       const response = await fetch(`${brightDataApiOrigin}/datasets/v3/progress/${row.snapshot_id}`, {headers: {Authorization: `Bearer ${key}`}, signal: AbortSignal.timeout(8000)});
       if (response.status === 404) { await jobs.finish(row.snapshot_id, 'failed', 0, now, 'not found'); settled++; continue; }

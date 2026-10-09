@@ -699,6 +699,29 @@ export function inferProductCategory(
   return "Другое";
 }
 
+/**
+ * Category from a JSON-LD BreadcrumbList: the deepest crumb that names a known department wins.
+ * A crumb listing several departments ("Shoes & Accessories") is ambiguous and skipped.
+ */
+export function breadcrumbCategory(nodes: readonly Record<string, unknown>[]): ProductCategory | undefined {
+  const list = nodes.find(node => [node['@type']].flat().includes('BreadcrumbList') && Array.isArray(node.itemListElement));
+  if (!list) return;
+  const crumbs = (list.itemListElement as unknown[])
+    .flatMap(item => {
+      if (!item || typeof item !== 'object') return [];
+      const entry = item as Record<string, unknown>, nested = entry.item && typeof entry.item === 'object' ? entry.item as Record<string, unknown> : undefined;
+      const name = clean(entry.name ?? nested?.name).slice(0, 120);
+      return name ? [{name, position: Number(entry.position) || 0}] : [];
+    })
+    .sort((a, b) => a.position - b.position)
+    .slice(0, 12);
+  for (const crumb of crumbs.reverse()) {
+    if (/,|&| and | y | et /i.test(crumb.name) && new Set(crumb.name.split(/,|&| and | y | et /i).map(part => inferProductCategory(part)).filter(value => value !== 'Другое')).size > 1) continue;
+    const category = inferProductCategory(crumb.name);
+    if (category !== 'Другое') return category;
+  }
+}
+
 export function declarationFor(
   category: ProductCategory,
   title: string,
@@ -1395,7 +1418,9 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
               (rawBrand as Record<string, unknown>).label)
           : rawBrand,
       ).slice(0, 80)) || new URL(sourceUrl).hostname.replace(/^www\./, "");
-  const category = inferProductCategory(
+  // The page's own breadcrumbs name the department ("Coats & Jackets"); the title and the top-level
+  // category ("Men's Fashion, Shoes & Accessories") are only a guess when the crumbs say nothing.
+  const category = breadcrumbCategory(nodes) ?? inferProductCategory(
     [title, clean(p?.category), clean(p?.description)].filter(Boolean).join(" "),
     brand,
   );

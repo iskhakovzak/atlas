@@ -1,4 +1,4 @@
-import {brightDataSettingsKey, parseBrightDataSettings, tashkentMonth, type BrightDataJob, type BrightDataJobs, type BrightDataSettings} from './brightdata.ts';
+import {brightDataClaimPrefix, brightDataRunningStaleMs, brightDataSettingsKey, parseBrightDataSettings, tashkentMonth, type BrightDataJob, type BrightDataJobs, type BrightDataSettings} from './brightdata.ts';
 
 /** The part of a D1 binding these helpers use (a fake in tests). */
 export type D1Like = {prepare(query: string): {bind(...values: unknown[]): {first<T>(): Promise<T | null>; run(): Promise<unknown>; all<T>(): Promise<{results: T[]}>}}};
@@ -18,9 +18,16 @@ export function d1BrightDataJobs(db: D1Like): BrightDataJobs {
       const row = await db.prepare("SELECT COALESCE(SUM(CASE WHEN status='running' THEN 1 ELSE records END),0) AS used FROM market_provider_jobs WHERE provider='brightdata' AND month=?").bind(month).first<{used: number}>();
       return Number(row?.used ?? 0);
     },
-    async start(job) {
-      await db.prepare("INSERT OR IGNORE INTO market_provider_jobs (snapshot_id,provider,store,dataset,item_key,url,purpose,status,records,month,created_at) VALUES (?,'brightdata',?,?,?,?,?,'running',0,?,?)")
-        .bind(job.snapshotId, job.store, job.dataset, job.key, job.url, job.purpose, tashkentMonth(job.createdAt), job.createdAt).run();
+    async claim(job, claimStaleBefore) {
+      // One statement, so D1 applies the check and the insert together: a second request sees the first one's row.
+      const result = await db.prepare(`INSERT INTO market_provider_jobs (snapshot_id,provider,store,dataset,item_key,url,purpose,status,records,month,created_at)
+        SELECT ?,'brightdata',?,?,?,?,?,'running',0,?,? WHERE NOT EXISTS (SELECT 1 FROM market_provider_jobs WHERE provider='brightdata' AND item_key=? AND status='running'
+        AND created_at>=? AND (snapshot_id NOT LIKE '${brightDataClaimPrefix}%' OR created_at>=?))`)
+        .bind(job.snapshotId, job.store, job.dataset, job.key, job.url, job.purpose, tashkentMonth(job.createdAt), job.createdAt, job.key, job.createdAt - brightDataRunningStaleMs, claimStaleBefore).run() as {meta?: {changes?: number}};
+      return Number(result?.meta?.changes ?? 0) > 0;
+    },
+    async assign(claimId, snapshotId) {
+      await db.prepare("UPDATE market_provider_jobs SET snapshot_id=? WHERE snapshot_id=? AND status='running'").bind(snapshotId, claimId).run();
     },
     async finish(snapshotId, status, records, at, error) {
       // Billed when the collection finishes: the month and day follow the finish time.

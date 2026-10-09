@@ -6,7 +6,7 @@ import { publicJsonStates } from './public-state.ts';
  * (`window.__APOLLO_STATE__`) holds the product hero as CMS modules: `ProductPricing` for
  * the selected SKU (name, brand, list/sale price), `ProductVariant` with every shade or size
  * and a definite `unavailable`/`disabled` flag, and `MediaGallery` with the selected SKU's
- * photos. Only the selected option carries a price; the others stay unpriced.
+ * photos. Only the selected option carries a price; the importer reads the others from their own `?sku=` pages.
  */
 type Rec = Record<string, unknown>;
 type Helpers = {
@@ -43,6 +43,50 @@ function heroModules(state: unknown, productId: string) {
   };
   walk(state, 0);
   return found;
+}
+
+/** The page prices only the selected option; the importer asks each option's own page (lib/importer/fetch.ts). */
+export const ultaUnpricedWarning = (isShade: boolean) => `Ulta показывает цену только выбранного варианта${isShade ? '' : ' — у других объёмов она может отличаться'}. Откройте ссылку нужного варианта, чтобы проверить его цену.`;
+const unpricedPrefix = 'Ulta показывает цену только выбранного варианта';
+/** The merchant profile may append its name to the method ("Ulta page data · …"). */
+export const isUltaExtraction = (product: Pick<Extracted, 'method'>) => product.method?.startsWith('Ulta page data') === true;
+
+/**
+ * Prices of the other shades and sizes from their own `?sku=` pages. `readOption` returns that page's extraction
+ * (or undefined); only an answer for exactly the same product and SKU is used. Options that did not answer in time
+ * stay unpriced with the warning; nothing is guessed from the selected option's price.
+ */
+export async function fillUltaVariantPrices(product: Extracted, readOption: (url: string) => Promise<Extracted | undefined>, {limit = 24, concurrency = 4} = {}): Promise<Extracted> {
+  if (!isUltaExtraction(product) || !product.variants?.length) return product;
+  const missing = product.variants.filter(variant => variant.price === undefined && variant.id && variant.sourceUrl).slice(0, limit);
+  if (!missing.length) return product;
+  const found = new Map<string, ProductVariant>();
+  let next = 0;
+  const worker = async () => {
+    while (next < missing.length) {
+      const variant = missing[next++];
+      const page = await readOption(variant.sourceUrl!).catch(() => undefined);
+      const own = page && isUltaExtraction(page) && page.groupId === product.groupId && page.selectedVariantId === variant.id
+        ? page.variants?.find(item => item.id === variant.id) : undefined;
+      if (own?.price !== undefined) found.set(variant.id!, own);
+    }
+  };
+  await Promise.all(Array.from({length: Math.min(concurrency, missing.length)}, worker));
+  if (!found.size) return product;
+  const variants = product.variants.map(variant => {
+    const own = variant.id ? found.get(variant.id) : undefined;
+    if (!own) return variant;
+    return {
+      ...variant, price: own.price, ...(own.compareAtPrice ? {compareAtPrice: own.compareAtPrice} : {}),
+      // The option's own page knows its stock and gallery better than the selected option's page.
+      ...(own.availabilityKnown ? {available: own.available, availabilityKnown: true} : {}),
+      ...(own.images?.length ? {images: own.images, image: own.images[0]} : {}),
+    };
+  });
+  const isShade = variants.some(variant => variant.color);
+  const warnings = product.warnings.filter(warning => !warning.startsWith(unpricedPrefix));
+  if (variants.some(variant => variant.price === undefined)) warnings.push(ultaUnpricedWarning(isShade));
+  return {...product, variants, warnings};
 }
 
 export function extractUltaProduct(html: string, sourceUrl: string, helpers: Helpers): Extracted | undefined {
@@ -120,7 +164,7 @@ export function extractUltaProduct(html: string, sourceUrl: string, helpers: Hel
     'Доставка магазина не опубликована — указан изменяемый резерв $10.',
     'Вес с упаковкой нужно проверить.',
   ];
-  if (variants.some(variant => variant.price === undefined)) warnings.push(`Ulta показывает цену только выбранного варианта${isShade ? '' : ' — у других объёмов она может отличаться'}. Откройте ссылку нужного варианта, чтобы проверить его цену.`);
+  if (variants.some(variant => variant.price === undefined)) warnings.push(ultaUnpricedWarning(isShade));
   if (selected && !selected.available) warnings.push('Выбранный вариант сейчас недоступен. Выберите другой.');
   return {
     variantScope: 'group',

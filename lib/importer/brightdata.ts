@@ -88,7 +88,14 @@ export type BrightDataJobs = {
   latest(key: string, since: number): Promise<BrightDataJob | undefined>;
   /** Records used in a Tashkent month ("YYYY-MM"): finished records plus one for each running job. */
   used(month: string): Promise<number>;
-  start(job: {snapshotId: string; store: BrightDataStore; dataset: string; key: string; url: string; purpose: BrightDataPurpose; createdAt: number}): Promise<void>;
+  /**
+   * Reserves the product before Bright Data is asked: records a running job under the placeholder id `snapshotId`
+   * (see brightDataClaimPrefix) unless a live running job of the same product exists. Atomic in D1, so two requests
+   * that arrive together trigger (and pay for) one collection. False: another request holds the product.
+   */
+  claim(job: {snapshotId: string; store: BrightDataStore; dataset: string; key: string; url: string; purpose: BrightDataPurpose; createdAt: number}, claimStaleBefore: number): Promise<boolean>;
+  /** The placeholder becomes the snapshot Bright Data returned. */
+  assign(claimId: string, snapshotId: string): Promise<void>;
   /** Idempotent: only a running job changes. */
   finish(snapshotId: string, status: Exclude<BrightDataJobStatus, 'running'>, records: number, at: number, error?: string): Promise<void>;
 };
@@ -105,9 +112,17 @@ export type BrightDataRuntime = {
 
 export const tashkentMonth = (at: number) => new Date(at + 5 * 3600_000).toISOString().slice(0, 7);
 /** A running collection older than this is treated as lost (Bright Data's own limit is far shorter for one URL). */
-const staleRunningMs = 30 * 60_000;
+export const brightDataRunningStaleMs = 30 * 60_000;
 /** After a failed collection the same product is not retried through Bright Data for this long. */
 const failedCooldownMs = 10 * 60_000;
+/** Placeholder ids of reserved jobs whose trigger has not answered yet. */
+export const brightDataClaimPrefix = 'claim:';
+/** A reservation that never got a snapshot (the request died between claim and trigger) stops blocking after this. */
+export const brightDataClaimStaleMs = 60_000;
+const isClaim = (job: Pick<BrightDataJob, 'snapshotId'>) => job.snapshotId.startsWith(brightDataClaimPrefix);
+/** A running job that still holds the product: a live collection or a fresh reservation. */
+const liveRunning = (job: BrightDataJob | undefined, now: number): boolean => job?.status === 'running'
+  && job.createdAt >= now - (isClaim(job) ? brightDataClaimStaleMs : brightDataRunningStaleMs);
 
 export function brightDataAllowed(target: BrightDataTarget, runtime: Pick<BrightDataRuntime, 'apiKey' | 'settings' | 'purpose'>) {
   const {settings} = runtime;
@@ -119,7 +134,7 @@ export async function brightDataCollectionRunning(value: URL | string, runtime: 
   const target = brightDataTarget(value);
   if (!target || !brightDataAllowed(target, runtime)) return false;
   const now = (runtime.now ?? Date.now)();
-  return (await runtime.jobs.latest(target.key, now - staleRunningMs))?.status === 'running';
+  return liveRunning(await runtime.jobs.latest(target.key, now - brightDataRunningStaleMs), now);
 }
 
 /**
@@ -136,13 +151,15 @@ export async function fetchBrightDataProduct(value: URL | string, runtime: Brigh
   const headers = {Authorization: `Bearer ${runtime.apiKey.trim()}`};
   const call = (path: string, init?: RequestInit) => api(brightDataApiOrigin + path, {...init, headers: {...headers, ...init?.headers}, signal: AbortSignal.timeout(10_000)});
 
-  const previous = await jobs.latest(target.key, started - Math.max(settings.reuseMinutes * 60_000, staleRunningMs));
+  const previous = await jobs.latest(target.key, started - Math.max(settings.reuseMinutes * 60_000, brightDataRunningStaleMs));
   let job: {snapshotId: string; createdAt: number} | undefined;
   if (previous?.status === 'ready' && previous.createdAt >= started - settings.reuseMinutes * 60_000) {
     // Already paid for: download the same snapshot again (downloads are not billed).
     const reused = await downloadSnapshot(call, previous.snapshotId).catch(() => undefined);
     if (reused?.length) return mapBrightDataRecord(target, reused[0], String(value));
-  } else if (previous?.status === 'running' && previous.createdAt >= started - staleRunningMs) {
+  } else if (previous && liveRunning(previous, started)) {
+    // Another request has reserved the product and is still waiting for Bright Data's snapshot id.
+    if (isClaim(previous)) throw new BrightDataPendingError(target.store, previous.createdAt, 2000);
     job = previous;
   } else if ((previous?.status === 'failed' || previous?.status === 'empty') && (previous.finishedAt ?? previous.createdAt) >= started - failedCooldownMs) {
     return;
@@ -154,13 +171,24 @@ export async function fetchBrightDataProduct(value: URL | string, runtime: Brigh
       console.warn('[brightdata] ' + JSON.stringify({store: target.store, stage: 'limit', used, limit: settings.monthlyRecordLimit}));
       return;
     }
-    const response = await call(`/datasets/v3/trigger?dataset_id=${brightDataDatasets[target.store]}&format=json&include_errors=true`, {
-      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify([{url: target.url}]),
-    });
-    const body = await response.json().catch(() => ({})) as {snapshot_id?: unknown};
-    if (!response.ok || typeof body.snapshot_id !== 'string' || !/^[\w-]{4,80}$/.test(body.snapshot_id)) throw new BrightDataApiError('trigger', response.status);
-    job = {snapshotId: body.snapshot_id, createdAt: started};
-    await jobs.start({snapshotId: job.snapshotId, store: target.store, dataset: brightDataDatasets[target.store], key: target.key, url: target.url, purpose: runtime.purpose, createdAt: started});
+    const claimId = brightDataClaimPrefix + crypto.randomUUID();
+    const claimed = await jobs.claim({snapshotId: claimId, store: target.store, dataset: brightDataDatasets[target.store], key: target.key, url: target.url, purpose: runtime.purpose, createdAt: started}, started - brightDataClaimStaleMs);
+    if (!claimed) throw new BrightDataPendingError(target.store, started, 2000);
+    let snapshotId: string;
+    try {
+      const response = await call(`/datasets/v3/trigger?dataset_id=${brightDataDatasets[target.store]}&format=json&include_errors=true`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify([{url: target.url}]),
+      });
+      const body = await response.json().catch(() => ({})) as {snapshot_id?: unknown};
+      if (!response.ok || typeof body.snapshot_id !== 'string' || !/^[\w-]{4,80}$/.test(body.snapshot_id)) throw new BrightDataApiError('trigger', response.status);
+      snapshotId = body.snapshot_id;
+    } catch (error) {
+      // Release the reservation as a failed job: the cooldown keeps a refusing API from being asked on every request.
+      await jobs.finish(claimId, 'failed', 0, now(), 'trigger').catch(() => undefined);
+      throw error;
+    }
+    await jobs.assign(claimId, snapshotId);
+    job = {snapshotId, createdAt: started};
   }
 
   const deadline = started + settings.waitSeconds * 1000;

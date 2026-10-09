@@ -3,6 +3,7 @@ import {declarationFor,dedupeSafeImages,extractAdidasProduct,extractProduct,infe
 import {extractTarget, targetRequest} from './target.ts';
 import {extractShopify, shopifyEndpoints} from './shopify.ts';
 import {extractVictoriasSecret, victoriasSecretRequest} from './victoriassecret.ts';
+import {fillUltaVariantPrices, isUltaExtraction} from './ulta.ts';
 import {isEbayStoreHost,isManualEntryStoreHost,isSupportedStoreHost,supportedStoreCount} from './stores.ts';
 import {applyMerchantProfile} from './merchant-profiles.ts';
 import {isMerchantProductUrl, sameMerchantRedirect} from './source-identity.ts';
@@ -624,6 +625,15 @@ async function fetchProductOnce(value: string, fetcher: MerchantFetch = fetch) {
       throw new ManualEntryFallbackError(isEbay
         ? 'eBay не предоставил данные объявления в доступном формате. Проверьте и подтвердите цену и вариант вручную.'
         : 'Страница магазина не предоставила данные товара в доступном формате. Проверьте и подтвердите цену и вариант вручную.');
+    }
+    if (isUltaExtraction(extracted)) {
+      // Ulta prices only the selected shade or size; every other option is read from its own ?sku= page, briefly.
+      const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(7_000)]);
+      extracted = await fillUltaVariantPrices(extracted, async optionUrl => {
+        if (signal.aborted) return;
+        const option = await readPublic(allowedUrl(optionUrl), signal, 'html', {}, fetcher);
+        return detectBotChallenge(option.text) || isMerchantChallengePage(option.text) ? undefined : extractProduct(option.text, option.url.href);
+      });
     }
     return finalizeExtraction(withEgressWarning(extracted, page.direct),page.url.href);
   } catch(error) {

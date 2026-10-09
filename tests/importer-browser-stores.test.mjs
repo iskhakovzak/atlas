@@ -73,6 +73,17 @@ test("Macy's: offers naming a colour and size become the options; bare sold-out 
   assert.deepEqual(extractProduct(unnamed, source).variants, []);
 });
 
+test("Macy's: the category comes from the page's breadcrumbs, not from a multi-department crumb or the title", () => {
+  const source = 'https://www.macys.com/shop/product/polo-jacket?ID=26244617';
+  const crumbs = (...names) => ({'@type': 'BreadcrumbList', itemListElement: names.map((name, index) => ({'@type': 'ListItem', position: index + 1, name}))});
+  const product = {'@type': 'Product', name: "Men's Quilted Polo Sportsman Jacket", category: "Men's Fashion, Shoes & Accessories", url: source, offers: {'@type': 'Offer', price: '348.00', priceCurrency: 'USD'}};
+  // Without crumbs the top-level category ("Shoes") made a jacket footwear.
+  assert.equal(extractProduct(ld([crumbs("Men's Fashion, Shoes & Accessories", 'Coats & Jackets'), product]), source).category, 'Одежда');
+  assert.equal(extractProduct(ld([crumbs('Women', 'Shoes', 'Polo Ralph Lauren'), {...product, name: 'Hanford Loafer'}]), source).category, 'Обувь');
+  // Crumbs that name no department leave the old guess in place.
+  assert.equal(extractProduct(ld([crumbs('Home', 'Sale'), {...product, name: 'Leather Sneakers', category: ''}]), source).category, 'Обувь');
+});
+
 test('New Balance: a group that is the linked listing prices its sizes when they all cost the same', () => {
   const source = 'https://www.newbalance.com/pd/fuelcell-rebel-v5/MFCXV5_RU-FTW-838113.html';
   const size = (value, price) => ({'@type': 'Product', name: 'FuelCell Rebel v5', color: 'SATSUMA ORANGE', size: value, sku: 'MFCX5IM-' + value, offers: {'@type': 'Offer', url: `https://www.newbalance.com/pd/fuelcell-rebel-v5/MFCX5IM-${value}.html`, price, priceCurrency: 'USD', availability: 'https://schema.org/InStock'}});
