@@ -50,7 +50,7 @@ function validateHeaders(raw,target,body,method,allowedHosts){
     if(key==='referer'||key==='origin'){
       let referenced;
       try{referenced=new URL(value)}catch{return undefined}
-      const apiReferer=key==='referer'&&method==='GET'&&(
+      const apiReferer=method==='GET'&&(
         target.hostname==='redsky.target.com'&&referenced.hostname==='www.target.com'||
         target.hostname==='api.victoriassecret.com'&&['www.victoriassecret.com','victoriassecret.com'].includes(referenced.hostname));
       if(referenced.protocol!=='https:'||referenced.username||referenced.password||referenced.port||
