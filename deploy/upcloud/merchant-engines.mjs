@@ -145,6 +145,7 @@ export async function fetchWithEngines({target, method, headers, body, mode, eng
       attempts.push(`${engine}:${error?.name === 'TimeoutError' || error?.name === 'AbortError' ? 'timeout' : 'error'}`);
     }
   }
-  if (!result) throw failure ?? new Error('no_engine_answered');
+  // The caller still learns what each engine ran into (timeouts, refused connections).
+  if (!result) throw Object.assign(failure ?? new Error('no_engine_answered'), {attempts});
   return {...result, attempts};
 }

@@ -50,8 +50,11 @@ function validateHeaders(raw,target,body,method,allowedHosts){
     if(key==='referer'||key==='origin'){
       let referenced;
       try{referenced=new URL(value)}catch{return undefined}
+      const apiReferer=key==='referer'&&method==='GET'&&(
+        target.hostname==='redsky.target.com'&&referenced.hostname==='www.target.com'||
+        target.hostname==='api.victoriassecret.com'&&['www.victoriassecret.com','victoriassecret.com'].includes(referenced.hostname));
       if(referenced.protocol!=='https:'||referenced.username||referenced.password||referenced.port||
-        referenced.hostname.toLowerCase()!==target.hostname.toLowerCase()||!allowedHosts.has(referenced.hostname.toLowerCase()))return undefined;
+        !apiReferer&&referenced.hostname.toLowerCase()!==target.hostname.toLowerCase()||!allowedHosts.has(referenced.hostname.toLowerCase()))return undefined;
       if(key==='origin'&&referenced.origin!==value)return undefined;
     }
     result[key]=value;
@@ -119,8 +122,9 @@ export function createImporterProxyServer({secret,allowedHosts,fetcher=fetch,imp
       return send(res,200,{version:1,status:result.status,engine:result.engine,attempts:result.attempts,headers:responseHeaders,body:result.bytes.toString('base64')});
     }catch(error){
       const status=error?.name==='TimeoutError'||error?.name==='AbortError'?504:error.status??502;
-      log({host:target.hostname,attempts:[`failed:${status}`],ms:Date.now()-started});
-      return send(res,200,{version:1,status,headers:{contentType:'text/plain'},body:''});
+      const attempts=Array.isArray(error?.attempts)?error.attempts:[`failed:${status}`];
+      log({host:target.hostname,attempts,ms:Date.now()-started});
+      return send(res,200,{version:1,status,attempts,headers:{contentType:'text/plain'},body:''});
     }finally{active--}
   };
   return createServer((req,res)=>{void handler(req,res).catch(()=>{if(!res.headersSent)send(res,500,{error:'internal_error'});else res.destroy()})});

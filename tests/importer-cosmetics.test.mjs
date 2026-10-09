@@ -39,6 +39,8 @@ test("a Victoria's Secret US link reads the storefront's own product document: s
   const request = victoriasSecretRequest(new URL(vsUrl));
   assert.equal(request.api.href, 'https://api.victoriassecret.com/products/v38/page/5000010533?activeCountry=US');
   assert.deepEqual([request.productId, request.choice, request.genericId], ['5000010533', '6AZK', '11275561']);
+  const shared = victoriasSecretRequest(new URL('https://www.victoriassecret.com/us/vs/sleepwear-and-lingerie-catalog/5000010438?choice=73mp&genericId=11251019'));
+  assert.deepEqual([shared.productId, shared.choice, shared.genericId], ['5000010438', '73MP', '11251019'], 'the colour also travels as query parameters');
   assert.equal(victoriasSecretRequest(new URL('https://www.victoriassecret.com/uz/pink/bras-catalog/5000010533')), undefined, 'only the US storefront prices in USD');
   assert.equal(victoriasSecretRequest(new URL('https://www.victoriassecret.com/us/pink/bras')), undefined);
 
