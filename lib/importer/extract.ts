@@ -1,6 +1,8 @@
 import { extractMacysProduct } from './macys.ts';
 import { extractCharlotteTilburyProduct } from './charlottetilbury.ts';
 import { extractMangoProduct } from './mango.ts';
+import { extractGapIncProduct } from './gapinc.ts';
+import { extractUltaProduct } from './ulta.ts';
 import { priorityMerchantProfiles } from './merchant-profiles.ts';
 import { isEbayStoreHost } from './stores.ts';
 import { inferNikeFootwearSizeSystem } from '../market/nike-size-chart.ts';
@@ -1190,6 +1192,10 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
   if (charlotteTilbury) return charlotteTilbury;
   const mango = extractMangoProduct(html, sourceUrl, { safeImage, inferCategory: inferProductCategory, declarationFor });
   if (mango) return mango;
+  const gapInc = extractGapIncProduct(html, sourceUrl, { safeImage, inferCategory: inferProductCategory, declarationFor });
+  if (gapInc) return gapInc;
+  const ulta = extractUltaProduct(html, sourceUrl, { safeImage, inferCategory: inferProductCategory, declarationFor });
+  if (ulta) return ulta;
   const anker = extractAnker(html, sourceUrl);
   if (anker) return anker;
   const amazon = extractAmazon(html, sourceUrl);

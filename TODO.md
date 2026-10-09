@@ -10,6 +10,13 @@ The signed proxy permits both Referer and Origin from the exact known storefront
 
 Signed proxy validation now permits only exact GET Referer pairs www.target.com→redsky.target.com and victoriassecret.com/www.victoriassecret.com→api.victoriassecret.com; Origin restrictions and HTTPS/allowlist/credential/port checks remain. Signed HTTP regressions cover accepted pairs and rejected unrelated/insecure/credentialed sources. Target groups exceeding120 leaves remain incomplete after truncation. These fixes are required for US proxy operation and safe automatic publication. VPS host snapshot must preserve existing hosts and include redsky.target.com.
 
+## Old Navy, Gap, Banana Republic, Ulta, Macy's — 9 октября 2026
+
+- [ ] Ulta: цена известна только у выбранного варианта; у остальных оттенков и объёмов она пустая. Можно дозапрашивать страницы `?sku=` (по одной на вариант), но надо решить, стоит ли это трафика.
+- [ ] Gap Inc.: Athleta подключена по тому же формату, но вживую не проверялась — API каталога для неё не вернул товаров. Страницы весят 1,2–2 МБ при лимите 3 МБ (`readBody`); если карточка превысит лимит, импорт уйдёт в черновик.
+- [ ] Old Navy, Gap и Ulta проверены с домашнего адреса; с адреса VPS не проверялись.
+- [ ] Macy's: Akamai 403 отовсюду, включая резидентный прокси. Нужен товарный фид Rakuten Advertising (publisher-аккаунт, не кэшбэк rakuten.com) и адаптер фида; разборщик `macys.ts` для страницы остаётся.
+
 ## Свой движок загрузки страниц — 9 октября 2026
 
 - [x] Выкатить `merchant-engines.mjs` + `npm ci --omit=dev` на VM UpCloud и повторить прогон 16 ссылок с нью-йоркского адреса (сделано 9.10, Sites 155).
