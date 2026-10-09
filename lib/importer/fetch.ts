@@ -132,6 +132,7 @@ function adidasProductApiUrls(start: URL) {
 }
 
 type PublicRequestOptions = {
+  minimalApi?: boolean;
   referer?: string;
   userAgent?: string;
   /** Some public merchant APIs reject browser client-hint headers as bot signals. */
@@ -143,7 +144,7 @@ export type MerchantFetch = ((input: string | URL, init?: RequestInit) => Promis
   ebayBrowseConfig?: () => EbayBrowseConfig;
 };
 
-function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = browserUserAgent, referer?: string, options: Pick<PublicRequestOptions, 'clientHints'> = {}) {
+function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = browserUserAgent, referer?: string, options: Pick<PublicRequestOptions, 'clientHints'|'minimalApi'> = {}) {
   return {
     Accept: format === 'json' ? 'application/json, text/plain, */*' : 'text/html,application/xhtml+xml',
     'User-Agent': userAgent,
@@ -152,10 +153,10 @@ function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = br
     ...(referer ? {
       Referer: referer,
       Origin: new URL(referer).origin,
-      'Sec-Fetch-Site': 'same-origin',
+      ...(!options.minimalApi?{'Sec-Fetch-Site': 'same-origin',
       'Sec-Fetch-Mode': format === 'json' ? 'cors' : 'navigate',
-      'Sec-Fetch-Dest': format === 'json' ? 'empty' : 'document',
-      ...(format === 'json' && options.clientHints !== false ? {
+      'Sec-Fetch-Dest': format === 'json' ? 'empty' : 'document'}:{}),
+      ...(format === 'json' && options.clientHints !== false && !options.minimalApi ? {
         'X-Requested-With': 'XMLHttpRequest',
         'Sec-CH-UA': '"Chromium";v="152", "Not?A_Brand";v="24", "Google Chrome";v="152"',
         'Sec-CH-UA-Mobile': '?0',
@@ -521,7 +522,7 @@ async function fetchProductOnce(value: string, fetcher: MerchantFetch = fetch) {
       // The page draws price and options in the browser from Target's own public product service.
       try {
         const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(8_000)]);
-        const payload = await readPublic(target.api, signal, 'json', {referer: url.href}, fetcher);
+        const payload = await readPublic(target.api, signal, 'json', {referer: url.href,minimalApi:true}, fetcher);
         const extracted = extractTarget(JSON.parse(payload.text), url.href, target.tcin, {safeImage, inferCategory: inferProductCategory, declarationFor});
         if (extracted) return finalizeExtraction(withEgressWarning(extracted, payload.direct), url.href);
       } catch (error) {
