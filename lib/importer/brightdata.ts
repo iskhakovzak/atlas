@@ -114,6 +114,14 @@ export function brightDataAllowed(target: BrightDataTarget, runtime: Pick<Bright
   return Boolean(runtime.apiKey.trim()) && settings.enabled && settings.stores[target.store] && (runtime.purpose === 'customer' || settings.catalog);
 }
 
+/** A collection of this product is still running: the next request keeps polling it rather than opening the store page again. */
+export async function brightDataCollectionRunning(value: URL | string, runtime: BrightDataRuntime): Promise<boolean> {
+  const target = brightDataTarget(value);
+  if (!target || !brightDataAllowed(target, runtime)) return false;
+  const now = (runtime.now ?? Date.now)();
+  return (await runtime.jobs.latest(target.key, now - staleRunningMs))?.status === 'running';
+}
+
 /**
  * Structured product data for a Walmart link through Bright Data, or undefined when Bright Data is off for it,
  * over the monthly limit, or recently failed (the importer then continues with its own path).

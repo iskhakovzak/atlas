@@ -38,12 +38,12 @@ test('stores Atlas cannot read and stores only the gateway Chrome reads are sepa
     assert.ok(!isBrowserStoreHost(host), host);
     assert.ok(isSupportedStoreHost(host), host);
   }
-  for (const host of ['www.sephora.com', 'www2.hm.com', 'www.hm.com', 'www.macys.com', 'www.levi.com', 'www.newbalance.com', 'www.victoriassecret.com', 'api.victoriassecret.com']) {
+  for (const host of ['www.sephora.com', 'www2.hm.com', 'www.hm.com', 'www.macys.com', 'www.levi.com', 'www.newbalance.com', 'www.victoriassecret.com', 'api.victoriassecret.com', 'www.walmart.com']) {
     assert.ok(isBrowserStoreHost(host), host);
     assert.ok(!isManualEntryStoreHost(host), host);
     assert.ok(isSupportedStoreHost(host), host + ' stays an accepted store');
   }
-  for (const host of ['www.walmart.com', 'www.target.com', 'www.sephora.es', 'evil-hm.com', 'sephora.com.evil.example'])
+  for (const host of ['www.target.com', 'www.sephora.es', 'evil-hm.com', 'sephora.com.evil.example'])
     assert.ok(!isManualEntryStoreHost(host) && !isBrowserStoreHost(host), host);
   assert.equal(manualEntryStoreRoots.filter(root => browserStoreRoots.includes(root)).length, 0);
 });

@@ -1,5 +1,6 @@
 import { extractMacysProduct } from './macys.ts';
 import { extractSephoraProduct } from './sephora.ts';
+import { extractWalmartProduct } from './walmart.ts';
 import { extractCharlotteTilburyProduct } from './charlottetilbury.ts';
 import { extractMangoProduct } from './mango.ts';
 import { extractGapIncProduct } from './gapinc.ts';
@@ -1191,6 +1192,8 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
   if (macys) return macys;
   const sephora = extractSephoraProduct(html, sourceUrl, { safeImage, inferCategory: inferProductCategory, declarationFor });
   if (sephora) return sephora;
+  const walmart = extractWalmartProduct(html, sourceUrl, { safeImage, inferCategory: inferProductCategory, declarationFor });
+  if (walmart) return walmart;
   const charlotteTilbury = extractCharlotteTilburyProduct(html, sourceUrl, { safeImage, declarationFor });
   if (charlotteTilbury) return charlotteTilbury;
   const mango = extractMangoProduct(html, sourceUrl, { safeImage, inferCategory: inferProductCategory, declarationFor });

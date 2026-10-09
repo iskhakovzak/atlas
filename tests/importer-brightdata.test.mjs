@@ -138,16 +138,30 @@ test('settings fall back to safe defaults on broken JSON', () => {
   assert.equal(saved.pricePer1kUsd, 2);
 });
 
-test('fetchProduct turns a running collection into a pending manual-entry error without touching the store page', async () => {
-  const {api} = fakeApi(walmartRecord, {readyAfter: 1000});
+test('Walmart opens the store page first and never pays Bright Data when the page answers', async () => {
+  const {api, calls} = fakeApi(walmartRecord);
+  const page = `<html><script type="application/ld+json">${JSON.stringify({'@type': 'Product', name: 'Crew Tee', sku: '1134943499', image: 'https://i5.walmartimages.com/seo/tee.jpeg', offers: {'@type': 'Offer', price: '5.98', priceCurrency: 'USD', availability: 'https://schema.org/InStock'}})}</script></html>`;
+  const fetcher = Object.assign(async () => new Response(page, {status: 200, headers: {'content-type': 'text/html'}}), {brightData: async () => runtime({api})});
+  const product = await fetchProduct(walmartUrl, fetcher);
+  assert.equal(product.price, 5.98);
+  assert.notEqual(product.method, 'Bright Data · Walmart');
+  assert.equal(calls.length, 0);
+});
+
+test('a blocked Walmart page falls back to Bright Data; while it runs the next request polls it without the store page', async () => {
+  const {api, calls} = fakeApi(walmartRecord, {readyAfter: 1000});
   const rt = runtime({api, settings: {...defaultBrightDataSettings(), waitSeconds: 3}});
   let pageRequests = 0;
   const fetcher = Object.assign(async () => { pageRequests++; return new Response('blocked', {status: 403}); }, {brightData: async () => rt});
   await assert.rejects(fetchProduct(walmartUrl, fetcher), error => error instanceof ManualEntryFallbackError && error.reason === 'pending' && error.retryAfterMs > 0 && error.partial?.brand === 'Walmart');
-  assert.equal(pageRequests, 0);
+  assert.ok(pageRequests > 0);
+  const before = pageRequests;
+  await assert.rejects(fetchProduct(walmartUrl, fetcher), error => error instanceof ManualEntryFallbackError && error.reason === 'pending');
+  assert.equal(pageRequests, before);
+  assert.equal(calls.filter(call => call.path === '/datasets/v3/trigger').length, 1);
 });
 
-test('fetchProduct returns the Bright Data product when the collection finishes in time', async () => {
+test('fetchProduct returns the Bright Data product when the page is blocked and the collection finishes in time', async () => {
   const {api} = fakeApi(walmartRecord);
   const fetcher = Object.assign(async () => new Response('blocked', {status: 403}), {brightData: async () => runtime({api})});
   const product = await fetchProduct(walmartUrl, fetcher);

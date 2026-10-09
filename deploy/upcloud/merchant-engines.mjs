@@ -53,7 +53,8 @@ export function blockedSignal(status, location, contentType, bytes) {
   if (/"@type"\s*:\s*"Product"/i.test(head)) return undefined;
   if (/bm-verify|_sec\/verify|ak_bmsc_challenge|<title>\s*Access Denied\s*<\/title>/i.test(head)) return 'akamai';
   if (bytes.length < 12_000 && akamaiInterstitial.test(head)) return 'akamai';
-  if (/px-captcha|_pxhd|window\._pxUuid|PerimeterX/i.test(head)) return 'perimeterx';
+  // Walmart serves its real product pages with PerimeterX's config on them: only the captcha, or those markers on a small page, are a wall.
+  if (/px-captcha/i.test(head) || bytes.length < 60_000 && /_pxhd|window\._pxUuid|PerimeterX/i.test(head)) return 'perimeterx';
   if (/cf-chl|cf_chl_opt|<title>\s*Just a moment/i.test(head)) return 'cloudflare';
   if (/geo\.captcha-delivery\.com|dd\.captcha|datadome/i.test(head)) return 'datadome';
   const visible = head.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, '').replace(/<[^>]+>/g, ' ');

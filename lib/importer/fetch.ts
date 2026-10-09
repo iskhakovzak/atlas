@@ -8,7 +8,7 @@ import {applyMerchantProfile} from './merchant-profiles.ts';
 import {isMerchantProductUrl, sameMerchantRedirect} from './source-identity.ts';
 import {isMerchantChallengePage} from './challenge.ts';
 import {EbayBrowseApiError, EbayListingUnavailableError, EbayManualReviewError, fetchEbayProduct, type EbayBrowseConfig} from './ebay.ts';
-import {BrightDataApiError, BrightDataPendingError, brightDataStoreNames, brightDataTarget, fetchBrightDataProduct, type BrightDataRuntime} from './brightdata.ts';
+import {BrightDataApiError, BrightDataPendingError, brightDataCollectionRunning, brightDataStoreNames, brightDataTarget, fetchBrightDataProduct, type BrightDataRuntime} from './brightdata.ts';
 export {supportedStoreCount};
 
 /** HTTP status, bot-wall vendor and egress engine attempts behind a fallback. */
@@ -150,13 +150,22 @@ export type MerchantFetch = ((input: string | URL, init?: RequestInit) => Promis
   brightData?: () => Promise<BrightDataRuntime | undefined>;
 };
 
+async function brightDataRuntime(url: URL, fetcher: MerchantFetch) {
+  if (!brightDataTarget(url) || !fetcher.brightData) return;
+  try { return await fetcher.brightData(); } catch (error) { console.warn('[brightdata] stage=configuration ' + (error as Error).message.slice(0, 120)); }
+}
+
+/** A Walmart collection already started for this link: keep polling it instead of opening the store page again. */
+async function brightDataRunning(url: URL, fetcher: MerchantFetch) {
+  const runtime = await brightDataRuntime(url, fetcher);
+  return runtime ? brightDataCollectionRunning(url, runtime).catch(() => false) : false;
+}
+
 /** Walmart through Bright Data when it is on for the link; undefined lets the importer continue with its own path. */
 async function brightDataProduct(url: URL, fetcher: MerchantFetch) {
   const target = brightDataTarget(url);
-  if (!target || !fetcher.brightData) return;
-  let runtime: BrightDataRuntime | undefined;
-  try { runtime = await fetcher.brightData(); } catch (error) { console.warn('[brightdata] stage=configuration ' + (error as Error).message.slice(0, 120)); return; }
-  if (!runtime) return;
+  const runtime: BrightDataRuntime | undefined = await brightDataRuntime(url, fetcher);
+  if (!target || !runtime) return;
   try {
     const product = await fetchBrightDataProduct(url, runtime);
     return product ? finalizeExtraction(product, url.href) : undefined;
@@ -442,9 +451,12 @@ async function fetchProductOnce(value: string, fetcher: MerchantFetch = fetch) {
   const url = allowedUrl(manualUrl.href);
   // A store that blocks every route is not asked at all: no request, no wait, straight to the customer's own entry.
   if (isManualEntryStoreHost(url.hostname)) throw new ManualEntryFallbackError(manualEntryStoreMessage, {sourceUrl: url.href, brand: url.hostname.replace(/^(?:www2?|shop)\./, ''), warnings: []}, 'manual');
-  // Bright Data waits on its own budget (settings.waitSeconds) before the page path starts its 15 s timer.
-  const collected = await brightDataProduct(url, fetcher);
-  if (collected) return collected;
+  // Walmart: the store page comes first (the Tashkent gateway's Chrome reads it in a few seconds, at no cost);
+  // Bright Data is paid and only steps in when the page path fails, or while a collection it started still runs.
+  if (await brightDataRunning(url, fetcher)) {
+    const collected = await brightDataProduct(url, fetcher);
+    if (collected) return collected;
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);
   // Why the official eBay path did not answer; carried into the manual-review draft so the operator sees it.
@@ -636,6 +648,12 @@ async function fetchProductOnce(value: string, fetcher: MerchantFetch = fetch) {
         brand: 'eBay',
         warnings: [],
       }, error instanceof ManualEntryFallbackError ? error.reason : error instanceof Error && error.name === 'AbortError' ? 'timeout' : 'unknown');
+    }
+    // The Walmart page did not answer (the gateway computer is off, a wall, a timeout): Bright Data on its own budget.
+    if (brightDataTarget(url) && (error instanceof ManualEntryFallbackError && error.reason !== 'pending' || error instanceof Error && error.name === 'AbortError')) {
+      clearTimeout(timer);
+      const collected = await brightDataProduct(url, fetcher);
+      if (collected) return collected;
     }
     throw error;
   } finally {clearTimeout(timer);}

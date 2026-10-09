@@ -148,9 +148,10 @@ for (const root of manualEntryStoreRoots) {
  * Chrome reads them (deploy/upcloud/browser-engine.mjs, checked 10 October 2026). The gateway gets a longer turn for
  * them, and when it cannot answer (the computer is off) the customer enters the details by hand and confirms them,
  * as for manualEntryStoreRoots; a confirmed line is still checked live when the store answers.
+ * Walmart is here too (checked 10 October 2026, ~3.5 s); Bright Data stays its paid fallback (lib/importer/fetch.ts).
  */
 export const browserStoreRoots = [
-  'sephora.com','hm.com','macys.com','levi.com','newbalance.com','victoriassecret.com',
+  'sephora.com','hm.com','macys.com','levi.com','newbalance.com','victoriassecret.com','walmart.com',
 ] as const;
 const browserHosts = new Set<string>(['www2.hm.com','api.victoriassecret.com']);
 for (const root of browserStoreRoots) {
