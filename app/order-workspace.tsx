@@ -20,6 +20,7 @@ import {
   CheckCheck,
   CreditCard,
   Info,
+  MapPin,
   Mail,
   MessageCircle,
   MessageSquareText,
@@ -627,12 +628,14 @@ const intakeTagCopy = {
  * this very order. The first screen answers what was ordered, at which stage, for whom, how it travels and what to do
  * now, with the latest event; the calculation, approvals, services, documents and full history fold away below.
  */
-function CustomerOrderLine({ order: o, siblings, showThumb, locale, pricing, busy, expanded, onToggle, run, confirm, loadPhoto, allowanceUsd, storeCredited = 0 }: {
+function CustomerOrderLine({ order: o, siblings, showThumb, sharedDelivery = false, locale, pricing, busy, expanded, onToggle, run, confirm, loadPhoto, allowanceUsd, storeCredited = 0 }: {
   order: Order;
   /** All lines of the checkout: parcel-wide service requests kept on another line still cover this one. */
   siblings: readonly Order[];
   /** The variants of this model have different photos (colors): show this line's own. */
   showThumb: boolean;
+  /** The checkout card already names the recipient and address (`OrderGroup.delivery`): do not repeat them here. */
+  sharedDelivery?: boolean;
   allowanceUsd?: number;
   /** Store-delivery difference actually credited to the balance (legacy orders without a separate hold). */
   storeCredited?: number;
@@ -723,7 +726,7 @@ function CustomerOrderLine({ order: o, siblings, showThumb, locale, pricing, bus
       </section>}
 
       <dl className="order-x-details og-facts">
-        {o.delivery && <div><dt>{gc.recipient}</dt><dd>{o.delivery.recipient}{where && <small>{where}</small>}{o.delivery.phone && <a className="order-x-link" href={`tel:${o.delivery.phone.replace(/[^\d+]/g, "")}`}>{o.delivery.phone}</a>}</dd></div>}
+        {o.delivery && !sharedDelivery && <div><dt>{gc.recipient}</dt><dd>{o.delivery.recipient}{where && <small>{where}</small>}{o.delivery.phone && <a className="order-x-link" href={`tel:${o.delivery.phone.replace(/[^\d+]/g, "")}`}>{o.delivery.phone}</a>}</dd></div>}
         <div><dt>{gc.delivery}</dt><dd>{gc.speed[speed]}{days && <small>{gc.days(days[0], days[1])}</small>}</dd></div>
         <div><dt>{c.total}</dt><dd><b><Money value={payable} locale={locale} /></b>{payable !== o.quote.total && <small>{c.atCheckout(formatSum(o.quote.total, locale))}</small>}</dd></div>
         {o.parcel && <div><dt>{c.tracking}</dt><dd>{o.parcel.carrier}<span className="order-x-track"><span className="order-x-id">{o.parcel.trackingNumber}</span><CopyText text={o.parcel.trackingNumber} locale={locale} /></span><small>{lastParcelEvent ?? ow.parcelRegistered}{o.parcel.warehouseCode ? ` · ${locale === "ru" ? "склад" : isUzbek(locale) ? uzText(locale, "ombor") : "warehouse"} ${o.parcel.warehouseCode}` : ""}</small></dd></div>}
@@ -850,6 +853,13 @@ function OrderGroupCard({ group, locale, line, onPay }: { group: OrderGroup; loc
         <p className="micro">{ow.paymentLine} {group.payment.id} · {ow.noCharge}.</p>
       </div>
       <button type="button" className="btn primary" onClick={() => onPay(group)}>{gc.payButton}<ArrowRight size={16} aria-hidden="true" /></button>
+    </div>}
+    {group.delivery && group.stage !== "cancelled" && <div className="og-ship">
+      <MapPin size={16} aria-hidden="true" />
+      <p>
+        <span className="og-ship-who"><span className="sr-only">{gc.recipient}: </span><b>{group.delivery.profile.recipient}</b>{group.delivery.profile.phone && <a className="order-x-link" href={`tel:${group.delivery.profile.phone.replace(/[^\d+]/g, "")}`}>{group.delivery.profile.phone}</a>}</span>
+        <small>{[group.delivery.profile.city || group.delivery.profile.region, group.delivery.profile.address].filter(Boolean).join(", ")} · {gc.speed[group.delivery.speed]}</small>
+      </p>
     </div>}
     {group.stores.map((store) => <div className="order-group-store" key={store.key}>
       <div className="og-store-head">
@@ -1318,7 +1328,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
         />
       ) : (
         !operations ? visibleGroups.map((group) => {
-          const line = (o: Order, store: OrderStoreGroup, showThumb: boolean) => <CustomerOrderLine key={o.id} order={o} siblings={group.orders} showThumb={showThumb} locale={locale} pricing={pricing} busy={busy} expanded={expanded.includes(o.id)} onToggle={open => setExpanded(ids => open ? [...new Set([...ids, o.id])] : ids.filter(id => id !== o.id))} run={runOrderAction} confirm={setConfirmation} loadPhoto={order => void loadPhoto(order)} allowanceUsd={allowanceFor(o)} storeCredited={storeShippingCredited(state.entries, o)} />;
+          const line = (o: Order, store: OrderStoreGroup, showThumb: boolean) => <CustomerOrderLine key={o.id} order={o} siblings={group.orders} showThumb={showThumb} sharedDelivery={Boolean(group.delivery)} locale={locale} pricing={pricing} busy={busy} expanded={expanded.includes(o.id)} onToggle={open => setExpanded(ids => open ? [...new Set([...ids, o.id])] : ids.filter(id => id !== o.id))} run={runOrderAction} confirm={setConfirmation} loadPhoto={order => void loadPhoto(order)} allowanceUsd={allowanceFor(o)} storeCredited={storeShippingCredited(state.entries, o)} />;
           // Every checkout, a single line included, reads the same: checkout → store parcel → model → variant lines.
           const pay = (paid: OrderGroup) => {
             const waiting = paid.orders.find(order => !order.cancelled && order.payment?.status === "pending");

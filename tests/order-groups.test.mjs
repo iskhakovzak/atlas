@@ -211,3 +211,20 @@ test('a warehouse service for the whole parcel is listed once on its store secti
   assert.deepEqual(parcelServicesFor(orders, zaraOrder.id), []);
   assert.equal(orderGroupCopy.ru.parcelCovers(ids.join(', ')), `на всю посылку: ${ids.join(', ')}`);
 });
+
+test('the recipient and speed of a checkout show once on the card when every live line agrees', async () => {
+  const { sharedDelivery } = await import('../lib/market/order-groups.ts');
+  const delivery = { recipient: 'Анна Каримова', phone: '+998901234567', region: 'Ташкент', city: 'Ташкент', address: 'ул. Амира Темура, 10', postalCode: '100000', comment: '' };
+  let s = addToCart(blank(), nike, nike.variants[0], 1000);
+  s = addToCart(s, zara, zara.variants[0], 1001);
+  s = checkoutCart(s, 'shared', cartSignature(s.cart), false, 2000, customsVersion, delivery);
+  const [group] = groupOrders(s.orders);
+  assert.equal(group.delivery.profile.recipient, 'Анна Каримова');
+  assert.equal(group.delivery.speed, s.orders[0].quote.deliverySpeed ?? 'express');
+  // A line sent elsewhere (an operator's change) keeps the recipient in its own details.
+  const moved = [s.orders[0], { ...s.orders[1], delivery: { ...delivery, address: 'ул. Навои, 5' } }];
+  assert.equal(groupOrders(moved)[0].delivery, undefined);
+  // A cancelled line does not count; orders without an address have no shared delivery.
+  assert.ok(sharedDelivery([s.orders[0], { ...moved[1], cancelled: true }]));
+  assert.equal(sharedDelivery([{ ...s.orders[0], delivery: undefined }]), undefined);
+});

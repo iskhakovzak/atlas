@@ -1,4 +1,4 @@
-import { orderPayable, type DeliverySpeed, type Order, type WarehouseServiceRequest } from './domain.ts';
+import { orderPayable, type DeliveryProfile, type DeliverySpeed, type Order, type WarehouseServiceRequest } from './domain.ts';
 import { localizedStatuses, type Locale } from './i18n.ts';
 import { brandForHost, storefrontLabel } from './store-brands.ts';
 import {withCyrillic} from './uz-cyrl.ts';
@@ -72,6 +72,8 @@ export type OrderGroup = {
   attention: number;
   /** The checkout's payment still to record: one payment for every waiting line, never one per line. */
   payment?: { id: string; amount: number; lines: number };
+  /** Recipient, address and speed shared by every live line: shown once on the card, not in each line. */
+  delivery?: { profile: DeliveryProfile; speed: DeliverySpeed };
   cancelled: number;
 };
 
@@ -175,12 +177,23 @@ function latestEvent(orders: Order[]): OrderGroup['latest'] {
   return latest;
 }
 
+/** The recipient and speed of a checkout when all its live lines agree (they do for every checkout since 6 October 2026). */
+export function sharedDelivery(orders: readonly Order[]): OrderGroup['delivery'] {
+  const live = orders.filter((order) => !order.cancelled);
+  const first = live[0]?.delivery;
+  if (!first) return undefined;
+  const key = (order: Order) => order.delivery && [order.delivery.recipient, order.delivery.phone, order.delivery.region, order.delivery.city, order.delivery.address, order.delivery.postalCode ?? '', order.quote.deliverySpeed ?? 'express'].join('|');
+  const same = key(live[0]);
+  return live.every((order) => key(order) === same) ? { profile: first, speed: live[0].quote.deliverySpeed ?? 'express' } : undefined;
+}
+
 function buildGroup(key: string, batchId: string | undefined, orders: Order[]): OrderGroup {
   const live = orders.filter((order) => !order.cancelled);
   const inProgress = live.filter((order) => order.status < 5);
   const waiting = live.filter((order) => order.payment?.status === 'pending');
   const payment = waiting.length ? { id: waiting[0].payment!.id, amount: waiting.reduce((sum, order) => sum + order.payment!.amount, 0), lines: waiting.length } : undefined;
   const attention = live.filter(orderNeedsLineDecision).length + (payment ? 1 : 0);
+  const delivery = sharedDelivery(orders);
   const cancelled = orders.length - live.length;
   const status = live.length === 0 ? undefined : inProgress.length ? Math.min(...inProgress.map((order) => order.status)) : 5;
   const stage: OrderGroupStage = live.length === 0 ? 'cancelled' : attention ? 'attention' : inProgress.length ? 'active' : 'done';
@@ -201,6 +214,7 @@ function buildGroup(key: string, batchId: string | undefined, orders: Order[]): 
     latest: latestEvent(orders),
     attention,
     ...(payment ? { payment } : {}),
+    ...(delivery ? { delivery } : {}),
     cancelled,
   };
 }
