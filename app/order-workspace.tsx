@@ -612,7 +612,7 @@ function OrderDocuments({orderId,accountId,operatorMode,locale}:{orderId:string;
  const labels:Record<string,string>={invoice:words.invoice,'purchase-proof':words.proof,'warehouse-photo':words.photo,'warehouse-report':words.report};
  return <details className="order-documents"><summary>{words.title}<span>{documents.length}</span></summary><div className="document-list">{documents.length?documents.map(item=><a key={item.id} href={`/api/order-documents?id=${encodeURIComponent(item.id)}`}><span><b>{labels[item.kind]??item.kind}</b><small>{item.filename}</small></span><strong>{words.open}</strong></a>):<p className="micro">{words.empty}</p>}</div>{operatorMode&&accountId&&<form className="document-upload" onSubmit={event=>{event.preventDefault();void upload(event.currentTarget)}}><select name="kind" aria-label="Тип документа"><option value="invoice">{words.invoice}</option><option value="purchase-proof">{words.proof}</option><option value="warehouse-photo">{words.photo}</option><option value="warehouse-report">{words.report}</option></select><input name="file" type="file" accept="image/jpeg,image/png,application/pdf" required/><button className="btn secondary" disabled={busy}>{busy?'…':words.upload}</button></form>}</details>
 }
-type OrderConfirmation = { id: string; cancel: boolean; amount: number; storeShipping?: boolean; customs?: boolean; payment?: boolean; /** An operator's extra invoice to pay. */ extraCharge?: string };
+type OrderConfirmation = { id: string; cancel: boolean; amount: number; storeShipping?: boolean; customs?: boolean; payment?: boolean; /** The checkout the payment covers: one payment for all its waiting lines. */ batchId?: string; /** An operator's extra invoice to pay. */ extraCharge?: string };
 const refundMarkerCopy = /*@__PURE__*/withCyrillic({ ru: "Отметка возврата в Atlas", uz: "Atlasdagi qaytarish belgisi", en: "Refund marker in Atlas" } as const);
 const intakeTagCopy = {
   photo: /*@__PURE__*/withCyrillic({ ru: "Фото", uz: "Foto", en: "Photo requested at intake" }),
@@ -650,11 +650,12 @@ function CustomerOrderLine({ order: o, siblings, showThumb, locale, pricing, bus
   const gc = orderGroupCopy[locale];
   const statuses = localizedStatuses(locale);
   const payable = orderPayable(o);
-  const extra = isExtra(o), changePending = pendingChange(o), paymentPending = !o.cancelled && o.payment?.status === "pending";
+  const extra = isExtra(o), changePending = pendingChange(o);
   const invoice = (o.extraCharges ?? []).some(charge => charge.status === "pending");
-  const needsAction = !o.cancelled && (extra || changePending || paymentPending || invoice);
-  // The line's own stage stays visible next to the action flag: a payment to record does not hide "Ожидает выкупа".
-  const stage = o.cancelled ? ow.cancelled : o.payment?.status === "refunded" ? refundMarkerCopy[locale] : statuses[o.status];
+  // The payment is the whole checkout's: it waits on the order card above, not on each line.
+  const needsAction = !o.cancelled && (extra || changePending || invoice);
+  // The line's own stage stays visible next to the action flag; before the checkout's payment nothing is bought yet.
+  const stage = o.cancelled ? ow.cancelled : o.payment?.status === "refunded" ? refundMarkerCopy[locale] : o.payment?.status === "pending" ? ow.awaitingPayment : statuses[o.status];
   const tone = o.cancelled || o.payment?.status === "refunded" ? "muted" : o.status === 5 ? "ok" : "info";
   const pendingRequests = (o.changeRequests ?? []).filter(request => request.status === "pending");
   const resolvedRequests = (o.changeRequests ?? []).filter(request => request.status !== "pending").reverse();
@@ -694,11 +695,6 @@ function CustomerOrderLine({ order: o, siblings, showThumb, locale, pricing, bus
 
       {needsAction && <section className="order-x-action" aria-label={gc.now}>
         <p className="order-x-eyebrow">{gc.now}</p>
-        {paymentPending && <div className="order-x-action-item">
-          <CreditCard size={20} aria-hidden="true" />
-          <div><h3>{ow.paymentWaiting}</h3><p>{ow.paymentLine} {o.payment!.id} · {formatSum(o.payment!.amount, locale)}. {ow.noCharge}.</p></div>
-          <button type="button" className="btn primary" onClick={() => confirm({ id: o.id, cancel: false, amount: o.payment!.amount, payment: true })}>{ow.recordPayment}<ArrowRight size={16} aria-hidden="true" /></button>
-        </div>}
         <CustomerExtraCharge order={o} locale={locale} busy={busy} onPay={charge => confirm({ id: o.id, cancel: false, amount: charge.amount, extraCharge: charge.id })} />
         {pendingRequests.map(request => <div className="order-x-action-item" key={request.id}>
           <AlertCircle size={20} aria-hidden="true" />
@@ -824,8 +820,9 @@ function CustomerOrderLine({ order: o, siblings, showThumb, locale, pricing, bus
  * One checkout as one card, a single line included: the heading answers when, how much, how many, at which stage and
  * whether the customer must act; then a section per store parcel, a block per model, and a row per variant.
  */
-function OrderGroupCard({ group, locale, line }: { group: OrderGroup; locale: Locale; line: (order: Order, store: OrderStoreGroup, showThumb: boolean) => ReactNode }) {
+function OrderGroupCard({ group, locale, line, onPay }: { group: OrderGroup; locale: Locale; line: (order: Order, store: OrderStoreGroup, showThumb: boolean) => ReactNode; onPay: (group: OrderGroup) => void }) {
   const gc = orderGroupCopy[locale];
+  const ow = customerOrderCopy[locale];
   const stores = groupStoreNames(group, locale);
   const stage = groupStageText(group, locale);
   const live = group.orders.length - group.cancelled;
@@ -844,6 +841,16 @@ function OrderGroupCard({ group, locale, line }: { group: OrderGroup; locale: Lo
       </div>
       {group.stage !== "cancelled" && <p className="order-group-sum"><small>{gc.total}</small><strong><Money value={group.payable} locale={locale} /></strong></p>}
     </header>
+    {group.payment && <div className="order-x-action-item og-pay">
+      <CreditCard size={20} aria-hidden="true" />
+      <div>
+        <h3>{gc.payTitle}</h3>
+        <p>{gc.payCovers(itemCount(group.orders.reduce((sum, order) => sum + (!order.cancelled && order.payment?.status === "pending" ? order.quantity : 0), 0), locale))}</p>
+        <strong className="order-x-delta">{formatSum(group.payment.amount, locale)}</strong>
+        <p className="micro">{ow.paymentLine} {group.payment.id} · {ow.noCharge}.</p>
+      </div>
+      <button type="button" className="btn primary" onClick={() => onPay(group)}>{gc.payButton}<ArrowRight size={16} aria-hidden="true" /></button>
+    </div>}
     {group.stores.map((store) => <div className="order-group-store" key={store.key}>
       <div className="og-store-head">
         <p className="order-group-store-title"><Package size={15} aria-hidden="true" />{gc.from(storeGroupName(store, locale), store.country && !storeGroupName(store, locale).includes(store.country) ? countryLabel(store.country, locale) : "")}</p>
@@ -1049,6 +1056,14 @@ export function OrdersView({ operations }: { operations: boolean }) {
     firstTab.current = true;
     if (!activeGroupCount && attentionGroupCount && !window.location.hash) queueMicrotask(() => setTab((current) => current === "active" ? "attention" : current));
   }, [operations, ready, activeGroupCount, attentionGroupCount]);
+  // The last checkout waiting for the customer was paid or decided: follow it to "В работе" instead of an empty tab.
+  const lastAttention = useRef(attentionGroupCount);
+  useEffect(() => {
+    const before = lastAttention.current;
+    lastAttention.current = attentionGroupCount;
+    if (operations || !ready || before === 0 || attentionGroupCount > 0 || tab !== "attention") return;
+    if (activeGroupCount) queueMicrotask(() => setTab((current) => current === "attention" ? "active" : current));
+  }, [operations, ready, tab, activeGroupCount, attentionGroupCount]);
   // The warehouse weighs a store parcel once (parcelOrders): every order of it shares the weight and the delivery.
   // Bought orders still on the way (status 1) hold the parcel until they arrive or the operator weighs without them.
   const weighGroup = (order: Order) => {
@@ -1305,7 +1320,11 @@ export function OrdersView({ operations }: { operations: boolean }) {
         !operations ? visibleGroups.map((group) => {
           const line = (o: Order, store: OrderStoreGroup, showThumb: boolean) => <CustomerOrderLine key={o.id} order={o} siblings={group.orders} showThumb={showThumb} locale={locale} pricing={pricing} busy={busy} expanded={expanded.includes(o.id)} onToggle={open => setExpanded(ids => open ? [...new Set([...ids, o.id])] : ids.filter(id => id !== o.id))} run={runOrderAction} confirm={setConfirmation} loadPhoto={order => void loadPhoto(order)} allowanceUsd={allowanceFor(o)} storeCredited={storeShippingCredited(state.entries, o)} />;
           // Every checkout, a single line included, reads the same: checkout → store parcel → model → variant lines.
-          return <OrderGroupCard key={group.key} group={group} locale={locale} line={line} />;
+          const pay = (paid: OrderGroup) => {
+            const waiting = paid.orders.find(order => !order.cancelled && order.payment?.status === "pending");
+            if (waiting && paid.payment) setConfirmation({ id: waiting.id, cancel: false, amount: paid.payment.amount, payment: true, batchId: paid.batchId });
+          };
+          return <OrderGroupCard key={group.key} group={group} locale={locale} line={line} onPay={pay} />;
         }) : filtered.map((o) => (
           <details className="surface order-card compact-order" key={o.id} id={o.id} onToggle={event=>{const open=event.currentTarget.open;setExpanded(ids=>open?[...new Set([...ids,o.id])]:ids.filter(id=>id!==o.id))}}>
             <summary className="compact-order-summary">
@@ -1872,7 +1891,9 @@ export function OrdersView({ operations }: { operations: boolean }) {
                   confirmation.cancel
                     ? { type: "cancel", id: confirmation.id }
                     : confirmation.payment
-                      ? { type: "payment-demo", id: confirmation.id }
+                      ? confirmation.batchId
+                        ? { type: "payment-demo-batch", batchId: confirmation.batchId, amount: confirmation.amount }
+                        : { type: "payment-demo", id: confirmation.id }
                     : confirmation.extraCharge
                       ? { type: "extra-charge-pay", id: confirmation.id, chargeId: confirmation.extraCharge, amount: confirmation.amount }
                     : confirmation.customs

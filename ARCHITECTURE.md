@@ -1,3 +1,20 @@
+## Walmart сначала со страницы, единая оплата заказа — 10 октября 2026
+
+**Walmart.** Покупатель-адрес (ташкентский шлюз) получает полную страницу Walmart обычным запросом за 2–3 с, с матрицей цвет × размер. Bright Data теперь — платный запасной путь.
+- `walmart.com` добавлен в `browserStoreRoots` (`lib/importer/stores.ts`): маршрут — шлюз, `attemptMs` 9 с; при неудаче — `manualStore` 422, как у прочих браузерных магазинов.
+- Новый адаптер `lib/importer/walmart.ts` (`extractWalmartProduct`): `__NEXT_DATA__` → `props.pageProps.initialData.data.product`; критерии из `variantCriteria`, варианты из `variantsMap` (id = `usItemId`, своя ссылка, цена USD, наличие `IN_STOCK`, фото), до 250 вариантов, вариант из ссылки первым; товар без опций должен совпадать с id ссылки. `wasPrice` → `referencePrice`, предупреждение о стороннем продавце. Метод — `Walmart product state`. Вызывается в `extract.ts` после Sephora.
+- `fetchProductOnce` (`lib/importer/fetch.ts`): Bright Data вызывается только если сбор уже идёт (`brightDataCollectionRunning` в `brightdata.ts` — опрос не открывает страницу заново) или если путь страницы закончился `ManualEntryFallbackError` (кроме `pending`) либо таймаутом.
+- `blockedSignal` (`deploy/upcloud/merchant-engines.mjs`): маркеры PerimeterX (`_pxhd`, `window._pxUuid`, `PerimeterX`) считаются стеной только на странице меньше 60 КБ; `px-captcha` — всегда. Настоящие страницы Walmart несут конфиг PX и раньше ошибочно уходили в `impersonate` → `browser`. Файл шлюза на ПК обновлён 10.10.2026 (резерв `merchant-engines.mjs.bak-walmart-20261010`).
+- Тесты: `tests/importer-walmart.test.mjs`, `tests/importer-brightdata.test.mjs` (страница отвечает → без Bright Data; стена → сбор Bright Data, опрос без запросов страницы), `tests/importer-manual-stores.test.mjs`.
+
+**Единая оплата заказа.** Раньше у каждой строки оформления висела своя кнопка оплаты, хотя корзина оформляется одним заказом.
+- `checkoutCart` даёт всем строкам один `payment.id` (`PAY-…`). Старые заказы с разными id работают как прежде.
+- Действие `payment-demo-batch {batchId, amount}` (`actions.ts`, `confirmDemoBatchPayment` в `domain.ts`): сумма ожидающих оплаты неотменённых строк должна совпасть с `amount` (иначе «Сумма изменилась»); каждая строка получает отметку, историю `payment-recorded` и свою проводку `demo-payment:<id>` (учёт — по заказам), покупатель — одно уведомление. Повтор ничего не меняет. В статусе проверки `review` заблокировано, как `payment-demo`. Оплата по-прежнему симулируется: деньги не списываются.
+- `OrderGroup.payment {id, amount, lines}` и `orderNeedsLineDecision` (`lib/market/order-groups.ts`): оплата считается одним делом заказа в `attention`; на карточке заказа (`OrderGroupCard`, `.og-pay` в `app/orders-groups.css`) — один блок «Оплата заказа» с суммой и кнопкой «Оплатить заказ»; у строк кнопки оплаты нет, их этап — «Ожидает оплаты» (и у заказа, `groupStageText`).
+- Панель уведомлений (`noticePanel`) показывает оплату заказа одним пунктом. После последнего решения «Мои заказы» сами переходят с пустой вкладки «Нужно решение» на «В работе».
+- Строки без ссылки на магазин (каталожные) одного бренда и страны теперь одна секция посылки (`storeKey` → `brand:…`), а не секция на каждую строку.
+- Тесты: `tests/batch-payment.test.mjs`.
+
 ## Target native API headers
 
 US VPS comparison: Target redsky returned product JSON200 with ordinary API headers and with User-Agent, but435 PerimeterX metadata after adding browser hints/X-Requested-With/Sec-Fetch headers. Target requests now retain HTTPS/Origin/Referer/allowlist/timeout and use minimalApi headers, omitting those browser-only hints. Other merchant requests are unchanged. Regression checks the actual fetchProduct headers. No IP-reputation verdict is inferred from435 alone.

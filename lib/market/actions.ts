@@ -31,6 +31,7 @@ import {
   storeDiscount,
   communicationSchema,
   confirmDemoPayment,
+  confirmDemoBatchPayment,
   updateCommunication,
   assignOrder,
   addStaffNote,
@@ -121,6 +122,7 @@ export const actionSchema = z.discriminatedUnion("type", [
     customsDuty: amount.optional(),
   }),
   z.object({ type: z.literal("payment-demo"), id }),
+  z.object({ type: z.literal("payment-demo-batch"), batchId: z.string().min(1).max(80), amount: z.number().int().nonnegative() }),
   z.object({ type: z.literal("communication-save"), value: communicationSchema }),
   // `id` edits a saved recipient; `primary` chooses the default one. Older clients send neither.
   z.object({ type: z.literal("delivery-profile-save"), value: deliveryProfileSchema, label: z.string().trim().min(1).max(60), id: z.string().min(1).max(80).optional(), primary: z.boolean().optional() }),
@@ -373,6 +375,8 @@ export function applyAction(
     }
     case "payment-demo":
       return confirmDemoPayment(s, a.id);
+    case "payment-demo-batch":
+      return confirmDemoBatchPayment(s, a.batchId, a.amount);
     case "communication-save":
       return updateCommunication(s, a.value);
     case "delivery-profile-save": {

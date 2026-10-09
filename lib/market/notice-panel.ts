@@ -28,6 +28,9 @@ export function noticePanel(state: Pick<State, 'orders' | 'notifications'>, rece
   const action = state.orders
     .map(order => ({ order, reason: orderAttention(order), notice: sorted.find(item => item.orderId === order.id) }))
     .filter((entry): entry is { order: Order; reason: OrderAttention; notice: Notification | undefined } => entry.reason !== null)
+    // One payment covers the whole checkout: its lines waiting only for it show as one item.
+    .filter((entry, index, all) => entry.reason !== 'payment' || !entry.order.batchId
+      || all.findIndex(other => other.reason === 'payment' && other.order.batchId === entry.order.batchId) === index)
     .sort((a, b) => (b.notice?.at ?? 0) - (a.notice?.at ?? 0));
   const shown = new Set(action.map(entry => entry.notice?.id).filter(Boolean));
   return {

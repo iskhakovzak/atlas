@@ -68,8 +68,10 @@ export type OrderGroup = {
   progress: { status: number; count: number }[];
   /** Newest history entry over all lines (by time, not position): the last thing that happened to this checkout. */
   latest?: { order: Order; entry: Order['history'][number] };
-  /** Number of lines that wait for the customer's decision. */
+  /** Things that wait for the customer: one per line decision, plus one for the checkout's payment. */
   attention: number;
+  /** The checkout's payment still to record: one payment for every waiting line, never one per line. */
+  payment?: { id: string; amount: number; lines: number };
   cancelled: number;
 };
 
@@ -93,6 +95,11 @@ export function orderNeedsCustomerDecision(order: Order) {
     || order.payment?.status === 'pending';
 }
 
+/** A decision about this line itself; the payment is the whole checkout's (see `OrderGroup.payment`). */
+export function orderNeedsLineDecision(order: Order) {
+  return orderNeedsCustomerDecision({ ...order, payment: undefined });
+}
+
 /** The same model in the cart and in orders: link + name for imported goods (their id carries the variant), else the id. */
 export function orderModelKey(order: Pick<Order, 'product'>) {
   return order.product.sourceUrl ? `${order.product.sourceUrl}\n${order.product.name}` : order.product.id;
@@ -112,7 +119,9 @@ export function parcelServicesFor(orders: readonly Order[], orderId: string): Pa
 
 function storeKey(order: Order) {
   const host = orderStoreHost(order);
-  return host ? `store:${host}:${order.product.country ?? ''}` : `item:${order.id}`;
+  // Without a store link (catalogue items), lines of one brand and country still travel as one parcel.
+  if (host) return `store:${host}:${order.product.country ?? ''}`;
+  return order.product.brand ? `brand:${order.product.brand}:${order.product.country ?? ''}` : `item:${order.id}`;
 }
 
 function buildModels(orders: Order[]): OrderModelGroup[] {
@@ -169,7 +178,9 @@ function latestEvent(orders: Order[]): OrderGroup['latest'] {
 function buildGroup(key: string, batchId: string | undefined, orders: Order[]): OrderGroup {
   const live = orders.filter((order) => !order.cancelled);
   const inProgress = live.filter((order) => order.status < 5);
-  const attention = live.filter(orderNeedsCustomerDecision).length;
+  const waiting = live.filter((order) => order.payment?.status === 'pending');
+  const payment = waiting.length ? { id: waiting[0].payment!.id, amount: waiting.reduce((sum, order) => sum + order.payment!.amount, 0), lines: waiting.length } : undefined;
+  const attention = live.filter(orderNeedsLineDecision).length + (payment ? 1 : 0);
   const cancelled = orders.length - live.length;
   const status = live.length === 0 ? undefined : inProgress.length ? Math.min(...inProgress.map((order) => order.status)) : 5;
   const stage: OrderGroupStage = live.length === 0 ? 'cancelled' : attention ? 'attention' : inProgress.length ? 'active' : 'done';
@@ -189,6 +200,7 @@ function buildGroup(key: string, batchId: string | undefined, orders: Order[]): 
     progress: [...counts].sort(([a], [b]) => a - b).map(([value, count]) => ({ status: value, count })),
     latest: latestEvent(orders),
     attention,
+    ...(payment ? { payment } : {}),
     cancelled,
   };
 }
@@ -234,12 +246,14 @@ export function groupStoreNames(group: Pick<OrderGroup, 'stores'>, locale: Local
  * The honest stage of a checkout: the status name only when every live line is at it ("В пути"); otherwise
  * "На разных этапах" with a count per status, so a group never reads "Доставлен" while a line is still on the way.
  */
-export function groupStageText(group: Pick<OrderGroup, 'progress' | 'stage'>, locale: Locale): { label: string; summary?: string; tone: 'ok' | 'info' | 'muted' } {
+export function groupStageText(group: Pick<OrderGroup, 'progress' | 'stage' | 'payment'>, locale: Locale): { label: string; summary?: string; tone: 'ok' | 'info' | 'muted' } {
   const copy = orderGroupCopy[locale];
   if (group.stage === 'cancelled' || !group.progress.length) return { label: copy.stage.cancelled, tone: 'muted' };
   const names = localizedStatuses(locale);
   if (group.progress.length === 1) {
     const [only] = group.progress;
+    // Nothing is bought before the checkout's payment: say so instead of "Ожидает выкупа".
+    if (group.payment && only.status === 0) return { label: copy.awaitingPayment, tone: 'info' };
     return { label: names[only.status] ?? copy.stage.active, tone: only.status === 5 ? 'ok' : 'info' };
   }
   return { label: copy.mixed, summary: group.progress.map(({ status, count }) => copy.statusCount(names[status] ?? '', count)).join(' · '), tone: 'info' };
@@ -259,6 +273,8 @@ export type OrderGroupCopy = {
   days: (min: number, max: number) => string;
   /** The lines of one checkout are at different stages. */
   mixed: string;
+  /** Every line waits for the checkout's payment. */
+  awaitingPayment: string;
   /** "В пути: 2" — one part of the mixed-stage summary; the status name comes localized. */
   statusCount: (status: string, count: number) => string;
   /** Badge on a checkout or a line: the customer has something to do. */
@@ -288,6 +304,10 @@ export type OrderGroupCopy = {
   recipient: string;
   /** Accessible name of a line: "Заказ AT-1". */
   line: (id: string) => string;
+  /** The checkout's one payment: heading, what it covers, the button. */
+  payTitle: string;
+  payCovers: (items: string) => string;
+  payButton: string;
 };
 
 export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withCyrillic({
@@ -301,6 +321,7 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     speed: { express: 'Экспресс', standard: 'Обычная доставка' },
     days: (min, max) => `${min}–${max} раб. дней`,
     mixed: 'На разных этапах',
+    awaitingPayment: 'Ожидает оплаты',
     statusCount: (status, count) => `${status}: ${count}`,
     action: (count) => count > 1 ? `Нужно действие · ${count}` : 'Нужно действие',
     openIn: (store) => `Открыть в ${store}`,
@@ -317,6 +338,9 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     next: (status) => `Дальше: ${status}`,
     recipient: 'Получатель',
     line: (id) => `Заказ ${id}`,
+    payTitle: 'Оплата заказа',
+    payCovers: (items) => `Один платёж за весь заказ: ${items}.`,
+    payButton: 'Оплатить заказ',
   },
   uz: {
     title: (date) => `${date} buyurtmasi`,
@@ -328,6 +352,7 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     speed: { express: 'Ekspress', standard: 'Oddiy yetkazib berish' },
     days: (min, max) => `${min}–${max} ish kuni`,
     mixed: 'Turli bosqichlarda',
+    awaitingPayment: 'To‘lov kutilmoqda',
     statusCount: (status, count) => `${status}: ${count}`,
     action: (count) => count > 1 ? `Harakat kerak · ${count}` : 'Harakat kerak',
     openIn: (store) => `${store}’da ochish`,
@@ -344,6 +369,9 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     next: (status) => `Keyingi: ${status}`,
     recipient: 'Qabul qiluvchi',
     line: (id) => `${id} buyurtmasi`,
+    payTitle: 'Buyurtma to‘lovi',
+    payCovers: (items) => `Butun buyurtma uchun bitta to‘lov: ${items}.`,
+    payButton: 'Buyurtmani to‘lash',
   },
   en: {
     title: (date) => `Order of ${date}`,
@@ -355,6 +383,7 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     speed: { express: 'Express', standard: 'Standard delivery' },
     days: (min, max) => `${min}–${max} business days`,
     mixed: 'At different stages',
+    awaitingPayment: 'Awaiting payment',
     statusCount: (status, count) => `${status}: ${count}`,
     action: (count) => count > 1 ? `Action needed · ${count}` : 'Action needed',
     openIn: (store) => `View on ${store}`,
@@ -371,5 +400,8 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     next: (status) => `Next: ${status}`,
     recipient: 'Recipient',
     line: (id) => `Order ${id}`,
+    payTitle: 'Order payment',
+    payCovers: (items) => `One payment for the whole order: ${items}.`,
+    payButton: 'Pay for the order',
   },
 });

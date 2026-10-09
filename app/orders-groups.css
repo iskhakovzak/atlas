@@ -17,6 +17,10 @@
 .order-group-sum strong { font-size: 18px; font-weight: 800; line-height: 1.2; letter-spacing: -0.01em; color: var(--home-ink); font-feature-settings: "tnum" 1; white-space: nowrap; }
 .order-group[data-stage="cancelled"] .order-group-title { color: var(--home-muted); }
 
+/* One payment for the whole checkout (since 10 October 2026): a warm card under the heading, above the parcels. */
+.order-group .og-pay { margin: 0 0 12px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--cx-warn) 40%, var(--home-line)); border-radius: 16px; background: var(--cx-warn-soft); }
+.og-pay p + p { margin-top: 4px; }
+
 /* The latest event: on the plate for the whole checkout, inside a line for that order. */
 .og-latest { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 9px 12px; border-radius: 12px; background: var(--home-soft); color: var(--home-muted); font-size: 13px; line-height: 1.45; }
 .og-latest > svg { flex-shrink: 0; margin-top: 2px; }
@@ -91,6 +95,8 @@
 
 @media (min-width: 640px) {
   .order-group { padding: 16px 16px 8px; }
+  .order-group .og-pay { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; padding: 14px 16px; }
+  .order-group .og-pay > .btn { grid-column: auto; }
   .order-group-head { padding: 0 4px 14px; align-items: center; }
   .order-group-title { font-size: 17px; }
   .order-group-sum { display: grid; gap: 2px; text-align: right; }

@@ -1684,6 +1684,7 @@ export function checkoutCart(
   const entries = [...state.entries];
   // 48 random bits: order numbers are global across customers, so 8 hex digits would start to collide.
   const orderIds = cart.map(() => "AT-" + crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase());
+  const paymentId = "PAY-" + crypto.randomUUID().slice(0, 8).toUpperCase();
   // Checkout services are asked once per store parcel, on its first order, for every order of that parcel
   // (owner, 7.10.2026): three sizes of one model no longer make three requests for one "contents photo".
   const parcelRequests = new Map<string, WarehouseServiceRequest[]>();
@@ -1727,7 +1728,8 @@ export function checkoutCart(
       identity: selectedIdentity,
       warehouseServiceRequests: serviceRequests.length ? serviceRequests : undefined,
       payment: {
-        id: "PAY-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
+        // One payment for the whole checkout: every line carries the same id with its own share.
+        id: paymentId,
         status: payable === 0 ? "paid" : "pending",
         method: payable === 0 ? "balance" : "payment-link",
         amount: payable,
@@ -1816,6 +1818,63 @@ export function confirmDemoPayment(
     "Статус оплаты обновлён в Atlas",
     "Платёжный провайдер не подключён: списания и банковского подтверждения нет.",
     id,
+    now,
+    { code: "payment-recorded" },
+  );
+}
+
+/** Lines of one checkout still waiting for their payment mark: they are paid together, as one order. */
+export function pendingBatchPayments(state: Pick<State, "orders">, batchId: string) {
+  return state.orders.filter((order) => order.batchId === batchId && !order.cancelled && order.payment?.status === "pending");
+}
+
+/**
+ * One payment for a whole checkout (since 10 October 2026): every line still waiting is marked at once, with the
+ * total the customer saw. Each line keeps its own history and ledger entry (the books are per order); the customer
+ * gets one notification. Paying again changes nothing.
+ */
+export function confirmDemoBatchPayment(
+  state: State,
+  batchId: string,
+  expectedAmount: number,
+  now = Date.now(),
+): State {
+  const lines = pendingBatchPayments(state, batchId);
+  if (!lines.length) {
+    if (!state.orders.some((order) => order.batchId === batchId)) throw Error("Заказ не найден.");
+    return state;
+  }
+  const total = lines.reduce((sum, order) => sum + order.payment!.amount, 0);
+  if (total !== expectedAmount) throw Error("Сумма изменилась. Проверьте расчёт.");
+  let next = state;
+  for (const order of lines) {
+    const o = getOrder(next, order.id);
+    next = replace(next, {
+      ...o,
+      payment: { ...o.payment!, status: "paid", updatedAt: now },
+      history: [
+        ...o.history,
+        { at: now, text: "Статус оплаты отмечен в Atlas. Платёжный провайдер не подтвердил списание.", code: "payment-recorded" },
+      ],
+    });
+    next.entries = [
+      ...next.entries,
+      {
+        id: "demo-payment:" + o.id,
+        orderId: o.id,
+        at: now,
+        amount: o.payment!.amount,
+        debit: "demo-provider",
+        credit: "order-funds",
+        description: "Статус оплаты записан в Atlas; провайдер не подключён",
+      },
+    ];
+  }
+  return withNotification(
+    next,
+    "Статус оплаты обновлён в Atlas",
+    "Платёжный провайдер не подключён: списания и банковского подтверждения нет.",
+    lines[0].id,
     now,
     { code: "payment-recorded" },
   );
