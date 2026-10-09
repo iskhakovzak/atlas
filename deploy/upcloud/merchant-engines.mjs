@@ -16,6 +16,10 @@ export const engineNames = ['fetch', 'impersonate'];
 // The importer's Chrome identity would contradict the impersonated TLS fingerprint.
 const impersonatedHeaders = new Set(['user-agent', 'sec-ch-ua', 'sec-ch-ua-mobile', 'sec-ch-ua-platform']);
 
+// Akamai's sensor-only interstitial: HTTP 200, a few KB, its challenge container or one obfuscated
+// same-site script (`/a/b/c/d?v=<uuid>`) and no product. Real product pages are far larger.
+const akamaiInterstitial = /sec-if-cpt|_sec\/cp_challenge|sec-container|<script\b[^>]*\bsrc=["']\/(?:[\w-]+\/){3,}[\w-]+\?v=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}["']/i;
+
 export async function readUpstream(response, limit = maxResponseBytes) {
   if (!response.body) return Buffer.alloc(0);
   const reader = response.body.getReader(), chunks = [];
@@ -46,6 +50,7 @@ export function blockedSignal(status, location, contentType, bytes) {
   const head = bytes.subarray(0, 120_000).toString('utf8');
   if (/"@type"\s*:\s*"Product"/i.test(head)) return undefined;
   if (/bm-verify|_sec\/verify|ak_bmsc_challenge|<title>\s*Access Denied\s*<\/title>/i.test(head)) return 'akamai';
+  if (bytes.length < 12_000 && akamaiInterstitial.test(head)) return 'akamai';
   if (/px-captcha|_pxhd|window\._pxUuid|PerimeterX/i.test(head)) return 'perimeterx';
   if (/cf-chl|cf_chl_opt|<title>\s*Just a moment/i.test(head)) return 'cloudflare';
   if (/geo\.captcha-delivery\.com|dd\.captcha|datadome/i.test(head)) return 'datadome';

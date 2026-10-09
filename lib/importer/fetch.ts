@@ -310,6 +310,10 @@ async function readAmazonUs(start: URL, signal: AbortSignal, fetcher: MerchantFe
   throw Error('Не удалось проверить регион Amazon.');
 }
 
+// Akamai's sensor-only interstitial (same pattern as the proxy's): a few KB, its challenge
+// container or one obfuscated same-site script `/a/b/c/d?v=<uuid>`, and no product.
+const akamaiInterstitial = /sec-if-cpt|_sec\/cp_challenge|sec-container|<script\b[^>]*\bsrc=["']\/(?:[\w-]+\/){3,}[\w-]+\?v=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}["']/i;
+
 /**
  * Bot-management interstitials answer with HTTP 200 and a tiny page instead of
  * the product. Name the wall so the operator knows the link itself is fine.
@@ -319,6 +323,7 @@ export function detectBotChallenge(html: string) {
   // A page that still carries its Product JSON-LD was served: vendor scripts and form reCAPTCHA on it are not a wall.
   if (/"@type"\s*:\s*"Product"/i.test(html)) return undefined;
   if (/bm-verify|_sec\/verify|akam-logo|ak_bmsc_challenge|<title>\s*Access Denied\s*<\/title>/i.test(head)) return 'Akamai';
+  if (html.length < 12_000 && akamaiInterstitial.test(head)) return 'Akamai';
   if (/px-captcha|_pxhd|_pxAppId|PerimeterX|window\._pxUuid/i.test(head)) return 'PerimeterX';
   if (/cf-chl|cf_chl_opt|<title>\s*Just a moment/i.test(head)) return 'Cloudflare';
   if (/distil_r_captcha|datadome|dd\.captcha|geo\.captcha-delivery\.com/i.test(head)) return 'DataDome';
