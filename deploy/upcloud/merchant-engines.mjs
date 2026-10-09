@@ -16,6 +16,10 @@ export const engineNames = ['fetch', 'impersonate'];
 // The importer's Chrome identity would contradict the impersonated TLS fingerprint.
 const impersonatedHeaders = new Set(['user-agent', 'sec-ch-ua', 'sec-ch-ua-mobile', 'sec-ch-ua-platform']);
 
+// Akamai's sensor-only interstitial: HTTP 200, a few KB, its challenge container or one obfuscated
+// same-site script (`/a/b/c/d?v=<uuid>`) and no product. Real product pages are far larger.
+const akamaiInterstitial = /sec-if-cpt|_sec\/cp_challenge|sec-container|<script\b[^>]*\bsrc=["']\/(?:[\w-]+\/){3,}[\w-]+\?v=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}["']/i;
+
 export async function readUpstream(response, limit = maxResponseBytes) {
   if (!response.body) return Buffer.alloc(0);
   const reader = response.body.getReader(), chunks = [];
@@ -46,6 +50,7 @@ export function blockedSignal(status, location, contentType, bytes) {
   const head = bytes.subarray(0, 120_000).toString('utf8');
   if (/"@type"\s*:\s*"Product"/i.test(head)) return undefined;
   if (/bm-verify|_sec\/verify|ak_bmsc_challenge|<title>\s*Access Denied\s*<\/title>/i.test(head)) return 'akamai';
+  if (bytes.length < 12_000 && akamaiInterstitial.test(head)) return 'akamai';
   if (/px-captcha|_pxhd|window\._pxUuid|PerimeterX/i.test(head)) return 'perimeterx';
   if (/cf-chl|cf_chl_opt|<title>\s*Just a moment/i.test(head)) return 'cloudflare';
   if (/geo\.captcha-delivery\.com|dd\.captcha|datadome/i.test(head)) return 'datadome';
@@ -119,10 +124,12 @@ export async function fetchWithEngines({target, method, headers, body, mode, eng
   if (!plan.length || plan.some(name => !available.includes(name))) throw Object.assign(new Error('engine_unavailable'), {status: 400});
   const deadline = clock() + deadlineMs, attempts = [];
   let result, failure;
-  for (const engine of plan) {
+  for (const [index, engine] of plan.entries()) {
     const remaining = deadline - clock();
     if (signal?.aborted || attempts.length && remaining < 1500) break;
-    const timeout = AbortSignal.timeout(Math.max(remaining, 1000));
+    // A merchant that stalls one engine (Best Buy holds Node's connection open) must not starve the next.
+    const budget = index < plan.length - 1 ? Math.min(remaining, Math.round(deadlineMs * 0.6)) : remaining;
+    const timeout = AbortSignal.timeout(Math.max(budget, 1000));
     try {
       const upstream = await engines[engine](target, {method, headers, body, redirect: 'manual', signal: signal ? AbortSignal.any([signal, timeout]) : timeout});
       const bytes = await readUpstream(upstream);

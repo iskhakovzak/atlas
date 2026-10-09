@@ -3,6 +3,7 @@
 - [ ] Выкатить `merchant-engines.mjs` + `npm ci --omit=dev` на VM UpCloud (`deploy/upcloud/importer-proxy.md`) и повторить прогон 16 ссылок уже с нью-йоркского адреса; до выкатки Worker шлёт `engine:"auto"`, а старый прокси его игнорирует (работает как `fetch`).
 - [ ] Ступень 2 — браузер (Patchright/Chromium) на VM для страниц, где данные рисует JS (Target, H&M, New Balance, Mango, Levi's) и для Akamai/PerimeterX (Zara, Walmart). Нужна VM ~4 vCPU / 8 ГБ, очередь и лимит параллельных вкладок.
 - [ ] Ступень 3 — резидентные US-прокси ($1–4/ГБ) только для хостов, где не помогли ступени 1–2 (Sephora, Best Buy, Columbia, Victoria's Secret). Учёт трафика по хосту.
+- [ ] С адреса VPS (дата-центр UpCloud) 403 на обоих движках у Tommy, Carter's, Sephora, Columbia, H&M; Zara — Akamai. Tommy с домашнего адреса открывается обычным запросом — значит, нужен другой адрес (ступень 3), а не только другой отпечаток.
 - [ ] Официальные источники вместо скрейпинга: Best Buy Products API, Walmart affiliate API, публичный API Zara — не проверены.
 - [ ] Память лучшего движка живёт в процессе прокси и сбрасывается при рестарте; метрик успеха по хостам нет (есть только строки в journal).
 

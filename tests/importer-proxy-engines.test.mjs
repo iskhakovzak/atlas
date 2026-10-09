@@ -4,7 +4,7 @@ import {createHmac} from 'node:crypto';
 import {createImporterProxyServer} from '../deploy/upcloud/importer-proxy-server.mjs';
 import {blockedSignal,createEnginePlanner,fetchWithEngines} from '../deploy/upcloud/merchant-engines.mjs';
 import {createMerchantProxyFetch} from '../lib/importer/proxy-client.mjs';
-import {fetchProduct,ManualEntryFallbackError,describeImportDiagnostic} from '../lib/importer/fetch.ts';
+import {fetchProduct,ManualEntryFallbackError,describeImportDiagnostic,detectBotChallenge} from '../lib/importer/fetch.ts';
 
 const secret='b'.repeat(64);
 const now=1_797_000_000_000;
@@ -94,6 +94,20 @@ test('the engine ladder returns the last answer when every engine meets a wall',
   assert.deepEqual(planner.order('www.walmart.com'),['fetch','impersonate']);
 });
 
+test('an engine that stalls gets part of the deadline so the next engine still runs',async()=>{
+  const planner=createEnginePlanner(['fetch','impersonate']);
+  const stall=(_target,{signal})=>new Promise((_resolve,reject)=>signal.addEventListener('abort',()=>reject(signal.reason)));
+  const started=Date.now();
+  const result=await fetchWithEngines({
+    target:new URL('https://www.bestbuy.com/site/sku/1.p'),method:'GET',headers:{},mode:'auto',planner,deadlineMs:4000,
+    engines:{fetch:stall,impersonate:async()=>html(product)},
+  });
+  assert.equal(result.engine,'impersonate');
+  assert.deepEqual(result.attempts,['fetch:timeout','impersonate:200']);
+  assert.ok(Date.now()-started<4000);
+  assert.deepEqual(planner.order('www.bestbuy.com'),['impersonate','fetch']);
+});
+
 test('the Worker client asks for auto mode and the importer reports what the engines saw',async()=>{
   let payload;
   const fetcher=createMerchantProxyFetch({endpoint:'https://85-9-196-196.sslip.io/v1/fetch',secret,fetchImpl:async(_url,init)=>{
@@ -118,4 +132,21 @@ test('a same-site redirect to a block page stops the import without opening it',
   assert.equal(error.reason,'blocked');
   assert.equal(error.diagnostic.vendor,'redirect-wall');
   assert.deepEqual(requested,['/ip/719693356']);
+});
+
+test('a tiny Akamai sensor page with HTTP 200 is a wall for both the proxy and the importer',()=>{
+  // Shape seen on levi.com / newbalance.com: a 2–3 KB page, one obfuscated same-site script, no product.
+  const sensor='<!doctype html><html><head><title></title></head><body><script type="text/javascript" src="/h_PR/PQAi/lv/gV09/BI7A/Shf9LzS1?v=b32a42f8-996b-39d9-acad-75e17d0b172e" defer></script></body></html>';
+  const container='<html><body><div id="sec-if-cpt-container"><iframe src="/_sec/cp_challenge/ak-challenge-4-3.htm"></iframe></div></body></html>';
+  for(const page of [sensor,container]){
+    assert.equal(blockedSignal(200,undefined,'text/html',Buffer.from(page)),'akamai');
+    assert.equal(detectBotChallenge(page),'Akamai');
+  }
+  // The same sensor script on a full product page is just Bot Manager running alongside the page.
+  const full=product.replace('</html>',sensor.slice(sensor.indexOf('<script'))+'<div>'+'x'.repeat(20_000)+'</div></html>');
+  assert.equal(blockedSignal(200,undefined,'text/html',Buffer.from(full)),undefined);
+  assert.equal(detectBotChallenge(full),undefined);
+  const largeWithoutJsonLd='<html><body>'+'<p>catalog</p>'.repeat(2000)+sensor.slice(sensor.indexOf('<script'))+'</body></html>';
+  assert.equal(blockedSignal(200,undefined,'text/html',Buffer.from(largeWithoutJsonLd)),undefined);
+  assert.equal(detectBotChallenge(largeWithoutJsonLd),undefined);
 });
