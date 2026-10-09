@@ -5,11 +5,13 @@ import type {MerchantFetch} from './fetch.ts';
 import type {EbayBrowseConfig} from './ebay.ts';
 import {createEbayAwareMerchantFetch} from './ebay-transport.ts';
 import {withMerchantRoutes, type MerchantRoute} from './route-ladder.ts';
+import type {BrightDataPurpose, BrightDataRuntime} from './brightdata.ts';
+import {d1BrightDataJobs, readBrightDataSettings, type D1Like} from './brightdata-d1.ts';
 
 let cached:{endpoint:string;secret:string;fetcher:(input:string|URL,init?:RequestInit)=>Promise<Response>}|undefined;
 
 /** Use NYC egress only when the complete proxy configuration is present. */
-export const merchantRequest:MerchantFetch=createEbayAwareMerchantFetch(
+const pageRequest:MerchantFetch=createEbayAwareMerchantFetch(
 async function merchantRequest(input:string|URL,init?:RequestInit):Promise<Response>{
   const endpoint=env.ATLAS_IMPORT_PROXY_URL?.trim()??'';
   const secret=env.ATLAS_IMPORT_PROXY_SECRET??'';
@@ -46,3 +48,17 @@ async function merchantRequest(input:string|URL,init?:RequestInit):Promise<Respo
   };
 },
 );
+
+/** Bright Data for Walmart/H&M: only with the BRIGHTDATA_API_KEY secret and D1; settings live in market_settings. */
+function brightDataRuntime(purpose:BrightDataPurpose){
+  return async():Promise<BrightDataRuntime|undefined>=>{
+    const apiKey=(env as unknown as {BRIGHTDATA_API_KEY?:string}).BRIGHTDATA_API_KEY?.trim()??'';
+    if(!apiKey||!env.DB)return;
+    const db=env.DB as unknown as D1Like;
+    return {apiKey,settings:await readBrightDataSettings(db),jobs:d1BrightDataJobs(db),purpose};
+  };
+}
+/** Customer links, the cart and checkout checks. */
+export const merchantRequest:MerchantFetch=Object.assign((input:string|URL,init?:RequestInit)=>pageRequest(input,init),{ebayBrowseConfig:pageRequest.ebayBrowseConfig,brightData:brightDataRuntime('customer')});
+/** The catalog editor and the hourly catalog refresh: Bright Data only when the "catalog" setting is on. */
+export const catalogMerchantRequest:MerchantFetch=Object.assign((input:string|URL,init?:RequestInit)=>pageRequest(input,init),{ebayBrowseConfig:pageRequest.ebayBrowseConfig,brightData:brightDataRuntime('catalog')});

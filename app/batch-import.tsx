@@ -10,6 +10,7 @@ import {type Product} from "@/lib/market/domain";
 import {Empty,PageHeading} from "./market-ui";
 import {uzText} from '@/lib/market/uz-cyrl';
 import {isUzbek,type Locale} from '@/lib/market/i18n';
+import {requestImport} from "@/lib/market/import-client";
 import {parseCatalogImportQueue} from "@/lib/market/catalog-import-queue";
 
 const weights:Record<string,number>={"Обувь":1.3,"Одежда":0.6,"Электроника":1,"Аксессуары":0.7,"Красота и уход":0.6,"Дом и быт":2,"Спорт":1,"Другое":1.5};
@@ -29,7 +30,7 @@ export function BatchImportView(){
    const publish=()=>{setResult(outcomes.filter(Boolean).map(item=>item.note));setProgress({stage:'checking',done,total:links.length})};
    try{
     await Promise.all(links.map(async(url,index)=>{
-     try{const response=await fetch('/api/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});const data=await response.json() as Candidate['data']&{error?:string};if(!response.ok)throw Error(data.error??c.missingData);const variants=data.variants??[];if(!data.title||!data.country||(data.price===undefined&&!variants.some(v=>v.price!==undefined)))throw Error(c.missingData);const available=variants.filter(v=>v.available);outcomes[index]={candidate:{key:crypto.randomUUID(),data,selected:available.length===1?available[0].label:''},note:`${c.checked}: ${data.title}`}}
+     try{const response=await requestImport({url},{maxWaitMs:8*60_000});const data=await response.json() as Candidate['data']&{error?:string};if(!response.ok)throw Error(data.error??c.missingData);const variants=data.variants??[];if(!data.title||!data.country||(data.price===undefined&&!variants.some(v=>v.price!==undefined)))throw Error(c.missingData);const available=variants.filter(v=>v.available);outcomes[index]={candidate:{key:crypto.randomUUID(),data,selected:available.length===1?available[0].label:''},note:`${c.checked}: ${data.title}`}}
      catch(error){outcomes[index]={note:`${c.problem}: ${url} — ${(error as Error).message}`}}
      done++;publish();
     }));

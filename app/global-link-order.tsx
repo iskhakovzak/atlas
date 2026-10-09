@@ -79,6 +79,7 @@ import {
 } from "@/lib/market/community-deals";
 import {uzText} from '@/lib/market/uz-cyrl';
 import {isUzbek,type Locale} from '@/lib/market/i18n';
+import {requestImport} from "@/lib/market/import-client";
 
 const countryAliases:Record<string,string>={'United States':'США','US':'США','AQSh':'США','Spain':'Испания','Ispaniya':'Испания','Germany':'Германия','Germaniya':'Германия','United Kingdom':'Великобритания','Buyuk Britaniya':'Великобритания','France':'Франция','Fransiya':'Франция','Italy':'Италия','Italiya':'Италия','Romania':'Румыния','Ruminiya':'Румыния','China':'Китай','Xitoy':'Китай','Turkey':'Турция','Turkiya':'Турция','Japan':'Япония','Yaponiya':'Япония','South Korea':'Южная Корея','Janubiy Koreya':'Южная Корея','United Arab Emirates':'ОАЭ','BAA':'ОАЭ','Canada':'Канада','Kanada':'Канада','Australia':'Австралия','Avstraliya':'Австралия','Other country':'Другая страна','Boshqa mamlakat':'Другая страна'};
 const categoryAliases:Record<string,string>={'Shoes':'Обувь','Oyoq kiyim':'Обувь','Clothing':'Одежда','Kiyim':'Одежда','Electronics':'Электроника','Elektronika':'Электроника','Accessories':'Аксессуары','Aksessuarlar':'Аксессуары','Beauty & care':'Красота и уход','Go‘zallik va parvarish':'Красота и уход','Home & living':'Дом и быт','Uy va maishiy':'Дом и быт','Sports':'Спорт','Boshqa':'Другое','Other':'Другое'};
@@ -558,13 +559,14 @@ export function GlobalLinkOrder() {
     setNote(linkDealSeed ? tx(`Цена и фото сохранены из подборки на ${linkDealSeed.observedOn}. Atlas сверяет их с магазином.`, `Narx va surat ${linkDealSeed.observedOn} sanadagi to‘plamdan olingan. Atlas ularni do‘kon bilan solishtiradi.`, `Price and photo saved from the selection on ${linkDealSeed.observedOn}. Atlas checks them with the store.`) : linkSeed ? tx(`Товар из каталога ${linkSeed.store}. Atlas сверит цену и вариант с магазином.`, `${linkSeed.store} katalogidagi tovar. Atlas narx va variantni do‘kon bilan solishtiradi.`, `Item from the ${linkSeed.store} catalog. Atlas checks the price and option with the store.`) : "");
     setFoundShipping(null);
     try {
-      const response = await fetch("/api/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // A product opened for ordering is checked against the merchant now;
-        // the short cache remains for batch imports and repeat browsing only.
-        body: JSON.stringify({ url: link, fresh: true }),
+      // A product opened for ordering is checked against the merchant now;
+      // the short cache remains for batch imports and repeat browsing only.
+      // Walmart/H&M may answer "still collecting" (202): the page says so and asks again by itself.
+      const response = await requestImport({ url: link, fresh: true }, {
+        isCancelled: () => seq !== loadSeq.current,
+        onPending: (pending) => { if (seq === loadSeq.current && pending.message) setNote(pending.message); },
       });
+      if (response.status === 202) return;
       const data: Extracted & {
         error?: string;
         manualEntryAvailable?: boolean;

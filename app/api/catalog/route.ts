@@ -6,7 +6,7 @@ import type {CatalogDraft} from '@/lib/market/catalog-editor';
 import {fetchProduct,fetchCollectionLinks,ManualEntryFallbackError,describeImportDiagnostic} from '@/lib/importer/fetch';
 import type {Extracted} from '@/lib/importer/extract';
 import {refreshDueCatalog} from '@/lib/market/catalog-refresh';
-import {merchantRequest} from '@/lib/importer/worker-fetch';
+import {catalogMerchantRequest as merchantRequest} from '@/lib/importer/worker-fetch';
 import {apiErrorMessage,requestLocale} from '@/lib/market/i18n';
 
 const ids=z.array(z.string().min(1).max(100)).min(1).max(100);

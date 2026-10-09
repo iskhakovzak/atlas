@@ -61,6 +61,15 @@ export function importManualEntryMessage(locale:Locale):string{
   }, locale);
 }
 
+/** A Walmart/H&M link whose data a collection service is still gathering; the page retries by itself. */
+export function importPendingMessage(locale:Locale):string{
+  return pickLocale({
+    ru:"Собираем данные товара через сервис магазина — это может занять до нескольких минут. Страница обновится сама.",
+    uz:"Mahsulot ma’lumotlari do‘kon xizmati orqali yig‘ilmoqda — bu bir necha daqiqagacha davom etishi mumkin. Sahifa o‘zi yangilanadi.",
+    en:"Gathering the product details through the store's data service — this can take up to a few minutes. The page will update by itself.",
+  }, locale);
+}
+
 export function setLocaleCookie(locale:Locale):void{
   if(typeof document==="undefined")return;
   const secure=window.location.protocol==="https:"?"; Secure":"";

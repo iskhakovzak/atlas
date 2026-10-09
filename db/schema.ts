@@ -88,3 +88,9 @@ export const webVitals=sqliteTable('market_web_vitals',{
 export const customerNotes=sqliteTable('market_customer_notes',{
  id:text('id').primaryKey(),customerId:text('customer_id').notNull(),authorId:text('author_id').notNull(),authorEmail:text('author_email').notNull(),text:text('text').notNull(),createdAt:integer('created_at').notNull(),
 },table=>[index('idx_market_customer_notes_customer_created').on(table.customerId,table.createdAt)]);
+
+// Paid data-collection jobs (lib/importer/brightdata.ts): one Bright Data snapshot per product link, its records (= credits)
+// and the Tashkent day it finished. The books post the paid part per day (lib/market/provider-usage.ts). No customer data.
+export const providerJobs=sqliteTable('market_provider_jobs',{
+ snapshotId:text('snapshot_id').primaryKey(),provider:text('provider').notNull(),store:text('store').notNull(),dataset:text('dataset').notNull(),itemKey:text('item_key').notNull(),url:text('url').notNull(),purpose:text('purpose').notNull(),status:text('status').notNull(),records:integer('records').notNull().default(0),error:text('error'),month:text('month').notNull(),day:text('day'),createdAt:integer('created_at').notNull(),finishedAt:integer('finished_at'),
+},table=>[index('idx_market_provider_jobs_item').on(table.itemKey,table.createdAt),index('idx_market_provider_jobs_month').on(table.provider,table.month),index('idx_market_provider_jobs_day').on(table.provider,table.day)]);

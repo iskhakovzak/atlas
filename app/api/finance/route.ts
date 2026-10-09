@@ -3,6 +3,8 @@ import { failure, HttpError, identity, json, operator, pricing, requestJson, req
 import { effectiveFx } from "@/lib/market/domain";
 import { accountingSettingsSchema, ledgerCsv, ledgerEntryInput, ledgerKinds, monthOf, monthsBetween, orderMarginCsv, ordersCsv, summaryCsv, yearCsv } from "@/lib/market/finance";
 import { cashPosition, fullBookCsv, matchBankLines, parseBankStatement, reconcile, taxCalendar } from "@/lib/market/finance-auto";
+import { brightDataUsage, refreshProviderBooks, saveBrightDataSettings } from "@/lib/market/provider-usage";
+import { brightDataSettingsSchema } from "@/lib/importer/brightdata";
 import { addLedgerEntry, books, confirmBankEntries, existingOrderIds, invoiceFor, ledgerByKind, ledgerForOrders, lockPeriod, obligationsSnapshot, orderFinanceByIds, orderStages, recordedPayments, replaceLedgerEntry, saveAccountingSettings, skippedAutoEntries, unlockPeriod, voidLedgerEntry, yearBooks } from "@/lib/market/finance-server";
 
 const month = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
@@ -55,6 +57,12 @@ export async function GET(request: Request) {
       if (!csv) throw new HttpError(400, "Неизвестная выгрузка.");
       return csvResponse(csv, `atlas-${exportKind}-${from}${to !== from ? "_" + to : ""}`);
     }
+    // ?providers=YYYY-MM: paid data services (Bright Data for Walmart/H&M) — usage, cost, settings, posted expenses.
+    if (url.searchParams.has("providers")) {
+      const selected = month.parse(url.searchParams.get("providers") || thisMonth());
+      const sync = await refreshProviderBooks();
+      return json({ usage: await brightDataUsage(selected, sync.skipped) });
+    }
     if (url.searchParams.has("year")) {
       const selected = year.parse(url.searchParams.get("year"));
       // Tax paid for the fourth quarter lands in the next year's first months: read tax_paid through 1 March.
@@ -63,6 +71,8 @@ export async function GET(request: Request) {
       return json({ year: selected, summary: data.summary, settings: data.settings, taxCalendar: taxCalendar(data.summary, taxPaid), cash: cashPosition(lastMonth, data.summary.months, obligations) });
     }
     const selected = month.parse(url.searchParams.get("month") ?? thisMonth()), yearStart = selected.slice(0, 4) + "-01";
+    // Finished days of paid data collection land in the books before they are read (idempotent, never fails the page).
+    await refreshProviderBooks();
     const [data, ytd, tariff] = await Promise.all([books(selected, selected, [selected]), books(yearStart, selected, monthsBetween(yearStart, selected)), pricing()]);
     // The month's orders: paid that month, or created that month and still unpaid / refunded / cancelled.
     const orders = data.orders.filter((order) => order.month === selected || (order.status !== "paid" && monthOf(order.createdAt) === selected));
@@ -88,6 +98,8 @@ const action = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("unlock"), reason, through: month.optional() }),
   // Bank statement: parse and match by the order number in the purpose; nothing is written until bank-confirm.
   z.object({ kind: z.literal("bank-import"), csv: z.string().min(1).max(1_000_000) }),
+  // Bright Data settings (administrator only): stores, limits, price, posting to the books.
+  z.object({ kind: z.literal("providers-settings"), value: brightDataSettingsSchema.partial().extend({ stores: brightDataSettingsSchema.shape.stores.optional() }) }),
   z.object({ kind: z.literal("bank-confirm"), entries: z.array(ledgerEntryInput.extend({ kind: z.literal("customer_payment"), orderId: z.string().trim().regex(/^AT-[0-9A-Z]{8,12}$/i) })).min(1).max(200) }),
 ]);
 export async function POST(request: Request) {
@@ -108,6 +120,10 @@ export async function POST(request: Request) {
       const ids = parsed.lines.map((line) => line.orderId).filter((id): id is string => !!id);
       const [orders, recorded] = await Promise.all([orderFinanceByIds(ids), recordedPayments(ids)]);
       return json({ lines: parsed.lines.length, errors: parsed.errors, proposals: matchBankLines(parsed.lines, orders, recorded) });
+    }
+    if (body.kind === "providers-settings") {
+      await adminUser();
+      return json({ settings: await saveBrightDataSettings(body.value, user) });
     }
     if (body.kind === "bank-confirm") {
       await adminUser();

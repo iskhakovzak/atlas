@@ -5,7 +5,7 @@ import { merchantRequest } from '@/lib/importer/worker-fetch';
 import { database, sameOrigin, json, failure, HttpError, requestJson } from '@/lib/market/server';
 import { currentUser } from '@/lib/auth/server';
 import { importRateBuckets } from '@/lib/market/import-preview';
-import { apiErrorMessage, importManualEntryMessage, requestLocale, serverError } from '@/lib/market/i18n';
+import { apiErrorMessage, importManualEntryMessage, importPendingMessage, requestLocale, serverError } from '@/lib/market/i18n';
 
 const importRequestSchema = z.object({ url: z.string().max(3000), fresh: z.boolean().optional() });
 
@@ -67,6 +67,11 @@ export async function POST(request: Request) {
       return json({ ...data, fetchedAt, expiresAt, cached: false });
     } catch (error) {
       const locale = requestLocale(request);
+      // Walmart/H&M through Bright Data: the collection is still running. The client asks again after retryAfterMs;
+      // the same snapshot is polled, never collected (and paid for) twice.
+      if (error instanceof ManualEntryFallbackError && error.reason === 'pending') {
+        return json({ sourceUrl, pending: true, retryAfterMs: error.retryAfterMs ?? 4000, message: locale === 'ru' ? error.message : importPendingMessage(locale) }, 202);
+      }
       const canManuallyEnter = error instanceof ManualEntryFallbackError || error instanceof Error && error.name === 'AbortError';
       // A link outside the store list is answered in the customer's language, with the number of supported stores.
       const unsupported = error instanceof UnsupportedStoreError ? error : undefined;

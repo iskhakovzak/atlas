@@ -8,6 +8,7 @@ import {applyMerchantProfile} from './merchant-profiles.ts';
 import {isMerchantProductUrl, sameMerchantRedirect} from './source-identity.ts';
 import {isMerchantChallengePage} from './challenge.ts';
 import {EbayBrowseApiError, EbayListingUnavailableError, EbayManualReviewError, fetchEbayProduct, type EbayBrowseConfig} from './ebay.ts';
+import {BrightDataApiError, BrightDataPendingError, brightDataStoreNames, brightDataTarget, fetchBrightDataProduct, type BrightDataRuntime} from './brightdata.ts';
 export {supportedStoreCount};
 
 /** HTTP status, bot-wall vendor and egress engine attempts behind a fallback. */
@@ -39,9 +40,11 @@ function withDiagnostic<T extends ManualEntryFallbackError>(error: T, diagnostic
  * manually entered details when a merchant does not expose a public response. */
 export class ManualEntryFallbackError extends Error {
   readonly partial?: Extracted;
-  readonly reason: 'blocked' | 'network' | 'upstream' | 'response' | 'redirect' | 'timeout' | 'incomplete' | 'unknown';
+  /** 'pending': a Bright Data collection is still running; ask again after retryAfterMs (app/api/import answers 202). */
+  readonly reason: 'blocked' | 'network' | 'upstream' | 'response' | 'redirect' | 'timeout' | 'incomplete' | 'pending' | 'unknown';
   /** What the merchant answered, for logs and the operator; never shown to customers. */
   diagnostic?: ImportDiagnostic;
+  retryAfterMs?: number;
   constructor(message = 'Магазин временно не отдал данные товара. Заполните и подтвердите цену, валюту и выбранный вариант вручную; Atlas сверит цену и валюту, если получит ответ.', partial?: Extracted, reason: ManualEntryFallbackError['reason'] = 'unknown') {
     super(message);
     this.name = 'ManualEntryFallbackError';
@@ -142,7 +145,32 @@ type PublicRequestOptions = {
 };
 export type MerchantFetch = ((input: string | URL, init?: RequestInit) => Promise<Response>) & {
   ebayBrowseConfig?: () => EbayBrowseConfig;
+  /** Bright Data for Walmart and H&M (lib/importer/brightdata.ts); undefined when the key or D1 is missing. */
+  brightData?: () => Promise<BrightDataRuntime | undefined>;
 };
+
+/** Walmart/H&M through Bright Data when it is on for the link; undefined lets the importer continue with its own path. */
+async function brightDataProduct(url: URL, fetcher: MerchantFetch) {
+  const target = brightDataTarget(url);
+  if (!target || !fetcher.brightData) return;
+  let runtime: BrightDataRuntime | undefined;
+  try { runtime = await fetcher.brightData(); } catch (error) { console.warn('[brightdata] stage=configuration ' + (error as Error).message.slice(0, 120)); return; }
+  if (!runtime) return;
+  try {
+    const product = await fetchBrightDataProduct(url, runtime);
+    return product ? finalizeExtraction(product, url.href) : undefined;
+  } catch (error) {
+    if (error instanceof BrightDataPendingError) {
+      const pending = new ManualEntryFallbackError(`${brightDataStoreNames[error.store]} отдаёт данные через сервис сбора — это занимает до ${error.store === 'hm' ? 'нескольких минут' : 'полуминуты'}. Atlas повторит запрос сам.`, {sourceUrl: url.href, brand: brightDataStoreNames[error.store], warnings: []}, 'pending');
+      pending.retryAfterMs = error.retryAfterMs;
+      pending.diagnostic = {engine: 'brightdata'};
+      throw pending;
+    }
+    if (error instanceof ManualEntryFallbackError) throw withDiagnostic(error, {engine: 'brightdata'});
+    // Logs carry the store and the stage, never the product URL or the key.
+    console.warn('[brightdata] ' + JSON.stringify({store: target.store, stage: error instanceof BrightDataApiError ? error.stage : 'unknown', status: error instanceof BrightDataApiError ? error.status : undefined, error: (error as Error).name}));
+  }
+}
 
 function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = browserUserAgent, referer?: string, options: Pick<PublicRequestOptions, 'clientHints'|'minimalApi'> = {}) {
   return {
@@ -408,7 +436,11 @@ async function fetchProductOnce(value: string, fetcher: MerchantFetch = fetch) {
     const partial: Extracted = {sourceUrl: manualUrl.href, brand: manualUrl.hostname.replace(/^www\./, ''), warnings: []};
     throw new ManualEntryFallbackError('Автоматическая загрузка этого магазина недоступна. Заполните данные товара вручную; сервер не обращается к этому магазину.', partial);
   }
-  const url = allowedUrl(manualUrl.href), controller = new AbortController();
+  const url = allowedUrl(manualUrl.href);
+  // Bright Data waits on its own budget (settings.waitSeconds) before the page path starts its 15 s timer.
+  const collected = await brightDataProduct(url, fetcher);
+  if (collected) return collected;
+  const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);
   // Why the official eBay path did not answer; carried into the manual-review draft so the operator sees it.
   let ebayApiNote: string | undefined;
@@ -613,7 +645,7 @@ export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch
   const boundedFetch: MerchantFetch = Object.assign(async (input: string | URL, init?: RequestInit) => fetcher(input, {
     ...init,
     signal: init?.signal ? AbortSignal.any([controller.signal, init.signal]) : controller.signal,
-  }), {ebayBrowseConfig: fetcher.ebayBrowseConfig});
+  }), {ebayBrowseConfig: fetcher.ebayBrowseConfig, brightData: fetcher.brightData});
   try {
     for (let attempt = 0; ; attempt++) {
       try { return await fetchProductOnce(value, boundedFetch); }

@@ -85,6 +85,13 @@
       "when": 1791262000000,
       "tag": "0011_admin_customer_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1791580000000,
+      "tag": "0012_provider_jobs",
+      "breakpoints": true
     }
   ]
 }

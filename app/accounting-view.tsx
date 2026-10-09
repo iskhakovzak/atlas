@@ -16,15 +16,16 @@ import {AccountingClosing} from './accounting-closing';
 import {AccountingStatement} from './accounting-statement';
 import {AccountingTaxes} from './accounting-taxes';
 import {AccountingExports} from './accounting-exports';
+import {AccountingServices} from './accounting-services';
 
-type Tab='overview'|'ledger'|'orders'|'closing'|'statement'|'taxes'|'exports'|'year';
-const tabs:[Tab,string][]=[['overview','Обзор'],['ledger','Журнал'],['orders','Заказы'],['closing','Закрытие'],['statement','Выписка'],['taxes','Налоги'],['exports','Выгрузки'],['year','Год']];
+type Tab='overview'|'ledger'|'orders'|'closing'|'statement'|'taxes'|'services'|'exports'|'year';
+const tabs:[Tab,string][]=[['overview','Обзор'],['ledger','Журнал'],['orders','Заказы'],['closing','Закрытие'],['statement','Выписка'],['taxes','Налоги'],['services','Сервисы'],['exports','Выгрузки'],['year','Год']];
 const writeTabs:Tab[]=['statement'];
 
 /**
  * The books for the operator (lib/market/finance.ts), split into tabs: overview with sparklines, positions and the
  * reconcile; the ledger with fixes and voids; the month's orders with their margin and a printable invoice; the
- * closing checklist; a bank statement import; the tax calendar; exports; the year table. Editing needs finance.write
+ * closing checklist; a bank statement import; the tax calendar; paid data services (Bright Data); exports; the year table. Editing needs finance.write
  * (lib/market/access.ts); everyone else reads. Payments on the site are simulated: "paid" is a mark in Atlas.
  */
 export function AccountingView(){
@@ -100,6 +101,7 @@ export function AccountingView(){
    {tab==='closing'&&<AccountingClosing ctx={ctx}/>}
    {tab==='statement'&&canWrite&&<AccountingStatement ctx={ctx}/>}
    {tab==='taxes'&&<AccountingTaxes ctx={ctx}/>}
+   {tab==='services'&&<AccountingServices ctx={ctx}/>}
    {tab==='exports'&&<AccountingExports ctx={ctx}/>}
    {tab==='year'&&(yearBooks?<YearView data={yearBooks}/>:<Status>Годовые данные загружаются…</Status>)}
   </div>

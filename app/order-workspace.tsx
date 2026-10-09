@@ -71,6 +71,7 @@ import {
 import type { Action } from "@/lib/market/actions";
 import { countries } from "@/lib/market/world";
 import { localizedStatuses, type Locale } from "@/lib/market/i18n";
+import {requestImport} from "@/lib/market/import-client";
 import { homeCopy } from "@/lib/market/home-copy";
 import { formatSum } from "@/lib/market/format";
 import { localizeLegacyStoredCopy, renderHistory, renderNotification } from "@/lib/market/history-copy";
@@ -1120,11 +1121,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
     if (!o.product.sourceUrl) return;
     setBusy(true);
     try {
-      const response = await fetch("/api/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: o.product.sourceUrl }),
-      });
+      const response = await requestImport({ url: o.product.sourceUrl }, { maxWaitMs: 60_000 });
       const data = (await response.json()) as {
         image?: string;
         error?: string;
