@@ -1,0 +1,10 @@
+{
+  "name": "atlas-import-proxy",
+  "private": true,
+  "type": "module",
+  "description": "Signed merchant egress proxy for the Atlas importer (UpCloud VM).",
+  "engines": { "node": ">=22.13" },
+  "dependencies": {
+    "impit": "0.14.5"
+  }
+}

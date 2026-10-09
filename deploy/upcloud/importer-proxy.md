@@ -6,12 +6,30 @@ The current bootstrap name is `85-9-196-196.sslip.io`, which resolves to the VM'
 
 ## Server layout
 
-- `/opt/atlas-import-proxy/importer-proxy-server.mjs` and `supported-store-hosts.json`: root-owned source/config; the service runs read-only as `atlas-import-proxy`.
+- `/opt/atlas-import-proxy/importer-proxy-server.mjs`, `merchant-engines.mjs`, `package.json`/`package-lock.json` (+ `node_modules` from `npm ci --omit=dev`) and `supported-store-hosts.json`: root-owned source/config; the service runs read-only as `atlas-import-proxy`.
 - `/etc/atlas/importer-proxy.env`: root-owned mode `0600`; contains the proxy HMAC secret.
 - `/etc/caddy/Caddyfile`: Caddy terminates HTTPS and forwards only `/v1/fetch` to loopback port 8787.
 - Systemd `atlas-import-proxy.service`: bounded, HMAC-authenticated, allowlisted HTTPS GETs and the fixed anonymous Amazon US delivery-location POST only.
 
 Do not log target URLs, cookies, request bodies, response bodies, customer identity, or secrets. Keep UFW limited to SSH, HTTP-01/HTTPS ingress (80/443), and loopback for the Node service. The HTTPS certificate is automatically managed by Caddy; the public CA's current certificate policy may change.
+
+## Движки загрузки страниц (9 октября 2026)
+
+Прокси умеет два движка: `fetch` (встроенный клиент Node) и `impersonate` — тот же запрос с TLS/HTTP2-отпечатком Chrome через пакет `impit` (Apify, Rust). Код — `merchant-engines.mjs`. Worker присылает `engine: "auto"`: прокси сначала пробует движок, который последним прошёл для этого хоста (память процесса, 6 ч), и переходит к следующему, только если ответ — стена (401/403/407/418/429, редирект на `/blocked|captcha|challenge`, страница Akamai/PerimeterX/Cloudflare/DataDome/CAPTCHA). Эскалируют только анонимные GET; запросы с cookie и POST Amazon остаются на `fetch`. Запрос без поля `engine` (старый Worker) идёт как раньше через `fetch`. CAPTCHA никто не решает: такая страница уходит в ручной ввод.
+
+Ответ прокси содержит `engine` и `attempts` (например `fetch:403:http-403 impersonate:200`); Worker пишет их в `[import-fallback]` и показывает оператору в тексте ошибки импорта. Журнал прокси (`journalctl -u atlas-import-proxy`) — одна JSON-строка на запрос: только хост, попытки и время, без URL, cookie и тел.
+
+Выкатка на VM (только с разрешения владельца):
+
+```sh
+# с рабочей машины: importer-proxy-server.mjs, merchant-engines.mjs, package.json, package-lock.json → /opt/atlas-import-proxy/
+cd /opt/atlas-import-proxy && sudo npm ci --omit=dev
+sudo systemctl restart atlas-import-proxy && journalctl -u atlas-import-proxy -n 5 --no-pager   # ждём "engines: fetch, impersonate"
+```
+
+Без `node_modules/impit` сервер стартует с одним `fetch` и пишет `engines: fetch`; `auto` тогда равен старому поведению. Unit-файл менять не нужно: `impit` — нативный модуль внутри каталога сервиса, он не пишет на диск и не открывает портов.
+
+Проверка с рабочей машины без VM: `node --experimental-strip-types scripts/check-merchant-imports.mjs --engines <URL...>` гоняет ту же лестницу локально (адрес этой машины, не Нью-Йорк).
 
 ## Key rotation and rollout
 

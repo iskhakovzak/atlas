@@ -284,7 +284,9 @@ test('eBay fallback logs stage and status without listing URL or upstream body',
   } finally {
     console.warn = originalWarn;
   }
-  assert.deepEqual(warnings, ['[eBay import] stage=browse_item status=403 errorId=12345']);
+  assert.deepEqual(warnings.filter(message => message.startsWith('[eBay import]')), ['[eBay import] stage=browse_item status=403 errorId=12345']);
+  // The importer's own fallback line names only the store and the reason.
+  assert.deepEqual(warnings.filter(message => message.startsWith('[import-fallback]')), ['[import-fallback] {"host":"www.ebay.com","reason":"blocked"}']);
   assert.ok(warnings.every(message => !message.includes(listingId) && !message.includes(privateBody)));
 });
 
