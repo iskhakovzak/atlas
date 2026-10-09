@@ -326,7 +326,8 @@ export function detectBotChallenge(html: string) {
   if (/"@type"\s*:\s*"Product"/i.test(html)) return undefined;
   if (/bm-verify|_sec\/verify|akam-logo|ak_bmsc_challenge|<title>\s*Access Denied\s*<\/title>/i.test(head)) return 'Akamai';
   if (html.length < 12_000 && akamaiInterstitial.test(head)) return 'Akamai';
-  if (/px-captcha|_pxhd|_pxAppId|PerimeterX|window\._pxUuid/i.test(head)) return 'PerimeterX';
+  // Walmart's served product pages carry PerimeterX's config (`_pxAppId`); only its captcha, or those markers on a small page, are a wall.
+  if (/px-captcha/i.test(head) || html.length < 60_000 && /_pxhd|_pxAppId|PerimeterX|window\._pxUuid/i.test(head)) return 'PerimeterX';
   if (/cf-chl|cf_chl_opt|<title>\s*Just a moment/i.test(head)) return 'Cloudflare';
   if (/distil_r_captcha|datadome|dd\.captcha|geo\.captcha-delivery\.com/i.test(head)) return 'DataDome';
   const visibleHead = head.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/g?recaptcha/gi, '');
