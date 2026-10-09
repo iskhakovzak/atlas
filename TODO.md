@@ -1,3 +1,7 @@
+## Native API Origin follow-up
+
+The signed proxy permits both Referer and Origin from the exact known storefront for credential-free GETs to redsky.target.com and api.victoriassecret.com. All other cross-host sources remain rejected; Origin must still equal its parsed HTTPS origin. Initial hosted checks exposed that requestHeaders sends both headers. Regression covers exact accepted Origin and unrelated rejected Origin. Mango source parsing verified on the US VPS and hosted site: USD79.99/18 variants.
+
 ## PR39 production preparation
 
 Signed proxy validation now permits only exact GET Referer pairs www.target.com→redsky.target.com and victoriassecret.com/www.victoriassecret.com→api.victoriassecret.com; Origin restrictions and HTTPS/allowlist/credential/port checks remain. Signed HTTP regressions cover accepted pairs and rejected unrelated/insecure/credentialed sources. Target groups exceeding120 leaves remain incomplete after truncation. These fixes are required for US proxy operation and safe automatic publication. VPS host snapshot must preserve existing hosts and include redsky.target.com.
