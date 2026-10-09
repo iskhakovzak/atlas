@@ -31,6 +31,16 @@ sudo systemctl restart atlas-import-proxy && journalctl -u atlas-import-proxy -n
 
 Проверка с рабочей машины без VM: `node --experimental-strip-types scripts/check-merchant-imports.mjs --engines <URL...>` гоняет ту же лестницу локально (адрес этой машины, не Нью-Йорк).
 
+## Браузерный движок (10 октября 2026, только ташкентский шлюз)
+
+`browser-engine.mjs` — третий движок лестницы `auto` после `fetch` и `impersonate`: страница открывается в установленном Chrome (обычное окно за пределами экрана, отдельный профиль, DevTools на 127.0.0.1), одна вкладка на запрос, картинки и шрифты не грузятся, CAPTCHA не решается. Включается только переменными окружения процесса шлюза:
+
+- `ATLAS_BROWSER_EXECUTABLE` — путь к chrome.exe (без неё движка нет);
+- `ATLAS_BROWSER_PROFILE` — отдельная папка профиля (обязательна, не профиль владельца);
+- `ATLAS_BROWSER_PORT` — порт DevTools, по умолчанию 9339.
+
+Стартовая строка тогда `engines: fetch, impersonate, browser`. Worker даёт шлюзу 9 с на магазины из `browserStoreRoots` (`lib/importer/stores.ts`). На US VPS движок не включается: Chrome без экрана и IP дата-центра блокируются; запуск там (Xvfb) — только по решению владельца. Выкатка на шлюз: скопировать `importer-proxy-server.mjs`, `merchant-engines.mjs`, `browser-engine.mjs` и свежий `supported-store-hosts.json` в папку рантайма шлюза и перезапустить супервизор; откат — файлы из `backup-20261010`.
+
 ## Key rotation and rollout
 
 Generate a fresh random 32-byte hexadecimal secret on the VM. Replace the root-only server environment file and the Site secret `ATLAS_IMPORT_PROXY_SECRET` with the same value, set non-secret `ATLAS_IMPORT_PROXY_URL=https://85-9-196-196.sslip.io/v1/fetch`, then restart the service and deploy the Site version. Never put the value in this repository, a command argument, shell history, or logs.

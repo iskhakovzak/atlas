@@ -61,12 +61,13 @@ export function importManualEntryMessage(locale:Locale):string{
   }, locale);
 }
 
-/** A store Atlas does not read automatically (manualEntryStoreRoots): the customer types the details in. */
+/** A link Atlas does not read automatically (manualEntryStoreRoots, a site outside the store list, a browser store
+ * whose gateway did not answer): the customer types the details in and confirms them. */
 export function importManualStoreMessage(locale:Locale):string{
   return pickLocale({
-    ru:"Этот магазин не отдаёт данные товара автоматически. Откройте товар на сайте магазина и впишите название, цену, вариант и доставку сами — оператор Atlas сверит их перед выкупом.",
-    uz:"Bu do‘kon tovar ma’lumotlarini avtomatik bermaydi. Tovarni do‘kon saytida oching va nomi, narxi, varianti va yetkazishni o‘zingiz kiriting — Atlas operatori xariddan oldin ularni solishtiradi.",
-    en:"This store does not share product details automatically. Open the item on the store's site and enter the name, price, option and shipping yourself — an Atlas operator checks them before buying.",
+    ru:"Atlas не получает данные этого товара автоматически. Откройте товар на сайте магазина и впишите название, цену, вариант и доставку сами — оператор Atlas сверит их перед выкупом.",
+    uz:"Atlas bu tovar ma’lumotlarini avtomatik olmaydi. Tovarni do‘kon saytida oching va nomi, narxi, varianti va yetkazishni o‘zingiz kiriting — Atlas operatori xariddan oldin ularni solishtiradi.",
+    en:"Atlas does not get this item's details automatically. Open the item on the store's site and enter the name, price, option and shipping yourself — an Atlas operator checks them before buying.",
   }, locale);
 }
 

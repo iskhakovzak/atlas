@@ -1,13 +1,14 @@
 import type { Notification, Order, State } from './domain.ts';
 
-/** Why an order waits for the customer: an extra charge to approve, a change to answer, or an unfinished payment. */
+/** Why an order waits for the customer: an extra charge to approve or an extra invoice to pay, a change to answer, or an unfinished payment. */
 export type OrderAttention = 'extra' | 'change' | 'payment';
 
 export function orderAttention(order: Order): OrderAttention | null {
   if (order.cancelled) return null;
   const extra = (!order.storeShippingExtraApproved && (order.storeShippingSettlement?.extra ?? 0) > 0)
     || (!order.extraApproved && (order.settlement?.extra ?? 0) > 0)
-    || (!order.customsExtraApproved && (order.customsSettlement?.extra ?? 0) > 0);
+    || (!order.customsExtraApproved && (order.customsSettlement?.extra ?? 0) > 0)
+    || (order.extraCharges ?? []).some(charge => charge.status === 'pending');
   if (extra) return 'extra';
   if ((order.changeRequests ?? []).some(request => request.status === 'pending')) return 'change';
   if (order.status < 5 && order.payment?.status === 'pending') return 'payment';

@@ -94,7 +94,9 @@ export function orderFinance(order: Order, customerId: string): OrderFinance {
   const commission = q.service + (q.buyout ?? 0) + (q.conversion ?? 0);
   const delivery = shipping + (q.deliveryMargin ?? 0);
   const services = (q.optionalServices ?? 0) + (q.customsHelp ?? 0) + delta(["warehouse-service"]);
-  const goods = q.merchandise - fxGain + delta(["price", "variant", "substitution"]);
+  // A paid extra invoice covers what the store charged above the estimate (goods or its delivery): transit, not income.
+  const extras = (order.extraCharges ?? []).filter((charge) => charge.status === "paid").reduce((sum, charge) => sum + charge.amount, 0);
+  const goods = q.merchandise - fxGain + delta(["price", "variant", "substitution"]) + extras;
   const storeShipping = (order.storeShippingSettlement ? order.storeShippingSettlement.actual : q.sourceShipping ?? 0) + delta(["source-shipping"]);
   const status = order.cancelled ? "cancelled" : order.payment?.status === "paid" ? "paid" : order.payment?.status === "refunded" ? "refunded" : "pending";
   const paidAt = status === "paid" ? order.payment?.updatedAt : undefined;

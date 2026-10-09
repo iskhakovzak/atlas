@@ -10,7 +10,20 @@ The signed proxy permits both Referer and Origin from the exact known storefront
 
 Signed proxy validation now permits only exact GET Referer pairs www.target.com→redsky.target.com and victoriassecret.com/www.victoriassecret.com→api.victoriassecret.com; Origin restrictions and HTTPS/allowlist/credential/port checks remain. Signed HTTP regressions cover accepted pairs and rejected unrelated/insecure/credentialed sources. Target groups exceeding120 leaves remain incomplete after truncation. These fixes are required for US proxy operation and safe automatic publication. VPS host snapshot must preserve existing hosts and include redsky.target.com.
 
+## Браузерный движок, незнакомые сайты, доплата — 10 октября 2026
+
+- [ ] Браузерные магазины (Sephora US, H&M, Macy's, Levi's, New Balance, Victoria's Secret US) читаются только ташкентским шлюзом на ПК владельца: ПК выключен/спит → покупатель вводит данные вручную. Постоянной доступности нет.
+- [ ] Браузер на US VPS технически возможен (Xvfb + обычный Chrome), но адрес дата-центра режут Akamai/PerimeterX — проверять только с разрешения владельца, на проде не включено.
+- [ ] Walmart по-прежнему сначала идёт в Bright Data (платно, 5–25 с), хотя браузер шлюза мог бы читать его бесплатно — решение владельца.
+- [ ] Macy's: категория угадывается по названию и может ошибаться (например «Обувь» у одежды) — нужна категория из хлебных крошек страницы.
+- [ ] Columbia и Best Buy отвечают 403 даже настольному Chrome — остаются ручным вводом.
+- [ ] Эффект на проде — только после выкатки PR #46 и обновления файлов шлюза (сделано на ПК 10.10.2026, откат — `backup-20261010`).
+- [ ] Доплата: оплата симулируется, как оплата заказа; при подключении провайдера нужен реальный платёж и возврат доплаты отдельной операцией. Возврат части доплаты (не всего заказа) не реализован.
+- [ ] Незнакомые сайты принимаются без живой проверки: цену, вариант и доставку сверяет оператор; доплата закрывает расхождение вверх, расхождение вниз — через существующий возврат по заказу.
+
 ## Магазины только для ручного ввода — 10 октября 2026
+
+> Список устарел в тот же день: шесть магазинов читаются браузером шлюза, вручную — Columbia и Best Buy. Пункт о доплате при расхождении цены закрыт доплатой по заказу (раздел выше).
 
 - [ ] Список `manualEntryStoreRoots` (H&M, New Balance, Columbia, Sephora US, Best Buy, Levi's, Victoria's Secret US, Macy's) собран по прогонам 9.10.2026. Пересматривать: если магазин начнёт читаться (браузерная ступень, другой адрес), убрать его из списка — адаптеры (например, Victoria's Secret US) остались в коде.
 - [ ] Остальные ~200 магазинов списка вживую не проверялись. Магазин, который на деле не читается, по-прежнему проходит загрузку и падает в черновик «не все данные получены» — его стоит добавить в `manualEntryStoreRoots`.

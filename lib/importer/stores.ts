@@ -128,19 +128,38 @@ export function isSupportedStoreHost(host:string){
 export const supportedStoreCount=supportedStoreRoots.length;
 
 /**
- * Stores whose product pages Atlas cannot read from its servers (bot walls, 403 from every route, data drawn by
- * scripts; checked October 2026): Atlas does not try them at all. The customer fills in the name, price, option and
- * store delivery from the store page and confirms them; the server accepts that confirmed snapshot without a store
- * check, and the operator compares it with the store before buying. Removing a root here turns automatic import back on.
+ * Stores whose product pages Atlas cannot read at all (403 to every route, the desktop Chrome included; checked
+ * 10 October 2026): Atlas does not try them. The customer fills in the name, price, option and store delivery from
+ * the store page and confirms them; the server accepts that confirmed snapshot without a store check, and the
+ * operator compares it with the store before buying. Removing a root here turns automatic import back on.
  */
 export const manualEntryStoreRoots = [
-  'hm.com','newbalance.com','columbia.com','sephora.com','bestbuy.com','levi.com','victoriassecret.com','macys.com',
+  'columbia.com','bestbuy.com',
 ] as const;
-const manualEntryHosts = new Set<string>(['www2.hm.com','api.victoriassecret.com']);
+const manualEntryHosts = new Set<string>();
 for (const root of manualEntryStoreRoots) {
   manualEntryHosts.add(root);
   manualEntryHosts.add('www.' + root);
   if (shopSubdomains.has(root)) manualEntryHosts.add('shop.' + root);
+}
+
+/**
+ * Stores that refuse every server client but open in an ordinary desktop browser: only the Tashkent gateway's own
+ * Chrome reads them (deploy/upcloud/browser-engine.mjs, checked 10 October 2026). The gateway gets a longer turn for
+ * them, and when it cannot answer (the computer is off) the customer enters the details by hand and confirms them,
+ * as for manualEntryStoreRoots; a confirmed line is still checked live when the store answers.
+ */
+export const browserStoreRoots = [
+  'sephora.com','hm.com','macys.com','levi.com','newbalance.com','victoriassecret.com',
+] as const;
+const browserHosts = new Set<string>(['www2.hm.com','api.victoriassecret.com']);
+for (const root of browserStoreRoots) {
+  browserHosts.add(root);
+  browserHosts.add('www.' + root);
+}
+
+export function isBrowserStoreHost(host:string){
+  return browserHosts.has(host.toLowerCase().replace(/\.$/, ''));
 }
 
 export function isManualEntryStoreHost(host:string){

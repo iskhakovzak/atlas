@@ -7,12 +7,14 @@
  * `auto` mode the proxy tries the engine that last worked for the host first and
  * moves on only when the answer is a wall. No engine solves a CAPTCHA: a page
  * that still asks for one is returned as-is and the importer falls back to
- * manual entry.
+ * manual entry. `browser` (browser-engine.mjs) opens the page in the gateway
+ * machine's own Chrome and exists only on a desktop gateway.
  */
 
 const maxResponseBytes = 6_000_000;
 const preferenceTtlMs = 6 * 60 * 60 * 1000;
-export const engineNames = ['fetch', 'impersonate'];
+// Cheapest first: `browser` (the installed Chrome, browser-engine.mjs) only where the others meet a wall.
+export const engineNames = ['fetch', 'impersonate', 'browser'];
 // The importer's Chrome identity would contradict the impersonated TLS fingerprint.
 const impersonatedHeaders = new Set(['user-agent', 'sec-ch-ua', 'sec-ch-ua-mobile', 'sec-ch-ua-platform']);
 
@@ -94,9 +96,9 @@ export async function loadImpersonator() {
  * checks (`npm run importer:check -- --engines`) without the VM. Egress is this
  * machine's own address, not the New York proxy.
  */
-export async function createLocalEngineFetch({mode = 'auto'} = {}) {
+export async function createLocalEngineFetch({mode = 'auto', browser} = {}) {
   const impersonator = await loadImpersonator();
-  const engines = {fetch, ...(impersonator ? {impersonate: impersonator} : {})};
+  const engines = {fetch, ...(impersonator ? {impersonate: impersonator} : {}), ...(browser ? {browser} : {})};
   const planner = createEnginePlanner(engineNames.filter(name => engines[name]));
   return async (input, init = {}) => {
     const target = new URL(input instanceof URL ? input.href : String(input));
@@ -131,7 +133,7 @@ export async function fetchWithEngines({target, method, headers, body, mode, eng
     const budget = index < plan.length - 1 ? Math.min(remaining, Math.round(deadlineMs * 0.6)) : remaining;
     const timeout = AbortSignal.timeout(Math.max(budget, 1000));
     try {
-      const upstream = await engines[engine](target, {method, headers, body, redirect: 'manual', signal: signal ? AbortSignal.any([signal, timeout]) : timeout});
+      const upstream = await engines[engine](target, {method, headers, body, redirect: 'manual', deadline: clock() + Math.max(budget, 1000), signal: signal ? AbortSignal.any([signal, timeout]) : timeout});
       const bytes = await readUpstream(upstream);
       const contentType = upstream.headers.get('content-type') ?? undefined;
       const location = upstream.headers.get('location') ?? undefined;

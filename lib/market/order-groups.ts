@@ -88,6 +88,7 @@ export function orderNeedsCustomerDecision(order: Order) {
   return Boolean(order.settlement?.extra && !order.extraApproved)
     || Boolean(order.storeShippingSettlement?.extra && !order.storeShippingExtraApproved)
     || Boolean(order.customsSettlement?.extra && !order.customsExtraApproved)
+    || (order.extraCharges ?? []).some((charge) => charge.status === 'pending')
     || (order.changeRequests ?? []).some((request) => request.status === 'pending')
     || order.payment?.status === 'pending';
 }

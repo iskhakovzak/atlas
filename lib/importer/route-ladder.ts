@@ -1,7 +1,12 @@
 import {isMerchantChallengePage} from './challenge.ts';
 import type {EgressFetch} from './egress.ts';
 
-export type MerchantRoute = {name: 'tashkent' | 'us-vps' | 'residential'; fetch: EgressFetch};
+export type MerchantRoute = {
+  name: 'tashkent' | 'us-vps' | 'residential';
+  fetch: EgressFetch;
+  /** This route's turn for one request before the next route is asked; the default applies otherwise. */
+  attemptMs?: (target: URL) => number | undefined;
+};
 
 /** Only configured server-owned routes; each attempt shares the caller's deadline. */
 export function withMerchantRoutes(routes: MerchantRoute[], attemptMs = 3_000): EgressFetch {
@@ -11,7 +16,7 @@ export function withMerchantRoutes(routes: MerchantRoute[], attemptMs = 3_000): 
       const route = routes[i];
       if (init?.signal?.aborted) throw init.signal.reason;
       try {
-        const attempt = i < routes.length - 1 ? AbortSignal.timeout(attemptMs) : undefined;
+        const attempt = i < routes.length - 1 ? AbortSignal.timeout(route.attemptMs?.(new URL(String(input))) ?? attemptMs) : undefined;
         const signal = attempt ? (init?.signal ? AbortSignal.any([init.signal, attempt]) : attempt) : init?.signal;
         const response = await route.fetch(input, {...init, signal});
         let retry = [403, 408, 429, 500, 502, 503, 504].includes(response.status);

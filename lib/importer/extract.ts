@@ -1,4 +1,5 @@
 import { extractMacysProduct } from './macys.ts';
+import { extractSephoraProduct } from './sephora.ts';
 import { extractCharlotteTilburyProduct } from './charlottetilbury.ts';
 import { extractMangoProduct } from './mango.ts';
 import { extractGapIncProduct } from './gapinc.ts';
@@ -1188,6 +1189,8 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
   if (zalando) return zalando;
   const macys = extractMacysProduct(html, sourceUrl, { safeImage, inferCategory: inferProductCategory, declarationFor });
   if (macys) return macys;
+  const sephora = extractSephoraProduct(html, sourceUrl, { safeImage, inferCategory: inferProductCategory, declarationFor });
+  if (sephora) return sephora;
   const charlotteTilbury = extractCharlotteTilburyProduct(html, sourceUrl, { safeImage, declarationFor });
   if (charlotteTilbury) return charlotteTilbury;
   const mango = extractMangoProduct(html, sourceUrl, { safeImage, inferCategory: inferProductCategory, declarationFor });
@@ -1292,7 +1295,8 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     : groupNode ? {...groupNode,offers:parentOffers} : undefined;
   // ProductGroup pages (including Nike) may put all price data on size/color children.
   // Only use children for the exact linked listing, never a different recommended color.
-  const allChildren = Array.isArray(group?.hasVariant) ? group.hasVariant.filter((child: Record<string, unknown>) => child && typeof child === 'object') : [];
+  // Levi's nests a stray array among the children; only product records count.
+  const allChildren = Array.isArray(group?.hasVariant) ? group.hasVariant.filter((child: Record<string, unknown>) => child && typeof child === 'object' && !Array.isArray(child)) : [];
   const groupIdentifiesListing = Boolean(group && (matchesNode(group) || allChildren.some((child: Record<string, unknown>) => matchesNode(child))));
   const children = allChildren.filter((child: Record<string, unknown>) => {
     if (!child || typeof child !== 'object') return false;
@@ -1324,7 +1328,17 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
   const selectedChild = requestedVariants.length > 0 ? linkedChildren.length === 1 ? linkedChildren[0] : undefined : children.length === 1 ? children[0] : uniformChild;
   const metadataChild = selectedChild ?? (missingRequestedVariant ? undefined : children[0]);
   const p = metadataChild ? { ...group, ...metadataChild, brand: metadataChild.brand ?? group?.brand } : group;
-  const offers = selectedChild ? selectedChild.offers : group?.offers;
+  // New Balance: the group itself is the linked listing and its sizes carry their own URLs. When every size has the
+  // same price and currency, that is the listing's price; the sizes stay options, none is preselected.
+  // Only when the group is the page's sole product: a separate Product (Vans' exact parent) decides the price itself.
+  const soleGroup = Boolean(groupNode) && productNodes.every(node => node === groupNode || groupChildren.includes(node));
+  const ownSizes = soleGroup && !children.length && !requestedVariants.length && group && (sameListing(group.url) || sameListing(group['@id'])) ? allChildren : [];
+  const ownQuote = ownSizes.length ? childQuote(ownSizes[0]) : undefined;
+  const ownSizesOffer = ownQuote?.price !== undefined && /^[A-Z]{3}$/.test(ownQuote.currency)
+    && ownSizes.every((child: Record<string, unknown>) => { const quote = childQuote(child); return quote.price === ownQuote.price && quote.currency === ownQuote.currency; })
+    ? [ownSizes[0].offers].flat()[0] : undefined;
+  const groupOffers = [group?.offers].flat().filter(Boolean);
+  const offers = selectedChild ? selectedChild.offers : groupOffers.length || !ownSizesOffer ? group?.offers : {...ownSizesOffer, url: undefined};
   const offer = Array.isArray(offers) ? offers[0] : offers;
   const details = offer?.shippingDetails;
   const ship = Array.isArray(details) ? details[0] : details;
@@ -1420,7 +1434,27 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
   const variantIdCounts = new Map<string, number>();
   for (const variant of groupVariants) if (variant.id) variantIdCounts.set(variant.id, (variantIdCounts.get(variant.id) ?? 0) + 1);
   for (const variant of groupVariants) if (variant.id && variantIdCounts.get(variant.id)! > 1) delete variant.id;
-  const rawVariants = zara?.missingSelectedColor ? [] : zara?.variants?.length ? zara.variants : groupVariants.length ? groupVariants : genericVariants;
+  // Macy's lists every colour and size as its own Offer of one Product (`itemOffered` names them): those offers are
+  // the options. Sold-out sizes may come as bare offers without a name or price; they are left out. Used only when
+  // nothing else supplied the options and every priced offer names its option.
+  const listedOffers = Array.isArray(offers) && offers.length > 1 ? (offers as Record<string, unknown>[]).filter(item => item && typeof item === 'object') : [];
+  const namedOffer = (item: Record<string, unknown>) => { const offered = embeddedObject(item.itemOffered); return Boolean(clean(offered.color) || clean(offered.size)); };
+  const namedOffers = listedOffers.filter(namedOffer);
+  const offerVariants: ProductVariant[] = !groupVariants.length && !genericVariants.length && currency && namedOffers.length
+    && listedOffers.every(item => namedOffer(item) || item.price === undefined && /OutOfStock|SoldOut|Discontinued/i.test(clean(item.availability)))
+    ? namedOffers.map(item => {
+      const offered = embeddedObject(item.itemOffered), color = clean(offered.color), size = clean(offered.size);
+      return {
+        id: embeddedIdentifier(item.SKU ?? item.sku).slice(0, 120) || undefined,
+        label: [color, size].filter(Boolean).join(' · '),
+        color: color || undefined,
+        size: size || undefined,
+        sizeLabel: size ? 'Размер' : undefined,
+        ...embeddedAvailability({availability: item.availability}),
+        price: clean(item.priceCurrency).toUpperCase() === currency ? number(item.price) : undefined,
+      };
+    }).slice(0, 80) : [];
+  const rawVariants = zara?.missingSelectedColor ? [] : zara?.variants?.length ? zara.variants : groupVariants.length ? groupVariants : genericVariants.length ? genericVariants : offerVariants;
   const gymsharkColor = /(^|\.)gymshark\.com$/i.test(new URL(sourceUrl).hostname)
     ? clean(html.match(/aria-current=["']true["'][^>]*aria-label=["'][^"']+\s+in\s+([^"']+)/i)?.[1])
     : '';
@@ -1438,7 +1472,9 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     warnings.push("Вес не опубликован. Предложим приблизительный вес по категории.");
   if (net && !gross)
     warnings.push("Магазин указал вес товара; вес коробки может не входить. Проверьте поле веса.");
-  if (Array.isArray(offers) && offers.length > 1)
+  if (offerVariants.length && rawVariants === offerVariants)
+    warnings.push("Цвета и размеры получены со страницы магазина. Цена и наличие выбранного варианта требуют подтверждения.");
+  else if (Array.isArray(offers) && offers.length > 1)
     warnings.push("Найдено несколько предложений: показано первое. Проверьте вариант и цену.");
   if (offer?.["@type"] === "AggregateOffer")
     warnings.push("Указан диапазон цен. Нужна цена конкретного варианта.");

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { fetchProduct, isAmazonUsUrl, ManualEntryFallbackError, UnsupportedStoreError, validateManualSourceUrl } from '@/lib/importer/fetch';
-import { isManualEntryStoreHost, isSupportedStoreHost } from '@/lib/importer/stores';
+import { isBrowserStoreHost, isManualEntryStoreHost, isSupportedStoreHost } from '@/lib/importer/stores';
 import { merchantRequest } from '@/lib/importer/worker-fetch';
 import { database, sameOrigin, json, failure, HttpError, requestJson } from '@/lib/market/server';
 import { currentUser } from '@/lib/auth/server';
@@ -34,19 +34,9 @@ export async function POST(request: Request) {
     }
     await db.prepare('DELETE FROM market_rate_limits WHERE expires_at < ?').bind(now).run();
 
-    if (!autoImportSupported) {
-      const locale = requestLocale(request);
-      return json({
-        sourceUrl,
-        brand: new URL(sourceUrl).hostname.replace(/^www\./, ''),
-        warnings: [],
-        error: importManualEntryMessage(locale),
-        manualEntryAvailable: true,
-      }, 422);
-    }
-
-    // A store Atlas cannot read is not asked: the page opens the form for the customer's own entry right away.
-    if (isManualEntryStoreHost(new URL(sourceUrl).hostname)) {
+    // A site outside the store list, or a store Atlas cannot read, is not asked: the page opens the form for the
+    // customer's own entry right away, with the confirmation checkbox, and the line can be ordered.
+    if (!autoImportSupported || isManualEntryStoreHost(new URL(sourceUrl).hostname)) {
       const host = new URL(sourceUrl).hostname;
       return json({
         sourceUrl,
@@ -86,6 +76,13 @@ export async function POST(request: Request) {
         return json({ sourceUrl, pending: true, retryAfterMs: error.retryAfterMs ?? 4000, message: locale === 'ru' ? error.message : importPendingMessage(locale) }, 202);
       }
       const canManuallyEnter = error instanceof ManualEntryFallbackError || error instanceof Error && error.name === 'AbortError';
+      // A store only the Tashkent gateway's Chrome reads, and the gateway did not answer (the computer is off, the page
+      // timed out): the customer enters the details by hand, the same way as for a store Atlas never reads.
+      const host = new URL(sourceUrl).hostname;
+      if (canManuallyEnter && isBrowserStoreHost(host)) {
+        const partial = error instanceof ManualEntryFallbackError ? error.partial : undefined;
+        return json({ ...partial, sourceUrl, brand: partial?.brand ?? host.replace(/^(?:www2?|shop|api)\./, ''), warnings: partial?.warnings ?? [], error: importManualStoreMessage(locale), manualEntryAvailable: true, manualStore: true }, 422);
+      }
       // A link outside the store list is answered in the customer's language, with the number of supported stores.
       const unsupported = error instanceof UnsupportedStoreError ? error : undefined;
       const message = canManuallyEnter

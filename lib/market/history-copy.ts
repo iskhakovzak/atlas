@@ -152,6 +152,21 @@ const historyCopy: Record<string, Copy> = {
     uz: v => `Operator «${v.title()}» xizmatini rad etdi: ${v.text('reason')}`,
     en: v => `An operator declined the “${v.title()}” service: ${v.text('reason')}`,
   }),
+  'extra-charge-requested': /*@__PURE__*/withCyrillic({
+    ru: v => `Оператор выставил счёт на доплату ${v.sum('amount')}: ${v.text('reason')}`,
+    uz: v => `Operator ${v.sum('amount')} qo‘shimcha to‘lov hisobini yubordi: ${v.text('reason')}`,
+    en: v => `An operator issued an extra invoice for ${v.sum('amount')}: ${v.text('reason')}`,
+  }),
+  'extra-charge-paid': /*@__PURE__*/withCyrillic({
+    ru: v => `Доплата ${v.sum('amount')} отмечена в Atlas. Платёжный провайдер не подтвердил списание.`,
+    uz: v => `${v.sum('amount')} qo‘shimcha to‘lov Atlasda qayd etildi. To‘lov provayderi pul yechilganini tasdiqlamagan.`,
+    en: v => `The extra payment of ${v.sum('amount')} was recorded in Atlas. No payment provider confirmed a charge.`,
+  }),
+  'extra-charge-cancelled': /*@__PURE__*/withCyrillic({
+    ru: v => `Счёт на доплату ${v.sum('amount')} отменён оператором.`,
+    uz: v => `${v.sum('amount')} qo‘shimcha to‘lov hisobi operator tomonidan bekor qilindi.`,
+    en: v => `The ${v.sum('amount')} extra invoice was withdrawn by an operator.`,
+  }),
   'change-requested': /*@__PURE__*/withCyrillic({
     ru: v => `Запрошено согласование: ${v.text('title')}.`,
     uz: v => `Kelishuv so‘raldi: ${v.text('title')}.`,
@@ -252,6 +267,19 @@ const noticeCopy: Record<string, NoticeCopy> = {
   'service-done': { title: /*@__PURE__*/withCyrillic({ ru: 'Услуга выполнена', uz: 'Xizmat bajarildi', en: 'Service done' }), message: /*@__PURE__*/withCyrillic({ ru: v => v.title(), uz: v => v.title(), en: v => v.title() }) },
   'service-declined': { title: /*@__PURE__*/withCyrillic({ ru: 'Услуга недоступна', uz: 'Xizmat mavjud emas', en: 'Service unavailable' }), message: /*@__PURE__*/withCyrillic({
     ru: v => `${v.title()}: ${v.text('reason')}`, uz: v => `${v.title()}: ${v.text('reason')}`, en: v => `${v.title()}: ${v.text('reason')}`,
+  }) },
+  'extra-charge-requested': { title: /*@__PURE__*/withCyrillic({ ru: 'Нужна доплата по заказу', uz: 'Buyurtma bo‘yicha qo‘shimcha to‘lov kerak', en: 'Extra payment needed' }), message: /*@__PURE__*/withCyrillic({
+    ru: v => `${v.sum('amount')} · ${v.text('reason')}`, uz: v => `${v.sum('amount')} · ${v.text('reason')}`, en: v => `${v.sum('amount')} · ${v.text('reason')}`,
+  }) },
+  'extra-charge-paid': { title: /*@__PURE__*/withCyrillic({ ru: 'Доплата отмечена в Atlas', uz: 'Qo‘shimcha to‘lov Atlasda qayd etildi', en: 'Extra payment recorded in Atlas' }), message: /*@__PURE__*/withCyrillic({
+    ru: () => 'Платёжный провайдер не подключён: списания и банковского подтверждения нет.',
+    uz: () => 'To‘lov provayderi ulanmagan: pul yechilmadi va bank tasdig‘i yo‘q.',
+    en: () => 'No payment provider is connected: no charge and no bank confirmation.',
+  }) },
+  'extra-charge-cancelled': { title: /*@__PURE__*/withCyrillic({ ru: 'Доплата отменена', uz: 'Qo‘shimcha to‘lov bekor qilindi', en: 'Extra payment withdrawn' }), message: /*@__PURE__*/withCyrillic({
+    ru: v => `Счёт на ${v.sum('amount')} больше не нужно оплачивать.`,
+    uz: v => `${v.sum('amount')} hisobini endi to‘lash shart emas.`,
+    en: v => `The ${v.sum('amount')} invoice no longer needs paying.`,
   }) },
   'change-requested': { title: /*@__PURE__*/withCyrillic({ ru: 'Нужно ваше решение', uz: 'Qaroringiz kerak', en: 'Your decision is needed' }), message: /*@__PURE__*/withCyrillic({
     ru: v => `${v.text('title')}${v.has('delta') ? ` · изменение ${v.sum('delta')}` : ''}.`,

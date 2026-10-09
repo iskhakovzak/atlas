@@ -5,6 +5,7 @@ import type {MerchantFetch} from './fetch.ts';
 import type {EbayBrowseConfig} from './ebay.ts';
 import {createEbayAwareMerchantFetch} from './ebay-transport.ts';
 import {withMerchantRoutes, type MerchantRoute} from './route-ladder.ts';
+import {isBrowserStoreHost} from './stores.ts';
 import type {BrightDataPurpose, BrightDataRuntime} from './brightdata.ts';
 import {d1BrightDataJobs, readBrightDataSettings, type D1Like} from './brightdata-d1.ts';
 
@@ -23,7 +24,8 @@ async function merchantRequest(input:string|URL,init?:RequestInit):Promise<Respo
   if(tashkent||tashkentSecret||residential||residentialSecret){
     if(Boolean(tashkent)!==Boolean(tashkentSecret)||Boolean(residential)!==Boolean(residentialSecret)||Boolean(endpoint)!==Boolean(secret))throw new Error('Importer route is not fully configured.');
     const routes:MerchantRoute[]=[];
-    if(tashkent)routes.push({name:'tashkent',fetch:createMerchantProxyFetch({endpoint:tashkent,secret:tashkentSecret})});
+    // Stores only the gateway's own Chrome reads get time for it (a page opens in 1-6 s); the rest keep 3 s.
+    if(tashkent)routes.push({name:'tashkent',fetch:createMerchantProxyFetch({endpoint:tashkent,secret:tashkentSecret}),attemptMs:target=>isBrowserStoreHost(target.hostname)?9_000:undefined});
     if(endpoint)routes.push({name:'us-vps',fetch:createMerchantProxyFetch({endpoint,secret})});
     if(residential)routes.push({name:'residential',fetch:createMerchantProxyFetch({endpoint:residential,secret:residentialSecret})});
     return withMerchantRoutes(routes)(input,init);

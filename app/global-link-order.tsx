@@ -1006,7 +1006,7 @@ export function GlobalLinkOrder() {
       </div>}
 
       {source && !checking && sourceCheckStatus==='manual' && <div className="notice lo-manual-store" role="status">
-        <p>{tx('Этот магазин не отдаёт данные товара автоматически. Откройте товар на сайте магазина и впишите название, цену, вариант и доставку сами — оператор Atlas сверит их перед выкупом.','Bu do‘kon tovar ma’lumotlarini avtomatik bermaydi. Tovarni do‘kon saytida oching va nomi, narxi, varianti va yetkazishni o‘zingiz kiriting — Atlas operatori xariddan oldin ularni solishtiradi.','This store does not share product details automatically. Open the item on the store\'s site and enter the name, price, option and shipping yourself — an Atlas operator checks them before buying.')}</p>
+        <p>{tx('Atlas не получает данные этого товара автоматически. Откройте товар на сайте магазина и впишите название, цену, вариант и доставку сами — оператор Atlas сверит их перед выкупом.','Atlas bu tovar ma’lumotlarini avtomatik olmaydi. Tovarni do‘kon saytida oching va nomi, narxi, varianti va yetkazishni o‘zingiz kiriting — Atlas operatori xariddan oldin ularni solishtiradi.','Atlas does not get this item\'s details automatically. Open the item on the store\'s site and enter the name, price, option and shipping yourself — an Atlas operator checks them before buying.')}</p>
         <a className="btn secondary" href={source} target="_blank" rel="noopener noreferrer">{tx('Открыть товар в магазине','Tovarni do‘konda ochish','Open the item in the store')}<ExternalLink size={14} aria-hidden="true" /></a>
       </div>}
 

@@ -83,6 +83,7 @@ import { courierAllowanceUsd } from "@/lib/market/customs";
 import { calcCopy } from "@/lib/market/calc-copy";
 import { usdText } from "./calc-summary";
 import { Money } from "./money";
+import { CustomerExtraCharge, ExtraChargeHistory, OperatorExtraCharges, extraChargeCopy } from "./order-extra-charges";
 import {
   PageHeading,
   Empty,
@@ -611,7 +612,7 @@ function OrderDocuments({orderId,accountId,operatorMode,locale}:{orderId:string;
  const labels:Record<string,string>={invoice:words.invoice,'purchase-proof':words.proof,'warehouse-photo':words.photo,'warehouse-report':words.report};
  return <details className="order-documents"><summary>{words.title}<span>{documents.length}</span></summary><div className="document-list">{documents.length?documents.map(item=><a key={item.id} href={`/api/order-documents?id=${encodeURIComponent(item.id)}`}><span><b>{labels[item.kind]??item.kind}</b><small>{item.filename}</small></span><strong>{words.open}</strong></a>):<p className="micro">{words.empty}</p>}</div>{operatorMode&&accountId&&<form className="document-upload" onSubmit={event=>{event.preventDefault();void upload(event.currentTarget)}}><select name="kind" aria-label="Тип документа"><option value="invoice">{words.invoice}</option><option value="purchase-proof">{words.proof}</option><option value="warehouse-photo">{words.photo}</option><option value="warehouse-report">{words.report}</option></select><input name="file" type="file" accept="image/jpeg,image/png,application/pdf" required/><button className="btn secondary" disabled={busy}>{busy?'…':words.upload}</button></form>}</details>
 }
-type OrderConfirmation = { id: string; cancel: boolean; amount: number; storeShipping?: boolean; customs?: boolean; payment?: boolean };
+type OrderConfirmation = { id: string; cancel: boolean; amount: number; storeShipping?: boolean; customs?: boolean; payment?: boolean; /** An operator's extra invoice to pay. */ extraCharge?: string };
 const refundMarkerCopy = /*@__PURE__*/withCyrillic({ ru: "Отметка возврата в Atlas", uz: "Atlasdagi qaytarish belgisi", en: "Refund marker in Atlas" } as const);
 const intakeTagCopy = {
   photo: /*@__PURE__*/withCyrillic({ ru: "Фото", uz: "Foto", en: "Photo requested at intake" }),
@@ -650,7 +651,8 @@ function CustomerOrderLine({ order: o, siblings, showThumb, locale, pricing, bus
   const statuses = localizedStatuses(locale);
   const payable = orderPayable(o);
   const extra = isExtra(o), changePending = pendingChange(o), paymentPending = !o.cancelled && o.payment?.status === "pending";
-  const needsAction = !o.cancelled && (extra || changePending || paymentPending);
+  const invoice = (o.extraCharges ?? []).some(charge => charge.status === "pending");
+  const needsAction = !o.cancelled && (extra || changePending || paymentPending || invoice);
   // The line's own stage stays visible next to the action flag: a payment to record does not hide "Ожидает выкупа".
   const stage = o.cancelled ? ow.cancelled : o.payment?.status === "refunded" ? refundMarkerCopy[locale] : statuses[o.status];
   const tone = o.cancelled || o.payment?.status === "refunded" ? "muted" : o.status === 5 ? "ok" : "info";
@@ -697,6 +699,7 @@ function CustomerOrderLine({ order: o, siblings, showThumb, locale, pricing, bus
           <div><h3>{ow.paymentWaiting}</h3><p>{ow.paymentLine} {o.payment!.id} · {formatSum(o.payment!.amount, locale)}. {ow.noCharge}.</p></div>
           <button type="button" className="btn primary" onClick={() => confirm({ id: o.id, cancel: false, amount: o.payment!.amount, payment: true })}>{ow.recordPayment}<ArrowRight size={16} aria-hidden="true" /></button>
         </div>}
+        <CustomerExtraCharge order={o} locale={locale} busy={busy} onPay={charge => confirm({ id: o.id, cancel: false, amount: charge.amount, extraCharge: charge.id })} />
         {pendingRequests.map(request => <div className="order-x-action-item" key={request.id}>
           <AlertCircle size={20} aria-hidden="true" />
           <div>
@@ -753,6 +756,7 @@ function CustomerOrderLine({ order: o, siblings, showThumb, locale, pricing, bus
         <summary>{gc.calculation}</summary>
         <div className="order-x-more-body">
           <CostLines q={o.quote} storeReserveWaived={o.product.sourceShippingEstimated === true} locale={locale} />
+          <ExtraChargeHistory order={o} locale={locale} />
           {o.storeShippingSettlement && <div className={"order-x-note " + (storeShippingExtra(o) ? "warn" : "info")}>
             <Package size={18} aria-hidden="true" />
             <div>
@@ -882,14 +886,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
     [actualCustoms, setActualCustoms] = useState("0"),
     [actualStoreShipping, setActualStoreShipping] = useState("10"),
     [dims, setDims] = useState(["1.8", "30", "20", "15"]),
-    [confirmation, setConfirmation] = useState<{
-      id: string;
-      cancel: boolean;
-      amount: number;
-      storeShipping?: boolean;
-      customs?: boolean;
-      payment?: boolean;
-    } | null>(null),
+    [confirmation, setConfirmation] = useState<OrderConfirmation | null>(null),
     [busy, setBusy] = useState(false),
     [opsAccounts, setOpsAccounts] = useState<OperationsAccount[]>([]),
     [opsReady, setOpsReady] = useState(false),
@@ -1625,6 +1622,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
             {operations && o.status === 3 && !o.parcel && (
               <p className="micro">{ow.trackingFirst}</p>
             )}
+            {operations && <OperatorExtraCharges order={o} run={runOrderAction} locale={locale} />}
             {operations && <OperatorOrderTools order={o} notifications={orderAccount.get(o.id)?.state.notifications.filter((item) => item.orderId === o.id) ?? []} run={runOrderAction} locale={locale} />}
             {operations && <OperatorOrderCommunication order={o} customerName={orderAccount.get(o.id)?.name ?? ""} customerEmail={orderAccount.get(o.id)?.id.replace(/^email:/, "") ?? ""} recipientAvailable={Boolean(orderAccount.get(o.id))} run={runOrderAction} locale={locale} />}
             <OrderDocuments orderId={o.id} accountId={orderAccount.get(o.id)?.id} operatorMode={operations} locale={state.communication.language}/>
@@ -1845,6 +1843,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
                ? ow.cancelTitle
               : confirmation?.payment
                  ? ow.paymentTitle
+                 : confirmation?.extraCharge
+                   ? extraChargeCopy[locale].dialogTitle
                  : ow.extraTitle}
           </AlertDialogTitle>
           <AlertDialogDescription>
@@ -1852,6 +1852,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
                ? ow.cancelDescription
               : confirmation?.payment
                  ? ow.paymentDescription
+                 : confirmation?.extraCharge
+                   ? extraChargeCopy[locale].dialogText
                  : ow.extraDescription}
           </AlertDialogDescription>
           {!(confirmation?.cancel && !confirmation.amount) && <div className="confirm-price">
@@ -1871,6 +1873,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
                     ? { type: "cancel", id: confirmation.id }
                     : confirmation.payment
                       ? { type: "payment-demo", id: confirmation.id }
+                    : confirmation.extraCharge
+                      ? { type: "extra-charge-pay", id: confirmation.id, chargeId: confirmation.extraCharge, amount: confirmation.amount }
                     : confirmation.customs
                       ? { type: "approve-customs-extra", id: confirmation.id, amount: confirmation.amount }
                     : confirmation.storeShipping

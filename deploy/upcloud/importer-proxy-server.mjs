@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {createEnginePlanner,engineNames,fetchWithEngines,loadImpersonator} from './merchant-engines.mjs';
+import {loadBrowserEngine} from './browser-engine.mjs';
 
 const requestHeaderNames=new Set([
   'accept','accept-language','anti-csrftoken-a2z','cache-control','content-type','cookie','origin','referer',
@@ -68,15 +69,16 @@ function validateHeaders(raw,target,body,method,allowedHosts){
 }
 
 /**
- * `impersonator` is the optional Chrome-fingerprint engine; `log` receives one
+ * `impersonator` is the optional Chrome-fingerprint engine, `browser` the
+ * optional installed-Chrome engine (browser-engine.mjs, desktop gateway only); `log` receives one
  * line per merchant request with the host and engine attempts only — never the
  * URL, headers, cookies or bodies.
  */
-export function createImporterProxyServer({secret,allowedHosts,fetcher=fetch,impersonator,now=Date.now,log=()=>{}}){
+export function createImporterProxyServer({secret,allowedHosts,fetcher=fetch,impersonator,browser,now=Date.now,log=()=>{}}){
   if(typeof secret!=='string'||!/^[a-f0-9]{64,}$/i.test(secret))throw new Error('ATLAS_IMPORT_PROXY_SECRET must be a random 32-byte hex value.');
   if(!(allowedHosts instanceof Set)||!allowedHosts.size)throw new Error('Importer proxy store-host allowlist is empty.');
   const nonces=new Map(),recent=[];let active=0,requests=0;
-  const engines={fetch:fetcher,...(impersonator?{impersonate:impersonator}:{})};
+  const engines={fetch:fetcher,...(impersonator?{impersonate:impersonator}:{}),...(browser?{browser}:{})};
   const planner=createEnginePlanner(engineNames.filter(name=>engines[name]),now);
   const handler=async(req,res)=>{
     if(req.method!=='POST'||req.url!=='/v1/fetch')return send(res,404,{error:'not_found'});
@@ -137,6 +139,11 @@ if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.ur
   const port=Number(process.env.ATLAS_IMPORT_PROXY_PORT??8787);
   const impersonator=await loadImpersonator();
   const log=entry=>process.stdout.write(JSON.stringify(entry)+'\n');
-  const server=createImporterProxyServer({secret,allowedHosts,impersonator,log});
-  server.listen(port,'127.0.0.1',()=>process.stdout.write(`atlas importer proxy ready (engines: fetch${impersonator?', impersonate':''})\n`));
+  // The installed-Chrome engine only where ATLAS_BROWSER_EXECUTABLE names one (the Tashkent desktop gateway).
+  const browser=loadBrowserEngine({allowedHosts,log});
+  const server=createImporterProxyServer({secret,allowedHosts,impersonator,browser,log});
+  server.listen(port,'127.0.0.1',()=>{
+    process.stdout.write(`atlas importer proxy ready (engines: fetch${impersonator?', impersonate':''}${browser?', browser':''})\n`);
+    browser?.warm().catch(()=>log({browser:'start-failed'}));
+  });
 }
