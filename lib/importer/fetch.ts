@@ -3,7 +3,7 @@ import {declarationFor,dedupeSafeImages,extractAdidasProduct,extractProduct,infe
 import {extractTarget, targetRequest} from './target.ts';
 import {extractShopify, shopifyEndpoints} from './shopify.ts';
 import {extractVictoriasSecret, victoriasSecretRequest} from './victoriassecret.ts';
-import {isEbayStoreHost,isSupportedStoreHost,supportedStoreCount} from './stores.ts';
+import {isEbayStoreHost,isManualEntryStoreHost,isSupportedStoreHost,supportedStoreCount} from './stores.ts';
 import {applyMerchantProfile} from './merchant-profiles.ts';
 import {isMerchantProductUrl, sameMerchantRedirect} from './source-identity.ts';
 import {isMerchantChallengePage} from './challenge.ts';
@@ -40,8 +40,9 @@ function withDiagnostic<T extends ManualEntryFallbackError>(error: T, diagnostic
  * manually entered details when a merchant does not expose a public response. */
 export class ManualEntryFallbackError extends Error {
   readonly partial?: Extracted;
-  /** 'pending': a Bright Data collection is still running; ask again after retryAfterMs (app/api/import answers 202). */
-  readonly reason: 'blocked' | 'network' | 'upstream' | 'response' | 'redirect' | 'timeout' | 'incomplete' | 'pending' | 'unknown';
+  /** 'pending': a Bright Data collection is still running; ask again after retryAfterMs (app/api/import answers 202).
+   * 'manual': a store Atlas does not read at all (manualEntryStoreRoots); the customer fills in the details. */
+  readonly reason: 'blocked' | 'network' | 'upstream' | 'response' | 'redirect' | 'timeout' | 'incomplete' | 'pending' | 'manual' | 'unknown';
   /** What the merchant answered, for logs and the operator; never shown to customers. */
   diagnostic?: ImportDiagnostic;
   retryAfterMs?: number;
@@ -145,11 +146,11 @@ type PublicRequestOptions = {
 };
 export type MerchantFetch = ((input: string | URL, init?: RequestInit) => Promise<Response>) & {
   ebayBrowseConfig?: () => EbayBrowseConfig;
-  /** Bright Data for Walmart and H&M (lib/importer/brightdata.ts); undefined when the key or D1 is missing. */
+  /** Bright Data for Walmart (lib/importer/brightdata.ts); undefined when the key or D1 is missing. */
   brightData?: () => Promise<BrightDataRuntime | undefined>;
 };
 
-/** Walmart/H&M through Bright Data when it is on for the link; undefined lets the importer continue with its own path. */
+/** Walmart through Bright Data when it is on for the link; undefined lets the importer continue with its own path. */
 async function brightDataProduct(url: URL, fetcher: MerchantFetch) {
   const target = brightDataTarget(url);
   if (!target || !fetcher.brightData) return;
@@ -161,7 +162,7 @@ async function brightDataProduct(url: URL, fetcher: MerchantFetch) {
     return product ? finalizeExtraction(product, url.href) : undefined;
   } catch (error) {
     if (error instanceof BrightDataPendingError) {
-      const pending = new ManualEntryFallbackError(`${brightDataStoreNames[error.store]} отдаёт данные через сервис сбора — это занимает до ${error.store === 'hm' ? 'нескольких минут' : 'полуминуты'}. Atlas повторит запрос сам.`, {sourceUrl: url.href, brand: brightDataStoreNames[error.store], warnings: []}, 'pending');
+      const pending = new ManualEntryFallbackError(`${brightDataStoreNames[error.store]} отдаёт данные через сервис сбора — это занимает до полуминуты. Atlas повторит запрос сам.`, {sourceUrl: url.href, brand: brightDataStoreNames[error.store], warnings: []}, 'pending');
       pending.retryAfterMs = error.retryAfterMs;
       pending.diagnostic = {engine: 'brightdata'};
       throw pending;
@@ -430,6 +431,8 @@ function withEgressWarning<T extends Extracted>(extracted: T, direct: boolean | 
   return direct ? {...extracted, warnings: [...(extracted.warnings ?? []), directEgressWarning]} : extracted;
 }
 
+export const manualEntryStoreMessage = 'Этот магазин не отдаёт данные товара автоматически. Откройте товар на сайте магазина и впишите название, цену, вариант и доставку сами — оператор Atlas сверит их перед выкупом.';
+
 async function fetchProductOnce(value: string, fetcher: MerchantFetch = fetch) {
   const manualUrl = validateManualSourceUrl(value);
   if (!isSupportedStoreHost(manualUrl.hostname)) {
@@ -437,6 +440,8 @@ async function fetchProductOnce(value: string, fetcher: MerchantFetch = fetch) {
     throw new ManualEntryFallbackError('Автоматическая загрузка этого магазина недоступна. Заполните данные товара вручную; сервер не обращается к этому магазину.', partial);
   }
   const url = allowedUrl(manualUrl.href);
+  // A store that blocks every route is not asked at all: no request, no wait, straight to the customer's own entry.
+  if (isManualEntryStoreHost(url.hostname)) throw new ManualEntryFallbackError(manualEntryStoreMessage, {sourceUrl: url.href, brand: url.hostname.replace(/^(?:www2?|shop)\./, ''), warnings: []}, 'manual');
   // Bright Data waits on its own budget (settings.waitSeconds) before the page path starts its 15 s timer.
   const collected = await brightDataProduct(url, fetcher);
   if (collected) return collected;

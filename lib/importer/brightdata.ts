@@ -2,25 +2,24 @@ import {z} from 'zod';
 import {declarationFor, dedupeSafeImages, inferProductCategory, type Extracted, type ProductVariant} from './extract.ts';
 
 /**
- * Bright Data Web Scraper API (datasets v3) for the two stores whose pages answer servers with a bot wall:
- * Walmart (PerimeterX) and H&M (403). Bright Data collects the page on its side and returns structured JSON;
- * Atlas never solves a challenge itself. A collection takes 5–25 s for Walmart and up to ~6 min for H&M, so a
- * request that does not finish within `waitSeconds` becomes a pending job: the client asks again and the same
- * snapshot is polled — never triggered twice. One record = one credit; Bright Data bills successful records only.
+ * Bright Data Web Scraper API (datasets v3) for Walmart, whose pages answer servers with a bot wall (PerimeterX).
+ * Bright Data collects the page on its side and returns structured JSON; Atlas never solves a challenge itself.
+ * A collection takes 5–25 s, so a request that does not finish within `waitSeconds` becomes a pending job: the
+ * client asks again and the same snapshot is polled — never triggered twice. One record = one credit; Bright Data bills successful records only.
  * Usage is kept in D1 (market_provider_jobs) and the paid part goes to the books (lib/market/provider-usage.ts).
  */
-export type BrightDataStore = 'walmart' | 'hm';
-export const brightDataStores: BrightDataStore[] = ['walmart', 'hm'];
-export const brightDataStoreNames: Record<BrightDataStore, string> = {walmart: 'Walmart', hm: 'H&M'};
+export type BrightDataStore = 'walmart';
+export const brightDataStores: BrightDataStore[] = ['walmart'];
+export const brightDataStoreNames: Record<BrightDataStore, string> = {walmart: 'Walmart'};
 /** Ready-made Bright Data scrapers ("collect by URL"); one product URL = one record. */
-export const brightDataDatasets: Record<BrightDataStore, string> = {walmart: 'gd_l95fol7l1ru6rlo116', hm: 'gd_mm38gqkl1slezcf5zl'};
+export const brightDataDatasets: Record<BrightDataStore, string> = {walmart: 'gd_l95fol7l1ru6rlo116'};
 export const brightDataApiOrigin = 'https://api.brightdata.com';
 export const brightDataSettingsKey = 'importer.brightdata';
 
 export const brightDataSettingsSchema = z.object({
   /** Master switch; without BRIGHTDATA_API_KEY on the server nothing runs anyway. */
   enabled: z.boolean().default(true),
-  stores: z.object({walmart: z.boolean().default(true), hm: z.boolean().default(true)}).default({walmart: true, hm: true}),
+  stores: z.object({walmart: z.boolean().default(true)}).default({walmart: true}),
   /** Catalog imports and the hourly catalog refresh also go through Bright Data (off: only customer links and the cart check). */
   catalog: z.boolean().default(false),
   /** Pay-as-you-go price, USD per 1000 records. */
@@ -43,7 +42,7 @@ export function parseBrightDataSettings(value: string | null | undefined): Brigh
 }
 
 export type BrightDataTarget = {store: BrightDataStore; key: string; url: string};
-/** Only exact product pages: walmart.com/ip/…/<id> and the US H&M product page (prices in USD). */
+/** Only exact product pages: walmart.com/ip/…/<id>. */
 export function brightDataTarget(value: URL | string): BrightDataTarget | undefined {
   let url: URL;
   try { url = new URL(String(value)); } catch { return; }
@@ -53,11 +52,6 @@ export function brightDataTarget(value: URL | string): BrightDataTarget | undefi
     const match = url.pathname.match(/^\/ip\/(?:([^/]{1,300})\/)?(\d{5,15})\/?$/i);
     if (!match) return;
     return {store: 'walmart', key: `walmart:${match[2]}`, url: `https://www.walmart.com/ip/${match[1] ? match[1] + '/' : ''}${match[2]}`};
-  }
-  if (host === 'www2.hm.com') {
-    const match = url.pathname.match(/^\/en_us\/productpage\.(\d{7,13})\.html$/i);
-    if (!match) return;
-    return {store: 'hm', key: `hm:${match[1]}`, url: `https://www2.hm.com/en_us/productpage.${match[1]}.html`};
   }
 }
 
@@ -121,7 +115,7 @@ export function brightDataAllowed(target: BrightDataTarget, runtime: Pick<Bright
 }
 
 /**
- * Structured product data for a Walmart/H&M link through Bright Data, or undefined when Bright Data is off for it,
+ * Structured product data for a Walmart link through Bright Data, or undefined when Bright Data is off for it,
  * over the monthly limit, or recently failed (the importer then continues with its own path).
  * Throws BrightDataPendingError while the collection runs and BrightDataApiError when Bright Data refuses.
  */
@@ -181,7 +175,7 @@ export async function fetchBrightDataProduct(value: URL | string, runtime: Brigh
     }
     // Walmart usually finishes in 5–25 s: poll often at first, then calmly.
     const wait = poll < 4 ? 1500 : 2500;
-    if (now() + wait >= deadline) throw new BrightDataPendingError(target.store, job.createdAt, target.store === 'hm' ? 8000 : 3000);
+    if (now() + wait >= deadline) throw new BrightDataPendingError(target.store, job.createdAt, 3000);
     await sleep(wait);
   }
 }
@@ -200,8 +194,8 @@ async function downloadSnapshot(call: (path: string, init?: RequestInit) => Prom
 const isErrorRecord = (row: Row) => !row.product_name && !row.title && Boolean(row.error || row.error_code || row.warning);
 const errorCode = (row: Row | undefined) => typeof row?.error_code === 'string' ? row.error_code.slice(0, 60) : typeof row?.error === 'string' ? row.error.slice(0, 60) : '';
 
-export function mapBrightDataRecord(target: Pick<BrightDataTarget, 'store'>, row: Row, sourceUrl: string): Extracted {
-  return target.store === 'walmart' ? mapWalmartRecord(row, sourceUrl) : mapHmRecord(row, sourceUrl);
+export function mapBrightDataRecord(_target: Pick<BrightDataTarget, 'store'>, row: Row, sourceUrl: string): Extracted {
+  return mapWalmartRecord(row, sourceUrl);
 }
 
 const text = (value: unknown, max = 300) => typeof value === 'string' ? value.replace(/\s+/g, ' ').trim().slice(0, max) : '';
@@ -216,8 +210,6 @@ const strings = (value: unknown) => Array.isArray(value) ? value.filter((item): 
 const attributes = (value: unknown) => (Array.isArray(value) ? value : [])
   .map(item => item && typeof item === 'object' ? {name: text((item as Row).name, 100), value: text((item as Row).value, 140)} : undefined)
   .filter((item): item is {name: string; value: string} => !!item?.name && !!item.value);
-const optionGroups = (value: unknown) => (Array.isArray(value) ? value : []).filter((item): item is Row => !!item && typeof item === 'object')
-  .map(group => ({type: text(group.variant_type, 60), options: (Array.isArray(group.variant_options) ? group.variant_options : []).filter((item): item is Row => !!item && typeof item === 'object')}));
 
 /** Walmart: every colour and size is its own /ip/ page, and the scraper gives no colour × size matrix, so Atlas keeps
  * exactly the variant from the link (its own price and stock) and asks for another link for another option. */
@@ -260,53 +252,6 @@ export function mapWalmartRecord(row: Row, sourceUrl: string): Extracted {
     image: images[0], images, ...(color ? {selectedVariantColor: color} : {}),
     price, ...(price && regular && regular > price ? {referencePrice: regular} : {}), currency,
     variants: [variant], country: 'США', warnings, sourceUrl, method: 'Bright Data · Walmart',
-  };
-}
-
-/** H&M: the record carries the colour from the link with its sizes (price and stock each) and the other colours as
- * links of their own; Atlas offers the sizes of this colour. */
-export function mapHmRecord(row: Row, sourceUrl: string): Extracted {
-  const title = text(row.title ?? row.product_name, 300);
-  const brand = text(row.brand, 120) || 'H&M';
-  const regular = amount(row.price) ?? amount(row.initial_price);
-  const price = amount(row.sale_price) ?? amount(row.final_price) ?? regular;
-  const currency = /\$/.test(text(row.price, 40) + text(row.sale_price, 40)) || /^\/en_us\//i.test(new URL(sourceUrl).pathname) ? 'USD' : text(row.currency, 3) || undefined;
-  const images = dedupeSafeImages([text(row.image_url, 2000), ...strings(row.additional_image_urls), ...strings(row.image_urls)], sourceUrl, 12);
-  const selectedColor = attributes(row.variant_attributes).find(option => /colou?r/i.test(option.name))?.value;
-  const groups = optionGroups(row.variants ?? row.variants_details);
-  const colors = groups.find(group => /colou?r/i.test(group.type))?.options ?? [];
-  const sizes = groups.find(group => /size/i.test(group.type))?.options ?? [];
-  const articleId = text(row.variant_id ?? row.mpn, 20);
-  const available = row.availability === 'in_stock' ? true : row.availability === 'out_of_stock' ? false : undefined;
-  const variants: ProductVariant[] = sizes.slice(0, 80).map(option => {
-    const name = text(option.option_name, 60), own = amount(option.option_price) ?? price;
-    return {
-      id: text(option.option_id, 30) || undefined, productId: articleId || undefined, colorId: articleId || undefined, sourceUrl,
-      options: [...(selectedColor ? [{name: 'Color', value: selectedColor}] : []), {name: 'Size', value: name}],
-      ...(selectedColor ? {color: selectedColor} : {}), size: name,
-      label: [selectedColor, name].filter(Boolean).join(' · '),
-      available: option.in_stock === true, availabilityKnown: typeof option.in_stock === 'boolean',
-      price: own, ...(own && regular && regular > own ? {compareAtPrice: regular} : {}), image: images[0],
-    };
-  }).filter(variant => variant.size);
-  if (!variants.length) variants.push({
-    id: articleId || undefined, productId: articleId || undefined, sourceUrl,
-    options: selectedColor ? [{name: 'Color', value: selectedColor}] : [], ...(selectedColor ? {color: selectedColor} : {}),
-    label: selectedColor || 'Как в ссылке', available: available === true, availabilityKnown: available !== undefined,
-    price, ...(price && regular && regular > price ? {compareAtPrice: regular} : {}), image: images[0],
-  });
-  const warnings: string[] = [];
-  const otherColors = colors.filter(option => text(option.option_id, 30) !== articleId).length;
-  if (otherColors) warnings.push(`У H&M есть ещё ${otherColors} ${otherColors === 1 ? 'цвет' : otherColors < 5 ? 'цвета' : 'цветов'} — у каждого своя ссылка. Загружены размеры цвета из ссылки${selectedColor ? ` (${selectedColor})` : ''}.`);
-  if (variants.every(variant => variant.availabilityKnown && !variant.available)) warnings.push('Цвет из ссылки сейчас недоступен ни в одном размере на H&M.');
-  const category = inferProductCategory(`${title} ${text(row.product_category, 200)}`, brand);
-  return {
-    variantScope: 'color', variantsComplete: sizes.length > 0 && sizes.length <= 80, ...(text(row.group_id ?? row.item_id, 20) ? {groupId: text(row.group_id ?? row.item_id, 20)} : {}),
-    ...(articleId ? {sku: articleId} : {}),
-    title: title || undefined, brand, category, declarationDescription: declarationFor(category, title, brand),
-    image: images[0], images, ...(selectedColor ? {selectedVariantColor: selectedColor} : {}),
-    price, ...(price && regular && regular > price ? {referencePrice: regular} : {}), currency,
-    variants, country: 'США', warnings, sourceUrl, method: 'Bright Data · H&M',
   };
 }
 

@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {BrightDataPendingError, brightDataTarget, defaultBrightDataSettings, fetchBrightDataProduct, mapHmRecord, mapWalmartRecord, paidRecordsByDay, parseBrightDataSettings} from '../lib/importer/brightdata.ts';
+import {BrightDataPendingError, brightDataTarget, defaultBrightDataSettings, fetchBrightDataProduct, mapWalmartRecord, paidRecordsByDay, parseBrightDataSettings} from '../lib/importer/brightdata.ts';
 import {fetchProduct, ManualEntryFallbackError} from '../lib/importer/fetch.ts';
 import {brightDataLedgerPrefix, planBrightDataLedger} from '../lib/market/provider-ledger.ts';
 import {requestImport} from '../lib/market/import-client.ts';
 
-// Synthetic records shaped like Bright Data's Walmart and H&M scrapers (field names as the API returns them).
+// Synthetic records shaped like Bright Data's Walmart scraper (field names as the API returns them).
 const walmartUrl = 'https://www.walmart.com/ip/Crew-Tee-Short-Sleeve/1134943499?athbdg=L1600&from=/search';
 const walmartRecord = {
   url: 'https://www.walmart.com/ip/Crew-Tee-Short-Sleeve/1134943499', product_id: '1134943499', sku: '1134943499', variant_id: '22CUMF3V6I7H',
@@ -17,22 +17,6 @@ const walmartRecord = {
   variants: [{id: '22CUMF3V6I7H', us_item_id: '1134943499', in_stock: true, price: {value: 1.43, currency: 'USD'}}],
 };
 const hmUrl = 'https://www2.hm.com/en_us/productpage.1245444006.html';
-const hmRecord = {
-  url: hmUrl, item_id: '1245444', variant_id: '1245444006', group_id: '1245444', title: 'Wide Jeans', brand: 'H&M', product_category: 'Women>Jeans',
-  image_url: 'https://image.hm.com/assets/hm/5b/26/front.jpg', additional_image_urls: ['https://image.hm.com/assets/hm/79/26/back.jpg'],
-  price: '$54.99', sale_price: '$43.99', availability: 'in_stock',
-  variant_attributes: [{name: 'color', value: 'Light denim blue'}],
-  variants: [
-    {variant_type: 'color', variant_options: [
-      {option_id: '1245444005', option_name: 'Dark gray', option_price: 37.99, in_stock: true, image: 'https://image.hm.com/assets/hm/36/a3/gray.jpg'},
-      {option_id: '1245444006', option_name: 'Light denim blue', option_price: 43.99, in_stock: true, image: 'https://image.hm.com/assets/hm/5b/26/front.jpg'},
-    ]},
-    {variant_type: 'size', variant_options: [
-      {option_id: '1245444006002', option_name: 'XS', option_price: 43.99, in_stock: true, image: null},
-      {option_id: '1245444006003', option_name: 'S', option_price: 43.99, in_stock: false, image: null},
-    ]},
-  ],
-};
 
 function memoryJobs() {
   const jobs = [];
@@ -63,11 +47,10 @@ function runtime(overrides = {}) {
   return {apiKey: 'test-key', settings: defaultBrightDataSettings(), jobs: memoryJobs(), purpose: 'customer', now: () => clock, sleep: async ms => { clock += ms; }, advance: ms => { clock += ms; }, ...overrides};
 }
 
-test('Bright Data handles only exact Walmart product pages and US H&M product pages', () => {
+test('Bright Data handles only exact Walmart product pages', () => {
   assert.deepEqual(brightDataTarget(walmartUrl), {store: 'walmart', key: 'walmart:1134943499', url: 'https://www.walmart.com/ip/Crew-Tee-Short-Sleeve/1134943499'});
   assert.equal(brightDataTarget('https://www.walmart.com/ip/1134943499')?.key, 'walmart:1134943499');
-  assert.deepEqual(brightDataTarget(hmUrl), {store: 'hm', key: 'hm:1245444006', url: hmUrl});
-  for (const other of ['https://www.walmart.com/search?q=tee', 'https://www.walmart.ca/ip/tee/1134943499', 'https://www2.hm.com/de_de/productpage.1245444006.html', 'https://www.target.com/p/-/A-1', 'http://www.walmart.com/ip/x/1134943499'])
+  for (const other of [hmUrl, 'https://www.walmart.com/search?q=tee', 'https://www.walmart.ca/ip/tee/1134943499', 'https://www2.hm.com/de_de/productpage.1245444006.html', 'https://www.target.com/p/-/A-1', 'http://www.walmart.com/ip/x/1134943499'])
     assert.equal(brightDataTarget(other), undefined, other);
 });
 
@@ -101,21 +84,6 @@ test('Walmart marketplace seller and out-of-stock variant are called out', () =>
   assert.match(product.warnings.join(' '), /не в наличии/);
 });
 
-test('H&M record offers the sizes of the colour from the link with sale and regular price', () => {
-  const product = mapHmRecord(hmRecord, hmUrl);
-  assert.equal(product.title, 'Wide Jeans');
-  assert.equal(product.price, 43.99);
-  assert.equal(product.referencePrice, 54.99);
-  assert.equal(product.currency, 'USD');
-  assert.equal(product.variantScope, 'color');
-  assert.equal(product.variantsComplete, true);
-  assert.equal(product.selectedVariantColor, 'Light denim blue');
-  assert.equal(product.sku, '1245444006');
-  assert.deepEqual(product.variants.map(variant => [variant.label, variant.available, variant.price]), [['Light denim blue · XS', true, 43.99], ['Light denim blue · S', false, 43.99]]);
-  assert.equal(product.images.length, 2);
-  assert.match(product.warnings.join(' '), /ещё 1 цвет/);
-});
-
 test('a fast collection is triggered once, polled and recorded with its billed records', async () => {
   const {api, calls} = fakeApi(walmartRecord, {readyAfter: 2});
   const rt = runtime({api});
@@ -130,10 +98,10 @@ test('a fast collection is triggered once, polled and recorded with its billed r
 });
 
 test('a slow collection answers "pending" and the next request polls the same snapshot instead of paying again', async () => {
-  const {api, calls} = fakeApi(hmRecord, {readyAfter: 1000});
+  const {api, calls} = fakeApi(walmartRecord, {readyAfter: 1000});
   const rt = runtime({api});
-  await assert.rejects(fetchBrightDataProduct(hmUrl, rt), error => error instanceof BrightDataPendingError && error.store === 'hm' && error.retryAfterMs > 0);
-  await assert.rejects(fetchBrightDataProduct(hmUrl, rt), BrightDataPendingError);
+  await assert.rejects(fetchBrightDataProduct(walmartUrl, rt), error => error instanceof BrightDataPendingError && error.store === 'walmart' && error.retryAfterMs > 0);
+  await assert.rejects(fetchBrightDataProduct(walmartUrl, rt), BrightDataPendingError);
   assert.equal(calls.filter(call => call.path === '/datasets/v3/trigger').length, 1);
   assert.equal(rt.jobs.jobs.length, 1);
   assert.equal(rt.jobs.jobs[0].status, 'running');
@@ -153,7 +121,7 @@ test('the monthly limit, a switched-off store and catalog use without the settin
   const {api, calls} = fakeApi(walmartRecord);
   const limited = runtime({api, settings: {...defaultBrightDataSettings(), monthlyRecordLimit: 0}});
   assert.equal(await fetchBrightDataProduct(walmartUrl, limited), undefined);
-  const off = runtime({api, settings: {...defaultBrightDataSettings(), stores: {walmart: false, hm: true}}});
+  const off = runtime({api, settings: {...defaultBrightDataSettings(), stores: {walmart: false}}});
   assert.equal(await fetchBrightDataProduct(walmartUrl, off), undefined);
   const catalog = runtime({api, purpose: 'catalog'});
   assert.equal(await fetchBrightDataProduct(walmartUrl, catalog), undefined);
@@ -164,15 +132,18 @@ test('the monthly limit, a switched-off store and catalog use without the settin
 
 test('settings fall back to safe defaults on broken JSON', () => {
   assert.deepEqual(parseBrightDataSettings('{broken'), defaultBrightDataSettings());
-  assert.equal(parseBrightDataSettings(JSON.stringify({pricePer1kUsd: 2, stores: {walmart: false}})).stores.hm, true);
+  const saved = parseBrightDataSettings(JSON.stringify({pricePer1kUsd: 2, stores: {walmart: false, hm: true}}));
+  // A store saved before H&M was taken off Bright Data is dropped, not kept.
+  assert.deepEqual(saved.stores, {walmart: false});
+  assert.equal(saved.pricePer1kUsd, 2);
 });
 
 test('fetchProduct turns a running collection into a pending manual-entry error without touching the store page', async () => {
-  const {api} = fakeApi(hmRecord, {readyAfter: 1000});
+  const {api} = fakeApi(walmartRecord, {readyAfter: 1000});
   const rt = runtime({api, settings: {...defaultBrightDataSettings(), waitSeconds: 3}});
   let pageRequests = 0;
   const fetcher = Object.assign(async () => { pageRequests++; return new Response('blocked', {status: 403}); }, {brightData: async () => rt});
-  await assert.rejects(fetchProduct(hmUrl, fetcher), error => error instanceof ManualEntryFallbackError && error.reason === 'pending' && error.retryAfterMs > 0 && error.partial?.brand === 'H&M');
+  await assert.rejects(fetchProduct(walmartUrl, fetcher), error => error instanceof ManualEntryFallbackError && error.reason === 'pending' && error.retryAfterMs > 0 && error.partial?.brand === 'Walmart');
   assert.equal(pageRequests, 0);
 });
 
@@ -192,20 +163,20 @@ test('paid records start after the monthly free allowance and restart each month
 test('the books get one software expense per finished paid day, never for today, a closed month or an existing entry', () => {
   const days = [{day: '2026-09-30', records: 6000}, {day: '2026-10-01', records: 4990}, {day: '2026-10-02', records: 1010}, {day: '2026-10-03', records: 1000}, {day: '2026-10-09', records: 500}];
   const settings = {freeRecordsPerMonth: 5000, pricePer1kUsd: 1.5, ledger: true};
-  const plan = planBrightDataLedger(days, settings, {today: '2026-10-09', usdRate: 12_700, accounting: {lockedThrough: '2026-09'}, existingIds: new Set([brightDataLedgerPrefix + '2026-10-03']), stores: {'2026-10-02': {Walmart: 1000, 'H&M': 10}}});
+  const plan = planBrightDataLedger(days, settings, {today: '2026-10-09', usdRate: 12_700, accounting: {lockedThrough: '2026-09'}, existingIds: new Set([brightDataLedgerPrefix + '2026-10-03']), stores: {'2026-10-02': {Walmart: 1010}}});
   assert.deepEqual(plan.insert.map(entry => [entry.id, entry.kind, entry.amountUzs, entry.originalAmount, entry.originalCurrency, entry.counterparty]), [[brightDataLedgerPrefix + '2026-10-02', 'software', 19_050, 1.5, 'USD', 'Bright Data']]);
-  assert.match(plan.insert[0].note, /Walmart 1000, H&M 10/);
+  assert.match(plan.insert[0].note, /Walmart 1010/);
   assert.deepEqual(plan.skipped, [{day: '2026-09-30', reason: 'период закрыт'}]);
   assert.deepEqual(planBrightDataLedger(days, {...settings, ledger: false}, {today: '2026-10-09', usdRate: 12_700, accounting: {}, existingIds: new Set()}).insert, []);
 });
 
 test('the client asks again while the server answers 202 and gives up with a manual-entry answer', async () => {
-  const answers = [Response.json({pending: true, retryAfterMs: 3000, message: 'ждём'}, {status: 202}), Response.json({title: 'Wide Jeans'}, {status: 200})];
+  const answers = [Response.json({pending: true, retryAfterMs: 3000, message: 'ждём'}, {status: 202}), Response.json({title: 'Crew Tee'}, {status: 200})];
   const seen = [];
-  const response = await requestImport({url: hmUrl}, {fetcher: async () => answers.shift(), sleep: async () => {}, onPending: pending => seen.push(pending.message)});
+  const response = await requestImport({url: walmartUrl}, {fetcher: async () => answers.shift(), sleep: async () => {}, onPending: pending => seen.push(pending.message)});
   assert.equal(response.status, 200);
   assert.deepEqual(seen, ['ждём']);
-  const slow = await requestImport({url: hmUrl}, {fetcher: async () => Response.json({pending: true, message: 'ждём'}, {status: 202}), sleep: async () => {}, maxWaitMs: 0});
+  const slow = await requestImport({url: walmartUrl}, {fetcher: async () => Response.json({pending: true, message: 'ждём'}, {status: 202}), sleep: async () => {}, maxWaitMs: 0});
   assert.equal(slow.status, 422);
   const body = await slow.json();
   assert.equal(body.manualEntryAvailable, true);

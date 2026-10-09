@@ -13,7 +13,7 @@ const usd=(value:number)=>'$'+value.toLocaleString('ru-RU',{minimumFractionDigit
 const count=(value:number)=>value.toLocaleString('ru-RU');
 
 /**
- * Сервисы: paid data collection (Bright Data for Walmart and H&M). The month's records by store and day, the free
+ * Сервисы: paid data collection (Bright Data for Walmart). The month's records by store and day, the free
  * allowance left, the cost over it and the daily expense entries already posted to the books ("Сервисы и хостинг",
  * AUTO-BRIGHTDATA-<day>). Settings are saved by the administrator only (audited); everyone with finance.read sees them.
  */
@@ -45,8 +45,8 @@ export function AccountingServices({ctx}:{ctx:AccountingContext}){
  if(!usage||!draft)return <div className="acc-tab-body"><Status>Загружаем сервисы…</Status></div>;
  const s=usage.settings,readOnly=!isAdmin||busy;
  return <div className="acc-tab-body">
-  <p className="micro">Walmart и H&M закрыты от серверов защитой от ботов, поэтому их товары собирает Bright Data (готовые парсеры, 1 запись = 1 кредит = один товар). Первые {count(s.freeRecordsPerMonth)} записей в месяц бесплатны, дальше — {usd(s.pricePer1kUsd)} за 1000. Платная часть каждого завершённого дня автоматически проводится расходом «Сервисы и хостинг» по курсу ЦБ. Пополнение кошелька Bright Data отдельным расходом не проводите — иначе расход учтётся дважды.</p>
-  {!usage.configured&&<p className="notice" role="status">На сервере не задан секрет <code>BRIGHTDATA_API_KEY</code> — Bright Data сейчас не используется, Walmart и H&M загружаются обычным путём.</p>}
+  <p className="micro">Walmart закрыт от серверов защитой от ботов, поэтому его товары собирает Bright Data (готовые парсеры, 1 запись = 1 кредит = один товар). Первые {count(s.freeRecordsPerMonth)} записей в месяц бесплатны, дальше — {usd(s.pricePer1kUsd)} за 1000. Платная часть каждого завершённого дня автоматически проводится расходом «Сервисы и хостинг» по курсу ЦБ. Пополнение кошелька Bright Data отдельным расходом не проводите — иначе расход учтётся дважды.</p>
+  {!usage.configured&&<p className="notice" role="status">На сервере не задан секрет <code>BRIGHTDATA_API_KEY</code> — Bright Data сейчас не используется, Walmart загружается обычным путём.</p>}
   <div className="accounting-cards">
    <Kpi icon={Database} label={`Записей за ${month}`} value={count(usage.used)} note={usage.running?`${usage.running} ещё собирается`:`лимит месяца ${count(s.monthlyRecordLimit)}, осталось ${count(usage.limitLeft)}`}/>
    <Kpi icon={Gift} label="Бесплатных осталось" value={count(usage.freeLeft)} note={`из ${count(s.freeRecordsPerMonth)} в месяц`}/>
@@ -75,7 +75,6 @@ export function AccountingServices({ctx}:{ctx:AccountingContext}){
      <legend className="sr-only">Где использовать</legend>
      <label className="acc-check"><input type="checkbox" checked={draft.enabled} onChange={event=>set('enabled',event.target.checked)}/>Использовать Bright Data</label>
      <label className="acc-check"><input type="checkbox" checked={draft.stores.walmart} onChange={event=>set('stores',{...draft.stores,walmart:event.target.checked})}/>Walmart</label>
-     <label className="acc-check"><input type="checkbox" checked={draft.stores.hm} onChange={event=>set('stores',{...draft.stores,hm:event.target.checked})}/>H&M (США)</label>
      <label className="acc-check"><input type="checkbox" checked={draft.catalog} onChange={event=>set('catalog',event.target.checked)}/>Также для каталога и его ежечасной проверки</label>
      <label className="acc-check"><input type="checkbox" checked={draft.ledger} onChange={event=>set('ledger',event.target.checked)}/>Проводить платную часть в бухгалтерию</label>
     </fieldset>
@@ -95,7 +94,7 @@ export function AccountingServices({ctx}:{ctx:AccountingContext}){
    <div className="acc-block-head"><h4>Последние сборы</h4><span className="micro">до 50 за месяц</span></div>
    {usage.jobs.length?<div className="acc-scroll"><table className="accounting-table acc-table">
     <thead><tr><th scope="col">Начат</th><th scope="col">Магазин</th><th scope="col">Статус</th><th scope="col">Записей</th><th scope="col">Для</th><th scope="col">Товар</th></tr></thead>
-    <tbody>{usage.jobs.map(job=><tr key={job.snapshotId}><th scope="row">{dateTime(job.createdAt)}</th><td>{job.store==='hm'?'H&M':'Walmart'}</td><td><Badge tone={statusTone(job.status)}>{statusNames[job.status]??job.status}</Badge>{job.error?<small className="micro"> {job.error}</small>:null}</td><td className="num">{count(job.records)}</td><td>{purposeNames[job.purpose]??job.purpose}</td><td><a href={job.url} target="_blank" rel="noopener noreferrer">открыть</a></td></tr>)}</tbody>
+    <tbody>{usage.jobs.map(job=><tr key={job.snapshotId}><th scope="row">{dateTime(job.createdAt)}</th><td>{job.store==='walmart'?'Walmart':job.store}</td><td><Badge tone={statusTone(job.status)}>{statusNames[job.status]??job.status}</Badge>{job.error?<small className="micro"> {job.error}</small>:null}</td><td className="num">{count(job.records)}</td><td>{purposeNames[job.purpose]??job.purpose}</td><td><a href={job.url} target="_blank" rel="noopener noreferrer">открыть</a></td></tr>)}</tbody>
    </table></div>:<p className="micro" role="status">Сборов пока нет.</p>}
   </div>
  </div>;

@@ -10,16 +10,21 @@ The signed proxy permits both Referer and Origin from the exact known storefront
 
 Signed proxy validation now permits only exact GET Referer pairs www.target.com→redsky.target.com and victoriassecret.com/www.victoriassecret.com→api.victoriassecret.com; Origin restrictions and HTTPS/allowlist/credential/port checks remain. Signed HTTP regressions cover accepted pairs and rejected unrelated/insecure/credentialed sources. Target groups exceeding120 leaves remain incomplete after truncation. These fixes are required for US proxy operation and safe automatic publication. VPS host snapshot must preserve existing hosts and include redsky.target.com.
 
-## Bright Data для Walmart и H&M — 9 октября 2026
+## Магазины только для ручного ввода — 10 октября 2026
 
-- [ ] Выкатка: секрет Worker `BRIGHTDATA_API_KEY` и миграция `drizzle/0012_provider_jobs.sql` на рабочей D1 (см. `AUTH_SETUP.md`, раздел 10). Без секрета Walmart и H&M идут прежним путём.
+- [ ] Список `manualEntryStoreRoots` (H&M, New Balance, Columbia, Sephora US, Best Buy, Levi's, Victoria's Secret US, Macy's) собран по прогонам 9.10.2026. Пересматривать: если магазин начнёт читаться (браузерная ступень, другой адрес), убрать его из списка — адаптеры (например, Victoria's Secret US) остались в коде.
+- [ ] Остальные ~200 магазинов списка вживую не проверялись. Магазин, который на деле не читается, по-прежнему проходит загрузку и падает в черновик «не все данные получены» — его стоит добавить в `manualEntryStoreRoots`.
+- [ ] Ручной ввод не проверяет цену: оператор должен сверить её со страницей перед выкупом. Отдельного процесса «цена в магазине оказалась другой → доплата/возврат по товару» нет (есть только для доставки магазина, веса и пошлины) — при расхождении оператор решает вопрос с покупателем вручную.
+- [ ] На главной и в витрине магазинов H&M и Sephora по-прежнему показаны среди логотипов; решить, помечать ли магазины ручного ввода.
+
+## Bright Data для Walmart (H&M убран 10.10.2026) — 9 октября 2026
+
+- [ ] Выкатка: секрет Worker `BRIGHTDATA_API_KEY` и миграция `drizzle/0012_provider_jobs.sql` на рабочей D1 (см. `AUTH_SETUP.md`, раздел 10). Без секрета Walmart идёт прежним путём.
 - [ ] Перевыпустить ключ Bright Data: тот, что использовался при разработке, был на скриншоте.
-- [ ] H&M собирается около 6 минут: клиент ждёт с автоповтором, но в заказе по ссылке и на рабочем месте заказа ожидание короче. Если долго — рассмотреть уведомление «товар готов» вместо ожидания на странице.
 - [ ] Walmart отдаёт один вариант на запись (без матрицы цвет × размер): другие варианты — только по их ссылкам, клиент видит предупреждение.
 - [ ] Бесплатный лимит считается по месяцу Ташкента, а Bright Data может считать по UTC или по дате подписки: сверить с первым счётом и при расхождении поправить `freeRecordsPerMonth` или проводку вручную.
 - [ ] Два одновременных запроса одного товара (до записи задания в D1) могут запустить сбор дважды — лишний кредит. Нужна блокировка по `item_key`, если это станет заметно.
 - [ ] Цена Walmart $1,43 (до скидки $5,98) у футболки George — сверить вручную со страницей: могла быть цена отдельного размера или распродажи.
-- [ ] H&M вживую через наш код не проверялся целиком (только пробный сбор Bright Data и маппинг на его записи).
 
 ## Old Navy, Gap, Banana Republic, Ulta, Macy's — 9 октября 2026
 
@@ -158,7 +163,7 @@ The user explicitly requested the partner tracking code in the main homepage hea
 - [ ] Shopify ограничивает адрес US-прокси на UpCloud: все Shopify-магазины отдают прокси 429, напрямую — 200. Код делает один прямой повтор из Worker (цена тогда может быть региональной, в черновике есть предупреждение). Правильное решение — второй/ротируемый US-адрес или резидентный выход для `*.myshopify`-магазинов.
 - [ ] Zara, Macy's — Akamai, Walmart — PerimeterX, eBay HTML — 403 всегда. Импорт честно сообщает «антибот-проверка (вендор)» и создаёт черновик на ручную проверку; обойти кодом нельзя. Для Zara возможен адаптер к публичному API `/products-details?productIds=`, для Uniqlo — `www.uniqlo.com/us/api/commerce/v5/en/products/<id>` (не делали).
 - [ ] eBay Browse в проде отвечал HTTP 400 с неизвестным `errorId`; теперь текст eBay (этап, HTTP, errorId, сообщение) виден администратору прямо в черновике — после следующего прод-импорта `/itm/…` прочитать причину и починить (вероятны: не активирован keyset Production, scope `buy.browse` отсутствует, ссылка с legacy-id). Локально проверить нельзя: ключи только на деплое.
-- [ ] `www2.hm.com` добавлен в allowlist кода, но JSON allowlist прокси (`supported-store-hosts.json` на сервере) не переэкспортирован — до редеплоя прокси H&M отвечает «временно не отдал данные».
+- [x] ~~`www2.hm.com` в JSON allowlist прокси~~ — неактуально с 10.10.2026: H&M не загружается, покупатель вводит данные сам.
 - [ ] Батч админа ограничен 25 ссылками за запрос (8 одновременно на сервере, лимит Worker по времени); больше — по частям, остаток остаётся в поле.
 - [ ] Не проверено вживую в UI админа (`/admin` → импорт): проверялись сервер, разбор ссылок и импортер тестами и живым прогоном через прод-прокси из Node.
 ## SEO: что не исправить из кода — 7 октября 2026

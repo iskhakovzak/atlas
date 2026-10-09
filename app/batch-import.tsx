@@ -30,7 +30,7 @@ export function BatchImportView(){
    const publish=()=>{setResult(outcomes.filter(Boolean).map(item=>item.note));setProgress({stage:'checking',done,total:links.length})};
    try{
     await Promise.all(links.map(async(url,index)=>{
-     try{const response=await requestImport({url},{maxWaitMs:8*60_000});const data=await response.json() as Candidate['data']&{error?:string};if(!response.ok)throw Error(data.error??c.missingData);const variants=data.variants??[];if(!data.title||!data.country||(data.price===undefined&&!variants.some(v=>v.price!==undefined)))throw Error(c.missingData);const available=variants.filter(v=>v.available);outcomes[index]={candidate:{key:crypto.randomUUID(),data,selected:available.length===1?available[0].label:''},note:`${c.checked}: ${data.title}`}}
+     try{const response=await requestImport({url},{maxWaitMs:2*60_000});const data=await response.json() as Candidate['data']&{error?:string};if(!response.ok)throw Error(data.error??c.missingData);const variants=data.variants??[];if(!data.title||!data.country||(data.price===undefined&&!variants.some(v=>v.price!==undefined)))throw Error(c.missingData);const available=variants.filter(v=>v.available);outcomes[index]={candidate:{key:crypto.randomUUID(),data,selected:available.length===1?available[0].label:''},note:`${c.checked}: ${data.title}`}}
      catch(error){outcomes[index]={note:`${c.problem}: ${url} — ${(error as Error).message}`}}
      done++;publish();
     }));

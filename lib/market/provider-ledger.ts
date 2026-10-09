@@ -27,7 +27,7 @@ export function planBrightDataLedger(days: ProviderDay[], settings: Pick<BrightD
     const byStore = Object.entries(options.stores?.[charge.day] ?? {}).filter(([, count]) => count > 0).map(([store, count]) => `${store} ${count}`).join(', ');
     insert.push({
       id, kind: 'software', amountUzs, originalAmount: charge.usd, originalCurrency: 'USD', occurredOn: charge.day, counterparty: brightDataCounterparty,
-      note: `Сбор данных Walmart/H&M: ${charge.records} записей за день${byStore ? ` (${byStore})` : ''}, платных ${charge.paidRecords} сверх ${settings.freeRecordsPerMonth} бесплатных в месяц, $${settings.pricePer1kUsd} за 1000.`.slice(0, 500),
+      note: `Сбор данных Walmart: ${charge.records} записей за день${byStore ? ` (${byStore})` : ''}, платных ${charge.paidRecords} сверх ${settings.freeRecordsPerMonth} бесплатных в месяц, $${settings.pricePer1kUsd} за 1000.`.slice(0, 500),
     });
   }
   return {insert, skipped};

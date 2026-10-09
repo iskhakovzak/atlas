@@ -25,7 +25,7 @@ export const catalogDraftSchema=z.object({
   colorwayImages:z.array(sourceColorwayGallerySchema).max(250).optional(),
   collectionIds:z.array(text.max(80)).max(20),description:text.max(600),checkedAt:z.number().int().nonnegative(),
   warnings:z.array(text.max(500)).max(20),soldOut:z.boolean().optional(),reviewReasons:z.array(text.max(240)).max(10).optional(),lastCheckError:text.max(500).optional(),
-  importFailureReason:z.enum(['blocked','network','upstream','response','redirect','timeout','incomplete','pending','unknown']).optional(),
+  importFailureReason:z.enum(['blocked','network','upstream','response','redirect','timeout','incomplete','pending','manual','unknown']).optional(),
   /** Where boxedWeight came from; legacy drafts without it are treated as possibly operator-edited. */
   weightBasis:z.enum(['store','estimate','operator']).optional(),
   /** Operator-set showcase position: lower comes first; empty means no position. */

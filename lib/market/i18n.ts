@@ -61,7 +61,16 @@ export function importManualEntryMessage(locale:Locale):string{
   }, locale);
 }
 
-/** A Walmart/H&M link whose data a collection service is still gathering; the page retries by itself. */
+/** A store Atlas does not read automatically (manualEntryStoreRoots): the customer types the details in. */
+export function importManualStoreMessage(locale:Locale):string{
+  return pickLocale({
+    ru:"Этот магазин не отдаёт данные товара автоматически. Откройте товар на сайте магазина и впишите название, цену, вариант и доставку сами — оператор Atlas сверит их перед выкупом.",
+    uz:"Bu do‘kon tovar ma’lumotlarini avtomatik bermaydi. Tovarni do‘kon saytida oching va nomi, narxi, varianti va yetkazishni o‘zingiz kiriting — Atlas operatori xariddan oldin ularni solishtiradi.",
+    en:"This store does not share product details automatically. Open the item on the store's site and enter the name, price, option and shipping yourself — an Atlas operator checks them before buying.",
+  }, locale);
+}
+
+/** A Walmart link whose data a collection service is still gathering; the page retries by itself. */
 export function importPendingMessage(locale:Locale):string{
   return pickLocale({
     ru:"Собираем данные товара через сервис магазина — это может занять до нескольких минут. Страница обновится сама.",

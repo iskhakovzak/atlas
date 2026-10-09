@@ -108,6 +108,11 @@ test('only a fresh store check of a plain link comes back as it was; anything el
 
 test('the typed values come back only for a failed check of a plain link', () => {
   assert.equal(draftChoices(parseDraft(stored(), now)).manual, undefined);
+  // A store Atlas does not read keeps what the customer typed too, and reloads into the same form.
+  const typed = parseDraft(stored({ sourceCheckStatus: 'manual', amount: '30', name: 'Shirt' }), now);
+  assert.equal(typed.sourceCheckStatus, 'manual');
+  assert.equal(restoreMode(typed, now), 'choices');
+  assert.equal(draftChoices(typed).manual.amount, '30');
   assert.equal(draftChoices(parseDraft(stored({ sourceCheckStatus: 'failed', catalogId: 'c' }), now)).manual, undefined);
   const choices = draftChoices(parseDraft(stored({ sourceCheckStatus: 'failed', amount: '12', name: 'Typed' }), now));
   assert.equal(choices.manual.amount, '12');

@@ -126,3 +126,23 @@ export function isSupportedStoreHost(host:string){
 }
 
 export const supportedStoreCount=supportedStoreRoots.length;
+
+/**
+ * Stores whose product pages Atlas cannot read from its servers (bot walls, 403 from every route, data drawn by
+ * scripts; checked October 2026): Atlas does not try them at all. The customer fills in the name, price, option and
+ * store delivery from the store page and confirms them; the server accepts that confirmed snapshot without a store
+ * check, and the operator compares it with the store before buying. Removing a root here turns automatic import back on.
+ */
+export const manualEntryStoreRoots = [
+  'hm.com','newbalance.com','columbia.com','sephora.com','bestbuy.com','levi.com','victoriassecret.com','macys.com',
+] as const;
+const manualEntryHosts = new Set<string>(['www2.hm.com','api.victoriassecret.com']);
+for (const root of manualEntryStoreRoots) {
+  manualEntryHosts.add(root);
+  manualEntryHosts.add('www.' + root);
+  if (shopSubdomains.has(root)) manualEntryHosts.add('shop.' + root);
+}
+
+export function isManualEntryStoreHost(host:string){
+  return manualEntryHosts.has(host.toLowerCase().replace(/\.$/, ''));
+}

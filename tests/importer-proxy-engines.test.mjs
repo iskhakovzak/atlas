@@ -114,7 +114,7 @@ test('the Worker client asks for auto mode and the importer reports what the eng
     payload=JSON.parse(init.body);
     return Response.json({version:1,status:403,engine:'impersonate',attempts:['fetch:403:http-403','impersonate:403:http-403'],headers:{contentType:'text/html'},body:''});
   }});
-  const error=await fetchProduct('https://www.sephora.com/product/x',fetcher).catch(value=>value);
+  const error=await fetchProduct('https://www.abercrombie.com/shop/us/p/x',fetcher).catch(value=>value);
   assert.equal(payload.engine,'auto');
   assert.ok(error instanceof ManualEntryFallbackError);
   assert.equal(error.reason,'blocked');

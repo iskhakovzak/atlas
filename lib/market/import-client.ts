@@ -1,4 +1,4 @@
-/** What POST /api/import answers with 202 while a Walmart/H&M collection is still running (lib/importer/brightdata.ts). */
+/** What POST /api/import answers with 202 while a Walmart collection is still running (lib/importer/brightdata.ts). */
 export type ImportPending = {pending: true; retryAfterMs?: number; message?: string; sourceUrl?: string};
 
 export type ImportRequestOptions = {
@@ -6,7 +6,7 @@ export type ImportRequestOptions = {
   onPending?: (pending: ImportPending, waitedMs: number) => void;
   /** Stop waiting (the customer pasted another link or left the page). */
   isCancelled?: () => boolean;
-  /** H&M can take ~6 minutes on Bright Data's side; after this the page offers manual entry. */
+  /** Walmart usually needs 5–25 s on Bright Data's side; after this the page offers manual entry. */
   maxWaitMs?: number;
   fetcher?: typeof fetch;
   sleep?: (ms: number) => Promise<void>;
@@ -20,7 +20,7 @@ const pendingResponse = (pending: ImportPending) => new Response(JSON.stringify(
  */
 export async function requestImport(body: {url: string; fresh?: boolean}, options: ImportRequestOptions = {}): Promise<Response> {
   const fetcher = options.fetcher ?? fetch, sleep = options.sleep ?? ((ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)));
-  const maxWaitMs = options.maxWaitMs ?? 10 * 60_000, started = Date.now();
+  const maxWaitMs = options.maxWaitMs ?? 2 * 60_000, started = Date.now();
   let last: ImportPending | undefined;
   for (;;) {
     const response = await fetcher('/api/import', {method: 'POST', headers: {'Content-Type': 'application/json'}, credentials: 'same-origin', body: JSON.stringify(body)});

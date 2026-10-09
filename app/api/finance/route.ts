@@ -57,7 +57,7 @@ export async function GET(request: Request) {
       if (!csv) throw new HttpError(400, "Неизвестная выгрузка.");
       return csvResponse(csv, `atlas-${exportKind}-${from}${to !== from ? "_" + to : ""}`);
     }
-    // ?providers=YYYY-MM: paid data services (Bright Data for Walmart/H&M) — usage, cost, settings, posted expenses.
+    // ?providers=YYYY-MM: paid data services (Bright Data for Walmart) — usage, cost, settings, posted expenses.
     if (url.searchParams.has("providers")) {
       const selected = month.parse(url.searchParams.get("providers") || thisMonth());
       const sync = await refreshProviderBooks();

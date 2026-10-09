@@ -1,18 +1,18 @@
 import type { Product } from '../market/domain.ts';
 import { ManualEntryFallbackError, validateManualSourceUrl } from './fetch.ts';
 import { verifyKnownSnapshotFields } from './verify.ts';
-import { isSupportedStoreHost } from './stores.ts';
+import { isManualEntryStoreHost, isSupportedStoreHost } from './stores.ts';
 
 /**
  * Supported merchants must still be checked against the live source. For a
- * public HTTPS store outside the importer allowlist, no server fetch is made;
- * a customer-reviewed manual snapshot can continue through the ordinary
- * server-side pricing and account checks.
+ * public HTTPS store outside the importer allowlist, or one Atlas cannot read
+ * (manualEntryStoreRoots), no server fetch is made; a customer-reviewed manual
+ * snapshot can continue through the ordinary server-side pricing and account checks.
  */
 export function requiresMerchantSnapshot(product: Pick<Product, 'sourceUrl' | 'sourceManuallyConfirmed'>, allowLegacyManualSnapshot = false) {
   if (!product.sourceUrl) return false;
   const source = validateManualSourceUrl(product.sourceUrl);
-  if (isSupportedStoreHost(source.hostname)) return true;
+  if (isSupportedStoreHost(source.hostname) && !isManualEntryStoreHost(source.hostname)) return true;
   if (product.sourceManuallyConfirmed || allowLegacyManualSnapshot) return false;
   throw Error('Проверьте и подтвердите цену и вариант товара вручную.');
 }

@@ -49,7 +49,7 @@ async function merchantRequest(input:string|URL,init?:RequestInit):Promise<Respo
 },
 );
 
-/** Bright Data for Walmart/H&M: only with the BRIGHTDATA_API_KEY secret and D1; settings live in market_settings. */
+/** Bright Data for Walmart: only with the BRIGHTDATA_API_KEY secret and D1; settings live in market_settings. */
 function brightDataRuntime(purpose:BrightDataPurpose){
   return async():Promise<BrightDataRuntime|undefined>=>{
     const apiKey=(env as unknown as {BRIGHTDATA_API_KEY?:string}).BRIGHTDATA_API_KEY?.trim()??'';

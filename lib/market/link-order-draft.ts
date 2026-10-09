@@ -35,7 +35,8 @@ export const maxQuantity = 10;
 /** A clock a little ahead of ours is tolerated; a draft "from the future" beyond this is not. */
 const clockSkewMs = 5 * 60_000;
 
-export type CheckStatus = 'idle' | 'checking' | 'verified' | 'failed';
+/** 'manual': a store Atlas does not read (manualEntryStoreRoots); the customer types the details and confirms them. */
+export type CheckStatus = 'idle' | 'checking' | 'verified' | 'failed' | 'manual';
 export type DraftSpeed = 'express' | 'standard';
 export type WeightBasis = 'store' | 'estimate' | 'title' | 'catalog' | 'customer';
 /** Fields Atlas filled from the store: shown locked on the page, as read-only lines. */
@@ -84,7 +85,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 const text = (value: unknown, max = 3000, fallback = '') => typeof value === 'string' ? value.slice(0, max) : fallback;
 const finite = (value: unknown) => typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 const positive = (value: unknown) => { const number = finite(value); return number !== undefined && number > 0 ? number : undefined; };
-const statuses: readonly CheckStatus[] = ['idle', 'checking', 'verified', 'failed'];
+const statuses: readonly CheckStatus[] = ['idle', 'checking', 'verified', 'failed', 'manual'];
 const bases: readonly WeightBasis[] = ['store', 'estimate', 'title', 'catalog', 'customer'];
 const lockNames = ['name', 'price', 'shipping', 'country', 'category', 'weight'] as const;
 /** A link as the page accepts it (https, a real host), or empty. */
@@ -240,7 +241,7 @@ export function draftChoices(draft: LinkOrderDraft): DraftChoices {
   };
   if (!draft.variants.length && draft.variant.trim()) choices.manualOption = { label: draft.variant.trim(), quantity: draft.manualQuantity };
   // Typed by the customer only when the store did not answer; a catalog card or a deal rebuilds these from its record.
-  if (draft.sourceCheckStatus === 'failed' && !draft.catalogId && !draft.dealId) {
+  if ((draft.sourceCheckStatus === 'failed' || draft.sourceCheckStatus === 'manual') && !draft.catalogId && !draft.dealId) {
     const { name, currency, amount, shipping, shippingCurrency, shippingEstimated, weight, weightBasis, weightOrigin, country, otherCountry, category } = draft;
     choices.manual = { name, currency, amount, shipping, shippingCurrency, shippingEstimated, weight, weightBasis, weightOrigin, country, otherCountry, category };
   }

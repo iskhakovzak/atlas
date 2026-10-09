@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import { fetchProduct, isAmazonUsUrl, ManualEntryFallbackError, UnsupportedStoreError, validateManualSourceUrl } from '@/lib/importer/fetch';
-import { isSupportedStoreHost } from '@/lib/importer/stores';
+import { isManualEntryStoreHost, isSupportedStoreHost } from '@/lib/importer/stores';
 import { merchantRequest } from '@/lib/importer/worker-fetch';
 import { database, sameOrigin, json, failure, HttpError, requestJson } from '@/lib/market/server';
 import { currentUser } from '@/lib/auth/server';
 import { importRateBuckets } from '@/lib/market/import-preview';
-import { apiErrorMessage, importManualEntryMessage, importPendingMessage, requestLocale, serverError } from '@/lib/market/i18n';
+import { apiErrorMessage, importManualEntryMessage, importManualStoreMessage, importPendingMessage, requestLocale, serverError } from '@/lib/market/i18n';
 
 const importRequestSchema = z.object({ url: z.string().max(3000), fresh: z.boolean().optional() });
 
@@ -45,6 +45,19 @@ export async function POST(request: Request) {
       }, 422);
     }
 
+    // A store Atlas cannot read is not asked: the page opens the form for the customer's own entry right away.
+    if (isManualEntryStoreHost(new URL(sourceUrl).hostname)) {
+      const host = new URL(sourceUrl).hostname;
+      return json({
+        sourceUrl,
+        brand: host.replace(/^(?:www2?|shop)\./, ''),
+        warnings: [],
+        error: importManualStoreMessage(requestLocale(request)),
+        manualEntryAvailable: true,
+        manualStore: true,
+      }, 422);
+    }
+
     const cached = liveLocationRequired ? undefined : await db.prepare('SELECT payload,expires_at,updated_at FROM market_import_cache WHERE url=? AND expires_at>?')
       .bind(sourceUrl, now).first<{ payload: string; expires_at: number; updated_at: number }>();
     if (cached && !payload.data.fresh) {
@@ -67,7 +80,7 @@ export async function POST(request: Request) {
       return json({ ...data, fetchedAt, expiresAt, cached: false });
     } catch (error) {
       const locale = requestLocale(request);
-      // Walmart/H&M through Bright Data: the collection is still running. The client asks again after retryAfterMs;
+      // Walmart through Bright Data: the collection is still running. The client asks again after retryAfterMs;
       // the same snapshot is polled, never collected (and paid for) twice.
       if (error instanceof ManualEntryFallbackError && error.reason === 'pending') {
         return json({ sourceUrl, pending: true, retryAfterMs: error.retryAfterMs ?? 4000, message: locale === 'ru' ? error.message : importPendingMessage(locale) }, 202);

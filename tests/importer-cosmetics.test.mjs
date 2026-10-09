@@ -44,16 +44,12 @@ test("a Victoria's Secret US link reads the storefront's own product document: s
   assert.equal(victoriasSecretRequest(new URL('https://www.victoriassecret.com/uz/pink/bras-catalog/5000010533')), undefined, 'only the US storefront prices in USD');
   assert.equal(victoriasSecretRequest(new URL('https://www.victoriassecret.com/us/pink/bras')), undefined);
 
+  // The US storefront refuses Atlas, so the link opens manual entry without a request; the adapter itself stays.
   const calls = [];
-  const fetcher = async input => {
-    const url = new URL(String(input));
-    calls.push(url.href);
-    if (url.hostname === 'api.victoriassecret.com') return new Response(JSON.stringify(vsPayload), {status: 200, headers: {'Content-Type': 'application/json'}});
-    return new Response('<html><head><title>Buy Marshmallow Bra - PINK US</title></head><body></body></html>', {status: 200, headers: {'Content-Type': 'text/html'}});
-  };
-  const product = await fetchProduct(vsUrl, fetcher);
-  assert.equal(calls.length, 1, 'the page shell is not fetched when the document answers');
-  assert.equal(product.method, "Victoria's Secret product API");
+  const fetcher = async input => { calls.push(String(input)); return new Response('', {status: 200}); };
+  await assert.rejects(fetchProduct(vsUrl, fetcher), error => error instanceof ManualEntryFallbackError && error.reason === 'manual');
+  assert.equal(calls.length, 0);
+  const product = extractVictoriasSecret(vsPayload, vsUrl, request);
   assert.equal(product.title, 'Marshmallow Push-Up Wireless Comfy Bra');
   assert.equal(product.brand, 'PINK');
   assert.equal(product.currency, 'USD');
@@ -74,10 +70,6 @@ test("a Victoria's Secret US link reads the storefront's own product document: s
   assert.equal(featured.price, 46.95);
   assert.equal(featured.referencePrice, undefined);
   assert.equal(extractVictoriasSecret(vsPayload, vsUrl, {productId: '1'}), undefined);
-
-  // A refused document leaves a manual-review draft with a clear block reason rather than a silent empty import.
-  const blocked = async () => new Response('', {status: 403, headers: {'Content-Type': 'application/json'}});
-  await assert.rejects(fetchProduct(vsUrl, blocked), error => error instanceof ManualEntryFallbackError && error.reason === 'blocked');
 });
 
 test('reCAPTCHA widgets and vendor scripts on a served product page are not a bot wall (Druni), real walls still are', () => {
