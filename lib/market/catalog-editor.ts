@@ -400,7 +400,8 @@ function confirmedDraft(draft:CatalogDraft,now:number):CatalogDraft{
     confirmedBy:'operator',confirmedAt:now,
   });
 }
-export function changeCatalog(current:CatalogDocument,command:CatalogCommand,now=Date.now(),pricing:Pricing=tariff):CatalogDocument{
+/** With a `report`, publish/confirm publish every card that passes review and list the rest in `skipped`; without it, the first problem throws. */
+export function changeCatalog(current:CatalogDocument,command:CatalogCommand,now=Date.now(),pricing:Pricing=tariff,report?:{published:number;skipped:string[]}):CatalogDocument{
   const next=structuredClone(current);
   if(command.kind==='collection'){
     const value=collectionSchema.parse(command.collection),index=next.collections.findIndex(c=>c.id===value.id);
@@ -436,11 +437,17 @@ export function changeCatalog(current:CatalogDocument,command:CatalogCommand,now
       if(command.kind==='hide'){delete entry.published;delete entry.publishedAt;delete entry.autoHiddenAt;delete entry.autoHideReason;entry.queueState='archived';next.availabilityReports=next.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:now}:report);continue}
       const draft=command.kind==='confirm'?confirmedDraft(entry.draft,now):entry.draft;
       const issues=catalogIssues(draft,now,pricing.rates);
-      if(issues.length)throw Error(`${draft.name||'Товар'}: ${issues.join(', ')}`);
+      if(issues.length){
+        const text=`${draft.name||'Товар'}: ${issues.join(', ')}`;
+        if(!report)throw Error(text);
+        report.skipped.push(text);continue;
+      }
       entry.draft=draft;
       entry.published=structuredClone(draft);entry.publishedAt=now;entry.queueState='published';delete entry.autoHiddenAt;delete entry.autoHideReason;
       if(command.kind==='confirm')resolveAvailabilityReports(next,id,now);
+      if(report)report.published++;
     }
+    if(report&&!report.published&&report.skipped.length)throw Error(report.skipped.slice(0,5).join('; ')+(report.skipped.length>5?` и ещё ${report.skipped.length-5}`:''));
   }
   next.revision++;return catalogDocumentSchema.parse(next);
 }

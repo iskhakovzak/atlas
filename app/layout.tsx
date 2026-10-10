@@ -49,6 +49,7 @@ import "./accounting.css";
 import "./admin-investor.css";
 import "./site-content-admin.css";
 import "./checkbox.css";
+import "./admin-wide.css";
 import "./press.css";
 import "./header-panel.css";
 import "./motion.css";
