@@ -39,6 +39,7 @@ import "./ambient.css";
 import "./orders-groups.css";
 import "./cart-select.css";
 import "./checkbox.css";
+import "./admin-wide.css";
 import "./press.css";
 import "./header-panel.css";
 import "./motion.css";
