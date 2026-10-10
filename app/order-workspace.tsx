@@ -55,6 +55,7 @@ import {
   settle,
   orderPayable,
   orderNeedsOperatorAttention,
+  orderInsuranceRate,
   standardDeliveryPerKgUsd,
   serviceDescription,
   serviceFeeForCountry,
@@ -85,7 +86,8 @@ import { courierAllowanceUsd } from "@/lib/market/customs";
 import { calcCopy } from "@/lib/market/calc-copy";
 import { usdText } from "./calc-summary";
 import { Money } from "./money";
-import { CustomerExtraCharge, ExtraChargeHistory, OperatorExtraCharges } from "./order-extra-charges";
+import { CustomerExtraCharge, ExtraChargeHistory, OperatorExtraCharges, insuranceShare } from "./order-extra-charges";
+import { CustomerParcelClaim, OperatorParcelClaims } from "./parcel-claim";
 import {
   PageHeading,
   Empty,
@@ -423,6 +425,7 @@ function OperatorOrderTools({
           <div className="two-fields"><div className="field"><label htmlFor={`previous-${order.id}`}>Было</label><input id={`previous-${order.id}`} maxLength={240} value={previousValue} onChange={(event)=>setPreviousValue(event.target.value)}/></div><div className="field"><label htmlFor={`proposed-${order.id}`}>Стало</label><input id={`proposed-${order.id}`} maxLength={240} value={proposedValue} onChange={(event)=>setProposedValue(event.target.value)}/></div></div>
           {order.warehouseInspection && order.warehouseInspection.condition !== "ok" && <label className="warehouse-issue-resolution"><input type="checkbox" checked={resolvesWarehouseIssue} disabled={changeKind !== "substitution"} onChange={(event)=>setResolvesWarehouseIssue(event.target.checked)}/><span>{locale === "ru" ? "Это замена решает проблему, зафиксированную складом" : isUzbek(locale) ? uzText(locale, "Bu almashtirish ombor qayd etgan muammoni hal qiladi") : "This substitution resolves the issue flagged by the warehouse"}<small>{locale === "ru" ? "Взвешивание разблокируется только после явного согласия покупателя и заполнения поля «Стало»." : isUzbek(locale) ? uzText(locale, "Tortish faqat xaridor aniq rozilik bildirgach va «Yangi qiymat» maydoni to‘ldirilgach ochiladi.") : "Weighing unlocks only after the customer explicitly approves and a replacement is specified."}</small></span></label>}
           <div className="field"><label htmlFor={`change-amount-${order.id}`}>Изменение суммы, сум</label><input id={`change-amount-${order.id}`} type="number" min="-100000000" max="100000000" step="1" value={amountDelta} onChange={(event)=>setAmountDelta(event.target.value)}/></div>
+          {["price","variant","substitution"].includes(changeKind) && orderInsuranceRate(order) && Number(amountDelta) ? <p className="micro">Посылка застрахована: покупатель увидит {Number(amountDelta) > 0 ? "+" : "−"}{money(Math.abs(Math.round(Number(amountDelta) * (1 + orderInsuranceRate(order)!))))} — со страховкой {Math.round(orderInsuranceRate(order)! * 1000) / 10} % от разницы цены.</p> : null}
           <div className="field"><label htmlFor={`change-reason-${order.id}`}>Причина</label><textarea id={`change-reason-${order.id}`} required minLength={2} maxLength={500} rows={3} value={changeReason} onChange={(event)=>setChangeReason(event.target.value)}/></div>
           <button className="btn secondary" disabled={busy || !changeTitle.trim() || !changeReason.trim() || pendingChange(order)}>Отправить на согласование</button>
           {pendingChange(order) && <p className="micro">Покупатель ещё не ответил на предыдущий запрос.</p>}
@@ -706,6 +709,15 @@ function CustomerOrderLine({ order: o, siblings, showThumb, headerStage, sharedD
   const stageOnRow = stage !== headerStage;
   const tone = o.cancelled || o.payment?.status === "refunded" ? "muted" : o.status === 5 ? "ok" : "info";
   const pendingRequests = (o.changeRequests ?? []).filter(request => request.status === "pending");
+  // Which answer is on its way (request id and decision): that button says "Сохраняем…", both stay locked.
+  const [responding, setResponding] = useState<{ id: string; decision: "approved" | "declined" } | null>(null);
+  const respond = (requestId: string, decision: "approved" | "declined", expectedAmountDelta: number) => {
+    if (responding) return;
+    setResponding({ id: requestId, decision });
+    void run({ type: "change-request-respond", id: o.id, requestId, decision, expectedAmountDelta })
+      .then(ok => { if (ok) toast.success(ow.saveChanges); })
+      .finally(() => setResponding(null));
+  };
   const resolvedRequests = (o.changeRequests ?? []).filter(request => request.status !== "pending").reverse();
   const kg = locale === "ru" ? "кг" : "kg";
   const lastParcelEvent = o.parcel?.events.at(-1)?.status;
@@ -749,10 +761,11 @@ function CustomerOrderLine({ order: o, siblings, showThumb, headerStage, sharedD
             {request.warehouseServiceRequestId && <p className="micro">{lineCopy[locale].serviceOnly}</p>}
             {(request.previousValue || request.proposedValue) && <p className="change-values"><span>{request.previousValue || "—"}</span><ArrowRight size={15} aria-hidden="true" /><b>{request.proposedValue || "—"}</b></p>}
             {request.amountDelta !== 0 && <strong className="order-x-delta">{request.amountDelta > 0 ? "+" : "−"}{formatSum(Math.abs(request.amountDelta), locale)}</strong>}
+            {request.insuranceDelta ? <p className="micro">{insuranceShare[locale](formatSum(Math.abs(request.insuranceDelta), locale))}</p> : null}
           </div>
           <div className="order-x-buttons">
-            <button type="button" className="btn secondary" disabled={busy} onClick={() => void run({ type: "change-request-respond", id: o.id, requestId: request.id, decision: "declined", expectedAmountDelta: request.amountDelta })}>{ow.reject}</button>
-            <button type="button" className="btn primary" disabled={busy} onClick={() => void run({ type: "change-request-respond", id: o.id, requestId: request.id, decision: "approved", expectedAmountDelta: request.amountDelta })}>{ow.confirm}</button>
+            <button type="button" className="btn secondary" disabled={busy || Boolean(responding)} aria-busy={responding?.id === request.id && responding.decision === "declined"} onClick={() => respond(request.id, "declined", request.amountDelta)}>{responding?.id === request.id && responding.decision === "declined" ? ow.saving : ow.reject}</button>
+            <button type="button" className="btn primary" disabled={busy || Boolean(responding)} aria-busy={responding?.id === request.id && responding.decision === "approved"} onClick={() => respond(request.id, "approved", request.amountDelta)}>{responding?.id === request.id && responding.decision === "approved" ? ow.saving : ow.confirm}</button>
           </div>
         </div>)}
         {/* Shown while a change request waits too: the доплата does not depend on it. One "why" line, the amount on the button. */}
@@ -835,6 +848,7 @@ function CustomerOrderLine({ order: o, siblings, showThumb, headerStage, sharedD
         </div>
       </details>}
 
+      <CustomerParcelClaim order={o} locale={locale} busy={busy} run={run} />
       <CustomerWarehouseServices order={o} parcel={parcelServicesFor(siblings, o.id)} pricing={pricing} locale={locale} busy={busy} run={run} />
       <OrderDocuments orderId={o.id} operatorMode={false} locale={locale} />
 
@@ -1111,7 +1125,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
   );
   const active = listed.filter((o) => !o.cancelled && o.status < 5),
     need = listed.filter((order) => orderNeedsOperatorAttention(order) || (!operations && !order.cancelled && order.payment?.status === "pending")),
-    done = listed.filter((o) => (o.cancelled || o.status === 5) && (!o.issueCase || o.issueCase.status === "resolved")),
+    done = listed.filter((o) => (o.cancelled || o.status === 5) && (!o.issueCase || o.issueCase.status === "resolved") && !(o.claims ?? []).some((claim) => claim.status === "submitted")),
     refunds = operations ? listed.filter((o) => o.cancelled || o.payment?.status === "refunded" || atlasCreditForOrder(orderAccount.get(o.id), o.id) > 0) : [];
   // Customers who order for several people can narrow the list to one recipient.
   const recipientOf = (order: Order) => recipientKey(orderRecipientName(state, order));
@@ -1564,7 +1578,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
               </div>
             )}
             {!operations && <CustomerWarehouseServices order={o} pricing={pricing} locale={locale} busy={busy} run={runOrderAction} />}
-             {!!o.changeRequests?.length && <section className="change-request-list" aria-label={ow.agreements}>{[...o.changeRequests].reverse().map(request=><article className={`change-request ${request.status}`} key={request.id}><div><span className="eyebrow">{request.status === "pending" ? ow.pending : request.status === "approved" ? ow.approved : ow.declined}</span><h3>{request.title}</h3><p>{request.reason}</p>{request.warehouseServiceRequestId&&<p className="micro">{locale==='ru'?'Подтверждение относится только к этой услуге. Платёжный провайдер не подключён, а выполнение ещё не подтверждено.':isUzbek(locale)?uzText(locale, 'Tasdiq faqat shu xizmatga tegishli. To‘lov provayderi ulanmagan, xizmat bajarilgani hali tasdiqlanmagan.'):'Approval applies only to this service. No payment provider is connected, and fulfilment has not been confirmed.'}</p>}{(request.previousValue||request.proposedValue)&&<p className="change-values"><span>{request.previousValue||"—"}</span><ArrowRight size={15}/><b>{request.proposedValue||"—"}</b></p>}</div><div className="change-amount">{request.amountDelta !== 0 && <strong>{request.amountDelta > 0 ? "+" : ""}{money(request.amountDelta)}</strong>}{!operations && request.status === "pending" && <div className="change-actions"><button className="btn secondary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"declined",expectedAmountDelta:request.amountDelta})}>{ow.reject}</button><button className="btn primary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"approved",expectedAmountDelta:request.amountDelta})}>{ow.confirm}</button></div>}</div></article>)}</section>}
+             {!!o.changeRequests?.length && <section className="change-request-list" aria-label={ow.agreements}>{[...o.changeRequests].reverse().map(request=><article className={`change-request ${request.status}`} key={request.id}><div><span className="eyebrow">{request.status === "pending" ? ow.pending : request.status === "approved" ? ow.approved : ow.declined}</span><h3>{request.title}</h3><p>{request.reason}</p>{request.warehouseServiceRequestId&&<p className="micro">{locale==='ru'?'Подтверждение относится только к этой услуге. Платёжный провайдер не подключён, а выполнение ещё не подтверждено.':isUzbek(locale)?uzText(locale, 'Tasdiq faqat shu xizmatga tegishli. To‘lov provayderi ulanmagan, xizmat bajarilgani hali tasdiqlanmagan.'):'Approval applies only to this service. No payment provider is connected, and fulfilment has not been confirmed.'}</p>}{(request.previousValue||request.proposedValue)&&<p className="change-values"><span>{request.previousValue||"—"}</span><ArrowRight size={15}/><b>{request.proposedValue||"—"}</b></p>}</div><div className="change-amount">{request.amountDelta !== 0 && <strong>{request.amountDelta > 0 ? "+" : ""}{money(request.amountDelta)}</strong>}{request.insuranceDelta ? <small className="micro">{insuranceShare[locale](money(Math.abs(request.insuranceDelta)))}</small> : null}{!operations && request.status === "pending" && <div className="change-actions"><button className="btn secondary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"declined",expectedAmountDelta:request.amountDelta})}>{ow.reject}</button><button className="btn primary" disabled={busy} onClick={()=>void runOrderAction({type:"change-request-respond",id:o.id,requestId:request.id,decision:"approved",expectedAmountDelta:request.amountDelta})}>{ow.confirm}</button></div>}</div></article>)}</section>}
             {o.storeShippingSettlement && (
               <div
                 className={
@@ -1753,6 +1767,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
               <p className="micro">{ow.trackingFirst}</p>
             )}
             {operations && <OperatorExtraCharges order={o} run={runOrderAction} locale={locale} />}
+            {operations && <OperatorParcelClaims order={o} run={runOrderAction} locale={locale} />}
             {operations && <OperatorOrderTools order={o} notifications={orderAccount.get(o.id)?.state.notifications.filter((item) => item.orderId === o.id) ?? []} run={runOrderAction} locale={locale} />}
             {operations && <OperatorOrderCommunication order={o} customerName={orderAccount.get(o.id)?.name ?? ""} customerEmail={orderAccount.get(o.id)?.id.replace(/^email:/, "") ?? ""} recipientAvailable={Boolean(orderAccount.get(o.id))} run={runOrderAction} locale={locale} />}
             <OrderDocuments orderId={o.id} accountId={orderAccount.get(o.id)?.id} operatorMode={operations} locale={state.communication.language}/>

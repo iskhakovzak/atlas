@@ -18,6 +18,9 @@ import {
   requestExtraCharge,
   cancelExtraCharge,
   payExtraCharge,
+  reportParcelClaim,
+  decideParcelClaim,
+  parcelClaimKindSchema,
   cancelOrder,
   deliverySpeedSchema,
   setCartDeliverySpeed,
@@ -190,7 +193,10 @@ export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("confirm-customs-duty"), id, actualUsd: amount }),
   z.object({ type: z.literal("approve-customs-extra"), id, amount }),
   // An extra invoice on a paid order: the operator issues or withdraws it, the customer pays it (marked in Atlas).
-  z.object({ type: z.literal("extra-charge-request"), id, amountUsd: z.number().finite().positive().max(10000), reason: z.string().trim().min(2).max(300) }),
+  z.object({ type: z.literal("extra-charge-request"), id, amountUsd: z.number().finite().positive().max(10000), reason: z.string().trim().min(2).max(300), goods: z.boolean().optional() }),
+  // A lost or damaged parcel: the customer files a claim, the operator approves an amount (to the balance) or declines.
+  z.object({ type: z.literal("parcel-claim-report"), id, kind: parcelClaimKindSchema, description: z.string().trim().min(10).max(1000) }),
+  z.object({ type: z.literal("parcel-claim-decide"), id, claimId: z.string().min(1).max(40), decision: z.enum(["approved", "declined"]), amount: z.number().int().min(0).max(1_000_000_000).optional(), note: z.string().trim().max(500).default("") }),
   z.object({ type: z.literal("extra-charge-cancel"), id, chargeId: z.string().min(1).max(40) }),
   z.object({ type: z.literal("extra-charge-pay"), id, chargeId: z.string().min(1).max(40), amount }),
   z.object({ type: z.literal("cancel"), id }),
@@ -249,6 +255,7 @@ export function applyAction(
       a.type === "confirm-customs-duty" ||
       a.type === "extra-charge-request" ||
       a.type === "extra-charge-cancel" ||
+      a.type === "parcel-claim-decide" ||
       a.type === "assign-order" ||
       a.type === "staff-note" ||
       a.type === "customer-notification" ||
@@ -441,7 +448,11 @@ export function applyAction(
     case "approve-store-shipping-extra":
       return approveStoreShippingExtra(s, a.id, a.amount);
     case "extra-charge-request":
-      return requestExtraCharge(s, a.id, a.amountUsd, a.reason);
+      return requestExtraCharge(s, a.id, a.amountUsd, a.reason, Date.now(), a.goods ?? true);
+    case "parcel-claim-report":
+      return reportParcelClaim(s, a.id, a.kind, a.description);
+    case "parcel-claim-decide":
+      return decideParcelClaim(s, a.id, a.claimId, a.decision, a.amount, a.note);
     case "extra-charge-cancel":
       return cancelExtraCharge(s, a.id, a.chargeId);
     case "extra-charge-pay":
