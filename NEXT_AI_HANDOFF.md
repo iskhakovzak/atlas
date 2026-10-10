@@ -1,5 +1,40 @@
 # Atlas — handoff для следующего AI-агента
 
+## eBay: цена просматриваемой расцветки — 8 октября 2026
+
+Верхняя цена и поле цены следуют просматриваемым цвету/размеру, отдельно от списка ранее выбранных вариантов и общего расчёта. Каждая расцветка показывает свою цену или диапазон; размеры показывают цену, если в группе есть разница. Серверные точные ID/цены и многовариантная корзина сохранены. Проверенный снимок eBay: красный $25, серый $24, Blanch Cargo $32, белый/лайм $34; var459336456425 — Blanch Cargo US11 $32. 745 тестов, TypeScript, lint и build проходят. Живая браузерная перепроверка и публикация выполняются после подготовки.
+
+## eBay colour galleries, size formats and exact child links — 8 October 2026
+
+The reported group had no photos in the version-149 import response. Image extraction now supports thumbnail images and primary group photo fields, and creates exact-child colour galleries. Customer loading retains all eBay galleries when the original link selects one colour. Each chosen cart line rewrites var to its own sourceVariantId while preserving affiliate parameters; stock/price/identity checks remain. adidas men's US footwear offers US/UK/EU display using the official adidas chart, preserving the original seller size/ID and not applying Nike, women's or unrecognized charts. Existing optional schemas and D1 remain unchanged. 742 tests, lint (existing unused Choice warning), TypeScript and Worker build passed. Regression covers gallery colour separation, affiliate URL rewriting and brand/gender size gates. Verify actual colour photographs after publication; a sparse missing-image log records only field keys/types and image hostnames, never credentials or upstream bodies. Native runtime, accounts and orders are unchanged.
+
+
+## Full eBay group for customer and operator — 8 October 2026
+
+The user requested every in-stock colour/size from a seller group in both customer link ordering and admin catalog import. Official Browse group JSON now has a separate finite 8 MB body budget; OAuth/single-item limits remain unchanged at 32 KB/1 MB. Existing timeouts, exact group identity, 250-variant limit and safe images remain. Unknown-stock, known-unavailable and explicit zero-quantity variants are excluded from selectable eBay groups. Each returned option retains its ID, seller dimensions, price, photo and stock data. An explicit var selects its child by selectedVariantId; customer source-colour filtering exempts exact supported eBay hosts, so sibling colours remain selectable. Other stores retain their colour-bound links. Operator importDraft already preserves the shared group's full variant matrix.
+
+The preceding exact-child fix remains a fail-safe if a group request cannot be read; normal groups are always requested first. The initial 9eb2eaf source/archive was prepared but not saved/deployed; this broader group release replaces it. No migration, pricing formula, secret or real order changes. Tests include >1 MB successful colour/size group, operator draft preservation, customer eBay colour exposure versus Nike/lookalike hosts, unknown/sold-out/zero-quantity exclusion, and an oversized >8 MB fail-safe that never substitutes a parent child. 739 tests pass; complete final lint, TypeScript/build and deployed actual-user-link checks before claiming production success.
+
+
+## eBay explicit variation / group failure fix — 8 October 2026
+
+User listing 157751149633?var=459304625551 (including affiliate parameters) reproducibly returned HTTP 422 on version 148. Worker diagnostics identify browse_variants/status=200: the complete group response was rejected by bounded JSON reading after the exact child endpoint succeeded. The fix retains the verified child from getItemByLegacyId when group reading fails, mapping only its authoritative identity/price/availability/photos, setting selectedVariantId and keeping the requested source URL. Parent links still require full group data; a mismatched, unavailable, auction or incomplete child never falls back to another variant. Existing one-megabyte limit and timeouts remain. Normal successful group imports continue unchanged.
+
+Regression tests cover an oversized group with an explicit matching child and rejection of a parent with the same oversized group. All 738 tests pass; final lint, TypeScript/build and a fresh deployed check of the actual user URL remain required before claiming fixed. No account/order/D1/environment changes. Deploy with the Sites hosting workflow from this current release checkout and preserve Impact and current features. This preparation snapshot does not itself confirm publication; root handoff records final deployment evidence.
+
+
+## Impact head verification follow-up — 8 October 2026
+
+The user explicitly requested the partner tracking code in the main homepage head for Impact Add Website verification. RootLayout now emits script#atlas-impact-bootstrap in the server-rendered head with the exact partner script URL and both requested commands. This defines atlasStartImpactTracking; current consent still controls its invocation and external loading, and native shells remain excluded. The original queue-style bootstrap gains only a duplicate-load ID. Existing client bootstrap calls the head initializer when available and retains its earlier fallback. A new VM regression verifies static URL visibility, no load on head evaluation, both commands after start and no duplicate load. All 736 tests pass; final lint (zero errors; one existing unused Choice warning), TypeScript and Worker build passed before this follow-up publishes. Version 147 remains the last confirmed deployed version until the next successful deployment is recorded.
+
+
+## Import33 / Impact release checkout — 8 October 2026
+
+Current prepared source is C:\Users\WS\Documents\ChatGPT\atlas\outputs\deploy-import33-20261008, based on published version 146 / 4c61312ad439e98566785e10ab2f3c55d0faa556. The older primary checkout is not the publication source and has unrelated uncommitted catalog API work; preserve it. User explicitly authorized deploying this release to https://atlasmarket.uz. Use the existing public Sites project appgprj_6aa181097a00819196698407b43a6a45 with the normal source/archive/save/deploy flow. Do not publish an older checkout or alter audience, bindings, credentials, D1, DNS or proxy secrets. Record deployment success externally before claiming live status.
+
+Imports use exact variants and automatic server verification without customer manual confirmation; unresolved blocks/prices remain honest failures. Impact's supplied async tag and its two commands start only after current consent on web, once per document; native shells excluded. 735 tests and TypeScript pass; targeted synthetic browser QA passes with no real account/order writes. Older broad audit harness guest-navigation timeout remains known; final lint, TypeScript, all 735 tests and the production Worker build passed. Root outputs retains local reports and synthetic screenshots, never source-control runtime files/secrets.
+
+
 ## Последние мобильные изменения — 30 сентября 2026
 
 Рабочий Sites checkout: `C:\Users\WS\Documents\ChatGPT\atlas\.sites-checkout-atlas-20260927`. Добавлены общая ProductGallery (свайп по фото, клавиатура, кнопки), сохранение безопасных sourceImages в корзине и отдельные мобильные CSS для общих, клиентских и операторских экранов. Переключение фото не меняет вариант/цену. Все проверки UI используют синтетические ответы; D1 и реальные заказы не изменялись. Проверки физического Safari/iPhone и реального checkout остаются в TODO. Игнорируемые сценарии и скриншоты находятся в `output/playwright`; не коммитить runtime, cookies, D1 или сборку.

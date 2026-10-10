@@ -38,6 +38,25 @@ export const priorityMerchantProfiles: MerchantProfile[] = [
   p({root: 'ulta.com', name: 'Ulta Beauty', priority: 1, focus: 'Красота', defaultCategory: 'Красота и уход', defaultCountry: 'США', regions: ['США'], adapter: 'embedded-json'}),
   p({root: 'apple.com', name: 'Apple US', priority: 1, focus: 'Техника', defaultBrand: 'Apple', defaultCategory: 'Электроника', defaultCountry: 'США', regions: ['США'], adapter: 'json-ld'}),
   p({root: 'newbalance.com', name: 'New Balance US', priority: 1, focus: 'Кроссовки', defaultBrand: 'New Balance', defaultCategory: 'Обувь', defaultCountry: 'США', regions: ['США'], adapter: 'embedded-json'}),
+  p({root: 'hm.com', name: 'H&M', priority: 1, focus: 'Одежда', defaultBrand: 'H&M', regions: ['США', 'Европа'], adapter: 'embedded-json'}),
+  p({root: 'puma.com', name: 'PUMA', priority: 1, focus: 'Кроссовки', defaultBrand: 'PUMA', regions: ['США', 'Европа'], adapter: 'embedded-json'}),
+  p({root: 'uniqlo.com', name: 'UNIQLO', priority: 1, focus: 'Одежда', defaultBrand: 'UNIQLO', regions: ['США', 'Европа'], adapter: 'embedded-json'}),
+  p({root: 'bershka.com', name: 'Bershka', priority: 1, focus: 'Одежда', defaultBrand: 'Bershka', regions: ['США', 'Европа'], adapter: 'embedded-json'}),
+  p({root: 'gap.com', name: 'Gap', priority: 1, focus: 'Одежда', defaultBrand: 'Gap', defaultCountry: 'США', regions: ['США'], adapter: 'embedded-json'}),
+  p({root: 'converse.com', name: 'Converse', priority: 1, focus: 'Кроссовки', defaultBrand: 'Converse', defaultCountry: 'США', regions: ['США'], adapter: 'embedded-json'}),
+  p({root: 'vans.com', name: 'Vans', priority: 1, focus: 'Кроссовки', defaultBrand: 'Vans', defaultCountry: 'США', regions: ['США'], adapter: 'embedded-json'}),
+  p({root: 'skechers.com', name: 'Skechers', priority: 1, focus: 'Кроссовки', defaultBrand: 'Skechers', defaultCountry: 'США', regions: ['США'], adapter: 'embedded-json'}),
+  p({root: 'crocs.com', name: 'Crocs', priority: 1, focus: 'Кроссовки', defaultBrand: 'Crocs', defaultCountry: 'США', regions: ['США'], adapter: 'embedded-json'}),
+  p({root: 'columbia.com', name: 'Columbia', priority: 1, focus: 'Одежда', defaultBrand: 'Columbia', defaultCountry: 'США', regions: ['США'], adapter: 'embedded-json'}),
+  p({root: 'thenorthface.com', name: 'The North Face', priority: 1, focus: 'Одежда', defaultBrand: 'The North Face', regions: ['США', 'Европа'], adapter: 'embedded-json'}),
+  p({root: 'northface.com', name: 'The North Face', priority: 2, focus: 'Одежда', defaultBrand: 'The North Face', regions: ['США', 'Европа'], adapter: 'embedded-json'}),
+  p({root: 'underarmour.com', name: 'Under Armour', priority: 1, focus: 'Одежда', defaultBrand: 'Under Armour', defaultCountry: 'США', regions: ['США'], adapter: 'embedded-json'}),
+  p({root: 'levi.com', name: 'Levi’s', priority: 1, focus: 'Одежда', defaultBrand: 'Levi’s', regions: ['США', 'Европа'], adapter: 'embedded-json'}),
+  p({root: 'pullandbear.com', name: 'Pull&Bear', priority: 1, focus: 'Одежда', defaultBrand: 'Pull&Bear', regions: ['США', 'Европа'], adapter: 'embedded-json'}),
+  p({root: 'tommy.com', name: 'Tommy Hilfiger', priority: 1, focus: 'Одежда', defaultBrand: 'Tommy Hilfiger', regions: ['США', 'Европа'], adapter: 'embedded-json'}),
+  p({root: 'ralphlauren.com', name: 'Ralph Lauren', priority: 1, focus: 'Одежда', defaultBrand: 'Ralph Lauren', defaultCountry: 'США', regions: ['США'], adapter: 'embedded-json'}),
+  p({root: 'carters.com', name: 'Carter’s', priority: 1, focus: 'Одежда', defaultBrand: 'Carter’s', defaultCategory: 'Одежда', defaultCountry: 'США', regions: ['США'], adapter: 'embedded-json'}),
+  p({root: 'shop.simon.com', name: 'ShopSimon', priority: 1, focus: 'Универмаг', defaultCountry: 'США', regions: ['США'], adapter: 'shopify-json'}),
   p({root: 'footlocker.es', name: 'Foot Locker España', priority: 2, focus: 'Кроссовки', defaultCategory: 'Обувь', defaultCountry: 'Испания', regions: ['Европа'], adapter: 'embedded-json'}),
   p({root: 'sephora.es', name: 'Sephora España', priority: 2, focus: 'Красота', defaultCategory: 'Красота и уход', defaultCountry: 'Испания', regions: ['Европа'], adapter: 'embedded-json'}),
   p({root: 'es.victoriassecret.com', name: "Victoria's Secret España", priority: 2, focus: 'Одежда', defaultBrand: "Victoria's Secret", defaultCategory: 'Одежда', defaultCountry: 'Испания', regions: ['Европа'], adapter: 'embedded-json'}),
@@ -63,7 +82,7 @@ export const priorityMerchantProfiles: MerchantProfile[] = [
 const profiles = new Map(priorityMerchantProfiles.map(profile => [profile.root, profile]));
 
 function rootForHost(hostname: string) {
-  const host = hostname.toLowerCase().replace(/^www\./, '');
+  const host = hostname.toLowerCase().replace(/^www2?\./, '');
   if (profiles.has(host)) return host;
   // Regional eBay/Amazon/Zalando hosts share the same importer contract.
   for (const root of profiles.keys()) if (host.endsWith(`.${root}`)) return root;
@@ -95,7 +114,7 @@ export function applyMerchantProfile(extracted: Extracted, sourceUrl: string): E
     : profile.defaultCategory;
   return {
     ...extracted,
-    brand: extracted.brand || profile.defaultBrand,
+    brand: !extracted.brand || extracted.brand === new URL(sourceUrl).hostname.replace(/^www\./, '') ? profile.defaultBrand ?? extracted.brand : extracted.brand,
     category,
     country: extracted.country || profile.defaultCountry,
     method: extracted.method ? extracted.method.includes(profile.name) ? extracted.method : `${extracted.method} · ${profile.name}` : undefined,

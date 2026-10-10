@@ -13,6 +13,7 @@ export function isEbayStoreHost(host: string) {
 
 export const supportedStoreRoots = [
   'shop.simon.com',
+  'carters.com','tommy.com','ralphlauren.com','thenorthface.com',
   'allbirds.com','kyliecosmetics.com','colourpop.com','fashionnova.com','stevemadden.com','bombas.com',
   'aloyoga.com','rarebeauty.com','rhodeskin.com','glossier.com','summerfridays.com','fentybeauty.com',
   'kith.com','cncpts.com','sneakersnstuff.com','satechi.com','satechi.net','spigen.com',
@@ -28,6 +29,43 @@ export const supportedStoreRoots = [
 
 export type StoreRegion = 'Испания' | 'Европа' | 'США';
 export type StoreFocus = 'Одежда' | 'Кроссовки' | 'Красота' | 'Техника' | 'Универмаг';
+
+/** The owner's 33 storefronts, including the separate Zara Spain locale. */
+export const linkImportStorefronts = [
+  {name: 'Amazon', url: 'https://www.amazon.com'},
+  {name: 'eBay', url: 'https://www.ebay.com'},
+  {name: 'Walmart', url: 'https://www.walmart.com'},
+  {name: 'Target', url: 'https://www.target.com'},
+  {name: 'Nike', url: 'https://www.nike.com'},
+  {name: 'adidas', url: 'https://www.adidas.com/us'},
+  {name: 'Zara', url: 'https://www.zara.com/us'},
+  {name: 'H&M', url: 'https://www2.hm.com/en_us/index.html'},
+  {name: 'New Balance', url: 'https://www.newbalance.com'},
+  {name: 'PUMA', url: 'https://us.puma.com/us/en'},
+  {name: 'UNIQLO', url: 'https://www.uniqlo.com/us/en'},
+  {name: 'Mango', url: 'https://shop.mango.com/us/en'},
+  {name: 'Bershka', url: 'https://www.bershka.com/us'},
+  {name: 'Zalando', url: 'https://www.zalando.de'},
+  {name: 'Gap', url: 'https://www.gap.com'},
+  {name: 'Converse', url: 'https://www.converse.com'},
+  {name: 'Vans', url: 'https://www.vans.com/en-us'},
+  {name: 'Skechers', url: 'https://www.skechers.com'},
+  {name: 'Crocs', url: 'https://www.crocs.com'},
+  {name: 'Columbia', url: 'https://www.columbia.com'},
+  {name: 'The North Face', url: 'https://www.thenorthface.com/en-us'},
+  {name: 'Under Armour', url: 'https://www.underarmour.com/en-us'},
+  {name: 'Sephora', url: 'https://www.sephora.com'},
+  {name: 'Ulta Beauty', url: 'https://www.ulta.com'},
+  {name: 'Victoria’s Secret', url: 'https://www.victoriassecret.com/us'},
+  {name: 'Best Buy', url: 'https://www.bestbuy.com'},
+  {name: 'Levi’s', url: 'https://www.levi.com/US/en_US'},
+  {name: 'Pull&Bear', url: 'https://www.pullandbear.com/us'},
+  {name: 'Tommy Hilfiger', url: 'https://usa.tommy.com'},
+  {name: 'Ralph Lauren', url: 'https://www.ralphlauren.com'},
+  {name: 'Carter’s', url: 'https://www.carters.com'},
+  {name: 'Zara Spain', url: 'https://www.zara.com/es'},
+  {name: 'ShopSimon', url: 'https://shop.simon.com'},
+] as const;
 
 export type FeaturedStoreGroup = {
   region: StoreRegion;
@@ -68,9 +106,11 @@ const shopSubdomains = new Set(['mango.com','hm.com','uniqlo.com','nike.com','ad
 // same-country host, and H&M serves every US product page from www2. Keep the
 // exceptions explicit instead of allowing arbitrary merchant subdomains through
 // the SSRF boundary.
-const localizedHosts = new Set(['en.zalando.de', 'www2.hm.com']);
+// The US storefronts of these brands live on their own subdomain (found by the live store check, 10 October 2026).
+const localizedHosts = new Set(['en.zalando.de', 'usa.tommy.com', 'us.puma.com', 'www2.hm.com',
+  'en.aboutyou.de', 'us.burberry.com', 'store.google.com', 'shop.lululemon.com', 'us.louisvuitton.com', 'us.nothing.tech', 'us.pandora.net', 'www.usa.philips.com', 'electronics.sony.com']);
 // Public product documents some storefronts load from a separate API host (no credentials, exact product id).
-const storeApiHosts = new Set(['api.victoriassecret.com']);
+const storeApiHosts = new Set(['api.victoriassecret.com', 'redsky.target.com']);
 
 // Precompute the explicit allowlist for constant-time URL validation.
 const allowedHostsCache = new Set<string>([...localizedHosts, ...storeApiHosts]);
@@ -88,3 +128,69 @@ export function isSupportedStoreHost(host:string){
 }
 
 export const supportedStoreCount=supportedStoreRoots.length;
+
+/**
+ * Stores whose product pages Atlas cannot read at all (403 to every route, the desktop Chrome included; checked
+ * 10 October 2026): Atlas does not try them. The customer fills in the name, price, option and store delivery from
+ * the store page and confirms them; the server accepts that confirmed snapshot without a store check, and the
+ * operator compares it with the store before buying. Removing a root here turns automatic import back on.
+ */
+export const manualEntryStoreRoots = [
+  'columbia.com','bestbuy.com',
+] as const;
+const manualEntryHosts = new Set<string>();
+for (const root of manualEntryStoreRoots) {
+  manualEntryHosts.add(root);
+  manualEntryHosts.add('www.' + root);
+  if (shopSubdomains.has(root)) manualEntryHosts.add('shop.' + root);
+}
+
+/**
+ * Stores that refuse every server client but open in an ordinary desktop browser: only the Tashkent gateway's own
+ * Chrome reads them (deploy/upcloud/browser-engine.mjs, checked 10 October 2026). The gateway gets a longer turn for
+ * them, and when it cannot answer (the computer is off) the customer enters the details by hand and confirms them,
+ * as for manualEntryStoreRoots; a confirmed line is still checked live when the store answers.
+ * Walmart is here too (checked 10 October 2026, ~3.5 s); Bright Data stays its paid fallback (lib/importer/fetch.ts).
+ * The second row came from the live check of the whole store list on 10 October 2026: fetch and impersonate got a
+ * wall or an empty shell from the Tashkent address, the gateway's Chrome read the product.
+ */
+export const browserStoreRoots = [
+  'sephora.com','hm.com','macys.com','levi.com','newbalance.com','victoriassecret.com','walmart.com',
+  'next.co.uk','stradivarius.com','cos.com','farfetch.com','hoka.com','microcenter.com','mytheresa.com','oysho.com',
+  'nordstrom.com','nordstromrack.com','jdsports.com','laredoute.fr','monoprice.com','luisaviaroma.com','neimanmarcus.com',
+  'notino.de','notino.fr','notino.it','otto.de',
+] as const;
+const browserHosts = new Set<string>(['www2.hm.com','api.victoriassecret.com']);
+for (const root of browserStoreRoots) {
+  browserHosts.add(root);
+  browserHosts.add('www.' + root);
+}
+
+/**
+ * Stores whose pages answer a Chrome-fingerprint client (impit) but wall plain server fetch (live check of 10 October
+ * 2026). With browserStoreRoots they become the gateway's engine hints (scripts/export-importer-hosts.mjs): after a
+ * restart the proxy starts these hosts on the engine that worked instead of spending a turn on a known wall.
+ */
+export const impersonateStoreRoots = [
+  'bombas.com','coolblue.nl','douglas.de','drmartens.com','dyson.com','gamestop.com','jdsports.es','nakedcph.com',
+  'sivasdescalzo.com','slamjam.com','underarmour.com',
+] as const;
+
+/** Host → first engine for the importer proxy's planner; only hosts in the store allowlist. */
+export function importerEngineHints(): Record<string,'impersonate'|'browser'> {
+  const hints: Record<string,'impersonate'|'browser'> = {};
+  for (const host of supportedStoreHosts) {
+    const root = host.replace(/^www2?\./, '');
+    if (isBrowserStoreHost(host)) hints[host] = 'browser';
+    else if ((impersonateStoreRoots as readonly string[]).includes(root)) hints[host] = 'impersonate';
+  }
+  return hints;
+}
+
+export function isBrowserStoreHost(host:string){
+  return browserHosts.has(host.toLowerCase().replace(/\.$/, ''));
+}
+
+export function isManualEntryStoreHost(host:string){
+  return manualEntryHosts.has(host.toLowerCase().replace(/\.$/, ''));
+}

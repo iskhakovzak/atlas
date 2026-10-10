@@ -24,7 +24,6 @@ import "./home-polish.css";
 import "./dark-theme.css";
 import "./mobile-polish.css";
 import "./customer-mobile.css";
-import "./operator-mobile.css";
 import "./home.css";
 import "./customer.css";
 import "./theme-night.css";
@@ -35,19 +34,10 @@ import "./mobile.css";
 import "./refine.css";
 import "./day-folio.css";
 import "./native.css";
-import "./home-chapters.css";
-import "./tariffs.css";
-import "./home-wide-rail.css";
-import "./home-wide-content.css";
 import "./store-marks.css";
 import "./ambient.css";
-import "./folio-outside.css";
-import "./home-wide-decor.css";
 import "./orders-groups.css";
 import "./cart-select.css";
-import "./accounting.css";
-import "./admin-investor.css";
-import "./site-content-admin.css";
 import "./checkbox.css";
 import "./admin-wide.css";
 import "./press.css";
@@ -63,6 +53,8 @@ import { PressFeedback } from "./press-feedback";
 import { AmbientBackdrop } from "./ambient-backdrop";
 import { JsonLd } from "./json-ld";
 import { siteGraph } from "@/lib/seo/structured-data";
+import { ImpactTracking } from './impact-tracking';
+import { impactHeadScript } from '@/lib/market/impact-tracking';
 
 export async function generateMetadata(): Promise<Metadata> {
   return rootMetadata(await pageLocale(), { google: env.ATLAS_GOOGLE_SITE_VERIFICATION, yandex: env.ATLAS_YANDEX_VERIFICATION });
@@ -98,10 +90,11 @@ export default async function RootLayout({
   preload(manropeLatin, font);
   return (
     <html lang={htmlLang(locale)} suppressHydrationWarning>
+      <head><script id="atlas-impact-bootstrap" type="text/javascript" dangerouslySetInnerHTML={{__html:impactHeadScript}} /></head>
       <body className="antialiased">
         <AmbientBackdrop />
         <AtlasThemeProvider>
-          <MarketProvider initialLocale={locale} initialPricing={pricing} initialSiteContent={siteContent} sessionHint={sessionHint}>{children}<StorageNotice /><PerformanceProbe /><NativeShell /><PressFeedback /></MarketProvider>
+          <MarketProvider initialLocale={locale} initialPricing={pricing} initialSiteContent={siteContent} sessionHint={sessionHint}>{children}<StorageNotice /><PerformanceProbe /><NativeShell /><PressFeedback /><ImpactTracking /></MarketProvider>
         </AtlasThemeProvider>
         <JsonLd data={siteGraph(locale, siteContent.contacts, siteContent.legal)} />
       </body>

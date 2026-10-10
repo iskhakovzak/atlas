@@ -1,0 +1,202 @@
+{
+  "sourceUrl": "https://shop.simon.com/products/mens-adidas-advantage-shoes",
+  "currency": {
+    "active": "USD",
+    "rate": "1.0"
+  },
+  "product": {
+    "id": 8592756932668,
+    "handle": "mens-adidas-advantage-shoes",
+    "title": "Men's adidas Advantage Shoes",
+    "vendor": "2055",
+    "type": "men/shoes/fashion-sneakers",
+    "featured_image": "//shop.simon.com/cdn/shop/files/e8eb5eb9f4214e4ba53cc456348bbbe0.jpg?v=1752541952",
+    "images": [
+      "//shop.simon.com/cdn/shop/files/e8eb5eb9f4214e4ba53cc456348bbbe0.jpg?v=1752541952",
+      "//shop.simon.com/cdn/shop/files/03d3e9c17902448ea32b794008c37242.jpg?v=1752541952",
+      "//shop.simon.com/cdn/shop/files/57b782d88e434bf2930c8acb020614ec.jpg?v=1752541952",
+      "//shop.simon.com/cdn/shop/files/33476fef7df44229954b1fbc85cd601f.jpg?v=1752541952",
+      "//shop.simon.com/cdn/shop/files/648672dc6d3c4c7f9147901da39ea7dc.jpg?v=1752541952"
+    ],
+    "options": [
+      "Shoe Size",
+      "Color"
+    ],
+    "variants": [
+      {
+        "id": 43287039246396,
+        "title": "US 12.5 / cloud white / cloud white / legend ink",
+        "public_title": "US 12.5 / cloud white / cloud white / legend ink",
+        "available": false,
+        "price": 2300,
+        "option1": "US 12.5",
+        "option2": "cloud white / cloud white / legend ink",
+        "option3": null,
+        "featured_image": {
+          "id": 43692181094460,
+          "product_id": 8592756932668,
+          "position": 1,
+          "created_at": "2025-07-14T21:12:30-04:00",
+          "updated_at": "2025-07-14T21:12:32-04:00",
+          "alt": null,
+          "width": 2400,
+          "height": 2400,
+          "src": "//shop.simon.com/cdn/shop/files/e8eb5eb9f4214e4ba53cc456348bbbe0.jpg?v=1752541952",
+          "variant_ids": [
+            43287039246396,
+            43287039279164,
+            43287039311932,
+            43287039344700,
+            43287039377468,
+            43287039410236
+          ]
+        }
+      },
+      {
+        "id": 43287039279164,
+        "title": "US 5 / cloud white / cloud white / legend ink",
+        "public_title": "US 5 / cloud white / cloud white / legend ink",
+        "available": false,
+        "price": 6500,
+        "option1": "US 5",
+        "option2": "cloud white / cloud white / legend ink",
+        "option3": null,
+        "featured_image": {
+          "id": 43692181094460,
+          "product_id": 8592756932668,
+          "position": 1,
+          "created_at": "2025-07-14T21:12:30-04:00",
+          "updated_at": "2025-07-14T21:12:32-04:00",
+          "alt": null,
+          "width": 2400,
+          "height": 2400,
+          "src": "//shop.simon.com/cdn/shop/files/e8eb5eb9f4214e4ba53cc456348bbbe0.jpg?v=1752541952",
+          "variant_ids": [
+            43287039246396,
+            43287039279164,
+            43287039311932,
+            43287039344700,
+            43287039377468,
+            43287039410236
+          ]
+        }
+      },
+      {
+        "id": 43287039311932,
+        "title": "US 3.5 / cloud white / cloud white / legend ink",
+        "public_title": "US 3.5 / cloud white / cloud white / legend ink",
+        "available": false,
+        "price": 6500,
+        "option1": "US 3.5",
+        "option2": "cloud white / cloud white / legend ink",
+        "option3": null,
+        "featured_image": {
+          "id": 43692181094460,
+          "product_id": 8592756932668,
+          "position": 1,
+          "created_at": "2025-07-14T21:12:30-04:00",
+          "updated_at": "2025-07-14T21:12:32-04:00",
+          "alt": null,
+          "width": 2400,
+          "height": 2400,
+          "src": "//shop.simon.com/cdn/shop/files/e8eb5eb9f4214e4ba53cc456348bbbe0.jpg?v=1752541952",
+          "variant_ids": [
+            43287039246396,
+            43287039279164,
+            43287039311932,
+            43287039344700,
+            43287039377468,
+            43287039410236
+          ]
+        }
+      },
+      {
+        "id": 43287039344700,
+        "title": "US 5.5 / cloud white / cloud white / legend ink",
+        "public_title": "US 5.5 / cloud white / cloud white / legend ink",
+        "available": false,
+        "price": 6500,
+        "option1": "US 5.5",
+        "option2": "cloud white / cloud white / legend ink",
+        "option3": null,
+        "featured_image": {
+          "id": 43692181094460,
+          "product_id": 8592756932668,
+          "position": 1,
+          "created_at": "2025-07-14T21:12:30-04:00",
+          "updated_at": "2025-07-14T21:12:32-04:00",
+          "alt": null,
+          "width": 2400,
+          "height": 2400,
+          "src": "//shop.simon.com/cdn/shop/files/e8eb5eb9f4214e4ba53cc456348bbbe0.jpg?v=1752541952",
+          "variant_ids": [
+            43287039246396,
+            43287039279164,
+            43287039311932,
+            43287039344700,
+            43287039377468,
+            43287039410236
+          ]
+        }
+      },
+      {
+        "id": 43287039377468,
+        "title": "US 4 / cloud white / cloud white / legend ink",
+        "public_title": "US 4 / cloud white / cloud white / legend ink",
+        "available": false,
+        "price": 6500,
+        "option1": "US 4",
+        "option2": "cloud white / cloud white / legend ink",
+        "option3": null,
+        "featured_image": {
+          "id": 43692181094460,
+          "product_id": 8592756932668,
+          "position": 1,
+          "created_at": "2025-07-14T21:12:30-04:00",
+          "updated_at": "2025-07-14T21:12:32-04:00",
+          "alt": null,
+          "width": 2400,
+          "height": 2400,
+          "src": "//shop.simon.com/cdn/shop/files/e8eb5eb9f4214e4ba53cc456348bbbe0.jpg?v=1752541952",
+          "variant_ids": [
+            43287039246396,
+            43287039279164,
+            43287039311932,
+            43287039344700,
+            43287039377468,
+            43287039410236
+          ]
+        }
+      },
+      {
+        "id": 43287039410236,
+        "title": "US 4.5 / cloud white / cloud white / legend ink",
+        "public_title": "US 4.5 / cloud white / cloud white / legend ink",
+        "available": false,
+        "price": 6500,
+        "option1": "US 4.5",
+        "option2": "cloud white / cloud white / legend ink",
+        "option3": null,
+        "featured_image": {
+          "id": 43692181094460,
+          "product_id": 8592756932668,
+          "position": 1,
+          "created_at": "2025-07-14T21:12:30-04:00",
+          "updated_at": "2025-07-14T21:12:32-04:00",
+          "alt": null,
+          "width": 2400,
+          "height": 2400,
+          "src": "//shop.simon.com/cdn/shop/files/e8eb5eb9f4214e4ba53cc456348bbbe0.jpg?v=1752541952",
+          "variant_ids": [
+            43287039246396,
+            43287039279164,
+            43287039311932,
+            43287039344700,
+            43287039377468,
+            43287039410236
+          ]
+        }
+      }
+    ]
+  }
+}

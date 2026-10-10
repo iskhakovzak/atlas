@@ -4,7 +4,7 @@ import { balanceOf, type Order, type State } from "./domain.ts";
  * Version of the data-processing consent (privacy policy + terms of use) the consent gate asks for and
  * the cabinet lists. Bump it when either document changes materially; customers then confirm again.
  */
-export const consentVersion = "2026-10-06";
+export const consentVersion = "2026-10-08";
 export const consentDocuments = ["privacy", "terms"] as const;
 export type ConsentDocument = (typeof consentDocuments)[number];
 

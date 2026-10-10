@@ -1,12 +1,13 @@
 import type { Extracted } from '../importer/extract.ts';
-import { UnsupportedStoreError } from '../importer/fetch.ts';
+import { ManualEntryFallbackError, UnsupportedStoreError } from '../importer/fetch.ts';
 import { manualFallbackAllowed, requiresMerchantSnapshot } from '../importer/manual-fallback.ts';
 import { compareProductSnapshot } from '../importer/verify.ts';
+import { isBrowserStoreHost, isManualEntryStoreHost, isSupportedStoreHost } from '../importer/stores.ts';
 import { applyAction, type Action } from './actions.ts';
 import { checkCartSources } from './cart-check.ts';
 import { canonicalCatalogUrl, type CatalogDocument } from './catalog-editor.ts';
 import { communityCatalogProducts } from './community-deals.ts';
-import { cartSignature, checkoutLines, customsHelpChosen, inCheckout, products as serverProducts, renewCart, unknownStoreShippingUsd, type Pricing, type Product, type State } from './domain.ts';
+import { cartSignature, checkoutLines, customsHelpChosen, inCheckout, serviceFeesOf, valueServiceFees, products as serverProducts, renewCart, unknownStoreShippingUsd, type Pricing, type Product, type State } from './domain.ts';
 import type { Policy } from './policy.ts';
 import { validBoxedWeight } from './weight.ts';
 import { toUsd } from './world.ts';
@@ -94,6 +95,8 @@ export type PrepareDeps = {
   operator: boolean;
   now: number;
   recentCheckMs: number;
+  /** When a cart-add answer was fetched, if it is a stored one (withRecentImport); a live answer is checked at `now`. */
+  snapshotAt?: (value: Extracted) => number | undefined;
   /** The catalog's delivery record for this product link, if any; never taken from the request. */
   editorialShipping?: (product: Pick<Product, 'sourceUrl'>) => EditorialShipping | undefined | Promise<EditorialShipping | undefined>;
 };
@@ -123,6 +126,11 @@ export async function prepareAction(state: State, action: Action, deps: PrepareD
       item.product = { ...item.product, sourceCheckedAt: undefined, stockQuantity: undefined, stockMoreThan: undefined, stockSource: undefined };
       const url = item.product.sourceUrl;
       if (!url) continue;
+      // A store Atlas reads is always checked live; only a store it cannot read keeps the customer's confirmation.
+      // A store only the Tashkent gateway's Chrome reads keeps it too, but is still checked live: the confirmation
+      // counts only when the gateway cannot answer (manualFallbackAllowed).
+      const host = new URL(url).hostname;
+      if (isSupportedStoreHost(host) && !isManualEntryStoreHost(host) && !isBrowserStoreHost(host)) item.product.sourceManuallyConfirmed = false;
       // A catalog card's delivery is the operator's record, whatever the request says about it.
       const editorial = await deps.editorialShipping?.(item.product);
       if (editorial) item.product = { ...item.product, sourceShipping: editorial.sourceShippingUsd, sourceShippingUsd: editorial.sourceShippingUsd, sourceShippingCurrency: 'USD', sourceShippingEstimated: editorial.sourceShippingEstimated };
@@ -130,10 +138,15 @@ export async function prepareAction(state: State, action: Action, deps: PrepareD
         let result = fetched.get(url);
         if (!result) { result = deps.fetchProduct(url).then(value => ({ value }), error => ({ error })); fetched.set(url, result); }
         const { value, error } = await result;
-        if (!value) { if (!manualFallbackAllowed(item.product, item.variant, error)) throw error; }
+        if (!value) {
+          if (!manualFallbackAllowed(item.product, item.variant, error)) {
+            if (item.product.sourceManuallyConfirmed === false && (error instanceof ManualEntryFallbackError || error instanceof Error && error.name === 'AbortError')) throw new ActionError(503, 'err_38');
+            throw error;
+          }
+        }
         else {
           verifiedSource ??= value;
-          const check = compareProductSnapshot(item.product, item.variant, value, now, { editorialShipping: Boolean(editorial) });
+          const check = compareProductSnapshot(item.product, item.variant, value, deps.snapshotAt?.(value) ?? now, { editorialShipping: Boolean(editorial) });
           if (check.status === 'blocked') throw new ActionError(400, check.code);
           // The page showed an older price or another store delivery than the store states (or claims one it does not
           // state): the customer reloads it and sees the new total before adding.
@@ -189,7 +202,10 @@ export async function prepareAction(state: State, action: Action, deps: PrepareD
     state = { ...state, cart: floored.map(item => fresh.get(item.id) ?? item) };
     const lines = checkoutLines(state.cart);
     // A line priced before the tariff changed, or without (with) the customs fee the customer (no longer) chose.
-    const tariffChanged = lines.some(item => item.quote.tariffVersion !== currentPricing.version || Boolean(item.quote.customsHelp) !== customsHelpChosen(state));
+    // Insurance (a percent of the parcel) priced under other terms than the catalog's now is shown again too.
+    const fees = valueServiceFees(lines, currentPricing);
+    const tariffChanged = lines.some(item => item.quote.tariffVersion !== currentPricing.version || Boolean(item.quote.customsHelp) !== customsHelpChosen(state)
+      || serviceFeesOf(item.quote) !== serviceFeesOf({ serviceFees: fees.get(item.id) }));
     // The raised reserve is outside the total, but the customer sees the new hold before the order is placed.
     const holdChanged = raised && renewCart(state, now, currentPricing).cart.some((item, index) => (item.quote.storeShippingHold ?? 0) !== (state.cart[index].quote.storeShippingHold ?? 0) || item.quote.total !== state.cart[index].quote.total);
     const unreachableOnly = checked.blocked.length > 0 && checked.blocked.every(id => state.cart.find(item => item.id === id)?.sourceIssue?.kind === 'unreachable');

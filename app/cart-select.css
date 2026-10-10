@@ -52,7 +52,7 @@
 .review-aside { display: grid; gap: 12px; align-content: start; }
 
 .review-table { display: grid; font-size: 14px; border: 1px solid var(--day-line, #e2e2da); border-radius: 12px; overflow: hidden; background: var(--day-surface, #fff); }
-.review-row { display: grid; grid-template-columns: 24px minmax(150px, 1fr) minmax(56px, .45fr) 58px minmax(84px, max-content) minmax(92px, max-content); align-items: center; gap: 10px 16px; padding: 8px 12px; }
+.review-row { display: grid; grid-template-columns: 24px minmax(150px, 1fr) minmax(56px, .45fr) 58px minmax(92px, max-content); align-items: center; gap: 10px 16px; padding: 8px 12px; }
 .review-head { background: var(--day-soft, #efefe9); color: var(--day-muted, #58635c); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; padding-block: 7px; }
 .review-n { color: var(--day-muted, #58635c); font-variant-numeric: tabular-nums; text-align: right; }
 .review-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -88,12 +88,38 @@
 .review-check-body > span { color: var(--day-muted, #58635c); }
 .review-check-body > b { font-weight: 600; color: var(--day-ink, #16211c); overflow-wrap: anywhere; }
 .review-checklist .text-button { font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+/* Under the amount: the store-delivery hold (once) and, under the button, what happens next. */
+.review-held, .review-next { margin: 0; line-height: 1.45; }
+/* The bill and customs in detail, folded: the amount and the button are what the step is about. */
+.review-details { border-top: 1px solid var(--day-line, #e2e2da); padding-top: 10px; }
+.review-details > summary { cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--day-accent, #1f4d3b); }
+.review-details[open] > summary { margin-bottom: 10px; }
+.review-details .calc-customs { margin-top: 12px; }
+
+/* Confirm on a phone (owner, 10.10.2026): no scrolling down to the button. The aside's items join the review's single
+   column (display: contents), so the sticky button is held at the bottom of the dialog — the scroll container — over the
+   whole review, table included, and rests in its own place at the end. The dialog covers the app's bottom bar
+   (.mobile-nav sits under the dialog overlay), so nothing else needs room. `.review-confirm-bar` (ReviewConfirmBar in
+   app/checkout-review.tsx) adds the amount beside the button; without it the button alone is held. */
+.review-confirm-amount { display: none; }
+@media (max-width: 720px) {
+  .atlas-modal:has(.review-layout) { scroll-padding-bottom: 96px; }
+  .review-layout { display: flex; flex-direction: column; gap: 12px; }
+  .review-aside { display: contents; }
+  .review-aside > .btn.primary.full, .review-confirm-bar { position: sticky; bottom: 0; z-index: 2; }
+  .review-aside > .btn.primary.full { margin-bottom: env(safe-area-inset-bottom); box-shadow: 0 0 0 8px var(--background, #fff), 0 -10px 24px 8px rgba(20, 35, 68, .1); }
+  .review-confirm-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 -12px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--day-line, #e2e2da); background: var(--background, #fff); box-shadow: 0 -8px 20px rgba(20, 35, 68, .08); }
+  .review-confirm-bar > .btn.primary.full { position: static; flex: 1 1 0; min-width: 0; width: auto; max-width: 220px; margin: 0; box-shadow: none; }
+  /* The amount keeps its width (a sum is never cut); the button takes the rest and wraps its label. */
+  .review-confirm-amount { display: grid; flex: 0 0 auto; line-height: 1.2; }
+  .review-confirm-amount small { color: var(--day-muted, #58635c); font-size: 12px; }
+  .review-confirm-amount b { color: var(--day-ink, #16211c); font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+}
 
 /* Phone and narrow dialog: one card per line, the numbers in a row with their names. */
-/* A narrow list (laptop with the summary beside it): the per-piece price goes, the amount stays. */
+/* A narrow list (laptop with the summary beside it): the columns tighten. No per-piece column: the amount is the line's own sum. */
 @container (max-width: 620px) {
   .review-row { grid-template-columns: 24px minmax(0, 1fr) minmax(48px, .5fr) 58px max-content; }
-  .review-price { display: none; }
 }
 @container (max-width: 460px) {
   .review-head { display: none; }
@@ -102,8 +128,8 @@
   .review-item { grid-column: 2 / -1; grid-row: 1; margin-bottom: 4px; }
   .review-variant { grid-column: 2; grid-row: 2; font-size: 13px; }
   .review-sum { grid-column: 3; grid-row: 2; }
-  .review-num[data-label]:not(.review-sum):not(.review-price) { grid-column: 2; grid-row: 3; justify-self: start; font-size: 13px; color: var(--day-muted, #58635c); }
-  .review-num[data-label]:not(.review-sum):not(.review-price)::before { content: attr(data-label) ": "; }
+  .review-num[data-label]:not(.review-sum) { grid-column: 2; grid-row: 3; justify-self: start; font-size: 13px; color: var(--day-muted, #58635c); }
+  .review-num[data-label]:not(.review-sum)::before { content: attr(data-label) ": "; }
   .review-row-extra { grid-column: 2 / -1; grid-row: 4; margin-top: 4px; }
   .review-note, .review-services { padding-left: 44px; }
   .review-row-note { grid-column: 2 / -1; grid-row: 5; }
@@ -123,8 +149,16 @@ html[data-theme="dark"] .review-flag.change { color: var(--night-warn-ink); }
 html[data-theme="dark"] .review-row.has-issue { background: rgba(240, 165, 147, .07); }
 html[data-theme="dark"] .review-row.has-change { background: rgba(232, 189, 112, .07); }
 html[data-theme="dark"] .review-check-mark { background: var(--night-jade-soft); color: var(--night-ok-ink); }
+html[data-theme="dark"] .review-details { border-top-color: var(--night-line); }
+html[data-theme="dark"] .review-details > summary { color: var(--night-jade); }
+html[data-theme="dark"] .review-confirm-bar { border-top-color: var(--night-line); background: var(--night-raised); box-shadow: 0 -8px 20px rgba(0, 0, 0, .35); }
+@media (max-width: 720px) {
+  html[data-theme="dark"] .review-aside > .btn.primary.full { box-shadow: 0 0 0 8px var(--night-raised), 0 -10px 24px 8px rgba(0, 0, 0, .35); }
+}
+html[data-theme="dark"] .review-confirm-amount small { color: var(--night-muted); }
+html[data-theme="dark"] .review-confirm-amount b { color: var(--night-ink); }
 @container (max-width: 460px) {
-  html[data-theme="dark"] .review-num[data-label]:not(.review-sum):not(.review-price) { color: var(--night-muted); }
+  html[data-theme="dark"] .review-num[data-label]:not(.review-sum) { color: var(--night-muted); }
 }
 
 /* "Some of them" on a store or model checkbox: a dash instead of the tick (app/checkbox.css). */

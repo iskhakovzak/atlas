@@ -55,9 +55,28 @@ export function apiErrorMessage(status:number,locale:Locale):string{
 
 export function importManualEntryMessage(locale:Locale):string{
   return pickLocale({
-    ru:"Не все данные магазина загрузились. Подтвердите цену, валюту и вариант, затем добавьте товар в корзину — Atlas сверит их с магазином перед выкупом.",
-    uz:"Do‘kon ma’lumotlarining hammasi yuklanmadi. Narx, valyuta va variantni tasdiqlab, savatga qo‘shing — Atlas xariddan oldin ularni do‘kon bilan solishtiradi.",
-    en:"Some store details did not load. Confirm the price, currency and option, then add it to your cart — Atlas checks them with the store before buying.",
+    ru:"Магазин пока не подтвердил все данные. Повторите загрузку позже — для добавления нужны проверенные цена и наличие варианта.",
+    uz:"Do‘kon barcha ma’lumotlarni hali tasdiqlamadi. Keyinroq qayta yuklang — qo‘shish uchun variant narxi va mavjudligi tekshirilishi kerak.",
+    en:"The store has not confirmed all details yet. Retry later — adding an option requires a verified price and availability.",
+  }, locale);
+}
+
+/** A link Atlas does not read automatically (manualEntryStoreRoots, a site outside the store list, a browser store
+ * whose gateway did not answer): the customer types the details in and confirms them. */
+export function importManualStoreMessage(locale:Locale):string{
+  return pickLocale({
+    ru:"Atlas не получает данные этого товара автоматически. Откройте товар на сайте магазина и впишите название, цену, вариант и доставку сами — оператор Atlas сверит их перед выкупом.",
+    uz:"Atlas bu tovar ma’lumotlarini avtomatik olmaydi. Tovarni do‘kon saytida oching va nomi, narxi, varianti va yetkazishni o‘zingiz kiriting — Atlas operatori xariddan oldin ularni solishtiradi.",
+    en:"Atlas does not get this item's details automatically. Open the item on the store's site and enter the name, price, option and shipping yourself — an Atlas operator checks them before buying.",
+  }, locale);
+}
+
+/** A Walmart link whose data a collection service is still gathering; the page retries by itself. */
+export function importPendingMessage(locale:Locale):string{
+  return pickLocale({
+    ru:"Собираем данные товара через сервис магазина — это может занять до нескольких минут. Страница обновится сама.",
+    uz:"Mahsulot ma’lumotlari do‘kon xizmati orqali yig‘ilmoqda — bu bir necha daqiqagacha davom etishi mumkin. Sahifa o‘zi yangilanadi.",
+    en:"Gathering the product details through the store's data service — this can take up to a few minutes. The page will update by itself.",
   }, locale);
 }
 
@@ -144,7 +163,7 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_66': 'Сначала подтвердите паспорт этого получателя.',
     'err_67': 'Для проверки не хватает ссылки, цены или валюты товара.',
     'err_68': 'Магазин изменил валюту витрины. Загрузите товар заново.',
-    'err_69': 'Выбранный вариант не удалось сверить с данными магазина. Подтвердите его вручную.',
+    'err_69': 'Выбранный вариант не удалось сверить с данными магазина. Загрузите товар заново.',
     'err_70': 'Магазин не подтвердил цену выбранного варианта.',
     'err_71': 'Этого варианта больше нет в наличии у магазина.',
     'err_72': 'Этого магазина нет в списке поддерживаемых. Вставьте ссылку из одного из {count} магазинов или заполните товар вручную.',
@@ -212,7 +231,7 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_66': 'Avval ushbu qabul qiluvchining pasportini tasdiqlang.',
     'err_67': 'Tekshirish uchun tovar havolasi, narxi yoki valyutasi yetishmayapti.',
     'err_68': 'Do‘kon vitrina valyutasini o‘zgartirdi. Tovarni qayta yuklang.',
-    'err_69': 'Tanlangan variantni do‘kon ma’lumotlari bilan solishtirib bo‘lmadi. Uni qo‘lda tasdiqlang.',
+    'err_69': 'Tanlangan variantni do‘kon ma’lumotlari bilan solishtirib bo‘lmadi. Tovarni qayta yuklang.',
     'err_70': 'Do‘kon tanlangan variant narxini tasdiqlamadi.',
     'err_71': 'Bu variant do‘konda endi mavjud emas.',
     'err_72': 'Bu do‘kon qo‘llab-quvvatlanadiganlar ro‘yxatida yo‘q. {count} ta do‘kondan biridagi havolani qo‘ying yoki tovarni qo‘lda to‘ldiring.',
@@ -280,7 +299,7 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_66': 'Confirm this recipient’s passport first.',
     'err_67': 'The item’s link, price or currency is missing, so it can’t be checked.',
     'err_68': 'The store changed its currency. Load the item again.',
-    'err_69': 'The selected option couldn’t be matched with the store’s data. Confirm it manually.',
+    'err_69': 'The selected option couldn’t be matched with the store’s data. Reload the item.',
     'err_70': 'The store didn’t confirm the price of the selected option.',
     'err_71': 'This option is no longer in stock at the store.',
     'err_72': 'This store isn’t on the supported list. Paste a link from one of the {count} stores or fill in the item manually.',
@@ -315,19 +334,19 @@ export type FooterCopy = { tagline: string; buyers: string; contacts: string; le
 /** Footer words (every page), apart from the home page copy, which uses them as `footer` and `trust.inn`. */
 export const footerCopy: Record<Locale, FooterCopy> = /*@__PURE__*/withCyrillic({
   ru: {
-      tagline: 'Покупки в зарубежных магазинах с доставкой в Узбекистан.', buyers: 'Покупателям', contacts: 'Контакты', legal: 'Юридическая информация',
+      tagline: 'Покупки в зарубежных магазинах с доставкой в Ташкент.', buyers: 'Покупателям', contacts: 'Контакты', legal: 'Юридическая информация',
       support: 'Поддержка в личном кабинете', rules: 'Правила сервиса', privacy: 'Политика данных', customs: 'Таможня', faq: 'Частые вопросы',
       telegramSupport: 'Telegram-бот', telegramChannel: 'Telegram-канал', phone: 'Телефон', instagram: 'Instagram', pickup: 'Пункт выдачи', theme: 'Тема',
       inn: 'ИНН',
   },
   uz: {
-      tagline: 'Xorijiy do‘konlardan O‘zbekistonga yetkazib berish bilan xaridlar.', buyers: 'Xaridorlarga', contacts: 'Aloqa', legal: 'Yuridik ma’lumotlar',
+      tagline: 'Xorijiy do‘konlardan Toshkentga yetkazib berish bilan xaridlar.', buyers: 'Xaridorlarga', contacts: 'Aloqa', legal: 'Yuridik ma’lumotlar',
       support: 'Shaxsiy kabinetdagi yordam', rules: 'Xizmat qoidalari', privacy: 'Ma’lumotlar siyosati', customs: 'Bojxona', faq: 'Savollar',
       telegramSupport: 'Telegram-bot', telegramChannel: 'Telegram-kanal', phone: 'Telefon', instagram: 'Instagram', pickup: 'Topshirish punkti', theme: 'Mavzu',
       inn: 'STIR',
   },
   en: {
-      tagline: 'Shopping in international stores with delivery to Uzbekistan.', buyers: 'For shoppers', contacts: 'Contacts', legal: 'Legal information',
+      tagline: 'Shopping in international stores with delivery to Tashkent.', buyers: 'For shoppers', contacts: 'Contacts', legal: 'Legal information',
       support: 'Support in your account', rules: 'Terms of service', privacy: 'Privacy policy', customs: 'Customs', faq: 'FAQ',
       telegramSupport: 'Telegram bot', telegramChannel: 'Telegram channel', phone: 'Phone', instagram: 'Instagram', pickup: 'Pickup point', theme: 'Theme',
       inn: 'Tax ID (INN)',

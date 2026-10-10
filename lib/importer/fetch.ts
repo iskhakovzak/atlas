@@ -1,16 +1,53 @@
-import {dedupeSafeImages,extractAdidasProduct,extractProduct,type Extracted} from './extract.ts';
-import {extractShopify, shopifyEndpoints} from './shopify.ts';
+import {normalizeMerchantVariants} from './variant-normalization.ts';
+import {declarationFor,dedupeSafeImages,extractAdidasProduct,extractProduct,inferProductCategory,safeImage,type Extracted} from './extract.ts';
+import {extractTarget, targetRequest} from './target.ts';
+import {extractShopify, isShopifyStorefrontPage, shopifyEndpoints, shopifyPageCurrency, shopifyProductEndpoints} from './shopify.ts';
+import {shopifyShopHandle} from './brand-name.ts';
 import {extractVictoriasSecret, victoriasSecretRequest} from './victoriassecret.ts';
-import {isEbayStoreHost,isSupportedStoreHost,supportedStoreCount} from './stores.ts';
+import {fillUltaVariantPrices, isUltaExtraction} from './ulta.ts';
+import {isEbayStoreHost,isManualEntryStoreHost,isSupportedStoreHost,supportedStoreCount} from './stores.ts';
 import {applyMerchantProfile} from './merchant-profiles.ts';
+import {isMerchantProductUrl, sameMerchantRedirect} from './source-identity.ts';
+import {isMerchantChallengePage} from './challenge.ts';
 import {EbayBrowseApiError, EbayListingUnavailableError, EbayManualReviewError, fetchEbayProduct, type EbayBrowseConfig} from './ebay.ts';
+import {BrightDataApiError, BrightDataPendingError, brightDataCollectionRunning, brightDataStoreNames, brightDataTarget, fetchBrightDataProduct, type BrightDataRuntime} from './brightdata.ts';
 export {supportedStoreCount};
+
+/** HTTP status, bot-wall vendor and egress engine attempts behind a fallback. */
+export type ImportDiagnostic = {status?: number; vendor?: string; engine?: string; attempts?: string};
+
+/** The egress proxy reports the engine that answered and every attempt it made. */
+function responseDiagnostic(response: Response, extra: ImportDiagnostic = {}): ImportDiagnostic {
+  const engine = response.headers.get('x-atlas-engine') ?? undefined, attempts = response.headers.get('x-atlas-attempts') ?? undefined;
+  return {status: response.status, ...(engine ? {engine} : {}), ...(attempts ? {attempts} : {}), ...extra};
+}
+
+/** Operator-facing summary, e.g. "HTTP 403 · защита akamai · fetch:403 impersonate:200". */
+export function describeImportDiagnostic(diagnostic?: ImportDiagnostic) {
+  if (!diagnostic) return '';
+  return [diagnostic.status ? `HTTP ${diagnostic.status}` : '', diagnostic.vendor === 'oversize' ? 'страница больше 6 МБ' : diagnostic.vendor ? `защита ${diagnostic.vendor}` : '', diagnostic.attempts ?? diagnostic.engine ?? ''].filter(Boolean).join(' · ');
+}
+
+/** Logs carry the store, never the customer's product URL. */
+function hostOf(value: string) {
+  try { return new URL(value).hostname; } catch { return 'unknown'; }
+}
+
+function withDiagnostic<T extends ManualEntryFallbackError>(error: T, diagnostic: ImportDiagnostic): T {
+  error.diagnostic = {...error.diagnostic, ...diagnostic};
+  return error;
+}
 
 /** Recoverable import failure: the customer may review and explicitly confirm
  * manually entered details when a merchant does not expose a public response. */
 export class ManualEntryFallbackError extends Error {
   readonly partial?: Extracted;
-  readonly reason: 'blocked' | 'network' | 'upstream' | 'response' | 'redirect' | 'timeout' | 'incomplete' | 'unknown';
+  /** 'pending': a Bright Data collection is still running; ask again after retryAfterMs (app/api/import answers 202).
+   * 'manual': a store Atlas does not read at all (manualEntryStoreRoots); the customer fills in the details. */
+  readonly reason: 'blocked' | 'network' | 'upstream' | 'response' | 'redirect' | 'timeout' | 'incomplete' | 'pending' | 'manual' | 'unknown';
+  /** What the merchant answered, for logs and the operator; never shown to customers. */
+  diagnostic?: ImportDiagnostic;
+  retryAfterMs?: number;
   constructor(message = 'Магазин временно не отдал данные товара. Заполните и подтвердите цену, валюту и выбранный вариант вручную; Atlas сверит цену и валюту, если получит ответ.', partial?: Extracted, reason: ManualEntryFallbackError['reason'] = 'unknown') {
     super(message);
     this.name = 'ManualEntryFallbackError';
@@ -54,7 +91,7 @@ export function allowedUrl(value: string) {
 
 function finalizeExtraction(extracted:Extracted,sourceUrl:string){
   const images=dedupeSafeImages([extracted.image,...(extracted.images??[])],sourceUrl);
-  const result={...extracted,image:images[0]??extracted.image,images};
+  const result=normalizeMerchantVariants({...extracted,image:images[0]??extracted.image,images});
   const hasProductPrice=typeof result.price==='number'&&Number.isFinite(result.price)&&result.price>0;
   const hasVariantPrice=(result.variants??[]).some(variant=>typeof variant.price==='number'&&Number.isFinite(variant.price)&&variant.price>0);
   if(!result.title||(!hasProductPrice&&!hasVariantPrice)||!result.currency){
@@ -64,6 +101,12 @@ function finalizeExtraction(extracted:Extracted,sourceUrl:string){
       : `Магазин отдал страницу без структурированных данных товара (не найдено: ${missing}). Заполните и подтвердите недостающие поля вручную.`,result,'incomplete');
   }
   return result;
+}
+
+/** A product price, or a price on at least one option. */
+function quoted(extracted: Extracted) {
+  const positive = (value: unknown) => typeof value === 'number' && Number.isFinite(value) && value > 0;
+  return positive(extracted.price) || (extracted.variants ?? []).some(variant => positive(variant.price));
 }
 
 const AMAZON_US_POSTAL_CODE = '19701';
@@ -101,6 +144,7 @@ function adidasProductApiUrls(start: URL) {
 }
 
 type PublicRequestOptions = {
+  minimalApi?: boolean;
   referer?: string;
   userAgent?: string;
   /** Some public merchant APIs reject browser client-hint headers as bot signals. */
@@ -110,9 +154,43 @@ type PublicRequestOptions = {
 };
 export type MerchantFetch = ((input: string | URL, init?: RequestInit) => Promise<Response>) & {
   ebayBrowseConfig?: () => EbayBrowseConfig;
+  /** Bright Data for Walmart (lib/importer/brightdata.ts); undefined when the key or D1 is missing. */
+  brightData?: () => Promise<BrightDataRuntime | undefined>;
 };
 
-function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = browserUserAgent, referer?: string, options: Pick<PublicRequestOptions, 'clientHints'> = {}) {
+async function brightDataRuntime(url: URL, fetcher: MerchantFetch) {
+  if (!brightDataTarget(url) || !fetcher.brightData) return;
+  try { return await fetcher.brightData(); } catch (error) { console.warn('[brightdata] stage=configuration ' + (error as Error).message.slice(0, 120)); }
+}
+
+/** A Walmart collection already started for this link: keep polling it instead of opening the store page again. */
+async function brightDataRunning(url: URL, fetcher: MerchantFetch) {
+  const runtime = await brightDataRuntime(url, fetcher);
+  return runtime ? brightDataCollectionRunning(url, runtime).catch(() => false) : false;
+}
+
+/** Walmart through Bright Data when it is on for the link; undefined lets the importer continue with its own path. */
+async function brightDataProduct(url: URL, fetcher: MerchantFetch) {
+  const target = brightDataTarget(url);
+  const runtime: BrightDataRuntime | undefined = await brightDataRuntime(url, fetcher);
+  if (!target || !runtime) return;
+  try {
+    const product = await fetchBrightDataProduct(url, runtime);
+    return product ? finalizeExtraction(product, url.href) : undefined;
+  } catch (error) {
+    if (error instanceof BrightDataPendingError) {
+      const pending = new ManualEntryFallbackError(`${brightDataStoreNames[error.store]} отдаёт данные через сервис сбора — это занимает до полуминуты. Atlas повторит запрос сам.`, {sourceUrl: url.href, brand: brightDataStoreNames[error.store], warnings: []}, 'pending');
+      pending.retryAfterMs = error.retryAfterMs;
+      pending.diagnostic = {engine: 'brightdata'};
+      throw pending;
+    }
+    if (error instanceof ManualEntryFallbackError) throw withDiagnostic(error, {engine: 'brightdata'});
+    // Logs carry the store and the stage, never the product URL or the key.
+    console.warn('[brightdata] ' + JSON.stringify({store: target.store, stage: error instanceof BrightDataApiError ? error.stage : 'unknown', status: error instanceof BrightDataApiError ? error.status : undefined, error: (error as Error).name}));
+  }
+}
+
+function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = browserUserAgent, referer?: string, options: Pick<PublicRequestOptions, 'clientHints'|'minimalApi'> = {}) {
   return {
     Accept: format === 'json' ? 'application/json, text/plain, */*' : 'text/html,application/xhtml+xml',
     'User-Agent': userAgent,
@@ -121,10 +199,10 @@ function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = br
     ...(referer ? {
       Referer: referer,
       Origin: new URL(referer).origin,
-      'Sec-Fetch-Site': 'same-origin',
+      ...(!options.minimalApi?{'Sec-Fetch-Site': 'same-origin',
       'Sec-Fetch-Mode': format === 'json' ? 'cors' : 'navigate',
-      'Sec-Fetch-Dest': format === 'json' ? 'empty' : 'document',
-      ...(format === 'json' && options.clientHints !== false ? {
+      'Sec-Fetch-Dest': format === 'json' ? 'empty' : 'document'}:{}),
+      ...(format === 'json' && options.clientHints !== false && !options.minimalApi ? {
         'X-Requested-With': 'XMLHttpRequest',
         'Sec-CH-UA': '"Chromium";v="152", "Not?A_Brand";v="24", "Google Chrome";v="152"',
         'Sec-CH-UA-Mobile': '?0',
@@ -135,16 +213,20 @@ function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = br
   };
 }
 
-async function readBody(response: Response, format: 'html' | 'json', maxBytes = format === 'html' ? 3_000_000 : 1_000_000) {
+// The egress proxy passes up to 6 MB (proxy-client.mjs); product pages with a large client state (Amazon, Walmart,
+// headless Shopify) are read whole up to that size instead of failing at 3 MB.
+const maxHtmlBytes = 6_000_000;
+
+async function readBody(response: Response, format: 'html' | 'json', maxBytes = format === 'html' ? maxHtmlBytes : 1_000_000) {
   const contentType = response.headers.get('content-type') ?? '';
   const validType = format === 'html' ? /(?:text\/html|application\/xhtml\+xml)/i.test(contentType) : /json|javascript/i.test(contentType);
   if (!response.ok || !validType) {
-    console.error('Public merchant response rejected', {url: response.url, status: response.status, contentType, format});
+    console.error('Public merchant response rejected', {host: hostOf(response.url), status: response.status, contentType, format});
     await response.body?.cancel();
     const reason = !response.ok
       ? response.status === 401 || response.status === 403 || response.status === 429 ? 'blocked' : response.status >= 500 ? 'upstream' : 'response'
       : 'response';
-    throw new ManualEntryFallbackError(undefined, undefined, reason);
+    throw withDiagnostic(new ManualEntryFallbackError(undefined, undefined, reason), responseDiagnostic(response));
   }
   const reader = response.body?.getReader();
   if (!reader) throw new ManualEntryFallbackError(undefined, undefined, 'response');
@@ -156,7 +238,7 @@ async function readBody(response: Response, format: 'html' | 'json', maxBytes = 
     size += value.byteLength;
     if (size > maxBytes) {
       await reader.cancel();
-      throw new ManualEntryFallbackError(undefined, undefined, 'response');
+      throw withDiagnostic(new ManualEntryFallbackError(undefined, undefined, 'response'), responseDiagnostic(response, {vendor: 'oversize'}));
     }
     text += decoder.decode(value, {stream: true});
   }
@@ -236,7 +318,7 @@ async function readAmazonUs(start: URL, signal: AbortSignal, fetcher: MerchantFe
     // Amazon product pages carry a large client-side state payload. Keep a
     // separate, still bounded ceiling for this allowlisted host so a valid
     // post-location page is not mistaken for an unusable import.
-    const html = await readBody(response, 'html', 6_000_000);
+    const html = await readBody(response, 'html', maxHtmlBytes);
     const token = amazonLocationToken(html);
     if (!token) throw new ManualEntryFallbackError();
 
@@ -271,7 +353,7 @@ async function readAmazonUs(start: URL, signal: AbortSignal, fetcher: MerchantFe
     const refreshed = await merchantFetch(url, {redirect: 'manual', signal, headers: requestHeaders('html', cookieHeader(jar), amazonUserAgent)}, fetcher);
     mergeCookies(jar, refreshed);
     if (refreshed.status >= 300 && refreshed.status < 400) throw new ManualEntryFallbackError('Amazon изменил адрес карточки после выбора региона. Заполните данные вручную; новый адрес не открывался.',undefined,'redirect');
-    const refreshedHtml = await readBody(refreshed, 'html', 6_000_000);
+    const refreshedHtml = await readBody(refreshed, 'html', maxHtmlBytes);
     // Location validation is already done by verifying the locationData response
     // from the address-change endpoint above. The HTML representation of the ZIP
     // may change or be hidden behind JS.
@@ -279,6 +361,10 @@ async function readAmazonUs(start: URL, signal: AbortSignal, fetcher: MerchantFe
   }
   throw Error('Не удалось проверить регион Amazon.');
 }
+
+// Akamai's sensor-only interstitial (same pattern as the proxy's): a few KB, its challenge
+// container or one obfuscated same-site script `/a/b/c/d?v=<uuid>`, and no product.
+const akamaiInterstitial = /sec-if-cpt|_sec\/cp_challenge|sec-container|<script\b[^>]*\bsrc=["']\/(?:[\w-]+\/){3,}[\w-]+\?v=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}["']/i;
 
 /**
  * Bot-management interstitials answer with HTTP 200 and a tiny page instead of
@@ -289,10 +375,13 @@ export function detectBotChallenge(html: string) {
   // A page that still carries its Product JSON-LD was served: vendor scripts and form reCAPTCHA on it are not a wall.
   if (/"@type"\s*:\s*"Product"/i.test(html)) return undefined;
   if (/bm-verify|_sec\/verify|akam-logo|ak_bmsc_challenge|<title>\s*Access Denied\s*<\/title>/i.test(head)) return 'Akamai';
-  if (/px-captcha|_pxhd|_pxAppId|PerimeterX|window\._pxUuid/i.test(head)) return 'PerimeterX';
+  if (html.length < 12_000 && akamaiInterstitial.test(head)) return 'Akamai';
+  // Walmart's served product pages carry PerimeterX's config (`_pxAppId`); only its captcha, or those markers on a small page, are a wall.
+  if (/px-captcha/i.test(head) || html.length < 60_000 && /_pxhd|_pxAppId|PerimeterX|window\._pxUuid/i.test(head)) return 'PerimeterX';
   if (/cf-chl|cf_chl_opt|<title>\s*Just a moment/i.test(head)) return 'Cloudflare';
   if (/distil_r_captcha|datadome|dd\.captcha|geo\.captcha-delivery\.com/i.test(head)) return 'DataDome';
-  if (/captcha|verify you are human|pardon our interruption|robot check|are you a human/i.test(head.replace(/g?recaptcha/gi, ''))) return 'CAPTCHA';
+  const visibleHead = head.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/g?recaptcha/gi, '');
+  if (/captcha|verify you are human|pardon our interruption|robot check|are you a human/i.test(visibleHead)) return 'CAPTCHA';
   if (html.length < 20000 && /<title>\s*Too many requests\s*<\/title>/i.test(head)) return 'лимит запросов';
   return undefined;
 }
@@ -305,7 +394,7 @@ function botChallengeError(kind: string) {
 function directEgress(response: Response) {
   return response.headers.get('x-atlas-egress') === 'direct';
 }
-const directEgressWarning = 'Данные получены напрямую, без US-прокси (магазин ограничил его запросы): цена и валюта могут соответствовать другому региону — проверьте их.';
+const directEgressWarning = 'Данные получены без US-прокси: цена и валюта могут соответствовать другому региону — проверьте их.';
 
 async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'json', options: PublicRequestOptions = {}, fetcher: MerchantFetch = fetch) {
   let url = start;
@@ -317,14 +406,17 @@ async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'jso
     }
     if (response.status === 401 || response.status === 403 || response.status === 429 || response.status >= 500) {
       await response.body?.cancel();
-      throw new ManualEntryFallbackError(undefined, undefined, response.status>=500?'upstream':'blocked');
+      throw withDiagnostic(new ManualEntryFallbackError(undefined, undefined, response.status>=500?'upstream':'blocked'), responseDiagnostic(response));
     }
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get('location');
       await response.body?.cancel();
-      if (!location || i === 3) throw new ManualEntryFallbackError('Магазин перенаправил запрос. Заполните данные вручную; адрес перенаправления не открывался.',undefined,'redirect');
+      if (!location || i === 3) throw withDiagnostic(new ManualEntryFallbackError('Магазин перенаправил запрос. Заполните данные вручную; адрес перенаправления не открывался.',undefined,'redirect'), responseDiagnostic(response));
       try { url = allowedUrl(new URL(location, url).href); }
       catch { throw new ManualEntryFallbackError('Магазин перенаправил запрос за пределы разрешённых страниц. Заполните данные вручную; новый адрес не открывался.',undefined,'redirect'); }
+      // Walmart and others answer a bot with a same-site redirect to their block page.
+      if (format === 'html' && /^\/(?:blocked|captcha|challenge)\b/i.test(url.pathname)) throw withDiagnostic(new ManualEntryFallbackError(undefined, undefined, 'blocked'), responseDiagnostic(response, {vendor: 'redirect-wall'}));
+      if (format === 'html' && !sameMerchantRedirect(start, url)) throw new ManualEntryFallbackError('Магазин изменил витрину или регион. Проверьте ссылку и заполните данные вручную; другой адрес не открывался.', undefined, 'redirect');
       if (format === 'json' && url.origin !== start.origin && !options.allowedOrigins?.includes(url.origin)) throw new ManualEntryFallbackError('Магазин изменил регион API. Заполните данные вручную; новый адрес не открывался.',undefined,'redirect');
       continue;
     }
@@ -332,24 +424,52 @@ async function readPublic(start: URL, signal: AbortSignal, format: 'html' | 'jso
     const text = await readBody(response, format);
     if (format === 'html') {
       const challenge = detectBotChallenge(text);
-      if (challenge) throw botChallengeError(challenge);
+      if (challenge) throw withDiagnostic(botChallengeError(challenge), responseDiagnostic(response, {vendor: challenge}));
     }
-    return {text, url, direct};
+    return {text, url, direct, diagnostic: responseDiagnostic(response)};
   }
   throw Error('Не удалось загрузить товар.');
+}
+
+/** Zara's product page answers `?ajax=true` with the view payload (and `clientAppConfig`) the HTML would embed. */
+function zaraPayloadUrl(url: URL) {
+  if (!/(^|\.)zara\.com$/i.test(url.hostname) || !/-p\d{8}\.html$/i.test(url.pathname)) return undefined;
+  const ajax = new URL(url.href);
+  ajax.searchParams.set('ajax', 'true');
+  return ajax;
+}
+
+/** The two objects the Zara page assigns, so the existing Zara parser reads them exactly as on the page. */
+function zaraDocument(payload: unknown) {
+  const view = payload && typeof payload === 'object' ? payload as Record<string, unknown> : undefined;
+  const config = view?.clientAppConfig;
+  if (!view?.product || !config || typeof config !== 'object') return undefined;
+  const json = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c');
+  return `<script>window.zara.appConfig = ${json(config)};window.zara.viewPayload = ${json({product: view.product})};</script>`;
 }
 
 function withEgressWarning<T extends Extracted>(extracted: T, direct: boolean | undefined): T {
   return direct ? {...extracted, warnings: [...(extracted.warnings ?? []), directEgressWarning]} : extracted;
 }
 
-export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch) {
+export const manualEntryStoreMessage = 'Этот магазин не отдаёт данные товара автоматически. Откройте товар на сайте магазина и впишите название, цену, вариант и доставку сами — оператор Atlas сверит их перед выкупом.';
+
+async function fetchProductOnce(value: string, fetcher: MerchantFetch = fetch) {
   const manualUrl = validateManualSourceUrl(value);
   if (!isSupportedStoreHost(manualUrl.hostname)) {
     const partial: Extracted = {sourceUrl: manualUrl.href, brand: manualUrl.hostname.replace(/^www\./, ''), warnings: []};
     throw new ManualEntryFallbackError('Автоматическая загрузка этого магазина недоступна. Заполните данные товара вручную; сервер не обращается к этому магазину.', partial);
   }
-  const url = allowedUrl(manualUrl.href), controller = new AbortController();
+  const url = allowedUrl(manualUrl.href);
+  // A store that blocks every route is not asked at all: no request, no wait, straight to the customer's own entry.
+  if (isManualEntryStoreHost(url.hostname)) throw new ManualEntryFallbackError(manualEntryStoreMessage, {sourceUrl: url.href, brand: url.hostname.replace(/^(?:www2?|shop)\./, ''), warnings: []}, 'manual');
+  // Walmart: the store page comes first (the Tashkent gateway's Chrome reads it in a few seconds, at no cost);
+  // Bright Data is paid and only steps in when the page path fails, or while a collection it started still runs.
+  if (await brightDataRunning(url, fetcher)) {
+    const collected = await brightDataProduct(url, fetcher);
+    if (collected) return collected;
+  }
+  const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);
   // Why the official eBay path did not answer; carried into the manual-review draft so the operator sees it.
   let ebayApiNote: string | undefined;
@@ -397,28 +517,22 @@ export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch
         allowedOrigins: ['https://www.adidas.com', 'https://adidas.com'],
       };
       // The PLP JSON includes the canonical card, price, gallery and size
-      // matrix. Fetch it first so a product endpoint rate limit does not make
-      // an otherwise complete public listing unusable.
-      let listingResponse: {text: string; url: URL} | undefined;
-      for (const endpoint of [adidas.listing, adidas.fallbackListing]) {
-        try {
-          listingResponse = await readPublic(endpoint, controller.signal, 'json', adidasRequest, fetcher);
-          break;
-        } catch {
-          if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
+      // matrix, so a product endpoint rate limit does not make an otherwise
+      // complete public listing unusable. Both are asked at once (www first,
+      // then the apex route for each); neither waits for the other.
+      const firstAnswer = async (endpoints: URL[]) => {
+        let error: unknown;
+        for (const endpoint of endpoints) {
+          try { return {response: await readPublic(endpoint, controller.signal, 'json', adidasRequest, fetcher)}; }
+          catch (failure) { error = failure; if (controller.signal.aborted) break; }
         }
-      }
-      let productResponse: {text: string; url: URL} | undefined;
-      let productError: unknown;
-      for (const endpoint of [adidas.product, adidas.fallbackProduct]) {
-        try {
-          productResponse = await readPublic(endpoint, controller.signal, 'json', adidasRequest, fetcher);
-          break;
-        } catch (error) {
-          productError = error;
-          if (controller.signal.aborted) throw error;
-        }
-      }
+        return {error};
+      };
+      const [listingResult, productResult] = await Promise.allSettled([firstAnswer([adidas.listing, adidas.fallbackListing]), firstAnswer([adidas.product, adidas.fallbackProduct])]);
+      const productError = productResult.status === 'fulfilled' ? productResult.value.error : productResult.reason;
+      if (controller.signal.aborted) throw productError instanceof Error && productError.name === 'AbortError' ? productError : new DOMException('Timed out', 'AbortError');
+      const listingResponse = listingResult.status === 'fulfilled' ? listingResult.value.response : undefined;
+      const productResponse = productResult.status === 'fulfilled' ? productResult.value.response : undefined;
       let productData: unknown, listingData: unknown;
       try { listingData = listingResponse ? JSON.parse(listingResponse.text) : undefined; }
       catch { /* The exact product endpoint may still provide usable data. */ }
@@ -459,6 +573,34 @@ export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch
         // Otherwise the page shell still yields the title for a manual-review draft.
       }
     }
+    const target = targetRequest(url);
+    if (target) {
+      // The page draws price and options in the browser from Target's own public product service.
+      try {
+        const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(8_000)]);
+        const payload = await readPublic(target.api, signal, 'json', {referer: url.href,minimalApi:true}, fetcher);
+        const extracted = extractTarget(JSON.parse(payload.text), url.href, target.tcin, {safeImage, inferCategory: inferProductCategory, declarationFor});
+        if (extracted) return finalizeExtraction(withEgressWarning(extracted, payload.direct), url.href);
+      } catch (error) {
+        if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
+        if (error instanceof ManualEntryFallbackError && error.reason === 'blocked') throw error;
+        if (error instanceof Error && /не найдена/.test(error.message)) throw error;
+      }
+    }
+    const zara = zaraPayloadUrl(url);
+    if (zara) {
+      // The HTML sits behind Akamai; the same page answers `?ajax=true` with the view payload it would embed.
+      try {
+        const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(8_000)]);
+        const payload = await readPublic(zara, signal, 'json', {referer: url.href}, fetcher);
+        const document = zaraDocument(JSON.parse(payload.text));
+        if (document) return finalizeExtraction(withEgressWarning(applyMerchantProfile(extractProduct(document, url.href), url.href), payload.direct), url.href);
+      } catch (error) {
+        if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
+        // A removed product is definitive; anything else falls through to the page itself.
+        if (error instanceof Error && /не найдена/.test(error.message)) throw error;
+      }
+    }
     const endpoints = shopifyEndpoints(url);
     if (endpoints) {
       try {
@@ -473,10 +615,12 @@ export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch
         if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
       }
     }
-    const page: {text: string; url: URL; direct?: boolean} = isAmazonUsUrl(url) ? await readAmazonUs(url, controller.signal, fetcher) : await readPublic(url, controller.signal, 'html', {}, fetcher);
+    const page: {text: string; url: URL; direct?: boolean; diagnostic?: ImportDiagnostic} = isAmazonUsUrl(url) ? await readAmazonUs(url, controller.signal, fetcher) : await readPublic(url, controller.signal, 'html', {}, fetcher);
     if (/\/products\//.test(url.pathname) && !/\/products\//.test(page.url.pathname)) throw Error('Магазин убрал карточку товара. Укажите другую ссылку.');
     const challenge = detectBotChallenge(page.text);
-    if (challenge) throw botChallengeError(challenge);
+    if (challenge) throw withDiagnostic(botChallengeError(challenge), {...page.diagnostic, vendor: challenge});
+    if (isMerchantChallengePage(page.text))
+      throw withDiagnostic(new ManualEntryFallbackError('Магазин ограничил автоматическую загрузку. Заполните и подтвердите данные товара вручную.',undefined,'blocked'), {...page.diagnostic, vendor: 'interstitial'});
     let extracted:Extracted;
     try {
       extracted = applyMerchantProfile(extractProduct(page.text, page.url.href), page.url.href);
@@ -486,6 +630,31 @@ export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch
       throw new ManualEntryFallbackError(isEbay
         ? 'eBay не предоставил данные объявления в доступном формате. Проверьте и подтвердите цену и вариант вручную.'
         : 'Страница магазина не предоставила данные товара в доступном формате. Проверьте и подтвердите цену и вариант вручную.');
+    }
+    // A supported store on Shopify outside shopifyStoreRoots: when the page itself gave no price or no options, its
+    // public /products/<handle>.js (one more request on the same route) carries both, in the page's Shopify currency.
+    const pageShopify = !endpoints && /\/products\//.test(page.url.pathname) && isShopifyStorefrontPage(page.text) ? shopifyProductEndpoints(page.url) : undefined;
+    const pageCurrency = pageShopify && (!quoted(extracted) || !extracted.variants?.length) ? shopifyPageCurrency(page.text) : undefined;
+    if (pageShopify && pageCurrency) {
+      try {
+        const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(5_000)]);
+        const product = await readPublic(pageShopify.product, signal, 'json', {}, fetcher);
+        const siteName = page.text.match(/<meta[^>]*property\s*=\s*["']og:site_name["'][^>]*content\s*=\s*["']([^"']{1,80})["']/i)?.[1];
+        const shopify = extractShopify(JSON.parse(product.text), {currency: pageCurrency}, page.url.href, {anyStore: true, siteName, shopHandle: shopifyShopHandle(page.text)});
+        if (quoted(shopify)) extracted = {...shopify, ...(extracted.boxedWeight !== undefined ? {boxedWeight: extracted.boxedWeight, weightKind: extracted.weightKind} : {}), method: 'Shopify public product JSON'};
+      } catch {
+        // The page's own data stays; a store that hides the Ajax endpoint is no different from before.
+        if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
+      }
+    }
+    if (isUltaExtraction(extracted)) {
+      // Ulta prices only the selected shade or size; every other option is read from its own ?sku= page, briefly.
+      const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(7_000)]);
+      extracted = await fillUltaVariantPrices(extracted, async optionUrl => {
+        if (signal.aborted) return;
+        const option = await readPublic(allowedUrl(optionUrl), signal, 'html', {}, fetcher);
+        return detectBotChallenge(option.text) || isMerchantChallengePage(option.text) ? undefined : extractProduct(option.text, option.url.href);
+      });
     }
     return finalizeExtraction(withEgressWarning(extracted, page.direct),page.url.href);
   } catch(error) {
@@ -509,21 +678,55 @@ export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch
         sourceUrl: url.href,
         brand: 'eBay',
         warnings: [],
-      }, error instanceof ManualEntryFallbackError ? error.reason : 'unknown');
+      }, error instanceof ManualEntryFallbackError ? error.reason : error instanceof Error && error.name === 'AbortError' ? 'timeout' : 'unknown');
+    }
+    // The Walmart page did not answer (the gateway computer is off, a wall, a timeout): Bright Data on its own budget.
+    if (brightDataTarget(url) && (error instanceof ManualEntryFallbackError && error.reason !== 'pending' || error instanceof Error && error.name === 'AbortError')) {
+      clearTimeout(timer);
+      const collected = await brightDataProduct(url, fetcher);
+      if (collected) return collected;
     }
     throw error;
   } finally {clearTimeout(timer);}
+}
+
+/** One automatic retry for transient transport failures, within a shared budget.
+ * A challenge, unsafe redirect, incomplete quote or definite missing listing is
+ * not retried. Every attempt retains the ordinary allowlist/body/timeout gates. */
+export async function fetchProduct(value: string, fetcher: MerchantFetch = fetch) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 24_000);
+  const boundedFetch: MerchantFetch = Object.assign(async (input: string | URL, init?: RequestInit) => fetcher(input, {
+    ...init,
+    signal: init?.signal ? AbortSignal.any([controller.signal, init.signal]) : controller.signal,
+  }), {ebayBrowseConfig: fetcher.ebayBrowseConfig, brightData: fetcher.brightData});
+  try {
+    for (let attempt = 0; ; attempt++) {
+      try { return await fetchProductOnce(value, boundedFetch); }
+      catch (error) {
+        const transient = error instanceof ManualEntryFallbackError && ['network', 'upstream', 'timeout'].includes(error.reason)
+          || error instanceof Error && error.name === 'AbortError';
+        if (attempt === 1 || !transient || controller.signal.aborted) {
+          // One line per failed import: which store, why, and what the egress engines saw.
+          if (error instanceof ManualEntryFallbackError) console.warn('[import-fallback] ' + JSON.stringify({host: hostOf(value), reason: error.reason, ...error.diagnostic}));
+          throw error;
+        }
+        await new Promise(resolve => setTimeout(resolve, 250));
+      }
+    }
+  } finally { clearTimeout(timer); }
 }
 
 export async function fetchCollectionLinks(value:string, fetcher:MerchantFetch = fetch){
   const start=allowedUrl(value),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
   try{
     const page=isAmazonUsUrl(start) ? await readAmazonUs(start,controller.signal,fetcher) : await readPublic(start,controller.signal,'html',{},fetcher);
-    if(/verify you are human|robot check|pardon our interruption/i.test(page.text.slice(0,60000)))throw Error('Магазин ограничил доступ к подборке. Вставьте ссылки на товары.');
+    if(isMerchantChallengePage(page.text))throw new ManualEntryFallbackError('Магазин ограничил доступ к подборке. Вставьте ссылки на товары.',undefined,'blocked');
     const links=new Set<string>();
     for(const match of page.text.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi)){
       try{const candidate=allowedUrl(new URL(match[1].replace(/&amp;/g,'&'),page.url).href);
-        if(candidate.origin!==page.url.origin||!/(?:\/products\/[^/]+|\/p\/[^/]+|\/t\/[^/]+|\/itm\/\d+|\/dp\/[A-Z0-9]+|\.html)$/i.test(candidate.pathname))continue;
+        if (/[{}<>]|\$\{|\[\[/.test(decodeURIComponent(candidate.href))) continue;
+        if(candidate.origin!==page.url.origin||!isMerchantProductUrl(candidate))continue;
         candidate.hash='';for(const key of [...candidate.searchParams.keys()])if(/^(utm_.+|_pos|_sid|_ss)$/i.test(key))candidate.searchParams.delete(key);
         links.add(candidate.href);if(links.size===10)break;
       }catch{}

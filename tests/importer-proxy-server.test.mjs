@@ -64,3 +64,12 @@ test('importer proxy requires exact versioned payload and same allowed-origin he
     assert.equal(response.status,400);
   }
 });
+
+test('signed native API referers accept exact merchant pairs only',async t=>{
+ const hosts=['redsky.target.com','www.target.com','api.victoriassecret.com','www.victoriassecret.com','www.nike.com'];
+ const server=createImporterProxyServer({secret,allowedHosts:new Set(hosts),fetcher:async()=>new Response('{}',{headers:{'content-type':'application/json'}}),now:()=>now});
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));});
+ const endpoint='http://127.0.0.1:'+server.address().port+'/v1/fetch';
+ const cases=[['redsky.target.com','referer','https://www.target.com/p/-/A-12345678',200],['api.victoriassecret.com','referer','https://www.victoriassecret.com/us/',200],['redsky.target.com','referer','https://www.nike.com/',400],['redsky.target.com','origin','https://www.target.com',200],['redsky.target.com','origin','https://www.nike.com',400],['redsky.target.com','referer','http://www.target.com/',400],['redsky.target.com','referer','https://user@www.target.com/',400]];
+ for(const [i,[host,key,value,status]] of cases.entries()){const req=signedHeaders({version:1,url:'https://'+host+'/product',method:'GET',headers:{[key]:value}},String(i+10).padStart(32,'e'));assert.equal((await fetch(endpoint,{method:'POST',...req})).status,status);}
+});

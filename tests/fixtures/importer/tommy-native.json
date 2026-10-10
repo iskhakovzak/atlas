@@ -1,0 +1,35 @@
+{
+  "sourceUrl": "https://usa.tommy.com/en/men/clothing/tops/regular-fit-all-day-shirt/78JB396-C39.html",
+  "capturedOn": "2026-10-07",
+  "provenance": "Public merchant HTML, reduced to product fields and native option controls; no scripts, cookies, tracking or account data.",
+  "product": {
+    "@context": "http://schema.org/",
+    "@type": "Product",
+    "@id": "https://usa.tommy.com/en/men/clothing/tops/regular-fit-all-day-shirt/78JB396-C39.html",
+    "url": "https://usa.tommy.com/en/men/clothing/tops/regular-fit-all-day-shirt/78JB396-C39.html",
+    "name": "Regular Fit All-Day Shirt",
+    "description": null,
+    "mpn": "78JB396-C39",
+    "sku": "78JB396-C39",
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": 4,
+      "reviewCount": 25
+    },
+    "image": [
+      "https://shoptommy.scene7.com/is/image/ShopTommy/78JB396_C39_main",
+      "https://shoptommy.scene7.com/is/image/ShopTommy/78JB396_C39_alternate1",
+      "https://shoptommy.scene7.com/is/image/ShopTommy/78JB396_C39_alternate2",
+      "https://shoptommy.scene7.com/is/image/ShopTommy/78JB396_C39_alternate5",
+      "https://shoptommy.scene7.com/is/image/ShopTommy/78JB396_C39_alternate11"
+    ],
+    "offers": {
+      "url": "/en/men/clothing/tops/regular-fit-all-day-shirt/78JB396-C39.html",
+      "@type": "Offer",
+      "priceCurrency": "USD",
+      "price": "53.70",
+      "availability": "http://schema.org/InStock"
+    }
+  },
+  "optionsHtml": "<div class=\"product-detail\" data-pid=\"78JB396-C39\"><h3 id=\"pdp-attr-colorCode\" class=\"colorCode attribute-label quickview__modal__body--colorCode\">\n                        <span class=\"variation__attr--name\">Color</span><span\n                            class=\"variation__attr--value\" tabindex=\"0\">Copenhagen Blue</span>\n                    </h3><input class=\"d-none ds-radio-size variant-item variant-size \" type=\"radio\"\n                                    id=\"78JB396-C39_sizeitem0\"\n                                    aria-checked=\"false\" data-attr-value=\"XS\"\n                                    data-url=\"https://usa.tommy.com/on/demandware.store/Sites-PVHTHUS-Site/en_US/Product-Variation?dwvar_78JB396-C39_colorCode=C39&amp;dwvar_78JB396-C39_size=XS&amp;pid=78JB396-C39&amp;quantity=1\" data-display-id='size'>\n                                \n                                <label id=\"variation_element_78JB396-C39_sizeitem0\"\n                                    class=\"size-enabled\" for=\"78JB396-C39_sizeitem0\"\n                                    aria-label=\"XS\" tabindex=\"0\" role=\"radio\"\n                                    aria-checked=\"false\">XS\n                                </label><input class=\"d-none ds-radio-size variant-item variant-size \" type=\"radio\"\n                                    id=\"78JB396-C39_sizeitem1\"\n                                    aria-checked=\"false\" data-attr-value=\"S\"\n                                    data-url=\"https://usa.tommy.com/on/demandware.store/Sites-PVHTHUS-Site/en_US/Product-Variation?dwvar_78JB396-C39_colorCode=C39&amp;dwvar_78JB396-C39_size=S&amp;pid=78JB396-C39&amp;quantity=1\" data-display-id='size'>\n                                \n                                <label id=\"variation_element_78JB396-C39_sizeitem1\"\n                                    class=\"size-enabled\" for=\"78JB396-C39_sizeitem1\"\n                                    aria-label=\"S\" tabindex=\"0\" role=\"radio\"\n                                    aria-checked=\"false\">S\n                                </label><input class=\"d-none ds-radio-size variant-item variant-size \" type=\"radio\"\n                                    id=\"78JB396-C39_sizeitem2\"\n                                    aria-checked=\"false\" data-attr-value=\"M\"\n                                    data-url=\"https://usa.tommy.com/on/demandware.store/Sites-PVHTHUS-Site/en_US/Product-Variation?dwvar_78JB396-C39_colorCode=C39&amp;dwvar_78JB396-C39_size=M&amp;pid=78JB396-C39&amp;quantity=1\" data-display-id='size'>\n                                \n                                <label id=\"variation_element_78JB396-C39_sizeitem2\"\n                                    class=\"size-enabled\" for=\"78JB396-C39_sizeitem2\"\n                                    aria-label=\"M\" tabindex=\"0\" role=\"radio\"\n                                    aria-checked=\"false\">M\n                                </label><input class=\"d-none ds-radio-size variant-item variant-size \" type=\"radio\"\n                                    id=\"78JB396-C39_sizeitem3\"\n                                    aria-checked=\"false\" data-attr-value=\"L\"\n                                    data-url=\"https://usa.tommy.com/on/demandware.store/Sites-PVHTHUS-Site/en_US/Product-Variation?dwvar_78JB396-C39_colorCode=C39&amp;dwvar_78JB396-C39_size=L&amp;pid=78JB396-C39&amp;quantity=1\" data-display-id='size'>\n                                \n                                <label id=\"variation_element_78JB396-C39_sizeitem3\"\n                                    class=\"size-enabled\" for=\"78JB396-C39_sizeitem3\"\n                                    aria-label=\"L\" tabindex=\"0\" role=\"radio\"\n                                    aria-checked=\"false\">L\n                                </label><input class=\"d-none ds-radio-size variant-item variant-size \" type=\"radio\"\n                                    id=\"78JB396-C39_sizeitem4\"\n                                    aria-checked=\"false\" data-attr-value=\"XL\"\n                                    data-url=\"https://usa.tommy.com/on/demandware.store/Sites-PVHTHUS-Site/en_US/Product-Variation?dwvar_78JB396-C39_colorCode=C39&amp;dwvar_78JB396-C39_size=XL&amp;pid=78JB396-C39&amp;quantity=1\" data-display-id='size'>\n                                \n                                <label id=\"variation_element_78JB396-C39_sizeitem4\"\n                                    class=\"size-enabled\" for=\"78JB396-C39_sizeitem4\"\n                                    aria-label=\"XL\" tabindex=\"0\" role=\"radio\"\n                                    aria-checked=\"false\">XL\n                                </label><input class=\"d-none ds-radio-size variant-item variant-size \" type=\"radio\"\n                                    id=\"78JB396-C39_sizeitem5\"\n                                    aria-checked=\"false\" data-attr-value=\"XXL\"\n                                    data-url=\"https://usa.tommy.com/on/demandware.store/Sites-PVHTHUS-Site/en_US/Product-Variation?dwvar_78JB396-C39_colorCode=C39&amp;dwvar_78JB396-C39_size=XXL&amp;pid=78JB396-C39&amp;quantity=1\" data-display-id='size'>\n                                \n                                <label id=\"variation_element_78JB396-C39_sizeitem5\"\n                                    class=\"size-enabled\" for=\"78JB396-C39_sizeitem5\"\n                                    aria-label=\"XXL\" tabindex=\"0\" role=\"radio\"\n                                    aria-checked=\"false\">XXL\n                                </label></div>"
+}

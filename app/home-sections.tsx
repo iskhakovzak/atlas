@@ -114,6 +114,7 @@ export function ExampleQuote(){
  const {pricing}=useMarket();
  const {locale,c}=useHomeCopy();
  const {quote,parts}=useExampleBill();
+ const packed=combinedShipmentWeight(exampleBoxedKg);
  const fee=formatPercent(pricing.margin+pricing.buyoutFee+pricing.conversionFee,locale);
  const markup=formatPercent((pricing.fxMarkup??1.012)-1,locale);
  const cbu=pricing.fxSource==='cbu'&&Boolean(pricing.fxCbuRate);
@@ -128,15 +129,15 @@ export function ExampleQuote(){
    <dl className="bill">
     <div><dt>{c.example.item}</dt><dd>{formatSum(quote.merchandise,locale)}</dd><dd className="bill-note">{cbu?c.example.itemNoteCbu(usd,groupDigits(pricing.fx),markup):c.example.itemNoteSet(usd,groupDigits(pricing.fx))}</dd></div>
     <div><dt>{c.example.service}</dt><dd>{formatSum(parts.service,locale)}</dd><dd className="bill-note">{c.example.serviceDetail(fee)}</dd></div>
-    <div><dt>{c.example.delivery}</dt><dd>{formatSum(parts.international,locale)}</dd><dd className="bill-note">{c.example.deliveryNote(formatKg(exampleBoxedKg,locale),formatKg(packagingKg,locale),formatUsd(deliveryPerKgUsdFor(pricing),locale))}</dd></div>
+    <div><dt>{c.example.delivery}</dt><dd>{formatSum(parts.international,locale)}</dd><dd className="bill-note">{c.example.deliveryNote(formatKg(packed,locale),formatUsd(deliveryPerKgUsdFor(pricing),locale))}</dd></div>
     {/* A reserve on top of delivery only while the tariff sets one (none since 5 October 2026). */}
-    {quote.reserve>0&&<div><dt><span className="home-dt-with-tip">{c.example.reserve}<InfoTip label={c.example.reserveHelpLabel}>{c.example.reserveHelp}</InfoTip></span></dt><dd>{formatSum(quote.reserve,locale)}</dd><dd className="bill-note">{c.example.reserveNote}</dd></div>}
+    {quote.reserve>0&&<div><dt><span className="home-dt-with-tip">{c.example.reserve}<InfoTip label={c.example.reserveHelpLabel}>{c.example.reserveHelp}</InfoTip></span></dt><dd>{formatSum(quote.reserve,locale)}</dd><dd className="bill-note">{c.example.reserveNote(formatKg(packagingKg,locale))}</dd></div>}
    </dl>
    <p className="bill-total home-quote-total"><span>{c.example.total}</span><strong><Money value={quote.total} locale={locale}/></strong></p>
   </div>
-  <section className="folio-outside" aria-labelledby="example-outside">
-   <h3 id="example-outside">{c.example.outsideTitle}</h3>
-   <p className="outside-row"><span>{c.example.dutyLabel}</span><b className="ok">{c.example.dutyStatus}</b><small>{c.example.dutyNote(formatUsd(allowance,locale))}</small></p>
+  <section className="folio-outside home-customs-slip" aria-labelledby="example-outside">
+   <h3 id="example-outside">{c.example.dutyTitle(formatUsd(allowance,locale))}</h3>
+   <p className="home-customs-note">{c.example.dutyNote}</p>
   </section>
  </aside>;
 }
@@ -242,7 +243,6 @@ export function TrustSection(){
   markup:formatPercent((pricing.fxMarkup??1.012)-1,locale),
   cbu:pricing.fxSource==='cbu'&&Boolean(pricing.fxCbuRate),
   freeFrom:formatUsd(pricing.storeShippingFreeFromUsd??50,locale),
-  allowance:formatUsd(pricing.customsAllowanceUsd??courierAllowanceUsd,locale),
  });
  // Two parts so phones can show each as a sheet of its own: the money facts, then the proof (tracking, photos, legal).
  return <section id="trust" className="home-section" data-chapter="trust" aria-labelledby="trust-title">
@@ -289,7 +289,7 @@ export function HomeFaq(){
  const prohibitedUrl=siteContent.prohibitedListUrl;
  const items:{q:string;a:string;link?:ReactNode}[]=[
   {q:c.faq.timesQuestion,a:known.length?c.faq.timesKnown(known.join('; ')):c.faq.timesUnknown},
-  {...c.faq.items.customs,link:<Link href="/customs">{c.faq.customsLink}</Link>},
+  {...c.faq.items.customs(formatUsd(pricing.customsAllowanceUsd??courierAllowanceUsd,locale)),link:<Link href="/customs">{c.faq.customsLink}</Link>},
   c.faq.items.returns,
   {...c.faq.items.prohibited,link:prohibitedUrl?<a href={prohibitedUrl} target="_blank" rel="noopener noreferrer">{c.faq.prohibitedOfficial}</a>:<Link href="/legal#offer">{c.faq.prohibitedRules}</Link>},
   c.faq.items.weight,

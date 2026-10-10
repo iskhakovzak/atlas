@@ -106,10 +106,9 @@ test('(g) cart-add: a changed store price is a 409 err_34; a store failure witho
   const add = (overrides = {}) => ({ type: 'cart-add', product: product('g', 40, overrides), variant: 'Black · 9' });
   await assert.rejects(prepareAction(blank(), add(), deps({ fetchProduct: async () => live(44) })),
     (error) => error instanceof ActionError && error.status === 409 && error.code === 'err_34');
-  await assert.rejects(prepareAction(blank(), add(), deps({ fetchProduct: down })), ManualEntryFallbackError);
+  await assert.rejects(prepareAction(blank(), add(), deps({ fetchProduct: down })), error=>error instanceof ActionError && error.code==='err_38');
   // A buyer-confirmed product goes on when the store hides its data.
-  const manual = await prepareAction(blank(), add({ sourceManuallyConfirmed: true }), deps({ fetchProduct: down }));
-  assert.equal(manual.next.cart.length, 1);
+  await assert.rejects(prepareAction(blank(), add({ sourceManuallyConfirmed: true }), deps({ fetchProduct: down })), error=>error instanceof ActionError && error.code==='err_38');
   // A verified add records the check on the same action object the route reads afterwards.
   const action = add({ sourceCheckedAt: 1, stockQuantity: 99 });
   const verified = await prepareAction(blank(), action, deps({ fetchProduct: async () => live(40) }));
@@ -262,7 +261,7 @@ test('(h5) the unknown-delivery hold is never below $10 outside the catalog: a $
   // A larger hold the customer chose stays; a manual line from a store that hides its data gets the floor too.
   const raised = await prepareAction(blank(), { type: 'cart-add', product: product('m2', 40, { sourceShipping: 25, sourceShippingUsd: 25 }), variant: 'Black · 9' }, deps({ fetchProduct: silent }));
   assert.equal(holdOf(raised.next.cart), 25 * tariff.fx);
-  const manual = await prepareAction(blank(), { type: 'cart-add', product: product('m3', 40, { ...zero, sourceManuallyConfirmed: true }), variant: 'Black · 9' }, deps({ fetchProduct: down }));
+  const manual = await prepareAction(blank(), { type: 'cart-add', product: product('m3', 40, { ...zero, sourceUrl:'https://merchant-example.com/product/m3', sourceManuallyConfirmed: true }), variant: 'Black · 9' }, deps({ fetchProduct: down }));
   assert.equal(holdOf(manual.next.cart), 10 * tariff.fx);
   // A catalog reserve is the operator's, even below $10.
   const card = await prepareAction(blank(), { type: 'cart-add', product: product('m4', 40, zero), variant: 'Black · 9' }, deps({ fetchProduct: silent, editorialShipping: async () => ({ sourceShippingUsd: 4, sourceShippingEstimated: true }) }));
@@ -284,7 +283,7 @@ test('(h5) the unknown-delivery hold is never below $10 outside the catalog: a $
 });
 
 test('(h5) without a store response a claimed known delivery is the reserve at cart-add', async () => {
-  const crafted = { sourceShipping: 0, sourceShippingUsd: 0, sourceShippingEstimated: false, sourceManuallyConfirmed: true };
+  const crafted = { sourceUrl:'https://merchant-example.com/product/m1', sourceShipping: 0, sourceShippingUsd: 0, sourceShippingEstimated: false, sourceManuallyConfirmed: true };
   const blocked = async () => { throw new ManualEntryFallbackError('blocked'); };
   const added = await prepareAction(blank(), { type: 'cart-add', product: product('m1', 5, crafted), variant: 'Black · 9' }, deps({ fetchProduct: blocked }));
   const [line] = added.next.cart;

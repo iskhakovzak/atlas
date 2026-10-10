@@ -2,22 +2,22 @@
 import {CircleHelp} from 'lucide-react';
 import {type Quote} from '@/lib/market/domain';
 import {atlasServiceBreakdown,atlasServiceTotal} from '@/lib/market/quote-presentation';
-import {formatSum} from '@/lib/market/format';
+import {formatPercent,formatSum} from '@/lib/market/format';
 import {calcCopy} from '@/lib/market/calc-copy';
 import {pickLocale} from '@/lib/market/uz-cyrl';
 import {type Locale} from '@/lib/market/i18n';
 
 // The bill lines live apart from app/market-ui.tsx so pages without a bill do not load the calculator copy.
 /** `storeReserveWaived`: store delivery is unknown and no reserve was taken (a large enough store order), so it is not "free". */
-export function CostLines({ q, shippingUnknown = false, storeReserveWaived = false, locale = "ru", internationalHelp }: { q: Pick<Quote, "merchandise" | "service" | "shipping" | "reserve" | "sourceShipping" | "storeShippingHold" | "buyout" | "conversion" | "deliveryMargin" | "optionalServices" | "customsHelp" | "customsHelpRate" | "customsDuty">; shippingUnknown?: boolean; storeReserveWaived?: boolean; locale?: Locale; internationalHelp?: string }) {
+export function CostLines({ q, shippingUnknown = false, storeReserveWaived = false, locale = "ru", internationalHelp }: { q: Pick<Quote, "merchandise" | "service" | "shipping" | "reserve" | "sourceShipping" | "storeShippingHold" | "buyout" | "conversion" | "deliveryMargin" | "optionalServices" | "customsHelp" | "customsHelpRate" | "customsDuty" | "serviceFees">; shippingUnknown?: boolean; storeReserveWaived?: boolean; locale?: Locale; internationalHelp?: string }) {
   const copy = pickLocale({
-    ru: { item: "Товар", merchantShipping: "Доставка магазина", service: "Сервис Atlas", international: "Международная доставка", optional: "Общий сбор Atlas", reserve: "Возвратный резерв", breakdown: "Состав сервиса", help: "Как считается международная доставка", reserveHelp: "Резерв покрывает посылку, пока склад не взвесит её и не измерит габариты. Если международная доставка выйдет дешевле, разницу зачислим на внутренний баланс Atlas. Если дороже — сначала сообщим сумму; доплата только с вашего согласия.", reserveHelpLabel: "О возвратном резерве", unknown: "Уточняется", free: "Бесплатно", noReserve: "Без резерва" },
-    uz: { item: "Tovar", merchantShipping: "Do‘kon yetkazishi", service: "Atlas xizmati", international: "Xalqaro yetkazish", optional: "Atlas umumiy yig‘imi", reserve: "Qaytariladigan zaxira", breakdown: "Xizmat tarkibi", help: "Xalqaro yetkazish qanday hisoblanadi", reserveHelp: "Zaxira ombor jo‘natmani tortib, o‘lchamlarini o‘lchaguncha uni qoplaydi. Xalqaro yetkazish arzonroq chiqsa, farq Atlas ichki balansiga qaytariladi. Qimmatroq bo‘lsa — avval summani aytamiz; qo‘shimcha to‘lov faqat roziligingiz bilan.", reserveHelpLabel: "Qaytariladigan zaxira haqida", unknown: "Aniqlanmoqda", free: "Bepul", noReserve: "Zaxirasiz" },
-    en: { item: "Item", merchantShipping: "Store delivery", service: "Atlas service", international: "International delivery", optional: "General Atlas fee", reserve: "Refundable reserve", breakdown: "Service breakdown", help: "How international delivery is estimated", reserveHelp: "The reserve covers the parcel until the warehouse weighs and measures it. If international delivery costs less, the difference is credited to your Atlas balance. If it costs more, we tell you the amount first; any extra payment needs your consent.", reserveHelpLabel: "About the refundable reserve", unknown: "To be confirmed", free: "Free", noReserve: "No reserve" },
+    ru: { item: "Товар", merchantShipping: "Доставка магазина", service: "Сервис Atlas", fee: "Комиссия Atlas", international: "Международная доставка", optional: "Дополнительные услуги", insurance: "Страхование посылки", reserve: "Возвратный резерв", breakdown: "Состав сервиса", help: "Как считается международная доставка", reserveHelp: "Резерв покрывает посылку, пока склад не взвесит её и не измерит габариты. Если международная доставка выйдет дешевле, разницу зачислим на внутренний баланс Atlas. Если дороже — сначала сообщим сумму; доплата только с вашего согласия.", reserveHelpLabel: "О возвратном резерве", unknown: "Уточняется", free: "Бесплатно", noReserve: "Без резерва" },
+    uz: { item: "Tovar", merchantShipping: "Do‘kon yetkazishi", service: "Atlas xizmati", fee: "Atlas komissiyasi", international: "Xalqaro yetkazish", optional: "Qo‘shimcha xizmatlar", insurance: "Posilkani sug‘urtalash", reserve: "Qaytariladigan zaxira", breakdown: "Xizmat tarkibi", help: "Xalqaro yetkazish qanday hisoblanadi", reserveHelp: "Zaxira ombor jo‘natmani tortib, o‘lchamlarini o‘lchaguncha uni qoplaydi. Xalqaro yetkazish arzonroq chiqsa, farq Atlas ichki balansiga qaytariladi. Qimmatroq bo‘lsa — avval summani aytamiz; qo‘shimcha to‘lov faqat roziligingiz bilan.", reserveHelpLabel: "Qaytariladigan zaxira haqida", unknown: "Aniqlanmoqda", free: "Bepul", noReserve: "Zaxirasiz" },
+    en: { item: "Item", merchantShipping: "Store delivery", service: "Atlas service", fee: "Atlas fee", international: "International delivery", optional: "Extra services", insurance: "Parcel insurance", reserve: "Refundable reserve", breakdown: "Service breakdown", help: "How international delivery is estimated", reserveHelp: "The reserve covers the parcel until the warehouse weighs and measures it. If international delivery costs less, the difference is credited to your Atlas balance. If it costs more, we tell you the amount first; any extra payment needs your consent.", reserveHelpLabel: "About the refundable reserve", unknown: "To be confirmed", free: "Free", noReserve: "No reserve" },
   }, locale);
   const breakdown = atlasServiceBreakdown(q);
   const serviceParts = [
-    { key: "service", label: copy.service, amount: breakdown.service },
+    { key: "service", label: copy.fee, amount: breakdown.service },
     { key: "international", label: copy.international, amount: breakdown.international },
   ];
   const serviceTotal = atlasServiceTotal(q);
@@ -46,6 +46,7 @@ export function CostLines({ q, shippingUnknown = false, storeReserveWaived = fal
       </dd>
     </div>}
     {(q.optionalServices ?? 0) > 0 && <div><dt>{copy.optional}</dt><dd>{formatSum(q.optionalServices ?? 0, locale)}</dd></div>}
+    {(q.serviceFees ?? []).filter(fee => fee.amount > 0).map(fee => <div key={fee.id}><dt>{copy.insurance} · {formatPercent(fee.rate, locale)}</dt><dd>{formatSum(fee.amount, locale)}</dd></div>)}
     {(q.customsHelp ?? 0) > 0 && <div><dt>{calcCopy[locale].lines.customsHelp(new Intl.NumberFormat(locale === "en" ? "en-US" : "ru-RU", { maximumFractionDigits: 2 }).format((q.customsHelpRate ?? 0) * 100) + "%")}</dt><dd>{formatSum(q.customsHelp ?? 0, locale)}</dd></div>}
     {(q.customsDuty ?? 0) > 0 && <div><dt>{calcCopy[locale].lines.customsDuty}</dt><dd>{formatSum(q.customsDuty ?? 0, locale)}</dd></div>}
     {q.reserve > 0 && <div className="cost-reserve-row"><dt>{copy.reserve}</dt><dd><span>{formatSum(q.reserve, locale)}</span><details className="quote-cost-help reserve-cost-help">

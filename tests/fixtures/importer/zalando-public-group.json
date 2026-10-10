@@ -1,0 +1,511 @@
+{
+  "sourceUrl": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?_rfl=de",
+  "originalUrl": "https://www.zalando.de/nike-sportswear-air-force-1-07-sneaker-low-white-ni112n022-a11.html",
+  "capturedOn": "2026-10-07",
+  "provenance": "Public Zalando product JSON-LD, normal page request; product-only fields, no account, cookie, review, tracking or policy data.",
+  "product": {
+    "@type": "ProductGroup",
+    "brand": {
+      "@type": "Brand",
+      "name": "Nike Sportswear"
+    },
+    "color": "white",
+    "image": [
+      "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+      "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+      "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+      "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+      "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+      "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+      "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+    ],
+    "name": "AIR FORCE 1 07 - Trainers - white",
+    "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html",
+    "productGroupID": "NI112N022-A11",
+    "variesBy": [
+      "https://schema.org/size"
+    ],
+    "hasVariant": [
+      {
+        "@type": "Product",
+        "@id": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=38.5",
+        "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=38.5",
+        "sku": "NI112N022-A110060000",
+        "image": [
+          "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+          "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+        ],
+        "name": "AIR FORCE 1 07 - Trainers - white",
+        "size": "38.5",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "EUR",
+          "price": "95.95",
+          "availability": "https://schema.org/InStock"
+        },
+        "gtin": "0194500874886"
+      },
+      {
+        "@type": "Product",
+        "@id": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=39",
+        "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=39",
+        "sku": "NI112N022-A110065000",
+        "image": [
+          "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+          "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+        ],
+        "name": "AIR FORCE 1 07 - Trainers - white",
+        "size": "39",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "EUR",
+          "price": "95.95",
+          "availability": "https://schema.org/InStock"
+        },
+        "gtin": "0194500874893"
+      },
+      {
+        "@type": "Product",
+        "@id": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=40",
+        "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=40",
+        "sku": "NI112N022-A110070000",
+        "image": [
+          "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+          "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+        ],
+        "name": "AIR FORCE 1 07 - Trainers - white",
+        "size": "40",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "EUR",
+          "price": "95.95",
+          "availability": "https://schema.org/InStock"
+        },
+        "gtin": "0194500874909"
+      },
+      {
+        "@type": "Product",
+        "@id": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=40.5",
+        "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=40.5",
+        "sku": "NI112N022-A110075000",
+        "image": [
+          "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+          "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+        ],
+        "name": "AIR FORCE 1 07 - Trainers - white",
+        "size": "40.5",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "EUR",
+          "price": "95.95",
+          "availability": "https://schema.org/InStock"
+        },
+        "gtin": "0194500874916"
+      },
+      {
+        "@type": "Product",
+        "@id": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=41",
+        "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=41",
+        "sku": "NI112N022-A110080000",
+        "image": [
+          "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+          "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+        ],
+        "name": "AIR FORCE 1 07 - Trainers - white",
+        "size": "41",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "EUR",
+          "price": "95.95",
+          "availability": "https://schema.org/InStock"
+        },
+        "gtin": "0194500874923"
+      },
+      {
+        "@type": "Product",
+        "@id": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=42",
+        "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=42",
+        "sku": "NI112N022-A110085000",
+        "image": [
+          "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+          "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+        ],
+        "name": "AIR FORCE 1 07 - Trainers - white",
+        "size": "42",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "EUR",
+          "price": "95.95",
+          "availability": "https://schema.org/InStock"
+        },
+        "gtin": "0194500874930"
+      },
+      {
+        "@type": "Product",
+        "@id": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=42.5",
+        "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=42.5",
+        "sku": "NI112N022-A110090000",
+        "image": [
+          "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+          "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+        ],
+        "name": "AIR FORCE 1 07 - Trainers - white",
+        "size": "42.5",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "EUR",
+          "price": "95.95",
+          "availability": "https://schema.org/InStock"
+        },
+        "gtin": "0194500874947"
+      },
+      {
+        "@type": "Product",
+        "@id": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=43",
+        "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=43",
+        "sku": "NI112N022-A110095000",
+        "image": [
+          "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+          "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+        ],
+        "name": "AIR FORCE 1 07 - Trainers - white",
+        "size": "43",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "EUR",
+          "price": "95.95",
+          "availability": "https://schema.org/InStock"
+        },
+        "gtin": "0194500874954"
+      },
+      {
+        "@type": "Product",
+        "@id": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=44",
+        "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=44",
+        "sku": "NI112N022-A110100000",
+        "image": [
+          "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+          "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+        ],
+        "name": "AIR FORCE 1 07 - Trainers - white",
+        "size": "44",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "EUR",
+          "price": "95.95",
+          "availability": "https://schema.org/InStock"
+        },
+        "gtin": "0194500874961"
+      },
+      {
+        "@type": "Product",
+        "@id": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=44.5",
+        "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=44.5",
+        "sku": "NI112N022-A110105000",
+        "image": [
+          "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+          "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+        ],
+        "name": "AIR FORCE 1 07 - Trainers - white",
+        "size": "44.5",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "EUR",
+          "price": "95.95",
+          "availability": "https://schema.org/InStock"
+        },
+        "gtin": "0194500874978"
+      },
+      {
+        "@type": "Product",
+        "@id": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=45",
+        "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=45",
+        "sku": "NI112N022-A110110000",
+        "image": [
+          "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+          "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+        ],
+        "name": "AIR FORCE 1 07 - Trainers - white",
+        "size": "45",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "EUR",
+          "price": "95.95",
+          "availability": "https://schema.org/InStock"
+        },
+        "gtin": "0194500874985"
+      },
+      {
+        "@type": "Product",
+        "@id": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=45.5",
+        "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=45.5",
+        "sku": "NI112N022-A110115000",
+        "image": [
+          "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+          "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+        ],
+        "name": "AIR FORCE 1 07 - Trainers - white",
+        "size": "45.5",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "EUR",
+          "price": "95.95",
+          "availability": "https://schema.org/InStock"
+        },
+        "gtin": "0194500874992"
+      },
+      {
+        "@type": "Product",
+        "@id": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=46",
+        "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=46",
+        "sku": "NI112N022-A110120000",
+        "image": [
+          "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+          "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+        ],
+        "name": "AIR FORCE 1 07 - Trainers - white",
+        "size": "46",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "EUR",
+          "price": "95.95",
+          "availability": "https://schema.org/InStock"
+        },
+        "gtin": "0194500875005"
+      },
+      {
+        "@type": "Product",
+        "@id": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=47",
+        "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=47",
+        "sku": "NI112N022-A110125000",
+        "image": [
+          "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+          "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+        ],
+        "name": "AIR FORCE 1 07 - Trainers - white",
+        "size": "47",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "EUR",
+          "price": "95.95",
+          "availability": "https://schema.org/InStock"
+        },
+        "gtin": "0194500875012"
+      },
+      {
+        "@type": "Product",
+        "@id": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=47.5",
+        "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=47.5",
+        "sku": "NI112N022-A110130000",
+        "image": [
+          "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+          "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+        ],
+        "name": "AIR FORCE 1 07 - Trainers - white",
+        "size": "47.5",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "EUR",
+          "price": "95.95",
+          "availability": "https://schema.org/InStock"
+        },
+        "gtin": "0194500875029"
+      },
+      {
+        "@type": "Product",
+        "@id": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=48.5",
+        "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=48.5",
+        "sku": "NI112N022-A110140000",
+        "image": [
+          "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+          "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+        ],
+        "name": "AIR FORCE 1 07 - Trainers - white",
+        "size": "48.5",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "EUR",
+          "price": "95.95",
+          "availability": "https://schema.org/InStock"
+        },
+        "gtin": "0194500875036"
+      },
+      {
+        "@type": "Product",
+        "@id": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=49.5",
+        "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=49.5",
+        "sku": "NI112N022-A110150000",
+        "image": [
+          "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+          "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+        ],
+        "name": "AIR FORCE 1 07 - Trainers - white",
+        "size": "49.5",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "EUR",
+          "price": "95.95",
+          "availability": "https://schema.org/InStock"
+        },
+        "gtin": "0194500875043"
+      },
+      {
+        "@type": "Product",
+        "@id": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=50.5",
+        "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=50.5",
+        "sku": "NI112N022-A110160000",
+        "image": [
+          "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+          "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+        ],
+        "name": "AIR FORCE 1 07 - Trainers - white",
+        "size": "50.5",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "EUR",
+          "price": "119.99",
+          "availability": "https://schema.org/InStock"
+        },
+        "gtin": "0194500875050"
+      },
+      {
+        "@type": "Product",
+        "@id": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=51.5",
+        "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=51.5",
+        "sku": "NI112N022-A110170000",
+        "image": [
+          "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+          "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+        ],
+        "name": "AIR FORCE 1 07 - Trainers - white",
+        "size": "51.5",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "EUR",
+          "price": "119.99",
+          "availability": "https://schema.org/InStock"
+        },
+        "gtin": "0194500875067"
+      },
+      {
+        "@type": "Product",
+        "@id": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=52.5",
+        "url": "https://en.zalando.de/nike-sportswear-air-force-1-07-trainers-white-ni112n022-a11.html?size=52.5",
+        "sku": "NI112N022-A110180000",
+        "image": [
+          "https://img01.ztat.net/article/spp-media-p1/0117d3f555064d619547338470ec2fcb/5aa562bb0b4b49d5bbabd3c1cd81a5d5.jpg?imwidth=200&filter=packshot",
+          "https://img01.ztat.net/article/spp-media-p1/567252d674464b509b8f98c06a364976/909c220e206147e8838405819959cf32.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/27b1f2178f2d403698ef197ea2134203/0281b3625e2740dfacab186f176fbaef.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/45d30bf8312541e5b7aa74743c2d01e1/ceaf65e09a2c46a8af931f1b541e7d8c.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/e6b47265c4eb4fa99f820eccfd5bcf2e/3709cdd9fe034f30b94e028e872b3479.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/2d79828f86c44beaa7bba651f44e5c64/78afda50ac5b4a8aa47f8e605765cd14.jpg?imwidth=200",
+          "https://img01.ztat.net/article/spp-media-p1/6fc1084eb11f4247b5e100dbefb529ca/6eec6854659b43a987b515dbdb424418.jpg?imwidth=200"
+        ],
+        "name": "AIR FORCE 1 07 - Trainers - white",
+        "size": "52.5",
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "EUR",
+          "price": "95.95",
+          "availability": "https://schema.org/InStock"
+        },
+        "gtin": "0194500875074"
+      }
+    ]
+  }
+}

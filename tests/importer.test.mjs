@@ -236,7 +236,7 @@ test('Amazon still rejects location API responses that do not confirm US ZIP 197
   } finally {globalThis.fetch=original;}
 });
 
-test('fresh verification checks exact price and option identity without gating on stock',()=>{
+test('fresh verification checks exact price, identity and merchant-confirmed sold-out stock',()=>{
   const p={id:'p',name:'Shoe',brand:'Allbirds',category:'Обувь',usd:110,weight:1.5,image:'',variants:['Black / 8'],sourceUrl:url,sourceVariantId:'1',sourceCurrency:'USD',sourcePrice:110};
   const fresh=extractShopify(product,{currency:'USD'},url+'?variant=1');
   const checked=verifyProductSnapshot(p,'Black / 8',fresh,5000);
@@ -244,7 +244,7 @@ test('fresh verification checks exact price and option identity without gating o
   assert.throws(()=>verifyProductSnapshot({...p,sourcePrice:109},'Black / 8',fresh),/Цена изменилась/);
   assert.throws(()=>verifyProductSnapshot({...p,sourceVariantId:'missing-id'},'Black / 8',fresh),/не удалось сверить/);
   const soldOut=extractShopify({...product,variants:product.variants.map(variant=>({...variant,available:false}))},{currency:'USD'},url+'?variant=1');
-  assert.equal(verifyProductSnapshot(p,'Black / 8',soldOut).sourcePrice,110);
+  assert.throws(()=>verifyProductSnapshot(p,'Black / 8',soldOut),/нет в наличии/);
   const confirmed={...p,sourceManuallyConfirmed:true};
   assert.equal(verifyProductSnapshot(confirmed,'Black / 8',fresh).sourceManuallyConfirmed,true);
   const optionsOmitted={...fresh,variants:[]};
@@ -268,10 +268,10 @@ test('fresh verification normalizes a catalog label for a single live option',()
   const checked=verifyProductSnapshot(p,'Указанный вариант',fresh,5000);
   assert.equal(checked.sourcePrice,12.79);assert.equal(checked.importedAt,5000);
 });
-test('fresh verification accepts a matching variant when the merchant omits stock status',()=>{
+test('fresh verification blocks a matching variant when stock is unknown',()=>{
   const p={id:'p',name:'Shoe',brand:'Nike',category:'Обувь',usd:76.97,weight:1.5,image:'',variants:['White · 6'],sourceUrl:'https://www.nike.com/t/example/DM4044-108',sourceVariantId:'00197600816527',sourceCurrency:'USD',sourcePrice:76.97};
   const fresh={sourceUrl:p.sourceUrl,currency:'USD',price:76.97,variants:[{id:'00197600816527',label:'White · 6',available:true,availabilityKnown:false,price:76.97}],warnings:[],method:'JSON-LD'};
-  assert.equal(verifyProductSnapshot(p,'White · 6',fresh,5000).sourcePrice,76.97);
+  assert.throws(()=>verifyProductSnapshot(p,'White · 6',fresh,5000),/не подтвердил наличие/);
 });
 
 test('Shopify keeps the store\'s "before the discount" price only when it is above the price',()=>{

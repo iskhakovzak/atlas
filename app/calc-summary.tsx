@@ -11,12 +11,13 @@ import type {Locale} from '@/lib/market/i18n';
 import {SummaryLine} from './price-summary';
 import {CustomsHow,allowanceLeftUsd} from './customs-how';
 
-type Sums=Pick<Quote,'merchandise'|'service'|'shipping'|'reserve'|'total'>&{buyout?:number;conversion?:number;sourceShipping?:number;deliveryMargin?:number;optionalServices?:number;storeShippingHold?:number;customsHelp?:number;customsDuty?:number};
+type Sums=Pick<Quote,'merchandise'|'service'|'shipping'|'reserve'|'total'>&{buyout?:number;conversion?:number;sourceShipping?:number;deliveryMargin?:number;optionalServices?:number;storeShippingHold?:number;customsHelp?:number;customsDuty?:number;/** Parcel insurance (value-percent services), part of the total. */insurance?:number};
 
 /** Sum of quote lines, for a cart or the link-order preview. */
-export function sumQuotes(quotes:Partial<Sums>[]):Required<Sums>{
+export function sumQuotes(quotes:(Partial<Sums>&Pick<Partial<Quote>,'serviceFees'>)[]):Required<Sums>{
  const keys=['merchandise','service','shipping','reserve','total','buyout','conversion','sourceShipping','deliveryMargin','optionalServices','storeShippingHold','customsHelp','customsDuty'] as const;
- return Object.fromEntries(keys.map(key=>[key,quotes.reduce((sum,quote)=>sum+(quote[key]??0),0)])) as Required<Sums>;
+ const sums=Object.fromEntries(keys.map(key=>[key,quotes.reduce((sum,quote)=>sum+(quote[key]??0),0)])) as Omit<Required<Sums>,'insurance'>;
+ return {...sums,insurance:quotes.reduce((sum,quote)=>sum+(quote.serviceFees??[]).reduce((fees,fee)=>fees+fee.amount,0),0)};
 }
 
 const kgText=(weightKg:number|undefined,locale:Locale)=>weightKg===undefined?'':new Intl.NumberFormat(locale==='en'?'en-US':'ru-RU',{maximumFractionDigits:2}).format(weightKg);
@@ -24,8 +25,10 @@ const percent=(value:number,locale:Locale)=>new Intl.NumberFormat(locale==='en'?
 export const usdText=(value:number,locale:Locale)=>new Intl.NumberFormat(locale==='en'?'en-US':'ru-RU',{style:'currency',currency:'USD',minimumFractionDigits:Number.isInteger(Math.round(value*100)/100)?0:2,maximumFractionDigits:2}).format(value);
 
 /**
- * The calculation as the customer reads it: each fee on its own line, the total to pay, then — set apart —
- * the store-delivery hold (never in the total) and the exchange rate the amounts use.
+ * The calculation as the customer reads it: the items, one "Atlas service" line (owner, 10.10.2026: a pile of fee lines
+ * reads like a trick) with its parts — the Atlas fee and international delivery — folded under "Service breakdown", the
+ * store delivery, the reserve and customs on their own lines; then the store-delivery hold (never in the total).
+ * Same grouping as the item card (app/cost-lines.tsx, lib/market/quote-presentation.ts).
  */
 export function CalcLines({sums,locale,pricing,weightKg,storeShippingState,anyFree=false,speed,children}:{sums:Required<Sums>;locale:Locale;pricing:Pricing;weightKg?:number;storeShippingState:'stated'|'free'|'hold'|'none';anyFree?:boolean;/** Names the chosen delivery speed on the international line. */speed?:DeliverySpeed;children?:React.ReactNode}){
  const c=calcCopy[locale];
@@ -35,19 +38,32 @@ export function CalcLines({sums,locale,pricing,weightKg,storeShippingState,anyFr
  const stated=sums.sourceShipping>0||storeShippingState==='stated';
  const hold=sums.storeShippingHold>0||storeShippingState==='hold';
  const free=!hold&&(anyFree||storeShippingState==='free');
+ // One "Atlas service" amount: the fee (with buyout and conversion when a tariff sets them) and international delivery.
+ const fee=percent(pricing.margin,locale),international=sums.shipping+sums.deliveryMargin;
+ const serviceTotal=sums.service+sums.buyout+sums.conversion+international;
  return <>
   <div className="basket-lines">
    <SummaryLine label={c.lines.items} amount={sums.merchandise} locale={locale}/>
-   <SummaryLine label={c.lines.atlasFee(percent(pricing.margin,locale))} amount={sums.service} locale={locale} help={c.feeHelp} helpLabel={c.lines.atlasFee('')}/>
-   {sums.buyout>0&&<SummaryLine label={c.lines.buyout} amount={sums.buyout} locale={locale}/>}
-   {sums.conversion>0&&<SummaryLine label={c.lines.conversion} amount={sums.conversion} locale={locale}/>}
+   <div className="basket-line basket-service-line">
+    <span className="basket-line-label">{c.lines.service}</span>
+    <b>{formatSum(serviceTotal,locale)}</b>
+    <details className="cost-service-breakdown basket-service-breakdown">
+     <summary>{c.lines.serviceBreakdown}</summary>
+     <div className="basket-lines">
+      <SummaryLine label={c.lines.atlasFee(fee)} amount={sums.service} locale={locale} help={c.feeHelp(fee)} helpLabel={c.lines.atlasFee('')}/>
+      {sums.buyout>0&&<SummaryLine label={c.lines.buyout} amount={sums.buyout} locale={locale}/>}
+      {sums.conversion>0&&<SummaryLine label={c.lines.conversion} amount={sums.conversion} locale={locale}/>}
+      <SummaryLine label={internationalLabel} amount={international} locale={locale} help={c.weightRule(formatKg(packagingKg,locale))} helpLabel={c.blocks.weight}/>
+     </div>
+    </details>
+   </div>
    {stated&&<SummaryLine label={c.lines.storeShipping} amount={sums.sourceShipping} locale={locale}/>}
    {free&&<SummaryLine label={c.lines.storeShipping} amount={0} value={c.lines.free} locale={locale} help={c.freeNote(freeFrom)} helpLabel={c.lines.storeShipping}/>}
    {hold&&<SummaryLine label={c.lines.storeShipping} amount={0} value={c.lines.holdOutside} locale={locale} help={c.holdHelp(freeFrom)} helpLabel={c.lines.storeShipping}/>}
-   <SummaryLine label={internationalLabel} amount={sums.shipping+sums.deliveryMargin} locale={locale} help={c.weightRule} helpLabel={c.blocks.weight}/>
    {sums.reserve>0&&<SummaryLine label={c.lines.intlReserve} amount={sums.reserve} locale={locale} help={c.intlReserveHelp} helpLabel={c.lines.intlReserve}/>}
+   {sums.insurance>0&&<SummaryLine label={c.lines.insurance} amount={sums.insurance} locale={locale}/>}
    {sums.optionalServices>0&&<SummaryLine label={c.lines.optional} amount={sums.optionalServices} locale={locale}/>}
-   {sums.customsHelp>0&&<SummaryLine label={c.lines.customsHelp(percent(pricing.customsHelpFee,locale))} amount={sums.customsHelp} locale={locale} help={c.customsHelpHelp} helpLabel={c.lines.customsHelp('')}/>}
+   {sums.customsHelp>0&&<SummaryLine label={c.lines.customsHelp(percent(pricing.customsHelpFee,locale))} amount={sums.customsHelp} locale={locale} help={c.customsHelpHelp(percent(pricing.customsHelpFee,locale))} helpLabel={c.lines.customsHelp('')}/>}
    {sums.customsDuty>0&&<SummaryLine label={c.lines.customsDuty} amount={sums.customsDuty} locale={locale} help={c.customsDutyHelp} helpLabel={c.lines.customsDuty}/>}
   </div>
   {children}
@@ -131,16 +147,19 @@ export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipient
  const [open,setOpen]=useState(false);
  const [remember,setRemember]=useState(true);
  const usd=(value:number)=>usdText(value,locale);
- const over=customsDutyAmount(estimate,pricing)>0;
+ const duty=customsDutyAmount(estimate,pricing),over=duty>0;
+ // "Atlas pays customs" adds the duty and its fee: the card names the whole addition, not the fee alone.
+ const helpFee=helpAmount===undefined?'':c.choice.fee(formatSum(duty+helpAmount,locale),formatSum(duty,locale),percent(pricing.customsHelpFee,locale));
  // While a choice is saving the cards stay focusable (a disabled fieldset would drop keyboard focus); a second pick waits.
  const pick=(help:boolean)=>{if(!busy)onChoices?.({...choices,help,remember})};
  return <section className={'calc-customs'+(compact?' compact':'')} aria-labelledby={id+'-title'}>
-  <header><Scale size={17} aria-hidden="true"/><h3 id={id+'-title'}>{c.allowanceTitle(usd(estimate.allowanceUsd))}</h3></header>
-  {over?<p className="calc-customs-over">{(choices.help?c.overIncluded:c.overNote)(usd(estimate.dutiableUsd),formatSum(customsDutyAmount(estimate,pricing),locale))}</p>
-   :<p className="calc-customs-none"><Check size={15} aria-hidden="true"/>{c.choice.noDuty(usd(allowanceLeftUsd(estimate)))}</p>}
+  {/* No duty: one line says so (the allowance left is in it). Over the allowance: the allowance, then the excess and the duty. */}
+  {over?<><header><Scale size={17} aria-hidden="true"/><h3 id={id+'-title'}>{c.allowanceTitle(usd(estimate.allowanceUsd))}</h3></header>
+   <p className="calc-customs-over">{(!onChoices?c.overPreview:choices.help?c.overIncluded:c.overNote)(usd(estimate.dutiableUsd),formatSum(duty,locale))}</p></>
+   :<header className="calc-customs-none"><Check size={17} aria-hidden="true"/><h3 id={id+'-title'}>{c.choice.noDuty(usd(allowanceLeftUsd(estimate)))}</h3></header>}
   {profiles.length>1&&onRecipient&&<div className="field calc-customs-recipient"><label htmlFor={id+'-recipient'}>{c.recipient}</label><select id={id+'-recipient'} value={recipientId} onChange={event=>onRecipient(event.target.value)}>{profiles.map(profile=><option key={profile.id} value={profile.id}>{profile.recipient}</option>)}</select></div>}
   {over&&onChoices&&helpAmount!==undefined&&(remembered&&!open
-   ?<p className="customs-remembered">{choices.help?<HandCoins size={15} aria-hidden="true"/>:null}<span>{choices.help?c.choice.rememberedAtlas:c.choice.rememberedSelf}{choices.help&&<small>{c.choice.fee(percent(pricing.customsHelpFee,locale),formatSum(helpAmount,locale))}</small>}</span><button type="button" onClick={()=>setOpen(true)}>{c.choice.change}</button></p>
+   ?<p className="customs-remembered">{choices.help?<HandCoins size={15} aria-hidden="true"/>:null}<span>{choices.help?c.choice.rememberedAtlas:c.choice.rememberedSelf}{choices.help&&<small>{helpFee}</small>}</span><button type="button" onClick={()=>setOpen(true)}>{c.choice.change}</button></p>
    :<fieldset className="customs-choice" aria-busy={busy||undefined}>
     <legend>{c.choice.title}</legend>
     <label className={'customs-option atlas'+(choices.help?' selected':'')}>
@@ -148,7 +167,7 @@ export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipient
      <span className="customs-option-body">
       <span className="customs-option-head"><HandCoins size={16} aria-hidden="true"/><b>{c.choice.atlas}</b><em>{c.choice.badge}</em></span>
       <small>{c.choice.perk}</small>
-      <small className="customs-option-fee">{c.choice.fee(percent(pricing.customsHelpFee,locale),formatSum(helpAmount,locale))}</small>
+      <small className="customs-option-fee">{helpFee}</small>
      </span>
     </label>
     <label className={'customs-option self'+(!choices.help?' selected':'')}>

@@ -48,6 +48,7 @@ test('blocked store imports stay as incomplete manual drafts without asserting p
  assert.equal(draft.name,'Matte Lip Kit');assert.equal(draft.image,partial.image);
  assert.equal(draft.price,undefined);assert.equal(draft.currency,'');
  assert.equal(draft.variants[0].available,false);assert.equal(draft.variants[0].availabilityKnown,false);
+ assert.equal(draft.soldOut,false);
  assert(catalogIssues(draft,1001).includes('Цена'));
  assert(catalogIssues(draft,1001).includes('Валюта'));
  assert(catalogIssues(draft,1001).includes('Наличие не подтверждено магазином'));
@@ -55,6 +56,30 @@ test('blocked store imports stay as incomplete manual drafts without asserting p
  const blank=manualFallbackCatalogDraft(undefined,'https://www.asos.com/asos-design/prd/123456789',[],'Великобритания',1000);
  assert.equal(blank.brand,'asos.com');assert.equal(blank.country,'Великобритания');
  assert(catalogIssues(blank,1001).includes('Доступный вариант'));
+});
+test('operator review can publish incomplete imports and repair legacy unknown-stock drafts',()=>{
+ const manual=manualFallbackCatalogDraft({...extracted,price:undefined},extracted.sourceUrl,[],'США',1000,undefined,'incomplete');
+ for(const legacySoldOut of [false,true]){
+  const original={...manual,soldOut:legacySoldOut};
+  const current=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'manual',draft:original}]});
+  assert.throws(()=>changeCatalog(current,{kind:'publish',ids:['manual']},1001),/Цена.*Валюта/);
+  const reviewed={...original,price:35,currency:'USD',variants:original.variants.map(variant=>({...variant,price:35,available:true,availabilityKnown:true}))};
+  const edited=changeCatalog(current,{kind:'edit',id:'manual',draft:reviewed},1001);
+  assert.equal(edited.entries[0].draft.soldOut,false);
+  assert.deepEqual(catalogIssues(edited.entries[0].draft,1001),[]);
+  const published=changeCatalog(edited,{kind:'publish',ids:['manual']},1002);
+  assert.equal(published.entries[0].published.price,35);
+  assert.equal(published.entries[0].published.variants[0].availabilityKnown,true);
+  assert.equal(published.entries[0].published.sourceShippingUsd,10);
+ }
+});
+test('editing cannot clear a definitive merchant sold-out observation',()=>{
+ const soldOut=importDraft({...extracted,variants:[{...extracted.variants[0],available:false,availabilityKnown:true}]},[],'США',1000);
+ assert.equal(soldOut.soldOut,true);
+ const current=catalogDocumentSchema.parse({revision:0,collections:[],entries:[{id:'sold-out',draft:soldOut}]});
+ const edited=changeCatalog(current,{kind:'edit',id:'sold-out',draft:{...soldOut,soldOut:false,variants:soldOut.variants.map(variant=>({...variant,available:true}))}},1001);
+ assert.equal(edited.entries[0].draft.soldOut,true);
+ assert.throws(()=>changeCatalog(edited,{kind:'publish',ids:['sold-out']},1002),/Нет доступных вариантов/);
 });
 test('catalog review state is optional for legacy records and manual failures retain a reason',()=>{
  const base=importDraft(extracted,[],'США',1000);

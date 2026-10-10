@@ -37,9 +37,9 @@ test('API errors use the validated locale cookie and localize fallback copy',()=
   assert.equal(requestLocale(request({'accept-language':'ru-RU,ru;q=0.9,en;q=0.8'})),'ru');
   assert.equal(apiErrorMessage(403,'en'),'You don’t have access to this action.');
   assert.equal(apiErrorMessage(503,'uz'),'So‘rov bajarilmadi. Qayta urinib ko‘ring.');
-  assert.equal(importManualEntryMessage('ru').includes('в корзину'),true);
-  assert.equal(importManualEntryMessage('uz').includes('savatga qo‘shing'),true);
-  assert.equal(importManualEntryMessage('en').includes('add it to your cart'),true);
+  assert.equal(importManualEntryMessage('ru').includes('Повторите загрузку'),true);
+  assert.equal(importManualEntryMessage('uz').includes('qayta yuklang'),true);
+  assert.equal(importManualEntryMessage('en').includes('Retry later'),true);
   assert.equal(serverError('uz','err_1'),'Davom etish uchun tizimga kiring.');
   assert.match(serverError('en','err_unknown'),/request could not be completed/i);
 });
@@ -89,10 +89,10 @@ const de=addToCart(blank(),products[1],products[1].variants[0],1001,managed).car
 assert.equal(de.service,Math.round(de.merchandise*.12));assert.equal(de.shipping,90000);assert.equal(de.buyout,0);
 });
 test('warehouse service catalogue remains backward compatible and validates unsafe offers',()=>{
-const legacy=pricingSchema.parse({...tariff,serviceCatalog:undefined});assert.ok(legacy.serviceCatalog.some(service=>service.id==='content-photo'));assert.equal(legacy.serviceCatalog.find(service=>service.id==='shipping-insurance').enabled,false);
+const legacy=pricingSchema.parse({...tariff,serviceCatalog:undefined});assert.ok(legacy.serviceCatalog.some(service=>service.id==='content-photo'));const insurance=legacy.serviceCatalog.find(service=>service.id==='shipping-insurance');assert.equal(insurance.enabled,true);assert.equal(insurance.requestStage,'checkout');assert.equal(insurance.pricingMode,'value-percent');
 const oldCartItem={id:'old-cart',product:products[0],variant:'US 9',quantity:1,quote:quote(99,2.1,1000)};const restored=parseState(JSON.stringify({orders:[],entries:[],cart:[oldCartItem]}));assert.deepEqual(restored.cart[0].requestedServiceIds,[]);
 assert.throws(()=>validateServiceCatalog([{...legacy.serviceCatalog.find(service=>service.id==='content-photo'),enabled:true,pricingMode:'fixed',feeUzs:0}]),/положительный базовый тариф/);
-assert.throws(()=>validateServiceCatalog(legacy.serviceCatalog.map(service=>service.id==='shipping-insurance'?{...service,enabled:true}:service)),/Страхование нельзя включить/);
+assert.doesNotThrow(()=>validateServiceCatalog(legacy.serviceCatalog));assert.throws(()=>validateServiceCatalog([{...insurance,valuePercent:0}]),/процент больше нуля/);assert.throws(()=>validateServiceCatalog([{...insurance,requestStage:'warehouse'}]),/только для посылки при оформлении/);
 });
 test('checkout snapshots optional warehouse requests without adding a charge or blocking buyout',()=>{
 const selected={...tariff.serviceCatalog.find(service=>service.id==='content-photo'),enabled:true,pricingMode:'fixed',feeUzs:25000};const config={...tariff,version:'services-1',serviceCatalog:[selected]};

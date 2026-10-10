@@ -29,6 +29,22 @@ test('panel: action first with its latest message, then recent updates without r
   const panel = noticePanel(state, 2);
   assert.equal(panel.unread, 3);
   assert.equal(panel.total, 4);
-  assert.deepEqual(panel.action.map(entry => [entry.order.id, entry.reason, entry.notice?.id]), [['AT-1', 'payment', 'n2']]);
-  assert.deepEqual(panel.updates.map(item => item.id), ['n4', 'n3']);
+  // No notification asks for the payment: the item shows none rather than an unrelated message.
+  assert.deepEqual(panel.action.map(entry => [entry.order.id, entry.reason, entry.notice?.id]), [['AT-1', 'payment', undefined]]);
+  assert.deepEqual(panel.updates.map(item => item.id), ['n2', 'n4']);
+});
+
+test('panel: one item per checkout, the most urgent reason, with a message about that reason only', () => {
+  const state = {
+    orders: [
+      order('AT-1', { batchId: 'B1', payment: { status: 'pending' }, status: 0, createdAt: 2 }),
+      order('AT-2', { batchId: 'B1', payment: { status: 'pending' }, status: 0, createdAt: 2 }),
+      order('AT-3', { batchId: 'B2', settlement: { extra: 5 }, extraApproved: false, createdAt: 1 }),
+      order('AT-4', { batchId: 'B2', changeRequests: [{ status: 'pending' }], createdAt: 1 }),
+    ],
+    notifications: [notice('n1', 9, { orderId: 'AT-3', code: 'tracking-added' }), notice('n2', 4, { orderId: 'AT-3', code: 'parcel-extra' })],
+  };
+  const panel = noticePanel(state);
+  assert.deepEqual(panel.action.map(entry => [entry.order.batchId, entry.reason, entry.notice?.id]), [['B2', 'extra', 'n2'], ['B1', 'payment', undefined]]);
+  assert.deepEqual(panel.updates.map(item => item.id), ['n1']);
 });

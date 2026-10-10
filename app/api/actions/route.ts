@@ -3,7 +3,7 @@ import {account,customerStatus,database,identity,operator,sameOrigin,persist,jso
 import {apiErrorMessage,requestLocale,serverError} from '@/lib/market/i18n';
 import {fetchProduct} from '@/lib/importer/fetch';
 import {merchantRequest} from '@/lib/importer/worker-fetch';
-import {recentCheckMs} from '@/lib/market/cart-check';
+import {recentCheckMs,withRecentImport} from '@/lib/market/cart-check';
 import {codedActionError,editorialShippingFor,prepareAction,staleRevision,type EditorialShipping,type PreparedAction} from '@/lib/market/actions-server';
 import {catalogDocumentSchema,initialCatalog,synchronizeBundledCatalog,type CatalogDocument} from '@/lib/market/catalog-editor';
 import type {Product,State} from '@/lib/market/domain';
@@ -41,7 +41,7 @@ export async function POST(request:Request){try{
   // Independent reads go out together: one D1 round trip instead of three in a row on every action.
   const [status,current,settings]=await Promise.all([customerStatus(user.userId),account(user),pricingAndPolicy()]);
   if(status==='blocked')throw new HttpError(403, 'err_11');
-  if(status==='review'&&['checkout','payment-demo'].includes(parsed.data.type))throw new HttpError(403, 'err_12');
+  if(status==='review'&&['checkout','payment-demo','payment-demo-batch','extra-charge-pay'].includes(parsed.data.type))throw new HttpError(403, 'err_12');
   if(parsed.data.type==='identity-confirm'){
     const identityAction=parsed.data;
     const owned=await database().prepare('SELECT id FROM market_identity_documents WHERE id=? AND user_id=?').bind(identityAction.documentId,user.userId).first();
@@ -55,8 +55,13 @@ export async function POST(request:Request){try{
   // saved and shown, and the action itself is refused, so an old total never passes unnoticed.
   let refusal:string|undefined;
   try{
-    const {pricing,policy}=settings;
-    ({next,refusal,verifiedSource}=await prepareAction(current.state,parsed.data,{fetchProduct:url=>fetchProduct(url,merchantRequest),pricing,policy,operator:operator(user.email),now:Date.now(),recentCheckMs,editorialShipping:editorialShippingLookup()}));
+    const {pricing,policy}=settings,now=Date.now();
+    const live=(url:string)=>fetchProduct(url,merchantRequest);
+    // Adding to the cart right after the card loaded reuses the store answer /api/import stored in the last 2 minutes.
+    const source=parsed.data.type==='cart-add'||parsed.data.type==='cart-add-many'
+      ?withRecentImport(live,async(url,since)=>{const row=await database().prepare('SELECT payload,updated_at FROM market_import_cache WHERE url=? AND updated_at>?').bind(url,since).first<{payload:string;updated_at:number}>();return row?{payload:row.payload,updatedAt:row.updated_at}:undefined},now,recentCheckMs)
+      :{fetchProduct:live,snapshotAt:undefined};
+    ({next,refusal,verifiedSource}=await prepareAction(current.state,parsed.data,{fetchProduct:source.fetchProduct,snapshotAt:source.snapshotAt,pricing,policy,operator:operator(user.email),now,recentCheckMs,editorialShipping:editorialShippingLookup()}));
   }catch(e){
     if(e instanceof HttpError)throw e;
     const coded=codedActionError(e);

@@ -6,13 +6,15 @@ import Link from "@/components/site-link";
 import { AlertCircle, ArrowRight, ArrowUpRight, Bell, Check, FileCheck2, Info, LifeBuoy, LogOut, MapPin, MessageCircle, Package, Pencil, Plus, RefreshCw, ScanLine, Shield, ShoppingBag, Trash2, Wallet } from "lucide-react";
 import { useMarket } from "@/lib/market/store";
 import { courierAllowanceUsd } from "@/lib/market/customs";
-import { balanceOf, orderPayable, totalOf, type SavedDeliveryProfile, type State } from "@/lib/market/domain";
+import { balanceOf, totalOf, type SavedDeliveryProfile, type State } from "@/lib/market/domain";
+import { groupOrders, orderGroupCopy } from "@/lib/market/order-groups";
+import { orderAttention } from "@/lib/market/notice-panel";
 import type { Action } from "@/lib/market/actions";
 import { monthlyAllowance, recipientKey, type RecipientAllowance } from "@/lib/market/allowance";
 import { localizedStatuses, serverError, type Locale } from "@/lib/market/i18n";
 import { calcCopy } from "@/lib/market/calc-copy";
 import { formatSum } from "@/lib/market/format";
-import { accountCopy, formatLongDate, itemCount, recipientCopy, type AccountCopy } from "@/lib/market/customer-copy";
+import { accountCopy, formatLongDate, formatShortDate, itemCount, recipientCopy, type AccountCopy } from "@/lib/market/customer-copy";
 import { consentDocuments, consentVersion, deletionBlockers, deletionSummary, missingConsents } from "@/lib/market/account-delete";
 import { appInfo, isNative, nativePlatform, type AppInfo } from "@/lib/native/bridge";
 import { toast } from "sonner";
@@ -42,8 +44,16 @@ export function AccountView() {
   }, [aboutOrder, c.support]);
   const identityProfiles = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
   const activeOrders = state.orders.filter(order => !order.cancelled && order.status < 5);
-  const pendingApproval = activeOrders.find(order => (order.changeRequests ?? []).some(request => request.status === "pending"));
-  const pendingPayment = activeOrders.find(order => order.payment?.status === "pending");
+  // Purchases are checkouts, as on "My orders": one card, one payment, one count (order-groups.ts).
+  const groups = groupOrders(state.orders);
+  const activeGroups = groups.filter(group => group.status !== undefined && group.status < 5);
+  const gc = orderGroupCopy[lang];
+  // The same rule as the orders page and the notifications panel: a доплата or a change waits for the customer.
+  // Over all lines, as there (no status filter), so the account never misses an item the orders page asks about.
+  const pendingApproval = state.orders.find(order => { const reason = orderAttention(order); return reason === "extra" || reason === "change"; });
+  // The checkout's one payment: its amount, not the share of one line.
+  const dueGroup = groups.find(group => group.payment);
+  const pendingPayment = dueGroup?.orders.find(order => !order.cancelled && order.payment?.status === "pending");
   const currentOrder = pendingApproval ?? pendingPayment ?? activeOrders[0];
   const unread = state.notifications.filter(item => !item.read).length;
   const cartCount = state.cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -58,13 +68,13 @@ export function AccountView() {
 
   const contact = user.email || user.contact;
   const since = formatLongDate(user.createdAt, lang);
-  const next = pendingApproval ? { title: c.next.approval, hint: pendingApproval.product.name, href: `/orders#${pendingApproval.id}`, icon: <AlertCircle aria-hidden="true" />, order: pendingApproval, tone: "warn" }
-    : pendingPayment ? { title: c.next.payment, hint: pendingPayment.product.name, href: `/orders#${pendingPayment.id}`, icon: <Wallet aria-hidden="true" />, order: pendingPayment, tone: "warn" }
+  const next = pendingApproval ? { title: gc.attention, hint: pendingApproval.product.name, href: `/orders#${pendingApproval.id}`, icon: <AlertCircle aria-hidden="true" />, order: pendingApproval, tone: "warn" }
+    : pendingPayment && dueGroup ? { title: c.next.payment, hint: dueGroup.orders.length > 1 ? itemCount(dueGroup.items, lang) : pendingPayment.product.name, href: `/orders#${pendingPayment.id}`, icon: <Wallet aria-hidden="true" />, order: pendingPayment, tone: "warn" }
     : currentOrder ? { title: c.next.inProgress, hint: currentOrder.product.name, href: `/orders#${currentOrder.id}`, icon: <Package aria-hidden="true" />, order: currentOrder, tone: "info" }
     : state.cart.length ? { title: c.next.cart, hint: c.next.cartHint(itemCount(cartCount, lang)), href: "/cart", icon: <ShoppingBag aria-hidden="true" />, tone: "info" }
     : !state.deliveryProfiles.length ? { title: c.next.recipient, hint: c.next.recipientHint, icon: <MapPin aria-hidden="true" />, tone: "info" }
     : null;
-  const dueOrder = !pendingApproval && pendingPayment ? pendingPayment : undefined;
+  const due = !pendingApproval && dueGroup?.payment ? dueGroup : undefined;
 
   async function signOut() {
     await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => undefined);
@@ -80,27 +90,26 @@ export function AccountView() {
 
     <div className="cabinet-grid">
       <div className="cabinet-main">
-        {/* An order waiting for payment is shown as its bill: the amount on paper, the demo note on the plate. */}
-        <section className={"cabinet-next" + (next ? ` ${next.tone}` : " done") + (dueOrder ? " folio" : "")} aria-labelledby="cabinet-next-title">
-          {dueOrder ? <p className="folio-cap"><b>{c.next.label}</b><span>{c.next.orderNo(dueOrder.id)}</span></p> : <p className="cabinet-eyebrow">{c.next.label}</p>}
-          <div className={dueOrder ? "folio-sheet" : "cabinet-next-inner"}>
+        {/* A checkout waiting for payment is shown as its bill: the checkout's one amount. The provider note is said in the pay dialog only. */}
+        <section className={"cabinet-next" + (next ? ` ${next.tone}` : " done") + (due ? " folio" : "")} aria-labelledby="cabinet-next-title">
+          {due ? <p className="folio-cap"><b>{c.next.label}</b><span>{gc.title(formatShortDate(due.createdAt, lang))}</span></p> : <p className="cabinet-eyebrow">{c.next.label}</p>}
+          <div className={due ? "folio-sheet" : "cabinet-next-inner"}>
             <div className="cabinet-next-body">
               <span className="cabinet-next-icon">{next ? next.icon : <Check aria-hidden="true" />}</span>
               <div><h2 id="cabinet-next-title">{next ? next.title : c.next.allSet}</h2><p>{next ? next.hint : c.next.allSetHint}</p></div>
             </div>
-            {dueOrder && <p className="bill-total"><span>{c.next.due}</span><strong><Money value={orderPayable(dueOrder)} locale={lang} /></strong></p>}
+            {due?.payment && <p className="bill-total"><span>{c.next.due}</span><strong><Money value={due.payment.amount} locale={lang} /></strong></p>}
             {next?.order && <div className="cabinet-progress">
               <div className="cabinet-bar" role="progressbar" aria-label={statuses[next.order.status]} aria-valuemin={1} aria-valuemax={statuses.length} aria-valuenow={next.order.status + 1}><span style={{ width: `${(next.order.status + 1) / statuses.length * 100}%` }} /></div>
-              <small>{c.next.stage(next.order.status + 1, statuses.length)}: {statuses[next.order.status]}</small>
+              <small>{c.next.stage(next.order.status + 1, statuses.length)}: {next.order.payment?.status === "pending" ? gc.awaitingPayment : statuses[next.order.status]}</small>
             </div>}
             {next ? (next.href ? <Link className="btn primary" href={next.href}>{c.next.open}</Link> : <button type="button" className="btn primary" onClick={() => setEditor("new")}>{c.next.add}<Plus size={17} aria-hidden="true" /></button>)
               : <Link className="btn primary" href="/order-by-link">{c.next.newOrder}</Link>}
           </div>
-          {dueOrder && <p className="folio-foot">{c.next.noCharge}</p>}
         </section>
 
         <nav className="cabinet-tiles" aria-label={c.tiles.label}>
-          <Link href="/orders"><Package aria-hidden="true" /><span>{c.tiles.orders}</span><strong>{state.orders.length}</strong><small>{activeOrders.length ? c.tiles.ordersActive(activeOrders.length) : state.orders.length ? c.tiles.ordersTotal(state.orders.length) : c.tiles.none}</small></Link>
+          <Link href="/orders"><Package aria-hidden="true" /><span>{c.tiles.orders}</span><strong>{groups.length}</strong><small>{activeGroups.length ? c.tiles.ordersActive(activeGroups.length) : groups.length ? c.tiles.ordersTotal(groups.length) : c.tiles.none}</small></Link>
           <Link href="/cart"><ShoppingBag aria-hidden="true" /><span>{c.tiles.cart}</span><strong>{cartCount}</strong><small>{cartCount ? formatSum(totalOf(state.cart), lang) : c.tiles.cartEmpty}</small></Link>
           <Link href="/balance"><Wallet aria-hidden="true" /><span>{c.tiles.balance}</span><strong className="cabinet-money">{formatSum(balance, lang)}</strong><small>{c.tiles.balanceSub}</small></Link>
           <Link href="/notifications"><Bell aria-hidden="true" /><span>{c.tiles.notifications}</span><strong>{state.notifications.length}</strong><small>{unread ? c.tiles.unread(unread) : c.tiles.noUnread}</small></Link>

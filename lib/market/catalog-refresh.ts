@@ -8,7 +8,8 @@ import {
   type ScheduledRefreshOutcome,
 } from './catalog-editor.ts';
 import {readCatalog,persistCatalog} from './catalog-server.ts';
-import {HttpError} from './server.ts';
+import {HttpError,pricing} from './server.ts';
+import {tariff} from './domain.ts';
 
 const refreshActor={userId:'system:catalog-refresh',email:'system@atlas.invalid'};
 const maxParallelFetches=2;
@@ -33,13 +34,13 @@ async function mapWithConcurrency<T,R>(items:T[],limit:number,task:(item:T)=>Pro
   return results;
 }
 
-function applyResult(document:CatalogDocument,result:SourceCheck,now:number){
+function applyResult(document:CatalogDocument,result:SourceCheck,now:number,rates=tariff.rates){
   if(result.error!==undefined)return markCatalogRefreshFailed(document,result.id,result.error,now);
   const entry=document.entries.find(item=>item.id===result.id);
   if(!entry||!result.data)return {document,outcome:'skipped' as ScheduledRefreshOutcome};
   try{
     const fresh=importDraft(result.data,entry.draft.collectionIds,entry.draft.country,now);
-    return applyScheduledCatalogRefresh(document,result.id,fresh,now);
+    return applyScheduledCatalogRefresh(document,result.id,fresh,now,rates);
   }catch(error){return markCatalogRefreshFailed(document,result.id,error,now)}
 }
 
@@ -55,13 +56,13 @@ export async function refreshDueCatalog(now=Date.now(),fetcher:MerchantFetch=fet
     try{return {id:entry.id,sourceUrl:entry.draft.sourceUrl,data:await fetchProduct(entry.draft.sourceUrl,fetcher)} satisfies SourceCheck}
     catch(error){return {id:entry.id,sourceUrl:entry.draft.sourceUrl,error} satisfies SourceCheck}
   });
-  const summary=blankResult(candidates.length);
+  const summary=blankResult(candidates.length),currentPricing=await pricing();
   for(let attempt=0;attempt<2;attempt++){
     const latest=await readCatalog();let document=latest.document;
     for(const check of checks){
       const entry=document.entries.find(item=>item.id===check.id);
       if(!entry||entry.draft.sourceUrl!==check.sourceUrl){summary.skipped++;continue}
-      const applied=applyResult(document,check,now);document=applied.document;
+      const applied=applyResult(document,check,now,currentPricing.rates);document=applied.document;
       if(applied.outcome==='skipped'){summary.skipped++;continue}
       summary.checked++;
       if(applied.outcome==='sold-out')summary.soldOut++;

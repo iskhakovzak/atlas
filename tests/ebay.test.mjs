@@ -1,10 +1,54 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {clearEbayTokenCacheForTests, EbayBrowseApiError, fetchEbayProduct} from '../lib/importer/ebay.ts';
+import {clearEbayTokenCacheForTests, EbayBrowseApiError, EbayManualReviewError, fetchEbayProduct} from '../lib/importer/ebay.ts';
 import {fetchProduct, ManualEntryFallbackError} from '../lib/importer/fetch.ts';
+import {variantsForSourceColor} from '../lib/importer/link-selection.ts';
+import {importDraft} from '../lib/market/catalog-editor.ts';
 
 const credentials = {clientId: 'app-client-id', clientSecret: 'private-cert-secret', environment: 'production'};
 const listingId = '123456789012';
+
+test('large eBay group preserves all stocked colours and sizes for customer and operator',async()=>{
+  clearEbayTokenCacheForTests();
+  const items=[
+    ebayItem({variationId:'9001',size:'8',amount:80,color:'Blue'}),
+    ebayItem({variationId:'9002',size:'9',amount:91.25,color:'Blue'}),
+    ebayItem({variationId:'9003',size:'8',amount:84,color:'Rose'}),
+    ebayItem({variationId:'9004',size:'9',amount:85,color:'Rose',availability:'OUT_OF_STOCK'}),
+    {...ebayItem({variationId:'9005',size:'10',amount:90}),estimatedAvailabilities:[]},
+    {...ebayItem({variationId:'9006',size:'11',amount:95}),estimatedAvailabilities:[{estimatedAvailabilityStatus:'IN_STOCK',estimatedAvailableQuantity:0}]},
+  ];
+  const {fetcher}=createEbayApiMock({items});
+  const large=async(input,init)=>new URL(String(input)).pathname.endsWith('/get_items_by_item_group')
+    ?json({items,commonDescriptions:'x'.repeat(1_200_000)}):fetcher(input,init);
+  const source=`https://www.ebay.com/itm/${listingId}?var=9002`;
+  const result=await fetchEbayProduct(source,credentials,large);
+  assert.equal(result.selectedVariantId,'9002');
+  assert.deepEqual(result.variants.map(v=>[v.id,v.color,v.size,v.price]),[['9001','Blue','8',80],['9002','Blue','9',91.25],['9003','Rose','8',84]]);
+  assert.equal(variantsForSourceColor(result.variants,'Blue',source).length,3);
+  assert.equal(variantsForSourceColor(result.variants,'Blue','https://www.nike.com/t/test').length,2);
+  assert.equal(variantsForSourceColor(result.variants,'Blue','https://ebay.com.attacker.test/itm/123456789012').length,2);
+  assert.deepEqual(importDraft(result,[],'США').variants.map(v=>v.id),['9001','9002','9003']);
+});
+
+test('exact eBay variation remains importable when the full group exceeds the body limit',async()=>{
+  clearEbayTokenCacheForTests();
+  const {fetcher}=createEbayApiMock();
+  const exactFetcher=async(input,init)=>new URL(String(input)).pathname.endsWith('/get_items_by_item_group')
+    ?json({oversized:'x'.repeat(8_000_001)}) :fetcher(input,init);
+  const product=await fetchEbayProduct(`https://www.ebay.com/itm/${listingId}?var=9002&campid=5337259887`,credentials,exactFetcher);
+  assert.equal(product.price,91.25);assert.equal(product.selectedVariantId,'9002');
+  assert.equal(product.variants.length,1);assert.equal(product.variants[0].id,'9002');
+  assert.equal(product.variants[0].size,'9');assert.equal(product.currency,'USD');
+});
+
+test('eBay parent does not select a child when the full group exceeds the body limit',async()=>{
+  clearEbayTokenCacheForTests();
+  const {fetcher}=createEbayApiMock();
+  const oversized=async(input,init)=>new URL(String(input)).pathname.endsWith('/get_items_by_item_group')
+    ?json({oversized:'x'.repeat(8_000_001)}) :fetcher(input,init);
+  await assert.rejects(fetchEbayProduct(`https://www.ebay.com/itm/${listingId}`,credentials,oversized),EbayBrowseApiError);
+});
 
 function json(value, status = 200) {
   return new Response(JSON.stringify(value), {status, headers: {'Content-Type': 'application/json'}});
@@ -142,6 +186,33 @@ test('an explicit invalid child variation is not replaced with the parent group'
   assert.equal(calls.length, 2);
 });
 
+test('an explicit child link rejects successful sibling data before mapping or loading its group', async () => {
+  for (const grouped of [false, true]) {
+    clearEbayTokenCacheForTests();
+    const initialItem = ebayItem({variationId: '9001', size: '8', amount: 28});
+    if (grouped) initialItem.primaryItemGroup = {itemGroupId: listingId, itemGroupType: 'SELLER_DEFINED_VARIATIONS'};
+    const {calls, fetcher} = createEbayApiMock({initialItem, items: [
+      initialItem,
+      ebayItem({variationId: '9002', size: '9', amount: 31}),
+    ]});
+    await assert.rejects(
+      fetchEbayProduct(`https://www.ebay.com/itm/${listingId}?var=9002`, credentials, fetcher),
+      error => error instanceof EbayManualReviewError && error.stage === 'variant_data' && error.status === 200,
+    );
+    assert.equal(calls.length, 2, 'sibling data must not become the requested child or a group preview');
+  }
+});
+
+test('an explicit child link preserves the matching child identity and price', async () => {
+  clearEbayTokenCacheForTests();
+  const {calls, fetcher} = createEbayApiMock({initialItem: ebayItem({variationId: '9002', size: '9', amount: 31})});
+  const product = await fetchEbayProduct(`https://www.ebay.com/itm/${listingId}?var=9002`, credentials, fetcher);
+  assert.equal(product.price, 31);
+  assert.equal(product.variants[0].id, '9002');
+  assert.equal(product.variants[0].size, '9');
+  assert.equal(calls.length, 2);
+});
+
 test('parent recovery rejects unrelated group data and keeps a sold-out group unavailable', async () => {
   for (const unrelated of [true, false]) {
     clearEbayTokenCacheForTests();
@@ -213,7 +284,9 @@ test('eBay fallback logs stage and status without listing URL or upstream body',
   } finally {
     console.warn = originalWarn;
   }
-  assert.deepEqual(warnings, ['[eBay import] stage=browse_item status=403 errorId=12345']);
+  assert.deepEqual(warnings.filter(message => message.startsWith('[eBay import]')), ['[eBay import] stage=browse_item status=403 errorId=12345']);
+  // The importer's own fallback line names only the store and the reason.
+  assert.deepEqual(warnings.filter(message => message.startsWith('[import-fallback]')), ['[import-fallback] {"host":"www.ebay.com","reason":"blocked"}']);
   assert.ok(warnings.every(message => !message.includes(listingId) && !message.includes(privateBody)));
 });
 

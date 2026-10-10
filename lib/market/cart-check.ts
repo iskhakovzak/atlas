@@ -1,7 +1,8 @@
-import { ManualEntryFallbackError } from '../importer/fetch.ts';
+import { isAmazonUsUrl, ManualEntryFallbackError } from '../importer/fetch.ts';
 import type { Extracted } from '../importer/extract.ts';
 import { manualFallbackAllowed, requiresMerchantSnapshot } from '../importer/manual-fallback.ts';
 import { compareProductSnapshot } from '../importer/verify.ts';
+import { canonicalProductUrl } from '../importer/source-identity.ts';
 import type { CartItem, Pricing, Product } from './domain.ts';
 import { toUsd } from './world.ts';
 
@@ -104,4 +105,49 @@ export async function checkCartSources(cart: CartItem[], fetchSource: (url: stri
     }
   }));
   return result;
+}
+
+/** A row of market_import_cache: the store answer /api/import stored, as JSON, and when the server fetched it. */
+export type RecentImport = { payload: string; updatedAt: number };
+
+/** The store URL as the importer fetches and caches it; a value that is not a URL stays as it is. */
+export function importCacheKey(url: string) {
+  try { return canonicalProductUrl(url); } catch { return url; }
+}
+
+/** Only a payload with the shape fetchProduct returns counts; anything else is fetched live. */
+function storedExtraction(payload: string): Extracted | undefined {
+  let value: unknown;
+  try { value = JSON.parse(payload); } catch { return undefined; }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const record = value as Record<string, unknown>;
+  if (typeof record.sourceUrl !== 'string' || !Array.isArray(record.warnings)) return undefined;
+  if (record.price !== undefined && (typeof record.price !== 'number' || !Number.isFinite(record.price))) return undefined;
+  if (record.currency !== undefined && typeof record.currency !== 'string') return undefined;
+  if (record.variants !== undefined && !Array.isArray(record.variants)) return undefined;
+  return record as Extracted;
+}
+
+/**
+ * Cart-add right after the product card was loaded: the store answer the server itself stored in
+ * market_import_cache within `freshWithinMs` (the same window a checked cart line counts as checked) is used instead
+ * of a second request to the store. Only rows the server wrote are read, never anything from the request; Amazon US
+ * (a price that depends on the delivery location) is always asked live, as at checkout. `snapshotAt` gives the time
+ * the reused answer was fetched, so the line records that time as its check, not the moment of the tap.
+ */
+export function withRecentImport(fetchSource: (url: string) => Promise<Extracted>, readRecent: (url: string, since: number) => Promise<RecentImport | undefined>, now = Date.now(), freshWithinMs = recentCheckMs) {
+  const fetchedAt = new WeakMap<Extracted, number>();
+  const fetchProduct = async (url: string) => {
+    const key = importCacheKey(url);
+    let live = false;
+    try { live = isAmazonUsUrl(new URL(key)); } catch { live = true; }
+    if (!live) {
+      let row: RecentImport | undefined;
+      try { row = await readRecent(key, now - freshWithinMs); } catch { row = undefined; }
+      const value = row && row.updatedAt > now - freshWithinMs && row.updatedAt <= now ? storedExtraction(row.payload) : undefined;
+      if (value) { fetchedAt.set(value, row!.updatedAt); return value; }
+    }
+    return fetchSource(key);
+  };
+  return { fetchProduct, snapshotAt: (value: Extracted) => fetchedAt.get(value) };
 }

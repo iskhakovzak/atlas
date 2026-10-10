@@ -23,6 +23,8 @@ export const ledgerKinds = {
   rent: { direction: "out", group: "expense", ru: "Аренда", uz: "Ijara", en: "Rent" },
   marketing: { direction: "out", group: "expense", ru: "Реклама", uz: "Reklama", en: "Marketing" },
   software: { direction: "out", group: "expense", ru: "Сервисы и хостинг", uz: "Servislar va xosting", en: "Software and hosting" },
+  /** Compensation Atlas paid on a lost or damaged parcel (self-insurance), credited to the customer's balance (auto entry). */
+  claim_payout: { direction: "out", group: "expense", ru: "Возмещение по претензии", uz: "Da’vo bo‘yicha qoplash", en: "Claim compensation" },
   other_expense: { direction: "out", group: "expense", ru: "Прочий расход", uz: "Boshqa xarajat", en: "Other expense" },
   tax_paid: { direction: "out", group: "tax", ru: "Уплаченный налог на прибыль", uz: "To‘langan foyda solig‘i", en: "Profit tax paid" },
   customer_payment: { direction: "in", group: "transit", ru: "Оплата от клиента", uz: "Mijozdan to‘lov", en: "Payment from a customer" },
@@ -93,8 +95,14 @@ export function orderFinance(order: Order, customerId: string): OrderFinance {
   const shipping = order.settlement ? order.settlement.shipping : q.shipping;
   const commission = q.service + (q.buyout ?? 0) + (q.conversion ?? 0);
   const delivery = shipping + (q.deliveryMargin ?? 0);
-  const services = (q.optionalServices ?? 0) + (q.customsHelp ?? 0) + delta(["warehouse-service"]);
-  const goods = q.merchandise - fxGain + delta(["price", "variant", "substitution"]);
+  // Parcel insurance (value-percent services) is Atlas income like the other services.
+  // Insurance on later goods price changes rides on the change request or the extra invoice: income too, not goods.
+  const paidExtras = (order.extraCharges ?? []).filter((charge) => charge.status === "paid");
+  const insuranceLater = approved.reduce((sum, item) => sum + (item.insuranceDelta ?? 0), 0) + paidExtras.reduce((sum, charge) => sum + (charge.insuranceAmount ?? 0), 0);
+  const services = (q.optionalServices ?? 0) + (q.customsHelp ?? 0) + (q.serviceFees ?? []).reduce((sum, fee) => sum + fee.amount, 0) + delta(["warehouse-service"]) + insuranceLater;
+  // A paid extra invoice covers what the store charged above the estimate (goods or its delivery): transit, not income.
+  const extras = paidExtras.reduce((sum, charge) => sum + charge.amount - (charge.insuranceAmount ?? 0), 0);
+  const goods = q.merchandise - fxGain + delta(["price", "variant", "substitution"]) - approved.reduce((sum, item) => sum + (item.insuranceDelta ?? 0), 0) + extras;
   const storeShipping = (order.storeShippingSettlement ? order.storeShippingSettlement.actual : q.sourceShipping ?? 0) + delta(["source-shipping"]);
   const status = order.cancelled ? "cancelled" : order.payment?.status === "paid" ? "paid" : order.payment?.status === "refunded" ? "refunded" : "pending";
   const paidAt = status === "paid" ? order.payment?.updatedAt : undefined;

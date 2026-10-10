@@ -1,4 +1,315 @@
+## Претензии по посылке и пересчёт страховки — 10 октября 2026
+
+- **Претензия** (`order.claims`, `parcelClaimSchema` в `lib/market/domain.ts`). Покупатель сообщает об утере, когда посылка отправлена в Ташкент (статус 4). О порче он сообщает после получения (статус 5), не позже 14 дней (`claimWindowDays`). Дата получения берётся из записи истории `status` = 5. Заказ должен быть оплачен и не отменён. На строку заказа — одна претензия; после отказа можно подать новую. Действие покупателя `parcel-claim-report`: оператор его подать не может.
+- **Лимит возмещения** (`claimLimit`) фиксируется в претензии в момент подачи. Застрахованная строка получает до стоимости товара: `orderGoodsValue`, то есть цена при оформлении плюс одобренные изменения цены товара и оплаченные доплаты за товар, без страховки на них. Без страховки: $15/кг при утере, $3/кг при порче (`uninsuredLossPerKgUsd`, `uninsuredDamagePerKgUsd`). Берётся оплачиваемый вес после взвешивания, иначе расчётный. Курс — курс заказа. Не больше стоимости товара.
+- **Решение оператора** `parcel-claim-decide` (право `operations.act`, роль `procurement`):
+  - одобрить сумму от 1 до лимита — запись `claim:<id>` с `atlas-claims` на `customer-credit`, то есть деньги на внутренний баланс, как другие возвраты;
+  - отклонить с причиной не короче 5 символов — покупатель видит её в заказе и уведомлении.
+  
+  Коды истории и уведомлений: `claim-submitted`, `claim-approved`, `claim-declined` (RU/UZ/EN). Пока претензия ждёт решения, заказ во «Внимании» и не попадает в «Готово». Лёгкая сводка очереди считает это через `EXISTS` по `$.claims`.
+- **Бухгалтерия.** Новый вид `claim_payout` (расход): автозапись `AUTO-<заказ>-claim_payout-claim-<id>` на сумму одобренного возмещения.
+- **Страховка следует за ценой товара.** Ставка строки фиксируется при оформлении (`orderInsuranceRate`).
+  - Изменение цены товара (`price`, `variant`, `substitution`) на застрахованной строке получает `insuranceDelta = round(разница × ставка)`; она уже входит в `amountDelta`, который покупатель подтверждает. При снижении цены страховка с разницы возвращается вместе с ней.
+  - Счёт на доплату (`extra-charge-request`) по умолчанию считается ценой товара: `insuranceAmount = round(база × ставка)`, и он входит в `amount`. Если это доставка магазина или сбор, оператор снимает отметку «Это цена товара» (`goods: false`) — тогда страховки нет и в стоимость товара счёт не входит.
+  - В `orderFinance` страховка с изменений и доплат идёт в услуги Atlas (доход), а не в товар.
+  - Ставка по порогу $200 при доплате не меняется: её выбирали для всей посылки при оформлении.
+- **Интерфейс.** `app/parcel-claim.tsx`:
+  - у покупателя в развёрнутой строке заказа — «Сообщить о проблеме с посылкой» с выбором утеря/порча, описанием и суммой лимита по условиям, затем статус претензии;
+  - у оператора — блок «Претензия по посылке»: сумма (по умолчанию лимит), комментарий, «Одобрить и зачислить» / «Отклонить».
+  
+  Покупатель видит «В том числе страховка X» на запросе изменения и на счёте. Кнопки ответа на изменение заказа показывают «Сохраняем…» и сообщение «Изменения сохранены».
+- **Оферта** (`app/legal-documents.tsx`, редакция 10.10.2026): раздел 6.1 «Страхование посылки и возмещение» — самострахование Atlas, ставки, пересчёт, лимиты, сроки, баланс и возврат на исходный способ оплаты по запросу. Раздел 9 ссылается на 6.1. В правилах доставки на `/customs` — как и когда подать претензию.
+
+## Страхование посылки и правила доставки — 10 октября 2026
+
+- **Страховка — новый тип цены услуги `value-percent`** (`servicePricingModeSchema` в `lib/market/domain.ts`): процент от стоимости товаров посылки, без доставки и сборов. Поля услуги: `valuePercent`, `valuePercentHigh`, `valueThresholdUsd`. `shipping-insurance` по умолчанию включена: 2 %, а если посылка дороже $200 — 3 % на всю стоимость. Предлагается при оформлении, единица — посылка. `validateServiceCatalog` требует для `value-percent` этап «checkout», единицу «посылка» и процент больше нуля. Запрет на включение страховки снят.
+- **Сумма входит в «К оплате».** `valueServiceFees` считает ставку по стоимости всей посылки магазина (`parcelValueUsd`). Каждая строка платит эту ставку со своих товаров, это `quote.serviceFees`, и она входит в `quote.total`. Посылка застрахована, если услугу выбрала хоть одна её строка. Строки «на потом» — отдельная посылка, как в доставке. `withValueServiceFees` пересчитывает сборы в `setCartServices` (без нового `quote.id`) и в конце `repriceCart`. `checkoutCart` и проверка перед оформлением в `actions-server.ts` отказывают, если сбор строки не совпадает с каталогом («Корзина пересчитана…» / `err_37`).
+- **В заказе** страховка записана в `warehouseServiceRequests` один раз на посылку. Статус `completed`, `quotedAmount` равен уплаченной сумме, `pricingMode: "value-percent"`. Оператору ничего не нужно оценивать, и она не мешает взвешиванию. Покупатель видит «в сумме заказа». В истории есть событие `insured`. В учёте сумма идёт в «Услуги» как доход (`orderFinance.services`), в проекции D1 — отдельной строкой `insurance` в `market_order_fee_lines`. `orderPayable` не менялся: сбор уже в `quote.total`.
+- **Каталог, сохранённый раньше.** Запись страховки с текстом «Недоступно, пока не подтверждены страховщик…» `normalizePricing` при чтении заменяет на новые условия. Если оператор выключил страховку уже с новым текстом, выключенной она и останется.
+- **Интерфейс.** В корзине страховка первая в «Услугах для посылки». Строка ставки сразу показывает сумму для этой посылки: «2 % от стоимости товаров (дороже $200 — 3 %) · N сум». В расчёте («Подробный расчёт», `CostLines`, `CalcLines`) появляется строка «Страхование посылки · 2 %». В админке «Услуги склада» есть тип цены «Процент от стоимости посылки» с полями процента, порога и повышенного процента.
+- **Правила доставки на `/customs`** (`app/shipping-rules.tsx`, RU/UZ/EN). Компенсация без страховки: $15/кг за утерю, $3/кг за порчу. Страховка — 100 % возмещения. Десять категорий, которые нельзя слать обычным курьером. Лимиты РУз. Ответ FAQ «Какие товары нельзя заказать?» (`home-copy.ts`) перечисляет эти категории и ссылается на страницу «Таможня».
+
+## Решения владельца по оформлению — 10 октября 2026
+
+- Согласие с таможней без пошлины остаётся пассивной строкой, без галочки.
+- Комиссия везде подаётся одной строкой «Сервис Atlas» (комиссия, выкуп, конвертация и международная доставка), состав свёрнут в «Состав сервиса». Корзина, «Подробный расчёт» шага проверки и заказ по ссылке (`CalcLines` в `app/calc-summary.tsx`) приведены к виду карточки товара и `CostLines`. Отдельными строками остаются доставка магазина, резерв, страховка (`sumQuotes().insurance` — сумма `quote.serviceFees`), доп. услуги, оплата таможни через Atlas и пошлина.
+- В обещании доставки — «в Ташкент» (SEO, футер, главная, каталог, заказ по ссылке, «Дальше: отправим в Ташкент», бот). Страна остаётся там, где речь о таможне, законе, номерах телефонов, адресе получателя и `areaServed` в JSON-LD.
+- FAQ «Какие товары нельзя заказать?» — список запретов владельца (RU/UZ/EN); `faqPage()` берёт те же пункты.
+- На телефоне (≤ 720px) кнопка «Подтвердить» шага проверки закреплена внизу диалога вместе с суммой «К оплате» (`ReviewConfirmBar` в `app/checkout-review.tsx`, стили в `app/cart-select.css`); сумма не сжимается, подпись кнопки переносится. Таббар лежит под затемнением диалога, его не перекрывает.
+- Переход «получатель ⇄ проверка» через View Transitions глушит отказ `ready`/`finished` (пропущенный переход давал «Uncaught InvalidStateError»), шаг переключается в любом случае.
+
+## Оформление и «Мои заказы»: одна сумма, одно действие, без повторов — 10 октября 2026
+
+- **Принцип.** На каждом шаге одна сумма «К оплате», одна главная кнопка и строка «что дальше»; одна и та же оговорка — в одном месте. Деньги считает сервер, как раньше: `orderPayable` не менялся; `orderCustomerTotal` (`lib/market/order-groups.ts`) — только для показа.
+- **Карточка товара** (`app/product-sheet.tsx`): при устаревшей цене — заметка с датой; описание диалога остаётся только для экранного диктора (`sr-only`). Страна на фото, поэтому над названием — только магазин.
+- **Шаг проверки** (`app/shopping.tsx`): подробный счёт и таможня свёрнуты в «Подробный расчёт». Галочка согласия с таможней — только когда у получателя есть пошлина; без пошлины — пассивная строка, а `consentVersion` клиент отправляет всегда (сервер требует его, как и раньше). Если 15 минут фиксации цены вышли, «Подтвердить» сначала делает `cart-check` и показывает обновлённую сумму. Таймер цены виден только в последние 5 минут. Получатель на шаге 2 — тот, для кого в корзине считалась пошлина.
+- **«Мои заказы»** (`app/order-workspace.tsx`): одна карточка оплаты на оформление («Оплатить {сумма}», окно «Оплатить заказ?» с одной строкой о провайдере), «Доплатить {сумма}» с одной строкой «почему». Пока заказ ждёт оплаты, первый шаг шкалы — «Ожидает оплаты», а напоминание о паспорте не показывается: оно появляется после оплаты (паспорт нужен до отправки). Раскрытая позиция не повторяет название и вариант из своей строки. Ошибка загрузки — «Не удалось загрузить заказы» с «Повторить», а не приглашение войти.
+- **Бренд.** `shownBrand()` (`lib/importer/brand-name.ts`) прячет внутренние ярлыки Shopify («beta-anker-us») и у заказов, сохранённых до исправления импорта (заказы, корзина).
+- **Даты и вес.** Числовые даты в заказах для узбекского — в формате `ru-RU` (браузеры пишут `uz-UZ` как «2026 M10 3»); вес — через `formatKg` (запятая), в том числе «0,5 кг» в заказе по ссылке.
+
+## Сайт: второй прогон аудита (повторы, несостыковки, CSS по маршрутам) — 10 октября 2026
+
+- **CSS по маршрутам.** Шесть файлов главной (`home-chapters`, `tariffs`, `home-wide-rail`, `home-wide-content`, `folio-outside`, `home-wide-decor`) импортирует `app/page.tsx`: все их правила привязаны к `html[data-view="catalog"]`, `.catalog-home`, `.home-folio`, `.home-*`/`.hw-*`/`.tariff-*`, а эти узлы рендерятся только на главной (футер и `/support` берут `.home-footer`/`.home-faq` из глобального `home.css`). `operator-mobile.css` — только в `app/admin/page.tsx` и `app/operations/page.tsx`. Более поздние глобальные файлы (`press.css`, `motion.css`, `header-panel.css`) с правилами главной не пересекаются, так что смена порядка ничего не перебивает.
+- **Копии главной** (`lib/market/home-copy.ts`): проверка цены у магазина — один раз, в «Как мы обращаемся с деньгами» (шаг 3 больше её не повторяет); лимит без пошлины — в листке примера и в FAQ (факт в блоке денег убран); шаг 2 говорит о выборе цвета/размера, а не повторяет герой. Вопрос FAQ о лимите — функция `customs(allowance)`: сумма из `pricing.customsAllowanceUsd ?? courierAllowanceUsd`, как в примере счёта (и на `/support`). Доставка магазина до склада выше порога: «считаем её бесплатной», а не «она бесплатна» (главная и `catalog-card.tsx`).
+- **Термины и SEO.** Строка сбора везде «комиссия Atlas» (`route-metadata.ts` для главной, `/app`); SEO главной больше не обещает «любой магазин» (принимаются домены из списка `/stores`). `customs-estimate.tsx` берёт `$200` из `courierAllowanceUsd`, ставку — через `formatPercent`.
+- **Бандлы.** `/catalog` и `/stores` больше не тянут `home-copy.ts`: `catalogCopy.order`, `storesCopy.invalidLink`.
+
+## Импорт: повторное использование ответа, короткие ссылки, срок попытки прокси — 10 октября 2026
+
+**Одна ссылка — одно написание.** `canonicalProductUrl()` (`lib/importer/source-identity.ts`):
+- приводит хост к нижнему регистру, убирает якорь и параметры отслеживания (utm, gclid, fbclid, ref_, pd_rd_*, у Amazon ещё qid/sr/crid);
+- остальные параметры сортирует, значения не перекодирует;
+- параметры товара и партнёрские метки сохраняет.
+
+Это ключ `market_import_cache`, ключ ожидания одинаковых запросов, адрес загрузки в `/api/import` и при добавлении в корзину, а также нормализация очереди оператора (`catalog-import-queue.ts`).
+
+**`/api/import`** (`app/api/import/route.ts`):
+- Короткие ссылки (`lib/importer/short-links.ts`). Раскрываются a.co, amzn.to, amzn.eu, amzn.asia, ebay.us: `redirect:'manual'`, до 3 переходов, около 3 с, только после списания лимита. Итог должен быть в allowlist; иначе ссылка остаётся как есть. `m.<магазин>` читается как `www.<магазин>`.
+- Без запроса к магазину и до лимита отвечают:
+  - стена или неполная страница за последние 90 с (с `fresh` тоже);
+  - кэш D1, если `fresh` не просили.
+- Одинаковые одновременные запросы ждут первый (`lib/importer/import-flight.ts`), не дольше 26 с. Делятся только ответом магазина, тайм-аут не делится. Кэш пишет только первый запрос.
+- Старые строки `market_rate_limits` чистятся примерно раз в 50 запросов: ключи содержат минуту, просроченные строки ни на что не влияют.
+
+**Корзина.** `withRecentImport()` (`lib/market/cart-check.ts`) отдаёт `cart-add`/`cart-add-many` ответ из `market_import_cache`, если сервер записал его не раньше `recentCheckMs` (2 мин) назад. Amazon US всегда проверяется вживую. Время проверки строки — время этого ответа (`PrepareDeps.snapshotAt`), а не момент нажатия.
+
+**Разбор.**
+- `extract.ts`:
+  - тип JSON-LD и атрибуты meta без кавычек;
+  - обёртки `<!-- -->`/CDATA и переводы строк внутри JSON;
+  - `priceSpecification` списком (без ListPrice/Strikethrough);
+  - AggregateOffer с одной ценой или со списком `offers`;
+  - микроразметка — только при одной области Product, которая указывает на этот товар;
+  - цены с символами валют, ISO-кодами и апострофами.
+- Бренд: `lib/importer/brand-name.ts` заменяет внутренние имена («beta-anker-us», `*.myshopify.com`, `Shopify.shop`) на og:site_name или название магазина Atlas.
+- Shopify вне `shopifyStoreRoots`. Если на странице `/products/<handle>` нет цены или вариантов, а страница объявляет `Shopify.currency`, дозапрашивается `/products/<handle>.js`.
+- `readBody`: HTML до 6 МБ; больше — `ManualEntryFallbackError('response')` с `diagnostic.vendor='oversize'`.
+- Adidas: листинг и карточка запрашиваются параллельно (`Promise.allSettled`).
+
+**Прокси.**
+- `withMerchantRoutes` передаёт непоследним маршрутам `deadlineMs` (лимит попытки минус 300 мс).
+- `proxy-client.mjs` подписывает его в запросе, если он от 1 до 30 с.
+- `importer-proxy-server.mjs` передаёт `deadlineMs` и сигнал обрыва соединения в `fetchWithEngines`.
+- `merchant-engines.mjs` отдаёт первому движку весь срок, если при делении следующему досталось бы меньше 1,5 с, а также для `browser`.
+- Совместимость: старый прокси поле игнорирует, новый без поля ждёт 13 с.
+
+**Выкатка.** Скопировать на ташкентский шлюз и US VPS новые `deploy/upcloud/importer-proxy-server.mjs` и `deploy/upcloud/merchant-engines.mjs`, перезапустить прокси. Allowlist и подсказки движков не менялись. Миграций D1 нет.
+
+## Ускорение импорта, живая проверка магазинов, Bright Data без двойного сбора — 10 октября 2026
+
+**Скорость загрузки товаров.**
+- Подсказки движков. Функция `importerEngineHints()` (`lib/importer/stores.ts`) сопоставляет хост и первый движок:
+  - `browser` — для `browserStoreRoots`;
+  - `impersonate` — для нового списка `impersonateStoreRoots`.
+  Выгрузка — вторым аргументом `scripts/export-importer-hosts.mjs`, файл `importer-engine-hints.json` рядом с прокси. `createEnginePlanner(available, now, hints)` (`deploy/upcloud/merchant-engines.mjs`) начинает с подсказки, если для хоста нет памяти удачного движка. Подсказку для движка, которого у прокси нет (браузер на VPS), игнорирует. Прокси без файла работает, как раньше. Выигрыш — 1–3 с на первых запросах известных трудных магазинов после рестарта и через 6 ч.
+- Память маршрутов. `createRouteMemory` (`lib/importer/route-ladder.ts`) хранит пары «маршрут + хост магазина», где маршрут недавно ответил стеной, редиректом на блокировку или ошибкой. Такой маршрут 5 мин пропускается для этого магазина; последний маршрут спрашивается всегда, удачный ответ стирает отметку. `worker-fetch.ts` держит одну память на изолированный процесс Worker. Без памяти следующий товар того же магазина ждал тот же отказ: 3 с, у браузерных — 9 с.
+- `scripts/check-merchant-imports.mjs`: магазины проверяются параллельно (`--concurrency`, по умолчанию 4, максимум 8), к одному хосту — по одному запросу. Порядок отчёта — как на входе. Заодно исправлено имя витрины в режиме `--storefronts`: раньше оно бралось по счётчику результатов.
+
+**Сайт.** Стили только для оператора — `accounting.css`, `admin-investor.css`, `site-content-admin.css` — перенесены из `app/layout.tsx` в `app/admin/page.tsx`. Сервер отдаёт их отдельным файлом только на `/admin`. Общий CSS каждой страницы уменьшился на 61 КБ (с 724 до 663 КБ, в gzip — с 123 до 115 КБ). Порядок каскада не важен: классы этих файлов используются только в компонентах админки. Правило чекбоксов в `checkbox.css` сильнее по специфичности.
+
+**Магазины.**
+- Живая проверка ~200 магазинов с ташкентского адреса. Девятнадцать магазинов читаются только Chrome шлюза, они добавлены в `browserStoreRoots`: 9 с на ход шлюза, при сбое — `manualStore`. Итоги и кандидаты на адаптеры — в `TODO.md`.
+- В `localizedHosts` добавлены витрины на поддоменах: `en.aboutyou.de`, `us.burberry.com`, `store.google.com`, `shop.lululemon.com`, `us.louisvuitton.com`, `us.nothing.tech`, `us.pandora.net`, `www.usa.philips.com`, `electronics.sony.com`. `sameMerchantRedirect` (`source-identity.ts`) считает их одним магазином с корневым доменом, у US-поддоменов локаль `us`.
+- Категория из хлебных крошек. `breadcrumbCategory` (`lib/importer/extract.ts`) берёт самую глубокую крошку `BreadcrumbList`, которая называет ровно один отдел. По названию товара категория угадывается, только если такой крошки нет. Пример ошибки, которую это исправило: куртка Macy's получала «Обувь» из «Men's Fashion, Shoes & Accessories».
+- Ulta: `fillUltaVariantPrices` (`lib/importer/ulta.ts`) дозапрашивает страницы `?sku=` у вариантов без цены: до 24 вариантов, 4 параллельно, общий лимит 7 с. Страницы-стены пропускаются.
+
+**Bright Data — один сбор на товар.** `BrightDataJobs.claim` ставит бронь `claim:<uuid>` в `market_provider_jobs` одним `INSERT … SELECT … WHERE NOT EXISTS` по `item_key` (`brightdata-d1.ts`). Бронь ставится до `trigger`, затем `assign` записывает `snapshot_id`. Второй одновременный запрос видит живую бронь или задание и получает `pending`, а не второй платный сбор. Ошибка `trigger` закрывает бронь как `failed`. Брони старше 60 с без снимка `settleBrightDataJobs` помечает `failed` (`no snapshot`). Тесты:
+- `tests/brightdata-d1.test.mjs` — `node:sqlite` с миграцией 0012;
+- `tests/importer-brightdata.test.mjs`.
+
+## Walmart сначала со страницы, единая оплата заказа — 10 октября 2026
+
+**Walmart.** Покупатель-адрес (ташкентский шлюз) получает полную страницу Walmart обычным запросом за 2–3 с, с матрицей цвет × размер. Bright Data теперь — платный запасной путь.
+- `walmart.com` добавлен в `browserStoreRoots` (`lib/importer/stores.ts`): маршрут — шлюз, `attemptMs` 9 с; при неудаче — `manualStore` 422, как у прочих браузерных магазинов.
+- Новый адаптер `lib/importer/walmart.ts` (`extractWalmartProduct`): `__NEXT_DATA__` → `props.pageProps.initialData.data.product`; критерии из `variantCriteria`, варианты из `variantsMap` (id = `usItemId`, своя ссылка, цена USD, наличие `IN_STOCK`, фото), до 250 вариантов, вариант из ссылки первым; товар без опций должен совпадать с id ссылки. `wasPrice` → `referencePrice`, предупреждение о стороннем продавце. Метод — `Walmart product state`. Вызывается в `extract.ts` после Sephora.
+- `fetchProductOnce` (`lib/importer/fetch.ts`): Bright Data вызывается только если сбор уже идёт (`brightDataCollectionRunning` в `brightdata.ts` — опрос не открывает страницу заново) или если путь страницы закончился `ManualEntryFallbackError` (кроме `pending`) либо таймаутом.
+- `blockedSignal` (`deploy/upcloud/merchant-engines.mjs`): маркеры PerimeterX (`_pxhd`, `window._pxUuid`, `PerimeterX`) считаются стеной только на странице меньше 60 КБ; `px-captcha` — всегда. Настоящие страницы Walmart несут конфиг PX и раньше ошибочно уходили в `impersonate` → `browser`. Файл шлюза на ПК обновлён 10.10.2026 (резерв `merchant-engines.mjs.bak-walmart-20261010`).
+- Тесты: `tests/importer-walmart.test.mjs`, `tests/importer-brightdata.test.mjs` (страница отвечает → без Bright Data; стена → сбор Bright Data, опрос без запросов страницы), `tests/importer-manual-stores.test.mjs`.
+
+**Единая оплата заказа.** Раньше у каждой строки оформления висела своя кнопка оплаты, хотя корзина оформляется одним заказом.
+- `checkoutCart` даёт всем строкам один `payment.id` (`PAY-…`). Старые заказы с разными id работают как прежде.
+- Действие `payment-demo-batch {batchId, amount}` (`actions.ts`, `confirmDemoBatchPayment` в `domain.ts`): сумма ожидающих оплаты неотменённых строк должна совпасть с `amount` (иначе «Сумма изменилась»); каждая строка получает отметку, историю `payment-recorded` и свою проводку `demo-payment:<id>` (учёт — по заказам), покупатель — одно уведомление. Повтор ничего не меняет. В статусе проверки `review` заблокировано, как `payment-demo`. Оплата по-прежнему симулируется: деньги не списываются.
+- `OrderGroup.payment {id, amount, lines}` и `orderNeedsLineDecision` (`lib/market/order-groups.ts`): оплата считается одним делом заказа в `attention`; на карточке заказа (`OrderGroupCard`, `.og-pay` в `app/orders-groups.css`) — один блок «Оплата заказа» с суммой и кнопкой «Оплатить заказ»; у строк кнопки оплаты нет, их этап — «Ожидает оплаты» (и у заказа, `groupStageText`).
+- Панель уведомлений (`noticePanel`) показывает оплату заказа одним пунктом. После последнего решения «Мои заказы» сами переходят с пустой вкладки «Нужно решение» на «В работе».
+- Строки без ссылки на магазин (каталожные) одного бренда и страны теперь одна секция посылки (`storeKey` → `brand:…`), а не секция на каждую строку.
+- Получатель, телефон, адрес и скорость доставки — один раз на карточке заказа (`OrderGroup.delivery`, `sharedDelivery`, `.og-ship`), если у всех живых строк они одинаковые; строки их больше не повторяют (остаются срок доставки по стране и сумма). Если оператор поменял адрес одной строки, адрес снова показывается в строках.
+- `scripts/check-browser-engine.mjs`: проверка браузерного движка с адреса текущей машины (хост, результат, время). Инструкция для пробы на US VPS — `outputs/prompts/2026-10-10-vps-browser-test.md` (не в git), VPS пока не менялся.
+- Тесты: `tests/batch-payment.test.mjs`.
+
+## Target native API headers
+
+US VPS comparison: Target redsky returned product JSON200 with ordinary API headers and with User-Agent, but435 PerimeterX metadata after adding browser hints/X-Requested-With/Sec-Fetch headers. Target requests now retain HTTPS/Origin/Referer/allowlist/timeout and use minimalApi headers, omitting those browser-only hints. Other merchant requests are unchanged. Regression checks the actual fetchProduct headers. No IP-reputation verdict is inferred from435 alone.
+
+## Native API Origin follow-up
+
+The signed proxy permits both Referer and Origin from the exact known storefront for credential-free GETs to redsky.target.com and api.victoriassecret.com. All other cross-host sources remain rejected; Origin must still equal its parsed HTTPS origin. Initial hosted checks exposed that requestHeaders sends both headers. Regression covers exact accepted Origin and unrelated rejected Origin. Mango source parsing verified on the US VPS and hosted site: USD79.99/18 variants.
+
+## PR39 production preparation
+
+Signed proxy validation now permits only exact GET Referer pairs www.target.com→redsky.target.com and victoriassecret.com/www.victoriassecret.com→api.victoriassecret.com; Origin restrictions and HTTPS/allowlist/credential/port checks remain. Signed HTTP regressions cover accepted pairs and rejected unrelated/insecure/credentialed sources. Target groups exceeding120 leaves remain incomplete after truncation. These fixes are required for US proxy operation and safe automatic publication. VPS host snapshot must preserve existing hosts and include redsky.target.com.
+
+## Браузерный движок на ташкентском шлюзе, незнакомые сайты вручную, доплата по заказу — 10 октября 2026
+
+**Браузерный движок** (`deploy/upcloud/browser-engine.mjs`). Часть магазинов отказывает любому серверному клиенту (Node, отпечаток Chrome через `impit`, headless Chrome), но отдаёт страницу обычному настольному браузеру. На ташкентском шлюзе (ПК владельца) прокси запускает установленный Chrome один раз: обычное (не headless) окно за пределами экрана, отдельный профиль, управление по DevTools на 127.0.0.1. Каждый запрос — одна вкладка: ждём данные товара (`linkStore`/`__NEXT_DATA__`, JSON-LD `Product` с ценой, либо отрисованный DOM с таким JSON-LD для Levi's и New Balance), отдаём ответ магазина и закрываем вкладку. Картинки, шрифты и видео не грузятся. Без stealth-патчей и решения CAPTCHA: стена возвращается как есть, импорт уходит в ручной ввод.
+- Включается только переменными окружения шлюза: `ATLAS_BROWSER_EXECUTABLE` (путь к chrome.exe), `ATLAS_BROWSER_PROFILE` (отдельная папка профиля, обязательна), `ATLAS_BROWSER_PORT` (DevTools, по умолчанию 9339). Без них прокси работает как раньше (`engines: fetch, impersonate`). `importer-proxy-server.mjs` добавляет движок `browser` в лестницу `auto` (после `fetch` и `impersonate`), `proxy-client.mjs` принимает `engine: 'browser'`. На US VPS движок не включён.
+- **`browserStoreRoots`** (`lib/importer/stores.ts`): `sephora.com`, `hm.com` (+`www2.hm.com`), `macys.com`, `levi.com`, `newbalance.com`, `victoriassecret.com` (+`api.`); `isBrowserStoreHost`. Для них маршрут `tashkent` в `worker-fetch.ts` получает `attemptMs` 9 с вместо 3 с (`route-ladder.ts` — `attemptMs` может зависеть от адреса).
+- Если шлюз не ответил (ПК выключен, таймаут, стена), `POST /api/import` для этих хостов отвечает как для магазина ручного ввода: 422 `{manualEntryAvailable:true, manualStore:true}` с частичными данными, если были. `prepareAction` не сбрасывает `sourceManuallyConfirmed` у этих хостов: подтверждённая покупателем строка принимается; когда магазин отвечает, строка всё равно сверяется вживую.
+- **`manualEntryStoreRoots`** сокращён до `columbia.com` и `bestbuy.com` — 403 даже в настольном Chrome.
+- **Адаптеры и разбор**: новый `lib/importer/sephora.ts` (состояние `linkStore`: товар, текущий SKU, цена, варианты, фото); `extract.ts` — Levi's (лишний массив внутри `hasVariant` игнорируется), New Balance (группа сама является товаром: цена берётся из размеров, если она у всех одинакова), Macy's (цвета и размеры из `Offer.itemOffered`, распроданные голые предложения пропускаются, предупреждение о подтверждении варианта).
+- Проверено 10.10.2026 через шлюз с ПК: Sephora, H&M, Macy's, Levi's, New Balance, Victoria's Secret читаются за 2–8 с. Выкатка на шлюз — копия файлов в `C:/Users/WS/.codex/runtime/atlas-tashkent-proxy` и перезапуск супервизора; откат — из `backup-20261010` в той же папке. Папка шлюза не в git, его секреты не читаются.
+- Тесты: `tests/importer-browser-stores.test.mjs`, `tests/importer-manual-stores.test.mjs`, `tests/importer-cosmetics.test.mjs`.
+
+**Незнакомые сайты.** Ссылка на сайт вне списка магазинов больше не получает ошибку «магазин не поддерживается»: `POST /api/import` сразу (до кэша и без запроса к сайту) отвечает 422 `{manualEntryAvailable:true, manualStore:true}`. «Заказ по ссылке» открывает форму с обязательной галочкой подтверждения, строка подтверждена покупателем и её можно заказать; сервер принимает такую строку без живой проверки, оператор сверяет со страницей перед выкупом.
+
+**Доплата по заказу** (`extraCharges`). Оператор выставляет счёт на оплаченный активный заказ: сумма в USD (пересчёт в сумы по курсу заказа, вверх) и причина для покупателя.
+- Данные: `Order.extraCharges?: ExtraCharge[]` (до 20): `{id 'EXT-…', amount (сумы), amountUsd, reason, status: pending|paid|cancelled, requestedAt, paidAt?, cancelledAt?}`. Одновременно ждёт не больше одного счёта.
+- Действия (`lib/market/actions.ts`, `domain.ts`): `extra-charge-request {id, amountUsd, reason}` и `extra-charge-cancel {id, chargeId}` — только оператор (`operatorActions`: `operations.act`, роль procurement и admin); `extra-charge-pay {id, chargeId, amount}` — покупатель, сумма должна совпасть с показанной, повтор идемпотентен; отклоняется, если счёт отменён.
+- Оплата симулируется, как оплата заказа: проводка `extra-charge:<id>` debit `demo-provider` → credit `order-funds`, история и уведомление «Платёжный провайдер не подтвердил списание». `orderPayable` включает оплаченные доплаты (возврат при отмене тоже). Бухгалтерия: `customer_payment` с id `AUTO-<order>-customer_payment-extra-<chargeId>`, в `orderFinance` — транзитные деньги за товар, не выручка.
+- Пока счёт ждёт: заказ нельзя продвинуть (`advanceOrder`), он в «требует внимания» оператора (`orderNeedsOperatorAttention`, SQL очереди — `extra_pending`), у покупателя — решение (`orderNeedsCustomerDecision`, панель уведомлений `'extra'`), в обзоре админки — «счёт на доплату».
+- UI (`app/order-extra-charges.tsx`): у покупателя в «Моих заказах» блок «Нужна доплата по заказу» с причиной, суммой и кнопкой «Доплатить» — только пока счёт ждёт; диалог «Записать доплату в Atlas?»; оплаченные и отменённые счета — в расчёте заказа. У оператора — раздел «Доплата по заказу» (форма, список, «Отменить счёт»). Тексты истории — `history-copy.ts` (ru/uz/en, oz).
+- Тесты: `tests/extra-charges.test.mjs`.
+
+## Магазины только для ручного ввода; Bright Data — только Walmart — 10 октября 2026
+
+> Список ниже устарел в тот же день: шесть магазинов перешли на браузерный движок, в `manualEntryStoreRoots` остались `columbia.com` и `bestbuy.com` (см. раздел выше).
+
+Владелец решил: Bright Data оставить только для Walmart, а магазины, которые Atlas не может загрузить, не пытаться загружать — покупатель вводит данные сам.
+
+- **Список** `manualEntryStoreRoots` (`lib/importer/stores.ts`): `hm.com`, `newbalance.com`, `columbia.com`, `sephora.com`, `bestbuy.com`, `levi.com`, `victoriassecret.com`, `macys.com` (плюс `www.`, `www2.hm.com`, `api.victoriassecret.com`). Выбраны по прогонам движков 9.10.2026: 403/Akamai или страница без товара и с дома, и с VPS. `es.victoriassecret.com` и `sephora.es` читаются и не затронуты. Магазины остаются в allowlist (принимаются ссылки, витрина магазинов, каталог), меняется только способ получения данных. `isManualEntryStoreHost(host)`.
+- **Импорт.** `fetchProductOnce` сразу после проверки allowlist бросает `ManualEntryFallbackError` с новой причиной `'manual'` — без единого запроса к магазину и без Bright Data. `POST /api/import` отвечает раньше кэша: 422 `{manualEntryAvailable:true, manualStore:true, brand, error}` (`importManualStoreMessage`).
+- **Заказ по ссылке** (`app/global-link-order.tsx`): статус проверки `'manual'` (также в черновике, `link-order-draft.ts`). Сразу открыта форма данных, уведомление с кнопкой «Открыть товар в магазине», заголовок «Впишите данные товара». Обязательная галочка `#manual-confirm` («Я сверил название, цену, вариант и доставку со страницей магазина. Оператор Atlas сверит их с магазином перед выкупом.»); без неё форма не отправляется. В корзину уходит `sourceManuallyConfirmed: true`.
+- **Сервер.** `requiresMerchantSnapshot` для этих хостов не требует живой проверки, если строка подтверждена покупателем (как для магазинов вне списка); неподтверждённая отклоняется. `prepareAction` по-прежнему сбрасывает `sourceManuallyConfirmed` у всех остальных магазинов из списка — там подтверждение покупателя не заменяет живую проверку (err_38).
+- **Victoria's Secret US**: адаптер `lib/importer/victoriassecret.ts` оставлен в коде, но не вызывается, пока магазин в списке ручного ввода.
+- **Bright Data** — только Walmart: `BrightDataStore = 'walmart'`, H&M (`mapHmRecord`, набор `gd_mm38gqkl1slezcf5zl`) удалён; сохранённое `stores.hm` в настройках игнорируется.
+- Тесты: `tests/importer-manual-stores.test.mjs`, `tests/link-order-draft.test.mjs`, `tests/importer-brightdata.test.mjs`.
+
+## Bright Data для Walmart и H&M, расход в бухгалтерии — 9 октября 2026
+
+> С 10.10.2026 H&M из Bright Data убран (см. раздел выше); ниже — исходное описание, всё про Walmart действует.
+
+Walmart (PerimeterX) и H&M (403 с адресов дата-центров) не открываются ни своим движком, ни прокси. Их товары теперь собирают готовые парсеры Bright Data (Web Scraper API, datasets v3): Walmart `gd_l95fol7l1ru6rlo116`, H&M `gd_mm38gqkl1slezcf5zl`. Одна запись = один товар = один кредит; первые 5000 записей в месяц бесплатны, дальше $1,5 за 1000; платятся только успешные записи.
+
+- **Ядро — `lib/importer/brightdata.ts`** (без серверных импортов, тестируется на `node:test`).
+  - `brightDataTarget(url)` узнаёт только товарные ссылки: Walmart `/ip/(<slug>/)?<id>`, H&M `www2.hm.com/en_us/productpage.<id>.html`. Ключ товара — `walmart:<id>` / `hm:<id>`.
+  - `fetchBrightDataProduct` делает `POST /datasets/v3/trigger`, ждёт `GET /progress/{id}` не дольше `waitSeconds` и забирает `GET /snapshot/{id}`.
+  - Повторы не оплачиваются второй раз: готовый снимок того же товара младше `reuseMinutes` скачивается заново (скачивание бесплатно), идущий сбор опрашивается, а не запускается снова. После ошибки — пауза 10 минут; сбор, «бегущий» дольше 30 минут, считается потерянным.
+  - Не успел — бросает `BrightDataPendingError` (подсказка повторить через 3 с для Walmart и 8 с для H&M: H&M собирается около 6 минут, Walmart — 5–25 с).
+  - `mapWalmartRecord`: один вариант из `variant_attributes`, предупреждения о других вариантах, стороннем продавце и наличии. `mapHmRecord`: выбранный цвет и его размеры, цена со скидкой и до неё, предупреждение о других цветах. Метод — `Bright Data · Walmart` / `Bright Data · H&M`.
+- **Встраивание в импорт.** `MerchantFetch.brightData` (`lib/importer/fetch.ts`) спрашивается после проверки allowlist и до 15-секундного таймера страницы. Незавершённый сбор превращается в `ManualEntryFallbackError` с причиной `pending`; любая другая ошибка Bright Data пишется в лог без URL и ключа, и импорт идёт обычным путём. `lib/importer/worker-fetch.ts` даёт `merchantRequest` (назначение `customer`: импорт и корзина) и `catalogMerchantRequest` (назначение `catalog`: каталог и его ежечасная проверка — только при настройке `catalog`).
+- **Ответ 202.** `POST /api/import` отвечает `202 {sourceUrl, pending:true, retryAfterMs, message}` (текст — `importPendingMessage`). `lib/market/import-client.ts` (`requestImport`) повторяет запрос с паузой 2–15 с: импорт пачкой ждёт до 8 минут, рабочее место заказа — 60 с, заказ по ссылке показывает текст ожидания и отменяется новой ссылкой. По истечении ожидания клиент получает обычный 422 с ручным вводом.
+- **Учёт заданий.** `market_provider_jobs` (миграция `0012_provider_jobs`), запись и чтение — `lib/importer/brightdata-d1.ts`. Месячный потолок `monthlyRecordLimit` считает записи и по одной на каждый идущий сбор; при его достижении новые сборы не запускаются.
+- **Настройки** — `market_settings` key `importer.brightdata` (`brightDataSettingsSchema`): `enabled`, `stores.{walmart,hm}`, `catalog` (по умолчанию выключен), `pricePer1kUsd` 1,5, `freeRecordsPerMonth` 5000, `monthlyRecordLimit` 10000, `waitSeconds` 12 (3–20), `reuseMinutes` 60 (5–1440), `ledger`. Без секрета `BRIGHTDATA_API_KEY` Bright Data не используется.
+- **Бухгалтерия.** `lib/market/provider-ledger.ts` (`planBrightDataLedger`, чистая) и `lib/market/provider-usage.ts` (сервер).
+  - Платная часть каждого завершённого дня по Ташкенту проводится одной записью `AUTO-BRIGHTDATA-<YYYY-MM-DD>`: вид `software` («Сервисы и хостинг»), контрагент «Bright Data», сумма в USD и в сумах по курсу ЦБ (`fxCbuRate`, иначе действующий), `created_by = system:auto`, `INSERT OR IGNORE`.
+  - Сегодняшний день не проводится. Существующая запись (даже аннулированная) не переписывается. Закрытый период пропускается с причиной на вкладке.
+  - Бесплатный лимит расходуется по дням месяца в хронологическом порядке.
+  - `refreshProviderBooks()` (сверка идущих сборов с Bright Data + проводки за прошлый и текущий месяц) вызывается при открытии бухгалтерии и в ежечасном `catalog-refresh`; ошибки не ломают вызывающего.
+- **Админка → Финансы → Бухгалтерия → «Сервисы»** (`app/accounting-services.tsx`): записи месяца, бесплатный остаток, платные записи и их стоимость, проведённая сумма, таблицы по магазинам и дням, последние 50 сборов, форма настроек. `GET /api/finance?providers=YYYY-MM` → `{usage}`; `POST /api/finance {kind:'providers-settings', value}` — только администратор, частичное обновление, аудит `providers.brightdata.settings`.
+- Тест: `tests/importer-brightdata.test.mjs` (синтетические записи и подменённый API).
+
+## Old Navy, Gap, Banana Republic и Ulta — 9 октября 2026
+
+Страницы открываются обычным запросом, но общий разбор видел только название — импорт уходил на ручную проверку. Теперь у них свои разборщики (подключены в `extractProduct` после Mango):
+- **Gap Inc.** (`lib/importer/gapinc.ts`: `oldnavy.gap.com`, `www.gap.com`, `bananarepublic.gap.com`, `athleta.gap.com`, путь `/browse/product.do?pid=`). Данные React Server Components (`self.__next_f.push`). Объект товара содержит три части:
+  - `customer_choices` — цвета с названием и фото: кадр `ZOOM`, 1500 px;
+  - `variants` по посадке (Regular / Tall / Petite) — у каждого цвета список SKU с размером, статусом наличия (`IN_STOCK` / `LOW_STOCK` / `OUT_OF_STOCK`), ценой `effective_price` и ценой до скидки `regular_price`;
+  - `styles` — название товара.
+
+  Повторы RSC (`$78:…:data:<путь>`) разворачиваются внутри того же объекта. `pid` — цвет (9–10 цифр), SKU (13–14 цифр, выбирает размер) или стиль (берётся выбранный страницей цвет). Неизвестный `pid` не подменяется другим цветом — тогда работает общий разбор. Если посадок несколько, посадка — отдельная опция варианта. У каждого варианта своя ссылка `?pid=<SKU>`. Прежний разбор Gap по JSON-LD (`merchant-options.ts`) остался запасным.
+- **Ulta** (`lib/importer/ulta.ts`, `/p/<slug>-pimprod<id>[?sku=]`). Данные лежат в `window.__APOLLO_STATE__` (модули CMS):
+  - `ProductPricing` — выбранный SKU: название, бренд, `listPrice` / `salePrice`;
+  - `ProductVariant` — все оттенки или объёмы с флагами `unavailable` / `disabled`;
+  - `MediaGallery` — фото.
+
+  Цену Ulta публикует только для выбранного варианта: у остальных цена пустая, а предупреждение предлагает открыть ссылку нужного варианта (`?sku=`). Если `?sku=` не совпадает с выбранным страницей вариантом, адаптер не срабатывает.
+
+**Macy's** по-прежнему закрыт Akamai (403 и с домашнего адреса, и с резидентного прокси). Путь — товарный фид партнёрской сети (Rakuten Advertising), см. TODO.
+
+Проверено вживую (`importer:check`, без прокси):
+- Old Navy — 160 вариантов, $14,99 (до скидки $24,99);
+- Gap — 110 вариантов, $27;
+- Banana Republic — 8 вариантов, $140;
+- Ulta — 2 оттенка, $12; по `?sku=` выбирается нужный оттенок.
+
+## Mango, Target и Zara без браузера — 9 октября 2026
+
+Три магазина, где страница пуста или закрыта, отдают товар из собственных источников данных — новых расходов нет:
+- **Mango** (`lib/importer/mango.ts`): данные React Server Components в самой странице (`self.__next_f.push`). Берутся все цвета, размеры с флагом наличия, цена и фото каждого цвета; цвет из ссылки (`/<товар>/<цвет>` или `?c=`) задаёт цену и галерею. Если такого цвета у товара нет, адаптер ничего не подставляет.
+- **Target** (`lib/importer/target.ts`): публичный сервис страницы `redsky.target.com/redsky_aggregations/v1/web/pdp_client_v1` (ключ веб-клиента Target, `pricing_store_id=3991`). Дерево вариантов, цена ребёнка (`current_retail`, «до скидки» — `reg_retail`), наличие = доставка возможна и товар не распродан. Ответ про другой `tcin` не используется. `redsky.target.com` добавлен в allowlist (`storeApiHosts`), поэтому на VM нужно обновить `supported-store-hosts.json`.
+- **Zara** (`fetch.ts`, `zaraPayloadUrl`/`zaraDocument`): та же ссылка с `?ajax=true` отдаёт JSON страницы (`product` + `clientAppConfig`) обычному запросу, мимо Akamai. JSON заворачивается в прежний формат `window.zara.*` и разбирается существующим разборщиком Zara (цвет, размеры, RON сохраняются). 410 — «товар не найден»; прочие ошибки откатываются к обычной странице.
+- **Victoria's Secret**: цвет теперь читается и из `?choice=…&genericId=…`. Вживую из Узбекистана и страница, и API отвечают 403 — проверка только с VPS.
+
+Прокси: если все движки упали с ошибкой (таймаут, обрыв), ответ всё равно несёт `attempts` (`fetch:timeout impersonate:error`), а не безымянный 502.
+
+Проверено локально `importer:check --engines`: Mango — 18 вариантов с наличием, $79,99, выбран Sky Blue; Target — 5 размеров, $27; Zara — 4 варианта, $59,90, 7 фото.
+
+## Свой движок загрузки страниц магазинов вместо Firecrawl — 9 октября 2026
+
+Firecrawl отклонён по цене (1 кредит за страницу, JSON +4) и не проходит трудные случаи (Sephora — reCAPTCHA). Вместо него — лестница движков в собственном прокси на UpCloud (`deploy/upcloud/merchant-engines.mjs`): `fetch` → `impersonate` (TLS/HTTP2-отпечаток Chrome, пакет `impit@0.14.5`). Worker (`lib/importer/proxy-client.mjs`) шлёт `engine: "auto"`; прокси помнит лучший движок по хосту 6 ч в памяти процесса и эскалирует только анонимные GET при стене. Старый Worker без поля `engine` и POST Amazon работают как раньше. CAPTCHA не решаем.
+
+Диагностика: `ManualEntryFallbackError.diagnostic` (`status`, `vendor`, `engine`, `attempts`) из `lib/importer/fetch.ts`; `[import-fallback]` в логе Worker — только хост и причина, без URL; оператор видит деталь в тексте ошибки импорта (`app/api/catalog/route.ts`), покупатель — нет. Редирект в пределах сайта на `/blocked|captcha|challenge` (Walmart) теперь сразу `blocked` с `redirect-wall`, страница блокировки не открывается. `scripts/check-merchant-imports.mjs --engines` гоняет ту же лестницу локально.
+
+Локальный прогон (не US-адрес) по 16 проблемным ссылкам: проходят The North Face, Under Armour, Tommy Hilfiger, Ralph Lauren, частично Carter's; `impersonate` не открывает Sephora, Best Buy, Columbia, Victoria's Secret (403), Zara (Akamai), Walmart (PerimeterX → `/blocked`); Target, H&M, New Balance, Mango, Levi's отдают страницу без данных товара (нужен рендер JS). Прокси выкачен на VM 9.10.2026 (Node 22.22.1, npm 10.9.2 через Corepack). С нью-йоркского адреса `impersonate` дал 200 у Mango (вместо 429), New Balance и Levi's (вместо 403), но у двух последних это 2–3 КБ — экран датчика Akamai без товара. Такой экран (меньше 12 КБ, контейнер `sec-if-cpt`/`_sec/cp_challenge` или один запутанный скрипт `/a/b/c/d?v=<uuid>`) теперь считается стеной и в прокси (`blockedSignal`), и в импортёре (`detectBotChallenge`), чтобы прокси не запоминал его как успех. Best Buy с VPS давал 504: обычный запрос висел все 13 с и до `impersonate` очередь не доходила. Теперь каждой ступени, кроме последней, достаётся не больше 60 % дедлайна. Tommy Hilfiger с дома открывался обычным запросом, а с VPS — 403 на обоих движках: магазины режут сам адрес дата-центра.
+
+## Опубликовано: общая механика вариантов и автоимпорт — 9 октября 2026
+
+Sites154 опубликован: source e96dc890af3ba8a3b658e7e9ef41f2451ee8f73f, deployment appgdep_6ac7ebfd75d481918778747933de3742 succeeded; atlasmarket.uz. Канонический checkout outputs/deploy-import33-20261008; старый корневой checkout не публиковать. Добавлены optional native source/product/seller/offer/color IDs, независимые параметры, собственные галереи и полнота группы. Новые cart-add поддерживаемых магазинов требуют автоматической серверной проверки без ручного обхода. Админский пакетный импорт автоматически публикует только полные группы с точными доступными вариантами, ценами и фото; неполные остаются в очереди повторной проверки. Недоступные и неизвестные варианты не добавляются.
+
+761 тест, TypeScript и build проходят, lint 0 ошибок/2 прежних предупреждения. Свежий public API по ссылке пользователя:200,22 доступных SKU/4 цвета, Cargo US11 $32. Все22 проверены сервером и importDraft. Браузер с синтетическими API проверил22 точных cart ID/var, цены25/24/32/34, собственные галереи, US/EU/CM и mobile390. Реальное сохранение каталога проверено на тестовой SQLite через catalog-server, с CAS и аудитом; hosted operator D1 UI отдельно не проверялся. Реальные аккаунты/заказы не изменялись, окружение revision11 сохранено.
+
+Ограничение: регистрация33 магазинов не означает полную работу33 источников. Аудит: eBay/Nike/Zalando/Vans дают подтверждённые поднаборы;10 неполных,11HTTP422,6 ошибок транспорта проверки,2 без контрольной ссылки товара. Полнота Nike/generic не подтверждена, автопубликация её не выдумывает. US-egress каждого текущего запроса отдельно не сертифицирован; разрешён прямой fallback. Внешний доступ/API остаётся зависимостью. Доказательства outputs/all-stores-deployment.json, merchant-mechanics-audit.md, all-stores-*.log, release-ui-general-check.js.log.
+
 # Atlas architecture
+
+
+## Общая механика импорта — 9 октября 2026
+
+Подготовлен релиз поверх опубликованной версии 152: optional точные product/seller/offer/color IDs, native дочерние ссылки, независимые параметры, галереи и полнота группы. Клиент и сервер сохраняют цену конкретного предложения; новые добавления из поддерживаемых магазинов не обходят проверку ручным флагом. Неизвестное наличие и нулевые остатки не допускаются. Админский пакетный импорт автоматически публикует только полные подтверждённые группы и сохраняет неполные в очереди повторной проверки; скрытие останавливает автоматическое управление.
+
+Аудит 33 источников: проверенные поднаборы eBay25/Nike68/Zalando20/Vans4; это не доказательство полноты всех магазинов. 10 источников неполны, 11 ответили422, 6 транспортных ошибок проверки, 2 без контрольной ссылки товара. US-egress текущей проверки отдельно не сертифицирован; прямой fallback существует. Подробности outputs/merchant-mechanics-audit.md. Внешние API/доступ для остальных источников остаются зависимостью. Автоимпорт не гарантирует будущие цену/наличие/доставку.
+
+# Atlas architecture
+
+## eBay: цена просматриваемой расцветки — 8 октября 2026
+
+Верхняя цена и поле цены следуют просматриваемым цвету/размеру, отдельно от списка ранее выбранных вариантов и общего расчёта. Каждая расцветка показывает свою цену или диапазон; размеры показывают цену, если в группе есть разница. Серверные точные ID/цены и многовариантная корзина сохранены. Проверенный снимок eBay: красный $25, серый $24, Blanch Cargo $32, белый/лайм $34; var459336456425 — Blanch Cargo US11 $32. 745 тестов, TypeScript, lint и build проходят. Живая браузерная перепроверка и публикация выполняются после подготовки.
+
+## eBay: фото расцветок, размеры и наличие — 8 октября 2026
+
+Исправлена потеря фото из eBay Browse API: разрешён только точный официальный CDN assets.adidas.com в дополнение к i.ebayimg.com. Галереи привязаны к расцветкам; каждая строка корзины получает собственную галерею и точный var в ссылке. Сохраняются все подтверждённо доступные цвета и размеры группы; недоступные, неизвестные и нулевые остатки исключаются из импорта и выбора; сервер блокирует подтверждённо распроданные варианты. Админский черновик сохраняет остатки, обозначения размеров и галереи; новые поля схем необязательные, старые данные совместимы. Для мужской обуви adidas показаны US/UK/EU и официальная длина стопы в см; зависимые размеры eBay не считаются отдельной осью. Nike и другие таблицы сохранены.
+
+Все 744 теста и TypeScript проходят. Production build/lint проверяются перед публикацией. Живое наличие и фото проверяются после публикации; эти данные не гарантируют будущую доступность. Полный автоматический админский publish, изменение хранения и таймеры из присланного справочного текста в этот релиз не включены.
+
+## eBay colour galleries, size formats and exact child links — 8 October 2026
+
+The reported group had no photos in the version-149 import response. Image extraction now supports thumbnail images and primary group photo fields, and creates exact-child colour galleries. Customer loading retains all eBay galleries when the original link selects one colour. Each chosen cart line rewrites var to its own sourceVariantId while preserving affiliate parameters; stock/price/identity checks remain. adidas men's US footwear offers US/UK/EU display using the official adidas chart, preserving the original seller size/ID and not applying Nike, women's or unrecognized charts. Existing optional schemas and D1 remain unchanged. 742 tests, lint (existing unused Choice warning), TypeScript and Worker build passed. Regression covers gallery colour separation, affiliate URL rewriting and brand/gender size gates. Verify actual colour photographs after publication; a sparse missing-image log records only field keys/types and image hostnames, never credentials or upstream bodies. Native runtime, accounts and orders are unchanged.
+
+
+## Full eBay group for customer and operator — 8 October 2026
+
+The user requested every in-stock colour/size from a seller group in both customer link ordering and admin catalog import. Official Browse group JSON now has a separate finite 8 MB body budget; OAuth/single-item limits remain unchanged at 32 KB/1 MB. Existing timeouts, exact group identity, 250-variant limit and safe images remain. Unknown-stock, known-unavailable and explicit zero-quantity variants are excluded from selectable eBay groups. Each returned option retains its ID, seller dimensions, price, photo and stock data. An explicit var selects its child by selectedVariantId; customer source-colour filtering exempts exact supported eBay hosts, so sibling colours remain selectable. Other stores retain their colour-bound links. Operator importDraft already preserves the shared group's full variant matrix.
+
+The preceding exact-child fix remains a fail-safe if a group request cannot be read; normal groups are always requested first. The initial 9eb2eaf source/archive was prepared but not saved/deployed; this broader group release replaces it. No migration, pricing formula, secret or real order changes. Tests include >1 MB successful colour/size group, operator draft preservation, customer eBay colour exposure versus Nike/lookalike hosts, unknown/sold-out/zero-quantity exclusion, and an oversized >8 MB fail-safe that never substitutes a parent child. 739 tests pass; complete final lint, TypeScript/build and deployed actual-user-link checks before claiming production success.
+
+
+## eBay explicit variation / group failure fix — 8 October 2026
+
+User listing 157751149633?var=459304625551 (including affiliate parameters) reproducibly returned HTTP 422 on version 148. Worker diagnostics identify browse_variants/status=200: the complete group response was rejected by bounded JSON reading after the exact child endpoint succeeded. The fix retains the verified child from getItemByLegacyId when group reading fails, mapping only its authoritative identity/price/availability/photos, setting selectedVariantId and keeping the requested source URL. Parent links still require full group data; a mismatched, unavailable, auction or incomplete child never falls back to another variant. Existing one-megabyte limit and timeouts remain. Normal successful group imports continue unchanged.
+
+Regression tests cover an oversized group with an explicit matching child and rejection of a parent with the same oversized group. All 738 tests pass; final lint, TypeScript/build and a fresh deployed check of the actual user URL remain required before claiming fixed. No account/order/D1/environment changes. Deploy with the Sites hosting workflow from this current release checkout and preserve Impact and current features. This preparation snapshot does not itself confirm publication; root handoff records final deployment evidence.
+
+
+## Impact head verification follow-up — 8 October 2026
+
+The user explicitly requested the partner tracking code in the main homepage head for Impact Add Website verification. RootLayout now emits script#atlas-impact-bootstrap in the server-rendered head with the exact partner script URL and both requested commands. This defines atlasStartImpactTracking; current consent still controls its invocation and external loading, and native shells remain excluded. The original queue-style bootstrap gains only a duplicate-load ID. Existing client bootstrap calls the head initializer when available and retains its earlier fallback. A new VM regression verifies static URL visibility, no load on head evaluation, both commands after start and no duplicate load. All 736 tests pass; final lint (zero errors; one existing unused Choice warning), TypeScript and Worker build passed before this follow-up publishes. Version 147 remains the last confirmed deployed version until the next successful deployment is recorded.
+
+
+## Import33 / Impact integration — 8 October 2026
+
+The shared allowlisted fetchProduct path serves customer previews, operator catalog imports and authenticated server rechecks. Public-state/merchant option extraction is bounded and exact product/variant identity is checked. Transient requests retry once within a 24-second total budget; blocks, incomplete data and unsafe redirects do not retry. New automatic cart submissions fail closed with err_38/503 when the source cannot be verified. Older optional sourceManuallyConfirmed values retain compatibility. No D1 migration or pricing formula change.
+
+ImpactTracking is a client component inside MarketProvider. It waits for current account consent or the guest atlas-consent-v1 value, listens for the existing consent acceptance event, skips nativePlatform(), and bootstraps the owner's async script once. The consent/legal edition was updated because external tracking is new. Customer import confirmations were removed; customs and warehouse exact-price approvals remain required.
+
 
 ## Кабинет, вход и скорость первой загрузки — 7 октября 2026
 
@@ -150,7 +461,7 @@
 - **Геометрия и масштаб.** С 1680 у `main` поля `--hw-ml + --hw-rail-w + --hw-rail-gap` слева и `--hw-mr` справа (лишнее место уходит в правое поле, где медальоны); шапка выровнена по ленте и краю контента. `--hw-z` — всегда простое число: 1; 1.15 (≥2200×1200); 1.25 (≥2400×1350); 1.4 (≥2880×1600); 1.6 (≥2880×1950). `zoom` стоит только на листах (`main > [data-chapter]`), детях `.site-header` и `.hw-rail-inner`; на листах `--ch-h`/`--ch-h1` делятся на `--hw-z`, поэтому каждый лист по-прежнему ровно в экран. `main` не масштабируется: декор меряет его в пикселях окна. `app/press-feedback.tsx` делит `--press-x/y/size` на `currentCSSZoom || 1`.
 - **Декор** — `app/home-decor.tsx`, `app/home-decor-art.ts` (статические SVG), `app/home-wide-decor.css`, `lib/market/world-land.ts` (грубые ручные контуры суши, мемоизированная сетка точек, приблизительные центры стран — иллюстрация, не адреса складов). React ведёт только корень `.hw-decor[aria-hidden]` (`pointer-events:none`, `z-index:-1`, абсолютно на всю ширину окна); слои и SVG рисуются императивно. Медальоны (глобус, коробка, чек, облачка) — в правом поле героя, тарифов, «Ваших денег» и FAQ: полный при поле от ~305 px (64 px до контента и края), компактный от ~186 px, иначе только мятное пятно; на «Как это работает» и «Подборке» медальонов нет. На финале — точечная карта: страны и порядок из `deliveryRegions`, подписи из `homeCopy.tariffs.regions` и `example.to`, без сроков и статусов; при небе над карточкой меньше 300 px карты нет (uz-заголовок финала на wide на шаг мельче, чтобы не переносился и не съедал небо). Карта рисуется только в пределах половины окна от экрана (второй IntersectionObserver, `rootMargin: 50%`): загрузка, смена темы или языка и ресайз наверху её не трогают. Геометрия дуг считается в JS (`quadArc` в `lib/market/world-land.ts`: таблица длин хорд, точка и касательная квадратичной Безье) без `getPointAtLength`, сетка точек — построчный scanline (`landDots`, ровно те же точки, что `isLand`); первая отрисовка ~20–30 мс, повторные 5–10 мс (было 220–390 мс с принудительными пересчётами раскладки). Посылки — WAAPI только на transform/opacity, на паузе вне экрана (IntersectionObserver), при «уменьшить движение» неподвижны. Перерисовка — rAF по resize, ResizeObserver (main, листы, их целевые блоки и футер: логотипы, шрифты и смена темы меняют блоки внутри листа фиксированной высоты), `fonts.ready`, `home-wide:layout`, смена языка и reduced motion; таймеров нет, в покое 0 пересчётов раскладки.
 - **Вставки** — `app/home-facts.tsx` (строка фактов) и `app/home-sections.tsx` (`StepDemo` в карточках «Как это работает», `aria-hidden`; карточка «Из чего складывается срок» `.hw-route` без цифр сроков; `.hw-faq-more` со ссылками на /support, /customs, /legal; `.hw-closing-stores` с `HomeStoreList`), стили `app/home-wide-content.css`, тексты — группа `wide` в `lib/market/home-copy.ts`. Рендерятся в SSR всегда и скрыты `display:none` до своих медиазапросов. Все числа из кода: `storeBrands.length`, `heroStores`, `deliveryRegions` с флагами, `tariffRows(pricing)` (`lib/market/home-facts.ts`; ту же функцию теперь использует `DeliveryTariffs`), `useExampleBill()` (те же суммы, что в карточке счёта), `trackingCurrent`. Ячейка дней показывает самую быструю группу экспресса, флаг — только если в группе одна страна; без дней ячейки нет. Подпись — `factDaysNote`: сначала «экспресс, от склада», потом страны, так что узкая ячейка режет многоточием только список (полный текст — в `title`). У флагов ячейки стран есть `sr-only`-список названий: флаги `aria-hidden`.
-- **CSS.** После `tariffs.css` в `app/layout.tsx` идут `home-wide-rail.css`, `home-wide-content.css`, `home-wide-decor.css`; `press.css` остаётся последним. Классы и токены по частям: `.hw-rail*`, `.hw-next`, `--hwr-*`; `.hw-decor*`, `--hwd-*`; `.hw-facts`, `.hw-fact*`, `.hw-demo*`, `.hw-route*`, `.hw-faq-more`, `.hw-closing-stores*`, `--hwc-*`. Вне медиазапросов — только `display:none` новых узлов, `--hw-z: 1` и `@keyframes`; `:is()` с id нет. На wide `main.catalog-home{position:relative}`; листам на wide нельзя давать фон, transform, opacity или contain — декор с `z-index:-1` окажется под ними.
+- **CSS.** После `tariffs.css` в `app/page.tsx` (стили только главной, с 10.10.2026 не в `app/layout.tsx`) идут `home-wide-rail.css`, `home-wide-content.css`, `home-wide-decor.css`; `press.css` остаётся последним. Классы и токены по частям: `.hw-rail*`, `.hw-next`, `--hwr-*`; `.hw-decor*`, `--hwd-*`; `.hw-facts`, `.hw-fact*`, `.hw-demo*`, `.hw-route*`, `.hw-faq-more`, `.hw-closing-stores*`, `--hwc-*`. Вне медиазапросов — только `display:none` новых узлов, `--hw-z: 1` и `@keyframes`; `:is()` с id нет. На wide `main.catalog-home{position:relative}`; листам на wide нельзя давать фон, transform, opacity или contain — декор с `z-index:-1` окажется под ними.
 - **Проверено** (безголовый Chrome по CDP на dev-сервере): 1440×900 … 3840×2160 в обеих темах и на ru/uz/en — каждая глава ровно в экран, нет горизонтальной прокрутки, декор и подписи карты не пересекают текст, лента не перекрывает контент, текущая глава подсвечивается, клик по пункту и по подсказке ведёт к главе, кнопка ленты фокусирует поле ссылки, в новых узлах на uz/en нет кириллицы (включая `aria-label` и `title`), любой один ответ FAQ помещается в главу; ресайз 1920 → 1280 → 1920 трижды снимает и возвращает ленту и декор без роста слушателей и анимаций; в консоли нет ошибок гидрации. Тесты: `tests/home-rail.test.mjs`, `tests/home-wide-map.test.mjs`, `tests/home-facts.test.mjs`. Открытые вопросы — в TODO.md.
 
 ## Заказ по ссылке: черновик, гость → вход → корзина, блокировка данных Atlas; тарифы на ПК — 6 октября 2026
@@ -231,7 +542,7 @@
 
 The owner asked for the home page to read as separate full-screen sheets: one part, then the next, with a flick snapping to the next sheet "like a magnet", and nothing of the next block peeking at the bottom of a screen.
 
-- **Where.** `app/home-chapters.css`, imported last in `app/layout.tsx` (after `day-folio.css`). No `!important`, no entrance or scroll-driven animations, no inner scroll box, no `dvh`, no `:is()` with ids, no DOM moves by script.
+- **Where.** `app/home-chapters.css`, imported by `app/page.tsx` together with the other home-only sheets (since 10.10.2026; before that it sat in `app/layout.tsx` after `day-folio.css`), so it loads after every layout stylesheet. No `!important`, no entrance or scroll-driven animations, no inner scroll box, no `dvh`, no `:is()` with ids, no DOM moves by script.
 - **Scope.** Root rules use `html:has(main.catalog-home)`; home rules `html:has(main.catalog-home) .catalog-home …` (specificity 0,2,2, above the Day/Night 0,2,1 rules); sheet lists use `:where(...)`. Browsers without `:has()` get no snapping and the normal layout. Other routes keep `scroll-snap-type: none` (also after client-side navigation away from `/`).
 - **Snapping.** The root scroller (`html`) has `scroll-snap-type: y mandatory` under `prefers-reduced-motion: no-preference`, `y proximity` when the window is 700px tall or less (Safari with toolbars out, ~690px laptop windows, landscape), and none under reduced motion (the sheet layout stays). `scroll-snap-stop` stays normal. A commented `(hover:hover) and (pointer:fine)` proximity fallback is in the file for a real Windows wheel check. Snap targets (`scroll-snap-align: start`, `scroll-margin-top: 0`): `.site-header` (sheet 1 starts at y=0 with the static header), `#bill` (below 1100px), `#how`, `#finds`, `#tariffs`, `#trust` (761px and up) or `.home-trust-money` + `.home-trust-proof` (760px and below), `#faq`, `.home-end`. `scroll-padding-bottom` is the phone bar + dock.
 - **Tokens** on the root: `--ch-header` (80px; 60px at ≤600), `--ch-nav` (0; 61px + safe area at ≤760, the measured `.mobile-nav`), `--ch-dock` (0; 68px at ≤760), `--ch-pad` (`clamp(32px,6svh,72px)`; `clamp(16px,3svh,32px)` on phones, 14px on phones ≤840px tall, `clamp(20px,3svh,32px)` on wide windows ≤860px tall), `--ch-gap`, `--ch-h1 = 100svh − header − nav` (sheet 1) and `--ch-h = 100svh − nav − dock` (`100lvh` at ≤760, so the next heading does not show when Safari's toolbars collapse). Sheets use `min-height`, never a fixed height or `overflow:hidden`; a sheet whose content is taller (an opened FAQ answer) grows.
@@ -365,7 +676,7 @@ The production scheduler is external to Sites/Vinext: the enabled UpCloud `atlas
 
 `ProductGallery` centralizes safe, deduplicated merchant images and UI-only navigation. `gallerySwipeStep()` rejects taps, predominantly vertical gestures and invalid dimensions; CSS permits vertical scrolling and pinch zoom. Pointer cancellation clears a pending gesture. Buttons and keyboard navigation remain alternatives. Link-order previews control the active photo; product sheets/carts keep local selection. Existing optional `Product.sourceImages` preserves imported photos through cart persistence, with server-side safe-image validation in `cart-add`; identity, authorization, variant validation and fee recomputation are unchanged.
 
-`mobile-polish.css`, `customer-mobile.css` and `operator-mobile.css` load after theme styles. Their narrow-screen selectors scope layout overrides to actual customer/operator containers. Admin now has an `operator-admin` wrapper without removing any tab or action. Account labels are visible and telephone fields use telephone input semantics. No migration or pricing changes are introduced.
+`mobile-polish.css` and `customer-mobile.css` load after theme styles; `operator-mobile.css` (every rule under `.operator-admin` or `main[data-view="operations"]`) is imported by `app/admin/page.tsx` and `app/operations/page.tsx` only. Their narrow-screen selectors scope layout overrides to actual customer/operator containers. Admin now has an `operator-admin` wrapper without removing any tab or action. Account labels are visible and telephone fields use telephone input semantics. No migration or pricing changes are introduced.
 
 ## Explicit link-order context and incomplete source recovery — 30 September 2026
 
@@ -406,6 +717,7 @@ The UI's legacy fallback option arrays are explicitly typed and optional country
 | Delivery speed and first render | lib/market/delivery-speed.ts (копии и хелперы переключателя экспресс/обычная), app/calc-summary.tsx (`DeliverySpeedSwitch`, `CalcLines`, `BlankBill`), lib/market/site-content.ts (`deliveryDaysFor`), lib/market/initial-data.ts (серверный `initialPricing()`), lib/market/pricing-equal.ts (`samePricing`/`nextPricing`) |
 | Order groups | lib/market/order-groups.ts (`groupOrders` по `batchId` и магазинам), app/orders-groups.css |
 | Accounting | lib/market/finance.ts (чистая модель, годовые сводки, маржа заказов, обязательства, CSV, `entrySource`), lib/market/finance-auto.ts (автопроводки, сверка, `cashPosition`, `taxCalendar`, выписка, счёт-расчёт), lib/market/finance-server.ts (журнал, закрытие периода, исправления, `syncAutoLedger`), lib/market/finance-api.md (контракт), app/api/finance/route.ts, app/accounting-view.tsx + app/accounting-{shared,overview,ledger,orders,closing,statement,taxes,exports}.tsx, app/accounting-helpers.ts, app/accounting.css |
+| Paid data services (Bright Data) | lib/importer/brightdata.ts (цели, сбор, маппинг Walmart, настройки, `paidRecordsByDay`), lib/importer/brightdata-d1.ts (`market_provider_jobs`), lib/importer/worker-fetch.ts (`merchantRequest`/`catalogMerchantRequest`), lib/market/import-client.ts (повтор на 202), lib/market/provider-ledger.ts, lib/market/provider-usage.ts, app/accounting-services.tsx, drizzle/0012_provider_jobs.sql |
 | Admin dashboard | app/admin-view.tsx (оболочка и вкладки), app/admin-{overview,customers,team,audit,rules,system,pricing-summary}.tsx, app/admin-shared.ts, app/site-content-admin.tsx, lib/market/admin-dashboard.ts (чистые функции), lib/market/admin-server.ts (D1) |
 | Site content | lib/market/site-content.ts (код-дефолт, `deliveryDaysFor`), lib/market/site-content-schema.ts (zod, `mergeSiteContent`, `parseStoredSiteContent`), app/api/site-content/route.ts, lib/market/initial-data.ts (`initialSiteContent()`) |
 | Staff roles (RBAC) | lib/market/access.ts (права, роли, таблица действий, `viewAccess`, `adminTabPermissions`, `operationsKindPermissions`, `operationsQueryPermissions`), lib/market/server.ts (`accessFor`, `requirePermission`), STAFF_ROLES.md |
@@ -562,6 +874,8 @@ Migration 0004 adds the normalized launch foundation: `market_customers`, `marke
 Тариф `pricing` с ревизии 3 (6 октября 2026) хранит обе ставки международной доставки: `perKgUsd` (экспресс, $15,98) и `standardPerKgUsd` (обычная, $13,98; обе также в `countryOverrides`), а также сроки `deliveryDays` и `standardDeliveryDays` по регионам; `upgradePricing` поднимает старые строки до ревизии 3 при чтении, миграции нет. Настройки бухгалтерии живут в `market_settings` key `accounting` (JSON: `profitTaxRate`, необязательные `lockedThrough` — граница закрытого периода `YYYY-MM`, и `fxRates` — курсы валют для записей журнала); таблицы `market_order_finance` и `market_ledger_entries` не менялись. Автозаписи журнала отличаются только префиксом `id` (`AUTO-`/`BANK-`/`LED-`) и `created_by = system:auto`; список автозаписей, пропущенных из-за закрытого периода, — `market_settings` key `accounting.auto-skipped` (до 500 позиций).
 
 Ещё два документа `market_settings` (вторая волна 6 октября 2026): key `admin` — пороги «Требуют внимания» админки (`adminSettingsSchema`, все поля необязательные, дефолты в коде); key `site-content` — редакционный контент сайта (контакты, юрлицо, способы оплаты, отзывы, фото посылок, число заказов, ссылка на перечень запрещённых товаров) с полем `revision` и compare-and-swap по тексту строки, как у `catalog`; пустая или битая строка читается как пустой документ ревизии 0 поверх код-дефолта. Миграция 0011 (`drizzle/0011_admin_customer_notes.sql`, номер 0010 пропущен) добавляет append-only таблицу `market_customer_notes` (`id`, `customer_id`, `author_id`, `author_email`, `text`, `created_at`, индекс по клиенту и дате) для заметок операторов в карточке клиента; до её применения карточка работает, а запись заметки даёт `err_57`.
+
+Миграция 0012 (`drizzle/0012_provider_jobs.sql`, 9 октября 2026) добавляет `market_provider_jobs` — учёт платных сборов Bright Data: `snapshot_id` (PK, id снимка у Bright Data), `provider`, `store`, `dataset`, `item_key` (`walmart:<id>`/`hm:<id>`), `url`, `purpose` (`customer`/`catalog`), `status` (`running`/`ready`/`empty`/`failed`), `records`, `error`, `month` и `day` (по Ташкенту, по времени завершения), `created_at`, `finished_at`; индексы по товару и дате, по месяцу и по дню. Настройки — `market_settings` key `importer.brightdata`. Дневной расход — строки `market_ledger_entries` с id `AUTO-BRIGHTDATA-<YYYY-MM-DD>`.
 
 State contains orders, ledger entries, cart, favourites, checkout idempotency keys, saved recipient profiles, support-request history, an optional confirmed identity profile with masked passport number, test declarations, communication preferences, prepared email/SMS records and version. Order contains product snapshot, immutable quote, delivery snapshot, simulated payment, parcel/tracking events, assignment, staff notes, optional customer change requests, optional warehouse inspection, optional `warehouseServiceRequests` snapshots, status/history, both settlement types, approvals, quantity, balance use and customs consent. Cart lines optionally store `requestedServiceIds` and per-service `requestedServiceUnits`. Service requests optionally store a customer instruction note; change requests optionally mark an explicitly customer-approved proposed substitution as resolving a warehouse issue. These fields default compatibly for old stored carts/orders; no D1 migration is needed. Operator-entered internal notes remain separate from customer-facing notifications. A targeted operator notification is appended to the selected order owner's existing `notifications` array and references that order; it does not create a prepared email/SMS delivery or send an external message.
 
@@ -873,3 +1187,15 @@ On a legacy item HTTP 400 without an explicit child variation, the official Brow
 - Built on PR #26 (`productGroups`, shared `cart-note`/`cart-services` with `ids[]`). `cart-remove` takes the same optional `ids[]`: "remove all options" and "save for later" on a group are one request and one `repriceCart`. Old clients without `ids` work unchanged.
 - The cart matches lines to catalog products through a `Map` keyed by `catalogUrlKey` (exported from `lib/market/catalog-query.ts`, the same key `sameCatalogProduct` uses), built once per catalog with `useMemo`. `loadCatalog()` runs only when a line has a store page, after first paint (`requestIdleCallback`, else a 300 ms timeout).
 - No new state. Favourites use the existing `favorite` toggle. `HoldNote` ignores `pricing` (kept optional for callers). `cartCopy.item.parcelFree` was removed and `parcelReserve` takes only the missing amount. `ordersCopy.attention`/`showAttention` were removed with the banner.
+## Optional configured egress ladder and Zara numeric SKU
+
+Added server-owned signed gateway routes: ATLAS_TASHKENT_PROXY_URL/SECRET, existing ATLAS_IMPORT_PROXY_URL/SECRET (US), and ATLAS_RESIDENTIAL_PROXY_URL/SECRET. The new endpoints must implement the same HTTPS /v1/fetch HMAC protocol; raw vendor proxy URLs/credentials cannot be used as these endpoints. When optional gateways are configured, requests try Tashkent → US → residential, stopping after a response without detected blocking. Non-final attempts have a3s cap and all share caller abort/deadline. HTTP blocks, recognised HTML challenges and challenge redirects escalate;404 and proxy authentication/configuration failures do not. No arbitrary redirect is followed by routing. Missing paired configuration fails closed. Existing routing is unchanged when optional gateways are absent; eBay stays on official API. Cloudflare direct fetch is NOT identified as Tashkent. Tashkent answers retain regional-price warnings. This transport ladder does not yet escalate merely because a200 response has incomplete product fields; parser-level recovery remains required.
+
+Zara numeric size.sku is normalized to string; regression covers importDraft, retaining source SKU identity, stock, selected colour, photo and currency behavior. Full group completeness is still not proven. Residential provider and actual Tashkent gateway are not configured/verified; owner input pending, no paid proxy or Windows service installed. Other incomplete store adapters remain known issues. UI/cart/catalog writes and production environment secrets unchanged by source preparation.
+## Live Tashkent gateway on owner Windows PC — 9 October 2026
+
+Owner authorized this Windows PC. Runtime outside repository: C:/Users/WS/.codex/runtime/atlas-tashkent-proxy; local127.0.0.1:8789, pinned-host SSH reverse tunnel to VPS127.0.0.1:18787. Dedicated atlas-tashkent-tunnel user/key may only remote-forward that port, no shell/TTY/agent/local forwarding. Caddy adds tashkent.85-9-196-196.sslip.io/v1/fetch; prior config backup /etc/caddy/Caddyfile.bak-tashkent-20261009. Caddy admin API is disabled, so reload failed safely and validated configuration was applied with restart; existing US service remains active. No router inbound port or Windows firewall opening. Gateway HMAC secret is ACL-protected outside repo; unsigned public request401.
+
+Windows task Atlas Tashkent Import Gateway launches hidden supervisor at logon, node and SSH reconnect automatically. PC sleep/offline/logoff breaks local route; US fallback remains configured. Do not promise always-on service or force-disable sleep. Cloudflare trace from PC reportsUZ (city not independently certified). Signed PC Target5/$27,Mango18/$79.99. Hosted fresh Target logs on PC,200/5; controlled supervisor shutdown returned hostedTarget200/5 viaUS without direct-egress warning; supervisor restored. Environment rev12 sets only twoTashkentkeys; existing secrets preserved. Bright Data is NOT configured in this checkout/Sites environment; screenshot showed separate in-progress Claude work, no open GitHub PR found. Do not duplicate it or assume credits/prices/keys. Residential remains unconnected.
+
+Regional warning made neutral: a first Tashkent request does not imply US was rate-limited. Product completeness/stock checks remain unchanged. Evidence outputs/tashkent-signed-smoke.json,tashkent-hosted-active.json,tashkent-hosted-fallback.json. No customer/catalog/order writes; only normal preview/cache behavior.

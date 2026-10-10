@@ -1,4 +1,165 @@
+## Оформление, «Мои заказы», сайт: открытые вопросы после аудита — 10 октября 2026
+
+- **Решения владельца приняты 10.10.2026** (см. ARCHITECTURE.md): согласие без галочки, одна строка «Сервис Atlas», «в Ташкент», закреплённая кнопка на телефоне. Открыто: сроки доставки на широких экранах повторяются трижды (подзаголовок тарифов, карточка маршрута, FAQ) — оставить одну карточку?
+- [x] **Страховка:** претензии об утере и порче оформляются в заказе, возмещение — на баланс; раздел 6.1 оферты (10.10.2026). Осталось: фото к претензии загружаются через поддержку, не в форме; юрист должен проверить раздел 6.1 вместе с остальной офертой.
+- **«Ташкент»:** во внутренних экранах осталось «Узбекистан» — страница для инвестора (`admin-investor.tsx`, `investor-metrics.ts`), кнопка оператора «Отправить в Узбекистан» и подсказка о маршруте в `order-workspace.tsx`, `public/llms.txt`. Заменить, если владелец захочет и там.
+- [x] **Страховка:** при изменении цены товара и доплате за товар страховка пересчитывается по ставке строки (10.10.2026). Ставка по порогу $200 после оформления не меняется.
+- **Коды ошибок сервера:** «Расчёт истёк», «Тарифы обновились», «Пошлина пересчитана» (`lib/market/domain.ts` ~1648–1662) без кодов `err_*` — клиент не может реагировать точечно.
+- **Лимит:** `estimateCourierCustoms` (`lib/market/customs.ts:58`) считает от константы $200, а не от `pricing.customsAllowanceUsd`; «осталось $X» в `CustomsPanel` не вычитает текущую корзину.
+- **Заказы:** кнопки ответа на изменение заказа теперь показывают «Сохраняем…» и сообщение об успехе (10.10.2026). Осталось: ветки `!operations` в старой карточке отдельного заказа фактически только для оператора — можно убрать покупательскую часть.
+- **Импорт:** отрицательный кэш (90 с) срабатывает и при `fresh: true`, а заказ по ссылке всегда шлёт `fresh` — повтор сразу после разовой стены вернёт ту же ошибку.
+## Target native API headers
+
+US VPS comparison: Target redsky returned product JSON200 with ordinary API headers and with User-Agent, but435 PerimeterX metadata after adding browser hints/X-Requested-With/Sec-Fetch headers. Target requests now retain HTTPS/Origin/Referer/allowlist/timeout and use minimalApi headers, omitting those browser-only hints. Other merchant requests are unchanged. Regression checks the actual fetchProduct headers. No IP-reputation verdict is inferred from435 alone.
+
+## Native API Origin follow-up
+
+The signed proxy permits both Referer and Origin from the exact known storefront for credential-free GETs to redsky.target.com and api.victoriassecret.com. All other cross-host sources remain rejected; Origin must still equal its parsed HTTPS origin. Initial hosted checks exposed that requestHeaders sends both headers. Regression covers exact accepted Origin and unrelated rejected Origin. Mango source parsing verified on the US VPS and hosted site: USD79.99/18 variants.
+
+## PR39 production preparation
+
+Signed proxy validation now permits only exact GET Referer pairs www.target.com→redsky.target.com and victoriassecret.com/www.victoriassecret.com→api.victoriassecret.com; Origin restrictions and HTTPS/allowlist/credential/port checks remain. Signed HTTP regressions cover accepted pairs and rejected unrelated/insecure/credentialed sources. Target groups exceeding120 leaves remain incomplete after truncation. These fixes are required for US proxy operation and safe automatic publication. VPS host snapshot must preserve existing hosts and include redsky.target.com.
+
+## Браузерный движок, незнакомые сайты, доплата — 10 октября 2026
+
+- [x] Браузерные магазины читаются только ташкентским шлюзом на ПК владельца. ПК по решению владельца 10.10.2026 всегда включён (будет сервером); при сбое шлюза — ручной ввод.
+- [ ] Браузер на US VPS технически возможен (Xvfb + обычный Chrome), но адрес дата-центра режут Akamai/PerimeterX — проверять только с разрешения владельца, на проде не включено.
+- [ ] Walmart с 10.10.2026 читается со страницы через шлюз ПК; Bright Data — запасной. Когда ПК выключен, Walmart идёт в Bright Data (если задан ключ), иначе ручной ввод. Проверить на проде после выкатки PR #46.
+- [ ] Единая оплата заказа: старые заказы с разными `payment.id` в одном оформлении показывают id первой строки; провайдера оплаты по-прежнему нет. Оператор в `/operations` отмечает оплату по строкам, как раньше.
+- [ ] Браузер на US VPS: инструкция для ассистента с доступом к VPS — `outputs/prompts/2026-10-10-vps-browser-test.md` (только замер, прокси не трогать). Ждём отчёт.
+- [x] Macy's: категория берётся из хлебных крошек страницы (`breadcrumbCategory`), по названию — только если крошек нет.
+- [ ] Columbia и Best Buy отвечают 403 даже настольному Chrome — остаются ручным вводом.
+- [ ] Эффект на проде — только после выкатки PR #46 и обновления файлов шлюза (сделано на ПК 10.10.2026, откат — `backup-20261010`).
+- [ ] Доплата: оплата симулируется, как оплата заказа; при подключении провайдера нужен реальный платёж и возврат доплаты отдельной операцией. Возврат части доплаты (не всего заказа) не реализован.
+- [ ] Незнакомые сайты принимаются без живой проверки: цену, вариант и доставку сверяет оператор; доплата закрывает расхождение вверх, расхождение вниз — через существующий возврат по заказу.
+
+## Магазины: живая проверка, ускорение импорта — 10 октября 2026
+
+Ручной ввод — только Columbia и Best Buy (`manualEntryStoreRoots`). Браузером ташкентского шлюза читаются 26 магазинов (`browserStoreRoots`); ПК со шлюзом по решению владельца всегда включён. H&M, Sephora и другие браузерные магазины показываются без пометок. Ручной ввод — запасной путь на случай сбоя шлюза.
+
+- [x] Живая проверка ~200 магазинов списка с ташкентского адреса (fetch → impit → Chrome шлюза): 116 читаются. Девятнадцать магазинов читаются только браузером, они добавлены в `browserStoreRoots`: Next, Stradivarius, COS, Farfetch, Hoka, Micro Center, Mytheresa, Oysho, Nordstrom, Nordstrom Rack, JD Sports, La Redoute, Monoprice, LuisaViaRoma, Neiman Marcus, Notino DE/FR/IT, Otto. Ещё 11 — только через отпечаток Chrome (`impersonateStoreRoots`).
+- [x] Поддомены, которые раньше отвергались: en.aboutyou.de, us.burberry.com, store.google.com, shop.lululemon.com, us.louisvuitton.com, us.nothing.tech, us.pandora.net, www.usa.philips.com, electronics.sony.com.
+- [ ] Не открылись даже в Chrome шлюза (стена 403). Это кандидаты в ручной ввод, но проверены только с ташкентского адреса; на проде есть US VPS и резидентный маршрут:
+  - Dell, Etsy, Fnac ES, Free People, Galaxus DE, JCPenney, Kiabi ES;
+  - Kohl's, Mango (на странице; свой адаптер есть), MediaMarkt DE/ES, Revolve, Saks;
+  - Saturn DE, Sephora ES, Urban Outfitters, Wayfair.
+  Решить после проверки с VPS.
+- [ ] Страница открывается, но в ней нет структурированной цены или валюты: импорт уходит в черновик. Нужны адаптеры по приоритету продаж:
+  - Nike, Carhartt, Foot Locker ES, GOAT, GoPro, Hollister, JBL, J.Crew, Lacoste, LG;
+  - Logitech, Madewell, Merrell, Mi, Newegg, Notino ES, Patagonia, PcComponentes, Prada, Pull&Bear;
+  - Razer, Salomon, Skechers, Space NK, SSENSE, StockX, Swarovski, Tiffany, UGG, Zara Home.
+- [ ] Ошибка сети или разбора, повторить: Victoria's Secret ES, Lefties, Massimo Dutti, YOOX, iHerb, Microsoft, Milk Makeup.
+- [ ] Выкатка на шлюз и VPS: переэкспортировать allowlist и подсказки движков командой `node --experimental-strip-types scripts/export-importer-hosts.mjs supported-store-hosts.json importer-engine-hints.json`. Скопировать оба файла и новые `importer-proxy-server.mjs` и `merchant-engines.mjs`, затем перезапустить прокси. Без `importer-engine-hints.json` прокси работает, как раньше.
+- [ ] Ручной ввод не проверяет цену: оператор сверяет её со страницей перед выкупом; расхождение вверх закрывает доплата по заказу.
+- [ ] Память маршрутов (`createRouteMemory`) живёт в изолированном процессе Worker и не общая. Отказавший маршрут пропускается для магазина на 5 мин. Если шлюз ненадолго не ответил, браузерные магазины эти 5 мин уходят в ручной ввод.
+- [x] Ускорение импорта (ветка `feat/orders-psychology-import`, тесты `tests/importer-speedups.test.mjs`):
+  - добавление в корзину берёт ответ магазина из `market_import_cache`, если сервер записал его не раньше 2 мин назад (Amazon US — всегда вживую);
+  - одно написание ссылки `canonicalProductUrl()` для кэша, корзины и очереди оператора;
+  - короткие ссылки a.co, amzn.to, amzn.eu, amzn.asia, ebay.us раскрываются, m.<магазин> читается как www;
+  - в `/api/import`: один запрос к магазину на одну страницу, стена помнится 90 с, кэш проверяется до списания лимита;
+  - разбор JSON-LD и микроразметки стал терпимее;
+  - внутренние имена магазинов («beta-anker-us») больше не показываются брендом;
+  - Shopify вне списка корней: цена и варианты из `/products/<handle>.js`;
+  - лимит страницы 6 МБ, запросы Adidas идут параллельно;
+  - прокси получает срок попытки (`deadlineMs`).
+- [ ] Выкатка на шлюз и VPS: новые `deploy/upcloud/importer-proxy-server.mjs` и `merchant-engines.mjs` (срок попытки из подписанного запроса, остановка движков при обрыве соединения). Старый прокси поле `deadlineMs` игнорирует, новый без него ждёт 13 с, как раньше.
+- [ ] Короткие ссылки раскрывает сам Worker, без прокси: хосты сокращателей не входят в allowlist прокси. Вживую a.co/amzn.to с адреса Cloudflare не проверялись. Если сокращатель не ответит за 3 с, ссылка идёт прежним путём.
+- [ ] Ожидание одинаковых запросов и память стен живут в одном изоляте Worker. Два изолята могут спросить магазин дважды. Повтор с `fresh` в течение 90 с после стены получает тот же ответ, без запроса к магазину.
+- [ ] Добавление в корзину находит запись кэша, только если `product.sourceUrl` совпадает с каноническим адресом импорта. Если магазин перенаправил на другой адрес, товар проверяется вживую, как раньше.
+- [ ] `canonicalProductUrl` не сокращает пути Amazon до `/dp/<ASIN>`: общего помощника нет, решение отложено.
+- [ ] Shopify-дозапрос `.js` делается, только если страница объявляет `Shopify.currency`. Headless-витрины вроде Anker (`/products/x.js` отдаёт HTML) остаются на своих адаптерах.
+
+## Bright Data для Walmart (H&M убран 10.10.2026) — 9 октября 2026
+
+- [ ] Выкатка: секрет Worker `BRIGHTDATA_API_KEY` и миграция `drizzle/0012_provider_jobs.sql` на рабочей D1 (см. `AUTH_SETUP.md`, раздел 10). Без секрета Walmart идёт прежним путём.
+- [ ] Перевыпустить ключ Bright Data: тот, что использовался при разработке, был на скриншоте.
+- [ ] Walmart через Bright Data отдаёт один вариант на запись (без матрицы цвет × размер); со страницы через шлюз матрица полная.
+- [ ] Бесплатный лимит считается по месяцу Ташкента, а Bright Data может считать по UTC или по дате подписки: сверить с первым счётом и при расхождении поправить `freeRecordsPerMonth` или проводку вручную.
+- [x] Два одновременных запроса одного товара больше не запускают сбор дважды. Бронь `claim:` в `market_provider_jobs` ставится атомарно по `item_key`, второй запрос ждёт тот же снимок. Бронь без снимка закрывается через 60 с.
+- [ ] Цена Walmart $1,43 (до скидки $5,98) у футболки George — сверить вручную со страницей: могла быть цена отдельного размера или распродажи.
+
+## Old Navy, Gap, Banana Republic, Ulta, Macy's — 9 октября 2026
+
+- [x] Ulta: цены остальных оттенков и объёмов дозапрашиваются страницами `?sku=` (до 24 вариантов, по 4 параллельно, 7 с на всё). Вариант без цены остаётся с предупреждением.
+- [ ] Gap Inc.: Athleta подключена по тому же формату, но вживую не проверялась — API каталога для неё не вернул товаров. Страницы весят 1,2–2 МБ при лимите 6 МБ (`readBody`, с 10.10.2026); если карточка превысит лимит, импорт уйдёт в черновик с пометкой `oversize`.
+- [ ] Old Navy, Gap и Ulta проверены с домашнего адреса; с адреса VPS не проверялись.
+- [ ] Macy's: Akamai 403 отовсюду, включая резидентный прокси. Нужен товарный фид Rakuten Advertising (publisher-аккаунт, не кэшбэк rakuten.com) и адаптер фида; разборщик `macys.ts` для страницы остаётся.
+
+## Свой движок загрузки страниц — 9 октября 2026
+
+- [x] Выкатить `merchant-engines.mjs` + `npm ci --omit=dev` на VM UpCloud и повторить прогон 16 ссылок с нью-йоркского адреса (сделано 9.10, Sites 155).
+- [ ] Обновить на VM `importer-proxy-server.mjs`, `merchant-engines.mjs` (попытки при полном провале) и `supported-store-hosts.json` (новый хост `redsky.target.com`), затем проверить Mango, Target, Zara и Victoria's Secret с VPS.
+- [ ] Ключ веб-клиента Target (`lib/importer/target.ts`) и параметры redsky могут смениться без предупреждения — тогда импорт Target откатится к черновику. Следить за `[import-fallback]` для `www.target.com`.
+- [ ] Zara через `?ajax=true` проверена на US-витрине; другие страны (RON и т. п.) — только на фикстурах.
+- [ ] Victoria's Secret: из Узбекистана и страница, и API отвечают 403; проверить с VPS.
+- [ ] Ступень 2 — браузер (Patchright/Chromium) на VM для страниц, где данные рисует JS (H&M, New Balance, Levi's; Mango и Target уже читаются без браузера) и для PerimeterX (Walmart; Zara идёт через `?ajax=true`). Нужна VM ~4 vCPU / 8 ГБ, очередь и лимит параллельных вкладок.
+- [ ] Ступень 3 — резидентные US-прокси ($1–4/ГБ) только для хостов, где не помогли ступени 1–2 (Sephora, Best Buy, Columbia, Victoria's Secret). Учёт трафика по хосту.
+- [ ] С адреса VPS (дата-центр UpCloud) 403 на обоих движках у Tommy, Carter's, Sephora, Columbia, H&M; Zara — Akamai. Tommy с домашнего адреса открывается обычным запросом — значит, нужен другой адрес (ступень 3), а не только другой отпечаток.
+- [ ] Официальные источники вместо скрейпинга: Best Buy Products API, Walmart affiliate API — не проверены (Zara и Target уже читаются из своих источников данных).
+- [ ] Память лучшего движка живёт в процессе прокси. После рестарта известные трудные магазины стартуют по подсказкам (`importer-engine-hints.json`, 10.10.2026), остальные — с fetch. Метрик успеха по хостам нет: есть только строки в journal.
+
+## Опубликовано: общая механика вариантов и автоимпорт — 9 октября 2026
+
+Sites154 опубликован: source e96dc890af3ba8a3b658e7e9ef41f2451ee8f73f, deployment appgdep_6ac7ebfd75d481918778747933de3742 succeeded; atlasmarket.uz. Канонический checkout outputs/deploy-import33-20261008; старый корневой checkout не публиковать. Добавлены optional native source/product/seller/offer/color IDs, независимые параметры, собственные галереи и полнота группы. Новые cart-add поддерживаемых магазинов требуют автоматической серверной проверки без ручного обхода. Админский пакетный импорт автоматически публикует только полные группы с точными доступными вариантами, ценами и фото; неполные остаются в очереди повторной проверки. Недоступные и неизвестные варианты не добавляются.
+
+761 тест, TypeScript и build проходят, lint 0 ошибок/2 прежних предупреждения. Свежий public API по ссылке пользователя:200,22 доступных SKU/4 цвета, Cargo US11 $32. Все22 проверены сервером и importDraft. Браузер с синтетическими API проверил22 точных cart ID/var, цены25/24/32/34, собственные галереи, US/EU/CM и mobile390. Реальное сохранение каталога проверено на тестовой SQLite через catalog-server, с CAS и аудитом; hosted operator D1 UI отдельно не проверялся. Реальные аккаунты/заказы не изменялись, окружение revision11 сохранено.
+
+Ограничение: регистрация33 магазинов не означает полную работу33 источников. Аудит: eBay/Nike/Zalando/Vans дают подтверждённые поднаборы;10 неполных,11HTTP422,6 ошибок транспорта проверки,2 без контрольной ссылки товара. Полнота Nike/generic не подтверждена, автопубликация её не выдумывает. US-egress каждого текущего запроса отдельно не сертифицирован; разрешён прямой fallback. Внешний доступ/API остаётся зависимостью. Доказательства outputs/all-stores-deployment.json, merchant-mechanics-audit.md, all-stores-*.log, release-ui-general-check.js.log.
+
 # Atlas TODO and known limitations
+
+
+## Общая механика импорта — 9 октября 2026
+
+Подготовлен релиз поверх опубликованной версии 152: optional точные product/seller/offer/color IDs, native дочерние ссылки, независимые параметры, галереи и полнота группы. Клиент и сервер сохраняют цену конкретного предложения; новые добавления из поддерживаемых магазинов не обходят проверку ручным флагом. Неизвестное наличие и нулевые остатки не допускаются. Админский пакетный импорт автоматически публикует только полные подтверждённые группы и сохраняет неполные в очереди повторной проверки; скрытие останавливает автоматическое управление.
+
+Аудит 33 источников: проверенные поднаборы eBay25/Nike68/Zalando20/Vans4; это не доказательство полноты всех магазинов. 10 источников неполны, 11 ответили422, 6 транспортных ошибок проверки, 2 без контрольной ссылки товара. US-egress текущей проверки отдельно не сертифицирован; прямой fallback существует. Подробности outputs/merchant-mechanics-audit.md. Внешние API/доступ для остальных источников остаются зависимостью. Автоимпорт не гарантирует будущие цену/наличие/доставку.
+
+# Atlas TODO and known limitations
+
+## eBay: цена просматриваемой расцветки — 8 октября 2026
+
+Верхняя цена и поле цены следуют просматриваемым цвету/размеру, отдельно от списка ранее выбранных вариантов и общего расчёта. Каждая расцветка показывает свою цену или диапазон; размеры показывают цену, если в группе есть разница. Серверные точные ID/цены и многовариантная корзина сохранены. Проверенный снимок eBay: красный $25, серый $24, Blanch Cargo $32, белый/лайм $34; var459336456425 — Blanch Cargo US11 $32. 745 тестов, TypeScript, lint и build проходят. Живая браузерная перепроверка и публикация выполняются после подготовки.
+
+## eBay: фото расцветок, размеры и наличие — 8 октября 2026
+
+Исправлена потеря фото из eBay Browse API: разрешён только точный официальный CDN assets.adidas.com в дополнение к i.ebayimg.com. Галереи привязаны к расцветкам; каждая строка корзины получает собственную галерею и точный var в ссылке. Сохраняются все подтверждённо доступные цвета и размеры группы; недоступные, неизвестные и нулевые остатки исключаются из импорта и выбора; сервер блокирует подтверждённо распроданные варианты. Админский черновик сохраняет остатки, обозначения размеров и галереи; новые поля схем необязательные, старые данные совместимы. Для мужской обуви adidas показаны US/UK/EU и официальная длина стопы в см; зависимые размеры eBay не считаются отдельной осью. Nike и другие таблицы сохранены.
+
+Все 744 теста и TypeScript проходят. Production build/lint проверяются перед публикацией. Живое наличие и фото проверяются после публикации; эти данные не гарантируют будущую доступность. Полный автоматический админский publish, изменение хранения и таймеры из присланного справочного текста в этот релиз не включены.
+
+## eBay colour galleries, size formats and exact child links — 8 October 2026
+
+The reported group had no photos in the version-149 import response. Image extraction now supports thumbnail images and primary group photo fields, and creates exact-child colour galleries. Customer loading retains all eBay galleries when the original link selects one colour. Each chosen cart line rewrites var to its own sourceVariantId while preserving affiliate parameters; stock/price/identity checks remain. adidas men's US footwear offers US/UK/EU display using the official adidas chart, preserving the original seller size/ID and not applying Nike, women's or unrecognized charts. Existing optional schemas and D1 remain unchanged. 742 tests, lint (existing unused Choice warning), TypeScript and Worker build passed. Regression covers gallery colour separation, affiliate URL rewriting and brand/gender size gates. Verify actual colour photographs after publication; a sparse missing-image log records only field keys/types and image hostnames, never credentials or upstream bodies. Native runtime, accounts and orders are unchanged.
+
+
+## Full eBay group for customer and operator — 8 October 2026
+
+The user requested every in-stock colour/size from a seller group in both customer link ordering and admin catalog import. Official Browse group JSON now has a separate finite 8 MB body budget; OAuth/single-item limits remain unchanged at 32 KB/1 MB. Existing timeouts, exact group identity, 250-variant limit and safe images remain. Unknown-stock, known-unavailable and explicit zero-quantity variants are excluded from selectable eBay groups. Each returned option retains its ID, seller dimensions, price, photo and stock data. An explicit var selects its child by selectedVariantId; customer source-colour filtering exempts exact supported eBay hosts, so sibling colours remain selectable. Other stores retain their colour-bound links. Operator importDraft already preserves the shared group's full variant matrix.
+
+The preceding exact-child fix remains a fail-safe if a group request cannot be read; normal groups are always requested first. The initial 9eb2eaf source/archive was prepared but not saved/deployed; this broader group release replaces it. No migration, pricing formula, secret or real order changes. Tests include >1 MB successful colour/size group, operator draft preservation, customer eBay colour exposure versus Nike/lookalike hosts, unknown/sold-out/zero-quantity exclusion, and an oversized >8 MB fail-safe that never substitutes a parent child. 739 tests pass; complete final lint, TypeScript/build and deployed actual-user-link checks before claiming production success.
+
+
+## eBay explicit variation / group failure fix — 8 October 2026
+
+User listing 157751149633?var=459304625551 (including affiliate parameters) reproducibly returned HTTP 422 on version 148. Worker diagnostics identify browse_variants/status=200: the complete group response was rejected by bounded JSON reading after the exact child endpoint succeeded. The fix retains the verified child from getItemByLegacyId when group reading fails, mapping only its authoritative identity/price/availability/photos, setting selectedVariantId and keeping the requested source URL. Parent links still require full group data; a mismatched, unavailable, auction or incomplete child never falls back to another variant. Existing one-megabyte limit and timeouts remain. Normal successful group imports continue unchanged.
+
+Regression tests cover an oversized group with an explicit matching child and rejection of a parent with the same oversized group. All 738 tests pass; final lint, TypeScript/build and a fresh deployed check of the actual user URL remain required before claiming fixed. No account/order/D1/environment changes. Deploy with the Sites hosting workflow from this current release checkout and preserve Impact and current features. This preparation snapshot does not itself confirm publication; root handoff records final deployment evidence.
+
+
+## Impact head verification follow-up — 8 October 2026
+
+The user explicitly requested the partner tracking code in the main homepage head for Impact Add Website verification. RootLayout now emits script#atlas-impact-bootstrap in the server-rendered head with the exact partner script URL and both requested commands. This defines atlasStartImpactTracking; current consent still controls its invocation and external loading, and native shells remain excluded. The original queue-style bootstrap gains only a duplicate-load ID. Existing client bootstrap calls the head initializer when available and retains its earlier fallback. A new VM regression verifies static URL visibility, no load on head evaluation, both commands after start and no duplicate load. All 736 tests pass; final lint (zero errors; one existing unused Choice warning), TypeScript and Worker build passed before this follow-up publishes. Version 147 remains the last confirmed deployed version until the next successful deployment is recorded.
+
+
+## Import33 / Impact release — 8 October 2026
+
+- [x] Integrate on published version 146 rather than the older primary checkout; preserve current product features and official eBay API configuration.
+- [x] Register the requested 33 storefronts and validate exact option selection, automatic server checks and old-state compatibility; 735 tests pass.
+- [x] Add the supplied Impact script, existing consent gating, updated legal disclosure and native-shell exclusion; synthetic browser checks pass before/after consent.
+- [ ] Publish the prepared release and record the succeeded deployment/version/source; final lint/build required.
+- [ ] Repair the older audit-ui synthetic guest-navigation harness timeout; targeted release flows pass but the broad audit does not.
+- [ ] Obtain reliable approved merchant data for blocked US pages and missing prices; 17 representative public-page merchants plus eBay API are confirmed, not all 33. Unknown stock remains unconfirmed. Test further live product/variant coverage and authenticated hosted operator/customer flows without changing real orders.
+
 
 
 ## Кабинет, вход и скорость — 7 октября 2026
@@ -54,7 +215,7 @@
 - [ ] Shopify ограничивает адрес US-прокси на UpCloud: все Shopify-магазины отдают прокси 429, напрямую — 200. Код делает один прямой повтор из Worker (цена тогда может быть региональной, в черновике есть предупреждение). Правильное решение — второй/ротируемый US-адрес или резидентный выход для `*.myshopify`-магазинов.
 - [ ] Zara, Macy's — Akamai, Walmart — PerimeterX, eBay HTML — 403 всегда. Импорт честно сообщает «антибот-проверка (вендор)» и создаёт черновик на ручную проверку; обойти кодом нельзя. Для Zara возможен адаптер к публичному API `/products-details?productIds=`, для Uniqlo — `www.uniqlo.com/us/api/commerce/v5/en/products/<id>` (не делали).
 - [ ] eBay Browse в проде отвечал HTTP 400 с неизвестным `errorId`; теперь текст eBay (этап, HTTP, errorId, сообщение) виден администратору прямо в черновике — после следующего прод-импорта `/itm/…` прочитать причину и починить (вероятны: не активирован keyset Production, scope `buy.browse` отсутствует, ссылка с legacy-id). Локально проверить нельзя: ключи только на деплое.
-- [ ] `www2.hm.com` добавлен в allowlist кода, но JSON allowlist прокси (`supported-store-hosts.json` на сервере) не переэкспортирован — до редеплоя прокси H&M отвечает «временно не отдал данные».
+- [x] ~~`www2.hm.com` в JSON allowlist прокси~~ — неактуально с 10.10.2026: H&M не загружается, покупатель вводит данные сам.
 - [ ] Батч админа ограничен 25 ссылками за запрос (8 одновременно на сервере, лимит Worker по времени); больше — по частям, остаток остаётся в поле.
 - [ ] Не проверено вживую в UI админа (`/admin` → импорт): проверялись сервер, разбор ссылок и импортер тестами и живым прогоном через прод-прокси из Node.
 ## SEO: что не исправить из кода — 7 октября 2026
@@ -868,3 +1029,15 @@ Checked `main` at `fedd1e7` (the squash of #8), then fixed the findings on `fix/
 - [x] Keep internal operator comments distinct from bounded, order-linked in-app notifications saved only to that order owner's account; preserve operator auth, same-origin writes, revision checks and audit events, with no email/SMS delivery.
 - [ ] Visually verify the refund tab, order-owner targeting label, note history and notification form at phone/tablet/desktop widths and in light/graphite themes.
 - [ ] Replace simulated refund statuses with provider-backed refunds, reconciliation and customer notices only after a payment provider and compliant process are selected and verified.
+## Optional configured egress ladder and Zara numeric SKU
+
+Added server-owned signed gateway routes: ATLAS_TASHKENT_PROXY_URL/SECRET, existing ATLAS_IMPORT_PROXY_URL/SECRET (US), and ATLAS_RESIDENTIAL_PROXY_URL/SECRET. The new endpoints must implement the same HTTPS /v1/fetch HMAC protocol; raw vendor proxy URLs/credentials cannot be used as these endpoints. When optional gateways are configured, requests try Tashkent → US → residential, stopping after a response without detected blocking. Non-final attempts have a3s cap and all share caller abort/deadline. HTTP blocks, recognised HTML challenges and challenge redirects escalate;404 and proxy authentication/configuration failures do not. No arbitrary redirect is followed by routing. Missing paired configuration fails closed. Existing routing is unchanged when optional gateways are absent; eBay stays on official API. Cloudflare direct fetch is NOT identified as Tashkent. Tashkent answers retain regional-price warnings. This transport ladder does not yet escalate merely because a200 response has incomplete product fields; parser-level recovery remains required.
+
+Zara numeric size.sku is normalized to string; regression covers importDraft, retaining source SKU identity, stock, selected colour, photo and currency behavior. Full group completeness is still not proven. Residential provider and actual Tashkent gateway are not configured/verified; owner input pending, no paid proxy or Windows service installed. Other incomplete store adapters remain known issues. UI/cart/catalog writes and production environment secrets unchanged by source preparation.
+## Live Tashkent gateway on owner Windows PC — 9 October 2026
+
+Owner authorized this Windows PC. Runtime outside repository: C:/Users/WS/.codex/runtime/atlas-tashkent-proxy; local127.0.0.1:8789, pinned-host SSH reverse tunnel to VPS127.0.0.1:18787. Dedicated atlas-tashkent-tunnel user/key may only remote-forward that port, no shell/TTY/agent/local forwarding. Caddy adds tashkent.85-9-196-196.sslip.io/v1/fetch; prior config backup /etc/caddy/Caddyfile.bak-tashkent-20261009. Caddy admin API is disabled, so reload failed safely and validated configuration was applied with restart; existing US service remains active. No router inbound port or Windows firewall opening. Gateway HMAC secret is ACL-protected outside repo; unsigned public request401.
+
+Windows task Atlas Tashkent Import Gateway launches hidden supervisor at logon, node and SSH reconnect automatically. PC sleep/offline/logoff breaks local route; US fallback remains configured. Do not promise always-on service or force-disable sleep. Cloudflare trace from PC reportsUZ (city not independently certified). Signed PC Target5/$27,Mango18/$79.99. Hosted fresh Target logs on PC,200/5; controlled supervisor shutdown returned hostedTarget200/5 viaUS without direct-egress warning; supervisor restored. Environment rev12 sets only twoTashkentkeys; existing secrets preserved. Bright Data is NOT configured in this checkout/Sites environment; screenshot showed separate in-progress Claude work, no open GitHub PR found. Do not duplicate it or assume credits/prices/keys. Residential remains unconnected.
+
+Regional warning made neutral: a first Tashkent request does not imply US was rate-limited. Product completeness/stock checks remain unchanged. Evidence outputs/tashkent-signed-smoke.json,tashkent-hosted-active.json,tashkent-hosted-fallback.json. No customer/catalog/order writes; only normal preview/cache behavior.

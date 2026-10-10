@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Check, Info, TriangleAlert } from "lucide-react";
 import { cartModelKey, serviceTitle, storeParcels, parcelServiceUnits, type CartItem, type Pricing } from "@/lib/market/domain";
 import { cartSelectCopy } from "@/lib/market/cart-select-copy";
+import { calcCopy } from "@/lib/market/calc-copy";
 import { countryLabel } from "@/lib/market/customer-copy";
 import { countryName } from "@/lib/market/world";
 import { formatSum } from "@/lib/market/format";
@@ -30,7 +31,8 @@ export const shownVariant = (variant?: string) => variant && variant !== "Выб
 
 /**
  * The order on the confirmation step as a compact table (owner, 7.10.2026): numbered lines grouped by store parcel and
- * model, columns Item · Option · Qty · Price · Amount; a changed price or a store problem is shown on its own line.
+ * model, columns Item · Option · Qty · Amount (no per-piece column: the line total includes fees and delivery, so a
+ * "price" made from it would not match the store price in the cart); a changed price or a store problem is shown on its own line.
  * The parcel's services sit under it; each option's own note sits under its line. On a phone the columns fold into one card per line.
  */
 export function CheckoutReviewTable({ lines, locale, pricing, onLeaveForLater, busy }: {
@@ -47,7 +49,6 @@ export function CheckoutReviewTable({ lines, locale, pricing, onLeaveForLater, b
       <span role="columnheader">{r.columns.item}</span>
       <span role="columnheader">{r.columns.variant}</span>
       <span role="columnheader" className="review-num">{r.columns.quantity}</span>
-      <span role="columnheader" className="review-num review-price">{r.columns.price}</span>
       <span role="columnheader" className="review-num">{r.columns.sum}</span>
     </div>
     {storeParcels(lines).map(parcel => {
@@ -69,7 +70,6 @@ export function CheckoutReviewTable({ lines, locale, pricing, onLeaveForLater, b
                 </span>
                 <span role="cell" className="review-variant">{shownVariant(item.variant) || "—"}</span>
                 <span role="cell" className="review-num" data-label={r.columns.quantity}>{item.quantity}</span>
-                <span role="cell" className="review-num review-price" data-label={r.columns.price}>{formatSum(Math.round(item.quote.total / item.quantity), locale)}</span>
                 <span role="cell" className="review-num review-sum" data-label={r.columns.sum}>{formatSum(item.quote.total, locale)}</span>
                 {(issue || item.priceChange || (onLeaveForLater && lines.length > 1)) && <span className="review-row-extra" role="cell">
                   {issue ? <span className="review-flag issue" role="alert"><TriangleAlert size={14} aria-hidden="true" />{r.lineIssue}</span>
@@ -91,7 +91,20 @@ export function CheckoutReviewTable({ lines, locale, pricing, onLeaveForLater, b
   </div>;
 }
 
-/** The six things the owner wants checked before the order is placed, each with a way back to change it. */
+/**
+ * The review's confirm button with the amount beside it. On a phone (app/cart-select.css, <= 720px) the bar stays at the
+ * bottom of the dialog over the whole review, so "Confirm" never needs a scroll (owner, 10.10.2026); on a wide screen the
+ * amount stays hidden (the payment preview above already shows it) and the button is the plain full-width one.
+ * `children` is the existing submit button: the bar adds no handler of its own.
+ */
+export function ReviewConfirmBar({ amount, locale, children }: { amount: number; locale: Locale; children: ReactNode }) {
+  return <div className="review-confirm-bar">
+    <span className="review-confirm-amount"><small>{calcCopy[locale].lines.total}</small><b>{formatSum(amount, locale)}</b></span>
+    {children}
+  </div>;
+}
+
+/** The things the owner wants checked before the order is placed, each with a way back to change it. */
 export function CheckoutChecklist({ locale, items }: { locale: Locale; items: { key: string; label: string; value: ReactNode; ok?: boolean; onChange?: () => void }[] }) {
   const r = cartSelectCopy[locale].review;
   return <section className="review-checklist" aria-label={r.checks}>

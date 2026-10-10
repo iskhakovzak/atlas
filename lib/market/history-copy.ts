@@ -37,9 +37,15 @@ function render(table: Record<string, Copy>, item: Coded, locale: Locale): strin
 
 const historyCopy: Record<string, Copy> = {
   checkout: /*@__PURE__*/withCyrillic({
-    ru: v => `Заказ оформлен в Atlas. Сумма ${v.sum('total')}. ${v.has('fromBalance') ? 'Учтено из внутреннего баланса Atlas.' : 'Оплата на сайте не подключена, деньги не списывались.'}`,
-    uz: v => `Buyurtma Atlasda rasmiylashtirildi. Summa ${v.sum('total')}. ${v.has('fromBalance') ? 'Atlas ichki balansidan hisobga olindi.' : 'Saytda to‘lov ulanmagan, pul yechilmagan.'}`,
-    en: v => `Order placed in Atlas. Total ${v.sum('total')}. ${v.has('fromBalance') ? 'Accounted for from the Atlas internal balance.' : 'Online payment is not connected; no money was charged.'}`,
+    ru: v => `Заказ оформлен в Atlas. Сумма ${v.sum('total')}.${v.has('fromBalance') ? ' Учтено из внутреннего баланса Atlas.' : ''}`,
+    uz: v => `Buyurtma Atlasda rasmiylashtirildi. Summa ${v.sum('total')}.${v.has('fromBalance') ? ' Atlas ichki balansidan hisobga olindi.' : ''}`,
+    en: v => `Order placed in Atlas. Total ${v.sum('total')}.${v.has('fromBalance') ? ' Accounted for from the Atlas internal balance.' : ''}`,
+  }),
+  // The stored text keeps the provider note for operators and older clients; the customer reads the status only.
+  'payment-recorded': /*@__PURE__*/withCyrillic({
+    ru: () => 'Оплата отмечена.',
+    uz: () => 'To‘lov belgilandi.',
+    en: () => 'Payment recorded.',
   }),
   'store-hold': /*@__PURE__*/withCyrillic({
     ru: v => `Резерв на доставку магазина ${v.sum('hold')} держим отдельно, в сумму заказа он не входит. Фактическую доставку менеджер подтвердит у магазина.`,
@@ -50,6 +56,11 @@ const historyCopy: Record<string, Copy> = {
     ru: v => `Покупатель выбрал оплату таможни через Atlas: сбор ${v.sum('fee')} и предоплата пошлины ${v.sum('duty')} входят в сумму заказа. Остаток пошлины вернётся на баланс, доплата — только с согласия покупателя.`,
     uz: v => `Xaridor bojxona to‘lovini Atlas orqali tanladi: ${v.sum('fee')} xizmat haqi va ${v.sum('duty')} bojning oldindan to‘lovi buyurtma summasiga kiradi. Bojning qoldig‘i balansga qaytadi, qo‘shimcha to‘lov — faqat xaridor roziligi bilan.`,
     en: v => `The customer chose to have Atlas pay customs: the ${v.sum('fee')} fee and the ${v.sum('duty')} duty prepayment are part of the order total. Unused duty returns to the balance; any extra only with the customer’s consent.`,
+  }),
+  'insured': /*@__PURE__*/withCyrillic({
+    ru: v => `Посылка застрахована: ${v.sum('fee')} входит в сумму заказа.`,
+    uz: v => `Posilka sug‘urtalandi: ${v.sum('fee')} buyurtma summasiga kiradi.`,
+    en: v => `The parcel is insured: ${v.sum('fee')} is part of the order total.`,
   }),
   'source-price-changed': /*@__PURE__*/withCyrillic({
     ru: v => `Цена в магазине изменилась до оформления: ${v.text('from')} → ${v.text('to')} ${v.text('currency')}. Покупатель оформил заказ по новому расчёту.`,
@@ -88,9 +99,9 @@ const historyCopy: Record<string, Copy> = {
     en: v => `A manager confirmed store delivery. It is ${v.sum('refund')} below the reserve; ` + (v.has('credited') ? `only part of the payment is recorded for the order — ${v.sum('credited')} was credited to the Atlas internal balance.` : 'no payment is recorded for the order, so nothing was credited to the balance.'),
   }),
   'store-shipping-extra-approved': /*@__PURE__*/withCyrillic({
-    ru: v => `В Atlas записано согласие на доплату за доставку магазина ${v.sum('extra')}; списания нет.`,
-    uz: v => `Atlasda do‘kon yetkazib berishi uchun ${v.sum('extra')} qo‘shimcha to‘lovga rozilik qayd etildi; pul yechilmadi.`,
-    en: v => `Approval for the additional ${v.sum('extra')} store delivery was recorded in Atlas; no charge was made.`,
+    ru: v => `Доплата за доставку магазина ${v.sum('extra')} отмечена.`,
+    uz: v => `Do‘kon yetkazib berishi uchun ${v.sum('extra')} qo‘shimcha to‘lov belgilandi.`,
+    en: v => `Extra payment of ${v.sum('extra')} for store delivery recorded.`,
   }),
   'customs-duty-over': /*@__PURE__*/withCyrillic({
     ru: v => `Таможня начислила пошлину ${v.sum('actual')}. Это больше предоплаты ${v.sum('estimated')}: нужно согласие покупателя на разницу ${v.sum('extra')}.`,
@@ -103,9 +114,9 @@ const historyCopy: Record<string, Copy> = {
     en: v => `Customs charged ${v.sum('actual')} duty. Atlas covered it from the ${v.sum('estimated')} prepayment.` + (v.has('refund') ? ` The remaining ${v.sum('refund')} was recorded in the Atlas internal balance.` : ''),
   }),
   'customs-extra-approved': /*@__PURE__*/withCyrillic({
-    ru: v => `В Atlas записано согласие на доплату пошлины ${v.sum('extra')}; списания нет.`,
-    uz: v => `Atlasda ${v.sum('extra')} boj qo‘shimcha to‘loviga rozilik qayd etildi; pul yechilmadi.`,
-    en: v => `Approval for the additional ${v.sum('extra')} duty was recorded in Atlas; no charge was made.`,
+    ru: v => `Доплата пошлины ${v.sum('extra')} отмечена.`,
+    uz: v => `${v.sum('extra')} boj qo‘shimcha to‘lovi belgilandi.`,
+    en: v => `Extra duty payment of ${v.sum('extra')} recorded.`,
   }),
   'parcel-extra': /*@__PURE__*/withCyrillic({
     ru: v => `Взвешивание завершено. Требуется согласование доплаты ${v.sum('extra')}`,
@@ -118,9 +129,9 @@ const historyCopy: Record<string, Copy> = {
     en: v => `Weighing complete. Remainder: ${v.sum('refund')}.`,
   }),
   'extra-approved': /*@__PURE__*/withCyrillic({
-    ru: v => `В Atlas записано согласие на доплату ${v.sum('extra')}; списания нет.`,
-    uz: v => `Atlasda ${v.sum('extra')} qo‘shimcha summa bo‘yicha rozilik qayd etildi; pul yechilmadi.`,
-    en: v => `Approval for the additional amount ${v.sum('extra')} was recorded in Atlas; no charge was made.`,
+    ru: v => `Доплата ${v.sum('extra')} отмечена.`,
+    uz: v => `${v.sum('extra')} qo‘shimcha to‘lov belgilandi.`,
+    en: v => `Extra payment of ${v.sum('extra')} recorded.`,
   }),
   'cancel-refund': /*@__PURE__*/withCyrillic({
     ru: v => `Заказ отменён до выкупа. Сумма ${v.sum('refund')} учтена на внутреннем балансе Atlas; банковский перевод не выполнялся.`,
@@ -152,6 +163,36 @@ const historyCopy: Record<string, Copy> = {
     uz: v => `Operator «${v.title()}» xizmatini rad etdi: ${v.text('reason')}`,
     en: v => `An operator declined the “${v.title()}” service: ${v.text('reason')}`,
   }),
+  'claim-submitted': /*@__PURE__*/withCyrillic({
+    ru: v => `Покупатель сообщил о ${v.text('kind') === 'loss' ? 'утере' : 'порче'} посылки. Возмещение до ${v.sum('limit')}.`,
+    uz: v => `Xaridor posilka ${v.text('kind') === 'loss' ? 'yo‘qolgani' : 'shikastlangani'} haqida xabar berdi. Qoplash ${v.sum('limit')} gacha.`,
+    en: v => `The customer reported the parcel ${v.text('kind') === 'loss' ? 'lost' : 'damaged'}. Compensation up to ${v.sum('limit')}.`,
+  }),
+  'claim-approved': /*@__PURE__*/withCyrillic({
+    ru: v => `Претензия одобрена: ${v.sum('amount')} зачислено на баланс.`,
+    uz: v => `Da’vo qondirildi: ${v.sum('amount')} balansga o‘tkazildi.`,
+    en: v => `Claim approved: ${v.sum('amount')} credited to the balance.`,
+  }),
+  'claim-declined': /*@__PURE__*/withCyrillic({
+    ru: v => `Претензия отклонена: ${v.text('reason')}`,
+    uz: v => `Da’vo rad etildi: ${v.text('reason')}`,
+    en: v => `Claim declined: ${v.text('reason')}`,
+  }),
+  'extra-charge-requested': /*@__PURE__*/withCyrillic({
+    ru: v => `Оператор выставил счёт на доплату ${v.sum('amount')}: ${v.text('reason')}`,
+    uz: v => `Operator ${v.sum('amount')} qo‘shimcha to‘lov hisobini yubordi: ${v.text('reason')}`,
+    en: v => `An operator issued an extra invoice for ${v.sum('amount')}: ${v.text('reason')}`,
+  }),
+  'extra-charge-paid': /*@__PURE__*/withCyrillic({
+    ru: v => `Доплата ${v.sum('amount')} отмечена.`,
+    uz: v => `${v.sum('amount')} qo‘shimcha to‘lov belgilandi.`,
+    en: v => `Extra payment of ${v.sum('amount')} recorded.`,
+  }),
+  'extra-charge-cancelled': /*@__PURE__*/withCyrillic({
+    ru: v => `Счёт на доплату ${v.sum('amount')} отменён оператором.`,
+    uz: v => `${v.sum('amount')} qo‘shimcha to‘lov hisobi operator tomonidan bekor qilindi.`,
+    en: v => `The ${v.sum('amount')} extra invoice was withdrawn by an operator.`,
+  }),
   'change-requested': /*@__PURE__*/withCyrillic({
     ru: v => `Запрошено согласование: ${v.text('title')}.`,
     uz: v => `Kelishuv so‘raldi: ${v.text('title')}.`,
@@ -172,29 +213,29 @@ const statusName = (locale: Locale, v: Values) => { const name = localizedStatus
 historyCopy.status = /*@__PURE__*/withCyrillic({ ru: v => statusName('ru', v), uz: v => statusName('uz', v), en: v => statusName('en', v) });
 
 const noticeTitles: Record<string, Record<Locale, string>> = {
-  approval: /*@__PURE__*/withCyrillic({ ru: 'Нужно согласовать доставку', uz: 'Yetkazib berishni kelishish kerak', en: 'Store delivery needs your approval' }),
+  approval: /*@__PURE__*/withCyrillic({ ru: 'Нужна доплата за доставку магазина', uz: 'Do‘kon yetkazib berishi uchun qo‘shimcha to‘lov kerak', en: 'Extra payment needed for store delivery' }),
   storeDone: /*@__PURE__*/withCyrillic({ ru: 'Доставка магазина уточнена', uz: 'Do‘kon yetkazib berishi aniqlandi', en: 'Store delivery confirmed' }),
-  duty: /*@__PURE__*/withCyrillic({ ru: 'Нужно согласовать пошлину', uz: 'Bojni kelishish kerak', en: 'Duty needs your approval' }),
+  duty: /*@__PURE__*/withCyrillic({ ru: 'Нужна доплата пошлины', uz: 'Boj uchun qo‘shimcha to‘lov kerak', en: 'Extra duty payment needed' }),
   dutyPaid: /*@__PURE__*/withCyrillic({ ru: 'Пошлина покрыта предоплатой', uz: 'Boj oldindan to‘lovdan qoplandi', en: 'Duty covered by prepayment' }),
-  extra: /*@__PURE__*/withCyrillic({ ru: 'Нужна доплата за доставку', uz: 'Yetkazib berish uchun qo‘shimcha to‘lov kerak', en: 'Additional delivery payment needed' }),
+  extra: /*@__PURE__*/withCyrillic({ ru: 'Нужна доплата за доставку', uz: 'Yetkazib berish uchun qo‘shimcha to‘lov kerak', en: 'Extra delivery payment needed' }),
   weighed: /*@__PURE__*/withCyrillic({ ru: 'Посылка взвешена', uz: 'Jo‘natma tortildi', en: 'Parcel weighed' }),
 };
 type NoticeCopy = { title: Record<Locale, string> | Copy; message: Copy };
 const noticeCopy: Record<string, NoticeCopy> = {
   'store-shipping-over': { title: noticeTitles.approval, message: /*@__PURE__*/withCyrillic({
-    ru: v => `Фактическая стоимость доставки магазина — ${v.sum('actual')}, это больше резерва ${v.sum('hold')}. Откройте заказ и подтвердите разницу ${v.sum('extra')}.`,
-    uz: v => `Do‘kon yetkazib berishining haqiqiy narxi ${v.sum('actual')} — bu ${v.sum('hold')} zaxiradan ko‘p. Buyurtmani oching va ${v.sum('extra')} farqni tasdiqlang.`,
-    en: v => `The store’s actual delivery of ${v.sum('actual')} is above the ${v.sum('hold')} reserve. Open the order and approve the ${v.sum('extra')} difference.`,
+    ru: v => `Фактическая стоимость доставки магазина — ${v.sum('actual')}, это больше резерва ${v.sum('hold')}. Откройте заказ и доплатите ${v.sum('extra')}.`,
+    uz: v => `Do‘kon yetkazib berishining haqiqiy narxi ${v.sum('actual')} — bu ${v.sum('hold')} zaxiradan ko‘p. Buyurtmani oching va ${v.sum('extra')} qo‘shimcha to‘lang.`,
+    en: v => `The store’s actual delivery of ${v.sum('actual')} is above the ${v.sum('hold')} reserve. Open the order and pay ${v.sum('extra')} extra.`,
   }) },
   'store-shipping-within': { title: noticeTitles.storeDone, message: /*@__PURE__*/withCyrillic({
-    ru: v => `Фактическая стоимость доставки магазина — ${v.sum('actual')}, это в пределах резерва ${v.sum('hold')}. Деньги не списывались: оплата на сайте не подключена.`,
-    uz: v => `Do‘kon yetkazib berishining haqiqiy narxi ${v.sum('actual')} — bu ${v.sum('hold')} zaxira doirasida. Pul yechilmagan: saytda to‘lov ulanmagan.`,
-    en: v => `The store’s actual delivery of ${v.sum('actual')} is within the ${v.sum('hold')} reserve. Nothing was charged: online payment is not connected.`,
+    ru: v => `Фактическая стоимость доставки магазина — ${v.sum('actual')}, это в пределах резерва ${v.sum('hold')}.`,
+    uz: v => `Do‘kon yetkazib berishining haqiqiy narxi ${v.sum('actual')} — bu ${v.sum('hold')} zaxira doirasida.`,
+    en: v => `The store’s actual delivery of ${v.sum('actual')} is within the ${v.sum('hold')} reserve.`,
   }) },
   'store-shipping-extra-legacy': { title: noticeTitles.approval, message: /*@__PURE__*/withCyrillic({
-    ru: v => `Менеджер уточнил стоимость. Откройте заказ и подтвердите доплату ${v.sum('extra')}.`,
-    uz: v => `Menejer narxni aniqladi. Buyurtmani oching va ${v.sum('extra')} qo‘shimcha to‘lovni tasdiqlang.`,
-    en: v => `A manager confirmed the cost. Open the order and approve the additional ${v.sum('extra')}.`,
+    ru: v => `Менеджер уточнил стоимость. Откройте заказ и доплатите ${v.sum('extra')}.`,
+    uz: v => `Menejer narxni aniqladi. Buyurtmani oching va ${v.sum('extra')} qo‘shimcha to‘lang.`,
+    en: v => `A manager confirmed the cost. Open the order and pay ${v.sum('extra')} extra.`,
   }) },
   'store-shipping-refund-legacy': { title: noticeTitles.storeDone, message: /*@__PURE__*/withCyrillic({
     ru: v => `Разница ${v.sum('credited')} учтена на внутреннем балансе Atlas. Банковский перевод не выполнялся.`,
@@ -202,9 +243,9 @@ const noticeCopy: Record<string, NoticeCopy> = {
     en: v => `The ${v.sum('credited')} difference was recorded in the Atlas internal balance. No bank transfer was made.`,
   }) },
   'store-shipping-unpaid-legacy': { title: noticeTitles.storeDone, message: /*@__PURE__*/withCyrillic({
-    ru: () => 'Доставка магазина дешевле резерва. Оплата по заказу не записана, поэтому на баланс ничего не зачислено.',
-    uz: () => 'Do‘kon yetkazib berishi zaxiradan arzonroq. Buyurtma bo‘yicha to‘lov qayd etilmagan, shuning uchun balansga hech narsa yozilmadi.',
-    en: () => 'Store delivery cost less than the reserve. No payment is recorded for the order, so nothing was credited to the balance.',
+    ru: () => 'Доставка магазина дешевле резерва. Заказ ещё не был оплачен — возвращать нечего.',
+    uz: () => 'Do‘kon yetkazib berishi zaxiradan arzonroq. Buyurtma hali to‘lanmagan — qaytariladigan narsa yo‘q.',
+    en: () => 'Store delivery cost less than the reserve. The order was not paid yet, so there is nothing to return.',
   }) },
   'store-shipping-match-legacy': { title: noticeTitles.storeDone, message: /*@__PURE__*/withCyrillic({
     ru: () => 'Стоимость совпала с резервом заказа.',
@@ -212,9 +253,9 @@ const noticeCopy: Record<string, NoticeCopy> = {
     en: () => 'The cost matched the order reserve.',
   }) },
   'customs-duty-over': { title: noticeTitles.duty, message: /*@__PURE__*/withCyrillic({
-    ru: v => `Таможня начислила пошлину ${v.sum('actual')} — это больше предоплаты ${v.sum('estimated')}. Откройте заказ и подтвердите доплату ${v.sum('extra')}.`,
-    uz: v => `Bojxona ${v.sum('actual')} hisobladi, bu ${v.sum('estimated')} oldindan to‘lovdan ko‘p. Buyurtmani oching va ${v.sum('extra')} qo‘shimcha to‘lovni tasdiqlang.`,
-    en: v => `Customs assessed ${v.sum('actual')} in duty, above the ${v.sum('estimated')} prepayment. Open the order and approve the additional ${v.sum('extra')}.`,
+    ru: v => `Таможня начислила пошлину ${v.sum('actual')} — это больше предоплаты ${v.sum('estimated')}. Откройте заказ и доплатите ${v.sum('extra')}.`,
+    uz: v => `Bojxona ${v.sum('actual')} hisobladi, bu ${v.sum('estimated')} oldindan to‘lovdan ko‘p. Buyurtmani oching va ${v.sum('extra')} qo‘shimcha to‘lang.`,
+    en: v => `Customs assessed ${v.sum('actual')} in duty, above the ${v.sum('estimated')} prepayment. Open the order and pay ${v.sum('extra')} extra.`,
   }) },
   'customs-duty-refund': { title: noticeTitles.dutyPaid, message: /*@__PURE__*/withCyrillic({
     ru: v => `Остаток предоплаты пошлины ${v.sum('refund')} учтён на внутреннем балансе Atlas. Банковский перевод не выполнялся.`,
@@ -227,9 +268,9 @@ const noticeCopy: Record<string, NoticeCopy> = {
     en: v => `The ${v.sum('actual')} duty matched the prepayment.`,
   }) },
   'parcel-extra': { title: noticeTitles.extra, message: /*@__PURE__*/withCyrillic({
-    ru: v => `Фактический или объёмный вес оказался больше расчётного: нужна доплата ${v.sum('extra')}. Откройте заказ и подтвердите новый расчёт.`,
-    uz: v => `Haqiqiy yoki hajmiy vazn hisoblangandan ko‘p chiqdi: ${v.sum('extra')} qo‘shimcha to‘lov kerak. Buyurtmani oching va yangi hisobni tasdiqlang.`,
-    en: v => `The actual or dimensional weight is above the estimate: an additional ${v.sum('extra')} is needed. Open the order and approve the new calculation.`,
+    ru: v => `Посылка тяжелее расчёта: нужна доплата ${v.sum('extra')}. Откройте заказ и доплатите.`,
+    uz: v => `Posilka hisobdan og‘irroq: ${v.sum('extra')} qo‘shimcha to‘lov kerak. Buyurtmani oching va qo‘shimcha to‘lang.`,
+    en: v => `The parcel is heavier than estimated: ${v.sum('extra')} extra is needed. Open the order and pay the difference.`,
   }) },
   'parcel-refund': { title: noticeTitles.weighed, message: /*@__PURE__*/withCyrillic({
     ru: v => `Остаток ${v.sum('refund')} учтён на внутреннем балансе Atlas. Банковский перевод не выполнялся.`,
@@ -252,6 +293,35 @@ const noticeCopy: Record<string, NoticeCopy> = {
   'service-done': { title: /*@__PURE__*/withCyrillic({ ru: 'Услуга выполнена', uz: 'Xizmat bajarildi', en: 'Service done' }), message: /*@__PURE__*/withCyrillic({ ru: v => v.title(), uz: v => v.title(), en: v => v.title() }) },
   'service-declined': { title: /*@__PURE__*/withCyrillic({ ru: 'Услуга недоступна', uz: 'Xizmat mavjud emas', en: 'Service unavailable' }), message: /*@__PURE__*/withCyrillic({
     ru: v => `${v.title()}: ${v.text('reason')}`, uz: v => `${v.title()}: ${v.text('reason')}`, en: v => `${v.title()}: ${v.text('reason')}`,
+  }) },
+  'claim-submitted': { title: /*@__PURE__*/withCyrillic({ ru: 'Претензия принята', uz: 'Da’vo qabul qilindi', en: 'Claim received' }), message: /*@__PURE__*/withCyrillic({
+    ru: v => `Проверим и ответим. Возмещение — до ${v.sum('limit')}.`,
+    uz: v => `Tekshirib javob beramiz. Qoplash — ${v.sum('limit')} gacha.`,
+    en: v => `We will check and reply. Compensation up to ${v.sum('limit')}.`,
+  }) },
+  'claim-approved': { title: /*@__PURE__*/withCyrillic({ ru: 'Возмещение зачислено', uz: 'Qoplash o‘tkazildi', en: 'Compensation credited' }), message: /*@__PURE__*/withCyrillic({
+    ru: v => `${v.sum('amount')} — на ваш баланс в Atlas.`,
+    uz: v => `${v.sum('amount')} — Atlas’dagi balansingizga.`,
+    en: v => `${v.sum('amount')} to your Atlas balance.`,
+  }) },
+  'claim-declined': { title: /*@__PURE__*/withCyrillic({ ru: 'Претензия отклонена', uz: 'Da’vo rad etildi', en: 'Claim declined' }), message: /*@__PURE__*/withCyrillic({
+    ru: v => v.text('reason'), uz: v => v.text('reason'), en: v => v.text('reason'),
+  }) },
+  'extra-charge-requested': { title: /*@__PURE__*/withCyrillic({ ru: 'Нужна доплата по заказу', uz: 'Buyurtma bo‘yicha qo‘shimcha to‘lov kerak', en: 'Extra payment needed' }), message: /*@__PURE__*/withCyrillic({
+    ru: v => `${v.sum('amount')} · ${v.text('reason')}`, uz: v => `${v.sum('amount')} · ${v.text('reason')}`, en: v => `${v.sum('amount')} · ${v.text('reason')}`,
+  }) },
+  'extra-charge-paid': { title: /*@__PURE__*/withCyrillic({ ru: 'Доплата отмечена', uz: 'Qo‘shimcha to‘lov belgilandi', en: 'Extra payment recorded' }), message: /*@__PURE__*/withCyrillic({
+    ru: v => `${v.sum('amount')}.`, uz: v => `${v.sum('amount')}.`, en: v => `${v.sum('amount')}.`,
+  }) },
+  'payment-recorded': { title: /*@__PURE__*/withCyrillic({ ru: 'Оплата отмечена', uz: 'To‘lov belgilandi', en: 'Payment recorded' }), message: /*@__PURE__*/withCyrillic({
+    ru: () => 'Дальше — выкуп в магазине.',
+    uz: () => 'Keyingi — do‘kondan xarid.',
+    en: () => 'Next — purchase at the store.',
+  }) },
+  'extra-charge-cancelled': { title: /*@__PURE__*/withCyrillic({ ru: 'Доплата отменена', uz: 'Qo‘shimcha to‘lov bekor qilindi', en: 'Extra payment withdrawn' }), message: /*@__PURE__*/withCyrillic({
+    ru: v => `Счёт на ${v.sum('amount')} больше не нужно оплачивать.`,
+    uz: v => `${v.sum('amount')} hisobini endi to‘lash shart emas.`,
+    en: v => `The ${v.sum('amount')} invoice no longer needs paying.`,
   }) },
   'change-requested': { title: /*@__PURE__*/withCyrillic({ ru: 'Нужно ваше решение', uz: 'Qaroringiz kerak', en: 'Your decision is needed' }), message: /*@__PURE__*/withCyrillic({
     ru: v => `${v.text('title')}${v.has('delta') ? ` · изменение ${v.sum('delta')}` : ''}.`,
@@ -390,9 +460,9 @@ export const legacyStoredCopy: Record<string, Record<Locale, string>> = {
   "Нужно согласовать доставку": noticeTitles.approval,
   "Доставка магазина уточнена": noticeTitles.storeDone,
   "Фактическая доставка магазина больше резерва. Откройте заказ и подтвердите разницу.": /*@__PURE__*/withCyrillic({
-    ru: "Фактическая доставка магазина больше резерва. Откройте заказ и подтвердите разницу.",
-    uz: "Do‘konning haqiqiy yetkazib berishi zaxiradan ko‘p. Buyurtmani oching va farqni tasdiqlang.",
-    en: "The store’s actual delivery is above the reserve. Open the order and approve the difference.",
+    ru: "Фактическая доставка магазина больше резерва. Откройте заказ и доплатите разницу.",
+    uz: "Do‘konning haqiqiy yetkazib berishi zaxiradan ko‘p. Buyurtmani oching va farqni qo‘shimcha to‘lang.",
+    en: "The store’s actual delivery is above the reserve. Open the order and pay the difference.",
   }),
   "Фактическая доставка магазина в пределах резерва. Списаний не было: оплата пока не подключена.": /*@__PURE__*/withCyrillic({
     ru: "Фактическая доставка магазина в пределах резерва. Деньги не списывались: оплата на сайте не подключена.",
@@ -400,9 +470,9 @@ export const legacyStoredCopy: Record<string, Record<Locale, string>> = {
     en: "The store’s actual delivery is within the reserve. Nothing was charged: online payment is not connected.",
   }),
   "Менеджер уточнил стоимость. Откройте заказ и подтвердите доплату.": /*@__PURE__*/withCyrillic({
-    ru: "Менеджер уточнил стоимость. Откройте заказ и подтвердите доплату.",
-    uz: "Menejer narxni aniqladi. Buyurtmani oching va qo‘shimcha to‘lovni tasdiqlang.",
-    en: "A manager confirmed the cost. Open the order and approve the additional amount.",
+    ru: "Менеджер уточнил стоимость. Откройте заказ и доплатите.",
+    uz: "Menejer narxni aniqladi. Buyurtmani oching va qo‘shimcha to‘lang.",
+    en: "A manager confirmed the cost. Open the order and pay the difference.",
   }),
   "Стоимость совпала с резервом заказа.": /*@__PURE__*/withCyrillic({ ru: "Стоимость совпала с резервом заказа.", uz: "Narx buyurtma zaxirasiga teng chiqdi.", en: "The cost matched the order reserve." }),
   "Доставка магазина дешевле резерва. Оплата по заказу не записана, поэтому на баланс ничего не зачислено.": /*@__PURE__*/withCyrillic({
@@ -413,9 +483,9 @@ export const legacyStoredCopy: Record<string, Record<Locale, string>> = {
   "Нужно согласовать пошлину": noticeTitles.duty,
   "Пошлина оплачена": noticeTitles.dutyPaid,
   "Таможня начислила больше предоплаты. Откройте заказ и подтвердите доплату.": /*@__PURE__*/withCyrillic({
-    ru: "Таможня начислила больше предоплаты. Откройте заказ и подтвердите доплату.",
-    uz: "Bojxona oldindan to‘lovdan ko‘p hisobladi. Buyurtmani oching va qo‘shimcha to‘lovni tasdiqlang.",
-    en: "Customs assessed more than the prepayment. Open the order and approve the additional amount.",
+    ru: "Таможня начислила больше предоплаты. Откройте заказ и доплатите.",
+    uz: "Bojxona oldindan to‘lovdan ko‘p hisobladi. Buyurtmani oching va qo‘shimcha to‘lang.",
+    en: "Customs assessed more than the prepayment. Open the order and pay the difference.",
   }),
   "Остаток предоплаты пошлины учтён на внутреннем балансе Atlas. Банковский перевод не выполнялся.": /*@__PURE__*/withCyrillic({
     ru: "Остаток предоплаты пошлины учтён на внутреннем балансе Atlas. Банковский перевод не выполнялся.",
@@ -426,9 +496,9 @@ export const legacyStoredCopy: Record<string, Record<Locale, string>> = {
   "Нужна доплата за доставку": noticeTitles.extra,
   "Посылка взвешена": noticeTitles.weighed,
   "Фактический или объёмный вес превысил резерв. Проверьте новый расчёт.": /*@__PURE__*/withCyrillic({
-    ru: "Фактический или объёмный вес оказался больше расчётного. Откройте заказ и подтвердите новый расчёт.",
-    uz: "Haqiqiy yoki hajmiy vazn hisoblangandan ko‘p chiqdi. Buyurtmani oching va yangi hisobni tasdiqlang.",
-    en: "The actual or dimensional weight is above the estimate. Open the order and approve the new calculation.",
+    ru: "Фактический или объёмный вес оказался больше расчётного. Откройте заказ и доплатите разницу.",
+    uz: "Haqiqiy yoki hajmiy vazn hisoblangandan ko‘p chiqdi. Buyurtmani oching va farqni qo‘shimcha to‘lang.",
+    en: "The actual or dimensional weight is above the estimate. Open the order and pay the difference.",
   }),
   "Фактическая стоимость доставки подтверждена.": /*@__PURE__*/withCyrillic({ ru: "Фактическая стоимость доставки подтверждена.", uz: "Yetkazib berishning haqiqiy narxi tasdiqlandi.", en: "The actual delivery cost is confirmed." }),
   "Добавлен трек-номер": /*@__PURE__*/withCyrillic({ ru: "Добавлен трек-номер", uz: "Kuzatuv raqami qo‘shildi", en: "Tracking number added" }),

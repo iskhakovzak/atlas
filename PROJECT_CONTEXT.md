@@ -1,4 +1,92 @@
+## Walmart бесплатно со страницы и одна оплата на заказ — 10 октября 2026
+
+Walmart теперь читается со своей страницы через ташкентский шлюз за 2–3 секунды и сразу со всеми цветами и размерами. Платный Bright Data включается только если страница не открылась (например, ПК со шлюзом выключен).
+
+В «Моих заказах» заказ из нескольких товаров оплачивается одним действием: на карточке заказа один блок «Оплата заказа» с общей суммой и кнопкой «Оплатить заказ», у отдельных товаров кнопок оплаты больше нет, их этап — «Ожидает оплаты». Оплата по-прежнему только отмечается в Atlas: провайдер не подключён, деньги не списываются.
+
+## Магазины через браузер шлюза, незнакомые сайты и доплата по заказу — 10 октября 2026
+
+**Магазины через браузер.** Sephora (США), H&M, Macy's, Levi's, New Balance и Victoria's Secret (США) открываются в обычном Chrome, но отказывают серверам. Ташкентский шлюз на компьютере владельца теперь открывает их страницы в своём Chrome — как человек за этим компьютером, без обхода CAPTCHA — и Atlas загружает товар за 2–8 секунд (ожидание не больше 9 секунд). Если компьютер выключен или страница не ответила, покупатель вписывает данные сам и ставит галочку, как ниже. Вручную остаются только Columbia и Best Buy: их не открывает даже браузер.
+
+**Незнакомые сайты.** Ссылку на любой магазин вне списка Atlas тоже можно заказать: сразу открывается форма, покупатель вписывает название, цену, вариант и доставку со страницы магазина и обязательно ставит галочку «я сверил». Оператор сверяет данные с магазином перед выкупом.
+
+**Доплата по заказу.** Если после оплаты выяснилось, что нужно больше денег (магазин поднял цену, ручные данные оказались неточными), оператор в заказе выставляет доплату: сумму в долларах (Atlas пересчитает в сумы по курсу заказа) и причину. У покупателя в «Моих заказах» появляется «Нужна доплата по заказу» с кнопкой «Доплатить» — только пока счёт ждёт оплаты. Пока счёт не оплачен или не отменён оператором, заказ дальше не двигается. Оплата, как и оплата заказа, пока только отмечается в Atlas: платёжный провайдер не подключён, деньги не списываются.
+
+## Магазины, где покупатель вводит данные сам — 10 октября 2026
+
+> Обновлено в тот же день: шесть магазинов из списка ниже читаются через браузер шлюза (раздел выше), вручную остались Columbia и Best Buy.
+
+H&M, New Balance, Columbia, Sephora (США), Best Buy, Levi's, Victoria's Secret (США) и Macy's не отдают данные товара ни нашему движку, ни через прокси. Atlas их больше не пытается загружать: по ссылке сразу открывается форма, покупатель открывает товар в магазине, вписывает название, цену, вариант и доставку и ставит галочку «я сверил со страницей магазина». Оператор сверяет данные с магазином перед выкупом. Bright Data теперь используется только для Walmart.
+
+## Walmart и H&M через Bright Data — 9 октября 2026 (H&M убран 10.10.2026)
+
+Walmart и H&M закрыты защитой от ботов, поэтому их товары собирает платный сервис Bright Data (готовые парсеры): 1 товар = 1 кредит, 5000 в месяц бесплатно, дальше $1,5 за 1000. Пока сервис собирает товар, сайт показывает «собираем данные» и спрашивает сам: Walmart готов за 5–25 секунд, H&M — примерно за 6 минут. Тот же товар в течение часа повторно не оплачивается. Данные — по-прежнему редактируемая подсказка, не обещание цены или наличия.
+
+Расход проводится в бухгалтерию автоматически: раз в день, по курсу ЦБ, как «Сервисы и хостинг». Пополнение кошелька Bright Data отдельно проводить не нужно. Управление и учёт — Админка → Финансы → Бухгалтерия → «Сервисы»: магазины, каталог, цена, бесплатный лимит, месячный потолок, ожидание и повторное использование. Для каталога сервис по умолчанию выключен.
+
+## Опубликовано: общая механика вариантов и автоимпорт — 9 октября 2026
+
+Sites154 опубликован: source e96dc890af3ba8a3b658e7e9ef41f2451ee8f73f, deployment appgdep_6ac7ebfd75d481918778747933de3742 succeeded; atlasmarket.uz. Канонический checkout outputs/deploy-import33-20261008; старый корневой checkout не публиковать. Добавлены optional native source/product/seller/offer/color IDs, независимые параметры, собственные галереи и полнота группы. Новые cart-add поддерживаемых магазинов требуют автоматической серверной проверки без ручного обхода. Админский пакетный импорт автоматически публикует только полные группы с точными доступными вариантами, ценами и фото; неполные остаются в очереди повторной проверки. Недоступные и неизвестные варианты не добавляются.
+
+761 тест, TypeScript и build проходят, lint 0 ошибок/2 прежних предупреждения. Свежий public API по ссылке пользователя:200,22 доступных SKU/4 цвета, Cargo US11 $32. Все22 проверены сервером и importDraft. Браузер с синтетическими API проверил22 точных cart ID/var, цены25/24/32/34, собственные галереи, US/EU/CM и mobile390. Реальное сохранение каталога проверено на тестовой SQLite через catalog-server, с CAS и аудитом; hosted operator D1 UI отдельно не проверялся. Реальные аккаунты/заказы не изменялись, окружение revision11 сохранено.
+
+Ограничение: регистрация33 магазинов не означает полную работу33 источников. Аудит: eBay/Nike/Zalando/Vans дают подтверждённые поднаборы;10 неполных,11HTTP422,6 ошибок транспорта проверки,2 без контрольной ссылки товара. Полнота Nike/generic не подтверждена, автопубликация её не выдумывает. US-egress каждого текущего запроса отдельно не сертифицирован; разрешён прямой fallback. Внешний доступ/API остаётся зависимостью. Доказательства outputs/all-stores-deployment.json, merchant-mechanics-audit.md, all-stores-*.log, release-ui-general-check.js.log.
+
 # Atlas — project context
+
+
+## Общая механика импорта — 9 октября 2026
+
+Подготовлен релиз поверх опубликованной версии 152: optional точные product/seller/offer/color IDs, native дочерние ссылки, независимые параметры, галереи и полнота группы. Клиент и сервер сохраняют цену конкретного предложения; новые добавления из поддерживаемых магазинов не обходят проверку ручным флагом. Неизвестное наличие и нулевые остатки не допускаются. Админский пакетный импорт автоматически публикует только полные подтверждённые группы и сохраняет неполные в очереди повторной проверки; скрытие останавливает автоматическое управление.
+
+Аудит 33 источников: проверенные поднаборы eBay25/Nike68/Zalando20/Vans4; это не доказательство полноты всех магазинов. 10 источников неполны, 11 ответили422, 6 транспортных ошибок проверки, 2 без контрольной ссылки товара. US-egress текущей проверки отдельно не сертифицирован; прямой fallback существует. Подробности outputs/merchant-mechanics-audit.md. Внешние API/доступ для остальных источников остаются зависимостью. Автоимпорт не гарантирует будущие цену/наличие/доставку.
+
+# Atlas — project context
+
+## eBay: цена просматриваемой расцветки — 8 октября 2026
+
+Верхняя цена и поле цены следуют просматриваемым цвету/размеру, отдельно от списка ранее выбранных вариантов и общего расчёта. Каждая расцветка показывает свою цену или диапазон; размеры показывают цену, если в группе есть разница. Серверные точные ID/цены и многовариантная корзина сохранены. Проверенный снимок eBay: красный $25, серый $24, Blanch Cargo $32, белый/лайм $34; var459336456425 — Blanch Cargo US11 $32. 745 тестов, TypeScript, lint и build проходят. Живая браузерная перепроверка и публикация выполняются после подготовки.
+
+## eBay: фото расцветок, размеры и наличие — 8 октября 2026
+
+Исправлена потеря фото из eBay Browse API: разрешён только точный официальный CDN assets.adidas.com в дополнение к i.ebayimg.com. Галереи привязаны к расцветкам; каждая строка корзины получает собственную галерею и точный var в ссылке. Сохраняются все подтверждённо доступные цвета и размеры группы; недоступные, неизвестные и нулевые остатки исключаются из импорта и выбора; сервер блокирует подтверждённо распроданные варианты. Админский черновик сохраняет остатки, обозначения размеров и галереи; новые поля схем необязательные, старые данные совместимы. Для мужской обуви adidas показаны US/UK/EU и официальная длина стопы в см; зависимые размеры eBay не считаются отдельной осью. Nike и другие таблицы сохранены.
+
+Все 744 теста и TypeScript проходят. Production build/lint проверяются перед публикацией. Живое наличие и фото проверяются после публикации; эти данные не гарантируют будущую доступность. Полный автоматический админский publish, изменение хранения и таймеры из присланного справочного текста в этот релиз не включены.
+
+## eBay colour galleries, size formats and exact child links — 8 October 2026
+
+The reported group had no photos in the version-149 import response. Image extraction now supports thumbnail images and primary group photo fields, and creates exact-child colour galleries. Customer loading retains all eBay galleries when the original link selects one colour. Each chosen cart line rewrites var to its own sourceVariantId while preserving affiliate parameters; stock/price/identity checks remain. adidas men's US footwear offers US/UK/EU display using the official adidas chart, preserving the original seller size/ID and not applying Nike, women's or unrecognized charts. Existing optional schemas and D1 remain unchanged. 742 tests, lint (existing unused Choice warning), TypeScript and Worker build passed. Regression covers gallery colour separation, affiliate URL rewriting and brand/gender size gates. Verify actual colour photographs after publication; a sparse missing-image log records only field keys/types and image hostnames, never credentials or upstream bodies. Native runtime, accounts and orders are unchanged.
+
+
+## Full eBay group for customer and operator — 8 October 2026
+
+The user requested every in-stock colour/size from a seller group in both customer link ordering and admin catalog import. Official Browse group JSON now has a separate finite 8 MB body budget; OAuth/single-item limits remain unchanged at 32 KB/1 MB. Existing timeouts, exact group identity, 250-variant limit and safe images remain. Unknown-stock, known-unavailable and explicit zero-quantity variants are excluded from selectable eBay groups. Each returned option retains its ID, seller dimensions, price, photo and stock data. An explicit var selects its child by selectedVariantId; customer source-colour filtering exempts exact supported eBay hosts, so sibling colours remain selectable. Other stores retain their colour-bound links. Operator importDraft already preserves the shared group's full variant matrix.
+
+The preceding exact-child fix remains a fail-safe if a group request cannot be read; normal groups are always requested first. The initial 9eb2eaf source/archive was prepared but not saved/deployed; this broader group release replaces it. No migration, pricing formula, secret or real order changes. Tests include >1 MB successful colour/size group, operator draft preservation, customer eBay colour exposure versus Nike/lookalike hosts, unknown/sold-out/zero-quantity exclusion, and an oversized >8 MB fail-safe that never substitutes a parent child. 739 tests pass; complete final lint, TypeScript/build and deployed actual-user-link checks before claiming production success.
+
+
+## eBay explicit variation / group failure fix — 8 October 2026
+
+User listing 157751149633?var=459304625551 (including affiliate parameters) reproducibly returned HTTP 422 on version 148. Worker diagnostics identify browse_variants/status=200: the complete group response was rejected by bounded JSON reading after the exact child endpoint succeeded. The fix retains the verified child from getItemByLegacyId when group reading fails, mapping only its authoritative identity/price/availability/photos, setting selectedVariantId and keeping the requested source URL. Parent links still require full group data; a mismatched, unavailable, auction or incomplete child never falls back to another variant. Existing one-megabyte limit and timeouts remain. Normal successful group imports continue unchanged.
+
+Regression tests cover an oversized group with an explicit matching child and rejection of a parent with the same oversized group. All 738 tests pass; final lint, TypeScript/build and a fresh deployed check of the actual user URL remain required before claiming fixed. No account/order/D1/environment changes. Deploy with the Sites hosting workflow from this current release checkout and preserve Impact and current features. This preparation snapshot does not itself confirm publication; root handoff records final deployment evidence.
+
+
+## Impact head verification follow-up — 8 October 2026
+
+The user explicitly requested the partner tracking code in the main homepage head for Impact Add Website verification. RootLayout now emits script#atlas-impact-bootstrap in the server-rendered head with the exact partner script URL and both requested commands. This defines atlasStartImpactTracking; current consent still controls its invocation and external loading, and native shells remain excluded. The original queue-style bootstrap gains only a duplicate-load ID. Existing client bootstrap calls the head initializer when available and retains its earlier fallback. A new VM regression verifies static URL visibility, no load on head evaluation, both commands after start and no duplicate load. All 736 tests pass; final lint (zero errors; one existing unused Choice warning), TypeScript and Worker build passed before this follow-up publishes. Version 147 remains the last confirmed deployed version until the next successful deployment is recorded.
+
+
+## Import33 and Impact release preparation — 8 October 2026
+
+This release starts from the currently published Site version 146, commit 4c61312ad439e98566785e10ab2f3c55d0faa556, preserving its newer account, ordering, pricing, discount and mobile features. Source checkout: outputs/deploy-import33-20261008. User explicitly requested publication to atlasmarket.uz. Publication is pending until a succeeded Sites deployment is recorded; do not infer it from this document.
+
+All 33 requested storefronts are registered in the shared customer/operator importer. New customer additions use sourceManuallyConfirmed:false and require server verification, without a data-confirmation checkbox or manual price override. Exact option identity, public native state, partial details and bounded transient retry are improved; Zara colour/sizes/RON and old stored carts remain compatible. Representative US page evidence covers 17 merchants plus production eBay Browse API; this does not certify all 33. Blocked pages and missing prices remain unresolved.
+
+The owner's Impact tag P-A7926226-1901-4a82-b369-ac46d499149f1 loads asynchronously once in the web application after the existing current-version consent; commands are transformLinks and trackImpression. Legal text and consent version 2026-10-08 disclose partner tracking. Native Capacitor shells do not load this tag. No explicit account, passport, balance or order payload is sent by this bootstrap.
+
+735 automated tests and TypeScript pass. Targeted synthetic Chromium checks pass for size-to-cart without manual confirmation, partial Target/retry, mobile layout, exact Impact commands and zero tracking requests before guest consent. No production account/cart/order writes. The older broad audit-ui harness times out on its unchanged synthetic guest-navigation flow; retain this limitation. Final lint, TypeScript, all 735 tests and the production Worker build passed before publishing.
+
 
 ## Магазины 2.0 и Каталог 2.0 — 6 октября 2026
 
@@ -761,3 +849,15 @@ Added only the exact `shop.simon.com` storefront to the importer allowlist and U
 - Cart (built on PR #26's option groups): one row of actions per line — quantity, heart (keeps the line), "Отложить" (saves, then removes), a quiet red "Удалить" (icon only below 420 px). Options of one product show the product once (photo, name, store link, total, heart, "Отложить", "Удалить все (N)") and one compact line per option (option · store price, sum, quantity, remove); their note and services are shared (#26). A group of three options on a 393 px phone is about 560 px instead of about 1100.
 - Orders: the "Нужно ваше решение: N" banner is gone; the "Нужно решение" tab count turns warning-coloured instead. The passport banner puts its button on the right from 600 px.
 - Link order: a cart entry with the unit count sits beside "Добавить в корзину" and in the phone total bar; the count bumps after an add, the existing banner on top confirms it.
+## Optional configured egress ladder and Zara numeric SKU
+
+Added server-owned signed gateway routes: ATLAS_TASHKENT_PROXY_URL/SECRET, existing ATLAS_IMPORT_PROXY_URL/SECRET (US), and ATLAS_RESIDENTIAL_PROXY_URL/SECRET. The new endpoints must implement the same HTTPS /v1/fetch HMAC protocol; raw vendor proxy URLs/credentials cannot be used as these endpoints. When optional gateways are configured, requests try Tashkent → US → residential, stopping after a response without detected blocking. Non-final attempts have a3s cap and all share caller abort/deadline. HTTP blocks, recognised HTML challenges and challenge redirects escalate;404 and proxy authentication/configuration failures do not. No arbitrary redirect is followed by routing. Missing paired configuration fails closed. Existing routing is unchanged when optional gateways are absent; eBay stays on official API. Cloudflare direct fetch is NOT identified as Tashkent. Tashkent answers retain regional-price warnings. This transport ladder does not yet escalate merely because a200 response has incomplete product fields; parser-level recovery remains required.
+
+Zara numeric size.sku is normalized to string; regression covers importDraft, retaining source SKU identity, stock, selected colour, photo and currency behavior. Full group completeness is still not proven. Residential provider and actual Tashkent gateway are not configured/verified; owner input pending, no paid proxy or Windows service installed. Other incomplete store adapters remain known issues. UI/cart/catalog writes and production environment secrets unchanged by source preparation.
+## Live Tashkent gateway on owner Windows PC — 9 October 2026
+
+Owner authorized this Windows PC. Runtime outside repository: C:/Users/WS/.codex/runtime/atlas-tashkent-proxy; local127.0.0.1:8789, pinned-host SSH reverse tunnel to VPS127.0.0.1:18787. Dedicated atlas-tashkent-tunnel user/key may only remote-forward that port, no shell/TTY/agent/local forwarding. Caddy adds tashkent.85-9-196-196.sslip.io/v1/fetch; prior config backup /etc/caddy/Caddyfile.bak-tashkent-20261009. Caddy admin API is disabled, so reload failed safely and validated configuration was applied with restart; existing US service remains active. No router inbound port or Windows firewall opening. Gateway HMAC secret is ACL-protected outside repo; unsigned public request401.
+
+Windows task Atlas Tashkent Import Gateway launches hidden supervisor at logon, node and SSH reconnect automatically. PC sleep/offline/logoff breaks local route; US fallback remains configured. Do not promise always-on service or force-disable sleep. Cloudflare trace from PC reportsUZ (city not independently certified). Signed PC Target5/$27,Mango18/$79.99. Hosted fresh Target logs on PC,200/5; controlled supervisor shutdown returned hostedTarget200/5 viaUS without direct-egress warning; supervisor restored. Environment rev12 sets only twoTashkentkeys; existing secrets preserved. Bright Data is NOT configured in this checkout/Sites environment; screenshot showed separate in-progress Claude work, no open GitHub PR found. Do not duplicate it or assume credits/prices/keys. Residential remains unconnected.
+
+Regional warning made neutral: a first Tashkent request does not imply US was rate-limited. Product completeness/stock checks remain unchanged. Evidence outputs/tashkent-signed-smoke.json,tashkent-hosted-active.json,tashkent-hosted-fallback.json. No customer/catalog/order writes; only normal preview/cache behavior.
