@@ -26,7 +26,8 @@
 .og-ship > svg { flex-shrink: 0; margin-top: 3px; }
 .og-ship p { display: grid; gap: 2px; min-width: 0; margin: 0; font-size: 13px; line-height: 1.45; }
 .og-ship-who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; color: var(--home-ink); font-size: 14px; }
-.og-ship-who .order-x-link { font-size: 13px; }
+/* The phone keeps its 44px tap area without pushing the name below the pin. */
+.og-ship-who .order-x-link { margin: -12px 0; font-size: 13px; }
 .og-ship small { overflow-wrap: anywhere; }
 
 /* The latest event: on the plate for the whole checkout, inside a line for that order. */
@@ -191,5 +192,18 @@ html[data-theme="dark"] :is(.og-model-photo, .og-line-thumb) img { background: t
 .order-group .og-passport > svg { color: var(--home-muted); }
 .order-group .og-passport p { margin: 0; color: var(--home-ink); font-size: 14px; line-height: 1.45; }
 html[data-theme="dark"] .order-group .og-passport { border-color: var(--home-line); background: var(--home-surface); }
+/* Since 10 October 2026 the total, the recipient and the passport note sit in one column beside the heading instead of
+   full-width rows under the payment: on a phone it follows the heading, from 640px it stands on the right. */
+.og-side { display: grid; gap: 8px; flex: 1 1 100%; min-width: 0; align-content: start; }
+.og-side .og-ship { margin: 0; }
+.order-group .og-side .og-passport { grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 6px 10px; margin: 0; padding: 10px 12px; border-radius: 12px; }
+.order-group .og-side .og-passport > svg { margin-top: 1px; }
+.order-group .og-side .og-passport p { font-size: 13.5px; }
+.order-group .og-side .og-passport .btn { grid-column: 2; justify-self: start; min-height: 36px; padding-block: 6px; font-size: 13.5px; }
+@media (min-width: 640px) {
+  .og-side { flex: 0 1 320px; }
+  .og-side .order-group-sum { justify-self: end; }
+  .order-group-head:has(.og-side .og-ship, .og-side .og-passport) { align-items: flex-start; }
+}
 /* A link to an order (/orders#AT-…) lands below the sticky header: on the line, or on the checkout's pay card while it waits. */
 .og-line, .order-group .og-pay { scroll-margin-top: 88px; }

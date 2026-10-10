@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { AlertCircle, ArrowRight, Check, ExternalLink, Info, Link2, Loader2, Lock, Minus, Plus, ShieldCheck, ShoppingBag, X } from "lucide-react";
+import { AlertCircle, ArrowRight, Check, ClipboardPaste, ExternalLink, Info, Link2, Loader2, Lock, Minus, Plus, ShieldCheck, ShoppingBag, X } from "lucide-react";
 import Link from "@/components/site-link";
 import { toast } from "@/lib/market/toast";
 import { useMarket } from "@/lib/market/store";
@@ -299,6 +299,12 @@ export function GlobalLinkOrder() {
   // Only the latest request to the store fills the form: an older answer arriving late is dropped.
   const loadSeq = useRef(0);
   const automaticallyLoaded = useRef<string | null>(null);
+  const focusLinkField = useRef(false);
+  useEffect(() => {
+    if (!showSourceForm || !focusLinkField.current) return;
+    focusLinkField.current = false;
+    document.getElementById("source-url")?.focus();
+  }, [showSourceForm]);
   const autoLoadKey=`${catalogId}:${requestedUrl}`;
   const [autoLoadStarted,setAutoLoadStarted]=useState("");
   // From the first frame until the store answers the page keeps its shape: the product stays, the rest waits in placeholders.
@@ -795,6 +801,27 @@ export function GlobalLinkOrder() {
     automaticallyLoaded.current = null;
     window.history.replaceState(window.history.state, "", draftAddress({ pageUrl: link }, window.location.search));
   }
+  /** "Изменить ссылку": an empty field for the new link. The product stays below until another link is opened; Esc goes back. */
+  function editLink() {
+    // Focused once the field is drawn: after the clipboard read a timer can fire before that.
+    focusLinkField.current = true;
+    setUrl(""); setShowSourceForm(true);
+  }
+  /** "Заменить ссылку": the link last copied replaces this one. The same link, no link or a refused clipboard open the empty field. */
+  async function replaceLink() {
+    let text = "";
+    try { text = (await navigator.clipboard.readText()).trim(); } catch { /* denied or unsupported: paste by hand */ }
+    // A link shared from an app often comes with its title around it.
+    const found = text.match(/https?:\/\/\S+/i)?.[0] ?? text;
+    let link = "";
+    try { link = found ? validateSource(found) : ""; } catch { link = ""; }
+    // The store may answer with its own address for the product, so the link that was opened counts as the same too.
+    let opened = "";
+    try { opened = requestedUrl ? validateSource(requestedUrl) : ""; } catch { opened = ""; }
+    if (!link || link === source || link === opened) { editLink(); return; }
+    setUrl(link);
+    openLink(link);
+  }
   /** "Next item" and "Start with a new link": an empty link form at /order-by-link that does not bring this draft back. */
   function startNewLink() {
     forgetLastDraft(browserStorage());
@@ -974,6 +1001,8 @@ export function GlobalLinkOrder() {
 
             setShowSourceForm(true);
           }}
+          // Back to the loaded product when "Изменить ссылку" was opened by mistake and nothing was typed yet.
+          onKeyDown={(e) => { if (e.key === "Escape" && source && !url) { e.preventDefault(); setShowSourceForm(false); } }}
           placeholder={lc.placeholder}
         /></span>
         <button className="btn primary lo-link-submit" disabled={busy}>{busy ? <Loader2 className="spin" size={18} aria-hidden="true" /> : null}{busy ? c.get : lc.calculate}</button>
@@ -985,7 +1014,10 @@ export function GlobalLinkOrder() {
           ? <a className="lo-source-host" href={source} target="_blank" rel="noopener noreferrer" title={source}><Link2 size={16} aria-hidden="true" /><span>{sourceShort}</span><ExternalLink size={13} aria-hidden="true" /><span className="sr-only"> ({lc.openStore})</span></a>
           : <span className="lo-source-host"><Link2 size={16} aria-hidden="true" /><span>{sourceShort}</span></span>}
         {/* The check itself is told in the card below; here only the way back to another link, once it is done. */}
-        {!checking && <button type="button" className="lo-source-link" onClick={() => setShowSourceForm(true)}>{lc.change}</button>}
+        {!checking && <span className="lo-source-actions">
+          <button type="button" className="lo-source-link" onClick={editLink}>{lc.change}</button>
+          <button type="button" className="lo-source-link" title={lc.replaceHint} onClick={() => void replaceLink()}><ClipboardPaste size={15} aria-hidden="true" />{lc.replace}</button>
+        </span>}
       </div>}
 
       {resumedFrom && resumedFrom === requestedUrl && !added && <div className="lo-resumed" role="status">
