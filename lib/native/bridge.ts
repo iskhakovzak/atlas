@@ -5,7 +5,10 @@
 // or a plain browser fallback outside the apps. Keep this module free of React and of server code.
 export type NativePlatform='ios'|'android';
 
-type PluginProxy=Record<string,(...args:unknown[])=>Promise<unknown>>&{addListener?:(event:string,handler:(data:unknown)=>void)=>Promise<{remove:()=>Promise<void>}>};
+// The injected runtime (native-bridge.js) returns the listener handle itself from Plugins.X.addListener;
+// registerPlugin from @capacitor/core returns a promise of it. Both shapes are accepted.
+type ListenerHandle={remove:()=>Promise<void>};
+type PluginProxy=Record<string,(...args:unknown[])=>Promise<unknown>>&{addListener?:(event:string,handler:(data:unknown)=>void)=>ListenerHandle|Promise<ListenerHandle>};
 type CapacitorGlobal={getPlatform?:()=>string;isNativePlatform?:()=>boolean;isPluginAvailable?:(name:string)=>boolean;Plugins?:Record<string,PluginProxy>;registerPlugin?:(name:string)=>PluginProxy};
 
 function capacitor():CapacitorGlobal|null{
@@ -66,13 +69,24 @@ export async function shareLink(options:{title:string;text?:string;url:string}):
  return false;
 }
 
-/** Deep links while the app is running (custom scheme and universal/app links). Returns an unsubscribe function. */
+// The launch URL stays the same for the whole app process, and every full page load mounts the listener again:
+// handling it each time sent the WebView round a /share → /order-by-link reload loop (10.10.2026). It is handled
+// once per process (sessionStorage lives as long as the web view); without storage it is skipped rather than looped.
+const launchKey='atlas.launch-url';
+function firstLaunch(url:string):boolean{
+ try{
+  const storage=window.sessionStorage;
+  if(storage.getItem(launchKey)===url)return false;
+  storage.setItem(launchKey,url);return true;
+ }catch{return false}
+}
+/** Deep links while the app is running (custom scheme and universal/app links); the launch link once per process. Returns an unsubscribe function. */
 export function onAppUrlOpen(handler:(url:string)=>void):()=>void{
  const app=plugin('App');
  if(!app?.addListener)return()=>undefined;
  let removed=false,remove:(()=>Promise<void>)|null=null;
- void app.addListener('appUrlOpen',data=>{const url=(data as {url?:unknown})?.url;if(typeof url==='string')handler(url)}).then(handle=>{if(removed)void handle.remove();else remove=handle.remove});
- void app.getLaunchUrl?.().then(data=>{const url=(data as {url?:unknown}|undefined)?.url;if(typeof url==='string')handler(url)}).catch(()=>undefined);
+ void Promise.resolve(app.addListener('appUrlOpen',data=>{const url=(data as {url?:unknown})?.url;if(typeof url==='string')handler(url)})).then(handle=>{if(removed)void handle.remove();else remove=handle.remove});
+ void app.getLaunchUrl?.().then(data=>{const url=(data as {url?:unknown}|undefined)?.url;if(typeof url==='string'&&firstLaunch(url))handler(url)}).catch(()=>undefined);
  return()=>{removed=true;void remove?.()};
 }
 /** Android hardware/gesture back: the handler returns true when it handled the event. */
@@ -80,7 +94,7 @@ export function onBackButton(handler:(canGoBack:boolean)=>boolean):()=>void{
  const app=plugin('App');
  if(!app?.addListener)return()=>undefined;
  let removed=false,remove:(()=>Promise<void>)|null=null;
- void app.addListener('backButton',data=>{const canGoBack=Boolean((data as {canGoBack?:unknown})?.canGoBack);if(!handler(canGoBack)&&!canGoBack)void app.exitApp?.()}).then(handle=>{if(removed)void handle.remove();else remove=handle.remove});
+ void Promise.resolve(app.addListener('backButton',data=>{const canGoBack=Boolean((data as {canGoBack?:unknown})?.canGoBack);if(!handler(canGoBack)&&!canGoBack)void app.exitApp?.()})).then(handle=>{if(removed)void handle.remove();else remove=handle.remove});
  return()=>{removed=true;void remove?.()};
 }
 

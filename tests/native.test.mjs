@@ -43,6 +43,14 @@ test('parseAppLink: custom scheme with and without return_to',()=>{
  assert.equal(parseAppLink(`uz.atlasmarket.app://other?code=${code}`),null);
 });
 
+test('parseAppLink: the iPhone share extension opens /share with only its own fields',()=>{
+ assert.deepEqual(parseAppLink('uz.atlasmarket.app://share?text=Look%20https%3A%2F%2Fwww.zara.com%2Fuz%2Fx.html%3Fv1%3D1%2B2&title=Zara&code=x&next=%2Fadmin'),{kind:'path',path:'/share?text=Look+https%3A%2F%2Fwww.zara.com%2Fuz%2Fx.html%3Fv1%3D1%2B2&title=Zara'});
+ assert.deepEqual(parseAppLink('uz.atlasmarket.app://share'),{kind:'path',path:'/share'});
+ assert.equal(parseAppLink(`uz.atlasmarket.app://share?text=${'a'.repeat(5000)}`),null);
+ const long=parseAppLink(`uz.atlasmarket.app://share?text=${'a'.repeat(3000)}`);
+ assert.equal(long.path,'/share?text='+'a'.repeat(2048));
+});
+
 test('parseAppLink: unsafe return_to collapses to the home page',()=>{
  assert.deepEqual(parseAppLink(`uz.atlasmarket.app://auth?code=${code}&return_to=https%3A%2F%2Fevil.example%2F`),{kind:'auth',code,returnTo:'/'});
  assert.deepEqual(parseAppLink(`uz.atlasmarket.app://auth?code=${code}&return_to=%2F%2Fevil.example`),{kind:'auth',code,returnTo:'/'});
@@ -119,4 +127,32 @@ test('bridge is inert without a window',async()=>{
  assert.equal(await appleSignInNative({nonce:'n'}),null);
  await closeExternal();await haptic();await setStatusBarTheme('dark');await hideSplash();
  assert.equal(typeof openExternal,'function');
+});
+
+// The runtime the app injects (native-bridge.js) hands back the listener handle itself, not a promise of it;
+// a .then on it broke every page in the Android app (10.10.2026). Both shapes must subscribe and unsubscribe,
+// and the launch link is opened once per app process, not on every page load.
+test('deep-link and back listeners work with the injected runtime and with registerPlugin',async()=>{
+ for(const shape of ['handle','promise']){
+  const listeners=new Map();let removed=0;
+  const App={
+   addListener:(event,fn)=>{listeners.set(event,fn);const handle={remove:async()=>{removed++;listeners.delete(event)}};return shape==='handle'?handle:Promise.resolve(handle)},
+   getLaunchUrl:async()=>({url:'uz.atlasmarket.app://share?url=https%3A%2F%2Fwww.zara.com%2Fx'}),
+   exitApp:async()=>{},
+  };
+  const store=new Map();const sessionStorage={getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,String(v))};
+  globalThis.window={sessionStorage,Capacitor:{getPlatform:()=>'android',isNativePlatform:()=>true,isPluginAvailable:()=>true,Plugins:{App}}};
+  try{
+   const urls=[];const off=onAppUrlOpen(url=>urls.push(url));const offBack=onBackButton(()=>true);
+   await new Promise(r=>setTimeout(r,0));
+   listeners.get('appUrlOpen')({url:'uz.atlasmarket.app://share?text=hi'});
+   assert.deepEqual(urls.sort(),['uz.atlasmarket.app://share?text=hi','uz.atlasmarket.app://share?url=https%3A%2F%2Fwww.zara.com%2Fx'],shape);
+   off();offBack();await new Promise(r=>setTimeout(r,0));
+   assert.equal(removed,2,shape);assert.equal(listeners.size,0,shape);
+   // The next page load mounts the listener again: the launch link is not opened a second time, a new link is.
+   const again=[];const off2=onAppUrlOpen(url=>again.push(url));await new Promise(r=>setTimeout(r,0));
+   listeners.get('appUrlOpen')({url:'https://atlasmarket.uz/share?text=next'});
+   assert.deepEqual(again,['https://atlasmarket.uz/share?text=next'],shape);off2();
+  }finally{delete globalThis.window}
+ }
 });

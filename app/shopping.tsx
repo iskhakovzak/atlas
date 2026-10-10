@@ -8,7 +8,7 @@ import Link from "@/components/site-link";
 import { ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ClipboardPaste, Clock3, Heart, Info, Loader2, MessageSquare, Minus, Plus, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
-import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, customsHelpChosen, deliveryAddressLine, inCheckout, isPostalCode, maxLineQuantity, parcelServiceUnits, storeDiscount, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, parcelValueUsd, valueServiceRate, withCustomsHelpFor, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
+import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, customsHelpChosen, deliveryAddressLine, inCheckout, isPostalCode, maxLineQuantity, parcelServiceUnits, storeDiscount, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, insuredDeliveryOf, parcelValueUsd, valueServiceRate, withCustomsHelpFor, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
 import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, savingText } from "@/lib/market/delivery-speed";
 import { countryName, customsVersion } from "@/lib/market/world";
 import { formatPercent, formatSum, formatUsd } from "@/lib/market/format";
@@ -485,13 +485,13 @@ export function CartView() {
    * contents photo), per piece (checking each item) or as typed (extra photos). The tick shows at once with
    * "Saving…"; a second click while saving waits its turn instead of being lost or sent twice.
    */
-  /** "2% of the goods (over $200: 3%) · 12 345 сум": the amount this parcel pays, shown before it is ticked too. */
+  /** "2,9% of the goods and delivery (over $200: 3,9%) · 12 345 сум": the amount this parcel pays, shown before it is ticked too. */
   function percentRate(service: (typeof checkoutServices)[number], items: CartItem[]) {
-    const rate = valueServiceRate(service, parcelValueUsd(items));
+    const rate = valueServiceRate(service, parcelValueUsd(items, pricing.fx));
     const high = service.valuePercentHigh !== undefined && service.valueThresholdUsd !== undefined && service.valuePercentHigh !== service.valuePercent
       ? c.services.highRule(formatUsd(service.valueThresholdUsd, locale), formatPercent(service.valuePercentHigh, locale))
       : undefined;
-    const amount = items.reduce((sum, line) => sum + Math.round(line.quote.merchandise * rate), 0);
+    const amount = items.reduce((sum, line) => sum + Math.round((line.quote.merchandise + insuredDeliveryOf(line.quote)) * rate), 0);
     return c.services.percent(formatPercent(service.valuePercent ?? 0, locale), high, formatSum(amount, locale));
   }
 
