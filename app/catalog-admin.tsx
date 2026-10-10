@@ -193,7 +193,7 @@ function VariantQuickRemove({variants,onChange}:{variants:CatalogDraft['variants
  const colors=[...new Set(variants.map(item=>item.color).filter((x):x is string=>!!x))],sizes=[...new Set(variants.map(item=>item.size).filter((x):x is string=>!!x))];
  if(!variants.length)return <p className="catalog-variant-empty">Вариантов нет — добавьте вручную в «Дополнительно».</p>;
  const chips=(title:string,items:string[],key:'color'|'size')=>items.length>0&&<div className="catalog-chip-row"><strong>{title}</strong>{items.map(name=><button type="button" key={name} className="catalog-chip" title={`Убрать все варианты: ${name}`} onClick={()=>onChange(variants.filter(item=>item[key]!==name))}>{name} ×</button>)}</div>;
- return <section className="catalog-variant-quick" aria-label="Цвета и размеры">{chips('Цвета',colors,'color')}{chips('Размеры',sizes,'size')}<small>{variants.length} вариантов. Нажмите на лишний цвет или размер, чтобы убрать его целиком; потом «Сохранить».</small></section>
+ return <section className="catalog-variant-quick" aria-label="Цвета и размеры">{chips('Цвета',colors,'color')}{chips('Размеры',sizes,'size')}<small>Вариантов: {variants.length}. Нажмите на лишний цвет или размер, чтобы убрать его целиком; потом «Сохранить».</small></section>
 }
 function CatalogVariantMatrix({variants,sourceUrl,onChange}:{variants:CatalogDraft['variants'];sourceUrl:string;onChange:(variants:CatalogDraft['variants'])=>void}){
  const colors=new Set(variants.map(item=>item.color).filter(Boolean)),sizes=new Set(variants.map(item=>item.size).filter(Boolean));
