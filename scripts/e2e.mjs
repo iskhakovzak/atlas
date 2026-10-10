@@ -363,7 +363,8 @@ try {
     const set = (selector, value) => { const el = document.querySelector(selector); const proto = el.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype; Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, value); el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); };
     set('#recipient', 'Atlas E2E Customer');
     set('#recipient-phone', '90 123 45 67');
-    const region = document.querySelector('#region'); set('#region', [...region.options].find((option) => option.value)?.value ?? '');
+    // Tashkent only for now: the city is fixed and there is no region list; with regions back, the first one is picked.
+    const region = document.querySelector('#region'); if (region) set('#region', [...region.options].find((option) => option.value)?.value ?? '');
     return true;
   })()`);
   await sleep(150);
