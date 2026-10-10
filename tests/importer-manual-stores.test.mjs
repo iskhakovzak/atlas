@@ -6,8 +6,9 @@ import { defaultPolicy } from '../lib/market/policy.ts';
 import { recentCheckMs } from '../lib/market/cart-check.ts';
 import { customsVersion } from '../lib/market/world.ts';
 import { fetchProduct, ManualEntryFallbackError } from '../lib/importer/fetch.ts';
-import { browserStoreRoots, isBrowserStoreHost, isManualEntryStoreHost, isSupportedStoreHost, manualEntryStoreRoots } from '../lib/importer/stores.ts';
+import { browserStoreRoots, importerEngineHints, isBrowserStoreHost, isManualEntryStoreHost, isSupportedStoreHost, manualEntryStoreRoots } from '../lib/importer/stores.ts';
 import { requiresMerchantSnapshot } from '../lib/importer/manual-fallback.ts';
+import { sameMerchantRedirect } from '../lib/importer/source-identity.ts';
 import { withMerchantRoutes } from '../lib/importer/route-ladder.ts';
 
 const now = Date.now();
@@ -38,7 +39,7 @@ test('stores Atlas cannot read and stores only the gateway Chrome reads are sepa
     assert.ok(!isBrowserStoreHost(host), host);
     assert.ok(isSupportedStoreHost(host), host);
   }
-  for (const host of ['www.sephora.com', 'www2.hm.com', 'www.hm.com', 'www.macys.com', 'www.levi.com', 'www.newbalance.com', 'www.victoriassecret.com', 'api.victoriassecret.com', 'www.walmart.com']) {
+  for (const host of ['www.sephora.com', 'www2.hm.com', 'www.hm.com', 'www.macys.com', 'www.levi.com', 'www.newbalance.com', 'www.victoriassecret.com', 'api.victoriassecret.com', 'www.walmart.com', 'www.nordstrom.com', 'www.farfetch.com', 'www.notino.de', 'www.otto.de']) {
     assert.ok(isBrowserStoreHost(host), host);
     assert.ok(!isManualEntryStoreHost(host), host);
     assert.ok(isSupportedStoreHost(host), host + ' stays an accepted store');
@@ -46,6 +47,14 @@ test('stores Atlas cannot read and stores only the gateway Chrome reads are sepa
   for (const host of ['www.target.com', 'www.sephora.es', 'evil-hm.com', 'sephora.com.evil.example'])
     assert.ok(!isManualEntryStoreHost(host) && !isBrowserStoreHost(host), host);
   assert.equal(manualEntryStoreRoots.filter(root => browserStoreRoots.includes(root)).length, 0);
+});
+
+test('US storefront subdomains are store hosts of their brand, and nothing wider is let in', () => {
+  for (const host of ['store.google.com', 'shop.lululemon.com', 'us.louisvuitton.com', 'us.burberry.com', 'us.pandora.net', 'us.nothing.tech', 'www.usa.philips.com', 'en.aboutyou.de']) assert.ok(isSupportedStoreHost(host), host);
+  for (const host of ['mail.google.com', 'evil.lululemon.com', 'us.google.com', 'uk.burberry.com']) assert.equal(isSupportedStoreHost(host), false, host);
+  assert.ok(sameMerchantRedirect(new URL('https://www.lululemon.com/p/x/1'), new URL('https://shop.lululemon.com/p/x/1')));
+  assert.ok(sameMerchantRedirect(new URL('https://us.burberry.com/coat-p123'), new URL('https://www.burberry.com/us/coat-p123')));
+  assert.equal(sameMerchantRedirect(new URL('https://us.burberry.com/coat-p123'), new URL('https://www.burberry.com/gb/coat-p123')), false, 'another country is never swapped in');
 });
 
 test('a manual-entry store link is not fetched: the importer answers "manual" with the brand', async () => {
@@ -111,4 +120,13 @@ test('the Tashkent route gets a longer turn for browser stores only', async () =
   assert.equal((await ladder(sephoraUrl)).headers.get('x-atlas-route'), 'tashkent');
   assert.equal((await ladder('https://www.target.com/p/-/A-1')).headers.get('x-atlas-route'), 'us-vps');
   assert.deepEqual(seen, ['https://www.target.com/p/-/A-1']);
+});
+
+test('engine hints for the importer proxy cover only allowlisted hosts', () => {
+  const hints = importerEngineHints();
+  assert.equal(hints['www.nordstrom.com'], 'browser');
+  assert.equal(hints['www2.hm.com'], 'browser');
+  assert.equal(hints['www.dyson.com'], 'impersonate');
+  assert.equal(hints['www.zara.com'], undefined);
+  for (const host of Object.keys(hints)) assert.ok(isSupportedStoreHost(host), host);
 });

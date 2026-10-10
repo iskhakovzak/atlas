@@ -4,11 +4,13 @@ import {withDirectFallback} from './egress.ts';
 import type {MerchantFetch} from './fetch.ts';
 import type {EbayBrowseConfig} from './ebay.ts';
 import {createEbayAwareMerchantFetch} from './ebay-transport.ts';
-import {withMerchantRoutes, type MerchantRoute} from './route-ladder.ts';
+import {createRouteMemory, withMerchantRoutes, type MerchantRoute} from './route-ladder.ts';
 import {isBrowserStoreHost} from './stores.ts';
 import type {BrightDataPurpose, BrightDataRuntime} from './brightdata.ts';
 import {d1BrightDataJobs, readBrightDataSettings, type D1Like} from './brightdata-d1.ts';
 
+// Routes that just refused a store are skipped for a few minutes (the next product of that store answers sooner).
+const routeMemory=createRouteMemory();
 let cached:{endpoint:string;secret:string;fetcher:(input:string|URL,init?:RequestInit)=>Promise<Response>}|undefined;
 
 /** Use NYC egress only when the complete proxy configuration is present. */
@@ -28,7 +30,7 @@ async function merchantRequest(input:string|URL,init?:RequestInit):Promise<Respo
     if(tashkent)routes.push({name:'tashkent',fetch:createMerchantProxyFetch({endpoint:tashkent,secret:tashkentSecret}),attemptMs:target=>isBrowserStoreHost(target.hostname)?9_000:undefined});
     if(endpoint)routes.push({name:'us-vps',fetch:createMerchantProxyFetch({endpoint,secret})});
     if(residential)routes.push({name:'residential',fetch:createMerchantProxyFetch({endpoint:residential,secret:residentialSecret})});
-    return withMerchantRoutes(routes)(input,init);
+    return withMerchantRoutes(routes,undefined,routeMemory)(input,init);
   }
   if(!endpoint&&!secret)return fetch(input,init);
   if(!endpoint||!secret)throw new Error('Importer egress proxy is not fully configured.');

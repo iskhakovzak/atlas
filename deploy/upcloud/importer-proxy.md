@@ -39,13 +39,15 @@ sudo systemctl restart atlas-import-proxy && journalctl -u atlas-import-proxy -n
 - `ATLAS_BROWSER_PROFILE` — отдельная папка профиля (обязательна, не профиль владельца);
 - `ATLAS_BROWSER_PORT` — порт DevTools, по умолчанию 9339.
 
-Стартовая строка тогда `engines: fetch, impersonate, browser`. Worker даёт шлюзу 9 с на магазины из `browserStoreRoots` (`lib/importer/stores.ts`). На US VPS движок не включается: Chrome без экрана и IP дата-центра блокируются; запуск там (Xvfb) — только по решению владельца. Выкатка на шлюз: скопировать `importer-proxy-server.mjs`, `merchant-engines.mjs`, `browser-engine.mjs` и свежий `supported-store-hosts.json` в папку рантайма шлюза и перезапустить супервизор; откат — файлы из `backup-20261010`.
+Стартовая строка тогда `engines: fetch, impersonate, browser`. Worker даёт шлюзу 9 с на магазины из `browserStoreRoots` (`lib/importer/stores.ts`). На US VPS движок не включается: Chrome без экрана и IP дата-центра блокируются; запуск там (Xvfb) — только по решению владельца. Выкатка на шлюз: скопировать `importer-proxy-server.mjs`, `merchant-engines.mjs`, `browser-engine.mjs` и свежие `supported-store-hosts.json` и `importer-engine-hints.json` в папку рантайма шлюза и перезапустить супервизор; откат — файлы из `backup-20261010`.
 
 ## Key rotation and rollout
 
 Generate a fresh random 32-byte hexadecimal secret on the VM. Replace the root-only server environment file and the Site secret `ATLAS_IMPORT_PROXY_SECRET` with the same value, set non-secret `ATLAS_IMPORT_PROXY_URL=https://85-9-196-196.sslip.io/v1/fetch`, then restart the service and deploy the Site version. Never put the value in this repository, a command argument, shell history, or logs.
 
 Refresh `supported-store-hosts.json` from the checked-in source with `node --experimental-strip-types scripts/export-importer-hosts.mjs <output-path>` whenever the merchant allowlist changes. The server rejects hosts absent from this exact snapshot even when a signed client asks for them.
+
+The optional second argument writes `importer-engine-hints.json` (host → first engine, `impersonate` or `browser`): `node --experimental-strip-types scripts/export-importer-hosts.mjs supported-store-hosts.json importer-engine-hints.json`. Put it next to `importer-proxy-server.mjs`; the planner starts known hard stores on that engine after a restart instead of spending a turn on a known wall. Hints for an engine the proxy lacks (browser on the VPS) are ignored; without the file every host starts on fetch.
 
 ## Catalog scheduler operations
 

@@ -62,13 +62,20 @@ export function blockedSignal(status, location, contentType, bytes) {
   return undefined;
 }
 
-/** Remembers, per host, the engine whose last answer was not a wall. In memory only. */
-export function createEnginePlanner(available, now = Date.now) {
+/**
+ * Remembers, per host, the engine whose last answer was not a wall. In memory only. `hints` (host → engine, from
+ * importer-engine-hints.json) is the starting engine for a host nothing is remembered about yet, so a restarted proxy
+ * does not spend its first turns on a wall it already knows; a hint for an engine this proxy lacks is ignored.
+ */
+export function createEnginePlanner(available, now = Date.now, hints = {}) {
   const preferred = new Map();
+  const first = engine => [engine, ...available.filter(name => name !== engine)];
   return {
     order(host) {
       const remembered = preferred.get(host);
-      if (remembered && remembered.until > now() && available.includes(remembered.engine)) return [remembered.engine, ...available.filter(name => name !== remembered.engine)];
+      if (remembered && remembered.until > now() && available.includes(remembered.engine)) return first(remembered.engine);
+      const hint = Object.hasOwn(hints, host) ? hints[host] : undefined;
+      if (hint && available.includes(hint)) return first(hint);
       return [...available];
     },
     succeeded(host, engine) {
