@@ -1,6 +1,8 @@
 'use client';
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { haptic, isNative } from '@/lib/native/bridge';
+import { startNavigationFeedback, stopNavigationFeedback } from '@/lib/market/navigation-feedback';
 
 // Buttons and button-like links that sink under the finger and spring back (styles: press.css).
 const PRESSABLE = '.btn, .cart-link, .icon-btn, .variant-options button, .lo-stepper button, .find-save, .mobile-nav a, .store-tile, .stores-popular button, .catalog-categories > button, .home-stores a';
@@ -10,14 +12,17 @@ const MAIN_ACTION = '.btn.primary, .cart-link';
 /**
  * One listener for the whole site, nothing per button:
  * - the pressed element gets data-press="down", then "up" (the spring back), and the point under the finger for the soft light;
- * - a link button that opens another page shows a thin progress line at the top: every page here is a full load,
- *   so without it a press on "Order" looks ignored until the next page arrives.
+ * - a link that opens another page shows a thin progress line at the top until it arrives, so a press on "Order"
+ *   never looks ignored. Site links (components/site-link.tsx) start it themselves and change the page in place;
+ *   here it starts for the remaining full loads (plain <a>), and stops when the address changes.
  */
 export function PressFeedback() {
+  const pathname = usePathname();
+  // The next page is on screen (an in-place change): the line and the lit button stop.
+  useEffect(() => { stopNavigationFeedback(); }, [pathname]);
   useEffect(() => {
     let pressed: HTMLElement | null = null;
     let pointer = '';
-    let progressTimer = 0;
 
     const release = () => {
       if (!pressed) return;
@@ -49,11 +54,6 @@ export function PressFeedback() {
       if (event.animationName === 'press-up' && element.dataset.press === 'up') delete element.dataset.press;
     };
 
-    const stopProgress = () => {
-      window.clearTimeout(progressTimer);
-      document.documentElement.removeAttribute('data-navigating');
-      document.querySelectorAll<HTMLElement>('[data-opening]').forEach(element => element.removeAttribute('data-opening'));
-    };
     const onClick = (event: MouseEvent) => {
       const target = event.target as Element | null;
       const action = target?.closest<HTMLElement>(MAIN_ACTION);
@@ -68,14 +68,10 @@ export function PressFeedback() {
       const next = new URL(link.href, location.href);
       // Other sites open in their own way; /api/ links are files (CSV exports) that never replace the page.
       if (next.origin !== location.origin || next.pathname.startsWith('/api/') || (next.pathname === location.pathname && next.search === location.search)) return;
-      if (link.matches(PRESSABLE)) link.dataset.opening = '';
-      document.documentElement.setAttribute('data-navigating', '');
-      // A download or a page that never comes: the line does not stay forever.
-      window.clearTimeout(progressTimer);
-      progressTimer = window.setTimeout(stopProgress, 15000);
+      startNavigationFeedback(link.matches(PRESSABLE) ? link : null);
     };
     // Back/forward from the browser cache shows the old page as it was left: clean it.
-    const onPageShow = () => stopProgress();
+    const onPageShow = () => stopNavigationFeedback();
 
     document.addEventListener('pointerdown', onDown, { passive: true });
     document.addEventListener('pointerup', release, { passive: true });
@@ -92,7 +88,7 @@ export function PressFeedback() {
       document.removeEventListener('animationend', onAnimationEnd);
       window.removeEventListener('click', onClick);
       window.removeEventListener('pageshow', onPageShow);
-      stopProgress();
+      stopNavigationFeedback();
     };
   }, []);
   return <div className="nav-progress" aria-hidden="true" />;

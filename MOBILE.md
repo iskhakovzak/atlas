@@ -23,6 +23,8 @@
 | Deep links / universal links / app links | `onAppUrlOpen` → `parseAppLink()` (`lib/native/links.ts`) | `@capacitor/app` |
 | «Поделиться → Atlas»: ссылка из приложения магазина открывает заказ по ссылке | `GET /share` (`app/share/route.ts`) разбирает текст и отвечает 303 на `/order-by-link?url=…`; `parseAppLink` переводит `uz.atlasmarket.app://share?…` в путь `/share?…` (только `url`, `text`, `title`) | Android: intent-filter `ACTION_SEND` `text/plain`, `MainActivity` переписывает его в `ACTION_VIEW` на `https://atlasmarket.uz/share?text=…&title=…` (событие `appUrlOpen` хранится до подписки). iOS: расширение `mobile/ios/App/AtlasShare` открывает `uz.atlasmarket.app://share?url=…&text=…&title=…` (цель в Xcode добавляется вручную, см. §4) |
 | Кнопка «Назад» (Android) | `onBackButton`: история назад; на `/` — выход из приложения | `@capacitor/app` |
+| Свайп «назад/вперёд» от края экрана (iOS) | смена страниц на месте — обычные записи истории, жест их листает | `AtlasViewController` (`SceneDelegate.swift`): `allowsBackForwardNavigationGestures` |
+| Переходы «как в приложении» | `components/site-link.tsx` меняет страницу без перезагрузки (шапка и нижняя панель на месте), вкладка загорается сразу, страница поднимается | — |
 | Офлайн-страница | `server.errorPath: 'error.html'` | ядро Capacitor |
 
 **Интеграция на стороне сайта.**

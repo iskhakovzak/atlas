@@ -135,3 +135,19 @@ html[data-navigating] .nav-progress { opacity: 1; animation: nav-progress 9s cub
 .lo-layout.is-ready .lo-comment { animation-delay: .16s; }
 .lo-layout.is-ready .lo-confirm { animation-delay: .2s; }
 @keyframes lo-reveal { from { opacity: 0; transform: translateY(6px); } }
+
+/* ---------- Bottom bar: the tapped tab lights at once ---------- */
+/* While the next page loads (data-opening, lib/market/navigation-feedback.ts) the tapped tab already looks current
+   and the old one lets go, as in an app; the page itself follows a moment later. */
+.mobile-nav a { transition: color .18s ease; }
+.mobile-nav:has(a[data-opening]) a.active:not([data-opening]) { color: var(--cat-muted); }
+.mobile-nav:has(a[data-opening]) a.active:not([data-opening])::before { opacity: 0; }
+.mobile-nav a[data-opening] { color: var(--cat-accent); }
+.mobile-nav a[data-opening]:not(.active)::before {
+  content: ""; position: absolute; top: -4px; left: 30%; right: 30%; height: 3px; border-radius: 0 0 3px 3px; background: var(--cat-accent);
+  animation: nav-tab-mark .24s cubic-bezier(.2, .8, .3, 1) both;
+}
+@keyframes nav-tab-mark { from { opacity: 0; transform: scaleX(.3); } }
+html[data-theme="dark"] .mobile-nav:has(a[data-opening]) a.active:not([data-opening]) { color: var(--night-faint); }
+html[data-theme="dark"] .mobile-nav a[data-opening] { color: var(--night-ink); }
+html[data-theme="dark"] .mobile-nav a[data-opening]::before { background: var(--night-jade); }

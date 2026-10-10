@@ -30,11 +30,17 @@ const returnPath=()=>typeof window==='undefined'?'/':window.location.pathname+wi
 /** The page's view on <html data-view>, so page-wide CSS can be scoped to a page without html:has(main…): Chrome
  * re-checks such a :has() on every DOM insertion, and the home's ~350 rules cost 10–40 ms per change (7.10.2026).
  * The inline script sets it while the server HTML is parsed (before the first paint); the effect keeps it right
- * across client navigations. */
+ * across client navigations, and lets the next page rise in when it replaces the previous one in place
+ * (#main.view-entered, app/motion.css); the first page of a visit is drawn by the browser as it comes. */
+let shownView:string|null=null;
 function ViewMark({view}:{view:string}){
  useLayoutEffect(()=>{
   const html=document.documentElement;html.dataset.view=view;
-  return ()=>{if(html.dataset.view===view)delete html.dataset.view};
+  const changed=shownView!==null&&shownView!==view;shownView=view;
+  const main=changed?document.getElementById('main'):null;
+  let timer=0;
+  if(main){main.classList.remove('view-entered');void main.offsetWidth;main.classList.add('view-entered');timer=window.setTimeout(()=>main.classList.remove('view-entered'),700)}
+  return ()=>{window.clearTimeout(timer);main?.classList.remove('view-entered');if(html.dataset.view===view)delete html.dataset.view};
  },[view]);
  return <script dangerouslySetInnerHTML={{__html:`document.documentElement.dataset.view=${JSON.stringify(view)}`}}/>;
 }
@@ -53,8 +59,10 @@ export default function Marketplace({view,children}:{view:string;children?:React
   const modalWords=marketplaceWords(locale);
   const count=state.cart.reduce((s,i)=>s+i.quantity,0),balance=balanceOf(state);
   const hc={nav:navCopy[locale]};
-  const [noticesOpen,setNoticesOpen]=useState(false);
-  // Every link is a page load, so the account arrives a moment after each page appears. Until it does, the header keeps
+  // The notifications panel belongs to the page it was opened on: moving to another page closes it.
+  const [noticesFor,setNoticesFor]=useState<string|null>(null);
+  const noticesOpen=noticesFor===view,setNoticesOpen=(open:boolean)=>setNoticesFor(open?view:null);
+  // A new tab or a full page load gets the account a moment after the page appears. Until it does, the header keeps
   // the member items with the last balance and cart count of this tab (sessionStorage), instead of blinking them out.
   const savedHeader=useSyncExternalStore(subscribeNever,readSavedHeader,()=>null);
   const snapshot=useMemo(()=>{try{const saved=JSON.parse(savedHeader??'null');return saved&&typeof saved.balance==='number'&&typeof saved.count==='number'?saved as {balance:number;count:number}:null}catch{return null}},[savedHeader]);

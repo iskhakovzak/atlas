@@ -923,7 +923,10 @@ Checked `main` at `fedd1e7` (the squash of #8), then fixed the findings on `fix/
 - [ ] Expand fresh verified merchants beyond Nike, Anker and Apple. UNIQLO listing prices were not fresh enough to include.
 - [x] Import exact-listing ProductGroup variants and prices for Nike, without switching to an unrelated default color.
 
-- [ ] Revisit client-side RSC navigation after Vinext fixes its production prefetch runtime; Atlas currently uses reliable full-page navigation.
+- [x] Client-side navigation for site links (`components/site-link.tsx`, `useRouter().push`, 10.10.2026); `next/link` still throws in the vinext 1.0 beta build (lazy navigation module in a shared chunk with mangled exports) — switch back to it after vinext fixes that.
+- [ ] Pages that read `?query` only on mount (catalog, stores, order by link, login) still full-load when only the query changes; make them follow `useSearchParams` before routing those links in place.
+- [ ] Convert remaining user-facing `window.location.assign` page changes (account, checkout returns) to `router.push` where the target page does not depend on a fresh document.
+- [ ] Check the iOS edge swipe back (`AtlasViewController` in `mobile/ios/App/App/SceneDelegate.swift`) on a device: it was written on Windows and not compiled.
 - [ ] No real payment or delivery.
 - [ ] Warehouse optional-service requests, quotes and completion status are currently workflow simulation. Do not treat configurable preview fees as live service prices or promise physical service until a warehouse contract and execution process are verified.
 - [ ] Only one operator email is supported; team assignment exists, but independent staff identities and permissions are still missing.

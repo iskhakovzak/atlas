@@ -52,3 +52,9 @@ body { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 600px) {
   .home-footer :is(nav, section) ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; }
 }
+
+/* Fingers: small text buttons keep their look but take taps from a little around them (an invisible frame). */
+@media (pointer: coarse) {
+  :is(.breadcrumb a, .basket-note-add, .customs-how-trigger) { position: relative; }
+  :is(.breadcrumb a, .basket-note-add, .customs-how-trigger)::after { content: ""; position: absolute; inset: -8px -6px; }
+}

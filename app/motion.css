@@ -233,3 +233,20 @@ img.product-img[data-fade] { opacity: 0; }
   img.product-img { transition: none; }
   .login-card > .login-panel, .login-panel > .login-form, .login-form .login-sent, .tg-login-wait, .login-card > .notice, .tg-login-wait > svg { animation: none; }
 }
+
+/* ---------- In-place page changes (components/site-link.tsx) ---------- */
+/* The next page rises in where the previous one was; the header and the bottom bar stay (app/marketplace.tsx, ViewMark).
+   Pages with a bar fixed to the bottom (home, cart, order by link) only fade: a moving parent would carry the bar with it. */
+#main.view-entered > :not(script, footer, .breadcrumb) { animation: atlas-view-in .3s cubic-bezier(.22, 1, .36, 1) both; }
+#main.view-entered > :nth-child(n + 4):not(footer) { animation-delay: 40ms; }
+html:is([data-view="catalog"], [data-view="cart"], [data-view="link"]) #main.view-entered { animation: atlas-fade-in .22s ease-out both; }
+html:is([data-view="catalog"], [data-view="cart"], [data-view="link"]) #main.view-entered > * { animation: none; }
+@keyframes atlas-view-in { from { opacity: 0; transform: translate3d(0, 8px, 0); } }
+
+/* Touch screens keep :hover after a tap: account tiles and arrows would stay lifted. */
+@media (hover: none) {
+  .cabinet-tiles a:hover, .cabinet-tiles a:hover > svg, .cabinet-rows a:hover > svg:last-child, .checkout-placed-link:hover svg { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #main.view-entered, #main.view-entered > * { animation: none; }
+}
