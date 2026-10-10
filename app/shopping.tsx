@@ -20,7 +20,7 @@ import type { Locale } from "@/lib/market/i18n";
 import { LoadingCards, Modal, ProductImage, WasPrice } from "./market-ui";
 import { Money } from "./money";
 import { SafeDeleteButton } from "./safe-delete-button";
-import { cities, regionCapital, regionLabel, regions, streets, suggestions, uzPhone, uzPhoneDigits } from "@/lib/market/addresses";
+import { cities, isServedRegion, onlyServedCity, regionCapital, regionLabel, regions, streets, suggestions, uzPhone, uzPhoneDigits } from "@/lib/market/addresses";
 import { UzPhoneInput } from "./phone-input";
 import { toast } from "@/lib/market/toast";
 import { usePendingCartAdd } from "./pending-cart-add";
@@ -301,11 +301,12 @@ export function CartView() {
     setVerifying(false);
     if (!ok) return;
     // The recipient the cart's customs estimate was made for (the primary one unless picked there), so the duty does not jump.
-    const saved = customsProfile;
+    // Tashkent only for now (10.10.2026): a recipient elsewhere is not chosen for the customer; the first one in Tashkent is.
+    const saved = isServedRegion(customsProfile?.region) ? customsProfile : state.deliveryProfiles.find(profile => isServedRegion(profile.region));
     setSelectedProfile(saved?.id ?? "manual");
     // An email or phone sign-in has no real name: the field stays empty instead of showing the address or number.
     const name = user?.name?.trim() ?? "", personName = name && !name.includes("@") && !/^[+\d\s()-]+$/.test(name) ? name : "";
-    setDelivery(saved ?? state.deliveryProfile ?? { ...emptyDelivery, recipient: personName, phone: state.communication.phone });
+    setDelivery(saved ?? (isServedRegion(state.deliveryProfile?.region) ? state.deliveryProfile : undefined) ?? { ...emptyDelivery, recipient: personName, phone: state.communication.phone });
     setConsentError(false);
     setCheckoutOpen(true);
     setReview(false);
@@ -341,7 +342,7 @@ export function CartView() {
     const selectedIdentity = selectedProfile === "manual" ? undefined : identityProfiles.find(profile => profile.recipientProfileId === selectedProfile);
     const savedPostal = savedNeedsPostal ? delivery.postalCode : undefined;
     const key = crypto.randomUUID();
-    const ok = await act({ type: "checkout", key, signature: cartSignature(state.cart), useBalance, expectedCredit: reviewCredit, customsDuty: customsChoices.help ? reviewDuty : undefined, consentVersion: customsVersion, delivery, deliveryProfileId: selectedProfile === "manual" ? undefined : selectedProfile, identityProfileId: selectedIdentity?.documentId, postalCode: savedPostal,
+    const ok = await act({ type: "checkout", key, signature: cartSignature(state.cart), useBalance, expectedCredit: reviewCredit, customsDuty: customsChoices.help ? reviewDuty : undefined, consentVersion: customsVersion, delivery: onlyServedCity && selectedProfile === "manual" ? { ...delivery, region: onlyServedCity, city: onlyServedCity } : delivery, deliveryProfileId: selectedProfile === "manual" ? undefined : selectedProfile, identityProfileId: selectedIdentity?.documentId, postalCode: savedPostal,
       // A recipient typed here is kept for the next order and the passport, unless the customer opts out.
       saveRecipientLabel: selectedProfile === "manual" && saveRecipient ? (state.deliveryProfiles.length ? delivery.recipient.trim().slice(0, 60) : recipientCopy[locale].labels.home) : undefined });
     setBusy(false);
@@ -640,13 +641,15 @@ export function CartView() {
               const passport = identityProfiles.find(identity => identity.recipientProfileId === profile.id);
               // The label repeats the name when a recipient was saved under it: show it once.
               const named = profile.label.trim() && profile.label.trim() !== profile.recipient.trim();
-              return <label className={"recipient-choice" + (selectedProfile === profile.id ? " selected" : "")} key={profile.id}>
-                <input type="radio" name="checkout-recipient" value={profile.id} checked={selectedProfile === profile.id} onChange={() => { setSelectedProfile(profile.id); setDelivery(profile); }} />
+              // Tashkent only for now: a recipient elsewhere stays visible but cannot be chosen.
+              const served = isServedRegion(profile.region);
+              return <label className={"recipient-choice" + (selectedProfile === profile.id ? " selected" : "") + (served ? "" : " unavailable")} key={profile.id}>
+                <input type="radio" name="checkout-recipient" value={profile.id} disabled={!served} checked={selectedProfile === profile.id} onChange={() => { setSelectedProfile(profile.id); setDelivery(profile); }} />
                 <span className="recipient-choice-body">
                   <strong>{named ? profile.label : profile.recipient}{profile.primary && <em>{c.checkout.primary}</em>}</strong>
                   <span>{named && <>{profile.recipient} · </>}<span className="nowrap">{profile.phone}</span></span>
                   <small>{[profile.region, profile.city, profile.address, profile.postalCode].filter(Boolean).join(", ")}</small>
-                  <small className={passport ? "recipient-passport-ok" : "recipient-passport-missing"}>{passport ? c.checkout.passportOk : c.checkout.passportMissing}</small>
+                  {served ? <small className={passport ? "recipient-passport-ok" : "recipient-passport-missing"}>{passport ? c.checkout.passportOk : c.checkout.passportMissing}</small> : <small className="recipient-passport-missing">{c.checkout.outsideServed}</small>}
                 </span>
               </label>;
             })}
@@ -662,8 +665,11 @@ export function CartView() {
           <div className="two-fields">
             <div className="field"><label htmlFor="recipient">{c.checkout.recipient}</label><input id="recipient" autoComplete="name" autoCapitalize="words" required minLength={2} maxLength={100} value={delivery.recipient} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, recipient: capitalizeWords(event.target.value) }); }} /></div>
             <div className="field"><label htmlFor="recipient-phone">{c.checkout.phone}<span className="sr-only"> +998</span></label><span className="rf-phone"><span aria-hidden="true">+998</span><UzPhoneInput id="recipient-phone" required pattern="\d{2} \d{3} \d{2} \d{2}" title={recipientCopy[locale].phoneError} digits={uzPhoneDigits(delivery.phone)} onDigits={(digits) => { setSelectedProfile("manual"); setDelivery({ ...delivery, phone: uzPhone(digits) }); }} /></span></div>
+            {/* Tashkent only for now (10.10.2026): the city is shown fixed instead of a region list. */}
+            {onlyServedCity ? <div className="field"><label htmlFor="city">{c.checkout.city}</label><input id="city" readOnly aria-describedby="city-served-hint" value={regionLabel(onlyServedCity, locale)} /><small id="city-served-hint">{c.checkout.servedOnly}</small></div> : <>
             <div className="field"><label htmlFor="region">{c.checkout.region}</label><select id="region" autoComplete="address-level1" required value={delivery.region} onChange={(event) => { const region = event.target.value, capital = regionCapital(region); setSelectedProfile("manual"); setDelivery({ ...delivery, region, city: !delivery.city.trim() || cities.includes(delivery.city) ? capital ?? delivery.city : delivery.city }); }}>{!regions.includes(delivery.region) && <option value={delivery.region}>{delivery.region || recipientCopy[locale].regionPlaceholder}</option>}{regions.map(value => <option key={value} value={value}>{regionLabel(value, locale)}</option>)}</select></div>
             <div className="field"><label htmlFor="city">{c.checkout.city}</label><input id="city" list="city-suggestions" autoComplete="address-level2" autoCapitalize="sentences" required minLength={2} maxLength={100} value={delivery.city} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, city: capitalizeFirst(event.target.value) }); }} /><datalist id="city-suggestions">{suggestions(cities, delivery.city).map(value => <option key={value} value={value} />)}</datalist></div>
+            </>}
           </div>
           <div className="field"><label htmlFor="delivery-address">{c.checkout.street}</label><input id="delivery-address" list="street-suggestions" autoComplete="street-address" autoCapitalize="sentences" required minLength={5} maxLength={220} placeholder={c.checkout.streetPlaceholder} value={delivery.address} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, address: capitalizeFirst(event.target.value) }); }} /><datalist id="street-suggestions">{suggestions(streets, delivery.address).map(value => <option key={value} value={value} />)}</datalist></div>
           <div className="two-fields">

@@ -6,6 +6,7 @@ import Link from "@/components/site-link";
 import { AlertCircle, ArrowRight, ArrowUpRight, Bell, Check, FileCheck2, Info, LifeBuoy, LogOut, MapPin, MessageCircle, Package, Pencil, Plus, RefreshCw, ScanLine, Shield, ShoppingBag, Trash2, Wallet } from "lucide-react";
 import { useMarket } from "@/lib/market/store";
 import { courierAllowanceUsd } from "@/lib/market/customs";
+import { isServedRegion } from "@/lib/market/addresses";
 import { balanceOf, totalOf, type SavedDeliveryProfile, type State } from "@/lib/market/domain";
 import { groupOrders, orderGroupCopy } from "@/lib/market/order-groups";
 import { orderAttention } from "@/lib/market/notice-panel";
@@ -127,6 +128,8 @@ export function AccountView() {
               <p>{named && <>{profile.recipient} · </>}<span className="nowrap">{profile.phone}</span></p>
               <p className="cabinet-muted">{[profile.region, profile.city, profile.address, profile.postalCode].filter(Boolean).join(", ")}</p>
               <div className="cabinet-recipient-foot">
+                {/* Tashkent only for now (10.10.2026): orders to this recipient wait for an address in Tashkent. */}
+                {!isServedRegion(profile.region) && <span className="cabinet-chip warn"><MapPin size={14} aria-hidden="true" />{recipientCopy[lang].servedOnly}</span>}
                 {passport ? <span className="cabinet-chip ok"><Check size={14} aria-hidden="true" />{c.recipients.passportOk(passport.passportMasked)}</span> : <Link className="cabinet-chip warn" href={`/identity?recipient=${encodeURIComponent(profile.id)}`}><ScanLine size={14} aria-hidden="true" />{c.recipients.addPassport}</Link>}
               </div>
               <div className="cabinet-recipient-actions">

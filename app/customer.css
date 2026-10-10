@@ -704,7 +704,7 @@ html:not([data-theme="dark"]) .lo-page .lo-block .select-control:not(:disabled) 
 /* ---------- Recipient form and recipient actions ---------- */
 .rf { display: grid; gap: 14px; }
 .rf-labels { margin: 0; padding: 0; border: 0; }
-.rf-labels legend, .rf-field > label { display: block; margin-bottom: 6px; color: var(--home-ink); font-size: 14px; font-weight: 700; }
+.rf-labels legend, .rf-field > label, .rf-field > .rf-label { display: block; margin-bottom: 6px; color: var(--home-ink); font-size: 14px; font-weight: 700; }
 .rf-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .rf-chips button { min-height: 44px; padding: 0 16px; border: 1px solid var(--home-line); border-radius: 999px; background: var(--home-surface); color: var(--home-ink); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
 .rf-chips button[aria-pressed="true"] { border-color: var(--home-accent); background: var(--home-accent); color: var(--home-accent-ink); }
@@ -712,6 +712,7 @@ html:not([data-theme="dark"]) .lo-page .lo-block .select-control:not(:disabled) 
 .rf-labels input { width: 100%; margin-top: 8px; }
 .rf-labels.invalid .rf-chips button { border-color: var(--cx-danger); }
 .rf input, .rf select { width: 100%; min-height: 48px; padding: 0 12px; border: 1px solid var(--home-line); border-radius: 12px; background: var(--home-surface); color: var(--home-ink); font: inherit; font-size: 16px; }
+.rf-fixed { display: flex; align-items: center; min-height: 48px; margin: 0; padding: 0 12px; border: 1px dashed var(--home-line); border-radius: 12px; color: var(--home-ink); font-size: 16px; font-weight: 600; }
 .rf input:focus, .rf select:focus { border-color: var(--home-accent); outline: 2px solid color-mix(in srgb, var(--home-accent) 25%, transparent); }
 .rf-field small { display: block; margin-top: 4px; color: var(--home-muted); font-size: 13px; line-height: 1.45; }
 .rf-field.invalid input, .rf-field.invalid select, .rf-field.invalid .rf-phone { border-color: var(--cx-danger); }

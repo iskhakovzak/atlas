@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { combinedShipmentWeight, customsVersion, usdRates } from "./world.ts";
 import {pickLocale} from './uz-cyrl.ts';
+import { isServedRegion } from "./addresses.ts";
 import type {Locale} from './i18n.ts';
 
 export const money = (n: number) =>
@@ -631,6 +632,7 @@ export const isPostalCode = (value?: string) => /^\d{6}$/.test(value ?? "");
 export function assertDeliveryAddress(delivery?: DeliveryProfile) {
   if (!delivery || delivery.address.trim().length < 5) throw codedError("err_60", "Укажите адрес доставки.");
   if (!isPostalCode(delivery.postalCode)) throw codedError("err_61", "Укажите почтовый индекс получателя: 6 цифр.");
+  if (!isServedRegion(delivery.region)) throw codedError("err_78", "Пока доставляем только по Ташкенту. Укажите адрес в Ташкенте.");
 }
 const savedDeliveryProfileSchema = deliveryProfileSchema.extend({
   id: z.string().min(1).max(80),

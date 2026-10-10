@@ -95,6 +95,8 @@ export type CartCopy = {
     title: string; hint: string; reviewTitle: string; reviewHint: string; saved: string; primary: string; passportOk: string; passportMissing: string;
     newRecipient: string; recipient: string; phone: string; region: string; city: string; street: string; streetPlaceholder: string;
     postal: string; postalHint: string; postalMissing: string; comment: string; next: string; consent: Sentence; consentRequired: string;
+    /** Delivery is Tashkent-only for now (10.10.2026): the fixed city's note and the mark on a saved recipient elsewhere. */
+    servedOnly: string; outsideServed: string;
     /** No duty for this recipient: no checkbox, the button accepts the customs terms (the server still records the edition). */
     consentImplied: Sentence;
     confirm: string; saving: string; estimated: string; saveRecipient: string;
@@ -174,7 +176,7 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
     },
     sticky: { label: 'Итог корзины' },
     checkout: {
-      title: 'Получатель и адрес', hint: 'Кому и куда доставить посылку по Узбекистану.', reviewTitle: 'Проверьте заказ', reviewHint: 'Проверьте получателя, состав и сумму.',
+      title: 'Получатель и адрес', hint: 'Кому и куда в Ташкенте доставить посылку.', servedOnly: 'Пока доставляем только по Ташкенту.', outsideServed: 'Не в Ташкенте — пока туда не доставляем', reviewTitle: 'Проверьте заказ', reviewHint: 'Проверьте получателя, состав и сумму.',
       saved: 'Сохранённые получатели', primary: 'основной', passportOk: 'Паспорт добавлен', passportMissing: 'Паспорт не добавлен',
       newRecipient: 'Новый получатель', recipient: 'Получатель (ФИО)', phone: 'Телефон',
       region: 'Область', city: 'Город', street: 'Улица, дом, квартира', streetPlaceholder: 'Начните вводить улицу',
@@ -223,7 +225,7 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
     },
     sticky: { label: 'Savat jami' },
     checkout: {
-      title: 'Qabul qiluvchi va manzil', hint: 'Posilkani O‘zbekistonda kimga va qayerga yetkazamiz.', reviewTitle: 'Buyurtmani tekshiring', reviewHint: 'Qabul qiluvchi, tarkib va summani tekshiring.',
+      title: 'Qabul qiluvchi va manzil', hint: 'Posilkani Toshkentda kimga va qayerga yetkazamiz.', servedOnly: 'Hozircha faqat Toshkent bo‘ylab yetkazamiz.', outsideServed: 'Toshkentda emas — hozircha u yerga yetkazmaymiz', reviewTitle: 'Buyurtmani tekshiring', reviewHint: 'Qabul qiluvchi, tarkib va summani tekshiring.',
       saved: 'Saqlangan qabul qiluvchilar', primary: 'asosiy', passportOk: 'Pasport qo‘shilgan', passportMissing: 'Pasport qo‘shilmagan',
       newRecipient: 'Yangi qabul qiluvchi', recipient: 'Qabul qiluvchi (F.I.Sh.)', phone: 'Telefon',
       region: 'Viloyat', city: 'Shahar', street: 'Ko‘cha, uy, xonadon', streetPlaceholder: 'Ko‘cha nomini yozing',
@@ -272,7 +274,7 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
     },
     sticky: { label: 'Cart total' },
     checkout: {
-      title: 'Recipient and address', hint: 'Who receives the parcel and where in Uzbekistan.', reviewTitle: 'Review your order', reviewHint: 'Check the recipient, items and total.',
+      title: 'Recipient and address', hint: 'Who receives the parcel and where in Tashkent.', servedOnly: 'For now we deliver only within Tashkent.', outsideServed: 'Not in Tashkent — we do not deliver there yet', reviewTitle: 'Review your order', reviewHint: 'Check the recipient, items and total.',
       saved: 'Saved recipients', primary: 'primary', passportOk: 'Passport added', passportMissing: 'No passport added',
       newRecipient: 'New recipient', recipient: 'Recipient (full name)', phone: 'Phone',
       region: 'Region', city: 'City', street: 'Street, building, apartment', streetPlaceholder: 'Start typing a street',
@@ -745,6 +747,8 @@ export type RecipientCopy = {
   region: string; regionPlaceholder: string; city: string; address: string; addressPlaceholder: string;
   postal: string; postalHint: string; postalError: string; comment: string; commentPlaceholder: string; optional: string;
   primary: string; save: string; saving: string; saved: string; updated: string; required: string; privacy: string;
+  /** Delivery is Tashkent-only for now (10.10.2026): the fixed city's note, and the warning on a recipient saved elsewhere. */
+  servedOnly: string; outsideServed: string;
 };
 
 export const recipientCopy: Record<Locale, RecipientCopy> = /*@__PURE__*/withCyrillic({
@@ -756,7 +760,7 @@ export const recipientCopy: Record<Locale, RecipientCopy> = /*@__PURE__*/withCyr
     region: 'Область', regionPlaceholder: 'Выберите область', city: 'Город или район', address: 'Улица, дом, квартира', addressPlaceholder: 'Например: ул. Навои, 15, кв. 4',
     postal: 'Почтовый индекс', postalHint: '6 цифр, например 100000.', postalError: 'Введите 6 цифр индекса.', comment: 'Комментарий для курьера', commentPlaceholder: 'Подъезд, ориентир, удобное время', optional: 'необязательно',
     primary: 'Основной получатель — подставляется в заказ сам', save: 'Сохранить получателя', saving: 'Сохраняем…', saved: 'Получатель сохранён.', updated: 'Изменения сохранены.',
-    required: 'Заполните это поле.', privacy: 'Подсказки работают на устройстве — адрес не уходит в сторонние сервисы поиска.',
+    required: 'Заполните это поле.', servedOnly: 'Пока доставляем только по Ташкенту.', outsideServed: 'Этот адрес не в Ташкенте, а пока доставляем только туда. Укажите адрес в Ташкенте.', privacy: 'Подсказки работают на устройстве — адрес не уходит в сторонние сервисы поиска.',
   },
   uz: {
     addTitle: 'Yangi qabul qiluvchi', editTitle: 'Qabul qiluvchini o‘zgartirish', note: 'Posilkani oladigan odam. F.I.Sh. — pasportdagidek.',
@@ -766,7 +770,7 @@ export const recipientCopy: Record<Locale, RecipientCopy> = /*@__PURE__*/withCyr
     region: 'Viloyat', regionPlaceholder: 'Viloyatni tanlang', city: 'Shahar yoki tuman', address: 'Ko‘cha, uy, xonadon', addressPlaceholder: 'Masalan: Navoiy ko‘chasi, 15-uy, 4-xonadon',
     postal: 'Pochta indeksi', postalHint: '6 ta raqam, masalan 100000.', postalError: 'Indeksning 6 ta raqamini kiriting.', comment: 'Kuryer uchun izoh', commentPlaceholder: 'Podyezd, mo‘ljal, qulay vaqt', optional: 'ixtiyoriy',
     primary: 'Asosiy qabul qiluvchi — buyurtmaga avtomatik qo‘yiladi', save: 'Qabul qiluvchini saqlash', saving: 'Saqlanmoqda…', saved: 'Qabul qiluvchi saqlandi.', updated: 'O‘zgarishlar saqlandi.',
-    required: 'Bu maydonni to‘ldiring.', privacy: 'Maslahatlar qurilmangizda ishlaydi — manzil tashqi qidiruv xizmatlariga yuborilmaydi.',
+    required: 'Bu maydonni to‘ldiring.', servedOnly: 'Hozircha faqat Toshkent bo‘ylab yetkazamiz.', outsideServed: 'Bu manzil Toshkentda emas, hozircha esa faqat u yerga yetkazamiz. Toshkentdagi manzilni kiriting.', privacy: 'Maslahatlar qurilmangizda ishlaydi — manzil tashqi qidiruv xizmatlariga yuborilmaydi.',
   },
   en: {
     addTitle: 'New recipient', editTitle: 'Edit recipient', note: 'The person who will collect the parcel. Full name as in the passport.',
@@ -776,7 +780,7 @@ export const recipientCopy: Record<Locale, RecipientCopy> = /*@__PURE__*/withCyr
     region: 'Region', regionPlaceholder: 'Choose a region', city: 'City or district', address: 'Street, building, apartment', addressPlaceholder: 'For example: Navoi St 15, apt 4',
     postal: 'Postal code', postalHint: '6 digits, for example 100000.', postalError: 'Enter the 6 digits of the postal code.', comment: 'Note for the courier', commentPlaceholder: 'Entrance, landmark, convenient time', optional: 'optional',
     primary: 'Default recipient — filled in at checkout', save: 'Save recipient', saving: 'Saving…', saved: 'Recipient saved.', updated: 'Changes saved.',
-    required: 'Fill in this field.', privacy: 'Suggestions run on your device — the address is not sent to third-party search.',
+    required: 'Fill in this field.', servedOnly: 'For now we deliver only within Tashkent.', outsideServed: 'This address is not in Tashkent, and for now we deliver only there. Enter an address in Tashkent.', privacy: 'Suggestions run on your device — the address is not sent to third-party search.',
   },
 });
 
