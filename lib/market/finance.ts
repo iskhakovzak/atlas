@@ -93,7 +93,8 @@ export function orderFinance(order: Order, customerId: string): OrderFinance {
   const shipping = order.settlement ? order.settlement.shipping : q.shipping;
   const commission = q.service + (q.buyout ?? 0) + (q.conversion ?? 0);
   const delivery = shipping + (q.deliveryMargin ?? 0);
-  const services = (q.optionalServices ?? 0) + (q.customsHelp ?? 0) + delta(["warehouse-service"]);
+  // Parcel insurance (value-percent services) is Atlas income like the other services.
+  const services = (q.optionalServices ?? 0) + (q.customsHelp ?? 0) + (q.serviceFees ?? []).reduce((sum, fee) => sum + fee.amount, 0) + delta(["warehouse-service"]);
   // A paid extra invoice covers what the store charged above the estimate (goods or its delivery): transit, not income.
   const extras = (order.extraCharges ?? []).filter((charge) => charge.status === "paid").reduce((sum, charge) => sum + charge.amount, 0);
   const goods = q.merchandise - fxGain + delta(["price", "variant", "substitution"]) + extras;

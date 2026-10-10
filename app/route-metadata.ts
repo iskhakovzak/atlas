@@ -5,9 +5,9 @@ import {withCyrillic} from '../lib/market/uz-cyrl.ts';
 const ogLocale: Record<Locale, string> = /*@__PURE__*/withCyrillic({ uz: 'uz_UZ', ru: 'ru_RU', en: 'en_US' });
 const ogImage: Record<Locale, string> = /*@__PURE__*/withCyrillic({ uz: '/og-image-uz.png', ru: '/og-image.png', en: '/og-image-en.png' });
 const imageAlt: Record<Locale, string> = /*@__PURE__*/withCyrillic({
-  uz: 'Atlas — xorijiy do‘konlardan O‘zbekistonga yetkazib berish',
-  ru: 'Atlas — покупки в зарубежных магазинах с доставкой в Узбекистан',
-  en: 'Atlas — shop international stores with delivery to Uzbekistan',
+  uz: 'Atlas — xorijiy do‘konlardan Toshkentga yetkazib berish',
+  ru: 'Atlas — покупки в зарубежных магазинах с доставкой в Ташкент',
+  en: 'Atlas — shop international stores with delivery to Tashkent',
 });
 // Route-level openGraph replaces the root object, so each route repeats the preview image.
 const images = (locale: Locale) => [{ url: ogImage[locale], width: 1200, height: 630, alt: imageAlt[locale] }];
@@ -22,19 +22,19 @@ export function publicPath(page: PublicPage): string {
 // Titles that already name Atlas are used as is, so the "%s · Atlas" template does not repeat the brand.
 const pageText: Record<PublicPage, Record<Locale, { title: string; description: string }>> = {
   home: /*@__PURE__*/withCyrillic({
-    uz: { title: 'Atlas — xorijiy do‘konlardan O‘zbekistonga yetkazib berish', description: 'Xorijiy do‘kondagi tovar havolasini qo‘ying va yakuniy narxni so‘mda biling: tovar, Atlas komissiyasi va yetkazib berish alohida satrlarda.' },
-    ru: { title: 'Atlas — покупки в зарубежных магазинах с доставкой в Узбекистан', description: 'Вставьте ссылку на товар из зарубежного магазина и узнайте итог в сумах: товар, комиссия Atlas и доставка отдельными строками.' },
-    en: { title: 'Atlas — shop international stores with delivery to Uzbekistan', description: 'Paste a product link from an international store and see the total in soum: item, Atlas fee and delivery on separate lines.' },
+    uz: { title: 'Atlas — xorijiy do‘konlardan Toshkentga yetkazib berish', description: 'Xorijiy do‘kondagi tovar havolasini qo‘ying va yakuniy narxni so‘mda biling: tovar narxi va xalqaro yetkazish bilan Atlas xizmati, tarkibi hisobda ko‘rinadi.' },
+    ru: { title: 'Atlas — покупки в зарубежных магазинах с доставкой в Ташкент', description: 'Вставьте ссылку на товар из зарубежного магазина и узнайте итог в сумах: цена товара и сервис Atlas с международной доставкой, состав виден в счёте.' },
+    en: { title: 'Atlas — shop international stores with delivery to Tashkent', description: 'Paste a product link from an international store and see the total in soum: the item price and the Atlas service with international delivery, broken down in the bill.' },
   }),
   catalog: /*@__PURE__*/withCyrillic({
-    uz: { title: 'Xorijiy tovarlar katalogi — O‘zbekistonga yetkazib berish', description: 'Poyabzal, kiyim, elektronika va go‘zallik mahsulotlari — yakuniy narxi so‘mda, O‘zbekistongacha yetkazish bilan. Do‘kon, narx, o‘lcham va bojsiz limit bo‘yicha filtrlar.' },
-    ru: { title: 'Каталог зарубежных товаров с доставкой в Узбекистан', description: 'Обувь, одежда, электроника и красота с итогом в сумах и доставкой в Узбекистан. Фильтры по магазину, цене, размеру и беспошлинному лимиту.' },
-    en: { title: 'Catalog of international products with delivery to Uzbekistan', description: 'Shoes, clothing, electronics and beauty with the total in soum and delivery to Uzbekistan. Filter by store, price, size and duty-free allowance.' },
+    uz: { title: 'Xorijiy tovarlar katalogi — Toshkentga yetkazib berish', description: 'Poyabzal, kiyim, elektronika va go‘zallik mahsulotlari — yakuniy narxi so‘mda, Toshkentgacha yetkazish bilan. Do‘kon, narx, o‘lcham va bojsiz limit bo‘yicha filtrlar.' },
+    ru: { title: 'Каталог зарубежных товаров с доставкой в Ташкент', description: 'Обувь, одежда, электроника и красота с итогом в сумах и доставкой в Ташкент. Фильтры по магазину, цене, размеру и беспошлинному лимиту.' },
+    en: { title: 'Catalog of international products with delivery to Tashkent', description: 'Shoes, clothing, electronics and beauty with the total in soum and delivery to Tashkent. Filter by store, price, size and duty-free allowance.' },
   }),
   stores: /*@__PURE__*/withCyrillic({
-    uz: { title: 'AQSh, Yevropa va Xitoy do‘konlaridan O‘zbekistonga buyurtma', description: 'AQSh, Yevropa, Xitoy va boshqa mamlakatlardagi do‘konlar: Atlas havolangiz bo‘yicha tovarni sotib olib, O‘zbekistonga yetkazadi. Har bir do‘kon uchun muddat, 1 kg narxi va valyuta.' },
-    ru: { title: 'Магазины США, Европы и Китая для заказа в Узбекистан', description: 'Магазины США, Европы, Китая и других стран: Atlas выкупит товар по вашей ссылке и доставит в Узбекистан. Для каждого магазина — срок, цена за 1 кг и валюта.' },
-    en: { title: 'Order from US, European and Chinese stores to Uzbekistan', description: 'Stores in the US, Europe, China and other countries: Atlas buys the item from your link and delivers it to Uzbekistan. Delivery time, price per kg and currency for each store.' },
+    uz: { title: 'AQSh, Yevropa va Xitoy do‘konlaridan Toshkentga buyurtma', description: 'AQSh, Yevropa, Xitoy va boshqa mamlakatlardagi do‘konlar: Atlas havolangiz bo‘yicha tovarni sotib olib, Toshkentga yetkazadi. Har bir do‘kon uchun muddat, 1 kg narxi va valyuta.' },
+    ru: { title: 'Магазины США, Европы и Китая с доставкой в Ташкент', description: 'Магазины США, Европы, Китая и других стран: Atlas выкупит товар по вашей ссылке и доставит в Ташкент. Для каждого магазина — срок, цена за 1 кг и валюта.' },
+    en: { title: 'Order from US, European and Chinese stores to Tashkent', description: 'Stores in the US, Europe, China and other countries: Atlas buys the item from your link and delivers it to Tashkent. Delivery time, price per kg and currency for each store.' },
   }),
   customs: /*@__PURE__*/withCyrillic({
     uz: { title: 'O‘zbekistonga jo‘natmalar uchun bojsiz limit va bojxona to‘lovi', description: 'Bojsiz limit qanday ishlashi, qanday ma’lumotlar kerakligi va O‘zbekistonga buyurtmalarda bojxona to‘lovlari qanday hisoblanishi.' },
@@ -74,9 +74,9 @@ const pageText: Record<PublicPage, Record<Locale, { title: string; description: 
 };
 
 const rootText: Record<Locale, { title: string; description: string; social: string }> = /*@__PURE__*/withCyrillic({
-  uz: { title: 'Atlas — butun dunyodan xaridlar', description: 'Xorijiy do‘konlardan tovar toping, variantlarni tekshiring va O‘zbekistonga yetkazib berish bilan hisobni so‘mda oling.', social: 'Xorijiy do‘konlar, so‘mda shaffof hisob va O‘zbekistonga yetkazib berish.' },
-  ru: { title: 'Atlas — покупки со всего мира', description: 'Находите товары в зарубежных магазинах, проверяйте варианты и получайте расчёт в сумах с доставкой в Узбекистан.', social: 'Зарубежные магазины, прозрачный расчёт в сумах и доставка в Узбекистан.' },
-  en: { title: 'Atlas — shopping from around the world', description: 'Find products in international stores, check the options and get the total in soum with delivery to Uzbekistan.', social: 'International stores, transparent pricing in soum and delivery to Uzbekistan.' },
+  uz: { title: 'Atlas — butun dunyodan xaridlar', description: 'Xorijiy do‘konlardan tovar toping, variantlarni tekshiring va Toshkentga yetkazib berish bilan hisobni so‘mda oling.', social: 'Xorijiy do‘konlar, so‘mda shaffof hisob va Toshkentga yetkazib berish.' },
+  ru: { title: 'Atlas — покупки со всего мира', description: 'Находите товары в зарубежных магазинах, проверяйте варианты и получайте расчёт в сумах с доставкой в Ташкент.', social: 'Зарубежные магазины, прозрачный расчёт в сумах и доставка в Ташкент.' },
+  en: { title: 'Atlas — shopping from around the world', description: 'Find products in international stores, check the options and get the total in soum with delivery to Tashkent.', social: 'International stores, transparent pricing in soum and delivery to Tashkent.' },
 });
 
 /**

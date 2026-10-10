@@ -20,7 +20,7 @@ export type DeliverySpeedCopy = {
 
 export const deliverySpeedCopy: Record<Locale, DeliverySpeedCopy> = /*@__PURE__*/withCyrillic({
   ru: {
-    title: 'Скорость доставки в Узбекистан',
+    title: 'Скорость доставки в Ташкент',
     names: { express: 'Экспресс', standard: 'Обычная' },
     short: { express: 'экспресс', standard: 'обычная' },
     days: (from, to) => `${from}–${to} раб. дней`,
@@ -32,7 +32,7 @@ export const deliverySpeedCopy: Record<Locale, DeliverySpeedCopy> = /*@__PURE__*
     saving: 'Сохраняем…',
   },
   uz: {
-    title: 'O‘zbekistonga yetkazish tezligi',
+    title: 'Toshkentga yetkazish tezligi',
     names: { express: 'Ekspress', standard: 'Oddiy' },
     short: { express: 'ekspress', standard: 'oddiy' },
     days: (from, to) => `${from}–${to} ish kuni`,
@@ -44,7 +44,7 @@ export const deliverySpeedCopy: Record<Locale, DeliverySpeedCopy> = /*@__PURE__*
     saving: 'Saqlanmoqda…',
   },
   en: {
-    title: 'Delivery speed to Uzbekistan',
+    title: 'Delivery speed to Tashkent',
     names: { express: 'Express', standard: 'Standard' },
     short: { express: 'express', standard: 'standard' },
     days: (from, to) => `${from}–${to} business days`,

@@ -8,7 +8,7 @@ const noContacts = { telegramSupport: null, telegramChannel: null, phone: null, 
 test('the site graph uses a square logo, a catalog search box and only published contacts', () => {
   const [organization, website] = siteGraph('ru', noContacts)['@graph'];
   assert.equal(organization.logo.width, organization.logo.height);
-  assert.match(organization.description, /Узбекистан/);
+  assert.match(organization.description, /Ташкент/);
   assert.equal(organization.sameAs, undefined);
   assert.equal(organization.contactPoint, undefined);
   assert.equal(website.potentialAction.target.urlTemplate, 'https://atlasmarket.uz/catalog?q={search_term_string}');

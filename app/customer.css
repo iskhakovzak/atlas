@@ -127,6 +127,13 @@ html[data-theme="dark"] .basket-item-note.issue { border-color: rgba(255, 140, 1
 .basket-help[aria-expanded="true"] { color: var(--home-ink); }
 .basket-help:focus-visible { outline: 2px solid var(--home-accent); outline-offset: -6px; }
 .basket-line-help { flex-basis: 100%; margin: 4px 0 6px; padding: 10px 12px; border-radius: 10px; background: var(--home-soft); color: var(--home-muted); font-size: 14px; line-height: 1.5; }
+/* "Atlas service" (owner, 10.10.2026): one amount; the fee and international delivery fold under it (app/calc-summary.tsx).
+   The breakdown reuses .cost-service-breakdown from the item card; its rows are quieter than the bill's own lines. */
+.basket-service-breakdown { flex-basis: 100%; margin: -6px 0 2px; }
+.basket-service-breakdown > summary { display: inline-flex; align-items: center; min-height: 36px; color: var(--home-accent); font-size: 13px; }
+.basket-service-breakdown > .basket-lines { margin: 0 0 4px; padding-left: 12px; border-left: 2px solid var(--home-line); }
+.basket-service-line .basket-service-breakdown .basket-lines .basket-line { min-height: 36px; padding: 2px 0; border-bottom: 0; }
+.basket-service-line .basket-service-breakdown .basket-lines :is(.basket-line-label, .basket-line > b) { color: var(--home-muted); font-size: 13.5px; font-weight: 500; }
 .basket-balance { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 12px; border-radius: 12px; background: var(--home-soft); }
 .basket-balance label { display: grid; color: var(--home-ink); font-size: 15px; font-weight: 600; cursor: pointer; }
 .basket-balance small { color: var(--home-muted); font-size: 13px; font-weight: 400; }

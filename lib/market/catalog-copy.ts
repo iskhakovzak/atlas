@@ -10,10 +10,10 @@ const usd = (value: number) => '$' + Math.max(0, Math.floor(value));
 
 const ru = {
   title: 'Каталог товаров',
-  intro: 'Итог в сумах с доставкой до Узбекистана; цену и наличие Atlas сверит с магазином при заказе.',
+  intro: 'Итог в сумах с доставкой до Ташкента; цену и наличие Atlas сверит с магазином при заказе.',
   stats: (products: number, stores: number) => `${products} ${plural(products, ['товар', 'товара', 'товаров'])} из ${stores} ${stores % 10 === 1 && stores % 100 !== 11 ? 'магазина' : 'магазинов'}`,
   teaserTitle: 'Подборка товаров',
-  teaserIntro: 'Товары из зарубежных магазинов, отобранные Atlas. Сумма на карточке уже с доставкой в Узбекистан.',
+  teaserIntro: 'Товары из зарубежных магазинов, отобранные Atlas. Сумма на карточке уже с доставкой в Ташкент.',
   viewAll: (count: number) => `Весь каталог (${count})`,
   viewAllShort: 'Весь каталог',
   // Compact banners: one line, the sentence opens on tap.
@@ -28,7 +28,7 @@ const ru = {
   storePrice: 'Цена магазина',
   storePriceOn: (date: string) => `Цена магазина · ${date}`,
   checkPrice: 'Уточнить цену',
-  total: 'С доставкой в Узбекистан', totalStale: 'С доставкой ≈', breakdown: 'Из чего сумма',
+  total: 'С доставкой в Ташкент', totalStale: 'С доставкой ≈', breakdown: 'Из чего сумма',
   afterCheck: 'Рассчитаем после проверки цены',
   confirmedBy: (date: string) => `наличие подтверждено оператором ${date}`,
   days: (from: number, to: number) => `${from}–${to} раб. дн`,
@@ -75,10 +75,10 @@ type Copy = typeof ru;
 
 const uz: Copy = {
   title: 'Tovarlar katalogi',
-  intro: 'Yakuniy narx so‘mda, O‘zbekistongacha yetkazish bilan; narx va mavjudlikni Atlas buyurtmada do‘kon bilan solishtiradi.',
+  intro: 'Yakuniy narx so‘mda, Toshkentgacha yetkazish bilan; narx va mavjudlikni Atlas buyurtmada do‘kon bilan solishtiradi.',
   stats: (products: number, stores: number) => `${stores} ta do‘kondan ${products} ta tovar`,
   teaserTitle: 'Tovarlar to‘plami',
-  teaserIntro: 'Atlas tanlagan xorijiy do‘kon tovarlari. Kartadagi summa O‘zbekistonga yetkazish bilan.',
+  teaserIntro: 'Atlas tanlagan xorijiy do‘kon tovarlari. Kartadagi summa Toshkentga yetkazish bilan.',
   viewAll: (count: number) => `Butun katalog (${count})`,
   viewAllShort: 'Butun katalog',
   bannerLimit: (left: number, limit: number) => `Bojsiz: ${usd(limit)} dan ${usd(left)} qoldi`,
@@ -90,7 +90,7 @@ const uz: Copy = {
   storePrice: 'Do‘kon narxi',
   storePriceOn: (date: string) => `Do‘kon narxi · ${date}`,
   checkPrice: 'Narxni aniqlash',
-  total: 'O‘zbekistonga yetkazish bilan', totalStale: 'Yetkazish bilan ≈', breakdown: 'Summa nimadan iborat',
+  total: 'Toshkentga yetkazish bilan', totalStale: 'Yetkazish bilan ≈', breakdown: 'Summa nimadan iborat',
   afterCheck: 'Narx tekshirilgach hisoblaymiz',
   confirmedBy: (date: string) => `mavjudligini operator tasdiqladi, ${date}`,
   days: (from: number, to: number) => `${from}–${to} ish kuni`,
@@ -135,10 +135,10 @@ const uz: Copy = {
 
 const en: Copy = {
   title: 'Product catalog',
-  intro: 'Totals in soum with delivery to Uzbekistan; Atlas checks the price and stock with the store when you order.',
+  intro: 'Totals in soum with delivery to Tashkent; Atlas checks the price and stock with the store when you order.',
   stats: (products: number, stores: number) => `${products} ${products === 1 ? 'product' : 'products'} from ${stores} ${stores === 1 ? 'store' : 'stores'}`,
   teaserTitle: 'Product selection',
-  teaserIntro: 'Products from international stores, selected by Atlas. The amount on each card already includes delivery to Uzbekistan.',
+  teaserIntro: 'Products from international stores, selected by Atlas. The amount on each card already includes delivery to Tashkent.',
   viewAll: (count: number) => `Full catalog (${count})`,
   viewAllShort: 'Full catalog',
   bannerLimit: (left: number, limit: number) => `Duty-free: ${usd(left)} of ${usd(limit)} left`,
@@ -150,7 +150,7 @@ const en: Copy = {
   storePrice: 'Store price',
   storePriceOn: (date: string) => `Store price · ${date}`,
   checkPrice: 'Check current price',
-  total: 'With delivery to Uzbekistan', totalStale: 'With delivery ≈', breakdown: 'What’s in the total',
+  total: 'With delivery to Tashkent', totalStale: 'With delivery ≈', breakdown: 'What’s in the total',
   afterCheck: 'Calculated after the price check',
   confirmedBy: (date: string) => `stock confirmed by an operator on ${date}`,
   days: (from: number, to: number) => `${from}–${to} bus. days`,
