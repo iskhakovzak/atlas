@@ -169,6 +169,9 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_72': 'Этого магазина нет в списке поддерживаемых. Вставьте ссылку из одного из {count} магазинов или заполните товар вручную.',
     'err_73': 'Товар не найден в каталоге. Добавьте его по ссылке на магазин.',
     'err_74': 'Выберите товары для оформления.',
+    'err_75': 'Расчёт истёк. Обновите его перед оформлением.',
+    'err_76': 'Тарифы Atlas обновились. Проверьте новый итог перед оформлением.',
+    'err_77': 'Пошлина пересчитана для выбранного получателя. Проверьте итог перед оформлением.',
     'err_55': 'Нельзя отключить собственный доступ.',
     'err_56': 'Основного администратора из настроек хостинга отключить нельзя.',
     'err_57': 'Заметки о клиентах пока недоступны: примените миграцию базы 0011.',
@@ -237,6 +240,9 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_72': 'Bu do‘kon qo‘llab-quvvatlanadiganlar ro‘yxatida yo‘q. {count} ta do‘kondan biridagi havolani qo‘ying yoki tovarni qo‘lda to‘ldiring.',
     'err_73': 'Tovar katalogda topilmadi. Uni do‘kon havolasi orqali qo‘shing.',
     'err_74': 'Rasmiylashtirish uchun tovarlarni tanlang.',
+    'err_75': 'Hisob-kitob muddati tugadi. Rasmiylashtirishdan oldin uni yangilang.',
+    'err_76': 'Atlas tariflari yangilandi. Rasmiylashtirishdan oldin yangi jami summani tekshiring.',
+    'err_77': 'Tanlangan qabul qiluvchi uchun boj qayta hisoblandi. Rasmiylashtirishdan oldin jami summani tekshiring.',
     'err_55': 'O‘z ruxsatingizni o‘chirib bo‘lmaydi.',
     'err_56': 'Hosting sozlamalaridagi asosiy administratorni o‘chirib bo‘lmaydi.',
     'err_57': 'Mijozlar haqidagi eslatmalar hozircha mavjud emas: 0011 migratsiyasini qo‘llang.',
@@ -305,6 +311,9 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_72': 'This store isn’t on the supported list. Paste a link from one of the {count} stores or fill in the item manually.',
     'err_73': 'Item not found in the catalog. Add it with a link to the store.',
     'err_74': 'Select the items to check out.',
+    'err_75': 'The quote has expired. Refresh it before checking out.',
+    'err_76': 'Atlas rates have been updated. Check the new total before checking out.',
+    'err_77': 'The duty was recalculated for the selected recipient. Check the total before checking out.',
     'err_55': 'You cannot disable your own access.',
     'err_56': 'The primary administrator from the hosting settings cannot be disabled.',
     'err_57': 'Customer notes are not available yet: apply database migration 0011.',
@@ -312,6 +321,12 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_53': 'The site content has errors. Fix the marked fields and save again.',
   },
 });
+/**
+ * Refusals whose cause is newer data on the server than on screen: the quote ran out (err_75), the tariff changed
+ * (err_76), the duty for the recipient is another (err_77). The client reloads the account after them, so the cart
+ * and the tariff it shows are the ones the next attempt is checked against.
+ */
+export const reloadAfterErrorCodes: readonly string[] = ['err_75', 'err_76', 'err_77'];
 /** The localized text of an error code; `{name}` placeholders take the given values. */
 export function serverError(locale:Locale, key:string, params?:Record<string,string|number>){
   const text = serverErrors[locale][key] ?? pickLocale({

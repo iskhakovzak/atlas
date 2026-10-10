@@ -3,13 +3,13 @@ import {useId,useState} from 'react';
 import {Check,HandCoins,Scale,Wallet} from 'lucide-react';
 import {formatKg,formatPercent,formatSum,formatUsd} from '@/lib/market/format';
 import {calcCopy} from '@/lib/market/calc-copy';
-import {courierAllowanceUsd} from '@/lib/market/customs';
+import {allowanceAfterCartUsd,courierAllowanceUsd} from '@/lib/market/customs';
 import {customsDutySoum,deliveryPerKgUsdFor,unknownStoreShippingUsd,type CartCustoms,type CustomsEstimate,type DeliverySpeed,type Pricing,type Quote,type SavedDeliveryProfile} from '@/lib/market/domain';
 import {daysRangeFor,deliverySpeedCopy,type DeliverySpeedOption} from '@/lib/market/delivery-speed';
 import {packagingKg} from '@/lib/market/world';
 import type {Locale} from '@/lib/market/i18n';
 import {SummaryLine} from './price-summary';
-import {CustomsHow,allowanceLeftUsd} from './customs-how';
+import {CustomsHow} from './customs-how';
 
 type Sums=Pick<Quote,'merchandise'|'service'|'shipping'|'reserve'|'total'>&{buyout?:number;conversion?:number;sourceShipping?:number;deliveryMargin?:number;optionalServices?:number;storeShippingHold?:number;customsHelp?:number;customsDuty?:number;/** Parcel insurance (value-percent services), part of the total. */insurance?:number};
 
@@ -156,7 +156,7 @@ export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipient
   {/* No duty: one line says so (the allowance left is in it). Over the allowance: the allowance, then the excess and the duty. */}
   {over?<><header><Scale size={17} aria-hidden="true"/><h3 id={id+'-title'}>{c.allowanceTitle(usd(estimate.allowanceUsd))}</h3></header>
    <p className="calc-customs-over">{(!onChoices?c.overPreview:choices.help?c.overIncluded:c.overNote)(usd(estimate.dutiableUsd),formatSum(duty,locale))}</p></>
-   :<header className="calc-customs-none"><Check size={17} aria-hidden="true"/><h3 id={id+'-title'}>{c.choice.noDuty(usd(allowanceLeftUsd(estimate)))}</h3></header>}
+   :<header className="calc-customs-none"><Check size={17} aria-hidden="true"/><h3 id={id+'-title'}>{c.choice.noDuty(usd(allowanceAfterCartUsd(estimate)))}</h3></header>}
   {profiles.length>1&&onRecipient&&<div className="field calc-customs-recipient"><label htmlFor={id+'-recipient'}>{c.recipient}</label><select id={id+'-recipient'} value={recipientId} onChange={event=>onRecipient(event.target.value)}>{profiles.map(profile=><option key={profile.id} value={profile.id}>{profile.recipient}</option>)}</select></div>}
   {over&&onChoices&&helpAmount!==undefined&&(remembered&&!open
    ?<p className="customs-remembered">{choices.help?<HandCoins size={15} aria-hidden="true"/>:null}<span>{choices.help?c.choice.rememberedAtlas:c.choice.rememberedSelf}{choices.help&&<small>{helpFee}</small>}</span><button type="button" onClick={()=>setOpen(true)}>{c.choice.change}</button></p>

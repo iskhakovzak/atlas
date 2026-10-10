@@ -5,6 +5,12 @@ export type ImportOutcome = {ok: true; data: Extracted} | {ok: false; error: unk
 
 /** Store answers worth repeating for a short while: a wall or a page without the product data. */
 const negativeReasons = new Set(['blocked', 'incomplete']);
+/**
+ * A `fresh` import (the customer opened the link to order it, or pressed "Retry automatic import") passes a remembered
+ * wall once it is this old: a one-off wall does not answer the retry for the full 90 s, yet one link still gets at
+ * most one live attempt per 15 s from this isolate.
+ */
+export const freshRetryGapMs = 15_000;
 
 /**
  * Per-isolate bookkeeping for /api/import, keyed by the canonical product URL.
@@ -12,14 +18,15 @@ const negativeReasons = new Set(['blocked', 'incomplete']);
  *   again. It waits at most until the first request is `followerWaitMs` old (a Worker may cancel the first request
  *   with its client), then fetches itself and is the one later requests wait for. Only a store answer is shared (the product, or a ManualEntryFallbackError); a timeout or a network error
  *   of the first request is not, the follower then asks on its own.
- * - Negative: a store that answered with a wall or an incomplete page is not asked again for `negativeTtlMs`.
+ * - Negative: a store that answered with a wall or an incomplete page is not asked again for `negativeTtlMs`
+ *   (`recentFailure(key, withinMs)` lets a fresh import through sooner, see freshRetryGapMs).
  * Nothing here is shared between isolates or persisted; D1 keeps the positive cache.
  */
 export function createImportFlights({followerWaitMs = 26_000, negativeTtlMs = 90_000, maxNegative = 500, maxInFlight = 200, clock = Date.now}: {followerWaitMs?: number; negativeTtlMs?: number; maxNegative?: number; maxInFlight?: number; clock?: () => number} = {}) {
   // `started` lets a request tell a live fetch from one whose Worker request was cancelled (its promise never settles
   // and its `finally` never runs): an entry older than followerWaitMs is not waited for, and is replaced.
   const inFlight = new Map<string, {promise: Promise<ImportOutcome>; started: number}>();
-  const negative = new Map<string, {until: number; error: ManualEntryFallbackError}>();
+  const negative = new Map<string, {at: number; until: number; error: ManualEntryFallbackError}>();
   const remember = (key: string, outcome: ImportOutcome) => {
     if (outcome.ok || !(outcome.error instanceof ManualEntryFallbackError) || !negativeReasons.has(outcome.error.reason ?? '')) return;
     if (negative.size >= maxNegative) {
@@ -27,7 +34,8 @@ export function createImportFlights({followerWaitMs = 26_000, negativeTtlMs = 90
       for (const [stored, entry] of negative) if (entry.until <= now) negative.delete(stored);
       while (negative.size >= maxNegative) negative.delete(negative.keys().next().value!);
     }
-    negative.set(key, {until: clock() + negativeTtlMs, error: outcome.error});
+    const at = clock();
+    negative.set(key, {at, until: at + negativeTtlMs, error: outcome.error});
   };
   const settle = (load: () => Promise<Extracted>) => load().then((data): ImportOutcome => ({ok: true, data}), (error): ImportOutcome => ({ok: false, error}));
   /** This request asks the store itself; later requests for the key wait for it. */
@@ -47,13 +55,19 @@ export function createImportFlights({followerWaitMs = 26_000, negativeTtlMs = 90
     }
   };
   return {
-    /** The recent wall or incomplete answer for this URL, if it is younger than negativeTtlMs. */
-    recentFailure(key: string) {
+    /**
+     * The recent wall or incomplete answer for this URL, if it is younger than negativeTtlMs — or than `withinMs`
+     * when that is shorter (a fresh import passes a wall older than freshRetryGapMs; the entry stays for the others).
+     */
+    recentFailure(key: string, withinMs = negativeTtlMs) {
       const entry = negative.get(key);
       if (!entry) return undefined;
-      if (entry.until > clock()) return entry.error;
-      negative.delete(key);
-      return undefined;
+      const now = clock();
+      if (entry.until <= now) {
+        negative.delete(key);
+        return undefined;
+      }
+      return now - entry.at < withinMs ? entry.error : undefined;
     },
     /** `leader` is true when this call asked the store itself (and so should write the D1 cache). */
     async run(key: string, load: () => Promise<Extracted>): Promise<{outcome: ImportOutcome; leader: boolean}> {

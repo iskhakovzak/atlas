@@ -1,4 +1,4 @@
-import type { Pricing } from './domain.ts';
+import type { CustomsEstimate, Pricing } from './domain.ts';
 
 // Informational personal courier-import estimate. Never part of an Atlas charge or quote.
 // Checked on lex.uz on 4 October 2026:
@@ -51,15 +51,30 @@ export function customsDutyUsd({ excessUsd, rate, minimumPerKg, weightKg = 0 }: 
   if (!(excessUsd > 0)) return 0;
   return Math.round(Math.max(excessUsd * rate, (weightKg > 0 ? weightKg : 0) * minimumPerKg) * 100) / 100;
 }
-export function estimateCourierCustoms({ valueUsd, usedUsd = 0, grossKg, date }: { valueUsd: number; usedUsd?: number; grossKg?: number; date: string }) {
-  const rule = courierRule(date);
-  if (!rule || ![valueUsd, usedUsd].every(n => Number.isFinite(n) && n >= 0 && n <= 1_000_000) || (grossKg !== undefined && (!Number.isFinite(grossKg) || grossKg <= 0 || grossKg > 1000))) return null;
+/**
+ * The calculator's estimate. `pricing`: the tariff's customs settings — the allowance, rate and per-kg minimum the
+ * operator set (`customsParams`), so the calculator counts like the cart; without it, or for a field left empty, the
+ * law's values ($200, and the rate for `date`).
+ */
+export function estimateCourierCustoms({ valueUsd, usedUsd = 0, grossKg, date, pricing }: { valueUsd: number; usedUsd?: number; grossKg?: number; date: string; pricing?: Partial<Pick<Pricing, 'customsAllowanceUsd' | 'customsRate' | 'customsMinimumPerKg'>> }) {
+  if (!courierRule(date) || ![valueUsd, usedUsd].every(n => Number.isFinite(n) && n >= 0 && n <= 1_000_000) || (grossKg !== undefined && (!Number.isFinite(grossKg) || grossKg <= 0 || grossKg > 1000))) return null;
+  const { allowanceUsd, rate, minimumPerKg } = customsParams(pricing, date);
   const cents = (n: number) => Math.round(n * 100) / 100;
-  const remainingUsd = Math.max(0, courierAllowanceUsd - usedUsd);
+  const remainingUsd = Math.max(0, allowanceUsd - usedUsd);
   const excessUsd = cents(Math.max(0, valueUsd - remainingUsd));
-  const lowerUsd = cents(excessUsd * rule.rate);
+  const lowerUsd = cents(excessUsd * rate);
   // Dutiable weight is unknown until allocation by customs. Do not invent a pro-rata
   // weight: give a range from the value-based amount to the full provided gross-weight floor.
-  const upperUsd = !excessUsd ? 0 : grossKg === undefined ? undefined : cents(Math.max(lowerUsd, grossKg * rule.minimumPerKg));
-  return { ...rule, remainingUsd, excessUsd, lowerUsd, upperUsd };
+  const upperUsd = !excessUsd ? 0 : grossKg === undefined ? undefined : cents(Math.max(lowerUsd, grossKg * minimumPerKg));
+  return { rate, minimumPerKg, allowanceUsd, remainingUsd, excessUsd, lowerUsd, upperUsd };
+}
+
+type AllowanceInputs = Pick<CustomsEstimate, 'allowanceUsd' | 'atlasUsedUsd' | 'outsideUsedUsd' | 'outsideUnknown'>;
+/** The allowance this recipient still has this month before this cart, as the cart counts it. */
+export function allowanceLeftUsd(estimate: AllowanceInputs) {
+  return estimate.outsideUnknown ? 0 : Math.max(0, estimate.allowanceUsd - estimate.atlasUsedUsd - (estimate.outsideUsedUsd ?? 0));
+}
+/** What stays of this month's allowance once this cart is ordered (never below 0): "No duty · $X left". */
+export function allowanceAfterCartUsd(estimate: AllowanceInputs & Pick<CustomsEstimate, 'valueUsd'>) {
+  return Math.round(Math.max(0, allowanceLeftUsd(estimate) - estimate.valueUsd) * 100) / 100;
 }

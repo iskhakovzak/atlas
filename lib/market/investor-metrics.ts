@@ -362,7 +362,7 @@ const dateText = (at: number) => new Date(at + 5 * 3600_000).toISOString().slice
 export function summaryText(report: InvestorReport): string {
   const k = report.kpis.current, c = report.kpis.change;
   return [
-    `Atlas — покупки в зарубежных магазинах с доставкой в Узбекистан. Сводка за ${report.period.label.toLowerCase()}, данные Atlas на ${dateText(report.computedAt)}.`,
+    `Atlas — покупки в зарубежных магазинах с доставкой в Ташкент. Сводка за ${report.period.label.toLowerCase()}, данные Atlas на ${dateText(report.computedAt)}.`,
     `GMV: ${soum(k.gmv)}${delta(c.gmv)}`, `Выручка Atlas (по отметкам «оплачено»): ${soum(k.revenue)}${delta(c.revenue)}`,
     `Заказы: ${k.orders}${delta(c.orders)} · оплаченных отметок: ${k.paidOrders}`, `Активные клиенты: ${k.activeCustomers}${delta(c.activeCustomers)} · новые: ${k.newCustomers} · повторные покупки: ${pct(k.repeatRate)}`,
     `Средний чек: ${soum(k.averageCheck)}${delta(c.averageCheck)} · выручка с оплаченного заказа: ${soum(k.revenuePerOrder)}`, `Take rate: ${pct(k.takeRate)} · валовая маржа после привязанных расходов: ${pct(k.grossMargin)}`,

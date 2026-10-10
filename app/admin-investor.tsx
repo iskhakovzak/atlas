@@ -49,7 +49,7 @@ export function AdminInvestor(){
  return <div className="admin-investor" data-period={period}>
   <section className="surface admin-section inv-head">
    <div className="admin-section-head">
-    <div><h2><TrendingUp aria-hidden="true"/>Atlas — покупки в зарубежных магазинах с доставкой в Узбекистан</h2><p>Витрина бизнеса по данным Atlas{report?` на ${dateOnly(report.computedAt)}`:''}. Все суммы в сумах, период — скользящий, сравнение с таким же периодом до него.</p></div>
+    <div><h2><TrendingUp aria-hidden="true"/>Atlas — покупки в зарубежных магазинах с доставкой в Ташкент</h2><p>Витрина бизнеса по данным Atlas{report?` на ${dateOnly(report.computedAt)}`:''}. Все суммы в сумах, период — скользящий, сравнение с таким же периодом до него.</p></div>
     <div className="inv-actions no-print">
      <button type="button" className="btn secondary" onClick={()=>window.print()} disabled={!report}><Printer size={16} aria-hidden="true"/>Версия для печати</button>
      <button type="button" className="btn secondary" onClick={()=>void copySummary()} disabled={!report}><ClipboardCopy size={16} aria-hidden="true"/>Скопировать сводку</button>

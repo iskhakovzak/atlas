@@ -1,6 +1,6 @@
 # Atlas
 
-> Atlas is a pre-release purchasing intermediary and logistics agent for customers in Uzbekistan. It helps customers find products from foreign stores, review variants, and receive a preliminary delivered-cost estimate in Uzbek soum.
+> Atlas is a pre-release purchasing intermediary and logistics agent for customers in Uzbekistan, delivering to Tashkent. It helps customers find products from foreign stores, review variants, and receive a preliminary estimate of the cost delivered to Tashkent in Uzbek soum.
 
 ## What Atlas does
 
