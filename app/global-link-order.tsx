@@ -68,6 +68,7 @@ import {
 import { WasPrice } from "./market-ui";
 import { formatKg, formatSum } from "@/lib/market/format";
 import { cartCopy, countryLabel, linkOrderCopy } from "@/lib/market/customer-copy";
+import { extractSharedLink } from "@/lib/market/shared-link";
 import { ProductGallery } from "./product-gallery";
 import {
   communityDeals,
@@ -300,6 +301,17 @@ export function GlobalLinkOrder() {
   const loadSeq = useRef(0);
   const automaticallyLoaded = useRef<string | null>(null);
   const focusLinkField = useRef(false);
+  // "Поделиться → Atlas" brought text without a web link (app/share/route.ts): say so once and drop the mark from the address.
+  const sharedWithoutLink = searchParams.get("shared") === "nolink";
+  useEffect(() => {
+    if (!sharedWithoutLink) return;
+    toast.message(lc.sharedNoLink);
+    const address = new URL(window.location.href);
+    address.searchParams.delete("shared");
+    window.history.replaceState(window.history.state, "", address.pathname + address.search + address.hash);
+    document.getElementById("source-url")?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per arrival; the language does not reopen it
+  }, [sharedWithoutLink]);
   useEffect(() => {
     if (!showSourceForm || !focusLinkField.current) return;
     focusLinkField.current = false;
@@ -329,7 +341,8 @@ export function GlobalLinkOrder() {
   // (so back, forward and reload keep it), and says so. A link the customer started typing, or "Next item", clears that
   // pointer. A draft saved under an account waits until the account is known and is never shown to anyone else.
   // Until this is decided the empty link form is not drawn, so it does not flash before the draft.
-  const [resumeChecked,setResumeChecked]=useState(()=>Boolean(requestedUrl||catalogId));
+  // Arriving from "Поделиться → Atlas" without a link is a fresh start: the customer came to paste a new one.
+  const [resumeChecked,setResumeChecked]=useState(()=>Boolean(requestedUrl||catalogId||sharedWithoutLink));
   useEffect(()=>{
     if(resumeChecked)return;
     const last=requestedUrl||catalogId?null:readLastDraft(browserStorage());
@@ -812,7 +825,7 @@ export function GlobalLinkOrder() {
     let text = "";
     try { text = (await navigator.clipboard.readText()).trim(); } catch { /* denied or unsupported: paste by hand */ }
     // A link shared from an app often comes with its title around it.
-    const found = text.match(/https?:\/\/\S+/i)?.[0] ?? text;
+    const found = extractSharedLink(text) || text;
     let link = "";
     try { link = found ? validateSource(found) : ""; } catch { link = ""; }
     // The store may answer with its own address for the product, so the link that was opened counts as the same too.

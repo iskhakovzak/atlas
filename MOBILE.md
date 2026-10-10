@@ -21,6 +21,7 @@
 | Splash | `hideSplash()` после первого рендера; авто-скрытие через 3 с как страховка (офлайн-страница на Android не имеет доступа к плагинам) | `@capacitor/splash-screen` |
 | Клавиатура | `resize:'native'` в конфиге | `@capacitor/keyboard` |
 | Deep links / universal links / app links | `onAppUrlOpen` → `parseAppLink()` (`lib/native/links.ts`) | `@capacitor/app` |
+| «Поделиться → Atlas» (только Android): ссылка из приложения магазина открывает заказ по ссылке | `GET /share` (`app/share/route.ts`) разбирает текст и отвечает 303 на `/order-by-link?url=…` | intent-filter `ACTION_SEND` `text/plain`; `MainActivity` переписывает его в `ACTION_VIEW` на `https://atlasmarket.uz/share?text=…&title=…` (адрес запуска моста / `appUrlOpen`) |
 | Кнопка «Назад» (Android) | `onBackButton`: история назад; на `/` — выход из приложения | `@capacitor/app` |
 | Офлайн-страница | `server.errorPath: 'error.html'` | ядро Capacitor |
 
@@ -38,7 +39,7 @@
 - iOS (`mobile/ios/App/App/`): `Info.plist` — `CFBundleDisplayName Atlas`, `CFBundleURLTypes` со схемой, `NSCameraUsageDescription` и `NSPhotoLibraryUsageDescription` по-русски (фото паспорта/ID по выбору пользователя), `UIViewControllerBasedStatusBarAppearance true`, `ITSAppUsesNonExemptEncryption false`, `CFBundleLocalizations ru/uz/en`; `App.entitlements` — `com.apple.developer.applesignin ["Default"]`, `associated-domains ["applinks:atlasmarket.uz","webcredentials:atlasmarket.uz"]`, подключён в `project.pbxproj` (`CODE_SIGN_ENTITLEMENTS = App/App.entitlements` в Debug и Release, файл добавлен в группу App); `PrivacyInfo.xcprivacy` — `NSPrivacyTracking false`, собираемые данные (email, имя, телефон, адрес, история покупок, ID пользователя, фото) — linked, не для трекинга, цель App Functionality; категории API: UserDefaults `CA92.1`, FileTimestamp `C617.1`, SystemBootTime `35F9.1`, DiskSpace `E174.1`; файл добавлен в Resources фазу сборки. `MARKETING_VERSION = 1.0.0`.
 - `capacitor.config.ts`: `appId`, `appName`, `webDir 'www'`, `server {url, errorPath, cleartext:false}`, `ios {contentInset:'automatic', limitsNavigationsToAppBoundDomains:false}`, `android {allowMixedContent:false}`, плагины `SplashScreen`, `StatusBar` (`overlaysWebView:false`, `style:'LIGHT'`, белый фон), `SystemBars {insetsHandling:'native'}` (edge-to-edge на Android 15+), `Keyboard`. Имена опций сверены с `@capacitor/cli/dist/declarations.d.ts` и `definitions.d.ts` плагинов. Отличие от исходного ТЗ: `SplashScreen.launchAutoHide` оставлен `true` c `launchShowDuration 3000` — иначе при старте без сети на Android splash не исчезнет никогда (офлайн-страница не получает мост); сайт всё равно прячет splash сразу после рендера.
 
-**Запланировано, не сделано:** push-уведомления (нужны APNs-ключ и FCM; серверная часть — отдельный план в `TODO.md`), биометрическая блокировка, приём ссылок через системный share («поделиться в Atlas» → `/order-by-link`), автоматическая генерация скриншотов.
+**Запланировано, не сделано:** push-уведомления (нужны APNs-ключ и FCM; серверная часть — отдельный план в `TODO.md`), биометрическая блокировка, iOS Share Extension для «Поделиться → Atlas» (на Android сделано, см. ниже), автоматическая генерация скриншотов.
 
 ## 2. Покрытие чек-листа сторов (10 пунктов владельца)
 

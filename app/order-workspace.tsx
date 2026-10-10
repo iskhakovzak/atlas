@@ -79,7 +79,7 @@ import { homeCopy } from "@/lib/market/home-copy";
 import { formatKg, formatPercent, formatSum } from "@/lib/market/format";
 import { localizeLegacyStoredCopy, renderHistory, renderNotification } from "@/lib/market/history-copy";
 import { deliveryDaysFor, deliveryRegions, siteContent, type DeliveryRegion } from "@/lib/market/site-content";
-import { groupOrders, groupStageText, groupStoreNames, isParcelServiceRequest, orderCustomerTotal, orderGroupCopy, parcelServicesFor, storeGroupName, storeShortName, type OrderGroup, type OrderStoreGroup, type ParcelServiceRequest } from "@/lib/market/order-groups";
+import { groupOrders, groupStageText, groupStoreNames, isParcelServiceRequest, orderCustomerTotal, orderGroupCopy, parcelServicesFor, shipAddressText, storeGroupName, storeShortName, type OrderGroup, type OrderStoreGroup, type ParcelServiceRequest } from "@/lib/market/order-groups";
 import { balanceCopy, countryLabel, formatDateTime, formatShortDate, itemCount, noticesCopy, orderCount, ordersCopy } from "@/lib/market/customer-copy";
 import { allowanceMonth, countsTowardAllowance, monthOf, monthlyUsedFor, orderPerson, orderRecipientName, recipientKey } from "@/lib/market/allowance";
 import { courierAllowanceUsd } from "@/lib/market/customs";
@@ -788,7 +788,7 @@ function CustomerOrderLine({ order: o, siblings, showThumb, headerStage, sharedD
         <div><dt>{gc.delivery}</dt><dd>{gc.speed[speed]}{days && <small>{gc.days(days[0], days[1])}</small>}</dd></div>
         {/* The line's sum is on its row already: repeat it here only when it moved since the checkout. */}
         {payable !== o.quote.total && <div><dt>{c.total}</dt><dd><b><Money value={payable} locale={locale} /></b><small>{c.atCheckout(formatSum(o.quote.total, locale))}</small></dd></div>}
-        {o.parcel && <div><dt>{c.tracking}</dt><dd>{o.parcel.carrier}<span className="order-x-track"><span className="order-x-id">{o.parcel.trackingNumber}</span><CopyText text={o.parcel.trackingNumber} locale={locale} /></span><small>{lastParcelEvent ?? ow.parcelRegistered}{o.parcel.warehouseCode ? ` · ${locale === "ru" ? "склад" : isUzbek(locale) ? uzText(locale, "ombor") : "warehouse"} ${o.parcel.warehouseCode}` : ""}</small></dd></div>}
+        {o.parcel && <div><dt>{c.tracking}</dt><dd>{o.parcel.carrier}<span className="order-x-track"><span className="order-x-id">{o.parcel.trackingNumber}</span><CopyText what="tracking" text={o.parcel.trackingNumber} locale={locale} /></span><small>{lastParcelEvent ?? ow.parcelRegistered}{o.parcel.warehouseCode ? ` · ${locale === "ru" ? "склад" : isUzbek(locale) ? uzText(locale, "ombor") : "warehouse"} ${o.parcel.warehouseCode}` : ""}</small></dd></div>}
       </dl>
 
       {latest && <p className="og-latest"><Clock3 size={16} aria-hidden="true" /><span><b>{gc.latest}</b> · <time dateTime={isoTime(latest.at)}>{formatDateTime(latest.at, locale)}</time><span className="og-latest-text">{renderHistory(latest, locale)}</span></span></p>}
@@ -904,6 +904,8 @@ function OrderGroupCard({ group, locale, pricing, busy, allowanceUsd, passports,
       <div className="order-group-main">
         <b className="order-group-title">{title}</b>
         <small>{[itemCount(group.items || live, locale), stores.join(", ")].filter(Boolean).join(" · ")}</small>
+        {/* One order: its number on the card for support, copied in one tap. Several keep theirs on each line. */}
+        {group.orders.length === 1 && <span className="og-head-id"><span className="sr-only">{c.orderNumber}: </span><span className="order-x-id">{group.orders[0].id}</span><CopyText text={group.orders[0].id} locale={locale} /></span>}
         <span className="order-group-badges">
           <span className={"order-x-status " + stage.tone}>{stage.label}</span>
           {group.attention > 0 && <span className="order-x-status warn"><AlertCircle size={13} aria-hidden="true" />{gc.action(group.attention)}</span>}
@@ -925,6 +927,8 @@ function OrderGroupCard({ group, locale, pricing, busy, allowanceUsd, passports,
             <span className="og-ship-who"><span className="sr-only">{gc.recipient}: </span><b>{ship.profile.recipient}</b>{ship.profile.phone && <a className="order-x-link" href={`tel:${ship.profile.phone.replace(/[^\d+]/g, "")}`}>{ship.profile.phone}</a>}</span>
             <small>{[ship.profile.city || ship.profile.region, ship.profile.address].filter(Boolean).join(", ")} · {gc.speed[ship.speed]}</small>
           </p>
+          {/* For a message to a courier or a relative: name, phone, address and postal code in one line. */}
+          <CopyText what="address" locale={locale} text={shipAddressText(ship.profile)} />
         </div>}
         {/* Not needed to pay: customs needs it before shipping. Beside the recipient it is about, the name is not repeated. */}
         {passports.map((passport) => <div className="orders-passport og-passport" key={passport.id} role="note">

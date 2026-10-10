@@ -8,7 +8,7 @@ import Link from "@/components/site-link";
 import { ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ClipboardPaste, Clock3, Heart, Info, Loader2, MessageSquare, Minus, Plus, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
-import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, customsHelpChosen, inCheckout, isPostalCode, maxLineQuantity, parcelServiceUnits, storeDiscount, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, parcelValueUsd, valueServiceRate, withCustomsHelpFor, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
+import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, customsHelpChosen, deliveryAddressLine, inCheckout, isPostalCode, maxLineQuantity, parcelServiceUnits, storeDiscount, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, parcelValueUsd, valueServiceRate, withCustomsHelpFor, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
 import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, savingText } from "@/lib/market/delivery-speed";
 import { countryName, customsVersion } from "@/lib/market/world";
 import { formatPercent, formatSum, formatUsd } from "@/lib/market/format";
@@ -645,11 +645,12 @@ export function CartView() {
               const served = isServedRegion(profile.region);
               return <label className={"recipient-choice" + (selectedProfile === profile.id ? " selected" : "") + (served ? "" : " unavailable")} key={profile.id}>
                 <input type="radio" name="checkout-recipient" value={profile.id} disabled={!served} checked={selectedProfile === profile.id} onChange={() => { setSelectedProfile(profile.id); setDelivery(profile); }} />
+                {/* Two rows instead of four (10.10.2026): who and the phone, then where and the passport on the right. */}
                 <span className="recipient-choice-body">
-                  <strong>{named ? profile.label : profile.recipient}{profile.primary && <em>{c.checkout.primary}</em>}</strong>
-                  <span>{named && <>{profile.recipient} · </>}<span className="nowrap">{profile.phone}</span></span>
-                  <small>{[profile.region, profile.city, profile.address, profile.postalCode].filter(Boolean).join(", ")}</small>
-                  {served ? <small className={passport ? "recipient-passport-ok" : "recipient-passport-missing"}>{passport ? c.checkout.passportOk : c.checkout.passportMissing}</small> : <small className="recipient-passport-missing">{c.checkout.outsideServed}</small>}
+                  <strong>{named ? profile.label : profile.recipient}{named && <span className="rc-person">{profile.recipient}</span>}{profile.primary && <em>{c.checkout.primary}</em>}</strong>
+                  <span className="rc-phone nowrap">{profile.phone}</span>
+                  <small className="rc-where">{deliveryAddressLine(profile)}</small>
+                  {served ? <small className={"rc-passport " + (passport ? "recipient-passport-ok" : "recipient-passport-missing")}>{passport ? c.checkout.passportOk : c.checkout.passportMissing}</small> : <small className="rc-passport recipient-passport-missing">{c.checkout.outsideServed}</small>}
                 </span>
               </label>;
             })}
@@ -691,7 +692,7 @@ export function CartView() {
           <div className="review-aside">
             <CheckoutChecklist locale={locale} items={[
               { key: "variants", label: s.review.variants, value: s.review.variantsValue(lines.length, count), ok: !lines.some(blockingSourceIssue) },
-              { key: "recipient", label: s.review.recipient, value: <>{delivery.recipient}, {delivery.phone}<br />{[delivery.region, delivery.city, delivery.address, delivery.postalCode].filter(Boolean).join(", ")}</>, onChange: () => showReview(false) },
+              { key: "recipient", label: s.review.recipient, value: <>{delivery.recipient}, {delivery.phone}<br />{deliveryAddressLine(delivery)}</>, onChange: () => showReview(false) },
               { key: "speed", label: s.review.speed, value: deliverySpeedCopy[locale].names[speed] },
               { key: "services", label: s.review.services, value: (() => { const services = new Set(lines.flatMap(item => item.requestedServiceIds ?? [])).size, notes = lines.filter(item => item.note?.trim()).length; return services || notes ? s.review.servicesValue(services, notes) : s.review.servicesNone; })() },
               // Who pays the duty matters only when this recipient owes some.

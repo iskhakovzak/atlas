@@ -624,6 +624,12 @@ export const deliveryProfileSchema = z.object({
   comment: z.string().trim().max(300).default(""),
 });
 export type DeliveryProfile = z.infer<typeof deliveryProfileSchema>;
+/** Region, city, street and postal code in one line; Tashkent the region and Tashkent the city are said once. */
+export function deliveryAddressLine(profile: Pick<DeliveryProfile, 'region' | 'city' | 'address'> & { postalCode?: string }) {
+  const region = profile.region?.trim() ?? '', city = profile.city?.trim() ?? '';
+  const place = region && city && region.toLowerCase() === city.toLowerCase() ? [city] : [region, city];
+  return [...place, profile.address, profile.postalCode].map((part) => part?.trim()).filter(Boolean).join(', ');
+}
 /**
  * Uzbekistan postal codes are six digits. Every new address needs one (owner's decision, 5.10.2026);
  * recipients and orders saved earlier may have none, so the stored schema keeps the field optional.
