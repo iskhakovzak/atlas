@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowRight, Receipt } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/market/toast";
 import { orderInsuranceRate, pendingExtraCharge, type ExtraCharge, type Order } from "@/lib/market/domain";
 import type { Action } from "@/lib/market/actions";
 import type { Locale } from "@/lib/market/i18n";

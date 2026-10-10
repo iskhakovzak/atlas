@@ -31,7 +31,6 @@
 }
 .basket-none-hint { display: flex; align-items: center; gap: 8px; margin: 10px 0 0; font-size: 14px; color: var(--day-muted, #58635c); }
 .basket-later-note { margin: 8px 0 0; font-size: 13px; color: var(--day-muted, #58635c); }
-.basket-cta[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
 
 /* ---------- cart: services of a store parcel ---------- */
 .basket-parcel-services { margin: 4px 0 0; }

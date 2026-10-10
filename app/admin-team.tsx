@@ -2,7 +2,7 @@
 // Admin → Команда: the staff form, the invitation text, filters, last sign-in, deactivation with a reason and the rights table.
 import {useMemo,useState} from "react";
 import {Copy,ShieldCheck,TriangleAlert,UserX} from "lucide-react";
-import {toast} from "sonner";
+import { toast } from "@/lib/market/toast";
 import {permissions,rolePermissions,staffRoles,type Permission,type StaffRole,type StaffStatus} from "@/lib/market/access";
 import {filterStaff,inviteText} from "@/lib/market/admin-dashboard";
 import {Modal} from "./market-ui";

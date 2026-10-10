@@ -21,7 +21,7 @@ import {
 } from '@/lib/market/catalog-query';
 import type { Locale } from '@/lib/market/i18n';
 import { CatalogCard, CatalogSkeleton, StoreMark } from './catalog-card';
-import { ProductSheet } from './product-sheet';
+import { LazyProductSheet, preloadProductSheet } from './product-sheet-lazy';
 import { useSheetSide } from './use-sheet-side';
 import {uzText} from '@/lib/market/uz-cyrl';
 import {isUzbek} from '@/lib/market/i18n';
@@ -145,7 +145,7 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
     <div className={'catalog-layout' + (showControls ? '' : ' catalog-layout-plain')}>
       {showControls && <aside className="catalog-sidebar" aria-label={cc.filtersTitle}><FilterPanel query={query} setQuery={setQuery} facets={facets} cc={cc} pool={pool.length} locale={locale} dutyHint={dutyHint} /></aside>}
       <section className="catalog-results" aria-label={mode === 'favorites' ? copy.saved : cc.title}>
-        {!catalogReady ? <CatalogSkeleton label={cc.loading} /> : visible.length > 0 ? <div className="finds-grid">
+        {!catalogReady ? <CatalogSkeleton label={cc.loading} /> : visible.length > 0 ? <div className="finds-grid" onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>
           {visible.map((item) => <CatalogCard key={item.product.id} item={item} locale={locale} select={setSelected}
             saved={state.favorites.includes(item.product.id)} canSave={ready} saving={saving !== null} onSave={() => void save(item.product)}
             signals={signalsOf(item)} inCart={inCart(item.product)} speed={speed} />)}
@@ -166,7 +166,7 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
         <footer>{filterCount > 0 && <button type="button" className="btn secondary" onClick={() => setQuery({ ...emptyCatalogQuery, q: query.q, category: query.category, sort: query.sort, collection: query.collection })}>{cc.reset}</button>}<button type="button" className="btn primary" onClick={() => setFiltersOpen(false)}>{cc.show(list.length)}</button></footer>
       </SheetContent>
     </Sheet>
-    <ProductSheet product={selected} onClose={() => setSelected(null)} />
+    <LazyProductSheet product={selected} onClose={() => setSelected(null)} />
   </div></TooltipProvider>;
 }
 

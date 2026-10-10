@@ -41,7 +41,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
+import { toast } from "@/lib/market/toast";
 import { CopyText } from "./copy-text";
 import { useMarket } from "@/lib/market/store";
 import { hasPermission } from "@/lib/market/access";

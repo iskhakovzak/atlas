@@ -2,7 +2,7 @@
 
 import {useCallback,useEffect,useState} from 'react';
 import {KeyRound,Mail,MessageCircle,Plus,Smartphone} from 'lucide-react';
-import {toast} from 'sonner';
+import { toast } from '@/lib/market/toast';
 import type {Locale} from '@/lib/market/i18n';
 import {Modal} from './market-ui';
 import {isNative} from '@/lib/native/bridge';

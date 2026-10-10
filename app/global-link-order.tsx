@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AlertCircle, ArrowRight, Check, ExternalLink, Info, Link2, Loader2, Lock, Minus, Plus, ShieldCheck, ShoppingBag, X } from "lucide-react";
 import Link from "@/components/site-link";
-import { toast } from "sonner";
+import { toast } from "@/lib/market/toast";
 import { useMarket } from "@/lib/market/store";
 import { signInPath } from "@/lib/market/access";
 import { catalogOrderVariants } from "@/lib/market/catalog";

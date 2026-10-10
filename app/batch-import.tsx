@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 import {useState} from "react";
 import {Check,ExternalLink,ListPlus,Loader2,ShoppingBag} from "lucide-react";
-import {toast} from "sonner";
+import { toast } from "@/lib/market/toast";
 import {useMarket} from "@/lib/market/store";
 import {safeImage,inferProductCategory,type Extracted,type ProductVariant} from "@/lib/importer/extract";
 import {currencies,toUsd,paddedWeight} from "@/lib/market/world";

@@ -18,7 +18,7 @@ import { formatSum } from "@/lib/market/format";
 import { accountCopy, formatLongDate, formatShortDate, itemCount, recipientCopy, type AccountCopy } from "@/lib/market/customer-copy";
 import { consentDocuments, consentVersion, deletionBlockers, deletionSummary, missingConsents } from "@/lib/market/account-delete";
 import { appInfo, isNative, nativePlatform, type AppInfo } from "@/lib/native/bridge";
-import { toast } from "sonner";
+import { toast } from "@/lib/market/toast";
 import { Modal } from "./market-ui";
 import { Money } from "./money";
 import { SafeDeleteButton } from "./safe-delete-button";

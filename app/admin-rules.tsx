@@ -2,7 +2,7 @@
 // Admin → Правила: the limits form with field validation and the policy history from the audit log.
 import {useMemo,useState} from "react";
 import {History,Settings2} from "lucide-react";
-import {toast} from "sonner";
+import { toast } from "@/lib/market/toast";
 import type {Policy} from "@/lib/market/policy";
 import {policyErrors,policyHistory,type PolicyDraft} from "@/lib/market/admin-dashboard";
 import {dateTime,postOperations,type AuditEvent} from "./admin-shared";
