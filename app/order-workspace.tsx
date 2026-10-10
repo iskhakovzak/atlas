@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "@/components/site-link";
+import { shownBrand } from "@/lib/importer/brand-name";
 import {
   AlertCircle,
   ArrowDownLeft,
@@ -74,17 +75,17 @@ import { countries } from "@/lib/market/world";
 import { localizedStatuses, type Locale } from "@/lib/market/i18n";
 import {requestImport} from "@/lib/market/import-client";
 import { homeCopy } from "@/lib/market/home-copy";
-import { formatSum } from "@/lib/market/format";
+import { formatKg, formatSum } from "@/lib/market/format";
 import { localizeLegacyStoredCopy, renderHistory, renderNotification } from "@/lib/market/history-copy";
 import { deliveryDaysFor, deliveryRegions, siteContent, type DeliveryRegion } from "@/lib/market/site-content";
-import { groupOrders, groupStageText, groupStoreNames, isParcelServiceRequest, orderGroupCopy, parcelServicesFor, storeGroupName, storeShortName, type OrderGroup, type OrderStoreGroup, type ParcelServiceRequest } from "@/lib/market/order-groups";
+import { groupOrders, groupStageText, groupStoreNames, isParcelServiceRequest, orderCustomerTotal, orderGroupCopy, parcelServicesFor, storeGroupName, storeShortName, type OrderGroup, type OrderStoreGroup, type ParcelServiceRequest } from "@/lib/market/order-groups";
 import { balanceCopy, countryLabel, formatDateTime, formatShortDate, itemCount, noticesCopy, orderCount, ordersCopy } from "@/lib/market/customer-copy";
 import { allowanceMonth, countsTowardAllowance, monthOf, monthlyUsedFor, orderPerson, orderRecipientName, recipientKey } from "@/lib/market/allowance";
 import { courierAllowanceUsd } from "@/lib/market/customs";
 import { calcCopy } from "@/lib/market/calc-copy";
 import { usdText } from "./calc-summary";
 import { Money } from "./money";
-import { CustomerExtraCharge, ExtraChargeHistory, OperatorExtraCharges, extraChargeCopy } from "./order-extra-charges";
+import { CustomerExtraCharge, ExtraChargeHistory, OperatorExtraCharges } from "./order-extra-charges";
 import {
   PageHeading,
   Empty,
@@ -96,12 +97,7 @@ import { CostLines } from "./cost-lines";
 import {withCyrillic,pickLocale,uzText} from '@/lib/market/uz-cyrl';
 import {isUzbek} from '@/lib/market/i18n';
 // Payments are simulated: the notice speaks of a placed request, never of a payment received.
-// The payment note is said once, in the order's own action block.
-const passportCopy: Record<Locale, { title: (name: string) => string; text: string; action: string }> = /*@__PURE__*/withCyrillic({
-  ru: { title: name => `Нужен паспорт получателя: ${name}`, text: "Заявка оформлена. Чтобы подготовить декларацию и таможенное оформление, привяжите паспорт именно этого получателя.", action: "Привязать паспорт" },
-  uz: { title: name => `Qabul qiluvchi pasporti kerak: ${name}`, text: "Ariza rasmiylashtirildi. Deklaratsiya va bojxona rasmiylashtiruvi uchun aynan shu qabul qiluvchining pasportini biriktiring.", action: "Pasportni biriktirish" },
-  en: { title: name => `Recipient passport needed: ${name}`, text: "The request is placed. To prepare the declaration and customs clearance, link this recipient’s own passport.", action: "Link passport" },
-});
+// The provider note is said once, in the pay / доплата confirmation dialog; elsewhere only the payment status.
 const storeShippingExtra = (o: Order) =>
   !o.storeShippingExtraApproved ? (o.storeShippingSettlement?.extra ?? 0) : 0;
 const warehouseExtra = (o: Order) =>
@@ -140,7 +136,49 @@ const storeShippingNotCredited: Record<Locale, (amount: string) => string> = /*@
   uz: (amount) => `Yetkazib berish zaxiradan ${amount} arzonroq; buyurtma bo‘yicha to‘lov qayd etilmagan — balansga hech narsa yozilmadi`,
   en: (amount) => `Delivery is ${amount} below the reserve; no payment is recorded for the order, so nothing was credited to the balance`,
 });
-const localeTag = (locale: Locale) => locale === "ru" ? "ru-RU" : isUzbek(locale) ? uzText(locale, "uz-UZ") : "en-US";
+// The customer's wording of the same case: calm, without "not recorded / nothing credited".
+const storeShippingNoRefund: Record<Locale, (amount: string) => string> = /*@__PURE__*/withCyrillic({
+  ru: (amount) => `Доставка дешевле резерва на ${amount}; заказ ещё не был оплачен — возвращать нечего`,
+  uz: (amount) => `Yetkazib berish zaxiradan ${amount} arzonroq; buyurtma hali to‘lanmagan — qaytariladigan narsa yo‘q`,
+  en: (amount) => `Delivery is ${amount} below the reserve; the order was not paid yet, so there is nothing to return`,
+});
+const lineCopy = /*@__PURE__*/withCyrillic({
+  ru: { serviceOnly: "Подтверждение относится только к этой услуге.", intake: "Отметки склада после осмотра", dutyApproved: " — согласована" },
+  uz: { serviceOnly: "Tasdiq faqat shu xizmatga tegishli.", intake: "Ko‘rikdan keyingi ombor belgilari", dutyApproved: " — kelishilgan" },
+  en: { serviceOnly: "Approval applies only to this service.", intake: "Warehouse notes after inspection", dutyApproved: " — approved" },
+});
+const isoTime = (at: number) => new Date(at).toISOString();
+// Dates here are numeric; browsers spell "uz-UZ" as "2026 M10 3", so Uzbek takes the same day.month.year as Russian.
+const localeTag = (locale: Locale) => locale === "en" ? "en-US" : "ru-RU";
+const kgText = (value: number, locale: Locale) => new Intl.NumberFormat(localeTag(locale), { maximumFractionDigits: 2 }).format(value);
+/** The one "why" line of a доплата: weighing (actual vs estimated parcel weight), duty, or store delivery. */
+function extraWhy(o: Order, siblings: readonly Order[], locale: Locale) {
+  const t = orderGroupCopy[locale].pay;
+  if (storeShippingExtra(o)) return t.whyStore;
+  if (!warehouseExtra(o) || !o.settlement) return t.whyDuty;
+  // A store parcel is weighed once: compare with the estimate of every line weighed together.
+  const ids = o.settlement.parcelOrderIds ?? [o.id];
+  const parcel = siblings.filter((item) => ids.includes(item.id));
+  const estimated = parcel.length === ids.length ? parcel.reduce((sum, item) => sum + item.quote.weight, 0) : 0;
+  const actual = o.settlement.chargeableWeight;
+  return estimated > 0 && actual > estimated ? t.whyWeight(kgText(actual, locale), kgText(estimated, locale)) : t.whyWeightPlain;
+}
+/**
+ * The store-delivery reserve of lines the manager still checks with the store: since 4 October 2026 a hold apart from
+ * the order sum, earlier a reserve inside it. One text for a whole store parcel (amounts summed over its lines).
+ */
+function storeReserveText(lines: readonly Order[], locale: Locale, pricing: Pricing): ReactNode {
+  const ow = customerOrderCopy[locale];
+  if (!lines.length) return null;
+  if (lines.every((o) => o.quote.storeShippingHold !== undefined)) {
+    const hold = lines.reduce((sum, o) => sum + (o.quote.storeShippingHold ?? 0), 0);
+    return hold > 0 ? <>{calcCopy[locale].hold}: {formatSum(hold, locale)} — {calcCopy[locale].holdNote.toLocaleLowerCase(locale === "en" ? "en-US" : "ru-RU")}. {ow.beforeBuyout}</> : calcCopy[locale].freeNote(usdText(pricing.storeShippingFreeFromUsd ?? 50, locale));
+  }
+  const reserve = lines.reduce((sum, o) => sum + (o.quote.sourceShipping ?? 0), 0);
+  return reserve ? <>{ow.reserveIncluded} {formatSum(reserve, locale)}. {ow.beforeBuyout}</> : ow.reserveWaived;
+}
+const groupCopyFor = (locale: Locale) => orderGroupCopy[locale];
+const managerChecks = (o: Order) => !o.cancelled && o.status === 0 && o.product.sourceShippingEstimated === true && !o.storeShippingSettlement;
 const customerOrderCopy = /*@__PURE__*/withCyrillic({
   ru: {
     loginTitle: "Войдите, чтобы открыть заказы", loginDescription: "История покупок, фото и расчёты доступны в вашем профиле Atlas.", loginLabel: "Открыть вход", loading: "Загружаем заказы…", emptyTitle: "Здесь начнётся путь вашей покупки", emptyDescription: "Оформите заказ из корзины, чтобы попробовать выкуп, склад и доставку.", choose: "Выбрать товар", filteredTitle: "В этом разделе пока пусто", filteredDescription: "Измените фильтр или поисковый запрос.", search: "Поиск заказа", source: "Источник товара", loadPhoto: "Загрузить фото из ссылки", loadingPhoto: "Загружаем…", checkoutTotal: "Сумма при оформлении", checkoutAt: "При оформлении", buyer: "Покупатель", cancelled: "Отменён", needDecision: "Нужно решение", extra: "Требуется доплата", awaitingPayment: "Ожидает оплаты", paymentWaiting: "Платёжный провайдер не подключён", paymentPaid: "Отметка сохранена в Atlas; провайдером не подтверждена", paymentRefunded: "Возврат отмечен во внутреннем балансе Atlas; перевода нет", paymentLine: "Платёж", noCharge: "Платёжный провайдер не подключён", providerPassed: "Платёжный провайдер не подключён", recordPayment: "Записать статус в Atlas", recipient: "Получатель", tracking: "Трек-номер", parcelRegistered: "Посылка зарегистрирована", warehouseDone: "Приёмка на складе завершена", warehouseProblem: "Склад зафиксировал проблему", received: "Получено", operations: "Операции", noOperations: "Дополнительные операции не назначены", agreements: "Согласования по заказу", pending: "НУЖНО РЕШЕНИЕ", approved: "ПОДТВЕРЖДЕНО", declined: "ОТКЛОНЕНО", reject: "Отклонить", confirm: "Подтвердить", managerChecking: "Менеджер подтверждает доставку у магазина", reserveIncluded: "В сумму заказа включён резерв", reserveWaived: "Резерв на доставку магазина не включён: при товарах из магазина дороже $50 доставка магазина для вас бесплатна. Если магазин всё же возьмёт плату, доплата — только с вашего согласия.", beforeBuyout: "Перед выкупом вы увидите подтверждённую стоимость.", managerConfirmed: "Менеджер подтвердил доставку магазина", actual: "Фактическая стоимость", reservedAtCheckout: "Резерв при оформлении", refundToBalance: "Вернули на баланс", extraApproved: "Доплата подтверждена", needApprove: "Нужно согласовать", reserveMatch: "Сумма совпала с резервом", balance: "Баланс", shippingOver: "Доставка превысила резерв", shippingCheaper: "Доставка оказалась дешевле", shippingRecalculated: "Доставка пересчитана", payableWeight: "Оплачиваемый вес", cost: "Стоимость", noExtra: "Доплата не требуется", checkExtra: "Проверить доплату", confirmStore: "Подтвердить доставку магазина", confirmBuyout: "Подтвердить выкуп", receiveWarehouse: "Принять на склад", weigh: "Взвесить и пересчитать", sendUzbekistan: "Отправить в Узбекистан", confirmDelivery: "Подтвердить доставку", sendAfterApproval: "Отправка станет доступна после подтверждения в разделе «Мои заказы».", saveReceivingFirst: "Сначала сохраните приёмку товара в блоке оператора.", payFirst: "Выкуп станет доступен после подключения платёжного провайдера и подтверждения оплаты.", trackingFirst: "Перед отправкой добавьте перевозчика и трек-номер.", calculationHistory: "Расчёт и история", customsAccepted: "Таможенные условия приняты", balanceUsed: "Учтено во внутреннем балансе Atlas", actualWeight: "Фактический вес", dimensional: "Объёмный", cancelOrder: "Отменить заказ", storeModalTitle: "Доставка от магазина до склада", storeModalDescription: "Укажите фактическую итоговую стоимость в долларах. Если она ниже резерва, разница сразу вернётся покупателю на баланс.", actualStoreShipping: "Фактическая доставка магазина, USD", reserved: "Было заложено", saveRecalculate: "Подтвердить и пересчитать", warehouseModalTitle: "Взвешивание на складе", warehouseModalDescription: "Вес и размеры всей посылки, включая упаковку. Тариф зафиксирован в заказе.", dimensions: ["Фактический вес, кг", "Длина, см", "Ширина, см", "Высота, см"], volumeWeight: "Объёмный вес", paidShipping: "Было оплачено за доставку", afterWeighing: "После взвешивания", requestExtra: "Запросить доплату", returnBalance: "Зачислить во внутренний баланс Atlas", invalidValues: "Укажите корректные положительные значения.", confirmRecalculate: "Подтвердить перерасчёт", cancelTitle: "Отменить заказ до выкупа?", paymentTitle: "Записать статус оплаты в Atlas?", extraTitle: "Подтвердить сумму доплаты?", cancelDescription: "Заказ будет отменён, а запись внутреннего баланса Atlas пересчитана. Перевод денег не выполняется.", paymentDescription: "Действие изменит только статус заказа в Atlas. Платёжный провайдер не подключён: деньги не списываются, подтверждения банка нет.", extraDescription: "Подтверждение сохранит сумму для дальнейшего согласования. Платёжный провайдер не подключён, деньги не списываются.", refund: "К зачислению на внутренний баланс Atlas", paymentStatusLabel: "Статус оплаты в Atlas", toPay: "К доплате", back: "Назад", saveChanges: "Изменения сохранены", saving: "Сохраняем…", statusUpdated: "Статус заказа обновлён", photoUpdated: "Фото заказа обновлено"
@@ -628,20 +666,23 @@ const intakeTagCopy = {
  * this very order. The first screen answers what was ordered, at which stage, for whom, how it travels and what to do
  * now, with the latest event; the calculation, approvals, services, documents and full history fold away below.
  */
-function CustomerOrderLine({ order: o, siblings, showThumb, sharedDelivery = false, locale, pricing, busy, expanded, onToggle, run, confirm, loadPhoto, allowanceUsd, storeCredited = 0 }: {
+function CustomerOrderLine({ order: o, siblings, showThumb, headerStage, sharedDelivery = false, locale, pricing, busy, photoBusy, expanded, onToggle, run, confirm, loadPhoto, storeCredited = 0 }: {
   order: Order;
+  /** The stage the checkout heading shows (`groupStageText`): a row at that very stage does not repeat it. */
+  headerStage?: string;
   /** All lines of the checkout: parcel-wide service requests kept on another line still cover this one. */
   siblings: readonly Order[];
   /** The variants of this model have different photos (colors): show this line's own. */
   showThumb: boolean;
   /** The checkout card already names the recipient and address (`OrderGroup.delivery`): do not repeat them here. */
   sharedDelivery?: boolean;
-  allowanceUsd?: number;
   /** Store-delivery difference actually credited to the balance (legacy orders without a separate hold). */
   storeCredited?: number;
   locale: Locale;
   pricing: Pricing;
   busy: boolean;
+  /** The photo of this very line is loading (other lines stay usable). */
+  photoBusy: boolean;
   expanded: boolean;
   onToggle: (open: boolean) => void;
   run: (action: Action) => Promise<boolean>;
@@ -652,18 +693,21 @@ function CustomerOrderLine({ order: o, siblings, showThumb, sharedDelivery = fal
   const c = ordersCopy[locale];
   const gc = orderGroupCopy[locale];
   const statuses = localizedStatuses(locale);
-  const payable = orderPayable(o);
+  // What the line costs now, every approved доплата and return included (display only; the books keep orderPayable).
+  const payable = orderCustomerTotal(o);
   const extra = isExtra(o), changePending = pendingChange(o);
+  const waitsPayment = !o.cancelled && o.payment?.status === "pending";
   const invoice = (o.extraCharges ?? []).some(charge => charge.status === "pending");
   // The payment is the whole checkout's: it waits on the order card above, not on each line.
   const needsAction = !o.cancelled && (extra || changePending || invoice);
   // The line's own stage stays visible next to the action flag; before the checkout's payment nothing is bought yet.
-  const stage = o.cancelled ? ow.cancelled : o.payment?.status === "refunded" ? refundMarkerCopy[locale] : o.payment?.status === "pending" ? ow.awaitingPayment : statuses[o.status];
+  const stage = o.cancelled ? ow.cancelled : o.payment?.status === "refunded" ? refundMarkerCopy[locale] : o.payment?.status === "pending" ? gc.awaitingPayment : statuses[o.status];
+  // The checkout heading already names this very stage ("Ожидает оплаты", "В пути"): no copy of it on every row.
+  const stageOnRow = stage !== headerStage;
   const tone = o.cancelled || o.payment?.status === "refunded" ? "muted" : o.status === 5 ? "ok" : "info";
   const pendingRequests = (o.changeRequests ?? []).filter(request => request.status === "pending");
   const resolvedRequests = (o.changeRequests ?? []).filter(request => request.status !== "pending").reverse();
   const kg = locale === "ru" ? "кг" : "kg";
-  const country = countryLabel(o.product.country ?? "США", locale);
   const lastParcelEvent = o.parcel?.events.at(-1)?.status;
   const latest = o.history.reduce<Order["history"][number] | undefined>((last, entry) => !last || entry.at >= last.at ? entry : last, undefined);
   // Delivery speed of the order's quote snapshot (orders placed before the choice are express); days by dispatch region.
@@ -677,7 +721,7 @@ function CustomerOrderLine({ order: o, siblings, showThumb, sharedDelivery = fal
       <span className="og-line-variant">{o.variant || gc.noVariant}</span>
       <span className="og-line-qty">× {o.quantity}</span>
       <span className="og-line-flags">
-        <span className={"order-x-status " + tone}>{stage}</span>
+        {stageOnRow && <span className={"order-x-status " + tone}>{stage}</span>}
         {needsAction && <span className="order-x-status warn">{gc.action(1)}</span>}
       </span>
       <strong className="og-line-sum"><Money value={payable} locale={locale} /></strong>
@@ -686,11 +730,10 @@ function CustomerOrderLine({ order: o, siblings, showThumb, sharedDelivery = fal
     {expanded && <div className="order-x-body og-line-body">
       <div className="og-line-head">
         <div className="og-line-what">
-          <b>{o.product.name}</b>
-          <small>{[o.variant, c.quantity(o.quantity), country].filter(Boolean).join(" · ")}</small>
+          {/* The line's summary just above names the product, variant and quantity; the open line does not say them again. */}
           <span className="og-line-links">
             {/* The store link lives on the model header above; only the photo loader stays per line. */}
-            {o.product.sourceUrl && !o.product.image && <button type="button" className="text-button" disabled={busy} onClick={() => loadPhoto(o)}>{busy ? ow.loadingPhoto : ow.loadPhoto}</button>}
+            {o.product.sourceUrl && !o.product.image && <button type="button" className="text-button" disabled={photoBusy} onClick={() => loadPhoto(o)}>{photoBusy ? ow.loadingPhoto : ow.loadPhoto}</button>}
           </span>
         </div>
         <p className="og-line-id"><span className="sr-only">{c.orderNumber}: </span><span className="order-x-id">{o.id}</span><CopyText text={o.id} locale={locale} /></p>
@@ -703,7 +746,7 @@ function CustomerOrderLine({ order: o, siblings, showThumb, sharedDelivery = fal
           <AlertCircle size={20} aria-hidden="true" />
           <div>
             <h3>{request.title}</h3><p>{request.reason}</p>
-            {request.warehouseServiceRequestId && <p className="micro">{locale === "ru" ? "Подтверждение относится только к этой услуге. Платёжный провайдер не подключён, а выполнение ещё не подтверждено." : isUzbek(locale) ? uzText(locale, "Tasdiq faqat shu xizmatga tegishli. To‘lov provayderi ulanmagan, xizmat bajarilgani hali tasdiqlanmagan.") : "Approval applies only to this service. No payment provider is connected, and fulfilment has not been confirmed."}</p>}
+            {request.warehouseServiceRequestId && <p className="micro">{lineCopy[locale].serviceOnly}</p>}
             {(request.previousValue || request.proposedValue) && <p className="change-values"><span>{request.previousValue || "—"}</span><ArrowRight size={15} aria-hidden="true" /><b>{request.proposedValue || "—"}</b></p>}
             {request.amountDelta !== 0 && <strong className="order-x-delta">{request.amountDelta > 0 ? "+" : "−"}{formatSum(Math.abs(request.amountDelta), locale)}</strong>}
           </div>
@@ -712,41 +755,39 @@ function CustomerOrderLine({ order: o, siblings, showThumb, sharedDelivery = fal
             <button type="button" className="btn primary" disabled={busy} onClick={() => void run({ type: "change-request-respond", id: o.id, requestId: request.id, decision: "approved", expectedAmountDelta: request.amountDelta })}>{ow.confirm}</button>
           </div>
         </div>)}
-        {extra && !changePending && <div className="order-x-action-item">
+        {/* Shown while a change request waits too: the доплата does not depend on it. One "why" line, the amount on the button. */}
+        {extra && <div className="order-x-action-item">
           <Scale size={20} aria-hidden="true" />
-          <div><h3>{storeShippingExtra(o) ? ow.shippingOver : warehouseExtra(o) ? ow.extra : customsWords[locale].over}</h3><p>{ow.needApprove} {formatSum(extraAmount(o), locale)}</p></div>
-          <button type="button" className="btn primary" onClick={() => confirm({ id: o.id, cancel: false, amount: extraAmount(o), storeShipping: Boolean(storeShippingExtra(o)), customs: !storeShippingExtra(o) && !warehouseExtra(o) })}>{ow.checkExtra}<ArrowRight size={16} aria-hidden="true" /></button>
+          <div><h3>{extraWhy(o, siblings, locale)}</h3></div>
+          <button type="button" className="btn primary" disabled={busy} onClick={() => confirm({ id: o.id, cancel: false, amount: extraAmount(o), storeShipping: Boolean(storeShippingExtra(o)), customs: !storeShippingExtra(o) && !warehouseExtra(o) })}>{gc.extraButton(formatSum(extraAmount(o), locale))}<ArrowRight size={16} aria-hidden="true" /></button>
         </div>}
       </section>}
 
       {o.cancelled ? <p className="order-x-note muted">{ow.cancelled}</p> : <section className="og-progress" aria-label={c.progress}>
-        <p className="og-progress-text"><b>{c.stage(o.status + 1, statuses.length)} · {statuses[o.status]}</b>{o.status < statuses.length - 1 && <small>{gc.next(statuses[o.status + 1])}</small>}</p>
+        {/* Nothing is bought before the payment: "Ожидает оплаты", then the buyout — not "Ожидает выкупа". */}
+        <p className="og-progress-text">{waitsPayment ? <><b>{c.stage(1, statuses.length)} · {gc.awaitingPayment}</b><small>{gc.nextBuyout}</small></> : <><b>{c.stage(o.status + 1, statuses.length)} · {statuses[o.status]}</b>{o.status < statuses.length - 1 && <small>{gc.next(statuses[o.status + 1])}</small>}</>}</p>
         <span className="og-progress-bar" aria-hidden="true">{statuses.map((name, index) => <span key={name} data-state={index < o.status ? "done" : index === o.status ? "current" : "next"} />)}</span>
-        <ol className="order-x-steps og-steps">{statuses.map((name, index) => <li key={name} data-state={index < o.status ? "done" : index === o.status ? "current" : "next"} aria-current={index === o.status ? "step" : undefined}><span aria-hidden="true">{index < o.status ? <Check size={12} /> : index + 1}</span>{name}</li>)}</ol>
+        <ol className="order-x-steps og-steps">{statuses.map((name, index) => <li key={name} data-state={index < o.status ? "done" : index === o.status ? "current" : "next"} aria-current={index === o.status ? "step" : undefined}><span aria-hidden="true">{index < o.status ? <Check size={12} /> : index + 1}</span>{waitsPayment && index === 0 ? gc.awaitingPayment : name}</li>)}</ol>
       </section>}
 
       <dl className="order-x-details og-facts">
         {o.delivery && !sharedDelivery && <div><dt>{gc.recipient}</dt><dd>{o.delivery.recipient}{where && <small>{where}</small>}{o.delivery.phone && <a className="order-x-link" href={`tel:${o.delivery.phone.replace(/[^\d+]/g, "")}`}>{o.delivery.phone}</a>}</dd></div>}
         <div><dt>{gc.delivery}</dt><dd>{gc.speed[speed]}{days && <small>{gc.days(days[0], days[1])}</small>}</dd></div>
-        <div><dt>{c.total}</dt><dd><b><Money value={payable} locale={locale} /></b>{payable !== o.quote.total && <small>{c.atCheckout(formatSum(o.quote.total, locale))}</small>}</dd></div>
+        {/* The line's sum is on its row already: repeat it here only when it moved since the checkout. */}
+        {payable !== o.quote.total && <div><dt>{c.total}</dt><dd><b><Money value={payable} locale={locale} /></b><small>{c.atCheckout(formatSum(o.quote.total, locale))}</small></dd></div>}
         {o.parcel && <div><dt>{c.tracking}</dt><dd>{o.parcel.carrier}<span className="order-x-track"><span className="order-x-id">{o.parcel.trackingNumber}</span><CopyText text={o.parcel.trackingNumber} locale={locale} /></span><small>{lastParcelEvent ?? ow.parcelRegistered}{o.parcel.warehouseCode ? ` · ${locale === "ru" ? "склад" : isUzbek(locale) ? uzText(locale, "ombor") : "warehouse"} ${o.parcel.warehouseCode}` : ""}</small></dd></div>}
       </dl>
 
-      {latest && <p className="og-latest"><Clock3 size={16} aria-hidden="true" /><span><b>{gc.latest}</b> · <time>{formatDateTime(latest.at, locale)}</time><span className="og-latest-text">{renderHistory(latest, locale)}</span></span></p>}
+      {latest && <p className="og-latest"><Clock3 size={16} aria-hidden="true" /><span><b>{gc.latest}</b> · <time dateTime={isoTime(latest.at)}>{formatDateTime(latest.at, locale)}</time><span className="og-latest-text">{renderHistory(latest, locale)}</span></span></p>}
 
-      {!o.cancelled && o.status === 0 && o.product.sourceShippingEstimated && !o.storeShippingSettlement && <div className="order-x-note info">
-        <Clock3 size={18} aria-hidden="true" /><div><b>{ow.managerChecking}</b><p>{o.quote.storeShippingHold !== undefined
-          // Since 4 October 2026 the hold is apart from the order sum; older orders included it.
-          ? o.quote.storeShippingHold > 0 ? <>{calcCopy[locale].hold}: {formatSum(o.quote.storeShippingHold, locale)} — {calcCopy[locale].holdNote.toLocaleLowerCase(locale === "en" ? "en-US" : "ru-RU")}. {ow.beforeBuyout}</> : calcCopy[locale].freeNote(usdText(pricing.storeShippingFreeFromUsd ?? 50, locale))
-          : o.quote.sourceShipping ? <>{ow.reserveIncluded} {formatSum(o.quote.sourceShipping, locale)}. {ow.beforeBuyout}</> : ow.reserveWaived}</p></div>
-      </div>}
+      {/* "Менеджер подтверждает доставку…" and the reserve are said once per store parcel (OrderGroupCard), not per line. */}
       {o.note && <div className="order-x-note muted"><MessageSquareText size={18} aria-hidden="true" /><div><b>{calcCopy[locale].blocks.comment}</b><p>{o.note}</p></div></div>}
       {o.warehouseInspection && <div className={"order-x-note " + (o.warehouseInspection.condition === "ok" ? "ok" : "warn")}>
         <Package size={18} aria-hidden="true" />
         <div>
           <b>{o.warehouseInspection.condition === "ok" ? ow.warehouseDone : ow.warehouseProblem}</b>
           <p>{ow.received}: {o.warehouseInspection.quantityReceived} {locale === "ru" ? "шт." : isUzbek(locale) ? uzText(locale, "dona") : "pcs"}{o.warehouseInspection.packageGroup ? ` · ${locale === "ru" ? "группа" : isUzbek(locale) ? uzText(locale, "guruh") : "group"} ${o.warehouseInspection.packageGroup}` : ""}</p>
-          {o.warehouseInspection.services.length > 0 && <p>{locale === "ru" ? "Отметки приёмки" : isUzbek(locale) ? uzText(locale, "Qabul belgilari") : "Intake tags"}: {o.warehouseInspection.services.map(tag => intakeTagCopy[tag][locale]).join(", ")}. <small>{locale === "ru" ? "Это отметки осмотра, не подтверждение выполненной или платной услуги." : isUzbek(locale) ? uzText(locale, "Bu ko‘rik belgilari, bajarilgan yoki pullik xizmat tasdig‘i emas.") : "These are inspection notes, not proof of a completed or paid service."}</small></p>}
+          {o.warehouseInspection.services.length > 0 && <p>{lineCopy[locale].intake}: {o.warehouseInspection.services.map(tag => intakeTagCopy[tag][locale]).join(", ")}.</p>}
           {o.warehouseInspection.notes && <p>{o.warehouseInspection.notes}</p>}
         </div>
       </div>}
@@ -760,33 +801,27 @@ function CustomerOrderLine({ order: o, siblings, showThumb, sharedDelivery = fal
             <Package size={18} aria-hidden="true" />
             <div>
               <b>{ow.managerConfirmed}</b>
-              <p>{ow.actual}: {usd(o.storeShippingSettlement.actualUsd)} · {formatSum(o.storeShippingSettlement.actual, locale)}. {ow.reservedAtCheckout}: {formatSum(o.storeShippingSettlement.estimated, locale)}.</p>
-              <p><strong>{o.storeShippingSettlement.refund ? (storeCredited ? `${ow.refundToBalance} ${formatSum(storeCredited, locale)}` : storeShippingNotCredited[locale](formatSum(o.storeShippingSettlement.refund, locale))) : o.storeShippingExtraApproved ? `${ow.extraApproved}: ${formatSum(o.storeShippingSettlement.extra, locale)}` : o.storeShippingSettlement.extra ? `${ow.needApprove} ${formatSum(o.storeShippingSettlement.extra, locale)}` : o.storeShippingSettlement.held && o.storeShippingSettlement.released ? `${locale === "ru" ? "В пределах резерва. Освобождается" : isUzbek(locale) ? uzText(locale, "Zaxira doirasida. Bo‘shatiladi") : "Within the reserve. Released"}: ${formatSum(o.storeShippingSettlement.released, locale)}` : ow.reserveMatch}</strong></p>
+              <p>{ow.actual}: {usdText(o.storeShippingSettlement.actualUsd, locale)} · {formatSum(o.storeShippingSettlement.actual, locale)}. {ow.reservedAtCheckout}: {formatSum(o.storeShippingSettlement.estimated, locale)}.</p>
+              <p><strong>{o.storeShippingSettlement.refund ? (storeCredited ? `${ow.refundToBalance} ${formatSum(storeCredited, locale)}` : storeShippingNoRefund[locale](formatSum(o.storeShippingSettlement.refund, locale))) : o.storeShippingExtraApproved ? `${ow.extraApproved}: ${formatSum(o.storeShippingSettlement.extra, locale)}` : o.storeShippingSettlement.extra ? `${ow.needApprove} ${formatSum(o.storeShippingSettlement.extra, locale)}` : o.storeShippingSettlement.held && o.storeShippingSettlement.released ? `${locale === "ru" ? "В пределах резерва. Освобождается" : isUzbek(locale) ? uzText(locale, "Zaxira doirasida. Bo‘shatiladi") : "Within the reserve. Released"}: ${formatSum(o.storeShippingSettlement.released, locale)}` : ow.reserveMatch}</strong></p>
               {storeCredited > 0 && <Link className="order-x-link" href="/balance">{ow.balance}<ArrowRight size={14} aria-hidden="true" /></Link>}
             </div>
           </div>}
-          {o.settlement && <div className={"order-x-note " + (extra ? "warn" : "info")}>
+          {o.settlement && <div className={"order-x-note " + (warehouseExtra(o) ? "warn" : "info")}>
             <Scale size={18} aria-hidden="true" />
             <div>
-              <b>{extra ? ow.shippingOver : o.settlement.refund ? ow.shippingCheaper : ow.shippingRecalculated}</b>
+              <b>{warehouseExtra(o) ? ow.shippingOver : o.settlement.refund ? ow.shippingCheaper : ow.shippingRecalculated}</b>
               <p>{ow.payableWeight}: {o.settlement.chargeableWeight.toFixed(2)} {kg}. {ow.cost}: {formatSum(o.settlement.shipping, locale)}.</p>
               <p><strong>{o.settlement.refund ? `${ow.refundToBalance} ${formatSum(o.settlement.refund, locale)}` : o.extraApproved ? `${ow.extraApproved}: ${formatSum(o.settlement.extra, locale)}` : o.settlement.extra ? `${ow.needApprove} ${formatSum(o.settlement.extra, locale)}` : ow.noExtra}</strong></p>
               {o.settlement.refund > 0 && <Link className="order-x-link" href="/balance">{ow.balance}<ArrowRight size={14} aria-hidden="true" /></Link>}
             </div>
           </div>}
-          {/* Customs in one note: the settled duty, else the status of "Atlas pays customs for me", else the estimate. */}
-          {(o.customsSettlement || o.customs?.helpRequested || (o.customs && o.customs.dutiableUsd > 0)) && <div className="order-x-note info"><Scale size={18} aria-hidden="true" /><div>
-            <b>{o.customs?.helpRequested ? customsWords[locale].helpTitle : o.customsSettlement ? calcCopy[locale].lines.customsDuty : calcCopy[locale].customs.title}</b>
-            <p>{o.customsSettlement
-              ? <>{customsWords[locale].settled(formatSum(o.customsSettlement.actual, locale))} {o.customsSettlement.refund ? customsWords[locale].refund(formatSum(o.customsSettlement.refund, locale)) : o.customsSettlement.extra ? customsWords[locale].extra(formatSum(o.customsSettlement.extra, locale)) + (o.customsExtraApproved ? " ✓" : "") : ""}</>
-              : o.customs?.helpRequested
-                ? o.customs.dutiableUsd > 0 ? customsWords[locale].helpDuty(`$${o.customs.estimateUsd}`) : customsWords[locale].helpNoDuty
-                : <>{calcCopy[locale].customs.dutiable}: ${o.customs!.dutiableUsd} · {calcCopy[locale].customs.estimate} ≈ ${o.customs!.estimateUsd}. {calcCopy[locale].customs.separate}</>}</p>
+          {/* The duty settled for this line; the estimate and "Atlas pays customs" are the checkout's (OrderGroupCard). */}
+          {o.customsSettlement && <div className="order-x-note info"><Scale size={18} aria-hidden="true" /><div>
+            <b>{calcCopy[locale].lines.customsDuty}</b>
+            <p>{customsWords[locale].settled(formatSum(o.customsSettlement.actual, locale))} {o.customsSettlement.refund ? customsWords[locale].refund(formatSum(o.customsSettlement.refund, locale)) : o.customsSettlement.extra ? customsWords[locale].extra(formatSum(o.customsSettlement.extra, locale)) + (o.customsExtraApproved ? lineCopy[locale].dutyApproved : "") : ""}</p>
           </div></div>}
-          <dl className="order-x-details">
-            {o.payment && <div><dt>{c.payment}</dt><dd>{o.payment.status === "pending" ? (o.cancelled ? ow.cancelled : ow.paymentWaiting) : o.payment.status === "paid" ? ow.paymentPaid : ow.paymentRefunded}<small>{o.payment.id} · {ow.providerPassed}</small></dd></div>}
-            {allowanceUsd !== undefined && <div><dt>{c.allowance}</dt><dd className={allowanceUsd > courierAllowanceUsd ? "order-x-over" : undefined}>{c.allowanceValue(allowanceUsd, courierAllowanceUsd)}</dd></div>}
-          </dl>
+          {/* The payment status only: the provider note is said once, in the pay / доплата confirmation. */}
+          {o.payment && <dl className="order-x-details"><div><dt>{c.payment}</dt><dd>{o.cancelled ? ow.cancelled : o.payment.status === "pending" ? gc.awaitingPayment : o.payment.status === "paid" ? gc.pay.paid : gc.pay.refunded}<small>{o.payment.id}</small></dd></div></dl>}
           {o.customsConsent && <p className="micro">{ow.customsAccepted}: {formatDateTime(o.customsConsent.acceptedAt, locale)}.</p>}
           {o.balanceUsed > 0 && <p className="micro">{ow.balanceUsed}: {formatSum(o.balanceUsed, locale)}</p>}
           {o.settlement && <p className="micro">{ow.actualWeight}: {o.settlement.actualWeight.toFixed(2)} {kg} · {ow.dimensional}: {o.settlement.dimensionalWeight.toFixed(2)} {kg}</p>}
@@ -806,15 +841,10 @@ function CustomerOrderLine({ order: o, siblings, showThumb, sharedDelivery = fal
       <details className="order-x-more">
         <summary>{gc.history(o.history.length)}</summary>
         <div className="order-x-more-body">
-          <ol className="order-x-history">{[...o.history].reverse().map((entry, index) => <li key={index}><time>{formatDateTime(entry.at, locale)}</time><p>{renderHistory(entry, locale)}</p></li>)}</ol>
+          <ol className="order-x-history">{[...o.history].reverse().map((entry, index) => <li key={`${entry.at}-${entry.code ?? ""}-${o.history.length - index}`}><time dateTime={isoTime(entry.at)}>{formatDateTime(entry.at, locale)}</time><p>{renderHistory(entry, locale)}</p></li>)}</ol>
         </div>
       </details>
-
-      <div className="order-x-actions">
-        {o.product.sourceUrl && <Link className="cabinet-text-btn" href={`/order-by-link?url=${encodeURIComponent(o.product.sourceUrl)}`}><RotateCcw size={15} aria-hidden="true" />{c.repeat}</Link>}
-        {/* No "cancel order" button for customers (owner's decision, 6 October 2026): cancellation goes through support or an operator. */}
-        <Link className="cabinet-text-btn" href={`/account?order=${encodeURIComponent(o.id)}#support`}><MessageCircle size={15} aria-hidden="true" />{c.ask}</Link>
-      </div>
+      {/* "Заказать снова" and "Вопрос по заказу" are the checkout's, once per card (OrderGroupCard). */}
     </div>}
   </details>;
 }
@@ -823,13 +853,37 @@ function CustomerOrderLine({ order: o, siblings, showThumb, sharedDelivery = fal
  * One checkout as one card, a single line included: the heading answers when, how much, how many, at which stage and
  * whether the customer must act; then a section per store parcel, a block per model, and a row per variant.
  */
-function OrderGroupCard({ group, locale, line, onPay }: { group: OrderGroup; locale: Locale; line: (order: Order, store: OrderStoreGroup, showThumb: boolean) => ReactNode; onPay: (group: OrderGroup) => void }) {
+function OrderGroupCard({ group, locale, pricing, busy, allowanceUsd, passports, line, onPay }: {
+  group: OrderGroup;
+  locale: Locale;
+  pricing: Pricing;
+  busy: boolean;
+  /** The recipient's monthly allowance used, once per checkout (every live line shares the recipient). */
+  allowanceUsd?: number;
+  /** Recipients of this checkout whose passport is still missing: a calm note after the payment, once per recipient. */
+  passports: { id: string; name: string }[];
+  line: (order: Order, store: OrderStoreGroup, showThumb: boolean, headerStage: string) => ReactNode;
+  onPay: (group: OrderGroup) => void;
+}) {
   const gc = orderGroupCopy[locale];
   const ow = customerOrderCopy[locale];
+  const c = ordersCopy[locale];
   const stores = groupStoreNames(group, locale);
   const stage = groupStageText(group, locale);
   const live = group.orders.length - group.cancelled;
+  const liveOrders = group.orders.filter((order) => !order.cancelled);
   const title = gc.title(formatShortDate(group.createdAt, locale));
+  // "Итого" only when it adds something: several lines, and not the very amount the payment card asks for.
+  const showTotal = group.stage !== "cancelled" && live > 1 && group.payment?.amount !== group.payable;
+  // One line under the heading: what happens next (or that the customer decides first).
+  const next = group.stage === "cancelled" || group.status === undefined || group.status >= 5 ? "" : group.payment ? gc.nextBuyout : group.attention > 0 ? gc.nextDecision : gc.nextStep[group.status] ?? "";
+  // A finished purchase invites the next one: one "Заказать снова" for a single product link, else one per model.
+  const finished = group.stage === "done";
+  const links = [...new Set(liveOrders.map((order) => order.product.sourceUrl).filter((url): url is string => Boolean(url)))];
+  const reorderHref = (url: string) => `/order-by-link?url=${encodeURIComponent(url)}`;
+  // The customs estimate is the checkout's (one cart estimate on every line): said once, not per line.
+  const customs = group.status !== undefined && group.status < 5 ? liveOrders.find((order) => order.customs && !order.customsSettlement && (order.customs.helpRequested || order.customs.dutiableUsd > 0))?.customs : undefined;
+  const allowance = allowanceUsd !== undefined && <span className={allowanceUsd > courierAllowanceUsd ? "order-x-over" : undefined}>{c.allowance}: {c.allowanceValue(allowanceUsd, courierAllowanceUsd)}</span>;
   return <section className="order-group" data-stage={group.stage} aria-label={title}>
     <header className="order-group-head">
       <div className="order-group-main">
@@ -841,19 +895,29 @@ function OrderGroupCard({ group, locale, line, onPay }: { group: OrderGroup; loc
           {group.cancelled > 0 && group.stage !== "cancelled" && <span className="order-x-status muted">{gc.cancelledLines(group.cancelled)}</span>}
         </span>
         {stage.summary && <small className="og-stage-summary">{stage.summary}</small>}
+        {next && <small className="og-next">{next}</small>}
+        {finished && <span className="og-head-actions">
+          {links.length === 1 && <Link className="btn secondary" href={reorderHref(links[0])}><RotateCcw size={15} aria-hidden="true" />{gc.reorder}</Link>}
+          <Link className="cabinet-text-btn" href="/order-by-link">{gc.byLink}<ArrowRight size={15} aria-hidden="true" /></Link>
+        </span>}
       </div>
-      {group.stage !== "cancelled" && <p className="order-group-sum"><small>{gc.total}</small><strong><Money value={group.payable} locale={locale} /></strong></p>}
+      {showTotal && <p className="order-group-sum"><small>{gc.total}</small><strong><Money value={group.payable} locale={locale} /></strong></p>}
     </header>
     {group.payment && <div className="order-x-action-item og-pay">
       <CreditCard size={20} aria-hidden="true" />
       <div>
         <h3>{gc.payTitle}</h3>
-        <p>{gc.payCovers(itemCount(group.orders.reduce((sum, order) => sum + (!order.cancelled && order.payment?.status === "pending" ? order.quantity : 0), 0), locale))}</p>
-        <strong className="order-x-delta">{formatSum(group.payment.amount, locale)}</strong>
-        <p className="micro">{ow.paymentLine} {group.payment.id} · {ow.noCharge}.</p>
+        {/* The balance part is said here, so "Итого" or a row's sum above the button never reads as a different bill. */}
+        <p>{gc.payCovers(itemCount(group.orders.reduce((sum, order) => sum + (!order.cancelled && order.payment?.status === "pending" ? order.quantity : 0), 0), locale))}{group.payment.fromBalance ? ` ${gc.payBalance(formatSum(group.payment.fromBalance, locale))}` : ""}</p>
       </div>
-      <button type="button" className="btn primary" onClick={() => onPay(group)}>{gc.payButton}<ArrowRight size={16} aria-hidden="true" /></button>
+      <button type="button" className="btn primary" disabled={busy} onClick={() => onPay(group)}>{gc.payButton(formatSum(group.payment.amount, locale))}<ArrowRight size={16} aria-hidden="true" /></button>
     </div>}
+    {/* Not needed to pay: customs needs it before shipping. A calm note after the payment, with the same button. */}
+    {passports.map((passport) => <div className="orders-passport og-passport" key={passport.id} role="note">
+      <IdCard size={20} aria-hidden="true" />
+      <div><p>{gc.passport(passport.name)}</p></div>
+      <Link className="btn secondary" href={`/identity?recipient=${encodeURIComponent(passport.id)}`}>{gc.passportAction}<ArrowRight size={16} aria-hidden="true" /></Link>
+    </div>)}
     {group.delivery && group.stage !== "cancelled" && <div className="og-ship">
       <MapPin size={16} aria-hidden="true" />
       <p>
@@ -861,36 +925,53 @@ function OrderGroupCard({ group, locale, line, onPay }: { group: OrderGroup; loc
         <small>{[group.delivery.profile.city || group.delivery.profile.region, group.delivery.profile.address].filter(Boolean).join(", ")} · {gc.speed[group.delivery.speed]}</small>
       </p>
     </div>}
-    {group.stores.map((store) => <div className="order-group-store" key={store.key}>
-      <div className="og-store-head">
-        <p className="order-group-store-title"><Package size={15} aria-hidden="true" />{gc.from(storeGroupName(store, locale), store.country && !storeGroupName(store, locale).includes(store.country) ? countryLabel(store.country, locale) : "")}</p>
-        {group.stores.length > 1 && <small>{itemCount(store.items, locale)} · <Money value={store.payable} locale={locale} /></small>}
-      </div>
-      {store.parcelServices.length > 0 && <div className="og-parcel-services">
-        <b>{gc.parcelServices}</b>
-        <ul>{store.parcelServices.map(({ request }) => <li key={request.id}><span>{serviceTitle(request, locale)}</span><span className={"order-x-status " + (request.status === "quoted" ? "warn" : request.status === "completed" ? "ok" : request.status === "declined" ? "muted" : "info")}>{gc.serviceStatus[request.status]}</span>{request.quotedAmount !== undefined && <small><Money value={request.quotedAmount} locale={locale} /></small>}</li>)}</ul>
-      </div>}
-      {store.models.map((model) => {
-        const showThumb = new Set(model.orders.map((order) => order.product.image ?? "")).size > 1;
-        const meta = [model.product.brand && model.product.brand !== storeShortName(store) ? model.product.brand : "", model.orders.length > 1 ? itemCount(model.items, locale) : ""].filter(Boolean).join(" · ");
-        return <article className="og-model" key={model.key}>
-          <div className="og-model-head">
-            <span className="og-model-photo"><ProductImage product={model.product} decorative locale={locale} /></span>
-            <span className="og-model-main">
-              <b className="og-model-name">{model.product.name}</b>
-              {meta && <small>{meta}</small>}
-            </span>
-            {model.product.sourceUrl && <a className="order-x-link og-store-link" href={model.product.sourceUrl} target="_blank" rel="noopener noreferrer">{gc.openIn(storeShortName(store))}<ArrowUpRight size={14} aria-hidden="true" /></a>}
-          </div>
-          <div className="og-lines">{model.orders.map((order) => line(order, store, showThumb))}</div>
-        </article>;
-      })}
-    </div>)}
+    {group.stores.map((store) => {
+      // The manager checks store delivery once for the whole store parcel: one note, the reserve summed.
+      const checking = store.orders.filter(managerChecks);
+      return <div className="order-group-store" key={store.key}>
+        <div className="og-store-head">
+          <p className="order-group-store-title"><Package size={15} aria-hidden="true" />{gc.from(storeGroupName(store, locale), store.country && !storeGroupName(store, locale).includes(store.country) ? countryLabel(store.country, locale) : "")}</p>
+          {group.stores.length > 1 && <small>{itemCount(store.items, locale)} · <Money value={store.payable} locale={locale} /></small>}
+        </div>
+        {checking.length > 0 && <div className="order-x-note info og-group-note"><Clock3 size={18} aria-hidden="true" /><div><b>{ow.managerChecking}</b><p>{storeReserveText(checking, locale, pricing)}</p></div></div>}
+        {store.parcelServices.length > 0 && <div className="og-parcel-services">
+          <b>{gc.parcelServices}</b>
+          <ul>{store.parcelServices.map(({ request }) => <li key={request.id}><span>{serviceTitle(request, locale)}</span><span className={"order-x-status " + (request.status === "quoted" ? "warn" : request.status === "completed" ? "ok" : request.status === "declined" ? "muted" : "info")}>{gc.serviceStatus[request.status]}</span>{request.quotedAmount !== undefined && <small><Money value={request.quotedAmount} locale={locale} /></small>}</li>)}</ul>
+        </div>}
+        {store.models.map((model) => {
+          const showThumb = new Set(model.orders.map((order) => order.product.image ?? "")).size > 1;
+          const brand = shownBrand(model.product.brand); const meta = [brand && brand !== storeShortName(store) ? brand : "", model.orders.length > 1 ? itemCount(model.items, locale) : ""].filter(Boolean).join(" · ");
+          return <article className="og-model" key={model.key}>
+            <div className="og-model-head">
+              <span className="og-model-photo"><ProductImage product={model.product} decorative locale={locale} /></span>
+              <span className="og-model-main">
+                <b className="og-model-name">{model.product.name}</b>
+                {meta && <small>{meta}</small>}
+              </span>
+              {model.product.sourceUrl && <a className="order-x-link og-store-link" href={model.product.sourceUrl} target="_blank" rel="noopener noreferrer">{gc.openIn(storeShortName(store))}<ArrowUpRight size={14} aria-hidden="true" /></a>}
+              {finished && links.length > 1 && model.product.sourceUrl && <Link className="cabinet-text-btn og-model-reorder" href={reorderHref(model.product.sourceUrl)}><RotateCcw size={15} aria-hidden="true" />{gc.reorder}</Link>}
+            </div>
+            <div className="og-lines">{model.orders.map((order) => line(order, store, showThumb, stage.label))}</div>
+          </article>;
+        })}
+      </div>;
+    })}
+    {(customs || allowance) && <div className="order-x-note info og-group-note"><Scale size={18} aria-hidden="true" /><div>
+      {customs && <><b>{customs.helpRequested ? customsWords[locale].helpTitle : calcCopy[locale].customs.title}</b>
+        <p>{customs.helpRequested
+          ? customs.dutiableUsd > 0 ? customsWords[locale].helpDuty(usdText(customs.estimateUsd, locale)) : customsWords[locale].helpNoDuty
+          : <>{calcCopy[locale].customs.dutiable}: {usdText(customs.dutiableUsd, locale)} · {calcCopy[locale].customs.estimate} ≈ {usdText(customs.estimateUsd, locale)}. {calcCopy[locale].customs.separate}</>}</p></>}
+      {allowance && <p className="micro">{allowance}</p>}
+    </div></div>}
+    {/* No "cancel order" button for customers (owner's decision, 6 October 2026): cancellation goes through support or an operator. */}
+    <div className="order-x-actions og-group-foot">
+      <Link className="cabinet-text-btn" href={`/account?order=${encodeURIComponent(group.orders[0].id)}#support`}><MessageCircle size={15} aria-hidden="true" />{c.ask}</Link>
+    </div>
   </section>;
 }
 
 export function OrdersView({ operations }: { operations: boolean }) {
-  const { state, pricing, ready, error, act, user } = useMarket();
+  const { state, pricing, ready, status, error, act, user, refresh } = useMarket();
   const canReadOperations = hasPermission(user, "operations.read");
   const [expanded,setExpanded]=useState<string[]>([]);
   const [recipientFilter,setRecipientFilter]=useState("all");
@@ -905,6 +986,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
     [dims, setDims] = useState(["1.8", "30", "20", "15"]),
     [confirmation, setConfirmation] = useState<OrderConfirmation | null>(null),
     [busy, setBusy] = useState(false),
+    // Photos load per line: one line loading does not lock the others (operators keep the shared lock).
+    [photoLoading, setPhotoLoading] = useState<string[]>([]),
     [opsAccounts, setOpsAccounts] = useState<OperationsAccount[]>([]),
     [opsReady, setOpsReady] = useState(false),
     [opsRefreshing, setOpsRefreshing] = useState(false),
@@ -929,7 +1012,9 @@ export function OrdersView({ operations }: { operations: boolean }) {
       try { id = decodeURIComponent(window.location.hash.slice(1)); } catch { return; }
       const row = document.getElementById(id);
       // data-linked: the opened order glows once (app/motion.css); :target does not match rows rendered after the load.
-      if (row instanceof HTMLDetailsElement) { row.open = true; row.scrollIntoView({block:'start'}); if (!('linked' in row.dataset)) row.dataset.linked = ''; }
+      // A line with nothing of its own to decide, in a checkout that waits for its payment (a link from the account or the
+      // panel "Завершите оплату"): show the checkout's one pay card above it, not the line with the card scrolled away.
+      if (row instanceof HTMLDetailsElement) { row.open = true; const pay = !operations && !('action' in row.dataset) ? row.closest('.order-group')?.querySelector('.og-pay') : null; (pay ?? row).scrollIntoView({block:'start'}); if (!('linked' in row.dataset)) row.dataset.linked = ''; }
       else { const order=(operations?opsAccounts.flatMap(profile=>profile.state.orders):state.orders).find(item=>item.id===id);
         // A linked order not loaded yet: fetch it alone, then the branch below finds it and searches its tab for it.
         if(!order&&operations&&opsReady&&id&&!revealRequested.current.has(id)){revealRequested.current.add(id);void fetch(`/api/operations?queue=1&order=${encodeURIComponent(id)}`,{cache:"no-store"}).then(response=>response.ok?response.json() as Promise<Partial<OperatorQueueResponse>>:null).then(data=>{if(data?.accounts?.length)setOpsAccounts(current=>mergeQueueAccounts(current,data.accounts!))}).catch(()=>{});}
@@ -1058,6 +1143,14 @@ export function OrdersView({ operations }: { operations: boolean }) {
   const visibleGroups = (tab === "attention" ? groupTabs.attention : tab === "done" ? groupTabs.done : groupTabs.active)
     .filter((group) => recipientFilter === "all" || recipientOptions.length < 2 || group.orders.some((o) => recipientOf(o) === recipientFilter))
     .filter((group) => group.orders.some((o) => queueMatches(queueSearchFields(o, undefined), query)));
+  // A missing passport is said once per recipient, in the first visible checkout of that recipient that is already paid:
+  // it is needed before dispatch, so a checkout still waiting for its payment shows one action only, the payment.
+  const passportNotes = new Map<string, { id: string; name: string }[]>();
+  for (const [profileId, profile] of passportMissing) {
+    const host = visibleGroups.find((group) => !group.payment && group.orders.some((order) => !order.cancelled && order.status < 5 && !order.identity && order.deliveryProfileId === profileId));
+    if (host) passportNotes.set(host.key, [...(passportNotes.get(host.key) ?? []), { id: profileId, name: profile.recipient }]);
+  }
+  const attentionLabel = operations ? wc.attention : groupCopyFor(locale).attentionTab;
   // Nothing in work but a checkout waits for the customer: open "My orders" on that tab instead of an empty one, once.
   const firstTab = useRef(false);
   const activeGroupCount = groupTabs.active.length, attentionGroupCount = groupTabs.attention.length;
@@ -1140,8 +1233,9 @@ export function OrdersView({ operations }: { operations: boolean }) {
     }
   }
   async function loadPhoto(o: Order) {
-    if (!o.product.sourceUrl) return;
-    setBusy(true);
+    if (!o.product.sourceUrl || photoLoading.includes(o.id)) return;
+    setPhotoLoading((ids) => [...ids, o.id]);
+    if (operations) setBusy(true);
     try {
       const response = await requestImport({ url: o.product.sourceUrl }, { maxWaitMs: 60_000 });
       const data = (await response.json()) as {
@@ -1157,7 +1251,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
-      setBusy(false);
+      setPhotoLoading((ids) => ids.filter((id) => id !== o.id));
+      if (operations) setBusy(false);
     }
   }
   async function finishReceiving() {
@@ -1237,11 +1332,6 @@ export function OrdersView({ operations }: { operations: boolean }) {
           </Link>
         )}
       </PageHeading>}
-      {!operations && viewReady && passportMissing.map(([profileId, profile]) => <div className="orders-passport" key={profileId} role="note">
-        <IdCard size={20} aria-hidden="true" />
-        <div><b>{passportCopy[locale].title(profile.recipient)}</b><small>{passportCopy[locale].text}</small></div>
-        <Link className="btn secondary" href={`/identity?recipient=${encodeURIComponent(profileId)}`}>{passportCopy[locale].action}<ArrowRight size={16} aria-hidden="true" /></Link>
-      </div>)}
       {operations && (
         <div className="ops-stats">
           <div>
@@ -1270,7 +1360,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
               </TabsTrigger>
               {/* The count of orders waiting on the customer is said here once, in warning colour, not again in a banner above. */}
               <TabsTrigger value="attention" className={!operations && groupTabs.attention.length > 0 ? "has-attention" : undefined}>
-                {wc.attention} <b>{operations ? opsCounts?.attention ?? 0 : groupTabs.attention.length}</b>
+                {attentionLabel} <b>{operations ? opsCounts?.attention ?? 0 : groupTabs.attention.length}</b>
               </TabsTrigger>
               <TabsTrigger value="done">
                 {wc.done} <b>{operations ? opsCounts?.done ?? 0 : groupTabs.done.length}</b>
@@ -1281,12 +1371,12 @@ export function OrdersView({ operations }: { operations: boolean }) {
             </TabsList>
               <TabsContent value={tab} className="sr-only">
                {locale === "ru" ? "Фильтр заказов: " : isUzbek(locale) ? uzText(locale, "Buyurtma filtri: ") : "Order filter: "}
-               {tab === "active" ? wc.active : tab === "attention" ? wc.attention : tab === "refunds" && operations ? refundTabLabel : wc.done}
+               {tab === "active" ? wc.active : tab === "attention" ? attentionLabel : tab === "refunds" && operations ? refundTabLabel : wc.done}
             </TabsContent>
           </Tabs>
           {/* Customers with a handful of orders scan the list; search appears once it gets long. */}
           {(operations || orders.length > 5 || query) && <label className="search-field">
-            <Search size={18} />
+            <Search size={18} aria-hidden="true" />
             <input
               aria-label={ow.search}
               placeholder={operations ? (locale === "ru" ? "Номер, товар, имя, телефон или email" : isUzbek(locale) ? uzText(locale, "Raqam, tovar, ism, telefon yoki email") : "Order, item, name, phone or email") : oc.search}
@@ -1300,12 +1390,19 @@ export function OrdersView({ operations }: { operations: boolean }) {
       {!operations && recipientOptions.length > 1 && <div className="notice-filters orders-recipients" role="group" aria-label={oc.recipients}>{[["all", oc.allRecipients] as const, ...recipientOptions].map(([key, name]) => <button type="button" key={key} aria-pressed={recipientFilter === key} className={recipientFilter === key ? "active" : ""} onClick={() => setRecipientFilter(key)}>{name}</button>)}</div>}
       {operations && tab === "refunds" && <p className="notice">{refundQueueCopy}</p>}
       {!viewReady ? (
-        viewError ? (
+        !operations && status === "guest" ? (
+          <Empty title={ow.loginTitle} description={ow.loginDescription} href="/account" label={ow.loginLabel} />
+        ) : !operations && status === "error" ? (
+          // Not a sign-in problem: say what failed and offer the retry, not the login screen.
+          <section className="basket-empty" role="alert"><span className="basket-empty-icon" aria-hidden="true"><AlertCircle size={28} /></span><h2>{groupCopyFor(locale).loadError}</h2>{viewError && <p>{viewError}</p>}
+            <div className="basket-empty-actions"><button type="button" className="btn primary" onClick={() => void refresh()}><RefreshCw size={18} aria-hidden="true" />{groupCopyFor(locale).retry}</button></div>
+          </section>
+        ) : operations && viewError ? (
           <Empty
-            title={operations ? (locale === "ru" ? "Очередь пока недоступна" : isUzbek(locale) ? uzText(locale, "Navbat hozircha mavjud emas") : "Queue is unavailable") : ow.loginTitle}
-            description={operations ? viewError ?? (locale === "ru" ? "Повторите загрузку очереди." : isUzbek(locale) ? uzText(locale, "Navbatni qayta yuklang.") : "Reload the queue and try again.") : ow.loginDescription}
-            href={operations ? "/operations" : "/account"}
-            label={operations ? (locale === "ru" ? "Повторить" : isUzbek(locale) ? uzText(locale, "Qayta urinish") : "Try again") : ow.loginLabel}
+            title={locale === "ru" ? "Очередь пока недоступна" : isUzbek(locale) ? uzText(locale, "Navbat hozircha mavjud emas") : "Queue is unavailable"}
+            description={viewError ?? (locale === "ru" ? "Повторите загрузку очереди." : isUzbek(locale) ? uzText(locale, "Navbatni qayta yuklang.") : "Reload the queue and try again.")}
+            href="/operations"
+            label={locale === "ru" ? "Повторить" : isUzbek(locale) ? uzText(locale, "Qayta urinish") : "Try again"}
           />
         ) : (
           <LoadingCards label={ow.loading} />
@@ -1322,19 +1419,23 @@ export function OrdersView({ operations }: { operations: boolean }) {
           label={ow.choose}
         />
       ) : !(operations ? filtered.length : visibleGroups.length) ? (
-        <Empty
+        // A calm empty tab when nothing narrows it; the filter hint only when search or a recipient filter is on.
+        !operations && !query && recipientFilter === "all" && tab === "attention" ? <Empty title={groupCopyFor(locale).emptyAttention} description="" />
+        : !operations && !query && recipientFilter === "all" && tab === "done" ? <Empty title={groupCopyFor(locale).emptyDone} description="" href="/order-by-link" label={groupCopyFor(locale).byLink} />
+        : <Empty
           title={ow.filteredTitle}
           description={ow.filteredDescription}
         />
       ) : (
         !operations ? visibleGroups.map((group) => {
-          const line = (o: Order, store: OrderStoreGroup, showThumb: boolean) => <CustomerOrderLine key={o.id} order={o} siblings={group.orders} showThumb={showThumb} sharedDelivery={Boolean(group.delivery)} locale={locale} pricing={pricing} busy={busy} expanded={expanded.includes(o.id)} onToggle={open => setExpanded(ids => open ? [...new Set([...ids, o.id])] : ids.filter(id => id !== o.id))} run={runOrderAction} confirm={setConfirmation} loadPhoto={order => void loadPhoto(order)} allowanceUsd={allowanceFor(o)} storeCredited={storeShippingCredited(state.entries, o)} />;
+          const line = (o: Order, store: OrderStoreGroup, showThumb: boolean, headerStage: string) => <CustomerOrderLine key={o.id} order={o} siblings={group.orders} showThumb={showThumb} headerStage={headerStage} sharedDelivery={Boolean(group.delivery)} locale={locale} pricing={pricing} busy={busy} photoBusy={photoLoading.includes(o.id)} expanded={expanded.includes(o.id)} onToggle={open => setExpanded(ids => open ? [...new Set([...ids, o.id])] : ids.filter(id => id !== o.id))} run={runOrderAction} confirm={setConfirmation} loadPhoto={order => void loadPhoto(order)} storeCredited={storeShippingCredited(state.entries, o)} />;
           // Every checkout, a single line included, reads the same: checkout → store parcel → model → variant lines.
           const pay = (paid: OrderGroup) => {
             const waiting = paid.orders.find(order => !order.cancelled && order.payment?.status === "pending");
             if (waiting && paid.payment) setConfirmation({ id: waiting.id, cancel: false, amount: paid.payment.amount, payment: true, batchId: paid.batchId });
           };
-          return <OrderGroupCard key={group.key} group={group} locale={locale} line={line} onPay={pay} />;
+          const firstLive = group.orders.find(order => !order.cancelled);
+          return <OrderGroupCard key={group.key} group={group} locale={locale} pricing={pricing} busy={busy} allowanceUsd={firstLive ? allowanceFor(firstLive) : undefined} passports={passportNotes.get(group.key) ?? []} line={line} onPay={pay} />;
         }) : filtered.map((o) => (
           <details className="surface order-card compact-order" key={o.id} id={o.id} onToggle={event=>{const open=event.currentTarget.open;setExpanded(ids=>open?[...new Set([...ids,o.id])]:ids.filter(id=>id!==o.id))}}>
             <summary className="compact-order-summary">
@@ -1390,7 +1491,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
                     <ArrowUpRight size={14} />
                   </a>
                 )}
-                <span className="muted">{o.product.brand}</span>
+                {shownBrand(o.product.brand) && <span className="muted">{shownBrand(o.product.brand)}</span>}
                 {o.product.sourceUrl && !o.product.image && (
                   <button
                     className="text-button"
@@ -1432,7 +1533,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
                    <h3>{o.payment.status === "pending" ? (o.cancelled ? ow.cancelled : ow.paymentWaiting) : o.payment.status === "paid" ? ow.paymentPaid : ow.paymentRefunded}</h3>
                    <p>{ow.paymentLine} {o.payment.id} · {money(o.payment.amount)}.</p>
                    <strong>{o.payment.status === "pending" ? ow.noCharge : ow.providerPassed}</strong>
-                   {!operations&&!o.cancelled&&o.status===0&&o.product.sourceShippingEstimated&&!o.storeShippingSettlement&&<div className="payment-reserve-hint"><Clock3 size={16}/><div><b>{ow.managerChecking}</b><p>{ow.reserveIncluded} {money(o.quote.sourceShipping??0)}. {ow.beforeBuyout}</p><small>{locale==='ru'?'Резерв — часть предварительного расчёта, это не отметка об оплате.':isUzbek(locale)?uzText(locale, 'Zaxira dastlabki hisobning bir qismi, bu to‘lov qaydi emas.'):'This reserve is part of the preliminary total, not a payment status.'}</small></div></div>}
+                   {!operations&&managerChecks(o)&&<div className="payment-reserve-hint"><Clock3 size={16}/><div><b>{ow.managerChecking}</b><p>{storeReserveText([o], locale, pricing)}</p><small>{locale==='ru'?'Резерв — часть предварительного расчёта, это не отметка об оплате.':isUzbek(locale)?uzText(locale, 'Zaxira dastlabki hisobning bir qismi, bu to‘lov qaydi emas.'):'This reserve is part of the preliminary total, not a payment status.'}</small></div></div>}
                 </div>
                 {!operations && !o.cancelled && o.payment.status === "pending" && (
                   <button className="btn primary" onClick={() => setConfirmation({ id: o.id, cancel: false, amount: o.payment!.amount, payment: true })}>
@@ -1677,14 +1778,14 @@ export function OrdersView({ operations }: { operations: boolean }) {
                     )}
                     {o.settlement && (
                       <p className="micro">
-                        {ow.actualWeight}: {o.settlement.actualWeight.toFixed(2)} {locale === "ru" ? "кг" : "kg"} · {ow.dimensional}: {o.settlement.dimensionalWeight.toFixed(2)} {locale === "ru" ? "кг" : "kg"}
+                        {ow.actualWeight}: {formatKg(o.settlement.actualWeight, locale)} {locale === "ru" ? "кг" : isUzbek(locale) ? uzText(locale, "kg") : "kg"} · {ow.dimensional}: {formatKg(o.settlement.dimensionalWeight, locale)} {locale === "ru" ? "кг" : isUzbek(locale) ? uzText(locale, "kg") : "kg"}
                       </p>
                     )}
                   </div>
                   <ol className="history-list">
                     {[...o.history].reverse().map((h, i) => (
                       <li key={i}>
-                        <time>{new Date(h.at).toLocaleString("ru-RU")}</time>
+                        <time>{new Date(h.at).toLocaleString(localeTag(locale))}</time>
                         <p>{renderHistory(h, locale)}</p>
                       </li>
                     ))}
@@ -1867,26 +1968,19 @@ export function OrdersView({ operations }: { operations: boolean }) {
         }}
       >
         <AlertDialogContent>
+          {/* Paying and every доплата read the same: the title with the amount, one provider line, one verb on the button. */}
           <AlertDialogTitle>
             {confirmation?.cancel
                ? ow.cancelTitle
               : confirmation?.payment
-                 ? ow.paymentTitle
-                 : confirmation?.extraCharge
-                   ? extraChargeCopy[locale].dialogTitle
-                 : ow.extraTitle}
+                 ? groupCopyFor(locale).pay.payTitle
+                 : groupCopyFor(locale).pay.extraTitle(formatSum(confirmation?.amount ?? 0, locale))}
           </AlertDialogTitle>
           <AlertDialogDescription>
-            {confirmation?.cancel
-               ? ow.cancelDescription
-              : confirmation?.payment
-                 ? ow.paymentDescription
-                 : confirmation?.extraCharge
-                   ? extraChargeCopy[locale].dialogText
-                 : ow.extraDescription}
+            {confirmation?.cancel ? ow.cancelDescription : groupCopyFor(locale).pay.provider}
           </AlertDialogDescription>
-          {!(confirmation?.cancel && !confirmation.amount) && <div className="confirm-price">
-            <span>{confirmation?.cancel ? ow.refund : confirmation?.payment ? ow.paymentStatusLabel : ow.toPay}</span>
+          {(confirmation?.payment || (confirmation?.cancel && confirmation.amount > 0)) && <div className="confirm-price">
+            <span>{confirmation?.cancel ? ow.refund : groupCopyFor(locale).payable}</span>
             <strong>{formatSum(confirmation?.amount ?? 0, locale)}</strong>
           </div>}
           <AlertDialogFooter>
@@ -1919,19 +2013,21 @@ export function OrdersView({ operations }: { operations: boolean }) {
                         id: confirmation.id,
                         amount: confirmation.amount,
                         },
+                  // Waits for a save already in flight instead of being dropped: every failure then says why.
+                  { queue: true },
                 );
                 setBusy(false);
-                if (ok) {
-                  setConfirmation(null);
-                   toast.success(ow.saveChanges);
-                }
+                // A refusal (the amount changed, a stale revision) already said why in a toast and brought the fresh
+                // order: close, so the card shows the new amount instead of a dialog that would repeat the old one.
+                setConfirmation(null);
+                if (ok) toast.success(confirmation.cancel ? ow.saveChanges : confirmation.payment ? groupCopyFor(locale).pay.paidToast : groupCopyFor(locale).pay.extraToast);
               }}
             >
               {busy
                  ? ow.saving
                 : confirmation?.cancel
                    ? ow.cancelOrder
-                   : ow.confirm}
+                   : confirmation?.payment ? groupCopyFor(locale).pay.payConfirm : groupCopyFor(locale).pay.extraConfirm}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

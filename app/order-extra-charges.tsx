@@ -10,13 +10,13 @@ import { withCyrillic } from "@/lib/market/uz-cyrl";
 
 /**
  * Extra invoices on a paid order (since 10 October 2026). The operator issues one with an amount and a reason;
- * the customer sees "Доплатить" only while it waits. Paying records the mark in Atlas: no payment provider is
- * connected, so nothing is charged and nothing here says otherwise.
+ * the customer sees "Доплатить {сумма}" only while it waits. Paying records the mark in Atlas: no payment provider is
+ * connected, which the confirmation dialog says once; the card itself stays short.
  */
 export const extraChargeCopy = /*@__PURE__*/withCyrillic({
-  ru: { title: "Нужна доплата по заказу", pay: "Доплатить", paid: "Доплата отмечена в Atlas", cancelled: "Счёт отменён", list: "Доплаты по заказу", note: "Платёжный провайдер не подключён: деньги не списываются, Atlas сохранит только отметку.", dialogTitle: "Записать доплату в Atlas?", dialogText: "Действие отметит доплату в заказе. Платёжный провайдер не подключён: деньги не списываются, подтверждения банка нет." },
-  uz: { title: "Buyurtma bo‘yicha qo‘shimcha to‘lov kerak", pay: "Qo‘shimcha to‘lash", paid: "Qo‘shimcha to‘lov Atlasda qayd etildi", cancelled: "Hisob bekor qilindi", list: "Buyurtma bo‘yicha qo‘shimcha to‘lovlar", note: "To‘lov provayderi ulanmagan: pul yechilmaydi, Atlas faqat belgini saqlaydi.", dialogTitle: "Qo‘shimcha to‘lov Atlasda qayd etilsinmi?", dialogText: "Amal buyurtmada qo‘shimcha to‘lovni belgilaydi. To‘lov provayderi ulanmagan: pul yechilmaydi, bank tasdig‘i yo‘q." },
-  en: { title: "Extra payment needed", pay: "Pay the difference", paid: "Extra payment recorded in Atlas", cancelled: "Invoice withdrawn", list: "Extra payments on this order", note: "No payment provider is connected: no money is charged, Atlas keeps the mark only.", dialogTitle: "Record the extra payment in Atlas?", dialogText: "This marks the extra payment on the order. No payment provider is connected, so no money is charged and no bank confirmation is received." },
+  ru: { title: "Нужна доплата по заказу", pay: (amount: string) => `Доплатить ${amount}`, paid: "Доплачено", cancelled: "Счёт отменён", list: "Доплаты по заказу" },
+  uz: { title: "Buyurtma bo‘yicha qo‘shimcha to‘lov kerak", pay: (amount: string) => `${amount} qo‘shimcha to‘lash`, paid: "Qo‘shimcha to‘langan", cancelled: "Hisob bekor qilindi", list: "Buyurtma bo‘yicha qo‘shimcha to‘lovlar" },
+  en: { title: "Extra payment needed", pay: (amount: string) => `Pay ${amount} extra`, paid: "Paid extra", cancelled: "Invoice withdrawn", list: "Extra payments on this order" },
 });
 
 /** The customer's "now" item: the waiting invoice with its reason and the "Доплатить" button. */
@@ -26,8 +26,8 @@ export function CustomerExtraCharge({ order, locale, busy, onPay }: { order: Ord
   const t = extraChargeCopy[locale];
   return <div className="order-x-action-item">
     <Receipt size={20} aria-hidden="true" />
-    <div><h3>{t.title}</h3><p>{charge.reason}</p><strong className="order-x-delta">+{formatSum(charge.amount, locale)}</strong><p className="micro">{t.note}</p></div>
-    <button type="button" className="btn primary" disabled={busy} onClick={() => onPay(charge)}>{t.pay}<ArrowRight size={16} aria-hidden="true" /></button>
+    <div><h3>{t.title}</h3><p>{charge.reason}</p></div>
+    <button type="button" className="btn primary" disabled={busy} onClick={() => onPay(charge)}>{t.pay(formatSum(charge.amount, locale))}<ArrowRight size={16} aria-hidden="true" /></button>
   </div>;
 }
 

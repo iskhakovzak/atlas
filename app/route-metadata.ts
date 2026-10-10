@@ -22,9 +22,9 @@ export function publicPath(page: PublicPage): string {
 // Titles that already name Atlas are used as is, so the "%s · Atlas" template does not repeat the brand.
 const pageText: Record<PublicPage, Record<Locale, { title: string; description: string }>> = {
   home: /*@__PURE__*/withCyrillic({
-    uz: { title: 'Atlas — xorijiy do‘konlardan O‘zbekistonga yetkazib berish', description: 'Istalgan xorijiy do‘kondagi tovar havolasini qo‘ying va yakuniy narxni so‘mda biling: tovar, xizmat va yetkazib berish alohida satrlarda.' },
-    ru: { title: 'Atlas — покупки в зарубежных магазинах с доставкой в Узбекистан', description: 'Вставьте ссылку на товар из любого зарубежного магазина и узнайте итог в сумах: товар, сервис и доставка отдельными строками.' },
-    en: { title: 'Atlas — shop international stores with delivery to Uzbekistan', description: 'Paste a link from any international store and see the total in soum: item, service and delivery on separate lines.' },
+    uz: { title: 'Atlas — xorijiy do‘konlardan O‘zbekistonga yetkazib berish', description: 'Xorijiy do‘kondagi tovar havolasini qo‘ying va yakuniy narxni so‘mda biling: tovar, Atlas komissiyasi va yetkazib berish alohida satrlarda.' },
+    ru: { title: 'Atlas — покупки в зарубежных магазинах с доставкой в Узбекистан', description: 'Вставьте ссылку на товар из зарубежного магазина и узнайте итог в сумах: товар, комиссия Atlas и доставка отдельными строками.' },
+    en: { title: 'Atlas — shop international stores with delivery to Uzbekistan', description: 'Paste a product link from an international store and see the total in soum: item, Atlas fee and delivery on separate lines.' },
   }),
   catalog: /*@__PURE__*/withCyrillic({
     uz: { title: 'Xorijiy tovarlar katalogi — O‘zbekistonga yetkazib berish', description: 'Poyabzal, kiyim, elektronika va go‘zallik mahsulotlari — yakuniy narxi so‘mda, O‘zbekistongacha yetkazish bilan. Do‘kon, narx, o‘lcham va bojsiz limit bo‘yicha filtrlar.' },

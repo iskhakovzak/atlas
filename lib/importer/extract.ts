@@ -14,6 +14,7 @@ import { enrichMerchantOptions } from './merchant-options.ts';
 import { extractShopifyHtml } from './shopify.ts';
 import { safeVariantSourceUrl } from './variant-normalization.ts';
 import { extractZalandoProduct } from './zalando.ts';
+import { readableBrand, shopifyShopHandle } from './brand-name.ts';
 export type ProductVariant = {
   id?: string;
   sourceUrl?: string;
@@ -522,14 +523,59 @@ const number = (v: unknown) => {
   if (typeof v === "number")
     return Number.isFinite(v) && v >= 0 ? v : undefined;
   if (typeof v !== "string") return undefined;
-  let text = v.trim().replace(/[\s\u00a0]/g, '');
+  // "$129.99", "129,99 \u20ac", "USD 129.99", "US$ 5", "1'299.00": the currency mark and Swiss apostrophes go first.
+  const spaced = v.trim().replace(/[\s\u00a0\u202f]/g, '');
+  let text = spaced
+    .replace(/^[A-Z]{3}(?=\d)/, '').replace(/(?<=\d)[A-Z]{3}$/, '')
+    .replace(/^[A-Z]{0,2}\p{Sc}/u, '').replace(/\p{Sc}$/u, '')
+    .replace(/(?<=\d)['\u2019](?=\d{3}(?:\D|$))/g, '');
   if (!text || !/^\d[\d.,]*$/.test(text)) return undefined;
+  // Display text ("€1.299", "$1.299.990" in pesos) groups thousands with dots; a bare schema value ("1.299") stays.
+  if (text !== spaced && /^\d{1,3}(?:\.\d{3})+$/.test(text)) text = text.replace(/\./g, '');
   if (text.includes(',') && text.includes('.')) {
     text = text.lastIndexOf(',') > text.lastIndexOf('.') ? text.replace(/\./g, '').replace(',', '.') : text.replace(/,/g, '');
   } else if (text.includes(',')) text = /^\d{1,3}(,\d{3})+$/.test(text) ? text.replace(/,/g, '') : text.replace(',', '.');
   const n = Number(text);
   return Number.isFinite(n) && n >= 0 ? n : undefined;
 };
+
+/**
+ * JSON-LD as stores ship it: wrapped in <!-- --> or CDATA, or with raw line breaks inside strings (invalid JSON that
+ * search engines tolerate). The plain parse runs first; the cleanup only when it fails.
+ */
+function structuredJson(text: string): unknown {
+  try { return JSON.parse(text); } catch { /* cleaned below */ }
+  const cleaned = text.trim()
+    .replace(/^(?:\/\*\s*|\/\/\s*)?<!\[CDATA\[(?:\s*\*\/)?/, '').replace(/(?:\/\*\s*|\/\/\s*)?\]\]>(?:\s*\*\/)?$/, '').trim()
+    .replace(/^(?:\/\/\s*)?<!--/, '').replace(/(?:\/\/\s*)?-->$/, '')
+    .replace(/[\r\n\t]+/g, ' ').trim();
+  try { return JSON.parse(cleaned); } catch { return undefined; }
+}
+
+/**
+ * The selling price of an offer: `price`, else its priceSpecification — when that is a list, the entry that is not
+ * the list/strikethrough ("was") price.
+ */
+function offerQuote(offer: unknown): {price?: unknown; currency?: unknown} {
+  if (!offer || typeof offer !== 'object') return {};
+  const record = offer as Record<string, unknown>;
+  const specs = [record.priceSpecification].flat().filter((spec): spec is Record<string, unknown> => Boolean(spec) && typeof spec === 'object' && !Array.isArray(spec));
+  // A unit price ("€9.98 per 100 ml": a referenceQuantity other than one plain unit) is never the item's price.
+  const unitPrice = (spec: Record<string, unknown>) => {
+    const quantity = spec.referenceQuantity as Record<string, unknown> | undefined | null;
+    return quantity !== undefined && quantity !== null && !(typeof quantity === 'object' && Number(quantity.value) === 1 && !quantity.unitCode);
+  };
+  const selling = specs.find(spec => !unitPrice(spec) && !/(?:ListPrice|StrikethroughPrice|MSRP|SRP)$/i.test(clean(spec.priceType)))
+    ?? (specs.length === 1 && !unitPrice(specs[0]) ? specs[0] : undefined);
+  return {price: record.price ?? selling?.price, currency: record.priceCurrency ?? selling?.priceCurrency};
+}
+
+/** The `content` of the first element carrying itemprop=<name> (a <span> or <link>, not only <meta>). */
+function microdataContent(html: string, name: string) {
+  const tag = html.match(new RegExp(String.raw`<[a-z]+\b[^<>]*\bitemprop\s*=\s*["']?${name}["']?(?=[\s/>])[^<>]*>`, 'i'))?.[0];
+  const value = tag?.match(/\bcontent\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i);
+  return value ? clean(value[1] ?? value[2] ?? value[3]) || undefined : undefined;
+}
 
 export function safeImage(value: unknown, base: string) {
   const s =
@@ -812,7 +858,7 @@ function extractAnker(html: string, sourceUrl: string): Extracted | undefined {
     const selected = selectedId ? variants.find(variant => variant.id === selectedId) : undefined;
     const prices = [...new Set(variants.map(variant => variant.price).filter(value => value !== undefined))];
     const images = [...new Set([selected?.image, ...[product.images].flat().map(value => safeImage((value as Record<string, unknown>)?.url ?? value, sourceUrl))].filter((value): value is string => Boolean(value)))].slice(0, 12);
-    const title = clean(product.title ?? product.name).slice(0, 140), brand = clean(product.vendor) || 'Anker';
+    const title = clean(product.title ?? product.name).slice(0, 140), brand = readableBrand(clean(product.vendor), sourceUrl, {fallback: 'Anker'});
     const warnings = ['Доставка магазина не опубликована — указан изменяемый резерв $10; для заказа из магазина от $50 его не берём.', 'Вес с упаковкой нужно проверить.'];
     if (!selected && prices.length !== 1) warnings.push('Выберите вариант, чтобы получить его точную цену.');
     return {title,brand,category:'Электроника',declarationDescription:declarationFor('Электроника',title,brand),image:selected?.image??images[0],images,price:selected?.price??(prices.length===1?prices[0]:undefined),currency:'USD',variants,warnings,sourceUrl,method:'Anker product data',country:'США'};
@@ -1237,8 +1283,9 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
   const metaImages: string[] = [];
   for (const tag of html.match(/<meta\b[^>]*>/gi) ?? []) {
     const a: Record<string, string> = {};
-    for (const m of tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g))
-      a[m[1].toLowerCase()] = clean(m[2] ?? m[3]);
+    // Minified pages drop the quotes: <meta property=og:price:amount content=129.99>.
+    for (const m of tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+?)(?=\s|\/?>))/g))
+      a[m[1].toLowerCase()] = clean(m[2] ?? m[3] ?? m[4]);
     const key = a.property ?? a.name ?? a.itemprop;
     if (key && a.content) {
       meta[key.toLowerCase()] = a.content;
@@ -1259,11 +1306,10 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     }
   };
   for (const match of html.matchAll(
-    /<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
+    /<script\b[^>]*type\s*=\s*(?:["']\s*application\/ld\+json\s*["']|application\/ld\+json(?=[\s>]))[^>]*>([\s\S]*?)<\/script>/gi,
   )) {
-    try {
-      walk(JSON.parse(match[1]));
-    } catch {}
+    const parsed = structuredJson(match[1]);
+    if (parsed !== undefined) walk(parsed);
   }
 
   const sameListing = (value: unknown) => {
@@ -1336,7 +1382,8 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
   const selectedVariantId = requestedVariants.length === 1 ? requestedVariants[0] : undefined;
   const childQuote = (child: Record<string, unknown>) => {
     const childOffer = [child.offers].flat()[0] as Record<string, unknown> | undefined;
-    return {price: number(childOffer?.price), currency: clean(childOffer?.priceCurrency).toUpperCase()};
+    const quote = offerQuote(childOffer);
+    return {price: number(quote.price), currency: clean(quote.currency).toUpperCase()};
   };
   const firstQuote = children.length ? childQuote(children[0]) : undefined;
   const uniformChild = firstQuote?.price !== undefined && /^[A-Z]{3}$/.test(firstQuote.currency)
@@ -1364,8 +1411,30 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     && ownSizes.every((child: Record<string, unknown>) => { const quote = childQuote(child); return quote.price === ownQuote.price && quote.currency === ownQuote.currency; })
     ? [ownSizes[0].offers].flat()[0] : undefined;
   const groupOffers = [group?.offers].flat().filter(Boolean);
-  const offers = selectedChild ? selectedChild.offers : groupOffers.length || !ownSizesOffer ? group?.offers : {...ownSizesOffer, url: undefined};
+  const declaredOffers = selectedChild ? selectedChild.offers : groupOffers.length || !ownSizesOffer ? group?.offers : {...ownSizesOffer, url: undefined};
+  // An AggregateOffer that lists its offers is read as those offers; the aggregate's currency fills in theirs.
+  const soleOffer = Array.isArray(declaredOffers) ? declaredOffers.length === 1 ? declaredOffers[0] : undefined : declaredOffers;
+  const aggregateList = soleOffer && typeof soleOffer === 'object' && soleOffer['@type'] === 'AggregateOffer' && Array.isArray(soleOffer.offers)
+    ? (soleOffer.offers as unknown[]).filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item)) : [];
+  const offers = aggregateList.length ? aggregateList.map(item => ({priceCurrency: soleOffer.priceCurrency, ...item})) : declaredOffers;
   const offer = Array.isArray(offers) ? offers[0] : offers;
+  const quote = offerQuote(offer);
+  // A "range" with one value (lowPrice = highPrice, or a single offer) is that price; a real range stays unquoted.
+  const aggregatePrice = offer?.['@type'] === 'AggregateOffer' && quote.price === undefined && number(offer.lowPrice) !== undefined
+    && (number(offer.lowPrice) === number(offer.highPrice) || Number(offer.offerCount) === 1) ? offer.lowPrice : undefined;
+  // Microdata (itemprop="price") counts only when the page has exactly one Product scope: never a recommendation's.
+  // …and when that scope names an article (productID/sku/url), it must be the linked one: a redirect or an outdated
+  // link never borrows another article's price. Read only when nothing else gave a price (a 6 MB page is not scanned
+  // on every import), and a tag ends at the next "<" too, so a stray "<a" in a script never scans to a distant ">".
+  let microdataScope: boolean | undefined;
+  const microdataUsable = () => microdataScope ??= (() => {
+    if (!/\bitemprop\b/i.test(html) || (html.match(/itemtype\s*=\s*["']?https?:\/\/schema\.org\/Product(?=["'\s>])/gi)?.length ?? 0) !== 1) return false;
+    const scopeIds = [...html.matchAll(/<[a-z]+\b[^<>]*\bitemprop\s*=\s*["']?(?:productID|sku|url)["']?(?=[\s/>])[^<>]*>/gi)]
+      .flatMap(match => [...match[0].matchAll(/\b(?:content|href|data-product-id)\s*=\s*["']?([^"'\s>]+)/gi)].map(value => value[1]));
+    const linkedIds = sourceProductIds(sourceUrl);
+    return !scopeIds.length || scopeIds.some(value => sameListing(value) || linkedIds.has(value.toLowerCase()));
+  })();
+  const microdata = (name: string) => microdataUsable() ? meta[name.toLowerCase()] ?? microdataContent(html, name) : undefined;
   const details = offer?.shippingDetails;
   const ship = Array.isArray(details) ? details[0] : details;
   const rate = ship?.shippingRate;
@@ -1377,18 +1446,19 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
   const price = zara?.missingSelectedColor || missingRequestedVariant ? undefined :
     zara?.price ??
     number(
-      offer?.price ??
-        offer?.priceSpecification?.price ??
+      quote.price ??
+        aggregatePrice ??
         meta["product:price:amount"] ??
-        meta["og:price:amount"],
+        meta["og:price:amount"] ??
+        microdata("price"),
     );
   const currency =
     zara?.currency ??
     (clean(
-      offer?.priceCurrency ??
-        offer?.priceSpecification?.priceCurrency ??
+      quote.currency ??
         meta["product:price:currency"] ??
-        meta["og:price:currency"],
+        meta["og:price:currency"] ??
+        microdata("priceCurrency"),
     ).toUpperCase() || (firstQuote && /^[A-Z]{3}$/.test(firstQuote.currency) && children.every((child: Record<string, unknown>) => childQuote(child).currency === firstQuote.currency) ? firstQuote.currency : undefined));
   // Douglas and some pharmacies put the pack size ("30 ML", "50 g") into the JSON-LD name; the page title names the product.
   const sizeOnlyName = /^\s*\d+(?:[.,]\d+)?\s*(?:ml|mL|cl|l|g|gr|kg|mg|oz|fl\.?\s?oz|мл|г|шт|uds?\.?|pcs?)\.?\s*$/i;
@@ -1410,14 +1480,16 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     offer?.availableAtOrFrom?.address?.addressCountry ??
     p?.offers?.shippingOrigin?.addressCountry;
   const rawBrand = p?.brand;
-  const brand =
+  const structuredBrand =
     (zara?.brand ??
       clean(
         typeof rawBrand === "object" && rawBrand
           ? ((rawBrand as Record<string, unknown>).name ??
               (rawBrand as Record<string, unknown>).label)
           : rawBrand,
-      ).slice(0, 80)) || new URL(sourceUrl).hostname.replace(/^www\./, "");
+      ).slice(0, 80)) || undefined;
+  // A Shopify vendor or JSON-LD brand can be the store's internal handle ("beta-anker-us"): the page's site name instead.
+  const brand = zara?.brand ?? (structuredBrand ? readableBrand(structuredBrand, sourceUrl, {siteName: meta["og:site_name"], shopHandle: shopifyShopHandle(html)}) : new URL(sourceUrl).hostname.replace(/^www\./, ""));
   // The page's own breadcrumbs name the department ("Coats & Jackets"); the title and the top-level
   // category ("Men's Fashion, Shoes & Accessories") are only a guess when the crumbs say nothing.
   const category = breadcrumbCategory(nodes) ?? inferProductCategory(
@@ -1452,8 +1524,8 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
       color: axes.color || undefined,
       label: [axes.color, axes.size].filter(Boolean).join(' · ') || embeddedOptionLabel(child),
       ...embeddedAvailability({availability: childOffer?.availability}),
-      price: !missingRequestedVariant && currency && clean(childOffer?.priceCurrency ?? (childOffer?.priceSpecification as Record<string, unknown> | undefined)?.priceCurrency).toUpperCase() === currency
-        ? number(childOffer?.price ?? (childOffer?.priceSpecification as Record<string, unknown> | undefined)?.price) : undefined,
+      price: !missingRequestedVariant && currency && clean(offerQuote(childOffer).currency).toUpperCase() === currency
+        ? number(offerQuote(childOffer).price) : undefined,
       image: safeImage(Array.isArray(child.image) ? child.image[0] : child.image, sourceUrl),
     };
   }).filter((item: ProductVariant) => item.label).slice(0, 80);
@@ -1504,7 +1576,7 @@ export function extractProduct(html: string, sourceUrl: string): Extracted {
     warnings.push("Цвета и размеры получены со страницы магазина. Цена и наличие выбранного варианта требуют подтверждения.");
   else if (Array.isArray(offers) && offers.length > 1)
     warnings.push("Найдено несколько предложений: показано первое. Проверьте вариант и цену.");
-  if (offer?.["@type"] === "AggregateOffer")
+  if (offer?.["@type"] === "AggregateOffer" && aggregatePrice === undefined)
     warnings.push("Указан диапазон цен. Нужна цена конкретного варианта.");
   const extracted: Extracted = {
     variantScope: zara ? 'group' : groupIdentifiesListing && groupVariants.length ? 'group' : undefined,

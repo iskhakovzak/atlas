@@ -38,16 +38,16 @@ export function CalcLines({sums,locale,pricing,weightKg,storeShippingState,anyFr
  return <>
   <div className="basket-lines">
    <SummaryLine label={c.lines.items} amount={sums.merchandise} locale={locale}/>
-   <SummaryLine label={c.lines.atlasFee(percent(pricing.margin,locale))} amount={sums.service} locale={locale} help={c.feeHelp} helpLabel={c.lines.atlasFee('')}/>
+   <SummaryLine label={c.lines.atlasFee(percent(pricing.margin,locale))} amount={sums.service} locale={locale} help={c.feeHelp(percent(pricing.margin,locale))} helpLabel={c.lines.atlasFee('')}/>
    {sums.buyout>0&&<SummaryLine label={c.lines.buyout} amount={sums.buyout} locale={locale}/>}
    {sums.conversion>0&&<SummaryLine label={c.lines.conversion} amount={sums.conversion} locale={locale}/>}
    {stated&&<SummaryLine label={c.lines.storeShipping} amount={sums.sourceShipping} locale={locale}/>}
    {free&&<SummaryLine label={c.lines.storeShipping} amount={0} value={c.lines.free} locale={locale} help={c.freeNote(freeFrom)} helpLabel={c.lines.storeShipping}/>}
    {hold&&<SummaryLine label={c.lines.storeShipping} amount={0} value={c.lines.holdOutside} locale={locale} help={c.holdHelp(freeFrom)} helpLabel={c.lines.storeShipping}/>}
-   <SummaryLine label={internationalLabel} amount={sums.shipping+sums.deliveryMargin} locale={locale} help={c.weightRule} helpLabel={c.blocks.weight}/>
+   <SummaryLine label={internationalLabel} amount={sums.shipping+sums.deliveryMargin} locale={locale} help={c.weightRule(formatKg(packagingKg,locale))} helpLabel={c.blocks.weight}/>
    {sums.reserve>0&&<SummaryLine label={c.lines.intlReserve} amount={sums.reserve} locale={locale} help={c.intlReserveHelp} helpLabel={c.lines.intlReserve}/>}
    {sums.optionalServices>0&&<SummaryLine label={c.lines.optional} amount={sums.optionalServices} locale={locale}/>}
-   {sums.customsHelp>0&&<SummaryLine label={c.lines.customsHelp(percent(pricing.customsHelpFee,locale))} amount={sums.customsHelp} locale={locale} help={c.customsHelpHelp} helpLabel={c.lines.customsHelp('')}/>}
+   {sums.customsHelp>0&&<SummaryLine label={c.lines.customsHelp(percent(pricing.customsHelpFee,locale))} amount={sums.customsHelp} locale={locale} help={c.customsHelpHelp(percent(pricing.customsHelpFee,locale))} helpLabel={c.lines.customsHelp('')}/>}
    {sums.customsDuty>0&&<SummaryLine label={c.lines.customsDuty} amount={sums.customsDuty} locale={locale} help={c.customsDutyHelp} helpLabel={c.lines.customsDuty}/>}
   </div>
   {children}
@@ -131,16 +131,19 @@ export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipient
  const [open,setOpen]=useState(false);
  const [remember,setRemember]=useState(true);
  const usd=(value:number)=>usdText(value,locale);
- const over=customsDutyAmount(estimate,pricing)>0;
+ const duty=customsDutyAmount(estimate,pricing),over=duty>0;
+ // "Atlas pays customs" adds the duty and its fee: the card names the whole addition, not the fee alone.
+ const helpFee=helpAmount===undefined?'':c.choice.fee(formatSum(duty+helpAmount,locale),formatSum(duty,locale),percent(pricing.customsHelpFee,locale));
  // While a choice is saving the cards stay focusable (a disabled fieldset would drop keyboard focus); a second pick waits.
  const pick=(help:boolean)=>{if(!busy)onChoices?.({...choices,help,remember})};
  return <section className={'calc-customs'+(compact?' compact':'')} aria-labelledby={id+'-title'}>
-  <header><Scale size={17} aria-hidden="true"/><h3 id={id+'-title'}>{c.allowanceTitle(usd(estimate.allowanceUsd))}</h3></header>
-  {over?<p className="calc-customs-over">{(choices.help?c.overIncluded:c.overNote)(usd(estimate.dutiableUsd),formatSum(customsDutyAmount(estimate,pricing),locale))}</p>
-   :<p className="calc-customs-none"><Check size={15} aria-hidden="true"/>{c.choice.noDuty(usd(allowanceLeftUsd(estimate)))}</p>}
+  {/* No duty: one line says so (the allowance left is in it). Over the allowance: the allowance, then the excess and the duty. */}
+  {over?<><header><Scale size={17} aria-hidden="true"/><h3 id={id+'-title'}>{c.allowanceTitle(usd(estimate.allowanceUsd))}</h3></header>
+   <p className="calc-customs-over">{(!onChoices?c.overPreview:choices.help?c.overIncluded:c.overNote)(usd(estimate.dutiableUsd),formatSum(duty,locale))}</p></>
+   :<header className="calc-customs-none"><Check size={17} aria-hidden="true"/><h3 id={id+'-title'}>{c.choice.noDuty(usd(allowanceLeftUsd(estimate)))}</h3></header>}
   {profiles.length>1&&onRecipient&&<div className="field calc-customs-recipient"><label htmlFor={id+'-recipient'}>{c.recipient}</label><select id={id+'-recipient'} value={recipientId} onChange={event=>onRecipient(event.target.value)}>{profiles.map(profile=><option key={profile.id} value={profile.id}>{profile.recipient}</option>)}</select></div>}
   {over&&onChoices&&helpAmount!==undefined&&(remembered&&!open
-   ?<p className="customs-remembered">{choices.help?<HandCoins size={15} aria-hidden="true"/>:null}<span>{choices.help?c.choice.rememberedAtlas:c.choice.rememberedSelf}{choices.help&&<small>{c.choice.fee(percent(pricing.customsHelpFee,locale),formatSum(helpAmount,locale))}</small>}</span><button type="button" onClick={()=>setOpen(true)}>{c.choice.change}</button></p>
+   ?<p className="customs-remembered">{choices.help?<HandCoins size={15} aria-hidden="true"/>:null}<span>{choices.help?c.choice.rememberedAtlas:c.choice.rememberedSelf}{choices.help&&<small>{helpFee}</small>}</span><button type="button" onClick={()=>setOpen(true)}>{c.choice.change}</button></p>
    :<fieldset className="customs-choice" aria-busy={busy||undefined}>
     <legend>{c.choice.title}</legend>
     <label className={'customs-option atlas'+(choices.help?' selected':'')}>
@@ -148,7 +151,7 @@ export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipient
      <span className="customs-option-body">
       <span className="customs-option-head"><HandCoins size={16} aria-hidden="true"/><b>{c.choice.atlas}</b><em>{c.choice.badge}</em></span>
       <small>{c.choice.perk}</small>
-      <small className="customs-option-fee">{c.choice.fee(percent(pricing.customsHelpFee,locale),formatSum(helpAmount,locale))}</small>
+      <small className="customs-option-fee">{helpFee}</small>
      </span>
     </label>
     <label className={'customs-option self'+(!choices.help?' selected':'')}>

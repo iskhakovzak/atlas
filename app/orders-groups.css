@@ -177,3 +177,19 @@ html[data-theme="dark"] .og-progress-bar span[data-state="current"] { background
 html[data-theme="dark"] .og-line-summary:focus-visible { outline-color: var(--night-jade); }
 html[data-theme="dark"] :is(.og-model-photo, .og-line-thumb) { background: radial-gradient(120% 110% at 50% 8%, #f6f3ec 0%, #e6e1d5 100%); }
 html[data-theme="dark"] :is(.og-model-photo, .og-line-thumb) img { background: transparent; mix-blend-mode: multiply; }
+
+/* Since 10 October 2026: the next step under the heading, a finished purchase invites the next one, notes said once per
+   checkout or store parcel (customs, allowance, the store-delivery check), the passport as a calm note, one "Вопрос по заказу". */
+.order-group-main > .og-next { color: var(--home-ink); font-size: 13.5px; font-weight: 600; }
+.og-head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 6px; }
+.og-head-actions .btn { min-height: 40px; }
+.og-group-note { margin: 0 4px 10px; }
+.og-group-note .micro { margin-top: 4px; }
+.og-model-head .og-model-reorder { grid-column: 2; justify-self: start; }
+.og-group-foot { margin: 2px 4px 8px; }
+.order-group .og-passport { margin: 0 0 12px; border-color: var(--home-line); background: var(--home-surface); }
+.order-group .og-passport > svg { color: var(--home-muted); }
+.order-group .og-passport p { margin: 0; color: var(--home-ink); font-size: 14px; line-height: 1.45; }
+html[data-theme="dark"] .order-group .og-passport { border-color: var(--home-line); background: var(--home-surface); }
+/* A link to an order (/orders#AT-…) lands below the sticky header: on the line, or on the checkout's pay card while it waits. */
+.og-line, .order-group .og-pay { scroll-margin-top: 88px; }

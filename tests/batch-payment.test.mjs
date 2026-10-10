@@ -6,6 +6,7 @@ import { actionPermission } from '../lib/market/access.ts';
 import { groupOrders, groupStageText } from '../lib/market/order-groups.ts';
 import { customsVersion } from '../lib/market/world.ts';
 import { noticePanel } from '../lib/market/notice-panel.ts';
+import { renderHistory, renderNotification } from '../lib/market/history-copy.ts';
 
 const nike = { ...products[0], id: 'nike-1', sourceUrl: 'https://www.nike.com/t/shoe', country: 'США', shippingKnown: true };
 const zara = { ...products[2], id: 'zara-1', sourceUrl: 'https://www.zara.com/es/en/p.html', country: 'Испания', shippingKnown: true };
@@ -59,6 +60,16 @@ test('paying the checkout marks every line at once, with one notification', () =
     assert.deepEqual([entry.debit, entry.credit, entry.amount], ['demo-provider', 'order-funds', order.payment.amount]);
   }
   assert.equal(paid.notifications.filter((item) => item.code === 'payment-recorded').length, 1);
+  // The stored text keeps the provider note; the customer reads a calm status and the next step.
+  const recorded = paid.orders[0].history.at(-1);
+  assert.match(recorded.text, /Платёжный провайдер/);
+  assert.equal(renderHistory(recorded, 'ru'), 'Оплата отмечена.');
+  assert.equal(renderHistory(recorded, 'en'), 'Payment recorded.');
+  const notice = paid.notifications.find((item) => item.code === 'payment-recorded');
+  assert.deepEqual(renderNotification(notice, 'ru'), { title: 'Оплата отмечена', message: 'Дальше — выкуп в магазине.' });
+  assert.doesNotMatch(Object.values(renderNotification(notice, 'uz')).join(' '), /[а-яё]/i);
+  // The checkout entry no longer repeats the provider note either.
+  assert.doesNotMatch(renderHistory(paid.orders[0].history[0], 'ru'), /не подключена|не списывались/);
   const [group] = groupOrders(paid.orders);
   assert.equal(group.payment, undefined);
   assert.equal(group.attention, 0);

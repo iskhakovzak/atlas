@@ -6,7 +6,6 @@ import Link from '@/components/site-link';
 import { tariff, unknownStoreShippingUsd, validateSource, type Pricing } from '@/lib/market/domain';
 import { customsParams } from '@/lib/market/customs';
 import { deliverySpeedCopy } from '@/lib/market/delivery-speed';
-import { homeCopy } from '@/lib/market/home-copy';
 import { formatUsd } from '@/lib/market/format';
 import { tashkentDay } from '@/lib/market/world';
 import type { storesCopy } from '@/lib/market/stores-copy';
@@ -88,7 +87,7 @@ export function StoreDialog({ brand, c, locale, pricing, terms, catalog, mark, o
         </div>
 
         {/* Keyed by store: another store opened from "similar stores" starts with a clean field. */}
-        <DialogLinkForm key={brand.key} c={c} locale={locale} domain={main.root} />
+        <DialogLinkForm key={brand.key} c={c} domain={main.root} />
         <a className="btn secondary store-dialog-open" href={`https://${main.root}`} target="_blank" rel="noopener noreferrer">{c.open(main.root)}<ArrowUpRight size={18} aria-hidden="true" /><span className="sr-only"> ({c.newTab})</span></a>
 
         <section className="store-dialog-terms" aria-labelledby="store-dialog-terms-title">
@@ -143,12 +142,12 @@ export function StoreDialog({ brand, c, locale, pricing, terms, catalog, mark, o
 }
 
 /** The link field of the store card: the same link-order route as the hero form, the validation error under the field. */
-function DialogLinkForm({ c, locale, domain }: { c: Copy; locale: Locale; domain: string }) {
+function DialogLinkForm({ c, domain }: { c: Copy; domain: string }) {
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
   function submit(event: FormEvent) {
     event.preventDefault();
-    try { goToLinkOrder(url); } catch { setError(homeCopy[locale].hero.invalid); }
+    try { goToLinkOrder(url); } catch { setError(c.invalidLink); }
   }
   return <form id="store-dialog-link" className="store-dialog-link" onSubmit={submit} noValidate>
     <label className="sr-only" htmlFor="store-dialog-url">{c.dialogPaste(domain)}</label>

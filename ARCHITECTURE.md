@@ -1,3 +1,60 @@
+## Оформление и «Мои заказы»: одна сумма, одно действие, без повторов — 10 октября 2026
+
+- **Принцип.** На каждом шаге одна сумма «К оплате», одна главная кнопка и строка «что дальше»; одна и та же оговорка — в одном месте. Деньги считает сервер, как раньше: `orderPayable` не менялся; `orderCustomerTotal` (`lib/market/order-groups.ts`) — только для показа.
+- **Карточка товара** (`app/product-sheet.tsx`): при устаревшей цене — заметка с датой; описание диалога остаётся только для экранного диктора (`sr-only`). Страна на фото, поэтому над названием — только магазин.
+- **Шаг проверки** (`app/shopping.tsx`): подробный счёт и таможня свёрнуты в «Подробный расчёт». Галочка согласия с таможней — только когда у получателя есть пошлина; без пошлины — пассивная строка, а `consentVersion` клиент отправляет всегда (сервер требует его, как и раньше). Если 15 минут фиксации цены вышли, «Подтвердить» сначала делает `cart-check` и показывает обновлённую сумму. Таймер цены виден только в последние 5 минут. Получатель на шаге 2 — тот, для кого в корзине считалась пошлина.
+- **«Мои заказы»** (`app/order-workspace.tsx`): одна карточка оплаты на оформление («Оплатить {сумма}», окно «Оплатить заказ?» с одной строкой о провайдере), «Доплатить {сумма}» с одной строкой «почему». Пока заказ ждёт оплаты, первый шаг шкалы — «Ожидает оплаты», а напоминание о паспорте не показывается: оно появляется после оплаты (паспорт нужен до отправки). Раскрытая позиция не повторяет название и вариант из своей строки. Ошибка загрузки — «Не удалось загрузить заказы» с «Повторить», а не приглашение войти.
+- **Бренд.** `shownBrand()` (`lib/importer/brand-name.ts`) прячет внутренние ярлыки Shopify («beta-anker-us») и у заказов, сохранённых до исправления импорта (заказы, корзина).
+- **Даты и вес.** Числовые даты в заказах для узбекского — в формате `ru-RU` (браузеры пишут `uz-UZ` как «2026 M10 3»); вес — через `formatKg` (запятая), в том числе «0,5 кг» в заказе по ссылке.
+
+## Сайт: второй прогон аудита (повторы, несостыковки, CSS по маршрутам) — 10 октября 2026
+
+- **CSS по маршрутам.** Шесть файлов главной (`home-chapters`, `tariffs`, `home-wide-rail`, `home-wide-content`, `folio-outside`, `home-wide-decor`) импортирует `app/page.tsx`: все их правила привязаны к `html[data-view="catalog"]`, `.catalog-home`, `.home-folio`, `.home-*`/`.hw-*`/`.tariff-*`, а эти узлы рендерятся только на главной (футер и `/support` берут `.home-footer`/`.home-faq` из глобального `home.css`). `operator-mobile.css` — только в `app/admin/page.tsx` и `app/operations/page.tsx`. Более поздние глобальные файлы (`press.css`, `motion.css`, `header-panel.css`) с правилами главной не пересекаются, так что смена порядка ничего не перебивает.
+- **Копии главной** (`lib/market/home-copy.ts`): проверка цены у магазина — один раз, в «Как мы обращаемся с деньгами» (шаг 3 больше её не повторяет); лимит без пошлины — в листке примера и в FAQ (факт в блоке денег убран); шаг 2 говорит о выборе цвета/размера, а не повторяет герой. Вопрос FAQ о лимите — функция `customs(allowance)`: сумма из `pricing.customsAllowanceUsd ?? courierAllowanceUsd`, как в примере счёта (и на `/support`). Доставка магазина до склада выше порога: «считаем её бесплатной», а не «она бесплатна» (главная и `catalog-card.tsx`).
+- **Термины и SEO.** Строка сбора везде «комиссия Atlas» (`route-metadata.ts` для главной, `/app`); SEO главной больше не обещает «любой магазин» (принимаются домены из списка `/stores`). `customs-estimate.tsx` берёт `$200` из `courierAllowanceUsd`, ставку — через `formatPercent`.
+- **Бандлы.** `/catalog` и `/stores` больше не тянут `home-copy.ts`: `catalogCopy.order`, `storesCopy.invalidLink`.
+
+## Импорт: повторное использование ответа, короткие ссылки, срок попытки прокси — 10 октября 2026
+
+**Одна ссылка — одно написание.** `canonicalProductUrl()` (`lib/importer/source-identity.ts`):
+- приводит хост к нижнему регистру, убирает якорь и параметры отслеживания (utm, gclid, fbclid, ref_, pd_rd_*, у Amazon ещё qid/sr/crid);
+- остальные параметры сортирует, значения не перекодирует;
+- параметры товара и партнёрские метки сохраняет.
+
+Это ключ `market_import_cache`, ключ ожидания одинаковых запросов, адрес загрузки в `/api/import` и при добавлении в корзину, а также нормализация очереди оператора (`catalog-import-queue.ts`).
+
+**`/api/import`** (`app/api/import/route.ts`):
+- Короткие ссылки (`lib/importer/short-links.ts`). Раскрываются a.co, amzn.to, amzn.eu, amzn.asia, ebay.us: `redirect:'manual'`, до 3 переходов, около 3 с, только после списания лимита. Итог должен быть в allowlist; иначе ссылка остаётся как есть. `m.<магазин>` читается как `www.<магазин>`.
+- Без запроса к магазину и до лимита отвечают:
+  - стена или неполная страница за последние 90 с (с `fresh` тоже);
+  - кэш D1, если `fresh` не просили.
+- Одинаковые одновременные запросы ждут первый (`lib/importer/import-flight.ts`), не дольше 26 с. Делятся только ответом магазина, тайм-аут не делится. Кэш пишет только первый запрос.
+- Старые строки `market_rate_limits` чистятся примерно раз в 50 запросов: ключи содержат минуту, просроченные строки ни на что не влияют.
+
+**Корзина.** `withRecentImport()` (`lib/market/cart-check.ts`) отдаёт `cart-add`/`cart-add-many` ответ из `market_import_cache`, если сервер записал его не раньше `recentCheckMs` (2 мин) назад. Amazon US всегда проверяется вживую. Время проверки строки — время этого ответа (`PrepareDeps.snapshotAt`), а не момент нажатия.
+
+**Разбор.**
+- `extract.ts`:
+  - тип JSON-LD и атрибуты meta без кавычек;
+  - обёртки `<!-- -->`/CDATA и переводы строк внутри JSON;
+  - `priceSpecification` списком (без ListPrice/Strikethrough);
+  - AggregateOffer с одной ценой или со списком `offers`;
+  - микроразметка — только при одной области Product, которая указывает на этот товар;
+  - цены с символами валют, ISO-кодами и апострофами.
+- Бренд: `lib/importer/brand-name.ts` заменяет внутренние имена («beta-anker-us», `*.myshopify.com`, `Shopify.shop`) на og:site_name или название магазина Atlas.
+- Shopify вне `shopifyStoreRoots`. Если на странице `/products/<handle>` нет цены или вариантов, а страница объявляет `Shopify.currency`, дозапрашивается `/products/<handle>.js`.
+- `readBody`: HTML до 6 МБ; больше — `ManualEntryFallbackError('response')` с `diagnostic.vendor='oversize'`.
+- Adidas: листинг и карточка запрашиваются параллельно (`Promise.allSettled`).
+
+**Прокси.**
+- `withMerchantRoutes` передаёт непоследним маршрутам `deadlineMs` (лимит попытки минус 300 мс).
+- `proxy-client.mjs` подписывает его в запросе, если он от 1 до 30 с.
+- `importer-proxy-server.mjs` передаёт `deadlineMs` и сигнал обрыва соединения в `fetchWithEngines`.
+- `merchant-engines.mjs` отдаёт первому движку весь срок, если при делении следующему досталось бы меньше 1,5 с, а также для `browser`.
+- Совместимость: старый прокси поле игнорирует, новый без поля ждёт 13 с.
+
+**Выкатка.** Скопировать на ташкентский шлюз и US VPS новые `deploy/upcloud/importer-proxy-server.mjs` и `deploy/upcloud/merchant-engines.mjs`, перезапустить прокси. Allowlist и подсказки движков не менялись. Миграций D1 нет.
+
 ## Ускорение импорта, живая проверка магазинов, Bright Data без двойного сбора — 10 октября 2026
 
 **Скорость загрузки товаров.**
@@ -364,7 +421,7 @@ ImpactTracking is a client component inside MarketProvider. It waits for current
 - **Геометрия и масштаб.** С 1680 у `main` поля `--hw-ml + --hw-rail-w + --hw-rail-gap` слева и `--hw-mr` справа (лишнее место уходит в правое поле, где медальоны); шапка выровнена по ленте и краю контента. `--hw-z` — всегда простое число: 1; 1.15 (≥2200×1200); 1.25 (≥2400×1350); 1.4 (≥2880×1600); 1.6 (≥2880×1950). `zoom` стоит только на листах (`main > [data-chapter]`), детях `.site-header` и `.hw-rail-inner`; на листах `--ch-h`/`--ch-h1` делятся на `--hw-z`, поэтому каждый лист по-прежнему ровно в экран. `main` не масштабируется: декор меряет его в пикселях окна. `app/press-feedback.tsx` делит `--press-x/y/size` на `currentCSSZoom || 1`.
 - **Декор** — `app/home-decor.tsx`, `app/home-decor-art.ts` (статические SVG), `app/home-wide-decor.css`, `lib/market/world-land.ts` (грубые ручные контуры суши, мемоизированная сетка точек, приблизительные центры стран — иллюстрация, не адреса складов). React ведёт только корень `.hw-decor[aria-hidden]` (`pointer-events:none`, `z-index:-1`, абсолютно на всю ширину окна); слои и SVG рисуются императивно. Медальоны (глобус, коробка, чек, облачка) — в правом поле героя, тарифов, «Ваших денег» и FAQ: полный при поле от ~305 px (64 px до контента и края), компактный от ~186 px, иначе только мятное пятно; на «Как это работает» и «Подборке» медальонов нет. На финале — точечная карта: страны и порядок из `deliveryRegions`, подписи из `homeCopy.tariffs.regions` и `example.to`, без сроков и статусов; при небе над карточкой меньше 300 px карты нет (uz-заголовок финала на wide на шаг мельче, чтобы не переносился и не съедал небо). Карта рисуется только в пределах половины окна от экрана (второй IntersectionObserver, `rootMargin: 50%`): загрузка, смена темы или языка и ресайз наверху её не трогают. Геометрия дуг считается в JS (`quadArc` в `lib/market/world-land.ts`: таблица длин хорд, точка и касательная квадратичной Безье) без `getPointAtLength`, сетка точек — построчный scanline (`landDots`, ровно те же точки, что `isLand`); первая отрисовка ~20–30 мс, повторные 5–10 мс (было 220–390 мс с принудительными пересчётами раскладки). Посылки — WAAPI только на transform/opacity, на паузе вне экрана (IntersectionObserver), при «уменьшить движение» неподвижны. Перерисовка — rAF по resize, ResizeObserver (main, листы, их целевые блоки и футер: логотипы, шрифты и смена темы меняют блоки внутри листа фиксированной высоты), `fonts.ready`, `home-wide:layout`, смена языка и reduced motion; таймеров нет, в покое 0 пересчётов раскладки.
 - **Вставки** — `app/home-facts.tsx` (строка фактов) и `app/home-sections.tsx` (`StepDemo` в карточках «Как это работает», `aria-hidden`; карточка «Из чего складывается срок» `.hw-route` без цифр сроков; `.hw-faq-more` со ссылками на /support, /customs, /legal; `.hw-closing-stores` с `HomeStoreList`), стили `app/home-wide-content.css`, тексты — группа `wide` в `lib/market/home-copy.ts`. Рендерятся в SSR всегда и скрыты `display:none` до своих медиазапросов. Все числа из кода: `storeBrands.length`, `heroStores`, `deliveryRegions` с флагами, `tariffRows(pricing)` (`lib/market/home-facts.ts`; ту же функцию теперь использует `DeliveryTariffs`), `useExampleBill()` (те же суммы, что в карточке счёта), `trackingCurrent`. Ячейка дней показывает самую быструю группу экспресса, флаг — только если в группе одна страна; без дней ячейки нет. Подпись — `factDaysNote`: сначала «экспресс, от склада», потом страны, так что узкая ячейка режет многоточием только список (полный текст — в `title`). У флагов ячейки стран есть `sr-only`-список названий: флаги `aria-hidden`.
-- **CSS.** После `tariffs.css` в `app/layout.tsx` идут `home-wide-rail.css`, `home-wide-content.css`, `home-wide-decor.css`; `press.css` остаётся последним. Классы и токены по частям: `.hw-rail*`, `.hw-next`, `--hwr-*`; `.hw-decor*`, `--hwd-*`; `.hw-facts`, `.hw-fact*`, `.hw-demo*`, `.hw-route*`, `.hw-faq-more`, `.hw-closing-stores*`, `--hwc-*`. Вне медиазапросов — только `display:none` новых узлов, `--hw-z: 1` и `@keyframes`; `:is()` с id нет. На wide `main.catalog-home{position:relative}`; листам на wide нельзя давать фон, transform, opacity или contain — декор с `z-index:-1` окажется под ними.
+- **CSS.** После `tariffs.css` в `app/page.tsx` (стили только главной, с 10.10.2026 не в `app/layout.tsx`) идут `home-wide-rail.css`, `home-wide-content.css`, `home-wide-decor.css`; `press.css` остаётся последним. Классы и токены по частям: `.hw-rail*`, `.hw-next`, `--hwr-*`; `.hw-decor*`, `--hwd-*`; `.hw-facts`, `.hw-fact*`, `.hw-demo*`, `.hw-route*`, `.hw-faq-more`, `.hw-closing-stores*`, `--hwc-*`. Вне медиазапросов — только `display:none` новых узлов, `--hw-z: 1` и `@keyframes`; `:is()` с id нет. На wide `main.catalog-home{position:relative}`; листам на wide нельзя давать фон, transform, opacity или contain — декор с `z-index:-1` окажется под ними.
 - **Проверено** (безголовый Chrome по CDP на dev-сервере): 1440×900 … 3840×2160 в обеих темах и на ru/uz/en — каждая глава ровно в экран, нет горизонтальной прокрутки, декор и подписи карты не пересекают текст, лента не перекрывает контент, текущая глава подсвечивается, клик по пункту и по подсказке ведёт к главе, кнопка ленты фокусирует поле ссылки, в новых узлах на uz/en нет кириллицы (включая `aria-label` и `title`), любой один ответ FAQ помещается в главу; ресайз 1920 → 1280 → 1920 трижды снимает и возвращает ленту и декор без роста слушателей и анимаций; в консоли нет ошибок гидрации. Тесты: `tests/home-rail.test.mjs`, `tests/home-wide-map.test.mjs`, `tests/home-facts.test.mjs`. Открытые вопросы — в TODO.md.
 
 ## Заказ по ссылке: черновик, гость → вход → корзина, блокировка данных Atlas; тарифы на ПК — 6 октября 2026
@@ -445,7 +502,7 @@ ImpactTracking is a client component inside MarketProvider. It waits for current
 
 The owner asked for the home page to read as separate full-screen sheets: one part, then the next, with a flick snapping to the next sheet "like a magnet", and nothing of the next block peeking at the bottom of a screen.
 
-- **Where.** `app/home-chapters.css`, imported last in `app/layout.tsx` (after `day-folio.css`). No `!important`, no entrance or scroll-driven animations, no inner scroll box, no `dvh`, no `:is()` with ids, no DOM moves by script.
+- **Where.** `app/home-chapters.css`, imported by `app/page.tsx` together with the other home-only sheets (since 10.10.2026; before that it sat in `app/layout.tsx` after `day-folio.css`), so it loads after every layout stylesheet. No `!important`, no entrance or scroll-driven animations, no inner scroll box, no `dvh`, no `:is()` with ids, no DOM moves by script.
 - **Scope.** Root rules use `html:has(main.catalog-home)`; home rules `html:has(main.catalog-home) .catalog-home …` (specificity 0,2,2, above the Day/Night 0,2,1 rules); sheet lists use `:where(...)`. Browsers without `:has()` get no snapping and the normal layout. Other routes keep `scroll-snap-type: none` (also after client-side navigation away from `/`).
 - **Snapping.** The root scroller (`html`) has `scroll-snap-type: y mandatory` under `prefers-reduced-motion: no-preference`, `y proximity` when the window is 700px tall or less (Safari with toolbars out, ~690px laptop windows, landscape), and none under reduced motion (the sheet layout stays). `scroll-snap-stop` stays normal. A commented `(hover:hover) and (pointer:fine)` proximity fallback is in the file for a real Windows wheel check. Snap targets (`scroll-snap-align: start`, `scroll-margin-top: 0`): `.site-header` (sheet 1 starts at y=0 with the static header), `#bill` (below 1100px), `#how`, `#finds`, `#tariffs`, `#trust` (761px and up) or `.home-trust-money` + `.home-trust-proof` (760px and below), `#faq`, `.home-end`. `scroll-padding-bottom` is the phone bar + dock.
 - **Tokens** on the root: `--ch-header` (80px; 60px at ≤600), `--ch-nav` (0; 61px + safe area at ≤760, the measured `.mobile-nav`), `--ch-dock` (0; 68px at ≤760), `--ch-pad` (`clamp(32px,6svh,72px)`; `clamp(16px,3svh,32px)` on phones, 14px on phones ≤840px tall, `clamp(20px,3svh,32px)` on wide windows ≤860px tall), `--ch-gap`, `--ch-h1 = 100svh − header − nav` (sheet 1) and `--ch-h = 100svh − nav − dock` (`100lvh` at ≤760, so the next heading does not show when Safari's toolbars collapse). Sheets use `min-height`, never a fixed height or `overflow:hidden`; a sheet whose content is taller (an opened FAQ answer) grows.
@@ -579,7 +636,7 @@ The production scheduler is external to Sites/Vinext: the enabled UpCloud `atlas
 
 `ProductGallery` centralizes safe, deduplicated merchant images and UI-only navigation. `gallerySwipeStep()` rejects taps, predominantly vertical gestures and invalid dimensions; CSS permits vertical scrolling and pinch zoom. Pointer cancellation clears a pending gesture. Buttons and keyboard navigation remain alternatives. Link-order previews control the active photo; product sheets/carts keep local selection. Existing optional `Product.sourceImages` preserves imported photos through cart persistence, with server-side safe-image validation in `cart-add`; identity, authorization, variant validation and fee recomputation are unchanged.
 
-`mobile-polish.css`, `customer-mobile.css` and `operator-mobile.css` load after theme styles. Their narrow-screen selectors scope layout overrides to actual customer/operator containers. Admin now has an `operator-admin` wrapper without removing any tab or action. Account labels are visible and telephone fields use telephone input semantics. No migration or pricing changes are introduced.
+`mobile-polish.css` and `customer-mobile.css` load after theme styles; `operator-mobile.css` (every rule under `.operator-admin` or `main[data-view="operations"]`) is imported by `app/admin/page.tsx` and `app/operations/page.tsx` only. Their narrow-screen selectors scope layout overrides to actual customer/operator containers. Admin now has an `operator-admin` wrapper without removing any tab or action. Account labels are visible and telephone fields use telephone input semantics. No migration or pricing changes are introduced.
 
 ## Explicit link-order context and incomplete source recovery — 30 September 2026
 

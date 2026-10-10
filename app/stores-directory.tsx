@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type RefObject } from 'react';
 import { ArrowRight, ChevronDown, ClipboardPaste, Link2, Search, X } from 'lucide-react';
 import { useMarket } from '@/lib/market/store';
-import { homeCopy } from '@/lib/market/home-copy';
 import { storesCopy } from '@/lib/market/stores-copy';
 import { catalogItems, storeHost, type CatalogItem } from '@/lib/market/catalog-query';
 import { brandAliases, normalizeSearch, wordMatches } from '@/lib/market/catalog-synonyms';
@@ -151,7 +150,7 @@ export function StoresDirectory() {
       <div className="stores-hero-main">
         <h1>{c.title(storeBrands.length)}</h1>
         <p className="stores-intro">{c.intro}</p>
-        <StoresLinkForm c={c} locale={locale} field={field} />
+        <StoresLinkForm c={c} field={field} />
         <details className="stores-howto">
           <summary>{c.howtoTitle}<ChevronDown size={18} aria-hidden="true" /></summary>
           <ul>{c.howto.map(([device, hint]) => <li key={device}><b>{device}</b><span>{hint}</span></li>)}</ul>
@@ -275,14 +274,14 @@ function ShowcasePhoto({ src, brand }: { src: string; brand: StoreBrand }) {
   return <span className="store-showcase-photo"><img src={src} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} /></span>;
 }
 
-function StoresLinkForm({ c, locale, field }: { c: Copy; locale: Locale; field: RefObject<HTMLInputElement | null> }) {
+function StoresLinkForm({ c, field }: { c: Copy; field: RefObject<HTMLInputElement | null> }) {
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
   const [canPaste, setCanPaste] = useState(false);
   useEffect(() => { queueMicrotask(() => setCanPaste(typeof navigator !== 'undefined' && !!navigator.clipboard?.readText)); }, []);
   function go(value: string) {
     try { goToLinkOrder(value); }
-    catch { setError(homeCopy[locale].hero.invalid); }
+    catch { setError(c.invalidLink); }
   }
   function submit(event: FormEvent) { event.preventDefault(); go(url); }
   // Reading the clipboard needs a tap; iPhone shows its own "Paste" confirmation.

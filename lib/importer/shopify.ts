@@ -1,6 +1,7 @@
 import {declarationFor, inferProductCategory, safeImage, type Extracted, type ProductVariant} from './extract.ts';
 import {safeVariantSourceUrl} from './variant-normalization.ts';
 import {publicJsonAssignment} from './public-state.ts';
+import {readableBrand} from './brand-name.ts';
 
 // Public Ajax endpoints only; no customer session, admin token or checkout access.
 export const shopifyStoreRoots = [
@@ -56,6 +57,11 @@ const storeRoot = (hostname: string) => hostname.toLowerCase().replace(/^www\./,
 
 export function shopifyEndpoints(source: URL) {
   if (!shopifyStoreRoots.some(root => source.hostname === root || source.hostname === `www.${root}`)) return;
+  return shopifyProductEndpoints(source);
+}
+
+/** The public `/products/<handle>.js` and `/cart.js` of any storefront URL shaped like a Shopify product page. */
+export function shopifyProductEndpoints(source: URL) {
   const match = source.pathname.match(/^(\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?)(?:collections\/[^/]+\/)?products\/([^/]+)\/?$/i);
   if (!match || /\.(?:js|json)$/i.test(match[2])) return;
   const storefront = new URL(source);
@@ -85,8 +91,15 @@ export function extractShopifyHtml(html: string, sourceUrl: string): Extracted |
   } catch { return undefined; }
 }
 
-export function extractShopify(data: unknown, currencyData: unknown, sourceUrl: string): Extracted {
-  const source = new URL(sourceUrl), endpoints = shopifyEndpoints(source), product = object(data);
+export type ShopifyExtractOptions = {
+  /** A supported store outside shopifyStoreRoots whose page showed Shopify markers (lib/importer/fetch.ts). */
+  anyStore?: boolean;
+  siteName?: string;
+  shopHandle?: string;
+};
+
+export function extractShopify(data: unknown, currencyData: unknown, sourceUrl: string, context: ShopifyExtractOptions = {}): Extracted {
+  const source = new URL(sourceUrl), endpoints = context.anyStore ? shopifyProductEndpoints(source) : shopifyEndpoints(source), product = object(data);
   if (!endpoints || product.handle !== endpoints.handle || !label(product.title) || !Array.isArray(product.variants)) throw Error('Не удалось определить товар магазина.');
   const currency = label(object(currencyData).currency).toUpperCase();
   if (!/^[A-Z]{3}$/.test(currency)) throw Error('Магазин не подтвердил валюту цены.');
@@ -121,7 +134,9 @@ export function extractShopify(data: unknown, currencyData: unknown, sourceUrl: 
   // The "before" price follows the same rule: the selected option's, or one shared by every option at that price.
   const compares = [...new Set(variants.filter(v => v.price === price).map(v => v.compareAtPrice))];
   const referencePrice = price === undefined ? undefined : selected ? selected.compareAtPrice : compares.length === 1 ? compares[0] : undefined;
-  const title = label(product.title), brand = label(product.vendor);
+  const title = label(product.title), vendor = label(product.vendor);
+  // The vendor can be the store's internal handle (Anker: "beta-anker-us"): the store's own name instead.
+  const brand = vendor ? readableBrand(vendor, sourceUrl, {siteName: context.siteName, shopHandle: context.shopHandle}) : '';
   const category = categoryByStore[storeRoot(source.hostname)] ?? inferProductCategory(`${title} ${label(product.type)}`, brand);
   const warnings = ['Доставка магазина не опубликована — указан изменяемый резерв $10; для заказа из магазина от $50 его не берём.', 'Вес с упаковкой нужно проверить.'];
   if (price === undefined) warnings.push('Выберите вариант, чтобы получить его точную цену.');
@@ -129,4 +144,13 @@ export function extractShopify(data: unknown, currencyData: unknown, sourceUrl: 
   if (missingRequestedVariant) warnings.push('Вариант из ссылки не найден или неоднозначен. Проверьте размер или цвет.');
   if (!variants.some(v => v.available)) warnings.push('Магазин не указал доступных вариантов этого товара.');
   return {variantScope:'group', groupId:product.id===undefined?undefined:String(product.id), variantsComplete:product.variants.length<=250, selectedVariantId:selected?.id, title, brand, category, declarationDescription: declarationFor(category, title, brand), image: selected?.image ?? images[0], images: gallery([selected?.image, ...images]), price, ...(referencePrice !== undefined ? { referencePrice } : {}), currency, variants: missingRequestedVariant ? variants.map(v => ({...v,price:undefined,compareAtPrice:undefined})) : variants, warnings, sourceUrl, method: 'Shopify product API', country: storefrontCountry(source)?.name};
+}
+
+/** A storefront page served by Shopify (its CDN or the Shopify.shop global), whatever the store's domain. */
+export const isShopifyStorefrontPage = (html: string) => /cdn\.shopify\.com|\bShopify\.shop\s*=/.test(html);
+
+/** The currency the page's Shopify storefront prices in (`Shopify.currency.active`), or undefined. */
+export function shopifyPageCurrency(html: string) {
+  const active = object(publicJsonAssignment(html, 'Shopify.currency')).active;
+  return typeof active === 'string' && /^[A-Z]{3}$/.test(active) ? active : undefined;
 }

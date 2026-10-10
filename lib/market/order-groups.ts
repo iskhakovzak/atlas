@@ -1,4 +1,5 @@
 import { orderPayable, type DeliveryProfile, type DeliverySpeed, type Order, type WarehouseServiceRequest } from './domain.ts';
+import { orderAttention } from './notice-panel.ts';
 import { localizedStatuses, type Locale } from './i18n.ts';
 import { brandForHost, storefrontLabel } from './store-brands.ts';
 import {withCyrillic} from './uz-cyrl.ts';
@@ -53,7 +54,7 @@ export type OrderGroup = {
   batchId?: string;
   orders: Order[];
   stores: OrderStoreGroup[];
-  /** Sum of `orderPayable` over the lines that are not cancelled. */
+  /** Sum of `orderCustomerTotal` over the lines that are not cancelled. */
   payable: number;
   /** Quantity of goods over the lines that are not cancelled. */
   items: number;
@@ -70,8 +71,11 @@ export type OrderGroup = {
   latest?: { order: Order; entry: Order['history'][number] };
   /** Things that wait for the customer: one per line decision, plus one for the checkout's payment. */
   attention: number;
-  /** The checkout's payment still to record: one payment for every waiting line, never one per line. */
-  payment?: { id: string; amount: number; lines: number };
+  /**
+   * The checkout's payment still to record: one payment for every waiting line, never one per line. `fromBalance`: what
+   * the internal balance already covered at checkout, so "Итого" less it is the amount on the pay button.
+   */
+  payment?: { id: string; amount: number; lines: number; fromBalance?: number };
   /** Recipient, address and speed shared by every live line: shown once on the card, not in each line. */
   delivery?: { profile: DeliveryProfile; speed: DeliverySpeed };
   cancelled: number;
@@ -86,15 +90,28 @@ export function orderStoreHost(order: Pick<Order, 'product'>) {
   }
 }
 
-/** The customer must act: an extra to approve (weighing, store delivery, duty), a pending change request, or a payment to record. */
+/**
+ * The customer must act: a доплата (weighing, store delivery, duty, an operator's invoice), a pending change request,
+ * or a payment to record. One rule for "My orders", the account and the notifications panel (notice-panel.ts).
+ */
 export function orderNeedsCustomerDecision(order: Order) {
-  if (order.cancelled) return false;
-  return Boolean(order.settlement?.extra && !order.extraApproved)
-    || Boolean(order.storeShippingSettlement?.extra && !order.storeShippingExtraApproved)
-    || Boolean(order.customsSettlement?.extra && !order.customsExtraApproved)
-    || (order.extraCharges ?? []).some((charge) => charge.status === 'pending')
-    || (order.changeRequests ?? []).some((request) => request.status === 'pending')
-    || order.payment?.status === 'pending';
+  return orderAttention(order) !== null;
+}
+
+/**
+ * What the order costs the customer now, for display only: the checkout total with approved changes and paid invoices
+ * (`orderPayable`, which the books and the D1 projection use unchanged), plus every доплата the customer approved
+ * (weighing, store delivery, duty), less what went back to the balance (weighing and duty remainders, and the store
+ * delivery difference of older orders as far as it was credited). So every kind of доплата moves the total the same way.
+ */
+export function orderCustomerTotal(order: Order) {
+  const extras = (order.extraApproved ? order.settlement?.extra ?? 0 : 0)
+    + (order.storeShippingExtraApproved ? order.storeShippingSettlement?.extra ?? 0 : 0)
+    + (order.customsExtraApproved ? order.customsSettlement?.extra ?? 0 : 0);
+  const legacyStore = order.history.find((entry) => entry.code === 'store-shipping-refund-legacy' || entry.code === 'store-shipping-partial-legacy');
+  const storeCredited = typeof legacyStore?.params?.credited === 'number' ? legacyStore.params.credited : 0;
+  const refunds = (order.settlement?.refund ?? 0) + (order.customsSettlement?.refund ?? 0) + storeCredited;
+  return Math.max(0, orderPayable(order) + extras - refunds);
 }
 
 /** A decision about this line itself; the payment is the whole checkout's (see `OrderGroup.payment`). */
@@ -157,7 +174,7 @@ function buildStores(orders: Order[]): OrderStoreGroup[] {
     store.orders.push(order);
     if (!order.cancelled) {
       store.items += order.quantity;
-      store.payable += orderPayable(order);
+      store.payable += orderCustomerTotal(order);
     }
   }
   for (const store of stores) {
@@ -190,8 +207,9 @@ export function sharedDelivery(orders: readonly Order[]): OrderGroup['delivery']
 function buildGroup(key: string, batchId: string | undefined, orders: Order[]): OrderGroup {
   const live = orders.filter((order) => !order.cancelled);
   const inProgress = live.filter((order) => order.status < 5);
-  const waiting = live.filter((order) => order.payment?.status === 'pending');
-  const payment = waiting.length ? { id: waiting[0].payment!.id, amount: waiting.reduce((sum, order) => sum + order.payment!.amount, 0), lines: waiting.length } : undefined;
+  const waiting = live.filter((order) => order.status < 5 && order.payment?.status === 'pending');
+  const fromBalance = live.reduce((sum, order) => sum + (order.balanceUsed ?? 0), 0);
+  const payment = waiting.length ? { id: waiting[0].payment!.id, amount: waiting.reduce((sum, order) => sum + order.payment!.amount, 0), lines: waiting.length, ...(fromBalance > 0 ? { fromBalance } : {}) } : undefined;
   const attention = live.filter(orderNeedsLineDecision).length + (payment ? 1 : 0);
   const delivery = sharedDelivery(orders);
   const cancelled = orders.length - live.length;
@@ -204,7 +222,7 @@ function buildGroup(key: string, batchId: string | undefined, orders: Order[]): 
     batchId,
     orders,
     stores: buildStores(orders),
-    payable: live.reduce((sum, order) => sum + orderPayable(order), 0),
+    payable: live.reduce((sum, order) => sum + orderCustomerTotal(order), 0),
     items: live.reduce((sum, order) => sum + order.quantity, 0),
     createdAt: Math.min(...orders.map((order) => order.createdAt)),
     status,
@@ -279,7 +297,9 @@ export type OrderGroupCopy = {
   /** "Из Nike (США)" — a store section heading; country already localized, may be empty. */
   from: (store: string, country: string) => string;
   payable: string;
-  stage: { attention: string; active: string; done: string; cancelled: string };
+  stage: { active: string; cancelled: string };
+  /** The one wording for "the customer has something to do": badges, the account card, the notifications panel. */
+  attention: string;
   cancelledLines: (count: number) => string;
   /** "Доставка" row label in order details. */
   delivery: string;
@@ -316,12 +336,55 @@ export type OrderGroupCopy = {
   next: (status: string) => string;
   /** Short recipient row label. */
   recipient: string;
-  /** Accessible name of a line: "Заказ AT-1". */
+  /** One line of a checkout: "Позиция AT-1" (the whole checkout is "Заказ от 6 октября"). */
   line: (id: string) => string;
-  /** The checkout's one payment: heading, what it covers, the button. */
+  /** The checkout's one payment: heading, what it covers, the button with the amount. */
   payTitle: string;
   payCovers: (items: string) => string;
-  payButton: string;
+  payButton: (amount: string) => string;
+  /** Under the pay card when the balance covered part of the checkout: why the button asks less than "Итого". */
+  payBalance: (amount: string) => string;
+  /** A доплата button with the amount: the same verb for every kind of доплата. */
+  extraButton: (amount: string) => string;
+  /** The next step of a checkout, by the lowest status still in progress; `afterPay` while the payment waits. */
+  nextStep: Record<number, string>;
+  /** Shown while a line waits for the customer's decision. */
+  nextDecision: string;
+  /** Under a line's progress while the payment waits: "Дальше: выкуп в магазине". */
+  nextBuyout: string;
+  /** A finished checkout invites the next one. */
+  reorder: string;
+  byLink: string;
+  /** Empty tabs: calm, with the next thing to do. */
+  emptyAttention: string;
+  emptyDone: string;
+  /** The recipient's passport is needed for customs, not to pay. */
+  passport: (name: string) => string;
+  passportAction: string;
+  /** Short tab label for `attention`. */
+  attentionTab: string;
+  /** The page could not load (not a sign-in problem). */
+  loadError: string;
+  retry: string;
+  /**
+   * Paying and every доплата: the one confirmation (title, the single provider line, the button), the toast after it,
+   * the one "why" line of each доплата and the payment status shown everywhere else (no provider wording there).
+   */
+  pay: {
+    payTitle: string;
+    extraTitle: (amount: string) => string;
+    provider: string;
+    payConfirm: string;
+    extraConfirm: string;
+    paidToast: string;
+    extraToast: string;
+    whyWeight: (actual: string, estimated: string) => string;
+    whyWeightPlain: string;
+    whyDuty: string;
+    whyStore: string;
+    paid: string;
+    refunded: string;
+  };
 };
 
 export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withCyrillic({
@@ -329,7 +392,8 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     title: (date) => `Заказ от ${date}`,
     from: (store, country) => country ? `Из ${store} (${country})` : `Из ${store}`,
     payable: 'К оплате',
-    stage: { attention: 'Нужно ваше решение', active: 'В работе', done: 'Выполнен', cancelled: 'Отменён' },
+    stage: { active: 'В работе', cancelled: 'Отменён' },
+    attention: 'Нужно ваше действие',
     cancelledLines: (count) => `${count} отменено`,
     delivery: 'Доставка',
     speed: { express: 'Экспресс', standard: 'Обычная доставка' },
@@ -337,7 +401,7 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     mixed: 'На разных этапах',
     awaitingPayment: 'Ожидает оплаты',
     statusCount: (status, count) => `${status}: ${count}`,
-    action: (count) => count > 1 ? `Нужно действие · ${count}` : 'Нужно действие',
+    action: (count) => count > 1 ? `Нужно ваше действие · ${count}` : 'Нужно ваше действие',
     openIn: (store) => `Открыть в ${store}`,
     latest: 'Последнее событие',
     now: 'Что сделать сейчас',
@@ -351,16 +415,32 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     total: 'Итого',
     next: (status) => `Дальше: ${status}`,
     recipient: 'Получатель',
-    line: (id) => `Заказ ${id}`,
+    line: (id) => `Позиция ${id}`,
     payTitle: 'Оплата заказа',
     payCovers: (items) => `Один платёж за весь заказ: ${items}.`,
-    payButton: 'Оплатить заказ',
+    payButton: (amount) => `Оплатить ${amount}`,
+    payBalance: (amount) => `С баланса уже учтено ${amount}.`,
+    extraButton: (amount) => `Доплатить ${amount}`,
+    nextStep: { 0: 'Дальше: выкупим товар в магазине', 1: 'Дальше: склад примет посылку', 2: 'Дальше: склад взвесит посылку', 3: 'Дальше: отправим в Узбекистан', 4: 'Дальше: доставка получателю' },
+    nextDecision: 'Дальше: ваше решение по позиции ниже',
+    nextBuyout: 'Дальше: выкуп в магазине',
+    reorder: 'Заказать снова',
+    byLink: 'Заказать по ссылке',
+    emptyAttention: 'Всё в порядке — от вас ничего не нужно',
+    emptyDone: 'Здесь появятся доставленные заказы',
+    passport: (name) => `Для таможни понадобится паспорт получателя ${name} — привяжите до отправки`,
+    passportAction: 'Привязать паспорт',
+    attentionTab: 'Нужно действие',
+    loadError: 'Не удалось загрузить заказы',
+    retry: 'Повторить',
+    pay: { payTitle: 'Оплатить заказ?', extraTitle: (amount) => `Доплатить ${amount} по заказу?`, provider: 'Платёжный провайдер ещё не подключён — деньги не списываются.', payConfirm: 'Оплатить', extraConfirm: 'Доплатить', paidToast: 'Оплата отмечена. Дальше — выкуп в магазине', extraToast: 'Доплата отмечена', whyWeight: (actual, estimated) => `Посылка тяжелее расчёта: ${actual} кг вместо ${estimated} кг`, whyWeightPlain: 'Посылка тяжелее расчёта', whyDuty: 'Таможня начислила больше предоплаты', whyStore: 'Магазин взял за доставку больше резерва', paid: 'Оплачен', refunded: 'Возвращено на баланс' },
   },
   uz: {
     title: (date) => `${date} buyurtmasi`,
     from: (store, country) => country ? `${store} (${country}) dan` : `${store} dan`,
     payable: 'To‘lovga',
-    stage: { attention: 'Qaroringiz kerak', active: 'Jarayonda', done: 'Bajarildi', cancelled: 'Bekor qilingan' },
+    stage: { active: 'Jarayonda', cancelled: 'Bekor qilingan' },
+    attention: 'Sizdan harakat kerak',
     cancelledLines: (count) => `${count} ta bekor qilingan`,
     delivery: 'Yetkazib berish',
     speed: { express: 'Ekspress', standard: 'Oddiy yetkazib berish' },
@@ -368,7 +448,7 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     mixed: 'Turli bosqichlarda',
     awaitingPayment: 'To‘lov kutilmoqda',
     statusCount: (status, count) => `${status}: ${count}`,
-    action: (count) => count > 1 ? `Harakat kerak · ${count}` : 'Harakat kerak',
+    action: (count) => count > 1 ? `Sizdan harakat kerak · ${count}` : 'Sizdan harakat kerak',
     openIn: (store) => `${store}’da ochish`,
     latest: 'So‘nggi voqea',
     now: 'Hozir nima qilish kerak',
@@ -382,16 +462,32 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     total: 'Jami',
     next: (status) => `Keyingi: ${status}`,
     recipient: 'Qabul qiluvchi',
-    line: (id) => `${id} buyurtmasi`,
+    line: (id) => `Pozitsiya ${id}`,
     payTitle: 'Buyurtma to‘lovi',
     payCovers: (items) => `Butun buyurtma uchun bitta to‘lov: ${items}.`,
-    payButton: 'Buyurtmani to‘lash',
+    payButton: (amount) => `${amount} to‘lash`,
+    payBalance: (amount) => `Balansdan ${amount} hisobga olingan.`,
+    extraButton: (amount) => `${amount} qo‘shimcha to‘lash`,
+    nextStep: { 0: 'Keyingi: tovarni do‘kondan xarid qilamiz', 1: 'Keyingi: ombor posilkani qabul qiladi', 2: 'Keyingi: ombor posilkani tortadi', 3: 'Keyingi: O‘zbekistonga jo‘natamiz', 4: 'Keyingi: qabul qiluvchiga yetkazish' },
+    nextDecision: 'Keyingi: quyidagi pozitsiya bo‘yicha qaroringiz',
+    nextBuyout: 'Keyingi: do‘kondan xarid',
+    reorder: 'Yana buyurtma berish',
+    byLink: 'Havola orqali buyurtma',
+    emptyAttention: 'Hammasi joyida — sizdan hech narsa talab qilinmaydi',
+    emptyDone: 'Yetkazilgan buyurtmalar shu yerda chiqadi',
+    passport: (name) => `Bojxona uchun qabul qiluvchi ${name} pasporti kerak bo‘ladi — jo‘natishdan oldin biriktiring`,
+    passportAction: 'Pasportni biriktirish',
+    attentionTab: 'Harakat kerak',
+    loadError: 'Buyurtmalarni yuklab bo‘lmadi',
+    retry: 'Qayta urinish',
+    pay: { payTitle: 'Buyurtma to‘lansinmi?', extraTitle: (amount) => `Buyurtma bo‘yicha ${amount} qo‘shimcha to‘lansinmi?`, provider: 'To‘lov provayderi hali ulanmagan — pul yechilmaydi.', payConfirm: 'To‘lash', extraConfirm: 'Qo‘shimcha to‘lash', paidToast: 'To‘lov belgilandi. Keyingi — do‘kondan xarid', extraToast: 'Qo‘shimcha to‘lov belgilandi', whyWeight: (actual, estimated) => `Posilka hisobdan og‘irroq: ${estimated} kg o‘rniga ${actual} kg`, whyWeightPlain: 'Posilka hisobdan og‘irroq', whyDuty: 'Bojxona oldindan to‘lovdan ko‘proq boj hisobladi', whyStore: 'Do‘kon yetkazib berish uchun zaxiradan ko‘proq oldi', paid: 'To‘langan', refunded: 'Balansga qaytarildi' },
   },
   en: {
     title: (date) => `Order of ${date}`,
     from: (store, country) => country ? `From ${store} (${country})` : `From ${store}`,
     payable: 'To pay',
-    stage: { attention: 'Your decision is needed', active: 'In progress', done: 'Completed', cancelled: 'Cancelled' },
+    stage: { active: 'In progress', cancelled: 'Cancelled' },
+    attention: 'Your action is needed',
     cancelledLines: (count) => `${count} cancelled`,
     delivery: 'Delivery',
     speed: { express: 'Express', standard: 'Standard delivery' },
@@ -399,7 +495,7 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     mixed: 'At different stages',
     awaitingPayment: 'Awaiting payment',
     statusCount: (status, count) => `${status}: ${count}`,
-    action: (count) => count > 1 ? `Action needed · ${count}` : 'Action needed',
+    action: (count) => count > 1 ? `Your action is needed · ${count}` : 'Your action is needed',
     openIn: (store) => `View on ${store}`,
     latest: 'Latest update',
     now: 'What to do now',
@@ -413,9 +509,24 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     total: 'Total',
     next: (status) => `Next: ${status}`,
     recipient: 'Recipient',
-    line: (id) => `Order ${id}`,
+    line: (id) => `Item ${id}`,
     payTitle: 'Order payment',
     payCovers: (items) => `One payment for the whole order: ${items}.`,
-    payButton: 'Pay for the order',
+    payButton: (amount) => `Pay ${amount}`,
+    payBalance: (amount) => `${amount} already covered from your balance.`,
+    extraButton: (amount) => `Pay ${amount} extra`,
+    nextStep: { 0: 'Next: we buy the item at the store', 1: 'Next: the warehouse receives the parcel', 2: 'Next: the warehouse weighs the parcel', 3: 'Next: we ship to Uzbekistan', 4: 'Next: delivery to the recipient' },
+    nextDecision: 'Next: your decision on an item below',
+    nextBuyout: 'Next: purchase at the store',
+    reorder: 'Order again',
+    byLink: 'Order by link',
+    emptyAttention: 'All good — nothing is needed from you',
+    emptyDone: 'Delivered orders will appear here',
+    passport: (name) => `Customs will need ${name}’s passport — link it before shipping`,
+    passportAction: 'Link passport',
+    attentionTab: 'Action needed',
+    loadError: 'Could not load your orders',
+    retry: 'Try again',
+    pay: { payTitle: 'Pay for the order?', extraTitle: (amount) => `Pay ${amount} extra for the order?`, provider: 'The payment provider is not connected yet — no money is charged.', payConfirm: 'Pay', extraConfirm: 'Pay extra', paidToast: 'Payment recorded. Next — purchase at the store', extraToast: 'Extra payment recorded', whyWeight: (actual, estimated) => `The parcel is heavier than estimated: ${actual} kg instead of ${estimated} kg`, whyWeightPlain: 'The parcel is heavier than estimated', whyDuty: 'Customs charged more than the prepayment', whyStore: 'The store charged more for delivery than the reserve', paid: 'Paid', refunded: 'Returned to balance' },
   },
 });

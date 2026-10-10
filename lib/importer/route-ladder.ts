@@ -43,9 +43,13 @@ export function withMerchantRoutes(routes: MerchantRoute[], attemptMs = 3_000, m
       if (init?.signal?.aborted) throw init.signal.reason;
       if (memory && i < routes.length - 1 && memory.skip(route.name, host)) continue;
       try {
-        const attempt = i < routes.length - 1 ? AbortSignal.timeout(route.attemptMs?.(new URL(String(input))) ?? attemptMs) : undefined;
+        const attemptLimit = i < routes.length - 1 ? route.attemptMs?.(new URL(String(input))) ?? attemptMs : undefined;
+        const attempt = attemptLimit !== undefined ? AbortSignal.timeout(attemptLimit) : undefined;
         const signal = attempt ? (init?.signal ? AbortSignal.any([init.signal, attempt]) : attempt) : init?.signal;
-        const response = await route.fetch(input, {...init, signal});
+        // A proxy route learns the attempt's limit (a little less, for the way back), so its engines share that time
+        // instead of the proxy's own 13 s that this attempt never waits for (proxy-client.mjs `deadlineMs`).
+        const deadlineMs = attemptLimit !== undefined ? Math.max(1_000, attemptLimit - 300) : undefined;
+        const response = await route.fetch(input, {...init, signal, ...(deadlineMs !== undefined ? {deadlineMs} : {})} as RequestInit);
         let retry = [403, 408, 429, 500, 502, 503, 504].includes(response.status);
         if ([301, 302, 303, 307, 308].includes(response.status)) {
           try { retry = /^\/(?:blocked|captcha|challenge)\b/i.test(new URL(response.headers.get('location') ?? '', String(input)).pathname); } catch { /* Let the importer reject invalid redirects. */ }

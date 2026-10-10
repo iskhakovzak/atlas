@@ -1,7 +1,8 @@
 import {normalizeMerchantVariants} from './variant-normalization.ts';
 import {declarationFor,dedupeSafeImages,extractAdidasProduct,extractProduct,inferProductCategory,safeImage,type Extracted} from './extract.ts';
 import {extractTarget, targetRequest} from './target.ts';
-import {extractShopify, shopifyEndpoints} from './shopify.ts';
+import {extractShopify, isShopifyStorefrontPage, shopifyEndpoints, shopifyPageCurrency, shopifyProductEndpoints} from './shopify.ts';
+import {shopifyShopHandle} from './brand-name.ts';
 import {extractVictoriasSecret, victoriasSecretRequest} from './victoriassecret.ts';
 import {fillUltaVariantPrices, isUltaExtraction} from './ulta.ts';
 import {isEbayStoreHost,isManualEntryStoreHost,isSupportedStoreHost,supportedStoreCount} from './stores.ts';
@@ -24,7 +25,7 @@ function responseDiagnostic(response: Response, extra: ImportDiagnostic = {}): I
 /** Operator-facing summary, e.g. "HTTP 403 · защита akamai · fetch:403 impersonate:200". */
 export function describeImportDiagnostic(diagnostic?: ImportDiagnostic) {
   if (!diagnostic) return '';
-  return [diagnostic.status ? `HTTP ${diagnostic.status}` : '', diagnostic.vendor ? `защита ${diagnostic.vendor}` : '', diagnostic.attempts ?? diagnostic.engine ?? ''].filter(Boolean).join(' · ');
+  return [diagnostic.status ? `HTTP ${diagnostic.status}` : '', diagnostic.vendor === 'oversize' ? 'страница больше 6 МБ' : diagnostic.vendor ? `защита ${diagnostic.vendor}` : '', diagnostic.attempts ?? diagnostic.engine ?? ''].filter(Boolean).join(' · ');
 }
 
 /** Logs carry the store, never the customer's product URL. */
@@ -100,6 +101,12 @@ function finalizeExtraction(extracted:Extracted,sourceUrl:string){
       : `Магазин отдал страницу без структурированных данных товара (не найдено: ${missing}). Заполните и подтвердите недостающие поля вручную.`,result,'incomplete');
   }
   return result;
+}
+
+/** A product price, or a price on at least one option. */
+function quoted(extracted: Extracted) {
+  const positive = (value: unknown) => typeof value === 'number' && Number.isFinite(value) && value > 0;
+  return positive(extracted.price) || (extracted.variants ?? []).some(variant => positive(variant.price));
 }
 
 const AMAZON_US_POSTAL_CODE = '19701';
@@ -206,7 +213,11 @@ function requestHeaders(format: 'html' | 'json', cookie?: string, userAgent = br
   };
 }
 
-async function readBody(response: Response, format: 'html' | 'json', maxBytes = format === 'html' ? 3_000_000 : 1_000_000) {
+// The egress proxy passes up to 6 MB (proxy-client.mjs); product pages with a large client state (Amazon, Walmart,
+// headless Shopify) are read whole up to that size instead of failing at 3 MB.
+const maxHtmlBytes = 6_000_000;
+
+async function readBody(response: Response, format: 'html' | 'json', maxBytes = format === 'html' ? maxHtmlBytes : 1_000_000) {
   const contentType = response.headers.get('content-type') ?? '';
   const validType = format === 'html' ? /(?:text\/html|application\/xhtml\+xml)/i.test(contentType) : /json|javascript/i.test(contentType);
   if (!response.ok || !validType) {
@@ -227,7 +238,7 @@ async function readBody(response: Response, format: 'html' | 'json', maxBytes = 
     size += value.byteLength;
     if (size > maxBytes) {
       await reader.cancel();
-      throw new ManualEntryFallbackError(undefined, undefined, 'response');
+      throw withDiagnostic(new ManualEntryFallbackError(undefined, undefined, 'response'), responseDiagnostic(response, {vendor: 'oversize'}));
     }
     text += decoder.decode(value, {stream: true});
   }
@@ -307,7 +318,7 @@ async function readAmazonUs(start: URL, signal: AbortSignal, fetcher: MerchantFe
     // Amazon product pages carry a large client-side state payload. Keep a
     // separate, still bounded ceiling for this allowlisted host so a valid
     // post-location page is not mistaken for an unusable import.
-    const html = await readBody(response, 'html', 6_000_000);
+    const html = await readBody(response, 'html', maxHtmlBytes);
     const token = amazonLocationToken(html);
     if (!token) throw new ManualEntryFallbackError();
 
@@ -342,7 +353,7 @@ async function readAmazonUs(start: URL, signal: AbortSignal, fetcher: MerchantFe
     const refreshed = await merchantFetch(url, {redirect: 'manual', signal, headers: requestHeaders('html', cookieHeader(jar), amazonUserAgent)}, fetcher);
     mergeCookies(jar, refreshed);
     if (refreshed.status >= 300 && refreshed.status < 400) throw new ManualEntryFallbackError('Amazon изменил адрес карточки после выбора региона. Заполните данные вручную; новый адрес не открывался.',undefined,'redirect');
-    const refreshedHtml = await readBody(refreshed, 'html', 6_000_000);
+    const refreshedHtml = await readBody(refreshed, 'html', maxHtmlBytes);
     // Location validation is already done by verifying the locationData response
     // from the address-change endpoint above. The HTML representation of the ZIP
     // may change or be hidden behind JS.
@@ -506,28 +517,22 @@ async function fetchProductOnce(value: string, fetcher: MerchantFetch = fetch) {
         allowedOrigins: ['https://www.adidas.com', 'https://adidas.com'],
       };
       // The PLP JSON includes the canonical card, price, gallery and size
-      // matrix. Fetch it first so a product endpoint rate limit does not make
-      // an otherwise complete public listing unusable.
-      let listingResponse: {text: string; url: URL} | undefined;
-      for (const endpoint of [adidas.listing, adidas.fallbackListing]) {
-        try {
-          listingResponse = await readPublic(endpoint, controller.signal, 'json', adidasRequest, fetcher);
-          break;
-        } catch {
-          if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
+      // matrix, so a product endpoint rate limit does not make an otherwise
+      // complete public listing unusable. Both are asked at once (www first,
+      // then the apex route for each); neither waits for the other.
+      const firstAnswer = async (endpoints: URL[]) => {
+        let error: unknown;
+        for (const endpoint of endpoints) {
+          try { return {response: await readPublic(endpoint, controller.signal, 'json', adidasRequest, fetcher)}; }
+          catch (failure) { error = failure; if (controller.signal.aborted) break; }
         }
-      }
-      let productResponse: {text: string; url: URL} | undefined;
-      let productError: unknown;
-      for (const endpoint of [adidas.product, adidas.fallbackProduct]) {
-        try {
-          productResponse = await readPublic(endpoint, controller.signal, 'json', adidasRequest, fetcher);
-          break;
-        } catch (error) {
-          productError = error;
-          if (controller.signal.aborted) throw error;
-        }
-      }
+        return {error};
+      };
+      const [listingResult, productResult] = await Promise.allSettled([firstAnswer([adidas.listing, adidas.fallbackListing]), firstAnswer([adidas.product, adidas.fallbackProduct])]);
+      const productError = productResult.status === 'fulfilled' ? productResult.value.error : productResult.reason;
+      if (controller.signal.aborted) throw productError instanceof Error && productError.name === 'AbortError' ? productError : new DOMException('Timed out', 'AbortError');
+      const listingResponse = listingResult.status === 'fulfilled' ? listingResult.value.response : undefined;
+      const productResponse = productResult.status === 'fulfilled' ? productResult.value.response : undefined;
       let productData: unknown, listingData: unknown;
       try { listingData = listingResponse ? JSON.parse(listingResponse.text) : undefined; }
       catch { /* The exact product endpoint may still provide usable data. */ }
@@ -625,6 +630,22 @@ async function fetchProductOnce(value: string, fetcher: MerchantFetch = fetch) {
       throw new ManualEntryFallbackError(isEbay
         ? 'eBay не предоставил данные объявления в доступном формате. Проверьте и подтвердите цену и вариант вручную.'
         : 'Страница магазина не предоставила данные товара в доступном формате. Проверьте и подтвердите цену и вариант вручную.');
+    }
+    // A supported store on Shopify outside shopifyStoreRoots: when the page itself gave no price or no options, its
+    // public /products/<handle>.js (one more request on the same route) carries both, in the page's Shopify currency.
+    const pageShopify = !endpoints && /\/products\//.test(page.url.pathname) && isShopifyStorefrontPage(page.text) ? shopifyProductEndpoints(page.url) : undefined;
+    const pageCurrency = pageShopify && (!quoted(extracted) || !extracted.variants?.length) ? shopifyPageCurrency(page.text) : undefined;
+    if (pageShopify && pageCurrency) {
+      try {
+        const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(5_000)]);
+        const product = await readPublic(pageShopify.product, signal, 'json', {}, fetcher);
+        const siteName = page.text.match(/<meta[^>]*property\s*=\s*["']og:site_name["'][^>]*content\s*=\s*["']([^"']{1,80})["']/i)?.[1];
+        const shopify = extractShopify(JSON.parse(product.text), {currency: pageCurrency}, page.url.href, {anyStore: true, siteName, shopHandle: shopifyShopHandle(page.text)});
+        if (quoted(shopify)) extracted = {...shopify, ...(extracted.boxedWeight !== undefined ? {boxedWeight: extracted.boxedWeight, weightKind: extracted.weightKind} : {}), method: 'Shopify public product JSON'};
+      } catch {
+        // The page's own data stays; a store that hides the Ajax endpoint is no different from before.
+        if (controller.signal.aborted) throw new DOMException('Timed out', 'AbortError');
+      }
     }
     if (isUltaExtraction(extracted)) {
       // Ulta prices only the selected shade or size; every other option is read from its own ?sku= page, briefly.

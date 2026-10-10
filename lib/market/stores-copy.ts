@@ -49,6 +49,7 @@ const ru = {
   note: 'Atlas принимает ссылки на товары с доменов из этого списка. Цену и вариант каждого товара Atlas сверяет с магазином отдельно. Логотипы принадлежат их владельцам; Atlas не является официальным представителем магазинов.',
   mine: 'Вы уже заказывали', showAll: (count: number) => `Показать все ${count}`, showLess: 'Свернуть',
   similar: 'Похожие магазины',
+  invalidLink: 'Вставьте полную ссылку на страницу товара — она начинается с https://',
   missingTitle: 'Нет нужного магазина?', missingText: 'Вставьте ссылку на товар: если магазин поддерживается, сразу покажем расчёт. Если нет — подскажем, что делать.', missingAction: 'Вставить ссылку',
 };
 type Copy = typeof ru;
@@ -92,6 +93,7 @@ const uz: Copy = {
   note: 'Atlas shu ro‘yxatdagi domenlardan tovar havolalarini qabul qiladi. Har bir tovarning narxi va variantini Atlas do‘kon bilan alohida solishtiradi. Logotiplar egalariga tegishli; Atlas do‘konlarning rasmiy vakili emas.',
   mine: 'Siz buyurtma bergan do‘konlar', showAll: (count: number) => `Barchasini ko‘rsatish: ${count}`, showLess: 'Yig‘ish',
   similar: 'O‘xshash do‘konlar',
+  invalidLink: 'Tovar sahifasining to‘liq havolasini qo‘ying — u https:// bilan boshlanadi',
   missingTitle: 'Kerakli do‘kon yo‘qmi?', missingText: 'Tovar havolasini qo‘ying: do‘kon qo‘llab-quvvatlansa, darhol hisobni ko‘rsatamiz. Bo‘lmasa — nima qilishni aytamiz.', missingAction: 'Havolani qo‘yish',
 };
 
@@ -134,6 +136,7 @@ const en: Copy = {
   note: 'Atlas accepts product links from the domains on this list. Atlas checks each product’s price and option with the store separately. Logos belong to their owners; Atlas is not an official representative of these stores.',
   mine: 'Stores you ordered from', showAll: (count: number) => `Show all ${count}`, showLess: 'Show less',
   similar: 'Similar stores',
+  invalidLink: 'Paste the full product page link — it starts with https://',
   missingTitle: 'Store not listed?', missingText: 'Paste a product link: if the store is supported, the estimate opens right away. If not, we tell you what to do.', missingAction: 'Paste a link',
 };
 

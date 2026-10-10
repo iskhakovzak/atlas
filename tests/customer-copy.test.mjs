@@ -97,3 +97,17 @@ test('short dates and date-times drop the year only within the current year', ()
   assert.equal(formatDateTime(thisYear, 'ru', now), '3 октября, 09:05');
   assert.match(formatDateTime(lastYear, 'ru', now), /^31 декабря 2025.*, 23:59$/);
 });
+
+test('checkout copy says what happens next once and lets the button accept customs terms when there is no duty', async () => {
+  const { calcCopy } = await import('../lib/market/calc-copy.ts');
+  for (const locale of ['ru', 'uz', 'oz', 'en']) {
+    const cart = cartCopy[locale], calc = calcCopy[locale];
+    assert.ok(cart.checkout.nextStep.trim() && cart.checkout.consentImplied.link.trim());
+    // Rates come from the tariff, not from the copy; "Atlas pays customs" names the duty and the fee together.
+    assert.match(calc.feeHelp('7%'), /7%/);
+    assert.match(calc.customsHelpHelp('3%'), /3%/);
+    assert.match(calc.customs.choice.fee('120 000', '100 000', '4,98%'), /120 000.*100 000.*4,98%/);
+  }
+  assert.doesNotMatch(cartCopy.ru.success.pending, /не списыва/);
+  assert.equal(cartCopy.uz.summary.payable, 'To‘lov uchun');
+});

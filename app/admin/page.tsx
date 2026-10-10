@@ -4,6 +4,7 @@ import { AdminView } from '../admin-view';
 import '../accounting.css';
 import '../admin-investor.css';
 import '../site-content-admin.css';
+import '../operator-mobile.css';
 import type { Metadata } from 'next';
 import { pageLocale } from '../page-locale';
 import { privateMetadata } from '../route-metadata';

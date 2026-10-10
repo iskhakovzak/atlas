@@ -16,7 +16,7 @@ const copy:Record<Locale,{overline:string;title:string;description:string;featur
   features:"Что умеет приложение",
   list:[
    {icon:Link2,title:"Импорт по ссылке",text:"Вставьте ссылку на товар из поддерживаемого магазина — Atlas подставит название, цену, фото и варианты. Вы проверяете эти данные, а цену Atlas сверяет с магазином."},
-   {icon:Calculator,title:"Расчёт в сумах",text:"Товар, сервис Atlas, международная доставка и расчёт таможенного платежа — отдельными строками, до регистрации."},
+   {icon:Calculator,title:"Расчёт в сумах",text:"Товар, комиссия Atlas, международная доставка и расчёт таможенного платежа — отдельными строками, до регистрации."},
    {icon:Package,title:"Заказы и статусы",text:"Этапы заказа, изменения цены и веса, согласования и вопросы по заказу — в кабинете."},
    {icon:FileCheck2,title:"Документы",text:"Паспорт для декларации распознаётся на вашем устройстве; вы проверяете каждое поле перед подтверждением."},
    {icon:Bell,title:"Уведомления",text:"Ответы поддержки и события заказа — в разделе уведомлений. Push-уведомления пока не отправляются."},
@@ -30,7 +30,7 @@ const copy:Record<Locale,{overline:string;title:string;description:string;featur
   features:"Ilova nimalarni qila oladi",
   list:[
    {icon:Link2,title:"Havola orqali import",text:"Qo‘llab-quvvatlanadigan do‘kondan tovar havolasini qo‘ying — Atlas nom, narx, surat va variantlarni qo‘yadi. Siz bu ma’lumotlarni tekshirasiz, narxni esa Atlas do‘kon bilan solishtiradi."},
-   {icon:Calculator,title:"So‘mda hisob",text:"Tovar, Atlas xizmati, xalqaro yetkazish va bojxona to‘lovi hisobi — alohida satrlarda, ro‘yxatdan o‘tishdan oldin."},
+   {icon:Calculator,title:"So‘mda hisob",text:"Tovar, Atlas komissiyasi, xalqaro yetkazish va bojxona to‘lovi hisobi — alohida satrlarda, ro‘yxatdan o‘tishdan oldin."},
    {icon:Package,title:"Buyurtmalar va holatlar",text:"Buyurtma bosqichlari, narx va vazn o‘zgarishlari, kelishuvlar va buyurtma bo‘yicha savollar — kabinetda."},
    {icon:FileCheck2,title:"Hujjatlar",text:"Deklaratsiya uchun pasport qurilmangizda taniladi; tasdiqlashdan oldin har bir maydonni tekshirasiz."},
    {icon:Bell,title:"Bildirishnomalar",text:"Yordam javoblari va buyurtma voqealari — bildirishnomalar bo‘limida. Push-bildirishnomalar hali yuborilmaydi."},
@@ -44,7 +44,7 @@ const copy:Record<Locale,{overline:string;title:string;description:string;featur
   features:"What the app does",
   list:[
    {icon:Link2,title:"Import by link",text:"Paste a product link from a supported store — Atlas fills in the title, price, photos and variants. You check these details, and Atlas checks the price with the store."},
-   {icon:Calculator,title:"Estimate in soum",text:"Item, Atlas service, international delivery and the customs payment calculation — on separate lines, before you sign up."},
+   {icon:Calculator,title:"Estimate in soum",text:"Item, Atlas fee, international delivery and the customs payment calculation — on separate lines, before you sign up."},
    {icon:Package,title:"Orders and statuses",text:"Order stages, price and weight changes, approvals and questions about an order — in your account."},
    {icon:FileCheck2,title:"Documents",text:"The passport for your declaration is recognised on your device; you check every field before confirming."},
    {icon:Bell,title:"Notifications",text:"Support replies and order events — in the notifications section. Push notifications are not sent yet."},

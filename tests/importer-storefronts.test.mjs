@@ -332,7 +332,7 @@ test('blocked, malformed, oversized and not-found pages retain distinct outcomes
   const source='https://www.carters.com/p/item/V_1S739110';
   for(const status of [403,429,503]) await assert.rejects(fetchProduct(source,async()=>new Response('',{status})),error=>error instanceof ManualEntryFallbackError);
   for(const status of [404,410]) await assert.rejects(fetchProduct(source,async()=>new Response('',{status})),error=>!(error instanceof ManualEntryFallbackError));
-  await assert.rejects(fetchProduct(source,async()=>new Response('x'.repeat(3_000_001),{headers:{'content-type':'text/html'}})),error=>error instanceof ManualEntryFallbackError&&error.reason==='response');
+  await assert.rejects(fetchProduct(source,async()=>new Response('x'.repeat(6_000_001),{headers:{'content-type':'text/html'}})),error=>error instanceof ManualEntryFallbackError&&error.reason==='response'&&error.diagnostic?.vendor==='oversize');
   await assert.rejects(fetchProduct(source,async()=>new Response('<html>Nothing here</html>',{headers:{'content-type':'text/html'}})),error=>error instanceof ManualEntryFallbackError&&error.reason==='incomplete');
 });
 

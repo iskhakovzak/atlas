@@ -9,6 +9,7 @@ import { syncOrderLedger } from '../lib/market/finance-auto.ts';
 import { orderFinance } from '../lib/market/finance.ts';
 import { renderHistory, renderNotification } from '../lib/market/history-copy.ts';
 import { customsVersion } from '../lib/market/world.ts';
+import { formatSum } from '../lib/market/format.ts';
 
 const placed = () => {
   const state = addToCart(blank(), products[0], products[0].variants[0], 1000);
@@ -47,7 +48,9 @@ test('the operator issues an extra invoice on a paid order; the customer sees it
   const entry = after.entries.find((item) => item.id === 'extra-charge:' + charge.id);
   assert.deepEqual([entry.debit, entry.credit, entry.amount], ['demo-provider', 'order-funds', charge.amount]);
   assert.equal(cancelRefundAmount(after, done), orderPayable(order) + charge.amount);
-  assert.match(renderHistory(done.history.at(-1), 'ru'), /Платёжный провайдер не подтвердил списание/);
+  // The stored text keeps the provider note; the customer reads the status only (the note is said once, in the pay dialog).
+  assert.match(done.history.at(-1).text, /Платёжный провайдер не подтвердил списание/);
+  assert.equal(renderHistory(done.history.at(-1), 'ru'), `Доплата ${formatSum(charge.amount, 'ru')} отмечена.`);
   // Paying again changes nothing; the order moves on.
   assert.equal(act(after, { type: 'extra-charge-pay', id, chargeId: charge.id, amount: charge.amount }, false), after);
   assert.equal(advanceOrder(after, id, 0).orders[0].status, 1);
