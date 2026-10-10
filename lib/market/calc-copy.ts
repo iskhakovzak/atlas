@@ -88,7 +88,7 @@ export const calcCopy: Record<Locale, CalcCopy> = /*@__PURE__*/withCyrillic({
         self: 'Оплачу сам(а)', selfOver: 'Ждёте счёт от таможни и оплачиваете сами. Пока он не оплачен, посылка стоит на таможне.',
         selfFee: 'без сбора',
         remember: 'Запомнить для следующих заказов', rememberedAtlas: 'Таможню оплачивает Atlas', rememberedSelf: 'Таможню оплачиваете вы', change: 'Изменить',
-        noDuty: left => `Пошлины нет · в этом месяце осталось ${left}`,
+        noDuty: left => `Пошлины нет · после этого заказа в месяце останется ${left}`,
       },
       how: {
         title: 'Как считается таможня', rule: (limit, rate, perKg) => `До ${limit} в месяц на получателя — без пошлины. Сверх лимита — ${rate} от превышения, но не меньше ${perKg} за каждый кг посылки.`,
@@ -145,7 +145,7 @@ export const calcCopy: Record<Locale, CalcCopy> = /*@__PURE__*/withCyrillic({
         self: 'O‘zim to‘layman', selfOver: 'Bojxona hisobini kutib, o‘zingiz to‘laysiz. To‘lanmaguncha jo‘natma bojxonada turadi.',
         selfFee: 'yig‘imsiz',
         remember: 'Keyingi buyurtmalar uchun eslab qolish', rememberedAtlas: 'Bojxonani Atlas to‘laydi', rememberedSelf: 'Bojxonani o‘zingiz to‘laysiz', change: 'O‘zgartirish',
-        noDuty: left => `Boj yo‘q · shu oy ${left} qoldi`,
+        noDuty: left => `Boj yo‘q · bu buyurtmadan keyin shu oy ${left} qoladi`,
       },
       how: {
         title: 'Bojxona qanday hisoblanadi', rule: (limit, rate, perKg) => `Bitta qabul qiluvchiga oyiga ${limit} gacha — bojsiz. Limitdan oshgan qismdan ${rate}, lekin posilkaning har kg uchun kamida ${perKg}.`,
@@ -202,7 +202,7 @@ export const calcCopy: Record<Locale, CalcCopy> = /*@__PURE__*/withCyrillic({
         self: 'I will pay myself', selfOver: 'You wait for the customs bill and pay it yourself; until then the parcel stays at customs.',
         selfFee: 'no fee',
         remember: 'Remember for next orders', rememberedAtlas: 'Atlas pays customs', rememberedSelf: 'You pay customs', change: 'Change',
-        noDuty: left => `No duty · ${left} of allowance left this month`,
+        noDuty: left => `No duty · ${left} of allowance left this month after this order`,
       },
       how: {
         title: 'How customs is calculated', rule: (limit, rate, perKg) => `Up to ${limit} a month per recipient: no duty. Above it: ${rate} of the excess, but at least ${perKg} per kg of the parcel.`,

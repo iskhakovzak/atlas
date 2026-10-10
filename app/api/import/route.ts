@@ -4,7 +4,7 @@ import { isBrowserStoreHost, isManualEntryStoreHost, isSupportedStoreHost } from
 import { merchantRequest } from '@/lib/importer/worker-fetch';
 import { canonicalProductUrl } from '@/lib/importer/source-identity';
 import { desktopStoreUrl, expandShortLink, isShortLink } from '@/lib/importer/short-links';
-import { createImportFlights } from '@/lib/importer/import-flight';
+import { createImportFlights, freshRetryGapMs } from '@/lib/importer/import-flight';
 import { database, sameOrigin, json, failure, HttpError, requestJson } from '@/lib/market/server';
 import { currentUser } from '@/lib/auth/server';
 import { importRateBuckets } from '@/lib/market/import-preview';
@@ -61,12 +61,13 @@ export async function POST(request: Request) {
     };
 
     // Answers that ask no store, so they are given before the rate limit: a wall or an incomplete page from the last
-    // 90 s (even with fresh: the client retries with fresh, the store would answer the same), and the stored import
-    // unless fresh is asked. Amazon US prices depend on the delivery location and are never cached.
+    // 90 s — with fresh (the link opened to order, or "Retry automatic import") only from the last 15 s, so a one-off
+    // wall does not answer the customer's retry, yet the store gets at most one live attempt per 15 s for the link —
+    // and the stored import unless fresh is asked. Amazon US prices depend on the delivery location and are never cached.
     const known = async () => {
       const host = new URL(sourceUrl).hostname;
       if (!isSupportedStoreHost(host) || isManualEntryStoreHost(host)) return undefined;
-      const wall = flights.recentFailure(sourceUrl);
+      const wall = flights.recentFailure(sourceUrl, fresh ? freshRetryGapMs : undefined);
       if (wall) return failed(wall);
       if (fresh || isAmazonUsUrl(new URL(sourceUrl))) return undefined;
       const cached = await db.prepare('SELECT payload,expires_at,updated_at FROM market_import_cache WHERE url=? AND expires_at>?')

@@ -1723,10 +1723,10 @@ export function checkoutCart(
       throw codedError("err_64", "Выберите обязательные услуги перед оформлением.");
   }
   if (lines.some((i) => now >= i.quote.expiresAt))
-    throw Error("Расчёт истёк. Обновите его перед оформлением.");
+    throw codedError("err_75", "Расчёт истёк. Обновите его перед оформлением.");
   // A quote made before the operator changed the tariff must be shown again, not accepted silently.
   if (lines.some((i) => i.quote.tariffVersion !== config.version))
-    throw Error("Тарифы Atlas обновились. Проверьте новый итог перед оформлением.");
+    throw codedError("err_76", "Тарифы Atlas обновились. Проверьте новый итог перед оформлением.");
   if (lines.some(blockingSourceIssue))
     throw Error("Магазин изменил данные товара. Загрузите отмеченные товары заново.");
   // The customs payment fee is in the bill exactly when the customer chose it; the server reprices on every change.
@@ -1740,7 +1740,7 @@ export function checkoutCart(
     throw Error("Корзина пересчитана. Проверьте новый итог перед оформлением.");
   const dutyTotal = customsHelpChosen(state) && customs ? customsDutySoum(customs, config.fx) : 0;
   if (customsHelpChosen(state) && (expectedCustomsDuty ?? 0) !== dutyTotal)
-    throw Error("Пошлина пересчитана для выбранного получателя. Проверьте итог перед оформлением.");
+    throw codedError("err_77", "Пошлина пересчитана для выбранного получателя. Проверьте итог перед оформлением.");
   const merchandiseTotal = lines.reduce((sum, i) => sum + i.quote.merchandise, 0);
   let dutyLeft = dutyTotal;
   // No duty for this recipient: no fee either (owner, 7.10.2026).

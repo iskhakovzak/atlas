@@ -3,7 +3,7 @@ import {useCallback,useEffect,useRef,useState,useSyncExternalStore} from 'react'
 import {Popover as PopoverPrimitive} from 'radix-ui';
 import {Calculator,Minus,Plus,X} from 'lucide-react';
 import {calcCopy} from '@/lib/market/calc-copy';
-import {customsDutyUsd} from '@/lib/market/customs';
+import {allowanceLeftUsd,customsDutyUsd} from '@/lib/market/customs';
 import {formatSum} from '@/lib/market/format';
 import type {CustomsEstimate,Pricing} from '@/lib/market/domain';
 import type {Locale} from '@/lib/market/i18n';
@@ -17,10 +17,6 @@ function useWide(){
  return useSyncExternalStore(subscribe,()=>window.matchMedia(sideQuery).matches,()=>false);
 }
 
-/** The allowance this recipient still has this month, as the cart counts it. */
-export function allowanceLeftUsd(estimate:Pick<CustomsEstimate,'allowanceUsd'|'atlasUsedUsd'|'outsideUsedUsd'|'outsideUnknown'>){
- return estimate.outsideUnknown?0:Math.max(0,estimate.allowanceUsd-estimate.atlasUsedUsd-(estimate.outsideUsedUsd??0));
-}
 /**
  * Duty for goods worth `amountUsd` with `leftUsd` of allowance, in this cart's parcel: the cart's own formula
  * (customsDutyUsd, its weight included) and the same rounding to soum as the bill.
