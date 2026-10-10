@@ -4,7 +4,7 @@ import {useId,useState,type FormEvent} from 'react';
 import {Check,Loader2} from 'lucide-react';
 import {Checkbox} from '@/components/ui/checkbox';
 import {recipientCopy} from '@/lib/market/customer-copy';
-import {cities,regionCapital,regionLabel,regions,streets,suggestions,uzPhone,uzPhoneDigits} from '@/lib/market/addresses';
+import {cities,isServedRegion,onlyServedCity,regionCapital,regionLabel,regions,streets,suggestions,uzPhone,uzPhoneDigits} from '@/lib/market/addresses';
 import {UzPhoneInput} from './phone-input';
 import {isPostalCode,type DeliveryProfile,type SavedDeliveryProfile} from '@/lib/market/domain';
 import type {Locale} from '@/lib/market/i18n';
@@ -19,7 +19,7 @@ export function RecipientForm({locale,initial,isFirst,onSave}:{locale:Locale;ini
  const startLabel=initial?.label??(isFirst?c.labels.home:'');
  const [labelChoice,setLabelChoice]=useState(presets.includes(startLabel)||!startLabel?startLabel:'other');
  const [customLabel,setCustomLabel]=useState(presets.includes(startLabel)?'':startLabel);
- const [value,setValue]=useState<DeliveryProfile>({recipient:initial?.recipient??'',phone:initial?.phone??'',region:initial?.region??'Ташкент',city:initial?.city??'Ташкент',address:initial?.address??'',postalCode:initial?.postalCode??'',comment:initial?.comment??''});
+ const [value,setValue]=useState<DeliveryProfile>({recipient:initial?.recipient??'',phone:initial?.phone??'',region:onlyServedCity??initial?.region??'Ташкент',city:onlyServedCity??initial?.city??'Ташкент',address:initial?.address??'',postalCode:initial?.postalCode??'',comment:initial?.comment??''});
  const [phoneDigits,setPhoneDigits]=useState(uzPhoneDigits(initial?.phone??''));
  const lockedPrimary=Boolean(initial?.primary)||isFirst;
  const [primary,setPrimary]=useState(lockedPrimary);
@@ -54,7 +54,12 @@ export function RecipientForm({locale,initial,isFirst,onSave}:{locale:Locale;ini
    <span className="rf-phone"><span aria-hidden="true">+998</span><UzPhoneInput id={`${uid}-phone`} digits={phoneDigits} onDigits={setPhoneDigits} aria-invalid={show('phone')} aria-describedby={`${uid}-phone-hint`}/></span>
    {hint('phone',c.phoneHint)}
   </div>
-  <div className="rf-row">
+  {onlyServedCity?<div className="rf-field">
+   {/* Tashkent only for now (10.10.2026): the city is fixed; a recipient saved elsewhere is asked for a Tashkent address. */}
+   <span className="rf-label">{c.city}</span>
+   <p className="rf-fixed">{regionLabel(onlyServedCity,locale)}</p>
+   {initial&&!isServedRegion(initial.region)?<small className="rf-error" role="alert">{c.outsideServed}</small>:<small>{c.servedOnly}</small>}
+  </div>:<div className="rf-row">
    <div className={'rf-field'+(show('region')?' invalid':'')}>
     <label htmlFor={`${uid}-region`}>{c.region}</label>
     <select id={`${uid}-region`} value={value.region} autoComplete="address-level1" onChange={event=>{const region=event.target.value,capital=regionCapital(region);setValue(current=>({...current,region,city:!current.city.trim()||cities.includes(current.city)?capital??current.city:current.city}))}}>
@@ -69,7 +74,7 @@ export function RecipientForm({locale,initial,isFirst,onSave}:{locale:Locale;ini
     <datalist id={`${uid}-cities`}>{suggestions(cities,value.city).map(city=><option key={city} value={city}/>)}</datalist>
     {hint('city')}
    </div>
-  </div>
+  </div>}
   <div className={'rf-field'+(show('address')?' invalid':'')}>
    <label htmlFor={`${uid}-address`}>{c.address}</label>
    <input id={`${uid}-address`} list={`${uid}-streets`} autoComplete="street-address" autoCapitalize="sentences" maxLength={220} placeholder={c.addressPlaceholder} value={value.address} aria-invalid={show('address')} aria-describedby={`${uid}-address-hint`} onChange={event=>setValue({...value,address:capitalizeFirst(event.target.value)})}/>

@@ -2,6 +2,15 @@ import type { Locale } from "./i18n.ts";
 import { uzText } from "./uz-cyrl.ts";
 export const regions = ["Ташкент", "Республика Каракалпакстан", "Андижанская область", "Бухарская область", "Джизакская область", "Кашкадарьинская область", "Навоийская область", "Наманганская область", "Самаркандская область", "Сурхандарьинская область", "Сырдарьинская область", "Ташкентская область", "Ферганская область", "Хорезмская область"];
 
+/**
+ * Where Atlas delivers today. Since 10 October 2026 only Tashkent (owner's decision, "for now"): the recipient forms
+ * show the city fixed and the server refuses other regions (err_78). Add regions back here to reopen them.
+ */
+export const servedRegions: readonly string[] = ["Ташкент"];
+export const isServedRegion = (region?: string) => !!region && servedRegions.includes(region);
+/** One served region means one city: the forms show it instead of a region list. */
+export const onlyServedCity = servedRegions.length === 1 ? servedRegions[0] : undefined;
+
 export const cities = ["Ташкент", "Нукус", "Андижан", "Бухара", "Джизак", "Карши", "Навои", "Наманган", "Самарканд", "Термез", "Гулистан", "Нурафшан", "Фергана", "Ургенч", "Коканд", "Чирчик", "Алмалык", "Бекабад"];
 
 export const streets = ["ул. Амира Темура", "ул. Шота Руставели", "ул. Нукусская", "ул. Мукими", "ул. Бунёдкор", "ул. Беруни", "ул. Буюк Ипак Йули", "ул. Мирзо Улугбека", "ул. Афросиаб", "ул. Навои", "ул. Бабура", "ул. Истикбол", "ул. Тараса Шевченко", "ул. Фурката", "ул. Катта Миробод"];

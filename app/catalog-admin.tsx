@@ -177,7 +177,8 @@ function DraftEditor({id,entry,collections,disabled,canDelete,onDelete,onSave,on
   <CatalogRefreshDiagnostics entry={entry}/>
   <div className="two-fields"><label>Название<input value={value.name} onChange={e=>setValue({...value,name:e.target.value})}/></label><label>Цена<input type="number" min="0" step=".01" disabled={store} value={value.price??''} onChange={e=>setValue({...value,price:e.target.value?Number(e.target.value):undefined})}/></label></div>
   <label>Главное фото<input type="url" disabled={store} value={value.image} onChange={e=>setValue({...value,image:e.target.value})}/></label>
-  {store?<p className="catalog-variant-empty">Цена, фото и варианты обновляются из магазина автоматически. Чтобы править их вручную, уберите карточку из показа — она перестанет обновляться.</p>:<VariantQuickRemove variants={value.variants} onChange={variants=>setValue({...value,variants})}/>}
+  {store&&<p className="catalog-variant-empty">Цена, фото и варианты обновляются из магазина автоматически. Лишний цвет или размер можно убрать ниже; чтобы править остальное вручную, уберите карточку из показа — она перестанет обновляться.</p>}
+  <VariantQuickRemove variants={value.variants} excluded={value.excludedOptions} store={store} onChange={(variants,excludedOptions)=>setValue({...value,variants,excludedOptions})}/>
   <fieldset><legend>Подборки</legend><div>{collections.map(c=><label key={c.id}><input type="checkbox" checked={value.collectionIds.includes(c.id)} onChange={e=>setValue({...value,collectionIds:e.target.checked?[...value.collectionIds,c.id]:value.collectionIds.filter(id=>id!==c.id)})}/>{c.name}</label>)}</div></fieldset>
   {issues.length>0&&<p className="catalog-issues">Перед публикацией: {issues.join(', ')}</p>}
   <div className="catalog-editor-actions"><button className="btn secondary" disabled={disabled} onClick={()=>onSave(value)}><Check/>Сохранить</button><button className="btn primary" disabled={disabled||issues.length>0} onClick={onPublish}><Send/>Опубликовать</button><button className="btn secondary" disabled={disabled||entry.autoManaged} title="Вы сами проверили наличие в магазине: карточка публикуется с отметкой оператора" onClick={onConfirm}><BadgeCheck/>Наличие проверил — опубликовать</button><button className="text-button" disabled={disabled} onClick={onHide}><EyeOff/>Убрать из показа</button>{canDelete&&<button className="btn catalog-delete-action" disabled={disabled} onClick={onDelete}><Trash2/>Удалить</button>}</div>
@@ -190,12 +191,22 @@ function DraftEditor({id,entry,collections,disabled,canDelete,onDelete,onSave,on
   </details>
  </div>
 }
-/** Colors and sizes found on the store page as chips: one tap on × drops every variant of that color or size. */
-function VariantQuickRemove({variants,onChange}:{variants:CatalogDraft['variants'];onChange:(variants:CatalogDraft['variants'])=>void}){
+/**
+ * Colors and sizes found on the store page as chips: one tap on × takes every variant of that color or size off the card.
+ * The server keeps the list (`excludedOptions`), so store refreshes do not bring them back, on store-kept cards too
+ * (owner, 10.10.2026). A chip under "Убраны" takes one back; its variants return with the next store check.
+ */
+function VariantQuickRemove({variants,excluded,store,onChange}:{variants:CatalogDraft['variants'];excluded:CatalogDraft['excludedOptions'];store:boolean;onChange:(variants:CatalogDraft['variants'],excluded:CatalogDraft['excludedOptions'])=>void}){
  const colors=[...new Set(variants.map(item=>item.color).filter((x):x is string=>!!x))],sizes=[...new Set(variants.map(item=>item.size).filter((x):x is string=>!!x))];
- if(!variants.length)return <p className="catalog-variant-empty">Вариантов нет — добавьте вручную в «Дополнительно».</p>;
- const chips=(title:string,items:string[],key:'color'|'size')=>items.length>0&&<div className="catalog-chip-row"><strong>{title}</strong>{items.map(name=><button type="button" key={name} className="catalog-chip" title={`Убрать все варианты: ${name}`} onClick={()=>onChange(variants.filter(item=>item[key]!==name))}>{name} ×</button>)}</div>;
- return <section className="catalog-variant-quick" aria-label="Цвета и размеры">{chips('Цвета',colors,'color')}{chips('Размеры',sizes,'size')}<small>Вариантов: {variants.length}. Нажмите на лишний цвет или размер, чтобы убрать его целиком; потом «Сохранить».</small></section>
+ const list={colors:excluded?.colors??[],sizes:excluded?.sizes??[]},removed=list.colors.length+list.sizes.length;
+ if(!variants.length&&!removed)return <p className="catalog-variant-empty">Вариантов нет — добавьте вручную в «Дополнительно».</p>;
+ const field=(key:'color'|'size')=>key==='color'?'colors' as const:'sizes' as const;
+ // A store-kept card keeps at least one option: the server refuses to take them all off.
+ const chips=(title:string,items:string[],key:'color'|'size')=>items.length>0&&<div className="catalog-chip-row"><strong>{title}</strong>{items.map(name=>{const rest=variants.filter(item=>item[key]!==name);return <button type="button" key={name} className="catalog-chip" disabled={store&&!rest.length} title={`Убрать все варианты: ${name}`} onClick={()=>onChange(rest,{...list,[field(key)]:[...list[field(key)],name]})}>{name} ×</button>})}</div>;
+ const restore=(key:'colors'|'sizes',name:string)=>{const next={...list,[key]:list[key].filter(item=>item!==name)};onChange(variants,next.colors.length||next.sizes.length?next:undefined)};
+ return <section className="catalog-variant-quick" aria-label="Цвета и размеры">{chips('Цвета',colors,'color')}{chips('Размеры',sizes,'size')}
+  {removed>0&&<div className="catalog-chip-row catalog-chip-removed"><strong>Убраны</strong>{list.colors.map(name=><button type="button" key={'c:'+name} className="catalog-chip" title={`Вернуть цвет ${name} — появится после следующей проверки магазина`} onClick={()=>restore('colors',name)}>{name} ↺</button>)}{list.sizes.map(name=><button type="button" key={'s:'+name} className="catalog-chip" title={`Вернуть размер ${name} — появится после следующей проверки магазина`} onClick={()=>restore('sizes',name)}>{name} ↺</button>)}</div>}
+  <small>Вариантов: {variants.length}. Нажмите на лишний цвет или размер, чтобы убрать его целиком; потом «Сохранить». Убранное не вернётся при обновлениях из магазина; возвращённое (↺) появится после следующей проверки магазина.</small></section>
 }
 function CatalogVariantMatrix({variants,sourceUrl,onChange}:{variants:CatalogDraft['variants'];sourceUrl:string;onChange:(variants:CatalogDraft['variants'])=>void}){
  const colors=new Set(variants.map(item=>item.color).filter(Boolean)),sizes=new Set(variants.map(item=>item.size).filter(Boolean));

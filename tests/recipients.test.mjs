@@ -79,3 +79,22 @@ test('checkout needs a postal code; a recipient saved without one gets it at che
   assert.equal(placed.deliveryProfiles[0].postalCode, '100011');
   assert.equal(placed.orders[0].delivery.postalCode, '100011');
 });
+
+test('delivery is Tashkent-only for now: a new recipient or an order elsewhere is refused with err_78', () => {
+  const samarkand = { ...home, region: 'Самаркандская область', city: 'Самарканд', postalCode: '140100' };
+  assert.throws(() => save(blank(), { value: samarkand, label: 'Дача' }), (error) => error.code === 'err_78' && /Ташкент/.test(error.message));
+  const cart = addToCart(blank(), products[0], products[0].variants[0], Date.now());
+  const checkout = (state, extra) => applyAction(state, { type: 'checkout', key: 'tashkent-' + Math.random(), signature: cartSignature(state.cart), useBalance: false, expectedCredit: 0, consentVersion: customsVersion, ...extra }, false);
+  assert.throws(() => checkout(cart, { delivery: samarkand }), (error) => error.code === 'err_78');
+  // A recipient saved elsewhere before 10.10.2026 stays in the account and can still be made the default...
+  const older = { ...samarkand, id: 'older', label: 'Дача', primary: false };
+  let state = save(blank(), { value: home, label: 'Дом' });
+  state = { ...state, deliveryProfiles: [...state.deliveryProfiles, older] };
+  state = save(state, { id: 'older', value: samarkand, label: 'Дача', primary: true });
+  assert.equal(state.deliveryProfiles.find(profile => profile.id === 'older').primary, true);
+  // ...but an order cannot go there, and the Tashkent recipient still works.
+  const withCart = { ...state, cart: cart.cart };
+  assert.throws(() => checkout(withCart, { delivery: samarkand, deliveryProfileId: 'older' }), (error) => error.code === 'err_78');
+  const homeId = state.deliveryProfiles.find(profile => profile.label === 'Дом').id;
+  assert.equal(checkout(withCart, { delivery: home, deliveryProfileId: homeId }).orders.length, 1);
+});

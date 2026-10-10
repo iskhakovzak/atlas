@@ -55,3 +55,38 @@ test('same URL refresh stays one entry after operator country edits and duplicat
  const doc=document();applyAutomaticCatalogImport(doc,draft(),now);doc.entries[0].draft.country='Испания';applyAutomaticCatalogImport(doc,draft(),now+1);assert.equal(doc.entries.length,1);
  const bad=document(),variant=source().variants[0];const result=applyAutomaticCatalogImport(bad,draft({variants:[variant,{...variant,label:'Other label'}]}),now);assert.equal(result.published,false);assert.match(result.note,/идентификаторы/);
 });
+test('excluded colors and sizes narrow a store-kept card at once and stay off after store refreshes (10.10.2026)',()=>{
+ const doc=document(),{id}=applyAutomaticCatalogImport(doc,draft(),now),entry=doc.entries[0];
+ assert.equal(entry.published.price,25);
+ // The editor sends the card back with Red excluded (in another case); the store's variants are the server's, narrowed.
+ const edited=changeCatalog(doc,{kind:'edit',id,draft:{...entry.draft,excludedOptions:{colors:[' red ','Red'],sizes:[]}}},now+1);
+ const card=edited.entries[0];
+ assert.deepEqual(card.draft.excludedOptions,{colors:['Red'],sizes:[]});
+ assert.deepEqual(card.draft.variants.map(v=>v.color),['Blue']);
+ assert.equal(card.draft.price,32);
+ assert.deepEqual(card.published.variants.map(v=>v.color),['Blue']);
+ assert.equal(card.published.price,32);
+ assert.equal(card.autoManaged,true);
+ // The next store refresh returns Red again: it stays off the card and the card stays published.
+ const refreshed=applyScheduledCatalogRefresh(edited,id,draft(),now+2).document.entries[0];
+ assert.deepEqual(refreshed.draft.variants.map(v=>v.color),['Blue']);
+ assert.deepEqual(refreshed.published.variants.map(v=>v.color),['Blue']);
+ assert.equal(refreshed.published.price,32);
+ assert.deepEqual(refreshed.draft.excludedOptions,{colors:['Red'],sizes:[]});
+ // Excluding every option is refused; taking an exclusion back returns it with the next store check.
+ assert.throws(()=>changeCatalog(edited,{kind:'edit',id,draft:{...card.draft,excludedOptions:{colors:['Blue','Red'],sizes:[]}}},now+3),/хотя бы один/);
+ const restored=changeCatalog(edited,{kind:'edit',id,draft:{...card.draft,excludedOptions:undefined}},now+3);
+ assert.equal(restored.entries[0].draft.excludedOptions,undefined);
+ const back=applyScheduledCatalogRefresh(restored,id,draft(),now+4).document.entries[0];
+ assert.deepEqual(back.published.variants.map(v=>v.color).sort(),['Blue','Red']);
+ assert.equal(back.published.price,25);
+});
+test('a size excluded on a hand-kept card is not brought back by a store recheck',()=>{
+ const doc=document(),{id}=applyAutomaticCatalogImport(doc,draft(),now);
+ const hidden=changeCatalog(doc,{kind:'hide',ids:[id]},now+1);
+ const entry=hidden.entries[0];
+ const edited=changeCatalog(hidden,{kind:'edit',id,draft:{...entry.draft,variants:entry.draft.variants.filter(v=>v.color!=='Blue'),excludedOptions:{colors:['Blue'],sizes:[]}}},now+2);
+ assert.deepEqual(edited.entries[0].draft.variants.map(v=>v.color),['Red']);
+ const refreshed=applyScheduledCatalogRefresh(edited,id,draft(),now+3).document.entries[0];
+ assert.deepEqual(refreshed.draft.variants.map(v=>v.color),['Red']);
+});

@@ -32,8 +32,29 @@ export const catalogDraftSchema=z.object({
   rank:z.number().int().min(0).max(1000).optional(),
   /** The operator confirmed stock without a store response; a later successful store check replaces it. */
   confirmedBy:z.enum(['operator']).optional(),confirmedAt:z.number().int().nonnegative().optional(),
+  /** Colors and sizes the operator took off the card (10.10.2026); store refreshes keep them off. */
+  excludedOptions:z.object({colors:z.array(text.max(140)).max(100).default([]),sizes:z.array(text.max(140)).max(100).default([])}).optional(),
 });
 export type CatalogDraft=z.infer<typeof catalogDraftSchema>;
+type CatalogVariant=CatalogDraft['variants'][number];
+const optionKey=(value:string)=>value.trim().toLocaleLowerCase('ru');
+/** The exclusion list without blanks or repeats; nothing excluded is no list at all. */
+export function cleanExcludedOptions(value?:CatalogDraft['excludedOptions']):CatalogDraft['excludedOptions']{
+  const unique=(items:string[]=[])=>[...new Map(items.map(item=>item.trim()).filter(Boolean).map(item=>[optionKey(item),item])).values()];
+  const colors=unique(value?.colors),sizes=unique(value?.sizes);
+  return colors.length||sizes.length?{colors,sizes}:undefined;
+}
+/** Drops every variant of an excluded color or size, matched without regard to case. */
+export function withoutExcludedOptions(variants:CatalogVariant[],excluded?:CatalogDraft['excludedOptions']){
+  if(!excluded)return variants;
+  const colors=new Set(excluded.colors.map(optionKey)),sizes=new Set(excluded.sizes.map(optionKey));
+  return variants.filter(variant=>!(variant.color&&colors.has(optionKey(variant.color)))&&!(variant.size&&sizes.has(optionKey(variant.size))));
+}
+/** The lowest price of the remaining options when every one of them has its own price. */
+function lowestVariantPrice(variants:CatalogVariant[]){
+  const prices=variants.map(variant=>variant.price).filter((price):price is number=>typeof price==='number'&&price>0);
+  return prices.length&&prices.length===variants.length?Math.min(...prices):undefined;
+}
 export const collectionSchema=z.object({id:text.min(1).max(80),name:text.min(1).max(80),nameUz:text.max(80).default(''),nameEn:text.max(80).default(''),description:text.max(240).default(''),visible:z.boolean(),position:z.number().int().min(0).max(1000)});
 export type CatalogCollection=z.infer<typeof collectionSchema>;
 export const catalogOriginSchema=z.enum(['operator-import','customer-link','bundled']);
@@ -248,7 +269,7 @@ export function applyAutomaticCatalogImport(document:CatalogDocument,fresh:Catal
  const issues=automaticCatalogIssues(entry.draft,now,rates);
  if(entry.queueState==='archived')return {id:entry.id,published:false,note:'Карточка скрыта редактором; автоматическая публикация отключена.'};
  const publishable=!issues.length;
- entry.refresh={lastAttemptAt:now,...(publishable?{lastSuccessAt:now}:{}),nextCheckAt:now+(publishable?catalogRefreshInterval:catalogRefreshRetryBase),status:publishable?'available':'unknown',availableVariantCount:variants.length,lastError:issues.join(' · ').slice(0,500)||undefined,consecutiveFailures:0};
+ entry.refresh={lastAttemptAt:now,...(publishable?{lastSuccessAt:now}:{}),nextCheckAt:now+(publishable?catalogRefreshInterval:catalogRefreshRetryBase),status:publishable?'available':'unknown',availableVariantCount:entry.draft.variants.length,lastError:issues.join(' · ').slice(0,500)||undefined,consecutiveFailures:0};
  const confirmedSoldOut=fresh.variantsComplete===true&&fresh.variants.length>0&&fresh.variants.every(v=>v.availabilityKnown===true&&(!v.available||v.quantity===0));
  if(confirmedSoldOut){delete entry.published;delete entry.publishedAt;entry.queueState='queued';entry.refresh.status='sold-out';}
  if(publishable){entry.published=structuredClone(entry.draft);entry.publishedAt=now;entry.queueState='published';delete entry.autoHiddenAt;delete entry.autoHideReason;}
@@ -256,7 +277,10 @@ export function applyAutomaticCatalogImport(document:CatalogDocument,fresh:Catal
  return {id:entry.id,published:publishable,note:publishable?undefined:entry.refresh.lastError};
 }
 
-export function recheckedDraft(previous:CatalogDraft,fresh:CatalogDraft){
+export function recheckedDraft(previous:CatalogDraft,store:CatalogDraft){
+  // The operator's excluded colors and sizes stay off whatever the store returns; the card's price follows what is left.
+  const excludedOptions=cleanExcludedOptions(previous.excludedOptions),kept=withoutExcludedOptions(store.variants,excludedOptions);
+  const fresh=kept.length===store.variants.length?store:{...store,variants:kept,price:lowestVariantPrice(kept.filter(variant=>variant.available))??store.price};
   const reasons:string[]=[];
   if(previous.currency!==fresh.currency)reasons.push(`Валюта: ${previous.currency} → ${fresh.currency}`);
   if(previous.price!==fresh.price)reasons.push(`Цена: ${previous.price??'—'} → ${fresh.price??'—'} ${fresh.currency}`);
@@ -270,7 +294,7 @@ export function recheckedDraft(previous:CatalogDraft,fresh:CatalogDraft){
   if(fresh.weightBasis==='store'&&fresh.boxedWeight!==previous.boxedWeight)reasons.push(`Вес магазина: ${previous.boxedWeight} → ${fresh.boxedWeight} кг${storeWeight?'':' (оставлен вес редактора)'}`);
   const image=previous.image||fresh.image,images=previous.images.length?previous.images:fresh.images;
   // A fresh store answer outranks the operator's own stock confirmation, so confirmedBy/confirmedAt are not carried over.
-  return catalogDraftSchema.parse({...fresh,name,brand:previous.brand||fresh.brand,category:previous.category,country:previous.country||fresh.country,image,images,boxedWeight:storeWeight?fresh.boxedWeight:previous.boxedWeight,weightBasis:storeWeight?'store':previous.weightBasis,referencePrice:fresh.referencePrice??previous.referencePrice,sourceShippingUsd:previous.sourceShippingUsd??10,sourceShippingEstimated:previous.sourceShippingEstimated??true,description:previous.description,collectionIds:previous.collectionIds,rank:previous.rank,reviewReasons:reasons,lastCheckError:undefined,confirmedBy:undefined,confirmedAt:undefined});
+  return catalogDraftSchema.parse({...fresh,name,brand:previous.brand||fresh.brand,category:previous.category,country:previous.country||fresh.country,image,images,boxedWeight:storeWeight?fresh.boxedWeight:previous.boxedWeight,weightBasis:storeWeight?'store':previous.weightBasis,referencePrice:fresh.referencePrice??previous.referencePrice,sourceShippingUsd:previous.sourceShippingUsd??10,sourceShippingEstimated:previous.sourceShippingEstimated??true,description:previous.description,collectionIds:previous.collectionIds,rank:previous.rank,reviewReasons:reasons,lastCheckError:undefined,confirmedBy:undefined,confirmedAt:undefined,excludedOptions});
 }
 
 export function catalogRefreshDueAt(entry:CatalogEntry){
@@ -464,6 +488,17 @@ export function changeCatalog(current:CatalogDocument,command:CatalogCommand,now
     draft.images=draft.images.map(i=>safeImage(i,draft.sourceUrl)).filter((i):i is string=>!!i);
     if(draft.collectionIds.some(id=>!next.collections.some(c=>c.id===id)))throw Error('Подборка не найдена');
     if(entry.autoManaged){for(const key of ['price','currency','variants','groupId','variantScope','variantsComplete','checkedAt','image','images','colorwayImages','reviewReasons','lastCheckError','soldOut'] as const)Object.assign(draft,{[key]:entry.draft[key]});}
+    // Excluded colors and sizes narrow even a store-kept card: its options leave the draft and the shown card at once and
+    // stay off after refreshes. One taken back returns with the next store check (the draft no longer holds its options).
+    draft.excludedOptions=cleanExcludedOptions(draft.excludedOptions);
+    const kept=withoutExcludedOptions(draft.variants,draft.excludedOptions);
+    if(draft.variants.length&&!kept.length)throw Error('Нельзя убрать все цвета и размеры — оставьте хотя бы один вариант.');
+    if(kept.length!==draft.variants.length){draft.variants=kept;if(entry.autoManaged)draft.price=lowestVariantPrice(kept)??draft.price}
+    if(entry.published&&draft.excludedOptions){
+      const shown=withoutExcludedOptions(entry.published.variants,draft.excludedOptions);
+      if(!shown.length){delete entry.published;delete entry.publishedAt;entry.queueState='queued'}
+      else if(shown.length!==entry.published.variants.length)entry.published={...entry.published,variants:shown,excludedOptions:draft.excludedOptions,...(entry.autoManaged?{price:lowestVariantPrice(shown)??entry.published.price}:{})};
+    }
     entry.draft=draft;
     // The showcase position is ordering, not a claim about the product, so a published card takes it at once.
     if(entry.published){if(draft.rank===undefined)delete entry.published.rank;else entry.published.rank=draft.rank}
