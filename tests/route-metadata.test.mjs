@@ -31,7 +31,7 @@ test('the x-default page is titled in the language it renders in', () => {
   assert.match(publicMetadata('support', undefined, 'ru').title.absolute, /^Поддержка Atlas$/);
   assert.match(publicMetadata('delete-account', 'en', 'uz').title, /Delete/);
   assert.match(publicMetadata('app', 'uz').title.absolute, /ilovasi/);
-  assert.deepEqual(homeMetadata('en').title, { absolute: 'Atlas — shop international stores with delivery to Uzbekistan' });
+  assert.deepEqual(homeMetadata('en').title, { absolute: 'Atlas — shop international stores with delivery to Tashkent' });
 });
 
 test('Uzbek metadata uses the ‘ letter mark, not ASCII apostrophes', () => {

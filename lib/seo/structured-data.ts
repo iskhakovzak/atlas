@@ -16,9 +16,9 @@ type Contacts = {
 type Legal = { entityName: string | null; inn: string | null; address: Record<TextLocale, string> | null };
 
 const organizationText: Record<Locale, string> = /*@__PURE__*/withCyrillic({
-  uz: 'Xorijiy do‘konlardan xarid qilishda vositachi va logistika agenti: tovarni xorijda sotib olib, O‘zbekistonga yetkazib beradi.',
-  ru: 'Посредник и логистический агент для покупок в зарубежных магазинах: выкупает товар за рубежом и доставляет его в Узбекистан.',
-  en: 'Purchasing intermediary and logistics agent for international shopping: buys items abroad and delivers them to Uzbekistan.',
+  uz: 'Xorijiy do‘konlardan xarid qilishda vositachi va logistika agenti: tovarni xorijda sotib olib, Toshkentga yetkazib beradi.',
+  ru: 'Посредник и логистический агент для покупок в зарубежных магазинах: выкупает товар за рубежом и доставляет его в Ташкент.',
+  en: 'Purchasing intermediary and logistics agent for international shopping: buys items abroad and delivers them to Tashkent.',
 });
 const homeName: Record<Locale, string> = /*@__PURE__*/withCyrillic({ uz: 'Bosh sahifa', ru: 'Главная', en: 'Home' });
 

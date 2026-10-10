@@ -7,7 +7,7 @@ import { applyAction, type Action } from './actions.ts';
 import { checkCartSources } from './cart-check.ts';
 import { canonicalCatalogUrl, type CatalogDocument } from './catalog-editor.ts';
 import { communityCatalogProducts } from './community-deals.ts';
-import { cartSignature, checkoutLines, customsHelpChosen, inCheckout, products as serverProducts, renewCart, unknownStoreShippingUsd, type Pricing, type Product, type State } from './domain.ts';
+import { cartSignature, checkoutLines, customsHelpChosen, inCheckout, serviceFeesOf, valueServiceFees, products as serverProducts, renewCart, unknownStoreShippingUsd, type Pricing, type Product, type State } from './domain.ts';
 import type { Policy } from './policy.ts';
 import { validBoxedWeight } from './weight.ts';
 import { toUsd } from './world.ts';
@@ -202,7 +202,10 @@ export async function prepareAction(state: State, action: Action, deps: PrepareD
     state = { ...state, cart: floored.map(item => fresh.get(item.id) ?? item) };
     const lines = checkoutLines(state.cart);
     // A line priced before the tariff changed, or without (with) the customs fee the customer (no longer) chose.
-    const tariffChanged = lines.some(item => item.quote.tariffVersion !== currentPricing.version || Boolean(item.quote.customsHelp) !== customsHelpChosen(state));
+    // Insurance (a percent of the parcel) priced under other terms than the catalog's now is shown again too.
+    const fees = valueServiceFees(lines, currentPricing);
+    const tariffChanged = lines.some(item => item.quote.tariffVersion !== currentPricing.version || Boolean(item.quote.customsHelp) !== customsHelpChosen(state)
+      || serviceFeesOf(item.quote) !== serviceFeesOf({ serviceFees: fees.get(item.id) }));
     // The raised reserve is outside the total, but the customer sees the new hold before the order is placed.
     const holdChanged = raised && renewCart(state, now, currentPricing).cart.some((item, index) => (item.quote.storeShippingHold ?? 0) !== (state.cart[index].quote.storeShippingHold ?? 0) || item.quote.total !== state.cart[index].quote.total);
     const unreachableOnly = checked.blocked.length > 0 && checked.blocked.every(id => state.cart.find(item => item.id === id)?.sourceIssue?.kind === 'unreachable');

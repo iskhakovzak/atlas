@@ -328,6 +328,8 @@ export type OrderGroupCopy = {
   /** Operator note on a parcel-wide service request: the orders it covers. */
   parcelCovers: (ids: string) => string;
   serviceStatus: Record<WarehouseServiceRequest['status'], string>;
+  /** Insurance paid with the order (a value-percent service): no status to wait for. */
+  serviceIncluded: string;
   /** Line without a stored variant. */
   noVariant: string;
   /** The checkout total over the lines not cancelled. */
@@ -410,6 +412,7 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     agreements: (count) => `Согласования · ${count}`,
     parcelServices: 'Услуги для всей посылки',
     parcelCovers: (ids) => `на всю посылку: ${ids}`,
+    serviceIncluded: 'в сумме заказа',
     serviceStatus: { requested: 'запрошено', quoted: 'ждёт вашего решения', approved: 'одобрено, ждёт выполнения', declined: 'отклонено', completed: 'выполнено' },
     noVariant: 'Без варианта',
     total: 'Итого',
@@ -421,7 +424,7 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     payButton: (amount) => `Оплатить ${amount}`,
     payBalance: (amount) => `С баланса уже учтено ${amount}.`,
     extraButton: (amount) => `Доплатить ${amount}`,
-    nextStep: { 0: 'Дальше: выкупим товар в магазине', 1: 'Дальше: склад примет посылку', 2: 'Дальше: склад взвесит посылку', 3: 'Дальше: отправим в Узбекистан', 4: 'Дальше: доставка получателю' },
+    nextStep: { 0: 'Дальше: выкупим товар в магазине', 1: 'Дальше: склад примет посылку', 2: 'Дальше: склад взвесит посылку', 3: 'Дальше: отправим в Ташкент', 4: 'Дальше: доставка получателю' },
     nextDecision: 'Дальше: ваше решение по позиции ниже',
     nextBuyout: 'Дальше: выкуп в магазине',
     reorder: 'Заказать снова',
@@ -457,6 +460,7 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     agreements: (count) => `Kelishuvlar · ${count}`,
     parcelServices: 'Butun posilka uchun xizmatlar',
     parcelCovers: (ids) => `butun posilka uchun: ${ids}`,
+    serviceIncluded: 'buyurtma summasida',
     serviceStatus: { requested: 'so‘ralgan', quoted: 'qaroringiz kutilmoqda', approved: 'tasdiqlangan, bajarilishi kutilmoqda', declined: 'rad etilgan', completed: 'bajarilgan' },
     noVariant: 'Variantsiz',
     total: 'Jami',
@@ -468,7 +472,7 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     payButton: (amount) => `${amount} to‘lash`,
     payBalance: (amount) => `Balansdan ${amount} hisobga olingan.`,
     extraButton: (amount) => `${amount} qo‘shimcha to‘lash`,
-    nextStep: { 0: 'Keyingi: tovarni do‘kondan xarid qilamiz', 1: 'Keyingi: ombor posilkani qabul qiladi', 2: 'Keyingi: ombor posilkani tortadi', 3: 'Keyingi: O‘zbekistonga jo‘natamiz', 4: 'Keyingi: qabul qiluvchiga yetkazish' },
+    nextStep: { 0: 'Keyingi: tovarni do‘kondan xarid qilamiz', 1: 'Keyingi: ombor posilkani qabul qiladi', 2: 'Keyingi: ombor posilkani tortadi', 3: 'Keyingi: Toshkentga jo‘natamiz', 4: 'Keyingi: qabul qiluvchiga yetkazish' },
     nextDecision: 'Keyingi: quyidagi pozitsiya bo‘yicha qaroringiz',
     nextBuyout: 'Keyingi: do‘kondan xarid',
     reorder: 'Yana buyurtma berish',
@@ -504,6 +508,7 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     agreements: (count) => `Approvals · ${count}`,
     parcelServices: 'Services for the whole parcel',
     parcelCovers: (ids) => `whole parcel: ${ids}`,
+    serviceIncluded: 'in the order total',
     serviceStatus: { requested: 'requested', quoted: 'awaiting your decision', approved: 'approved, awaiting fulfilment', declined: 'declined', completed: 'done' },
     noVariant: 'No variant',
     total: 'Total',
@@ -515,7 +520,7 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     payButton: (amount) => `Pay ${amount}`,
     payBalance: (amount) => `${amount} already covered from your balance.`,
     extraButton: (amount) => `Pay ${amount} extra`,
-    nextStep: { 0: 'Next: we buy the item at the store', 1: 'Next: the warehouse receives the parcel', 2: 'Next: the warehouse weighs the parcel', 3: 'Next: we ship to Uzbekistan', 4: 'Next: delivery to the recipient' },
+    nextStep: { 0: 'Next: we buy the item at the store', 1: 'Next: the warehouse receives the parcel', 2: 'Next: the warehouse weighs the parcel', 3: 'Next: we ship to Tashkent', 4: 'Next: delivery to the recipient' },
     nextDecision: 'Next: your decision on an item below',
     nextBuyout: 'Next: purchase at the store',
     reorder: 'Order again',

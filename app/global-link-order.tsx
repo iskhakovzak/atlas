@@ -156,7 +156,7 @@ function StoreCheck({ host, locale }: { host: string; locale: Locale }) {
   const steps = [
     tx(`Открываем страницу ${store}`, `${store} sahifasini ochyapmiz`, `Opening the ${store} page`),
     tx("Сверяем цену и варианты", "Narx va variantlarni solishtiryapmiz", "Checking the price and options"),
-    tx("Считаем итог с доставкой в Узбекистан", "O‘zbekistonga yetkazish bilan jamini hisoblaymiz", "Working out the total with delivery to Uzbekistan"),
+    tx("Считаем итог с доставкой в Ташкент", "Toshkentga yetkazish bilan jamini hisoblaymiz", "Working out the total with delivery to Tashkent"),
   ];
   return <section className="lo-card lo-variant lo-check" role="status" aria-live="polite">
     <div className="lo-check-head">

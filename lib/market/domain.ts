@@ -49,15 +49,24 @@ export const sourceVariantSchema = z.object({
 });
 export type SourceVariant = z.infer<typeof sourceVariantSchema>;
 export const sourceColorwayGallerySchema=z.object({color:z.string().trim().max(120),colorId:z.string().max(120).optional(),images:z.array(z.string().max(3000)).max(12)});
+/** How a warehouse service is priced: a fixed rate, a quote from the operator, or a percent of the parcel value. */
+export const servicePricingModeSchema = z.enum(["fixed", "operator-quote", "value-percent"]);
 export const serviceOfferingSchema = z.object({
   id: z.string().regex(/^[a-z0-9][a-z0-9_-]{1,79}$/),
   title: localizedTextSchema,
   description: localizedDescriptionSchema,
   requestStage: z.enum(["checkout", "warehouse"]),
   unit: z.enum(["package", "item", "day", "photo", "half-hour"]),
-  pricingMode: z.enum(["fixed", "operator-quote"]),
+  pricingMode: servicePricingModeSchema,
   feeUzs: amount.max(20_000_000).default(0),
   countryPrices: z.record(z.string().min(1).max(80), amount.max(20_000_000)).default({}),
+  /**
+   * "value-percent" (since 10 October 2026, parcel insurance): this share of the parcel's goods value, or
+   * `valuePercentHigh` once the parcel is worth more than `valueThresholdUsd`. Counted into the order total.
+   */
+  valuePercent: z.number().finite().min(0).max(0.5).optional(),
+  valuePercentHigh: z.number().finite().min(0).max(0.5).optional(),
+  valueThresholdUsd: z.number().finite().min(0).max(100_000).optional(),
   enabled: z.boolean().default(false),
   required: z.boolean().default(false),
 });
@@ -77,7 +86,7 @@ const defaultServiceOfferings: ServiceOffering[] = [
   { id: "storage-extension", title: { ru: "Дополнительное хранение", uz: "Qo‘shimcha saqlash", en: "Extended storage" }, description: { ru: "Запросить дополнительные дни хранения; условия подтвердит оператор.", uz: "Qo‘shimcha saqlash kunlarini so‘rash; shartlarni operator tasdiqlaydi.", en: "Request extra storage days; an operator will confirm the terms." }, requestStage: "warehouse", unit: "day", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
   { id: "return-to-store", title: { ru: "Возврат продавцу", uz: "Sotuvchiga qaytarish", en: "Return to merchant" }, description: { ru: "Запрос на возврат зависит от правил магазина, срока и стоимости обратной доставки.", uz: "Qaytarish do‘kon qoidalari, muddat va qayta yetkazish narxiga bog‘liq.", en: "A return depends on the store's policy, deadline and return-shipping cost." }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
   { id: "package-disposal", title: { ru: "Утилизация посылки", uz: "Posilkani utilizatsiya qilish", en: "Package disposal" }, description: { ru: "Запрос на утилизацию после подтверждения владельца и условий склада.", uz: "Egasi va ombor shartlari tasdiqlangach utilizatsiya so‘rovi.", en: "A disposal request, subject to owner confirmation and warehouse rules." }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
-  { id: "shipping-insurance", title: { ru: "Страхование отправления", uz: "Jo‘natmani sug‘urtalash", en: "Shipment insurance" }, description: { ru: "Недоступно, пока не подтверждены страховщик, покрытие, исключения и порядок выплат.", uz: "Sug‘urtalovchi, qoplama, istisnolar va to‘lov tartibi tasdiqlanmaguncha mavjud emas.", en: "Unavailable until the insurer, coverage, exclusions and claim process are confirmed." }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: false, required: false },
+  { id: "shipping-insurance", title: { ru: "Страхование посылки", uz: "Posilkani sug‘urtalash", en: "Parcel insurance" }, description: { ru: "100 % возмещения при утере или порче. Без страховки: $15 за кг при утере, $3 за кг при порче.", uz: "Yo‘qolish yoki shikastlanishda 100 % qoplanadi. Sug‘urtasiz: yo‘qolsa kg uchun $15, shikastlansa kg uchun $3.", en: "100% compensation for loss or damage. Without insurance: $15 per kg for loss, $3 per kg for damage." }, requestStage: "checkout", unit: "package", pricingMode: "value-percent", feeUzs: 0, countryPrices: {}, valuePercent: 0.02, valuePercentHigh: 0.03, valueThresholdUsd: 200, enabled: true, required: false },
 ];
 export const productSchema = z.object({
   id: z.string(),
@@ -311,7 +320,7 @@ export function normalizePricing(config: Pricing): Pricing {
   const soum = (usd: number) => Math.round(usd * fx);
   const countryOverrides = Object.fromEntries(Object.entries(config.countryOverrides ?? {}).map(([country, override]) =>
     [country, override.perKgUsd === undefined ? override : { ...override, perKg: soum(override.perKgUsd) }]));
-  return { ...config, fx, perKg: config.perKgUsd === undefined ? config.perKg : soum(config.perKgUsd), countryOverrides };
+  return { ...config, fx, perKg: config.perKgUsd === undefined ? config.perKg : soum(config.perKgUsd), countryOverrides, serviceCatalog: upgradeServiceCatalog(config.serviceCatalog) };
 }
 /**
  * A tariff saved before the owner's decisions lacks them: $15.98 express and $13.98 standard per kg, the 9.98% fee and the Central Bank
@@ -374,16 +383,34 @@ export function validateServiceCatalog(services: ServiceOffering[]) {
   for (const service of services) {
     if (seen.has(service.id)) throw Error("Идентификаторы услуг должны быть уникальными.");
     seen.add(service.id);
-    if (service.required && (service.requestStage !== "checkout" || service.pricingMode !== "fixed"))
-      throw Error("Обязательная услуга должна предлагаться при оформлении и иметь фиксированный тариф.");
+    if (service.required && (service.requestStage !== "checkout" || service.pricingMode === "operator-quote"))
+      throw Error("Обязательная услуга должна предлагаться при оформлении и иметь фиксированный тариф или процент.");
+    if (service.pricingMode === "value-percent" && (service.requestStage !== "checkout" || service.unit !== "package"))
+      throw Error("Процент от стоимости считается только для посылки при оформлении.");
+    if (service.enabled && service.pricingMode === "value-percent" && !(service.valuePercent && service.valuePercent > 0))
+      throw Error("Для услуги с процентом от стоимости задайте процент больше нуля.");
     if (service.enabled && service.pricingMode === "fixed" && serviceFeeForCountry(service) <= 0)
       throw Error("Для активной услуги с фиксированной ценой задайте положительный базовый тариф.");
     if (service.enabled && service.pricingMode === "fixed" && Object.values(service.countryPrices).some((fee) => fee <= 0))
       throw Error("У активной услуги все заданные тарифы по странам должны быть больше нуля.");
-    if (service.id === "shipping-insurance" && service.enabled)
-      throw Error("Страхование нельзя включить без подтверждённого страховщика, покрытия и процесса претензий.");
   }
   return services;
+}
+/** The rate a value-percent service takes for a parcel worth `valueUsd`; 0 for other pricing modes. */
+export function valueServiceRate(service: Pick<ServiceOffering, "pricingMode" | "valuePercent" | "valuePercentHigh" | "valueThresholdUsd">, valueUsd: number) {
+  if (service.pricingMode !== "value-percent") return 0;
+  const base = service.valuePercent ?? 0;
+  return service.valueThresholdUsd !== undefined && service.valuePercentHigh !== undefined && valueUsd > service.valueThresholdUsd
+    ? service.valuePercentHigh
+    : base;
+}
+/** The insurance entry saved before 10 October 2026 was locked off ("Недоступно, пока…"); it becomes the owner's terms. */
+const lockedInsuranceDescription = "Недоступно, пока не подтверждены страховщик, покрытие, исключения и порядок выплат.";
+function upgradeServiceCatalog(services: ServiceOffering[]) {
+  const insurance = defaultServiceOfferings.find((service) => service.id === "shipping-insurance")!;
+  return services.some((service) => service.id === insurance.id && service.description.ru === lockedInsuranceDescription)
+    ? services.map((service) => service.id === insurance.id && service.description.ru === lockedInsuranceDescription ? insurance : service)
+    : services;
 }
 const quoteSchema = z.object({
   id: z.string(),
@@ -417,6 +444,11 @@ const quoteSchema = z.object({
   /** With "Atlas pays customs for me": this line's share of the estimated duty, prepaid in `total` (settled later). */
   customsDuty: amount.optional(),
   customsHelpRate: z.number().finite().min(0).max(0.2).optional(),
+  /**
+   * Checkout services priced as a percent of the parcel's goods (parcel insurance, since 10 October 2026): this
+   * line's share — `rate` of its `merchandise` — included in `total`.
+   */
+  serviceFees: z.array(z.object({ id: z.string().min(2).max(80), amount, rate: z.number().finite().min(0).max(0.5) })).max(10).optional(),
   buyoutFeeRate: z.number().finite().min(0).max(1).optional(),
   conversionFeeRate: z.number().finite().min(0).max(1).optional(),
   deliveryMarginRate: z.number().finite().min(0).max(1).optional(),
@@ -716,7 +748,7 @@ const warehouseServiceRequestSchema = z.object({
   description: localizedDescriptionSchema,
   unit: z.enum(["package", "item", "day", "photo", "half-hour"]),
   units: z.number().int().min(1).max(100),
-  pricingMode: z.enum(["fixed", "operator-quote"]),
+  pricingMode: servicePricingModeSchema,
   feeUzs: amount.max(20_000_000).optional(),
   country: z.string().max(80).optional(),
   customerNote: z.string().trim().max(500).optional(),
@@ -908,8 +940,14 @@ function buildServiceRequest(
   origin: WarehouseServiceRequest["origin"],
   now: number,
   customerNote?: string,
+  /**
+   * A value-percent service (insurance) is paid with the order: recorded as done at that amount, so there is
+   * nothing to quote and it never holds the parcel back from weighing (assertReadyToWeigh).
+   */
+  paidAmount?: number,
 ): WarehouseServiceRequest {
   return warehouseServiceRequestSchema.parse({
+    ...(paidAmount !== undefined ? { status: "completed", quotedAmount: paidAmount, completedAt: now } : { status: "requested" }),
     id: "WSR-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
     serviceId: service.id,
     title: service.title,
@@ -921,7 +959,6 @@ function buildServiceRequest(
     country,
     customerNote: customerNote?.trim() || undefined,
     origin,
-    status: "requested",
     requestedAt: now,
   });
 }
@@ -951,11 +988,12 @@ export function setCartServices(
   }
   return {
     ...state,
-    cart: state.cart.map((candidate) => candidate.id === id ? {
+    // Insurance and other value-percent services are in the line totals: their fees follow the choice at once.
+    cart: withValueServiceFees(state.cart.map((candidate) => candidate.id === id ? {
       ...candidate,
       requestedServiceIds: selected,
       requestedServiceUnits: Object.fromEntries(Object.entries(serviceUnits).filter(([serviceId]) => selected.includes(serviceId))),
-    } : candidate),
+    } : candidate), config),
   };
 }
 
@@ -996,6 +1034,45 @@ export function storeParcels<T extends Pick<CartItem, "id" | "product">>(items: 
   return parcels;
 }
 
+/** A cart line's value-percent service fees (parcel insurance), soum. */
+export const serviceFeesOf = (q: Pick<Quote, "serviceFees">) => (q.serviceFees ?? []).reduce((sum, fee) => sum + fee.amount, 0);
+/** The goods value of one store parcel in USD, as value-percent services see it (no delivery, no fees). */
+export const parcelValueUsd = (lines: Pick<CartItem, "product" | "quantity">[]) =>
+  Math.round(lines.reduce((sum, line) => sum + line.product.usd * line.quantity, 0) * 100) / 100;
+/**
+ * Each line's value-percent fees (owner, 10.10.2026: insurance 2% of the parcel, 3% above $200). A store parcel
+ * takes the service when any of its lines chose it; the rate follows the whole parcel's goods value and each line
+ * pays that rate on its own goods. Lines left for later make their own parcel, as in delivery (repriceCart).
+ */
+export function valueServiceFees<T extends Pick<CartItem, "id" | "product" | "quantity" | "requestedServiceIds" | "selected"> & { quote: Pick<Quote, "merchandise"> }>(items: T[], config: Pricing) {
+  const services = config.serviceCatalog.filter((service) => service.enabled && service.requestStage === "checkout" && service.pricingMode === "value-percent");
+  const fees = new Map<string, NonNullable<Quote["serviceFees"]>>();
+  if (!services.length) return fees;
+  const parcels = new Map<string, T[]>();
+  for (const item of items) {
+    const key = storeParcelKey(item) + (inCheckout(item) ? "" : ":later");
+    parcels.set(key, [...(parcels.get(key) ?? []), item]);
+  }
+  for (const lines of parcels.values()) {
+    const value = parcelValueUsd(lines);
+    for (const service of services) {
+      if (!lines.some((line) => (line.requestedServiceIds ?? []).includes(service.id))) continue;
+      const rate = valueServiceRate(service, value);
+      for (const line of lines) fees.set(line.id, [...(fees.get(line.id) ?? []), { id: service.id, amount: Math.round(line.quote.merchandise * rate), rate }]);
+    }
+  }
+  return fees;
+}
+/** The lines with their value-percent fees put in (old ones taken out of the total first). */
+export function withValueServiceFees<T extends CartItem>(items: T[], config: Pricing): T[] {
+  const fees = valueServiceFees(items, config);
+  return items.map((item) => {
+    const next = fees.get(item.id);
+    if (!next && !item.quote.serviceFees) return item;
+    const total = item.quote.total - serviceFeesOf(item.quote) + (next ?? []).reduce((sum, fee) => sum + fee.amount, 0);
+    return { ...item, quote: { ...item.quote, serviceFees: next, total } };
+  });
+}
 /** A warehouse service's name in every language, for coded history and notifications. */
 const serviceParams = (service: Pick<ServiceOffering, "id" | "title"> | WarehouseServiceRequest): HistoryParams => ({
   service: "serviceId" in service ? service.serviceId : service.id,
@@ -1247,7 +1324,7 @@ export function repriceCart(items: CartItem[], now = Date.now(), config: Pricing
       item.quote = { ...item.quote, customsHelp: fee, customsHelpRate: rate, total: item.quote.total + fee };
     }
   }
-  return next;
+  return withValueServiceFees(next, config);
 }
 /** The separate hold for unknown store delivery across cart lines (soum); never part of the amount to pay. */
 export const holdOf = (items: { quote: Pick<Quote, "storeShippingHold"> }[]) =>
@@ -1657,6 +1734,10 @@ export function checkoutCart(
     throw Error("Корзина пересчитана. Проверьте новый итог перед оформлением.");
   // "Atlas pays customs for me": the duty estimated for this recipient is prepaid with the order, split by goods value.
   // The customer saw this amount on the confirmation step; a different one means the recipient or the month changed.
+  // Insurance is in the line totals; a line priced before the choice or the catalog changed is shown again.
+  const expectedFees = valueServiceFees(lines, config);
+  if (lines.some((i) => serviceFeesOf(i.quote) !== serviceFeesOf({ serviceFees: expectedFees.get(i.id) })))
+    throw Error("Корзина пересчитана. Проверьте новый итог перед оформлением.");
   const dutyTotal = customsHelpChosen(state) && customs ? customsDutySoum(customs, config.fx) : 0;
   if (customsHelpChosen(state) && (expectedCustomsDuty ?? 0) !== dutyTotal)
     throw Error("Пошлина пересчитана для выбранного получателя. Проверьте итог перед оформлением.");
@@ -1691,8 +1772,12 @@ export function checkoutCart(
   for (const parcel of storeParcels(cart)) {
     const chosen = availableServices.filter((service) => parcel.items.some((line) => (line.requestedServiceIds ?? []).includes(service.id)));
     const ids = parcel.items.map((line) => orderIds[cart.indexOf(line)]);
+    // A value-percent service (insurance) was paid with the order: the request records the amount, nothing to quote.
+    const paid = (service: ServiceOffering) => service.pricingMode === "value-percent"
+      ? parcel.items.reduce((sum, line) => sum + (line.quote.serviceFees ?? []).filter((fee) => fee.id === service.id).reduce((total, fee) => total + fee.amount, 0), 0)
+      : undefined;
     parcelRequests.set(ids[0], chosen.map((service) => ({
-      ...buildServiceRequest(service, parcel.items[0].product.country, parcelServiceUnits(service, parcel.items), "checkout", now),
+      ...buildServiceRequest(service, parcel.items[0].product.country, parcelServiceUnits(service, parcel.items), "checkout", now, undefined, paid(service)),
       ...(ids.length > 1 ? { parcelOrderIds: ids } : {}),
     })));
   }
@@ -1755,6 +1840,9 @@ export function checkoutCart(
           : []),
         ...(i.quote.customsHelp
           ? [{ at: now, text: "Покупатель выбрал оплату таможни через Atlas: сбор " + money(i.quote.customsHelp) + " и предоплата пошлины " + money(i.quote.customsDuty ?? 0) + " входят в сумму заказа. Остаток пошлины вернётся на баланс, доплата — только с согласия покупателя.", code: "customs-help", params: { fee: i.quote.customsHelp, duty: i.quote.customsDuty ?? 0 } }]
+          : []),
+        ...(serviceFeesOf(i.quote)
+          ? [{ at: now, text: "Посылка застрахована: " + money(serviceFeesOf(i.quote)) + " входит в сумму заказа.", code: "insured", params: { fee: serviceFeesOf(i.quote) } }]
           : []),
         ...sourceCheckHistory(i, now),
       ],

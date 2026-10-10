@@ -8,10 +8,10 @@ import Link from "@/components/site-link";
 import { ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ClipboardPaste, Clock3, Heart, Info, Loader2, MessageSquare, Minus, Plus, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
-import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, customsHelpChosen, inCheckout, isPostalCode, maxLineQuantity, parcelServiceUnits, storeDiscount, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, withCustomsHelpFor, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
+import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, customsHelpChosen, inCheckout, isPostalCode, maxLineQuantity, parcelServiceUnits, storeDiscount, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, parcelValueUsd, valueServiceRate, withCustomsHelpFor, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
 import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, savingText } from "@/lib/market/delivery-speed";
 import { countryName, customsVersion } from "@/lib/market/world";
-import { formatSum } from "@/lib/market/format";
+import { formatPercent, formatSum, formatUsd } from "@/lib/market/format";
 import { cartCopy, countryLabel, itemCount, linkOrderCopy, minutesLeft, parcelCount, recipientCopy, type CartCopy } from "@/lib/market/customer-copy";
 import { cartCustomsEstimate } from "@/lib/market/allowance";
 import { calcCopy } from "@/lib/market/calc-copy";
@@ -41,7 +41,7 @@ const keepCopy = /*@__PURE__*/withCyrillic({
   en: { save: "Save", saved: "Saved", later: "Later", laterLabel: "Save for later", laterDone: "Moved to favourites", open: "Open favourites", removeVariant: "Remove option", removeAll: (n: number) => `Remove all (${n})`, variants: "Options of this product" },
 });
 import { useStickyFit } from "./sticky-fit";
-import { CheckoutChecklist, CheckoutReviewTable, productGroups, shownVariant, storeName } from "./checkout-review";
+import { CheckoutChecklist, CheckoutReviewTable, ReviewConfirmBar, productGroups, shownVariant, storeName } from "./checkout-review";
 import { cartSelectCopy } from "@/lib/market/cart-select-copy";
 
 /** More than one dispatch country in the cart: the speed note says it applies to every parcel. */
@@ -249,7 +249,9 @@ export function CartView() {
   const customsHelpAmount = customsChoices.help
     ? lines.reduce((sum, item) => sum + (item.quote.customsHelp ?? 0), 0)
     : lines.reduce((sum, item) => sum + Math.round(item.quote.merchandise * pricing.customsHelpFee), 0);
-  const checkoutServices = pricing.serviceCatalog.filter((service) => service.enabled && service.requestStage === "checkout");
+  // Insurance (paid with the order) leads the list: it is the one choice that changes the total right away.
+  const checkoutServices = pricing.serviceCatalog.filter((service) => service.enabled && service.requestStage === "checkout")
+    .sort((a, b) => Number(b.pricingMode === "value-percent") - Number(a.pricingMode === "value-percent"));
   const identityProfiles = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
   const sums = sumQuotes(billed.map(item => item.quote)), reviewSums = sumQuotes(reviewBilled.map(item => item.quote));
   const cartWeight = Math.round(lines.reduce((sum, item) => sum + item.quote.weight, 0) * 100) / 100;
@@ -312,12 +314,15 @@ export function CartView() {
   // Recipient ⇄ review: the dialog reshapes from narrow to wide through a view transition (a snapshot morph, so the
   // review columns are laid out once instead of on every frame). Without support the step simply switches.
   function showReview(next: boolean) {
-    const doc = document as Document & { startViewTransition?: (update: () => void) => { finished: Promise<unknown> } };
+    const doc = document as Document & { startViewTransition?: (update: () => void) => { ready: Promise<unknown>; finished: Promise<unknown> } };
     if (!doc.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) { setReview(next); return; }
     const root = document.documentElement;
     root.classList.add("atlas-step-morph");
     try {
-      void doc.startViewTransition(() => flushSync(() => setReview(next))).finished.finally(() => root.classList.remove("atlas-step-morph"));
+      // A skipped transition (hidden tab, another one started) rejects `ready`: the step still switches, so nothing to report.
+      const transition = doc.startViewTransition(() => flushSync(() => setReview(next)));
+      transition.ready.catch(() => undefined);
+      void transition.finished.catch(() => undefined).finally(() => root.classList.remove("atlas-step-morph"));
     } catch { root.classList.remove("atlas-step-morph"); setReview(next); }
   }
 
@@ -479,6 +484,16 @@ export function CartView() {
    * contents photo), per piece (checking each item) or as typed (extra photos). The tick shows at once with
    * "Saving…"; a second click while saving waits its turn instead of being lost or sent twice.
    */
+  /** "2% of the goods (over $200: 3%) · 12 345 сум": the amount this parcel pays, shown before it is ticked too. */
+  function percentRate(service: (typeof checkoutServices)[number], items: CartItem[]) {
+    const rate = valueServiceRate(service, parcelValueUsd(items));
+    const high = service.valuePercentHigh !== undefined && service.valueThresholdUsd !== undefined && service.valuePercentHigh !== service.valuePercent
+      ? c.services.highRule(formatUsd(service.valueThresholdUsd, locale), formatPercent(service.valuePercentHigh, locale))
+      : undefined;
+    const amount = items.reduce((sum, line) => sum + Math.round(line.quote.merchandise * rate), 0);
+    return c.services.percent(formatPercent(service.valuePercent ?? 0, locale), high, formatSum(amount, locale));
+  }
+
   function renderParcelServices(parcelKey: string, items: CartItem[]) {
     if (!checkoutServices.length) return null;
     const lead = items[0];
@@ -495,7 +510,7 @@ export function CartView() {
     };
     return <details className="basket-services basket-parcel-services">
       <summary><span>{s.parcelServices}<small>{c.services.optional}</small></span>{chosen.length > 0 && <b>{chosen.length}</b>}</summary>
-      <p>{s.parcelServicesHint} {c.services.hint}</p>
+      <p>{s.parcelServicesHint} {checkoutServices.some(service => service.pricingMode === "value-percent") ? c.services.hintPercent : c.services.hint}</p>
       <div className="basket-service-list">{checkoutServices.map((service) => {
         const checked = chosen.includes(service.id) || service.required;
         const counted = !["package", "item"].includes(service.unit);
@@ -517,6 +532,7 @@ export function CartView() {
           <span className="basket-service-copy"><b>{serviceTitle(service, locale)}{checked && <span className="basket-service-unit">{unitLabel}</span>}{service.required && <em>{c.services.required}</em>}{saving && <span className="basket-service-saving" role="status"><Loader2 size={13} className="spin" aria-hidden="true" />{s.saving}</span>}</b><small>{serviceDescription(service, locale)}</small>
             <small className="basket-service-rate">{service.pricingMode === "fixed"
               ? `${c.services.fixed}: ${formatSum(unitFee, locale)} / ${unitName}${count > 1 ? ` · ${count} × ${formatSum(unitFee, locale)} = ${formatSum(unitFee * count, locale)}` : ""}`
+              : service.pricingMode === "value-percent" ? percentRate(service, items)
               : c.services.quote}</small>
           </span>
           {counted && checked && <span className="basket-service-units"><label htmlFor={`cart-service-units-${parcelKey}-${service.id}`}>{c.services.quantity} · {unitName}</label><input key={units[service.id] ?? 1} id={`cart-service-units-${parcelKey}-${service.id}`} type="number" inputMode="numeric" min="1" max="100" step="1" defaultValue={units[service.id] ?? 1} onBlur={(event) => { const typed = Number(event.target.value); if (Number.isInteger(typed) && typed >= 1 && typed <= 100 && typed !== (units[service.id] ?? 1)) toggle(true, typed); else event.target.value = String(units[service.id] ?? 1); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); } }} /></span>}
@@ -685,7 +701,9 @@ export function CartView() {
               </div>
               {consentError && <p id="checkout-consent-error" className="basket-consent-error" role="alert">{c.checkout.consentRequired}</p>}
             </> : <p className="micro">{c.checkout.consentImplied.before}<Link href="/customs" target="_blank">{c.checkout.consentImplied.link}</Link>{c.checkout.consentImplied.after}</p>}
-            <button className="btn primary full" disabled={busy || verifying || selecting || !lines.length}>{verifying ? c.summary.verifying : busy ? c.checkout.saving : c.checkout.confirm}{busy || verifying ? <Loader2 size={18} className="spin" aria-hidden="true" /> : <Check size={18} aria-hidden="true" />}</button>
+            <ReviewConfirmBar amount={reviewPayable} locale={locale}>
+              <button className="btn primary full" disabled={busy || verifying || selecting || !lines.length}>{verifying ? c.summary.verifying : busy ? c.checkout.saving : c.checkout.confirm}{busy || verifying ? <Loader2 size={18} className="spin" aria-hidden="true" /> : <Check size={18} aria-hidden="true" />}</button>
+            </ReviewConfirmBar>
             <p className="micro review-next">{c.checkout.nextStep}</p>
             <details className="review-details">
               <summary>{s.review.details}</summary>

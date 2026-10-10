@@ -84,7 +84,7 @@ export type CartCopy = {
     issues: { currency: string; variant: string; price: string; unreachable: string; stock: string }; reload: string; checked: (time: string) => string;
   };
   /** `hint` says once that the services are outside the order total; the rows do not repeat it. */
-  services: { optional: string; hint: string; fixed: string; quote: string; quantity: string; required: string; units: { package: string; item: string; day: string; photo: string; 'half-hour': string } };
+  services: { optional: string; hint: string; /** The hint when parcel insurance (paid with the order) is offered. */ hintPercent: string; fixed: string; quote: string; /** A value-percent service: rate of the goods, the higher rate above the threshold, the amount for this parcel. */ percent: (rate: string, high: string | undefined, amount: string) => string; highRule: (threshold: string, rate: string) => string; quantity: string; required: string; units: { package: string; item: string; day: string; photo: string; 'half-hour': string } };
   summary: {
     title: string; balance: string; available: string; fromBalance: string; payable: string;
     validFor: (time: string) => string; assurance: string; continue: string; outside: string;
@@ -161,6 +161,8 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
     services: {
       optional: 'по желанию',
       hint: 'Отметьте пожелания — в сумму заказа они не входят. Оператор проверит возможность после приёмки; услугу выполнят только после показа точной суммы и вашего согласия.',
+      hintPercent: 'Страховка сразу входит в сумму заказа. Остальные пожелания в сумму не входят: оператор проверит их после приёмки и выполнит только после показа точной суммы и вашего согласия.',
+      percent: (rate, high, amount) => `${rate} от стоимости товаров${high ? ` (${high})` : ''} · ${amount}`, highRule: (threshold, rate) => `дороже ${threshold} — ${rate}`,
       fixed: 'Тариф', quote: 'Цену назовёт оператор', quantity: 'Количество', required: 'обязательно',
       units: { package: 'посылка', item: 'шт.', day: 'день', photo: 'фото', 'half-hour': '30 мин' },
     },
@@ -208,6 +210,8 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
     services: {
       optional: 'ixtiyoriy',
       hint: 'Istaklaringizni belgilang — ular buyurtma summasiga kirmaydi. Operator qabuldan keyin imkoniyatni tekshiradi; xizmat faqat aniq narx ko‘rsatilib, roziligingiz olingandan so‘ng bajariladi.',
+      hintPercent: 'Sug‘urta darhol buyurtma summasiga kiradi. Qolgan istaklar summaga kirmaydi: operator ularni qabuldan keyin tekshiradi va faqat aniq narx ko‘rsatilib, roziligingiz olingandan so‘ng bajaradi.',
+      percent: (rate, high, amount) => `tovarlar qiymatining ${rate}${high ? ` (${high})` : ''} · ${amount}`, highRule: (threshold, rate) => `${threshold} dan qimmat bo‘lsa — ${rate}`,
       fixed: 'Tarif', quote: 'Narxni operator aytadi', quantity: 'Miqdor', required: 'majburiy',
       units: { package: 'posilka', item: 'dona', day: 'kun', photo: 'foto', 'half-hour': '30 daqiqa' },
     },
@@ -255,6 +259,8 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
     services: {
       optional: 'optional',
       hint: 'Choose preferences — they are not part of the order total. An operator checks feasibility after intake; work starts only after the exact price is shown and you approve it.',
+      hintPercent: 'Insurance is part of the order total right away. Other preferences are not: an operator checks them after intake and does the work only after showing the exact price and getting your approval.',
+      percent: (rate, high, amount) => `${rate} of the goods value${high ? ` (${high})` : ''} · ${amount}`, highRule: (threshold, rate) => `over ${threshold}: ${rate}`,
       fixed: 'Rate', quote: 'Operator will quote', quantity: 'Quantity', required: 'required',
       units: { package: 'package', item: 'item', day: 'day', photo: 'photo', 'half-hour': '30 min' },
     },
