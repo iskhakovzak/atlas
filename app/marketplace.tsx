@@ -1,6 +1,6 @@
 'use client';
 import {Suspense,lazy,useEffect,useLayoutEffect,useMemo,useState,useSyncExternalStore,type ReactNode} from 'react';
-import Link from '@/components/site-link';
+import Link,{useWarmLinks} from '@/components/site-link';
 import {ArrowUpRight,ArrowRight,Package,Wallet,ShoppingBag,Heart,LayoutGrid,Settings2,House,Store,LogIn,UserRound} from 'lucide-react';
 import {ToasterSlot} from './toaster-slot';
 import {money,balanceOf} from '@/lib/market/domain';
@@ -39,7 +39,8 @@ function ViewMark({view}:{view:string}){
   const changed=shownView!==null&&shownView!==view;shownView=view;
   const main=changed?document.getElementById('main'):null;
   let timer=0;
-  if(main){main.classList.remove('view-entered');void main.offsetWidth;main.classList.add('view-entered');timer=window.setTimeout(()=>main.classList.remove('view-entered'),700)}
+  // Every page renders its own <main>, so the class is new on it: no forced reflow to restart the animation.
+  if(main){main.classList.add('view-entered');timer=window.setTimeout(()=>main.classList.remove('view-entered'),700)}
   return ()=>{window.clearTimeout(timer);main?.classList.remove('view-entered');if(html.dataset.view===view)delete html.dataset.view};
  },[view]);
  return <script dangerouslySetInnerHTML={{__html:`document.documentElement.dataset.view=${JSON.stringify(view)}`}}/>;
@@ -70,6 +71,9 @@ export default function Marketplace({view,children}:{view:string;children?:React
   // A session cookie alone (a new tab) gives the member header too, just without the numbers until the account answers.
   const member=ready||(status==='loading'&&(!!snapshot||sessionHint)),known=ready||!!snapshot;
   const shownBalance=ready?balance:snapshot?.balance??0,shownCount=ready?count:snapshot?.count??0;
+  const tabs=member?[['/','catalog',House,words.home],['/catalog','products',LayoutGrid,words.catalog],['/orders','orders',Package,pickLocale({ru:'Заказы',uz:'Buyurtmalar',en:'Orders'}, locale)],['/cart','cart',ShoppingBag,words.cart],['/account','account',UserRound,words.account]]:[['/','catalog',House,words.home],['/catalog','products',LayoutGrid,words.catalog],['/stores','stores',Store,hc.nav.stores],[signInPath(view==='login'?'/':returnPath()),'login',LogIn,hc.nav.signin]];
+  // The other tabs are fetched while the phone is idle, so a tap on one opens it at once.
+  useWarmLinks(tabs.filter(tab=>tab[1]!==view&&tab[1]!=='login').map(tab=>tab[0] as string));
   const navItems:[string,string,string][]=[['/catalog','products',hc.nav.catalog],['/stores','stores',hc.nav.stores],['/#how','how',hc.nav.how],['/#tariffs','tariffs',hc.nav.tariffs],...(member?[['/orders','orders',hc.nav.orders] as [string,string,string]]:[])];
   return <><ViewMark view={view}/><a className="skip-link" href="#main">{modalWords.skip}</a><ToasterSlot theme={theme==='dark'?'dark':theme==='light'?'light':'system'}/>
   <header className="site-header"><Link className="wordmark" href="/" aria-label={modalWords.homeLabel}>atlas<ArrowUpRight aria-hidden="true"/></Link><nav className="desktop-nav" aria-label={modalWords.navigation}>{navItems.map(([href,key,label])=><Link key={key} data-nav={key} className={key===view?'active':''} aria-current={key===view?'page':undefined} href={href}>{label}</Link>)}</nav><div className="header-actions">{(user?.operator||!!user?.permissions?.length)&&<Link className="operator-entry text-link" href="/admin"><Settings2 size={16}/>{modalWords.manage}</Link>}<HeaderLanguage locale={locale} label={hc.nav.language} onChange={setLocale}/><span className="header-theme"><ThemeToggle locale={locale}/></span>{member&&<><Link href="/balance" className="wallet-link"><Wallet size={19}/><span>{known?(locale==='ru'?money(shownBalance):new Intl.NumberFormat(isUzbek(locale)?uzText(locale, 'uz-UZ'):'en-US').format(shownBalance)+(isUzbek(locale)?uzText(locale, ' so‘m'):' UZS')):''}</span></Link><NotificationsPanel open={noticesOpen} onOpenChange={setNoticesOpen} label={modalWords.notifications} active={view==='notifications'}/><Link aria-label={modalWords.favorites} href="/favorites" className={'icon-btn desktop-only '+(view==='favorites'?'active':'')}><Heart size={20}/></Link><Link href="/cart" className="cart-link" aria-label={modalWords.cart+(known?shownCount:'')}><ShoppingBag size={19}/><span className="desktop-only">{words.cart}</span>{known&&<b>{shownCount}</b>}</Link></>}{user||member?<Link className="header-account member" href="/account">{hc.nav.account}</Link>
@@ -84,6 +88,6 @@ export default function Marketplace({view,children}:{view:string;children?:React
    {/* Wide screens: the decor behind the sheets (app/home-decor.tsx), the last child of main. */}
    {view==='catalog'&&<HomeDecorSlot/>}</main>
   {/* Phones: one bottom bar for everyone (guests get sign-in in it); hidden while the session is checked. */}
-  {(status!=='loading'||member)&&<nav className={'mobile-nav '+(member?'member':'guest')} aria-label={modalWords.navigation}>{(member?[['/','catalog',House,words.home],['/catalog','products',LayoutGrid,words.catalog],['/orders','orders',Package,pickLocale({ru:'Заказы',uz:'Buyurtmalar',en:'Orders'}, locale)],['/cart','cart',ShoppingBag,words.cart],['/account','account',UserRound,words.account]]:[['/','catalog',House,words.home],['/catalog','products',LayoutGrid,words.catalog],['/stores','stores',Store,hc.nav.stores],[signInPath(view==='login'?'/':returnPath()),'login',LogIn,hc.nav.signin]]).map(([href,key,Icon,label])=>{const I=Icon as typeof LayoutGrid;return <Link href={href as string} key={key as string} className={key===view?'active':''} aria-current={key===view?'page':undefined}><I size={21} aria-hidden="true"/><span>{label as string}</span>{key==='cart'&&shownCount>0&&<b>{shownCount}</b>}</Link>})}</nav>}
+  {(status!=='loading'||member)&&<nav className={'mobile-nav '+(member?'member':'guest')} aria-label={modalWords.navigation}>{tabs.map(([href,key,Icon,label])=>{const I=Icon as typeof LayoutGrid;return <Link href={href as string} key={key as string} className={key===view?'active':''} aria-current={key===view?'page':undefined}><I size={21} aria-hidden="true"/><span>{label as string}</span>{key==='cart'&&shownCount>0&&<b>{shownCount}</b>}</Link>})}</nav>}
 </>;
 }

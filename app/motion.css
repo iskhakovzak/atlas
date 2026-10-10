@@ -75,12 +75,22 @@ html[data-theme="dark"] .cabinet-tiles a:hover { box-shadow: 0 14px 28px rgba(0,
 .cabinet-ticket-form, .support-reply-form, .cabinet-tickets > li { animation: atlas-rise-in .32s cubic-bezier(.22, 1, .36, 1) both; }
 
 /* ---------- Disclosures open and close smoothly (order cards, history, help) ---------- */
-/* Where the browser can animate to auto height (Chrome 131+); elsewhere they open at once as before. Help bubbles that
-   float over the page (popovers) keep their old behaviour so nothing clips them. */
+/* Where the browser can animate to auto height (Chrome 131+); elsewhere they open at once as before. The content is
+   clipped only while it grows or shrinks: once open, overflow turns visible (a discrete transition held for the opening
+   time), so help bubbles inside an order card or a breakdown float over the page unclipped. The bubbles themselves
+   (.quote-cost-help, .customs-estimate-help: a <details> whose content is an absolutely placed bubble) open at once.
+   No :has() here: details:not(:has(...)) made Chrome re-check every disclosure on each DOM change, and was 40% of the
+   style work of opening the home page (10.10.2026). */
 @supports (interpolate-size: allow-keywords) {
-  details:not(:has([class*="popover"])) { interpolate-size: allow-keywords; }
-  details:not(:has([class*="popover"]))::details-content { block-size: 0; overflow-y: clip; transition: block-size .34s cubic-bezier(.22, 1, .36, 1), content-visibility .34s allow-discrete; }
-  details:not(:has([class*="popover"]))[open]::details-content { block-size: auto; }
+  details:not(.quote-cost-help, .customs-estimate-help) { interpolate-size: allow-keywords; }
+  details:not(.quote-cost-help, .customs-estimate-help)::details-content {
+    block-size: 0; overflow-y: clip;
+    transition: block-size .34s cubic-bezier(.22, 1, .36, 1), content-visibility .34s allow-discrete, overflow-y 0s allow-discrete;
+  }
+  details:not(.quote-cost-help, .customs-estimate-help)[open]::details-content {
+    block-size: auto; overflow-y: visible;
+    transition: block-size .34s cubic-bezier(.22, 1, .36, 1), content-visibility .34s allow-discrete, overflow-y 0s .34s allow-discrete;
+  }
 }
 
 /* ---------- Checkout recipient ⇄ review ---------- */
@@ -220,7 +230,8 @@ img.product-img[data-fade] { opacity: 0; }
   #main.access-arrived *, #main.access-arrived > *, .cabinet-bar span, .cabinet-ticket-form, .support-reply-form, .cabinet-tickets > li { animation: none; }
   .cabinet-tiles a, .cabinet-tiles a > svg, .cabinet-rows a > svg:last-child { transition: none; }
   .cabinet-tiles a:hover, .cabinet-tiles a:hover > svg, .cabinet-rows a:hover > svg:last-child { transform: none; }
-  details::details-content { transition: none; }
+  /* As specific as the opening rule above, or it never won. */
+  details:not(.quote-cost-help, .customs-estimate-help)::details-content { transition: none; }
   [data-slot="dialog-content"][data-state="open"], [data-slot="alert-dialog-content"][data-state="open"] { animation: atlas-fade-in .15s ease-out both; }
   [data-slot="dialog-content"][data-state="closed"], [data-slot="alert-dialog-content"][data-state="closed"] { animation: atlas-fade-out .12s ease-in both; }
   :is([data-slot="dialog-overlay"], [data-slot="alert-dialog-overlay"]) { -webkit-backdrop-filter: none; backdrop-filter: none; }

@@ -1,5 +1,5 @@
 'use client';
-import type { AnchorHTMLAttributes, MouseEvent, PointerEvent } from "react";
+import { useEffect, type AnchorHTMLAttributes, type MouseEvent, type PointerEvent } from "react";
 import { useRouter } from "next/navigation";
 import { startNavigationFeedback } from "@/lib/market/navigation-feedback";
 
@@ -13,6 +13,34 @@ type SiteLinkProps = Omit<
 const PRESSABLE = '.btn, .cart-link, .icon-btn, .mobile-nav a, .store-tile, .home-stores a';
 // Pages asked for under the finger in the last half minute (the router keeps a prefetched page about that long).
 const prefetched = new Map<string, number>();
+type Router = ReturnType<typeof useRouter>;
+function prefetchPage(router: Router, href: string) {
+  const now = Date.now();
+  if (now - (prefetched.get(href) ?? 0) < 30000) return;
+  prefetched.set(href, now);
+  // "full" asks for the whole page, not only its shell (next's PrefetchKind.FULL; the enum is not exported at runtime).
+  // It brings the page's data, scripts and styles: after it a tab opens in under 100 ms with no network (10.10.2026).
+  try { router.prefetch(href, { kind: "full" } as unknown as Parameters<Router["prefetch"]>[1]); } catch { /* the click still loads the page */ }
+}
+
+/** Fetches these same-site pages ahead while the phone is idle (the bottom bar's tabs), on phone widths only and
+ * never on a data-saving or 2G connection. Joined by the page that is open, so it repeats after each page change. */
+export function useWarmLinks(hrefs: string[]) {
+  const router = useRouter();
+  const key = hrefs.join(" ");
+  useEffect(() => {
+    if (!key || !window.matchMedia("(max-width: 760px)").matches) return;
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    if (connection?.saveData || /2g/.test(connection?.effectiveType ?? "")) return;
+    const warm = () => key.split(" ").forEach(href => prefetchPage(router, href));
+    // Safari has no requestIdleCallback: a plain timer there.
+    const hasIdle = typeof window.requestIdleCallback === "function";
+    let idle = 0;
+    // Give the page that just opened its first seconds: images, the account and the first taps go first.
+    const timer = window.setTimeout(() => { idle = hasIdle ? window.requestIdleCallback(warm, { timeout: 4000 }) : window.setTimeout(warm, 500); }, 2000);
+    return () => { window.clearTimeout(timer); if (hasIdle) window.cancelIdleCallback(idle); else window.clearTimeout(idle); };
+  }, [key, router]);
+}
 
 // Same-site links change the page in place: the App Router fetches the next page and keeps the header, the bottom
 // bar and the loaded account, so moving around feels like an app instead of a reload on every tap.
@@ -33,12 +61,7 @@ export default function SiteLink({ href, onClick, onPointerDown, ...props }: Sit
   };
   const warm = (event: PointerEvent<HTMLAnchorElement>) => {
     onPointerDown?.(event);
-    if (event.button !== 0 || target() !== "page") return;
-    const now = Date.now();
-    if (now - (prefetched.get(href) ?? 0) < 30000) return;
-    prefetched.set(href, now);
-    // "full" asks for the whole page, not only its shell (next's PrefetchKind.FULL; the enum is not exported at runtime).
-    try { router.prefetch(href, { kind: "full" } as unknown as Parameters<typeof router.prefetch>[1]); } catch { /* the click still loads the page */ }
+    if (event.button === 0 && target() === "page") prefetchPage(router, href);
   };
   const open = (event: MouseEvent<HTMLAnchorElement>) => {
     onClick?.(event);

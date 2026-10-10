@@ -46,7 +46,7 @@ export function DeliverySky({className, viewBox, routes, sparks}: {className: st
     const root = ref.current, svg = root?.querySelector('svg');
     if (!root || !svg || typeof root.animate !== 'function' || typeof ResizeObserver !== 'function') return;
     const reduce = matchMedia('(prefers-reduced-motion: reduce)');
-    let anims: Animation[] = [], comets: HTMLElement[] = [], live = true, key = '', timer = 0;
+    let anims: Animation[] = [], comets: HTMLElement[] = [], live = true, key = '', timer = 0, frame = 0;
     const build = () => {
       timer = 0;
       const box = root.getBoundingClientRect(), m = svg.getScreenCTM();
@@ -54,6 +54,7 @@ export function DeliverySky({className, viewBox, routes, sparks}: {className: st
       if (next === key) return;
       key = next;
       if (next === 'off' || !m) {
+        cancelAnimationFrame(frame); frame = 0;
         for (const a of anims) a.cancel();
         for (const c of comets) c.remove();
         anims = []; comets = [];
@@ -61,8 +62,16 @@ export function DeliverySky({className, viewBox, routes, sparks}: {className: st
       }
       // The CTM is in window pixels; the comets are placed in the sky's own box
       const map = (x: number, y: number): [number, number] => [m.a * x + m.c * y + m.e - box.left, m.b * x + m.d * y + m.f - box.top];
-      svg.querySelectorAll<SVGPathElement>('.sky-route-dots').forEach((path, index) => {
-        const frames = cometKeyframes(path, map, 48), effect = anims[index]?.effect;
+      // All flights are measured first and the comets added after, on the next frame: a comet added between two
+      // measurements (of this sky or of the next one on the page) made the browser restyle the whole page before each
+      // next one, four or five times per sky when the home page opened (10.10.2026).
+      const flights = [...svg.querySelectorAll<SVGPathElement>('.sky-route-dots')].map(path => cometKeyframes(path, map, 48));
+      cancelAnimationFrame(frame);
+      if (anims.length) place(flights); else frame = requestAnimationFrame(() => { frame = 0; place(flights); });
+    };
+    const place = (flights: Keyframe[][]) => {
+      flights.forEach((frames, index) => {
+        const effect = anims[index]?.effect;
         // A new size only reshapes the flight: no new elements, so no style recalculation of the page
         if (effect instanceof KeyframeEffect) { effect.setKeyframes(frames); return; }
         const [run, delay] = cometTiming[index % cometTiming.length];
@@ -83,7 +92,7 @@ export function DeliverySky({className, viewBox, routes, sparks}: {className: st
     }, {rootMargin: '-2px 0px'}) : null;
     io?.observe(root);
     reduce.addEventListener('change', build);
-    return () => { clearTimeout(timer); ro.disconnect(); io?.disconnect(); reduce.removeEventListener('change', build); for (const a of anims) a.cancel(); for (const c of comets) c.remove(); };
+    return () => { clearTimeout(timer); cancelAnimationFrame(frame); ro.disconnect(); io?.disconnect(); reduce.removeEventListener('change', build); for (const a of anims) a.cancel(); for (const c of comets) c.remove(); };
   }, [routes, viewBox]);
   return <div ref={ref} className={'delivery-sky ' + className} aria-hidden="true">
     <svg viewBox={viewBox} preserveAspectRatio="xMidYMid slice">

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type RefObject } from 'react';
 import { ArrowRight, ChevronDown, ClipboardPaste, Link2, Search, X } from 'lucide-react';
 import { useMarket } from '@/lib/market/store';
+import { useRowAtStart } from '@/lib/market/row-start';
 import { storesCopy } from '@/lib/market/stores-copy';
 import { catalogItems, storeHost, type CatalogItem } from '@/lib/market/catalog-query';
 import { brandAliases, normalizeSearch, wordMatches } from '@/lib/market/catalog-synonyms';
@@ -105,6 +106,7 @@ export function StoresDirectory() {
   // Storefronts: the brands with the most products first, then by name.
   const showcase = useMemo(() => storeBrands.filter((brand) => (catalogByBrand.get(brand.key)?.count ?? 0) > 0)
     .sort((a, b) => (catalogByBrand.get(b.key)?.count ?? 0) - (catalogByBrand.get(a.key)?.count ?? 0) || a.name.localeCompare(b.name)), [catalogByBrand]);
+  const showcaseRow = useRowAtStart<HTMLUListElement>(showcase.map((brand) => brand.key).join(' '));
   // Stores from the cart and earlier orders, the latest first: the quickest way back to a store.
   const mine = useMemo(() => {
     const products = [...state.cart.map((item) => item.product), ...[...state.orders].sort((a, b) => b.createdAt - a.createdAt).map((order) => order.product)];
@@ -176,7 +178,7 @@ export function StoresDirectory() {
 
     {showcase.length >= showcaseMin && <section className={'stores-showcase' + (showcaseOpen ? ' open' : '') + (showcase.length <= 8 ? ' le8' : '')} aria-labelledby="stores-showcase-title">
       <h2 id="stores-showcase-title">{c.showcase}</h2>
-      <ul className="stores-showcase-list" id="stores-showcase-list">{showcase.map((brand) => {
+      <ul {...showcaseRow} className="stores-showcase-list" id="stores-showcase-list">{showcase.map((brand) => {
         const entry = catalogByBrand.get(brand.key);
         if (!entry) return null;
         const main = brand.storefronts[0], t = terms[main.country], photos = entry.items.slice(0, 3);

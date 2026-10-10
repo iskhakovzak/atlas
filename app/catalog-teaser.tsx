@@ -43,10 +43,13 @@ export function CatalogTeaser({ select }: { select: (product: Product) => void }
   useEffect(() => {
     const el = grid.current;
     if (!el) return;
-    measure();
     el.addEventListener('scroll', measure, { passive: true });
-    window.addEventListener('resize', measure);
-    return () => { el.removeEventListener('scroll', measure); window.removeEventListener('resize', measure); };
+    // Measured when the browser has laid the row out (and on every resize), not right after mounting: reading the
+    // widths then forced a layout of the whole home page in the middle of opening it (10.10.2026).
+    if (typeof ResizeObserver !== 'function') { measure(); return () => el.removeEventListener('scroll', measure); }
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => { el.removeEventListener('scroll', measure); ro.disconnect(); };
   }, [measure, shown.length]);
   const page = useCallback((direction: 1 | -1) => {
     const el = grid.current;
