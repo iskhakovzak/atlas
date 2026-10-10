@@ -175,6 +175,8 @@ html[data-theme="dark"] :is(.notices-page .notice-filters button.active, .orders
   color: var(--night-on-ivory);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
+/* The price under a chosen colour sits on the ivory button: it takes the button's dark ink, not the muted night grey. */
+html[data-theme="dark"] .lo-page .variant-options button[aria-pressed="true"] small { color: inherit; }
 html[data-theme="dark"] .header-account { border-color: rgba(235, 228, 210, 0.5); color: var(--night-ink); }
 html[data-theme="dark"] .header-account:hover { background: rgba(235, 228, 210, 0.08); border-color: var(--night-ivory); }
 html[data-theme="dark"] :is(.site-header .icon-btn, .site-header .wallet-link) { color: var(--night-ink-2); }

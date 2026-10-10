@@ -636,6 +636,10 @@ html[data-theme="dark"] .orders-passport { border-color: var(--night-warn-line);
 .lo-page .variant-options button:hover { border-color: var(--home-accent); }
 .lo-page .variant-options button[aria-pressed="true"] { border-color: var(--home-accent); background: var(--home-accent); color: var(--home-accent-ink); }
 .lo-page .variant-options button small { font-size: 12px; font-weight: 500; opacity: .8; }
+/* The retry button keeps its words whole: on a phone it drops under the text instead of breaking mid-word. */
+.lo-page .notice { flex-wrap: wrap; }
+.lo-page .notice > p { flex: 1 1 220px; }
+.lo-page .notice > .btn { flex: 0 0 auto; overflow-wrap: normal; }
 .lo-page .variant-options button:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 2px; }
 .lo-page .single-variant-selection { border-color: var(--home-line); background: var(--home-soft); }
 .lo-page .variant-matrix details > summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; }
