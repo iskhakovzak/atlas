@@ -14,7 +14,6 @@ import { regionForCountryLabel } from '@/lib/market/store-geo';
 import { deliveryDaysFor } from '@/lib/market/site-content';
 import { deliverySpeedCopy } from '@/lib/market/delivery-speed';
 import { atlasServiceBreakdown } from '@/lib/market/quote-presentation';
-import { homeCopy } from '@/lib/market/home-copy';
 import { formatKg, formatSum } from '@/lib/market/format';
 import type { Locale } from '@/lib/market/i18n';
 import { brandForHost } from '@/lib/market/store-brands';
@@ -27,16 +26,16 @@ import {isUzbek} from '@/lib/market/i18n';
 
 const breakdownCopy = /*@__PURE__*/withCyrillic({
   ru: { item: 'Товар', store: 'Доставка магазина до склада', storeReserve: 'Резерв доставки магазина (отдельно, не в итоге)', storeFree: 'бесплатно', international: 'Доставка в Узбекистан', kg: 'кг', service: 'Комиссия Atlas', fee: 'Общий сбор Atlas', reserve: 'Возвратный резерв',
-    storeReserveNote: (amount: string, freeFrom: string) => `Магазин не указал цену доставки до склада: резерв ${amount} удерживается отдельно и в итог не входит — один на заказ из этого магазина. Больше чем на ${freeFrom} из магазина — доставка бесплатна.`,
-    storeFreeNote: (freeFrom: string) => `Магазин не указал цену доставки до склада, но при заказе больше чем на ${freeFrom} она бесплатна. Если магазин всё же возьмёт плату, доплата — только с вашего согласия.`, reserveNote: 'Возвратный резерв — запас на случай, если посылка окажется тяжелее. Неиспользованная часть вернётся на баланс Atlas, а доплата сверх резерва — только с вашего согласия.',
+    storeReserveNote: (amount: string, freeFrom: string) => `Магазин не указал цену доставки до склада: резерв ${amount} удерживается отдельно и в итог не входит — один на заказ из этого магазина. При заказе из магазина больше чем на ${freeFrom} резерв не нужен.`,
+    storeFreeNote: (freeFrom: string) => `Магазин не указал цену доставки до склада, но при заказе больше чем на ${freeFrom} считаем её бесплатной. Если магазин всё же возьмёт плату, доплата — только с вашего согласия.`, reserveNote: 'Возвратный резерв — запас на случай, если посылка окажется тяжелее. Неиспользованная часть вернётся на баланс Atlas, а доплата сверх резерва — только с вашего согласия.',
     staleNote: 'Оценка по последней записанной цене магазина: Atlas сверит цену при добавлении в корзину.' },
   uz: { item: 'Tovar', store: 'Do‘kondan omborgacha yetkazish', storeReserve: 'Do‘kon yetkazishi zaxirasi (alohida, jamiga kirmaydi)', storeFree: 'bepul', international: 'O‘zbekistonga yetkazish', kg: 'kg', service: 'Atlas komissiyasi', fee: 'Atlas umumiy yig‘imi', reserve: 'Qaytariladigan zaxira',
-    storeReserveNote: (amount: string, freeFrom: string) => `Do‘kon omborgacha yetkazish narxini ko‘rsatmagan: ${amount} zaxira alohida ushlab turiladi va jamiga kirmaydi — shu do‘kondan bitta buyurtmaga bir marta. Do‘kondan ${freeFrom} dan ortiq — yetkazish bepul.`,
-    storeFreeNote: (freeFrom: string) => `Do‘kon omborgacha yetkazish narxini ko‘rsatmagan, lekin ${freeFrom} dan ortiq buyurtmada u bepul. Do‘kon baribir haq olsa, qo‘shimcha to‘lov — faqat roziligingiz bilan.`, reserveNote: 'Qaytariladigan zaxira — jo‘natma og‘irroq chiqsa, ehtiyot uchun. Ishlatilmagan qismi Atlas balansiga qaytadi, zaxiradan ortiq to‘lov — faqat roziligingiz bilan.',
+    storeReserveNote: (amount: string, freeFrom: string) => `Do‘kon omborgacha yetkazish narxini ko‘rsatmagan: ${amount} zaxira alohida ushlab turiladi va jamiga kirmaydi — shu do‘kondan bitta buyurtmaga bir marta. Do‘kondan ${freeFrom} dan ortiq buyurtmada zaxira kerak emas.`,
+    storeFreeNote: (freeFrom: string) => `Do‘kon omborgacha yetkazish narxini ko‘rsatmagan, lekin ${freeFrom} dan ortiq buyurtmada uni bepul deb hisoblaymiz. Do‘kon baribir haq olsa, qo‘shimcha to‘lov — faqat roziligingiz bilan.`, reserveNote: 'Qaytariladigan zaxira — jo‘natma og‘irroq chiqsa, ehtiyot uchun. Ishlatilmagan qismi Atlas balansiga qaytadi, zaxiradan ortiq to‘lov — faqat roziligingiz bilan.',
     staleNote: 'Do‘konning oxirgi yozilgan narxi bo‘yicha baho: Atlas narxni savatga qo‘shishda tekshiradi.' },
   en: { item: 'Item', store: 'Store delivery to warehouse', storeReserve: 'Store-delivery reserve (separate, not in the total)', storeFree: 'free', international: 'Delivery to Uzbekistan', kg: 'kg', service: 'Atlas fee', fee: 'General Atlas fee', reserve: 'Refundable reserve',
-    storeReserveNote: (amount: string, freeFrom: string) => `The store did not state delivery to our warehouse: a ${amount} reserve is held separately and is not in the total — once per order from this store. Over ${freeFrom} from the store, delivery is free.`,
-    storeFreeNote: (freeFrom: string) => `The store did not state delivery to our warehouse, but orders over ${freeFrom} ship free. If the store still charges, any extra payment needs your consent.`, reserveNote: 'The refundable reserve covers a heavier-than-estimated parcel. Any unused part returns to your Atlas balance; anything above it needs your consent.',
+    storeReserveNote: (amount: string, freeFrom: string) => `The store did not state delivery to our warehouse: a ${amount} reserve is held separately and is not in the total — once per order from this store. Over ${freeFrom} from the store, no reserve is needed.`,
+    storeFreeNote: (freeFrom: string) => `The store did not state delivery to our warehouse, but on orders over ${freeFrom} we count it as free. If the store still charges, any extra payment needs your consent.`, reserveNote: 'The refundable reserve covers a heavier-than-estimated parcel. Any unused part returns to your Atlas balance; anything above it needs your consent.',
     staleNote: 'An estimate at the last recorded store price: Atlas checks the price when you add the item to the cart.' },
 });
 type Breakdown = (typeof breakdownCopy)['ru'];
@@ -70,7 +69,7 @@ export type CatalogCardProps = {
 export function CatalogCard({ item, locale, select, saved, canSave, saving, onSave, signals = [], inCart = false, speed = 'express', variant = 'full' }: CatalogCardProps) {
   const { product, referenceUsd, discount } = item;
   const { pricing } = useMarket();
-  const copy = dealCopy(locale), cc = catalogCopy[locale], hc = homeCopy[locale];
+  const copy = dealCopy(locale), cc = catalogCopy[locale];
   const { fmt, numberLocale } = catalogFormatter(locale);
   const name = product.name;
   const needsPrice = product.priceNeedsConfirmation === true;
@@ -132,7 +131,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
       <div className="find-purchase">
         {inCart
           ? <a className="btn secondary" href="/cart"><ShoppingBag size={17} aria-hidden="true" />{cc.inCart}</a>
-          : <a className="btn primary" href={orderUrl}>{hc.catalog.order}<ArrowRight size={17} aria-hidden="true" /></a>}
+          : <a className="btn primary" href={orderUrl}>{cc.order}<ArrowRight size={17} aria-hidden="true" /></a>}
       </div>
     </div>
   </article>;

@@ -1,5 +1,31 @@
 import {isEbayStoreHost} from './stores.ts';
 
+/**
+ * Query keys that only say where a click came from (ads, mail, social, store search). They never pick a product,
+ * colour, size or seller, so dropping them keeps the same page. Product keys (variant, th, psc, v1, dwvar_*, skuId,
+ * sku, color, size, pid, …) and affiliate keys (campid, mkcid, tag, …) are not in the list and stay.
+ */
+export const trackingParam = /^(utm_.+|gclid|gbraid|wbraid|fbclid|msclkid|dclid|igshid|ttclid|twclid|_gl|mc_cid|mc_eid|ref|ref_|_pos|_sid|_ss|_psq|_kx|srsltid|cmpid|icid|ranMID|ranEAID|ranSiteID|pd_rd_.+|pf_rd_.+)$/i;
+/** Amazon's search-context keys: which query and result position led to the page, never which product. */
+const amazonSearchParam = /^(qid|sr|crid|sprefix|keywords|dib|dib_tag|content-id|social_share|starsLeft|smid_ref)$/i;
+
+/**
+ * One spelling per store page: HTTPS as given, lowercase host, no fragment, no tracking keys, the remaining keys
+ * sorted. Used as the import cache key and as the URL the importer fetches; throws on anything that is not a URL.
+ */
+export function canonicalProductUrl(value: string) {
+  const url = new URL(value.trim());
+  url.hostname = url.hostname.toLowerCase().replace(/\.$/, '');
+  url.hash = '';
+  const amazon = /(^|\.)amazon\./.test(url.hostname);
+  // Raw pairs, not URLSearchParams: re-serialising would re-encode values (eBay's hash=item1dd4:g:abc) and change the URL.
+  const name = (pair: string) => { const raw = pair.split('=')[0].replace(/\+/g, ' '); try { return decodeURIComponent(raw); } catch { return raw; } };
+  const pairs = url.search.slice(1).split('&').filter(pair => pair && !(trackingParam.test(name(pair)) || amazon && amazonSearchParam.test(name(pair))));
+  url.search = pairs.map((pair, index) => ({pair, index, key: name(pair)}))
+    .sort((a, b) => a.key < b.key ? -1 : a.key > b.key ? 1 : a.index - b.index).map(item => item.pair).join('&');
+  return url.href;
+}
+
 /** Fixed merchant URL forms; tracking values and category names are never IDs. */
 export function sourceProductIds(value: string): Set<string> {
   const url = new URL(value), host = url.hostname.replace(/^www2?\./, '').toLowerCase();

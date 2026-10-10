@@ -1,3 +1,5 @@
+import { canonicalProductUrl } from '../importer/source-identity.ts';
+
 export const catalogImportBatchSize = 10;
 
 export function chunkCatalogIds(ids: string[], size = catalogImportBatchSize) {
@@ -8,7 +10,6 @@ export function chunkCatalogIds(ids: string[], size = catalogImportBatchSize) {
 // Operators paste links from chats, spreadsheets and store pages: several per
 // line, wrapped in text, with trailing punctuation or tracking parameters.
 const urlPattern = /\bhttps?:\/\/[^\s<>"'()\[\]{}]+/gi;
-const trackingParam = /^(utm_.+|gclid|fbclid|mc_cid|mc_eid|ref|ref_|_pos|_sid|_ss|_psq|_kx|srsltid|cmpid|icid|ranMID|ranEAID|ranSiteID)$/i;
 
 /** Normalize one pasted link: HTTPS, no hash, no tracking parameters. Returns undefined for anything that is not a web URL. */
 export function normalizeCatalogImportLink(value: string) {
@@ -18,9 +19,8 @@ export function normalizeCatalogImportLink(value: string) {
   try { url = new URL(trimmed); } catch { return undefined; }
   if (!url.hostname.includes('.') || url.username || url.password) return undefined;
   url.protocol = 'https:';
-  url.hash = '';
-  for (const key of [...url.searchParams.keys()]) if (trackingParam.test(key)) url.searchParams.delete(key);
-  return url.href.replace(/\?$/, '');
+  // The same spelling the importer fetches and caches (lib/importer/source-identity.ts).
+  return canonicalProductUrl(url.href);
 }
 
 export type CatalogImportQueue = {

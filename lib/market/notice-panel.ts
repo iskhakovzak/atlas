@@ -22,16 +22,34 @@ export function noticeTarget(notice: Pick<Notification, 'orderId' | 'code'>): { 
   return null;
 }
 
-/** The notifications panel: orders that need an answer (newest first, with their latest message), then recent updates. */
+/** Notifications that speak of each reason: a "доплата" item never shows a message about something else. */
+const reasonCodes: Record<OrderAttention, readonly string[]> = {
+  extra: ['parcel-extra', 'store-shipping-over', 'store-shipping-extra-legacy', 'customs-duty-over', 'extra-charge-requested'],
+  change: ['change-requested'],
+  // No notification asks for the payment: the checkout itself does.
+  payment: [],
+};
+const urgency: OrderAttention[] = ['extra', 'change', 'payment'];
+
+/**
+ * The notifications panel: purchases that need an answer, one item per checkout (the same count as the
+ * "Нужно действие" tab of "My orders"), newest first, each with its latest message about that very reason;
+ * then recent updates.
+ */
 export function noticePanel(state: Pick<State, 'orders' | 'notifications'>, recent = 8) {
   const sorted = [...state.notifications].sort((a, b) => b.at - a.at);
-  const action = state.orders
-    .map(order => ({ order, reason: orderAttention(order), notice: sorted.find(item => item.orderId === order.id) }))
-    .filter((entry): entry is { order: Order; reason: OrderAttention; notice: Notification | undefined } => entry.reason !== null)
-    // One payment covers the whole checkout: its lines waiting only for it show as one item.
-    .filter((entry, index, all) => entry.reason !== 'payment' || !entry.order.batchId
-      || all.findIndex(other => other.reason === 'payment' && other.order.batchId === entry.order.batchId) === index)
-    .sort((a, b) => (b.notice?.at ?? 0) - (a.notice?.at ?? 0));
+  const byCheckout = new Map<string, { order: Order; reason: OrderAttention; notice: Notification | undefined; at: number }>();
+  for (const order of state.orders) {
+    const reason = orderAttention(order);
+    if (!reason) continue;
+    const notice = sorted.find(item => item.orderId === order.id && item.code !== undefined && reasonCodes[reason].includes(item.code));
+    const key = order.batchId ?? order.id;
+    const entry = { order, reason, notice, at: notice?.at ?? order.createdAt };
+    const current = byCheckout.get(key);
+    // The most urgent reason of the checkout wins; within one reason, the newest message.
+    if (!current || urgency.indexOf(reason) < urgency.indexOf(current.reason) || (reason === current.reason && entry.at > current.at)) byCheckout.set(key, entry);
+  }
+  const action = [...byCheckout.values()].sort((a, b) => b.at - a.at).map(({ order, reason, notice }) => ({ order, reason, notice }));
   const shown = new Set(action.map(entry => entry.notice?.id).filter(Boolean));
   return {
     unread: state.notifications.filter(item => !item.read).length,

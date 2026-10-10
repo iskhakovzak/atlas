@@ -95,6 +95,8 @@ export type PrepareDeps = {
   operator: boolean;
   now: number;
   recentCheckMs: number;
+  /** When a cart-add answer was fetched, if it is a stored one (withRecentImport); a live answer is checked at `now`. */
+  snapshotAt?: (value: Extracted) => number | undefined;
   /** The catalog's delivery record for this product link, if any; never taken from the request. */
   editorialShipping?: (product: Pick<Product, 'sourceUrl'>) => EditorialShipping | undefined | Promise<EditorialShipping | undefined>;
 };
@@ -144,7 +146,7 @@ export async function prepareAction(state: State, action: Action, deps: PrepareD
         }
         else {
           verifiedSource ??= value;
-          const check = compareProductSnapshot(item.product, item.variant, value, now, { editorialShipping: Boolean(editorial) });
+          const check = compareProductSnapshot(item.product, item.variant, value, deps.snapshotAt?.(value) ?? now, { editorialShipping: Boolean(editorial) });
           if (check.status === 'blocked') throw new ActionError(400, check.code);
           // The page showed an older price or another store delivery than the store states (or claims one it does not
           // state): the customer reloads it and sees the new total before adding.

@@ -11,11 +11,13 @@ import {faqPage} from "@/lib/seo/structured-data";
 import {useHomeCopy} from "./home-sections";
 import {MissingContent} from "./site-footer";
 import {withCyrillic} from '@/lib/market/uz-cyrl';
+import {formatUsd} from "@/lib/market/format";
+import {courierAllowanceUsd} from "@/lib/market/customs";
 
 // Public support page (/support): real contacts only when siteContent has them, the account route always.
 const copy=/*@__PURE__*/withCyrillic({
  ru:{
-  overline:"ПОМОЩЬ",title:"Поддержка Atlas.",description:"Ответы приходят в личный кабинет и в уведомления. Здесь — как связаться и где искать ответы на частые вопросы.",
+  overline:"ПОМОЩЬ",title:"Поддержка Atlas.",description:"Как связаться с Atlas и где найти ответы на частые вопросы.",
   contacts:"Как связаться",account:"Написать из кабинета",accountText:"Обращение сохраняется в вашем аккаунте: вы увидите ответ в кабинете и в уведомлениях.",accountGuest:"Чтобы написать в поддержку, войдите в аккаунт — обращение привяжется к вашим заказам, а ответ придёт в кабинет и в уведомления.",signin:"Войти и написать",open:"Открыть кабинет",email:"Почта",
   noContacts:"Почта и Telegram поддержки появятся на этой странице, как только Atlas их опубликует. До этого вопрос можно задать только из кабинета после входа.",
   faq:"Частые вопросы",faqMore:"Все вопросы на главной",
@@ -26,7 +28,7 @@ const copy=/*@__PURE__*/withCyrillic({
   apps:"Приложения",appsText:"Приложение Atlas для iOS и Android — тот же аккаунт и те же заказы, что на сайте.",appsLink:"О приложении",
  },
  uz:{
-  overline:"YORDAM",title:"Atlas yordam xizmati.",description:"Javoblar shaxsiy kabinetga va bildirishnomalarga keladi. Bu yerda qanday bog‘lanish va tez-tez so‘raladigan savollarga javobni qayerdan izlash mumkinligi yozilgan.",
+  overline:"YORDAM",title:"Atlas yordam xizmati.",description:"Atlas bilan qanday bog‘lanish va tez-tez so‘raladigan savollarga javoblarni qayerdan topish mumkin.",
   contacts:"Qanday bog‘lanish",account:"Kabinetdan yozish",accountText:"Murojaat akkauntingizda saqlanadi: javobni kabinetda va bildirishnomalarda ko‘rasiz.",accountGuest:"Yordamga yozish uchun akkauntga kiring — murojaat buyurtmalaringizga bog‘lanadi, javob esa kabinetga va bildirishnomalarga keladi.",signin:"Kirish va yozish",open:"Kabinetni ochish",email:"Pochta",
   noContacts:"Yordam pochtasi va Telegram Atlas ularni e’lon qilishi bilan shu sahifada paydo bo‘ladi. Ungacha savolni faqat kirgandan keyin kabinetdan berish mumkin.",
   faq:"Tez-tez so‘raladigan savollar",faqMore:"Barcha savollar bosh sahifada",
@@ -37,7 +39,7 @@ const copy=/*@__PURE__*/withCyrillic({
   apps:"Ilovalar",appsText:"iOS va Android uchun Atlas ilovasi — saytdagi bilan bir xil akkaunt va buyurtmalar.",appsLink:"Ilova haqida",
  },
  en:{
-  overline:"HELP",title:"Atlas support.",description:"Replies arrive in your account and in notifications. Here is how to reach us and where to find answers to common questions.",
+  overline:"HELP",title:"Atlas support.",description:"How to reach Atlas and where to find answers to common questions.",
   contacts:"How to reach us",account:"Write from your account",accountText:"The request is saved in your account: you will see the reply in the account and in notifications.",accountGuest:"Sign in to write to support — the request will be linked to your orders and the reply will arrive in your account and in notifications.",signin:"Sign in and write",open:"Open account",email:"Email",
   noContacts:"The support e-mail and Telegram will appear on this page as soon as Atlas publishes them. Until then a question can only be sent from the account after signing in.",
   faq:"Frequently asked questions",faqMore:"All questions on the home page",
@@ -50,7 +52,7 @@ const copy=/*@__PURE__*/withCyrillic({
 });
 
 export function SupportView(){
- const {status,siteContent}=useMarket();
+ const {status,siteContent,pricing}=useMarket();
  const {locale,c}=useHomeCopy();
  const t=copy[locale];
  const {contacts}=siteContent;
@@ -63,7 +65,7 @@ export function SupportView(){
  ].filter((item):item is {href:string;label:string;value:string}=>Boolean(item));
  const signedIn=status==="authenticated";
  // The home FAQ entries are reused as they are; the delivery-time question needs pricing and stays on the home page.
- const faq=[c.faq.items.customs,c.faq.items.returns,c.faq.items.weight,c.faq.items.account];
+ const faq=[c.faq.items.customs(formatUsd(pricing.customsAllowanceUsd??courierAllowanceUsd,locale)),c.faq.items.returns,c.faq.items.weight,c.faq.items.account];
  const sections:{icon:typeof Package;title:string;text:string;links:{href:string;label:string}[]}[]=[
   {icon:Package,title:t.orders,text:t.ordersText,links:[{href:"/orders",label:t.ordersLink}]},
   {icon:ShieldCheck,title:t.customs,text:t.customsText,links:[{href:"/customs",label:t.customsLink}]},

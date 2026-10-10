@@ -138,7 +138,9 @@ export async function fetchWithEngines({target, method, headers, body, mode, eng
     const remaining = deadline - clock();
     if (signal?.aborted || attempts.length && remaining < 1500) break;
     // A merchant that stalls one engine (Best Buy holds Node's connection open) must not starve the next.
-    const budget = index < plan.length - 1 ? Math.min(remaining, Math.round(deadlineMs * 0.6)) : remaining;
+    // A short deadline that leaves the next engine under 1.5 s anyway, or Chrome (it needs the time), gets all of it.
+    const split = index < plan.length - 1 && engine !== 'browser' && deadlineMs - Math.round(deadlineMs * 0.6) >= 1500;
+    const budget = split ? Math.min(remaining, Math.round(deadlineMs * 0.6)) : remaining;
     const timeout = AbortSignal.timeout(Math.max(budget, 1000));
     try {
       const upstream = await engines[engine](target, {method, headers, body, redirect: 'manual', deadline: clock() + Math.max(budget, 1000), signal: signal ? AbortSignal.any([signal, timeout]) : timeout});

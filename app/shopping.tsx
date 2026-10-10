@@ -1,5 +1,6 @@
 "use client";
 import { capitalizeFirst, capitalizeWords } from "@/lib/market/text-case";
+import { shownBrand } from "@/lib/importer/brand-name";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -108,7 +109,9 @@ function PriceHold({ expiresAt, locale, c }: { expiresAt: number; locale: Locale
   }, []);
   // After the hold the total is not lost: "Check out" checks the stores and reprices first.
   const expired = now > 0 && now >= expiresAt;
-  return <p className="basket-expiry"><Clock3 size={15} aria-hidden="true" />{expired ? c.summary.recheckNote : now ? c.summary.validFor(minutesLeft(expiresAt - now, locale)) : c.summary.checking}</p>;
+  // A countdown only in the last 5 minutes: a long one reads as pressure, not information.
+  if (!expired && (!now || expiresAt - now > 5 * 60_000)) return null;
+  return <p className="basket-expiry"><Clock3 size={15} aria-hidden="true" />{expired ? c.summary.recheckNote : c.summary.validFor(minutesLeft(expiresAt - now, locale))}</p>;
 }
 
 function usd(amount: number, locale: Locale) {
@@ -225,7 +228,7 @@ export function CartView() {
   // "Atlas pays customs for me" prepays the estimated duty: for the cart's recipient here, for the chosen one at checkout.
   const cartDuty = customsChoices.help ? customsDutyAmount(customs, pricing) : 0;
   const reviewCustoms = cartCustomsEstimate(state, pricing, { profile: state.deliveryProfiles.find(profile => profile.id === selectedProfile), name: delivery.recipient }, customsChoices);
-  const reviewDuty = customsChoices.help ? customsDutyAmount(reviewCustoms, pricing) : 0;
+  const reviewDutyDue = customsDutyAmount(reviewCustoms, pricing), reviewDuty = customsChoices.help ? reviewDutyDue : 0;
   // No duty for the recipient: the customs fee is not in the bill (owner, 7.10.2026); the server bills the same way.
   const billed = withCustomsHelpFor(lines, customs, pricing.fx), reviewBilled = withCustomsHelpFor(lines, reviewCustoms, pricing.fx);
   const total = totalOf(billed), reviewTotal = totalOf(reviewBilled);
@@ -295,9 +298,12 @@ export function CartView() {
     const ok = await act({ type: "cart-check" });
     setVerifying(false);
     if (!ok) return;
-    const saved = state.deliveryProfiles.find(profile => profile.primary) ?? state.deliveryProfiles[0];
+    // The recipient the cart's customs estimate was made for (the primary one unless picked there), so the duty does not jump.
+    const saved = customsProfile;
     setSelectedProfile(saved?.id ?? "manual");
-    setDelivery(saved ?? state.deliveryProfile ?? { ...emptyDelivery, recipient: user?.name ?? "", phone: state.communication.phone });
+    // An email or phone sign-in has no real name: the field stays empty instead of showing the address or number.
+    const name = user?.name?.trim() ?? "", personName = name && !name.includes("@") && !/^[+\d\s()-]+$/.test(name) ? name : "";
+    setDelivery(saved ?? state.deliveryProfile ?? { ...emptyDelivery, recipient: personName, phone: state.communication.phone });
     setConsentError(false);
     setCheckoutOpen(true);
     setReview(false);
@@ -316,7 +322,16 @@ export function CartView() {
   }
 
   async function checkout() {
-    if (busy) return;
+    if (busy || verifying) return;
+    // A price is held 15 minutes and a recipient typed slowly can outlast it: the server would refuse the order. The stores
+    // are checked again first; the customer sees the renewed total on this step and confirms it.
+    if (new Date().getTime() >= earliestExpiry) {
+      setVerifying(true);
+      const renewed = await act({ type: "cart-check" });
+      setVerifying(false);
+      if (renewed) toast.message(c.checkout.rechecked);
+      return;
+    }
     setBusy(true);
     const selectedIdentity = selectedProfile === "manual" ? undefined : identityProfiles.find(profile => profile.recipientProfileId === selectedProfile);
     const savedPostal = savedNeedsPostal ? delivery.postalCode : undefined;
@@ -393,7 +408,7 @@ export function CartView() {
       {selectBox([item], s.selectLine([item.product.name, shownVariant(item.variant)].filter(Boolean).join(" · ")))}
       <div className="basket-photo"><ProductImage product={item.product} locale={locale} decorative /></div>
       <div className="basket-info">
-        {item.product.brand && <p className="basket-brand">{item.product.brand}</p>}
+        {shownBrand(item.product.brand) && <p className="basket-brand">{shownBrand(item.product.brand)}</p>}
         <ItemName name={item.product.name} />
         {!ticked(item) && <span className="basket-later-tag">{s.later}</span>}
         <p className="basket-meta">{meta}</p>
@@ -431,7 +446,7 @@ export function CartView() {
         {selectBox(lines, s.selectGroup(lead.product.name))}
         <div className="basket-photo"><ProductImage product={lead.product} locale={locale} decorative /></div>
         <div className="basket-info">
-          {lead.product.brand && <p className="basket-brand">{lead.product.brand}</p>}
+          {shownBrand(lead.product.brand) && <p className="basket-brand">{shownBrand(lead.product.brand)}</p>}
           <ItemName name={lead.product.name} />
           <p className="basket-meta">{countryLabel(countryName(lead.product), locale)}{lead.product.sourceUrl && <> · <a className="basket-source" href={lead.product.sourceUrl} target="_blank" rel="noopener noreferrer">{c.item.openStore}<ArrowUpRight size={14} aria-hidden="true" /></a></>}</p>
         </div>
@@ -501,8 +516,8 @@ export function CartView() {
           <Checkbox aria-label={serviceTitle(service, locale)} checked={checked} disabled={service.required} onCheckedChange={(value) => toggle(value === true)} />
           <span className="basket-service-copy"><b>{serviceTitle(service, locale)}{checked && <span className="basket-service-unit">{unitLabel}</span>}{service.required && <em>{c.services.required}</em>}{saving && <span className="basket-service-saving" role="status"><Loader2 size={13} className="spin" aria-hidden="true" />{s.saving}</span>}</b><small>{serviceDescription(service, locale)}</small>
             <small className="basket-service-rate">{service.pricingMode === "fixed"
-              ? `${c.services.fixed}: ${formatSum(unitFee, locale)} / ${unitName}${count > 1 ? ` · ${count} × ${formatSum(unitFee, locale)} = ${formatSum(unitFee * count, locale)}` : ""} · ${c.services.notIncluded}`
-              : `${c.services.quote} · ${c.services.notIncluded}`}</small>
+              ? `${c.services.fixed}: ${formatSum(unitFee, locale)} / ${unitName}${count > 1 ? ` · ${count} × ${formatSum(unitFee, locale)} = ${formatSum(unitFee * count, locale)}` : ""}`
+              : c.services.quote}</small>
           </span>
           {counted && checked && <span className="basket-service-units"><label htmlFor={`cart-service-units-${parcelKey}-${service.id}`}>{c.services.quantity} · {unitName}</label><input key={units[service.id] ?? 1} id={`cart-service-units-${parcelKey}-${service.id}`} type="number" inputMode="numeric" min="1" max="100" step="1" defaultValue={units[service.id] ?? 1} onBlur={(event) => { const typed = Number(event.target.value); if (Number.isInteger(typed) && typed >= 1 && typed <= 100 && typed !== (units[service.id] ?? 1)) toggle(true, typed); else event.target.value = String(units[service.id] ?? 1); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); } }} /></span>}
         </div>;
@@ -599,7 +614,8 @@ export function CartView() {
       <form className="checkout-form basket-checkout" onSubmit={(event) => {
         event.preventDefault();
         if (!review) { showReview(true); return; }
-        if (!consent) { setConsentError(true); document.getElementById("checkout-consent")?.focus(); return; }
+        // The checkbox is asked for only when this recipient owes duty; without duty the button accepts the terms (a line says so).
+        if (reviewDutyDue > 0 && !consent) { setConsentError(true); document.getElementById("checkout-consent")?.focus(); return; }
         void checkout();
       }}>
         {!review && <>
@@ -641,39 +657,47 @@ export function CartView() {
           <div className="basket-consent"><Checkbox id="save-recipient" checked={saveRecipient} onCheckedChange={(value) => setSaveRecipient(value === true)} /><label htmlFor="save-recipient">{c.checkout.saveRecipient}</label></div>
           </>}
         </>}
-        {/* The review (owner, 7.10.2026): the order as a numbered table on the left, the checks, the bill and the button on
+        {/* The review (owner, 7.10.2026): the order as a numbered table on the left, the checks, the amount and the button on
             the right, staying in view on a wide screen. A line the stores changed is marked in its row. */}
         {review && <div className="review-layout">
           <section className="checkout-review review-main">
             <CheckoutReviewTable lines={reviewBilled} locale={locale} pricing={pricing} busy={busy || selecting} onLeaveForLater={(id) => void select([id], false)} />
             {laterCount > 0 && <p className="basket-later-note">{s.laterCount(laterCount)}</p>}
           </section>
+          {/* The review (owner's psychology pass, 10.10.2026): the checks, one amount, the button and what happens next. The bill
+              and customs in detail fold under "Full calculation" for whoever wants them; nothing is said twice. */}
           <div className="review-aside">
             <CheckoutChecklist locale={locale} items={[
               { key: "variants", label: s.review.variants, value: s.review.variantsValue(lines.length, count), ok: !lines.some(blockingSourceIssue) },
               { key: "recipient", label: s.review.recipient, value: <>{delivery.recipient}, {delivery.phone}<br />{[delivery.region, delivery.city, delivery.address, delivery.postalCode].filter(Boolean).join(", ")}</>, onChange: () => showReview(false) },
               { key: "speed", label: s.review.speed, value: deliverySpeedCopy[locale].names[speed] },
               { key: "services", label: s.review.services, value: (() => { const services = new Set(lines.flatMap(item => item.requestedServiceIds ?? [])).size, notes = lines.filter(item => item.note?.trim()).length; return services || notes ? s.review.servicesValue(services, notes) : s.review.servicesNone; })() },
-              { key: "customs", label: s.review.customs, value: customsChoices.help ? s.review.customsHelp : s.review.customsSelf },
-              { key: "total", label: s.review.total, value: <>{formatSum(reviewPayable, locale)}{sums.storeShippingHold > 0 && <> · {s.review.held}: {formatSum(sums.storeShippingHold, locale)}</>}</> },
+              // Who pays the duty matters only when this recipient owes some.
+              { key: "customs", label: s.review.customs, value: reviewDutyDue <= 0 ? s.review.customsNone : customsChoices.help ? s.review.customsHelp : s.review.customsSelf },
             ]} />
             <div className="payment-preview"><div><span>{c.checkout.estimated}</span><b>{itemCount(count, locale)}</b></div><strong>{formatSum(reviewPayable, locale)}</strong></div>
-            <div className={"basket-consent" + (consentError ? " invalid" : "")}>
-              <Checkbox id="checkout-consent" checked={consent} aria-invalid={consentError} aria-describedby={consentError ? "checkout-consent-error" : undefined} onCheckedChange={(value) => { setConsent(value === true); if (value === true) setConsentError(false); }} />
-              <label htmlFor="checkout-consent">{c.checkout.consent.before}<Link href="/customs" target="_blank">{c.checkout.consent.link}</Link>{c.checkout.consent.after}</label>
-            </div>
-            {consentError && <p id="checkout-consent-error" className="basket-consent-error" role="alert">{c.checkout.consentRequired}</p>}
-            <button className="btn primary full" disabled={busy || selecting || !lines.length}>{busy ? c.checkout.saving : c.checkout.confirm}{busy ? <Loader2 size={18} className="spin" aria-hidden="true" /> : <Check size={18} aria-hidden="true" />}</button>
-            {/* The bill in detail stays under the button: the total and the button are what must stay in view. */}
-            {linesFor(reviewDuty, reviewCredit, reviewSums)}
-            <HoldNote amount={sums.storeShippingHold} locale={locale} pricing={pricing} />
-            {/* The estimate for the person chosen in this checkout; the server works it out again and keeps it with the orders. */}
-            <CustomsPanel estimate={reviewCustoms} choices={customsChoices} locale={locale} pricing={pricing} profiles={[]} onChoices={(next) => void saveCustoms(next)} helpAmount={customsHelpAmount} remembered={customsRemembered} busy={customsBusy} />
-            <p className="micro">{c.checkout.preorderNote}</p>
+            {sums.storeShippingHold > 0 && <p className="micro review-held">{s.review.held(formatSum(sums.storeShippingHold, locale))}</p>}
+            {reviewDutyDue > 0 ? <>
+              <div className={"basket-consent" + (consentError ? " invalid" : "")}>
+                {/* The link inside the label drops out of the checkbox's accessible name, so the whole sentence is its name. */}
+                <Checkbox id="checkout-consent" aria-label={c.checkout.consent.before + c.checkout.consent.link + c.checkout.consent.after} checked={consent} aria-invalid={consentError} aria-describedby={consentError ? "checkout-consent-error" : undefined} onCheckedChange={(value) => { setConsent(value === true); if (value === true) setConsentError(false); }} />
+                <label htmlFor="checkout-consent">{c.checkout.consent.before}<Link href="/customs" target="_blank">{c.checkout.consent.link}</Link>{c.checkout.consent.after}</label>
+              </div>
+              {consentError && <p id="checkout-consent-error" className="basket-consent-error" role="alert">{c.checkout.consentRequired}</p>}
+            </> : <p className="micro">{c.checkout.consentImplied.before}<Link href="/customs" target="_blank">{c.checkout.consentImplied.link}</Link>{c.checkout.consentImplied.after}</p>}
+            <button className="btn primary full" disabled={busy || verifying || selecting || !lines.length}>{verifying ? c.summary.verifying : busy ? c.checkout.saving : c.checkout.confirm}{busy || verifying ? <Loader2 size={18} className="spin" aria-hidden="true" /> : <Check size={18} aria-hidden="true" />}</button>
+            <p className="micro review-next">{c.checkout.nextStep}</p>
+            <details className="review-details">
+              <summary>{s.review.details}</summary>
+              {linesFor(reviewDuty, reviewCredit, reviewSums)}
+              {/* The estimate for the person chosen in this checkout; the server works it out again and keeps it with the orders. */}
+              <CustomsPanel estimate={reviewCustoms} choices={customsChoices} locale={locale} pricing={pricing} profiles={[]} onChoices={(next) => void saveCustoms(next)} helpAmount={customsHelpAmount} remembered={customsRemembered} busy={customsBusy} />
+            </details>
           </div>
         </div>}
         {!review && <>
-          <div className="payment-preview"><div><span>{c.checkout.estimated}</span><b>{itemCount(count, locale)}</b></div><strong>{formatSum(payable, locale)}</strong></div>
+          {/* Customs depends on the recipient: the amount here is already the one for the person chosen above. */}
+          <div className="payment-preview"><div><span>{c.checkout.estimated}</span><b>{itemCount(count, locale)}</b></div><strong>{formatSum(reviewPayable, locale)}</strong></div>
           <button className="btn primary full" disabled={busy}>{c.checkout.next}<ArrowRight size={18} aria-hidden="true" /></button>
         </>}
       </form>

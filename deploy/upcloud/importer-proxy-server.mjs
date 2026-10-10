@@ -111,10 +111,15 @@ export function createImporterProxyServer({secret,allowedHosts,fetcher=fetch,imp
     const headers=target&&(method==='GET'||method==='POST')?validateHeaders(payload.headers,target,body,method,allowedHosts):undefined;
     if(!target||!headers||body!==undefined&&typeof body!=='string'||body!==undefined&&body.length>16_384)return send(res,400,{error:'invalid_target_or_headers'});
     if(mode!=='auto'&&!(engineNames.includes(mode)&&engines[mode]))return send(res,400,{error:'engine_unavailable'});
+    // The Worker's limit for this attempt (signed with the rest); without it, or out of range, the default 13 s.
+    const deadlineMs=Number.isInteger(payload?.deadlineMs)&&payload.deadlineMs>=1000&&payload.deadlineMs<=30_000?payload.deadlineMs:undefined;
+    // The Worker stopped waiting (its attempt timed out, the customer left): stop the engines too.
+    const gone=new AbortController();
+    res.on('close',()=>{if(!res.writableFinished)gone.abort()});
     active++;
     const started=Date.now();
     try{
-      const result=await fetchWithEngines({target,method,headers,body,mode,engines,planner});
+      const result=await fetchWithEngines({target,method,headers,body,mode,engines,planner,signal:gone.signal,...(deadlineMs?{deadlineMs}:{})});
       log({host:target.hostname,attempts:result.attempts,ms:Date.now()-started});
       const responseHeaders={
         ...(result.contentType?{contentType:result.contentType.slice(0,256)}:{}),

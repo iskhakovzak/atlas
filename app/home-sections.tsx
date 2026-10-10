@@ -243,7 +243,6 @@ export function TrustSection(){
   markup:formatPercent((pricing.fxMarkup??1.012)-1,locale),
   cbu:pricing.fxSource==='cbu'&&Boolean(pricing.fxCbuRate),
   freeFrom:formatUsd(pricing.storeShippingFreeFromUsd??50,locale),
-  allowance:formatUsd(pricing.customsAllowanceUsd??courierAllowanceUsd,locale),
  });
  // Two parts so phones can show each as a sheet of its own: the money facts, then the proof (tracking, photos, legal).
  return <section id="trust" className="home-section" data-chapter="trust" aria-labelledby="trust-title">
@@ -290,7 +289,7 @@ export function HomeFaq(){
  const prohibitedUrl=siteContent.prohibitedListUrl;
  const items:{q:string;a:string;link?:ReactNode}[]=[
   {q:c.faq.timesQuestion,a:known.length?c.faq.timesKnown(known.join('; ')):c.faq.timesUnknown},
-  {...c.faq.items.customs,link:<Link href="/customs">{c.faq.customsLink}</Link>},
+  {...c.faq.items.customs(formatUsd(pricing.customsAllowanceUsd??courierAllowanceUsd,locale)),link:<Link href="/customs">{c.faq.customsLink}</Link>},
   c.faq.items.returns,
   {...c.faq.items.prohibited,link:prohibitedUrl?<a href={prohibitedUrl} target="_blank" rel="noopener noreferrer">{c.faq.prohibitedOfficial}</a>:<Link href="/legal#offer">{c.faq.prohibitedRules}</Link>},
   c.faq.items.weight,

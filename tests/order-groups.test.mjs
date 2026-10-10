@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { addToCart, blank, cancelOrder, cartSignature, checkoutCart, confirmDemoPayment, orderPayable, products } from '../lib/market/domain.ts';
 import { customsVersion } from '../lib/market/world.ts';
-import { groupOrders, groupStageText, groupStoreNames, isParcelServiceRequest, orderGroupCopy, orderModelKey, orderNeedsCustomerDecision, orderStoreHost, parcelServicesFor, storeGroupName, storeShortName } from '../lib/market/order-groups.ts';
+import { groupOrders, groupStageText, groupStoreNames, isParcelServiceRequest, orderCustomerTotal, orderGroupCopy, orderModelKey, orderNeedsCustomerDecision, orderStoreHost, parcelServicesFor, storeGroupName, storeShortName } from '../lib/market/order-groups.ts';
 
 const nike = { ...products[0], id: 'nike-1', sourceUrl: 'https://www.nike.com/t/shoe', country: 'США', shippingKnown: true };
 const nike2 = { ...products[0], id: 'nike-2', name: 'Second Nike', sourceUrl: 'https://nike.com/t/other', country: 'США', shippingKnown: true };
@@ -227,4 +227,57 @@ test('the recipient and speed of a checkout show once on the card when every liv
   // A cancelled line does not count; orders without an address have no shared delivery.
   assert.ok(sharedDelivery([s.orders[0], { ...moved[1], cancelled: true }]));
   assert.equal(sharedDelivery([{ ...s.orders[0], delivery: undefined }]), undefined);
+});
+
+test('the customer total moves with every approved доплата and every return; the books keep orderPayable', () => {
+  let s = addToCart(blank(), nike, nike.variants[0], 1000);
+  s = checkout(s, 'batch-t', 2000);
+  const base = s.orders[0];
+  const paid = orderPayable(base);
+  assert.equal(orderCustomerTotal(base), paid);
+  // Weighing asked for more and the customer approved it.
+  const weighed = { ...base, settlement: { actualWeight: 3, dimensionalWeight: 2, chargeableWeight: 3, shipping: 1, refund: 0, extra: 40000 }, extraApproved: true };
+  assert.equal(orderPayable(weighed), paid);
+  assert.equal(orderCustomerTotal(weighed), paid + 40000);
+  // Not approved yet: not counted.
+  assert.equal(orderCustomerTotal({ ...weighed, extraApproved: false }), paid);
+  // Duty and store delivery the same way; returns come off.
+  const duty = { ...base, customsSettlement: { actual: 1, estimated: 1, extra: 15000, refund: 0 }, customsExtraApproved: true, storeShippingSettlement: { actual: 1, estimated: 1, actualUsd: 1, extra: 5000, refund: 0 }, storeShippingExtraApproved: true };
+  assert.equal(orderCustomerTotal(duty), paid + 20000);
+  const refunded = { ...base, settlement: { actualWeight: 1, dimensionalWeight: 1, chargeableWeight: 1, shipping: 1, refund: 7000, extra: 0 } };
+  assert.equal(orderCustomerTotal(refunded), paid - 7000);
+  // An older order credited part of a cheaper store delivery: what reached the balance comes off.
+  const legacy = { ...base, history: [...base.history, { at: 3000, text: '', code: 'store-shipping-partial-legacy', params: { refund: 9000, credited: 4000 } }] };
+  assert.equal(orderCustomerTotal(legacy), paid - 4000);
+  assert.equal(groupOrders([weighed])[0].payable, paid + 40000);
+});
+
+test('one rule for "the customer must act" on the page, the account and the panel', () => {
+  let s = addToCart(blank(), nike, nike.variants[0], 1000);
+  s = checkoutCart(s, 'batch-w', cartSignature(s.cart), false, 2000, customsVersion);
+  const [order] = s.orders;
+  assert.equal(orderNeedsCustomerDecision(order), true);
+  // A delivered order with a stale pending payment does not ask for anything.
+  assert.equal(orderNeedsCustomerDecision({ ...order, status: 5 }), false);
+  assert.equal(groupOrders([{ ...order, status: 5 }])[0].payment, undefined);
+});
+
+test('payment and доплата copy: one wording, the amount on the button, every locale', () => {
+  for (const locale of ['ru', 'uz', 'en']) {
+    const gc = orderGroupCopy[locale];
+    assert.ok(gc.payButton('1 000 сум').includes('1 000 сум'));
+    assert.ok(gc.extraButton('1 000 сум').includes('1 000 сум'));
+    assert.ok(gc.pay.extraTitle('5').includes('5'));
+    assert.ok(gc.pay.whyWeight('3,2', '2').includes('3,2'));
+    for (const key of ['payTitle', 'provider', 'payConfirm', 'extraConfirm', 'paidToast', 'extraToast', 'whyDuty', 'whyStore', 'paid', 'refunded']) assert.ok(gc.pay[key], `${locale}.${key}`);
+    // One wording for the waiting payment (header, line, status row); the removed duplicates stay removed.
+    assert.equal(gc.pay.waiting, undefined);
+    assert.equal(gc.pay.extraPaid, undefined);
+    assert.ok(gc.payBalance('1 000 сум').includes('1 000 сум'));
+    if (locale !== 'ru') for (const text of [gc.attention, gc.attentionTab, gc.pay.provider, gc.pay.paidToast, gc.emptyAttention, gc.emptyDone, gc.line('AT-1')]) assert.doesNotMatch(text, /[а-яё]/i, `${locale}: ${text}`);
+  }
+  assert.equal(orderGroupCopy.ru.payButton('1 000 сум'), 'Оплатить 1 000 сум');
+  assert.equal(orderGroupCopy.ru.extraButton('1 000 сум'), 'Доплатить 1 000 сум');
+  assert.equal(orderGroupCopy.ru.pay.extraTitle('1 000 сум'), 'Доплатить 1 000 сум по заказу?');
+  assert.equal(orderGroupCopy.ru.line('AT-1'), 'Позиция AT-1');
 });

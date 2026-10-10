@@ -3,16 +3,16 @@ import {useState} from 'react';
 import {ArrowUpRight,ArrowRight,Info,ShieldCheck,ShoppingBag,X} from 'lucide-react';
 import {Sheet,SheetContent,SheetTitle,SheetDescription,SheetClose} from '@/components/ui/sheet';
 import {Tabs,TabsList,TabsTrigger,TabsContent} from '@/components/ui/tabs';
-import {cartDeliverySpeed,deliveryPerKgUsdFor,deliverySpeeds,price,money,storeDiscount,storeShippingHoldUsd,storeShippingUsd,type DeliverySpeed,type Product} from '@/lib/market/domain';
+import {cartDeliverySpeed,deliveryPerKgUsdFor,deliverySpeeds,price,storeDiscount,storeShippingHoldUsd,storeShippingUsd,tariff,unknownStoreShippingUsd,type DeliverySpeed,type Product} from '@/lib/market/domain';
 import {useMarket} from '@/lib/market/store';
 import {findOrderUrl} from '@/lib/market/catalog';
-import {countryName} from '@/lib/market/world';
+import {countryName,packagingKg} from '@/lib/market/world';
 import type {Locale} from '@/lib/market/i18n';
 import {deliverySpeedCopy} from '@/lib/market/delivery-speed';
 import {deliveryDaysFor} from '@/lib/market/site-content';
 import {regionForCountryLabel} from '@/lib/market/store-geo';
 import {catalogCopy,countryLabel,shortDate} from '@/lib/market/catalog-copy';
-import {formatDayMonth,formatSum,formatUsd} from '@/lib/market/format';
+import {formatDayMonth,formatKg,formatSum,formatUsd} from '@/lib/market/format';
 import {WasPrice} from './market-ui';
 import {Choice} from './choice';
 import {CostLines} from './cost-lines';
@@ -49,37 +49,40 @@ function ProductDetails({product:selected,onClose}:{product:Product;onClose:()=>
   const saving=quoteAt('express').total-quoteAt('standard').total;
   const daysOf=(at:DeliverySpeed)=>{const range=region?deliveryDaysFor(pricing,region,at):null;return range?sc.days(range[0],range[1]):sc.daysUnknown;};
   const rateOf=(at:DeliverySpeed)=>sc.perKg(formatUsd(deliveryPerKgUsdFor(pricing,country,at),locale));
+  // One way to write a store price everywhere in the sheet: "15,99 $" in the header and in About alike.
+  const storeMoney=(value:number,currency=selected.sourceCurrency??'USD')=>{try{return new Intl.NumberFormat(locale==='en'?'en-US':'ru-RU',{style:'currency',currency,maximumFractionDigits:2}).format(value)}catch{return `${value} ${currency}`}};
   async function add(){if(adding)return;if(curated){navigate(findOrderUrl(selected));return}setAdding(true);const ok=await act({type:'cart-add',product:selected,variant});setAdding(false);if(ok){onClose();navigate('/cart')}}
   return <><SheetClose asChild><button className="icon-btn sheet-close" aria-label={modalWords.close}><X size={20}/></button></SheetClose>
    <div className={'detail-image detail-'+selected.id}><ProductGallery product={selected} locale={locale}/><span className="floating-label">{selected.sourceUrl?label:modalWords.item}</span></div>
-   <div className="sheet-body"><div className="eyebrow">{selected.brand.includes(country)?selected.brand:selected.brand+' · '+label}</div><SheetTitle className="product-title">{selected.name}</SheetTitle>
+   <div className="sheet-body">{/* The photo already carries the country for a store product: the line above the name says the store once. */}<div className="eyebrow">{selected.sourceUrl||selected.brand.includes(country)?selected.brand:selected.brand+' · '+label}</div><SheetTitle className="product-title">{selected.name}</SheetTitle>
     {(()=>{
      // Store price with its discount: the catalog's "before" price for a current card, or the one kept on the product.
      if(stale)return null;
      const now=selected.sourcePrice??selected.usd,currency=selected.sourceCurrency??'USD';
      const off=storeDiscount({usd:selected.usd,sourcePrice:now,sourceReferencePrice:currency==='USD'?curated?.referenceUsd??selected.sourceReferencePrice:selected.sourceReferencePrice});
-     const format=(value:number)=>{try{return new Intl.NumberFormat(locale==='en'?'en-US':'ru-RU',{style:'currency',currency,maximumFractionDigits:2}).format(value)}catch{return `${value} ${currency}`}};
+     const format=(value:number)=>storeMoney(value,currency);
      return <p className="sheet-store-price">{modalWords.storePrice}: <b>{format(now)}</b>{off&&<WasPrice was={off.was} percent={off.percent} format={format}/>}</p>;
     })()}
     {stale&&<div className="notice sheet-stale" role="note"><Info size={19}/><span>{cc.staleNotice(checkedAt?shortDate(checkedAt,locale):curated?.observedOn??'')}</span></div>}
-    <SheetDescription>{curated?`${modalWords.offerFrom} ${curated.store}. ${modalWords.priceOn} ${checkedAt?formatDayMonth(checkedAt,locale):curated.observedOn}. ${modalWords.checkOption}`:modalWords.review}</SheetDescription>
+    {/* Stale: the notice above gives the date and the check and the line above names the store, so the description is for screen readers only. */}
+    <SheetDescription className={curated&&stale?'sr-only':undefined}>{curated?(stale?`${modalWords.offerFrom} ${curated.store}.`:`${modalWords.offerFrom} ${curated.store}. ${modalWords.priceOn} ${checkedAt?formatDayMonth(checkedAt,locale):curated.observedOn}. ${modalWords.checkOption}`):modalWords.review}</SheetDescription>
     <Tabs defaultValue="about" className="detail-tabs"><TabsList variant="line"><TabsTrigger value="about">{modalWords.about}</TabsTrigger><TabsTrigger value="price">{modalWords.price}</TabsTrigger></TabsList>
-     <TabsContent value="about"><p>{selected.description??modalWords.manual}</p>{selected.sourceUrl&&<a className="text-link" href={selected.sourceUrl} target="_blank" rel="noopener noreferrer">{modalWords.source}<ArrowUpRight size={16}/></a>}<div className="product-facts"><span>{modalWords.storePrice} <b>{priced?`${selected.sourcePrice??selected.usd} ${selected.sourceCurrency??'USD'}`:cc.checkPrice}</b></span></div></TabsContent>
+     <TabsContent value="about"><p>{selected.description??modalWords.manual}</p>{selected.sourceUrl&&<a className="text-link" href={selected.sourceUrl} target="_blank" rel="noopener noreferrer">{modalWords.source}<ArrowUpRight size={16}/></a>}<div className="product-facts"><span>{modalWords.storePrice} <b>{priced?storeMoney(selected.sourcePrice??selected.usd):cc.checkPrice}</b></span></div></TabsContent>
      <TabsContent value="price">
-      <p className="micro">{modalWords.weight}: {selected.weight} {modalWords.kg}.{selected.boxedWeight!==undefined&&<> {modalWords.box} {selected.boxedWeight} {modalWords.kg} + 0.3 {modalWords.kg} {modalWords.packaging}.</>}</p>
+      <p className="micro">{modalWords.weight}: {formatKg(selected.weight,locale)} {modalWords.kg}.{selected.boxedWeight!==undefined&&<> {modalWords.box} {formatKg(selected.boxedWeight,locale)} {modalWords.kg} + {formatKg(packagingKg,locale)} {modalWords.kg} {modalWords.packaging}.</>}</p>
       <div className="sheet-speed" role="group" aria-label={sc.title}>
        {/* A country Atlas has no region for gets no rate: the storefront never prints the base tariff as that country's. */}
        {deliverySpeeds.map(at=><button type="button" key={at} aria-pressed={speed===at} onClick={()=>setSpeed(at)}><b>{sc.names[at]}</b><small>{daysOf(at)}{region&&<> · {rateOf(at)}</>}</small></button>)}
       </div>
       {/* No saving figure without a recorded price: the estimate exists only once the order flow fetches it. */}
       <p className="micro sheet-speed-note">{priced&&<>{saving>0?sc.cheaperBy(formatSum(saving,locale)):sc.samePrice}. </>}{cc.speedNote}</p>
-      {curated&&<p className="micro">{modalWords.estimate}</p>}
+      {curated&&<p className="micro">{modalWords.estimate(formatUsd(pricing.storeShippingFreeFromUsd??tariff.storeShippingFreeFromUsd,locale),formatUsd(unknownStoreShippingUsd,locale))}</p>}
       {priced&&<CostLines q={estimate} storeReserveWaived={selected.sourceShippingEstimated===true} locale={locale}/>}
-      <small className="muted">{modalWords.rate}: {money(pricing.fx)} / USD</small>
+      <small className="muted">{modalWords.rate}: {formatSum(pricing.fx,locale)} / USD</small>
      </TabsContent>
     </Tabs>
     {!curated&&<div className="field"><label>{modalWords.variant}</label><Choice label={modalWords.variant} value={variant} onChange={setVariant} options={selected.variants}/></div>}
     <div className="notice"><ShieldCheck size={19}/><span>{modalWords.delivery}</span></div>
-    <div className="sheet-total"><span>{stale?cc.totalStale:modalWords.withDelivery}<strong>{priced?money(estimate.total):cc.afterCheck}</strong></span>{status==='guest'?<a className="btn primary" href={curated?findOrderUrl(selected):'/order-by-link'}>{modalWords.continue}<ArrowRight size={18}/></a>:<button className="btn primary" disabled={!ready||adding} onClick={add}><ShoppingBag size={18}/>{adding?modalWords.adding:curated?modalWords.continue:modalWords.add}</button>}</div>
+    <div className="sheet-total"><span>{stale?cc.totalStale:modalWords.withDelivery}<strong>{priced?formatSum(estimate.total,locale):cc.afterCheck}</strong></span>{status==='guest'?<a className="btn primary" href={curated?findOrderUrl(selected):'/order-by-link'}>{modalWords.continue}<ArrowRight size={18}/></a>:<button className="btn primary" disabled={!ready||adding} onClick={add}><ShoppingBag size={18}/>{adding?modalWords.adding:curated?modalWords.continue:modalWords.add}</button>}</div>
    </div></>;
 }
