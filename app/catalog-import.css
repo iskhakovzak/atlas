@@ -4,6 +4,9 @@
 .catalog-variant-panel>header p{margin:4px 0 0;color:var(--muted-foreground);font-size:13px}
 .catalog-variant-panel>header>span{flex:0 0 auto;padding:5px 8px;border-radius:99px;background:var(--atlas-soft);color:var(--muted-foreground);font-size:12px}
 .catalog-variant-empty{margin:0;color:var(--muted-foreground)}
+/* Variants of a store-kept card: shown, not editable; the wrapper adds no frame of its own. */
+.catalog-editor fieldset.catalog-variant-lock{border:0;padding:0;margin:0;min-width:0}
+.catalog-editor fieldset.catalog-variant-lock:disabled{opacity:.7}
 .catalog-variant-scroll{width:100%;overflow:auto;border:1px solid var(--atlas-line);border-radius:10px}
 .catalog-variant-table{width:100%;min-width:760px;border-collapse:collapse;text-align:left;font-size:13px}
 .catalog-variant-table th,.catalog-variant-table td{padding:9px 10px;border-bottom:1px solid var(--atlas-line);vertical-align:middle}

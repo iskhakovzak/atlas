@@ -6,7 +6,7 @@ import {
   products, blank, addToCart, cartSignature, checkoutCart, setCartServices, balanceOf, tariff, stateSchema,
   claimKindsOpen, claimLimit, claimWindowDays, reportParcelClaim, decideParcelClaim, orderGoodsValue, orderInsurancePaid,
   orderInsuranceRate, orderNeedsOperatorAttention, createChangeRequest, respondToChangeRequest, payExtraCharge,
-  uninsuredLossPerKgUsd, uninsuredDamagePerKgUsd,
+  uninsuredLossPerKgUsd, uninsuredDamagePerKgUsd, maxParcelClaims,
 } from '../lib/market/domain.ts';
 import {applyAction} from '../lib/market/actions.ts';
 import {orderFinance} from '../lib/market/finance.ts';
@@ -172,4 +172,19 @@ test('only operations staff decide claims; the light queue summary sees a waitin
   const [summary] = await queueSummaries({prepare: (sql) => statement(sql)});
   assert.equal(orderNeedsOperatorAttention(summary.order), true);
   assert.deepEqual(queueTabsOf(summary.order, summary.credit), queueTabsOf(first(s), 0));
+});
+
+test('an old delivered order without a coded delivery entry still closes the damage window', () => {
+  const s = at(ordered(true), 5);
+  const order = {...first(s), history: first(s).history.filter((entry) => entry.code !== 'status').map((entry) => ({...entry, at: 50_000}))};
+  assert.deepEqual(claimKindsOpen(order, 50_000 + claimWindowDays * DAY), ['loss', 'damage']);
+  assert.deepEqual(claimKindsOpen(order, 50_001 + claimWindowDays * DAY), []);
+});
+
+test('after the ceiling of declined claims the form closes with a polite answer instead of a schema error', () => {
+  const s = at(ordered(false), 4);
+  const declined = Array.from({length: maxParcelClaims}, (_, index) => ({id: `CLM-${index}`, kind: 'loss', description: 'Посылка не пришла вовремя', reportedAt: 20_000, status: 'declined', insured: false, limit: 1000, note: 'Нашлась на складе', decidedAt: 21_000}));
+  const full = {...s, orders: [{...first(s), claims: declined}]};
+  assert.deepEqual(claimKindsOpen(first(full), 30_000), []);
+  assert.throws(() => reportParcelClaim(full, first(full).id, 'loss', 'Посылка снова не пришла', 30_000), /напишите в поддержку/);
 });

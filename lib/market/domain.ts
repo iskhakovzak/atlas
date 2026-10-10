@@ -2544,11 +2544,16 @@ export const uninsuredDamagePerKgUsd = 3;
 export const claimWindowDays = 14;
 /** When the line was handed to the recipient (status 5), from its history. */
 export const deliveredAt = (order: Pick<Order, "history">) =>
-  order.history.find((entry) => entry.code === "status" && entry.params?.status === 5)?.at;
+  order.history.find((entry) => entry.code === "status" && entry.params?.status === 5)?.at ??
+  // Older orders kept no coded delivery entry: the last event before any claim stands in, so the window still closes.
+  order.history.filter((entry) => !entry.code?.startsWith("claim-")).at(-1)?.at;
+/** Claims kept on one line (the schema's ceiling); past it the customer writes to support. */
+export const maxParcelClaims = 5;
 /** Whether the customer can file a claim now, and of which kinds: a loss once the parcel is on its way, damage on receipt. */
 export function claimKindsOpen(order: Order, now = Date.now()): ParcelClaimKind[] {
   if (order.cancelled || order.payment?.status !== "paid" || order.status < 4) return [];
   if ((order.claims ?? []).some((claim) => claim.status !== "declined")) return [];
+  if ((order.claims ?? []).length >= maxParcelClaims) return [];
   if (order.status === 4) return ["loss"];
   const at = deliveredAt(order);
   if (at !== undefined && now - at > claimWindowDays * 86_400_000) return [];
@@ -2568,6 +2573,7 @@ export function reportParcelClaim(state: State, id: string, kind: ParcelClaimKin
   const open = claimKindsOpen(o, now);
   if (!open.length) {
     if ((o.claims ?? []).some((claim) => claim.status !== "declined")) throw Error("По этому заказу претензия уже подана.");
+    if ((o.claims ?? []).length >= maxParcelClaims) throw Error("По этому заказу уже рассмотрено несколько претензий — напишите в поддержку.");
     throw Error(o.status === 5 ? `Претензию принимаем в течение ${claimWindowDays} дней после получения.` : "Претензию можно подать, когда посылка отправлена в Ташкент.");
   }
   if (!open.includes(kind)) throw Error("О порче сообщают после получения посылки.");

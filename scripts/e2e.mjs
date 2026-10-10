@@ -371,14 +371,17 @@ try {
   // The postal code is required: without it the form does not move on to the review step.
   await evaluate("document.querySelector('form.basket-checkout button.btn.primary.full').click(), true");
   await sleep(300);
-  if (await evaluate("!!document.querySelector('#checkout-consent')")) throw Error("checkout reached the review step without a postal code");
+  if (await evaluate("!!document.querySelector('.review-aside')")) throw Error("checkout reached the review step without a postal code");
   await evaluate(`(() => { const el = document.querySelector('#postal-code'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, '100000'); el.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
   await sleep(150);
   await evaluate("document.querySelector('form.basket-checkout button.btn.primary.full').click(), true");
-  await eventually("!!document.querySelector('#checkout-consent')", "review step");
-  await evaluate("document.querySelector('form.basket-checkout button.btn.primary.full').click(), true");
-  await eventually("!!document.querySelector('#checkout-consent-error')", "consent is required before placing the order");
-  await evaluate("document.querySelector('#checkout-consent').click(), true");
+  await eventually("!!document.querySelector('.review-aside')", "review step");
+  // The consent checkbox is asked for only when this recipient owes duty; without duty the button accepts the terms.
+  if (await evaluate("!!document.querySelector('#checkout-consent')")) {
+    await evaluate("document.querySelector('form.basket-checkout button.btn.primary.full').click(), true");
+    await eventually("!!document.querySelector('#checkout-consent-error')", "consent is required before placing the order");
+    await evaluate("document.querySelector('#checkout-consent').click(), true");
+  }
   await evaluate("document.querySelector('form.basket-checkout button.btn.primary.full').click(), true");
   await eventually("fetch('/api/account').then((r) => r.json()).then((a) => a.state.orders.length === 1)", "order placed", 200);
   const orderId = await evaluate("fetch('/api/account').then((r) => r.json()).then((a) => a.state.orders[0].id)");
