@@ -55,6 +55,9 @@ export function syncOrderLedger(order: Order, customerId: string, options: { bal
   }
   if (order.settlement?.refund) push("balance_refund", "settlement", order.settlement.refund, historyAt(order, (text) => text.startsWith("Взвешивание завершено")) ?? order.createdAt, { counterparty: customerId, note: "Остаток доставки после взвешивания — на внутренний баланс" });
   if (order.storeShippingSettlement?.refund) push("balance_refund", "store-shipping", order.storeShippingSettlement.refund, historyAt(order, (text) => text.includes("подтвердил доставку магазина")) ?? order.createdAt, { counterparty: customerId, note: "Разница доставки магазина — на внутренний баланс" });
+  // An approved claim: Atlas pays the compensation itself (self-insurance) onto the customer's balance.
+  for (const claim of order.claims ?? [])
+    if (claim.status === "approved" && claim.amount) push("claim_payout", "claim-" + claim.id, claim.amount, claim.decidedAt ?? claim.reportedAt, { counterparty: customerId, note: claim.insured ? "Страховое возмещение на баланс клиента" : "Компенсация без страховки на баланс клиента" });
   if (order.customsSettlement?.refund) push("balance_refund", "customs", order.customsSettlement.refund, order.customsSettlement.at, { counterparty: customerId, note: "Остаток предоплаты пошлины — на внутренний баланс" });
   if (order.cancelled) push("balance_refund", "cancel", (paidMark && pay ? pay.amount : 0) + balanceUsed + extrasPaid, historyAt(order, (text) => text.startsWith("Заказ отменён")) ?? order.createdAt, { counterparty: customerId, note: "Отмена заказа: сумма учтена на внутреннем балансе, банковский перевод не выполнялся" });
   return out;

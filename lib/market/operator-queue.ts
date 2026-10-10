@@ -16,7 +16,7 @@ export function queueTabsOf(order:Order,credit:number){
  return {
   active:!order.cancelled&&order.status<5,
   attention:orderNeedsOperatorAttention(order),
-  done:(order.cancelled||order.status===5)&&(!order.issueCase||order.issueCase.status==='resolved'),
+  done:(order.cancelled||order.status===5)&&(!order.issueCase||order.issueCase.status==='resolved')&&!(order.claims??[]).some((claim)=>claim.status==='submitted'),
   refunds:order.cancelled||order.payment?.status==='refunded'||credit>0,
   weighing:!order.cancelled&&order.status===2,
  };
