@@ -5,7 +5,7 @@ import {useCallback,useEffect,useMemo,useState} from "react";
 import {useSearchParams} from "next/navigation";
 import {AccountingView} from "./accounting-view";
 import {BarChart3,ClipboardList,Database,FileText,History,MessageSquare,Package,Percent,Settings2,ShieldCheck,TrendingUp,UsersRound,WalletCards} from "lucide-react";
-import {toast} from "sonner";
+import { toast } from "@/lib/market/toast";
 import {useMarket} from "@/lib/market/store";
 import {policySchema} from "@/lib/market/policy";
 import {pricingSchema} from "@/lib/market/domain";

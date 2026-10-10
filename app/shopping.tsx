@@ -22,7 +22,7 @@ import { Money } from "./money";
 import { SafeDeleteButton } from "./safe-delete-button";
 import { cities, regionCapital, regionLabel, regions, streets, suggestions, uzPhone, uzPhoneDigits } from "@/lib/market/addresses";
 import { UzPhoneInput } from "./phone-input";
-import { toast } from "sonner";
+import { toast } from "@/lib/market/toast";
 import { usePendingCartAdd } from "./pending-cart-add";
 import { pendingCartFreshMs } from "@/lib/market/link-order-draft";
 import {uzText,withCyrillic} from '@/lib/market/uz-cyrl';

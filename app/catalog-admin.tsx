@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import {BadgeCheck,Check,ChevronDown,EyeOff,FolderPlus,ImageIcon,Link2,Loader2,RefreshCw,Send,Trash2} from 'lucide-react';
-import {toast} from 'sonner';
+import { toast } from '@/lib/market/toast';
 import {Modal} from './market-ui';
 import {catalogCategories,catalogIssues,catalogRefreshDueAt,cleanGeneratedCatalogDescription,dueCatalogEntries,isBundledCatalogEntry,isWatchedCatalogEntry,type CatalogCollection,type CatalogDocument,type CatalogDraft,type CatalogEntry} from '@/lib/market/catalog-editor';
 import {chunkCatalogIds,parseCatalogImportQueue,removeImportedCatalogLinks} from '@/lib/market/catalog-import-queue';

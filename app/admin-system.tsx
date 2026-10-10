@@ -3,7 +3,7 @@
 // buttons (refresh the rate, sync the projection, download the backup), the attention thresholds, warnings and errors.
 import {useEffect,useState} from "react";
 import {Database,History,Package,RefreshCw,ShieldCheck,TriangleAlert,WalletCards} from "lucide-react";
-import {toast} from "sonner";
+import { toast } from "@/lib/market/toast";
 import type {Pricing} from "@/lib/market/domain";
 import {defaultAdminSettings,type AdminSettings} from "@/lib/market/admin-dashboard";
 import {PerformanceSummary} from "./performance-summary";

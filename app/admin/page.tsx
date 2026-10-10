@@ -1,6 +1,10 @@
 import Marketplace from '../marketplace';
 import { AdminView } from '../admin-view';
 // Operator-only styles load with this route, not on every customer page.
+// Admin-only layers that used to load on every page (same relative order as in app/layout.tsx).
+import '../catalog-admin.css';
+import '../catalog-import.css';
+import '../admin-wide.css';
 import '../accounting.css';
 import '../admin-investor.css';
 import '../site-content-admin.css';

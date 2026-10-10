@@ -144,6 +144,8 @@ html[data-theme="dark"] .basket-item-note.issue { border-color: rgba(255, 140, 1
 .basket-expiry svg { flex: none; margin-top: 2px; }
 .basket-expiry.expired { padding: 10px 12px; border-radius: 10px; background: var(--cx-warn-soft); color: var(--cx-warn); font-weight: 600; }
 .basket-cta { width: 100%; min-height: 54px; justify-content: center; border-radius: 12px; font-size: 17px; }
+/* Also on the link order and the identity forms, so it stays here rather than in cart-select.css (cart page only). */
+.basket-cta[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
 .basket-assurance { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .basket-assurance li { display: flex; align-items: flex-start; gap: 8px; color: var(--home-muted); font-size: 13px; line-height: 1.45; }
 .basket-assurance svg { flex-shrink: 0; margin-top: 1px; color: var(--home-accent); }

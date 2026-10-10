@@ -2,7 +2,7 @@
 import {Suspense,lazy,useEffect,useLayoutEffect,useMemo,useState,useSyncExternalStore,type ReactNode} from 'react';
 import Link from '@/components/site-link';
 import {ArrowUpRight,ArrowRight,Package,Wallet,ShoppingBag,Heart,LayoutGrid,Settings2,House,Store,LogIn,UserRound} from 'lucide-react';
-import {Toaster} from 'sonner';
+import {ToasterSlot} from './toaster-slot';
 import {money,balanceOf} from '@/lib/market/domain';
 import {useMarket} from '@/lib/market/store';
 import {AccessView} from './access-view';
@@ -63,7 +63,7 @@ export default function Marketplace({view,children}:{view:string;children?:React
   const member=ready||(status==='loading'&&(!!snapshot||sessionHint)),known=ready||!!snapshot;
   const shownBalance=ready?balance:snapshot?.balance??0,shownCount=ready?count:snapshot?.count??0;
   const navItems:[string,string,string][]=[['/catalog','products',hc.nav.catalog],['/stores','stores',hc.nav.stores],['/#how','how',hc.nav.how],['/#tariffs','tariffs',hc.nav.tariffs],...(member?[['/orders','orders',hc.nav.orders] as [string,string,string]]:[])];
-  return <><ViewMark view={view}/><a className="skip-link" href="#main">{modalWords.skip}</a><Toaster position="top-right" richColors theme={theme==='dark'?'dark':theme==='light'?'light':'system'}/>
+  return <><ViewMark view={view}/><a className="skip-link" href="#main">{modalWords.skip}</a><ToasterSlot theme={theme==='dark'?'dark':theme==='light'?'light':'system'}/>
   <header className="site-header"><Link className="wordmark" href="/" aria-label={modalWords.homeLabel}>atlas<ArrowUpRight aria-hidden="true"/></Link><nav className="desktop-nav" aria-label={modalWords.navigation}>{navItems.map(([href,key,label])=><Link key={key} data-nav={key} className={key===view?'active':''} aria-current={key===view?'page':undefined} href={href}>{label}</Link>)}</nav><div className="header-actions">{(user?.operator||!!user?.permissions?.length)&&<Link className="operator-entry text-link" href="/admin"><Settings2 size={16}/>{modalWords.manage}</Link>}<HeaderLanguage locale={locale} label={hc.nav.language} onChange={setLocale}/><span className="header-theme"><ThemeToggle locale={locale}/></span>{member&&<><Link href="/balance" className="wallet-link"><Wallet size={19}/><span>{known?(locale==='ru'?money(shownBalance):new Intl.NumberFormat(isUzbek(locale)?uzText(locale, 'uz-UZ'):'en-US').format(shownBalance)+(isUzbek(locale)?uzText(locale, ' so‘m'):' UZS')):''}</span></Link><NotificationsPanel open={noticesOpen} onOpenChange={setNoticesOpen} label={modalWords.notifications} active={view==='notifications'}/><Link aria-label={modalWords.favorites} href="/favorites" className={'icon-btn desktop-only '+(view==='favorites'?'active':'')}><Heart size={20}/></Link><Link href="/cart" className="cart-link" aria-label={modalWords.cart+(known?shownCount:'')}><ShoppingBag size={19}/><span className="desktop-only">{words.cart}</span>{known&&<b>{shownCount}</b>}</Link></>}{user||member?<Link className="header-account member" href="/account">{hc.nav.account}</Link>
    // A guest goes straight to sign-in and comes back to this page (the href is set on click, so the server and the browser render the same link).
    :<a className="header-account" href={signInPath('/account')} onClick={event=>{event.currentTarget.href=signInPath(view==='login'?'/':returnPath())}}>{hc.nav.signin}</a>}</div></header>

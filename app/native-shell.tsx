@@ -5,7 +5,7 @@
 // In a browser it renders nothing and does nothing.
 import {useEffect,useRef} from 'react';
 import {useTheme} from 'next-themes';
-import {toast} from 'sonner';
+import { toast } from '@/lib/market/toast';
 import {useMarket} from '@/lib/market/store';
 import {closeExternal,hideSplash,nativePlatform,onAppUrlOpen,onBackButton,openExternal,setStatusBarTheme} from '@/lib/native/bridge';
 import {isExternalHref,parseAppLink} from '@/lib/native/links';

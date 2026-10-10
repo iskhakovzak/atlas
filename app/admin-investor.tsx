@@ -5,7 +5,7 @@
 // GET /api/operations?investor=1 returns (lib/market/investor-metrics.ts); the model stores nothing.
 import {useEffect,useMemo,useState,type CSSProperties} from "react";
 import {ClipboardCopy,Download,Info,Printer,RefreshCw,ShieldCheck,TrendingUp} from "lucide-react";
-import {toast} from "sonner";
+import { toast } from "@/lib/market/toast";
 import {
  clampAssumptions,defaultAssumptions,growthModel,honestyNote,investorPeriods,investorReport,monthLabel,summaryText,
  type GrowthAssumptions,type InvestorKpis,type InvestorPeriod,type InvestorReport,type InvestorSnapshot,type ShareRow,

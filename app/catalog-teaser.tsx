@@ -12,12 +12,11 @@ import { courierAllowanceUsd } from '@/lib/market/customs';
 import type { Locale } from '@/lib/market/i18n';
 import { CatalogCard } from './catalog-card';
 import { DeliverySky, type Spark } from './delivery-sky';
+import { preloadProductSheet } from './product-sheet-lazy';
 
 const findsRoutes = ['M-40 130 C 300 -10, 760 30, 1240 170','M-40 640 C 380 520, 820 720, 1240 560','M180 -30 C 420 250, 800 290, 1080 -30'];
 const findsSparks: Spark[] = [[3,12,8,0,false],[18,4,6,2.6,true],[47,6,7,4.2,false],[71,3,6,1.4,true],[96,14,8,3.4,false],[2,92,6,5.2,true],[38,97,7,1.9,false],[64,95,6,3.9,true],[97,90,7,.7,false]];
 
-/** The home page shows a teaser from this many catalog products; the full list lives on /catalog. */
-export const teaserMinimum = 4;
 /** Below this many products the link reads "Full catalog" without a count that would only underline how few there are. */
 const countFrom = 12;
 
@@ -81,6 +80,6 @@ export function CatalogTeaser({ select }: { select: (product: Product) => void }
    {/* Owner, 7.10.2026: the delivery sky around the picks (app/delivery-sky.tsx). */}
    <DeliverySky className="home-finds-sky" viewBox="0 0 1200 700" routes={findsRoutes} sparks={findsSparks}/>
     <header><div><h2 id="finds-title">{cc.teaserTitle}</h2><p>{cc.teaserIntro}</p></div><div className="finds-actions"><Link className="btn secondary" href="/catalog">{items.length >= countFrom ? cc.viewAll(items.length) : cc.viewAllShort}<ArrowRight size={17} aria-hidden="true" /></Link>{edges.scrolls && <span className="finds-pager"><button type="button" className="icon-btn" aria-label={cc.teaserPrev} aria-controls={gridId} disabled={edges.start} onClick={() => page(-1)}><ChevronLeft size={20} aria-hidden="true" /></button><button type="button" className="icon-btn" aria-label={cc.teaserNext} aria-controls={gridId} disabled={edges.end} onClick={() => page(1)}><ChevronRight size={20} aria-hidden="true" /></button></span>}</div></header>
-    <div className="finds-grid finds-grid-compact" id={gridId} ref={grid}>{shown.map((item) => <CatalogCard key={item.product.id} item={item} locale={locale} select={select} variant="compact" saved={state.favorites.includes(item.product.id)} canSave={ready} saving={saving !== null} onSave={() => void save(item.product)} />)}</div>
+    <div className="finds-grid finds-grid-compact" id={gridId} ref={grid} onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>{shown.map((item) => <CatalogCard key={item.product.id} item={item} locale={locale} select={select} variant="compact" saved={state.favorites.includes(item.product.id)} canSave={ready} saving={saving !== null} onSave={() => void save(item.product)} />)}</div>
   </section></TooltipProvider>;
 }

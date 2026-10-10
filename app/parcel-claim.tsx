@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { LifeBuoy } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/market/toast";
 import {
   claimKindsOpen,
   claimLimit,

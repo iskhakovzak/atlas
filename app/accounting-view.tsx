@@ -2,7 +2,7 @@
 
 import {useCallback,useEffect,useRef,useState,type KeyboardEvent} from 'react';
 import {Download,PiggyBank,Receipt,TrendingUp,Wallet} from 'lucide-react';
-import {toast} from 'sonner';
+import { toast } from '@/lib/market/toast';
 import {useMarket} from '@/lib/market/store';
 import {effectiveFx} from '@/lib/market/domain';
 import {hasPermission} from '@/lib/market/access';
