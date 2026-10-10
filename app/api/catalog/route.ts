@@ -132,7 +132,8 @@ export async function POST(request:Request){try{
     await persistCatalog(document,raw,user,'catalog.import');
     return json({document,importedId,published:outcome.published,importNote:outcome.note,...(read.sourceUnavailable?{importNote:read.failureMessage.slice(0,500),importFailureReason:read.failureReason}:{})});
   }
-  let next;try{next=changeCatalog(document,command,Date.now(),await pricing())}catch(error){throw new HttpError(400,(error as Error).message)}
+  const report=command.kind==='publish'||command.kind==='confirm'?{published:0,skipped:[] as string[]}:undefined;
+  let next;try{next=changeCatalog(document,command,Date.now(),await pricing(),report)}catch(error){throw new HttpError(400,(error as Error).message)}
   const auditDetails='ids' in command?{ids:command.ids}:undefined;
-  await persistCatalog(next,raw,user,'catalog.'+command.kind,auditDetails);return json({document:next});
+  await persistCatalog(next,raw,user,'catalog.'+command.kind,auditDetails);return json({document:next,...(report?{published:report.published,skipped:report.skipped}:{})});
 }catch(error){return failure(error,request)}}

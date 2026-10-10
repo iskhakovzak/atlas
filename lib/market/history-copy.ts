@@ -163,6 +163,21 @@ const historyCopy: Record<string, Copy> = {
     uz: v => `Operator «${v.title()}» xizmatini rad etdi: ${v.text('reason')}`,
     en: v => `An operator declined the “${v.title()}” service: ${v.text('reason')}`,
   }),
+  'claim-submitted': /*@__PURE__*/withCyrillic({
+    ru: v => `Покупатель сообщил о ${v.text('kind') === 'loss' ? 'утере' : 'порче'} посылки. Возмещение до ${v.sum('limit')}.`,
+    uz: v => `Xaridor posilka ${v.text('kind') === 'loss' ? 'yo‘qolgani' : 'shikastlangani'} haqida xabar berdi. Qoplash ${v.sum('limit')} gacha.`,
+    en: v => `The customer reported the parcel ${v.text('kind') === 'loss' ? 'lost' : 'damaged'}. Compensation up to ${v.sum('limit')}.`,
+  }),
+  'claim-approved': /*@__PURE__*/withCyrillic({
+    ru: v => `Претензия одобрена: ${v.sum('amount')} зачислено на баланс.`,
+    uz: v => `Da’vo qondirildi: ${v.sum('amount')} balansga o‘tkazildi.`,
+    en: v => `Claim approved: ${v.sum('amount')} credited to the balance.`,
+  }),
+  'claim-declined': /*@__PURE__*/withCyrillic({
+    ru: v => `Претензия отклонена: ${v.text('reason')}`,
+    uz: v => `Da’vo rad etildi: ${v.text('reason')}`,
+    en: v => `Claim declined: ${v.text('reason')}`,
+  }),
   'extra-charge-requested': /*@__PURE__*/withCyrillic({
     ru: v => `Оператор выставил счёт на доплату ${v.sum('amount')}: ${v.text('reason')}`,
     uz: v => `Operator ${v.sum('amount')} qo‘shimcha to‘lov hisobini yubordi: ${v.text('reason')}`,
@@ -278,6 +293,19 @@ const noticeCopy: Record<string, NoticeCopy> = {
   'service-done': { title: /*@__PURE__*/withCyrillic({ ru: 'Услуга выполнена', uz: 'Xizmat bajarildi', en: 'Service done' }), message: /*@__PURE__*/withCyrillic({ ru: v => v.title(), uz: v => v.title(), en: v => v.title() }) },
   'service-declined': { title: /*@__PURE__*/withCyrillic({ ru: 'Услуга недоступна', uz: 'Xizmat mavjud emas', en: 'Service unavailable' }), message: /*@__PURE__*/withCyrillic({
     ru: v => `${v.title()}: ${v.text('reason')}`, uz: v => `${v.title()}: ${v.text('reason')}`, en: v => `${v.title()}: ${v.text('reason')}`,
+  }) },
+  'claim-submitted': { title: /*@__PURE__*/withCyrillic({ ru: 'Претензия принята', uz: 'Da’vo qabul qilindi', en: 'Claim received' }), message: /*@__PURE__*/withCyrillic({
+    ru: v => `Проверим и ответим. Возмещение — до ${v.sum('limit')}.`,
+    uz: v => `Tekshirib javob beramiz. Qoplash — ${v.sum('limit')} gacha.`,
+    en: v => `We will check and reply. Compensation up to ${v.sum('limit')}.`,
+  }) },
+  'claim-approved': { title: /*@__PURE__*/withCyrillic({ ru: 'Возмещение зачислено', uz: 'Qoplash o‘tkazildi', en: 'Compensation credited' }), message: /*@__PURE__*/withCyrillic({
+    ru: v => `${v.sum('amount')} — на ваш баланс в Atlas.`,
+    uz: v => `${v.sum('amount')} — Atlas’dagi balansingizga.`,
+    en: v => `${v.sum('amount')} to your Atlas balance.`,
+  }) },
+  'claim-declined': { title: /*@__PURE__*/withCyrillic({ ru: 'Претензия отклонена', uz: 'Da’vo rad etildi', en: 'Claim declined' }), message: /*@__PURE__*/withCyrillic({
+    ru: v => v.text('reason'), uz: v => v.text('reason'), en: v => v.text('reason'),
   }) },
   'extra-charge-requested': { title: /*@__PURE__*/withCyrillic({ ru: 'Нужна доплата по заказу', uz: 'Buyurtma bo‘yicha qo‘shimcha to‘lov kerak', en: 'Extra payment needed' }), message: /*@__PURE__*/withCyrillic({
     ru: v => `${v.sum('amount')} · ${v.text('reason')}`, uz: v => `${v.sum('amount')} · ${v.text('reason')}`, en: v => `${v.sum('amount')} · ${v.text('reason')}`,

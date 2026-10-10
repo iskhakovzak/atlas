@@ -720,6 +720,11 @@ const changeRequestSchema = z.object({
   warehouseServiceRequestId: z.string().min(1).max(100).optional(),
   resolvesWarehouseIssue: z.boolean().optional(),
   amountDelta: signedAmount.default(0),
+  /**
+   * The parcel insurance on a goods price change (since 10 October 2026): an insured line pays its insurance rate on
+   * the difference too, and gets it back when the goods get cheaper. Already inside `amountDelta`.
+   */
+  insuranceDelta: signedAmount.optional(),
   status: z.enum(["pending", "approved", "declined"]),
   createdAt: amount,
   respondedAt: amount.optional(),
@@ -739,8 +744,33 @@ const extraChargeSchema = z.object({
   requestedAt: amount,
   paidAt: amount.optional(),
   cancelledAt: amount.optional(),
+  /** The goods got dearer on an insured line: the insurance on the difference, already inside `amount` (since 10.10.2026). */
+  insuranceAmount: amount.optional(),
+  /** False when the invoice is not for the goods (store delivery, other costs): no insurance on it. Absent = goods. */
+  goods: z.boolean().optional(),
 });
 export type ExtraCharge = z.infer<typeof extraChargeSchema>;
+/**
+ * A claim for a lost or damaged parcel (owner's terms, 10 October 2026). Insured: up to 100% of the goods value.
+ * Without insurance: $15 per kg for a loss, $3 per kg for damage, never more than the goods value. The server works
+ * out `limit` when the claim is filed; the operator approves an amount up to it (credited to the internal balance)
+ * or declines with a reason.
+ */
+export const parcelClaimKindSchema = z.enum(["loss", "damage"]);
+export type ParcelClaimKind = z.infer<typeof parcelClaimKindSchema>;
+const parcelClaimSchema = z.object({
+  id: z.string().min(1).max(40),
+  kind: parcelClaimKindSchema,
+  description: z.string().min(10).max(1000),
+  reportedAt: amount,
+  status: z.enum(["submitted", "approved", "declined"]),
+  insured: z.boolean(),
+  limit: amount,
+  amount: amount.optional(),
+  note: z.string().max(500).optional(),
+  decidedAt: amount.optional(),
+});
+export type ParcelClaim = z.infer<typeof parcelClaimSchema>;
 const warehouseServiceRequestSchema = z.object({
   id: z.string().min(1).max(100),
   serviceId: z.string().min(2).max(80),
@@ -840,6 +870,7 @@ const orderSchema = z.object({
   issueCase: orderIssueCaseSchema.optional(),
   changeRequests: z.array(changeRequestSchema).optional(),
   extraCharges: z.array(extraChargeSchema).max(20).optional(),
+  claims: z.array(parcelClaimSchema).max(5).optional(),
   warehouseServiceRequests: z.array(warehouseServiceRequestSchema).max(40).optional(),
   warehouseInspection: warehouseInspectionSchema.optional(),
   /** The customer's note from the cart line; for operators only, never sent to the store. */
@@ -1036,6 +1067,32 @@ export function storeParcels<T extends Pick<CartItem, "id" | "product">>(items: 
 
 /** A cart line's value-percent service fees (parcel insurance), soum. */
 export const serviceFeesOf = (q: Pick<Quote, "serviceFees">) => (q.serviceFees ?? []).reduce((sum, fee) => sum + fee.amount, 0);
+export const insuranceServiceId = "shipping-insurance";
+/** The insurance rate the line was insured at (locked at checkout), or undefined for an uninsured line. */
+export const orderInsuranceRate = (order: Pick<Order, "quote">) =>
+  (order.quote.serviceFees ?? []).find((fee) => fee.id === insuranceServiceId && fee.amount > 0)?.rate;
+/** Kinds of change that move the goods price (and so the insured value). */
+const goodsChangeKinds: ChangeRequest["kind"][] = ["price", "variant", "substitution"];
+/**
+ * What the goods of a line are worth now, in soum: the checkout price, plus approved price changes and paid extra
+ * invoices for the goods, without the insurance on them. The insured value and the claim ceiling.
+ */
+export function orderGoodsValue(order: Pick<Order, "quote" | "changeRequests" | "extraCharges">) {
+  const changes = (order.changeRequests ?? [])
+    .filter((request) => request.status === "approved" && goodsChangeKinds.includes(request.kind))
+    .reduce((sum, request) => sum + request.amountDelta - (request.insuranceDelta ?? 0), 0);
+  const extras = (order.extraCharges ?? [])
+    .filter((charge) => charge.status === "paid" && charge.goods !== false)
+    .reduce((sum, charge) => sum + charge.amount - (charge.insuranceAmount ?? 0), 0);
+  return Math.max(0, order.quote.merchandise + changes + extras);
+}
+/** The insurance a line paid in all: at checkout and on later price changes. */
+export function orderInsurancePaid(order: Pick<Order, "quote" | "changeRequests" | "extraCharges">) {
+  const fee = (order.quote.serviceFees ?? []).filter((item) => item.id === insuranceServiceId).reduce((sum, item) => sum + item.amount, 0);
+  const changes = (order.changeRequests ?? []).filter((request) => request.status === "approved").reduce((sum, request) => sum + (request.insuranceDelta ?? 0), 0);
+  const extras = (order.extraCharges ?? []).filter((charge) => charge.status === "paid").reduce((sum, charge) => sum + (charge.insuranceAmount ?? 0), 0);
+  return fee + changes + extras;
+}
 /** The goods value of one store parcel in USD, as value-percent services see it (no delivery, no fees). */
 export const parcelValueUsd = (lines: Pick<CartItem, "product" | "quantity">[]) =>
   Math.round(lines.reduce((sum, line) => sum + line.product.usd * line.quantity, 0) * 100) / 100;
@@ -1526,6 +1583,7 @@ export const orderNeedsOperatorAttention = (order: Order) =>
     Boolean(order.customsSettlement?.extra && !order.customsExtraApproved) ||
     (order.changeRequests ?? []).some((request) => request.status === "pending") ||
     Boolean(pendingExtraCharge(order)) ||
+    (order.claims ?? []).some((claim) => claim.status === "submitted") ||
     order.warehouseInspection?.condition === "damaged" ||
     order.warehouseInspection?.condition === "mismatch"
   ));
@@ -2084,8 +2142,13 @@ export function createChangeRequest(
     if (serviceRequest.pricingMode === "fixed" && value.amountDelta !== (serviceRequest.feeUzs ?? 0) * serviceRequest.units)
       throw Error("Сумма не совпадает с зафиксированным тарифом услуги.");
   }
+  // An insured line pays its insurance rate on a goods price change (and gets it back when the price falls).
+  const rate = goodsChangeKinds.includes(value.kind) && value.amountDelta ? orderInsuranceRate(o) : undefined;
+  const insuranceDelta = rate ? Math.round(value.amountDelta * rate) : 0;
   const request = changeRequestSchema.parse({
     ...value,
+    amountDelta: value.amountDelta + insuranceDelta,
+    insuranceDelta: insuranceDelta || undefined,
     id: "CHG-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
     status: "pending",
     createdAt: now,
@@ -2385,7 +2448,7 @@ export function approveStoreShippingExtra(
 }
 
 /** The operator issues an extra invoice on a paid order: an amount in USD at the order's rate and the reason. */
-export function requestExtraCharge(state: State, id: string, amountUsd: number, reason: string, now = Date.now()): State {
+export function requestExtraCharge(state: State, id: string, amountUsd: number, reason: string, now = Date.now(), goods = true): State {
   const o = getOrder(state, id);
   if (o.cancelled || o.status >= 5 || o.payment?.status !== "paid")
     throw Error("Доплату можно выставить только по оплаченному активному заказу.");
@@ -2395,10 +2458,16 @@ export function requestExtraCharge(state: State, id: string, amountUsd: number, 
   const text = reason.replace(/\s+/g, " ").trim();
   if (text.length < 2 || text.length > 300) throw Error("Укажите причину доплаты.");
   const usd = Math.round(amountUsd * 100) / 100;
+  const base = Math.ceil(usd * (o.quote.fx ?? tariff.fx));
+  // Dearer goods on an insured line: the insurance on the difference rides on the same invoice.
+  const rate = goods ? orderInsuranceRate(o) : undefined;
+  const insuranceAmount = rate ? Math.round(base * rate) : 0;
   const charge = extraChargeSchema.parse({
     id: "EXT-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
-    amount: Math.ceil(usd * (o.quote.fx ?? tariff.fx)),
+    amount: base + insuranceAmount,
     amountUsd: usd,
+    ...(insuranceAmount ? { insuranceAmount } : {}),
+    ...(goods ? {} : { goods: false }),
     reason: text,
     status: "pending",
     requestedAt: now,
@@ -2467,6 +2536,111 @@ export function payExtraCharge(state: State, id: string, chargeId: string, expec
     now,
     { code: "extra-charge-paid", params },
   );
+}
+
+export const uninsuredLossPerKgUsd = 15;
+export const uninsuredDamagePerKgUsd = 3;
+/** Damage is reported within this many days of delivery (the parcel is checked on receipt). */
+export const claimWindowDays = 14;
+/** When the line was handed to the recipient (status 5), from its history. */
+export const deliveredAt = (order: Pick<Order, "history">) =>
+  order.history.find((entry) => entry.code === "status" && entry.params?.status === 5)?.at;
+/** Whether the customer can file a claim now, and of which kinds: a loss once the parcel is on its way, damage on receipt. */
+export function claimKindsOpen(order: Order, now = Date.now()): ParcelClaimKind[] {
+  if (order.cancelled || order.payment?.status !== "paid" || order.status < 4) return [];
+  if ((order.claims ?? []).some((claim) => claim.status !== "declined")) return [];
+  if (order.status === 4) return ["loss"];
+  const at = deliveredAt(order);
+  if (at !== undefined && now - at > claimWindowDays * 86_400_000) return [];
+  return ["loss", "damage"];
+}
+/** The most Atlas pays on a claim under the owner's terms, in soum. */
+export function claimLimit(order: Order, kind: ParcelClaimKind) {
+  const goods = orderGoodsValue(order);
+  if (orderInsuranceRate(order)) return goods;
+  const weight = order.settlement?.chargeableWeight ?? order.quote.weight;
+  const perKg = kind === "loss" ? uninsuredLossPerKgUsd : uninsuredDamagePerKgUsd;
+  return Math.min(goods, Math.round(perKg * weight * (order.quote.fx ?? tariff.fx)));
+}
+/** The customer reports a lost or damaged parcel. */
+export function reportParcelClaim(state: State, id: string, kind: ParcelClaimKind, description: string, now = Date.now()): State {
+  const o = getOrder(state, id);
+  const open = claimKindsOpen(o, now);
+  if (!open.length) {
+    if ((o.claims ?? []).some((claim) => claim.status !== "declined")) throw Error("По этому заказу претензия уже подана.");
+    throw Error(o.status === 5 ? `Претензию принимаем в течение ${claimWindowDays} дней после получения.` : "Претензию можно подать, когда посылка отправлена в Ташкент.");
+  }
+  if (!open.includes(kind)) throw Error("О порче сообщают после получения посылки.");
+  const text = description.replace(/\s+/g, " ").trim();
+  if (text.length < 10 || text.length > 1000) throw Error("Опишите, что случилось: от 10 до 1000 символов.");
+  const claim = parcelClaimSchema.parse({
+    id: "CLM-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
+    kind,
+    description: text,
+    reportedAt: now,
+    status: "submitted",
+    insured: Boolean(orderInsuranceRate(o)),
+    limit: claimLimit(o, kind),
+  });
+  const params = { kind, limit: claim.limit };
+  return withNotification(
+    replace(state, {
+      ...o,
+      claims: [...(o.claims ?? []), claim],
+      history: [...o.history, { at: now, text: `Покупатель сообщил о ${kind === "loss" ? "утере" : "порче"} посылки. Возмещение до ${money(claim.limit)}.`, code: "claim-submitted", params }],
+    }),
+    "Претензия принята",
+    `Проверим и ответим. Возмещение — до ${money(claim.limit)}.`,
+    id,
+    now,
+    { code: "claim-submitted", params },
+  );
+}
+/** The operator decides a claim: an approved amount goes to the customer's internal balance. */
+export function decideParcelClaim(
+  state: State,
+  id: string,
+  claimId: string,
+  decision: "approved" | "declined",
+  amountUzs: number | undefined,
+  note: string,
+  now = Date.now(),
+): State {
+  const o = getOrder(state, id);
+  const claim = (o.claims ?? []).find((item) => item.id === claimId);
+  if (!claim) throw Error("Претензия не найдена.");
+  if (claim.status !== "submitted") throw Error("Претензия уже рассмотрена.");
+  const text = note.replace(/\s+/g, " ").trim().slice(0, 500);
+  if (decision === "declined") {
+    if (text.length < 5) throw Error("Укажите причину отказа для покупателя.");
+    const params = { reason: text };
+    return withNotification(
+      replace(state, {
+        ...o,
+        claims: (o.claims ?? []).map((item) => item.id === claimId ? { ...item, status: "declined" as const, note: text, decidedAt: now } : item),
+        history: [...o.history, { at: now, text: `Претензия отклонена: ${text}`, code: "claim-declined", params }],
+      }),
+      "Претензия отклонена",
+      text,
+      id,
+      now,
+      { code: "claim-declined", params },
+    );
+  }
+  const value = Math.round(amountUzs ?? 0);
+  if (!Number.isFinite(value) || value <= 0) throw Error("Укажите сумму возмещения.");
+  if (value > claim.limit) throw Error(`Возмещение по условиям — не больше ${money(claim.limit)}.`);
+  const params = { amount: value };
+  const next = replace(state, {
+    ...o,
+    claims: (o.claims ?? []).map((item) => item.id === claimId ? { ...item, status: "approved" as const, amount: value, ...(text ? { note: text } : {}), decidedAt: now } : item),
+    history: [...o.history, { at: now, text: `Претензия одобрена: ${money(value)} зачислено на баланс.`, code: "claim-approved", params }],
+  });
+  next.entries = [
+    ...state.entries,
+    { id: "claim:" + claim.id, orderId: id, at: now, amount: value, debit: "atlas-claims", credit: "customer-credit", description: claim.insured ? "Страховое возмещение по претензии" : "Компенсация по претензии без страховки" },
+  ];
+  return withNotification(next, "Возмещение зачислено", `${money(value)} — на ваш баланс в Atlas.`, id, now, { code: "claim-approved", params });
 }
 
 export function advanceOrder(

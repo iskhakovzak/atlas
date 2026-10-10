@@ -1,0 +1,24 @@
+/* Operator admin: full-width workspace; the catalog is a two-column desk (inputs left, grid of cards right). */
+main[data-view="admin"].site-main{max-width:none;padding-left:clamp(12px,2vw,32px);padding-right:clamp(12px,2vw,32px)}
+@media(min-width:1100px){
+ .catalog-workspace{grid-template-columns:minmax(340px,400px) minmax(0,1fr);align-items:start;column-gap:22px}
+ .catalog-workspace>.catalog-importer{grid-column:1;grid-row:1;padding:20px}
+ .catalog-workspace>.catalog-importer textarea{min-height:200px}
+ .catalog-workspace>.catalog-importer .catalog-import-options{grid-template-columns:minmax(0,1fr)}
+ .catalog-workspace>.admin-section:nth-child(2){grid-column:1;grid-row:2;max-height:70vh;overflow:auto}
+ .catalog-workspace>.admin-section:nth-child(3){grid-column:2;grid-row:1/span 2}
+ .catalog-workspace .catalog-collections article{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ .catalog-workspace .catalog-drafts{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+ .catalog-workspace .catalog-draft.expanded .catalog-editor{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 22px;align-items:start}
+ .catalog-workspace .catalog-draft.expanded .catalog-editor>.two-fields{grid-column:1/-1}
+ .catalog-workspace .catalog-draft.expanded .catalog-editor>.two-fields:first-of-type{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+ .catalog-workspace .catalog-draft.expanded .catalog-editor>:is(label,.catalog-editor-actions,.catalog-issues,.catalog-variant-quick,.catalog-editor-more,.catalog-refresh-diagnostics){grid-column:1/-1}
+}
+
+/* Every admin tab: heading and tabs take the full row, content sections sit side by side and stretch when alone. */
+@media(min-width:1100px){
+ .operator-admin{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
+ .operator-admin>*{flex:1 1 100%;min-width:0;margin-top:0;margin-bottom:0}
+ .operator-admin>:is(section.surface,.admin-section):not(.admin-legacy){flex:1 1 min(100%,560px)}
+ .operator-admin>:is(.page-heading,.admin-tabs,.catalog-workspace,.notice,details){flex-basis:100%}
+}

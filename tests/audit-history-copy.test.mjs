@@ -137,7 +137,7 @@ test('entries saved before codes go through the legacy localizer, amounts includ
 });
 
 test('every coded copy exists in ru, uz and en', () => {
-  const params = { total: 1000, amount: 1000, hold: 1000, fee: 1000, duty: 1000, from: 1, to: 2, currency: 'USD', actual: 1000, extra: 1000, released: 1000, refund: 1000, credited: 1000, estimated: 1000, tracking: 'T1', carrier: 'UPS', titleRu: 'Фото', titleUz: 'Foto', titleEn: 'Photo', reason: 'n/a', title: 'Swap', delta: 1000, status: 1, fromBalance: 1 };
+  const params = { total: 1000, amount: 1000, hold: 1000, fee: 1000, duty: 1000, from: 1, to: 2, currency: 'USD', actual: 1000, extra: 1000, released: 1000, refund: 1000, credited: 1000, estimated: 1000, tracking: 'T1', carrier: 'UPS', titleRu: 'Фото', titleUz: 'Foto', titleEn: 'Photo', reason: 'n/a', title: 'Swap', delta: 1000, status: 1, fromBalance: 1, limit: 1000, kind: 'loss' };
   assert.ok(historyCodes.length >= 20);
   for (const code of historyCodes) for (const locale of ['ru', 'uz', 'en']) {
     const text = renderHistory({ at: 1, text: 'FALLBACK', code, params }, locale);

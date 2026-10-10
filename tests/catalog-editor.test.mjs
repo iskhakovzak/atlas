@@ -370,3 +370,15 @@ test('operator confirmation survives edits and failed checks but yields to a fre
  assert.equal(rechecked.confirmedBy,undefined);assert.equal(rechecked.confirmedAt,undefined);
  assert.equal('confirmedAt' in publicCatalog(refreshed.document,tariff,now+8).products[0],false);
 });
+test('bulk publish takes every card that passes review and reports the rest; a lone failure still throws',()=>{
+ let doc=initialCatalog();
+ const good=importDraft(extracted,[],'США',1000),bad={...good,image:'',name:'No photo'};
+ doc.entries.push({id:'good',draft:good},{id:'bad',draft:bad});
+ assert.throws(()=>changeCatalog(doc,{kind:'publish',ids:['good','bad']},1001,tariff),/No photo/);
+ const report={published:0,skipped:[]};
+ const next=changeCatalog(doc,{kind:'publish',ids:['good','bad']},1001,tariff,report);
+ assert.equal(report.published,1);assert.equal(report.skipped.length,1);assert(report.skipped[0].startsWith('No photo'));
+ assert(next.entries.find(e=>e.id==='good').published);assert(!next.entries.find(e=>e.id==='bad').published);
+ const none={published:0,skipped:[]};
+ assert.throws(()=>changeCatalog(doc,{kind:'publish',ids:['bad']},1001,tariff,none),/No photo/);
+});
