@@ -20,6 +20,7 @@ import {
   CheckCheck,
   CreditCard,
   Info,
+  MapPin,
   Mail,
   MessageCircle,
   MessageSquareText,
@@ -71,6 +72,7 @@ import {
 import type { Action } from "@/lib/market/actions";
 import { countries } from "@/lib/market/world";
 import { localizedStatuses, type Locale } from "@/lib/market/i18n";
+import {requestImport} from "@/lib/market/import-client";
 import { homeCopy } from "@/lib/market/home-copy";
 import { formatSum } from "@/lib/market/format";
 import { localizeLegacyStoredCopy, renderHistory, renderNotification } from "@/lib/market/history-copy";
@@ -82,6 +84,7 @@ import { courierAllowanceUsd } from "@/lib/market/customs";
 import { calcCopy } from "@/lib/market/calc-copy";
 import { usdText } from "./calc-summary";
 import { Money } from "./money";
+import { CustomerExtraCharge, ExtraChargeHistory, OperatorExtraCharges, extraChargeCopy } from "./order-extra-charges";
 import {
   PageHeading,
   Empty,
@@ -610,7 +613,7 @@ function OrderDocuments({orderId,accountId,operatorMode,locale}:{orderId:string;
  const labels:Record<string,string>={invoice:words.invoice,'purchase-proof':words.proof,'warehouse-photo':words.photo,'warehouse-report':words.report};
  return <details className="order-documents"><summary>{words.title}<span>{documents.length}</span></summary><div className="document-list">{documents.length?documents.map(item=><a key={item.id} href={`/api/order-documents?id=${encodeURIComponent(item.id)}`}><span><b>{labels[item.kind]??item.kind}</b><small>{item.filename}</small></span><strong>{words.open}</strong></a>):<p className="micro">{words.empty}</p>}</div>{operatorMode&&accountId&&<form className="document-upload" onSubmit={event=>{event.preventDefault();void upload(event.currentTarget)}}><select name="kind" aria-label="Тип документа"><option value="invoice">{words.invoice}</option><option value="purchase-proof">{words.proof}</option><option value="warehouse-photo">{words.photo}</option><option value="warehouse-report">{words.report}</option></select><input name="file" type="file" accept="image/jpeg,image/png,application/pdf" required/><button className="btn secondary" disabled={busy}>{busy?'…':words.upload}</button></form>}</details>
 }
-type OrderConfirmation = { id: string; cancel: boolean; amount: number; storeShipping?: boolean; customs?: boolean; payment?: boolean };
+type OrderConfirmation = { id: string; cancel: boolean; amount: number; storeShipping?: boolean; customs?: boolean; payment?: boolean; /** The checkout the payment covers: one payment for all its waiting lines. */ batchId?: string; /** An operator's extra invoice to pay. */ extraCharge?: string };
 const refundMarkerCopy = /*@__PURE__*/withCyrillic({ ru: "Отметка возврата в Atlas", uz: "Atlasdagi qaytarish belgisi", en: "Refund marker in Atlas" } as const);
 const intakeTagCopy = {
   photo: /*@__PURE__*/withCyrillic({ ru: "Фото", uz: "Foto", en: "Photo requested at intake" }),
@@ -625,12 +628,14 @@ const intakeTagCopy = {
  * this very order. The first screen answers what was ordered, at which stage, for whom, how it travels and what to do
  * now, with the latest event; the calculation, approvals, services, documents and full history fold away below.
  */
-function CustomerOrderLine({ order: o, siblings, showThumb, locale, pricing, busy, expanded, onToggle, run, confirm, loadPhoto, allowanceUsd, storeCredited = 0 }: {
+function CustomerOrderLine({ order: o, siblings, showThumb, sharedDelivery = false, locale, pricing, busy, expanded, onToggle, run, confirm, loadPhoto, allowanceUsd, storeCredited = 0 }: {
   order: Order;
   /** All lines of the checkout: parcel-wide service requests kept on another line still cover this one. */
   siblings: readonly Order[];
   /** The variants of this model have different photos (colors): show this line's own. */
   showThumb: boolean;
+  /** The checkout card already names the recipient and address (`OrderGroup.delivery`): do not repeat them here. */
+  sharedDelivery?: boolean;
   allowanceUsd?: number;
   /** Store-delivery difference actually credited to the balance (legacy orders without a separate hold). */
   storeCredited?: number;
@@ -648,10 +653,12 @@ function CustomerOrderLine({ order: o, siblings, showThumb, locale, pricing, bus
   const gc = orderGroupCopy[locale];
   const statuses = localizedStatuses(locale);
   const payable = orderPayable(o);
-  const extra = isExtra(o), changePending = pendingChange(o), paymentPending = !o.cancelled && o.payment?.status === "pending";
-  const needsAction = !o.cancelled && (extra || changePending || paymentPending);
-  // The line's own stage stays visible next to the action flag: a payment to record does not hide "Ожидает выкупа".
-  const stage = o.cancelled ? ow.cancelled : o.payment?.status === "refunded" ? refundMarkerCopy[locale] : statuses[o.status];
+  const extra = isExtra(o), changePending = pendingChange(o);
+  const invoice = (o.extraCharges ?? []).some(charge => charge.status === "pending");
+  // The payment is the whole checkout's: it waits on the order card above, not on each line.
+  const needsAction = !o.cancelled && (extra || changePending || invoice);
+  // The line's own stage stays visible next to the action flag; before the checkout's payment nothing is bought yet.
+  const stage = o.cancelled ? ow.cancelled : o.payment?.status === "refunded" ? refundMarkerCopy[locale] : o.payment?.status === "pending" ? ow.awaitingPayment : statuses[o.status];
   const tone = o.cancelled || o.payment?.status === "refunded" ? "muted" : o.status === 5 ? "ok" : "info";
   const pendingRequests = (o.changeRequests ?? []).filter(request => request.status === "pending");
   const resolvedRequests = (o.changeRequests ?? []).filter(request => request.status !== "pending").reverse();
@@ -691,11 +698,7 @@ function CustomerOrderLine({ order: o, siblings, showThumb, locale, pricing, bus
 
       {needsAction && <section className="order-x-action" aria-label={gc.now}>
         <p className="order-x-eyebrow">{gc.now}</p>
-        {paymentPending && <div className="order-x-action-item">
-          <CreditCard size={20} aria-hidden="true" />
-          <div><h3>{ow.paymentWaiting}</h3><p>{ow.paymentLine} {o.payment!.id} · {formatSum(o.payment!.amount, locale)}. {ow.noCharge}.</p></div>
-          <button type="button" className="btn primary" onClick={() => confirm({ id: o.id, cancel: false, amount: o.payment!.amount, payment: true })}>{ow.recordPayment}<ArrowRight size={16} aria-hidden="true" /></button>
-        </div>}
+        <CustomerExtraCharge order={o} locale={locale} busy={busy} onPay={charge => confirm({ id: o.id, cancel: false, amount: charge.amount, extraCharge: charge.id })} />
         {pendingRequests.map(request => <div className="order-x-action-item" key={request.id}>
           <AlertCircle size={20} aria-hidden="true" />
           <div>
@@ -723,7 +726,7 @@ function CustomerOrderLine({ order: o, siblings, showThumb, locale, pricing, bus
       </section>}
 
       <dl className="order-x-details og-facts">
-        {o.delivery && <div><dt>{gc.recipient}</dt><dd>{o.delivery.recipient}{where && <small>{where}</small>}{o.delivery.phone && <a className="order-x-link" href={`tel:${o.delivery.phone.replace(/[^\d+]/g, "")}`}>{o.delivery.phone}</a>}</dd></div>}
+        {o.delivery && !sharedDelivery && <div><dt>{gc.recipient}</dt><dd>{o.delivery.recipient}{where && <small>{where}</small>}{o.delivery.phone && <a className="order-x-link" href={`tel:${o.delivery.phone.replace(/[^\d+]/g, "")}`}>{o.delivery.phone}</a>}</dd></div>}
         <div><dt>{gc.delivery}</dt><dd>{gc.speed[speed]}{days && <small>{gc.days(days[0], days[1])}</small>}</dd></div>
         <div><dt>{c.total}</dt><dd><b><Money value={payable} locale={locale} /></b>{payable !== o.quote.total && <small>{c.atCheckout(formatSum(o.quote.total, locale))}</small>}</dd></div>
         {o.parcel && <div><dt>{c.tracking}</dt><dd>{o.parcel.carrier}<span className="order-x-track"><span className="order-x-id">{o.parcel.trackingNumber}</span><CopyText text={o.parcel.trackingNumber} locale={locale} /></span><small>{lastParcelEvent ?? ow.parcelRegistered}{o.parcel.warehouseCode ? ` · ${locale === "ru" ? "склад" : isUzbek(locale) ? uzText(locale, "ombor") : "warehouse"} ${o.parcel.warehouseCode}` : ""}</small></dd></div>}
@@ -752,6 +755,7 @@ function CustomerOrderLine({ order: o, siblings, showThumb, locale, pricing, bus
         <summary>{gc.calculation}</summary>
         <div className="order-x-more-body">
           <CostLines q={o.quote} storeReserveWaived={o.product.sourceShippingEstimated === true} locale={locale} />
+          <ExtraChargeHistory order={o} locale={locale} />
           {o.storeShippingSettlement && <div className={"order-x-note " + (storeShippingExtra(o) ? "warn" : "info")}>
             <Package size={18} aria-hidden="true" />
             <div>
@@ -819,8 +823,9 @@ function CustomerOrderLine({ order: o, siblings, showThumb, locale, pricing, bus
  * One checkout as one card, a single line included: the heading answers when, how much, how many, at which stage and
  * whether the customer must act; then a section per store parcel, a block per model, and a row per variant.
  */
-function OrderGroupCard({ group, locale, line }: { group: OrderGroup; locale: Locale; line: (order: Order, store: OrderStoreGroup, showThumb: boolean) => ReactNode }) {
+function OrderGroupCard({ group, locale, line, onPay }: { group: OrderGroup; locale: Locale; line: (order: Order, store: OrderStoreGroup, showThumb: boolean) => ReactNode; onPay: (group: OrderGroup) => void }) {
   const gc = orderGroupCopy[locale];
+  const ow = customerOrderCopy[locale];
   const stores = groupStoreNames(group, locale);
   const stage = groupStageText(group, locale);
   const live = group.orders.length - group.cancelled;
@@ -839,6 +844,23 @@ function OrderGroupCard({ group, locale, line }: { group: OrderGroup; locale: Lo
       </div>
       {group.stage !== "cancelled" && <p className="order-group-sum"><small>{gc.total}</small><strong><Money value={group.payable} locale={locale} /></strong></p>}
     </header>
+    {group.payment && <div className="order-x-action-item og-pay">
+      <CreditCard size={20} aria-hidden="true" />
+      <div>
+        <h3>{gc.payTitle}</h3>
+        <p>{gc.payCovers(itemCount(group.orders.reduce((sum, order) => sum + (!order.cancelled && order.payment?.status === "pending" ? order.quantity : 0), 0), locale))}</p>
+        <strong className="order-x-delta">{formatSum(group.payment.amount, locale)}</strong>
+        <p className="micro">{ow.paymentLine} {group.payment.id} · {ow.noCharge}.</p>
+      </div>
+      <button type="button" className="btn primary" onClick={() => onPay(group)}>{gc.payButton}<ArrowRight size={16} aria-hidden="true" /></button>
+    </div>}
+    {group.delivery && group.stage !== "cancelled" && <div className="og-ship">
+      <MapPin size={16} aria-hidden="true" />
+      <p>
+        <span className="og-ship-who"><span className="sr-only">{gc.recipient}: </span><b>{group.delivery.profile.recipient}</b>{group.delivery.profile.phone && <a className="order-x-link" href={`tel:${group.delivery.profile.phone.replace(/[^\d+]/g, "")}`}>{group.delivery.profile.phone}</a>}</span>
+        <small>{[group.delivery.profile.city || group.delivery.profile.region, group.delivery.profile.address].filter(Boolean).join(", ")} · {gc.speed[group.delivery.speed]}</small>
+      </p>
+    </div>}
     {group.stores.map((store) => <div className="order-group-store" key={store.key}>
       <div className="og-store-head">
         <p className="order-group-store-title"><Package size={15} aria-hidden="true" />{gc.from(storeGroupName(store, locale), store.country && !storeGroupName(store, locale).includes(store.country) ? countryLabel(store.country, locale) : "")}</p>
@@ -881,14 +903,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
     [actualCustoms, setActualCustoms] = useState("0"),
     [actualStoreShipping, setActualStoreShipping] = useState("10"),
     [dims, setDims] = useState(["1.8", "30", "20", "15"]),
-    [confirmation, setConfirmation] = useState<{
-      id: string;
-      cancel: boolean;
-      amount: number;
-      storeShipping?: boolean;
-      customs?: boolean;
-      payment?: boolean;
-    } | null>(null),
+    [confirmation, setConfirmation] = useState<OrderConfirmation | null>(null),
     [busy, setBusy] = useState(false),
     [opsAccounts, setOpsAccounts] = useState<OperationsAccount[]>([]),
     [opsReady, setOpsReady] = useState(false),
@@ -1051,6 +1066,14 @@ export function OrdersView({ operations }: { operations: boolean }) {
     firstTab.current = true;
     if (!activeGroupCount && attentionGroupCount && !window.location.hash) queueMicrotask(() => setTab((current) => current === "active" ? "attention" : current));
   }, [operations, ready, activeGroupCount, attentionGroupCount]);
+  // The last checkout waiting for the customer was paid or decided: follow it to "В работе" instead of an empty tab.
+  const lastAttention = useRef(attentionGroupCount);
+  useEffect(() => {
+    const before = lastAttention.current;
+    lastAttention.current = attentionGroupCount;
+    if (operations || !ready || before === 0 || attentionGroupCount > 0 || tab !== "attention") return;
+    if (activeGroupCount) queueMicrotask(() => setTab((current) => current === "attention" ? "active" : current));
+  }, [operations, ready, tab, activeGroupCount, attentionGroupCount]);
   // The warehouse weighs a store parcel once (parcelOrders): every order of it shares the weight and the delivery.
   // Bought orders still on the way (status 1) hold the parcel until they arrive or the operator weighs without them.
   const weighGroup = (order: Order) => {
@@ -1120,11 +1143,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
     if (!o.product.sourceUrl) return;
     setBusy(true);
     try {
-      const response = await fetch("/api/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: o.product.sourceUrl }),
-      });
+      const response = await requestImport({ url: o.product.sourceUrl }, { maxWaitMs: 60_000 });
       const data = (await response.json()) as {
         image?: string;
         error?: string;
@@ -1309,9 +1328,13 @@ export function OrdersView({ operations }: { operations: boolean }) {
         />
       ) : (
         !operations ? visibleGroups.map((group) => {
-          const line = (o: Order, store: OrderStoreGroup, showThumb: boolean) => <CustomerOrderLine key={o.id} order={o} siblings={group.orders} showThumb={showThumb} locale={locale} pricing={pricing} busy={busy} expanded={expanded.includes(o.id)} onToggle={open => setExpanded(ids => open ? [...new Set([...ids, o.id])] : ids.filter(id => id !== o.id))} run={runOrderAction} confirm={setConfirmation} loadPhoto={order => void loadPhoto(order)} allowanceUsd={allowanceFor(o)} storeCredited={storeShippingCredited(state.entries, o)} />;
+          const line = (o: Order, store: OrderStoreGroup, showThumb: boolean) => <CustomerOrderLine key={o.id} order={o} siblings={group.orders} showThumb={showThumb} sharedDelivery={Boolean(group.delivery)} locale={locale} pricing={pricing} busy={busy} expanded={expanded.includes(o.id)} onToggle={open => setExpanded(ids => open ? [...new Set([...ids, o.id])] : ids.filter(id => id !== o.id))} run={runOrderAction} confirm={setConfirmation} loadPhoto={order => void loadPhoto(order)} allowanceUsd={allowanceFor(o)} storeCredited={storeShippingCredited(state.entries, o)} />;
           // Every checkout, a single line included, reads the same: checkout → store parcel → model → variant lines.
-          return <OrderGroupCard key={group.key} group={group} locale={locale} line={line} />;
+          const pay = (paid: OrderGroup) => {
+            const waiting = paid.orders.find(order => !order.cancelled && order.payment?.status === "pending");
+            if (waiting && paid.payment) setConfirmation({ id: waiting.id, cancel: false, amount: paid.payment.amount, payment: true, batchId: paid.batchId });
+          };
+          return <OrderGroupCard key={group.key} group={group} locale={locale} line={line} onPay={pay} />;
         }) : filtered.map((o) => (
           <details className="surface order-card compact-order" key={o.id} id={o.id} onToggle={event=>{const open=event.currentTarget.open;setExpanded(ids=>open?[...new Set([...ids,o.id])]:ids.filter(id=>id!==o.id))}}>
             <summary className="compact-order-summary">
@@ -1628,6 +1651,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
             {operations && o.status === 3 && !o.parcel && (
               <p className="micro">{ow.trackingFirst}</p>
             )}
+            {operations && <OperatorExtraCharges order={o} run={runOrderAction} locale={locale} />}
             {operations && <OperatorOrderTools order={o} notifications={orderAccount.get(o.id)?.state.notifications.filter((item) => item.orderId === o.id) ?? []} run={runOrderAction} locale={locale} />}
             {operations && <OperatorOrderCommunication order={o} customerName={orderAccount.get(o.id)?.name ?? ""} customerEmail={orderAccount.get(o.id)?.id.replace(/^email:/, "") ?? ""} recipientAvailable={Boolean(orderAccount.get(o.id))} run={runOrderAction} locale={locale} />}
             <OrderDocuments orderId={o.id} accountId={orderAccount.get(o.id)?.id} operatorMode={operations} locale={state.communication.language}/>
@@ -1848,6 +1872,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
                ? ow.cancelTitle
               : confirmation?.payment
                  ? ow.paymentTitle
+                 : confirmation?.extraCharge
+                   ? extraChargeCopy[locale].dialogTitle
                  : ow.extraTitle}
           </AlertDialogTitle>
           <AlertDialogDescription>
@@ -1855,6 +1881,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
                ? ow.cancelDescription
               : confirmation?.payment
                  ? ow.paymentDescription
+                 : confirmation?.extraCharge
+                   ? extraChargeCopy[locale].dialogText
                  : ow.extraDescription}
           </AlertDialogDescription>
           {!(confirmation?.cancel && !confirmation.amount) && <div className="confirm-price">
@@ -1873,7 +1901,11 @@ export function OrdersView({ operations }: { operations: boolean }) {
                   confirmation.cancel
                     ? { type: "cancel", id: confirmation.id }
                     : confirmation.payment
-                      ? { type: "payment-demo", id: confirmation.id }
+                      ? confirmation.batchId
+                        ? { type: "payment-demo-batch", batchId: confirmation.batchId, amount: confirmation.amount }
+                        : { type: "payment-demo", id: confirmation.id }
+                    : confirmation.extraCharge
+                      ? { type: "extra-charge-pay", id: confirmation.id, chargeId: confirmation.extraCharge, amount: confirmation.amount }
                     : confirmation.customs
                       ? { type: "approve-customs-extra", id: confirmation.id, amount: confirmation.amount }
                     : confirmation.storeShipping

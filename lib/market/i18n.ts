@@ -61,6 +61,25 @@ export function importManualEntryMessage(locale:Locale):string{
   }, locale);
 }
 
+/** A link Atlas does not read automatically (manualEntryStoreRoots, a site outside the store list, a browser store
+ * whose gateway did not answer): the customer types the details in and confirms them. */
+export function importManualStoreMessage(locale:Locale):string{
+  return pickLocale({
+    ru:"Atlas не получает данные этого товара автоматически. Откройте товар на сайте магазина и впишите название, цену, вариант и доставку сами — оператор Atlas сверит их перед выкупом.",
+    uz:"Atlas bu tovar ma’lumotlarini avtomatik olmaydi. Tovarni do‘kon saytida oching va nomi, narxi, varianti va yetkazishni o‘zingiz kiriting — Atlas operatori xariddan oldin ularni solishtiradi.",
+    en:"Atlas does not get this item's details automatically. Open the item on the store's site and enter the name, price, option and shipping yourself — an Atlas operator checks them before buying.",
+  }, locale);
+}
+
+/** A Walmart link whose data a collection service is still gathering; the page retries by itself. */
+export function importPendingMessage(locale:Locale):string{
+  return pickLocale({
+    ru:"Собираем данные товара через сервис магазина — это может занять до нескольких минут. Страница обновится сама.",
+    uz:"Mahsulot ma’lumotlari do‘kon xizmati orqali yig‘ilmoqda — bu bir necha daqiqagacha davom etishi mumkin. Sahifa o‘zi yangilanadi.",
+    en:"Gathering the product details through the store's data service — this can take up to a few minutes. The page will update by itself.",
+  }, locale);
+}
+
 export function setLocaleCookie(locale:Locale):void{
   if(typeof document==="undefined")return;
   const secure=window.location.protocol==="https:"?"; Secure":"";

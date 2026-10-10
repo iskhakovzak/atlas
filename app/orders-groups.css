@@ -17,6 +17,18 @@
 .order-group-sum strong { font-size: 18px; font-weight: 800; line-height: 1.2; letter-spacing: -0.01em; color: var(--home-ink); font-feature-settings: "tnum" 1; white-space: nowrap; }
 .order-group[data-stage="cancelled"] .order-group-title { color: var(--home-muted); }
 
+/* One payment for the whole checkout (since 10 October 2026): a warm card under the heading, above the parcels. */
+.order-group .og-pay { margin: 0 0 12px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--cx-warn) 40%, var(--home-line)); border-radius: 16px; background: var(--cx-warn-soft); }
+.og-pay p + p { margin-top: 4px; }
+
+/* Recipient, address and speed of the whole checkout, once on the card (lines no longer repeat them). */
+.og-ship { display: flex; align-items: flex-start; gap: 8px; margin: -4px 4px 12px; color: var(--home-muted); }
+.og-ship > svg { flex-shrink: 0; margin-top: 3px; }
+.og-ship p { display: grid; gap: 2px; min-width: 0; margin: 0; font-size: 13px; line-height: 1.45; }
+.og-ship-who { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; color: var(--home-ink); font-size: 14px; }
+.og-ship-who .order-x-link { font-size: 13px; }
+.og-ship small { overflow-wrap: anywhere; }
+
 /* The latest event: on the plate for the whole checkout, inside a line for that order. */
 .og-latest { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 9px 12px; border-radius: 12px; background: var(--home-soft); color: var(--home-muted); font-size: 13px; line-height: 1.45; }
 .og-latest > svg { flex-shrink: 0; margin-top: 2px; }
@@ -91,6 +103,8 @@
 
 @media (min-width: 640px) {
   .order-group { padding: 16px 16px 8px; }
+  .order-group .og-pay { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; padding: 14px 16px; }
+  .order-group .og-pay > .btn { grid-column: auto; }
   .order-group-head { padding: 0 4px 14px; align-items: center; }
   .order-group-title { font-size: 17px; }
   .order-group-sum { display: grid; gap: 2px; text-align: right; }
@@ -121,6 +135,8 @@
 html:not([data-theme="dark"]) .order-group { background: var(--day-surface); border-color: var(--day-line); box-shadow: var(--day-shadow); }
 html:not([data-theme="dark"]) .order-group[data-stage="attention"] { border-color: var(--day-slip-line); }
 html:not([data-theme="dark"]) .order-group-store-title { color: var(--day-muted); }
+html:not([data-theme="dark"]) .og-ship { color: var(--day-muted); }
+html:not([data-theme="dark"]) .og-ship-who { color: var(--day-ink); }
 html:not([data-theme="dark"]) .order-group-sum strong { color: var(--day-ink); }
 html:not([data-theme="dark"]) .og-model { border-color: var(--day-line-strong); box-shadow: none; }
 html:not([data-theme="dark"]) :is(.og-lines, .og-line + .og-line) { border-color: var(--day-line); }
@@ -138,6 +154,8 @@ html:not([data-theme="dark"]) .og-line[data-cancelled] :is(.og-line-variant, .og
 /* Atlas Night: an inset plate so the raised model blocks read as its content. */
 html[data-theme="dark"] .order-group { background: var(--night-inset); border-color: var(--night-line); }
 html[data-theme="dark"] .order-group-title { color: var(--night-ink); }
+html[data-theme="dark"] .og-ship { color: var(--night-muted); }
+html[data-theme="dark"] .og-ship-who { color: var(--night-ink); }
 html[data-theme="dark"] :is(.order-group-main > small, .order-group-sum small, .order-group-store-title, .og-store-head > small, .og-line-qty, .og-model-main small, .og-line-what > small, .og-progress-text small, .og-latest, .og-parcel-services small) { color: var(--night-muted); }
 html[data-theme="dark"] .order-group-main > .og-stage-summary { color: var(--night-ink); }
 html[data-theme="dark"] .order-group-sum strong { color: var(--night-ivory); }

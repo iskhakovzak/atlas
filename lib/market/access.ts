@@ -93,6 +93,7 @@ export function resolveAccess(input: { email?: string | null; method?: string | 
  * |-----------------------------------------------------|----------------|-------------------------|
  * | advance                                             | operations.act | procurement             |
  * | confirm-store-shipping, change-request-create       | operations.act | procurement             |
+ * | extra-charge-request, extra-charge-cancel           | operations.act | procurement             |
  * | order-issue-update (may propose a refund)           | operations.act | procurement             |
  * | receive, parcel-set, warehouse-inspect,             | operations.act | warehouse, procurement  |
  * |   warehouse-service-complete/-decline               |                |                         |
@@ -105,6 +106,8 @@ export const operatorActions: Record<string, { permission: Permission; roles?: r
   'confirm-store-shipping': { permission: 'operations.act', roles: ['procurement'] },
   'confirm-customs-duty': { permission: 'operations.act', roles: ['procurement'] },
   'change-request-create': { permission: 'operations.act', roles: ['procurement'] },
+  'extra-charge-request': { permission: 'operations.act', roles: ['procurement'] },
+  'extra-charge-cancel': { permission: 'operations.act', roles: ['procurement'] },
   'order-issue-update': { permission: 'operations.act', roles: ['procurement'] },
   'receive': { permission: 'operations.act' },
   'parcel-set': { permission: 'operations.act' },

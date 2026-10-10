@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import { fetchProduct, isAmazonUsUrl, ManualEntryFallbackError, UnsupportedStoreError, validateManualSourceUrl } from '@/lib/importer/fetch';
-import { isSupportedStoreHost } from '@/lib/importer/stores';
+import { isBrowserStoreHost, isManualEntryStoreHost, isSupportedStoreHost } from '@/lib/importer/stores';
 import { merchantRequest } from '@/lib/importer/worker-fetch';
 import { database, sameOrigin, json, failure, HttpError, requestJson } from '@/lib/market/server';
 import { currentUser } from '@/lib/auth/server';
 import { importRateBuckets } from '@/lib/market/import-preview';
-import { apiErrorMessage, importManualEntryMessage, requestLocale, serverError } from '@/lib/market/i18n';
+import { apiErrorMessage, importManualEntryMessage, importManualStoreMessage, importPendingMessage, requestLocale, serverError } from '@/lib/market/i18n';
 
 const importRequestSchema = z.object({ url: z.string().max(3000), fresh: z.boolean().optional() });
 
@@ -34,14 +34,17 @@ export async function POST(request: Request) {
     }
     await db.prepare('DELETE FROM market_rate_limits WHERE expires_at < ?').bind(now).run();
 
-    if (!autoImportSupported) {
-      const locale = requestLocale(request);
+    // A site outside the store list, or a store Atlas cannot read, is not asked: the page opens the form for the
+    // customer's own entry right away, with the confirmation checkbox, and the line can be ordered.
+    if (!autoImportSupported || isManualEntryStoreHost(new URL(sourceUrl).hostname)) {
+      const host = new URL(sourceUrl).hostname;
       return json({
         sourceUrl,
-        brand: new URL(sourceUrl).hostname.replace(/^www\./, ''),
+        brand: host.replace(/^(?:www2?|shop)\./, ''),
         warnings: [],
-        error: importManualEntryMessage(locale),
+        error: importManualStoreMessage(requestLocale(request)),
         manualEntryAvailable: true,
+        manualStore: true,
       }, 422);
     }
 
@@ -67,7 +70,19 @@ export async function POST(request: Request) {
       return json({ ...data, fetchedAt, expiresAt, cached: false });
     } catch (error) {
       const locale = requestLocale(request);
+      // Walmart through Bright Data: the collection is still running. The client asks again after retryAfterMs;
+      // the same snapshot is polled, never collected (and paid for) twice.
+      if (error instanceof ManualEntryFallbackError && error.reason === 'pending') {
+        return json({ sourceUrl, pending: true, retryAfterMs: error.retryAfterMs ?? 4000, message: locale === 'ru' ? error.message : importPendingMessage(locale) }, 202);
+      }
       const canManuallyEnter = error instanceof ManualEntryFallbackError || error instanceof Error && error.name === 'AbortError';
+      // A store only the Tashkent gateway's Chrome reads, and the gateway did not answer (the computer is off, the page
+      // timed out): the customer enters the details by hand, the same way as for a store Atlas never reads.
+      const host = new URL(sourceUrl).hostname;
+      if (canManuallyEnter && isBrowserStoreHost(host)) {
+        const partial = error instanceof ManualEntryFallbackError ? error.partial : undefined;
+        return json({ ...partial, sourceUrl, brand: partial?.brand ?? host.replace(/^(?:www2?|shop|api)\./, ''), warnings: partial?.warnings ?? [], error: importManualStoreMessage(locale), manualEntryAvailable: true, manualStore: true }, 422);
+      }
       // A link outside the store list is answered in the customer's language, with the number of supported stores.
       const unsupported = error instanceof UnsupportedStoreError ? error : undefined;
       const message = canManuallyEnter

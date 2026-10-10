@@ -41,7 +41,7 @@ export async function POST(request:Request){try{
   // Independent reads go out together: one D1 round trip instead of three in a row on every action.
   const [status,current,settings]=await Promise.all([customerStatus(user.userId),account(user),pricingAndPolicy()]);
   if(status==='blocked')throw new HttpError(403, 'err_11');
-  if(status==='review'&&['checkout','payment-demo'].includes(parsed.data.type))throw new HttpError(403, 'err_12');
+  if(status==='review'&&['checkout','payment-demo','payment-demo-batch','extra-charge-pay'].includes(parsed.data.type))throw new HttpError(403, 'err_12');
   if(parsed.data.type==='identity-confirm'){
     const identityAction=parsed.data;
     const owned=await database().prepare('SELECT id FROM market_identity_documents WHERE id=? AND user_id=?').bind(identityAction.documentId,user.userId).first();

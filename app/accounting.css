@@ -187,6 +187,12 @@
 
 /* exports: equal cards with an icon, a title and a description */
 .accounting .acc-grid-2 { grid-template-columns: repeat(auto-fit, minmax(160px, 240px)); }
+/* Сервисы: Bright Data settings — switches in a wrapping row, numbers in the usual grid. */
+.accounting .acc-provider-settings { display: grid; gap: 16px; }
+.accounting .acc-provider-settings fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.accounting .acc-provider-settings fieldset:first-child { display: flex; flex-wrap: wrap; gap: 4px 24px; }
+.accounting .acc-check { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 14px; cursor: pointer; }
+.accounting .acc-provider-settings fieldset:disabled .acc-check { cursor: default; opacity: .75; }
 .accounting .acc-export-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; align-items: stretch; }
 .accounting .acc-export-list li { display: grid; min-width: 0; }
 .accounting .acc-export { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 4px 12px; align-items: start; min-height: 44px; padding: 14px 16px; border-radius: 14px; border: 1px solid transparent; font: inherit; text-align: left; text-decoration: none; cursor: pointer; }

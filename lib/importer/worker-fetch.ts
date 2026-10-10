@@ -4,12 +4,17 @@ import {withDirectFallback} from './egress.ts';
 import type {MerchantFetch} from './fetch.ts';
 import type {EbayBrowseConfig} from './ebay.ts';
 import {createEbayAwareMerchantFetch} from './ebay-transport.ts';
-import {withMerchantRoutes, type MerchantRoute} from './route-ladder.ts';
+import {createRouteMemory, withMerchantRoutes, type MerchantRoute} from './route-ladder.ts';
+import {isBrowserStoreHost} from './stores.ts';
+import type {BrightDataPurpose, BrightDataRuntime} from './brightdata.ts';
+import {d1BrightDataJobs, readBrightDataSettings, type D1Like} from './brightdata-d1.ts';
 
+// Routes that just refused a store are skipped for a few minutes (the next product of that store answers sooner).
+const routeMemory=createRouteMemory();
 let cached:{endpoint:string;secret:string;fetcher:(input:string|URL,init?:RequestInit)=>Promise<Response>}|undefined;
 
 /** Use NYC egress only when the complete proxy configuration is present. */
-export const merchantRequest:MerchantFetch=createEbayAwareMerchantFetch(
+const pageRequest:MerchantFetch=createEbayAwareMerchantFetch(
 async function merchantRequest(input:string|URL,init?:RequestInit):Promise<Response>{
   const endpoint=env.ATLAS_IMPORT_PROXY_URL?.trim()??'';
   const secret=env.ATLAS_IMPORT_PROXY_SECRET??'';
@@ -21,10 +26,11 @@ async function merchantRequest(input:string|URL,init?:RequestInit):Promise<Respo
   if(tashkent||tashkentSecret||residential||residentialSecret){
     if(Boolean(tashkent)!==Boolean(tashkentSecret)||Boolean(residential)!==Boolean(residentialSecret)||Boolean(endpoint)!==Boolean(secret))throw new Error('Importer route is not fully configured.');
     const routes:MerchantRoute[]=[];
-    if(tashkent)routes.push({name:'tashkent',fetch:createMerchantProxyFetch({endpoint:tashkent,secret:tashkentSecret})});
+    // Stores only the gateway's own Chrome reads get time for it (a page opens in 1-6 s); the rest keep 3 s.
+    if(tashkent)routes.push({name:'tashkent',fetch:createMerchantProxyFetch({endpoint:tashkent,secret:tashkentSecret}),attemptMs:target=>isBrowserStoreHost(target.hostname)?9_000:undefined});
     if(endpoint)routes.push({name:'us-vps',fetch:createMerchantProxyFetch({endpoint,secret})});
     if(residential)routes.push({name:'residential',fetch:createMerchantProxyFetch({endpoint:residential,secret:residentialSecret})});
-    return withMerchantRoutes(routes)(input,init);
+    return withMerchantRoutes(routes,undefined,routeMemory)(input,init);
   }
   if(!endpoint&&!secret)return fetch(input,init);
   if(!endpoint||!secret)throw new Error('Importer egress proxy is not fully configured.');
@@ -46,3 +52,17 @@ async function merchantRequest(input:string|URL,init?:RequestInit):Promise<Respo
   };
 },
 );
+
+/** Bright Data for Walmart: only with the BRIGHTDATA_API_KEY secret and D1; settings live in market_settings. */
+function brightDataRuntime(purpose:BrightDataPurpose){
+  return async():Promise<BrightDataRuntime|undefined>=>{
+    const apiKey=(env as unknown as {BRIGHTDATA_API_KEY?:string}).BRIGHTDATA_API_KEY?.trim()??'';
+    if(!apiKey||!env.DB)return;
+    const db=env.DB as unknown as D1Like;
+    return {apiKey,settings:await readBrightDataSettings(db),jobs:d1BrightDataJobs(db),purpose};
+  };
+}
+/** Customer links, the cart and checkout checks. */
+export const merchantRequest:MerchantFetch=Object.assign((input:string|URL,init?:RequestInit)=>pageRequest(input,init),{ebayBrowseConfig:pageRequest.ebayBrowseConfig,brightData:brightDataRuntime('customer')});
+/** The catalog editor and the hourly catalog refresh: Bright Data only when the "catalog" setting is on. */
+export const catalogMerchantRequest:MerchantFetch=Object.assign((input:string|URL,init?:RequestInit)=>pageRequest(input,init),{ebayBrowseConfig:pageRequest.ebayBrowseConfig,brightData:brightDataRuntime('catalog')});

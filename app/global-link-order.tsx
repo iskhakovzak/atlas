@@ -79,6 +79,7 @@ import {
 } from "@/lib/market/community-deals";
 import {uzText} from '@/lib/market/uz-cyrl';
 import {isUzbek,type Locale} from '@/lib/market/i18n';
+import {requestImport} from "@/lib/market/import-client";
 
 const countryAliases:Record<string,string>={'United States':'США','US':'США','AQSh':'США','Spain':'Испания','Ispaniya':'Испания','Germany':'Германия','Germaniya':'Германия','United Kingdom':'Великобритания','Buyuk Britaniya':'Великобритания','France':'Франция','Fransiya':'Франция','Italy':'Италия','Italiya':'Италия','Romania':'Румыния','Ruminiya':'Румыния','China':'Китай','Xitoy':'Китай','Turkey':'Турция','Turkiya':'Турция','Japan':'Япония','Yaponiya':'Япония','South Korea':'Южная Корея','Janubiy Koreya':'Южная Корея','United Arab Emirates':'ОАЭ','BAA':'ОАЭ','Canada':'Канада','Kanada':'Канада','Australia':'Австралия','Avstraliya':'Австралия','Other country':'Другая страна','Boshqa mamlakat':'Другая страна'};
 const categoryAliases:Record<string,string>={'Shoes':'Обувь','Oyoq kiyim':'Обувь','Clothing':'Одежда','Kiyim':'Одежда','Electronics':'Электроника','Elektronika':'Электроника','Accessories':'Аксессуары','Aksessuarlar':'Аксессуары','Beauty & care':'Красота и уход','Go‘zallik va parvarish':'Красота и уход','Home & living':'Дом и быт','Uy va maishiy':'Дом и быт','Sports':'Спорт','Boshqa':'Другое','Other':'Другое'};
@@ -256,10 +257,12 @@ export function GlobalLinkOrder() {
     [showSourceForm, setShowSourceForm] = useState(() => !requestedUrl),
     [note, setNote] = useState(seed ? tx(`Данные из подборки ${seed.store} на ${seed.observedOn}. Atlas сверяет цену и вариант с магазином при добавлении в корзину. Вес — оценка Atlas: склад взвесит посылку.`, `${seed.store} to‘plamidagi ma’lumotlar, ${seed.observedOn}. Atlas savatga qo‘shishda narx va variantni do‘kon bilan solishtiradi. Vazn — Atlas bahosi: ombor jo‘natmani tortadi.`, `Data from the ${seed.store} selection as of ${seed.observedOn}. Atlas checks the price and option with the store when you add the item to the cart. Weight is an Atlas estimate: the warehouse weighs the parcel.`) : dealSeed ? tx(`Цена и фото сохранены из подборки на ${dealSeed.observedOn}. Atlas сейчас сверяет их с магазином.`, `Narx va surat ${dealSeed.observedOn} sanadagi to‘plamdan olingan. Atlas hozir ularni do‘kon bilan solishtirmoqda.`, `Price and photo saved from the selection on ${dealSeed.observedOn}. Atlas is checking them with the store now.`) : ""),
     [weightOrigin, setWeightOrigin] = useState(tx("Оценка по категории","Kategoriya bo‘yicha taxmin","Category estimate")),
-    [sourceCheckStatus, setSourceCheckStatus] = useState<'idle'|'checking'|'verified'|'failed'>('idle'),
+    [sourceCheckStatus, setSourceCheckStatus] = useState<'idle'|'checking'|'verified'|'failed'|'manual'>('idle'),
     [importedAt, setImportedAt] = useState<number | undefined>(),
     [sourceExpiresAt, setSourceExpiresAt] = useState<number | undefined>(),
     [formIssue, setFormIssue] = useState(""),
+    // A store Atlas does not read (manualEntryStoreRoots): the customer confirms the details typed from its page.
+    [manualConfirmed, setManualConfirmed] = useState(false),
     [dataOpen, setDataOpen] = useState(false),
     [foundShipping, setFoundShipping] = useState<{
       amount: number;
@@ -445,7 +448,7 @@ export function GlobalLinkOrder() {
   function currentChoices():DraftChoices{
     const choices:DraftChoices={picked,variant,selectedColor,selectedSize,manualQuantity,comment,previewSpeed:speedTouched.current?previewSpeed:undefined};
     if(!variants.length&&variant.trim())choices.manualOption={label:variant.trim(),quantity:manualQuantity};
-    if(sourceCheckStatus==='failed'&&!catalogProductFlow)choices.manual={name,currency,amount,shipping,shippingCurrency,shippingEstimated,weight,weightBasis,weightOrigin,country,otherCountry,category};
+    if((sourceCheckStatus==='failed'||sourceCheckStatus==='manual')&&!catalogProductFlow)choices.manual={name,currency,amount,shipping,shippingCurrency,shippingEstimated,weight,weightBasis,weightOrigin,country,otherCountry,category};
     return choices;
   }
   /** Options still sold keep their quantities (within stock); gone ones are named and never swapped for another option. */
@@ -484,7 +487,7 @@ export function GlobalLinkOrder() {
     if(saved.previewSpeed){speedTouched.current=true;setPreviewSpeed(saved.previewSpeed)}
     // What the customer typed comes back only while the store still gives nothing for it.
     const typed=saved.manual;
-    if(typed&&sourceCheckStatus==='failed'){
+    if(typed&&(sourceCheckStatus==='failed'||sourceCheckStatus==='manual')){
       if(typed.name.trim())setName(typed.name);
       if(Number(typed.amount)>0){setAmount(typed.amount);if(currencies.includes(typed.currency))setCurrency(typed.currency)}
       if(typed.shipping!==''&&Number(typed.shipping)>=0){setShipping(typed.shipping);setShippingCurrency(typed.shippingCurrency);setShippingEstimated(typed.shippingEstimated)}
@@ -526,6 +529,7 @@ export function GlobalLinkOrder() {
     setUrl(link);
     setBusy(true);
     setSource(link);
+    setManualConfirmed(false);
 
     setSourceCheckStatus('checking');
     setAtlasLocks(null);setUnlocked({});setGoneOptions([]);setChoiceNote("");setBasePrice(undefined);
@@ -558,16 +562,19 @@ export function GlobalLinkOrder() {
     setNote(linkDealSeed ? tx(`Цена и фото сохранены из подборки на ${linkDealSeed.observedOn}. Atlas сверяет их с магазином.`, `Narx va surat ${linkDealSeed.observedOn} sanadagi to‘plamdan olingan. Atlas ularni do‘kon bilan solishtiradi.`, `Price and photo saved from the selection on ${linkDealSeed.observedOn}. Atlas checks them with the store.`) : linkSeed ? tx(`Товар из каталога ${linkSeed.store}. Atlas сверит цену и вариант с магазином.`, `${linkSeed.store} katalogidagi tovar. Atlas narx va variantni do‘kon bilan solishtiradi.`, `Item from the ${linkSeed.store} catalog. Atlas checks the price and option with the store.`) : "");
     setFoundShipping(null);
     try {
-      const response = await fetch("/api/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // A product opened for ordering is checked against the merchant now;
-        // the short cache remains for batch imports and repeat browsing only.
-        body: JSON.stringify({ url: link, fresh: true }),
+      // A product opened for ordering is checked against the merchant now;
+      // the short cache remains for batch imports and repeat browsing only.
+      // Walmart may answer "still collecting" (202): the page says so and asks again by itself.
+      const response = await requestImport({ url: link, fresh: true }, {
+        isCancelled: () => seq !== loadSeq.current,
+        onPending: (pending) => { if (seq === loadSeq.current && pending.message) setNote(pending.message); },
       });
+      if (response.status === 202) return;
       const data: Extracted & {
         error?: string;
         manualEntryAvailable?: boolean;
+        /** A store Atlas does not read: the customer enters the details (lib/importer/stores.ts manualEntryStoreRoots). */
+        manualStore?: boolean;
         fetchedAt?: number;
         expiresAt?: number;
         cached?: boolean;
@@ -611,8 +618,11 @@ export function GlobalLinkOrder() {
           const estimate=estimateBoxedWeight(partialCategory,data.title??'');
           setWeight(String(stated??estimate.kg));setWeightBasis(stated!==undefined?'store':estimate.basis==='title'?'title':'estimate');
         }
-        setSourceCheckStatus('failed');
-        setNote(tx("Автоматически получены не все данные. Проверьте цену и вариант.","Ma’lumotlarning hammasi avtomatik olinmadi. Narx va variantni tekshiring.","Some details were not available automatically. Review the price and option."));
+        // A store Atlas does not read at all opens the form for the customer's own entry; anything else is a failed check.
+        const manualStore=data.manualStore===true;
+        setSourceCheckStatus(manualStore?'manual':'failed');
+        setNote(manualStore?"":tx("Автоматически получены не все данные. Проверьте цену и вариант.","Ma’lumotlarning hammasi avtomatik olinmadi. Narx va variantni tekshiring.","Some details were not available automatically. Review the price and option."));
+        if(manualStore)setDataOpen(true);
         setShowSourceForm(false);
         return;
       }
@@ -913,6 +923,8 @@ export function GlobalLinkOrder() {
   const discount = storeDiscount({ usd: headAmount, sourcePrice: headAmount, sourceReferencePrice: shownReference });
   const checkedTime = importedAt ? `${String(new Date(importedAt).getHours()).padStart(2, "0")}:${String(new Date(importedAt).getMinutes()).padStart(2, "0")}` : "";
   // Locked: what Atlas got from the store (all of it once the check succeeded) or what an Atlas catalog card fixes.
+  // Verified with the store, or typed by the customer for a store Atlas does not read: the item can be ordered.
+  const orderable = sourceCheckStatus === "verified" || sourceCheckStatus === "manual";
   const atlasLoaded = sourceCheckStatus === "verified" && Boolean(atlasLocks);
   const locks: LockFields = {
     name: (catalogProductFlow || Boolean(atlasLoaded && atlasLocks?.name)) && !unlocked.name,
@@ -986,11 +998,16 @@ export function GlobalLinkOrder() {
           <Link className="btn primary" href="/cart"><ShoppingBag size={16} aria-hidden="true" />{tx("В корзину", "Savatga", "Go to cart")}</Link>
         </span>
       </div>}
-      {isGuest && (checking || sourceCheckStatus==='verified') && <p className="lo-guest">{canKeep ? lc.guest : lc.guestNoKeep}</p>}
+      {isGuest && (checking || orderable) && <p className="lo-guest">{canKeep ? lc.guest : lc.guestNoKeep}</p>}
       {note && !source && <div className="notice" role="status"><p>{note}</p></div>}
       {source && !checking && sourceCheckStatus==='failed' && <div className="notice" role="status">
         <p>{tx('Магазин пока не предоставил проверяемую цену или варианты. Повторите автоматическую загрузку позже.','Do‘kon hozircha tekshiriladigan narx yoki variantlarni bermadi. Avtomatik yuklashni keyinroq takrorlang.','The store has not supplied a verifiable price or options yet. Retry automatic import later.')}</p>
         <button type="button" className="btn secondary" onClick={()=>void load(source)}>{tx('Повторить автозагрузку','Avtomatik yuklashni takrorlash','Retry automatic import')}</button>
+      </div>}
+
+      {source && !checking && sourceCheckStatus==='manual' && <div className="notice lo-manual-store" role="status">
+        <p>{tx('Atlas не получает данные этого товара автоматически. Откройте товар на сайте магазина и впишите название, цену, вариант и доставку сами — оператор Atlas сверит их перед выкупом.','Atlas bu tovar ma’lumotlarini avtomatik olmaydi. Tovarni do‘kon saytida oching va nomi, narxi, varianti va yetkazishni o‘zingiz kiriting — Atlas operatori xariddan oldin ularni solishtiradi.','Atlas does not get this item\'s details automatically. Open the item on the store\'s site and enter the name, price, option and shipping yourself — an Atlas operator checks them before buying.')}</p>
+        <a className="btn secondary" href={source} target="_blank" rel="noopener noreferrer">{tx('Открыть товар в магазине','Tovarni do‘konda ochish','Open the item in the store')}<ExternalLink size={14} aria-hidden="true" /></a>
       </div>}
 
       {(source || checking) && (
@@ -1003,7 +1020,7 @@ export function GlobalLinkOrder() {
             e.preventDefault();
             if (checking) return;
             try {
-              if(sourceCheckStatus!=='verified'){
+              if(!orderable){
                 const message=tx('Загрузка ещё не завершилась. Дождитесь результата или вставьте ссылку повторно.','Yuklash hali tugamadi. Natijani kuting yoki havolani qayta kiriting.','Import has not finished. Wait for the result or enter the link again.');
                 setFormIssue(message);toast.error(message);return;
               }
@@ -1015,6 +1032,7 @@ export function GlobalLinkOrder() {
                 {id:'amount',invalid:picks.length?picks.some(([label])=>!(priceOf(label)>0)):!(Number(amount)>0),message:tx('Укажите цену товара больше нуля.','Tovar narxini noldan katta kiriting.','Enter an item price greater than zero.')},
                 {id:'shipping',invalid:!shippingFree&&!shippingTyped,message:tx('Укажите доставку магазина до склада Atlas; 0 — только если она бесплатная.','Do‘kondan Atlas omborigacha yetkazishni kiriting; 0 faqat bepul bo‘lsa.','Enter store-to-Atlas shipping; use 0 only when it is free.')},
                 {id:'weight',invalid:validBoxedWeight(weight)===undefined,message:tx('Укажите вес товара с коробкой от 0,01 до 49,5 кг.','Qadoq bilan vaznni 0,01–49,5 kg oralig‘ida kiriting.','Enter boxed weight from 0.01 to 49.5 kg.')},
+                {id:'manual-confirm',invalid:sourceCheckStatus==='manual'&&!manualConfirmed,message:tx('Подтвердите, что сверили название, цену, вариант и доставку со страницей магазина.','Nomi, narxi, varianti va yetkazishni do‘kon sahifasi bilan solishtirganingizni tasdiqlang.','Confirm that you checked the name, price, option and shipping against the store page.')},
               ].find(field=>field.invalid);
               if(missing){
                 setFormIssue(missing.message);
@@ -1092,7 +1110,8 @@ export function GlobalLinkOrder() {
                 weightBasis: weightBasis === "title" ? "estimate" : weightBasis,
                 importedAt,
                 sourceExpiresAt,
-                sourceManuallyConfirmed:false,
+                // Only for a store Atlas does not read: the server then takes the customer's confirmed details (lib/importer/manual-fallback.ts).
+                sourceManuallyConfirmed:sourceCheckStatus==='manual'&&manualConfirmed,
                  imageOrigin: importedAt ? tx("страница магазина","do‘kon sahifasi","store page") : tx("ручной ввод","qo‘lda kiritish","manual entry"),
                 declarationDescription: declaration || undefined,
               };
@@ -1137,7 +1156,7 @@ export function GlobalLinkOrder() {
               {brand || sourceHost || !checking
                 ? <p className="basket-brand">{[brand, sourceHost && brand !== sourceHost ? sourceHost : ""].filter(Boolean).join(" · ")}</p>
                 : <span className="lo-skel lo-skel-brand" aria-hidden="true" />}
-              <h2 id="lo-product-name">{name || (checking ? <><span className="sr-only">{c.get}</span><span className="lo-skel lo-skel-title" aria-hidden="true" /></> : sourceCheckStatus === "failed" ? tx('Данные товара пока недоступны','Tovar ma’lumotlari hozircha mavjud emas','Item details are not available yet') : c.empty)}</h2>
+              <h2 id="lo-product-name">{name || (checking ? <><span className="sr-only">{c.get}</span><span className="lo-skel lo-skel-title" aria-hidden="true" /></> : sourceCheckStatus === "manual" ? tx('Впишите данные товара','Tovar ma’lumotlarini kiriting','Enter the item details') : sourceCheckStatus === "failed" ? tx('Данные товара пока недоступны','Tovar ma’lumotlari hozircha mavjud emas','Item details are not available yet') : c.empty)}</h2>
               {checking
                 ? <p className="lo-store-price">{lc.storePrice}: <span className="lo-skel lo-skel-price" aria-hidden="true" /></p>
                 : <p className="lo-store-price lo-reveal">{lc.storePrice}: <b>{storePriceText}</b>{discount && <WasPrice was={discount.was} percent={discount.percent} format={sourceFormat} />}{sourceCheckStatus === "verified" && checkedTime && <small> · {lc.checkedAt(checkedTime)}</small>}</p>}
@@ -1145,7 +1164,7 @@ export function GlobalLinkOrder() {
             </div>
           </section>
 
-          {checking ? <StoreCheck host={(() => { try { return new URL(source || url).hostname.replace(/^www\./, ""); } catch { return ""; } })()} locale={lang} /> : sourceCheckStatus==='verified' && <section className="lo-card lo-variant">
+          {checking ? <StoreCheck host={(() => { try { return new URL(source || url).hostname.replace(/^www\./, ""); } catch { return ""; } })()} locale={lang} /> : orderable && <section className="lo-card lo-variant">
             <div className="field variant-matrix" data-order-variant tabIndex={-1}>
               <label htmlFor="variant">{c.variant}</label>
               {variants.length===1 ? <div className="single-variant-selection lo-single-option">
@@ -1207,7 +1226,7 @@ export function GlobalLinkOrder() {
           </aside>
           </div>
 
-          {!checking && sourceCheckStatus==='verified' && <div className="lo-sheet lo-sheet-finish">
+          {!checking && orderable && <div className="lo-sheet lo-sheet-finish">
           <section className={"lo-card lo-data" + (dataExpanded ? " open" : "")}>
             <button type="button" className="lo-data-toggle" aria-expanded={dataExpanded} aria-controls="lo-data-fields" onClick={() => setDataOpen(!dataExpanded)}>
               <span>
@@ -1324,12 +1343,15 @@ export function GlobalLinkOrder() {
 
           <section className="lo-card lo-confirm">
             {formIssue && <p className="basket-consent-error" role="alert">{formIssue}</p>}
-            <p className="micro" role="status">{tx("Atlas автоматически сверит цену, валюту и выбранный вариант перед добавлением в корзину.","Atlas savatga qo‘shishdan oldin narx, valyuta va tanlangan variantni avtomatik tekshiradi.","Atlas automatically checks the price, currency and selected option before adding it to your cart.")}</p>
+            {sourceCheckStatus==='manual' ? <div className={"basket-consent" + (formIssue && !manualConfirmed ? " invalid" : "")}>
+              <input id="manual-confirm" type="checkbox" checked={manualConfirmed} onChange={(e) => { setManualConfirmed(e.target.checked); if (e.target.checked) setFormIssue(""); }} />
+              <label htmlFor="manual-confirm">{tx('Я сверил название, цену, вариант и доставку со страницей магазина. Оператор Atlas сверит их с магазином перед выкупом.','Nomi, narxi, varianti va yetkazishni do‘kon sahifasi bilan solishtirdim. Atlas operatori xariddan oldin ularni do‘kon bilan solishtiradi.','I checked the name, price, option and shipping against the store page. An Atlas operator checks them with the store before buying.')}</label>
+            </div> : <p className="micro" role="status">{tx("Atlas автоматически сверит цену, валюту и выбранный вариант перед добавлением в корзину.","Atlas savatga qo‘shishdan oldin narx, valyuta va tanlangan variantni avtomatik tekshiradi.","Atlas automatically checks the price, currency and selected option before adding it to your cart.")}</p>}
             <div className={"lo-cta-row" + (cartUnits ? " has-cart" : "")}>
             <button className="btn primary basket-cta" disabled={addBusy || status==='loading'}>{(addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{pendingAdd.sending ? lc.pending.sending : adding ? c.adding : isGuest ? (canKeep ? lc.signinAdd : lc.signinContinue) : k.addOptions(Math.max(1, picks.length), Math.max(1, units))}{!addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>
             {cartUnits > 0 && <CartEntry count={cartUnits} label={cartLabel} />}
             </div>
-            <ul className="basket-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{cc.summary.assurance}</li><li>{sourceCheckStatus === "verified" ? <ShieldCheck size={16} aria-hidden="true" /> : <Info size={16} aria-hidden="true" />}{sourceCheckStatus === "verified" ? checkedText : c.freshText}</li></ul>
+            <ul className="basket-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{cc.summary.assurance}</li><li>{sourceCheckStatus === "verified" ? <ShieldCheck size={16} aria-hidden="true" /> : <Info size={16} aria-hidden="true" />}{sourceCheckStatus === "verified" ? checkedText : sourceCheckStatus === "manual" ? tx("Данные введены вами по странице магазина.","Ma’lumotlarni do‘kon sahifasi bo‘yicha o‘zingiz kiritdingiz.","You entered the details from the store page.") : c.freshText}</li></ul>
           </section>
           </div>}
         </form>
@@ -1338,7 +1360,7 @@ export function GlobalLinkOrder() {
       {/* On phones the total bar stays put through the check, so the page does not jump when the price arrives. */}
       {(source || checking) && <div className={"basket-sticky lo-sticky" + (isGuest ? " guest" : "")} role="region" aria-label={lc.total}>
         <div><span>{k.lines.total}</span><strong>{checking ? <span className="lo-skel lo-skel-sum" aria-hidden="true" /> : previewSums ? formatSum(previewSums.total, lang) : "—"}</strong></div>
-        <button type="submit" form="link-order-form" className="btn primary" disabled={checking || sourceCheckStatus!=='verified' || addBusy || status==='loading'}>{(checking || addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{checking ? tx("Проверяем…", "Tekshiryapmiz…", "Checking…") : addBusy ? c.adding : isGuest ? (canKeep ? lc.signinAddShort : lc.signinContinue) : lc.addShort}{!checking && !addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>
+        <button type="submit" form="link-order-form" className="btn primary" disabled={checking || !orderable || addBusy || status==='loading'}>{(checking || addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{checking ? tx("Проверяем…", "Tekshiryapmiz…", "Checking…") : addBusy ? c.adding : isGuest ? (canKeep ? lc.signinAddShort : lc.signinContinue) : lc.addShort}{!checking && !addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>
         {cartUnits > 0 && <CartEntry count={cartUnits} label={cartLabel} compact />}
       </div>}
     </div>

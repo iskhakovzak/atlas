@@ -46,13 +46,16 @@ export function sameMerchantRedirect(source: URL, target: URL) {
     if (host === 'us.puma.com') return 'puma.com';
     if (host === 'usa.tommy.com') return 'tommy.com';
     if (host === 'en.zalando.de') return 'zalando.de';
+    // US storefront subdomains (lib/importer/stores.ts localizedHosts) belong to the brand's root.
+    const subdomain = host.match(/^(?:en|us|usa|store|shop|electronics|www\.usa)\.((?:aboutyou\.de|burberry\.com|google\.com|lululemon\.com|louisvuitton\.com|nothing\.tech|pandora\.net|philips\.com|sony\.com))$/)?.[1];
+    if (subdomain) return subdomain;
     if (['shop.mango.com', 'shop.hm.com', 'shop.uniqlo.com', 'shop.nike.com', 'shop.adidas.com'].includes(host)) return host.slice(5);
     return host;
   };
   if (source.hostname === 'ebay.us' && isEbayStoreHost(target.hostname)) return true;
   if (root(source) !== root(target)) return false;
   const locale = (url: URL) => url.pathname.match(/^\/(?:[a-z]{2}[-_])?(us|es|de|gb|uk|fr|it|ro|cn|tr|jp|kr|ae|ca|au)(?:[-_/]|$)/i)?.[1].toLowerCase().replace(/^uk$/, 'gb')
-    ?? (['us.puma.com', 'usa.tommy.com'].includes(url.hostname.toLowerCase()) ? 'us' : undefined);
+    ?? (/^(?:us\.puma\.com|usa\.tommy\.com|us\.burberry\.com|us\.louisvuitton\.com|us\.nothing\.tech|us\.pandora\.net|www\.usa\.philips\.com)$/.test(url.hostname.toLowerCase()) ? 'us' : undefined);
   return !locale(source) || !locale(target) || locale(source) === locale(target);
 }
 

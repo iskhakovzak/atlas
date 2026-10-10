@@ -9,14 +9,14 @@ import {operatorQueueMaxPageSize,operatorQueuePageSize,parseQueueCursor,queueCur
 export type QueueStatement={bind(...values:unknown[]):QueueStatement;all<T=Record<string,unknown>>():Promise<{results:T[]}>};
 export type QueueDb={prepare(sql:string):QueueStatement};
 
-type SummaryRow={account_id:string;id:string;created_at:number;status:number;cancelled:number|null;issue_status:string|null;settlement_extra:number|null;extra_approved:number|null;store_extra:number|null;store_extra_approved:number|null;customs_extra:number|null;customs_extra_approved:number|null;change_pending:number;inspection:string|null;payment_status:string|null;product_name:string|null;brand:string|null;variant:string|null;recipient:string|null;recipient_phone:string|null;city:string|null};
+type SummaryRow={account_id:string;id:string;created_at:number;status:number;cancelled:number|null;issue_status:string|null;settlement_extra:number|null;extra_approved:number|null;store_extra:number|null;store_extra_approved:number|null;customs_extra:number|null;customs_extra_approved:number|null;change_pending:number;extra_pending:number;inspection:string|null;payment_status:string|null;product_name:string|null;brand:string|null;variant:string|null;recipient:string|null;recipient_phone:string|null;city:string|null};
 const field=(path:string,as:string)=>`json_extract(o.value,'${path}') AS ${as}`;
 const summarySql=`SELECT a.user_id AS account_id,${[
  field('$.id','id'),field('$.createdAt','created_at'),field('$.status','status'),field('$.cancelled','cancelled'),field('$.issueCase.status','issue_status'),
  field('$.settlement.extra','settlement_extra'),field('$.extraApproved','extra_approved'),field('$.storeShippingSettlement.extra','store_extra'),field('$.storeShippingExtraApproved','store_extra_approved'),
  field('$.customsSettlement.extra','customs_extra'),field('$.customsExtraApproved','customs_extra_approved'),field('$.warehouseInspection.condition','inspection'),field('$.payment.status','payment_status'),
  field('$.product.name','product_name'),field('$.product.brand','brand'),field('$.variant','variant'),field('$.delivery.recipient','recipient'),field('$.delivery.phone','recipient_phone'),field('$.delivery.city','city'),
-].join(',')},EXISTS(SELECT 1 FROM json_each(o.value,'$.changeRequests') c WHERE json_extract(c.value,'$.status')='pending') AS change_pending FROM market_accounts a, json_each(a.state,'$.orders') o`;
+].join(',')},EXISTS(SELECT 1 FROM json_each(o.value,'$.changeRequests') c WHERE json_extract(c.value,'$.status')='pending') AS change_pending,EXISTS(SELECT 1 FROM json_each(o.value,'$.extraCharges') x WHERE json_extract(x.value,'$.status')='pending') AS extra_pending FROM market_accounts a, json_each(a.state,'$.orders') o`;
 
 export type QueueSummary={accountId:string;id:string;createdAt:number;order:Order;credit:number;search:Parameters<typeof queueMatches>[0]};
 /**
@@ -40,6 +40,7 @@ export async function queueSummaries(db:QueueDb):Promise<QueueSummary[]>{
    storeShippingSettlement:row.store_extra!==null?{extra:row.store_extra}:undefined,storeShippingExtraApproved:!!row.store_extra_approved,
    customsSettlement:row.customs_extra!==null?{extra:row.customs_extra}:undefined,customsExtraApproved:!!row.customs_extra_approved,
    changeRequests:row.change_pending?[{status:'pending'}]:[],
+   extraCharges:row.extra_pending?[{status:'pending'}]:[],
    warehouseInspection:row.inspection?{condition:row.inspection}:undefined,
    payment:row.payment_status?{status:row.payment_status}:undefined,
   } as unknown as Order;

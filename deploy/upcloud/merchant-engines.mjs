@@ -7,12 +7,14 @@
  * `auto` mode the proxy tries the engine that last worked for the host first and
  * moves on only when the answer is a wall. No engine solves a CAPTCHA: a page
  * that still asks for one is returned as-is and the importer falls back to
- * manual entry.
+ * manual entry. `browser` (browser-engine.mjs) opens the page in the gateway
+ * machine's own Chrome and exists only on a desktop gateway.
  */
 
 const maxResponseBytes = 6_000_000;
 const preferenceTtlMs = 6 * 60 * 60 * 1000;
-export const engineNames = ['fetch', 'impersonate'];
+// Cheapest first: `browser` (the installed Chrome, browser-engine.mjs) only where the others meet a wall.
+export const engineNames = ['fetch', 'impersonate', 'browser'];
 // The importer's Chrome identity would contradict the impersonated TLS fingerprint.
 const impersonatedHeaders = new Set(['user-agent', 'sec-ch-ua', 'sec-ch-ua-mobile', 'sec-ch-ua-platform']);
 
@@ -51,7 +53,8 @@ export function blockedSignal(status, location, contentType, bytes) {
   if (/"@type"\s*:\s*"Product"/i.test(head)) return undefined;
   if (/bm-verify|_sec\/verify|ak_bmsc_challenge|<title>\s*Access Denied\s*<\/title>/i.test(head)) return 'akamai';
   if (bytes.length < 12_000 && akamaiInterstitial.test(head)) return 'akamai';
-  if (/px-captcha|_pxhd|window\._pxUuid|PerimeterX/i.test(head)) return 'perimeterx';
+  // Walmart serves its real product pages with PerimeterX's config on them: only the captcha, or those markers on a small page, are a wall.
+  if (/px-captcha/i.test(head) || bytes.length < 60_000 && /_pxhd|window\._pxUuid|PerimeterX/i.test(head)) return 'perimeterx';
   if (/cf-chl|cf_chl_opt|<title>\s*Just a moment/i.test(head)) return 'cloudflare';
   if (/geo\.captcha-delivery\.com|dd\.captcha|datadome/i.test(head)) return 'datadome';
   const visible = head.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, '').replace(/<[^>]+>/g, ' ');
@@ -59,13 +62,20 @@ export function blockedSignal(status, location, contentType, bytes) {
   return undefined;
 }
 
-/** Remembers, per host, the engine whose last answer was not a wall. In memory only. */
-export function createEnginePlanner(available, now = Date.now) {
+/**
+ * Remembers, per host, the engine whose last answer was not a wall. In memory only. `hints` (host → engine, from
+ * importer-engine-hints.json) is the starting engine for a host nothing is remembered about yet, so a restarted proxy
+ * does not spend its first turns on a wall it already knows; a hint for an engine this proxy lacks is ignored.
+ */
+export function createEnginePlanner(available, now = Date.now, hints = {}) {
   const preferred = new Map();
+  const first = engine => [engine, ...available.filter(name => name !== engine)];
   return {
     order(host) {
       const remembered = preferred.get(host);
-      if (remembered && remembered.until > now() && available.includes(remembered.engine)) return [remembered.engine, ...available.filter(name => name !== remembered.engine)];
+      if (remembered && remembered.until > now() && available.includes(remembered.engine)) return first(remembered.engine);
+      const hint = Object.hasOwn(hints, host) ? hints[host] : undefined;
+      if (hint && available.includes(hint)) return first(hint);
       return [...available];
     },
     succeeded(host, engine) {
@@ -94,9 +104,9 @@ export async function loadImpersonator() {
  * checks (`npm run importer:check -- --engines`) without the VM. Egress is this
  * machine's own address, not the New York proxy.
  */
-export async function createLocalEngineFetch({mode = 'auto'} = {}) {
+export async function createLocalEngineFetch({mode = 'auto', browser} = {}) {
   const impersonator = await loadImpersonator();
-  const engines = {fetch, ...(impersonator ? {impersonate: impersonator} : {})};
+  const engines = {fetch, ...(impersonator ? {impersonate: impersonator} : {}), ...(browser ? {browser} : {})};
   const planner = createEnginePlanner(engineNames.filter(name => engines[name]));
   return async (input, init = {}) => {
     const target = new URL(input instanceof URL ? input.href : String(input));
@@ -131,7 +141,7 @@ export async function fetchWithEngines({target, method, headers, body, mode, eng
     const budget = index < plan.length - 1 ? Math.min(remaining, Math.round(deadlineMs * 0.6)) : remaining;
     const timeout = AbortSignal.timeout(Math.max(budget, 1000));
     try {
-      const upstream = await engines[engine](target, {method, headers, body, redirect: 'manual', signal: signal ? AbortSignal.any([signal, timeout]) : timeout});
+      const upstream = await engines[engine](target, {method, headers, body, redirect: 'manual', deadline: clock() + Math.max(budget, 1000), signal: signal ? AbortSignal.any([signal, timeout]) : timeout});
       const bytes = await readUpstream(upstream);
       const contentType = upstream.headers.get('content-type') ?? undefined;
       const location = upstream.headers.get('location') ?? undefined;

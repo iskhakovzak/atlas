@@ -160,3 +160,29 @@ test('an Ulta size product names its option and warns that other sizes may cost 
   assert.equal(result.selectedVariantColor,undefined);
   assert.ok(result.warnings.some(w=>w.includes('у других объёмов она может отличаться')));
 });
+
+test('Ulta: the other sizes are priced from their own ?sku= pages; a page that does not answer stays unpriced',async()=>{
+  const sizes=[ultaVariant('2621074','1.0 oz',{selected:true,listPrice:'$12.00'}),ultaVariant('2621075','3.4 oz'),ultaVariant('2621076','6.7 oz')];
+  const sizePage=(skuId,label,price)=>ultaPage({skuId,variantLabel:label,listPrice:price,variants:sizes.map(v=>({...v,selected:v.skuId===skuId,listPrice:v.skuId===skuId?price:null}))}).replace('"variantType":"Color"','"variantType":"Size"');
+  const asked=[];
+  const fetcher=async input=>{
+    const url=new URL(String(input)),sku=url.searchParams.get('sku');
+    asked.push(sku);
+    if(!sku)return html(sizePage('2621074','1.0 oz','$12.00'));
+    if(sku==='2621075')return html(sizePage('2621075','3.4 oz','$29.00'));
+    return html('gone',404);
+  };
+  const result=await fetchProduct(ultaUrl,fetcher);
+  assert.equal(result.price,12);
+  assert.deepEqual(result.variants.map(v=>[v.size,v.price]),[['1.0 oz',12],['3.4 oz',29],['6.7 oz',undefined]]);
+  assert.ok(result.warnings.some(w=>w.includes('цену только выбранного варианта')));
+  assert.ok(!asked.includes('2621074'),'the selected size is not asked twice');
+
+  // Every option answered: the warning goes away.
+  const all=await fetchProduct(ultaUrl,async input=>{
+    const sku=new URL(String(input)).searchParams.get('sku');
+    return html(sku?sizePage(sku,sku==='2621075'?'3.4 oz':'6.7 oz',sku==='2621075'?'$29.00':'$45.00'):sizePage('2621074','1.0 oz','$12.00'));
+  });
+  assert.deepEqual(all.variants.map(v=>v.price),[12,29,45]);
+  assert.ok(!all.warnings.some(w=>w.includes('цену только выбранного варианта')));
+});

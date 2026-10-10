@@ -693,6 +693,22 @@ const changeRequestSchema = z.object({
   respondedAt: amount.optional(),
 });
 export type ChangeRequest = z.infer<typeof changeRequestSchema>;
+/**
+ * An extra invoice the operator issues on a paid order (since 10 October 2026), for example when a manually entered
+ * item turned out dearer at the store. The customer sees "Доплатить" only while it is `pending`; paying records the
+ * mark in Atlas like the order's own payment (no provider is connected, nothing is charged).
+ */
+const extraChargeSchema = z.object({
+  id: z.string().min(1).max(40),
+  amount: z.number().int().positive(),
+  amountUsd: z.number().finite().positive().max(10000),
+  reason: z.string().min(2).max(300),
+  status: z.enum(["pending", "paid", "cancelled"]),
+  requestedAt: amount,
+  paidAt: amount.optional(),
+  cancelledAt: amount.optional(),
+});
+export type ExtraCharge = z.infer<typeof extraChargeSchema>;
 const warehouseServiceRequestSchema = z.object({
   id: z.string().min(1).max(100),
   serviceId: z.string().min(2).max(80),
@@ -791,6 +807,7 @@ const orderSchema = z.object({
   staffNotes: z.array(staffNoteSchema).optional(),
   issueCase: orderIssueCaseSchema.optional(),
   changeRequests: z.array(changeRequestSchema).optional(),
+  extraCharges: z.array(extraChargeSchema).max(20).optional(),
   warehouseServiceRequests: z.array(warehouseServiceRequestSchema).max(40).optional(),
   warehouseInspection: warehouseInspectionSchema.optional(),
   /** The customer's note from the cart line; for operators only, never sent to the store. */
@@ -1417,8 +1434,13 @@ export const approvedAdjustments = (order: Order) =>
   (order.changeRequests ?? [])
     .filter((request) => request.status === "approved")
     .reduce((sum, request) => sum + request.amountDelta, 0);
+/** Extra invoices the customer paid (marked in Atlas); a pending one is not part of the order sum yet. */
+export const paidExtraCharges = (order: Pick<Order, "extraCharges">) =>
+  (order.extraCharges ?? []).filter((charge) => charge.status === "paid").reduce((sum, charge) => sum + charge.amount, 0);
+export const pendingExtraCharge = (order: Pick<Order, "extraCharges" | "cancelled">) =>
+  order.cancelled ? undefined : (order.extraCharges ?? []).find((charge) => charge.status === "pending");
 export const orderPayable = (order: Order) =>
-  Math.max(0, order.quote.total + approvedAdjustments(order));
+  Math.max(0, order.quote.total + approvedAdjustments(order) + paidExtraCharges(order));
 export const orderNeedsOperatorAttention = (order: Order) =>
   Boolean(order.issueCase && order.issueCase.status !== "resolved") ||
   (!order.cancelled && (
@@ -1426,6 +1448,7 @@ export const orderNeedsOperatorAttention = (order: Order) =>
     Boolean(order.storeShippingSettlement?.extra && !order.storeShippingExtraApproved) ||
     Boolean(order.customsSettlement?.extra && !order.customsExtraApproved) ||
     (order.changeRequests ?? []).some((request) => request.status === "pending") ||
+    Boolean(pendingExtraCharge(order)) ||
     order.warehouseInspection?.condition === "damaged" ||
     order.warehouseInspection?.condition === "mismatch"
   ));
@@ -1661,6 +1684,7 @@ export function checkoutCart(
   const entries = [...state.entries];
   // 48 random bits: order numbers are global across customers, so 8 hex digits would start to collide.
   const orderIds = cart.map(() => "AT-" + crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase());
+  const paymentId = "PAY-" + crypto.randomUUID().slice(0, 8).toUpperCase();
   // Checkout services are asked once per store parcel, on its first order, for every order of that parcel
   // (owner, 7.10.2026): three sizes of one model no longer make three requests for one "contents photo".
   const parcelRequests = new Map<string, WarehouseServiceRequest[]>();
@@ -1704,7 +1728,8 @@ export function checkoutCart(
       identity: selectedIdentity,
       warehouseServiceRequests: serviceRequests.length ? serviceRequests : undefined,
       payment: {
-        id: "PAY-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
+        // One payment for the whole checkout: every line carries the same id with its own share.
+        id: paymentId,
         status: payable === 0 ? "paid" : "pending",
         method: payable === 0 ? "balance" : "payment-link",
         amount: payable,
@@ -1793,6 +1818,63 @@ export function confirmDemoPayment(
     "Статус оплаты обновлён в Atlas",
     "Платёжный провайдер не подключён: списания и банковского подтверждения нет.",
     id,
+    now,
+    { code: "payment-recorded" },
+  );
+}
+
+/** Lines of one checkout still waiting for their payment mark: they are paid together, as one order. */
+export function pendingBatchPayments(state: Pick<State, "orders">, batchId: string) {
+  return state.orders.filter((order) => order.batchId === batchId && !order.cancelled && order.payment?.status === "pending");
+}
+
+/**
+ * One payment for a whole checkout (since 10 October 2026): every line still waiting is marked at once, with the
+ * total the customer saw. Each line keeps its own history and ledger entry (the books are per order); the customer
+ * gets one notification. Paying again changes nothing.
+ */
+export function confirmDemoBatchPayment(
+  state: State,
+  batchId: string,
+  expectedAmount: number,
+  now = Date.now(),
+): State {
+  const lines = pendingBatchPayments(state, batchId);
+  if (!lines.length) {
+    if (!state.orders.some((order) => order.batchId === batchId)) throw Error("Заказ не найден.");
+    return state;
+  }
+  const total = lines.reduce((sum, order) => sum + order.payment!.amount, 0);
+  if (total !== expectedAmount) throw Error("Сумма изменилась. Проверьте расчёт.");
+  let next = state;
+  for (const order of lines) {
+    const o = getOrder(next, order.id);
+    next = replace(next, {
+      ...o,
+      payment: { ...o.payment!, status: "paid", updatedAt: now },
+      history: [
+        ...o.history,
+        { at: now, text: "Статус оплаты отмечен в Atlas. Платёжный провайдер не подтвердил списание.", code: "payment-recorded" },
+      ],
+    });
+    next.entries = [
+      ...next.entries,
+      {
+        id: "demo-payment:" + o.id,
+        orderId: o.id,
+        at: now,
+        amount: o.payment!.amount,
+        debit: "demo-provider",
+        credit: "order-funds",
+        description: "Статус оплаты записан в Atlas; провайдер не подключён",
+      },
+    ];
+  }
+  return withNotification(
+    next,
+    "Статус оплаты обновлён в Atlas",
+    "Платёжный провайдер не подключён: списания и банковского подтверждения нет.",
+    lines[0].id,
     now,
     { code: "payment-recorded" },
   );
@@ -2214,6 +2296,91 @@ export function approveStoreShippingExtra(
   });
 }
 
+/** The operator issues an extra invoice on a paid order: an amount in USD at the order's rate and the reason. */
+export function requestExtraCharge(state: State, id: string, amountUsd: number, reason: string, now = Date.now()): State {
+  const o = getOrder(state, id);
+  if (o.cancelled || o.status >= 5 || o.payment?.status !== "paid")
+    throw Error("Доплату можно выставить только по оплаченному активному заказу.");
+  if (pendingExtraCharge(o)) throw Error("По заказу уже ждёт доплата. Отмените её или дождитесь оплаты.");
+  if ((o.extraCharges ?? []).length >= 20) throw Error("По заказу слишком много счетов на доплату.");
+  if (!Number.isFinite(amountUsd) || amountUsd <= 0 || amountUsd > 10000) throw Error("Укажите сумму доплаты в USD.");
+  const text = reason.replace(/\s+/g, " ").trim();
+  if (text.length < 2 || text.length > 300) throw Error("Укажите причину доплаты.");
+  const usd = Math.round(amountUsd * 100) / 100;
+  const charge = extraChargeSchema.parse({
+    id: "EXT-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
+    amount: Math.ceil(usd * (o.quote.fx ?? tariff.fx)),
+    amountUsd: usd,
+    reason: text,
+    status: "pending",
+    requestedAt: now,
+  });
+  const params = { amount: charge.amount, reason: charge.reason };
+  return withNotification(
+    replace(state, {
+      ...o,
+      extraCharges: [...(o.extraCharges ?? []), charge],
+      history: [...o.history, { at: now, text: `Оператор выставил счёт на доплату ${money(charge.amount)}: ${charge.reason}`, code: "extra-charge-requested", params }],
+    }),
+    "Нужна доплата по заказу",
+    `${money(charge.amount)} · ${charge.reason}`.slice(0, 300),
+    id,
+    now,
+    { code: "extra-charge-requested", params },
+  );
+}
+/** The operator withdraws an unpaid extra invoice (a mistake, or the store refunded the difference). */
+export function cancelExtraCharge(state: State, id: string, chargeId: string, now = Date.now()): State {
+  const o = getOrder(state, id);
+  const charge = (o.extraCharges ?? []).find((item) => item.id === chargeId);
+  if (!charge) throw Error("Счёт на доплату не найден.");
+  if (charge.status === "cancelled") return state;
+  if (charge.status !== "pending") throw Error("Этот счёт уже оплачен.");
+  const params = { amount: charge.amount };
+  return withNotification(
+    replace(state, {
+      ...o,
+      extraCharges: (o.extraCharges ?? []).map((item) => item.id === chargeId ? { ...item, status: "cancelled" as const, cancelledAt: now } : item),
+      history: [...o.history, { at: now, text: `Счёт на доплату ${money(charge.amount)} отменён оператором.`, code: "extra-charge-cancelled", params }],
+    }),
+    "Доплата отменена",
+    `Счёт на ${money(charge.amount)} больше не нужно оплачивать.`,
+    id,
+    now,
+    { code: "extra-charge-cancelled", params },
+  );
+}
+/**
+ * The customer pays an extra invoice. As with the order's payment, Atlas records the mark only: no provider is
+ * connected and nothing is charged. The amount must be the one the customer saw.
+ */
+export function payExtraCharge(state: State, id: string, chargeId: string, expectedAmount: number, now = Date.now()): State {
+  const o = getOrder(state, id);
+  const charge = (o.extraCharges ?? []).find((item) => item.id === chargeId);
+  if (!charge) throw Error("Счёт на доплату не найден.");
+  if (charge.status === "paid") return state;
+  if (o.cancelled || charge.status !== "pending") throw Error("Этот счёт больше не ждёт оплаты.");
+  if (charge.amount !== expectedAmount) throw Error("Сумма изменилась. Проверьте расчёт.");
+  const params = { amount: charge.amount };
+  const next = replace(state, {
+    ...o,
+    extraCharges: (o.extraCharges ?? []).map((item) => item.id === chargeId ? { ...item, status: "paid" as const, paidAt: now } : item),
+    history: [...o.history, { at: now, text: `Доплата ${money(charge.amount)} отмечена в Atlas. Платёжный провайдер не подтвердил списание.`, code: "extra-charge-paid", params }],
+  });
+  next.entries = [
+    ...state.entries,
+    { id: "extra-charge:" + charge.id, orderId: id, at: now, amount: charge.amount, debit: "demo-provider", credit: "order-funds", description: "Доплата по счёту оператора записана в Atlas; провайдер не подключён" },
+  ];
+  return withNotification(
+    next,
+    "Доплата отмечена в Atlas",
+    "Платёжный провайдер не подключён: списания и банковского подтверждения нет.",
+    id,
+    now,
+    { code: "extra-charge-paid", params },
+  );
+}
+
 export function advanceOrder(
   state: State,
   id: string,
@@ -2235,6 +2402,8 @@ export function advanceOrder(
     // Atlas pays customs for this order: the actual duty is settled before the order is marked delivered.
     || (o.status === 4 && Boolean(o.quote.customsHelp) && (!o.customsSettlement || Boolean(o.customsSettlement.extra && !o.customsExtraApproved)))
     || (o.changeRequests ?? []).some((request) => request.status === "pending")
+    // An extra invoice waits for the customer: the operator moves the order on after it is paid or withdrawn.
+    || Boolean(pendingExtraCharge(o))
     || (o.status >= 2 && (o.warehouseServiceRequests ?? []).some((request) => ["requested", "quoted", "approved"].includes(request.status)))
   )
     throw Error("Этот переход пока недоступен.");

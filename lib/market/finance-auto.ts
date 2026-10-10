@@ -39,6 +39,11 @@ export function syncOrderLedger(order: Order, customerId: string, options: { bal
     const at = demoPayment?.at ?? historyAt(order, (text) => text.startsWith("Статус оплаты отмечен")) ?? pay.updatedAt;
     push("customer_payment", undefined, pay.amount, at, { counterparty: customerId, note: "Статус оплаты отмечен в Atlas; платёж симулируется" });
   }
+  // Extra invoices the customer paid (marked in Atlas, simulated like the order's payment): transit money.
+  const extras = (order.extraCharges ?? []).filter((charge) => charge.status === "paid");
+  for (const charge of extras)
+    push("customer_payment", "extra-" + charge.id, charge.amount, charge.paidAt ?? charge.requestedAt, { counterparty: customerId, note: "Доплата по счёту оператора отмечена в Atlas; платёж симулируется" });
+  const extrasPaid = extras.reduce((sum, charge) => sum + charge.amount, 0);
   const balanceUsed = order.balanceUsed ?? 0;
   if (balanceUsed > 0) push("balance_payment", undefined, balanceUsed, order.createdAt, { counterparty: customerId, note: "Оплата заказа из внутреннего баланса" });
   if (!order.cancelled) {
@@ -51,7 +56,7 @@ export function syncOrderLedger(order: Order, customerId: string, options: { bal
   if (order.settlement?.refund) push("balance_refund", "settlement", order.settlement.refund, historyAt(order, (text) => text.startsWith("Взвешивание завершено")) ?? order.createdAt, { counterparty: customerId, note: "Остаток доставки после взвешивания — на внутренний баланс" });
   if (order.storeShippingSettlement?.refund) push("balance_refund", "store-shipping", order.storeShippingSettlement.refund, historyAt(order, (text) => text.includes("подтвердил доставку магазина")) ?? order.createdAt, { counterparty: customerId, note: "Разница доставки магазина — на внутренний баланс" });
   if (order.customsSettlement?.refund) push("balance_refund", "customs", order.customsSettlement.refund, order.customsSettlement.at, { counterparty: customerId, note: "Остаток предоплаты пошлины — на внутренний баланс" });
-  if (order.cancelled) push("balance_refund", "cancel", (paidMark && pay ? pay.amount : 0) + balanceUsed, historyAt(order, (text) => text.startsWith("Заказ отменён")) ?? order.createdAt, { counterparty: customerId, note: "Отмена заказа: сумма учтена на внутреннем балансе, банковский перевод не выполнялся" });
+  if (order.cancelled) push("balance_refund", "cancel", (paidMark && pay ? pay.amount : 0) + balanceUsed + extrasPaid, historyAt(order, (text) => text.startsWith("Заказ отменён")) ?? order.createdAt, { counterparty: customerId, note: "Отмена заказа: сумма учтена на внутреннем балансе, банковский перевод не выполнялся" });
   return out;
 }
 

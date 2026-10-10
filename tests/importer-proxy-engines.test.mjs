@@ -94,6 +94,28 @@ test('the engine ladder returns the last answer when every engine meets a wall',
   assert.deepEqual(planner.order('www.walmart.com'),['fetch','impersonate']);
 });
 
+test('engine hints start a known hard store on its engine until a remembered success overrides them',async()=>{
+  let clock=now;
+  const planner=createEnginePlanner(['fetch','impersonate','browser'],()=>clock,{'www.dyson.com':'impersonate','www.nordstrom.com':'browser','www.walmart.com':'browser'});
+  assert.deepEqual(planner.order('www.dyson.com'),['impersonate','fetch','browser']);
+  assert.deepEqual(planner.order('www.nordstrom.com'),['browser','fetch','impersonate']);
+  assert.deepEqual(planner.order('www.zara.com'),['fetch','impersonate','browser']);
+  assert.deepEqual(planner.order('constructor'),['fetch','impersonate','browser'],'only own keys are hints');
+  const calls=[];
+  const result=await fetchWithEngines({
+    target:new URL('https://www.dyson.com/p/1'),method:'GET',headers:{},mode:'auto',planner,
+    engines:{fetch:async()=>{calls.push('fetch');return new Response('',{status:403})},impersonate:async()=>{calls.push('impersonate');return html(product)},browser:async()=>{calls.push('browser');return html(product)}},
+  });
+  assert.deepEqual(result.attempts,['impersonate:200']);
+  assert.deepEqual(calls,['impersonate'],'the known wall is not tried first');
+  planner.succeeded('www.nordstrom.com','fetch');
+  assert.deepEqual(planner.order('www.nordstrom.com'),['fetch','impersonate','browser']);
+  clock+=7*60*60*1000;
+  assert.deepEqual(planner.order('www.nordstrom.com'),['browser','fetch','impersonate'],'the hint returns once the memory expires');
+  // A proxy without Chrome (the US VPS) ignores browser hints.
+  assert.deepEqual(createEnginePlanner(['fetch','impersonate'],()=>clock,{'www.walmart.com':'browser'}).order('www.walmart.com'),['fetch','impersonate']);
+});
+
 test('an engine that stalls gets part of the deadline so the next engine still runs',async()=>{
   const planner=createEnginePlanner(['fetch','impersonate']);
   const stall=(_target,{signal})=>new Promise((_resolve,reject)=>signal.addEventListener('abort',()=>reject(signal.reason)));
@@ -114,7 +136,7 @@ test('the Worker client asks for auto mode and the importer reports what the eng
     payload=JSON.parse(init.body);
     return Response.json({version:1,status:403,engine:'impersonate',attempts:['fetch:403:http-403','impersonate:403:http-403'],headers:{contentType:'text/html'},body:''});
   }});
-  const error=await fetchProduct('https://www.sephora.com/product/x',fetcher).catch(value=>value);
+  const error=await fetchProduct('https://www.abercrombie.com/shop/us/p/x',fetcher).catch(value=>value);
   assert.equal(payload.engine,'auto');
   assert.ok(error instanceof ManualEntryFallbackError);
   assert.equal(error.reason,'blocked');

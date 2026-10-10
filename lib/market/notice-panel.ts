@@ -1,13 +1,14 @@
 import type { Notification, Order, State } from './domain.ts';
 
-/** Why an order waits for the customer: an extra charge to approve, a change to answer, or an unfinished payment. */
+/** Why an order waits for the customer: an extra charge to approve or an extra invoice to pay, a change to answer, or an unfinished payment. */
 export type OrderAttention = 'extra' | 'change' | 'payment';
 
 export function orderAttention(order: Order): OrderAttention | null {
   if (order.cancelled) return null;
   const extra = (!order.storeShippingExtraApproved && (order.storeShippingSettlement?.extra ?? 0) > 0)
     || (!order.extraApproved && (order.settlement?.extra ?? 0) > 0)
-    || (!order.customsExtraApproved && (order.customsSettlement?.extra ?? 0) > 0);
+    || (!order.customsExtraApproved && (order.customsSettlement?.extra ?? 0) > 0)
+    || (order.extraCharges ?? []).some(charge => charge.status === 'pending');
   if (extra) return 'extra';
   if ((order.changeRequests ?? []).some(request => request.status === 'pending')) return 'change';
   if (order.status < 5 && order.payment?.status === 'pending') return 'payment';
@@ -27,6 +28,9 @@ export function noticePanel(state: Pick<State, 'orders' | 'notifications'>, rece
   const action = state.orders
     .map(order => ({ order, reason: orderAttention(order), notice: sorted.find(item => item.orderId === order.id) }))
     .filter((entry): entry is { order: Order; reason: OrderAttention; notice: Notification | undefined } => entry.reason !== null)
+    // One payment covers the whole checkout: its lines waiting only for it show as one item.
+    .filter((entry, index, all) => entry.reason !== 'payment' || !entry.order.batchId
+      || all.findIndex(other => other.reason === 'payment' && other.order.batchId === entry.order.batchId) === index)
     .sort((a, b) => (b.notice?.at ?? 0) - (a.notice?.at ?? 0));
   const shown = new Set(action.map(entry => entry.notice?.id).filter(Boolean));
   return {

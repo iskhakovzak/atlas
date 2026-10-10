@@ -674,6 +674,10 @@ html:not([data-theme="dark"]) .lo-page .lo-block .select-control:not(:disabled) 
 .lo-confirm { display: grid; gap: 12px; }
 .lo-confirm .basket-consent { margin-top: 0; }
 .lo-confirm .basket-consent-error { margin: 0; }
+/* A store Atlas does not read: the note and the store link side by side, stacked on a phone. */
+.lo-manual-store { align-items: center; justify-content: space-between; }
+.lo-manual-store .btn { flex-shrink: 0; white-space: nowrap; }
+@media (max-width: 600px) { .lo-manual-store { flex-direction: column; align-items: stretch; } .lo-manual-store .btn { white-space: normal; } }
 .lo-foot { margin: 0; color: var(--home-muted); font-size: 12px; line-height: 1.5; }
 @media (max-width: 760px) {
   main[data-view="link"]:has(.lo-sticky) { padding-bottom: 96px; }

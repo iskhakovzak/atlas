@@ -10,9 +10,51 @@ The signed proxy permits both Referer and Origin from the exact known storefront
 
 Signed proxy validation now permits only exact GET Referer pairs www.target.com→redsky.target.com and victoriassecret.com/www.victoriassecret.com→api.victoriassecret.com; Origin restrictions and HTTPS/allowlist/credential/port checks remain. Signed HTTP regressions cover accepted pairs and rejected unrelated/insecure/credentialed sources. Target groups exceeding120 leaves remain incomplete after truncation. These fixes are required for US proxy operation and safe automatic publication. VPS host snapshot must preserve existing hosts and include redsky.target.com.
 
+## Браузерный движок, незнакомые сайты, доплата — 10 октября 2026
+
+- [x] Браузерные магазины читаются только ташкентским шлюзом на ПК владельца. ПК по решению владельца 10.10.2026 всегда включён (будет сервером); при сбое шлюза — ручной ввод.
+- [ ] Браузер на US VPS технически возможен (Xvfb + обычный Chrome), но адрес дата-центра режут Akamai/PerimeterX — проверять только с разрешения владельца, на проде не включено.
+- [ ] Walmart с 10.10.2026 читается со страницы через шлюз ПК; Bright Data — запасной. Когда ПК выключен, Walmart идёт в Bright Data (если задан ключ), иначе ручной ввод. Проверить на проде после выкатки PR #46.
+- [ ] Единая оплата заказа: старые заказы с разными `payment.id` в одном оформлении показывают id первой строки; провайдера оплаты по-прежнему нет. Оператор в `/operations` отмечает оплату по строкам, как раньше.
+- [ ] Браузер на US VPS: инструкция для ассистента с доступом к VPS — `outputs/prompts/2026-10-10-vps-browser-test.md` (только замер, прокси не трогать). Ждём отчёт.
+- [x] Macy's: категория берётся из хлебных крошек страницы (`breadcrumbCategory`), по названию — только если крошек нет.
+- [ ] Columbia и Best Buy отвечают 403 даже настольному Chrome — остаются ручным вводом.
+- [ ] Эффект на проде — только после выкатки PR #46 и обновления файлов шлюза (сделано на ПК 10.10.2026, откат — `backup-20261010`).
+- [ ] Доплата: оплата симулируется, как оплата заказа; при подключении провайдера нужен реальный платёж и возврат доплаты отдельной операцией. Возврат части доплаты (не всего заказа) не реализован.
+- [ ] Незнакомые сайты принимаются без живой проверки: цену, вариант и доставку сверяет оператор; доплата закрывает расхождение вверх, расхождение вниз — через существующий возврат по заказу.
+
+## Магазины: живая проверка, ускорение импорта — 10 октября 2026
+
+Ручной ввод — только Columbia и Best Buy (`manualEntryStoreRoots`). Браузером ташкентского шлюза читаются 26 магазинов (`browserStoreRoots`); ПК со шлюзом по решению владельца всегда включён. H&M, Sephora и другие браузерные магазины показываются без пометок. Ручной ввод — запасной путь на случай сбоя шлюза.
+
+- [x] Живая проверка ~200 магазинов списка с ташкентского адреса (fetch → impit → Chrome шлюза): 116 читаются. Девятнадцать магазинов читаются только браузером, они добавлены в `browserStoreRoots`: Next, Stradivarius, COS, Farfetch, Hoka, Micro Center, Mytheresa, Oysho, Nordstrom, Nordstrom Rack, JD Sports, La Redoute, Monoprice, LuisaViaRoma, Neiman Marcus, Notino DE/FR/IT, Otto. Ещё 11 — только через отпечаток Chrome (`impersonateStoreRoots`).
+- [x] Поддомены, которые раньше отвергались: en.aboutyou.de, us.burberry.com, store.google.com, shop.lululemon.com, us.louisvuitton.com, us.nothing.tech, us.pandora.net, www.usa.philips.com, electronics.sony.com.
+- [ ] Не открылись даже в Chrome шлюза (стена 403). Это кандидаты в ручной ввод, но проверены только с ташкентского адреса; на проде есть US VPS и резидентный маршрут:
+  - Dell, Etsy, Fnac ES, Free People, Galaxus DE, JCPenney, Kiabi ES;
+  - Kohl's, Mango (на странице; свой адаптер есть), MediaMarkt DE/ES, Revolve, Saks;
+  - Saturn DE, Sephora ES, Urban Outfitters, Wayfair.
+  Решить после проверки с VPS.
+- [ ] Страница открывается, но в ней нет структурированной цены или валюты: импорт уходит в черновик. Нужны адаптеры по приоритету продаж:
+  - Nike, Carhartt, Foot Locker ES, GOAT, GoPro, Hollister, JBL, J.Crew, Lacoste, LG;
+  - Logitech, Madewell, Merrell, Mi, Newegg, Notino ES, Patagonia, PcComponentes, Prada, Pull&Bear;
+  - Razer, Salomon, Skechers, Space NK, SSENSE, StockX, Swarovski, Tiffany, UGG, Zara Home.
+- [ ] Ошибка сети или разбора, повторить: Victoria's Secret ES, Lefties, Massimo Dutti, YOOX, iHerb, Microsoft, Milk Makeup.
+- [ ] Выкатка на шлюз и VPS: переэкспортировать allowlist и подсказки движков командой `node --experimental-strip-types scripts/export-importer-hosts.mjs supported-store-hosts.json importer-engine-hints.json`. Скопировать оба файла и новые `importer-proxy-server.mjs` и `merchant-engines.mjs`, затем перезапустить прокси. Без `importer-engine-hints.json` прокси работает, как раньше.
+- [ ] Ручной ввод не проверяет цену: оператор сверяет её со страницей перед выкупом; расхождение вверх закрывает доплата по заказу.
+- [ ] Память маршрутов (`createRouteMemory`) живёт в изолированном процессе Worker и не общая. Отказавший маршрут пропускается для магазина на 5 мин. Если шлюз ненадолго не ответил, браузерные магазины эти 5 мин уходят в ручной ввод.
+
+## Bright Data для Walmart (H&M убран 10.10.2026) — 9 октября 2026
+
+- [ ] Выкатка: секрет Worker `BRIGHTDATA_API_KEY` и миграция `drizzle/0012_provider_jobs.sql` на рабочей D1 (см. `AUTH_SETUP.md`, раздел 10). Без секрета Walmart идёт прежним путём.
+- [ ] Перевыпустить ключ Bright Data: тот, что использовался при разработке, был на скриншоте.
+- [ ] Walmart через Bright Data отдаёт один вариант на запись (без матрицы цвет × размер); со страницы через шлюз матрица полная.
+- [ ] Бесплатный лимит считается по месяцу Ташкента, а Bright Data может считать по UTC или по дате подписки: сверить с первым счётом и при расхождении поправить `freeRecordsPerMonth` или проводку вручную.
+- [x] Два одновременных запроса одного товара больше не запускают сбор дважды. Бронь `claim:` в `market_provider_jobs` ставится атомарно по `item_key`, второй запрос ждёт тот же снимок. Бронь без снимка закрывается через 60 с.
+- [ ] Цена Walmart $1,43 (до скидки $5,98) у футболки George — сверить вручную со страницей: могла быть цена отдельного размера или распродажи.
+
 ## Old Navy, Gap, Banana Republic, Ulta, Macy's — 9 октября 2026
 
-- [ ] Ulta: цена известна только у выбранного варианта; у остальных оттенков и объёмов она пустая. Можно дозапрашивать страницы `?sku=` (по одной на вариант), но надо решить, стоит ли это трафика.
+- [x] Ulta: цены остальных оттенков и объёмов дозапрашиваются страницами `?sku=` (до 24 вариантов, по 4 параллельно, 7 с на всё). Вариант без цены остаётся с предупреждением.
 - [ ] Gap Inc.: Athleta подключена по тому же формату, но вживую не проверялась — API каталога для неё не вернул товаров. Страницы весят 1,2–2 МБ при лимите 3 МБ (`readBody`); если карточка превысит лимит, импорт уйдёт в черновик.
 - [ ] Old Navy, Gap и Ulta проверены с домашнего адреса; с адреса VPS не проверялись.
 - [ ] Macy's: Akamai 403 отовсюду, включая резидентный прокси. Нужен товарный фид Rakuten Advertising (publisher-аккаунт, не кэшбэк rakuten.com) и адаптер фида; разборщик `macys.ts` для страницы остаётся.
@@ -28,7 +70,7 @@ Signed proxy validation now permits only exact GET Referer pairs www.target.com�
 - [ ] Ступень 3 — резидентные US-прокси ($1–4/ГБ) только для хостов, где не помогли ступени 1–2 (Sephora, Best Buy, Columbia, Victoria's Secret). Учёт трафика по хосту.
 - [ ] С адреса VPS (дата-центр UpCloud) 403 на обоих движках у Tommy, Carter's, Sephora, Columbia, H&M; Zara — Akamai. Tommy с домашнего адреса открывается обычным запросом — значит, нужен другой адрес (ступень 3), а не только другой отпечаток.
 - [ ] Официальные источники вместо скрейпинга: Best Buy Products API, Walmart affiliate API — не проверены (Zara и Target уже читаются из своих источников данных).
-- [ ] Память лучшего движка живёт в процессе прокси и сбрасывается при рестарте; метрик успеха по хостам нет (есть только строки в journal).
+- [ ] Память лучшего движка живёт в процессе прокси. После рестарта известные трудные магазины стартуют по подсказкам (`importer-engine-hints.json`, 10.10.2026), остальные — с fetch. Метрик успеха по хостам нет: есть только строки в journal.
 
 ## Опубликовано: общая механика вариантов и автоимпорт — 9 октября 2026
 
@@ -147,7 +189,7 @@ The user explicitly requested the partner tracking code in the main homepage hea
 - [ ] Shopify ограничивает адрес US-прокси на UpCloud: все Shopify-магазины отдают прокси 429, напрямую — 200. Код делает один прямой повтор из Worker (цена тогда может быть региональной, в черновике есть предупреждение). Правильное решение — второй/ротируемый US-адрес или резидентный выход для `*.myshopify`-магазинов.
 - [ ] Zara, Macy's — Akamai, Walmart — PerimeterX, eBay HTML — 403 всегда. Импорт честно сообщает «антибот-проверка (вендор)» и создаёт черновик на ручную проверку; обойти кодом нельзя. Для Zara возможен адаптер к публичному API `/products-details?productIds=`, для Uniqlo — `www.uniqlo.com/us/api/commerce/v5/en/products/<id>` (не делали).
 - [ ] eBay Browse в проде отвечал HTTP 400 с неизвестным `errorId`; теперь текст eBay (этап, HTTP, errorId, сообщение) виден администратору прямо в черновике — после следующего прод-импорта `/itm/…` прочитать причину и починить (вероятны: не активирован keyset Production, scope `buy.browse` отсутствует, ссылка с legacy-id). Локально проверить нельзя: ключи только на деплое.
-- [ ] `www2.hm.com` добавлен в allowlist кода, но JSON allowlist прокси (`supported-store-hosts.json` на сервере) не переэкспортирован — до редеплоя прокси H&M отвечает «временно не отдал данные».
+- [x] ~~`www2.hm.com` в JSON allowlist прокси~~ — неактуально с 10.10.2026: H&M не загружается, покупатель вводит данные сам.
 - [ ] Батч админа ограничен 25 ссылками за запрос (8 одновременно на сервере, лимит Worker по времени); больше — по частям, остаток остаётся в поле.
 - [ ] Не проверено вживую в UI админа (`/admin` → импорт): проверялись сервер, разбор ссылок и импортер тестами и живым прогоном через прод-прокси из Node.
 ## SEO: что не исправить из кода — 7 октября 2026

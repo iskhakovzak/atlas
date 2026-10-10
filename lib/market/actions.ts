@@ -15,6 +15,9 @@ import {
   approveExtra,
   confirmStoreShipping,
   approveStoreShippingExtra,
+  requestExtraCharge,
+  cancelExtraCharge,
+  payExtraCharge,
   cancelOrder,
   deliverySpeedSchema,
   setCartDeliverySpeed,
@@ -28,6 +31,7 @@ import {
   storeDiscount,
   communicationSchema,
   confirmDemoPayment,
+  confirmDemoBatchPayment,
   updateCommunication,
   assignOrder,
   addStaffNote,
@@ -118,6 +122,7 @@ export const actionSchema = z.discriminatedUnion("type", [
     customsDuty: amount.optional(),
   }),
   z.object({ type: z.literal("payment-demo"), id }),
+  z.object({ type: z.literal("payment-demo-batch"), batchId: z.string().min(1).max(80), amount: z.number().int().nonnegative() }),
   z.object({ type: z.literal("communication-save"), value: communicationSchema }),
   // `id` edits a saved recipient; `primary` chooses the default one. Older clients send neither.
   z.object({ type: z.literal("delivery-profile-save"), value: deliveryProfileSchema, label: z.string().trim().min(1).max(60), id: z.string().min(1).max(80).optional(), primary: z.boolean().optional() }),
@@ -184,6 +189,10 @@ export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("approve-store-shipping-extra"), id, amount }),
   z.object({ type: z.literal("confirm-customs-duty"), id, actualUsd: amount }),
   z.object({ type: z.literal("approve-customs-extra"), id, amount }),
+  // An extra invoice on a paid order: the operator issues or withdraws it, the customer pays it (marked in Atlas).
+  z.object({ type: z.literal("extra-charge-request"), id, amountUsd: z.number().finite().positive().max(10000), reason: z.string().trim().min(2).max(300) }),
+  z.object({ type: z.literal("extra-charge-cancel"), id, chargeId: z.string().min(1).max(40) }),
+  z.object({ type: z.literal("extra-charge-pay"), id, chargeId: z.string().min(1).max(40), amount }),
   z.object({ type: z.literal("cancel"), id }),
   z.object({ type: z.literal("cart-delivery-speed"), speed: deliverySpeedSchema }),
   z.object({ type: z.literal("notifications-read") }),
@@ -238,6 +247,8 @@ export function applyAction(
       a.type === "receive" ||
       a.type === "confirm-store-shipping" ||
       a.type === "confirm-customs-duty" ||
+      a.type === "extra-charge-request" ||
+      a.type === "extra-charge-cancel" ||
       a.type === "assign-order" ||
       a.type === "staff-note" ||
       a.type === "customer-notification" ||
@@ -364,6 +375,8 @@ export function applyAction(
     }
     case "payment-demo":
       return confirmDemoPayment(s, a.id);
+    case "payment-demo-batch":
+      return confirmDemoBatchPayment(s, a.batchId, a.amount);
     case "communication-save":
       return updateCommunication(s, a.value);
     case "delivery-profile-save": {
@@ -427,6 +440,12 @@ export function applyAction(
       return confirmStoreShipping(s, a.id, a.actualUsd);
     case "approve-store-shipping-extra":
       return approveStoreShippingExtra(s, a.id, a.amount);
+    case "extra-charge-request":
+      return requestExtraCharge(s, a.id, a.amountUsd, a.reason);
+    case "extra-charge-cancel":
+      return cancelExtraCharge(s, a.id, a.chargeId);
+    case "extra-charge-pay":
+      return payExtraCharge(s, a.id, a.chargeId, a.amount);
     case "cancel":
       return cancelOrder(s, a.id);
     case "cart-delivery-speed":

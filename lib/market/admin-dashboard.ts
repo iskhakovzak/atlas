@@ -118,6 +118,7 @@ export function pendingTopup(order: Order): string | null {
   if (order.settlement?.extra && !order.extraApproved) return "доплата за вес";
   if (order.storeShippingSettlement?.extra && !order.storeShippingExtraApproved) return "доплата за доставку магазина";
   if (order.customsSettlement?.extra && !order.customsExtraApproved) return "доплата за пошлину";
+  if ((order.extraCharges ?? []).some((charge) => charge.status === "pending")) return "счёт на доплату";
   const request = (order.changeRequests ?? []).find((item) => item.status === "pending");
   return request ? `запрос «${request.title}»` : null;
 }
