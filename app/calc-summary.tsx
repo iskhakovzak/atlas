@@ -10,6 +10,7 @@ import {packagingKg} from '@/lib/market/world';
 import type {Locale} from '@/lib/market/i18n';
 import {SummaryLine} from './price-summary';
 import {CustomsHow} from './customs-how';
+import {InfoTip} from '@/components/info-tip';
 
 type Sums=Pick<Quote,'merchandise'|'service'|'shipping'|'reserve'|'total'>&{buyout?:number;conversion?:number;sourceShipping?:number;deliveryMargin?:number;optionalServices?:number;storeShippingHold?:number;customsHelp?:number;customsDuty?:number;/** Parcel insurance (value-percent services), part of the total. */insurance?:number};
 
@@ -74,17 +75,18 @@ export function CalcLines({sums,locale,pricing,weightKg,storeShippingState,anyFr
  * Express or standard delivery: two buttons that read as one control, each with its window and per-kg rate.
  * The cart saves the choice on the server (one speed per cart); the link-order page keeps it for the add.
  */
-export function DeliverySpeedSwitch({value,options,locale,onChange,busy=false,note,compact=false}:{value:DeliverySpeed;options:DeliverySpeedOption[];locale:Locale;onChange:(speed:DeliverySpeed)=>void;busy?:boolean;note?:string;compact?:boolean}){
+export function DeliverySpeedSwitch({value,options,locale,onChange,busy=false,note,tip,compact=false}:{value:DeliverySpeed;options:DeliverySpeedOption[];locale:Locale;onChange:(speed:DeliverySpeed)=>void;busy?:boolean;note?:string;/** A secondary rule: in place on wide screens, behind a "?" by the title on phones. */tip?:string;compact?:boolean}){
  const c=deliverySpeedCopy[locale];
  const id=useId();
  return <div className={'speed-switch'+(compact?' compact':'')} aria-busy={busy||undefined}>
-  <p className="speed-switch-title" id={id+'-title'}>{c.title}{busy&&<span className="speed-switch-saving" role="status">{c.saving}</span>}</p>
+  <p className="speed-switch-title" id={id+'-title'}>{c.title}{tip&&<InfoTip locale={locale}>{tip}</InfoTip>}{busy&&<span className="speed-switch-saving" role="status">{c.saving}</span>}</p>
   <div className="speed-switch-options" role="radiogroup" aria-labelledby={id+'-title'}>
    {options.map(option=><button key={option.speed} type="button" role="radio" aria-checked={value===option.speed} className={'speed-option'+(value===option.speed?' selected':'')} disabled={busy} onClick={()=>{if(value!==option.speed)onChange(option.speed)}}>
     <b>{option.name}</b><span>{option.days}</span><small>{option.rate}</small>
    </button>)}
   </div>
   {note&&<p className="speed-switch-note">{note}</p>}
+  {tip&&<p className="speed-switch-note tip-text">{tip}</p>}
  </div>;
 }
 
@@ -116,8 +118,8 @@ export function BlankBill({pricing,locale}:{pricing:Pricing;locale:Locale}){
   ...(pricing.reserve>0?[[b.reserve,b.reserveRule] as [string,string]]:[]),
  ];
  return <section className="bill-blank" aria-labelledby="bill-blank-title">
-  <h2 id="bill-blank-title">{b.title}</h2>
-  <p className="bill-blank-lead">{b.lead}</p>
+  <h2 id="bill-blank-title">{b.title}<InfoTip locale={locale}>{b.lead}</InfoTip></h2>
+  <p className="bill-blank-lead tip-text">{b.lead}</p>
   <dl className="bill">{rows.map(([label,rule])=><div key={label}><dt>{label}</dt><dd className="bill-fill" aria-hidden="true"/><dd className="bill-note">{rule}</dd></div>)}</dl>
   <p className="bill-total"><span>{b.total}</span><span className="bill-fill" aria-hidden="true"/></p>
   <div className="bill-blank-outside"><h3>{c.outside}</h3><ul>

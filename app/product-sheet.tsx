@@ -19,6 +19,7 @@ import {CostLines} from './cost-lines';
 import {ProductGallery} from './product-gallery';
 import {marketplaceWords} from './marketplace-words';
 import {useSheetSide} from './use-sheet-side';
+import {InfoTip} from '@/components/info-tip';
 const navigate=(href:string)=>window.location.assign(href);
 
 /** Product details for a catalog card: gallery, description, delivered estimate at either speed and the next step.
@@ -69,20 +70,20 @@ function ProductDetails({product:selected,onClose}:{product:Product;onClose:()=>
     <Tabs defaultValue="about" className="detail-tabs"><TabsList variant="line"><TabsTrigger value="about">{modalWords.about}</TabsTrigger><TabsTrigger value="price">{modalWords.price}</TabsTrigger></TabsList>
      <TabsContent value="about"><p>{selected.description??modalWords.manual}</p>{selected.sourceUrl&&<a className="text-link" href={selected.sourceUrl} target="_blank" rel="noopener noreferrer">{modalWords.source}<ArrowUpRight size={16}/></a>}<div className="product-facts"><span>{modalWords.storePrice} <b>{priced?storeMoney(selected.sourcePrice??selected.usd):cc.checkPrice}</b></span></div></TabsContent>
      <TabsContent value="price">
-      <p className="micro">{modalWords.weight}: {formatKg(selected.weight,locale)} {modalWords.kg}.{selected.boxedWeight!==undefined&&<> {modalWords.box} {formatKg(selected.boxedWeight,locale)} {modalWords.kg} + {formatKg(packagingKg,locale)} {modalWords.kg} {modalWords.packaging}.</>}</p>
+      <p className="micro">{modalWords.weight}: {formatKg(selected.weight,locale)} {modalWords.kg}.{selected.boxedWeight!==undefined&&<> {modalWords.box} {formatKg(selected.boxedWeight,locale)} {modalWords.kg} + {formatKg(packagingKg,locale)} {modalWords.kg} {modalWords.packaging}.</>}{/* Phones: the estimate rules below sit behind this "?". */}<InfoTip locale={locale}>{curated&&<p>{modalWords.estimate(formatUsd(pricing.storeShippingFreeFromUsd??tariff.storeShippingFreeFromUsd,locale),formatUsd(unknownStoreShippingUsd,locale))}</p>}<p>{cc.speedNote}</p></InfoTip></p>
       <div className="sheet-speed" role="group" aria-label={sc.title}>
        {/* A country Atlas has no region for gets no rate: the storefront never prints the base tariff as that country's. */}
        {deliverySpeeds.map(at=><button type="button" key={at} aria-pressed={speed===at} onClick={()=>setSpeed(at)}><b>{sc.names[at]}</b><small>{daysOf(at)}{region&&<> · {rateOf(at)}</>}</small></button>)}
       </div>
       {/* No saving figure without a recorded price: the estimate exists only once the order flow fetches it. */}
-      <p className="micro sheet-speed-note">{priced&&<>{saving>0?sc.cheaperBy(formatSum(saving,locale)):sc.samePrice}. </>}{cc.speedNote}</p>
-      {curated&&<p className="micro">{modalWords.estimate(formatUsd(pricing.storeShippingFreeFromUsd??tariff.storeShippingFreeFromUsd,locale),formatUsd(unknownStoreShippingUsd,locale))}</p>}
+      <p className={'micro sheet-speed-note'+(priced?'':' tip-text')}>{priced&&<>{saving>0?sc.cheaperBy(formatSum(saving,locale)):sc.samePrice}. </>}<span className="tip-text">{cc.speedNote}</span></p>
+      {curated&&<p className="micro tip-text">{modalWords.estimate(formatUsd(pricing.storeShippingFreeFromUsd??tariff.storeShippingFreeFromUsd,locale),formatUsd(unknownStoreShippingUsd,locale))}</p>}
       {priced&&<CostLines q={estimate} storeReserveWaived={selected.sourceShippingEstimated===true} locale={locale}/>}
       <small className="muted">{modalWords.rate}: {formatSum(pricing.fx,locale)} / USD</small>
      </TabsContent>
     </Tabs>
     {!curated&&<div className="field"><label>{modalWords.variant}</label><Choice label={modalWords.variant} value={variant} onChange={setVariant} options={selected.variants}/></div>}
-    <div className="notice"><ShieldCheck size={19}/><span>{modalWords.delivery}</span></div>
-    <div className="sheet-total"><span>{stale?cc.totalStale:modalWords.withDelivery}<strong>{priced?formatSum(estimate.total,locale):cc.afterCheck}</strong></span>{status==='guest'?<a className="btn primary" href={curated?findOrderUrl(selected):'/order-by-link'}>{modalWords.continue}<ArrowRight size={18}/></a>:<button className="btn primary" disabled={!ready||adding} onClick={add}><ShoppingBag size={18}/>{adding?modalWords.adding:curated?modalWords.continue:modalWords.add}</button>}</div>
+    <div className="notice tip-text"><ShieldCheck size={19}/><span>{modalWords.delivery}</span></div>
+    <div className="sheet-total"><span>{stale?cc.totalStale:modalWords.withDelivery}<InfoTip locale={locale}>{modalWords.delivery}</InfoTip><strong>{priced?formatSum(estimate.total,locale):cc.afterCheck}</strong></span>{status==='guest'?<a className="btn primary" href={curated?findOrderUrl(selected):'/order-by-link'}>{modalWords.continue}<ArrowRight size={18}/></a>:<button className="btn primary" disabled={!ready||adding} onClick={add}><ShoppingBag size={18}/>{adding?modalWords.adding:curated?modalWords.continue:modalWords.add}</button>}</div>
    </div></>;
 }

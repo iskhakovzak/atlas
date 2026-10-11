@@ -4,6 +4,7 @@ import {capitalizeWords} from "@/lib/market/text-case";
 import {useEffect,useMemo,useRef,useState} from "react";
 import {useSearchParams} from "next/navigation";
 import Link from "@/components/site-link";
+import { InfoTip } from "@/components/info-tip";
 import {Checkbox} from "@/components/ui/checkbox";
 import {AlertTriangle,ArrowRight,Check,FileCheck2,FileText,LoaderCircle,Plus,ScanLine,ShieldCheck,Trash2,Upload} from "lucide-react";
 import { toast } from "@/lib/market/toast";
@@ -74,8 +75,8 @@ export function IdentityView(){
     <header className="orders-head"><div><h1>{d.title}</h1><p>{d.lead}</p></div></header>
     <ol className="docs-steps">
       <li className="cabinet-card docs-step">
-        <h2><span className="docs-num" aria-hidden="true">1</span>{d.whose}</h2>
-        <p className="cabinet-lead">{d.whoseHint}</p>
+        <h2><span className="docs-num" aria-hidden="true">1</span>{d.whose}<InfoTip locale={lang}>{d.whoseHint}</InfoTip></h2>
+        <p className="cabinet-lead tip-text">{d.whoseHint}</p>
         {recipientProfiles.length?<div className="docs-recipients" role="radiogroup" aria-label={d.whose}>{recipientProfiles.map(profile=>{
           const passport=identities.find(identity=>identity.recipientProfileId===profile.id),checked=profile.id===selectedRecipientProfileId;
           return <label key={profile.id} className={'docs-recipient'+(checked?' selected':'')}>

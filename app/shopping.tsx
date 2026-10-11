@@ -259,7 +259,9 @@ export function CartView() {
   const speed = cartDeliverySpeed(state.cart);
   const speedCountries = state.cart.map(item => countryName(item.product));
   const speedOptions = deliverySpeedOptions(pricing, speedCountries, locale);
-  const speedNote = [savingText(lines, pricing, locale), parcelsDiffer(speedCountries) ? deliverySpeedCopy[locale].appliesToCart : ""].filter(Boolean).join(" ");
+  // The saving stays in view; "one speed for every parcel" is the secondary rule (a "?" on phones).
+  const speedNote = savingText(lines, pricing, locale);
+  const speedTip = parcelsDiffer(speedCountries) ? deliverySpeedCopy[locale].appliesToCart : undefined;
   const speedDays = (country: string) => { const range = daysRangeFor(pricing, [country], speed); return range ? deliverySpeedCopy[locale].days(range[0], range[1]) : ""; };
   // Store orders whose delivery price is unknown: a separate hold up to the threshold, free above it.
   const reserves = storeShippingReserves(lines, pricing);
@@ -604,7 +606,7 @@ export function CartView() {
       <aside ref={summaryRef} className="basket-summary folio" aria-labelledby="basket-summary-title">
         <div className="folio-sheet">
           <h2 id="basket-summary-title">{c.summary.title}</h2>
-          <DeliverySpeedSwitch value={speed} options={speedOptions} locale={locale} busy={speedBusy} note={speedNote} onChange={(next) => void changeSpeed(next)} />
+          <DeliverySpeedSwitch value={speed} options={speedOptions} locale={locale} busy={speedBusy} note={speedNote} tip={speedTip} onChange={(next) => void changeSpeed(next)} />
           {summaryLines}
           {customsPanel}
           {balance > 0 && <div className="basket-balance"><Checkbox id="use-balance" checked={useBalance} onCheckedChange={(value) => setUseBalance(value === true)} /><label htmlFor="use-balance">{c.summary.balance}<small>{c.summary.available}: {formatSum(balance, locale)}</small></label></div>}

@@ -58,3 +58,37 @@ body { -webkit-tap-highlight-color: transparent; }
   :is(.breadcrumb a, .basket-note-add, .customs-how-trigger) { position: relative; }
   :is(.breadcrumb a, .basket-note-add, .customs-how-trigger)::after { content: ""; position: absolute; inset: -8px -6px; }
 }
+
+/* Secondary text behind a "?" on phones (components/info-tip.tsx). The text stays in the page as .tip-text, so wider
+   screens read it in place and never see the button; phones hide it and open it in a bubble that rises from the "?". */
+.info-tip { display: none; }
+@media (max-width: 760px) {
+  .tip-text { display: none !important; }
+  .info-tip { position: relative; display: inline-grid; flex: none; place-items: center; width: 26px; height: 26px; margin: -5px 0 -5px 2px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--cat-muted); vertical-align: middle; cursor: pointer; transition: color .18s, background-color .18s, transform .18s; }
+  /* A 44 px tap area around the small circle. */
+  .info-tip::before { content: ""; position: absolute; inset: -9px; }
+  .info-tip:active { transform: scale(.9); }
+  .info-tip[data-state="open"] { background: var(--cat-soft); color: var(--cat-accent); }
+  .info-tip:focus-visible { outline: 2px solid var(--cat-accent); outline-offset: 2px; }
+  /* On the green balance card the "?" takes the card's light ink. */
+  .wallet-card .info-tip { color: inherit; opacity: .8; }
+  .wallet-card .info-tip[data-state="open"] { background: rgba(255, 255, 255, .16); color: inherit; opacity: 1; }
+}
+.info-tip-bubble { width: min(300px, calc(100vw - 32px)); padding: 12px 14px; border: 1px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); color: var(--cat-ink); box-shadow: 0 14px 36px rgba(21, 43, 34, .16), 0 2px 6px rgba(21, 43, 34, .06); font-size: 14px; font-weight: 450; line-height: 1.5; letter-spacing: normal; text-align: left; text-transform: none; white-space: normal; }
+.info-tip-bubble p { margin: 0; color: inherit; font-size: inherit; line-height: inherit; }
+.info-tip-bubble p + p { margin-top: 8px; }
+html[data-theme="dark"] .info-tip-bubble { box-shadow: 0 16px 40px rgba(0, 0, 0, .45); }
+/* Rises from the "?" with a small overshoot and settles; closes quicker than it opens. */
+.info-tip-bubble[data-state="open"] { animation: info-tip-in .32s cubic-bezier(.22, 1, .36, 1) both; }
+.info-tip-bubble[data-state="closed"] { animation: info-tip-out .14s ease-in both; }
+@keyframes info-tip-in {
+  0% { opacity: 0; transform: translateY(-6px) scale(.92); }
+  60% { opacity: 1; transform: translateY(1px) scale(1.015); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes info-tip-out { to { opacity: 0; transform: translateY(-4px) scale(.96); } }
+@media (prefers-reduced-motion: reduce) {
+  .info-tip-bubble[data-state="open"] { animation: info-tip-fade .12s ease-out both; }
+  .info-tip-bubble[data-state="closed"] { animation: none; }
+  @keyframes info-tip-fade { from { opacity: 0; } }
+}

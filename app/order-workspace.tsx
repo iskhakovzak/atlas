@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "@/components/site-link";
+import { InfoTip } from "@/components/info-tip";
 import { shownBrand } from "@/lib/importer/brand-name";
 import {
   AlertCircle,
@@ -2628,18 +2629,18 @@ export function BalanceView() {
       ) : <>
         <div className="wallet-grid">
           <section className="wallet-card" aria-labelledby="wallet-label">
-            <p id="wallet-label" className="order-x-eyebrow"><Wallet size={16} aria-hidden="true" />{c.label}</p>
+            <p id="wallet-label" className="order-x-eyebrow"><Wallet size={16} aria-hidden="true" />{c.label}<InfoTip locale={locale}>{c.note}</InfoTip></p>
             <strong className="wallet-amount">{formatSum(balanceOf(state), locale)}</strong>
-            <p className="wallet-note">{c.note}</p>
+            <p className="wallet-note tip-text">{c.note}</p>
             <div className="wallet-actions">
               <Link href="/order-by-link" className="btn primary">{c.spend}<ArrowRight size={18} aria-hidden="true" /></Link>
               <button type="button" className="btn secondary" onClick={() => setWithdrawOpen(true)}>{c.withdraw}</button>
             </div>
           </section>
           <section className="cabinet-card wallet-reserve" aria-labelledby="wallet-reserve-title">
-            <h2 id="wallet-reserve-title"><ShieldCheck size={18} aria-hidden="true" />{c.reserve}</h2>
+            <h2 id="wallet-reserve-title"><ShieldCheck size={18} aria-hidden="true" />{c.reserve}<InfoTip locale={locale}>{c.reserveText}</InfoTip></h2>
             <strong>{formatSum(reserved, locale)}</strong>
-            <p>{c.reserveText}</p>
+            <p className="tip-text">{c.reserveText}</p>
             <Link href="/orders" className="cabinet-link">{c.orders}<ArrowRight size={16} aria-hidden="true" /></Link>
           </section>
         </div>
