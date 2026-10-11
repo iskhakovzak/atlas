@@ -1,3 +1,9 @@
+## Опубликован main с PR #64; исправлен кеш Cloudflare — 11 октября 2026
+
+На https://atlasmarket.uz опубликована Sites166, deployment appgdep_6acbb7c4ae8081919016810ee97af051 succeeded. Исходник — GitHub main 80c26e8 (PR #64 и #63); Sites source 35c74bd3b4029c6b87e19b5a95b917bf7ed6af22, идентичность всех1047 файлов сверена. 927/927 тестов, lint0errors/1existingwarning, buildpass; env revision12 сохранена. Использован чистый checkout outputs/cache-fix-release-20261011; старый корневой checkout не публиковать.
+
+DNS уже в собственной зоне Cloudflare, сайт остаётся на Sites. Годовой браузерный кеш теперь только для HTTP200 JS/CSS под /_next/static/. Ошибки400–599: edge No store, Cache-Control no-store. Старый тестовый404 точечно очищен. Проверено на живом домене: JS/CSS200/MISS→HIT/brotli/immutable; отсутствующиеJS/CSS404/BYPASS/no-store дважды; HTML200/DYNAMIC/no-store, API401/DYNAMIC/no-store. В живом JS есть защита старых вкладок из PR63. Настройки, ID правил, откат и ограничения почты — ARCHITECTURE.md, «Cloudflare перед Sites».
+
 ## Walmart бесплатно со страницы и одна оплата на заказ — 10 октября 2026
 
 Walmart теперь читается со своей страницы через ташкентский шлюз за 2–3 секунды и сразу со всеми цветами и размерами. Платный Bright Data включается только если страница не открылась (например, ПК со шлюзом выключен).

@@ -1,3 +1,23 @@
+## Cloudflare перед Sites: безопасный кеш статики — 11 октября 2026
+
+DNS atlasmarket.uz теперь обслуживает Cloudflare (NS ara.ns.cloudflare.com / kevin.ns.cloudflare.com), регистратор — webname.uz. Сайт остаётся на Sites. Корень — proxied CNAME на custom-domains.chatgpt.site; сайт и собственная зона Cloudflare работают через O2O. Устаревшее утверждение «своей зоны Cloudflare нет» больше не действует.
+
+Настройки зоны применены через кабинет Cloudflare, не кодом приложения. Условие всех трёх правил: хост atlasmarket.uz, путь начинается с /_next/static/, расширение .js или .css. Это не правило кеширования страниц/API.
+
+- Cache Rule **Atlas hashed static assets** (84ac161b22c746a6986603bed615d8bd): Eligible for cache, Edge TTL 31536000 секунд; Status code TTL 400–599 = **No store**; Browser TTL = **Respect origin TTL**. No store выбран намеренно: ошибки не сохраняются даже для последующей ревалидации.
+- Response Header Transform Rule **Atlas successful static browser cache** (a88d9094446f49b5aa3cb2e79efe5d4c): дополнительно http.response.code eq 200; Set static Cache-Control = public, max-age=31536000, immutable.
+- Response Header Transform Rule **Atlas static errors no-store** (894f683ea0404ea89168100feb871a52): дополнительно 400 <= http.response.code <= 599; Set static Cache-Control = no-store. Правила заголовков не управляют edge-кешем, поэтому исключение статусов в Cache Rule обязательно.
+
+Первоначальная настройка ошибочно назначала Browser TTL на год всем ответам, включая 404. Исправлено; старый закешированный /_next/static/chunks/nope-xyz.js очищен точечно через Custom Purge. Изменение TTL само по себе не удаляет уже сохранённые объекты. Для других известных старых отрицательных ответов нужен точечный purge. Кеш браузеров удалённо не очищается; сохранённый в браузере прежний 404 требует очистки кеша или нового имени файла.
+
+Проверка после публикации Sites166: текущие JS и CSS дают 200, Cache-Control public, max-age=31536000, immutable, Content-Encoding br; первый HEAD MISS, второй HIT. Несуществующие JS и CSS дважды дают 404 / BYPASS / Cache-Control no-store. Главная: 200 / DYNAMIC / no-store, must-revalidate. /api/account без сессии: 401 / DYNAMIC / no-store. В опубликованном stale-build-D10TI5BS.js присутствует atlas.staleBuildReloadAt — защита старой вкладки из PR #63 опубликована.
+
+Релиз: GitHub main 80c26e89b379e5c528467699de16733409201273 (PR #64, включает #63); все 1047 файлов сверены с GitHub по Git blob SHA и режимам. Sites source 35c74bd3b4029c6b87e19b5a95b917bf7ed6af22 содержит идентичное дерево файлов. Версия166, deployment appgdep_6acbb7c4ae8081919016810ee97af051 succeeded, env revision12 сохранена. npm ci; 927/927 тестов; lint без ошибок (одно прежнее предупреждение no-img-element); npm run build успешен. Проверка на живом домене — заголовки и наличие кода; авторизованный сценарий «Мои заказы» с реальными данными в этом релизе отдельно не проходили.
+
+Откат приложения: перепубликовать сохранённую Sites165, сохраняя исправления кеша ошибок. Для отката дополнительного кеша отключить Cache Rule и два Transform Rules; при необходимости точечно очистить соответствующие URL. Для снятия внешнего проксирования переключить существующий apex CNAME в DNS only, сохранив target Sites. NS/регистратор и остальные DNS не менять без отдельной причины.
+
+Почта: прежний MX ссылался на корень, обслуживаемый Sites, который не является почтовым сервером. Автоматический _dc-mx не означает настройку почты; работа почты не подтверждена. Записи Resend ещё не настроены. При включении email-кодов записи из Resend добавляются в авторитетную зону Cloudflare (AUTH_SETUP.md §4), а не в прежнюю DNS-панель.
+
 ## «Мои заказы»: одна посылка магазина — один блок — 11 октября 2026
 
 Решение владельца по `/orders` (клиент), `app/order-workspace.tsx`, `app/orders-groups.css`:
