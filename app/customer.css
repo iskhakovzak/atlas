@@ -478,6 +478,15 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
 /* ---------- Order by link ---------- */
 @media (max-width: 760px) { main[data-view="link"] .breadcrumb { display: none; } }
 .lo-page { padding-top: 8px; }
+/* A loaded item: the page title steps back to one short line so the item starts high (owner, 11 October 2026). */
+@media (min-width: 761px) {
+  main[data-view="link"] .breadcrumb { padding: 14px 0 0; }
+  .lo-page-loaded { padding-top: 0; }
+  .lo-page-loaded > .orders-head { margin: 10px 0 12px; }
+  .lo-page-loaded > .orders-head > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; }
+  .lo-page-loaded > .orders-head h1 { font-size: 28px; }
+  .lo-page-loaded > .orders-head p { margin: 0; }
+}
 .lo-link { display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; padding: 8px; border: 2px solid var(--home-accent); border-radius: 18px; background: var(--home-surface); box-shadow: 0 12px 32px rgba(20, 48, 36, .10); }
 .lo-link:focus-within { box-shadow: 0 0 0 4px color-mix(in srgb, var(--home-accent) 24%, transparent); }
 .lo-link-field { display: flex; flex: 1; align-items: center; gap: 10px; min-height: 54px; padding: 0 10px; color: var(--home-muted); }
@@ -515,8 +524,21 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
   .lo-summary { position: sticky; top: 88px; }
 }
 .lo-card, .lo-product { padding: 18px; border: 1px solid var(--home-line); border-radius: 18px; background: var(--home-surface); }
-.lo-product { display: grid; gap: 14px; }
-@media (min-width: 640px) { .lo-product { grid-template-columns: 240px minmax(0, 1fr); align-items: start; } .lo-product.lo-product-plain { grid-template-columns: minmax(0, 1fr); } }
+.lo-product { display: grid; grid-template-areas: "gallery" "copy" "variant"; gap: 14px; }
+.lo-product > .lo-gallery { grid-area: gallery; }
+.lo-product > .lo-product-copy { grid-area: copy; min-width: 0; }
+/* The option picker lives in the product card (owner, 11 October 2026: no empty space beside the photo): one card, a rule above the picker. */
+.lo-page .lo-product > .lo-card.lo-variant { grid-area: variant; min-width: 0; padding: 14px 0 0; border: 0; border-top: 1px solid var(--home-line); border-radius: 0; background: none; box-shadow: none; }
+@media (min-width: 640px) {
+  .lo-product { grid-template-columns: 240px minmax(0, 1fr); grid-template-areas: "gallery copy" "variant variant"; align-items: start; }
+  .lo-product.lo-product-plain { grid-template-columns: minmax(0, 1fr); grid-template-areas: "copy" "variant"; }
+}
+/* Wide screens: the photo on the left for the whole card, name, price and the picker to its right. */
+@media (min-width: 1200px) {
+  .lo-product:not(.lo-product-plain) { grid-template-columns: 280px minmax(0, 1fr); grid-template-areas: "gallery copy" "gallery variant"; grid-template-rows: auto 1fr; gap: 12px 24px; }
+  .lo-product:not(.lo-product-plain) > .lo-gallery { position: sticky; top: 88px; align-self: start; }
+  .lo-page .lo-product:not(.lo-product-plain) > .lo-variant { align-self: start; padding-top: 12px; }
+}
 /* The store link at the top: domain and path on one line, cut with an ellipsis, opening the full address. */
 a.lo-source-host { text-decoration: none; }
 a.lo-source-host:hover span { text-decoration: underline; text-underline-offset: 3px; }
