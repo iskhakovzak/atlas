@@ -481,6 +481,8 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
 .lo-source-host svg { flex-shrink: 0; color: var(--home-accent); }
 .lo-source-link { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 0; border: 0; background: none; color: var(--home-accent); font: inherit; font-size: 14px; font-weight: 700; text-decoration: none; cursor: pointer; }
 .lo-source-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.lo-source-actions { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0 16px; }
+.lo-source-link svg { flex-shrink: 0; }
 .lo-source-loading { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--home-muted); font-size: 14px; }
 .lo-guest { margin: 0 0 14px; padding: 10px 14px; border-radius: 12px; background: var(--home-soft); color: var(--home-muted); font-size: 14px; line-height: 1.5; }
 /* The unfinished draft brought back by opening the page, and the guest's add being sent after sign-in. */

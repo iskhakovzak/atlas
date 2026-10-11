@@ -584,7 +584,11 @@ export type LinkOrderCopy = {
   stores: string;
   batch: string;
   openStore: string;
+  /** Opens an empty link field to paste a new link into. */
   change: string;
+  /** The link last copied replaces this one; the same link (or none) opens the empty field instead. */
+  replace: string;
+  replaceHint: string;
   storePrice: string;
   checkedAt: (time: string) => string;
   unconfirmed: string;
@@ -631,7 +635,7 @@ export const linkOrderCopy: Record<Locale, LinkOrderCopy> = /*@__PURE__*/withCyr
     title: 'Заказ по ссылке', lead: 'Вставьте ссылку на товар из зарубежного магазина, и мы посчитаем итог с доставкой до Ташкента.', leadLoaded: 'Выберите вариант и проверьте расчёт.',
     label: 'Ссылка на товар', placeholder: 'Вставьте ссылку на товар', calculate: 'Рассчитать', loading: 'Загружаем цену и варианты из магазина…',
     hint: 'Нужна ссылка на страницу товара: Nike, Zara, Amazon, eBay и другие магазины.', stores: 'Где это работает', batch: 'Добавить несколько ссылок',
-    openStore: 'Открыть в магазине', change: 'Другая ссылка', storePrice: 'Цена в магазине', checkedAt: time => `проверено в ${time}`,
+    openStore: 'Открыть в магазине', change: 'Изменить ссылку', replace: 'Заменить ссылку', replaceHint: 'Вставить ссылку из буфера обмена', storePrice: 'Цена в магазине', checkedAt: time => `проверено в ${time}`,
     unconfirmed: 'Магазин не подтвердил все данные — проверьте их ниже.', total: 'Итого с доставкой до Ташкента', emptyTotal: 'Укажите цену и вес — покажем итог.',
     data: 'Данные для расчёта', shippingReserve: 'доставка магазина: резерв', storeShipping: amount => `доставка магазина ${amount}`, kg: 'кг',
     add: 'Добавить в корзину', addShort: 'В корзину', signinAdd: 'Войти — товар добавится в корзину', guest: 'Расчёт доступен без входа. Нажмите кнопку внизу и войдите — товар сам добавится в корзину, выбранные варианты и количество сохранятся.', details: 'Подробности загрузки',
@@ -668,7 +672,7 @@ export const linkOrderCopy: Record<Locale, LinkOrderCopy> = /*@__PURE__*/withCyr
     title: 'Havola orqali buyurtma', lead: 'Xorijiy do‘kondagi tovar havolasini qo‘ying, Toshkentgacha yetkazish bilan jami summani hisoblaymiz.', leadLoaded: 'Variantni tanlang va hisobni tekshiring.',
     label: 'Tovar havolasi', placeholder: 'Tovar havolasini qo‘ying', calculate: 'Hisoblash', loading: 'Do‘kondan narx va variantlar yuklanmoqda…',
     hint: 'Tovar sahifasi havolasi kerak: Nike, Zara, Amazon, eBay va boshqa do‘konlar.', stores: 'Qayerlarda ishlaydi', batch: 'Bir nechta havola qo‘shish',
-    openStore: 'Do‘konda ochish', change: 'Boshqa havola', storePrice: 'Do‘kondagi narx', checkedAt: time => `${time} da tekshirildi`,
+    openStore: 'Do‘konda ochish', change: 'Havolani o‘zgartirish', replace: 'Havolani almashtirish', replaceHint: 'Buferdagi havolani qo‘yish', storePrice: 'Do‘kondagi narx', checkedAt: time => `${time} da tekshirildi`,
     unconfirmed: 'Do‘kon barcha ma’lumotlarni tasdiqlamadi — quyida tekshiring.', total: 'Toshkentgacha yetkazish bilan jami', emptyTotal: 'Narx va vaznni kiriting — jami summani ko‘rsatamiz.',
     data: 'Hisob uchun ma’lumotlar', shippingReserve: 'do‘kon yetkazishi: zaxira', storeShipping: amount => `do‘kon yetkazishi ${amount}`, kg: 'kg',
     add: 'Savatga qo‘shish', addShort: 'Savatga', signinAdd: 'Kirish — tovar savatga qo‘shiladi', guest: 'Hisobni kirmasdan ko‘rish mumkin. Pastdagi tugmani bosib kiring — tovar o‘zi savatga qo‘shiladi, tanlangan variantlar va soni saqlanadi.', details: 'Yuklash tafsilotlari',
@@ -705,7 +709,7 @@ export const linkOrderCopy: Record<Locale, LinkOrderCopy> = /*@__PURE__*/withCyr
     title: 'Order by link', lead: 'Paste a product link from a store abroad and we calculate the total with delivery to Tashkent.', leadLoaded: 'Choose an option and review the estimate.',
     label: 'Product link', placeholder: 'Paste a product link', calculate: 'Calculate', loading: 'Loading price and options from the store…',
     hint: 'Use a product page link: Nike, Zara, Amazon, eBay and other stores.', stores: 'Where it works', batch: 'Add several links',
-    openStore: 'Open in store', change: 'Another link', storePrice: 'Store price', checkedAt: time => `checked at ${time}`,
+    openStore: 'Open in store', change: 'Change link', replace: 'Replace link', replaceHint: 'Paste the link from the clipboard', storePrice: 'Store price', checkedAt: time => `checked at ${time}`,
     unconfirmed: 'The store did not confirm every detail — review them below.', total: 'Total with delivery to Tashkent', emptyTotal: 'Enter a price and weight to see the total.',
     data: 'Calculation details', shippingReserve: 'store delivery: reserve', storeShipping: amount => `store delivery ${amount}`, kg: 'kg',
     add: 'Add to cart', addShort: 'Add', signinAdd: 'Sign in — the item goes to your cart', guest: 'You can see the estimate without signing in. Press the button below and sign in — the item is added to your cart by itself, with the options and quantities you chose.', details: 'Import details',

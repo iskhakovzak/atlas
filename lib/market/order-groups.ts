@@ -362,6 +362,8 @@ export type OrderGroupCopy = {
   emptyDone: string;
   /** The recipient's passport is needed for customs, not to pay. */
   passport: (name: string) => string;
+  /** The same note beside the recipient it is about: the name is already there. */
+  passportHere: string;
   passportAction: string;
   /** Short tab label for `attention`. */
   attentionTab: string;
@@ -432,6 +434,7 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     emptyAttention: 'Всё в порядке — от вас ничего не нужно',
     emptyDone: 'Здесь появятся доставленные заказы',
     passport: (name) => `Для таможни понадобится паспорт получателя ${name} — привяжите до отправки`,
+    passportHere: 'Паспорт для таможни — привяжите до отправки',
     passportAction: 'Привязать паспорт',
     attentionTab: 'Нужно действие',
     loadError: 'Не удалось загрузить заказы',
@@ -480,6 +483,7 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     emptyAttention: 'Hammasi joyida — sizdan hech narsa talab qilinmaydi',
     emptyDone: 'Yetkazilgan buyurtmalar shu yerda chiqadi',
     passport: (name) => `Bojxona uchun qabul qiluvchi ${name} pasporti kerak bo‘ladi — jo‘natishdan oldin biriktiring`,
+    passportHere: 'Bojxona uchun pasport — jo‘natishdan oldin biriktiring',
     passportAction: 'Pasportni biriktirish',
     attentionTab: 'Harakat kerak',
     loadError: 'Buyurtmalarni yuklab bo‘lmadi',
@@ -528,6 +532,7 @@ export const orderGroupCopy: Record<Locale, OrderGroupCopy> = /*@__PURE__*/withC
     emptyAttention: 'All good — nothing is needed from you',
     emptyDone: 'Delivered orders will appear here',
     passport: (name) => `Customs will need ${name}’s passport — link it before shipping`,
+    passportHere: 'Passport for customs — link it before shipping',
     passportAction: 'Link passport',
     attentionTab: 'Action needed',
     loadError: 'Could not load your orders',
