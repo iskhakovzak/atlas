@@ -17,5 +17,3 @@ CREATE INDEX IF NOT EXISTS `idx_market_order_finance_created` ON `market_order_f
 CREATE INDEX IF NOT EXISTS `idx_market_order_finance_status_created` ON `market_order_finance` (`status`,`created_at`);
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS `idx_market_ledger_entries_kind_occurred` ON `market_ledger_entries` (`kind`,`occurred_on`);
---> statement-breakpoint
-CREATE INDEX IF NOT EXISTS `idx_market_provider_jobs_status` ON `market_provider_jobs` (`provider`,`status`,`created_at`);

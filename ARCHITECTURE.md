@@ -15,7 +15,7 @@
   - `confirmBankEntries`: все проводки выписки одним пакетом. Если хоть одна дата в закрытом периоде, ответ 409 до любой записи (раньше часть строк могла записаться).
   - Автопроводки расхода Bright Data — одним пакетом.
 - **Одна выборка вместо загрузки всех документов (вместо N+1).** `obligationsSnapshot` считает внутренний баланс каждого аккаунта в SQL (`json_each` по `$.entries`, кредит и дебит `customer-credit`, как `balanceOf`). Раньше читались и разбирались все документы аккаунтов. Возвращаются только положительные балансы, до 5000.
-- **Индексы под фильтры и сортировки** — миграция `drizzle/0013_query_indexes.sql` (`CREATE INDEX IF NOT EXISTS`, можно применять повторно). Индексы объявлены и в `db/schema.ts`.
+- **Индексы под фильтры и сортировки** — миграции `drizzle/0013_query_indexes.sql` и `drizzle/0014_provider_jobs_status.sql` (`CREATE INDEX IF NOT EXISTS`, можно применять повторно). 0014 отдельно, потому что её таблицу создаёт 0012, ещё не применённая на проде; 0013 от 0012 не зависит. Индексы объявлены и в `db/schema.ts`.
   - Очистка по `expires_at` у `market_rate_limits` и `market_import_cache`.
   - `market_accounts(updated_at)` — список аккаунтов оператора.
   - `market_auth_sessions(email, created_at)` — способы входа сотрудников в админке.
@@ -23,7 +23,7 @@
   - `market_operational_errors(area, message, created_at)` — склейка повторов ошибок клиента.
   - `market_order_finance`: `(created_at)` и `(status, created_at)`.
   - `market_ledger_entries(kind, occurred_on)`.
-  - `market_provider_jobs(provider, status, created_at)` — незавершённые сборы.
+  - `market_provider_jobs(provider, status, created_at)` — незавершённые сборы (0014).
   - `tests/query-indexes.test.mjs` накатывает все миграции в `node:sqlite` и проверяет `EXPLAIN QUERY PLAN`. Без 0013 эти запросы просматривали всю таблицу и сортировали во временном дереве.
 - **Фото меньшего размера.** `lib/market/image-size.ts`: `sizedImage(src, px)` просит у сервера картинок магазина копию примерно нужной ширины. Сохранённый адрес не меняется, это только показ.
   - Правила, проверенные вживую 11.10.2026: Amazon (меняется только число в `_SL/_UL/_SX/_UX/_SY/_UY<N>_`, префикс `AC` не трогается), eBay (фиксированные `s-l140…1600`, не больше сохранённого), Nike (`t_…` → `w_N` с `f_auto`), Scene7 и Apple (`wid`, `hei` пропорционально), Shopify (`?width=`), Wolverine (`dw-large` → `dw-medium` до 600 px).
@@ -986,7 +986,7 @@ Migration 0004 adds the normalized launch foundation: `market_customers`, `marke
 
 Миграция 0012 (`drizzle/0012_provider_jobs.sql`, 9 октября 2026) добавляет `market_provider_jobs` — учёт платных сборов Bright Data: `snapshot_id` (PK, id снимка у Bright Data), `provider`, `store`, `dataset`, `item_key` (`walmart:<id>`/`hm:<id>`), `url`, `purpose` (`customer`/`catalog`), `status` (`running`/`ready`/`empty`/`failed`), `records`, `error`, `month` и `day` (по Ташкенту, по времени завершения), `created_at`, `finished_at`; индексы по товару и дате, по месяцу и по дню. Настройки — `market_settings` key `importer.brightdata`. Дневной расход — строки `market_ledger_entries` с id `AUTO-BRIGHTDATA-<YYYY-MM-DD>`.
 
-Миграция 0013 (`drizzle/0013_query_indexes.sql`, 11 октября 2026) только добавляет индексы под существующие фильтры и сортировки (список — в разделе «Запросы и фото» от 11 октября). Таблицы и данные не меняются; `CREATE INDEX IF NOT EXISTS` можно применять повторно.
+Миграции 0013 и 0014 (`drizzle/0013_query_indexes.sql`, `drizzle/0014_provider_jobs_status.sql`, 11 октября 2026) только добавляют индексы под существующие фильтры и сортировки (список — в разделе «Запросы и фото» от 11 октября). Таблицы и данные не меняются; `CREATE INDEX IF NOT EXISTS` можно применять повторно. 0014 требует 0012.
 
 State contains orders, ledger entries, cart, favourites, checkout idempotency keys, saved recipient profiles, support-request history, an optional confirmed identity profile with masked passport number, test declarations, communication preferences, prepared email/SMS records and version. Order contains product snapshot, immutable quote, delivery snapshot, simulated payment, parcel/tracking events, assignment, staff notes, optional customer change requests, optional warehouse inspection, optional `warehouseServiceRequests` snapshots, status/history, both settlement types, approvals, quantity, balance use and customs consent. Cart lines optionally store `requestedServiceIds` and per-service `requestedServiceUnits`. Service requests optionally store a customer instruction note; change requests optionally mark an explicitly customer-approved proposed substitution as resolving a warehouse issue. These fields default compatibly for old stored carts/orders; no D1 migration is needed. Operator-entered internal notes remain separate from customer-facing notifications. A targeted operator notification is appended to the selected order owner's existing `notifications` array and references that order; it does not create a prepared email/SMS delivery or send an external message.
 

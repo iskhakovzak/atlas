@@ -99,6 +99,13 @@
       "when": 1791700000000,
       "tag": "0013_query_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1791700100000,
+      "tag": "0014_provider_jobs_status",
+      "breakpoints": true
     }
   ]
 }

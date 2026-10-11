@@ -3,13 +3,12 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
 
-/** Every migration in journal order, in an in-memory SQLite (D1 is SQLite). */
-function migrated() {
+const statements = (tag) => readFileSync(new URL(`../drizzle/${tag}.sql`, import.meta.url), 'utf8').split('--> statement-breakpoint').filter(statement => statement.trim());
+/** Migrations in journal order (all, or those `keep` allows), in an in-memory SQLite (D1 is SQLite). */
+function migrated(keep = () => true) {
   const raw = new DatabaseSync(':memory:');
   const journal = JSON.parse(readFileSync(new URL('../drizzle/meta/_journal.json', import.meta.url), 'utf8'));
-  for (const {tag} of journal.entries) {
-    for (const statement of readFileSync(new URL(`../drizzle/${tag}.sql`, import.meta.url), 'utf8').split('--> statement-breakpoint')) if (statement.trim()) raw.exec(statement);
-  }
+  for (const {tag} of journal.entries) if (keep(tag)) for (const statement of statements(tag)) raw.exec(statement);
   return raw;
 }
 const plan = (raw, query) => raw.prepare(`EXPLAIN QUERY PLAN ${query}`).all().map(row => row.detail).join(' | ');
@@ -33,8 +32,16 @@ test('the queries that filter or sort on a column use an index, not a full table
   for (const [query, index] of cases) assert.match(plan(raw, query), new RegExp(index), query);
 });
 
-test('migration 0013 can run again on a database that already has its indexes', () => {
+test('migrations 0013 and 0014 can run again on a database that already has their indexes', () => {
   const raw = migrated();
-  for (const statement of readFileSync(new URL('../drizzle/0013_query_indexes.sql', import.meta.url), 'utf8').split('--> statement-breakpoint')) raw.exec(statement);
+  for (const statement of [...statements('0013_query_indexes'), ...statements('0014_provider_jobs_status')]) raw.exec(statement);
   assert.equal(raw.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='index' AND name='idx_market_provider_jobs_status'").get().n, 1);
+});
+
+test('0013 applies to a database without 0012 (production on 11.10.2026 has not applied it yet)', () => {
+  const raw = migrated(tag => tag < '0012');
+  for (const statement of statements('0013_query_indexes')) raw.exec(statement);
+  const names = statements('0013_query_indexes').map(statement => statement.match(/`(idx_[^`]+)`/)[1]);
+  assert.equal(names.length, 10);
+  for (const name of names) assert.equal(raw.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='index' AND name=?").get(name).n, 1, name);
 });
