@@ -168,7 +168,7 @@ export const products: Product[] = [
     category: "Обувь",
     usd: 99,
     weight: 1.9,
-    image: "/images/sneaker.jpg",
+    image: "/images/sneaker.webp",
     variants: ["US 8", "US 9", "US 10", "US 11"],
     description:
       "Спокойный силуэт для повседневного гардероба. Выберите размер и посмотрите, как складывается цена с доставкой.",
@@ -182,7 +182,7 @@ export const products: Product[] = [
     category: "Электроника",
     usd: 129,
     weight: 0.5,
-    image: "/images/headphones.jpg",
+    image: "/images/headphones.webp",
     variants: ["Чёрный", "Светлый"],
     description:
       "Для любимой музыки и рабочего ритма. В этом примере можно пройти покупку электроники из зарубежного магазина.",
@@ -196,7 +196,7 @@ export const products: Product[] = [
     category: "Аксессуары",
     usd: 65,
     weight: 1,
-    image: "/images/backpack.jpg",
+    image: "/images/backpack.webp",
     variants: ["Стандартный"],
     description:
       "Один рюкзак для повседневных планов. Изучите расчёт покупки и доставки до оформления заказа.",

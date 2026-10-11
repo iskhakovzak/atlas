@@ -15,7 +15,7 @@ test('cart-add of a product without a link takes price, weight, photo and name f
   assert.equal(line.product.usd, 99);
   assert.equal(line.product.weight, 1.9);
   assert.equal(line.product.boxedWeight, original.boxedWeight);
-  assert.equal(line.product.image, '/images/sneaker.jpg');
+  assert.equal(line.product.image, '/images/sneaker.webp');
   assert.equal(line.product.name, original.name);
   assert.deepEqual(line.product.variants, original.variants);
   // The server list itself is not mutated by the cart.
@@ -43,7 +43,7 @@ test('cart-add-many with a tampered product gets the server values too', () => {
   for (const line of state.cart) {
     assert.equal(line.product.usd, 99);
     assert.equal(line.product.weight, 1.9);
-    assert.equal(line.product.image, '/images/sneaker.jpg');
+    assert.equal(line.product.image, '/images/sneaker.webp');
     assert.equal(line.product.name, original.name);
   }
   const unknown = actionSchema.parse({ type: 'cart-add-many', items: [{ product: tampered, variant: original.variants[0], quantity: 1 }, { product: { ...tampered, id: 'hacked' }, variant: original.variants[0], quantity: 1 }] });

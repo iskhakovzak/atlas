@@ -33,19 +33,25 @@ export async function settleBrightDataJobs(now = Date.now(), limit = 25) {
   if (!key) return 0;
   const rows = await database().prepare("SELECT snapshot_id FROM market_provider_jobs WHERE provider='brightdata' AND status='running' AND created_at < ? ORDER BY created_at LIMIT ?").bind(now - 60_000, limit).all<{snapshot_id: string}>();
   const jobs = d1BrightDataJobs(db());
-  let settled = 0;
-  for (const row of rows.results) {
+  const settle = async (snapshotId: string) => {
     // A reservation that never got a snapshot: nothing was collected or billed.
-    if (row.snapshot_id.startsWith(brightDataClaimPrefix)) { await jobs.finish(row.snapshot_id, 'failed', 0, now, 'no snapshot'); settled++; continue; }
+    if (snapshotId.startsWith(brightDataClaimPrefix)) { await jobs.finish(snapshotId, 'failed', 0, now, 'no snapshot'); return true; }
     try {
-      const response = await fetch(`${brightDataApiOrigin}/datasets/v3/progress/${row.snapshot_id}`, {headers: {Authorization: `Bearer ${key}`}, signal: AbortSignal.timeout(8000)});
-      if (response.status === 404) { await jobs.finish(row.snapshot_id, 'failed', 0, now, 'not found'); settled++; continue; }
-      if (!response.ok) continue;
+      const response = await fetch(`${brightDataApiOrigin}/datasets/v3/progress/${snapshotId}`, {headers: {Authorization: `Bearer ${key}`}, signal: AbortSignal.timeout(8000)});
+      if (response.status === 404) { await jobs.finish(snapshotId, 'failed', 0, now, 'not found'); return true; }
+      if (!response.ok) return false;
       const progress = await response.json() as {status?: string; records?: number};
-      if (progress.status === 'ready') { await jobs.finish(row.snapshot_id, Number(progress.records) > 0 ? 'ready' : 'empty', Math.max(0, Math.floor(Number(progress.records) || 0)), now); settled++; }
-      else if (progress.status === 'failed') { await jobs.finish(row.snapshot_id, 'failed', 0, now, 'collection failed'); settled++; }
+      if (progress.status === 'ready') { await jobs.finish(snapshotId, Number(progress.records) > 0 ? 'ready' : 'empty', Math.max(0, Math.floor(Number(progress.records) || 0)), now); return true; }
+      if (progress.status === 'failed') { await jobs.finish(snapshotId, 'failed', 0, now, 'collection failed'); return true; }
     } catch { /* the next run asks again */ }
-  }
+    return false;
+  };
+  // Five questions at a time instead of one after another: the finance page waits for this (up to 25 jobs × 8 s).
+  const queue = rows.results.map(row => row.snapshot_id);
+  let settled = 0;
+  await Promise.all(Array.from({length: Math.min(5, queue.length)}, async () => {
+    for (let id = queue.shift(); id !== undefined; id = queue.shift()) if (await settle(id)) settled++;
+  }));
   return settled;
 }
 
@@ -68,21 +74,19 @@ export async function syncBrightDataLedger(now = Date.now()) {
   const [accounting, tariff] = await Promise.all([accountingSettings(), pricing()]);
   // The provider is paid in dollars by card: the Central Bank rate, without Atlas's customer markup.
   const usdRate = tariff.fxCbuRate ?? effectiveFx(tariff);
-  let inserted = 0;
-  const skipped: {day: string; reason: string}[] = [];
-  for (const selected of [previous, month]) {
-    const {days, stores} = await daysOf(selected);
-    if (!days.length) continue;
-    const existing = await database().prepare('SELECT id FROM market_ledger_entries WHERE id LIKE ? AND occurred_on >= ? AND occurred_on <= ?').bind(brightDataLedgerPrefix + '%', selected + '-01', selected + '-31').all<{id: string}>();
+  // The two months are independent: read together, and each month's new entries go in one db.batch.
+  const months = await Promise.all([previous, month].map(async (selected) => {
+    const [{days, stores}, existing] = await Promise.all([
+      daysOf(selected),
+      database().prepare('SELECT id FROM market_ledger_entries WHERE id LIKE ? AND occurred_on >= ? AND occurred_on <= ?').bind(brightDataLedgerPrefix + '%', selected + '-01', selected + '-31').all<{id: string}>(),
+    ]);
+    if (!days.length) return {inserted: 0, skipped: [] as {day: string; reason: string}[]};
     const plan = planBrightDataLedger(days, settings, {today, usdRate, accounting, existingIds: new Set(existing.results.map(row => row.id)), stores});
-    skipped.push(...plan.skipped);
-    for (const entry of plan.insert) {
-      const result = await database().prepare('INSERT OR IGNORE INTO market_ledger_entries (id,kind,amount_uzs,original_amount,original_currency,occurred_on,order_id,counterparty,note,created_by,created_at) VALUES (?,?,?,?,?,?,NULL,?,?,?,?)')
-        .bind(entry.id, entry.kind, entry.amountUzs, entry.originalAmount ?? null, entry.originalCurrency ?? null, entry.occurredOn, entry.counterparty ?? null, entry.note ?? null, autoActor, now).run();
-      if (result.meta.changes) inserted++;
-    }
-  }
-  return {inserted, skipped};
+    const results = plan.insert.length ? await database().batch(plan.insert.map(entry => database().prepare('INSERT OR IGNORE INTO market_ledger_entries (id,kind,amount_uzs,original_amount,original_currency,occurred_on,order_id,counterparty,note,created_by,created_at) VALUES (?,?,?,?,?,?,NULL,?,?,?,?)')
+      .bind(entry.id, entry.kind, entry.amountUzs, entry.originalAmount ?? null, entry.originalCurrency ?? null, entry.occurredOn, entry.counterparty ?? null, entry.note ?? null, autoActor, now))) : [];
+    return {inserted: results.filter(result => result.meta.changes).length, skipped: plan.skipped};
+  }));
+  return {inserted: months.reduce((sum, item) => sum + item.inserted, 0), skipped: months.flatMap(item => item.skipped)};
 }
 
 export type ProviderJobView = {snapshotId: string; store: string; status: string; records: number; purpose: string; url: string; error?: string; createdAt: number; finishedAt?: number};

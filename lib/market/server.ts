@@ -175,9 +175,13 @@ export async function saveStaffMember(value:{email:string;displayName:string;rol
  await database().prepare('INSERT INTO market_staff_directory (id,email,display_name,role,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT(email) DO UPDATE SET display_name=excluded.display_name,role=excluded.role,status=excluded.status,updated_at=excluded.updated_at').bind(id,email,value.displayName.trim(),value.role,value.status,now,now).run();
  return {id,email,displayName:value.displayName.trim(),role:value.role,status:value.status,createdAt:now,updatedAt:now} satisfies StaffMember;
 }
-export async function recordAudit(user:{userId:string;email:string},action:string,entityType:string,entityId?:string,details?:unknown){
+/** The audit row as a statement, for a db.batch together with the write it records. */
+export function auditStatement(user:{userId:string;email:string},action:string,entityType:string,entityId?:string,details?:unknown){
  const safeDetails=details===undefined?null:JSON.stringify(details).slice(0,4000);
- await database().prepare('INSERT INTO market_audit_events (id,actor_id,actor_email,action,entity_type,entity_id,details,created_at) VALUES (?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),user.userId,user.email.toLowerCase(),action.slice(0,100),entityType.slice(0,80),entityId?.slice(0,320)??null,safeDetails,Date.now()).run();
+ return database().prepare('INSERT INTO market_audit_events (id,actor_id,actor_email,action,entity_type,entity_id,details,created_at) VALUES (?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),user.userId,user.email.toLowerCase(),action.slice(0,100),entityType.slice(0,80),entityId?.slice(0,320)??null,safeDetails,Date.now());
+}
+export async function recordAudit(user:{userId:string;email:string},action:string,entityType:string,entityId?:string,details?:unknown){
+ await auditStatement(user,action,entityType,entityId,details).run();
 }
 export async function auditEvents():Promise<AuditEvent[]>{
  const rows=await database().prepare('SELECT id,actor_id,actor_email,action,entity_type,entity_id,details,created_at FROM market_audit_events ORDER BY created_at DESC LIMIT 100').all<{id:string;actor_id:string;actor_email:string;action:string;entity_type:string;entity_id:string|null;details:string|null;created_at:number}>();
