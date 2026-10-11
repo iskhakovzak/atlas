@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type FormEvent, type RefObject } from 'react';
-import { ArrowRight, ChevronDown, ClipboardPaste, Link2, Search, X } from 'lucide-react';
+import { ArrowRight, ChevronDown, Link2, Search, X } from 'lucide-react';
+import {PasteButton} from '@/components/paste-button';
 import { useMarket } from '@/lib/market/store';
 import { useRowAtStart } from '@/lib/market/row-start';
 import { retryOriginal, sizedImage } from '@/lib/market/image-size';
@@ -155,6 +156,8 @@ export function StoresDirectory() {
       <div className="stores-hero-main">
         <h1>{c.title(storeBrands.length)}</h1>
         <p className="stores-intro">{c.intro}</p>
+        <label className="stores-search"><Search size={20} aria-hidden="true" /><span className="sr-only">{c.search}</span><input type="search" aria-label={c.search} value={query} maxLength={80} placeholder={c.search} onChange={(event) => setQuery(event.target.value)} />{query && <button type="button" className="icon-btn" aria-label={c.clear} onClick={() => setQuery('')}><X size={18} /></button>}</label>
+        {query.trim() && <a className="stores-search-results" href="#stores-browse-title">{c.directory} · {c.count(list.length)}<ArrowRight size={16} aria-hidden="true" /></a>}
         <StoresLinkForm c={c} field={field} />
         <details className="stores-howto">
           <summary>{c.howtoTitle}<ChevronDown size={18} aria-hidden="true" /></summary>
@@ -215,7 +218,6 @@ export function StoresDirectory() {
 
     <section className="stores-browse" aria-labelledby="stores-browse-title">
       <div className="stores-browse-head"><h2 id="stores-browse-title">{c.directory}</h2><span role="status">{c.count(list.length)}</span></div>
-      <label className="stores-search"><Search size={20} aria-hidden="true" /><span className="sr-only">{c.search}</span><input type="search" value={query} maxLength={80} placeholder={c.search} onChange={(event) => setQuery(event.target.value)} />{query && <button type="button" className="icon-btn" aria-label={c.clear} onClick={() => setQuery('')}><X size={18} /></button>}</label>
       <div className="stores-chips" role="group" aria-label={c.directory}>
         <button type="button" aria-pressed={!focus} onClick={() => setFocus('')}>{c.all}<span>{searched.filter((brand) => inRegion(brand) && inCountry(brand)).length}</span></button>
         {storeFocusOrder.map((key) => <button type="button" key={key} aria-pressed={focus === key} onClick={() => setFocus(focus === key ? '' : key)}>{storeFocusNames[key][locale]}<span>{focusCount(key)}</span></button>)}
@@ -285,24 +287,18 @@ function ShowcasePhoto({ src, brand }: { src: string; brand: StoreBrand }) {
 }
 
 function StoresLinkForm({ c, field }: { c: Copy; field: RefObject<HTMLInputElement | null> }) {
+  const {state} = useMarket();
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
-  const [canPaste, setCanPaste] = useState(false);
-  useEffect(() => { queueMicrotask(() => setCanPaste(typeof navigator !== 'undefined' && !!navigator.clipboard?.readText)); }, []);
   function go(value: string) {
     try { goToLinkOrder(value); }
     catch { setError(c.invalidLink); }
   }
   function submit(event: FormEvent) { event.preventDefault(); go(url); }
-  // Reading the clipboard needs a tap; iPhone shows its own "Paste" confirmation.
-  async function paste() {
-    try { const text = (await navigator.clipboard.readText()).trim(); if (text) { setUrl(text); setError(''); go(text); return; } } catch { /* denied: type or paste by hand */ }
-    field.current?.focus();
-  }
   return <form className="stores-link" onSubmit={submit} noValidate>
     <label className="sr-only" htmlFor="stores-link-url">{c.pasteLabel}</label>
     <span className="stores-link-field"><Link2 size={20} aria-hidden="true" /><input ref={field} id="stores-link-url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.pastePlaceholder} aria-invalid={!!error} aria-describedby={error ? 'stores-link-error' : undefined} onChange={(event) => { setUrl(event.target.value); setError(''); }} />
-      {canPaste && !url && <button type="button" className="icon-btn" aria-label={c.paste} onClick={() => void paste()}><ClipboardPaste size={19} /></button>}</span>
+      <PasteButton targetId="stores-link-url" locale={state.communication.language} onPaste={text => { setUrl(text); setError(''); }}/></span>
     <button type="submit" className="btn primary">{c.calculate}<ArrowRight size={18} aria-hidden="true" /></button>
     {error && <p id="stores-link-error" className="stores-link-error" role="alert">{error}</p>}
   </form>;

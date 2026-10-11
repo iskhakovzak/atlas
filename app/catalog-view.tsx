@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ArrowRight, ChevronDown, Heart, Link2, PackageCheck, Search, ShieldCheck, SlidersHorizontal, Store, X, type LucideIcon } from 'lucide-react';
 import Link from '@/components/site-link';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
@@ -54,6 +54,9 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
   const [limit, setLimit] = useState(pageSize);
   const [selected, setSelected] = useState<Product | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [setsOpen, setSetsOpen] = useState(false);
+  const setsId = useId();
+  const setsToggleRef = useRef<HTMLButtonElement>(null);
   const [saving, setSaving] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   const side = useSheetSide();
@@ -100,6 +103,8 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
   }
   // A set is a preset: it replaces the filters (the search stays); the active one toggles off, clearing only its own keys.
   function toggleSet(set: CatalogSet) {
+    if (setsOpen) setsToggleRef.current?.focus();
+    setSetsOpen(false);
     if (!setActive(query, set.patch)) { setQuery({ ...emptyCatalogQuery, q: query.q, ...set.patch }); return; }
     const cleared = Object.fromEntries((Object.keys(set.patch) as (keyof CatalogQuery)[]).map((key) => [key, emptyCatalogQuery[key]]));
     setQuery({ ...query, ...cleared });
@@ -126,14 +131,17 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
       short={cc.bannerParcel(parcels.map((store) => storeLabel(store, locale)).join(', '))}
       detail={cc.parcelBanner(parcels.map((store) => storeLabel(store, locale)).join(', '))}
       action={query.stores.join() !== parcels.join() ? <button type="button" className="text-button" onClick={() => setQuery({ ...query, stores: parcels })}>{cc.parcelShow}</button> : null} />}
-    {sets.length > 0 && <nav {...setsRow} className="catalog-sets" aria-label={cc.collections}>
+    {sets.length > 0 && <div className="catalog-collections">
+      <button ref={setsToggleRef} type="button" className="catalog-sets-toggle" aria-expanded={setsOpen} aria-controls={setsId} onClick={() => setSetsOpen((open) => !open)}>{cc.collections}<ChevronDown size={18} aria-hidden="true" /></button>
+      <nav {...setsRow} id={setsId} className="catalog-sets" data-open={setsOpen || undefined} aria-label={cc.collections}>
       {sets.map((set) => <button type="button" key={set.id} className="catalog-set" aria-pressed={setActive(query, set.patch)} onClick={() => toggleSet(set)}>
         <SetCover images={set.items.slice(0, 4).map((item) => item.product.image).filter(Boolean)} />
         <b>{set.name}</b><span>{cc.setCount(set.items.length)}</span>
       </button>)}
-    </nav>}
+      </nav>
+    </div>}
     {showControls && <section className="catalog-bar" aria-label={cc.search}>
-      <label className="catalog-search"><Search size={20} aria-hidden="true" /><span className="sr-only">{cc.search}</span><input type="search" value={query.q} maxLength={80} placeholder={cc.searchPlaceholder} onChange={(event) => setQuery({ ...query, q: event.target.value })} />{query.q && <button type="button" className="icon-btn" aria-label={cc.clearSearch} onClick={() => setQuery({ ...query, q: '' })}><X size={18} /></button>}</label>
+      <label className="catalog-search"><Search size={20} aria-hidden="true" /><span className="sr-only">{cc.search}</span><input type="search" aria-label={cc.search} value={query.q} maxLength={80} placeholder={cc.searchPlaceholder} onChange={(event) => setQuery({ ...query, q: event.target.value })} />{query.q && <button type="button" className="icon-btn" aria-label={cc.clearSearch} onClick={() => setQuery({ ...query, q: '' })}><X size={18} /></button>}</label>
       {categoryEntries.length > 1 && <div className="catalog-categories" role="group" aria-label={cc.categoriesLabel}>
         <button type="button" aria-pressed={!query.category} onClick={() => setQuery({ ...query, category: '', sizes: [] })}>{cc.all}<span>{categoryAll}</span></button>
         {categoryEntries.map(([category, count]) => <button type="button" key={category} data-empty={count === 0 || undefined} aria-pressed={query.category === category} onClick={() => setQuery({ ...query, category: query.category === category ? '' : category, sizes: [] })}>{cc.categories[category] ?? category}<span>{count}</span></button>)}

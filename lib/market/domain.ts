@@ -1613,8 +1613,32 @@ export const orderNeedsOperatorAttention = (order: Order) =>
     order.warehouseInspection?.condition === "damaged" ||
     order.warehouseInspection?.condition === "mismatch"
   ));
-/** One model in the cart: the sizes or colors of one store item (one link, one name), or one catalog product. */
-export const cartModelKey = (product: Pick<Product, "id" | "name" | "sourceUrl">) => product.sourceUrl ? `${product.sourceUrl}\n${product.name}` : product.id;
+/** Display grouping only: sizes of one colour share a card, retaining independent cart lines and quotes. */
+const colourOptionName = /^(colou?r|colourway|colorway|цвет|расцветка)$/i;
+export function cartColourOptions(product: Pick<Product, "sourceOptions">) {
+  const color = product.sourceOptions?.find(item => colourOptionName.test(item.name.trim()));
+  const rest = product.sourceOptions?.filter(item => !colourOptionName.test(item.name.trim()));
+  return color && rest?.length ? { color: color.value, label: [...new Set(rest.map(item => `${item.name.trim()}: ${item.value.trim()}`))].join(" · ") } : undefined;
+}
+export function cartModelKey(product: Pick<Product, "id" | "name" | "sourceUrl" | "sourceColorId" | "sourceSellerId" | "sourceGroupId" | "sourceOptions" | "sourceVariants" | "sourceVariantId">, variant = "") {
+  const option = (product.sourceVariantId ? product.sourceVariants?.find(item => item.id === product.sourceVariantId) : undefined)
+    ?? product.sourceVariants?.find(item => item.label === variant);
+  const colourOption = product.sourceOptions?.find(item => colourOptionName.test(item.name.trim()));
+  // Do not guess a colour by splitting merchant labels: their separators and option order differ.
+  const colour = product.sourceColorId || option?.colorId || colourOption?.value || option?.color;
+  const sizeOnly = /^(?:(?:US|UK|EU|CM)\s*)?(?:\d+(?:[.,]\d+)?|[2-6]?X{0,3}[SML]|XL|XXL|XXXL)(?:\s*\(Tall\))?$/i.test(variant.trim());
+  const colourKey = colour ? `colour:${colour}` : sizeOnly ? "size-only" : `option:${variant}`;
+  if (!product.sourceUrl) return JSON.stringify([product.id, colourKey]);
+  let source = product.sourceUrl;
+  try {
+    const url = new URL(source);
+    // eBay's var and affiliate parameters identify a size or a referral, not another listing.
+    const listing = /^(?:www\.)?ebay\.com$/i.test(url.hostname) && url.pathname.match(/^\/itm\/(?:[^/]+\/)?(\d+)\/?$/);
+    if (listing && colour) source = `https://www.ebay.com/itm/${listing[1]}`;
+    else if (product.sourceGroupId && colour) source = `${url.origin}/group/${product.sourceGroupId}`;
+  } catch { /* Old saved products keep their exact source string. */ }
+  return JSON.stringify([source, product.name, product.sourceSellerId ?? "", colourKey]);
+}
 export function addToCart(
   state: State,
   p: Product,

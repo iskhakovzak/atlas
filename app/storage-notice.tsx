@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import Link from "@/components/site-link";
 import { useMarket } from "@/lib/market/store";
 import { consentDocuments, consentVersion, missingConsents } from "@/lib/market/account-delete";
@@ -14,6 +14,12 @@ const copy = /*@__PURE__*/withCyrillic({
   ru: { text: "Atlas обрабатывает данные для заказов и доставки. На сайте Impact учитывает партнёрские переходы и показы страниц.", privacy: "Политика конфиденциальности", terms: "Условия использования", more: "Правила работы", accept: "Принимаю", label: "Согласие на обработку данных" },
   uz: { text: "Atlas buyurtma va yetkazish uchun ma’lumotlarga ishlov beradi. Saytda Impact hamkor havolalari va sahifa ko‘rishlarini hisobga oladi.", privacy: "Maxfiylik siyosati", terms: "Foydalanish shartlari", more: "Ishlash qoidalari", accept: "Qabul qilaman", label: "Ma’lumotlarga ishlov berishga rozilik" },
   en: { text: "Atlas processes data for orders and delivery. On the website, Impact measures partner links and page impressions.", privacy: "Privacy policy", terms: "Terms of use", more: "How Atlas works", accept: "I accept", label: "Data-processing consent" },
+});
+
+const compactCopy = /*@__PURE__*/withCyrillic({
+  ru: { summary: "Данные и правила Atlas", show: "Подробнее", hide: "Свернуть" },
+  uz: { summary: "Atlas ma’lumotlari va qoidalari", show: "Batafsil", hide: "Yig‘ish" },
+  en: { summary: "Atlas data and terms", show: "Details", hide: "Collapse" },
 });
 
 function stored(): string | null {
@@ -31,6 +37,8 @@ function stored(): string | null {
 export function StorageNotice() {
   const { state, status, ready, act } = useMarket();
   const [visible, setVisible] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const detailsId = useId();
   const sent = useRef(false);
   // The documents this account still has to accept, as a stable key: a refresh that changes nothing about
   // the consents must not re-derive the sheet (and so must not make it flicker).
@@ -43,6 +51,7 @@ export function StorageNotice() {
   }, [status, ready, missingKey]);
   if (!visible) return null;
   const c = copy[state.communication.language];
+  const compact = compactCopy[state.communication.language];
   function accept() {
     try { localStorage.setItem(KEY, consentVersion); } catch {}
     window.dispatchEvent(new Event('atlas:consent-accepted'));
@@ -52,8 +61,9 @@ export function StorageNotice() {
       void act({ type: "consent-accept", documents: [...consentDocuments], version: consentVersion }).then(ok => { sent.current = false; if (!ok) setVisible(true); });
     }
   }
-  return <aside className="storage-notice" role="region" aria-label={c.label}>
-    <p>{c.text} <Link href="/privacy">{c.privacy}</Link> · <Link href="/terms">{c.terms}</Link> · <Link href="/legal">{c.more}</Link></p>
-    <button type="button" onClick={accept}>{c.accept}</button>
+  return <aside className="storage-notice" data-expanded={expanded} role="region" aria-label={c.label}>
+    <div className="storage-notice-summary"><p>{compact.summary}</p><button type="button" className="storage-notice-details" aria-expanded={expanded} aria-controls={detailsId} onClick={() => setExpanded(value => !value)}>{expanded ? compact.hide : compact.show}</button></div>
+    <p id={detailsId} className="storage-notice-full">{c.text} <Link href="/privacy">{c.privacy}</Link> · <Link href="/terms">{c.terms}</Link> · <Link href="/legal">{c.more}</Link></p>
+    <button type="button" className="storage-notice-accept" onClick={accept}>{c.accept}</button>
   </aside>;
 }

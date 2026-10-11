@@ -2,6 +2,7 @@
 import {Fragment,useEffect,useId,useState,type FormEvent,type ReactNode} from 'react';
 import { ArrowRight, ArrowUpRight, BadgeCheck, Check, CircleHelp, ClipboardPaste, Info, Landmark, Link2, MessagesSquare, Plane, ReceiptText, Store, Truck } from 'lucide-react';
 import Link from '@/components/site-link';
+import {PasteButton} from '@/components/paste-button';
 import {useMarket} from '@/lib/market/store';
 import {deliveryPerKgUsdFor,deliverySpeeds,price,validateSource} from '@/lib/market/domain';
 import {atlasServiceBreakdown} from '@/lib/market/quote-presentation';
@@ -87,7 +88,7 @@ export function HomeHero({showCatalogLink}:{showCatalogLink:boolean}){
   <p className="home-hero-lead">{c.hero.lead}</p>
   <form id="home-link-form" className="home-link-form" onSubmit={submit} noValidate>
    <label className="sr-only" htmlFor="finds-product-url">{c.hero.label}</label>
-   <span className="home-link-field"><Link2 size={20} aria-hidden="true"/><input id="finds-product-url" name="url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.hero.placeholder} aria-invalid={!!error} aria-describedby={error?'home-link-error':'home-link-note'} onChange={event=>change(event.target.value)}/></span>
+   <span className="home-link-field"><Link2 size={20} aria-hidden="true"/><input id="finds-product-url" name="url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.hero.placeholder} aria-invalid={!!error} aria-describedby={error?'home-link-error':'home-link-note'} onChange={event=>change(event.target.value)}/><PasteButton targetId="finds-product-url" locale={locale} onPaste={change}/></span>
    <button type="submit" className="btn primary home-cta">{c.hero.calculate}</button>
   </form>
   {error?<p id="home-link-error" className="home-link-error" role="alert">{error}</p>:<p id="home-link-note" className="home-link-note">{status==='authenticated'?c.hero.memberNote:c.hero.guestNote}</p>}
@@ -169,11 +170,11 @@ export function HowItWorks(){
 /** The first step's working link field: the same check and destination as the hero's form. */
 function StepLinkForm(){
  const {status}=useMarket();
- const {c}=useHomeCopy();
+ const {c,locale}=useHomeCopy();
  const {url,error,submit,change}=useLinkSubmit();
  return <form className="hw-demo hw-demo-field" onSubmit={submit} noValidate>
   <label className="sr-only" htmlFor="how-product-url">{c.hero.label}</label>
-  <span className="hw-demo-input"><Link2 size={15} strokeWidth={2} aria-hidden="true"/><input id="how-product-url" name="url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.hero.placeholder} aria-invalid={!!error} aria-describedby="how-link-note" onChange={event=>change(event.target.value)}/><button type="submit" aria-label={c.hero.calculate} title={c.hero.calculate}><ArrowRight size={15} strokeWidth={2.2} aria-hidden="true"/></button></span>
+  <span className="hw-demo-input"><Link2 size={15} strokeWidth={2} aria-hidden="true"/><input id="how-product-url" name="url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.hero.placeholder} aria-invalid={!!error} aria-describedby="how-link-note" onChange={event=>change(event.target.value)}/><PasteButton targetId="how-product-url" locale={locale} onPaste={change}/><button type="submit" aria-label={c.hero.calculate} title={c.hero.calculate}><ArrowRight size={15} strokeWidth={2.2} aria-hidden="true"/></button></span>
   <span className="hw-demo-stores" aria-hidden="true">{stepStores.map(key=><StoreMark key={key} brandKey={key} height={17} maxWidth={58}/>)}<small>{c.how.moreStores(storeBrands.length-stepStores.length)}</small></span>
   <span id="how-link-note" className={'hw-demo-note'+(error?' error':'')} role={error?'alert':undefined}>{error||(status==='authenticated'?c.hero.memberNote:c.hero.guestNote)}</span>
  </form>;

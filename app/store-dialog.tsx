@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ArrowRight, ArrowUpRight, ChevronDown, Info, Link2, X } from 'lucide-react';
 import Link from '@/components/site-link';
+import {PasteButton} from '@/components/paste-button';
+import {useMarket} from '@/lib/market/store';
 import { tariff, unknownStoreShippingUsd, validateSource, type Pricing } from '@/lib/market/domain';
 import { customsParams } from '@/lib/market/customs';
 import { deliverySpeedCopy } from '@/lib/market/delivery-speed';
@@ -143,6 +145,7 @@ export function StoreDialog({ brand, c, locale, pricing, terms, catalog, mark, o
 
 /** The link field of the store card: the same link-order route as the hero form, the validation error under the field. */
 function DialogLinkForm({ c, domain }: { c: Copy; domain: string }) {
+  const {state} = useMarket();
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
   function submit(event: FormEvent) {
@@ -153,6 +156,7 @@ function DialogLinkForm({ c, domain }: { c: Copy; domain: string }) {
     <label className="sr-only" htmlFor="store-dialog-url">{c.dialogPaste(domain)}</label>
     <span className="stores-link-field"><Link2 size={20} aria-hidden="true" />
       <input id="store-dialog-url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.dialogPaste(domain)} aria-invalid={!!error} aria-describedby={error ? 'store-dialog-error' : undefined} onChange={(event) => { setUrl(event.target.value); setError(''); }} />
+      <PasteButton targetId="store-dialog-url" locale={state.communication.language} onPaste={text => { setUrl(text); setError(''); }}/>
     </span>
     <button type="submit" className="btn primary store-dialog-calc">{c.calculate}<ArrowRight size={18} aria-hidden="true" /></button>
     {error && <p id="store-dialog-error" className="stores-link-error" role="alert">{error}</p>}

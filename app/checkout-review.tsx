@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Check, Info, TriangleAlert } from "lucide-react";
-import { cartModelKey, serviceTitle, storeParcels, parcelServiceUnits, type CartItem, type Pricing } from "@/lib/market/domain";
+import { cartModelKey, cartColourOptions, serviceTitle, storeParcels, parcelServiceUnits, type CartItem, type Pricing } from "@/lib/market/domain";
 import { cartSelectCopy } from "@/lib/market/cart-select-copy";
 import { calcCopy } from "@/lib/market/calc-copy";
 import { countryLabel } from "@/lib/market/customer-copy";
@@ -10,12 +10,12 @@ import { storefrontLabel } from "@/lib/market/store-brands";
 import type { Locale } from "@/lib/market/i18n";
 import { ProductImage } from "./market-ui";
 
-/** One product (sizes or colors of the same store item) is one link with one name. */
+/** One card per colour; each size keeps its own selection, quantity and amount. */
 export const productKey = cartModelKey;
 export function productGroups(items: CartItem[]) {
   const groups: CartItem[][] = [];
   for (const item of items) {
-    const group = groups.find(entry => productKey(entry[0].product) === productKey(item.product));
+    const group = groups.find(entry => productKey(entry[0].product, entry[0].variant) === productKey(item.product, item.variant));
     if (group) group.push(item);
     else groups.push([item]);
   }
@@ -59,16 +59,17 @@ export function CheckoutReviewTable({ lines, locale, pricing, onLeaveForLater, b
       return <div className="review-parcel" role="rowgroup" key={parcel.key}>
         <div className="review-parcel-title" role="row"><span role="cell">{country && !name.includes(country) ? r.parcel(name, country) : name}</span></div>
         {productGroups(parcel.items).map(group => {
+          const sharedColour = group.length > 1 ? cartColourOptions(group[0].product)?.color : undefined;
           return <div className="review-model" key={group[0].id}>
             {group.map((item, index) => {
               const issue = item.sourceIssue && item.sourceIssue.kind !== "unreachable";
               return <div className={"review-row" + (issue ? " has-issue" : item.priceChange ? " has-change" : "")} role="row" key={item.id}>
                 <span role="cell" className="review-n">{numbers.get(item.id)}</span>
                 <span role="cell" className="review-item">
-                  {index === 0 ? <><span className="review-photo"><ProductImage product={item.product} locale={locale} decorative size={120} /></span><span className="review-name">{item.product.name}</span></>
+                  {index === 0 ? <><span className="review-photo"><ProductImage product={item.product} locale={locale} decorative size={120} /></span><span className="review-title"><span className="review-name">{item.product.name}</span>{sharedColour && <small className="review-colour">{sharedColour}</small>}</span></>
                     : <span className="sr-only">{item.product.name}</span>}
                 </span>
-                <span role="cell" className="review-variant">{shownVariant(item.variant) || "—"}</span>
+                <span role="cell" className="review-variant">{sharedColour ? cartColourOptions(item.product)?.label || shownVariant(item.variant) : shownVariant(item.variant) || "—"}</span>
                 <span role="cell" className="review-num" data-label={r.columns.quantity}>{item.quantity}</span>
                 <span role="cell" className="review-num review-sum" data-label={r.columns.sum}>{formatSum(item.quote.total, locale)}</span>
                 {(issue || item.priceChange || (onLeaveForLater && lines.length > 1)) && <span className="review-row-extra" role="cell">

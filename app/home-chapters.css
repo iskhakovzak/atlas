@@ -22,7 +22,7 @@ html[data-view="catalog"]:is(html) {
   html[data-view="catalog"]:is(html) {
     --ch-header: calc(80px + env(safe-area-inset-top));
     --ch-nav: calc(61px + env(safe-area-inset-bottom)); /* .mobile-nav: 1px border + 4 + 56 */
-    --ch-dock: 68px;                                     /* 1px border + 7 + 52px button + 8 */
+    --ch-dock: 56px;                                     /* 1px border + 5 + 44px button + 6 */
     --ch-pad: clamp(16px, 3svh, 32px);
     --ch-gap: 20px;
     /* lvh: when Safari's toolbars collapse, the next heading still does not peek in. Never dvh. */
@@ -262,14 +262,15 @@ html[data-view="catalog"]:is(html) .home-end > .home-footer { grid-row: 2; margi
 @media (max-width: 760px) {
   html[data-view="catalog"]:is(html) .home-sticky.above-nav {
     z-index: 41; right: 0; bottom: var(--ch-nav); left: 0;
-    padding: 7px max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); /* 1 + 7 + 52 + 8 = --ch-dock */
+    padding: 5px max(12px, env(safe-area-inset-right)) 6px max(12px, env(safe-area-inset-left)); /* 1 + 5 + 44 + 6 = --ch-dock */
     border-top: 1px solid var(--cat-line, #e2e2da);
     background: var(--cat-surface, #fff);
   }
   /* The next sheet starts under the dock and the bar: both are opaque here, so not even a blurred heading shows through. */
   html[data-view="catalog"]:is(html) .mobile-nav { background: var(--cat-surface, #fff); }
   html[data-theme="dark"][data-view="catalog"]:is(html) :where(.home-sticky.above-nav, .mobile-nav) { background: var(--night-canvas); }
-  html[data-view="catalog"]:is(html) .home-sticky.above-nav .home-cta { box-shadow: none; }
+  html[data-view="catalog"]:is(html) .home-sticky.above-nav .home-cta { min-height: 44px; padding-block: 8px; box-shadow: none; }
+  html[data-view="catalog"]:has(.home-sticky.above-nav) .storage-notice { bottom: calc(var(--atlas-mobile-nav-clearance) + var(--ch-dock) + 8px); }
   html:has(main.catalog-home .home-sticky.above-nav) .mobile-nav { border-top-color: transparent; }
 }
 @media (max-width: 760px) and (prefers-reduced-motion: no-preference) {

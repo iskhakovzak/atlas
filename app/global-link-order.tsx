@@ -41,14 +41,12 @@ import {
   unknownStoreShippingUsd,
   validateSource,
   type CartItem,
-  type DeliverySpeed,
   type Product,
 } from "@/lib/market/domain";
-import { deliverySpeedOptions, savingText } from "@/lib/market/delivery-speed";
 import { calcCopy, type CalcCopy } from "@/lib/market/calc-copy";
 import { Money } from "./money";
 import { cartCustomsEstimate } from "@/lib/market/allowance";
-import { BlankBill, CalcLines, CustomsPanel, DeliverySpeedSwitch, HoldNote, sumQuotes } from "./calc-summary";
+import { BlankBill, CalcLines, CustomsPanel, HoldNote, sumQuotes } from "./calc-summary";
 import { countries, currencies, currencyForCountry, toUsd, paddedWeight, packagingKg } from "@/lib/market/world";
 import { describeSingleColorway } from "@/lib/market/variant-colorway";
 import { adidasMenSize } from "@/lib/market/adidas-size-chart";
@@ -69,6 +67,7 @@ import { WasPrice } from "./market-ui";
 import { formatKg, formatSum } from "@/lib/market/format";
 import { cartCopy, countryLabel, linkOrderCopy } from "@/lib/market/customer-copy";
 import { extractSharedLink } from "@/lib/market/shared-link";
+import {PasteButton} from '@/components/paste-button';
 import { ProductGallery } from "./product-gallery";
 import { retryOriginal, sizedImage } from "@/lib/market/image-size";
 import {
@@ -203,11 +202,14 @@ function CartEntry({ count, label, compact = false }: { count: number; label: st
 
 export function GlobalLinkOrder() {
   const { ready, status, error: accountError, user, refresh, pricing, state, act, lastActionError, catalogProducts, loadCatalog } = useMarket();
-  // Express by default; a cart that already chose standard keeps it, since the added line inherits the cart's speed.
-  const [previewSpeed, setPreviewSpeed] = useState<DeliverySpeed>("express");
-  const speedTouched = useRef(false);
+  // Delivery is chosen only in the cart; estimates follow its current speed.
+  const [previewSpeed, setPreviewSpeed] = useState<"express" | "standard">("express");
   const cartSpeed = cartDeliverySpeed(state.cart);
-  useEffect(() => { if (ready && !speedTouched.current) setPreviewSpeed(cartSpeed); }, [ready, cartSpeed]);
+  useEffect(() => {
+    let active = true;
+    if (ready) queueMicrotask(() => { if (active) setPreviewSpeed(cartSpeed); });
+    return () => { active = false; };
+  }, [ready, cartSpeed]);
   const lang=state.communication.language;
   const freeFrom=`$${pricing.storeShippingFreeFromUsd??50}`;
   // The store-delivery hold from the tariff constant, never typed into the copy.
@@ -368,7 +370,6 @@ export function GlobalLinkOrder() {
       draftRestored.current=true;
       if(restoreMode(draft,now)==='full'){
         draftCanSkipAutomaticLoad.current=true;
-        if(draft.previewSpeed)speedTouched.current=true;
         const kept=keepPicks(draft.picked,draft.variants).picked;
         const single=draft.variants.length===1?draft.variants[0].label:'';
         queueMicrotask(()=>{
@@ -379,7 +380,6 @@ export function GlobalLinkOrder() {
           setCountry(canonicalCountry(draft.country||'Другая страна'));setOtherCountry(draft.otherCountry);setCategory(canonicalCategory(draft.category||'Другое'));
           setVariants(draft.variants);setVariant(draft.variant||single);setPicked(Object.keys(kept).length||!single?kept:{[single]:1});
           setSelectedColor(draft.selectedColor);setSelectedSize(draft.selectedSize);setManualQuantity(draft.manualQuantity);setComment(draft.comment);
-          if(draft.previewSpeed)setPreviewSpeed(draft.previewSpeed);
           setImage(draft.image);setImages(dedupeSafeImages(draft.images,draft.source));setColorwayImages(cleanColorwayGalleries(draft.colorwayImages,draft.source));
           setShowSourceForm(false);setNote(draft.note);
           setSourceCheckStatus(draft.sourceCheckStatus);setImportedAt(draft.importedAt);setSourceExpiresAt(draft.sourceExpiresAt);
@@ -401,7 +401,7 @@ export function GlobalLinkOrder() {
       url,source,name,brand,declaration,currency,amount,basePrice,importReference,shipping,shippingCurrency,shippingEstimated,foundShipping,
       weight,weightBasis,weightOrigin,country,otherCountry,category,variant,variants,selectedColor,selectedSize,image,images,colorwayImages,
       showSourceForm,note,verified:false,sourceCheckStatus,importedAt,sourceExpiresAt,locks:atlasLocks??undefined,
-      picked,manualQuantity,comment,previewSpeed:speedTouched.current?previewSpeed:undefined,
+      picked,manualQuantity,comment,
     },Date.now(),prunedFor.current!==draftKey);
     prunedFor.current=draftKey;
   },[draftKey,viewer,checking,choicesApplied,added,requestedUrl,catalogId,dealId,url,source,name,brand,declaration,currency,amount,basePrice,importReference,shipping,shippingCurrency,shippingEstimated,foundShipping,weight,weightBasis,weightOrigin,country,otherCountry,category,variant,variants,selectedColor,selectedSize,image,images,colorwayImages,showSourceForm,note,sourceCheckStatus,importedAt,sourceExpiresAt,atlasLocks,picked,manualQuantity,comment,previewSpeed]);
@@ -440,15 +440,18 @@ export function GlobalLinkOrder() {
   /** Toggle an option in the selection; the last one touched sets the price shown in the form. */
   function togglePick(item:ProductVariant){
     if(!isConfirmedVariantAvailable(item))return;
+    setFormIssue("");
     setPicked(current=>{const next={...current};if(next[item.label])delete next[item.label];else next[item.label]=1;return next});
     applyVariantChoice(item);
     setAdded(null);setGoneOptions([]);setChoiceNote("");
   }
   function setPickQuantity(label:string,quantity:number){
+    setFormIssue("");
     setPicked(current=>({...current,[label]:quantity}));
 
   }
   function selectColorway(color:string){
+    setFormIssue("");
     const choices=variants.filter(item=>item.color===color);
     const first=choices.find(item=>item.available)??choices[0];
     // The chosen color tapped again picks its only option back (after "add to cart" or removing it from the list).
@@ -466,7 +469,7 @@ export function GlobalLinkOrder() {
   }
   /** What the customer has chosen now, to apply again after a reload. */
   function currentChoices():DraftChoices{
-    const choices:DraftChoices={picked,variant,selectedColor,selectedSize,manualQuantity,comment,previewSpeed:speedTouched.current?previewSpeed:undefined};
+    const choices:DraftChoices={picked,variant,selectedColor,selectedSize,manualQuantity,comment};
     if(!variants.length&&variant.trim())choices.manualOption={label:variant.trim(),quantity:manualQuantity};
     if((sourceCheckStatus==='failed'||sourceCheckStatus==='manual')&&!catalogProductFlow)choices.manual={name,currency,amount,shipping,shippingCurrency,shippingEstimated,weight,weightBasis,weightOrigin,country,otherCountry,category};
     return choices;
@@ -504,7 +507,6 @@ export function GlobalLinkOrder() {
     }
     setChoiceNote(note);
     if(saved.comment)setComment(saved.comment);
-    if(saved.previewSpeed){speedTouched.current=true;setPreviewSpeed(saved.previewSpeed)}
     // What the customer typed comes back only while the store still gives nothing for it.
     const typed=saved.manual;
     if(typed&&(sourceCheckStatus==='failed'||sourceCheckStatus==='manual')){
@@ -884,9 +886,6 @@ export function GlobalLinkOrder() {
   const previewSums = previewItems.length ? sumQuotes(previewItems.map(item => item.quote)) : null;
   const previewWeight = Math.round(previewItems.reduce((sum, item) => sum + item.quote.weight, 0) * 100) / 100;
   const previewHold = storeShippingReserves(previewItems, pricing)[0];
-  const previewCountry = country === "Другая страна" ? otherCountry : country;
-  const speedOptions = deliverySpeedOptions(pricing, [previewCountry], lang);
-  const speedNote = previewItems.length ? savingText(previewItems, pricing, lang) : "";
   const storeShippingState: "stated" | "free" | "hold" | "none" = !shippingEstimated ? (Number(shipping) > 0 ? "stated" : "none") : !previewItems.length ? "none" : previewHold?.reserveUsd ? "hold" : "free";
   // Unknown store delivery is free by Atlas's rule once the items cost more than the threshold: a line, not a field.
   // Decided by the amount, not by an empty or zero field, so clearing the field to type a new value keeps the field.
@@ -928,7 +927,6 @@ export function GlobalLinkOrder() {
   const pendingAdd = usePendingCartAdd(!checking && !adding && Boolean(source) && draftDecidedFor === draftKey, (result: PendingCartAddResult) => {
     if (result.status === "added") {
       toast.success(lc.pending.added(result.pending.units) + (result.speedKept ? " " + lc.pending.speedKept : ""));
-      speedTouched.current = false; setPreviewSpeed(result.speed);
       finishAdd(result.pending.lines, result.pending.units);
       return;
     }
@@ -1023,7 +1021,9 @@ export function GlobalLinkOrder() {
           // Back to the loaded product when "Изменить ссылку" was opened by mistake and nothing was typed yet.
           onKeyDown={(e) => { if (e.key === "Escape" && source && !url) { e.preventDefault(); setShowSourceForm(false); } }}
           placeholder={lc.placeholder}
-        /></span>
+        /><PasteButton targetId="source-url" locale={lang} disabled={busy} onPaste={text => {
+          forgetLastDraft(browserStorage()); setResumedFrom(''); setFormIssue(''); setUrl(text); setSource(''); setSourceCheckStatus('idle'); setShowSourceForm(true);
+        }}/></span>
         <button className="btn primary lo-link-submit" disabled={busy}>{busy ? <Loader2 className="spin" size={18} aria-hidden="true" /> : null}{busy ? c.get : lc.calculate}</button>
       </form>}
       {(showSourceForm || (!requestedUrl && resumeChecked)) && !source && !busy && <><div className="lo-hints"><p>{lc.hint}</p><div className="home-hero-links"><Link href="/stores">{lc.stores}</Link><Link href="/batch-import">{lc.batch}</Link></div></div><BlankBill pricing={pricing} locale={lang}/></>}
@@ -1071,6 +1071,7 @@ export function GlobalLinkOrder() {
           className={"lo-layout link-order-data-form" + (checking ? " is-checking" : " is-ready")}
           noValidate
           aria-busy={checking}
+          onChangeCapture={() => setFormIssue("")}
           onSubmit={async (e) => {
             e.preventDefault();
             if (checking) return;
@@ -1179,7 +1180,7 @@ export function GlobalLinkOrder() {
                 // checks it with the store like any other. Where this device keeps nothing, the button never promised it;
                 // if keeping it fails now, the customer is told before leaving and the button says so.
                 const here = window.location.pathname + window.location.search;
-                if (canKeep && !savePendingCartAdd(browserStorage(), { action, speed: speedTouched.current ? previewSpeed : undefined, returnTo: here, draftKey })) {
+                if (canKeep && !savePendingCartAdd(browserStorage(), { action, returnTo: here, draftKey })) {
                   setCanKeep(false); setFormIssue(lc.pending.notKept); return;
                 }
                 window.location.assign(signInPath(here));
@@ -1190,8 +1191,6 @@ export function GlobalLinkOrder() {
               // The cart keeps what is already there; the customer can add more from this or another link.
               if (ok) {
                 finishAdd(picks.length, units);
-                // The added line took the cart's speed; the speed chosen here applies to the whole cart (one speed per cart).
-                if (previewSpeed !== cartSpeed) await act({ type: "cart-delivery-speed", speed: previewSpeed });
               }
               // The store's price moved since this page loaded: load it again and keep the customer's choice.
               else if (lastActionError()?.code === "err_34") { reapply.current = currentChoices(); void load(requestedUrl || source); }
@@ -1268,7 +1267,7 @@ export function GlobalLinkOrder() {
             <div className="folio-sheet">
               <h2 id="lo-summary-title">{lc.total}</h2>
               {checking ? <BillPlaceholder /> : previewSums ? <>
-                <DeliverySpeedSwitch value={previewSpeed} options={speedOptions} locale={lang} note={speedNote} compact onChange={(next) => { speedTouched.current = true; setPreviewSpeed(next); }}/>
+                <p className="micro">{tx("Скорость доставки выберете в корзине.", "Yetkazish tezligini savatda tanlaysiz.", "Choose delivery speed in your cart.")}</p>
                 <CalcLines sums={previewSums} locale={lang} pricing={pricing} weightKg={previewWeight} storeShippingState={storeShippingState} speed={previewSpeed}/>
                 <div className="basket-total bill-total"><span>{units > 1 ? `${k.lines.total} (${units} ${lang === "en" ? "pcs" : isUzbek(lang) ? uzText(lang, "dona") : "шт."})` : k.lines.total}</span><strong><Money value={previewSums.total} locale={lang}/></strong></div>
                 {/* The allowance in two lines; "Atlas pays customs for me" is chosen in the cart, for the whole order. */}

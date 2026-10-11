@@ -1,5 +1,6 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
+import {PasteButton} from "@/components/paste-button";
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import {BadgeCheck,Check,ChevronDown,EyeOff,FolderPlus,ImageIcon,Link2,Loader2,RefreshCw,Send,Trash2} from 'lucide-react';
 import { toast } from '@/lib/market/toast';
@@ -111,7 +112,8 @@ export function CatalogAdmin(){
  const due=dueCatalogEntries(document,refreshClock).length;
  return <section className="catalog-workspace">
   <section className="surface catalog-importer"><div><span className="eyebrow">БЫСТРОЕ ДОБАВЛЕНИЕ</span><h2>Вставьте ссылки — товары попадут в каталог</h2><p>Список, текст из чата или таблицы — лишнее отбросится. Что прочиталось без сомнений, публикуется сразу; остальное ждёт вашей проверки.</p></div>
-   <textarea aria-label="Ссылки товаров или коллекции" disabled={busy==='import'} value={urls} onChange={e=>{setUrls(e.target.value);setImportProgress([])}} placeholder={'https://магазин.com/products/товар-1\nhttps://магазин.com/products/товар-2'}/>
+   <div className="paste-field-head"><label htmlFor="catalog-import-urls">Ссылки товаров или коллекции</label><PasteButton targetId="catalog-import-urls" locale="ru" multiline disabled={!!busy} onPaste={text=>{setUrls(text);setImportProgress([])}}/></div>
+   <textarea id="catalog-import-urls" aria-label="Ссылки товаров или коллекции" disabled={busy==='import'} value={urls} onChange={e=>{setUrls(e.target.value);setImportProgress([])}} placeholder={'https://магазин.com/products/товар-1\nhttps://магазин.com/products/товар-2'}/>
    <div className="catalog-import-queue-summary" aria-live="polite"><span>{importQueue.links.length} уникальных ссылок</span><span>По {catalogAdminImportBatchSize} ссылок в запросе</span>{importQueue.duplicates>0&&<span>Повторы пропущены: {importQueue.duplicates}</span>}{importQueue.invalid.length>0&&<span>Строк без ссылки: {importQueue.invalid.length}</span>}{importQueue.links.length>catalogAdminImportBatchSize&&<span>Следом автоматически: {importQueue.links.length-catalogAdminImportBatchSize}</span>}</div>
    {importQueue.links.length>catalogAdminImportBatchSize&&<p className="catalog-import-hint">Все ссылки обрабатываются автоматически порциями по {catalogAdminImportBatchSize}. Дождитесь завершения; при ограничении магазина Atlas сделает паузу и продолжит.</p>}
    {importProgress.length>0&&<div className="catalog-import-progress" aria-live="polite"><div className="catalog-import-progress-head"><strong>Импорт: {settledImports} из {importProgress.length}</strong><span>Обработано: {savedImports}</span></div><progress max={importProgress.length} value={settledImports}/><ul>{importProgress.map(item=><li key={item.url} className={`import-${item.status}`}><span>{hostLabel(item.url)}</span><small>{item.detail??(item.status==='importing'?'Читаем магазин…':item.status==='queued'?'В очереди':'')}</small></li>)}</ul></div>}

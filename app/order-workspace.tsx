@@ -1155,6 +1155,10 @@ function OrderGroupCard({ group, locale, busy, allowanceUsd, passports, parcel, 
 
 export function OrdersView({ operations }: { operations: boolean }) {
   const { state, pricing, ready, status, error, act, user, refresh } = useMarket();
+  // Following an order link selects its tab; an explicit filter change leaves that linked selection.
+  function clearOrderLink() {
+    if (window.location.hash) window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
+  }
   const canReadOperations = hasPermission(user, "operations.read");
   const [expanded,setExpanded]=useState<string[]>([]);
   const [tab, setTab] = useState("active"),
@@ -1489,7 +1493,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
         <div><h1>{oc.title}</h1>{orders.length > 0 && <p>{orderCount(customerGroups.length, locale)}{groupTabs.active.length ? ` · ${oc.active(groupTabs.active.length)}` : ""}</p>}</div>
         {(orders.length > 5 || query) && <label className="search-field orders-head-search">
           <Search size={18} aria-hidden="true" />
-          <input aria-label={ow.search} placeholder={oc.search} value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input aria-label={ow.search} placeholder={oc.search} value={query} onChange={(e) => { clearOrderLink(); setQuery(e.target.value); }} />
         </label>}
         {canReadOperations && <Link className="btn secondary" href="/operations">{wc.operatorView}<ArrowUpRight size={16} aria-hidden="true" /></Link>}
       </header> : <PageHeading
@@ -1538,7 +1542,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
       )}
       {(operations ? !queueEmpty : orders.length > 0) && (
         <div className="order-controls">
-          <Tabs value={tab} onValueChange={setTab}>
+          <Tabs value={tab} onValueChange={(next) => { clearOrderLink(); setTab(next); }}>
             <TabsList className={`order-tabs${operations ? " has-refund-tab" : ""}`}>
               <TabsTrigger value="active">
                 {wc.active} <b>{operations ? opsCounts?.active ?? 0 : groupTabs.active.length}</b>
@@ -1566,7 +1570,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
               aria-label={ow.search}
               placeholder={operations ? (locale === "ru" ? "Номер, товар, имя, телефон или email" : isUzbek(locale) ? uzText(locale, "Raqam, tovar, ism, telefon yoki email") : "Order, item, name, phone or email") : oc.search}
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => { clearOrderLink(); setQuery(e.target.value); }}
             />
           </label>}
           {operations&&<button type="button" className="btn secondary order-refresh" disabled={opsRefreshing} onClick={()=>void refreshOperations()}><RefreshCw size={16} className={opsRefreshing?"spin":""}/>{locale==='ru'?(opsRefreshing?'Обновляем…':'Обновить очередь'):isUzbek(locale)?uzText(locale, (opsRefreshing?'Yangilanmoqda…':'Navbatni yangilash')):(opsRefreshing?'Refreshing…':'Refresh queue')}</button>}

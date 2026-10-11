@@ -48,7 +48,7 @@ export function useWarmLinks(hrefs: string[]) {
 // under minified export names, so every click threw; useRouter is imported statically and works (10.10.2026).
 // Still full page loads: the same page with another ?query (those pages read the address once, on load), other
 // sites, new tabs and downloads. A link to the page already open scrolls it back to the top, as a tab bar does.
-export default function SiteLink({ href, onClick, onPointerDown, ...props }: SiteLinkProps) {
+export default function SiteLink({ href, onClick, onPointerDown, onPointerEnter, onFocus, ...props }: SiteLinkProps) {
   const router = useRouter();
   const inSite = href.startsWith("/") && !href.startsWith("//") && !props.target && props.download === undefined;
   const target = () => {
@@ -61,18 +61,25 @@ export default function SiteLink({ href, onClick, onPointerDown, ...props }: Sit
   };
   const warm = (event: PointerEvent<HTMLAnchorElement>) => {
     onPointerDown?.(event);
-    if (event.button === 0 && target() === "page") prefetchPage(router, href);
+    if (!event.defaultPrevented && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && target() === "page") prefetchPage(router, href);
   };
   const open = (event: MouseEvent<HTMLAnchorElement>) => {
     onClick?.(event);
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     const kind = target();
-    if (kind === "top") { event.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+    if (kind === "top") { event.preventDefault(); window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? "auto" : "smooth" }); return; }
     if (kind !== "page") return;
     event.preventDefault();
     const link = event.currentTarget;
     startNavigationFeedback(link.matches(PRESSABLE) ? link : null);
     router.push(href);
   };
-  return <a href={href} {...props} onPointerDown={warm} onClick={open} />;
+  return <a href={href} {...props} onPointerDown={warm} onPointerEnter={event => {
+    onPointerEnter?.(event);
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    if (!event.defaultPrevented && event.pointerType === 'mouse' && !connection?.saveData && !/2g/.test(connection?.effectiveType ?? '') && target() === 'page') prefetchPage(router, href);
+  }} onFocus={event => {
+    onFocus?.(event);
+    if (!event.defaultPrevented && target() === 'page') prefetchPage(router, href);
+  }} onClick={open} />;
 }

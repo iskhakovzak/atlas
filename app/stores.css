@@ -107,10 +107,13 @@ html[data-theme="dark"] .stores-link-error { color: #ffb4a8; }
 /* ---------- Directory ---------- */
 .stores-browse-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .stores-browse-head > span { color: var(--cat-muted); font-size: 14px; font-weight: 650; }
-.stores-search { display: flex; align-items: center; gap: 10px; min-height: 52px; margin-bottom: 12px; padding: 0 6px 0 16px; border: 1.5px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); color: var(--cat-muted); }
+.stores-search { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 52px; margin-bottom: 12px; padding: 0 6px 0 16px; border: 1.5px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); color: var(--cat-muted); }
 .stores-search:focus-within { border-color: var(--cat-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cat-accent) 18%, transparent); }
 .stores-search input { flex: 1; min-width: 0; min-height: 48px; padding: 0; border: 0; border-radius: 0; outline: 0; background: transparent; box-shadow: none; color: var(--cat-ink); font: inherit; font-size: 16px; }
 .stores-search input::-webkit-search-cancel-button { display: none; }
+.stores-page .stores-search input:focus-visible { outline: 0; }
+.stores-search > svg, .stores-search > button { flex: none; }
+.stores-search-results { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-bottom: 8px; color: var(--cat-accent); font-size: 14px; font-weight: 650; }
 .stores-chips { display: flex; gap: 8px; margin: 0 -16px 10px; padding: 2px 16px 4px; overflow-x: auto; scroll-padding-inline: 16px; scrollbar-width: none; }
 .stores-chips > button { display: inline-flex; flex: none; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid var(--cat-line); border-radius: 999px; background: var(--cat-surface); color: var(--cat-ink); font: inherit; font-size: 14px; font-weight: 650; white-space: nowrap; cursor: pointer; }
 .stores-chips > button > span { color: var(--cat-muted); font-size: 12px; font-weight: 750; font-feature-settings: "tnum" 1; }
