@@ -43,6 +43,7 @@ const keepCopy = /*@__PURE__*/withCyrillic({
 import { useStickyFit } from "./sticky-fit";
 import { CheckoutChecklist, CheckoutReviewTable, ReviewConfirmBar, productGroups, shownVariant, storeName } from "./checkout-review";
 import { cartColourOptions } from "@/lib/market/domain";
+import { readableNikeSizeLabel } from "@/lib/market/nike-size-chart";
 import { cartSelectCopy } from "@/lib/market/cart-select-copy";
 
 /** More than one dispatch country in the cart: the speed note says it applies to every parcel. */
@@ -473,7 +474,7 @@ export function CartView() {
         return <li className={"basket-variant" + (issue && issue.kind !== "unreachable" ? " has-issue" : "") + (ticked(item) ? "" : " is-later")} key={item.id}>
           {selectBox([item], s.selectLine([item.product.name, shownVariant(item.variant)].filter(Boolean).join(" · ")))}
           <div className="basket-variant-info">
-            <b>{cartColourOptions(item.product)?.label || shownVariant(item.variant) || item.variant}</b>{!ticked(item) && <span className="basket-later-tag">{s.later}</span>}
+            <b>{readableNikeSizeLabel(cartColourOptions(item.product)?.label ?? "") || shownVariant(item.variant) || item.variant}</b>{!ticked(item) && <span className="basket-later-tag">{s.later}</span>}
             <small>{storePrice(item, locale)}{item.quantity > 1 ? ` × ${item.quantity}` : ""}{checked ? <> · <BadgeCheck size={13} role="img" aria-label={c.item.checked(clock(item.product.sourceCheckedAt!, locale))} /></> : null}{stock ? ` · ${stock}` : ""}</small>
           </div>
           <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity })} />

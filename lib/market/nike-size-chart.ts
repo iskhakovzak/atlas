@@ -113,3 +113,14 @@ export function findNikeFootwearSizeRow(system: NikeFootwearSizeSystem, size: st
   const normalized = normalizeSize(size);
   return CHARTS[system].find((row) => normalizeSize(row.us) === normalized);
 }
+
+/**
+ * "Nike US men: 9.5" (the importer's option name) reads as "US 9.5 · EU 43" in the cart, the review and orders:
+ * the customer sees the size in the formats they know, not the internal label (owner, 12 October 2026).
+ */
+export function readableNikeSizeLabel(text = "") {
+  return text.replace(/Nike US (men|women): ([0-9]+(?:[.,][0-9]+)?)/g, (_all, system: NikeFootwearSizeSystem, size: string) => {
+    const row = findNikeFootwearSizeRow(system, size);
+    return row ? `US ${row.us} · EU ${row.eu}` : `US ${size}`;
+  });
+}

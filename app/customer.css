@@ -573,7 +573,11 @@ a.lo-source-host:hover span { text-decoration: underline; text-underline-offset:
 .lo-hint-line { margin: 10px 0 0; color: var(--home-muted); font-size: 13px; }
 .lo-hint-line.muted { margin-top: 6px; font-size: 12.5px; }
 .lo-picks { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
-.lo-picks li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; border: 1px solid var(--home-line); border-radius: 12px; background: var(--home-soft); }
+.lo-picks li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 8px 8px 8px 10px; border: 1px solid color-mix(in srgb, var(--home-accent) 35%, var(--home-line)); border-radius: 12px; background: color-mix(in srgb, var(--home-accent) 6%, var(--home-surface)); }
+.lo-picks.single li { grid-template-columns: auto minmax(0, 1fr) auto; }
+/* The tick says "chosen" at a glance (owner, 12 October 2026). */
+.lo-pick-tick { box-sizing: content-box; padding: 3px; border-radius: 999px; background: var(--home-accent); color: #fff; }
+html[data-theme="dark"] .lo-pick-tick { color: #10241a; }
 .lo-pick-label { display: grid; gap: 1px; min-width: 0; }
 .lo-pick-label b { overflow-wrap: anywhere; color: var(--home-ink); font-size: 14.5px; }
 .lo-pick-label small { color: var(--home-muted); font-size: 12.5px; }
@@ -1200,3 +1204,15 @@ html:not([data-theme="dark"]) .customs-option.self:not(.selected) { background: 
 html:not([data-theme="dark"]) .customs-how { border-color: var(--day-line); box-shadow: var(--day-shadow-lift); }
 html:not([data-theme="dark"]) .customs-how-calc { background: var(--day-folio); }
 @media (prefers-reduced-motion: reduce) { .customs-how { animation: none; } }
+
+/* Link order, 12 October 2026: Nike's chart opens from a "?" beside the size formats, framed; the add button keeps one
+   line beside a compact cart entry. */
+.variant-options.lo-size-formats > .lo-size-help { display: inline-grid; place-items: center; width: 40px; min-width: 40px; padding: 0; border-color: transparent; border-radius: 999px; background: transparent; color: var(--home-accent); }
+.variant-options.lo-size-formats > .lo-size-help[aria-expanded="true"] { background: color-mix(in srgb, var(--home-accent) 12%, transparent); }
+.lo-variant .nike-size-guide { margin-top: 10px; padding: 12px; border: 1px solid var(--home-line); border-radius: 12px; background: var(--home-soft); }
+.lo-variant .nike-size-chart { padding-top: 0; border-top: 0; }
+.lo-variant .nike-size-chart > b { display: block; margin: 0 0 4px; color: var(--home-ink); font-size: 13.5px; }
+.lo-variant .nike-size-chart-scroll { background: var(--home-surface); }
+.lo-confirm .basket-cta { white-space: nowrap; }
+.lo-confirm .lo-cart-entry.compact { justify-content: center; width: 54px; min-height: 54px; padding: 0; }
+.lo-confirm .lo-cart-entry.compact b { position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; padding: 0 5px; font-size: 12px; box-shadow: 0 0 0 2px var(--home-surface, #fff); }
