@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <!-- Launcher shortcuts (res/xml/shortcuts.xml): the short label shows on most launchers, at most ~10 characters fit. -->
+    <string name="shortcut_link_short">Havola</string>
+    <string name="shortcut_link_long">Havola orqali buyurtma</string>
+    <string name="shortcut_catalog_short">Katalog</string>
+    <string name="shortcut_catalog_long">Mahsulotlar katalogi</string>
+    <string name="shortcut_cart_short">Savat</string>
+    <string name="shortcut_cart_long">Savat</string>
+    <string name="shortcut_orders_short">Buyurtmalar</string>
+    <string name="shortcut_orders_long">Buyurtmalarim</string>
+</resources>

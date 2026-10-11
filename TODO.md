@@ -378,7 +378,7 @@ The user explicitly requested the partner tracking code in the main homepage hea
 - [ ] Владелец: возрастной рейтинг — документы определяют сервис как для совершеннолетних: 17+ в App Store, 18+ по IARC в Google Play (`MOBILE.md` §3).
 - [ ] Бухгалтер: срок хранения обезличенных записей о заказах и бухгалтерии после удаления аккаунта (в UI срок не называется).
 - [ ] Сборка iOS только на macOS с Xcode 16+: проверить компиляцию `@capacitor-community/apple-sign-in` 7.1.0 под Capacitor 8 и автоподхват `App.entitlements`; iOS-проект сгенерирован на Windows и проверен только текстово.
-- [ ] Android: сборка Gradle не запускалась (нет Android Studio/SDK в сессии); прогнать чек-лист релиза `MOBILE.md` §6.
+- [ ] Android: debug-сборка собирается и проверена на эмуляторе (11.10.2026, раздел ниже); release (.aab) с upload-ключом не собирался — прогнать чек-лист релиза `MOBILE.md` §6.
 - [ ] Живые потоки Apple не проверялись (нет ключей): `form_post`, обмен кода, отзыв токена, системное окно iOS, вариант «Скрыть почту», cookie SameSite=None в Safari/Chrome, привязка Apple в кабинете.
 - [ ] Удаление аккаунта и плашка согласия не прогонялись вживую против D1/R2 и в браузере — только юнит-тесты, eslint и tsc; проверить в реальных сборках iOS/Android (строки «Восстановить покупки» и «О приложении» видны только при `isNative()`).
 - [ ] `npm run build` в спринте не запускался: проверить сборку маршрутов с точкой в имени каталога (`app/.well-known/*`); при отказе `assetlinks.json` можно отдать статикой из `public/.well-known/`, AASA требует маршрута.
@@ -1105,3 +1105,13 @@ Owner authorized this Windows PC. Runtime outside repository: C:/Users/WS/.codex
 Windows task Atlas Tashkent Import Gateway launches hidden supervisor at logon, node and SSH reconnect automatically. PC sleep/offline/logoff breaks local route; US fallback remains configured. Do not promise always-on service or force-disable sleep. Cloudflare trace from PC reportsUZ (city not independently certified). Signed PC Target5/$27,Mango18/$79.99. Hosted fresh Target logs on PC,200/5; controlled supervisor shutdown returned hostedTarget200/5 viaUS without direct-egress warning; supervisor restored. Environment rev12 sets only twoTashkentkeys; existing secrets preserved. Bright Data is NOT configured in this checkout/Sites environment; screenshot showed separate in-progress Claude work, no open GitHub PR found. Do not duplicate it or assume credits/prices/keys. Residential remains unconnected.
 
 Regional warning made neutral: a first Tashkent request does not imply US was rate-limited. Product completeness/stock checks remain unchanged. Evidence outputs/tashkent-signed-smoke.json,tashkent-hosted-active.json,tashkent-hosted-fallback.json. No customer/catalog/order writes; only normal preview/cache behavior.
+
+## Android-приложение: знак Atlas, ярлыки, splash — 11 октября 2026
+
+- [x] Знак «atlas↗» (выбор владельца «Б белая») контурами в `scripts/brand-mark.mjs`; из него иконки Android (адаптивная + монохромная), iOS, splash, картинки Google Play (`mobile/store/`) и PWA-иконки сайта; офлайн-страница `mobile/www/error.html` с тем же знаком.
+- [x] Ярлыки по долгому нажатию (заказ по ссылке, каталог, корзина, заказы) на ru/uz/uz-Cyrl/en; цвета темы Atlas вместо индиго; белое окно и белый splash Android 12+; подпись релиза через неотслеживаемый `android/keystore.properties`; `secrets/` в `.gitignore`.
+- [x] Эмулятор atlas35 (Android 15) против локального сайта: иконка в списке приложений, splash со знаком, ярлыки (dumpsys + меню, «Корзина» открыла /cart → вход для гостя), «Назад» по истории, офлайн-страница.
+- [ ] Не проверено: тематическая (монохромная) иконка на Android 13+ с включённой темой иконок, legacy-иконки Android 7, настоящий телефон, release-сборка.
+- [ ] Владелец: feature graphic сейчас только знак на светлом фоне — решить, нужна ли картинка с экранами приложения; скриншоты для Play снимать с рабочего сайта.
+- [ ] Push-уведомления на Android требуют проект Firebase (FCM) от владельца — не начато.
+- [ ] Ярлык «Корзина» и `/cart` не входят в App Links (`autoVerify`): ссылки https://atlasmarket.uz/cart из других приложений открываются в браузере; добавить путь в манифест и `APP_LINK_PATHS` вместе, если нужно.

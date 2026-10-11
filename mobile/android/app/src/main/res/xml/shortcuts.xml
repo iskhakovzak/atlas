@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long press on the launcher icon. Each shortcut opens a page of the site as an ordinary app link
+     (https://atlasmarket.uz/...): the App plugin hands it to app/native-shell.tsx, which opens it in the WebView. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="order_by_link" android:enabled="true" android:icon="@drawable/ic_shortcut_link"
+        android:shortcutShortLabel="@string/shortcut_link_short" android:shortcutLongLabel="@string/shortcut_link_long">
+        <intent android:action="android.intent.action.VIEW" android:data="https://atlasmarket.uz/order-by-link"
+            android:targetPackage="uz.atlasmarket.app" android:targetClass="uz.atlasmarket.app.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="catalog" android:enabled="true" android:icon="@drawable/ic_shortcut_catalog"
+        android:shortcutShortLabel="@string/shortcut_catalog_short" android:shortcutLongLabel="@string/shortcut_catalog_long">
+        <intent android:action="android.intent.action.VIEW" android:data="https://atlasmarket.uz/catalog"
+            android:targetPackage="uz.atlasmarket.app" android:targetClass="uz.atlasmarket.app.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="cart" android:enabled="true" android:icon="@drawable/ic_shortcut_cart"
+        android:shortcutShortLabel="@string/shortcut_cart_short" android:shortcutLongLabel="@string/shortcut_cart_long">
+        <intent android:action="android.intent.action.VIEW" android:data="https://atlasmarket.uz/cart"
+            android:targetPackage="uz.atlasmarket.app" android:targetClass="uz.atlasmarket.app.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="orders" android:enabled="true" android:icon="@drawable/ic_shortcut_orders"
+        android:shortcutShortLabel="@string/shortcut_orders_short" android:shortcutLongLabel="@string/shortcut_orders_long">
+        <intent android:action="android.intent.action.VIEW" android:data="https://atlasmarket.uz/orders"
+            android:targetPackage="uz.atlasmarket.app" android:targetClass="uz.atlasmarket.app.MainActivity" />
+    </shortcut>
+</shortcuts>

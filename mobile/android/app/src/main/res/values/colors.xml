@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Atlas Day colours (app/day-folio.css); values-night/colors.xml holds Atlas Night. -->
+<resources>
+    <color name="atlas_surface">#FFFFFF</color>
+    <!-- Capacitor ships indigo defaults; the theme colours tint selection handles, scroll edges and system dialogs. -->
+    <color name="colorPrimary">#1F4D3B</color>
+    <color name="colorPrimaryDark">#1F4D3B</color>
+    <color name="colorAccent">#2F8A5F</color>
+    <!-- Splash before the page draws: the same white as the header, so the hand-over is seamless. -->
+    <color name="splash_background">#FFFFFF</color>
+    <color name="shortcut_disc">#E8F0EA</color>
+    <color name="shortcut_ink">#1F4D3B</color>
+</resources>

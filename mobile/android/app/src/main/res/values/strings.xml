@@ -4,4 +4,13 @@
     <string name="title_activity_main">Atlas</string>
     <string name="package_name">uz.atlasmarket.app</string>
     <string name="custom_url_scheme">uz.atlasmarket.app</string>
+    <!-- Launcher shortcuts (res/xml/shortcuts.xml): the short label shows on most launchers, at most ~10 characters fit. -->
+    <string name="shortcut_link_short">По ссылке</string>
+    <string name="shortcut_link_long">Заказ по ссылке</string>
+    <string name="shortcut_catalog_short">Каталог</string>
+    <string name="shortcut_catalog_long">Каталог товаров</string>
+    <string name="shortcut_cart_short">Корзина</string>
+    <string name="shortcut_cart_long">Корзина</string>
+    <string name="shortcut_orders_short">Заказы</string>
+    <string name="shortcut_orders_long">Мои заказы</string>
 </resources>

@@ -79,3 +79,6 @@ next-env.d.ts
 /mobile/ios/App/App.xcodeproj/xcuserdata/
 /mobile/ios/App/App.xcodeproj/project.xcworkspace/xcuserdata/
 /deploy/upcloud/node_modules/
+
+# Signing keys, .p8 files and other credentials kept next to the project (MOBILE.md, AUTH_SETUP.md).
+/secrets/

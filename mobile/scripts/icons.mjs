@@ -1,34 +1,87 @@
-// Builds the launcher icons and splash screens of both apps from the site's own PWA icons:
-//   public/icon-512.png          -> assets/icon-only.png (1024, iOS and the Android legacy icon)
-//   public/icon-maskable-512.png -> assets/icon-foreground.png (1024, Android adaptive foreground)
-//   a plain white square         -> assets/icon-background.png and assets/splash*.png
-// then runs @capacitor/assets, which writes into android/ and ios/. Run `npm run assets` after
-// changing an icon and commit the result. Sharp comes with @capacitor/assets (mobile devDependency).
-import {existsSync,mkdirSync} from 'node:fs';
+// Builds the launcher icons, the splash screens and the store images of both apps from the Atlas mark
+// (scripts/brand-mark.mjs: the word «atlas» with the arrow, green on white):
+//   assets/icon-only.png, icon-foreground.png, icon-background.png, splash*.png  -> @capacitor/assets (iOS icon,
+//     Android legacy icons for Android 7, the drawable splash.png the SplashScreen plugin falls back to)
+//   android/.../drawable/ic_launcher_{foreground,background}.xml, splash_icon.xml -> vectors, sharp at any density
+//   android/.../mipmap-anydpi-v26/ic_launcher{,_round}.xml                        -> adaptive icon with a monochrome
+//     layer (Android 13 themed icons); replaces the inset PNG layers @capacitor/assets writes
+//   store/play-icon-512.png, store/feature-graphic.png                            -> Google Play listing
+// Run `npm run assets` after changing the mark and commit the result. Sharp comes with @capacitor/assets.
+import {existsSync,mkdirSync,readdirSync,rmSync,writeFileSync} from 'node:fs';
 import {dirname,resolve} from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath,pathToFileURL} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import sharp from 'sharp';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-const site=resolve(root,'..','public');
+const {iconSvg,markSvg,REACH,CENTER,WORD_PATH,ARROW_PATH,ARROW_WIDTH,INK,ARROW,BG_FROM,BG_TO}=await import(pathToFileURL(resolve(root,'..','scripts','brand-mark.mjs')).href);
 const out=resolve(root,'assets');
+const res=resolve(root,'android','app','src','main','res');
+const store=resolve(root,'store');
 const white={r:255,g:255,b:255,alpha:1};
-
-async function upscale(from,to,size){
- if(!existsSync(from))throw new Error('Missing '+from);
- await sharp(from).resize(size,size,{kernel:'lanczos3',fit:'cover'}).flatten({background:white}).png().toFile(to);
-}
+const png=(svg,to)=>sharp(Buffer.from(svg)).png({compressionLevel:9}).toFile(to);
 
 mkdirSync(out,{recursive:true});
-await upscale(resolve(site,'icon-512.png'),resolve(out,'icon-only.png'),1024);
-await upscale(resolve(site,'icon-maskable-512.png'),resolve(out,'icon-foreground.png'),1024);
+mkdirSync(store,{recursive:true});
+// Full-bleed icon (the OS rounds it): the arrow tip reaches 42 % of the side from the centre.
+await png(iconSvg({size:1024,reach:.42}),resolve(out,'icon-only.png'));
+await png(iconSvg({size:1024,reach:.42,background:false}),resolve(out,'icon-foreground.png'));
 await sharp({create:{width:1024,height:1024,channels:4,background:white}}).png().toFile(resolve(out,'icon-background.png'));
-// Splash: the icon centred on white, 2732 px square (the size @capacitor/assets expects); the dark variant is the same (the shell launches light).
-const mark=await sharp(resolve(site,'icon-512.png')).resize(480,480).png().toBuffer();
-for(const name of ['splash.png','splash-dark.png'])
- await sharp({create:{width:2732,height:2732,channels:4,background:white}}).composite([{input:mark,gravity:'centre'}]).png().toFile(resolve(out,name));
+// Splash (2732 px, what @capacitor/assets expects): the mark on white, about a fifth of the side; the dark variant is
+// the same because the shell launches light.
+const splash=`<svg xmlns="http://www.w3.org/2000/svg" width="2732" height="2732"><rect width="2732" height="2732" fill="#ffffff"/>${iconSvg({size:2732,reach:.115,background:false}).replace(/^<svg[^>]*>|<\/svg>$/g,'')}</svg>`;
+for(const name of ['splash.png','splash-dark.png'])await png(splash,resolve(out,name));
+
+// Google Play: 512 px icon (Play rounds it) and the 1024×500 feature graphic (the mark at 46 % of the width).
+await png(iconSvg({size:512,reach:.42}),resolve(store,'play-icon-512.png'));
+await png(`<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500"><defs><radialGradient id="bg" cx="22%" cy="10%" r="110%"><stop offset="0" stop-color="${BG_FROM}"/><stop offset="1" stop-color="#e6efe8"/></radialGradient></defs><rect width="1024" height="500" fill="url(#bg)"/><g transform="translate(512 262) scale(.82) translate(${-CENTER.x} ${-CENTER.y})">${markSvg()}</g></svg>`,resolve(store,'feature-graphic.png'));
 
 const bin=resolve(root,'node_modules','.bin',process.platform==='win32'?'capacitor-assets.cmd':'capacitor-assets');
 const result=spawnSync(bin,['generate','--ios','--android','--iconBackgroundColor','#ffffff','--iconBackgroundColorDark','#ffffff','--splashBackgroundColor','#ffffff','--splashBackgroundColorDark','#ffffff'],{cwd:root,stdio:'inherit',shell:process.platform==='win32'});
-process.exit(result.status??1);
+if(result.status!==0)process.exit(result.status??1);
+
+// Android vectors. A VectorDrawable group scales about its pivot, then translates: putting the pivot on the mark's
+// centre and translating by (target - centre) lands that centre on the target.
+const group=(cx,cy,scale,mono)=>{const s=+scale.toFixed(4);return `    <group android:pivotX="${CENTER.x}" android:pivotY="${CENTER.y}" android:scaleX="${s}" android:scaleY="${s}" android:translateX="${cx-CENTER.x}" android:translateY="${cy-CENTER.y}">
+        <path android:fillColor="${mono?'#FFFFFF':INK}" android:pathData="${WORD_PATH}" />
+        <path android:strokeColor="${mono?'#FFFFFF':ARROW}" android:strokeWidth="${ARROW_WIDTH}" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="${ARROW_PATH}" />
+    </group>`;};
+const vector=(dp,body,ns='')=>`<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated by mobile/scripts/icons.mjs from scripts/brand-mark.mjs; do not edit by hand. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"${ns}
+    android:width="${dp}dp"
+    android:height="${dp}dp"
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+${body}
+</vector>
+`;
+// Adaptive layers are 108dp; launchers show the middle 72dp and keep a 66dp circle safe. The arrow tip reaches
+// 42 % of the visible side, as on the full-bleed icon (28 % of the 108dp canvas).
+const fg=1024*.28/REACH;
+writeFileSync(resolve(res,'drawable','ic_launcher_foreground.xml'),vector(108,group(512,512,fg)));
+writeFileSync(resolve(res,'drawable','ic_launcher_monochrome.xml'),vector(108,group(512,512,fg,true)));
+writeFileSync(resolve(res,'drawable','ic_launcher_background.xml'),vector(108,`    <path android:pathData="M0,0h1024v1024h-1024z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="radial" android:centerX="287" android:centerY="184" android:gradientRadius="1024">
+                <item android:offset="0" android:color="${BG_FROM.toUpperCase()}" />
+                <item android:offset="1" android:color="${BG_TO.toUpperCase()}" />
+            </gradient>
+        </aapt:attr>
+    </path>`,'\n    xmlns:aapt="http://schemas.android.com/aapt"'));
+// Splash icon without an icon background: 288dp canvas, the system keeps a 192dp circle; the tip reaches 30 %.
+writeFileSync(resolve(res,'drawable','splash_icon.xml'),vector(288,group(512,512,1024*.3/REACH)));
+const adaptive=`<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated by mobile/scripts/icons.mjs. The monochrome layer is the Android 13+ themed icon. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>
+`;
+for(const name of ['ic_launcher.xml','ic_launcher_round.xml'])writeFileSync(resolve(res,'mipmap-anydpi-v26',name),adaptive);
+// The PNG layers @capacitor/assets wrote are no longer referenced; the template's robot vector neither.
+for(const dir of readdirSync(res).filter(d=>d.startsWith('mipmap-')))
+ for(const name of ['ic_launcher_foreground.png','ic_launcher_background.png'])rmSync(resolve(res,dir,name),{force:true});
+if(existsSync(resolve(res,'drawable-v24','ic_launcher_foreground.xml')))rmSync(resolve(res,'drawable-v24'),{recursive:true});
+console.log('icons, splash and store images written');
