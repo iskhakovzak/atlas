@@ -9,14 +9,14 @@
 
 /* How deep each kind sinks: big tiles barely, small round icons the most. */
 :is(.store-tile, .home-stores a) { --press-scale: .98; }
-:is(.icon-btn, .find-save, .lo-stepper button) { --press-scale: .86; }
+:is(.icon-btn, .find-save, .lo-stepper button) { --press-scale: .94; }
 
 [data-press="down"] { animation: press-down .11s cubic-bezier(.3, .7, .4, 1) forwards; }
-[data-press="up"] { animation: press-up .46s cubic-bezier(.2, .8, .3, 1); }
-@keyframes press-down { to { scale: var(--press-scale, .965); } }
+[data-press="up"] { animation: press-up .3s cubic-bezier(.2, .8, .3, 1); }
+@keyframes press-down { to { scale: var(--press-scale, .98); } }
 @keyframes press-up {
-  from { scale: var(--press-scale, .965); }
-  45% { scale: 1.012; }
+  from { scale: var(--press-scale, .98); }
+  45% { scale: 1.004; }
   to { scale: 1; }
 }
 

@@ -8,6 +8,7 @@
 .basket-select-bar label { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; color: var(--day-ink, #16211c); }
 .basket-select-bar small { color: var(--day-muted, #58635c); font-size: 13px; }
 .basket-select { display: inline-flex; align-items: center; flex-shrink: 0; }
+.basket-step-name { font-weight: inherit; }
 .basket-parcel-title .basket-select { margin-right: 2px; }
 .basket-item { position: relative; }
 .basket-item > .basket-select { position: absolute; top: 12px; left: 12px; z-index: 1; padding: 3px; border-radius: 7px; background: color-mix(in srgb, var(--day-surface, #fff) 88%, transparent); }
@@ -61,6 +62,8 @@
 .review-photo .no-photo { min-height: 0; font-size: 0; }
 .review-photo .no-photo svg { width: 18px; height: 18px; }
 .review-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.35; color: var(--day-ink, #16211c); }
+.review-title { display: grid; min-width: 0; gap: 3px; }
+.review-colour { overflow-wrap: anywhere; color: var(--day-muted, #58635c); line-height: 1.35; }
 .review-variant { color: var(--day-ink, #16211c); overflow-wrap: anywhere; }
 .review-parcel + .review-parcel { border-top: 1px solid var(--day-line-strong, #cbccc3); }
 .review-parcel-title { padding: 10px 12px 4px; font-size: 13px; font-weight: 700; color: var(--day-accent, #1f4d3b); }
@@ -102,6 +105,7 @@
    app/checkout-review.tsx) adds the amount beside the button; without it the button alone is held. */
 .review-confirm-amount { display: none; }
 @media (max-width: 720px) {
+  .review-later, .review-checklist .text-button { min-height: 44px; display: inline-flex; align-items: center; }
   .atlas-modal:has(.review-layout) { scroll-padding-bottom: 96px; }
   .review-layout { display: flex; flex-direction: column; gap: 12px; }
   .review-aside { display: contents; }
@@ -116,6 +120,25 @@
 }
 
 /* Phone and narrow dialog: one card per line, the numbers in a row with their names. */
+@container (max-width: 360px) {
+  .review-confirm-bar { flex-direction: column; align-items: stretch; gap: 8px; }
+  .review-confirm-amount { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; min-width: 0; }
+  .review-confirm-amount b { white-space: normal; overflow-wrap: anywhere; }
+  .review-confirm-bar > .btn.primary.full { flex: none; width: 100%; max-width: none; min-height: 48px; }
+}
+@media (max-width: 520px) {
+  .atlas-modal .basket-steps { gap: 4px; }
+  .atlas-modal .basket-steps li:not([data-state="current"])::after { width: 12px; flex-basis: 12px; }
+  .atlas-modal .basket-steps li[data-state="current"] { white-space: normal; overflow-wrap: anywhere; }
+}
+@media (max-width: 360px) {
+  .atlas-modal .basket-steps { position: relative; padding-bottom: 24px; }
+  .atlas-modal .basket-steps li[data-state="current"] .basket-step-name { position: absolute; left: 0; bottom: 0; width: 100%; white-space: normal; }
+  .atlas-modal:has(.review-layout) { scroll-padding-bottom: 140px; }
+}
+@media (max-width: 720px) {
+  [data-slot="alert-dialog-content"] button { min-height: 44px; }
+}
 /* A narrow list (laptop with the summary beside it): the columns tighten. No per-piece column: the amount is the line's own sum. */
 @container (max-width: 620px) {
   .review-row { grid-template-columns: 24px minmax(0, 1fr) minmax(48px, .5fr) 58px max-content; }
@@ -150,6 +173,7 @@ html[data-theme="dark"] .review-row.has-change { background: rgba(232, 189, 112,
 html[data-theme="dark"] .review-check-mark { background: var(--night-jade-soft); color: var(--night-ok-ink); }
 html[data-theme="dark"] .review-details { border-top-color: var(--night-line); }
 html[data-theme="dark"] .review-details > summary { color: var(--night-jade); }
+html[data-theme="dark"] .review-colour { color: var(--night-muted); }
 html[data-theme="dark"] .review-confirm-bar { border-top-color: var(--night-line); background: var(--night-raised); box-shadow: 0 -8px 20px rgba(0, 0, 0, .35); }
 @media (max-width: 720px) {
   html[data-theme="dark"] .review-aside > .btn.primary.full { box-shadow: 0 0 0 8px var(--night-raised), 0 -10px 24px 8px rgba(0, 0, 0, .35); }

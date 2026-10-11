@@ -3,14 +3,11 @@ import {useState} from 'react';
 import {ArrowUpRight,ArrowRight,Info,ShieldCheck,ShoppingBag,X} from 'lucide-react';
 import {Sheet,SheetContent,SheetTitle,SheetDescription,SheetClose} from '@/components/ui/sheet';
 import {Tabs,TabsList,TabsTrigger,TabsContent} from '@/components/ui/tabs';
-import {cartDeliverySpeed,deliveryPerKgUsdFor,deliverySpeeds,price,storeDiscount,storeShippingHoldUsd,storeShippingUsd,tariff,unknownStoreShippingUsd,type DeliverySpeed,type Product} from '@/lib/market/domain';
+import {cartDeliverySpeed,price,storeDiscount,storeShippingHoldUsd,storeShippingUsd,tariff,unknownStoreShippingUsd,type Product} from '@/lib/market/domain';
 import {useMarket} from '@/lib/market/store';
 import {findOrderUrl} from '@/lib/market/catalog';
 import {countryName,packagingKg} from '@/lib/market/world';
 import type {Locale} from '@/lib/market/i18n';
-import {deliverySpeedCopy} from '@/lib/market/delivery-speed';
-import {deliveryDaysFor} from '@/lib/market/site-content';
-import {regionForCountryLabel} from '@/lib/market/store-geo';
 import {catalogCopy,countryLabel,shortDate} from '@/lib/market/catalog-copy';
 import {formatDayMonth,formatKg,formatSum,formatUsd} from '@/lib/market/format';
 import {WasPrice} from './market-ui';
@@ -31,25 +28,20 @@ export function ProductSheet({product,onClose}:{product:Product|null;onClose:()=
 
 function ProductDetails({product:selected,onClose}:{product:Product;onClose:()=>void}){
   const {state,pricing,ready,status,act,catalogProducts}=useMarket();
-  const locale=state.communication.language as Locale,modalWords=marketplaceWords(locale),cc=catalogCopy[locale],sc=deliverySpeedCopy[locale];
+  const locale=state.communication.language as Locale,modalWords=marketplaceWords(locale),cc=catalogCopy[locale];
   const [variant,setVariant]=useState(selected.variants[0]),[adding,setAdding]=useState(false);
-  // The cart's speed for a customer (one speed for the whole cart), express for a guest; the switch only previews the other.
-  const [speed,setSpeed]=useState<DeliverySpeed>(()=>ready?cartDeliverySpeed(state.cart):'express');
+  // The estimate follows the cart; this sheet never changes its delivery speed.
+  const speed=ready?cartDeliverySpeed(state.cart):'express';
   const curated=catalogProducts.find(item=>item.id===selected.id&&item.sourceUrl===selected.sourceUrl);
   const country=countryName(selected);
   const label=countryLabel(country,locale);
-  const region=regionForCountryLabel(country);
   const stale=selected.priceNeedsConfirmation===true;
   // A stale snapshot without a recorded price has nothing to estimate from until the order flow fetches it.
   const priced=!stale||(selected.sourcePrice!==undefined&&Boolean(selected.sourceCurrency));
   const checkedAt=curated?.sourceCheckedAt??(curated?Date.parse(curated.observedOn)||0:selected.sourceCheckedAt??0);
   // Unknown store delivery is held apart (or free above $50), never in the total.
   const holdUsd=storeShippingHoldUsd(selected,selected.usd,pricing);
-  const quoteAt=(at:DeliverySpeed)=>({...price(selected.usd,selected.weight,1,storeShippingUsd(selected),pricing,at),storeShippingHold:selected.sourceShippingEstimated?Math.ceil(holdUsd*pricing.fx):undefined});
-  const estimate=quoteAt(speed);
-  const saving=quoteAt('express').total-quoteAt('standard').total;
-  const daysOf=(at:DeliverySpeed)=>{const range=region?deliveryDaysFor(pricing,region,at):null;return range?sc.days(range[0],range[1]):sc.daysUnknown;};
-  const rateOf=(at:DeliverySpeed)=>sc.perKg(formatUsd(deliveryPerKgUsdFor(pricing,country,at),locale));
+  const estimate={...price(selected.usd,selected.weight,1,storeShippingUsd(selected),pricing,speed),storeShippingHold:selected.sourceShippingEstimated?Math.ceil(holdUsd*pricing.fx):undefined};
   // One way to write a store price everywhere in the sheet: "15,99 $" in the header and in About alike.
   const storeMoney=(value:number,currency=selected.sourceCurrency??'USD')=>{try{return new Intl.NumberFormat(locale==='en'?'en-US':'ru-RU',{style:'currency',currency,maximumFractionDigits:2}).format(value)}catch{return `${value} ${currency}`}};
   async function add(){if(adding)return;if(curated){navigate(findOrderUrl(selected));return}setAdding(true);const ok=await act({type:'cart-add',product:selected,variant});setAdding(false);if(ok){onClose();navigate('/cart')}}
@@ -71,12 +63,7 @@ function ProductDetails({product:selected,onClose}:{product:Product;onClose:()=>
      <TabsContent value="about"><p>{selected.description??modalWords.manual}</p>{selected.sourceUrl&&<a className="text-link" href={selected.sourceUrl} target="_blank" rel="noopener noreferrer">{modalWords.source}<ArrowUpRight size={16}/></a>}<div className="product-facts"><span>{modalWords.storePrice} <b>{priced?storeMoney(selected.sourcePrice??selected.usd):cc.checkPrice}</b></span></div></TabsContent>
      <TabsContent value="price">
       <p className="micro">{modalWords.weight}: {formatKg(selected.weight,locale)} {modalWords.kg}.{selected.boxedWeight!==undefined&&<> {modalWords.box} {formatKg(selected.boxedWeight,locale)} {modalWords.kg} + {formatKg(packagingKg,locale)} {modalWords.kg} {modalWords.packaging}.</>}{/* Phones: the estimate rules below sit behind this "?". */}<InfoTip locale={locale}>{curated&&<p>{modalWords.estimate(formatUsd(pricing.storeShippingFreeFromUsd??tariff.storeShippingFreeFromUsd,locale),formatUsd(unknownStoreShippingUsd,locale))}</p>}<p>{cc.speedNote}</p></InfoTip></p>
-      <div className="sheet-speed" role="group" aria-label={sc.title}>
-       {/* A country Atlas has no region for gets no rate: the storefront never prints the base tariff as that country's. */}
-       {deliverySpeeds.map(at=><button type="button" key={at} aria-pressed={speed===at} onClick={()=>setSpeed(at)}><b>{sc.names[at]}</b><small>{daysOf(at)}{region&&<> · {rateOf(at)}</>}</small></button>)}
-      </div>
-      {/* No saving figure without a recorded price: the estimate exists only once the order flow fetches it. */}
-      <p className={'micro sheet-speed-note'+(priced?'':' tip-text')}>{priced&&<>{saving>0?sc.cheaperBy(formatSum(saving,locale)):sc.samePrice}. </>}<span className="tip-text">{cc.speedNote}</span></p>
+      <p className="micro sheet-speed-note">{cc.speedNote}</p>
       {curated&&<p className="micro tip-text">{modalWords.estimate(formatUsd(pricing.storeShippingFreeFromUsd??tariff.storeShippingFreeFromUsd,locale),formatUsd(unknownStoreShippingUsd,locale))}</p>}
       {priced&&<CostLines q={estimate} storeReserveWaived={selected.sourceShippingEstimated===true} locale={locale}/>}
       <small className="muted">{modalWords.rate}: {formatSum(pricing.fx,locale)} / USD</small>
@@ -84,6 +71,7 @@ function ProductDetails({product:selected,onClose}:{product:Product;onClose:()=>
     </Tabs>
     {!curated&&<div className="field"><label>{modalWords.variant}</label><Choice label={modalWords.variant} value={variant} onChange={setVariant} options={selected.variants}/></div>}
     <div className="notice tip-text"><ShieldCheck size={19}/><span>{modalWords.delivery}</span></div>
-    <div className="sheet-total"><span>{stale?cc.totalStale:modalWords.withDelivery}<InfoTip locale={locale}>{modalWords.delivery}</InfoTip><strong>{priced?formatSum(estimate.total,locale):cc.afterCheck}</strong></span>{status==='guest'?<a className="btn primary" href={curated?findOrderUrl(selected):'/order-by-link'}>{modalWords.continue}<ArrowRight size={18}/></a>:<button className="btn primary" disabled={!ready||adding} onClick={add}><ShoppingBag size={18}/>{adding?modalWords.adding:curated?modalWords.continue:modalWords.add}</button>}</div>
-   </div></>;
+   </div>
+   <div className="sheet-total"><span>{stale?cc.totalStale:modalWords.withDelivery}<InfoTip locale={locale}>{modalWords.delivery}</InfoTip><strong>{priced?formatSum(estimate.total,locale):cc.afterCheck}</strong></span>{status==='guest'?<a className="btn primary" href={curated?findOrderUrl(selected):'/order-by-link'}>{modalWords.continue}<ArrowRight size={18}/></a>:<button className="btn primary" disabled={!ready||adding} onClick={add}><ShoppingBag size={18}/>{adding?modalWords.adding:curated?modalWords.continue:modalWords.add}</button>}</div>
+   </>;
 }

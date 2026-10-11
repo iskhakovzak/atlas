@@ -18,8 +18,8 @@ import {
 } from "@/lib/market/link-order-draft";
 
 /**
- * What became of a guest's cart add after sign-in: added (with the cart's delivery speed afterwards, and whether the
- * cart kept its own speed instead of the one the guest picked), refused because the store price moved, or refused.
+ * What became of a guest's cart add after sign-in: added with the cart's existing delivery speed, refused because
+ * the store price moved, or refused. Legacy pending speeds remain readable but never override the cart.
  */
 export type PendingCartAddResult =
   | { status: "added"; pending: PendingCartAdd; speed: DeliverySpeed; speedKept: boolean }
@@ -56,7 +56,6 @@ async function send(live: MutableRefObject<Live>, filter: PendingFilter): Promis
   // Out of storage before it is sent: a second render or tab finds nothing, so the item cannot be added twice.
   const pending = takePendingCartAdd(storage, Date.now(), filter);
   if (!pending) return undefined;
-  const cartWasEmpty = live.current.cart.length === 0;
   const speedBefore = cartDeliverySpeed(live.current.cart);
   const unitsBefore = unitsInCart(live.current.cart, pending.action);
   const arrived = () => unitsInCart(live.current.cart, pending.action) > unitsBefore;
@@ -84,11 +83,8 @@ async function send(live: MutableRefObject<Live>, filter: PendingFilter): Promis
   if (!ok) { await pause(700); if (arrived()) ok = true; }
   if (ok) {
     markDraftDone(storage, pending.draftKey);
-    // The added lines took the cart's speed. The guest's choice applies only to a cart that was empty: older items
-    // the guest could not see keep the speed the customer chose for them (one speed per cart).
-    const wanted = pending.speed && pending.speed !== speedBefore ? pending.speed : undefined;
-    const applied = Boolean(wanted && cartWasEmpty) && await live.current.act({ type: "cart-delivery-speed", speed: wanted! });
-    return { status: "added", pending, speed: applied ? wanted! : speedBefore, speedKept: Boolean(wanted && !cartWasEmpty) };
+    // Older pending drafts may still contain a preview speed; only the cart's selector may change delivery.
+    return { status: "added", pending, speed: speedBefore, speedKept: Boolean(pending.speed && pending.speed !== speedBefore) };
   }
   const error = live.current.lastActionError();
   const fresh = error !== errorBefore || staleRetried ? error : null;

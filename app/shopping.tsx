@@ -42,6 +42,7 @@ const keepCopy = /*@__PURE__*/withCyrillic({
 });
 import { useStickyFit } from "./sticky-fit";
 import { CheckoutChecklist, CheckoutReviewTable, ReviewConfirmBar, productGroups, shownVariant, storeName } from "./checkout-review";
+import { cartColourOptions } from "@/lib/market/domain";
 import { cartSelectCopy } from "@/lib/market/cart-select-copy";
 
 /** More than one dispatch country in the cart: the speed note says it applies to every parcel. */
@@ -72,6 +73,7 @@ function QuantityControl({ item, c, save }: { item: CartItem; c: CartCopy; save:
   useEffect(() => () => clearTimeout(timer.current), []);
   // Never more than the store reports left (when it reports a count at all).
   const max = Math.max(1, maxLineQuantity(item.product));
+  const optionName = [item.product.name, shownVariant(item.variant)].filter(Boolean).join(" · ");
   function step(delta: number) {
     const next = Math.min(max, Math.max(1, value + delta));
     if (next === value) return;
@@ -79,10 +81,10 @@ function QuantityControl({ item, c, save }: { item: CartItem; c: CartCopy; save:
     clearTimeout(timer.current);
     timer.current = setTimeout(() => { void save(next).then((ok) => { if (!ok) setValue(item.quantity); }); }, 400);
   }
-  return <div className="basket-qty" role="group" aria-label={`${c.item.quantity}: ${item.product.name}`}>
-    <button type="button" aria-label={`${c.item.decrease}: ${item.product.name}`} disabled={value <= 1} onClick={() => step(-1)}><Minus size={16} aria-hidden="true" /></button>
+  return <div className="basket-qty" role="group" aria-label={`${c.item.quantity}: ${optionName}`}>
+    <button type="button" aria-label={`${c.item.decrease}: ${optionName}`} disabled={value <= 1} onClick={() => step(-1)}><Minus size={16} aria-hidden="true" /></button>
     <output aria-live="polite">{value}</output>
-    <button type="button" aria-label={`${c.item.increase}: ${item.product.name}`} disabled={value >= max} onClick={() => step(1)}><Plus size={16} aria-hidden="true" /></button>
+    <button type="button" aria-label={`${c.item.increase}: ${optionName}`} disabled={value >= max} onClick={() => step(1)}><Plus size={16} aria-hidden="true" /></button>
   </div>;
 }
 
@@ -132,7 +134,7 @@ function ItemName({ name }: { name: string }) {
 function CheckoutSteps({ current, c }: { current: number; c: CartCopy }) {
   return <ol className="basket-steps" aria-label={c.stepsLabel}>{c.steps.map((step, index) =>
     <li key={step} data-state={index < current ? "done" : index === current ? "current" : "next"} aria-current={index === current ? "step" : undefined}>
-      <span aria-hidden="true">{index < current ? <Check size={13} /> : index + 1}</span>{step}
+      <span aria-hidden="true">{index < current ? <Check size={13} /> : index + 1}</span><b className="basket-step-name">{step}</b>
     </li>)}</ol>;
 }
 
@@ -448,6 +450,7 @@ export function CartView() {
    */
   function renderGroup(lines: CartItem[]) {
     const lead = lines[0], ids = lines.map((line) => line.id);
+    const colour = cartColourOptions(lead.product)?.color;
     const total = lines.reduce((sum, line) => sum + lineTotal(line), 0), units = lines.reduce((sum, line) => sum + line.quantity, 0);
     return <div className="basket-group" key={`group:${lead.id}`}>
       <article className="basket-item basket-group-head">
@@ -456,6 +459,7 @@ export function CartView() {
         <div className="basket-info">
           {shownBrand(lead.product.brand) && <p className="basket-brand">{shownBrand(lead.product.brand)}</p>}
           <ItemName name={lead.product.name} />
+          {colour && <p className="basket-meta">{colour}</p>}
           <p className="basket-meta">{countryLabel(countryName(lead.product), locale)}{lead.product.sourceUrl && <> · <a className="basket-source" href={lead.product.sourceUrl} target="_blank" rel="noopener noreferrer">{c.item.openStore}<ArrowUpRight size={14} aria-hidden="true" /></a></>}</p>
         </div>
         <div className="basket-price"><strong>{formatSum(total, locale)}</strong><small>{c.item.forQuantity(units)}</small></div>
@@ -469,7 +473,7 @@ export function CartView() {
         return <li className={"basket-variant" + (issue && issue.kind !== "unreachable" ? " has-issue" : "") + (ticked(item) ? "" : " is-later")} key={item.id}>
           {selectBox([item], s.selectLine([item.product.name, shownVariant(item.variant)].filter(Boolean).join(" · ")))}
           <div className="basket-variant-info">
-            <b>{shownVariant(item.variant) || item.variant}</b>{!ticked(item) && <span className="basket-later-tag">{s.later}</span>}
+            <b>{cartColourOptions(item.product)?.label || shownVariant(item.variant) || item.variant}</b>{!ticked(item) && <span className="basket-later-tag">{s.later}</span>}
             <small>{storePrice(item, locale)}{item.quantity > 1 ? ` × ${item.quantity}` : ""}{checked ? <> · <BadgeCheck size={13} role="img" aria-label={c.item.checked(clock(item.product.sourceCheckedAt!, locale))} /></> : null}{stock ? ` · ${stock}` : ""}</small>
           </div>
           <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity })} />

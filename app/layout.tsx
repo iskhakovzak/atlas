@@ -39,6 +39,7 @@ import "./checkbox.css";
 import "./press.css";
 import "./header-panel.css";
 import "./motion.css";
+import "./link-inputs.css";
 import { MarketProvider } from "@/lib/market/store";
 import { initialSettings } from "@/lib/market/initial-data";
 import { StorageNotice } from "./storage-notice";
