@@ -292,7 +292,7 @@ html[data-theme="dark"] .basket-item-note.issue { border-color: rgba(255, 140, 1
 @media (max-width: 760px) {
   main:is([data-view="orders"], [data-view="balance"], [data-view="notifications"]) .breadcrumb { display: none; }
 }
-.orders-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; margin: 16px 0 16px; }
+.orders-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; margin: 4px 0 16px; }
 .orders-head h1 { margin: 0; color: var(--home-ink); font-size: clamp(28px, 6vw, 40px); line-height: 1.1; letter-spacing: -.03em; }
 .orders-head p { margin: 4px 0 0; color: var(--home-muted); font-size: 15px; }
 .orders-head .btn { min-height: 44px; border-radius: 12px; }
@@ -857,9 +857,6 @@ html:not([data-theme="dark"]) .lo-page .lo-block .select-control:not(:disabled) 
 /* Repeat and ask only: the customer "cancel order" button was removed (owner, 6 October 2026). */
 .order-x-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0 18px; padding-top: 4px; border-top: 1px solid var(--home-line); }
 .order-x-details dd.order-x-over { color: var(--cx-danger); font-weight: 700; }
-.orders-recipients { display: flex; gap: 8px; margin: 0 0 14px; overflow-x: auto; scrollbar-width: none; }
-.orders-recipients button { display: inline-flex; flex-shrink: 0; align-items: center; min-height: 44px; padding: 0 14px; border: 1px solid var(--home-line); border-radius: 999px; background: var(--home-surface); color: var(--home-ink); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
-.orders-recipients button.active { border-color: var(--home-accent); background: var(--home-accent); color: var(--home-accent-ink); }
 
 /* ---------- Light theme: text contrast floor (WCAG AA 4.5:1) ----------
    Muted olive and blue-grey tones from older palette layers measured 2.9–4.4:1. */

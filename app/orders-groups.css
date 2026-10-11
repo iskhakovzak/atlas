@@ -11,7 +11,6 @@
 .order-group-main > small { color: var(--home-muted); font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
 .order-group-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
 .order-group-badges .order-x-status { gap: 4px; }
-.order-group-main > .og-stage-summary { color: var(--home-ink); font-weight: 600; }
 .order-group-sum { display: flex; align-items: baseline; gap: 8px; margin: 0; }
 .order-group-sum small { color: var(--home-muted); font-size: 12px; font-weight: 600; }
 .order-group-sum strong { font-size: 18px; font-weight: 800; line-height: 1.2; letter-spacing: -0.01em; color: var(--home-ink); font-feature-settings: "tnum" 1; white-space: nowrap; }
@@ -43,11 +42,6 @@
 .order-group-store-title { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--home-muted); font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 .order-group-store-title svg { flex-shrink: 0; opacity: .8; }
 .og-store-head > small { color: var(--home-muted); font-size: 13px; font-weight: 600; font-feature-settings: "tnum" 1; }
-.og-parcel-services { margin: 0 0 10px; padding: 10px 12px; border: 1px dashed var(--home-line); border-radius: 12px; color: var(--home-ink); font-size: 14px; }
-.og-parcel-services > b { font-size: 13px; }
-.og-parcel-services ul { display: grid; gap: 6px; margin: 6px 0 0; padding: 0; list-style: none; }
-.og-parcel-services li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
-.og-parcel-services small { margin-left: auto; color: var(--home-muted); font-feature-settings: "tnum" 1; }
 
 /* Model block: photo, name, the short store link; its variant rows below. */
 .og-model { margin-bottom: 10px; overflow: hidden; border: 1px solid var(--home-line); border-radius: 16px; background: var(--home-surface); }
@@ -64,10 +58,11 @@
 
 /* Variant rows. */
 .og-lines { border-top: 1px solid var(--home-line); }
-.og-line { scroll-margin-top: 88px; }
-.og-line + .og-line { border-top: 1px solid var(--home-line); }
-.og-line-summary { display: grid; grid-template-columns: minmax(0, 1fr) auto auto 18px; grid-template-areas: "variant qty sum chevron" "flags flags flags flags"; gap: 6px 10px; align-items: center; min-height: 56px; padding: 10px 12px; cursor: pointer; list-style: none; }
-.og-line-summary:has(.og-line-thumb) { grid-template-columns: 36px minmax(0, 1fr) auto auto 18px; grid-template-areas: "thumb variant qty sum chevron" "thumb flags flags flags flags"; }
+.og-line, .og-line-row { scroll-margin-top: 88px; }
+.og-lines > * + * { border-top: 1px solid var(--home-line); }
+:is(.og-line-summary, .og-line-row) { display: grid; grid-template-columns: minmax(0, 1fr) auto auto 18px; grid-template-areas: "variant qty sum chevron" "flags flags flags flags"; gap: 6px 10px; align-items: center; min-height: 56px; padding: 10px 12px; cursor: pointer; list-style: none; }
+:is(.og-line-summary, .og-line-row):has(.og-line-thumb) { grid-template-columns: 36px minmax(0, 1fr) auto auto 18px; grid-template-areas: "thumb variant qty sum chevron" "thumb flags flags flags flags"; }
+.og-line-row { cursor: default; }
 .og-line-summary::-webkit-details-marker { display: none; }
 .og-line-summary:hover { background: color-mix(in srgb, var(--home-soft) 60%, transparent); }
 .og-line-summary:focus-visible { outline: 2px solid var(--home-accent); outline-offset: -2px; }
@@ -78,8 +73,8 @@
 .og-line-sum { grid-area: sum; color: var(--home-ink); font-size: 15px; font-feature-settings: "tnum" 1; white-space: nowrap; }
 .og-line-chevron { grid-area: chevron; color: var(--home-muted); transition: transform .2s; }
 .og-line[open] > .og-line-summary .og-line-chevron { transform: rotate(180deg); }
-.og-line[data-cancelled] :is(.og-line-variant, .og-line-sum) { color: var(--home-muted); }
-.og-line[data-cancelled] .og-line-sum { text-decoration: line-through; }
+:is(.og-line, .og-line-row)[data-cancelled] :is(.og-line-variant, .og-line-sum) { color: var(--home-muted); }
+:is(.og-line, .og-line-row)[data-cancelled] .og-line-sum { text-decoration: line-through; }
 
 /* The opened order: number in the corner, what was ordered, what to do, stage, recipient, delivery, latest event. */
 .og-line-body { gap: 14px; padding: 0 12px 16px; }
@@ -118,8 +113,8 @@
   .og-model-photo { grid-row: auto; width: 48px; height: 48px; }
   .og-model-head .og-store-link { grid-column: 3; margin: 0; }
   /* Variant and quantity read together on the left ("US 8  × 1"), the stage after them, the sum on the right. */
-  .og-line-summary { grid-template-columns: fit-content(45%) auto minmax(0, 1fr) auto 18px; grid-template-areas: "variant qty flags sum chevron"; min-height: 48px; padding: 6px 14px; }
-  .og-line-summary:has(.og-line-thumb) { grid-template-columns: 32px fit-content(45%) auto minmax(0, 1fr) auto 18px; grid-template-areas: "thumb variant qty flags sum chevron"; }
+  :is(.og-line-summary, .og-line-row) { grid-template-columns: fit-content(45%) auto minmax(0, 1fr) auto 18px; grid-template-areas: "variant qty flags sum chevron"; min-height: 48px; padding: 6px 14px; }
+  :is(.og-line-summary, .og-line-row):has(.og-line-thumb) { grid-template-columns: 32px fit-content(45%) auto minmax(0, 1fr) auto 18px; grid-template-areas: "thumb variant qty flags sum chevron"; }
   .og-line-thumb { align-self: center; width: 32px; height: 32px; }
   .og-line-sum { text-align: right; }
   .og-line-body { padding: 0 14px 16px; }
@@ -141,38 +136,35 @@ html:not([data-theme="dark"]) .og-ship { color: var(--day-muted); }
 html:not([data-theme="dark"]) .og-ship-who { color: var(--day-ink); }
 html:not([data-theme="dark"]) .order-group-sum strong { color: var(--day-ink); }
 html:not([data-theme="dark"]) .og-model { border-color: var(--day-line-strong); box-shadow: none; }
-html:not([data-theme="dark"]) :is(.og-lines, .og-line + .og-line) { border-color: var(--day-line); }
+html:not([data-theme="dark"]) :is(.og-lines, .og-lines > * + *) { border-color: var(--day-line); }
 html:not([data-theme="dark"]) .og-line[open] { background: color-mix(in srgb, var(--day-soft) 35%, var(--day-surface)); }
 html:not([data-theme="dark"]) .og-line-summary:hover { background: var(--day-soft); }
 html:not([data-theme="dark"]) .og-line .og-latest { background: var(--day-surface); border: 1px solid var(--day-line); }
 html:not([data-theme="dark"]) .og-progress-bar span { background: var(--day-line-strong-2); }
 html:not([data-theme="dark"]) .og-progress-bar span[data-state="done"] { background: var(--day-fresh); }
 html:not([data-theme="dark"]) .og-progress-bar span[data-state="current"] { background: var(--day-accent); }
-html:not([data-theme="dark"]) .og-parcel-services { border-color: var(--day-line-strong); background: var(--day-surface); }
 html:not([data-theme="dark"]) :is(.og-line-variant, .og-line-sum, .og-model-name, .og-latest-text, .og-latest b) { color: var(--day-ink); }
 html:not([data-theme="dark"]) :is(.og-line-qty, .og-model-main small, .og-store-head > small, .og-latest) { color: var(--day-muted); }
-html:not([data-theme="dark"]) .og-line[data-cancelled] :is(.og-line-variant, .og-line-sum) { color: var(--day-muted); }
+html:not([data-theme="dark"]) :is(.og-line, .og-line-row)[data-cancelled] :is(.og-line-variant, .og-line-sum) { color: var(--day-muted); }
 
 /* Atlas Night: an inset plate so the raised model blocks read as its content. */
 html[data-theme="dark"] .order-group { background: var(--night-inset); border-color: var(--night-line); }
 html[data-theme="dark"] .order-group-title { color: var(--night-ink); }
 html[data-theme="dark"] .og-ship { color: var(--night-muted); }
 html[data-theme="dark"] .og-ship-who { color: var(--night-ink); }
-html[data-theme="dark"] :is(.order-group-main > small, .order-group-sum small, .order-group-store-title, .og-store-head > small, .og-line-qty, .og-model-main small, .og-line-what > small, .og-progress-text small, .og-latest, .og-parcel-services small) { color: var(--night-muted); }
-html[data-theme="dark"] .order-group-main > .og-stage-summary { color: var(--night-ink); }
+html[data-theme="dark"] :is(.order-group-main > small, .order-group-sum small, .order-group-store-title, .og-store-head > small, .og-line-qty, .og-model-main small, .og-line-what > small, .og-progress-text small, .og-latest) { color: var(--night-muted); }
 html[data-theme="dark"] .order-group-sum strong { color: var(--night-ivory); }
 html[data-theme="dark"] .order-group-store + .order-group-store { border-top-color: var(--night-line-strong); }
 html[data-theme="dark"] .order-group[data-stage="attention"] { border-color: var(--night-warn-line); }
 html[data-theme="dark"] .order-group[data-stage="cancelled"] .order-group-title { color: var(--night-muted); }
 html[data-theme="dark"] .og-model { border-color: var(--night-line); background: var(--night-surface); box-shadow: var(--night-shadow); }
-html[data-theme="dark"] :is(.og-lines, .og-line + .og-line) { border-color: var(--night-line); }
+html[data-theme="dark"] :is(.og-lines, .og-lines > * + *) { border-color: var(--night-line); }
 html[data-theme="dark"] .og-line[open] { background: var(--night-raised); }
 html[data-theme="dark"] .og-line-summary:hover { background: var(--night-hover); }
-html[data-theme="dark"] :is(.og-line-variant, .og-model-name, .og-line-what > b, .og-progress-text b, .og-latest b, .og-latest-text, .og-parcel-services, .og-line-id) { color: var(--night-ink); }
+html[data-theme="dark"] :is(.og-line-variant, .og-model-name, .og-line-what > b, .og-progress-text b, .og-latest b, .og-latest-text, .og-line-id) { color: var(--night-ink); }
 html[data-theme="dark"] .og-line-sum { color: var(--night-ivory); }
-html[data-theme="dark"] .og-line[data-cancelled] :is(.og-line-variant, .og-line-sum) { color: var(--night-muted); }
+html[data-theme="dark"] :is(.og-line, .og-line-row)[data-cancelled] :is(.og-line-variant, .og-line-sum) { color: var(--night-muted); }
 html[data-theme="dark"] .og-latest { background: rgba(255, 255, 255, 0.03); }
-html[data-theme="dark"] .og-parcel-services { border-color: var(--night-line-strong); }
 html[data-theme="dark"] .og-progress-bar span { background: rgba(255, 255, 255, 0.07); }
 html[data-theme="dark"] .og-progress-bar span[data-state="done"] { background: var(--night-jade-strong); }
 html[data-theme="dark"] .og-progress-bar span[data-state="current"] { background: var(--night-jade); box-shadow: 0 0 10px rgba(128, 208, 172, 0.35); }
@@ -182,11 +174,8 @@ html[data-theme="dark"] :is(.og-model-photo, .og-line-thumb) img { background: t
 
 /* Since 10 October 2026: the next step under the heading, a finished purchase invites the next one, notes said once per
    checkout or store parcel (customs, allowance, the store-delivery check), the passport as a calm note, one "Вопрос по заказу". */
-.order-group-main > .og-next { color: var(--home-ink); font-size: 13.5px; font-weight: 600; }
 .og-head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 6px; }
 .og-head-actions .btn { min-height: 40px; }
-.og-group-note { margin: 0 4px 10px; }
-.og-group-note .micro { margin-top: 4px; }
 .og-model-head .og-model-reorder { grid-column: 2; justify-self: start; }
 .og-group-foot { margin: 2px 4px 8px; }
 .order-group .og-passport { margin: 0 0 12px; border-color: var(--home-line); background: var(--home-surface); }
@@ -197,10 +186,13 @@ html[data-theme="dark"] .order-group .og-passport { border-color: var(--home-lin
    full-width rows under the payment: on a phone it follows the heading, from 640px it stands on the right. */
 .og-side { display: grid; gap: 8px; flex: 1 1 100%; min-width: 0; align-content: start; }
 .og-side .og-ship { margin: 0; }
-.order-group .og-side .og-passport { grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 6px 10px; margin: 0; padding: 10px 12px; border-radius: 12px; }
-.order-group .og-side .og-passport > svg { margin-top: 1px; }
-.order-group .og-side .og-passport p { font-size: 13.5px; }
-.order-group .og-side .og-passport .btn { grid-column: 2; justify-self: start; min-height: 36px; padding-block: 6px; font-size: 13.5px; }
+/* Since 11 October 2026 the passport note reads as one more line under the recipient (icon, text, link), not a boxed card
+   that left an empty gap beside the heading. */
+.order-group .og-side .og-passport { grid-template-columns: 16px minmax(0, 1fr); align-items: start; gap: 0 8px; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; }
+.order-group .og-side .og-passport > svg { margin-top: 2px; color: var(--cx-warn); }
+.order-group .og-side .og-passport p { font-size: 13px; line-height: 1.45; }
+.order-group .og-side .og-passport .order-x-link { grid-column: 2; justify-self: start; min-height: 36px; margin: -4px 0 -8px; font-size: 13px; }
+html[data-theme="dark"] .order-group .og-side .og-passport { background: none; }
 @media (min-width: 640px) {
   .og-side { flex: 0 1 320px; }
   .og-side .order-group-sum { justify-self: end; }
@@ -217,3 +209,108 @@ html[data-theme="dark"] .order-group .og-passport { border-color: var(--home-lin
 .og-ship .copy-text-btn { margin: -8px -8px -8px 0; }
 html:not([data-theme="dark"]) .og-head-id { color: var(--day-muted); }
 html[data-theme="dark"] .og-head-id { color: var(--night-muted); }
+/* Since 11 October 2026: every line of one store parcel in one block (two colors, two models of one store): model heads
+   and plain variant rows, then one "Подробности посылки" panel; the chosen services ticked inside it; customs as one
+   strip per checkout instead of a grey note. */
+.og-model[data-parcel] .og-lines + .og-model-head { border-top: 1px solid var(--home-line); }
+.og-parcel-summary .og-line-variant { font-size: 14px; }
+.og-parcel-summary .og-line-qty { font-size: 13px; }
+.og-parcel-more > .og-line-body { padding-top: 4px; }
+.og-line-ids { display: grid; margin: 0; padding: 0; list-style: none; }
+.og-line-ids li { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; min-height: 40px; }
+.og-line-ids li + li { border-top: 1px dashed var(--home-line); }
+.og-line-ids-variant { flex: 1 1 auto; min-width: 0; color: var(--home-muted); font-size: 13px; }
+.og-calc-line { display: grid; gap: 8px; }
+.og-calc-line + .og-calc-line { margin-top: 4px; padding-top: 12px; border-top: 1px dashed var(--home-line); }
+.og-calc-line-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; margin: 0; color: var(--home-ink); font-size: 14px; }
+.og-calc-line-head .order-x-id { color: var(--home-muted); font-size: 12.5px; }
+
+/* The services of the parcel as ticks: chosen ones filled, "Оплата таможни через Atlas" unticked when the customer pays it. */
+.og-services { display: grid; gap: 8px; margin: 2px 0 0; padding: 0; list-style: none; }
+.og-services li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 1px 8px; align-items: start; color: var(--home-ink); font-size: 14px; line-height: 1.4; }
+.og-services li > small { grid-column: 2; color: var(--home-muted); font-size: 12.5px; }
+.og-services li:not([data-on]) > span:not(.og-tick) { color: var(--home-muted); }
+.og-tick { display: grid; place-items: center; width: 18px; height: 18px; margin-top: 1px; border: 1.5px solid var(--home-line); border-radius: 6px; color: var(--home-surface); }
+.og-services li[data-on] .og-tick { border-color: var(--cx-ok); background: var(--cx-ok); }
+
+/* Customs of the checkout: icon, what is above the allowance and who pays, the estimate on the right, the allowance under it. */
+.og-customs { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 4px 12px; align-items: center; margin: 0 0 10px; padding: 12px; border: 1px solid var(--home-line); border-radius: 16px; background: var(--home-surface); }
+.og-customs-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; background: var(--home-soft); color: var(--home-ink); }
+.og-customs[data-atlas] .og-customs-icon { background: var(--cx-ok-soft); color: var(--cx-ok); }
+.og-customs-main { display: grid; gap: 2px; min-width: 0; }
+.og-customs-main b { color: var(--home-ink); font-size: 14.5px; line-height: 1.3; }
+.og-customs-main small { color: var(--home-muted); font-size: 13px; line-height: 1.4; }
+.og-customs-side { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.og-customs-sum { display: flex; align-items: baseline; gap: 6px; color: var(--home-ink); font-size: 16px; font-weight: 800; line-height: 1.2; font-feature-settings: "tnum" 1; white-space: nowrap; }
+.og-customs-sum small { color: var(--home-muted); font-size: 12px; font-weight: 600; }
+.og-customs .order-x-status { gap: 4px; }
+.og-customs-allowance { grid-column: 2; margin: 4px 0 0; padding-top: 8px; border-top: 1px dashed var(--home-line); color: var(--home-muted); font-size: 12.5px; line-height: 1.4; }
+@media (min-width: 640px) {
+  .og-customs { grid-template-columns: 40px minmax(0, 1fr) auto; padding: 12px 16px; }
+  .og-customs-icon { width: 40px; height: 40px; border-radius: 12px; }
+  .og-customs-side { grid-column: 3; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .og-customs-sum { flex-direction: column; align-items: flex-end; gap: 0; }
+  .og-customs-allowance { grid-column: 2 / -1; }
+}
+html:not([data-theme="dark"]) .og-customs { border-color: var(--day-line-strong); background: var(--day-surface); }
+html:not([data-theme="dark"]) .og-customs:not([data-atlas]) .og-customs-icon { background: var(--day-soft); color: var(--day-ink); }
+html:not([data-theme="dark"]) :is(.og-customs-main b, .og-customs-sum, .og-services li, .og-calc-line-head) { color: var(--day-ink); }
+html:not([data-theme="dark"]) :is(.og-customs-main small, .og-customs-sum small, .og-customs-allowance, .og-services li > small, .og-line-ids-variant, .og-calc-line-head .order-x-id) { color: var(--day-muted); }
+html:not([data-theme="dark"]) :is(.og-model[data-parcel] .og-lines + .og-model-head, .og-customs-allowance, .og-line-ids li + li, .og-calc-line + .og-calc-line) { border-color: var(--day-line); }
+html:not([data-theme="dark"]) .og-tick { border-color: var(--day-line-strong); color: var(--day-surface); }
+html:not([data-theme="dark"]) .og-services li[data-on] .og-tick { border-color: var(--cx-ok); }
+html[data-theme="dark"] .og-customs { border-color: var(--night-line); background: var(--night-surface); }
+html[data-theme="dark"] .og-customs:not([data-atlas]) .og-customs-icon { background: rgba(255, 255, 255, 0.05); color: var(--night-ink); }
+html[data-theme="dark"] :is(.og-customs-main b, .og-services li, .og-calc-line-head) { color: var(--night-ink); }
+html[data-theme="dark"] .og-customs-sum { color: var(--night-ivory); }
+html[data-theme="dark"] :is(.og-customs-main small, .og-customs-sum small, .og-customs-allowance, .og-services li > small, .og-line-ids-variant, .og-calc-line-head .order-x-id) { color: var(--night-muted); }
+html[data-theme="dark"] :is(.og-model[data-parcel] .og-lines + .og-model-head, .og-customs-allowance, .og-line-ids li + li, .og-calc-line + .og-calc-line) { border-color: var(--night-line); }
+html[data-theme="dark"] .og-tick { border-color: var(--night-line-strong); color: var(--night-surface); }
+html[data-theme="dark"] .og-services li[data-on] .og-tick { border-color: var(--cx-ok); }
+html:not([data-theme="dark"]) .og-services li:not([data-on]) > span:not(.og-tick) { color: var(--day-muted); }
+html[data-theme="dark"] .og-services li:not([data-on]) > span:not(.og-tick) { color: var(--night-muted); }
+/* Phones: the variant on its own line, the quantity and the sum under it (not "Light Ar…" squeezed beside them). */
+@media (max-width: 759px) {
+  :is(.og-line-summary, .og-line-row) { grid-template-columns: minmax(0, 1fr) auto 18px; grid-template-areas: "variant variant chevron" "qty sum chevron" "flags flags flags"; gap: 2px 10px; }
+  :is(.og-line-summary, .og-line-row):has(.og-line-thumb) { grid-template-columns: 36px minmax(0, 1fr) auto 18px; grid-template-areas: "thumb variant variant chevron" "thumb qty sum chevron" "thumb flags flags flags"; }
+  :is(.og-line-summary, .og-line-row) .og-line-variant { line-height: 1.3; white-space: normal; overflow-wrap: anywhere; }
+  .og-line-sum { justify-self: end; }
+  .og-line-flags:not(:empty) { margin-top: 4px; }
+}
+/* Since 11 October 2026 the heading of a checkout: the total beside the date, then the stage as a six-step track with
+   what comes next ("Дальше" as a small label) instead of a badge and a plain "Дальше: …" line. */
+.og-title-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 16px; }
+.og-title-row .order-group-sum { display: flex; align-items: baseline; gap: 6px; text-align: left; }
+.og-track { display: grid; gap: 8px; margin-top: 8px; max-width: 720px; }
+.og-track-text { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin: 0; }
+.og-track-text > b { color: var(--home-ink); font-size: 14px; font-weight: 800; }
+.og-track-next { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 6px; color: var(--home-ink); font-size: 13.5px; }
+.og-track-next small { padding: 1px 7px; border-radius: 99px; background: var(--home-soft); color: var(--home-muted); font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.og-track-steps { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 0; list-style: none; }
+.og-track-steps li { display: grid; align-content: start; gap: 6px; min-width: 0; color: var(--home-muted); font-size: 12px; line-height: 1.25; }
+.og-track-steps li::before { content: ""; height: 6px; border-radius: 99px; background: var(--home-line); }
+.og-track-steps li[data-state="done"]::before { background: color-mix(in srgb, var(--home-accent) 55%, transparent); }
+.og-track-steps li[data-state="current"]::before { background: var(--home-accent); }
+.og-track-steps li[data-state="current"] { color: var(--home-ink); font-weight: 700; }
+.og-track-steps li > span { display: none; }
+@media (min-width: 640px) {
+  .og-track-steps { gap: 6px; }
+  .og-track-steps li > span { display: block; overflow-wrap: anywhere; }
+  .og-track-name { display: none; }
+  .og-title-row .order-group-sum strong { font-size: 18px; }
+}
+/* The search beside the page title, not on a row of its own under it. */
+.orders-head .orders-head-search { flex: 0 1 360px; margin: 0; }
+@media (min-width: 760px) { .orders-head { align-items: flex-end; } }
+html:not([data-theme="dark"]) .og-track-steps li::before { background: var(--day-line-strong-2); }
+html:not([data-theme="dark"]) .og-track-steps li[data-state="done"]::before { background: var(--day-fresh); }
+html:not([data-theme="dark"]) .og-track-steps li[data-state="current"]::before { background: var(--day-accent); }
+html:not([data-theme="dark"]) :is(.og-track-text > b, .og-track-next, .og-track-steps li[data-state="current"]) { color: var(--day-ink); }
+html:not([data-theme="dark"]) :is(.og-track-steps li, .og-track-next small) { color: var(--day-muted); }
+html:not([data-theme="dark"]) .og-track-next small { background: var(--day-soft); }
+html[data-theme="dark"] .og-track-steps li::before { background: rgba(255, 255, 255, 0.07); }
+html[data-theme="dark"] .og-track-steps li[data-state="done"]::before { background: var(--night-jade-strong); }
+html[data-theme="dark"] .og-track-steps li[data-state="current"]::before { background: var(--night-jade); box-shadow: 0 0 10px rgba(128, 208, 172, 0.35); }
+html[data-theme="dark"] :is(.og-track-text > b, .og-track-next, .og-track-steps li[data-state="current"]) { color: var(--night-ink); }
+html[data-theme="dark"] :is(.og-track-steps li, .og-track-next small) { color: var(--night-muted); }
+html[data-theme="dark"] .og-track-next small { background: rgba(255, 255, 255, 0.06); }
