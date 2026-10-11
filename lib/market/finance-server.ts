@@ -1,4 +1,4 @@
-import { database, HttpError, recordAudit } from "./server";
+import { auditStatement, database, HttpError, recordAudit } from "./server";
 import { balanceOf, parseState, type Entry, type Order } from "./domain";
 import { autoActor, invoiceData, planAutoLedger, syncOrderLedger, type InvoiceLine, type SkippedAuto } from "./finance-auto";
 import { accountingSettingsSchema, isPeriodLocked, lockedPeriodMessage, monthKey, monthSummary, obligations, yearMonths, yearSummary, type AccountingSettings, type LedgerEntry, type LedgerEntryInput, type LedgerKind, type OrderFinance } from "./finance";
@@ -68,11 +68,18 @@ export async function ledgerForOrders(orderIds: string[]) {
 /** `prefix` marks the source in the id: LED- entered by hand, BANK- confirmed from a bank statement (AUTO- is reserved for syncAutoLedger). */
 export async function addLedgerEntry(input: LedgerEntryInput, user: Operator, prefix: "LED-" | "BANK-" = "LED-") {
   if (isPeriodLocked(await accountingSettings(), input.occurredOn)) throw new HttpError(409, lockedPeriodMessage(input.occurredOn.slice(0, 7)));
-  const id = prefix + crypto.randomUUID(), now = Date.now();
-  await database().prepare("INSERT INTO market_ledger_entries (id,kind,amount_uzs,original_amount,original_currency,occurred_on,order_id,counterparty,note,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
-    .bind(id, input.kind, input.amountUzs, input.originalAmount ?? null, input.originalCurrency ?? null, input.occurredOn, input.orderId || null, input.counterparty || null, input.note || null, user.email || user.userId, now).run();
-  await recordAudit(user, "ledger.add", "ledger", id, { kind: input.kind, amountUzs: input.amountUzs, occurredOn: input.occurredOn });
+  const { id, statements } = ledgerEntryStatements(input, user, prefix);
+  await database().batch(statements);
   return id;
+}
+/** The entry and its audit row, written together in one db.batch. */
+function ledgerEntryStatements(input: LedgerEntryInput, user: Operator, prefix: "LED-" | "BANK-") {
+  const id = prefix + crypto.randomUUID(), now = Date.now();
+  return { id, statements: [
+    database().prepare("INSERT INTO market_ledger_entries (id,kind,amount_uzs,original_amount,original_currency,occurred_on,order_id,counterparty,note,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
+      .bind(id, input.kind, input.amountUzs, input.originalAmount ?? null, input.originalCurrency ?? null, input.occurredOn, input.orderId || null, input.counterparty || null, input.note || null, user.email || user.userId, now),
+    auditStatement(user, "ledger.add", "ledger", id, { kind: input.kind, amountUzs: input.amountUzs, occurredOn: input.occurredOn }),
+  ] };
 }
 export async function voidLedgerEntry(id: string, reason: string, user: Operator) {
   const row = await database().prepare("SELECT occurred_on, voided_at FROM market_ledger_entries WHERE id=?").bind(id).first<{ occurred_on: string; voided_at: number | null }>();
@@ -212,10 +219,14 @@ export async function recordedPayments(orderIds: string[]) {
   return out;
 }
 /** Confirmed bank statement lines become BANK- entries; one audit event sums them up. */
+// One settings read and one db.batch for the whole statement (up to 200 lines): all lines are booked or none is,
+// instead of three round trips per line.
 export async function confirmBankEntries(entries: LedgerEntryInput[], user: Operator) {
-  const ids: string[] = [];
-  for (const entry of entries) ids.push(await addLedgerEntry(entry, user, "BANK-"));
-  await recordAudit(user, "ledger.bank-import", "ledger", ids.join(",").slice(0, 320), { count: ids.length, orderIds: entries.map((entry) => entry.orderId) });
+  const settings = await accountingSettings();
+  const locked = entries.find((entry) => isPeriodLocked(settings, entry.occurredOn));
+  if (locked) throw new HttpError(409, lockedPeriodMessage(locked.occurredOn.slice(0, 7)));
+  const written = entries.map((entry) => ledgerEntryStatements(entry, user, "BANK-")), ids = written.map((item) => item.id);
+  await database().batch([...written.flatMap((item) => item.statements), auditStatement(user, "ledger.bank-import", "ledger", ids.join(",").slice(0, 320), { count: ids.length, orderIds: entries.map((entry) => entry.orderId) })]);
   return ids;
 }
 /** The invoice-calculation of one order from the projection tables (books, fee lines, order record, customer). */

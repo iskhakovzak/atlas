@@ -29,3 +29,12 @@ export async function initialSiteContent():Promise<SiteContentView>{
   return mergeSiteContent(parseStoredSiteContent(row?.value));
  }catch{return mergeSiteContent(null)}
 }
+
+/** Both settings of the first render in one D1 query instead of two: every page render asks for them. */
+export async function initialSettings():Promise<{pricing:Pricing|null;siteContent:SiteContentView}>{
+ try{
+  const rows=await database().prepare('SELECT key,value FROM market_settings WHERE key IN (?,?)').bind('pricing',siteContentStorageKey).all<{key:string;value:string}>();
+  const values=new Map(rows.results.map(row=>[row.key,row.value]));
+  return {pricing:parseStoredPricing(values.get('pricing')),siteContent:mergeSiteContent(parseStoredSiteContent(values.get(siteContentStorageKey)))};
+ }catch{return {pricing:null,siteContent:mergeSiteContent(null)}}
+}
