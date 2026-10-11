@@ -76,7 +76,8 @@ export const claimCopy = /*@__PURE__*/withCyrillic({
 });
 
 /** The customer's side: the claims filed on the line, and the form while a claim can be filed. */
-export function CustomerParcelClaim({ order, locale, busy, run }: { order: Order; locale: Locale; busy: boolean; run: (action: Action) => Promise<boolean> }) {
+/** `label`: the variant, when one panel holds several lines of a store parcel ("Black · US 9"). */
+export function CustomerParcelClaim({ order, locale, busy, run, label }: { order: Order; locale: Locale; busy: boolean; run: (action: Action) => Promise<boolean>; label?: string }) {
   const t = claimCopy[locale];
   const open = claimKindsOpen(order);
   const [kind, setKind] = useState<ParcelClaimKind>(open.includes("damage") ? "damage" : "loss");
@@ -90,13 +91,13 @@ export function CustomerParcelClaim({ order, locale, busy, run }: { order: Order
     {claims.map((claim) => <div key={claim.id} className={"order-x-note " + (claim.status === "approved" ? "ok" : claim.status === "declined" ? "muted" : "warn")}>
       <LifeBuoy size={18} aria-hidden="true" />
       <div>
-        <b>{t.status[claim.status]}</b>
+        <b>{t.status[claim.status]}{label ? ` · ${label}` : ""}</b>
         <p>{t.kind[claim.kind]} · {formatDateTime(claim.reportedAt, locale)}</p>
         <p>{claim.status === "approved" && claim.amount ? t.credited(formatSum(claim.amount, locale)) : claim.status === "declined" ? claim.note : t.limit(formatSum(claim.limit, locale))}</p>
       </div>
     </div>)}
     {chosen && <details className="order-x-more parcel-claim">
-      <summary>{t.open}</summary>
+      <summary>{t.open}{label ? ` · ${label}` : ""}</summary>
       <form className="order-x-more-body" onSubmit={(event) => {
         event.preventDefault();
         if (sending || busy) return;
