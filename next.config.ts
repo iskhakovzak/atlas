@@ -3,14 +3,17 @@ import type { NextConfig } from "next";
 // Content Security Policy, report-only for now: violations reach /api/telemetry and show up in
 // the operator's error log (Administration → System) before the policy is enforced. Inline
 // scripts stay allowed for the streamed RSC payload and the theme script until nonces are wired in.
-// Merchant photos come from many store CDNs, hence any HTTPS image source.
+// Merchant photos come from many store CDNs, hence any HTTPS image source. Impact's partner tag
+// (lib/market/impact-tracking.ts, after consent) loads from utt.impactcdn.com and, per Impact's docs, older tags
+// and events use *.impactradius-event.com; its pixels are images (already any HTTPS).
+const impact = "https://utt.impactcdn.com https://*.impactradius-event.com";
 const contentSecurityPolicy = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://telegram.org",
+  `script-src 'self' 'unsafe-inline' https://telegram.org ${impact}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self'",
+  `connect-src 'self' ${impact}`,
   "frame-src https://oauth.telegram.org",
   "frame-ancestors 'none'",
   "form-action 'self' https://accounts.google.com https://appleid.apple.com https://oauth.telegram.org",
