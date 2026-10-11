@@ -20,7 +20,8 @@
 .basket-variant > .basket-select { grid-area: sel; align-self: center; }
 .basket-variant > :is(.basket-note, .basket-note-add) { grid-column: 2 / -1; margin: 2px 0 0; }
 .basket-variant.is-later > :not(.basket-select) { opacity: .62; }
-.basket-variant-info .basket-later-tag { margin-left: 0; white-space: nowrap; }
+/* In the narrow size column on phones the tag wraps inside it instead of running under the quantity buttons. */
+.basket-variant-info .basket-later-tag { max-width: 100%; margin-left: 0; line-height: 1.3; }
 /* The one-line row needs room: it follows the card's width (the cart column is narrow next to the bill), not the window. */
 .basket-group { container-type: inline-size; }
 .basket-variants { padding: 0 16px 6px; }

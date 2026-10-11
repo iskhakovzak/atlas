@@ -1,5 +1,5 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { haptic, isNative } from '@/lib/native/bridge';
 import { startNavigationFeedback, stopNavigationFeedback } from '@/lib/market/navigation-feedback';
@@ -18,8 +18,34 @@ const MAIN_ACTION = '.btn.primary, .cart-link';
  */
 export function PressFeedback() {
   const pathname = usePathname();
+  // A move to another page starts at its top; back/forward returns to the place the page was left. The router skipped
+  // the first when it thought the new page's top was already visible (the cart opened mid-page), and lost the second
+  // while the page was still filling in (12 October 2026). The router saves the place into a history entry when the page
+  // is left, so an entry that has one is a return (back/forward) and a fresh entry is a new visit.
+  const firstPage = useRef(true);
   // The next page is on screen (an in-place change): the line and the lit button stop.
-  useEffect(() => { stopNavigationFeedback(); }, [pathname]);
+  useEffect(() => {
+    stopNavigationFeedback();
+    if (firstPage.current) { firstPage.current = false; return; }
+    const saved = (history.state as { __vinext_scrollY?: unknown } | null)?.__vinext_scrollY;
+    if (typeof saved === 'number') {
+      if (saved <= 0) return;
+      // The page may still be loading its list: try again while it grows, give up after a second or on the first touch.
+      const started = Date.now();
+      let timer = 0;
+      const stop = () => { window.clearTimeout(timer); window.removeEventListener('wheel', stop); window.removeEventListener('touchstart', stop); };
+      const step = () => {
+        if (Math.abs(window.scrollY - saved) > 2) window.scrollTo({ top: saved, behavior: 'instant' });
+        if (Math.abs(window.scrollY - saved) <= 2 || Date.now() - started > 1000) { stop(); return; }
+        timer = window.setTimeout(step, 50);
+      };
+      window.addEventListener('wheel', stop, { passive: true });
+      window.addEventListener('touchstart', stop, { passive: true });
+      step();
+      return stop;
+    }
+    if (!location.hash && window.scrollY > 0) window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [pathname]);
   useEffect(() => {
     let pressed: HTMLElement | null = null;
     let pointer = '';

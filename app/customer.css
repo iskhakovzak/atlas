@@ -170,6 +170,14 @@ html[data-theme="dark"] .basket-item-note.issue { border-color: rgba(255, 140, 1
   .basket-sticky { transition: opacity .18s ease, transform .18s ease, visibility .18s; }
   .basket-sticky.is-hidden { visibility: hidden; opacity: 0; transform: translateY(12px); pointer-events: none; }
 }
+/* Narrow phones: the sum always shows in full ("13 668 999 сум"); the button gives way — no arrow, tighter padding,
+   and on the narrowest screens its text wraps onto two lines (12 October 2026). */
+@media (max-width: 430px) {
+  .basket-sticky > div { flex: none; }
+  .basket-sticky strong { font-size: 17px; }
+  .basket-sticky .btn { flex-shrink: 1; min-width: 0; padding-inline: 14px; white-space: normal; line-height: 1.15; text-align: center; }
+  .basket-sticky .btn > svg { display: none; }
+}
 
 /* Checkout dialog additions. */
 .atlas-modal .basket-steps { margin: 4px 0 16px; }
@@ -552,6 +560,15 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
   .lo-page .lo-colours-aside .variant-options button img { width: 64px; height: 64px; border-radius: 8px; }
   .lo-page .lo-colours-aside .variant-options button > span { display: -webkit-box; overflow: hidden; font-size: 12px; font-weight: 600; line-height: 1.3; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .lo-page .lo-colours-aside .variant-options button small { font-size: 11.5px; }
+}
+/* Phones: the colours in the option card are an even grid of the same small tiles, not full-width bars of different
+   widths (12 October 2026). */
+@media (max-width: 639px) {
+  .lo-page .lo-colours-main .variant-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+  .lo-page .lo-colours-main .variant-options button { justify-items: center; align-content: start; min-width: 0; min-height: 0; padding: 6px 6px 8px; text-align: center; }
+  .lo-page .lo-colours-main .variant-options button img { width: 56px; height: 56px; border-radius: 8px; }
+  .lo-page .lo-colours-main .variant-options button > span { display: -webkit-box; overflow: hidden; font-size: 12px; font-weight: 600; line-height: 1.3; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .lo-page .lo-colours-main .variant-options button small { font-size: 11.5px; }
 }
 /* The store link at the top: domain and path on one line, cut with an ellipsis, opening the full address. */
 a.lo-source-host { text-decoration: none; }

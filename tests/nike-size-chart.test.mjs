@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {getNikeFootwearSizeRows,findNikeFootwearSizeRow,inferNikeFootwearSizeSystem} from '../lib/market/nike-size-chart.ts';
+import {getNikeFootwearSizeRows,findNikeFootwearSizeRow,inferNikeFootwearSizeSystem,readableNikeSizeLabel,readableVariant} from '../lib/market/nike-size-chart.ts';
 import {extractProduct} from '../lib/importer/extract.ts';
 
 test('official Nike conversions keep women and men distinct and foot cm separate from CM/JP',()=>{
@@ -21,4 +21,14 @@ test('Nike US footwear imports label gender but do not apply US chart to Europea
   assert.equal(parse("Nike Gato Men's Shoes").variants[0].sizeLabel,'Nike US men');
   assert.equal(parse("Nike Pegasus Women's Shoes",'EUR').variants[0].sizeLabel,'Размер');
   assert.equal(parse("Nike Women's Cotton T-Shirt",'USD','APPAREL').variants[0].sizeLabel,'Размер');
+});
+
+test('Nike sizes read as US and EU in the cart, the review and orders', () => {
+  assert.equal(readableNikeSizeLabel('Nike US men: 9.5'), 'US 9.5 · EU 43');
+  const options = [{name: 'Color', value: 'Light Armory Blue'}, {name: 'Nike US men', value: '9.5'}];
+  assert.equal(readableVariant('Light Armory Blue · 9.5', options), 'Light Armory Blue · US 9.5 · EU 43');
+  // Another store, or a label that does not end with the saved size, stays as it is.
+  assert.equal(readableVariant('Black · M', [{name: 'Size', value: 'M'}]), 'Black · M');
+  assert.equal(readableVariant('Light Armory Blue · 10', options), 'Light Armory Blue · 10');
+  assert.equal(readableVariant('Black · 9.5'), 'Black · 9.5');
 });

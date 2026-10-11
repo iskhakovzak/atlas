@@ -124,3 +124,15 @@ export function readableNikeSizeLabel(text = "") {
     return row ? `US ${row.us} · EU ${row.eu}` : `US ${size}`;
   });
 }
+
+/**
+ * A saved line keeps its variant as the store's label ("Light Armory Blue/… · 9.5") and the Nike size in the product's
+ * options ("Nike US men" = "9.5"). When the label ends with that size, the size reads as "US 9.5 · EU 43" too.
+ */
+export function readableVariant(variant = "", options?: readonly {name: string; value: string}[]) {
+  const nike = options?.find(option => /^Nike US (?:men|women)$/.test(option.name.trim()));
+  const row = nike ? findNikeFootwearSizeRow(nike.name.trim().slice(8) as NikeFootwearSizeSystem, nike.value.trim()) : undefined;
+  const parts = variant.split(" · ");
+  if (nike && row && parts.at(-1)?.trim() === nike.value.trim()) return [...parts.slice(0, -1), `US ${row.us} · EU ${row.eu}`].join(" · ");
+  return readableNikeSizeLabel(variant);
+}

@@ -74,7 +74,7 @@ function QuantityControl({ item, c, save }: { item: CartItem; c: CartCopy; save:
   useEffect(() => () => clearTimeout(timer.current), []);
   // Never more than the store reports left (when it reports a count at all).
   const max = Math.max(1, maxLineQuantity(item.product));
-  const optionName = [item.product.name, shownVariant(item.variant)].filter(Boolean).join(" · ");
+  const optionName = [item.product.name, shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ");
   function step(delta: number) {
     const next = Math.min(max, Math.max(1, value + delta));
     if (next === value) return;
@@ -413,10 +413,10 @@ export function CartView() {
     : item.product.stockMoreThan !== undefined ? `${k.stockMore(item.product.stockMoreThan)} · ${k.stockByEbay}` : "";
 
   function renderItem(item: CartItem) {
-    const meta = [shownVariant(item.variant), countryLabel(countryName(item.product), locale)].filter(Boolean).join(" · ");
+    const meta = [shownVariant(item.variant, item.product.sourceOptions), countryLabel(countryName(item.product), locale)].filter(Boolean).join(" · ");
     const issue = item.sourceIssue, stock = stockText(item);
     return <article className={"basket-item" + (issue && issue.kind !== "unreachable" ? " has-issue" : "") + (ticked(item) ? "" : " is-later")} key={item.id}>
-      {selectBox([item], s.selectLine([item.product.name, shownVariant(item.variant)].filter(Boolean).join(" · ")))}
+      {selectBox([item], s.selectLine([item.product.name, shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ")))}
       <div className="basket-photo"><ProductImage product={item.product} locale={locale} decorative size={240} /></div>
       <div className="basket-info">
         {shownBrand(item.product.brand) && <p className="basket-brand">{shownBrand(item.product.brand)}</p>}
@@ -472,14 +472,14 @@ export function CartView() {
       <ul className="basket-variants" aria-label={kc.variants}>{lines.map((item) => {
         const issue = item.sourceIssue, stock = stockText(item), checked = !item.priceChange && !issue && item.product.sourceCheckedAt;
         return <li className={"basket-variant" + (issue && issue.kind !== "unreachable" ? " has-issue" : "") + (ticked(item) ? "" : " is-later")} key={item.id}>
-          {selectBox([item], s.selectLine([item.product.name, shownVariant(item.variant)].filter(Boolean).join(" · ")))}
+          {selectBox([item], s.selectLine([item.product.name, shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ")))}
           <div className="basket-variant-info">
             <b>{readableNikeSizeLabel(cartColourOptions(item.product)?.label ?? "") || shownVariant(item.variant) || item.variant}</b>{!ticked(item) && <span className="basket-later-tag">{s.later}</span>}
             <small>{storePrice(item, locale)}{item.quantity > 1 ? ` × ${item.quantity}` : ""}{checked ? <> · <BadgeCheck size={13} role="img" aria-label={c.item.checked(clock(item.product.sourceCheckedAt!, locale))} /></> : null}{stock ? ` · ${stock}` : ""}</small>
           </div>
           <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity })} />
           <strong className="basket-variant-sum">{formatSum(lineTotal(item), locale)}</strong>
-          <SafeDeleteButton label={kc.removeVariant} itemName={[item.product.name, shownVariant(item.variant)].filter(Boolean).join(" · ")} locale={locale} onConfirm={() => act({ type: "cart-remove", id: item.id })} />
+          <SafeDeleteButton label={kc.removeVariant} itemName={[item.product.name, shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ")} locale={locale} onConfirm={() => act({ type: "cart-remove", id: item.id })} />
           {itemNotes(item)}
           {renderNote(item)}
         </li>;

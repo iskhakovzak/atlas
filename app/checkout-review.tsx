@@ -9,7 +9,7 @@ import { formatSum } from "@/lib/market/format";
 import { storefrontLabel } from "@/lib/market/store-brands";
 import type { Locale } from "@/lib/market/i18n";
 import { ProductImage } from "./market-ui";
-import { readableNikeSizeLabel } from "@/lib/market/nike-size-chart";
+import { readableNikeSizeLabel, readableVariant } from "@/lib/market/nike-size-chart";
 
 /** One card per colour; each size keeps its own selection, quantity and amount. */
 export const productKey = cartModelKey;
@@ -28,7 +28,7 @@ export function storeHost(item: Pick<CartItem, "product">) {
 /** The store's name as the customer knows it (Nike, Zara), or the brand for a line without a link. */
 export const storeName = (item: Pick<CartItem, "product">, locale: Locale) => { const host = storeHost(item); return (host && storefrontLabel(host, locale)) || item.product.brand || host; };
 /** The importer's name for the only option of a product is not worth showing. */
-export const shownVariant = (variant?: string) => variant && variant !== "Выбранный вариант" ? readableNikeSizeLabel(variant) : "";
+export const shownVariant = (variant?: string, options?: readonly {name: string; value: string}[]) => variant && variant !== "Выбранный вариант" ? readableVariant(variant, options) : "";
 
 /**
  * The order on the confirmation step as a compact table (owner, 7.10.2026): numbered lines grouped by store parcel and
@@ -70,7 +70,7 @@ export function CheckoutReviewTable({ lines, locale, pricing, onLeaveForLater, b
                   {index === 0 ? <><span className="review-photo"><ProductImage product={item.product} locale={locale} decorative size={120} /></span><span className="review-title"><span className="review-name">{item.product.name}</span>{sharedColour && <small className="review-colour">{sharedColour}</small>}</span></>
                     : <span className="sr-only">{item.product.name}</span>}
                 </span>
-                <span role="cell" className="review-variant">{sharedColour ? readableNikeSizeLabel(cartColourOptions(item.product)?.label ?? "") || shownVariant(item.variant) : shownVariant(item.variant) || "—"}</span>
+                <span role="cell" className="review-variant">{sharedColour ? readableNikeSizeLabel(cartColourOptions(item.product)?.label ?? "") || shownVariant(item.variant) : shownVariant(item.variant, item.product.sourceOptions) || "—"}</span>
                 <span role="cell" className="review-num" data-label={r.columns.quantity}>{item.quantity}</span>
                 <span role="cell" className="review-num review-sum" data-label={r.columns.sum}>{formatSum(item.quote.total, locale)}</span>
                 {(issue || item.priceChange || (onLeaveForLater && lines.length > 1)) && <span className="review-row-extra" role="cell">
