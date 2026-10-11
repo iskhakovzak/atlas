@@ -7,6 +7,8 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { cartDeliverySpeed, type Product } from '@/lib/market/domain';
 import { useMarket } from '@/lib/market/store';
+import { useRowAtStart } from '@/lib/market/row-start';
+import { retryOriginal, sizedImage } from '@/lib/market/image-size';
 import { dealCopy } from '@/lib/market/deal-copy';
 import { catalogCopy, allowanceMonth } from '@/lib/market/catalog-copy';
 import { catalogAllowance } from '@/lib/market/allowance';
@@ -85,6 +87,7 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
   const filterCount = activeFilterCount(query) - Number(Boolean(query.category)) - Number(Boolean(query.collection));
   const storesInCatalog = new Set(items.map((item) => item.store)).size;
   const sets = mode === 'catalog' ? buildSets(pool, context, collections, Boolean(allowance && allowance.remainingUsd > 0), cc, locale) : [];
+  const setsRow = useRowAtStart<HTMLElement>(sets.map((set) => set.id).join(' '));
 
   async function save(product: Product) {
     setSaving(product.id);
@@ -123,7 +126,7 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
       short={cc.bannerParcel(parcels.map((store) => storeLabel(store, locale)).join(', '))}
       detail={cc.parcelBanner(parcels.map((store) => storeLabel(store, locale)).join(', '))}
       action={query.stores.join() !== parcels.join() ? <button type="button" className="text-button" onClick={() => setQuery({ ...query, stores: parcels })}>{cc.parcelShow}</button> : null} />}
-    {sets.length > 0 && <nav className="catalog-sets" aria-label={cc.collections}>
+    {sets.length > 0 && <nav {...setsRow} className="catalog-sets" aria-label={cc.collections}>
       {sets.map((set) => <button type="button" key={set.id} className="catalog-set" aria-pressed={setActive(query, set.patch)} onClick={() => toggleSet(set)}>
         <SetCover images={set.items.slice(0, 4).map((item) => item.product.image).filter(Boolean)} />
         <b>{set.name}</b><span>{cc.setCount(set.items.length)}</span>
@@ -210,7 +213,7 @@ function SetCover({ images }: { images: string[] }) {
   return <span className="catalog-set-cover" data-single={single || undefined} aria-hidden="true">
     {/* Merchant photos stay direct public URLs, like everywhere on the storefront; a photo the store no longer serves leaves the collage. */}
     {/* eslint-disable-next-line @next/next/no-img-element */}
-    {(single ? live.slice(0, 1) : live).map((src, index) => <img key={src + index} src={src} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed((list) => list.includes(src) ? list : [...list, src])} />)}
+    {(single ? live.slice(0, 1) : live).map((src, index) => <img key={src + index} src={sizedImage(src, single ? 240 : 160)} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(event) => { if (!retryOriginal(event.currentTarget, src)) setFailed((list) => list.includes(src) ? list : [...list, src]); }} />)}
   </span>;
 }
 

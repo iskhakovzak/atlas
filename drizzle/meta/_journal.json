@@ -99,6 +99,13 @@
       "when": 1791698217167,
       "tag": "0013_query_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1791700100000,
+      "tag": "0014_more_query_indexes",
+      "breakpoints": true
     }
   ]
 }

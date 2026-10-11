@@ -28,6 +28,13 @@
                 <data android:scheme="@string/custom_url_scheme" android:host="auth" />
             </intent-filter>
 
+            <!-- "Поделиться → Atlas": a link shared from a store app opens the order-by-link page (MainActivity rewrites it to /share). -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
             <!-- App Links: verified against https://atlasmarket.uz/.well-known/assetlinks.json (app/.well-known/assetlinks.json/route.ts). -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />

@@ -106,7 +106,7 @@ export function StoreDialog({ brand, c, locale, pricing, terms, catalog, mark, o
         {catalog && catalog.count > 0 && <section className="store-dialog-section store-dialog-shelf" aria-labelledby="store-dialog-shelf-title">
           <h3 id="store-dialog-shelf-title">{c.catalogShelf(catalog.count)}</h3>
           <ul className="store-dialog-products">{catalog.items.slice(0, shelfSize).map((item) => <li key={item.product.id}>
-            <Link href={catalogHref}><span className="store-dialog-photo"><ProductImage product={item.product} decorative locale={locale} /></span><span className="store-dialog-product-name">{item.product.name}</span>{item.costs && <Money value={item.costs.total} locale={locale} />}</Link>
+            <Link href={catalogHref}><span className="store-dialog-photo"><ProductImage product={item.product} decorative locale={locale} size={200} /></span><span className="store-dialog-product-name">{item.product.name}</span>{item.costs && <Money value={item.costs.total} locale={locale} />}</Link>
           </li>)}</ul>
           {catalog.count > shelfSize && <Link className="store-dialog-all" href={catalogHref}>{c.allProducts(catalog.count)}<ArrowRight size={16} aria-hidden="true" /></Link>}
         </section>}

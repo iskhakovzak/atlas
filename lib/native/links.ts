@@ -2,6 +2,7 @@
 // universal/app links on https://atlasmarket.uz. Pure, so the parser is tested in node and never
 // trusts the URL: a sign-in handoff code must look like one, a return path must stay on the site.
 import {safeReturnTo} from '../auth/return-to.ts';
+import {SHARED_TEXT_LIMIT} from '../market/shared-link.ts';
 
 export const APP_SCHEME='uz.atlasmarket.app';
 export const SITE_HOST='atlasmarket.uz';
@@ -23,6 +24,18 @@ function auth(params:URLSearchParams):AppLink|null{
  return {kind:'auth',code,returnTo:returnTo?safeReturnTo(returnTo):null};
 }
 
+// "Поделиться → Atlas" from the iPhone share extension (mobile/ios/App/AtlasShare): uz.atlasmarket.app://share?text=…
+// opens the site's /share, which finds the product link (app/share/route.ts). Only url/text/title pass, each cut to its limit.
+function share(params:URLSearchParams):AppLink{
+ const out=new URLSearchParams();
+ for(const key of ['url','text','title']){
+  const value=params.get(key);
+  if(value)out.set(key,value.slice(0,SHARED_TEXT_LIMIT));
+ }
+ const query=out.toString();
+ return {kind:'path',path:'/share'+(query?'?'+query:'')};
+}
+
 /** Classifies a URL delivered to the app; null for anything that is not an Atlas link. */
 export function parseAppLink(raw:string):AppLink|null{
  if(typeof raw!=='string'||raw.length>4096)return null;
@@ -31,6 +44,7 @@ export function parseAppLink(raw:string):AppLink|null{
  if(url.protocol===APP_SCHEME+':'){
   // uz.atlasmarket.app://auth?code=… parses with host "auth"; uz.atlasmarket.app:///auth with pathname "/auth".
   const target=(url.host||url.pathname).replace(/^\/+|\/+$/g,'').toLowerCase();
+  if(target==='share')return share(url.searchParams);
   return target==='auth'?auth(url.searchParams):null;
  }
  if(url.protocol!=='https:'||!siteHosts.has(url.hostname.toLowerCase()))return null;

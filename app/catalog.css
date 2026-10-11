@@ -192,6 +192,9 @@ html[data-theme="dark"] .catalog-switch input:checked + .catalog-switch-track::a
 .site-main .find-card .find-total > strong.find-total-pending > span { font-size: .58em; font-weight: 650; letter-spacing: 0; }
 /* One line always (the full sentence is in the title), so a confirmed card is as tall as its neighbours. */
 .site-main .find-card .find-total-note { display: block; height: 15px; margin-top: 2px; overflow: hidden; color: var(--cat-muted); font-size: 11px; line-height: 1.35; white-space: nowrap; text-overflow: ellipsis; }
+/* Empty lines take no room: a blank note or chip row left a white gap inside the card (owner, 11.10.2026). The order button
+   keeps the bottom of the card (margin-top: auto), so cards of a row still end together. */
+.site-main .find-card :is(.find-total-note, .find-chips, .find-facts):empty { display: none; }
 .site-main .find-card .find-facts { display: flex; align-items: center; height: 24px; margin: 6px 0 0; color: var(--cat-muted); font-size: 12.5px; line-height: 1.3; }
 .site-main .find-card .find-facts > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .site-main .find-card .find-chips { display: flex; flex-wrap: nowrap; gap: 6px; height: 24px; margin: 6px 0 0; overflow: hidden; }
@@ -259,6 +262,10 @@ html[data-theme="dark"] .catalog-switch input:checked + .catalog-switch-track::a
 .product-sheet.product-sheet-bottom { width: 100% !important; max-width: 100% !important; height: 92dvh; max-height: 92dvh; padding-bottom: 0; border-radius: 20px 20px 0 0; }
 .product-sheet.product-sheet-bottom .sheet-close { top: 12px; right: 12px; }
 .product-sheet.product-sheet-bottom .sheet-body { padding: 16px 20px 0; }
+/* A product without a description left an empty paragraph, and the tab kept a 125 px floor: about 60 px of white space
+   under the store price on a phone. The bottom sheet scrolls, so the tab can be as tall as its lines. */
+.product-sheet .detail-tabs [data-slot=tabs-content] > p:empty { display: none; }
+.product-sheet.product-sheet-bottom .detail-tabs [data-slot=tabs-content] { min-height: 0; }
 .product-sheet.product-sheet-bottom .sheet-total { position: sticky; bottom: 0; z-index: 2; display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; margin: 16px -20px 0; padding: 12px 20px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--cat-line); background: var(--cat-surface); }
 .product-sheet.product-sheet-bottom .sheet-total > span { flex: 1 1 140px; }
 .product-sheet.product-sheet-bottom .sheet-total .btn { flex: 1 1 150px; width: auto; min-height: 48px; }
@@ -317,9 +324,12 @@ html[data-theme="dark"] .catalog-search { background: var(--night-inset); }
   .site-main .find-card .find-info { width: 36px; height: 36px; margin: -6px -8px -6px 0; }
   .site-main .find-card .find-total > strong { font-size: clamp(15px, 4.4vw, 17px); letter-spacing: -.02em; }
   .site-main .find-card .find-total > strong .money-unit { font-size: 11px; }
-  .site-main .find-card .find-facts { font-size: 11.5px; }
-  .site-main .find-card .find-chips { gap: 4px; }
-  .site-main .find-card .find-chip { font-size: 11px; padding: 0 7px; }
+  /* Country, days and weight wrap to a second line instead of losing the weight to an ellipsis on a narrow card. */
+  .site-main .find-card .find-facts { height: auto; margin-top: 4px; font-size: 11.5px; }
+  .site-main .find-card .find-facts > span:first-child { white-space: normal; }
+  /* The chip wraps too: "Checked before you o…" read as broken. */
+  .site-main .find-card .find-chips { gap: 4px; height: auto; }
+  .site-main .find-card .find-chip { height: auto; min-height: 22px; padding: 3px 8px; border-radius: 11px; font-size: 11px; line-height: 1.3; white-space: normal; }
   /* One chip fits a phone card. */
   .site-main .find-card .find-chip + .find-chip { display: none; }
   .site-main .find-card .find-purchase { padding-top: 10px; }

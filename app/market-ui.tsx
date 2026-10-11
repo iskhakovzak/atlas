@@ -6,17 +6,16 @@ import {Dialog,DialogContent,DialogTitle,DialogDescription,DialogClose} from '@/
 import {type Product} from '@/lib/market/domain';
 import {pickLocale,uzText} from '@/lib/market/uz-cyrl';
 import {isUzbek,type Locale} from '@/lib/market/i18n';
-import {cardImage} from '@/lib/market/card-image';
-export function ProductImage({product,className='',decorative=false,locale='ru'}:{product:Product;className?:string;decorative?:boolean;locale?:Locale}){
+import {retryOriginal,sizedImage} from '@/lib/market/image-size';
+/** `size`: about how many pixels wide the store should send the photo (twice the largest box it fills, for sharp phone screens). */
+export function ProductImage({product,className='',decorative=false,locale='ru',size=600}:{product:Product;className?:string;decorative?:boolean;locale?:Locale;size?:number}){
  const [failedImage,setFailedImage]=useState('');
  const label=locale==='ru'?'Товар по ссылке':isUzbek(locale)?uzText(locale, 'Havoladagi tovar'):'Linked item';
  if(!product.image||product.image===failedImage)return <div className={'no-photo '+className}><Package size={35}/><span>{label}</span></div>;
- // Store images are not proxied; where the store CDN can resize, a card gets the smaller copy (lib/market/card-image.ts).
- // If that copy fails, the original is tried before the "no photo" placeholder.
- const small=cardImage(product.image),src=failedImage===small?product.image:small;
+ // Store images load straight from the store, asked at about `size` pixels where its image server allows (lib/market/image-size.ts).
  // A photo still on its way fades in when it arrives (app/motion.css); one already loaded or cached shows at once.
  // eslint-disable-next-line @next/next/no-img-element
- return <img className={'product-img '+className} src={src} onError={()=>setFailedImage(src)} alt={decorative?'':product.name} loading="lazy" decoding="async" referrerPolicy="no-referrer"
+ return <img className={'product-img '+className} src={sizedImage(product.image,size)} onError={event=>{if(!retryOriginal(event.currentTarget,product.image))setFailedImage(product.image)}} alt={decorative?'':product.name} loading="lazy" decoding="async" referrerPolicy="no-referrer"
   ref={image=>{if(image&&!image.complete)image.dataset.fade=''}} onLoad={event=>{delete event.currentTarget.dataset.fade}}/>;
 }
 export function PageHeading({overline,title,description,children}:{overline:string;title:string;description:string;children?:ReactNode}){return <div className="page-heading"><div><div className="eyebrow">{overline}</div><h1>{title.replace(/\.$/,'')}</h1><p>{description}</p></div>{children}</div>}

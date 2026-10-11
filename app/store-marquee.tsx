@@ -4,6 +4,7 @@ import Link from '@/components/site-link';
 import {popularBrandKeys,storeBrands,type StoreBrand} from '@/lib/market/store-brands';
 import {StoreMark,hasStoreMark,storeWordmarks} from './store-logo';
 import {DeliverySky,type Spark} from './delivery-sky';
+import {InfoTip} from '@/components/info-tip';
 
 /**
  * The stores in the hero: the popular ones first (Nike, Zara, Amazon…), then every other store of the catalog with a
@@ -49,7 +50,7 @@ const keyFocus=(event:FocusEvent<HTMLElement>)=>{
 };
 const keyBlur=(event:FocusEvent<HTMLElement>)=>{delete event.currentTarget.dataset.keyFocus};
 
-export function StoreMarquee({label,openStore,allStores}:{label:string;openStore:string;allStores:string}){
+export function StoreMarquee({label,openStore,allStores,hint,locale='ru'}:{label:string;openStore:string;allStores:string;/** How to order from a store: by "All stores" behind a "?" on phones (the hero keeps it in place on wide screens). */hint?:string;locale?:string}){
  // Wide screen: popular stores spread over both rows, so Nike, Zara and Amazon are in view from the start.
  const top=marqueeStores.filter((_,index)=>index%2===0),bottom=marqueeStores.filter((_,index)=>index%2===1);
  return <section className="store-marquee" aria-label={label} onFocus={keyFocus} onBlur={keyBlur}>
@@ -59,6 +60,7 @@ export function StoreMarquee({label,openStore,allStores}:{label:string;openStore
   <Row stores={bottom} reverse openStore={openStore} className="double"/>
   <div className="store-marquee-foot">
    <Link className="home-stores-all" href="/stores">{allStores}</Link>
+   {hint&&<InfoTip locale={locale}>{hint}</InfoTip>}
   </div>
  </section>;
 }

@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "@/components/site-link";
+import { InfoTip } from "@/components/info-tip";
 import { shownBrand } from "@/lib/importer/brand-name";
 import {
   AlertCircle,
@@ -79,7 +80,7 @@ import { homeCopy } from "@/lib/market/home-copy";
 import { formatKg, formatPercent, formatSum } from "@/lib/market/format";
 import { localizeLegacyStoredCopy, renderHistory, renderNotification } from "@/lib/market/history-copy";
 import { deliveryDaysFor, deliveryRegions, siteContent, type DeliveryRegion } from "@/lib/market/site-content";
-import { groupOrders, groupStageText, groupStoreNames, isParcelServiceRequest, orderCustomerTotal, orderGroupCopy, parcelServicesFor, storeGroupName, storeShortName, type OrderGroup, type OrderStoreGroup, type ParcelServiceRequest } from "@/lib/market/order-groups";
+import { groupOrders, groupStageText, groupStoreNames, isParcelServiceRequest, orderCustomerTotal, orderGroupCopy, parcelServicesFor, shipAddressText, storeGroupName, storeShortName, type OrderGroup, type OrderStoreGroup, type ParcelServiceRequest } from "@/lib/market/order-groups";
 import { balanceCopy, countryLabel, formatDateTime, formatShortDate, itemCount, noticesCopy, orderCount, ordersCopy } from "@/lib/market/customer-copy";
 import { allowanceMonth, countsTowardAllowance, monthOf, monthlyUsedFor, orderPerson, orderRecipientName, recipientKey } from "@/lib/market/allowance";
 import { courierAllowanceUsd } from "@/lib/market/customs";
@@ -729,7 +730,7 @@ function CustomerOrderLine({ order: o, siblings, showThumb, headerStage, sharedD
   const where = o.delivery ? [o.delivery.city || o.delivery.region, o.delivery.address].filter(Boolean).join(", ") : "";
   return <details className="og-line" id={o.id} data-action={needsAction || undefined} data-cancelled={o.cancelled || undefined} onToggle={event => onToggle(event.currentTarget.open)}>
     <summary className="og-line-summary" aria-label={`${gc.line(o.id)}: ${o.variant || gc.noVariant}, ${c.quantity(o.quantity)}, ${stage}${needsAction ? `, ${gc.action(1)}` : ""}`}>
-      {showThumb && <span className="og-line-thumb" aria-hidden="true"><ProductImage product={o.product} decorative locale={locale} /></span>}
+      {showThumb && <span className="og-line-thumb" aria-hidden="true"><ProductImage product={o.product} decorative locale={locale} size={160} /></span>}
       <span className="og-line-variant">{o.variant || gc.noVariant}</span>
       <span className="og-line-qty">× {o.quantity}</span>
       <span className="og-line-flags">
@@ -788,7 +789,7 @@ function CustomerOrderLine({ order: o, siblings, showThumb, headerStage, sharedD
         <div><dt>{gc.delivery}</dt><dd>{gc.speed[speed]}{days && <small>{gc.days(days[0], days[1])}</small>}</dd></div>
         {/* The line's sum is on its row already: repeat it here only when it moved since the checkout. */}
         {payable !== o.quote.total && <div><dt>{c.total}</dt><dd><b><Money value={payable} locale={locale} /></b><small>{c.atCheckout(formatSum(o.quote.total, locale))}</small></dd></div>}
-        {o.parcel && <div><dt>{c.tracking}</dt><dd>{o.parcel.carrier}<span className="order-x-track"><span className="order-x-id">{o.parcel.trackingNumber}</span><CopyText text={o.parcel.trackingNumber} locale={locale} /></span><small>{lastParcelEvent ?? ow.parcelRegistered}{o.parcel.warehouseCode ? ` · ${locale === "ru" ? "склад" : isUzbek(locale) ? uzText(locale, "ombor") : "warehouse"} ${o.parcel.warehouseCode}` : ""}</small></dd></div>}
+        {o.parcel && <div><dt>{c.tracking}</dt><dd>{o.parcel.carrier}<span className="order-x-track"><span className="order-x-id">{o.parcel.trackingNumber}</span><CopyText what="tracking" text={o.parcel.trackingNumber} locale={locale} /></span><small>{lastParcelEvent ?? ow.parcelRegistered}{o.parcel.warehouseCode ? ` · ${locale === "ru" ? "склад" : isUzbek(locale) ? uzText(locale, "ombor") : "warehouse"} ${o.parcel.warehouseCode}` : ""}</small></dd></div>}
       </dl>
 
       {latest && <p className="og-latest"><Clock3 size={16} aria-hidden="true" /><span><b>{gc.latest}</b> · <time dateTime={isoTime(latest.at)}>{formatDateTime(latest.at, locale)}</time><span className="og-latest-text">{renderHistory(latest, locale)}</span></span></p>}
@@ -904,6 +905,8 @@ function OrderGroupCard({ group, locale, pricing, busy, allowanceUsd, passports,
       <div className="order-group-main">
         <b className="order-group-title">{title}</b>
         <small>{[itemCount(group.items || live, locale), stores.join(", ")].filter(Boolean).join(" · ")}</small>
+        {/* One order: its number on the card for support, copied in one tap. Several keep theirs on each line. */}
+        {group.orders.length === 1 && <span className="og-head-id"><span className="sr-only">{c.orderNumber}: </span><span className="order-x-id">{group.orders[0].id}</span><CopyText text={group.orders[0].id} locale={locale} /></span>}
         <span className="order-group-badges">
           <span className={"order-x-status " + stage.tone}>{stage.label}</span>
           {group.attention > 0 && <span className="order-x-status warn"><AlertCircle size={13} aria-hidden="true" />{gc.action(group.attention)}</span>}
@@ -925,6 +928,8 @@ function OrderGroupCard({ group, locale, pricing, busy, allowanceUsd, passports,
             <span className="og-ship-who"><span className="sr-only">{gc.recipient}: </span><b>{ship.profile.recipient}</b>{ship.profile.phone && <a className="order-x-link" href={`tel:${ship.profile.phone.replace(/[^\d+]/g, "")}`}>{ship.profile.phone}</a>}</span>
             <small>{[ship.profile.city || ship.profile.region, ship.profile.address].filter(Boolean).join(", ")} · {gc.speed[ship.speed]}</small>
           </p>
+          {/* For a message to a courier or a relative: name, phone, address and postal code in one line. */}
+          <CopyText what="address" locale={locale} text={shipAddressText(ship.profile)} />
         </div>}
         {/* Not needed to pay: customs needs it before shipping. Beside the recipient it is about, the name is not repeated. */}
         {passports.map((passport) => <div className="orders-passport og-passport" key={passport.id} role="note">
@@ -961,7 +966,7 @@ function OrderGroupCard({ group, locale, pricing, busy, allowanceUsd, passports,
           const brand = shownBrand(model.product.brand); const meta = [brand && brand !== storeShortName(store) ? brand : "", model.orders.length > 1 ? itemCount(model.items, locale) : ""].filter(Boolean).join(" · ");
           return <article className="og-model" key={model.key}>
             <div className="og-model-head">
-              <span className="og-model-photo"><ProductImage product={model.product} decorative locale={locale} /></span>
+              <span className="og-model-photo"><ProductImage product={model.product} decorative locale={locale} size={160} /></span>
               <span className="og-model-main">
                 <b className="og-model-name">{model.product.name}</b>
                 {meta && <small>{meta}</small>}
@@ -1457,7 +1462,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
         }) : filtered.map((o) => (
           <details className="surface order-card compact-order" key={o.id} id={o.id} onToggle={event=>{const open=event.currentTarget.open;setExpanded(ids=>open?[...new Set([...ids,o.id])]:ids.filter(id=>id!==o.id))}}>
             <summary className="compact-order-summary">
-              <ProductImage product={o.product} decorative locale={state.communication.language} />
+              <ProductImage product={o.product} decorative locale={state.communication.language} size={240} />
                <span className="compact-order-name"><small>{o.id}{operations ? ` · ${orderAccount.get(o.id)?.name ?? ''}` : ''}</small><b>{o.product.name}</b><span>{o.variant} · {o.quantity}</span>{operations && tab === "refunds" && <small>{atlasCreditForOrder(orderAccount.get(o.id), o.id) > 0 ? `${locale === "ru" ? "Зачислено во внутренний баланс Atlas" : isUzbek(locale) ? uzText(locale, "Atlas ichki balansiga yozildi") : "Credited to Atlas internal balance"}: ${money(atlasCreditForOrder(orderAccount.get(o.id), o.id))}` : locale === "ru" ? "Зачислений во внутренний баланс Atlas по заказу нет" : isUzbek(locale) ? uzText(locale, "Buyurtma bo‘yicha Atlas ichki balansiga yozuv yo‘q") : "No Atlas internal-balance credit recorded for this order"}</small>}</span>
                <span className={'status-badge '+(isExtra(o)||pendingChange(o)||(!operations&&o.payment?.status==='pending')?'needs-action':'')}>{o.cancelled ? ow.cancelled : o.payment?.status==='refunded' ? refundStatusLabel : isExtra(o)||pendingChange(o) ? ow.needDecision : o.payment?.status==='pending' ? ow.awaitingPayment : displayStatuses[o.status]}</span>
               <strong>{money(orderPayable(o))}</strong><ArrowRight size={18}/>
@@ -1491,7 +1496,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
             {operations&&<OperatorOrderContacts order={o} account={orderAccount.get(o.id)} locale={locale}/>}
             <div className="order-product">
               <div className="order-photo">
-              <ProductImage product={o.product} decorative locale={state.communication.language} />
+              <ProductImage product={o.product} decorative locale={state.communication.language} size={240} />
               </div>
               <div>
                 <h2>{o.product.name}</h2>
@@ -2431,7 +2436,7 @@ export function PricingManager({
               <div className="pricing-grid">
                 <div className="field"><label htmlFor={`service-stage-${service.id}`}>{serviceWords.stage}</label><select id={`service-stage-${service.id}`} value={service.requestStage} onChange={(event) => updateService(index, { requestStage: event.target.value as ServiceOffering["requestStage"], required: event.target.value === "checkout" ? service.required : false })}><option value="checkout">{serviceWords.checkout}</option><option value="warehouse">{serviceWords.warehouse}</option></select></div>
                 <div className="field"><label htmlFor={`service-unit-${service.id}`}>{serviceWords.unit}</label><select id={`service-unit-${service.id}`} value={service.unit} onChange={(event) => updateService(index, { unit: event.target.value as ServiceOffering["unit"] })}><option value="package">{locale === "ru" ? "посылка" : isUzbek(locale) ? uzText(locale, "posilka") : "package"}</option><option value="item">{locale === "ru" ? "товар" : isUzbek(locale) ? uzText(locale, "tovar") : "item"}</option><option value="day">{locale === "ru" ? "день" : isUzbek(locale) ? uzText(locale, "kun") : "day"}</option><option value="photo">{locale === "ru" ? "фото" : isUzbek(locale) ? uzText(locale, "foto") : "photo"}</option><option value="half-hour">{locale === "ru" ? "30 минут" : isUzbek(locale) ? uzText(locale, "30 daqiqa") : "30 minutes"}</option></select></div>
-                <div className="field"><label htmlFor={`service-pricing-${service.id}`}>{serviceWords.pricing}</label><select id={`service-pricing-${service.id}`} value={service.pricingMode} onChange={(event) => { const pricingMode = event.target.value as ServiceOffering["pricingMode"]; updateService(index, { pricingMode, required: pricingMode === "operator-quote" ? false : service.required, ...(pricingMode === "value-percent" ? { requestStage: "checkout" as const, unit: "package" as const, valuePercent: service.valuePercent ?? 0.02 } : {}) }); }}><option value="operator-quote">{serviceWords.quote}</option><option value="fixed">{serviceWords.fixed}</option><option value="value-percent">{serviceWords.percentMode}</option></select></div>
+                <div className="field"><label htmlFor={`service-pricing-${service.id}`}>{serviceWords.pricing}</label><select id={`service-pricing-${service.id}`} value={service.pricingMode} onChange={(event) => { const pricingMode = event.target.value as ServiceOffering["pricingMode"]; updateService(index, { pricingMode, required: pricingMode === "operator-quote" ? false : service.required, ...(pricingMode === "value-percent" ? { requestStage: "checkout" as const, unit: "package" as const, valuePercent: service.valuePercent ?? 0.029 } : {}) }); }}><option value="operator-quote">{serviceWords.quote}</option><option value="fixed">{serviceWords.fixed}</option><option value="value-percent">{serviceWords.percentMode}</option></select></div>
                 <div className="field"><label htmlFor={`service-fee-${service.id}`}>{serviceWords.baseFee}</label><input id={`service-fee-${service.id}`} type="number" min="0" max="20000000" step="1" disabled={service.pricingMode !== "fixed"} value={service.feeUzs} onChange={(event) => updateService(index, { feeUzs: Number(event.target.value) })} /></div>
                 <div className="field"><label htmlFor={`service-country-fee-${service.id}`}>{serviceWords.countryFee} · {selectedCountry}</label><input id={`service-country-fee-${service.id}`} type="number" min="0" max="20000000" step="1" disabled={service.pricingMode !== "fixed"} value={service.countryPrices[selectedCountry] ?? ""} placeholder={`${service.feeUzs} (${locale === "ru" ? "общий тариф" : isUzbek(locale) ? uzText(locale, "asosiy tarif") : "base price"})`} onChange={(event) => {
                   const countryPrices = { ...service.countryPrices };
@@ -2624,18 +2629,18 @@ export function BalanceView() {
       ) : <>
         <div className="wallet-grid">
           <section className="wallet-card" aria-labelledby="wallet-label">
-            <p id="wallet-label" className="order-x-eyebrow"><Wallet size={16} aria-hidden="true" />{c.label}</p>
+            <p id="wallet-label" className="order-x-eyebrow"><Wallet size={16} aria-hidden="true" />{c.label}<InfoTip locale={locale}>{c.note}</InfoTip></p>
             <strong className="wallet-amount">{formatSum(balanceOf(state), locale)}</strong>
-            <p className="wallet-note">{c.note}</p>
+            <p className="wallet-note tip-text">{c.note}</p>
             <div className="wallet-actions">
               <Link href="/order-by-link" className="btn primary">{c.spend}<ArrowRight size={18} aria-hidden="true" /></Link>
               <button type="button" className="btn secondary" onClick={() => setWithdrawOpen(true)}>{c.withdraw}</button>
             </div>
           </section>
           <section className="cabinet-card wallet-reserve" aria-labelledby="wallet-reserve-title">
-            <h2 id="wallet-reserve-title"><ShieldCheck size={18} aria-hidden="true" />{c.reserve}</h2>
+            <h2 id="wallet-reserve-title"><ShieldCheck size={18} aria-hidden="true" />{c.reserve}<InfoTip locale={locale}>{c.reserveText}</InfoTip></h2>
             <strong>{formatSum(reserved, locale)}</strong>
-            <p>{c.reserveText}</p>
+            <p className="tip-text">{c.reserveText}</p>
             <Link href="/orders" className="cabinet-link">{c.orders}<ArrowRight size={16} aria-hidden="true" /></Link>
           </section>
         </div>

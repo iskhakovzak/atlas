@@ -68,7 +68,9 @@ import {
 import { WasPrice } from "./market-ui";
 import { formatKg, formatSum } from "@/lib/market/format";
 import { cartCopy, countryLabel, linkOrderCopy } from "@/lib/market/customer-copy";
+import { extractSharedLink } from "@/lib/market/shared-link";
 import { ProductGallery } from "./product-gallery";
+import { retryOriginal, sizedImage } from "@/lib/market/image-size";
 import {
   communityDeals,
   communityEstimatedWeight,
@@ -300,6 +302,17 @@ export function GlobalLinkOrder() {
   const loadSeq = useRef(0);
   const automaticallyLoaded = useRef<string | null>(null);
   const focusLinkField = useRef(false);
+  // "Поделиться → Atlas" brought text without a web link (app/share/route.ts): say so once and drop the mark from the address.
+  const sharedWithoutLink = searchParams.get("shared") === "nolink";
+  useEffect(() => {
+    if (!sharedWithoutLink) return;
+    toast.message(lc.sharedNoLink);
+    const address = new URL(window.location.href);
+    address.searchParams.delete("shared");
+    window.history.replaceState(window.history.state, "", address.pathname + address.search + address.hash);
+    document.getElementById("source-url")?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per arrival; the language does not reopen it
+  }, [sharedWithoutLink]);
   useEffect(() => {
     if (!showSourceForm || !focusLinkField.current) return;
     focusLinkField.current = false;
@@ -329,7 +342,8 @@ export function GlobalLinkOrder() {
   // (so back, forward and reload keep it), and says so. A link the customer started typing, or "Next item", clears that
   // pointer. A draft saved under an account waits until the account is known and is never shown to anyone else.
   // Until this is decided the empty link form is not drawn, so it does not flash before the draft.
-  const [resumeChecked,setResumeChecked]=useState(()=>Boolean(requestedUrl||catalogId));
+  // Arriving from "Поделиться → Atlas" without a link is a fresh start: the customer came to paste a new one.
+  const [resumeChecked,setResumeChecked]=useState(()=>Boolean(requestedUrl||catalogId||sharedWithoutLink));
   useEffect(()=>{
     if(resumeChecked)return;
     const last=requestedUrl||catalogId?null:readLastDraft(browserStorage());
@@ -812,7 +826,7 @@ export function GlobalLinkOrder() {
     let text = "";
     try { text = (await navigator.clipboard.readText()).trim(); } catch { /* denied or unsupported: paste by hand */ }
     // A link shared from an app often comes with its title around it.
-    const found = text.match(/https?:\/\/\S+/i)?.[0] ?? text;
+    const found = extractSharedLink(text) || text;
     let link = "";
     try { link = found ? validateSource(found) : ""; } catch { link = ""; }
     // The store may answer with its own address for the product, so the link that was opened counts as the same too.
@@ -1208,7 +1222,7 @@ export function GlobalLinkOrder() {
                 <Stepper value={picked[variants[0].label]??1} max={maxFor(variants[0])} label={k.quantity} k={k} onChange={value=>setPickQuantity(variants[0].label,value)}/>
                 <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
               </div> : variants.length && (variantColors.length||variantSizes.length) ? <>
-                {variantColors.length>0&&<div className="variant-step"><div><b>{variantColors.length===1?tx('Расцветка по ссылке','Havoladagi rang','Linked colorway'):c.color}</b>{variantColors.length!==1&&<span>{selectedColor||c.selectColor}</span>}</div>{variantColors.length===1?<><div className="single-variant-selection"><span>{describeSingleColorway(variantColors[0]).primary}</span><small>{tx('Одна расцветка по этой ссылке','Bu havolada bitta rang varianti','One colorway in this link')}</small></div><p className="single-colorway-note">{tx('Для другого цвета нужна ссылка на соответствующий артикул магазина.','Boshqa rang uchun do‘kondagi tegishli artikl havolasi kerak.','Another color requires a link to its separate store item.')}</p><details className="single-colorway-source"><summary>{tx('Полное название расцветки в магазине','Do‘kondagi rangning to‘liq nomi','Full store colorway name')}</summary><span>{variantColors[0]}</span></details></>:<div className="variant-options">{variantColors.map(color=>{const options=variants.filter(v=>v.color===color),photo=colorwayImages.find(g=>g.color===color)?.images[0]??options.find(v=>v.image)?.image,stock=options.some(v=>v.available&&v.quantity!==0),colorPrices=variantDisplayPrices(options);return <button type="button" key={color} title={color} aria-pressed={selectedColor===color} onClick={()=>selectColorway(color)}>{photo&&<img src={photo} alt="" width={36} height={36}/>}<span>{color}</span>{colorPrices.length>0&&<small className="lo-colour-price">{sourceFormat(colorPrices[0])}{colorPrices.length>1?` – ${sourceFormat(colorPrices[colorPrices.length-1])}`:""}</small>}{!stock&&<small>{k.outOfStock}</small>}</button>})}</div>}</div>}
+                {variantColors.length>0&&<div className="variant-step"><div><b>{variantColors.length===1?tx('Расцветка по ссылке','Havoladagi rang','Linked colorway'):c.color}</b>{variantColors.length!==1&&<span>{selectedColor||c.selectColor}</span>}</div>{variantColors.length===1?<><div className="single-variant-selection"><span>{describeSingleColorway(variantColors[0]).primary}</span><small>{tx('Одна расцветка по этой ссылке','Bu havolada bitta rang varianti','One colorway in this link')}</small></div><p className="single-colorway-note">{tx('Для другого цвета нужна ссылка на соответствующий артикул магазина.','Boshqa rang uchun do‘kondagi tegishli artikl havolasi kerak.','Another color requires a link to its separate store item.')}</p><details className="single-colorway-source"><summary>{tx('Полное название расцветки в магазине','Do‘kondagi rangning to‘liq nomi','Full store colorway name')}</summary><span>{variantColors[0]}</span></details></>:<div className="variant-options">{variantColors.map(color=>{const options=variants.filter(v=>v.color===color),photo=colorwayImages.find(g=>g.color===color)?.images[0]??options.find(v=>v.image)?.image,stock=options.some(v=>v.available&&v.quantity!==0),colorPrices=variantDisplayPrices(options);return <button type="button" key={color} title={color} aria-pressed={selectedColor===color} onClick={()=>selectColorway(color)}>{photo&&<img src={sizedImage(photo,120)} alt="" width={36} height={36} decoding="async" onError={event=>{retryOriginal(event.currentTarget,photo)}}/>}<span>{color}</span>{colorPrices.length>0&&<small className="lo-colour-price">{sourceFormat(colorPrices[0])}{colorPrices.length>1?` – ${sourceFormat(colorPrices[colorPrices.length-1])}`:""}</small>}{!stock&&<small>{k.outOfStock}</small>}</button>})}</div>}</div>}
                 {(variantColors.length===0||selectedColor)&&!complexVariants&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize?(nikeSizeSystem?`US ${selectedSize}`:sizeDisplay(selectedSize)):c.selectVariant}</span></div>{adidasSizes&&<div className="variant-options" aria-label="Size format">{(["us","uk","eu","cm"] as const).map(format=><button type="button" key={format} aria-pressed={sizeFormat===format} onClick={()=>setSizeFormat(format)}>{format.toUpperCase()}</button>)}<a href="https://www.adidas.com/us/help/size_charts/men-shoes" target="_blank" rel="noopener noreferrer">adidas ↗</a>{sizeFormat==="cm"&&<small>{tx("Длина стопы, см","Oyoq uzunligi, sm","Foot length, cm")}</small>}</div>}<div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={Boolean(choice&&picked[choice.label])} disabled={!choice||!choice.available||choice.quantity===0} aria-label={!choice||!choice.available||choice.quantity===0?`${sizeDisplay(size)} — ${k.outOfStock}`:undefined} onClick={()=>choice&&togglePick(choice)}><span>{nikeSizeSystem?`US ${size}`:sizeDisplay(size)}</span>{choice&&price!==undefined&&sizePricesDiffer&&<small>{price} {currency}</small>}{choice?.quantity!==undefined&&choice.quantity<=5&&<small className="lo-stock">{choice.quantity?k.stockLeft(choice.quantity):k.outOfStock}</small>}</button>})}</div>{nikeSizeSystem&&<div className="nike-size-guide">
                   {selectedNikeSize&&<p className="nike-selected-size">{tx('Выбранный размер','Tanlangan o‘lcham','Selected size')}: <strong>US {selectedNikeSize.us}</strong><span>EU {selectedNikeSize.eu}</span><span>UK {selectedNikeSize.uk}</span><span>CM/JP {selectedNikeSize.cmLabel}</span><span>{tx('Стопа','Oyoq','Foot')} {selectedNikeSize.footLengthCm===undefined?'—':selectedNikeSize.footLengthCm} {tx('см','sm','cm')}</span></p>}
                   <details className="nike-size-chart"><summary>{tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')}</summary>

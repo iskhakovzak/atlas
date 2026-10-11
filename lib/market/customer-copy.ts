@@ -84,7 +84,7 @@ export type CartCopy = {
     issues: { currency: string; variant: string; price: string; unreachable: string; stock: string }; reload: string; checked: (time: string) => string;
   };
   /** `hint` says once that the services are outside the order total; the rows do not repeat it. */
-  services: { optional: string; hint: string; /** The hint when parcel insurance (paid with the order) is offered. */ hintPercent: string; fixed: string; quote: string; /** A value-percent service: rate of the goods, the higher rate above the threshold, the amount for this parcel. */ percent: (rate: string, high: string | undefined, amount: string) => string; highRule: (threshold: string, rate: string) => string; quantity: string; required: string; units: { package: string; item: string; day: string; photo: string; 'half-hour': string } };
+  services: { optional: string; hint: string; /** The hint when parcel insurance (paid with the order) is offered. */ hintPercent: string; fixed: string; quote: string; /** A value-percent service: rate of the goods and delivery, the higher rate above the threshold, the amount for this parcel. */ percent: (rate: string, high: string | undefined, amount: string) => string; highRule: (threshold: string, rate: string) => string; quantity: string; required: string; units: { package: string; item: string; day: string; photo: string; 'half-hour': string } };
   summary: {
     title: string; balance: string; available: string; fromBalance: string; payable: string;
     validFor: (time: string) => string; assurance: string; continue: string; outside: string;
@@ -164,7 +164,7 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
       optional: 'по желанию',
       hint: 'Отметьте пожелания — в сумму заказа они не входят. Оператор проверит возможность после приёмки; услугу выполнят только после показа точной суммы и вашего согласия.',
       hintPercent: 'Страховка сразу входит в сумму заказа. Остальные пожелания в сумму не входят: оператор проверит их после приёмки и выполнит только после показа точной суммы и вашего согласия.',
-      percent: (rate, high, amount) => `${rate} от стоимости товаров${high ? ` (${high})` : ''} · ${amount}`, highRule: (threshold, rate) => `дороже ${threshold} — ${rate}`,
+      percent: (rate, high, amount) => `${rate} от стоимости товаров и доставки${high ? ` (${high})` : ''} · ${amount}`, highRule: (threshold, rate) => `дороже ${threshold} — ${rate}`,
       fixed: 'Тариф', quote: 'Цену назовёт оператор', quantity: 'Количество', required: 'обязательно',
       units: { package: 'посылка', item: 'шт.', day: 'день', photo: 'фото', 'half-hour': '30 мин' },
     },
@@ -213,7 +213,7 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
       optional: 'ixtiyoriy',
       hint: 'Istaklaringizni belgilang — ular buyurtma summasiga kirmaydi. Operator qabuldan keyin imkoniyatni tekshiradi; xizmat faqat aniq narx ko‘rsatilib, roziligingiz olingandan so‘ng bajariladi.',
       hintPercent: 'Sug‘urta darhol buyurtma summasiga kiradi. Qolgan istaklar summaga kirmaydi: operator ularni qabuldan keyin tekshiradi va faqat aniq narx ko‘rsatilib, roziligingiz olingandan so‘ng bajaradi.',
-      percent: (rate, high, amount) => `tovarlar qiymatining ${rate}${high ? ` (${high})` : ''} · ${amount}`, highRule: (threshold, rate) => `${threshold} dan qimmat bo‘lsa — ${rate}`,
+      percent: (rate, high, amount) => `tovarlar va yetkazib berish qiymatining ${rate}${high ? ` (${high})` : ''} · ${amount}`, highRule: (threshold, rate) => `${threshold} dan qimmat bo‘lsa — ${rate}`,
       fixed: 'Tarif', quote: 'Narxni operator aytadi', quantity: 'Miqdor', required: 'majburiy',
       units: { package: 'posilka', item: 'dona', day: 'kun', photo: 'foto', 'half-hour': '30 daqiqa' },
     },
@@ -262,7 +262,7 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
       optional: 'optional',
       hint: 'Choose preferences — they are not part of the order total. An operator checks feasibility after intake; work starts only after the exact price is shown and you approve it.',
       hintPercent: 'Insurance is part of the order total right away. Other preferences are not: an operator checks them after intake and does the work only after showing the exact price and getting your approval.',
-      percent: (rate, high, amount) => `${rate} of the goods value${high ? ` (${high})` : ''} · ${amount}`, highRule: (threshold, rate) => `over ${threshold}: ${rate}`,
+      percent: (rate, high, amount) => `${rate} of the goods and delivery${high ? ` (${high})` : ''} · ${amount}`, highRule: (threshold, rate) => `over ${threshold}: ${rate}`,
       fixed: 'Rate', quote: 'Operator will quote', quantity: 'Quantity', required: 'required',
       units: { package: 'package', item: 'item', day: 'day', photo: 'photo', 'half-hour': '30 min' },
     },
@@ -589,6 +589,8 @@ export type LinkOrderCopy = {
   /** The link last copied replaces this one; the same link (or none) opens the empty field instead. */
   replace: string;
   replaceHint: string;
+  /** Shown once after "Поделиться → Atlas" brought text without a web link. */
+  sharedNoLink: string;
   storePrice: string;
   checkedAt: (time: string) => string;
   unconfirmed: string;
@@ -635,7 +637,7 @@ export const linkOrderCopy: Record<Locale, LinkOrderCopy> = /*@__PURE__*/withCyr
     title: 'Заказ по ссылке', lead: 'Вставьте ссылку на товар из зарубежного магазина, и мы посчитаем итог с доставкой до Ташкента.', leadLoaded: 'Выберите вариант и проверьте расчёт.',
     label: 'Ссылка на товар', placeholder: 'Вставьте ссылку на товар', calculate: 'Рассчитать', loading: 'Загружаем цену и варианты из магазина…',
     hint: 'Нужна ссылка на страницу товара: Nike, Zara, Amazon, eBay и другие магазины.', stores: 'Где это работает', batch: 'Добавить несколько ссылок',
-    openStore: 'Открыть в магазине', change: 'Изменить ссылку', replace: 'Заменить ссылку', replaceHint: 'Вставить ссылку из буфера обмена', storePrice: 'Цена в магазине', checkedAt: time => `проверено в ${time}`,
+    openStore: 'Открыть в магазине', change: 'Изменить ссылку', replace: 'Заменить ссылку', replaceHint: 'Вставить ссылку из буфера обмена', sharedNoLink: 'В том, чем вы поделились, нет ссылки на товар. Вставьте её сюда.', storePrice: 'Цена в магазине', checkedAt: time => `проверено в ${time}`,
     unconfirmed: 'Магазин не подтвердил все данные — проверьте их ниже.', total: 'Итого с доставкой до Ташкента', emptyTotal: 'Укажите цену и вес — покажем итог.',
     data: 'Данные для расчёта', shippingReserve: 'доставка магазина: резерв', storeShipping: amount => `доставка магазина ${amount}`, kg: 'кг',
     add: 'Добавить в корзину', addShort: 'В корзину', signinAdd: 'Войти — товар добавится в корзину', guest: 'Расчёт доступен без входа. Нажмите кнопку внизу и войдите — товар сам добавится в корзину, выбранные варианты и количество сохранятся.', details: 'Подробности загрузки',
@@ -672,7 +674,7 @@ export const linkOrderCopy: Record<Locale, LinkOrderCopy> = /*@__PURE__*/withCyr
     title: 'Havola orqali buyurtma', lead: 'Xorijiy do‘kondagi tovar havolasini qo‘ying, Toshkentgacha yetkazish bilan jami summani hisoblaymiz.', leadLoaded: 'Variantni tanlang va hisobni tekshiring.',
     label: 'Tovar havolasi', placeholder: 'Tovar havolasini qo‘ying', calculate: 'Hisoblash', loading: 'Do‘kondan narx va variantlar yuklanmoqda…',
     hint: 'Tovar sahifasi havolasi kerak: Nike, Zara, Amazon, eBay va boshqa do‘konlar.', stores: 'Qayerlarda ishlaydi', batch: 'Bir nechta havola qo‘shish',
-    openStore: 'Do‘konda ochish', change: 'Havolani o‘zgartirish', replace: 'Havolani almashtirish', replaceHint: 'Buferdagi havolani qo‘yish', storePrice: 'Do‘kondagi narx', checkedAt: time => `${time} da tekshirildi`,
+    openStore: 'Do‘konda ochish', change: 'Havolani o‘zgartirish', replace: 'Havolani almashtirish', replaceHint: 'Buferdagi havolani qo‘yish', sharedNoLink: 'Ulashilgan matnda mahsulot havolasi yo‘q. Uni shu yerga qo‘ying.', storePrice: 'Do‘kondagi narx', checkedAt: time => `${time} da tekshirildi`,
     unconfirmed: 'Do‘kon barcha ma’lumotlarni tasdiqlamadi — quyida tekshiring.', total: 'Toshkentgacha yetkazish bilan jami', emptyTotal: 'Narx va vaznni kiriting — jami summani ko‘rsatamiz.',
     data: 'Hisob uchun ma’lumotlar', shippingReserve: 'do‘kon yetkazishi: zaxira', storeShipping: amount => `do‘kon yetkazishi ${amount}`, kg: 'kg',
     add: 'Savatga qo‘shish', addShort: 'Savatga', signinAdd: 'Kirish — tovar savatga qo‘shiladi', guest: 'Hisobni kirmasdan ko‘rish mumkin. Pastdagi tugmani bosib kiring — tovar o‘zi savatga qo‘shiladi, tanlangan variantlar va soni saqlanadi.', details: 'Yuklash tafsilotlari',
@@ -709,7 +711,7 @@ export const linkOrderCopy: Record<Locale, LinkOrderCopy> = /*@__PURE__*/withCyr
     title: 'Order by link', lead: 'Paste a product link from a store abroad and we calculate the total with delivery to Tashkent.', leadLoaded: 'Choose an option and review the estimate.',
     label: 'Product link', placeholder: 'Paste a product link', calculate: 'Calculate', loading: 'Loading price and options from the store…',
     hint: 'Use a product page link: Nike, Zara, Amazon, eBay and other stores.', stores: 'Where it works', batch: 'Add several links',
-    openStore: 'Open in store', change: 'Change link', replace: 'Replace link', replaceHint: 'Paste the link from the clipboard', storePrice: 'Store price', checkedAt: time => `checked at ${time}`,
+    openStore: 'Open in store', change: 'Change link', replace: 'Replace link', replaceHint: 'Paste the link from the clipboard', sharedNoLink: 'What you shared has no product link. Paste it here.', storePrice: 'Store price', checkedAt: time => `checked at ${time}`,
     unconfirmed: 'The store did not confirm every detail — review them below.', total: 'Total with delivery to Tashkent', emptyTotal: 'Enter a price and weight to see the total.',
     data: 'Calculation details', shippingReserve: 'store delivery: reserve', storeShipping: amount => `store delivery ${amount}`, kg: 'kg',
     add: 'Add to cart', addShort: 'Add', signinAdd: 'Sign in — the item goes to your cart', guest: 'You can see the estimate without signing in. Press the button below and sign in — the item is added to your cart by itself, with the options and quantities you chose.', details: 'Import details',

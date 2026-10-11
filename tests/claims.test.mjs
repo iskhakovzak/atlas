@@ -5,7 +5,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {
   products, blank, addToCart, cartSignature, checkoutCart, setCartServices, balanceOf, tariff, stateSchema,
   claimKindsOpen, claimLimit, claimWindowDays, reportParcelClaim, decideParcelClaim, orderGoodsValue, orderInsurancePaid,
-  orderInsuranceRate, orderNeedsOperatorAttention, createChangeRequest, respondToChangeRequest, payExtraCharge,
+  orderInsuranceRate, orderInsuredValue, insuredDeliveryOf, orderNeedsOperatorAttention, createChangeRequest, respondToChangeRequest, payExtraCharge,
   uninsuredLossPerKgUsd, uninsuredDamagePerKgUsd, maxParcelClaims,
 } from '../lib/market/domain.ts';
 import {applyAction} from '../lib/market/actions.ts';
@@ -17,7 +17,7 @@ import {queueTabsOf} from '../lib/market/operator-queue.ts';
 import {queueSummaries} from '../lib/market/operator-queue-server.ts';
 import {customsVersion} from '../lib/market/world.ts';
 
-// Owner, 10.10.2026: claims on a lost or damaged parcel go through Atlas — insured up to the goods value, uninsured
+// Owner, 10.10.2026: claims on a lost or damaged parcel go through Atlas — insured up to the goods and delivery value, uninsured
 // $15/kg (loss) and $3/kg (damage); the insurance follows later goods price changes at the line's rate.
 const DAY = 86_400_000;
 const nike = {...products[0], id: 'nike-pegasus', name: 'Pegasus', sourceUrl: 'https://www.nike.com/t/pegasus', shippingKnown: true};
@@ -48,11 +48,17 @@ test('a loss is reported once the parcel left, damage only on receipt and within
   assert.throws(() => reportParcelClaim(at(s, 4), first(s).id, 'loss', 'коротко', 20_000), /от 10 до 1000/);
 });
 
-test('limits: insured up to the goods value, uninsured $15/kg on a loss and $3/kg on damage, capped by the goods', () => {
+test('limits: insured up to the goods and their delivery, uninsured $15/kg on a loss and $3/kg on damage, capped by the goods', () => {
   const insured = first(at(ordered(true), 5));
   assert.ok(orderInsuranceRate(insured) > 0);
-  assert.equal(claimLimit(insured, 'loss'), insured.quote.merchandise);
-  assert.equal(claimLimit(insured, 'damage'), insured.quote.merchandise);
+  const delivery = insuredDeliveryOf(insured.quote);
+  assert.ok(delivery > 0);
+  assert.equal(insured.quote.serviceFees[0].delivery, delivery);
+  assert.equal(claimLimit(insured, 'loss'), insured.quote.merchandise + delivery);
+  assert.equal(claimLimit(insured, 'damage'), insured.quote.merchandise + delivery);
+  // A line insured before delivery joined the base (no `delivery` on its fee) is covered for the goods alone.
+  const older = {...insured, quote: {...insured.quote, serviceFees: insured.quote.serviceFees.map(fee => { const copy = {...fee}; delete copy.delivery; return copy; })}};
+  assert.equal(claimLimit(older, 'loss'), older.quote.merchandise);
   const plain = first(at(ordered(false), 5));
   assert.equal(orderInsuranceRate(plain), undefined);
   const fx = plain.quote.fx ?? tariff.fx;
@@ -69,7 +75,7 @@ test('an approved claim credits the balance once; the books and the history say 
   const id = first(s).id;
   s = applyAction(s, {type: 'parcel-claim-report', id, kind: 'damage', description: 'Экран треснул, коробка вскрыта'}, false, tariff);
   const claim = first(s).claims[0];
-  assert.equal(claim.status, 'submitted');assert.equal(claim.insured, true);assert.equal(claim.limit, orderGoodsValue(first(s)));
+  assert.equal(claim.status, 'submitted');assert.equal(claim.insured, true);assert.equal(claim.limit, orderInsuredValue(first(s)));assert.ok(claim.limit > orderGoodsValue(first(s)));
   assert.ok(orderNeedsOperatorAttention(first(s)));
   assert.equal(queueTabsOf(first(s), 0).done, false, 'a delivered order with a waiting claim is not done');
   assert.throws(() => applyAction(s, {type: 'parcel-claim-report', id, kind: 'loss', description: 'Ещё одна претензия по заказу'}, false, tariff), /уже подана/);

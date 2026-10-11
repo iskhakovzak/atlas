@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "@/components/site-link";
+import { InfoTip } from "@/components/info-tip";
 import { AlertCircle, ArrowRight, ArrowUpRight, Bell, Check, FileCheck2, Info, LifeBuoy, LogOut, MapPin, MessageCircle, Package, Pencil, Plus, RefreshCw, ScanLine, Shield, ShoppingBag, Trash2, Wallet } from "lucide-react";
 import { useMarket } from "@/lib/market/store";
 import { courierAllowanceUsd } from "@/lib/market/customs";
@@ -117,8 +118,8 @@ export function AccountView() {
         </nav>
 
         <section className="cabinet-card" aria-labelledby="cabinet-recipients-title">
-          <h2 id="cabinet-recipients-title">{c.recipients.title}</h2>
-          <p className="cabinet-lead">{c.recipients.lead}</p>
+          <h2 id="cabinet-recipients-title">{c.recipients.title}<InfoTip locale={lang}>{c.recipients.lead}</InfoTip></h2>
+          <p className="cabinet-lead tip-text">{c.recipients.lead}</p>
           {state.deliveryProfiles.length ? <ul className="cabinet-recipients">{state.deliveryProfiles.map(profile => {
             const passport = identityProfiles.find(identity => identity.recipientProfileId === profile.id);
             // A recipient saved under their own name would show it twice.
@@ -143,7 +144,7 @@ export function AccountView() {
         </section>
 
         <section className="cabinet-card" id="support" aria-labelledby="cabinet-support-title">
-          <div className="cabinet-card-head"><div><h2 id="cabinet-support-title">{c.support.title}</h2><p className="cabinet-lead">{c.support.lead}</p></div>
+          <div className="cabinet-card-head"><div><h2 id="cabinet-support-title">{c.support.title}<InfoTip locale={lang}>{c.support.lead}</InfoTip></h2><p className="cabinet-lead tip-text">{c.support.lead}</p></div>
             {telegram && <a className="btn secondary" href={`https://t.me/${telegram}`} target="_blank" rel="noopener noreferrer">{c.support.telegram}<ArrowUpRight size={16} aria-hidden="true" /></a>}</div>
           {state.supportTickets.length ? <ul className="cabinet-tickets">{state.supportTickets.slice(0, 3).map(item => <li key={item.id}>
             <div className="cabinet-ticket-head"><b>{item.subject}</b><span className={"cabinet-status " + item.status}>{item.status === "open" ? c.support.waiting : item.status === "answered" ? c.support.answered : c.support.closed}</span></div>
@@ -164,12 +165,12 @@ export function AccountView() {
         <CustomsAllowance groups={allowance} primaryName={primaryRecipient?.recipient} cartUsd={cartUsd} c={c} locale={lang} />
 
         <section className="cabinet-card" aria-labelledby="cabinet-documents-title">
-          <h2 id="cabinet-documents-title">{c.documents.title}</h2>
+          <h2 id="cabinet-documents-title">{c.documents.title}<InfoTip locale={lang}>{c.documents.note}</InfoTip></h2>
           <ul className="cabinet-rows">
             <li><Link href="/identity"><ScanLine aria-hidden="true" /><span>{c.documents.passport}<small>{identityProfiles.length ? c.documents.passportCount(identityProfiles.length) : c.documents.missing}</small></span><ArrowRight size={18} aria-hidden="true" /></Link></li>
             <li><Link href="/declaration"><FileCheck2 aria-hidden="true" /><span>{c.documents.declarations}<small>{c.documents.declarationsCount(state.declarations.length)}</small></span><ArrowRight size={18} aria-hidden="true" /></Link></li>
           </ul>
-          <p className="cabinet-note">{c.documents.note}</p>
+          <p className="cabinet-note tip-text">{c.documents.note}</p>
         </section>
 
         <SignInMethods locale={lang} />
@@ -200,10 +201,10 @@ function CustomsAllowance({ groups, primaryName, cartUsd, c, locale }: { groups:
   const month = new Intl.DateTimeFormat(locale === "oz" ? "uz-Cyrl" : locale, { month: "long" }).format(new Date());
   return <section className={"cabinet-card cabinet-customs" + (anyOver ? " over" : "")} aria-labelledby="cabinet-customs-title">
     <div className="cabinet-customs-top">
-      <h2 id="cabinet-customs-title">{c.customs.title}</h2>
+      <h2 id="cabinet-customs-title">{c.customs.title}<InfoTip locale={locale}>{c.customs.perPerson}</InfoTip></h2>
       <span className="cabinet-month">{month}</span>
     </div>
-    <p className="cabinet-lead">{c.customs.perPerson}</p>
+    <p className="cabinet-lead tip-text">{c.customs.perPerson}</p>
     {rows.length ? <ul className="cabinet-allowance">{rows.map(row => {
       const over = row.usedUsd > limit;
       const name = row.name || c.customs.unnamed;

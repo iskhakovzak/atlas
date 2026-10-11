@@ -80,7 +80,7 @@ function useLinkSubmit(){
 
 export function HomeHero({showCatalogLink}:{showCatalogLink:boolean}){
  const {status}=useMarket();
- const {c}=useHomeCopy();
+ const {c,locale}=useHomeCopy();
  const {url,error,submit,change}=useLinkSubmit();
  return <section className="home-hero" aria-labelledby="home-title">
   <h1 id="home-title">{c.hero.title}</h1>
@@ -92,8 +92,8 @@ export function HomeHero({showCatalogLink}:{showCatalogLink:boolean}){
   </form>
   {error?<p id="home-link-error" className="home-link-error" role="alert">{error}</p>:<p id="home-link-note" className="home-link-note">{status==='authenticated'?c.hero.memberNote:c.hero.guestNote}</p>}
   <div className="home-stores home-stores-marquee">
-   <StoreMarquee label={c.hero.popular} openStore={c.hero.openStore} allStores={c.hero.allStores(storeBrands.length)}/>
-   <p className="home-stores-hint">{c.hero.storesHint}</p>
+   <StoreMarquee label={c.hero.popular} openStore={c.hero.openStore} allStores={c.hero.allStores(storeBrands.length)} hint={c.hero.storesHint} locale={locale}/>
+   <p className="home-stores-hint tip-text">{c.hero.storesHint}</p>
   </div>
   <div className="home-hero-links"><Link href="/batch-import">{c.hero.batch}</Link>{showCatalogLink&&<Link href="/catalog">{c.hero.catalog}</Link>}</div>
  </section>;

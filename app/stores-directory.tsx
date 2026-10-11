@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type RefObject } from 'react';
 import { ArrowRight, ChevronDown, ClipboardPaste, Link2, Search, X } from 'lucide-react';
 import { useMarket } from '@/lib/market/store';
+import { useRowAtStart } from '@/lib/market/row-start';
+import { retryOriginal, sizedImage } from '@/lib/market/image-size';
 import { storesCopy } from '@/lib/market/stores-copy';
 import { catalogItems, storeHost, type CatalogItem } from '@/lib/market/catalog-query';
 import { brandAliases, normalizeSearch, wordMatches } from '@/lib/market/catalog-synonyms';
@@ -105,6 +107,7 @@ export function StoresDirectory() {
   // Storefronts: the brands with the most products first, then by name.
   const showcase = useMemo(() => storeBrands.filter((brand) => (catalogByBrand.get(brand.key)?.count ?? 0) > 0)
     .sort((a, b) => (catalogByBrand.get(b.key)?.count ?? 0) - (catalogByBrand.get(a.key)?.count ?? 0) || a.name.localeCompare(b.name)), [catalogByBrand]);
+  const showcaseRow = useRowAtStart<HTMLUListElement>(showcase.map((brand) => brand.key).join(' '));
   // Stores from the cart and earlier orders, the latest first: the quickest way back to a store.
   const mine = useMemo(() => {
     const products = [...state.cart.map((item) => item.product), ...[...state.orders].sort((a, b) => b.createdAt - a.createdAt).map((order) => order.product)];
@@ -176,7 +179,7 @@ export function StoresDirectory() {
 
     {showcase.length >= showcaseMin && <section className={'stores-showcase' + (showcaseOpen ? ' open' : '') + (showcase.length <= 8 ? ' le8' : '')} aria-labelledby="stores-showcase-title">
       <h2 id="stores-showcase-title">{c.showcase}</h2>
-      <ul className="stores-showcase-list" id="stores-showcase-list">{showcase.map((brand) => {
+      <ul {...showcaseRow} className="stores-showcase-list" id="stores-showcase-list">{showcase.map((brand) => {
         const entry = catalogByBrand.get(brand.key);
         if (!entry) return null;
         const main = brand.storefronts[0], t = terms[main.country], photos = entry.items.slice(0, 3);
@@ -269,9 +272,9 @@ function StoreGrid({ items, locale, c, catalog, marks, terms, onOpen }: { items:
 function ShowcasePhoto({ src, brand }: { src: string; brand: StoreBrand }) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) return <span className="store-showcase-photo"><StoreLogo brand={brand} size={40} /></span>;
-  // Dynamic store images are displayed without proxying or optimization.
+  // Store images load straight from the store, asked smaller where its image server allows (lib/market/image-size.ts).
   // eslint-disable-next-line @next/next/no-img-element
-  return <span className="store-showcase-photo"><img src={src} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} /></span>;
+  return <span className="store-showcase-photo"><img src={sizedImage(src, 500)} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(event) => { if (!retryOriginal(event.currentTarget, src)) setFailed(true); }} /></span>;
 }
 
 function StoresLinkForm({ c, field }: { c: Copy; field: RefObject<HTMLInputElement | null> }) {

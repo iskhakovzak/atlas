@@ -8,7 +8,7 @@ import Link from "@/components/site-link";
 import { ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ClipboardPaste, Clock3, Heart, Info, Loader2, MessageSquare, Minus, Plus, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
-import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, customsHelpChosen, inCheckout, isPostalCode, maxLineQuantity, parcelServiceUnits, storeDiscount, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, parcelValueUsd, valueServiceRate, withCustomsHelpFor, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
+import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, customsHelpChosen, deliveryAddressLine, inCheckout, isPostalCode, maxLineQuantity, parcelServiceUnits, storeDiscount, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, insuredDeliveryOf, parcelValueUsd, valueServiceRate, withCustomsHelpFor, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
 import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, savingText } from "@/lib/market/delivery-speed";
 import { countryName, customsVersion } from "@/lib/market/world";
 import { formatPercent, formatSum, formatUsd } from "@/lib/market/format";
@@ -259,7 +259,9 @@ export function CartView() {
   const speed = cartDeliverySpeed(state.cart);
   const speedCountries = state.cart.map(item => countryName(item.product));
   const speedOptions = deliverySpeedOptions(pricing, speedCountries, locale);
-  const speedNote = [savingText(lines, pricing, locale), parcelsDiffer(speedCountries) ? deliverySpeedCopy[locale].appliesToCart : ""].filter(Boolean).join(" ");
+  // The saving stays in view; "one speed for every parcel" is the secondary rule (a "?" on phones).
+  const speedNote = savingText(lines, pricing, locale);
+  const speedTip = parcelsDiffer(speedCountries) ? deliverySpeedCopy[locale].appliesToCart : undefined;
   const speedDays = (country: string) => { const range = daysRangeFor(pricing, [country], speed); return range ? deliverySpeedCopy[locale].days(range[0], range[1]) : ""; };
   // Store orders whose delivery price is unknown: a separate hold up to the threshold, free above it.
   const reserves = storeShippingReserves(lines, pricing);
@@ -412,7 +414,7 @@ export function CartView() {
     const issue = item.sourceIssue, stock = stockText(item);
     return <article className={"basket-item" + (issue && issue.kind !== "unreachable" ? " has-issue" : "") + (ticked(item) ? "" : " is-later")} key={item.id}>
       {selectBox([item], s.selectLine([item.product.name, shownVariant(item.variant)].filter(Boolean).join(" · ")))}
-      <div className="basket-photo"><ProductImage product={item.product} locale={locale} decorative /></div>
+      <div className="basket-photo"><ProductImage product={item.product} locale={locale} decorative size={240} /></div>
       <div className="basket-info">
         {shownBrand(item.product.brand) && <p className="basket-brand">{shownBrand(item.product.brand)}</p>}
         <ItemName name={item.product.name} />
@@ -450,7 +452,7 @@ export function CartView() {
     return <div className="basket-group" key={`group:${lead.id}`}>
       <article className="basket-item basket-group-head">
         {selectBox(lines, s.selectGroup(lead.product.name))}
-        <div className="basket-photo"><ProductImage product={lead.product} locale={locale} decorative /></div>
+        <div className="basket-photo"><ProductImage product={lead.product} locale={locale} decorative size={240} /></div>
         <div className="basket-info">
           {shownBrand(lead.product.brand) && <p className="basket-brand">{shownBrand(lead.product.brand)}</p>}
           <ItemName name={lead.product.name} />
@@ -485,13 +487,13 @@ export function CartView() {
    * contents photo), per piece (checking each item) or as typed (extra photos). The tick shows at once with
    * "Saving…"; a second click while saving waits its turn instead of being lost or sent twice.
    */
-  /** "2% of the goods (over $200: 3%) · 12 345 сум": the amount this parcel pays, shown before it is ticked too. */
+  /** "2,9% of the goods and delivery (over $200: 3,9%) · 12 345 сум": the amount this parcel pays, shown before it is ticked too. */
   function percentRate(service: (typeof checkoutServices)[number], items: CartItem[]) {
-    const rate = valueServiceRate(service, parcelValueUsd(items));
+    const rate = valueServiceRate(service, parcelValueUsd(items, pricing.fx));
     const high = service.valuePercentHigh !== undefined && service.valueThresholdUsd !== undefined && service.valuePercentHigh !== service.valuePercent
       ? c.services.highRule(formatUsd(service.valueThresholdUsd, locale), formatPercent(service.valuePercentHigh, locale))
       : undefined;
-    const amount = items.reduce((sum, line) => sum + Math.round(line.quote.merchandise * rate), 0);
+    const amount = items.reduce((sum, line) => sum + Math.round((line.quote.merchandise + insuredDeliveryOf(line.quote)) * rate), 0);
     return c.services.percent(formatPercent(service.valuePercent ?? 0, locale), high, formatSum(amount, locale));
   }
 
@@ -604,7 +606,7 @@ export function CartView() {
       <aside ref={summaryRef} className="basket-summary folio" aria-labelledby="basket-summary-title">
         <div className="folio-sheet">
           <h2 id="basket-summary-title">{c.summary.title}</h2>
-          <DeliverySpeedSwitch value={speed} options={speedOptions} locale={locale} busy={speedBusy} note={speedNote} onChange={(next) => void changeSpeed(next)} />
+          <DeliverySpeedSwitch value={speed} options={speedOptions} locale={locale} busy={speedBusy} note={speedNote} tip={speedTip} onChange={(next) => void changeSpeed(next)} />
           {summaryLines}
           {customsPanel}
           {balance > 0 && <div className="basket-balance"><Checkbox id="use-balance" checked={useBalance} onCheckedChange={(value) => setUseBalance(value === true)} /><label htmlFor="use-balance">{c.summary.balance}<small>{c.summary.available}: {formatSum(balance, locale)}</small></label></div>}
@@ -645,11 +647,12 @@ export function CartView() {
               const served = isServedRegion(profile.region);
               return <label className={"recipient-choice" + (selectedProfile === profile.id ? " selected" : "") + (served ? "" : " unavailable")} key={profile.id}>
                 <input type="radio" name="checkout-recipient" value={profile.id} disabled={!served} checked={selectedProfile === profile.id} onChange={() => { setSelectedProfile(profile.id); setDelivery(profile); }} />
+                {/* Two rows instead of four (10.10.2026): who and the phone, then where and the passport on the right. */}
                 <span className="recipient-choice-body">
-                  <strong>{named ? profile.label : profile.recipient}{profile.primary && <em>{c.checkout.primary}</em>}</strong>
-                  <span>{named && <>{profile.recipient} · </>}<span className="nowrap">{profile.phone}</span></span>
-                  <small>{[profile.region, profile.city, profile.address, profile.postalCode].filter(Boolean).join(", ")}</small>
-                  {served ? <small className={passport ? "recipient-passport-ok" : "recipient-passport-missing"}>{passport ? c.checkout.passportOk : c.checkout.passportMissing}</small> : <small className="recipient-passport-missing">{c.checkout.outsideServed}</small>}
+                  <strong>{named ? profile.label : profile.recipient}{named && <span className="rc-person">{profile.recipient}</span>}{profile.primary && <em>{c.checkout.primary}</em>}</strong>
+                  <span className="rc-phone nowrap">{profile.phone}</span>
+                  <small className="rc-where">{deliveryAddressLine(profile)}</small>
+                  {served ? <small className={"rc-passport " + (passport ? "recipient-passport-ok" : "recipient-passport-missing")}>{passport ? c.checkout.passportOk : c.checkout.passportMissing}</small> : <small className="rc-passport recipient-passport-missing">{c.checkout.outsideServed}</small>}
                 </span>
               </label>;
             })}
@@ -691,7 +694,7 @@ export function CartView() {
           <div className="review-aside">
             <CheckoutChecklist locale={locale} items={[
               { key: "variants", label: s.review.variants, value: s.review.variantsValue(lines.length, count), ok: !lines.some(blockingSourceIssue) },
-              { key: "recipient", label: s.review.recipient, value: <>{delivery.recipient}, {delivery.phone}<br />{[delivery.region, delivery.city, delivery.address, delivery.postalCode].filter(Boolean).join(", ")}</>, onChange: () => showReview(false) },
+              { key: "recipient", label: s.review.recipient, value: <>{delivery.recipient}, {delivery.phone}<br />{deliveryAddressLine(delivery)}</>, onChange: () => showReview(false) },
               { key: "speed", label: s.review.speed, value: deliverySpeedCopy[locale].names[speed] },
               { key: "services", label: s.review.services, value: (() => { const services = new Set(lines.flatMap(item => item.requestedServiceIds ?? [])).size, notes = lines.filter(item => item.note?.trim()).length; return services || notes ? s.review.servicesValue(services, notes) : s.review.servicesNone; })() },
               // Who pays the duty matters only when this recipient owes some.

@@ -79,6 +79,17 @@ html:not([data-theme="dark"]) .recipient-choice > input[type="radio"] { accent-c
 html:not([data-theme="dark"]) .recipient-choice-body > strong em { background: var(--day-ok-bg); color: var(--day-ok); }
 html[data-theme="dark"] .recipient-choice-body > strong em { background: rgba(128, 208, 172, 0.12); color: #80d0ac; }
 html:not([data-theme="dark"]) .recipient-choice-manual strong { color: var(--day-accent); }
+/* Since 10 October 2026 a saved recipient takes two rows: the name (and who it is) with the phone on the right, then the
+   address with the passport state on the right. Narrow screens stack it in one column (name, phone, address, passport)
+   so the name keeps the whole width instead of wrapping beside the phone. */
+.recipient-choice-body { flex: 1 1 auto; grid-template-columns: minmax(0, 1fr) auto; column-gap: 14px; align-items: baseline; }
+.recipient-choice-body > strong, .recipient-choice-body > .rc-where { grid-column: 1; }
+.recipient-choice-body > .rc-phone { grid-column: 2; grid-row: 1; justify-self: end; }
+.recipient-choice-body > .rc-passport { grid-column: 2; grid-row: 2; justify-self: end; text-align: right; }
+.recipient-choice-body > strong .rc-person { font-weight: 500; }
+@media (max-width: 480px) {
+  .recipient-choice-body > :is(.rc-phone, .rc-where, .rc-passport) { grid-column: 1 / -1; grid-row: auto; justify-self: start; text-align: left; }
+}
 
 /* ---------- Checkout form: one phone box, tighter fields, a one-line total ---------- */
 .rf-phone { min-height: 48px; }

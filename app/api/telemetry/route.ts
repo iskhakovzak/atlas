@@ -23,8 +23,8 @@ export async function POST(request: Request) {
     } else {
       const payload = parseTelemetry(body);
       if (payload) {
-        await recordClientErrors(payload.errors);
-        if (payload.vitals && Math.random() < vitalsSampleRate) await recordVitals(payload.vitals);
+        // Errors and page speed go to different tables: written together.
+        await Promise.all([recordClientErrors(payload.errors), payload.vitals && Math.random() < vitalsSampleRate ? recordVitals(payload.vitals) : undefined]);
       }
     }
     if (Math.random() < 0.02) await pruneTelemetry();

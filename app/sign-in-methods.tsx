@@ -5,6 +5,7 @@ import {KeyRound,Mail,MessageCircle,Plus,Smartphone} from 'lucide-react';
 import { toast } from '@/lib/market/toast';
 import type {Locale} from '@/lib/market/i18n';
 import {Modal} from './market-ui';
+import {InfoTip} from '@/components/info-tip';
 import {isNative} from '@/lib/native/bridge';
 import {AppleButton,AppleMark,OtpLogin,TelegramBotLogin,TelegramLogin,appleOffered,loginCopy,openProvider} from './login-view';
 import {withCyrillic} from '@/lib/market/uz-cyrl';
@@ -65,8 +66,8 @@ export function SignInMethods({locale}:{locale:Locale}){
  const addable=available?(['telegram','phone','email','google','apple'] as const).filter(method=>!has(method)&&(method==='telegram'?!!available.telegram:method==='apple'?appleOffered(available):available[method])):[];
  const returnTo=typeof window==='undefined'?'/account':window.location.pathname;
  return <section className="cabinet-card" aria-labelledby="cabinet-signin-methods-title">
-  <h2 id="cabinet-signin-methods-title">{c.title}</h2>
-  <p className="cabinet-lead">{c.lead}</p>
+  <h2 id="cabinet-signin-methods-title">{c.title}<InfoTip locale={locale}>{c.lead}</InfoTip></h2>
+  <p className="cabinet-lead tip-text">{c.lead}</p>
   {failed&&<p className="cabinet-note" role="status">{c.failed}</p>}
   {!!items.length&&<ul className="signin-methods">{items.map(item=>{const Icon=icons[item.method];return <li key={item.subject||'own'} className="signin-method">
    <span className="signin-method-icon" aria-hidden="true"><Icon size={18}/></span>

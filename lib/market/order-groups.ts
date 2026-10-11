@@ -1,4 +1,4 @@
-import { orderPayable, type DeliveryProfile, type DeliverySpeed, type Order, type WarehouseServiceRequest } from './domain.ts';
+import { deliveryAddressLine, orderPayable, type DeliveryProfile, type DeliverySpeed, type Order, type WarehouseServiceRequest } from './domain.ts';
 import { orderAttention } from './notice-panel.ts';
 import { localizedStatuses, type Locale } from './i18n.ts';
 import { brandForHost, storefrontLabel } from './store-brands.ts';
@@ -192,6 +192,11 @@ function latestEvent(orders: Order[]): OrderGroup['latest'] {
     for (const entry of order.history) if (!latest || entry.at >= latest.entry.at) latest = { order, entry };
   }
   return latest;
+}
+
+/** The recipient as one line to paste into a message: name, phone, place, address and postal code (the region once when it is the city). */
+export function shipAddressText(profile: Pick<DeliveryProfile, 'recipient' | 'phone' | 'region' | 'city' | 'address'> & { postalCode?: string }) {
+  return [profile.recipient.trim(), profile.phone.trim(), deliveryAddressLine(profile)].filter(Boolean).join(', ');
 }
 
 /** The recipient and speed of a checkout when all its live lines agree (they do for every checkout since 6 October 2026). */

@@ -22,6 +22,7 @@ Disallow: /notifications
 Disallow: /operations
 Disallow: /orders
 Disallow: /order-by-link
+Disallow: /share
 Disallow: /login
 
 # Search access and model-training access are separate controls. Atlas opts in
@@ -50,6 +51,7 @@ Disallow: /notifications
 Disallow: /operations
 Disallow: /orders
 Disallow: /order-by-link
+Disallow: /share
 Disallow: /login
 
 User-agent: *
@@ -76,6 +78,7 @@ Disallow: /notifications
 Disallow: /operations
 Disallow: /orders
 Disallow: /order-by-link
+Disallow: /share
 Disallow: /login
 
 # Yandex: ad and click tags do not change the page.

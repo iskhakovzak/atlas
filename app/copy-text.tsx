@@ -5,15 +5,30 @@ import { Check, Copy } from "lucide-react";
 import type { Locale } from "@/lib/market/i18n";
 import {withCyrillic} from '@/lib/market/uz-cyrl';
 
-const copyLabels: Record<Locale, { copy: string; copied: string; failed: string }> = /*@__PURE__*/withCyrillic({
-  ru: { copy: "Скопировать номер заказа", copied: "Номер заказа скопирован", failed: "Не удалось скопировать номер" },
-  uz: { copy: "Buyurtma raqamini nusxalash", copied: "Buyurtma raqami nusxalandi", failed: "Raqamni nusxalab bo‘lmadi" },
-  en: { copy: "Copy order number", copied: "Order number copied", failed: "Could not copy order number" },
+/** What the button copies: the label says it, so a tracking number is not announced as the order number. */
+export type CopyWhat = "order" | "tracking" | "address";
+
+const copyLabels: Record<Locale, Record<CopyWhat, { copy: string; copied: string; failed: string }>> = /*@__PURE__*/withCyrillic({
+  ru: {
+    order: { copy: "Скопировать номер заказа", copied: "Номер заказа скопирован", failed: "Не удалось скопировать номер" },
+    tracking: { copy: "Скопировать трек-номер", copied: "Трек-номер скопирован", failed: "Не удалось скопировать трек-номер" },
+    address: { copy: "Скопировать получателя и адрес", copied: "Получатель и адрес скопированы", failed: "Не удалось скопировать адрес" },
+  },
+  uz: {
+    order: { copy: "Buyurtma raqamini nusxalash", copied: "Buyurtma raqami nusxalandi", failed: "Raqamni nusxalab bo‘lmadi" },
+    tracking: { copy: "Trek-raqamni nusxalash", copied: "Trek-raqam nusxalandi", failed: "Trek-raqamni nusxalab bo‘lmadi" },
+    address: { copy: "Qabul qiluvchi va manzilni nusxalash", copied: "Qabul qiluvchi va manzil nusxalandi", failed: "Manzilni nusxalab bo‘lmadi" },
+  },
+  en: {
+    order: { copy: "Copy order number", copied: "Order number copied", failed: "Could not copy order number" },
+    tracking: { copy: "Copy tracking number", copied: "Tracking number copied", failed: "Could not copy tracking number" },
+    address: { copy: "Copy recipient and address", copied: "Recipient and address copied", failed: "Could not copy the address" },
+  },
 });
 
-export function CopyText({ text, locale }: { text: string; locale: Locale }) {
+export function CopyText({ text, locale, what = "order" }: { text: string; locale: Locale; what?: CopyWhat }) {
   const [result, setResult] = useState<"idle" | "copied" | "failed">("idle");
-  const labels = copyLabels[locale];
+  const labels = copyLabels[locale][what];
 
   async function copy() {
     try {

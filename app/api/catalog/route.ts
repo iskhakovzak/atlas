@@ -98,9 +98,10 @@ export async function POST(request:Request){try{
   if(command.kind==='import'||command.kind==='discover'||command.kind==='import-batch'){
     const now=Date.now(),db=database();
     const key=user.userId+':catalog-import:'+Math.floor(now/60000),reads=command.kind==='import-batch'?command.urls.length:1;
-    const limit=await db.prepare('INSERT INTO market_rate_limits (key,count,expires_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET count=count+? RETURNING count').bind(key,reads,now+120000,reads).first<{count:number}>();
+    // One round trip: the count and the clean-up of expired keys (it never touches the key just written).
+    const [counted]=await db.batch<{count:number}>([db.prepare('INSERT INTO market_rate_limits (key,count,expires_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET count=count+? RETURNING count').bind(key,reads,now+120000,reads),db.prepare('DELETE FROM market_rate_limits WHERE expires_at < ?').bind(now)]);
+    const limit=counted?.results?.[0];
     if(!limit||limit.count>catalogImportRateLimitPerMinute)throw new HttpError(429, 'err_32');
-    await db.prepare('DELETE FROM market_rate_limits WHERE expires_at < ?').bind(now).run();
     if(command.kind==='import-batch'){
       if(command.collectionIds.some(id=>!document.collections.some(c=>c.id===id)))throw new HttpError(400, 'err_33');
       const urls=[...new Set(command.urls.map(value=>value.trim()).filter(Boolean))];

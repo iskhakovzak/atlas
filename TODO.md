@@ -1,3 +1,33 @@
+## «?» с пояснениями — 11 октября 2026
+
+- [ ] Посмотреть на настоящем телефоне (проверено в Chrome 375 px с эмуляцией касаний, светлая и тёмная тема, шторка товара).
+- [ ] На компьютере «?» только в шторке товара и итоге корзины; если владелец сочтёт перегруженными другие блоки (например, итог на /order-by-link), добавить их в правило `:is(.product-sheet, .basket-summary)` в app/mobile.css.
+- [ ] Владелец может захотеть убрать за «?» больше или меньше текста; список мест — ARCHITECTURE.md, раздел «Второстепенный текст за „?“».
+- [ ] В тёмной теме облачко почти того же цвета, что карточка, и отделено только рамкой; при желании сделать фон светлее.
+
+## Карточки на телефоне — 11 октября 2026
+
+- [x] Окно оформления корзины открывалось на языке аккаунта, а не сайта. Исправлено 11.10.2026: после любого действия экран сохраняет свой язык (`screenLocale` в `lib/market/i18n.ts`), язык аккаунта переключает экран, только когда клиент сам сохранил его в настройках уведомлений.
+- [ ] Не проверено после правок промежутков: реальный телефон (проверено в Chrome 375 px, светлая тема), тёмная тема на снимках не сравнивалась. Правки только раскладочные, цвета не менялись.
+
+## Запросы, индексы, фото — 11 октября 2026
+
+- [ ] Выкатка: применить к рабочей D1 по порядку 0012, `0013_query_indexes` (индекс `market_provider_jobs` требует 0012) и `0014_more_query_indexes` (только индексы, можно повторно); см. `AUTH_SETUP.md`, раздел 11.
+- [ ] Фото Walmart, магазинов на Salesforce (Brooks и др.) и Samsung грузятся в полном размере: их серверы картинок не дают безопасно уменьшить. Если понадобится, нужен свой ресайз (Cloudflare Images) — это платно и требует решения владельца.
+- [ ] `lib/market/card-image.ts` (PR #56) после слияния не используется — `sizedImage` покрывает те же CDN; удалить вместе с `tests/card-image.test.mjs` отдельным изменением.
+- [ ] `public/globe.svg`, `file.svg`, `window.svg` нигде не используются — удалить только по решению владельца.
+
+## Страховка от товаров и доставки — 10 октября 2026
+
+- **Доставка после оформления.** Страховка берётся с доставки по цене оформления. Если оператор подтвердил другую доставку магазина или склад насчитал перевес, сбор и лимит возмещения не пересчитываются. Нужно решение владельца: пересчитывать ли страховку на разницу доставки, как на разницу цены товара.
+- **Повторное согласие.** `consentVersion` 2026-10-10: после выкатки все клиенты увидят запрос согласия с документами. Если это мешает, выкатить вместе с остальными правками оферты (PR #51 и этот).
+
+## «Поделиться → Atlas» и копирование: что осталось проверить — 10 октября 2026
+
+- **Android.** Отладочная сборка проверена на эмуляторе (Android 15, WebView 124) против локального сайта: Atlas есть в системном меню «Поделиться», ссылка открывает заказ по ссылке при закрытом (~4 с) и при открытом (~2 с) приложении, текст без ссылки — пустое поле с подсказкой, «Назад» идёт по истории. Не проверено на настоящем телефоне и из настоящих приложений магазинов (Uzum, Amazon, Zara) — их share-тексты могут отличаться.
+- **iOS.** Код расширения `mobile/ios/App/AtlasShare` написан, но не собран: цель добавляется в Xcode на Mac (MOBILE.md §4), затем проверка на iPhone. Web Share Target в Safari не поддерживается.
+- **Установленный сайт.** `share_target` работает только в Android Chrome после установки с опубликованного манифеста (WebAPK собирается по публичному адресу, локально не проверить); после выкатки проверить на телефоне.
+- **Номер заказа в шапке** показывается только у карточки из одного заказа. В группе из нескольких заказов номера видны по строкам товаров.
 ## Запросы: что осталось после оптимизации — 11 октября 2026
 
 - Финансы (`lib/market/finance-server.ts`) для балансов клиентов читают до 5000 полных JSON-состояний аккаунтов; можно считать сумму в SQL (`json_extract`/`json_each`) или хранить баланс в проекции.
@@ -922,7 +952,10 @@ Checked `main` at `fedd1e7` (the squash of #8), then fixed the findings on `fix/
 - [ ] Expand fresh verified merchants beyond Nike, Anker and Apple. UNIQLO listing prices were not fresh enough to include.
 - [x] Import exact-listing ProductGroup variants and prices for Nike, without switching to an unrelated default color.
 
-- [ ] Revisit client-side RSC navigation after Vinext fixes its production prefetch runtime; Atlas currently uses reliable full-page navigation.
+- [x] Client-side navigation for site links (`components/site-link.tsx`, `useRouter().push`, 10.10.2026); `next/link` still throws in the vinext 1.0 beta build (lazy navigation module in a shared chunk with mangled exports) — switch back to it after vinext fixes that.
+- [ ] Pages that read `?query` only on mount (catalog, stores, order by link, login) still full-load when only the query changes; make them follow `useSearchParams` before routing those links in place.
+- [ ] Convert remaining user-facing `window.location.assign` page changes (account, checkout returns) to `router.push` where the target page does not depend on a fresh document.
+- [ ] Check the iOS edge swipe back (`AtlasViewController` in `mobile/ios/App/App/SceneDelegate.swift`) on a device: it was written on Windows and not compiled.
 - [ ] No real payment or delivery.
 - [ ] Warehouse optional-service requests, quotes and completion status are currently workflow simulation. Do not treat configurable preview fees as live service prices or promise physical service until a warehouse contract and execution process are verified.
 - [ ] Only one operator email is supported; team assignment exists, but independent staff identities and permissions are still missing.
