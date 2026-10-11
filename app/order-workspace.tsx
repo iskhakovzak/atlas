@@ -897,6 +897,7 @@ function OrderGroupCard({ group, locale, pricing, busy, allowanceUsd, passports,
   const reorderHref = (url: string) => `/order-by-link?url=${encodeURIComponent(url)}`;
   // The customs estimate is the checkout's (one cart estimate on every line): said once, not per line.
   const customs = group.status !== undefined && group.status < 5 ? liveOrders.find((order) => order.customs && !order.customsSettlement && (order.customs.helpRequested || order.customs.dutiableUsd > 0))?.customs : undefined;
+  const ship = group.stage !== "cancelled" ? group.delivery : undefined;
   const allowance = allowanceUsd !== undefined && <span className={allowanceUsd > courierAllowanceUsd ? "order-x-over" : undefined}>{c.allowance}: {c.allowanceValue(allowanceUsd, courierAllowanceUsd)}</span>;
   return <section className="order-group" data-stage={group.stage} aria-label={title}>
     <header className="order-group-head">
@@ -915,7 +916,23 @@ function OrderGroupCard({ group, locale, pricing, busy, allowanceUsd, passports,
           <Link className="cabinet-text-btn" href="/order-by-link">{gc.byLink}<ArrowRight size={15} aria-hidden="true" /></Link>
         </span>}
       </div>
-      {showTotal && <p className="order-group-sum"><small>{gc.total}</small><strong><Money value={group.payable} locale={locale} /></strong></p>}
+      {/* Beside the heading, not under it: the total, who receives the parcel and the passport customs still needs. */}
+      {(showTotal || ship || passports.length > 0) && <div className="og-side">
+        {showTotal && <p className="order-group-sum"><small>{gc.total}</small><strong><Money value={group.payable} locale={locale} /></strong></p>}
+        {ship && <div className="og-ship">
+          <MapPin size={16} aria-hidden="true" />
+          <p>
+            <span className="og-ship-who"><span className="sr-only">{gc.recipient}: </span><b>{ship.profile.recipient}</b>{ship.profile.phone && <a className="order-x-link" href={`tel:${ship.profile.phone.replace(/[^\d+]/g, "")}`}>{ship.profile.phone}</a>}</span>
+            <small>{[ship.profile.city || ship.profile.region, ship.profile.address].filter(Boolean).join(", ")} · {gc.speed[ship.speed]}</small>
+          </p>
+        </div>}
+        {/* Not needed to pay: customs needs it before shipping. Beside the recipient it is about, the name is not repeated. */}
+        {passports.map((passport) => <div className="orders-passport og-passport" key={passport.id} role="note">
+          <IdCard size={18} aria-hidden="true" />
+          <p>{ship && passport.name.trim() === ship.profile.recipient.trim() ? gc.passportHere : gc.passport(passport.name)}</p>
+          <Link className="btn secondary" href={`/identity?recipient=${encodeURIComponent(passport.id)}`}>{gc.passportAction}<ArrowRight size={16} aria-hidden="true" /></Link>
+        </div>)}
+      </div>}
     </header>
     {group.payment && <div className="order-x-action-item og-pay">
       <CreditCard size={20} aria-hidden="true" />
@@ -925,19 +942,6 @@ function OrderGroupCard({ group, locale, pricing, busy, allowanceUsd, passports,
         <p>{gc.payCovers(itemCount(group.orders.reduce((sum, order) => sum + (!order.cancelled && order.payment?.status === "pending" ? order.quantity : 0), 0), locale))}{group.payment.fromBalance ? ` ${gc.payBalance(formatSum(group.payment.fromBalance, locale))}` : ""}</p>
       </div>
       <button type="button" className="btn primary" disabled={busy} onClick={() => onPay(group)}>{gc.payButton(formatSum(group.payment.amount, locale))}<ArrowRight size={16} aria-hidden="true" /></button>
-    </div>}
-    {/* Not needed to pay: customs needs it before shipping. A calm note after the payment, with the same button. */}
-    {passports.map((passport) => <div className="orders-passport og-passport" key={passport.id} role="note">
-      <IdCard size={20} aria-hidden="true" />
-      <div><p>{gc.passport(passport.name)}</p></div>
-      <Link className="btn secondary" href={`/identity?recipient=${encodeURIComponent(passport.id)}`}>{gc.passportAction}<ArrowRight size={16} aria-hidden="true" /></Link>
-    </div>)}
-    {group.delivery && group.stage !== "cancelled" && <div className="og-ship">
-      <MapPin size={16} aria-hidden="true" />
-      <p>
-        <span className="og-ship-who"><span className="sr-only">{gc.recipient}: </span><b>{group.delivery.profile.recipient}</b>{group.delivery.profile.phone && <a className="order-x-link" href={`tel:${group.delivery.profile.phone.replace(/[^\d+]/g, "")}`}>{group.delivery.profile.phone}</a>}</span>
-        <small>{[group.delivery.profile.city || group.delivery.profile.region, group.delivery.profile.address].filter(Boolean).join(", ")} · {gc.speed[group.delivery.speed]}</small>
-      </p>
     </div>}
     {group.stores.map((store) => {
       // The manager checks store delivery once for the whole store parcel: one note, the reserve summed.
