@@ -4,7 +4,7 @@ import { toast } from '@/lib/market/toast';
 import {blank,parseState,pricingSchema,tariff,type Pricing,type State} from './domain';
 import {defaultPolicy,policySchema,type Policy} from './policy';
 import type {Action} from './actions';
-import {reloadAfterErrorCodes,serverError,setLocaleCookie,supportedLocale,type Locale} from './i18n';
+import {reloadAfterErrorCodes,screenLocale,serverError,setLocaleCookie,supportedLocale,type Locale} from './i18n';
 import type {SessionStatus} from './access';
 import {keepCatalogVisible,visibleMerchantFinds,type MerchantFind} from './catalog';
 import type {CatalogCollection} from './catalog-editor';
@@ -134,7 +134,13 @@ export function MarketProvider({children,initialLocale='uz',initialPricing=null,
    const data=await res.json() as {state?:unknown;revision:number;error?:string; errorCode?:string};
    if(current!==generation.current)return false;
    if(res.status===401){signedIn.current=false;clearPrivate();setStatus('guest');setError(null);toast.message(marketMessages[localeRef.current].sessionEnded);return false}
-   if(data.state){const next=parseState(JSON.stringify(data.state));serverLocaleRef.current=next.communication.language;setState(next);revision.current=data.revision}
+   if(data.state){
+    const parsed=parseState(JSON.stringify(data.state));serverLocaleRef.current=parsed.communication.language;
+    // The screen keeps its language; only a language the customer has just saved in the settings switches it (screenLocale).
+    const shown=screenLocale(localeRef.current,parsed.communication.language,res.ok&&action.type==='communication-save');
+    if(shown!==localeRef.current){localeRef.current=shown;try{localStorage.setItem('atlas-language',shown)}catch{}setLocaleCookie(shown)}
+    setState({...parsed,communication:{...parsed.communication,language:shown}});revision.current=data.revision;
+   }
    // The server's reason ("the price changed…") is the useful part; the generic text is only a fallback.
    if(!res.ok){lastError.current={code:data.errorCode,message:data.error};toast.error((data.errorCode ? serverError(localeRef.current, data.errorCode) : undefined) ?? data.error ?? marketMessages[localeRef.current].saveFailed);if((res.status===409&&!data.state)||(data.errorCode&&reloadAfterErrorCodes.includes(data.errorCode)))await refresh();return false}
    lastError.current=null;

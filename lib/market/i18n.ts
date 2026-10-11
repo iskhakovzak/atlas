@@ -80,6 +80,13 @@ export function importPendingMessage(locale:Locale):string{
   }, locale);
 }
 
+/** The language the screen shows once the server returns the account. The account keeps its own language for messages,
+ *  which can differ from the one this device shows (cookie, Accept-Language, a choice in the header). It becomes the
+ *  screen's only when the customer has just saved it ("Interface and notification language"); every other answer keeps
+ *  the screen as it is. Before this, any action (opening checkout, say) switched an English page to the account's Russian. */
+export function screenLocale(shown:Locale, account:Locale, savedNow:boolean):Locale{
+  return savedNow ? account : shown;
+}
 export function setLocaleCookie(locale:Locale):void{
   if(typeof document==="undefined")return;
   const secure=window.location.protocol==="https:"?"; Secure":"";
