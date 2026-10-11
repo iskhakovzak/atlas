@@ -137,15 +137,15 @@ html:not([data-theme="dark"]) .folio-sheet .calc-fx { display: block; margin: 0;
 html:not([data-theme="dark"]) .folio-sheet .calc-fx svg { display: none; }
 /* The slip: what is NOT in the amount to pay, on readable cream paper rather than as fine print. */
 html:not([data-theme="dark"]) .folio-outside { display: grid; gap: 10px; padding: 16px 18px; border: 1px solid var(--day-slip-line); border-radius: var(--day-r-sheet); background: var(--day-slip); color: var(--day-ink); }
-html:not([data-theme="dark"]) .folio-outside > h3 { margin: 0; font: 700 15px/1.35 var(--day-sans); color: var(--day-ink); }
+html:not([data-theme="dark"]) .folio-outside > :is(h2, h3) { margin: 0; font: 700 15px/1.35 var(--day-sans); color: var(--day-ink); }
 html:not([data-theme="dark"]) .outside-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: baseline; margin: 0; }
 html:not([data-theme="dark"]) .outside-row > span { font-size: 15px; font-weight: 500; }
 html:not([data-theme="dark"]) .outside-row > b { font-size: 15px; font-weight: 700; white-space: nowrap; text-align: right; }
 html:not([data-theme="dark"]) .outside-row > small { grid-column: 1 / -1; font-size: 13px; line-height: 1.4; color: var(--day-muted); }
 html:not([data-theme="dark"]) .home-folio .folio-outside.home-customs-slip,
 html[data-theme="dark"] .home-folio .folio-outside.home-customs-slip { gap: 6px; padding: 12px 18px; min-width: 0; }
-html:not([data-theme="dark"]) .home-folio .home-customs-slip > h3,
-html[data-theme="dark"] .home-folio .home-customs-slip > h3 { margin: 0; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+html:not([data-theme="dark"]) .home-folio .home-customs-slip > :is(h2, h3),
+html[data-theme="dark"] .home-folio .home-customs-slip > :is(h2, h3) { margin: 0; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
 .home-folio .home-customs-note { margin: 0; font-size: 13px; line-height: 1.45; }
 html:not([data-theme="dark"]) .home-folio .home-customs-note { color: var(--day-muted); }
 html[data-theme="dark"] .home-folio .home-customs-note { color: var(--night-muted); }
@@ -404,7 +404,7 @@ html:not([data-theme="dark"]) .basket-parcel-title { background: var(--day-soft)
 
 /* Atlas Night: the new wrappers keep the summary own surface and spacing. */
 html[data-theme="dark"] .basket-summary .folio-sheet, html[data-theme="dark"] .basket-summary .folio-outside { display: grid; gap: 14px; }
-html[data-theme="dark"] .folio-outside > h3 { margin: 4px 0 0; color: var(--night-ink); font-size: 15px; }
+html[data-theme="dark"] .folio-outside > :is(h2, h3) { margin: 4px 0 0; color: var(--night-ink); font-size: 15px; }
 html[data-theme="dark"] .lo-summary .folio-foot { margin: 0; color: var(--night-muted); font-size: 13px; }
 /* The link field on /order-by-link matches the home form: a field-grey frame, one soft shadow, focus in green. */
 html:not([data-theme="dark"]) .lo-link { padding: 6px; border: 1px solid var(--day-field); border-radius: 14px; box-shadow: var(--day-raise-form); }

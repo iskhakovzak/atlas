@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { retryOriginal, sizedImage } from '../lib/market/image-size.ts';
+import { retryOriginal, sizedImage, sizedSrcSet } from '../lib/market/image-size.ts';
 
 test('Amazon: only the size number shrinks, the AC prefix stays, bare and smaller files are untouched', () => {
   assert.equal(sizedImage('https://m.media-amazon.com/images/I/61OzkDt-WjL._AC_SL1500_.jpg', 600), 'https://m.media-amazon.com/images/I/61OzkDt-WjL._AC_SL600_.jpg');
@@ -41,12 +41,21 @@ test('demo photos saved as .jpg are shown from the lighter .webp copy', () => {
 });
 
 test('retryOriginal tries the store address once per address, then gives up', () => {
-  const attrs = { src: 'https://m.media-amazon.com/images/I/a._SL600_.jpg' };
-  const image = { dataset: {}, getAttribute: (name) => attrs[name], set src(value) { attrs.src = value; }, get src() { return attrs.src; } };
+  const attrs = { src: 'https://m.media-amazon.com/images/I/a._SL600_.jpg', srcset: 'small 300w, large 600w' };
+  const image = { dataset: {}, getAttribute: (name) => attrs[name], removeAttribute: (name) => { delete attrs[name]; }, set src(value) { attrs.src = value; }, get src() { return attrs.src; } };
   const original = 'https://m.media-amazon.com/images/I/a._SL1500_.jpg';
   assert.equal(retryOriginal(image, original), true);
   assert.equal(attrs.src, original);
+  assert.equal(attrs.srcset, undefined, 'the srcset would keep the resized copy');
   assert.equal(retryOriginal(image, original), false);
   attrs.src = 'https://m.media-amazon.com/images/I/b._SL600_.jpg';
   assert.equal(retryOriginal(image, 'https://m.media-amazon.com/images/I/b._SL1500_.jpg'), true);
+});
+
+test('sizedSrcSet offers the half and full copies only when the store makes them', () => {
+  assert.equal(sizedSrcSet('https://static.nike.com/a/images/t_default/abc/CORTEZ.png', 600),
+    'https://static.nike.com/a/images/w_300,f_auto/abc/CORTEZ.png 300w, https://static.nike.com/a/images/w_600,f_auto/abc/CORTEZ.png 600w');
+  assert.equal(sizedSrcSet('https://www.brooksrunning.com/on/demandware.static/-/x/shoe.png', 600), undefined);
+  // Wolverine has one preset at or under 600 px: nothing to choose from.
+  assert.equal(sizedSrcSet('https://thekit.wolverineworldwide.com/match/media_lookup/X?preset=dw-large', 600), undefined);
 });

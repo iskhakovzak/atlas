@@ -136,7 +136,7 @@ export function ExampleQuote(){
    <p className="bill-total home-quote-total"><span>{c.example.total}</span><strong><Money value={quote.total} locale={locale}/></strong></p>
   </div>
   <section className="folio-outside home-customs-slip" aria-labelledby="example-outside">
-   <h3 id="example-outside">{c.example.dutyTitle(formatUsd(allowance,locale))}</h3>
+   <h2 id="example-outside">{c.example.dutyTitle(formatUsd(allowance,locale))}</h2>
    <p className="home-customs-note">{c.example.dutyNote}</p>
   </section>
  </aside>;
