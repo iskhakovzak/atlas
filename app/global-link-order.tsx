@@ -1204,7 +1204,7 @@ export function GlobalLinkOrder() {
           <div className="lo-sheet lo-sheet-pick">
           <section className={"lo-product" + (image || checking ? "" : " lo-product-plain")} aria-labelledby="lo-product-name">
             {/* A catalog product keeps its photo and name through the check; a bare link gets their outline. */}
-            {image ? <div className="lo-gallery"><ProductGallery product={previewProduct} images={images.length?images:[image]} activeImage={image} onImageChange={setImage} locale={lang}/></div>
+            {image ? <div className="lo-gallery"><ProductGallery product={previewProduct} images={images.length?images:[image]} activeImage={image} onImageChange={setImage} locale={lang} compact/></div>
               : checking && <div className="lo-gallery lo-skel lo-skel-photo" aria-hidden="true" />}
             <div className="lo-product-copy">
               {brand || sourceHost || !checking
@@ -1217,8 +1217,8 @@ export function GlobalLinkOrder() {
               {!checking && sourceCheckStatus === "failed" && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{tx('Автоматическая проверка не завершена. Сохранённые данные предварительные.','Avtomatik tekshirish tugamadi. Saqlangan ma’lumotlar taxminiy.','Automatic verification is incomplete. Saved details are preliminary.')}</p>}
               {!checking && orderable && variants.length > 1 && variantColors.length > 1 && <div className="variant-step lo-colours-aside"><div><b>{c.color}</b><span>{selectedColor || c.selectColor}</span></div>{colourOptions}</div>}
             </div>
-          </section>
 
+          {/* The choice sits inside the item card, across its full width under the photo and colours (owner, 12 October 2026). */}
           {checking ? <StoreCheck host={(() => { try { return new URL(source || url).hostname.replace(/^www\./, ""); } catch { return ""; } })()} locale={lang} /> : orderable && <section className="lo-card lo-variant">
             <div className="field variant-matrix" data-order-variant tabIndex={-1}>
               <label htmlFor="variant">{c.variant}</label>
@@ -1259,26 +1259,7 @@ export function GlobalLinkOrder() {
             </>}
             {variants.length > 0 && !variants.some(item => item.quantity !== undefined || item.quantityMoreThan !== undefined) && <p className="lo-hint-line muted">{k.stockUnknown}</p>}
           </section>}
-          </div>
-
-          {/* The bill in a folder: the sheet is the amount to pay, the slip holds the hold and customs that stay outside it. */}
-          <div className="lo-sheet lo-sheet-bill">
-          <aside className="lo-summary basket-summary folio" aria-labelledby="lo-summary-title">
-            <div className="folio-sheet">
-              <h2 id="lo-summary-title">{lc.total}</h2>
-              {checking ? <BillPlaceholder /> : previewSums ? <>
-                <p className="micro">{tx("Скорость доставки выберете в корзине.", "Yetkazish tezligini savatda tanlaysiz.", "Choose delivery speed in your cart.")}</p>
-                <CalcLines sums={previewSums} locale={lang} pricing={pricing} weightKg={previewWeight} storeShippingState={storeShippingState} speed={previewSpeed}/>
-                <div className="basket-total bill-total"><span>{units > 1 ? `${k.lines.total} (${units} ${lang === "en" ? "pcs" : isUzbek(lang) ? uzText(lang, "dona") : "шт."})` : k.lines.total}</span><strong><Money value={previewSums.total} locale={lang}/></strong></div>
-                {/* The allowance in two lines; "Atlas pays customs for me" is chosen in the cart, for the whole order. */}
-                {customsPreview && <CustomsPanel estimate={customsPreview} choices={{ outsideUsed: false, help: false }} locale={lang} pricing={pricing} profiles={primaryProfile ? [primaryProfile] : []} compact/>}
-              </> : <p className="cabinet-empty">{picks.length ? lc.emptyTotal : tx("Выберите вариант, и мы покажем итог.", "Variantni tanlang, jamini ko‘rsatamiz.", "Choose an option to see the total.")}</p>}
-            </div>
-            {!checking && previewSums && previewSums.storeShippingHold > 0 && <section className="folio-outside" aria-labelledby="lo-outside-title">
-              <h3 id="lo-outside-title">{k.outside}</h3>
-              <HoldNote amount={previewSums.storeShippingHold} locale={lang} pricing={pricing}/>
-            </section>}
-          </aside>
+          </section>
           </div>
 
           {!checking && orderable && <div className="lo-sheet lo-sheet-finish">
@@ -1390,7 +1371,28 @@ export function GlobalLinkOrder() {
               </div>
             </div>
           </section>
+          </div>}
 
+          {/* The bill in a folder: the sheet is the amount to pay, the slip holds the hold and customs that stay outside it. */}
+          <div className="lo-sheet lo-sheet-bill">
+          <aside className="lo-summary basket-summary folio" aria-labelledby="lo-summary-title">
+            <div className="folio-sheet">
+              <h2 id="lo-summary-title">{lc.total}</h2>
+              {checking ? <BillPlaceholder /> : previewSums ? <>
+                <p className="micro">{tx("Скорость доставки выберете в корзине.", "Yetkazish tezligini savatda tanlaysiz.", "Choose delivery speed in your cart.")}</p>
+                <CalcLines sums={previewSums} locale={lang} pricing={pricing} weightKg={previewWeight} storeShippingState={storeShippingState} speed={previewSpeed}/>
+                <div className="basket-total bill-total"><span>{units > 1 ? `${k.lines.total} (${units} ${lang === "en" ? "pcs" : isUzbek(lang) ? uzText(lang, "dona") : "шт."})` : k.lines.total}</span><strong><Money value={previewSums.total} locale={lang}/></strong></div>
+                {/* The allowance in two lines; "Atlas pays customs for me" is chosen in the cart, for the whole order. */}
+                {customsPreview && <CustomsPanel estimate={customsPreview} choices={{ outsideUsed: false, help: false }} locale={lang} pricing={pricing} profiles={primaryProfile ? [primaryProfile] : []} compact/>}
+              </> : <p className="cabinet-empty">{picks.length ? lc.emptyTotal : tx("Выберите вариант, и мы покажем итог.", "Variantni tanlang, jamini ko‘rsatamiz.", "Choose an option to see the total.")}</p>}
+            </div>
+            {!checking && previewSums && previewSums.storeShippingHold > 0 && <section className="folio-outside" aria-labelledby="lo-outside-title">
+              <h3 id="lo-outside-title">{k.outside}</h3>
+              <HoldNote amount={previewSums.storeShippingHold} locale={lang} pricing={pricing}/>
+            </section>}
+          </aside>
+          {/* Comment and the add button sit under the total: the right column holds the whole decision (owner, 12 October 2026). */}
+          {!checking && orderable && <>
           <section className="lo-card lo-comment">
             <label htmlFor="order-comment"><b>{k.blocks.comment}</b><small>{k.commentHint}</small></label>
             <textarea id="order-comment" rows={2} maxLength={500} value={comment} placeholder={k.commentPlaceholder} onChange={(e) => setComment(e.target.value)} />
@@ -1408,7 +1410,8 @@ export function GlobalLinkOrder() {
             </div>
             <ul className="basket-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{cc.summary.assurance}</li>{/* Said once: "checked at HH:MM" by the price at the top, or "will check" above the button until then. */}{sourceCheckStatus === "manual" ? <li><Info size={16} aria-hidden="true" />{tx("Данные введены вами по странице магазина.","Ma’lumotlarni do‘kon sahifasi bo‘yicha o‘zingiz kiritdingiz.","You entered the details from the store page.")}</li> : sourceCheckStatus === "verified" && !checkedTime ? <li><ShieldCheck size={16} aria-hidden="true" />{checkedText}</li> : null}</ul>
           </section>
-          </div>}
+          </>}
+          </div>
         </form>
       )}
 

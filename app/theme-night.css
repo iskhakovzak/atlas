@@ -562,3 +562,4 @@ html[data-theme="dark"] .customs-how-close:hover { background: var(--night-hover
 html[data-theme="dark"] .cabinet-allowance li { border-color: var(--night-line); background: rgba(255, 255, 255, 0.022); }
 html[data-theme="dark"] .cabinet-allowance-who i { color: var(--night-on-ivory); }
 html[data-theme="dark"] .cabinet-month { background: var(--night-raised); }
+html[data-theme="dark"] .lo-product > :is(.lo-variant, .lo-check) { border: 0; background: transparent; box-shadow: none; }

@@ -480,9 +480,9 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
 .lo-page { padding-top: 8px; }
 /* A loaded item: the page title steps back to one short line so the item starts high (owner, 11 October 2026). */
 @media (min-width: 761px) {
-  main[data-view="link"] .breadcrumb { padding: 14px 0 0; }
+  html main[data-view="link"] .breadcrumb { padding: 12px 0 0; }
   .lo-page-loaded { padding-top: 0; }
-  .lo-page-loaded > .orders-head { margin: 10px 0 12px; }
+  .lo-page-loaded > .orders-head { margin: 2px 0 12px; }
   .lo-page-loaded > .orders-head > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; }
   .lo-page-loaded > .orders-head h1 { font-size: 28px; }
   .lo-page-loaded > .orders-head p { margin: 0; }
@@ -512,17 +512,27 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
 .lo-pending { min-height: 44px; font-weight: 600; }
 .lo-loading { display: flex; justify-content: center; align-items: center; gap: 8px; }
 
-.lo-layout { display: grid; grid-template-areas: "product" "variant" "summary" "data" "comment" "confirm"; gap: 14px; }
+.lo-layout { display: grid; grid-template-areas: "product" "summary" "data" "comment" "confirm"; gap: 14px; }
 .lo-product { grid-area: product; }
-.lo-variant { grid-area: variant; }
+/* The option choice lives inside the product card, across its full width under the photo and colours (owner, 12 October 2026). */
+.lo-product > :is(.lo-variant, .lo-check) { grid-column: 1 / -1; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+@media (min-width: 640px) {
+  /* Beside the photo the colour and size steps carry their own headings; the generic "Option" title stays for screen readers. */
+  .lo-product:not(.lo-product-plain) .variant-matrix > label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
 .lo-summary { grid-area: summary; }
 .lo-data { grid-area: data; }
 .lo-comment { grid-area: comment; }
 .lo-confirm { grid-area: confirm; }
+/* Wide screens: the item (photo, colours, sizes) on the left; the total, item data, comment and add button stacked
+   on the right. Delivery speed is chosen in the cart now, so the right column carries the rest of the decision and
+   neither column is left with an empty band (owner, 12 October 2026). Cards keep their natural height (no stretching). */
 @media (min-width: 960px) {
-  .lo-layout { grid-template-columns: minmax(0, 1fr) 380px; grid-template-areas: "product summary" "variant summary" "data summary" "comment summary" "confirm summary"; grid-template-rows: repeat(4, auto) 1fr; align-items: start; gap: 14px 24px; }
-  .lo-summary { position: sticky; top: 88px; }
+  .lo-layout { grid-template-columns: minmax(0, 1fr) 380px; grid-template-areas: "product summary" "product data" "product comment" "product confirm"; grid-template-rows: repeat(3, auto) 1fr; align-items: start; gap: 14px 24px; }
+  html .lo-layout .lo-summary.basket-summary.folio { position: static; }
 }
+/* In the narrow right column the item data blocks stack one per row. */
+@media (min-width: 960px) { .lo-layout .lo-data .lo-blocks { grid-template-columns: minmax(0, 1fr); } }
 .lo-card, .lo-product { padding: 18px; border: 1px solid var(--home-line); border-radius: 18px; background: var(--home-surface); }
 .lo-product { display: grid; gap: 14px; }
 @media (min-width: 640px) { .lo-product { grid-template-columns: 240px minmax(0, 1fr); align-items: start; } .lo-product.lo-product-plain { grid-template-columns: minmax(0, 1fr); } }
