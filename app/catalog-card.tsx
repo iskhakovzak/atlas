@@ -104,7 +104,10 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   // confirmed without the store re-reading the price.
   const priceDated = item.checkedAt > 0 && (needsPrice ? hasRecordedPrice : confirmedAt !== undefined && item.checkedAt < confirmedAt);
   // One mint element per card: the discount pill wins, so a mint chip next to it turns neutral.
-  const hasDiscountPill = !needsPrice && discount > 0;
+  // The store discount shows on a dated price too, when that price is the recorded USD one (owner, 12 October 2026):
+  // the date beside it says how old it is.
+  const showDiscount = discount > 0 && (!needsPrice || (hasRecordedPrice && product.sourceCurrency === 'USD'));
+  const hasDiscountPill = showDiscount;
   const chips = signals.slice(0, 2).map((signal) => hasDiscountPill && signal.tone === 'mint' ? { ...signal, tone: 'neutral' as const } : signal);
   return <article className="find-card" data-stale={needsPrice || undefined} data-saved={saved || undefined}>
     <div className="find-visual">
@@ -118,10 +121,10 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
       <div className={'find-store-price' + (needsPrice ? ' needs-confirmation' : '')}>
         <span>{priceDated ? cc.storePriceOn(shortDate(item.checkedAt, locale)) : cc.storePrice}</span>
         {' '}<b>{storePriceText}</b>
-        {!needsPrice && discount > 0 && <>{' '}<del title={copy.referenceLabel}>{fmt(referenceUsd!, 'USD')}</del>{' '}<em className="find-discount" title={copy.compareHint}>−{discount}&#x202F;%</em></>}
+        {showDiscount && <>{' '}<del title={copy.referenceLabel}>{fmt(referenceUsd!, 'USD')}</del>{' '}<em className="find-discount" title={copy.compareHint}>−{discount}&#x202F;%</em></>}
       </div>
       {costs
-        ? <FindPrice costs={costs} product={product} stale={needsPrice} speed={speed} label={needsPrice ? cc.totalStale : cc.total} breakdownLabel={cc.breakdown} fmt={fmt} numberLocale={numberLocale} locale={locale} note={confirmedAt ? cc.confirmedBy(shortDate(confirmedAt, locale)) : ''} />
+        ? <FindPrice costs={costs} product={product} stale={needsPrice} speed={speed} label={needsPrice ? cc.totalStale : cc.total} breakdownLabel={cc.breakdown} fmt={fmt} numberLocale={numberLocale} locale={locale} note='' />
         : <div className="find-total"><div className="find-total-head"><span>{cc.totalStale}</span></div><strong className="find-total-pending"><span>{cc.afterCheck}</span></strong><small className="find-total-note" /></div>}
       <Facts product={product} speed={speed} locale={locale} />
       <div className="find-chips">

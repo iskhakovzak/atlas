@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ArrowRight, ChevronDown, Heart, Link2, PackageCheck, Search, ShieldCheck, SlidersHorizontal, Store, X, type LucideIcon } from 'lucide-react';
+import { ArrowRight, ChevronDown, Heart, Link2, Search, ShieldCheck, SlidersHorizontal, Store, X, type LucideIcon } from 'lucide-react';
 import Link from '@/components/site-link';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -127,10 +127,6 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
       detail={allowance.remainingUsd > 0 ? cc.allowanceLeft(allowance.remainingUsd, allowance.name, allowanceMonth(locale), limitUsd) : cc.allowanceSpent(allowance.name, allowanceMonth(locale))}
       action={allowance.remainingUsd > 0 && !query.duty ? <button type="button" className="text-button" onClick={() => setQuery({ ...query, duty: true })}>{cc.allowanceShow}</button> : null}
       more={<Link className="text-link" href="/customs">{cc.allowanceHow}</Link>} />}
-    {mode === 'catalog' && parcels.length > 0 && <CompactBanner tone="parcel" icon={PackageCheck} cc={cc}
-      short={cc.bannerParcel(parcels.map((store) => storeLabel(store, locale)).join(', '))}
-      detail={cc.parcelBanner(parcels.map((store) => storeLabel(store, locale)).join(', '))}
-      action={query.stores.join() !== parcels.join() ? <button type="button" className="text-button" onClick={() => setQuery({ ...query, stores: parcels })}>{cc.parcelShow}</button> : null} />}
     {sets.length > 0 && <div className="catalog-collections">
       <button ref={setsToggleRef} type="button" className="catalog-sets-toggle" aria-expanded={setsOpen} aria-controls={setsId} onClick={() => setSetsOpen((open) => !open)}>{cc.collections}<ChevronDown size={18} aria-hidden="true" /></button>
       <nav {...setsRow} id={setsId} className="catalog-sets" data-open={setsOpen || undefined} aria-label={cc.collections}>

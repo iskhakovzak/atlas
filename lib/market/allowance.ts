@@ -40,11 +40,13 @@ export function samePerson(a: AllowancePerson, b: AllowancePerson) {
 }
 
 /**
- * Orders that use the allowance: bought (status "Выкуплен" or later), paid and not cancelled. Unpaid,
- * not yet bought or cancelled orders are not imported, so they do not count (owner's rule, 4 October 2026).
+ * Orders that use the allowance: paid and not cancelled. A paid order counts at once, while it still waits to be
+ * bought, so the cabinet does not show the money as free (owner, 12 October 2026; before that only bought orders
+ * counted). Unpaid, refunded and cancelled orders do not count. An old order without a payment record counts once bought.
  */
 export function countsTowardAllowance(order: Order) {
-  return !order.cancelled && order.status >= 1 && (!order.payment || order.payment.status === 'paid');
+  if (order.cancelled) return false;
+  return order.payment ? order.payment.status === 'paid' : order.status >= 1;
 }
 
 /** "2026-10" for a moment in Tashkent time (UTC+5): the calendar month the allowance is counted in, whatever the

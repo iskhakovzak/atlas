@@ -43,6 +43,7 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/lib/market/toast";
+import { readableVariant } from "@/lib/market/nike-size-chart";
 import { CopyText } from "./copy-text";
 import { useMarket } from "@/lib/market/store";
 import { hasPermission } from "@/lib/market/access";
@@ -696,7 +697,7 @@ function lineCells(o: Order, showThumb: boolean, headerStage: string | undefined
   const { needsAction, stage, tone } = lineState(o, locale);
   return <>
     {showThumb && <span className="og-line-thumb" aria-hidden="true"><ProductImage product={o.product} decorative locale={locale} size={160} /></span>}
-    <span className="og-line-variant">{o.variant || gc.noVariant}</span>
+    <span className="og-line-variant">{readableVariant(o.variant, o.product.sourceOptions) || gc.noVariant}</span>
     <span className="og-line-qty">× {o.quantity}</span>
     <span className="og-line-flags">
       {stage !== headerStage && <span className={"order-x-status " + tone}>{stage}</span>}
@@ -882,7 +883,7 @@ function CustomerOrderLine({ lines, panelId, progress = true, siblings, showThum
   const statuses = localizedStatuses(locale);
   const o = lines[0];
   const many = lines.length > 1;
-  const label = (line: Order) => many ? line.variant || gc.noVariant : undefined;
+  const label = (line: Order) => many ? readableVariant(line.variant, line.product.sourceOptions) || gc.noVariant : undefined;
   const live = lines.filter((line) => !line.cancelled);
   // One stage track for the parcel: its least advanced live line (rows say their own stage when it differs).
   const lead = live.reduce<Order | undefined>((first, line) => !first || line.status < first.status ? line : first, undefined) ?? o;
@@ -912,7 +913,7 @@ function CustomerOrderLine({ lines, panelId, progress = true, siblings, showThum
         <span className="og-line-flags">{needsAction && <span className="order-x-status warn">{gc.action(acting.length)}</span>}</span>
         <ChevronDown className="og-line-chevron" size={18} aria-hidden="true" />
       </summary>
-      : <summary className="og-line-summary" aria-label={`${gc.line(o.id)}: ${o.variant || gc.noVariant}, ${c.quantity(o.quantity)}, ${stage}${needsAction ? `, ${gc.action(1)}` : ""}`}>
+      : <summary className="og-line-summary" aria-label={`${gc.line(o.id)}: ${readableVariant(o.variant, o.product.sourceOptions) || gc.noVariant}, ${c.quantity(o.quantity)}, ${stage}${needsAction ? `, ${gc.action(1)}` : ""}`}>
         {lineCells(o, showThumb, headerStage, locale)}
         <ChevronDown className="og-line-chevron" size={18} aria-hidden="true" />
       </summary>}
@@ -991,7 +992,7 @@ function CustomerOrderLine({ lines, panelId, progress = true, siblings, showThum
       </details>
       {/* Several lines: their numbers last, for support, each copied in one tap. */}
       {many && <ul className="og-line-ids" aria-label={pc.lines}>{lines.map((line) => <li key={line.id}>
-        <span className="og-line-ids-variant">{line.variant || gc.noVariant}</span>
+        <span className="og-line-ids-variant">{readableVariant(line.variant, line.product.sourceOptions) || gc.noVariant}</span>
         {line.product.sourceUrl && !line.product.image && <button type="button" className="text-button" disabled={photoBusy(line)} onClick={() => loadPhoto(line)}>{photoBusy(line) ? ow.loadingPhoto : ow.loadPhoto}</button>}
         <span className="og-line-id"><span className="sr-only">{c.orderNumber}: </span><span className="order-x-id">{line.id}</span><CopyText text={line.id} locale={locale} /></span>
       </li>)}</ul>}
@@ -1302,7 +1303,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
     done = listed.filter((o) => (o.cancelled || o.status === 5) && (!o.issueCase || o.issueCase.status === "resolved") && !(o.claims ?? []).some((claim) => claim.status === "submitted")),
     refunds = operations ? listed.filter((o) => o.cancelled || o.payment?.status === "refunded" || atlasCreditForOrder(orderAccount.get(o.id), o.id) > 0) : [];
   // Customers who order for several people can narrow the list to one recipient.
-  // The allowance an order counts against: bought, paid orders of that person in the month of import.
+  // The allowance an order counts against: paid orders of that person in the month of import.
   const currentMonth = monthOf(new Date().getTime());
   const allowanceFor = (order: Order) => !order.cancelled && countsTowardAllowance(order) && allowanceMonth(order) === currentMonth ? monthlyUsedFor(state, orderPerson(state, order), pricing.fx) : undefined;
   // Recipients of placed orders whose passport is not linked yet: the declaration needs it.
@@ -1628,7 +1629,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
           <details className="surface order-card compact-order" key={o.id} id={o.id} onToggle={event=>{const open=event.currentTarget.open;setExpanded(ids=>open?[...new Set([...ids,o.id])]:ids.filter(id=>id!==o.id))}}>
             <summary className="compact-order-summary">
               <ProductImage product={o.product} decorative locale={state.communication.language} size={240} />
-               <span className="compact-order-name"><small>{o.id}{operations ? ` · ${orderAccount.get(o.id)?.name ?? ''}` : ''}</small><b>{o.product.name}</b><span>{o.variant} · {o.quantity}</span>{operations && tab === "refunds" && <small>{atlasCreditForOrder(orderAccount.get(o.id), o.id) > 0 ? `${locale === "ru" ? "Зачислено во внутренний баланс Atlas" : isUzbek(locale) ? uzText(locale, "Atlas ichki balansiga yozildi") : "Credited to Atlas internal balance"}: ${money(atlasCreditForOrder(orderAccount.get(o.id), o.id))}` : locale === "ru" ? "Зачислений во внутренний баланс Atlas по заказу нет" : isUzbek(locale) ? uzText(locale, "Buyurtma bo‘yicha Atlas ichki balansiga yozuv yo‘q") : "No Atlas internal-balance credit recorded for this order"}</small>}</span>
+               <span className="compact-order-name"><small>{o.id}{operations ? ` · ${orderAccount.get(o.id)?.name ?? ''}` : ''}</small><b>{o.product.name}</b><span>{readableVariant(o.variant, o.product.sourceOptions)} · {o.quantity}</span>{operations && tab === "refunds" && <small>{atlasCreditForOrder(orderAccount.get(o.id), o.id) > 0 ? `${locale === "ru" ? "Зачислено во внутренний баланс Atlas" : isUzbek(locale) ? uzText(locale, "Atlas ichki balansiga yozildi") : "Credited to Atlas internal balance"}: ${money(atlasCreditForOrder(orderAccount.get(o.id), o.id))}` : locale === "ru" ? "Зачислений во внутренний баланс Atlas по заказу нет" : isUzbek(locale) ? uzText(locale, "Buyurtma bo‘yicha Atlas ichki balansiga yozuv yo‘q") : "No Atlas internal-balance credit recorded for this order"}</small>}</span>
                <span className={'status-badge '+(isExtra(o)||pendingChange(o)||(!operations&&o.payment?.status==='pending')?'needs-action':'')}>{o.cancelled ? ow.cancelled : o.payment?.status==='refunded' ? refundStatusLabel : isExtra(o)||pendingChange(o) ? ow.needDecision : o.payment?.status==='pending' ? ow.awaitingPayment : displayStatuses[o.status]}</span>
               <strong>{money(orderPayable(o))}</strong><ArrowRight size={18}/>
             </summary>
@@ -1666,7 +1667,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
               <div>
                 <h2>{o.product.name}</h2>
                 <p>
-                  {o.variant} · {o.quantity} {locale === "ru" ? "шт." : isUzbek(locale) ? uzText(locale, "dona") : "pcs"} · {o.product.country ?? (locale === "ru" ? "США" : isUzbek(locale) ? uzText(locale, "AQSh") : "USA")}
+                  {readableVariant(o.variant, o.product.sourceOptions)} · {o.quantity} {locale === "ru" ? "шт." : isUzbek(locale) ? uzText(locale, "dona") : "pcs"} · {o.product.country ?? (locale === "ru" ? "США" : isUzbek(locale) ? uzText(locale, "AQSh") : "USA")}
                 </p>
                 {o.product.sourceUrl && (
                   <a

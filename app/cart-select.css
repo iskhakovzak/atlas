@@ -20,15 +20,28 @@
 .basket-variant > .basket-select { grid-area: sel; align-self: center; }
 .basket-variant > :is(.basket-note, .basket-note-add) { grid-column: 2 / -1; margin: 2px 0 0; }
 .basket-variant.is-later > :not(.basket-select) { opacity: .62; }
-.basket-variant-info .basket-later-tag { margin-left: 0; white-space: nowrap; }
+/* In the narrow size column on phones the tag wraps inside it instead of running under the quantity buttons. */
+.basket-variant-info .basket-later-tag { max-width: 100%; margin-left: 0; line-height: 1.3; }
 /* The one-line row needs room: it follows the card's width (the cart column is narrow next to the bill), not the window. */
 .basket-group { container-type: inline-size; }
 .basket-variants { padding: 0 16px 6px; }
 .basket-variant-sum { text-align: left; }
+/* Phones: "remove all" stays in the text column under the sum, not on a row of its own under the photo. */
+.basket-group > .basket-group-head { grid-template-areas: "photo info" "photo price" ". controls"; }
+.basket-group > .basket-group-head > .basket-controls { margin-top: 0; }
+.basket-group > .basket-group-head > .basket-controls .remove-item { margin: 0 0 0 -10px; }
 @container (min-width: 560px) {
   .basket-variants { padding: 0 20px 6px 130px; }
   .basket-variant { grid-template-columns: auto minmax(0, 1fr) auto minmax(116px, auto) auto; grid-template-areas: "sel info qty sum del"; gap: 6px 12px; }
   .basket-variant-sum { font-size: 15px; text-align: right; }
+  /* The product line holds its "remove all" under the sum, so nothing hangs alone under the photo; each option row
+     keeps its "comment" link under the size, beside the quantity, instead of a row of its own (owner, 12 October 2026). */
+  .basket-group > .basket-group-head { grid-template-columns: 96px minmax(0, 1fr) auto; grid-template-areas: "photo info price" "photo info controls"; grid-template-rows: auto 1fr; }
+  .basket-group > .basket-group-head > .basket-controls { flex-wrap: nowrap; align-self: end; justify-content: flex-end; margin-top: 4px; }
+  .basket-variant { grid-template-areas: "sel info qty sum del" "sel note qty sum del"; row-gap: 0; }
+  .basket-variant > .basket-variant-info { align-self: end; }
+  .basket-variant > .basket-note-add { grid-area: note; align-self: start; min-height: 30px; margin: 0; }
+  .basket-variant > :is(.basket-note, .basket-item-note) { grid-column: 2 / -1; margin-top: 6px; }
 }
 .basket-none-hint { display: flex; align-items: center; gap: 8px; margin: 10px 0 0; font-size: 14px; color: var(--day-muted, #58635c); }
 .basket-later-note { margin: 8px 0 0; font-size: 13px; color: var(--day-muted, #58635c); }

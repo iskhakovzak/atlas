@@ -147,7 +147,9 @@ test('by default the products themselves are the records, so an imported snapsho
   assert.equal(withDiscount.discount, 40);
   assert.equal(withDiscount.referenceUsd, 100);
   assert.equal(catalogItems([sale], tariff, [])[0].discount, 0, 'explicit records still decide');
-  assert.equal(catalogItems([{ ...sale, priceNeedsConfirmation: true, sourcePrice: 60, sourceCurrency: 'USD' }], tariff)[0].discount, 0, 'an unconfirmed price has no discount');
+  // Owner, 12 October 2026: a dated USD snapshot keeps its discount (the card shows the date); another currency has none.
+  assert.equal(catalogItems([{ ...sale, priceNeedsConfirmation: true, sourcePrice: 60, sourceCurrency: 'USD' }], tariff)[0].discount, 40, 'a dated USD price keeps its discount');
+  assert.equal(catalogItems([{ ...sale, priceNeedsConfirmation: true, sourcePrice: 60, sourceCurrency: 'EUR' }], tariff)[0].discount, 0, 'a dated price in another currency has no discount');
 });
 
 test('an empty result suggests the single filter whose removal brings most products back', () => {

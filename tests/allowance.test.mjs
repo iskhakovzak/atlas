@@ -12,7 +12,7 @@ const order = (id, usd, extra = {}) => ({
 });
 const profile = (id, recipient, extra = {}) => ({ id, label: id, primary: false, recipient, phone: '+998 90 123 45 67', region: 'Ташкент', city: 'Ташкент', address: 'ул. Навои, 1', postalCode: '', comment: '', ...extra });
 
-test('the monthly allowance is counted per person, by name, across addresses, for bought and paid orders only', () => {
+test('the monthly allowance is counted per person, by name, across addresses, for paid orders only', () => {
   const state = {
     ...blank(),
     deliveryProfiles: [profile('home', 'Анна Каримова', { primary: true }), profile('work', 'анна  каримова')],
@@ -21,17 +21,21 @@ test('the monthly allowance is counted per person, by name, across addresses, fo
       order('B', 50, { deliveryProfileId: 'work' }),
       order('C', 70, { delivery: { recipient: 'Ольга Каримова', phone: '', region: '', city: '', address: '', postalCode: '', comment: '' } }),
       order('D', 500, { cancelled: true, deliveryProfileId: 'home' }),
+      // Paid and still waiting to be bought: counts at once (owner, 12 October 2026).
       order('E', 300, { deliveryProfileId: 'home', status: 0 }),
       order('F', 400, { deliveryProfileId: 'home', payment: { status: 'pending' } }),
+      order('I', 200, { deliveryProfileId: 'home', status: 0, payment: { status: 'refunded' } }),
       // Delivered (imported) in September: that month's allowance, not this one.
       order('G', 300, { deliveryProfileId: 'home', status: 5, createdAt: new Date(2026, 8, 2).getTime(), history: [{ at: new Date(2026, 8, 28).getTime(), text: 'Доставлен' }] }),
     ],
   };
-  assert.deepEqual(monthlyAllowance(state, 12000, now).map(group => [group.name, group.usedUsd, group.orders]), [['Анна Каримова', 170, 2], ['Ольга Каримова', 70, 1]]);
-  assert.equal(monthlyUsedFor(state, 'АННА КАРИМОВА', 12000, now), 170);
+  assert.deepEqual(monthlyAllowance(state, 12000, now).map(group => [group.name, group.usedUsd, group.orders]), [['Анна Каримова', 470, 3], ['Ольга Каримова', 70, 1]]);
+  assert.equal(monthlyUsedFor(state, 'АННА КАРИМОВА', 12000, now), 470);
   assert.equal(monthlyUsedFor(state, 'Кто-то ещё', 12000, now), 0);
   assert.equal(recipientKey('  '), 'unknown');
-  assert.deepEqual(['A', 'D', 'E', 'F'].map(id => countsTowardAllowance(state.orders.find(o => o.id === id))), [true, false, false, false]);
+  assert.deepEqual(['A', 'D', 'E', 'F', 'I'].map(id => countsTowardAllowance(state.orders.find(o => o.id === id))), [true, false, true, false, false]);
+  // An old order without a payment record counts once bought.
+  assert.deepEqual([0, 1].map(status => countsTowardAllowance(order('L', 1, { status, payment: undefined }))), [false, true]);
   assert.equal(allowanceMonth(state.orders.find(o => o.id === 'G'), now), '2026-09');
   // Bought in September but still on its way: imported this month at the earliest.
   assert.equal(allowanceMonth(order('H', 1, { createdAt: new Date(2026, 8, 20).getTime() }), now), '2026-10');
