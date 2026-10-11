@@ -11,9 +11,9 @@ const KEY = "atlas-consent-v1";
 const LEGACY_KEY = "atlas-storage-notice-v1";
 
 const copy = /*@__PURE__*/withCyrillic({
-  ru: { text: "Atlas обрабатывает данные для заказов и доставки. На сайте Impact учитывает партнёрские переходы и показы страниц.", privacy: "Политика конфиденциальности", terms: "Условия использования", more: "Подробнее", accept: "Принимаю", label: "Согласие на обработку данных" },
-  uz: { text: "Atlas buyurtma va yetkazish uchun ma’lumotlarga ishlov beradi. Saytda Impact hamkor havolalari va sahifa ko‘rishlarini hisobga oladi.", privacy: "Maxfiylik siyosati", terms: "Foydalanish shartlari", more: "Batafsil", accept: "Qabul qilaman", label: "Ma’lumotlarga ishlov berishga rozilik" },
-  en: { text: "Atlas processes data for orders and delivery. On the website, Impact measures partner links and page impressions.", privacy: "Privacy policy", terms: "Terms of use", more: "Learn more", accept: "I accept", label: "Data-processing consent" },
+  ru: { text: "Atlas обрабатывает данные для заказов и доставки. На сайте Impact учитывает партнёрские переходы и показы страниц.", privacy: "Политика конфиденциальности", terms: "Условия использования", more: "Правила работы", accept: "Принимаю", label: "Согласие на обработку данных" },
+  uz: { text: "Atlas buyurtma va yetkazish uchun ma’lumotlarga ishlov beradi. Saytda Impact hamkor havolalari va sahifa ko‘rishlarini hisobga oladi.", privacy: "Maxfiylik siyosati", terms: "Foydalanish shartlari", more: "Ishlash qoidalari", accept: "Qabul qilaman", label: "Ma’lumotlarga ishlov berishga rozilik" },
+  en: { text: "Atlas processes data for orders and delivery. On the website, Impact measures partner links and page impressions.", privacy: "Privacy policy", terms: "Terms of use", more: "How Atlas works", accept: "I accept", label: "Data-processing consent" },
 });
 
 function stored(): string | null {

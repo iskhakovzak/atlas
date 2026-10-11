@@ -66,12 +66,22 @@ export function sizedImage(src: string, px: number): string {
   return src;
 }
 
+/** srcset for a photo shown at most about `px` wide: the store's copies at half and full `px`, so a card that ends up
+ * small (a desktop grid, a phone at DPR 1) takes the lighter one. Undefined when the store has no such copies. */
+export function sizedSrcSet(src: string, px: number): string | undefined {
+  const half = Math.round(px / 2), small = sizedImage(src, half), large = sizedImage(src, px);
+  if (small === src || small === large) return undefined;
+  return `${small} ${half}w, ${large} ${Math.round(px)}w`;
+}
+
 /** onError of an <img> showing sizedImage(original): the first failure retries the store's own address and returns
  * true; after that (or when nothing was resized) it returns false and the caller shows its fallback. */
 export function retryOriginal(image: HTMLImageElement, original: string): boolean {
   // Remembered per address: React may reuse the element for another product.
   if (image.dataset.original === original || image.getAttribute('src') === original) return false;
   image.dataset.original = original;
+  // A srcset would keep choosing the resized copy over src.
+  image.removeAttribute('srcset');
   image.src = original;
   return true;
 }

@@ -113,12 +113,15 @@ export function MarketProvider({children,initialLocale='uz',initialPricing=null,
    localeRef.current=locale;
    queueMicrotask(()=>setState(s=>({...s,communication:{...s.communication,language:locale}})))
   }
-  queueMicrotask(()=>void refresh());
+  // Without a session cookie (sign-in is cookie-only) the first read could only answer 401: a guest is shown as one at once,
+  // with no request and no console error. Coming back to the tab still asks the server (a sign-in in another tab).
+  if(sessionHint)queueMicrotask(()=>void refresh());
+  else{lastRefresh.current=Date.now();queueMicrotask(()=>setStatus(current=>current==='loading'?'guest':current))}
   // Coming back to the tab or back online reloads the account, at most every 10 seconds.
   const wake=()=>{if(!busy.current&&document.visibilityState!=='hidden'&&Date.now()-lastRefresh.current>10000)void refresh()};
   window.addEventListener('focus',wake);window.addEventListener('online',wake);document.addEventListener('visibilitychange',wake);
   return()=>{window.removeEventListener('focus',wake);window.removeEventListener('online',wake);document.removeEventListener('visibilitychange',wake);if(retryTimer.current)clearTimeout(retryTimer.current)};
- },[readStoredLocale,refresh,initialLocale]);
+ },[readStoredLocale,refresh,initialLocale,sessionHint]);
  useEffect(()=>{document.documentElement.lang=htmlLang(state.communication.language)},[state.communication.language]);
  const act=useCallback(async(action:Action,options?:{queue?:boolean})=>{
   if(!ready){toast.error(marketMessages[localeRef.current].signin);return false}

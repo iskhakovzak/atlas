@@ -25,7 +25,12 @@ const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
-  { key: "Strict-Transport-Security", value: "max-age=15552000" },
+  // One year: the minimum browsers and Lighthouse treat as a strong HSTS policy. includeSubDomains and preload
+  // wait for the owner (every subdomain must serve HTTPS first; preload is hard to undo).
+  { key: "Strict-Transport-Security", value: "max-age=31536000" },
+  // Isolates the window from pages it did not open; popups Atlas opens itself (the Telegram login) keep their
+  // opener, so sign-in still works.
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
   { key: "Content-Security-Policy-Report-Only", value: contentSecurityPolicy },
 ];
 
