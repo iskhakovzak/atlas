@@ -275,6 +275,10 @@ export function GlobalLinkOrder() {
     } | null>(null);
   // Several options of one product can go to the cart at once: option label → quantity.
   const [picked, setPicked] = useState<Record<string, number>>(() => fallbackOptions.length === 1 ? { [fallbackOptions[0].label]: 1 } : {});
+  // One option at a time by default: a tap replaces the choice. "Several or a quantity" turns on the list with
+  // quantities (owner, 12 October 2026). A restored draft with several options opens in that mode.
+  const [multiPick, setMultiPick] = useState(false);
+  const manyMode = multiPick || Object.keys(picked).length > 1;
   const [manualQuantity, setManualQuantity] = useState(1);
   const [comment, setComment] = useState("");
   const [weightBasis, setWeightBasis] = useState<"store" | "estimate" | "title" | "catalog" | "customer">(seed ? "catalog" : "estimate");
@@ -420,13 +424,15 @@ export function GlobalLinkOrder() {
     : variantsForColor.some(item => item.sizeLabel === 'Nike US men') ? 'men' as const
       : inferNikeFootwearSizeSystem({sourceUrl:source,currency,category,title:name});
   const adidasSizes=variantsForColor.some(v=>/US/i.test(v.sizeLabel??"")&&adidasMenSize(brand,name,v.size??""));
-  const sizeDisplay=(size:string)=>{const alternate=variantsForColor.find(v=>v.size===size)?.sizeAlternates?.find(v=>v.system.toLowerCase()===sizeFormat);if(alternate)return `${sizeFormat.toUpperCase()} ${alternate.value}`;return adidasSizes?`${sizeFormat.toUpperCase()} ${adidasMenSize(brand,name,size)?.[sizeFormat]??size}`:size;};
+  // Nike sizes switch between US, UK, EU and CM/JP by Nike's own chart, like adidas (owner, 12 October 2026).
+  const nikeSizeIn=(size:string)=>{const row=nikeSizeSystem?findNikeFootwearSizeRow(nikeSizeSystem,size):undefined;return !row?`US ${size}`:sizeFormat==='cm'?`CM ${row.cmLabel}`:`${sizeFormat.toUpperCase()} ${row[sizeFormat]}`;};
+  const sizeDisplay=(size:string)=>{if(nikeSizeSystem)return nikeSizeIn(size);const alternate=variantsForColor.find(v=>v.size===size)?.sizeAlternates?.find(v=>v.system.toLowerCase()===sizeFormat);if(alternate)return `${sizeFormat.toUpperCase()} ${alternate.value}`;return adidasSizes?`${sizeFormat.toUpperCase()} ${adidasMenSize(brand,name,size)?.[sizeFormat]??size}`:size;};
   const nikeSizeRows = nikeSizeSystem ? getNikeFootwearSizeRows(nikeSizeSystem, variantSizes) : [];
   const selectedNikeSize = nikeSizeSystem && selectedSize ? findNikeFootwearSizeRow(nikeSizeSystem, selectedSize) : undefined;
   const variantSizeLabel = nikeSizeSystem
     ? nikeSizeSystem === 'women'
-      ? tx('Размер · Nike US, женские','O‘lcham · Nike US, ayollar','Size · Nike US women')
-      : tx('Размер · Nike US, мужские','O‘lcham · Nike US, erkaklar','Size · Nike US men')
+      ? tx('Размер · Nike, женские','O‘lcham · Nike, ayollar','Size · Nike women')
+      : tx('Размер · Nike, мужские','O‘lcham · Nike, erkaklar','Size · Nike men')
     : [...new Set(variantsForColor.map(item => item.sizeLabel).filter((value): value is string => Boolean(value)))].join(' / ') || (lang==='ru'?'Размер / модель':isUzbek(lang)?uzText(lang, 'O‘lcham / model'):'Size / model');
   // The store's product price applies to options it lists without their own; only from a store check (locked there).
   const storeBasePrice=sourceCheckStatus==='verified'&&atlasLocks?.price&&!unlocked.price?basePrice:undefined;
@@ -441,7 +447,7 @@ export function GlobalLinkOrder() {
   function togglePick(item:ProductVariant){
     if(!isConfirmedVariantAvailable(item))return;
     setFormIssue("");
-    setPicked(current=>{const next={...current};if(next[item.label])delete next[item.label];else next[item.label]=1;return next});
+    setPicked(current=>{if(!manyMode)return current[item.label]&&Object.keys(current).length===1?current:{[item.label]:1};const next={...current};if(next[item.label])delete next[item.label];else next[item.label]=1;return next});
     applyVariantChoice(item);
     setAdded(null);setGoneOptions([]);setChoiceNote("");
   }
@@ -456,7 +462,7 @@ export function GlobalLinkOrder() {
     const first=choices.find(item=>item.available)??choices[0];
     // The chosen color tapped again picks its only option back (after "add to cart" or removing it from the list).
     if(color===selectedColor){
-      if(first&&!choices.some(item=>item.size)&&!picked[first.label]){applyVariantChoice(first);setPicked(current=>({...current,[first.label]:1}))}
+      if(first&&!choices.some(item=>item.size)&&!picked[first.label]){applyVariantChoice(first);setPicked(current=>manyMode?{...current,[first.label]:1}:{[first.label]:1})}
       return;
     }
     const gallery=colorwayImages.find(item=>item.color===color)?.images??[];
@@ -465,7 +471,7 @@ export function GlobalLinkOrder() {
     setImages(nextImages);
     setImage(first?.image&&nextImages.includes(first.image)?first.image:nextImages[0]??'');
     if(choices.some(item=>item.price!==undefined))setAmount('');
-    if(!choices.some(item=>item.size)&&first){applyVariantChoice(first);setPicked(current=>({...current,[first.label]:current[first.label]??1}))}
+    if(!choices.some(item=>item.size)&&first){applyVariantChoice(first);setPicked(current=>manyMode?{...current,[first.label]:current[first.label]??1}:{[first.label]:current[first.label]??1})}
   }
   /** What the customer has chosen now, to apply again after a reload. */
   function currentChoices():DraftChoices{
@@ -1228,7 +1234,7 @@ export function GlobalLinkOrder() {
                 <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
               </div> : variants.length && (variantColors.length||variantSizes.length) ? <>
                 {variantColors.length>0&&<div className={"variant-step"+(variantColors.length>1?" lo-colours-main":"")}><div><b>{variantColors.length===1?tx('Расцветка по ссылке','Havoladagi rang','Linked colorway'):c.color}</b>{variantColors.length!==1&&<span>{selectedColor||c.selectColor}</span>}</div>{variantColors.length===1?<><div className="single-variant-selection"><span>{describeSingleColorway(variantColors[0]).primary}</span><small>{tx('Одна расцветка по этой ссылке','Bu havolada bitta rang varianti','One colorway in this link')}</small></div><p className="single-colorway-note">{tx('Для другого цвета нужна ссылка на соответствующий артикул магазина.','Boshqa rang uchun do‘kondagi tegishli artikl havolasi kerak.','Another color requires a link to its separate store item.')}</p><details className="single-colorway-source"><summary>{tx('Полное название расцветки в магазине','Do‘kondagi rangning to‘liq nomi','Full store colorway name')}</summary><span>{variantColors[0]}</span></details></>:colourOptions}</div>}
-                {(variantColors.length===0||selectedColor)&&!complexVariants&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize?(nikeSizeSystem?`US ${selectedSize}`:sizeDisplay(selectedSize)):c.selectVariant}</span></div>{adidasSizes&&<div className="variant-options" aria-label="Size format">{(["us","uk","eu","cm"] as const).map(format=><button type="button" key={format} aria-pressed={sizeFormat===format} onClick={()=>setSizeFormat(format)}>{format.toUpperCase()}</button>)}<a href="https://www.adidas.com/us/help/size_charts/men-shoes" target="_blank" rel="noopener noreferrer">adidas ↗</a>{sizeFormat==="cm"&&<small>{tx("Длина стопы, см","Oyoq uzunligi, sm","Foot length, cm")}</small>}</div>}<div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={Boolean(choice&&picked[choice.label])} disabled={!choice||!choice.available||choice.quantity===0} aria-label={!choice||!choice.available||choice.quantity===0?`${sizeDisplay(size)} — ${k.outOfStock}`:undefined} onClick={()=>choice&&togglePick(choice)}><span>{nikeSizeSystem?`US ${size}`:sizeDisplay(size)}</span>{choice&&price!==undefined&&sizePricesDiffer&&<small>{price} {currency}</small>}{choice?.quantity!==undefined&&choice.quantity<=5&&<small className="lo-stock">{choice.quantity?k.stockLeft(choice.quantity):k.outOfStock}</small>}</button>})}</div>{nikeSizeSystem&&<div className="nike-size-guide">
+                {(variantColors.length===0||selectedColor)&&!complexVariants&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize?(sizeDisplay(selectedSize)):c.selectVariant}</span></div>{(adidasSizes||nikeSizeSystem)&&<div className="variant-options lo-size-formats" role="group" aria-label={tx("Формат размера","O‘lcham formati","Size format")}>{(["us","eu","uk","cm"] as const).map(format=><button type="button" key={format} aria-pressed={sizeFormat===format} onClick={()=>setSizeFormat(format)}>{format==="cm"?tx("СМ","SM","CM"):format.toUpperCase()}</button>)}{adidasSizes&&<a href="https://www.adidas.com/us/help/size_charts/men-shoes" target="_blank" rel="noopener noreferrer">adidas ↗</a>}{sizeFormat==="cm"&&<small>{adidasSizes?tx("Длина стопы, см","Oyoq uzunligi, sm","Foot length, cm"):tx("CM/JP по таблице Nike","Nike jadvali bo‘yicha CM/JP","CM/JP by Nike's chart")}</small>}</div>}<div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={Boolean(choice&&picked[choice.label])} disabled={!choice||!choice.available||choice.quantity===0} aria-label={!choice||!choice.available||choice.quantity===0?`${sizeDisplay(size)} — ${k.outOfStock}`:undefined} onClick={()=>choice&&togglePick(choice)}><span>{sizeDisplay(size)}</span>{choice&&price!==undefined&&sizePricesDiffer&&<small>{price} {currency}</small>}{choice?.quantity!==undefined&&choice.quantity<=5&&<small className="lo-stock">{choice.quantity?k.stockLeft(choice.quantity):k.outOfStock}</small>}</button>})}</div>{nikeSizeSystem&&<div className="nike-size-guide">
                   {selectedNikeSize&&<p className="nike-selected-size">{tx('Выбранный размер','Tanlangan o‘lcham','Selected size')}: <strong>US {selectedNikeSize.us}</strong><span>EU {selectedNikeSize.eu}</span><span>UK {selectedNikeSize.uk}</span><span>CM/JP {selectedNikeSize.cmLabel}</span><span>{tx('Стопа','Oyoq','Foot')} {selectedNikeSize.footLengthCm===undefined?'—':selectedNikeSize.footLengthCm} {tx('см','sm','cm')}</span></p>}
                   <details className="nike-size-chart"><summary>{tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')}</summary>
                     <p>{tx('Показаны размеры, найденные для этого товара. CM/JP — маркировка обуви Nike; длина стопы указана отдельно.','Bu tovar uchun topilgan o‘lchamlar ko‘rsatilgan. CM/JP — Nike poyabzali yorlig‘i; oyoq uzunligi alohida berilgan.','Shows sizes found for this item. CM/JP is Nike’s shoe-label size; foot length is listed separately.')}</p>
@@ -1246,8 +1252,17 @@ export function GlobalLinkOrder() {
             {goneOptions.length > 0 && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{lc.optionGone(goneOptions)}</p>}
             {choiceNote && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{choiceNote}</p>}
             {variants.length > 1 && <>
-              <p className="lo-hint-line">{k.chooseOptions}</p>
-              {picks.length > 0 && <ul className="lo-picks" aria-label={k.chosen}>{picks.map(([label, quantity]) => {
+              <div className="lo-pick-mode">
+                <p className="lo-hint-line">{manyMode ? k.chooseOptions : k.chooseOne}</p>
+                <button type="button" className="lo-source-link" aria-pressed={manyMode} onClick={() => {
+                  setFormIssue("");
+                  if (!manyMode) { setMultiPick(true); return; }
+                  // Back to one: the option touched last stays, with one piece.
+                  setMultiPick(false);
+                  setPicked(current => { const last = Object.keys(current).at(-1); return last ? { [last]: 1 } : {}; });
+                }}>{manyMode ? k.pickOne : k.pickMany}</button>
+              </div>
+              {manyMode && picks.length > 0 && <ul className="lo-picks" aria-label={k.chosen}>{picks.map(([label, quantity]) => {
                 const option = pickedVariant(label);
                 const optionPrice = option?.price ?? Number(amount);
                 return <li key={label}>
@@ -1258,6 +1273,11 @@ export function GlobalLinkOrder() {
               })}</ul>}
             </>}
             {variants.length > 0 && !variants.some(item => item.quantity !== undefined || item.quantityMoreThan !== undefined) && <p className="lo-hint-line muted">{k.stockUnknown}</p>}
+            {/* The comment sits right under the chosen options (owner, 12 October 2026). */}
+            <div className="lo-comment">
+              <label htmlFor="order-comment"><b>{k.blocks.comment}</b><small>{k.commentHint}</small></label>
+              <textarea id="order-comment" rows={2} maxLength={500} value={comment} placeholder={k.commentPlaceholder} onChange={(e) => setComment(e.target.value)} />
+            </div>
           </section>}
           </section>
           </div>
@@ -1391,13 +1411,8 @@ export function GlobalLinkOrder() {
               <HoldNote amount={previewSums.storeShippingHold} locale={lang} pricing={pricing}/>
             </section>}
           </aside>
-          {/* Comment and the add button sit under the total: the right column holds the whole decision (owner, 12 October 2026). */}
+          {/* The add button sits under the total and the item data: the right column holds the decision (owner, 12 October 2026). */}
           {!checking && orderable && <>
-          <section className="lo-card lo-comment">
-            <label htmlFor="order-comment"><b>{k.blocks.comment}</b><small>{k.commentHint}</small></label>
-            <textarea id="order-comment" rows={2} maxLength={500} value={comment} placeholder={k.commentPlaceholder} onChange={(e) => setComment(e.target.value)} />
-          </section>
-
           <section className="lo-card lo-confirm">
             {formIssue && <p className="basket-consent-error" role="alert">{formIssue}</p>}
             {sourceCheckStatus==='manual' ? <div className={"basket-consent" + (formIssue && !manualConfirmed ? " invalid" : "")}>

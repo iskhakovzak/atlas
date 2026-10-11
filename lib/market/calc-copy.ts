@@ -3,7 +3,7 @@ import {withCyrillic} from './uz-cyrl.ts';
 
 /** Shared wording of the order calculation: the link-order page, the cart and the orders. */
 export type CalcCopy = {
-  onlyOption: string; chooseOptions: string; chosen: string; quantity: string; less: string; more: string; removeOption: string;
+  onlyOption: string; chooseOptions: string; chooseOne: string; pickMany: string; pickOne: string; chosen: string; quantity: string; less: string; more: string; removeOption: string;
   stockLeft: (count: number) => string; stockMore: (count: number) => string; stockUnknown: string; stockByEbay: string; outOfStock: string;
   optionLabel: string; optionPlaceholder: string; addOptions: (lines: number, units: number) => string;
   blocks: { product: string; price: string; storeShipping: string; country: string; weight: string; customs: string; comment: string };
@@ -43,7 +43,7 @@ export type CalcCopy = {
 
 export const calcCopy: Record<Locale, CalcCopy> = /*@__PURE__*/withCyrillic({
   ru: {
-    onlyOption: 'Единственный доступный вариант', chooseOptions: 'Можно выбрать несколько вариантов', chosen: 'Выбрано', quantity: 'Количество', less: 'Меньше', more: 'Больше', removeOption: 'Убрать вариант',
+    onlyOption: 'Единственный доступный вариант', chooseOptions: 'Можно выбрать несколько вариантов', chooseOne: 'Выбирается один вариант', pickMany: 'Выбрать несколько или количество', pickOne: 'Выбрать только один', chosen: 'Выбрано', quantity: 'Количество', less: 'Меньше', more: 'Больше', removeOption: 'Убрать вариант',
     stockLeft: n => `Осталось ${n} шт.`, stockMore: n => `Больше ${n} шт.`, stockUnknown: 'Остаток магазин не сообщает', stockByEbay: 'по данным eBay', outOfStock: 'Нет в наличии',
     optionLabel: 'Вариант', optionPlaceholder: 'Например: EU 42, чёрный', addOptions: (lines, units) => lines > 1 ? `Добавить ${lines} варианта · ${units} шт.` : units > 1 ? `Добавить · ${units} шт.` : 'Добавить в корзину',
     blocks: { product: 'Товар и вариант', price: 'Цена в магазине', storeShipping: 'Доставка магазина до склада Atlas', country: 'Страна отправки', weight: 'Вес', customs: 'Таможня', comment: 'Комментарий к заказу' },
@@ -100,7 +100,7 @@ export const calcCopy: Record<Locale, CalcCopy> = /*@__PURE__*/withCyrillic({
     },
   },
   uz: {
-    onlyOption: 'Yagona mavjud variant', chooseOptions: 'Bir nechta variantni tanlash mumkin', chosen: 'Tanlandi', quantity: 'Soni', less: 'Kamroq', more: 'Ko‘proq', removeOption: 'Variantni olib tashlash',
+    onlyOption: 'Yagona mavjud variant', chooseOptions: 'Bir nechta variantni tanlash mumkin', chooseOne: 'Bitta variant tanlanadi', pickMany: 'Bir nechtasini yoki sonini tanlash', pickOne: 'Faqat bittasini tanlash', chosen: 'Tanlandi', quantity: 'Soni', less: 'Kamroq', more: 'Ko‘proq', removeOption: 'Variantni olib tashlash',
     stockLeft: n => `${n} dona qoldi`, stockMore: n => `${n} donadan ko‘p`, stockUnknown: 'Do‘kon qoldiqni aytmaydi', stockByEbay: 'eBay ma’lumotiga ko‘ra', outOfStock: 'Mavjud emas',
     optionLabel: 'Variant', optionPlaceholder: 'Masalan: EU 42, qora', addOptions: (lines, units) => lines > 1 ? `${lines} ta variantni qo‘shish · ${units} dona` : units > 1 ? `Qo‘shish · ${units} dona` : 'Savatga qo‘shish',
     blocks: { product: 'Tovar va variant', price: 'Do‘kondagi narx', storeShipping: 'Do‘kondan Atlas omborigacha yetkazish', country: 'Jo‘natish mamlakati', weight: 'Vazn', customs: 'Bojxona', comment: 'Buyurtmaga izoh' },
@@ -157,7 +157,7 @@ export const calcCopy: Record<Locale, CalcCopy> = /*@__PURE__*/withCyrillic({
     },
   },
   en: {
-    onlyOption: 'The only available option', chooseOptions: 'You can choose several options', chosen: 'Chosen', quantity: 'Quantity', less: 'Fewer', more: 'More', removeOption: 'Remove option',
+    onlyOption: 'The only available option', chooseOptions: 'You can choose several options', chooseOne: 'One option is chosen', pickMany: 'Choose several or a quantity', pickOne: 'Choose just one', chosen: 'Chosen', quantity: 'Quantity', less: 'Fewer', more: 'More', removeOption: 'Remove option',
     stockLeft: n => `${n} left`, stockMore: n => `More than ${n}`, stockUnknown: 'The store does not say how many are left', stockByEbay: 'according to eBay', outOfStock: 'Out of stock',
     optionLabel: 'Option', optionPlaceholder: 'For example: EU 42, black', addOptions: (lines, units) => lines > 1 ? `Add ${lines} options · ${units} pcs` : units > 1 ? `Add · ${units} pcs` : 'Add to cart',
     blocks: { product: 'Item and option', price: 'Store price', storeShipping: 'Store delivery to the Atlas warehouse', country: 'Dispatch country', weight: 'Weight', customs: 'Customs', comment: 'Order comment' },

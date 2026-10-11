@@ -512,7 +512,7 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
 .lo-pending { min-height: 44px; font-weight: 600; }
 .lo-loading { display: flex; justify-content: center; align-items: center; gap: 8px; }
 
-.lo-layout { display: grid; grid-template-areas: "product" "summary" "data" "comment" "confirm"; gap: 14px; }
+.lo-layout { display: grid; grid-template-areas: "product" "summary" "data" "confirm"; gap: 14px; }
 .lo-product { grid-area: product; }
 /* The option choice lives inside the product card, across its full width under the photo and colours (owner, 12 October 2026). */
 .lo-product > :is(.lo-variant, .lo-check) { grid-column: 1 / -1; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
@@ -522,13 +522,17 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
 }
 .lo-summary { grid-area: summary; }
 .lo-data { grid-area: data; }
-.lo-comment { grid-area: comment; }
+/* One option or several: the mode switch sits on the line above the chosen list. */
+.lo-pick-mode { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 12px; margin-top: 10px; }
+.lo-pick-mode .lo-hint-line { margin: 0; }
+.lo-pick-mode .lo-source-link { min-height: 40px; }
+.lo-variant .lo-comment { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--home-line); }
 .lo-confirm { grid-area: confirm; }
-/* Wide screens: the item (photo, colours, sizes) on the left; the total, item data, comment and add button stacked
+/* Wide screens: the item (photo, colours, sizes, comment) on the left; the total, item data and add button stacked
    on the right. Delivery speed is chosen in the cart now, so the right column carries the rest of the decision and
    neither column is left with an empty band (owner, 12 October 2026). Cards keep their natural height (no stretching). */
 @media (min-width: 960px) {
-  .lo-layout { grid-template-columns: minmax(0, 1fr) 380px; grid-template-areas: "product summary" "product data" "product comment" "product confirm"; grid-template-rows: repeat(3, auto) 1fr; align-items: start; gap: 14px 24px; }
+  .lo-layout { grid-template-columns: minmax(0, 1fr) 380px; grid-template-areas: "product summary" "product data" "product confirm"; grid-template-rows: auto auto 1fr; align-items: start; gap: 14px 24px; }
   html .lo-layout .lo-summary.basket-summary.folio { position: static; }
 }
 /* In the narrow right column the item data blocks stack one per row. */
