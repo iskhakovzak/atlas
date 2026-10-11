@@ -87,3 +87,20 @@ test('the duty is at least $2 for each kg of the whole parcel (owner, 7.10.2026)
   assert.equal(customsDutyUsd({ excessUsd: 0, rate: 0.2, minimumPerKg: 2, weightKg: 50 }), 0);
   assert.equal(customsDutyUsd({ excessUsd: 33.33, rate: 0.2, minimumPerKg: 2 }), 6.67, 'no weight: the rate, rounded to the cent');
 });
+
+test('the cabinet meter gets each checkout as one piece, not its lines', () => {
+  const day = (d) => new Date(2026, 9, d).getTime();
+  const state = {
+    ...blank(),
+    deliveryProfiles: [profile('home', 'Анна Каримова', { primary: true })],
+    orders: [
+      order('A1', 120, { deliveryProfileId: 'home', batchId: 'b1', createdAt: day(4) }),
+      order('A2', 80.5, { deliveryProfileId: 'home', batchId: 'b1', createdAt: day(3) }),
+      order('B1', 40, { deliveryProfileId: 'home', createdAt: day(9) }),
+      order('A3', 10, { deliveryProfileId: 'home', batchId: 'b1', cancelled: true }),
+    ],
+  };
+  const [anna] = monthlyAllowance(state, 12000, now);
+  assert.deepEqual(anna.parts, [{ id: 'batch:b1', usd: 200.5, at: day(3) }, { id: 'B1', usd: 40, at: day(9) }]);
+  assert.equal(anna.orders, 3);
+});

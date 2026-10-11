@@ -2,8 +2,12 @@ import { checkoutLines, customsDutySoum, customsHelpChosen, statuses, type CartC
 import { courierAllowanceUsd, customsCheckedOn, customsDutyUsd, customsParams } from './customs.ts';
 import { tashkentDay, tashkentMonth } from './world.ts';
 
-/** `parts`: each counted order this month (order ID and USD), for the cabinet meter. */
-export type RecipientAllowance = { key: string; name: string; usedUsd: number; orders: number; parts?: { id: string; usd: number }[] };
+/**
+ * `parts`: each counted checkout this month as one piece (all its lines together), for the cabinet meter: `id` is the
+ * batch or the lone line, `at` the earliest line's time (owner, 12 October 2026: whole orders, not lines).
+ */
+export type RecipientAllowance = { key: string; name: string; usedUsd: number; orders: number; parts?: AllowancePart[] };
+export type AllowancePart = { id: string; usd: number; at?: number };
 /** One person for the allowance: a normalized name, and the masked passport when one is linked. */
 export type AllowancePerson = { name: string; passport?: string };
 
@@ -84,9 +88,15 @@ export function monthlyAllowance(state: State, fallbackFx: number, now = Date.no
     const usd = orderUsd(order, fallbackFx);
     group.usedUsd += usd;
     group.orders += 1;
-    group.parts!.push({ id: order.id, usd: Math.round(usd * 100) / 100 });
+    const id = order.batchId ? `batch:${order.batchId}` : order.id;
+    const part = group.parts!.find((item) => item.id === id);
+    if (part) { part.usd += usd; part.at = Math.min(part.at ?? order.createdAt, order.createdAt); }
+    else group.parts!.push({ id, usd, at: order.createdAt });
   }
-  return groups.map((group) => ({ key: group.key, name: group.name, orders: group.orders, usedUsd: Math.round(group.usedUsd), parts: group.parts })).sort((a, b) => b.usedUsd - a.usedUsd);
+  return groups.map((group) => ({
+    key: group.key, name: group.name, orders: group.orders, usedUsd: Math.round(group.usedUsd),
+    parts: group.parts!.map((part) => ({ ...part, usd: Math.round(part.usd * 100) / 100 })),
+  })).sort((a, b) => b.usedUsd - a.usedUsd);
 }
 
 /** This month's counted USD for one person (0 when there is nothing yet). */
