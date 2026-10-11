@@ -73,7 +73,9 @@ html[data-theme="dark"] .stores-link-error { color: #ffb4a8; }
 .stores-showcase-list { display: flex; gap: 10px; margin: 10px -16px 0; padding: 4px 44px 8px 16px; overflow-x: auto; list-style: none; scroll-padding-inline: 16px; scroll-snap-type: x proximity; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); }
 .stores-showcase-list::-webkit-scrollbar { display: none; }
 .stores-showcase-list > li { flex: none; width: 260px; scroll-snap-align: start; }
-.store-showcase-card { display: grid; gap: 10px; height: 100%; padding: 14px; border: 1px solid var(--cat-line); border-radius: 18px; background: var(--cat-surface); color: var(--cat-ink); }
+/* A column, not a grid: a stretched grid spread the card's spare height between its rows, so the row of equal-height
+   cards showed gaps between the lines; now the spare height sits only above the button. */
+.store-showcase-card { display: flex; flex-direction: column; gap: 10px; height: 100%; padding: 14px; border: 1px solid var(--cat-line); border-radius: 18px; background: var(--cat-surface); color: var(--cat-ink); }
 .store-showcase-card > header { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .store-showcase-card > header > div { display: grid; gap: 2px; min-width: 0; }
 .store-showcase-card > header b { overflow: hidden; font-size: 15px; font-weight: 700; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
@@ -83,15 +85,16 @@ html[data-theme="dark"] .stores-link-error { color: #ffb4a8; }
 .store-showcase-card > header small > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The one mint element of the card: how many of its products the catalog has. */
 .store-showcase-card > header > span { flex: none; margin-left: auto; color: var(--cat-ok); font-size: 12px; font-weight: 700; white-space: nowrap; }
-.store-showcase-photos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+/* One stage height whatever the photo count (three squares): a one-photo card was 40 px taller, and the row of
+   equal-height cards showed that much white space above the button of the others. */
+.store-showcase-photos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); flex: none; gap: 8px; aspect-ratio: 3.25; }
 /* As many slots as photos (at most three): one photo takes the whole stage, two share it; the logo stands in only for a photo that failed to load. */
 .store-showcase-photos[data-count="1"] { grid-template-columns: minmax(0, 1fr); }
 .store-showcase-photos[data-count="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.store-showcase-photos[data-count="1"] .store-showcase-photo { aspect-ratio: 2; }
 .store-showcase-photos[data-count="1"] .store-showcase-photo img { padding: 8px; }
 /* Product photos stand on the catalog's stage (white by day, ivory in Night, like .find-visual); the logo stand-in keeps its own white plate. */
-/* The stage is positioned and the photo absolute: in a grid cell with aspect-ratio a percentage height would not resolve and the photo overflowed. */
-.store-showcase-photo { position: relative; display: block; aspect-ratio: 1; overflow: hidden; border: 1px solid var(--cat-line); border-radius: 12px; background: var(--cat-stage); }
+/* Each slot fills the stage's one row; the photo is absolute inside it, so a large image cannot stretch the slot. */
+.store-showcase-photo { position: relative; display: block; height: 100%; overflow: hidden; border: 1px solid var(--cat-line); border-radius: 12px; background: var(--cat-stage); }
 .store-showcase-photo img { position: absolute; inset: 0; width: 100%; height: 100%; padding: 6px; object-fit: contain; mix-blend-mode: multiply; }
 .store-showcase-photo > :not(img) { position: absolute; inset: 0; display: grid; place-items: center; }
 .store-showcase-total { display: grid; gap: 2px; margin: 0; color: var(--cat-ink); font-size: 14px; font-weight: 600; line-height: 1.35; }
