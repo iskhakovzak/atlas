@@ -1302,7 +1302,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
     done = listed.filter((o) => (o.cancelled || o.status === 5) && (!o.issueCase || o.issueCase.status === "resolved") && !(o.claims ?? []).some((claim) => claim.status === "submitted")),
     refunds = operations ? listed.filter((o) => o.cancelled || o.payment?.status === "refunded" || atlasCreditForOrder(orderAccount.get(o.id), o.id) > 0) : [];
   // Customers who order for several people can narrow the list to one recipient.
-  // The allowance an order counts against: bought, paid orders of that person in the month of import.
+  // The allowance an order counts against: paid orders of that person in the month of import.
   const currentMonth = monthOf(new Date().getTime());
   const allowanceFor = (order: Order) => !order.cancelled && countsTowardAllowance(order) && allowanceMonth(order) === currentMonth ? monthlyUsedFor(state, orderPerson(state, order), pricing.fx) : undefined;
   // Recipients of placed orders whose passport is not linked yet: the declaration needs it.
