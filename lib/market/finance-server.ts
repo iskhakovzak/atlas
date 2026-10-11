@@ -1,7 +1,7 @@
 import { auditStatement, database, HttpError, recordAudit } from "./server";
-import { balanceOf, parseState, type Entry, type Order } from "./domain";
+import type { Entry, Order } from "./domain";
 import { autoActor, invoiceData, planAutoLedger, syncOrderLedger, type InvoiceLine, type SkippedAuto } from "./finance-auto";
-import { accountingSettingsSchema, isPeriodLocked, lockedPeriodMessage, monthKey, monthSummary, obligations, yearMonths, yearSummary, type AccountingSettings, type LedgerEntry, type LedgerEntryInput, type LedgerKind, type OrderFinance } from "./finance";
+import { accountingSettingsSchema, customerBalancesSql, isPeriodLocked, lockedPeriodMessage, monthKey, monthSummary, obligations, yearMonths, yearSummary, type AccountingSettings, type LedgerEntry, type LedgerEntryInput, type LedgerKind, type OrderFinance } from "./finance";
 
 type Operator = { userId: string; email: string };
 
@@ -131,11 +131,11 @@ export async function obligationsSnapshot() {
   const db = database();
   const [open, accounts] = await Promise.all([
     db.prepare("SELECT * FROM market_order_finance WHERE status IN ('pending','paid') ORDER BY created_at DESC LIMIT 5000").all<FinanceRow>(),
-    db.prepare("SELECT state FROM market_accounts LIMIT 5000").all<{ state: string }>(),
+    db.prepare(customerBalancesSql).all<{ balance: number }>(),
   ]);
   const orders = open.results.map(financeOf);
   const stages = await orderStages(orders.filter((order) => order.status === "paid").map((order) => order.orderId));
-  const balances = accounts.results.map((row) => { try { return balanceOf(parseState(row.state)); } catch { return 0; } });
+  const balances = accounts.results.map((row) => Number(row.balance) || 0);
   return obligations(orders, stages, balances);
 }
 
