@@ -123,7 +123,7 @@ export type AccountCopy = {
     label: string; orders: string; ordersActive: (count: number) => string; ordersTotal: (count: number) => string; none: string;
     cart: string; cartEmpty: string; balance: string; balanceSub: string; notifications: string; unread: (count: number) => string; noUnread: string;
   };
-  customs: { title: string; used: (used: number, limit: number) => string; left: (amount: number) => string; over: (amount: number) => string; note: string; link: string; perPerson: string; empty: string; unnamed: string; cart: (amount: number) => string; leftLabel: string; overLabel: string; how: string };
+  customs: { title: string; used: (used: number, limit: number) => string; left: (amount: number) => string; over: string; note: string; link: string; perPerson: string; empty: string; unnamed: string; cart: (amount: number) => string; leftLabel: string; overLabel: string; how: string };
   recipients: { title: string; lead: string; primary: string; passportOk: (masked: string) => string; passportMissing: string; addPassport: string; remove: string; add: string; empty: string; edit: string; makePrimary: string };
   documents: { title: string; passport: string; passportCount: (count: number) => string; missing: string; declarations: string; declarationsCount: (count: number) => string; note: string };
   support: {
@@ -134,6 +134,8 @@ export type AccountCopy = {
   settings: {
     title: string; language: string; theme: string; rules: string; signOut: string;
     support: string; privacy: string; terms: string;
+    /** The folded row with consents and account deletion; `consentsOk` / `consentsNeed` on its right. */
+    account: string; consentsOk: string; consentsNeed: string;
     consents: string; consentsNone: string; consentsAccept: string; consentVersion: (version: string) => string; consentDoc: Record<'privacy' | 'terms', string>;
     restore: string; restored: (orders: number) => string;
     about: string; aboutVersion: (version: string, build: string) => string; aboutPlatform: Record<'ios' | 'android', string>; aboutLink: string;
@@ -316,7 +318,7 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
     },
     customs: {
       title: 'Таможенный лимит месяца', used: (used, limit) => `$${used} из $${limit}`, left: amount => `Ещё $${amount} без пошлины`,
-      over: amount => `Сверх лимита $${amount} — с этой суммы платится пошлина`,
+      over: 'Пошлина платится только с суммы сверх лимита.',
       note: 'Считаются только покупки через Atlas в этом месяце, по дате заказа. Покупки в других сервисах учитывайте сами.', link: 'Как считается таможня',
       perPerson: 'Лимит $200 — на каждого получателя.', empty: 'В этом месяце заказов ещё не было — лимит свободен.', unnamed: 'Получатель не указан', leftLabel: 'осталось без пошлины', overLabel: 'сверх лимита', how: 'Как работает лимит', cart: amount => `В корзине ещё $${amount} — учтите при оформлении.`,
     },
@@ -337,6 +339,7 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
     settings: {
       title: 'Настройки', language: 'Язык', theme: 'Тема', rules: 'Правила и обработка данных', signOut: 'Выйти из аккаунта',
       support: 'Поддержка и помощь', privacy: 'Политика конфиденциальности', terms: 'Условия использования',
+      account: 'Согласия и аккаунт', consentsOk: 'Приняты', consentsNeed: 'Нужно принять',
       consents: 'Согласия', consentsNone: 'Не зафиксированы', consentsAccept: 'Принять', consentVersion: version => `редакция ${version}`, consentDoc: { privacy: 'Политика конфиденциальности', terms: 'Условия использования' },
       restore: 'Восстановить покупки', restored: orders => `В Atlas нет встроенных покупок App Store и Google Play. Заказы (${orders}) и баланс восстановлены из вашего аккаунта.`,
       about: 'О приложении', aboutVersion: (version, build) => `Версия ${version} (${build})`, aboutPlatform: { ios: 'iOS', android: 'Android' }, aboutLink: 'Подробнее о приложении',
@@ -371,7 +374,7 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
     },
     customs: {
       title: 'Oylik bojxona limiti', used: (used, limit) => `$${used} / $${limit}`, left: amount => `Yana $${amount} bojsiz`,
-      over: amount => `Limitdan $${amount} ortiq — bu summadan boj to‘lanadi`,
+      over: 'Boj faqat limitdan oshgan summadan to‘lanadi.',
       note: 'Faqat shu oy Atlas orqali qilingan xaridlar buyurtma sanasi bo‘yicha hisoblanadi. Boshqa xizmatlardagi xaridlarni o‘zingiz hisobga oling.', link: 'Bojxona qanday hisoblanadi',
       perPerson: '$200 limit — har bir qabul qiluvchiga.', empty: 'Bu oy hali buyurtma yo‘q — limit bo‘sh.', unnamed: 'Qabul qiluvchi ko‘rsatilmagan', leftLabel: 'bojsiz qoldi', overLabel: 'limitdan ortiq', how: 'Limit qanday ishlaydi', cart: amount => `Savatda yana $${amount} — rasmiylashtirishda hisobga oling.`,
     },
@@ -392,6 +395,7 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
     settings: {
       title: 'Sozlamalar', language: 'Til', theme: 'Ko‘rinish', rules: 'Qoidalar va ma’lumotlarga ishlov berish', signOut: 'Akkauntdan chiqish',
       support: 'Yordam va qo‘llab-quvvatlash', privacy: 'Maxfiylik siyosati', terms: 'Foydalanish shartlari',
+      account: 'Roziliklar va akkaunt', consentsOk: 'Qabul qilingan', consentsNeed: 'Qabul qilish kerak',
       consents: 'Roziliklar', consentsNone: 'Qayd etilmagan', consentsAccept: 'Qabul qilish', consentVersion: version => `${version} tahriri`, consentDoc: { privacy: 'Maxfiylik siyosati', terms: 'Foydalanish shartlari' },
       restore: 'Xaridlarni tiklash', restored: orders => `Atlasda App Store va Google Play ichki xaridlari yo‘q. Buyurtmalar (${orders}) va balans akkauntingizdan tiklandi.`,
       about: 'Ilova haqida', aboutVersion: (version, build) => `Versiya ${version} (${build})`, aboutPlatform: { ios: 'iOS', android: 'Android' }, aboutLink: 'Ilova haqida batafsil',
@@ -426,7 +430,7 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
     },
     customs: {
       title: 'Monthly customs allowance', used: (used, limit) => `$${used} of $${limit}`, left: amount => `$${amount} left duty-free`,
-      over: amount => `$${amount} over the allowance — duty applies to this amount`,
+      over: 'Duty is due only on the amount over the allowance.',
       note: 'Only this month’s purchases through Atlas are counted, by order date. Track purchases made through other services yourself.', link: 'How customs is calculated',
       perPerson: 'The $200 allowance is per recipient.', empty: 'No orders this month yet — the allowance is free.', unnamed: 'No recipient given', leftLabel: 'left duty-free', overLabel: 'over the allowance', how: 'How the allowance works', cart: amount => `$${amount} more in the cart — keep it in mind at checkout.`,
     },
@@ -447,6 +451,7 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
     settings: {
       title: 'Settings', language: 'Language', theme: 'Theme', rules: 'Terms and data processing', signOut: 'Sign out',
       support: 'Support and help', privacy: 'Privacy policy', terms: 'Terms of use',
+      account: 'Consents and account', consentsOk: 'Accepted', consentsNeed: 'Needs accepting',
       consents: 'Consents', consentsNone: 'Not recorded', consentsAccept: 'Accept', consentVersion: version => `edition ${version}`, consentDoc: { privacy: 'Privacy policy', terms: 'Terms of use' },
       restore: 'Restore purchases', restored: orders => `Atlas has no App Store or Google Play in-app purchases. Your orders (${orders}) and balance were restored from your account.`,
       about: 'About the app', aboutVersion: (version, build) => `Version ${version} (${build})`, aboutPlatform: { ios: 'iOS', android: 'Android' }, aboutLink: 'More about the app',

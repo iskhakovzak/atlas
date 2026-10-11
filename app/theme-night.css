@@ -298,8 +298,10 @@ html[data-theme="dark"] [data-slot="tabs-trigger"][aria-selected="true"],
 html[data-theme="dark"] .order-tabs [data-state="active"] { background: var(--night-hover); color: var(--night-ink); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05); }
 html[data-theme="dark"] :is(.cabinet-bar, .order-x-bar, .home-tracking-dot) { background: rgba(255, 255, 255, 0.07); }
 html[data-theme="dark"] :is(.cabinet-bar span, .order-x-bar span) { background: linear-gradient(90deg, var(--night-jade-strong), var(--night-jade)); box-shadow: 0 0 12px rgba(128, 208, 172, 0.35); }
-html[data-theme="dark"] .cabinet-customs.over .cabinet-bar span,
-html[data-theme="dark"] .cabinet-allowance li.over .cabinet-bar span { background: linear-gradient(90deg, #d8695c, var(--night-error-ink)); box-shadow: none; }
+html[data-theme="dark"] .cabinet-steps span { background: rgba(255, 255, 255, 0.07); }
+html[data-theme="dark"] .cabinet-steps .done { background: var(--night-jade); }
+html[data-theme="dark"] .cabinet-steps .now { background: linear-gradient(90deg, var(--night-jade) 50%, rgba(128, 208, 172, 0.22) 50%); }
+html[data-theme="dark"] .cabinet-delete-row .cabinet-delete-open { color: var(--night-error-ink); }
 html[data-theme="dark"] :is(.basket-steps li[data-state="current"] > span, .docs-num, .notice-x-new, .basket-services > summary b, .cabinet-avatar) {
   background: linear-gradient(180deg, var(--night-ivory-hi), var(--night-ivory));
   color: var(--night-on-ivory);
@@ -561,5 +563,7 @@ html[data-theme="dark"] .customs-how-close:hover { background: var(--night-hover
 /* Night: the monthly customs allowance card in the cabinet (7.10.2026). */
 html[data-theme="dark"] .cabinet-allowance li { border-color: var(--night-line); background: rgba(255, 255, 255, 0.022); }
 html[data-theme="dark"] .cabinet-allowance-who i { color: var(--night-on-ivory); }
+html[data-theme="dark"] :is(.cabinet-customs, .allowance-meter) { --allow-over: #e3b65f; }
+html[data-theme="dark"] .allowance-over { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--allow-over) 75%, transparent) 0 3px, transparent 3px 7px), rgba(10, 14, 12, 0.42); }
 html[data-theme="dark"] .cabinet-month { background: var(--night-raised); }
 html[data-theme="dark"] .lo-product > :is(.lo-variant, .lo-check) { border: 0; background: transparent; box-shadow: none; }

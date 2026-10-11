@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "@/components/site-link";
 import { InfoTip } from "@/components/info-tip";
-import { AlertCircle, ArrowRight, ArrowUpRight, Bell, Check, FileCheck2, Info, LifeBuoy, LogOut, MapPin, MessageCircle, Package, Pencil, Plus, RefreshCw, ScanLine, Shield, ShoppingBag, Trash2, Wallet } from "lucide-react";
+import { AlertCircle, ArrowRight, ArrowUpRight, Bell, Check, FileCheck2, Info, LifeBuoy, LogOut, MapPin, MessageCircle, Package, Pencil, Plus, RefreshCw, ScanLine, Shield, ShoppingBag, Trash2, UserCog, Wallet } from "lucide-react";
 import { useMarket } from "@/lib/market/store";
 import { courierAllowanceUsd } from "@/lib/market/customs";
 import { isServedRegion } from "@/lib/market/addresses";
@@ -26,7 +26,7 @@ import { SafeDeleteButton } from "./safe-delete-button";
 import { ThemeToggle } from "./theme-control";
 import { RecipientForm } from "./recipient-form";
 import { SignInMethods } from "./sign-in-methods";
-import { AllowanceMeter } from "./allowance-meter";
+import { AllowanceMeter, allowanceMoney } from "./allowance-meter";
 
 // Account home, mobile-first: one "what needs you now" card, four quick tiles, then
 // recipients, customs allowance, documents, support and settings — each shown once.
@@ -102,7 +102,10 @@ export function AccountView() {
             </div>
             {due?.payment && <p className="bill-total"><span>{c.next.due}</span><strong><Money value={due.payment.amount} locale={lang} /></strong></p>}
             {next?.order && <div className="cabinet-progress">
-              <div className="cabinet-bar" role="progressbar" aria-label={statuses[next.order.status]} aria-valuemin={1} aria-valuemax={statuses.length} aria-valuenow={next.order.status + 1}><span style={{ width: `${(next.order.status + 1) / statuses.length * 100}%` }} /></div>
+              {/* One segment per stage: the stages behind are filled, the current one is drawn in progress (owner, 12 October 2026). */}
+              <div className="cabinet-steps" role="progressbar" aria-label={statuses[next.order.status]} aria-valuemin={1} aria-valuemax={statuses.length} aria-valuenow={next.order.status + 1}>
+                {statuses.map((stage, index) => <span key={stage} className={index < next.order!.status ? "done" : index === next.order!.status ? "now" : undefined} />)}
+              </div>
               <small>{c.next.stage(next.order.status + 1, statuses.length)}: {next.order.payment?.status === "pending" ? gc.awaitingPayment : statuses[next.order.status]}</small>
             </div>}
             {next ? (next.href ? <Link className="btn primary" href={next.href}>{c.next.open}</Link> : <button type="button" className="btn primary" onClick={() => setEditor("new")}>{c.next.add}<Plus size={17} aria-hidden="true" /></button>)
@@ -197,24 +200,25 @@ function CustomsAllowance({ groups, primaryName, cartUsd, c, locale }: { groups:
   const limit = courierAllowanceUsd;
   // Show the default recipient even before their first order, so the empty state still says "for whom".
   const rows = groups.length ? groups : primaryName ? [{ key: recipientKey(primaryName), name: primaryName, usedUsd: 0, orders: 0 }] : [];
-  const anyOver = rows.some(row => row.usedUsd > limit);
   const month = new Intl.DateTimeFormat(locale === "oz" ? "uz-Cyrl" : locale, { month: "long" }).format(new Date());
-  return <section className={"cabinet-card cabinet-customs" + (anyOver ? " over" : "")} aria-labelledby="cabinet-customs-title">
+  return <section className="cabinet-card cabinet-customs" aria-labelledby="cabinet-customs-title">
     <div className="cabinet-customs-top">
       <h2 id="cabinet-customs-title">{c.customs.title}<InfoTip locale={locale}>{c.customs.perPerson}</InfoTip></h2>
       <span className="cabinet-month">{month}</span>
     </div>
     <p className="cabinet-lead tip-text">{c.customs.perPerson}</p>
     {rows.length ? <ul className="cabinet-allowance">{rows.map(row => {
-      const over = row.usedUsd > limit;
+      // The meter's own sum (cents kept), so the headline, the bar and the note show the same figure.
+      const used = row.parts?.length ? Math.round(row.parts.reduce((sum, part) => sum + part.usd, 0) * 100) / 100 : row.usedUsd;
+      const over = used > limit;
       const name = row.name || c.customs.unnamed;
       return <li key={row.key} className={over ? "over" : undefined}>
         <div className="cabinet-allowance-head">
           <span className="cabinet-allowance-who"><i aria-hidden="true">{name.trim().charAt(0).toUpperCase()}</i><b>{name}</b></span>
-          <span className="cabinet-allowance-figure"><strong>${Math.round((over ? row.usedUsd - limit : limit - row.usedUsd) * 100) / 100}</strong><small>{over ? c.customs.overLabel : c.customs.leftLabel}</small></span>
+          <span className="cabinet-allowance-figure"><strong>{allowanceMoney(over ? used - limit : limit - used)}</strong><small>{over ? c.customs.overLabel : c.customs.leftLabel}</small></span>
         </div>
         <AllowanceMeter limit={limit} orders={row.parts ?? []} cartUsd={row.name === primaryName || rows.length === 1 ? cartUsd : 0} locale={locale} label={name} />
-        <p className="cabinet-allowance-status">{over ? c.customs.over(row.usedUsd - limit) : c.customs.used(row.usedUsd, limit)}</p>
+        <p className="cabinet-allowance-status">{over ? c.customs.over : c.customs.used(used, limit)}</p>
       </li>;
     })}</ul> : <p className="cabinet-empty">{c.customs.empty}</p>}
     {cartUsd > 0 && <p className="cabinet-customs-cart"><ShoppingBag size={16} aria-hidden="true" />{c.customs.cart(cartUsd)}</p>}
@@ -252,11 +256,23 @@ function SettingsCard({ c, locale, state, ready, act, refresh, onSignOut, onSupp
       <Link className="cabinet-setting cabinet-setting-link" href="/support"><span className="cabinet-setting-label"><LifeBuoy size={18} aria-hidden="true" />{c.settings.support}</span><ArrowRight size={18} aria-hidden="true" /></Link>
       <Link className="cabinet-setting cabinet-setting-link" href="/privacy"><span className="cabinet-setting-label"><Shield size={18} aria-hidden="true" />{c.settings.privacy}</span><ArrowRight size={18} aria-hidden="true" /></Link>
       <Link className="cabinet-setting cabinet-setting-link" href="/terms"><span className="cabinet-setting-label"><FileCheck2 size={18} aria-hidden="true" />{c.settings.terms}</span><ArrowRight size={18} aria-hidden="true" /></Link>
-      <div className="cabinet-setting cabinet-setting-block">
-        <span>{c.settings.consents}</span>
-        {consents.length ? <ul className="cabinet-consents">{consents.map(item => <li key={item.key}><b>{c.settings.consentDoc[item.key]}</b><small>{c.settings.consentVersion(item.version)} · {formatLongDate(item.acceptedAt, locale)}</small></li>)}</ul> : <p className="cabinet-muted">{c.settings.consentsNone}</p>}
-        {missing.length > 0 && <button type="button" className="btn secondary" disabled={!ready} onClick={() => void act({ type: "consent-accept", documents: [...consentDocuments], version: consentVersion })}>{c.settings.consentsAccept}</button>}
-      </div>
+      {/* Consents and account deletion fold into one row: they are needed rarely, so they are not shown open
+          (owner, 12 October 2026). The row opens by itself while a consent still has to be accepted. */}
+      <details className="cabinet-setting-more" open={missing.length > 0 || undefined}>
+        <summary className="cabinet-setting">
+          <span className="cabinet-setting-label"><UserCog size={18} aria-hidden="true" />{c.settings.account}</span>
+          <small className={missing.length ? "cabinet-setting-need" : undefined}>{missing.length ? c.settings.consentsNeed : c.settings.consentsOk}</small>
+        </summary>
+        <div className="cabinet-setting-more-body">
+          <p className="cabinet-setting-sub">{c.settings.consents}</p>
+          {consents.length ? <ul className="cabinet-consents">{consents.map(item => <li key={item.key}><b>{c.settings.consentDoc[item.key]}</b><small>{c.settings.consentVersion(item.version)} · {formatLongDate(item.acceptedAt, locale)}</small></li>)}</ul> : <p className="cabinet-muted">{c.settings.consentsNone}</p>}
+          {missing.length > 0 && <button type="button" className="btn secondary" disabled={!ready} onClick={() => void act({ type: "consent-accept", documents: [...consentDocuments], version: consentVersion })}>{c.settings.consentsAccept}</button>}
+          <div className="cabinet-delete-row">
+            <p className="cabinet-muted">{c.deletion.lead}</p>
+            <button type="button" className="cabinet-text-btn cabinet-delete-open" onClick={() => setDeleting(true)}><Trash2 size={16} aria-hidden="true" />{c.deletion.open}</button>
+          </div>
+        </div>
+      </details>
       {native && <div className="cabinet-setting cabinet-setting-block">
         <button type="button" className="cabinet-text-btn" disabled={restoring} onClick={async () => {
           setRestoring(true);
@@ -271,12 +287,6 @@ function SettingsCard({ c, locale, state, ready, act, refresh, onSignOut, onSupp
         <Link className="cabinet-link" href="/app">{c.settings.aboutLink}<ArrowRight size={16} aria-hidden="true" /></Link>
       </div>}
       <button type="button" className="cabinet-signout" onClick={onSignOut}><LogOut size={18} aria-hidden="true" />{c.settings.signOut}</button>
-    </section>
-
-    <section className="cabinet-card cabinet-danger" aria-labelledby="cabinet-delete-title">
-      <h2 id="cabinet-delete-title">{c.deletion.title}</h2>
-      <p className="cabinet-lead">{c.deletion.lead}</p>
-      <button type="button" className="cabinet-signout cabinet-delete-open" onClick={() => setDeleting(true)}><Trash2 size={18} aria-hidden="true" />{c.deletion.open}</button>
     </section>
     <DeleteAccountDialog open={deleting} onClose={() => setDeleting(false)} c={c} locale={locale} state={state} onSupport={() => { setDeleting(false); onSupport(); }} />
   </>;

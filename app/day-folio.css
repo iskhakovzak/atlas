@@ -419,6 +419,8 @@ html:not([data-theme="dark"]) .cabinet-next.folio .bill-total .money { font-size
 html:not([data-theme="dark"]) .cabinet-next .cabinet-eyebrow { font-size: 13.5px; font-weight: 700; color: var(--day-muted); }
 html:not([data-theme="dark"]) .cabinet-next h2 { font-weight: 750; letter-spacing: -.02em; }
 html:not([data-theme="dark"]) .cabinet-bar span { background: var(--day-accent); }
+html:not([data-theme="dark"]) .cabinet-steps .done { background: var(--day-accent); }
+html:not([data-theme="dark"]) .cabinet-steps .now { background: linear-gradient(90deg, var(--day-accent) 50%, color-mix(in srgb, var(--day-accent) 24%, transparent) 50%); }
 html:not([data-theme="dark"]) .cabinet-next:not(.folio):not(.done) { border-color: var(--day-line); background: var(--day-surface); box-shadow: var(--day-shadow); }
 html:not([data-theme="dark"]) .cabinet-next.warn:not(.folio) { border-color: #e7c98d; background: var(--day-warn-bg); }
 /* Other cabinet surfaces: white cards on the canvas. */
