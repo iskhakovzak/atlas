@@ -11,7 +11,6 @@
 .order-group-main > small { color: var(--home-muted); font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
 .order-group-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
 .order-group-badges .order-x-status { gap: 4px; }
-.order-group-main > .og-stage-summary { color: var(--home-ink); font-weight: 600; }
 .order-group-sum { display: flex; align-items: baseline; gap: 8px; margin: 0; }
 .order-group-sum small { color: var(--home-muted); font-size: 12px; font-weight: 600; }
 .order-group-sum strong { font-size: 18px; font-weight: 800; line-height: 1.2; letter-spacing: -0.01em; color: var(--home-ink); font-feature-settings: "tnum" 1; white-space: nowrap; }
@@ -154,7 +153,6 @@ html[data-theme="dark"] .order-group-title { color: var(--night-ink); }
 html[data-theme="dark"] .og-ship { color: var(--night-muted); }
 html[data-theme="dark"] .og-ship-who { color: var(--night-ink); }
 html[data-theme="dark"] :is(.order-group-main > small, .order-group-sum small, .order-group-store-title, .og-store-head > small, .og-line-qty, .og-model-main small, .og-line-what > small, .og-progress-text small, .og-latest) { color: var(--night-muted); }
-html[data-theme="dark"] .order-group-main > .og-stage-summary { color: var(--night-ink); }
 html[data-theme="dark"] .order-group-sum strong { color: var(--night-ivory); }
 html[data-theme="dark"] .order-group-store + .order-group-store { border-top-color: var(--night-line-strong); }
 html[data-theme="dark"] .order-group[data-stage="attention"] { border-color: var(--night-warn-line); }
@@ -176,7 +174,6 @@ html[data-theme="dark"] :is(.og-model-photo, .og-line-thumb) img { background: t
 
 /* Since 10 October 2026: the next step under the heading, a finished purchase invites the next one, notes said once per
    checkout or store parcel (customs, allowance, the store-delivery check), the passport as a calm note, one "Вопрос по заказу". */
-.order-group-main > .og-next { color: var(--home-ink); font-size: 13.5px; font-weight: 600; }
 .og-head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 6px; }
 .og-head-actions .btn { min-height: 40px; }
 .og-model-head .og-model-reorder { grid-column: 2; justify-self: start; }
@@ -280,3 +277,40 @@ html[data-theme="dark"] .og-services li:not([data-on]) > span:not(.og-tick) { co
   .og-line-sum { justify-self: end; }
   .og-line-flags:not(:empty) { margin-top: 4px; }
 }
+/* Since 11 October 2026 the heading of a checkout: the total beside the date, then the stage as a six-step track with
+   what comes next ("Дальше" as a small label) instead of a badge and a plain "Дальше: …" line. */
+.og-title-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 16px; }
+.og-title-row .order-group-sum { display: flex; align-items: baseline; gap: 6px; text-align: left; }
+.og-track { display: grid; gap: 8px; margin-top: 8px; max-width: 720px; }
+.og-track-text { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin: 0; }
+.og-track-text > b { color: var(--home-ink); font-size: 14px; font-weight: 800; }
+.og-track-next { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 6px; color: var(--home-ink); font-size: 13.5px; }
+.og-track-next small { padding: 1px 7px; border-radius: 99px; background: var(--home-soft); color: var(--home-muted); font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.og-track-steps { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 0; list-style: none; }
+.og-track-steps li { display: grid; align-content: start; gap: 6px; min-width: 0; color: var(--home-muted); font-size: 12px; line-height: 1.25; }
+.og-track-steps li::before { content: ""; height: 6px; border-radius: 99px; background: var(--home-line); }
+.og-track-steps li[data-state="done"]::before { background: color-mix(in srgb, var(--home-accent) 55%, transparent); }
+.og-track-steps li[data-state="current"]::before { background: var(--home-accent); }
+.og-track-steps li[data-state="current"] { color: var(--home-ink); font-weight: 700; }
+.og-track-steps li > span { display: none; }
+@media (min-width: 640px) {
+  .og-track-steps { gap: 6px; }
+  .og-track-steps li > span { display: block; overflow-wrap: anywhere; }
+  .og-track-name { display: none; }
+  .og-title-row .order-group-sum strong { font-size: 18px; }
+}
+/* The search beside the page title, not on a row of its own under it. */
+.orders-head .orders-head-search { flex: 0 1 360px; margin: 0; }
+@media (min-width: 760px) { .orders-head { align-items: flex-end; } }
+html:not([data-theme="dark"]) .og-track-steps li::before { background: var(--day-line-strong-2); }
+html:not([data-theme="dark"]) .og-track-steps li[data-state="done"]::before { background: var(--day-fresh); }
+html:not([data-theme="dark"]) .og-track-steps li[data-state="current"]::before { background: var(--day-accent); }
+html:not([data-theme="dark"]) :is(.og-track-text > b, .og-track-next, .og-track-steps li[data-state="current"]) { color: var(--day-ink); }
+html:not([data-theme="dark"]) :is(.og-track-steps li, .og-track-next small) { color: var(--day-muted); }
+html:not([data-theme="dark"]) .og-track-next small { background: var(--day-soft); }
+html[data-theme="dark"] .og-track-steps li::before { background: rgba(255, 255, 255, 0.07); }
+html[data-theme="dark"] .og-track-steps li[data-state="done"]::before { background: var(--night-jade-strong); }
+html[data-theme="dark"] .og-track-steps li[data-state="current"]::before { background: var(--night-jade); box-shadow: 0 0 10px rgba(128, 208, 172, 0.35); }
+html[data-theme="dark"] :is(.og-track-text > b, .og-track-next, .og-track-steps li[data-state="current"]) { color: var(--night-ink); }
+html[data-theme="dark"] :is(.og-track-steps li, .og-track-next small) { color: var(--night-muted); }
+html[data-theme="dark"] .og-track-next small { background: rgba(255, 255, 255, 0.06); }

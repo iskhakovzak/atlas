@@ -847,11 +847,13 @@ function PaymentFacts({ order: o, locale }: { order: Order; locale: Locale }) {
  * row below them (owner, 11 October 2026): one stage track, one delivery, the services ticked, one latest event, one
  * history, instead of the same six steps once per line. Calculation, approvals, documents and history fold away below.
  */
-function CustomerOrderLine({ lines, panelId, siblings, showThumb, headerStage, sharedDelivery = false, locale, pricing, busy, photoBusy, expanded, onToggle, run, confirm, loadPhoto, storeCredited }: {
+function CustomerOrderLine({ lines, panelId, progress = true, siblings, showThumb, headerStage, sharedDelivery = false, locale, pricing, busy, photoBusy, expanded, onToggle, run, confirm, loadPhoto, storeCredited }: {
   /** The lines of this panel: one, or every line of a store parcel. */
   lines: Order[];
   /** The panel's element id when it holds several lines (a single line uses its order id). */
   panelId: string;
+  /** Off when the checkout heading's stage track already shows this parcel's stage (one store parcel). */
+  progress?: boolean;
   /** The stage the checkout heading shows (`groupStageText`): a row at that very stage does not repeat it. */
   headerStage?: string;
   /** All lines of the checkout: parcel-wide service requests kept on another line still cover these. */
@@ -928,7 +930,7 @@ function CustomerOrderLine({ lines, panelId, siblings, showThumb, headerStage, s
 
       {acting.map((line) => <LineActions key={line.id} order={line} siblings={siblings} label={label(line)} locale={locale} busy={busy} run={run} confirm={confirm} />)}
 
-      {!live.length ? <p className="order-x-note muted">{ow.cancelled}</p> : <section className="og-progress" aria-label={c.progress}>
+      {!live.length ? <p className="order-x-note muted">{ow.cancelled}</p> : progress && <section className="og-progress" aria-label={c.progress}>
         {/* Nothing is bought before the payment: "Ожидает оплаты", then the buyout — not "Ожидает выкупа". */}
         <p className="og-progress-text">{waitsPayment ? <><b>{c.stage(1, statuses.length)} · {gc.awaitingPayment}</b><small>{gc.nextBuyout}</small></> : <><b>{c.stage(lead.status + 1, statuses.length)} · {statuses[lead.status]}</b>{lead.status < statuses.length - 1 && <small>{gc.next(statuses[lead.status + 1])}</small>}</>}</p>
         <span className="og-progress-bar" aria-hidden="true">{statuses.map((name, index) => <span key={name} data-state={index < lead.status ? "done" : index === lead.status ? "current" : "next"} />)}</span>
@@ -1027,6 +1029,13 @@ function OrderGroupCard({ group, locale, busy, allowanceUsd, passports, parcel, 
   const showTotal = group.stage !== "cancelled" && live > 1 && group.payment?.amount !== group.payable;
   // One line under the heading: what happens next (or that the customer decides first).
   const next = group.stage === "cancelled" || group.status === undefined || group.status >= 5 ? "" : group.payment ? gc.nextBuyout : group.attention > 0 ? gc.nextDecision : gc.nextStep[group.status] ?? "";
+  // The stage track replaces the stage badge while the checkout lives; "Дальше: склад примет посылку" → a label and the step.
+  const statuses = localizedStatuses(locale);
+  const track = group.stage !== "cancelled" && group.status !== undefined;
+  const trackAt = group.payment ? 0 : Math.min(group.status ?? 0, statuses.length - 1);
+  const nextSplit = next.indexOf(": ");
+  const nextLabel = nextSplit > 0 ? next.slice(0, nextSplit) : "";
+  const nextText = nextSplit > 0 ? next.slice(nextSplit + 2) : next;
   // A finished purchase invites the next one: one "Заказать снова" for a single product link, else one per model.
   const finished = group.stage === "done";
   const links = [...new Set(liveOrders.map((order) => order.product.sourceUrl).filter((url): url is string => Boolean(url)))];
@@ -1038,25 +1047,31 @@ function OrderGroupCard({ group, locale, busy, allowanceUsd, passports, parcel, 
   return <section className="order-group" data-stage={group.stage} aria-label={title}>
     <header className="order-group-head">
       <div className="order-group-main">
-        <b className="order-group-title">{title}</b>
+        {/* The total beside the date: the side column keeps the recipient and the passport, the heading has no empty corner. */}
+        <span className="og-title-row"><b className="order-group-title">{title}</b>{showTotal && <span className="order-group-sum"><small>{gc.total}</small><strong><Money value={group.payable} locale={locale} /></strong></span>}</span>
         <small>{[itemCount(group.items || live, locale), stores.join(", ")].filter(Boolean).join(" · ")}</small>
         {/* One order: its number on the card for support, copied in one tap. Several keep theirs on each line. */}
         {group.orders.length === 1 && <span className="og-head-id"><span className="sr-only">{c.orderNumber}: </span><span className="order-x-id">{group.orders[0].id}</span><CopyText text={group.orders[0].id} locale={locale} /></span>}
-        <span className="order-group-badges">
-          <span className={"order-x-status " + stage.tone}>{stage.label}</span>
+        {(!track || group.attention > 0 || (group.cancelled > 0 && group.stage !== "cancelled")) && <span className="order-group-badges">
+          {!track && <span className={"order-x-status " + stage.tone}>{stage.label}</span>}
           {group.attention > 0 && <span className="order-x-status warn"><AlertCircle size={13} aria-hidden="true" />{gc.action(group.attention)}</span>}
           {group.cancelled > 0 && group.stage !== "cancelled" && <span className="order-x-status muted">{gc.cancelledLines(group.cancelled)}</span>}
-        </span>
-        {stage.summary && <small className="og-stage-summary">{stage.summary}</small>}
-        {next && <small className="og-next">{next}</small>}
+        </span>}
+        {/* The checkout's stage as a track (since 11 October 2026): six steps named on a wide screen, what comes next beside it. */}
+        {track && <div className="og-track">
+          <p className="og-track-text">
+            <b>{c.stage(trackAt + 1, statuses.length)}<span className="og-track-name"> · {stage.label}</span></b>
+            {stage.summary ? <span className="og-track-next">{stage.summary}</span> : nextText && <span className="og-track-next">{nextLabel && <small>{nextLabel}</small>}{nextText}</span>}
+          </p>
+          <ol className="og-track-steps" aria-label={c.progress}>{statuses.map((name, index) => <li key={name} data-state={index < trackAt || group.status === 5 ? "done" : index === trackAt ? "current" : "next"} aria-current={index === trackAt ? "step" : undefined}><span>{group.payment && index === 0 ? gc.awaitingPayment : name}</span></li>)}</ol>
+        </div>}
         {finished && <span className="og-head-actions">
           {links.length === 1 && <Link className="btn secondary" href={reorderHref(links[0])}><RotateCcw size={15} aria-hidden="true" />{gc.reorder}</Link>}
           <Link className="cabinet-text-btn" href="/order-by-link">{gc.byLink}<ArrowRight size={15} aria-hidden="true" /></Link>
         </span>}
       </div>
       {/* Beside the heading, not under it: the total, who receives the parcel and the passport customs still needs. */}
-      {(showTotal || ship || passports.length > 0) && <div className="og-side">
-        {showTotal && <p className="order-group-sum"><small>{gc.total}</small><strong><Money value={group.payable} locale={locale} /></strong></p>}
+      {(ship || passports.length > 0) && <div className="og-side">
         {ship && <div className="og-ship">
           <MapPin size={16} aria-hidden="true" />
           <p>
@@ -1472,6 +1487,10 @@ export function OrdersView({ operations }: { operations: boolean }) {
     <>
       {!operations ? <header className="orders-head">
         <div><h1>{oc.title}</h1>{orders.length > 0 && <p>{orderCount(customerGroups.length, locale)}{groupTabs.active.length ? ` · ${oc.active(groupTabs.active.length)}` : ""}</p>}</div>
+        {(orders.length > 5 || query) && <label className="search-field orders-head-search">
+          <Search size={18} aria-hidden="true" />
+          <input aria-label={ow.search} placeholder={oc.search} value={query} onChange={(e) => setQuery(e.target.value)} />
+        </label>}
         {canReadOperations && <Link className="btn secondary" href="/operations">{wc.operatorView}<ArrowUpRight size={16} aria-hidden="true" /></Link>}
       </header> : <PageHeading
         overline={
@@ -1540,8 +1559,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
                {tab === "active" ? wc.active : tab === "attention" ? attentionLabel : tab === "refunds" && operations ? refundTabLabel : wc.done}
             </TabsContent>
           </Tabs>
-          {/* Customers with a handful of orders scan the list; search appears once it gets long. */}
-          {(operations || orders.length > 5 || query) && <label className="search-field">
+          {/* Customers with a handful of orders scan the list; search appears once it gets long (beside the title for them). */}
+          {operations && <label className="search-field">
             <Search size={18} aria-hidden="true" />
             <input
               aria-label={ow.search}
@@ -1593,7 +1612,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
         />
       ) : (
         !operations ? visibleGroups.map((group) => {
-          const parcel = (lines: Order[], panelId: string, showThumb: boolean, headerStage: string) => <CustomerOrderLine key={panelId} lines={lines} panelId={panelId} siblings={group.orders} showThumb={showThumb} headerStage={headerStage} sharedDelivery={Boolean(group.delivery)} locale={locale} pricing={pricing} busy={busy} photoBusy={order => photoLoading.includes(order.id)} expanded={expanded.includes(panelId)} onToggle={open => setExpanded(ids => open ? [...new Set([...ids, panelId])] : ids.filter(id => id !== panelId))} run={runOrderAction} confirm={setConfirmation} loadPhoto={order => void loadPhoto(order)} storeCredited={order => storeShippingCredited(state.entries, order)} />;
+          const parcel = (lines: Order[], panelId: string, showThumb: boolean, headerStage: string) => <CustomerOrderLine key={panelId} lines={lines} panelId={panelId} progress={group.stores.length > 1} siblings={group.orders} showThumb={showThumb} headerStage={headerStage} sharedDelivery={Boolean(group.delivery)} locale={locale} pricing={pricing} busy={busy} photoBusy={order => photoLoading.includes(order.id)} expanded={expanded.includes(panelId)} onToggle={open => setExpanded(ids => open ? [...new Set([...ids, panelId])] : ids.filter(id => id !== panelId))} run={runOrderAction} confirm={setConfirmation} loadPhoto={order => void loadPhoto(order)} storeCredited={order => storeShippingCredited(state.entries, order)} />;
           // Every checkout, a single line included, reads the same: checkout → store parcel → model → variant lines.
           const pay = (paid: OrderGroup) => {
             const waiting = paid.orders.find(order => !order.cancelled && order.payment?.status === "pending");

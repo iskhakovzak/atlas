@@ -292,7 +292,7 @@ html[data-theme="dark"] .basket-item-note.issue { border-color: rgba(255, 140, 1
 @media (max-width: 760px) {
   main:is([data-view="orders"], [data-view="balance"], [data-view="notifications"]) .breadcrumb { display: none; }
 }
-.orders-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; margin: 16px 0 16px; }
+.orders-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; margin: 4px 0 16px; }
 .orders-head h1 { margin: 0; color: var(--home-ink); font-size: clamp(28px, 6vw, 40px); line-height: 1.1; letter-spacing: -.03em; }
 .orders-head p { margin: 4px 0 0; color: var(--home-muted); font-size: 15px; }
 .orders-head .btn { min-height: 44px; border-radius: 12px; }
