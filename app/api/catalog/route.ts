@@ -85,8 +85,14 @@ export async function POST(request:Request){try{
     return json({document:next.document,refreshResult});
   }
   if(command.kind==='recheck'){
-    const results:string[]=[],currentPricing=await pricing();
-    for(const id of command.ids){const entry=document.entries.find(item=>item.id===id);if(!entry){results.push(`${id}: товар не найден`);continue}try{const data=await fetchProduct(entry.draft.sourceUrl,merchantRequest),fresh=importDraft(data,entry.draft.collectionIds,entry.draft.country,Date.now());if(entry.autoManaged)applyAutomaticCatalogImport(document,fresh,Date.now(),currentPricing.rates);else entry.draft=recheckedDraft(entry.draft,fresh);document.availabilityReports=document.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:Date.now()}:report);results.push(`${entry.draft.name}: проверено`)}catch(error){entry.draft.lastCheckError=(error as Error).message.slice(0,500);entry.draft.importFailureReason=error instanceof ManualEntryFallbackError?error.reason:error instanceof Error&&error.name==='AbortError'?'timeout':undefined;const locale=requestLocale(request);results.push(`${entry.draft.name}: ${locale==='ru'?(error as Error).message:apiErrorMessage(422,locale)}`)}}
+    // Stores are read together (bounded per merchant, like a batch import); the catalog is then changed in order, one entry at a time.
+    const targets=command.ids.map(id=>({id,entry:document.entries.find(item=>item.id===id)}));
+    const [fetched,currentPricing]=await Promise.all([
+      mapMerchantConcurrent(targets.map(item=>item.entry?.draft.sourceUrl??''),url=>url?fetchProduct(url,merchantRequest).then(data=>({data}),(error:unknown)=>({error})):Promise.resolve(undefined)),
+      pricing(),
+    ]);
+    const results:string[]=[];
+    for(const [index,{id,entry}] of targets.entries()){if(!entry){results.push(`${id}: товар не найден`);continue}try{const read=fetched[index];if(!read)throw new Error('Нет ссылки на магазин');if('error' in read)throw read.error;const data=read.data,fresh=importDraft(data,entry.draft.collectionIds,entry.draft.country,Date.now());if(entry.autoManaged)applyAutomaticCatalogImport(document,fresh,Date.now(),currentPricing.rates);else entry.draft=recheckedDraft(entry.draft,fresh);document.availabilityReports=document.availabilityReports?.map(report=>report.productId===id&&!report.resolvedAt?{...report,resolvedAt:Date.now()}:report);results.push(`${entry.draft.name}: проверено`)}catch(error){entry.draft.lastCheckError=(error as Error).message.slice(0,500);entry.draft.importFailureReason=error instanceof ManualEntryFallbackError?error.reason:error instanceof Error&&error.name==='AbortError'?'timeout':undefined;const locale=requestLocale(request);results.push(`${entry.draft.name}: ${locale==='ru'?(error as Error).message:apiErrorMessage(422,locale)}`)}}
     document.revision++;await persistCatalog(document,raw,user,'catalog.recheck',{ids:command.ids});return json({document,recheckResults:results});
   }
   if(command.kind==='import'||command.kind==='discover'||command.kind==='import-batch'){

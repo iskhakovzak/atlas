@@ -44,7 +44,7 @@ export const operationalErrors=sqliteTable('market_operational_errors',{
 // Session IDs are SHA-256 hashes of the cookie token; the raw token is never stored.
 export const authSessions=sqliteTable('market_auth_sessions',{
  id:text('id').primaryKey(),userId:text('user_id').notNull(),method:text('method').notNull(),email:text('email'),displayName:text('display_name').notNull(),contact:text('contact').notNull(),createdAt:integer('created_at').notNull(),expiresAt:integer('expires_at').notNull(),
-},table=>[index('idx_market_auth_sessions_user').on(table.userId),index('idx_market_auth_sessions_expires').on(table.expiresAt),index('idx_market_auth_sessions_email').on(table.email,table.createdAt)]);
+},table=>[index('idx_market_auth_sessions_user').on(table.userId),index('idx_market_auth_sessions_expires').on(table.expiresAt),index('idx_market_auth_sessions_email').on(table.email)]);
 
 // One-time sign-in challenges: hashed email/SMS codes, or Google OAuth state with its PKCE verifier.
 export const authChallenges=sqliteTable('market_auth_challenges',{

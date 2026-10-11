@@ -40,7 +40,7 @@ import "./press.css";
 import "./header-panel.css";
 import "./motion.css";
 import { MarketProvider } from "@/lib/market/store";
-import { initialPricing, initialSiteContent } from "@/lib/market/initial-data";
+import { initialSettings } from "@/lib/market/initial-data";
 import { StorageNotice } from "./storage-notice";
 import { AtlasThemeProvider } from "./theme-control";
 import { PerformanceProbe } from "./performance-probe";
@@ -74,7 +74,7 @@ export default async function RootLayout({
   // the browser language, then Uzbek.
   // The tariff from D1 goes into the first render too, so the sums on the home page do not change after /api/account answers.
   // The site content (contacts, legal entity, reviews…) comes from D1 as well, so the footer does not flicker after hydration.
-  const [locale, pricing, siteContent] = await Promise.all([pageLocale(), initialPricing(), initialSiteContent()]);
+  const [locale, { pricing, siteContent }] = await Promise.all([pageLocale(), initialSettings()]);
   // A session cookie (not verified here) lets the header and private pages render their signed-in shape at once
   // instead of the guest header and a "checking your session" card; /api/account still decides who is signed in.
   const sessionHint = (await cookies()).has(SESSION_COOKIE);

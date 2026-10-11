@@ -36,15 +36,18 @@ export async function POST(request:Request){try{
   const parsed=actionSchema.safeParse(payload.action);
   if(!parsed.success)throw new HttpError(400, 'err_10');
   // Every action writes the account; adding to the cart and checking it also ask the stores through the proxy.
-  // The rate counters and the independent reads go out together: one D1 round trip instead of up to five in a row
-  // on every action. A refused action still answers 429 (the reads are simply not used).
   const storeCheck=['cart-add','cart-add-many','cart-check','checkout'].includes(parsed.data.type);
-  const [,,status,current,settings]=await Promise.all([rateLimit(`${user.userId}:actions`,60,60_000),storeCheck?rateLimit(`${user.userId}:store-checks`,40,10*60_000,'err_39'):undefined,customerStatus(user.userId),account(user),pricingAndPolicy()]);
+  // Independent reads go out together with the limits: one wait instead of up to five in a row on every action.
+  const identityAction=parsed.data.type==='identity-confirm'?parsed.data:undefined;
+  const [,,status,current,settings,owned]=await Promise.all([
+    rateLimit(`${user.userId}:actions`,60,60_000),
+    storeCheck?rateLimit(`${user.userId}:store-checks`,40,10*60_000,'err_39'):undefined,
+    customerStatus(user.userId),account(user),pricingAndPolicy(),
+    identityAction?database().prepare('SELECT id FROM market_identity_documents WHERE id=? AND user_id=?').bind(identityAction.documentId,user.userId).first():undefined,
+  ]);
   if(status==='blocked')throw new HttpError(403, 'err_11');
   if(status==='review'&&['checkout','payment-demo','payment-demo-batch','extra-charge-pay'].includes(parsed.data.type))throw new HttpError(403, 'err_12');
-  if(parsed.data.type==='identity-confirm'){
-    const identityAction=parsed.data;
-    const owned=await database().prepare('SELECT id FROM market_identity_documents WHERE id=? AND user_id=?').bind(identityAction.documentId,user.userId).first();
+  if(identityAction){
     if(!owned)throw new HttpError(404, 'err_13');
     if(identityAction.recipientProfileId&&!current.state.deliveryProfiles.some(profile=>profile.id===identityAction.recipientProfileId))throw new HttpError(400, 'err_14');
   }

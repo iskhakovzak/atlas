@@ -34,14 +34,14 @@ test('the queries that filter or sort on a column use an index, not a full table
 
 test('migrations 0013 and 0014 can run again on a database that already has their indexes', () => {
   const raw = migrated();
-  for (const statement of [...statements('0013_query_indexes'), ...statements('0014_provider_jobs_status')]) raw.exec(statement);
+  for (const statement of [...statements('0013_query_indexes'), ...statements('0014_more_query_indexes')]) raw.exec(statement);
   assert.equal(raw.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='index' AND name='idx_market_provider_jobs_status'").get().n, 1);
 });
 
-test('0013 applies to a database without 0012 (production on 11.10.2026 has not applied it yet)', () => {
+test('0014 applies to a database without 0012: its tables come from earlier migrations', () => {
   const raw = migrated(tag => tag < '0012');
-  for (const statement of statements('0013_query_indexes')) raw.exec(statement);
-  const names = statements('0013_query_indexes').map(statement => statement.match(/`(idx_[^`]+)`/)[1]);
-  assert.equal(names.length, 10);
+  for (const statement of statements('0014_more_query_indexes')) raw.exec(statement);
+  const names = statements('0014_more_query_indexes').map(statement => statement.match(/`(idx_[^`]+)`/)[1]);
+  assert.equal(names.length, 3);
   for (const name of names) assert.equal(raw.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='index' AND name=?").get(name).n, 1, name);
 });

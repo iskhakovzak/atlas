@@ -175,7 +175,7 @@ export async function saveStaffMember(value:{email:string;displayName:string;rol
  await database().prepare('INSERT INTO market_staff_directory (id,email,display_name,role,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT(email) DO UPDATE SET display_name=excluded.display_name,role=excluded.role,status=excluded.status,updated_at=excluded.updated_at').bind(id,email,value.displayName.trim(),value.role,value.status,now,now).run();
  return {id,email,displayName:value.displayName.trim(),role:value.role,status:value.status,createdAt:now,updatedAt:now} satisfies StaffMember;
 }
-/** The audit insert as a statement, for callers that write it in one db.batch with their own rows. */
+/** The audit row as a statement, for a db.batch together with the write it records. */
 export function auditStatement(user:{userId:string;email:string},action:string,entityType:string,entityId?:string,details?:unknown){
  const safeDetails=details===undefined?null:JSON.stringify(details).slice(0,4000);
  return database().prepare('INSERT INTO market_audit_events (id,actor_id,actor_email,action,entity_type,entity_id,details,created_at) VALUES (?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),user.userId,user.email.toLowerCase(),action.slice(0,100),entityType.slice(0,80),entityId?.slice(0,320)??null,safeDetails,Date.now());
