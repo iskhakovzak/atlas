@@ -195,6 +195,9 @@ export async function GET(request:Request) {
   }
 }
 
+// After a write the screen gets fresh lists; the two reads are independent, so they go together.
+const healthAndAudit=async()=>{const [health,audit]=await Promise.all([operationalHealth(),auditEvents()]);return {health,audit}};
+const staffAndAudit=async()=>{const [staff,audit]=await Promise.all([staffMembers(),auditEvents()]);return {staff,audit}};
 export async function POST(request: Request) {
   try {
     sameOrigin(request);
@@ -203,8 +206,8 @@ export async function POST(request: Request) {
     if (!payload.success) throw new HttpError(400, 'err_16');
     // Every update kind needs its own right; actions are checked per action type below.
     if (payload.data.kind !== 'action') assertPermission(access, operationsKindPermissions[payload.data.kind]);
-    if(payload.data.kind==='projection-rebuild'){const count=await rebuildOperationalProjection();await recordAudit(user,'projection.rebuild','system',undefined,{accounts:count});return json({health:await operationalHealth(),audit:await auditEvents()});}
-    if(payload.data.kind==='customer-status'){if(!customerStatusAllowed(access,payload.data.status))throw new HttpError(403, 'err_51');await setCustomerStatus(payload.data.accountId,payload.data.status);await recordAudit(user,'customer.status','customer',payload.data.accountId,{status:payload.data.status});return json({health:await operationalHealth(),audit:await auditEvents()});}
+    if(payload.data.kind==='projection-rebuild'){const count=await rebuildOperationalProjection();await recordAudit(user,'projection.rebuild','system',undefined,{accounts:count});return json(await healthAndAudit());}
+    if(payload.data.kind==='customer-status'){if(!customerStatusAllowed(access,payload.data.status))throw new HttpError(403, 'err_51');await setCustomerStatus(payload.data.accountId,payload.data.status);await recordAudit(user,'customer.status','customer',payload.data.accountId,{status:payload.data.status});return json(await healthAndAudit());}
     if(payload.data.kind==='customer-note'){
       const note=await addCustomerNote(payload.data.accountId,payload.data.text,user);
       await recordAudit(user,'customer.note','customer',payload.data.accountId,{noteId:note.id,length:note.text.length});
@@ -215,7 +218,7 @@ export async function POST(request: Request) {
       if(refusal)throw new HttpError(403,refusal);
       const member=await disableStaffMember(payload.data.email);
       await recordAudit(user,'staff.deactivate','staff',member.email,{reason:payload.data.reason,previousRole:member.role});
-      return json({member,staff:await staffMembers(),audit:await auditEvents()});
+      return json({member,...await staffAndAudit()});
     }
     if(payload.data.kind==='admin-settings'){
       const next=await saveAdminSettings(payload.data.value,user);
@@ -227,7 +230,7 @@ export async function POST(request: Request) {
       const value=isPrimary?{...payload.data.value,role:'admin' as const,status:'active' as const}:payload.data.value;
       const member=await saveStaffMember(value);
       await recordAudit(user,'staff.update','staff',member.email,{role:member.role,status:member.status});
-      return json({member,staff:await staffMembers(),audit:await auditEvents()});
+      return json({member,...await staffAndAudit()});
     }
     if (payload.data.kind === "fx-refresh") {
       const next = await refreshCbuFx().catch(() => null);

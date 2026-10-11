@@ -58,14 +58,14 @@ async function limit(name:string,max:number,windowMs:number){
 }
 async function clientKey(request:Request){return (await sha256Hex('ip:'+(request.headers.get('cf-connecting-ip')?.trim().slice(0,80)||'unknown'))).slice(0,32)}
 
-async function cleanup(){
- const now=Date.now();
- await db().batch([
-  db().prepare('DELETE FROM market_auth_challenges WHERE expires_at < ?').bind(now),
-  db().prepare('DELETE FROM market_auth_sessions WHERE expires_at < ?').bind(now),
-  db().prepare('DELETE FROM market_rate_limits WHERE expires_at < ?').bind(now),
- ]);
-}
+const cleanupStatements=(now:number)=>[
+ db().prepare('DELETE FROM market_auth_challenges WHERE expires_at < ?').bind(now),
+ db().prepare('DELETE FROM market_auth_sessions WHERE expires_at < ?').bind(now),
+ db().prepare('DELETE FROM market_rate_limits WHERE expires_at < ?').bind(now),
+];
+async function cleanup(){await db().batch(cleanupStatements(Date.now()))}
+/** Clears expired rows and stores the new challenge in one round trip (the clean-up never touches the row just added). */
+async function cleanupAndAdd(challenge:D1PreparedStatement,now:number){await db().batch([...cleanupStatements(now),challenge])}
 
 // A method attached to another account (market_auth_links) opens that account. Before migration 0008
 // the table may be missing: then everyone signs in to their own method's account, as before.
@@ -116,12 +116,17 @@ async function attachMethod(current:AuthUser,added:AuthUser){
  const subject=added.userId;
  if(subject===current.userId)throw new AuthError(409,'link_same');
  // One Telegram per account: Telegram sessions carry no unique contact, so detaching one could end the other's sessions.
- if(subject.startsWith('tg:')&&(current.userId.startsWith('tg:')||await db().prepare('SELECT 1 AS found FROM market_auth_links WHERE user_id=? AND subject LIKE ? LIMIT 1').bind(current.userId,'tg:%').first()))throw new AuthError(409,'link_telegram_one');
- const existing=await db().prepare('SELECT user_id FROM market_auth_links WHERE subject=?').bind(subject).first<{user_id:string}>();
+ // The four checks only read, so they run together; the refusals keep their order.
+ const telegram=subject.startsWith('tg:')&&!current.userId.startsWith('tg:');
+ const [otherTelegram,existing,own,dependents]=await Promise.all([
+  telegram?db().prepare('SELECT 1 AS found FROM market_auth_links WHERE user_id=? AND subject LIKE ? LIMIT 1').bind(current.userId,'tg:%').first():null,
+  db().prepare('SELECT user_id FROM market_auth_links WHERE subject=?').bind(subject).first<{user_id:string}>(),
+  db().prepare('SELECT state FROM market_accounts WHERE user_id=?').bind(subject).first<{state:string}>(),
+  db().prepare('SELECT 1 AS found FROM market_auth_links WHERE user_id=? LIMIT 1').bind(subject).first(),
+ ]);
+ if(subject.startsWith('tg:')&&(current.userId.startsWith('tg:')||otherTelegram))throw new AuthError(409,'link_telegram_one');
  if(existing)throw new AuthError(409,existing.user_id===current.userId?'link_same':'link_taken');
  // The method's own account must hold nothing, and no other method may already lead to it: either would be orphaned.
- const own=await db().prepare('SELECT state FROM market_accounts WHERE user_id=?').bind(subject).first<{state:string}>();
- const dependents=await db().prepare('SELECT 1 AS found FROM market_auth_links WHERE user_id=? LIMIT 1').bind(subject).first();
  if((own&&!emptyAccountState(own.state))||dependents)throw new AuthError(409,'link_has_account');
  await db().batch([
   db().prepare('INSERT INTO market_auth_links (subject,user_id,method,contact,created_at) VALUES (?,?,?,?,?)').bind(subject,current.userId,added.method,added.contact,Date.now()),
@@ -234,10 +239,9 @@ export async function startOtp(channel:OtpChannel,rawTarget:unknown,request:Requ
  await limit(`send:${targetKey}:10m`,3,10*60*1000);
  await limit(`send:${targetKey}:day`,10,24*60*60*1000);
  await limit(`send-ip:${await clientKey(request)}`,20,60*60*1000);
- await cleanup();
  const id=randomToken(18),code=reviewCode??randomCode(),now=Date.now();
- await db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,created_at,expires_at) VALUES (?,?,?,?,0,?,?)')
-  .bind(id,channel,target,await hashCode(id,code,pepper()),now,now+CODE_TTL_MS).run();
+ await cleanupAndAdd(db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,created_at,expires_at) VALUES (?,?,?,?,0,?,?)')
+  .bind(id,channel,target,await hashCode(id,code,pepper()),now,now+CODE_TTL_MS),now);
  if(reviewCode)return {challengeId:id};
  if(configured[channel]()){
   try{await (channel==='email'?sendEmail(target,code):sendSms(target,code))}
@@ -375,10 +379,9 @@ export async function startGoogle(request:Request){
  await limit(`google-ip:${await clientKey(request)}`,30,60*60*1000);
  // ?link=1 attaches the Google address to the signed-in account instead of signing in.
  const intent=await oauthIntent(request);
- await cleanup();
  const state=randomToken(24),verifier=randomToken(48),nonce=randomToken(18),now=Date.now();
- await db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,return_to,created_at,expires_at) VALUES (?,?,?,?,0,?,?,?)')
-  .bind(state,intent.link?'google-link':'google',nonce,verifier,encodeChallengeMeta(intent),now,now+OAUTH_TTL_MS).run();
+ await cleanupAndAdd(db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,return_to,created_at,expires_at) VALUES (?,?,?,?,0,?,?,?)')
+  .bind(state,intent.link?'google-link':'google',nonce,verifier,encodeChallengeMeta(intent),now,now+OAUTH_TTL_MS),now);
  const url=new URL('https://accounts.google.com/o/oauth2/v2/auth');
  url.search=new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID!,redirect_uri:googleRedirect(request),response_type:'code',scope:'openid email profile',state,nonce,code_challenge:await pkceChallenge(verifier),code_challenge_method:'S256',prompt:'select_account'}).toString();
  return redirect(url.href,[cookie(OAUTH_STATE_COOKIE,state,OAUTH_TTL_MS/1000)]);
@@ -411,10 +414,9 @@ export async function startApple(request:Request){
  if(!configured.apple())throw new AuthError(503,'method_unavailable');
  await limit(`apple-ip:${await clientKey(request)}`,30,60*60*1000);
  const intent=await oauthIntent(request);
- await cleanup();
  const state=randomToken(24),nonce=randomToken(18),now=Date.now();
- await db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,return_to,created_at,expires_at) VALUES (?,?,?,?,0,?,?,?)')
-  .bind(state,intent.link?'apple-link':'apple',nonce,'',encodeChallengeMeta(intent),now,now+OAUTH_TTL_MS).run();
+ await cleanupAndAdd(db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,return_to,created_at,expires_at) VALUES (?,?,?,?,0,?,?,?)')
+  .bind(state,intent.link?'apple-link':'apple',nonce,'',encodeChallengeMeta(intent),now,now+OAUTH_TTL_MS),now);
  // Apple posts the result cross-site, so only a SameSite=None cookie comes back with it.
  return redirect(appleAuthorizeUrl({clientId:env.APPLE_SERVICES_ID!,redirectUri:appleRedirect(request),state,nonce}),[cookie(APPLE_STATE_COOKIE,state,OAUTH_TTL_MS/1000,'None')]);
 }
@@ -448,10 +450,9 @@ export async function finishApple(request:Request){
 export async function startAppleNative(request:Request){
  if(!configured.appleNative())throw new AuthError(503,'method_unavailable');
  await limit(`apple-ip:${await clientKey(request)}`,30,60*60*1000);
- await cleanup();
  const id=randomToken(18),nonce=randomToken(24),now=Date.now();
- await db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,created_at,expires_at) VALUES (?,?,?,?,0,?,?)')
-  .bind(id,'apple-native',nonce,'',now,now+OAUTH_TTL_MS).run();
+ await cleanupAndAdd(db().prepare('INSERT INTO market_auth_challenges (id,kind,target,secret,attempts,created_at,expires_at) VALUES (?,?,?,?,0,?,?)')
+  .bind(id,'apple-native',nonce,'',now,now+OAUTH_TTL_MS),now);
  return {challengeId:id,nonce};
 }
 export type AppleNativeInput={challengeId:unknown;identityToken:unknown;authorizationCode?:unknown;user?:{givenName?:unknown;familyName?:unknown}|null;link?:boolean};

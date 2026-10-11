@@ -226,6 +226,11 @@ export type Obligations = {
   transitToStores: { count: number; goods: number; storeShipping: number; total: number };
 };
 /** `stages` maps order id → order stage ("0" = waiting for buyout, "1" = bought …, "cancelled"); balances are per customer. */
+/**
+ * Each account's internal balance (domain.ts balanceOf: credits minus debits of "customer-credit" over `state.entries`),
+ * summed in SQL so the snapshot does not load and parse every account document. Only positive balances are owed.
+ */
+export const customerBalancesSql = "SELECT SUM(CASE WHEN json_extract(e.value,'$.credit')='customer-credit' THEN json_extract(e.value,'$.amount') ELSE 0 END) - SUM(CASE WHEN json_extract(e.value,'$.debit')='customer-credit' THEN json_extract(e.value,'$.amount') ELSE 0 END) AS balance FROM market_accounts a, json_each(a.state,'$.entries') e WHERE json_valid(a.state) GROUP BY a.user_id HAVING balance > 0 LIMIT 5000";
 export function obligations(orders: OrderFinance[], stages: Record<string, string>, balances: number[]): Obligations {
   const pending = orders.filter((order) => order.status === "pending");
   const unbought = orders.filter((order) => order.status === "paid" && stages[order.orderId] === "0");

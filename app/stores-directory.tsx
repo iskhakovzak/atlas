@@ -29,6 +29,8 @@ const countryKeys = new Set<string>(countryCodes);
 const popular = popularBrandKeys.map((key) => storeBrands.find((brand) => brand.key === key)).filter((brand): brand is StoreBrand => !!brand);
 /** A collapsed group shows this many stores: two rows on phones, two rows of five on wide screens (CSS hides the rest). */
 const collapsedCount = 6;
+/** The most tiles a closed shelf shows at any width (stores.css hides the rest: 6, 9, 8 or 10 by breakpoint). */
+const collapsedMax = 10;
 /** The storefront shelf appears once this many brands have products in the catalog. */
 const showcaseMin = 3;
 /** Collapsed, the shelf is two rows on wide screens: six cards at three per row (CSS shows eight at four per row; phones scroll them all). */
@@ -232,7 +234,7 @@ export function StoresDirectory() {
           const fits = [8, 9, 10].filter((limit) => items.length <= limit).map((limit) => ' le' + limit).join('');
           return items.length ? <section className={'stores-group' + (isOpen ? ' open' : '') + fits} key={key} aria-labelledby={'stores-' + key}>
             <h3 id={'stores-' + key}>{storeFocusNames[key][locale]}<span>{items.length}</span></h3>
-            <StoreGrid items={items} {...gridProps} />
+            <StoreGrid items={items} {...gridProps} drawnUpTo={isOpen ? undefined : collapsedMax} />
             {items.length > collapsedCount && <button type="button" className="stores-more" aria-expanded={isOpen} aria-controls={'stores-grid-' + key} onClick={() => setExpanded(isOpen ? expanded.filter((value) => value !== key) : [...expanded, key])}>
               {isOpen ? c.showLess : c.showAll(items.length)}<ChevronDown size={18} aria-hidden="true" />
             </button>}
@@ -250,16 +252,21 @@ export function StoresDirectory() {
   </div>;
 }
 
-function StoreGrid({ items, locale, c, catalog, marks, terms, onOpen }: { items: StoreBrand[]; locale: Locale; c: Copy; catalog: CatalogByBrand; marks: Map<string, PersonalMark>; terms: TermsByCountry; onOpen: (brand: StoreBrand) => void }) {
-  return <ul className="stores-grid" id={items[0] ? 'stores-grid-' + items[0].focus : undefined}>{items.map((brand) => {
+/**
+ * `drawnUpTo`: tiles past it sit hidden in a closed shelf, so they keep their name and country (the page lists every
+ * store) but skip the logo and flag — their SVG made up most of the page's ~9000 elements. Opening the shelf draws them.
+ */
+function StoreGrid({ items, locale, c, catalog, marks, terms, onOpen, drawnUpTo = Infinity }: { items: StoreBrand[]; locale: Locale; c: Copy; catalog: CatalogByBrand; marks: Map<string, PersonalMark>; terms: TermsByCountry; onOpen: (brand: StoreBrand) => void; drawnUpTo?: number }) {
+  return <ul className="stores-grid" id={items[0] ? 'stores-grid-' + items[0].focus : undefined}>{items.map((brand, index) => {
+    const drawn = index < drawnUpTo;
     const main = brand.storefronts[0], t = terms[main.country], mark = marks.get(brand.key);
     const countries = new Set(brand.storefronts.map((s) => s.country)).size, inCatalog = catalog.get(brand.key)?.count ?? 0;
     return <li key={brand.key}><button type="button" className="store-tile" onClick={() => onOpen(brand)}>
-      <span className="store-tile-logo"><StoreLogo brand={brand} size={36} />{mark && <i className="store-tile-mark" title={mark === 'cart' ? c.inCartMark : c.youOrdered}><span className="sr-only">{mark === 'cart' ? c.inCartMark : c.youOrdered}</span></i>}</span>
+      <span className="store-tile-logo">{drawn ? <StoreLogo brand={brand} size={36} /> : <span className="store-logo" style={{ width: 36, height: 36 }} aria-hidden="true" />}{mark && <i className="store-tile-mark" title={mark === 'cart' ? c.inCartMark : c.youOrdered}><span className="sr-only">{mark === 'cart' ? c.inCartMark : c.youOrdered}</span></i>}</span>
       <span className="store-tile-text">
         <span className="store-tile-row"><b>{brand.name}</b>{inCatalog > 0 && <em className="store-tile-count">{c.products(inCatalog)}</em>}</span>
         <small className="store-tile-geo">
-          <CountryFlag code={main.country} /><span>{storeCountryNames[main.country][locale]}</span>
+          {drawn && <CountryFlag code={main.country} />}<span>{storeCountryNames[main.country][locale]}</span>
           {t.region ? <><span>{t.expressShort ?? c.pendingTerms}</span>{t.expressPerKg && <span className="store-tile-rate">{t.expressPerKg}</span>}</> : <span>{c.pendingTerms}</span>}
           {countries > 1 && <span className="store-tile-more">{c.moreCountries(countries - 1)}</span>}
         </small>
