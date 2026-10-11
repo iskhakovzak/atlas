@@ -524,20 +524,19 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
   .lo-summary { position: sticky; top: 88px; }
 }
 .lo-card, .lo-product { padding: 18px; border: 1px solid var(--home-line); border-radius: 18px; background: var(--home-surface); }
-.lo-product { display: grid; grid-template-areas: "gallery" "copy" "variant"; gap: 14px; }
-.lo-product > .lo-gallery { grid-area: gallery; }
-.lo-product > .lo-product-copy { grid-area: copy; min-width: 0; }
-/* The option picker lives in the product card (owner, 11 October 2026: no empty space beside the photo): one card, a rule above the picker. */
-.lo-page .lo-product > .lo-card.lo-variant { grid-area: variant; min-width: 0; padding: 14px 0 0; border: 0; border-top: 1px solid var(--home-line); border-radius: 0; background: none; box-shadow: none; }
+.lo-product { display: grid; gap: 14px; }
+@media (min-width: 640px) { .lo-product { grid-template-columns: 240px minmax(0, 1fr); align-items: start; } .lo-product.lo-product-plain { grid-template-columns: minmax(0, 1fr); } }
+/* Beside the photo, in the space that stayed empty: small colour buttons; sizes and the rest stay in the option card,
+   which hides its own colour row (owner, 11 October 2026). Phones keep the colours in the card. */
+.lo-colours-aside { display: none; }
 @media (min-width: 640px) {
-  .lo-product { grid-template-columns: 240px minmax(0, 1fr); grid-template-areas: "gallery copy" "variant variant"; align-items: start; }
-  .lo-product.lo-product-plain { grid-template-columns: minmax(0, 1fr); grid-template-areas: "copy" "variant"; }
-}
-/* Wide screens: the photo on the left for the whole card, name, price and the picker to its right. */
-@media (min-width: 1200px) {
-  .lo-product:not(.lo-product-plain) { grid-template-columns: 280px minmax(0, 1fr); grid-template-areas: "gallery copy" "gallery variant"; grid-template-rows: auto 1fr; gap: 12px 24px; }
-  .lo-product:not(.lo-product-plain) > .lo-gallery { position: sticky; top: 88px; align-self: start; }
-  .lo-page .lo-product:not(.lo-product-plain) > .lo-variant { align-self: start; padding-top: 12px; }
+  .lo-page .lo-colours-aside { display: block; margin-top: 14px; }
+  .lo-page .lo-colours-main { display: none; }
+  .lo-page .lo-colours-aside .variant-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 120px)); gap: 8px; }
+  .lo-page .lo-colours-aside .variant-options button { justify-items: center; align-content: start; min-height: 0; padding: 6px 6px 8px; text-align: center; }
+  .lo-page .lo-colours-aside .variant-options button img { width: 64px; height: 64px; border-radius: 8px; }
+  .lo-page .lo-colours-aside .variant-options button > span { display: -webkit-box; overflow: hidden; font-size: 12px; font-weight: 600; line-height: 1.3; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .lo-page .lo-colours-aside .variant-options button small { font-size: 11.5px; }
 }
 /* The store link at the top: domain and path on one line, cut with an ellipsis, opening the full address. */
 a.lo-source-host { text-decoration: none; }
