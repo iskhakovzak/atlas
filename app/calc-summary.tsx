@@ -31,17 +31,16 @@ export const usdText=(value:number,locale:Locale)=>new Intl.NumberFormat(locale=
  * store delivery, the reserve and customs on their own lines; then the store-delivery hold (never in the total).
  * Same grouping as the item card (app/cost-lines.tsx, lib/market/quote-presentation.ts).
  */
-export function CalcLines({sums,locale,pricing,weightKg,storeShippingState,anyFree=false,speed,children}:{sums:Required<Sums>;locale:Locale;pricing:Pricing;weightKg?:number;storeShippingState:'stated'|'free'|'hold'|'none';anyFree?:boolean;/** Names the chosen delivery speed on the international line. */speed?:DeliverySpeed;children?:React.ReactNode}){
+export function CalcLines({sums,locale,pricing,weightKg,speed,children}:{sums:Required<Sums>;locale:Locale;pricing:Pricing;weightKg?:number;storeShippingState:'stated'|'free'|'hold'|'none';anyFree?:boolean;/** Names the chosen delivery speed on the international line. */speed?:DeliverySpeed;children?:React.ReactNode}){
  const c=calcCopy[locale];
  const internationalLabel=speed?`${c.lines.international(kgText(weightKg,locale))} · ${c.speeds[speed]}`:c.lines.international(kgText(weightKg,locale));
- const freeFrom=usdText(pricing.storeShippingFreeFromUsd??50,locale);
- // A cart can mix stores: a stated charge, a separate hold and free delivery each get their own line.
- const stated=sums.sourceShipping>0||storeShippingState==='stated';
- const hold=sums.storeShippingHold>0||storeShippingState==='hold';
- const free=!hold&&(anyFree||storeShippingState==='free');
+ // Free or held store delivery is not a line (owner, 12 October 2026): a held amount has its own block outside the
+ // total, so only a stated charge, which is in the total, shows here. storeShippingState and anyFree stay in the props
+ // for the callers but no longer change the lines.
  // One "Atlas service" amount: the fee (with buyout and conversion when a tariff sets them) and international delivery.
  const fee=percent(pricing.margin,locale),international=sums.shipping+sums.deliveryMargin;
- const serviceTotal=sums.service+sums.buyout+sums.conversion+international;
+ // "Atlas pays customs" is part of the Atlas service, not a line of its own (owner, 12 October 2026).
+ const serviceTotal=sums.service+sums.buyout+sums.conversion+international+sums.customsHelp;
  return <>
   <div className="basket-lines">
    <SummaryLine label={c.lines.items} amount={sums.merchandise} locale={locale}/>
@@ -55,16 +54,14 @@ export function CalcLines({sums,locale,pricing,weightKg,storeShippingState,anyFr
       {sums.buyout>0&&<SummaryLine label={c.lines.buyout} amount={sums.buyout} locale={locale}/>}
       {sums.conversion>0&&<SummaryLine label={c.lines.conversion} amount={sums.conversion} locale={locale}/>}
       <SummaryLine label={internationalLabel} amount={international} locale={locale} help={c.weightRule(formatKg(packagingKg,locale))} helpLabel={c.blocks.weight}/>
+      {sums.customsHelp>0&&<SummaryLine label={c.lines.customsHelp(percent(pricing.customsHelpFee,locale))} amount={sums.customsHelp} locale={locale} help={c.customsHelpHelp(percent(pricing.customsHelpFee,locale))} helpLabel={c.lines.customsHelp('')}/>}
      </div>
     </details>
    </div>
-   {stated&&<SummaryLine label={c.lines.storeShipping} amount={sums.sourceShipping} locale={locale}/>}
-   {free&&<SummaryLine label={c.lines.storeShipping} amount={0} value={c.lines.free} locale={locale} help={c.freeNote(freeFrom)} helpLabel={c.lines.storeShipping}/>}
-   {hold&&<SummaryLine label={c.lines.storeShipping} amount={0} value={c.lines.holdOutside} locale={locale} help={c.holdHelp(freeFrom)} helpLabel={c.lines.storeShipping}/>}
+   {sums.sourceShipping>0&&<SummaryLine label={c.lines.storeShipping} amount={sums.sourceShipping} locale={locale}/>}
    {sums.reserve>0&&<SummaryLine label={c.lines.intlReserve} amount={sums.reserve} locale={locale} help={c.intlReserveHelp} helpLabel={c.lines.intlReserve}/>}
    {sums.insurance>0&&<SummaryLine label={c.lines.insurance} amount={sums.insurance} locale={locale}/>}
    {sums.optionalServices>0&&<SummaryLine label={c.lines.optional} amount={sums.optionalServices} locale={locale}/>}
-   {sums.customsHelp>0&&<SummaryLine label={c.lines.customsHelp(percent(pricing.customsHelpFee,locale))} amount={sums.customsHelp} locale={locale} help={c.customsHelpHelp(percent(pricing.customsHelpFee,locale))} helpLabel={c.lines.customsHelp('')}/>}
    {sums.customsDuty>0&&<SummaryLine label={c.lines.customsDuty} amount={sums.customsDuty} locale={locale} help={c.customsDutyHelp} helpLabel={c.lines.customsDuty}/>}
   </div>
   {children}

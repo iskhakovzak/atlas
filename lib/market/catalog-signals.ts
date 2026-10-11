@@ -32,8 +32,8 @@ export type SignalContext = {
 
 const copy = /*@__PURE__*/withCyrillic({
   ru: {
-    parcel: (extra: string, store: string) => `+${extra} к посылке ${store}`,
-    parcelHint: (alone: string) => `Посчитано, как в корзине: одна посылка на магазин, минимум 1 кг. Отдельной посылкой — ${alone}.`,
+    parcel: (extra: string, store: string) => `С посылкой ${store} в корзине: +${extra}`,
+    parcelHint: (alone: string) => `Столько добавится к корзине: товар поедет в одной посылке с тем, что уже лежит в корзине из этого магазина, доставка общая. Отдельной посылкой — ${alone}.`,
     limit: (limit: string) => `В лимите ${limit}`,
     limitHint: 'По вашим заказам в Atlas за этот месяц; оценка, пошлину считает таможня при ввозе.',
     freeShipping: 'Доставка магазина бесплатна',
@@ -50,8 +50,8 @@ const copy = /*@__PURE__*/withCyrillic({
     sizesHint: 'По списку размеров магазина; выбранный размер Atlas сверит при добавлении в корзину.',
   },
   uz: {
-    parcel: (extra: string, store: string) => `${store} posilkasiga +${extra}`,
-    parcelHint: (alone: string) => `Savatdagidek hisoblangan: har bir do‘konga bitta posilka, kamida 1 kg. Alohida posilkada — ${alone}.`,
+    parcel: (extra: string, store: string) => `Savatdagi ${store} posilkasi bilan: +${extra}`,
+    parcelHint: (alone: string) => `Savatga shuncha qo‘shiladi: tovar savatdagi shu do‘kon tovarlari bilan bitta posilkada boradi, yetkazish umumiy. Alohida posilkada — ${alone}.`,
     limit: (limit: string) => `${limit} limit ichida`,
     limitHint: 'Shu oydagi Atlas buyurtmalaringiz bo‘yicha; taxminiy, bojni olib kirishda bojxona hisoblaydi.',
     freeShipping: 'Do‘kon yetkazishi bepul',
@@ -68,8 +68,8 @@ const copy = /*@__PURE__*/withCyrillic({
     sizesHint: 'Do‘kon o‘lchamlari ro‘yxati bo‘yicha; tanlangan o‘lchamni Atlas savatga qo‘shishda tekshiradi.',
   },
   en: {
-    parcel: (extra: string, store: string) => `+${extra} to your ${store} parcel`,
-    parcelHint: (alone: string) => `Priced like the cart: one parcel per store, at least 1 kg. As a separate parcel: ${alone}.`,
+    parcel: (extra: string, store: string) => `With the ${store} parcel in your cart: +${extra}`,
+    parcelHint: (alone: string) => `This much is added to your cart: the product ships in one parcel with what is already in your cart from this store, sharing delivery. As a separate parcel: ${alone}.`,
     limit: (limit: string) => `Within the ${limit} allowance`,
     limitHint: 'Based on your Atlas orders this month; an estimate, customs assesses duty on import.',
     freeShipping: 'Free store delivery',

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, ArrowRight, Check, CircleHelp, ClipboardPaste, ExternalLink, Info, Link2, Loader2, Lock, Minus, Plus, ShieldCheck, ShoppingBag, X } from "lucide-react";
 import Link from "@/components/site-link";
 import { toast } from "@/lib/market/toast";
@@ -219,6 +219,7 @@ export function GlobalLinkOrder() {
   const lc = linkOrderCopy[lang];
   const checkedText=tx('Atlas уже проверил цену и валюту в магазине.','Atlas narx va valyutani do‘konda tekshirib bo‘ldi.','Atlas has already checked the price and currency with the store.');
   const searchParams = useSearchParams();
+  const router = useRouter();
   const requestedUrl = searchParams.get("url") ?? "";
   const catalogId = searchParams.get("catalog") ?? "";
   const isSourcedFlow = Boolean(requestedUrl);
@@ -929,7 +930,8 @@ export function GlobalLinkOrder() {
     setManualQuantity(1);
     if (!variants.length) setVariant("");
      setComment(""); setFormIssue(""); setGoneOptions([]); setChoiceNote(""); setResumedFrom("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Added: straight to the cart, where delivery and payment are chosen (owner, 12 October 2026).
+    router.push("/cart");
   }
   // A guest's "add to cart" is sent once after sign-in, when this product is on screen again (app/pending-cart-add.ts).
   const pendingAdd = usePendingCartAdd(!checking && !adding && Boolean(source) && draftDecidedFor === draftKey, (result: PendingCartAddResult) => {

@@ -58,6 +58,8 @@ test('Nike embedded product data keeps exact style price, gallery and stock matr
   const result = extractProduct(htmlText, sourceUrl);
   assert.equal(result.method, 'Nike product data');
   assert.equal(result.price, 76.97);
+  // The full price before the sale shows struck through with the percent.
+  assert.equal(result.referencePrice, 95);
   assert.equal(result.category, 'Обувь');
   assert.equal(result.images.length, 1);
   assert.equal(result.images[0], 'https://static.nike.com/two.jpg');

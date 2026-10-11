@@ -22,7 +22,7 @@ test('never more than two chips, and at most one of them coloured', () => {
   assert.equal(colours(signals).length, 1);
   assert.deepEqual(kinds(signals), ['parcel', 'cart']);
   assert.equal(signals[0].tone, 'mint');
-  assert.equal(signals[0].text, '+118 000 сум к посылке Nike');
+  assert.equal(signals[0].text, 'С посылкой Nike в корзине: +118 000 сум');
   assert.match(signals[0].hint, /Отдельной посылкой — \d/);
 });
 
@@ -94,5 +94,5 @@ test('every language has its own wording', () => {
   assert.equal(signalsFor(item, { ...member(200), locale: 'uz' })[0].text, '$200 limit ichida');
   assert.equal(signalsFor(item, { ...member(200), locale: 'en' })[1].text, '3 sizes');
   assert.equal(signalsFor(item, { ...member(200), locale: 'uz' })[1].text, '3 ta o‘lcham');
-  assert.equal(signalsFor(item, { ...guest, locale: 'en', parcel: { store: 'nike.com', extra: 1000 } })[0].text, '+1 000 UZS to your Nike parcel');
+  assert.equal(signalsFor(item, { ...guest, locale: 'en', parcel: { store: 'nike.com', extra: 1000 } })[0].text, 'With the Nike parcel in your cart: +1 000 UZS');
 });

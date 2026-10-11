@@ -25,9 +25,12 @@ export function dealQuote(product: Product, pricing: Pricing,records:MerchantFin
   const holdUsd = estimateUsd===undefined ? 0 : storeShippingHoldUsd(product, estimateUsd, pricing);
   // Compare only the exact sourced listing; no invented price history or ID-only match.
   const referenceUsd = records.find(item=>item.id===product.id&&item.sourceUrl===product.sourceUrl&&item.usd===product.usd)?.referenceUsd;
-  const savingsUsd = !product.priceNeedsConfirmation && referenceUsd && referenceUsd > product.usd ? referenceUsd - product.usd : 0;
+  // A dated snapshot keeps its discount when its recorded price is in USD, the currency of the reference (owner,
+  // 12 October 2026: the sale and its percent matter); the card shows the date beside the price.
+  const nowUsd = product.priceNeedsConfirmation ? (product.sourceCurrency === 'USD' ? product.sourcePrice : undefined) : product.usd;
+  const savingsUsd = nowUsd !== undefined && referenceUsd && referenceUsd > nowUsd ? referenceUsd - nowUsd : 0;
   const discount = referenceUsd && savingsUsd > 0 ? Math.round(savingsUsd / referenceUsd * 100) : 0;
-  return { product, costs, holdUsd, referenceUsd:product.priceNeedsConfirmation?undefined:referenceUsd, savingsUsd, discount:product.priceNeedsConfirmation?0:discount };
+  return { product, costs, holdUsd, referenceUsd:nowUsd===undefined?undefined:referenceUsd, savingsUsd, discount };
 }
 
 export function filterDeals(products: Product[], pricing: Pricing, filters: DealFilters,records:MerchantFind[]=bundledMerchantFinds) {

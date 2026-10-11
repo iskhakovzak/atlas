@@ -989,6 +989,9 @@ function extractNike(html: string, sourceUrl: string): Extracted | undefined {
     const brand = brands[0] || 'Nike';
     const priceData = product.prices && typeof product.prices === 'object' ? product.prices as Record<string, unknown> : {};
     const price = number(priceData.currentPrice ?? priceData.price ?? priceData.initialPrice);
+    // Nike's full price before a sale: the cart and catalog show it struck through with the percent (owner, 12 October 2026).
+    const initialPrice = number(priceData.initialPrice ?? priceData.fullPrice);
+    const referencePrice = price !== undefined && initialPrice !== undefined && initialPrice > price ? initialPrice : undefined;
     const currency = clean(priceData.currency ?? (page?.locale && typeof page.locale === 'object' ? (page.locale as Record<string, unknown>).currency : undefined)).toUpperCase() || undefined;
     const category = inferProductCategory([title, clean(product.productType), ...(Array.isArray(product.taxonomyLabels) ? product.taxonomyLabels.map(clean) : [])].filter(Boolean).join(' '), brand);
     const images = nikeImages(product);
@@ -1053,7 +1056,7 @@ function extractNike(html: string, sourceUrl: string): Extracted | undefined {
     const warnings = ['Доставка магазина не опубликована — указан изменяемый резерв $10; для заказа из магазина от $50 его не берём.', 'Вес с упаковкой нужно проверить.'];
     if (price === undefined) warnings.unshift('Цена не найдена в данных Nike: выберите конкретный вариант на странице магазина.');
     if (!boundedVariants.some(value => value.available)) warnings.push('Nike не указал доступный размер в текущем снимке.');
-    return {title, brand, category, declarationDescription: declarationFor(category, title ?? '', brand), image: images[0], images, colorwayImages, selectedVariantColor: clean(product.colorDescription ?? product.styleColor) || undefined, price, currency, variants: boundedVariants, country: inferStorefrontCountry(sourceUrl, currency), warnings, sourceUrl, variantScope: matchedGroup?.length ? 'group' : 'color', variantsComplete: false, method: 'Nike product data', sku: clean(product.styleCode) || undefined};
+    return {title, brand, category, declarationDescription: declarationFor(category, title ?? '', brand), image: images[0], images, colorwayImages, selectedVariantColor: clean(product.colorDescription ?? product.styleColor) || undefined, price, ...(referencePrice !== undefined ? {referencePrice} : {}), currency, variants: boundedVariants, country: inferStorefrontCountry(sourceUrl, currency), warnings, sourceUrl, variantScope: matchedGroup?.length ? 'group' : 'color', variantsComplete: false, method: 'Nike product data', sku: clean(product.styleCode) || undefined};
   } catch {
     return;
   }

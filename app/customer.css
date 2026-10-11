@@ -527,6 +527,7 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
 .lo-pick-mode .lo-hint-line { margin: 0; }
 .lo-pick-mode .lo-source-link { min-height: 40px; }
 .lo-variant .lo-comment { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--home-line); }
+.lo-variant .lo-comment textarea { min-height: 84px; }
 .lo-confirm { grid-area: confirm; }
 /* Wide screens: the item (photo, colours, sizes, comment) on the left; the total, item data and add button stacked
    on the right. Delivery speed is chosen in the cart now, so the right column carries the rest of the decision and
@@ -1073,10 +1074,11 @@ html[data-theme="dark"] .lo-cart-entry b { background: #9fdeb8; color: #10241a; 
 @keyframes lo-cart-bump { 0% { transform: scale(.6); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .lo-cart-entry b { animation: none; } }
 @media (max-width: 420px) { .lo-cta-row .lo-cart-entry span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } }
-/* Narrow phones: the total must stay whole, so the cart becomes an icon with a corner badge and the add button drops its arrow. */
-@media (max-width: 379px) {
+/* Phones up to 430 px (most of them): the total must stay whole, so the cart becomes an icon with a corner badge and
+   the add button drops its arrow; at 390 px the sum otherwise touched the button (owner, 12 October 2026). */
+@media (max-width: 430px) {
   .lo-sticky:has(.lo-cart-entry) { gap: 8px; }
-  .lo-sticky:has(.lo-cart-entry) .btn { padding-inline: 12px; }
+  .lo-sticky:has(.lo-cart-entry) .btn { margin-left: auto; padding-inline: 14px; }
   .lo-sticky:has(.lo-cart-entry) .btn > svg:last-child { display: none; }
   .lo-cart-entry.compact { justify-content: center; width: 48px; padding: 0; }
   .lo-cart-entry.compact b { position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; padding: 0 5px; font-size: 12px; box-shadow: 0 0 0 2px var(--home-surface, #fff); }
