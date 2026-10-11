@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <!-- Launcher shortcuts (res/xml/shortcuts.xml): the short label shows on most launchers, at most ~10 characters fit. -->
+    <string name="shortcut_link_short">Ҳавола</string>
+    <string name="shortcut_link_long">Ҳавола орқали буюртма</string>
+    <string name="shortcut_catalog_short">Каталог</string>
+    <string name="shortcut_catalog_long">Маҳсулотлар каталоги</string>
+    <string name="shortcut_cart_short">Сават</string>
+    <string name="shortcut_cart_long">Сават</string>
+    <string name="shortcut_orders_short">Буюртмалар</string>
+    <string name="shortcut_orders_long">Буюртмаларим</string>
+</resources>

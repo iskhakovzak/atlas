@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <!-- Launcher shortcuts (res/xml/shortcuts.xml): the short label shows on most launchers, at most ~10 characters fit. -->
+    <string name="shortcut_link_short">By link</string>
+    <string name="shortcut_link_long">Order by link</string>
+    <string name="shortcut_catalog_short">Catalogue</string>
+    <string name="shortcut_catalog_long">Product catalogue</string>
+    <string name="shortcut_cart_short">Cart</string>
+    <string name="shortcut_cart_long">Cart</string>
+    <string name="shortcut_orders_short">Orders</string>
+    <string name="shortcut_orders_long">My orders</string>
+</resources>

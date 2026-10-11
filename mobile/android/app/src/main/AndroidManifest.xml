@@ -19,6 +19,8 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Long press on the icon: order by link, catalogue, cart, my orders (res/xml/shortcuts.xml). -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
 
             <!-- Custom scheme: the sign-in handoff from the system browser (uz.atlasmarket.app://auth?code=...). -->
             <intent-filter>

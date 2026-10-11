@@ -156,3 +156,32 @@ test('deep-link and back listeners work with the injected runtime and with regis
   }finally{delete globalThis.window}
  }
 });
+
+test('Android shell: shortcuts open site pages the app accepts, the release config stays on HTTPS, the icon is the Atlas mark',async()=>{
+ const {readFileSync,existsSync}=await import('node:fs');
+ const read=p=>readFileSync(new URL('../mobile/'+p,import.meta.url),'utf8');
+ const res='android/app/src/main/res/';
+ const shortcuts=read(res+'xml/shortcuts.xml');
+ const targets=[...shortcuts.matchAll(/android:data="([^"]+)"/g)].map(m=>m[1]);
+ assert.deepEqual(targets,['https://atlasmarket.uz/order-by-link','https://atlasmarket.uz/catalog','https://atlasmarket.uz/cart','https://atlasmarket.uz/orders']);
+ for(const url of targets)assert.equal(parseAppLink(url)?.kind,'path',url);
+ // Explicit target: /cart is not among the verified link paths, so the intent must name the activity.
+ assert.equal(shortcuts.match(/android:targetClass="uz\.atlasmarket\.app\.MainActivity"/g)?.length,4);
+ for(const dir of ['values','values-en','values-uz','values-b+uz+Cyrl']){
+  const strings=read(res+dir+'/strings.xml');
+  for(const id of ['link','catalog','cart','orders'])for(const len of ['short','long'])assert.match(strings,new RegExp(`name="shortcut_${id}_${len}">[^<]+<`),`${dir} shortcut_${id}_${len}`);
+ }
+ const manifest=read('android/app/src/main/AndroidManifest.xml');
+ assert.match(manifest,/android:usesCleartextTraffic="false"/);
+ assert.match(manifest,/android:name="android\.app\.shortcuts" android:resource="@xml\/shortcuts"/);
+ assert.match(read('capacitor.config.ts'),/server:\{url:'https:\/\/atlasmarket\.uz',errorPath:'error\.html',cleartext:false\}/);
+ const adaptive=read(res+'mipmap-anydpi-v26/ic_launcher.xml');
+ for(const layer of ['background','foreground','monochrome'])assert.match(adaptive,new RegExp(`<${layer} android:drawable="@drawable/ic_launcher_${layer}" />`));
+ const {WORD_PATH}=await import('../scripts/brand-mark.mjs');
+ for(const name of ['ic_launcher_foreground','ic_launcher_monochrome','splash_icon'])assert(read(res+`drawable/${name}.xml`).includes(WORD_PATH),name);
+ assert.match(read('android/app/src/main/res/values/styles.xml'),/name="AppTheme\.NoActionBarLaunch" parent="Theme\.SplashScreen"/);
+ assert(!existsSync(new URL('../mobile/android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml',import.meta.url)));
+ // Signing material never enters the repository.
+ const ignored=read('android/.gitignore');
+ for(const pattern of ['*.jks','*.keystore','keystore.properties'])assert(ignored.split(/\r?\n/).includes(pattern),pattern);
+});
