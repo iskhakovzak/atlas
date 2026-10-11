@@ -41,8 +41,11 @@ android {
     buildTypes {
         release {
             if (keystorePropertiesFile.exists()) signingConfig signingConfigs.release
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // R8 shrinks the shell (Capacitor and its plugins keep their bridge classes through their own consumer
+            // rules, app/proguard-rules.pro keeps the WebView JavaScript interfaces); unused resources go too.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
