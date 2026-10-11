@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { ChevronLeft, ChevronRight, Package } from 'lucide-react';
 import { dedupeSafeImages } from '@/lib/importer/extract';
 import { gallerySwipeStep } from '@/lib/market/gallery';
+import { retryOriginal, sizedImage } from '@/lib/market/image-size';
 import type { Product } from '@/lib/market/domain';
 import {pickLocale} from '@/lib/market/uz-cyrl';
 import type {Locale} from '@/lib/market/i18n';
@@ -89,7 +90,7 @@ export function ProductGallery({ product, images, activeImage, onImageChange, lo
         {!failed.includes(photo)
           // Merchant photos remain safe public HTTPS URLs, without proxying.
           // eslint-disable-next-line @next/next/no-img-element
-          ? <img className="product-img" src={photo} alt={`${product.name} — ${copy.photo} ${position + 1}`} loading={position === 0 ? 'eager' : 'lazy'} referrerPolicy="no-referrer" draggable={false} onError={() => setFailed(current => [...current, photo])}/>
+          ? <img className="product-img" src={sizedImage(photo, 1000)} alt={`${product.name} — ${copy.photo} ${position + 1}`} loading={position === 0 ? 'eager' : 'lazy'} decoding="async" referrerPolicy="no-referrer" draggable={false} onError={event => { if (!retryOriginal(event.currentTarget, photo)) setFailed(current => [...current, photo]); }}/>
           : <div className="no-photo"><Package size={32}/><span>{copy.missing}</span></div>}
       </div>) : <div className="product-gallery-slide"><div className="no-photo"><Package size={32}/><span>{copy.missing}</span></div></div>}
     </div>
@@ -102,7 +103,7 @@ export function ProductGallery({ product, images, activeImage, onImageChange, lo
       {!compact && <><p className="product-gallery-hint">{copy.hint}</p><div className="product-gallery-thumbnails">
         {photos.map((item, position) => <button type="button" key={item} aria-label={`${copy.photo} ${position + 1}`} aria-pressed={position === index} onClick={() => scrollTo(position)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={item} alt="" loading="lazy" referrerPolicy="no-referrer" draggable={false}/>
+          <img src={sizedImage(item, 200)} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" draggable={false} onError={event => { retryOriginal(event.currentTarget, item); }}/>
         </button>)}
       </div></>}
     </>}

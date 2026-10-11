@@ -20,8 +20,9 @@ const flights = createImportFlights();
 export async function POST(request: Request) {
   try {
     sameOrigin(request);
-    const user = await currentUser();
-    const payload = importRequestSchema.safeParse(await requestJson(request, 5000));
+    // The session and the (small) body are read together.
+    const [user, body] = await Promise.all([currentUser(), requestJson(request, 5000)]);
+    const payload = importRequestSchema.safeParse(body);
     if (!payload.success || !payload.data.url) throw new HttpError(400, 'err_19');
 
     // One spelling per page (lib/importer/source-identity.ts): the cache key, the in-flight key and the URL fetched.
@@ -128,9 +129,12 @@ export async function POST(request: Request) {
     const expiresAt = fetchedAt + 10 * 60_000;
     // Only the request that asked the store writes the cache; a follower got the same answer.
     if (leader && !liveLocationRequired) {
-      await db.prepare('INSERT INTO market_import_cache (url,payload,expires_at,updated_at) VALUES (?,?,?,?) ON CONFLICT(url) DO UPDATE SET payload=excluded.payload,expires_at=excluded.expires_at,updated_at=excluded.updated_at')
-        .bind(url, JSON.stringify(data), expiresAt, fetchedAt).run();
-      await db.prepare('DELETE FROM market_import_cache WHERE expires_at < ?').bind(fetchedAt).run();
+      // The write and the clean-up of expired pages in one round trip.
+      await db.batch([
+        db.prepare('INSERT INTO market_import_cache (url,payload,expires_at,updated_at) VALUES (?,?,?,?) ON CONFLICT(url) DO UPDATE SET payload=excluded.payload,expires_at=excluded.expires_at,updated_at=excluded.updated_at')
+          .bind(url, JSON.stringify(data), expiresAt, fetchedAt),
+        db.prepare('DELETE FROM market_import_cache WHERE expires_at < ?').bind(fetchedAt),
+      ]);
     }
     return json({ ...data, fetchedAt, expiresAt, cached: false });
   } catch (error) {

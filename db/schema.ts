@@ -1,8 +1,8 @@
 import {sqliteTable,text,integer,real,index,uniqueIndex} from 'drizzle-orm/sqlite-core';
-export const accounts=sqliteTable('market_accounts',{userId:text('user_id').primaryKey(),name:text('name').notNull(),state:text('state').notNull(),revision:integer('revision').notNull().default(0),createdAt:integer('created_at').notNull(),updatedAt:integer('updated_at').notNull()});
-export const limits=sqliteTable('market_rate_limits',{key:text('key').primaryKey(),count:integer('count').notNull(),expiresAt:integer('expires_at').notNull()});
+export const accounts=sqliteTable('market_accounts',{userId:text('user_id').primaryKey(),name:text('name').notNull(),state:text('state').notNull(),revision:integer('revision').notNull().default(0),createdAt:integer('created_at').notNull(),updatedAt:integer('updated_at').notNull()},table=>[index('idx_market_accounts_updated').on(table.updatedAt)]);
+export const limits=sqliteTable('market_rate_limits',{key:text('key').primaryKey(),count:integer('count').notNull(),expiresAt:integer('expires_at').notNull()},table=>[index('idx_market_rate_limits_expires').on(table.expiresAt)]);
 export const settings=sqliteTable('market_settings',{key:text('key').primaryKey(),value:text('value').notNull(),updatedAt:integer('updated_at').notNull(),updatedBy:text('updated_by').notNull()});
-export const importCache=sqliteTable('market_import_cache',{url:text('url').primaryKey(),payload:text('payload').notNull(),expiresAt:integer('expires_at').notNull(),updatedAt:integer('updated_at').notNull()});
+export const importCache=sqliteTable('market_import_cache',{url:text('url').primaryKey(),payload:text('payload').notNull(),expiresAt:integer('expires_at').notNull(),updatedAt:integer('updated_at').notNull()},table=>[index('idx_market_import_cache_expires').on(table.expiresAt)]);
 export const identityDocuments=sqliteTable('market_identity_documents',{id:text('id').primaryKey(),userId:text('user_id').notNull(),objectKey:text('object_key').notNull(),filename:text('filename').notNull(),contentType:text('content_type').notNull(),size:integer('size').notNull(),status:text('status').notNull().default('uploaded'),confirmedData:text('confirmed_data'),createdAt:integer('created_at').notNull(),updatedAt:integer('updated_at').notNull()},table=>[index('idx_market_identity_documents_user_created').on(table.userId,table.createdAt)]);
 
 export const customers=sqliteTable('market_customers',{
@@ -27,7 +27,7 @@ export const staffDirectory=sqliteTable('market_staff_directory',{
 
 export const auditEvents=sqliteTable('market_audit_events',{
  id:text('id').primaryKey(),actorId:text('actor_id').notNull(),actorEmail:text('actor_email').notNull(),action:text('action').notNull(),entityType:text('entity_type').notNull(),entityId:text('entity_id'),details:text('details'),createdAt:integer('created_at').notNull(),
-},table=>[index('idx_market_audit_events_created').on(table.createdAt),index('idx_market_audit_events_entity_created').on(table.entityType,table.entityId,table.createdAt)]);
+},table=>[index('idx_market_audit_events_created').on(table.createdAt),index('idx_market_audit_events_entity_created').on(table.entityType,table.entityId,table.createdAt),index('idx_market_audit_events_actor_created').on(table.actorEmail,table.createdAt),index('idx_market_audit_events_type_created').on(table.entityType,table.createdAt)]);
 
 export const legalConsents=sqliteTable('market_legal_consents',{
  id:text('id').primaryKey(),customerId:text('customer_id').notNull(),documentKey:text('document_key').notNull(),documentVersion:text('document_version').notNull(),acceptedAt:integer('accepted_at').notNull(),
@@ -39,12 +39,12 @@ export const orderDocuments=sqliteTable('market_order_documents',{
 
 export const operationalErrors=sqliteTable('market_operational_errors',{
  id:text('id').primaryKey(),area:text('area').notNull(),message:text('message').notNull(),details:text('details'),createdAt:integer('created_at').notNull(),resolvedAt:integer('resolved_at'),
-},table=>[index('idx_market_operational_errors_created').on(table.createdAt),index('idx_market_operational_errors_open').on(table.resolvedAt,table.createdAt)]);
+},table=>[index('idx_market_operational_errors_created').on(table.createdAt),index('idx_market_operational_errors_open').on(table.resolvedAt,table.createdAt),index('idx_market_operational_errors_problem').on(table.area,table.message,table.createdAt)]);
 
 // Session IDs are SHA-256 hashes of the cookie token; the raw token is never stored.
 export const authSessions=sqliteTable('market_auth_sessions',{
  id:text('id').primaryKey(),userId:text('user_id').notNull(),method:text('method').notNull(),email:text('email'),displayName:text('display_name').notNull(),contact:text('contact').notNull(),createdAt:integer('created_at').notNull(),expiresAt:integer('expires_at').notNull(),
-},table=>[index('idx_market_auth_sessions_user').on(table.userId),index('idx_market_auth_sessions_expires').on(table.expiresAt)]);
+},table=>[index('idx_market_auth_sessions_user').on(table.userId),index('idx_market_auth_sessions_expires').on(table.expiresAt),index('idx_market_auth_sessions_email').on(table.email,table.createdAt)]);
 
 // One-time sign-in challenges: hashed email/SMS codes, or Google OAuth state with its PKCE verifier.
 export const authChallenges=sqliteTable('market_auth_challenges',{
@@ -65,14 +65,14 @@ export const authTokens=sqliteTable('market_auth_tokens',{
 // Accounting (lib/market/finance.ts). One money movement per row, in soum; rows are voided, never deleted.
 export const ledgerEntries=sqliteTable('market_ledger_entries',{
  id:text('id').primaryKey(),kind:text('kind').notNull(),amountUzs:integer('amount_uzs').notNull(),originalAmount:real('original_amount'),originalCurrency:text('original_currency'),occurredOn:text('occurred_on').notNull(),orderId:text('order_id'),counterparty:text('counterparty'),note:text('note'),createdBy:text('created_by').notNull(),createdAt:integer('created_at').notNull(),voidedAt:integer('voided_at'),voidedBy:text('voided_by'),voidReason:text('void_reason'),
-},table=>[index('idx_market_ledger_entries_occurred').on(table.occurredOn),index('idx_market_ledger_entries_order').on(table.orderId),index('idx_market_ledger_entries_kind').on(table.kind)]);
+},table=>[index('idx_market_ledger_entries_occurred').on(table.occurredOn),index('idx_market_ledger_entries_order').on(table.orderId),index('idx_market_ledger_entries_kind').on(table.kind),index('idx_market_ledger_entries_kind_occurred').on(table.kind,table.occurredOn)]);
 
 // Each order in the books, rebuilt from the account state with the rest of the operational projection.
 export const orderFinance=sqliteTable('market_order_finance',{
  orderId:text('order_id').primaryKey(),customerId:text('customer_id').notNull(),status:text('status').notNull(),createdAt:integer('created_at').notNull(),paidAt:integer('paid_at'),month:text('month'),
  goods:integer('goods').notNull(),storeShipping:integer('store_shipping').notNull(),reserve:integer('reserve').notNull(),payable:integer('payable').notNull(),
  commission:integer('commission').notNull(),delivery:integer('delivery').notNull(),fxGain:integer('fx_gain').notNull(),services:integer('services').notNull(),revenue:integer('revenue').notNull(),updatedAt:integer('updated_at').notNull(),
-},table=>[index('idx_market_order_finance_month').on(table.month),index('idx_market_order_finance_customer').on(table.customerId)]);
+},table=>[index('idx_market_order_finance_month').on(table.month),index('idx_market_order_finance_customer').on(table.customerId),index('idx_market_order_finance_created').on(table.createdAt),index('idx_market_order_finance_status_created').on(table.status,table.createdAt)]);
 
 export const backupExports=sqliteTable('market_backup_exports',{
  id:text('id').primaryKey(),requestedBy:text('requested_by').notNull(),recordCount:integer('record_count').notNull(),checksum:text('checksum').notNull(),createdAt:integer('created_at').notNull(),
@@ -93,4 +93,4 @@ export const customerNotes=sqliteTable('market_customer_notes',{
 // and the Tashkent day it finished. The books post the paid part per day (lib/market/provider-usage.ts). No customer data.
 export const providerJobs=sqliteTable('market_provider_jobs',{
  snapshotId:text('snapshot_id').primaryKey(),provider:text('provider').notNull(),store:text('store').notNull(),dataset:text('dataset').notNull(),itemKey:text('item_key').notNull(),url:text('url').notNull(),purpose:text('purpose').notNull(),status:text('status').notNull(),records:integer('records').notNull().default(0),error:text('error'),month:text('month').notNull(),day:text('day'),createdAt:integer('created_at').notNull(),finishedAt:integer('finished_at'),
-},table=>[index('idx_market_provider_jobs_item').on(table.itemKey,table.createdAt),index('idx_market_provider_jobs_month').on(table.provider,table.month),index('idx_market_provider_jobs_day').on(table.provider,table.day)]);
+},table=>[index('idx_market_provider_jobs_item').on(table.itemKey,table.createdAt),index('idx_market_provider_jobs_month').on(table.provider,table.month),index('idx_market_provider_jobs_day').on(table.provider,table.day),index('idx_market_provider_jobs_status').on(table.provider,table.status,table.createdAt)]);

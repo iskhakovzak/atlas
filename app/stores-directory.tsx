@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type RefObject } 
 import { ArrowRight, ChevronDown, ClipboardPaste, Link2, Search, X } from 'lucide-react';
 import { useMarket } from '@/lib/market/store';
 import { useRowAtStart } from '@/lib/market/row-start';
+import { retryOriginal, sizedImage } from '@/lib/market/image-size';
 import { storesCopy } from '@/lib/market/stores-copy';
 import { catalogItems, storeHost, type CatalogItem } from '@/lib/market/catalog-query';
 import { brandAliases, normalizeSearch, wordMatches } from '@/lib/market/catalog-synonyms';
@@ -271,9 +272,9 @@ function StoreGrid({ items, locale, c, catalog, marks, terms, onOpen }: { items:
 function ShowcasePhoto({ src, brand }: { src: string; brand: StoreBrand }) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) return <span className="store-showcase-photo"><StoreLogo brand={brand} size={40} /></span>;
-  // Dynamic store images are displayed without proxying or optimization.
+  // Store images load straight from the store, asked smaller where its image server allows (lib/market/image-size.ts).
   // eslint-disable-next-line @next/next/no-img-element
-  return <span className="store-showcase-photo"><img src={src} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} /></span>;
+  return <span className="store-showcase-photo"><img src={sizedImage(src, 500)} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(event) => { if (!retryOriginal(event.currentTarget, src)) setFailed(true); }} /></span>;
 }
 
 function StoresLinkForm({ c, field }: { c: Copy; field: RefObject<HTMLInputElement | null> }) {

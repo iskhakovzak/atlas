@@ -729,7 +729,7 @@ function CustomerOrderLine({ order: o, siblings, showThumb, headerStage, sharedD
   const where = o.delivery ? [o.delivery.city || o.delivery.region, o.delivery.address].filter(Boolean).join(", ") : "";
   return <details className="og-line" id={o.id} data-action={needsAction || undefined} data-cancelled={o.cancelled || undefined} onToggle={event => onToggle(event.currentTarget.open)}>
     <summary className="og-line-summary" aria-label={`${gc.line(o.id)}: ${o.variant || gc.noVariant}, ${c.quantity(o.quantity)}, ${stage}${needsAction ? `, ${gc.action(1)}` : ""}`}>
-      {showThumb && <span className="og-line-thumb" aria-hidden="true"><ProductImage product={o.product} decorative locale={locale} /></span>}
+      {showThumb && <span className="og-line-thumb" aria-hidden="true"><ProductImage product={o.product} decorative locale={locale} size={160} /></span>}
       <span className="og-line-variant">{o.variant || gc.noVariant}</span>
       <span className="og-line-qty">× {o.quantity}</span>
       <span className="og-line-flags">
@@ -965,7 +965,7 @@ function OrderGroupCard({ group, locale, pricing, busy, allowanceUsd, passports,
           const brand = shownBrand(model.product.brand); const meta = [brand && brand !== storeShortName(store) ? brand : "", model.orders.length > 1 ? itemCount(model.items, locale) : ""].filter(Boolean).join(" · ");
           return <article className="og-model" key={model.key}>
             <div className="og-model-head">
-              <span className="og-model-photo"><ProductImage product={model.product} decorative locale={locale} /></span>
+              <span className="og-model-photo"><ProductImage product={model.product} decorative locale={locale} size={160} /></span>
               <span className="og-model-main">
                 <b className="og-model-name">{model.product.name}</b>
                 {meta && <small>{meta}</small>}
@@ -1461,7 +1461,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
         }) : filtered.map((o) => (
           <details className="surface order-card compact-order" key={o.id} id={o.id} onToggle={event=>{const open=event.currentTarget.open;setExpanded(ids=>open?[...new Set([...ids,o.id])]:ids.filter(id=>id!==o.id))}}>
             <summary className="compact-order-summary">
-              <ProductImage product={o.product} decorative locale={state.communication.language} />
+              <ProductImage product={o.product} decorative locale={state.communication.language} size={240} />
                <span className="compact-order-name"><small>{o.id}{operations ? ` · ${orderAccount.get(o.id)?.name ?? ''}` : ''}</small><b>{o.product.name}</b><span>{o.variant} · {o.quantity}</span>{operations && tab === "refunds" && <small>{atlasCreditForOrder(orderAccount.get(o.id), o.id) > 0 ? `${locale === "ru" ? "Зачислено во внутренний баланс Atlas" : isUzbek(locale) ? uzText(locale, "Atlas ichki balansiga yozildi") : "Credited to Atlas internal balance"}: ${money(atlasCreditForOrder(orderAccount.get(o.id), o.id))}` : locale === "ru" ? "Зачислений во внутренний баланс Atlas по заказу нет" : isUzbek(locale) ? uzText(locale, "Buyurtma bo‘yicha Atlas ichki balansiga yozuv yo‘q") : "No Atlas internal-balance credit recorded for this order"}</small>}</span>
                <span className={'status-badge '+(isExtra(o)||pendingChange(o)||(!operations&&o.payment?.status==='pending')?'needs-action':'')}>{o.cancelled ? ow.cancelled : o.payment?.status==='refunded' ? refundStatusLabel : isExtra(o)||pendingChange(o) ? ow.needDecision : o.payment?.status==='pending' ? ow.awaitingPayment : displayStatuses[o.status]}</span>
               <strong>{money(orderPayable(o))}</strong><ArrowRight size={18}/>
@@ -1495,7 +1495,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
             {operations&&<OperatorOrderContacts order={o} account={orderAccount.get(o.id)} locale={locale}/>}
             <div className="order-product">
               <div className="order-photo">
-              <ProductImage product={o.product} decorative locale={state.communication.language} />
+              <ProductImage product={o.product} decorative locale={state.communication.language} size={240} />
               </div>
               <div>
                 <h2>{o.product.name}</h2>

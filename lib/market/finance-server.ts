@@ -1,5 +1,5 @@
-import { database, HttpError, recordAudit } from "./server";
-import { balanceOf, parseState, type Entry, type Order } from "./domain";
+import { auditStatement, database, HttpError, recordAudit } from "./server";
+import type { Entry, Order } from "./domain";
 import { autoActor, invoiceData, planAutoLedger, syncOrderLedger, type InvoiceLine, type SkippedAuto } from "./finance-auto";
 import { accountingSettingsSchema, isPeriodLocked, lockedPeriodMessage, monthKey, monthSummary, obligations, yearMonths, yearSummary, type AccountingSettings, type LedgerEntry, type LedgerEntryInput, type LedgerKind, type OrderFinance } from "./finance";
 
@@ -68,11 +68,17 @@ export async function ledgerForOrders(orderIds: string[]) {
 /** `prefix` marks the source in the id: LED- entered by hand, BANK- confirmed from a bank statement (AUTO- is reserved for syncAutoLedger). */
 export async function addLedgerEntry(input: LedgerEntryInput, user: Operator, prefix: "LED-" | "BANK-" = "LED-") {
   if (isPeriodLocked(await accountingSettings(), input.occurredOn)) throw new HttpError(409, lockedPeriodMessage(input.occurredOn.slice(0, 7)));
-  const id = prefix + crypto.randomUUID(), now = Date.now();
-  await database().prepare("INSERT INTO market_ledger_entries (id,kind,amount_uzs,original_amount,original_currency,occurred_on,order_id,counterparty,note,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
-    .bind(id, input.kind, input.amountUzs, input.originalAmount ?? null, input.originalCurrency ?? null, input.occurredOn, input.orderId || null, input.counterparty || null, input.note || null, user.email || user.userId, now).run();
-  await recordAudit(user, "ledger.add", "ledger", id, { kind: input.kind, amountUzs: input.amountUzs, occurredOn: input.occurredOn });
+  const id = prefix + crypto.randomUUID();
+  await database().batch(ledgerAddStatements(input, id, user, Date.now()));
   return id;
+}
+/** A manual entry and its audit line, written together. */
+function ledgerAddStatements(input: LedgerEntryInput, id: string, user: Operator, now: number) {
+  return [
+    database().prepare("INSERT INTO market_ledger_entries (id,kind,amount_uzs,original_amount,original_currency,occurred_on,order_id,counterparty,note,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
+      .bind(id, input.kind, input.amountUzs, input.originalAmount ?? null, input.originalCurrency ?? null, input.occurredOn, input.orderId || null, input.counterparty || null, input.note || null, user.email || user.userId, now),
+    auditStatement(user, "ledger.add", "ledger", id, { kind: input.kind, amountUzs: input.amountUzs, occurredOn: input.occurredOn }),
+  ];
 }
 export async function voidLedgerEntry(id: string, reason: string, user: Operator) {
   const row = await database().prepare("SELECT occurred_on, voided_at FROM market_ledger_entries WHERE id=?").bind(id).first<{ occurred_on: string; voided_at: number | null }>();
@@ -124,11 +130,13 @@ export async function obligationsSnapshot() {
   const db = database();
   const [open, accounts] = await Promise.all([
     db.prepare("SELECT * FROM market_order_finance WHERE status IN ('pending','paid') ORDER BY created_at DESC LIMIT 5000").all<FinanceRow>(),
-    db.prepare("SELECT state FROM market_accounts LIMIT 5000").all<{ state: string }>(),
+    // Only the internal balance of each account (domain.ts balanceOf), summed in SQL instead of loading every account
+    // document; only positive balances count as owed (finance.ts obligations).
+    db.prepare("SELECT SUM(CASE WHEN json_extract(e.value,'$.credit')='customer-credit' THEN json_extract(e.value,'$.amount') ELSE 0 END) - SUM(CASE WHEN json_extract(e.value,'$.debit')='customer-credit' THEN json_extract(e.value,'$.amount') ELSE 0 END) AS balance FROM market_accounts a, json_each(a.state,'$.entries') e WHERE json_valid(a.state) GROUP BY a.user_id HAVING balance > 0 LIMIT 5000").all<{ balance: number }>(),
   ]);
   const orders = open.results.map(financeOf);
   const stages = await orderStages(orders.filter((order) => order.status === "paid").map((order) => order.orderId));
-  const balances = accounts.results.map((row) => { try { return balanceOf(parseState(row.state)); } catch { return 0; } });
+  const balances = accounts.results.map((row) => Number(row.balance) || 0);
   return obligations(orders, stages, balances);
 }
 
@@ -158,9 +166,10 @@ async function autoEntriesForOrders(orderIds: string[]) {
  */
 export async function syncAutoLedger(customerId: string, orders: Order[], balanceEntries: Entry[], now = Date.now()) {
   if (!orders.length) return null;
-  const db = database(), settings = await accountingSettings();
+  const db = database();
   const expected = orders.flatMap((order) => syncOrderLedger(order, customerId, { balanceEntries }));
-  const existing = await autoEntriesForOrders(orders.map((order) => order.id));
+  // Three independent reads in one round (the skipped list is only rewritten after the batch below).
+  const [settings, existing, skippedBefore] = await Promise.all([accountingSettings(), autoEntriesForOrders(orders.map((order) => order.id)), skippedAutoEntries()]);
   const plan = planAutoLedger(expected, existing, settings, now);
   const orderIds = new Set(orders.map((order) => order.id));
   const statements = [
@@ -169,7 +178,6 @@ export async function syncAutoLedger(customerId: string, orders: Order[], balanc
     ...plan.void.map((item) => db.prepare("UPDATE market_ledger_entries SET voided_at=?,voided_by=?,void_reason=? WHERE id=? AND voided_at IS NULL").bind(now, autoActor, item.reason, item.id)),
   ];
   if (statements.length) await db.batch(statements);
-  const skippedBefore = await skippedAutoEntries();
   const touched = skippedBefore.some((item) => orderIds.has(item.orderId));
   if (plan.skipped.length || touched) await writeSkippedAuto([...skippedBefore.filter((item) => !orderIds.has(item.orderId)), ...plan.skipped]);
   if (statements.length || plan.skipped.length) await recordAudit({ userId: autoActor, email: autoActor }, "ledger.auto", "customer", customerId, { inserted: plan.insert.map((entry) => entry.id), voided: plan.void.map((item) => item.id), skipped: plan.skipped.map((item) => item.id) });
@@ -213,8 +221,13 @@ export async function recordedPayments(orderIds: string[]) {
 }
 /** Confirmed bank statement lines become BANK- entries; one audit event sums them up. */
 export async function confirmBankEntries(entries: LedgerEntryInput[], user: Operator) {
-  const ids: string[] = [];
-  for (const entry of entries) ids.push(await addLedgerEntry(entry, user, "BANK-"));
+  // One settings read and one batch (every line with its audit line) instead of three round trips per line; a
+  // line in a closed month refuses the whole statement before anything is written.
+  const settings = await accountingSettings();
+  const closed = entries.find((entry) => isPeriodLocked(settings, entry.occurredOn));
+  if (closed) throw new HttpError(409, lockedPeriodMessage(closed.occurredOn.slice(0, 7)));
+  const ids = entries.map(() => "BANK-" + crypto.randomUUID()), now = Date.now();
+  if (ids.length) await database().batch(entries.flatMap((entry, index) => ledgerAddStatements(entry, ids[index], user, now)));
   await recordAudit(user, "ledger.bank-import", "ledger", ids.join(",").slice(0, 320), { count: ids.length, orderIds: entries.map((entry) => entry.orderId) });
   return ids;
 }

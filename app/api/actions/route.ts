@@ -36,10 +36,10 @@ export async function POST(request:Request){try{
   const parsed=actionSchema.safeParse(payload.action);
   if(!parsed.success)throw new HttpError(400, 'err_10');
   // Every action writes the account; adding to the cart and checking it also ask the stores through the proxy.
-  await rateLimit(`${user.userId}:actions`,60,60_000);
-  if(['cart-add','cart-add-many','cart-check','checkout'].includes(parsed.data.type))await rateLimit(`${user.userId}:store-checks`,40,10*60_000,'err_39');
-  // Independent reads go out together: one D1 round trip instead of three in a row on every action.
-  const [status,current,settings]=await Promise.all([customerStatus(user.userId),account(user),pricingAndPolicy()]);
+  // The rate counters and the independent reads go out together: one D1 round trip instead of up to five in a row
+  // on every action. A refused action still answers 429 (the reads are simply not used).
+  const storeCheck=['cart-add','cart-add-many','cart-check','checkout'].includes(parsed.data.type);
+  const [,,status,current,settings]=await Promise.all([rateLimit(`${user.userId}:actions`,60,60_000),storeCheck?rateLimit(`${user.userId}:store-checks`,40,10*60_000,'err_39'):undefined,customerStatus(user.userId),account(user),pricingAndPolicy()]);
   if(status==='blocked')throw new HttpError(403, 'err_11');
   if(status==='review'&&['checkout','payment-demo','payment-demo-batch','extra-charge-pay'].includes(parsed.data.type))throw new HttpError(403, 'err_12');
   if(parsed.data.type==='identity-confirm'){

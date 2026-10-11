@@ -65,7 +65,7 @@ export function CheckoutReviewTable({ lines, locale, pricing, onLeaveForLater, b
               return <div className={"review-row" + (issue ? " has-issue" : item.priceChange ? " has-change" : "")} role="row" key={item.id}>
                 <span role="cell" className="review-n">{numbers.get(item.id)}</span>
                 <span role="cell" className="review-item">
-                  {index === 0 ? <><span className="review-photo"><ProductImage product={item.product} locale={locale} decorative /></span><span className="review-name">{item.product.name}</span></>
+                  {index === 0 ? <><span className="review-photo"><ProductImage product={item.product} locale={locale} decorative size={120} /></span><span className="review-name">{item.product.name}</span></>
                     : <span className="sr-only">{item.product.name}</span>}
                 </span>
                 <span role="cell" className="review-variant">{shownVariant(item.variant) || "—"}</span>

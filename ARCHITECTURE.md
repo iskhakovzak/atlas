@@ -1,3 +1,38 @@
+## Запросы и фото: параллельно, одним пакетом, по индексу, меньшим размером — 11 октября 2026
+
+- **Независимые запросы — параллельно (`Promise.all`).**
+  - `GET /api/account` читает аккаунт, тариф с правилами, доступ и продление сессии вместе.
+  - `GET /api/catalog` читает каталог и тариф вместе.
+  - `POST /api/actions` вместе проверяет лимиты (общий и лимит проверок магазина) и читает статус клиента, аккаунт и тариф. Отказанное действие по-прежнему отвечает 429, но счётчик проверок магазина теперь может вырасти и при отказе по общему лимиту.
+  - `POST /api/import` читает пользователя и тело запроса вместе.
+  - `POST /api/telemetry` пишет ошибки и метрики вместе.
+  - Бухгалтерия: `syncAutoLedger` читает настройки, существующие и пропущенные автозаписи вместе. `syncBrightDataLedger` читает оба месяца вместе.
+  - `settleBrightDataJobs` сверяет до 5 снимков одновременно.
+- **Связанные записи — одним пакетом D1 (`db.batch`, одна поездка к базе, всё или ничего).**
+  - Счётчик лимита импорта каталога и очистка просроченных лимитов.
+  - Запись в кэш импорта и очистка просроченного кэша.
+  - Ручная проводка и её запись аудита: `ledgerAddStatements` строит обе, `auditStatement` (`lib/market/server.ts`) возвращает подготовленную вставку аудита; `recordAudit` теперь вызывает её.
+  - `confirmBankEntries`: все проводки выписки одним пакетом. Если хоть одна дата в закрытом периоде, ответ 409 до любой записи (раньше часть строк могла записаться).
+  - Автопроводки расхода Bright Data — одним пакетом.
+- **Одна выборка вместо загрузки всех документов (вместо N+1).** `obligationsSnapshot` считает внутренний баланс каждого аккаунта в SQL (`json_each` по `$.entries`, кредит и дебит `customer-credit`, как `balanceOf`). Раньше читались и разбирались все документы аккаунтов. Возвращаются только положительные балансы, до 5000.
+- **Индексы под фильтры и сортировки** — миграция `drizzle/0013_query_indexes.sql` (`CREATE INDEX IF NOT EXISTS`, можно применять повторно). Индексы объявлены и в `db/schema.ts`.
+  - Очистка по `expires_at` у `market_rate_limits` и `market_import_cache`.
+  - `market_accounts(updated_at)` — список аккаунтов оператора.
+  - `market_auth_sessions(email, created_at)` — способы входа сотрудников в админке.
+  - Аудит: `(actor_email, created_at)` и `(entity_type, created_at)`.
+  - `market_operational_errors(area, message, created_at)` — склейка повторов ошибок клиента.
+  - `market_order_finance`: `(created_at)` и `(status, created_at)`.
+  - `market_ledger_entries(kind, occurred_on)`.
+  - `market_provider_jobs(provider, status, created_at)` — незавершённые сборы.
+  - `tests/query-indexes.test.mjs` накатывает все миграции в `node:sqlite` и проверяет `EXPLAIN QUERY PLAN`. Без 0013 эти запросы просматривали всю таблицу и сортировали во временном дереве.
+- **Фото меньшего размера.** `lib/market/image-size.ts`: `sizedImage(src, px)` просит у сервера картинок магазина копию примерно нужной ширины. Сохранённый адрес не меняется, это только показ.
+  - Правила, проверенные вживую 11.10.2026: Amazon (меняется только число в `_SL/_UL/_SX/_UX/_SY/_UY<N>_`, префикс `AC` не трогается), eBay (фиксированные `s-l140…1600`, не больше сохранённого), Nike (`t_…` → `w_N` с `f_auto`), Scene7 и Apple (`wid`, `hei` пропорционально), Shopify (`?width=`), Wolverine (`dw-large` → `dw-medium` до 600 px).
+  - Не подходят: Walmart (не понимает `odnWidth`), магазины на Salesforce (`?sw=` отдаёт PNG тяжелее оригинала), Samsung (только фиксированные пресеты).
+  - `retryOriginal` в `onError`: если уменьшенная копия не загрузилась, один раз грузится оригинал, потом показывается обычная заглушка.
+  - Размеры (вдвое больше рамки на экране): карточка каталога 600; обложка подборки 160/240; витрина магазинов 500; корзина 240; оформление 120; заказ 160/240; окно магазина 200; галерея товара 1000 и миниатюры 200; образец расцветки на «Заказ по ссылке» 120.
+  - На 600 px: Nike 66–142 → 14–35 КБ, Amazon 76–172 → 14–40 КБ, eBay 100 → 21 КБ, Shopify 89 → 40 КБ.
+- **WebP для демо-фото.** `public/images/{sneaker,backpack,headphones}.webp` (до 1000 px, q80): 229 → 84 КБ, 177 → 37 КБ, 79 → 31 КБ. Демо-товары в `domain.ts` ссылаются на них. Файлы `.jpg` оставлены для корзин и заказов, сохранённых раньше; `sizedImage` показывает им `.webp`. Корзина с демо-товарами: 250 → 67 КБ фото.
+
 ## Страховка: 2,9 % от товаров и доставки (3,9 % дороже $200) — 10 октября 2026
 
 - **Решение владельца.** Вместо 2 % от товаров (3 % дороже $200) страховка — 2,9 % от стоимости посылки вместе с доставкой, 3,9 % если посылка с доставкой дороже $200.
@@ -950,6 +985,8 @@ Migration 0004 adds the normalized launch foundation: `market_customers`, `marke
 Ещё два документа `market_settings` (вторая волна 6 октября 2026): key `admin` — пороги «Требуют внимания» админки (`adminSettingsSchema`, все поля необязательные, дефолты в коде); key `site-content` — редакционный контент сайта (контакты, юрлицо, способы оплаты, отзывы, фото посылок, число заказов, ссылка на перечень запрещённых товаров) с полем `revision` и compare-and-swap по тексту строки, как у `catalog`; пустая или битая строка читается как пустой документ ревизии 0 поверх код-дефолта. Миграция 0011 (`drizzle/0011_admin_customer_notes.sql`, номер 0010 пропущен) добавляет append-only таблицу `market_customer_notes` (`id`, `customer_id`, `author_id`, `author_email`, `text`, `created_at`, индекс по клиенту и дате) для заметок операторов в карточке клиента; до её применения карточка работает, а запись заметки даёт `err_57`.
 
 Миграция 0012 (`drizzle/0012_provider_jobs.sql`, 9 октября 2026) добавляет `market_provider_jobs` — учёт платных сборов Bright Data: `snapshot_id` (PK, id снимка у Bright Data), `provider`, `store`, `dataset`, `item_key` (`walmart:<id>`/`hm:<id>`), `url`, `purpose` (`customer`/`catalog`), `status` (`running`/`ready`/`empty`/`failed`), `records`, `error`, `month` и `day` (по Ташкенту, по времени завершения), `created_at`, `finished_at`; индексы по товару и дате, по месяцу и по дню. Настройки — `market_settings` key `importer.brightdata`. Дневной расход — строки `market_ledger_entries` с id `AUTO-BRIGHTDATA-<YYYY-MM-DD>`.
+
+Миграция 0013 (`drizzle/0013_query_indexes.sql`, 11 октября 2026) только добавляет индексы под существующие фильтры и сортировки (список — в разделе «Запросы и фото» от 11 октября). Таблицы и данные не меняются; `CREATE INDEX IF NOT EXISTS` можно применять повторно.
 
 State contains orders, ledger entries, cart, favourites, checkout idempotency keys, saved recipient profiles, support-request history, an optional confirmed identity profile with masked passport number, test declarations, communication preferences, prepared email/SMS records and version. Order contains product snapshot, immutable quote, delivery snapshot, simulated payment, parcel/tracking events, assignment, staff notes, optional customer change requests, optional warehouse inspection, optional `warehouseServiceRequests` snapshots, status/history, both settlement types, approvals, quantity, balance use and customs consent. Cart lines optionally store `requestedServiceIds` and per-service `requestedServiceUnits`. Service requests optionally store a customer instruction note; change requests optionally mark an explicitly customer-approved proposed substitution as resolving a warehouse issue. These fields default compatibly for old stored carts/orders; no D1 migration is needed. Operator-entered internal notes remain separate from customer-facing notifications. A targeted operator notification is appended to the selected order owner's existing `notifications` array and references that order; it does not create a prepared email/SMS delivery or send an external message.
 

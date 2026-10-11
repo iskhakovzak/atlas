@@ -412,7 +412,7 @@ export function CartView() {
     const issue = item.sourceIssue, stock = stockText(item);
     return <article className={"basket-item" + (issue && issue.kind !== "unreachable" ? " has-issue" : "") + (ticked(item) ? "" : " is-later")} key={item.id}>
       {selectBox([item], s.selectLine([item.product.name, shownVariant(item.variant)].filter(Boolean).join(" · ")))}
-      <div className="basket-photo"><ProductImage product={item.product} locale={locale} decorative /></div>
+      <div className="basket-photo"><ProductImage product={item.product} locale={locale} decorative size={240} /></div>
       <div className="basket-info">
         {shownBrand(item.product.brand) && <p className="basket-brand">{shownBrand(item.product.brand)}</p>}
         <ItemName name={item.product.name} />
@@ -450,7 +450,7 @@ export function CartView() {
     return <div className="basket-group" key={`group:${lead.id}`}>
       <article className="basket-item basket-group-head">
         {selectBox(lines, s.selectGroup(lead.product.name))}
-        <div className="basket-photo"><ProductImage product={lead.product} locale={locale} decorative /></div>
+        <div className="basket-photo"><ProductImage product={lead.product} locale={locale} decorative size={240} /></div>
         <div className="basket-info">
           {shownBrand(lead.product.brand) && <p className="basket-brand">{shownBrand(lead.product.brand)}</p>}
           <ItemName name={lead.product.name} />

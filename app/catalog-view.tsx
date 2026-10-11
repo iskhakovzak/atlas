@@ -8,6 +8,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { cartDeliverySpeed, type Product } from '@/lib/market/domain';
 import { useMarket } from '@/lib/market/store';
 import { useRowAtStart } from '@/lib/market/row-start';
+import { retryOriginal, sizedImage } from '@/lib/market/image-size';
 import { dealCopy } from '@/lib/market/deal-copy';
 import { catalogCopy, allowanceMonth } from '@/lib/market/catalog-copy';
 import { catalogAllowance } from '@/lib/market/allowance';
@@ -212,7 +213,7 @@ function SetCover({ images }: { images: string[] }) {
   return <span className="catalog-set-cover" data-single={single || undefined} aria-hidden="true">
     {/* Merchant photos stay direct public URLs, like everywhere on the storefront; a photo the store no longer serves leaves the collage. */}
     {/* eslint-disable-next-line @next/next/no-img-element */}
-    {(single ? live.slice(0, 1) : live).map((src, index) => <img key={src + index} src={src} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed((list) => list.includes(src) ? list : [...list, src])} />)}
+    {(single ? live.slice(0, 1) : live).map((src, index) => <img key={src + index} src={sizedImage(src, single ? 240 : 160)} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(event) => { if (!retryOriginal(event.currentTarget, src)) setFailed((list) => list.includes(src) ? list : [...list, src]); }} />)}
   </span>;
 }
 
