@@ -76,11 +76,13 @@ html[data-theme="dark"] .cabinet-tiles a:hover { box-shadow: 0 14px 28px rgba(0,
 
 /* ---------- Disclosures open and close smoothly (order cards, history, help) ---------- */
 /* Where the browser can animate to auto height (Chrome 131+); elsewhere they open at once as before. Help bubbles that
-   float over the page (popovers) keep their old behaviour so nothing clips them. */
+   float over the page (popovers) keep their old behaviour so nothing clips them: they are listed by class. Not
+   `:has([class*="popover"])` — Chrome cannot narrow that check, so every DOM change anywhere restyled the whole page
+   (measured 11.10.2026: 55 ms per change on a desktop, several times that on a phone; 0.1 ms with the list). */
 @supports (interpolate-size: allow-keywords) {
-  details:not(:has([class*="popover"])) { interpolate-size: allow-keywords; }
-  details:not(:has([class*="popover"]))::details-content { block-size: 0; overflow-y: clip; transition: block-size .34s cubic-bezier(.22, 1, .36, 1), content-visibility .34s allow-discrete; }
-  details:not(:has([class*="popover"]))[open]::details-content { block-size: auto; }
+  details:not(.quote-cost-help, .customs-estimate-help) { interpolate-size: allow-keywords; }
+  details:not(.quote-cost-help, .customs-estimate-help)::details-content { block-size: 0; overflow-y: clip; transition: block-size .34s cubic-bezier(.22, 1, .36, 1), content-visibility .34s allow-discrete; }
+  details:not(.quote-cost-help, .customs-estimate-help)[open]::details-content { block-size: auto; }
 }
 
 /* ---------- Checkout recipient ⇄ review ---------- */
