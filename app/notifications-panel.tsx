@@ -3,11 +3,12 @@ import {Suspense,lazy,useRef,useState} from 'react';
 import {Bell} from 'lucide-react';
 import {useMarket} from '@/lib/market/store';
 import {noticePanel} from '@/lib/market/notice-panel';
+import {loadChunk} from '@/lib/market/stale-build';
 
 // The sheet itself (texts, history renderer, order grouping) is its own chunk: app/notifications-sheet.tsx.
 const load=()=>import('./notifications-sheet');
-const NotificationsSheet=lazy(()=>load().then(module=>({default:module.NotificationsSheet})));
-const preload=()=>{void load()};
+const NotificationsSheet=lazy(()=>loadChunk(load).then(module=>({default:module.NotificationsSheet})));
+const preload=()=>{load().catch(()=>undefined)};
 
 /** The bell in the header with the unread count. A pointer over it or focus on it starts loading the sheet, so the
  *  click usually finds it ready; the sheet stays mounted after its first opening so it can animate its closing. */
