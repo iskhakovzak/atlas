@@ -181,6 +181,11 @@ test('Android shell: shortcuts open site pages the app accepts, the release conf
  for(const name of ['ic_launcher_foreground','ic_launcher_monochrome','splash_icon'])assert(read(res+`drawable/${name}.xml`).includes(WORD_PATH),name);
  assert.match(read('android/app/src/main/res/values/styles.xml'),/name="AppTheme\.NoActionBarLaunch" parent="Theme\.SplashScreen"/);
  assert(!existsSync(new URL('../mobile/android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml',import.meta.url)));
+ // Release is shrunk by R8, and the WebView JavaScript interfaces the Capacitor bridge calls survive it.
+ const gradle=read('android/app/build.gradle');
+ assert.match(gradle,/minifyEnabled true/);
+ assert.match(gradle,/shrinkResources true/);
+ assert.match(read('android/app/proguard-rules.pro'),/@android.webkit.JavascriptInterface <methods>;/);
  // Signing material never enters the repository.
  const ignored=read('android/.gitignore');
  for(const pattern of ['*.jks','*.keystore','keystore.properties'])assert(ignored.split(/\r?\n/).includes(pattern),pattern);
