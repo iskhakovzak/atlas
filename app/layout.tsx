@@ -44,6 +44,7 @@ import { initialSettings } from "@/lib/market/initial-data";
 import { StorageNotice } from "./storage-notice";
 import { AtlasThemeProvider } from "./theme-control";
 import { PerformanceProbe } from "./performance-probe";
+import { StaleBuildReload } from "./stale-build-reload";
 import { NativeShell } from "./native-shell";
 import { PressFeedback } from "./press-feedback";
 import { AmbientBackdrop } from "./ambient-backdrop";
@@ -90,7 +91,7 @@ export default async function RootLayout({
       <body className="antialiased">
         <AmbientBackdrop />
         <AtlasThemeProvider>
-          <MarketProvider initialLocale={locale} initialPricing={pricing} initialSiteContent={siteContent} sessionHint={sessionHint}>{children}<StorageNotice /><PerformanceProbe /><NativeShell /><PressFeedback /><ImpactTracking /></MarketProvider>
+          <MarketProvider initialLocale={locale} initialPricing={pricing} initialSiteContent={siteContent} sessionHint={sessionHint}>{children}<StorageNotice /><PerformanceProbe /><StaleBuildReload /><NativeShell /><PressFeedback /><ImpactTracking /></MarketProvider>
         </AtlasThemeProvider>
         <JsonLd data={siteGraph(locale, siteContent.contacts, siteContent.legal)} />
       </body>

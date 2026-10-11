@@ -5,6 +5,7 @@ import {ArrowUpRight,ArrowRight,Package,Wallet,ShoppingBag,Heart,LayoutGrid,Sett
 import {ToasterSlot} from './toaster-slot';
 import {money,balanceOf} from '@/lib/market/domain';
 import {useMarket} from '@/lib/market/store';
+import {loadChunk} from '@/lib/market/stale-build';
 import {AccessView} from './access-view';
 import {navCopy,routeTitle,ui,type Locale} from '@/lib/market/i18n';
 import {useTheme} from 'next-themes';
@@ -50,7 +51,7 @@ function ViewMark({view}:{view:string}){
 const subscribeNever=()=>()=>{};
 // The closing card is home-only: a separate chunk, so other pages do not load the home sections and their copy.
 // On the home page the chunk is already loaded by the page itself (app/home-catalog.tsx).
-const HomeClosing=lazy(()=>import('./home-sections').then(module=>({default:module.HomeClosing})));
+const HomeClosing=lazy(()=>loadChunk(()=>import('./home-sections')).then(module=>({default:module.HomeClosing})));
 function readSavedHeader(){try{return sessionStorage.getItem('atlas-header')}catch{return null}}
 
 export default function Marketplace({view,children}:{view:string;children?:ReactNode}) {

@@ -6,13 +6,14 @@ import {useMarket} from '@/lib/market/store';
 import {HomeFacts} from './home-facts';
 import {DeliveryTariffs,ExampleQuote,HomeFaq,HomeHero,HowItWorks,StickyLinkCta,TrustSection,useHomeCopy} from './home-sections';
 import {LazyProductSheet} from './product-sheet-lazy';
+import {loadChunk} from '@/lib/market/stale-build';
 
 /** The home page shows a teaser from this many catalog products; the full list lives on /catalog. */
 const teaserMinimum=4;
 // The teaser (cards with their tooltips and popovers) is a separate chunk loaded once the catalog has enough products:
 // it sits below the first screen and needs the catalog anyway.
 const loadTeaser=()=>import('./catalog-teaser');
-const CatalogTeaser=lazy(()=>loadTeaser().then(module=>({default:module.CatalogTeaser})));
+const CatalogTeaser=lazy(()=>loadChunk(loadTeaser).then(module=>({default:module.CatalogTeaser})));
 
 // Home order: the hero with the example bill beside it, how it works, product selection
 // (a teaser once the catalog has enough products; the full list is /catalog), delivery
