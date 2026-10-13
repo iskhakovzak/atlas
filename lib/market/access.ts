@@ -150,6 +150,7 @@ export const operationsKindPermissions: Record<string, Permission> = {
   'staff-deactivate': 'staff.manage',
   'admin-settings': 'system.manage',
   'projection-rebuild': 'system.manage',
+  'passport-scans-purge': 'system.manage',
 };
 /** GET /api/operations query sections (`?audit=1`, `?audit=csv`, `?customers=csv`, `?customer=<id>`, `?system=1`) → permission. */
 export const operationsQueryPermissions: Record<string, Permission> = {

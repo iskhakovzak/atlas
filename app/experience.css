@@ -405,6 +405,7 @@ html[data-theme="dark"] .admin-system .notice.warning{background:var(--night-war
 .operator-admin .admin-section-head>div>h3{font-size:16px}
 .operator-admin .admin-section-head>div>p{margin:4px 0 0;font-size:14px;line-height:1.5;color:var(--day-muted,#58635c);max-width:70ch}
 .operator-admin .admin-section-head>:is(.admin-count,.admin-system-actions,.admin-segment,.admin-period-filter,.btn){flex:0 0 auto}
+.operator-admin .admin-system>.admin-section-head{flex-wrap:wrap}.operator-admin .admin-system>.admin-section-head>div:first-child{flex-basis:320px}.operator-admin .admin-system>.admin-section-head>.admin-system-actions{flex:1 1 auto;min-width:0}
 .operator-admin .admin-subhead,.operator-admin .admin-card h3,.operator-admin .finance-breakdown h3{display:flex;align-items:center;gap:8px;margin:24px 0 12px;font-size:16px;font-weight:700;line-height:1.3}
 .operator-admin .admin-subhead svg{width:16px;height:16px;color:var(--day-ok,#1d6b47)}
 .operator-admin .admin-count{display:inline-flex;align-items:center;height:32px;min-height:0;padding:0 12px;border-radius:999px;background:var(--day-tint,#e8f1ea);color:var(--day-accent,#1f4d3b);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
