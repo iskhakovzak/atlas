@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { addToCart, blank, cartDeliverySpeed, products, setCartDeliverySpeed, tariff } from '../lib/market/domain.ts';
-import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, rateTextFor, regionForCountry, savingText, speedDeltas, speedDeltaText, totalsBySpeed } from '../lib/market/delivery-speed.ts';
+import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, rateTextFor, regionForCountry, fasterText, totalsBySpeed } from '../lib/market/delivery-speed.ts';
 import { calcCopy } from '../lib/market/calc-copy.ts';
 
 const locales = ['ru', 'uz', 'en'];
@@ -9,10 +9,10 @@ const locales = ['ru', 'uz', 'en'];
 test('every locale has the full delivery-speed wording', () => {
   for (const locale of locales) {
     const c = deliverySpeedCopy[locale];
-    assert.ok(c.title && c.names.express && c.names.standard && c.short.express && c.short.standard && c.daysUnknown && c.samePrice && c.appliesToCart && c.saving);
+    assert.ok(c.title && c.names.express && c.names.standard && c.short.express && c.short.standard && c.daysUnknown && c.appliesToCart && c.saving);
     assert.match(c.days(5, 9), /5–9/);
     assert.match(c.perKg('$15,98'), /\$15,98\/(кг|kg)/);
-    assert.match(c.cheaperBy('10 000 сум'), /10 000 сум/);
+    assert.match(c.faster('4–5', 5), /4–5/);
     assert.ok(calcCopy[locale].speeds.express && calcCopy[locale].speeds.standard);
     assert.match(calcCopy[locale].speedRule('$15.98', '5–9', '$13.98', '9–14'), /\$15\.98.*\$13\.98/);
   }
@@ -58,26 +58,22 @@ test('standard is cheaper by the per-kg difference on the billable weight', () =
   const weight = state.cart[0].quote.weight;
   const expected = Math.ceil(weight * tariff.perKg) - Math.ceil(weight * Math.round(13.98 * tariff.fx));
   assert.ok(Math.abs(totals.express - totals.standard - expected) <= Math.ceil(tariff.reserve * expected) + 2);
-  assert.match(savingText(state.cart, tariff, 'ru'), /^Обычная дешевле на \d[\d\s]* сум$/);
-  assert.equal(savingText([], tariff, 'ru'), '');
   // The saving the helper predicts is what the server's switch produces.
   const standard = setCartDeliverySpeed(state, 'standard', Date.now(), tariff);
   assert.equal(cartDeliverySpeed(standard.cart), 'standard');
   assert.equal(standard.cart[0].quote.total, totals.standard);
 });
 
-test('each speed card reads its difference against the chosen speed, the amount never breaking inside', () => {
-  const state = addToCart(blank(), products[0], products[0].variants[0], Date.now(), tariff, 1);
-  const totals = totalsBySpeed(state.cart, tariff, Date.now());
-  const fromExpress = speedDeltas(state.cart, tariff, 'express', Date.now());
-  assert.equal(fromExpress.express, 0);
-  assert.equal(fromExpress.standard, totals.standard - totals.express);
-  assert.ok(fromExpress.standard < 0);
-  assert.equal(speedDeltas(state.cart, tariff, 'standard', Date.now()).express, totals.express - totals.standard);
-  assert.equal(speedDeltas([], tariff, 'express'), null);
-  // "46 572 сум" keeps one line in the narrow card: every space inside the amount is non-breaking.
-  assert.equal(speedDeltaText(-46572, 'ru'), 'дешевле на 46\u00a0572\u00a0сум');
-  assert.equal(speedDeltaText(46572, 'en'), '46\u00a0572\u00a0UZS more');
-  assert.match(speedDeltaText(-46572, 'uz'), /so‘mga arzon$/);
-  assert.equal(speedDeltaText(0, 'ru'), 'та же цена');
+test('under the switch: how much sooner express arrives, from the windows the cards show', () => {
+  // US: express 5–9, standard 9–14 business days.
+  assert.equal(fasterText(tariff, ['США'], 'ru'), 'Экспресс быстрее на 4–5 раб. дней');
+  assert.equal(fasterText(tariff, ['США'], 'uz'), 'Ekspress 4–5 ish kuni tezroq');
+  assert.equal(fasterText(tariff, ['США'], 'en'), 'Express is 4–5 business days faster');
+  // Elsewhere: express 7–9 → 2–5 days sooner.
+  assert.equal(fasterText(tariff, ['Германия'], 'ru'), 'Экспресс быстрее на 2–5 раб. дней');
+  assert.equal(deliverySpeedCopy.ru.faster('3', 3), 'Экспресс быстрее на 3 раб. дня');
+  assert.equal(deliverySpeedCopy.ru.faster('1', 1), 'Экспресс быстрее на 1 раб. день');
+  assert.equal(deliverySpeedCopy.en.faster('1', 1), 'Express is 1 business day faster');
+  // No lead, no line: it never overstates.
+  assert.equal(fasterText({ ...tariff, deliveryDays: { us: [9, 14] }, standardDeliveryDays: { us: [9, 14] } }, ['США'], 'ru'), '');
 });

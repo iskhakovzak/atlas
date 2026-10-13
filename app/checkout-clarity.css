@@ -83,17 +83,19 @@
 
 /* The cart's «Итого» (owner, 14.10.2026, ui-ux-pro-max pass). Selectors start at :root body where Atlas Day
    (day-folio.css) or Atlas Night (theme-night.css) style the same element: those files load after this one. */
-/* Each speed card: a radio mark in the corner, and on the card not chosen what choosing it changes in the total. */
+/* Each speed card: a radio mark in the corner; express wears a small gold star. Under the cards: how much sooner express arrives. */
 .speed-option{position:relative;align-content:start}
 .speed-option b{padding-right:24px}
 .speed-option-mark{position:absolute;top:10px;right:10px;display:grid;place-items:center;width:18px;height:18px;box-sizing:border-box;border:1.5px solid var(--day-line-strong,#cbccc3);border-radius:50%;background:var(--day-surface,#fff);color:#fff;font-style:normal}
 .speed-option.selected .speed-option-mark{border-color:#1f4d3b;background:#1f4d3b}
-.speed-option-delta{margin-top:4px;color:var(--day-ink,#16211c);font-size:12px;font-style:normal;font-weight:650;line-height:1.3;font-variant-numeric:tabular-nums}
-.speed-option-delta.less{color:var(--day-ok,#1d6b47)}
+.speed-option-star{display:inline-block;margin:0 0 0 5px;color:#b7791f;fill:currentColor;vertical-align:-1px}
+:root body .speed-switch-note.speed-faster{display:flex;align-items:center;gap:6px;margin-top:2px;color:var(--day-ink,#16211c);font-size:13px;font-weight:600;line-height:1.35}
+.speed-faster svg{flex:none;color:var(--day-ok,#1d6b47)}
 html[data-theme="dark"] .speed-option-mark{border-color:var(--night-line-strong);background:transparent;color:var(--night-on-ivory,#0c120f)}
 html[data-theme="dark"] .speed-option.selected .speed-option-mark{border-color:var(--night-jade);background:var(--night-jade)}
-html[data-theme="dark"] .speed-option-delta{color:var(--night-ink)}
-html[data-theme="dark"] .speed-option-delta.less{color:var(--night-ok-ink,#8fd8b1)}
+html[data-theme="dark"] .speed-option-star{color:#e8b84e}
+:root[data-theme="dark"] body .speed-switch-note.speed-faster{color:var(--night-ink)}
+html[data-theme="dark"] .speed-faster svg{color:var(--night-jade)}
 /* The guarantee's rate: a quiet line under the name ("2,9% от товаров и доставки"), never a percent wrapping alone. */
 .basket-line-note{display:block;margin-top:2px;color:var(--day-muted,#58635c);font-size:12.5px;font-weight:500;line-height:1.35;font-variant-numeric:tabular-nums}
 html[data-theme="dark"] .basket-line-note{color:var(--night-muted)}

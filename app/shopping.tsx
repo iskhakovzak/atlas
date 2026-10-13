@@ -9,7 +9,7 @@ import { ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ClipboardPaste, 
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
 import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, customsHelpChosen, deliveryAddressLine, inCheckout, isPostalCode, maxLineQuantity, parcelServiceUnits, storeDiscount, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, insuredDeliveryOf, parcelValueUsd, valueServiceRate, withCustomsHelpFor, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
-import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, savingText, speedDeltas } from "@/lib/market/delivery-speed";
+import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, fasterText } from "@/lib/market/delivery-speed";
 import { countryName, customsVersion } from "@/lib/market/world";
 import { formatPercent, formatSum, formatUsd } from "@/lib/market/format";
 import { cartCopy, countryLabel, itemCount, linkOrderCopy, minutesLeft, parcelCount, recipientCopy, type CartCopy } from "@/lib/market/customer-copy";
@@ -271,10 +271,9 @@ export function CartView() {
   const speed = cartDeliverySpeed(state.cart);
   const speedCountries = state.cart.map(item => countryName(item.product));
   const speedOptions = deliverySpeedOptions(pricing, speedCountries, locale);
-  // The saving stays in view; "one speed for every parcel" is the secondary rule (a "?" on phones).
-  const speedNote = savingText(lines, pricing, locale);
-  // The same saving on the card of the other speed ("cheaper by N"); the note under the switch stays as a fallback.
-  const speedDelta = speedDeltas(lines, pricing, speed);
+  // How much sooner express arrives stays in view (owner, 14.10.2026: not the price difference, the cards show the rates);
+  // "one speed for every parcel" is the secondary rule (a "?" on phones).
+  const speedNote = fasterText(pricing, speedCountries, locale);
   const speedTip = parcelsDiffer(speedCountries) ? deliverySpeedCopy[locale].appliesToCart : undefined;
   const speedDays = (country: string) => { const range = daysRangeFor(pricing, [country], speed); return range ? deliverySpeedCopy[locale].days(range[0], range[1]) : ""; };
   // Store orders whose delivery price is unknown: a separate hold up to the threshold, free above it.
@@ -643,7 +642,7 @@ export function CartView() {
       <aside ref={summaryRef} className="basket-summary folio" aria-labelledby="basket-summary-title">
         <div className="folio-sheet">
           <h2 id="basket-summary-title">{c.summary.title}</h2>
-          <DeliverySpeedSwitch value={speed} options={speedOptions} locale={locale} busy={speedBusy} note={speedNote} deltas={speedDelta} tip={speedTip} onChange={(next) => void changeSpeed(next)} />
+          <DeliverySpeedSwitch value={speed} options={speedOptions} locale={locale} busy={speedBusy} note={speedNote} tip={speedTip} onChange={(next) => void changeSpeed(next)} />
           {summaryLines}
           {customsPanel}
           {balance > 0 && <div className="basket-balance"><Checkbox id="use-balance" checked={useBalance} onCheckedChange={(value) => setUseBalance(value === true)} /><label htmlFor="use-balance">{c.summary.balance}<small>{c.summary.available}: {formatSum(balance, locale)}</small></label></div>}

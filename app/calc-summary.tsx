@@ -1,11 +1,11 @@
 'use client';
 import {Fragment,useId,useState} from 'react';
-import {Check,HandCoins,Scale,ShieldCheck,Wallet} from 'lucide-react';
+import {Check,HandCoins,Scale,ShieldCheck,Star,Wallet,Zap} from 'lucide-react';
 import {formatKg,formatPercent,formatSum,formatUsd} from '@/lib/market/format';
 import {calcCopy} from '@/lib/market/calc-copy';
 import {allowanceAfterCartUsd,courierAllowanceUsd} from '@/lib/market/customs';
 import {customsDutySoum,deliveryPerKgUsdFor,unknownStoreShippingUsd,type CartCustoms,type CustomsEstimate,type DeliverySpeed,type Pricing,type Quote,type SavedDeliveryProfile} from '@/lib/market/domain';
-import {daysRangeFor,deliverySpeedCopy,speedDeltaText,type DeliverySpeedOption} from '@/lib/market/delivery-speed';
+import {daysRangeFor,deliverySpeedCopy,type DeliverySpeedOption} from '@/lib/market/delivery-speed';
 import {packagingKg} from '@/lib/market/world';
 import type {Locale} from '@/lib/market/i18n';
 import {SummaryLine} from './price-summary';
@@ -79,20 +79,19 @@ export function CalcLines({sums,locale,pricing,weightKg,speed,children}:{sums:Re
  * Express or standard delivery: two buttons that read as one control, each with its window and per-kg rate.
  * The cart saves the choice on the server (one speed per cart); the link-order page keeps it for the add.
  */
-export function DeliverySpeedSwitch({value,options,locale,onChange,busy=false,note,deltas,tip,compact=false}:{value:DeliverySpeed;options:DeliverySpeedOption[];locale:Locale;onChange:(speed:DeliverySpeed)=>void;busy?:boolean;note?:string;/** What each speed changes in the total (speedDeltas): shown on the card not chosen, in place of the note. */deltas?:Record<DeliverySpeed,number>|null;/** A secondary rule: in place on wide screens, behind a "?" by the title on phones. */tip?:string;compact?:boolean}){
+export function DeliverySpeedSwitch({value,options,locale,onChange,busy=false,note,tip,compact=false}:{value:DeliverySpeed;options:DeliverySpeedOption[];locale:Locale;onChange:(speed:DeliverySpeed)=>void;busy?:boolean;/** How much sooner express arrives (fasterText), under the cards. */note?:string;/** A secondary rule: in place on wide screens, behind a "?" by the title on phones. */tip?:string;compact?:boolean}){
  const c=deliverySpeedCopy[locale];
  const id=useId();
  return <div className={'speed-switch'+(compact?' compact':'')} aria-busy={busy||undefined}>
   <p className="speed-switch-title" id={id+'-title'}>{c.title}{tip&&<InfoTip locale={locale}>{tip}</InfoTip>}{busy&&<span className="speed-switch-saving" role="status">{c.saving}</span>}</p>
   <div className="speed-switch-options" role="radiogroup" aria-labelledby={id+'-title'}>
-   {options.map(option=>{const selected=value===option.speed,delta=deltas?.[option.speed];return <button key={option.speed} type="button" role="radio" aria-checked={selected} className={'speed-option'+(selected?' selected':'')} disabled={busy} onClick={()=>{if(!selected)onChange(option.speed)}}>
-    {/* A radio mark in the corner (owner, 14.10.2026: the chosen card read only by its tint), then the price change. */}
+   {options.map(option=>{const selected=value===option.speed;return <button key={option.speed} type="button" role="radio" aria-checked={selected} className={'speed-option'+(selected?' selected':'')} disabled={busy} onClick={()=>{if(!selected)onChange(option.speed)}}>
+    {/* A radio mark in the corner (owner, 14.10.2026: the chosen card read only by its tint); express wears a star. */}
     <i className="speed-option-mark" aria-hidden="true">{selected&&<Check size={11} strokeWidth={3}/>}</i>
-    <b>{option.name}</b><span>{option.days}</span><small>{option.rate}</small>
-    {!selected&&delta!==undefined&&<em className={'speed-option-delta'+(delta<0?' less':'')}>{speedDeltaText(delta,locale)}</em>}
+    <b>{option.name}{option.speed==='express'&&<Star size={13} className="speed-option-star" aria-hidden="true"/>}</b><span>{option.days}</span><small>{option.rate}</small>
    </button>;})}
   </div>
-  {note&&!deltas&&<p className="speed-switch-note">{note}</p>}
+  {note&&<p className="speed-switch-note speed-faster"><Zap size={14} aria-hidden="true"/>{note}</p>}
   {tip&&<p className="speed-switch-note tip-text">{tip}</p>}
  </div>;
 }
