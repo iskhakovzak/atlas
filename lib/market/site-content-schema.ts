@@ -73,6 +73,7 @@ export const siteContentDocumentSchema = z.object({
     }),
     instagram: shortOrNull(30, instagramPattern, 'Instagram: до 30 латинских символов без @'),
     supportEmail: shortOrNull(254, /^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Почта поддержки: адрес вида support@example.com'),
+    supportHours: localizedOrNull,
     pickupAddress: localizedOrNull,
   }).partial().default({}),
   /** Store listings of the Atlas apps (https only); null until published. */
@@ -85,6 +86,7 @@ export const siteContentDocumentSchema = z.object({
     inn: shortOrNull(9, innPattern, 'ИНН: 9 цифр'),
     address: localizedOrNull,
   }).partial().default({}),
+  courierNote: localizedOrNull.default(null),
   paymentMethods: z.array(paymentMethodSchema).max(Object.keys(paymentLabels).length).default([]).transform(list => [...new Set(list)]),
   reviews: z.array(reviewSchema).max(siteContentMaxReviews, `Не больше ${siteContentMaxReviews} отзывов`).default([]),
   parcelPhotos: z.array(parcelPhotoSchema).max(siteContentMaxPhotos, `Не больше ${siteContentMaxPhotos} фото`).default([]),
@@ -112,12 +114,14 @@ export function mergeSiteContent(document: Partial<SiteContentDocument> | null |
       phone: contacts.phone ?? base.contacts.phone,
       instagram: contacts.instagram ?? base.contacts.instagram,
       supportEmail: contacts.supportEmail ?? base.contacts.supportEmail,
+      supportHours: contacts.supportHours ?? base.contacts.supportHours,
       pickupAddress: contacts.pickupAddress ?? base.contacts.pickupAddress,
     },
     legal: {entityName: legal.entityName ?? base.legal.entityName, inn: legal.inn ?? base.legal.inn, address: legal.address ?? base.legal.address},
     apps: {appStoreUrl: document?.apps?.appStoreUrl ?? base.apps.appStoreUrl, playStoreUrl: document?.apps?.playStoreUrl ?? base.apps.playStoreUrl},
     deliveryDays: base.deliveryDays,
     standardDeliveryDays: base.standardDeliveryDays,
+    courierNote: document?.courierNote ?? base.courierNote,
     paymentMethods: document?.paymentMethods ?? base.paymentMethods,
     reviews: (document?.reviews ?? base.reviews).map(review => ({name: review.name, ...(review.city ? {city: review.city} : {}), text: review.text, consent: true}) as Review & {consent: true}),
     parcelPhotos: (document?.parcelPhotos ?? base.parcelPhotos) as ParcelPhoto[],
@@ -146,7 +150,7 @@ export function siteContentIssues(error: z.ZodError): string[] {
 export function siteContentToDocument(view: SiteContentView): SiteContentDocument {
   return siteContentDocumentSchema.parse({
     revision: view.revision, updatedAt: view.updatedAt,
-    contacts: view.contacts, apps: view.apps, legal: view.legal, paymentMethods: view.paymentMethods,
+    contacts: view.contacts, apps: view.apps, legal: view.legal, courierNote: view.courierNote, paymentMethods: view.paymentMethods,
     reviews: view.reviews.map(review => ({...review, consent: true})),
     parcelPhotos: view.parcelPhotos, completedOrders: view.completedOrders, prohibitedListUrl: view.prohibitedListUrl,
   });

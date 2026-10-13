@@ -10,7 +10,7 @@ import {courierAllowanceUsd} from '@/lib/market/customs';
 import {combinedShipmentWeight,packagingKg} from '@/lib/market/world';
 import {homeCopy} from '@/lib/market/home-copy';
 import {formatKg,formatPercent,formatPriceUsd,formatSum,formatUsd,groupDigits} from '@/lib/market/format';
-import {tariffRows} from '@/lib/market/home-facts';
+import {speedPriceRange,tariffRows} from '@/lib/market/home-facts';
 import {deliveryDaysFor,deliveryRegions,paymentLabels} from '@/lib/market/site-content';
 import {localizedStatuses,routeTitle,type Locale} from '@/lib/market/i18n';
 import {pickLocale} from '@/lib/market/uz-cyrl';
@@ -125,15 +125,15 @@ export function ExampleQuote(){
  return <aside id="example" className="folio home-folio" aria-labelledby="example-title">
   <p className="folio-cap"><b id="example-title">{c.example.title}</b><span>{c.example.product}</span></p>
   <div className="folio-sheet home-quote">
-   <p className="bill-route"><span><span className="sr-only">{c.example.routeLabel}: </span>{c.tariffs.regions.us}</span><span className="bill-route-line" aria-hidden="true"/><span>{c.example.to}</span></p>
+   <p className="bill-route"><span><span className="sr-only">{c.example.routeLabel}: </span>{c.tariffs.regions.us}</span><span className="bill-route-line" aria-hidden="true"/><span className="sr-only"> → </span><span>{c.example.to}</span></p>
    {days&&<p className="bill-days">{c.example.days(days[0],days[1])}</p>}
    <dl className="bill">
     <div><dt>{c.example.item}</dt><dd>{formatSum(quote.merchandise,locale)}</dd><dd className="bill-note">{cbu?c.example.itemNoteCbu(usd,groupDigits(pricing.fx),markup):c.example.itemNoteSet(usd,groupDigits(pricing.fx))}</dd></div>
-    {/* One «Atlas service» line with its parts under it, as the real bill groups them (app/cost-lines.tsx). */}
-    <div><dt>{c.example.service}</dt><dd>{formatSum(parts.service+parts.international,locale)}</dd><dd className="bill-note"><ul className="bill-parts">
+    {/* One «Atlas service» line with its parts folded under it, as the real bill groups them (app/cost-lines.tsx). */}
+    <div><dt>{c.example.service}</dt><dd>{formatSum(parts.service+parts.international,locale)}</dd><dd className="bill-note"><details className="bill-breakdown"><summary>{c.example.serviceParts}</summary><ul className="bill-parts">
      <li><span>{c.example.fee(fee)}</span><span>{formatSum(parts.service,locale)}</span></li>
      <li><span>{`${c.example.delivery}: ${c.example.deliveryNote(formatKg(packed,locale),formatUsd(deliveryPerKgUsdFor(pricing),locale))}`}</span><span>{formatSum(parts.international,locale)}</span></li>
-    </ul></dd></div>
+    </ul></details></dd></div>
     {/* A reserve on top of delivery only while the tariff sets one (none since 5 October 2026). */}
     {quote.reserve>0&&<div><dt><span className="home-dt-with-tip">{c.example.reserve}<InfoTip label={c.example.reserveHelpLabel}>{c.example.reserveHelp}</InfoTip></span></dt><dd>{formatSum(quote.reserve,locale)}</dd><dd className="bill-note">{c.example.reserveNote(formatKg(packagingKg,locale))}</dd></div>}
    </dl>
@@ -151,8 +151,12 @@ const stepIcons=[Link2,ReceiptText,BadgeCheck,Truck];
 const stepStores=popularBrandKeys.filter(key=>hasStoreMark(key)&&storeBrands.some(brand=>brand.key===key)).slice(0,4);
 
 export function HowItWorks(){
- const {c}=useHomeCopy();
+ const {c,locale}=useHomeCopy();
  const {siteContent}=useMarket();
+ // TODO(owner): crypto payments — confirm their legal status in Uzbekistan before keeping them on the site. Until then
+ // crypto goes last and quieter than the card and local payment methods.
+ const payments=[...siteContent.paymentMethods].sort((a,b)=>Number(a==='crypto')-Number(b==='crypto'));
+ const courierNote=siteContent.courierNote?pickLocale(siteContent.courierNote,locale):undefined;
  return <section id="how" className="home-section" data-chapter="how" aria-labelledby="how-title">
   <h2 id="how-title">{c.how.title}</h2>
   <ol className="home-steps">{c.how.steps.map((step,index)=><li key={step.title} className="home-step">
@@ -160,9 +164,9 @@ export function HowItWorks(){
    {/* Wide screens only: the stage's icon in the card's corner (owner, 7.10.2026: "fill the cards a little"). */}
    <span className="hw-step-icon" aria-hidden="true">{(()=>{const Icon=stepIcons[index];return <Icon size={22} strokeWidth={1.9}/>})()}</span>
    <h3>{step.title}</h3><p>{step.text}</p>
-   {index===2&&(siteContent.paymentMethods.length?<ul className="home-payments" aria-label={c.how.paymentsLabel}>{siteContent.paymentMethods.map(method=><li key={method}>{paymentLabels[method]}</li>)}</ul>:<MissingContent what="способы оплаты — только реально подключённые провайдеры"/>)}
-   {/* Owner, 7.10.2026: the parcel goes to the door by courier. */}
-   {index===3&&<ul className="home-payments home-delivery" aria-label={c.how.deliveryLabel}><li>{c.how.courier}</li></ul>}
+   {index===2&&(siteContent.paymentMethods.length?<ul className="home-payments" aria-label={c.how.paymentsLabel}>{payments.map(method=><li key={method} className={method==='crypto'?'home-payment-minor':undefined}>{paymentLabels[method]}</li>)}</ul>:<MissingContent what="способы оплаты — только реально подключённые провайдеры"/>)}
+   {/* Owner, 7.10.2026: the parcel goes to the door by courier. Price and coverage are the owner's words (admin, «Контент сайта»). */}
+   {index===3&&<><ul className="home-payments home-delivery" aria-label={c.how.deliveryLabel}><li>{c.how.courier}</li></ul>{courierNote?<p className="home-courier-note">{courierNote}</p>:<MissingContent what="курьер по Ташкенту: цена и зона доставки"/>}</>}
    {/* Wide screens only (app/home-wide-content.css): a small picture of the step, built from the page's own copy and numbers.
        The first one is a working link field (owner, 7.10.2026), the rest are pictures. */}
    <div className="hw-demo-wrap" aria-hidden={index===0?undefined:true}><StepDemo index={index}/></div>
@@ -208,19 +212,32 @@ export function DeliveryTariffs(){
  const {pricing}=useMarket();
  const {locale,c}=useHomeCopy();
  const missingDays=deliveryRegions.some(region=>deliverySpeeds.some(speed=>!deliveryDaysFor(pricing,region.id,speed)));
- // Every country shows its own prices: the owner changes rates per country and per speed.
- const cards=tariffRows(pricing);
+ // One table (owner, 13.10.2026): a price chip per speed above it, the days per country in it. The owner can still
+ // set a rate per country and speed: then the chip says "from" and that speed's cells carry their own price.
+ const rows=tariffRows(pricing);
+ const chips=deliverySpeeds.flatMap(speed=>{const range=speedPriceRange(rows,speed);return range?[{speed,usd:range.min,uniform:range.min===range.max}]:[];});
+ const uniform=new Set(chips.filter(chip=>chip.uniform).map(chip=>chip.speed));
  return <section id="tariffs" className="home-section tariff-section" data-chapter="tariffs" aria-labelledby="tariffs-title">
   <h2 id="tariffs-title">{c.tariffs.title}</h2>
   <p className="home-section-lead">{c.tariffs.lead}</p>
-  <ul className="tariff-grid" aria-label={c.tariffs.from}>{cards.map(({region,options})=><li key={region.id} className="tariff-card">
-   <h3 className="tariff-country"><Flag region={region.id}/><span>{c.tariffs.regions[region.id]}</span></h3>
-   <dl className="tariff-options" aria-label={c.tariffs.speedsLabel}>{options.map(({speed,days,usd})=><div key={speed} className={`tariff-option tariff-${speed}`}>
-    <dt className="tariff-speed">{c.tariffs.speeds[speed]}</dt>
-    <dd className={days?'tariff-days':'tariff-days tariff-pending'}><span className="sr-only">{c.tariffs.time}: </span>{days?c.tariffs.days(days[0],days[1]):c.tariffs.pending}</dd>
-    <dd className="tariff-price"><span className="sr-only">{c.tariffs.perKg}: </span><b>{formatUsd(usd,locale)}<small>{c.tariffs.perKgUnit}</small></b><span className="tariff-100g">{c.tariffs.per100g(formatPriceUsd(usd/10,locale))}</span></dd>
-   </div>)}</dl>
-  </li>)}</ul>
+  <div className="tariff-table">
+   <ul className="tariff-chips" aria-label={c.tariffs.perKg}>{chips.map(({speed,usd,uniform})=><li key={speed} className={`tariff-chip tariff-${speed}`}>
+    <span className="tariff-speed">{c.tariffs.speeds[speed]}</span>
+    <b>{uniform?formatUsd(usd,locale):c.wide.priceFrom(formatUsd(usd,locale))}<small>{c.tariffs.perKgUnit}</small></b>
+    <span className="tariff-100g">{c.tariffs.per100g(formatPriceUsd(usd/10,locale))}</span>
+   </li>)}</ul>
+   <table>
+    <caption className="sr-only">{c.tariffs.time}</caption>
+    <thead><tr><th scope="col">{c.tariffs.country}</th>{deliverySpeeds.map(speed=><th key={speed} scope="col" className={`tariff-${speed}`}>{c.tariffs.speeds[speed]}</th>)}</tr></thead>
+    <tbody>{rows.map(({region,options})=><tr key={region.id}>
+     <th scope="row"><span className="tariff-country"><Flag region={region.id}/><span>{c.tariffs.regions[region.id]}</span></span></th>
+     {options.map(({speed,days,usd})=><td key={speed} className={`tariff-${speed}`}>
+      <span className={days?'tariff-days':'tariff-days tariff-pending'}>{days?c.tariffs.days(days[0],days[1]):c.tariffs.pending}</span>
+      {!uniform.has(speed)&&<span className="tariff-cell-price">{formatUsd(usd,locale)}{c.tariffs.perKgUnit}</span>}
+     </td>)}
+    </tr>)}</tbody>
+   </table>
+  </div>
   {missingDays&&<MissingContent what="сроки доставки по странам и скоростям (дни, от–до)"/>}
   <p className="home-note tariff-note">{c.tariffs.weightNote} {c.tariffs.rateNote}</p>
   {/* Wide screens only: what the table's days cover. No days here — they stay in the table. */}
@@ -290,13 +307,14 @@ const firstSentence=(text:string)=>{const first=text.split(/(?<=[.!?])\s/)[0]??t
 export function HomeFaq(){
  const {locale,c}=useHomeCopy();
  const {pricing,siteContent}=useMarket();
- const known=deliveryRegions.flatMap(region=>{
-  const parts=deliverySpeeds.flatMap(speed=>{const days=deliveryDaysFor(pricing,region.id,speed);return days?[`${c.tariffs.speeds[speed].toLowerCase()} ${c.tariffs.days(days[0],days[1])}`]:[];});
-  return parts.length?[`${c.tariffs.regions[region.id]}: ${parts.join(', ')}`]:[];
+ // One range per speed across the countries (shortest to longest); the table under #tariffs has them per country.
+ const known=deliverySpeeds.flatMap(speed=>{
+  const all=deliveryRegions.flatMap(region=>{const days=deliveryDaysFor(pricing,region.id,speed);return days?[days]:[];});
+  return all.length?[`${c.tariffs.speeds[speed].toLocaleLowerCase(locale)} ${c.tariffs.days(Math.min(...all.map(d=>d[0])),Math.max(...all.map(d=>d[1])))}`]:[];
  });
  const prohibitedUrl=siteContent.prohibitedListUrl;
  const items:{q:string;a:string;link?:ReactNode}[]=[
-  {q:c.faq.timesQuestion,a:known.length?c.faq.timesKnown(known.join('; ')):c.faq.timesUnknown},
+  {q:c.faq.timesQuestion,a:known.length?c.faq.timesKnown(known.join(', ')):c.faq.timesUnknown,link:<a href="#tariffs">{c.faq.timesLink}</a>},
   {...c.faq.items.customs(formatUsd(pricing.customsAllowanceUsd??courierAllowanceUsd,locale)),link:<Link href="/customs">{c.faq.customsLink}</Link>},
   c.faq.items.returns,
   {...c.faq.items.prohibited,link:prohibitedUrl?<a href={prohibitedUrl} target="_blank" rel="noopener noreferrer">{c.faq.prohibitedOfficial}</a>:<Link href="/legal#offer">{c.faq.prohibitedRules}</Link>},

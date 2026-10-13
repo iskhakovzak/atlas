@@ -347,33 +347,33 @@ export function serverError(locale:Locale, key:string, params?:Record<string,str
   return params ? text.replace(/\{(\w+)\}/g, (match, name:string) => name in params ? String(params[name]) : match) : text;
 }
 
-export type NavCopy = { catalog: string; stores: string; how: string; tariffs: string; orders: string; signin: string; account: string; language: string };
+export type NavCopy = { catalog: string; stores: string; how: string; tariffs: string; orders: string; signin: string; account: string; language: string; help: string };
 /** Header navigation words, kept here (loaded on every page) rather than in the home page copy, which uses them as `nav`. */
 export const navCopy: Record<Locale, NavCopy> = /*@__PURE__*/withCyrillic({
-  ru: { catalog: 'Каталог', stores: 'Магазины', how: 'Как это работает', tariffs: 'Тарифы', orders: 'Мои заказы', signin: 'Войти', account: 'Кабинет', language: 'Язык сайта' },
-  uz: { catalog: 'Katalog', stores: 'Do‘konlar', how: 'Qanday ishlaydi', tariffs: 'Tariflar', orders: 'Buyurtmalarim', signin: 'Kirish', account: 'Kabinet', language: 'Sayt tili' },
-  en: { catalog: 'Catalog', stores: 'Stores', how: 'How it works', tariffs: 'Rates', orders: 'My orders', signin: 'Sign in', account: 'Account', language: 'Site language' },
+  ru: { catalog: 'Каталог', stores: 'Магазины', how: 'Как это работает', tariffs: 'Тарифы', orders: 'Мои заказы', signin: 'Войти', account: 'Кабинет', language: 'Язык сайта', help: 'Помощь' },
+  uz: { catalog: 'Katalog', stores: 'Do‘konlar', how: 'Qanday ishlaydi', tariffs: 'Tariflar', orders: 'Buyurtmalarim', signin: 'Kirish', account: 'Kabinet', language: 'Sayt tili', help: 'Yordam' },
+  en: { catalog: 'Catalog', stores: 'Stores', how: 'How it works', tariffs: 'Rates', orders: 'My orders', signin: 'Sign in', account: 'Account', language: 'Site language', help: 'Help' },
 });
 
-export type FooterCopy = { tagline: string; buyers: string; contacts: string; legal: string; support: string; rules: string; privacy: string; customs: string; faq: string; telegramSupport: string; telegramChannel: string; phone: string; instagram: string; pickup: string; theme: string; inn: string };
+export type FooterCopy = { tagline: string; buyers: string; contacts: string; legal: string; support: string; rules: string; privacy: string; customs: string; faq: string; telegramSupport: string; telegramChannel: string; phone: string; instagram: string; email: string; hours: string; pickup: string; theme: string; inn: string };
 /** Footer words (every page), apart from the home page copy, which uses them as `footer` and `trust.inn`. */
 export const footerCopy: Record<Locale, FooterCopy> = /*@__PURE__*/withCyrillic({
   ru: {
       tagline: 'Покупки в зарубежных магазинах с доставкой в Ташкент.', buyers: 'Покупателям', contacts: 'Контакты', legal: 'Юридическая информация',
       support: 'Поддержка в личном кабинете', rules: 'Правила сервиса', privacy: 'Политика данных', customs: 'Таможня', faq: 'Частые вопросы',
-      telegramSupport: 'Telegram-бот', telegramChannel: 'Telegram-канал', phone: 'Телефон', instagram: 'Instagram', pickup: 'Пункт выдачи', theme: 'Тема',
+      telegramSupport: 'Telegram-бот', telegramChannel: 'Telegram-канал', phone: 'Телефон', instagram: 'Instagram', email: 'Почта', hours: 'Часы работы', pickup: 'Пункт выдачи', theme: 'Тема',
       inn: 'ИНН',
   },
   uz: {
-      tagline: 'Xorijiy do‘konlardan Toshkentga yetkazib berish bilan xaridlar.', buyers: 'Xaridorlarga', contacts: 'Aloqa', legal: 'Yuridik ma’lumotlar',
+      tagline: 'Xorijiy do‘konlardan Toshkentga yetkazib berish bilan xaridlar.', buyers: 'Xaridorlarga', contacts: 'Bog‘lanish', legal: 'Yuridik ma’lumotlar',
       support: 'Shaxsiy kabinetdagi yordam', rules: 'Xizmat qoidalari', privacy: 'Ma’lumotlar siyosati', customs: 'Bojxona', faq: 'Savollar',
-      telegramSupport: 'Telegram-bot', telegramChannel: 'Telegram-kanal', phone: 'Telefon', instagram: 'Instagram', pickup: 'Topshirish punkti', theme: 'Mavzu',
+      telegramSupport: 'Telegram-bot', telegramChannel: 'Telegram-kanal', phone: 'Telefon', instagram: 'Instagram', email: 'Pochta', hours: 'Ish vaqti', pickup: 'Topshirish punkti', theme: 'Mavzu',
       inn: 'STIR',
   },
   en: {
       tagline: 'Shopping in international stores with delivery to Tashkent.', buyers: 'For shoppers', contacts: 'Contacts', legal: 'Legal information',
       support: 'Support in your account', rules: 'Terms of service', privacy: 'Privacy policy', customs: 'Customs', faq: 'FAQ',
-      telegramSupport: 'Telegram bot', telegramChannel: 'Telegram channel', phone: 'Phone', instagram: 'Instagram', pickup: 'Pickup point', theme: 'Theme',
+      telegramSupport: 'Telegram bot', telegramChannel: 'Telegram channel', phone: 'Phone', instagram: 'Instagram', email: 'Email', hours: 'Working hours', pickup: 'Pickup point', theme: 'Theme',
       inn: 'Tax ID (INN)',
   },
 });

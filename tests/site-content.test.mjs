@@ -8,8 +8,9 @@ import {
 
 const filled = {
   revision: 3,
-  contacts: { telegramSupport: 'atlas_support', telegramChannel: 'atlas_uz', phone: '+998 90 123-45-67', instagram: 'atlas.uz', supportEmail: 'support@atlas.uz', pickupAddress: { ru: 'Ташкент, ул. Амира Темура, 1', uz: 'Toshkent, Amir Temur ko‘chasi, 1', en: 'Tashkent, Amir Temur St, 1' } },
+  contacts: { telegramSupport: 'atlas_support', telegramChannel: 'atlas_uz', phone: '+998 90 123-45-67', instagram: 'atlas.uz', supportEmail: 'support@atlas.uz', supportHours: { ru: 'Пн–Сб 9:00–18:00', uz: 'Du–Sha 9:00–18:00', en: 'Mon–Sat 9:00–18:00' }, pickupAddress: { ru: 'Ташкент, ул. Амира Темура, 1', uz: 'Toshkent, Amir Temur ko‘chasi, 1', en: 'Tashkent, Amir Temur St, 1' } },
   legal: { entityName: 'ООО «Atlas»', inn: '123456789', address: { ru: 'Ташкент', uz: 'Toshkent', en: 'Tashkent' } },
+  courierNote: { ru: 'Курьер по Ташкенту', uz: 'Toshkent bo‘ylab kuryer', en: 'Courier in Tashkent' },
   paymentMethods: ['click', 'payme', 'click'],
   reviews: [{ name: 'Дильноза', city: 'Самарканд', text: { ru: 'Всё пришло', uz: 'Hammasi keldi', en: 'Everything arrived' }, consent: true }],
   parcelPhotos: [{ src: '/parcels/2026-10-01.jpg', alt: { ru: 'Посылка', uz: 'Posilka', en: 'Parcel' } }],
@@ -51,6 +52,8 @@ test('a filled document is normalized: phone without spaces, unique payment meth
   assert.deepEqual(back.contacts, document.contacts);
   assert.deepEqual(back.reviews, document.reviews);
   assert.equal(view.contacts.supportEmail, 'support@atlas.uz');
+  assert.equal(view.contacts.supportHours?.uz, 'Du–Sha 9:00–18:00');
+  assert.deepEqual(back.courierNote, filled.courierNote, 'the courier line round-trips');
   assert.deepEqual(back.apps, { appStoreUrl: null, playStoreUrl: null });
   assert.equal(back.revision, 3);
 });

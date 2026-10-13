@@ -22,15 +22,15 @@ export type HomeCopy = {
     title: string; product: string; routeLabel: string; to: string; days: (min: number, max: number) => string;
     item: string; itemNoteCbu: (usd: string, rate: string, markup: string) => string; itemNoteSet: (usd: string, rate: string) => string;
     /** One «Atlas service» line, as in the real bill (app/cost-lines.tsx); `fee` and `delivery` are its parts. */
-    service: string; fee: (percent: string) => string;
+    service: string; serviceParts: string; fee: (percent: string) => string;
     delivery: string; deliveryNote: (weight: string, perKg: string) => string;
     reserve: string; reserveNote: (packaging: string) => string; reserveHelpLabel: string; reserveHelp: string; total: string;
     dutyTitle: (allowance: string) => string; dutyNote: string;
   };
   catalog: { title: string; intro: string; order: string; storePrice: string; total: string; breakdown: string };
-  tariffs: { title: string; lead: string; from: string; time: string; perKg: string; perKgUnit: string; per100g: (usd: string) => string; days: (min: number, max: number) => string; pending: string; noDays: string; regions: Record<DeliveryRegion, string>; speeds: { express: string; standard: string }; speedsLabel: string; weightNote: string; rateNote: string };
+  tariffs: { title: string; lead: string; from: string; country: string; time: string; perKg: string; perKgUnit: string; per100g: (usd: string) => string; days: (min: number, max: number) => string; pending: string; noDays: string; regions: Record<DeliveryRegion, string>; speeds: { express: string; standard: string }; speedsLabel: string; weightNote: string; rateNote: string };
   trust: { title: string; facts: (facts: Facts) => string[]; ordersDone: string; trackingTitle: string; example: string; trackingProduct: string; trackingOrder: string; trackingNote: string; reviewsTitle: string; photosTitle: string; legalTitle: string; entity: string; inn: string; address: string; legalLink: string };
-  faq: { title: string; timesQuestion: string; timesKnown: (list: string) => string; timesUnknown: string; customsLink: string; prohibitedOfficial: string; prohibitedRules: string; items: { customs: (allowance: string) => Faq; returns: Faq; prohibited: Faq; weight: Faq; account: Faq } };
+  faq: { title: string; timesQuestion: string; timesKnown: (list: string) => string; timesUnknown: string; timesLink: string; customsLink: string; prohibitedOfficial: string; prohibitedRules: string; items: { customs: (allowance: string) => Faq; returns: Faq; prohibited: Faq; weight: Faq; account: Faq } };
   closing: { title: string; text: string };
   footer: FooterCopy;
   sticky: { paste: string };
@@ -73,7 +73,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       item: 'Цена товара',
       itemNoteCbu: (usd, rate, markup) => `${usd} по курсу ${rate} сум: ЦБ плюс ${markup}`,
       itemNoteSet: (usd, rate) => `${usd} по курсу Atlas ${rate} сум`,
-      service: 'Сервис Atlas', fee: (percent) => `Комиссия Atlas, ${percent} от цены товара`,
+      service: 'Сервис Atlas', serviceParts: 'Состав сервиса', fee: (percent) => `Комиссия Atlas, ${percent} от цены товара`,
       delivery: 'Доставка в Ташкент', deliveryNote: (weight, perKg) => `${weight} кг расчётного веса по ${perKg} за кг`,
       reserve: 'Возвратный резерв', reserveNote: packaging => `В расчёт веса заложено ${packaging} кг запаса на упаковку. После взвешивания неиспользованную сумму вернём на баланс.`, reserveHelpLabel: 'Что такое возвратный резерв',
       reserveHelp: 'Запас на случай, если посылка окажется тяжелее расчётной. После взвешивания на складе неиспользованную часть вернём на ваш баланс Atlas. Если доставка выйдет дороже резерва, сначала согласуем доплату с вами.',
@@ -84,7 +84,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
     catalog: { title: 'Подборка товаров', intro: 'Товары из зарубежных магазинов, отобранные Atlas, с итогом в сумах.', order: 'Заказать', storePrice: 'Цена в магазине', total: 'С доставкой в Ташкент', breakdown: 'Из чего сумма' },
     tariffs: {
       title: 'Сроки и тарифы', lead: 'Экспресс или обычная доставка от нашего склада за рубежом до Ташкента — на выбор при оформлении. В таблице — обычный срок в рабочих днях; доставка магазина до склада и таможня идут сверх него.',
-      from: 'Откуда', time: 'Срок доставки', perKg: 'Цена за 1 кг', perKgUnit: '/кг',
+      from: 'Откуда', country: 'Страна', time: 'Срок доставки', perKg: 'Цена за 1 кг', perKgUnit: '/кг',
       per100g: (usd) => `${usd} за 100 г`,
       days: (min, max) => `${min}–${max} ${ruDays(max)}`, pending: 'уточняется',
       speeds: { express: 'Экспресс', standard: 'Обычная' }, speedsLabel: 'Скорость доставки', noDays: 'Срок зависит от магазина и рейса, покажем его в расчёте по вашей ссылке.',
@@ -107,15 +107,15 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
     },
     faq: {
       title: 'Частые вопросы', timesQuestion: 'Сколько ждать заказ?',
-      timesKnown: (list) => `От нашего склада за рубежом обычно: ${list}. Скорость выбираете при оформлении. К этому добавьте доставку магазина до склада и таможенное оформление.`,
+      timesKnown: (list) => `От нашего склада за рубежом обычно: ${list}. Плюс доставка магазина до склада и таможня.`, timesLink: 'Сроки по странам',
       timesUnknown: 'Срок складывается из доставки магазина до нашего склада, перевозки в Ташкент и таможни. Обычные сроки по странам — в таблице «Сроки и тарифы».',
       customsLink: 'Подробнее о таможне', prohibitedOfficial: 'Официальный список', prohibitedRules: 'Правила сервиса',
       items: {
         customs: (allowance) => ({ q: `Что такое лимит ${allowance} на таможне?`, a: `Покупки для себя на сумму до ${allowance} в месяц на одного получателя ввозятся без пошлины. Если за месяц набралось больше, пошлину платят только с превышения. Ставку и пример расчёта мы держим на странице «Таможня»; окончательную сумму определяет таможня.` }),
-        returns: { q: 'Можно ли вернуть товар?', a: 'До выкупа заказ можно отменить — вернём деньги за вычетом расходов, которые вы видели заранее. После выкупа вернуть товар можно, если это принимает магазин: мы поможем оформить возврат. Деньги возвращаем тем же способом, которым вы платили, или на баланс Atlas.' },
+        returns: { q: 'Можно ли вернуть товар?', a: 'До выкупа заказ можно отменить — вернём деньги за вычетом расходов, указанных в счёте. После выкупа вернуть товар можно, если это принимает магазин: мы поможем оформить возврат. Деньги возвращаем тем же способом, которым вы платили, или на баланс Atlas.' },
         prohibited: { q: 'Какие товары нельзя заказать?', a: 'Топливо и б/у детали топливных систем, спиртные напитки, ограниченные лекарства, едкие и опасные химикаты, наркотические вещества, оружие и боеприпасы, легковоспламеняющееся (в том числе спреи и парфюм больше 100 мл на коробку), острые предметы без упаковки, амортизаторы без упаковки, игрушки 18+, табак, а также всё, что запрещают магазин, перевозчик или таможня Узбекистана. Полный список — на странице «Таможня».' },
         weight: { q: 'Как считается вес?', a: 'Берём вес товара с коробкой — его указывает магазин, а если нет, Atlas даёт оценку по виду товара, и её можно исправить. К посылке добавляем 0,3 кг на упаковку, один раз. Минимум — 1 кг на посылку из одного магазина. После взвешивания на складе пересчитаем: если вышло меньше, разницу вернём на баланс.' },
-        account: { q: 'Нужна ли регистрация?', a: 'Для расчёта нет. Чтобы оформить заказ, войдите удобным способом: аккаунт создастся автоматически.' },
+        account: { q: 'Нужна ли регистрация?', a: 'Для расчёта цены — нет. Чтобы оформить заказ, войдите удобным способом: аккаунт создастся автоматически.' },
       },
     },
     closing: { title: 'Посчитайте свой заказ', text: 'Вставьте ссылку на товар: счёт в сумах появится сразу, до регистрации и оплаты.' },
@@ -162,18 +162,18 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       item: 'Tovar narxi',
       itemNoteCbu: (usd, rate, markup) => `${usd}, kurs ${rate} so‘m: MB kursi va ${markup}`,
       itemNoteSet: (usd, rate) => `${usd}, Atlas kursi ${rate} so‘m`,
-      service: 'Atlas xizmati', fee: (percent) => `Atlas komissiyasi, tovar narxining ${percent}`,
+      service: 'Atlas xizmati', serviceParts: 'Xizmat tarkibi', fee: (percent) => `Atlas komissiyasi, tovar narxining ${percent}`,
       delivery: 'Toshkentga yetkazib berish', deliveryNote: (weight, perKg) => `hisobiy vazn ${weight} kg, har kg uchun ${perKg}`,
       reserve: 'Qaytariladigan zaxira', reserveNote: packaging => `Vazn hisobiga qadoq uchun ${packaging} kg zaxira kiritilgan. Omborda tortilgach, ishlatilmagan summa balansga qaytariladi.`, reserveHelpLabel: 'Qaytariladigan zaxira nima',
       reserveHelp: 'Jo‘natma hisoblangandan og‘irroq chiqsa, ehtiyot uchun qo‘yiladi. Omborda tortilgandan keyin ishlatilmagan qismi Atlas balansingizga qaytariladi. Yetkazib berish zaxiradan qimmatroq bo‘lsa, qo‘shimcha to‘lovni avval siz bilan kelishamiz.',
       total: 'To‘lov uchun',
-      dutyTitle: allowance => `Oyiga ${allowance} gacha — bojxona bojisiz`,
+      dutyTitle: allowance => `Oyiga ${allowance} gacha — bojsiz`,
       dutyNote: 'Bitta oluvchiga, Atlasdan tashqari xaridlar ham hisobga olinadi.',
     },
     catalog: { title: 'Tovarlar to‘plami', intro: 'Atlas tanlagan xorijiy do‘kon tovarlari, yakuniy narxi so‘mda.', order: 'Buyurtma berish', storePrice: 'Do‘kondagi narx', total: 'Toshkentga yetkazish bilan', breakdown: 'Summa nimadan iborat' },
     tariffs: {
       title: 'Muddatlar va tariflar', lead: 'Xorijdagi omborimizdan Toshkentga ekspress yoki oddiy yetkazib berish — rasmiylashtirishda tanlaysiz. Jadvalda — odatdagi muddat, ish kunlarida; do‘kondan omborgacha yetkazish va bojxona bunga kirmaydi.',
-      from: 'Qayerdan', time: 'Yetkazish muddati', perKg: '1 kg narxi', perKgUnit: '/kg',
+      from: 'Qayerdan', country: 'Davlat', time: 'Yetkazish muddati', perKg: '1 kg narxi', perKgUnit: '/kg',
       per100g: (usd) => `100 g uchun ${usd}`,
       days: (min, max) => `${min}–${max} ish kuni`, pending: 'aniqlanmoqda',
       speeds: { express: 'Ekspress', standard: 'Oddiy' }, speedsLabel: 'Yetkazish tezligi', noDays: 'Muddat do‘kon va reysga bog‘liq, uni havolangiz bo‘yicha hisobda ko‘rsatamiz.',
@@ -196,15 +196,15 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
     },
     faq: {
       title: 'Ko‘p beriladigan savollar', timesQuestion: 'Buyurtmani qancha kutish kerak?',
-      timesKnown: (list) => `Xorijdagi omborimizdan odatda: ${list}. Tezlikni rasmiylashtirishda tanlaysiz. Bunga do‘kondan omborgacha yetkazish va bojxona rasmiylashtiruvini qo‘shing.`,
+      timesKnown: (list) => `Xorijdagi omborimizdan odatda: ${list}. Bunga do‘kondan omborgacha yetkazish va bojxona qo‘shiladi.`, timesLink: 'Davlatlar bo‘yicha muddatlar',
       timesUnknown: 'Muddat do‘kondan omborimizgacha yetkazish, Toshkentga tashish va bojxonadan iborat. Mamlakatlar bo‘yicha odatdagi muddatlar «Muddatlar va tariflar» jadvalida.',
       customsLink: 'Bojxona haqida batafsil', prohibitedOfficial: 'Rasmiy ro‘yxat', prohibitedRules: 'Xizmat qoidalari',
       items: {
         customs: (allowance) => ({ q: `Bojxonadagi ${allowance} limiti nima?`, a: `Shaxsiy foydalanish uchun bitta oluvchiga oyiga ${allowance} gacha bo‘lgan xaridlar bojsiz olib kiriladi. Agar oy davomida ko‘proq bo‘lsa, boj faqat oshgan qismidan to‘lanadi. Stavka va hisob namunasi «Bojxona» sahifasida; yakuniy summani bojxona belgilaydi.` }),
-        returns: { q: 'Tovarni qaytarish mumkinmi?', a: 'Xariddan oldin buyurtmani bekor qilish mumkin — oldindan ko‘rgan xarajatlaringizni chegirib, pulni qaytaramiz. Xariddan keyin tovarni do‘kon qabul qilsa, qaytarish mumkin: rasmiylashtirishga yordam beramiz. Pul siz to‘lagan usulda yoki Atlas balansiga qaytariladi.' },
+        returns: { q: 'Tovarni qaytarish mumkinmi?', a: 'Xariddan oldin buyurtmani bekor qilish mumkin — hisobda ko‘rsatilgan xarajatlarni chegirib, pulni qaytaramiz. Xariddan keyin tovarni do‘kon qabul qilsa, qaytarish mumkin: rasmiylashtirishga yordam beramiz. Pul siz to‘lagan usulda yoki Atlas balansiga qaytariladi.' },
         prohibited: { q: 'Qaysi tovarlarni buyurtma qilib bo‘lmaydi?', a: 'Yoqilg‘i va yoqilg‘i tizimining ishlatilgan qismlari, spirtli ichimliklar, cheklangan dori-darmonlar, kuydiruvchi va xavfli kimyoviy moddalar, giyohvand moddalar, qurol va o‘q-dorilar, tez alangalanuvchi buyumlar (bir qutiga 100 ml dan ortiq sprey va parfyum ham), qadoqsiz o‘tkir buyumlar va amortizatorlar, 18+ o‘yinchoqlar, tamaki, shuningdek do‘kon, tashuvchi yoki O‘zbekiston bojxonasi taqiqlagan barcha narsalar. To‘liq ro‘yxat «Bojxona» sahifasida.' },
         weight: { q: 'Og‘irlik qanday hisoblanadi?', a: 'Tovar og‘irligini quti bilan olamiz — uni do‘kon ko‘rsatadi, bo‘lmasa Atlas tovar turiga qarab baholaydi va uni tuzatish mumkin. Jo‘natmaga qadoq uchun 0,3 kg bir marta qo‘shamiz. Bitta do‘kondan kelgan jo‘natma uchun kamida 1 kg. Omborda tortilgandan keyin qayta hisoblaymiz: kam chiqsa, farq balansingizga qaytariladi.' },
-        account: { q: 'Ro‘yxatdan o‘tish kerakmi?', a: 'Hisoblash uchun yo‘q. Buyurtma berish uchun qulay usulda kiring: akkaunt avtomatik yaratiladi.' },
+        account: { q: 'Ro‘yxatdan o‘tish kerakmi?', a: 'Narxni hisoblash uchun — yo‘q. Buyurtma berish uchun qulay usulda kiring, akkaunt avtomatik yaratiladi.' },
       },
     },
     closing: { title: 'Buyurtmangizni hisoblang', text: 'Tovar havolasini qo‘ying: so‘mdagi hisob ro‘yxatdan o‘tish va to‘lovdan oldin darhol chiqadi.' },
@@ -251,7 +251,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       item: 'Item price',
       itemNoteCbu: (usd, rate, markup) => `${usd} at ${rate} soum: Central Bank rate plus ${markup}`,
       itemNoteSet: (usd, rate) => `${usd} at the Atlas rate of ${rate} soum`,
-      service: 'Atlas service', fee: (percent) => `Atlas fee, ${percent} of the item price`,
+      service: 'Atlas service', serviceParts: 'Service breakdown', fee: (percent) => `Atlas fee, ${percent} of the item price`,
       delivery: 'Delivery to Tashkent', deliveryNote: (weight, perKg) => `${weight} kg estimated weight at ${perKg} per kg`,
       reserve: 'Refundable reserve', reserveNote: packaging => `Estimated weight includes a ${packaging} kg packaging allowance. Any unused amount returns to your balance after weighing.`, reserveHelpLabel: 'What is the refundable reserve',
       reserveHelp: 'A buffer in case the parcel is heavier than estimated. After warehouse weighing, any unused part returns to your Atlas balance. If delivery costs more than the reserve, we agree the extra payment with you first.',
@@ -262,7 +262,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
     catalog: { title: 'Product selection', intro: 'Products from international stores, selected by Atlas, with the total in soum.', order: 'Order', storePrice: 'Store price', total: 'With delivery to Tashkent', breakdown: 'What’s in the total' },
     tariffs: {
       title: 'Delivery times and rates', lead: 'Express or standard delivery from our warehouse abroad to Tashkent — you choose at checkout. The table shows the usual time in business days; the store’s shipping to the warehouse and customs come on top.',
-      from: 'From', time: 'Delivery time', perKg: 'Price per kg', perKgUnit: '/kg',
+      from: 'From', country: 'Country', time: 'Delivery time', perKg: 'Price per kg', perKgUnit: '/kg',
       per100g: (usd) => `${usd} per 100 g`,
       days: (min, max) => `${min}–${max} business days`, pending: 'to be confirmed',
       speeds: { express: 'Express', standard: 'Standard' }, speedsLabel: 'Delivery speed', noDays: 'Timing depends on the store and the flight; we show it in the estimate for your link.',
@@ -285,12 +285,12 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
     },
     faq: {
       title: 'Frequently asked questions', timesQuestion: 'How long does delivery take?',
-      timesKnown: (list) => `From our warehouse abroad, usually: ${list}. You choose the speed at checkout. Add the store’s shipping to the warehouse and customs clearance.`,
+      timesKnown: (list) => `From our warehouse abroad, usually: ${list}. Add the store’s shipping to the warehouse and customs.`, timesLink: 'Times by country',
       timesUnknown: 'Delivery time covers the store’s shipping to our warehouse, transport to Tashkent and customs. See “Delivery times and rates” for the usual times by country.',
       customsLink: 'More about customs', prohibitedOfficial: 'Official list', prohibitedRules: 'Terms of service',
       items: {
         customs: (allowance) => ({ q: `What is the ${allowance} customs limit?`, a: `Personal purchases up to ${allowance} a month per recipient enter without duty. If a month’s total is higher, duty applies only to the excess. The rate and a worked example are on the Customs page; customs sets the final amount.` }),
-        returns: { q: 'Can I return an item?', a: 'Before purchase you can cancel the order — we refund the money minus costs you saw in advance. After purchase a return is possible if the store accepts it; we help arrange it. Refunds go back by the payment method you used or to your Atlas balance.' },
+        returns: { q: 'Can I return an item?', a: 'Before purchase you can cancel the order — we refund the money minus the costs shown in your bill. After purchase a return is possible if the store accepts it; we help arrange it. Refunds go back by the payment method you used or to your Atlas balance.' },
         prohibited: { q: 'Which items can’t be ordered?', a: 'Fuel and used fuel-system parts, alcoholic drinks, restricted medicines, corrosive and hazardous chemicals, narcotics, weapons and ammunition, flammables (including sprays and perfumes over 100 ml per box), unpackaged sharp items and shock absorbers, 18+ toys, tobacco, and anything the store, the carrier or Uzbekistan customs prohibits. The full list is on the Customs page.' },
         weight: { q: 'How is weight calculated?', a: 'We take the item weight with its box — the store states it, or Atlas estimates it by the kind of item and you can correct it. We add 0.3 kg for packaging, once per parcel. Minimum 1 kg per parcel from one store. After warehouse weighing we recalculate: if it comes out lower, the difference returns to your balance.' },
         account: { q: 'Do I need to sign up?', a: 'Not for an estimate. To place an order, sign in the way that suits you: the account is created automatically.' },

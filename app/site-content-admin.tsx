@@ -15,7 +15,8 @@ import type {TextLocale} from '@/lib/market/i18n';
  */
 type Triple=Record<TextLocale,string>;
 type Form={
-  contacts:{telegramSupport:string;telegramChannel:string;phone:string;instagram:string;pickupAddress:Triple};
+  contacts:{telegramSupport:string;telegramChannel:string;phone:string;instagram:string;supportEmail:string;supportHours:Triple;pickupAddress:Triple};
+  courierNote:Triple;
   legal:{entityName:string;inn:string;address:Triple};
   paymentMethods:PaymentMethod[];
   reviews:{key:string;name:string;city:string;text:Triple;consent:boolean}[];
@@ -28,7 +29,8 @@ const emptyTriple=():Triple=>({ru:'',uz:'',en:''});
 const key=()=>Math.random().toString(36).slice(2,10);
 function toForm(view:SiteContentView):Form{
   return {
-    contacts:{telegramSupport:view.contacts.telegramSupport??'',telegramChannel:view.contacts.telegramChannel??'',phone:view.contacts.phone??'',instagram:view.contacts.instagram??'',pickupAddress:{...emptyTriple(),...(view.contacts.pickupAddress??{})}},
+    contacts:{telegramSupport:view.contacts.telegramSupport??'',telegramChannel:view.contacts.telegramChannel??'',phone:view.contacts.phone??'',instagram:view.contacts.instagram??'',supportEmail:view.contacts.supportEmail??'',supportHours:{...emptyTriple(),...(view.contacts.supportHours??{})},pickupAddress:{...emptyTriple(),...(view.contacts.pickupAddress??{})}},
+    courierNote:{...emptyTriple(),...(view.courierNote??{})},
     legal:{entityName:view.legal.entityName??'',inn:view.legal.inn??'',address:{...emptyTriple(),...(view.legal.address??{})}},
     paymentMethods:[...view.paymentMethods],
     reviews:view.reviews.map(review=>({key:key(),name:review.name,city:review.city??'',text:{...emptyTriple(),...review.text},consent:true})),
@@ -43,7 +45,8 @@ function toDocument(form:Form,revision:number):SiteContentDocumentInput{
   const trimmed=(triple:Triple):Triple=>({ru:triple.ru.trim(),uz:triple.uz.trim(),en:triple.en.trim()});
   return {
     revision,
-    contacts:{telegramSupport:orNull(form.contacts.telegramSupport),telegramChannel:orNull(form.contacts.telegramChannel),phone:orNull(form.contacts.phone),instagram:orNull(form.contacts.instagram),pickupAddress:trimmed(form.contacts.pickupAddress)},
+    contacts:{telegramSupport:orNull(form.contacts.telegramSupport),telegramChannel:orNull(form.contacts.telegramChannel),phone:orNull(form.contacts.phone),instagram:orNull(form.contacts.instagram),supportEmail:orNull(form.contacts.supportEmail),supportHours:trimmed(form.contacts.supportHours),pickupAddress:trimmed(form.contacts.pickupAddress)},
+    courierNote:trimmed(form.courierNote),
     legal:{entityName:orNull(form.legal.entityName),inn:orNull(form.legal.inn),address:trimmed(form.legal.address)},
     paymentMethods:form.paymentMethods,
     reviews:form.reviews.map(review=>({name:review.name,city:orNull(review.city),text:trimmed(review.text),...(review.consent?{consent:true as const}:{})})) as SiteContentDocumentInput['reviews'],
@@ -53,7 +56,7 @@ function toDocument(form:Form,revision:number):SiteContentDocumentInput{
   };
 }
 const fieldNames:Record<string,string>={
-  'contacts.telegramSupport':'Telegram-бот поддержки','contacts.telegramChannel':'Telegram-канал','contacts.phone':'Телефон','contacts.instagram':'Instagram','contacts.pickupAddress':'Адрес пункта выдачи',
+  'contacts.telegramSupport':'Telegram-бот поддержки','contacts.telegramChannel':'Telegram-канал','contacts.phone':'Телефон','contacts.instagram':'Instagram','contacts.supportEmail':'Почта поддержки','contacts.supportHours':'Часы работы поддержки','contacts.pickupAddress':'Адрес пункта выдачи','courierNote':'Курьерская доставка',
   'legal.entityName':'Юрлицо','legal.inn':'ИНН','legal.address':'Юридический адрес','paymentMethods':'Способы оплаты','reviews':'Отзывы','parcelPhotos':'Фото посылок','completedOrders':'Доставлено заказов','prohibitedListUrl':'Ссылка на перечень запрещённых товаров',
 };
 /** "reviews.0.consent: …" → "Отзывы №1 (consent): …" so the owner finds the field. */
@@ -81,9 +84,13 @@ export function SiteContentAdmin(){
   // The server render already carries the document; re-read it on mount so an admin who opened this tab later sees the latest revision.
   useEffect(()=>{let cancelled=false;void (async()=>{try{const r=await fetch('/api/site-content',{cache:'no-store'});const data=await r.json() as Result;if(!cancelled&&r.ok&&data.document)applyView(data.document)}catch{/* the server-rendered document stays */}})();return()=>{cancelled=true}},[applyView]);
   const update=(patch:(current:Form)=>Form)=>{setForm(current=>patch(current));setDirty(true)};
-  const setContacts=(field:keyof Form['contacts'],value:string)=>update(f=>({...f,contacts:{...f.contacts,[field]:value}}));
+  const setContacts=(field:'telegramSupport'|'telegramChannel'|'phone'|'instagram'|'supportEmail',value:string)=>update(f=>({...f,contacts:{...f.contacts,[field]:value}}));
   const setLegal=(field:keyof Form['legal'],value:string)=>update(f=>({...f,legal:{...f.legal,[field]:value}}));
-  const setTriple=(path:'contacts.pickupAddress'|'legal.address',locale:TextLocale,value:string)=>update(f=>path==='contacts.pickupAddress'?{...f,contacts:{...f.contacts,pickupAddress:{...f.contacts.pickupAddress,[locale]:value}}}:{...f,legal:{...f.legal,address:{...f.legal.address,[locale]:value}}});
+  const setTriple=(path:'contacts.pickupAddress'|'contacts.supportHours'|'legal.address'|'courierNote',locale:TextLocale,value:string)=>update(f=>{
+    if(path==='contacts.pickupAddress'||path==='contacts.supportHours'){const field=path==='contacts.pickupAddress'?'pickupAddress':'supportHours';return {...f,contacts:{...f.contacts,[field]:{...f.contacts[field],[locale]:value}}}}
+    if(path==='courierNote')return {...f,courierNote:{...f.courierNote,[locale]:value}};
+    return {...f,legal:{...f.legal,address:{...f.legal.address,[locale]:value}}};
+  });
   const togglePayment=(method:PaymentMethod)=>update(f=>({...f,paymentMethods:f.paymentMethods.includes(method)?f.paymentMethods.filter(m=>m!==method):[...f.paymentMethods,method]}));
   const setReview=(k:string,patch:Partial<Form['reviews'][number]>)=>update(f=>({...f,reviews:f.reviews.map(r=>r.key===k?{...r,...patch}:r)}));
   const setReviewText=(k:string,locale:TextLocale,value:string)=>update(f=>({...f,reviews:f.reviews.map(r=>r.key===k?{...r,text:{...r.text,[locale]:value}}:r)}));
@@ -136,15 +143,20 @@ export function SiteContentAdmin(){
 
       <section className="sc-card" aria-labelledby={`${id}-h-contacts`}>
         <header className="sc-card-head"><Globe2 size={18} aria-hidden="true"/><h3 id={`${id}-h-contacts`}>Контакты</h3></header>
-        <p className="sc-card-note">Telegram, телефон и Instagram показываются в блоке контактов на сайте. Указывайте имя без @ и без ссылки.</p>
+        <p className="sc-card-note">Telegram, телефон, Instagram, почта и часы работы показываются в блоке контактов на сайте. Бот поддержки ещё и кнопкой «Помощь» в шапке. Указывайте имя без @ и без ссылки.</p>
         <div className="sc-grid">
           <div className="field sc-field"><label htmlFor={`${id}-tg-support`}>Telegram-бот поддержки (без @)</label><input id={`${id}-tg-support`} value={form.contacts.telegramSupport} onChange={e=>setContacts('telegramSupport',e.target.value)} placeholder="atlas_support_bot" autoComplete="off"/></div>
           <div className="field sc-field"><label htmlFor={`${id}-tg-channel`}>Telegram-канал (без @)</label><input id={`${id}-tg-channel`} value={form.contacts.telegramChannel} onChange={e=>setContacts('telegramChannel',e.target.value)} placeholder="atlas_uz" autoComplete="off"/></div>
           <div className="field sc-field"><label htmlFor={`${id}-phone`}>Телефон (+998 и 9 цифр)</label><input id={`${id}-phone`} type="tel" inputMode="tel" value={form.contacts.phone} onChange={e=>setContacts('phone',e.target.value)} placeholder="+998901234567" autoComplete="off"/></div>
           <div className="field sc-field"><label htmlFor={`${id}-instagram`}>Instagram (без @)</label><input id={`${id}-instagram`} value={form.contacts.instagram} onChange={e=>setContacts('instagram',e.target.value)} placeholder="atlas.uz" autoComplete="off"/></div>
+          <div className="field sc-field"><label htmlFor={`${id}-email`}>Почта поддержки</label><input id={`${id}-email`} type="email" inputMode="email" value={form.contacts.supportEmail} maxLength={254} onChange={e=>setContacts('supportEmail',e.target.value)} placeholder="support@…" autoComplete="off"/></div>
         </div>
+        <p className="sc-card-note">Часы работы поддержки — на трёх языках или нигде, как вы их пишете клиентам.</p>
+        <div className="sc-grid sc-grid-3">{locales.map(locale=>textField(`${id}-hours-${locale.id}`,`Часы работы · ${locale.label}`,form.contacts.supportHours[locale.id],value=>setTriple('contacts.supportHours',locale.id,value),{max:120}))}</div>
         <p className="sc-card-note">Адрес пункта выдачи в Ташкенте — на трёх языках или нигде. Это не склад за рубежом: сюда клиент приходит за посылкой.</p>
         <div className="sc-grid sc-grid-3">{locales.map(locale=>textField(`${id}-pickup-${locale.id}`,`Пункт выдачи · ${locale.label}`,form.contacts.pickupAddress[locale.id],value=>setTriple('contacts.pickupAddress',locale.id,value)))}</div>
+        <p className="sc-card-note">Курьерская доставка по Ташкенту: цена и где возите, одной строкой на трёх языках. Показывается на главной под шагом «Получите в Ташкенте»; пусто — строки нет.</p>
+        <div className="sc-grid sc-grid-3">{locales.map(locale=>textField(`${id}-courier-${locale.id}`,`Курьер · ${locale.label}`,form.courierNote[locale.id],value=>setTriple('courierNote',locale.id,value),{max:200}))}</div>
       </section>
 
       <section className="sc-card" aria-labelledby={`${id}-h-legal`}>

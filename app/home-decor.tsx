@@ -24,7 +24,7 @@ type Engine={setLabels:(labels:Labels)=>void;stop:()=>void};
 const NS='http://www.w3.org/2000/svg';
 const sheetArt:Partial<Record<HomeChapter,DecorArt>>={top:'globe',tariffs:'box',trust:'bill',faq:'ask'};
 /** The blocks a sheet's medallion and mint pool line up with; on the closing sheet, the card the map stands on. */
-const sheetTarget:Record<HomeChapter,string>={top:'.home-example',how:'.home-steps',finds:'.finds-grid',tariffs:'.tariff-grid',trust:'.home-trust-money, .home-trust-proof',faq:'.home-faq',end:'.home-closing'};
+const sheetTarget:Record<HomeChapter,string>={top:'.home-example',how:'.home-steps',finds:'.finds-grid',tariffs:'.tariff-table',trust:'.home-trust-money, .home-trust-proof',faq:'.home-faq',end:'.home-closing'};
 
 // A mint pool: a radial gradient with a long soft fall-off (alpha in % of the colour at each stop).
 const fall=[[0,100],[8,97],[16,90],[24,80],[32,68],[40,55],[48,43],[56,32],[64,22],[72,14],[80,8],[88,4],[94,1.5]];

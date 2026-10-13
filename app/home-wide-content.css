@@ -185,6 +185,7 @@
   /* Step 4's "Courier delivery" chip moves into its example (owner, 7.10.2026: "big cards, little text"): the shared
      extras row stays empty, so every example sits right under its text. The list stays for screen readers. */
   html[data-view="catalog"]:is(html) body .catalog-home #how .home-step > .home-delivery { position: absolute; width: 1px; height: 1px; margin: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  html[data-view="catalog"]:is(html) body .catalog-home #how .home-step > .home-courier-note { align-self: start; margin: 10px 0 0; font-size: 14px; line-height: 1.45; }
   html[data-view="catalog"]:is(html) body .catalog-home #how .home-step > .home-missing { position: absolute; top: calc(100% + 10px); left: 0; right: 0; margin: 0; padding: 6px 10px; font-size: 12px; line-height: 1.35; }
   html[data-view="catalog"]:is(html) body .catalog-home #how .hw-demo {
     display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 10px; min-height: 0; box-sizing: border-box; padding: 16px 18px;
@@ -241,9 +242,9 @@
   html[data-theme="dark"][data-view="catalog"]:is(html) body .catalog-home #how .hw-demo-status[data-state="current"] .hw-demo-status-dot { border-color: var(--night-ivory); }
 
   /* ---------- Rates: «Из чего складывается срок» under the note — what the table's days cover (the days stay in the table).
-     Six rows: h2 / lead / note / route card next to the country cards (rows 2–5, so both end on one line) / dev notes. ---------- */
+     Six rows: h2 / lead / note / route card next to the rates table (rows 2–5, so both end on one line) / dev notes. ---------- */
   html[data-view="catalog"]:is(html) body .catalog-home #tariffs { grid-template-rows: 1fr auto auto auto auto 1fr; }
-  html[data-view="catalog"]:is(html) body .catalog-home #tariffs > .tariff-grid { grid-area: 2 / 2 / 6 / 3; }
+  html[data-view="catalog"]:is(html) body .catalog-home #tariffs > .tariff-table { grid-area: 2 / 2 / 6 / 3; }
   html[data-view="catalog"]:is(html) body .catalog-home #tariffs > .home-missing { grid-area: 6 / 1; }
   html[data-view="catalog"]:is(html) body .catalog-home #tariffs > .hw-route {
     grid-area: 5 / 1; align-self: end; display: grid; gap: 12px; margin-top: 26px; padding: 22px 24px 20px;

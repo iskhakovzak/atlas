@@ -179,18 +179,18 @@ html[data-view="catalog"]:is(html) .catalog-home #finds .finds-grid > .find-card
   html[data-view="catalog"]:is(html) .catalog-home #finds .finds-pager { display: none; }
 }
 
-/* ---------- Rates: text left, country cards right (two per row) on wide screens ---------- */
+/* ---------- Rates: text left, the rates table right on wide screens ---------- */
 @media (min-width: 1100px) {
   html[data-view="catalog"]:is(html) .catalog-home #tariffs {
-    /* 580px keeps two cards per row at ~282px each, enough for the days and the price side by side (1100-1190px windows). */
+    /* 580px keeps both price chips on one line beside the table's three columns (1100-1190px windows). */
     grid-template-columns: minmax(0, 5fr) minmax(580px, 7fr); grid-template-rows: 1fr auto auto auto 1fr;
     column-gap: clamp(48px, 6vw, 112px); align-content: stretch;
   }
   html[data-view="catalog"]:is(html) .catalog-home #tariffs > h2 { grid-area: 2 / 1; }
   html[data-view="catalog"]:is(html) .catalog-home #tariffs > .home-section-lead { grid-area: 3 / 1; margin-bottom: 0; }
   html[data-view="catalog"]:is(html) .catalog-home #tariffs > .home-note { grid-area: 4 / 1; margin-top: 20px; max-width: 46ch; }
-  /* The cards take the whole right column; three per row would squeeze the days under the price. */
-  html[data-view="catalog"]:is(html) .catalog-home #tariffs > .tariff-grid { grid-area: 1 / 2 / 6 / 3; align-self: center; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* The table takes the whole right column. */
+  html[data-view="catalog"]:is(html) .catalog-home #tariffs > .tariff-table { grid-area: 1 / 2 / 6 / 3; align-self: center; }
   html[data-view="catalog"]:is(html) .catalog-home #tariffs > .home-missing { grid-area: 5 / 1; align-self: start; }
 }
 @media (max-width: 760px) {
