@@ -25,7 +25,7 @@ export type HomeCopy = {
     service: string; serviceParts: string; fee: (percent: string) => string;
     delivery: string; deliveryNote: (weight: string, perKg: string) => string;
     reserve: string; reserveNote: (packaging: string) => string; reserveHelpLabel: string; reserveHelp: string; total: string;
-    dutyTitle: (allowance: string) => string; dutyNote: string;
+    dutyTitle: (allowance: string) => string; dutyNote: string; dutyUsed: (used: string, allowance: string) => string;
   };
   catalog: { title: string; intro: string; order: string; storePrice: string; total: string; breakdown: string };
   tariffs: { title: string; lead: string; from: string; country: string; time: string; perKg: string; perKgUnit: string; per100g: (usd: string) => string; days: (min: number, max: number) => string; pending: string; noDays: string; regions: Record<DeliveryRegion, string>; speeds: { express: string; standard: string }; speedsLabel: string; weightNote: string; rateNote: string };
@@ -80,6 +80,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       total: 'К оплате',
       dutyTitle: allowance => `Без таможенной пошлины — до\u00a0${allowance} в\u00a0месяц`,
       dutyNote: 'На одного получателя, включая покупки вне Atlas.',
+      dutyUsed: (used, allowance) => `Этот заказ займёт ${used} из ${allowance}`,
     },
     catalog: { title: 'Подборка товаров', intro: 'Товары из зарубежных магазинов, отобранные Atlas, с итогом в сумах.', order: 'Заказать', storePrice: 'Цена в магазине', total: 'С доставкой в Ташкент', breakdown: 'Из чего сумма' },
     tariffs: {
@@ -169,6 +170,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       total: 'To‘lovga',
       dutyTitle: allowance => `Oyiga ${allowance}\u00a0gacha — bojsiz`,
       dutyNote: 'Bitta oluvchiga, Atlasdan tashqari xaridlar ham hisobga olinadi.',
+      dutyUsed: (used, allowance) => `Bu buyurtma: ${allowance} dan ${used}`,
     },
     catalog: { title: 'Tovarlar to‘plami', intro: 'Atlas tanlagan xorijiy do‘kon tovarlari, yakuniy narxi so‘mda.', order: 'Buyurtma berish', storePrice: 'Do‘kondagi narx', total: 'Toshkentga yetkazish bilan', breakdown: 'Summa nimadan iborat' },
     tariffs: {
@@ -258,6 +260,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       total: 'To pay',
       dutyTitle: allowance => `No customs duty — up to\u00a0${allowance} per\u00a0month`,
       dutyNote: 'Per recipient, including purchases outside Atlas.',
+      dutyUsed: (used, allowance) => `This order uses ${used} of ${allowance}`,
     },
     catalog: { title: 'Product selection', intro: 'Products from international stores, selected by Atlas, with the total in soum.', order: 'Order', storePrice: 'Store price', total: 'With delivery to Tashkent', breakdown: 'What’s in the total' },
     tariffs: {

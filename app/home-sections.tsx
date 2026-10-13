@@ -1,6 +1,6 @@
 'use client';
 import {Fragment,useEffect,useId,useState,type FormEvent,type ReactNode} from 'react';
-import { ArrowRight, ArrowUpRight, BadgeCheck, Check, CircleHelp, ClipboardPaste, Info, Landmark, Link2, MessagesSquare, Plane, ReceiptText, Store, Truck } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, BadgeCheck, Check, CircleHelp, ClipboardPaste, Info, Landmark, Link2, MessagesSquare, Plane, ReceiptText, ShieldCheck, Store, Truck } from 'lucide-react';
 import Link from '@/components/site-link';
 import {PasteButton} from '@/components/paste-button';
 import {useMarket} from '@/lib/market/store';
@@ -120,15 +120,21 @@ export function ExampleQuote(){
  const days=deliveryDaysFor(pricing,'us');
  const allowance=pricing.customsAllowanceUsd??courierAllowanceUsd;
  const usd=formatUsd(exampleUsd,locale);
+ // The bar under the total and the dots on the two lines share these colours (app/home-bill.css); the amounts stay in the text.
+ const itemShare=quote.total>0?Math.round(quote.merchandise/quote.total*1000)/10:0;
+ // Only the goods' price counts towards the duty-free allowance, as in the cart (lib/market/allowance.ts).
+ const allowanceUsed=allowance>0?Math.min(100,exampleUsd/allowance*100):0;
  return <aside id="example" className="folio home-folio" aria-labelledby="example-title">
-  <p className="folio-cap"><b id="example-title">{c.example.title}</b><span>{c.example.product}</span></p>
+  {/* The caption names the example as an order line: what is bought, where and for how much (owner, 14.10.2026: the card
+      looked dry and empty). It takes the place of the old one-line caption, so the card grows only a little. */}
+  <p className="folio-cap bill-product"><span className="bill-product-mark" aria-hidden="true"><StoreMark brandKey="nike" height={14} maxWidth={28}/></span><span className="bill-product-name" aria-hidden="true"><b>{c.trust.trackingProduct}</b><small>nike.com · {usd}</small></span><b id="example-title" className="bill-product-label">{c.example.title}<span className="sr-only">: {c.example.product}</span></b></p>
   <div className="folio-sheet home-quote">
-   <p className="bill-route"><span><span className="sr-only">{c.example.routeLabel}: </span>{c.tariffs.regions.us}</span><span className="bill-route-line" aria-hidden="true"/><span className="sr-only"> → </span><span>{c.example.to}</span></p>
+   <p className="bill-route"><span className="bill-route-end"><Flag region="us" className="bill-route-flag"/><span className="sr-only">{c.example.routeLabel}: </span>{c.tariffs.regions.us}</span><span className="bill-route-path" aria-hidden="true"><span className="bill-route-line"/><Plane className="bill-route-plane" size={17} strokeWidth={2}/></span><span className="sr-only"> → </span><span className="bill-route-end">{c.example.to}</span></p>
    {days&&<p className="bill-days">{c.example.days(days[0],days[1])}</p>}
    <dl className="bill">
-    <div><dt>{c.example.item}</dt><dd>{formatSum(quote.merchandise,locale)}</dd><dd className="bill-note">{c.example.itemNote(usd)}</dd></div>
+    <div className="bill-row-item"><dt>{c.example.item}</dt><dd>{formatSum(quote.merchandise,locale)}</dd><dd className="bill-note">{c.example.itemNote(usd)}</dd></div>
     {/* One «Atlas service» line with its parts folded under it, as the real bill groups them (app/cost-lines.tsx). */}
-    <div><dt>{c.example.service}</dt><dd>{formatSum(parts.service+parts.international,locale)}</dd><dd className="bill-note"><details className="bill-breakdown"><summary>{c.example.serviceParts}</summary><ul className="bill-parts">
+    <div className="bill-row-service"><dt>{c.example.service}</dt><dd>{formatSum(parts.service+parts.international,locale)}</dd><dd className="bill-note"><details className="bill-breakdown"><summary>{c.example.serviceParts}</summary><ul className="bill-parts">
      <li><span>{c.example.fee(fee)}</span><span>{formatSum(parts.service,locale)}</span></li>
      <li><span>{`${c.example.delivery}: ${c.example.deliveryNote(formatKg(packed,locale),formatUsd(deliveryPerKgUsdFor(pricing),locale))}`}</span><span>{formatSum(parts.international,locale)}</span></li>
     </ul></details></dd></div>
@@ -136,11 +142,13 @@ export function ExampleQuote(){
     {quote.reserve>0&&<div><dt><span className="home-dt-with-tip">{c.example.reserve}<InfoTip label={c.example.reserveHelpLabel}>{c.example.reserveHelp}</InfoTip></span></dt><dd>{formatSum(quote.reserve,locale)}</dd><dd className="bill-note">{c.example.reserveNote(formatKg(packagingKg,locale))}</dd></div>}
    </dl>
    <p className="bill-total home-quote-total"><span>{c.example.total}</span><strong><Money value={quote.total} locale={locale}/></strong></p>
+   <span className="bill-split" aria-hidden="true"><span style={{flexGrow:itemShare}}/><span style={{flexGrow:100-itemShare}}/></span>
    {/* The conversion rate is fine print, not a selling point. */}
    <p className="bill-fx">{c.example.rateFine(groupDigits(pricing.fx))}</p>
   </div>
   <section className="folio-outside home-customs-slip" aria-labelledby="example-outside">
-   <h2 id="example-outside">{c.example.dutyTitle(formatUsd(allowance,locale))}</h2>
+   <h2 id="example-outside"><ShieldCheck className="home-customs-icon" size={16} aria-hidden="true"/>{c.example.dutyTitle(formatUsd(allowance,locale))}</h2>
+   <p className="home-customs-meter"><span className="home-customs-track" aria-hidden="true"><span style={{width:`${allowanceUsed}%`}}/></span><span>{c.example.dutyUsed(usd,formatUsd(allowance,locale))}</span></p>
    <p className="home-customs-note">{c.example.dutyNote}</p>
   </section>
  </aside>;
