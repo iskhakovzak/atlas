@@ -25,8 +25,9 @@ export async function POST(request: Request) {
     await identity();
     throw new HttpError(410, 'err_79');
   } catch (error) {
-    // The upload is never read; an unconsumed body left the local workerd restarting on the next request.
-    await request.body?.cancel().catch(() => undefined);
+    // The upload is never stored, but it is read to the end: an unread (or cancelled) body left the local workerd
+    // hanging or restarting on the next request on that connection.
+    await request.arrayBuffer().catch(() => undefined);
     return failure(error, request);
   }
 }

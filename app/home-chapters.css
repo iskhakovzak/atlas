@@ -21,7 +21,7 @@ html[data-view="catalog"]:is(html) {
 @media (max-width: 760px) {
   html[data-view="catalog"]:is(html) {
     --ch-header: calc(80px + env(safe-area-inset-top));
-    --ch-nav: calc(61px + env(safe-area-inset-bottom)); /* .mobile-nav: 1px border + 4 + 56 */
+    --ch-nav: var(--atlas-mobile-nav-clearance, calc(64px + env(safe-area-inset-bottom))); /* .mobile-nav is exactly this tall (mobile.css) */
     --ch-dock: 56px;                                     /* 1px border + 5 + 44px button + 6 */
     --ch-pad: clamp(16px, 3svh, 32px);
     --ch-gap: 20px;

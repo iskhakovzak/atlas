@@ -78,7 +78,8 @@ html[data-theme="dark"] .stores-link-error { color: #ffb4a8; }
 .store-showcase-card { display: flex; flex-direction: column; gap: 10px; height: 100%; padding: 14px; border: 1px solid var(--cat-line); border-radius: 18px; background: var(--cat-surface); color: var(--cat-ink); }
 .store-showcase-card > header { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .store-showcase-card > header > div { display: grid; gap: 2px; min-width: 0; }
-.store-showcase-card > header b { overflow: hidden; font-size: 15px; font-weight: 700; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+/* Two lines before the ellipsis: «Brooks Running» next to «1 product» lost its second word on phones. */
+.store-showcase-card > header b { display: -webkit-box; overflow: hidden; font-size: 15px; font-weight: 700; line-height: 1.2; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .store-showcase-card > header small { display: inline-flex; align-items: center; gap: 6px; min-width: 0; color: var(--cat-muted); font-size: 12px; }
 .store-showcase-card > header small .flag { flex: none; width: 18px; height: 12px; }
 /* The country name is its own box, so a long one ends in an ellipsis instead of being clipped. */
