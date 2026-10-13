@@ -214,7 +214,7 @@ export function shortDate(time: number, locale: Locale) {
     return uzText(locale, `${date.getUTCDate()}-${uzShortMonths[date.getUTCMonth()]}`);
   }
   try {
-    const text = new Intl.DateTimeFormat(locale === 'ru' ? 'ru-RU' : isUzbek(locale) ? uzText(locale, 'uz-UZ') : 'en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Tashkent' }).format(time);
+    const text = new Intl.DateTimeFormat(locale === 'ru' ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Tashkent' }).format(time);
     return text.replace(/\.$/, '');
   } catch {
     const date = new Date(time + 5 * 3_600_000);

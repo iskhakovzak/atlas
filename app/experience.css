@@ -115,6 +115,8 @@ body{background:#fff;color:var(--atlas-ink);font-size:var(--atlas-type-body)}
 .storage-notice button{flex:none;min-height:42px;padding:8px 14px;border:0;border-radius:6px;background:var(--atlas-ink);color:#fff;font-weight:650}
 .storage-notice-summary{display:none}
 html .storage-notice .storage-notice-details{background:transparent;color:inherit;text-decoration:underline;text-underline-offset:3px}
+/* Dark theme paints every banner button ivory (dark-theme.css); "Details" stays a link there too. */
+html[data-theme="dark"] .storage-notice .storage-notice-details,html[data-theme="dark"] .storage-notice .storage-notice-details:hover{border-color:transparent;background:transparent;box-shadow:none;color:inherit}
 @media(max-width:600px){
   .storage-notice.storage-notice{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;max-height:none;overflow:visible}
   .storage-notice-summary{display:contents}
@@ -130,6 +132,13 @@ html .storage-notice .storage-notice-details{background:transparent;color:inheri
 }
 .remove-item.confirming{color:#a33236}
 .remove-item.confirming:hover{color:#7d2428}
+/* While the consent banner is open on a phone, the page ends above it: the last block (e.g. "How the bill looks" on the
+   link order) is not left under the banner. The banner itself shows at once: consent comes before any processing and
+   partner tracking (impact-tracking.tsx waits for it), so it is not deferred to the first action (13 October 2026). */
+@media(max-width:600px){
+  body:has(.mobile-nav):has(.storage-notice) .site-main{padding-bottom:calc(var(--atlas-mobile-nav-clearance) + 88px)}
+  body:has(.mobile-nav):has(.storage-notice) main.site-main:is([data-view="link"]:has(.lo-sticky),[data-view="cart"]:has(.basket-sticky)){padding-bottom:calc(var(--atlas-mobile-nav-clearance) + 172px)}
+}
 @media(max-width:600px){.storage-notice{left:12px;right:12px;bottom:calc(var(--atlas-mobile-nav-clearance) + 8px);max-width:none;align-items:center;flex-direction:row;gap:10px;padding:10px 12px}.storage-notice p{font-size:13px;line-height:1.35}.storage-notice button{align-self:center;min-height:44px;padding:6px 10px;font-size:13px}}
 .find-card{background:var(--atlas-surface,#fff)}
 .find-title, .find-meta, .find-store-price, .find-total, .find-origin, .find-purchase{min-width:0}

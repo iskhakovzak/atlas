@@ -108,6 +108,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
   // the date beside it says how old it is.
   const showDiscount = discount > 0 && (!needsPrice || (hasRecordedPrice && product.sourceCurrency === 'USD'));
   const hasDiscountPill = showDiscount;
+  const storePriceLabel = priceDated ? cc.storePriceOn(shortDate(item.checkedAt, locale)) : cc.storePrice;
   const chips = signals.slice(0, 2).map((signal) => hasDiscountPill && signal.tone === 'mint' ? { ...signal, tone: 'neutral' as const } : signal);
   return <article className="find-card" data-stale={needsPrice || undefined} data-saved={saved || undefined}>
     <div className="find-visual">
@@ -118,13 +119,14 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
     <div className="find-content">
       <div className="find-meta"><span className="find-store"><StoreMark host={item.store} />{storeLabel(item.store, locale) || product.brand || category}</span><span>{category}</span></div>
       <button type="button" className="find-title" onClick={open}>{name}</button>
-      <div className={'find-store-price' + (needsPrice ? ' needs-confirmation' : '')}>
-        <span>{priceDated ? cc.storePriceOn(shortDate(item.checkedAt, locale)) : cc.storePrice}</span>
+      {/* On a phone the label and its date move into the "?" breakdown (the line keeps them for screen readers). */}
+      <div className={'find-store-price' + (needsPrice ? ' needs-confirmation' : '') + (costs ? ' has-breakdown' : '')}>
+        <span className="find-store-price-label">{storePriceLabel}</span>
         {' '}<b>{storePriceText}</b>
         {showDiscount && <>{' '}<del title={copy.referenceLabel}>{fmt(referenceUsd!, 'USD')}</del>{' '}<em className="find-discount" title={copy.compareHint}>−{discount}&#x202F;%</em></>}
       </div>
       {costs
-        ? <FindPrice costs={costs} product={product} stale={needsPrice} speed={speed} label={needsPrice ? cc.totalStale : cc.total} breakdownLabel={cc.breakdown} fmt={fmt} numberLocale={numberLocale} locale={locale} note='' />
+        ? <FindPrice costs={costs} product={product} stale={needsPrice} speed={speed} label={needsPrice ? cc.totalStale : cc.total} breakdownLabel={cc.breakdown} fmt={fmt} numberLocale={numberLocale} locale={locale} note='' storeLine={{ label: storePriceLabel, value: storePriceText }} facts={factsText(product, speed, locale, pricing)} />
         : <div className="find-total"><div className="find-total-head"><span>{cc.totalStale}</span></div><strong className="find-total-pending"><span>{cc.afterCheck}</span></strong><small className="find-total-note" /></div>}
       <Facts product={product} speed={speed} locale={locale} />
       <div className="find-chips">
@@ -148,9 +150,13 @@ function costsAt(item: CatalogItem, speed: DeliverySpeed, pricing = tariff): Cos
 }
 
 /** Delivered total in soum with an in-flow "i" button that opens the line-by-line breakdown. */
-function FindPrice({ costs, product, stale, speed, label, breakdownLabel, fmt, numberLocale, locale, note }: {
+function FindPrice({ costs, product, stale, speed, label, breakdownLabel, fmt, numberLocale, locale, note, storeLine, facts }: {
   costs: Costs; product: Product; stale: boolean; speed: DeliverySpeed; label: string; breakdownLabel: string;
   fmt: (n: number, currency?: string) => string; numberLocale: string; locale: Locale; note: string;
+  /** The store price with its label and date: on a phone the card shows only the price, the rest lives here. */
+  storeLine?: { label: string; value: string };
+  /** "США · 5–9 раб. дн · ≈ 1,2 кг": a phone card keeps only the days. */
+  facts?: string;
 }) {
   const { pricing } = useMarket();
   const bd: Breakdown = breakdownCopy[locale];
@@ -169,6 +175,7 @@ function FindPrice({ costs, product, stale, speed, label, breakdownLabel, fmt, n
         <PopoverContent className="find-breakdown-popover" align="end" sideOffset={6} collisionPadding={12}>
           <p className="find-breakdown-title">{breakdownLabel}</p>
           <dl>
+            {storeLine && <div className="find-breakdown-store"><dt>{storeLine.label}</dt><dd>{storeLine.value}</dd></div>}
             <div><dt>{bd.item}</dt><dd>{fmt(costs.merchandise)}</dd></div>
             {costs.sourceShipping > 0 && <div><dt>{bd.store}</dt><dd>{fmt(costs.sourceShipping)}</dd></div>}
             {storeReserve && <div><dt>{bd.storeReserve}</dt><dd>{fmt(Math.ceil(holdUsd * pricing.fx))}</dd></div>}
@@ -182,6 +189,7 @@ function FindPrice({ costs, product, stale, speed, label, breakdownLabel, fmt, n
           {storeFree && <p>{bd.storeFreeNote(freeFrom)}</p>}
           {costs.reserve > 0 && <p>{bd.reserveNote}</p>}
           {stale && <p>{bd.staleNote}</p>}
+          {facts && <p className="find-breakdown-facts">{facts}</p>}
         </PopoverContent>
       </Popover>
     </div>
@@ -190,16 +198,28 @@ function FindPrice({ costs, product, stale, speed, label, breakdownLabel, fmt, n
   </div>;
 }
 
-/** "США · 5–9 раб. дн · ≈ 1,2 кг": days only for a country Atlas dispatches from (never the US by default). */
-function Facts({ product, speed, locale }: { product: Product; speed: DeliverySpeed; locale: Locale }) {
-  const { pricing } = useMarket();
+/** Country, delivery days and weight: days only for a country Atlas dispatches from (never the US by default). */
+function factParts(product: Product, speed: DeliverySpeed, locale: Locale, pricing: typeof tariff) {
   const cc = catalogCopy[locale];
   const region = regionForCountryLabel(product.country);
   const range = region ? deliveryDaysFor(pricing, region, speed) : null;
-  const parts = [countryLabel(product.country, locale), range ? cc.days(range[0], range[1]) : '', product.weight ? `≈ ${formatKg(product.weight, locale)} ${cc.kg}` : ''].filter(Boolean);
+  return { country: countryLabel(product.country, locale), days: range ? cc.days(range[0], range[1]) : '', weight: product.weight ? `≈ ${formatKg(product.weight, locale)} ${cc.kg}` : '' };
+}
+/** "США · 5–9 раб. дн · ≈ 1,2 кг". */
+function factsText(product: Product, speed: DeliverySpeed, locale: Locale, pricing: typeof tariff) {
+  const { country, days, weight } = factParts(product, speed, locale, pricing);
+  return [country, days, weight].filter(Boolean).join(' · ');
+}
+
+/** "США · 5–9 раб. дн · ≈ 1,2 кг"; a phone card shows only the days (the rest is in the "?" breakdown). */
+function Facts({ product, speed, locale }: { product: Product; speed: DeliverySpeed; locale: Locale }) {
+  const { pricing } = useMarket();
+  const cc = catalogCopy[locale];
+  const { days } = factParts(product, speed, locale, pricing);
+  const text = factsText(product, speed, locale, pricing);
   const hint = `${cc.factsHint}; ${product.weightBasis === 'store' ? cc.weightStore : cc.weightEstimate}`;
-  if (!parts.length) return <p className="find-facts" aria-hidden="true" />;
-  return <p className="find-facts" title={hint}><span>{parts.join(' · ')}</span><span className="sr-only">. {hint}</span></p>;
+  if (!text) return <p className="find-facts" aria-hidden="true" />;
+  return <p className="find-facts" title={hint} data-short={days ? '' : undefined}><span className="find-facts-full">{text}</span>{days && <span className="find-facts-short" aria-hidden="true">{days}</span>}<span className="sr-only">. {hint}</span></p>;
 }
 
 /** Placeholder cards while the catalog loads, so the grid keeps its place. */

@@ -24,6 +24,12 @@ export function samePricing(a:Pricing|null|undefined,b:Pricing|null|undefined):b
  return stable(a)===stable(b);
 }
 
+/**
+ * Settings as a customer or a guest receives them: without managedBy, the email of the operator who last saved
+ * them. It used to reach every public page's HTML and /api/account (found 13 October 2026); the admin keeps it.
+ */
+export function withoutAuthor<T extends {managedBy?:string}>(value:T):T{const copy={...value};delete copy.managedBy;return copy}
+
 /** The next tariff for React state: the previous object when nothing changed (no re-render, no flicker). */
 export function nextPricing(previous:Pricing,incoming:Pricing):Pricing{return samePricing(previous,incoming)?previous:incoming}
 

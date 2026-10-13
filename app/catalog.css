@@ -186,7 +186,8 @@ html[data-theme="dark"] .catalog-switch input:checked + .catalog-switch-track::a
 .site-main .find-card .find-total-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 28px; }
 .site-main .find-card .find-total-head > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--cat-muted); font-size: 13px; line-height: 1.35; }
 .site-main .find-card .find-info { position: static; display: grid; flex: none; place-items: center; width: 40px; height: 40px; margin: -6px -10px -6px 0; border: 0; border-radius: 50%; background: transparent; color: var(--cat-accent); cursor: pointer; }
-.site-main .find-card .find-info:hover, .site-main .find-card .find-info[data-state="open"] { background: var(--cat-soft); }
+/* background-color, not the shorthand: the shorthand would reset the phone's background-clip and paint all 44px. */
+.site-main .find-card .find-info:hover, .site-main .find-card .find-info[data-state="open"] { background-color: var(--cat-soft); }
 .site-main .find-card .find-total > strong { display: block; margin: 0; padding: 0; color: var(--cat-ink); font-size: 26px; font-weight: 700; line-height: 1.15; letter-spacing: -.02em; white-space: nowrap; }
 .site-main .find-card .find-total > strong .money-unit { font-size: 13px; }
 /* "Calculated after the price check" keeps the total's line box (smaller text inside), so rows stay aligned. */
@@ -214,6 +215,8 @@ html[data-theme="dark"] .catalog-switch input:checked + .catalog-switch-track::a
 .find-breakdown-popover dt { color: var(--cat-muted); }
 .find-breakdown-popover dd { margin: 0; color: var(--cat-ink); font-weight: 650; text-align: right; white-space: nowrap; font-feature-settings: "tnum" 1; }
 .find-breakdown-popover p { margin: 10px 0 0; color: var(--cat-muted); font-size: 12.5px; }
+/* Days only on a phone card; country and weight are in the "?" breakdown there (and on the card on wider screens). */
+.find-card .find-facts-short, .find-breakdown-popover .find-breakdown-facts { display: none; }
 
 /* Compact card: photo, one-line name, "store price → total"; the whole card opens the product sheet. */
 .find-card.find-card-compact { position: relative; }
@@ -318,6 +321,13 @@ html[data-theme="dark"] .catalog-search { background: var(--night-inset); }
      A fixed two-line height keeps the totals of a row aligned whatever the price length. */
   .site-main .find-card .find-content .find-store-price { flex-wrap: wrap; align-content: flex-start; align-items: center; gap: 0 5px; height: 44px; min-height: 0; margin-top: 8px; padding-bottom: 8px; overflow: hidden; }
   .site-main .find-card .find-store-price > span:first-child { flex-basis: 100%; font-size: 12px; }
+  /* With a breakdown, the label and its date live in the "?" (design review, 13 October 2026): one line of price here,
+     the label stays for screen readers. A card still waiting for its total keeps the label on the card. */
+  .site-main .find-card .find-store-price.has-breakdown { height: 30px; }
+  .site-main .find-card .find-store-price.has-breakdown > .find-store-price-label,
+  .site-main .find-card .find-facts[data-short] > .find-facts-full { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .site-main .find-card .find-facts[data-short] > .find-facts-short { display: inline; }
+  .find-breakdown-popover .find-breakdown-facts { display: block; }
   .site-main .find-card .find-store-price > b { font-size: 14px; }
   .site-main .find-card .find-store-price > del { display: none; }
   .site-main .find-card .find-store-price > .find-discount { padding: 1px 6px; font-size: 12px; }
@@ -414,7 +424,7 @@ html[data-theme="dark"] .catalog-page .catalog-sets > .catalog-set { box-shadow:
 html[data-theme="dark"] .catalog-page .catalog-sets > .catalog-set[aria-pressed="true"] { border-color: var(--night-jade); box-shadow: inset 0 0 0 1px var(--night-jade); }
 html[data-theme="dark"] .site-main .find-card .find-store-price > .find-discount { border-color: var(--cat-ok-line); background: var(--cat-ok-bg); color: var(--cat-ok); }
 html[data-theme="dark"] .site-main .find-card .find-total > strong { color: var(--night-ivory-hi); }
-html[data-theme="dark"] .site-main .find-card .find-info:hover, html[data-theme="dark"] .site-main .find-card .find-info[data-state="open"] { background: var(--night-hover); }
+html[data-theme="dark"] .site-main .find-card .find-info:hover, html[data-theme="dark"] .site-main .find-card .find-info[data-state="open"] { background-color: var(--night-hover); }
 html[data-theme="dark"] .site-main .find-card .find-chip[data-tone="neutral"] { border-color: var(--night-line-strong); color: var(--night-muted); }
 html[data-theme="dark"] .find-breakdown-popover { box-shadow: var(--night-shadow-pop); }
 html[data-theme="dark"] .catalog-page .catalog-banner.catalog-banner-parcel { border-color: var(--night-line-strong); background: var(--night-raised); }

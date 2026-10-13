@@ -525,7 +525,8 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
 .lo-pending { min-height: 44px; font-weight: 600; }
 .lo-loading { display: flex; justify-content: center; align-items: center; gap: 8px; }
 
-.lo-layout { display: grid; grid-template-areas: "product" "summary" "data" "confirm"; gap: 14px; }
+/* minmax(0, 1fr): one wide child (a long button label, a row of swatches) must not widen the whole phone layout. */
+.lo-layout { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "product" "summary" "data" "confirm"; gap: 14px; }
 .lo-product { grid-area: product; }
 /* The option choice lives inside the product card, across its full width under the photo and colours (owner, 12 October 2026). */
 .lo-product > :is(.lo-variant, .lo-check) { grid-column: 1 / -1; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
@@ -1257,5 +1258,7 @@ html:not([data-theme="dark"]) .customs-how-calc { background: var(--day-folio); 
 .lo-variant .nike-size-chart > b { display: block; margin: 0 0 4px; color: var(--home-ink); font-size: 13.5px; }
 .lo-variant .nike-size-chart-scroll { background: var(--home-surface); }
 .lo-confirm .basket-cta { white-space: nowrap; }
+/* On a phone a long label (the guest "Sign in — the item goes to your cart") wraps instead of running past the card. */
+@media (max-width: 600px) { .lo-confirm .basket-cta { white-space: normal; text-wrap: balance; line-height: 1.2; } }
 .lo-confirm .lo-cart-entry.compact { justify-content: center; width: 54px; min-height: 54px; padding: 0; }
 .lo-confirm .lo-cart-entry.compact b { position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; padding: 0 5px; font-size: 12px; box-shadow: 0 0 0 2px var(--home-surface, #fff); }

@@ -202,7 +202,7 @@ try {
   await visit('/');
   await check(`!!document.querySelector('header a[href=\"/cart\"]') && !document.querySelector('.home-link-note')?.textContent.includes('регистрация не нужна') && ${catalogReady?"!!document.querySelector('.find-save')":"!!document.querySelector('.home-link-form')"}`,"member home differs from guest");
   if (process.env.ATLAS_AUDIT_IMPORT === '1') {
-    await visit('/order-by-link?url='+encodeURIComponent('https://www.stevemadden.com/products/possession-black'));
+    await visit('/order-by-link?url='+encodeURIComponent('https://www.stevemadden.com/products/divy-lime-leather'));
     await check("!!document.querySelector('#source-url') && !document.querySelector('#source-url').disabled",'import ready');
     await evaluate("document.querySelector('#source-url').closest('form').requestSubmit()");
     await check("document.querySelectorAll('.import-gallery button').length>1",'real merchant gallery loaded');

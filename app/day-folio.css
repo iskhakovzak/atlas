@@ -331,7 +331,7 @@ html:not([data-theme="dark"]) .site-main .find-card .find-top-deal { background:
 html:not([data-theme="dark"]) .site-main .find-card .find-total-head > span { color: var(--day-muted); }
 html:not([data-theme="dark"]) .site-main .find-card .find-total > strong { color: var(--day-ink); }
 html:not([data-theme="dark"]) .site-main .find-card .find-info { color: var(--day-accent); }
-html:not([data-theme="dark"]) .site-main .find-card .find-info:hover, html:not([data-theme="dark"]) .site-main .find-card .find-info[data-state="open"] { background: var(--day-soft); }
+html:not([data-theme="dark"]) .site-main .find-card .find-info:hover, html:not([data-theme="dark"]) .site-main .find-card .find-info[data-state="open"] { background-color: var(--day-soft); }
 html:not([data-theme="dark"]) .site-main .find-card :is(.find-facts, .find-total-note, .find-chip) { color: var(--day-muted); }
 html:not([data-theme="dark"]) .site-main .find-card .find-chip { border-color: var(--day-line-strong); }
 html:not([data-theme="dark"]) .site-main .find-card .find-chip[data-tone="mint"] { border-color: var(--day-ok-line); background: var(--day-ok-bg); color: var(--day-ok); }

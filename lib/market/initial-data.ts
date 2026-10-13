@@ -3,6 +3,7 @@ import type {Pricing} from './domain.ts';
 import {parseStoredPricing} from './pricing-equal.ts';
 import {mergeSiteContent,parseStoredSiteContent,siteContentStorageKey,type SiteContentView} from './site-content-schema.ts';
 export {samePricing,nextPricing,parseStoredPricing} from './pricing-equal.ts';
+import {withoutAuthor} from './pricing-equal.ts';
 
 /**
  * The current tariff for the first server render (app/layout.tsx → MarketProvider initialPricing),
@@ -13,7 +14,8 @@ export {samePricing,nextPricing,parseStoredPricing} from './pricing-equal.ts';
 export async function initialPricing():Promise<Pricing|null>{
  try{
   const row=await database().prepare("SELECT value FROM market_settings WHERE key='pricing'").first<{value:string}>();
-  return parseStoredPricing(row?.value);
+  const pricing=parseStoredPricing(row?.value);
+  return pricing&&withoutAuthor(pricing);
  }catch{return null}
 }
 
@@ -35,6 +37,7 @@ export async function initialSettings():Promise<{pricing:Pricing|null;siteConten
  try{
   const rows=await database().prepare('SELECT key,value FROM market_settings WHERE key IN (?,?)').bind('pricing',siteContentStorageKey).all<{key:string;value:string}>();
   const values=new Map(rows.results.map(row=>[row.key,row.value]));
-  return {pricing:parseStoredPricing(values.get('pricing')),siteContent:mergeSiteContent(parseStoredSiteContent(values.get(siteContentStorageKey)))};
+  const pricing=parseStoredPricing(values.get('pricing'));
+  return {pricing:pricing&&withoutAuthor(pricing),siteContent:mergeSiteContent(parseStoredSiteContent(values.get(siteContentStorageKey)))};
  }catch{return {pricing:null,siteContent:mergeSiteContent(null)}}
 }
