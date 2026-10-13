@@ -491,6 +491,8 @@ html[data-theme="dark"] .bill dd { grid-column: 3; grid-row: 1; margin: 0; color
 html[data-theme="dark"] .bill dd.bill-note { grid-column: 1 / -1; grid-row: 2; margin-top: 2px; color: var(--night-muted); font-size: 13px; font-weight: 400; white-space: normal; }
 html[data-theme="dark"] .bill-total { display: grid; gap: 2px; margin: 0; padding-top: 14px; border-top: 1.5px solid var(--night-line-strong); }
 html[data-theme="dark"] .bill-total > span { color: var(--night-ink-2); font-size: 14px; font-weight: 600; }
+/* The total is the darkest figure in Day; in Night it inherited the muted grey of the account card. */
+html[data-theme="dark"] .bill-total .money-n { color: var(--night-ink); }
 html[data-theme="dark"] .home-folio .bill-total .money { font-size: 44px; line-height: 1.05; }
 @media (min-width: 600px) {
   html[data-theme="dark"] .home-folio .bill-total { grid-template-columns: auto minmax(0, 1fr); align-items: baseline; }

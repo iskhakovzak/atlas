@@ -67,11 +67,14 @@ const cartChangedCodes = new Set(["err_35", "err_36", "err_37", "err_38"]);
 /**
  * Quantity stepper that waits for a pause (400 ms) before saving, so quick taps add up to one request
  * instead of being dropped while the previous one is still saving. Remounted (by key) on a server change.
+ * A save still waiting out its pause sits in `pending`, so "Check out" can send it at once and check out the new quantity.
  */
-function QuantityControl({ item, c, save }: { item: CartItem; c: CartCopy; save: (quantity: number) => Promise<boolean> }) {
+function QuantityControl({ item, c, save, pending }: { item: CartItem; c: CartCopy; save: (quantity: number) => Promise<boolean>; pending: Map<string, () => Promise<boolean>> }) {
   const [value, setValue] = useState(item.quantity);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  useEffect(() => () => clearTimeout(timer.current), []);
+  const flushRef = useRef<(() => Promise<boolean>) | undefined>(undefined);
+  const id = item.id;
+  useEffect(() => () => { clearTimeout(timer.current); if (pending.get(id) === flushRef.current) pending.delete(id); }, [pending, id]);
   // Never more than the store reports left (when it reports a count at all).
   const max = Math.max(1, maxLineQuantity(item.product));
   const optionName = [item.product.name, shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ");
@@ -80,7 +83,9 @@ function QuantityControl({ item, c, save }: { item: CartItem; c: CartCopy; save:
     if (next === value) return;
     setValue(next);
     clearTimeout(timer.current);
-    timer.current = setTimeout(() => { void save(next).then((ok) => { if (!ok) setValue(item.quantity); }); }, 400);
+    const flush = () => { clearTimeout(timer.current); if (pending.get(id) === flush) pending.delete(id); return save(next).then((ok) => { if (!ok) setValue(item.quantity); return ok; }); };
+    flushRef.current = flush; pending.set(id, flush);
+    timer.current = setTimeout(() => void flush(), 400);
   }
   return <div className="basket-qty" role="group" aria-label={`${c.item.quantity}: ${optionName}`}>
     <button type="button" aria-label={`${c.item.decrease}: ${optionName}`} disabled={value <= 1} onClick={() => step(-1)}><Minus size={16} aria-hidden="true" /></button>
@@ -160,6 +165,10 @@ export function CartView() {
   const [review, setReview] = useState(false);
   const [delivery, setDelivery] = useState<DeliveryProfile>(emptyDelivery);
   const [selectedProfile, setSelectedProfile] = useState("");
+  // Recipient errors show next to the fields after the first "Next" (as in the recipient form), in the page's language.
+  const [deliveryTouched, setDeliveryTouched] = useState(false);
+  // Quantity saves still waiting out their pause (line id -> send now); "Check out" sends them first.
+  const [pendingQuantities] = useState(() => new Map<string, () => Promise<boolean>>());
   // Recipients saved before postal codes were required may have none: checkout asks for it once.
   const savedRecipient = state.deliveryProfiles.find(profile => profile.id === selectedProfile);
   const savedNeedsPostal = Boolean(savedRecipient && !isPostalCode(savedRecipient.postalCode));
@@ -296,22 +305,43 @@ export function CartView() {
     finally { setSpeedBusy(false); }
   }
 
+  // Step 1 is checked here, not by the browser's bubbles (they speak the browser's language): the same rules and words as
+  // the recipient form, shown after the first "Next" with the first wrong field focused.
+  const rc = recipientCopy[locale];
+  const manualRecipient = selectedProfile === "manual" || !state.deliveryProfiles.length;
+  const deliveryErrors = { savedPostal: savedNeedsPostal && !isPostalCode(delivery.postalCode), recipient: manualRecipient && delivery.recipient.trim().length < 2, phone: manualRecipient && uzPhoneDigits(delivery.phone).length !== 9, region: manualRecipient && !onlyServedCity && !delivery.region, city: manualRecipient && !onlyServedCity && delivery.city.trim().length < 2, address: manualRecipient && delivery.address.trim().length < 5, postal: manualRecipient && !isPostalCode(delivery.postalCode) };
+  type DeliveryField = keyof typeof deliveryErrors;
+  const deliveryFieldIds: Record<DeliveryField, string> = { savedPostal: "saved-postal-code", recipient: "recipient", phone: "recipient-phone", region: "region", city: "city", address: "delivery-address", postal: "postal-code" };
+  const fieldInvalid = (field: DeliveryField) => deliveryTouched && deliveryErrors[field];
+  const fieldHintId = (field: DeliveryField, text?: string) => fieldInvalid(field) || text ? `${deliveryFieldIds[field]}-hint` : undefined;
+  const fieldHint = (field: DeliveryField, text?: string) => fieldInvalid(field)
+    ? <small id={`${deliveryFieldIds[field]}-hint`} className="rf-error basket-consent-error" role="alert">{field === "phone" ? rc.phoneError : field === "postal" || field === "savedPostal" ? rc.postalError : rc.required}</small>
+    : text ? <small id={`${deliveryFieldIds[field]}-hint`}>{text}</small> : null;
+
   async function openCheckout() {
     if (verifying || selecting) return;
     if (!lines.length) { toast.message(s.noneSelected); return; }
     // The server checks prices with the stores and reprices at the current tariff; a change keeps the
     // customer in the cart with the new total and a note on the item instead of opening the form.
     setVerifying(true);
-    const ok = await act({ type: "cart-check" });
+    // A quantity tapped a moment ago is saved first, so the check and the form use it; a note or a quantity still
+    // saving goes first too (queued), instead of the tap on "Check out" being dropped.
+    const quantitiesSaved = (await Promise.all([...pendingQuantities.values()].map((flush) => flush()))).every(Boolean);
+    const ok = quantitiesSaved && await act({ type: "cart-check" }, { queue: true });
     setVerifying(false);
     if (!ok) return;
     // The recipient the cart's customs estimate was made for (the primary one unless picked there), so the duty does not jump.
     // Tashkent only for now (10.10.2026): a recipient elsewhere is not chosen for the customer; the first one in Tashkent is.
-    const saved = isServedRegion(customsProfile?.region) ? customsProfile : state.deliveryProfiles.find(profile => isServedRegion(profile.region));
-    setSelectedProfile(saved?.id ?? "manual");
-    // An email or phone sign-in has no real name: the field stays empty instead of showing the address or number.
-    const name = user?.name?.trim() ?? "", personName = name && !name.includes("@") && !/^[+\d\s()-]+$/.test(name) ? name : "";
-    setDelivery(saved ?? (isServedRegion(state.deliveryProfile?.region) ? state.deliveryProfile : undefined) ?? { ...emptyDelivery, recipient: personName, phone: state.communication.phone });
+    // A new recipient typed earlier in this visit is kept: closing the dialog by accident must not wipe it.
+    const draftKept = selectedProfile === "manual" && [delivery.recipient, delivery.phone, delivery.address, delivery.postalCode, delivery.comment].some((value) => value.trim());
+    if (!draftKept) {
+      const saved = isServedRegion(customsProfile?.region) ? customsProfile : state.deliveryProfiles.find(profile => isServedRegion(profile.region));
+      setSelectedProfile(saved?.id ?? "manual");
+      // An email or phone sign-in has no real name: the field stays empty instead of showing the address or number.
+      const name = user?.name?.trim() ?? "", personName = name && !name.includes("@") && !/^[+\d\s()-]+$/.test(name) ? name : "";
+      setDelivery(saved ?? (isServedRegion(state.deliveryProfile?.region) ? state.deliveryProfile : undefined) ?? { ...emptyDelivery, recipient: personName, phone: state.communication.phone });
+    }
+    setDeliveryTouched(false);
     setConsentError(false);
     setCheckoutOpen(true);
     setReview(false);
@@ -430,7 +460,7 @@ export function CartView() {
       <div className="basket-price"><strong>{formatSum(lineTotal(item), locale)}</strong>{item.quantity > 1 && <small>{c.item.forQuantity(item.quantity)}</small>}</div>
       {itemNotes(item)}
       <div className="basket-controls">
-        <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity })} />
+        <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} pending={pendingQuantities} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity }, { queue: true })} />
         {keepActions([item])}
         <SafeDeleteButton label={c.item.remove} itemName={item.product.name} locale={locale} onConfirm={() => act({ type: "cart-remove", id: item.id })} />
       </div>
@@ -441,7 +471,7 @@ export function CartView() {
   /** The customer's note on one option (owner, 7.10.2026: each size keeps its own note; nothing is merged). */
   function renderNote(item: CartItem) {
     const note = item.note ?? "";
-    return <ItemNote key={`${item.id}:${note}`} id={item.id} note={note} locale={locale} save={(text) => act({ type: "cart-note", id: item.id, note: text })} />;
+    return <ItemNote key={`${item.id}:${note}`} id={item.id} note={note} locale={locale} save={(text) => act({ type: "cart-note", id: item.id, note: text }, { queue: true })} />;
   }
 
   /**
@@ -477,7 +507,7 @@ export function CartView() {
             <b>{readableNikeSizeLabel(cartColourOptions(item.product)?.label ?? "") || shownVariant(item.variant) || item.variant}</b>{!ticked(item) && <span className="basket-later-tag">{s.later}</span>}
             <small>{storePrice(item, locale)}{item.quantity > 1 ? ` × ${item.quantity}` : ""}{checked ? <> · <BadgeCheck size={13} role="img" aria-label={c.item.checked(clock(item.product.sourceCheckedAt!, locale))} /></> : null}{stock ? ` · ${stock}` : ""}</small>
           </div>
-          <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity })} />
+          <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} pending={pendingQuantities} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity }, { queue: true })} />
           <strong className="basket-variant-sum">{formatSum(lineTotal(item), locale)}</strong>
           <SafeDeleteButton label={kc.removeVariant} itemName={[item.product.name, shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ")} locale={locale} onConfirm={() => act({ type: "cart-remove", id: item.id })} />
           {itemNotes(item)}
@@ -635,9 +665,14 @@ export function CartView() {
 
     <Modal open={checkoutOpen} onClose={() => { if (!busy) setCheckoutOpen(false); }} title={review ? c.checkout.reviewTitle : c.checkout.title} description={review ? c.checkout.reviewHint : c.checkout.hint} locale={locale}>
       <CheckoutSteps current={review ? 2 : 1} c={c} />
-      <form className="checkout-form basket-checkout" onSubmit={(event) => {
+      <form className="checkout-form basket-checkout" noValidate onSubmit={(event) => {
         event.preventDefault();
-        if (!review) { showReview(true); return; }
+        if (!review) {
+          setDeliveryTouched(true);
+          const first = (Object.keys(deliveryErrors) as DeliveryField[]).find((field) => deliveryErrors[field]);
+          if (first) { document.getElementById(deliveryFieldIds[first])?.focus(); return; }
+          showReview(true); return;
+        }
         // The checkbox is asked for only when this recipient owes duty; without duty the button accepts the terms (a line says so).
         if (reviewDutyDue > 0 && !consent) { setConsentError(true); document.getElementById("checkout-consent")?.focus(); return; }
         void checkout();
@@ -667,21 +702,21 @@ export function CartView() {
             </label>
           </fieldset>}
           {/* A recipient saved before postal codes were required gets one here; it is saved into that recipient. */}
-          {savedNeedsPostal && <div className="field checkout-postal"><label htmlFor="saved-postal-code">{c.checkout.postal}</label><input id="saved-postal-code" autoComplete="postal-code" inputMode="numeric" required pattern="\d{6}" maxLength={6} title={c.checkout.postalHint} aria-describedby="saved-postal-hint" value={delivery.postalCode} onChange={(event) => setDelivery({ ...delivery, postalCode: event.target.value.replace(/\D/g, "").slice(0, 6) })} /><small id="saved-postal-hint">{c.checkout.postalMissing}</small></div>}
+          {savedNeedsPostal && <div className={"field checkout-postal" + (fieldInvalid("savedPostal") ? " invalid" : "")}><label htmlFor="saved-postal-code">{c.checkout.postal}</label><input id="saved-postal-code" autoComplete="postal-code" inputMode="numeric" required maxLength={6} aria-invalid={fieldInvalid("savedPostal")} aria-describedby={fieldHintId("savedPostal", c.checkout.postalMissing)} value={delivery.postalCode} onChange={(event) => setDelivery({ ...delivery, postalCode: event.target.value.replace(/\D/g, "").slice(0, 6) })} />{fieldHint("savedPostal", c.checkout.postalMissing)}</div>}
           {/* A saved recipient is complete as chosen; the address fields are for a new one. */}
           {(selectedProfile === "manual" || !state.deliveryProfiles.length) && <>
           <div className="two-fields">
-            <div className="field"><label htmlFor="recipient">{c.checkout.recipient}</label><input id="recipient" autoComplete="name" autoCapitalize="words" required minLength={2} maxLength={100} value={delivery.recipient} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, recipient: capitalizeWords(event.target.value) }); }} /></div>
-            <div className="field"><label htmlFor="recipient-phone">{c.checkout.phone}<span className="sr-only"> +998</span></label><span className="rf-phone"><span aria-hidden="true">+998</span><UzPhoneInput id="recipient-phone" required pattern="\d{2} \d{3} \d{2} \d{2}" title={recipientCopy[locale].phoneError} digits={uzPhoneDigits(delivery.phone)} onDigits={(digits) => { setSelectedProfile("manual"); setDelivery({ ...delivery, phone: uzPhone(digits) }); }} /></span></div>
+            <div className={"field" + (fieldInvalid("recipient") ? " invalid" : "")}><label htmlFor="recipient">{c.checkout.recipient}</label><input id="recipient" autoComplete="name" autoCapitalize="words" required minLength={2} maxLength={100} aria-invalid={fieldInvalid("recipient")} aria-describedby={fieldHintId("recipient")} value={delivery.recipient} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, recipient: capitalizeWords(event.target.value) }); }} />{fieldHint("recipient")}</div>
+            <div className={"field" + (fieldInvalid("phone") ? " invalid" : "")}><label htmlFor="recipient-phone">{c.checkout.phone}<span className="sr-only"> +998</span></label><span className="rf-phone"><span aria-hidden="true">+998</span><UzPhoneInput id="recipient-phone" required aria-invalid={fieldInvalid("phone")} aria-describedby={fieldHintId("phone")} digits={uzPhoneDigits(delivery.phone)} onDigits={(digits) => { setSelectedProfile("manual"); setDelivery({ ...delivery, phone: uzPhone(digits) }); }} /></span>{fieldHint("phone")}</div>
             {/* Tashkent only for now (10.10.2026): the city is shown fixed instead of a region list. */}
             {onlyServedCity ? <div className="field"><label htmlFor="city">{c.checkout.city}</label><input id="city" readOnly aria-describedby="city-served-hint" value={regionLabel(onlyServedCity, locale)} /><small id="city-served-hint">{c.checkout.servedOnly}</small></div> : <>
-            <div className="field"><label htmlFor="region">{c.checkout.region}</label><select id="region" autoComplete="address-level1" required value={delivery.region} onChange={(event) => { const region = event.target.value, capital = regionCapital(region); setSelectedProfile("manual"); setDelivery({ ...delivery, region, city: !delivery.city.trim() || cities.includes(delivery.city) ? capital ?? delivery.city : delivery.city }); }}>{!regions.includes(delivery.region) && <option value={delivery.region}>{delivery.region || recipientCopy[locale].regionPlaceholder}</option>}{regions.map(value => <option key={value} value={value}>{regionLabel(value, locale)}</option>)}</select></div>
-            <div className="field"><label htmlFor="city">{c.checkout.city}</label><input id="city" list="city-suggestions" autoComplete="address-level2" autoCapitalize="sentences" required minLength={2} maxLength={100} value={delivery.city} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, city: capitalizeFirst(event.target.value) }); }} /><datalist id="city-suggestions">{suggestions(cities, delivery.city).map(value => <option key={value} value={value} />)}</datalist></div>
+            <div className={"field" + (fieldInvalid("region") ? " invalid" : "")}><label htmlFor="region">{c.checkout.region}</label><select id="region" autoComplete="address-level1" required aria-invalid={fieldInvalid("region")} aria-describedby={fieldHintId("region")} value={delivery.region} onChange={(event) => { const region = event.target.value, capital = regionCapital(region); setSelectedProfile("manual"); setDelivery({ ...delivery, region, city: !delivery.city.trim() || cities.includes(delivery.city) ? capital ?? delivery.city : delivery.city }); }}>{!regions.includes(delivery.region) && <option value={delivery.region}>{delivery.region || recipientCopy[locale].regionPlaceholder}</option>}{regions.map(value => <option key={value} value={value}>{regionLabel(value, locale)}</option>)}</select>{fieldHint("region")}</div>
+            <div className={"field" + (fieldInvalid("city") ? " invalid" : "")}><label htmlFor="city">{c.checkout.city}</label><input id="city" list="city-suggestions" autoComplete="address-level2" autoCapitalize="sentences" required minLength={2} maxLength={100} aria-invalid={fieldInvalid("city")} aria-describedby={fieldHintId("city")} value={delivery.city} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, city: capitalizeFirst(event.target.value) }); }} /><datalist id="city-suggestions">{suggestions(cities, delivery.city).map(value => <option key={value} value={value} />)}</datalist>{fieldHint("city")}</div>
             </>}
           </div>
-          <div className="field"><label htmlFor="delivery-address">{c.checkout.street}</label><input id="delivery-address" list="street-suggestions" autoComplete="street-address" autoCapitalize="sentences" required minLength={5} maxLength={220} placeholder={c.checkout.streetPlaceholder} value={delivery.address} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, address: capitalizeFirst(event.target.value) }); }} /><datalist id="street-suggestions">{suggestions(streets, delivery.address).map(value => <option key={value} value={value} />)}</datalist></div>
+          <div className={"field" + (fieldInvalid("address") ? " invalid" : "")}><label htmlFor="delivery-address">{c.checkout.street}</label><input id="delivery-address" list="street-suggestions" autoComplete="street-address" autoCapitalize="sentences" required minLength={5} maxLength={220} aria-invalid={fieldInvalid("address")} aria-describedby={fieldHintId("address")} placeholder={c.checkout.streetPlaceholder} value={delivery.address} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, address: capitalizeFirst(event.target.value) }); }} /><datalist id="street-suggestions">{suggestions(streets, delivery.address).map(value => <option key={value} value={value} />)}</datalist>{fieldHint("address")}</div>
           <div className="two-fields">
-            <div className="field"><label htmlFor="postal-code">{c.checkout.postal}</label><input id="postal-code" autoComplete="postal-code" inputMode="numeric" required pattern="\d{6}" maxLength={6} title={c.checkout.postalHint} aria-describedby="postal-code-hint" value={delivery.postalCode} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, postalCode: event.target.value.replace(/\D/g, "").slice(0, 6) }); }} /><small id="postal-code-hint">{c.checkout.postalHint}</small></div>
+            <div className={"field" + (fieldInvalid("postal") ? " invalid" : "")}><label htmlFor="postal-code">{c.checkout.postal}</label><input id="postal-code" autoComplete="postal-code" inputMode="numeric" required maxLength={6} aria-invalid={fieldInvalid("postal")} aria-describedby={fieldHintId("postal", c.checkout.postalHint)} value={delivery.postalCode} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, postalCode: event.target.value.replace(/\D/g, "").slice(0, 6) }); }} />{fieldHint("postal", c.checkout.postalHint)}</div>
             <div className="field"><label htmlFor="delivery-comment">{c.checkout.comment} <span className="rf-optional">({recipientCopy[locale].optional})</span></label><input id="delivery-comment" maxLength={300} value={delivery.comment} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, comment: event.target.value }); }} /></div>
           </div>
           <div className="basket-consent"><Checkbox id="save-recipient" checked={saveRecipient} onCheckedChange={(value) => setSaveRecipient(value === true)} /><label htmlFor="save-recipient">{c.checkout.saveRecipient}</label></div>

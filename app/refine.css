@@ -213,3 +213,7 @@ html:not([data-theme="dark"]) .find-card .find-photo .product-img { mix-blend-mo
   .catalog-facets-button, .catalog-sort select { min-height: 42px; }
   .catalog-bar { gap: 10px; margin-bottom: 14px; }
 }
+
+/* Both themes: short titles wrap into even lines instead of leaving one word hanging (ui-ux-pro-max heading-line-balance, 13.10.2026).
+   :where() keeps it weaker than any heading rule that sets its own wrapping. */
+:where(.site-main) :where(h1, h2, h3) { text-wrap: balance; }

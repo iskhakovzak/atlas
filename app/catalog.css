@@ -179,6 +179,12 @@ html[data-theme="dark"] .catalog-switch input:checked + .catalog-switch-track::a
 .site-main .find-card .find-content .find-title:hover { color: var(--cat-accent); }
 .site-main .find-card .find-content .find-store-price { display: flex; flex-wrap: nowrap; align-items: baseline; gap: 0 6px; min-height: 24px; margin: 10px 0 0; padding: 0 0 10px; border-bottom: 1px solid var(--cat-line); color: var(--cat-muted); font-size: 13px; line-height: 1.35; }
 .site-main .find-card .find-store-price > span:first-child { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Beside an old price and a discount the label lost its date («Цена магазина · 13 се…», 1440 px, 13.10.2026):
+   it takes its own line and every card gets the same two lines, so the totals of a row stay aligned. */
+@media (min-width: 601px) {
+  .site-main .find-card .find-content .find-store-price { flex-wrap: wrap; align-content: flex-start; row-gap: 2px; min-height: 52px; }
+  .site-main .find-card .find-store-price > span:first-child { flex-basis: 100%; }
+}
 .site-main .find-card .find-store-price > b { flex: none; color: var(--cat-ink); font-size: 15px; font-weight: 650; letter-spacing: -.01em; white-space: nowrap; }
 .site-main .find-card .find-store-price > del { flex: none; color: var(--cat-muted); font-size: 13px; white-space: nowrap; }
 .site-main .find-card .find-store-price > .find-discount { position: static; flex: none; display: inline-flex; align-items: center; align-self: center; margin: 0; padding: 2px 7px; border: 1px solid var(--cat-ok-line); border-radius: 7px; background: var(--cat-ok-bg); color: var(--cat-ok); font-size: 12px; font-style: normal; font-weight: 700; line-height: 1.3; box-shadow: none; }

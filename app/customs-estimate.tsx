@@ -30,7 +30,9 @@ export function CustomsEstimate({ valueUsd, grossKg, fx, pricing, locale = 'ru',
   const [date, setDate] = useState(() => new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString().slice(0, 10));
   const estimate = estimateCourierCustoms({ valueUsd: valueUsd + (extra.trim() ? Number(extra) : NaN), usedUsd: used.trim() ? Number(used) : NaN, grossKg, date, pricing });
   const format = (usd: number) => new Intl.NumberFormat(locale === 'ru' ? 'ru-RU' : isUzbek(locale) ? uzText(locale, 'uz-UZ') : 'en-US', { maximumFractionDigits:0 }).format(Math.round(usd * fx)) + (locale === 'ru' ? ' сум' : isUzbek(locale) ? uzText(locale, ' so‘m') : ' UZS');
-  const result = !estimate ? copy.unavailable : estimate.upperUsd === undefined ? copy.from + ' ' + format(estimate.lowerUsd) : estimate.upperUsd > estimate.lowerUsd ? format(estimate.lowerUsd) + ' – ' + format(estimate.upperUsd) : '≈ ' + format(estimate.lowerUsd);
+  // Each amount keeps its digits and «сум» on one line; only a range may break, after the dash.
+  const amount = (usd: number) => format(usd).replace(/\s/g, '\u00a0');
+  const result = !estimate ? copy.unavailable : estimate.upperUsd === undefined ? copy.from + '\u00a0' + amount(estimate.lowerUsd) : estimate.upperUsd > estimate.lowerUsd ? amount(estimate.lowerUsd) + ' – ' + amount(estimate.upperUsd) : '≈\u00a0' + amount(estimate.lowerUsd);
   if (compact) return <div className="customs-estimate-wrap customs-estimate-compact">
     <div className="customs-compact-row">
       <div className="customs-compact-copy"><strong>{copy.title}</strong><small>{assumption}</small></div>

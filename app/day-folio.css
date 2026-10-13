@@ -463,7 +463,7 @@ html:not([data-theme="dark"]) :is(.stores-region-card, .store-showcase-card, .st
 html:not([data-theme="dark"]) .stores-region-card[aria-pressed="true"] { border-color: var(--day-ink); box-shadow: var(--day-shadow), inset 0 0 0 1px var(--day-ink); }
 html:not([data-theme="dark"]) :is(.store-showcase-card, .stores-region-card:not([aria-pressed="true"]), .store-dialog-products a):hover { border-color: var(--day-tint-2); box-shadow: var(--day-shadow-lift); }
 html:not([data-theme="dark"]) :is(.stores-terms-note, .store-tile-geo, .store-showcase-terms, .store-dialog-terms dt, .store-dialog-terms small, .store-dialog-front-meta, .store-dialog-mark) { color: var(--day-muted); }
-html:not([data-theme="dark"]) :is(.store-tile-count, .store-showcase-card > header > span) { color: var(--day-ok); }
+html:not([data-theme="dark"]) :is(.store-tile-count, .store-showcase-card > header > span:last-child) { color: var(--day-ok); }
 html:not([data-theme="dark"]) :is(.store-showcase-total, .store-dialog-terms dd, .store-dialog-products .money, .store-dialog-product-name) { color: var(--day-ink); }
 html:not([data-theme="dark"]) :is(.store-dialog-currency, .store-dialog-front-meta em) { color: var(--day-warn); }
 html:not([data-theme="dark"]) :is(.stores-howto, .store-dialog-howto) summary, html:not([data-theme="dark"]) .store-dialog-all { color: var(--day-accent); }

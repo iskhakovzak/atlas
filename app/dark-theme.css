@@ -988,8 +988,10 @@ html[data-theme="dark"] .admin-tabs button[aria-selected="true"] {
   border-color: var(--atlas-dark-link);
 }
 
+/* The light theme gives the check a pale mint disc (#eef6e5); in Night it read as a blank white circle. */
 html[data-theme="dark"] .readiness-grid svg {
-  color: var(--atlas-dark-link);
+  background-color: var(--atlas-dark-success-bg);
+  color: var(--atlas-dark-success-ink);
 }
 
 html[data-theme="dark"] :is(input, textarea, select, option) {
@@ -1019,6 +1021,11 @@ html[data-theme="dark"] .legal-requisites dt {
 
 html[data-theme="dark"] .legal-document > header > svg {
   color: var(--atlas-dark-link);
+}
+
+/* globals.css draws these with the light #e5e9f1, which read as bright stripes on the Night page. */
+html[data-theme="dark"] :is(.legal-document section + section, .legal-requisites dl > div + div) {
+  border-top-color: var(--atlas-dark-line);
 }
 
 html[data-theme="dark"] .ux-disclosure > summary {

@@ -5,6 +5,7 @@ import {defaultPolicy,policySchema,type Policy} from './policy';
 import {cbuUsdUrl,fxRefreshDue,parseCbuRate,withCbuRate} from './fx';
 import {foreignOrderIds,writeProjection} from './projection';
 import {apiErrorMessage,requestLocale,serverError} from './i18n';
+import {translateDomainError} from './domain-errors.ts';
 import {emailVerifiedSignIn,hasPermission,resolveAccess,type Permission,type StaffAccess,type StaffRole,type StaffStatus} from './access';
 export type {Permission,StaffAccess,StaffRole,StaffStatus};
 export function database(){if(!env.DB)throw Error('Серверное хранилище пока недоступно.');return env.DB}
@@ -191,7 +192,8 @@ export async function failure(error:unknown,request?:Request){
  const locale=requestLocale(request);
  if(error instanceof HttpError){
   const errorCode=/^err_\d+$/.test(error.message)?error.message:undefined;
-  const message=errorCode?serverError(locale,errorCode):locale==='ru'?error.message:apiErrorMessage(error.status,locale);
+  // A Russian domain refusal ("Корзина изменилась…") is answered in the customer's language when lib/market/domain-errors.ts knows it.
+  const message=errorCode?serverError(locale,errorCode):locale==='ru'?error.message:translateDomainError(error.message,locale)??apiErrorMessage(error.status,locale);
   return json({error:message,...(errorCode?{errorCode}:{})},error.status);
  }
  console.error(error);

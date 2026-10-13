@@ -507,6 +507,9 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
 .lo-link-field input::placeholder { color: var(--home-muted); opacity: 1; }
 .lo-link-submit { min-height: 54px; justify-content: center; border-radius: 12px; font-size: 17px; }
 @media (min-width: 640px) { .lo-link { flex-direction: row; align-items: center; } .lo-link-submit { padding-inline: 28px; } }
+/* A bad link marks the field frame and puts the message right under it, as on the home page. */
+.lo-link:has(input[aria-invalid="true"]) { border-color: var(--cx-danger); }
+#source-url-error { margin: -4px 0 14px 6px; }
 .lo-hints { margin: 0 0 16px; }
 .lo-hints p { margin: 0; color: var(--home-muted); font-size: 14px; line-height: 1.5; }
 .lo-source { display: flex; flex-wrap: wrap; align-items: center; gap: 0 16px; margin: 0 0 14px; padding: 2px 14px; border: 1px solid var(--home-line); border-radius: 14px; background: var(--home-surface); }
@@ -624,7 +627,7 @@ html[data-theme="dark"] .lo-pick-tick { color: #10241a; }
 .lo-comment label { display: grid; gap: 2px; }
 .lo-comment label b { color: var(--home-ink); font-size: 15px; }
 .lo-comment label small { color: var(--home-muted); font-size: 12.5px; }
-.lo-comment textarea { width: 100%; min-height: 64px; padding: 10px 12px; border: 1px solid var(--home-line); border-radius: 12px; background: var(--home-surface); color: var(--home-ink); font: inherit; font-size: 15px; line-height: 1.45; resize: vertical; }
+.lo-comment textarea { width: 100%; min-height: 64px; padding: 10px 12px; border: 1px solid var(--home-line); border-radius: 12px; background: var(--home-surface); color: var(--home-ink); font: inherit; font-size: 16px; line-height: 1.45; resize: vertical; }
 .lo-comment textarea::placeholder { color: var(--home-muted); opacity: .75; }
 .lo-comment textarea:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 1px; }
 .lo-added { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; align-items: start; margin: 0 0 14px; padding: 14px 16px; border: 1px solid var(--day-ok-line, #bfdccb); border-radius: 14px; background: var(--day-ok-bg, #e9f3ed); color: var(--home-ink); }
@@ -687,7 +690,7 @@ html[data-theme="dark"] .orders-passport { border-color: var(--night-warn-line);
 .basket-note { grid-column: 1 / -1; display: grid; gap: 4px; }
 .basket-note label { color: var(--home-ink); font-size: 13.5px; font-weight: 700; }
 .basket-note label small { color: var(--home-muted); font-weight: 500; }
-.basket-note textarea { width: 100%; min-height: 56px; padding: 8px 10px; border: 1px solid var(--home-line); border-radius: 10px; background: var(--home-surface); color: var(--home-ink); font: inherit; font-size: 14px; line-height: 1.4; resize: vertical; }
+.basket-note textarea { width: 100%; min-height: 56px; padding: 8px 10px; border: 1px solid var(--home-line); border-radius: 10px; background: var(--home-surface); color: var(--home-ink); font: inherit; font-size: 16px; line-height: 1.4; resize: vertical; }
 .basket-note textarea::placeholder { color: var(--home-muted); opacity: .75; }
 .basket-lines-credit { margin-top: 0; }
 .calc-customs.compact { padding: 10px 12px; }
@@ -792,6 +795,9 @@ html:not([data-theme="dark"]) .lo-page .lo-block .select-control:not(:disabled) 
 .rf input:focus, .rf select:focus { border-color: var(--home-accent); outline: 2px solid color-mix(in srgb, var(--home-accent) 25%, transparent); }
 .rf-field small { display: block; margin-top: 4px; color: var(--home-muted); font-size: 13px; line-height: 1.45; }
 .rf-field.invalid input, .rf-field.invalid select, .rf-field.invalid .rf-phone { border-color: var(--cx-danger); }
+/* Checkout step 1 validates like the recipient form: a red frame on the field, the message under it. */
+.basket-checkout .field.invalid :is(input, select, .rf-phone) { border-color: var(--cx-danger); }
+.basket-checkout .field.invalid .basket-consent-error { margin-top: 4px; }
 .rf .rf-error { color: var(--cx-danger); font-weight: 600; }
 .docs-fields .rf-field small.id-field-error { color: var(--cx-danger); font-weight: 600; }
 .rf-phone { display: flex; align-items: center; border: 1px solid var(--home-line); border-radius: 12px; background: var(--home-surface); }
@@ -1257,8 +1263,7 @@ html:not([data-theme="dark"]) .customs-how-calc { background: var(--day-folio); 
 .lo-variant .nike-size-chart { padding-top: 0; border-top: 0; }
 .lo-variant .nike-size-chart > b { display: block; margin: 0 0 4px; color: var(--home-ink); font-size: 13.5px; }
 .lo-variant .nike-size-chart-scroll { background: var(--home-surface); }
-.lo-confirm .basket-cta { white-space: nowrap; }
-/* On a phone a long label (the guest "Sign in — the item goes to your cart") wraps instead of running past the card. */
-@media (max-width: 600px) { .lo-confirm .basket-cta { white-space: normal; text-wrap: balance; line-height: 1.2; } }
+/* A short label stays on one line; a long one (the guest "Sign in — the item goes to your cart") wraps instead of running past the card, on a phone and at 1280 alike. */
+.lo-confirm .basket-cta { text-wrap: balance; line-height: 1.2; }
 .lo-confirm .lo-cart-entry.compact { justify-content: center; width: 54px; min-height: 54px; padding: 0; }
 .lo-confirm .lo-cart-entry.compact b { position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; padding: 0 5px; font-size: 12px; box-shadow: 0 0 0 2px var(--home-surface, #fff); }

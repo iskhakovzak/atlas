@@ -218,6 +218,9 @@ export function GlobalLinkOrder() {
   const tx=(ru:string,uz:string,en:string)=>lang==='ru'?ru:isUzbek(lang)?uzText(lang, uz):en;
   const lc = linkOrderCopy[lang];
   const checkedText=tx('Atlas уже проверил цену и валюту в магазине.','Atlas narx va valyutani do‘konda tekshirib bo‘ldi.','Atlas has already checked the price and currency with the store.');
+  // Same words as the home link field (home-copy `hero.invalid`); the copy itself stays out of this page's chunk.
+  const invalidLinkText=tx('Вставьте полную ссылку на страницу товара — она начинается с https://','Tovar sahifasining to‘liq havolasini qo‘ying — u https:// bilan boshlanadi','Paste the full product page link — it starts with https://');
+  // Short enough not to be cut at 375 px; the same meaning as the phone bar's «Войти и добавить»: after sign-in the item goes to the cart.
   const searchParams = useSearchParams();
   const router = useRouter();
   const requestedUrl = searchParams.get("url") ?? "";
@@ -266,6 +269,10 @@ export function GlobalLinkOrder() {
     [importedAt, setImportedAt] = useState<number | undefined>(),
     [sourceExpiresAt, setSourceExpiresAt] = useState<number | undefined>(),
     [formIssue, setFormIssue] = useState(""),
+    // The field the message under the add button is about: marked invalid only while that message is shown.
+    [issueField, setIssueField] = useState<{ id: string; message: string } | null>(null),
+    // A link that is not a store page: said under the link field in the page language, not by the browser or a toast.
+    [linkError, setLinkError] = useState(""),
     // A store Atlas does not read (manualEntryStoreRoots): the customer confirms the details typed from its page.
     [manualConfirmed, setManualConfirmed] = useState(false),
     [dataOpen, setDataOpen] = useState(false),
@@ -543,8 +550,8 @@ export function GlobalLinkOrder() {
     let link: string;
     try {
       link = validateSource(value);
-    } catch (e) {
-      toast.error((e as Error).message);
+    } catch {
+      setLinkError(invalidLinkText);
       setShowSourceForm(true);
       reapply.current=null;
       return;
@@ -557,6 +564,7 @@ export function GlobalLinkOrder() {
     const linkSeedImages=linkSeed?dedupeSafeImages([linkSeed.image,...(linkSeed.sourceImages??[])],linkSeed.sourceUrl??link):linkDealSeed?.image?[linkDealSeed.image]:[];
     const linkBoxedWeight=catalogLinkWeight(linkSeed)??(linkDealSeed?Math.max(.1,communityEstimatedWeight(linkDealSeed)-.5):undefined);
     const seq=++loadSeq.current;
+    setLinkError("");
     setUrl(link);
     setBusy(true);
     setSource(link);
@@ -658,7 +666,7 @@ export function GlobalLinkOrder() {
         return;
       }
       if (!response.ok)
-        throw Error(data.error ?? tx("Не удалось получить данные магазина.", "Do‘kon ma’lumotlarini olib bo‘lmadi.", "Could not load store data."));
+        throw Error(data.error ?? tx("Магазин не ответил. Повторите или заполните данные товара вручную.", "Do‘kon javob bermadi. Qayta urining yoki tovar ma’lumotlarini qo‘lda kiriting.", "The store didn’t respond. Try again or fill in the item details manually."));
       setSource(data.sourceUrl);
       setName(linkIsCatalogFlow&&linkSeed?linkSeed.name:data.title ?? linkSeed?.name ?? linkDealSeed?.title ?? "");
       setBrand(data.brand ?? linkSeed?.brand ?? linkDealSeed?.store ?? new URL(data.sourceUrl).hostname);
@@ -818,7 +826,8 @@ export function GlobalLinkOrder() {
   function openLink(value = url) {
     let link: string;
     try { link = validateSource(value); }
-    catch (e) { toast.error((e as Error).message); setShowSourceForm(true); return; }
+    catch { setLinkError(invalidLinkText); setShowSourceForm(true); return; }
+    setLinkError("");
     if (link === requestedUrl) { void load(link); return; }
     removeDraft(browserStorage(), draftKeyFor({ pageUrl: link }));
     setAdded(null); setResumedFrom("");
@@ -830,7 +839,7 @@ export function GlobalLinkOrder() {
   function editLink() {
     // Focused once the field is drawn: after the clipboard read a timer can fire before that.
     focusLinkField.current = true;
-    setUrl(""); setShowSourceForm(true);
+    setUrl(""); setLinkError(""); setShowSourceForm(true);
   }
   /** "Заменить ссылку": the link last copied replaces this one. The same link, no link or a refused clipboard open the empty field. */
   async function replaceLink() {
@@ -851,7 +860,7 @@ export function GlobalLinkOrder() {
   function startNewLink() {
     forgetLastDraft(browserStorage());
     automaticallyLoaded.current = null; setAutoLoadStarted("");
-    setAdded(null); setResumedFrom(""); setFormIssue(""); setUrl(""); setSource(""); setSourceCheckStatus("idle"); setShowSourceForm(true);
+    setAdded(null); setResumedFrom(""); setFormIssue(""); setLinkError(""); setUrl(""); setSource(""); setSourceCheckStatus("idle"); setShowSourceForm(true);
     window.history.replaceState(window.history.state, "", draftAddress({ pageUrl: "" }, window.location.search));
     window.setTimeout(() => document.getElementById("source-url")?.focus(), 0);
   }
@@ -978,6 +987,9 @@ export function GlobalLinkOrder() {
   // Locked: what Atlas got from the store (all of it once the check succeeded) or what an Atlas catalog card fixes.
   // Verified with the store, or typed by the customer for a store Atlas does not read: the item can be ordered.
   const orderable = sourceCheckStatus === "verified" || sourceCheckStatus === "manual";
+  // The field the shown message under the add button is about; a newer message (or none) unmarks it.
+  const invalidField = issueField && formIssue === issueField.message ? issueField.id : "";
+  const issueProps = (id: string) => invalidField === id ? { "aria-invalid": true, "aria-describedby": "link-form-issue" } : {};
   const atlasLoaded = sourceCheckStatus === "verified" && Boolean(atlasLocks);
   const locks: LockFields = {
     name: (catalogProductFlow || Boolean(atlasLoaded && atlasLocks?.name)) && !unlocked.name,
@@ -1006,7 +1018,7 @@ export function GlobalLinkOrder() {
     <div className={"lo-page" + ((source || isSourcedFlow) && !showSourceForm ? " lo-page-loaded" : "")}>
       <header className="orders-head"><div><h1>{lc.title}</h1><p>{(source || isSourcedFlow) && !showSourceForm ? lc.leadLoaded : lc.lead}</p></div></header>
 
-      {(showSourceForm || (!requestedUrl && resumeChecked)) && <form className="lo-link" onSubmit={(e) => { e.preventDefault(); openLink(); }} aria-busy={busy}>
+      {(showSourceForm || (!requestedUrl && resumeChecked)) && <form className="lo-link" onSubmit={(e) => { e.preventDefault(); openLink(); }} aria-busy={busy} noValidate>
         <label className="sr-only" htmlFor="source-url">{lc.label}</label>
         <span className="lo-link-field"><Link2 size={20} aria-hidden="true" /><input
           id="source-url"
@@ -1018,11 +1030,14 @@ export function GlobalLinkOrder() {
           required
           value={url}
           disabled={busy}
+          aria-invalid={!!linkError}
+          aria-describedby={linkError ? "source-url-error" : undefined}
           onChange={(e) => {
             // A new link is being started: opening the page later does not bring the previous draft back.
             forgetLastDraft(browserStorage());
             setResumedFrom("");
             setUrl(e.target.value);
+            setLinkError("");
             setSource("");
             setSourceCheckStatus('idle');
 
@@ -1032,10 +1047,11 @@ export function GlobalLinkOrder() {
           onKeyDown={(e) => { if (e.key === "Escape" && source && !url) { e.preventDefault(); setShowSourceForm(false); } }}
           placeholder={lc.placeholder}
         /><PasteButton targetId="source-url" locale={lang} disabled={busy} onPaste={text => {
-          forgetLastDraft(browserStorage()); setResumedFrom(''); setFormIssue(''); setUrl(text); setSource(''); setSourceCheckStatus('idle'); setShowSourceForm(true);
+          forgetLastDraft(browserStorage()); setResumedFrom(''); setFormIssue(''); setLinkError(''); setUrl(text); setSource(''); setSourceCheckStatus('idle'); setShowSourceForm(true);
         }}/></span>
         <button className="btn primary lo-link-submit" disabled={busy}>{busy ? <Loader2 className="spin" size={18} aria-hidden="true" /> : null}{busy ? c.get : lc.calculate}</button>
       </form>}
+      {(showSourceForm || (!requestedUrl && resumeChecked)) && linkError && <p id="source-url-error" className="basket-consent-error" role="alert">{linkError}</p>}
       {(showSourceForm || (!requestedUrl && resumeChecked)) && !source && !busy && <><div className="lo-hints"><p>{lc.hint}</p><div className="home-hero-links"><Link href="/stores">{lc.stores}</Link><Link href="/batch-import">{lc.batch}</Link></div></div><BlankBill pricing={pricing} locale={lang}/></>}
 
       {(isSourcedFlow || source) && !showSourceForm && <div className="lo-source" aria-live="polite">
@@ -1101,7 +1117,7 @@ export function GlobalLinkOrder() {
                 {id:'manual-confirm',invalid:sourceCheckStatus==='manual'&&!manualConfirmed,message:tx('Подтвердите, что сверили название, цену, вариант и доставку со страницей магазина.','Nomi, narxi, varianti va yetkazishni do‘kon sahifasi bilan solishtirganingizni tasdiqlang.','Confirm that you checked the name, price, option and shipping against the store page.')},
               ].find(field=>field.invalid);
               if(missing){
-                setFormIssue(missing.message);
+                setFormIssue(missing.message);setIssueField({id:missing.id,message:missing.message});
                 const lockOf:Record<string,keyof LockFields>={name:'name',amount:'price',shipping:'shipping','other-country':'country',weight:'weight'};
                 const lockedField=lockOf[missing.id];
                 if(lockedField&&locks[lockedField])setUnlocked(current=>({...current,[lockedField]:true}));
@@ -1112,7 +1128,7 @@ export function GlobalLinkOrder() {
                   const steps=group?.querySelectorAll<HTMLElement>('.variant-step');
                   const lastStep=steps?.item(Math.max(0,(steps?.length??1)-1));
                   const target=lastStep?.querySelector<HTMLElement>('button[aria-pressed="false"], button, input')??group?.querySelector<HTMLElement>('button, input')??window.document.getElementById(missing.id);
-                  target?.scrollIntoView({behavior:'smooth',block:'center'});
+                  target?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});
                   target?.focus({preventScroll:true});
                 },0);
                 return;
@@ -1303,7 +1319,7 @@ export function GlobalLinkOrder() {
               <p className="lo-note lo-data-note">{dataMode === "manual" ? <Info size={16} aria-hidden="true" /> : <Lock size={16} aria-hidden="true" />}<span>{dataNote}</span></p>
               {locks.name ? <LockedFacts stack hint={lc.locked.value} rows={[{ id: "name", label: c.name, value: name }]} /> : <div className="field lo-name-field">
                 <label htmlFor="name">{c.name}</label>
-                <input id="name" required maxLength={140} value={name} onChange={(e) => {
+                <input id="name" {...issueProps('name')} required maxLength={140} value={name} onChange={(e) => {
                   setName(e.target.value);
                   // An Atlas estimate follows the name ("boots", "t-shirt"); a weight the customer or the store gave stays.
                   if(weightBasis==="estimate"||weightBasis==="title"){const estimate=estimateBoxedWeight(category,e.target.value);setWeight(String(estimate.kg));setWeightBasis(estimate.basis==="title"?"title":"estimate")}
@@ -1315,7 +1331,7 @@ export function GlobalLinkOrder() {
                   {locks.price ? <LockedFacts hint={lc.locked.value} rows={[{ id: "amount", label: k.price, value: lockedPriceText }, { id: "currency", label: k.currency, value: currency }]} /> : <div className="lo-block-row">
                     <div className="field">
                       <label htmlFor="amount">{k.price}</label>
-                      <input id="amount" type="number" inputMode="decimal" required min=".01" step=".01" value={amount} onChange={(e) => {setAmount(e.target.value); }} />
+                      <input id="amount" {...issueProps('amount')} type="number" inputMode="decimal" required min=".01" step=".01" value={amount} onChange={(e) => {setAmount(e.target.value); }} />
                     </div>
                   </div>}
                   {variants.some(item => item.price !== undefined) && picks.length > 1 && <small className="micro">{tx("У каждого выбранного варианта своя цена магазина.","Har bir tanlangan variantning o‘z do‘kon narxi bor.","Each chosen option keeps its own store price.")}</small>}
@@ -1329,7 +1345,7 @@ export function GlobalLinkOrder() {
                   </> : <div className="lo-block-row">
                     <div className="field">
                       <label htmlFor="shipping">{k.storeShippingAmount}, {shippingCurrency}</label>
-                      <input id="shipping" type="number" inputMode="decimal" required min="0" step=".01" value={shipping} onChange={(e) => { setShipping(e.target.value); setShippingEstimated(true);  }} />
+                      <input id="shipping" {...issueProps('shipping')} type="number" inputMode="decimal" required min="0" step=".01" value={shipping} onChange={(e) => { setShipping(e.target.value); setShippingEstimated(true);  }} />
                     </div>
                     <p className="lo-block-state">{shippingEstimated ? k.storeShippingUnknown : k.storeShippingStated}</p>
                   </div>}
@@ -1356,7 +1372,7 @@ export function GlobalLinkOrder() {
                     </div>
                     {country === "Другая страна" && <div className="field">
                       <label htmlFor="other-country">{c.otherCountry}</label>
-                      <input id="other-country" required maxLength={60} value={otherCountry} onChange={(e) => setOtherCountry(e.target.value)} />
+                      <input id="other-country" {...issueProps('other-country')} required maxLength={60} value={otherCountry} onChange={(e) => setOtherCountry(e.target.value)} />
                     </div>}
                   </>}
                 </fieldset>
@@ -1379,7 +1395,7 @@ export function GlobalLinkOrder() {
                     </div>
                     <div className="field">
                       <label htmlFor="weight">{k.boxedWeight}</label>
-                      <input id="weight" type="number" inputMode="decimal" required min=".01" max="49.5" step=".01" value={weight}
+                      <input id="weight" {...issueProps('weight')} type="number" inputMode="decimal" required min=".01" max="49.5" step=".01" value={weight}
                         onChange={(e) => { setWeight(e.target.value); setWeightBasis("customer"); setWeightOrigin(tx("Указан покупателем","Xaridor kiritdi","Entered by customer"));  }}
                         onBlur={() => {
                           const valid=validBoxedWeight(weight);
@@ -1422,9 +1438,9 @@ export function GlobalLinkOrder() {
           {/* The add button sits under the total and the item data: the right column holds the decision (owner, 12 October 2026). */}
           {!checking && orderable && <>
           <section className="lo-card lo-confirm">
-            {formIssue && <p className="basket-consent-error" role="alert">{formIssue}</p>}
+            {formIssue && <p id="link-form-issue" className="basket-consent-error" role="alert">{formIssue}</p>}
             {sourceCheckStatus==='manual' ? <div className={"basket-consent" + (formIssue && !manualConfirmed ? " invalid" : "")}>
-              <input id="manual-confirm" type="checkbox" checked={manualConfirmed} onChange={(e) => { setManualConfirmed(e.target.checked); if (e.target.checked) setFormIssue(""); }} />
+              <input id="manual-confirm" type="checkbox" {...issueProps('manual-confirm')} checked={manualConfirmed} onChange={(e) => { setManualConfirmed(e.target.checked); if (e.target.checked) setFormIssue(""); }} />
               <label htmlFor="manual-confirm">{tx('Я сверил название, цену, вариант и доставку со страницей магазина. Оператор Atlas сверит их с магазином перед выкупом.','Nomi, narxi, varianti va yetkazishni do‘kon sahifasi bilan solishtirdim. Atlas operatori xariddan oldin ularni do‘kon bilan solishtiradi.','I checked the name, price, option and shipping against the store page. An Atlas operator checks them with the store before buying.')}</label>
             </div> : sourceCheckStatus !== "verified" ? <p className="micro" role="status">{tx("Atlas автоматически сверит цену, валюту и выбранный вариант перед добавлением в корзину.","Atlas savatga qo‘shishdan oldin narx, valyuta va tanlangan variantni avtomatik tekshiradi.","Atlas automatically checks the price, currency and selected option before adding it to your cart.")}</p> : null}
             <div className={"lo-cta-row" + (cartUnits ? " has-cart" : "")}>

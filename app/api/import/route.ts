@@ -9,6 +9,7 @@ import { database, sameOrigin, json, failure, HttpError, requestJson } from '@/l
 import { currentUser } from '@/lib/auth/server';
 import { importRateBuckets } from '@/lib/market/import-preview';
 import { apiErrorMessage, importManualEntryMessage, importManualStoreMessage, importPendingMessage, requestLocale, serverError } from '@/lib/market/i18n';
+import { translateDomainError } from '@/lib/market/domain-errors';
 
 const importRequestSchema = z.object({ url: z.string().max(3000), fresh: z.boolean().optional() });
 
@@ -30,7 +31,9 @@ export async function POST(request: Request) {
     try {
       sourceUrl = canonicalProductUrl(desktopStoreUrl(validateManualSourceUrl(payload.data.url)).href);
     } catch (error) {
-      throw new HttpError(400, (error as Error).message);
+      // new URL() refuses text that is not a link with an English TypeError ("Invalid URL"): answer with the Atlas text,
+      // which failure() also gives in Uzbek and English (lib/market/domain-errors.ts).
+      throw new HttpError(400, error instanceof TypeError ? 'Введите полную ссылку, начиная с https://.' : (error as Error).message);
     }
     const now = Date.now();
     const db = database();
@@ -56,7 +59,7 @@ export async function POST(request: Request) {
       const message = canManuallyEnter
         ? importManualEntryMessage(locale)
         : unsupported ? serverError(locale, unsupported.code, { count: unsupported.supportedStoreCount })
-        : locale === 'ru' ? (error as Error).message : apiErrorMessage(422, locale);
+        : locale === 'ru' ? (error as Error).message : translateDomainError((error as Error).message, locale) ?? apiErrorMessage(422, locale);
       const partial = error instanceof ManualEntryFallbackError ? error.partial : undefined;
       return json({ ...partial, error: message, ...(unsupported ? { errorCode: unsupported.code } : {}), manualEntryAvailable: canManuallyEnter }, 422);
     };

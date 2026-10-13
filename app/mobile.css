@@ -57,6 +57,10 @@ body { -webkit-tap-highlight-color: transparent; }
 @media (pointer: coarse) {
   :is(.breadcrumb a, .basket-note-add, .customs-how-trigger) { position: relative; }
   :is(.breadcrumb a, .basket-note-add, .customs-how-trigger)::after { content: ""; position: absolute; inset: -8px -6px; }
+  /* 40 px cart controls take taps from a 44 px frame without growing (ui-ux-pro-max touch-target-size, 13.10.2026). */
+  :is(.basket-fav, .basket-later, .basket-variant > .remove-item, .basket-variant .basket-qty button, .lo-stepper button, .customs-how-close) { position: relative; }
+  :is(.basket-fav, .basket-later, .basket-variant > .remove-item, .basket-variant .basket-qty button, .lo-stepper button)::after { content: ""; position: absolute; inset: -2px; }
+  .customs-how-close::after { content: ""; position: absolute; inset: -6px; }
 }
 
 /* Secondary text behind a "?" (components/info-tip.tsx). The text stays in the page as .tip-text and the "?" holds the
@@ -96,3 +100,6 @@ html[data-theme="dark"] .info-tip-bubble { box-shadow: 0 16px 40px rgba(0, 0, 0,
   .info-tip-bubble[data-state="closed"] { animation: none; }
   @keyframes info-tip-fade { from { opacity: 0; } }
 }
+
+/* iOS Safari zooms into any field under 16 px on focus: the orders search keeps 14 px only where there is a mouse. */
+@media (pointer: coarse) { .search-field input { font-size: 16px; } }

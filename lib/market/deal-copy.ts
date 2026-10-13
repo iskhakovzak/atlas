@@ -3,7 +3,7 @@ import {pickLocale} from './uz-cyrl.ts';
 
 const ru = {
   title: 'Каталог зарубежных товаров.', intro: 'Товары из зарубежных магазинов, отобранные Atlas, — с расчётом доставки в Ташкент.',
-  savedTitle: 'Избранные товары.', savedIntro: 'Сравните цены и вернитесь к покупке, когда будете готовы.',
+  savedTitle: 'Избранные товары', savedIntro: 'Сравните цены и вернитесь к покупке, когда будете готовы.',
   observed: 'Цена на', checkOptions: 'Atlas перепроверит цену и выбранный вариант', priceNote: 'Цены указаны на дату проверки. При добавлении в корзину Atlas сверяет цену и валюту выбранного варианта с магазином. Atlas не является официальным представителем указанных брендов.', estimateHint: 'Вес — оценка Atlas; склад взвесит посылку и пересчитает доставку. Итог посчитан по действующим тарифам Atlas и не является офертой; цену Atlas сверит с магазином перед выкупом.',
   all: 'Все категории', footwear: 'Обувь', clothing: 'Одежда', electronics: 'Электроника', accessories: 'Аксессуары',
   search: 'Поиск по каталогу', searchPlaceholder: 'Товар, магазин, категория или страна', clear: 'Очистить поиск',
@@ -26,7 +26,7 @@ const ru = {
 type Copy = { [K in keyof typeof ru]: string };
 const uz: Copy = {
   title: 'Xorijiy mahsulotlar katalogi.', intro: 'Atlas tanlagan xorijiy do‘kon tovarlari — Toshkentga yetkazish hisobi bilan.',
-  savedTitle: 'Saralangan mahsulotlar.', savedIntro: 'Narxlarni solishtiring va tayyor bo‘lganingizda xaridga qayting.',
+  savedTitle: 'Saralangan mahsulotlar', savedIntro: 'Narxlarni solishtiring va tayyor bo‘lganingizda xaridga qayting.',
   observed: 'Narx sanasi', checkOptions: 'Atlas narx va tanlangan variantni qayta tekshiradi', priceNote: 'Narxlar tekshiruv sanasi bo‘yicha ko‘rsatilgan. Savatga qo‘shishda Atlas tanlangan variant narxi va valyutasini do‘kon bilan solishtiradi. Atlas ushbu brendlarning rasmiy vakili emas.', estimateHint: 'Vazn — Atlas bahosi; ombor jo‘natmani tortib, yetkazishni qayta hisoblaydi. Jami Atlasning amaldagi tariflari bo‘yicha hisoblangan va oferta emas; Atlas xariddan oldin narxni do‘kon bilan solishtiradi.',
   all: 'Barcha toifalar', footwear: 'Poyabzal', clothing: 'Kiyim', electronics: 'Elektronika', accessories: 'Aksessuarlar',
   search: 'Katalogdan qidirish', searchPlaceholder: 'Mahsulot, do‘kon, toifa yoki mamlakat', clear: 'Qidiruvni tozalash',
@@ -48,7 +48,7 @@ const uz: Copy = {
 };
 const en: Copy = {
   title: 'International product catalog.', intro: 'Products from international stores, selected by Atlas, with delivery estimates to Tashkent.',
-  savedTitle: 'Saved products.', savedIntro: 'Compare prices and come back when you’re ready to buy.',
+  savedTitle: 'Saved products', savedIntro: 'Compare prices and come back when you’re ready to buy.',
   observed: 'Price recorded', checkOptions: 'Atlas rechecks price and selected option', priceNote: 'Prices are shown as of the check date. When you add an item to the cart, Atlas checks the selected option’s price and currency with the store. Atlas is not an official representative of these brands.', estimateHint: 'Weight is an Atlas estimate; the warehouse weighs the parcel and recalculates delivery. Totals use current Atlas rates and are not a binding offer; Atlas checks the price with the store before buying.',
   all: 'All categories', footwear: 'Footwear', clothing: 'Clothing', electronics: 'Electronics', accessories: 'Accessories',
   search: 'Search catalog', searchPlaceholder: 'Product, store, category or country', clear: 'Clear search',

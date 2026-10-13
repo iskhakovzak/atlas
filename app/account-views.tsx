@@ -39,6 +39,8 @@ export function AccountView() {
   const [editor, setEditor] = useState<SavedDeliveryProfile | "new" | null>(null);
   const [ticketOpen, setTicketOpen] = useState(false);
   const [ticket, setTicket] = useState({ subject: "", text: "" });
+  // The support form on its way ("new" or the ticket id): its button is locked and says "Sending…".
+  const [sending, setSending] = useState<string | null>(null);
   const aboutOrder = useSearchParams().get("order") ?? "";
   // "Question about this order" from /orders opens the support form with the order number filled in.
   useEffect(() => {
@@ -155,13 +157,13 @@ export function AccountView() {
             <div className="cabinet-ticket-head"><b>{item.subject}</b><span className={"cabinet-status " + item.status}>{item.status === "open" ? c.support.waiting : item.status === "answered" ? c.support.answered : c.support.closed}</span></div>
             <details><summary>{c.support.history} · {c.support.messages(item.replies.length)}</summary>
               {item.replies.map(reply => <p className="ticket-reply" key={reply.id}><b>{reply.author === "support" ? c.support.team : c.support.you}</b><br />{reply.text}</p>)}
-              {item.status !== "closed" && <form className="support-reply-form" onSubmit={async event => { event.preventDefault(); const form = event.currentTarget; const input = form.elements.namedItem("reply") as HTMLInputElement; if (await act({ type: "support-reply", id: item.id, text: input.value })) input.value = ""; }}><input name="reply" aria-label={c.support.replyPlaceholder} required minLength={3} maxLength={1000} placeholder={c.support.replyPlaceholder} /><button className="btn secondary">{c.support.reply}</button></form>}
+              {item.status !== "closed" && <form className="support-reply-form" onSubmit={async event => { event.preventDefault(); if (sending) return; const form = event.currentTarget; const input = form.elements.namedItem("reply") as HTMLInputElement; setSending(item.id); try { if (await act({ type: "support-reply", id: item.id, text: input.value })) input.value = ""; } finally { setSending(null); } }}><input name="reply" aria-label={c.support.replyPlaceholder} required minLength={3} maxLength={1000} placeholder={c.support.replyPlaceholder} /><button className="btn secondary" disabled={Boolean(sending)} aria-busy={sending === item.id}>{sending === item.id ? c.support.sending : c.support.reply}</button></form>}
             </details>
           </li>)}</ul> : null}
-          {ticketOpen ? <form className="cabinet-ticket-form" onSubmit={async event => { event.preventDefault(); if (await act({ type: "support-create", subject: ticket.subject, text: ticket.text })) { setTicket({ subject: "", text: "" }); setTicketOpen(false); toast.success(c.support.sent); } }}>
+          {ticketOpen ? <form className="cabinet-ticket-form" onSubmit={async event => { event.preventDefault(); if (sending) return; setSending("new"); try { if (await act({ type: "support-create", subject: ticket.subject, text: ticket.text })) { setTicket({ subject: "", text: "" }); setTicketOpen(false); toast.success(c.support.sent); } } finally { setSending(null); } }}>
             <label htmlFor="support-subject">{c.support.subject}</label><input id="support-subject" required minLength={3} maxLength={120} value={ticket.subject} onChange={event => setTicket({ ...ticket, subject: event.target.value })} />
             <label htmlFor="support-question">{c.support.question}</label><textarea id="support-question" required minLength={3} maxLength={1000} rows={4} value={ticket.text} onChange={event => setTicket({ ...ticket, text: event.target.value })} />
-            <div className="cabinet-form-foot"><small>{ticket.text.length} / 1000</small><button className="btn primary" disabled={!ready}><MessageCircle size={16} aria-hidden="true" />{c.support.send}</button></div>
+            <div className="cabinet-form-foot"><small>{ticket.text.length} / 1000</small><button className="btn primary" disabled={!ready || Boolean(sending)} aria-busy={sending === "new"}><MessageCircle size={16} aria-hidden="true" />{sending === "new" ? c.support.sending : c.support.send}</button></div>
           </form> : <button type="button" className="cabinet-add" onClick={() => setTicketOpen(true)}><Plus size={18} aria-hidden="true" />{c.support.newTicket}</button>}
         </section>
       </div>

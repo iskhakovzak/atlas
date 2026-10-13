@@ -128,7 +128,7 @@ export type AccountCopy = {
   documents: { title: string; passport: string; passportCount: (count: number) => string; missing: string; declarations: string; declarationsCount: (count: number) => string; note: string };
   support: {
     title: string; lead: string; telegram: string; waiting: string; answered: string; closed: string; messages: (count: number) => string; history: string;
-    team: string; you: string; replyPlaceholder: string; reply: string; none: string; newTicket: string; subject: string; question: string; send: string; sent: string;
+    team: string; you: string; replyPlaceholder: string; reply: string; none: string; newTicket: string; subject: string; question: string; send: string; sending: string; sent: string;
     aboutOrder: (id: string) => string;
   };
   settings: {
@@ -187,13 +187,13 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
       consent: { before: 'Я ознакомлен(а) с ', link: 'таможенными условиями', after: '.' },
       consentImplied: { before: 'Подтверждая заказ, вы принимаете ', link: 'таможенные условия', after: '.' },
       consentRequired: 'Отметьте согласие с таможенными условиями.',
-      confirm: 'Подтвердить предзаказ', saving: 'Сохраняем заказ…',
+      confirm: 'Подтвердить заказ', saving: 'Сохраняем заказ…',
       nextStep: 'Дальше — оплата в «Моих заказах». Если цена изменится, спросим перед выкупом.', estimated: 'К оплате',
       saveRecipient: 'Сохранить получателя в профиле — для следующих заказов и паспорта',
       rechecked: 'Цены сверены заново. Проверьте сумму и подтвердите заказ.',
     },
     success: {
-      title: 'Предзаказ оформлен',
+      title: 'Заказ оформлен',
       pending: 'Заказ сохранён. Оплатить его можно в «Моих заказах».',
     },
   },
@@ -215,12 +215,12 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
       optional: 'ixtiyoriy',
       hint: 'Istaklaringizni belgilang — ular buyurtma summasiga kirmaydi. Operator qabuldan keyin imkoniyatni tekshiradi; xizmat faqat aniq narx ko‘rsatilib, roziligingiz olingandan so‘ng bajariladi.',
       hintPercent: 'Atlas saqlash kafolati darhol buyurtma summasiga kiradi. Qolgan istaklar summaga kirmaydi: operator ularni qabuldan keyin tekshiradi va faqat aniq narx ko‘rsatilib, roziligingiz olingandan so‘ng bajaradi.',
-      percent: (rate, high, amount) => `tovarlar va yetkazib berish qiymatining ${rate}${high ? ` (${high})` : ''} · ${amount}`, highRule: (threshold, rate) => `${threshold} dan qimmat bo‘lsa — ${rate}`,
+      percent: (rate, high, amount) => `tovarlar va yetkazish qiymatining ${rate}${high ? ` (${high})` : ''} · ${amount}`, highRule: (threshold, rate) => `${threshold} dan qimmat bo‘lsa — ${rate}`,
       fixed: 'Tarif', quote: 'Narxni operator aytadi', quantity: 'Miqdor', required: 'majburiy',
       units: { package: 'posilka', item: 'dona', day: 'kun', photo: 'foto', 'half-hour': '30 daqiqa' },
     },
     summary: {
-      title: 'Jami', balance: 'Atlas balansidan to‘lash', available: 'Mavjud', fromBalance: 'Atlas balansidan', payable: 'To‘lov uchun',
+      title: 'Jami', balance: 'Atlas balansidan to‘lash', available: 'Mavjud', fromBalance: 'Atlas balansidan', payable: 'To‘lovga',
       validFor: time => `Narx yana ${time} amal qiladi`, assurance: 'To‘lov — faqat roziligingiz bilan',
       continue: 'Xaridni davom ettirish', outside: 'To‘lov summasiga kirmaydi',
       verifying: 'Narxlar tekshirilmoqda…', recheckNote: 'Rasmiylashtirishdan oldin narxlarni do‘konlar bilan tekshiramiz.',
@@ -236,13 +236,13 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
       consent: { before: '', link: 'Bojxona shartlari', after: ' bilan tanishdim.' },
       consentImplied: { before: 'Buyurtmani tasdiqlab, ', link: 'bojxona shartlarini', after: ' qabul qilasiz.' },
       consentRequired: 'Bojxona shartlariga roziligingizni belgilang.',
-      confirm: 'Oldindan buyurtmani tasdiqlash', saving: 'Buyurtma saqlanmoqda…',
-      nextStep: 'Keyin — «Buyurtmalarim»da to‘lov. Narx o‘zgarsa, xariddan oldin so‘raymiz.', estimated: 'To‘lov uchun',
+      confirm: 'Buyurtmani tasdiqlash', saving: 'Buyurtma saqlanmoqda…',
+      nextStep: 'Keyin — «Buyurtmalarim»da to‘lov. Narx o‘zgarsa, xariddan oldin so‘raymiz.', estimated: 'To‘lovga',
       saveRecipient: 'Qabul qiluvchini profilga saqlash — keyingi buyurtmalar va pasport uchun',
       rechecked: 'Narxlar qayta tekshirildi. Summani ko‘rib chiqing va buyurtmani tasdiqlang.',
     },
     success: {
-      title: 'Oldindan buyurtma yaratildi',
+      title: 'Buyurtma rasmiylashtirildi',
       pending: 'Buyurtma saqlandi. Uni «Buyurtmalarim»da to‘lash mumkin.',
     },
   },
@@ -285,13 +285,13 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
       consent: { before: 'I have read the ', link: 'customs terms', after: '.' },
       consentImplied: { before: 'By confirming, you accept the ', link: 'customs terms', after: '.' },
       consentRequired: 'Please confirm the customs terms.',
-      confirm: 'Confirm pre-order', saving: 'Saving order…',
+      confirm: 'Confirm order', saving: 'Saving order…',
       nextStep: 'Next: payment in My orders. If the price changes, we ask before buying.', estimated: 'To pay',
       saveRecipient: 'Save this recipient to your profile — for next orders and the passport',
       rechecked: 'Prices were checked again. Review the total and confirm.',
     },
     success: {
-      title: 'Pre-order created',
+      title: 'Order placed',
       pending: 'Order saved. You can pay for it in My orders.',
     },
   },
@@ -302,7 +302,7 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
     title: 'Личный кабинет',
     manage: 'Управление Atlas',
     since: date => `Профиль создан ${date}`,
-    signin: { title: 'Вход и создание аккаунта', text: 'Войдите через Telegram, телефон, почту или Google — профиль Atlas создастся автоматически.', action: 'Войти или зарегистрироваться' },
+    signin: { title: 'Вход и создание аккаунта', text: 'Войдите через Telegram, телефон, почту или Google — профиль Atlas создастся автоматически.', action: 'Войти' },
     next: {
       label: 'Сейчас важно', payment: 'Завершите оплату', inProgress: 'Заказ в работе',
       cart: 'Проверьте корзину', cartHint: items => `В корзине ${items}. Осталось оформить заказ.`,
@@ -324,7 +324,7 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
     },
     recipients: {
       title: 'Получатели и адреса', lead: 'Подставляются при оформлении заказа.', primary: 'основной', passportOk: masked => `Паспорт ${masked}`,
-      passportMissing: 'Паспорт не добавлен', addPassport: 'Добавить паспорт', remove: 'Удалить', add: 'Добавить получателя', empty: 'Сохранённых получателей пока нет.', edit: 'Изменить', makePrimary: 'Сделать основным',
+      passportMissing: 'Паспорт не добавлен', addPassport: 'Указать паспорт', remove: 'Удалить', add: 'Добавить получателя', empty: 'Сохранённых получателей пока нет.', edit: 'Изменить', makePrimary: 'Сделать основным',
     },
     documents: {
       title: 'Документы', passport: 'Паспорт', passportCount: count => `добавлено: ${count}`, missing: 'не добавлен',
@@ -334,7 +334,7 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
       title: 'Поддержка', lead: 'Ответ придёт сюда и в уведомления.', telegram: 'Написать в Telegram', waiting: 'Ждём ответа', answered: 'Есть ответ', closed: 'Закрыто',
       messages: count => `${count} ${ruPlural(count, 'сообщение', 'сообщения', 'сообщений')}`, history: 'Открыть переписку', team: 'Поддержка Atlas', you: 'Вы',
       replyPlaceholder: 'Ваш ответ', reply: 'Ответить', none: 'Обращений пока нет.', newTicket: 'Новое обращение', subject: 'Тема', question: 'Опишите вопрос',
-      send: 'Отправить', sent: 'Обращение отправлено.', aboutOrder: id => `Вопрос по заказу ${id}`,
+      send: 'Отправить', sending: 'Отправляем…', sent: 'Обращение отправлено.', aboutOrder: id => `Вопрос по заказу ${id}`,
     },
     settings: {
       title: 'Настройки', language: 'Язык', theme: 'Тема', rules: 'Правила и обработка данных', signOut: 'Выйти из аккаунта',
@@ -351,21 +351,21 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
       blocked: count => count === 1 ? 'Один оплаченный заказ ещё в работе.' : `Оплаченных заказов в работе: ${count}.`, blockedHint: 'Сначала дождитесь доставки или отмените их — или напишите в поддержку, и мы поможем закрыть их.',
       orders: 'Открыть заказы', support: 'Написать в поддержку', supportSubject: 'Удаление аккаунта',
       autoCancel: count => count === 1 ? 'Один неоплаченный запрос будет отменён автоматически.' : `Неоплаченные запросы (${count}) будут отменены автоматически.`,
-      balance: sum => `Понимаю, что баланс ${sum} будет потерян`, confirm: 'Удалить аккаунт навсегда', cancel: 'Отмена', done: 'Аккаунт удалён.', failed: 'Не удалось удалить аккаунт.',
+      balance: sum => `Понимаю, что баланс ${sum} будет потерян`, confirm: 'Удалить аккаунт навсегда', cancel: 'Отмена', done: 'Аккаунт удалён.', failed: 'Не удалось удалить аккаунт. Повторите через минуту или напишите в поддержку.',
     },
   },
   uz: {
     title: 'Shaxsiy kabinet',
     manage: 'Atlas boshqaruvi',
     since: date => `Profil yaratilgan: ${date}`,
-    signin: { title: 'Kirish va akkaunt yaratish', text: 'Telegram, telefon, pochta yoki Google orqali kiring — Atlas profilingiz avtomatik yaratiladi.', action: 'Kirish yoki ro‘yxatdan o‘tish' },
+    signin: { title: 'Kirish va akkaunt yaratish', text: 'Telegram, telefon, pochta yoki Google orqali kiring — Atlas profilingiz avtomatik yaratiladi.', action: 'Kirish' },
     next: {
       label: 'Hozir muhim', payment: 'To‘lovni yakunlang', inProgress: 'Buyurtma jarayonda',
       cart: 'Savatni tekshiring', cartHint: items => `Savatda ${items} bor. Buyurtmani rasmiylashtirish qoldi.`,
       recipient: 'Qabul qiluvchini qo‘shing', recipientHint: 'Manzil buyurtma rasmiylashtirishda avtomatik qo‘yiladi.',
       allSet: 'Hammasi joyida', allSetHint: 'Hozir sizdan hech narsa talab qilinmaydi.', open: 'Ochish', add: 'Qo‘shish', newOrder: 'Havola orqali buyurtma',
       stage: (current, total) => `Bosqich: ${current} / ${total}`,
-      due: 'To‘lov uchun', orderNo: id => `${id} buyurtma`, noCharge: 'Saytda to‘lov ulanmagan: pul yechilmaydi.',
+      due: 'To‘lovga', orderNo: id => `${id} buyurtma`, noCharge: 'Saytda to‘lov ulanmagan: pul yechilmaydi.',
     },
     tiles: {
       label: 'Xaridlar haqida qisqacha', orders: 'Buyurtmalar', ordersActive: count => `${count} ta jarayonda`, ordersTotal: count => `jami ${count} ta`, none: 'hali yo‘q',
@@ -380,7 +380,7 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
     },
     recipients: {
       title: 'Qabul qiluvchilar va manzillar', lead: 'Buyurtma rasmiylashtirishda avtomatik qo‘yiladi.', primary: 'asosiy', passportOk: masked => `Pasport ${masked}`,
-      passportMissing: 'Pasport qo‘shilmagan', addPassport: 'Pasport qo‘shish', remove: 'O‘chirish', add: 'Qabul qiluvchi qo‘shish', empty: 'Hali saqlangan qabul qiluvchilar yo‘q.', edit: 'O‘zgartirish', makePrimary: 'Asosiy qilish',
+      passportMissing: 'Pasport qo‘shilmagan', addPassport: 'Pasportni kiritish', remove: 'O‘chirish', add: 'Qabul qiluvchi qo‘shish', empty: 'Hali saqlangan qabul qiluvchilar yo‘q.', edit: 'O‘zgartirish', makePrimary: 'Asosiy qilish',
     },
     documents: {
       title: 'Hujjatlar', passport: 'Pasport', passportCount: count => `qo‘shilgan: ${count}`, missing: 'qo‘shilmagan',
@@ -390,7 +390,7 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
       title: 'Yordam', lead: 'Javob shu yerga va bildirishnomalarga keladi.', telegram: 'Telegram’da yozish', waiting: 'Javob kutilmoqda', answered: 'Javob bor', closed: 'Yopilgan',
       messages: count => `${count} ta xabar`, history: 'Yozishmani ochish', team: 'Atlas yordami', you: 'Siz',
       replyPlaceholder: 'Javobingiz', reply: 'Javob berish', none: 'Hali murojaatlar yo‘q.', newTicket: 'Yangi murojaat', subject: 'Mavzu', question: 'Savolingizni yozing',
-      send: 'Yuborish', sent: 'Murojaat yuborildi.', aboutOrder: id => `${id} buyurtma bo‘yicha savol`,
+      send: 'Yuborish', sending: 'Yuborilmoqda…', sent: 'Murojaat yuborildi.', aboutOrder: id => `${id} buyurtma bo‘yicha savol`,
     },
     settings: {
       title: 'Sozlamalar', language: 'Til', theme: 'Ko‘rinish', rules: 'Qoidalar va ma’lumotlarga ishlov berish', signOut: 'Akkauntdan chiqish',
@@ -407,14 +407,14 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
       blocked: count => count === 1 ? 'Bitta to‘langan buyurtma hali jarayonda.' : `Jarayondagi to‘langan buyurtmalar: ${count}.`, blockedHint: 'Avval yetkazilishini kuting yoki ularni bekor qiling — yoki yordam xizmatiga yozing, yopishga yordam beramiz.',
       orders: 'Buyurtmalarni ochish', support: 'Yordam xizmatiga yozish', supportSubject: 'Akkauntni o‘chirish',
       autoCancel: count => count === 1 ? 'Bitta to‘lanmagan so‘rov avtomatik bekor qilinadi.' : `To‘lanmagan so‘rovlar (${count}) avtomatik bekor qilinadi.`,
-      balance: sum => `${sum} balans yo‘qolishini tushunaman`, confirm: 'Akkauntni butunlay o‘chirish', cancel: 'Bekor qilish', done: 'Akkaunt o‘chirildi.', failed: 'Akkauntni o‘chirib bo‘lmadi.',
+      balance: sum => `${sum} balans yo‘qolishini tushunaman`, confirm: 'Akkauntni o‘chirish', cancel: 'Bekor qilish', done: 'Akkaunt o‘chirildi.', failed: 'Akkauntni o‘chirib bo‘lmadi. Bir daqiqadan so‘ng qayta urining yoki qo‘llab-quvvatlashga yozing.',
     },
   },
   en: {
     title: 'Your account',
     manage: 'Manage Atlas',
     since: date => `Member since ${date}`,
-    signin: { title: 'Sign in and create an account', text: 'Sign in with Telegram, phone, email or Google — your Atlas profile is created automatically.', action: 'Sign in or sign up' },
+    signin: { title: 'Sign in and create an account', text: 'Sign in with Telegram, phone, email or Google — your Atlas profile is created automatically.', action: 'Sign in' },
     next: {
       label: 'Needs your attention', payment: 'Complete payment', inProgress: 'Order in progress',
       cart: 'Review your cart', cartHint: items => `${items} in your cart. Only checkout is left.`,
@@ -436,7 +436,7 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
     },
     recipients: {
       title: 'Recipients & addresses', lead: 'Filled in automatically at checkout.', primary: 'primary', passportOk: masked => `Passport ${masked}`,
-      passportMissing: 'No passport added', addPassport: 'Add passport', remove: 'Remove', add: 'Add recipient', empty: 'No saved recipients yet.', edit: 'Edit', makePrimary: 'Make default',
+      passportMissing: 'No passport added', addPassport: 'Add passport details', remove: 'Remove', add: 'Add recipient', empty: 'No saved recipients yet.', edit: 'Edit', makePrimary: 'Make default',
     },
     documents: {
       title: 'Documents', passport: 'Passport', passportCount: count => `added: ${count}`, missing: 'not added',
@@ -446,7 +446,7 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
       title: 'Support', lead: 'Replies arrive here and in notifications.', telegram: 'Message us on Telegram', waiting: 'Waiting for reply', answered: 'Reply received', closed: 'Closed',
       messages: count => `${count} ${count === 1 ? 'message' : 'messages'}`, history: 'Open conversation', team: 'Atlas support', you: 'You',
       replyPlaceholder: 'Your reply', reply: 'Reply', none: 'No tickets yet.', newTicket: 'New request', subject: 'Subject', question: 'Describe your question',
-      send: 'Send', sent: 'Request sent.', aboutOrder: id => `Question about order ${id}`,
+      send: 'Send', sending: 'Sending…', sent: 'Request sent.', aboutOrder: id => `Question about order ${id}`,
     },
     settings: {
       title: 'Settings', language: 'Language', theme: 'Theme', rules: 'Terms and data processing', signOut: 'Sign out',
@@ -463,7 +463,7 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
       blocked: count => count === 1 ? 'One paid order is still in progress.' : `Paid orders in progress: ${count}.`, blockedHint: 'Wait for delivery or cancel them first — or write to support and we will help close them.',
       orders: 'Open orders', support: 'Write to support', supportSubject: 'Account deletion',
       autoCancel: count => count === 1 ? 'One unpaid request will be cancelled automatically.' : `Unpaid requests (${count}) will be cancelled automatically.`,
-      balance: sum => `I understand the balance of ${sum} will be lost`, confirm: 'Delete account permanently', cancel: 'Cancel', done: 'Account deleted.', failed: 'Could not delete the account.',
+      balance: sum => `I understand the balance of ${sum} will be lost`, confirm: 'Delete account permanently', cancel: 'Cancel', done: 'Account deleted.', failed: 'Couldn’t delete the account. Try again in a minute or contact support.',
     },
   },
 });
@@ -640,12 +640,12 @@ export type LinkOrderCopy = {
 export const linkOrderCopy: Record<Locale, LinkOrderCopy> = /*@__PURE__*/withCyrillic({
   ru: {
     title: 'Заказ по ссылке', lead: 'Вставьте ссылку на товар из зарубежного магазина, и мы посчитаем итог с доставкой до Ташкента.', leadLoaded: 'Выберите вариант и проверьте расчёт.',
-    label: 'Ссылка на товар', placeholder: 'Вставьте ссылку на товар', calculate: 'Рассчитать', loading: 'Загружаем цену и варианты из магазина…',
+    label: 'Ссылка на товар', placeholder: 'Вставьте ссылку', calculate: 'Рассчитать', loading: 'Загружаем цену и варианты из магазина…',
     hint: 'Нужна ссылка на страницу товара: Nike, Zara, Amazon, eBay и другие магазины.', stores: 'Где это работает', batch: 'Добавить несколько ссылок',
     openStore: 'Открыть в магазине', change: 'Изменить ссылку', replace: 'Заменить ссылку', replaceHint: 'Вставить ссылку из буфера обмена', sharedNoLink: 'В том, чем вы поделились, нет ссылки на товар. Вставьте её сюда.', storePrice: 'Цена в магазине', checkedAt: time => `проверено в ${time}`,
     unconfirmed: 'Магазин не подтвердил все данные — проверьте их ниже.', total: 'Итого с доставкой до Ташкента', emptyTotal: 'Укажите цену и вес — покажем итог.',
     data: 'Данные для расчёта', shippingReserve: 'доставка магазина: резерв', storeShipping: amount => `доставка магазина ${amount}`, kg: 'кг',
-    add: 'Добавить в корзину', addShort: 'В корзину', signinAdd: 'Войти — товар добавится в корзину', guest: 'Расчёт доступен без входа. Нажмите кнопку внизу и войдите — товар сам добавится в корзину, выбранные варианты и количество сохранятся.', details: 'Подробности загрузки',
+    add: 'Добавить в корзину', addShort: 'В корзину', signinAdd: 'Войти и добавить в корзину', guest: 'Расчёт доступен без входа. Нажмите кнопку внизу и войдите — товар сам добавится в корзину, выбранные варианты и количество сохранятся.', details: 'Подробности загрузки',
     unnamed: 'Название не получено — укажите его ниже', fillFromStore: 'Заполните по странице товара в магазине.',
     signinAddShort: 'Войти и добавить',
     locked: {
@@ -677,12 +677,12 @@ export const linkOrderCopy: Record<Locale, LinkOrderCopy> = /*@__PURE__*/withCyr
   },
   uz: {
     title: 'Havola orqali buyurtma', lead: 'Xorijiy do‘kondagi tovar havolasini qo‘ying, Toshkentgacha yetkazish bilan jami summani hisoblaymiz.', leadLoaded: 'Variantni tanlang va hisobni tekshiring.',
-    label: 'Tovar havolasi', placeholder: 'Tovar havolasini qo‘ying', calculate: 'Hisoblash', loading: 'Do‘kondan narx va variantlar yuklanmoqda…',
+    label: 'Tovar havolasi', placeholder: 'Havolani qo‘ying', calculate: 'Hisoblash', loading: 'Do‘kondan narx va variantlar yuklanmoqda…',
     hint: 'Tovar sahifasi havolasi kerak: Nike, Zara, Amazon, eBay va boshqa do‘konlar.', stores: 'Qayerlarda ishlaydi', batch: 'Bir nechta havola qo‘shish',
     openStore: 'Do‘konda ochish', change: 'Havolani o‘zgartirish', replace: 'Havolani almashtirish', replaceHint: 'Buferdagi havolani qo‘yish', sharedNoLink: 'Ulashilgan matnda mahsulot havolasi yo‘q. Uni shu yerga qo‘ying.', storePrice: 'Do‘kondagi narx', checkedAt: time => `${time} da tekshirildi`,
     unconfirmed: 'Do‘kon barcha ma’lumotlarni tasdiqlamadi — quyida tekshiring.', total: 'Toshkentgacha yetkazish bilan jami', emptyTotal: 'Narx va vaznni kiriting — jami summani ko‘rsatamiz.',
     data: 'Hisob uchun ma’lumotlar', shippingReserve: 'do‘kon yetkazishi: zaxira', storeShipping: amount => `do‘kon yetkazishi ${amount}`, kg: 'kg',
-    add: 'Savatga qo‘shish', addShort: 'Savatga', signinAdd: 'Kirish — tovar savatga qo‘shiladi', guest: 'Hisobni kirmasdan ko‘rish mumkin. Pastdagi tugmani bosib kiring — tovar o‘zi savatga qo‘shiladi, tanlangan variantlar va soni saqlanadi.', details: 'Yuklash tafsilotlari',
+    add: 'Savatga qo‘shish', addShort: 'Savatga', signinAdd: 'Kirib, savatga qo‘shish', guest: 'Hisobni kirmasdan ko‘rish mumkin. Pastdagi tugmani bosib kiring — tovar o‘zi savatga qo‘shiladi, tanlangan variantlar va soni saqlanadi.', details: 'Yuklash tafsilotlari',
     unnamed: 'Nomi olinmadi — quyida kiriting', fillFromStore: 'Do‘kondagi tovar sahifasiga qarab to‘ldiring.',
     signinAddShort: 'Kirib qo‘shish',
     locked: {
@@ -714,12 +714,12 @@ export const linkOrderCopy: Record<Locale, LinkOrderCopy> = /*@__PURE__*/withCyr
   },
   en: {
     title: 'Order by link', lead: 'Paste a product link from a store abroad and we calculate the total with delivery to Tashkent.', leadLoaded: 'Choose an option and review the estimate.',
-    label: 'Product link', placeholder: 'Paste a product link', calculate: 'Calculate', loading: 'Loading price and options from the store…',
+    label: 'Product link', placeholder: 'Paste a link', calculate: 'Calculate', loading: 'Loading price and options from the store…',
     hint: 'Use a product page link: Nike, Zara, Amazon, eBay and other stores.', stores: 'Where it works', batch: 'Add several links',
     openStore: 'Open in store', change: 'Change link', replace: 'Replace link', replaceHint: 'Paste the link from the clipboard', sharedNoLink: 'What you shared has no product link. Paste it here.', storePrice: 'Store price', checkedAt: time => `checked at ${time}`,
     unconfirmed: 'The store did not confirm every detail — review them below.', total: 'Total with delivery to Tashkent', emptyTotal: 'Enter a price and weight to see the total.',
     data: 'Calculation details', shippingReserve: 'store delivery: reserve', storeShipping: amount => `store delivery ${amount}`, kg: 'kg',
-    add: 'Add to cart', addShort: 'Add', signinAdd: 'Sign in — the item goes to your cart', guest: 'You can see the estimate without signing in. Press the button below and sign in — the item is added to your cart by itself, with the options and quantities you chose.', details: 'Import details',
+    add: 'Add to cart', addShort: 'Add', signinAdd: 'Sign in and add to cart', guest: 'You can see the estimate without signing in. Press the button below and sign in — the item is added to your cart by itself, with the options and quantities you chose.', details: 'Import details',
     unnamed: 'No name received — enter it below', fillFromStore: 'Fill these in from the product page in the store.',
     signinAddShort: 'Sign in & add',
     locked: {
@@ -810,9 +810,9 @@ export const docsCopy: Record<Locale, DocsCopy> = /*@__PURE__*/withCyrillic({
     whose: 'Чей паспорт', whoseHint: 'Паспорт привязывается к получателю — тому, кто заберёт посылку.', noRecipient: 'Сначала добавьте получателя.', addRecipient: 'Добавить получателя',
     passportOk: masked => `Паспорт ${masked}`, passportMissing: 'паспорт не добавлен', uploadStep: 'Данные паспорта', replaceStep: 'Обновить данные паспорта',
     pickFirst: 'Выберите получателя выше.', confirmedToast: 'Паспортные данные сохранены.', deleteConfirm: 'Удалить скан паспорта из защищённого хранилища?', deleteDataConfirm: 'Удалить паспортные данные этого получателя?', deleted: 'Удалено.',
-    loadError: 'Не удалось загрузить документы.', deleteError: 'Не удалось удалить документ.',
+    loadError: 'Не удалось загрузить документы. Обновите страницу.', deleteError: 'Не удалось удалить документ. Обновите страницу и повторите.',
     declTitle: 'Декларация', declLead: 'Соберём черновик из ваших заказов и подтверждённого паспорта — без повторного ввода.', need: 'Что нужно для декларации',
-    needRecipient: 'Получатель', needPassport: 'Паспорт получателя', needOrders: 'Хотя бы один заказ', addPassport: 'Добавить паспорт', newOrder: 'Заказать по ссылке',
+    needRecipient: 'Получатель', needPassport: 'Паспорт получателя', needOrders: 'Хотя бы один заказ', addPassport: 'Указать паспорт', newOrder: 'Заказать по ссылке',
     ordersFor: name => `Заказы для: ${name}`, selectGroup: 'Выбрать все', usd: amount => `≈ $${amount}`, overLimit: 'Больше $200 — с превышения платится пошлина.', history: 'Черновики деклараций',
   },
   uz: {
@@ -820,9 +820,9 @@ export const docsCopy: Record<Locale, DocsCopy> = /*@__PURE__*/withCyrillic({
     whose: 'Kimning pasporti', whoseHint: 'Pasport qabul qiluvchiga — posilkani oladigan odamga bog‘lanadi.', noRecipient: 'Avval qabul qiluvchini qo‘shing.', addRecipient: 'Qabul qiluvchi qo‘shish',
     passportOk: masked => `Pasport ${masked}`, passportMissing: 'pasport qo‘shilmagan', uploadStep: 'Pasport ma’lumotlari', replaceStep: 'Pasport ma’lumotlarini yangilash',
     pickFirst: 'Yuqorida qabul qiluvchini tanlang.', confirmedToast: 'Pasport ma’lumotlari saqlandi.', deleteConfirm: 'Pasport skani himoyalangan omborxonadan o‘chirilsinmi?', deleteDataConfirm: 'Bu qabul qiluvchining pasport ma’lumotlari o‘chirilsinmi?', deleted: 'O‘chirildi.',
-    loadError: 'Hujjatlarni yuklab bo‘lmadi.', deleteError: 'Hujjatni o‘chirib bo‘lmadi.',
+    loadError: 'Hujjatlarni yuklab bo‘lmadi. Sahifani yangilang.', deleteError: 'Hujjatni o‘chirib bo‘lmadi. Sahifani yangilab, qayta urining.',
     declTitle: 'Deklaratsiya', declLead: 'Buyurtmalaringiz va tasdiqlangan pasportdan qoralama tayyorlaymiz — qayta kiritmasdan.', need: 'Deklaratsiya uchun nima kerak',
-    needRecipient: 'Qabul qiluvchi', needPassport: 'Qabul qiluvchi pasporti', needOrders: 'Kamida bitta buyurtma', addPassport: 'Pasport qo‘shish', newOrder: 'Havola orqali buyurtma',
+    needRecipient: 'Qabul qiluvchi', needPassport: 'Qabul qiluvchi pasporti', needOrders: 'Kamida bitta buyurtma', addPassport: 'Pasportni kiritish', newOrder: 'Havola orqali buyurtma',
     ordersFor: name => `Buyurtmalar: ${name}`, selectGroup: 'Hammasini tanlash', usd: amount => `≈ $${amount}`, overLimit: '$200 dan ko‘p — limitdan ortiq qismga boj to‘lanadi.', history: 'Deklaratsiya qoralamalari',
   },
   en: {
@@ -830,9 +830,9 @@ export const docsCopy: Record<Locale, DocsCopy> = /*@__PURE__*/withCyrillic({
     whose: 'Whose passport', whoseHint: 'A passport belongs to a recipient — the person who collects the parcel.', noRecipient: 'Add a recipient first.', addRecipient: 'Add recipient',
     passportOk: masked => `Passport ${masked}`, passportMissing: 'no passport yet', uploadStep: 'Passport details', replaceStep: 'Update passport details',
     pickFirst: 'Choose a recipient above.', confirmedToast: 'Passport details saved.', deleteConfirm: 'Delete the passport scan from protected storage?', deleteDataConfirm: 'Delete this recipient’s passport details?', deleted: 'Deleted.',
-    loadError: 'Could not load documents.', deleteError: 'Could not delete the document.',
+    loadError: 'Couldn’t load documents. Refresh the page.', deleteError: 'Couldn’t delete the document. Refresh and try again.',
     declTitle: 'Declaration', declLead: 'We build a draft from your orders and the confirmed passport — nothing to retype.', need: 'What a declaration needs',
-    needRecipient: 'A recipient', needPassport: 'The recipient’s passport', needOrders: 'At least one order', addPassport: 'Add passport', newOrder: 'Order by link',
+    needRecipient: 'A recipient', needPassport: 'The recipient’s passport', needOrders: 'At least one order', addPassport: 'Add passport details', newOrder: 'Order by link',
     ordersFor: name => `Orders for: ${name}`, selectGroup: 'Select all', usd: amount => `≈ $${amount}`, overLimit: 'Over $200 — duty applies to the excess.', history: 'Declaration drafts',
   },
 });

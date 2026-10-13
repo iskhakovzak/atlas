@@ -1,5 +1,5 @@
 'use client';
-import {useId,useState} from 'react';
+import {Fragment,useId,useState} from 'react';
 import {Check,HandCoins,Scale,Wallet} from 'lucide-react';
 import {formatKg,formatPercent,formatSum,formatUsd} from '@/lib/market/format';
 import {calcCopy} from '@/lib/market/calc-copy';
@@ -14,11 +14,15 @@ import {InfoTip} from '@/components/info-tip';
 
 type Sums=Pick<Quote,'merchandise'|'service'|'shipping'|'reserve'|'total'>&{buyout?:number;conversion?:number;sourceShipping?:number;deliveryMargin?:number;optionalServices?:number;storeShippingHold?:number;customsHelp?:number;customsDuty?:number;/** Parcel insurance (value-percent services), part of the total. */insurance?:number};
 
+/** The guarantee's rate when every guaranteed line shares one (a parcel over the threshold takes the higher rate). */
+type GuaranteeRate={insuranceRate?:number};
+
 /** Sum of quote lines, for a cart or the link-order preview. */
-export function sumQuotes(quotes:(Partial<Sums>&Pick<Partial<Quote>,'serviceFees'>)[]):Required<Sums>{
+export function sumQuotes(quotes:(Partial<Sums>&Pick<Partial<Quote>,'serviceFees'>)[]):Required<Sums>&GuaranteeRate{
  const keys=['merchandise','service','shipping','reserve','total','buyout','conversion','sourceShipping','deliveryMargin','optionalServices','storeShippingHold','customsHelp','customsDuty'] as const;
  const sums=Object.fromEntries(keys.map(key=>[key,quotes.reduce((sum,quote)=>sum+(quote[key]??0),0)])) as Omit<Required<Sums>,'insurance'>;
- return {...sums,insurance:quotes.reduce((sum,quote)=>sum+(quote.serviceFees??[]).reduce((fees,fee)=>fees+fee.amount,0),0)};
+ const rates=new Set(quotes.flatMap(quote=>(quote.serviceFees??[]).filter(fee=>fee.amount>0).map(fee=>fee.rate)));
+ return {...sums,insurance:quotes.reduce((sum,quote)=>sum+(quote.serviceFees??[]).reduce((fees,fee)=>fees+fee.amount,0),0),...(rates.size===1?{insuranceRate:[...rates][0]}:{})};
 }
 
 const kgText=(weightKg:number|undefined,locale:Locale)=>weightKg===undefined?'':new Intl.NumberFormat(locale==='en'?'en-US':'ru-RU',{maximumFractionDigits:2}).format(weightKg);
@@ -31,7 +35,7 @@ export const usdText=(value:number,locale:Locale)=>new Intl.NumberFormat(locale=
  * store delivery, the reserve and customs on their own lines; then the store-delivery hold (never in the total).
  * Same grouping as the item card (app/cost-lines.tsx, lib/market/quote-presentation.ts).
  */
-export function CalcLines({sums,locale,pricing,weightKg,speed,children}:{sums:Required<Sums>;locale:Locale;pricing:Pricing;weightKg?:number;storeShippingState:'stated'|'free'|'hold'|'none';anyFree?:boolean;/** Names the chosen delivery speed on the international line. */speed?:DeliverySpeed;children?:React.ReactNode}){
+export function CalcLines({sums,locale,pricing,weightKg,speed,children}:{sums:Required<Sums>&GuaranteeRate;locale:Locale;pricing:Pricing;weightKg?:number;storeShippingState:'stated'|'free'|'hold'|'none';anyFree?:boolean;/** Names the chosen delivery speed on the international line. */speed?:DeliverySpeed;children?:React.ReactNode}){
  const c=calcCopy[locale];
  const internationalLabel=speed?`${c.lines.international(kgText(weightKg,locale))} · ${c.speeds[speed]}`:c.lines.international(kgText(weightKg,locale));
  // Free or held store delivery is not a line (owner, 12 October 2026): a held amount has its own block outside the
@@ -60,7 +64,8 @@ export function CalcLines({sums,locale,pricing,weightKg,speed,children}:{sums:Re
    </div>
    {sums.sourceShipping>0&&<SummaryLine label={c.lines.storeShipping} amount={sums.sourceShipping} locale={locale}/>}
    {sums.reserve>0&&<SummaryLine label={c.lines.intlReserve} amount={sums.reserve} locale={locale} help={c.intlReserveHelp} helpLabel={c.lines.intlReserve}/>}
-   {sums.insurance>0&&<SummaryLine label={c.lines.insurance} amount={sums.insurance} locale={locale}/>}
+   {/* The rate as on the order card (app/cost-lines.tsx); left out when the cart's parcels have different rates. */}
+   {sums.insurance>0&&<SummaryLine label={sums.insuranceRate===undefined?c.lines.insurance:`${c.lines.insurance} · ${formatPercent(sums.insuranceRate,locale)}`} amount={sums.insurance} locale={locale}/>}
    {sums.optionalServices>0&&<SummaryLine label={c.lines.optional} amount={sums.optionalServices} locale={locale}/>}
    {sums.customsDuty>0&&<SummaryLine label={c.lines.customsDuty} amount={sums.customsDuty} locale={locale} help={c.customsDutyHelp} helpLabel={c.lines.customsDuty}/>}
   </div>
@@ -99,25 +104,31 @@ export function HoldNote({amount,locale}:{amount:number;locale:Locale;/** Kept f
 }
 
 /**
- * The bill before a link is pasted: the same rows as a real bill, the amounts left as blanks, each row
- * stating its live rule from the tariff. It shows the shape of the answer instead of a list of promises.
+/**
+ * The bill before a link is pasted: the same rows as a real bill (CalcLines) — the items, one "Atlas service" row with
+ * its parts (the Atlas fee and international delivery) — the amounts left as blanks, each row stating its live rule
+ * from the tariff. It shows the shape of the answer instead of a list of promises.
  */
 export function BlankBill({pricing,locale}:{pricing:Pricing;locale:Locale}){
  const c=calcCopy[locale],b=c.blank;
  // Both speeds from the US window (the blank bill has no country yet).
  const daysText=(speed:DeliverySpeed)=>{const range=daysRangeFor(pricing,[],speed);const sc=deliverySpeedCopy[locale];return range?sc.days(range[0],range[1]):sc.daysUnknown;};
- const rows:[string,string][]=[
-  [b.item,b.itemSet],
-  [b.fee,b.feeRule(formatPercent(pricing.margin+pricing.buyoutFee+pricing.conversionFee,locale))],
-  [b.delivery,b.deliveryRule(c.speedRule(formatUsd(deliveryPerKgUsdFor(pricing),locale),daysText('express'),formatUsd(deliveryPerKgUsdFor(pricing,undefined,'standard'),locale),daysText('standard')),formatKg(packagingKg,locale))],
+ // The parts of "Atlas service", labelled as in the real bill's breakdown.
+ const serviceParts:[string,string][]=[
+  [c.lines.atlasFee(''),b.feeRule(formatPercent(pricing.margin+pricing.buyoutFee+pricing.conversionFee,locale))],
+  [c.lines.international(''),b.deliveryRule(c.speedRule(formatUsd(deliveryPerKgUsdFor(pricing),locale),daysText('express'),formatUsd(deliveryPerKgUsdFor(pricing,undefined,'standard'),locale),daysText('standard')),formatKg(packagingKg,locale))],
+ ];
+ const rows:[string,React.ReactNode][]=[
+  [c.lines.items,b.itemSet],
+  [c.lines.service,<>{c.lines.serviceBreakdown}:{serviceParts.map(([label,rule])=><Fragment key={label}><br/>{label} — {rule}</Fragment>)}</>],
   // A reserve on top of delivery only when the tariff still sets one (none since 5 October 2026).
-  ...(pricing.reserve>0?[[b.reserve,b.reserveRule] as [string,string]]:[]),
+  ...(pricing.reserve>0?[[c.lines.intlReserve,b.reserveRule] as [string,string]]:[]),
  ];
  return <section className="bill-blank" aria-labelledby="bill-blank-title">
   <h2 id="bill-blank-title">{b.title}<InfoTip locale={locale}>{b.lead}</InfoTip></h2>
   <p className="bill-blank-lead tip-text">{b.lead}</p>
   <dl className="bill">{rows.map(([label,rule])=><div key={label}><dt>{label}</dt><dd className="bill-fill" aria-hidden="true"/><dd className="bill-note">{rule}</dd></div>)}</dl>
-  <p className="bill-total"><span>{b.total}</span><span className="bill-fill" aria-hidden="true"/></p>
+  <p className="bill-total"><span>{c.lines.total}</span><span className="bill-fill" aria-hidden="true"/></p>
   <div className="bill-blank-outside"><h3>{c.outside}</h3><ul>
    <li>{b.storeRule(formatUsd(pricing.storeShippingFreeFromUsd??50,locale),formatUsd(unknownStoreShippingUsd,locale))}</li>
    <li>{b.customsRule(formatUsd(pricing.customsAllowanceUsd??courierAllowanceUsd,locale))}</li>

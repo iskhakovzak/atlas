@@ -5,6 +5,7 @@ import {KeyRound,Mail,MessageCircle,Plus,Smartphone} from 'lucide-react';
 import { toast } from '@/lib/market/toast';
 import type {Locale} from '@/lib/market/i18n';
 import {Modal} from './market-ui';
+import {SafeDeleteButton} from './safe-delete-button';
 import {InfoTip} from '@/components/info-tip';
 import {isNative} from '@/lib/native/bridge';
 import {AppleButton,AppleMark,OtpLogin,TelegramBotLogin,TelegramLogin,appleOffered,loginCopy,openProvider} from './login-view';
@@ -25,7 +26,7 @@ const icons={telegram:MessageCircle,phone:Smartphone,email:Mail,google:KeyRound,
 export function SignInMethods({locale}:{locale:Locale}){
  const c=copy[locale],lc=loginCopy(locale);
  const [links,setLinks]=useState<Links|null>(null),[available,setAvailable]=useState<Available|null>(null),[failed,setFailed]=useState(false);
- const [adding,setAdding]=useState<Method|null>(null),[error,setError]=useState<string|null>(null),[busy,setBusy]=useState<string|null>(null);
+ const [adding,setAdding]=useState<Method|null>(null),[error,setError]=useState<string|null>(null);
  const errorText=useCallback((code?:string)=>code?(code in lc.errors?lc.errors[code as keyof typeof lc.errors]:lc.errors.fallback):'',[lc]);
  const load=useCallback(async()=>{
   try{
@@ -47,19 +48,19 @@ export function SignInMethods({locale}:{locale:Locale}){
  },[]);
  const attached=useCallback(()=>{setAdding(null);setError(null);toast.success(c.linked);void load()},[c.linked,load]);
  const showError=useCallback((code?:string)=>setError(code?errorText(code):null),[errorText]);
- async function remove(subject:string){
-  setBusy(subject);
+ // Unlinking takes a second tap (SafeDeleteButton), which also locks the button while the request runs.
+ async function remove(subject:string):Promise<boolean>{
   try{
    const response=await fetch('/api/auth/links',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({remove:subject})});
    if(!response.ok){
     // A stable code from the server (for example link_current) explains the refusal; anything else is the generic message.
     const failure=await response.json().catch(()=>null) as {error?:unknown}|null;
     toast.error(typeof failure?.error==='string'?errorText(failure.error):lc.errors.fallback);
-    return;
+    return false;
    }
    setLinks(await response.json() as Links);toast.success(c.removed);
-  }catch{toast.error(lc.errors.fallback)}
-  finally{setBusy(null)}
+   return true;
+  }catch{toast.error(lc.errors.fallback);return false}
  }
  const items=links?[{subject:'',method:links.own.method,contact:links.own.contact,own:true},...links.linked.map(item=>({...item,own:false}))]:[];
  const has=(method:Method)=>items.some(item=>item.method===method);
@@ -73,7 +74,7 @@ export function SignInMethods({locale}:{locale:Locale}){
    <span className="signin-method-icon" aria-hidden="true"><Icon size={18}/></span>
    <span className="signin-method-body"><b>{c.names[item.method]}</b><small>{item.contact}</small></span>
    {item.own&&<em className="signin-method-tag">{c.own}</em>}
-   {!item.own&&<button type="button" className="text-button signin-method-remove" disabled={busy===item.subject} onClick={()=>void remove(item.subject)}>{c.remove}</button>}
+   {!item.own&&<SafeDeleteButton label={c.remove} itemName={`${c.names[item.method]} ${item.contact}`} locale={locale} onConfirm={()=>remove(item.subject)}/>}
   </li>})}</ul>}
   {!!addable.length&&<div className="signin-add">{addable.map(method=>{const Icon=icons[method];return method==='apple'&&available
    ?<AppleButton key={method} link methods={available} returnTo={returnTo} label={c.names.apple} onDone={attached} onError={code=>{if(code)toast.error(errorText(code))}}/>

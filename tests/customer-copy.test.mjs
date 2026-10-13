@@ -109,5 +109,5 @@ test('checkout copy says what happens next once and lets the button accept custo
     assert.match(calc.customs.choice.fee('120 000', '100 000', '4,98%'), /120 000.*100 000.*4,98%/);
   }
   assert.doesNotMatch(cartCopy.ru.success.pending, /не списыва/);
-  assert.equal(cartCopy.uz.summary.payable, 'To‘lov uchun');
+  assert.equal(cartCopy.uz.summary.payable, 'To‘lovga');
 });

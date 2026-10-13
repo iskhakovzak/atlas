@@ -12,11 +12,12 @@ export const customsCheckedOn = '2026-10-04';
 export const courierAllowanceUsd = 200;
 const customsRuleDisputeStart = '2026-09-01';
 const scheduledCourierRateStart = '2027-01-01';
-export const customsReferences = [
-  { title: 'ПКМ №244: лимит $200 в календарный месяц, платёж с превышения', url: 'https://lex.uz/docs/7484114' },
-  { title: 'ПП-4508: действующая сводная редакция', url: 'https://lex.uz/ru/docs/4585744?ONDATE=01.09.2026' },
-  { title: 'УП-174: ставка и дата начала применения', url: 'https://lex.uz/uz/docs/8444993' },
-  { title: 'ПП-136: отдельный режим бондовых складов', url: 'https://lex.uz/docs/8131458' },
+/** The official sources on /customs; the title per language (Uzbek Cyrillic is transliterated from `uz`). */
+export const customsReferences: { title: { ru: string; uz: string; en: string }; url: string }[] = [
+  { title: { ru: 'ПКМ №244: лимит $200 в календарный месяц, платёж с превышения', uz: 'VMQ №244: oyiga $200 limit, oshgan qismdan to‘lov', en: 'CM Resolution No. 244: $200 monthly allowance, payment on the excess' }, url: 'https://lex.uz/docs/7484114' },
+  { title: { ru: 'ПП-4508: действующая сводная редакция', uz: 'PQ-4508: amaldagi jamlangan tahrir', en: 'PP-4508: current consolidated text' }, url: 'https://lex.uz/ru/docs/4585744?ONDATE=01.09.2026' },
+  { title: { ru: 'УП-174: ставка и дата начала применения', uz: 'PF-174: stavka va qo‘llanish sanasi', en: 'UP-174: rate and start date' }, url: 'https://lex.uz/uz/docs/8444993' },
+  { title: { ru: 'ПП-136: отдельный режим бондовых складов', uz: 'PQ-136: bond omborlari uchun alohida rejim', en: 'PP-136: separate bonded-warehouse regime' }, url: 'https://lex.uz/docs/8131458' },
 ];
 function validArrivalDate(date: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(date) && Number.isFinite(Date.parse(date)) && new Date(date).toISOString().slice(0, 10) === date;

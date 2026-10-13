@@ -20,8 +20,9 @@ export type CalcCopy = {
   /** Delivery speed words for the international line and the blank bill. */
   speeds: { express: string; standard: string }; speedRule: (express: string, expressDays: string, standard: string, standardDays: string) => string;
   blank: {
-    title: string; lead: string; item: string; itemSet: string; fee: string; feeRule: (percent: string) => string;
-    delivery: string; deliveryRule: (perKg: string, packaging: string) => string; reserve: string; reserveRule: string; total: string;
+    /** Rows reuse the real bill's labels (`lines`): items, then Atlas service with the fee and international delivery. */
+    title: string; lead: string; itemSet: string; feeRule: (percent: string) => string;
+    deliveryRule: (perKg: string, packaging: string) => string; reserveRule: string;
     storeRule: (freeFrom: string, hold: string) => string; customsRule: (allowance: string) => string;
   };
   customs: {
@@ -65,10 +66,10 @@ export const calcCopy: Record<Locale, CalcCopy> = /*@__PURE__*/withCyrillic({
     outside: 'Не входит в сумму к оплате',
     blank: {
       title: 'Так будет выглядеть счёт', lead: 'Вставьте ссылку, и мы заполним каждую строку в сумах.',
-      item: 'Цена товара', itemSet: 'по курсу Atlas',
-      fee: 'Комиссия Atlas', feeRule: percent => `${percent} от цены товара`,
-      delivery: 'Доставка в Ташкент', deliveryRule: (perKg, packaging) => `${perKg} за кг, плюс ${packaging} кг упаковки, минимум 1 кг`,
-      reserve: 'Возвратный резерв', reserveRule: 'запас на вес; остаток вернём на баланс', total: 'К оплате',
+      itemSet: 'по курсу Atlas',
+      feeRule: percent => `${percent} от цены товаров`,
+      deliveryRule: (perKg, packaging) => `${perKg} за кг, плюс ${packaging} кг упаковки, минимум 1 кг`,
+      reserveRule: 'запас на вес; остаток вернём на баланс',
       storeRule: (freeFrom, hold) => `Доставка магазина до склада, если он её не указал: бесплатно при заказе дороже ${freeFrom}, иначе резерв ${hold} отдельно.`,
       customsRule: allowance => `Таможенная пошлина: до ${allowance} в месяц на получателя не нужна.`,
     },
@@ -110,7 +111,7 @@ export const calcCopy: Record<Locale, CalcCopy> = /*@__PURE__*/withCyrillic({
     weightStore: 'Qadoqli vaznni do‘kon ko‘rsatgan.', weightEstimate: category => `«${category}» uchun Atlas bahosi — aniqroq bilsangiz, tuzating.`, weightTitle: 'Tovar nomi bo‘yicha Atlas bahosi — aniqroq bilsangiz, tuzating.', weightCustomer: 'Vaznni siz kiritdingiz.', weightCatalog: 'Katalog tovari vaznini Atlas belgilagan.',
     weightRule: packaging => `Jo‘natma vazniga qadoq uchun ${packaging} kg qo‘shamiz — bitta do‘kondan kelgan jo‘natmaga bir marta. Kamida 1 kg. Ombor jo‘natmani tortadi: yengil chiqsa — farqni balansga qaytaramiz, og‘ir chiqsa — qo‘shimcha to‘lov faqat sizning roziligingiz bilan.`, parcelWeight: kg => `Jo‘natmaning pullik vazni: ${kg} kg`,
     commentPlaceholder: 'Buyurtmadan oldin hisobga olishimiz kerak bo‘lgan istak yoki muhim ma’lumot', commentHint: 'Faqat Atlas ko‘radi, do‘konga yuborilmaydi.', commentShort: 'Izoh',
-    lines: { items: 'Tovarlar', service: 'Atlas xizmati', serviceBreakdown: 'Xizmat tarkibi', atlasFee: p => p ? `Atlas komissiyasi ${p}` : 'Atlas komissiyasi', buyout: 'Xarid', conversion: 'Konvertatsiya', storeShipping: 'Do‘kon yetkazishi', free: 'Bepul', international: kg => kg ? `Xalqaro yetkazish, ${kg} kg` : 'Xalqaro yetkazish', intlReserve: 'Xalqaro yetkazish zaxirasi', insurance: 'Atlas saqlash kafolati', optional: 'Qo‘shimcha xizmatlar', total: 'To‘lov uchun', holdOutside: 'zaxira alohida', customsHelp: p => `Bojxonani Atlas orqali to‘lash ${p}`, customsDuty: 'Bojxona boji, oldindan to‘lov' },
+    lines: { items: 'Tovarlar', service: 'Atlas xizmati', serviceBreakdown: 'Xizmat tarkibi', atlasFee: p => p ? `Atlas komissiyasi ${p}` : 'Atlas komissiyasi', buyout: 'Xarid', conversion: 'Konvertatsiya', storeShipping: 'Do‘kon yetkazishi', free: 'Bepul', international: kg => kg ? `Xalqaro yetkazish, ${kg} kg` : 'Xalqaro yetkazish', intlReserve: 'Xalqaro yetkazish zaxirasi', insurance: 'Atlas saqlash kafolati', optional: 'Qo‘shimcha xizmatlar', total: 'To‘lovga', holdOutside: 'zaxira alohida', customsHelp: p => `Bojxonani Atlas orqali to‘lash ${p}`, customsDuty: 'Bojxona boji, oldindan to‘lov' },
     hold: 'Do‘kon yetkazishi uchun zaxira', holdNote: 'Do‘kon yetkazish narxini tasdiqlagach, qoldig‘ini bo‘shatamiz',
     holdHelp: freeFrom => `Do‘kon omborgacha yetkazishni ko‘rsatmagan. Menejer haqiqiy summani do‘kondan tasdiqlaguncha bu zaxirani buyurtma to‘lovidan alohida ushlab turamiz. Arzon chiqsa — qoldig‘ini bo‘shatamiz; qimmat chiqsa — farq faqat roziligingiz bilan. Do‘kondan ${freeFrom} dan qimmat buyurtmada yetkazish bepul va zaxira kerak emas.`,
     freeNote: freeFrom => `Do‘kondan ${freeFrom} dan ortiq buyurtma: omborgacha yetkazish bepul.`,
@@ -122,10 +123,10 @@ export const calcCopy: Record<Locale, CalcCopy> = /*@__PURE__*/withCyrillic({
     outside: 'To‘lov summasiga kirmaydi',
     blank: {
       title: 'Hisob shunday ko‘rinadi', lead: 'Havolani qo‘ying, har bir satrni so‘mda to‘ldiramiz.',
-      item: 'Tovar narxi', itemSet: 'Atlas kursi bilan',
-      fee: 'Atlas komissiyasi', feeRule: percent => `tovar narxining ${percent}`,
-      delivery: 'Toshkentga yetkazib berish', deliveryRule: (perKg, packaging) => `har kg uchun ${perKg}, qadoq uchun ${packaging} kg, kamida 1 kg`,
-      reserve: 'Qaytariladigan zaxira', reserveRule: 'og‘irlik uchun zaxira; qolgani balansga qaytadi', total: 'To‘lov uchun',
+      itemSet: 'Atlas kursi bilan',
+      feeRule: percent => `tovarlar narxining ${percent}`,
+      deliveryRule: (perKg, packaging) => `har kg uchun ${perKg}, qadoq uchun ${packaging} kg, kamida 1 kg`,
+      reserveRule: 'og‘irlik uchun zaxira; qolgani balansga qaytadi',
       storeRule: (freeFrom, hold) => `Do‘kon omborgacha yetkazish narxini ko‘rsatmasa: ${freeFrom} dan qimmat buyurtmada bepul, aks holda ${hold} zaxira alohida.`,
       customsRule: allowance => `Bojxona to‘lovi: bitta oluvchiga oyiga ${allowance} gacha kerak emas.`,
     },
@@ -179,10 +180,10 @@ export const calcCopy: Record<Locale, CalcCopy> = /*@__PURE__*/withCyrillic({
     outside: 'Not in the amount to pay',
     blank: {
       title: 'This is how the bill will look', lead: 'Paste a link and we fill in every line in soum.',
-      item: 'Item price', itemSet: 'at the Atlas rate',
-      fee: 'Atlas fee', feeRule: percent => `${percent} of the item price`,
-      delivery: 'Delivery to Tashkent', deliveryRule: (perKg, packaging) => `${perKg} per kg, plus ${packaging} kg packaging, at least 1 kg`,
-      reserve: 'Refundable reserve', reserveRule: 'a weight buffer; what is left returns to your balance', total: 'To pay',
+      itemSet: 'at the Atlas rate',
+      feeRule: percent => `${percent} of the price of the items`,
+      deliveryRule: (perKg, packaging) => `${perKg} per kg, plus ${packaging} kg packaging, at least 1 kg`,
+      reserveRule: 'a weight buffer; what is left returns to your balance',
       storeRule: (freeFrom, hold) => `Store delivery to the warehouse, when the store does not state it: free on orders over ${freeFrom}, otherwise a ${hold} reserve kept apart.`,
       customsRule: allowance => `Customs duty: not needed up to ${allowance} a month per recipient.`,
     },
