@@ -3,8 +3,8 @@
    total splits between the goods and the Atlas service, and how much of the duty-free month this order takes.
    Every number on it still comes from price() and the pricing settings. Loaded after day-folio.css, theme-night.css
    and folio-outside.css; selectors start at :root body to win over their theme-scoped rules (html:not([data-theme="dark"]) …). */
-.home-folio { --bq-item: var(--day-accent, #1f4d3b); --bq-service: #8fcfae; --bq-tile: var(--day-soft, #efefe9); --bq-tile-ink: var(--day-ink, #16211c); --bq-muted: var(--day-muted, #58635c); --bq-plane: var(--day-accent, #1f4d3b); --bq-track: rgba(29, 107, 71, .14); }
-html[data-theme="dark"] .home-folio { --bq-item: var(--night-jade, #80d0ac); --bq-service: var(--night-champagne, #cbb487); --bq-tile: rgba(241, 238, 229, .07); --bq-tile-ink: var(--night-ink, #f1eee5); --bq-muted: var(--night-muted, #9ba6a0); --bq-plane: var(--night-jade, #80d0ac); --bq-track: rgba(143, 216, 177, .14); }
+.home-folio { --bq-item: var(--day-accent, #1f4d3b); --bq-service: #8fcfae; --bq-tile: var(--day-soft, #efefe9); --bq-tile-ink: var(--day-ink, #16211c); --bq-muted: var(--day-muted, #58635c); --bq-plane: var(--day-accent, #1f4d3b); --bq-track: rgba(29, 107, 71, .14); --bq-pill: rgba(29, 107, 71, .08); }
+html[data-theme="dark"] .home-folio { --bq-item: var(--night-jade, #80d0ac); --bq-service: var(--night-champagne, #cbb487); --bq-tile: rgba(241, 238, 229, .07); --bq-tile-ink: var(--night-ink, #f1eee5); --bq-muted: var(--night-muted, #9ba6a0); --bq-plane: var(--night-jade, #80d0ac); --bq-track: rgba(143, 216, 177, .14); --bq-pill: rgba(128, 208, 172, .12); }
 
 /* What is bought: the store's mark on a tile, the product and its price in the store. */
 :root body .home-folio .folio-cap.bill-product { display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-start; gap: 12px; margin: 0; padding: 0 6px 2px; }
@@ -34,6 +34,12 @@ html[data-theme="dark"] .home-folio { --bq-item: var(--night-jade, #80d0ac); --b
 :root body .home-folio .bill-split > span:first-child { background: var(--bq-item); }
 :root body .home-folio .bill-split > span:last-child { background: var(--bq-service); }
 
+/* The breakdown under «Atlas service»: a short name and the rule next to it in grey ("Delivery 1 kg × $13.98"). */
+:root body .home-folio .bill-parts small { margin-left: 4px; color: var(--bq-muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+/* Under the bar, in place of the rate line: the whole bill in dollars, a quiet tinted pill. The amount stays dark. */
+:root body .home-folio .bill-usd { display: inline-flex; align-items: center; gap: 7px; justify-self: start; width: fit-content; max-width: 100%; margin: 2px 0 0; padding: 5px 12px 5px 9px; border-radius: 999px; background: var(--bq-pill); color: var(--bq-tile-ink); font-size: 13.5px; font-weight: 600; line-height: 1.35; font-variant-numeric: tabular-nums; }
+:root body .home-folio .bill-usd-icon { flex: none; color: var(--bq-plane); }
+
 /* The duty-free slip: a shield, a readable title instead of small capitals, and how much of the month this order takes. */
 :root body .home-folio .folio-outside.home-customs-slip { gap: 8px; padding: 14px 16px 15px; }
 :root body .home-folio .home-customs-slip > h2 { display: flex; align-items: center; gap: 8px; color: inherit; font-size: 14.5px; font-weight: 650; line-height: 1.35; letter-spacing: 0; text-transform: none; }
@@ -56,6 +62,7 @@ html[data-theme="dark"] .home-folio { --bq-item: var(--night-jade, #80d0ac); --b
   :root body .home-folio .folio-outside.home-customs-slip { gap: 5px; padding: 10px 14px 11px; }
   :root body .home-folio .home-customs-slip > h2 { font-size: 13.5px; }
   :root body .home-folio .home-customs-note { font-size: 12.5px; line-height: 1.4; }
+  :root body .home-folio .bill-usd { margin-top: 0; padding-block: 3px; font-size: 13px; }
 }
 
 @media (prefers-reduced-motion: no-preference) {

@@ -161,7 +161,6 @@ html[data-theme="dark"] .home-missing { border-color: #c9a23f; background: #3a31
 .home-quote dd { margin: 0; color: var(--home-ink); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .home-quote-total { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; padding-top: 16px; }
 .home-quote-total span { color: var(--home-ink); font-weight: 700; }
-.bill-fx { margin: 6px 0 0; font-size: 12px; line-height: 1.4; color: var(--muted-foreground); opacity: .8; }
 .home-quote-total strong { color: var(--home-ink); font-size: clamp(28px, 6.4vw, 36px); letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 /* The parts of the one «Atlas service» line: label left, amount right, in the note's muted type. */
 .home-quote .bill-breakdown > summary { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; cursor: pointer; list-style: none; font-weight: 600; }

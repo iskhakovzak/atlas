@@ -19,13 +19,13 @@ export type HomeCopy = {
   hero: { title: string; lead: string; label: string; placeholder: string; calculate: string; invalid: string; guestNote: string; memberNote: string; popular: string; openStore: string; batch: string; catalog: string; allStores: (count: number) => string; storesHint: string };
   how: { title: string; steps: [Step, Step, Step, Step]; paymentsLabel: string; pickupLabel: string; deliveryLabel: string; courier: string; moreStores: (count: number) => string; confirm: string };
   example: {
-    title: string; product: string; routeLabel: string; to: string; days: (min: number, max: number) => string;
-    item: string; itemNote: (usd: string) => string; rateFine: (rate: string) => string;
+    title: string; product: (usd: string) => string; routeLabel: string; to: string; days: (min: number, max: number) => string;
+    item: string; itemNote: (usd: string) => string; totalUsd: (usd: string) => string;
     /** One «Atlas service» line, as in the real bill (app/cost-lines.tsx); `fee` and `delivery` are its parts. */
     service: string; serviceParts: string; fee: (percent: string) => string;
     delivery: string; deliveryNote: (weight: string, perKg: string) => string;
     reserve: string; reserveNote: (packaging: string) => string; reserveHelpLabel: string; reserveHelp: string; total: string;
-    dutyTitle: (allowance: string) => string; dutyNote: string; dutyUsed: (used: string, allowance: string) => string;
+    dutyTitle: (allowance: string) => string; dutyNote: string; dutyUsed: (used: string, left: string) => string;
   };
   catalog: { title: string; intro: string; order: string; storePrice: string; total: string; breakdown: string };
   tariffs: { title: string; lead: string; from: string; country: string; time: string; perKg: string; perKgUnit: string; per100g: (usd: string) => string; days: (min: number, max: number) => string; pending: string; noDays: string; regions: Record<DeliveryRegion, string>; speeds: { express: string; standard: string }; speedsLabel: string; weightNote: string; rateNote: string };
@@ -68,19 +68,19 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       moreStores: (count) => `и ещё ${count}`, confirm: 'Подтвердить расчёт',
     },
     example: {
-      title: 'Пример счёта', product: 'кроссовки Nike за $100', routeLabel: 'Маршрут', to: 'Ташкент',
-      days: (min, max) => `экспресс, обычно ${min}–${max} ${ruDays(max)}`,
+      title: 'Пример счёта', product: usd => `кроссовки Nike за ${usd}`, routeLabel: 'Маршрут', to: 'Ташкент',
+      days: (min, max) => `обычная доставка, ${min}–${max} ${ruDays(max)}`,
       item: 'Цена товара',
       itemNote: usd => `${usd} по курсу Atlas`,
-      rateFine: rate => `Курс Atlas: ${rate} сум за $1, на день расчёта`,
-      service: 'Сервис Atlas', serviceParts: 'Состав сервиса', fee: (percent) => `Комиссия Atlas, ${percent} от цены товара`,
-      delivery: 'Доставка в Ташкент', deliveryNote: (weight, perKg) => `${weight} кг расчётного веса по ${perKg} за кг`,
+      totalUsd: usd => `≈ ${usd} вместе с доставкой в Ташкент`,
+      service: 'Сервис Atlas', serviceParts: 'Состав сервиса', fee: (percent) => `Комиссия ${percent}`,
+      delivery: 'Доставка', deliveryNote: (weight, perKg) => `${weight} кг × ${perKg}`,
       reserve: 'Возвратный резерв', reserveNote: packaging => `В расчёт веса заложено ${packaging} кг запаса на упаковку. После взвешивания неиспользованную сумму вернём на баланс.`, reserveHelpLabel: 'Что такое возвратный резерв',
       reserveHelp: 'Запас на случай, если посылка окажется тяжелее расчётной. После взвешивания на складе неиспользованную часть вернём на ваш баланс Atlas. Если доставка выйдет дороже резерва, сначала согласуем доплату с вами.',
       total: 'К оплате',
       dutyTitle: allowance => `Без таможенной пошлины — до\u00a0${allowance} в\u00a0месяц`,
       dutyNote: 'На одного получателя, включая покупки вне Atlas.',
-      dutyUsed: (used, allowance) => `Этот заказ займёт ${used} из ${allowance}`,
+      dutyUsed: (used, left) => `Заказ ${used} · ещё ${left} без пошлины`,
     },
     catalog: { title: 'Подборка товаров', intro: 'Товары из зарубежных магазинов, отобранные Atlas, с итогом в сумах.', order: 'Заказать', storePrice: 'Цена в магазине', total: 'С доставкой в Ташкент', breakdown: 'Из чего сумма' },
     tariffs: {
@@ -158,19 +158,19 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       moreStores: (count) => `va yana ${count} ta`, confirm: 'Hisobni tasdiqlash',
     },
     example: {
-      title: 'Hisob namunasi', product: 'Nike krossovkalari, $100', routeLabel: 'Yo‘nalish', to: 'Toshkent',
-      days: (min, max) => `ekspress, odatda ${min}–${max} ish kuni`,
+      title: 'Hisob namunasi', product: usd => `Nike krossovkalari, ${usd}`, routeLabel: 'Yo‘nalish', to: 'Toshkent',
+      days: (min, max) => `oddiy yetkazib berish, ${min}–${max} ish kuni`,
       item: 'Tovar narxi',
       itemNote: usd => `${usd}, Atlas kursi bilan`,
-      rateFine: rate => `Atlas kursi: $1 uchun ${rate} so‘m, hisob kuniga`,
-      service: 'Atlas xizmati', serviceParts: 'Xizmat tarkibi', fee: (percent) => `Atlas komissiyasi, tovar narxining ${percent}`,
-      delivery: 'Toshkentga yetkazib berish', deliveryNote: (weight, perKg) => `hisobiy vazn ${weight} kg, har kg uchun ${perKg}`,
+      totalUsd: usd => `Toshkentga yetkazish bilan ≈ ${usd}`,
+      service: 'Atlas xizmati', serviceParts: 'Xizmat tarkibi', fee: (percent) => `Komissiya ${percent}`,
+      delivery: 'Yetkazib berish', deliveryNote: (weight, perKg) => `${weight} kg × ${perKg}`,
       reserve: 'Qaytariladigan zaxira', reserveNote: packaging => `Vazn hisobiga qadoq uchun ${packaging} kg zaxira kiritilgan. Omborda tortilgach, ishlatilmagan summa balansga qaytariladi.`, reserveHelpLabel: 'Qaytariladigan zaxira nima',
       reserveHelp: 'Jo‘natma hisoblangandan og‘irroq chiqsa, ehtiyot uchun qo‘yiladi. Omborda tortilgandan keyin ishlatilmagan qismi Atlas balansingizga qaytariladi. Yetkazib berish zaxiradan qimmatroq bo‘lsa, qo‘shimcha to‘lovni avval siz bilan kelishamiz.',
       total: 'To‘lovga',
       dutyTitle: allowance => `Oyiga ${allowance}\u00a0gacha — bojsiz`,
       dutyNote: 'Bitta oluvchiga, Atlasdan tashqari xaridlar ham hisobga olinadi.',
-      dutyUsed: (used, allowance) => `Bu buyurtma: ${allowance} dan ${used}`,
+      dutyUsed: (used, left) => `Buyurtma ${used} · yana ${left} bojsiz`,
     },
     catalog: { title: 'Tovarlar to‘plami', intro: 'Atlas tanlagan xorijiy do‘kon tovarlari, yakuniy narxi so‘mda.', order: 'Buyurtma berish', storePrice: 'Do‘kondagi narx', total: 'Toshkentga yetkazish bilan', breakdown: 'Summa nimadan iborat' },
     tariffs: {
@@ -248,19 +248,19 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       moreStores: (count) => `and ${count} more`, confirm: 'Confirm the bill',
     },
     example: {
-      title: 'Example bill', product: 'Nike sneakers, $100', routeLabel: 'Route', to: 'Tashkent',
-      days: (min, max) => `express, usually ${min}–${max} business days`,
+      title: 'Example bill', product: usd => `Nike sneakers, ${usd}`, routeLabel: 'Route', to: 'Tashkent',
+      days: (min, max) => `standard delivery, ${min}–${max} business days`,
       item: 'Item price',
       itemNote: usd => `${usd} at the Atlas rate`,
-      rateFine: rate => `Atlas rate: ${rate} soum per $1, on the day of the estimate`,
-      service: 'Atlas service', serviceParts: 'Service breakdown', fee: (percent) => `Atlas fee, ${percent} of the item price`,
-      delivery: 'Delivery to Tashkent', deliveryNote: (weight, perKg) => `${weight} kg estimated weight at ${perKg} per kg`,
+      totalUsd: usd => `≈ ${usd} including delivery to Tashkent`,
+      service: 'Atlas service', serviceParts: 'Service breakdown', fee: (percent) => `Fee ${percent}`,
+      delivery: 'Delivery', deliveryNote: (weight, perKg) => `${weight} kg × ${perKg}`,
       reserve: 'Refundable reserve', reserveNote: packaging => `Estimated weight includes a ${packaging} kg packaging allowance. Any unused amount returns to your balance after weighing.`, reserveHelpLabel: 'What is the refundable reserve',
       reserveHelp: 'A buffer in case the parcel is heavier than estimated. After warehouse weighing, any unused part returns to your Atlas balance. If delivery costs more than the reserve, we agree the extra payment with you first.',
       total: 'To pay',
       dutyTitle: allowance => `No customs duty — up to\u00a0${allowance} per\u00a0month`,
       dutyNote: 'Per recipient, including purchases outside Atlas.',
-      dutyUsed: (used, allowance) => `This order uses ${used} of ${allowance}`,
+      dutyUsed: (used, left) => `This order ${used} · ${left} more duty-free`,
     },
     catalog: { title: 'Product selection', intro: 'Products from international stores, selected by Atlas, with the total in soum.', order: 'Order', storePrice: 'Store price', total: 'With delivery to Tashkent', breakdown: 'What’s in the total' },
     tariffs: {
