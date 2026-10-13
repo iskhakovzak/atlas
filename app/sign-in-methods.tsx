@@ -16,9 +16,9 @@ type Available={email:boolean;phone:boolean;telegram:string|null;telegramBot?:bo
 type Links={own:{method:Method;contact:string};linked:Array<{subject:string;method:Method;contact:string;createdAt:number}>;current:Method};
 
 const copy=/*@__PURE__*/withCyrillic({
- ru:{title:'Способы входа',lead:'Входите любым из них — откроется этот же кабинет с вашими заказами.',own:'основной',add:'Добавить',remove:'Отвязать',names:{telegram:'Telegram',phone:'Телефон',email:'Почта',google:'Google',apple:'Apple'},attach:(name:string)=>`Привязать: ${name}`,attachHint:'Подтвердите, что это ваш способ входа. Потом он будет открывать этот кабинет.',linked:'Способ входа привязан.',removed:'Способ входа отвязан.',failed:'Не удалось загрузить способы входа.'},
- uz:{title:'Kirish usullari',lead:'Istalganidan foydalaning — buyurtmalaringiz bilan shu kabinet ochiladi.',own:'asosiy',add:'Qo‘shish',remove:'Uzish',names:{telegram:'Telegram',phone:'Telefon',email:'Pochta',google:'Google',apple:'Apple'},attach:(name:string)=>`Bog‘lash: ${name}`,attachHint:'Bu sizning kirish usulingiz ekanini tasdiqlang. Keyin u shu kabinetni ochadi.',linked:'Kirish usuli bog‘landi.',removed:'Kirish usuli uzildi.',failed:'Kirish usullarini yuklab bo‘lmadi.'},
- en:{title:'Sign-in methods',lead:'Use any of them — the same account with your orders opens.',own:'main',add:'Add',remove:'Remove',names:{telegram:'Telegram',phone:'Phone',email:'Email',google:'Google',apple:'Apple'},attach:(name:string)=>`Attach ${name}`,attachHint:'Confirm this sign-in method is yours. It will then open this account.',linked:'Sign-in method attached.',removed:'Sign-in method removed.',failed:'Could not load sign-in methods.'},
+ ru:{title:'Способы входа',lead:'Входите любым из них — откроется этот же кабинет с вашими заказами.',own:'основной',add:'Добавить',remove:'Отвязать',confirmRemove:'Подтвердить отвязку',names:{telegram:'Telegram',phone:'Телефон',email:'Почта',google:'Google',apple:'Apple'},attach:(name:string)=>`Привязать: ${name}`,attachHint:'Подтвердите, что это ваш способ входа. Потом он будет открывать этот кабинет.',linked:'Способ входа привязан.',removed:'Способ входа отвязан.',failed:'Не удалось загрузить способы входа.'},
+ uz:{title:'Kirish usullari',lead:'Istalganidan foydalaning — buyurtmalaringiz bilan shu kabinet ochiladi.',own:'asosiy',add:'Qo‘shish',remove:'Uzish',confirmRemove:'Uzishni tasdiqlash',names:{telegram:'Telegram',phone:'Telefon',email:'Pochta',google:'Google',apple:'Apple'},attach:(name:string)=>`Bog‘lash: ${name}`,attachHint:'Bu sizning kirish usulingiz ekanini tasdiqlang. Keyin u shu kabinetni ochadi.',linked:'Kirish usuli bog‘landi.',removed:'Kirish usuli uzildi.',failed:'Kirish usullarini yuklab bo‘lmadi.'},
+ en:{title:'Sign-in methods',lead:'Use any of them — the same account with your orders opens.',own:'main',add:'Add',remove:'Remove',confirmRemove:'Confirm unlinking',names:{telegram:'Telegram',phone:'Phone',email:'Email',google:'Google',apple:'Apple'},attach:(name:string)=>`Attach ${name}`,attachHint:'Confirm this sign-in method is yours. It will then open this account.',linked:'Sign-in method attached.',removed:'Sign-in method removed.',failed:'Could not load sign-in methods.'},
 }) satisfies Record<Locale,unknown>;
 const icons={telegram:MessageCircle,phone:Smartphone,email:Mail,google:KeyRound,apple:AppleMark};
 
@@ -74,7 +74,7 @@ export function SignInMethods({locale}:{locale:Locale}){
    <span className="signin-method-icon" aria-hidden="true"><Icon size={18}/></span>
    <span className="signin-method-body"><b>{c.names[item.method]}</b><small>{item.contact}</small></span>
    {item.own&&<em className="signin-method-tag">{c.own}</em>}
-   {!item.own&&<SafeDeleteButton label={c.remove} itemName={`${c.names[item.method]} ${item.contact}`} locale={locale} onConfirm={()=>remove(item.subject)}/>}
+   {!item.own&&<SafeDeleteButton label={c.remove} confirmLabel={c.confirmRemove} itemName={`${c.names[item.method]} ${item.contact}`} locale={locale} onConfirm={()=>remove(item.subject)}/>}
   </li>})}</ul>}
   {!!addable.length&&<div className="signin-add">{addable.map(method=>{const Icon=icons[method];return method==='apple'&&available
    ?<AppleButton key={method} link methods={available} returnTo={returnTo} label={c.names.apple} onDone={attached} onError={code=>{if(code)toast.error(errorText(code))}}/>

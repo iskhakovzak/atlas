@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ActionError, codedActionError, editorialShippingFor, prepareAction, staleRevision } from '../lib/market/actions-server.ts';
-import { addToCart, blank, cartSignature, holdOf, products, setCartCustoms, storeShippingReserves, tariff } from '../lib/market/domain.ts';
+import { addToCart, blank, cartSignature, deliveryProfileSchema, holdOf, products, setCartCustoms, storeShippingReserves, tariff } from '../lib/market/domain.ts';
+import { z } from 'zod';
 import { defaultPolicy } from '../lib/market/policy.ts';
 import { initialCatalog } from '../lib/market/catalog-editor.ts';
 import { communityCatalogProducts } from '../lib/market/community-deals.ts';
@@ -183,6 +184,10 @@ test('(i) a product the store no longer confirms is a 400 with a localized code'
 
 test('the route maps coded errors and detects a stale revision', async () => {
   assert.deepEqual(codedActionError(new ActionError(409, 'err_34')), { status: 409, code: 'err_34' });
+  // Zod's raw JSON never reaches the customer: a recipient field gets err_80, anything else the generic err_10.
+  const recipientIssue = deliveryProfileSchema.safeParse({ recipient: 'A', phone: '+998901234567', region: 'Ташкент', city: 'Ташкент', address: 'ул.' }).error;
+  assert.deepEqual(codedActionError(recipientIssue), { status: 400, code: 'err_80' });
+  assert.deepEqual(codedActionError(z.object({ count: z.number() }).safeParse({ count: 'x' }).error), { status: 400, code: 'err_10' });
   assert.deepEqual(codedActionError(Object.assign(Error('Укажите почтовый индекс получателя: 6 цифр.'), { code: 'err_61' })), { status: 400, code: 'err_61' });
   assert.equal(codedActionError(Object.assign(Error('socket'), { code: 'ECONNRESET' })), undefined);
   assert.equal(codedActionError(Error('Корзина пуста.')), undefined);

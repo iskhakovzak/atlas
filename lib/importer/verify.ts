@@ -71,10 +71,10 @@ export function compareProductSnapshot(product: Product, selectedLabel: string, 
   if(variant?.availabilityKnown===false)
     return {status:'blocked',kind:'variant',code:'err_69',message:'Магазин не подтвердил наличие выбранного варианта. Повторите загрузку позже.'};
   const price = extracted.variantScope==='group'&&(extracted.variants?.length??0)>1?variant?.price:variant?.price ?? extracted.price;
-  if (price === undefined) return { status: 'blocked', kind: 'price', code: 'err_70', message: 'Магазин не подтвердил цену выбранного варианта.' };
+  if (price === undefined) return { status: 'blocked', kind: 'price', code: 'err_70', message: 'Магазин не подтвердил цену выбранного варианта. Выберите другой цвет или размер либо вставьте ссылку заново.' };
   // Stock is known only when the store reports a count (eBay); otherwise it stays unknown, never guessed.
   if (variant?.quantity === 0 || variant?.available === false)
-    return { status: 'blocked', kind: 'stock', code: 'err_71', message: 'Этого варианта больше нет в наличии у магазина.' };
+    return { status: 'blocked', kind: 'stock', code: 'err_71', message: 'Этого варианта сейчас нет в наличии у магазина. Выберите другой цвет или размер.' };
   const stockKnown = variant?.quantity !== undefined || variant?.quantityMoreThan !== undefined;
   const checkedUrl=extracted.sourceUrl??product.sourceUrl;
   const sourceImages=variantGallery(variant,extracted.colorwayImages??[],checkedUrl);

@@ -1,3 +1,4 @@
+import { ZodError } from 'zod';
 import type { Extracted } from '../importer/extract.ts';
 import { ManualEntryFallbackError, UnsupportedStoreError } from '../importer/fetch.ts';
 import { manualFallbackAllowed, requiresMerchantSnapshot } from '../importer/manual-fallback.ts';
@@ -34,8 +35,11 @@ export class ActionError extends Error {
  * an ActionError, or an Error with its own `code` such as 'err_61' (domain and action checks). Anything else
  * is answered with its message, as before. A code whose text needs values the caller does not have is left out.
  */
+const recipientFields = new Set(['recipient', 'phone', 'region', 'city', 'address', 'postalCode', 'comment']);
 export function codedActionError(error: unknown): { status: number; code: string } | undefined {
   if (error instanceof ActionError) return { status: error.status, code: error.code };
+  // A schema refusal inside an action (an older saved recipient, a malformed value) used to reach the customer as Zod's raw JSON.
+  if (error instanceof ZodError) return { status: 400, code: error.issues.length && error.issues.every((issue) => recipientFields.has(String(issue.path.at(-1)))) ? 'err_80' : 'err_10' };
   if (error instanceof UnsupportedStoreError || !(error instanceof Error)) return undefined;
   const code = Object.prototype.hasOwnProperty.call(error, 'code') ? (error as { code?: unknown }).code : undefined;
   return typeof code === 'string' && /^err_\d+$/.test(code) ? { status: 400, code } : undefined;

@@ -25,6 +25,8 @@ export async function POST(request: Request) {
     await identity();
     throw new HttpError(410, 'err_79');
   } catch (error) {
+    // The upload is never read; an unconsumed body left the local workerd restarting on the next request.
+    await request.body?.cancel().catch(() => undefined);
     return failure(error, request);
   }
 }

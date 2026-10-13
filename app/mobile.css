@@ -61,6 +61,10 @@ body { -webkit-tap-highlight-color: transparent; }
   :is(.basket-fav, .basket-later, .basket-variant > .remove-item, .basket-variant .basket-qty button, .lo-stepper button, .customs-how-close) { position: relative; }
   :is(.basket-fav, .basket-later, .basket-variant > .remove-item, .basket-variant .basket-qty button, .lo-stepper button)::after { content: ""; position: absolute; inset: -2px; }
   .customs-how-close::after { content: ""; position: absolute; inset: -6px; }
+  /* Header buttons keep their 40 px look and take taps from 44 px; the 6 px gaps leave 2 px between the frames. */
+  .site-header :is(.lang-trigger, .icon-btn, .wallet-link) { position: relative; }
+  .site-header :is(.lang-trigger, .icon-btn)::after { content: ""; position: absolute; inset: -2px; }
+  .site-header .wallet-link::after { content: ""; position: absolute; inset: 0 -3px; }
 }
 
 /* Secondary text behind a "?" (components/info-tip.tsx). The text stays in the page as .tip-text and the "?" holds the
