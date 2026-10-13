@@ -98,3 +98,12 @@ test('a catalog saved while insurance was locked gets the owner terms; an operat
  const switchedOff={...insurance,enabled:false};
  assert.equal(upgradePricing(pricingSchema.parse({...tariff,serviceCatalog:[switchedOff]})).serviceCatalog[0].enabled,false);
 });
+
+test('a saved "insurance" wording becomes the Atlas safe-arrival guarantee (13.10.2026); rates and switch stay',()=>{
+ const old={...insurance,title:{ru:'Страхование посылки',uz:'Posilkani sug‘urtalash',en:'Parcel insurance'},description:{ru:'100 % возмещения. Без страховки: $15 за кг.',uz:'x',en:'x'},valuePercent:0.025,valuePercentHigh:0.035,enabled:false};
+ const renamed=upgradePricing(pricingSchema.parse({...tariff,serviceCatalog:[old]})).serviceCatalog[0];
+ assert.deepEqual(renamed.title,{ru:'Гарантия сохранности Atlas',uz:'Atlas saqlash kafolati',en:'Atlas safe-arrival guarantee'});
+ assert.match(renamed.description.ru,/не страхование/);
+ assert.deepEqual([renamed.valuePercent,renamed.valuePercentHigh,renamed.enabled],[0.025,0.035,false]);
+ assert.equal(insurance.title.ru,'Гарантия сохранности Atlas');
+});

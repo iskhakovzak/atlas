@@ -117,8 +117,6 @@ export function ExampleQuote(){
  const {quote,parts}=useExampleBill();
  const packed=combinedShipmentWeight(exampleBoxedKg);
  const fee=formatPercent(pricing.margin+pricing.buyoutFee+pricing.conversionFee,locale);
- const markup=formatPercent((pricing.fxMarkup??1.012)-1,locale);
- const cbu=pricing.fxSource==='cbu'&&Boolean(pricing.fxCbuRate);
  const days=deliveryDaysFor(pricing,'us');
  const allowance=pricing.customsAllowanceUsd??courierAllowanceUsd;
  const usd=formatUsd(exampleUsd,locale);
@@ -128,7 +126,7 @@ export function ExampleQuote(){
    <p className="bill-route"><span><span className="sr-only">{c.example.routeLabel}: </span>{c.tariffs.regions.us}</span><span className="bill-route-line" aria-hidden="true"/><span className="sr-only"> → </span><span>{c.example.to}</span></p>
    {days&&<p className="bill-days">{c.example.days(days[0],days[1])}</p>}
    <dl className="bill">
-    <div><dt>{c.example.item}</dt><dd>{formatSum(quote.merchandise,locale)}</dd><dd className="bill-note">{cbu?c.example.itemNoteCbu(usd,groupDigits(pricing.fx),markup):c.example.itemNoteSet(usd,groupDigits(pricing.fx))}</dd></div>
+    <div><dt>{c.example.item}</dt><dd>{formatSum(quote.merchandise,locale)}</dd><dd className="bill-note">{c.example.itemNote(usd)}</dd></div>
     {/* One «Atlas service» line with its parts folded under it, as the real bill groups them (app/cost-lines.tsx). */}
     <div><dt>{c.example.service}</dt><dd>{formatSum(parts.service+parts.international,locale)}</dd><dd className="bill-note"><details className="bill-breakdown"><summary>{c.example.serviceParts}</summary><ul className="bill-parts">
      <li><span>{c.example.fee(fee)}</span><span>{formatSum(parts.service,locale)}</span></li>
@@ -138,6 +136,8 @@ export function ExampleQuote(){
     {quote.reserve>0&&<div><dt><span className="home-dt-with-tip">{c.example.reserve}<InfoTip label={c.example.reserveHelpLabel}>{c.example.reserveHelp}</InfoTip></span></dt><dd>{formatSum(quote.reserve,locale)}</dd><dd className="bill-note">{c.example.reserveNote(formatKg(packagingKg,locale))}</dd></div>}
    </dl>
    <p className="bill-total home-quote-total"><span>{c.example.total}</span><strong><Money value={quote.total} locale={locale}/></strong></p>
+   {/* The conversion rate is fine print, not a selling point. */}
+   <p className="bill-fx">{c.example.rateFine(groupDigits(pricing.fx))}</p>
   </div>
   <section className="folio-outside home-customs-slip" aria-labelledby="example-outside">
    <h2 id="example-outside">{c.example.dutyTitle(formatUsd(allowance,locale))}</h2>
@@ -262,8 +262,6 @@ export function TrustSection(){
  const freeFromUsd=pricing.storeShippingFreeFromUsd??50;
  const facts=c.trust.facts({
   fee:formatPercent(pricing.margin+pricing.buyoutFee+pricing.conversionFee,locale),
-  markup:formatPercent((pricing.fxMarkup??1.012)-1,locale),
-  cbu:pricing.fxSource==='cbu'&&Boolean(pricing.fxCbuRate),
   freeFrom:formatUsd(freeFromUsd,locale),
   hold:formatUsd(unknownStoreShippingUsd,locale),
   // An order below the free threshold, so the example gets the reserve.

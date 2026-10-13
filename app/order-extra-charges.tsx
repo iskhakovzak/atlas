@@ -21,9 +21,9 @@ export const extraChargeCopy = /*@__PURE__*/withCyrillic({
 
 /** On an insured line a dearer price carries the insurance on the difference (the line's rate, locked at checkout). */
 export const insuranceShare = /*@__PURE__*/withCyrillic({
-  ru: (amount: string) => `В том числе страховка ${amount}`,
-  uz: (amount: string) => `Shu jumladan sug‘urta ${amount}`,
-  en: (amount: string) => `Including insurance ${amount}`,
+  ru: (amount: string) => `В том числе гарантия сохранности ${amount}`,
+  uz: (amount: string) => `Shu jumladan saqlash kafolati ${amount}`,
+  en: (amount: string) => `Including the safe-arrival guarantee ${amount}`,
 });
 
 /** The customer's "now" item: the waiting invoice with its reason and the "Доплатить" button. */
@@ -78,7 +78,7 @@ export function OperatorExtraCharges({ order, run, locale }: { order: Order; run
     <div>
       <h3>Доплата по заказу</h3>
       {charges.length > 0 && <ul className="micro">{charges.map((charge) => <li key={charge.id}>
-        <b>{formatSum(charge.amount, "ru")}</b> (${charge.amountUsd.toFixed(2)}{charge.insuranceAmount ? ` + страховка ${formatSum(charge.insuranceAmount, "ru")}` : ""}) · {charge.reason} · {status(charge)}
+        <b>{formatSum(charge.amount, "ru")}</b> (${charge.amountUsd.toFixed(2)}{charge.insuranceAmount ? ` + гарантия сохранности ${formatSum(charge.insuranceAmount, "ru")}` : ""}) · {charge.reason} · {status(charge)}
         {charge.status === "pending" && <> <button type="button" className="text-button" disabled={busy} onClick={() => void save({ type: "extra-charge-cancel", id: order.id, chargeId: charge.id }, "Счёт на доплату отменён")}>Отменить счёт</button></>}
       </li>)}</ul>}
       {canIssue && !waiting && <form onSubmit={(event) => {
@@ -89,7 +89,7 @@ export function OperatorExtraCharges({ order, run, locale }: { order: Order; run
           <div className="field"><label htmlFor={`extra-usd-${order.id}`}>Сумма, USD</label><input id={`extra-usd-${order.id}`} type="number" inputMode="decimal" required min="0.01" max="10000" step=".01" value={amountUsd} onChange={(event) => setAmountUsd(event.target.value)} /></div>
           <div className="field"><label htmlFor={`extra-reason-${order.id}`}>Причина для покупателя</label><input id={`extra-reason-${order.id}`} required minLength={2} maxLength={300} placeholder="Например, магазин изменил цену" value={reason} onChange={(event) => setReason(event.target.value)} /></div>
         </div>
-        {rate ? <label className="warehouse-issue-resolution"><input type="checkbox" checked={goods} onChange={(event) => setGoods(event.target.checked)} /><span>Это цена товара<small>Посылка застрахована: к доплате за товар прибавится страховка {Math.round(rate * 1000) / 10} % от разницы. Снимите отметку, если это доставка магазина или сбор.</small></span></label> : null}
+        {rate ? <label className="warehouse-issue-resolution"><input type="checkbox" checked={goods} onChange={(event) => setGoods(event.target.checked)} /><span>Это цена товара<small>Посылка под гарантией сохранности: к доплате за товар прибавится плата за гарантию {Math.round(rate * 1000) / 10} % от разницы. Снимите отметку, если это доставка магазина или сбор.</small></span></label> : null}
         <button className="btn secondary" disabled={busy || !reason.trim() || !(Number(amountUsd) > 0)}>Выставить доплату</button>
         <p className="micro">Сумма пересчитывается в сумы по курсу заказа. Покупатель увидит кнопку «Доплатить» в «Моих заказах»; заказ нельзя двигать дальше, пока счёт не оплачен или не отменён.</p>
       </form>}

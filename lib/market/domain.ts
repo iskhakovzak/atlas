@@ -88,7 +88,7 @@ const defaultServiceOfferings: ServiceOffering[] = [
   { id: "storage-extension", title: { ru: "Дополнительное хранение", uz: "Qo‘shimcha saqlash", en: "Extended storage" }, description: { ru: "Запросить дополнительные дни хранения; условия подтвердит оператор.", uz: "Qo‘shimcha saqlash kunlarini so‘rash; shartlarni operator tasdiqlaydi.", en: "Request extra storage days; an operator will confirm the terms." }, requestStage: "warehouse", unit: "day", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
   { id: "return-to-store", title: { ru: "Возврат продавцу", uz: "Sotuvchiga qaytarish", en: "Return to merchant" }, description: { ru: "Запрос на возврат зависит от правил магазина, срока и стоимости обратной доставки.", uz: "Qaytarish do‘kon qoidalari, muddat va qayta yetkazish narxiga bog‘liq.", en: "A return depends on the store's policy, deadline and return-shipping cost." }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
   { id: "package-disposal", title: { ru: "Утилизация посылки", uz: "Posilkani utilizatsiya qilish", en: "Package disposal" }, description: { ru: "Запрос на утилизацию после подтверждения владельца и условий склада.", uz: "Egasi va ombor shartlari tasdiqlangach utilizatsiya so‘rovi.", en: "A disposal request, subject to owner confirmation and warehouse rules." }, requestStage: "warehouse", unit: "package", pricingMode: "operator-quote", feeUzs: 0, countryPrices: {}, enabled: true, required: false },
-  { id: "shipping-insurance", title: { ru: "Страхование посылки", uz: "Posilkani sug‘urtalash", en: "Parcel insurance" }, description: { ru: "100 % возмещения при утере или порче. Без страховки: $15 за кг при утере, $3 за кг при порче.", uz: "Yo‘qolish yoki shikastlanishda 100 % qoplanadi. Sug‘urtasiz: yo‘qolsa kg uchun $15, shikastlansa kg uchun $3.", en: "100% compensation for loss or damage. Without insurance: $15 per kg for loss, $3 per kg for damage." }, requestStage: "checkout", unit: "package", pricingMode: "value-percent", feeUzs: 0, countryPrices: {}, valuePercent: 0.029, valuePercentHigh: 0.039, valueThresholdUsd: 200, enabled: true, required: false },
+  { id: "shipping-insurance", title: { ru: "Гарантия сохранности Atlas", uz: "Atlas saqlash kafolati", en: "Atlas safe-arrival guarantee" }, description: { ru: "100 % возмещения при утере или порче. Без гарантии: $15 за кг при утере, $3 за кг при порче. Это не страхование.", uz: "Yo‘qolish yoki shikastlanishda 100 % qoplanadi. Kafolatsiz: yo‘qolsa kg uchun $15, shikastlansa kg uchun $3. Bu sug‘urta emas.", en: "100% compensation for loss or damage. Without the guarantee: $15 per kg for loss, $3 per kg for damage. This is not insurance." }, requestStage: "checkout", unit: "package", pricingMode: "value-percent", feeUzs: 0, countryPrices: {}, valuePercent: 0.029, valuePercentHigh: 0.039, valueThresholdUsd: 200, enabled: true, required: false },
 ];
 export const productSchema = z.object({
   id: z.string(),
@@ -203,6 +203,8 @@ export const products: Product[] = [
       "Один рюкзак для повседневных планов. Изучите расчёт покупки и доставки до оформления заказа.",
   },
 ];
+/** Atlas conversion markup on the Central Bank rate: 3% since revision 6 (13 October 2026; it was 1.2%). */
+export const atlasFxMarkup = 1.03;
 export const pricingSchema = z.object({
   fx: positive.max(1_000_000),
   // International delivery per kg in soum, as quotes and settlements use it. When `perKgUsd` is set
@@ -247,7 +249,7 @@ export const pricingSchema = z.object({
   // Where `fx` comes from: the Central Bank of Uzbekistan's USD rate × `fxMarkup`, fetched by the server
   // (lib/market/fx-server.ts), or a rate the operator sets. Customers see which one and when it was set.
   fxSource: z.enum(["cbu", "manual"]).default("manual"),
-  fxMarkup: z.number().finite().min(1).max(1.2).default(1.012),
+  fxMarkup: z.number().finite().min(1).max(1.2).default(atlasFxMarkup),
   fxCbuRate: positive.max(1_000_000).optional(),
   fxCbuDate: z.string().max(20).optional(),
   fxUpdatedAt: amount.optional(),
@@ -284,7 +286,7 @@ export const customsHelpShare = 0.0498;
  * 4 = $14.98 per kg everywhere and the fee exactly 9.98%: no buyout or conversion percent on top (6 October 2026),
  * 5 = express $15.98 and standard $13.98 per kg (6 October 2026, evening); $15 and $14.98 saved earlier become $15.98.
  */
-export const pricingRevision = 5;
+export const pricingRevision = 6;
 /** Until the server reads the Central Bank rate, the owner's estimate stands in, shown as a set rate. */
 const startingFx = 11990;
 export const tariff: Pricing = {
@@ -293,7 +295,7 @@ export const tariff: Pricing = {
   perKgUsd: deliveryPerKgUsd,
   standardPerKgUsd: standardDeliveryPerKgUsd,
   fxSource: "cbu",
-  fxMarkup: 1.012,
+  fxMarkup: atlasFxMarkup,
   customsHelpFee: customsHelpShare,
   revision: pricingRevision,
   margin: atlasServiceFee,
@@ -314,7 +316,7 @@ export const tariff: Pricing = {
 };
 /** The rate in use: the Central Bank rate × markup once the server has read it, else the set rate. */
 export function effectiveFx(config: Pick<Pricing, "fx" | "fxSource" | "fxMarkup" | "fxCbuRate">) {
-  return config.fxSource === "cbu" && config.fxCbuRate ? Math.round(config.fxCbuRate * (config.fxMarkup ?? 1.012)) : config.fx;
+  return config.fxSource === "cbu" && config.fxCbuRate ? Math.round(config.fxCbuRate * (config.fxMarkup ?? atlasFxMarkup)) : config.fx;
 }
 /** Derive the rate, then soum per kg from USD per kg at that rate, for the base rate and each country override. */
 export function normalizePricing(config: Pricing): Pricing {
@@ -326,12 +328,14 @@ export function normalizePricing(config: Pricing): Pricing {
 }
 /**
  * A tariff saved before the owner's decisions lacks them: $15.98 express and $13.98 standard per kg, the 9.98% fee and the Central Bank
- * rate × 1.012. It gets them under a new version, so carts quoted under the old one are shown again.
+ * rate × 1.03 (revision 6). It gets them under a new version, so carts quoted under the old one are shown again.
  */
 export function upgradePricing(config: Pricing): Pricing {
   const revision = config.revision ?? 0;
   if (revision >= pricingRevision) return normalizePricing(config);
-  const earlier = revision >= 2 ? config : { ...config, margin: atlasServiceFee, fxSource: "cbu" as const, fxMarkup: 1.012 };
+  // Revision 6: only the conversion markup changes (1.2% → 3%); what the owner set after revision 5 stays.
+  if (revision >= 5) return normalizePricing({ ...config, fxMarkup: atlasFxMarkup, revision: pricingRevision, version: `${config.version.slice(0, 70)}+r${pricingRevision}` });
+  const earlier = revision >= 2 ? config : { ...config, margin: atlasServiceFee, fxSource: "cbu" as const };
   // A saved buyout or conversion percent showed as a 10.98% fee; per-country rates and fees gave other prices.
   const strip = ["reserve", ...(revision < 4 ? ["perKg", "perKgUsd", "margin", "buyoutFee", "conversionFee", "deliveryMargin"] : [])] as const;
   // Revision 5: the old $15 and $14.98 defaults become express $15.98; standard $13.98 is added; the commission
@@ -339,6 +343,7 @@ export function upgradePricing(config: Pricing): Pricing {
   const legacyPerKg = [undefined, 15, 14.98];
   return normalizePricing({
     ...earlier,
+    fxMarkup: atlasFxMarkup,
     ...(revision < 4 ? { deliveryMargin: 0 } : {}),
     perKgUsd: revision < 4 || legacyPerKg.includes(earlier.perKgUsd) ? deliveryPerKgUsd : earlier.perKgUsd,
     standardPerKgUsd: earlier.standardPerKgUsd ?? standardDeliveryPerKgUsd,
@@ -410,13 +415,19 @@ export function valueServiceRate(service: Pick<ServiceOffering, "pricingMode" | 
 const lockedInsuranceDescription = "Недоступно, пока не подтверждены страховщик, покрытие, исключения и порядок выплат.";
 /** The first insurance rates (2% of the goods, 3% above $200) became 2.9% / 3.9% of goods and delivery (owner, 10.10.2026). */
 const firstInsuranceRates = (service: ServiceOffering) => service.valuePercent === 0.02 && service.valuePercentHigh === 0.03;
+/** Selling insurance needs an insurer's licence: since 13.10.2026 the service is «Гарантия сохранности Atlas», and a saved "insurance" wording is replaced. */
+const insuranceWording = /страх|sug.?urta|insur/i;
+const notInsurance = /не страхование|sug‘urta emas|not insurance/i;
+const insuranceWorded = (service: ServiceOffering) => [service.title.ru, service.title.uz, service.title.en, service.description.ru, service.description.uz, service.description.en].some((text) => insuranceWording.test(text ?? "") && !notInsurance.test(text ?? ""));
 function upgradeServiceCatalog(services: ServiceOffering[]) {
   const insurance = defaultServiceOfferings.find((service) => service.id === "shipping-insurance")!;
-  if (!services.some((service) => service.id === insurance.id && (service.description.ru === lockedInsuranceDescription || firstInsuranceRates(service)))) return services;
+  if (!services.some((service) => service.id === insurance.id && (service.description.ru === lockedInsuranceDescription || firstInsuranceRates(service) || insuranceWorded(service)))) return services;
   return services.map((service) => {
     if (service.id !== insurance.id) return service;
     if (service.description.ru === lockedInsuranceDescription) return insurance;
-    return firstInsuranceRates(service) ? { ...service, valuePercent: insurance.valuePercent, valuePercentHigh: insurance.valuePercentHigh } : service;
+    const rates = firstInsuranceRates(service) ? { valuePercent: insurance.valuePercent, valuePercentHigh: insurance.valuePercentHigh } : {};
+    const wording = insuranceWorded(service) ? { title: insurance.title, description: insurance.description } : {};
+    return { ...service, ...rates, ...wording };
   });
 }
 const quoteSchema = z.object({
@@ -431,7 +442,7 @@ const quoteSchema = z.object({
   weight: positive,
   tariffVersion: z.string(),
   fx: positive.optional(),
-  /** The Atlas markup on the Central Bank rate inside `fx` (1.012 = 1.2%), when the rate was the CBU one. For accounting. */
+  /** The Atlas markup on the Central Bank rate inside `fx` (1.03 = 3%), when the rate was the CBU one. For accounting. */
   fxMarkup: z.number().finite().min(1).max(1.2).optional(),
   margin: z.number().finite().min(0).max(1).optional(),
   reserveRate: z.number().finite().min(0).max(2).optional(),
@@ -529,7 +540,7 @@ export function quote(
     deliverySpeed: speed,
     tariffVersion: config.version,
     fx: config.fx,
-    ...(config.fxSource === "cbu" ? { fxMarkup: config.fxMarkup ?? 1.012 } : {}),
+    ...(config.fxSource === "cbu" ? { fxMarkup: config.fxMarkup ?? atlasFxMarkup } : {}),
     margin: config.margin,
     buyoutFeeRate: config.buyoutFee,
     conversionFeeRate: config.conversionFee,
@@ -660,6 +671,8 @@ export const identityProfileSchema = z.object({
   lastName: z.string().trim().min(1).max(80),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   passportMasked: z.string().max(32),
+  /** The last digits of the PINFL (personal number), typed with the passport since 13.10.2026. */
+  pinflMasked: z.string().max(32).optional(),
   nationality: z.string().trim().max(80).default(""),
   confirmedAt: amount,
 });
@@ -1526,12 +1539,18 @@ export const updateCommunication = (
   state: State,
   value: Communication,
 ): State => ({ ...state, communication: communicationSchema.parse(value) });
-export function confirmIdentity(state: State, value: Omit<IdentityProfile, "passportMasked" | "confirmedAt"> & { passportNumber: string }, now = Date.now()): State {
-  const cleanNumber = value.passportNumber.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+/** Series and number as typed ("aa 123 45 67" → "AA1234567"), and the PINFL's 14 digits. */
+export const cleanPassportNumber = (value: string) => value.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+export const cleanPinfl = (value: string) => value.replace(/\D/g, "");
+
+export function confirmIdentity(state: State, value: Omit<IdentityProfile, "passportMasked" | "pinflMasked" | "confirmedAt"> & { passportNumber: string; pinfl?: string }, now = Date.now()): State {
+  const cleanNumber = cleanPassportNumber(value.passportNumber);
   if (cleanNumber.length < 6 || cleanNumber.length > 20) throw Error("Проверьте номер паспорта.");
+  const pinfl = value.pinfl ? cleanPinfl(value.pinfl) : "";
+  if (value.pinfl?.trim() && pinfl.length !== 14) throw Error("ПИНФЛ — 14 цифр. Проверьте его в паспорте или ID-карте.");
   const birth = new Date(value.birthDate + "T00:00:00Z");
   if (!Number.isFinite(birth.getTime()) || birth.getTime() > now || birth.getUTCFullYear() < new Date(now).getUTCFullYear() - 120) throw Error("Проверьте дату рождения.");
-  const confirmed = identityProfileSchema.parse({ ...value, passportMasked: "•••• " + cleanNumber.slice(-4), confirmedAt: now });
+  const confirmed = identityProfileSchema.parse({ ...value, passportMasked: "•••• " + cleanNumber.slice(-4), ...(pinfl ? { pinflMasked: "•••• " + pinfl.slice(-4) } : {}), confirmedAt: now });
   const profiles = state.identityProfiles ?? (state.identityProfile ? [state.identityProfile] : []);
   return { ...state, identityProfile: confirmed, identityProfiles: [confirmed, ...profiles.filter((profile) => profile.documentId !== confirmed.documentId && profile.recipientProfileId !== confirmed.recipientProfileId)] };
 }
@@ -1950,7 +1969,7 @@ export function checkoutCart(
           ? [{ at: now, text: "Покупатель выбрал оплату таможни через Atlas: сбор " + money(i.quote.customsHelp) + " и предоплата пошлины " + money(i.quote.customsDuty ?? 0) + " входят в сумму заказа. Остаток пошлины вернётся на баланс, доплата — только с согласия покупателя.", code: "customs-help", params: { fee: i.quote.customsHelp, duty: i.quote.customsDuty ?? 0 } }]
           : []),
         ...(serviceFeesOf(i.quote)
-          ? [{ at: now, text: "Посылка застрахована: " + money(serviceFeesOf(i.quote)) + " входит в сумму заказа.", code: "insured", params: { fee: serviceFeesOf(i.quote) } }]
+          ? [{ at: now, text: "Гарантия сохранности Atlas: " + money(serviceFeesOf(i.quote)) + " входит в сумму заказа.", code: "insured", params: { fee: serviceFeesOf(i.quote) } }]
           : []),
         ...sourceCheckHistory(i, now),
       ],
@@ -2694,7 +2713,7 @@ export function decideParcelClaim(
   });
   next.entries = [
     ...state.entries,
-    { id: "claim:" + claim.id, orderId: id, at: now, amount: value, debit: "atlas-claims", credit: "customer-credit", description: claim.insured ? "Страховое возмещение по претензии" : "Компенсация по претензии без страховки" },
+    { id: "claim:" + claim.id, orderId: id, at: now, amount: value, debit: "atlas-claims", credit: "customer-credit", description: claim.insured ? "Возмещение по претензии (гарантия сохранности Atlas)" : "Компенсация по претензии без гарантии сохранности" },
   ];
   return withNotification(next, "Возмещение зачислено", `${money(value)} — на ваш баланс в Atlas.`, id, now, { code: "claim-approved", params });
 }

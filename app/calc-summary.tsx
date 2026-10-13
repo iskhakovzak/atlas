@@ -104,11 +104,10 @@ export function HoldNote({amount,locale}:{amount:number;locale:Locale;/** Kept f
  */
 export function BlankBill({pricing,locale}:{pricing:Pricing;locale:Locale}){
  const c=calcCopy[locale],b=c.blank;
- const cbu=pricing.fxSource==='cbu'&&Boolean(pricing.fxCbuRate);
  // Both speeds from the US window (the blank bill has no country yet).
  const daysText=(speed:DeliverySpeed)=>{const range=daysRangeFor(pricing,[],speed);const sc=deliverySpeedCopy[locale];return range?sc.days(range[0],range[1]):sc.daysUnknown;};
  const rows:[string,string][]=[
-  [b.item,cbu?b.itemCbu(formatPercent((pricing.fxMarkup??1.012)-1,locale)):b.itemSet],
+  [b.item,b.itemSet],
   [b.fee,b.feeRule(formatPercent(pricing.margin+pricing.buyoutFee+pricing.conversionFee,locale))],
   [b.delivery,b.deliveryRule(c.speedRule(formatUsd(deliveryPerKgUsdFor(pricing),locale),daysText('express'),formatUsd(deliveryPerKgUsdFor(pricing,undefined,'standard'),locale),daysText('standard')),formatKg(packagingKg,locale))],
   // A reserve on top of delivery only when the tariff still sets one (none since 5 October 2026).

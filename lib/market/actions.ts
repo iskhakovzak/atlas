@@ -202,7 +202,8 @@ export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("cancel"), id }),
   z.object({ type: z.literal("cart-delivery-speed"), speed: deliverySpeedSchema }),
   z.object({ type: z.literal("notifications-read") }),
-  z.object({ type: z.literal("identity-confirm"), documentId: z.string().min(1).max(100), recipientProfileId: z.string().min(1).max(80).optional(), firstName: z.string().trim().min(1).max(80), lastName: z.string().trim().min(1).max(80), birthDate: z.string(), passportNumber: z.string().min(6).max(24), nationality: z.string().trim().max(80) }),
+  // Passport details are typed as text (13.10.2026: no scans); `documentId` only names an older scan, the server assigns one otherwise.
+  z.object({ type: z.literal("identity-confirm"), documentId: z.string().min(1).max(100).optional(), recipientProfileId: z.string().min(1).max(80).optional(), firstName: z.string().trim().min(1).max(80), lastName: z.string().trim().min(1).max(80), birthDate: z.string(), passportNumber: z.string().min(6).max(24), pinfl: z.string().trim().max(24).optional(), nationality: z.string().trim().max(80) }),
   z.object({ type: z.literal("identity-clear"), documentId: z.string().min(1).max(100) }),
   z.object({ type: z.literal("declaration-preview"), orderIds: z.array(z.string().max(100)).min(1).max(30) }),
   // Data-processing consent (privacy policy, terms of use) at a document version; the server also writes it to market_legal_consents.
@@ -464,7 +465,8 @@ export function applyAction(
     case "notifications-read":
       return markNotificationsRead(s);
     case "identity-confirm":
-      return confirmIdentity(s, a);
+      if (!a.documentId) throw Error("Документ паспорта не указан.");
+      return confirmIdentity(s, { ...a, documentId: a.documentId });
     case "identity-clear":
       return clearIdentity(s, a.documentId);
     case "declaration-preview":

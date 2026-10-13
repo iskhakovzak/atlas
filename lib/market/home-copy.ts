@@ -12,7 +12,7 @@ function ruDays(max: number) {
 
 type Step = { title: string; text: string };
 type Faq = { q: string; a: string };
-type Facts = { fee: string; markup: string; cbu: boolean; freeFrom: string; hold: string; holdExample: string };
+type Facts = { fee: string; freeFrom: string; hold: string; holdExample: string };
 
 export type HomeCopy = {
   nav: NavCopy;
@@ -20,7 +20,7 @@ export type HomeCopy = {
   how: { title: string; steps: [Step, Step, Step, Step]; paymentsLabel: string; pickupLabel: string; deliveryLabel: string; courier: string; moreStores: (count: number) => string; confirm: string };
   example: {
     title: string; product: string; routeLabel: string; to: string; days: (min: number, max: number) => string;
-    item: string; itemNoteCbu: (usd: string, rate: string, markup: string) => string; itemNoteSet: (usd: string, rate: string) => string;
+    item: string; itemNote: (usd: string) => string; rateFine: (rate: string) => string;
     /** One «Atlas service» line, as in the real bill (app/cost-lines.tsx); `fee` and `delivery` are its parts. */
     service: string; serviceParts: string; fee: (percent: string) => string;
     delivery: string; deliveryNote: (weight: string, perKg: string) => string;
@@ -71,8 +71,8 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       title: 'Пример счёта', product: 'кроссовки Nike за $100', routeLabel: 'Маршрут', to: 'Ташкент',
       days: (min, max) => `экспресс, обычно ${min}–${max} ${ruDays(max)}`,
       item: 'Цена товара',
-      itemNoteCbu: (usd, rate, markup) => `${usd} по курсу ${rate} сум: ЦБ плюс ${markup}`,
-      itemNoteSet: (usd, rate) => `${usd} по курсу Atlas ${rate} сум`,
+      itemNote: usd => `${usd} по курсу Atlas`,
+      rateFine: rate => `Курс Atlas: ${rate} сум за $1, на день расчёта`,
       service: 'Сервис Atlas', serviceParts: 'Состав сервиса', fee: (percent) => `Комиссия Atlas, ${percent} от цены товара`,
       delivery: 'Доставка в Ташкент', deliveryNote: (weight, perKg) => `${weight} кг расчётного веса по ${perKg} за кг`,
       reserve: 'Возвратный резерв', reserveNote: packaging => `В расчёт веса заложено ${packaging} кг запаса на упаковку. После взвешивания неиспользованную сумму вернём на баланс.`, reserveHelpLabel: 'Что такое возвратный резерв',
@@ -94,9 +94,9 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
     },
     trust: {
       title: 'Как мы обращаемся с вашими деньгами', ordersDone: 'заказов уже доставили',
-      facts: ({ fee, markup, cbu, freeFrom, hold, holdExample }) => [
+      facts: ({ fee, freeFrom, hold, holdExample }) => [
         'Сверяем цену с магазином, когда вы добавляете товар в корзину, и ещё раз перед оформлением. Если она изменилась, сначала покажем новую сумму.',
-        cbu ? `Курс считаем от курса ЦБ Узбекистана плюс ${markup} и пишем рядом с суммой, когда он обновлён.` : 'Курс Atlas пишем рядом с суммой.',
+        'Цены в долларах переводим в сумы по курсу Atlas на день расчёта. Курс фиксируется в заказе при оплате.',
         `Комиссия Atlas ${fee} от цены товаров и международная доставка стоят в счёте одной строкой «Сервис Atlas» — состав виден по нажатию.`,
         `Если магазин не указал доставку до склада, при заказе из него дороже ${freeFrom} она бесплатна. Если дешевле, держим на неё резерв ${hold} — отдельно, в сумму к оплате он не входит. Например, заказ на ${holdExample}: когда магазин назовёт цену доставки, оплатим её из резерва, а остаток освободим; если доставка дороже ${hold} — доплата только с вашего согласия.`,
         'Склад взвесит посылку: если она легче расчёта — разницу вернём на баланс. Оплата сверх счёта — только с вашего согласия.',
@@ -112,7 +112,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       customsLink: 'Подробнее о таможне', prohibitedOfficial: 'Официальный список', prohibitedRules: 'Правила сервиса',
       items: {
         customs: (allowance) => ({ q: `Что такое лимит ${allowance} на таможне?`, a: `Покупки для себя на сумму до ${allowance} в месяц на одного получателя ввозятся без пошлины. Если за месяц набралось больше, пошлину платят только с превышения. Ставку и пример расчёта мы держим на странице «Таможня»; окончательную сумму определяет таможня.` }),
-        returns: { q: 'Можно ли вернуть товар?', a: 'До выкупа заказ можно отменить — вернём деньги за вычетом расходов, указанных в счёте. После выкупа вернуть товар можно, если это принимает магазин: мы поможем оформить возврат. Деньги возвращаем тем же способом, которым вы платили, или на баланс Atlas.' },
+        returns: { q: 'Можно ли вернуть товар?', a: 'До выкупа заказ можно отменить — вернём деньги за вычетом расходов, указанных в счёте. После выкупа вернуть товар можно, если это принимает магазин: мы поможем оформить возврат. Деньги возвращаем на баланс Atlas или на ту же карту, с которой вы платили, — на другую карту не переводим.' },
         prohibited: { q: 'Какие товары нельзя заказать?', a: 'Топливо и б/у детали топливных систем, спиртные напитки, ограниченные лекарства, едкие и опасные химикаты, наркотические вещества, оружие и боеприпасы, легковоспламеняющееся (в том числе спреи и парфюм больше 100 мл на коробку), острые предметы без упаковки, амортизаторы без упаковки, игрушки 18+, табак, а также всё, что запрещают магазин, перевозчик или таможня Узбекистана. Полный список — на странице «Таможня».' },
         weight: { q: 'Как считается вес?', a: 'Берём вес товара с коробкой — его указывает магазин, а если нет, Atlas даёт оценку по виду товара, и её можно исправить. К посылке добавляем 0,3 кг на упаковку, один раз. Минимум — 1 кг на посылку из одного магазина. После взвешивания на складе пересчитаем: если вышло меньше, разницу вернём на баланс.' },
         account: { q: 'Нужна ли регистрация?', a: 'Для расчёта цены — нет. Чтобы оформить заказ, войдите удобным способом: аккаунт создастся автоматически.' },
@@ -160,8 +160,8 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       title: 'Hisob namunasi', product: 'Nike krossovkalari, $100', routeLabel: 'Yo‘nalish', to: 'Toshkent',
       days: (min, max) => `ekspress, odatda ${min}–${max} ish kuni`,
       item: 'Tovar narxi',
-      itemNoteCbu: (usd, rate, markup) => `${usd}, kurs ${rate} so‘m: MB kursi va ${markup}`,
-      itemNoteSet: (usd, rate) => `${usd}, Atlas kursi ${rate} so‘m`,
+      itemNote: usd => `${usd}, Atlas kursi bilan`,
+      rateFine: rate => `Atlas kursi: $1 uchun ${rate} so‘m, hisob kuniga`,
       service: 'Atlas xizmati', serviceParts: 'Xizmat tarkibi', fee: (percent) => `Atlas komissiyasi, tovar narxining ${percent}`,
       delivery: 'Toshkentga yetkazib berish', deliveryNote: (weight, perKg) => `hisobiy vazn ${weight} kg, har kg uchun ${perKg}`,
       reserve: 'Qaytariladigan zaxira', reserveNote: packaging => `Vazn hisobiga qadoq uchun ${packaging} kg zaxira kiritilgan. Omborda tortilgach, ishlatilmagan summa balansga qaytariladi.`, reserveHelpLabel: 'Qaytariladigan zaxira nima',
@@ -183,9 +183,9 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
     },
     trust: {
       title: 'Pulingiz bilan qanday ishlaymiz', ordersDone: 'ta buyurtma yetkazildi',
-      facts: ({ fee, markup, cbu, freeFrom, hold, holdExample }) => [
+      facts: ({ fee, freeFrom, hold, holdExample }) => [
         'Tovarni savatga qo‘shganingizda va rasmiylashtirishdan oldin yana narxni do‘kon bilan solishtiramiz. U o‘zgargan bo‘lsa, avval yangi summani ko‘rsatamiz.',
-        cbu ? `Kursni O‘zbekiston Markaziy banki kursiga ${markup} qo‘shib hisoblaymiz va summaning yonida qachon yangilanganini yozamiz.` : 'Atlas kursini summaning yonida yozamiz.',
+        'Dollardagi narxlarni hisob kunidagi Atlas kursi bilan so‘mga o‘tkazamiz. Kurs to‘lov paytida buyurtmada qayd etiladi.',
         `Atlas komissiyasi (tovarlar narxining ${fee}) va xalqaro yetkazish hisobda bitta «Atlas xizmati» satrida turadi — tarkibi bosganda ko‘rinadi.`,
         `Do‘kon omborgacha yetkazish narxini ko‘rsatmagan bo‘lsa, undan ${freeFrom} dan qimmat buyurtmada yetkazish bepul. Arzonroq buyurtmada unga ${hold} zaxira qo‘yamiz — u alohida turadi va to‘lov summasiga kirmaydi. Masalan, ${holdExample} lik buyurtma: do‘kon yetkazish narxini aytgach, uni zaxiradan to‘laymiz, qoldig‘ini bo‘shatamiz; yetkazish ${hold} dan qimmat bo‘lsa — qo‘shimcha to‘lov faqat roziligingiz bilan.`,
         'Ombor jo‘natmani tortadi: hisobdan yengil chiqsa — farqni balansga qaytaramiz. Hisobdan ortiq to‘lov — faqat roziligingiz bilan.',
@@ -201,7 +201,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       customsLink: 'Bojxona haqida batafsil', prohibitedOfficial: 'Rasmiy ro‘yxat', prohibitedRules: 'Xizmat qoidalari',
       items: {
         customs: (allowance) => ({ q: `Bojxonadagi ${allowance} limiti nima?`, a: `Shaxsiy foydalanish uchun bitta oluvchiga oyiga ${allowance} gacha bo‘lgan xaridlar bojsiz olib kiriladi. Agar oy davomida ko‘proq bo‘lsa, boj faqat oshgan qismidan to‘lanadi. Stavka va hisob namunasi «Bojxona» sahifasida; yakuniy summani bojxona belgilaydi.` }),
-        returns: { q: 'Tovarni qaytarish mumkinmi?', a: 'Xariddan oldin buyurtmani bekor qilish mumkin — hisobda ko‘rsatilgan xarajatlarni chegirib, pulni qaytaramiz. Xariddan keyin tovarni do‘kon qabul qilsa, qaytarish mumkin: rasmiylashtirishga yordam beramiz. Pul siz to‘lagan usulda yoki Atlas balansiga qaytariladi.' },
+        returns: { q: 'Tovarni qaytarish mumkinmi?', a: 'Xariddan oldin buyurtmani bekor qilish mumkin — hisobda ko‘rsatilgan xarajatlarni chegirib, pulni qaytaramiz. Xariddan keyin tovarni do‘kon qabul qilsa, qaytarish mumkin: rasmiylashtirishga yordam beramiz. Pul Atlas balansiga yoki siz to‘lagan kartaning o‘ziga qaytariladi — boshqa kartaga o‘tkazmaymiz.' },
         prohibited: { q: 'Qaysi tovarlarni buyurtma qilib bo‘lmaydi?', a: 'Yoqilg‘i va yoqilg‘i tizimining ishlatilgan qismlari, spirtli ichimliklar, cheklangan dori-darmonlar, kuydiruvchi va xavfli kimyoviy moddalar, giyohvand moddalar, qurol va o‘q-dorilar, tez alangalanuvchi buyumlar (bir qutiga 100 ml dan ortiq sprey va parfyum ham), qadoqsiz o‘tkir buyumlar va amortizatorlar, 18+ o‘yinchoqlar, tamaki, shuningdek do‘kon, tashuvchi yoki O‘zbekiston bojxonasi taqiqlagan barcha narsalar. To‘liq ro‘yxat «Bojxona» sahifasida.' },
         weight: { q: 'Og‘irlik qanday hisoblanadi?', a: 'Tovar og‘irligini quti bilan olamiz — uni do‘kon ko‘rsatadi, bo‘lmasa Atlas tovar turiga qarab baholaydi va uni tuzatish mumkin. Jo‘natmaga qadoq uchun 0,3 kg bir marta qo‘shamiz. Bitta do‘kondan kelgan jo‘natma uchun kamida 1 kg. Omborda tortilgandan keyin qayta hisoblaymiz: kam chiqsa, farq balansingizga qaytariladi.' },
         account: { q: 'Ro‘yxatdan o‘tish kerakmi?', a: 'Narxni hisoblash uchun — yo‘q. Buyurtma berish uchun qulay usulda kiring, akkaunt avtomatik yaratiladi.' },
@@ -249,8 +249,8 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       title: 'Example bill', product: 'Nike sneakers, $100', routeLabel: 'Route', to: 'Tashkent',
       days: (min, max) => `express, usually ${min}–${max} business days`,
       item: 'Item price',
-      itemNoteCbu: (usd, rate, markup) => `${usd} at ${rate} soum: Central Bank rate plus ${markup}`,
-      itemNoteSet: (usd, rate) => `${usd} at the Atlas rate of ${rate} soum`,
+      itemNote: usd => `${usd} at the Atlas rate`,
+      rateFine: rate => `Atlas rate: ${rate} soum per $1, on the day of the estimate`,
       service: 'Atlas service', serviceParts: 'Service breakdown', fee: (percent) => `Atlas fee, ${percent} of the item price`,
       delivery: 'Delivery to Tashkent', deliveryNote: (weight, perKg) => `${weight} kg estimated weight at ${perKg} per kg`,
       reserve: 'Refundable reserve', reserveNote: packaging => `Estimated weight includes a ${packaging} kg packaging allowance. Any unused amount returns to your balance after weighing.`, reserveHelpLabel: 'What is the refundable reserve',
@@ -272,9 +272,9 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
     },
     trust: {
       title: 'How we handle your money', ordersDone: 'orders delivered',
-      facts: ({ fee, markup, cbu, freeFrom, hold, holdExample }) => [
+      facts: ({ fee, freeFrom, hold, holdExample }) => [
         'We check the price with the store when you add an item to the cart and again before checkout. If it has changed, we show you the new total first.',
-        cbu ? `The rate is the Central Bank of Uzbekistan rate plus ${markup}, shown next to the total with the time it was updated.` : 'The Atlas rate is shown next to the total.',
+        'Dollar prices become soum at the Atlas rate on the day of the estimate. The rate is fixed in the order at payment.',
         `The Atlas fee, ${fee} of the item price, and international delivery are one “Atlas service” line in the bill — tap it for the breakdown.`,
         `If a store does not state shipping to the warehouse, it is free on orders from that store over ${freeFrom}. On smaller orders we hold a ${hold} reserve for it, kept apart from the amount to pay. For example, on a ${holdExample} order: once the store names its delivery price, we pay it from the reserve and release the rest; if delivery costs more than ${hold}, any extra needs your consent.`,
         'The warehouse weighs the parcel: if it is lighter than estimated, the difference returns to your balance. Anything above the bill is paid only with your consent.',
@@ -290,7 +290,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       customsLink: 'More about customs', prohibitedOfficial: 'Official list', prohibitedRules: 'Terms of service',
       items: {
         customs: (allowance) => ({ q: `What is the ${allowance} customs limit?`, a: `Personal purchases up to ${allowance} a month per recipient enter without duty. If a month’s total is higher, duty applies only to the excess. The rate and a worked example are on the Customs page; customs sets the final amount.` }),
-        returns: { q: 'Can I return an item?', a: 'Before purchase you can cancel the order — we refund the money minus the costs shown in your bill. After purchase a return is possible if the store accepts it; we help arrange it. Refunds go back by the payment method you used or to your Atlas balance.' },
+        returns: { q: 'Can I return an item?', a: 'Before purchase you can cancel the order — we refund the money minus the costs shown in your bill. After purchase a return is possible if the store accepts it; we help arrange it. Refunds go to your Atlas balance or back to the same card you paid with — never to another card.' },
         prohibited: { q: 'Which items can’t be ordered?', a: 'Fuel and used fuel-system parts, alcoholic drinks, restricted medicines, corrosive and hazardous chemicals, narcotics, weapons and ammunition, flammables (including sprays and perfumes over 100 ml per box), unpackaged sharp items and shock absorbers, 18+ toys, tobacco, and anything the store, the carrier or Uzbekistan customs prohibits. The full list is on the Customs page.' },
         weight: { q: 'How is weight calculated?', a: 'We take the item weight with its box — the store states it, or Atlas estimates it by the kind of item and you can correct it. We add 0.3 kg for packaging, once per parcel. Minimum 1 kg per parcel from one store. After warehouse weighing we recalculate: if it comes out lower, the difference returns to your balance.' },
         account: { q: 'Do I need to sign up?', a: 'Not for an estimate. To place an order, sign in the way that suits you: the account is created automatically.' },

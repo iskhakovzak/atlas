@@ -58,9 +58,9 @@ const historyCopy: Record<string, Copy> = {
     en: v => `The customer chose to have Atlas pay customs: the ${v.sum('fee')} fee and the ${v.sum('duty')} duty prepayment are part of the order total. Unused duty returns to the balance; any extra only with the customer’s consent.`,
   }),
   'insured': /*@__PURE__*/withCyrillic({
-    ru: v => `Посылка застрахована: ${v.sum('fee')} входит в сумму заказа.`,
-    uz: v => `Posilka sug‘urtalandi: ${v.sum('fee')} buyurtma summasiga kiradi.`,
-    en: v => `The parcel is insured: ${v.sum('fee')} is part of the order total.`,
+    ru: v => `Гарантия сохранности Atlas: ${v.sum('fee')} входит в сумму заказа.`,
+    uz: v => `Atlas saqlash kafolati: ${v.sum('fee')} buyurtma summasiga kiradi.`,
+    en: v => `Atlas safe-arrival guarantee: ${v.sum('fee')} is part of the order total.`,
   }),
   'source-price-changed': /*@__PURE__*/withCyrillic({
     ru: v => `Цена в магазине изменилась до оформления: ${v.text('from')} → ${v.text('to')} ${v.text('currency')}. Покупатель оформил заказ по новому расчёту.`,

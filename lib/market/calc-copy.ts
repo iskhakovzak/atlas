@@ -20,7 +20,7 @@ export type CalcCopy = {
   /** Delivery speed words for the international line and the blank bill. */
   speeds: { express: string; standard: string }; speedRule: (express: string, expressDays: string, standard: string, standardDays: string) => string;
   blank: {
-    title: string; lead: string; item: string; itemCbu: (markup: string) => string; itemSet: string; fee: string; feeRule: (percent: string) => string;
+    title: string; lead: string; item: string; itemSet: string; fee: string; feeRule: (percent: string) => string;
     delivery: string; deliveryRule: (perKg: string, packaging: string) => string; reserve: string; reserveRule: string; total: string;
     storeRule: (freeFrom: string, hold: string) => string; customsRule: (allowance: string) => string;
   };
@@ -53,7 +53,7 @@ export const calcCopy: Record<Locale, CalcCopy> = /*@__PURE__*/withCyrillic({
     weightStore: 'Вес с упаковкой указан магазином.', weightEstimate: category => `Оценка Atlas для категории «${category}» — исправьте, если знаете точнее.`, weightTitle: 'Оценка Atlas по названию товара — исправьте, если знаете точнее.', weightCustomer: 'Вес указан вами.', weightCatalog: 'Вес задан Atlas для товара каталога.',
     weightRule: packaging => `К весу посылки добавляем ${packaging} кг на упаковку — один раз на посылку из одного магазина. Минимум — 1 кг. Склад взвесит посылку: если она легче — разницу вернём на баланс, если тяжелее — доплата только с вашего согласия.`, parcelWeight: kg => `Платный вес посылки: ${kg} кг`,
     commentPlaceholder: 'Пожелание или важная информация, которую нам нужно учесть перед заказом', commentHint: 'Видит только Atlas, магазину не отправляется.', commentShort: 'Комментарий',
-    lines: { items: 'Товары', service: 'Сервис Atlas', serviceBreakdown: 'Состав сервиса', atlasFee: p => p ? `Комиссия Atlas ${p}` : 'Комиссия Atlas', buyout: 'Выкуп', conversion: 'Конвертация', storeShipping: 'Доставка магазина', free: 'Бесплатно', international: kg => kg ? `Международная доставка, ${kg} кг` : 'Международная доставка', intlReserve: 'Резерв международной доставки', insurance: 'Страхование посылки', optional: 'Дополнительные услуги', total: 'К оплате', holdOutside: 'резерв отдельно', customsHelp: p => `Оплата таможни через Atlas ${p}`, customsDuty: 'Таможенная пошлина, предоплата' },
+    lines: { items: 'Товары', service: 'Сервис Atlas', serviceBreakdown: 'Состав сервиса', atlasFee: p => p ? `Комиссия Atlas ${p}` : 'Комиссия Atlas', buyout: 'Выкуп', conversion: 'Конвертация', storeShipping: 'Доставка магазина', free: 'Бесплатно', international: kg => kg ? `Международная доставка, ${kg} кг` : 'Международная доставка', intlReserve: 'Резерв международной доставки', insurance: 'Гарантия сохранности Atlas', optional: 'Дополнительные услуги', total: 'К оплате', holdOutside: 'резерв отдельно', customsHelp: p => `Оплата таможни через Atlas ${p}`, customsDuty: 'Таможенная пошлина, предоплата' },
     hold: 'Резерв на доставку магазина', holdNote: 'Остаток освободим, когда магазин подтвердит цену доставки',
     holdHelp: freeFrom => `Магазин не указал доставку до склада. Этот резерв держим отдельно от оплаты заказа, пока менеджер не подтвердит фактическую сумму у магазина. Если доставка выйдет дешевле — остаток освободим; если дороже — разница только с вашего согласия. При заказе из магазина дороже ${freeFrom} доставка бесплатна и резерв не нужен.`,
     freeNote: freeFrom => `Заказ из магазина больше ${freeFrom}: доставка до склада бесплатна.`,
@@ -65,7 +65,7 @@ export const calcCopy: Record<Locale, CalcCopy> = /*@__PURE__*/withCyrillic({
     outside: 'Не входит в сумму к оплате',
     blank: {
       title: 'Так будет выглядеть счёт', lead: 'Вставьте ссылку, и мы заполним каждую строку в сумах.',
-      item: 'Цена товара', itemCbu: markup => `по курсу ЦБ плюс ${markup}`, itemSet: 'по установленному курсу Atlas',
+      item: 'Цена товара', itemSet: 'по курсу Atlas',
       fee: 'Комиссия Atlas', feeRule: percent => `${percent} от цены товара`,
       delivery: 'Доставка в Ташкент', deliveryRule: (perKg, packaging) => `${perKg} за кг, плюс ${packaging} кг упаковки, минимум 1 кг`,
       reserve: 'Возвратный резерв', reserveRule: 'запас на вес; остаток вернём на баланс', total: 'К оплате',
@@ -110,7 +110,7 @@ export const calcCopy: Record<Locale, CalcCopy> = /*@__PURE__*/withCyrillic({
     weightStore: 'Qadoqli vaznni do‘kon ko‘rsatgan.', weightEstimate: category => `«${category}» uchun Atlas bahosi — aniqroq bilsangiz, tuzating.`, weightTitle: 'Tovar nomi bo‘yicha Atlas bahosi — aniqroq bilsangiz, tuzating.', weightCustomer: 'Vaznni siz kiritdingiz.', weightCatalog: 'Katalog tovari vaznini Atlas belgilagan.',
     weightRule: packaging => `Jo‘natma vazniga qadoq uchun ${packaging} kg qo‘shamiz — bitta do‘kondan kelgan jo‘natmaga bir marta. Kamida 1 kg. Ombor jo‘natmani tortadi: yengil chiqsa — farqni balansga qaytaramiz, og‘ir chiqsa — qo‘shimcha to‘lov faqat sizning roziligingiz bilan.`, parcelWeight: kg => `Jo‘natmaning pullik vazni: ${kg} kg`,
     commentPlaceholder: 'Buyurtmadan oldin hisobga olishimiz kerak bo‘lgan istak yoki muhim ma’lumot', commentHint: 'Faqat Atlas ko‘radi, do‘konga yuborilmaydi.', commentShort: 'Izoh',
-    lines: { items: 'Tovarlar', service: 'Atlas xizmati', serviceBreakdown: 'Xizmat tarkibi', atlasFee: p => p ? `Atlas komissiyasi ${p}` : 'Atlas komissiyasi', buyout: 'Xarid', conversion: 'Konvertatsiya', storeShipping: 'Do‘kon yetkazishi', free: 'Bepul', international: kg => kg ? `Xalqaro yetkazish, ${kg} kg` : 'Xalqaro yetkazish', intlReserve: 'Xalqaro yetkazish zaxirasi', insurance: 'Posilkani sug‘urtalash', optional: 'Qo‘shimcha xizmatlar', total: 'To‘lov uchun', holdOutside: 'zaxira alohida', customsHelp: p => `Bojxonani Atlas orqali to‘lash ${p}`, customsDuty: 'Bojxona boji, oldindan to‘lov' },
+    lines: { items: 'Tovarlar', service: 'Atlas xizmati', serviceBreakdown: 'Xizmat tarkibi', atlasFee: p => p ? `Atlas komissiyasi ${p}` : 'Atlas komissiyasi', buyout: 'Xarid', conversion: 'Konvertatsiya', storeShipping: 'Do‘kon yetkazishi', free: 'Bepul', international: kg => kg ? `Xalqaro yetkazish, ${kg} kg` : 'Xalqaro yetkazish', intlReserve: 'Xalqaro yetkazish zaxirasi', insurance: 'Atlas saqlash kafolati', optional: 'Qo‘shimcha xizmatlar', total: 'To‘lov uchun', holdOutside: 'zaxira alohida', customsHelp: p => `Bojxonani Atlas orqali to‘lash ${p}`, customsDuty: 'Bojxona boji, oldindan to‘lov' },
     hold: 'Do‘kon yetkazishi uchun zaxira', holdNote: 'Do‘kon yetkazish narxini tasdiqlagach, qoldig‘ini bo‘shatamiz',
     holdHelp: freeFrom => `Do‘kon omborgacha yetkazishni ko‘rsatmagan. Menejer haqiqiy summani do‘kondan tasdiqlaguncha bu zaxirani buyurtma to‘lovidan alohida ushlab turamiz. Arzon chiqsa — qoldig‘ini bo‘shatamiz; qimmat chiqsa — farq faqat roziligingiz bilan. Do‘kondan ${freeFrom} dan qimmat buyurtmada yetkazish bepul va zaxira kerak emas.`,
     freeNote: freeFrom => `Do‘kondan ${freeFrom} dan ortiq buyurtma: omborgacha yetkazish bepul.`,
@@ -122,7 +122,7 @@ export const calcCopy: Record<Locale, CalcCopy> = /*@__PURE__*/withCyrillic({
     outside: 'To‘lov summasiga kirmaydi',
     blank: {
       title: 'Hisob shunday ko‘rinadi', lead: 'Havolani qo‘ying, har bir satrni so‘mda to‘ldiramiz.',
-      item: 'Tovar narxi', itemCbu: markup => `MB kursi va ${markup} ustama bilan`, itemSet: 'Atlas belgilagan kurs bilan',
+      item: 'Tovar narxi', itemSet: 'Atlas kursi bilan',
       fee: 'Atlas komissiyasi', feeRule: percent => `tovar narxining ${percent}`,
       delivery: 'Toshkentga yetkazib berish', deliveryRule: (perKg, packaging) => `har kg uchun ${perKg}, qadoq uchun ${packaging} kg, kamida 1 kg`,
       reserve: 'Qaytariladigan zaxira', reserveRule: 'og‘irlik uchun zaxira; qolgani balansga qaytadi', total: 'To‘lov uchun',
@@ -167,7 +167,7 @@ export const calcCopy: Record<Locale, CalcCopy> = /*@__PURE__*/withCyrillic({
     weightStore: 'The store states the packed weight.', weightEstimate: category => `Atlas estimate for “${category}” — correct it if you know better.`, weightTitle: 'Atlas estimate from the product name — correct it if you know better.', weightCustomer: 'You entered the weight.', weightCatalog: 'Atlas set the weight for this catalog item.',
     weightRule: packaging => `We add ${packaging} kg for packaging to the parcel weight — once per parcel from one store. Minimum 1 kg. The warehouse weighs the parcel: if it is lighter, the difference goes back to your balance; if heavier, any extra payment needs your consent.`, parcelWeight: kg => `Billable parcel weight: ${kg} kg`,
     commentPlaceholder: 'A wish or important information we should take into account before ordering', commentHint: 'Only Atlas sees it; it is not sent to the store.', commentShort: 'Comment',
-    lines: { items: 'Items', service: 'Atlas service', serviceBreakdown: 'Service breakdown', atlasFee: p => p ? `Atlas fee ${p}` : 'Atlas fee', buyout: 'Buyout', conversion: 'Conversion', storeShipping: 'Store delivery', free: 'Free', international: kg => kg ? `International delivery, ${kg} kg` : 'International delivery', intlReserve: 'International delivery reserve', insurance: 'Parcel insurance', optional: 'Extra services', total: 'To pay', holdOutside: 'held separately', customsHelp: p => `Customs paid through Atlas ${p}`, customsDuty: 'Customs duty, prepaid' },
+    lines: { items: 'Items', service: 'Atlas service', serviceBreakdown: 'Service breakdown', atlasFee: p => p ? `Atlas fee ${p}` : 'Atlas fee', buyout: 'Buyout', conversion: 'Conversion', storeShipping: 'Store delivery', free: 'Free', international: kg => kg ? `International delivery, ${kg} kg` : 'International delivery', intlReserve: 'International delivery reserve', insurance: 'Atlas safe-arrival guarantee', optional: 'Extra services', total: 'To pay', holdOutside: 'held separately', customsHelp: p => `Customs paid through Atlas ${p}`, customsDuty: 'Customs duty, prepaid' },
     hold: 'Store-delivery reserve', holdNote: 'The rest is released once the store confirms the delivery price',
     holdHelp: freeFrom => `The store did not state delivery to the warehouse. We hold this reserve apart from the order payment until a manager confirms the actual amount with the store. If delivery costs less, the rest is released; if more, the difference needs your consent. For orders from a store over ${freeFrom} delivery is free and no reserve is needed.`,
     freeNote: freeFrom => `Order from this store over ${freeFrom}: delivery to the warehouse is free.`,
@@ -179,7 +179,7 @@ export const calcCopy: Record<Locale, CalcCopy> = /*@__PURE__*/withCyrillic({
     outside: 'Not in the amount to pay',
     blank: {
       title: 'This is how the bill will look', lead: 'Paste a link and we fill in every line in soum.',
-      item: 'Item price', itemCbu: markup => `at the Central Bank rate plus ${markup}`, itemSet: 'at the rate set by Atlas',
+      item: 'Item price', itemSet: 'at the Atlas rate',
       fee: 'Atlas fee', feeRule: percent => `${percent} of the item price`,
       delivery: 'Delivery to Tashkent', deliveryRule: (perKg, packaging) => `${perKg} per kg, plus ${packaging} kg packaging, at least 1 kg`,
       reserve: 'Refundable reserve', reserveRule: 'a weight buffer; what is left returns to your balance', total: 'To pay',

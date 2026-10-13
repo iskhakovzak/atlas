@@ -6,7 +6,7 @@ import {merchantRequest} from '@/lib/importer/worker-fetch';
 import {recentCheckMs,withRecentImport} from '@/lib/market/cart-check';
 import {codedActionError,editorialShippingFor,prepareAction,staleRevision,type EditorialShipping,type PreparedAction} from '@/lib/market/actions-server';
 import {catalogDocumentSchema,initialCatalog,synchronizeBundledCatalog,type CatalogDocument} from '@/lib/market/catalog-editor';
-import type {Product,State} from '@/lib/market/domain';
+import {cleanPassportNumber,cleanPinfl,type Product,type State} from '@/lib/market/domain';
 import {addCustomerLinkDraft} from '@/lib/market/catalog-server';
 /**
  * The catalog's delivery record for a product link, read once per request and only when an action needs it.
@@ -39,19 +39,24 @@ export async function POST(request:Request){try{
   const storeCheck=['cart-add','cart-add-many','cart-check','checkout'].includes(parsed.data.type);
   // Independent reads go out together with the limits: one wait instead of up to five in a row on every action.
   const identityAction=parsed.data.type==='identity-confirm'?parsed.data:undefined;
+  // An older scan's id must be the caller's own; text-only details (13.10.2026) get an id assigned below.
   const [,,status,current,settings,owned]=await Promise.all([
     rateLimit(`${user.userId}:actions`,60,60_000),
     storeCheck?rateLimit(`${user.userId}:store-checks`,40,10*60_000,'err_39'):undefined,
     customerStatus(user.userId),account(user),pricingAndPolicy(),
-    identityAction?database().prepare('SELECT id FROM market_identity_documents WHERE id=? AND user_id=?').bind(identityAction.documentId,user.userId).first():undefined,
+    identityAction?.documentId?database().prepare('SELECT id FROM market_identity_documents WHERE id=? AND user_id=?').bind(identityAction.documentId,user.userId).first():undefined,
   ]);
   if(status==='blocked')throw new HttpError(403, 'err_11');
   if(status==='review'&&['checkout','payment-demo','payment-demo-batch','extra-charge-pay'].includes(parsed.data.type))throw new HttpError(403, 'err_12');
   if(identityAction){
-    if(!owned)throw new HttpError(404, 'err_13');
+    if(identityAction.documentId&&!owned)throw new HttpError(404, 'err_13');
     if(identityAction.recipientProfileId&&!current.state.deliveryProfiles.some(profile=>profile.id===identityAction.recipientProfileId))throw new HttpError(400, 'err_14');
   }
   if(staleRevision(payload.revision,current.revision)){const locale=requestLocale(request);return json({error:locale==='ru'?'Данные изменились. Проверьте обновлённый заказ и повторите действие.':apiErrorMessage(409,locale),state:current.state,revision:current.revision},409)}
+  // Passport details typed as text keep one id per recipient ("ID-…"), so a correction replaces the earlier entry.
+  const action=identityAction&&!identityAction.documentId
+    ?{...identityAction,documentId:(current.state.identityProfiles??[]).find(profile=>profile.recipientProfileId===identityAction.recipientProfileId&&profile.documentId.startsWith('ID-'))?.documentId??'ID-'+crypto.randomUUID()}
+    :parsed.data;
   let next:State;
   let verifiedSource:PreparedAction['verifiedSource'];
   // Set when the cart was repriced (new store price, new tariff, a product to load again): the new cart is
@@ -64,7 +69,7 @@ export async function POST(request:Request){try{
     const source=parsed.data.type==='cart-add'||parsed.data.type==='cart-add-many'
       ?withRecentImport(live,async(url,since)=>{const row=await database().prepare('SELECT payload,updated_at FROM market_import_cache WHERE url=? AND updated_at>?').bind(url,since).first<{payload:string;updated_at:number}>();return row?{payload:row.payload,updatedAt:row.updated_at}:undefined},now,recentCheckMs)
       :{fetchProduct:live,snapshotAt:undefined};
-    ({next,refusal,verifiedSource}=await prepareAction(current.state,parsed.data,{fetchProduct:source.fetchProduct,snapshotAt:source.snapshotAt,pricing,policy,operator:operator(user.email),now,recentCheckMs,editorialShipping:editorialShippingLookup()}));
+    ({next,refusal,verifiedSource}=await prepareAction(current.state,action,{fetchProduct:source.fetchProduct,snapshotAt:source.snapshotAt,pricing,policy,operator:operator(user.email),now,recentCheckMs,editorialShipping:editorialShippingLookup()}));
   }catch(e){
     if(e instanceof HttpError)throw e;
     const coded=codedActionError(e);
@@ -77,10 +82,13 @@ export async function POST(request:Request){try{
   if(addedProduct?.sourceUrl&&verifiedSource){
     deferBackground(addCustomerLinkDraft(addedProduct,verifiedSource,user),'Customer catalog draft sync failed');
   }
-  if(parsed.data.type==='identity-confirm'){
-    const identityAction=parsed.data;
-    const confirmed=next.identityProfiles?.find(profile=>profile.documentId===identityAction.documentId)??next.identityProfile;
-    await database().prepare('UPDATE market_identity_documents SET status=?, confirmed_data=?, updated_at=? WHERE id=? AND user_id=?').bind('confirmed',JSON.stringify(confirmed),Date.now(),identityAction.documentId,user.userId).run();
+  if(action.type==='identity-confirm'&&action.documentId){
+    // The full series, number and PINFL stay as text in the owner's document row (not in the account JSON, which holds the last digits).
+    const documentId=action.documentId,confirmed=next.identityProfiles?.find(profile=>profile.documentId===documentId)??next.identityProfile;
+    const data=JSON.stringify({...confirmed,passportNumber:cleanPassportNumber(action.passportNumber),...(action.pinfl?.trim()?{pinfl:cleanPinfl(action.pinfl)}:{})}),now=Date.now();
+    await (documentId.startsWith('ID-')
+      ?database().prepare("INSERT INTO market_identity_documents (id,user_id,object_key,filename,content_type,size,status,confirmed_data,created_at,updated_at) VALUES (?,?,'','passport-text','text/plain',0,'confirmed',?,?,?) ON CONFLICT(id) DO UPDATE SET confirmed_data=excluded.confirmed_data,status='confirmed',updated_at=excluded.updated_at WHERE market_identity_documents.user_id=excluded.user_id").bind(documentId,user.userId,data,now,now)
+      :database().prepare('UPDATE market_identity_documents SET status=?, confirmed_data=?, updated_at=? WHERE id=? AND user_id=?').bind('confirmed',data,now,documentId,user.userId)).run();
   }
   if(parsed.data.type==='consent-accept'){
     // Proof of consent outside the account document (migration 0004); kept, pseudonymised, after the account is deleted.

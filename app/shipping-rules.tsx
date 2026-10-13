@@ -8,16 +8,16 @@ import {pickLocale} from "@/lib/market/uz-cyrl";
 // service, lib/market/domain.ts) and its rates come from there.
 const copy={
  ru:{
-  title:"Правила доставки: страховка, запреты, лимиты",
-  insTitle:"Страховка и компенсация",
+  title:"Правила доставки: гарантия сохранности, запреты, лимиты",
+  insTitle:"Гарантия сохранности Atlas и компенсация",
   insItems:[
-   "Без страховки: за утерянную посылку мы возмещаем $15 за кг, за порчу посылки или её содержимого — $3 за кг.",
-   "Со страховкой: утрата и ущерб возмещаются в размере 100 % стоимости товара и доставки.",
-   "Стоимость страховки — 2,9 % от стоимости посылки вместе с доставкой. Если посылка с доставкой дороже $200, ставка — 3,9 %.",
-   "Если цена товара после выкупа изменится, страховка пересчитается по той же ставке от разницы.",
+   "Без гарантии сохранности: за утерянную посылку мы возмещаем $15 за кг, за порчу посылки или её содержимого — $3 за кг.",
+   "С гарантией сохранности Atlas: утрата и ущерб возмещаются в размере 100 % стоимости товара и доставки. Это собственное обязательство Atlas, а не страхование.",
+   "Плата за гарантию — 2,9 % от стоимости посылки вместе с доставкой. Если посылка с доставкой дороже $200, ставка — 3,9 %.",
+   "Если цена товара после выкупа изменится, плата за гарантию пересчитается по той же ставке от разницы.",
    "Об утере сообщите в «Моих заказах», когда посылка отправлена в Ташкент; о порче — в течение 14 дней после получения. Возмещение зачисляем на баланс Atlas.",
   ],
-  insNote:"Страховку отмечают в корзине у каждой посылки — она сразу входит в сумму заказа.",
+  insNote:"Гарантию сохранности отмечают в корзине у каждой посылки — она сразу входит в сумму заказа.",
   banTitle:"Что нельзя отправлять обычной курьерской доставкой",
   banIntro:"Мы бережно и вовремя доставляем посылки из США в Ташкент, но есть вещи, которые отправить нельзя:",
   banItems:[
@@ -39,16 +39,16 @@ const copy={
   ],
  },
  uz:{
-  title:"Yetkazib berish qoidalari: sug‘urta, taqiqlar, limitlar",
-  insTitle:"Sug‘urta va kompensatsiya",
+  title:"Yetkazib berish qoidalari: saqlash kafolati, taqiqlar, limitlar",
+  insTitle:"Atlas saqlash kafolati va kompensatsiya",
   insItems:[
-   "Sug‘urtasiz: yo‘qolgan posilka uchun har kg uchun $15, posilka yoki uning tarkibi shikastlansa — har kg uchun $3 qoplaymiz.",
-   "Sug‘urta bilan: yo‘qotish va zarar tovar va yetkazib berish qiymatining 100 % miqdorida qoplanadi.",
-   "Sug‘urta narxi — posilkaning yetkazib berish bilan birga qiymatining 2,9 %. Yetkazib berish bilan posilka $200 dan qimmat bo‘lsa, stavka — 3,9 %.",
-   "Xariddan keyin tovar narxi o‘zgarsa, sug‘urta farqdan o‘sha stavka bo‘yicha qayta hisoblanadi.",
+   "Kafolatsiz: yo‘qolgan posilka uchun har kg uchun $15, posilka yoki uning tarkibi shikastlansa — har kg uchun $3 qoplaymiz.",
+   "Atlas saqlash kafolati bilan: yo‘qotish va zarar tovar va yetkazib berish qiymatining 100 % miqdorida qoplanadi. Bu Atlasning o‘z majburiyati, sug‘urta emas.",
+   "Kafolat narxi — posilkaning yetkazib berish bilan birga qiymatining 2,9 %. Yetkazib berish bilan posilka $200 dan qimmat bo‘lsa, stavka — 3,9 %.",
+   "Xariddan keyin tovar narxi o‘zgarsa, kafolat narxi farqdan o‘sha stavka bo‘yicha qayta hisoblanadi.",
    "Yo‘qolgani haqida posilka Toshkentga jo‘natilgach «Buyurtmalarim»da xabar bering; shikast haqida — olganingizdan keyin 14 kun ichida. Qoplash Atlas balansiga o‘tkaziladi.",
   ],
-  insNote:"Sug‘urta savatda har bir posilka uchun belgilanadi — u darhol buyurtma summasiga kiradi.",
+  insNote:"Saqlash kafolati savatda har bir posilka uchun belgilanadi — u darhol buyurtma summasiga kiradi.",
   banTitle:"Oddiy kuryer yetkazib berishida jo‘natib bo‘lmaydigan narsalar",
   banIntro:"Posilkalarni AQShdan Toshkentga ehtiyotkorlik bilan va o‘z vaqtida yetkazamiz, ammo quyidagilarni jo‘natib bo‘lmaydi:",
   banItems:[
@@ -70,16 +70,16 @@ const copy={
   ],
  },
  en:{
-  title:"Shipping rules: insurance, prohibited items, limits",
-  insTitle:"Insurance and compensation",
+  title:"Shipping rules: safe-arrival guarantee, prohibited items, limits",
+  insTitle:"Atlas safe-arrival guarantee and compensation",
   insItems:[
-   "Without insurance: we compensate a lost parcel at $15 per kg, and a damaged parcel or contents at $3 per kg.",
-   "With insurance: loss and damage are compensated in full (100% of the goods and delivery).",
-   "Insurance costs 2.9% of the parcel value including delivery. If the parcel with delivery is worth more than $200, the rate is 3.9%.",
-   "If the item price changes after purchase, the insurance is recalculated on the difference at the same rate.",
+   "Without the guarantee: we compensate a lost parcel at $15 per kg, and a damaged parcel or contents at $3 per kg.",
+   "With the Atlas safe-arrival guarantee: loss and damage are compensated in full (100% of the goods and delivery). This is Atlas's own obligation, not insurance.",
+   "The guarantee costs 2.9% of the parcel value including delivery. If the parcel with delivery is worth more than $200, the rate is 3.9%.",
+   "If the item price changes after purchase, the guarantee fee is recalculated on the difference at the same rate.",
    "Report a loss in My orders once the parcel has left for Tashkent, and damage within 14 days of receipt. Compensation goes to your Atlas balance.",
   ],
-  insNote:"Tick insurance for each parcel in the cart — it is added to the order total right away.",
+  insNote:"Tick the safe-arrival guarantee for each parcel in the cart — it is added to the order total right away.",
   banTitle:"What cannot go by regular courier delivery",
   banIntro:"We deliver parcels from the USA to Tashkent carefully and on time, but some items cannot be shipped:",
   banItems:[

@@ -165,7 +165,7 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
     services: {
       optional: 'по желанию',
       hint: 'Отметьте пожелания — в сумму заказа они не входят. Оператор проверит возможность после приёмки; услугу выполнят только после показа точной суммы и вашего согласия.',
-      hintPercent: 'Страховка сразу входит в сумму заказа. Остальные пожелания в сумму не входят: оператор проверит их после приёмки и выполнит только после показа точной суммы и вашего согласия.',
+      hintPercent: 'Гарантия сохранности Atlas сразу входит в сумму заказа. Остальные пожелания в сумму не входят: оператор проверит их после приёмки и выполнит только после показа точной суммы и вашего согласия.',
       percent: (rate, high, amount) => `${rate} от стоимости товаров и доставки${high ? ` (${high})` : ''} · ${amount}`, highRule: (threshold, rate) => `дороже ${threshold} — ${rate}`,
       fixed: 'Тариф', quote: 'Цену назовёт оператор', quantity: 'Количество', required: 'обязательно',
       units: { package: 'посылка', item: 'шт.', day: 'день', photo: 'фото', 'half-hour': '30 мин' },
@@ -214,7 +214,7 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
     services: {
       optional: 'ixtiyoriy',
       hint: 'Istaklaringizni belgilang — ular buyurtma summasiga kirmaydi. Operator qabuldan keyin imkoniyatni tekshiradi; xizmat faqat aniq narx ko‘rsatilib, roziligingiz olingandan so‘ng bajariladi.',
-      hintPercent: 'Sug‘urta darhol buyurtma summasiga kiradi. Qolgan istaklar summaga kirmaydi: operator ularni qabuldan keyin tekshiradi va faqat aniq narx ko‘rsatilib, roziligingiz olingandan so‘ng bajaradi.',
+      hintPercent: 'Atlas saqlash kafolati darhol buyurtma summasiga kiradi. Qolgan istaklar summaga kirmaydi: operator ularni qabuldan keyin tekshiradi va faqat aniq narx ko‘rsatilib, roziligingiz olingandan so‘ng bajaradi.',
       percent: (rate, high, amount) => `tovarlar va yetkazib berish qiymatining ${rate}${high ? ` (${high})` : ''} · ${amount}`, highRule: (threshold, rate) => `${threshold} dan qimmat bo‘lsa — ${rate}`,
       fixed: 'Tarif', quote: 'Narxni operator aytadi', quantity: 'Miqdor', required: 'majburiy',
       units: { package: 'posilka', item: 'dona', day: 'kun', photo: 'foto', 'half-hour': '30 daqiqa' },
@@ -263,7 +263,7 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
     services: {
       optional: 'optional',
       hint: 'Choose preferences — they are not part of the order total. An operator checks feasibility after intake; work starts only after the exact price is shown and you approve it.',
-      hintPercent: 'Insurance is part of the order total right away. Other preferences are not: an operator checks them after intake and does the work only after showing the exact price and getting your approval.',
+      hintPercent: 'The Atlas safe-arrival guarantee is part of the order total right away. Other preferences are not: an operator checks them after intake and does the work only after showing the exact price and getting your approval.',
       percent: (rate, high, amount) => `${rate} of the goods and delivery${high ? ` (${high})` : ''} · ${amount}`, highRule: (threshold, rate) => `over ${threshold}: ${rate}`,
       fixed: 'Rate', quote: 'Operator will quote', quantity: 'Quantity', required: 'required',
       units: { package: 'package', item: 'item', day: 'day', photo: 'photo', 'half-hour': '30 min' },
@@ -346,7 +346,7 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
     },
     deletion: {
       title: 'Удалить аккаунт', lead: 'Аккаунт и личные данные будут удалены без возможности восстановления.', open: 'Удалить аккаунт',
-      removed: 'Будет удалено', removedList: ['профиль и контакты', 'получатели и адреса', 'сканы паспортов', 'корзина и избранное', 'уведомления', 'способы входа', 'история обращений в поддержку'],
+      removed: 'Будет удалено', removedList: ['профиль и контакты', 'получатели и адреса', 'паспортные данные и ранее загруженные сканы', 'корзина и избранное', 'уведомления', 'способы входа', 'история обращений в поддержку'],
       kept: 'Останется без личных данных', keptList: ['записи о заказах и бухгалтерские записи, которые требует хранить закон, — на установленный законом срок, под обезличенным идентификатором'],
       blocked: count => count === 1 ? 'Один оплаченный заказ ещё в работе.' : `Оплаченных заказов в работе: ${count}.`, blockedHint: 'Сначала дождитесь доставки или отмените их — или напишите в поддержку, и мы поможем закрыть их.',
       orders: 'Открыть заказы', support: 'Написать в поддержку', supportSubject: 'Удаление аккаунта',
@@ -402,7 +402,7 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
     },
     deletion: {
       title: 'Akkauntni o‘chirish', lead: 'Akkaunt va shaxsiy ma’lumotlar qaytarib bo‘lmaydigan tarzda o‘chiriladi.', open: 'Akkauntni o‘chirish',
-      removed: 'O‘chiriladi', removedList: ['profil va kontaktlar', 'qabul qiluvchilar va manzillar', 'pasport skanlari', 'savat va sevimlilar', 'bildirishnomalar', 'kirish usullari', 'yordam xizmatiga murojaatlar tarixi'],
+      removed: 'O‘chiriladi', removedList: ['profil va kontaktlar', 'qabul qiluvchilar va manzillar', 'pasport ma’lumotlari va avval yuklangan skanlar', 'savat va sevimlilar', 'bildirishnomalar', 'kirish usullari', 'yordam xizmatiga murojaatlar tarixi'],
       kept: 'Shaxsiy ma’lumotlarsiz saqlanadi', keptList: ['qonun saqlashni talab qiladigan buyurtma va buxgalteriya yozuvlari — qonunda belgilangan muddatga, shaxssizlantirilgan identifikator ostida'],
       blocked: count => count === 1 ? 'Bitta to‘langan buyurtma hali jarayonda.' : `Jarayondagi to‘langan buyurtmalar: ${count}.`, blockedHint: 'Avval yetkazilishini kuting yoki ularni bekor qiling — yoki yordam xizmatiga yozing, yopishga yordam beramiz.',
       orders: 'Buyurtmalarni ochish', support: 'Yordam xizmatiga yozish', supportSubject: 'Akkauntni o‘chirish',
@@ -458,7 +458,7 @@ export const accountCopy: Record<Locale, AccountCopy> = /*@__PURE__*/withCyrilli
     },
     deletion: {
       title: 'Delete account', lead: 'The account and personal data will be deleted permanently.', open: 'Delete account',
-      removed: 'Will be deleted', removedList: ['profile and contacts', 'recipients and addresses', 'passport scans', 'cart and favourites', 'notifications', 'sign-in methods', 'support history'],
+      removed: 'Will be deleted', removedList: ['profile and contacts', 'recipients and addresses', 'passport details and any scans uploaded earlier', 'cart and favourites', 'notifications', 'sign-in methods', 'support history'],
       kept: 'Kept without personal data', keptList: ['order and accounting records the law requires us to keep — for the statutory period, under an anonymised identifier'],
       blocked: count => count === 1 ? 'One paid order is still in progress.' : `Paid orders in progress: ${count}.`, blockedHint: 'Wait for delivery or cancel them first — or write to support and we will help close them.',
       orders: 'Open orders', support: 'Write to support', supportSubject: 'Account deletion',
@@ -547,32 +547,32 @@ export const ordersCopy: Record<Locale, OrdersCopy> = /*@__PURE__*/withCyrillic(
 export const balanceCopy: Record<Locale, BalanceCopy> = /*@__PURE__*/withCyrillic({
   ru: {
     title: 'Баланс', label: 'Баланс Atlas', note: 'Внутренний счёт для расчётов по заказам — не банковская карта и не кошелёк.',
-    spend: 'Заказать по ссылке', withdraw: 'Вывести', withdrawTitle: 'Вывод на сайте не подключён',
-    withdrawText: 'Перечисление средств с баланса на сайте не подключено: этот экран не отправляет запрос и не переводит деньги. Баланс — внутренний учёт заказов, не банковский счёт.',
+    spend: 'Заказать по ссылке', withdraw: 'Вернуть на карту оплаты', withdrawTitle: 'Возврат только на карту оплаты',
+    withdrawText: 'Деньги с баланса возвращаем только на ту же карту, с которой вы платили, — на другую карту или другому человеку перевести нельзя. Возврат на сайте пока не подключён: этот экран не отправляет запрос и не переводит деньги. Баланс — внутренний учёт заказов, не кошелёк и не банковский счёт.',
     close: 'Понятно', reserve: 'Резерв доставки в заказах', reserveText: 'Уже входит в суммы заказов. После взвешивания посылок остаток вернётся на баланс, а доплата выше резерва — только с вашего согласия.',
     orders: 'Мои заказы', history: 'История операций', operations: count => `${count} ${ruPlural(count, 'операция', 'операции', 'операций')}`, order: 'Заказ',
     emptyTitle: 'Операций пока нет', emptyText: 'Здесь появятся возвраты разницы после взвешивания и оплата заказов с баланса.',
-    notice: 'Оплата и вывод средств на сайте не подключены — деньги не переводятся.',
+    notice: 'Оплата и возврат на карту на сайте не подключены — деньги не переводятся.',
     signin: { title: 'Войдите, чтобы открыть баланс', text: 'Расчёты по заказам и возвратам хранятся в вашем профиле.', action: 'Войти' }, loading: 'Загружаем операции…',
   },
   uz: {
     title: 'Balans', label: 'Atlas balansi', note: 'Buyurtmalar bo‘yicha hisob-kitob uchun ichki hisob — bank kartasi yoki hamyon emas.',
-    spend: 'Havola orqali buyurtma', withdraw: 'Yechib olish', withdrawTitle: 'Saytda yechib olish ulanmagan',
-    withdrawText: 'Saytda balansdan pul o‘tkazish ulanmagan: bu ekran so‘rov yubormaydi va pul o‘tkazmaydi. Balans — buyurtmalarning ichki hisobi, bank hisob raqami emas.',
+    spend: 'Havola orqali buyurtma', withdraw: 'To‘lov kartasiga qaytarish', withdrawTitle: 'Faqat to‘lov kartasiga qaytariladi',
+    withdrawText: 'Balansdagi pulni faqat siz to‘lagan kartaning o‘ziga qaytaramiz — boshqa kartaga yoki boshqa odamga o‘tkazib bo‘lmaydi. Saytda qaytarish hali ulanmagan: bu ekran so‘rov yubormaydi va pul o‘tkazmaydi. Balans — buyurtmalarning ichki hisobi, hamyon ham, bank hisob raqami ham emas.',
     close: 'Tushunarli', reserve: 'Buyurtmalardagi yetkazish zaxirasi', reserveText: 'Buyurtma summalariga allaqachon kiritilgan. Posilkalar tortilgach qoldiq balansga qaytadi, zaxiradan ortiq to‘lov — faqat roziligingiz bilan.',
     orders: 'Buyurtmalarim', history: 'Amallar tarixi', operations: count => `${count} ta amal`, order: 'Buyurtma',
     emptyTitle: 'Hali amallar yo‘q', emptyText: 'Tortishdan keyingi farq qaytarilishi va balansdan to‘langan buyurtmalar shu yerda ko‘rinadi.',
-    notice: 'Saytda to‘lov va pul yechib olish ulanmagan — pul o‘tkazilmaydi.',
+    notice: 'Saytda to‘lov va kartaga qaytarish ulanmagan — pul o‘tkazilmaydi.',
     signin: { title: 'Balansni ochish uchun kiring', text: 'Buyurtma va qaytarishlar hisobi profilingizda saqlanadi.', action: 'Kirish' }, loading: 'Amallar yuklanmoqda…',
   },
   en: {
     title: 'Balance', label: 'Atlas balance', note: 'An internal account for order settlements — not a bank card or a wallet.',
-    spend: 'Order by link', withdraw: 'Withdraw', withdrawTitle: 'Withdrawals are not connected',
-    withdrawText: 'Payouts from the balance are not connected on the site: this screen does not submit a request or transfer funds. The balance is internal order accounting, not a bank account.',
+    spend: 'Order by link', withdraw: 'Refund to the paying card', withdrawTitle: 'Refunds go only to the paying card',
+    withdrawText: 'Money on the balance goes back only to the same card you paid with — never to another card or another person. Refunds are not connected on the site yet: this screen does not submit a request or transfer funds. The balance is internal order accounting, not a wallet or a bank account.',
     close: 'Got it', reserve: 'Delivery reserve in orders', reserveText: 'Already included in order totals. After parcels are weighed, any remainder returns to your balance; anything above the reserve needs your consent.',
     orders: 'My orders', history: 'Transaction history', operations: count => `${count} ${count === 1 ? 'transaction' : 'transactions'}`, order: 'Order',
     emptyTitle: 'No transactions yet', emptyText: 'Refunds after weighing and orders paid from the balance will appear here.',
-    notice: 'Payments and withdrawals are not connected on the site — no money is transferred.',
+    notice: 'Payments and refunds to the card are not connected on the site — no money is transferred.',
     signin: { title: 'Sign in to open your balance', text: 'Order and refund settlements are saved in your profile.', action: 'Sign in' }, loading: 'Loading transactions…',
   },
 });
@@ -797,43 +797,40 @@ export const recipientCopy: Record<Locale, RecipientCopy> = /*@__PURE__*/withCyr
 
 export type DocsCopy = {
   title: string; lead: string; whose: string; whoseHint: string; noRecipient: string; addRecipient: string;
-  passportOk: (masked: string) => string; passportMissing: string; uploadStep: string; replaceStep: string; checkStep: string;
-  pickFirst: string; uploaded: string; uploadedFilled: string; autoFailed: string; reading: string; confirmedToast: string; deleteConfirm: string; deleted: string;
-  loadError: string; uploadError: string; deleteError: string; scans: string;
+  passportOk: (masked: string) => string; passportMissing: string; uploadStep: string; replaceStep: string;
+  pickFirst: string; confirmedToast: string; deleteConfirm: string; deleteDataConfirm: string; deleted: string;
+  loadError: string; deleteError: string;
   declTitle: string; declLead: string; need: string; needRecipient: string; needPassport: string; needOrders: string; addPassport: string; newOrder: string;
   ordersFor: (name: string) => string; selectGroup: string; usd: (amount: number) => string; overLimit: string; history: string;
 };
 
 export const docsCopy: Record<Locale, DocsCopy> = /*@__PURE__*/withCyrillic({
   ru: {
-    title: 'Паспорт или ID-карта получателя', lead: 'Нужны для таможенного оформления посылки. Скан видите вы и сотрудники Atlas, которые оформляют посылку.',
+    title: 'Паспорт или ID-карта получателя', lead: 'Нужны для таможенного оформления посылки. Данные вводятся текстом — их видите вы и сотрудники Atlas, которые оформляют посылку.',
     whose: 'Чей паспорт', whoseHint: 'Паспорт привязывается к получателю — тому, кто заберёт посылку.', noRecipient: 'Сначала добавьте получателя.', addRecipient: 'Добавить получателя',
-    passportOk: masked => `Паспорт ${masked}`, passportMissing: 'паспорт не добавлен', uploadStep: 'Фото разворота паспорта или оборота ID-карты', replaceStep: 'Заменить скан', checkStep: 'Проверьте данные',
-    pickFirst: 'Выберите получателя выше.', uploaded: 'Скан загружен — проверьте и заполните данные.', uploadedFilled: 'Скан загружен, найденные данные заполнены.',
-    autoFailed: 'Не удалось распознать документ — заполните поля вручную. Лучше читается чёткое фото без бликов, где видны строки с символами «<».', reading: 'Распознаём документ…', confirmedToast: 'Паспортные данные подтверждены.', deleteConfirm: 'Удалить скан паспорта из защищённого хранилища?', deleted: 'Скан удалён.',
-    loadError: 'Не удалось загрузить документы.', uploadError: 'Не удалось загрузить документ.', deleteError: 'Не удалось удалить документ.', scans: 'Загруженные сканы',
+    passportOk: masked => `Паспорт ${masked}`, passportMissing: 'паспорт не добавлен', uploadStep: 'Данные паспорта', replaceStep: 'Обновить данные паспорта',
+    pickFirst: 'Выберите получателя выше.', confirmedToast: 'Паспортные данные сохранены.', deleteConfirm: 'Удалить скан паспорта из защищённого хранилища?', deleteDataConfirm: 'Удалить паспортные данные этого получателя?', deleted: 'Удалено.',
+    loadError: 'Не удалось загрузить документы.', deleteError: 'Не удалось удалить документ.',
     declTitle: 'Декларация', declLead: 'Соберём черновик из ваших заказов и подтверждённого паспорта — без повторного ввода.', need: 'Что нужно для декларации',
     needRecipient: 'Получатель', needPassport: 'Паспорт получателя', needOrders: 'Хотя бы один заказ', addPassport: 'Добавить паспорт', newOrder: 'Заказать по ссылке',
     ordersFor: name => `Заказы для: ${name}`, selectGroup: 'Выбрать все', usd: amount => `≈ $${amount}`, overLimit: 'Больше $200 — с превышения платится пошлина.', history: 'Черновики деклараций',
   },
   uz: {
-    title: 'Qabul qiluvchi pasporti yoki ID-kartasi', lead: 'Posilkani bojxonada rasmiylashtirish uchun kerak. Skanni siz va posilkani rasmiylashtiradigan Atlas xodimlari ko‘radi.',
+    title: 'Qabul qiluvchi pasporti yoki ID-kartasi', lead: 'Posilkani bojxonada rasmiylashtirish uchun kerak. Ma’lumotlar matn bilan kiritiladi — ularni siz va posilkani rasmiylashtiradigan Atlas xodimlari ko‘radi.',
     whose: 'Kimning pasporti', whoseHint: 'Pasport qabul qiluvchiga — posilkani oladigan odamga bog‘lanadi.', noRecipient: 'Avval qabul qiluvchini qo‘shing.', addRecipient: 'Qabul qiluvchi qo‘shish',
-    passportOk: masked => `Pasport ${masked}`, passportMissing: 'pasport qo‘shilmagan', uploadStep: 'Pasport sahifasi yoki ID-karta orqa tomoni surati', replaceStep: 'Skanni almashtirish', checkStep: 'Ma’lumotlarni tekshiring',
-    pickFirst: 'Yuqorida qabul qiluvchini tanlang.', uploaded: 'Skan yuklandi — ma’lumotlarni tekshirib to‘ldiring.', uploadedFilled: 'Skan yuklandi, topilgan ma’lumotlar to‘ldirildi.',
-    autoFailed: 'Hujjatni aniqlab bo‘lmadi — maydonlarni qo‘lda to‘ldiring. «<» belgili qatorlar ko‘rinadigan aniq, yaltirashsiz surat yaxshiroq o‘qiladi.', reading: 'Hujjat aniqlanmoqda…', confirmedToast: 'Pasport ma’lumotlari tasdiqlandi.', deleteConfirm: 'Pasport skani himoyalangan omborxonadan o‘chirilsinmi?', deleted: 'Skan o‘chirildi.',
-    loadError: 'Hujjatlarni yuklab bo‘lmadi.', uploadError: 'Hujjatni yuklab bo‘lmadi.', deleteError: 'Hujjatni o‘chirib bo‘lmadi.', scans: 'Yuklangan skanlar',
+    passportOk: masked => `Pasport ${masked}`, passportMissing: 'pasport qo‘shilmagan', uploadStep: 'Pasport ma’lumotlari', replaceStep: 'Pasport ma’lumotlarini yangilash',
+    pickFirst: 'Yuqorida qabul qiluvchini tanlang.', confirmedToast: 'Pasport ma’lumotlari saqlandi.', deleteConfirm: 'Pasport skani himoyalangan omborxonadan o‘chirilsinmi?', deleteDataConfirm: 'Bu qabul qiluvchining pasport ma’lumotlari o‘chirilsinmi?', deleted: 'O‘chirildi.',
+    loadError: 'Hujjatlarni yuklab bo‘lmadi.', deleteError: 'Hujjatni o‘chirib bo‘lmadi.',
     declTitle: 'Deklaratsiya', declLead: 'Buyurtmalaringiz va tasdiqlangan pasportdan qoralama tayyorlaymiz — qayta kiritmasdan.', need: 'Deklaratsiya uchun nima kerak',
     needRecipient: 'Qabul qiluvchi', needPassport: 'Qabul qiluvchi pasporti', needOrders: 'Kamida bitta buyurtma', addPassport: 'Pasport qo‘shish', newOrder: 'Havola orqali buyurtma',
     ordersFor: name => `Buyurtmalar: ${name}`, selectGroup: 'Hammasini tanlash', usd: amount => `≈ $${amount}`, overLimit: '$200 dan ko‘p — limitdan ortiq qismga boj to‘lanadi.', history: 'Deklaratsiya qoralamalari',
   },
   en: {
-    title: 'Recipient passport or ID card', lead: 'Needed to clear the parcel through customs. The scan is seen by you and by the Atlas staff who process the parcel.',
+    title: 'Recipient passport or ID card', lead: 'Needed to clear the parcel through customs. The details are typed as text and seen by you and by the Atlas staff who process the parcel.',
     whose: 'Whose passport', whoseHint: 'A passport belongs to a recipient — the person who collects the parcel.', noRecipient: 'Add a recipient first.', addRecipient: 'Add recipient',
-    passportOk: masked => `Passport ${masked}`, passportMissing: 'no passport yet', uploadStep: 'Passport photo page or the back of the ID card', replaceStep: 'Replace scan', checkStep: 'Check the details',
-    pickFirst: 'Choose a recipient above.', uploaded: 'Scan uploaded — check and complete the details.', uploadedFilled: 'Scan uploaded; the details found were filled in.',
-    autoFailed: 'The document could not be read — fill in the fields yourself. A sharp photo without glare, showing the lines with “<” symbols, reads best.', reading: 'Reading the document…', confirmedToast: 'Passport details confirmed.', deleteConfirm: 'Delete the passport scan from protected storage?', deleted: 'Scan deleted.',
-    loadError: 'Could not load documents.', uploadError: 'Could not upload the document.', deleteError: 'Could not delete the document.', scans: 'Uploaded scans',
+    passportOk: masked => `Passport ${masked}`, passportMissing: 'no passport yet', uploadStep: 'Passport details', replaceStep: 'Update passport details',
+    pickFirst: 'Choose a recipient above.', confirmedToast: 'Passport details saved.', deleteConfirm: 'Delete the passport scan from protected storage?', deleteDataConfirm: 'Delete this recipient’s passport details?', deleted: 'Deleted.',
+    loadError: 'Could not load documents.', deleteError: 'Could not delete the document.',
     declTitle: 'Declaration', declLead: 'We build a draft from your orders and the confirmed passport — nothing to retype.', need: 'What a declaration needs',
     needRecipient: 'A recipient', needPassport: 'The recipient’s passport', needOrders: 'At least one order', addPassport: 'Add passport', newOrder: 'Order by link',
     ordersFor: name => `Orders for: ${name}`, selectGroup: 'Select all', usd: amount => `≈ $${amount}`, overLimit: 'Over $200 — duty applies to the excess.', history: 'Declaration drafts',

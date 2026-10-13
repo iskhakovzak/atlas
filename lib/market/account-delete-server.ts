@@ -32,8 +32,10 @@ export async function deleteAccount(user:{userId:string;email:string;contact?:st
  // 2. Passport scans in the private bucket, by the documents table. A failed R2 delete stops here: the
  //    customer retries and nothing is left behind without a row pointing at it. No bucket, nothing to delete.
  const documents=(await db.prepare('SELECT object_key FROM market_identity_documents WHERE user_id=?').bind(id).all<{object_key:string}>()).results;
- // One R2 call for all scans (delete takes up to 1000 keys) instead of one round trip per scan.
- if(env.BUCKET)for(let i=0;i<documents.length;i+=1000)await env.BUCKET.delete(documents.slice(i,i+1000).map(row=>row.object_key));
+ // One R2 call for all scans (delete takes up to 1000 keys) instead of one round trip per scan. Typed details
+ // (13.10.2026) have no object: their rows go with the batch below.
+ const scans=documents.map(row=>row.object_key).filter(Boolean);
+ if(env.BUCKET)for(let i=0;i<scans.length;i+=1000)await env.BUCKET.delete(scans.slice(i,i+1000));
  // 3. Requests the customer never paid for are cancelled in the operational projection, so the operator
  //    queue does not keep waiting for a customer who left. Best effort: the projection is rebuildable.
  try{
