@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { addToCart, blank, cartDeliverySpeed, products, setCartDeliverySpeed, tariff } from '../lib/market/domain.ts';
-import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, rateTextFor, regionForCountry, savingText, totalsBySpeed } from '../lib/market/delivery-speed.ts';
+import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, rateTextFor, regionForCountry, savingText, speedDeltas, speedDeltaText, totalsBySpeed } from '../lib/market/delivery-speed.ts';
 import { calcCopy } from '../lib/market/calc-copy.ts';
 
 const locales = ['ru', 'uz', 'en'];
@@ -64,4 +64,20 @@ test('standard is cheaper by the per-kg difference on the billable weight', () =
   const standard = setCartDeliverySpeed(state, 'standard', Date.now(), tariff);
   assert.equal(cartDeliverySpeed(standard.cart), 'standard');
   assert.equal(standard.cart[0].quote.total, totals.standard);
+});
+
+test('each speed card reads its difference against the chosen speed, the amount never breaking inside', () => {
+  const state = addToCart(blank(), products[0], products[0].variants[0], Date.now(), tariff, 1);
+  const totals = totalsBySpeed(state.cart, tariff, Date.now());
+  const fromExpress = speedDeltas(state.cart, tariff, 'express', Date.now());
+  assert.equal(fromExpress.express, 0);
+  assert.equal(fromExpress.standard, totals.standard - totals.express);
+  assert.ok(fromExpress.standard < 0);
+  assert.equal(speedDeltas(state.cart, tariff, 'standard', Date.now()).express, totals.express - totals.standard);
+  assert.equal(speedDeltas([], tariff, 'express'), null);
+  // "46 572 сум" keeps one line in the narrow card: every space inside the amount is non-breaking.
+  assert.equal(speedDeltaText(-46572, 'ru'), 'дешевле на 46\u00a0572\u00a0сум');
+  assert.equal(speedDeltaText(46572, 'en'), '46\u00a0572\u00a0UZS more');
+  assert.match(speedDeltaText(-46572, 'uz'), /so‘mga arzon$/);
+  assert.equal(speedDeltaText(0, 'ru'), 'та же цена');
 });

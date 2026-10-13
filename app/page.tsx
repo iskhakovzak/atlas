@@ -11,6 +11,7 @@ import './home-wide-rail.css';
 import './home-wide-content.css';
 import './folio-outside.css';
 import './home-bill.css';
+import './home-trust.css';
 import './home-wide-decor.css';
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }): Promise<Metadata> {

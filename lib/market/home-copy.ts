@@ -13,6 +13,8 @@ function ruDays(max: number) {
 type Step = { title: string; text: string };
 type Faq = { q: string; a: string };
 type Facts = { fee: string; freeFrom: string; hold: string; holdExample: string };
+/** One rule of the money section: a short title over its text (the icons follow the order, app/home-sections.tsx). */
+type Fact = { title: string; text: string };
 
 export type HomeCopy = {
   nav: NavCopy;
@@ -21,6 +23,8 @@ export type HomeCopy = {
   example: {
     title: string; product: (usd: string) => string; routeLabel: string; to: string; days: (min: number, max: number) => string;
     item: string; itemNote: (usd: string) => string; totalUsd: (usd: string) => string;
+    /** The legend under the bar: what share of the total is the item and what is the Atlas service. */
+    shareItem: (percent: string) => string; shareService: (percent: string) => string;
     /** One «Atlas service» line, as in the real bill (app/cost-lines.tsx); `fee` and `delivery` are its parts. */
     service: string; serviceParts: string; fee: (percent: string) => string;
     delivery: string; deliveryNote: (weight: string, perKg: string) => string;
@@ -29,7 +33,7 @@ export type HomeCopy = {
   };
   catalog: { title: string; intro: string; order: string; storePrice: string; total: string; breakdown: string };
   tariffs: { title: string; lead: string; from: string; country: string; time: string; perKg: string; perKgUnit: string; per100g: (usd: string) => string; days: (min: number, max: number) => string; pending: string; noDays: string; regions: Record<DeliveryRegion, string>; speeds: { express: string; standard: string }; speedsLabel: string; weightNote: string; rateNote: string };
-  trust: { title: string; facts: (facts: Facts) => string[]; ordersDone: string; trackingTitle: string; example: string; trackingProduct: string; trackingOrder: string; trackingNote: string; reviewsTitle: string; photosTitle: string; legalTitle: string; entity: string; inn: string; address: string; legalLink: string };
+  trust: { title: string; facts: (facts: Facts) => Fact[]; ordersDone: string; trackingTitle: string; trackingNow: string; example: string; trackingProduct: string; trackingOrder: string; trackingNote: string; reviewsTitle: string; photosTitle: string; legalTitle: string; entity: string; inn: string; address: string; legalLink: string };
   faq: { title: string; timesQuestion: string; timesKnown: (list: string) => string; timesUnknown: string; timesLink: string; customsLink: string; prohibitedOfficial: string; prohibitedRules: string; items: { customs: (allowance: string) => Faq; returns: Faq; prohibited: Faq; weight: Faq; account: Faq } };
   closing: { title: string; text: string };
   footer: FooterCopy;
@@ -73,6 +77,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       item: 'Цена товара',
       itemNote: usd => `${usd} по курсу Atlas`,
       totalUsd: usd => `≈ ${usd} вместе с доставкой в Ташкент`,
+      shareItem: percent => `Товар ${percent}`, shareService: percent => `Сервис ${percent}`,
       service: 'Сервис Atlas', serviceParts: 'Состав сервиса', fee: (percent) => `Комиссия ${percent}`,
       delivery: 'Доставка', deliveryNote: (weight, perKg) => `${weight} кг × ${perKg}`,
       reserve: 'Возвратный резерв', reserveNote: packaging => `В расчёт веса заложено ${packaging} кг запаса на упаковку. После взвешивания неиспользованную сумму вернём на баланс.`, reserveHelpLabel: 'Что такое возвратный резерв',
@@ -96,13 +101,13 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
     trust: {
       title: 'Как мы обращаемся с вашими деньгами', ordersDone: 'заказов уже доставили',
       facts: ({ fee, freeFrom, hold, holdExample }) => [
-        'Сверяем цену с магазином, когда вы добавляете товар в корзину, и ещё раз перед оформлением. Если она изменилась, сначала покажем новую сумму.',
-        'Цены в долларах переводим в сумы по курсу Atlas на день расчёта. Курс фиксируется в заказе при оплате.',
-        `Комиссия Atlas ${fee} от цены товаров и международная доставка стоят в счёте одной строкой «Сервис Atlas» — состав виден по нажатию.`,
-        `Если магазин не указал доставку до склада, при заказе из него дороже ${freeFrom} она бесплатна. Если дешевле, держим на неё резерв ${hold} — отдельно, в сумму к оплате он не входит. Например, заказ на ${holdExample}: когда магазин назовёт цену доставки, оплатим её из резерва, а остаток освободим; если доставка дороже ${hold} — доплата только с вашего согласия.`,
-        'Склад взвесит посылку: если она легче расчёта — разницу вернём на баланс. Оплата сверх счёта — только с вашего согласия.',
+        { title: 'Цена сверяется дважды', text: 'Сверяем цену с магазином, когда вы добавляете товар в корзину, и ещё раз перед оформлением. Если она изменилась, сначала покажем новую сумму.' },
+        { title: 'Курс фиксируется при оплате', text: 'Цены в долларах переводим в сумы по курсу Atlas на день расчёта. Курс фиксируется в заказе при оплате.' },
+        { title: 'Сервис — одной строкой', text: `Комиссия Atlas ${fee} от цены товаров и международная доставка стоят в счёте одной строкой «Сервис Atlas» — состав виден по нажатию.` },
+        { title: 'Доставка до склада — из резерва', text: `Если магазин не указал доставку до склада, при заказе из него дороже ${freeFrom} она бесплатна. Если дешевле, держим на неё резерв ${hold} — отдельно, в сумму к оплате он не входит. Например, заказ на ${holdExample}: когда магазин назовёт цену доставки, оплатим её из резерва, а остаток освободим; если доставка дороже ${hold} — доплата только с вашего согласия.` },
+        { title: 'Легче расчёта — вернём разницу', text: 'Склад взвесит посылку: если она легче расчёта — разницу вернём на баланс. Оплата сверх счёта — только с вашего согласия.' },
       ],
-      trackingTitle: 'Отслеживание заказа', example: 'Пример', trackingProduct: 'Кроссовки Nike', trackingOrder: 'Заказ AT-1042', trackingNote: 'Так выглядит статус заказа в личном кабинете.',
+      trackingTitle: 'Отслеживание заказа', trackingNow: 'Сейчас', example: 'Пример', trackingProduct: 'Кроссовки Nike', trackingOrder: 'Заказ AT-1042', trackingNote: 'Так выглядит статус заказа в личном кабинете.',
       reviewsTitle: 'Отзывы клиентов', photosTitle: 'Посылки наших клиентов',
       legalTitle: 'Юридическая информация', entity: 'Компания', inn: footerCopy.ru.inn, address: 'Адрес', legalLink: 'Правила сервиса',
     },
@@ -163,6 +168,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       item: 'Tovar narxi',
       itemNote: usd => `${usd}, Atlas kursi bilan`,
       totalUsd: usd => `Toshkentga yetkazish bilan ≈ ${usd}`,
+      shareItem: percent => `Tovar ${percent}`, shareService: percent => `Xizmat ${percent}`,
       service: 'Atlas xizmati', serviceParts: 'Xizmat tarkibi', fee: (percent) => `Komissiya ${percent}`,
       delivery: 'Yetkazib berish', deliveryNote: (weight, perKg) => `${weight} kg × ${perKg}`,
       reserve: 'Qaytariladigan zaxira', reserveNote: packaging => `Vazn hisobiga qadoq uchun ${packaging} kg zaxira kiritilgan. Omborda tortilgach, ishlatilmagan summa balansga qaytariladi.`, reserveHelpLabel: 'Qaytariladigan zaxira nima',
@@ -186,13 +192,13 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
     trust: {
       title: 'Pulingiz bilan qanday ishlaymiz', ordersDone: 'ta buyurtma yetkazildi',
       facts: ({ fee, freeFrom, hold, holdExample }) => [
-        'Tovarni savatga qo‘shganingizda va rasmiylashtirishdan oldin yana narxni do‘kon bilan solishtiramiz. U o‘zgargan bo‘lsa, avval yangi summani ko‘rsatamiz.',
-        'Dollardagi narxlarni hisob kunidagi Atlas kursi bilan so‘mga o‘tkazamiz. Kurs to‘lov paytida buyurtmada qayd etiladi.',
-        `Atlas komissiyasi (tovarlar narxining ${fee}) va xalqaro yetkazish hisobda bitta «Atlas xizmati» satrida turadi — tarkibi bosganda ko‘rinadi.`,
-        `Do‘kon omborgacha yetkazish narxini ko‘rsatmagan bo‘lsa, undan ${freeFrom} dan qimmat buyurtmada yetkazish bepul. Arzonroq buyurtmada unga ${hold} zaxira qo‘yamiz — u alohida turadi va to‘lov summasiga kirmaydi. Masalan, ${holdExample} lik buyurtma: do‘kon yetkazish narxini aytgach, uni zaxiradan to‘laymiz, qoldig‘ini bo‘shatamiz; yetkazish ${hold} dan qimmat bo‘lsa — qo‘shimcha to‘lov faqat roziligingiz bilan.`,
-        'Ombor jo‘natmani tortadi: hisobdan yengil chiqsa — farqni balansga qaytaramiz. Hisobdan ortiq to‘lov — faqat roziligingiz bilan.',
+        { title: 'Narx ikki marta tekshiriladi', text: 'Tovarni savatga qo‘shganingizda va rasmiylashtirishdan oldin yana narxni do‘kon bilan solishtiramiz. U o‘zgargan bo‘lsa, avval yangi summani ko‘rsatamiz.' },
+        { title: 'Kurs to‘lovda qayd etiladi', text: 'Dollardagi narxlarni hisob kunidagi Atlas kursi bilan so‘mga o‘tkazamiz. Kurs to‘lov paytida buyurtmada qayd etiladi.' },
+        { title: 'Xizmat — bitta satrda', text: `Atlas komissiyasi (tovarlar narxining ${fee}) va xalqaro yetkazish hisobda bitta «Atlas xizmati» satrida turadi — tarkibi bosganda ko‘rinadi.` },
+        { title: 'Omborgacha yetkazish — zaxiradan', text: `Do‘kon omborgacha yetkazish narxini ko‘rsatmagan bo‘lsa, undan ${freeFrom} dan qimmat buyurtmada yetkazish bepul. Arzonroq buyurtmada unga ${hold} zaxira qo‘yamiz — u alohida turadi va to‘lov summasiga kirmaydi. Masalan, ${holdExample} lik buyurtma: do‘kon yetkazish narxini aytgach, uni zaxiradan to‘laymiz, qoldig‘ini bo‘shatamiz; yetkazish ${hold} dan qimmat bo‘lsa — qo‘shimcha to‘lov faqat roziligingiz bilan.` },
+        { title: 'Yengil chiqsa — farqni qaytaramiz', text: 'Ombor jo‘natmani tortadi: hisobdan yengil chiqsa — farqni balansga qaytaramiz. Hisobdan ortiq to‘lov — faqat roziligingiz bilan.' },
       ],
-      trackingTitle: 'Buyurtmani kuzatish', example: 'Namuna', trackingProduct: 'Nike krossovkalari', trackingOrder: 'AT-1042 buyurtma', trackingNote: 'Buyurtma holati shaxsiy kabinetda shunday ko‘rinadi.',
+      trackingTitle: 'Buyurtmani kuzatish', trackingNow: 'Hozir', example: 'Namuna', trackingProduct: 'Nike krossovkalari', trackingOrder: 'AT-1042 buyurtma', trackingNote: 'Buyurtma holati shaxsiy kabinetda shunday ko‘rinadi.',
       reviewsTitle: 'Mijozlar fikrlari', photosTitle: 'Mijozlarimiz jo‘natmalari',
       legalTitle: 'Yuridik ma’lumotlar', entity: 'Kompaniya', inn: footerCopy.uz.inn, address: 'Manzil', legalLink: 'Xizmat qoidalari',
     },
@@ -253,6 +259,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       item: 'Item price',
       itemNote: usd => `${usd} at the Atlas rate`,
       totalUsd: usd => `≈ ${usd} including delivery to Tashkent`,
+      shareItem: percent => `Item ${percent}`, shareService: percent => `Service ${percent}`,
       service: 'Atlas service', serviceParts: 'Service breakdown', fee: (percent) => `Fee ${percent}`,
       delivery: 'Delivery', deliveryNote: (weight, perKg) => `${weight} kg × ${perKg}`,
       reserve: 'Refundable reserve', reserveNote: packaging => `Estimated weight includes a ${packaging} kg packaging allowance. Any unused amount returns to your balance after weighing.`, reserveHelpLabel: 'What is the refundable reserve',
@@ -276,13 +283,13 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
     trust: {
       title: 'How we handle your money', ordersDone: 'orders delivered',
       facts: ({ fee, freeFrom, hold, holdExample }) => [
-        'We check the price with the store when you add an item to the cart and again before checkout. If it has changed, we show you the new total first.',
-        'Dollar prices become soum at the Atlas rate on the day of the estimate. The rate is fixed in the order at payment.',
-        `The Atlas fee, ${fee} of the item price, and international delivery are one “Atlas service” line in the bill — tap it for the breakdown.`,
-        `If a store does not state shipping to the warehouse, it is free on orders from that store over ${freeFrom}. On smaller orders we hold a ${hold} reserve for it, kept apart from the amount to pay. For example, on a ${holdExample} order: once the store names its delivery price, we pay it from the reserve and release the rest; if delivery costs more than ${hold}, any extra needs your consent.`,
-        'The warehouse weighs the parcel: if it is lighter than estimated, the difference returns to your balance. Anything above the bill is paid only with your consent.',
+        { title: 'The price is checked twice', text: 'We check the price with the store when you add an item to the cart and again before checkout. If it has changed, we show you the new total first.' },
+        { title: 'The rate is fixed at payment', text: 'Dollar prices become soum at the Atlas rate on the day of the estimate. The rate is fixed in the order at payment.' },
+        { title: 'The service is one line', text: `The Atlas fee, ${fee} of the item price, and international delivery are one “Atlas service” line in the bill — tap it for the breakdown.` },
+        { title: 'Store shipping comes from a reserve', text: `If a store does not state shipping to the warehouse, it is free on orders from that store over ${freeFrom}. On smaller orders we hold a ${hold} reserve for it, kept apart from the amount to pay. For example, on a ${holdExample} order: once the store names its delivery price, we pay it from the reserve and release the rest; if delivery costs more than ${hold}, any extra needs your consent.` },
+        { title: 'Lighter parcel — the difference back', text: 'The warehouse weighs the parcel: if it is lighter than estimated, the difference returns to your balance. Anything above the bill is paid only with your consent.' },
       ],
-      trackingTitle: 'Order tracking', example: 'Example', trackingProduct: 'Nike sneakers', trackingOrder: 'Order AT-1042', trackingNote: 'This is how an order status looks in your account.',
+      trackingTitle: 'Order tracking', trackingNow: 'Now', example: 'Example', trackingProduct: 'Nike sneakers', trackingOrder: 'Order AT-1042', trackingNote: 'This is how an order status looks in your account.',
       reviewsTitle: 'Customer reviews', photosTitle: 'Our customers’ parcels',
       legalTitle: 'Legal information', entity: 'Company', inn: footerCopy.en.inn, address: 'Address', legalLink: 'Terms of service',
     },

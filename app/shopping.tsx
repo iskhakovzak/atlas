@@ -9,7 +9,7 @@ import { ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ClipboardPaste, 
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
 import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, customsHelpChosen, deliveryAddressLine, inCheckout, isPostalCode, maxLineQuantity, parcelServiceUnits, storeDiscount, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, insuredDeliveryOf, parcelValueUsd, valueServiceRate, withCustomsHelpFor, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
-import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, savingText } from "@/lib/market/delivery-speed";
+import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, savingText, speedDeltas } from "@/lib/market/delivery-speed";
 import { countryName, customsVersion } from "@/lib/market/world";
 import { formatPercent, formatSum, formatUsd } from "@/lib/market/format";
 import { cartCopy, countryLabel, itemCount, linkOrderCopy, minutesLeft, parcelCount, recipientCopy, type CartCopy } from "@/lib/market/customer-copy";
@@ -273,6 +273,8 @@ export function CartView() {
   const speedOptions = deliverySpeedOptions(pricing, speedCountries, locale);
   // The saving stays in view; "one speed for every parcel" is the secondary rule (a "?" on phones).
   const speedNote = savingText(lines, pricing, locale);
+  // The same saving on the card of the other speed ("cheaper by N"); the note under the switch stays as a fallback.
+  const speedDelta = speedDeltas(lines, pricing, speed);
   const speedTip = parcelsDiffer(speedCountries) ? deliverySpeedCopy[locale].appliesToCart : undefined;
   const speedDays = (country: string) => { const range = daysRangeFor(pricing, [country], speed); return range ? deliverySpeedCopy[locale].days(range[0], range[1]) : ""; };
   // Store orders whose delivery price is unknown: a separate hold up to the threshold, free above it.
@@ -641,13 +643,13 @@ export function CartView() {
       <aside ref={summaryRef} className="basket-summary folio" aria-labelledby="basket-summary-title">
         <div className="folio-sheet">
           <h2 id="basket-summary-title">{c.summary.title}</h2>
-          <DeliverySpeedSwitch value={speed} options={speedOptions} locale={locale} busy={speedBusy} note={speedNote} tip={speedTip} onChange={(next) => void changeSpeed(next)} />
+          <DeliverySpeedSwitch value={speed} options={speedOptions} locale={locale} busy={speedBusy} note={speedNote} deltas={speedDelta} tip={speedTip} onChange={(next) => void changeSpeed(next)} />
           {summaryLines}
           {customsPanel}
           {balance > 0 && <div className="basket-balance"><Checkbox id="use-balance" checked={useBalance} onCheckedChange={(value) => setUseBalance(value === true)} /><label htmlFor="use-balance">{c.summary.balance}<small>{c.summary.available}: {formatSum(balance, locale)}</small></label></div>}
           <div className="basket-total bill-total"><span>{c.summary.payable}</span><strong><Money value={payable} locale={locale} /></strong></div>
           {lines.length > 0 && <PriceHold expiresAt={earliestExpiry} locale={locale} c={c} />}
-          <button ref={setSummaryCta} type="button" className="btn primary basket-cta" disabled={verifying} aria-busy={verifying || selecting} aria-disabled={!lines.length || selecting || undefined} aria-describedby={!lines.length ? "basket-none-hint" : undefined} onClick={() => void openCheckout()}>{verifying ? <>{c.summary.verifying}<Loader2 size={18} className="spin" aria-hidden="true" /></> : selecting ? <>{s.saving}<Loader2 size={18} className="spin" aria-hidden="true" /></> : s.checkoutN(count)}</button>
+          <button ref={setSummaryCta} type="button" className="btn primary basket-cta" disabled={verifying} aria-busy={verifying || selecting} aria-disabled={!lines.length || selecting || undefined} aria-describedby={!lines.length ? "basket-none-hint" : undefined} onClick={() => void openCheckout()}>{verifying ? <>{c.summary.verifying}<Loader2 size={18} className="spin" aria-hidden="true" /></> : selecting ? <>{s.saving}<Loader2 size={18} className="spin" aria-hidden="true" /></> : <>{s.checkoutN(count)}<ArrowRight size={18} aria-hidden="true" /></>}</button>
           {!lines.length && <p id="basket-none-hint" className="basket-none-hint" role="status"><Info size={16} aria-hidden="true" />{s.noneSelected}</p>}
           {lines.length > 0 && laterCount > 0 && <p className="basket-later-note">{s.laterCount(laterCount)}</p>}
         </div>

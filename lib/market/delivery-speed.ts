@@ -14,6 +14,10 @@ export type DeliverySpeedCopy = {
   perKg: (rate: string) => string;
   cheaperBy: (sum: string) => string;
   samePrice: string;
+  /** On the card of the speed not chosen: what choosing it changes in the total. */
+  deltaLess: (sum: string) => string;
+  deltaMore: (sum: string) => string;
+  deltaSame: string;
   appliesToCart: string;
   saving: string;
 };
@@ -28,6 +32,9 @@ export const deliverySpeedCopy: Record<Locale, DeliverySpeedCopy> = /*@__PURE__*
     perKg: rate => `${rate}/кг`,
     cheaperBy: sum => `Обычная дешевле на ${sum}`,
     samePrice: 'Для этой посылки цена одинаковая',
+    deltaLess: sum => `дешевле на ${sum}`,
+    deltaMore: sum => `дороже на ${sum}`,
+    deltaSame: 'та же цена',
     appliesToCart: 'Скорость одна на всю корзину: она применится ко всем посылкам.',
     saving: 'Сохраняем…',
   },
@@ -40,6 +47,9 @@ export const deliverySpeedCopy: Record<Locale, DeliverySpeedCopy> = /*@__PURE__*
     perKg: rate => `${rate}/kg`,
     cheaperBy: sum => `Oddiy yetkazish ${sum} ga arzon`,
     samePrice: 'Bu jo‘natma uchun narx bir xil',
+    deltaLess: sum => `${sum}ga arzon`,
+    deltaMore: sum => `${sum}ga qimmat`,
+    deltaSame: 'narx bir xil',
     appliesToCart: 'Tezlik butun savat uchun bitta: u barcha jo‘natmalarga qo‘llanadi.',
     saving: 'Saqlanmoqda…',
   },
@@ -52,6 +62,9 @@ export const deliverySpeedCopy: Record<Locale, DeliverySpeedCopy> = /*@__PURE__*
     perKg: rate => `${rate}/kg`,
     cheaperBy: sum => `Standard is ${sum} cheaper`,
     samePrice: 'Same price for this parcel',
+    deltaLess: sum => `${sum} less`,
+    deltaMore: sum => `${sum} more`,
+    deltaSame: 'same price',
     appliesToCart: 'One speed for the whole cart: it applies to every parcel.',
     saving: 'Saving…',
   },
@@ -97,6 +110,25 @@ export function totalsBySpeed(items: CartItem[], pricing: Pricing, now = Date.no
     catch { return NaN; }
   };
   return { express: at('express'), standard: at('standard') };
+}
+
+/**
+ * What each speed changes in the cart total against the chosen one (owner, 14.10.2026: the saving reads on the card
+ * itself, not in a line under the switch): negative = cheaper. Null when the cart is empty or cannot be priced.
+ */
+export function speedDeltas(items: CartItem[], pricing: Pricing, chosen: DeliverySpeed, now = Date.now()): Record<DeliverySpeed, number> | null {
+  if (!items.length) return null;
+  const totals = totalsBySpeed(items, pricing, now);
+  if (!Number.isFinite(totals.express) || !Number.isFinite(totals.standard)) return null;
+  return { express: totals.express - totals[chosen], standard: totals.standard - totals[chosen] };
+}
+
+/** The card's line for a delta from speedDeltas: "cheaper by N", "N more" or "same price". */
+export function speedDeltaText(delta: number, locale: Locale): string {
+  const c = deliverySpeedCopy[locale];
+  // The amount never breaks inside ("46 572 / сум" on two lines in the narrow card).
+  const sum = (value: number) => formatSum(value, locale).replace(/\s/g, '\u00a0');
+  return delta < 0 ? c.deltaLess(sum(-delta)) : delta > 0 ? c.deltaMore(sum(delta)) : c.deltaSame;
 }
 
 /** "Standard is N soum cheaper" for the cart, or the same-price note; empty when nothing can be priced. */

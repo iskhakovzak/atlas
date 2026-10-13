@@ -33,6 +33,11 @@ html[data-theme="dark"] .home-folio { --bq-item: var(--night-jade, #80d0ac); --b
 :root body .home-folio .bill-split > span { flex-basis: 0; min-width: 6px; border-radius: 999px; }
 :root body .home-folio .bill-split > span:first-child { background: var(--bq-item); }
 :root body .home-folio .bill-split > span:last-child { background: var(--bq-service); }
+/* The bar's legend: each share under its own end of the bar, with the same colour dot as its bill line. */
+:root body .home-folio .bill-split-legend { display: flex; justify-content: space-between; gap: 12px; margin: -8px 0 0; color: var(--bq-muted); font-size: 12.5px; font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; }
+:root body .home-folio .bill-split-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+:root body .home-folio .bill-split-legend > span::before { content: ""; width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--bq-item); }
+:root body .home-folio .bill-split-legend > span:last-child::before { background: var(--bq-service); }
 
 /* The breakdown under «Atlas service»: a short name and the rule next to it in grey ("Delivery 1 kg × $13.98"). */
 :root body .home-folio .bill-parts small { margin-left: 4px; color: var(--bq-muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
@@ -63,6 +68,11 @@ html[data-theme="dark"] .home-folio { --bq-item: var(--night-jade, #80d0ac); --b
   :root body .home-folio .home-customs-slip > h2 { font-size: 13.5px; }
   :root body .home-folio .home-customs-note { font-size: 12.5px; line-height: 1.4; }
   :root body .home-folio .bill-usd { margin-top: 0; padding-block: 3px; font-size: 13px; }
+  /* The legend under the bar costs a line: the bill's rows sit a little closer to keep the card on its sheet. */
+  :root body .home-folio { gap: 6px; }
+  :root body .home-folio .home-quote { gap: 7px; }
+  :root body .home-folio .bill { gap: 8px; }
+  :root body .home-folio .bill-split-legend { margin-top: -4px; font-size: 12px; }
 }
 
 @media (prefers-reduced-motion: no-preference) {

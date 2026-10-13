@@ -19,10 +19,9 @@
 .lang-menu-list button[aria-current="true"] { background: var(--day-tint, #e8f1ea); color: var(--day-ok, #1d6b47); }
 .lang-menu-list button > span { display: grid; line-height: 1.25; }
 .lang-menu-list b { font-size: 15px; font-weight: 600; }
-.lang-menu-list small { color: var(--day-muted, #58635c); font-size: 12.5px; }
 .lang-menu-list svg { flex: none; }
 html[data-theme="dark"] .lang-trigger { border-color: var(--night-line-strong, rgba(226, 238, 231, .16)); color: var(--night-ink, #f1eee5); }
-html[data-theme="dark"] .lang-trigger svg, html[data-theme="dark"] .lang-menu-list small { color: var(--night-muted, #9ba6a0); }
+html[data-theme="dark"] .lang-trigger svg { color: var(--night-muted, #9ba6a0); }
 html[data-theme="dark"] :is(.lang-trigger:hover, .lang-trigger[aria-expanded="true"], .lang-menu-list button:hover) { background: rgba(255, 255, 255, .06); }
 html[data-theme="dark"] .lang-menu-list { border-color: var(--night-line-strong, rgba(226, 238, 231, .16)); background: var(--night-surface, #111714); box-shadow: 0 18px 40px -16px rgba(0, 0, 0, .7); }
 html[data-theme="dark"] .lang-menu-list button { color: var(--night-ink, #f1eee5); }

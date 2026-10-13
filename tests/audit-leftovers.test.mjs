@@ -58,7 +58,7 @@ test('"No duty · $X left" is the allowance left after this cart, never below 0'
   const customs = cartCustomsEstimate(cart, { ...tariff, customsAllowanceUsd: 500 }, { name: 'Zarina Karimova' }, { outsideUsed: false, help: false }, now);
   assert.equal(customs.allowanceUsd, 500);
   assert.equal(allowanceAfterCartUsd(customs), Math.round((500 - customs.valueUsd) * 100) / 100);
-  assert.match(source('app/calc-summary.tsx'), /noDuty\(usd\(allowanceAfterCartUsd\(estimate\)\)\)/);
+  assert.match(source('app/calc-summary.tsx'), /noDuty\(usd\(allowanceAfterCartUsd\(estimate\)\),usd\(estimate\.allowanceUsd\)\)/);
 });
 
 // 3. Error codes for the quote, tariff and duty refusals at checkout.

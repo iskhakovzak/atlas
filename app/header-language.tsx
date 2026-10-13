@@ -3,7 +3,10 @@ import {useEffect,useId,useRef,useState} from 'react';
 import {Check,ChevronDown,Globe} from 'lucide-react';
 import type {Locale} from '@/lib/market/i18n';
 
-/** Each language names itself in its own script; the Uzbek pair says which alphabet it is. */
+/**
+ * Each language names itself in its own script. The menu shows the names only (owner, 14.10.2026): "O‘zbekcha" and
+ * "Ўзбекча" already show their alphabet; `script` is said to screen readers, to whom both names sound the same.
+ */
 const languages:{code:Locale;lang:string;name:string;script?:string;short:string}[]=[
   {code:'ru',lang:'ru',name:'Русский',short:'RU'},
   {code:'uz',lang:'uz-Latn',name:'O‘zbekcha',script:'lotin yozuvi',short:'UZ'},
@@ -37,7 +40,7 @@ export function HeaderLanguage({locale,label,onChange}:{locale:Locale;label:stri
     </button>
     <div className="lang-menu-list" id={listId} role="group" aria-label={label} hidden={!open} onKeyDown={move}>
       {languages.map(item=><button type="button" key={item.code} data-locale={item.code} aria-current={item.code===locale} onClick={()=>{onChange(item.code);setOpen(false);trigger.current?.focus()}}>
-        <span lang={item.lang}><b>{item.name}</b>{item.script&&<small>{item.script}</small>}</span>{item.code===locale&&<Check size={16} aria-hidden="true"/>}
+        <span lang={item.lang}><b>{item.name}</b>{item.script&&<span className="sr-only"> — {item.script}</span>}</span>{item.code===locale&&<Check size={16} aria-hidden="true"/>}
       </button>)}
     </div>
   </div>;

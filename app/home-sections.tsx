@@ -1,6 +1,6 @@
 'use client';
 import {Fragment,useEffect,useId,useState,type FormEvent,type ReactNode} from 'react';
-import { ArrowRight, ArrowUpRight, BadgeCheck, Check, CircleHelp, ClipboardPaste, Info, Landmark, Link2, MessagesSquare, PackageCheck, Plane, ReceiptText, ShieldCheck, Store, Truck } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, BadgeCheck, Check, CircleHelp, ClipboardPaste, Info, Landmark, Link2, LockKeyhole, MessagesSquare, PackageCheck, Plane, ReceiptText, Scale, SearchCheck, ShieldCheck, Store, Truck } from 'lucide-react';
 import Link from '@/components/site-link';
 import {PasteButton} from '@/components/paste-button';
 import {useMarket} from '@/lib/market/store';
@@ -148,6 +148,8 @@ export function ExampleQuote(){
    </dl>
    <p className="bill-total home-quote-total"><span>{c.example.total}</span><strong><Money value={quote.total} locale={locale}/></strong></p>
    <span className="bill-split" aria-hidden="true"><span style={{flexGrow:itemShare}}/><span style={{flexGrow:100-itemShare}}/></span>
+   {/* The bar's legend (owner, 14.10.2026: "make it even better"): most of the money is the item itself. */}
+   <p className="bill-split-legend"><span>{c.example.shareItem(formatPercent(Math.round(itemShare)/100,locale))}</span><span>{c.example.shareService(formatPercent((100-Math.round(itemShare))/100,locale))}</span></p>
    {/* The Atlas rate is no longer printed here (owner, 14.10.2026: anyone can divide; the rate is explained in the money
        section and fixed in the order at payment). The dollar total says what the store's price turns into. */}
    {totalUsd&&<p className="bill-usd"><PackageCheck className="bill-usd-icon" size={16} strokeWidth={2} aria-hidden="true"/>{c.example.totalUsd(totalUsd)}</p>}
@@ -161,6 +163,8 @@ export function ExampleQuote(){
 }
 
 const stepIcons=[Link2,ReceiptText,BadgeCheck,Truck];
+/** The money rules in the order of homeCopy.trust.facts: price check, rate, one service line, store shipping, weighing. */
+const factIcons=[SearchCheck,LockKeyhole,ReceiptText,Truck,Scale];
 /** Step 1's example: a few of the catalogue's popular stores that have a mark, and how many more there are. */
 const stepStores=popularBrandKeys.filter(key=>hasStoreMark(key)&&storeBrands.some(brand=>brand.key===key)).slice(0,4);
 
@@ -286,13 +290,14 @@ export function TrustSection(){
   <div className="home-trust-money">
   <h2 id="trust-title">{c.trust.title}</h2>
   {completedOrders!==null?<p className="home-counter"><strong>{groupDigits(completedOrders)}</strong> {c.trust.ordersDone}</p>:<MissingContent what="число реально выполненных заказов"/>}
-  <ul className="home-facts">{facts.map(fact=><li key={fact}>{fact}</li>)}</ul>
+  {/* Each rule as a card with a short title (owner, 14.10.2026: the plain list read as a wall of text). */}
+  <ul className="home-fact-cards">{facts.map((fact,index)=>{const Icon=factIcons[index]??Check;return <li key={fact.title}><span className="home-fact-icon" aria-hidden="true"><Icon size={19} strokeWidth={1.9}/></span><h3>{fact.title}</h3><p>{fact.text}</p></li>;})}</ul>
   </div>
   <div className="home-trust-proof">
   <div className={'home-trust-grid'+(reviews.length?'':' single')}>
    <article className="home-tracking" aria-labelledby="tracking-title">
     <header><h3 id="tracking-title">{c.trust.trackingTitle}</h3><span className="home-badge">{c.trust.example}</span></header>
-    <p className="home-tracking-item"><b>{c.trust.trackingProduct}</b><span>{c.trust.trackingOrder}</span></p>
+    <p className="home-tracking-item"><span className="home-tracking-mark" aria-hidden="true"><StoreMark brandKey="nike" height={13} maxWidth={26}/></span><span className="home-tracking-name"><b>{c.trust.trackingProduct}</b><span>{c.trust.trackingOrder}</span></span><span className="home-tracking-now"><span className="home-tracking-pulse" aria-hidden="true"/>{c.trust.trackingNow}: {statuses[current]}</span></p>
     <ol>{statuses.map((status,index)=><li key={status} data-state={index<current?'done':index===current?'current':'next'} aria-current={index===current?'step':undefined}><span className="home-tracking-dot" aria-hidden="true">{index<current&&<Check size={12}/>}</span>{status}</li>)}</ol>
     <p className="home-note">{c.trust.trackingNote}</p>
    </article>

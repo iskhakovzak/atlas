@@ -1,11 +1,11 @@
 'use client';
 import {Fragment,useId,useState} from 'react';
-import {Check,HandCoins,Scale,Wallet} from 'lucide-react';
+import {Check,HandCoins,Scale,ShieldCheck,Wallet} from 'lucide-react';
 import {formatKg,formatPercent,formatSum,formatUsd} from '@/lib/market/format';
 import {calcCopy} from '@/lib/market/calc-copy';
 import {allowanceAfterCartUsd,courierAllowanceUsd} from '@/lib/market/customs';
 import {customsDutySoum,deliveryPerKgUsdFor,unknownStoreShippingUsd,type CartCustoms,type CustomsEstimate,type DeliverySpeed,type Pricing,type Quote,type SavedDeliveryProfile} from '@/lib/market/domain';
-import {daysRangeFor,deliverySpeedCopy,type DeliverySpeedOption} from '@/lib/market/delivery-speed';
+import {daysRangeFor,deliverySpeedCopy,speedDeltaText,type DeliverySpeedOption} from '@/lib/market/delivery-speed';
 import {packagingKg} from '@/lib/market/world';
 import type {Locale} from '@/lib/market/i18n';
 import {SummaryLine} from './price-summary';
@@ -27,7 +27,8 @@ export function sumQuotes(quotes:(Partial<Sums>&Pick<Partial<Quote>,'serviceFees
 
 const kgText=(weightKg:number|undefined,locale:Locale)=>weightKg===undefined?'':new Intl.NumberFormat(locale==='en'?'en-US':'ru-RU',{maximumFractionDigits:2}).format(weightKg);
 const percent=(value:number,locale:Locale)=>new Intl.NumberFormat(locale==='en'?'en-US':'ru-RU',{maximumFractionDigits:2}).format(value*100)+'%';
-export const usdText=(value:number,locale:Locale)=>new Intl.NumberFormat(locale==='en'?'en-US':'ru-RU',{style:'currency',currency:'USD',minimumFractionDigits:Number.isInteger(Math.round(value*100)/100)?0:2,maximumFractionDigits:2}).format(value);
+/** Dollars as the rest of the site writes them, sign first: "$101", "$126,03" ("126,03 $" read oddly next to "$69"). */
+export const usdText=(value:number,locale:Locale)=>'$'+new Intl.NumberFormat(locale==='en'?'en-US':'ru-RU',{minimumFractionDigits:Number.isInteger(Math.round(value*100)/100)?0:2,maximumFractionDigits:2}).format(value);
 
 /**
  * The calculation as the customer reads it: the items, one "Atlas service" line (owner, 10.10.2026: a pile of fee lines
@@ -65,7 +66,8 @@ export function CalcLines({sums,locale,pricing,weightKg,speed,children}:{sums:Re
    {sums.sourceShipping>0&&<SummaryLine label={c.lines.storeShipping} amount={sums.sourceShipping} locale={locale}/>}
    {sums.reserve>0&&<SummaryLine label={c.lines.intlReserve} amount={sums.reserve} locale={locale} help={c.intlReserveHelp} helpLabel={c.lines.intlReserve}/>}
    {/* The rate as on the order card (app/cost-lines.tsx); left out when the cart's parcels have different rates. */}
-   {sums.insurance>0&&<SummaryLine label={sums.insuranceRate===undefined?c.lines.insurance:`${c.lines.insurance} · ${formatPercent(sums.insuranceRate,locale)}`} amount={sums.insurance} locale={locale}/>}
+   {/* The rate is a small chip after the name: "· 2,9%" used to wrap to a line of its own in the narrow summary. */}
+   {sums.insurance>0&&<SummaryLine label={c.lines.insurance} note={sums.insuranceRate===undefined?undefined:c.lines.insuranceRate(formatPercent(sums.insuranceRate,locale))} amount={sums.insurance} locale={locale}/>}
    {sums.optionalServices>0&&<SummaryLine label={c.lines.optional} amount={sums.optionalServices} locale={locale}/>}
    {sums.customsDuty>0&&<SummaryLine label={c.lines.customsDuty} amount={sums.customsDuty} locale={locale} help={c.customsDutyHelp} helpLabel={c.lines.customsDuty}/>}
   </div>
@@ -77,17 +79,20 @@ export function CalcLines({sums,locale,pricing,weightKg,speed,children}:{sums:Re
  * Express or standard delivery: two buttons that read as one control, each with its window and per-kg rate.
  * The cart saves the choice on the server (one speed per cart); the link-order page keeps it for the add.
  */
-export function DeliverySpeedSwitch({value,options,locale,onChange,busy=false,note,tip,compact=false}:{value:DeliverySpeed;options:DeliverySpeedOption[];locale:Locale;onChange:(speed:DeliverySpeed)=>void;busy?:boolean;note?:string;/** A secondary rule: in place on wide screens, behind a "?" by the title on phones. */tip?:string;compact?:boolean}){
+export function DeliverySpeedSwitch({value,options,locale,onChange,busy=false,note,deltas,tip,compact=false}:{value:DeliverySpeed;options:DeliverySpeedOption[];locale:Locale;onChange:(speed:DeliverySpeed)=>void;busy?:boolean;note?:string;/** What each speed changes in the total (speedDeltas): shown on the card not chosen, in place of the note. */deltas?:Record<DeliverySpeed,number>|null;/** A secondary rule: in place on wide screens, behind a "?" by the title on phones. */tip?:string;compact?:boolean}){
  const c=deliverySpeedCopy[locale];
  const id=useId();
  return <div className={'speed-switch'+(compact?' compact':'')} aria-busy={busy||undefined}>
   <p className="speed-switch-title" id={id+'-title'}>{c.title}{tip&&<InfoTip locale={locale}>{tip}</InfoTip>}{busy&&<span className="speed-switch-saving" role="status">{c.saving}</span>}</p>
   <div className="speed-switch-options" role="radiogroup" aria-labelledby={id+'-title'}>
-   {options.map(option=><button key={option.speed} type="button" role="radio" aria-checked={value===option.speed} className={'speed-option'+(value===option.speed?' selected':'')} disabled={busy} onClick={()=>{if(value!==option.speed)onChange(option.speed)}}>
+   {options.map(option=>{const selected=value===option.speed,delta=deltas?.[option.speed];return <button key={option.speed} type="button" role="radio" aria-checked={selected} className={'speed-option'+(selected?' selected':'')} disabled={busy} onClick={()=>{if(!selected)onChange(option.speed)}}>
+    {/* A radio mark in the corner (owner, 14.10.2026: the chosen card read only by its tint), then the price change. */}
+    <i className="speed-option-mark" aria-hidden="true">{selected&&<Check size={11} strokeWidth={3}/>}</i>
     <b>{option.name}</b><span>{option.days}</span><small>{option.rate}</small>
-   </button>)}
+    {!selected&&delta!==undefined&&<em className={'speed-option-delta'+(delta<0?' less':'')}>{speedDeltaText(delta,locale)}</em>}
+   </button>;})}
   </div>
-  {note&&<p className="speed-switch-note">{note}</p>}
+  {note&&!deltas&&<p className="speed-switch-note">{note}</p>}
   {tip&&<p className="speed-switch-note tip-text">{tip}</p>}
  </div>;
 }
@@ -165,7 +170,11 @@ export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipient
   {/* No duty: one line says so (the allowance left is in it). Over the allowance: the allowance, then the excess and the duty. */}
   {over?<><header><Scale size={17} aria-hidden="true"/><h3 id={id+'-title'}>{c.allowanceTitle(usd(estimate.allowanceUsd))}</h3></header>
    <p className="calc-customs-over">{(!onChoices?c.overPreview:choices.help?c.overIncluded:c.overNote)(usd(estimate.dutiableUsd),formatSum(duty,locale))}</p></>
-   :<header className="calc-customs-none"><Check size={17} aria-hidden="true"/><h3 id={id+'-title'}>{c.choice.noDuty(usd(allowanceAfterCartUsd(estimate)))}</h3></header>}
+   // No duty (owner, 14.10.2026): a short title with a shield, then how much of the month's allowance this order leaves,
+   // as a bar like the home page's example (app/home-sections.tsx). The bar repeats the caption, so it is hidden from readers.
+   :<><header className="calc-customs-none"><ShieldCheck size={18} aria-hidden="true"/><h3 id={id+'-title'}>{c.choice.noDutyTitle}</h3></header>
+    <div className="calc-customs-meter"><span className="calc-customs-track" aria-hidden="true"><span style={{width:`${estimate.allowanceUsd>0?Math.min(100,Math.max(3,(1-allowanceAfterCartUsd(estimate)/estimate.allowanceUsd)*100)):100}%`}}/></span>
+     <p>{c.choice.noDuty(usd(allowanceAfterCartUsd(estimate)),usd(estimate.allowanceUsd))}</p></div></>}
   {profiles.length>1&&onRecipient&&<div className="field calc-customs-recipient"><label htmlFor={id+'-recipient'}>{c.recipient}</label><select id={id+'-recipient'} value={recipientId} onChange={event=>onRecipient(event.target.value)}>{profiles.map(profile=><option key={profile.id} value={profile.id}>{profile.recipient}</option>)}</select></div>}
   {over&&onChoices&&helpAmount!==undefined&&(remembered&&!open
    ?<p className="customs-remembered">{choices.help?<HandCoins size={15} aria-hidden="true"/>:null}<span>{choices.help?c.choice.rememberedAtlas:c.choice.rememberedSelf}{choices.help&&<small>{helpFee}</small>}</span><button type="button" onClick={()=>setOpen(true)}>{c.choice.change}</button></p>
