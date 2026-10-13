@@ -153,6 +153,10 @@ html[data-theme="dark"] .home-missing { border-color: #c9a23f; background: #3a31
 .home-quote-total { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; padding-top: 16px; }
 .home-quote-total span { color: var(--home-ink); font-weight: 700; }
 .home-quote-total strong { color: var(--home-ink); font-size: clamp(28px, 6.4vw, 36px); letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* The parts of the one «Atlas service» line: label left, amount right, in the note's muted type. */
+.home-quote .bill-parts { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.home-quote .bill-parts li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.home-quote .bill-parts li > span:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .home-dt-with-tip { display: inline-flex; align-items: center; gap: 2px; }
 .home-tip { position: relative; display: inline-flex; }
 .home-tip-button { display: grid; place-items: center; width: 44px; height: 44px; margin: -12px -10px; border: 0; border-radius: 50%; background: transparent; color: var(--home-accent); cursor: pointer; }

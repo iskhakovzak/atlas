@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync } from 'node:fs';
-import { supportedStoreRoots } from '../lib/importer/stores.ts';
+import { isSupportedStoreHost, supportedStoreRoots } from '../lib/importer/stores.ts';
 import { storeLogoKeys } from '../lib/market/store-logos.ts';
 import {
-  brandKey, brandForHost, brandRegions, popularBrandKeys, storeBrands, storeCountryNames, storeFocusNames, storefrontLabel, unlistedStoreRoots,
+  brandKey, brandForHost, brandRegions, popularBrandKeys, storeBrands, storeCountryNames, storeFocusNames, storefrontLabel, storefrontUrl, unlistedStoreRoots,
 } from '../lib/market/store-brands.ts';
 
 test('every allowed store domain belongs to exactly one named brand', () => {
@@ -41,4 +41,12 @@ test('the logo list matches the files shipped in public/store-logos', () => {
   assert.deepEqual([...storeLogoKeys].sort(), files);
   for (const key of storeLogoKeys) assert.ok(storeBrands.some((brand) => brand.key === key), `${key} has no brand`);
   assert.ok(storeBrands.filter((brand) => brand.logo).length >= 190, 'most brands have a logo');
+});
+
+test('"open the store" links go to the shop, not a search engine or a corporate site', () => {
+  assert.equal(storefrontUrl(brandForHost('google.com')), 'https://store.google.com');
+  assert.equal(storefrontUrl('sony.com'), 'https://electronics.sony.com');
+  assert.equal(storefrontUrl(brandForHost('nike.com')), 'https://nike.com');
+  // Every link target is a host the importer accepts, so a copied product link from it works.
+  for (const brand of storeBrands) for (const front of brand.storefronts) assert.ok(isSupportedStoreHost(new URL(storefrontUrl(front.root)).host), front.root);
 });

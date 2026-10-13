@@ -12,7 +12,7 @@ function ruDays(max: number) {
 
 type Step = { title: string; text: string };
 type Faq = { q: string; a: string };
-type Facts = { fee: string; markup: string; cbu: boolean; freeFrom: string };
+type Facts = { fee: string; markup: string; cbu: boolean; freeFrom: string; hold: string; holdExample: string };
 
 export type HomeCopy = {
   nav: NavCopy;
@@ -21,7 +21,8 @@ export type HomeCopy = {
   example: {
     title: string; product: string; routeLabel: string; to: string; days: (min: number, max: number) => string;
     item: string; itemNoteCbu: (usd: string, rate: string, markup: string) => string; itemNoteSet: (usd: string, rate: string) => string;
-    service: string; serviceDetail: (percent: string) => string;
+    /** One «Atlas service» line, as in the real bill (app/cost-lines.tsx); `fee` and `delivery` are its parts. */
+    service: string; fee: (percent: string) => string;
     delivery: string; deliveryNote: (weight: string, perKg: string) => string;
     reserve: string; reserveNote: (packaging: string) => string; reserveHelpLabel: string; reserveHelp: string; total: string;
     dutyTitle: (allowance: string) => string; dutyNote: string;
@@ -72,7 +73,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       item: 'Цена товара',
       itemNoteCbu: (usd, rate, markup) => `${usd} по курсу ${rate} сум: ЦБ плюс ${markup}`,
       itemNoteSet: (usd, rate) => `${usd} по курсу Atlas ${rate} сум`,
-      service: 'Комиссия Atlas', serviceDetail: (percent) => `${percent} от цены товара`,
+      service: 'Сервис Atlas', fee: (percent) => `Комиссия Atlas, ${percent} от цены товара`,
       delivery: 'Доставка в Ташкент', deliveryNote: (weight, perKg) => `${weight} кг расчётного веса по ${perKg} за кг`,
       reserve: 'Возвратный резерв', reserveNote: packaging => `В расчёт веса заложено ${packaging} кг запаса на упаковку. После взвешивания неиспользованную сумму вернём на баланс.`, reserveHelpLabel: 'Что такое возвратный резерв',
       reserveHelp: 'Запас на случай, если посылка окажется тяжелее расчётной. После взвешивания на складе неиспользованную часть вернём на ваш баланс Atlas. Если доставка выйдет дороже резерва, сначала согласуем доплату с вами.',
@@ -93,11 +94,11 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
     },
     trust: {
       title: 'Как мы обращаемся с вашими деньгами', ordersDone: 'заказов уже доставили',
-      facts: ({ fee, markup, cbu, freeFrom }) => [
+      facts: ({ fee, markup, cbu, freeFrom, hold, holdExample }) => [
         'Сверяем цену с магазином, когда вы добавляете товар в корзину, и ещё раз перед оформлением. Если она изменилась, сначала покажем новую сумму.',
         cbu ? `Курс считаем от курса ЦБ Узбекистана плюс ${markup} и пишем рядом с суммой, когда он обновлён.` : 'Курс Atlas пишем рядом с суммой.',
         `Комиссия Atlas ${fee} от цены товаров и международная доставка стоят в счёте одной строкой «Сервис Atlas» — состав виден по нажатию.`,
-        `Если магазин не указал доставку до склада, при заказе из него дороже ${freeFrom} считаем её бесплатной. Иначе держим на неё отдельный резерв — в сумму к оплате он не входит.`,
+        `Если магазин не указал доставку до склада, при заказе из него дороже ${freeFrom} она бесплатна. Если дешевле, держим на неё резерв ${hold} — отдельно, в сумму к оплате он не входит. Например, заказ на ${holdExample}: когда магазин назовёт цену доставки, оплатим её из резерва, а остаток освободим; если доставка дороже ${hold} — доплата только с вашего согласия.`,
         'Склад взвесит посылку: если она легче расчёта — разницу вернём на баланс. Оплата сверх счёта — только с вашего согласия.',
       ],
       trackingTitle: 'Отслеживание заказа', example: 'Пример', trackingProduct: 'Кроссовки Nike', trackingOrder: 'Заказ AT-1042', trackingNote: 'Так выглядит статус заказа в личном кабинете.',
@@ -161,7 +162,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       item: 'Tovar narxi',
       itemNoteCbu: (usd, rate, markup) => `${usd}, kurs ${rate} so‘m: MB kursi va ${markup}`,
       itemNoteSet: (usd, rate) => `${usd}, Atlas kursi ${rate} so‘m`,
-      service: 'Atlas komissiyasi', serviceDetail: (percent) => `tovar narxining ${percent}`,
+      service: 'Atlas xizmati', fee: (percent) => `Atlas komissiyasi, tovar narxining ${percent}`,
       delivery: 'Toshkentga yetkazib berish', deliveryNote: (weight, perKg) => `hisobiy vazn ${weight} kg, har kg uchun ${perKg}`,
       reserve: 'Qaytariladigan zaxira', reserveNote: packaging => `Vazn hisobiga qadoq uchun ${packaging} kg zaxira kiritilgan. Omborda tortilgach, ishlatilmagan summa balansga qaytariladi.`, reserveHelpLabel: 'Qaytariladigan zaxira nima',
       reserveHelp: 'Jo‘natma hisoblangandan og‘irroq chiqsa, ehtiyot uchun qo‘yiladi. Omborda tortilgandan keyin ishlatilmagan qismi Atlas balansingizga qaytariladi. Yetkazib berish zaxiradan qimmatroq bo‘lsa, qo‘shimcha to‘lovni avval siz bilan kelishamiz.',
@@ -182,11 +183,11 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
     },
     trust: {
       title: 'Pulingiz bilan qanday ishlaymiz', ordersDone: 'ta buyurtma yetkazildi',
-      facts: ({ fee, markup, cbu, freeFrom }) => [
+      facts: ({ fee, markup, cbu, freeFrom, hold, holdExample }) => [
         'Tovarni savatga qo‘shganingizda va rasmiylashtirishdan oldin yana narxni do‘kon bilan solishtiramiz. U o‘zgargan bo‘lsa, avval yangi summani ko‘rsatamiz.',
         cbu ? `Kursni O‘zbekiston Markaziy banki kursiga ${markup} qo‘shib hisoblaymiz va summaning yonida qachon yangilanganini yozamiz.` : 'Atlas kursini summaning yonida yozamiz.',
         `Atlas komissiyasi (tovarlar narxining ${fee}) va xalqaro yetkazish hisobda bitta «Atlas xizmati» satrida turadi — tarkibi bosganda ko‘rinadi.`,
-        `Do‘kon omborgacha yetkazishni ko‘rsatmagan bo‘lsa, undan ${freeFrom} dan qimmat buyurtmada uni bepul deb hisoblaymiz. Aks holda unga alohida zaxira qo‘yamiz — u to‘lov summasiga kirmaydi.`,
+        `Do‘kon omborgacha yetkazish narxini ko‘rsatmagan bo‘lsa, undan ${freeFrom} dan qimmat buyurtmada yetkazish bepul. Arzonroq buyurtmada unga ${hold} zaxira qo‘yamiz — u alohida turadi va to‘lov summasiga kirmaydi. Masalan, ${holdExample} lik buyurtma: do‘kon yetkazish narxini aytgach, uni zaxiradan to‘laymiz, qoldig‘ini bo‘shatamiz; yetkazish ${hold} dan qimmat bo‘lsa — qo‘shimcha to‘lov faqat roziligingiz bilan.`,
         'Ombor jo‘natmani tortadi: hisobdan yengil chiqsa — farqni balansga qaytaramiz. Hisobdan ortiq to‘lov — faqat roziligingiz bilan.',
       ],
       trackingTitle: 'Buyurtmani kuzatish', example: 'Namuna', trackingProduct: 'Nike krossovkalari', trackingOrder: 'AT-1042 buyurtma', trackingNote: 'Buyurtma holati shaxsiy kabinetda shunday ko‘rinadi.',
@@ -250,7 +251,7 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       item: 'Item price',
       itemNoteCbu: (usd, rate, markup) => `${usd} at ${rate} soum: Central Bank rate plus ${markup}`,
       itemNoteSet: (usd, rate) => `${usd} at the Atlas rate of ${rate} soum`,
-      service: 'Atlas fee', serviceDetail: (percent) => `${percent} of the item price`,
+      service: 'Atlas service', fee: (percent) => `Atlas fee, ${percent} of the item price`,
       delivery: 'Delivery to Tashkent', deliveryNote: (weight, perKg) => `${weight} kg estimated weight at ${perKg} per kg`,
       reserve: 'Refundable reserve', reserveNote: packaging => `Estimated weight includes a ${packaging} kg packaging allowance. Any unused amount returns to your balance after weighing.`, reserveHelpLabel: 'What is the refundable reserve',
       reserveHelp: 'A buffer in case the parcel is heavier than estimated. After warehouse weighing, any unused part returns to your Atlas balance. If delivery costs more than the reserve, we agree the extra payment with you first.',
@@ -271,11 +272,11 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
     },
     trust: {
       title: 'How we handle your money', ordersDone: 'orders delivered',
-      facts: ({ fee, markup, cbu, freeFrom }) => [
+      facts: ({ fee, markup, cbu, freeFrom, hold, holdExample }) => [
         'We check the price with the store when you add an item to the cart and again before checkout. If it has changed, we show you the new total first.',
         cbu ? `The rate is the Central Bank of Uzbekistan rate plus ${markup}, shown next to the total with the time it was updated.` : 'The Atlas rate is shown next to the total.',
         `The Atlas fee, ${fee} of the item price, and international delivery are one “Atlas service” line in the bill — tap it for the breakdown.`,
-        `If a store does not state shipping to the warehouse, we count it as free on orders from that store over ${freeFrom}. Otherwise we hold a separate reserve for it, outside the amount to pay.`,
+        `If a store does not state shipping to the warehouse, it is free on orders from that store over ${freeFrom}. On smaller orders we hold a ${hold} reserve for it, kept apart from the amount to pay. For example, on a ${holdExample} order: once the store names its delivery price, we pay it from the reserve and release the rest; if delivery costs more than ${hold}, any extra needs your consent.`,
         'The warehouse weighs the parcel: if it is lighter than estimated, the difference returns to your balance. Anything above the bill is paid only with your consent.',
       ],
       trackingTitle: 'Order tracking', example: 'Example', trackingProduct: 'Nike sneakers', trackingOrder: 'Order AT-1042', trackingNote: 'This is how an order status looks in your account.',

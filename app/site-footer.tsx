@@ -48,6 +48,6 @@ export function SiteFooter(){
    <li><Link href="/terms">{routeTitle(locale,'terms')}</Link></li><li><Link href="/privacy">{routeTitle(locale,'privacy')}</Link></li><li><Link href="/legal">{c.footer.rules}</Link></li>
   </ul>{!legal.entityName&&<MissingContent what="юрлицо и ИНН"/>}</section>
   </div>
-  <div className="home-footer-bottom"><span>© Atlas</span><span className="home-footer-theme"><span>{c.footer.theme}</span><ThemeToggle locale={locale}/></span></div>
+  <div className="home-footer-bottom"><span suppressHydrationWarning>© {new Date().getFullYear()} {legal.entityName||'Atlas'}</span><span className="home-footer-theme"><span>{c.footer.theme}</span><ThemeToggle locale={locale}/></span></div>
  </footer>;
 }

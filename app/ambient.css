@@ -25,6 +25,8 @@ html[data-theme="dark"] .ambient {
   color: var(--amb-mark); opacity: var(--amb-mark-a); transform: rotate(-14deg); transform-origin: center;
   font-family: "Manrope Variable", Manrope, sans-serif; font-weight: 800; letter-spacing: -.06em; line-height: 1; white-space: nowrap;
 }
+/* The word is generated content, not text: page-text readers, crawlers and copy-paste skip it (it read "atlasatlasatlas"). */
+.ambient-mark::before { content: "atlas"; }
 .ambient-mark svg { width: .42em; height: .42em; margin-top: .06em; }
 .ambient-mark-1 { top: 14%; right: -3vw; font-size: clamp(140px, 17vw, 300px); }
 .ambient-mark-2 { bottom: 6%; left: -4vw; font-size: clamp(160px, 21vw, 380px); }

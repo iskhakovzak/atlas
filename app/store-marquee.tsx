@@ -1,7 +1,7 @@
 'use client';
 import type {CSSProperties,FocusEvent} from 'react';
 import Link from '@/components/site-link';
-import {popularBrandKeys,storeBrands,type StoreBrand} from '@/lib/market/store-brands';
+import {popularBrandKeys,storeBrands,storefrontUrl,type StoreBrand} from '@/lib/market/store-brands';
 import {StoreMark,hasStoreMark,storeWordmarks} from './store-logo';
 import {DeliverySky,type Spark} from './delivery-sky';
 import {InfoTip} from '@/components/info-tip';
@@ -19,10 +19,11 @@ export const marqueeStores=[...popular,...storeBrands.filter(brand=>!popularBran
 function Item({store,hidden,openStore}:{store:StoreBrand;hidden:boolean;openStore:string}){
  const mark=hasStoreMark(store.key);
  return <li>
-  <a href={'https://'+store.storefronts[0].root} target="_blank" rel="noopener noreferrer" tabIndex={hidden?-1:undefined} aria-label={mark&&storeWordmarks.has(store.key)?`${store.name} (${openStore})`:undefined}>
+  {/* A mark that spells the name keeps the name as hidden text, not aria-label: crawlers and reader views see it too. */}
+  <a href={storefrontUrl(store)} target="_blank" rel="noopener noreferrer" tabIndex={hidden?-1:undefined}>
    {mark&&<StoreMark brandKey={store.key} height={30} maxWidth={140}/>}
-   {(!mark||!storeWordmarks.has(store.key))&&<span className="store-marquee-name">{store.name}</span>}
-   {!(mark&&storeWordmarks.has(store.key))&&<span className="sr-only"> ({openStore})</span>}
+   <span className={mark&&storeWordmarks.has(store.key)?'sr-only':'store-marquee-name'}>{store.name}</span>
+   <span className="sr-only"> ({openStore})</span>
   </a>
  </li>;
 }

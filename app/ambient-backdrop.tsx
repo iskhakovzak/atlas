@@ -11,6 +11,6 @@ export function AmbientBackdrop() {
     <span className="ambient-glow ambient-glow-1" />
     <span className="ambient-glow ambient-glow-2" />
     <span className="ambient-glow ambient-glow-3" />
-    {[1, 2, 3].map(n => <span key={n} className={`ambient-mark ambient-mark-${n}`}>atlas<ArrowUpRight strokeWidth={2.4} /></span>)}
+    {[1, 2, 3].map(n => <span key={n} className={`ambient-mark ambient-mark-${n}`}><ArrowUpRight strokeWidth={2.4} /></span>)}
   </div>;
 }

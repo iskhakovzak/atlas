@@ -4,7 +4,7 @@ import { ArrowRight, ArrowUpRight, BadgeCheck, Check, CircleHelp, ClipboardPaste
 import Link from '@/components/site-link';
 import {PasteButton} from '@/components/paste-button';
 import {useMarket} from '@/lib/market/store';
-import {deliveryPerKgUsdFor,deliverySpeeds,price,validateSource} from '@/lib/market/domain';
+import {deliveryPerKgUsdFor,deliverySpeeds,price,unknownStoreShippingUsd,validateSource} from '@/lib/market/domain';
 import {atlasServiceBreakdown} from '@/lib/market/quote-presentation';
 import {courierAllowanceUsd} from '@/lib/market/customs';
 import {combinedShipmentWeight,packagingKg} from '@/lib/market/world';
@@ -14,7 +14,7 @@ import {tariffRows} from '@/lib/market/home-facts';
 import {deliveryDaysFor,deliveryRegions,paymentLabels} from '@/lib/market/site-content';
 import {localizedStatuses,routeTitle,type Locale} from '@/lib/market/i18n';
 import {pickLocale} from '@/lib/market/uz-cyrl';
-import {popularBrandKeys,storeBrands,storeFocusNames} from '@/lib/market/store-brands';
+import {popularBrandKeys,storeBrands,storeFocusNames,storefrontUrl} from '@/lib/market/store-brands';
 import {StoreLogo,StoreMark,hasStoreMark} from './store-logo';
 import {StoreMarquee} from './store-marquee';
 import {CountryFlag,Flag} from './flags';
@@ -63,7 +63,7 @@ export function InfoTip({label,children}:{label:string;children:ReactNode}){
 /** The popular stores and "All N stores": the hero's list, repeated in the wide-screen closing card. */
 export function HomeStoreList({label,labelledBy}:{label?:string;labelledBy?:string}){
  const {c}=useHomeCopy();
- return <ul aria-label={label} aria-labelledby={labelledBy}>{heroStores.map(store=><li key={store.key}><a href={'https://'+store.storefronts[0].root} target="_blank" rel="noopener noreferrer"><StoreLogo brand={store} size={20}/>{store.name}<span className="sr-only"> ({c.hero.openStore})</span></a></li>)}<li><Link className="home-stores-all" href="/stores">{c.hero.allStores(storeBrands.length)}</Link></li></ul>;
+ return <ul aria-label={label} aria-labelledby={labelledBy}>{heroStores.map(store=><li key={store.key}><a href={storefrontUrl(store)} target="_blank" rel="noopener noreferrer"><StoreLogo brand={store} size={20}/>{store.name}<span className="sr-only"> ({c.hero.openStore})</span></a></li>)}<li><Link className="home-stores-all" href="/stores">{c.hero.allStores(storeBrands.length)}</Link></li></ul>;
 }
 
 /** A product link field: a valid link opens the order by link with it, anything else shows the hero's hint. */
@@ -129,8 +129,11 @@ export function ExampleQuote(){
    {days&&<p className="bill-days">{c.example.days(days[0],days[1])}</p>}
    <dl className="bill">
     <div><dt>{c.example.item}</dt><dd>{formatSum(quote.merchandise,locale)}</dd><dd className="bill-note">{cbu?c.example.itemNoteCbu(usd,groupDigits(pricing.fx),markup):c.example.itemNoteSet(usd,groupDigits(pricing.fx))}</dd></div>
-    <div><dt>{c.example.service}</dt><dd>{formatSum(parts.service,locale)}</dd><dd className="bill-note">{c.example.serviceDetail(fee)}</dd></div>
-    <div><dt>{c.example.delivery}</dt><dd>{formatSum(parts.international,locale)}</dd><dd className="bill-note">{c.example.deliveryNote(formatKg(packed,locale),formatUsd(deliveryPerKgUsdFor(pricing),locale))}</dd></div>
+    {/* One «Atlas service» line with its parts under it, as the real bill groups them (app/cost-lines.tsx). */}
+    <div><dt>{c.example.service}</dt><dd>{formatSum(parts.service+parts.international,locale)}</dd><dd className="bill-note"><ul className="bill-parts">
+     <li><span>{c.example.fee(fee)}</span><span>{formatSum(parts.service,locale)}</span></li>
+     <li><span>{`${c.example.delivery}: ${c.example.deliveryNote(formatKg(packed,locale),formatUsd(deliveryPerKgUsdFor(pricing),locale))}`}</span><span>{formatSum(parts.international,locale)}</span></li>
+    </ul></dd></div>
     {/* A reserve on top of delivery only while the tariff sets one (none since 5 October 2026). */}
     {quote.reserve>0&&<div><dt><span className="home-dt-with-tip">{c.example.reserve}<InfoTip label={c.example.reserveHelpLabel}>{c.example.reserveHelp}</InfoTip></span></dt><dd>{formatSum(quote.reserve,locale)}</dd><dd className="bill-note">{c.example.reserveNote(formatKg(packagingKg,locale))}</dd></div>}
    </dl>
@@ -186,7 +189,7 @@ function StepDemo({index}:{index:number}){
  const {quote,parts}=useExampleBill();
  if(index===0)return <StepLinkForm/>;
  if(index===1){
-  const rows:[string,number][]=[[c.example.item,quote.merchandise],[c.example.service,parts.service],[c.example.delivery,parts.international],...(quote.reserve>0?[[c.example.reserve,quote.reserve] as [string,number]]:[])];
+  const rows:[string,number][]=[[c.example.item,quote.merchandise],[c.example.service,parts.service+parts.international],...(quote.reserve>0?[[c.example.reserve,quote.reserve] as [string,number]]:[])];
   return <div className="hw-demo hw-demo-bill"><span className="hw-tag">{c.example.title}</span>
    {rows.map(([label,amount])=><span key={label} className="hw-demo-row"><span>{label}</span><i/><b>{formatSum(amount,locale)}</b></span>)}
    <span className="hw-demo-total"><span>{c.example.total}</span><b>{formatSum(quote.total,locale)}</b></span>
@@ -239,11 +242,15 @@ export function TrustSection(){
  const current=trackingCurrent;
  const {legal,reviews,parcelPhotos,completedOrders}=siteContent;
  const legalAddress=(legal.address?pickLocale(legal.address,locale):undefined);
+ const freeFromUsd=pricing.storeShippingFreeFromUsd??50;
  const facts=c.trust.facts({
   fee:formatPercent(pricing.margin+pricing.buyoutFee+pricing.conversionFee,locale),
   markup:formatPercent((pricing.fxMarkup??1.012)-1,locale),
   cbu:pricing.fxSource==='cbu'&&Boolean(pricing.fxCbuRate),
-  freeFrom:formatUsd(pricing.storeShippingFreeFromUsd??50,locale),
+  freeFrom:formatUsd(freeFromUsd,locale),
+  hold:formatUsd(unknownStoreShippingUsd,locale),
+  // An order below the free threshold, so the example gets the reserve.
+  holdExample:formatUsd(Math.max(1,Math.floor(freeFromUsd*0.6)),locale),
  });
  // Two parts so phones can show each as a sheet of its own: the money facts, then the proof (tracking, photos, legal).
  return <section id="trust" className="home-section" data-chapter="trust" aria-labelledby="trust-title">
@@ -339,7 +346,7 @@ function ClosingStores(){
  return <div className="hw-closing-stores">
   <p id="closing-stores-label" className="hw-closing-stores-label">{c.hero.popular}</p>
   <ul className="hw-cs-grid" aria-labelledby="closing-stores-label">{heroStores.map(store=><li key={store.key}>
-   <a className="hw-cs-tile" href={'https://'+store.storefronts[0].root} target="_blank" rel="noopener noreferrer">
+   <a className="hw-cs-tile" href={storefrontUrl(store)} target="_blank" rel="noopener noreferrer">
     <StoreLogo brand={store} size={36}/>
     <span className="hw-cs-text"><span className="hw-cs-name">{store.name}</span><span className="hw-cs-meta"><CountryFlag code={store.country} className="hw-cs-flag"/><span className="hw-cs-kind">{storeFocusNames[store.focus][locale]}</span></span></span>
     <ArrowUpRight className="hw-cs-go" size={16} aria-hidden="true"/><span className="sr-only"> ({c.hero.openStore})</span>

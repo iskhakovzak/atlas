@@ -115,6 +115,17 @@ export const storeBrands: StoreBrand[] = rows.filter(([key]) => grouped.has(key)
 /** Roots without a brand row; a test keeps this empty. */
 export const unlistedStoreRoots = [...grouped.entries()].filter(([key]) => !order.has(key)).flatMap(([, roots]) => roots);
 
+/**
+ * Roots whose bare domain is not the shop: google.com is the search engine, sony.com and philips.com are corporate
+ * sites. Links to "open the store" go to the storefront host the importer already accepts (lib/importer/stores.ts).
+ */
+const storefrontHomes: Record<string, string> = { 'google.com': 'store.google.com', 'sony.com': 'electronics.sony.com', 'philips.com': 'www.usa.philips.com' };
+/** The page a "open the store" link opens: a storefront root, or the brand's main storefront. */
+export function storefrontUrl(store: Pick<StoreBrand, 'storefronts'> | string) {
+  const root = typeof store === 'string' ? store : store.storefronts[0].root;
+  return 'https://' + (storefrontHomes[root] ?? root);
+}
+
 const byKey = new Map(storeBrands.map((brand) => [brand.key, brand]));
 export function brandForHost(host: string) {
   return byKey.get(brandKey(host));
