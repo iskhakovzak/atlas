@@ -343,10 +343,10 @@ html:not([data-theme="dark"]) .catalog-page .catalog-sets > .catalog-set { borde
 html:not([data-theme="dark"]) .catalog-page .catalog-sets > .catalog-set[aria-pressed="true"] { border-color: var(--day-accent); box-shadow: inset 0 0 0 1px var(--day-accent); }
 @media (max-width: 600px) {
   html:not([data-theme="dark"]) .site-main .find-card .find-content { padding: 10px 10px 12px; }
-  html:not([data-theme="dark"]) .site-main .find-card .find-meta { font-size: 11.5px; }
+  html:not([data-theme="dark"]) .site-main .find-card .find-meta { font-size: 12px; }
   html:not([data-theme="dark"]) .site-main .find-card .find-content .find-title { margin-top: 4px; font-size: 14.5px; }
   html:not([data-theme="dark"]) .site-main .find-card .find-content .find-store-price { margin-top: 8px; padding-bottom: 8px; }
-  html:not([data-theme="dark"]) .site-main .find-card .find-store-price > span:first-child { font-size: 11.5px; }
+  html:not([data-theme="dark"]) .site-main .find-card .find-store-price > span:first-child { font-size: 12px; }
   html:not([data-theme="dark"]) .site-main .find-card .find-purchase { padding-top: 10px; }
   html:not([data-theme="dark"]) .site-main .find-card .find-purchase .btn { min-height: 44px; padding: 0 8px; font-size: 14px; }
 }

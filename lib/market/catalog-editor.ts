@@ -96,6 +96,12 @@ const legacyBundledWeights:Record<string,number>={
   'nyx-butter-gloss':.15,'real-perfection-brushes':.4,'laura-geller-balm':.15,'elf-lip-stain':.2,
   'galaxy-s25-ultra':.6,'moto-g-power':.6,'softsoap-refill':1.6,
 };
+/** Bundled cards that used to carry Russian titles (13.10.2026): renamed only while the operator has not edited the name. */
+const legacyBundledNames:Record<string,string>={
+  'anker-prime-200w':'Anker Prime · зарядная станция 200W, 6 портов','wusthof-fresh-rosemary':'WÜSTHOF Classic · нож 8″ Fresh Rosemary',
+  'lego-city-burger-truck':'LEGO City · Burger Truck 60404, 194 детали','logitech-k780-resale':'Logitech K780 · беспроводная клавиатура, Amazon Resale',
+  'bircen-polarized-sunglasses':'BIRCEN · поляризационные солнцезащитные очки','real-perfection-brushes':'Real Perfection · 16 кистей',
+};
 
 function bundledDraft(item:MerchantFind):CatalogDraft{
   return catalogDraftSchema.parse({
@@ -137,6 +143,9 @@ export function synchronizeBundledCatalog(current:CatalogDocument){
       const publishedIsLegacy=legacy!==undefined&&existing.published&&Math.abs(existing.published.boxedWeight-legacy)<1e-6;
       const publishedNeedsRounding=existing.published&&existing.published.boxedWeight!==seed.published!.boxedWeight&&Math.abs(existing.published.boxedWeight-seed.published!.boxedWeight)<1e-6;
       if(existing.published&&(publishedIsLegacy||publishedNeedsRounding)){existing.published.boxedWeight=seed.published!.boxedWeight;updated++}
+      const legacyName=legacyBundledNames[seed.id];
+      if(legacyName&&existing.draft.name===legacyName){existing.draft.name=seed.draft.name;updated++}
+      if(legacyName&&existing.published?.name===legacyName){existing.published.name=seed.published!.name;updated++}
       continue;
     }
     if(next.entries.length>=catalogMaxEntries)continue;

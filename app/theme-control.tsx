@@ -59,8 +59,9 @@ export function ThemeToggle({ locale }: { locale: Locale }) {
     const next = dark ? "light" : "dark", html = document.documentElement;
     setMoved(true);
     const apply = () => { html.dataset.theme = next; setTheme(next); };
-    const start = (document as Document & { startViewTransition?: (update: () => void) => unknown }).startViewTransition;
-    if (start && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) start.call(document, apply); else apply();
+    const start = (document as Document & { startViewTransition?: (update: () => void) => { ready: Promise<unknown> } }).startViewTransition;
+    // A second click skips the first transition and rejects its promise ("Transition was skipped"): the theme still applies.
+    if (start && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) start.call(document, apply).ready.catch(() => undefined); else apply();
   };
 
   return (

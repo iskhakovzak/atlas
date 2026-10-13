@@ -1093,7 +1093,8 @@ function OrderGroupCard({ group, locale, busy, allowanceUsd, passports, parcel, 
     {group.payment && <div className="order-x-action-item og-pay">
       <CreditCard size={20} aria-hidden="true" />
       <div>
-        <h3>{gc.payTitle}</h3>
+        {/* Level 2 for screen readers: the group card has no heading of its own above this one. */}
+        <h3 aria-level={2}>{gc.payTitle}</h3>
         {/* The balance part is said here, so "Итого" or a row's sum above the button never reads as a different bill. */}
         <p>{gc.payCovers(itemCount(group.orders.reduce((sum, order) => sum + (!order.cancelled && order.payment?.status === "pending" ? order.quantity : 0), 0), locale))}{group.payment.fromBalance ? ` ${gc.payBalance(formatSum(group.payment.fromBalance, locale))}` : ""}</p>
       </div>

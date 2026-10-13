@@ -128,7 +128,8 @@ html:not([data-theme="dark"]) .find-card .find-photo .product-img { mix-blend-mo
   :is(.catalog-page, .catalog-teaser) .find-card .find-content .find-total { padding: 8px 0; }
   :is(.catalog-page, .catalog-teaser) .find-card .find-total > span { display: block; padding-right: 26px; }
   :is(.catalog-page, .catalog-teaser) .find-card .find-total > strong { font-size: clamp(14px, 4.2vw, 16.5px); letter-spacing: -.02em; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-info { top: 0; right: -10px; bottom: auto; width: 36px; height: 36px; }
+  /* 44px to tap; the painted circle stays 36px (padding outside the background). */
+  :is(.catalog-page, .catalog-teaser) .find-card .find-info { top: 0; right: -10px; bottom: auto; width: 44px; height: 44px; padding: 4px; background-clip: content-box; }
   :is(.catalog-page, .catalog-teaser) .find-card .find-store-price b { font-size: 13.5px; }
   /* "+N soum to the parcel": the store line on top, the amount below it. */
   :is(.catalog-page, .catalog-teaser) .find-card .find-parcel { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 6px; align-items: start; padding: 7px 8px; font-size: 11.5px; }

@@ -1,9 +1,10 @@
 'use client';
 
 import {useEffect,useId,useState} from 'react';
-import type {Locale} from '@/lib/market/i18n';
+import {isUzbek,type Locale} from '@/lib/market/i18n';
 import type {AllowancePart} from '@/lib/market/allowance';
-import {withCyrillic} from '@/lib/market/uz-cyrl';
+import {withCyrillic,uzText} from '@/lib/market/uz-cyrl';
+import {uzMonths} from '@/lib/market/notices-copy';
 
 type Part={key:string;kind:'order'|'cart'|'left';usd:number;label:string};
 const copy=/*@__PURE__*/withCyrillic({
@@ -23,7 +24,8 @@ export const allowanceMoney=money;
  */
 export function AllowanceMeter({limit,orders,cartUsd=0,locale,label}:{limit:number;orders:AllowancePart[];cartUsd?:number;locale:Locale;label:string}){
  const c=copy[locale],id=useId();
- const day=new Intl.DateTimeFormat(locale==='oz'?'uz-Cyrl':locale,{day:'numeric',month:'long'});
+ // Browsers often lack Uzbek month names ("M10 13"), so Uzbek dates are built by hand.
+ const intlDay=new Intl.DateTimeFormat(locale,{day:'numeric',month:'long'}),day={format:(at:number)=>{const d=new Date(at);return isUzbek(locale)?uzText(locale,`${d.getDate()}-${uzMonths[d.getMonth()]}`):intlDay.format(at)}};
  const used=orders.reduce((sum,part)=>sum+part.usd,0);
  const total=used+cartUsd,scale=Math.max(limit,total)||1;
  const parts:Part[]=[

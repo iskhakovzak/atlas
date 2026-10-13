@@ -29,9 +29,9 @@
   .catalog-home .catalog-filter-disclosure>summary { min-width:0!important; min-height:48px!important; padding-inline:11px!important; }
   .catalog-home .finds-grid { gap:12px; }
   .catalog-home .find-content { padding:12px; }
-  .catalog-home .find-meta { font-size:10px; gap:5px; flex-wrap:wrap; }
+  .catalog-home .find-meta { font-size:12px; gap:5px; flex-wrap:wrap; }
   .catalog-home .find-title { font-size:15px; margin:8px 0 12px; }
-  .catalog-home .find-store-price>span { font-size:11px; }
+  .catalog-home .find-store-price>span { font-size:12px; }
   .catalog-home .find-store-price b { font-size:17px; }
   .catalog-home .find-total { padding-right:0; }
   .catalog-home .find-total>strong { font-size:18px; letter-spacing:-.035em; }

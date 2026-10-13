@@ -13,7 +13,9 @@ import { groupOrders, orderGroupCopy } from "@/lib/market/order-groups";
 import { orderAttention } from "@/lib/market/notice-panel";
 import type { Action } from "@/lib/market/actions";
 import { monthlyAllowance, recipientKey, type RecipientAllowance } from "@/lib/market/allowance";
-import { localizedStatuses, serverError, type Locale } from "@/lib/market/i18n";
+import { isUzbek, localizedStatuses, serverError, type Locale } from "@/lib/market/i18n";
+import { uzText } from "@/lib/market/uz-cyrl";
+import { uzMonths } from "@/lib/market/notices-copy";
 import { calcCopy } from "@/lib/market/calc-copy";
 import { formatSum } from "@/lib/market/format";
 import { accountCopy, formatLongDate, formatShortDate, itemCount, recipientCopy, type AccountCopy } from "@/lib/market/customer-copy";
@@ -200,7 +202,7 @@ function CustomsAllowance({ groups, primaryName, cartUsd, c, locale }: { groups:
   const limit = courierAllowanceUsd;
   // Show the default recipient even before their first order, so the empty state still says "for whom".
   const rows = groups.length ? groups : primaryName ? [{ key: recipientKey(primaryName), name: primaryName, usedUsd: 0, orders: 0 }] : [];
-  const month = new Intl.DateTimeFormat(locale === "oz" ? "uz-Cyrl" : locale, { month: "long" }).format(new Date());
+  const month = isUzbek(locale) ? uzText(locale, uzMonths[new Date().getMonth()]) : new Intl.DateTimeFormat(locale, { month: "long" }).format(new Date());
   return <section className="cabinet-card cabinet-customs" aria-labelledby="cabinet-customs-title">
     <div className="cabinet-customs-top">
       <h2 id="cabinet-customs-title">{c.customs.title}<InfoTip locale={locale}>{c.customs.perPerson}</InfoTip></h2>
