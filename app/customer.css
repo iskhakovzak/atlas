@@ -162,6 +162,8 @@ html[data-theme="dark"] .basket-item-note.issue { border-color: rgba(255, 140, 1
 .basket-sticky { display: none; }
 @media (max-width: 760px) {
   main[data-view="cart"]:has(.basket-sticky) { padding-bottom: 96px; }
+  /* Tab never leaves a control under the fixed total and the bottom bar (WCAG 2.4.11). */
+  html:has(main[data-view="cart"] .basket-sticky:not(.is-hidden)) { scroll-padding-bottom: calc(var(--atlas-mobile-nav-clearance, calc(68px + env(safe-area-inset-bottom))) + 84px); }
   .basket-sticky { position: fixed; z-index: 45; right: 0; bottom: var(--atlas-mobile-nav-clearance, calc(68px + env(safe-area-inset-bottom))); left: 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--home-line); background: var(--home-surface); box-shadow: 0 -8px 24px rgba(20, 35, 68, .08); }
   .basket-sticky > div { display: grid; min-width: 0; }
   .basket-sticky span { color: var(--home-muted); font-size: 12px; }
@@ -685,7 +687,6 @@ html[data-theme="dark"] .lo-added { border-color: rgba(128, 208, 172, .35); back
 html[data-theme="dark"] .orders-passport { border-color: var(--night-warn-line); background: var(--night-warn-bg); }
 .basket-service-saving { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; color: var(--home-muted); font-size: 12px; font-weight: 600; }
 .basket-stock { font-weight: 600; }
-.basket-stock.low { color: var(--cx-warn); }
 .basket-note-add { grid-column: 1 / -1; justify-self: start; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0; border: 0; background: none; color: var(--home-accent); font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; }
 .basket-note { grid-column: 1 / -1; display: grid; gap: 4px; }
 .basket-note label { color: var(--home-ink); font-size: 13.5px; font-weight: 700; }
@@ -1208,7 +1209,8 @@ html[data-theme="dark"] :is(.basket-controls, .basket-variant) > .remove-item:no
 .customs-option-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 7px; color: var(--home-ink); font-size: 14px; line-height: 1.3; }
 .customs-option-head svg { flex: none; color: var(--home-accent); }
 .customs-option-head b { font-weight: 700; }
-.customs-option-head em { position: absolute; top: -9px; right: 10px; padding: 1px 8px; border-radius: 999px; background: var(--home-accent); color: var(--home-accent-ink); font-size: 11px; font-style: normal; font-weight: 700; line-height: 1.5; }
+/* A quiet outlined tag beside the name (14.10.2026), not a filled badge pinned over the card's edge. */
+.customs-option-head em { padding: 0 7px; border: 1px solid currentColor; border-radius: 999px; color: var(--home-accent); font-size: 11.5px; font-style: normal; font-weight: 600; line-height: 1.5; }
 .customs-option-head small { color: var(--home-muted); font-size: 12.5px; font-weight: 500; }
 .customs-option-body > small { color: var(--home-muted); font-size: 12.5px; line-height: 1.45; }
 .customs-option-body > .customs-option-fee { color: var(--home-ink); font-weight: 600; }

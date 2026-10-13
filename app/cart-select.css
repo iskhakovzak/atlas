@@ -50,6 +50,7 @@
 .basket-parcel-services { margin: 4px 0 0; }
 .basket-parcel-services > summary { cursor: pointer; }
 .basket-service[aria-busy="true"] { opacity: .8; }
+.basket-service-copy label { cursor: pointer; }
 .basket-service-unit { margin-left: 6px; font-size: 12px; font-weight: 500; color: var(--day-muted, #58635c); }
 
 /* ---------- checkout review: wide dialog with a sticky total ---------- */
@@ -60,6 +61,8 @@
 @container (min-width: 820px) {
   .review-layout { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; gap: 24px; }
   .review-aside { position: sticky; top: 0; max-height: calc(92dvh - 120px); overflow: auto; }
+  /* A short laptop screen: the aside scrolls inside it, and the button with its amount stays at its bottom edge. */
+  .review-aside .review-confirm-bar { position: sticky; bottom: 0; z-index: 1; padding-top: 8px; background: var(--background, #fff); }
 }
 .review-main { min-width: 0; display: grid; gap: 14px; container-type: inline-size; }
 .review-aside { display: grid; gap: 12px; align-content: start; }
@@ -115,30 +118,23 @@
    column (display: contents), so the sticky button is held at the bottom of the dialog — the scroll container — over the
    whole review, table included, and rests in its own place at the end. The dialog covers the app's bottom bar
    (.mobile-nav sits under the dialog overlay), so nothing else needs room. `.review-confirm-bar` (ReviewConfirmBar in
-   app/checkout-review.tsx) adds the amount beside the button; without it the button alone is held. */
-.review-confirm-amount { display: none; }
-@media (max-width: 720px) {
+   app/checkout-review.tsx) holds the button, which names the amount itself (14.10.2026), and the trust line under it.
+   Up to 923 px (14.10.2026): a tablet gets one column too (the review turns two-column only from 820 px of dialog), so
+   the button is held there as well. scroll-padding keeps a focused field or the consent box clear of the bar. */
+@media (max-width: 923px) {
   .review-later, .review-checklist .text-button { min-height: 44px; display: inline-flex; align-items: center; }
-  .atlas-modal:has(.review-layout) { scroll-padding-bottom: 96px; }
+  .review-details > summary { padding-block: 12px; }
+  .atlas-modal:has(.review-layout) { scroll-padding-bottom: calc(124px + env(safe-area-inset-bottom)); }
   .review-layout { display: flex; flex-direction: column; gap: 12px; }
   .review-aside { display: contents; }
   .review-aside > .btn.primary.full, .review-confirm-bar { position: sticky; bottom: 0; z-index: 2; }
   .review-aside > .btn.primary.full { margin-bottom: env(safe-area-inset-bottom); box-shadow: 0 0 0 8px var(--background, #fff), 0 -10px 24px 8px rgba(20, 35, 68, .1); }
-  .review-confirm-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 -12px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--day-line, #e2e2da); background: var(--background, #fff); box-shadow: 0 -8px 20px rgba(20, 35, 68, .08); }
-  .review-confirm-bar > .btn.primary.full { position: static; flex: 1 1 0; min-width: 0; width: auto; max-width: 220px; margin: 0; box-shadow: none; }
-  /* The amount keeps its width (a sum is never cut); the button takes the rest and wraps its label. */
-  .review-confirm-amount { display: grid; flex: 0 0 auto; line-height: 1.2; }
-  .review-confirm-amount small { color: var(--day-muted, #58635c); font-size: 12px; }
-  .review-confirm-amount b { color: var(--day-ink, #16211c); font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .review-confirm-bar { display: flex; flex-direction: column; align-items: stretch; gap: 0; margin: 0 -12px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--day-line, #e2e2da); background: var(--background, #fff); box-shadow: 0 -8px 20px rgba(20, 35, 68, .08); }
+  .review-confirm-bar > .btn.primary.full { position: static; flex: none; width: 100%; max-width: none; min-height: 48px; margin: 0; box-shadow: none; }
+  .review-confirm-bar .checkout-trust { margin-top: 6px; }
 }
 
 /* Phone and narrow dialog: one card per line, the numbers in a row with their names. */
-@container (max-width: 360px) {
-  .review-confirm-bar { flex-direction: column; align-items: stretch; gap: 8px; }
-  .review-confirm-amount { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; min-width: 0; }
-  .review-confirm-amount b { white-space: normal; overflow-wrap: anywhere; }
-  .review-confirm-bar > .btn.primary.full { flex: none; width: 100%; max-width: none; min-height: 48px; }
-}
 @media (max-width: 520px) {
   .atlas-modal .basket-steps { gap: 4px; }
   .atlas-modal .basket-steps li:not([data-state="current"])::after { width: 12px; flex-basis: 12px; }
@@ -147,7 +143,7 @@
 @media (max-width: 360px) {
   .atlas-modal .basket-steps { position: relative; padding-bottom: 24px; }
   .atlas-modal .basket-steps li[data-state="current"] .basket-step-name { position: absolute; left: 0; bottom: 0; width: 100%; white-space: normal; }
-  .atlas-modal:has(.review-layout) { scroll-padding-bottom: 140px; }
+  .atlas-modal:has(.review-layout) { scroll-padding-bottom: calc(150px + env(safe-area-inset-bottom)); }
 }
 @media (max-width: 720px) {
   [data-slot="alert-dialog-content"] button { min-height: 44px; }
@@ -188,11 +184,9 @@ html[data-theme="dark"] .review-details { border-top-color: var(--night-line); }
 html[data-theme="dark"] .review-details > summary { color: var(--night-jade); }
 html[data-theme="dark"] .review-colour { color: var(--night-muted); }
 html[data-theme="dark"] .review-confirm-bar { border-top-color: var(--night-line); background: var(--night-raised); box-shadow: 0 -8px 20px rgba(0, 0, 0, .35); }
-@media (max-width: 720px) {
+@media (max-width: 923px) {
   html[data-theme="dark"] .review-aside > .btn.primary.full { box-shadow: 0 0 0 8px var(--night-raised), 0 -10px 24px 8px rgba(0, 0, 0, .35); }
 }
-html[data-theme="dark"] .review-confirm-amount small { color: var(--night-muted); }
-html[data-theme="dark"] .review-confirm-amount b { color: var(--night-ink); }
 @container (max-width: 460px) {
   html[data-theme="dark"] .review-num[data-label]:not(.review-sum) { color: var(--night-muted); }
 }

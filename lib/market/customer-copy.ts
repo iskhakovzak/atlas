@@ -87,7 +87,7 @@ export type CartCopy = {
   services: { optional: string; hint: string; /** The hint when parcel insurance (paid with the order) is offered. */ hintPercent: string; fixed: string; quote: string; /** A value-percent service: rate of the goods and delivery, the higher rate above the threshold, the amount for this parcel. */ percent: (rate: string, high: string | undefined, amount: string) => string; highRule: (threshold: string, rate: string) => string; quantity: string; required: string; units: { package: string; item: string; day: string; photo: string; 'half-hour': string } };
   summary: {
     title: string; balance: string; available: string; fromBalance: string; payable: string;
-    validFor: (time: string) => string; assurance: string; continue: string; outside: string;
+    assurance: string; continue: string; outside: string;
     verifying: string; recheckNote: string;
   };
   sticky: { label: string };
@@ -99,13 +99,25 @@ export type CartCopy = {
     servedOnly: string; outsideServed: string;
     /** No duty for this recipient: no checkbox, the button accepts the customs terms (the server still records the edition). */
     consentImplied: Sentence;
+    /** The last button names the action and the amount ("Place order · N"); never "Pay": payment is a later step. */
     confirm: string; saving: string; estimated: string; saveRecipient: string;
+    /** A new recipient's note for the courier stays behind this link until asked for. */
+    addComment: string;
+    /** Under each field after the customer leaves it: what is missing, in plain words. */
+    errors: { recipient: string; address: string; city: string; region: string };
+    /** Quiet trust under the last button: nothing is charged yet, and the terms and customs one tap away. */
+    trust: string; termsLink: string; customsLink: string;
+    /** The Atlas balance is debited when the order is placed (lib/market/domain.ts checkoutCart), so with it on the
+     *  trust line says how much goes from it; `rest` when something is still left to pay later. */
+    trustBalance: (amount: string, rest: boolean) => string;
+    /** The balance covers the whole order: nothing to pay in My orders. */
+    nextStepPaid: string;
     /** The held price ran out on the review: the stores were checked again and the customer confirms the renewed total. */
     rechecked: string;
     /** One line under the confirm button: what happens next. The demo-payment note lives once, in the pay dialog of My orders. */
     nextStep: string;
   };
-  success: { title: string; pending: string };
+  success: { title: string; pending: string; paid: string };
 };
 
 export type AccountCopy = {
@@ -171,8 +183,8 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
       units: { package: 'посылка', item: 'шт.', day: 'день', photo: 'фото', 'half-hour': '30 мин' },
     },
     summary: {
-      title: 'Итого', balance: 'Оплатить с баланса Atlas', available: 'Доступно', fromBalance: 'С баланса Atlas', payable: 'К оплате',
-      validFor: time => `Цена зафиксирована ещё ${time}`, assurance: 'Оплата — только с вашего согласия',
+      title: 'Итого', balance: 'Использовать баланс Atlas', available: 'Доступно', fromBalance: 'С баланса Atlas', payable: 'К оплате',
+      assurance: 'Оплата — только с вашего согласия',
       continue: 'Продолжить покупки', outside: 'Не входит в сумму к оплате',
       verifying: 'Сверяем цены…', recheckNote: 'Перед оформлением сверим цены с магазинами.',
     },
@@ -185,16 +197,21 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
       postal: 'Почтовый индекс', postalHint: '6 цифр, например 100000.', postalMissing: 'У этого получателя не указан индекс. Сохраним его в профиле получателя.', comment: 'Комментарий для курьера',
       next: 'Далее: проверка',
       consent: { before: 'Я ознакомлен(а) с ', link: 'таможенными условиями', after: '.' },
-      consentImplied: { before: 'Подтверждая заказ, вы принимаете ', link: 'таможенные условия', after: '.' },
+      consentImplied: { before: 'Оформляя заказ, вы принимаете ', link: 'таможенные условия', after: '.' },
       consentRequired: 'Отметьте согласие с таможенными условиями.',
-      confirm: 'Подтвердить заказ', saving: 'Сохраняем заказ…',
+      confirm: 'Оформить заказ', saving: 'Оформляем заказ…', addComment: 'Добавить комментарий для курьера',
+      errors: { recipient: 'Укажите имя и фамилию получателя.', address: 'Укажите улицу, дом и квартиру.', city: 'Укажите город.', region: 'Выберите область.' },
+      trust: 'Деньги не списываются до вашего подтверждения.', termsLink: 'Условия сервиса', customsLink: 'Таможня',
+      trustBalance: (amount, rest) => `С баланса Atlas при оформлении спишется ${amount}.${rest ? ' Остальное — только после вашего подтверждения.' : ''}`,
+      nextStepPaid: 'Заказ будет оплачен с баланса Atlas — в «Моих заказах» платить не нужно. Если цена изменится, спросим перед выкупом.',
       nextStep: 'Дальше — оплата в «Моих заказах». Если цена изменится, спросим перед выкупом.', estimated: 'К оплате',
       saveRecipient: 'Сохранить получателя в профиле — для следующих заказов и паспорта',
-      rechecked: 'Цены сверены заново. Проверьте сумму и подтвердите заказ.',
+      rechecked: 'Цены сверены заново. Проверьте сумму и оформите заказ.',
     },
     success: {
       title: 'Заказ оформлен',
       pending: 'Заказ сохранён. Оплатить его можно в «Моих заказах».',
+      paid: 'Заказ оформлен и оплачен с баланса Atlas.',
     },
   },
   uz: {
@@ -220,8 +237,8 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
       units: { package: 'posilka', item: 'dona', day: 'kun', photo: 'foto', 'half-hour': '30 daqiqa' },
     },
     summary: {
-      title: 'Jami', balance: 'Atlas balansidan to‘lash', available: 'Mavjud', fromBalance: 'Atlas balansidan', payable: 'To‘lovga',
-      validFor: time => `Narx yana ${time} amal qiladi`, assurance: 'To‘lov — faqat roziligingiz bilan',
+      title: 'Jami', balance: 'Atlas balansidan foydalanish', available: 'Mavjud', fromBalance: 'Atlas balansidan', payable: 'To‘lovga',
+      assurance: 'To‘lov — faqat roziligingiz bilan',
       continue: 'Xaridni davom ettirish', outside: 'To‘lov summasiga kirmaydi',
       verifying: 'Narxlar tekshirilmoqda…', recheckNote: 'Rasmiylashtirishdan oldin narxlarni do‘konlar bilan tekshiramiz.',
     },
@@ -234,16 +251,21 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
       postal: 'Pochta indeksi', postalHint: '6 ta raqam, masalan 100000.', postalMissing: 'Bu qabul qiluvchida indeks ko‘rsatilmagan. Uni qabul qiluvchi profilida saqlaymiz.', comment: 'Kuryer uchun izoh',
       next: 'Keyingi: tekshirish',
       consent: { before: '', link: 'Bojxona shartlari', after: ' bilan tanishdim.' },
-      consentImplied: { before: 'Buyurtmani tasdiqlab, ', link: 'bojxona shartlarini', after: ' qabul qilasiz.' },
+      consentImplied: { before: 'Buyurtma berib, ', link: 'bojxona shartlarini', after: ' qabul qilasiz.' },
       consentRequired: 'Bojxona shartlariga roziligingizni belgilang.',
-      confirm: 'Buyurtmani tasdiqlash', saving: 'Buyurtma saqlanmoqda…',
+      confirm: 'Buyurtma berish', saving: 'Buyurtma rasmiylashtirilmoqda…', addComment: 'Kuryer uchun izoh qo‘shish',
+      errors: { recipient: 'Qabul qiluvchining ism-familiyasini kiriting.', address: 'Ko‘cha, uy va xonadonni kiriting.', city: 'Shaharni kiriting.', region: 'Viloyatni tanlang.' },
+      trust: 'Tasdiqlamaguningizcha pul yechilmaydi.', termsLink: 'Xizmat shartlari', customsLink: 'Bojxona',
+      trustBalance: (amount, rest) => `Rasmiylashtirishda Atlas balansidan ${amount} yechiladi.${rest ? ' Qolgani — faqat tasdiqlaganingizdan keyin.' : ''}`,
+      nextStepPaid: 'Buyurtma Atlas balansidan to‘lanadi — «Buyurtmalarim»da to‘lash shart emas. Narx o‘zgarsa, xariddan oldin so‘raymiz.',
       nextStep: 'Keyin — «Buyurtmalarim»da to‘lov. Narx o‘zgarsa, xariddan oldin so‘raymiz.', estimated: 'To‘lovga',
       saveRecipient: 'Qabul qiluvchini profilga saqlash — keyingi buyurtmalar va pasport uchun',
-      rechecked: 'Narxlar qayta tekshirildi. Summani ko‘rib chiqing va buyurtmani tasdiqlang.',
+      rechecked: 'Narxlar qayta tekshirildi. Summani ko‘rib chiqing va buyurtma bering.',
     },
     success: {
       title: 'Buyurtma rasmiylashtirildi',
       pending: 'Buyurtma saqlandi. Uni «Buyurtmalarim»da to‘lash mumkin.',
+      paid: 'Buyurtma rasmiylashtirildi va Atlas balansidan to‘landi.',
     },
   },
   en: {
@@ -269,8 +291,8 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
       units: { package: 'package', item: 'item', day: 'day', photo: 'photo', 'half-hour': '30 min' },
     },
     summary: {
-      title: 'Summary', balance: 'Pay from Atlas balance', available: 'Available', fromBalance: 'From Atlas balance', payable: 'To pay',
-      validFor: time => `Price held for ${time}`, assurance: 'Payment only with your approval',
+      title: 'Summary', balance: 'Use Atlas balance', available: 'Available', fromBalance: 'From Atlas balance', payable: 'To pay',
+      assurance: 'Payment only with your approval',
       continue: 'Continue shopping', outside: 'Not in the amount to pay',
       verifying: 'Checking prices…', recheckNote: 'We check prices with the stores before checkout.',
     },
@@ -283,16 +305,21 @@ export const cartCopy: Record<Locale, CartCopy> = /*@__PURE__*/withCyrillic({
       postal: 'Postal code', postalHint: '6 digits, for example 100000.', postalMissing: 'This recipient has no postal code yet. We will save it to the recipient.', comment: 'Note for the courier',
       next: 'Next: review',
       consent: { before: 'I have read the ', link: 'customs terms', after: '.' },
-      consentImplied: { before: 'By confirming, you accept the ', link: 'customs terms', after: '.' },
+      consentImplied: { before: 'By placing the order, you accept the ', link: 'customs terms', after: '.' },
       consentRequired: 'Please confirm the customs terms.',
-      confirm: 'Confirm order', saving: 'Saving order…',
+      confirm: 'Place order', saving: 'Placing order…', addComment: 'Add a note for the courier',
+      errors: { recipient: 'Enter the recipient’s full name.', address: 'Enter the street, building and apartment.', city: 'Enter the city.', region: 'Choose a region.' },
+      trust: 'No money is taken until you confirm.', termsLink: 'Terms of service', customsLink: 'Customs',
+      trustBalance: (amount, rest) => `${amount} is taken from your Atlas balance when you place the order.${rest ? ' The rest only after you confirm.' : ''}`,
+      nextStepPaid: 'The order is paid from your Atlas balance — nothing to pay in My orders. If the price changes, we ask before buying.',
       nextStep: 'Next: payment in My orders. If the price changes, we ask before buying.', estimated: 'To pay',
       saveRecipient: 'Save this recipient to your profile — for next orders and the passport',
-      rechecked: 'Prices were checked again. Review the total and confirm.',
+      rechecked: 'Prices were checked again. Review the total and place the order.',
     },
     success: {
       title: 'Order placed',
       pending: 'Order saved. You can pay for it in My orders.',
+      paid: 'Order placed and paid from your Atlas balance.',
     },
   },
 });

@@ -111,3 +111,16 @@ test('checkout copy says what happens next once and lets the button accept custo
   assert.doesNotMatch(cartCopy.ru.success.pending, /не списыва/);
   assert.equal(cartCopy.uz.summary.payable, 'To‘lovga');
 });
+
+test('with the Atlas balance on, checkout copy says how much it takes when the order is placed, and never says "pay"', () => {
+  for (const locale of ['ru', 'uz', 'oz', 'en']) {
+    const checkout = cartCopy[locale].checkout;
+    const part = checkout.trustBalance('120 000 сум', true), whole = checkout.trustBalance('120 000 сум', false);
+    // The server debits the balance in checkoutCart, so "no money is taken until you confirm" would not be true here.
+    assert.match(whole, /120 000 сум/);
+    assert.ok(part.startsWith(whole) && part.length > whole.length, `${locale}: the rest is mentioned only when something is left`);
+    assert.ok(checkout.nextStepPaid.trim() && cartCopy[locale].success.paid.trim());
+    assert.doesNotMatch(checkout.rechecked, /подтвердите заказ|confirm\.$/);
+  }
+  assert.doesNotMatch(cartCopy.ru.checkout.trustBalance('1 сум', true) + cartCopy.ru.checkout.nextStepPaid, /Оплатить|карт/);
+});

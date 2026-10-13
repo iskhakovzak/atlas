@@ -154,11 +154,12 @@ export const customsDutyAmount=(estimate:Pick<CustomsEstimate,'estimateUsd'>,pri
  * first and chosen unless the customer picked otherwise. A choice remembered from an earlier cart shows as one line
  * with "Change" until the customer opens it.
  */
-export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipientId,onRecipient,onChoices,helpAmount,remembered=false,compact=false,busy=false}:{estimate:CustomsEstimate;choices:CartCustoms;locale:Locale;pricing:Pricing;profiles:SavedDeliveryProfile[];recipientId?:string;onRecipient?:(id:string)=>void;onChoices?:(next:CartCustoms)=>void;helpAmount?:number;/** The choice comes from "remember for next orders", not from this cart. */remembered?:boolean;compact?:boolean;busy?:boolean}){
+export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipientId,onRecipient,onChoices,helpAmount,remembered=false,compact=false,busy=false,remember:rememberProp,onRemember}:{estimate:CustomsEstimate;choices:CartCustoms;locale:Locale;pricing:Pricing;profiles:SavedDeliveryProfile[];recipientId?:string;onRecipient?:(id:string)=>void;onChoices?:(next:CartCustoms)=>void;helpAmount?:number;/** The choice comes from "remember for next orders", not from this cart. */remembered?:boolean;compact?:boolean;busy?:boolean;/** Shared by the cart's panel and the review's copy, so a cleared "remember" stays cleared in both. */remember?:boolean;onRemember?:(next:boolean)=>void}){
  const c=calcCopy[locale].customs;
  const id=useId();
  const [open,setOpen]=useState(false);
- const [remember,setRemember]=useState(true);
+ const [ownRemember,setOwnRemember]=useState(true);
+ const remember=rememberProp??ownRemember,setRemember=onRemember??setOwnRemember;
  const usd=(value:number)=>usdText(value,locale);
  const duty=customsDutyAmount(estimate,pricing),over=duty>0;
  // "Atlas pays customs" adds the duty and its fee: the card names the whole addition, not the fee alone.

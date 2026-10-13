@@ -59,8 +59,10 @@ body { -webkit-tap-highlight-color: transparent; }
   :is(.breadcrumb a, .basket-note-add, .customs-how-trigger) { position: relative; }
   :is(.breadcrumb a, .basket-note-add, .customs-how-trigger)::after { content: ""; position: absolute; inset: -8px -6px; }
   /* 40 px cart controls take taps from a 44 px frame without growing (ui-ux-pro-max touch-target-size, 13.10.2026). */
-  :is(.basket-fav, .basket-later, .basket-variant > .remove-item, .basket-variant .basket-qty button, .lo-stepper button, .customs-how-close) { position: relative; }
-  :is(.basket-fav, .basket-later, .basket-variant > .remove-item, .basket-variant .basket-qty button, .lo-stepper button)::after { content: ""; position: absolute; inset: -2px; }
+  :is(.basket-fav, .basket-later, .basket-variant > .remove-item, .basket-controls .remove-item, .basket-variant .basket-qty button, .lo-stepper button, .customs-how-close) { position: relative; }
+  :is(.basket-fav, .basket-later, .basket-variant > .remove-item, .basket-controls .remove-item, .basket-variant .basket-qty button, .lo-stepper button)::after { content: ""; position: absolute; inset: -2px; }
+  /* The variant stepper's 38 px buttons: 3 px more on each side makes 44. */
+  .basket-variant .basket-qty button::after { inset: -2px -3px; }
   .customs-how-close::after { content: ""; position: absolute; inset: -6px; }
   /* Header buttons keep their 40 px look and take taps from 44 px; the 6 px gaps leave 2 px between the frames. */
   .site-header :is(.lang-trigger, .icon-btn, .wallet-link) { position: relative; }

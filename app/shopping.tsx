@@ -5,14 +5,14 @@ import { shownBrand } from "@/lib/importer/brand-name";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import Link from "@/components/site-link";
-import { ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ClipboardPaste, Clock3, Heart, Info, Loader2, MessageSquare, Minus, Plus, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ClipboardPaste, Clock3, Heart, Info, Loader2, Lock, MapPin, MessageSquare, Minus, Plus, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
 import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, customsHelpChosen, deliveryAddressLine, inCheckout, isPostalCode, maxLineQuantity, parcelServiceUnits, storeDiscount, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, insuredDeliveryOf, parcelValueUsd, valueServiceRate, withCustomsHelpFor, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
 import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, fasterText } from "@/lib/market/delivery-speed";
 import { countryName, customsVersion } from "@/lib/market/world";
 import { formatPercent, formatSum, formatUsd } from "@/lib/market/format";
-import { cartCopy, countryLabel, itemCount, linkOrderCopy, minutesLeft, parcelCount, recipientCopy, type CartCopy } from "@/lib/market/customer-copy";
+import { cartCopy, countryLabel, itemCount, linkOrderCopy, parcelCount, recipientCopy, type CartCopy } from "@/lib/market/customer-copy";
 import { cartCustomsEstimate } from "@/lib/market/allowance";
 import { calcCopy } from "@/lib/market/calc-copy";
 import { CalcLines, CustomsPanel, DeliverySpeedSwitch, HoldNote, customsDutyAmount, sumQuotes } from "./calc-summary";
@@ -107,8 +107,11 @@ function ItemNote({ id, note, locale, save }: { id: string; note: string; locale
   </div>;
 }
 
-/** "Price held for N min", ticking on its own so the rest of the cart does not re-render every 15 s. */
-function PriceHold({ expiresAt, locale, c }: { expiresAt: number; locale: Locale; c: CartCopy }) {
+/**
+ * After the 15-minute price hold: "we check prices with the stores first". No countdown before it (14.10.2026: a ticking
+ * timer reads as pressure, and an expired hold loses nothing). Ticks on its own so the rest of the cart does not re-render.
+ */
+function PriceHold({ expiresAt, c }: { expiresAt: number; c: CartCopy }) {
   const [now, setNow] = useState(0);
   useEffect(() => {
     const tick = () => setNow(Date.now());
@@ -116,10 +119,8 @@ function PriceHold({ expiresAt, locale, c }: { expiresAt: number; locale: Locale
     return () => { clearTimeout(first); clearInterval(timer); };
   }, []);
   // After the hold the total is not lost: "Check out" checks the stores and reprices first.
-  const expired = now > 0 && now >= expiresAt;
-  // A countdown only in the last 5 minutes: a long one reads as pressure, not information.
-  if (!expired && (!now || expiresAt - now > 5 * 60_000)) return null;
-  return <p className="basket-expiry"><Clock3 size={15} aria-hidden="true" />{expired ? c.summary.recheckNote : c.summary.validFor(minutesLeft(expiresAt - now, locale))}</p>;
+  if (!now || now < expiresAt) return null;
+  return <p className="basket-expiry"><Clock3 size={15} aria-hidden="true" />{c.summary.recheckNote}</p>;
 }
 
 function usd(amount: number, locale: Locale) {
@@ -167,12 +168,24 @@ export function CartView() {
   const [selectedProfile, setSelectedProfile] = useState("");
   // Recipient errors show next to the fields after the first "Next" (as in the recipient form), in the page's language.
   const [deliveryTouched, setDeliveryTouched] = useState(false);
+  // Before that, a field is checked once the customer leaves it with something typed (14.10.2026); an empty one waits.
+  const [touchedFields, setTouchedFields] = useState<Partial<Record<string, boolean>>>({});
+  // A new recipient's note for the courier stays behind a link until asked for: fewer fields on the way to the order.
+  const [commentOpen, setCommentOpen] = useState(false);
   // Quantity saves still waiting out their pause (line id -> send now); "Check out" sends them first.
   const [pendingQuantities] = useState(() => new Map<string, () => Promise<boolean>>());
   // Recipients saved before postal codes were required may have none: checkout asks for it once.
   const savedRecipient = state.deliveryProfiles.find(profile => profile.id === selectedProfile);
   const savedNeedsPostal = Boolean(savedRecipient && !isPostalCode(savedRecipient.postalCode));
   const [busy, setBusy] = useState(false);
+  // One key per cart content: a second tap or a retry after a lost answer sends the same key, and the server
+  // (checkoutKeys) places the order once; a changed cart gets a new key. Refs answer at once, before React re-renders.
+  const checkoutKey = useRef<{ signature: string; key: string } | null>(null);
+  const placing = useRef(false);
+  // The last attempt's key: when its answer was lost but the order was placed, the refreshed orders carry it.
+  const [attemptKey, setAttemptKey] = useState("");
+  // Saving the new recipient is an option, not a consent (the order needs the address anyway), so it starts ticked:
+  // the passport for customs is attached to a saved recipient.
   const [saveRecipient, setSaveRecipient] = useState(true);
   // Parcel services shown as chosen at once while they save (parcel key -> the choice being saved); clicks queue up.
   // The ref holds the latest choice at once, so a second click in the same moment builds on the first one.
@@ -235,6 +248,7 @@ export function CartView() {
   // This cart's choice, else the one remembered from an earlier cart (the server prices the lines the same way).
   const customsChoices = state.cartCustoms ?? { outsideUsed: false, help: customsHelpChosen(state) };
   const customsRemembered = !state.cartCustoms && state.customsPreference !== undefined;
+  const [customsRemember, setCustomsRemember] = useState(true);
   const customs = cartCustomsEstimate(state, pricing, { profile: customsProfile, name: customsProfile ? undefined : state.deliveryProfile?.recipient }, customsChoices);
   const balance = balanceOf(state);
   // "Atlas pays customs for me" prepays the estimated duty: for the cart's recipient here, for the chosen one at checkout.
@@ -313,10 +327,14 @@ export function CartView() {
   const deliveryErrors = { savedPostal: savedNeedsPostal && !isPostalCode(delivery.postalCode), recipient: manualRecipient && delivery.recipient.trim().length < 2, phone: manualRecipient && uzPhoneDigits(delivery.phone).length !== 9, region: manualRecipient && !onlyServedCity && !delivery.region, city: manualRecipient && !onlyServedCity && delivery.city.trim().length < 2, address: manualRecipient && delivery.address.trim().length < 5, postal: manualRecipient && !isPostalCode(delivery.postalCode) };
   type DeliveryField = keyof typeof deliveryErrors;
   const deliveryFieldIds: Record<DeliveryField, string> = { savedPostal: "saved-postal-code", recipient: "recipient", phone: "recipient-phone", region: "region", city: "city", address: "delivery-address", postal: "postal-code" };
-  const fieldInvalid = (field: DeliveryField) => deliveryTouched && deliveryErrors[field];
+  const fieldInvalid = (field: DeliveryField) => (deliveryTouched || Boolean(touchedFields[field])) && deliveryErrors[field];
+  // Leaving a field with something typed checks it; leaving it empty waits for "Next", so nothing turns red unasked.
+  const touchField = (field: DeliveryField, value: string) => { if (value.trim() && !touchedFields[field]) setTouchedFields((fields) => ({ ...fields, [field]: true })); };
+  // What is missing, in plain words under the field.
+  const fieldError = (field: DeliveryField) => field === "phone" ? rc.phoneError : field === "postal" || field === "savedPostal" ? rc.postalError : field === "recipient" ? c.checkout.errors.recipient : field === "address" ? c.checkout.errors.address : field === "city" ? c.checkout.errors.city : c.checkout.errors.region;
   const fieldHintId = (field: DeliveryField, text?: string) => fieldInvalid(field) || text ? `${deliveryFieldIds[field]}-hint` : undefined;
   const fieldHint = (field: DeliveryField, text?: string) => fieldInvalid(field)
-    ? <small id={`${deliveryFieldIds[field]}-hint`} className="rf-error basket-consent-error" role="alert">{field === "phone" ? rc.phoneError : field === "postal" || field === "savedPostal" ? rc.postalError : rc.required}</small>
+    ? <small id={`${deliveryFieldIds[field]}-hint`} className="rf-error basket-consent-error" role="alert">{fieldError(field)}</small>
     : text ? <small id={`${deliveryFieldIds[field]}-hint`}>{text}</small> : null;
 
   async function openCheckout() {
@@ -343,6 +361,10 @@ export function CartView() {
       setDelivery(saved ?? (isServedRegion(state.deliveryProfile?.region) ? state.deliveryProfile : undefined) ?? { ...emptyDelivery, recipient: personName, phone: state.communication.phone });
     }
     setDeliveryTouched(false);
+    setTouchedFields({});
+    setCommentOpen(false);
+    // Consent is given for this order: an earlier opening's tick is not carried over (never pre-checked).
+    setConsent(false);
     setConsentError(false);
     setCheckoutOpen(true);
     setReview(false);
@@ -364,7 +386,9 @@ export function CartView() {
   }
 
   async function checkout() {
-    if (busy || verifying) return;
+    if (busy || verifying || placing.current) return;
+    placing.current = true;
+    try {
     // A price is held 15 minutes and a recipient typed slowly can outlast it: the server would refuse the order. The stores
     // are checked again first; the customer sees the renewed total on this step and confirms it.
     if (new Date().getTime() >= earliestExpiry) {
@@ -377,21 +401,29 @@ export function CartView() {
     setBusy(true);
     const selectedIdentity = selectedProfile === "manual" ? undefined : identityProfiles.find(profile => profile.recipientProfileId === selectedProfile);
     const savedPostal = savedNeedsPostal ? delivery.postalCode : undefined;
-    const key = crypto.randomUUID();
-    const ok = await act({ type: "checkout", key, signature: cartSignature(state.cart), useBalance, expectedCredit: reviewCredit, customsDuty: customsChoices.help ? reviewDuty : undefined, consentVersion: customsVersion, delivery: onlyServedCity && selectedProfile === "manual" ? { ...delivery, region: onlyServedCity, city: onlyServedCity } : delivery, deliveryProfileId: selectedProfile === "manual" ? undefined : selectedProfile, identityProfileId: selectedIdentity?.documentId, postalCode: savedPostal,
+    const signature = cartSignature(state.cart);
+    if (checkoutKey.current?.signature !== signature) checkoutKey.current = { signature, key: crypto.randomUUID() };
+    const key = checkoutKey.current.key;
+    setAttemptKey(key);
+    const ok = await act({ type: "checkout", key, signature, useBalance, expectedCredit: reviewCredit, customsDuty: customsChoices.help ? reviewDuty : undefined, consentVersion: customsVersion, delivery: onlyServedCity && selectedProfile === "manual" ? { ...delivery, region: onlyServedCity, city: onlyServedCity } : delivery, deliveryProfileId: selectedProfile === "manual" ? undefined : selectedProfile, identityProfileId: selectedIdentity?.documentId, postalCode: savedPostal,
       // A recipient typed here is kept for the next order and the passport, unless the customer opts out.
       saveRecipientLabel: selectedProfile === "manual" && saveRecipient ? (state.deliveryProfiles.length ? delivery.recipient.trim().slice(0, 60) : recipientCopy[locale].labels.home) : undefined });
-    setBusy(false);
-    if (ok) { setCheckoutOpen(false); setPlacedKey(key); }
+    if (ok) { checkoutKey.current = null; setCheckoutOpen(false); setPlacedKey(key); }
     // On the review the changed line is marked in the table, so the customer stays there; earlier the cart shows it.
     else if (cartChangedCodes.has(lastActionError()?.code ?? "") && !review) setCheckoutOpen(false);
+    } finally { placing.current = false; setBusy(false); }
   }
+  // Placed, or placed although its answer was lost (the refreshed orders carry the attempt's key): either way the order opens.
+  const placedOrderKey = placedKey || (attemptKey && state.orders.some(order => order.batchId === attemptKey) ? attemptKey : "");
+  // Paid in full from the Atlas balance (the server marks such orders paid): nothing is left to pay in My orders.
+  const placedOrders = placedOrderKey ? state.orders.filter(order => order.batchId === placedOrderKey) : [];
+  const placedPaid = placedOrders.length > 0 && placedOrders.every(order => order.payment?.status === "paid");
 
   // After checkout the customer goes straight to the new order in My orders, where it waits for payment. When a
   // payment provider is connected, its payment page goes in between; until then nothing is charged.
   useEffect(() => {
-    if (!placedKey) return;
-    const placed = state.orders.find(order => order.batchId === placedKey);
+    if (!placedOrderKey) return;
+    const placed = state.orders.find(order => order.batchId === placedOrderKey);
     // The confirmation stays at least ~1.2 s so it can be read; the page change itself cross-fades (app/motion.css).
     // The confirmation replaces the long cart, so it starts at the top instead of the cart's scroll position.
     if (!placedAt.current) { placedAt.current = Date.now(); window.scrollTo({ top: 0, behavior: "instant" }); }
@@ -400,7 +432,7 @@ export function CartView() {
     // The orders normally arrive with the checkout answer; if not, My orders loads them itself.
     const fallback = window.setTimeout(() => window.location.assign("/orders"), Math.max(wait, 3000));
     return () => window.clearTimeout(fallback);
-  }, [placedKey, state.orders]);
+  }, [placedOrderKey, state.orders]);
 
   const kc = keepCopy[locale];
   const catalogMatch = (item: CartItem) => item.product.sourceUrl ? catalogByUrl.get(catalogUrlKey(item.product.sourceUrl)) : undefined;
@@ -566,9 +598,10 @@ export function CartView() {
         };
         const saving = draft?.savingId === service.id;
         const unitName = c.services.units[service.unit];
+        const boxId = `cart-service-${parcelKey}-${service.id}`;
         return <div className="basket-service" key={service.id} aria-busy={saving || undefined}>
-          <Checkbox aria-label={serviceTitle(service, locale)} checked={checked} disabled={service.required} onCheckedChange={(value) => toggle(value === true)} />
-          <span className="basket-service-copy"><b>{serviceTitle(service, locale)}{checked && <span className="basket-service-unit">{unitLabel}</span>}{service.required && <em>{c.services.required}</em>}{saving && <span className="basket-service-saving" role="status"><Loader2 size={13} className="spin" aria-hidden="true" />{s.saving}</span>}</b><small>{serviceDescription(service, locale)}</small>
+          <Checkbox id={boxId} checked={checked} disabled={service.required} onCheckedChange={(value) => toggle(value === true)} />
+          <span className="basket-service-copy"><b><label htmlFor={boxId}>{serviceTitle(service, locale)}</label>{checked && <span className="basket-service-unit">{unitLabel}</span>}{service.required && <em>{c.services.required}</em>}{saving && <span className="basket-service-saving" role="status"><Loader2 size={13} className="spin" aria-hidden="true" />{s.saving}</span>}</b><small>{serviceDescription(service, locale)}</small>
             <small className="basket-service-rate">{service.pricingMode === "fixed"
               ? `${c.services.fixed}: ${formatSum(unitFee, locale)} / ${unitName}${count > 1 ? ` · ${count} × ${formatSum(unitFee, locale)} = ${formatSum(unitFee * count, locale)}` : ""}`
               : service.pricingMode === "value-percent" ? percentRate(service, items)
@@ -587,7 +620,7 @@ export function CartView() {
   const summaryLines = linesFor(cartDuty, credit);
   const saveCustoms = async (next: typeof customsChoices) => { setCustomsBusy(true); try { await act({ type: "cart-customs", value: next }); } finally { setCustomsBusy(false); } };
   // The allowance in two lines and "Atlas pays customs for me", which adds its fee to the bill right away.
-  const customsPanel = <CustomsPanel estimate={customs} choices={customsChoices} locale={locale} pricing={pricing} profiles={state.deliveryProfiles} recipientId={customsProfile?.id} onRecipient={setCustomsRecipient} onChoices={(next) => void saveCustoms(next)} helpAmount={customsHelpAmount} remembered={customsRemembered} busy={customsBusy} compact />;
+  const customsPanel = <CustomsPanel estimate={customs} choices={customsChoices} locale={locale} pricing={pricing} profiles={state.deliveryProfiles} recipientId={customsProfile?.id} onRecipient={setCustomsRecipient} onChoices={(next) => void saveCustoms(next)} helpAmount={customsHelpAmount} remembered={customsRemembered} busy={customsBusy} remember={customsRemember} onRemember={setCustomsRemember} compact />;
 
 
   if (!ready) return <div className="basket-page">
@@ -598,11 +631,11 @@ export function CartView() {
   </div>;
 
   // Placed: a short confirmation (a drawn check and a filling bar) while My orders opens; the link is there if it takes long.
-  if (placedKey) return <div className="basket-page">
+  if (placedOrderKey) return <div className="basket-page">
     <section className="checkout-placed" role="status" aria-live="polite">
       <svg className="checkout-placed-mark" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" /><path d="M20 33.5l8 8 16-17" /></svg>
       <h1>{c.success.title}</h1>
-      <p>{c.success.pending}</p>
+      <p>{placedPaid ? c.success.paid : c.success.pending}</p>
       <div className="checkout-placed-bar" aria-hidden="true"><i /></div>
       <Link className="checkout-placed-link" href="/orders">{placedCopy[locale].opening}<ArrowRight size={16} aria-hidden="true" /></Link>
     </section>
@@ -647,7 +680,7 @@ export function CartView() {
           {customsPanel}
           {balance > 0 && <div className="basket-balance"><Checkbox id="use-balance" checked={useBalance} onCheckedChange={(value) => setUseBalance(value === true)} /><label htmlFor="use-balance">{c.summary.balance}<small>{c.summary.available}: {formatSum(balance, locale)}</small></label></div>}
           <div className="basket-total bill-total"><span>{c.summary.payable}</span><strong><Money value={payable} locale={locale} /></strong></div>
-          {lines.length > 0 && <PriceHold expiresAt={earliestExpiry} locale={locale} c={c} />}
+          {lines.length > 0 && <PriceHold expiresAt={earliestExpiry} c={c} />}
           <button ref={setSummaryCta} type="button" className="btn primary basket-cta" disabled={verifying} aria-busy={verifying || selecting} aria-disabled={!lines.length || selecting || undefined} aria-describedby={!lines.length ? "basket-none-hint" : undefined} onClick={() => void openCheckout()}>{verifying ? <>{c.summary.verifying}<Loader2 size={18} className="spin" aria-hidden="true" /></> : selecting ? <>{s.saving}<Loader2 size={18} className="spin" aria-hidden="true" /></> : <>{s.checkoutN(count)}<ArrowRight size={18} aria-hidden="true" /></>}</button>
           {!lines.length && <p id="basket-none-hint" className="basket-none-hint" role="status"><Info size={16} aria-hidden="true" />{s.noneSelected}</p>}
           {lines.length > 0 && laterCount > 0 && <p className="basket-later-note">{s.laterCount(laterCount)}</p>}
@@ -687,7 +720,7 @@ export function CartView() {
               // Tashkent only for now: a recipient elsewhere stays visible but cannot be chosen.
               const served = isServedRegion(profile.region);
               return <label className={"recipient-choice" + (selectedProfile === profile.id ? " selected" : "") + (served ? "" : " unavailable")} key={profile.id}>
-                <input type="radio" name="checkout-recipient" value={profile.id} disabled={!served} checked={selectedProfile === profile.id} onChange={() => { setSelectedProfile(profile.id); setDelivery(profile); }} />
+                <input type="radio" name="checkout-recipient" value={profile.id} disabled={!served} checked={selectedProfile === profile.id} onChange={() => { setSelectedProfile(profile.id); setDelivery(profile); setTouchedFields({}); setDeliveryTouched(false); }} />
                 {/* Two rows instead of four (10.10.2026): who and the phone, then where and the passport on the right. */}
                 <span className="recipient-choice-body">
                   <strong>{named ? profile.label : profile.recipient}{named && <span className="rc-person">{profile.recipient}</span>}{profile.primary && <em>{c.checkout.primary}</em>}</strong>
@@ -698,27 +731,31 @@ export function CartView() {
               </label>;
             })}
             <label className={"recipient-choice recipient-choice-manual" + (selectedProfile === "manual" ? " selected" : "")}>
-              <input type="radio" name="checkout-recipient" value="manual" checked={selectedProfile === "manual"} onChange={() => { setSelectedProfile("manual"); setDelivery({ ...emptyDelivery }); }} />
+              <input type="radio" name="checkout-recipient" value="manual" checked={selectedProfile === "manual"} onChange={() => { setSelectedProfile("manual"); setDelivery({ ...emptyDelivery }); setTouchedFields({}); setDeliveryTouched(false); }} />
               <span className="recipient-choice-body"><strong><Plus size={16} aria-hidden="true" />{c.checkout.newRecipient}</strong></span>
             </label>
           </fieldset>}
           {/* A recipient saved before postal codes were required gets one here; it is saved into that recipient. */}
-          {savedNeedsPostal && <div className={"field checkout-postal" + (fieldInvalid("savedPostal") ? " invalid" : "")}><label htmlFor="saved-postal-code">{c.checkout.postal}</label><input id="saved-postal-code" autoComplete="postal-code" inputMode="numeric" required maxLength={6} aria-invalid={fieldInvalid("savedPostal")} aria-describedby={fieldHintId("savedPostal", c.checkout.postalMissing)} value={delivery.postalCode} onChange={(event) => setDelivery({ ...delivery, postalCode: event.target.value.replace(/\D/g, "").slice(0, 6) })} />{fieldHint("savedPostal", c.checkout.postalMissing)}</div>}
+          {savedNeedsPostal && <div className={"field checkout-postal" + (fieldInvalid("savedPostal") ? " invalid" : "")}><label htmlFor="saved-postal-code">{c.checkout.postal}</label><input id="saved-postal-code" autoComplete="postal-code" inputMode="numeric" required maxLength={6} aria-invalid={fieldInvalid("savedPostal")} aria-describedby={fieldHintId("savedPostal", c.checkout.postalMissing)} value={delivery.postalCode} onBlur={(event) => touchField("savedPostal", event.currentTarget.value)} onChange={(event) => setDelivery({ ...delivery, postalCode: event.target.value.replace(/\D/g, "").slice(0, 6) })} />{fieldHint("savedPostal", c.checkout.postalMissing)}</div>}
           {/* A saved recipient is complete as chosen; the address fields are for a new one. */}
           {(selectedProfile === "manual" || !state.deliveryProfiles.length) && <>
           <div className="two-fields">
-            <div className={"field" + (fieldInvalid("recipient") ? " invalid" : "")}><label htmlFor="recipient">{c.checkout.recipient}</label><input id="recipient" autoComplete="name" autoCapitalize="words" required minLength={2} maxLength={100} aria-invalid={fieldInvalid("recipient")} aria-describedby={fieldHintId("recipient")} value={delivery.recipient} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, recipient: capitalizeWords(event.target.value) }); }} />{fieldHint("recipient")}</div>
-            <div className={"field" + (fieldInvalid("phone") ? " invalid" : "")}><label htmlFor="recipient-phone">{c.checkout.phone}<span className="sr-only"> +998</span></label><span className="rf-phone"><span aria-hidden="true">+998</span><UzPhoneInput id="recipient-phone" required aria-invalid={fieldInvalid("phone")} aria-describedby={fieldHintId("phone")} digits={uzPhoneDigits(delivery.phone)} onDigits={(digits) => { setSelectedProfile("manual"); setDelivery({ ...delivery, phone: uzPhone(digits) }); }} /></span>{fieldHint("phone")}</div>
-            {/* Tashkent only for now (10.10.2026): the city is shown fixed instead of a region list. */}
-            {onlyServedCity ? <div className="field"><label htmlFor="city">{c.checkout.city}</label><input id="city" readOnly aria-describedby="city-served-hint" value={regionLabel(onlyServedCity, locale)} /><small id="city-served-hint">{c.checkout.servedOnly}</small></div> : <>
-            <div className={"field" + (fieldInvalid("region") ? " invalid" : "")}><label htmlFor="region">{c.checkout.region}</label><select id="region" autoComplete="address-level1" required aria-invalid={fieldInvalid("region")} aria-describedby={fieldHintId("region")} value={delivery.region} onChange={(event) => { const region = event.target.value, capital = regionCapital(region); setSelectedProfile("manual"); setDelivery({ ...delivery, region, city: !delivery.city.trim() || cities.includes(delivery.city) ? capital ?? delivery.city : delivery.city }); }}>{!regions.includes(delivery.region) && <option value={delivery.region}>{delivery.region || recipientCopy[locale].regionPlaceholder}</option>}{regions.map(value => <option key={value} value={value}>{regionLabel(value, locale)}</option>)}</select>{fieldHint("region")}</div>
-            <div className={"field" + (fieldInvalid("city") ? " invalid" : "")}><label htmlFor="city">{c.checkout.city}</label><input id="city" list="city-suggestions" autoComplete="address-level2" autoCapitalize="sentences" required minLength={2} maxLength={100} aria-invalid={fieldInvalid("city")} aria-describedby={fieldHintId("city")} value={delivery.city} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, city: capitalizeFirst(event.target.value) }); }} /><datalist id="city-suggestions">{suggestions(cities, delivery.city).map(value => <option key={value} value={value} />)}</datalist>{fieldHint("city")}</div>
+            <div className={"field" + (fieldInvalid("recipient") ? " invalid" : "")}><label htmlFor="recipient">{c.checkout.recipient}</label><input id="recipient" autoComplete="name" autoCapitalize="words" required minLength={2} maxLength={100} aria-invalid={fieldInvalid("recipient")} aria-describedby={fieldHintId("recipient")} value={delivery.recipient} onBlur={(event) => touchField("recipient", event.currentTarget.value)} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, recipient: capitalizeWords(event.target.value) }); }} />{fieldHint("recipient")}</div>
+            <div className={"field" + (fieldInvalid("phone") ? " invalid" : "")}><label htmlFor="recipient-phone">{c.checkout.phone}<span className="sr-only"> +998</span></label><span className="rf-phone"><span aria-hidden="true">+998</span><UzPhoneInput id="recipient-phone" required aria-invalid={fieldInvalid("phone")} aria-describedby={fieldHintId("phone")} digits={uzPhoneDigits(delivery.phone)} onBlur={(event) => touchField("phone", event.currentTarget.value)} onDigits={(digits) => { setSelectedProfile("manual"); setDelivery({ ...delivery, phone: uzPhone(digits) }); }} /></span>{fieldHint("phone")}</div>
+            {/* Tashkent only for now (10.10.2026): no region list; the fixed city is a line under these fields. */}
+            {!onlyServedCity && <>
+            <div className={"field" + (fieldInvalid("region") ? " invalid" : "")}><label htmlFor="region">{c.checkout.region}</label><select id="region" autoComplete="address-level1" required aria-invalid={fieldInvalid("region")} aria-describedby={fieldHintId("region")} value={delivery.region} onBlur={(event) => touchField("region", event.currentTarget.value)} onChange={(event) => { const region = event.target.value, capital = regionCapital(region); setSelectedProfile("manual"); setDelivery({ ...delivery, region, city: !delivery.city.trim() || cities.includes(delivery.city) ? capital ?? delivery.city : delivery.city }); }}>{!regions.includes(delivery.region) && <option value={delivery.region}>{delivery.region || recipientCopy[locale].regionPlaceholder}</option>}{regions.map(value => <option key={value} value={value}>{regionLabel(value, locale)}</option>)}</select>{fieldHint("region")}</div>
+            <div className={"field" + (fieldInvalid("city") ? " invalid" : "")}><label htmlFor="city">{c.checkout.city}</label><input id="city" list="city-suggestions" autoComplete="address-level2" autoCapitalize="sentences" required minLength={2} maxLength={100} aria-invalid={fieldInvalid("city")} aria-describedby={fieldHintId("city")} value={delivery.city} onBlur={(event) => touchField("city", event.currentTarget.value)} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, city: capitalizeFirst(event.target.value) }); }} /><datalist id="city-suggestions">{suggestions(cities, delivery.city).map(value => <option key={value} value={value} />)}</datalist>{fieldHint("city")}</div>
             </>}
           </div>
-          <div className={"field" + (fieldInvalid("address") ? " invalid" : "")}><label htmlFor="delivery-address">{c.checkout.street}</label><input id="delivery-address" list="street-suggestions" autoComplete="street-address" autoCapitalize="sentences" required minLength={5} maxLength={220} aria-invalid={fieldInvalid("address")} aria-describedby={fieldHintId("address")} placeholder={c.checkout.streetPlaceholder} value={delivery.address} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, address: capitalizeFirst(event.target.value) }); }} /><datalist id="street-suggestions">{suggestions(streets, delivery.address).map(value => <option key={value} value={value} />)}</datalist>{fieldHint("address")}</div>
+          {/* 14.10.2026: a read-only box looked like a field to fill; the fixed city reads as a plain line. */}
+          {onlyServedCity && <p className="checkout-served"><MapPin size={16} aria-hidden="true" /><span><b>{c.checkout.city}: {regionLabel(onlyServedCity, locale)}</b><small>{c.checkout.servedOnly}</small></span></p>}
+          <div className={"field" + (fieldInvalid("address") ? " invalid" : "")}><label htmlFor="delivery-address">{c.checkout.street}</label><input id="delivery-address" list="street-suggestions" autoComplete="street-address" autoCapitalize="sentences" required minLength={5} maxLength={220} aria-invalid={fieldInvalid("address")} aria-describedby={fieldHintId("address")} placeholder={c.checkout.streetPlaceholder} value={delivery.address} onBlur={(event) => touchField("address", event.currentTarget.value)} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, address: capitalizeFirst(event.target.value) }); }} /><datalist id="street-suggestions">{suggestions(streets, delivery.address).map(value => <option key={value} value={value} />)}</datalist>{fieldHint("address")}</div>
           <div className="two-fields">
-            <div className={"field" + (fieldInvalid("postal") ? " invalid" : "")}><label htmlFor="postal-code">{c.checkout.postal}</label><input id="postal-code" autoComplete="postal-code" inputMode="numeric" required maxLength={6} aria-invalid={fieldInvalid("postal")} aria-describedby={fieldHintId("postal", c.checkout.postalHint)} value={delivery.postalCode} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, postalCode: event.target.value.replace(/\D/g, "").slice(0, 6) }); }} />{fieldHint("postal", c.checkout.postalHint)}</div>
-            <div className="field"><label htmlFor="delivery-comment">{c.checkout.comment} <span className="rf-optional">({recipientCopy[locale].optional})</span></label><input id="delivery-comment" maxLength={300} value={delivery.comment} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, comment: event.target.value }); }} /></div>
+            <div className={"field" + (fieldInvalid("postal") ? " invalid" : "")}><label htmlFor="postal-code">{c.checkout.postal}</label><input id="postal-code" autoComplete="postal-code" inputMode="numeric" required maxLength={6} aria-invalid={fieldInvalid("postal")} aria-describedby={fieldHintId("postal", c.checkout.postalHint)} value={delivery.postalCode} onBlur={(event) => touchField("postal", event.currentTarget.value)} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, postalCode: event.target.value.replace(/\D/g, "").slice(0, 6) }); }} />{fieldHint("postal", c.checkout.postalHint)}</div>
+            {commentOpen || delivery.comment.trim()
+              ? <div className="field"><label htmlFor="delivery-comment">{c.checkout.comment} <span className="rf-optional">({recipientCopy[locale].optional})</span></label><input id="delivery-comment" maxLength={300} value={delivery.comment} onChange={(event) => { setSelectedProfile("manual"); setDelivery({ ...delivery, comment: event.target.value }); }} /></div>
+              : <button type="button" className="checkout-add-comment" onClick={() => { flushSync(() => setCommentOpen(true)); document.getElementById("delivery-comment")?.focus(); }}><Plus size={16} aria-hidden="true" />{c.checkout.addComment}</button>}
           </div>
           <div className="basket-consent"><Checkbox id="save-recipient" checked={saveRecipient} onCheckedChange={(value) => setSaveRecipient(value === true)} /><label htmlFor="save-recipient">{c.checkout.saveRecipient}</label></div>
           </>}
@@ -741,6 +778,8 @@ export function CartView() {
               // Who pays the duty matters only when this recipient owes some.
               { key: "customs", label: s.review.customs, value: reviewDutyDue <= 0 ? s.review.customsNone : customsChoices.help ? s.review.customsHelp : s.review.customsSelf },
             ]} />
+            {/* The balance can be switched here too: the last step shows every choice that changes the amount. */}
+            {balance > 0 && <div className="basket-balance review-balance"><Checkbox id="review-use-balance" checked={useBalance} onCheckedChange={(value) => setUseBalance(value === true)} /><label htmlFor="review-use-balance">{c.summary.balance}<small>{c.summary.available}: {formatSum(balance, locale)}</small></label></div>}
             <div className="payment-preview"><div><span>{c.checkout.estimated}</span><b>{itemCount(count, locale)}</b></div><strong>{formatSum(reviewPayable, locale)}</strong></div>
             {sums.storeShippingHold > 0 && <p className="micro review-held">{s.review.held(formatSum(sums.storeShippingHold, locale))}</p>}
             {reviewDutyDue > 0 ? <>
@@ -751,23 +790,31 @@ export function CartView() {
               </div>
               {consentError && <p id="checkout-consent-error" className="basket-consent-error" role="alert">{c.checkout.consentRequired}</p>}
             </> : <p className="micro">{c.checkout.consentImplied.before}<Link href="/customs" target="_blank">{c.checkout.consentImplied.link}</Link>{c.checkout.consentImplied.after}</p>}
-            <ReviewConfirmBar amount={reviewPayable} locale={locale}>
-              <button className="btn primary full" disabled={busy || verifying || selecting || !lines.length}>{verifying ? c.summary.verifying : busy ? c.checkout.saving : c.checkout.confirm}{busy || verifying ? <Loader2 size={18} className="spin" aria-hidden="true" /> : <Check size={18} aria-hidden="true" />}</button>
+            {/* The button names the action and the amount (never "Pay": payment comes later, in My orders). While the order
+                is placed it is locked with a spinner; a second tap reuses the same key, so it never makes a second order. */}
+            <ReviewConfirmBar>
+              <button className="btn primary full checkout-place" disabled={busy || verifying || selecting || customsBusy || !lines.length} aria-busy={busy || verifying || customsBusy || undefined}>{busy || verifying || customsBusy
+                ? <>{verifying ? c.summary.verifying : busy ? c.checkout.saving : s.saving}<Loader2 size={18} className="spin" aria-hidden="true" /></>
+                : <><span>{c.checkout.confirm} ·</span> <span className="checkout-place-sum">{formatSum(reviewPayable, locale)}</span></>}</button>
+              <p className="checkout-trust"><Lock size={13} aria-hidden="true" />{reviewCredit > 0 ? c.checkout.trustBalance(formatSum(reviewCredit, locale), reviewPayable > 0) : c.checkout.trust}</p>
+              <span className="sr-only" role="status">{busy ? c.checkout.saving : ""}</span>
             </ReviewConfirmBar>
-            <p className="micro review-next">{c.checkout.nextStep}</p>
+            <p className="micro review-next">{reviewCredit > 0 && reviewPayable <= 0 ? c.checkout.nextStepPaid : c.checkout.nextStep}</p>
+            <p className="checkout-trust-links"><Link href="/legal#offer" target="_blank">{c.checkout.termsLink}</Link><Link href="/customs" target="_blank">{c.checkout.customsLink}</Link></p>
             <details className="review-details">
               <summary>{s.review.details}</summary>
               {linesFor(reviewDuty, reviewCredit, reviewSums)}
               {/* The estimate for the person chosen in this checkout; the server works it out again and keeps it with the orders. */}
-              <CustomsPanel estimate={reviewCustoms} choices={customsChoices} locale={locale} pricing={pricing} profiles={[]} onChoices={(next) => void saveCustoms(next)} helpAmount={customsHelpAmount} remembered={customsRemembered} busy={customsBusy} />
+              <CustomsPanel estimate={reviewCustoms} choices={customsChoices} locale={locale} pricing={pricing} profiles={[]} onChoices={(next) => void saveCustoms(next)} helpAmount={customsHelpAmount} remembered={customsRemembered} busy={customsBusy} remember={customsRemember} onRemember={setCustomsRemember} />
             </details>
           </div>
         </div>}
-        {!review && <>
-          {/* Customs depends on the recipient: the amount here is already the one for the person chosen above. */}
+        {/* Customs depends on the recipient: the amount here is already the one for the person chosen above. The amount and
+            "Next" stay at the bottom of the dialog while a long form scrolls (14.10.2026: the total in view on every step). */}
+        {!review && <div className="checkout-next">
           <div className="payment-preview"><div><span>{c.checkout.estimated}</span><b>{itemCount(count, locale)}</b></div><strong>{formatSum(reviewPayable, locale)}</strong></div>
           <button className="btn primary full" disabled={busy}>{c.checkout.next}<ArrowRight size={18} aria-hidden="true" /></button>
-        </>}
+        </div>}
       </form>
     </Modal>
 
