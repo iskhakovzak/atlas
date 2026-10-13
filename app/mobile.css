@@ -16,8 +16,9 @@ body { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 760px) {
   :root { --atlas-mobile-nav-clearance: calc(64px + env(safe-area-inset-bottom)); }
 
-  /* One bottom bar for guests (4 items) and members (5 items). */
-  .mobile-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 40; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); min-height: 0; padding: 4px 4px env(safe-area-inset-bottom); border-top: 1px solid var(--cat-line); background: color-mix(in srgb, var(--cat-surface) 94%, transparent); -webkit-backdrop-filter: saturate(1.4) blur(18px); backdrop-filter: saturate(1.4) blur(18px); }
+  /* One bottom bar for guests (4 items) and members (5 items). It is exactly as tall as the clearance the sticky
+     totals sit on; at 61 px the page showed through a 3 px gap under them. */
+  .mobile-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 40; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); min-height: var(--atlas-mobile-nav-clearance); box-sizing: border-box; padding: 4px 4px env(safe-area-inset-bottom); border-top: 1px solid var(--cat-line); background: color-mix(in srgb, var(--cat-surface) 94%, transparent); -webkit-backdrop-filter: saturate(1.4) blur(18px); backdrop-filter: saturate(1.4) blur(18px); }
   .mobile-nav.guest { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .mobile-nav a { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0; min-height: 56px; padding: 4px 2px; color: var(--cat-muted); font-size: 11px; font-weight: 650; line-height: 1.15; text-align: center; }
   .mobile-nav a > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
