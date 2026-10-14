@@ -4,7 +4,7 @@ import { readdirSync } from 'node:fs';
 import { isSupportedStoreHost, supportedStoreRoots } from '../lib/importer/stores.ts';
 import { storeLogoKeys } from '../lib/market/store-logos.ts';
 import {
-  brandKey, brandForHost, brandRegions, popularBrandKeys, storeBrands, storeCountryNames, storeFocusNames, storefrontLabel, storefrontUrl, unlistedStoreRoots,
+  brandKey, brandForHost, brandRegions, heroStores, popularBrandKeys, storeBrands, storeCountryNames, storeFocusNames, storefrontLabel, storefrontUrl, unlistedStoreRoots,
 } from '../lib/market/store-brands.ts';
 
 test('every allowed store domain belongs to exactly one named brand', () => {
@@ -49,4 +49,8 @@ test('"open the store" links go to the shop, not a search engine or a corporate 
   assert.equal(storefrontUrl(brandForHost('nike.com')), 'https://nike.com');
   // Every link target is a host the importer accepts, so a copied product link from it works.
   for (const brand of storeBrands) for (const front of brand.storefronts) assert.ok(isSupportedStoreHost(new URL(storefrontUrl(front.root)).host), front.root);
+});
+test('the eight hero stores (home hero, empty link-order page) are real listed brands, in their order', () => {
+  assert.deepEqual(heroStores.map((brand) => brand.key), ['nike', 'zara', 'amazon', 'apple', 'iherb', 'adidas', 'hm', 'sephora']);
+  for (const brand of heroStores) assert.ok(storeBrands.includes(brand), brand.key);
 });

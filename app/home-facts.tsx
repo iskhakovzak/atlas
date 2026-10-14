@@ -4,8 +4,8 @@ import Link from '@/components/site-link';
 import {useMarket} from '@/lib/market/store';
 import {factDays,factDaysNote,factPrice,tariffRows} from '@/lib/market/home-facts';
 import {deliveryRegions} from '@/lib/market/site-content';
-import {storeBrands} from '@/lib/market/store-brands';
-import {heroStores,useHomeCopy} from './home-sections';
+import {heroStores,storeBrands} from '@/lib/market/store-brands';
+import {useHomeCopy} from './home-sections';
 import {Flag} from './flags';
 
 /**

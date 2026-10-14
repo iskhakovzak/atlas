@@ -25,6 +25,16 @@ html body .home-stores.home-stores-marquee .store-marquee a {
 }
 html body .home-stores.home-stores-marquee .store-marquee a:hover { border: 0; opacity: 1; text-decoration: none; }
 html body .home-stores.home-stores-marquee .store-marquee a:focus-visible { opacity: 1; outline: 2px solid var(--home-accent); outline-offset: -4px; }
+/* "All N stores" under the ribbon reads as a link again (owner's review, 14.10.2026): accent, underlined, full strength,
+   with an arrow; the ribbon's tile look above (padding, opacity, larger type at 960px+) is not for it. */
+html body .home-stores.home-stores-marquee .store-marquee .store-marquee-foot a.home-stores-all {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0; border: 0; border-radius: 0; background: none; opacity: 1;
+  color: var(--day-accent, #1f4d3b); font-size: 15px; font-weight: 600; letter-spacing: normal;
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px;
+}
+html body .home-stores.home-stores-marquee .store-marquee .store-marquee-foot a.home-stores-all:hover { text-decoration: underline; text-decoration-thickness: 2px; }
+html body .home-stores.home-stores-marquee .store-marquee .store-marquee-foot a.home-stores-all:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 2px; }
+html[data-theme="dark"] body .home-stores.home-stores-marquee .store-marquee .store-marquee-foot a.home-stores-all { color: var(--night-jade); }
 
 .store-marquee-foot { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
 

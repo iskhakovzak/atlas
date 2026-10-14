@@ -17,6 +17,7 @@ import type { Locale } from "@/lib/market/i18n";
 import { formatSum } from "@/lib/market/format";
 import { formatDateTime } from "@/lib/market/customer-copy";
 import { withCyrillic } from "@/lib/market/uz-cyrl";
+import { OperatorTelegramHint } from "./telegram-notices-link";
 
 /**
  * Claims on a lost or damaged parcel (since 10 October 2026). Atlas insures parcels itself: an insured line gets back
@@ -119,7 +120,7 @@ export function CustomerParcelClaim({ order, locale, busy, run, label }: { order
 }
 
 /** The operator's side: every claim on the line, and the decision on the one waiting. */
-export function OperatorParcelClaims({ order, run, locale }: { order: Order; run: (action: Action) => Promise<boolean>; locale: Locale }) {
+export function OperatorParcelClaims({ order, run, locale, telegram = false }: { order: Order; run: (action: Action) => Promise<boolean>; locale: Locale; /** The customer's Telegram notices are on: the comment goes there too, as typed. */ telegram?: boolean }) {
   const claims = order.claims ?? [];
   const waiting = claims.find((claim) => claim.status === "submitted");
   const [amount, setAmount] = useState(waiting ? String(waiting.limit) : "");
@@ -157,6 +158,7 @@ export function OperatorParcelClaims({ order, run, locale }: { order: Order; run
           <button className="btn primary" disabled={busy || !(Number(amount) > 0) || Number(amount) > waiting.limit}>{busy ? "…" : "Одобрить и зачислить"}</button>
         </div>
         <p className="micro">{waiting.insured ? "Посылка под гарантией сохранности: до полной стоимости товара и доставки, зафиксированной при оформлении." : `Без гарантии сохранности: $${uninsuredLossPerKgUsd}/кг при утере, $${uninsuredDamagePerKgUsd}/кг при порче, не больше стоимости товара.`} Сумма зачисляется на внутренний баланс покупателя; вернуть её можно только на карту, с которой он платил.</p>
+        <OperatorTelegramHint on={telegram} locale={locale} />
       </form>}
     </div>
   </section>;

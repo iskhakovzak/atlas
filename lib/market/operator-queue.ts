@@ -1,7 +1,7 @@
 // The operator's order queue: which tab an order belongs to, how search matches it, and the trimmed account the
 // browser gets with each order. Shared by the server (GET /api/operations?queue=1) and app/order-workspace.tsx,
 // so both sides sort and filter orders the same way.
-import {blank,orderNeedsOperatorAttention,parcelOrders,type Order,type State} from './domain.ts';
+import {blank,orderNeedsOperatorAttention,parcelOrders,pendingExtraCharge,type Order,type State} from './domain.ts';
 
 export const operatorQueueTabs=['active','attention','done','refunds'] as const;
 export type OperatorQueueTab=typeof operatorQueueTabs[number];
@@ -21,6 +21,67 @@ export function queueTabsOf(order:Order,credit:number){
   weighing:!order.cancelled&&order.status===2,
  };
 }
+
+/** Orders in work and orders that need the operator across full accounts, by the rules of the /operations tabs. */
+export function queueTabTotals(accounts:readonly {state:Pick<State,'orders'|'entries'>}[]){
+ let active=0,attention=0;
+ for(const account of accounts)for(const order of account.state.orders){
+  const tabs=queueTabsOf(order,orderCredit(account.state.entries,order.id));
+  if(tabs.active)active++;
+  if(tabs.attention)attention++;
+ }
+ return {active,attention};
+}
+
+/** The operator's own moves (`yours`) and the ones that wait for the customer (`waiting`), as the queue row names them. */
+export type OperatorStepKey='decision'|'payment'|'weighTogether'|'problem'|'storeShipping'|'buyout'|'receive'|'inspect'|'service'|'weigh'|'tracking'|'ship'|'customs'|'deliver';
+export type OperatorNextStep={kind:'yours'|'waiting';key:OperatorStepKey;leadId?:string};
+/**
+ * Whose move an order waits for and which one: the same checks, in the same order, as the operator's main button
+ * (app/order-workspace.tsx) and advanceOrder / readyToWeigh in domain.ts — no rules of its own. `weighLeadId` is the
+ * order a store parcel is weighed from (order-workspace weighLead). Null when nothing is left to do.
+ */
+export function operatorNextStep(order:Order,opts:{weighLeadId?:string}={}):OperatorNextStep|null{
+ const issueOpen=Boolean(order.issueCase&&order.issueCase.status!=='resolved'),claimOpen=(order.claims??[]).some(claim=>claim.status==='submitted');
+ if(order.cancelled)return issueOpen?{kind:'yours',key:'problem'}:null;
+ if(order.status>=5){
+  if(issueOpen||claimOpen)return {kind:'yours',key:'problem'};
+  // Delivered before its duty was settled (older orders): the card still shows "Подтвердить пошлину", so it is the operator's move.
+  return order.quote.customsHelp&&!order.customsSettlement?{kind:'yours',key:'customs'}:null;
+ }
+ const services=order.warehouseServiceRequests??[];
+ if(
+  (order.settlement?.extra&&!order.extraApproved)||
+  (order.storeShippingSettlement?.extra&&!order.storeShippingExtraApproved)||
+  (order.customsSettlement?.extra&&!order.customsExtraApproved)||
+  (order.changeRequests??[]).some(request=>request.status==='pending')||
+  pendingExtraCharge(order)
+ )return {kind:'waiting',key:'decision'};
+ // A damaged or wrong item stays the operator's until the customer approved a substitution for it (readyToWeigh).
+ const inspection=order.warehouseInspection;
+ const inspectionSettled=!!inspection&&(order.changeRequests??[]).some(request=>request.status==='approved'&&request.createdAt>=inspection.inspectedAt&&request.kind==='substitution'&&request.resolvesWarehouseIssue===true&&!!request.proposedValue?.trim());
+ if(issueOpen||claimOpen||(inspection&&inspection.condition!=='ok'&&!inspectionSettled))return {kind:'yours',key:'problem'};
+ if(order.status===0){
+  if(order.payment?.status==='pending')return {kind:'waiting',key:'payment'};
+  if(order.product.sourceShippingEstimated&&!order.storeShippingSettlement)return {kind:'yours',key:'storeShipping'};
+  return {kind:'yours',key:'buyout'};
+ }
+ if(order.status===1)return {kind:'yours',key:'receive'};
+ if(order.status===2){
+  if(!order.warehouseInspection)return {kind:'yours',key:'inspect'};
+  // A quoted service waits for the customer's answer; a requested or approved one is the warehouse's to do.
+  if(services.some(request=>request.status==='quoted'))return {kind:'waiting',key:'decision'};
+  if(services.some(request=>request.status==='requested'||request.status==='approved'))return {kind:'yours',key:'service'};
+  if(opts.weighLeadId&&opts.weighLeadId!==order.id)return {kind:'waiting',key:'weighTogether',leadId:opts.weighLeadId};
+  return {kind:'yours',key:'weigh'};
+ }
+ if(order.status===3)return order.parcel?{kind:'yours',key:'ship'}:{kind:'yours',key:'tracking'};
+ // Atlas pays customs for this order: the duty customs charged is entered before the order is marked delivered.
+ if(order.quote.customsHelp&&!order.customsSettlement)return {kind:'yours',key:'customs'};
+ return {kind:'yours',key:'deliver'};
+}
+/** Whole days since the last event of the order (its history), or since it was placed. */
+export const orderIdleDays=(order:Pick<Order,'history'|'createdAt'>,now:number)=>Math.max(0,Math.floor((now-(order.history.at(-1)?.at??order.createdAt))/86400000));
 
 export type QueueSearchFields={id:string;productName?:string;brand?:string;variant?:string;accountName?:string;accountId?:string;profilePhone?:string;recipient?:string;recipientPhone?:string;city?:string};
 export function queueSearchFields(order:Order,account?:{id:string;name:string;state:Pick<State,'communication'>}):QueueSearchFields{

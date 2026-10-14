@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {products,blank,addToCart,cartSignature,checkoutCart,setCartServices,setCartSelection,renewCart,serviceFeesOf,insuredDeliveryOf,parcelValueUsd,upgradePricing,pricingSchema,tariff,stateSchema} from '../lib/market/domain.ts';
 import {applyAction} from '../lib/market/actions.ts';
+import {serviceDescription} from '../lib/market/domain.ts';
 import {orderFinance} from '../lib/market/finance.ts';
 import {feeLines} from '../lib/market/projection.ts';
 import {customsVersion} from '../lib/market/world.ts';
@@ -106,4 +107,11 @@ test('a saved "insurance" wording becomes the Atlas safe-arrival guarantee (13.1
  assert.match(renamed.description.ru,/не страхование/);
  assert.deepEqual([renamed.valuePercent,renamed.valuePercentHigh,renamed.enabled],[0.025,0.035,false]);
  assert.equal(insurance.title.ru,'Гарантия сохранности Atlas');
+});
+
+test('a service description keeps a number on one line with its percent sign',()=>{
+ const service={description:{ru:'100 % возмещения; 2,9 % от цены',uz:'shikastlanishda 100 % qoplanadi',en:'100% compensation'}};
+ assert.equal(serviceDescription(service,'ru'),'100\u00a0% возмещения; 2,9\u00a0% от цены');
+ assert.equal(serviceDescription(service,'uz'),'shikastlanishda 100\u00a0% qoplanadi');
+ assert.equal(serviceDescription(service,'en'),'100% compensation');
 });

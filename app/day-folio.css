@@ -41,6 +41,8 @@ html:not([data-theme="dark"]) :is(.home-tariffs th, .home-footer-title, .catalog
 .money > .money-n { font-size: 1em; }
 .money > .money-unit { font-size: max(13px, .5em); }
 html:not([data-theme="dark"]) .money-n { font-family: var(--day-sans); font-weight: 700; letter-spacing: -.02em; font-feature-settings: "lnum" 1; }
+/* With the tight tracking the no-break space between digit groups shrank to a hairline ("1708 642", "1 201785"). */
+html:not([data-theme="dark"]) .money-n { word-spacing: .07em; }
 html:not([data-theme="dark"]) .money-unit { font-family: var(--day-sans); font-weight: 600; color: var(--day-muted); letter-spacing: 0; }
 
 /* ---------- Header ---------- */
@@ -78,6 +80,12 @@ html:not([data-theme="dark"]) .home-link-field { min-height: 52px; color: var(--
 html:not([data-theme="dark"]) .home-link-field input { min-height: 48px; font-size: 16px; }
 html:not([data-theme="dark"]) .home-link-form .home-cta { min-height: 52px; padding-inline: 28px; border-radius: var(--day-r-control); font-size: 16px; }
 html:not([data-theme="dark"]) .home-link-note { margin-top: 10px; font-size: 14px; color: var(--day-muted); }
+html:not([data-theme="dark"]) .home-link-points { font-size: 13.5px; font-weight: 500; }
+html:not([data-theme="dark"]) .home-link-points svg { color: var(--day-ok); }
+/* The way on after plain words: white buttons with a quiet border and dark text, so the primary button stays the one green. */
+html:not([data-theme="dark"]) .home-link-help .btn.secondary { border: 1px solid var(--day-line-strong); border-radius: var(--day-r-control); background: var(--day-surface); color: var(--day-ink); font-weight: 600; box-shadow: none; }
+html:not([data-theme="dark"]) .home-link-help .btn.secondary:not(:disabled):hover { border-color: var(--day-accent); background: var(--day-surface); box-shadow: none; }
+html:not([data-theme="dark"]) .home-link-help .btn.secondary svg { color: var(--day-muted); }
 /* Stores: a quiet list with their own marks, not a wall of chips. */
 html:not([data-theme="dark"]) .home-stores { margin-top: 22px; }
 html:not([data-theme="dark"]) .home-stores ul { gap: 0 20px; padding: 0; }
@@ -272,12 +280,13 @@ html:not([data-theme="dark"]) .home-faq a { text-decoration: underline; text-dec
 
 /* Closing: a white card with one line and the action; phones already have the sticky button. */
 .home-closing { display: grid; justify-items: start; gap: 12px; }
-.home-closing p { margin: 0; }
+.home-closing > p { margin: 0; }
 @media (max-width: 760px) { .home-closing { display: none; } }
 html:not([data-theme="dark"]) .home-closing { margin-top: calc(var(--day-section) / 2); padding: 28px 32px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }
 html:not([data-theme="dark"]) .home-closing > h2 { margin: 0; }
-html:not([data-theme="dark"]) .home-closing p { font-size: 16px; color: var(--day-muted); }
-html:not([data-theme="dark"]) .home-closing .home-cta { min-height: 52px; margin-top: 6px; padding-inline: 24px; border-radius: var(--day-r-control); }
+html:not([data-theme="dark"]) .home-closing > p { font-size: 16px; color: var(--day-muted); }
+html:not([data-theme="dark"]) .home-closing .home-link-form { width: min(100%, 640px); margin-top: 6px; }
+html:not([data-theme="dark"]) .home-closing > .home-cta { min-height: 52px; margin-top: 6px; padding-inline: 24px; border-radius: var(--day-r-control); }
 
 /* ---------- Footer ---------- */
 html:not([data-theme="dark"]) .home-footer { margin-top: calc(var(--day-section) / 2); padding-top: 28px; border-top: 1px solid var(--day-line); }
@@ -448,6 +457,12 @@ html[data-theme="dark"] .bill-blank { padding: 22px 24px; border: 1px solid var(
 html[data-theme="dark"] .bill-blank-lead, html[data-theme="dark"] .bill-blank-outside li { color: var(--night-muted); font-size: 14px; }
 html[data-theme="dark"] .bill-fill { display: block; width: 88px; height: 1em; border-bottom: 1.5px dotted var(--night-line-strong); }
 html[data-theme="dark"] .bill-blank-outside h3 { margin: 0; color: var(--night-ink); font-size: 15px; }
+/* Night keeps the day layout of the blank bill and of the amount to pay: label left, amount right, the slip as a card. */
+html[data-theme="dark"] .bill-blank .bill-total { grid-template-columns: auto minmax(0, 1fr); align-items: end; }
+html[data-theme="dark"] .bill-blank .bill-total .bill-fill { justify-self: end; width: 160px; height: 1.6em; }
+html[data-theme="dark"] .bill-blank-outside { padding: 14px 16px; border-radius: 12px; border: 1px solid var(--night-line); background: var(--night-surface); }
+html[data-theme="dark"] .basket-summary .bill-total { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; }
+html[data-theme="dark"] .basket-summary .bill-total > span { font-size: 15px; }
 
 /* ---------- Stores: white hero card; store tiles stay separate white cards ---------- */
 html:not([data-theme="dark"]) .stores-hero { padding: 26px 24px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }

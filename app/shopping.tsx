@@ -2,20 +2,24 @@
 import { capitalizeFirst, capitalizeWords } from "@/lib/market/text-case";
 import { shownBrand } from "@/lib/importer/brand-name";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import Link from "@/components/site-link";
-import { ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ClipboardPaste, Clock3, Heart, Info, Loader2, Lock, MapPin, MessageSquare, Minus, Plus, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BadgeCheck, Bookmark, Check, ClipboardPaste, Clock3, Heart, Info, Loader2, Lock, MapPin, MessageSquare, Minus, Package, Plus, RotateCcw, ShieldCheck, ShoppingBag, Store, TriangleAlert, Truck } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useMarket } from "@/lib/market/store";
-import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, customsHelpChosen, deliveryAddressLine, inCheckout, isPostalCode, maxLineQuantity, parcelServiceUnits, storeDiscount, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, insuredDeliveryOf, parcelValueUsd, valueServiceRate, withCustomsHelpFor, type CartItem, type DeliveryProfile, type DeliverySpeed } from "@/lib/market/domain";
+import { balanceOf, blockingSourceIssue, cartDeliverySpeed, cartSignature, checkoutLines, customsHelpChosen, deliveryAddressLine, inCheckout, isPostalCode, maxLineQuantity, parcelServiceUnits, storeDiscount, storeParcelKey, storeShippingReserves, totalOf, serviceTitle, serviceDescription, serviceFeeForCountry, withCustomsHelpFor, type CartItem, type DeliveryProfile, type DeliverySpeed, type Product } from "@/lib/market/domain";
+import { guaranteeAmount, parcelRoomKg, parcelStoreHost, reorderCandidates, uninsuredParcelLimit } from "@/lib/market/cart-parcel";
+import { orderGroupCopy } from "@/lib/market/order-groups";
+import { LazyProductSheet } from "./product-sheet-lazy";
+import { loadChunk } from "@/lib/market/stale-build";
 import { daysRangeFor, deliverySpeedCopy, deliverySpeedOptions, fasterText } from "@/lib/market/delivery-speed";
 import { countryName, customsVersion } from "@/lib/market/world";
-import { formatPercent, formatSum, formatUsd } from "@/lib/market/format";
+import { formatKg, formatPercent, formatSum, formatUsd } from "@/lib/market/format";
 import { cartCopy, countryLabel, itemCount, linkOrderCopy, parcelCount, recipientCopy, type CartCopy } from "@/lib/market/customer-copy";
 import { cartCustomsEstimate } from "@/lib/market/allowance";
 import { calcCopy } from "@/lib/market/calc-copy";
-import { CalcLines, CustomsPanel, DeliverySpeedSwitch, HoldNote, customsDutyAmount, sumQuotes } from "./calc-summary";
+import { CalcLines, CustomsPanel, DeliverySpeedSwitch, HoldNote, customsDutyAmount, sumQuotes, usdText } from "./calc-summary";
 import type { Locale } from "@/lib/market/i18n";
 import { LoadingCards, Modal, ProductImage, WasPrice } from "./market-ui";
 import { Money } from "./money";
@@ -27,7 +31,11 @@ import { usePendingCartAdd } from "./pending-cart-add";
 import { pendingCartFreshMs } from "@/lib/market/link-order-draft";
 import {uzText,withCyrillic} from '@/lib/market/uz-cyrl';
 import {isUzbek} from '@/lib/market/i18n';
-import { catalogUrlKey } from "@/lib/market/catalog-query";
+import { catalogUrlKey, sameCatalogProduct, storeHost } from "@/lib/market/catalog-query";
+
+// The rows of catalog cards under the cart (picks under an empty one, saved products under a full one) are their own
+// chunk: they need the catalog anyway and sit below everything the cart is for.
+const CartPicks = lazy(() => loadChunk(() => import("./cart-picks")).then((module) => ({ default: module.CartPicks })));
 
 /** Favourites and removal in the cart: saving keeps the line; "save for later" saves and then removes it. */
 const placedCopy = /*@__PURE__*/withCyrillic({
@@ -37,7 +45,7 @@ const placedCopy = /*@__PURE__*/withCyrillic({
 });
 const keepCopy = /*@__PURE__*/withCyrillic({
   ru: { save: "В избранное", saved: "В избранном", later: "Отложить", laterLabel: "Отложить в избранное", laterDone: "Отложено в избранное", open: "Открыть избранное", removeVariant: "Удалить вариант", removeAll: (n: number) => `Удалить все (${n})`, variants: "Варианты этого товара" },
-  uz: { save: "Saralanganlarga", saved: "Saralanganlarda", later: "Qoldirish", laterLabel: "Saralanganlarga qoldirish", laterDone: "Saralanganlarga qoldirildi", open: "Saralanganlarni ochish", removeVariant: "Variantni o‘chirish", removeAll: (n: number) => `Hammasini o‘chirish (${n})`, variants: "Shu tovar variantlari" },
+  uz: { save: "Saqlanganlarga", saved: "Saqlanganlarda", later: "Qoldirish", laterLabel: "Saqlanganlarga qoldirish", laterDone: "Saqlanganlarga qoldirildi", open: "Saqlanganlarni ochish", removeVariant: "Variantni o‘chirish", removeAll: (n: number) => `Hammasini o‘chirish (${n})`, variants: "Shu tovar variantlari" },
   en: { save: "Save", saved: "Saved", later: "Later", laterLabel: "Save for later", laterDone: "Moved to favourites", open: "Open favourites", removeVariant: "Remove option", removeAll: (n: number) => `Remove all (${n})`, variants: "Options of this product" },
 });
 import { useStickyFit } from "./sticky-fit";
@@ -53,8 +61,9 @@ const parcelsDiffer = (countries: string[]) => new Set(countries).size > 1;
 
 const emptyDelivery: DeliveryProfile = { recipient: "", phone: "", region: "Ташкент", city: "Ташкент", address: "", postalCode: "", comment: "" };
 
-/** An amount in the store's currency, e.g. "$29.99" or "129,90 RON". */
+/** An amount in the store's currency, e.g. "$29,99" or "129,90 RON"; dollars sign first, as everywhere on the site (usdText). */
 function sourceMoney(amount: number, currency: string, locale: Locale) {
+  if (currency === "USD") return usdText(amount, locale);
   try { return new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-US", { style: "currency", currency, maximumFractionDigits: 2 }).format(amount); }
   catch { return `${amount} ${currency}`; }
 }
@@ -123,11 +132,8 @@ function PriceHold({ expiresAt, c }: { expiresAt: number; c: CartCopy }) {
   return <p className="basket-expiry"><Clock3 size={15} aria-hidden="true" />{c.summary.recheckNote}</p>;
 }
 
-function usd(amount: number, locale: Locale) {
-  const rounded = Math.ceil(amount * 100 - 1e-6) / 100;
-  const digits = Number.isInteger(rounded) ? 0 : 2;
-  return new Intl.NumberFormat(locale === "ru" ? "ru-RU" : "en-US", { style: "currency", currency: "USD", minimumFractionDigits: digits, maximumFractionDigits: digits }).format(rounded);
-}
+/** Dollars rounded up to the cent, sign first ("$12,50"), as the rest of the cart writes them. */
+const usd = (amount: number, locale: Locale) => usdText(Math.ceil(amount * 100 - 1e-6) / 100, locale);
 
 /** Long store titles are cut to three lines; a tap shows the whole name. */
 function ItemName({ name }: { name: string }) {
@@ -146,13 +152,23 @@ function CheckoutSteps({ current, c }: { current: number; c: CartCopy }) {
 }
 
 export function CartView() {
-  const { state, act, lastActionError, ready, error, user, pricing, catalogProducts, loadCatalog } = useMarket();
+  const { state, act, lastActionError, ready, error, user, pricing, catalogProducts, catalogReady, loadCatalog } = useMarket();
   const [favoriteBusy, setFavoriteBusy] = useState("");
   // Catalog products by their store page, built once per catalog, so each line finds its product in one lookup.
   const catalogByUrl = useMemo(() => new Map(catalogProducts.flatMap((product) => product.sourceUrl ? [[catalogUrlKey(product.sourceUrl), product] as const] : [])), [catalogProducts]);
   // Favourites hold catalog products: a cart line can be saved when it is a product from the Atlas catalog.
   // Only lines with a store page can be catalog products; the catalog loads once the cart is on screen, never before it.
-  const needsCatalog = ready && state.cart.some((line) => line.product.sourceUrl);
+  // An empty cart shows the catalog's picks and saved products show under a full one, so those need it too.
+  const needsCatalog = ready && (!state.cart.length || state.favorites.length > 0 || state.cart.some((line) => line.product.sourceUrl));
+  // The product opened from a row of catalog cards under the cart (CartPicks).
+  const [picked, setPicked] = useState<Product | null>(null);
+  // Stores the catalog has more of (by host, products not already in the cart): a parcel from one links to the catalog filtered by it.
+  const catalogHosts = useMemo(() => new Set(catalogProducts.flatMap((product) => product.sourceUrl && !state.cart.some((line) => sameCatalogProduct(line.product, product)) ? [storeHost(product)] : [])), [catalogProducts, state.cart]);
+  // Saved products not already in the cart, shown under it: the customer's own choice, not a recommendation.
+  const savedPicks = useMemo(() => catalogReady ? catalogProducts.filter((product) => state.favorites.includes(product.id) && !state.cart.some((line) => sameCatalogProduct(line.product, product))) : [], [catalogReady, catalogProducts, state.favorites, state.cart]);
+  // An empty cart: how many saved products there are (the catalog's, once it is here) and the last delivered ones to order again.
+  const favoriteCount = catalogReady ? catalogProducts.filter((product) => state.favorites.includes(product.id)).length : state.favorites.length;
+  const reorders = useMemo(() => reorderCandidates(state.orders), [state.orders]);
   useEffect(() => {
     if (!needsCatalog) return;
     if ("requestIdleCallback" in window) { const handle = window.requestIdleCallback(() => void loadCatalog(), { timeout: 2000 }); return () => window.cancelIdleCallback(handle); }
@@ -551,63 +567,102 @@ export function CartView() {
   }
 
   /**
-   * Warehouse services of one store parcel (owner, 7.10.2026): chosen once for the parcel, counted per parcel (a
-   * contents photo), per piece (checking each item) or as typed (extra photos). The tick shows at once with
-   * "Saving…"; a second click while saving waits its turn instead of being lost or sent twice.
+   * The services chosen for one store parcel, shared by its guarantee row and its folded list of warehouse services:
+   * what is saved and what shows while a click saves.
    */
-  /** "2,9% of the goods and delivery (over $200: 3,9%) · 12 345 сум": the amount this parcel pays, shown before it is ticked too. */
-  function percentRate(service: (typeof checkoutServices)[number], items: CartItem[]) {
-    const rate = valueServiceRate(service, parcelValueUsd(items, pricing.fx));
-    const high = service.valuePercentHigh !== undefined && service.valueThresholdUsd !== undefined && service.valuePercentHigh !== service.valuePercent
-      ? c.services.highRule(formatUsd(service.valueThresholdUsd, locale), formatPercent(service.valuePercentHigh, locale))
-      : undefined;
-    const amount = items.reduce((sum, line) => sum + Math.round((line.quote.merchandise + insuredDeliveryOf(line.quote)) * rate), 0);
-    return c.services.percent(formatPercent(service.valuePercent ?? 0, locale), high, formatSum(amount, locale));
-  }
-
-  function renderParcelServices(parcelKey: string, items: CartItem[]) {
-    if (!checkoutServices.length) return null;
-    const lead = items[0];
-    const ids = items.map(line => line.id);
+  function parcelServiceState(parcelKey: string, items: CartItem[]) {
     const draft = serviceDrafts[parcelKey];
     const saved = checkoutServices.filter(service => items.some(line => line.requestedServiceIds?.includes(service.id))).map(service => service.id);
     const savedUnits: Record<string, number> = Object.fromEntries(saved.flatMap(id => { const most = Math.max(0, ...items.map(line => line.requestedServiceUnits?.[id] ?? 0)); return most ? [[id, most]] : []; }));
-    const chosen = draft?.serviceIds ?? saved, units = draft?.units ?? savedUnits;
-    const save = async (serviceId: string, serviceIds: string[], nextUnits: Record<string, number>) => {
-      const next = { serviceIds, units: nextUnits, savingId: serviceId };
-      setDrafts({ ...serviceDraftsRef.current, [parcelKey]: next });
-      try { await act({ type: "cart-services", id: lead.id, ids, serviceIds, serviceUnits: nextUnits }, { queue: true }); }
-      finally { if (serviceDraftsRef.current[parcelKey] === next) { const rest = { ...serviceDraftsRef.current }; delete rest[parcelKey]; setDrafts(rest); } }
-    };
+    return { lead: items[0], chosen: draft?.serviceIds ?? saved, units: draft?.units ?? savedUnits, savingId: draft?.savingId };
+  }
+
+  /**
+   * Ticks or unticks one service of a parcel (clicks only). The tick shows at once with "Saving…"; a second click while
+   * saving builds on the first instead of being lost, and the requests go one after another.
+   */
+  function toggleParcelService(parcelKey: string, items: CartItem[], service: (typeof checkoutServices)[number], on: boolean, typed?: number) {
+    const { lead, chosen, units } = parcelServiceState(parcelKey, items);
+    const ids = items.map(line => line.id);
+    const counted = !["package", "item"].includes(service.unit);
+    const latest = serviceDraftsRef.current[parcelKey];
+    const base = latest?.serviceIds ?? chosen;
+    const serviceIds = on ? [...new Set([...base, service.id])] : base.filter(id => id !== service.id);
+    const nextUnits = { ...(latest?.units ?? units) };
+    if (on && counted) nextUnits[service.id] = typed ?? units[service.id] ?? 1; else delete nextUnits[service.id];
+    const next = { serviceIds, units: nextUnits, savingId: service.id };
+    setDrafts({ ...serviceDraftsRef.current, [parcelKey]: next });
+    void act({ type: "cart-services", id: lead.id, ids, serviceIds, serviceUnits: nextUnits }, { queue: true })
+      .finally(() => { if (serviceDraftsRef.current[parcelKey] === next) { const rest = { ...serviceDraftsRef.current }; delete rest[parcelKey]; setDrafts(rest); } });
+  }
+
+  /** "over $200: 3,9%" when a value-percent service takes a higher rate above its threshold. */
+  const highRate = (service: (typeof checkoutServices)[number]) => service.valuePercentHigh !== undefined && service.valueThresholdUsd !== undefined && service.valuePercentHigh !== service.valuePercent
+    ? c.services.highRule(formatUsd(service.valueThresholdUsd, locale), formatPercent(service.valuePercentHigh, locale))
+    : undefined;
+
+  /**
+   * The Atlas safe-arrival guarantee (a value-percent service) as its own row of the parcel, not folded with the warehouse
+   * wishes (14.10.2026): it is the one paid choice with a known price. Never ticked in advance; the amount this parcel would
+   * pay stands beside it before the tick, and the last line says what a loss is compensated without it (claimLimit). The
+   * server prices it again (cart-services).
+   */
+  function renderGuarantee(parcelKey: string, items: CartItem[]) {
+    const guarantees = checkoutServices.filter(service => service.pricingMode === "value-percent");
+    if (!guarantees.length) return null;
+    const { chosen, savingId } = parcelServiceState(parcelKey, items);
+    const toggle = (service: (typeof checkoutServices)[number], on: boolean) => toggleParcelService(parcelKey, items, service, on);
+    // Priced as the server does (valueServiceFees): the lines being checked out are one parcel, the ones left for later another.
+    const billed = items.filter(ticked), basis = billed.length ? billed : items;
+    const limit = uninsuredParcelLimit(basis, pricing.fx);
+    return guarantees.map((service) => {
+      const checked = chosen.includes(service.id) || service.required;
+      const saving = savingId === service.id;
+      const boxId = `cart-guarantee-${parcelKey}-${service.id}`;
+      return <div className="basket-guarantee" key={service.id} aria-busy={saving || undefined}>
+        <Checkbox id={boxId} checked={checked} disabled={service.required} aria-describedby={`${boxId}-limit`} onCheckedChange={(value) => toggle(service, value === true)} />
+        <span className="basket-guarantee-copy">
+          <span className="basket-guarantee-head"><label htmlFor={boxId}><ShieldCheck size={16} aria-hidden="true" />{serviceTitle(service, locale)}</label>{service.required && <em>{c.services.required}</em>}{saving && <span className="basket-service-saving" role="status"><Loader2 size={13} className="spin" aria-hidden="true" />{s.saving}</span>}</span>
+          <small className="basket-guarantee-rate">{c.services.percentRule(formatPercent(service.valuePercent ?? 0, locale), highRate(service))}</small>
+          <small>{serviceDescription(service, locale)}</small>
+          <small id={`${boxId}-limit`}>{c.services.uninsuredLimit(formatSum(limit, locale))}</small>
+        </span>
+        <b className="basket-guarantee-sum">+{formatSum(guaranteeAmount(service, basis, pricing.fx), locale)}</b>
+      </div>;
+    });
+  }
+
+  /**
+   * Warehouse services of one store parcel (owner, 7.10.2026): chosen once for the parcel, counted per parcel (a
+   * contents photo), per piece (checking each item) or as typed (extra photos). They are wishes outside the order total,
+   * folded under "Parcel services"; the guarantee has its own row above them (renderGuarantee).
+   */
+  function renderParcelServices(parcelKey: string, items: CartItem[]) {
+    const services = checkoutServices.filter(service => service.pricingMode !== "value-percent");
+    if (!services.length) return null;
+    const { lead, chosen, units, savingId } = parcelServiceState(parcelKey, items);
+    const toggle = (service: (typeof checkoutServices)[number], on: boolean, typed?: number) => toggleParcelService(parcelKey, items, service, on, typed);
+    const chosenHere = services.filter(service => chosen.includes(service.id)).length;
     return <details className="basket-services basket-parcel-services">
-      <summary><span>{s.parcelServices}<small>{c.services.optional}</small></span>{chosen.length > 0 && <b>{chosen.length}</b>}</summary>
-      <p>{s.parcelServicesHint} {checkoutServices.some(service => service.pricingMode === "value-percent") ? c.services.hintPercent : c.services.hint}</p>
-      <div className="basket-service-list">{checkoutServices.map((service) => {
+      <summary><span>{s.parcelServices}<small>{c.services.optional}</small></span>{chosenHere > 0 && <b>{chosenHere}</b>}</summary>
+      <p>{s.parcelServicesHint} {c.services.hint}</p>
+      <div className="basket-service-list">{services.map((service) => {
         const checked = chosen.includes(service.id) || service.required;
         const counted = !["package", "item"].includes(service.unit);
         const count = parcelServiceUnits(service, items.map(line => ({ quantity: line.quantity, requestedServiceUnits: counted ? { [service.id]: units[service.id] ?? 1 } : undefined })));
         const unitFee = serviceFeeForCountry(service, lead.product.country);
         const unitLabel = service.unit === "package" ? s.unitPackage : service.unit === "item" ? s.unitItem(count) : service.unit === "photo" ? s.unitPhoto(count) : `× ${count}`;
-        const toggle = (on: boolean, typed = units[service.id] ?? 1) => {
-          const latest = serviceDraftsRef.current[parcelKey];
-          const base = latest?.serviceIds ?? chosen;
-          const serviceIds = on ? [...new Set([...base, service.id])] : base.filter(id => id !== service.id);
-          const nextUnits = { ...(latest?.units ?? units) };
-          if (on && counted) nextUnits[service.id] = typed; else delete nextUnits[service.id];
-          void save(service.id, serviceIds, nextUnits);
-        };
-        const saving = draft?.savingId === service.id;
+        const saving = savingId === service.id;
         const unitName = c.services.units[service.unit];
         const boxId = `cart-service-${parcelKey}-${service.id}`;
         return <div className="basket-service" key={service.id} aria-busy={saving || undefined}>
-          <Checkbox id={boxId} checked={checked} disabled={service.required} onCheckedChange={(value) => toggle(value === true)} />
+          <Checkbox id={boxId} checked={checked} disabled={service.required} onCheckedChange={(value) => toggle(service, value === true)} />
           <span className="basket-service-copy"><b><label htmlFor={boxId}>{serviceTitle(service, locale)}</label>{checked && <span className="basket-service-unit">{unitLabel}</span>}{service.required && <em>{c.services.required}</em>}{saving && <span className="basket-service-saving" role="status"><Loader2 size={13} className="spin" aria-hidden="true" />{s.saving}</span>}</b><small>{serviceDescription(service, locale)}</small>
             <small className="basket-service-rate">{service.pricingMode === "fixed"
               ? `${c.services.fixed}: ${formatSum(unitFee, locale)} / ${unitName}${count > 1 ? ` · ${count} × ${formatSum(unitFee, locale)} = ${formatSum(unitFee * count, locale)}` : ""}`
-              : service.pricingMode === "value-percent" ? percentRate(service, items)
               : c.services.quote}</small>
           </span>
-          {counted && checked && <span className="basket-service-units"><label htmlFor={`cart-service-units-${parcelKey}-${service.id}`}>{c.services.quantity} · {unitName}</label><input key={units[service.id] ?? 1} id={`cart-service-units-${parcelKey}-${service.id}`} type="number" inputMode="numeric" min="1" max="100" step="1" defaultValue={units[service.id] ?? 1} onBlur={(event) => { const typed = Number(event.target.value); if (Number.isInteger(typed) && typed >= 1 && typed <= 100 && typed !== (units[service.id] ?? 1)) toggle(true, typed); else event.target.value = String(units[service.id] ?? 1); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); } }} /></span>}
+          {counted && checked && <span className="basket-service-units"><label htmlFor={`cart-service-units-${parcelKey}-${service.id}`}>{c.services.quantity} · {unitName}</label><input key={units[service.id] ?? 1} id={`cart-service-units-${parcelKey}-${service.id}`} type="number" inputMode="numeric" min="1" max="100" step="1" defaultValue={units[service.id] ?? 1} onBlur={(event) => { const typed = Number(event.target.value); if (Number.isInteger(typed) && typed >= 1 && typed <= 100 && typed !== (units[service.id] ?? 1)) toggle(service, true, typed); else event.target.value = String(units[service.id] ?? 1); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); } }} /></span>}
         </div>;
       })}</div>
     </details>;
@@ -643,9 +698,23 @@ export function CartView() {
 
   if (!state.cart.length) return <div className="basket-page">
     <header className="basket-head"><h1>{c.title}</h1></header>
-    {pendingAdd.sending ? <div className="basket-loading" role="status"><Loader2 size={18} className="spin" aria-hidden="true" /> {pendingWords.sending}</div> : <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><ShoppingBag size={28} /></span><h2>{c.empty.title}</h2><p>{c.empty.text}</p>
-      <div className="basket-empty-actions"><Link className="btn primary" href="/order-by-link"><ClipboardPaste size={18} aria-hidden="true" />{c.empty.paste}</Link><Link className="btn secondary" href="/stores">{c.empty.stores}</Link></div>
-    </section>}
+    {pendingAdd.sending ? <div className="basket-loading" role="status"><Loader2 size={18} className="spin" aria-hidden="true" /> {pendingWords.sending}</div> : <>
+      <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><ShoppingBag size={28} /></span><h2>{c.empty.title}</h2><p>{c.empty.text}</p>
+        <div className="basket-empty-actions"><Link className="btn primary" href="/order-by-link"><ClipboardPaste size={18} aria-hidden="true" />{c.empty.paste}</Link><Link className="btn secondary" href="/stores">{c.empty.stores}</Link>{favoriteCount > 0 && <Link className="btn secondary" href="/favorites"><Heart size={18} aria-hidden="true" />{c.empty.favorites(favoriteCount)}</Link>}</div>
+      </section>
+      {/* Delivered before (14.10.2026): the same store page again through the link order, which checks today's price. */}
+      {reorders.length > 0 && <section className="basket-reorder" aria-labelledby="basket-reorder-title">
+        <h2 id="basket-reorder-title">{c.empty.ordered}</h2>
+        <ul>{reorders.map((order) => <li key={order.id}>
+          <div className="basket-reorder-photo"><ProductImage product={order.product} locale={locale} decorative size={160} /></div>
+          <span className="basket-reorder-name">{order.product.name}</span>
+          <Link className="btn secondary" href={`/order-by-link?url=${encodeURIComponent(order.product.sourceUrl ?? "")}`}><RotateCcw size={16} aria-hidden="true" />{orderGroupCopy[locale].reorder}<span className="sr-only">: {order.product.name}</span></Link>
+        </li>)}</ul>
+      </section>}
+      {/* The catalog's picks, in the storefront's order; a card opens the product sheet. */}
+      {catalogReady && catalogProducts.length >= 4 && <Suspense fallback={null}><CartPicks products={catalogProducts} onSelect={setPicked} /></Suspense>}
+    </>}
+    <LazyProductSheet product={picked} onClose={() => setPicked(null)} />
   </div>;
 
   return <div className="basket-page has-sticky">
@@ -659,17 +728,30 @@ export function CartView() {
         </div>}
         {parcels.map(parcel => {
           const reserve = reserves.find(entry => parcel.items.some(item => entry.itemIds.includes(item.id)));
+          const reserveShown = Boolean(reserve && reserve.reserveUsd > 0);
+          // "More from {store}" (14.10.2026): only for a store the catalog has, and once per parcel, in the first note shown.
+          const host = parcelStoreHost(parcel.items);
+          const more = host && catalogHosts.has(host) ? <Link href={`/catalog?store=${encodeURIComponent(host)}`}>{c.item.moreFrom(parcel.store)}<ArrowRight size={14} aria-hidden="true" /></Link> : null;
+          // Delivery is charged for at least 1 kg: what still fits under it adds no delivery cost (the lines being checked out).
+          const room = parcelRoomKg(parcel.items.filter(ticked));
           return <section className="basket-parcel" key={parcel.key} aria-label={parcel.title}>
             <h2 className="basket-parcel-title">{parcels.length > 1 || parcel.items.length > 1 ? selectBox(parcel.items, s.selectStore(parcel.store)) : <Store size={16} aria-hidden="true" />}<span>{parcel.title}</span><small>{[parcel.country, speedDays(parcel.origin)].filter(Boolean).join(" · ")}</small></h2>
             {productGroups(parcel.items).map(lines => lines.length === 1 ? renderItem(lines[0]) : renderGroup(lines))}
             {/* Only an open question goes here; free store delivery is its own line in the bill. */}
-            {reserve && reserve.reserveUsd > 0 && <p className="basket-parcel-note">
-              <Truck size={16} aria-hidden="true" /><span>{c.item.parcelReserve(usd(reserve.missingUsd, locale))}</span>
+            {reserve && reserveShown && <p className="basket-parcel-note">
+              <Truck size={16} aria-hidden="true" /><span>{c.item.parcelReserve(usd(reserve.missingUsd, locale))}{more && <> {more}</>}</span>
             </p>}
+            {room !== undefined && <p className="basket-parcel-note basket-parcel-room">
+              <Package size={16} aria-hidden="true" /><span>{c.item.parcelRoom(formatKg(room, locale), parcel.store)}{!reserveShown && more && <> {more}</>}</span>
+            </p>}
+            {renderGuarantee(parcel.key, parcel.items)}
             {renderParcelServices(parcel.key, parcel.items)}
           </section>;
         })}
-        <Link className="basket-continue" href="/">{c.summary.continue}<ArrowRight size={16} aria-hidden="true" /></Link>
+        <div className="basket-continue-row">
+          <Link className="basket-continue" href="/catalog">{c.summary.continue}<ArrowRight size={16} aria-hidden="true" /></Link>
+          <Link className="basket-continue" href="/order-by-link"><ClipboardPaste size={16} aria-hidden="true" />{c.summary.addByLink}</Link>
+        </div>
       </div>
       {/* The bill in a folder: the sheet is the amount to pay, the slip below holds what stays outside it. */}
       <aside ref={summaryRef} className="basket-summary folio" aria-labelledby="basket-summary-title">
@@ -682,6 +764,8 @@ export function CartView() {
           <div className="basket-total bill-total"><span>{c.summary.payable}</span><strong><Money value={payable} locale={locale} /></strong></div>
           {lines.length > 0 && <PriceHold expiresAt={earliestExpiry} c={c} />}
           <button ref={setSummaryCta} type="button" className="btn primary basket-cta" disabled={verifying} aria-busy={verifying || selecting} aria-disabled={!lines.length || selecting || undefined} aria-describedby={!lines.length ? "basket-none-hint" : undefined} onClick={() => void openCheckout()}>{verifying ? <>{c.summary.verifying}<Loader2 size={18} className="spin" aria-hidden="true" /></> : selecting ? <>{s.saving}<Loader2 size={18} className="spin" aria-hidden="true" /></> : <>{s.checkoutN(count)}<ArrowRight size={18} aria-hidden="true" /></>}</button>
+          {/* What the button leads to (14.10.2026): the recipient and the checks come first; nothing is paid without a yes. */}
+          {lines.length > 0 && <ul className="basket-assurance basket-cta-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{c.summary.assurance}</li></ul>}
           {!lines.length && <p id="basket-none-hint" className="basket-none-hint" role="status"><Info size={16} aria-hidden="true" />{s.noneSelected}</p>}
           {lines.length > 0 && laterCount > 0 && <p className="basket-later-note">{s.laterCount(laterCount)}</p>}
         </div>
@@ -691,6 +775,10 @@ export function CartView() {
         </section>}
       </aside>
     </div>
+
+    {/* Saved products not in the cart (14.10.2026), under both columns: they open the product sheet, where they are added as anywhere. */}
+    {savedPicks.length > 0 && <Suspense fallback={null}><CartPicks title={kc.saved} link={{ href: "/favorites", label: kc.open }} products={savedPicks} limit={4} onSelect={setPicked} /></Suspense>}
+    <LazyProductSheet product={picked} onClose={() => setPicked(null)} />
 
     <div className={"basket-sticky" + (summaryCtaInView ? " is-hidden" : "")} role="region" aria-label={c.sticky.label} aria-hidden={summaryCtaInView || undefined}>
       <div><span>{c.summary.payable}</span><strong>{formatSum(payable, locale)}</strong></div>

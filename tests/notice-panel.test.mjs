@@ -18,6 +18,8 @@ test('orders that wait for the customer', () => {
 test('a notification leads to its order or document', () => {
   assert.deepEqual(noticeTarget({ orderId: 'AT-1' }), { href: '/orders#AT-1', kind: 'order' });
   assert.deepEqual(noticeTarget({ code: 'declaration-saved' }), { href: '/declaration', kind: 'document' });
+  // A support reply has no order: it opens the support section of the account.
+  assert.deepEqual(noticeTarget({ code: 'support-answered', params: { subject: 'Где посылка?' } }), { href: '/account#support', kind: 'support' });
   assert.equal(noticeTarget({}), null);
 });
 

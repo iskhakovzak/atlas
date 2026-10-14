@@ -53,6 +53,11 @@ export async function POST(request:Request){try{
     if(identityAction.recipientProfileId&&!current.state.deliveryProfiles.some(profile=>profile.id===identityAction.recipientProfileId))throw new HttpError(400, 'err_14');
   }
   if(staleRevision(payload.revision,current.revision)){const locale=requestLocale(request);return json({error:locale==='ru'?'Данные изменились. Проверьте обновлённый заказ и повторите действие.':apiErrorMessage(409,locale),state:current.state,revision:current.revision},409)}
+  // Telegram order notices: the route checks the attached Telegram, tests the bot and records the consent itself.
+  if(parsed.data.type==='telegram-notify'){
+    const {toggleTelegramNotices}=await import('@/lib/market/telegram-notices-server');
+    return await toggleTelegramNotices(request,user.userId,current,parsed.data);
+  }
   // Passport details typed as text keep one id per recipient ("ID-…"), so a correction replaces the earlier entry.
   const action=identityAction&&!identityAction.documentId
     ?{...identityAction,documentId:(current.state.identityProfiles??[]).find(profile=>profile.recipientProfileId===identityAction.recipientProfileId&&profile.documentId.startsWith('ID-'))?.documentId??'ID-'+crypto.randomUUID()}

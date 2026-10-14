@@ -77,7 +77,11 @@ html[data-theme="dark"] .stores-link-error { color: #ffb4a8; }
    cards showed gaps between the lines; now the spare height sits only above the button. */
 .store-showcase-card { display: flex; flex-direction: column; gap: 10px; height: 100%; padding: 14px; border: 1px solid var(--cat-line); border-radius: 18px; background: var(--cat-surface); color: var(--cat-ink); }
 .store-showcase-card > header { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.store-showcase-card > header > div { display: grid; gap: 2px; min-width: 0; }
+/* Logo and name are one button (the store's terms; a span inside, as a button holds only phrasing content);
+   the product count stays outside it on the right. */
+.store-showcase-open { display: flex; flex: 1 1 auto; align-items: center; gap: 10px; min-width: 0; min-height: 44px; padding: 0; border: 0; border-radius: 10px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.store-showcase-name { display: grid; gap: 2px; min-width: 0; }
+@media (hover: hover) { .store-showcase-open:hover b { text-decoration: underline; text-underline-offset: 3px; } }
 /* Two lines before the ellipsis: «Brooks Running» next to «1 product» lost its second word on phones. */
 .store-showcase-card > header b { display: -webkit-box; overflow: hidden; font-size: 15px; font-weight: 700; line-height: 1.2; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .store-showcase-card > header small { display: inline-flex; align-items: center; gap: 6px; min-width: 0; color: var(--cat-muted); font-size: 12px; }
@@ -209,12 +213,14 @@ html:has(.store-dialog[open]) { overflow: hidden; }
 .store-dialog-fronts li + li { border-top: 1px solid var(--cat-line); }
 .store-dialog-fronts a { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 3px 10px; min-height: 52px; padding: 8px 14px; color: var(--cat-ink); font-weight: 650; text-decoration: none; }
 .store-dialog-fronts .flag { width: 24px; height: 16px; }
-.store-dialog-front-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; min-width: 0; }
-.store-dialog-front-main small, .store-dialog-fronts svg { color: var(--cat-muted); font-size: 13px; font-weight: 500; }
-.store-dialog-front-meta { grid-column: 2; display: flex; flex-wrap: wrap; gap: 2px 5px; color: var(--cat-muted); font-size: 12.5px; font-weight: 500; }
+.store-dialog-front-main { grid-column: 2; grid-row: 1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; min-width: 0; }
+.store-dialog-front-main small, .store-dialog-fronts svg:not(.flag) { color: var(--cat-muted); font-size: 13px; font-weight: 500; }
+.store-dialog-front-meta { grid-column: 2; grid-row: 2; display: flex; flex-wrap: wrap; gap: 2px 5px; color: var(--cat-muted); font-size: 12.5px; font-weight: 500; }
 .store-dialog-front-meta > * + *::before { content: "· "; }
 .store-dialog-front-meta em { color: var(--cat-warn); font-style: normal; font-weight: 600; }
-.store-dialog-fronts a > svg { grid-column: 3; grid-row: 1 / 3; }
+/* The flag is an svg too: it keeps the first column (centred on both lines) and only the arrow goes to the third. */
+.store-dialog-fronts a > .flag { grid-column: 1; grid-row: 1 / 3; }
+.store-dialog-fronts a > svg:not(.flag) { grid-column: 3; grid-row: 1 / 3; }
 /* A note about the store (used goods, supplements, duty above the limit): neutral, with an icon. */
 .store-dialog-note { display: flex; gap: 10px; margin: 0; padding: 12px 14px; border: 1px solid var(--cat-line); border-radius: 12px; color: var(--cat-ink); font-size: 13.5px; line-height: 1.45; }
 .store-dialog-note svg { flex: none; margin-top: 1px; color: var(--cat-muted); }
@@ -243,6 +249,8 @@ html:has(.store-dialog[open]) { overflow: hidden; }
   .stores-terms-note { margin-top: 4px; font-size: 12px; }
   .stores-shelf, .stores-showcase { margin-bottom: 20px; }
   .stores-showcase-list > li { width: 240px; }
+  /* «Смотреть 11 товаров» / «11 ta tovarni ko‘rish» on one line in a 240 px card. */
+  .store-showcase-card > .btn { gap: 6px; padding-inline: 10px; font-size: 14px; }
   .stores-search { min-height: 48px; }
   .stores-chips > button { padding: 0 12px; font-size: 13.5px; }
   .stores-regions > button { font-size: 13px; }
@@ -250,6 +258,8 @@ html:has(.store-dialog[open]) { overflow: hidden; }
   .store-tile { gap: 8px; min-height: 60px; padding: 9px 8px; }
   /* Two tiles in a row: country and days fit, the rate waits for the store card. */
   .store-tile-rate { display: none; }
+  /* ...and its dot goes with it: «Китай · 7–9 раб. дн ·» (a following "N more countries" keeps the dot). */
+  .store-tile-geo > span:has(+ .store-tile-rate:last-child)::after { content: none; }
 }
 /* Three columns: three rows collapsed. */
 @media (min-width: 600px) {

@@ -183,6 +183,11 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_78': 'Пока доставляем только по Ташкенту. Укажите адрес в Ташкенте.',
     'err_79': 'Сканы и фото паспорта больше не принимаем. Введите серию, номер и ПИНФЛ текстом.',
     'err_80': 'Проверьте получателя: имя, телефон, регион, город и адрес не короче 5 символов. Исправьте его в кабинете и повторите.',
+    // Telegram order notices (POST /api/actions telegram-notify).
+    'err_81': 'Сначала привяжите Telegram к кабинету.',
+    'err_82': 'Бот пока не может вам написать: откройте его в Telegram и нажмите «Start».',
+    'err_83': 'Telegram сейчас не отвечает. Повторите через минуту.',
+    'err_84': 'Уведомления в Telegram пока недоступны.',
     'err_55': 'Нельзя отключить собственный доступ.',
     'err_56': 'Основного администратора из настроек хостинга отключить нельзя.',
     'err_57': 'Заметки о клиентах пока недоступны: примените миграцию базы 0011.',
@@ -257,6 +262,10 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_78': 'Hozircha faqat Toshkent bo‘ylab yetkazamiz. Toshkentdagi manzilni kiriting.',
     'err_79': 'Pasport skanlari va suratlari endi qabul qilinmaydi. Seriya, raqam va JSHSHIRni matn bilan kiriting.',
     'err_80': 'Qabul qiluvchini tekshiring: ism, telefon, viloyat, shahar va kamida 5 belgili manzil. Uni kabinetda tuzatib, qayta urinib ko‘ring.',
+    'err_81': 'Avval Telegramni kabinetga bog‘lang.',
+    'err_82': 'Bot hozircha sizga yoza olmaydi: uni Telegramda oching va «Start»ni bosing.',
+    'err_83': 'Telegram hozir javob bermayapti. Bir daqiqadan so‘ng qayta urining.',
+    'err_84': 'Telegramdagi bildirishnomalar hozircha mavjud emas.',
     'err_55': 'O‘z ruxsatingizni o‘chirib bo‘lmaydi.',
     'err_56': 'Hosting sozlamalaridagi asosiy administratorni o‘chirib bo‘lmaydi.',
     'err_57': 'Mijozlar haqidagi eslatmalar hozircha mavjud emas: 0011 migratsiyasini qo‘llang.',
@@ -331,6 +340,10 @@ export const serverErrors: Record<Locale, Record<string, string>> = /*@__PURE__*
     'err_78': 'For now we deliver only within Tashkent. Enter an address in Tashkent.',
     'err_79': 'Passport scans and photos are no longer accepted. Type the series, number and PINFL instead.',
     'err_80': 'Check the recipient: name, phone, region, city and an address of at least 5 characters. Fix it in your account and try again.',
+    'err_81': 'Attach Telegram to your account first.',
+    'err_82': 'The bot can’t message you yet: open it in Telegram and tap “Start”.',
+    'err_83': 'Telegram isn’t responding right now. Try again in a minute.',
+    'err_84': 'Telegram notifications aren’t available yet.',
     'err_55': 'You cannot disable your own access.',
     'err_56': 'The primary administrator from the hosting settings cannot be disabled.',
     'err_57': 'Customer notes are not available yet: apply database migration 0011.',
@@ -354,12 +367,12 @@ export function serverError(locale:Locale, key:string, params?:Record<string,str
   return params ? text.replace(/\{(\w+)\}/g, (match, name:string) => name in params ? String(params[name]) : match) : text;
 }
 
-export type NavCopy = { catalog: string; stores: string; how: string; tariffs: string; orders: string; signin: string; account: string; language: string; help: string };
+export type NavCopy = { catalog: string; byLink: string; stores: string; how: string; tariffs: string; orders: string; signin: string; account: string; language: string; help: string };
 /** Header navigation words, kept here (loaded on every page) rather than in the home page copy, which uses them as `nav`. */
 export const navCopy: Record<Locale, NavCopy> = /*@__PURE__*/withCyrillic({
-  ru: { catalog: 'Каталог', stores: 'Магазины', how: 'Как это работает', tariffs: 'Тарифы', orders: 'Мои заказы', signin: 'Войти', account: 'Кабинет', language: 'Язык сайта', help: 'Помощь' },
-  uz: { catalog: 'Katalog', stores: 'Do‘konlar', how: 'Qanday ishlaydi', tariffs: 'Tariflar', orders: 'Buyurtmalarim', signin: 'Kirish', account: 'Kabinet', language: 'Sayt tili', help: 'Yordam' },
-  en: { catalog: 'Catalog', stores: 'Stores', how: 'How it works', tariffs: 'Rates', orders: 'My orders', signin: 'Sign in', account: 'Account', language: 'Site language', help: 'Help' },
+  ru: { catalog: 'Каталог', byLink: 'По ссылке', stores: 'Магазины', how: 'Как это работает', tariffs: 'Тарифы', orders: 'Мои заказы', signin: 'Войти', account: 'Кабинет', language: 'Язык сайта', help: 'Помощь' },
+  uz: { catalog: 'Katalog', byLink: 'Havola', stores: 'Do‘konlar', how: 'Qanday ishlaydi', tariffs: 'Tariflar', orders: 'Buyurtmalarim', signin: 'Kirish', account: 'Kabinet', language: 'Sayt tili', help: 'Yordam' },
+  en: { catalog: 'Catalog', byLink: 'By link', stores: 'Stores', how: 'How it works', tariffs: 'Rates', orders: 'My orders', signin: 'Sign in', account: 'Account', language: 'Site language', help: 'Help' },
 });
 
 export type FooterCopy = { tagline: string; buyers: string; contacts: string; legal: string; support: string; rules: string; privacy: string; customs: string; faq: string; telegramSupport: string; telegramChannel: string; phone: string; instagram: string; email: string; hours: string; pickup: string; theme: string; inn: string };
@@ -367,19 +380,19 @@ export type FooterCopy = { tagline: string; buyers: string; contacts: string; le
 export const footerCopy: Record<Locale, FooterCopy> = /*@__PURE__*/withCyrillic({
   ru: {
       tagline: 'Покупки в зарубежных магазинах с доставкой в Ташкент.', buyers: 'Покупателям', contacts: 'Контакты', legal: 'Юридическая информация',
-      support: 'Поддержка в личном кабинете', rules: 'Правила сервиса', privacy: 'Политика данных', customs: 'Таможня', faq: 'Частые вопросы',
+      support: 'Поддержка в личном кабинете', rules: 'Все документы', privacy: 'Политика данных', customs: 'Таможня', faq: 'Частые вопросы',
       telegramSupport: 'Telegram-бот', telegramChannel: 'Telegram-канал', phone: 'Телефон', instagram: 'Instagram', email: 'Почта', hours: 'Часы работы', pickup: 'Пункт выдачи', theme: 'Тема',
       inn: 'ИНН',
   },
   uz: {
       tagline: 'Xorijiy do‘konlardan Toshkentga yetkazib berish bilan xaridlar.', buyers: 'Xaridorlarga', contacts: 'Bog‘lanish', legal: 'Yuridik ma’lumotlar',
-      support: 'Shaxsiy kabinetdagi yordam', rules: 'Xizmat qoidalari', privacy: 'Ma’lumotlar siyosati', customs: 'Bojxona', faq: 'Savollar',
+      support: 'Shaxsiy kabinetdagi yordam', rules: 'Barcha hujjatlar', privacy: 'Ma’lumotlar siyosati', customs: 'Bojxona', faq: 'Savollar',
       telegramSupport: 'Telegram-bot', telegramChannel: 'Telegram-kanal', phone: 'Telefon', instagram: 'Instagram', email: 'Pochta', hours: 'Ish vaqti', pickup: 'Topshirish punkti', theme: 'Mavzu',
       inn: 'STIR',
   },
   en: {
       tagline: 'Shopping in international stores with delivery to Tashkent.', buyers: 'For shoppers', contacts: 'Contacts', legal: 'Legal information',
-      support: 'Support in your account', rules: 'Terms of service', privacy: 'Privacy policy', customs: 'Customs', faq: 'FAQ',
+      support: 'Support in your account', rules: 'All documents', privacy: 'Privacy policy', customs: 'Customs', faq: 'FAQ',
       telegramSupport: 'Telegram bot', telegramChannel: 'Telegram channel', phone: 'Phone', instagram: 'Instagram', email: 'Email', hours: 'Working hours', pickup: 'Pickup point', theme: 'Theme',
       inn: 'Tax ID (INN)',
   },

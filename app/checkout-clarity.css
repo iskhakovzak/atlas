@@ -195,3 +195,71 @@ html[data-theme="dark"] .checkout-served small{color:var(--night-muted)}
 html[data-theme="dark"] .checkout-add-comment{color:var(--night-jade)}
 /* The balance option on the review, above the amount it changes. */
 .review-balance{margin:0}
+
+/* /customs calculator (14.10.2026): the customs payment in large type right away, "No duty" with the month's allowance
+   as in the cart instead of "≈ 0 сум", the breakdown open when there is an excess; the inputs and the method fold away. */
+:root body .customs-calc>h2{margin:0 0 14px}
+.customs-calc .customs-estimate-wrap{margin:16px 0 0;padding:16px 0 0}
+.customs-result{display:grid;gap:10px;min-width:0}
+.customs-result-head{display:grid;gap:6px;min-width:0}
+.customs-result-label{color:var(--day-muted,#58635c);font-size:13px;font-weight:600;line-height:1.3}
+:root body .customs-result-amount{display:block;color:var(--day-ink,#16211c);font-size:clamp(22px,6vw,28px);font-weight:700;line-height:1.2;letter-spacing:-.01em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+:root body .customs-result .calc-customs-none{gap:8px}
+:root body .customs-result .calc-customs-none h3{margin:0;font-size:clamp(20px,5vw,24px);line-height:1.2;color:var(--day-ink,#16211c)}
+:root body .customs-result .calc-customs-none svg{width:22px;height:22px}
+.customs-result .calc-customs-meter{max-width:440px;margin-top:2px}
+.customs-result-note{margin:0;color:var(--day-muted,#58635c);font-size:13px;line-height:1.45}
+.customs-result-account{justify-self:start;display:inline-flex;align-items:center;min-height:44px;margin:-8px 0;color:var(--day-accent,#1f4d3b);font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.customs-result-lines{max-width:560px;margin:0}
+.customs-result .customs-estimate-caption{margin:0;color:var(--day-muted,#58635c);font-size:13px;line-height:1.45}
+.customs-result .customs-estimate-body{display:grid;padding-top:0;border-top:1px solid var(--day-line,#e0e6ed)}
+.customs-estimate-body>details>summary{display:flex;align-items:center;gap:8px;width:fit-content;min-height:44px;color:var(--day-accent,#1f4d3b);font-size:14px;font-weight:600;list-style:none;cursor:pointer}
+.customs-estimate-body>details>summary::-webkit-details-marker{display:none}
+.customs-estimate-body>details>summary:focus-visible{outline:2px solid var(--day-accent,#1f4d3b);outline-offset:2px;border-radius:8px}
+.customs-estimate-body>details>div{padding:4px 0 12px}
+.customs-estimate-body>details>div>p.micro{max-width:72ch;margin:0 0 8px;line-height:1.55}
+.customs-chevron{flex:none}
+.customs-estimate-body>details[open]>summary .customs-chevron{transform:rotate(180deg)}
+@media(prefers-reduced-motion:no-preference){.customs-chevron{transition:transform .2s ease}}
+@media(max-width:700px){
+  :root body .customs-grid{gap:12px}
+  :root body .customs-grid>.surface{padding:18px}
+  :root body .customs-grid h2{font-size:16px}
+  :root body .customs-limit{margin:6px 0 8px;font-size:32px}
+  :root body .customs-grid p{margin:0;font-size:14px;line-height:1.5}
+}
+
+/* /customs, after the calculator: the full order total by link, and both ways to pay customs described side by side. */
+.customs-next{margin-top:20px}
+.customs-next+.surface{margin-top:20px}
+:root body .customs-next h2{display:flex;align-items:center;gap:10px;margin:0 0 8px}
+.customs-next h2 svg{flex:none;color:var(--day-accent,#1f4d3b)}
+.customs-next>p{max-width:72ch;margin:0;line-height:1.55}
+.customs-next-actions{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 20px}
+.customs-next-actions .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px}
+:root body .customs-next h3{margin:0 0 10px;font-size:16px;line-height:1.35}
+.customs-pay-ways{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.customs-pay-ways li{display:flex;align-items:flex-start;gap:10px;max-width:80ch;line-height:1.55}
+.customs-pay-ways svg{flex:none;margin-top:3px;color:var(--day-ok,#1d6b47)}
+.customs-next .micro{margin:12px 0 0}
+@media(max-width:600px){.customs-next-actions .btn{width:100%}}
+
+/* /customs guarantee: without and with, side by side from 600 px; the price under what each one covers. */
+#shipping-rules .guarantee-compare{display:grid;gap:12px;max-width:960px;margin:12px 0 16px}
+@media(min-width:600px){#shipping-rules .guarantee-compare{grid-template-columns:1fr 1fr}}
+#shipping-rules .guarantee-card{display:flex;flex-direction:column;gap:10px;min-width:0;padding:16px;border:1px solid var(--day-line,#dce5e2);border-radius:14px;background:#fff}
+#shipping-rules .guarantee-card-on{border:1.5px solid var(--day-accent,#1f4d3b)}
+#shipping-rules .guarantee-card header{display:flex;align-items:center;gap:10px}
+#shipping-rules .guarantee-card header svg{flex:none;color:var(--day-muted,#58635c)}
+#shipping-rules .guarantee-card-on header svg{color:var(--day-accent,#1f4d3b)}
+#shipping-rules .guarantee-card h4{margin:0;font-size:16px;font-weight:700;line-height:1.3}
+#shipping-rules .guarantee-card ul{gap:6px;margin:0;padding-left:18px;color:var(--day-muted,#58635c)}
+#shipping-rules .guarantee-card-on ul{color:inherit}
+#shipping-rules .guarantee-card li{padding-left:2px;line-height:1.5}
+#shipping-rules p.guarantee-price{margin:auto 0 0;padding-top:10px;border-top:1px solid var(--day-line,#dce5e2);font-weight:700;font-variant-numeric:tabular-nums}
+#shipping-rules .guarantee-card:not(.guarantee-card-on) p.guarantee-price{color:var(--day-muted,#58635c);font-weight:600}
+.guarantee-badge{display:inline-flex;align-items:center;gap:5px;align-self:flex-start;padding:3px 9px;border-radius:999px;background:var(--day-tint,#eef6f1);color:var(--day-ok,#1d6b47);font-size:12px;font-weight:600;line-height:1.4}
+.guarantee-badge .speed-option-star{margin:0}
+#shipping-rules p.micro a{position:relative;color:var(--day-accent,#1f4d3b);font-weight:600;text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
+/* The terms link stays a text link and takes taps from a 44 px frame around it on phones. */
+@media(max-width:700px){#shipping-rules p.micro a::after{content:"";position:absolute;inset:-14px -6px}}

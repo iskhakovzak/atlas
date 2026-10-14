@@ -1,5 +1,5 @@
 'use client';
-import {ArrowRight,Bell,CheckCheck,FileText,Inbox,Package,X} from 'lucide-react';
+import {ArrowRight,Bell,CheckCheck,FileText,Inbox,Link2,MessageCircle,Package,X} from 'lucide-react';
 import Link from '@/components/site-link';
 import {Sheet,SheetClose,SheetContent,SheetDescription,SheetTitle} from '@/components/ui/sheet';
 import type {RefObject} from 'react';
@@ -11,12 +11,13 @@ import {noticePanel,noticeTarget,type OrderAttention} from '@/lib/market/notice-
 import {withCyrillic} from '@/lib/market/uz-cyrl';
 import {formatSum} from '@/lib/market/format';
 import {groupOrders,orderGroupCopy} from '@/lib/market/order-groups';
+import {TelegramBellLink} from './telegram-notices-link';
 import './notice-panel.css';
 
 const panelCopy=/*@__PURE__*/withCyrillic({
-  ru:{action:'Нужно ваше действие',updates:'Последние обновления',reasons:{extra:'Нужна доплата',change:'Ответьте на изменение заказа',payment:'Завершите оплату'} as Record<OrderAttention,string>,order:'Позиция',open:'Открыть',document:'Открыть документ',all:'Все уведомления',close:'Закрыть уведомления',read:'Отметить все прочитанными',nothing:'Других обновлений нет.'},
-  uz:{action:'Sizdan harakat kerak',updates:'So‘nggi yangilanishlar',reasons:{extra:'Qo‘shimcha to‘lov kerak',change:'Buyurtma o‘zgarishiga javob bering',payment:'To‘lovni yakunlang'} as Record<OrderAttention,string>,order:'Pozitsiya',open:'Ochish',document:'Hujjatni ochish',all:'Barcha bildirishnomalar',close:'Bildirishnomalarni yopish',read:'Hammasini o‘qilgan deb belgilash',nothing:'Boshqa yangilanishlar yo‘q.'},
-  en:{action:'Your action is needed',updates:'Latest updates',reasons:{extra:'Extra payment needed',change:'Answer the order change',payment:'Complete the payment'} as Record<OrderAttention,string>,order:'Item',open:'Open',document:'Open document',all:'All notifications',close:'Close notifications',read:'Mark all as read',nothing:'No other updates.'},
+  ru:{action:'Нужно ваше действие',updates:'Последние обновления',reasons:{extra:'Нужна доплата',change:'Ответьте на изменение заказа',payment:'Завершите оплату'} as Record<OrderAttention,string>,order:'Позиция',open:'Открыть',document:'Открыть документ',reply:'Открыть ответ',all:'Все уведомления',close:'Закрыть уведомления',read:'Отметить все прочитанными',nothing:'Других обновлений нет.',none:'Новых уведомлений нет',emptyCta:'Заказать по ссылке'},
+  uz:{action:'Sizdan harakat kerak',updates:'So‘nggi yangilanishlar',reasons:{extra:'Qo‘shimcha to‘lov kerak',change:'Buyurtma o‘zgarishiga javob bering',payment:'To‘lovni yakunlang'} as Record<OrderAttention,string>,order:'Pozitsiya',open:'Ochish',document:'Hujjatni ochish',reply:'Javobni ochish',all:'Barcha bildirishnomalar',close:'Bildirishnomalarni yopish',read:'Hammasini o‘qilgan deb belgilash',nothing:'Boshqa yangilanishlar yo‘q.',none:'Yangi bildirishnomalar yo‘q',emptyCta:'Havola orqali buyurtma'},
+  en:{action:'Your action is needed',updates:'Latest updates',reasons:{extra:'Extra payment needed',change:'Answer the order change',payment:'Complete the payment'} as Record<OrderAttention,string>,order:'Item',open:'Open',document:'Open document',reply:'Open the reply',all:'All notifications',close:'Close notifications',read:'Mark all as read',nothing:'No other updates.',none:'No new notifications',emptyCta:'Order by link'},
 });
 
 /** The notifications sheet over the current page (left side; full screen on phones), opened by the bell in
@@ -42,7 +43,7 @@ export function NotificationsSheet({open,onOpenChange,bell}:{open:boolean;onOpen
         <span className="notice-panel-mark" aria-hidden="true"><Bell size={20}/>{ready&&panel.unread>0&&<i/>}</span>
         <div className="notice-panel-heading">
           <SheetTitle>{c.title}</SheetTitle>
-          <SheetDescription>{!ready?c.loading:panel.unread?c.unread(panel.unread):panel.total?c.allRead:c.emptyTitle}</SheetDescription>
+          <SheetDescription>{!ready?c.loading:panel.unread?c.unread(panel.unread):panel.total?c.allRead:p.none}</SheetDescription>
           {ready&&panel.unread>0&&<button type="button" className="notice-panel-read" onClick={()=>void act({type:'notifications-read'})}><CheckCheck size={16} aria-hidden="true"/>{p.read}</button>}
         </div>
         <SheetClose asChild><button type="button" className="notice-panel-close" aria-label={p.close}><X size={19} aria-hidden="true"/></button></SheetClose>
@@ -61,22 +62,26 @@ export function NotificationsSheet({open,onOpenChange,bell}:{open:boolean;onOpen
           </li>)}
         </ul></section>}
         {ready&&<section aria-labelledby="notice-panel-updates"><h3 id="notice-panel-updates">{p.updates}</h3>
-          {!panel.updates.length?<div className="notice-panel-empty"><span aria-hidden="true"><Inbox size={24}/></span><b>{panel.total?p.nothing:c.emptyTitle}</b>{!panel.total&&<p>{c.emptyText}</p>}</div>:<ul className="notice-panel-list">
+          {!panel.updates.length?<div className="notice-panel-empty"><span aria-hidden="true"><Inbox size={24}/></span><b>{panel.total?p.nothing:c.emptyTitle}</b>{!panel.total&&<p>{c.emptyText}</p>}{!panel.total&&!panel.action.length&&<Link className="btn primary notice-panel-empty-cta" href="/order-by-link" onClick={close}><Link2 size={17} aria-hidden="true"/>{p.emptyCta}</Link>}</div>:<ul className="notice-panel-list">
             {panel.updates.map((item,index)=>{const text=renderNotification(item,locale),target=noticeTarget(item);return <li key={item.id} className={'notice-panel-item'+(item.read?'':' unread')} style={row(panel.action.length+index)}>
-              <span className="notice-panel-icon" aria-hidden="true">{target?.kind==='document'?<FileText size={18}/>:target?.kind==='order'?<Package size={18}/>:<Bell size={18}/>}</span>
+              <span className="notice-panel-icon" aria-hidden="true">{target?.kind==='document'?<FileText size={18}/>:target?.kind==='order'?<Package size={18}/>:target?.kind==='support'?<MessageCircle size={18}/>:<Bell size={18}/>}</span>
               <div className="notice-panel-body">
                 <div className="notice-panel-top"><b>{!item.read&&<span className="notice-panel-dot"><span className="sr-only">{c.newBadge}</span></span>}{text.title}</b>{time(item.at)}</div>
                 <p>{text.message}</p>
                 <div className="notice-panel-foot">
                   {target?.kind==='order'&&<Link className="order-x-link" href={target.href} onClick={close}>{p.order} {item.orderId}<ArrowRight size={14} aria-hidden="true"/></Link>}
                   {target?.kind==='document'&&<Link className="order-x-link" href={target.href} onClick={close}>{p.document}<ArrowRight size={14} aria-hidden="true"/></Link>}
+                  {target?.kind==='support'&&<Link className="order-x-link" href={target.href} onClick={close}>{p.reply}<ArrowRight size={14} aria-hidden="true"/></Link>}
                   {!target&&<Link className="order-x-link" href={'/notifications?id='+encodeURIComponent(item.id)} onClick={close}>{p.open}<ArrowRight size={14} aria-hidden="true"/></Link>}</div>
               </div>
             </li>})}
           </ul>}
         </section>}
       </div>
-      <footer className="notice-panel-footer"><Link className="notice-panel-all" href="/notifications" onClick={close}>{p.all}<ArrowRight size={17} aria-hidden="true"/></Link></footer>
+      {/* With nothing to show, the full inbox is a quiet link: the empty card holds the one call to action. */}
+      <footer className="notice-panel-footer"><Link className={'notice-panel-all'+(ready&&panel.total===0?' quiet':'')} href="/notifications" onClick={close}>{p.all}<ArrowRight size={17} aria-hidden="true"/></Link>
+        {/* Order statuses in Telegram: a quiet line to the account's setting while they are off (nothing without the bot). */}
+        <TelegramBellLink locale={locale} onNavigate={close}/></footer>
     </SheetContent>
   </Sheet>;
 }

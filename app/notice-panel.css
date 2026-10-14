@@ -19,7 +19,9 @@
 .notice-panel-close:active { transform: scale(.92); }
 .notice-panel-scroll { flex: 1; min-height: 0; padding: 20px 20px 24px; overflow: auto; overscroll-behavior: contain; }
 .notice-panel section + section { margin-top: 26px; }
-.notice-panel h3 { display: flex; align-items: center; gap: 8px; margin: 0 4px 10px; color: var(--day-muted, #58635c); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+/* Section titles are typed as written, without capitals and tracking, like the other overlines in both themes
+   (day-folio.css, theme-night.css). */
+.notice-panel h3 { display: flex; align-items: center; gap: 8px; margin: 0 4px 10px; color: var(--day-muted, #58635c); font-size: 13px; font-weight: 700; letter-spacing: 0; text-transform: none; }
 .notice-panel h3::after { content: ""; flex: 1; height: 1px; background: var(--day-line, #e2e2da); }
 .notice-panel h3 b { min-width: 20px; padding: 2px 7px; border-radius: 99px; background: #c55235; color: #fff; font-size: 11.5px; text-align: center; letter-spacing: 0; }
 .notice-panel-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
@@ -143,3 +145,11 @@ html[data-theme="dark"] .notice-panel-item:hover { border-color: var(--night-lin
   .notice-panel-item, .notice-panel-item:hover { transform: none; }
   .notice-panel-item:hover :is(.order-x-link, .notice-panel-cta) svg, .notice-panel-all:hover svg { transform: none; }
 }
+
+/* No notifications yet: the empty card leads to the main action, and "All notifications" (an equally empty list) is a
+   quiet link instead of a second big button. */
+.notice-panel-empty .notice-panel-empty-cta { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; margin-top: 10px; text-decoration: none; }
+.notice-panel-all.quiet { min-height: 44px; border-color: transparent; background: transparent; color: var(--day-accent, #1f4d3b); box-shadow: none; }
+.notice-panel-all.quiet:hover { background: var(--day-soft, #efefe9); box-shadow: none; }
+html[data-theme="dark"] .notice-panel-all.quiet { border-color: transparent; background: transparent; color: var(--night-jade, #80d0ac); box-shadow: none; }
+html[data-theme="dark"] .notice-panel-all.quiet:hover { background: rgba(255, 255, 255, .05); color: var(--night-jade, #80d0ac); }

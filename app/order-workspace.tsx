@@ -27,8 +27,10 @@ import {
   MessageCircle,
   MessageSquareText,
   Phone,
+  Plus,
   RefreshCw,
   RotateCcw,
+  ShoppingBag,
   Truck,
   UserCheck,
 } from "lucide-react";
@@ -47,11 +49,12 @@ import { readableVariant } from "@/lib/market/nike-size-chart";
 import { CopyText } from "./copy-text";
 import { useMarket } from "@/lib/market/store";
 import { hasPermission } from "@/lib/market/access";
-import { mergeQueueAccounts, operatorQueueTabs, queueMatches, queueSearchFields, slimQueueAccount, type OperatorQueueCounts, type OperatorQueueResponse } from "@/lib/market/operator-queue";
+import { formatStorePrice } from "@/lib/market/store-price";
+import { mergeQueueAccounts, operatorNextStep, operatorQueueTabs, orderIdleDays, queueMatches, queueSearchFields, slimQueueAccount, type OperatorQueueCounts, type OperatorQueueResponse, type OperatorStepKey } from "@/lib/market/operator-queue";
 import {
+  balanceEntries,
   balanceOf,
   cancelRefundAmount,
-  money,
   parcelOrders,
   readyToWeigh,
   settle,
@@ -76,7 +79,7 @@ import {
 } from "@/lib/market/domain";
 import type { Action } from "@/lib/market/actions";
 import { countries } from "@/lib/market/world";
-import { localizedStatuses, type Locale } from "@/lib/market/i18n";
+import { localizedStatuses, navCopy, type Locale } from "@/lib/market/i18n";
 import {requestImport} from "@/lib/market/import-client";
 import { homeCopy } from "@/lib/market/home-copy";
 import { formatKg, formatPercent, formatSum } from "@/lib/market/format";
@@ -90,6 +93,7 @@ import { calcCopy } from "@/lib/market/calc-copy";
 import { usdText } from "./calc-summary";
 import { Money } from "./money";
 import { CustomerExtraCharge, ExtraChargeHistory, OperatorExtraCharges, insuranceShare } from "./order-extra-charges";
+import { OperatorTelegramHint, TelegramSettingsRow } from "./telegram-notices-link";
 import { CustomerParcelClaim, OperatorParcelClaims } from "./parcel-claim";
 import {
   PageHeading,
@@ -131,6 +135,15 @@ const weighWords: Record<Locale, { parcel: (ids: string) => string; together: (i
   uz: { parcel: (ids) => `Do‘konning bitta jo‘natmasi: ${ids}. Vazn va o‘lchamlar — butun jo‘natmaniki; yetkazib berish buyurtmalar o‘rtasida taqsimlanadi.`, together: (id) => `${id} buyurtmasi bilan birga tortiladi.`, waiting: (ids) => `Tortishga hali tayyor emas (yo‘lda yoki qaror kutmoqda): ${ids}.`, without: "Ularsiz tortish — tayyor bo‘lganda alohida tortiladi", waitHint: "Jo‘natmani barcha buyurtmalari tayyor bo‘lganda yoki qolganlarisiz tortish mumkin." },
   en: { parcel: (ids) => `One store parcel: ${ids}. Weight and dimensions are for the whole parcel; delivery is split between the orders.`, together: (id) => `Weighed together with order ${id}.`, waiting: (ids) => `Not ready to weigh yet (on the way or awaiting a decision): ${ids}.`, without: "Weigh without them — they are weighed separately once ready", waitHint: "The parcel can be weighed once all its orders are ready, or without the others." },
 });
+// The queue row's "whose move" line (operatorNextStep) and the facts the operator needs to buy the item at the store.
+const opsStepCopy = /*@__PURE__*/withCyrillic({
+  ru: { steps: { problem: "Ваш шаг: разобрать проблему", storeShipping: "Ваш шаг: доставка магазина", buyout: "Ваш шаг: выкуп", receive: "Ваш шаг: приёмка на склад", inspect: "Ваш шаг: осмотр на складе", service: "Ваш шаг: услуга склада", weigh: "Ваш шаг: взвесить", tracking: "Ваш шаг: трек-номер", ship: "Ваш шаг: отправить в Ташкент", customs: "Ваш шаг: подтвердить пошлину", deliver: "Ваш шаг: подтвердить доставку", decision: "Ждёт ответа клиента", payment: "Ждёт оплаты клиента" } as Record<OperatorStepKey, string>, together: (id: string) => `Взвешивается вместе с ${id}`, days: (n: number) => `${n} дн.`, idle: (n: number) => `Последнее событие по заказу — ${n} дн. назад`, buyoutTitle: "Для выкупа", store: "Магазин", variant: "Вариант", price: "Цена в магазине при оформлении", each: "за 1 шт.", sku: "Артикул" },
+  uz: { steps: { problem: "Sizning qadamingiz: muammoni hal qilish", storeShipping: "Sizning qadamingiz: do‘kon yetkazishi", buyout: "Sizning qadamingiz: xarid", receive: "Sizning qadamingiz: omborga qabul", inspect: "Sizning qadamingiz: omborda ko‘rik", service: "Sizning qadamingiz: ombor xizmati", weigh: "Sizning qadamingiz: tortish", tracking: "Sizning qadamingiz: trek-raqam", ship: "Sizning qadamingiz: Toshkentga jo‘natish", customs: "Sizning qadamingiz: bojni tasdiqlash", deliver: "Sizning qadamingiz: yetkazishni tasdiqlash", decision: "Mijoz javobini kutmoqda", payment: "Mijoz to‘lovini kutmoqda" } as Record<OperatorStepKey, string>, together: (id: string) => `${id} bilan birga tortiladi`, days: (n: number) => `${n} kun`, idle: (n: number) => `Buyurtmadagi oxirgi voqea — ${n} kun oldin`, buyoutTitle: "Xarid uchun", store: "Do‘kon", variant: "Variant", price: "Rasmiylashtirishdagi do‘kon narxi", each: "1 dona uchun", sku: "Artikul" },
+  en: { steps: { problem: "Your step: resolve the issue", storeShipping: "Your step: store shipping", buyout: "Your step: buyout", receive: "Your step: receive at warehouse", inspect: "Your step: warehouse check", service: "Your step: warehouse service", weigh: "Your step: weigh", tracking: "Your step: tracking number", ship: "Your step: ship to Tashkent", customs: "Your step: confirm duty", deliver: "Your step: confirm delivery", decision: "Waiting for customer reply", payment: "Waiting for customer payment" } as Record<OperatorStepKey, string>, together: (id: string) => `Weighed with ${id}`, days: (n: number) => `${n} d`, idle: (n: number) => `Last order event ${n} d ago`, buyoutTitle: "For buyout", store: "Store", variant: "Variant", price: "Store price at checkout", each: "per item", sku: "SKU" },
+});
+/** The store's own price in its currency (lib/market/store-price.ts). */
+const storePriceText = formatStorePrice;
+const storeHost = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; } };
 /**
  * Older orders (no separate hold) credit a cheaper store delivery only up to the money recorded for the order:
  * show what actually reached the balance, never a refund that was not recorded.
@@ -290,6 +303,8 @@ function OrderIssueCasePanel({ order, notifications, run, locale }: {
   const [status, setStatus] = useState<OrderIssueStatus>(order.issueCase?.status ?? "open");
   const [proposedRefund, setProposedRefund] = useState(order.issueCase?.proposedRefund === undefined ? "" : String(order.issueCase.proposedRefund));
   const [busy, setBusy] = useState(false);
+  // Soum sums in the screen language ("сум" / "so‘m" / "UZS"), as on the customer pages.
+  const money = (amount: number) => formatSum(amount, locale);
   const words = orderIssueWords[locale];
   const categoryLabels: Record<OrderIssueCategory, string> = words.categories;
   const statusLabels: Record<OrderIssueStatus, string> = words.statuses;
@@ -322,13 +337,18 @@ function OperatorOrderTools({
   notifications,
   run,
   locale,
+  telegram = false,
 }: {
   order: Order;
   notifications: Notification[];
   run: (action: Action) => Promise<boolean>;
   locale: Locale;
+  /** The customer turned Telegram order notices on: free texts below go there too, as typed. */
+  telegram?: boolean;
 }) {
   const [team, setTeam] = useState<"Закупки" | "Склад" | "Поддержка" | "Финансы">(order.assignment?.team ?? "Закупки");
+  // Soum sums in the screen language ("сум" / "so‘m" / "UZS"), as on the customer pages.
+  const money = (amount: number) => formatSum(amount, locale);
   const [priority, setPriority] = useState<"Обычный" | "Высокий" | "Срочный">(order.assignment?.priority ?? "Обычный");
   const [carrier, setCarrier] = useState(order.parcel?.carrier ?? "Atlas Cargo");
   const [tracking, setTracking] = useState(order.parcel?.trackingNumber ?? "");
@@ -389,6 +409,7 @@ function OperatorOrderTools({
               <button className="btn secondary" disabled={busy || pendingChange(order)}>Отправить стоимость на согласование</button>
               <div className="field warehouse-service-decline-reason"><label htmlFor={`warehouse-service-decline-${request.id}`}>Причина отказа</label><input id={`warehouse-service-decline-${request.id}`} minLength={2} maxLength={500} required value={declineReason} onChange={(event) => setServiceDeclineReasons((current) => ({ ...current, [request.id]: event.target.value }))} /></div>
               <button type="button" className="text-button warehouse-service-decline" disabled={busy || pendingChange(order)} onClick={() => void save({ type: "warehouse-service-decline", id: order.id, requestId: request.id, reason: declineReason }, "Запрос отмечен недоступным")}>Отметить услугу недоступной</button>
+              <OperatorTelegramHint on={telegram} locale={locale} />
             </form> : request.status === "requested" ? <p className="micro">Согласование станет доступно после приёмки товара на склад.</p> : <div className="warehouse-service-completion"><strong>{money(request.quotedAmount ?? expectedAmount)}</strong><button className="btn secondary" disabled={busy} onClick={() => void save({ type: "warehouse-service-complete", id: order.id, requestId: request.id }, "Статус услуги обновлён")}>Отметить выполненной</button></div>}
           </article>;
         })}
@@ -430,6 +451,7 @@ function OperatorOrderTools({
           <div className="field"><label htmlFor={`change-amount-${order.id}`}>Изменение суммы, сум</label><input id={`change-amount-${order.id}`} type="number" min="-100000000" max="100000000" step="1" value={amountDelta} onChange={(event)=>setAmountDelta(event.target.value)}/></div>
           {["price","variant","substitution"].includes(changeKind) && orderInsuranceRate(order) && Number(amountDelta) ? <p className="micro">Посылка под гарантией сохранности: покупатель увидит {Number(amountDelta) > 0 ? "+" : "−"}{money(Math.abs(Math.round(Number(amountDelta) * (1 + orderInsuranceRate(order)!))))} — с платой за гарантию {Math.round(orderInsuranceRate(order)! * 1000) / 10} % от разницы цены.</p> : null}
           <div className="field"><label htmlFor={`change-reason-${order.id}`}>Причина</label><textarea id={`change-reason-${order.id}`} required minLength={2} maxLength={500} rows={3} value={changeReason} onChange={(event)=>setChangeReason(event.target.value)}/></div>
+          <OperatorTelegramHint on={telegram} locale={locale} />
           <button className="btn secondary" disabled={busy || !changeTitle.trim() || !changeReason.trim() || pendingChange(order)}>Отправить на согласование</button>
           {pendingChange(order) && <p className="micro">Покупатель ещё не ответил на предыдущий запрос.</p>}
         </form>
@@ -445,6 +467,7 @@ function OperatorOrderCommunication({
   recipientAvailable,
   run,
   locale,
+  telegram = false,
 }: {
   order: Order;
   customerName: string;
@@ -452,6 +475,8 @@ function OperatorOrderCommunication({
   recipientAvailable: boolean;
   run: (action: Action) => Promise<boolean>;
   locale: Locale;
+  /** The customer turned Telegram order notices on: the notice below goes there too, as typed. */
+  telegram?: boolean;
 }) {
   const [note, setNote] = useState("");
   const [title, setTitle] = useState("");
@@ -469,12 +494,12 @@ function OperatorOrderCommunication({
       titleLabel: "Заголовок уведомления",
       messageLabel: "Текст уведомления",
       send: "Отправить уведомление в Atlas",
-      channelHint: "Сообщение появится в уведомлениях выбранного аккаунта Atlas. Email и SMS не отправляются.",
+      channelHint: "Сообщение появится в уведомлениях выбранного аккаунта Atlas.",
       noRecipient: "Не удалось определить аккаунт этого заказа. Обновите очередь перед отправкой.",
       noteSaved: "Внутренняя заметка сохранена",
       notificationSaved: "Уведомление сохранено в Atlas",
       saving: "Сохраняем…",
-      titlePlaceholder: "Например, Нужны реквизиты для возврата",
+      titlePlaceholder: "Например, Уточните размер",
       messagePlaceholder: "Напишите, что нужно сообщить покупателю",
     },
     uz: {
@@ -488,12 +513,12 @@ function OperatorOrderCommunication({
       titleLabel: "Bildirishnoma sarlavhasi",
       messageLabel: "Bildirishnoma matni",
       send: "Atlasda bildirishnoma yuborish",
-      channelHint: "Xabar tanlangan Atlas akkauntining bildirishnomalarida ko‘rinadi. Email va SMS yuborilmaydi.",
+      channelHint: "Xabar tanlangan Atlas akkauntining bildirishnomalarida ko‘rinadi.",
       noRecipient: "Bu buyurtma akkauntini aniqlab bo‘lmadi. Yuborishdan oldin navbatni yangilang.",
       noteSaved: "Ichki izoh saqlandi",
       notificationSaved: "Bildirishnoma Atlasda saqlandi",
       saving: "Saqlanmoqda…",
-      titlePlaceholder: "Masalan, Qaytarish uchun ma’lumot kerak",
+      titlePlaceholder: "Masalan, O‘lchamni aniqlashtiring",
       messagePlaceholder: "Xaridorga aytilishi kerak bo‘lgan ma’lumotni yozing",
     },
     en: {
@@ -507,12 +532,12 @@ function OperatorOrderCommunication({
       titleLabel: "Notification title",
       messageLabel: "Notification message",
       send: "Save in-app notification",
-      channelHint: "The message appears in this Atlas account’s notifications. No email or SMS is sent.",
+      channelHint: "The message appears in this Atlas account’s notifications.",
       noRecipient: "Could not identify this order’s account. Refresh the queue before sending.",
       noteSaved: "Internal note saved",
       notificationSaved: "Notification saved in Atlas",
       saving: "Saving…",
-      titlePlaceholder: "For example, Details needed for your refund",
+      titlePlaceholder: "For example, Please confirm the size",
       messagePlaceholder: "Write what the customer needs to know",
     },
   }, locale);
@@ -581,6 +606,7 @@ function OperatorOrderCommunication({
             <textarea id={`notification-message-${order.id}`} required minLength={1} maxLength={300} rows={3} value={message} disabled={busy || !recipientAvailable} placeholder={words.messagePlaceholder} onChange={(event) => setMessage(event.target.value)} />
           </div>
           <p className="micro">{words.channelHint}</p>
+          <OperatorTelegramHint on={telegram} locale={locale} />
           <button className="btn secondary" disabled={busy || !recipientAvailable || !title.trim() || !message.trim()}>{busy ? words.saving : words.send}</button>
         </form>
       </div>
@@ -607,6 +633,8 @@ function CustomerWarehouseServices({
   busy: boolean;
   run: (action: Action) => Promise<boolean>;
 }) {
+  // Soum sums in the screen language ("сум" / "so‘m" / "UZS"), as on the customer pages.
+  const money = (amount: number) => formatSum(amount, locale);
   const [serviceId, setServiceId] = useState("");
   const [units, setUnits] = useState("1");
   const [customerNote, setCustomerNote] = useState("");
@@ -810,7 +838,7 @@ function LineActions({ order: o, siblings, label, locale, busy, run, confirm }: 
 /** The calculation of one line: its cost lines, invoices, weighing, store delivery and duty settlements, payment status. */
 function LineCalculation({ order: o, storeCredited, locale, payment = true }: { order: Order; storeCredited: number; locale: Locale; /** Off when the parcel panel says the shared payment and consent once. */ payment?: boolean }) {
   const ow = { ...customerOrderCopy[locale], ...customerOrderDisclosureCopy[locale] };
-  const kg = locale === "ru" ? "кг" : "kg";
+  const kg = locale === "ru" || locale === "oz" ? "кг" : "kg";
   return <>
     <CostLines q={o.quote} storeReserveWaived={o.product.sourceShippingEstimated === true} locale={locale} />
     <ExtraChargeHistory order={o} locale={locale} />
@@ -827,7 +855,7 @@ function LineCalculation({ order: o, storeCredited, locale, payment = true }: { 
       <Scale size={18} aria-hidden="true" />
       <div>
         <b>{warehouseExtra(o) ? ow.shippingOver : o.settlement.refund ? ow.shippingCheaper : ow.shippingRecalculated}</b>
-        <p>{ow.payableWeight}: {o.settlement.chargeableWeight.toFixed(2)} {kg}. {ow.cost}: {formatSum(o.settlement.shipping, locale)}.</p>
+        <p>{ow.payableWeight}: {kgText(o.settlement.chargeableWeight, locale)} {kg}. {ow.cost}: {formatSum(o.settlement.shipping, locale)}.</p>
         <p><strong>{o.settlement.refund ? `${ow.refundToBalance} ${formatSum(o.settlement.refund, locale)}` : o.extraApproved ? `${ow.extraApproved}: ${formatSum(o.settlement.extra, locale)}` : o.settlement.extra ? `${ow.needApprove} ${formatSum(o.settlement.extra, locale)}` : ow.noExtra}</strong></p>
         {o.settlement.refund > 0 && <Link className="order-x-link" href="/balance">{ow.balance}<ArrowRight size={14} aria-hidden="true" /></Link>}
       </div>
@@ -840,7 +868,7 @@ function LineCalculation({ order: o, storeCredited, locale, payment = true }: { 
     {/* The payment status only: the provider note is said once, in the pay / доплата confirmation. */}
     {payment && <PaymentFacts order={o} locale={locale} />}
     {o.balanceUsed > 0 && <p className="micro">{ow.balanceUsed}: {formatSum(o.balanceUsed, locale)}</p>}
-    {o.settlement && <p className="micro">{ow.actualWeight}: {o.settlement.actualWeight.toFixed(2)} {kg} · {ow.dimensional}: {o.settlement.dimensionalWeight.toFixed(2)} {kg}</p>}
+    {o.settlement && <p className="micro">{ow.actualWeight}: {kgText(o.settlement.actualWeight, locale)} {kg} · {ow.dimensional}: {kgText(o.settlement.dimensionalWeight, locale)} {kg}</p>}
   </>;
 }
 
@@ -1176,6 +1204,20 @@ export function OrdersView({ operations }: { operations: boolean }) {
   }
   const canReadOperations = hasPermission(user, "operations.read");
   const [expanded,setExpanded]=useState<string[]>([]);
+  // Phone: an order the operator opens brings its next move (the action bar) into view once the body renders; the bar's
+  // scroll-margin (operator-mobile.css) keeps it clear of the header and the bottom navigation. "nearest" leaves a bar
+  // that is already in view alone; the page's own scroll-behavior makes it instant under reduced motion. Two frames later:
+  // a smooth scroll started in the frame that opens the order is held to the page's old, shorter height.
+  const revealActionOf = useRef<string | null>(null);
+  useEffect(() => {
+    const id = revealActionOf.current;
+    revealActionOf.current = null;
+    if (!id || !window.matchMedia("(max-width: 600px)").matches) return;
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => document.getElementById(id)?.querySelector(".ops-action-bar")?.scrollIntoView({ block: "nearest" }));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [expanded]);
   const [tab, setTab] = useState("active"),
     [query, setQuery] = useState(""),
     [warehouse, setWarehouse] = useState<string | null>(null),
@@ -1301,10 +1343,14 @@ export function OrdersView({ operations }: { operations: boolean }) {
   const viewReady = operations ? opsReady : ready;
   const viewError = operations ? opsError : error;
   const locale = state.communication.language as Locale;
+  // Soum sums in the screen language ("сум" / "so‘m" / "UZS"), as on the customer pages.
+  const money = (amount: number) => formatSum(amount, locale);
   const ow = {...customerOrderCopy[locale],...customerOrderDisclosureCopy[locale],emptyDescription:customerOrderEmptyCopy[locale]};
   const displayStatuses = localizedStatuses(locale);
   const wc=pickLocale({ru:{customerOver:"ВАШИ ПОКУПКИ В ПУТИ",customerTitle:"От магазина до вашей двери.",customerIntro:"Статусы, расчёты и история каждого заказа.",operatorOver:"РАБОЧЕЕ МЕСТО ОПЕРАТОРА",operatorTitle:"Всё готово к следующему шагу.",operatorIntro:"Выкупайте, принимайте на склад и согласовывайте исключения.",customerView:"Вид покупателя",operatorView:"Открыть обработку",active:"В работе",attention:"Нужно решение",done:"Завершённые",searchCustomer:"Номер или товар",searchOperator:"Номер, товар или покупатель"},uz:{customerOver:"BUYURTMALARINGIZ YO‘LDA",customerTitle:"Do‘kondan eshigingizgacha.",customerIntro:"Har bir buyurtmaning holati, hisobi va tarixi.",operatorOver:"OPERATOR ISH JOYI",operatorTitle:"Keyingi qadam uchun hammasi tayyor.",operatorIntro:"Xaridni, ombor qabulini va istisnolarni boshqaring.",customerView:"Mijoz ko‘rinishi",operatorView:"Qayta ishlashni ochish",active:"Jarayonda",attention:"Qaror kerak",done:"Yakunlangan",searchCustomer:"Raqam yoki tovar",searchOperator:"Raqam, tovar yoki mijoz"},en:{customerOver:"YOUR PURCHASES IN TRANSIT",customerTitle:"From the store to your door.",customerIntro:"Status, calculation and history for every order.",operatorOver:"OPERATOR WORKSPACE",operatorTitle:"Everything is ready for the next step.",operatorIntro:"Manage purchase, warehouse intake and exceptions.",customerView:"Customer view",operatorView:"Open processing",active:"In progress",attention:"Decision needed",done:"Completed",searchCustomer:"Order number or item",searchOperator:"Order number, item or customer"}}, state.communication.language);
   const refundTabLabel=pickLocale({ru:"Возвраты и отмены",uz:"Qaytarishlar va bekor qilinganlar",en:"Refunds and cancellations"}, locale);
+  // The tab itself says it short (it fits the phone row in every language); the full name is its title and the screen-reader filter line.
+  const refundTabShort=pickLocale({ru:"Возвраты",uz:"Qaytarishlar",en:"Refunds"}, locale);
   const refundStatusLabel=pickLocale({ru:"Отметка возврата в Atlas",uz:"Atlasdagi qaytarish belgisi",en:"Refund marker in Atlas"}, locale);
   const refundQueueCopy=pickLocale({ru:"Здесь отменённые заказы и заказы с отметкой о возврате. Сумма ниже — проводки Atlas, зачисленные во внутренний баланс покупателя по этому заказу; перевод на карту, в банк или кошелёк не выполняется.",uz:"Bu yerda bekor qilingan buyurtmalar va qaytarish belgisi bor buyurtmalar ko‘rsatiladi. Quyidagi summa — shu buyurtma bo‘yicha xaridorning Atlas ichki balansiga yozilgan hisob; karta, bank yoki hamyonga pul o‘tkazilmaydi.",en:"This queue includes cancelled orders and orders marked refunded. The amount shown is Atlas ledger entries credited to the customer’s internal balance for this order; no card, bank, or wallet transfer is made."}, locale);
   const receiving = orders.find((o) => o.id === warehouse);
@@ -1375,6 +1421,10 @@ export function OrdersView({ operations }: { operations: boolean }) {
     return parcel.length > 1 && !parcel.some((item) => item.settlement) ? parcel : [order];
   };
   const weighLead = (order: Order) => weighGroup(order).find((item) => item.status === 2 && readyToWeigh(item)) ?? weighGroup(order).find((item) => item.status === 2) ?? order;
+  // The operator's queue row says whose move the order waits for and how long nothing has happened to it.
+  const opsStep = (order: Order) => operatorNextStep(order, { weighLeadId: order.status === 2 ? weighLead(order).id : undefined });
+  const queueNow = new Date().getTime();
+  const sc = opsStepCopy[locale];
   const receivingGroup = receiving ? weighGroup(receiving) : [];
   // Not ready: still on the way, or at the warehouse with an open problem or service. The operator may weigh without them.
   const receivingWaiting = receivingGroup.filter((item) => item.id !== receiving?.id && (item.status < 2 || !readyToWeigh(item)));
@@ -1502,6 +1552,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
       />
     );
   const oc = ordersCopy[locale];
+  const cartUnits = state.cart.reduce((sum, item) => sum + item.quantity, 0);
   return (
     <>
       {!operations ? <header className="orders-head">
@@ -1510,6 +1561,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
           <Search size={18} aria-hidden="true" />
           <input aria-label={ow.search} placeholder={oc.search} value={query} onChange={(e) => { clearOrderLink(); setQuery(e.target.value); }} />
         </label>}
+        {/* A quiet way to the next purchase while checking a parcel; secondary — the pay step keeps the one primary button. */}
+        {orders.length > 0 && <Link className="btn secondary orders-head-new" href="/order-by-link" title={oc.newOrder}><Plus size={18} aria-hidden="true" /><span>{oc.newOrder}</span></Link>}
         {canReadOperations && <Link className="btn secondary" href="/operations">{wc.operatorView}<ArrowUpRight size={16} aria-hidden="true" /></Link>}
       </header> : <PageHeading
         overline={
@@ -1569,8 +1622,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
               <TabsTrigger value="done">
                 {wc.done} <b>{operations ? opsCounts?.done ?? 0 : groupTabs.done.length}</b>
               </TabsTrigger>
-              {operations && <TabsTrigger value="refunds">
-                {refundTabLabel} <b>{opsCounts?.refunds ?? 0}</b>
+              {operations && <TabsTrigger value="refunds" title={refundTabLabel}>
+                {refundTabShort} <b>{opsCounts?.refunds ?? 0}</b>
               </TabsTrigger>}
             </TabsList>
               <TabsContent value={tab} className="sr-only">
@@ -1579,7 +1632,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
             </TabsContent>
           </Tabs>
           {/* Customers with a handful of orders scan the list; search appears once it gets long (beside the title for them). */}
-          {operations && <label className="search-field">
+          {operations && <div className="ops-search-row"><label className="search-field">
             <Search size={18} aria-hidden="true" />
             <input
               aria-label={ow.search}
@@ -1587,8 +1640,8 @@ export function OrdersView({ operations }: { operations: boolean }) {
               value={query}
               onChange={(e) => { clearOrderLink(); setQuery(e.target.value); }}
             />
-          </label>}
-          {operations&&<button type="button" className="btn secondary order-refresh" disabled={opsRefreshing} onClick={()=>void refreshOperations()}><RefreshCw size={16} className={opsRefreshing?"spin":""}/>{locale==='ru'?(opsRefreshing?'Обновляем…':'Обновить очередь'):isUzbek(locale)?uzText(locale, (opsRefreshing?'Yangilanmoqda…':'Navbatni yangilash')):(opsRefreshing?'Refreshing…':'Refresh queue')}</button>}
+          </label>
+          <button type="button" className="btn secondary order-refresh" disabled={opsRefreshing} onClick={()=>void refreshOperations()}><RefreshCw size={16} className={opsRefreshing?"spin":""} aria-hidden="true"/><span className="order-refresh-label">{locale==='ru'?(opsRefreshing?'Обновляем…':'Обновить очередь'):isUzbek(locale)?uzText(locale, (opsRefreshing?'Yangilanmoqda…':'Navbatni yangilash')):(opsRefreshing?'Refreshing…':'Refresh queue')}</span></button></div>}
         </div>
       )}
       {operations && tab === "refunds" && <p className="notice">{refundQueueCopy}</p>}
@@ -1611,8 +1664,12 @@ export function OrdersView({ operations }: { operations: boolean }) {
           <LoadingCards label={ow.loading} />
         )
       ) : !orders.length && !operations ? (
-        <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><Package size={28} /></span><h2>{ow.emptyTitle}</h2><p>{ow.emptyDescription}</p>
-          <div className="basket-empty-actions"><Link className="btn primary" href="/order-by-link">{ordersCopy[locale].newOrder}<ArrowRight size={18} aria-hidden="true" /></Link><Link className="btn secondary" href="/cart">{ordersCopy[locale].cart}</Link></div>
+        // No orders yet but items wait in the cart: lead to checkout first, not to another import. Same count as the header badge.
+        cartUnits > 0 ? <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><Package size={28} /></span><h2>{ow.emptyTitle}</h2><p>{oc.cartWaiting(itemCount(cartUnits, locale))}</p>
+          <div className="basket-empty-actions"><Link className="btn primary" href="/cart"><ShoppingBag size={18} aria-hidden="true" />{oc.toCart}</Link><Link className="btn secondary" href="/order-by-link">{oc.newOrder}</Link></div>
+        </section>
+        : <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><Package size={28} /></span><h2>{ow.emptyTitle}</h2><p>{ow.emptyDescription}</p>
+          <div className="basket-empty-actions"><Link className="btn primary" href="/order-by-link">{oc.newOrder}<ArrowRight size={18} aria-hidden="true" /></Link><Link className="btn secondary" href="/catalog">{navCopy[locale].catalog}</Link></div>
         </section>
       ) : queueEmpty ? (
         <Empty
@@ -1640,11 +1697,18 @@ export function OrdersView({ operations }: { operations: boolean }) {
           const firstLive = group.orders.find(order => !order.cancelled);
           return <OrderGroupCard key={group.key} group={group} locale={locale} busy={busy} allowanceUsd={firstLive ? allowanceFor(firstLive) : undefined} passports={passportNotes.get(group.key) ?? []} parcel={parcel} onPay={pay} />;
         }) : filtered.map((o) => (
-          <details className="surface order-card compact-order" key={o.id} id={o.id} onToggle={event=>{const open=event.currentTarget.open;setExpanded(ids=>open?[...new Set([...ids,o.id])]:ids.filter(id=>id!==o.id))}}>
+          <details className="surface order-card compact-order" key={o.id} id={o.id} onToggle={event=>{const open=event.currentTarget.open;if(open&&operations)revealActionOf.current=o.id;setExpanded(ids=>open?[...new Set([...ids,o.id])]:ids.filter(id=>id!==o.id))}}>
             <summary className="compact-order-summary">
               <ProductImage product={o.product} decorative locale={state.communication.language} size={240} />
-               <span className="compact-order-name"><small>{o.id}{operations ? ` · ${orderAccount.get(o.id)?.name ?? ''}` : ''}</small><b>{o.product.name}</b><span>{readableVariant(o.variant, o.product.sourceOptions)} · {o.quantity}</span>{operations && tab === "refunds" && <small>{atlasCreditForOrder(orderAccount.get(o.id), o.id) > 0 ? `${locale === "ru" ? "Зачислено во внутренний баланс Atlas" : isUzbek(locale) ? uzText(locale, "Atlas ichki balansiga yozildi") : "Credited to Atlas internal balance"}: ${money(atlasCreditForOrder(orderAccount.get(o.id), o.id))}` : locale === "ru" ? "Зачислений во внутренний баланс Atlas по заказу нет" : isUzbek(locale) ? uzText(locale, "Buyurtma bo‘yicha Atlas ichki balansiga yozuv yo‘q") : "No Atlas internal-balance credit recorded for this order"}</small>}</span>
-               <span className={'status-badge '+(isExtra(o)||pendingChange(o)||(!operations&&o.payment?.status==='pending')?'needs-action':'')}>{o.cancelled ? ow.cancelled : o.payment?.status==='refunded' ? refundStatusLabel : isExtra(o)||pendingChange(o) ? ow.needDecision : o.payment?.status==='pending' ? ow.awaitingPayment : displayStatuses[o.status]}</span>
+               <span className="compact-order-name"><small>{o.id}{operations ? ` · ${orderAccount.get(o.id)?.name ?? ''}` : ''}</small><b>{o.product.name}</b><span>{readableVariant(o.variant, o.product.sourceOptions)} · {o.quantity}</span>{operations && (() => {
+                 const step = opsStep(o), idle = orderIdleDays(o, queueNow);
+                 // The badge already says "Ожидает оплаты": no second line for it.
+                 if (!step || step.key === "payment") return null;
+                 const text = step.key === "weighTogether" && step.leadId ? sc.together(step.leadId) : sc.steps[step.key];
+                 const age = idle >= 1 ? sc.days(idle) : "";
+                 return <span className={"ops-next is-" + step.kind} title={age ? sc.idle(idle) : undefined}>{step.kind === "yours" ? <ArrowRight size={14} aria-hidden="true" /> : <Clock3 size={14} aria-hidden="true" />}<span>{[text, age].filter(Boolean).join(" · ")}</span></span>;
+               })()}{operations && tab === "refunds" && <small>{atlasCreditForOrder(orderAccount.get(o.id), o.id) > 0 ? `${locale === "ru" ? "Зачислено во внутренний баланс Atlas" : isUzbek(locale) ? uzText(locale, "Atlas ichki balansiga yozildi") : "Credited to Atlas internal balance"}: ${money(atlasCreditForOrder(orderAccount.get(o.id), o.id))}` : locale === "ru" ? "Зачислений во внутренний баланс Atlas по заказу нет" : isUzbek(locale) ? uzText(locale, "Buyurtma bo‘yicha Atlas ichki balansiga yozuv yo‘q") : "No Atlas internal-balance credit recorded for this order"}</small>}</span>
+               <span className={'status-badge '+(operations?(opsStep(o)?.kind==='waiting'?'is-waiting':''):isExtra(o)||pendingChange(o)||o.payment?.status==='pending'?'needs-action':'')}>{o.cancelled ? ow.cancelled : o.payment?.status==='refunded' ? refundStatusLabel : isExtra(o)||pendingChange(o) ? ow.needDecision : o.payment?.status==='pending' ? ow.awaitingPayment : displayStatuses[o.status]}</span>
               <strong>{money(orderPayable(o))}</strong><ArrowRight size={18}/>
             </summary>
             {expanded.includes(o.id)&&<div className="compact-order-body">
@@ -1673,6 +1737,112 @@ export function OrdersView({ operations }: { operations: boolean }) {
                     : displayStatuses[o.status]}
               </span>
             </div>
+            {/* The next move first: the operator's action with its blocking reasons, right under the order head. */}
+            {operations && !o.cancelled && (o.status < 5 || (Boolean(o.quote.customsHelp) && !o.customsSettlement)) && <div className="ops-action-bar">
+              {o.status === 0 && o.payment?.status !== "pending" && (
+                <div className="ops-buyout">
+                  <b>{sc.buyoutTitle}</b>
+                  <dl className="ops-buyout-facts">
+                    {o.product.sourceUrl && <div><dt>{sc.store}</dt><dd><a className="text-link" href={o.product.sourceUrl} target="_blank" rel="noopener noreferrer">{storeHost(o.product.sourceUrl)}<ArrowUpRight size={14} aria-hidden="true" /></a><CopyText text={o.product.sourceUrl} locale={locale} what="link" /></dd></div>}
+                    <div><dt>{sc.variant}</dt><dd>{readableVariant(o.variant, o.product.sourceOptions)} × {o.quantity}</dd></div>
+                    {o.product.sourcePrice !== undefined && o.product.sourceCurrency && <div><dt>{sc.price}</dt><dd>{storePriceText(o.product.sourcePrice, o.product.sourceCurrency, locale)} <small>{sc.each}</small></dd></div>}
+                    {o.product.sourceVariantId && <div><dt>{sc.sku}</dt><dd><span className="ops-sku">{o.product.sourceVariantId}</span><CopyText text={o.product.sourceVariantId} locale={locale} what="sku" /></dd></div>}
+                  </dl>
+                </div>
+              )}
+              {operations &&
+                !o.cancelled &&
+                o.status === 0 &&
+                o.product.sourceShippingEstimated &&
+                !o.storeShippingSettlement && (
+                  <button
+                    className="btn primary"
+                    onClick={() => {
+                      setActualStoreShipping(
+                        String(o.product.sourceShippingUsd ?? 10),
+                      );
+                      setStoreShippingOrder(o.id);
+                    }}
+                  >
+                    {ow.confirmStore}
+                    <ArrowRight size={16} />
+                  </button>
+                )}
+              {/* Atlas pays customs for this order: the operator enters the duty customs charged, before delivery. */}
+              {operations && !o.cancelled && Boolean(o.quote.customsHelp) && !o.customsSettlement && (
+                <button className="btn secondary" onClick={() => { setActualCustoms(String(Math.round((o.quote.customsDuty ?? 0) / (o.quote.fx ?? pricing.fx) * 100) / 100)); setCustomsOrder(o.id); }}>
+                  {customsWords[locale].confirm}
+                  <ArrowRight size={16} />
+                </button>
+              )}
+              {operations && o.status === 2 && !o.cancelled && weighLead(o).id !== o.id && (
+                <p className="micro">{weighWords[locale].together(weighLead(o).id)}</p>
+              )}
+              {operations &&
+                !o.cancelled &&
+                o.status < 5 &&
+                // A store parcel is weighed once, from its first order.
+                !(o.status === 2 && weighLead(o).id !== o.id) &&
+                !(
+                  o.status === 0 &&
+                  o.product.sourceShippingEstimated &&
+                  !o.storeShippingSettlement
+                ) && (
+                <button
+                  className="btn primary"
+                  disabled={isExtra(o) || pendingChange(o) || (o.status === 2 && !o.warehouseInspection) || (o.status === 0 && o.payment?.status === "pending") || (o.status === 3 && !o.parcel)}
+                  onClick={async () => {
+                    if (o.status === 2) {
+                      setWarehouse(o.id);
+                      setWeighWithout(false);
+                      setDims([
+                        String(
+                          Math.max(
+                            0.1,
+                            Math.round(weighGroup(o).filter((item) => item.status >= 2).reduce((sum, item) => sum + item.quote.weight, 0) * 0.85 * 100) / 100,
+                          ),
+                        ),
+                        "30",
+                        "20",
+                        "15",
+                      ]);
+                      return;
+                    }
+                    if (
+                      await runOrderAction({
+                        type: "advance",
+                        id: o.id,
+                        expected: o.status,
+                      })
+                    )
+                       toast.success(ow.statusUpdated);
+                  }}
+                >
+                  {o.status === 0
+                     ? ow.confirmBuyout
+                    : o.status === 1
+                       ? ow.receiveWarehouse
+                      : o.status === 2
+                         ? ow.weigh
+                        : o.status === 3
+                           ? ow.sendUzbekistan
+                           : ow.confirmDelivery}
+                  <ArrowRight size={16} />
+                </button>
+              )}
+              {operations && (isExtra(o) || pendingChange(o)) && (
+                <p className="micro">
+                   {ow.sendAfterApproval}
+                </p>
+              )}
+              {operations && o.status === 2 && !o.warehouseInspection && <p className="micro">{ow.saveReceivingFirst}</p>}
+              {operations && !o.cancelled && o.status === 0 && o.payment?.status === "pending" && (
+                <p className="micro">{ow.payFirst}</p>
+              )}
+              {operations && o.status === 3 && !o.parcel && (
+                <p className="micro">{ow.trackingFirst}</p>
+              )}
+            </div>}
             {operations&&<OperatorOrderContacts order={o} account={orderAccount.get(o.id)} locale={locale}/>}
             <div className="order-product">
               <div className="order-photo">
@@ -1824,7 +1994,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
                          : ow.shippingRecalculated}
                   </h3>
                   <p>
-                    {ow.payableWeight}: {o.settlement.chargeableWeight.toFixed(2)} {locale === "ru" ? "кг." : "kg."} {ow.cost}: {money(o.settlement.shipping)}.
+                    {ow.payableWeight}: {kgText(o.settlement.chargeableWeight, locale)} {locale === "ru" || locale === "oz" ? "кг." : "kg."} {ow.cost}: {money(o.settlement.shipping)}.
                   </p>
                   <strong>
                     {o.settlement.refund
@@ -1863,102 +2033,10 @@ export function OrdersView({ operations }: { operations: boolean }) {
                 <ArrowRight size={16} />
               </button>
             )}
-            {operations &&
-              !o.cancelled &&
-              o.status === 0 &&
-              o.product.sourceShippingEstimated &&
-              !o.storeShippingSettlement && (
-                <button
-                  className="btn primary"
-                  onClick={() => {
-                    setActualStoreShipping(
-                      String(o.product.sourceShippingUsd ?? 10),
-                    );
-                    setStoreShippingOrder(o.id);
-                  }}
-                >
-                  {ow.confirmStore}
-                  <ArrowRight size={16} />
-                </button>
-              )}
-            {/* Atlas pays customs for this order: the operator enters the duty customs charged, before delivery. */}
-            {operations && !o.cancelled && Boolean(o.quote.customsHelp) && !o.customsSettlement && (
-              <button className="btn secondary" onClick={() => { setActualCustoms(String(Math.round((o.quote.customsDuty ?? 0) / (o.quote.fx ?? pricing.fx) * 100) / 100)); setCustomsOrder(o.id); }}>
-                {customsWords[locale].confirm}
-                <ArrowRight size={16} />
-              </button>
-            )}
-            {operations && o.status === 2 && !o.cancelled && weighLead(o).id !== o.id && (
-              <p className="micro">{weighWords[locale].together(weighLead(o).id)}</p>
-            )}
-            {operations &&
-              !o.cancelled &&
-              o.status < 5 &&
-              // A store parcel is weighed once, from its first order.
-              !(o.status === 2 && weighLead(o).id !== o.id) &&
-              !(
-                o.status === 0 &&
-                o.product.sourceShippingEstimated &&
-                !o.storeShippingSettlement
-              ) && (
-              <button
-                className="btn primary"
-                disabled={isExtra(o) || pendingChange(o) || (o.status === 2 && !o.warehouseInspection) || (o.status === 0 && o.payment?.status === "pending") || (o.status === 3 && !o.parcel)}
-                onClick={async () => {
-                  if (o.status === 2) {
-                    setWarehouse(o.id);
-                    setWeighWithout(false);
-                    setDims([
-                      String(
-                        Math.max(
-                          0.1,
-                          Math.round(weighGroup(o).filter((item) => item.status >= 2).reduce((sum, item) => sum + item.quote.weight, 0) * 0.85 * 100) / 100,
-                        ),
-                      ),
-                      "30",
-                      "20",
-                      "15",
-                    ]);
-                    return;
-                  }
-                  if (
-                    await runOrderAction({
-                      type: "advance",
-                      id: o.id,
-                      expected: o.status,
-                    })
-                  )
-                     toast.success(ow.statusUpdated);
-                }}
-              >
-                {o.status === 0
-                   ? ow.confirmBuyout
-                  : o.status === 1
-                     ? ow.receiveWarehouse
-                    : o.status === 2
-                       ? ow.weigh
-                      : o.status === 3
-                         ? ow.sendUzbekistan
-                         : ow.confirmDelivery}
-                <ArrowRight size={16} />
-              </button>
-            )}
-            {operations && (isExtra(o) || pendingChange(o)) && (
-              <p className="micro">
-                 {ow.sendAfterApproval}
-              </p>
-            )}
-            {operations && o.status === 2 && !o.warehouseInspection && <p className="micro">{ow.saveReceivingFirst}</p>}
-            {operations && !o.cancelled && o.status === 0 && o.payment?.status === "pending" && (
-              <p className="micro">{ow.payFirst}</p>
-            )}
-            {operations && o.status === 3 && !o.parcel && (
-              <p className="micro">{ow.trackingFirst}</p>
-            )}
-            {operations && <OperatorExtraCharges order={o} run={runOrderAction} locale={locale} />}
-            {operations && <OperatorParcelClaims order={o} run={runOrderAction} locale={locale} />}
-            {operations && <OperatorOrderTools order={o} notifications={orderAccount.get(o.id)?.state.notifications.filter((item) => item.orderId === o.id) ?? []} run={runOrderAction} locale={locale} />}
-            {operations && <OperatorOrderCommunication order={o} customerName={orderAccount.get(o.id)?.name ?? ""} customerEmail={orderAccount.get(o.id)?.id.replace(/^email:/, "") ?? ""} recipientAvailable={Boolean(orderAccount.get(o.id))} run={runOrderAction} locale={locale} />}
+            {operations && <OperatorExtraCharges order={o} run={runOrderAction} locale={locale} telegram={orderAccount.get(o.id)?.state.communication.telegramEnabled === true} />}
+            {operations && <OperatorParcelClaims order={o} run={runOrderAction} locale={locale} telegram={orderAccount.get(o.id)?.state.communication.telegramEnabled === true} />}
+            {operations && <OperatorOrderTools order={o} notifications={orderAccount.get(o.id)?.state.notifications.filter((item) => item.orderId === o.id) ?? []} run={runOrderAction} locale={locale} telegram={orderAccount.get(o.id)?.state.communication.telegramEnabled === true} />}
+            {operations && <OperatorOrderCommunication order={o} customerName={orderAccount.get(o.id)?.name ?? ""} customerEmail={orderAccount.get(o.id)?.id.replace(/^email:/, "") ?? ""} recipientAvailable={Boolean(orderAccount.get(o.id))} run={runOrderAction} locale={locale} telegram={orderAccount.get(o.id)?.state.communication.telegramEnabled === true} />}
             <OrderDocuments orderId={o.id} accountId={orderAccount.get(o.id)?.id} operatorMode={operations} locale={state.communication.language}/>
             <div className="order-bottom">
               <details>
@@ -2128,11 +2206,11 @@ export function OrdersView({ operations }: { operations: boolean }) {
               <dl className="cost-lines">
                 <div>
                    <dt>{ow.volumeWeight}</dt>
-                   <dd>{calc.dimensionalWeight.toFixed(2)} {locale === "ru" ? "кг" : "kg"}</dd>
+                   <dd>{kgText(calc.dimensionalWeight, locale)} {locale === "ru" || locale === "oz" ? "кг" : "kg"}</dd>
                 </div>
                 <div>
                    <dt>{ow.payableWeight}</dt>
-                   <dd>{calc.chargeableWeight.toFixed(2)} {locale === "ru" ? "кг" : "kg"}</dd>
+                   <dd>{kgText(calc.chargeableWeight, locale)} {locale === "ru" || locale === "oz" ? "кг" : "kg"}</dd>
                 </div>
                 <div>
                    <dt>{ow.paidShipping}</dt>
@@ -2266,6 +2344,8 @@ export function PricingManager({
   onSaved: (next: Pricing) => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  // Soum sums in the screen language ("сум" / "so‘m" / "UZS"), as on the customer pages.
+  const money = (amount: number) => formatSum(amount, locale);
   const [draft, setDraft] = useState(value);
   const [saving, setSaving] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState(countries[0]);
@@ -2708,7 +2788,7 @@ function CommunicationPanel({
   });
   const [saving, setSaving] = useState(false);
   const communicationWords=pickLocale({ru:{eyebrow:'КАНАЛЫ СВЯЗИ',title:'Email и SMS',emailHint:'Статусы, оплата и возвраты',smsHint:'Только важные изменения',phone:'Телефон',language:'Язык интерфейса и уведомлений',save:'Сохранить настройки',saved:'Настройки email и SMS сохранены'},uz:{eyebrow:'ALOQA KANALLARI',title:'Email va SMS',emailHint:'Holatlar, to‘lov va qaytarishlar',smsHint:'Faqat muhim o‘zgarishlar',phone:'Telefon',language:'Interfeys va bildirishnomalar tili',save:'Sozlamalarni saqlash',saved:'Email va SMS sozlamalari saqlandi'},en:{eyebrow:'CONTACT CHANNELS',title:'Email and SMS',emailHint:'Status, payment and refunds',smsHint:'Important changes only',phone:'Phone',language:'Interface and notification language',save:'Save settings',saved:'Email and SMS settings saved'}}, value.language);
-  const communicationCopy=value.language==='ru'?{description:'Настройки сохраняются в профиле. Отправка email и SMS не подключена.',status:'Отправка не подключена'}:isUzbek(value.language)?uzText(value.language, {description:'Sozlamalar profilda saqlanadi. Email va SMS yuborish ulanmagan.',status:'Yuborish ulanmagan'}):{description:'Preferences are saved to your account. Email and SMS delivery is not connected.',status:'Delivery not connected'};
+  const communicationCopy=value.language==='ru'?{description:'Настройки сохраняются в профиле.',status:'Email и SMS пока не отправляются'}:isUzbek(value.language)?uzText(value.language, {description:'Sozlamalar profilda saqlanadi.',status:'Email va SMS hozircha yuborilmaydi'}):{description:'Preferences are saved to your account.',status:'Email and SMS aren’t sent yet'};
   async function submit() {
     setSaving(true);
     const ok = await save(draft);
@@ -2780,7 +2860,7 @@ export function NotificationsView() {
           ? <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><Bell size={28} /></span><h2>{c.signin.title}</h2><p>{c.signin.text}</p><div className="basket-empty-actions"><Link className="btn primary" href="/login?return_to=%2Fnotifications">{c.signin.action}<ArrowRight size={18} aria-hidden="true" /></Link></div></section>
           : <LoadingCards label={c.loading} />
       ) : !state.notifications.length ? (
-        <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><Bell size={28} /></span><h2>{c.emptyTitle}</h2><p>{c.emptyText}</p><div className="basket-empty-actions"><Link className="btn secondary" href="/orders">{c.orders}</Link></div></section>
+        <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><Bell size={28} /></span><h2>{c.emptyTitle}</h2><p>{c.emptyText}</p><div className="basket-empty-actions"><Link className="btn primary" href="/order-by-link">{ordersCopy[locale].newOrder}<ArrowRight size={18} aria-hidden="true" /></Link>{state.orders.length > 0 && <Link className="btn secondary" href="/orders">{c.orders}</Link>}</div></section>
       ) : (
         <>
           <div className="notice-filters" role="group" aria-label={c.filtersLabel}>{(["all", "unread", "orders"] as const).map(value => <button type="button" key={value} className={noticeFilter === value ? "active" : ""} aria-pressed={noticeFilter === value} onClick={() => setNoticeFilter(value)}>{c.filters[value]}<b>{counts[value]}</b></button>)}</div>
@@ -2797,7 +2877,7 @@ export function NotificationsView() {
           </ul>}
         </>
       )}
-      {ready && <details className="notice-settings"><summary>{c.settings}</summary><CommunicationPanel key={`${state.communication.emailEnabled}-${state.communication.smsEnabled}-${state.communication.email}-${state.communication.phone}-${state.communication.language}`} value={state.communication} email={user?.email ?? ""} phone={state.deliveryProfile?.phone ?? ""} save={(value) => act({ type: "communication-save", value })} /></details>}
+      {ready && <details className="notice-settings"><summary>{c.settings}</summary><TelegramSettingsRow locale={locale} /><CommunicationPanel key={`${state.communication.emailEnabled}-${state.communication.smsEnabled}-${state.communication.email}-${state.communication.phone}-${state.communication.language}`} value={state.communication} email={user?.email ?? ""} phone={state.deliveryProfile?.phone ?? ""} save={(value) => act({ type: "communication-save", value })} /></details>}
       {ready && user?.operator && (
         <section className="message-log-section">
           <div className="section-heading"><h2>Журнал внешних сообщений</h2><span>{state.messageDeliveries.length} подготовлено</span></div>
@@ -2813,8 +2893,10 @@ export function BalanceView() {
   const locale = state.communication.language as Locale;
   const c = balanceCopy[locale];
   const [withdrawOpen, setWithdrawOpen] = useState(false);
-  const reserved = state.orders.filter((o) => !o.cancelled && !o.settlement).reduce((s, o) => s + o.quote.reserve, 0);
-  const entries = [...state.entries].reverse();
+  // Unpaid requests reserve nothing yet; older orders without a payment record still count.
+  const reserved = state.orders.filter((o) => !o.cancelled && !o.settlement && o.payment?.status !== "pending").reduce((s, o) => s + o.quote.reserve, 0);
+  // Only the lines that move the balance: a demo payment mark or an extra charge is not a "−" from it.
+  const entries = [...balanceEntries(state)].reverse();
   return (
     <div className="wallet-page">
       <header className="orders-head"><div><h1>{c.title}</h1></div></header>

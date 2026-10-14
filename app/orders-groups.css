@@ -295,13 +295,29 @@ html[data-theme="dark"] .og-services li:not([data-on]) > span:not(.og-tick) { co
 .og-track-steps li > span { display: none; }
 @media (min-width: 640px) {
   .og-track-steps { gap: 6px; }
-  .og-track-steps li > span { display: block; overflow-wrap: anywhere; }
+  /* A long step name ("Xorijdagi omborda", "Jo‘natishga tayyor") wraps before it reaches the next one: never two names run together. */
+  .og-track-steps li > span { display: block; padding-right: 8px; overflow-wrap: anywhere; text-wrap: balance; }
+  .og-track-steps li:last-child > span { padding-right: 0; }
   .og-track-name { display: none; }
   .og-title-row .order-group-sum strong { font-size: 18px; }
 }
 /* The search beside the page title, not on a row of its own under it. */
 .orders-head .orders-head-search { flex: 0 1 360px; margin: 0; }
 @media (min-width: 760px) { .orders-head { align-items: flex-end; } }
+/* "Order by link" beside the title once there are orders: secondary, the pay step keeps the one primary button. */
+.orders-head:has(> .orders-head-new) > div:first-child { flex: 1 1 auto; min-width: 0; }
+.orders-head .orders-head-new { flex: none; }
+/* Wider screens: the button and the search beside it stand at one height (44 px), not 48 next to 43. */
+@media (min-width: 640px) {
+  .orders-head .orders-head-new { min-height: 44px; padding-block: 0; }
+  .orders-head .orders-head-search { min-height: 44px; }
+}
+@media (max-width: 639px) {
+  /* Phone: the search takes its own row, the button stays beside the title as a 44 px icon. */
+  .orders-head .orders-head-search { order: 2; flex-basis: 100%; }
+  .orders-head .orders-head-new { width: 44px; min-height: 44px; padding: 0; justify-content: center; }
+  .orders-head .orders-head-new span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+}
 html:not([data-theme="dark"]) .og-track-steps li::before { background: var(--day-line-strong-2); }
 html:not([data-theme="dark"]) .og-track-steps li[data-state="done"]::before { background: var(--day-fresh); }
 html:not([data-theme="dark"]) .og-track-steps li[data-state="current"]::before { background: var(--day-accent); }

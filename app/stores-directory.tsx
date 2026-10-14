@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent, type RefObject } from 'react';
 import { ArrowRight, ChevronDown, Link2, Search, X } from 'lucide-react';
+import Link from '@/components/site-link';
 import {PasteButton} from '@/components/paste-button';
 import { useMarket } from '@/lib/market/store';
 import { useRowAtStart } from '@/lib/market/row-start';
@@ -189,9 +190,12 @@ export function StoresDirectory() {
         if (!entry) return null;
         const main = brand.storefronts[0], t = terms[main.country], photos = entry.items.slice(0, 3);
         return <li key={brand.key}><article className="store-showcase-card" aria-labelledby={'stores-showcase-' + brand.key}>
+          {/* The name opens the store's terms; the main button below leads to its products in the catalog. */}
           <header>
-            <StoreLogo brand={brand} size={36} />
-            <div><b id={'stores-showcase-' + brand.key}>{brand.name}</b><small><CountryFlag code={main.country} /><span>{storeCountryNames[main.country][locale]}</span></small></div>
+            <button type="button" className="store-showcase-open" aria-label={c.aboutStore(brand.name)} onClick={() => setOpen(brand)}>
+              <StoreLogo brand={brand} size={36} />
+              <span className="store-showcase-name"><b id={'stores-showcase-' + brand.key}>{brand.name}</b><small><CountryFlag code={main.country} /><span>{storeCountryNames[main.country][locale]}</span></small></span>
+            </button>
             <span>{c.products(entry.count)}</span>
           </header>
           {/* As many slots as photos (up to three): one photo fills the stage; the logo stands in only for one that fails to load. */}
@@ -202,7 +206,7 @@ export function StoresDirectory() {
             {entry.stale && entry.minTotal !== null && <small>{c.lastPrices}</small>}
           </p>
           <p className="store-showcase-terms">{t.region ? `${t.expressShort ?? c.pendingTerms} · ${t.expressPerKg}` : c.pendingTerms}</p>
-          <button type="button" className="btn secondary" onClick={() => setOpen(brand)}>{c.showStore}<ArrowRight size={16} aria-hidden="true" /></button>
+          <Link className="btn secondary" href={'/catalog?store=' + [...entry.hosts].join(',')}>{c.viewProducts(entry.count)}<ArrowRight size={16} aria-hidden="true" /></Link>
         </article></li>;
       })}</ul>
       {/* Wide screens fold the shelf to two rows (le8: everything fits at four per row); phones scroll the whole row, so CSS hides the button there. */}

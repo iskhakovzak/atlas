@@ -7,6 +7,7 @@ import type { Locale } from "@/lib/market/i18n";
 import { formatSum } from "@/lib/market/format";
 import { formatDateTime } from "@/lib/market/customer-copy";
 import { withCyrillic } from "@/lib/market/uz-cyrl";
+import { OperatorTelegramHint } from "./telegram-notices-link";
 
 /**
  * Extra invoices on a paid order (since 10 October 2026). The operator issues one with an amount and a reason;
@@ -50,7 +51,7 @@ export function ExtraChargeHistory({ order, locale }: { order: Order; locale: Lo
 }
 
 /** Operator: issue an extra invoice on a paid order (USD at the order's rate), see the invoices, withdraw a waiting one. */
-export function OperatorExtraCharges({ order, run, locale }: { order: Order; run: (action: Action) => Promise<boolean>; locale: Locale }) {
+export function OperatorExtraCharges({ order, run, locale, telegram = false }: { order: Order; run: (action: Action) => Promise<boolean>; locale: Locale; /** The customer's Telegram notices are on: the reason goes there too, as typed. */ telegram?: boolean }) {
   const [amountUsd, setAmountUsd] = useState("");
   const [reason, setReason] = useState("");
   // Goods (a dearer price, the default) carry the insurance on an insured line; delivery or a fee does not.
@@ -92,6 +93,7 @@ export function OperatorExtraCharges({ order, run, locale }: { order: Order; run
         {rate ? <label className="warehouse-issue-resolution"><input type="checkbox" checked={goods} onChange={(event) => setGoods(event.target.checked)} /><span>Это цена товара<small>Посылка под гарантией сохранности: к доплате за товар прибавится плата за гарантию {Math.round(rate * 1000) / 10} % от разницы. Снимите отметку, если это доставка магазина или сбор.</small></span></label> : null}
         <button className="btn secondary" disabled={busy || !reason.trim() || !(Number(amountUsd) > 0)}>Выставить доплату</button>
         <p className="micro">Сумма пересчитывается в сумы по курсу заказа. Покупатель увидит кнопку «Доплатить» в «Моих заказах»; заказ нельзя двигать дальше, пока счёт не оплачен или не отменён.</p>
+        <OperatorTelegramHint on={telegram} locale={locale} />
       </form>}
       {waiting && <p className="micro">Покупатель ещё не оплатил счёт. Новый можно выставить после оплаты или отмены.</p>}
     </div>

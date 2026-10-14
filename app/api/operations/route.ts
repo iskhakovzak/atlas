@@ -38,6 +38,7 @@ import {
   storedAccount,
 } from "@/lib/market/server";
 import {apiErrorMessage,requestLocale} from "@/lib/market/i18n";
+import { telegramNoticesLive } from "@/lib/auth/server";
 import { purgePassportScans } from "@/lib/market/passport-scans-server";
 import { vitalsSummary } from "@/lib/market/telemetry-store";
 import { database } from "@/lib/market/server";
@@ -289,7 +290,8 @@ export async function POST(request: Request) {
     } catch (error) {
       throw new HttpError(400, (error as Error).message);
     }
-    await persist(current.id, next, current.revision, current.state);
+    // Atlas's own step: new notices may also go to the customer's Telegram (their consent; the live site only).
+    await persist(current.id, next, current.revision, current.state, { notify: telegramNoticesLive(request) });
     const orderId='id' in parsedAction.data?String(parsedAction.data.id):undefined;
     await recordAudit(user,`order.${parsedAction.data.type}`,'order',orderId,{accountId:current.id});
     return json({

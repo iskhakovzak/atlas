@@ -15,6 +15,7 @@ import { storeNote } from '@/lib/market/store-notes';
 import type { StoreCountryTerms } from '@/lib/market/store-geo';
 import { popularBrandKeys, storeBrands, storeCountryNames, storeFocusNames, storefrontUrl, type StoreBrand, type StoreCountry } from '@/lib/market/store-brands';
 import type { CatalogItem } from '@/lib/market/catalog-query';
+import { catalogItemHref } from '@/lib/market/catalog-links';
 import type { Locale } from '@/lib/market/i18n';
 import { Money } from './money';
 import { CountryFlag } from './flags';
@@ -108,7 +109,7 @@ export function StoreDialog({ brand, c, locale, pricing, terms, catalog, mark, o
         {catalog && catalog.count > 0 && <section className="store-dialog-section store-dialog-shelf" aria-labelledby="store-dialog-shelf-title">
           <h3 id="store-dialog-shelf-title">{c.catalogShelf(catalog.count)}</h3>
           <ul className="store-dialog-products">{catalog.items.slice(0, shelfSize).map((item) => <li key={item.product.id}>
-            <Link href={catalogHref}><span className="store-dialog-photo"><ProductImage product={item.product} decorative locale={locale} size={200} /></span><span className="store-dialog-product-name">{item.product.name}</span>{item.costs && <Money value={item.costs.total} locale={locale} />}</Link>
+            <Link href={catalogItemHref(catalogHref, item.product.id)}><span className="store-dialog-photo"><ProductImage product={item.product} decorative locale={locale} size={200} /></span><span className="store-dialog-product-name">{item.product.name}</span>{item.costs && <Money value={item.costs.total} locale={locale} />}</Link>
           </li>)}</ul>
           {catalog.count > shelfSize && <Link className="store-dialog-all" href={catalogHref}>{c.allProducts(catalog.count)}<ArrowRight size={16} aria-hidden="true" /></Link>}
         </section>}

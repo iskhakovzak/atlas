@@ -114,6 +114,10 @@ export const storeBrands: StoreBrand[] = rows.filter(([key]) => grouped.has(key)
 }).sort((a, b) => order.get(a.key)! - order.get(b.key)!);
 /** Roots without a brand row; a test keeps this empty. */
 export const unlistedStoreRoots = [...grouped.entries()].filter(([key]) => !order.has(key)).flatMap(([, roots]) => roots);
+/** The eight stores the home hero and the empty link-order page name first (the same objects as in storeBrands). */
+export const heroStores: StoreBrand[] = ['nike', 'zara', 'amazon', 'apple', 'iherb', 'adidas', 'hm', 'sephora']
+  .map((key) => storeBrands.find((brand) => brand.key === key))
+  .filter((brand): brand is StoreBrand => Boolean(brand));
 
 /**
  * Roots whose bare domain is not the shop: google.com is the search engine, sony.com and philips.com are corporate

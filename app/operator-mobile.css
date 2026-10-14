@@ -213,4 +213,94 @@
     flex: 0 0 auto;
     white-space: nowrap;
   }
+
+  /* The queue's first screen: three small counters in one row, search and a compact refresh side by side. */
+  .site-main[data-view="operations"] .ops-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .site-main[data-view="operations"] .ops-stats > div {
+    padding: 10px;
+    min-height: 0;
+    /* Label above the number: a long label ("Ожидают взвешивания") no longer pushes the number past the tile. */
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 4px;
+  }
+
+  .site-main[data-view="operations"] .ops-stats span {
+    font-size: 12px;
+    line-height: 1.25;
+  }
+
+  .site-main[data-view="operations"] .ops-stats strong {
+    font-size: 22px;
+    margin: 0;
+  }
+
+  .site-main[data-view="operations"] .ops-stats svg {
+    display: none;
+  }
+
+  .site-main[data-view="operations"] .ops-search-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .site-main[data-view="operations"] .ops-search-row .search-field {
+    flex: 1 1 auto;
+  }
+
+  .site-main[data-view="operations"] .ops-search-row .order-refresh {
+    flex: 0 0 48px;
+    width: 48px;
+    min-height: 48px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .site-main[data-view="operations"] .order-refresh-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .site-main[data-view="operations"] .ops-action-bar .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Buyout facts two by two, so the buyout button stays in the first screen of the opened order; the store link and
+     the copy buttons take a full 44 px tap. */
+  .site-main[data-view="operations"] .ops-buyout-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 12px;
+  }
+
+  .site-main[data-view="operations"] .ops-buyout-facts .text-link {
+    min-height: 44px;
+  }
+
+  .site-main[data-view="operations"] .ops-buyout-facts .copy-text-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* An opened order scrolls its action bar into view (OrdersView), so "Подтвердить выкуп" is never left under the bottom
+     navigation; the same padding keeps a control reached with the keyboard above it. A bar taller than the screen
+     lines its top up under the header instead. */
+  html:has(.site-main[data-view="operations"]) {
+    scroll-padding-bottom: calc(var(--atlas-mobile-nav-clearance, calc(68px + env(safe-area-inset-bottom))) + 12px);
+  }
+
+  .site-main[data-view="operations"] .ops-action-bar {
+    scroll-margin-top: 96px;
+  }
 }

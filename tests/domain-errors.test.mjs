@@ -168,7 +168,8 @@ test('the importer, cart-limit and action refusals customers meet are translated
   const files = ['lib/importer/fetch.ts', 'lib/importer/verify.ts', 'lib/importer/manual-fallback.ts', 'lib/importer/shopify.ts', 'lib/market/policy.ts', 'lib/market/actions.ts', 'lib/market/world.ts'];
   // Messages that never reach a customer as an error text: manual-entry fallbacks are answered with
   // importManualEntryMessage, the operator gate and order images are staff-only.
-  const notShown = new Set(['Доступно только оператору.', 'Запросить дополнительную услугу может владелец заказа.', 'У заказа нет ссылки на источник.', 'Изображение недоступно.']);
+  // "telegram-notify" is answered by app/api/actions/route.ts before applyAction, so its guard is never shown.
+  const notShown = new Set(['Доступно только оператору.', 'Запросить дополнительную услугу может владелец заказа.', 'У заказа нет ссылки на источник.', 'Изображение недоступно.', 'Настройка Telegram сохраняется только сервером.']);
   for (const file of files) {
     const source = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
     // `throw new ManualEntryFallbackError(…)` is not matched: it is answered with importManualEntryMessage.

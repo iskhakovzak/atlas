@@ -153,10 +153,82 @@ html[data-theme="dark"] .basket-item-note.issue { border-color: rgba(255, 140, 1
 .basket-empty { display: grid; justify-items: center; gap: 10px; padding: 40px 20px; border: 1px solid var(--home-line); border-radius: 18px; background: var(--home-surface); text-align: center; }
 .basket-empty-icon { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: var(--home-soft); color: var(--home-accent); }
 .basket-empty h2 { margin: 6px 0 0; color: var(--home-ink); font-size: 22px; }
-.basket-empty p { max-width: 420px; margin: 0; color: var(--home-muted); line-height: 1.55; }
+.basket-empty p { max-width: 420px; margin: 0; color: var(--home-muted); line-height: 1.55; text-wrap: balance; }
 .basket-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 10px; }
 .basket-empty-actions .btn { min-height: 50px; padding-inline: 20px; border-radius: 12px; }
+/* Phones: the buttons stand one under another at the block's full width, not two widths of their own text. */
+@media (max-width: 560px) {
+  .basket-empty-actions { flex-direction: column; align-items: stretch; justify-self: stretch; }
+  .basket-empty-actions > .btn { width: 100%; justify-content: center; }
+}
 .basket-loading { padding: 32px 20px; border: 1px dashed var(--home-line); border-radius: 18px; color: var(--home-muted); text-align: center; }
+
+/* ---------- Cart, 14.10.2026 ---------- */
+/* Phones: the store name wraps instead of being cut, and the country with the delivery days takes the line under it. */
+@media (max-width: 560px) {
+  .basket-parcel-title { flex-wrap: wrap; row-gap: 2px; }
+  .basket-parcel-title > span:not(.basket-select) { flex: 1 1 0; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+  .basket-parcel-title > small { flex-basis: 100%; margin-left: 0; padding-left: 24px; white-space: normal; }
+  .basket-parcel-title:has(> .basket-select) > small { padding-left: 32px; }
+}
+/* "More from {store}" in a parcel note; on touch screens it takes taps from a 44 px frame without growing. */
+.basket-parcel-note a { display: inline-flex; align-items: center; gap: 2px; color: var(--home-accent); font-weight: 700; text-decoration: none; white-space: nowrap; }
+.basket-parcel-note a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.basket-parcel-note a svg { margin-top: 0; color: currentColor; }
+@media (pointer: coarse) {
+  .basket-parcel-note a { position: relative; }
+  .basket-parcel-note a::after { content: ""; position: absolute; inset: -12px -6px; }
+}
+/* The Atlas safe-arrival guarantee: its own row of the parcel, never ticked in advance; the amount on the right, under the text on phones. */
+.basket-guarantee { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; align-items: start; padding: 12px 16px; border-top: 1px solid var(--home-line); }
+.basket-guarantee > [data-slot="checkbox"], .basket-guarantee > button { margin-top: 1px; }
+.basket-guarantee-copy { display: grid; gap: 2px; min-width: 0; }
+.basket-guarantee-head { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
+.basket-guarantee label { display: inline-flex; align-items: center; gap: 6px; color: var(--home-ink); font-size: 14.5px; font-weight: 700; line-height: 1.35; cursor: pointer; }
+.basket-guarantee label svg { flex-shrink: 0; color: var(--home-accent); }
+/* The name is a 44 px tap target without moving the lines around it. */
+.basket-guarantee label { padding-block: 12px; margin-block: -12px; }
+.basket-guarantee em { color: var(--home-muted); font-size: 12px; font-style: normal; font-weight: 600; }
+.basket-guarantee .basket-service-saving { margin-left: 0; }
+.basket-guarantee small { display: block; color: var(--home-muted); font-size: 13px; line-height: 1.45; }
+.basket-guarantee small.basket-guarantee-rate { color: var(--home-ink); }
+.basket-guarantee-sum { color: var(--home-ink); font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 560px) { .basket-guarantee-sum { grid-column: 2; grid-row: auto; justify-self: start; } }
+/* "Atlas service" folded: its one-line contents ("Delivery 1,2 kg · fee …") wrap on narrow screens. */
+.basket-service-breakdown > summary { white-space: normal; text-align: left; }
+/* On phones the folded line is a 44 px tap target, as on the link-order page and the order card. */
+@media (max-width: 760px) { .basket-summary .basket-service-breakdown > summary { min-height: 44px; } }
+/* The two ways on under the parcels, and the line under the button. */
+.basket-continue-row { display: flex; flex-wrap: wrap; gap: 4px 20px; align-items: center; }
+.basket-cta-assurance { margin-top: 10px; justify-items: center; }
+.basket-cta-assurance li { text-align: center; }
+/* Empty cart: delivered products to order again, then the catalog's picks; the first cards show on the first phone screen. */
+.basket-reorder { display: grid; gap: 4px; margin-top: 16px; padding: 18px 20px 10px; border: 1px solid var(--home-line); border-radius: 18px; background: var(--home-surface); }
+.basket-reorder h2 { margin: 0 0 4px; color: var(--home-ink); font-size: 18px; font-weight: 700; }
+.basket-reorder ul { display: grid; margin: 0; padding: 0; list-style: none; }
+.basket-reorder li { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 8px 14px; align-items: center; padding: 10px 0; }
+.basket-reorder li + li { border-top: 1px solid var(--home-line); }
+.basket-reorder-photo { width: 64px; height: 64px; overflow: hidden; border-radius: 12px; background: var(--home-soft); }
+.basket-reorder-photo :is(.product-img, .no-photo) { width: 100%; height: 100%; border-radius: 0; object-fit: contain; }
+.basket-reorder-photo .no-photo span { display: none; }
+.basket-reorder-name { display: -webkit-box; overflow: hidden; color: var(--home-ink); font-size: 15px; font-weight: 600; line-height: 1.35; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.basket-reorder .btn { min-height: 44px; gap: 6px; padding-inline: 14px; border-radius: 12px; white-space: nowrap; }
+@media (max-width: 520px) { .basket-reorder li { grid-template-columns: 64px minmax(0, 1fr); } .basket-reorder .btn { grid-column: 2; justify-self: start; } }
+html[data-theme="dark"] .basket-reorder { border-color: var(--night-line); background: var(--night-sheen), var(--night-surface); box-shadow: var(--night-shadow); }
+/* Rows of catalog cards under the cart (app/cart-picks.tsx): the catalog's picks under an empty one, saved products under a full one. */
+.cart-picks { margin-top: 24px; }
+.cart-picks > header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 24px; margin-bottom: 14px; }
+.cart-picks > header h2 { margin: 0; color: var(--home-ink); font-size: clamp(20px, 2.2vw, 24px); font-weight: 700; line-height: 1.2; letter-spacing: -.02em; }
+.cart-picks > header .btn { min-height: 44px; gap: 6px; }
+.cart-picks .finds-grid { gap: 14px; }
+@media (max-width: 760px) {
+  .basket-empty { padding: 28px 20px; }
+  /* One row that scrolls sideways inside itself, about one and a half cards wide, so the next card shows there is more. */
+  .cart-picks .finds-grid { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: calc((100% - 12px) / 1.62); gap: 12px; margin-inline: -16px; padding: 2px 16px 14px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-inline: 16px; scrollbar-width: none; }
+  .cart-picks .finds-grid::-webkit-scrollbar { display: none; }
+  .cart-picks .finds-grid > * { scroll-snap-align: start; }
+  .cart-picks .find-card .find-save { width: 44px; height: 44px; top: 6px; right: 6px; }
+}
 
 /* Sticky total on phones, above the member bottom navigation. */
 .basket-sticky { display: none; }
@@ -222,6 +294,8 @@ html[data-theme="dark"] .basket-item-note.issue { border-color: rgba(255, 140, 1
 .cabinet-next-icon { display: grid; flex-shrink: 0; place-items: center; width: 48px; height: 48px; border-radius: 14px; background: var(--home-surface); color: var(--home-accent); }
 .cabinet-next.warn .cabinet-next-icon { color: var(--cx-warn); }
 .cabinet-next.done .cabinet-next-icon { background: var(--cx-ok-soft); color: var(--cx-ok); }
+/* "Now important" on a white day card: the icon keeps a quiet tile, as it has in the night theme (theme-night.css). */
+html:not([data-theme="dark"]) .cabinet-next.info .cabinet-next-icon { background: var(--day-soft, #efefe9); }
 .cabinet-next h2 { margin: 0; color: var(--home-ink); font-size: 20px; font-weight: 800; line-height: 1.25; }
 .cabinet-next-body p { margin: 2px 0 0; overflow-wrap: anywhere; color: var(--home-muted); font-size: 15px; }
 .cabinet-progress { display: grid; gap: 6px; }
@@ -237,6 +311,28 @@ html[data-theme="dark"] .basket-item-note.issue { border-color: rgba(255, 140, 1
 @keyframes cabinet-step-now { 50% { opacity: .55; } }
 .cabinet-next .btn { width: 100%; min-height: 50px; justify-content: center; border-radius: 12px; }
 @media (min-width: 640px) { .cabinet-next .btn { width: auto; justify-self: start; padding-inline: 22px; } }
+/* The cart branch: up to three photos and the cart sum, marked as an estimate (the cart recounts the total). */
+.cabinet-next-cart { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cabinet-next-thumbs { display: flex; gap: 6px; }
+.cabinet-next-thumb { display: grid; place-items: center; flex: none; width: 44px; height: 44px; overflow: hidden; border: 1px solid var(--home-line); border-radius: 10px; background: #fff; }
+.cabinet-next-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.cabinet-next-thumb .no-photo { display: grid; place-items: center; width: 100%; height: 100%; color: var(--home-muted); }
+.cabinet-next-thumb .no-photo svg { width: 20px; height: 20px; }
+.cabinet-next-thumb .no-photo span { display: none; }
+.cabinet-next-more { color: var(--home-muted); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cabinet-next-sum { display: grid; gap: 1px; margin: 0; }
+.cabinet-next-sum strong { color: var(--home-ink); font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cabinet-next-sum small { color: var(--home-muted); font-size: 12.5px; }
+/* "All set" with a delivered order: its photo and name, "Order again" beside it (a fresh import, never the old price). */
+.cabinet-repeat { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 10px 12px; padding-top: 12px; border-top: 1px solid var(--home-line); }
+.cabinet-repeat-text { display: grid; gap: 1px; min-width: 0; }
+.cabinet-repeat-text b { overflow: hidden; color: var(--home-ink); font-size: 14.5px; text-overflow: ellipsis; white-space: nowrap; }
+.cabinet-repeat-text small { color: var(--home-muted); font-size: 12.5px; }
+.cabinet-next .cabinet-repeat .btn { grid-column: 1 / -1; min-height: 44px; }
+@media (min-width: 640px) { .cabinet-repeat { grid-template-columns: 44px minmax(0, 1fr) auto; } .cabinet-next .cabinet-repeat .btn { grid-column: auto; } }
+.cabinet-favorites { justify-self: start; gap: 8px; margin-top: -6px; }
+.cabinet-allowance-head.solo .cabinet-allowance-figure { justify-items: start; text-align: left; }
+html[data-theme="dark"] .cabinet-next-thumb { border-color: var(--night-line); background: var(--night-hover); }
 
 .cabinet-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 @media (min-width: 640px) { .cabinet-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
@@ -250,6 +346,9 @@ html[data-theme="dark"] .basket-item-note.issue { border-color: rgba(255, 140, 1
 .cabinet-tiles small { color: var(--home-muted); font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
 
 .cabinet-card { padding: 20px; border: 1px solid var(--home-line); border-radius: 18px; background: var(--home-surface); }
+/* Deep links (?support=new, ?order=…, #account-delete) scroll a card to the top while it still rises in (motion.css, 10 px):
+   a margin keeps its edge and heading in view instead of under the top of the screen. */
+.cabinet :is(.cabinet-card[id], .cabinet-setting-more[id]) { scroll-margin-top: 24px; }
 .cabinet-card h2, .cabinet-signin h1 { margin: 0 0 4px; color: var(--home-ink); font-size: 19px; font-weight: 800; line-height: 1.3; }
 .cabinet-lead, .cabinet-note { margin: 0 0 14px; color: var(--home-muted); font-size: 14px; line-height: 1.5; }
 .cabinet-note { margin: 12px 0 0; font-size: 13px; }
@@ -306,6 +405,8 @@ html[data-theme="dark"] .basket-item-note.issue { border-color: rgba(255, 140, 1
 /* ---------- Orders, balance, notifications ---------- */
 @media (max-width: 760px) {
   main:is([data-view="orders"], [data-view="balance"], [data-view="notifications"]) .breadcrumb { display: none; }
+  /* Without the breadcrumb the title sat 4px under the header; ~16px like the cart and the account. */
+  main:is([data-view="orders"], [data-view="balance"], [data-view="notifications"]) { padding-top: 12px; }
 }
 .orders-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; margin: 4px 0 16px; }
 .orders-head h1 { margin: 0; color: var(--home-ink); font-size: clamp(28px, 6vw, 40px); line-height: 1.1; letter-spacing: -.03em; }
@@ -455,6 +556,8 @@ html[data-theme="dark"] main[data-view="orders"] .order-tabs .has-attention b { 
 .notice-settings > summary::after { content: "+"; color: var(--home-accent); font-size: 22px; font-weight: 400; }
 .notice-settings[open] > summary::after { content: "−"; }
 .notice-settings .communication-panel { margin: 0; border: 0; border-top: 1px solid var(--home-line); border-radius: 0 0 14px 14px; box-shadow: none; }
+/* "Email и SMS пока не отправляются" is the only word on delivery here: one line where it fits, never squeezed to 145 px. */
+:root body .communication-heading .status-badge { max-width: none; text-align: left; }
 
 /* Balance. */
 .wallet-grid { display: grid; gap: 16px; margin-bottom: 16px; }
@@ -514,6 +617,57 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
 #source-url-error { margin: -4px 0 14px 6px; }
 .lo-hints { margin: 0 0 16px; }
 .lo-hints p { margin: 0; color: var(--home-muted); font-size: 14px; line-height: 1.5; }
+/* "Recently checked": the customer's own unfinished items on this device, one row each, back to the choice in one tap. */
+.lo-recent { display: grid; gap: 10px; margin: 0 0 16px; padding: 16px 18px; border: 1px solid var(--home-line); border-radius: 18px; background: var(--home-surface); box-shadow: var(--day-shadow, none); }
+.lo-recent h2 { margin: 0; color: var(--home-ink); font-size: 16px; font-weight: 750; line-height: 1.3; }
+.lo-recent ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+@media (min-width: 960px) { .lo-recent ul { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); } }
+.lo-recent li { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-width: 0; padding: 8px; border: 1px solid var(--home-line); border-radius: 12px; }
+.lo-recent li > img, .lo-recent-photo { width: 48px; height: 48px; border-radius: 10px; background: var(--home-soft); object-fit: cover; }
+.lo-recent-photo { display: grid; place-items: center; color: var(--home-muted); }
+.lo-recent-copy { display: grid; gap: 2px; min-width: 0; }
+.lo-recent-copy b { overflow: hidden; color: var(--home-ink); font-size: 14px; font-weight: 600; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.lo-recent-copy small { overflow: hidden; color: var(--home-muted); font-size: 12.5px; text-overflow: ellipsis; white-space: nowrap; }
+.lo-page .lo-recent-go { position: static; gap: 6px; min-height: 44px; padding: 0 14px; font-size: 14px; white-space: nowrap; }
+/* The whole row opens the item; the button names the action. */
+.lo-recent li { position: relative; }
+.lo-page .lo-recent-go::after { content: ""; position: absolute; inset: 0; border-radius: 12px; }
+.lo-recent li:hover { border-color: var(--home-accent); }
+@media (max-width: 480px) {
+  .lo-page .lo-recent-go { width: 44px; padding: 0; justify-content: center; }
+  .lo-recent-go-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+html[data-theme="dark"] .lo-recent { border-color: var(--night-line-strong); background: var(--night-sheen), var(--night-raised); box-shadow: none; }
+html[data-theme="dark"] .lo-recent h2, html[data-theme="dark"] .lo-recent-copy b { color: var(--night-ink); }
+html[data-theme="dark"] .lo-recent li { border-color: var(--night-line); background: var(--night-surface); }
+html[data-theme="dark"] .lo-recent-copy small { color: var(--night-muted); }
+/* Before a link: where to take one (stores that work, the way in three steps). On a phone it comes before the blank
+   bill; on wide screens the bill is on the left and this card on the right. */
+.lo-empty { display: grid; gap: 16px; }
+.lo-empty > .bill-blank { margin-top: 0; }
+.lo-where { display: grid; gap: 14px; min-width: 0; padding: 18px; border: 1px solid var(--home-line); border-radius: 18px; background: var(--home-surface); box-shadow: var(--day-shadow, none); }
+.lo-where h2 { margin: 0; color: var(--home-ink); font-size: 18px; font-weight: 750; line-height: 1.25; letter-spacing: -.01em; }
+.lo-where-stores { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.lo-where-stores a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border: 1px solid var(--home-line); border-radius: 12px; background: var(--home-surface); color: var(--home-ink); font-size: 14px; font-weight: 600; text-decoration: none; transition-property: border-color, background-color; transition-duration: .15s; }
+.lo-where-stores a:hover { border-color: var(--home-accent); }
+.lo-where-stores a:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 2px; }
+.lo-where-stores .lo-where-all { color: var(--home-accent); font-weight: 700; }
+.lo-where-steps { display: grid; gap: 10px; margin: 0; padding: 14px 0 0; border-top: 1px solid var(--home-line); list-style: none; counter-reset: lo-where; }
+.lo-where-steps li { display: grid; grid-template-columns: 24px minmax(0, 1fr); align-items: start; gap: 10px; color: var(--home-ink); font-size: 14px; line-height: 1.45; overflow-wrap: break-word; counter-increment: lo-where; }
+.lo-where-steps li::before { content: counter(lo-where); display: grid; place-items: center; width: 24px; height: 24px; margin-top: -1px; border-radius: 50%; background: var(--home-soft); color: var(--home-accent); font-family: inherit; font-size: 13px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+@media (min-width: 960px) {
+  .lo-empty { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "bill where"; align-items: start; gap: 24px; margin-top: 8px; }
+  .lo-empty > .bill-blank { grid-area: bill; max-width: none; }
+  .lo-empty > .lo-where { grid-area: where; }
+}
+html[data-theme="dark"] .lo-where { border-color: var(--night-line-strong); background: var(--night-sheen), var(--night-raised); box-shadow: none; }
+html[data-theme="dark"] .lo-where h2 { color: var(--night-ink); }
+html[data-theme="dark"] .lo-where-stores a { border-color: var(--night-line); background: var(--night-surface); color: var(--night-ink); }
+html[data-theme="dark"] .lo-where-stores a:hover { border-color: var(--night-jade); }
+html[data-theme="dark"] .lo-where-stores .lo-where-all { color: var(--night-jade); }
+html[data-theme="dark"] .lo-where-steps { border-top-color: var(--night-line); }
+html[data-theme="dark"] .lo-where-steps li { color: var(--night-ink); }
+html[data-theme="dark"] .lo-where-steps li::before { background: var(--night-jade-soft); color: var(--night-jade); }
 .lo-source { display: flex; flex-wrap: wrap; align-items: center; gap: 0 16px; margin: 0 0 14px; padding: 2px 14px; border: 1px solid var(--home-line); border-radius: 14px; background: var(--home-surface); }
 .lo-source-host { display: inline-flex; flex: 1 1 140px; align-items: center; gap: 6px; min-width: 0; min-height: 44px; overflow: hidden; color: var(--home-ink); font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .lo-source-host svg { flex-shrink: 0; color: var(--home-accent); }
@@ -522,7 +676,11 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
 .lo-source-actions { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0 16px; }
 .lo-source-link svg { flex-shrink: 0; }
 .lo-source-loading { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--home-muted); font-size: 14px; }
-.lo-guest { margin: 0 0 14px; padding: 10px 14px; border-radius: 12px; background: var(--home-soft); color: var(--home-muted); font-size: 14px; line-height: 1.5; }
+/* For a guest, one quiet line under the add button: after sign-in the item goes to the cart by itself. */
+.lo-guest { display: flex; align-items: flex-start; gap: 8px; margin: 10px 0 0; padding: 0; border-radius: 0; background: none; color: var(--home-muted); font-size: 13px; line-height: 1.45; }
+.lo-guest svg { flex: none; margin-top: 1px; color: var(--home-accent); }
+.lo-confirm .lo-guest { margin: -4px 0 0; }
+html[data-theme="dark"] .lo-page .lo-guest { background: none; }
 /* The unfinished draft brought back by opening the page, and the guest's add being sent after sign-in. */
 .lo-resumed, .lo-pending { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin: 0 0 14px; padding: 4px 14px; border-radius: 12px; background: var(--home-soft); color: var(--home-ink); font-size: 14px; line-height: 1.45; }
 .lo-resumed > span { flex: 1 1 200px; min-width: 0; padding: 8px 0; overflow-wrap: anywhere; }
@@ -540,6 +698,16 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
   .lo-product:not(.lo-product-plain) .variant-matrix > label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
 .lo-summary { grid-area: summary; }
+/* The delivery the total uses, as a quiet chip with its business days; the other speed is chosen in the cart. */
+.lo-speed { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; color: var(--home-muted); font-size: 13px; line-height: 1.4; }
+.lo-speed-label { color: var(--home-muted); font-size: 13px; }
+.lo-speed-chip { display: inline-flex; align-items: center; min-height: 28px; padding: 2px 10px; border: 1px solid var(--home-line); border-radius: 999px; background: var(--home-surface); color: var(--home-ink); font-size: 13px; font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lo-speed-chip .speed-option-star { margin: 0 0 0 4px; }
+.lo-speed-days { white-space: pre; }
+.lo-speed small { flex-basis: 100%; color: var(--home-muted); font-size: 12.5px; line-height: 1.45; }
+html[data-theme="dark"] .lo-speed-chip { border-color: var(--night-line); background: var(--night-surface); color: var(--night-ink); }
+/* "To pay, from": the lowest-priced option until one is chosen; the amount stays whole, "from" lives in the label. */
+.lo-summary .lo-from-note { margin: 0; color: var(--home-muted); font-size: 12.5px; line-height: 1.45; }
 .lo-data { grid-area: data; }
 /* One option or several: the mode switch sits on the line above the chosen list. */
 .lo-pick-mode { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 12px; margin-top: 10px; }
@@ -551,12 +719,35 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
 /* Wide screens: the item (photo, colours, sizes, comment) on the left; the total, item data and add button stacked
    on the right. Delivery speed is chosen in the cart now, so the right column carries the rest of the decision and
    neither column is left with an empty band (owner, 12 October 2026). Cards keep their natural height (no stretching). */
+/* On phones the right column wrapper takes no box: the one-column order above stays. */
+.lo-side { display: contents; }
 @media (min-width: 960px) {
-  .lo-layout { grid-template-columns: minmax(0, 1fr) 380px; grid-template-areas: "product summary" "product data" "product confirm"; grid-template-rows: auto auto 1fr; align-items: start; gap: 14px 24px; }
+  .lo-layout { grid-template-columns: minmax(0, 1fr) 380px; grid-template-areas: "product side"; align-items: start; gap: 14px 24px; }
+  .lo-side { grid-area: side; display: flex; flex-direction: column; gap: 14px; min-width: 0; align-self: start; }
+  /* The whole column follows the scroll, not the total alone (14 October 2026). */
   html .lo-layout .lo-summary.basket-summary.folio { position: static; }
+}
+/* The total and the add button stay in view beside a long item card, on laptops too (1280×800, 1366×768): the column
+   follows the scroll and never reaches below the window (--lo-side-room, measured in app/global-link-order.tsx); what
+   does not fit (customs, the hold, opened item data) scrolls inside it, under the add button pinned at its foot.
+   The scroll box is on only while the column is taller than that room (no [data-fits]), since it cuts the cards'
+   shadows; its 6 px frame keeps focus rings whole and has no bottom edge, so the pinned add button closes the column
+   and nothing peeks out under it. Very low windows keep the plain column. */
+@media (min-width: 960px) and (min-height: 560px) {
+  .lo-side { position: sticky; top: calc(var(--sticky-top, 88px) + 8px); max-height: var(--lo-side-room, calc(100vh - var(--sticky-top, 88px) - 24px)); margin: -6px -6px 0; padding: 6px 6px 0; }
+  .lo-side:not([data-fits]) { overflow-y: auto; scrollbar-width: thin; }
+  .lo-side:not([data-fits]) > .lo-confirm { position: sticky; bottom: 0; z-index: 1; box-shadow: 0 -14px 24px -22px rgba(16, 34, 26, .45); }
 }
 /* In the narrow right column the item data blocks stack one per row. */
 @media (min-width: 960px) { .lo-layout .lo-data .lo-blocks { grid-template-columns: minmax(0, 1fr); } }
+/* A store Atlas does not read: the customer fills every field, so the data card takes the wide left column under the
+   item card, and the right column keeps only the total and the add button. */
+@media (min-width: 960px) {
+  .lo-layout.manual { grid-template-areas: "product side" "data side"; grid-template-rows: auto 1fr; }
+  .lo-layout.manual .lo-side { grid-row: 1 / span 2; }
+  /* Each block keeps its own height: a short "Price" or "Country" does not stretch to its neighbour's row. */
+  .lo-layout.manual .lo-data .lo-blocks { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+}
 .lo-card, .lo-product { padding: 18px; border: 1px solid var(--home-line); border-radius: 18px; background: var(--home-surface); }
 .lo-product { display: grid; gap: 14px; }
 @media (min-width: 640px) { .lo-product { grid-template-columns: 240px minmax(0, 1fr); align-items: start; } .lo-product.lo-product-plain { grid-template-columns: minmax(0, 1fr); } }
@@ -569,7 +760,7 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
   .lo-page .lo-colours-aside .variant-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 120px)); gap: 8px; }
   .lo-page .lo-colours-aside .variant-options button { justify-items: center; align-content: start; min-height: 0; padding: 6px 6px 8px; text-align: center; }
   .lo-page .lo-colours-aside .variant-options button img { width: 64px; height: 64px; border-radius: 8px; }
-  .lo-page .lo-colours-aside .variant-options button > span { display: -webkit-box; overflow: hidden; font-size: 12px; font-weight: 600; line-height: 1.3; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .lo-page .lo-colours-aside .variant-options button > span { display: -webkit-box; overflow: hidden; font-size: 12px; font-weight: 600; line-height: 1.3; overflow-wrap: break-word; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .lo-page .lo-colours-aside .variant-options button small { font-size: 11.5px; }
 }
 /* Phones: the colours in the option card are an even grid of the same small tiles, not full-width bars of different
@@ -578,7 +769,7 @@ html .wallet-card .wallet-actions .btn.secondary { border-color: color-mix(in sr
   .lo-page .lo-colours-main .variant-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
   .lo-page .lo-colours-main .variant-options button { justify-items: center; align-content: start; min-width: 0; min-height: 0; padding: 6px 6px 8px; text-align: center; }
   .lo-page .lo-colours-main .variant-options button img { width: 56px; height: 56px; border-radius: 8px; }
-  .lo-page .lo-colours-main .variant-options button > span { display: -webkit-box; overflow: hidden; font-size: 12px; font-weight: 600; line-height: 1.3; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .lo-page .lo-colours-main .variant-options button > span { display: -webkit-box; overflow: hidden; font-size: 12px; font-weight: 600; line-height: 1.3; overflow-wrap: break-word; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .lo-page .lo-colours-main .variant-options button small { font-size: 11.5px; }
 }
 /* The store link at the top: domain and path on one line, cut with an ellipsis, opening the full address. */
@@ -688,6 +879,8 @@ html[data-theme="dark"] .orders-passport { border-color: var(--night-warn-line);
 .basket-service-saving { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; color: var(--home-muted); font-size: 12px; font-weight: 600; }
 .basket-stock { font-weight: 600; }
 .basket-note-add { grid-column: 1 / -1; justify-self: start; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0; border: 0; background: none; color: var(--home-accent); font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; }
+/* Phones: "Comment on the order" is a 44 px tap target of its own (the wide cart keeps it at 30 px beside the quantity, cart-select.css). */
+@media (max-width: 760px) { .basket-note-add { min-height: 44px; } }
 .basket-note { grid-column: 1 / -1; display: grid; gap: 4px; }
 .basket-note label { color: var(--home-ink); font-size: 13.5px; font-weight: 700; }
 .basket-note label small { color: var(--home-muted); font-weight: 500; }
@@ -703,6 +896,25 @@ html[data-theme="dark"] .orders-passport { border-color: var(--night-warn-line);
 .lo-product h2 { margin: 2px 0 6px; color: var(--home-ink); font-size: 20px; font-weight: 800; line-height: 1.3; }
 .lo-store-price { margin: 0; color: var(--home-muted); font-size: 15px; }
 .lo-store-price b { color: var(--home-ink); }
+/* "· checked at 03:45" wraps as one piece, the dot with its words. */
+.lo-store-price .lo-checked { white-space: nowrap; }
+/* The item name with the favourites heart beside it (catalog items, signed-in customers). */
+.lo-name-row { display: flex; align-items: flex-start; gap: 10px; }
+.lo-name-row > h2 { flex: 1 1 auto; min-width: 0; }
+.site-main .lo-page .find-save.lo-save { position: static; flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin: -4px 0 0; border: 1px solid var(--home-line); border-radius: 12px; background: var(--home-surface); color: var(--home-ink); box-shadow: none; cursor: pointer; }
+.site-main .lo-page .find-save.lo-save.saved { border-color: var(--fav-ink, #1f6a43); background: var(--fav-ink, #1f6a43); color: #fff; }
+.site-main .lo-page .find-save.lo-save:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 2px; }
+.site-main .lo-page .find-save.lo-save:disabled { opacity: .6; cursor: progress; }
+html[data-theme="dark"] .site-main .lo-page .find-save.lo-save:not(.saved) { border-color: var(--night-line); background: var(--night-surface); color: var(--night-ink); }
+html[data-theme="dark"] .site-main .lo-page .find-save.lo-save.saved { --fav-ink: #7fd1a1; color: #10241a; }
+/* Phones: every control on the link-order page is at least 44 px to tap; icon sizes stay as they are. */
+@media (max-width: 767px) {
+  .lo-page .lo-pick-mode .lo-source-link { min-height: 44px; }
+  .lo-page .lo-pick-remove { width: 44px; height: 44px; }
+  .lo-page .lo-stepper button { width: 44px; height: 44px; }
+  .lo-page .basket-service-breakdown > summary { min-height: 44px; }
+  .lo-page .calc-customs-link { display: inline-flex; align-items: center; min-height: 44px; }
+}
 .lo-note { display: flex; align-items: flex-start; gap: 8px; margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--home-soft); color: var(--home-muted); font-size: 14px; line-height: 1.5; }
 .lo-note svg { flex-shrink: 0; margin-top: 3px; }
 .lo-note.warn { background: var(--cx-warn-soft); color: var(--cx-warn); font-weight: 600; }
@@ -713,7 +925,13 @@ html[data-theme="dark"] .orders-passport { border-color: var(--night-warn-line);
 .lo-page .variant-step > div:first-child { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin-bottom: 8px; color: var(--home-ink); font-size: 14px; }
 .lo-page .variant-step > div:first-child span { color: var(--home-muted); }
 .lo-page .variant-options { display: flex; flex-wrap: wrap; gap: 8px; }
-.lo-page .variant-options.sizes { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); }
+/* Sizes keep their words on one line ("2XL Tall", not "2XL / Tall" at 320 px): each button is as wide as its label
+   (at least 78 px) and the buttons of a full row share its width; the last row stays at its own widths (the ::after
+   filler). A label longer than the whole row is cut with an ellipsis instead of widening the page. */
+.lo-page .variant-options.sizes { display: flex; flex-wrap: wrap; }
+.lo-page .variant-options.sizes::after { content: ""; flex: 999 1 0; }
+.lo-page .variant-options.sizes button { flex: 1 0 auto; min-width: 78px; max-width: 100%; grid-template-columns: minmax(0, max-content); white-space: nowrap; }
+.lo-page .variant-options.sizes button > * { overflow: hidden; text-overflow: ellipsis; }
 .lo-page .variant-options button { display: grid; place-content: center; gap: 2px; min-height: 48px; padding: 6px 10px; border: 1px solid var(--home-line); border-radius: 12px; background: var(--home-surface); color: var(--home-ink); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
 .lo-page .variant-options button:hover { border-color: var(--home-accent); }
 .lo-page .variant-options button[aria-pressed="true"] { border-color: var(--home-accent); background: var(--home-accent); color: var(--home-accent-ink); }
@@ -770,7 +988,7 @@ html:not([data-theme="dark"]) .lo-page .lo-block .select-control:not(:disabled) 
 /* A store Atlas does not read: the note and the store link side by side, stacked on a phone. */
 .lo-manual-store { align-items: center; justify-content: space-between; }
 .lo-manual-store .btn { flex-shrink: 0; white-space: nowrap; }
-@media (max-width: 600px) { .lo-manual-store { flex-direction: column; align-items: stretch; } .lo-manual-store .btn { white-space: normal; } }
+@media (max-width: 600px) { .lo-manual-store { flex-direction: column; align-items: stretch; } .lo-manual-store .btn { white-space: normal; } .lo-page .lo-manual-store > p { flex: 0 0 auto; } }
 .lo-foot { margin: 0; color: var(--home-muted); font-size: 12px; line-height: 1.5; }
 @media (max-width: 760px) {
   main[data-view="link"]:has(.lo-sticky) { padding-bottom: 96px; }
@@ -888,7 +1106,12 @@ html:not([data-theme="dark"]) .lo-page .lo-block .select-control:not(:disabled) 
 .docs-checklist li:last-child { border-bottom: 0; }
 .docs-check { display: grid; flex-shrink: 0; place-items: center; width: 24px; height: 24px; border: 2px solid var(--home-line); border-radius: 50%; }
 .docs-checklist li.ok .docs-check { border-color: var(--cx-ok); background: var(--cx-ok); color: #fff; }
-.docs-check-copy { display: grid; flex: 1; min-width: 0; }
+.docs-check-copy { display: grid; flex: 1 1 10rem; min-width: 0; }
+/* Phone: the action goes under its label (aligned past the 24 px circle + 12 px gap) instead of squeezing it into three lines. */
+@media (max-width: 520px) {
+  .docs-checklist li { gap: 0 12px; padding-block: 6px; }
+  .docs-checklist li > .cabinet-text-btn { flex-basis: 100%; padding-left: 36px; }
+}
 .docs-check-copy b { color: var(--home-ink); font-size: 15px; }
 .docs-check-copy small { color: var(--home-muted); font-size: 13px; }
 .docs-declare { display: grid; gap: 14px; margin-top: 14px; }
@@ -1092,11 +1315,14 @@ html[data-theme="dark"] .price-off { background: var(--night-jade-soft-strong); 
 .delete-account-ack input { flex: none; width: 18px; height: 18px; margin-top: 2px; accent-color: var(--cx-danger); }
 .delete-account-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
 .delete-account-actions .btn { min-height: 44px; }
-.delete-account-confirm.btn.primary { background: var(--cx-danger); border-color: var(--cx-danger); }
-.delete-account-confirm.btn.primary:hover:not(:disabled) { filter: brightness(.92); }
-.delete-account-confirm.btn.primary:disabled { opacity: .55; cursor: not-allowed; }
+/* The irreversible button is red, not the site's primary green or ivory: the theme rules for .btn.primary
+   (day-folio 0,3,1 and its hover 0,5,1; theme-night 0,3,1) are outweighed here. Disabled stays with the themes. */
+:root body .delete-account-confirm.btn.primary:not(:disabled) { background: var(--cx-danger); border-color: var(--cx-danger); color: #fff; box-shadow: 0 10px 22px -14px rgba(180, 35, 24, .55); }
+:root body .delete-account-confirm.btn.primary:hover:not(:disabled) { background: #93190f; border-color: #93190f; filter: none; }
+.delete-account-confirm.btn.primary:disabled { cursor: not-allowed; }
 @media (min-width: 700px) { .delete-account-lists { grid-template-columns: 1fr 1fr; } }
-html[data-theme="dark"] .delete-account-confirm.btn.primary { color: #2b0e0a; }
+html[data-theme="dark"] body .delete-account-confirm.btn.primary:not(:disabled) { background: var(--cx-danger); border-color: var(--cx-danger); color: #2b0e0a; box-shadow: none; }
+html[data-theme="dark"] body .delete-account-confirm.btn.primary:hover:not(:disabled) { background: var(--cx-danger); border-color: var(--cx-danger); filter: brightness(1.06); box-shadow: none; }
 
 /* ---------- Favourites, cart entry and removal (owner, 6 October 2026) ----------
    An empty heart means "not saved", a filled one "saved"; a saved card gets a thin green frame and a soft tint

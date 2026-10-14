@@ -15,15 +15,16 @@ export function orderAttention(order: Order): OrderAttention | null {
   return null;
 }
 
-/** Where a notification leads: its order (opened in place by the hash) or the declaration it saved. */
-export function noticeTarget(notice: Pick<Notification, 'orderId' | 'code'>): { href: string; kind: 'order' | 'document' } | null {
+/** Where a notification leads: its order (opened in place by the hash), the declaration it saved or the support section. */
+export function noticeTarget(notice: Pick<Notification, 'orderId' | 'code'>): { href: string; kind: 'order' | 'document' | 'support' } | null {
   if (notice.orderId) return { href: '/orders#' + encodeURIComponent(notice.orderId), kind: 'order' };
   if (notice.code === 'declaration-saved') return { href: '/declaration', kind: 'document' };
+  if (notice.code === 'support-answered') return { href: '/account#support', kind: 'support' };
   return null;
 }
 
 /** Notifications that speak of each reason: a "доплата" item never shows a message about something else. */
-const reasonCodes: Record<OrderAttention, readonly string[]> = {
+export const reasonCodes: Record<OrderAttention, readonly string[]> = {
   extra: ['parcel-extra', 'store-shipping-over', 'store-shipping-extra-legacy', 'customs-duty-over', 'extra-charge-requested'],
   change: ['change-requested'],
   // No notification asks for the payment: the checkout itself does.

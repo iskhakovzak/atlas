@@ -18,6 +18,8 @@ import {pickLocale,uzText} from '@/lib/market/uz-cyrl';
 import {isUzbek} from '@/lib/market/i18n';
 
 type DocumentRow={id:string;filename:string;content_type?:string;contentType?:string;size:number;status:string;created_at?:number;createdAt?:number};
+/** Stable no-op for useInlineRecipient on the declaration page: its effect depends on the callback. */
+const noop=()=>{};
 type IdentityForm={firstName:string;lastName:string;birthDate:string;passportNumber:string;pinfl:string;nationality:string};
 const empty:IdentityForm={firstName:"",lastName:"",birthDate:"",passportNumber:"",pinfl:"",nationality:""};
 
@@ -26,6 +28,10 @@ function useInlineRecipient(onAdded:(id:string)=>void){
   const {state,act}=useMarket();
   const [open,setOpen]=useState(false);
   const pending=useRef<string|null>(null);
+  // The modal has no Radix trigger, so focus is handed back by hand to the button that opened it (Esc, close, save).
+  const opener=useRef<HTMLElement|null>(null);
+  function show(){opener.current=document.activeElement instanceof HTMLElement?document.activeElement:null;setOpen(true)}
+  function close(){setOpen(false);const target=opener.current;opener.current=null;if(target)requestAnimationFrame(()=>{if(target.isConnected)target.focus()})}
   useEffect(()=>{
     const key=pending.current;if(!key)return;
     const added=state.deliveryProfiles.find(profile=>`${profile.recipient}|${profile.address}`===key);
@@ -33,10 +39,10 @@ function useInlineRecipient(onAdded:(id:string)=>void){
   },[state.deliveryProfiles,onAdded]);
   async function save(value:RecipientDraft){
     pending.current=`${value.profile.recipient}|${value.profile.address}`;
-    if(await act({type:'delivery-profile-save',value:value.profile,label:value.label,primary:value.primary})){setOpen(false);toast.success(recipientCopy[state.communication.language].saved)}
+    if(await act({type:'delivery-profile-save',value:value.profile,label:value.label,primary:value.primary})){close();toast.success(recipientCopy[state.communication.language].saved)}
     else pending.current=null;
   }
-  return {open,setOpen,save};
+  return {open,show,close,save};
 }
 
 /**
@@ -50,11 +56,13 @@ export function IdentityView(){
   const d=docsCopy[lang];
   const requested=useSearchParams().get('recipient')??'';
   const [docs,setDocs]=useState<DocumentRow[]>([]),[consent,setConsent]=useState(false),[form,setForm]=useState<IdentityForm>(empty),[busy,setBusy]=useState(false),[recipientProfileId,setRecipientProfileId]=useState("");
+  // Saved in this visit: the form is cleared, so instead of Save (and its "fill in" hint) show the way back. Any edit makes a new form object and ends it.
+  const [justSaved,setJustSaved]=useState(false);
   const recipientProfiles=state.deliveryProfiles;
   const identities=useMemo(()=>state.identityProfiles??(state.identityProfile?[state.identityProfile]:[]),[state.identityProfiles,state.identityProfile]);
   // A link from the account ("add passport" on a recipient) preselects that recipient.
   const selectedRecipientProfileId=recipientProfileId||(recipientProfiles.some(profile=>profile.id===requested)?requested:'')||((recipientProfiles.find(profile=>profile.primary)??recipientProfiles[0])?.id??"");
-  const inline=useInlineRecipient(id=>{setRecipientProfileId(id);setForm(empty)});
+  const inline=useInlineRecipient(id=>{setRecipientProfileId(id);setForm(empty);setJustSaved(false)});
   useEffect(()=>{if(!user)return;void fetch('/api/passport',{cache:'no-store'}).then(async r=>{const data=await r.json() as {documents?:DocumentRow[];error?:string};if(!r.ok)throw Error(data.error??d.loadError);setDocs(data.documents??[])}).catch(e=>toast.error((e as Error).message))},[user,d.loadError]);
   const current=identities.find(profile=>profile.recipientProfileId===selectedRecipientProfileId);
   // Names and the date of birth start from the confirmed entry; the number and PINFL are typed again (only their last digits are kept here).
@@ -65,8 +73,12 @@ export function IdentityView(){
   // Why Save is off: the fields still missing (by their labels) and the consent, said under the button.
   const missing=([[!filled.lastName,c.last],[!filled.firstName,c.first],[!filled.birthDate,c.birth],[!numberOk,c.number],[pinflBad,c.pinfl]] as [boolean,string][]).filter(([gap])=>gap).map(([,label])=>label===c.pinfl?label:label.charAt(0).toLocaleLowerCase(lang==='en'?'en-US':'ru-RU')+label.slice(1));
   const saveHint=complete&&consent?'':c.need(missing.join(', '),!consent);
+  // Only while the saved entry is there: deleting it right after saving brings Save back, not "back to orders".
+  const done=justSaved&&form===empty&&Boolean(current);
+  // Orders of this recipient still on their way: the passport was most likely added for them.
+  const waitingOrders=state.orders.some(order=>!order.cancelled&&order.status<5&&order.deliveryProfileId===selectedRecipientProfileId);
   const today=new Date().toISOString().slice(0,10);
-  async function confirm(){if(!selectedRecipientProfileId||!consent||!complete)return;setBusy(true);const ok=await act({type:'identity-confirm',recipientProfileId:selectedRecipientProfileId,firstName:filled.firstName,lastName:filled.lastName,birthDate:filled.birthDate,passportNumber:filled.passportNumber,nationality:filled.nationality,...(pinflDigits?{pinfl:pinflDigits}:{})});setBusy(false);if(ok){setForm(empty);toast.success(d.confirmedToast)}}
+  async function confirm(){if(!selectedRecipientProfileId||!consent||!complete)return;setBusy(true);const ok=await act({type:'identity-confirm',recipientProfileId:selectedRecipientProfileId,firstName:filled.firstName,lastName:filled.lastName,birthDate:filled.birthDate,passportNumber:filled.passportNumber,nationality:filled.nationality,...(pinflDigits?{pinfl:pinflDigits}:{})});setBusy(false);if(ok){setForm(empty);setJustSaved(true);toast.success(d.confirmedToast)}}
   // Deletes a scan, or the typed details of a recipient (their row has no image). A row already gone still clears the entry.
   async function remove(id:string,question:string){if(!window.confirm(question))return;setBusy(true);try{const response=await fetch('/api/passport?id='+encodeURIComponent(id),{method:'DELETE'});if(!response.ok&&response.status!==404){const data=await response.json() as {error?:string};throw Error(data.error??d.deleteError)}if(identities.some(identity=>identity.documentId===id))await act({type:'identity-clear',documentId:id});setDocs(list=>list.filter(doc=>doc.id!==id));toast.success(d.deleted)}catch(error){toast.error((error as Error).message)}finally{setBusy(false)}}
   if(!ready)return <Empty title={c.notReady} description={c.notReadyText} href="/account" label={c.open}/>;
@@ -79,16 +91,16 @@ export function IdentityView(){
         {recipientProfiles.length?<div className="docs-recipients" role="radiogroup" aria-label={d.whose}>{recipientProfiles.map(profile=>{
           const passport=identities.find(identity=>identity.recipientProfileId===profile.id),checked=profile.id===selectedRecipientProfileId;
           return <label key={profile.id} className={'docs-recipient'+(checked?' selected':'')}>
-            <input type="radio" name="passport-recipient" value={profile.id} checked={checked} onChange={()=>{setRecipientProfileId(profile.id);setForm(empty)}}/>
+            <input type="radio" name="passport-recipient" value={profile.id} checked={checked} onChange={()=>{setRecipientProfileId(profile.id);setForm(empty);setJustSaved(false)}}/>
             <span className="docs-recipient-copy"><b>{profile.recipient}</b><small>{profile.label}</small></span>
             <span className={'cabinet-chip '+(passport?'ok':'warn')}>{passport?<Check size={14} aria-hidden="true"/>:null}{passport?d.passportOk(passport.passportMasked):d.passportMissing}</span>
           </label>;
-        })}</div>:<p className="cabinet-empty">{d.noRecipient}</p>}
-        <button type="button" className="cabinet-add" onClick={()=>inline.setOpen(true)}><Plus size={18} aria-hidden="true"/>{d.addRecipient}</button>
+        })}</div>:null}
+        <button type="button" className="cabinet-add" onClick={inline.show}><Plus size={18} aria-hidden="true"/>{d.addRecipient}</button>
       </li>
       <li className={'cabinet-card docs-step'+(selectedRecipientProfileId?'':' muted')}>
         <h2><span className="docs-num" aria-hidden="true">2</span>{current?d.replaceStep:d.uploadStep}</h2>
-        {!selectedRecipientProfileId?<p className="cabinet-empty">{d.pickFirst}</p>:<div className="docs-fields">
+        {!selectedRecipientProfileId?<p className="cabinet-empty">{recipientProfiles.length?d.pickFirst:d.noRecipient}</p>:<div className="docs-fields">
           <p className="cabinet-note">{c.textOnly}</p>
           <div className="rf-row"><div className="rf-field"><label htmlFor="last-name">{c.last}</label><input id="last-name" required autoComplete="family-name" autoCapitalize="words" value={filled.lastName} onChange={e=>setForm({...form,lastName:capitalizeWords(e.target.value)})}/></div><div className="rf-field"><label htmlFor="first-name">{c.first}</label><input id="first-name" required autoComplete="given-name" autoCapitalize="words" value={filled.firstName} onChange={e=>setForm({...form,firstName:capitalizeWords(e.target.value)})}/></div></div>
           <div className="rf-row"><div className="rf-field"><label htmlFor="birth-date">{c.birth}</label><input id="birth-date" type="date" required autoComplete="bday" max={today} value={filled.birthDate} onChange={e=>setForm({...form,birthDate:e.target.value})}/></div><div className="rf-field"><label htmlFor="nationality">{c.nationality}</label><input id="nationality" autoComplete="country-name" value={filled.nationality} onChange={e=>setForm({...form,nationality:e.target.value})}/></div></div>
@@ -96,15 +108,20 @@ export function IdentityView(){
           <div className={"rf-field"+(pinflBad?" invalid":"")}><label htmlFor="passport-pinfl">{c.pinfl}</label><input id="passport-pinfl" inputMode="numeric" autoComplete="off" maxLength={20} spellCheck={false} value={filled.pinfl} placeholder={current?.pinflMasked??"12345678901234"} aria-describedby="passport-pinfl-hint" aria-invalid={pinflBad} onChange={e=>setForm({...form,pinfl:e.target.value.replace(/[^\d ]/g,'')})}/><small id="passport-pinfl-hint" className={pinflBad?"id-field-error":undefined}>{pinflBad?c.pinflError:c.pinflHint}</small></div></div>
           <div className="basket-consent"><Checkbox id="passport-consent" aria-label={`${c.consent} ${c.processing}`} checked={consent} onCheckedChange={value=>setConsent(value===true)}/><label htmlFor="passport-consent">{c.consent} <Link href="/legal#passport-consent" target="_blank" rel="noopener noreferrer">{c.processing}</Link>.</label></div>
           {current&&<p className="lo-note"><Check size={16} aria-hidden="true"/>{c.confirmed} {formatLongDate(current.confirmedAt,lang)}: {current.lastName} {current.firstName}, {current.birthDate}, {current.passportMasked}{current.pinflMasked?`, ${c.pinfl} ${current.pinflMasked}`:''}</p>}
+          {done?(waitingOrders
+            ?<Link className="btn primary basket-cta" href="/orders">{d.backToOrders}<ArrowRight aria-hidden="true"/></Link>
+            :<Link className="btn secondary basket-cta" href="/order-by-link">{d.newOrder}</Link>)
+          :<>
           <button type="button" className="btn primary basket-cta" disabled={busy||!consent||!complete} aria-describedby={saveHint?"passport-save-hint":undefined} onClick={()=>void confirm()}>{busy?<LoaderCircle className="spin" aria-hidden="true"/>:<ShieldCheck aria-hidden="true"/>}{c.confirm}</button>
           {saveHint&&<p id="passport-save-hint" className="cabinet-note">{saveHint}</p>}
+          </>}
           {current&&<button type="button" className="cabinet-text-btn" disabled={busy} onClick={()=>void remove(current.documentId,d.deleteDataConfirm)}><Trash2 size={15} aria-hidden="true"/>{c.deleteData}</button>}
         </div>}
       </li>
     </ol>
     {docs.length>0&&<section className="cabinet-card docs-scans" aria-labelledby="docs-scans-title"><h2 id="docs-scans-title">{c.oldScans}</h2><p className="lo-note warn"><AlertTriangle size={16} aria-hidden="true"/>{c.oldScansNote}</p><ul className="cabinet-rows">{docs.map(doc=>{const identity=identities.find(item=>item.documentId===doc.id);const recipient=recipientProfiles.find(item=>item.id===identity?.recipientProfileId);return <li key={doc.id} className="docs-scan"><FileCheck2 aria-hidden="true"/><span><b>{doc.filename}</b><small>{Math.ceil(doc.size/1024)} KB · {doc.status==='confirmed'?c.confirmedData:c.pending}{recipient?` · ${recipient.recipient}`:''}</small></span><button type="button" className="icon-btn" aria-label={`${c.delete}: ${doc.filename}`} disabled={busy} onClick={()=>void remove(doc.id,d.deleteConfirm)}><Trash2 aria-hidden="true"/></button></li>})}</ul></section>}
     <p className="lo-note"><AlertTriangle size={16} aria-hidden="true"/>{c.warning}</p>
-    <Modal open={inline.open} onClose={()=>inline.setOpen(false)} title={recipientCopy[lang].addTitle} description={recipientCopy[lang].note} locale={lang}>{inline.open&&<RecipientForm locale={lang} isFirst={!recipientProfiles.length} onSave={inline.save}/>}</Modal>
+    <Modal open={inline.open} onClose={inline.close} title={recipientCopy[lang].addTitle} description={recipientCopy[lang].note} locale={lang}>{inline.open&&<RecipientForm locale={lang} isFirst={!recipientProfiles.length} onSave={inline.save}/>}</Modal>
   </div>;
 }
 
@@ -135,8 +152,10 @@ export function DeclarationView(){
   });
   // The passport item belongs to the selected group's recipient (the primary one when nothing is selected).
   const passportReady=referenceOrder?displayIdentity:recipientIdentity;
-  const checklist=[
-    {ok:state.deliveryProfiles.length>0,label:d.needRecipient,detail:primary?.recipient,href:"/account",action:recipientCopy[lang].addTitle},
+  // A recipient is added right here, in the same form as on /identity, without leaving for the account.
+  const inline=useInlineRecipient(noop);
+  const checklist:({ok:boolean;label:string;detail?:string;action:string}&({href:string}|{onAction:()=>void}))[]=[
+    {ok:state.deliveryProfiles.length>0,label:d.needRecipient,detail:primary?.recipient,onAction:inline.show,action:recipientCopy[lang].addTitle},
     {ok:Boolean(passportReady),label:d.needPassport,detail:passportReady?.passportMasked,href:passportRecipientId?`/identity?recipient=${encodeURIComponent(passportRecipientId)}`:"/identity",action:d.addPassport},
     {ok:eligible.length>0,label:d.needOrders,detail:eligible.length?orderCount(eligible.length,lang):undefined,href:"/order-by-link",action:d.newOrder},
   ];
@@ -157,7 +176,9 @@ export function DeclarationView(){
       <ul>{checklist.map(item=><li key={item.label} className={item.ok?'ok':'todo'}>
         <span className="docs-check" aria-hidden="true">{item.ok?<Check size={14}/>:null}</span>
         <span className="docs-check-copy"><b>{item.label}</b>{item.detail&&<small>{item.detail}</small>}</span>
-        {!item.ok&&<Link className="cabinet-text-btn" href={item.href}>{item.action}<ArrowRight size={15} aria-hidden="true"/></Link>}
+        {!item.ok&&('onAction' in item
+          ?<button type="button" className="cabinet-text-btn" onClick={item.onAction}><Plus size={15} aria-hidden="true"/>{item.action}</button>
+          :<Link className="cabinet-text-btn" href={item.href}>{item.action}<ArrowRight size={15} aria-hidden="true"/></Link>)}
       </li>)}</ul>
     </section>
     {readyToDeclare&&<div className="docs-declare">
@@ -174,5 +195,6 @@ export function DeclarationView(){
       </section>
     </div>}
     <section className="cabinet-card docs-history" aria-labelledby="docs-history-title"><h2 id="docs-history-title">{d.history}</h2>{state.declarations.length?<ul className="cabinet-rows">{state.declarations.map(item=><li key={item.id} className="docs-scan"><FileCheck2 aria-hidden="true"/><span><b>{item.id}</b><small>{formatDateTime(item.createdAt,lang)} · {orderCount(item.lines.length,lang)} · {c.draft}</small></span><strong>{formatSum(item.totalValue,lang)}</strong></li>)}</ul>:<p className="cabinet-empty">{c.noDrafts}</p>}</section>
+    <Modal open={inline.open} onClose={inline.close} title={recipientCopy[lang].addTitle} description={recipientCopy[lang].note} locale={lang}>{inline.open&&<RecipientForm locale={lang} isFirst={!state.deliveryProfiles.length} onSave={inline.save}/>}</Modal>
   </div>;
 }

@@ -71,7 +71,52 @@ export const botText = /*@__PURE__*/withCyrillic({
 
 export type BotUpdate =
   | { kind: 'start'; chatId: number; token?: string; lang: Lang }
-  | { kind: 'confirm'; callbackId: string; chatId: number; messageId: number; token: string; lang: Lang; user: { id: string; name: string }; media: boolean };
+  | { kind: 'confirm'; callbackId: string; chatId: number; messageId: number; token: string; lang: Lang; user: { id: string; name: string }; media: boolean }
+  // Order notices (lib/market/telegram-notices-server.ts). `subject` is the sender's "tg:<id>".
+  /** Plain /start too: it completes a "Turn on" pressed on the site within the last 30 minutes. */
+  | { kind: 'notify'; chatId: number; subject: string; lang: Lang; plain: boolean }
+  | { kind: 'stop'; chatId: number; subject: string; lang: Lang }
+  /** Any other text: the bot does not read replies and points to support (at most once an hour per chat). */
+  | { kind: 'text'; chatId: number; subject: string; lang: Lang };
+
+/** The bot's command menu: only /stop, in the languages Telegram users here have; the default is Uzbek. */
+export const botCommands = {
+  default: [{ command: 'stop', description: 'Buyurtma bildirishnomalarini o‘chirish' }],
+  ru: [{ command: 'stop', description: 'Выключить уведомления о заказах' }],
+  uz: [{ command: 'stop', description: 'Buyurtma bildirishnomalarini o‘chirish' }],
+  en: [{ command: 'stop', description: 'Turn off order notifications' }],
+} as const;
+
+/**
+ * The Telegram an account's order notices may go to, from the rows already read (lib/auth/server.ts
+ * telegramConsentSubject). An account created with Telegram ("tg:<id>") uses its own unless that Telegram was
+ * since attached to another account. Any other account needs exactly one attached Telegram, attached no later
+ * than the consent (`since`): a Telegram attached after it — a re-link, someone else's — needs a new consent.
+ */
+export function consentSubject(userId: string, rows: { attachedElsewhere?: boolean; links?: readonly { subject: string; created_at: number }[] }, since?: number): string | null {
+  if (userId.startsWith('tg:')) return rows.attachedElsewhere ? null : userId;
+  const links = (rows.links ?? []).filter((link) => link.subject.startsWith('tg:'));
+  if (links.length !== 1) return null;
+  return since !== undefined && !(links[0].created_at <= since) ? null : links[0].subject;
+}
+
+/** Why the Bot API refused a message, read from its description (not the code alone). */
+export type BotFailure = { kind: 'blocked' | 'not-started' | 'rate' | 'bad-request' | 'unavailable'; retryAfter?: number };
+/**
+ * blocked — the person blocked the bot or deleted their account; not-started — the bot may not write first
+ * (no Start yet) or the chat is unknown; rate — Telegram asks to wait; unavailable — network, timeout,
+ * Telegram's own error or a bad token (not the customer's doing); bad-request — anything else, such as
+ * HTML Telegram could not parse: that is Atlas's mistake and never turns a customer's notices off.
+ */
+export function classifyBotFailure(reply: { status: number; description?: string; retryAfter?: number }): BotFailure {
+  const text = (reply.description ?? '').toLowerCase();
+  if (reply.status === 429) return { kind: 'rate', ...(reply.retryAfter !== undefined ? { retryAfter: reply.retryAfter } : {}) };
+  if (/chat not found|can't initiate conversation|can.t initiate|peer_id_invalid/.test(text)) return { kind: 'not-started' };
+  if (/blocked by the user|user is deactivated|bot was kicked/.test(text)) return { kind: 'blocked' };
+  if (reply.status === 403) return { kind: 'blocked' };
+  if (reply.status === 0 || reply.status === 401 || reply.status === 404 || reply.status >= 500) return { kind: 'unavailable' };
+  return { kind: 'bad-request' };
+}
 
 type Raw = Record<string, unknown>;
 const obj = (value: unknown): Raw | undefined => value && typeof value === 'object' ? value as Raw : undefined;
@@ -82,15 +127,24 @@ function person(from: Raw | undefined) {
   return { id: String(from.id), name: name || (username ? '@' + username : '') };
 }
 
-/** What the bot has to answer: /start with or without a token in a private chat, or the confirm tap. */
+/**
+ * What the bot has to answer in a private chat: /start with or without a token, /start notify, /stop, any
+ * other text, or the confirm tap.
+ */
 export function parseBotUpdate(update: unknown): BotUpdate | null {
   const root = obj(update);
   const message = obj(root?.message);
   const chat = obj(message?.chat);
   if (message && chat?.type === 'private' && typeof chat.id === 'number' && typeof message.text === 'string') {
-    const match = /^\/start(?:@\w+)?(?:\s+(\S+))?\s*$/.exec(message.text.trim());
-    if (!match || !person(obj(message.from))) return null;
-    return { kind: 'start', chatId: chat.id, token: validStartToken(match[1]) ? match[1] : undefined, lang: botLang(obj(message.from)?.language_code) };
+    const from = person(obj(message.from));
+    if (!from) return null;
+    const text = message.text.trim(), lang = botLang(obj(message.from)?.language_code), subject = 'tg:' + from.id;
+    // "/stop", "/stop please", "/stop@bot", or just the word "stop"/"стоп": whoever writes it wants the notices off.
+    if (/^\/stop(?:@\w+)?(?:\s[\s\S]*)?$/i.test(text) || /^(?:stop|стоп)[.!]*$/i.test(text)) return { kind: 'stop', chatId: chat.id, subject, lang };
+    const match = /^\/start(?:@\w+)?(?:\s+(\S+))?\s*$/.exec(text);
+    if (!match) return { kind: 'text', chatId: chat.id, subject, lang };
+    if (match[1] === 'notify') return { kind: 'notify', chatId: chat.id, subject, lang, plain: false };
+    return { kind: 'start', chatId: chat.id, token: validStartToken(match[1]) ? match[1] : undefined, lang };
   }
   const callback = obj(root?.callback_query);
   const callbackMessage = obj(callback?.message);

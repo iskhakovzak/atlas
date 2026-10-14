@@ -10,6 +10,9 @@ import {InfoTip} from '@/components/info-tip';
 import {isNative} from '@/lib/native/bridge';
 import {AppleButton,AppleMark,OtpLogin,TelegramBotLogin,TelegramLogin,appleOffered,loginCopy,openProvider} from './login-view';
 import {withCyrillic} from '@/lib/market/uz-cyrl';
+import {useMarket} from '@/lib/market/store';
+import {telegramUiCopy} from '@/lib/market/telegram-ui-copy';
+import {signInMethodsChanged} from './telegram-notices-data';
 
 type Method='email'|'phone'|'telegram'|'google'|'apple';
 type Available={email:boolean;phone:boolean;telegram:string|null;telegramBot?:boolean;google:boolean;apple?:boolean;appleNative?:boolean;devCodes:boolean};
@@ -27,6 +30,10 @@ export function SignInMethods({locale}:{locale:Locale}){
  const c=copy[locale],lc=loginCopy(locale);
  const [links,setLinks]=useState<Links|null>(null),[available,setAvailable]=useState<Available|null>(null),[failed,setFailed]=useState(false);
  const [adding,setAdding]=useState<Method|null>(null),[error,setError]=useState<string|null>(null);
+ // Unlinking Telegram also turns its order notices off (server side): said under it while the second tap is awaited.
+ const {state,refresh}=useMarket();
+ const [arming,setArming]=useState<string|null>(null);
+ const noticesOn=state.communication.telegramEnabled===true;
  const errorText=useCallback((code?:string)=>code?(code in lc.errors?lc.errors[code as keyof typeof lc.errors]:lc.errors.fallback):'',[lc]);
  const load=useCallback(async()=>{
   try{
@@ -46,7 +53,7 @@ export function SignInMethods({locale}:{locale:Locale}){
   }
  // eslint-disable-next-line react-hooks/exhaustive-deps
  },[]);
- const attached=useCallback(()=>{setAdding(null);setError(null);toast.success(c.linked);void load()},[c.linked,load]);
+ const attached=useCallback(()=>{setAdding(null);setError(null);toast.success(c.linked);void load();window.dispatchEvent(new Event(signInMethodsChanged))},[c.linked,load]);
  const showError=useCallback((code?:string)=>setError(code?errorText(code):null),[errorText]);
  // Unlinking takes a second tap (SafeDeleteButton), which also locks the button while the request runs.
  async function remove(subject:string):Promise<boolean>{
@@ -59,6 +66,8 @@ export function SignInMethods({locale}:{locale:Locale}){
     return false;
    }
    setLinks(await response.json() as Links);toast.success(c.removed);
+   // Telegram gone: the server has turned its notices off, so the account state and the Telegram row read again.
+   if(items.some(item=>item.subject===subject&&item.method==='telegram')){void refresh();window.dispatchEvent(new Event(signInMethodsChanged))}
    return true;
   }catch{toast.error(lc.errors.fallback);return false}
  }
@@ -72,9 +81,10 @@ export function SignInMethods({locale}:{locale:Locale}){
   {failed&&<p className="cabinet-note" role="status">{c.failed}</p>}
   {!!items.length&&<ul className="signin-methods">{items.map(item=>{const Icon=icons[item.method];return <li key={item.subject||'own'} className="signin-method">
    <span className="signin-method-icon" aria-hidden="true"><Icon size={18}/></span>
-   <span className="signin-method-body"><b>{c.names[item.method]}</b><small>{item.contact}</small></span>
+   <span className="signin-method-body"><b>{c.names[item.method]}</b><small>{item.contact}</small>
+    {arming===item.subject&&item.method==='telegram'&&noticesOn&&<small className="signin-method-warning" role="status">{telegramUiCopy[locale].unlinkWarn}</small>}</span>
    {item.own&&<em className="signin-method-tag">{c.own}</em>}
-   {!item.own&&<SafeDeleteButton label={c.remove} confirmLabel={c.confirmRemove} itemName={`${c.names[item.method]} ${item.contact}`} locale={locale} onConfirm={()=>remove(item.subject)}/>}
+   {!item.own&&<SafeDeleteButton label={c.remove} confirmLabel={c.confirmRemove} itemName={`${c.names[item.method]} ${item.contact}`} locale={locale} onArm={armed=>setArming(armed?item.subject:null)} onConfirm={()=>remove(item.subject)}/>}
   </li>})}</ul>}
   {!!addable.length&&<div className="signin-add">{addable.map(method=>{const Icon=icons[method];return method==='apple'&&available
    ?<AppleButton key={method} link methods={available} returnTo={returnTo} label={c.names.apple} onDone={attached} onError={code=>{if(code)toast.error(errorText(code))}}/>

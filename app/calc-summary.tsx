@@ -53,7 +53,9 @@ export function CalcLines({sums,locale,pricing,weightKg,speed,children}:{sums:Re
     <span className="basket-line-label">{c.lines.service}</span>
     <b>{formatSum(serviceTotal,locale)}</b>
     <details className="cost-service-breakdown basket-service-breakdown">
-     <summary>{c.lines.serviceBreakdown}</summary>
+     {/* The link names what the amount holds (14.10.2026: "Сервис Atlas 493 813" read as a ~40 % fee); with buyout or
+         conversion in the tariff, or no weight (nothing ticked), it stays the plain "Service breakdown". */}
+     <summary>{sums.buyout+sums.conversion>0||!weightKg?c.lines.serviceBreakdown:c.lines.serviceSummary(kgText(weightKg,locale),fee,sums.customsHelp>0)}</summary>
      <div className="basket-lines">
       <SummaryLine label={c.lines.atlasFee(fee)} amount={sums.service} locale={locale} help={c.feeHelp(fee)} helpLabel={c.lines.atlasFee('')}/>
       {sums.buyout>0&&<SummaryLine label={c.lines.buyout} amount={sums.buyout} locale={locale}/>}

@@ -9,7 +9,7 @@ import {
 import {appleAuthorizeUrl,appleClientSecret,appleUserName,exchangeAppleCode,revokeAppleToken,verifyAppleIdTokenLive} from './apple';
 import {loginPath,safeReturnTo} from './return-to';
 import {consumeChallenge,detachLinkedMethod,renewSessionRow} from './session-store';
-import {TG_ANIMATION_SETTING,TG_BOT_SETTING,TG_CHALLENGE_KINDS,TG_WELCOME_ANIMATION,TG_LOGIN_COOKIE,TG_LOGIN_TTL_MS,botLinks,botText,parseBotUpdate,validStartToken,type TgChallengeKind} from './telegram-bot';
+import {TG_ANIMATION_SETTING,TG_BOT_SETTING,TG_CHALLENGE_KINDS,TG_WELCOME_ANIMATION,TG_LOGIN_COOKIE,TG_LOGIN_TTL_MS,botCommands,botLinks,consentSubject,botText,classifyBotFailure,parseBotUpdate,validStartToken,type BotFailure,type TgChallengeKind} from './telegram-bot';
 
 // AuthError lives in core.ts (no parameter properties there, so tests load it); routes keep importing it from here.
 export {AuthError};
@@ -146,9 +146,11 @@ export async function linkedMethods(){
 }
 
 /** Detaching a method also ends the account's sessions opened through it, on every device (session-store.ts). */
-export async function detachMethod(subject:string){
+export async function detachMethod(subject:string,onDetached?:(userId:string,subject:string)=>Promise<unknown>){
  const user=await signedInUser();
- await detachLinkedMethod(db(),{userId:user.userId,subject,current:user});
+ const {removed}=await detachLinkedMethod(db(),{userId:user.userId,subject,current:user});
+ // The route turns Telegram order notices off with the Telegram (they would have nowhere to go).
+ if(removed&&onDetached)await onDetached(user.userId,subject).catch(error=>console.error('After detaching a method',String(error).slice(0,200)));
  return linkedMethods();
 }
 
@@ -516,7 +518,8 @@ async function sendSms(phone:string,code:string){
 }
 
 // ---------- Telegram bot sign-in (lib/auth/telegram-bot.ts) ----------
-async function telegramBotConnected(){
+/** The bot's webhook is connected (market_settings): only then do /stop and Start reach Atlas. */
+export async function telegramBotConnected(){
  try{return !!(await db().prepare('SELECT 1 AS found FROM market_settings WHERE key=?').bind(TG_BOT_SETTING).first())}catch{return false}
 }
 /** The public site connects the bot by itself the first time its sign-in page asks, so no admin step is needed. */
@@ -535,6 +538,71 @@ async function botApi(method:string,body:Record<string,unknown>){
  if(!response.ok||!data.ok)throw Error(`Telegram ${method}: ${data.description??response.status}`);
  return data;
 }
+/** A Bot API call that never throws: Telegram's answer with its HTTP status (0 — network error or timeout). */
+async function botCall(method:string,body:Record<string,unknown>,timeoutMs=5000):Promise<{ok:boolean;status:number;description?:string;retryAfter?:number}>{
+ try{
+  const response=await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${method}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(timeoutMs)});
+  const data=await response.json().catch(()=>({})) as {ok?:boolean;description?:unknown;parameters?:{retry_after?:unknown}};
+  const retry=data.parameters?.retry_after;
+  return {ok:response.ok&&data.ok===true,status:response.status,...(typeof data.description==='string'?{description:data.description.slice(0,200)}:{}),...(typeof retry==='number'?{retryAfter:retry}:{})};
+ }catch{return {ok:false,status:0}}
+}
+
+// ---------- Telegram order notices (lib/market/telegram-notices-server.ts) ----------
+export const telegramConfigured=()=>configured.telegram();
+/**
+ * Order notices go out only from the live site: ATLAS_TELEGRAM_NOTICES=on, or the public host over https.
+ * A staging or preview deployment with the same bot token never writes to customers ("off" stops any).
+ */
+export function telegramNoticesLive(request?:Request){
+ if(env.ATLAS_TELEGRAM_NOTICES==='on')return true;
+ if(env.ATLAS_TELEGRAM_NOTICES==='off'||!request)return false;
+ const url=new URL(request.url);
+ return url.protocol==='https:'&&publicHosts.includes(url.hostname);
+}
+/**
+ * The Telegram ("tg:<id>") an account's notices may go to, or null. An account created with Telegram uses
+ * its own, unless that Telegram has since been attached to another account. Any other account uses the one
+ * Telegram attached to it, and only when it was attached no later than the consent (`since`): attaching
+ * Telegram again needs a new consent. Throws when the database cannot be read: delivery takes that as "send
+ * nothing", the switch as "try again" (never as "attach Telegram first").
+ */
+export async function telegramConsentSubject(userId:string,since?:number):Promise<string|null>{
+ if(userId.startsWith('tg:')){
+  const moved=await db().prepare('SELECT 1 AS found FROM market_auth_links WHERE subject=?').bind(userId).first();
+  return consentSubject(userId,{attachedElsewhere:!!moved},since);
+ }
+ const rows=await db().prepare("SELECT subject,created_at FROM market_auth_links WHERE user_id=? AND subject LIKE 'tg:%' LIMIT 2").bind(userId).all<{subject:string;created_at:number}>();
+ return consentSubject(userId,{links:rows.results??[]},since);
+}
+/**
+ * The accounts a Telegram leads to: first the one it opens (the account it is attached to, else its own "tg:"
+ * account), then its own "tg:" account when that is a different one (left from before the Telegram was attached
+ * elsewhere): /stop turns both off. Throws when the database cannot be read.
+ */
+export async function telegramAccountsOf(subject:string):Promise<string[]>{
+ const [link,own]=await Promise.all([
+  db().prepare('SELECT user_id FROM market_auth_links WHERE subject=?').bind(subject).first<{user_id:string}>(),
+  db().prepare('SELECT 1 AS found FROM market_accounts WHERE user_id=?').bind(subject).first(),
+ ]);
+ const ids=link?[link.user_id]:[];
+ if(own&&!ids.includes(subject))ids.push(subject);
+ return ids;
+}
+/** One message (or chat action) to the Telegram "tg:<id>"; never throws, 5 seconds at most. */
+export async function sendTelegram(subject:string,payload:Record<string,unknown>,method:'sendMessage'|'sendChatAction'='sendMessage'):Promise<{ok:true}|{ok:false;failure:BotFailure}>{
+ if(!configured.telegram()||!/^tg:\d{1,20}$/.test(subject))return {ok:false,failure:{kind:'unavailable'}};
+ const reply=await botCall(method,{...payload,chat_id:subject.slice(3)});
+ return reply.ok?{ok:true}:{ok:false,failure:classifyBotFailure(reply)};
+}
+/** What the bot does with order-notice commands; the routes pass them in (lib/market/telegram-notices-server.ts). */
+export type TelegramNoticeHooks={
+ /** /start notify, or plain /start (`plain`): true when it answered (a plain Start with nothing pending gets the usual welcome). */
+ notify:(update:{chatId:number;subject:string;lang:'ru'|'uz'|'en';plain:boolean},live:boolean)=>Promise<boolean>;
+ stop:(update:{chatId:number;subject:string;lang:'ru'|'uz'|'en'})=>Promise<void>;
+ text:(update:{chatId:number;subject:string;lang:'ru'|'uz'|'en'})=>Promise<void>;
+};
+
 function browserSecret(request:Request){
  const value=readCookie(request.headers.get('cookie'),TG_LOGIN_COOKIE);
  return value&&/^[A-Za-z0-9_-]{43}$/.test(value)?value:null;
@@ -593,11 +661,20 @@ async function sendWelcome(chatId:number,caption:string,replyMarkup:unknown,site
  }
 }
 
-export async function telegramWebhook(request:Request){
+export async function telegramWebhook(request:Request,hooks?:TelegramNoticeHooks){
  if(!configured.telegram())throw new AuthError(503,'method_unavailable');
  if(!constantTimeEqual(request.headers.get('x-telegram-bot-api-secret-token')??'',await webhookSecret()))throw new AuthError(403,'forbidden_origin');
  const update=parseBotUpdate(await request.json().catch(()=>null));
  if(!update)return;
+ // Order notices: /stop, /start notify and replies to the bot. Limits per person; past the reply limit, silence.
+ if(update.kind==='stop'||update.kind==='notify'||update.kind==='text'){
+  if(!hooks)return;
+  if(update.kind==='stop'){await limit(`telegram-bot-stop:${update.subject}`,20,60*60*1000);await hooks.stop(update);return}
+  if(update.kind==='notify'){await limit(`telegram-bot-notify:${update.subject}`,20,60*60*1000);await hooks.notify(update,telegramNoticesLive(request));return}
+  try{await limit(`telegram-bot-reply:${update.chatId}`,1,60*60*1000)}catch{return}
+  await hooks.text(update);
+  return;
+ }
  const t=botText[update.lang],site=new URL(request.url).origin,openSite={inline_keyboard:[[{text:t.open,url:site}]]};
  const pending=async(token:string)=>{
   const row=await db().prepare(`SELECT kind,target,expires_at FROM market_auth_challenges WHERE id=? AND kind IN (${TG_CHALLENGE_KINDS.map(()=>'?').join(',')})`)
@@ -607,8 +684,15 @@ export async function telegramWebhook(request:Request){
  if(update.kind==='start'){
   const row=update.token?await pending(update.token):null;
   if(!row){
-   if(update.token)await botApi('sendMessage',{chat_id:update.chatId,text:t.expired,reply_markup:openSite});
-   else await sendWelcome(update.chatId,t.hello,openSite,site);
+   if(update.token){await botApi('sendMessage',{chat_id:update.chatId,text:t.expired,reply_markup:openSite});return}
+   // A plain Start after "Turn on" on the site (the bot found by its name, not by the link) turns the notices on.
+   // In a private chat the chat id is the person's Telegram id.
+   if(hooks){
+    let allowed=true;
+    try{await limit(`telegram-bot-notify:tg:${update.chatId}`,20,60*60*1000)}catch{allowed=false}
+    if(allowed&&await hooks.notify({chatId:update.chatId,subject:'tg:'+update.chatId,lang:update.lang,plain:true},telegramNoticesLive(request)))return;
+   }
+   await sendWelcome(update.chatId,t.hello,openSite,site);
    return;
   }
   const isLink=row.kind==='telegram-link';
@@ -628,9 +712,12 @@ export async function telegramWebhook(request:Request){
 export async function connectTelegramBot(origin:string,operatorEmail:string){
  if(!configured.telegram())throw new AuthError(503,'method_unavailable');
  const url=origin+'/api/auth/telegram/webhook';
- await botApi('setWebhook',{url,secret_token:await webhookSecret(),allowed_updates:['message','callback_query'],drop_pending_updates:true});
+ // Updates that wait while the webhook moves are kept: a /stop sent meanwhile must still turn the notices off.
+ await botApi('setWebhook',{url,secret_token:await webhookSecret(),allowed_updates:['message','callback_query'],drop_pending_updates:false});
  await db().prepare('INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES (?,?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at,updated_by=excluded.updated_by')
   .bind(TG_BOT_SETTING,JSON.stringify({url}),Date.now(),operatorEmail).run();
+ // The command menu shows /stop (order notices). Best effort: the bot works without the menu.
+ await Promise.all(Object.entries(botCommands).map(([language,commands])=>botCall('setMyCommands',{commands,...(language==='default'?{}:{language_code:language})})));
  return {url};
 }
 export async function telegramBotStatus(){

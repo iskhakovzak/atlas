@@ -59,3 +59,21 @@ html[data-theme="dark"] .tg-login-hint{color:var(--night-muted)}
 .login-return-card h1{font-size:clamp(22px,4vw,28px)}
 .login-return-card .btn{min-width:200px;justify-content:center}
 html[data-theme="dark"] .login-providers p{color:var(--night-muted)}
+/* A wrong code is said right under the code field (red line and text), not at the top of the card. */
+.login-field-error{margin:0;color:var(--cx-danger,#b42318);font-size:14px;font-weight:600;line-height:1.4}
+.login-form .login-code[aria-invalid="true"]{border-color:var(--cx-danger,#b42318)}
+/* Computer: the card and, beside it, what the account is for. Phones keep the single card. */
+.login-benefits{display:none}
+@media(min-width:1024px){
+ .login-layout{display:grid;grid-template-columns:minmax(0,520px) minmax(0,380px);gap:32px;justify-content:center;align-items:start;margin:32px auto 72px}
+ .login-layout .login-card{margin:0}
+ .login-benefits{display:flex;flex-direction:column;gap:14px;padding:28px}
+ .login-benefits h2{margin:0;font-size:20px;line-height:1.3;letter-spacing:-.015em}
+ .login-benefits ul{display:grid;gap:14px;margin:0;padding:0;list-style:none}
+ .login-benefits li{display:flex;gap:12px;align-items:flex-start;color:#3f4d46;font-size:15px;line-height:1.5}
+ .login-benefits svg{flex:none;color:#1f4d3b;margin-top:2px}
+}
+html[data-theme="dark"] .login-benefits li{color:var(--night-muted)}
+html[data-theme="dark"] .login-benefits svg{color:var(--night-jade)}
+/* The expired-link card: the lowercase "atlas↗" mark as in the header. */
+.login-return-card .wordmark svg{width:.7em;height:.7em;vertical-align:.12em}

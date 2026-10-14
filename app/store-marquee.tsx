@@ -1,5 +1,6 @@
 'use client';
 import type {CSSProperties,FocusEvent} from 'react';
+import {ArrowRight} from 'lucide-react';
 import Link from '@/components/site-link';
 import {popularBrandKeys,storeBrands,storefrontUrl,type StoreBrand} from '@/lib/market/store-brands';
 import {StoreMark,hasStoreMark,storeWordmarks} from './store-logo';
@@ -60,7 +61,7 @@ export function StoreMarquee({label,openStore,allStores,hint,locale='ru'}:{label
   <Row stores={top} openStore={openStore} className="double"/>
   <Row stores={bottom} reverse openStore={openStore} className="double"/>
   <div className="store-marquee-foot">
-   <Link className="home-stores-all" href="/stores">{allStores}</Link>
+   <Link className="home-stores-all" href="/stores">{allStores}<ArrowRight size={16} aria-hidden="true"/></Link>
    {hint&&<InfoTip locale={locale}>{hint}</InfoTip>}
   </div>
  </section>;

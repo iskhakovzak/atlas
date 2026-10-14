@@ -379,7 +379,8 @@ export function pricingForCountry(config: Pricing, country?: string): Pricing {
   return override ? { ...config, ...override } : config;
 }
 export const serviceTitle = (service: ServiceOffering | WarehouseServiceRequest, locale: Locale) => pickLocale(service.title, locale);
-export const serviceDescription = (service: ServiceOffering | WarehouseServiceRequest, locale: Locale) => pickLocale(service.description, locale);
+/** The description as the operator wrote it; a number stays on one line with its "%" (narrow phones wrapped "100 / % qoplanadi"). */
+export const serviceDescription = (service: ServiceOffering | WarehouseServiceRequest, locale: Locale) => pickLocale(service.description, locale).replace(/(\d) %/g, "$1\u00a0%");
 export function serviceFeeForCountry(service: ServiceOffering, country?: string) {
   return country && service.countryPrices[country] !== undefined
     ? service.countryPrices[country]
@@ -934,8 +935,34 @@ export const communicationSchema = z.object({
   email: z.string().trim().email().or(z.literal("")),
   phone: z.string().trim().max(30),
   language: z.enum(["ru", "uz", "en", "oz"]).default("ru"),
+  /**
+   * Telegram order notices. Written only by the server (the customer's consent on the site, /stop in the
+   * bot, a delivery Telegram refused, unlinking); `communication-save` drops them and keeps the stored ones.
+   * `telegramOff` is a reason (customer, bot-stop, blocked, unlinked) kept as a plain string so an old
+   * document always parses. No Telegram id is stored here: staff see this state.
+   */
+  telegramEnabled: z.boolean().optional(),
+  telegramSince: amount.optional(),
+  telegramOff: z.string().max(20).optional(),
+  telegramOffAt: amount.optional(),
+  telegramPendingAt: amount.optional(),
 });
 export type Communication = z.infer<typeof communicationSchema>;
+/** What a customer may save from the settings form: everything except the server-owned Telegram fields. */
+export const clientCommunicationSchema = communicationSchema.omit({
+  telegramEnabled: true,
+  telegramSince: true,
+  telegramOff: true,
+  telegramOffAt: true,
+  telegramPendingAt: true,
+});
+const telegramKeys = ["telegramEnabled", "telegramSince", "telegramOff", "telegramOffAt", "telegramPendingAt"] as const;
+/** The server-owned Telegram fields of a communication block, only those present. */
+export function telegramFields(value: Communication): Partial<Communication> {
+  const kept: Partial<Communication> = {};
+  for (const key of telegramKeys) if (value[key] !== undefined) Object.assign(kept, { [key]: value[key] });
+  return kept;
+}
 const messageDeliverySchema = z.object({
   id: z.string(),
   at: amount,
@@ -1535,10 +1562,21 @@ export function acceptConsents(state: State, documents: readonly Consent["key"][
   const added = keys.map((key) => ({ key, version, acceptedAt: now }));
   return { ...state, consents: [...kept, ...added].slice(-10) };
 }
+/** Saves the customer's email/SMS settings and language; the Telegram fields stay as the server set them. */
 export const updateCommunication = (
   state: State,
-  value: Communication,
-): State => ({ ...state, communication: communicationSchema.parse(value) });
+  value: z.input<typeof clientCommunicationSchema>,
+): State => ({ ...state, communication: { ...clientCommunicationSchema.parse(value), ...telegramFields(state.communication) } });
+/**
+ * An operator answered a support request: one notice that names the request's subject, never the answer
+ * itself (the answer can hold anything and the notice may also go to Telegram). Unknown ticket — unchanged.
+ */
+export function supportAnswered(state: State, ticketId: string, now = Date.now()): State {
+  const ticket = state.supportTickets.find((item) => item.id === ticketId);
+  if (!ticket) return state;
+  const subject = ticket.subject.slice(0, 120);
+  return withNotification(state, "Поддержка ответила", subject, undefined, now, { code: "support-answered", params: { subject } });
+}
 /** Series and number as typed ("aa 123 45 67" → "AA1234567"), and the PINFL's 14 digits. */
 export const cleanPassportNumber = (value: string) => value.replace(/[^A-Z0-9]/gi, "").toUpperCase();
 export const cleanPinfl = (value: string) => value.replace(/\D/g, "");
@@ -1607,6 +1645,10 @@ export const balanceOf = (state: State) =>
       (e.debit === "customer-credit" ? e.amount : 0),
     0,
   );
+/** The ledger lines that move the customer's balance — the ones /balance lists. A demo payment mark or an
+ *  extra charge leaves the balance as it is, so it is not shown there as a "−" line. */
+export const balanceEntries = (state: Pick<State, "entries">) =>
+  state.entries.filter((e) => e.credit === "customer-credit" || e.debit === "customer-credit");
 export const totalOf = (items: CartItem[]) =>
   items.reduce((sum, item) => sum + item.quote.total, 0);
 export const approvedAdjustments = (order: Order) =>

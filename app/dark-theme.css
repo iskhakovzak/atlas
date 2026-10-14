@@ -977,7 +977,7 @@ html[data-theme="dark"] .staff-status.disabled {
 }
 
 /* Secondary chrome and keyboard/disabled states. */
-html[data-theme="dark"] .ticket-reply, html[data-theme="dark"] .legal-nav, html[data-theme="dark"] .legal-sources, html[data-theme="dark"] .sheet-close, html[data-theme="dark"] .status-row, html[data-theme="dark"] .import-gallery button {
+html[data-theme="dark"] .ticket-reply, html[data-theme="dark"] .legal-nav, html[data-theme="dark"] .legal-sources, html[data-theme="dark"] .sheet-close, html[data-theme="dark"] .sheet-save, html[data-theme="dark"] .status-row, html[data-theme="dark"] .import-gallery button {
   background-color: var(--atlas-dark-raised);
   border-color: var(--atlas-dark-line);
   color: var(--atlas-dark-ink);
@@ -992,6 +992,15 @@ html[data-theme="dark"] .admin-tabs button[aria-selected="true"] {
 html[data-theme="dark"] .readiness-grid svg {
   background-color: var(--atlas-dark-success-bg);
   color: var(--atlas-dark-success-ink);
+}
+
+/* Not connected yet: amber mark and note instead of the green check. */
+html[data-theme="dark"] .readiness-grid .is-pending svg {
+  color: var(--night-warn-ink, #f0b45a);
+  background-color: var(--night-warn-bg, rgba(240, 180, 90, .14));
+}
+html[data-theme="dark"] .readiness-grid .is-pending b {
+  color: var(--night-warn-ink, #f0b45a);
 }
 
 html[data-theme="dark"] :is(input, textarea, select, option) {
@@ -1530,3 +1539,38 @@ html[data-theme="dark"] .catalog-refresh-status.success { color: var(--night-jad
   .catalog-refresh-diagnostics-head { flex-direction: column; }
   .catalog-refresh-diagnostics dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Info pages in Atlas Night (14.10.2026): no light hairlines or raised strips inside the pills (/customs, /legal,
+   /privacy, /terms), and the /customs calculator, next step and guarantee cards on Night tokens. */
+html[data-theme="dark"] :is(.customs-estimate-wrap, .customs-estimate-compact) { border-top-color: var(--night-line-strong); }
+html[data-theme="dark"] .legal-disclosure[open] > summary { border-bottom-color: var(--atlas-dark-line); }
+html[data-theme="dark"] :is(.ux-disclosure > summary, .customs-estimate > summary) { background-color: transparent; }
+html[data-theme="dark"] .customs-estimate summary:hover { background-color: transparent; color: var(--atlas-dark-link); }
+html[data-theme="dark"] .disclosure-chevron { color: var(--night-muted); }
+html[data-theme="dark"] .legal-document section li::marker { color: var(--night-jade); }
+html[data-theme="dark"] .legal-customs-notice a { color: var(--night-jade); }
+html[data-theme="dark"] .customs-result-label,
+html[data-theme="dark"] .customs-result-note,
+html[data-theme="dark"] .customs-result .customs-estimate-caption { color: var(--night-muted); }
+:root[data-theme="dark"] body .customs-result-amount,
+:root[data-theme="dark"] body .customs-result .calc-customs-none h3 { color: var(--night-ink); }
+html[data-theme="dark"] .customs-result .customs-estimate-body { border-top-color: var(--night-line); }
+html[data-theme="dark"] .customs-estimate-body > details > summary { background: transparent; color: var(--night-jade); }
+html[data-theme="dark"] .customs-estimate-body > details > summary:focus-visible { outline-color: var(--night-jade); }
+html[data-theme="dark"] .customs-estimate-body > details p { color: var(--night-ink-2); }
+html[data-theme="dark"] .customs-result-account { color: var(--night-jade); }
+html[data-theme="dark"] .customs-next :is(p, li) { color: var(--night-ink-2); }
+html[data-theme="dark"] .customs-next :is(h2, h3) { color: var(--night-ink); }
+html[data-theme="dark"] .customs-next h2 svg,
+html[data-theme="dark"] .customs-pay-ways svg { color: var(--night-jade); }
+html[data-theme="dark"] #shipping-rules .guarantee-card { border-color: var(--night-line); background: var(--night-surface); }
+html[data-theme="dark"] #shipping-rules .guarantee-card-on { border-color: var(--night-jade); }
+html[data-theme="dark"] #shipping-rules .guarantee-card ul,
+html[data-theme="dark"] #shipping-rules .guarantee-card header svg,
+html[data-theme="dark"] #shipping-rules .guarantee-card:not(.guarantee-card-on) p.guarantee-price { color: var(--night-muted); }
+html[data-theme="dark"] #shipping-rules .guarantee-card-on ul { color: var(--night-ink-2); }
+html[data-theme="dark"] #shipping-rules .guarantee-card-on header svg { color: var(--night-jade); }
+html[data-theme="dark"] #shipping-rules .guarantee-card h4 { color: var(--night-ink); }
+html[data-theme="dark"] #shipping-rules p.guarantee-price { border-top-color: var(--night-line); color: var(--night-ink); }
+html[data-theme="dark"] .guarantee-badge { background: var(--night-jade-soft); color: var(--night-jade); }
+html[data-theme="dark"] #shipping-rules p.micro a { color: var(--night-jade); }

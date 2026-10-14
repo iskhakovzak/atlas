@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash,createHmac} from 'node:crypto';
-import {products,blank,addToCart,cartSignature,checkoutCart as checkoutCore,confirmDemoPayment,advanceOrder,cancelOrder,balanceOf} from '../lib/market/domain.ts';
+import {products,blank,addToCart,cartSignature,checkoutCart as checkoutCore,confirmDemoPayment,advanceOrder,cancelOrder,balanceOf,balanceEntries} from '../lib/market/domain.ts';
 import {customsVersion} from '../lib/market/world.ts';
 import {deletionBlockers,autoCancelledOrders,deletionSummary,pseudonym,isPseudonym,paidOrder,missingConsents,consentVersion} from '../lib/market/account-delete.ts';
 
@@ -40,6 +40,26 @@ test('an order settled from the balance counts as paid',()=>{
  const next=s.orders[0];
  assert.equal(next.payment.status,'paid');
  assert.deepEqual(deletionBlockers(s).map(o=>o.id),[next.id]);
+});
+
+test('balanceEntries lists only the lines that move the balance, and they add up to it',()=>{
+ const signed=s=>balanceEntries(s).reduce((sum,e)=>sum+(e.credit==='customer-credit'?e.amount:0)-(e.debit==='customer-credit'?e.amount:0),0);
+ let s=paid();
+ // The demo payment mark (demo-provider → order-funds) is in the ledger but not a debit of the balance.
+ assert.ok(s.entries.some(e=>e.id.startsWith('demo-payment:')));
+ assert.equal(balanceEntries(s).some(e=>e.id.startsWith('demo-payment:')),false);
+ assert.equal(balanceEntries(s).length,0);
+ assert.equal(signed(s),balanceOf(s));
+ s=cancelOrder(s,s.orders[0].id,1500);
+ assert.ok(balanceOf(s)>0);
+ assert.ok(balanceEntries(s).length>0);
+ assert.equal(signed(s),balanceOf(s));
+ // Spending the balance on the next checkout is a line too, and the sum still matches.
+ s=addToCart(s,products[2],products[2].variants[0],2000);
+ s=checkoutCart(s,'next',cartSignature(s.cart),true,2001);
+ assert.ok(balanceEntries(s).some(e=>e.debit==='customer-credit'));
+ assert.equal(signed(s),balanceOf(s));
+ assert.deepEqual(balanceEntries(blank()),[]);
 });
 
 test('deletionSummary counts everything the confirmation dialog shows',()=>{

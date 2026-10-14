@@ -16,10 +16,9 @@ body { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 760px) {
   :root { --atlas-mobile-nav-clearance: calc(64px + env(safe-area-inset-bottom)); }
 
-  /* One bottom bar for guests (4 items) and members (5 items). It is exactly as tall as the clearance the sticky
+  /* One bottom bar for guests and members (5 items each). It is exactly as tall as the clearance the sticky
      totals sit on; at 61 px the page showed through a 3 px gap under them. */
   .mobile-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 40; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); min-height: var(--atlas-mobile-nav-clearance); box-sizing: border-box; padding: 4px 4px env(safe-area-inset-bottom); border-top: 1px solid var(--cat-line); background: color-mix(in srgb, var(--cat-surface) 94%, transparent); -webkit-backdrop-filter: saturate(1.4) blur(18px); backdrop-filter: saturate(1.4) blur(18px); }
-  .mobile-nav.guest { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .mobile-nav a { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0; min-height: 56px; padding: 4px 2px; color: var(--cat-muted); font-size: 11px; font-weight: 650; line-height: 1.15; text-align: center; }
   .mobile-nav a > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mobile-nav a.active { color: var(--cat-accent); }
@@ -68,6 +67,12 @@ body { -webkit-tap-highlight-color: transparent; }
   .site-header :is(.lang-trigger, .icon-btn, .wallet-link) { position: relative; }
   .site-header :is(.lang-trigger, .icon-btn)::after { content: ""; position: absolute; inset: -2px; }
   .site-header .wallet-link::after { content: ""; position: absolute; inset: 0 -3px; }
+  /* Catalog chips (40 px) and "Saved" (36 px) keep their look and take taps from 44 px; the strips' padding holds the frame. */
+  :is(.catalog-categories, .catalog-chips, .catalog-active) > button:not(.text-button), .catalog-saved { position: relative; }
+  :is(.catalog-categories, .catalog-chips, .catalog-active) > button:not(.text-button)::after { content: ""; position: absolute; inset: -2px 0; }
+  .catalog-saved::after { content: ""; position: absolute; inset: -4px 0; }
+  /* The product sheet's 40 px heart. */
+  .product-sheet .sheet-save::after { content: ""; position: absolute; inset: -2px; }
 }
 
 /* Secondary text behind a "?" (components/info-tip.tsx). The text stays in the page as .tip-text and the "?" holds the
@@ -110,3 +115,13 @@ html[data-theme="dark"] .info-tip-bubble { box-shadow: 0 16px 40px rgba(0, 0, 0,
 
 /* iOS Safari zooms into any field under 16 px on focus: the orders search keeps 14 px only where there is a mouse. */
 @media (pointer: coarse) { .search-field input { font-size: 16px; } }
+
+/* Narrow phones: the longest bottom-bar label (Uzbek Cyrillic «Бош саҳифа») fits its fifth of a 320–374 px screen once
+   the tabs give up their side padding (the 44 px tap height is unchanged). */
+@media (max-width: 374px) {
+  .mobile-nav { padding-inline: 2px; }
+  .mobile-nav a { padding-inline: 0; }
+}
+@media (max-width: 359px) { body .mobile-nav a > span { letter-spacing: -.02em; } }
+/* 320–339 px: the member's «Буюртмалар» (oz) was still 2 px too wide for its fifth at refine.css's 10.5 px (!important there). */
+@media (max-width: 339px) { body .mobile-nav a > span { font-size: 10px !important; } }

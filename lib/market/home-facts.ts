@@ -40,6 +40,25 @@ export function expressDayGroups(rows: TariffRow[]): DayGroup[] {
   return [...groups.values()].sort((a, b) => a.days[0] - b.days[0] || a.days[1] - b.days[1]);
 }
 
+/**
+ * How many business days express saves over standard, counted per country (each end of the range on its own) and
+ * joined: {min: 2, max: 5} on the current tariff. A country without days for both speeds is left out. Null when no
+ * country has both, or express is not faster at both ends somewhere, so the line in the rates table never overstates.
+ */
+export function expressLead(rows: TariffRow[]): { min: number; max: number } | null {
+  let min = Infinity, max = -Infinity;
+  for (const row of rows) {
+    const express = row.options.find(option => option.speed === 'express')?.days;
+    const standard = row.options.find(option => option.speed === 'standard')?.days;
+    if (!express || !standard) continue;
+    const low = standard[0] - express[0], high = standard[1] - express[1];
+    if (Math.min(low, high) <= 0) return null;
+    min = Math.min(min, low, high);
+    max = Math.max(max, low, high);
+  }
+  return Number.isFinite(min) ? { min, max } : null;
+}
+
 /** Facts row price: the lowest price per kg of a speed, with "from" only when the regions' prices differ. */
 export function factPrice(rows: TariffRow[], speed: DeliverySpeed, locale: Locale): string | null {
   const range = speedPriceRange(rows, speed);

@@ -137,6 +137,8 @@ html[data-theme="dark"] body {
     radial-gradient(1200px 560px at 50% -220px, rgba(79, 185, 139, 0.14), transparent 70%),
     radial-gradient(760px 420px at 100% 0, rgba(203, 180, 135, 0.06), transparent 65%),
     var(--night-canvas);
+  /* The glow stays at the top once: on short pages (sign-in return) it must not tile down the screen. */
+  background-repeat: no-repeat;
   color: var(--night-ink);
 }
 html[data-theme="dark"] ::selection { background: rgba(128, 208, 172, 0.3); color: #fff; }
@@ -146,6 +148,8 @@ html[data-theme="dark"] ::-webkit-scrollbar-track { background: transparent; }
 html[data-theme="dark"] ::-webkit-scrollbar-thumb { border: 3px solid transparent; border-radius: 99px; background: #26302b padding-box; }
 html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #33403a padding-box; }
 html[data-theme="dark"] :is(.eyebrow, .cabinet-eyebrow, .order-x-eyebrow, .home-stores-label, .home-footer-title, .basket-brand) { color: var(--night-champagne); letter-spacing: 0.1em; }
+/* No capitals in the small headings, as in Day (day-folio.css); the champagne colour stays. */
+html[data-theme="dark"] :is(.home-tariffs th, .home-footer-title, .catalog-facets legend, .basket-brand, .cabinet-eyebrow, .order-x-eyebrow, .store-dialog-section h3, .legal-document > header span) { text-transform: none; letter-spacing: 0; }
 html[data-theme="dark"] :is(h1, h2, h3, .page-heading h1) { color: var(--night-ink); }
 html[data-theme="dark"] :is(.text-link, .order-x-link, .basket-source, .basket-continue, .cabinet-link, .cabinet-text-btn, .lo-source-link, .home-hero-links a, .home-legal a, .home-faq a) { color: var(--night-jade); }
 
@@ -209,6 +213,8 @@ html[data-theme="dark"] :is(.surface, .cabinet-card, .cabinet-tiles a, .basket-s
 html[data-theme="dark"] :is(.cabinet-tiles a, .store-card, .find-card, .order-x, .docs-recipient):hover { border-color: var(--night-line-strong); }
 html[data-theme="dark"] .order-x[open] { border-color: var(--night-line-strong); box-shadow: var(--night-shadow-pop); }
 html[data-theme="dark"] :is(.basket-parcel-title, .home-tariffs thead th) { background: rgba(255, 255, 255, 0.025); color: var(--night-muted); }
+/* The store name heads its parcel: the main text colour, as in the day theme; the country and days under it stay muted. */
+html[data-theme="dark"] .basket-parcel-title { color: var(--night-ink); }
 html[data-theme="dark"] :is(.cabinet-recipients li, .docs-group, .basket-balance, .basket-review-recipient, .cabinet-empty, .wallet-empty, .docs-placeholder, .basket-line-help, .home-trust-points li, .lo-guest, .cabinet-customs-cart) { background: rgba(255, 255, 255, 0.028); }
 html[data-theme="dark"] .basket-summary { background: var(--night-sheen), var(--night-raised); border-color: var(--night-line-strong); }
 html[data-theme="dark"] .home-footer { border-top-color: var(--night-line); }
@@ -247,6 +253,11 @@ html[data-theme="dark"] .remove-item:hover { color: var(--night-error-ink); }
 html[data-theme="dark"] .remove-item.confirming { border-color: var(--night-error-line); background: var(--night-error-bg); color: var(--night-error-ink); }
 html[data-theme="dark"] .icon-btn { border-color: var(--night-line-strong); }
 html[data-theme="dark"] .icon-btn.active { border-color: rgba(128, 208, 172, 0.35); background: var(--night-jade-soft); color: var(--night-jade); }
+/* Header icons in one style, as in Day: no frame on the bell and no filled circle on the theme switch at rest
+   (hover, keyboard focus and the open/current state keep theirs; aria-pressed still says which theme is on). */
+html[data-theme="dark"] .site-header .icon-btn:not(:hover, :focus-visible, .active) { border-color: transparent; }
+html[data-theme="dark"] .site-header .theme-toggle[aria-pressed="true"]:not(:hover, :focus-visible) { background: transparent; }
+html[data-theme="dark"] .basket-empty-icon { background: var(--night-jade-soft, rgba(128, 208, 172, .1)); }
 html[data-theme="dark"] .cabinet-add { border-color: rgba(128, 208, 172, 0.35); color: var(--night-jade); }
 html[data-theme="dark"] .cabinet-add:hover { background: var(--night-jade-soft); }
 html[data-theme="dark"] .cabinet-signout { border-color: var(--night-error-line); color: var(--night-error-ink); }
@@ -320,6 +331,7 @@ html[data-theme="dark"] .home-tracking li[data-state="current"] .home-tracking-d
 html[data-theme="dark"] .order-x-status { background: var(--night-jade-soft); color: var(--night-jade); }
 html[data-theme="dark"] .order-x-status.ok { background: rgba(143, 216, 177, 0.12); color: var(--night-ok-ink); }
 html[data-theme="dark"] .order-x-status.muted { background: rgba(255, 255, 255, 0.05); color: var(--night-muted); }
+html[data-theme="dark"] .order-x-status.warn { background: var(--night-warn-bg); color: var(--night-warn-ink); box-shadow: inset 0 0 0 1px var(--night-warn-line); }
 html[data-theme="dark"] .cabinet-badge { background: rgba(203, 180, 135, 0.14); color: var(--night-champagne); }
 html[data-theme="dark"] .cabinet-chip.ok { background: rgba(143, 216, 177, 0.12); color: var(--night-ok-ink); }
 
@@ -527,7 +539,16 @@ html[data-theme="dark"] .home-tracking-item { display: grid; gap: 2px; }
 html[data-theme="dark"] .home-tracking-item span { color: var(--night-muted); font-size: 14px; }
 html[data-theme="dark"] .home-faq-head > h2 { margin: 0 0 12px; }
 html[data-theme="dark"] .home-stores-hint { margin: 6px 0 0; color: var(--night-muted); font-size: 14px; }
-html[data-theme="dark"] .home-closing p { color: var(--night-muted); }
+/* Closing: a Night card like the blocks above it, not text and a field lying on the page (the Day card is in
+   app/day-folio.css; from 1440 px the wide end sheet in app/home-wide-content.css draws its own). */
+html[data-theme="dark"] .home-closing { margin-top: 28px; padding: 28px 32px; border: 1px solid var(--night-line); border-radius: var(--home-radius, 14px); background: var(--night-sheen), var(--night-surface); box-shadow: var(--night-shadow); }
+html[data-theme="dark"] .home-closing > h2 { margin: 0; }
+html[data-theme="dark"] .home-closing > p { color: var(--night-muted); }
+/* Hero field: the two facts under it and the way on after plain words (app/home-sections.tsx HomeLinkForm). */
+html[data-theme="dark"] .home-link-points { color: var(--night-muted); font-size: 13.5px; font-weight: 500; }
+html[data-theme="dark"] .home-link-points svg { color: var(--night-jade); }
+html[data-theme="dark"] .home-link-help .btn.secondary { color: var(--night-ink); font-weight: 600; }
+html[data-theme="dark"] .home-link-help .btn.secondary svg { color: var(--night-muted); }
 
 /* Delivery speed switch (cart and link-order preview) in Night. */
 html[data-theme="dark"] .speed-switch-title { color: var(--night-ink); }

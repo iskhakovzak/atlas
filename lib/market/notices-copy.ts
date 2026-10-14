@@ -48,7 +48,7 @@ export const noticesCopy: Record<Locale, NoticesCopy> = /*@__PURE__*/withCyrilli
     readAll: 'Отметить все прочитанными', filtersLabel: 'Показать', filters: { all: 'Все', unread: 'Непрочитанные', orders: 'По заказам' }, newBadge: 'Новое',
     more: count => `Ещё ${count} ${ruPlural(count, 'обновление', 'обновления', 'обновлений')}`, openOrder: 'Открыть заказ',
     emptyTitle: 'Пока всё спокойно', emptyText: 'Здесь появятся изменения статусов, возвраты и вопросы по вашим заказам.', emptyFilter: 'Таких уведомлений нет.',
-    orders: 'Мои заказы', settings: 'Настройки email и SMS',
+    orders: 'Мои заказы', settings: 'Настройки уведомлений',
     signin: { title: 'Войдите, чтобы открыть уведомления', text: 'Сообщения Atlas хранятся в вашем профиле.', action: 'Войти' }, loading: 'Загружаем уведомления…',
   },
   uz: {
@@ -56,7 +56,7 @@ export const noticesCopy: Record<Locale, NoticesCopy> = /*@__PURE__*/withCyrilli
     readAll: 'Hammasini o‘qilgan deb belgilash', filtersLabel: 'Ko‘rsatish', filters: { all: 'Barchasi', unread: 'O‘qilmagan', orders: 'Buyurtmalar bo‘yicha' }, newBadge: 'Yangi',
     more: count => `Yana ${count} ta yangilanish`, openOrder: 'Buyurtmani ochish',
     emptyTitle: 'Hozircha hammasi tinch', emptyText: 'Holat o‘zgarishlari, qaytarishlar va buyurtmalaringiz bo‘yicha savollar shu yerda ko‘rinadi.', emptyFilter: 'Bunday bildirishnomalar yo‘q.',
-    orders: 'Buyurtmalarim', settings: 'Email va SMS sozlamalari',
+    orders: 'Buyurtmalarim', settings: 'Bildirishnoma sozlamalari',
     signin: { title: 'Bildirishnomalarni ochish uchun kiring', text: 'Atlas xabarlari profilingizda saqlanadi.', action: 'Kirish' }, loading: 'Bildirishnomalar yuklanmoqda…',
   },
   en: {
@@ -64,7 +64,7 @@ export const noticesCopy: Record<Locale, NoticesCopy> = /*@__PURE__*/withCyrilli
     readAll: 'Mark all as read', filtersLabel: 'Show', filters: { all: 'All', unread: 'Unread', orders: 'Orders' }, newBadge: 'New',
     more: count => `${count} more ${count === 1 ? 'update' : 'updates'}`, openOrder: 'Open order',
     emptyTitle: 'All quiet for now', emptyText: 'Status changes, refunds and questions about your orders will appear here.', emptyFilter: 'No matching notifications.',
-    orders: 'My orders', settings: 'Email and SMS settings',
+    orders: 'My orders', settings: 'Notification settings',
     signin: { title: 'Sign in to open notifications', text: 'Atlas messages are saved in your profile.', action: 'Sign in' }, loading: 'Loading notifications…',
   },
 });

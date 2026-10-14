@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   choicesFromAction, cleanPicks, discardPendingCartAdd, draftAddress, draftChoices, draftKeyFor, draftPrefix, draftTtlMs, draftVisible,
-  forgetLastDraft, forgetOtherAccounts, hasPendingCartAdd, keepPicks, lastDraftKey, markDraftDone, maxDraftBytes, maxDrafts, ownerTag,
+  forgetLastDraft, forgetOtherAccounts, hasPendingCartAdd, keepPicks, lastDraftKey, listDrafts, markDraftDone, maxDraftBytes, maxDrafts, ownerTag,
   parseDraft, parsePendingCartAdd, pendingCartAddKey, pendingCartFreshMs, pendingTtlMs, pruneDrafts, readDraft, readLastDraft, removeDraft,
   restoreMode, savePendingCartAdd, serializeDraft, storageWritable, takePendingCartAdd, writeDraft,
 } from '../lib/market/link-order-draft.ts';
@@ -321,4 +321,33 @@ test('a kept add is sent only where it belongs and dropped when the guest return
   assert.equal(storageWritable(new ThrowingStorage()), false);
   assert.equal(storageWritable(null), false);
   assert.doesNotThrow(() => discardPendingCartAdd(new ThrowingStorage()));
+});
+
+test('recently checked: own unfinished drafts with a link and a name, newest first, at most three', () => {
+  const storage = new MemoryStorage();
+  const page = (n) => `https://www.zara.com/es/en/shirt-p0${n}.html`;
+  const put = (n, extra = {}, at = now) => storage.setItem(draftPrefix + draftKeyFor({ pageUrl: page(n) }), serializeDraft(input({ pageUrl: page(n), url: page(n), source: page(n), name: `Shirt ${n}`, ...extra }), at));
+  put(1, {}, now - 5 * 60_000);
+  put(2, {}, now - 60_000);
+  put(3, {}, now - 3 * 60_000);
+  put(4, {}, now - 4 * 60_000);
+  put(5, { done: true }, now - 30_000);
+  put(6, {}, now - draftTtlMs - 1);
+  put(7, { name: '  ' }, now - 20_000);
+  put(8, { owner: ownerTag({ email: 'other@example.com', createdAt: 1 }) }, now - 10_000);
+  storage.setItem(draftPrefix + 'url:broken', '{not json');
+  storage.setItem('unrelated', 'x');
+  assert.deepEqual(listDrafts(storage, '', now).map((draft) => draft.name), ['Shirt 2', 'Shirt 3', 'Shirt 4'], 'newest first, three by default');
+  assert.deepEqual(listDrafts(storage, '', now, 10).map((draft) => draft.name), ['Shirt 2', 'Shirt 3', 'Shirt 4', 'Shirt 1'], 'done, expired, nameless, foreign and broken drafts are left out');
+  const mine = ownerTag({ email: 'other@example.com', createdAt: 1 });
+  assert.equal(listDrafts(storage, mine, now, 10)[0].name, 'Shirt 8', 'an account sees its own drafts and the guest ones');
+  assert.equal(listDrafts(storage, null, now, 10).some((draft) => draft.owner), false, 'an unknown viewer sees no account drafts');
+  assert.equal(storage.getItem(draftPrefix + 'url:broken'), '{not json', 'listing never removes anything');
+  assert.deepEqual(listDrafts(storage, '', now, 0), []);
+});
+
+test('recently checked: no storage or a blocked one gives an empty list', () => {
+  assert.deepEqual(listDrafts(null, '', now), []);
+  assert.deepEqual(listDrafts(new ThrowingStorage(), '', now), []);
+  assert.deepEqual(listDrafts(new MemoryStorage(), '', now), []);
 });

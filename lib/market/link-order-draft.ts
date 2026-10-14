@@ -355,6 +355,25 @@ export function readLastDraft(storage: StorageLike | null, now = Date.now()): Li
   } catch { return null; }
 }
 
+/**
+ * "Recently checked" on the empty page: this viewer's own unfinished drafts on this device, newest first, at most `limit`.
+ * Only drafts still within 24 hours, not yet added to the cart, with a page link and a name; unreadable entries are skipped.
+ * Reading only (nothing is pruned here); a blocked storage gives an empty list.
+ */
+export function listDrafts(storage: StorageLike | null, viewer: string | null, now = Date.now(), limit = 3): LinkOrderDraft[] {
+  if (!storage || limit <= 0) return [];
+  try {
+    const drafts: LinkOrderDraft[] = [];
+    for (let index = 0; index < storage.length; index++) {
+      const name = storage.key(index);
+      if (!name?.startsWith(draftPrefix)) continue;
+      const draft = parseDraft(storage.getItem(name), now);
+      if (draft && draftVisible(draft, viewer) && !draft.done && draft.source && draft.pageUrl && draft.name.trim()) drafts.push(draft);
+    }
+    return drafts.sort((a, b) => b.savedAt - a.savedAt).slice(0, limit);
+  } catch { return []; }
+}
+
 const ownerOf = (raw: string | null) => { try { const value: unknown = JSON.parse(raw ?? ''); return isRecord(value) && typeof value.owner === 'string' ? value.owner : ''; } catch { return ''; } };
 
 /**

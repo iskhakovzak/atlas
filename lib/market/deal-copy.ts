@@ -22,29 +22,33 @@ const ru = {
   stepsTitle: 'Как проходит заказ', step1: 'Выберите товар', step1hint: 'В каталоге или по ссылке из магазина.', step2: 'Укажите адрес', step2hint: 'Выберите получателя или добавьте нового.', step3: 'Подтвердите заказ', step3hint: 'Проверьте итог и подтвердите оформление.', step4: 'Следите за статусом', step4hint: 'Все обновления появятся в кабинете.',
   sourceMissing: 'Страница магазина не указана', sourceOpen: 'Страница магазина',
   shoeName: 'Кроссовки на каждый день', audioName: 'Беспроводные наушники', bagName: 'Городской рюкзак',
+  signinToSave: 'Войдите — и товар сохранится в избранном', savedAfterLogin: 'Сохранили в избранное',
+  suggestTitle: 'Начните с товаров со скидкой', suggestAll: 'Все со скидкой',
 };
 type Copy = { [K in keyof typeof ru]: string };
 const uz: Copy = {
   title: 'Xorijiy mahsulotlar katalogi.', intro: 'Atlas tanlagan xorijiy do‘kon tovarlari — Toshkentga yetkazish hisobi bilan.',
-  savedTitle: 'Saralangan mahsulotlar', savedIntro: 'Narxlarni solishtiring va tayyor bo‘lganingizda xaridga qayting.',
+  savedTitle: 'Saqlangan mahsulotlar', savedIntro: 'Narxlarni solishtiring va tayyor bo‘lganingizda xaridga qayting.',
   observed: 'Narx sanasi', checkOptions: 'Atlas narx va tanlangan variantni qayta tekshiradi', priceNote: 'Narxlar tekshiruv sanasi bo‘yicha ko‘rsatilgan. Savatga qo‘shishda Atlas tanlangan variant narxi va valyutasini do‘kon bilan solishtiradi. Atlas ushbu brendlarning rasmiy vakili emas.', estimateHint: 'Vazn — Atlas bahosi; ombor jo‘natmani tortib, yetkazishni qayta hisoblaydi. Jami Atlasning amaldagi tariflari bo‘yicha hisoblangan va oferta emas; Atlas xariddan oldin narxni do‘kon bilan solishtiradi.',
   all: 'Barcha toifalar', footwear: 'Poyabzal', clothing: 'Kiyim', electronics: 'Elektronika', accessories: 'Aksessuarlar',
   search: 'Katalogdan qidirish', searchPlaceholder: 'Mahsulot, do‘kon, toifa yoki mamlakat', clear: 'Qidiruvni tozalash',
   country: 'Mamlakat', allCountries: 'Barcha mamlakatlar', us: 'AQSH', de: 'Germaniya', es: 'Ispaniya',
   budget: 'Yetkazish bilan budjet', anyBudget: 'Istalgan budjet', budget1: '1 mln so‘mgacha', budget15: '1,5 mln so‘mgacha', budget2: '2 mln so‘mgacha',
   sort: 'Saralash', discountSort: 'Kattaroq mahsulot chegirmasi', lowSort: 'Yetkazish bilan arzonroq', highSort: 'Yetkazish bilan qimmatroq',
-  reset: 'Filtrlarni tozalash', results: 'Topildi', saved: 'Saralangan', catalog: 'Katalog', topDeal: 'Top narx',
+  reset: 'Filtrlarni tozalash', results: 'Topildi', saved: 'Saqlanganlar', catalog: 'Katalog', topDeal: 'Top narx',
   discountLabel: 'do‘konda', productPrice: 'Do‘kon narxi, USD', referenceLabel: 'Do‘kon ko‘rsatgan asosiy narx', saving: 'Mahsulot narxidagi farq',
   delivered: 'Toshkentga yetkazish bilan', breakdown: 'Narx tarkibi',
   merchandise: 'Mahsulot', service: 'Sotib olish va xizmat', merchantShipping: 'Do‘kondan yetkazish', international: 'Xalqaro yetkazish', reserve: 'Qaytariladigan zaxira',
   unknownShipping: 'Do‘kon yetkazishni ko‘rsatmagan: menejer haqiqiy summani tasdiqlaguncha $10 zaxirani to‘lov summasidan alohida ushlab turamiz.',
-  buy: 'Savatga qo‘shish', variants: 'Variantlar', save: 'Saqlash', remove: 'Saralanganlardan olib tashlash', savingState: 'Saqlanmoqda', signin: 'Mahsulotlarni saqlash uchun kiring',
+  buy: 'Savatga qo‘shish', variants: 'Variantlar', save: 'Saqlash', remove: 'Saqlanganlardan olib tashlash', savingState: 'Saqlanmoqda', signin: 'Mahsulotlarni saqlash uchun kiring',
   compareHint: 'Chegirma faqat mahsulotning USD narxiga tegishli. Quyidagi jami — Atlas komissiyasi va Toshkentga yetkazish bilan.',
   empty: 'Bunday mahsulotlar hozircha yo‘q', emptyHint: 'Budjetni oshiring yoki filtrlardan birini olib tashlang.', emptySaved: 'Birinchi mahsulotni saqlang', emptySavedHint: 'Mahsulot yonidagi yurakchani bosing — u shu yerda paydo bo‘ladi.',
   linkTitle: 'Boshqa do‘konda mahsulot topdingizmi?', linkHint: 'Havolani joylang va Atlas orqali xaridni hisoblang.', linkLabel: 'Mahsulot havolasi', calculate: 'Hisoblash', signInToCalculate: 'Kirish va hisoblash', signInToCalculateHint: 'Hisob va tanlangan mahsulot kabinetingizda saqlanadi.', batch: 'Bir nechta havola qo‘shish',
   stepsTitle: 'Buyurtma qanday rasmiylashtiriladi', step1: 'Mahsulotni tanlang', step1hint: 'Katalogdan yoki do‘kon havolasi orqali.', step2: 'Manzilni kiriting', step2hint: 'Qabul qiluvchini tanlang yoki yangisini qo‘shing.', step3: 'Buyurtmani tasdiqlang', step3hint: 'Jami hisobni ko‘rib, rasmiylashtirishni tasdiqlang.', step4: 'Holatni kuzating', step4hint: 'Barcha yangilanishlar kabinetda ko‘rinadi.',
   sourceMissing: 'Do‘kon sahifasi ko‘rsatilmagan', sourceOpen: 'Do‘kon sahifasi',
   shoeName: 'Kundalik krossovkalar', audioName: 'Simsiz quloqchinlar', bagName: 'Shahar ryukzagi',
+  signinToSave: 'Kiring — mahsulot saqlanganlarga qo‘shiladi', savedAfterLogin: 'Saqlanganlarga qo‘shildi',
+  suggestTitle: 'Chegirmadagi mahsulotlardan boshlang', suggestAll: 'Barcha chegirmalar',
 };
 const en: Copy = {
   title: 'International product catalog.', intro: 'Products from international stores, selected by Atlas, with delivery estimates to Tashkent.',
@@ -67,5 +71,7 @@ const en: Copy = {
   stepsTitle: 'How ordering works', step1: 'Choose a product', step1hint: 'Pick from the catalog or paste a store link.', step2: 'Enter your address', step2hint: 'Choose a recipient or add a new one.', step3: 'Confirm your order', step3hint: 'Review the total and confirm checkout.', step4: 'Follow the status', step4hint: 'Updates will appear in your account.',
   sourceMissing: 'No store page given', sourceOpen: 'Store page',
   shoeName: 'Everyday sneakers', audioName: 'Wireless headphones', bagName: 'City backpack',
+  signinToSave: 'Sign in to save this product', savedAfterLogin: 'Added to Saved',
+  suggestTitle: 'Start with products on sale', suggestAll: 'All on sale',
 };
 export const dealCopy = (locale: Locale): Copy => ({ ...pickLocale({ ru, uz, en }, locale) });

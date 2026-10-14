@@ -32,10 +32,11 @@ import {
   deliveryProfileSchema,
   assertDeliveryAddress,
   storeDiscount,
-  communicationSchema,
+  clientCommunicationSchema,
   confirmDemoPayment,
   confirmDemoBatchPayment,
   updateCommunication,
+  supportAnswered,
   assignOrder,
   addStaffNote,
   updateOrderIssueCase,
@@ -126,7 +127,8 @@ export const actionSchema = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("payment-demo"), id }),
   z.object({ type: z.literal("payment-demo-batch"), batchId: z.string().min(1).max(80), amount: z.number().int().nonnegative() }),
-  z.object({ type: z.literal("communication-save"), value: communicationSchema }),
+  // Email/SMS settings and language only: the Telegram fields are the server's (see "telegram-notify").
+  z.object({ type: z.literal("communication-save"), value: clientCommunicationSchema }),
   // `id` edits a saved recipient; `primary` chooses the default one. Older clients send neither.
   z.object({ type: z.literal("delivery-profile-save"), value: deliveryProfileSchema, label: z.string().trim().min(1).max(60), id: z.string().min(1).max(80).optional(), primary: z.boolean().optional() }),
   z.object({ type: z.literal("delivery-profile-remove"), id: z.string().min(1).max(80) }),
@@ -208,6 +210,9 @@ export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("declaration-preview"), orderIds: z.array(z.string().max(100)).min(1).max(30) }),
   // Data-processing consent (privacy policy, terms of use) at a document version; the server also writes it to market_legal_consents.
   z.object({ type: z.literal("consent-accept"), documents: z.array(consentKeySchema).min(1).max(2), version: z.string().trim().min(1).max(40) }),
+  // Order notices in Telegram, the customer's own consent. Handled whole by POST /api/actions (link check,
+  // test message, consent record); `language` is the screen's, so messages arrive in it. No Telegram id is sent.
+  z.object({ type: z.literal("telegram-notify"), enabled: z.boolean(), language: z.enum(["ru", "uz", "en", "oz"]).optional() }),
   // No action may replace the account document wholesale: the former "import-legacy" took client JSON
   // as the whole state, so a customer could write their own balance, paid orders and staff fields.
 ]);
@@ -410,8 +415,14 @@ export function applyAction(
       const ticket = { id: `SUP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, subject: a.subject, status: "open" as const, createdAt: now, updatedAt: now, replies: [{ id: crypto.randomUUID(), at: now, author: "customer" as const, text: a.text }] };
       return { ...s, supportTickets: [ticket, ...s.supportTickets] };
     }
-    case "support-reply":
-      return { ...s, supportTickets: s.supportTickets.map((ticket) => ticket.id === a.id ? { ...ticket, status: isOperator ? "answered" as const : "open" as const, updatedAt: Date.now(), replies: [...ticket.replies, { id: crypto.randomUUID(), at: Date.now(), author: isOperator ? "support" as const : "customer" as const, text: a.text }] } : ticket) };
+    case "support-reply": {
+      const replied = { ...s, supportTickets: s.supportTickets.map((ticket) => ticket.id === a.id ? { ...ticket, status: isOperator ? "answered" as const : "open" as const, updatedAt: Date.now(), replies: [...ticket.replies, { id: crypto.randomUUID(), at: Date.now(), author: isOperator ? "support" as const : "customer" as const, text: a.text }] } : ticket) };
+      // The customer is told an answer is waiting (bell, and Telegram when they turned it on).
+      return isOperator ? supportAnswered(replied, a.id) : replied;
+    }
+    case "telegram-notify":
+      // Never applied from client data: the route checks the link to Telegram and writes the consent itself.
+      throw Error("Настройка Telegram сохраняется только сервером.");
     case "assign-order":
       return assignOrder(s, a.id, a.team, a.priority);
     case "staff-note":

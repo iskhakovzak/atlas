@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useId,useRef,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {Check,ChevronDown,Globe} from 'lucide-react';
 import type {Locale} from '@/lib/market/i18n';
 
@@ -17,7 +17,8 @@ const languages:{code:Locale;lang:string;name:string;script?:string;short:string
 /** Header language menu: one compact button (the current language) that opens the four choices. */
 export function HeaderLanguage({locale,label,onChange}:{locale:Locale;label:string;onChange:(locale:Locale)=>void}){
   const [open,setOpen]=useState(false);
-  const wrap=useRef<HTMLDivElement>(null),trigger=useRef<HTMLButtonElement>(null),listId=useId();
+  // One menu per page (the header), so a fixed id: useId gave the server and the browser different ids on some pages.
+  const wrap=useRef<HTMLDivElement>(null),trigger=useRef<HTMLButtonElement>(null),listId='atlas-lang-menu';
   const current=languages.find(item=>item.code===locale)??languages[0];
   useEffect(()=>{
     if(!open)return;

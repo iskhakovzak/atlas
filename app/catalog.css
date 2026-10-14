@@ -206,7 +206,8 @@ html[data-theme="dark"] .catalog-switch input:checked + .catalog-switch-track::a
 .site-main .find-card :is(.find-total-note, .find-chips, .find-facts):empty { display: none; }
 .site-main .find-card .find-facts { display: flex; align-items: center; height: 24px; margin: 6px 0 0; color: var(--cat-muted); font-size: 12.5px; line-height: 1.3; }
 .site-main .find-card .find-facts > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.site-main .find-card .find-chips { display: flex; flex-wrap: nowrap; gap: 6px; height: 24px; margin: 6px 0 0; overflow: hidden; }
+/* Chips wrap to a second line: "Дороже лими…" and "Сверим перед …" read as broken (design review, 14.10.2026). */
+.site-main .find-card .find-chips { display: flex; flex-wrap: wrap; gap: 4px 6px; height: auto; margin: 6px 0 0; }
 .site-main .find-card .find-chip { display: inline-block; flex: 0 1 auto; min-width: 0; max-width: 100%; height: 24px; padding: 0 8px; border: 1px solid var(--cat-line); border-radius: 999px; color: var(--cat-muted); font-size: 12px; font-weight: 650; line-height: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative; }
 .site-main .find-card .find-chip[data-tone="mint"] { border-color: var(--cat-ok-line); background: var(--cat-ok-bg); color: var(--cat-ok); }
 .site-main .find-card .find-chip[data-tone="amber"] { border-color: var(--cat-warn-line); background: var(--cat-warn-bg); color: var(--cat-warn); }
@@ -239,6 +240,10 @@ html[data-theme="dark"] .catalog-switch input:checked + .catalog-switch-track::a
 .site-main .find-card.find-card-compact .find-compact-price .money { color: var(--cat-ink); font-size: 16px; font-weight: 700; }
 .site-main .find-card.find-card-compact .find-compact-price .money-unit { font-size: 12px; }
 .finds-grid-compact { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+/* The compact card's price line has no room for the −N% pill: it stands on the photo, after "Top price" when both show. */
+.find-card.find-card-compact .find-photo-badges { position: absolute; right: 8px; bottom: 8px; left: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; pointer-events: none; }
+.find-card.find-card-compact .find-photo-badges > .find-top-deal { position: static; gap: 4px; min-height: 26px; padding: 4px 8px; line-height: 1.3; }
+.find-card.find-card-compact .find-photo-badges > .find-discount { position: static; display: inline-flex; align-items: center; gap: 0; min-height: 26px; margin: 0; padding: 3px 8px; border: 1px solid var(--cat-ok-line); border-radius: 999px; background: var(--cat-ok-bg); color: var(--cat-ok); font-size: 12px; font-style: normal; font-weight: 700; line-height: 1.3; white-space: nowrap; box-shadow: none; }
 
 /* ---------- Loading, empty and end ---------- */
 .catalog-skeleton-card { pointer-events: none; }
@@ -256,6 +261,11 @@ html[data-theme="dark"] .catalog-switch input:checked + .catalog-switch-track::a
 .catalog-empty p { max-width: 46ch; margin: 0 auto 18px; color: var(--cat-muted); line-height: 1.5; }
 .catalog-empty > div { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 .catalog-empty .btn { min-height: 44px; }
+/* Empty "Saved": four products on sale to start with. */
+.favorites-suggest { margin-top: 28px; }
+.favorites-suggest-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; margin-bottom: 14px; }
+.favorites-suggest h2 { margin: 0; color: var(--cat-ink); font-size: 20px; letter-spacing: -.01em; }
+.favorites-suggest-head .text-link { min-height: 44px; color: var(--cat-accent); font-weight: 700; }
 .catalog-end { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; margin-top: 28px; padding: 22px; border: 1px solid var(--cat-line); border-radius: 18px; background: var(--cat-soft); }
 .catalog-end h2 { margin: 0 0 6px; color: var(--cat-ink); font-size: 22px; }
 .catalog-end p { max-width: 52ch; margin: 0; color: var(--cat-muted); line-height: 1.5; }
@@ -271,16 +281,26 @@ html[data-theme="dark"] .catalog-switch input:checked + .catalog-switch-track::a
 /* ---------- Product sheet: a bottom sheet on phones, a side panel elsewhere ---------- */
 .product-sheet .sheet-handle { display: block; flex: none; width: 40px; height: 4px; margin: 8px auto 0; border-radius: 2px; background: var(--cat-line); }
 .product-sheet.product-sheet-bottom { width: 100% !important; max-width: 100% !important; height: 92dvh; max-height: 92dvh; padding-bottom: 0; border-radius: 20px 20px 0 0; }
-.product-sheet.product-sheet-bottom .sheet-close { top: 12px; right: 12px; }
+/* Close and heart stay in reach while the details scroll (owner's review, 14.10.2026): a zero-height sticky bar holds them
+   over the photo (app/product-sheet.tsx); on the phone sheet it starts under the handle and sticks 8px below the rounded top. */
+.product-sheet .sheet-actions { position: sticky; top: 0; z-index: 3; flex: none; height: 0; }
+.product-sheet.product-sheet-bottom .sheet-actions { top: 8px; }
+.product-sheet.product-sheet-bottom .sheet-close { top: 0; right: 12px; }
 .product-sheet.product-sheet-bottom .sheet-body { padding: 16px 20px 0; }
 /* A product without a description left an empty paragraph, and the tab kept a 125 px floor: about 60 px of white space
    under the store price on a phone. The bottom sheet scrolls, so the tab can be as tall as its lines. */
 .product-sheet .detail-tabs [data-slot=tabs-content] > p:empty { display: none; }
 .product-sheet.product-sheet-bottom .detail-tabs [data-slot=tabs-content] { min-height: 0; }
 .product-sheet.product-sheet-bottom .sheet-total { position: sticky; bottom: 0; z-index: 2; display: flex; flex: none; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; margin: 16px 0 0; padding: 12px 20px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--cat-line); background: var(--cat-surface); }
-.product-sheet.product-sheet-right > .sheet-total { flex: none; margin-right: 30px; margin-bottom: 30px; margin-left: 30px; }
+/* Side sheet: the total and its button stay at the bottom edge while the sheet scrolls (they were below the fold at 1280×900). */
+.product-sheet.product-sheet-right > .sheet-total { position: sticky; bottom: 0; z-index: 2; flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; margin: 16px 0 0; padding: 14px 30px 18px; border-top: 1px solid var(--cat-line); background: var(--cat-surface); }
 .product-sheet.product-sheet-bottom .sheet-total > span { flex: 1 1 140px; }
 .product-sheet.product-sheet-bottom .sheet-total .btn { flex: 1 1 150px; width: auto; min-height: 48px; }
+/* Narrow phones: the sum on one line, the button below it at full width and on one line («Уточнить и продолжить»
+   broke in two next to the sum); the bar stays under 140 px. */
+@media (max-width: 400px) {
+  .product-sheet.product-sheet-bottom .sheet-total .btn { flex-basis: 100%; }
+}
 .product-sheet .sheet-stale { margin: 10px 0 0; }
 .product-sheet .sheet-speed { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 10px 0 6px; padding: 4px; border: 1px solid var(--cat-line); border-radius: 12px; background: var(--cat-soft); }
 .product-sheet .sheet-speed > button { display: grid; gap: 2px; min-height: 48px; padding: 6px 10px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--cat-ink); font: inherit; text-align: left; cursor: pointer; }
@@ -290,6 +310,12 @@ html[data-theme="dark"] .catalog-switch input:checked + .catalog-switch-track::a
 .product-sheet .sheet-speed > button[aria-pressed="true"] b { color: var(--cat-accent); }
 .product-sheet .sheet-speed > button:focus-visible { outline: 2px solid var(--cat-accent); outline-offset: 2px; }
 .product-sheet .sheet-speed-note { margin: 0 0 8px; }
+/* Save heart left of the close button (the card's .find-save is scoped to .site-main; the sheet is portalled outside it). */
+.product-sheet .sheet-save { position: absolute; z-index: 2; top: 17px; right: 67px; border: 1px solid var(--cat-line); background: var(--cat-surface); color: var(--cat-ink); box-shadow: 0 2px 8px #1825130b; }
+.product-sheet.product-sheet-bottom .sheet-save { top: 0; right: 60px; }
+.product-sheet .sheet-save svg { fill: none; }
+.product-sheet .sheet-save[aria-pressed="true"] { border-color: #1f6a43; background: #1f6a43; color: #fff; }
+.product-sheet .sheet-save[aria-pressed="true"] svg { fill: currentColor; }
 
 /* Dark inputs get the inset fill from theme-night.css; the search box takes the same fill so it reads as one field. */
 html .catalog-search input[type="search"] { border: 0; border-radius: 0; box-shadow: none; }
@@ -354,6 +380,9 @@ html[data-theme="dark"] .catalog-search { background: var(--night-inset); }
   .site-main .find-card .find-chip + .find-chip { display: none; }
   .site-main .find-card .find-purchase { padding-top: 10px; }
   .site-main .find-card .find-purchase .btn { min-height: 44px; padding: 0 8px; font-size: 14px; }
+  /* «Buyurtma berish» took two lines with the arrow; ru and en keep it. */
+  html:lang(uz) .site-main .find-card .find-purchase .btn.primary { gap: 6px; }
+  html:lang(uz) .site-main .find-card .find-purchase .btn.primary > svg { display: none; }
   :is(.catalog-page, .catalog-teaser) .find-card .find-save { width: 44px; height: 44px; top: 6px; right: 6px; }
   .site-main .find-card.find-card-compact .find-content { padding: 8px 10px 10px; }
   .site-main .find-card.find-card-compact .find-compact-title { font-size: 13.5px; }
@@ -401,6 +430,12 @@ html[data-theme="dark"] .catalog-search { background: var(--night-inset); }
 @media (min-width: 761px) and (max-width: 1023px) {
   .finds-grid-compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+@media (min-width: 761px) {
+  /* Four suggestions in one row (the catalog grid's three columns would leave an orphan). */
+  .catalog-page .favorites-suggest .finds-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  /* The side sheet's photo stays under ~420 px, so the name and the sticky total show on opening. */
+  .product-sheet.product-sheet-right .product-gallery-stage { aspect-ratio: auto; height: min(46vh, 420px); }
+}
 @media (min-width: 1024px) {
   .catalog-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 32px; align-items: start; }
   .catalog-layout.catalog-layout-plain { display: block; }
@@ -435,7 +470,10 @@ html[data-theme="dark"] .site-main .find-card .find-chip[data-tone="neutral"] { 
 html[data-theme="dark"] .find-breakdown-popover { box-shadow: var(--night-shadow-pop); }
 html[data-theme="dark"] .catalog-page .catalog-banner.catalog-banner-parcel { border-color: var(--night-line-strong); background: var(--night-raised); }
 html[data-theme="dark"] .product-sheet .sheet-handle { background: var(--night-line-strong); }
-html[data-theme="dark"] .product-sheet.product-sheet-bottom .sheet-total { border-color: var(--night-line-strong); background: var(--night-raised); }
+html[data-theme="dark"] .product-sheet:is(.product-sheet-bottom, .product-sheet-right) .sheet-total { border-color: var(--night-line-strong); background: var(--night-raised); }
+html[data-theme="dark"] .product-sheet .sheet-save[aria-pressed="true"] { border-color: #7fd1a1; background: #7fd1a1; color: #10241a; }
+/* The photo stage stays light at night: the pill is solid, like the "Top price" one beside it, or it vanished. */
+html[data-theme="dark"] .find-card.find-card-compact .find-photo-badges > .find-discount { border-color: rgba(128, 208, 172, 0.4); background: var(--night-surface); color: var(--night-ok-ink); }
 html[data-theme="dark"] .product-sheet .sheet-speed { border-color: var(--night-line-strong); background: var(--night-inset); }
 html[data-theme="dark"] .product-sheet .sheet-speed > button[aria-pressed="true"] { border-color: var(--night-line-strong); background: var(--night-raised); box-shadow: none; }
 html[data-theme="dark"] .site-main .find-card.find-card-compact .find-compact-price .money { color: var(--night-ivory-hi); }

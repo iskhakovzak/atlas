@@ -18,7 +18,14 @@ type Fact = { title: string; text: string };
 
 export type HomeCopy = {
   nav: NavCopy;
-  hero: { title: string; lead: string; label: string; placeholder: string; calculate: string; invalid: string; guestNote: string; memberNote: string; popular: string; openStore: string; batch: string; catalog: string; allStores: (count: number) => string; storesHint: string };
+  hero: {
+    title: string; lead: string; label: string; placeholder: string; calculate: string; invalid: string;
+    /** Plain words in the link field (no link at all): how to get a link, with the catalog and store buttons under it. */
+    notLink: string; searchCatalog: (q: string) => string; openStoreNamed: (store: string) => string;
+    guestNote: string; memberNote: string;
+    /** The hero's note as two points with a tick (the same facts as guestNote / memberNote, which step 1 still shows). */
+    guestPoints: [string, string]; memberPoints: [string, string];
+    popular: string; openStore: string; batch: string; catalog: string; allStores: (count: number) => string; storesHint: string };
   how: { title: string; steps: [Step, Step, Step, Step]; paymentsLabel: string; pickupLabel: string; deliveryLabel: string; courier: string; moreStores: (count: number) => string; confirm: string };
   example: {
     title: string; product: (usd: string) => string; routeLabel: string; to: string; days: (min: number, max: number) => string;
@@ -32,12 +39,22 @@ export type HomeCopy = {
     dutyTitle: (allowance: string) => string; dutyNote: string; dutyUsed: (used: string, left: string) => string;
   };
   catalog: { title: string; intro: string; order: string; storePrice: string; total: string; breakdown: string };
-  tariffs: { title: string; lead: string; from: string; country: string; time: string; perKg: string; perKgUnit: string; per100g: (usd: string) => string; days: (min: number, max: number) => string; pending: string; noDays: string; regions: Record<DeliveryRegion, string>; speeds: { express: string; standard: string }; speedsLabel: string; weightNote: string; rateNote: string };
+  tariffs: { title: string; lead: string; from: string; country: string; time: string; perKg: string; perKgUnit: string; per100g: (usd: string) => string; days: (min: number, max: number) => string; pending: string; noDays: string; regions: Record<DeliveryRegion, string>; speeds: { express: string; standard: string }; speedsLabel: string; weightNote: string; rateNote: string;
+    /** The rates table's own country names where a long one needs a soft hyphen (the plain names also go to the canvas decor and the facts row). */
+    tableRegions?: Partial<Record<DeliveryRegion, string>>;
+    /** Under the express chip: how many business days express saves (lib/market/home-facts.ts expressLead); `to` is the range's upper end. */
+    faster: (range: string, to: number) => string;
+  };
   trust: { title: string; facts: (facts: Facts) => Fact[]; ordersDone: string; trackingTitle: string; trackingNow: string; example: string; trackingProduct: string; trackingOrder: string; trackingNote: string; reviewsTitle: string; photosTitle: string; legalTitle: string; entity: string; inn: string; address: string; legalLink: string };
   faq: { title: string; timesQuestion: string; timesKnown: (list: string) => string; timesUnknown: string; timesLink: string; customsLink: string; prohibitedOfficial: string; prohibitedRules: string; items: { customs: (allowance: string) => Faq; returns: Faq; prohibited: Faq; weight: Faq; account: Faq } };
   closing: { title: string; text: string };
   footer: FooterCopy;
   sticky: { paste: string };
+  /**
+   * The hero's "continue" card for a signed-in customer (app/home-resume.tsx, lib/market/next-step.ts):
+   * a decision on an order, the checkout's payment, or the cart. No sums or timers — only what waits.
+   */
+  resume: { approval: string; payment: string; items: (count: number) => string; cart: (count: number) => string; cartNote: string };
   /** Wide screens only (app/home-facts.tsx and the inserts in app/home-sections.tsx): facts row, step examples, route card, FAQ links. */
   wide: {
     factsLabel: string; andMore: string; storesUnit: (count: number) => string; countriesUnit: (count: number) => string; countriesSub: string;
@@ -55,7 +72,10 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       lead: 'Вставьте ссылку на товар. Сразу покажем счёт в сумах, каждой строкой, ещё до оплаты.',
       label: 'Ссылка на товар', placeholder: 'Вставьте ссылку', calculate: 'Рассчитать',
       invalid: 'Вставьте полную ссылку на страницу товара — она начинается с https://',
+      notLink: 'Это не ссылка на товар. Откройте товар в магазине, скопируйте адрес страницы и вставьте сюда.',
+      searchCatalog: (q) => `Найти «${q}» в каталоге Atlas`, openStoreNamed: (store) => `Открыть ${store}`,
       guestNote: 'Расчёт бесплатный, регистрация не нужна.', memberNote: 'Расчёт бесплатный и ни к чему не обязывает.',
+      guestPoints: ['Расчёт бесплатный', 'Регистрация не нужна'], memberPoints: ['Расчёт бесплатный', 'Ни к чему не обязывает'],
       popular: 'Популярные магазины', openStore: 'откроется в новой вкладке', batch: 'Добавить несколько ссылок', catalog: 'Смотреть подборку товаров',
       allStores: (count) => `Все ${count} ${ruPlural(count, ['магазин', 'магазина', 'магазинов'])}`,
       storesHint: 'Откройте магазин, скопируйте ссылку на товар и вставьте её в поле выше.',
@@ -89,12 +109,15 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
     },
     catalog: { title: 'Подборка товаров', intro: 'Товары из зарубежных магазинов, отобранные Atlas, с итогом в сумах.', order: 'Заказать', storePrice: 'Цена в магазине', total: 'С доставкой в Ташкент', breakdown: 'Из чего сумма' },
     tariffs: {
-      title: 'Сроки и тарифы', lead: 'Экспресс или обычная доставка от нашего склада за рубежом до Ташкента — на выбор при оформлении. В таблице — обычный срок в рабочих днях; доставка магазина до склада и таможня идут сверх него.',
+      title: 'Сроки и тарифы', lead: 'Экспресс или обычная доставка от нашего склада за рубежом до Ташкента — на выбор при оформлении. В таблице — типичные сроки в рабочих днях; доставка магазина до склада и таможня идут сверх них.',
       from: 'Откуда', country: 'Страна', time: 'Срок доставки', perKg: 'Цена за 1 кг', perKgUnit: '/кг',
       per100g: (usd) => `${usd} за 100 г`,
       days: (min, max) => `${min}–${max} ${ruDays(max)}`, pending: 'уточняется',
       speeds: { express: 'Экспресс', standard: 'Обычная' }, speedsLabel: 'Скорость доставки', noDays: 'Срок зависит от магазина и рейса, покажем его в расчёте по вашей ссылке.',
       regions: { us: 'США', uk: 'Великобритания', cn: 'Китай', de: 'Германия', it: 'Италия', es: 'Испания' },
+      // A phone cell breaks it as «Велико-/британия», not «Великобри/тания».
+      tableRegions: { uk: 'Велико\u00adбритания' },
+      faster: (range, to) => `На ${range} ${ruDays(to)} быстрее`,
       weightNote: 'Вес считаем с коробкой и добавляем 0,3 кг на упаковку, один раз на посылку. Минимум 1 кг на посылку из одного магазина.',
       rateNote: 'Текущие тарифы Atlas, не оферта.',
     },
@@ -109,13 +132,13 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       ],
       trackingTitle: 'Отслеживание заказа', trackingNow: 'Сейчас', example: 'Пример', trackingProduct: 'Кроссовки Nike', trackingOrder: 'Заказ AT-1042', trackingNote: 'Так выглядит статус заказа в личном кабинете.',
       reviewsTitle: 'Отзывы клиентов', photosTitle: 'Посылки наших клиентов',
-      legalTitle: 'Юридическая информация', entity: 'Компания', inn: footerCopy.ru.inn, address: 'Адрес', legalLink: 'Правила сервиса',
+      legalTitle: 'Юридическая информация', entity: 'Компания', inn: footerCopy.ru.inn, address: 'Адрес', legalLink: 'Публичная оферта',
     },
     faq: {
       title: 'Частые вопросы', timesQuestion: 'Сколько ждать заказ?',
       timesKnown: (list) => `От нашего склада за рубежом обычно: ${list}. Плюс доставка магазина до склада и таможня.`, timesLink: 'Сроки по странам',
       timesUnknown: 'Срок складывается из доставки магазина до нашего склада, перевозки в Ташкент и таможни. Обычные сроки по странам — в таблице «Сроки и тарифы».',
-      customsLink: 'Подробнее о таможне', prohibitedOfficial: 'Официальный список', prohibitedRules: 'Правила сервиса',
+      customsLink: 'Подробнее о таможне', prohibitedOfficial: 'Официальный список', prohibitedRules: 'Ограничения в оферте',
       items: {
         customs: (allowance) => ({ q: `Что такое лимит ${allowance} на таможне?`, a: `Покупки для себя на сумму до ${allowance} в месяц на одного получателя ввозятся без пошлины. Если за месяц набралось больше, пошлину платят только с превышения. Ставку и пример расчёта мы держим на странице «Таможня»; окончательную сумму определяет таможня.` }),
         returns: { q: 'Можно ли вернуть товар?', a: 'До выкупа заказ можно отменить — вернём деньги за вычетом расходов, указанных в счёте. После выкупа вернуть товар можно, если это принимает магазин: мы поможем оформить возврат. Деньги возвращаем на баланс Atlas или на ту же карту, с которой вы платили, — на другую карту не переводим.' },
@@ -127,6 +150,11 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
     closing: { title: 'Посчитайте свой заказ', text: 'Вставьте ссылку на товар: счёт в сумах появится сразу, до регистрации и оплаты.' },
     footer: footerCopy.ru,
     sticky: { paste: 'Вставить ссылку' },
+    resume: {
+      approval: 'Нужно ваше решение по заказу', payment: 'Завершите оплату заказа',
+      items: (count) => `${count} ${ruPlural(count, ['товар', 'товара', 'товаров'])}`,
+      cart: (count) => `В корзине ${count} ${ruPlural(count, ['товар', 'товара', 'товаров'])}`, cartNote: 'Осталось оформить заказ',
+    },
     wide: {
       factsLabel: 'Atlas в цифрах', andMore: 'и другие',
       storesUnit: (count) => ruPlural(count, ['магазин', 'магазина', 'магазинов']), countriesUnit: (count) => ruPlural(count, ['страна', 'страны', 'стран']), countriesSub: 'откуда везём',
@@ -146,7 +174,10 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       lead: 'Tovar havolasini qo‘ying. Hisobni darhol so‘mda, har bir satri bilan, to‘lovdan oldin ko‘rsatamiz.',
       label: 'Tovar havolasi', placeholder: 'Havolani qo‘ying', calculate: 'Hisoblash',
       invalid: 'Tovar sahifasining to‘liq havolasini qo‘ying — u https:// bilan boshlanadi',
+      notLink: 'Bu tovar havolasi emas. Tovarni do‘konda oching, sahifa manzilini nusxalab, shu yerga qo‘ying.',
+      searchCatalog: (q) => `Atlas katalogida qidirish: «${q}»`, openStoreNamed: (store) => `${store} saytini ochish`,
       guestNote: 'Hisoblash bepul, ro‘yxatdan o‘tish shart emas.', memberNote: 'Hisoblash bepul va hech narsaga majburlamaydi.',
+      guestPoints: ['Hisoblash bepul', 'Ro‘yxatdan o‘tish shart emas'], memberPoints: ['Hisoblash bepul', 'Hech narsaga majburlamaydi'],
       popular: 'Mashhur do‘konlar', openStore: 'yangi oynada ochiladi', batch: 'Bir nechta havola qo‘shish', catalog: 'Tovarlar to‘plamini ko‘rish',
       allStores: (count) => `Barcha ${count} ta do‘kon`,
       storesHint: 'Do‘konni oching, tovar havolasini nusxalang va yuqoridagi maydonga qo‘ying.',
@@ -186,6 +217,9 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       days: (min, max) => `${min}–${max} ish kuni`, pending: 'aniqlanmoqda',
       speeds: { express: 'Ekspress', standard: 'Oddiy' }, speedsLabel: 'Yetkazish tezligi', noDays: 'Muddat do‘kon va reysga bog‘liq, uni havolangiz bo‘yicha hisobda ko‘rsatamiz.',
       regions: { us: 'AQSh', uk: 'Buyuk Britaniya', cn: 'Xitoy', de: 'Germaniya', it: 'Italiya', es: 'Ispaniya' },
+      // The same name as above (it breaks at its space); kept so every language has the same keys (tests/home.test.mjs).
+      tableRegions: { uk: 'Buyuk Britaniya' },
+      faster: (range) => `${range} ish kuni tezroq`,
       weightNote: 'Og‘irlikni quti bilan hisoblaymiz va qadoq uchun 0,3 kg qo‘shamiz, jo‘natmaga bir marta. Bitta do‘kondan kelgan jo‘natma uchun kamida 1 kg.',
       rateNote: 'Atlasning joriy tariflari, oferta emas.',
     },
@@ -200,13 +234,13 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       ],
       trackingTitle: 'Buyurtmani kuzatish', trackingNow: 'Hozir', example: 'Namuna', trackingProduct: 'Nike krossovkalari', trackingOrder: 'AT-1042 buyurtma', trackingNote: 'Buyurtma holati shaxsiy kabinetda shunday ko‘rinadi.',
       reviewsTitle: 'Mijozlar fikrlari', photosTitle: 'Mijozlarimiz jo‘natmalari',
-      legalTitle: 'Yuridik ma’lumotlar', entity: 'Kompaniya', inn: footerCopy.uz.inn, address: 'Manzil', legalLink: 'Xizmat qoidalari',
+      legalTitle: 'Yuridik ma’lumotlar', entity: 'Kompaniya', inn: footerCopy.uz.inn, address: 'Manzil', legalLink: 'Ommaviy oferta',
     },
     faq: {
       title: 'Ko‘p beriladigan savollar', timesQuestion: 'Buyurtmani qancha kutish kerak?',
       timesKnown: (list) => `Xorijdagi omborimizdan odatda: ${list}. Bunga do‘kondan omborgacha yetkazish va bojxona qo‘shiladi.`, timesLink: 'Davlatlar bo‘yicha muddatlar',
       timesUnknown: 'Muddat do‘kondan omborimizgacha yetkazish, Toshkentga tashish va bojxonadan iborat. Mamlakatlar bo‘yicha odatdagi muddatlar «Muddatlar va tariflar» jadvalida.',
-      customsLink: 'Bojxona haqida batafsil', prohibitedOfficial: 'Rasmiy ro‘yxat', prohibitedRules: 'Xizmat qoidalari',
+      customsLink: 'Bojxona haqida batafsil', prohibitedOfficial: 'Rasmiy ro‘yxat', prohibitedRules: 'Ofertadagi cheklovlar',
       items: {
         customs: (allowance) => ({ q: `Bojxonadagi ${allowance} limiti nima?`, a: `Shaxsiy foydalanish uchun bitta oluvchiga oyiga ${allowance} gacha bo‘lgan xaridlar bojsiz olib kiriladi. Agar oy davomida ko‘proq bo‘lsa, boj faqat oshgan qismidan to‘lanadi. Stavka va hisob namunasi «Bojxona» sahifasida; yakuniy summani bojxona belgilaydi.` }),
         returns: { q: 'Tovarni qaytarish mumkinmi?', a: 'Xariddan oldin buyurtmani bekor qilish mumkin — hisobda ko‘rsatilgan xarajatlarni chegirib, pulni qaytaramiz. Xariddan keyin tovarni do‘kon qabul qilsa, qaytarish mumkin: rasmiylashtirishga yordam beramiz. Pul Atlas balansiga yoki siz to‘lagan kartaning o‘ziga qaytariladi — boshqa kartaga o‘tkazmaymiz.' },
@@ -218,6 +252,11 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
     closing: { title: 'Buyurtmangizni hisoblang', text: 'Tovar havolasini qo‘ying: so‘mdagi hisob ro‘yxatdan o‘tish va to‘lovdan oldin darhol chiqadi.' },
     footer: footerCopy.uz,
     sticky: { paste: 'Havolani qo‘yish' },
+    resume: {
+      approval: 'Buyurtma bo‘yicha qaroringiz kerak', payment: 'Buyurtma to‘lovini yakunlang',
+      items: (count) => `${count} ta tovar`,
+      cart: (count) => `Savatda ${count} ta tovar`, cartNote: 'Buyurtmani rasmiylashtirish qoldi',
+    },
     wide: {
       factsLabel: 'Atlas raqamlarda', andMore: 'va boshqalar',
       storesUnit: () => 'ta do‘kon', countriesUnit: () => 'ta davlat', countriesSub: 'qayerdan olib kelamiz',
@@ -237,7 +276,10 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       lead: 'Paste a product link. We show the bill in soum right away, line by line, before you pay.',
       label: 'Product link', placeholder: 'Paste a link', calculate: 'Calculate',
       invalid: 'Paste the full product page link — it starts with https://',
+      notLink: 'That’s not a product link. Open the item in the store, copy the page address and paste it here.',
+      searchCatalog: (q) => `Search the Atlas catalog for “${q}”`, openStoreNamed: (store) => `Open ${store}`,
       guestNote: 'The estimate is free, no sign-up needed.', memberNote: 'The estimate is free and commits you to nothing.',
+      guestPoints: ['Free estimate', 'No sign-up needed'], memberPoints: ['Free estimate', 'No commitment'],
       popular: 'Popular stores', openStore: 'opens in a new tab', batch: 'Add several links', catalog: 'Browse the product selection',
       allStores: (count) => `All ${count} stores`,
       storesHint: 'Open a store, copy the product link and paste it into the field above.',
@@ -277,6 +319,9 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       days: (min, max) => `${min}–${max} business days`, pending: 'to be confirmed',
       speeds: { express: 'Express', standard: 'Standard' }, speedsLabel: 'Delivery speed', noDays: 'Timing depends on the store and the flight; we show it in the estimate for your link.',
       regions: { us: 'USA', uk: 'United Kingdom', cn: 'China', de: 'Germany', it: 'Italy', es: 'Spain' },
+      // The same name as above (it breaks at its space); kept so every language has the same keys (tests/home.test.mjs).
+      tableRegions: { uk: 'United Kingdom' },
+      faster: (range, to) => `${range} business ${to === 1 ? 'day' : 'days'} faster`,
       weightNote: 'We count the item with its box and add 0.3 kg for packaging, once per parcel. Minimum 1 kg per parcel from one store.',
       rateNote: 'Current Atlas rates, not an offer.',
     },
@@ -291,13 +336,13 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
       ],
       trackingTitle: 'Order tracking', trackingNow: 'Now', example: 'Example', trackingProduct: 'Nike sneakers', trackingOrder: 'Order AT-1042', trackingNote: 'This is how an order status looks in your account.',
       reviewsTitle: 'Customer reviews', photosTitle: 'Our customers’ parcels',
-      legalTitle: 'Legal information', entity: 'Company', inn: footerCopy.en.inn, address: 'Address', legalLink: 'Terms of service',
+      legalTitle: 'Legal information', entity: 'Company', inn: footerCopy.en.inn, address: 'Address', legalLink: 'Public offer',
     },
     faq: {
       title: 'Frequently asked questions', timesQuestion: 'How long does delivery take?',
       timesKnown: (list) => `From our warehouse abroad, usually: ${list}. Add the store’s shipping to the warehouse and customs.`, timesLink: 'Times by country',
       timesUnknown: 'Delivery time covers the store’s shipping to our warehouse, transport to Tashkent and customs. See “Delivery times and rates” for the usual times by country.',
-      customsLink: 'More about customs', prohibitedOfficial: 'Official list', prohibitedRules: 'Terms of service',
+      customsLink: 'More about customs', prohibitedOfficial: 'Official list', prohibitedRules: 'Restrictions in the offer',
       items: {
         customs: (allowance) => ({ q: `What is the ${allowance} customs limit?`, a: `Personal purchases up to ${allowance} a month per recipient enter without duty. If a month’s total is higher, duty applies only to the excess. The rate and a worked example are on the Customs page; customs sets the final amount.` }),
         returns: { q: 'Can I return an item?', a: 'Before purchase you can cancel the order — we refund the money minus the costs shown in your bill. After purchase a return is possible if the store accepts it; we help arrange it. Refunds go to your Atlas balance or back to the same card you paid with — never to another card.' },
@@ -309,6 +354,11 @@ export const homeCopy: Record<Locale, HomeCopy> = /*@__PURE__*/withCyrillic({
     closing: { title: 'Price your order', text: 'Paste a product link: the bill in soum appears at once, before sign-up or payment.' },
     footer: footerCopy.en,
     sticky: { paste: 'Paste a link' },
+    resume: {
+      approval: 'Your decision is needed on an order', payment: 'Finish paying for your order',
+      items: (count) => `${count} ${count === 1 ? 'item' : 'items'}`,
+      cart: (count) => `${count} ${count === 1 ? 'item' : 'items'} in your cart`, cartNote: 'Only checkout is left',
+    },
     wide: {
       factsLabel: 'Atlas in numbers', andMore: 'and more',
       storesUnit: (count) => (count === 1 ? 'store' : 'stores'), countriesUnit: (count) => (count === 1 ? 'country' : 'countries'), countriesSub: 'where we ship from',

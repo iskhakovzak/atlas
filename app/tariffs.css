@@ -4,12 +4,15 @@
 
 .tariff-table { min-width: 0; padding: 14px; border-radius: 16px; }
 .tariff-chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 0 6px; padding: 0; list-style: none; }
-.tariff-chip { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; min-width: 0; padding: 10px 12px; border-radius: 12px; }
+.tariff-chip { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 2px; min-width: 0; padding: 10px 12px; border-radius: 12px; }
 .tariff-speed { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 14px; font-weight: 650; line-height: 1.3; }
 .tariff-chip .tariff-speed::before { content: ""; flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%; background: center / 12px no-repeat; }
 .tariff-chip b { font-size: 19px; font-weight: 750; line-height: 1.2; letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tariff-chip b small { margin-left: 1px; font-size: 13px; font-weight: 600; letter-spacing: 0; }
 .tariff-100g { font-size: 12.5px; line-height: 1.3; font-variant-numeric: tabular-nums; }
+/* Express: the gold star of the recommendation (as in the cart) and how much sooner it arrives, from the table's own days. */
+.tariff-star { flex: none; margin-left: -2px; fill: currentColor; }
+.tariff-faster { font-size: 12.5px; font-weight: 600; line-height: 1.3; }
 .tariff-table table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .tariff-table :is(th, td) { padding: 10px 4px; text-align: left; vertical-align: middle; border-bottom: 1px solid var(--home-line); }
 .tariff-table tbody tr:last-child :is(th, td) { border-bottom: 0; }
@@ -30,6 +33,7 @@
   /* Speed, price and the 100 g line on one row when they fit; the 100 g line drops under them, never splits. */
   .tariff-chip { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; row-gap: 2px; padding: 12px 14px; }
   .tariff-chip .tariff-100g { margin-left: auto; white-space: nowrap; }
+  .tariff-chip .tariff-faster { flex-basis: 100%; }
   .tariff-table :is(th, td) { padding: 12px 8px; }
   .tariff-table td { font-size: 15px; }
 }
@@ -54,6 +58,8 @@ html:not([data-theme="dark"]) .tariff-pending { font-style: italic; }
 html:not([data-theme="dark"]) .tariff-chip b { color: var(--day-ink); }
 html:not([data-theme="dark"]) .tariff-chip b small { color: var(--day-muted); }
 html:not([data-theme="dark"]) .tariff-100g { color: var(--day-muted); }
+html:not([data-theme="dark"]) .tariff-star { color: #b7791f; }
+html:not([data-theme="dark"]) .tariff-faster { color: var(--day-ink); }
 
 /* Night: raised surface, hairlines from the theme; jade only for the express plate, bolt and label. */
 html[data-theme="dark"] .tariff-table { background: var(--night-raised); border: 1px solid var(--night-line); box-shadow: var(--night-shadow); }
@@ -75,3 +81,5 @@ html[data-theme="dark"] .tariff-pending { font-style: italic; }
 html[data-theme="dark"] .tariff-chip b { color: var(--night-ink); }
 html[data-theme="dark"] .tariff-chip b small { color: var(--night-muted); }
 html[data-theme="dark"] .tariff-100g { color: var(--night-muted); }
+html[data-theme="dark"] .tariff-star { color: #e8b84e; }
+html[data-theme="dark"] .tariff-faster { color: var(--night-ink); }

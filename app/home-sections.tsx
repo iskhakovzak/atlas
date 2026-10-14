@@ -1,6 +1,7 @@
 'use client';
-import {Fragment,useEffect,useId,useState,type FormEvent,type ReactNode} from 'react';
-import { ArrowRight, ArrowUpRight, BadgeCheck, Check, CircleHelp, ClipboardPaste, Info, Landmark, Link2, LockKeyhole, MessagesSquare, PackageCheck, Plane, ReceiptText, Scale, SearchCheck, ShieldCheck, Store, Truck } from 'lucide-react';
+import {Fragment,Suspense,lazy,useCallback,useEffect,useId,useRef,useState,type FormEvent,type ReactNode} from 'react';
+import { ArrowRight, ArrowUpRight, BadgeCheck, Check, CircleHelp, ClipboardPaste, Info, Landmark, Link2, Loader2, LockKeyhole, MessagesSquare, PackageCheck, Plane, ReceiptText, Scale, Search, SearchCheck, ShieldCheck, Star, Store, Truck } from 'lucide-react';
+import {useRouter} from 'next/navigation';
 import Link from '@/components/site-link';
 import {PasteButton} from '@/components/paste-button';
 import {useMarket} from '@/lib/market/store';
@@ -10,11 +11,14 @@ import {courierAllowanceUsd} from '@/lib/market/customs';
 import {combinedShipmentWeight,packagingKg} from '@/lib/market/world';
 import {homeCopy} from '@/lib/market/home-copy';
 import {formatKg,formatPercent,formatPriceUsd,formatSum,formatUsd,groupDigits} from '@/lib/market/format';
-import {speedPriceRange,tariffRows} from '@/lib/market/home-facts';
+import {expressLead,speedPriceRange,tariffRows} from '@/lib/market/home-facts';
+import {catalogSearchFor,looksLikeLink,normalizeProductLink,storeNamedIn} from '@/lib/market/shared-link';
+import {startNavigationFeedback} from '@/lib/market/navigation-feedback';
+import {loadChunk} from '@/lib/market/stale-build';
 import {deliveryDaysFor,deliveryRegions,paymentLabels} from '@/lib/market/site-content';
 import {localizedStatuses,routeTitle,type Locale} from '@/lib/market/i18n';
 import {pickLocale} from '@/lib/market/uz-cyrl';
-import {popularBrandKeys,storeBrands,storeFocusNames,storefrontUrl} from '@/lib/market/store-brands';
+import {heroStores,popularBrandKeys,storeBrands,storeFocusNames,storefrontUrl,type StoreBrand} from '@/lib/market/store-brands';
 import {StoreLogo,StoreMark,hasStoreMark} from './store-logo';
 import {StoreMarquee} from './store-marquee';
 import {CountryFlag,Flag} from './flags';
@@ -24,7 +28,6 @@ import {faqPage} from '@/lib/seo/structured-data';
 import {MissingContent} from './site-footer';
 
 /** The hero's popular stores; the wide-screen facts row and closing card show the same list (app/home-facts.tsx, HomeClosing). */
-export const heroStores=['nike','zara','amazon','apple','iherb','adidas','hm','sephora'].map(key=>storeBrands.find(brand=>brand.key===key)!).filter(Boolean);
 /**
  * The worked example on the home page, priced by the same function as a real order (owner, 14.10.2026): $69 sneakers,
  * standard delivery, 0.7 kg in the box, so with the packaging allowance the bill weighs the usual 1 kg.
@@ -69,32 +72,105 @@ export function HomeStoreList({label,labelledBy}:{label?:string;labelledBy?:stri
  return <ul aria-label={label} aria-labelledby={labelledBy}>{heroStores.map(store=><li key={store.key}><a href={storefrontUrl(store)} target="_blank" rel="noopener noreferrer"><StoreLogo brand={store} size={20}/>{store.name}<span className="sr-only"> ({c.hero.openStore})</span></a></li>)}<li><Link className="home-stores-all" href="/stores">{c.hero.allStores(storeBrands.length)}</Link></li></ul>;
 }
 
-/** A product link field: a valid link opens the order by link with it, anything else shows the hero's hint. */
+/** After plain words in the field: the store they name and a catalog search that finds something (either may be missing). */
+type LinkHelp={store:StoreBrand|null;search:string};
+/** The sticky button's clipboard link, handed to the hero's field (StickyLinkCta → HomeLinkForm). */
+const homeLinkEvent='atlas:home-link';
+
+/**
+ * A product link field. A link opens the order by link in place, the button waiting meanwhile: a link inside shared text,
+ * a bare "nike.com/t/…" and an http link count too (normalizeProductLink). Anything else shows a hint; plain words get
+ * their own, with the store they name and a catalog search for the forms that show them (owner's review, 14.10.2026).
+ */
 function useLinkSubmit(){
- const {c}=useHomeCopy();
+ const {c,locale}=useHomeCopy();
+ const {catalogProducts}=useMarket();
+ const router=useRouter();
  const [url,setUrl]=useState('');
  const [error,setError]=useState('');
+ const [help,setHelp]=useState<LinkHelp|null>(null);
+ const [busy,setBusy]=useState(false);
+ const prefetched=useRef(false);
+ // A navigation that never finishes, or a page brought back from history, leaves the button usable again.
+ useEffect(()=>{
+  if(!busy)return;
+  const reset=()=>setBusy(false);
+  const timer=window.setTimeout(reset,15000);
+  window.addEventListener('pagehide',reset);
+  window.addEventListener('pageshow',reset);
+  return ()=>{window.clearTimeout(timer);window.removeEventListener('pagehide',reset);window.removeEventListener('pageshow',reset)};
+ },[busy]);
  function submit(event:FormEvent){
   event.preventDefault();
-  try{const target=validateSource(url.trim());setError('');window.location.assign('/order-by-link?url='+encodeURIComponent(target))}
-  catch{setError(c.hero.invalid)}
+  if(busy)return;
+  const raw=url.trim();
+  let target:string;
+  try{target=validateSource(normalizeProductLink(raw)||raw)}
+  catch{
+   const words=Boolean(raw)&&!looksLikeLink(raw);
+   setError(words?c.hero.notLink:c.hero.invalid);
+   setHelp(words?{store:storeNamedIn(raw,storeBrands),search:catalogSearchFor(raw,catalogProducts,locale)}:null);
+   return;
+  }
+  setError('');setHelp(null);setBusy(true);
+  // In place, as SiteLink does: the order page reads ?url= on arrival and starts loading the product (app/global-link-order.tsx).
+  startNavigationFeedback();
+  router.push('/order-by-link?url='+encodeURIComponent(target));
  }
- return {url,error,submit,change:(value:string)=>{setUrl(value);setError('')}};
+ const change=useCallback((value:string)=>{setUrl(value);setError('');setHelp(null)},[]);
+ // The order page's code and data are fetched while the link is being pasted.
+ const prefetch=useCallback(()=>{
+  if(prefetched.current)return;
+  prefetched.current=true;
+  try{router.prefetch('/order-by-link')}catch{/* the submit still loads the page */}
+ },[router]);
+ return {url,error,help,busy,submit,change,prefetch};
 }
 
-export function HomeHero({showCatalogLink}:{showCatalogLink:boolean}){
+/**
+ * The hero's link form, repeated on the closing screen (owner's review, 14.10.2026: a real field there instead of a button
+ * that scrolls back up). The hero keeps its ids, which StickyLinkCta, focusLinkInput and app/link-inputs.css use, and takes
+ * the link the sticky button reads from the clipboard. Filling the field never submits it.
+ */
+function HomeLinkForm({formId,inputId,errorId,noteId,takesSticky=false}:{formId:string;inputId:string;errorId:string;noteId:string;takesSticky?:boolean}){
  const {status}=useMarket();
  const {c,locale}=useHomeCopy();
- const {url,error,submit,change}=useLinkSubmit();
+ const {url,error,help,busy,submit,change,prefetch}=useLinkSubmit();
+ useEffect(()=>{
+  if(!takesSticky)return;
+  const take=(event:Event)=>{const link=(event as CustomEvent<unknown>).detail;if(typeof link==='string'&&link)change(link)};
+  window.addEventListener(homeLinkEvent,take);
+  return ()=>window.removeEventListener(homeLinkEvent,take);
+ },[takesSticky,change]);
+ const points=status==='authenticated'?c.hero.memberPoints:c.hero.guestPoints;
+ return <>
+  <form id={formId} className="home-link-form" onSubmit={submit} noValidate>
+   <label className="sr-only" htmlFor={inputId}>{c.hero.label}</label>
+   <span className="home-link-field"><Link2 size={20} aria-hidden="true"/><input id={inputId} name="url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.hero.placeholder} aria-invalid={!!error} aria-describedby={error?errorId:noteId} onFocus={prefetch} onChange={event=>change(event.target.value)}/><PasteButton targetId={inputId} locale={locale} onPaste={change}/></span>
+   {/* While the order page opens: a spinner over the hidden label, so the button keeps its width. */}
+   <button type="submit" className="btn primary home-cta" aria-busy={busy||undefined}><span className="home-cta-label">{c.hero.calculate}</span>{busy&&<Loader2 className="home-cta-spinner spin" size={20} aria-hidden="true"/>}</button>
+  </form>
+  {error?<>
+   <p id={errorId} className="home-link-error" role="alert">{error}</p>
+   {help&&(help.store||help.search)&&<div className="home-link-help">
+    {help.store&&<a className="btn secondary" href={storefrontUrl(help.store)} target="_blank" rel="noopener noreferrer"><StoreLogo brand={help.store} size={18}/>{c.hero.openStoreNamed(help.store.name)}<ArrowUpRight size={16} aria-hidden="true"/><span className="sr-only"> ({c.hero.openStore})</span></a>}
+    {help.search&&<Link className="btn secondary" href={'/catalog?q='+encodeURIComponent(help.search)}><Search size={16} aria-hidden="true"/>{c.hero.searchCatalog(help.search)}</Link>}
+   </div>}
+  </>:<ul id={noteId} className="home-link-note home-link-points">{points.map(point=><li key={point}><Check size={14} aria-hidden="true"/>{point}</li>)}</ul>}
+ </>;
+}
+
+/** The signed-in customer's "continue" card: its own chunk (order grouping and attention rules), never loaded for a guest. */
+const HomeResume=lazy(()=>loadChunk(()=>import('./home-resume')).then(module=>({default:module.HomeResume})));
+
+export function HomeHero({showCatalogLink}:{showCatalogLink:boolean}){
+ const {status,ready}=useMarket();
+ const {c,locale}=useHomeCopy();
  return <section className="home-hero" aria-labelledby="home-title">
   <h1 id="home-title">{c.hero.title}</h1>
   <p className="home-hero-lead">{c.hero.lead}</p>
-  <form id="home-link-form" className="home-link-form" onSubmit={submit} noValidate>
-   <label className="sr-only" htmlFor="finds-product-url">{c.hero.label}</label>
-   <span className="home-link-field"><Link2 size={20} aria-hidden="true"/><input id="finds-product-url" name="url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.hero.placeholder} aria-invalid={!!error} aria-describedby={error?'home-link-error':'home-link-note'} onChange={event=>change(event.target.value)}/><PasteButton targetId="finds-product-url" locale={locale} onPaste={change}/></span>
-   <button type="submit" className="btn primary home-cta">{c.hero.calculate}</button>
-  </form>
-  {error?<p id="home-link-error" className="home-link-error" role="alert">{error}</p>:<p id="home-link-note" className="home-link-note">{status==='authenticated'?c.hero.memberNote:c.hero.guestNote}</p>}
+  <HomeLinkForm formId="home-link-form" inputId="finds-product-url" errorId="home-link-error" noteId="home-link-note" takesSticky/>
+  {ready&&status==='authenticated'&&<Suspense fallback={null}><HomeResume/></Suspense>}
   <div className="home-stores home-stores-marquee">
    <StoreMarquee label={c.hero.popular} openStore={c.hero.openStore} allStores={c.hero.allStores(storeBrands.length)} hint={c.hero.storesHint} locale={locale}/>
    <p className="home-stores-hint tip-text">{c.hero.storesHint}</p>
@@ -132,7 +208,7 @@ export function ExampleQuote(){
  return <aside id="example" className="folio home-folio" aria-labelledby="example-title">
   {/* The caption names the example as an order line: what is bought, where and for how much (owner, 14.10.2026: the card
       looked dry and empty). It takes the place of the old one-line caption, so the card grows only a little. */}
-  <p className="folio-cap bill-product"><span className="bill-product-mark" aria-hidden="true"><StoreMark brandKey="nike" height={14} maxWidth={28}/></span><span className="bill-product-name" aria-hidden="true"><b>{c.trust.trackingProduct}</b><small>nike.com · {usd}</small></span><b id="example-title" className="bill-product-label">{c.example.title}<span className="sr-only">: {c.example.product(usd)}</span></b></p>
+  <p className="folio-cap bill-product"><span className="bill-product-mark" aria-hidden="true"><StoreMark brandKey="nike" height={14} maxWidth={28}/></span><span className="bill-product-name" aria-hidden="true"><b>{c.trust.trackingProduct}</b><small>nike.com · {usd}</small></span><b id="example-title" className="bill-product-label"><span className="bill-label-full">{c.example.title}</span><span className="bill-label-short" aria-hidden="true">{c.trust.example}</span><span className="sr-only">: {c.example.product(usd)}</span></b></p>
   <div className="folio-sheet home-quote">
    <p className="bill-route"><span className="bill-route-end"><Flag region="us" className="bill-route-flag"/><span className="sr-only">{c.example.routeLabel}: </span>{c.tariffs.regions.us}</span><span className="bill-route-path" aria-hidden="true"><span className="bill-route-line"/><Plane className="bill-route-plane" size={17} strokeWidth={2}/></span><span className="sr-only"> → </span><span className="bill-route-end">{c.example.to}</span></p>
    {days&&<p className="bill-days">{c.example.days(days[0],days[1])}</p>}
@@ -196,10 +272,11 @@ export function HowItWorks(){
 function StepLinkForm(){
  const {status}=useMarket();
  const {c,locale}=useHomeCopy();
- const {url,error,submit,change}=useLinkSubmit();
+ // Only the hint's text here, no store or catalog buttons: the card has no room for them.
+ const {url,error,busy,submit,change,prefetch}=useLinkSubmit();
  return <form className="hw-demo hw-demo-field" onSubmit={submit} noValidate>
   <label className="sr-only" htmlFor="how-product-url">{c.hero.label}</label>
-  <span className="hw-demo-input"><Link2 size={15} strokeWidth={2} aria-hidden="true"/><input id="how-product-url" name="url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.hero.placeholder} aria-invalid={!!error} aria-describedby="how-link-note" onChange={event=>change(event.target.value)}/><PasteButton targetId="how-product-url" locale={locale} onPaste={change}/><button type="submit" aria-label={c.hero.calculate} title={c.hero.calculate}><ArrowRight size={15} strokeWidth={2.2} aria-hidden="true"/></button></span>
+  <span className="hw-demo-input"><Link2 size={15} strokeWidth={2} aria-hidden="true"/><input id="how-product-url" name="url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.hero.placeholder} aria-invalid={!!error} aria-describedby="how-link-note" onFocus={prefetch} onChange={event=>change(event.target.value)}/><PasteButton targetId="how-product-url" locale={locale} onPaste={change}/><button type="submit" aria-label={c.hero.calculate} title={c.hero.calculate} aria-busy={busy||undefined}><ArrowRight size={15} strokeWidth={2.2} aria-hidden="true"/></button></span>
   <span className="hw-demo-stores" aria-hidden="true">{stepStores.map(key=><StoreMark key={key} brandKey={key} height={17} maxWidth={58}/>)}<small>{c.how.moreStores(storeBrands.length-stepStores.length)}</small></span>
   <span id="how-link-note" className={'hw-demo-note'+(error?' error':'')} role={error?'alert':undefined}>{error||(status==='authenticated'?c.hero.memberNote:c.hero.guestNote)}</span>
  </form>;
@@ -235,20 +312,24 @@ export function DeliveryTariffs(){
  const rows=tariffRows(pricing);
  const chips=deliverySpeeds.flatMap(speed=>{const range=speedPriceRange(rows,speed);return range?[{speed,usd:range.min,uniform:range.min===range.max}]:[];});
  const uniform=new Set(chips.filter(chip=>chip.uniform).map(chip=>chip.speed));
+ // How much sooner express arrives, per country; no line when it is not sooner everywhere (lib/market/home-facts.ts).
+ const lead=expressLead(rows);
  return <section id="tariffs" className="home-section tariff-section" data-chapter="tariffs" aria-labelledby="tariffs-title">
   <h2 id="tariffs-title">{c.tariffs.title}</h2>
   <p className="home-section-lead">{c.tariffs.lead}</p>
   <div className="tariff-table">
    <ul className="tariff-chips" aria-label={c.tariffs.perKg}>{chips.map(({speed,usd,uniform})=><li key={speed} className={`tariff-chip tariff-${speed}`}>
-    <span className="tariff-speed">{c.tariffs.speeds[speed]}</span>
+    {/* The gold star marks express as the recommendation, as in the cart; the plain speed has none. */}
+    <span className="tariff-speed">{c.tariffs.speeds[speed]}{speed==='express'&&<Star size={13} className="tariff-star" aria-hidden="true"/>}</span>
     <b>{uniform?formatUsd(usd,locale):c.wide.priceFrom(formatUsd(usd,locale))}<small>{c.tariffs.perKgUnit}</small></b>
     <span className="tariff-100g">{c.tariffs.per100g(formatPriceUsd(usd/10,locale))}</span>
+    {speed==='express'&&lead&&<span className="tariff-faster">{c.tariffs.faster(lead.min===lead.max?String(lead.max):`${lead.min}–${lead.max}`,lead.max)}</span>}
    </li>)}</ul>
    <table>
     <caption className="sr-only">{c.tariffs.time}</caption>
     <thead><tr><th scope="col">{c.tariffs.country}</th>{deliverySpeeds.map(speed=><th key={speed} scope="col" className={`tariff-${speed}`}>{c.tariffs.speeds[speed]}</th>)}</tr></thead>
     <tbody>{rows.map(({region,options})=><tr key={region.id}>
-     <th scope="row"><span className="tariff-country"><Flag region={region.id}/><span>{c.tariffs.regions[region.id]}</span></span></th>
+     <th scope="row"><span className="tariff-country"><Flag region={region.id}/><span>{c.tariffs.tableRegions?.[region.id]??c.tariffs.regions[region.id]}</span></span></th>
      {options.map(({speed,days,usd})=><td key={speed} className={`tariff-${speed}`}>
       <span className={days?'tariff-days':'tariff-days tariff-pending'}>{days?c.tariffs.days(days[0],days[1]):c.tariffs.pending}</span>
       {!uniform.has(speed)&&<span className="tariff-cell-price">{formatUsd(usd,locale)}{c.tariffs.perKgUnit}</span>}
@@ -334,7 +415,7 @@ export function HomeFaq(){
   {q:c.faq.timesQuestion,a:known.length?c.faq.timesKnown(known.join(', ')):c.faq.timesUnknown,link:<a href="#tariffs">{c.faq.timesLink}</a>},
   {...c.faq.items.customs(formatUsd(pricing.customsAllowanceUsd??courierAllowanceUsd,locale)),link:<Link href="/customs">{c.faq.customsLink}</Link>},
   c.faq.items.returns,
-  {...c.faq.items.prohibited,link:prohibitedUrl?<a href={prohibitedUrl} target="_blank" rel="noopener noreferrer">{c.faq.prohibitedOfficial}</a>:<Link href="/legal#offer">{c.faq.prohibitedRules}</Link>},
+  {...c.faq.items.prohibited,link:prohibitedUrl?<a href={prohibitedUrl} target="_blank" rel="noopener noreferrer">{c.faq.prohibitedOfficial}</a>:<Link href="/legal#offer-limits">{c.faq.prohibitedRules}</Link>},
   c.faq.items.weight,
   c.faq.items.account,
  ];
@@ -360,13 +441,13 @@ export function HomeFaq(){
  </section>;
 }
 
-/** Desktop close of the page: one line and the action that brings the link field back. Phones have the sticky button. */
+/** Desktop close of the page: one line and the link field itself, so a link pasted here opens the order. Phones have the sticky button. */
 export function HomeClosing(){
  const {c}=useHomeCopy();
  return <section className="home-section home-closing" aria-labelledby="closing-title">
   <h2 id="closing-title">{c.closing.title}</h2>
   <p>{c.closing.text}</p>
-  <button type="button" className="btn primary home-cta" onClick={focusLinkInput}><ClipboardPaste size={18} aria-hidden="true"/>{c.sticky.paste}</button>
+  <div className="home-closing-form"><HomeLinkForm formId="closing-link-form" inputId="closing-product-url" errorId="closing-link-error" noteId="closing-link-note"/></div>
   {/* Wide screens only: the hero's stores again, without the "field above" hint. */}
   <ClosingStores/>
  </section>;
@@ -391,7 +472,22 @@ function ClosingStores(){
  </div>;
 }
 
-/** Mobile: once the hero form scrolls away, a sticky button brings it back and focuses the input. */
+/**
+ * The sticky button's tap: back to the hero's field, and a product link from the clipboard into it when the field is empty.
+ * Focus first, inside the tap; the clipboard after (the browser may ask). A refusal or no link leaves just the focus, and
+ * the form is never submitted, as with PasteButton.
+ */
+function bringLinkField(){
+ focusLinkInput();
+ const field=()=>document.getElementById('finds-product-url') as HTMLInputElement|null;
+ if(field()?.value||!navigator.clipboard?.readText)return;
+ navigator.clipboard.readText().then(text=>{
+  const link=normalizeProductLink(text);
+  if(link&&!field()?.value)window.dispatchEvent(new CustomEvent(homeLinkEvent,{detail:link}));
+ }).catch(()=>{});
+}
+
+/** Mobile: once the hero form scrolls away, a sticky button brings it back, focuses the input and fills in a copied link. */
 export function StickyLinkCta({aboveNav}:{aboveNav:boolean}){
  const {c}=useHomeCopy();
  const [visible,setVisible]=useState(false);
@@ -404,6 +500,6 @@ export function StickyLinkCta({aboveNav}:{aboveNav:boolean}){
  },[]);
  if(!visible)return null;
  return <div className={'home-sticky'+(aboveNav?' above-nav':'')}>
-  <button type="button" className="btn primary home-cta" onClick={focusLinkInput}><ClipboardPaste size={18} aria-hidden="true"/>{c.sticky.paste}</button>
+  <button type="button" className="btn primary home-cta" onClick={bringLinkField}><ClipboardPaste size={18} aria-hidden="true"/>{c.sticky.paste}</button>
  </div>;
 }

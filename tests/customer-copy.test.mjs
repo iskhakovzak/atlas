@@ -124,3 +124,19 @@ test('with the Atlas balance on, checkout copy says how much it takes when the o
   }
   assert.doesNotMatch(cartCopy.ru.checkout.trustBalance('1 сум', true) + cartCopy.ru.checkout.nextStepPaid, /Оплатить|карт/);
 });
+
+test('empty orders page with a full cart names the real item count and leads to checkout, never to "pay"', () => {
+  for (const locale of ['ru', 'uz', 'oz', 'en']) {
+    const copy = ordersCopy[locale], items = itemCount(2, locale);
+    assert.ok(copy.cartWaiting(items).includes(items), `${locale}: the count from the cart is said as is`);
+    assert.ok(copy.toCart.trim());
+    assert.doesNotMatch(copy.cartWaiting(items) + copy.toCart, /Оплат|To‘la|Тўла|\bpay\b/i);
+  }
+  assert.equal(ordersCopy.ru.cartWaiting(itemCount(1, 'ru')), 'В корзине 1 товар — осталось оформить заказ.');
+});
+
+test('the passport page title keeps "ID-card" whole with a non-breaking hyphen, also in Cyrillic Uzbek', () => {
+  for (const locale of ['ru', 'uz', 'oz']) assert.match(docsCopy[locale].title, /ID\u2011/, locale);
+  assert.equal(docsCopy.en.title, 'Recipient passport or ID card');
+  for (const locale of ['ru', 'uz', 'oz', 'en']) assert.ok(docsCopy[locale].backToOrders.trim());
+});
