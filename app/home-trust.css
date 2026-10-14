@@ -19,16 +19,6 @@ html[data-theme="dark"] #trust { --tr-card: var(--night-sheen), var(--night-surf
 :root body #trust .home-fact-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--tr-icon-bg); color: var(--tr-icon); }
 :root body #trust .home-fact-cards h3 { margin: 0; color: var(--tr-ink); font-size: 16.5px; font-weight: 650; line-height: 1.3; letter-spacing: 0; }
 :root body #trust .home-fact-cards p { grid-column: 1 / -1; margin: 0; color: var(--tr-text); font-size: 15px; line-height: 1.55; }
-@media (min-width: 761px) and (max-width: 1099px) {
-  /* Two columns; the long reserve rule takes a whole row and the weighing rule fills the gap before it. */
-  :root body #trust .home-fact-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: dense; }
-  :root body #trust .home-fact-cards > li:nth-child(4) { grid-column: 1 / -1; }
-}
-@media (min-width: 1100px) {
-  :root body #trust .home-fact-cards { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
-  :root body #trust .home-fact-cards > li { grid-column: span 2; }
-  :root body #trust .home-fact-cards > li:nth-child(4) { grid-column: span 4; }
-}
 
 /* The tracking demo: the store's mark on a tile, the product and order number, and where the parcel is now. */
 :root body #trust .home-tracking-item { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; margin: 14px 0 24px; color: var(--tr-ink); font-size: 15px; }
@@ -43,15 +33,6 @@ html[data-theme="dark"] #trust { --tr-card: var(--night-sheen), var(--night-surf
    one line (before, Night did this only from 1440px, app/home-wide-content.css, and listed them down the card below). */
 :root[data-theme="dark"] body #trust .home-tracking header { justify-content: flex-start; gap: 12px; }
 :root[data-theme="dark"] body #trust .home-tracking .home-badge { padding: 3px 10px; border-radius: 999px; background: rgba(128, 208, 172, .14); color: var(--night-jade, #80d0ac); font-size: 13px; font-weight: 700; }
-@media (min-width: 900px) {
-  :root[data-theme="dark"] body #trust .home-tracking { padding: 26px 30px 28px; }
-  :root[data-theme="dark"] body #trust .home-tracking ol { position: relative; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
-  :root[data-theme="dark"] body #trust .home-tracking li { position: relative; flex-direction: column; align-items: flex-start; gap: 12px; font-size: 14px; }
-  /* The line runs dot to dot; 80% = four of the five spans done (the example stands at "In transit"). */
-  :root[data-theme="dark"] body #trust .home-tracking ol::before { content: ""; position: absolute; left: 11px; right: calc(100% / 6 - 11px); top: 10px; height: 2px; background: linear-gradient(90deg, var(--night-jade) 0 80%, var(--night-line-strong) 80% 100%); }
-  :root[data-theme="dark"] body #trust .home-tracking-dot { position: relative; z-index: 1; box-sizing: border-box; background: linear-gradient(rgba(255, 255, 255, .07), rgba(255, 255, 255, .07)), var(--night-surface); }
-  :root[data-theme="dark"] body #trust .home-tracking li[data-state="done"] .home-tracking-dot { background: var(--night-jade); }
-}
 
 @media (max-width: 760px) {
   :root body #trust .home-fact-cards { gap: 8px; margin-top: 14px; }

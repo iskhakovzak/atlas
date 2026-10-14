@@ -17,12 +17,14 @@ export const hasStoreMark = (key: string) => storeMarkRatios[key] !== undefined;
 /**
  * A store's vector mark (public/store-marks, Simple Icons) drawn in the text colour through a CSS mask: crisp at any
  * size and readable in both themes. `height` in px; the width follows the mark, capped at `maxWidth`.
+ * `later`: same box, no file yet (data-mark="later", drawn empty by app/store-marks.css): the hero ribbon asks for the
+ * marks that are not in view at the start only once the page has settled.
  */
-export function StoreMark({ brandKey, height, maxWidth = height * 4 }: { brandKey: string; height: number; maxWidth?: number }) {
+export function StoreMark({ brandKey, height, maxWidth = height * 4, later = false }: { brandKey: string; height: number; maxWidth?: number; later?: boolean }) {
   const ratio = storeMarkRatios[brandKey] ?? 1;
   const width = Math.min(height * ratio, maxWidth);
-  const style = { width, height: Math.round((width / ratio) * 10) / 10, '--mark': `url(/store-marks/${brandKey}.svg)` } as CSSProperties;
-  return <span className="store-mark" style={style} aria-hidden="true" />;
+  const style = { width, height: Math.round((width / ratio) * 10) / 10, ...(later ? {} : { '--mark': `url(/store-marks/${brandKey}.svg)` }) } as CSSProperties;
+  return <span className="store-mark" style={style} aria-hidden="true" data-mark={later ? 'later' : undefined} />;
 }
 
 /**

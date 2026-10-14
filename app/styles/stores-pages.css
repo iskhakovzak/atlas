@@ -1,0 +1,484 @@
+/* Stores and legal-page styles for the routes that show them. Split out of the layout CSS (14.10.2026) so other pages do not load these rules; they keep the order
+   they had there (layout files in import order, then the home page's files), and every rule a later layout rule of the same
+   weight overrides stayed in the layout. Edit them here. */
+
+/* ── app/globals.css ── */
+/* Pre-release commerce, operations, messaging and analytics */
+.legal-grid section>svg{color:#6c8d4e}
+.legal-grid h2{font-size:22px;margin:18px 0 11px}
+.legal-grid p{font-size:14px;line-height:1.7}
+.legal-grid p+p{margin-top:12px}
+@media (max-width:600px) {
+  .legal-grid{gap:14px}
+}
+
+.legal-status{display:flex;gap:14px;align-items:flex-start;padding:17px 19px;margin-bottom:18px;border:1px solid #efd99f;border-radius:13px;background:#fff8e8;color:#755716}
+.legal-status svg{flex-shrink:0;margin-top:2px}
+.legal-status p{margin-top:3px;color:#806b3d;font-size:13px}
+.legal-nav a{padding:9px 14px;border-radius:9px;color:#51645a;font-size:13px;white-space:nowrap}
+.legal-nav a:hover{background:#edf4ed;color:#1f4d3b}
+.legal-document>header{display:flex;gap:17px;align-items:flex-start;padding-bottom:22px;border-bottom:1px solid var(--atlas-line)}
+.legal-document>header>svg{width:32px;height:32px;color:#1f4d3b}
+.legal-document>header h2{margin:5px 0 3px;font-size:27px}
+.legal-document section{padding:23px 0}
+.legal-document section+section{border-top:1px solid #e5e9f1}
+.legal-document section h3{margin-bottom:10px;font-size:18px}
+.legal-document section p+p{margin-top:10px}
+.legal-document section ul{margin:12px 0 0;padding-left:22px;color:#4f6057;list-style:disc}
+.legal-document section li{margin:8px 0;line-height:1.65}
+.legal-requisites{padding:20px!important;border:1px solid #dbe8db!important;border-radius:13px;background:#f7f9fd}
+.legal-requisites dl{margin:0}
+.legal-requisites dl>div{display:grid;grid-template-columns:1fr 1.2fr;gap:20px;padding:10px 0}
+.legal-requisites dl>div+div{border-top:1px solid #e2e7f0}
+.legal-requisites dt{color:#62786d}
+.legal-requisites dd{margin:0;color:#9a6d17;font-weight:600}
+.legal-sources svg{flex-shrink:0}
+.legal-sources p{display:flex;gap:10px 20px;flex-wrap:wrap;margin-top:8px}
+.legal-sources a{font-size:13px;text-decoration:underline;text-underline-offset:3px}
+@media (max-width:600px) {
+  .legal-document>header h2{font-size:22px}
+  .legal-document section{padding:19px 0}
+  .legal-requisites dl>div{grid-template-columns:1fr;gap:3px}
+  .legal-sources p{flex-direction:column}
+}
+/* Legal pages, 14.10.2026: list markers in the accent, a visible link to /customs, the edition badge on one line,
+   44 px tabs on phones, and on wide screens the documents start at the heading's left edge (pages.css repeats this
+   for /app, /privacy and /terms; /legal does not load pages.css). */
+.legal-document section li::marker{color:var(--day-accent,#1f4d3b)}
+.legal-customs-notice{max-width:980px}
+.legal-customs-notice a{color:var(--day-accent,#1f4d3b);font-weight:600;text-decoration:underline;text-underline-offset:3px}
+@media (max-width:600px) {
+  .legal-nav a{min-height:44px;display:inline-flex;align-items:center}
+}
+
+/* ── app/atlas-design.css ── */
+.stores-directory{padding:clamp(16px,3vw,30px);display:grid;gap:24px}
+.stores-directory-top{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:20px;border-radius:16px;background:var(--atlas-soft)}
+.stores-directory-top>div{display:flex;align-items:baseline;gap:10px;flex:0 0 auto}
+.stores-directory-top strong{font-size:32px;letter-spacing:-.04em;color:var(--atlas-blue);font-variant-numeric:tabular-nums}
+.stores-directory-top span{font-size:14px;font-weight:650}
+.stores-directory-top p{max-width:620px;margin:0;font-size:13px;line-height:1.5}
+.stores-search{display:flex;align-items:center;gap:10px;min-height:50px;padding:0 14px;border:1px solid var(--atlas-line);border-radius:12px;background:var(--background);color:var(--muted-foreground)}
+.stores-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:var(--atlas-ink);font:inherit}
+.stores-categories{display:flex;gap:8px;overflow:auto;padding:1px 0 6px;scrollbar-width:thin}
+.stores-categories button{display:flex;align-items:center;gap:8px;flex:0 0 auto;min-height:42px;padding:8px 12px;border:1px solid var(--atlas-line);border-radius:999px;background:var(--background);color:var(--atlas-ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.stores-categories button.active{background:var(--atlas-ink);color:var(--background);border-color:var(--atlas-ink)}
+.stores-categories button span,.stores-category>header>span{min-width:22px;padding:3px 6px;border-radius:999px;background:var(--atlas-soft);color:var(--muted-foreground);text-align:center;font-size:11px;font-variant-numeric:tabular-nums}
+.stores-category{display:grid;gap:12px}
+.stores-category>header{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--atlas-line)}
+.stores-category>header h2{margin:0;font-size:20px}
+.stores-category>header>span{margin-left:auto}
+.stores-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.stores-empty{padding:36px 12px;text-align:center;color:var(--muted-foreground)}
+@media (max-width:900px) {
+  .stores-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stores-directory-top{align-items:flex-start;flex-direction:column;gap:9px}
+}
+@media (max-width:600px) {
+  .stores-directory{gap:18px;padding:14px}
+  .stores-directory-top{padding:15px}
+  .stores-directory-top strong{font-size:28px}
+  .stores-directory-top p{font-size:12px}
+  .stores-categories{margin-inline:-3px}
+  .stores-categories button{font-size:12px;min-height:40px;padding:7px 10px}
+  .stores-category>header h2{font-size:18px}
+  .stores-grid{grid-template-columns:minmax(0,1fr);gap:8px}
+}
+
+/* ── app/experience.css ── */
+/* A card made only of disclosures (/customs): the card's own padding is the edge, so the outer pills drop their margin. */
+.legal-disclosure { scroll-margin-top:100px; }
+.legal-disclosure > summary { display:flex; align-items:center; gap:16px; cursor:pointer; }
+.legal-disclosure > summary > svg { flex-shrink:0; color:#2b6850; }
+.legal-disclosure > summary h2 { font-size:1.125rem; }
+.legal-disclosure[open] > summary { padding-bottom:20px; margin-bottom:20px; border-bottom:1px solid #d8e6d8; }
+.legal-disclosure > summary { list-style:none; }
+.legal-disclosure > summary::-webkit-details-marker { display:none; }
+.legal-disclosure > summary > div { min-width:0; }
+/* Narrow phones: long Russian words («конфиденциальности») must not push the chevron out of the card. */
+@media (max-width: 400px) {
+  .legal-disclosure > summary { gap:12px; }
+  .legal-disclosure > summary h2 { hyphens:auto; overflow-wrap:break-word; }
+}
+@media (max-width: 360px) {
+  .legal-disclosure > summary > svg:first-child { display:none; }
+}
+
+/* ── app/dark-theme.css ── */
+/* Smaller surfaces discovered outside the main customer journey. */
+html[data-theme="dark"] .legal-requisites dt {
+  color: var(--atlas-dark-muted);
+}
+
+html[data-theme="dark"] .legal-document > header > svg {
+  color: var(--atlas-dark-link);
+}
+
+/* globals.css draws these with the light #e5e9f1, which read as bright stripes on the Night page. */
+html[data-theme="dark"] .warehouse-customer-note span,
+html[data-theme="dark"] .legal-document section p,
+html[data-theme="dark"] .legal-document section ul,
+html[data-theme="dark"] .legal-document section li,
+html[data-theme="dark"] .legal-document > header span {
+  color: var(--atlas-dark-ink);
+}
+
+html[data-theme="dark"] .legal-status {
+  background-color: var(--atlas-dark-warning-bg);
+  border-color: var(--atlas-dark-warning-line);
+  color: var(--atlas-dark-warning-ink);
+}
+
+html[data-theme="dark"] .legal-status p,
+html[data-theme="dark"] .legal-status svg,
+html[data-theme="dark"] .legal-requisites dd {
+  color: var(--atlas-dark-warning-ink);
+}
+
+/* Info pages in Atlas Night (14.10.2026): no light hairlines or raised strips inside the pills (/customs, /legal,
+   /privacy, /terms), and the /customs calculator, next step and guarantee cards on Night tokens. */
+html[data-theme="dark"] .legal-disclosure[open] > summary { border-bottom-color: var(--atlas-dark-line); }
+html[data-theme="dark"] .legal-document section li::marker { color: var(--night-jade); }
+html[data-theme="dark"] .legal-customs-notice a { color: var(--night-jade); }
+
+/* ── app/customer.css ── */
+/* ---------- Light theme: text contrast floor (WCAG AA 4.5:1) ----------
+   Muted olive and blue-grey tones from older palette layers measured 2.9–4.4:1. */
+:where(html:not([data-theme="dark"])) .legal-requisites dt { color: #59667c; }
+:where(html:not([data-theme="dark"])) .legal-requisites dd { color: #85600f; }
+
+/* ── app/theme-night.css ── */
+/* ---------- Light rules that use !important, mirrored for the dark theme ---------- */
+html[data-theme="dark"] .legal-requisites { border-color: var(--night-line-strong) !important; }
+/* These labels had no night colour and kept their light-theme tone (3.4–4.2:1 on night surfaces). */
+html[data-theme="dark"] .legal-disclosure > summary :is(p, span) { color: var(--night-muted); }
+
+/* ── app/stores.css ── */
+/* ---------- Hero with the link field and the dispatch countries ---------- */
+.stores-page { padding-bottom: 8px; }
+.stores-hero { display: grid; gap: 18px; margin: 8px 0 28px; padding: 22px 18px; border: 1px solid var(--cat-line); border-radius: 22px; background: linear-gradient(160deg, var(--cat-surface) 0%, var(--cat-soft) 100%); }
+.stores-hero-main, .stores-hero-aside { min-width: 0; }
+.stores-link-field { display: flex; align-items: center; gap: 10px; min-height: 54px; padding: 0 6px 0 16px; border: 1.5px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); color: var(--cat-muted); }
+.stores-link-field:focus-within { border-color: var(--cat-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cat-accent) 18%, transparent); }
+.stores-link-field input { flex: 1; min-width: 0; min-height: 50px; padding: 0; border: 0; border-radius: 0; outline: 0; background: transparent; box-shadow: none; color: var(--cat-ink); font: inherit; font-size: 16px; }
+.stores-link-field input::placeholder { color: var(--cat-muted); opacity: 1; }
+html[data-theme="dark"] .stores-link-field, html[data-theme="dark"] .stores-search { background: var(--night-inset); }
+.stores-link-field .icon-btn, .stores-search .icon-btn { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; border: 0; border-radius: 10px; background: transparent; color: var(--cat-accent); cursor: pointer; }
+.stores-link-error { margin: 0; color: #b42318; font-size: 14px; font-weight: 600; }
+html[data-theme="dark"] .stores-link-error { color: #ffb4a8; }
+/* "How to copy a link": collapsed by default, three short columns (iPhone / Android / computer). */
+.stores-howto, .store-dialog-howto { margin: 0; }
+.stores-howto { margin-top: 10px; }
+/* Dispatch countries: a card per region with both speeds; a tap filters the directory by that country. */
+.stores-regions-cards { display: flex; gap: 8px; margin: -2px -16px 0; padding: 4px 44px 6px 16px; overflow-x: auto; scroll-padding-inline: 16px; scroll-snap-type: x proximity; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); }
+.stores-regions-cards::-webkit-scrollbar { display: none; }
+/* Wide enough for "экспресс 5–9 раб. дн · $15,98/кг" in one line; narrower cards wrap the rate under the days. */
+.stores-region-card { display: grid; flex: none; gap: 5px; width: 240px; padding: 10px 12px; border: 1px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); color: var(--cat-ink); font: inherit; text-align: left; cursor: pointer; scroll-snap-align: start; }
+.stores-region-card[aria-pressed="true"] { border-color: var(--cat-ink); box-shadow: inset 0 0 0 1px var(--cat-ink); }
+.stores-region-head { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+.stores-region-head .flag { flex: none; width: 24px; height: 16px; margin-top: 1px; }
+/* A long name ("Великобритания") goes a step smaller and may take a second line instead of ending in an ellipsis; the count keeps the top right corner. */
+.stores-region-head b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; flex: 1; min-width: 0; overflow: hidden; font-size: 14px; font-weight: 700; line-height: 1.25; overflow-wrap: normal; hyphens: manual; }
+.stores-region-head b[data-long] { font-size: 13px; }
+.stores-region-head > span { flex: none; margin-left: auto; padding-top: 2px; color: var(--cat-muted); font-size: 12px; font-weight: 650; line-height: 1.25; white-space: nowrap; }
+/* The days are the point of the card: they never end in an ellipsis; the rate wraps to a second line, right-aligned, when the card is narrow. */
+.stores-region-line { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0 8px; color: var(--cat-muted); font-size: 12.5px; line-height: 1.3; }
+.stores-region-line > span { min-width: 0; }
+.stores-region-line b { flex: none; margin-left: auto; color: var(--cat-ink); font-weight: 700; font-feature-settings: "tnum" 1; white-space: nowrap; }
+.stores-terms-note { margin: 8px 0 0; color: var(--cat-muted); font-size: 12.5px; line-height: 1.45; }
+.stores-browse > .stores-terms-note { margin-top: 14px; }
+
+/* ---------- Shelves: your stores and popular ---------- */
+.stores-shelf { margin-bottom: 26px; }
+.stores-shelf h2, .stores-showcase > h2, .stores-browse-head h2 { margin: 0; color: var(--cat-ink); font-size: clamp(20px, 3vw, 26px); letter-spacing: -.02em; }
+/* 4px on top (the margin gives them back): the scrolling row clips, and a focused button's ring needs the room. */
+.stores-shelf ul { display: flex; gap: 8px; margin: 10px -16px 0; padding: 4px 44px 6px 16px; overflow-x: auto; list-style: none; scroll-padding-inline: 16px; scroll-snap-type: x proximity; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); }
+.stores-shelf li { flex: none; scroll-snap-align: start; }
+.stores-shelf button { display: grid; justify-items: center; gap: 6px; width: 84px; padding: 10px 4px 9px; border: 1px solid var(--cat-line); border-radius: 16px; background: var(--cat-surface); color: var(--cat-ink); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.stores-shelf button > span:last-child { display: block; max-width: 100%; overflow: hidden; line-height: 1.2; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.stores-mine button { border-color: var(--cat-ok-line); background: var(--cat-ok-bg); }
+
+/* ---------- Storefronts with catalog products ---------- */
+.stores-showcase { margin-bottom: 26px; }
+.stores-showcase-list { display: flex; gap: 10px; margin: 10px -16px 0; padding: 4px 44px 8px 16px; overflow-x: auto; list-style: none; scroll-padding-inline: 16px; scroll-snap-type: x proximity; scrollbar-width: none; -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 32px), transparent); }
+.stores-showcase-list::-webkit-scrollbar { display: none; }
+.stores-showcase-list > li { flex: none; width: 260px; scroll-snap-align: start; }
+/* A column, not a grid: a stretched grid spread the card's spare height between its rows, so the row of equal-height
+   cards showed gaps between the lines; now the spare height sits only above the button. */
+.store-showcase-card { display: flex; flex-direction: column; gap: 10px; height: 100%; padding: 14px; border: 1px solid var(--cat-line); border-radius: 18px; background: var(--cat-surface); color: var(--cat-ink); }
+.store-showcase-card > header { display: flex; align-items: center; gap: 10px; min-width: 0; }
+/* Logo and name are one button (the store's terms; a span inside, as a button holds only phrasing content);
+   the product count stays outside it on the right. */
+.store-showcase-open { display: flex; flex: 1 1 auto; align-items: center; gap: 10px; min-width: 0; min-height: 44px; padding: 0; border: 0; border-radius: 10px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.store-showcase-name { display: grid; gap: 2px; min-width: 0; }
+@media (hover: hover) {
+  .store-showcase-open:hover b { text-decoration: underline; text-underline-offset: 3px; }
+}
+/* Two lines before the ellipsis: «Brooks Running» next to «1 product» lost its second word on phones. */
+.store-showcase-card > header b { display: -webkit-box; overflow: hidden; font-size: 15px; font-weight: 700; line-height: 1.2; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.store-showcase-card > header small { display: inline-flex; align-items: center; gap: 6px; min-width: 0; color: var(--cat-muted); font-size: 12px; }
+.store-showcase-card > header small .flag { flex: none; width: 18px; height: 12px; }
+/* The country name is its own box, so a long one ends in an ellipsis instead of being clipped. */
+.store-showcase-card > header small > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* One stage height whatever the photo count (three squares): a one-photo card was 40 px taller, and the row of
+   equal-height cards showed that much white space above the button of the others. */
+.store-showcase-photos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); flex: none; gap: 8px; aspect-ratio: 3.25; }
+/* As many slots as photos (at most three): one photo takes the whole stage, two share it; the logo stands in only for a photo that failed to load. */
+.store-showcase-photos[data-count="1"] { grid-template-columns: minmax(0, 1fr); }
+.store-showcase-photos[data-count="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.store-showcase-photos[data-count="1"] .store-showcase-photo img { padding: 8px; }
+/* Product photos stand on the catalog's stage (white by day, ivory in Night, like .find-visual); the logo stand-in keeps its own white plate. */
+/* Each slot fills the stage's one row; the photo is absolute inside it, so a large image cannot stretch the slot. */
+.store-showcase-photo { position: relative; display: block; height: 100%; overflow: hidden; border: 1px solid var(--cat-line); border-radius: 12px; background: var(--cat-stage); }
+.store-showcase-photo img { position: absolute; inset: 0; width: 100%; height: 100%; padding: 6px; object-fit: contain; mix-blend-mode: multiply; }
+/* The logo stand-in has its own size, so inset: 0 alone left it in the top-left corner: margin: auto centres it. */
+.store-showcase-photo > :not(img) { position: absolute; inset: 0; display: grid; place-items: center; margin: auto; }
+.store-showcase-total { display: grid; gap: 2px; margin: 0; color: var(--cat-ink); font-size: 14px; font-weight: 600; line-height: 1.35; }
+.store-showcase-total > span { min-width: 0; overflow-wrap: anywhere; }
+.store-showcase-total .money { font-size: 17px; }
+.store-showcase-total small { color: var(--cat-muted); font-size: 12px; font-weight: 500; }
+.store-showcase-terms { margin: -4px 0 0; color: var(--cat-muted); font-size: 12.5px; line-height: 1.4; }
+.store-showcase-card > .btn { justify-content: center; min-height: 44px; margin-top: auto; }
+
+/* ---------- Directory ---------- */
+.stores-browse-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.stores-browse-head > span { color: var(--cat-muted); font-size: 14px; font-weight: 650; }
+.stores-search { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 52px; margin-bottom: 12px; padding: 0 6px 0 16px; border: 1.5px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); color: var(--cat-muted); }
+.stores-search:focus-within { border-color: var(--cat-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cat-accent) 18%, transparent); }
+.stores-search input { flex: 1; min-width: 0; min-height: 48px; padding: 0; border: 0; border-radius: 0; outline: 0; background: transparent; box-shadow: none; color: var(--cat-ink); font: inherit; font-size: 16px; }
+.stores-search input::-webkit-search-cancel-button { display: none; }
+.stores-page .stores-search input:focus-visible { outline: 0; }
+.stores-search > svg, .stores-search > button { flex: none; }
+.stores-search-results { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-bottom: 8px; color: var(--cat-accent); font-size: 14px; font-weight: 650; }
+.stores-chips { display: flex; gap: 8px; margin: 0 -16px 10px; padding: 2px 16px 4px; overflow-x: auto; scroll-padding-inline: 16px; scrollbar-width: none; }
+.stores-chips > button { display: inline-flex; flex: none; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid var(--cat-line); border-radius: 999px; background: var(--cat-surface); color: var(--cat-ink); font: inherit; font-size: 14px; font-weight: 650; white-space: nowrap; cursor: pointer; }
+.stores-chips > button > span { color: var(--cat-muted); font-size: 12px; font-weight: 750; font-feature-settings: "tnum" 1; }
+.stores-chips > button[aria-pressed="true"] { border-color: var(--cat-on); background: var(--cat-on); color: var(--cat-on-ink); }
+.stores-chips > button[aria-pressed="true"] > span { color: inherit; opacity: .85; }
+.stores-regions > button { font-size: 13.5px; }
+/* The country picked on a dispatch card, shown among the region chips so it can be cleared there too. */
+.stores-country-chip .flag { width: 18px; height: 12px; }
+.stores-group { margin-top: 22px; }
+.stores-group h3 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 10px; color: var(--cat-ink); font-size: 17px; letter-spacing: -.01em; }
+.stores-group h3 span { color: var(--cat-muted); font-size: 13px; font-weight: 700; }
+.stores-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+/* Tile 2.0: logo (with a mark when the visitor ordered here), name with the catalog count, and a geography line.
+   Full height of its grid cell, so tiles in a row stay level when a name wraps to a second line. */
+.store-tile { display: flex; align-items: center; gap: 10px; width: 100%; height: 100%; min-height: 64px; padding: 10px; border: 1px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); color: var(--cat-ink); font: inherit; text-align: left; cursor: pointer; }
+.store-tile-logo { position: relative; display: inline-grid; flex: none; }
+.store-tile-mark { position: absolute; right: -3px; bottom: -3px; width: 11px; height: 11px; border: 2px solid var(--cat-surface); border-radius: 50%; background: var(--cat-ink); }
+.store-tile-text { display: grid; flex: 1; gap: 3px; min-width: 0; }
+.store-tile-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px; min-width: 0; }
+/* The name keeps its ending: refine.css (loaded later) wraps it to a second line and clamps it there. */
+.store-tile-text b { min-width: 0; overflow: hidden; font-size: 14px; font-weight: 700; line-height: 1.25; }
+.store-tile-count { flex: none; color: var(--cat-ok); font-size: 12px; font-style: normal; font-weight: 700; white-space: nowrap; }
+.store-tile-geo { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 5px; min-width: 0; color: var(--cat-muted); font-size: 12px; line-height: 1.3; }
+.store-tile-geo .flag { flex: none; width: 18px; height: 12px; }
+/* The dot trails its item, so a wrapped line never starts with «·». */
+.store-tile-geo > span:not(:last-child)::after { content: " ·"; }
+/* Collapsed groups: two rows of the current grid; "show all" opens the rest. */
+.stores-group:not(.open) .stores-grid > li:nth-child(n + 7) { display: none; }
+.stores-more { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 44px; margin-top: 8px; border: 1px dashed var(--cat-line); border-radius: 12px; background: transparent; color: var(--cat-accent); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.stores-more svg { transition: transform .15s; }
+.stores-more[aria-expanded="true"] svg { transform: rotate(180deg); }
+.stores-missing { display: grid; gap: 12px; margin-top: 26px; padding: 18px; border: 1px solid var(--cat-line); border-radius: 18px; background: var(--cat-soft); }
+.stores-missing h3 { margin: 0 0 4px; color: var(--cat-ink); font-size: 17px; }
+.stores-missing p { margin: 0; color: var(--cat-muted); font-size: 14px; line-height: 1.5; }
+.stores-missing .btn { justify-content: center; min-height: 46px; }
+.stores-empty { padding: 28px 18px; border: 1px dashed var(--cat-line); border-radius: 18px; text-align: center; }
+.stores-empty p { max-width: 52ch; margin: 0 auto 16px; color: var(--cat-muted); line-height: 1.5; }
+.stores-note { max-width: 80ch; margin: 24px 0 0; color: var(--cat-muted); font-size: 13px; line-height: 1.55; }
+@media (hover: hover) {
+  .stores-shelf button:hover, .store-tile:hover, .store-dialog-similar button:hover, .store-showcase-card:hover, .stores-region-card:not([aria-pressed="true"]):hover { border-color: var(--cat-accent); }
+  .stores-chips > button:not([aria-pressed="true"]):hover, .stores-more:hover, .store-dialog-products a:hover { border-color: var(--cat-accent); }
+}
+.stores-shelf button:active, .store-tile:active { background: var(--cat-soft); }
+
+/* ---------- Store dialog ---------- */
+.store-dialog { width: min(560px, calc(100% - 32px)); max-height: min(760px, calc(100dvh - 48px)); padding: 0; border: 0; border-radius: 22px; background: var(--cat-surface); color: var(--cat-ink); box-shadow: 0 24px 60px rgba(10, 20, 15, .25); }
+.store-dialog[open] { display: grid; grid-template-rows: minmax(0, 1fr) auto; }
+.store-dialog::backdrop { background: rgba(8, 12, 10, .55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+html:has(.store-dialog[open]) { overflow: hidden; }
+.store-dialog-body { position: relative; display: grid; gap: 16px; min-height: 0; padding: 22px 20px 20px; overflow-y: auto; overscroll-behavior: contain; }
+.store-dialog-handle, .store-dialog-foot { display: none; }
+.store-dialog-close { position: absolute; top: 10px; right: 10px; display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; border: 0; border-radius: 12px; background: transparent; color: var(--cat-ink); cursor: pointer; }
+.store-dialog-head { display: flex; align-items: center; gap: 14px; padding-right: 40px; }
+.store-dialog-head > div { display: grid; gap: 4px; min-width: 0; justify-items: start; }
+.store-dialog-head h2 { margin: 0; color: var(--cat-ink); font-size: 24px; line-height: 1.15; }
+.store-dialog-head p { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; margin: 0; color: var(--cat-muted); font-size: 14px; }
+.store-dialog-head p .flag { width: 18px; height: 12px; }
+/* The one personal mark: a grey outlined chip, never mint. */
+.store-dialog-mark { display: inline-flex; align-items: center; min-height: 26px; margin-top: 2px; padding: 0 9px; border: 1px solid var(--cat-line); border-radius: 999px; color: var(--cat-muted); font-size: 12px; font-weight: 650; }
+.store-dialog-link .stores-link-field { min-height: 50px; }
+.store-dialog-calc { justify-content: center; min-height: 50px; padding: 0 18px; }
+.store-dialog-link .stores-link-error { grid-column: 1 / -1; }
+.store-dialog-open, .store-dialog-paste { justify-content: center; min-height: 52px; }
+.store-dialog-section h3 { margin: 0 0 8px; color: var(--cat-muted); font-size: 12.5px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+/* Delivery terms from the store's country: a white card, sums dark, one footnote. */
+.store-dialog-terms { display: grid; gap: 10px; padding: 14px 16px; border: 1px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); }
+.store-dialog-terms h3 { margin: 0; color: var(--cat-ink); font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+.store-dialog-terms dl { display: grid; gap: 8px; margin: 0; }
+.store-dialog-terms dl > div { display: grid; grid-template-columns: minmax(96px, 30%) minmax(0, 1fr); gap: 2px 10px; font-size: 13.5px; line-height: 1.4; }
+.store-dialog-terms dt { color: var(--cat-muted); }
+.store-dialog-terms dd { margin: 0; color: var(--cat-ink); font-weight: 600; overflow-wrap: anywhere; }
+.store-dialog-terms p { margin: 0; color: var(--cat-muted); font-size: 13.5px; line-height: 1.45; }
+.store-dialog-terms .store-dialog-currency { color: var(--cat-warn); font-weight: 600; }
+.store-dialog-terms small { color: var(--cat-muted); font-size: 12px; line-height: 1.4; }
+/* Products of the store in the catalog: compact rows with a white photo scene and the dark total. */
+.store-dialog-products { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.store-dialog-products a { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 76px; padding: 5px 12px 5px 5px; border: 1px solid var(--cat-line); border-radius: 14px; color: var(--cat-ink); text-decoration: none; }
+.store-dialog-photo { display: grid; place-items: center; width: 64px; height: 64px; overflow: hidden; border: 1px solid var(--cat-line); border-radius: 10px; background: var(--cat-stage); }
+.store-dialog-photo .product-img, .store-dialog-photo .no-photo { width: 100%; height: 100%; min-height: 0; padding: 4px; border-radius: 0; object-fit: contain; }
+.store-dialog-photo .product-img { mix-blend-mode: multiply; }
+.store-dialog-photo .no-photo { display: grid; place-items: center; background: transparent; color: var(--cat-muted); }
+.store-dialog-photo .no-photo span { display: none; }
+.store-dialog-product-name { min-width: 0; overflow: hidden; font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.store-dialog-products .money { font-size: 15px; font-weight: 700; white-space: nowrap; }
+.store-dialog-all { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 2px; color: var(--cat-accent); font-size: 14px; font-weight: 700; text-decoration: none; }
+/* Country storefronts: flag · country · domain, then currency · days; an amber note for a currency without a rate. */
+.store-dialog-fronts { display: grid; margin: 0; padding: 0; border: 1px solid var(--cat-line); border-radius: 14px; list-style: none; }
+.store-dialog-fronts li + li { border-top: 1px solid var(--cat-line); }
+.store-dialog-fronts a { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 3px 10px; min-height: 52px; padding: 8px 14px; color: var(--cat-ink); font-weight: 650; text-decoration: none; }
+.store-dialog-fronts .flag { width: 24px; height: 16px; }
+.store-dialog-front-main { grid-column: 2; grid-row: 1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; min-width: 0; }
+.store-dialog-front-main small, .store-dialog-fronts svg:not(.flag) { color: var(--cat-muted); font-size: 13px; font-weight: 500; }
+.store-dialog-front-meta { grid-column: 2; grid-row: 2; display: flex; flex-wrap: wrap; gap: 2px 5px; color: var(--cat-muted); font-size: 12.5px; font-weight: 500; }
+.store-dialog-front-meta > * + *::before { content: "· "; }
+.store-dialog-front-meta em { color: var(--cat-warn); font-style: normal; font-weight: 600; }
+/* The flag is an svg too: it keeps the first column (centred on both lines) and only the arrow goes to the third. */
+.store-dialog-fronts a > .flag { grid-column: 1; grid-row: 1 / 3; }
+.store-dialog-fronts a > svg:not(.flag) { grid-column: 3; grid-row: 1 / 3; }
+/* A note about the store (used goods, supplements, duty above the limit): neutral, with an icon. */
+.store-dialog-note { display: flex; gap: 10px; margin: 0; padding: 12px 14px; border: 1px solid var(--cat-line); border-radius: 12px; color: var(--cat-ink); font-size: 13.5px; line-height: 1.45; }
+.store-dialog-note svg { flex: none; margin-top: 1px; color: var(--cat-muted); }
+.store-dialog-similar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.store-dialog-similar button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 6px 10px; border: 1px solid var(--cat-line); border-radius: 12px; background: var(--cat-surface); color: var(--cat-ink); font: inherit; font-size: 14px; font-weight: 650; text-align: left; cursor: pointer; }
+.store-dialog-similar span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- Breakpoints ---------- */
+/* Phones: a compact hero (the dispatch cards scroll under the field), so stores start sooner. */
+@media (max-width: 599px) {
+  .stores-hero { gap: 12px; margin-bottom: 22px; padding: 14px 14px 12px; border-radius: 18px; }
+  .stores-link-field { min-height: 48px; }
+  .stores-howto { margin-top: 2px; }
+  .stores-howto summary { font-size: 13.5px; }
+  .stores-howto ul { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .stores-regions-cards { margin-inline: -14px; padding: 4px 42px 4px 14px; scroll-padding-inline: 14px; }
+  .stores-region-card { gap: 4px; padding: 9px 10px; }
+  .stores-region-head b { font-size: 13.5px; }
+  .stores-region-line { font-size: 12px; }
+  /* The same footnote stands under "All stores"; the hero keeps to one screen (≤ 380px). */
+  .stores-hero-aside > .stores-terms-note { display: none; }
+  .stores-terms-note { margin-top: 4px; font-size: 12px; }
+  .stores-shelf, .stores-showcase { margin-bottom: 20px; }
+  .stores-showcase-list > li { width: 240px; }
+  /* «Смотреть 11 товаров» / «11 ta tovarni ko‘rish» on one line in a 240 px card. */
+  .store-showcase-card > .btn { gap: 6px; padding-inline: 10px; font-size: 14px; }
+  .stores-search { min-height: 48px; }
+  .stores-chips > button { padding: 0 12px; font-size: 13.5px; }
+  .stores-regions > button { font-size: 13px; }
+  .stores-group { margin-top: 18px; }
+  .store-tile { gap: 8px; min-height: 60px; padding: 9px 8px; }
+  /* Two tiles in a row: country and days fit, the rate waits for the store card. */
+  .store-tile-rate { display: none; }
+  /* ...and its dot goes with it: «Китай · 7–9 раб. дн ·» (a following "N more countries" keeps the dot). */
+  .store-tile-geo > span:has(+ .store-tile-rate:last-child)::after { content: none; }
+}
+/* Three columns: three rows collapsed. */
+@media (min-width: 600px) {
+  .stores-group:not(.open) .stores-grid > li:nth-child(n + 7) { display: list-item; }
+  .stores-group:not(.open) .stores-grid > li:nth-child(n + 10) { display: none; }
+  .stores-group.le9 .stores-more { display: none; }
+  .stores-missing { grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 20px 24px; }
+  .stores-regions-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; overflow: visible; -webkit-mask-image: none; mask-image: none; }
+  .stores-region-card { width: auto; }
+}
+@media (max-width: 760px) {
+  /* The storefront row scrolls sideways with every card in it: nothing to show or fold. */
+  .stores-showcase .stores-more { display: none; }
+  /* A bottom sheet on phones: a handle on top, the card scrolls, "Calculate" stays at the bottom. */
+  .store-dialog { width: 100%; max-width: 100%; max-height: 92dvh; margin: auto 0 0; border-radius: 22px 22px 0 0; }
+  .store-dialog-body { padding: 10px 16px 18px; }
+  .store-dialog-handle { display: block; justify-self: center; width: 40px; height: 4px; margin-bottom: -4px; border-radius: 2px; background: var(--cat-line); }
+  .store-dialog-close { top: 8px; right: 8px; }
+  .store-dialog-head { padding-top: 6px; }
+  .store-dialog-calc { display: none; }
+  .store-dialog-foot { display: block; position: sticky; bottom: 0; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--cat-line); background: var(--cat-surface); }
+  .store-dialog-foot .btn { width: 100%; justify-content: center; min-height: 50px; }
+  .store-dialog-terms dl > div { grid-template-columns: minmax(0, 1fr); }
+  @media (prefers-reduced-motion: no-preference) {
+    .store-dialog[open] { animation: store-sheet-in .28s cubic-bezier(.2, .8, .2, 1); }
+  }
+}
+@media (min-width: 600px) {
+  .stores-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .stores-link-error { grid-column: 1 / -1; }
+}
+@media (min-width: 761px) {
+  .stores-hero { padding: 30px 32px; }
+  .stores-chips, .stores-shelf ul { flex-wrap: wrap; margin-inline: 0; padding-inline: 0; overflow: visible; }
+  .stores-shelf ul { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); -webkit-mask-image: none; mask-image: none; }
+  .stores-shelf button { width: 100%; }
+  .stores-showcase-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-inline: 0; padding-inline: 0; overflow: visible; -webkit-mask-image: none; mask-image: none; }
+  .stores-showcase-list > li { width: auto; }
+  /* Storefronts: two rows of three collapsed; "show all" opens the rest. */
+  .stores-showcase:not(.open) .stores-showcase-list > li:nth-child(n + 7) { display: none; }
+  .store-dialog-similar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+/* Four and five columns: two rows collapsed. */
+@media (min-width: 960px) {
+  .stores-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .stores-group:not(.open) .stores-grid > li:nth-child(n + 7) { display: list-item; }
+  .stores-group:not(.open) .stores-grid > li:nth-child(n + 9) { display: none; }
+  .stores-group.le9 .stores-more { display: flex; }
+  .stores-group.le8 .stores-more { display: none; }
+}
+/* Wide: the dispatch countries stand to the right of the link field, two cards per row (480px keeps a card's terms in one line). */
+@media (min-width: 1024px) {
+  .stores-hero { grid-template-columns: minmax(0, 1fr) 480px; align-items: start; column-gap: 32px; }
+  .stores-regions-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1200px) {
+  .stores-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .stores-shelf ul { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  .stores-showcase-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  /* Storefronts: two rows of four collapsed (le8: everything fits, so no "show all"). */
+  .stores-showcase:not(.open) .stores-showcase-list > li:nth-child(n + 7) { display: list-item; }
+  .stores-showcase:not(.open) .stores-showcase-list > li:nth-child(n + 9) { display: none; }
+  .stores-showcase.le8 .stores-more { display: none; }
+  .stores-group:not(.open) .stores-grid > li:nth-child(n + 9) { display: list-item; }
+  .stores-group:not(.open) .stores-grid > li:nth-child(n + 11) { display: none; }
+  .stores-group.le9 .stores-more, .stores-group.le10 .stores-more { display: none; }
+}
+
+/* ---------- Night ---------- */
+/* Raised surfaces with the theme's hairlines; ivory for the selected dispatch card and the personal mark. */
+html[data-theme="dark"] .stores-hero { border-color: var(--night-line); background: var(--night-raised); }
+html[data-theme="dark"] .stores-region-card[aria-pressed="true"] { border-color: var(--night-ivory); box-shadow: inset 0 0 0 1px var(--night-ivory); }
+html[data-theme="dark"] .store-tile-mark { border-color: var(--night-surface); background: var(--night-ivory); }
+html[data-theme="dark"] .store-dialog-mark { border-color: var(--night-line-strong); color: var(--night-ink-2); }
+html[data-theme="dark"] .store-dialog-handle { background: var(--night-line-strong); }
+html[data-theme="dark"] .store-dialog-foot { border-color: var(--night-line); background: var(--night-surface); }
+
+/* ── app/refine.css ── */
+/* Store names wrap to a second line instead of losing their ending ("Bloomingd…"). */
+.store-tile-text b { display: -webkit-box; white-space: normal; overflow-wrap: anywhere; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.store-tile-text small { white-space: normal; }
+
+/* ── app/day-folio.css ── */
+/* ---------- Stores: white hero card; store tiles stay separate white cards ---------- */
+html:not([data-theme="dark"]) .stores-hero { padding: 26px 24px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }
+html:not([data-theme="dark"]) .stores-intro { color: var(--day-muted); }
+html:not([data-theme="dark"]) .stores-shelf > h2, html:not([data-theme="dark"]) .stores-browse-head h2 { font: 750 26px/1.15 var(--day-sans); letter-spacing: -.03em; color: var(--day-ink); }
+html:not([data-theme="dark"]) .store-tile:hover { border-color: var(--day-tint-2); box-shadow: var(--day-shadow-lift); }
+html:not([data-theme="dark"]) .stores-more { border: 0; background: none; color: var(--day-accent); font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }
+html:not([data-theme="dark"]) .stores-missing { border: 1px solid var(--day-line); background: var(--day-surface); }
+html:not([data-theme="dark"]) .stores-note { color: var(--day-muted); }
+html:not([data-theme="dark"]) .stores-showcase > h2 { font: 750 26px/1.15 var(--day-sans); letter-spacing: -.03em; color: var(--day-ink); }
+html:not([data-theme="dark"]) .stores-region-card[aria-pressed="true"] { border-color: var(--day-ink); box-shadow: var(--day-shadow), inset 0 0 0 1px var(--day-ink); }
+html:not([data-theme="dark"]) .store-dialog-all { color: var(--day-accent); }
+html:not([data-theme="dark"]) .store-tile-mark { background: var(--day-ink); border-color: var(--day-surface); }
+/* Phones: the Day hero card keeps the compact padding and the 24px title of stores.css (the page h1 size is a token), so the stores start sooner. */
+@media (max-width: 599px) {
+  html:not([data-theme="dark"]) .stores-hero { --day-h1-size: 24px; padding: 14px 14px 12px; }
+}

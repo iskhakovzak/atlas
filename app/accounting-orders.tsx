@@ -3,7 +3,7 @@
 import {useMemo,useState} from 'react';
 import {FileText,Printer,ShoppingBag,TrendingUp,Wallet} from 'lucide-react';
 import {orderMargin,type OrderFinance} from '@/lib/market/finance';
-import {Modal} from './market-ui';
+import {Modal} from './modal';
 import {Amount,Kpi,load,money,stageNames,statusNames,type AccountingContext} from './accounting-shared';
 import {entryDirection,invoiceFromOrder,monthLabel,normalizeInvoice,type InvoiceView} from './accounting-helpers';
 

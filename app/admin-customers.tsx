@@ -9,7 +9,7 @@ import {customerRow,searchCustomers,type CustomerRow} from "@/lib/market/admin-d
 import {useMarket} from "@/lib/market/store";
 import {pickLocale} from "@/lib/market/uz-cyrl";
 import {agoLocalized} from "@/lib/market/relative-time";
-import {Modal} from "./market-ui";
+import {Modal} from "./modal";
 import {customerStatusLabelsFor,dateOnly,dateTime,downloadCsv,getOperations,money,postOperations,type AdminData,type CustomerNote,type CustomerStatus} from "./admin-shared";
 
 type Card={customer:CustomerRow;revision:number;orders:Array<{id:string;status:number;cancelled:boolean;payable:number;createdAt:number;name:string;brand:string;payment:string|null;deliverySpeed:string}>;tickets:Array<{id:string;subject:string;status:string;updatedAt:number;replies:number}>;notes:CustomerNote[];recipients:Array<{recipient:string;city:string;phone:string}>;language:string};

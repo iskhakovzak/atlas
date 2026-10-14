@@ -8,10 +8,6 @@ body { -webkit-tap-highlight-color: transparent; }
 :is(.btn, .store-tile, .stores-popular button, .catalog-categories > button, .home-stores a, .mobile-nav a):active { transform: scale(.98); }
 
 /* Touch screens keep :hover after a tap; lifted cards would stay lifted. */
-@media (hover: none) {
-  .find-card:hover { transform: none; box-shadow: none; }
-  .find-photo:hover .product-img { transform: none; }
-}
 
 @media (max-width: 760px) {
   :root { --atlas-mobile-nav-clearance: calc(64px + env(safe-area-inset-bottom)); }
@@ -30,8 +26,7 @@ body { -webkit-tap-highlight-color: transparent; }
   .home-sticky.above-nav { bottom: calc(var(--atlas-mobile-nav-clearance) + 10px); }
   body:has(.mobile-nav) .storage-notice { bottom: calc(var(--atlas-mobile-nav-clearance) + 8px); }
   /* ...and above a sticky total or call-to-action bar (cart and link-order total ~69px, home dock 68px), so their buttons stay tappable. */
-  body:has(.basket-sticky:not(.is-hidden)) .storage-notice, body:has(.home-sticky.above-nav) .storage-notice { bottom: calc(var(--atlas-mobile-nav-clearance) + 84px); }
-  body:not(:has(.mobile-nav)):has(.basket-sticky:not(.is-hidden)) .storage-notice { bottom: calc(84px + env(safe-area-inset-bottom)); }
+  body:has(.home-sticky.above-nav) .storage-notice { bottom: calc(var(--atlas-mobile-nav-clearance) + 84px); }
 
   /* Header: the bottom bar carries navigation and sign-in, so the top bar stays light. */
   .site-header { padding-top: env(safe-area-inset-top); padding-left: max(18px, env(safe-area-inset-left)); padding-right: max(18px, env(safe-area-inset-right)); }
@@ -41,8 +36,6 @@ body { -webkit-tap-highlight-color: transparent; }
   /* How it works: four short rows instead of four tall cards. */
   .home-steps { gap: 8px; }
   .home-step { display: grid; grid-template-columns: 44px minmax(0, 1fr); column-gap: 14px; padding: 14px 16px; }
-  .home-step-icon { grid-row: 1 / span 3; }
-  .home-step-number { top: 12px; right: 14px; font-size: 22px; }
   .home-step h3 { margin: 2px 28px 4px 0; font-size: 16.5px; }
   .home-step p { font-size: 14px; line-height: 1.45; }
   .home-step > :is(ul, .home-step-extra, .home-missing) { grid-column: 2; }
@@ -60,19 +53,13 @@ body { -webkit-tap-highlight-color: transparent; }
   /* 40 px cart controls take taps from a 44 px frame without growing (ui-ux-pro-max touch-target-size, 13.10.2026). */
   :is(.basket-fav, .basket-later, .basket-variant > .remove-item, .basket-controls .remove-item, .basket-variant .basket-qty button, .lo-stepper button, .customs-how-close) { position: relative; }
   :is(.basket-fav, .basket-later, .basket-variant > .remove-item, .basket-controls .remove-item, .basket-variant .basket-qty button, .lo-stepper button)::after { content: ""; position: absolute; inset: -2px; }
-  /* The variant stepper's 38 px buttons: 3 px more on each side makes 44. */
-  .basket-variant .basket-qty button::after { inset: -2px -3px; }
-  .customs-how-close::after { content: ""; position: absolute; inset: -6px; }
   /* Header buttons keep their 40 px look and take taps from 44 px; the 6 px gaps leave 2 px between the frames. */
   .site-header :is(.lang-trigger, .icon-btn, .wallet-link) { position: relative; }
   .site-header :is(.lang-trigger, .icon-btn)::after { content: ""; position: absolute; inset: -2px; }
   .site-header .wallet-link::after { content: ""; position: absolute; inset: 0 -3px; }
   /* Catalog chips (40 px) and "Saved" (36 px) keep their look and take taps from 44 px; the strips' padding holds the frame. */
-  :is(.catalog-categories, .catalog-chips, .catalog-active) > button:not(.text-button), .catalog-saved { position: relative; }
+  :is(.catalog-categories, .catalog-chips, .catalog-active) > button:not(.text-button) { position: relative; }
   :is(.catalog-categories, .catalog-chips, .catalog-active) > button:not(.text-button)::after { content: ""; position: absolute; inset: -2px 0; }
-  .catalog-saved::after { content: ""; position: absolute; inset: -4px 0; }
-  /* The product sheet's 40 px heart. */
-  .product-sheet .sheet-save::after { content: ""; position: absolute; inset: -2px; }
 }
 
 /* Secondary text behind a "?" (components/info-tip.tsx). The text stays in the page as .tip-text and the "?" holds the
@@ -112,9 +99,6 @@ html[data-theme="dark"] .info-tip-bubble { box-shadow: 0 16px 40px rgba(0, 0, 0,
   .info-tip-bubble[data-state="closed"] { animation: none; }
   @keyframes info-tip-fade { from { opacity: 0; } }
 }
-
-/* iOS Safari zooms into any field under 16 px on focus: the orders search keeps 14 px only where there is a mouse. */
-@media (pointer: coarse) { .search-field input { font-size: 16px; } }
 
 /* Narrow phones: the longest bottom-bar label (Uzbek Cyrillic «Бош саҳифа») fits its fifth of a 320–374 px screen once
    the tabs give up their side padding (the 44 px tap height is unchanged). */

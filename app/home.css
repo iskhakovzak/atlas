@@ -23,10 +23,7 @@ html[data-theme="dark"] {
 }
 
 /* Header: language switch and sign-in. */
-.lang-switch { display: inline-flex; padding: 2px; border: 1px solid var(--home-line); border-radius: 12px; background: var(--home-surface); }
-.lang-switch button { min-width: 44px; min-height: 44px; padding: 0 6px; border: 0; border-radius: 10px; background: transparent; color: var(--home-muted); font: inherit; font-size: 13px; font-weight: 700; letter-spacing: .04em; cursor: pointer; }
-.lang-switch button[aria-pressed="true"] { background: var(--home-accent); color: var(--home-accent-ink); }
-.lang-switch button:focus-visible, .header-account:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 2px; }
+.header-account:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 2px; }
 .header-account { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1.5px solid var(--home-accent); border-radius: 12px; color: var(--home-accent); font-weight: 700; text-decoration: none; white-space: nowrap; }
 .header-account:hover { background: var(--home-soft); }
 /* Telegram support next to sign-in (shown only when the support bot is set); an icon alone on phones. */
@@ -38,52 +35,7 @@ html[data-theme="dark"] {
 .site-header .wallet-link { display: inline-flex; align-items: center; white-space: nowrap; }
 .site-header .desktop-nav a { white-space: nowrap; }
 .site-header .icon-btn { min-width: 44px; min-height: 44px; }
-/* The header's edges line up with the page content (site-main: max 1500px, padding clamp(20px, 4.7vw, 72px)). */
-@media (min-width: 761px) {
-  html .site-header { padding-inline: max(clamp(20px, 4.7vw, 72px), calc((100% - 1500px) / 2 + 72px)); }
-  /* Never wider than the screen. The compact rules below make every menu item fit from 1151px up (e2e checks it);
-     only as a last resort (a longer language, an 8-digit balance) the menu shrinks and scrolls inside the header,
-     so the wordmark, account, cart and balance stay whole. The inline padding keeps focus rings unclipped. */
-  .site-header .desktop-nav { min-width: 0; padding-inline: 4px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
-  .site-header .desktop-nav::-webkit-scrollbar { display: none; }
-  .site-header .header-actions, .site-header .wordmark { flex-shrink: 0; }
-  /* Owner, 7.10.2026: the theme switch stays next to the languages after sign-in too (and in the footer for everyone). */
-  /* The operator has one more entry ("Управление"): at the content's 1356px cap the anchors still do not fit next to it,
-     so they stay in the footer at every desktop width. */
-  .site-header:has(.operator-entry) .desktop-nav a:is([data-nav="how"], [data-nav="tariffs"]) { display: none; }
-}
-/* Signed-in header below 1680px: the home anchors (also in the footer and the home page) make room for a 7-digit
-   balance and the theme switch (at 1500–1679px the Russian menu ran 10px short with both). */
-@media (min-width: 761px) and (max-width: 1679px) {
-  .site-header:has(.header-account.member) .desktop-nav a:is([data-nav="how"], [data-nav="tariffs"]) { display: none; }
-}
-/* The operator's header below 1340px has no room for the theme switch next to «Управление»: it stays in the footer. */
-@media (min-width: 761px) and (max-width: 1339px) {
-  .site-header:has(.operator-entry) .header-theme { display: none; }
-}
-/* Up to 1399px (iPad 768/1024, small laptops): tighter gaps. */
-@media (min-width: 761px) and (max-width: 1399px) {
-  .site-header { gap: 16px; }
-}
-/* Up to 1459px the operator's "Управление" is an icon (its name stays for screen readers): with the full label and a
-   7–8 digit balance the menu ran 20px short at 1400–1459px. */
-@media (min-width: 761px) and (max-width: 1459px) {
-  .site-header .header-actions .operator-entry { width: 44px; min-width: 44px; min-height: 44px; justify-content: center; padding-inline: 0; font-size: 0; }
-  .site-header .header-actions .operator-entry svg { width: 20px; height: 20px; flex: 0 0 auto; }
-}
-/* Tablets (iPad 768/1024): a signed-in menu (Каталог, Магазины, Мои заказы) did not fit beside the balance, bell and cart;
-   «Магазины» stays in the footer and on the home page. */
-@media (min-width: 761px) and (max-width: 1150px) {
-  .site-header:has(.header-account.member) .desktop-nav a[data-nav="stores"] { display: none; }
-}
-/* Up to 1299px the balance is the wallet icon (globals.css does this up to 1150px); the amount is on /balance. */
-@media (min-width: 761px) and (max-width: 1299px) {
-  .site-header .wallet-link span { display: none; }
-}
 /* 1151–1199px: the operator's menu still needs ~13px in Night, so the header's own gaps tighten once more. */
-@media (min-width: 761px) and (max-width: 1199px) {
-  .site-header { gap: 8px; }
-}
 @media (max-width: 760px) {
   .site-header { gap: 8px; }
   .site-header .header-actions { gap: 8px; }
@@ -106,10 +58,6 @@ html[data-theme="dark"] {
 .home-link-note, .home-link-error { margin: 10px 2px 0; color: var(--home-muted); font-size: 14px; line-height: 1.5; }
 .home-link-error { color: #b42318; font-weight: 600; }
 html[data-theme="dark"] .home-link-error { color: #ffb4a8; }
-@media (min-width: 640px) {
-  .home-link-form { flex-direction: row; align-items: center; }
-  .home-link-form .home-cta { padding-inline: 28px; }
-}
 /* While the order page opens: the label keeps the button's width, the spinner sits over it. */
 .home-link-form .home-cta { position: relative; }
 .home-link-form .home-cta[aria-busy="true"] { cursor: progress; }
@@ -127,13 +75,11 @@ html[data-theme="dark"] .home-link-error { color: #ffb4a8; }
 .home-closing .home-closing-form { justify-self: stretch; width: min(100%, 640px); min-width: 0; }
 .home-closing .home-link-form { margin-top: 6px; }
 .home-stores { margin-top: 22px; }
-.home-stores-label { margin: 0 0 10px; color: var(--home-muted); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .home-stores ul { position: relative; display: flex; gap: 8px; margin: 0; padding: 2px 2px 6px; overflow-x: auto; list-style: none; scrollbar-width: none; overscroll-behavior-x: contain; }
 .home-stores ul::-webkit-scrollbar { display: none; }
 .home-stores a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 5px 14px 5px 5px; border: 1px solid var(--home-line); border-radius: 999px; background: var(--home-surface); color: var(--home-ink); font-weight: 700; text-decoration: none; white-space: nowrap; }
 .home-stores a:hover { border-color: var(--home-accent); }
 .home-stores a:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 2px; }
-@media (min-width: 640px) { .home-stores ul { flex-wrap: wrap; overflow: visible; } }
 .home-hero-links { display: flex; flex-wrap: wrap; gap: 0 22px; margin-top: 10px; }
 .home-hero-links a, .home-legal a, .home-faq a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--home-accent); font-weight: 700; text-decoration: none; }
 .home-hero-links a:hover, .home-legal a:hover, .home-faq a:hover { text-decoration: underline; text-underline-offset: 4px; }
@@ -149,23 +95,15 @@ html[data-theme="dark"] .home-missing { border-color: #c9a23f; background: #3a31
 
 .home-steps { display: grid; gap: 12px; margin: 20px 0 0; padding: 0; list-style: none; }
 .home-step { position: relative; padding: 20px; border: 1px solid var(--home-line); border-radius: var(--home-radius); background: var(--home-surface); }
-.home-step-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--home-soft); color: var(--home-accent); }
-.home-step-number { position: absolute; top: 16px; right: 20px; color: var(--home-line); font-size: 30px; font-weight: 800; line-height: 1; }
 .home-step h3 { margin: 14px 0 6px; color: var(--home-ink); font-size: 18px; }
 .home-step p { margin: 0; color: var(--home-muted); line-height: 1.5; }
-.home-step .home-step-extra { margin-top: 10px; font-size: 14px; }
 .home-payments { display: flex; flex-wrap: wrap; align-items: flex-start; align-self: start; gap: 6px; margin: 12px 0 0; padding: 0; list-style: none; }
 .home-payments li { padding: 4px 10px; border: 1px solid var(--home-line); border-radius: 8px; color: var(--home-ink); font-size: 13px; font-weight: 700; }
 /* Crypto (legal status to be confirmed by the owner) last and quieter than the card and local methods. */
 .home-payments li.home-payment-minor { border-style: dashed; color: var(--home-muted); font-weight: 500; }
 .home-step .home-courier-note { margin: 8px 0 0; font-size: 13.5px; line-height: 1.45; }
-@media (min-width: 640px) { .home-steps { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 1024px) { .home-steps { grid-template-columns: repeat(4, 1fr); } }
 
 /* Example estimate. */
-.home-example { display: grid; gap: 20px; }
-@media (min-width: 900px) { .home-example { grid-template-columns: 1fr 1.1fr; align-items: start; } }
-.home-example-copy p { margin: 0; color: var(--home-muted); line-height: 1.55; }
 .home-quote { padding: 20px; border: 1px solid var(--home-line); border-radius: 18px; background: var(--home-surface); box-shadow: 0 8px 24px rgba(20, 35, 68, .06); }
 .home-quote header { display: flex; flex-direction: column; gap: 2px; padding-bottom: 14px; border-bottom: 1px solid var(--home-line); }
 .home-quote header b { color: var(--home-ink); font-size: 17px; }
@@ -197,30 +135,10 @@ html[data-theme="dark"] .home-missing { border-color: #c9a23f; background: #3a31
 .home-tip-button:focus-visible { outline: 2px solid var(--home-accent); outline-offset: -4px; }
 .home-tip-panel { position: absolute; z-index: 5; top: calc(100% + 10px); left: -60px; width: min(300px, 80vw); padding: 12px 14px; border: 1px solid var(--home-line); border-radius: 12px; background: var(--home-surface); box-shadow: 0 12px 32px rgba(20, 35, 68, .18); color: var(--home-ink); font-size: 14px; font-weight: 400; line-height: 1.5; }
 
-/* Delivery times and rates. */
-.home-table-wrap { overflow-x: auto; border: 1px solid var(--home-line); border-radius: var(--home-radius); background: var(--home-surface); }
-.home-tariffs { width: 100%; border-collapse: collapse; font-size: 15px; }
-.home-tariffs th, .home-tariffs td { padding: 14px 16px; border-bottom: 1px solid var(--home-line); text-align: left; }
-.home-tariffs thead th { background: var(--home-soft); color: var(--home-muted); font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
-.home-tariffs tbody th { color: var(--home-ink); font-weight: 700; }
-.home-tariffs td { color: var(--home-ink); }
-.home-tariffs td:last-child { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.home-tariffs tr:last-child > * { border-bottom: 0; }
-.home-tariffs .home-tariff-price b { display: block; font-size: 17px; }
-.home-tariffs .home-tariff-price small { display: block; margin-top: 2px; color: var(--home-muted); font-size: 12px; font-weight: 600; }
-.home-tariffs .home-pending { color: var(--home-pending); font-style: italic; }
-@media (max-width: 420px) { .home-tariffs th, .home-tariffs td { padding: 12px 10px; font-size: 14px; } }
-
 /* Trust. */
 .home-counter { margin: 8px 0 20px; color: var(--home-muted); font-size: 18px; }
 .home-counter strong { margin-right: 6px; color: var(--home-ink); font-size: clamp(32px, 7vw, 48px); }
-.home-trust-points { display: grid; gap: 12px; margin: 16px 0 0; padding: 0; list-style: none; }
-.home-trust-points li { display: flex; gap: 14px; padding: 18px; border-radius: var(--home-radius); background: var(--home-soft); }
-.home-trust-points svg { flex-shrink: 0; color: var(--home-accent); }
-.home-trust-points h3 { margin: 0 0 4px; color: var(--home-ink); font-size: 17px; }
-.home-trust-points p { margin: 0; color: var(--home-muted); line-height: 1.5; }
 .home-trust-grid { display: grid; gap: 12px; margin-top: 12px; }
-@media (min-width: 900px) { .home-trust-points { grid-template-columns: repeat(3, 1fr); } .home-trust-grid { grid-template-columns: 1fr 1fr; } }
 .home-tracking, .home-reviews, .home-legal { padding: 20px; border: 1px solid var(--home-line); border-radius: var(--home-radius); background: var(--home-surface); }
 .home-tracking header { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .home-tracking h3, .home-reviews h3, .home-legal h3, .home-parcels h3 { margin: 0; color: var(--home-ink); font-size: 17px; }
@@ -248,9 +166,6 @@ html[data-theme="dark"] .home-missing { border-color: #c9a23f; background: #3a31
 /* FAQ. */
 .home-faq { display: grid; gap: 8px; margin-top: 16px; }
 /* Wide screens: the title on top, the questions in two columns as wide as the other sections (their container sets it). */
-@media (min-width: 1024px) {
-  .home-faq { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; column-gap: 16px; }
-}
 .home-faq details { border: 1px solid var(--home-line); border-radius: var(--home-radius); background: var(--home-surface); }
 .home-faq summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 56px; padding: 14px 18px; color: var(--home-ink); font-weight: 700; cursor: pointer; list-style: none; }
 .home-faq summary::-webkit-details-marker { display: none; }
@@ -272,16 +187,6 @@ html body .home-faq details[open] summary::after { content: "+"; transform: rota
 }
 .home-faq details > div { padding: 0 18px 14px; }
 .home-faq p { margin: 0; color: var(--home-muted); line-height: 1.6; }
-
-/* Product selection on the home page. */
-.catalog-home .finds-page { padding-top: 40px; border-top: 1px solid var(--home-line); scroll-margin-top: 88px; }
-.finds-page .find-store-price b { color: var(--home-muted); font-size: 15px; font-weight: 600; }
-.finds-page .find-total > strong { color: var(--home-ink); font-size: clamp(22px, 2.4vw, 26px); overflow-wrap: normal; word-break: normal; }
-@media (max-width: 480px) { .finds-page .find-total > strong { font-size: 19px; } }
-.find-info { position: absolute; right: -10px; bottom: 4px; display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: var(--home-accent); cursor: pointer; }
-.find-info[aria-expanded="true"] { background: var(--home-soft); }
-.find-info:focus-visible { outline: 2px solid var(--home-accent); outline-offset: -4px; }
-.find-breakdown { margin: 0 0 12px; font-size: 13px; }
 
 /* Mobile sticky "paste a link" button. */
 .home-sticky { display: none; }
@@ -308,15 +213,6 @@ html body .home-faq details[open] summary::after { content: "+"; transform: rota
 .home-footer .wordmark { min-height: 0; }
 .home-footer-bottom { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; padding-top: 10px; border-top: 1px solid var(--home-line); color: var(--home-muted); font-size: 13px; }
 .home-footer-theme { display: inline-flex; align-items: center; gap: 8px; }
-@media (min-width: 761px) {
-  .home-footer { grid-template-columns: minmax(200px, 1fr) auto; column-gap: 48px; align-items: start; }
-  /* Each group is one aligned row: a fixed title column, then its links in a line. */
-  .home-footer-groups { grid-column: 2; display: grid; gap: 6px; align-content: start; }
-  .home-footer-groups > * { display: grid; grid-template-columns: 180px minmax(0, 1fr); column-gap: 24px; align-items: baseline; min-width: 0; }
-  .home-footer-groups .home-footer-title { margin: 0; padding-top: 12px; }
-  .home-footer :is(nav, section) ul { display: flex; flex-wrap: wrap; gap: 0 18px; }
-  .home-footer-bottom { grid-column: 1 / -1; }
-}
 @media (max-width: 760px) {
   body:has(.mobile-nav) .home-footer { padding-bottom: 4px; }
 }

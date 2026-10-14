@@ -56,20 +56,10 @@ html:not([data-theme="dark"]) .desktop-nav a:hover { background: var(--day-soft)
 html:not([data-theme="dark"]) .desktop-nav a.active { background: var(--day-tint); color: var(--day-ok); font-weight: 600; box-shadow: none; }
 html:not([data-theme="dark"]) .desktop-nav a:focus-visible { outline: 2px solid var(--day-accent); outline-offset: 2px; }
 /* Language: a mint pill inside a 44px hit area. */
-html:not([data-theme="dark"]) .lang-switch { padding: 0; border: 0; background: none; }
-html:not([data-theme="dark"]) .lang-switch button { padding: 7px 3px; border-radius: 12px; background-clip: content-box; color: var(--day-muted); font-weight: 600; letter-spacing: .02em; }
-html:not([data-theme="dark"]) .lang-switch button[aria-pressed="true"] { background-color: var(--day-tint); color: var(--day-ok); }
-html:not([data-theme="dark"]) .lang-switch button:focus-visible { outline: 2px solid var(--day-accent); outline-offset: -2px; }
 html:not([data-theme="dark"]) .header-account { border: 1.5px solid var(--day-accent); border-radius: var(--day-r-control); background: transparent; color: var(--day-accent); font-weight: 600; }
 html:not([data-theme="dark"]) .header-account:hover { background: var(--day-tint); }
 
 /* ---------- Home: the hero beside the example bill ---------- */
-.home-top > * { min-width: 0; }
-html:not([data-theme="dark"]) .home-top { display: grid; gap: 32px; padding: 24px 0 calc(var(--day-section) / 2); }
-@media (min-width: 1100px) {
-  html:not([data-theme="dark"]) .home-top { grid-template-columns: minmax(0, 1.08fr) minmax(400px, .92fr); column-gap: 64px; align-items: center; padding: 36px 0 40px; }
-}
-@media (min-width: 761px) and (max-width: 1099px) { html:not([data-theme="dark"]) .home-top { max-width: 720px; } }
 html:not([data-theme="dark"]) .home-hero { max-width: none; padding: 0; --day-h1-size: var(--day-fs-h1); --day-h1-leading: 1.04; --day-h1-tracking: -.03em; }
 html:not([data-theme="dark"]) .home-hero h1 { max-width: 13em; color: var(--day-ink); }
 html:not([data-theme="dark"]) .home-hero-lead { max-width: 34em; margin-top: 20px; font-size: var(--day-fs-lead); line-height: 1.55; color: var(--day-muted); }
@@ -101,7 +91,6 @@ html:not([data-theme="dark"]) .home-hero-links a { font-weight: 600; text-decora
   html:not([data-theme="dark"]) .home-link-form .home-cta { width: 100%; }
 }
 @media (max-width: 600px) {
-  html:not([data-theme="dark"]) .home-top { padding-top: 20px; gap: 32px; }
   html:not([data-theme="dark"]) .home-hero-lead { margin-top: 14px; }
   html:not([data-theme="dark"]) .home-link-form { margin-top: 20px; }
 }
@@ -113,7 +102,6 @@ html:not([data-theme="dark"]) .folio > * { min-width: 0; }
 html:not([data-theme="dark"]) .folio-cap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; margin: 0; padding: 0 10px 2px;
   font: 600 14px/1.35 var(--day-sans); color: var(--day-muted); }
 html:not([data-theme="dark"]) .folio-cap b { font-weight: 700; color: var(--day-ink); }
-html:not([data-theme="dark"]) .folio-foot { margin: 0; padding: 0 10px 2px; font-size: 13px; line-height: 1.45; color: var(--day-muted); }
 html:not([data-theme="dark"]) .folio-sheet { display: grid; gap: 14px; padding: 22px 24px 18px; border: 0; border-radius: var(--day-r-sheet);
   background: var(--day-surface); color: var(--day-ink); box-shadow: 0 1px 2px rgba(22, 33, 28, .05), 0 4px 14px rgba(22, 33, 28, .05); }
 /* Route: the only motif from the parcel world. */
@@ -137,19 +125,9 @@ html:not([data-theme="dark"]) .bill-total { display: grid; gap: 2px; margin: 0; 
 html:not([data-theme="dark"]) .bill-total > span { font-size: 14px; font-weight: 700; color: var(--day-ink); }
 html:not([data-theme="dark"]) .bill-total .money { font-size: var(--day-money-xl); line-height: 1.05; }
 html:not([data-theme="dark"]) .bill-total .money-n { color: var(--day-ink); }
-@media (min-width: 600px) {
-  html:not([data-theme="dark"]) .home-folio .bill-total { grid-template-columns: auto minmax(0, 1fr); align-items: baseline; }
-  html:not([data-theme="dark"]) .home-folio .bill-total strong { justify-self: end; }
-}
-html:not([data-theme="dark"]) .folio-sheet .calc-fx { display: block; margin: 0; font-size: 13px; line-height: 1.45; color: var(--day-muted); }
-html:not([data-theme="dark"]) .folio-sheet .calc-fx svg { display: none; }
 /* The slip: what is NOT in the amount to pay, on readable cream paper rather than as fine print. */
 html:not([data-theme="dark"]) .folio-outside { display: grid; gap: 10px; padding: 16px 18px; border: 1px solid var(--day-slip-line); border-radius: var(--day-r-sheet); background: var(--day-slip); color: var(--day-ink); }
 html:not([data-theme="dark"]) .folio-outside > :is(h2, h3) { margin: 0; font: 700 15px/1.35 var(--day-sans); color: var(--day-ink); }
-html:not([data-theme="dark"]) .outside-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: baseline; margin: 0; }
-html:not([data-theme="dark"]) .outside-row > span { font-size: 15px; font-weight: 500; }
-html:not([data-theme="dark"]) .outside-row > b { font-size: 15px; font-weight: 700; white-space: nowrap; text-align: right; }
-html:not([data-theme="dark"]) .outside-row > small { grid-column: 1 / -1; font-size: 13px; line-height: 1.4; color: var(--day-muted); }
 html:not([data-theme="dark"]) .home-folio .folio-outside.home-customs-slip,
 html[data-theme="dark"] .home-folio .folio-outside.home-customs-slip { gap: 6px; padding: 12px 18px; min-width: 0; }
 html:not([data-theme="dark"]) .home-folio .home-customs-slip > :is(h2, h3),
@@ -192,54 +170,9 @@ html:not([data-theme="dark"]) .home-step:first-child .home-step-station { border
 html:not([data-theme="dark"]) .home-steps::before { content: ""; position: absolute; left: 14px; top: 15px; bottom: 15px; width: 2px; background: linear-gradient(var(--day-accent) 0 25%, var(--day-line-strong-2) 25% 100%); }
 html:not([data-theme="dark"]) .home-step h3 { margin: 4px 0 6px; font-size: var(--day-fs-h3); color: var(--day-ink); }
 html:not([data-theme="dark"]) .home-step p { max-width: 30ch; font-size: 15px; line-height: 1.55; color: var(--day-muted); }
-@media (min-width: 1024px) {
-  html:not([data-theme="dark"]) .home-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
-  html:not([data-theme="dark"]) .home-steps::before { display: none; }
-  html:not([data-theme="dark"]) .home-step { position: relative; padding: 22px 22px 24px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }
-  html:not([data-theme="dark"]) .home-step-station { position: static; width: 36px; height: 36px; margin-bottom: 18px; font-size: 14px; box-shadow: none; }
-}
-/* Rates: every country with its own price per kilogram and per 100 g, and the days with a small range bar. */
-html:not([data-theme="dark"]) .home-table-wrap { max-width: none; overflow: hidden; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }
-html:not([data-theme="dark"]) .home-tariffs :is(th, td) { padding: 14px 20px; border-bottom: 1px solid var(--day-line); font-size: 15px; vertical-align: middle; }
-html:not([data-theme="dark"]) .home-tariffs tbody tr:last-child :is(th, td) { border-bottom: 0; }
-html:not([data-theme="dark"]) .home-tariffs thead th { background: var(--day-soft); color: var(--day-muted); font-size: 13.5px; font-weight: 700; }
-html:not([data-theme="dark"]) .home-tariffs tbody th { font-weight: 700; color: var(--day-ink); }
-html:not([data-theme="dark"]) .home-tariffs td { font-variant-numeric: tabular-nums; }
-html:not([data-theme="dark"]) .home-tariff-price b { display: block; font-size: 18px; font-weight: 750; letter-spacing: -.02em; color: var(--day-ink); }
-html:not([data-theme="dark"]) .home-tariff-price small { display: block; margin-top: 2px; font-size: 13px; color: var(--day-muted); }
-html:not([data-theme="dark"]) .days-bar { position: relative; display: block; max-width: 200px; height: 4px; margin-top: 8px; border-radius: 2px; background: var(--day-soft); }
-html:not([data-theme="dark"]) .days-bar::after { content: ""; position: absolute; top: 0; bottom: 0; border-radius: 2px; background: var(--day-fresh);
-  left: calc(var(--from) / 14 * 100%); right: calc(100% - var(--to) / 14 * 100%); }
-html:not([data-theme="dark"]) #tariffs > .calc-fx { display: block; max-width: none; margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: var(--day-muted); }
-html:not([data-theme="dark"]) #tariffs > .calc-fx svg { display: none; }
-/* Phones, both themes: one compact row per country, the country and its days on the left, the price on the right. */
-@media (max-width: 600px) {
-  .home-tariffs, .home-tariffs tbody { display: block; }
-  .home-tariffs thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  .home-tariffs tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 12px; row-gap: 2px; padding: 12px 16px; border-bottom: 1px solid var(--home-line); }
-  .home-tariffs tbody tr:last-child { border-bottom: 0; }
-  .home-tariffs tbody :is(th, td) { padding: 0 !important; border: 0 !important; font-size: 15px; }
-  .home-tariffs tbody th { grid-column: 1; grid-row: 1; }
-  .home-tariffs tbody td:not(.home-tariff-price) { grid-column: 1; grid-row: 2; font-size: 13.5px; font-weight: 500; }
-  .home-tariffs tbody td.home-tariff-price { grid-column: 2; grid-row: 1 / span 2; text-align: right; }
-  .home-tariffs .days-bar { max-width: 160px; margin-top: 6px; }
-  html:not([data-theme="dark"]) .home-tariffs tbody td:not(.home-tariff-price) { color: var(--day-muted); }
-  html:not([data-theme="dark"]) .home-tariff-price b { font-size: 16px; }
-}
 /* On phones mobile.css lays a step out as a grid: the station takes the old icon column in both themes. */
 .home-step-station { grid-row: 1 / span 3; }
 @media (max-width: 1023px) { html:not([data-theme="dark"]) .home-steps { grid-template-columns: minmax(0, 1fr); } }
-
-/* How we handle your money: plain true facts on a white card, each with a small green tick. */
-html:not([data-theme="dark"]) .home-facts { display: grid; gap: 0 40px; max-width: none; margin: 20px 0 0; padding: 10px 28px; list-style: none;
-  border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }
-@media (min-width: 900px) { html:not([data-theme="dark"]) .home-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-html:not([data-theme="dark"]) .home-facts li { position: relative; padding: 16px 0 16px 38px; border-bottom: 1px solid var(--day-line); font-size: 16px; line-height: 1.5; color: var(--day-ink); }
-html:not([data-theme="dark"]) .home-facts li { padding-left: 30px; }
-html:not([data-theme="dark"]) .home-facts li::after { content: ""; position: absolute; left: 3px; top: 22px; width: 11px; height: 5px; border-left: 2px solid var(--day-accent); border-bottom: 2px solid var(--day-accent); transform: rotate(-45deg); }
-@media (min-width: 900px) { html:not([data-theme="dark"]) .home-facts li:nth-last-child(-n + 2) { border-bottom: 0; } }
-@media (max-width: 899px) { html:not([data-theme="dark"]) .home-facts li:last-child { border-bottom: 0; } }
-@media (max-width: 600px) { html:not([data-theme="dark"]) .home-facts { padding: 4px 18px; } }
 /* Tracking demo: a white card with a horizontal route on wide screens. */
 html:not([data-theme="dark"]) .home-trust-grid { margin-top: 24px; }
 html:not([data-theme="dark"]) .home-trust-grid.single { grid-template-columns: minmax(0, 1fr); }
@@ -255,11 +188,6 @@ html:not([data-theme="dark"]) .home-tracking li:is([data-state="done"], [data-st
 html:not([data-theme="dark"]) .home-tracking-dot { position: relative; z-index: 1; flex: 0 0 22px; border: 1.5px solid var(--day-line-strong); background: var(--day-surface); box-sizing: border-box; }
 html:not([data-theme="dark"]) .home-tracking li[data-state="done"] .home-tracking-dot { border-color: var(--day-accent); background: var(--day-accent); color: #fff; }
 html:not([data-theme="dark"]) .home-tracking li[data-state="current"] .home-tracking-dot { border: 6px solid var(--day-accent); box-shadow: 0 0 0 5px var(--day-tint); }
-@media (min-width: 900px) {
-  html:not([data-theme="dark"]) .home-tracking ol { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
-  html:not([data-theme="dark"]) .home-tracking li { flex-direction: column; align-items: flex-start; gap: 12px; font-size: 14px; }
-  html:not([data-theme="dark"]) .home-tracking ol::before { content: ""; position: absolute; left: 11px; right: calc(100% / 6 - 11px); top: 10px; height: 2px; background: linear-gradient(90deg, var(--day-accent) 0 80%, var(--day-line-strong-2) 80% 100%); }
-}
 @media (max-width: 600px) { html:not([data-theme="dark"]) .home-tracking { padding: 18px; } }
 html:not([data-theme="dark"]) .home-legal { padding: 0; border: 0; background: none; margin-top: 24px; }
 /* Breadcrumb: a short line above the page title, not a band of air. */
@@ -318,171 +246,32 @@ html:not([data-theme="dark"]) .field :is(input, select, textarea):focus { border
 
 /* ---------- Page titles and the home teaser ---------- */
 html:not([data-theme="dark"]) .page-heading p { color: var(--day-muted); }
-html:not([data-theme="dark"]) .catalog-teaser { padding-block: calc(var(--day-section) / 2); border-top: 0; }
-html:not([data-theme="dark"]) .catalog-teaser > header p { color: var(--day-muted); }
-
-/* ---------- Catalog card 2.0: white card (finds.css + catalog.css) in the Day colours ----------
-   Meta, a two-line title, one store-price line with the mint pill, the total with its in-flow "i",
-   the facts and chips slots (fixed heights), the button. Slots keep cards in a row aligned. */
-html:not([data-theme="dark"]) .site-main .find-card .find-visual { background: #fff !important; }
-html:not([data-theme="dark"]) .site-main .find-card .find-content { gap: 0; padding: 14px 16px 16px; }
-html:not([data-theme="dark"]) .site-main .find-card .find-meta { margin: 0; font-size: 12.5px; line-height: 1.3; color: var(--day-muted); }
-html:not([data-theme="dark"]) .site-main .find-card .find-content .find-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
-  min-height: 2.6em; margin: 6px 0 0; font-size: 17px; font-weight: 600; line-height: 1.3; letter-spacing: -.015em; color: var(--day-ink); }
-html:not([data-theme="dark"]) .site-main .find-card .find-title:hover { color: var(--day-accent); }
-html:not([data-theme="dark"]) .site-main .find-card .find-content .find-store-price { margin: 10px 0 0; padding: 0 0 10px; border-bottom: 1px solid var(--day-line); }
-html:not([data-theme="dark"]) .site-main .find-card .find-store-price > span:first-child { font-size: 13px; line-height: 1.35; color: var(--day-muted); }
-html:not([data-theme="dark"]) .site-main .find-card .find-store-price > b { color: var(--day-ink); }
-html:not([data-theme="dark"]) .site-main .find-card .find-store-price > del { color: var(--day-muted); }
-/* The discount: the one mint element of the card; top deals also get the gold badge on the photo. */
-html:not([data-theme="dark"]) .site-main .find-card .find-store-price > .find-discount { border-color: var(--day-ok-line); background: var(--day-ok-bg); color: var(--day-ok); }
-html:not([data-theme="dark"]) .site-main .find-card .find-top-deal { background: var(--day-deal); }
-html:not([data-theme="dark"]) .site-main .find-card .find-total-head > span { color: var(--day-muted); }
-html:not([data-theme="dark"]) .site-main .find-card .find-total > strong { color: var(--day-ink); }
-html:not([data-theme="dark"]) .site-main .find-card .find-info { color: var(--day-accent); }
-html:not([data-theme="dark"]) .site-main .find-card .find-info:hover, html:not([data-theme="dark"]) .site-main .find-card .find-info[data-state="open"] { background-color: var(--day-soft); }
-html:not([data-theme="dark"]) .site-main .find-card :is(.find-facts, .find-total-note, .find-chip) { color: var(--day-muted); }
-html:not([data-theme="dark"]) .site-main .find-card .find-chip { border-color: var(--day-line-strong); }
-html:not([data-theme="dark"]) .site-main .find-card .find-chip[data-tone="mint"] { border-color: var(--day-ok-line); background: var(--day-ok-bg); color: var(--day-ok); }
-html:not([data-theme="dark"]) .site-main .find-card .find-chip[data-tone="amber"] { border-color: var(--cat-warn-line); background: var(--day-warn-bg); color: var(--day-warn); }
-html:not([data-theme="dark"]) .site-main .find-card .find-purchase { margin-top: auto; padding-top: 12px; }
-html:not([data-theme="dark"]) .site-main .find-card .find-purchase .btn { width: 100%; min-height: 46px; padding: 10px 14px; font-size: 15px; }
-html:not([data-theme="dark"]) .find-breakdown-popover { border-color: var(--day-line); box-shadow: var(--day-shadow-lift); }
-html:not([data-theme="dark"]) .catalog-page .catalog-sets > .catalog-set { border-color: var(--day-line); box-shadow: var(--day-shadow); }
-html:not([data-theme="dark"]) .catalog-page .catalog-sets > .catalog-set[aria-pressed="true"] { border-color: var(--day-accent); box-shadow: inset 0 0 0 1px var(--day-accent); }
-@media (max-width: 600px) {
-  html:not([data-theme="dark"]) .site-main .find-card .find-content { padding: 10px 10px 12px; }
-  html:not([data-theme="dark"]) .site-main .find-card .find-meta { font-size: 12px; }
-  html:not([data-theme="dark"]) .site-main .find-card .find-content .find-title { margin-top: 4px; font-size: 14.5px; }
-  html:not([data-theme="dark"]) .site-main .find-card .find-content .find-store-price { margin-top: 8px; padding-bottom: 8px; }
-  html:not([data-theme="dark"]) .site-main .find-card .find-store-price > span:first-child { font-size: 12px; }
-  html:not([data-theme="dark"]) .site-main .find-card .find-purchase { padding-top: 10px; }
-  html:not([data-theme="dark"]) .site-main .find-card .find-purchase .btn { min-height: 44px; padding: 0 8px; font-size: 14px; }
-}
-/* Store filter: the logo is a fixed 22px mark and the name takes the rest (the first-span rule used to stretch the logo). Both themes. */
-.catalog-check > span.store-logo:first-of-type { flex: 0 0 22px; width: 22px; height: 22px; }
-.catalog-check > span.store-logo + span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-
-/* Atlas Night keeps its own card colours but the same rhythm (catalog.css), so cards line up in a row there too. */
-html[data-theme="dark"] .site-main .find-card .find-content { gap: 0; padding: 14px 16px 16px; }
-html[data-theme="dark"] .site-main .find-card .find-meta { margin: 0; line-height: 1.3; }
-html[data-theme="dark"] .site-main .find-card .find-content .find-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
-  min-height: 2.6em; margin: 6px 0 0; font-size: 17px; line-height: 1.3; }
-html[data-theme="dark"] .site-main .find-card .find-content .find-store-price { margin: 10px 0 0; padding-bottom: 10px; }
-html[data-theme="dark"] .site-main .find-card .find-content .find-total { margin: 0; padding: 10px 0 0; }
-html[data-theme="dark"] .site-main .find-card .find-total > strong { margin: 0; line-height: 1.15; }
-html[data-theme="dark"] .site-main .find-card .find-purchase { margin-top: auto; padding-top: 12px; }
-@media (max-width: 600px) {
-  html[data-theme="dark"] .site-main .find-card .find-content { padding: 10px 10px 12px; }
-  html[data-theme="dark"] .site-main .find-card .find-content .find-title { margin-top: 4px; font-size: 14.5px; }
-  html[data-theme="dark"] .site-main .find-card .find-content .find-store-price { margin-top: 8px; padding-bottom: 8px; }
-  html[data-theme="dark"] .site-main .find-card .find-content .find-total { padding: 8px 0 0; }
-  html[data-theme="dark"] .site-main .find-card .find-purchase { padding-top: 10px; }
-}
 
 /* ---------- Cart and link-order summaries: one compact white card ---------- */
 /* On the cart and the link order the folder would frame a tall column: the card itself is the sheet, the slip sits inside it. */
-html:not([data-theme="dark"]) .basket-summary.folio { gap: 16px; padding: 22px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow-lift); }
-@media (min-width: 960px) { html:not([data-theme="dark"]) .basket-summary.folio { position: sticky; top: var(--sticky-top, 88px); } }
-html:not([data-theme="dark"]) .basket-summary.folio .folio-sheet { gap: 12px; padding: 0; border-radius: 0; box-shadow: none; }
-html:not([data-theme="dark"]) .basket-summary.folio .folio-sheet > h2 { margin: 0; font: 750 var(--day-fs-h2-sheet)/1.2 var(--day-sans); letter-spacing: -.02em; color: var(--day-ink); }
-html:not([data-theme="dark"]) .folio-sheet .basket-line { border-bottom: 1px solid var(--day-line); }
-html:not([data-theme="dark"]) .folio-sheet .basket-lines > .basket-line:last-child { border-bottom: 0; }
-html:not([data-theme="dark"]) .folio-sheet .basket-line-label { color: var(--day-ink); }
 html:not([data-theme="dark"]) .folio-sheet .basket-line > b { font-weight: 700; color: var(--day-ink); }
 /* Amount to pay: the label on the left, the amount on the right, in one line when it fits. */
-html:not([data-theme="dark"]) .basket-summary .bill-total { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; }
-html:not([data-theme="dark"]) .basket-summary .bill-total > span { font-size: 15px; font-weight: 700; }
-html:not([data-theme="dark"]) .basket-summary .bill-total .money { font-size: var(--day-money-l); line-height: 1.1; }
-html:not([data-theme="dark"]) .basket-summary .basket-cta { min-height: 54px; border-radius: var(--day-r-control); font-size: 17px; }
-html:not([data-theme="dark"]) .basket-summary .basket-balance { border-color: var(--day-tint-2); background: var(--day-tint); }
 html:not([data-theme="dark"]) .basket-summary.folio .folio-outside { padding: 14px 16px; }
 /* On the slip, the hold and the customs estimate read as rows, not as boxes inside a box. */
 html:not([data-theme="dark"]) .folio-outside :is(.calc-hold, .calc-customs) { margin: 0; padding: 0; border: 0; border-radius: 0; background: none; }
-html:not([data-theme="dark"]) .folio-outside .calc-hold + .calc-customs { padding-top: 10px; border-top: 1px solid var(--day-slip-line); }
 html:not([data-theme="dark"]) .folio-outside :is(.calc-hold small, .calc-customs .micro, .calc-customs-lines div) { color: var(--day-muted); }
 html:not([data-theme="dark"]) .folio-outside :is(.calc-hold > svg, .calc-customs header svg) { color: var(--day-warn); }
-html:not([data-theme="dark"]) .lo-summary .folio-foot { padding: 0; }
-html:not([data-theme="dark"]) .lo-summary .cabinet-empty { margin: 0; color: var(--day-muted); }
-@media (max-width: 600px) {
-  html:not([data-theme="dark"]) .basket-summary.folio { padding: 18px 16px; }
-}
-/* Cart items: the parcel cards line up with the summary and stay compact. */
-html:not([data-theme="dark"]) .basket-parcel { border-color: var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); }
-html:not([data-theme="dark"]) .basket-parcel-title { background: var(--day-soft); }
 
 /* Atlas Night: the new wrappers keep the summary own surface and spacing. */
-html[data-theme="dark"] .basket-summary .folio-sheet, html[data-theme="dark"] .basket-summary .folio-outside { display: grid; gap: 14px; }
 html[data-theme="dark"] .folio-outside > :is(h2, h3) { margin: 4px 0 0; color: var(--night-ink); font-size: 15px; }
-html[data-theme="dark"] .lo-summary .folio-foot { margin: 0; color: var(--night-muted); font-size: 13px; }
 /* The link field on /order-by-link matches the home form: a field-grey frame, one soft shadow, focus in green. */
 html:not([data-theme="dark"]) .lo-link { padding: 6px; border: 1px solid var(--day-field); border-radius: 14px; box-shadow: var(--day-raise-form); }
 html:not([data-theme="dark"]) .lo-link:focus-within { border-color: var(--day-accent); box-shadow: 0 0 0 1px var(--day-accent), var(--day-ring), var(--day-raise-form); }
-html:not([data-theme="dark"]) .lo-link-submit { min-height: 52px; border-radius: var(--day-r-control); font-size: 16px; }
-
-/* ---------- Cabinet: the order waiting for payment is shown as its bill ---------- */
-.cabinet-next-inner, .cabinet-next > .folio-sheet { display: grid; gap: 14px; }
-html:not([data-theme="dark"]) .cabinet-next.folio { gap: 10px; padding: 14px 12px 12px; }
-html:not([data-theme="dark"]) .cabinet-next.folio .cabinet-next-icon { background: var(--day-tint); color: var(--day-ok); }
-html:not([data-theme="dark"]) .cabinet-next.folio .bill-total .money { font-size: var(--day-money-m); }
-html:not([data-theme="dark"]) .cabinet-next .cabinet-eyebrow { font-size: 13.5px; font-weight: 700; color: var(--day-muted); }
-html:not([data-theme="dark"]) .cabinet-next h2 { font-weight: 750; letter-spacing: -.02em; }
-html:not([data-theme="dark"]) .cabinet-bar span { background: var(--day-accent); }
-html:not([data-theme="dark"]) .cabinet-steps .done { background: var(--day-accent); }
-html:not([data-theme="dark"]) .cabinet-steps .now { background: linear-gradient(90deg, var(--day-accent) 50%, color-mix(in srgb, var(--day-accent) 24%, transparent) 50%); }
-html:not([data-theme="dark"]) .cabinet-next:not(.folio):not(.done) { border-color: var(--day-line); background: var(--day-surface); box-shadow: var(--day-shadow); }
-html:not([data-theme="dark"]) .cabinet-next.warn:not(.folio) { border-color: #e7c98d; background: var(--day-warn-bg); }
 /* Other cabinet surfaces: white cards on the canvas. */
 html:not([data-theme="dark"]) :is(.cabinet-card, .cabinet-tiles a) { border-color: var(--day-line); background: var(--day-surface); box-shadow: var(--day-shadow); }
-html:not([data-theme="dark"]) .cabinet-tiles svg { color: var(--day-accent); }
-html:not([data-theme="dark"]) .cabinet-avatar { background: var(--day-accent); }
-html[data-theme="dark"] .cabinet-next.folio .bill-total .money { font-size: 32px; }
-html[data-theme="dark"] .cabinet-next .folio-cap { padding: 0; }
-html[data-theme="dark"] .cabinet-next .folio-foot { padding: 0; }
-
-/* ---------- The blank bill on /order-by-link before a link is pasted ---------- */
-.bill-blank { display: grid; gap: 14px; max-width: 560px; margin-top: 24px; }
-.bill-blank > * { margin: 0; }
-.bill-blank-outside ul { display: grid; gap: 6px; margin: 6px 0 0; padding-left: 0; list-style: none; }
-html:not([data-theme="dark"]) .bill-blank { padding: 22px 24px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }
-html:not([data-theme="dark"]) .bill-blank > h2 { font: 750 var(--day-fs-h2-sheet)/1.2 var(--day-sans); letter-spacing: -.02em; color: var(--day-ink); }
-html:not([data-theme="dark"]) .bill-blank-lead { margin-top: -6px; font-size: 14px; color: var(--day-muted); }
-html:not([data-theme="dark"]) .bill-fill { display: block; width: 88px; height: 1em; border-bottom: 1.5px dotted var(--day-field); }
-html:not([data-theme="dark"]) .bill-blank .bill-total { grid-template-columns: auto minmax(0, 1fr); align-items: end; }
-html:not([data-theme="dark"]) .bill-blank .bill-total .bill-fill { justify-self: end; width: 160px; height: 1.6em; }
-html:not([data-theme="dark"]) .bill-blank-outside { padding: 14px 16px; border-radius: var(--day-r-sheet); background: var(--day-slip); border: 1px solid var(--day-slip-line); }
-html:not([data-theme="dark"]) .bill-blank-outside h3 { margin: 0; font-size: 15px; color: var(--day-ink); }
-html:not([data-theme="dark"]) .bill-blank-outside li { font-size: 14px; line-height: 1.45; color: var(--day-muted); }
-html[data-theme="dark"] .bill-blank { padding: 22px 24px; border: 1px solid var(--night-line-strong); border-radius: 16px; background: var(--night-sheen), var(--night-raised); }
-html[data-theme="dark"] .bill-blank-lead, html[data-theme="dark"] .bill-blank-outside li { color: var(--night-muted); font-size: 14px; }
-html[data-theme="dark"] .bill-fill { display: block; width: 88px; height: 1em; border-bottom: 1.5px dotted var(--night-line-strong); }
-html[data-theme="dark"] .bill-blank-outside h3 { margin: 0; color: var(--night-ink); font-size: 15px; }
-/* Night keeps the day layout of the blank bill and of the amount to pay: label left, amount right, the slip as a card. */
-html[data-theme="dark"] .bill-blank .bill-total { grid-template-columns: auto minmax(0, 1fr); align-items: end; }
-html[data-theme="dark"] .bill-blank .bill-total .bill-fill { justify-self: end; width: 160px; height: 1.6em; }
-html[data-theme="dark"] .bill-blank-outside { padding: 14px 16px; border-radius: 12px; border: 1px solid var(--night-line); background: var(--night-surface); }
-html[data-theme="dark"] .basket-summary .bill-total { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; }
-html[data-theme="dark"] .basket-summary .bill-total > span { font-size: 15px; }
 
 /* ---------- Stores: white hero card; store tiles stay separate white cards ---------- */
-html:not([data-theme="dark"]) .stores-hero { padding: 26px 24px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }
-html:not([data-theme="dark"]) .stores-intro { color: var(--day-muted); }
 html:not([data-theme="dark"]) :is(.stores-link-field, .stores-search) { border: 1px solid var(--day-field); background: var(--day-surface); }
-html:not([data-theme="dark"]) .stores-shelf > h2, html:not([data-theme="dark"]) .stores-browse-head h2 { font: 750 26px/1.15 var(--day-sans); letter-spacing: -.03em; color: var(--day-ink); }
-html:not([data-theme="dark"]) .store-tile:hover { border-color: var(--day-tint-2); box-shadow: var(--day-shadow-lift); }
-html:not([data-theme="dark"]) .stores-more { border: 0; background: none; color: var(--day-accent); font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }
-html:not([data-theme="dark"]) .stores-missing { border: 1px solid var(--day-line); background: var(--day-surface); }
-html:not([data-theme="dark"]) .stores-note { color: var(--day-muted); }
-html:not([data-theme="dark"]) .stores-showcase > h2 { font: 750 26px/1.15 var(--day-sans); letter-spacing: -.03em; color: var(--day-ink); }
 html:not([data-theme="dark"]) :is(.stores-region-card, .store-showcase-card, .store-dialog-terms, .store-dialog-products a) { border-color: var(--day-line); background: var(--day-surface); box-shadow: var(--day-shadow); }
-html:not([data-theme="dark"]) .stores-region-card[aria-pressed="true"] { border-color: var(--day-ink); box-shadow: var(--day-shadow), inset 0 0 0 1px var(--day-ink); }
 html:not([data-theme="dark"]) :is(.store-showcase-card, .stores-region-card:not([aria-pressed="true"]), .store-dialog-products a):hover { border-color: var(--day-tint-2); box-shadow: var(--day-shadow-lift); }
 html:not([data-theme="dark"]) :is(.stores-terms-note, .store-tile-geo, .store-showcase-terms, .store-dialog-terms dt, .store-dialog-terms small, .store-dialog-front-meta, .store-dialog-mark) { color: var(--day-muted); }
 html:not([data-theme="dark"]) :is(.store-tile-count, .store-showcase-card > header > span:last-child) { color: var(--day-ok); }
 html:not([data-theme="dark"]) :is(.store-showcase-total, .store-dialog-terms dd, .store-dialog-products .money, .store-dialog-product-name) { color: var(--day-ink); }
 html:not([data-theme="dark"]) :is(.store-dialog-currency, .store-dialog-front-meta em) { color: var(--day-warn); }
-html:not([data-theme="dark"]) :is(.stores-howto, .store-dialog-howto) summary, html:not([data-theme="dark"]) .store-dialog-all { color: var(--day-accent); }
+html:not([data-theme="dark"]) :is(.stores-howto, .store-dialog-howto) summary { color: var(--day-accent); }
 html:not([data-theme="dark"]) :is(.store-dialog-fronts, .store-dialog-note, .store-dialog-mark) { border-color: var(--day-line); }
-html:not([data-theme="dark"]) .store-tile-mark { background: var(--day-ink); border-color: var(--day-surface); }
-/* Phones: the Day hero card keeps the compact padding and the 24px title of stores.css (the page h1 size is a token), so the stores start sooner. */
-@media (max-width: 599px) { html:not([data-theme="dark"]) .stores-hero { --day-h1-size: 24px; padding: 14px 14px 12px; } }

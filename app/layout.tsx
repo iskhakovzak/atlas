@@ -6,13 +6,19 @@ import { rootMetadata } from "./route-metadata";
 import { htmlLang } from "@/lib/market/uz-cyrl";
 import { env } from "cloudflare:workers";
 import "@fontsource-variable/inter/opsz.css";
-import "@fontsource-variable/manrope/wght.css";
+// Manrope (only the wordmark uses it): the fontsource faces, with the letters of "atlas" in a 5.9 KB file of their own
+// (app/fonts/manrope.css, written by scripts/wordmark-font.mjs).
+import "./fonts/manrope.css";
 import { preload } from "react-dom";
 import interLatin from "@fontsource-variable/inter/files/inter-latin-opsz-normal.woff2?url";
 import interCyrillic from "@fontsource-variable/inter/files/inter-cyrillic-opsz-normal.woff2?url";
-import manropeLatin from "@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2?url";
+import manropeWordmark from "./fonts/manrope-atlas.woff2?url";
 // Styles every page needs, in cascade order. Page-only layers are imported by their pages (app/admin, app/orders,
 // app/cart…) and load after these, so they are kept to rules no later layer here overrides (10.10.2026).
+// Rules only some routes or lazily loaded parts use were split out to app/styles/*.css (14.10.2026): each page or part
+// imports its file itself, and every rule a later file here overrides stayed here, so keep this order and do not import
+// app/styles here. Those files are linked after all of these (a shared one also after the page's own CSS), so a rule
+// moved there wins ties it used to lose (tests/css-split.test.mjs).
 import "./globals.css";
 import "./atlas-design.css";
 import "./finds.css";
@@ -40,18 +46,19 @@ import "./press.css";
 import "./header-panel.css";
 import "./motion.css";
 import "./link-inputs.css";
+// Shared rules that need a width of 481px or more, linked with media in <head>: on phones they do not block the first paint.
+import layoutDesktopHref from "./styles/layout-desktop.css?url";
 import { MarketProvider } from "@/lib/market/store";
 import { initialSettings } from "@/lib/market/initial-data";
-import { StorageNotice } from "./storage-notice";
 import { AtlasThemeProvider } from "./theme-control";
-import { PerformanceProbe } from "./performance-probe";
+// StorageNotice, PerformanceProbe and ImpactTracking: one chunk right after hydration (app/shell-extras.tsx).
+import { ShellExtras } from "./shell-extras";
 import { StaleBuildReload } from "./stale-build-reload";
 import { NativeShell } from "./native-shell";
 import { PressFeedback } from "./press-feedback";
 import { AmbientBackdrop } from "./ambient-backdrop";
 import { JsonLd } from "./json-ld";
 import { siteGraph } from "@/lib/seo/structured-data";
-import { ImpactTracking } from './impact-tracking';
 import { impactHeadScript } from '@/lib/market/impact-tracking';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -85,14 +92,14 @@ export default async function RootLayout({
   const font = { as: "font", type: "font/woff2", crossOrigin: "anonymous" } as const;
   preload(interLatin, font);
   if (locale === "ru" || locale === "oz") preload(interCyrillic, font);
-  preload(manropeLatin, font);
+  preload(manropeWordmark, font); // 5.9 KB: only the letters of "atlas" (scripts/wordmark-font.mjs), not the 24.8 KB Latin file
   return (
     <html lang={htmlLang(locale)} suppressHydrationWarning>
-      <head><script id="atlas-impact-bootstrap" type="text/javascript" dangerouslySetInnerHTML={{__html:impactHeadScript}} /></head>
+      <head><link rel="stylesheet" href={layoutDesktopHref} media="(min-width: 481px)" precedence="vite-rsc/importer-resources" /><script id="atlas-impact-bootstrap" type="text/javascript" dangerouslySetInnerHTML={{__html:impactHeadScript}} /></head>
       <body className="antialiased">
         <AmbientBackdrop />
         <AtlasThemeProvider>
-          <MarketProvider initialLocale={locale} initialPricing={pricing} initialSiteContent={siteContent} sessionHint={sessionHint}>{children}<StorageNotice /><PerformanceProbe /><StaleBuildReload /><NativeShell /><PressFeedback /><ImpactTracking /></MarketProvider>
+          <MarketProvider initialLocale={locale} initialPricing={pricing} initialSiteContent={siteContent} sessionHint={sessionHint}>{children}<ShellExtras /><StaleBuildReload /><NativeShell /><PressFeedback /></MarketProvider>
         </AtlasThemeProvider>
         <JsonLd data={siteGraph(locale, siteContent.contacts, siteContent.legal)} />
       </body>

@@ -20,6 +20,8 @@ import {ProductGallery} from './product-gallery';
 import {marketplaceWords} from './marketplace-words';
 import {useSheetSide} from './use-sheet-side';
 import {InfoTip} from '@/components/info-tip';
+// Styles of this lazily loaded part: they arrive with its chunk, before it renders.
+import './styles/catalog-cards.css';
 const navigate=(href:string)=>window.location.assign(href);
 
 /** Product details for a catalog card: gallery, description, delivered estimate at either speed and the next step.

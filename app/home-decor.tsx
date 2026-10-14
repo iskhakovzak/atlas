@@ -8,6 +8,8 @@ import {homeChapters,homeWideLayoutEvent,homeWideMedia,homeWideZoom,type HomeCha
 import {globeView,routeLabelSide,routeOrigins,sphereDots,tashkent,unitVector} from '@/lib/market/world-land';
 import {cometKeyframes,skyPace} from './delivery-sky';
 import {decorMedal,decorOrbit2,type DecorArt} from './home-decor-art';
+// Styles of this lazily loaded part: they arrive with its chunk, before it renders.
+import './styles/home-decor.css';
 
 // Wide-screen decor behind the home sheets, loaded by HomeDecorSlot (app/home-wide.tsx) only at homeWideMedia.wide:
 // a soft mint pool on every sheet, a medallion in the right field where the field is wide enough (hero, rates,

@@ -22,7 +22,8 @@ import { accountCopy, formatLongDate, formatShortDate, itemCount, ordersCopy, re
 import { consentDocuments, consentVersion, deletionBlockers, deletionSummary, missingConsents } from "@/lib/market/account-delete";
 import { appInfo, isNative, nativePlatform, type AppInfo } from "@/lib/native/bridge";
 import { toast } from "@/lib/market/toast";
-import { Modal, ProductImage } from "./market-ui";
+import { ProductImage } from "./market-ui";
+import { Modal } from "./modal";
 import { Money } from "./money";
 import { SafeDeleteButton } from "./safe-delete-button";
 import { ThemeToggle } from "./theme-control";

@@ -26,17 +26,6 @@
 .tariff-days { display: block; }
 .tariff-cell-price { display: block; margin-top: 1px; font-size: 12.5px; font-weight: 650; }
 .tariff-note { max-width: 66ch; }
-
-@media (min-width: 640px) {
-  .tariff-table { padding: 18px 20px; }
-  .tariff-chips { gap: 12px; margin-bottom: 8px; }
-  /* Speed, price and the 100 g line on one row when they fit; the 100 g line drops under them, never splits. */
-  .tariff-chip { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; row-gap: 2px; padding: 12px 14px; }
-  .tariff-chip .tariff-100g { margin-left: auto; white-space: nowrap; }
-  .tariff-chip .tariff-faster { flex-basis: 100%; }
-  .tariff-table :is(th, td) { padding: 12px 8px; }
-  .tariff-table td { font-size: 15px; }
-}
 @media (max-width: 359px) { .tariff-table { padding-inline: 10px; } .tariff-chips { grid-template-columns: minmax(0, 1fr); } .tariff-country { font-size: 14px; } .tariff-country .flag { display: none; } }
 
 /* Light: white sheet with the Day shadow; the express chip on the light mint plate with a brand-green bolt, standard with a quiet clock. Prices stay dark. */

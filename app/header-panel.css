@@ -73,11 +73,6 @@ html[data-theme="dark"] .site-header .notice-link > b { border-color: var(--nigh
   .site-header .notice-link b, .site-header .notice-link svg { animation: none; }
 }
 
-/* /notifications?id=… or #…: the linked message is highlighted. */
-.notices-page :is(.notice-x, .notice-x-history li).linked { outline: 2px solid var(--day-accent, #1f4d3b); outline-offset: 3px; border-radius: 12px; }
-html[data-theme="dark"] .notices-page :is(.notice-x, .notice-x-history li).linked { outline-color: var(--night-ivory, #ebe4d2); }
-.notices-page :is(.notice-x, .notice-x-history li):focus { outline-style: solid; }
-
 /* ---------- Header cart while it is empty ---------- */
 /* With a known count of 0 the cart is a quiet outlined button, so the page's own call to action stays the brightest thing
    in view; with items it keeps the filled green (Day) or ivory (Night) look and the counter. Until the count is known
@@ -100,23 +95,6 @@ html[data-theme="dark"] .site-header .cart-link.is-empty:hover { border-color: v
 .site-header .wallet-link.has-balance { position: relative; }
 .site-header .wallet-link.has-balance::before { content: ""; position: absolute; top: calc(50% - 13.5px); margin-left: 11px; box-sizing: content-box; width: 8px; height: 8px; border: 2px solid var(--day-surface, #fff); border-radius: 50%; background: #3f9b72; pointer-events: none; }
 html[data-theme="dark"] .site-header .wallet-link.has-balance::before { border-color: var(--night-canvas, #0a0e0c); background: var(--night-jade, #80d0ac); }
-
-/* ---------- Signed-in header, 761–960px ---------- */
-/* The signed-in menu (Каталог, Мои заказы) ran out of room and scrolled inside the header: at 901–960px by up to 22px
-   (ru), 6px (uz) and 31px (oz) with the cart's name and counter, at 761–800px by 19/23/45px. At 901–960px the cart is its
-   icon and counter, as it is up to 900px (its name stays in the aria-label). Up to 900px the wordmark is a size smaller
-   and the gaps and the account button a little tighter; the buttons keep their 44px. Checked with the operator's extra
-   icon too (14.10.2026). */
-@media (min-width: 901px) and (max-width: 960px) {
-  .site-header:has(.header-account.member) .cart-link .desktop-only { display: none; }
-}
-@media (min-width: 761px) and (max-width: 900px) {
-  .site-header:has(.header-account.member) .wordmark { font-size: 38px; }
-  .site-header:has(.header-account.member) .header-actions { gap: 4px; }
-  .site-header:has(.header-account.member) .desktop-nav { margin-left: 0; }
-  .site-header:has(.header-account.member) .desktop-nav a { padding-inline: 8px; }
-  .site-header .header-account.member { padding-inline: 12px; }
-}
 
 /* ---------- Toasts (sonner) ---------- */
 /* Inter like the rest of the page, softer corners, and calm Day colours: white cards with a coloured edge and text

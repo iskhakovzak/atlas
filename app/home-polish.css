@@ -1,60 +1,13 @@
 /* Homepage only: one spacing scale, clear sections and a shorter initial catalog. */
 .catalog-home { --home-gap:clamp(28px,4vw,52px); }
-.catalog-home .finds-page { scroll-margin-top:100px; padding-top:24px; }
-.catalog-home .finds-grid { gap:20px; }
-.catalog-home .find-card { border-radius:16px; }
-.catalog-home .finds-grid .find-photo { aspect-ratio:1.18; }
-.catalog-home .find-content { padding:16px; }
-.catalog-home .find-title { font-size:18px; line-height:1.35; margin:10px 0 16px; min-height:2.7em; }
-.catalog-home .find-store-price { padding-bottom:12px; }
-.catalog-home .find-store-price b { font-size:20px; }
-.catalog-home .find-total { padding-block:12px; }
-.catalog-home .find-total>span { font-size:12px; line-height:1.45; }
-.catalog-home .find-total>strong { font-size:22px; line-height:1.25; margin-top:5px; font-style:normal; font-variant-numeric:tabular-nums; }
-.catalog-home .find-origin { margin-bottom:12px; }
-.catalog-home .find-purchase .btn { width:100%; justify-content:center; min-height:44px; padding:10px; white-space:normal; }
-.finds-pagination { display:flex; flex-direction:column; align-items:center; gap:12px; margin:24px 0 12px; }
-.finds-pagination>span { font-size:13px; color:var(--atlas-copy-muted); font-variant-numeric:tabular-nums; }
-.finds-pagination .btn { min-width:210px; justify-content:center; }
-.catalog-home .finds-price-note { max-width:90ch; font-size:13px; line-height:1.65; margin:20px 0; }
-.catalog-home .site-footer { margin-top:var(--home-gap); padding-top:32px; gap:28px; }
-@media(min-width:1280px) { .catalog-home .finds-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } }
-@media(min-width:851px) and (max-width:1279px) { .catalog-home .finds-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
-@media(max-width:850px) {
-  .catalog-home .finds-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
-}
 @media(max-width:600px) {
   .catalog-home { padding-inline:16px; }
-  .catalog-home .catalog-filter-disclosure { width:auto!important; position:static; }
-  .catalog-home .catalog-filter-disclosure>summary { min-width:0!important; min-height:48px!important; padding-inline:11px!important; }
-  .catalog-home .finds-grid { gap:12px; }
-  .catalog-home .find-content { padding:12px; }
-  .catalog-home .find-meta { font-size:12px; gap:5px; flex-wrap:wrap; }
-  .catalog-home .find-title { font-size:15px; margin:8px 0 12px; }
-  .catalog-home .find-store-price>span { font-size:12px; }
-  .catalog-home .find-store-price b { font-size:17px; }
-  .catalog-home .find-total { padding-right:0; }
-  .catalog-home .find-total>strong { font-size:18px; letter-spacing:-.035em; }
-  .catalog-home .find-origin a { font-size:12px; }
-  .catalog-home .find-purchase .btn { font-size:12px; gap:5px; }
 }
-@media(max-width:359px) { .catalog-home .finds-grid { grid-template-columns:1fr; } }
 
 /* Hero link form: the primary "paste a link → calculate" action. */
 
 /* Catalog card: price breakdown and honest action labels. */
-.find-breakdown { margin-top:6px; font-size:13px; }
 .find-breakdown > summary { cursor:pointer; color:var(--atlas-link,#255b45); font-weight:600; list-style:none; display:inline-flex; align-items:center; gap:4px; }
-.find-breakdown > summary::-webkit-details-marker { display:none; }
-.find-breakdown > summary::after { content:"▾"; font-size:11px; }
-.find-breakdown[open] > summary::after { content:"▴"; }
-.find-breakdown dl { display:grid; gap:4px; margin:8px 0 0; padding:10px; border-radius:10px; background:var(--atlas-soft,#f5f3ee); }
-.find-breakdown dl > div { display:flex; justify-content:space-between; gap:10px; }
-.find-breakdown dt { color:#54665d; }
-.find-breakdown dd { margin:0; font-weight:600; white-space:nowrap; font-variant-numeric:tabular-nums; }
-.find-breakdown p { margin:6px 0 0; color:#54665d; line-height:1.45; }
-html[data-theme="dark"] .find-breakdown dl { background:var(--night-surface); }
 html[data-theme="dark"] .find-breakdown dt, html[data-theme="dark"] .find-breakdown p { color:var(--night-ink-2); }
-.find-origin span { color:#54665d; font-size:13px; }
 
 /* Popular stores: each chip opens the store directory filtered to that store. */

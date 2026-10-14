@@ -1,85 +1,13 @@
 /* Shared hierarchy: scan first, open details when needed. */
-.catalog-filter-disclosure > summary { display:flex; align-items:center; gap:8px; cursor:pointer; font-size:.875rem; color:#1b4232; padding:12px 0 0; }
-.catalog-filter-disclosure[open] > summary { margin-bottom:12px; }
-/* The whole pill is the summary (14.10.2026): padding sits on the summary, not on <details>, so the full 52 px row
-   opens it, with the site's chevron instead of the browser's ▶. */
-.ux-disclosure { margin: 16px 0; border: 1px solid #d8e6d8; border-radius: 16px; padding: 0; background: #fff; }
-.ux-disclosure > summary { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 14px 20px; list-style: none; cursor: pointer; font-size: 1rem; font-weight: 600; color: #1b4232; }
-.ux-disclosure > summary::-webkit-details-marker { display: none; }
-.ux-disclosure[open] > summary { margin-bottom: 0; }
-/* A card made only of disclosures (/customs): the card's own padding is the edge, so the outer pills drop their margin. */
-.surface > .ux-disclosure:first-child { margin-top: 0; }
-.surface > .ux-disclosure:last-child { margin-bottom: 0; }
-.ux-disclosure > :not(summary) { margin: 0 20px 16px; }
-.ux-disclosure > summary:focus-visible { outline: 2px solid var(--day-accent, #1f4d3b); outline-offset: -2px; border-radius: 16px; }
-.disclosure-chevron { margin-left: auto; flex: none; width: 20px; height: 20px; color: var(--day-muted, #58635c); }
-details[open] > summary .disclosure-chevron { transform: rotate(180deg); }
-@media (prefers-reduced-motion: no-preference) { .disclosure-chevron { transition: transform .2s ease; } }
-.ux-disclosure p { max-width: 68ch; line-height: 1.6; }
-.catalog-customs-note { margin-left: auto; font-size: .875rem; color: #566a60; }
-.catalog-customs-note a { display: inline-flex; padding: 8px; }
-.find-total { position: relative; padding-right: 36px; }
-.find-title { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.8em; }
-
-.find-origin { font-size:.8125rem; }
-.compact-order { padding:0!important; scroll-margin-top:100px; overflow:hidden; }
-.compact-order-summary { list-style:none; display:grid; grid-template-columns:64px minmax(0,1fr) auto auto 20px; gap:20px; align-items:center; padding:22px; cursor:pointer; }
-.compact-order-summary::-webkit-details-marker { display:none; }
-.compact-order-summary > .product-img,.compact-order-summary > .no-photo { width:64px; height:64px; object-fit:contain; border-radius:12px; background:#f3f6fa; }
-.compact-order-name { display:grid; gap:5px; min-width:0; }
-.compact-order-name b { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:1rem; }
-.compact-order-name small,.compact-order-name > span { color:#61776c; font-size:.875rem; }
-.compact-order-summary > strong { white-space:nowrap; font-size:1rem; }
-.compact-order[open] > summary { background:#f3f7fc; border-bottom:1px solid #d8e6d8; }
-.compact-order[open] > summary > svg { transform:rotate(90deg); }
-.compact-order-body { padding:24px; }
+/* Kept in the layout: refine.css sets section titles to 19px on phones and must win this tie. */
 .compact-order-body .order-product h2 { font-size:1.125rem; }
-.import-status-details summary { cursor:pointer; font-size:.875rem; }
-.import-status-details p { margin-top:10px; line-height:1.6; }
+/* A card made only of disclosures (/customs): the card's own padding is the edge, so the outer pills drop their margin. */
 .operator-entry { white-space:nowrap; }
-.site-footer { margin-top:48px; }
-.site-footer{display:grid;grid-template-columns:minmax(170px,1fr) minmax(230px,1.3fr) minmax(220px,1fr);align-items:start;gap:28px;padding-block:34px 28px}
-@media(max-width:850px){.site-footer{grid-template-columns:repeat(2,minmax(0,1fr));gap:23px}}
-@media(max-width:600px){.site-footer{grid-template-columns:1fr;padding-bottom:105px;gap:22px}}
-.legal-disclosure { scroll-margin-top:100px; }
-.legal-disclosure > summary { display:flex; align-items:center; gap:16px; cursor:pointer; }
-.legal-disclosure > summary > svg { flex-shrink:0; color:#2b6850; }
-.legal-disclosure > summary h2 { font-size:1.125rem; }
 .legal-disclosure > summary p,.legal-disclosure > summary span { color:#61776c; font-size:.875rem; }
-.legal-disclosure[open] > summary { padding-bottom:20px; margin-bottom:20px; border-bottom:1px solid #d8e6d8; }
-.legal-disclosure > summary { list-style:none; }
-.legal-disclosure > summary::-webkit-details-marker { display:none; }
-.legal-disclosure > summary > .disclosure-chevron { color:var(--day-muted, #58635c); }
-.legal-disclosure > summary > div { min-width:0; }
 /* Narrow phones: long Russian words («конфиденциальности») must not push the chevron out of the card. */
-@media (max-width: 400px) {
-  .legal-disclosure > summary { gap:12px; }
-  .legal-disclosure > summary h2 { hyphens:auto; overflow-wrap:break-word; }
-}
-@media (max-width: 360px) {
-  .legal-disclosure > summary > svg:first-child { display:none; }
-}
-.catalog-review-controls { display:flex; gap:12px; margin:20px 0; }
-.catalog-review-controls input { flex:1; min-width:0; }
-.catalog-review-controls input,.catalog-review-controls select { padding:12px; border:1px solid #d8e6d8; border-radius:10px; font-size:1rem; }
-.notice-filters { display:flex; gap:8px; flex-wrap:wrap; margin:20px 0; }
-.notice-filters button { padding:10px 18px; border:1px solid #d8e6d8; border-radius:24px; cursor:pointer; font-size:.875rem; }
-.notice-filters button.active { background:#1b4232; border-color:#1b4232; color:white; }
-.checkout-review p { margin:6px 0; }
-.checkout-review hr { border-color:#d8e6d8; margin:20px 0; }
-@media(max-width:700px) { .catalog-review-controls { flex-direction:column; } }
 button:focus-visible,a:focus-visible,summary:focus-visible { outline:3px solid #3d9471; outline-offset:4px; }
 @media(max-width:700px) {
- .compact-order-summary { grid-template-columns:52px minmax(0,1fr) 20px; gap:12px; padding:16px; }
- .compact-order-summary > .product-img,.compact-order-summary > .no-photo { width:52px; height:60px; grid-row:1/3; }
- .compact-order-summary .status-badge { grid-column:2; justify-self:start; white-space:normal; }
- .compact-order-summary > strong { grid-column:2; }
- .compact-order-summary > svg { grid-column:3; grid-row:1; }
- .compact-order-body { padding:16px; }
- .catalog-customs-note { font-size:.75rem; max-width:65%; text-align:right; }
  .header-actions .operator-entry { display:none; }
- .ux-disclosure > summary { padding:14px 16px; }
- .ux-disclosure > :not(summary) { margin:0 16px 14px; }
 }
 
 /* Commerce direction A: shared scale and a calmer shopping surface. */
@@ -90,24 +18,12 @@ body{background:#fff;color:var(--atlas-ink);font-size:var(--atlas-type-body)}
 .eyebrow{color:#5b665f;font-size:var(--atlas-type-meta);letter-spacing:.16em}
 .page-heading h1{font-size:var(--atlas-type-page);line-height:1.08;letter-spacing:-.045em}
 .page-heading p{max-width:62ch;line-height:1.6}
-.catalog-toolbar{border-top:1px solid var(--atlas-line);padding-top:32px}
 .catalog-toolbar h2, .section-heading h2{font-size:var(--atlas-type-section);letter-spacing:-.035em}
 .find-card{display:flex;flex-direction:column;min-width:0;border:1px solid var(--atlas-line);border-radius:16px;box-shadow:0 4px 18px #16211c0a;background:var(--atlas-surface,#fff);overflow:hidden}
-.find-card:hover{box-shadow:0 10px 28px #16211c12;transform:translateY(-2px)}
-.find-visual{border-radius:15px 15px 0 0;overflow:hidden;background:#f5f3ee}
-.find-photo{border-radius:inherit;overflow:hidden;background:transparent}
-.find-card .find-visual{border-radius:18px 18px 0 0;background:var(--atlas-soft,#f5f3ee)!important;overflow:hidden}
-.find-card .find-visual>.find-photo{aspect-ratio:1.25;line-height:0;border-radius:inherit;overflow:hidden}
-.finds-page .find-card .find-visual .find-photo .product-img{display:block;width:100%!important;height:100%;max-width:100%;object-fit:contain!important;object-position:center;border-radius:inherit;mix-blend-mode:normal;transform-origin:center}
 .finds-page .find-card .find-content .find-title{min-height:0;margin:10px 0 8px}
 .finds-page .find-card .find-content .find-store-price{margin-top:0;padding-bottom:14px}
-.finds-page .find-card .find-content .find-total{padding-top:12px}
 .finds-page .find-card .find-content .find-origin{margin:0 0 12px}
 .card-content,.find-content{display:flex;flex:1;flex-direction:column;min-width:0;padding:16px}
-.find-title{display:block;min-width:0;max-width:100%;font-size:var(--atlas-type-card);line-height:1.4;letter-spacing:-.025em;font-weight:650;overflow-wrap:anywhere;hyphens:auto}
-.find-title{margin:12px 0 16px}
-.find-total{padding:14px 0 8px}
-.find-total>strong{color:var(--atlas-ink);font-size:clamp(1.125rem,1.5vw,1.375rem);font-weight:700;letter-spacing:-.035em}
 
 .surface{border-radius:8px;box-shadow:none}
 .btn{border-radius:6px;min-height:46px}
@@ -115,23 +31,9 @@ body{background:#fff;color:var(--atlas-ink);font-size:var(--atlas-type-body)}
 .btn.primary:hover{background:#1c4434;border-color:#1c4434}
 .btn.light{background:var(--accent);border-color:var(--accent);color:var(--atlas-ink)}
 .field input, .field select, .field textarea, .batch-import textarea{border-radius:6px}
-.atlas-modal .support-reply-form{display:grid;gap:18px;margin-top:18px}
 .atlas-modal .support-reply-form .field{display:grid;gap:8px;min-width:0}
-.atlas-modal .support-reply-form textarea{width:100%;min-height:140px;padding:12px;resize:vertical}
 .atlas-modal .support-reply-form .btn{justify-self:end}
-.atlas-modal .collection-create-form{display:grid;gap:14px;margin-top:18px}
-.atlas-modal .collection-create-form label{display:grid;gap:7px;color:var(--atlas-ink);font-size:var(--atlas-type-label)}
-.atlas-modal .collection-create-form input{min-height:46px;width:100%;padding:10px 12px;border:1px solid var(--atlas-line);border-radius:6px;font-size:var(--atlas-type-body)}
-.atlas-modal .collection-create-form .btn{justify-self:end}
-.review-service{display:block;color:#51645a;font-weight:500}
-.warehouse-issue-resolution{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid #e8c56c;border-radius:8px;background:#fffaf0;color:#37433d;font-size:14px}
-.warehouse-issue-resolution input{margin-top:4px;accent-color:#1f4d3b}
-.warehouse-issue-resolution span{display:grid;gap:4px}
-.warehouse-issue-resolution small{color:#63796e;font-size:12px;line-height:1.45}
-.service-options>.micro{flex:1 0 100%;margin:0 0 4px}
-.warehouse-customer-note{display:grid;gap:4px;padding:9px 11px;border-left:2px solid #ccd5d0;background:#fff;color:#53655c!important}
-.warehouse-customer-note span{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--atlas-ink)}
-@media(max-width:600px){.site-main{padding-inline:20px}.catalog-toolbar{padding-top:24px}.find-total>strong{font-size:1.125rem}}
+@media(max-width:600px){.site-main{padding-inline:20px}}
 @media(max-width:380px){.site-header{padding-inline:12px}}
 .storage-notice{position:fixed;z-index:60;right:24px;bottom:24px;display:flex;align-items:center;gap:18px;max-width:min(620px,calc(100vw - 40px));padding:14px 16px;border:1px solid var(--atlas-line);border-radius:8px;background:#fff;box-shadow:0 14px 42px #16211c24}
 .storage-notice p{min-width:0;overflow-wrap:anywhere;margin:0;color:#47564e;font-size:.875rem;line-height:1.45}
@@ -159,8 +61,6 @@ html[data-theme="dark"] .storage-notice .storage-notice-details,html[data-theme=
   .storage-notice[data-expanded="true"] .storage-notice-full{display:block;grid-column:1/-1;grid-row:2;max-height:min(32dvh,240px);overflow:auto;overscroll-behavior:contain}
   .storage-notice[data-expanded="true"] .storage-notice-details{grid-row:3;align-self:center}
 }
-.remove-item.confirming{color:#a33236}
-.remove-item.confirming:hover{color:#7d2428}
 /* While the consent banner is open on a phone, the page ends above it: the last block (e.g. "How the bill looks" on the
    link order) is not left under the banner. The banner itself shows at once: consent comes before any processing and
    partner tracking (impact-tracking.tsx waits for it), so it is not deferred to the first action (13 October 2026). */
@@ -170,12 +70,6 @@ html[data-theme="dark"] .storage-notice .storage-notice-details,html[data-theme=
 }
 @media(max-width:600px){.storage-notice{left:12px;right:12px;bottom:calc(var(--atlas-mobile-nav-clearance) + 8px);max-width:none;align-items:center;flex-direction:row;gap:10px;padding:10px 12px}.storage-notice p{font-size:13px;line-height:1.35}.storage-notice button{align-self:center;min-height:44px;padding:6px 10px;font-size:13px}}
 .find-card{background:var(--atlas-surface,#fff)}
-.find-title, .find-meta, .find-store-price, .find-total, .find-origin, .find-purchase{min-width:0}
-.find-title{overflow-wrap:anywhere;hyphens:auto}
-.find-store-price>div{min-width:0;flex-wrap:wrap;overflow-wrap:anywhere}
-.find-store-price b{min-width:0;overflow-wrap:anywhere}
-.find-origin a{min-width:0;overflow-wrap:anywhere}
-.find-purchase .btn{min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere}
 
 /* Reviewable palette and interaction layer: keeps product data and workflows untouched. */
 :root{--background:#f8faf7;--foreground:#203c31;--primary:#204e3d;--ring:#164e40;--atlas-ink:#203c31;--atlas-blue:#204e3d;--atlas-line:#dfe7dc;--atlas-soft:#f3f7f0;--accent:#dff0b5}
@@ -191,15 +85,8 @@ body{background:var(--background);color:var(--atlas-ink)}
 .icon-btn:hover, .notice-link.active{background:#edf5e9;color:#204e3d}
 button:focus-visible,a:focus-visible,summary:focus-visible{outline-color:#164e40}
 input:focus-visible,textarea:focus-visible,select:focus-visible{outline-color:#164e40;box-shadow:0 0 0 4px #164e4018}
-.warehouse-issue-resolution input{accent-color:#204e3d}
 .surface, .find-card, .order-card{box-shadow:0 2px 10px #203c3108}
 a, button, input, textarea, select, summary, .surface, .find-card{transition:color .18s ease,background-color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease}
-.loading-state{position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(100deg,#f4f7f2 28%,#e9efe6 44%,#f4f7f2 62%);background-size:220% 100%;animation:atlas-loading-shimmer 1.35s linear infinite}
-.status-badge.needs-action{display:inline-flex;align-items:center;gap:7px}
-.status-badge.needs-action::before{content:"";width:7px;height:7px;flex:none;border-radius:50%;background:#9a6a14;box-shadow:0 0 0 3px #f5e8c8;animation:atlas-status-pulse 2s ease-out infinite}
-.order-id-copy{display:inline-flex;align-items:center;gap:5px;min-width:0}
-.copy-text-btn{display:inline-grid;place-items:center;width:30px;height:30px;padding:0;border:1px solid transparent;border-radius:6px;background:transparent;color:#52715d;cursor:pointer}
-.copy-text-btn:hover,.copy-text-btn:focus-visible{border-color:#cddccc;background:#f1f7ef;color:#204e3d}
 @keyframes atlas-loading-shimmer{to{background-position-x:-220%}}
 @keyframes atlas-status-pulse{0%{box-shadow:0 0 0 0 #d2a95166}70%{box-shadow:0 0 0 5px #d2a95100}100%{box-shadow:0 0 0 0 #d2a95100}}
 @media(max-width:600px){
@@ -214,11 +101,6 @@ a, button, input, textarea, select, summary, .surface, .find-card{transition:col
   .mobile-nav a{min-height:44px}
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,textarea{min-height:48px;font-size:16px!important}
 }
-@media(hover:none) and (pointer:coarse){
-  .find-save{min-width:44px;min-height:44px}
-  .find-card:hover{box-shadow:none;transform:none}
-  .find-photo:hover .product-img{transform:none}
-}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
@@ -227,411 +109,99 @@ a, button, input, textarea, select, summary, .surface, .find-card{transition:col
 
 /* Atlas forest is the interface/action accent; retain clear blue for off-site merchant links. */
 .find-title:hover, .find-breakdown>summary, .finds-signin a{color:var(--atlas-blue)}
-.find-total>strong{color:var(--atlas-ink)}
 
 /* Mobile operator access and admin tables: override the older fixed 90px columns. */
 @media(max-width:700px){
   .header-actions .operator-entry{display:inline-flex;width:44px;min-width:44px;min-height:44px;justify-content:center;padding-inline:0;font-size:0}
   .header-actions .operator-entry svg{width:20px;height:20px;flex:0 0 auto}
 }
-.site-footer{grid-template-columns:minmax(170px,1fr) minmax(230px,1.3fr) minmax(220px,1fr)}
-.admin-dashboard .admin-metrics{grid-template-columns:repeat(5,minmax(0,1fr))}
-.admin-finance-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}
-.admin-period-filter{min-width:190px;margin:0}
-.finance-breakdown{margin-top:22px;padding:18px;border:1px solid var(--atlas-line);border-radius:14px;background:var(--atlas-surface,#fff)}
-.finance-breakdown h3{margin:0 0 14px;font-size:17px}
-.finance-lines{display:grid}
-.finance-lines>div{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid var(--atlas-line)}
-.finance-lines>div:last-child{border-bottom:0}
-.finance-lines span,.finance-payment-states span{color:var(--muted-foreground)}
-.finance-lines strong,.finance-payment-states b,.finance-payment-states small{font-variant-numeric:tabular-nums}
-.finance-line-total{font-weight:700}
-.finance-payment-states{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-.finance-payment-states>div{display:grid;gap:6px;min-width:0;padding:12px;border:1px solid var(--atlas-line);border-radius:10px;background:var(--atlas-soft)}
-.finance-payment-states b{font-size:20px}
-.finance-payment-states small{font-size:12px;color:var(--muted-foreground)}
-.audit-folders{display:flex;gap:8px;overflow-x:auto;padding:2px 0 12px}
-.audit-folders button{display:flex;align-items:center;gap:8px;min-height:40px;padding:8px 11px;border:1px solid var(--atlas-line);border-radius:9px;background:var(--atlas-surface,#fff);color:var(--atlas-copy-muted);white-space:nowrap}
-.audit-folders button.active{border-color:var(--atlas-blue);background:var(--atlas-soft);color:var(--atlas-ink)}
-.audit-folders button span{font-size:11px;opacity:.75}
-.audit-filters{display:grid;grid-template-columns:minmax(220px,.65fr) minmax(260px,1.35fr);gap:12px;margin:8px 0 14px}
-.audit-filters .field{margin:0}
-.audit-filters select,.audit-filters input{width:100%;min-height:44px}
-.collection-presets{display:grid;gap:8px;margin:0;padding:12px;border:1px solid var(--atlas-line);border-radius:11px}
-.collection-presets>div{display:flex;flex-wrap:wrap;gap:8px}
-.collection-presets .btn{min-height:38px}
-.country-pricing>summary{cursor:pointer;color:var(--atlas-blue);font-weight:650}
-.country-pricing[open]>summary{margin-bottom:14px}
-@media(max-width:1100px){.admin-dashboard .admin-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:950px){.admin-dashboard .admin-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:700px){.admin-audit .admin-section-head{flex-direction:column}.audit-filters{grid-template-columns:1fr}.admin-period-filter{width:100%}.finance-payment-states{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:600px){.site-footer{grid-template-columns:1fr}.admin-dashboard .admin-metrics,.admin-finance-metrics{grid-template-columns:1fr}.finance-breakdown{padding:14px}.finance-lines>div{align-items:flex-start;flex-direction:column;gap:4px}}
-@media(max-width:600px){.order-tabs.has-refund-tab{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));width:100%!important}.order-tabs.has-refund-tab [data-slot=tabs-trigger]{width:100%;min-width:0;justify-content:space-between;white-space:normal;text-align:left}}
-.operator-contact-panel{display:grid;gap:12px;margin:0 0 18px;padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--muted)}.operator-contact-panel>.eyebrow{display:block}.operator-contact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.operator-contact-person{display:grid;align-content:start;gap:7px;min-width:0;padding:13px;border:1px solid var(--border);border-radius:11px;background:var(--background)}.operator-contact-person>b{color:var(--muted-foreground);font-size:12px}.operator-contact-person>strong{overflow-wrap:anywhere}.operator-contact-detail{overflow-wrap:anywhere;color:var(--muted-foreground);font-size:13px}.operator-contact-detail small{display:block}.operator-contact-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}.operator-contact-actions .btn{min-height:38px;padding:7px 10px;font-size:13px}.payment-reserve-hint{display:flex;align-items:flex-start;gap:9px;margin-top:12px;padding:11px;border:1px solid var(--border);border-radius:10px;background:var(--background)}.payment-reserve-hint>svg{flex:0 0 auto;margin-top:2px;color:var(--muted-foreground)}.payment-reserve-hint>div{display:grid;gap:3px;min-width:0}.payment-reserve-hint b{font-size:13px}.payment-reserve-hint p{font-size:13px;line-height:1.5}.payment-reserve-hint small{font-size:11px}@media(max-width:600px){.operator-contact-grid{grid-template-columns:1fr}}
+.finance-lines>div:last-child{border-bottom:0}.audit-folders button.active{border-color:var(--atlas-blue)}
+.payment-reserve-hint>svg{flex:0 0 auto;margin-top:2px;color:var(--muted-foreground)}.payment-reserve-hint>div{display:grid;gap:3px;min-width:0}.payment-reserve-hint p{font-size:13px;line-height:1.5}
 
 /* ---------- Admin tabs rebuilt 6 October 2026 (app/admin-*.tsx). Day tokens from refine.css; Night overrides at the end. ---------- */
-.admin-tabs-icons{display:flex;gap:4px;width:100%;max-width:100%;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;padding:5px}
-.admin-tabs-icons::-webkit-scrollbar{display:none}
-.admin-tabs-icons button{display:inline-flex;align-items:center;gap:7px;flex:0 0 auto;min-height:44px;padding:9px 13px;scroll-snap-align:start;color:var(--day-muted,#58635c)}
-.admin-tabs-icons button svg{flex:0 0 auto;opacity:.8}
 .admin-tabs-icons button.active{color:var(--day-ink,#16211c)}
-.admin-tab-count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--day-accent,#1f4d3b);color:#fff;font-size:11px;font-weight:600;line-height:1}
-.admin-count{display:inline-flex;align-items:center;min-height:32px;padding:0 12px;border-radius:999px;background:var(--day-tint,#e8f1ea);color:var(--day-accent,#1f4d3b);font-weight:600;font-size:14px;white-space:nowrap}
-.admin-segment{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--day-line,#e2e2da);border-radius:10px;background:var(--day-soft,#efefe9)}
-.admin-segment button{min-height:36px;padding:6px 12px;border:0;border-radius:8px;background:transparent;color:var(--day-muted,#58635c);font-size:14px;font-weight:500}
-.admin-segment button.active{background:var(--day-surface,#fff);color:var(--day-ink,#16211c);box-shadow:var(--day-shadow,0 1px 2px rgba(22,33,28,.06))}
-.admin-kpi-grid{grid-template-columns:repeat(5,minmax(0,1fr));margin:6px 0 0}
-.admin-kpi-grid article strong{font-size:24px;white-space:nowrap}
-.admin-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:16px;margin-bottom:20px}
-.admin-funnel-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
-.admin-funnel-list li{display:grid;grid-template-columns:150px minmax(0,1fr) 40px;align-items:center;gap:10px;font-size:14px}
-.admin-funnel-list li span{color:var(--day-ink,#16211c)}
-.admin-funnel-list li i{display:block;height:12px;border-radius:999px;background:var(--day-accent,#1f4d3b);opacity:.85;min-width:4px}
-.admin-funnel-list li.cancelled i{background:var(--day-leader,#a9aea6)}
-.admin-funnel-list li b{text-align:right;font-variant-numeric:tabular-nums}
-.admin-attention-groups{display:grid;gap:8px}
-.admin-attention-groups details{border:1px solid var(--day-line,#e2e2da);border-radius:12px;background:var(--day-surface,#fff)}
-.admin-attention-groups summary{display:flex;align-items:center;gap:10px;min-height:44px;padding:8px 14px;cursor:pointer;list-style:none;font-weight:600;color:var(--day-ink,#16211c)}
-.admin-attention-groups summary::-webkit-details-marker{display:none}
-.admin-attention-groups summary svg{width:18px;height:18px;color:var(--day-warn,#8a5a00);flex:0 0 auto}
-.admin-attention-groups summary b{margin-left:auto;min-width:24px;padding:2px 8px;border-radius:999px;background:var(--day-warn-bg,#fff4dc);color:var(--day-warn,#8a5a00);font-size:12px;text-align:center}
-.admin-attention-groups ul{list-style:none;margin:0;padding:0 8px 8px}
-.admin-attention-groups li{display:flex;align-items:center;gap:10px;border-top:1px solid var(--day-line,#e2e2da)}
-.admin-attention-groups li a{display:grid;gap:2px;flex:1;min-width:0;padding:10px 6px;color:inherit;text-decoration:none}
 .admin-attention-groups li a:hover b{color:var(--day-accent,#1f4d3b)}
-.admin-attention-groups li b{font-size:14px;font-weight:600;overflow-wrap:anywhere}
-.admin-attention-groups li span{font-size:13px;color:var(--day-muted,#58635c);overflow-wrap:anywhere}
-.admin-attention-groups li small{flex:0 0 auto;font-size:11px;color:var(--day-muted,#58635c);text-transform:uppercase;letter-spacing:.04em}
-.admin-ok{display:flex;align-items:center;gap:10px;margin:0;color:var(--day-ok,#1d6b47);font-weight:500}
-.admin-ok svg{width:20px;height:20px}
-.admin-filters{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin:8px 0 14px}
-.admin-filters .field{margin:0}
-.admin-filters select,.admin-filters input{width:100%;min-height:44px}
-.admin-filter-count{margin:0 0 12px;white-space:nowrap}
-.admin-search{position:relative;display:block}
-.admin-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--day-muted,#58635c);pointer-events:none}
-.admin-search input{padding-left:36px}
-.admin-scroll{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch;margin:0 0 12px;border:1px solid var(--day-line,#e2e2da);border-radius:12px;background:var(--day-surface,#fff)}
-.admin-grid{width:100%;min-width:640px;border-collapse:collapse;font-size:14px}
-.admin-grid th,.admin-grid td{padding:10px 12px;text-align:left;vertical-align:middle;border-top:1px solid var(--day-line,#e2e2da)}
-.admin-grid th{border-top:0;background:var(--day-soft,#efefe9);color:var(--day-muted,#58635c);font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
-.admin-grid td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.admin-grid td.center{text-align:center}
-.admin-grid td small{display:block;color:var(--day-muted,#58635c);font-size:12px}
-.admin-grid td select{min-height:40px;width:100%;min-width:140px}
-.admin-grid tr.muted td{color:var(--day-muted,#58635c)}
-.admin-grid a{color:var(--day-accent,#1f4d3b);font-weight:500}
-.admin-rights{min-width:720px}
-.admin-rights td b{display:block;font-weight:500}
 .admin-link{display:grid;gap:2px;padding:0;border:0;background:none;text-align:left;color:inherit;font:inherit;cursor:pointer;min-height:40px;align-content:center}
 .admin-link b{font-weight:600}
 .admin-link:hover b{color:var(--day-accent,#1f4d3b)}
-.admin-flag{display:inline-block;margin-top:4px;padding:2px 8px;border-radius:999px;background:var(--day-warn-bg,#fff4dc);color:var(--day-warn,#8a5a00);font-size:11px;font-style:normal;font-weight:600}
-.admin-btn-small{min-height:36px;padding:6px 10px;font-size:13px;gap:6px;white-space:nowrap}
-.admin-card{display:grid;gap:14px}
-.admin-card h3{display:flex;align-items:center;gap:8px;margin:6px 0 0;font-size:16px}
-.admin-card-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.admin-card-facts div{display:grid;gap:4px;padding:10px 12px;border:1px solid var(--day-line,#e2e2da);border-radius:10px;background:var(--day-soft,#efefe9)}
-.admin-card-facts span{font-size:12px;color:var(--day-muted,#58635c)}
-.admin-card-facts b{font-size:15px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.admin-card-status{max-width:260px;margin:0}
-.admin-card .admin-scroll{margin:0}
-.admin-card .admin-grid{min-width:560px}
-.admin-plain-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
-.admin-plain-list li{display:grid;gap:3px;padding:10px 12px;border:1px solid var(--day-line,#e2e2da);border-radius:10px;font-size:14px}
-.admin-plain-list li span,.admin-plain-list li small{color:var(--day-muted,#58635c);font-size:13px}
-.admin-notes li span{color:var(--day-ink,#16211c);white-space:pre-wrap}
-.admin-note-form{display:grid;gap:10px}
-.admin-note-form .field{margin:0}
-.admin-note-form textarea{width:100%;min-height:84px;resize:vertical}
-.admin-note-form .btn{justify-self:start}
-.admin-invite-box{display:grid;gap:8px;margin:12px 0;padding:14px 16px;border:1px dashed var(--day-ok-line,#bfdccb);border-radius:12px;background:var(--day-tint,#e8f1ea)}
-.admin-invite-box p{margin:0;font-size:14px;line-height:1.5}
-.admin-invite-box .admin-invite{margin:0;padding:10px 12px;border-radius:8px;background:var(--day-surface,#fff);user-select:all}
-.admin-invite-box .btn{justify-self:start;gap:6px}
-.admin-subhead{display:flex;align-items:center;gap:8px;margin:20px 0 10px;font-size:16px}
-.admin-audit-filters{grid-template-columns:minmax(200px,1fr) minmax(220px,1.4fr) repeat(2,minmax(150px,.7fr))}
-.admin-audit-list{display:grid;gap:8px}
-.admin-audit-row{border:1px solid var(--day-line,#e2e2da);border-radius:12px;background:var(--day-surface,#fff)}
-.admin-audit-row summary{display:flex;justify-content:space-between;gap:12px;align-items:center;min-height:52px;padding:10px 14px;cursor:pointer;list-style:none}
-.admin-audit-row summary::-webkit-details-marker{display:none}
-.admin-audit-row summary>div{display:grid;gap:2px;min-width:0}
-.admin-audit-row summary>div:last-child{text-align:right;flex:0 0 auto}
-.admin-audit-row summary b{font-size:14px;font-weight:600;overflow-wrap:anywhere}
-.admin-audit-row summary span,.admin-audit-row summary time{font-size:13px;color:var(--day-muted,#58635c)}
-.admin-audit-details{padding:0 14px 12px}
-.admin-audit-details dl{display:grid;gap:4px;margin:0}
-.admin-audit-details dl div{display:grid;grid-template-columns:150px minmax(0,1fr);gap:10px;font-size:13px}
-.admin-audit-details dt{color:var(--day-muted,#58635c)}
-.admin-audit-details dd{margin:0;overflow-wrap:anywhere}
-.admin-audit-details pre{margin:0;padding:10px 12px;border-radius:8px;background:var(--day-soft,#efefe9);font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}
-.admin-pager{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px}
-.admin-pager span{font-variant-numeric:tabular-nums;color:var(--day-muted,#58635c)}
-.admin-field-error{display:block;margin-top:4px;color:var(--day-error,#b42318);font-size:12px}
-.admin-policy .field.invalid input{border-color:var(--day-error,#b42318)}
-.admin-history li b{font-weight:600}
-.admin-now{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0}
-.admin-now div{display:grid;gap:3px;padding:12px 14px;border:1px solid var(--day-line,#e2e2da);border-radius:12px;background:var(--day-surface,#fff)}
-.admin-now dt{font-size:12px;color:var(--day-muted,#58635c);text-transform:uppercase;letter-spacing:.04em}
-.admin-now dd{margin:0;font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--day-ink,#16211c)}
-.admin-now small{font-size:12px;color:var(--day-muted,#58635c)}
-.admin-pricing-summary{margin-bottom:16px}
-.admin-status-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-.admin-status-grid article strong{font-size:22px;white-space:nowrap}
-.admin-status-grid article.bad{border-color:var(--day-error,#b42318)}
-.admin-thresholds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:12px}
-.admin-thresholds .field{margin:0}
-.admin-unit{display:flex;align-items:center;gap:8px}
-.admin-unit input{flex:1;min-width:0;min-height:44px}
-.admin-unit b{color:var(--day-muted,#58635c);font-weight:500;white-space:nowrap}
-.admin-system .notice.warning{background:var(--day-warn-bg,#fff4dc);border-color:#efd9a6;color:var(--day-warn,#8a5a00)}
-@media(max-width:1180px){.admin-kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.admin-now{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:960px){.admin-two{grid-template-columns:1fr}.admin-audit-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-status-grid,.admin-thresholds{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:700px){.admin-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-filters>.field{flex:1 1 100%}.admin-filter-count{margin:0}.admin-funnel-list li{grid-template-columns:110px minmax(0,1fr) 36px}.admin-card-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-audit-row summary{flex-direction:column;align-items:flex-start}.admin-audit-row summary>div:last-child{text-align:left}.admin-audit-details dl div{grid-template-columns:1fr}.admin-segment{width:100%}.admin-segment button{flex:1}}
-@media(max-width:600px){.admin-kpi-grid,.admin-now,.admin-status-grid,.admin-thresholds,.admin-audit-filters{grid-template-columns:1fr}.admin-tabs-icons{padding:4px;width:100%;max-width:100%}.admin-tabs-icons button{flex:0 0 auto;padding-inline:12px}.admin-card-status{max-width:none}}
 html[data-theme="dark"] .admin-tabs-icons button{color:var(--night-muted,#9ba6a0)}
 html[data-theme="dark"] .admin-tabs-icons button.active{color:var(--night-ink,#f1eee5)}
-html[data-theme="dark"] .admin-tab-count{background:var(--night-jade,#80d0ac);color:var(--night-on-ivory,#0c120f)}
 html[data-theme="dark"] .admin-count{background:var(--night-jade-soft,rgba(128,208,172,.1));color:var(--night-jade,#80d0ac)}
-html[data-theme="dark"] .admin-segment{border-color:var(--night-line,rgba(226,238,231,.085));background:var(--night-inset,#0d1210)}
-html[data-theme="dark"] .admin-segment button{color:var(--night-muted,#9ba6a0)}
 html[data-theme="dark"] .admin-segment button.active{background:var(--night-raised,#161d19);color:var(--night-ink,#f1eee5);box-shadow:none}
-html[data-theme="dark"] .admin-funnel-list li span,html[data-theme="dark"] .admin-now dd,html[data-theme="dark"] .admin-notes li span{color:var(--night-ink,#f1eee5)}
-html[data-theme="dark"] .admin-funnel-list li i{background:var(--night-jade,#80d0ac)}
-html[data-theme="dark"] .admin-funnel-list li.cancelled i{background:var(--night-faint,#88938d)}
-html[data-theme="dark"] .admin-attention-groups details,html[data-theme="dark"] .admin-scroll,html[data-theme="dark"] .admin-audit-row,html[data-theme="dark"] .admin-now div,html[data-theme="dark"] .admin-plain-list li{border-color:var(--night-line,rgba(226,238,231,.085));background:var(--night-surface,#111714)}
 html[data-theme="dark"] .admin-attention-groups summary,html[data-theme="dark"] .admin-attention-groups li b,html[data-theme="dark"] .admin-link b,html[data-theme="dark"] .admin-audit-row summary b{color:var(--night-ink,#f1eee5)}
-html[data-theme="dark"] .admin-attention-groups summary b,html[data-theme="dark"] .admin-flag{color:var(--night-warn-ink,#e8bd70);background:var(--night-warn-bg,rgba(232,189,112,.09))}
-html[data-theme="dark"] .admin-attention-groups summary svg{color:var(--night-warn-ink,#e8bd70)}
-html[data-theme="dark"] .admin-attention-groups li,html[data-theme="dark"] .admin-grid th,html[data-theme="dark"] .admin-grid td{border-color:var(--night-line,rgba(226,238,231,.085))}
-html[data-theme="dark"] .admin-attention-groups li span,html[data-theme="dark"] .admin-attention-groups li small,html[data-theme="dark"] .admin-grid td small,html[data-theme="dark"] .admin-audit-row summary span,html[data-theme="dark"] .admin-audit-row summary time,html[data-theme="dark"] .admin-audit-details dt,html[data-theme="dark"] .admin-now dt,html[data-theme="dark"] .admin-now small,html[data-theme="dark"] .admin-card-facts span,html[data-theme="dark"] .admin-plain-list li span,html[data-theme="dark"] .admin-plain-list li small,html[data-theme="dark"] .admin-pager span,html[data-theme="dark"] .admin-unit b,html[data-theme="dark"] .admin-search svg{color:var(--night-muted,#9ba6a0)}
-html[data-theme="dark"] .admin-ok{color:var(--night-jade,#80d0ac)}
-html[data-theme="dark"] .admin-grid th,html[data-theme="dark"] .admin-card-facts div,html[data-theme="dark"] .admin-audit-details pre{background:var(--night-raised,#161d19);border-color:var(--night-line,rgba(226,238,231,.085))}
 html[data-theme="dark"] .admin-grid a,html[data-theme="dark"] .admin-link:hover b,html[data-theme="dark"] .admin-attention-groups li a:hover b{color:var(--night-jade,#80d0ac)}
-html[data-theme="dark"] .admin-invite-box{border-color:var(--night-line-strong,rgba(226,238,231,.15));background:var(--night-jade-soft,rgba(128,208,172,.1))}
-html[data-theme="dark"] .admin-invite-box .admin-invite{background:var(--night-surface,#111714)}
 html[data-theme="dark"] .admin-field-error{color:#f08c7d}
 html[data-theme="dark"] .admin-policy .field.invalid input,html[data-theme="dark"] .admin-status-grid article.bad{border-color:#f08c7d}
-html[data-theme="dark"] .admin-system .notice.warning{background:var(--night-warn-bg,rgba(232,189,112,.09));border-color:var(--night-warn-line,rgba(232,189,112,.3));color:var(--night-warn-ink,#e8bd70)}
 
 /* ---------- Admin grid system, 6 October 2026: one rhythm for every tab of /admin (app/admin-*.tsx). Spacing 8/12/16/24, cards 14px, tabs and controls 40px, numbers right-aligned and tabular. Light tokens --day-* (refine.css); Night overrides at the end of this block. ---------- */
 .operator-admin{display:block;min-width:0}
-.operator-admin .page-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:0;margin:0 0 20px}
-.operator-admin .page-heading>div{min-width:0}
-.operator-admin .page-heading .eyebrow{display:none}
-.operator-admin .page-heading h1{font-size:clamp(26px,2.6vw,34px);line-height:1.15;letter-spacing:-.02em;font-weight:700}
 .operator-admin .page-heading p{margin-top:6px;font-size:14px;line-height:1.5;max-width:70ch}
-.operator-admin .page-heading>.status-badge{flex:0 0 auto;display:inline-flex;align-items:center;height:32px;margin-top:4px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;line-height:1;white-space:nowrap;background:var(--day-tint,#e8f1ea);color:var(--day-ok,#1d6b47)}
 /* Tabs: the outer admin-tabs, the audit folders and the catalog scope tabs share one 40px track. */
 .operator-admin .admin-tabs,.operator-admin .audit-folders,.operator-admin .catalog-scope-tabs{display:flex;flex-wrap:wrap;gap:4px;width:100%;max-width:100%;min-width:0;padding:4px;margin:0 0 24px;border:1px solid var(--day-line,#e2e2da);border-bottom-color:var(--day-line,#e2e2da);border-radius:14px;background:var(--day-soft,#efefe9);overflow:visible;scroll-snap-type:none}
-.operator-admin .audit-folders,.operator-admin .catalog-scope-tabs{margin-bottom:16px}
 .operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;height:40px;min-height:40px;padding:0 12px;border:0;border-radius:10px;background:transparent;color:var(--day-muted,#58635c);font:inherit;font-size:14px;font-weight:500;line-height:1;white-space:nowrap;box-shadow:none;cursor:pointer}
 .operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button svg{width:16px;height:16px;flex:0 0 auto;opacity:1}
 .operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button:hover{background:var(--day-surface,#fff);color:var(--day-ink,#16211c)}
-.operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button.active,.operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button.active:hover{background:var(--day-tint,#e8f1ea);color:var(--day-ok,#1d6b47);box-shadow:none}
+.operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button.active:hover{background:var(--day-tint,#e8f1ea);color:var(--day-ok,#1d6b47);box-shadow:none}
 .operator-admin .admin-tab-count,.operator-admin .catalog-scope-tabs button span{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--day-accent,#1f4d3b);color:#fff;font-size:12px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
-.operator-admin .admin-segment{display:inline-flex;gap:2px;height:40px;padding:2px;border:0;border-radius:10px;background:var(--day-soft,#efefe9)}
 .operator-admin .admin-segment button{height:36px;min-height:36px;padding:0 12px;border-radius:8px;font-size:13px;font-weight:600;line-height:1}
-.operator-admin .admin-segment button.active{background:var(--day-tint,#e8f1ea);color:var(--day-ok,#1d6b47);box-shadow:none}
 /* Sections: 24px inside, 24px between, one heading scale. */
-.operator-admin .surface{padding:24px;border-radius:14px;margin:0 0 24px;min-width:0}
 .operator-admin .admin-section{max-width:none}
-.operator-admin .admin-dashboard{display:grid;gap:24px}
-.operator-admin .admin-dashboard>*{margin:0}
-.operator-admin .admin-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px;margin:0;align-items:stretch}
-.operator-admin .admin-two>.surface{display:flex;flex-direction:column;margin:0;min-width:0}
 .operator-admin .admin-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0 0 16px}
-.operator-admin .admin-section-head>div:first-child{flex:1 1 auto;min-width:0}
 .operator-admin .admin-section-head>div>h2,.operator-admin .admin-section-head>div>h3{margin:0;font-size:20px;font-weight:700;line-height:1.25;letter-spacing:-.01em;color:var(--day-ink,#16211c)}
-.operator-admin .admin-section-head>div>h3{font-size:16px}
 .operator-admin .admin-section-head>div>p{margin:4px 0 0;font-size:14px;line-height:1.5;color:var(--day-muted,#58635c);max-width:70ch}
 .operator-admin .admin-section-head>:is(.admin-count,.admin-system-actions,.admin-segment,.admin-period-filter,.btn){flex:0 0 auto}
-.operator-admin .admin-system>.admin-section-head{flex-wrap:wrap}.operator-admin .admin-system>.admin-section-head>div:first-child{flex-basis:320px}.operator-admin .admin-system>.admin-section-head>.admin-system-actions{flex:1 1 auto;min-width:0}
-.operator-admin .admin-subhead,.operator-admin .admin-card h3,.operator-admin .finance-breakdown h3{display:flex;align-items:center;gap:8px;margin:24px 0 12px;font-size:16px;font-weight:700;line-height:1.3}
-.operator-admin .admin-subhead svg{width:16px;height:16px;color:var(--day-ok,#1d6b47)}
-.operator-admin .admin-count{display:inline-flex;align-items:center;height:32px;min-height:0;padding:0 12px;border-radius:999px;background:var(--day-tint,#e8f1ea);color:var(--day-accent,#1f4d3b);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
-.operator-admin .surface>.notice,.operator-admin .admin-dashboard>.notice{margin:0 0 16px;padding:12px 16px;border-radius:12px;font-size:14px}
-.operator-admin .surface>.notice:last-child{margin-bottom:0}
-.operator-admin .surface>.micro:last-child{margin:12px 0 0}
 /* KPI and status cards: equal height, label → value → note pinned to the bottom, the icon top-right. */
-.operator-admin .admin-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:0 0 24px;align-items:stretch}
-.operator-admin .admin-metrics:last-child{margin-bottom:0}
-.operator-admin .admin-status-grid{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
-.operator-admin .admin-metrics article{position:relative;display:flex;flex-direction:column;gap:0;height:100%;min-height:0;min-width:0;padding:16px;border:1px solid var(--day-line,#e2e2da);border-radius:14px;background:var(--day-surface,#fff);box-shadow:var(--day-shadow,none);container-type:inline-size}
 .operator-admin .admin-metrics article>svg{position:absolute;right:14px;top:14px;width:18px;height:18px;color:var(--day-muted,#58635c)}
 .operator-admin .admin-metrics article>span{display:block;padding-right:28px;font-size:13px;font-weight:500;line-height:1.3;color:var(--day-muted,#58635c)}
 .operator-admin .admin-metrics article>strong{display:block;margin:8px 0 0;font-size:clamp(20px,10cqw,24px);font-weight:700;line-height:1.15;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums;color:var(--day-ink,#16211c)}
-.operator-admin .admin-metrics article>small{display:block;margin-top:auto;padding-top:8px;font-size:12px;line-height:1.4;color:var(--day-muted,#58635c)}
 .operator-admin .admin-metrics article.bad{border-color:var(--day-error,#b42318)}
-.operator-admin .admin-metrics article.bad>strong{color:var(--day-error,#b42318)}
 /* Overview: funnel, attention and the shortcut tiles. */
-.operator-admin .admin-funnel-list{gap:8px;align-content:start}
 .operator-admin .admin-funnel-list li{min-height:32px;grid-template-columns:minmax(120px,160px) minmax(0,1fr) 40px;font-size:14px}
-.operator-admin .admin-funnel-list li i{height:10px}
 .operator-admin .admin-funnel-list li b{font-weight:600}
-.operator-admin .admin-attention-groups details{border-radius:12px}
-.operator-admin .admin-shortcuts{display:grid;grid-template-columns:1fr;gap:0;align-items:start}
-.operator-admin .admin-shortcut-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
 .operator-admin .admin-shortcut-grid>:is(a,button){display:grid;grid-template-columns:20px minmax(0,1fr);gap:2px 12px;align-items:center;align-content:center;min-height:72px;padding:14px 16px;border:1px solid var(--day-line,#e2e2da);border-radius:14px;background:var(--day-surface,#fff);color:var(--day-ink,#16211c);text-align:left;font:inherit;cursor:pointer;min-width:0}
 .operator-admin .admin-shortcut-grid>:is(a,button):hover{background:var(--day-tint,#e8f1ea);border-color:var(--day-ok-line,#bfdccb)}
-.operator-admin .admin-shortcut-grid svg{grid-row:1/3;width:20px;height:20px;color:var(--day-ok,#1d6b47)}
 .operator-admin .admin-shortcut-grid b{font-size:14px;font-weight:600;line-height:1.3}
 .operator-admin .admin-shortcut-grid span{font-size:12px;line-height:1.4;color:var(--day-muted,#58635c)}
 /* Tables: 12px uppercase head, 44px rows, numbers to the right. */
-.operator-admin .admin-scroll{margin:0 0 16px;border-radius:14px}
-.operator-admin .admin-scroll:last-child{margin-bottom:0}
-.operator-admin .admin-grid{min-width:640px;font-size:14px}
-.operator-admin .admin-grid th,.operator-admin .admin-grid td{height:44px;padding:8px 12px;vertical-align:middle;line-height:1.35}
-.operator-admin .admin-grid th{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
-.operator-admin .admin-grid th.num,.operator-admin .admin-grid td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.operator-admin .admin-grid th.center,.operator-admin .admin-grid td.center{text-align:center}
 .operator-admin .admin-grid td:first-child{min-width:200px}
 .operator-admin .admin-grid td b{font-weight:600}
-.operator-admin .admin-grid td small{display:block;margin-top:2px;font-size:12px;font-weight:400;line-height:1.3;color:var(--day-muted,#58635c);white-space:nowrap}
 .operator-admin .admin-grid td.admin-cell-text{white-space:normal;min-width:280px;overflow-wrap:anywhere}
-.operator-admin .admin-grid td.admin-cell-control{width:1%;white-space:nowrap}
-.operator-admin .admin-grid .admin-link{min-height:0;gap:1px}
-.operator-admin .admin-grid td .admin-btn-small{height:32px;min-height:32px;padding:0 10px;border-radius:8px;font-size:13px;gap:6px}
-.operator-admin .admin-grid td .admin-flag{margin-top:4px}
-.operator-admin .admin-errors{min-width:720px}
 .operator-admin .admin-errors td:first-child{min-width:140px}
-.operator-admin .admin-rights th.center,.operator-admin .admin-rights td.center{width:11%}
 .operator-admin .admin-rights td.center span{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:999px;font-size:13px;font-weight:600;line-height:1}
-.operator-admin .admin-rights td.center span[aria-label="есть"]{background:var(--day-tint,#e8f1ea);color:var(--day-ok,#1d6b47)}
-.operator-admin .admin-rights td.center span[aria-label="нет"]{color:var(--day-leader,#a9aea6)}
 .operator-admin .admin-rights td b{font-weight:500}
-.operator-admin .admin-rights td small{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;letter-spacing:0}
-/* Pills for staff status: one size, the three states. */
-.operator-admin .staff-status{display:inline-flex;align-items:center;justify-content:center;min-width:96px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:600;font-style:normal;line-height:1;white-space:nowrap;background:var(--day-soft,#efefe9);color:var(--day-muted,#58635c)}
-.operator-admin .staff-status.active{background:var(--day-tint,#e8f1ea);color:var(--day-ok,#1d6b47)}
-.operator-admin .staff-status.invited{background:var(--day-warn-bg,#fff4dc);color:var(--day-warn,#8a5a00)}
-.operator-admin .staff-status.disabled{background:var(--day-soft,#efefe9);color:var(--day-muted,#58635c)}
 /* Forms: 13px/600 labels, 40px controls, fields in a 220px grid. */
 .operator-admin .field>label,.operator-admin label.field>span:first-child{display:block;margin:0 0 6px;font-size:13px;font-weight:600;line-height:1.3;color:var(--day-ink,#16211c)}
-.operator-admin .field :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),select){min-height:40px;padding:8px 12px;border-radius:10px;font-size:14px;line-height:1.3}
 .operator-admin .field textarea{border-radius:10px;font-size:14px}
 .operator-admin .btn{min-height:40px;border-radius:10px;padding-top:8px;padding-bottom:8px}
 .operator-admin .admin-system-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end}
-.operator-admin .surface>.admin-system-actions,.operator-admin .admin-policy>.admin-system-actions{justify-content:flex-start;margin:0 0 16px}
-.operator-admin .admin-system-actions .micro{margin:0}
 /* Filters wrap as a row: search takes the room, selects keep a readable width, the count sits at the end. */
-.operator-admin .admin-filters{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin:0 0 16px}
 .operator-admin .admin-filters>.field{flex:0 1 220px;min-width:160px;margin:0}
-.operator-admin .admin-filters>.field:first-child{flex:1 1 320px}
-.operator-admin .admin-filters>.admin-filter-count{flex:0 0 auto}
 /* Room for the magnifier: the generic .operator-admin .field input padding (0,5,1) otherwise wins over .admin-search input. */
-:root body .operator-admin .field .admin-search input[type="search"]{padding-left:38px}
 .operator-admin .admin-filters select,.operator-admin .admin-filters input,.operator-admin .audit-filters select,.operator-admin .audit-filters input{min-height:40px}
-.operator-admin .admin-filter-count{display:flex;align-items:center;height:40px;margin:0;font-size:13px}
-.operator-admin .admin-audit .admin-filter-count{height:auto;margin:0 0 12px}
-.operator-admin .admin-search svg{width:16px;height:16px}
-.operator-admin .audit-filters{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:0 0 12px}
-.operator-admin .staff-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:12px;align-items:end;padding:16px;margin:0 0 16px;border:1px solid var(--day-line,#e2e2da);border-radius:14px;background:var(--day-soft,#efefe9)}
-.operator-admin .staff-form .field{margin:0;min-width:0}
-.operator-admin .staff-form select{min-height:40px;border-radius:10px}
-.operator-admin .staff-form .btn{height:40px;white-space:nowrap}
-.operator-admin .admin-invite-box{margin:0 0 16px;padding:16px;border-radius:14px}
-.operator-admin .admin-access-warning{margin:0 0 16px}
-.operator-admin .admin-policy .pricing-grid,.operator-admin .admin-policy .two-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:0 0 12px}
-.operator-admin .admin-policy .field{margin:0;min-width:0}
-.operator-admin .admin-policy .field>small{margin-top:4px}
 .operator-admin .admin-history li{grid-template-columns:minmax(140px,auto) minmax(0,1fr);gap:4px 16px;align-items:baseline;min-height:44px;padding:10px 12px}
-.operator-admin .admin-history li b{font-variant-numeric:tabular-nums;white-space:nowrap}
-.operator-admin .admin-thresholds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 16px;margin:0 0 16px}
 .operator-admin .admin-thresholds .field{display:flex;flex-direction:column;gap:6px;margin:0;min-width:0}
-.operator-admin .admin-thresholds .field>span:first-child{flex:1 1 auto;margin:0}
-.operator-admin .admin-unit{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px}
 .operator-admin .admin-unit input{min-height:40px}
 .operator-admin .admin-unit b{min-width:28px;font-size:13px}
 /* Support queue and plain lists. */
-.operator-admin .audit-list article{align-items:center;gap:16px;min-height:44px;padding:12px 0}
 .operator-admin .audit-list article>div{gap:2px;min-width:0}
-.operator-admin .audit-list article b{font-size:14px;font-weight:600}
-.operator-admin .audit-list article .btn{flex:0 0 auto;min-height:36px;padding:6px 12px;font-size:13px}
-.operator-admin .admin-plain-list li{min-height:44px;border-radius:12px;padding:10px 12px}
-.operator-admin .admin-audit-row{border-radius:12px}
 .operator-admin .admin-audit-row summary{min-height:48px}
 .operator-admin .admin-pager .btn{min-height:36px}
-/* Customer card facts and the "in force now" tariff cards. */
-.operator-admin .admin-card-facts,.atlas-modal .admin-card-facts{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
-.atlas-modal .admin-card-facts div{display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:12px}
-.atlas-modal .admin-card-facts b{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden}
-.operator-admin .admin-now{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
-.operator-admin .admin-now div{display:flex;flex-direction:column;gap:0;padding:16px;border-radius:14px;box-shadow:var(--day-shadow,none);container-type:inline-size;min-width:0}
-.operator-admin .admin-now dt{font-size:13px;font-weight:500;line-height:1.3;text-transform:none;letter-spacing:0}
-.operator-admin .admin-now dd{margin:8px 0 0;font-size:clamp(18px,10cqw,22px);font-weight:700;line-height:1.15;white-space:nowrap;overflow:hidden}
-.operator-admin .admin-now small{margin-top:auto;padding-top:8px;line-height:1.4}
-.operator-admin .admin-pricing-summary{margin-bottom:24px}
-/* Page speed table (app/performance-summary.tsx) follows the same table rules. */
-.operator-admin .field-vitals{margin:0 0 16px;border-color:var(--day-line,#e2e2da);border-radius:14px;background:var(--day-surface,#fff)}
-.operator-admin .field-vitals table{font-size:14px}
-.operator-admin .field-vitals :is(th,td){height:44px;padding:8px 12px;border-color:var(--day-line,#e2e2da);vertical-align:middle}
-.operator-admin .field-vitals thead th{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--day-muted,#58635c);background:var(--day-soft,#efefe9)}
-.operator-admin .field-vitals thead th:not(:first-child){text-align:right}
-.operator-admin .field-vitals tbody th{font-weight:500;min-width:160px}
-.operator-admin .performance-summary .admin-metrics{margin-bottom:16px}
-.operator-admin .performance-summary .admin-section-head:not(:first-child){margin-top:8px}
 /* Rules: the heading icon sits on the title line; the three limits share the 220px field grid. */
-.operator-admin .admin-policy .admin-section-head h2{display:flex;align-items:center;gap:8px}
 .operator-admin .admin-policy .admin-section-head h2 svg{width:20px;height:20px;flex:0 0 auto;color:var(--day-ok,#1d6b47)}
-.operator-admin .admin-rules-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
-.operator-admin .admin-audit-folders button{font-weight:500}
 /* Finance: the old quote summary folded under the accounting view. */
-.operator-admin details.admin-legacy{padding:0;overflow:hidden}
 .operator-admin .admin-legacy>summary{display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px;min-height:56px;padding:16px 24px;cursor:pointer;list-style:none;font-size:16px;font-weight:700;color:var(--day-ink,#16211c)}
-.operator-admin .admin-legacy>summary::-webkit-details-marker{display:none}
-.operator-admin .admin-legacy>summary::before{content:"";width:8px;height:8px;margin-right:4px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform .15s;flex:0 0 auto}
-.operator-admin .admin-legacy[open]>summary::before{transform:rotate(45deg)}
-.operator-admin .admin-legacy>summary small{font-size:13px;font-weight:400;color:var(--day-muted,#58635c)}
-.operator-admin .admin-legacy-body{padding:0 24px 24px;border-top:1px solid var(--day-line,#e2e2da)}
-.operator-admin .admin-legacy-body>.admin-section-head{margin-top:16px}
-.operator-admin .admin-legacy-body .finance-breakdown{margin-top:16px;padding:16px;border-radius:14px}
-.operator-admin .admin-legacy-body .finance-breakdown h3{margin:0 0 12px}
-.operator-admin .admin-legacy-body .finance-payment-states{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
-.operator-admin .admin-legacy-body .finance-payment-states>div{display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:12px}
-.operator-admin .admin-legacy-body .finance-payment-states b{font-size:22px;line-height:1.15;white-space:nowrap}
-.operator-admin .admin-legacy-body .finance-payment-states small{margin-top:auto}
-.operator-admin .admin-legacy-body .finance-lines strong{white-space:nowrap}
-.operator-admin .admin-legacy-body>.micro:last-child{margin:12px 0 0}
 /* Catalog tab rows share the form grid gap. */
-.operator-admin .catalog-collections article{gap:12px}
-.operator-admin .catalog-editor .two-fields{gap:12px}
-@media(max-width:1100px){.operator-admin .admin-thresholds{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:950px){.operator-admin .staff-form{grid-template-columns:repeat(2,minmax(0,1fr))}.operator-admin .staff-form .btn{grid-column:1/-1;justify-self:start}}
+@media(max-width:950px){.operator-admin .staff-form .btn{grid-column:1/-1;justify-self:start}}
 @media(max-width:700px){
  .operator-admin .admin-tabs,.operator-admin .audit-folders,.operator-admin .catalog-scope-tabs{flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;scroll-padding-inline:4px;margin-left:0;margin-right:0}
- .operator-admin .admin-tabs::-webkit-scrollbar,.operator-admin .audit-folders::-webkit-scrollbar,.operator-admin .catalog-scope-tabs::-webkit-scrollbar{display:none}
- .operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button{scroll-snap-align:start}
- .operator-admin .page-heading{flex-direction:row;align-items:flex-start;gap:12px;margin-bottom:16px}
- .operator-admin .page-heading h1{font-size:24px}
- .operator-admin .page-heading>.status-badge{margin-top:0;max-width:none;white-space:nowrap}
  .operator-admin .admin-section-head{flex-direction:column;align-items:stretch;gap:12px;margin-bottom:12px}
- .operator-admin .admin-section-head>:is(.admin-count,.admin-segment){align-self:flex-start}
- .operator-admin .admin-dashboard,.operator-admin .admin-two{gap:16px}
- .operator-admin .admin-metrics,.operator-admin .admin-shortcut-grid,.operator-admin .admin-now{gap:8px}
- .operator-admin .admin-metrics article,.operator-admin .admin-now div{padding:12px 14px}
- .operator-admin .admin-metrics article>strong{font-size:clamp(20px,11cqw,24px)}
- .operator-admin .admin-filters>.field,.operator-admin .admin-filters>.field:first-child{flex:1 1 100%}
- .operator-admin .admin-thresholds,.operator-admin .audit-filters,.operator-admin .admin-policy .pricing-grid,.operator-admin .admin-policy .two-fields{grid-template-columns:1fr}
- .operator-admin .admin-filter-count{height:auto}
- .operator-admin .admin-history li{grid-template-columns:1fr}
- .operator-admin .audit-list article{flex-direction:row;flex-wrap:wrap}
- .operator-admin .audit-list article .btn{width:auto}
- .operator-admin .admin-section-head .admin-system-actions,.operator-admin .surface>.admin-system-actions,.operator-admin .admin-policy>.admin-system-actions{display:flex;flex-wrap:wrap;gap:8px;width:100%;justify-content:flex-start}
  .operator-admin .admin-system-actions .btn{flex:1 1 calc(50% - 4px);width:auto;text-align:center;justify-content:center}
 }
 @media(max-width:600px){
- .operator-admin .surface{padding:16px;margin-bottom:16px}
- .operator-admin details.admin-legacy{padding:0}
  .operator-admin .admin-legacy>summary{padding:12px 16px}
- .operator-admin .admin-legacy-body{padding:0 16px 16px}
- .operator-admin .field :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),select){min-height:44px;font-size:16px}
- .operator-admin .staff-form{grid-template-columns:1fr;padding:12px}
- .operator-admin .admin-grid td .admin-btn-small{height:36px;min-height:36px}
- .operator-admin .admin-metrics article>span{padding-right:26px}
 }
 /* Night. */
-html[data-theme="dark"] .operator-admin .page-heading>.status-badge,html[data-theme="dark"] .operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button.active,html[data-theme="dark"] .operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button.active:hover,html[data-theme="dark"] .operator-admin .admin-segment button.active,html[data-theme="dark"] .operator-admin .staff-status.active,html[data-theme="dark"] .operator-admin .admin-rights td.center span[aria-label="есть"]{background:var(--night-jade-soft,rgba(128,208,172,.1));border-color:transparent;color:var(--night-jade,#80d0ac);box-shadow:none}
+html[data-theme="dark"] .operator-admin .page-heading>.status-badge, html[data-theme="dark"] .operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button.active, html[data-theme="dark"] .operator-admin .admin-segment button.active, html[data-theme="dark"] .operator-admin .staff-status.active, html[data-theme="dark"] .operator-admin .admin-rights td.center span[aria-label="есть"]{background:var(--night-jade-soft,rgba(128,208,172,.1));border-color:transparent;color:var(--night-jade,#80d0ac);box-shadow:none}
 html[data-theme="dark"] .operator-admin .admin-tabs,html[data-theme="dark"] .operator-admin .audit-folders,html[data-theme="dark"] .operator-admin .catalog-scope-tabs,html[data-theme="dark"] .operator-admin .admin-segment,html[data-theme="dark"] .operator-admin .staff-form{border-color:var(--night-line,rgba(226,238,231,.085));background:var(--night-inset,#0d1210);color:var(--night-ink,#f1eee5)}
 html[data-theme="dark"] .operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button,html[data-theme="dark"] .operator-admin .admin-segment button{border:0;background:transparent;color:var(--night-muted,#9ba6a0)}
 html[data-theme="dark"] .operator-admin :is(.admin-tabs,.audit-folders,.catalog-scope-tabs) button:hover{background:var(--night-raised,#161d19);color:var(--night-ink,#f1eee5)}
@@ -639,39 +209,7 @@ html[data-theme="dark"] .operator-admin .admin-tab-count,html[data-theme="dark"]
 html[data-theme="dark"] .operator-admin .admin-metrics article,html[data-theme="dark"] .operator-admin .admin-now div,html[data-theme="dark"] .operator-admin .admin-shortcut-grid>:is(a,button),html[data-theme="dark"] .operator-admin .field-vitals{border-color:var(--night-line,rgba(226,238,231,.085));background:var(--night-raised,#161d19);box-shadow:none;color:var(--night-ink,#f1eee5)}
 html[data-theme="dark"] .operator-admin .admin-shortcut-grid>:is(a,button):hover{background:var(--night-hover,#1b231f);border-color:var(--night-line-strong,rgba(226,238,231,.15))}
 html[data-theme="dark"] .operator-admin .admin-metrics article>strong,html[data-theme="dark"] .operator-admin .admin-now dd,html[data-theme="dark"] .operator-admin .admin-section-head>div>h2,html[data-theme="dark"] .operator-admin .admin-section-head>div>h3,html[data-theme="dark"] .operator-admin .admin-shortcut-grid b,html[data-theme="dark"] .operator-admin .field>label,html[data-theme="dark"] .operator-admin label.field>span:first-child{color:var(--night-ink,#f1eee5)}
-html[data-theme="dark"] .operator-admin .admin-metrics article.bad{border-color:var(--night-error-line,rgba(240,140,125,.4))}
-html[data-theme="dark"] .operator-admin .admin-metrics article.bad>strong{color:var(--night-error-ink,#f08c7d)}
 html[data-theme="dark"] .operator-admin .admin-metrics article>svg,html[data-theme="dark"] .operator-admin .admin-metrics article>span,html[data-theme="dark"] .operator-admin .admin-metrics article>small,html[data-theme="dark"] .operator-admin .admin-section-head>div>p,html[data-theme="dark"] .operator-admin .admin-shortcut-grid span,html[data-theme="dark"] .operator-admin .admin-grid td small,html[data-theme="dark"] .operator-admin .admin-now dt,html[data-theme="dark"] .operator-admin .admin-now small,html[data-theme="dark"] .operator-admin .field-vitals thead th{color:var(--night-muted,#9ba6a0)}
 html[data-theme="dark"] .operator-admin .admin-shortcut-grid svg,html[data-theme="dark"] .operator-admin .admin-subhead svg,html[data-theme="dark"] .operator-admin .admin-policy .admin-section-head h2 svg{color:var(--night-jade,#80d0ac)}
-html[data-theme="dark"] .operator-admin .field-vitals thead th{background:var(--night-raised,#161d19)}
-html[data-theme="dark"] .operator-admin .field-vitals :is(th,td){border-color:var(--night-line,rgba(226,238,231,.085))}
 html[data-theme="dark"] .operator-admin .staff-status,html[data-theme="dark"] .operator-admin .staff-status.disabled{background:var(--night-raised,#161d19);color:var(--night-muted,#9ba6a0)}
-html[data-theme="dark"] .operator-admin .staff-status.invited{background:var(--night-warn-bg,rgba(232,189,112,.09));color:var(--night-warn-ink,#e8bd70)}
-html[data-theme="dark"] .operator-admin .admin-rights td.center span[aria-label="нет"]{color:var(--night-faint,#88938d)}
-html[data-theme="dark"] .operator-admin .admin-legacy>summary{color:var(--night-ink,#f1eee5)}
-html[data-theme="dark"] .operator-admin .admin-legacy>summary small{color:var(--night-muted,#9ba6a0)}
-html[data-theme="dark"] .operator-admin .admin-count{background:var(--night-jade-soft,rgba(128,208,172,.1));color:var(--night-jade,#80d0ac)}
 html[data-theme="dark"] .operator-admin .admin-legacy-body{border-top-color:var(--night-line,rgba(226,238,231,.085))}
-
-/* Variant buttons of the product sheet and the link order (moved from catalog-import.css, now loaded on /admin only). */
-.variant-options.sizes button:disabled span{text-decoration:line-through}
-.variant-options button img{object-fit:contain;border-radius:4px;flex-shrink:0}
-/* Catalog admin: each collection is a bordered card with RU / UZ / EN over its name fields; on narrow screens the
-   collections go under the catalog cards, the import stays first. */
-@media(max-width:1099px){.operator-admin .catalog-workspace>.admin-section:nth-child(2){order:1}}
-.catalog-collection-name{display:grid;gap:4px;min-width:0}
-.catalog-collection-name b{font-size:11px;font-weight:600;letter-spacing:.04em;line-height:1.2;color:var(--day-muted,#58635c)}
-.operator-admin .catalog-collections{display:grid;gap:10px}
-.operator-admin .catalog-collections article{align-items:end;padding:12px;border:1px solid var(--day-line,#e2e2da);border-radius:12px;background:var(--day-surface,#fff)}
-.operator-admin .catalog-collections article>label{min-height:44px}
-html[data-theme="dark"] .operator-admin .catalog-collections article{background:var(--night-raised);border-color:var(--night-line)}
-html[data-theme="dark"] .catalog-collection-name b{color:var(--night-muted)}
-/* Customers: an empty cart reads as a muted 0; the access change is confirmed in a small dialog. */
-.admin-grid td.admin-zero{color:var(--day-muted,#58635c)}
-.atlas-modal .admin-confirm-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:12px;margin-top:20px}
-@media(max-width:600px){.atlas-modal .admin-confirm-actions>.btn{flex:1 1 100%}}
-html[data-theme="dark"] .admin-grid td.admin-zero{color:var(--night-muted)}
-/* Batch import: how many links the field holds; amber once it is over the 10-link limit of one check. */
-.batch-import .batch-link-count{margin:0;font-variant-numeric:tabular-nums}
-.batch-import .batch-link-count.is-over{color:var(--day-warn,#8a5a00);font-weight:600}
-html[data-theme="dark"] .batch-import .batch-link-count.is-over{color:var(--night-warn-ink,#e8bd70)}

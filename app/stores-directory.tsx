@@ -6,7 +6,7 @@ import Link from '@/components/site-link';
 import {PasteButton} from '@/components/paste-button';
 import { useMarket } from '@/lib/market/store';
 import { useRowAtStart } from '@/lib/market/row-start';
-import { retryOriginal, sizedImage } from '@/lib/market/image-size';
+import { retryOriginal, sizedImage, sizedSrcSet } from '@/lib/market/image-size';
 import { storesCopy } from '@/lib/market/stores-copy';
 import { catalogItems, storeHost, type CatalogItem } from '@/lib/market/catalog-query';
 import { brandAliases, normalizeSearch, wordMatches } from '@/lib/market/catalog-synonyms';
@@ -199,7 +199,7 @@ export function StoresDirectory() {
             <span>{c.products(entry.count)}</span>
           </header>
           {/* As many slots as photos (up to three): one photo fills the stage; the logo stands in only for one that fails to load. */}
-          <div className="store-showcase-photos" data-count={photos.length} aria-hidden="true">{photos.map((item) => <ShowcasePhoto key={item.product.id} src={item.product.image} brand={brand} />)}</div>
+          <div className="store-showcase-photos" data-count={photos.length} aria-hidden="true">{photos.map((item) => <ShowcasePhoto key={item.product.id} src={item.product.image} brand={brand} count={photos.length} />)}</div>
           <p className="store-showcase-total">
             {/* One span per line: the paragraph is a grid, and bare text runs would become rows of their own. */}
             <span>{entry.minTotal !== null ? <>{c.fromTotal} <Money value={entry.minTotal} locale={locale} />{c.withDelivery}</> : c.pendingTerms}</span>
@@ -281,13 +281,21 @@ function StoreGrid({ items, locale, c, catalog, marks, terms, onOpen, drawnUpTo 
   })}</ul>;
 }
 
+/** The `sizes` of a showcase photo: its share of the ~300 px stage (one, two or three photos side by side). */
+function showcaseSizes(count: number): string {
+  return Math.round(300 / Math.min(3, Math.max(1, count))) + 'px';
+}
+
 /** A product photo on the storefront card; the store's logo stands in when the photo fails to load. */
-function ShowcasePhoto({ src, brand }: { src: string; brand: StoreBrand }) {
+function ShowcasePhoto({ src, brand, count }: { src: string; brand: StoreBrand; count: number }) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) return <span className="store-showcase-photo"><StoreLogo brand={brand} size={40} /></span>;
   // Store images load straight from the store, asked smaller where its image server allows (lib/market/image-size.ts).
+  // The srcset (14.10.2026) lets a ~100 px cell take the 250 or 333 px copy; a wide cell or a DPR 3 phone still gets 500 px.
+  // The stage is at most ~300 px wide (1920 px screen) and split between the photos, so `sizes` is that share. Not
+  // sizes="auto": Chrome then gives the image `contain: size`, a style the page did not have before.
   // eslint-disable-next-line @next/next/no-img-element
-  return <span className="store-showcase-photo"><img src={sizedImage(src, 500)} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(event) => { if (!retryOriginal(event.currentTarget, src)) setFailed(true); }} /></span>;
+  return <span className="store-showcase-photo"><img src={sizedImage(src, 500)} srcSet={sizedSrcSet(src, 500)} sizes={showcaseSizes(count)} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(event) => { if (!retryOriginal(event.currentTarget, src)) setFailed(true); }} /></span>;
 }
 
 function StoresLinkForm({ c, field }: { c: Copy; field: RefObject<HTMLInputElement | null> }) {

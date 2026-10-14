@@ -4,7 +4,7 @@ import {PasteButton} from "@/components/paste-button";
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import {BadgeCheck,Check,ChevronDown,EyeOff,FolderPlus,ImageIcon,Link2,Loader2,RefreshCw,Send,Trash2} from 'lucide-react';
 import { toast } from '@/lib/market/toast';
-import {Modal} from './market-ui';
+import {Modal} from './modal';
 import {useMarket} from '@/lib/market/store';
 import {pickLocale} from '@/lib/market/uz-cyrl';
 import {catalogCategories,catalogIssues,catalogRefreshDueAt,cleanGeneratedCatalogDescription,dueCatalogEntries,isBundledCatalogEntry,isWatchedCatalogEntry,type CatalogCollection,type CatalogDocument,type CatalogDraft,type CatalogEntry} from '@/lib/market/catalog-editor';

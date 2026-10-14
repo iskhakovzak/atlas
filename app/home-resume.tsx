@@ -5,6 +5,8 @@ import {useMarket} from '@/lib/market/store';
 import {homeCopy} from '@/lib/market/home-copy';
 import {nextStepOf} from '@/lib/market/next-step';
 import type {Locale} from '@/lib/market/i18n';
+// Styles of this lazily loaded part: they arrive with its chunk, before it renders.
+import './styles/home-resume.css';
 
 const icons={approval:AlertCircle,payment:Wallet,cart:ShoppingBag};
 

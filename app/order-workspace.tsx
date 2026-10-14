@@ -98,10 +98,10 @@ import { CustomerParcelClaim, OperatorParcelClaims } from "./parcel-claim";
 import {
   PageHeading,
   Empty,
-  Modal,
   LoadingCards,
   ProductImage,
 } from "./market-ui";
+import { Modal } from "./modal";
 import { CostLines } from "./cost-lines";
 import {withCyrillic,pickLocale,uzText} from '@/lib/market/uz-cyrl';
 import {isUzbek} from '@/lib/market/i18n';

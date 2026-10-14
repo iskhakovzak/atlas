@@ -1,0 +1,211 @@
+/* Shared rules that only apply at widths of 481px and more. Split out of the layout CSS (14.10.2026) so other pages do not load these rules; they keep the order
+   they had there (layout files in import order, then the home page's files), and every rule a later layout rule of the same
+   weight overrides stayed in the layout. Edit them here. */
+
+/* ── app/access.css ── */
+@media (max-width:900px) and (min-width:601px) {
+  .desktop-nav{gap:14px;margin-left:0}
+  .desktop-nav a:is([data-nav="how"],[data-nav="tariffs"]){display:none}
+  .cart-link .desktop-only{display:none}
+}
+/* Guests have "Order by link" first in the menu. Where it would scroll, the items that are also in the footer and on the
+   home page make room: "Stores" at 761-799px, "How it works" up to 1049px and "Rates" up to 959px (Uzbek Cyrillic is the longest). */
+@media (min-width:761px) and (max-width:799px) {
+  .site-header:not(:has(.header-account.member)) .desktop-nav a[data-nav="stores"]{display:none}
+}
+@media (min-width:901px) and (max-width:1049px) {
+  .site-header:not(:has(.header-account.member)) .desktop-nav a[data-nav="how"]{display:none}
+}
+@media (min-width:901px) and (max-width:959px) {
+  .site-header:not(:has(.header-account.member)) .desktop-nav a[data-nav="tariffs"]{display:none}
+}
+/* Saved items (the heart) stay in the header on tablets; only at 761-884px, where the menu would scroll (Uzbek Cyrillic with a
+   cart counter), they wait in the account. */
+@media (min-width:761px) and (max-width:884px) {
+  .header-actions>a[href="/favorites"]{display:none}
+}
+
+/* ── app/home-polish.css ── */
+@media (min-width:1280px) {
+  .catalog-home .finds-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
+}
+@media (min-width:851px) and (max-width:1279px) {
+  .catalog-home .finds-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+
+/* ── app/home.css ── */
+/* The header's edges line up with the page content (site-main: max 1500px, padding clamp(20px, 4.7vw, 72px)). */
+@media (min-width: 761px) {
+  html .site-header { padding-inline: max(clamp(20px, 4.7vw, 72px), calc((100% - 1500px) / 2 + 72px)); }
+  /* Never wider than the screen. The compact rules below make every menu item fit from 1151px up (e2e checks it);
+     only as a last resort (a longer language, an 8-digit balance) the menu shrinks and scrolls inside the header,
+     so the wordmark, account, cart and balance stay whole. The inline padding keeps focus rings unclipped. */
+  .site-header .desktop-nav { min-width: 0; padding-inline: 4px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+  .site-header .desktop-nav::-webkit-scrollbar { display: none; }
+  .site-header .header-actions, .site-header .wordmark { flex-shrink: 0; }
+  /* Owner, 7.10.2026: the theme switch stays next to the languages after sign-in too (and in the footer for everyone). */
+  /* The operator has one more entry ("Управление"): at the content's 1356px cap the anchors still do not fit next to it,
+     so they stay in the footer at every desktop width. */
+  .site-header:has(.operator-entry) .desktop-nav a:is([data-nav="how"], [data-nav="tariffs"]) { display: none; }
+}
+/* Signed-in header below 1680px: the home anchors (also in the footer and the home page) make room for a 7-digit
+   balance and the theme switch (at 1500–1679px the Russian menu ran 10px short with both). */
+@media (min-width: 761px) and (max-width: 1679px) {
+  .site-header:has(.header-account.member) .desktop-nav a:is([data-nav="how"], [data-nav="tariffs"]) { display: none; }
+}
+/* The operator's header below 1340px has no room for the theme switch next to «Управление»: it stays in the footer. */
+@media (min-width: 761px) and (max-width: 1339px) {
+  .site-header:has(.operator-entry) .header-theme { display: none; }
+}
+/* Up to 1399px (iPad 768/1024, small laptops): tighter gaps. */
+@media (min-width: 761px) and (max-width: 1399px) {
+  .site-header { gap: 16px; }
+}
+/* Up to 1459px the operator's "Управление" is an icon (its name stays for screen readers): with the full label and a
+   7–8 digit balance the menu ran 20px short at 1400–1459px. */
+@media (min-width: 761px) and (max-width: 1459px) {
+  .site-header .header-actions .operator-entry { width: 44px; min-width: 44px; min-height: 44px; justify-content: center; padding-inline: 0; font-size: 0; }
+  .site-header .header-actions .operator-entry svg { width: 20px; height: 20px; flex: 0 0 auto; }
+}
+/* Tablets (iPad 768/1024): a signed-in menu (Каталог, Магазины, Мои заказы) did not fit beside the balance, bell and cart;
+   «Магазины» stays in the footer and on the home page. */
+@media (min-width: 761px) and (max-width: 1150px) {
+  .site-header:has(.header-account.member) .desktop-nav a[data-nav="stores"] { display: none; }
+}
+/* Up to 1299px the balance is the wallet icon (globals.css does this up to 1150px); the amount is on /balance. */
+@media (min-width: 761px) and (max-width: 1299px) {
+  .site-header .wallet-link span { display: none; }
+}
+/* 1151–1199px: the operator's menu still needs ~13px in Night, so the header's own gaps tighten once more. */
+@media (min-width: 761px) and (max-width: 1199px) {
+  .site-header { gap: 8px; }
+}
+
+/* Hero. */
+@media (min-width: 640px) {
+  .home-link-form { flex-direction: row; align-items: center; }
+  .home-link-form .home-cta { padding-inline: 28px; }
+}
+/* The closing screen's copy of the form (desktop): as wide as the hero's, under the line of text. */
+@media (min-width: 640px) {
+  .home-stores ul { flex-wrap: wrap; overflow: visible; }
+}
+/* Crypto (legal status to be confirmed by the owner) last and quieter than the card and local methods. */
+@media (min-width: 640px) {
+  .home-steps { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1024px) {
+  .home-steps { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* Trust. */
+@media (min-width: 900px) {
+  .home-trust-grid { grid-template-columns: 1fr 1fr; }
+}
+/* Wide screens: the title on top, the questions in two columns as wide as the other sections (their container sets it). */
+@media (min-width: 1024px) {
+  .home-faq { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; column-gap: 16px; }
+}
+
+/* Footer. */
+/* Compact: brand + tagline on the left, link groups on the right, one bottom line. Groups are a flex row, so a
+   missing contacts group leaves no empty column. */
+@media (min-width: 761px) {
+  .home-footer { grid-template-columns: minmax(200px, 1fr) auto; column-gap: 48px; align-items: start; }
+  /* Each group is one aligned row: a fixed title column, then its links in a line. */
+  .home-footer-groups { grid-column: 2; display: grid; gap: 6px; align-content: start; }
+  .home-footer-groups > * { display: grid; grid-template-columns: 180px minmax(0, 1fr); column-gap: 24px; align-items: baseline; min-width: 0; }
+  .home-footer-groups .home-footer-title { margin: 0; padding-top: 12px; }
+  .home-footer :is(nav, section) ul { display: flex; flex-wrap: wrap; gap: 0 18px; }
+  .home-footer-bottom { grid-column: 1 / -1; }
+}
+
+/* ── app/customer.css ── */
+/* A loaded item: the page title steps back to one short line so the item starts high (owner, 11 October 2026). */
+@media (min-width: 640px) {
+  .lo-link { flex-direction: row; align-items: center; }
+}
+
+/* ── app/theme-night.css ── */
+/* The total is the darkest figure in Day; in Night it inherited the muted grey of the account card. */
+@media (min-width: 600px) {
+  html[data-theme="dark"] .home-folio .bill-total { grid-template-columns: auto minmax(0, 1fr); align-items: baseline; }
+  html[data-theme="dark"] .home-folio .bill-total strong { justify-self: end; }
+}
+
+/* ── app/catalog.css ── */
+/* ---------- Breakpoints ---------- */
+/* Phones: two compact cards per row, so a shelf shows more than one product per screen. */
+@media (min-width: 761px) {
+  /* The side sheet's photo stays under ~420 px, so the name and the sticky total show on opening. */
+  .product-sheet.product-sheet-right .product-gallery-stage { aspect-ratio: auto; height: min(46vh, 420px); }
+}
+
+/* ── app/stores.css ── */
+/* Three columns: three rows collapsed. */
+@media (min-width: 600px) {
+  .stores-link > .btn { padding: 0 22px; }
+}
+
+/* ── app/refine.css ── */
+/* Store names wrap to a second line instead of losing their ending ("Bloomingd…"). */
+@media (min-width: 600px) {
+  .stores-link { grid-template-columns: minmax(0, 1fr) auto; }
+}
+
+/* ── app/day-folio.css ── */
+/* Total: a ruled line, then the amount large in ink. */
+@media (min-width: 600px) {
+  html:not([data-theme="dark"]) .home-folio .bill-total { grid-template-columns: auto minmax(0, 1fr); align-items: baseline; }
+  html:not([data-theme="dark"]) .home-folio .bill-total strong { justify-self: end; }
+}
+/* How it works: a real sequence. Phones draw it as stations on a rail; wide screens as four white cards. */
+@media (min-width: 1024px) {
+  html:not([data-theme="dark"]) .home-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  html:not([data-theme="dark"]) .home-steps::before { display: none; }
+  html:not([data-theme="dark"]) .home-step { position: relative; padding: 22px 22px 24px; border: 1px solid var(--day-line); border-radius: var(--day-r-card); background: var(--day-surface); box-shadow: var(--day-shadow); }
+  html:not([data-theme="dark"]) .home-step-station { position: static; width: 36px; height: 36px; margin-bottom: 18px; font-size: 14px; box-shadow: none; }
+}
+/* Tracking demo: a white card with a horizontal route on wide screens. */
+@media (min-width: 900px) {
+  html:not([data-theme="dark"]) .home-tracking ol { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+  html:not([data-theme="dark"]) .home-tracking li { flex-direction: column; align-items: flex-start; gap: 12px; font-size: 14px; }
+  html:not([data-theme="dark"]) .home-tracking ol::before { content: ""; position: absolute; left: 11px; right: calc(100% / 6 - 11px); top: 10px; height: 2px; background: linear-gradient(90deg, var(--day-accent) 0 80%, var(--day-line-strong-2) 80% 100%); }
+}
+
+/* ── app/store-marks.css ── */
+/* Wide screens: the sheet is a whole screen tall, so the sky gets the room above and below the cards. */
+@media (min-width: 960px) {
+  .store-marquee-row.single { display: none; }
+  .store-marquee-row.double { display: block; }
+  html body .home-stores.home-stores-marquee .store-marquee a { min-height: 50px; padding: 0 20px; font-size: 17px; }
+  .home-stores.home-stores-marquee .store-marquee .store-mark { zoom: 1.1; }
+}
+
+/* ── app/header-panel.css ── */
+/* ---------- Signed-in header, 761–960px ---------- */
+/* The signed-in menu (Каталог, Мои заказы) ran out of room and scrolled inside the header: at 901–960px by up to 22px
+   (ru), 6px (uz) and 31px (oz) with the cart's name and counter, at 761–800px by 19/23/45px. At 901–960px the cart is its
+   icon and counter, as it is up to 900px (its name stays in the aria-label). Up to 900px the wordmark is a size smaller
+   and the gaps and the account button a little tighter; the buttons keep their 44px. Checked with the operator's extra
+   icon too (14.10.2026). */
+@media (min-width: 901px) and (max-width: 960px) {
+  .site-header:has(.header-account.member) .cart-link .desktop-only { display: none; }
+}
+@media (min-width: 761px) and (max-width: 900px) {
+  .site-header:has(.header-account.member) .wordmark { font-size: 38px; }
+  .site-header:has(.header-account.member) .header-actions { gap: 4px; }
+  .site-header:has(.header-account.member) .desktop-nav { margin-left: 0; }
+  .site-header:has(.header-account.member) .desktop-nav a { padding-inline: 8px; }
+  .site-header .header-account.member { padding-inline: 12px; }
+}
+
+/* ── app/motion.css ── */
+/* ---------- Sign-in screens and the account outline (7.10.2026) ---------- */
+/* The account's outline while the session is checked (app/access-view.tsx): same columns as .cabinet-grid. */
+@media (min-width: 960px) {
+  .account-skeleton .sk-grid { grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); gap: 20px; align-items: start; }
+}
+@media (min-width: 640px) {
+  .account-skeleton .sk-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}

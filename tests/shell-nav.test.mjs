@@ -24,19 +24,21 @@ test('a guest signs in and comes back to the page they were on', () => {
 test('one bottom bar for guests and members; tablet header hides links by name, not by position', () => {
   const access = source('app/access.css');
   const mobile = source('app/mobile.css');
+  // The header rules from 601px up live in the desktop-only file split out of the layout CSS (14.10.2026).
+  const tablet = source('app/styles/layout-desktop.css');
   assert.doesNotMatch(access, /\.mobile-nav\.guest\s*\{/);
   assert.doesNotMatch(mobile, /\.mobile-nav\.guest\s*\{/);
-  assert.doesNotMatch(access, /\.desktop-nav a:nth-child/);
-  assert.match(access, /\.desktop-nav a:is\(\[data-nav="how"\],\[data-nav="tariffs"\]\)\{display:none\}/);
+  assert.doesNotMatch(access + tablet, /\.desktop-nav a:nth-child/);
+  assert.match(tablet, /\.desktop-nav a:is\(\[data-nav="how"\],\[data-nav="tariffs"\]\)\{display:none\}/);
   const shell = source('app/marketplace.tsx');
   assert.match(shell, /\['\/order-by-link','link',Link2,hc\.nav\.byLink\]/, 'guest bottom bar links to order by link');
   assert.match(shell, /data-nav=\{key\}/);
 });
 
 test('saved items (the heart) stay in the tablet header except where the member menu would scroll', () => {
-  const access = source('app/access.css');
-  assert.doesNotMatch(access, /min-width:601px\)\{[^}]*favorites/, 'not hidden across the whole 601-900px range');
-  assert.match(access, /@media\(min-width:761px\) and \(max-width:884px\)\{\.header-actions>a\[href="\/favorites"\]\{display:none\}\}/);
+  const access = source('app/access.css') + source('app/styles/layout-desktop.css');
+  assert.doesNotMatch(access, /min-width:601px\) ?\{[^}]*favorites/, 'not hidden across the whole 601-900px range');
+  assert.match(access, /@media ?\(min-width:761px\) and \(max-width:884px\) ?\{\s*\.header-actions>a\[href="\/favorites"\]\{display:none\}\s*\}/);
 });
 
 test('an empty header cart is outlined, a cart with items keeps the filled button and the counter', () => {
@@ -62,9 +64,9 @@ test('a positive balance puts a still mint dot on the wallet; its name keeps the
 });
 
 test('the signed-in header fits at 761–960px: the cart is its icon at 901–960px, as below 900px', () => {
-  const css = source('app/header-panel.css');
+  const css = source('app/styles/layout-desktop.css'); // from header-panel.css and access.css (14.10.2026)
   assert.match(css, /@media \(min-width: 901px\) and \(max-width: 960px\) \{\r?\n  \.site-header:has\(\.header-account\.member\) \.cart-link \.desktop-only \{ display: none; \}/);
-  assert.match(source('app/access.css'), /@media\(max-width:900px\) and \(min-width:601px\)\{[^}]*\}[^@]*\.cart-link \.desktop-only\{display:none\}/);
+  assert.match(css, /@media ?\(max-width:900px\) and \(min-width:601px\) ?\{[^}]*\}[^@]*\.cart-link \.desktop-only\{display:none\}/);
   assert.match(source('app/marketplace.tsx'), /aria-label=\{modalWords\.cart\+\(known\?shownCount:''\)\}/, 'the cart keeps its name for screen readers');
 });
 

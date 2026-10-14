@@ -58,6 +58,24 @@ export default defineConfig(async () => {
       ...(managedLinux ? { host: "0.0.0.0", allowedHosts: ["terminal.local"] } : {}),
       ...(isCodexSeatbeltSandbox ? { watch: { useFsEvents: false, usePolling: true } } : {}),
     },
+    environments: {
+      client: {
+        build: {
+          rolldownOptions: {
+            output: {
+              codeSplitting: {
+                // app/styles/catalog-cards.css is linked by the server for the catalog pages and loaded by two lazy client
+                // parts (the home teaser and the product sheet). Its own chunk gives the browser file the server's name
+                // (css/catalog-cards.<hash>.css), so a page that already links it does not fetch a second copy under the
+                // teaser's name, and the product sheet no longer pulls in the teaser's script for it (14.10.2026).
+                // Joined ahead of vinext's own groups (framework, vinext), which stay as they are.
+                groups: [{ name: "catalog-cards", test: /[\\/]app[\\/]styles[\\/]catalog-cards\.css$/, minSize: 0, priority: 1 }],
+              },
+            },
+          },
+        },
+      },
+    },
     plugins: [
       vinext(),
       // Atlas runs its own sign-in (lib/auth); the Sites ChatGPT mock stays off.

@@ -8,7 +8,7 @@ import {telegramNotifyLink,telegramView} from '@/lib/market/telegram-state';
 import {telegramUiCopy} from '@/lib/market/telegram-ui-copy';
 import {toast} from '@/lib/market/toast';
 import {isNative,openExternal} from '@/lib/native/bridge';
-import {Modal} from './market-ui';
+import {Modal} from './modal';
 import {TelegramBotLogin,loginCopy} from './login-view';
 import {dismissNudge,nudgeDismissed,signInMethodsChanged,useTelegramBot,useTelegramLink} from './telegram-notices-data';
 import './telegram-notices.css';

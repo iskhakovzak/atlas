@@ -1,4 +1,6 @@
-import {database} from './server.ts';
+import {database,pricing as currentPricing} from './server.ts';
+import {readCatalog} from './catalog-server.ts';
+import {catalogSeed,type CatalogSeedValue} from './catalog-seed.ts';
 import type {Pricing} from './domain.ts';
 import {parseStoredPricing} from './pricing-equal.ts';
 import {mergeSiteContent,parseStoredSiteContent,siteContentStorageKey,type SiteContentView} from './site-content-schema.ts';
@@ -40,4 +42,17 @@ export async function initialSettings():Promise<{pricing:Pricing|null;siteConten
   const pricing=parseStoredPricing(values.get('pricing'));
   return {pricing:pricing&&withoutAuthor(pricing),siteContent:mergeSiteContent(parseStoredSiteContent(values.get(siteContentStorageKey)))};
  }catch{return {pricing:null,siteContent:mergeSiteContent(null)}}
+}
+
+/**
+ * The public catalog for the first render of /catalog and /stores (<CatalogSeed> in those pages), read exactly as
+ * GET /api/catalog reads it: the same catalog sync and the same tariff read, which also schedules the Central Bank
+ * rate refresh when it is due, as the request the page no longer makes did. Null (the page then loads the catalog in
+ * the browser as before) when nothing is published, the catalog is too large to inline, or the database is unavailable.
+ */
+export async function initialPublicCatalog():Promise<CatalogSeedValue|null>{
+ try{
+  const [{document},pricing]=await Promise.all([readCatalog(),currentPricing()]);
+  return catalogSeed(document,pricing);
+ }catch{return null}
 }

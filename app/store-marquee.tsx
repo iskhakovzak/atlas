@@ -1,5 +1,5 @@
 'use client';
-import type {CSSProperties,FocusEvent} from 'react';
+import {useEffect,useState,type CSSProperties,type FocusEvent} from 'react';
 import {ArrowRight} from 'lucide-react';
 import Link from '@/components/site-link';
 import {popularBrandKeys,storeBrands,storefrontUrl,type StoreBrand} from '@/lib/market/store-brands';
@@ -17,12 +17,22 @@ import {InfoTip} from '@/components/info-tip';
 const popular=popularBrandKeys.map(key=>storeBrands.find(brand=>brand.key===key)).filter((brand):brand is StoreBrand=>Boolean(brand));
 export const marqueeStores=[...popular,...storeBrands.filter(brand=>!popularBrandKeys.includes(brand.key)&&hasStoreMark(brand.key))];
 
-function Item({store,hidden,openStore}:{store:StoreBrand;hidden:boolean;openStore:string}){
+/**
+ * Marks drawn from the start in each row (14.10.2026): those in view when the page opens and the next ones to come in.
+ * The rest (~30 files on a phone) are asked for once the page has settled (idle after hydration, at most 1.5 s), so
+ * they do not compete with the first screen. A mark takes ~2.6 s to move by one store, so none comes into view empty.
+ * A forward row brings in its next stores from the right; the reverse row starts on the copy and brings in its last ones
+ * from the left.
+ */
+const firstMarks=14,lastMarks=6;
+const markFromStart=(index:number,count:number,reverse:boolean)=>index<firstMarks||(reverse&&index>=count-lastMarks);
+
+function Item({store,hidden,openStore,later}:{store:StoreBrand;hidden:boolean;openStore:string;later:boolean}){
  const mark=hasStoreMark(store.key);
  return <li>
   {/* A mark that spells the name keeps the name as hidden text, not aria-label: crawlers and reader views see it too. */}
   <a href={storefrontUrl(store)} target="_blank" rel="noopener noreferrer" tabIndex={hidden?-1:undefined}>
-   {mark&&<StoreMark brandKey={store.key} height={30} maxWidth={140}/>}
+   {mark&&<StoreMark brandKey={store.key} height={30} maxWidth={140} later={later}/>}
    <span className={mark&&storeWordmarks.has(store.key)?'sr-only':'store-marquee-name'}>{store.name}</span>
    <span className="sr-only"> ({openStore})</span>
   </a>
@@ -30,11 +40,12 @@ function Item({store,hidden,openStore}:{store:StoreBrand;hidden:boolean;openStor
 }
 
 /** One row: the list and an inert copy right after it, so the loop has no seam (the track moves by half its width). */
-function Row({stores,reverse,openStore,className}:{stores:StoreBrand[];reverse?:boolean;openStore:string;className:string}){
+function Row({stores,reverse=false,openStore,className,allMarks}:{stores:StoreBrand[];reverse?:boolean;openStore:string;className:string;allMarks:boolean}){
+ const later=(index:number)=>!allMarks&&!markFromStart(index,stores.length,reverse);
  return <div className={'store-marquee-row '+className+(reverse?' reverse':'')} style={{'--marquee-s':`${Math.max(30,stores.length*2.6)}s`} as CSSProperties}>
   <div className="store-marquee-track">
-   <ul>{stores.map(store=><Item key={store.key} store={store} hidden={false} openStore={openStore}/>)}</ul>
-   <ul className="store-marquee-copy" aria-hidden="true" inert>{stores.map(store=><Item key={store.key} store={store} hidden openStore={openStore}/>)}</ul>
+   <ul>{stores.map((store,index)=><Item key={store.key} store={store} hidden={false} openStore={openStore} later={later(index)}/>)}</ul>
+   <ul className="store-marquee-copy" aria-hidden="true" inert>{stores.map((store,index)=><Item key={store.key} store={store} hidden openStore={openStore} later={later(index)}/>)}</ul>
   </div>
  </div>;
 }
@@ -55,11 +66,19 @@ const keyBlur=(event:FocusEvent<HTMLElement>)=>{delete event.currentTarget.datas
 export function StoreMarquee({label,openStore,allStores,hint,locale='ru'}:{label:string;openStore:string;allStores:string;/** How to order from a store: by "All stores" behind a "?" on phones (the hero keeps it in place on wide screens). */hint?:string;locale?:string}){
  // Wide screen: popular stores spread over both rows, so Nike, Zara and Amazon are in view from the start.
  const top=marqueeStores.filter((_,index)=>index%2===0),bottom=marqueeStores.filter((_,index)=>index%2===1);
+ const [allMarks,setAllMarks]=useState(false);
+ useEffect(()=>{
+  const show=()=>setAllMarks(true);
+  // Safari has no requestIdleCallback: a short timer there.
+  if(typeof window.requestIdleCallback!=='function'){const timer=window.setTimeout(show,300);return()=>window.clearTimeout(timer)}
+  const handle=window.requestIdleCallback(show,{timeout:1500});
+  return()=>window.cancelIdleCallback(handle);
+ },[]);
  return <section className="store-marquee" aria-label={label} onFocus={keyFocus} onBlur={keyBlur}>
   <DeliverySky className="store-marquee-sky" viewBox="0 0 600 150" routes={routes} sparks={sparks}/>
-  <Row stores={marqueeStores} openStore={openStore} className="single"/>
-  <Row stores={top} openStore={openStore} className="double"/>
-  <Row stores={bottom} reverse openStore={openStore} className="double"/>
+  <Row stores={marqueeStores} openStore={openStore} className="single" allMarks={allMarks}/>
+  <Row stores={top} openStore={openStore} className="double" allMarks={allMarks}/>
+  <Row stores={bottom} reverse openStore={openStore} className="double" allMarks={allMarks}/>
   <div className="store-marquee-foot">
    <Link className="home-stores-all" href="/stores">{allStores}<ArrowRight size={16} aria-hidden="true"/></Link>
    {hint&&<InfoTip locale={locale}>{hint}</InfoTip>}

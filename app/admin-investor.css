@@ -5,6 +5,9 @@
 /* ---------- layout ---------- */
 .admin-investor { display: grid; gap: 16px; min-width: 0; }
 .admin-investor .inv-card, .admin-investor .inv-head { margin: 0; border-radius: 14px; }
+/* operator.css is a shared chunk linked after this file: without the .operator-admin prefix its
+   .operator-admin .surface { margin: 0 0 24px } would win the tie. */
+.operator-admin .admin-investor :is(.inv-card, .inv-head) { margin: 0; }
 .admin-investor .admin-section-head { margin-bottom: 16px; }
 .admin-investor .admin-section-head h2 { display: flex; align-items: center; gap: 8px; }
 .admin-investor .admin-section-head h2 svg { width: 22px; height: 22px; flex: 0 0 auto; }

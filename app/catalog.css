@@ -41,34 +41,11 @@ html[data-theme="dark"] {
 }
 
 /* ---------- Heading, banners ---------- */
-.catalog-page { padding-bottom: 8px; }
-.catalog-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin: 8px 0 16px; }
 .catalog-head h1 { margin: 0 0 6px; color: var(--cat-ink); font-size: clamp(28px, 4vw, 44px); line-height: 1.1; }
-.catalog-head p { margin: 0; max-width: 70ch; color: var(--cat-muted); font-size: 15px; line-height: 1.5; }
-.catalog-stats { display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 8px 14px; border: 1px solid var(--cat-line); border-radius: 999px; background: var(--cat-surface); color: var(--cat-ink); font-size: 14px; font-weight: 650; white-space: nowrap; }
-.catalog-stats svg { color: var(--cat-accent); }
-.catalog-head-side { display: flex; flex-wrap: wrap; gap: 8px; }
-.catalog-saved { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border: 1px solid var(--cat-line); border-radius: 999px; background: var(--cat-surface); color: var(--cat-ink); font-size: 14px; font-weight: 650; text-decoration: none; }
-.catalog-saved svg { color: var(--cat-accent); }
-.catalog-saved b { color: var(--cat-muted); font-size: 12px; }
 
 /* One line: icon, the short fact, the action; the sentence and the "how it works" link open on tap (≤ 56px on phones). */
-.catalog-page .catalog-banner { display: block; margin: 0 0 10px; padding: 0 12px; border: 1px solid var(--cat-ok-line); border-radius: 12px; background: var(--cat-ok-bg); color: var(--cat-ink); }
-.catalog-page .catalog-banner-row { display: flex; align-items: center; gap: 8px; min-height: 48px; }
 .catalog-page .catalog-banner-row > svg { flex: none; color: var(--cat-ok); }
-.catalog-page .catalog-banner-toggle { display: inline-flex; flex: 1 1 auto; align-items: center; gap: 6px; min-width: 0; min-height: 44px; padding: 0; border: 0; background: none; color: var(--cat-ink); font: inherit; font-size: 14px; font-weight: 650; text-align: left; cursor: pointer; }
-.catalog-page .catalog-banner-toggle > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .catalog-page .catalog-banner-toggle > svg { flex: none; color: var(--cat-muted); transition: transform .15s; }
-.catalog-page .catalog-banner-toggle[aria-expanded="true"] > svg { transform: rotate(180deg); }
-.catalog-page .catalog-banner-detail { display: flex; flex-wrap: wrap; gap: 0 18px; padding: 0 0 10px 26px; }
-.catalog-page .catalog-banner-detail[hidden] { display: none; }
-.catalog-page .catalog-banner-detail p { flex-basis: 100%; margin: 0 0 2px; font-size: 14px; line-height: 1.5; }
-.catalog-page .catalog-banner.catalog-banner-warn { border-color: var(--cat-warn-line); background: var(--cat-warn-bg); }
-.catalog-page .catalog-banner-warn .catalog-banner-row > svg { color: var(--cat-warn); }
-/* The parcel banner is a neutral fact beside the mint allowance banner: a white card with a mint icon. */
-.catalog-page .catalog-banner.catalog-banner-parcel { border-color: var(--cat-line); background: var(--cat-surface); }
-/* Specific enough to keep the 44px tap target over refine.css's 36px phone rule for banner actions. */
-.catalog-page .catalog-banner :is(.catalog-banner-row, .catalog-banner-detail) > :is(.text-button, .text-link) { display: inline-flex; flex: none; align-items: center; min-height: 44px; padding: 0; border: 0; background: none; color: var(--cat-accent); font: inherit; font-size: 14px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; cursor: pointer; }
 
 /* ---------- Chips (categories, prices, sizes, active filters) ---------- */
 :is(.catalog-categories, .catalog-chips, .catalog-active) > button:not(.text-button) {
@@ -79,104 +56,17 @@ html[data-theme="dark"] {
 }
 :is(.catalog-categories, .catalog-chips) > button > span { color: var(--cat-muted); font-size: 12px; font-weight: 750; font-feature-settings: "tnum" 1; }
 :is(.catalog-categories, .catalog-chips) > button:hover { border-color: var(--cat-accent); }
-.catalog-categories > button[data-empty]:not([aria-pressed="true"]) { border-style: dashed; color: var(--cat-muted); }
 :is(.catalog-categories, .catalog-chips) > button[aria-pressed="true"] { border-color: var(--cat-on); background: var(--cat-on); color: var(--cat-on-ink); }
 :is(.catalog-categories, .catalog-chips) > button[aria-pressed="true"] > span { color: inherit; opacity: .85; }
 :is(.catalog-page, .catalog-sheet) :is(button, a, input, select):focus-visible { outline: 2px solid var(--cat-accent); outline-offset: 2px; }
 
-/* ---------- Sets: the operator's collections and query presets with photo covers ---------- */
-/* Room on the right for the fade mask (the last set scrolls out of it), on top for the focus ring, below for the shadow. */
-.catalog-sets { display: flex; gap: 10px; margin: -2px -16px 14px; padding: 4px 44px 14px 16px; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; scroll-padding-inline: 16px; }
-.catalog-sets::-webkit-scrollbar { display: none; }
-.catalog-page .catalog-sets > .catalog-set {
-  display: grid; grid-template-columns: 64px minmax(0, 1fr); grid-template-rows: auto auto; align-content: center; column-gap: 10px; row-gap: 2px;
-  flex: none; width: 212px; min-height: 80px; padding: 7px; border: 1px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); color: var(--cat-ink);
-  box-shadow: var(--cat-shadow); font: inherit; text-align: left; cursor: pointer; scroll-snap-align: start;
-  transition: border-color .15s, box-shadow .15s;
-}
-.catalog-page .catalog-sets > .catalog-set:hover { border-color: var(--cat-accent); }
-.catalog-page .catalog-sets > .catalog-set[aria-pressed="true"] { border-color: var(--cat-accent); box-shadow: inset 0 0 0 1px var(--cat-accent); }
-.catalog-page .catalog-sets > .catalog-set > b { align-self: end; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 700; line-height: 1.3; }
-.catalog-page .catalog-sets > .catalog-set > span:last-child { align-self: start; color: var(--cat-muted); font-size: 12.5px; font-weight: 600; line-height: 1.3; font-feature-settings: "tnum" 1; }
-.catalog-set-cover { grid-row: 1 / span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; aspect-ratio: 1; padding: 3px; border: 1px solid var(--cat-line); border-radius: 10px; background: var(--cat-stage); overflow: hidden; }
-.catalog-set-cover[data-single] { grid-template-columns: 1fr; }
-.catalog-set-cover img { display: block; width: 100%; height: 100%; aspect-ratio: 1; object-fit: contain; mix-blend-mode: multiply; }
-
 /* ---------- Toolbar ---------- */
-.catalog-bar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin-bottom: 18px; }
-.catalog-search { display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 52px; padding: 0 6px 0 16px; border: 1.5px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); color: var(--cat-muted); }
-.catalog-search:focus-within { border-color: var(--cat-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cat-accent) 18%, transparent); }
-.catalog-search input { flex: 1; min-width: 0; min-height: 48px; padding: 0; border: 0; outline: 0; background: transparent; color: var(--cat-ink); font: inherit; font-size: 16px; }
-.catalog-search input::placeholder { color: var(--cat-muted); opacity: 1; }
-.catalog-search input::-webkit-search-cancel-button { display: none; }
-.catalog-search > svg, .catalog-search > button { flex: none; }
-.catalog-sets-toggle { display: none; }
-.catalog-page .catalog-search input:focus-visible { outline: 0; }
-.catalog-categories { display: flex; gap: 8px; margin: 0 -16px; padding: 2px 16px 4px; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; }
-.catalog-categories > button { scroll-snap-align: start; }
-.catalog-bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
-.catalog-facets-button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 1.5px solid var(--cat-ink); border-radius: 12px; background: var(--cat-surface); color: var(--cat-ink); font: inherit; font-weight: 700; cursor: pointer; }
-.catalog-facets-button b { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: var(--cat-on); color: var(--cat-on-ink); font-size: 12px; }
-.catalog-found { margin-right: auto; color: var(--cat-muted); font-size: 14px; font-weight: 650; }
-.catalog-sort { display: inline-flex; align-items: center; gap: 8px; color: var(--cat-muted); font-size: 14px; font-weight: 600; }
-.catalog-sort select { min-height: 44px; padding: 0 12px; border: 1px solid var(--cat-line); border-radius: 12px; background: var(--cat-surface); color: var(--cat-ink); font: inherit; font-weight: 650; cursor: pointer; }
-.catalog-active { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.catalog-active > button:not(.text-button) { background: var(--cat-soft); }
-.catalog-active > button:not(.text-button):hover { border-color: var(--cat-accent); }
 :is(.catalog-page, .catalog-sheet) :is(.catalog-active, .catalog-facets) .text-button { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; border: 0; background: none; color: var(--cat-accent); font: inherit; font-weight: 700; cursor: pointer; }
 
-/* ---------- Layout ---------- */
-.catalog-sidebar { display: none; }
-.catalog-results { min-width: 0; }
-.catalog-page .finds-grid { align-items: stretch; }
-
-/* ---------- Filter panel (sidebar and sheet) ---------- */
-.catalog-facets fieldset { min-width: 0; margin: 0; padding: 16px 0; border: 0; border-top: 1px solid var(--cat-line); }
-.catalog-facets fieldset:first-child { padding-top: 0; border-top: 0; }
-.catalog-facets legend { float: left; width: 100%; margin: 0 0 8px; padding: 0; color: var(--cat-muted); font-size: 12.5px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
-.catalog-facets legend + * { clear: both; }
-.catalog-check { display: flex; align-items: center; gap: 12px; min-height: 44px; color: var(--cat-ink); font-weight: 600; cursor: pointer; }
-.catalog-check input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--cat-accent); }
-.catalog-check > span:first-of-type { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.catalog-count { margin-left: auto; color: var(--cat-muted); font-size: 12px; font-weight: 750; font-feature-settings: "tnum" 1; }
-.catalog-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.catalog-chips.catalog-sizes > button { justify-content: center; min-width: 58px; padding: 0 10px; }
-.catalog-note { margin: 10px 0 0; color: var(--cat-muted); font-size: 13px; line-height: 1.5; }
-.catalog-switch { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0 12px; align-items: start; padding: 10px 0; cursor: pointer; }
-.catalog-switch input { position: absolute; width: 1px; height: 1px; margin: 0; opacity: 0; }
-.catalog-switch-track { position: relative; width: 44px; height: 26px; margin-top: 1px; border-radius: 999px; background: var(--cat-switch-off); transition: background-color .15s; }
-.catalog-switch-track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: transform .15s; }
-.catalog-switch input:checked + .catalog-switch-track { background: var(--cat-accent); }
-.catalog-switch input:checked + .catalog-switch-track::after { transform: translateX(18px); }
-html[data-theme="dark"] .catalog-switch input:checked + .catalog-switch-track::after { background: var(--night-on-ivory); }
-.catalog-switch input:focus-visible + .catalog-switch-track { outline: 2px solid var(--cat-accent); outline-offset: 2px; }
-.catalog-switch-text b { display: block; color: var(--cat-ink); font-weight: 700; line-height: 1.35; }
-.catalog-switch-text small { display: block; margin-top: 3px; color: var(--cat-muted); font-size: 13px; line-height: 1.45; }
-.catalog-switch .catalog-count { margin-top: 4px; }
-/* A condition nothing matches stays listed with its zero, greyed, instead of disappearing. */
-.catalog-switch[data-disabled] { cursor: default; }
-.catalog-switch[data-disabled] :is(.catalog-switch-track, .catalog-switch-text, .catalog-count) { opacity: .5; }
-
-/* ---------- Filter sheet ---------- */
-.catalog-sheet { gap: 0 !important; padding: 0; background: var(--cat-surface) !important; color: var(--cat-ink); }
-.catalog-sheet.catalog-sheet-bottom { max-height: 88dvh; border-radius: 20px 20px 0 0; }
-.catalog-sheet > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 10px 10px 20px; border-bottom: 1px solid var(--cat-line); }
-.catalog-sheet > header h2 { margin: 0; color: var(--cat-ink); font-size: 20px; }
-.catalog-sheet > header .icon-btn { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; border: 0; border-radius: 12px; background: transparent; color: var(--cat-ink); cursor: pointer; }
-.catalog-sheet-scroll { flex: 1; min-height: 0; padding: 16px 20px; overflow: auto; overscroll-behavior: contain; }
-.catalog-sheet > footer { display: flex; gap: 10px; padding: 12px 20px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--cat-line); background: var(--cat-surface); }
-.catalog-sheet > footer .btn { flex: 1; justify-content: center; min-height: 48px; }
-.catalog-sheet > footer .btn.secondary { flex: 0 0 auto; }
-
+.catalog-chips.catalog-sizes > button { padding: 0 10px; }
 /* ---------- Card 2.0 (both themes; day-folio.css adjusts the Day colours) ----------
    Meta, two-line title, one store-price line, the total with an in-flow "i", the facts slot (24px),
    the chips slot (24px), the button. Fixed slot heights keep cards in a row aligned. */
-.site-main .find-card .find-content { display: flex; flex: 1; flex-direction: column; gap: 0; min-width: 0; padding: 14px 16px 16px; }
-.site-main .find-card .find-meta { display: flex; justify-content: space-between; gap: 10px; min-width: 0; margin: 0; color: var(--cat-muted); font-size: 12.5px; line-height: 1.3; }
-.site-main .find-card .find-meta > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.site-main .find-card .find-meta > .find-store { display: inline-flex; align-items: center; gap: 6px; }
-.site-main .find-card .find-content .find-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-height: 2.6em; margin: 6px 0 0; padding: 0; border: 0; background: none; color: var(--cat-ink); font: inherit; font-size: 17px; font-weight: 600; line-height: 1.3; letter-spacing: -.015em; text-align: left; cursor: pointer; }
-.site-main .find-card .find-content .find-title:hover { color: var(--cat-accent); }
 .site-main .find-card .find-content .find-store-price { display: flex; flex-wrap: nowrap; align-items: baseline; gap: 0 6px; min-height: 24px; margin: 10px 0 0; padding: 0 0 10px; border-bottom: 1px solid var(--cat-line); color: var(--cat-muted); font-size: 13px; line-height: 1.35; }
 .site-main .find-card .find-store-price > span:first-child { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Beside an old price and a discount the label lost its date («Цена магазина · 13 се…», 1440 px, 13.10.2026):
@@ -186,305 +76,23 @@ html[data-theme="dark"] .catalog-switch input:checked + .catalog-switch-track::a
   .site-main .find-card .find-store-price > span:first-child { flex-basis: 100%; }
 }
 .site-main .find-card .find-store-price > b { flex: none; color: var(--cat-ink); font-size: 15px; font-weight: 650; letter-spacing: -.01em; white-space: nowrap; }
-.site-main .find-card .find-store-price > del { flex: none; color: var(--cat-muted); font-size: 13px; white-space: nowrap; }
-.site-main .find-card .find-store-price > .find-discount { position: static; flex: none; display: inline-flex; align-items: center; align-self: center; margin: 0; padding: 2px 7px; border: 1px solid var(--cat-ok-line); border-radius: 7px; background: var(--cat-ok-bg); color: var(--cat-ok); font-size: 12px; font-style: normal; font-weight: 700; line-height: 1.3; box-shadow: none; }
-.site-main .find-card .find-content .find-total { position: static; margin: 0; padding: 10px 0 0; }
-.site-main .find-card .find-total-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 28px; }
-.site-main .find-card .find-total-head > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--cat-muted); font-size: 13px; line-height: 1.35; }
-.site-main .find-card .find-info { position: static; display: grid; flex: none; place-items: center; width: 40px; height: 40px; margin: -6px -10px -6px 0; border: 0; border-radius: 50%; background: transparent; color: var(--cat-accent); cursor: pointer; }
-/* background-color, not the shorthand: the shorthand would reset the phone's background-clip and paint all 44px. */
-.site-main .find-card .find-info:hover, .site-main .find-card .find-info[data-state="open"] { background-color: var(--cat-soft); }
-.site-main .find-card .find-total > strong { display: block; margin: 0; padding: 0; color: var(--cat-ink); font-size: 26px; font-weight: 700; line-height: 1.15; letter-spacing: -.02em; white-space: nowrap; }
-.site-main .find-card .find-total > strong .money-unit { font-size: 13px; }
-/* "Calculated after the price check" keeps the total's line box (smaller text inside), so rows stay aligned. */
-.site-main .find-card .find-total > strong.find-total-pending { overflow: hidden; text-overflow: ellipsis; }
-.site-main .find-card .find-total > strong.find-total-pending > span { font-size: .58em; font-weight: 650; letter-spacing: 0; }
-/* One line always (the full sentence is in the title), so a confirmed card is as tall as its neighbours. */
-.site-main .find-card .find-total-note { display: block; height: 15px; margin-top: 2px; overflow: hidden; color: var(--cat-muted); font-size: 11px; line-height: 1.35; white-space: nowrap; text-overflow: ellipsis; }
-/* Empty lines take no room: a blank note or chip row left a white gap inside the card (owner, 11.10.2026). The order button
-   keeps the bottom of the card (margin-top: auto), so cards of a row still end together. */
-.site-main .find-card :is(.find-total-note, .find-chips, .find-facts):empty { display: none; }
-.site-main .find-card .find-facts { display: flex; align-items: center; height: 24px; margin: 6px 0 0; color: var(--cat-muted); font-size: 12.5px; line-height: 1.3; }
-.site-main .find-card .find-facts > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Chips wrap to a second line: "Дороже лими…" and "Сверим перед …" read as broken (design review, 14.10.2026). */
-.site-main .find-card .find-chips { display: flex; flex-wrap: wrap; gap: 4px 6px; height: auto; margin: 6px 0 0; }
-.site-main .find-card .find-chip { display: inline-block; flex: 0 1 auto; min-width: 0; max-width: 100%; height: 24px; padding: 0 8px; border: 1px solid var(--cat-line); border-radius: 999px; color: var(--cat-muted); font-size: 12px; font-weight: 650; line-height: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative; }
-.site-main .find-card .find-chip[data-tone="mint"] { border-color: var(--cat-ok-line); background: var(--cat-ok-bg); color: var(--cat-ok); }
-.site-main .find-card .find-chip[data-tone="amber"] { border-color: var(--cat-warn-line); background: var(--cat-warn-bg); color: var(--cat-warn); }
-.site-main .find-card .find-purchase { margin-top: auto; padding-top: 12px; }
-.site-main .find-card .find-purchase .btn { width: 100%; min-height: 46px; padding: 10px 14px; font-size: 15px; }
-
-/* The breakdown popover (portalled, so it is styled by its own class). */
-.find-breakdown-popover { width: min(360px, calc(100vw - 24px)); padding: 14px 16px; border: 1px solid var(--cat-line); border-radius: 14px; background: var(--cat-surface); color: var(--cat-ink); box-shadow: 0 12px 32px rgba(21, 43, 34, .14); font-size: 13.5px; line-height: 1.5; }
-.find-breakdown-title { margin: 0 0 8px; color: var(--cat-muted); font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
-.find-breakdown-popover dl { display: grid; gap: 8px; margin: 0; }
-.find-breakdown-popover dl > div { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.find-breakdown-popover dt { color: var(--cat-muted); }
-.find-breakdown-popover dd { margin: 0; color: var(--cat-ink); font-weight: 650; text-align: right; white-space: nowrap; font-feature-settings: "tnum" 1; }
-.find-breakdown-popover p { margin: 10px 0 0; color: var(--cat-muted); font-size: 12.5px; }
-/* Days only on a phone card; country and weight are in the "?" breakdown there (and on the card on wider screens). */
-.find-card .find-facts-short, .find-breakdown-popover .find-breakdown-facts { display: none; }
-
-/* Compact card: photo, one-line name, "store price → total"; the whole card opens the product sheet. */
-.find-card.find-card-compact { position: relative; }
-.find-card .find-compact { display: flex; flex-direction: column; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.find-card.find-card-compact .find-visual { display: block; }
-/* The card clips overflow, so the focus ring of the whole-card button and of the photo button is drawn inside. */
-.find-card .find-compact:focus-visible, .site-main .find-card .find-photo:focus-visible { outline: 2px solid var(--cat-accent); outline-offset: -3px; }
 /* Square photo (the home strip's id-scoped 1.25 rule in home-chapters.css would otherwise win). */
-.find-card.find-card-compact .find-visual > .find-photo { display: block; aspect-ratio: 1 !important; }
-.site-main .find-card.find-card-compact .find-content { gap: 4px; padding: 10px 12px 12px; }
-.site-main .find-card.find-card-compact .find-meta { font-size: 12px; }
-.site-main .find-card.find-card-compact .find-compact-title { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--cat-ink); font-size: 14.5px; font-weight: 600; line-height: 1.3; }
-.site-main .find-card.find-card-compact .find-compact-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 5px; color: var(--cat-muted); font-size: 13px; line-height: 1.3; }
-.site-main .find-card.find-card-compact .find-compact-price .money { color: var(--cat-ink); font-size: 16px; font-weight: 700; }
-.site-main .find-card.find-card-compact .find-compact-price .money-unit { font-size: 12px; }
 .finds-grid-compact { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-/* The compact card's price line has no room for the −N% pill: it stands on the photo, after "Top price" when both show. */
-.find-card.find-card-compact .find-photo-badges { position: absolute; right: 8px; bottom: 8px; left: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; pointer-events: none; }
-.find-card.find-card-compact .find-photo-badges > .find-top-deal { position: static; gap: 4px; min-height: 26px; padding: 4px 8px; line-height: 1.3; }
-.find-card.find-card-compact .find-photo-badges > .find-discount { position: static; display: inline-flex; align-items: center; gap: 0; min-height: 26px; margin: 0; padding: 3px 8px; border: 1px solid var(--cat-ok-line); border-radius: 999px; background: var(--cat-ok-bg); color: var(--cat-ok); font-size: 12px; font-style: normal; font-weight: 700; line-height: 1.3; white-space: nowrap; box-shadow: none; }
 
 /* ---------- Loading, empty and end ---------- */
-.catalog-skeleton-card { pointer-events: none; }
-.catalog-skeleton-card .find-visual { aspect-ratio: 1.25; background: var(--cat-soft); }
-.catalog-skeleton-card .find-content > span { display: block; height: 14px; margin: 14px 0; border-radius: 6px; background: var(--cat-soft); }
-.catalog-skeleton-card .find-content > span:nth-child(1) { width: 40%; }
-.catalog-skeleton-card .find-content > span:nth-child(2) { width: 85%; height: 18px; }
-.catalog-skeleton-card .find-content > span:nth-child(3) { width: 60%; height: 26px; }
-@media (prefers-reduced-motion: no-preference) {
-  .catalog-skeleton-card :is(.find-visual, .find-content > span) { animation: catalog-pulse 1.4s ease-in-out infinite; }
-}
 @keyframes catalog-pulse { 50% { opacity: .55; } }
-.catalog-empty { padding: 32px 20px; border: 1px dashed var(--cat-line); border-radius: 18px; background: var(--cat-surface); text-align: center; }
-.catalog-empty h2 { margin: 0 0 8px; color: var(--cat-ink); font-size: 22px; }
-.catalog-empty p { max-width: 46ch; margin: 0 auto 18px; color: var(--cat-muted); line-height: 1.5; }
-.catalog-empty > div { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
-.catalog-empty .btn { min-height: 44px; }
-/* Empty "Saved": four products on sale to start with. */
-.favorites-suggest { margin-top: 28px; }
-.favorites-suggest-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; margin-bottom: 14px; }
-.favorites-suggest h2 { margin: 0; color: var(--cat-ink); font-size: 20px; letter-spacing: -.01em; }
-.favorites-suggest-head .text-link { min-height: 44px; color: var(--cat-accent); font-weight: 700; }
-.catalog-end { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; margin-top: 28px; padding: 22px; border: 1px solid var(--cat-line); border-radius: 18px; background: var(--cat-soft); }
-.catalog-end h2 { margin: 0 0 6px; color: var(--cat-ink); font-size: 22px; }
-.catalog-end p { max-width: 52ch; margin: 0; color: var(--cat-muted); line-height: 1.5; }
-.catalog-end > div:last-child { display: flex; flex-wrap: wrap; gap: 10px; }
-.catalog-end .btn { min-height: 48px; }
 
 /* ---------- Home teaser ---------- */
-.catalog-teaser > header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 24px; margin-bottom: 20px; }
-.catalog-teaser > header h2 { margin: 0 0 8px; color: var(--cat-ink); font-size: clamp(28px, 3vw, 42px); line-height: 1.14; letter-spacing: -.04em; }
 .catalog-teaser > header p { max-width: 52ch; margin: 0; color: var(--cat-muted); line-height: 1.55; }
-.catalog-teaser > header .btn { min-height: 48px; }
-
-/* ---------- Product sheet: a bottom sheet on phones, a side panel elsewhere ---------- */
-.product-sheet .sheet-handle { display: block; flex: none; width: 40px; height: 4px; margin: 8px auto 0; border-radius: 2px; background: var(--cat-line); }
-.product-sheet.product-sheet-bottom { width: 100% !important; max-width: 100% !important; height: 92dvh; max-height: 92dvh; padding-bottom: 0; border-radius: 20px 20px 0 0; }
-/* Close and heart stay in reach while the details scroll (owner's review, 14.10.2026): a zero-height sticky bar holds them
-   over the photo (app/product-sheet.tsx); on the phone sheet it starts under the handle and sticks 8px below the rounded top. */
-.product-sheet .sheet-actions { position: sticky; top: 0; z-index: 3; flex: none; height: 0; }
-.product-sheet.product-sheet-bottom .sheet-actions { top: 8px; }
-.product-sheet.product-sheet-bottom .sheet-close { top: 0; right: 12px; }
-.product-sheet.product-sheet-bottom .sheet-body { padding: 16px 20px 0; }
-/* A product without a description left an empty paragraph, and the tab kept a 125 px floor: about 60 px of white space
-   under the store price on a phone. The bottom sheet scrolls, so the tab can be as tall as its lines. */
-.product-sheet .detail-tabs [data-slot=tabs-content] > p:empty { display: none; }
-.product-sheet.product-sheet-bottom .detail-tabs [data-slot=tabs-content] { min-height: 0; }
-.product-sheet.product-sheet-bottom .sheet-total { position: sticky; bottom: 0; z-index: 2; display: flex; flex: none; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; margin: 16px 0 0; padding: 12px 20px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--cat-line); background: var(--cat-surface); }
-/* Side sheet: the total and its button stay at the bottom edge while the sheet scrolls (they were below the fold at 1280×900). */
-.product-sheet.product-sheet-right > .sheet-total { position: sticky; bottom: 0; z-index: 2; flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; margin: 16px 0 0; padding: 14px 30px 18px; border-top: 1px solid var(--cat-line); background: var(--cat-surface); }
-.product-sheet.product-sheet-bottom .sheet-total > span { flex: 1 1 140px; }
-.product-sheet.product-sheet-bottom .sheet-total .btn { flex: 1 1 150px; width: auto; min-height: 48px; }
-/* Narrow phones: the sum on one line, the button below it at full width and on one line («Уточнить и продолжить»
-   broke in two next to the sum); the bar stays under 140 px. */
-@media (max-width: 400px) {
-  .product-sheet.product-sheet-bottom .sheet-total .btn { flex-basis: 100%; }
-}
-.product-sheet .sheet-stale { margin: 10px 0 0; }
-.product-sheet .sheet-speed { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 10px 0 6px; padding: 4px; border: 1px solid var(--cat-line); border-radius: 12px; background: var(--cat-soft); }
-.product-sheet .sheet-speed > button { display: grid; gap: 2px; min-height: 48px; padding: 6px 10px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--cat-ink); font: inherit; text-align: left; cursor: pointer; }
-.product-sheet .sheet-speed > button b { font-size: 14px; font-weight: 700; line-height: 1.3; }
-.product-sheet .sheet-speed > button small { color: var(--cat-muted); font-size: 12px; line-height: 1.3; }
-.product-sheet .sheet-speed > button[aria-pressed="true"] { border-color: var(--cat-line); background: var(--cat-surface); box-shadow: 0 1px 2px rgba(22, 33, 28, .06); }
-.product-sheet .sheet-speed > button[aria-pressed="true"] b { color: var(--cat-accent); }
-.product-sheet .sheet-speed > button:focus-visible { outline: 2px solid var(--cat-accent); outline-offset: 2px; }
-.product-sheet .sheet-speed-note { margin: 0 0 8px; }
-/* Save heart left of the close button (the card's .find-save is scoped to .site-main; the sheet is portalled outside it). */
-.product-sheet .sheet-save { position: absolute; z-index: 2; top: 17px; right: 67px; border: 1px solid var(--cat-line); background: var(--cat-surface); color: var(--cat-ink); box-shadow: 0 2px 8px #1825130b; }
-.product-sheet.product-sheet-bottom .sheet-save { top: 0; right: 60px; }
-.product-sheet .sheet-save svg { fill: none; }
-.product-sheet .sheet-save[aria-pressed="true"] { border-color: #1f6a43; background: #1f6a43; color: #fff; }
-.product-sheet .sheet-save[aria-pressed="true"] svg { fill: currentColor; }
-
-/* Dark inputs get the inset fill from theme-night.css; the search box takes the same fill so it reads as one field. */
-html .catalog-search input[type="search"] { border: 0; border-radius: 0; box-shadow: none; }
-html[data-theme="dark"] .catalog-search { background: var(--night-inset); }
-.catalog-categories { scroll-padding-inline: 16px; }
-.catalog-sidebar { scrollbar-width: thin; scrollbar-color: var(--cat-line) transparent; }
 
 /* ---------- Breakpoints ---------- */
 /* Phones: two compact cards per row, so a shelf shows more than one product per screen. */
 @media (max-width: 600px) {
-  .catalog-head { margin: 4px 0 12px; }
   .catalog-head h1 { font-size: 26px; }
-  .catalog-head p { font-size: 13.5px; line-height: 1.45; }
-  /* 375px: the first card within ~500px of the top (owner, 6 October 2026) — a short breadcrumb, a tighter head,
-     strip and bar; the intro stays. Scoped to .catalog-page so it wins over refine.css's phone scale (loaded later). */
-  .catalog-page.finds-page { padding-top: 0; }
-  .site-main > .breadcrumb:has(+ .catalog-page) { padding: 4px 0; }
-  .catalog-page .catalog-head { gap: 8px 16px; margin: 0 0 10px; }
-  .catalog-page .catalog-head h1 { margin-bottom: 4px; }
-  .catalog-page .catalog-head h1 + p { line-height: 1.4; }
-  .catalog-page .catalog-stats { min-height: 32px; }
-  .catalog-page .catalog-sets { margin: -2px -16px 10px; padding: 4px 44px 10px 16px; }
-  .catalog-page .catalog-bar { gap: 8px; margin-bottom: 12px; }
-  .catalog-page .catalog-bar-row { gap: 6px 10px; }
-  .catalog-page .catalog-found { font-size: 13px; }
-  .catalog-page .catalog-search input { min-height: 44px; }
-  :is(.catalog-page, .catalog-home .catalog-teaser) .finds-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  :is(.catalog-page, .catalog-teaser) .find-card { border-radius: 16px; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-photo { aspect-ratio: 1; }
-  .site-main .find-card .find-content { padding: 10px 10px 12px; }
-  .site-main .find-card .find-meta { font-size: 12px; }
-  .site-main .find-card .find-meta > span:last-child { display: none; }
-  .site-main .find-card .find-content .find-title { margin-top: 4px; font-size: 14.5px; line-height: 1.3; }
-  /* The label takes its own line; the price and the pill share the next one (the old price waits for the sheet).
-     A fixed two-line height keeps the totals of a row aligned whatever the price length. */
-  .site-main .find-card .find-content .find-store-price { flex-wrap: wrap; align-content: flex-start; align-items: center; gap: 0 5px; height: 44px; min-height: 0; margin-top: 8px; padding-bottom: 8px; overflow: hidden; }
-  .site-main .find-card .find-store-price > span:first-child { flex-basis: 100%; font-size: 12px; }
   /* With a breakdown, the label and its date live in the "?" (design review, 13 October 2026): one line of price here,
      the label stays for screen readers. A card still waiting for its total keeps the label on the card. */
-  .site-main .find-card .find-store-price.has-breakdown { height: 30px; }
-  .site-main .find-card .find-store-price.has-breakdown > .find-store-price-label,
-  .site-main .find-card .find-facts[data-short] > .find-facts-full { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  .site-main .find-card .find-facts[data-short] > .find-facts-short { display: inline; }
-  .find-breakdown-popover .find-breakdown-facts { display: block; }
   .site-main .find-card .find-store-price > b { font-size: 14px; }
-  .site-main .find-card .find-store-price > del { display: none; }
-  .site-main .find-card .find-store-price > .find-discount { padding: 1px 6px; font-size: 12px; }
-  .site-main .find-card .find-content .find-total { padding: 8px 0 0; }
-  .site-main .find-card .find-total-head { min-height: 24px; }
-  .site-main .find-card .find-total-head > span { font-size: 12px; }
-  /* 44px to tap, the hover/open circle stays 36px (padding outside the painted background). */
-  .site-main .find-card .find-info { width: 44px; height: 44px; margin: -10px -12px -10px 0; padding: 4px; background-clip: content-box; }
-  .site-main .find-card .find-total > strong { font-size: clamp(15px, 4.4vw, 17px); letter-spacing: -.02em; }
-  .site-main .find-card .find-total > strong .money-unit { font-size: 12px; }
-  /* Country, days and weight wrap to a second line instead of losing the weight to an ellipsis on a narrow card. */
-  .site-main .find-card .find-facts { height: auto; margin-top: 4px; font-size: 12px; }
-  .site-main .find-card .find-facts > span:first-child { white-space: normal; }
-  /* The chip wraps too: "Checked before you o…" read as broken. */
-  .site-main .find-card .find-chips { gap: 4px; height: auto; }
-  .site-main .find-card .find-chip { height: auto; min-height: 22px; padding: 3px 8px; border-radius: 11px; font-size: 12px; line-height: 1.3; white-space: normal; }
-  /* One chip fits a phone card. */
-  .site-main .find-card .find-chip + .find-chip { display: none; }
-  .site-main .find-card .find-purchase { padding-top: 10px; }
-  .site-main .find-card .find-purchase .btn { min-height: 44px; padding: 0 8px; font-size: 14px; }
-  /* «Buyurtma berish» took two lines with the arrow; ru and en keep it. */
-  html:lang(uz) .site-main .find-card .find-purchase .btn.primary { gap: 6px; }
-  html:lang(uz) .site-main .find-card .find-purchase .btn.primary > svg { display: none; }
-  :is(.catalog-page, .catalog-teaser) .find-card .find-save { width: 44px; height: 44px; top: 6px; right: 6px; }
-  .site-main .find-card.find-card-compact .find-content { padding: 8px 10px 10px; }
-  .site-main .find-card.find-card-compact .find-compact-title { font-size: 13.5px; }
-  .site-main .find-card.find-card-compact .find-compact-price { font-size: 12px; }
-  .site-main .find-card.find-card-compact .find-compact-price .money { font-size: 14.5px; }
-  /* 72px: the 60px cover plus its padding, nothing taller. */
-  .catalog-page .catalog-sets > .catalog-set { width: 196px; min-height: 72px; padding: 6px; grid-template-columns: 60px minmax(0, 1fr); }
-}
-@media (max-width: 760px) {
-  .catalog-collections { margin-bottom: 8px; }
-  .catalog-sets-toggle { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border: 1px solid var(--cat-line); border-radius: 12px; background: var(--cat-surface); color: var(--cat-ink); font: inherit; font-size: 14px; font-weight: 650; cursor: pointer; }
-  .catalog-sets-toggle[aria-expanded="true"] > svg { transform: rotate(180deg); }
-  .catalog-collections > .catalog-sets { display: none; }
-  .catalog-collections > .catalog-sets[data-open] { display: flex; margin-top: 4px; }
-  .catalog-bar-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .catalog-facets-button { justify-content: center; }
-  .catalog-found { grid-column: 1 / -1; order: 3; margin: 0; }
-  .catalog-sort > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  .catalog-sort, .catalog-sort select { width: 100%; }
-  .catalog-end > div:last-child, .catalog-end .btn { width: 100%; justify-content: center; }
-  .catalog-teaser > header .btn { width: 100%; justify-content: center; }
-  /* iPhone Safari zooms into a select under 16px (refine.css keeps 14px up to 400px). */
-  .catalog-page .catalog-sort select { font-size: 16px; }
-  /* The scrolling strips fade out at the right edge so the next card peeks through. */
-  .catalog-sets { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); }
-  /* Keep the product name visible above the sticky total without cropping merchant photos. */
-  .product-sheet.product-sheet-bottom .detail-image:has(.product-gallery) { padding: 12px 16px; }
-  .product-sheet.product-sheet-bottom .product-gallery-stage { aspect-ratio: auto; height: clamp(160px, 32dvh, 280px); }
-  .product-sheet.product-sheet-bottom .product-gallery-controls { margin-top: 2px; }
-  .product-sheet.product-sheet-bottom .product-gallery-hint { margin-bottom: 4px; font-size: 12px; }
-  .product-sheet.product-sheet-bottom .product-gallery-thumbnails { gap: 6px; padding-bottom: 4px; scrollbar-width: none; }
-  .product-sheet.product-sheet-bottom .product-gallery-thumbnails::-webkit-scrollbar { display: none; }
-  .product-sheet.product-sheet-bottom .product-gallery-thumbnails button { flex-basis: 44px; min-height: 44px; }
-  .product-sheet.product-sheet-bottom .product-gallery-thumbnails img { height: 36px; }
-}
-@media (min-width: 761px) {
-  .catalog-categories { flex-wrap: wrap; margin: 0; padding: 0; overflow: visible; }
-  /* Sets as a grid of tiles with the collage on top. */
-  .catalog-sets { display: grid; grid-template-columns: repeat(auto-fill, minmax(164px, 1fr)); gap: 12px; margin: 0 0 18px; padding: 0; overflow: visible; }
-  .catalog-page .catalog-sets > .catalog-set { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto; row-gap: 0; width: auto; min-height: 0; padding: 8px 8px 10px; }
-  .catalog-page .catalog-sets > .catalog-set > b { margin-top: 8px; padding: 0 2px; font-size: 14.5px; }
-  .catalog-page .catalog-sets > .catalog-set > span:last-child { padding: 0 2px; }
-  .catalog-set-cover { grid-row: auto; gap: 3px; padding: 6px; }
 }
 @media (min-width: 761px) and (max-width: 1023px) {
   .finds-grid-compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-@media (min-width: 761px) {
-  /* Four suggestions in one row (the catalog grid's three columns would leave an orphan). */
-  .catalog-page .favorites-suggest .finds-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  /* The side sheet's photo stays under ~420 px, so the name and the sticky total show on opening. */
-  .product-sheet.product-sheet-right .product-gallery-stage { aspect-ratio: auto; height: min(46vh, 420px); }
-}
-@media (min-width: 1024px) {
-  .catalog-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 32px; align-items: start; }
-  .catalog-layout.catalog-layout-plain { display: block; }
-  .catalog-sidebar { position: sticky; top: 16px; display: block; max-height: calc(100vh - 32px); padding-right: 4px; overflow: auto; }
-  .catalog-facets-button { display: none; }
-  .catalog-page .finds-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-/* Beside the sidebar a third column would leave ~170px for the price line and an eight-digit total: two columns until 1150px. */
-@media (min-width: 1024px) and (max-width: 1150px) {
-  .catalog-page .finds-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-
-/* Magnet only at the ends of the catalog (owner, 6 October 2026): the top settles either on the page start or
-   with the search and categories at the top edge, and the end settles on the footer. The grid in between scrolls
-   freely (proximity: with no snap point near, nothing pulls), so browsing rows of cards is never interrupted. */
-@media (prefers-reduced-motion: no-preference) {
-  html:has(.catalog-page) { scroll-snap-type: y proximity; }
-  html:has(.catalog-page) .site-header { scroll-snap-align: start; }
-  html:has(.catalog-page) .catalog-page .catalog-bar { scroll-snap-align: start; scroll-margin-top: 8px; }
-  html:has(.catalog-page) :is(.site-footer, .home-footer) { scroll-snap-align: end; }
-}
-
-/* ---------- Night ---------- */
-/* The new marks keep the graphite card colours; photo plates stay ivory, as everywhere in Atlas Night. */
-html[data-theme="dark"] .catalog-set-cover { border-color: transparent; }
-html[data-theme="dark"] .catalog-page .catalog-sets > .catalog-set { box-shadow: none; }
-html[data-theme="dark"] .catalog-page .catalog-sets > .catalog-set[aria-pressed="true"] { border-color: var(--night-jade); box-shadow: inset 0 0 0 1px var(--night-jade); }
-html[data-theme="dark"] .site-main .find-card .find-store-price > .find-discount { border-color: var(--cat-ok-line); background: var(--cat-ok-bg); color: var(--cat-ok); }
-html[data-theme="dark"] .site-main .find-card .find-total > strong { color: var(--night-ivory-hi); }
-html[data-theme="dark"] .site-main .find-card .find-info:hover, html[data-theme="dark"] .site-main .find-card .find-info[data-state="open"] { background-color: var(--night-hover); }
-html[data-theme="dark"] .site-main .find-card .find-chip[data-tone="neutral"] { border-color: var(--night-line-strong); color: var(--night-muted); }
-html[data-theme="dark"] .find-breakdown-popover { box-shadow: var(--night-shadow-pop); }
-html[data-theme="dark"] .catalog-page .catalog-banner.catalog-banner-parcel { border-color: var(--night-line-strong); background: var(--night-raised); }
-html[data-theme="dark"] .product-sheet .sheet-handle { background: var(--night-line-strong); }
-html[data-theme="dark"] .product-sheet:is(.product-sheet-bottom, .product-sheet-right) .sheet-total { border-color: var(--night-line-strong); background: var(--night-raised); }
-html[data-theme="dark"] .product-sheet .sheet-save[aria-pressed="true"] { border-color: #7fd1a1; background: #7fd1a1; color: #10241a; }
-/* The photo stage stays light at night: the pill is solid, like the "Top price" one beside it, or it vanished. */
-html[data-theme="dark"] .find-card.find-card-compact .find-photo-badges > .find-discount { border-color: rgba(128, 208, 172, 0.4); background: var(--night-surface); color: var(--night-ok-ink); }
-html[data-theme="dark"] .product-sheet .sheet-speed { border-color: var(--night-line-strong); background: var(--night-inset); }
-html[data-theme="dark"] .product-sheet .sheet-speed > button[aria-pressed="true"] { border-color: var(--night-line-strong); background: var(--night-raised); box-shadow: none; }
-html[data-theme="dark"] .site-main .find-card.find-card-compact .find-compact-price .money { color: var(--night-ivory-hi); }
-
-/* Quick removal of colors and sizes in the catalog editor */
-.catalog-variant-quick{display:grid;gap:8px;margin:4px 0}
-.catalog-chip-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.catalog-chip-row strong{font-size:13px;margin-right:4px}
-.catalog-chip{border:1px solid var(--border,#d7ddd9);background:transparent;color:inherit;border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer;min-height:32px}
-.catalog-chip:hover{border-color:#b3261e;color:#b3261e}
-.catalog-chip:disabled{cursor:not-allowed;opacity:.55}
-.catalog-chip:disabled:hover{border-color:var(--border,#d7ddd9);color:inherit}
-.catalog-chip-removed .catalog-chip{border-style:dashed}
-.catalog-chip-removed .catalog-chip:hover{border-color:#1f6b45;color:#1f6b45}

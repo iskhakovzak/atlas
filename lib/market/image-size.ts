@@ -66,12 +66,15 @@ export function sizedImage(src: string, px: number): string {
   return src;
 }
 
-/** srcset for a photo shown at most about `px` wide: the store's copies at half and full `px`, so a card that ends up
- * small (a desktop grid, a phone at DPR 1) takes the lighter one. Undefined when the store has no such copies. */
+/** srcset for a photo shown at most about `px` wide: the store's copies at half, two thirds (14.10.2026) and full `px`,
+ * so a card that ends up small (a desktop grid, a phone at DPR 1) takes a lighter one: a 180 px card on a DPR 1.75
+ * phone needs 315 px and takes the ⅔ copy instead of the full one. Undefined when the store has no such copies. */
 export function sizedSrcSet(src: string, px: number): string | undefined {
-  const half = Math.round(px / 2), small = sizedImage(src, half), large = sizedImage(src, px);
+  const half = Math.round(px / 2), twoThirds = Math.round(px * 2 / 3);
+  const small = sizedImage(src, half), middle = sizedImage(src, twoThirds), large = sizedImage(src, px);
   if (small === src || small === large) return undefined;
-  return `${small} ${half}w, ${large} ${Math.round(px)}w`;
+  const steps = middle === small || middle === large ? [[small, half], [large, px]] : [[small, half], [middle, twoThirds], [large, px]];
+  return steps.map(([url, width]) => `${url} ${Math.round(Number(width))}w`).join(', ');
 }
 
 /** onError of an <img> showing sizedImage(original): the first failure retries the store's own address and returns

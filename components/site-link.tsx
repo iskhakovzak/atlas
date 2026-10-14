@@ -23,8 +23,15 @@ function prefetchPage(router: Router, href: string) {
   try { router.prefetch(href, { kind: "full" } as unknown as Parameters<Router["prefetch"]>[1]); } catch { /* the click still loads the page */ }
 }
 
+/** The first signs that someone is using the page: warming starts with the first of them. */
+export const warmLinkEvents = ["scroll", "touchstart", "pointerdown", "keydown"] as const;
+/** Without any of them the pages are still warmed, later. */
+export const warmLinksFallbackMs = 8000;
+
 /** Fetches these same-site pages ahead while the phone is idle (the bottom bar's tabs), on phone widths only and
- * never on a data-saving or 2G connection. Joined by the page that is open, so it repeats after each page change. */
+ * never on a data-saving or 2G connection. Joined by the page that is open, so it repeats after each page change.
+ * It starts with the first scroll or touch (14.10.2026), not on a timer: a page nobody has touched yet, a speed test
+ * among them, does not spend its first seconds on the next pages; someone reading without touching gets them after 8 s. */
 export function useWarmLinks(hrefs: string[]) {
   const router = useRouter();
   const key = hrefs.join(" ");
@@ -35,10 +42,19 @@ export function useWarmLinks(hrefs: string[]) {
     const warm = () => key.split(" ").forEach(href => prefetchPage(router, href));
     // Safari has no requestIdleCallback: a plain timer there.
     const hasIdle = typeof window.requestIdleCallback === "function";
-    let idle = 0;
-    // Give the page that just opened its first seconds: images, the account and the first taps go first.
-    const timer = window.setTimeout(() => { idle = hasIdle ? window.requestIdleCallback(warm, { timeout: 4000 }) : window.setTimeout(warm, 500); }, 2000);
-    return () => { window.clearTimeout(timer); if (hasIdle) window.cancelIdleCallback(idle); else window.clearTimeout(idle); };
+    let idle = 0, fallback = 0, started = false;
+    const options = { capture: true, passive: true } as const;
+    const stop = () => { window.clearTimeout(fallback); for (const type of warmLinkEvents) window.removeEventListener(type, start, options); };
+    function start() {
+      if (started) return;
+      started = true;
+      stop();
+      // The gesture goes first (a tap may be the navigation itself); the pages are asked for once the phone is idle.
+      idle = hasIdle ? window.requestIdleCallback(warm, { timeout: 4000 }) : window.setTimeout(warm, 500);
+    }
+    for (const type of warmLinkEvents) window.addEventListener(type, start, options);
+    fallback = window.setTimeout(start, warmLinksFallbackMs);
+    return () => { stop(); if (hasIdle) window.cancelIdleCallback(idle); else window.clearTimeout(idle); };
   }, [key, router]);
 }
 

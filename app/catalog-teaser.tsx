@@ -13,6 +13,8 @@ import type { Locale } from '@/lib/market/i18n';
 import { CatalogCard } from './catalog-card';
 import { DeliverySky, type Spark } from './delivery-sky';
 import { preloadProductSheet } from './product-sheet-lazy';
+// Styles of this lazily loaded part: they arrive with its chunk, before it renders.
+import './styles/catalog-cards.css';
 
 const findsRoutes = ['M-40 130 C 300 -10, 760 30, 1240 170','M-40 640 C 380 520, 820 720, 1240 560','M180 -30 C 420 250, 800 290, 1080 -30'];
 const findsSparks: Spark[] = [[3,12,8,0,false],[18,4,6,2.6,true],[47,6,7,4.2,false],[71,3,6,1.4,true],[96,14,8,3.4,false],[2,92,6,5.2,true],[38,97,7,1.9,false],[64,95,6,3.9,true],[97,90,7,.7,false]];
