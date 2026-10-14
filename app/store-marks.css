@@ -1,6 +1,9 @@
 /* Store marks (app/store-logo.tsx StoreMark) and the hero's moving store ribbon (app/store-marquee.tsx).
    A mark is a vector file used as a mask over the text colour: crisp at any size, readable in both themes. */
 .store-mark { display: inline-block; flex: none; background: currentColor; -webkit-mask: var(--mark) center / contain no-repeat; mask: var(--mark) center / contain no-repeat; }
+/* A ribbon mark whose file is asked for a moment later (app/store-marquee.tsx): without --mark the mask is none, so it is
+   drawn empty (not as a solid block) until then. */
+.store-mark[data-mark="later"] { background: none; }
 
 /* A plate with a vector mark: the page's surface and ink, so it sits right on light and dark pages alike. */
 .store-logo.store-logo-vector { border-color: var(--home-line); background: var(--home-surface); color: var(--home-ink); }
@@ -25,6 +28,16 @@ html body .home-stores.home-stores-marquee .store-marquee a {
 }
 html body .home-stores.home-stores-marquee .store-marquee a:hover { border: 0; opacity: 1; text-decoration: none; }
 html body .home-stores.home-stores-marquee .store-marquee a:focus-visible { opacity: 1; outline: 2px solid var(--home-accent); outline-offset: -4px; }
+/* "All N stores" under the ribbon reads as a link again (owner's review, 14.10.2026): accent, underlined, full strength,
+   with an arrow; the ribbon's tile look above (padding, opacity, larger type at 960px+) is not for it. */
+html body .home-stores.home-stores-marquee .store-marquee .store-marquee-foot a.home-stores-all {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0; border: 0; border-radius: 0; background: none; opacity: 1;
+  color: var(--day-accent, #1f4d3b); font-size: 15px; font-weight: 600; letter-spacing: normal;
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px;
+}
+html body .home-stores.home-stores-marquee .store-marquee .store-marquee-foot a.home-stores-all:hover { text-decoration: underline; text-decoration-thickness: 2px; }
+html body .home-stores.home-stores-marquee .store-marquee .store-marquee-foot a.home-stores-all:focus-visible { outline: 2px solid var(--home-accent); outline-offset: 2px; }
+html[data-theme="dark"] body .home-stores.home-stores-marquee .store-marquee .store-marquee-foot a.home-stores-all { color: var(--night-jade); }
 
 .store-marquee-foot { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
 
@@ -88,25 +101,6 @@ html[data-theme="dark"] .delivery-sky { --sky-mint: 140, 214, 180; --sky-gold: 2
 
 /* Around the home picks (#finds, app/home-sections.tsx): routes sweep behind the cards and show in the gaps. */
 .catalog-home #finds { position: relative; isolation: isolate; }
-.home-finds-sky { inset: -24px 0 -24px; }
-/* Wide screens: the sheet is a whole screen tall, so the sky gets the room above and below the cards. */
-@media (min-width: 1440px) and (min-height: 820px) {
-  .home-finds-sky { inset: 0; -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); }
-  .home-finds-sky .sky-spark { zoom: 1.4; }
-}
-.home-finds-sky::before {
-  content: ""; position: absolute; inset: 0; z-index: -1; filter: blur(40px);
-  background:
-    radial-gradient(26% 36% at 16% 20%, rgba(var(--sky-mint), .16), transparent 72%),
-    radial-gradient(24% 36% at 84% 80%, rgba(var(--sky-gold), .14), transparent 72%);
-}
-
-@media (min-width: 960px) {
-  .store-marquee-row.single { display: none; }
-  .store-marquee-row.double { display: block; }
-  html body .home-stores.home-stores-marquee .store-marquee a { min-height: 50px; padding: 0 20px; font-size: 17px; }
-  .home-stores.home-stores-marquee .store-marquee .store-mark { zoom: 1.1; }
-}
 
 /* Sheets off the screen (marked by app/home-decor.tsx) and the decor layers of such sheets hold their CSS loops. */
 /* Named, not `*`: flipping the attribute then restyles a handful of elements, not the whole sheet. */

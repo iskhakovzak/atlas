@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {products,blank,addToCart,cartSignature,checkoutCart,setCartServices,setCartSelection,renewCart,serviceFeesOf,insuredDeliveryOf,parcelValueUsd,upgradePricing,pricingSchema,tariff,stateSchema} from '../lib/market/domain.ts';
 import {applyAction} from '../lib/market/actions.ts';
+import {serviceDescription} from '../lib/market/domain.ts';
 import {orderFinance} from '../lib/market/finance.ts';
 import {feeLines} from '../lib/market/projection.ts';
 import {customsVersion} from '../lib/market/world.ts';
@@ -97,4 +98,20 @@ test('a catalog saved while insurance was locked gets the owner terms; an operat
  assert.equal(own.valuePercent,0.025);
  const switchedOff={...insurance,enabled:false};
  assert.equal(upgradePricing(pricingSchema.parse({...tariff,serviceCatalog:[switchedOff]})).serviceCatalog[0].enabled,false);
+});
+
+test('a saved "insurance" wording becomes the Atlas safe-arrival guarantee (13.10.2026); rates and switch stay',()=>{
+ const old={...insurance,title:{ru:'Страхование посылки',uz:'Posilkani sug‘urtalash',en:'Parcel insurance'},description:{ru:'100 % возмещения. Без страховки: $15 за кг.',uz:'x',en:'x'},valuePercent:0.025,valuePercentHigh:0.035,enabled:false};
+ const renamed=upgradePricing(pricingSchema.parse({...tariff,serviceCatalog:[old]})).serviceCatalog[0];
+ assert.deepEqual(renamed.title,{ru:'Гарантия сохранности Atlas',uz:'Atlas saqlash kafolati',en:'Atlas safe-arrival guarantee'});
+ assert.match(renamed.description.ru,/не страхование/);
+ assert.deepEqual([renamed.valuePercent,renamed.valuePercentHigh,renamed.enabled],[0.025,0.035,false]);
+ assert.equal(insurance.title.ru,'Гарантия сохранности Atlas');
+});
+
+test('a service description keeps a number on one line with its percent sign',()=>{
+ const service={description:{ru:'100 % возмещения; 2,9 % от цены',uz:'shikastlanishda 100 % qoplanadi',en:'100% compensation'}};
+ assert.equal(serviceDescription(service,'ru'),'100\u00a0% возмещения; 2,9\u00a0% от цены');
+ assert.equal(serviceDescription(service,'uz'),'shikastlanishda 100\u00a0% qoplanadi');
+ assert.equal(serviceDescription(service,'en'),'100% compensation');
 });

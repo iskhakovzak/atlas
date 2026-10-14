@@ -1,20 +1,24 @@
 'use client';
-import {Fragment,useEffect,useId,useState,type FormEvent,type ReactNode} from 'react';
-import { ArrowRight, ArrowUpRight, BadgeCheck, Check, CircleHelp, ClipboardPaste, Info, Landmark, Link2, MessagesSquare, Plane, ReceiptText, Store, Truck } from 'lucide-react';
+import {Fragment,Suspense,lazy,useCallback,useEffect,useId,useRef,useState,type FormEvent,type ReactNode} from 'react';
+import { ArrowRight, ArrowUpRight, BadgeCheck, Check, CircleHelp, ClipboardPaste, Info, Landmark, Link2, Loader2, LockKeyhole, MessagesSquare, PackageCheck, Plane, ReceiptText, Scale, Search, SearchCheck, ShieldCheck, Star, Store, Truck } from 'lucide-react';
+import {useRouter} from 'next/navigation';
 import Link from '@/components/site-link';
 import {PasteButton} from '@/components/paste-button';
 import {useMarket} from '@/lib/market/store';
-import {deliveryPerKgUsdFor,deliverySpeeds,price,validateSource} from '@/lib/market/domain';
+import {deliveryPerKgUsdFor,deliverySpeeds,price,unknownStoreShippingUsd,validateSource} from '@/lib/market/domain';
 import {atlasServiceBreakdown} from '@/lib/market/quote-presentation';
 import {courierAllowanceUsd} from '@/lib/market/customs';
 import {combinedShipmentWeight,packagingKg} from '@/lib/market/world';
 import {homeCopy} from '@/lib/market/home-copy';
 import {formatKg,formatPercent,formatPriceUsd,formatSum,formatUsd,groupDigits} from '@/lib/market/format';
-import {tariffRows} from '@/lib/market/home-facts';
+import {expressLead,speedPriceRange,tariffRows} from '@/lib/market/home-facts';
+import {catalogSearchFor,looksLikeLink,normalizeProductLink,storeNamedIn} from '@/lib/market/shared-link';
+import {startNavigationFeedback} from '@/lib/market/navigation-feedback';
+import {loadChunk} from '@/lib/market/stale-build';
 import {deliveryDaysFor,deliveryRegions,paymentLabels} from '@/lib/market/site-content';
 import {localizedStatuses,routeTitle,type Locale} from '@/lib/market/i18n';
 import {pickLocale} from '@/lib/market/uz-cyrl';
-import {popularBrandKeys,storeBrands,storeFocusNames} from '@/lib/market/store-brands';
+import {heroStores,popularBrandKeys,storeBrands,storeFocusNames,storefrontUrl,type StoreBrand} from '@/lib/market/store-brands';
 import {StoreLogo,StoreMark,hasStoreMark} from './store-logo';
 import {StoreMarquee} from './store-marquee';
 import {CountryFlag,Flag} from './flags';
@@ -24,9 +28,11 @@ import {faqPage} from '@/lib/seo/structured-data';
 import {MissingContent} from './site-footer';
 
 /** The hero's popular stores; the wide-screen facts row and closing card show the same list (app/home-facts.tsx, HomeClosing). */
-export const heroStores=['nike','zara','amazon','apple','iherb','adidas','hm','sephora'].map(key=>storeBrands.find(brand=>brand.key===key)!).filter(Boolean);
-/** The worked example on the home page: $100 sneakers, 1 kg in the box, priced by the same function as a real order. */
-const exampleUsd=100,exampleBoxedKg=1;
+/**
+ * The worked example on the home page, priced by the same function as a real order (owner, 14.10.2026): $69 sneakers,
+ * standard delivery, 0.7 kg in the box, so with the packaging allowance the bill weighs the usual 1 kg.
+ */
+const exampleUsd=69,exampleBoxedKg=.7,exampleSpeed='standard' as const;
 /** The step the tracking example stands at ("In transit"): the money sheet and the wide-screen step example agree. */
 export const trackingCurrent=4;
 
@@ -63,35 +69,108 @@ export function InfoTip({label,children}:{label:string;children:ReactNode}){
 /** The popular stores and "All N stores": the hero's list, repeated in the wide-screen closing card. */
 export function HomeStoreList({label,labelledBy}:{label?:string;labelledBy?:string}){
  const {c}=useHomeCopy();
- return <ul aria-label={label} aria-labelledby={labelledBy}>{heroStores.map(store=><li key={store.key}><a href={'https://'+store.storefronts[0].root} target="_blank" rel="noopener noreferrer"><StoreLogo brand={store} size={20}/>{store.name}<span className="sr-only"> ({c.hero.openStore})</span></a></li>)}<li><Link className="home-stores-all" href="/stores">{c.hero.allStores(storeBrands.length)}</Link></li></ul>;
+ return <ul aria-label={label} aria-labelledby={labelledBy}>{heroStores.map(store=><li key={store.key}><a href={storefrontUrl(store)} target="_blank" rel="noopener noreferrer"><StoreLogo brand={store} size={20}/>{store.name}<span className="sr-only"> ({c.hero.openStore})</span></a></li>)}<li><Link className="home-stores-all" href="/stores">{c.hero.allStores(storeBrands.length)}</Link></li></ul>;
 }
 
-/** A product link field: a valid link opens the order by link with it, anything else shows the hero's hint. */
+/** After plain words in the field: the store they name and a catalog search that finds something (either may be missing). */
+type LinkHelp={store:StoreBrand|null;search:string};
+/** The sticky button's clipboard link, handed to the hero's field (StickyLinkCta → HomeLinkForm). */
+const homeLinkEvent='atlas:home-link';
+
+/**
+ * A product link field. A link opens the order by link in place, the button waiting meanwhile: a link inside shared text,
+ * a bare "nike.com/t/…" and an http link count too (normalizeProductLink). Anything else shows a hint; plain words get
+ * their own, with the store they name and a catalog search for the forms that show them (owner's review, 14.10.2026).
+ */
 function useLinkSubmit(){
- const {c}=useHomeCopy();
+ const {c,locale}=useHomeCopy();
+ const {catalogProducts}=useMarket();
+ const router=useRouter();
  const [url,setUrl]=useState('');
  const [error,setError]=useState('');
+ const [help,setHelp]=useState<LinkHelp|null>(null);
+ const [busy,setBusy]=useState(false);
+ const prefetched=useRef(false);
+ // A navigation that never finishes, or a page brought back from history, leaves the button usable again.
+ useEffect(()=>{
+  if(!busy)return;
+  const reset=()=>setBusy(false);
+  const timer=window.setTimeout(reset,15000);
+  window.addEventListener('pagehide',reset);
+  window.addEventListener('pageshow',reset);
+  return ()=>{window.clearTimeout(timer);window.removeEventListener('pagehide',reset);window.removeEventListener('pageshow',reset)};
+ },[busy]);
  function submit(event:FormEvent){
   event.preventDefault();
-  try{const target=validateSource(url.trim());setError('');window.location.assign('/order-by-link?url='+encodeURIComponent(target))}
-  catch{setError(c.hero.invalid)}
+  if(busy)return;
+  const raw=url.trim();
+  let target:string;
+  try{target=validateSource(normalizeProductLink(raw)||raw)}
+  catch{
+   const words=Boolean(raw)&&!looksLikeLink(raw);
+   setError(words?c.hero.notLink:c.hero.invalid);
+   setHelp(words?{store:storeNamedIn(raw,storeBrands),search:catalogSearchFor(raw,catalogProducts,locale)}:null);
+   return;
+  }
+  setError('');setHelp(null);setBusy(true);
+  // In place, as SiteLink does: the order page reads ?url= on arrival and starts loading the product (app/global-link-order.tsx).
+  startNavigationFeedback();
+  router.push('/order-by-link?url='+encodeURIComponent(target));
  }
- return {url,error,submit,change:(value:string)=>{setUrl(value);setError('')}};
+ const change=useCallback((value:string)=>{setUrl(value);setError('');setHelp(null)},[]);
+ // The order page's code and data are fetched while the link is being pasted.
+ const prefetch=useCallback(()=>{
+  if(prefetched.current)return;
+  prefetched.current=true;
+  try{router.prefetch('/order-by-link')}catch{/* the submit still loads the page */}
+ },[router]);
+ return {url,error,help,busy,submit,change,prefetch};
 }
 
-export function HomeHero({showCatalogLink}:{showCatalogLink:boolean}){
+/**
+ * The hero's link form, repeated on the closing screen (owner's review, 14.10.2026: a real field there instead of a button
+ * that scrolls back up). The hero keeps its ids, which StickyLinkCta, focusLinkInput and app/link-inputs.css use, and takes
+ * the link the sticky button reads from the clipboard. Filling the field never submits it.
+ */
+function HomeLinkForm({formId,inputId,errorId,noteId,takesSticky=false}:{formId:string;inputId:string;errorId:string;noteId:string;takesSticky?:boolean}){
  const {status}=useMarket();
  const {c,locale}=useHomeCopy();
- const {url,error,submit,change}=useLinkSubmit();
+ const {url,error,help,busy,submit,change,prefetch}=useLinkSubmit();
+ useEffect(()=>{
+  if(!takesSticky)return;
+  const take=(event:Event)=>{const link=(event as CustomEvent<unknown>).detail;if(typeof link==='string'&&link)change(link)};
+  window.addEventListener(homeLinkEvent,take);
+  return ()=>window.removeEventListener(homeLinkEvent,take);
+ },[takesSticky,change]);
+ const points=status==='authenticated'?c.hero.memberPoints:c.hero.guestPoints;
+ return <>
+  <form id={formId} className="home-link-form" onSubmit={submit} noValidate>
+   <label className="sr-only" htmlFor={inputId}>{c.hero.label}</label>
+   <span className="home-link-field"><Link2 size={20} aria-hidden="true"/><input id={inputId} name="url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.hero.placeholder} aria-invalid={!!error} aria-describedby={error?errorId:noteId} onFocus={prefetch} onChange={event=>change(event.target.value)}/><PasteButton targetId={inputId} locale={locale} onPaste={change}/></span>
+   {/* While the order page opens: a spinner over the hidden label, so the button keeps its width. */}
+   <button type="submit" className="btn primary home-cta" aria-busy={busy||undefined}><span className="home-cta-label">{c.hero.calculate}</span>{busy&&<Loader2 className="home-cta-spinner spin" size={20} aria-hidden="true"/>}</button>
+  </form>
+  {error?<>
+   <p id={errorId} className="home-link-error" role="alert">{error}</p>
+   {help&&(help.store||help.search)&&<div className="home-link-help">
+    {help.store&&<a className="btn secondary" href={storefrontUrl(help.store)} target="_blank" rel="noopener noreferrer"><StoreLogo brand={help.store} size={18}/>{c.hero.openStoreNamed(help.store.name)}<ArrowUpRight size={16} aria-hidden="true"/><span className="sr-only"> ({c.hero.openStore})</span></a>}
+    {help.search&&<Link className="btn secondary" href={'/catalog?q='+encodeURIComponent(help.search)}><Search size={16} aria-hidden="true"/>{c.hero.searchCatalog(help.search)}</Link>}
+   </div>}
+  </>:<ul id={noteId} className="home-link-note home-link-points">{points.map(point=><li key={point}><Check size={14} aria-hidden="true"/>{point}</li>)}</ul>}
+ </>;
+}
+
+/** The signed-in customer's "continue" card: its own chunk (order grouping and attention rules), never loaded for a guest. */
+const HomeResume=lazy(()=>loadChunk(()=>import('./home-resume')).then(module=>({default:module.HomeResume})));
+
+export function HomeHero({showCatalogLink}:{showCatalogLink:boolean}){
+ const {status,ready}=useMarket();
+ const {c,locale}=useHomeCopy();
  return <section className="home-hero" aria-labelledby="home-title">
   <h1 id="home-title">{c.hero.title}</h1>
   <p className="home-hero-lead">{c.hero.lead}</p>
-  <form id="home-link-form" className="home-link-form" onSubmit={submit} noValidate>
-   <label className="sr-only" htmlFor="finds-product-url">{c.hero.label}</label>
-   <span className="home-link-field"><Link2 size={20} aria-hidden="true"/><input id="finds-product-url" name="url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.hero.placeholder} aria-invalid={!!error} aria-describedby={error?'home-link-error':'home-link-note'} onChange={event=>change(event.target.value)}/><PasteButton targetId="finds-product-url" locale={locale} onPaste={change}/></span>
-   <button type="submit" className="btn primary home-cta">{c.hero.calculate}</button>
-  </form>
-  {error?<p id="home-link-error" className="home-link-error" role="alert">{error}</p>:<p id="home-link-note" className="home-link-note">{status==='authenticated'?c.hero.memberNote:c.hero.guestNote}</p>}
+  <HomeLinkForm formId="home-link-form" inputId="finds-product-url" errorId="home-link-error" noteId="home-link-note" takesSticky/>
+  {ready&&status==='authenticated'&&<Suspense fallback={null}><HomeResume/></Suspense>}
   <div className="home-stores home-stores-marquee">
    <StoreMarquee label={c.hero.popular} openStore={c.hero.openStore} allStores={c.hero.allStores(storeBrands.length)} hint={c.hero.storesHint} locale={locale}/>
    <p className="home-stores-hint tip-text">{c.hero.storesHint}</p>
@@ -103,7 +182,7 @@ export function HomeHero({showCatalogLink}:{showCatalogLink:boolean}){
 /** The worked example's amounts, priced like a real order: the bill card and the wide-screen step example show the same numbers. */
 export function useExampleBill(){
  const {pricing}=useMarket();
- const quote=price(exampleUsd,combinedShipmentWeight(exampleBoxedKg),1,0,pricing);
+ const quote=price(exampleUsd,combinedShipmentWeight(exampleBoxedKg),1,0,pricing,exampleSpeed);
  return {quote,parts:atlasServiceBreakdown(quote)};
 }
 
@@ -117,39 +196,61 @@ export function ExampleQuote(){
  const {quote,parts}=useExampleBill();
  const packed=combinedShipmentWeight(exampleBoxedKg);
  const fee=formatPercent(pricing.margin+pricing.buyoutFee+pricing.conversionFee,locale);
- const markup=formatPercent((pricing.fxMarkup??1.012)-1,locale);
- const cbu=pricing.fxSource==='cbu'&&Boolean(pricing.fxCbuRate);
- const days=deliveryDaysFor(pricing,'us');
+ const days=deliveryDaysFor(pricing,'us',exampleSpeed);
  const allowance=pricing.customsAllowanceUsd??courierAllowanceUsd;
  const usd=formatUsd(exampleUsd,locale);
+ // The bar under the total and the dots on the two lines share these colours (app/home-bill.css); the amounts stay in the text.
+ const itemShare=quote.total>0?Math.round(quote.merchandise/quote.total*1000)/10:0;
+ // Only the goods' price counts towards the duty-free allowance, as in the cart (lib/market/allowance.ts).
+ const allowanceUsed=allowance>0?Math.min(100,exampleUsd/allowance*100):0;
+ // The whole bill in dollars at the same Atlas rate: the store's $69 next to what reaches Tashkent.
+ const totalUsd=pricing.fx>0?formatUsd(Math.round(quote.total/pricing.fx),locale):null;
  return <aside id="example" className="folio home-folio" aria-labelledby="example-title">
-  <p className="folio-cap"><b id="example-title">{c.example.title}</b><span>{c.example.product}</span></p>
+  {/* The caption names the example as an order line: what is bought, where and for how much (owner, 14.10.2026: the card
+      looked dry and empty). It takes the place of the old one-line caption, so the card grows only a little. */}
+  <p className="folio-cap bill-product"><span className="bill-product-mark" aria-hidden="true"><StoreMark brandKey="nike" height={14} maxWidth={28}/></span><span className="bill-product-name" aria-hidden="true"><b>{c.trust.trackingProduct}</b><small>nike.com · {usd}</small></span><b id="example-title" className="bill-product-label"><span className="bill-label-full">{c.example.title}</span><span className="bill-label-short" aria-hidden="true">{c.trust.example}</span><span className="sr-only">: {c.example.product(usd)}</span></b></p>
   <div className="folio-sheet home-quote">
-   <p className="bill-route"><span><span className="sr-only">{c.example.routeLabel}: </span>{c.tariffs.regions.us}</span><span className="bill-route-line" aria-hidden="true"/><span>{c.example.to}</span></p>
+   <p className="bill-route"><span className="bill-route-end"><Flag region="us" className="bill-route-flag"/><span className="sr-only">{c.example.routeLabel}: </span>{c.tariffs.regions.us}</span><span className="bill-route-path" aria-hidden="true"><span className="bill-route-line"/><Plane className="bill-route-plane" size={17} strokeWidth={2}/></span><span className="sr-only"> → </span><span className="bill-route-end">{c.example.to}</span></p>
    {days&&<p className="bill-days">{c.example.days(days[0],days[1])}</p>}
    <dl className="bill">
-    <div><dt>{c.example.item}</dt><dd>{formatSum(quote.merchandise,locale)}</dd><dd className="bill-note">{cbu?c.example.itemNoteCbu(usd,groupDigits(pricing.fx),markup):c.example.itemNoteSet(usd,groupDigits(pricing.fx))}</dd></div>
-    <div><dt>{c.example.service}</dt><dd>{formatSum(parts.service,locale)}</dd><dd className="bill-note">{c.example.serviceDetail(fee)}</dd></div>
-    <div><dt>{c.example.delivery}</dt><dd>{formatSum(parts.international,locale)}</dd><dd className="bill-note">{c.example.deliveryNote(formatKg(packed,locale),formatUsd(deliveryPerKgUsdFor(pricing),locale))}</dd></div>
+    <div className="bill-row-item"><dt>{c.example.item}</dt><dd>{formatSum(quote.merchandise,locale)}</dd><dd className="bill-note">{c.example.itemNote(usd)}</dd></div>
+    {/* One «Atlas service» line with its parts folded under it, as the real bill groups them (app/cost-lines.tsx). */}
+    <div className="bill-row-service"><dt>{c.example.service}</dt><dd>{formatSum(parts.service+parts.international,locale)}</dd><dd className="bill-note"><details className="bill-breakdown"><summary>{c.example.serviceParts}</summary><ul className="bill-parts">
+     <li><span>{c.example.fee(fee)}</span><span>{formatSum(parts.service,locale)}</span></li>
+     <li><span>{c.example.delivery} <small>{c.example.deliveryNote(formatKg(packed,locale),formatUsd(deliveryPerKgUsdFor(pricing,undefined,exampleSpeed),locale))}</small></span><span>{formatSum(parts.international,locale)}</span></li>
+    </ul></details></dd></div>
     {/* A reserve on top of delivery only while the tariff sets one (none since 5 October 2026). */}
     {quote.reserve>0&&<div><dt><span className="home-dt-with-tip">{c.example.reserve}<InfoTip label={c.example.reserveHelpLabel}>{c.example.reserveHelp}</InfoTip></span></dt><dd>{formatSum(quote.reserve,locale)}</dd><dd className="bill-note">{c.example.reserveNote(formatKg(packagingKg,locale))}</dd></div>}
    </dl>
    <p className="bill-total home-quote-total"><span>{c.example.total}</span><strong><Money value={quote.total} locale={locale}/></strong></p>
+   <span className="bill-split" aria-hidden="true"><span style={{flexGrow:itemShare}}/><span style={{flexGrow:100-itemShare}}/></span>
+   {/* The bar's legend (owner, 14.10.2026: "make it even better"): most of the money is the item itself. */}
+   <p className="bill-split-legend"><span>{c.example.shareItem(formatPercent(Math.round(itemShare)/100,locale))}</span><span>{c.example.shareService(formatPercent((100-Math.round(itemShare))/100,locale))}</span></p>
+   {/* The Atlas rate is no longer printed here (owner, 14.10.2026: anyone can divide; the rate is explained in the money
+       section and fixed in the order at payment). The dollar total says what the store's price turns into. */}
+   {totalUsd&&<p className="bill-usd"><PackageCheck className="bill-usd-icon" size={16} strokeWidth={2} aria-hidden="true"/>{c.example.totalUsd(totalUsd)}</p>}
   </div>
   <section className="folio-outside home-customs-slip" aria-labelledby="example-outside">
-   <h2 id="example-outside">{c.example.dutyTitle(formatUsd(allowance,locale))}</h2>
+   <h2 id="example-outside"><ShieldCheck className="home-customs-icon" size={16} aria-hidden="true"/>{c.example.dutyTitle(formatUsd(allowance,locale))}</h2>
+   <p className="home-customs-meter"><span className="home-customs-track" aria-hidden="true"><span style={{width:`${allowanceUsed}%`}}/></span><span>{c.example.dutyUsed(usd,formatUsd(Math.max(0,allowance-exampleUsd),locale))}</span></p>
    <p className="home-customs-note">{c.example.dutyNote}</p>
   </section>
  </aside>;
 }
 
 const stepIcons=[Link2,ReceiptText,BadgeCheck,Truck];
+/** The money rules in the order of homeCopy.trust.facts: price check, rate, one service line, store shipping, weighing. */
+const factIcons=[SearchCheck,LockKeyhole,ReceiptText,Truck,Scale];
 /** Step 1's example: a few of the catalogue's popular stores that have a mark, and how many more there are. */
 const stepStores=popularBrandKeys.filter(key=>hasStoreMark(key)&&storeBrands.some(brand=>brand.key===key)).slice(0,4);
 
 export function HowItWorks(){
- const {c}=useHomeCopy();
+ const {c,locale}=useHomeCopy();
  const {siteContent}=useMarket();
+ // TODO(owner): crypto payments — confirm their legal status in Uzbekistan before keeping them on the site. Until then
+ // crypto goes last and quieter than the card and local payment methods.
+ const payments=[...siteContent.paymentMethods].sort((a,b)=>Number(a==='crypto')-Number(b==='crypto'));
+ const courierNote=siteContent.courierNote?pickLocale(siteContent.courierNote,locale):undefined;
  return <section id="how" className="home-section" data-chapter="how" aria-labelledby="how-title">
   <h2 id="how-title">{c.how.title}</h2>
   <ol className="home-steps">{c.how.steps.map((step,index)=><li key={step.title} className="home-step">
@@ -157,9 +258,9 @@ export function HowItWorks(){
    {/* Wide screens only: the stage's icon in the card's corner (owner, 7.10.2026: "fill the cards a little"). */}
    <span className="hw-step-icon" aria-hidden="true">{(()=>{const Icon=stepIcons[index];return <Icon size={22} strokeWidth={1.9}/>})()}</span>
    <h3>{step.title}</h3><p>{step.text}</p>
-   {index===2&&(siteContent.paymentMethods.length?<ul className="home-payments" aria-label={c.how.paymentsLabel}>{siteContent.paymentMethods.map(method=><li key={method}>{paymentLabels[method]}</li>)}</ul>:<MissingContent what="способы оплаты — только реально подключённые провайдеры"/>)}
-   {/* Owner, 7.10.2026: the parcel goes to the door by courier. */}
-   {index===3&&<ul className="home-payments home-delivery" aria-label={c.how.deliveryLabel}><li>{c.how.courier}</li></ul>}
+   {index===2&&(siteContent.paymentMethods.length?<ul className="home-payments" aria-label={c.how.paymentsLabel}>{payments.map(method=><li key={method} className={method==='crypto'?'home-payment-minor':undefined}>{paymentLabels[method]}</li>)}</ul>:<MissingContent what="способы оплаты — только реально подключённые провайдеры"/>)}
+   {/* Owner, 7.10.2026: the parcel goes to the door by courier. Price and coverage are the owner's words (admin, «Контент сайта»). */}
+   {index===3&&<><ul className="home-payments home-delivery" aria-label={c.how.deliveryLabel}><li>{c.how.courier}</li></ul>{courierNote?<p className="home-courier-note">{courierNote}</p>:<MissingContent what="курьер по Ташкенту: цена и зона доставки"/>}</>}
    {/* Wide screens only (app/home-wide-content.css): a small picture of the step, built from the page's own copy and numbers.
        The first one is a working link field (owner, 7.10.2026), the rest are pictures. */}
    <div className="hw-demo-wrap" aria-hidden={index===0?undefined:true}><StepDemo index={index}/></div>
@@ -171,10 +272,11 @@ export function HowItWorks(){
 function StepLinkForm(){
  const {status}=useMarket();
  const {c,locale}=useHomeCopy();
- const {url,error,submit,change}=useLinkSubmit();
+ // Only the hint's text here, no store or catalog buttons: the card has no room for them.
+ const {url,error,busy,submit,change,prefetch}=useLinkSubmit();
  return <form className="hw-demo hw-demo-field" onSubmit={submit} noValidate>
   <label className="sr-only" htmlFor="how-product-url">{c.hero.label}</label>
-  <span className="hw-demo-input"><Link2 size={15} strokeWidth={2} aria-hidden="true"/><input id="how-product-url" name="url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.hero.placeholder} aria-invalid={!!error} aria-describedby="how-link-note" onChange={event=>change(event.target.value)}/><PasteButton targetId="how-product-url" locale={locale} onPaste={change}/><button type="submit" aria-label={c.hero.calculate} title={c.hero.calculate}><ArrowRight size={15} strokeWidth={2.2} aria-hidden="true"/></button></span>
+  <span className="hw-demo-input"><Link2 size={15} strokeWidth={2} aria-hidden="true"/><input id="how-product-url" name="url" type="url" inputMode="url" autoComplete="off" spellCheck={false} enterKeyHint="go" value={url} placeholder={c.hero.placeholder} aria-invalid={!!error} aria-describedby="how-link-note" onFocus={prefetch} onChange={event=>change(event.target.value)}/><PasteButton targetId="how-product-url" locale={locale} onPaste={change}/><button type="submit" aria-label={c.hero.calculate} title={c.hero.calculate} aria-busy={busy||undefined}><ArrowRight size={15} strokeWidth={2.2} aria-hidden="true"/></button></span>
   <span className="hw-demo-stores" aria-hidden="true">{stepStores.map(key=><StoreMark key={key} brandKey={key} height={17} maxWidth={58}/>)}<small>{c.how.moreStores(storeBrands.length-stepStores.length)}</small></span>
   <span id="how-link-note" className={'hw-demo-note'+(error?' error':'')} role={error?'alert':undefined}>{error||(status==='authenticated'?c.hero.memberNote:c.hero.guestNote)}</span>
  </form>;
@@ -186,7 +288,7 @@ function StepDemo({index}:{index:number}){
  const {quote,parts}=useExampleBill();
  if(index===0)return <StepLinkForm/>;
  if(index===1){
-  const rows:[string,number][]=[[c.example.item,quote.merchandise],[c.example.service,parts.service],[c.example.delivery,parts.international],...(quote.reserve>0?[[c.example.reserve,quote.reserve] as [string,number]]:[])];
+  const rows:[string,number][]=[[c.example.item,quote.merchandise],[c.example.service,parts.service+parts.international],...(quote.reserve>0?[[c.example.reserve,quote.reserve] as [string,number]]:[])];
   return <div className="hw-demo hw-demo-bill"><span className="hw-tag">{c.example.title}</span>
    {rows.map(([label,amount])=><span key={label} className="hw-demo-row"><span>{label}</span><i/><b>{formatSum(amount,locale)}</b></span>)}
    <span className="hw-demo-total"><span>{c.example.total}</span><b>{formatSum(quote.total,locale)}</b></span>
@@ -205,19 +307,36 @@ export function DeliveryTariffs(){
  const {pricing}=useMarket();
  const {locale,c}=useHomeCopy();
  const missingDays=deliveryRegions.some(region=>deliverySpeeds.some(speed=>!deliveryDaysFor(pricing,region.id,speed)));
- // Every country shows its own prices: the owner changes rates per country and per speed.
- const cards=tariffRows(pricing);
+ // One table (owner, 13.10.2026): a price chip per speed above it, the days per country in it. The owner can still
+ // set a rate per country and speed: then the chip says "from" and that speed's cells carry their own price.
+ const rows=tariffRows(pricing);
+ const chips=deliverySpeeds.flatMap(speed=>{const range=speedPriceRange(rows,speed);return range?[{speed,usd:range.min,uniform:range.min===range.max}]:[];});
+ const uniform=new Set(chips.filter(chip=>chip.uniform).map(chip=>chip.speed));
+ // How much sooner express arrives, per country; no line when it is not sooner everywhere (lib/market/home-facts.ts).
+ const lead=expressLead(rows);
  return <section id="tariffs" className="home-section tariff-section" data-chapter="tariffs" aria-labelledby="tariffs-title">
   <h2 id="tariffs-title">{c.tariffs.title}</h2>
   <p className="home-section-lead">{c.tariffs.lead}</p>
-  <ul className="tariff-grid" aria-label={c.tariffs.from}>{cards.map(({region,options})=><li key={region.id} className="tariff-card">
-   <h3 className="tariff-country"><Flag region={region.id}/><span>{c.tariffs.regions[region.id]}</span></h3>
-   <dl className="tariff-options" aria-label={c.tariffs.speedsLabel}>{options.map(({speed,days,usd})=><div key={speed} className={`tariff-option tariff-${speed}`}>
-    <dt className="tariff-speed">{c.tariffs.speeds[speed]}</dt>
-    <dd className={days?'tariff-days':'tariff-days tariff-pending'}><span className="sr-only">{c.tariffs.time}: </span>{days?c.tariffs.days(days[0],days[1]):c.tariffs.pending}</dd>
-    <dd className="tariff-price"><span className="sr-only">{c.tariffs.perKg}: </span><b>{formatUsd(usd,locale)}<small>{c.tariffs.perKgUnit}</small></b><span className="tariff-100g">{c.tariffs.per100g(formatPriceUsd(usd/10,locale))}</span></dd>
-   </div>)}</dl>
-  </li>)}</ul>
+  <div className="tariff-table">
+   <ul className="tariff-chips" aria-label={c.tariffs.perKg}>{chips.map(({speed,usd,uniform})=><li key={speed} className={`tariff-chip tariff-${speed}`}>
+    {/* The gold star marks express as the recommendation, as in the cart; the plain speed has none. */}
+    <span className="tariff-speed">{c.tariffs.speeds[speed]}{speed==='express'&&<Star size={13} className="tariff-star" aria-hidden="true"/>}</span>
+    <b>{uniform?formatUsd(usd,locale):c.wide.priceFrom(formatUsd(usd,locale))}<small>{c.tariffs.perKgUnit}</small></b>
+    <span className="tariff-100g">{c.tariffs.per100g(formatPriceUsd(usd/10,locale))}</span>
+    {speed==='express'&&lead&&<span className="tariff-faster">{c.tariffs.faster(lead.min===lead.max?String(lead.max):`${lead.min}–${lead.max}`,lead.max)}</span>}
+   </li>)}</ul>
+   <table>
+    <caption className="sr-only">{c.tariffs.time}</caption>
+    <thead><tr><th scope="col">{c.tariffs.country}</th>{deliverySpeeds.map(speed=><th key={speed} scope="col" className={`tariff-${speed}`}>{c.tariffs.speeds[speed]}</th>)}</tr></thead>
+    <tbody>{rows.map(({region,options})=><tr key={region.id}>
+     <th scope="row"><span className="tariff-country"><Flag region={region.id}/><span>{c.tariffs.tableRegions?.[region.id]??c.tariffs.regions[region.id]}</span></span></th>
+     {options.map(({speed,days,usd})=><td key={speed} className={`tariff-${speed}`}>
+      <span className={days?'tariff-days':'tariff-days tariff-pending'}>{days?c.tariffs.days(days[0],days[1]):c.tariffs.pending}</span>
+      {!uniform.has(speed)&&<span className="tariff-cell-price">{formatUsd(usd,locale)}{c.tariffs.perKgUnit}</span>}
+     </td>)}
+    </tr>)}</tbody>
+   </table>
+  </div>
   {missingDays&&<MissingContent what="сроки доставки по странам и скоростям (дни, от–до)"/>}
   <p className="home-note tariff-note">{c.tariffs.weightNote} {c.tariffs.rateNote}</p>
   {/* Wide screens only: what the table's days cover. No days here — they stay in the table. */}
@@ -239,24 +358,27 @@ export function TrustSection(){
  const current=trackingCurrent;
  const {legal,reviews,parcelPhotos,completedOrders}=siteContent;
  const legalAddress=(legal.address?pickLocale(legal.address,locale):undefined);
+ const freeFromUsd=pricing.storeShippingFreeFromUsd??50;
  const facts=c.trust.facts({
   fee:formatPercent(pricing.margin+pricing.buyoutFee+pricing.conversionFee,locale),
-  markup:formatPercent((pricing.fxMarkup??1.012)-1,locale),
-  cbu:pricing.fxSource==='cbu'&&Boolean(pricing.fxCbuRate),
-  freeFrom:formatUsd(pricing.storeShippingFreeFromUsd??50,locale),
+  freeFrom:formatUsd(freeFromUsd,locale),
+  hold:formatUsd(unknownStoreShippingUsd,locale),
+  // An order below the free threshold, so the example gets the reserve.
+  holdExample:formatUsd(Math.max(1,Math.floor(freeFromUsd*0.6)),locale),
  });
  // Two parts so phones can show each as a sheet of its own: the money facts, then the proof (tracking, photos, legal).
  return <section id="trust" className="home-section" data-chapter="trust" aria-labelledby="trust-title">
   <div className="home-trust-money">
   <h2 id="trust-title">{c.trust.title}</h2>
   {completedOrders!==null?<p className="home-counter"><strong>{groupDigits(completedOrders)}</strong> {c.trust.ordersDone}</p>:<MissingContent what="число реально выполненных заказов"/>}
-  <ul className="home-facts">{facts.map(fact=><li key={fact}>{fact}</li>)}</ul>
+  {/* Each rule as a card with a short title (owner, 14.10.2026: the plain list read as a wall of text). */}
+  <ul className="home-fact-cards">{facts.map((fact,index)=>{const Icon=factIcons[index]??Check;return <li key={fact.title}><span className="home-fact-icon" aria-hidden="true"><Icon size={19} strokeWidth={1.9}/></span><h3>{fact.title}</h3><p>{fact.text}</p></li>;})}</ul>
   </div>
   <div className="home-trust-proof">
   <div className={'home-trust-grid'+(reviews.length?'':' single')}>
    <article className="home-tracking" aria-labelledby="tracking-title">
     <header><h3 id="tracking-title">{c.trust.trackingTitle}</h3><span className="home-badge">{c.trust.example}</span></header>
-    <p className="home-tracking-item"><b>{c.trust.trackingProduct}</b><span>{c.trust.trackingOrder}</span></p>
+    <p className="home-tracking-item"><span className="home-tracking-mark" aria-hidden="true"><StoreMark brandKey="nike" height={13} maxWidth={26}/></span><span className="home-tracking-name"><b>{c.trust.trackingProduct}</b><span>{c.trust.trackingOrder}</span></span><span className="home-tracking-now"><span className="home-tracking-pulse" aria-hidden="true"/>{c.trust.trackingNow}: {statuses[current]}</span></p>
     <ol>{statuses.map((status,index)=><li key={status} data-state={index<current?'done':index===current?'current':'next'} aria-current={index===current?'step':undefined}><span className="home-tracking-dot" aria-hidden="true">{index<current&&<Check size={12}/>}</span>{status}</li>)}</ol>
     <p className="home-note">{c.trust.trackingNote}</p>
    </article>
@@ -283,16 +405,17 @@ const firstSentence=(text:string)=>{const first=text.split(/(?<=[.!?])\s/)[0]??t
 export function HomeFaq(){
  const {locale,c}=useHomeCopy();
  const {pricing,siteContent}=useMarket();
- const known=deliveryRegions.flatMap(region=>{
-  const parts=deliverySpeeds.flatMap(speed=>{const days=deliveryDaysFor(pricing,region.id,speed);return days?[`${c.tariffs.speeds[speed].toLowerCase()} ${c.tariffs.days(days[0],days[1])}`]:[];});
-  return parts.length?[`${c.tariffs.regions[region.id]}: ${parts.join(', ')}`]:[];
+ // One range per speed across the countries (shortest to longest); the table under #tariffs has them per country.
+ const known=deliverySpeeds.flatMap(speed=>{
+  const all=deliveryRegions.flatMap(region=>{const days=deliveryDaysFor(pricing,region.id,speed);return days?[days]:[];});
+  return all.length?[`${c.tariffs.speeds[speed].toLocaleLowerCase(locale)} ${c.tariffs.days(Math.min(...all.map(d=>d[0])),Math.max(...all.map(d=>d[1])))}`]:[];
  });
  const prohibitedUrl=siteContent.prohibitedListUrl;
  const items:{q:string;a:string;link?:ReactNode}[]=[
-  {q:c.faq.timesQuestion,a:known.length?c.faq.timesKnown(known.join('; ')):c.faq.timesUnknown},
+  {q:c.faq.timesQuestion,a:known.length?c.faq.timesKnown(known.join(', ')):c.faq.timesUnknown,link:<a href="#tariffs">{c.faq.timesLink}</a>},
   {...c.faq.items.customs(formatUsd(pricing.customsAllowanceUsd??courierAllowanceUsd,locale)),link:<Link href="/customs">{c.faq.customsLink}</Link>},
   c.faq.items.returns,
-  {...c.faq.items.prohibited,link:prohibitedUrl?<a href={prohibitedUrl} target="_blank" rel="noopener noreferrer">{c.faq.prohibitedOfficial}</a>:<Link href="/legal#offer">{c.faq.prohibitedRules}</Link>},
+  {...c.faq.items.prohibited,link:prohibitedUrl?<a href={prohibitedUrl} target="_blank" rel="noopener noreferrer">{c.faq.prohibitedOfficial}</a>:<Link href="/legal#offer-limits">{c.faq.prohibitedRules}</Link>},
   c.faq.items.weight,
   c.faq.items.account,
  ];
@@ -318,13 +441,13 @@ export function HomeFaq(){
  </section>;
 }
 
-/** Desktop close of the page: one line and the action that brings the link field back. Phones have the sticky button. */
+/** Desktop close of the page: one line and the link field itself, so a link pasted here opens the order. Phones have the sticky button. */
 export function HomeClosing(){
  const {c}=useHomeCopy();
  return <section className="home-section home-closing" aria-labelledby="closing-title">
   <h2 id="closing-title">{c.closing.title}</h2>
   <p>{c.closing.text}</p>
-  <button type="button" className="btn primary home-cta" onClick={focusLinkInput}><ClipboardPaste size={18} aria-hidden="true"/>{c.sticky.paste}</button>
+  <div className="home-closing-form"><HomeLinkForm formId="closing-link-form" inputId="closing-product-url" errorId="closing-link-error" noteId="closing-link-note"/></div>
   {/* Wide screens only: the hero's stores again, without the "field above" hint. */}
   <ClosingStores/>
  </section>;
@@ -339,7 +462,7 @@ function ClosingStores(){
  return <div className="hw-closing-stores">
   <p id="closing-stores-label" className="hw-closing-stores-label">{c.hero.popular}</p>
   <ul className="hw-cs-grid" aria-labelledby="closing-stores-label">{heroStores.map(store=><li key={store.key}>
-   <a className="hw-cs-tile" href={'https://'+store.storefronts[0].root} target="_blank" rel="noopener noreferrer">
+   <a className="hw-cs-tile" href={storefrontUrl(store)} target="_blank" rel="noopener noreferrer">
     <StoreLogo brand={store} size={36}/>
     <span className="hw-cs-text"><span className="hw-cs-name">{store.name}</span><span className="hw-cs-meta"><CountryFlag code={store.country} className="hw-cs-flag"/><span className="hw-cs-kind">{storeFocusNames[store.focus][locale]}</span></span></span>
     <ArrowUpRight className="hw-cs-go" size={16} aria-hidden="true"/><span className="sr-only"> ({c.hero.openStore})</span>
@@ -349,7 +472,22 @@ function ClosingStores(){
  </div>;
 }
 
-/** Mobile: once the hero form scrolls away, a sticky button brings it back and focuses the input. */
+/**
+ * The sticky button's tap: back to the hero's field, and a product link from the clipboard into it when the field is empty.
+ * Focus first, inside the tap; the clipboard after (the browser may ask). A refusal or no link leaves just the focus, and
+ * the form is never submitted, as with PasteButton.
+ */
+function bringLinkField(){
+ focusLinkInput();
+ const field=()=>document.getElementById('finds-product-url') as HTMLInputElement|null;
+ if(field()?.value||!navigator.clipboard?.readText)return;
+ navigator.clipboard.readText().then(text=>{
+  const link=normalizeProductLink(text);
+  if(link&&!field()?.value)window.dispatchEvent(new CustomEvent(homeLinkEvent,{detail:link}));
+ }).catch(()=>{});
+}
+
+/** Mobile: once the hero form scrolls away, a sticky button brings it back, focuses the input and fills in a copied link. */
 export function StickyLinkCta({aboveNav}:{aboveNav:boolean}){
  const {c}=useHomeCopy();
  const [visible,setVisible]=useState(false);
@@ -362,6 +500,6 @@ export function StickyLinkCta({aboveNav}:{aboveNav:boolean}){
  },[]);
  if(!visible)return null;
  return <div className={'home-sticky'+(aboveNav?' above-nav':'')}>
-  <button type="button" className="btn primary home-cta" onClick={focusLinkInput}><ClipboardPaste size={18} aria-hidden="true"/>{c.sticky.paste}</button>
+  <button type="button" className="btn primary home-cta" onClick={bringLinkField}><ClipboardPaste size={18} aria-hidden="true"/>{c.sticky.paste}</button>
  </div>;
 }

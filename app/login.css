@@ -1,61 +1,14 @@
-.login-card{max-width:520px;margin:32px auto 72px;padding:clamp(22px,5vw,44px);display:flex;flex-direction:column;gap:16px}
 .login-card h1{font-size:clamp(26px,4vw,36px);line-height:1.15;letter-spacing:-.025em}
-.login-intro{color:#51645a;font-size:15px;line-height:1.6}
-.login-status{display:flex;align-items:center;gap:12px;color:#51645a}
-.login-tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px;padding:4px;border-radius:10px;background:#eef2f7}
-.login-tabs button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:42px;border:0;border-radius:7px;background:transparent;font:inherit;font-weight:600;color:#3f4d46;cursor:pointer}
-.login-tabs button.active{background:#fff;color:#1d3d2f;box-shadow:0 1px 3px rgba(17,30,52,.12)}
-.login-tabs button:focus-visible{outline:2px solid #1f4d3b;outline-offset:2px}
-.login-panel{display:flex;flex-direction:column;gap:14px}
-.login-form{display:flex;flex-direction:column;gap:14px}
-.login-form .field{display:flex;flex-direction:column;gap:6px}
-.login-form .field input{width:100%}
 .login-form .field small{color:#60756a;font-size:13px}
-.login-form .btn,.login-google .btn{min-height:46px;justify-content:center}
-.login-code{font-size:22px!important;letter-spacing:.35em;text-align:center;font-variant-numeric:tabular-nums}
-.login-sent{display:flex;flex-wrap:wrap;align-items:center;gap:6px;color:#3f4d46;font-size:15px}
-.login-sent .text-button{display:inline-flex;align-items:center;gap:4px}
-.login-resend{align-self:center}
-.login-resend:disabled{opacity:.55;cursor:default}
-.login-telegram,.login-google{display:flex;flex-direction:column;gap:14px;align-items:stretch}
-.login-telegram p,.login-google p{color:#51645a}
-.login-telegram-widget{min-height:48px;display:flex;justify-content:center}
-.login-legal{color:#60756a;font-size:12px;text-align:center}
-html[data-theme="dark"] .login-intro,html[data-theme="dark"] .login-telegram p,html[data-theme="dark"] .login-google p,html[data-theme="dark"] .login-status,html[data-theme="dark"] .login-sent{color:var(--night-muted)}
-html[data-theme="dark"] .login-tabs{background:rgba(255,255,255,.03);box-shadow:inset 0 0 0 1px var(--night-line)}
-html[data-theme="dark"] .login-tabs button{color:var(--night-muted)}
-html[data-theme="dark"] .login-tabs button.active{background:var(--night-hover);color:var(--night-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
-@media(max-width:600px){.login-card{margin:16px 0 36px}}
-/* Telegram bot sign-in: one wide Telegram-blue button that opens the app. */
+/* Kept in the layout: .btn.login-choice below and the phone .atlas-modal .btn height must win these ties. */
+.login-form .btn,.login-google .btn{min-height:46px}
+/* Telegram bot sign-in: one wide Telegram-blue button (kept in the layout for the phone button heights). */
 .btn.tg-login{width:100%;min-height:52px;border-radius:12px;background:#1679bf;border-color:#1679bf;color:#fff;font-size:16px;font-weight:600;gap:10px}
-.btn.tg-login:hover{background:#1468a8;border-color:#1468a8}
-.btn.tg-login.is-busy{opacity:.7;cursor:progress}
-.tg-login-wait{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:#eaf6fd;color:#1f5f80;font-size:14px;line-height:1.5}
-.tg-login-wait svg{flex-shrink:0;margin-top:2px}
-.tg-login-web{align-self:center;font-size:13px}
-html[data-theme="dark"] .tg-login-wait{background:#12303f;color:#bfe3f6}
 /* Sign-in methods: Telegram first, then "or" and one full-width button per method, spaced, never in one cramped row. */
-.login-or{display:flex;align-items:center;gap:12px;margin:2px 0;color:#64746c;font-size:13px}
-.login-or::before,.login-or::after{content:"";flex:1;height:1px;background:#e1e7e4}
-.login-choices{display:grid;gap:10px}
 .btn.login-choice{width:100%;min-height:52px;border-radius:12px;justify-content:center;gap:10px;font-size:15px;font-weight:600}
 .btn.login-choice svg{flex-shrink:0}
-.login-back{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;min-height:40px}
-html[data-theme="dark"] .login-or{color:var(--night-muted)}
-html[data-theme="dark"] .login-or::before,html[data-theme="dark"] .login-or::after{background:var(--night-line)}
-.tg-login-hint{margin-top:-4px;color:#64746c;font-size:13px;line-height:1.45;text-align:center}
-html[data-theme="dark"] .tg-login-hint{color:var(--night-muted)}
-.login-providers{display:flex;flex-direction:column;gap:14px;align-items:stretch}
-.login-providers p{color:#51645a}
-.login-providers .btn{min-height:46px;justify-content:center}
 .btn.apple{background:#000;border-color:#000;color:#fff;font-weight:600;gap:10px}
 .btn.apple:hover{background:#1a1a1a}
 .btn.apple svg{width:18px;height:18px;flex-shrink:0;fill:currentColor}
-.signin-add .btn.apple{color:#fff}
-.login-legal a{color:inherit;text-decoration:underline;text-underline-offset:2px}
-.login-return{display:flex;justify-content:center;padding:24px 16px}
-.login-return-card{align-items:center;text-align:center;max-width:420px}
-.login-return-card .wordmark{font-size:34px;letter-spacing:-.05em}
-.login-return-card h1{font-size:clamp(22px,4vw,28px)}
-.login-return-card .btn{min-width:200px;justify-content:center}
-html[data-theme="dark"] .login-providers p{color:var(--night-muted)}
+/* The expired-link card: the lowercase "atlas↗" mark as in the header. */
+.login-return-card .wordmark svg{width:.7em;height:.7em;vertical-align:.12em}

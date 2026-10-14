@@ -20,6 +20,11 @@ declare namespace Cloudflare {
     ATLAS_SMS_TEMPLATE?: string;
     TELEGRAM_BOT_TOKEN?: string;
     TELEGRAM_BOT_USERNAME?: string;
+    /**
+     * Order notices in Telegram: "on" lets this deployment message customers, "off" stops it. Unset — only
+     * the public site (atlasmarket.uz over https) sends, so staging with the same bot token never does.
+     */
+    ATLAS_TELEGRAM_NOTICES?: string;
     GOOGLE_CLIENT_ID?: string;
     GOOGLE_CLIENT_SECRET?: string;
     // Sign in with Apple: the web flow uses the Services ID, the iOS app sends tokens for its bundle ID;

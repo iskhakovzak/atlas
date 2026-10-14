@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { Check, Info, TriangleAlert } from "lucide-react";
 import { cartModelKey, cartColourOptions, serviceTitle, storeParcels, parcelServiceUnits, type CartItem, type Pricing } from "@/lib/market/domain";
 import { cartSelectCopy } from "@/lib/market/cart-select-copy";
-import { calcCopy } from "@/lib/market/calc-copy";
 import { countryLabel } from "@/lib/market/customer-copy";
 import { countryName } from "@/lib/market/world";
 import { formatSum } from "@/lib/market/format";
@@ -94,16 +93,13 @@ export function CheckoutReviewTable({ lines, locale, pricing, onLeaveForLater, b
 }
 
 /**
- * The review's confirm button with the amount beside it. On a phone (app/cart-select.css, <= 720px) the bar stays at the
- * bottom of the dialog over the whole review, so "Confirm" never needs a scroll (owner, 10.10.2026); on a wide screen the
- * amount stays hidden (the payment preview above already shows it) and the button is the plain full-width one.
- * `children` is the existing submit button: the bar adds no handler of its own.
+ * The review's last button and the quiet line under it. On a phone (app/cart-select.css, <= 720px) the bar stays at the
+ * bottom of the dialog over the whole review, so the button never needs a scroll (owner, 10.10.2026). The button itself
+ * names the action and the amount ("Place order · N", 14.10.2026), so the bar no longer repeats the amount beside it.
+ * `children` is the existing submit button and the line: the bar adds no handler of its own.
  */
-export function ReviewConfirmBar({ amount, locale, children }: { amount: number; locale: Locale; children: ReactNode }) {
-  return <div className="review-confirm-bar">
-    <span className="review-confirm-amount"><small>{calcCopy[locale].lines.total}</small><b>{formatSum(amount, locale)}</b></span>
-    {children}
-  </div>;
+export function ReviewConfirmBar({ children }: { children: ReactNode }) {
+  return <div className="review-confirm-bar">{children}</div>;
 }
 
 /** The things the owner wants checked before the order is placed, each with a way back to change it. */

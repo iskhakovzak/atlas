@@ -19,10 +19,9 @@
 .lang-menu-list button[aria-current="true"] { background: var(--day-tint, #e8f1ea); color: var(--day-ok, #1d6b47); }
 .lang-menu-list button > span { display: grid; line-height: 1.25; }
 .lang-menu-list b { font-size: 15px; font-weight: 600; }
-.lang-menu-list small { color: var(--day-muted, #58635c); font-size: 12.5px; }
 .lang-menu-list svg { flex: none; }
 html[data-theme="dark"] .lang-trigger { border-color: var(--night-line-strong, rgba(226, 238, 231, .16)); color: var(--night-ink, #f1eee5); }
-html[data-theme="dark"] .lang-trigger svg, html[data-theme="dark"] .lang-menu-list small { color: var(--night-muted, #9ba6a0); }
+html[data-theme="dark"] .lang-trigger svg { color: var(--night-muted, #9ba6a0); }
 html[data-theme="dark"] :is(.lang-trigger:hover, .lang-trigger[aria-expanded="true"], .lang-menu-list button:hover) { background: rgba(255, 255, 255, .06); }
 html[data-theme="dark"] .lang-menu-list { border-color: var(--night-line-strong, rgba(226, 238, 231, .16)); background: var(--night-surface, #111714); box-shadow: 0 18px 40px -16px rgba(0, 0, 0, .7); }
 html[data-theme="dark"] .lang-menu-list button { color: var(--night-ink, #f1eee5); }
@@ -74,7 +73,39 @@ html[data-theme="dark"] .site-header .notice-link > b { border-color: var(--nigh
   .site-header .notice-link b, .site-header .notice-link svg { animation: none; }
 }
 
-/* /notifications?id=… or #…: the linked message is highlighted. */
-.notices-page :is(.notice-x, .notice-x-history li).linked { outline: 2px solid var(--day-accent, #1f4d3b); outline-offset: 3px; border-radius: 12px; }
-html[data-theme="dark"] .notices-page :is(.notice-x, .notice-x-history li).linked { outline-color: var(--night-ivory, #ebe4d2); }
-.notices-page :is(.notice-x, .notice-x-history li):focus { outline-style: solid; }
+/* ---------- Header cart while it is empty ---------- */
+/* With a known count of 0 the cart is a quiet outlined button, so the page's own call to action stays the brightest thing
+   in view; with items it keeps the filled green (Day) or ivory (Night) look and the counter. Until the count is known
+   (a new tab) it keeps the filled look, so a cart with items never blinks. Beats day-folio.css (0,3,1)/(0,5,1). */
+html:not([data-theme="dark"]) body .site-header .cart-link.is-empty { background: var(--day-surface, #fff); color: var(--day-ink, #16211c); box-shadow: inset 0 0 0 1px var(--day-line-strong, #cbccc3); }
+html:not([data-theme="dark"]) body .site-header .cart-link.is-empty:hover:not(:disabled) { background: var(--day-soft, #efefe9); box-shadow: inset 0 0 0 1px var(--day-line-strong, #cbccc3); }
+html:not([data-theme="dark"]) body .site-header .cart-link.is-empty:active:not(:disabled) { box-shadow: inset 0 0 0 1px var(--day-line-strong, #cbccc3); }
+/* Day draws the outline as an inset ring: atlas-design.css takes the cart's border away (border: 0). Both looks keep a 44px tap height. */
+body .site-header .cart-link { min-height: 44px; }
+html[data-theme="dark"] .site-header .cart-link.is-empty { border-color: var(--night-line-strong, rgba(226, 238, 231, .16)); background: transparent; color: var(--night-ink, #f1eee5); box-shadow: none; }
+html[data-theme="dark"] .site-header .cart-link.is-empty:hover { border-color: var(--night-line-strong, rgba(226, 238, 231, .16)); background: rgba(255, 255, 255, .05); color: var(--night-ink, #f1eee5); box-shadow: none; }
+
+/* ---------- Balance dot ---------- */
+/* A positive internal balance puts a small mint dot on the wallet icon's top-right corner (owner, 14.10.2026), so it is
+   seen at every width, also where the amount itself is hidden. A plain dot ringed with the header colour, without
+   motion: the bell's counter (a warm pill with a number) stays the only sign of news. It is ::before because on touch
+   screens ::after is the wallet's invisible 44px tap frame (mobile.css). The link's aria-label already says the amount.
+   No `left`: the dot starts where the icon starts (the link's content edge, whatever its padding) and the margin moves it
+   onto the corner; `top` is counted from the middle, where the 19px icon is centred. */
+.site-header .wallet-link.has-balance { position: relative; }
+.site-header .wallet-link.has-balance::before { content: ""; position: absolute; top: calc(50% - 13.5px); margin-left: 11px; box-sizing: content-box; width: 8px; height: 8px; border: 2px solid var(--day-surface, #fff); border-radius: 50%; background: #3f9b72; pointer-events: none; }
+html[data-theme="dark"] .site-header .wallet-link.has-balance::before { border-color: var(--night-canvas, #0a0e0c); background: var(--night-jade, #80d0ac); }
+
+/* ---------- Toasts (sonner) ---------- */
+/* Inter like the rest of the page, softer corners, and calm Day colours: white cards with a coloured edge and text
+   instead of the library's bright tinted fills. Night keeps its own values (theme-night.css). */
+:root body [data-sonner-toaster] { font-family: inherit; }
+:root body [data-sonner-toast] { border-radius: 12px; }
+html:not([data-theme="dark"]) [data-sonner-toaster] {
+  --normal-bg: #fff; --normal-border: var(--day-line, #e2e2da); --normal-text: var(--day-ink, #16211c);
+  --success-bg: #fff; --success-border: #cfe3d6; --success-text: #1d6b47;
+  --error-bg: #fff; --error-border: #f1c9c4; --error-text: #9b2c20;
+  --warning-bg: #fffaf0; --warning-border: #f0dca8; --warning-text: #7a5a12;
+}
+html:not([data-theme="dark"]) [data-sonner-toast] { box-shadow: 0 14px 32px -14px rgba(22, 33, 28, .28), 0 2px 6px rgba(22, 33, 28, .06); }
+html:not([data-theme="dark"]) [data-sonner-toast][data-type="success"] { box-shadow: inset 3px 0 0 #3f9b72, 0 14px 32px -14px rgba(22, 33, 28, .28); }

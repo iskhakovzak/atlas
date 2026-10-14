@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHmac,createHash} from 'node:crypto';
 import {emptyAccountState,ownMethod,SESSION_TTL_MS,SESSION_RENEW_MS,normalizeEmail,normalizeUzPhone,randomCode,randomToken,hashCode,constantTimeEqual,identityFor,verifyTelegramAuth,pkceChallenge,decodeJwtPayload,googleIdentity,readCookie,cookie,SESSION_COOKIE} from '../lib/auth/core.ts';
-import {safeReturnTo,loginPath} from '../lib/auth/return-to.ts';
+import {safeReturnTo,loginPath,signInReturn} from '../lib/auth/return-to.ts';
 
 test('emails are normalized and malformed addresses rejected',()=>{
  assert.equal(normalizeEmail('  Seedy@Example.UZ '),'seedy@example.uz');
@@ -76,6 +76,14 @@ test('return destinations stay on this site and never loop back into sign-in',()
  assert.equal(safeReturnTo('/cart?x=1#top'),'/cart?x=1#top');
  for(const value of [null,'','cart','https://evil.test','//evil.test','/\\evil.test','/login','/api/auth/otp','/signin-with-chatgpt','/callback'])assert.equal(safeReturnTo(value),'/');
  assert.equal(loginPath('/orders'),'/login?return_to=%2Forders');
+});
+
+test('a sign-in link on the sign-in page keeps the page the guest was sent from',()=>{
+ assert.equal(signInReturn('/orders?tab=active'),'/orders?tab=active');
+ assert.equal(signInReturn('/login?return_to=%2Forders%3Ftab%3Dactive'),'/orders?tab=active');
+ assert.equal(loginPath(signInReturn('/login?return_to=%2Fcart')),'/login?return_to=%2Fcart');
+ // No destination, a sign-in loop or a foreign site: the home page.
+ for(const here of ['/login','/login?return_to=','/login?return_to=%2Flogin','/login?return_to=https%3A%2F%2Fevil.test','/login?return_to=%2F%2Fevil.test','//evil.test/x','','cart'])assert.equal(signInReturn(here),'/',here);
 });
 
 test('session cookie is host-only, HttpOnly, Secure and SameSite=Lax',()=>{

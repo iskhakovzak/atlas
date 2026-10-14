@@ -10,6 +10,8 @@ import {currentChapterIndex,padChapter,railFill} from '@/lib/market/home-rail';
 import {homeChapterHref,homeChapters,homeRailCtaChapters,homeWideLayoutEvent,type HomeChapter} from '@/lib/market/home-wide';
 import type {Locale} from '@/lib/market/i18n';
 import {focusLinkInput} from './home-sections';
+// Styles of this lazily loaded part: they arrive with its chunk, before it renders.
+import './styles/home-rail.css';
 
 // The home chapter rail on wide screens (>= 1680px): loaded lazily by app/home-wide.tsx, styled by app/home-wide-rail.css.
 // One item per sheet that is on the page (the product selection may be missing, then the numbers close up), the current

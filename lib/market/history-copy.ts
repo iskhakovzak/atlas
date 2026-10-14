@@ -58,9 +58,9 @@ const historyCopy: Record<string, Copy> = {
     en: v => `The customer chose to have Atlas pay customs: the ${v.sum('fee')} fee and the ${v.sum('duty')} duty prepayment are part of the order total. Unused duty returns to the balance; any extra only with the customer’s consent.`,
   }),
   'insured': /*@__PURE__*/withCyrillic({
-    ru: v => `Посылка застрахована: ${v.sum('fee')} входит в сумму заказа.`,
-    uz: v => `Posilka sug‘urtalandi: ${v.sum('fee')} buyurtma summasiga kiradi.`,
-    en: v => `The parcel is insured: ${v.sum('fee')} is part of the order total.`,
+    ru: v => `Гарантия сохранности Atlas: ${v.sum('fee')} входит в сумму заказа.`,
+    uz: v => `Atlas saqlash kafolati: ${v.sum('fee')} buyurtma summasiga kiradi.`,
+    en: v => `Atlas safe-arrival guarantee: ${v.sum('fee')} is part of the order total.`,
   }),
   'source-price-changed': /*@__PURE__*/withCyrillic({
     ru: v => `Цена в магазине изменилась до оформления: ${v.text('from')} → ${v.text('to')} ${v.text('currency')}. Покупатель оформил заказ по новому расчёту.`,
@@ -301,7 +301,7 @@ const noticeCopy: Record<string, NoticeCopy> = {
   }) },
   'claim-approved': { title: /*@__PURE__*/withCyrillic({ ru: 'Возмещение зачислено', uz: 'Qoplash o‘tkazildi', en: 'Compensation credited' }), message: /*@__PURE__*/withCyrillic({
     ru: v => `${v.sum('amount')} — на ваш баланс в Atlas.`,
-    uz: v => `${v.sum('amount')} — Atlas’dagi balansingizga.`,
+    uz: v => `${v.sum('amount')} — Atlasdagi balansingizga.`,
     en: v => `${v.sum('amount')} to your Atlas balance.`,
   }) },
   'claim-declined': { title: /*@__PURE__*/withCyrillic({ ru: 'Претензия отклонена', uz: 'Da’vo rad etildi', en: 'Claim declined' }), message: /*@__PURE__*/withCyrillic({
@@ -331,14 +331,17 @@ const noticeCopy: Record<string, NoticeCopy> = {
   'change-approved': { title: /*@__PURE__*/withCyrillic({ ru: 'Изменение подтверждено', uz: 'O‘zgarish tasdiqlandi', en: 'Change approved' }), message: /*@__PURE__*/withCyrillic({ ru: v => v.text('title'), uz: v => v.text('title'), en: v => v.text('title') }) },
   'change-declined': { title: /*@__PURE__*/withCyrillic({ ru: 'Изменение отклонено', uz: 'O‘zgarish rad etildi', en: 'Change declined' }), message: /*@__PURE__*/withCyrillic({ ru: v => v.text('title'), uz: v => v.text('title'), en: v => v.text('title') }) },
   status: { title: /*@__PURE__*/withCyrillic({ ru: 'Статус заказа изменён', uz: 'Buyurtma holati o‘zgardi', en: 'Order status changed' }), message: historyCopy.status },
+  // The subject the customer wrote; the answer itself stays in the account.
+  'support-answered': { title: /*@__PURE__*/withCyrillic({ ru: 'Поддержка ответила', uz: 'Yordam xizmati javob berdi', en: 'Support replied' }), message: /*@__PURE__*/withCyrillic({ ru: v => v.text('subject'), uz: v => v.text('subject'), en: v => v.text('subject') }) },
 };
 
 /** Fixed Russian strings stored by earlier and current versions, in every language. */
 export const legacyStoredCopy: Record<string, Record<Locale, string>> = {
+  // The balance page's line for an order paid from the balance (14.10.2026: says what happened, as the other lines do).
   "Оплата заказа из внутреннего баланса Atlas": /*@__PURE__*/withCyrillic({
-    ru: "Учтено во внутреннем балансе Atlas",
-    uz: "Atlas ichki balansida hisobga olindi",
-    en: "Accounted for in the Atlas internal balance",
+    ru: "Оплата заказа с баланса Atlas",
+    uz: "Buyurtma uchun Atlas balansidan to‘lov",
+    en: "Order payment from the Atlas balance",
   }),
   "Статус оплаты записан в Atlas; провайдер не подключён": /*@__PURE__*/withCyrillic({
     ru: "Отметка оплаты записана в Atlas; провайдер не подключён",
@@ -386,9 +389,9 @@ export const legacyStoredCopy: Record<string, Record<Locale, string>> = {
     en: "Order cancelled before payment. Nothing was charged.",
   }),
   "Оплата заказа демобалансом": /*@__PURE__*/withCyrillic({
-    ru: "Учтено во внутреннем балансе Atlas",
-    uz: "Atlas ichki balansida hisobga olindi",
-    en: "Accounted for in the Atlas internal balance",
+    ru: "Оплата заказа с баланса Atlas",
+    uz: "Buyurtma uchun Atlas balansidan to‘lov",
+    en: "Order payment from the Atlas balance",
   }),
   "Тестовая оплата по платёжной ссылке": /*@__PURE__*/withCyrillic({
     ru: "Отметка оплаты записана в Atlas",

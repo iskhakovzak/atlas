@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, ArrowRight, Check, CircleHelp, ClipboardPaste, ExternalLink, Info, Link2, Loader2, Lock, Minus, Plus, ShieldCheck, ShoppingBag, X } from "lucide-react";
+import { AlertCircle, ArrowRight, Check, CircleHelp, ClipboardPaste, ExternalLink, Heart, Info, Link2, Loader2, Lock, LogIn, Minus, Plus, ShieldCheck, ShoppingBag, Star, X } from "lucide-react";
 import Link from "@/components/site-link";
 import { toast } from "@/lib/market/toast";
 import { useMarket } from "@/lib/market/store";
@@ -19,6 +19,7 @@ import {
   draftVisible,
   forgetLastDraft,
   keepPicks,
+  listDrafts,
   markDraftDone,
   ownerTag,
   readDraft,
@@ -30,6 +31,7 @@ import {
   writeDraft,
   type CartAddAction,
   type DraftChoices,
+  type LinkOrderDraft,
   type LockFields,
 } from "@/lib/market/link-order-draft";
 import { usePendingCartAdd, type PendingCartAddResult } from "./pending-cart-add";
@@ -47,10 +49,16 @@ import { calcCopy, type CalcCopy } from "@/lib/market/calc-copy";
 import { Money } from "./money";
 import { cartCustomsEstimate } from "@/lib/market/allowance";
 import { BlankBill, CalcLines, CustomsPanel, HoldNote, sumQuotes } from "./calc-summary";
+import { daysRangeFor, deliverySpeedCopy, fasterText } from "@/lib/market/delivery-speed";
 import { countries, currencies, currencyForCountry, toUsd, paddedWeight, packagingKg } from "@/lib/market/world";
 import { describeSingleColorway } from "@/lib/market/variant-colorway";
+import { compareSizes } from "@/lib/market/size-order";
+import { heroStores, storeBrands, storefrontUrl } from "@/lib/market/store-brands";
+import { dealCopy } from "@/lib/market/deal-copy";
+import { StoreLogo } from "./store-logo";
 import { adidasMenSize } from "@/lib/market/adidas-size-chart";
 import {isConfirmedVariantAvailable} from '@/lib/importer/variant-normalization';
+import { optionStock } from "@/lib/market/link-order-stock";
 import { variantsForSourceColor, variantSourceUrl, variantGallery, variantDisplayPrices } from "@/lib/importer/link-selection";
 import { findNikeFootwearSizeRow, getNikeFootwearSizeRows, inferNikeFootwearSizeSystem } from "@/lib/market/nike-size-chart";
 import { estimateBoxedWeight, estimatedBoxedWeight, validBoxedWeight, weightCategories } from "@/lib/market/weight";
@@ -204,6 +212,8 @@ export function GlobalLinkOrder() {
   const { ready, status, error: accountError, user, refresh, pricing, state, act, lastActionError, catalogProducts, loadCatalog } = useMarket();
   // Delivery is chosen only in the cart; estimates follow its current speed.
   const [previewSpeed, setPreviewSpeed] = useState<"express" | "standard">("express");
+  // The heart beside a catalog item's name: the same favourites as in the catalog.
+  const [favoriteBusy, setFavoriteBusy] = useState(false);
   const cartSpeed = cartDeliverySpeed(state.cart);
   useEffect(() => {
     let active = true;
@@ -214,10 +224,13 @@ export function GlobalLinkOrder() {
   const freeFrom=`$${pricing.storeShippingFreeFromUsd??50}`;
   // The store-delivery hold from the tariff constant, never typed into the copy.
   const holdText=`$${unknownStoreShippingUsd}`;
-  const c=lang==='ru'?{over:'ПОКУПКИ СО ВСЕГО МИРА',choose:'Выберите свой вариант',order:'Заказ по ссылке',checkPrice:'Проверьте размер и цену перед добавлением.',paste:'Вставьте ссылку — Atlas заполнит доступные данные.',loading:'Загружаем цену и варианты из магазина…',selected:'Товар уже выбран. Проверьте вариант и добавьте его в корзину.',edit:'Изменить ссылку',linkStep:'Ссылка на товар',stores:'eBay, Zara, Mango, Amazon и другие магазины.',storePage:'Страница магазина',get:'Получаем данные…',load:'Загрузить товар',directory:'Магазины для заказа по ссылке',storeHint:'Выбирайте региональную витрину по ссылке. Atlas считает итог с доставкой.',search:'Магазин или категория',enhanced:'цена + варианты',otherMatches:'Другие совпадения',allStores:'Все остальные магазины',notFound:'Этого магазина нет в списке. Отправьте его оператору — он проверит магазин.',login:'Войдите в личный кабинет: автозагрузка защищена, а товар сохранится в вашей корзине.',original:'Открыть оригинал в магазине',loaded:'Что загрузилось и что нужно проверить',availability:'Проверьте наличие в магазине',availabilityHint:'Откройте страницу товара, проверьте выбранный размер или вариант и вернитесь с ответом.',openStore:'Открыть магазин',available:'Есть в наличии',unavailable:'Нет в наличии',openFirst:'Сначала откройте страницу магазина — после возврата кнопки ответа станут доступны.',thanks:'Спасибо. Можно проверить остальные данные и продолжить.',removed:'Товар не будет добавлен. Администратор получил сообщение для проверки.',dataStep:'Проверьте данные',name:'Название товара',namePlaceholder:'Название со страницы магазина',shipCountry:'Страна фактической отправки',countryLabel:'Страна отправки',currency:'Валюта магазина',otherCountry:'Укажите страну',price:'Цена товара',atlasShipping:'До склада Atlas',change:'изменить',useShipping:'Использовать доставку до склада Atlas',shippingNote:`Это доставка от магазина до склада Atlas. Если магазин её не указал, держим резерв ${holdText} отдельно от суммы к оплате — один на заказ из магазина и только при товарах из него на ${freeFrom} или меньше.`,category:'Категория',weight:'Вес товара с коробкой, кг',weightDetails:'Как уточняется вес доставки',forCalc:'для расчёта',variant:'Вариант товара',color:'Цвет',size:'Размер / модель',selectColor:'Выберите цвет',selectVariant:'Выберите вариант',none:'Нет',photo:'Фото товара — автоматически или по ссылке',image:'Адрес изображения',verified:'Я проверил данные и выбранный вариант.',add:'В корзину',adding:'Добавляем в корзину…',gallery:'Фотографии магазина',uz:'Узбекистан',empty:'Ваш товар появится здесь',fresh:'Когда проверены данные',freshText:'Atlas автоматически сверяет цену, валюту и выбранный вариант с магазином.',declaration:'Черновик декларации',cost:'Состав стоимости',reserve:`${holdText} — резерв на доставку магазина, один на заказ из этого магазина; в сумму к оплате не входит. При товарах дороже ${freeFrom} резерва нет. Фактическую сумму менеджер подтвердит после оформления.`,subtotal:'Промежуточный итог',estimate:'Итого с доставкой',emptyQuote:'Вставьте ссылку или заполните цену и вес.'}:{over:isUzbek(lang)?uzText(lang, 'DUNYODAN XARIDLAR'):'SHOP THE WORLD',choose:isUzbek(lang)?uzText(lang, 'Variantni tanlang'):'Choose your option',order:isUzbek(lang)?uzText(lang, 'Havola orqali buyurtma'):'Order by link',checkPrice:isUzbek(lang)?uzText(lang, 'Qo‘shishdan oldin o‘lcham va narxni tekshiring.'):'Check the size and price before adding.',paste:isUzbek(lang)?uzText(lang, 'Havolani kiriting — Atlas ma’lumotlarni to‘ldiradi.'):'Paste a link — Atlas will fill in the details.',loading:isUzbek(lang)?uzText(lang, 'Do‘kondan narx va variantlar yuklanmoqda…'):'Loading price and options from the store…',selected:isUzbek(lang)?uzText(lang, 'Tovar tanlandi. Variantni tekshirib savatga qo‘shing.'):'The item is selected. Check the option and add it to your cart.',edit:isUzbek(lang)?uzText(lang, 'Havolani o‘zgartirish'):'Change link',linkStep:isUzbek(lang)?uzText(lang, 'Tovar havolasi'):'Item link',stores:isUzbek(lang)?uzText(lang, 'eBay, Zara, Mango, Amazon va boshqa do‘konlar.'):'eBay, Zara, Mango, Amazon and more.',storePage:isUzbek(lang)?uzText(lang, 'Do‘kon sahifasi'):'Store page',get:isUzbek(lang)?uzText(lang, 'Ma’lumot olinmoqda…'):'Getting product data…',load:isUzbek(lang)?uzText(lang, 'Tovarni yuklash'):'Load item',directory:isUzbek(lang)?uzText(lang, 'Havola orqali buyurtma do‘konlari'):'Stores for link orders',storeHint:isUzbek(lang)?uzText(lang, 'Havola orqali mintaqaviy vitrinani tanlang. Atlas yetkazish bilan hisoblaydi.'):'Choose a regional storefront. Atlas calculates the total with delivery.',search:isUzbek(lang)?uzText(lang, 'Do‘kon yoki kategoriya'):'Store or category',enhanced:isUzbek(lang)?uzText(lang, 'narx + variantlar'):'price + options',otherMatches:isUzbek(lang)?uzText(lang, 'Boshqa moslar'):'Other matches',allStores:isUzbek(lang)?uzText(lang, 'Boshqa barcha do‘konlar'):'All other stores',notFound:isUzbek(lang)?uzText(lang, 'Bu do‘kon ro‘yxatda yo‘q. Uni operatorga yuboring — u do‘konni tekshiradi.'):'This store is not on the list. Send it to an operator — they will review the store.',login:isUzbek(lang)?uzText(lang, 'Kabinetga kiring: avtomatik yuklash himoyalangan va tovar savatda saqlanadi.'):'Sign in: automatic import is protected and the item will be saved to your cart.',original:isUzbek(lang)?uzText(lang, 'Do‘kondagi asl sahifani ochish'):'Open original store page',loaded:isUzbek(lang)?uzText(lang, 'Nimalar yuklandi va nimani tekshirish kerak'):'What loaded and what to check',availability:isUzbek(lang)?uzText(lang, 'Do‘kondagi mavjudlikni tekshiring'):'Check availability in the store',availabilityHint:isUzbek(lang)?uzText(lang, 'Tovar sahifasini oching, tanlangan o‘lcham yoki variantni tekshiring va javob bilan qayting.'):'Open the item page, check the selected size or option, and return with your answer.',openStore:isUzbek(lang)?uzText(lang, 'Do‘konni ochish'):'Open store',available:isUzbek(lang)?uzText(lang, 'Mavjud'):'In stock',unavailable:isUzbek(lang)?uzText(lang, 'Mavjud emas'):'Out of stock',openFirst:isUzbek(lang)?uzText(lang, 'Avval do‘kon sahifasini oching — qaytgach javob tugmalari yoqiladi.'):'Open the store page first; the answer buttons will unlock when you return.',thanks:isUzbek(lang)?uzText(lang, 'Rahmat. Qolgan ma’lumotlarni tekshirib davom eting.'):'Thanks. Check the remaining details to continue.',removed:isUzbek(lang)?uzText(lang, 'Tovar qo‘shilmaydi. Administrator tekshiradi.'):'The item will not be added. An administrator will review it.',dataStep:isUzbek(lang)?uzText(lang, 'Ma’lumotlarni tekshiring'):'Check the details',name:isUzbek(lang)?uzText(lang, 'Tovar nomi'):'Item name',namePlaceholder:isUzbek(lang)?uzText(lang, 'Do‘kon sahifasidagi nom'):'Name from the store page',shipCountry:isUzbek(lang)?uzText(lang, 'Haqiqiy jo‘natish mamlakati'):'Actual dispatch country',countryLabel:isUzbek(lang)?uzText(lang, 'Jo‘natish mamlakati'):'Dispatch country',currency:isUzbek(lang)?uzText(lang, 'Do‘kon valyutasi'):'Store currency',otherCountry:isUzbek(lang)?uzText(lang, 'Mamlakatni kiriting'):'Enter country',price:isUzbek(lang)?uzText(lang, 'Tovar narxi'):'Item price',atlasShipping:isUzbek(lang)?uzText(lang, 'Atlas omborigacha'):'To Atlas warehouse',change:isUzbek(lang)?uzText(lang, 'o‘zgartirish'):'edit',useShipping:isUzbek(lang)?uzText(lang, 'Atlas omborigacha yetkazishni ishlatish'):'Use delivery to Atlas warehouse',shippingNote:isUzbek(lang)?uzText(lang, `Bu do‘kondan Atlas omborigacha yetkazish. Do‘kon uni ko‘rsatmagan bo‘lsa, ${holdText} zaxirani to‘lov summasidan alohida ushlab turamiz — do‘kondan bitta buyurtmaga bir marta va faqat tovarlar ${freeFrom} yoki undan kam bo‘lsa.`):`This is store-to-Atlas delivery. If the store does not state it, we hold a ${holdText} reserve apart from the amount to pay — once per store order, and only when items from that store total ${freeFrom} or less.`,category:isUzbek(lang)?uzText(lang, 'Kategoriya'):'Category',weight:isUzbek(lang)?uzText(lang, 'Qutidagi og‘irlik, kg'):'Boxed weight, kg',weightDetails:isUzbek(lang)?uzText(lang, 'Yetkazish og‘irligi qanday aniqlanadi'):'How delivery weight is refined',forCalc:isUzbek(lang)?uzText(lang, 'hisoblash uchun'):'for calculation',variant:isUzbek(lang)?uzText(lang, 'Tovar varianti'):'Item option',color:isUzbek(lang)?uzText(lang, 'Rang'):'Color',size:isUzbek(lang)?uzText(lang, 'O‘lcham / model'):'Size / model',selectColor:isUzbek(lang)?uzText(lang, 'Rangni tanlang'):'Choose a color',selectVariant:isUzbek(lang)?uzText(lang, 'Variantni tanlang'):'Choose an option',none:isUzbek(lang)?uzText(lang, 'Yo‘q'):'Unavailable',photo:isUzbek(lang)?uzText(lang, 'Tovar surati — avtomatik yoki havola orqali'):'Product photo — automatic or by link',image:isUzbek(lang)?uzText(lang, 'Rasm manzili'):'Image URL',verified:isUzbek(lang)?uzText(lang, 'Ma’lumot va variantni tekshirdim.'):'I checked the details and selected option.',add:isUzbek(lang)?uzText(lang, 'Savatga'):'Add to cart',adding:isUzbek(lang)?uzText(lang, 'Savatga qo‘shilmoqda…'):'Adding to cart…',gallery:isUzbek(lang)?uzText(lang, 'Do‘kon rasmlari'):'Store photos',uz:isUzbek(lang)?uzText(lang, 'O‘zbekiston'):'Uzbekistan',empty:isUzbek(lang)?uzText(lang, 'Tovaringiz shu yerda paydo bo‘ladi'):'Your item will appear here',fresh:isUzbek(lang)?uzText(lang, 'Ma’lumot qachon tekshirildi'):'When the data was checked',freshText:isUzbek(lang)?uzText(lang, 'Atlas narx, valyuta va tanlangan variantni do‘kon bilan avtomatik solishtiradi.'):'Atlas automatically verifies the price, currency and selected option with the store.',declaration:isUzbek(lang)?uzText(lang, 'Deklaratsiya qoralamasi'):'Declaration draft',cost:isUzbek(lang)?uzText(lang, 'Narx tarkibi'):'Cost breakdown',reserve:isUzbek(lang)?uzText(lang, `${holdText} — do‘kon yetkazishi uchun zaxira, shu do‘kondan bitta buyurtmaga bir marta; to‘lov summasiga kirmaydi. Tovarlar ${freeFrom} dan qimmat bo‘lsa, zaxira yo‘q. Haqiqiy summani menejer rasmiylashtirilgach tasdiqlaydi.`):`${holdText} is the store-delivery reserve, once per order from this store, kept apart from the amount to pay. Over ${freeFrom} of items there is no reserve. A manager confirms the actual amount after checkout.`,subtotal:isUzbek(lang)?uzText(lang, 'Oraliq jami'):'Interim total',estimate:isUzbek(lang)?uzText(lang, 'Yetkazish bilan jami'):'Total with delivery',emptyQuote:isUzbek(lang)?uzText(lang, 'Havolani kiriting yoki narx va og‘irlikni to‘ldiring.'):'Paste a link or enter price and weight.'};
+  const c=lang==='ru'?{over:'ПОКУПКИ СО ВСЕГО МИРА',choose:'Выберите свой вариант',order:'Заказ по ссылке',checkPrice:'Проверьте размер и цену перед добавлением.',paste:'Вставьте ссылку — Atlas заполнит доступные данные.',loading:'Загружаем цену и варианты из магазина…',selected:'Товар уже выбран. Проверьте вариант и добавьте его в корзину.',edit:'Изменить ссылку',linkStep:'Ссылка на товар',stores:'eBay, Zara, Mango, Amazon и другие магазины.',storePage:'Страница магазина',get:'Получаем данные…',load:'Загрузить товар',directory:'Магазины для заказа по ссылке',storeHint:'Выбирайте региональную витрину по ссылке. Atlas считает итог с доставкой.',search:'Магазин или категория',enhanced:'цена + варианты',otherMatches:'Другие совпадения',allStores:'Все остальные магазины',notFound:'Этого магазина нет в списке. Отправьте его оператору — он проверит магазин.',login:'Войдите в личный кабинет: автозагрузка защищена, а товар сохранится в вашей корзине.',original:'Открыть оригинал в магазине',loaded:'Что загрузилось и что нужно проверить',availability:'Проверьте наличие в магазине',availabilityHint:'Откройте страницу товара, проверьте выбранный размер или вариант и вернитесь с ответом.',openStore:'Открыть магазин',available:'Есть в наличии',unavailable:'Нет в наличии',openFirst:'Сначала откройте страницу магазина — после возврата кнопки ответа станут доступны.',thanks:'Спасибо. Можно проверить остальные данные и продолжить.',removed:'Товар не будет добавлен. Администратор получил сообщение для проверки.',dataStep:'Проверьте данные',name:'Название товара',namePlaceholder:'Название со страницы магазина',shipCountry:'Страна фактической отправки',countryLabel:'Страна отправки',currency:'Валюта магазина',otherCountry:'Укажите страну',price:'Цена товара',atlasShipping:'До склада Atlas',change:'изменить',useShipping:'Использовать доставку до склада Atlas',shippingNote:`Это доставка от магазина до склада Atlas. Если магазин её не указал, держим резерв ${holdText} отдельно от суммы к оплате — один на заказ из магазина и только при товарах из него на ${freeFrom} или меньше.`,category:'Категория',weight:'Вес товара с коробкой, кг',weightDetails:'Как уточняется вес доставки',forCalc:'для расчёта',variant:'Вариант товара',color:'Цвет',size:'Размер / модель',selectColor:'Выберите цвет',selectVariant:'Выберите вариант',selectSize:'Выберите размер',none:'Нет',photo:'Фото товара — автоматически или по ссылке',image:'Адрес изображения',verified:'Я проверил данные и выбранный вариант.',add:'В корзину',adding:'Добавляем в корзину…',gallery:'Фотографии магазина',uz:'Узбекистан',empty:'Ваш товар появится здесь',fresh:'Когда проверены данные',freshText:'Atlas автоматически сверяет цену, валюту и выбранный вариант с магазином.',declaration:'Черновик декларации',cost:'Состав стоимости',reserve:`${holdText} — резерв на доставку магазина, один на заказ из этого магазина; в сумму к оплате не входит. При товарах дороже ${freeFrom} резерва нет. Фактическую сумму менеджер подтвердит после оформления.`,subtotal:'Промежуточный итог',estimate:'Итого с доставкой',emptyQuote:'Вставьте ссылку или заполните цену и вес.'}:{over:isUzbek(lang)?uzText(lang, 'DUNYODAN XARIDLAR'):'SHOP THE WORLD',choose:isUzbek(lang)?uzText(lang, 'Variantni tanlang'):'Choose your option',order:isUzbek(lang)?uzText(lang, 'Havola orqali buyurtma'):'Order by link',checkPrice:isUzbek(lang)?uzText(lang, 'Qo‘shishdan oldin o‘lcham va narxni tekshiring.'):'Check the size and price before adding.',paste:isUzbek(lang)?uzText(lang, 'Havolani kiriting — Atlas ma’lumotlarni to‘ldiradi.'):'Paste a link — Atlas will fill in the details.',loading:isUzbek(lang)?uzText(lang, 'Do‘kondan narx va variantlar yuklanmoqda…'):'Loading price and options from the store…',selected:isUzbek(lang)?uzText(lang, 'Tovar tanlandi. Variantni tekshirib savatga qo‘shing.'):'The item is selected. Check the option and add it to your cart.',edit:isUzbek(lang)?uzText(lang, 'Havolani o‘zgartirish'):'Change link',linkStep:isUzbek(lang)?uzText(lang, 'Tovar havolasi'):'Item link',stores:isUzbek(lang)?uzText(lang, 'eBay, Zara, Mango, Amazon va boshqa do‘konlar.'):'eBay, Zara, Mango, Amazon and more.',storePage:isUzbek(lang)?uzText(lang, 'Do‘kon sahifasi'):'Store page',get:isUzbek(lang)?uzText(lang, 'Ma’lumot olinmoqda…'):'Getting product data…',load:isUzbek(lang)?uzText(lang, 'Tovarni yuklash'):'Load item',directory:isUzbek(lang)?uzText(lang, 'Havola orqali buyurtma do‘konlari'):'Stores for link orders',storeHint:isUzbek(lang)?uzText(lang, 'Havola orqali mintaqaviy vitrinani tanlang. Atlas yetkazish bilan hisoblaydi.'):'Choose a regional storefront. Atlas calculates the total with delivery.',search:isUzbek(lang)?uzText(lang, 'Do‘kon yoki kategoriya'):'Store or category',enhanced:isUzbek(lang)?uzText(lang, 'narx + variantlar'):'price + options',otherMatches:isUzbek(lang)?uzText(lang, 'Boshqa moslar'):'Other matches',allStores:isUzbek(lang)?uzText(lang, 'Boshqa barcha do‘konlar'):'All other stores',notFound:isUzbek(lang)?uzText(lang, 'Bu do‘kon ro‘yxatda yo‘q. Uni operatorga yuboring — u do‘konni tekshiradi.'):'This store is not on the list. Send it to an operator — they will review the store.',login:isUzbek(lang)?uzText(lang, 'Kabinetga kiring: avtomatik yuklash himoyalangan va tovar savatda saqlanadi.'):'Sign in: automatic import is protected and the item will be saved to your cart.',original:isUzbek(lang)?uzText(lang, 'Do‘kondagi asl sahifani ochish'):'Open original store page',loaded:isUzbek(lang)?uzText(lang, 'Nimalar yuklandi va nimani tekshirish kerak'):'What loaded and what to check',availability:isUzbek(lang)?uzText(lang, 'Do‘kondagi mavjudlikni tekshiring'):'Check availability in the store',availabilityHint:isUzbek(lang)?uzText(lang, 'Tovar sahifasini oching, tanlangan o‘lcham yoki variantni tekshiring va javob bilan qayting.'):'Open the item page, check the selected size or option, and return with your answer.',openStore:isUzbek(lang)?uzText(lang, 'Do‘konni ochish'):'Open store',available:isUzbek(lang)?uzText(lang, 'Mavjud'):'In stock',unavailable:isUzbek(lang)?uzText(lang, 'Mavjud emas'):'Out of stock',openFirst:isUzbek(lang)?uzText(lang, 'Avval do‘kon sahifasini oching — qaytgach javob tugmalari yoqiladi.'):'Open the store page first; the answer buttons will unlock when you return.',thanks:isUzbek(lang)?uzText(lang, 'Rahmat. Qolgan ma’lumotlarni tekshirib davom eting.'):'Thanks. Check the remaining details to continue.',removed:isUzbek(lang)?uzText(lang, 'Tovar qo‘shilmaydi. Administrator tekshiradi.'):'The item will not be added. An administrator will review it.',dataStep:isUzbek(lang)?uzText(lang, 'Ma’lumotlarni tekshiring'):'Check the details',name:isUzbek(lang)?uzText(lang, 'Tovar nomi'):'Item name',namePlaceholder:isUzbek(lang)?uzText(lang, 'Do‘kon sahifasidagi nom'):'Name from the store page',shipCountry:isUzbek(lang)?uzText(lang, 'Haqiqiy jo‘natish mamlakati'):'Actual dispatch country',countryLabel:isUzbek(lang)?uzText(lang, 'Jo‘natish mamlakati'):'Dispatch country',currency:isUzbek(lang)?uzText(lang, 'Do‘kon valyutasi'):'Store currency',otherCountry:isUzbek(lang)?uzText(lang, 'Mamlakatni kiriting'):'Enter country',price:isUzbek(lang)?uzText(lang, 'Tovar narxi'):'Item price',atlasShipping:isUzbek(lang)?uzText(lang, 'Atlas omborigacha'):'To Atlas warehouse',change:isUzbek(lang)?uzText(lang, 'o‘zgartirish'):'edit',useShipping:isUzbek(lang)?uzText(lang, 'Atlas omborigacha yetkazishni ishlatish'):'Use delivery to Atlas warehouse',shippingNote:isUzbek(lang)?uzText(lang, `Bu do‘kondan Atlas omborigacha yetkazish. Do‘kon uni ko‘rsatmagan bo‘lsa, ${holdText} zaxirani to‘lov summasidan alohida ushlab turamiz — do‘kondan bitta buyurtmaga bir marta va faqat tovarlar ${freeFrom} yoki undan kam bo‘lsa.`):`This is store-to-Atlas delivery. If the store does not state it, we hold a ${holdText} reserve apart from the amount to pay — once per store order, and only when items from that store total ${freeFrom} or less.`,category:isUzbek(lang)?uzText(lang, 'Kategoriya'):'Category',weight:isUzbek(lang)?uzText(lang, 'Qutidagi og‘irlik, kg'):'Boxed weight, kg',weightDetails:isUzbek(lang)?uzText(lang, 'Yetkazish og‘irligi qanday aniqlanadi'):'How delivery weight is refined',forCalc:isUzbek(lang)?uzText(lang, 'hisoblash uchun'):'for calculation',variant:isUzbek(lang)?uzText(lang, 'Tovar varianti'):'Item option',color:isUzbek(lang)?uzText(lang, 'Rang'):'Color',size:isUzbek(lang)?uzText(lang, 'O‘lcham / model'):'Size / model',selectColor:isUzbek(lang)?uzText(lang, 'Rangni tanlang'):'Choose a color',selectVariant:isUzbek(lang)?uzText(lang, 'Variantni tanlang'):'Choose an option',selectSize:isUzbek(lang)?uzText(lang, 'O‘lchamni tanlang'):'Choose a size',none:isUzbek(lang)?uzText(lang, 'Yo‘q'):'Unavailable',photo:isUzbek(lang)?uzText(lang, 'Tovar surati — avtomatik yoki havola orqali'):'Product photo — automatic or by link',image:isUzbek(lang)?uzText(lang, 'Rasm manzili'):'Image URL',verified:isUzbek(lang)?uzText(lang, 'Ma’lumot va variantni tekshirdim.'):'I checked the details and selected option.',add:isUzbek(lang)?uzText(lang, 'Savatga'):'Add to cart',adding:isUzbek(lang)?uzText(lang, 'Savatga qo‘shilmoqda…'):'Adding to cart…',gallery:isUzbek(lang)?uzText(lang, 'Do‘kon rasmlari'):'Store photos',uz:isUzbek(lang)?uzText(lang, 'O‘zbekiston'):'Uzbekistan',empty:isUzbek(lang)?uzText(lang, 'Tovaringiz shu yerda paydo bo‘ladi'):'Your item will appear here',fresh:isUzbek(lang)?uzText(lang, 'Ma’lumot qachon tekshirildi'):'When the data was checked',freshText:isUzbek(lang)?uzText(lang, 'Atlas narx, valyuta va tanlangan variantni do‘kon bilan avtomatik solishtiradi.'):'Atlas automatically verifies the price, currency and selected option with the store.',declaration:isUzbek(lang)?uzText(lang, 'Deklaratsiya qoralamasi'):'Declaration draft',cost:isUzbek(lang)?uzText(lang, 'Narx tarkibi'):'Cost breakdown',reserve:isUzbek(lang)?uzText(lang, `${holdText} — do‘kon yetkazishi uchun zaxira, shu do‘kondan bitta buyurtmaga bir marta; to‘lov summasiga kirmaydi. Tovarlar ${freeFrom} dan qimmat bo‘lsa, zaxira yo‘q. Haqiqiy summani menejer rasmiylashtirilgach tasdiqlaydi.`):`${holdText} is the store-delivery reserve, once per order from this store, kept apart from the amount to pay. Over ${freeFrom} of items there is no reserve. A manager confirms the actual amount after checkout.`,subtotal:isUzbek(lang)?uzText(lang, 'Oraliq jami'):'Interim total',estimate:isUzbek(lang)?uzText(lang, 'Yetkazish bilan jami'):'Total with delivery',emptyQuote:isUzbek(lang)?uzText(lang, 'Havolani kiriting yoki narx va og‘irlikni to‘ldiring.'):'Paste a link or enter price and weight.'};
   const tx=(ru:string,uz:string,en:string)=>lang==='ru'?ru:isUzbek(lang)?uzText(lang, uz):en;
   const lc = linkOrderCopy[lang];
   const checkedText=tx('Atlas уже проверил цену и валюту в магазине.','Atlas narx va valyutani do‘konda tekshirib bo‘ldi.','Atlas has already checked the price and currency with the store.');
+  // Same words as the home link field (home-copy `hero.invalid`); the copy itself stays out of this page's chunk.
+  const invalidLinkText=tx('Вставьте полную ссылку на страницу товара — она начинается с https://','Tovar sahifasining to‘liq havolasini qo‘ying — u https:// bilan boshlanadi','Paste the full product page link — it starts with https://');
+  // Short enough not to be cut at 375 px; the same meaning as the phone bar's «Войти и добавить»: after sign-in the item goes to the cart.
   const searchParams = useSearchParams();
   const router = useRouter();
   const requestedUrl = searchParams.get("url") ?? "";
@@ -266,6 +279,10 @@ export function GlobalLinkOrder() {
     [importedAt, setImportedAt] = useState<number | undefined>(),
     [sourceExpiresAt, setSourceExpiresAt] = useState<number | undefined>(),
     [formIssue, setFormIssue] = useState(""),
+    // The field the message under the add button is about: marked invalid only while that message is shown.
+    [issueField, setIssueField] = useState<{ id: string; message: string } | null>(null),
+    // A link that is not a store page: said under the link field in the page language, not by the browser or a toast.
+    [linkError, setLinkError] = useState(""),
     // A store Atlas does not read (manualEntryStoreRoots): the customer confirms the details typed from its page.
     [manualConfirmed, setManualConfirmed] = useState(false),
     [dataOpen, setDataOpen] = useState(false),
@@ -298,6 +315,9 @@ export function GlobalLinkOrder() {
   const [choicesApplied, setChoicesApplied] = useState(0);
   // The store's product price from a store check: the price of options it lists without their own.
   const [basePrice, setBasePrice] = useState<number | undefined>();
+  // The store answered that every option at this link is sold out (lib/market/link-order-stock.ts): the failed check
+  // then says «Нет в наличии в магазине» instead of asking to retry for a price.
+  const [storeSoldOut, setStoreSoldOut] = useState(false);
   // An earlier choice that could not be applied as it was (the store did not answer, or now lists its own options).
   const [choiceNote, setChoiceNote] = useState("");
   // The link of the unfinished draft that opening the page without a link brought back; named on the page.
@@ -361,6 +381,15 @@ export function GlobalLinkOrder() {
     if(last&&draftVisible(last,viewer))window.history.replaceState(window.history.state,"",draftAddress(last,window.location.search));
   },[resumeChecked,requestedUrl,catalogId,status,viewer]);
   useEffect(()=>{if(!storageWritable(browserStorage()))queueMicrotask(()=>setCanKeep(false))},[]);
+  // "Recently checked" on the empty page: this customer's own unfinished items on this device, once the viewer is known.
+  const [recentDrafts,setRecentDrafts]=useState<LinkOrderDraft[]>([]);
+  const emptyPage=!source&&!requestedUrl;
+  useEffect(()=>{
+    if(viewer===null||!emptyPage)return;
+    let active=true;
+    queueMicrotask(()=>{if(active)setRecentDrafts(listDrafts(browserStorage(),viewer))});
+    return()=>{active=false};
+  },[viewer,emptyPage]);
 
   // This page's draft: a fresh store check of a plain link comes back as it was, without asking the store again;
   // anything else (stale, failed, a catalog card, a deal) loads the product again and then applies the customer's choice.
@@ -421,7 +450,7 @@ export function GlobalLinkOrder() {
   const catalogCountryLocked=catalogProductFlow && Boolean(dealSeed || (currentCatalogSeed?.country && countries.includes(canonicalCountry(currentCatalogSeed.country)) && canonicalCountry(currentCatalogSeed.country)!=='Другая страна'));
   const variantsForColor = useMemo(() => selectedColor ? variants.filter(item => item.color === selectedColor) : variantColors.length===1 ? variants.filter(item => item.color === variantColors[0]) : variantColors.length ? [] : variants, [variants,selectedColor,variantColors]);
   const complexVariants=variantsForColor.some(v=>(v.options??[]).some(o=>!/colou?r|shade/i.test(o.name)&&o.name!==v.sizeLabel&&!(o.value===v.size&&/size/i.test(o.name))&&!(v.sizeAlternates??[]).some(a=>a.value===o.value)&&new Set(variantsForColor.flatMap(option=>(option.options??[]).filter(axis=>axis.name===o.name).map(axis=>axis.value))).size>1))||new Set(variantsForColor.map(v=>`${v.color??''}|${v.size??''}`)).size<variantsForColor.length;
-  const variantSizes = useMemo(() => [...new Set(variantsForColor.filter(item=>item.available&&item.quantity!==0).map(item => item.size).filter((value): value is string => Boolean(value)))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})), [variantsForColor]);
+  const variantSizes = useMemo(() => [...new Set(variantsForColor.filter(item=>item.available&&item.quantity!==0).map(item => item.size).filter((value): value is string => Boolean(value)))].sort(compareSizes), [variantsForColor]);
   const nikeSizeSystem = variantsForColor.some(item => item.sizeLabel === 'Nike US women')
     ? 'women' as const
     : variantsForColor.some(item => item.sizeLabel === 'Nike US men') ? 'men' as const
@@ -430,13 +459,26 @@ export function GlobalLinkOrder() {
   // Nike sizes switch between US, UK, EU and CM/JP by Nike's own chart, like adidas (owner, 12 October 2026).
   const nikeSizeIn=(size:string)=>{const row=nikeSizeSystem?findNikeFootwearSizeRow(nikeSizeSystem,size):undefined;return !row?`US ${size}`:sizeFormat==='cm'?`CM ${row.cmLabel}`:`${sizeFormat.toUpperCase()} ${row[sizeFormat]}`;};
   const sizeDisplay=(size:string)=>{if(nikeSizeSystem)return nikeSizeIn(size);const alternate=variantsForColor.find(v=>v.size===size)?.sizeAlternates?.find(v=>v.system.toLowerCase()===sizeFormat);if(alternate)return `${sizeFormat.toUpperCase()} ${alternate.value}`;return adidasSizes?`${sizeFormat.toUpperCase()} ${adidasMenSize(brand,name,size)?.[sizeFormat]??size}`:size;};
+  // Importers keep the store's axis name, some in Russian ("Размер", "Объём"): shown in the page language; a store's own
+  // name ("Waist", "US") stays as the store wrote it.
+  const localSizeLabel = (label: string) => {
+    const key = label.replace(/\s+/g, " ").trim().toLowerCase();
+    return key === "размер" || key === "size" ? tx("Размер", "O‘lcham", "Size")
+      : key === "объём" || key === "объем" ? tx("Объём", "Hajm", "Size")
+      : key === "вариант" ? tx("Вариант", "Variant", "Option")
+      : key === "band / cup" ? tx("Обхват / чашка", "Aylana / chashka", "Band / cup")
+      : label;
+  };
   const nikeSizeRows = nikeSizeSystem ? getNikeFootwearSizeRows(nikeSizeSystem, variantSizes) : [];
   const selectedNikeSize = nikeSizeSystem && selectedSize ? findNikeFootwearSizeRow(nikeSizeSystem, selectedSize) : undefined;
   const variantSizeLabel = nikeSizeSystem
     ? nikeSizeSystem === 'women'
       ? tx('Размер · Nike, женские','O‘lcham · Nike, ayollar','Size · Nike women')
       : tx('Размер · Nike, мужские','O‘lcham · Nike, erkaklar','Size · Nike men')
-    : [...new Set(variantsForColor.map(item => item.sizeLabel).filter((value): value is string => Boolean(value)))].join(' / ') || (lang==='ru'?'Размер / модель':isUzbek(lang)?uzText(lang, 'O‘lcham / model'):'Size / model');
+    : [...new Set(variantsForColor.map(item => item.sizeLabel).filter((value): value is string => Boolean(value)).map(localSizeLabel))].join(' / ') || (lang==='ru'?'Размер / модель':isUzbek(lang)?uzText(lang, 'O‘lcham / model'):'Size / model');
+  // The step is about sizes (not a volume or a model): its hint says "choose a size".
+  const sizeLabels = variantsForColor.map(item => item.sizeLabel?.trim().toLowerCase()).filter(Boolean);
+  const sizeStep = Boolean(nikeSizeSystem || adidasSizes || (sizeLabels.length && sizeLabels.every(label => label === 'размер' || label === 'size')));
   // The store's product price applies to options it lists without their own; only from a store check (locked there).
   const storeBasePrice=sourceCheckStatus==='verified'&&atlasLocks?.price&&!unlocked.price?basePrice:undefined;
   function applyVariantChoice(item:ProductVariant|undefined,knownCurrency=true){
@@ -543,8 +585,8 @@ export function GlobalLinkOrder() {
     let link: string;
     try {
       link = validateSource(value);
-    } catch (e) {
-      toast.error((e as Error).message);
+    } catch {
+      setLinkError(invalidLinkText);
       setShowSourceForm(true);
       reapply.current=null;
       return;
@@ -557,13 +599,14 @@ export function GlobalLinkOrder() {
     const linkSeedImages=linkSeed?dedupeSafeImages([linkSeed.image,...(linkSeed.sourceImages??[])],linkSeed.sourceUrl??link):linkDealSeed?.image?[linkDealSeed.image]:[];
     const linkBoxedWeight=catalogLinkWeight(linkSeed)??(linkDealSeed?Math.max(.1,communityEstimatedWeight(linkDealSeed)-.5):undefined);
     const seq=++loadSeq.current;
+    setLinkError("");
     setUrl(link);
     setBusy(true);
     setSource(link);
     setManualConfirmed(false);
 
     setSourceCheckStatus('checking');
-    setAtlasLocks(null);setUnlocked({});setGoneOptions([]);setChoiceNote("");setBasePrice(undefined);
+    setAtlasLocks(null);setUnlocked({});setGoneOptions([]);setChoiceNote("");setBasePrice(undefined);setStoreSoldOut(false);
     setName(linkSeed?.name ?? linkDealSeed?.title ?? "");
     setBrand(linkSeed?.brand ?? linkDealSeed?.store ?? "");
     setDeclaration("");
@@ -636,6 +679,7 @@ export function GlobalLinkOrder() {
         const partialVariants=variantsForSourceColor(receivedPartialVariants,data.selectedVariantColor,data.sourceUrl??link,data.variantScope);
         const partialSelected=partialVariants.find(item=>item.id&&(item.id===data.selectedVariantId||item.id===data.sku));
         setVariants(partialVariants.filter(isConfirmedVariantAvailable));
+        setStoreSoldOut(optionStock(partialVariants)==='sold-out');
         setVariant(partialSelected?.label??(partialVariants.length===1?partialVariants[0].label:""));
         setPicked(partialVariants.length===1?{[partialVariants[0].label]:1}:{});
         const partialColor=selectedImportedColor(data,partialVariants,partialGalleries);
@@ -658,7 +702,7 @@ export function GlobalLinkOrder() {
         return;
       }
       if (!response.ok)
-        throw Error(data.error ?? tx("Не удалось получить данные магазина.", "Do‘kon ma’lumotlarini olib bo‘lmadi.", "Could not load store data."));
+        throw Error(data.error ?? tx("Магазин не ответил. Повторите или заполните данные товара вручную.", "Do‘kon javob bermadi. Qayta urining yoki tovar ma’lumotlarini qo‘lda kiriting.", "The store didn’t respond. Try again or fill in the item details manually."));
       setSource(data.sourceUrl);
       setName(linkIsCatalogFlow&&linkSeed?linkSeed.name:data.title ?? linkSeed?.name ?? linkDealSeed?.title ?? "");
       setBrand(data.brand ?? linkSeed?.brand ?? linkDealSeed?.store ?? new URL(data.sourceUrl).hostname);
@@ -693,6 +737,8 @@ export function GlobalLinkOrder() {
       
       const selectableVariants=safeVariants.filter(isConfirmedVariantAvailable).filter(item=>{const value=item.price??(data.variantScope==='group'?undefined:data.price);return typeof value==='number'&&Number.isFinite(value)&&value>0;});
       setVariants(selectableVariants);
+      // Every option the store lists at this link is sold out: said as such, not as a price still to come.
+      setStoreSoldOut(optionStock(safeVariants)==='sold-out');
       const sourceParams = new URL(data.sourceUrl).searchParams;
       const selectedIds = [data.selectedVariantId, data.sku, sourceParams.get('variant'), sourceParams.get('var')].filter((value): value is string => Boolean(value));
       const selectedVariant = selectableVariants.find(item => item.id && selectedIds.includes(item.id))
@@ -818,7 +864,8 @@ export function GlobalLinkOrder() {
   function openLink(value = url) {
     let link: string;
     try { link = validateSource(value); }
-    catch (e) { toast.error((e as Error).message); setShowSourceForm(true); return; }
+    catch { setLinkError(invalidLinkText); setShowSourceForm(true); return; }
+    setLinkError("");
     if (link === requestedUrl) { void load(link); return; }
     removeDraft(browserStorage(), draftKeyFor({ pageUrl: link }));
     setAdded(null); setResumedFrom("");
@@ -830,7 +877,7 @@ export function GlobalLinkOrder() {
   function editLink() {
     // Focused once the field is drawn: after the clipboard read a timer can fire before that.
     focusLinkField.current = true;
-    setUrl(""); setShowSourceForm(true);
+    setUrl(""); setLinkError(""); setShowSourceForm(true);
   }
   /** "Заменить ссылку": the link last copied replaces this one. The same link, no link or a refused clipboard open the empty field. */
   async function replaceLink() {
@@ -851,7 +898,7 @@ export function GlobalLinkOrder() {
   function startNewLink() {
     forgetLastDraft(browserStorage());
     automaticallyLoaded.current = null; setAutoLoadStarted("");
-    setAdded(null); setResumedFrom(""); setFormIssue(""); setUrl(""); setSource(""); setSourceCheckStatus("idle"); setShowSourceForm(true);
+    setAdded(null); setResumedFrom(""); setFormIssue(""); setLinkError(""); setUrl(""); setSource(""); setSourceCheckStatus("idle"); setShowSourceForm(true);
     window.history.replaceState(window.history.state, "", draftAddress({ pageUrl: "" }, window.location.search));
     window.setTimeout(() => document.getElementById("source-url")?.focus(), 0);
   }
@@ -880,18 +927,19 @@ export function GlobalLinkOrder() {
   const priceOf = (label: string) => pickedVariant(label)?.price ?? storeBasePrice ?? Number(amount);
   const units = picks.reduce((sum, [, quantity]) => sum + quantity, 0);
   // Priced exactly as the cart would price these lines on their own: one parcel, one store-delivery hold.
-  let previewItems: CartItem[] = [];
-  try {
-    const boxed = validBoxedWeight(weight);
-    if (boxed !== undefined && picks.length && source) {
+  const previewFor = (lines: [string, number][]): CartItem[] => {
+    try {
+      const boxed = validBoxedWeight(weight);
+      if (boxed === undefined || !lines.length || !source) return [];
       const shippingUsd = shipping === "" ? 0 : toUsd(Number(shipping), shippingCurrency, pricing.rates);
-      previewItems = repriceCart(picks.map(([label, quantity], index) => ({
+      return repriceCart(lines.map(([label, quantity], index) => ({
         id: `preview-${index}`,
         product: { id: `preview-${index}`, name: name || "item", brand: "", category, usd: toUsd(priceOf(label), currency, pricing.rates), weight: paddedWeight(boxed), image: "", variants: [label], sourceUrl: source, country: country === "Другая страна" ? otherCountry : country, sourceShippingUsd: shippingUsd, sourceShippingEstimated: shippingEstimated, boxedWeight: boxed },
         variant: label, quantity, requestedServiceIds: [], deliverySpeed: previewSpeed, quote: {} as CartItem["quote"],
       })), 0, pricing);
-    }
-  } catch { previewItems = []; }
+    } catch { return []; }
+  };
+  const previewItems = previewFor(picks);
   const previewSums = previewItems.length ? sumQuotes(previewItems.map(item => item.quote)) : null;
   const previewWeight = Math.round(previewItems.reduce((sum, item) => sum + item.quote.weight, 0) * 100) / 100;
   const previewHold = storeShippingReserves(previewItems, pricing)[0];
@@ -949,13 +997,23 @@ export function GlobalLinkOrder() {
   useEffect(() => { if (status === "guest") discardPendingCartAdd(browserStorage(), draftKey); }, [status, draftKey, picked, manualQuantity, variant, comment, previewSpeed]);
   const addBusy = adding || pendingAdd.sending;
   const isGuest = status === "guest";
+  // A catalog item can be saved to favourites right here; a link outside the catalog has nothing to save.
+  const favoriteId = currentCatalogSeed && ready && !isGuest ? currentCatalogSeed.id : "";
+  const favoriteSaved = Boolean(favoriteId) && state.favorites.includes(favoriteId);
+  const dc = dealCopy(lang);
+  async function toggleFavorite() {
+    if (!favoriteId || favoriteBusy) return;
+    setFavoriteBusy(true);
+    try { await act({ type: "favorite", id: favoriteId }); } finally { setFavoriteBusy(false); }
+  }
   // Units already in the cart, for the entry beside the order button (signed-in customers only).
   const cartUnits = ready && !isGuest ? state.cart.reduce((sum, line) => sum + line.quantity, 0) : 0;
   const cartLabel = tx("Корзина", "Savat", "Cart");
   // The store link at the top: domain and path, no tracking parameters; the full address opens on click.
   const sourceShort = (() => { try { const parsed = new URL(source || url); return parsed.hostname.replace(/^www\./, "") + (parsed.pathname === "/" ? "" : parsed.pathname); } catch { return sourceHost || url; } })();
   const weightNote = weightBasis === "store" ? k.weightStore : weightBasis === "catalog" ? k.weightCatalog : weightBasis === "customer" ? k.weightCustomer : weightBasis === "title" ? k.weightTitle : k.weightEstimate(displayCategoryName(category, lang));
-  const sizePricesDiffer = new Set(variants.map(item => item.price).filter((value): value is number => value !== undefined)).size > 1;
+  // Prices on the size buttons only when sizes of the chosen colour cost differently; the colour's price is shown above.
+  const sizePricesDiffer = new Set(variantsForColor.filter(item => item.available && item.quantity !== 0).map(item => item.price).filter((value): value is number => value !== undefined)).size > 1;
   const countryText = country === "Другая страна" ? otherCountry.trim() || countryLabel(country, lang) : countryLabel(canonicalCountry(country), lang);
   // Store money is written one way on the whole page ("15,99 $"): the header, the options and the details alike.
   const moneyIn = (value: number, code: string) => { try { return new Intl.NumberFormat(lang === "ru" ? "ru-RU" : "en-US", { style: "currency", currency: code, maximumFractionDigits: 2 }).format(value); } catch { return `${value} ${code}`; } };
@@ -978,6 +1036,51 @@ export function GlobalLinkOrder() {
   // Locked: what Atlas got from the store (all of it once the check succeeded) or what an Atlas catalog card fixes.
   // Verified with the store, or typed by the customer for a store Atlas does not read: the item can be ordered.
   const orderable = sourceCheckStatus === "verified" || sourceCheckStatus === "manual";
+  // Nothing chosen yet among several options: an honest "from" total for the lowest-priced option that can be ordered
+  // (in the colour being viewed, or in any colour while none is chosen). Priced like the real choice; the server prices that.
+  const fromSums = (() => {
+    if (picks.length || variants.length < 2 || !orderable || checking) return null;
+    const pool = variantsForColor.length ? variantsForColor : variants;
+    const cheapest = pool.filter(item => isConfirmedVariantAvailable(item) && item.quantity !== 0 && priceOf(item.label) > 0)
+      .sort((a, b) => priceOf(a.label) - priceOf(b.label))[0];
+    const items = cheapest ? previewFor([[cheapest.label, 1]]) : [];
+    return items.length ? sumQuotes(items.map(item => item.quote)) : null;
+  })();
+  // Options listed and none of them on sale: the add buttons say so and stay inactive, never lead to an empty step.
+  const stock = optionStock(variants);
+  const nothingToChoose = !checking && orderable && (stock === "sold-out" || stock === "unconfirmed");
+  const soldOutText = tx("Нет в наличии в магазине", "Do‘konda mavjud emas", "Out of stock at the store");
+  const noStockText = stock === "unconfirmed" ? tx("Наличие не подтверждено магазином", "Do‘kon mavjudligini tasdiqlamadi", "The store has not confirmed stock") : soldOutText;
+  // A failed check whose answer was "every option sold out" (the store's own words, not a guess).
+  const soldOutAtStore = !checking && sourceCheckStatus === "failed" && storeSoldOut;
+  // Until an option is chosen the add buttons name the next step (colour, then size or option) and lead to it.
+  const needsChoice = !checking && orderable && variants.length > 1 && !picks.length && !nothingToChoose;
+  const sizeStepShown = (variantColors.length === 0 || Boolean(selectedColor)) && !complexVariants && variantSizes.length > 0;
+  const nextChoiceText = variantColors.length > 1 && !selectedColor ? c.selectColor : sizeStep && sizeStepShown ? lc.chooseSize : c.selectVariant;
+  /** Scrolls to the step still to choose in and focuses its first open button; nothing is marked as an error. */
+  function focusChoice() {
+    window.setTimeout(() => {
+      const shown = (selector: string) => [...document.querySelectorAll<HTMLElement>(selector)].find(element => element.getClientRects().length > 0 && !(element as HTMLButtonElement).disabled);
+      const target = (variantColors.length > 1 && !selectedColor ? shown(".lo-colours-aside .variant-options button, .lo-colours-main .variant-options button") : undefined)
+        ?? shown('[data-order-variant] .variant-options.sizes button[aria-pressed="false"], [data-order-variant] .lo-option-chips button[aria-pressed="false"]')
+        ?? shown("[data-order-variant] button, [data-order-variant] input")
+        ?? document.getElementById("variant") ?? undefined;
+      target?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+      target?.focus({ preventScroll: true });
+    }, 0);
+  }
+  // The delivery speed the total uses (the cart's, express by default) with its window in business days; the other speed
+  // is chosen in the cart. No price difference here: the cart compares the speeds (owner, 14 October 2026).
+  const speedRange = country === "Другая страна" ? null : daysRangeFor(pricing, [country], previewSpeed);
+  const speedFaster = previewSpeed === "standard" && country !== "Другая страна" ? fasterText(pricing, [country], lang) : "";
+  const speedLine = <p className="lo-speed">
+    <span className="lo-speed-label">{lc.speedLabel}</span>
+    <span className="lo-speed-chip">{deliverySpeedCopy[lang].names[previewSpeed]}{previewSpeed === "express" && <Star size={13} className="speed-option-star" aria-hidden="true" />}{speedRange && <span className="lo-speed-days">{` · ${deliverySpeedCopy[lang].days(speedRange[0], speedRange[1])}`}</span>}</span>
+    <small>{previewSpeed === "express" ? lc.standardInCart : speedFaster ? `${speedFaster} — ${lc.expressInCart}` : tx("Скорость доставки выберете в корзине.", "Yetkazish tezligini savatda tanlaysiz.", "Choose delivery speed in your cart.")}</small>
+  </p>;
+  // The field the shown message under the add button is about; a newer message (or none) unmarks it.
+  const invalidField = issueField && formIssue === issueField.message ? issueField.id : "";
+  const issueProps = (id: string) => invalidField === id ? { "aria-invalid": true, "aria-describedby": "link-form-issue" } : {};
   const atlasLoaded = sourceCheckStatus === "verified" && Boolean(atlasLocks);
   const locks: LockFields = {
     name: (catalogProductFlow || Boolean(atlasLoaded && atlasLocks?.name)) && !unlocked.name,
@@ -1001,12 +1104,171 @@ export function GlobalLinkOrder() {
   const colourPhoto = (color: string) => colorwayImages.find(g => g.color === color)?.images[0] ?? variants.find(v => v.color === color && v.image)?.image;
   // One picture for every colour tells nothing: the buttons then show names only.
   const colourPhotosDiffer = new Set(variantColors.map(colourPhoto).filter(Boolean)).size > 1;
-  const colourOptions = <div className="variant-options">{variantColors.map(color=>{const options=variants.filter(v=>v.color===color),photo=colourPhotosDiffer?colourPhoto(color):undefined,stock=options.some(v=>v.available&&v.quantity!==0),colorPrices=variantDisplayPrices(options);return <button type="button" key={color} title={color} aria-pressed={selectedColor===color} onClick={()=>selectColorway(color)}>{photo&&<img src={sizedImage(photo,120)} alt="" width={36} height={36} decoding="async" onError={event=>{retryOriginal(event.currentTarget,photo)}}/>}<span>{color}</span>{colorPrices.length>0&&<small className="lo-colour-price">{sourceFormat(colorPrices[0])}{colorPrices.length>1?` – ${sourceFormat(colorPrices[colorPrices.length-1])}`:""}</small>}{!stock&&<small>{k.outOfStock}</small>}</button>})}</div>;
+  // A tile names the colour by its first part ("University Red" of "University Red/University Red/White") when that is
+  // enough to tell the colours apart; otherwise the full name breaks at its slashes, never inside a word. The full name
+  // stays in the step heading, the tooltip and the accessible name.
+  const colourPrimaries = variantColors.map(color => describeSingleColorway(color).primary);
+  const colourName = (color: string) => { const primary = describeSingleColorway(color).primary; return colourPrimaries.filter(value => value === primary).length === 1 ? primary : color.replace(/\//g, "/\u200b"); };
+  const colourOptions = <div className="variant-options">{variantColors.map(color=>{const options=variants.filter(v=>v.color===color),photo=colourPhotosDiffer?colourPhoto(color):undefined,stock=options.some(v=>v.available&&v.quantity!==0),colorPrices=variantDisplayPrices(options),priceText=colorPrices.length>0?sourceFormat(colorPrices[0])+(colorPrices.length>1?` – ${sourceFormat(colorPrices[colorPrices.length-1])}`:""):"";return <button type="button" key={color} title={color} aria-label={[color,priceText,stock?"":k.outOfStock].filter(Boolean).join(", ")} aria-pressed={selectedColor===color} onClick={()=>selectColorway(color)}>{photo&&<img src={sizedImage(photo,120)} alt="" width={36} height={36} decoding="async" onError={event=>{retryOriginal(event.currentTarget,photo)}}/>}<span>{colourName(color)}</span>{priceText&&<small className="lo-colour-price">{priceText}</small>}{!stock&&<small>{k.outOfStock}</small>}</button>})}</div>;
+  // The item data card: in the right column under the total, or, for a store Atlas does not read (the customer types
+  // every field), under the item card across the wide left column. Rendered in one place only.
+  const manualLayout = sourceCheckStatus === "manual";
+  const finishSheet = () => <div className="lo-sheet lo-sheet-finish">
+    <section className={"lo-card lo-data" + (dataExpanded ? " open" : "")}>
+      <button type="button" className="lo-data-toggle" aria-expanded={dataExpanded} aria-controls="lo-data-fields" onClick={() => setDataOpen(!dataExpanded)}>
+        <span>
+          <span className="lo-data-title"><b>{lc.data}</b>{dataMode !== "manual" && <span className="lo-data-badge"><Lock size={12} aria-hidden="true" />{dataMode === "atlas" ? lc.locked.badge : lc.locked.catalogBadge}</span>}</span>
+          <small>{!dataExpanded ? dataSummary : !allLocked ? lc.fillFromStore : dataMode === "atlas" ? lc.locked.hint : lc.locked.catalogHint}</small>
+        </span>
+        <span aria-hidden="true" className="lo-data-sign">{dataExpanded ? "−" : "+"}</span>
+      </button>
+      <div id="lo-data-fields" className="lo-data-fields" hidden={!dataExpanded}>
+        <p className="lo-note lo-data-note">{dataMode === "manual" ? <Info size={16} aria-hidden="true" /> : <Lock size={16} aria-hidden="true" />}<span>{dataNote}</span></p>
+        {locks.name ? <LockedFacts stack hint={lc.locked.value} rows={[{ id: "name", label: c.name, value: name }]} /> : <div className="field lo-name-field">
+          <label htmlFor="name">{c.name}</label>
+          <input id="name" {...issueProps('name')} required maxLength={140} value={name} onChange={(e) => {
+            setName(e.target.value);
+            // An Atlas estimate follows the name ("boots", "t-shirt"); a weight the customer or the store gave stays.
+            if(weightBasis==="estimate"||weightBasis==="title"){const estimate=estimateBoxedWeight(category,e.target.value);setWeight(String(estimate.kg));setWeightBasis(estimate.basis==="title"?"title":"estimate")}
+          }} placeholder={c.namePlaceholder} />
+        </div>}
+        <div className="lo-blocks">
+          <fieldset className="lo-block">
+            <legend>{k.blocks.price}</legend>
+            {locks.price ? <LockedFacts hint={lc.locked.value} rows={[{ id: "amount", label: k.price, value: lockedPriceText }, { id: "currency", label: k.currency, value: currency }]} /> : <div className="lo-block-row">
+              <div className="field">
+                <label htmlFor="amount">{k.price}</label>
+                <input id="amount" {...issueProps('amount')} type="number" inputMode="decimal" required min=".01" step=".01" value={amount} onChange={(e) => {setAmount(e.target.value); }} />
+              </div>
+            </div>}
+            {variants.some(item => item.price !== undefined) && picks.length > 1 && <small className="micro">{tx("У каждого выбранного варианта своя цена магазина.","Har bir tanlangan variantning o‘z do‘kon narxi bor.","Each chosen option keeps its own store price.")}</small>}
+          </fieldset>
+          <fieldset className="lo-block">
+            <legend>{k.blocks.storeShipping}</legend>
+            {/* Unknown delivery from a store order above the threshold is free: a rule, shown as a line, not a field. */}
+            {locks.shipping || shippingFree ? <>
+              <LockedFacts rule={!locks.shipping} hint={locks.shipping ? lc.locked.value : ""} rows={[{ id: "shipping", label: k.storeShippingAmount, value: lockedShippingText }]} />
+              {storeShippingState !== "free" && <p className="lo-block-state">{shippingEstimated ? k.storeShippingUnknown : k.storeShippingStated}</p>}
+            </> : <div className="lo-block-row">
+              <div className="field">
+                <label htmlFor="shipping">{k.storeShippingAmount}, {shippingCurrency}</label>
+                <input id="shipping" {...issueProps('shipping')} type="number" inputMode="decimal" required min="0" step=".01" value={shipping} onChange={(e) => { setShipping(e.target.value); setShippingEstimated(true);  }} />
+              </div>
+              <p className="lo-block-state">{shippingEstimated ? k.storeShippingUnknown : k.storeShippingStated}</p>
+            </div>}
+            <small className="micro">{catalogProductFlow && !shippingEstimated ? tx("Сумма доставки подтверждена Atlas при добавлении товара.","Yetkazish summasi tovar qo‘shilganda Atlas tomonidan tasdiqlangan.","Atlas confirmed this shipping amount when adding the item.") : k.storeShippingRule(freeFrom)}</small>
+            {foundShipping && shippingEstimated && !locks.shipping && <button type="button" className="btn secondary lo-found-shipping" onClick={() => {
+              if (!currencies.includes(foundShipping.currency)) {
+                toast.error(tx("Валюта ", "Valyuta ", "Currency ") + foundShipping.currency + tx(" не поддерживается: укажите эквивалент в поддерживаемой валюте.", " qo‘llanmaydi: qo‘llab-quvvatlanadigan valyutada ekvivalent kiriting.", " is not supported: enter an equivalent in a supported currency."));
+                return;
+              }
+              setShipping(String(foundShipping.amount));
+              setShippingCurrency(foundShipping.currency);
+              setShippingEstimated(false);
+
+            }}>{k.useStated}: {foundShipping.amount} {foundShipping.currency}{foundShipping.destination ? " · " + foundShipping.destination : ""}</button>}
+          </fieldset>
+          <fieldset className="lo-block">
+            <legend>{k.blocks.country}</legend>
+            {locks.country ? <LockedFacts hint={lc.locked.value} rows={[{ id: "ship-country", label: tx("Страна", "Mamlakat", "Country"), value: countryText }]} /> : <>
+              <div className="field">
+                <label htmlFor="ship-country" className="sr-only">{c.shipCountry}</label>
+                <select id="ship-country" className="select-control" value={canonicalCountry(country)} onChange={(e) => { setCountry(canonicalCountry(e.target.value));  }}>
+                  {countries.map((value) => <option key={value} value={value}>{countryLabel(value,lang)}</option>)}
+                </select>
+              </div>
+              {country === "Другая страна" && <div className="field">
+                <label htmlFor="other-country">{c.otherCountry}</label>
+                <input id="other-country" {...issueProps('other-country')} required maxLength={60} value={otherCountry} onChange={(e) => setOtherCountry(e.target.value)} />
+              </div>}
+            </>}
+          </fieldset>
+          <fieldset className="lo-block">
+            <legend>{k.blocks.weight}</legend>
+            {locks.category && locks.weight ? <LockedFacts hint={lc.locked.value} rows={[{ id: "category", label: k.category, value: displayCategoryName(category, lang) }, { id: "weight", label: k.boxedWeight, value: weightText }]} /> : <div className="lo-block-row">
+              <div className="field">
+                <label htmlFor="category">{k.category}</label>
+                <select id="category" className="select-control" value={canonicalCategory(category)} onChange={(e) => {
+                  const canonical = canonicalCategory(e.target.value);
+                  const estimate = estimateBoxedWeight(canonical, name);
+                  setCategory(canonical);
+                  setWeight(String(estimate.kg));
+                  setWeightBasis(estimate.basis === "title" ? "title" : "estimate");
+                  setWeightOrigin(tx("Оценка Atlas","Atlas bahosi","Atlas estimate"));
+
+                }}>
+                  {weightCategories.map((value) => <option key={value} value={value}>{displayCategoryName(value,lang)}</option>)}
+                </select>
+              </div>
+              <div className="field">
+                <label htmlFor="weight">{k.boxedWeight}</label>
+                <input id="weight" {...issueProps('weight')} type="number" inputMode="decimal" required min=".01" max="49.5" step=".01" value={weight}
+                  onChange={(e) => { setWeight(e.target.value); setWeightBasis("customer"); setWeightOrigin(tx("Указан покупателем","Xaridor kiritdi","Entered by customer"));  }}
+                  onBlur={() => {
+                    const valid=validBoxedWeight(weight);
+                    if(valid!==undefined){setWeight(String(valid));return}
+                    const estimate=estimateBoxedWeight(category,name);
+                    setWeight(String(estimate.kg));
+                    setWeightBasis(estimate.basis==="title"?"title":"estimate");
+                    setWeightOrigin(tx("Оценка Atlas","Atlas bahosi","Atlas estimate"));
+                    toast.error(tx("Вес должен быть от 0,01 до 49,5 кг. Вернули оценку Atlas.","Og‘irlik 0,01–49,5 kg bo‘lishi kerak. Atlas bahosi qaytarildi.","Weight must be between 0.01 and 49.5 kg. The Atlas estimate was restored."));
+                  }} />
+              </div>
+            </div>}
+            {/* A locked estimate is not the customer's to correct: the warehouse weighs the parcel. */}
+            <small className={"micro lo-weight-basis" + ((weightBasis === "estimate" || weightBasis === "title") && !locks.weight ? " estimate" : "")}>{locks.weight && (weightBasis === "estimate" || weightBasis === "title") ? lc.locked.weight : weightNote}</small>
+            <small className="micro">{k.weightRule(formatKg(packagingKg, lang))}{previewWeight ? ` ${k.parcelWeight(formatKg(previewWeight, lang))}.` : ""}</small>
+          </fieldset>
+        </div>
+      </div>
+    </section>
+    </div>;
+  // Wide screens: the right column never reaches below the window, so the total and the add button stay in view; what
+  // does not fit (customs, the store-delivery hold, opened item data) scrolls inside the column, with the add button
+  // pinned at its foot (app/customer.css, .lo-side). The room is measured from where the column starts on screen: under
+  // the page heading at first, at its sticky top once the page is scrolled.
+  const sideRef = useRef<HTMLDivElement>(null);
+  const sideShown = Boolean(source || checking);
+  useEffect(() => {
+    const side = sideRef.current;
+    if (!side) return;
+    let frame = 0;
+    const queue = () => { if (!frame) frame = window.requestAnimationFrame(fit); };
+    const observer = new ResizeObserver(queue);
+    // A card added inside a full column does not change the column's own size, so its content is watched too.
+    const cards = new MutationObserver(queue);
+    function fit() {
+      frame = 0;
+      if (!side) return;
+      const stuckAt = parseFloat(getComputedStyle(side).top);
+      const top = Math.max(side.getBoundingClientRect().top, Number.isFinite(stuckAt) ? stuckAt : 0);
+      side.style.setProperty("--lo-side-room", `${Math.max(360, Math.round(window.innerHeight - top - 16))}px`);
+      for (const card of Array.from(side.children)) observer.observe(card);
+      // The scroll box would cut the cards' shadows, so it is on only while the column is taller than the room.
+      side.toggleAttribute("data-fits", side.scrollHeight <= side.clientHeight + 1);
+      // Tab into the column scrolls a field into view above the pinned button, not under it.
+      const confirm = side.querySelector<HTMLElement>(".lo-confirm");
+      side.style.scrollPaddingBottom = confirm ? `${confirm.offsetHeight + 12}px` : "";
+    }
+    observer.observe(document.body);
+    observer.observe(side);
+    cards.observe(side, { childList: true });
+    fit();
+    window.addEventListener("scroll", queue, { passive: true });
+    window.addEventListener("resize", queue);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+      cards.disconnect();
+      window.removeEventListener("scroll", queue);
+      window.removeEventListener("resize", queue);
+    };
+  }, [sideShown]);
   return (
     <div className={"lo-page" + ((source || isSourcedFlow) && !showSourceForm ? " lo-page-loaded" : "")}>
       <header className="orders-head"><div><h1>{lc.title}</h1><p>{(source || isSourcedFlow) && !showSourceForm ? lc.leadLoaded : lc.lead}</p></div></header>
 
-      {(showSourceForm || (!requestedUrl && resumeChecked)) && <form className="lo-link" onSubmit={(e) => { e.preventDefault(); openLink(); }} aria-busy={busy}>
+      {(showSourceForm || (!requestedUrl && resumeChecked)) && <form className="lo-link" onSubmit={(e) => { e.preventDefault(); openLink(); }} aria-busy={busy} noValidate>
         <label className="sr-only" htmlFor="source-url">{lc.label}</label>
         <span className="lo-link-field"><Link2 size={20} aria-hidden="true" /><input
           id="source-url"
@@ -1018,11 +1280,14 @@ export function GlobalLinkOrder() {
           required
           value={url}
           disabled={busy}
+          aria-invalid={!!linkError}
+          aria-describedby={linkError ? "source-url-error" : undefined}
           onChange={(e) => {
             // A new link is being started: opening the page later does not bring the previous draft back.
             forgetLastDraft(browserStorage());
             setResumedFrom("");
             setUrl(e.target.value);
+            setLinkError("");
             setSource("");
             setSourceCheckStatus('idle');
 
@@ -1032,11 +1297,34 @@ export function GlobalLinkOrder() {
           onKeyDown={(e) => { if (e.key === "Escape" && source && !url) { e.preventDefault(); setShowSourceForm(false); } }}
           placeholder={lc.placeholder}
         /><PasteButton targetId="source-url" locale={lang} disabled={busy} onPaste={text => {
-          forgetLastDraft(browserStorage()); setResumedFrom(''); setFormIssue(''); setUrl(text); setSource(''); setSourceCheckStatus('idle'); setShowSourceForm(true);
+          forgetLastDraft(browserStorage()); setResumedFrom(''); setFormIssue(''); setLinkError(''); setUrl(text); setSource(''); setSourceCheckStatus('idle'); setShowSourceForm(true);
         }}/></span>
         <button className="btn primary lo-link-submit" disabled={busy}>{busy ? <Loader2 className="spin" size={18} aria-hidden="true" /> : null}{busy ? c.get : lc.calculate}</button>
       </form>}
-      {(showSourceForm || (!requestedUrl && resumeChecked)) && !source && !busy && <><div className="lo-hints"><p>{lc.hint}</p><div className="home-hero-links"><Link href="/stores">{lc.stores}</Link><Link href="/batch-import">{lc.batch}</Link></div></div><BlankBill pricing={pricing} locale={lang}/></>}
+      {(showSourceForm || (!requestedUrl && resumeChecked)) && linkError && <p id="source-url-error" className="basket-consent-error" role="alert">{linkError}</p>}
+      {(showSourceForm || (!requestedUrl && resumeChecked)) && !source && !busy && <><div className="lo-hints"><p>{lc.hint}</p><div className="home-hero-links"><Link href="/batch-import">{lc.batch}</Link></div></div>
+        {/* Unfinished items from this device: back to the choice in one tap; the total is worked out again there. */}
+        {recentDrafts.length > 0 && <section className="lo-recent" aria-labelledby="lo-recent-title">
+          <h2 id="lo-recent-title">{lc.recent.title}</h2>
+          <ul>{recentDrafts.map(draft => {
+            const host = (() => { try { return new URL(draft.source).hostname.replace(/^www[.]/, ""); } catch { return ""; } })();
+            return <li key={draftKeyFor(draft)}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- a 48 px store photo through sizedImage, as elsewhere on this page */}
+              {draft.image ? <img src={sizedImage(draft.image, 96)} alt="" width={48} height={48} loading="lazy" decoding="async" onError={event => { retryOriginal(event.currentTarget, draft.image); }} /> : <span className="lo-recent-photo" aria-hidden="true"><Link2 size={18} /></span>}
+              <span className="lo-recent-copy"><b>{draft.name}</b><small>{host}</small></span>
+              <Link className="btn secondary lo-recent-go" href={draftAddress(draft)} aria-label={`${lc.recent.continue}: ${draft.name}`}><span className="lo-recent-go-text">{lc.recent.continue}</span><ArrowRight size={16} aria-hidden="true" /></Link>
+            </li>;
+          })}</ul>
+        </section>}
+        {/* Before a link: where to take one (stores that work, the way in three steps) beside the blank bill. */}
+        <div className="lo-empty">
+          <section className="lo-where" aria-labelledby="lo-where-title">
+            <h2 id="lo-where-title">{lc.where.title}</h2>
+            <ul className="lo-where-stores">{heroStores.map(store => <li key={store.key}><a href={storefrontUrl(store)} target="_blank" rel="noopener noreferrer"><StoreLogo brand={store} size={20} />{store.name}<span className="sr-only"> ({lc.openStore})</span></a></li>)}<li><Link className="lo-where-all" href="/stores">{lc.where.all(storeBrands.length)}</Link></li></ul>
+            <ol className="lo-where-steps">{lc.where.steps.map(step => <li key={step}>{step}</li>)}</ol>
+          </section>
+          <BlankBill pricing={pricing} locale={lang}/>
+        </div></>}
 
       {(isSourcedFlow || source) && !showSourceForm && <div className="lo-source" aria-live="polite">
         {source && !checking
@@ -1063,11 +1351,12 @@ export function GlobalLinkOrder() {
           <Link className="btn primary" href="/cart"><ShoppingBag size={16} aria-hidden="true" />{tx("В корзину", "Savatga", "Go to cart")}</Link>
         </span>
       </div>}
-      {isGuest && (checking || orderable) && <p className="lo-guest">{canKeep ? lc.guest : lc.guestNoKeep}</p>}
       {note && !source && <div className="notice" role="status"><p>{note}</p></div>}
-      {source && !checking && sourceCheckStatus==='failed' && <div className="notice" role="status">
-        <p>{tx('Магазин пока не предоставил проверяемую цену или варианты. Повторите автоматическую загрузку позже.','Do‘kon hozircha tekshiriladigan narx yoki variantlarni bermadi. Avtomatik yuklashni keyinroq takrorlang.','The store has not supplied a verifiable price or options yet. Retry automatic import later.')}</p>
-        <button type="button" className="btn secondary" onClick={()=>void load(source)}>{tx('Повторить автозагрузку','Avtomatik yuklashni takrorlash','Retry automatic import')}</button>
+      {source && !checking && sourceCheckStatus==='failed' && <div className={"notice" + (soldOutAtStore ? " lo-sold-out" : "")} role="status">
+        <p>{soldOutAtStore
+          ? tx('Нет в наличии в магазине: сейчас магазин не продаёт ни один вариант по этой ссылке. Проверьте позже или выберите другой товар.','Do‘konda mavjud emas: hozir bu havoladagi birorta variant ham sotuvda yo‘q. Keyinroq tekshiring yoki boshqa tovar tanlang.','Out of stock at the store: none of the options at this link is on sale right now. Check again later or choose another item.')
+          : tx('Магазин пока не предоставил проверяемую цену или варианты. Повторите автоматическую загрузку позже.','Do‘kon hozircha tekshiriladigan narx yoki variantlarni bermadi. Avtomatik yuklashni keyinroq takrorlang.','The store has not supplied a verifiable price or options yet. Retry automatic import later.')}</p>
+        <button type="button" className="btn secondary" onClick={()=>void load(source)}>{soldOutAtStore ? tx('Проверить снова','Qayta tekshirish','Check again') : tx('Повторить автозагрузку','Avtomatik yuklashni takrorlash','Retry automatic import')}</button>
       </div>}
 
       {source && !checking && sourceCheckStatus==='manual' && <div className="notice lo-manual-store" role="status">
@@ -1078,7 +1367,7 @@ export function GlobalLinkOrder() {
       {(source || checking) && (
         <form
           id="link-order-form"
-          className={"lo-layout link-order-data-form" + (checking ? " is-checking" : " is-ready")}
+          className={"lo-layout link-order-data-form" + (checking ? " is-checking" : " is-ready") + (manualLayout && !checking ? " manual" : "")}
           noValidate
           aria-busy={checking}
           onChangeCapture={() => setFormIssue("")}
@@ -1090,6 +1379,8 @@ export function GlobalLinkOrder() {
                 const message=tx('Загрузка ещё не завершилась. Дождитесь результата или вставьте ссылку повторно.','Yuklash hali tugamadi. Natijani kuting yoki havolani qayta kiriting.','Import has not finished. Wait for the result or enter the link again.');
                 setFormIssue(message);toast.error(message);return;
               }
+              // Enter in a field while nothing is on sale: the same honest words as the inactive button.
+              if(nothingToChoose){setFormIssue(noStockText);return;}
               const missing=[
                 {id:'name',invalid:!name.trim(),message:tx('Введите название товара.','Tovar nomini kiriting.','Enter the item name.')},
                 {id:'variant',invalid:!picks.length,message:tx('Выберите или укажите цвет, размер либо модель.','Rang, o‘lcham yoki modelni tanlang yoki kiriting.','Choose or enter a color, size, or model.')},
@@ -1101,18 +1392,17 @@ export function GlobalLinkOrder() {
                 {id:'manual-confirm',invalid:sourceCheckStatus==='manual'&&!manualConfirmed,message:tx('Подтвердите, что сверили название, цену, вариант и доставку со страницей магазина.','Nomi, narxi, varianti va yetkazishni do‘kon sahifasi bilan solishtirganingizni tasdiqlang.','Confirm that you checked the name, price, option and shipping against the store page.')},
               ].find(field=>field.invalid);
               if(missing){
-                setFormIssue(missing.message);
+                setFormIssue(missing.message);setIssueField({id:missing.id,message:missing.message});
                 const lockOf:Record<string,keyof LockFields>={name:'name',amount:'price',shipping:'shipping','other-country':'country',weight:'weight'};
                 const lockedField=lockOf[missing.id];
                 if(lockedField&&locks[lockedField])setUnlocked(current=>({...current,[lockedField]:true}));
                 // Fields folded under "Calculation details" must be visible before they can take focus.
                 if(['name','other-country','amount','shipping','weight'].includes(missing.id))setDataOpen(true);
+                // An option still to choose: its step, whichever copy of it is on screen (colours sit beside the photo on wide screens).
+                if(missing.id==='variant'){focusChoice();return;}
                 window.setTimeout(()=>{
-                  const group=missing.id==='variant'?window.document.querySelector<HTMLElement>('[data-order-variant]'):null;
-                  const steps=group?.querySelectorAll<HTMLElement>('.variant-step');
-                  const lastStep=steps?.item(Math.max(0,(steps?.length??1)-1));
-                  const target=lastStep?.querySelector<HTMLElement>('button[aria-pressed="false"], button, input')??group?.querySelector<HTMLElement>('button, input')??window.document.getElementById(missing.id);
-                  target?.scrollIntoView({behavior:'smooth',block:'center'});
+                  const target=window.document.getElementById(missing.id);
+                  target?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});
                   target?.focus({preventScroll:true});
                 },0);
                 return;
@@ -1220,11 +1510,14 @@ export function GlobalLinkOrder() {
               {brand || sourceHost || !checking
                 ? <p className="basket-brand">{[brand, sourceHost && brand !== sourceHost ? sourceHost : ""].filter(Boolean).join(" · ")}</p>
                 : <span className="lo-skel lo-skel-brand" aria-hidden="true" />}
+              <div className="lo-name-row">
               <h2 id="lo-product-name">{name || (checking ? <><span className="sr-only">{c.get}</span><span className="lo-skel lo-skel-title" aria-hidden="true" /></> : sourceCheckStatus === "manual" ? tx('Впишите данные товара','Tovar ma’lumotlarini kiriting','Enter the item details') : sourceCheckStatus === "failed" ? tx('Данные товара пока недоступны','Tovar ma’lumotlari hozircha mavjud emas','Item details are not available yet') : c.empty)}</h2>
+              {favoriteId && <button type="button" className={"find-save lo-save" + (favoriteSaved ? " saved" : "")} aria-pressed={favoriteSaved} aria-label={favoriteSaved ? dc.remove : dc.save} title={favoriteSaved ? dc.remove : dc.save} disabled={favoriteBusy} onClick={() => void toggleFavorite()}><Heart size={20} aria-hidden="true" /></button>}
+              </div>
               {checking
                 ? <p className="lo-store-price">{lc.storePrice}: <span className="lo-skel lo-skel-price" aria-hidden="true" /></p>
-                : <p className="lo-store-price lo-reveal">{lc.storePrice}: <b>{storePriceText}</b>{discount && <WasPrice was={discount.was} percent={discount.percent} format={sourceFormat} />}{sourceCheckStatus === "verified" && checkedTime && <small> · {lc.checkedAt(checkedTime)}</small>}</p>}
-              {!checking && sourceCheckStatus === "failed" && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{tx('Автоматическая проверка не завершена. Сохранённые данные предварительные.','Avtomatik tekshirish tugamadi. Saqlangan ma’lumotlar taxminiy.','Automatic verification is incomplete. Saved details are preliminary.')}</p>}
+                : sourceCheckStatus === "manual" && !(Number(amount) > 0) ? null : <p className="lo-store-price lo-reveal">{lc.storePrice}: <b>{storePriceText}</b>{discount && <WasPrice was={discount.was} percent={discount.percent} format={sourceFormat} />}{sourceCheckStatus === "verified" && checkedTime && <small className="lo-checked">{" "}· {lc.checkedAt(checkedTime)}</small>}</p>}
+              {!checking && sourceCheckStatus === "failed" && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{soldOutAtStore ? soldOutText : tx('Автоматическая проверка не завершена. Сохранённые данные предварительные.','Avtomatik tekshirish tugamadi. Saqlangan ma’lumotlar taxminiy.','Automatic verification is incomplete. Saved details are preliminary.')}</p>}
               {!checking && orderable && variants.length > 1 && variantColors.length > 1 && <div className="variant-step lo-colours-aside"><div><b>{c.color}</b><span>{selectedColor || c.selectColor}</span></div>{colourOptions}</div>}
             </div>
 
@@ -1238,7 +1531,7 @@ export function GlobalLinkOrder() {
                 <input id="variant" value={variant} readOnly required className="sr-only" aria-label={c.variant}/>
               </div> : variants.length && (variantColors.length||variantSizes.length) ? <>
                 {variantColors.length>0&&<div className={"variant-step"+(variantColors.length>1?" lo-colours-main":"")}><div><b>{variantColors.length===1?tx('Расцветка по ссылке','Havoladagi rang','Linked colorway'):c.color}</b>{variantColors.length!==1&&<span>{selectedColor||c.selectColor}</span>}</div>{variantColors.length===1?<><div className="single-variant-selection"><span>{describeSingleColorway(variantColors[0]).primary}</span><small>{tx('Одна расцветка по этой ссылке','Bu havolada bitta rang varianti','One colorway in this link')}</small></div><p className="single-colorway-note">{tx('Для другого цвета нужна ссылка на соответствующий артикул магазина.','Boshqa rang uchun do‘kondagi tegishli artikl havolasi kerak.','Another color requires a link to its separate store item.')}</p><details className="single-colorway-source"><summary>{tx('Полное название расцветки в магазине','Do‘kondagi rangning to‘liq nomi','Full store colorway name')}</summary><span>{variantColors[0]}</span></details></>:colourOptions}</div>}
-                {(variantColors.length===0||selectedColor)&&!complexVariants&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize?(sizeDisplay(selectedSize)):c.selectVariant}</span></div>{(adidasSizes||nikeSizeSystem)&&<div className="variant-options lo-size-formats" role="group" aria-label={tx("Формат размера","O‘lcham formati","Size format")}>{(["us","eu","uk","cm"] as const).map(format=><button type="button" key={format} aria-pressed={sizeFormat===format} onClick={()=>setSizeFormat(format)}>{format==="cm"?tx("СМ","SM","CM"):format.toUpperCase()}</button>)}{nikeSizeSystem&&<button type="button" className="lo-size-help" aria-expanded={sizeChartOpen} aria-controls="nike-size-chart" aria-label={tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')} title={tx('Таблица размеров Nike','Nike o‘lcham jadvali','Nike size chart')} onClick={()=>setSizeChartOpen(open=>!open)}><CircleHelp size={18} aria-hidden="true"/></button>}{adidasSizes&&<a href="https://www.adidas.com/us/help/size_charts/men-shoes" target="_blank" rel="noopener noreferrer">adidas ↗</a>}{sizeFormat==="cm"&&<small>{adidasSizes?tx("Длина стопы, см","Oyoq uzunligi, sm","Foot length, cm"):tx("CM/JP по таблице Nike","Nike jadvali bo‘yicha CM/JP","CM/JP by Nike's chart")}</small>}</div>}<div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={Boolean(choice&&picked[choice.label])} disabled={!choice||!choice.available||choice.quantity===0} aria-label={!choice||!choice.available||choice.quantity===0?`${sizeDisplay(size)} — ${k.outOfStock}`:undefined} onClick={()=>choice&&togglePick(choice)}><span>{sizeDisplay(size)}</span>{choice&&price!==undefined&&sizePricesDiffer&&<small>{sourceFormat(price)}</small>}{choice?.quantity!==undefined&&choice.quantity<=5&&<small className="lo-stock">{choice.quantity?k.stockLeft(choice.quantity):k.outOfStock}</small>}</button>})}</div>{nikeSizeSystem&&sizeChartOpen&&<div className="nike-size-guide" id="nike-size-chart">
+                {(variantColors.length===0||selectedColor)&&!complexVariants&&variantSizes.length>0&&<div className="variant-step"><div><b>{variantSizeLabel||c.size}</b><span>{selectedSize?(sizeDisplay(selectedSize)):sizeStep?c.selectSize:c.selectVariant}</span></div>{(adidasSizes||nikeSizeSystem)&&<div className="variant-options lo-size-formats" role="group" aria-label={tx("Формат размера","O‘lcham formati","Size format")}>{(["us","eu","uk","cm"] as const).map(format=><button type="button" key={format} aria-pressed={sizeFormat===format} onClick={()=>setSizeFormat(format)}>{format==="cm"?tx("СМ","SM","CM"):format.toUpperCase()}</button>)}{nikeSizeSystem&&<button type="button" className="lo-size-help" aria-expanded={sizeChartOpen} aria-controls="nike-size-chart" aria-label={tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')} title={tx('Таблица размеров Nike','Nike o‘lcham jadvali','Nike size chart')} onClick={()=>setSizeChartOpen(open=>!open)}><CircleHelp size={18} aria-hidden="true"/></button>}{adidasSizes&&<a href="https://www.adidas.com/us/help/size_charts/men-shoes" target="_blank" rel="noopener noreferrer">adidas ↗</a>}{sizeFormat==="cm"&&<small>{adidasSizes?tx("Длина стопы, см","Oyoq uzunligi, sm","Foot length, cm"):tx("CM/JP по таблице Nike","Nike jadvali bo‘yicha CM/JP","CM/JP by Nike's chart")}</small>}</div>}<div className="variant-options sizes">{variantSizes.map(size=>{const choices=variantsForColor.filter(item=>item.size===size),choice=choices[0],price=choice?.price;return <button type="button" key={size} aria-pressed={Boolean(choice&&picked[choice.label])} disabled={!choice||!choice.available||choice.quantity===0} aria-label={!choice||!choice.available||choice.quantity===0?`${sizeDisplay(size)} — ${k.outOfStock}`:undefined} onClick={()=>choice&&togglePick(choice)}><span>{sizeDisplay(size)}</span>{choice&&price!==undefined&&sizePricesDiffer&&<small>{sourceFormat(price)}</small>}{choice?.quantity!==undefined&&choice.quantity<=5&&<small className="lo-stock">{choice.quantity?k.stockLeft(choice.quantity):k.outOfStock}</small>}</button>})}</div>{nikeSizeSystem&&sizeChartOpen&&<div className="nike-size-guide" id="nike-size-chart">
                   {selectedNikeSize&&<p className="nike-selected-size">{tx('Выбранный размер','Tanlangan o‘lcham','Selected size')}: <strong>US {selectedNikeSize.us}</strong><span>EU {selectedNikeSize.eu}</span><span>UK {selectedNikeSize.uk}</span><span>CM/JP {selectedNikeSize.cmLabel}</span><span>{tx('Стопа','Oyoq','Foot')} {selectedNikeSize.footLengthCm===undefined?'—':selectedNikeSize.footLengthCm} {tx('см','sm','cm')}</span></p>}
                   <div className="nike-size-chart"><b>{tx('Официальная таблица Nike: US → EU, UK и см','Rasmiy Nike jadvali: US → EU, UK va sm','Official Nike chart: US → EU, UK and cm')}</b>
                     <p>{tx('Показаны размеры, найденные для этого товара. CM/JP — маркировка обуви Nike; длина стопы указана отдельно.','Bu tovar uchun topilgan o‘lchamlar ko‘rsatilgan. CM/JP — Nike poyabzali yorlig‘i; oyoq uzunligi alohida berilgan.','Shows sizes found for this item. CM/JP is Nike’s shoe-label size; foot length is listed separately.')}</p>
@@ -1271,7 +1564,7 @@ export function GlobalLinkOrder() {
               {picks.length > 0 && <ul className={"lo-picks" + (manyMode ? "" : " single")} aria-label={k.chosen}>{picks.map(([label, quantity]) => {
                 const option = pickedVariant(label);
                 const optionPrice = option?.price ?? Number(amount);
-                const shown = option?.size ? [option.color, sizeDisplay(option.size)].filter(Boolean).join(" · ") : label;
+                const shown = option?.size ? [option.color ? colourName(option.color) : "", sizeDisplay(option.size)].filter(Boolean).join(" · ") : label;
                 return <li key={label}>
                   <Check className="lo-pick-tick" size={18} aria-hidden="true"/>
                   <span className="lo-pick-label"><b>{shown}</b><small>{[Number.isFinite(optionPrice) && optionPrice > 0 ? sourceFormat(optionPrice) : "", stockText(option, k)].filter(Boolean).join(" · ")}</small></span>
@@ -1290,158 +1583,58 @@ export function GlobalLinkOrder() {
           </section>
           </div>
 
-          {!checking && orderable && <div className="lo-sheet lo-sheet-finish">
-          <section className={"lo-card lo-data" + (dataExpanded ? " open" : "")}>
-            <button type="button" className="lo-data-toggle" aria-expanded={dataExpanded} aria-controls="lo-data-fields" onClick={() => setDataOpen(!dataExpanded)}>
-              <span>
-                <span className="lo-data-title"><b>{lc.data}</b>{dataMode !== "manual" && <span className="lo-data-badge"><Lock size={12} aria-hidden="true" />{dataMode === "atlas" ? lc.locked.badge : lc.locked.catalogBadge}</span>}</span>
-                <small>{!dataExpanded ? dataSummary : !allLocked ? lc.fillFromStore : dataMode === "atlas" ? lc.locked.hint : lc.locked.catalogHint}</small>
-              </span>
-              <span aria-hidden="true" className="lo-data-sign">{dataExpanded ? "−" : "+"}</span>
-            </button>
-            <div id="lo-data-fields" className="lo-data-fields" hidden={!dataExpanded}>
-              <p className="lo-note lo-data-note">{dataMode === "manual" ? <Info size={16} aria-hidden="true" /> : <Lock size={16} aria-hidden="true" />}<span>{dataNote}</span></p>
-              {locks.name ? <LockedFacts stack hint={lc.locked.value} rows={[{ id: "name", label: c.name, value: name }]} /> : <div className="field lo-name-field">
-                <label htmlFor="name">{c.name}</label>
-                <input id="name" required maxLength={140} value={name} onChange={(e) => {
-                  setName(e.target.value);
-                  // An Atlas estimate follows the name ("boots", "t-shirt"); a weight the customer or the store gave stays.
-                  if(weightBasis==="estimate"||weightBasis==="title"){const estimate=estimateBoxedWeight(category,e.target.value);setWeight(String(estimate.kg));setWeightBasis(estimate.basis==="title"?"title":"estimate")}
-                }} placeholder={c.namePlaceholder} />
-              </div>}
-              <div className="lo-blocks">
-                <fieldset className="lo-block">
-                  <legend>{k.blocks.price}</legend>
-                  {locks.price ? <LockedFacts hint={lc.locked.value} rows={[{ id: "amount", label: k.price, value: lockedPriceText }, { id: "currency", label: k.currency, value: currency }]} /> : <div className="lo-block-row">
-                    <div className="field">
-                      <label htmlFor="amount">{k.price}</label>
-                      <input id="amount" type="number" inputMode="decimal" required min=".01" step=".01" value={amount} onChange={(e) => {setAmount(e.target.value); }} />
-                    </div>
-                  </div>}
-                  {variants.some(item => item.price !== undefined) && picks.length > 1 && <small className="micro">{tx("У каждого выбранного варианта своя цена магазина.","Har bir tanlangan variantning o‘z do‘kon narxi bor.","Each chosen option keeps its own store price.")}</small>}
-                </fieldset>
-                <fieldset className="lo-block">
-                  <legend>{k.blocks.storeShipping}</legend>
-                  {/* Unknown delivery from a store order above the threshold is free: a rule, shown as a line, not a field. */}
-                  {locks.shipping || shippingFree ? <>
-                    <LockedFacts rule={!locks.shipping} hint={locks.shipping ? lc.locked.value : ""} rows={[{ id: "shipping", label: k.storeShippingAmount, value: lockedShippingText }]} />
-                    {storeShippingState !== "free" && <p className="lo-block-state">{shippingEstimated ? k.storeShippingUnknown : k.storeShippingStated}</p>}
-                  </> : <div className="lo-block-row">
-                    <div className="field">
-                      <label htmlFor="shipping">{k.storeShippingAmount}, {shippingCurrency}</label>
-                      <input id="shipping" type="number" inputMode="decimal" required min="0" step=".01" value={shipping} onChange={(e) => { setShipping(e.target.value); setShippingEstimated(true);  }} />
-                    </div>
-                    <p className="lo-block-state">{shippingEstimated ? k.storeShippingUnknown : k.storeShippingStated}</p>
-                  </div>}
-                  <small className="micro">{catalogProductFlow && !shippingEstimated ? tx("Сумма доставки подтверждена Atlas при добавлении товара.","Yetkazish summasi tovar qo‘shilganda Atlas tomonidan tasdiqlangan.","Atlas confirmed this shipping amount when adding the item.") : k.storeShippingRule(freeFrom)}</small>
-                  {foundShipping && shippingEstimated && !locks.shipping && <button type="button" className="btn secondary lo-found-shipping" onClick={() => {
-                    if (!currencies.includes(foundShipping.currency)) {
-                      toast.error(tx("Валюта ", "Valyuta ", "Currency ") + foundShipping.currency + tx(" не поддерживается: укажите эквивалент в поддерживаемой валюте.", " qo‘llanmaydi: qo‘llab-quvvatlanadigan valyutada ekvivalent kiriting.", " is not supported: enter an equivalent in a supported currency."));
-                      return;
-                    }
-                    setShipping(String(foundShipping.amount));
-                    setShippingCurrency(foundShipping.currency);
-                    setShippingEstimated(false);
-
-                  }}>{k.useStated}: {foundShipping.amount} {foundShipping.currency}{foundShipping.destination ? " · " + foundShipping.destination : ""}</button>}
-                </fieldset>
-                <fieldset className="lo-block">
-                  <legend>{k.blocks.country}</legend>
-                  {locks.country ? <LockedFacts hint={lc.locked.value} rows={[{ id: "ship-country", label: tx("Страна", "Mamlakat", "Country"), value: countryText }]} /> : <>
-                    <div className="field">
-                      <label htmlFor="ship-country" className="sr-only">{c.shipCountry}</label>
-                      <select id="ship-country" className="select-control" value={canonicalCountry(country)} onChange={(e) => { setCountry(canonicalCountry(e.target.value));  }}>
-                        {countries.map((value) => <option key={value} value={value}>{countryLabel(value,lang)}</option>)}
-                      </select>
-                    </div>
-                    {country === "Другая страна" && <div className="field">
-                      <label htmlFor="other-country">{c.otherCountry}</label>
-                      <input id="other-country" required maxLength={60} value={otherCountry} onChange={(e) => setOtherCountry(e.target.value)} />
-                    </div>}
-                  </>}
-                </fieldset>
-                <fieldset className="lo-block">
-                  <legend>{k.blocks.weight}</legend>
-                  {locks.category && locks.weight ? <LockedFacts hint={lc.locked.value} rows={[{ id: "category", label: k.category, value: displayCategoryName(category, lang) }, { id: "weight", label: k.boxedWeight, value: weightText }]} /> : <div className="lo-block-row">
-                    <div className="field">
-                      <label htmlFor="category">{k.category}</label>
-                      <select id="category" className="select-control" value={canonicalCategory(category)} onChange={(e) => {
-                        const canonical = canonicalCategory(e.target.value);
-                        const estimate = estimateBoxedWeight(canonical, name);
-                        setCategory(canonical);
-                        setWeight(String(estimate.kg));
-                        setWeightBasis(estimate.basis === "title" ? "title" : "estimate");
-                        setWeightOrigin(tx("Оценка Atlas","Atlas bahosi","Atlas estimate"));
-
-                      }}>
-                        {weightCategories.map((value) => <option key={value} value={value}>{displayCategoryName(value,lang)}</option>)}
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label htmlFor="weight">{k.boxedWeight}</label>
-                      <input id="weight" type="number" inputMode="decimal" required min=".01" max="49.5" step=".01" value={weight}
-                        onChange={(e) => { setWeight(e.target.value); setWeightBasis("customer"); setWeightOrigin(tx("Указан покупателем","Xaridor kiritdi","Entered by customer"));  }}
-                        onBlur={() => {
-                          const valid=validBoxedWeight(weight);
-                          if(valid!==undefined){setWeight(String(valid));return}
-                          const estimate=estimateBoxedWeight(category,name);
-                          setWeight(String(estimate.kg));
-                          setWeightBasis(estimate.basis==="title"?"title":"estimate");
-                          setWeightOrigin(tx("Оценка Atlas","Atlas bahosi","Atlas estimate"));
-                          toast.error(tx("Вес должен быть от 0,01 до 49,5 кг. Вернули оценку Atlas.","Og‘irlik 0,01–49,5 kg bo‘lishi kerak. Atlas bahosi qaytarildi.","Weight must be between 0.01 and 49.5 kg. The Atlas estimate was restored."));
-                        }} />
-                    </div>
-                  </div>}
-                  {/* A locked estimate is not the customer's to correct: the warehouse weighs the parcel. */}
-                  <small className={"micro lo-weight-basis" + ((weightBasis === "estimate" || weightBasis === "title") && !locks.weight ? " estimate" : "")}>{locks.weight && (weightBasis === "estimate" || weightBasis === "title") ? lc.locked.weight : weightNote}</small>
-                  <small className="micro">{k.weightRule(formatKg(packagingKg, lang))}{previewWeight ? ` ${k.parcelWeight(formatKg(previewWeight, lang))}.` : ""}</small>
-                </fieldset>
-              </div>
-            </div>
-          </section>
-          </div>}
-
+          {!checking && orderable && manualLayout && finishSheet()}
+          {/* The right column on wide screens: total, item data and the add button, in this order for the eye, Tab and
+              screen readers; it stays in view while the long item card scrolls (on phones it is one column, as before). */}
+          <div className="lo-side" ref={sideRef}>
           {/* The bill in a folder: the sheet is the amount to pay, the slip holds the hold and customs that stay outside it. */}
           <div className="lo-sheet lo-sheet-bill">
           <aside className="lo-summary basket-summary folio" aria-labelledby="lo-summary-title">
             <div className="folio-sheet">
               <h2 id="lo-summary-title">{lc.total}</h2>
-              {checking ? <BillPlaceholder /> : previewSums ? <>
-                <p className="micro">{tx("Скорость доставки выберете в корзине.", "Yetkazish tezligini savatda tanlaysiz.", "Choose delivery speed in your cart.")}</p>
+              {checking ? <BillPlaceholder /> : previewSums && !nothingToChoose ? <>
+                {speedLine}
                 <CalcLines sums={previewSums} locale={lang} pricing={pricing} weightKg={previewWeight} storeShippingState={storeShippingState} speed={previewSpeed}/>
                 <div className="basket-total bill-total"><span>{units > 1 ? `${k.lines.total} (${units} ${lang === "en" ? "pcs" : isUzbek(lang) ? uzText(lang, "dona") : "шт."})` : k.lines.total}</span><strong><Money value={previewSums.total} locale={lang}/></strong></div>
                 {/* The allowance in two lines; "Atlas pays customs for me" is chosen in the cart, for the whole order. */}
                 {customsPreview && <CustomsPanel estimate={customsPreview} choices={{ outsideUsed: false, help: false }} locale={lang} pricing={pricing} profiles={primaryProfile ? [primaryProfile] : []} compact/>}
-              </> : <p className="cabinet-empty">{picks.length ? lc.emptyTotal : tx("Выберите вариант, и мы покажем итог.", "Variantni tanlang, jamini ko‘rsatamiz.", "Choose an option to see the total.")}</p>}
+              </> : fromSums ? <>
+                {speedLine}
+                {/* "From" sits in the label, not in the amount, so the amount is never cut on a phone. */}
+                <div className="basket-total bill-total lo-from-total"><span>{lc.fromLabel}</span><strong><Money value={fromSums.total} locale={lang}/></strong></div>
+                <p className="micro lo-from-note">{lc.fromNote}</p>
+              </> : <p className="cabinet-empty">{soldOutAtStore || nothingToChoose ? noStockText : picks.length ? lc.emptyTotal : sourceCheckStatus === "manual" && !variants.length ? lc.manualTotal : tx("Выберите вариант, и мы покажем итог.", "Variantni tanlang, jamini ko‘rsatamiz.", "Choose an option to see the total.")}</p>}
             </div>
-            {!checking && previewSums && previewSums.storeShippingHold > 0 && <section className="folio-outside" aria-labelledby="lo-outside-title">
+            {!checking && !nothingToChoose && previewSums && previewSums.storeShippingHold > 0 && <section className="folio-outside" aria-labelledby="lo-outside-title">
               <h3 id="lo-outside-title">{k.outside}</h3>
               <HoldNote amount={previewSums.storeShippingHold} locale={lang} pricing={pricing}/>
             </section>}
           </aside>
+          </div>
+          {!checking && orderable && !manualLayout && finishSheet()}
           {/* The add button sits under the total and the item data: the right column holds the decision (owner, 12 October 2026). */}
-          {!checking && orderable && <>
-          <section className="lo-card lo-confirm">
-            {formIssue && <p className="basket-consent-error" role="alert">{formIssue}</p>}
+          {!checking && orderable && <section className="lo-card lo-confirm">
+            {formIssue && <p id="link-form-issue" className="basket-consent-error" role="alert">{formIssue}</p>}
             {sourceCheckStatus==='manual' ? <div className={"basket-consent" + (formIssue && !manualConfirmed ? " invalid" : "")}>
-              <input id="manual-confirm" type="checkbox" checked={manualConfirmed} onChange={(e) => { setManualConfirmed(e.target.checked); if (e.target.checked) setFormIssue(""); }} />
+              <input id="manual-confirm" type="checkbox" {...issueProps('manual-confirm')} checked={manualConfirmed} onChange={(e) => { setManualConfirmed(e.target.checked); if (e.target.checked) setFormIssue(""); }} />
               <label htmlFor="manual-confirm">{tx('Я сверил название, цену, вариант и доставку со страницей магазина. Оператор Atlas сверит их с магазином перед выкупом.','Nomi, narxi, varianti va yetkazishni do‘kon sahifasi bilan solishtirdim. Atlas operatori xariddan oldin ularni do‘kon bilan solishtiradi.','I checked the name, price, option and shipping against the store page. An Atlas operator checks them with the store before buying.')}</label>
             </div> : sourceCheckStatus !== "verified" ? <p className="micro" role="status">{tx("Atlas автоматически сверит цену, валюту и выбранный вариант перед добавлением в корзину.","Atlas savatga qo‘shishdan oldin narx, valyuta va tanlangan variantni avtomatik tekshiradi.","Atlas automatically checks the price, currency and selected option before adding it to your cart.")}</p> : null}
             <div className={"lo-cta-row" + (cartUnits ? " has-cart" : "")}>
-            <button className="btn primary basket-cta" disabled={addBusy || status==='loading'}>{(addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{pendingAdd.sending ? lc.pending.sending : adding ? c.adding : isGuest ? (canKeep ? lc.signinAdd : lc.signinContinue) : k.addOptions(Math.max(1, picks.length), Math.max(1, units))}{!addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>
+            {nothingToChoose ? <button type="button" className="btn primary basket-cta" disabled>{noStockText}</button> : needsChoice ? <button type="button" className="btn primary basket-cta" onClick={focusChoice}>{nextChoiceText}<ArrowRight size={18} aria-hidden="true" /></button> : <button className="btn primary basket-cta" disabled={addBusy || status==='loading'}>{(addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{pendingAdd.sending ? lc.pending.sending : adding ? c.adding : isGuest ? (canKeep ? lc.signinAdd : lc.signinContinue) : k.addOptions(Math.max(1, picks.length), Math.max(1, units))}{!addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>}
             {cartUnits > 0 && <CartEntry count={cartUnits} label={cartLabel} compact />}
             </div>
+            {/* For a guest, right under the button it explains: the item goes to the cart by itself after sign-in. */}
+            {isGuest && <p className="lo-guest"><LogIn size={16} aria-hidden="true" /><span>{canKeep ? lc.guest : lc.guestNoKeep}</span></p>}
             <ul className="basket-assurance"><li><ShieldCheck size={16} aria-hidden="true" />{cc.summary.assurance}</li>{/* Said once: "checked at HH:MM" by the price at the top, or "will check" above the button until then. */}{sourceCheckStatus === "manual" ? <li><Info size={16} aria-hidden="true" />{tx("Данные введены вами по странице магазина.","Ma’lumotlarni do‘kon sahifasi bo‘yicha o‘zingiz kiritdingiz.","You entered the details from the store page.")}</li> : sourceCheckStatus === "verified" && !checkedTime ? <li><ShieldCheck size={16} aria-hidden="true" />{checkedText}</li> : null}</ul>
-          </section>
-          </>}
+          </section>}
           </div>
         </form>
       )}
 
       {/* On phones the total bar stays put through the check, so the page does not jump when the price arrives. */}
       {(source || checking) && <div className={"basket-sticky lo-sticky" + (isGuest ? " guest" : "")} role="region" aria-label={lc.total}>
-        <div><span>{k.lines.total}</span><strong>{checking ? <span className="lo-skel lo-skel-sum" aria-hidden="true" /> : previewSums ? formatSum(previewSums.total, lang) : "—"}</strong></div>
-        <button type="submit" form="link-order-form" className="btn primary" disabled={checking || !orderable || addBusy || status==='loading'}>{(checking || addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{checking ? tx("Проверяем…", "Tekshiryapmiz…", "Checking…") : addBusy ? c.adding : isGuest ? (canKeep ? lc.signinAddShort : lc.signinContinue) : lc.addShort}{!checking && !addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>
+        <div><span>{!checking && !previewSums && fromSums ? lc.fromLabel : k.lines.total}</span><strong>{checking ? <span className="lo-skel lo-skel-sum" aria-hidden="true" /> : previewSums && !nothingToChoose ? formatSum(previewSums.total, lang) : fromSums ? formatSum(fromSums.total, lang) : "—"}</strong></div>
+        {nothingToChoose || soldOutAtStore ? <button type="button" className="btn primary" disabled>{noStockText}</button> : needsChoice ? <button type="button" className="btn primary" onClick={focusChoice}>{nextChoiceText}<ArrowRight size={18} aria-hidden="true" /></button> : <button type="submit" form="link-order-form" className="btn primary" disabled={checking || !orderable || addBusy || status==='loading'}>{(checking || addBusy || status==='loading') && <Loader2 className="spin" size={18} aria-hidden="true" />}{checking ? tx("Проверяем…", "Tekshiryapmiz…", "Checking…") : addBusy ? c.adding : isGuest ? (canKeep ? lc.signinAddShort : lc.signinContinue) : lc.addShort}{!checking && !addBusy && status!=='loading' && <ArrowRight size={18} aria-hidden="true" />}</button>}
         {cartUnits > 0 && <CartEntry count={cartUnits} label={cartLabel} compact />}
       </div>}
     </div>

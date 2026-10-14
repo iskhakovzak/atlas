@@ -59,52 +59,6 @@ button.atlas-check {
   touch-action: manipulation;          /* no double-tap-zoom wait on a tap */
   -webkit-tap-highlight-color: transparent;
 }
-button.atlas-check:focus-visible { outline: none; }
-/* globals.css dims every disabled button to .4; here only the box shows it. */
-button.atlas-check:disabled { opacity: 1; cursor: not-allowed; }
-
-.atlas-check-box {
-  display: grid;
-  place-items: center;
-  box-sizing: border-box;
-  width: var(--check-size);
-  height: var(--check-size);
-  border: 1.5px solid var(--check-line);
-  border-radius: var(--check-radius);
-  background: var(--check-fill);
-  transition: background-color .16s ease, border-color .16s ease, scale .2s var(--check-ease);
-}
-.atlas-check-box svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  fill: none;
-  stroke: var(--check-mark);
-  stroke-width: 2.4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-/* Unticking wipes the tick back quickly; ticking draws it from the short end. */
-.atlas-check-tick { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset .12s ease-in; }
-.atlas-check-dash { opacity: 0; transform: scaleX(.2); transform-box: fill-box; transform-origin: center; transition: opacity .12s ease, transform .18s var(--check-ease); }
-
-@media (hover: hover) {
-  .atlas-check:hover:not(:disabled) .atlas-check-box { border-color: var(--check-hover); }
-  .atlas-check:hover:not(:disabled)[data-state="unchecked"] .atlas-check-box { background: color-mix(in srgb, var(--check-fill) 88%, var(--check-on)); }
-}
-.atlas-check:active:not(:disabled) .atlas-check-box { scale: .88; transition-duration: .08s; }
-.atlas-check:focus-visible .atlas-check-box { outline: 2px solid var(--check-focus); outline-offset: 2px; }
-
-.atlas-check:is([data-state="checked"], [data-state="indeterminate"]) .atlas-check-box { border-color: var(--check-on); background: var(--check-on); }
-.atlas-check[data-state="checked"] .atlas-check-tick { stroke-dashoffset: 0; transition: stroke-dashoffset .22s cubic-bezier(.65, 0, .35, 1) .03s; }
-.atlas-check[data-state="indeterminate"] .atlas-check-dash { opacity: 1; transform: none; }
-
-.atlas-check:disabled .atlas-check-box { opacity: .5; }
-.atlas-check[aria-invalid="true"]:not([data-state="checked"]) .atlas-check-box { border-color: var(--check-error); box-shadow: 0 0 0 3px color-mix(in srgb, var(--check-error) 16%, transparent); }
-
-/* Where a box lines up with the first line of text rather than the middle. */
-.basket-service > button.atlas-check { margin-top: calc((var(--check-size) - var(--check-hit)) / 2 + 1px); }
 
 /* ---------- <input type="checkbox"> ---------- */
 input[type="checkbox"]:not([role="switch"]):not([aria-hidden="true"]):not(.sc-chip > input) {
@@ -153,11 +107,7 @@ input[type="checkbox"]:not([role="switch"]):not([aria-hidden="true"]):not(.sc-ch
 input[type="checkbox"]:not([role="switch"]):not([aria-hidden="true"]):not(.sc-chip > input):focus-visible { outline: 2px solid var(--check-focus); outline-offset: 2px; box-shadow: none; }
 input[type="checkbox"]:not([role="switch"]):not([aria-hidden="true"]):not(.sc-chip > input):disabled { opacity: .5; cursor: not-allowed; }
 
-/* Account deletion: the acknowledgement keeps the danger colour. */
-.delete-account-ack { --check-on: var(--cx-danger, #b42318); --check-focus: var(--cx-danger, #b42318); }
-
 /* Bank statement rows (accounting): the cell's label is the target, 44×44 on phones. */
-.acc-pick { display: inline-grid; place-items: center; width: var(--check-hit); height: var(--check-hit); margin: calc((var(--check-size) - var(--check-hit)) / 2); cursor: pointer; }
 
 @media (prefers-reduced-motion: reduce) {
   .atlas-check-box, .atlas-check-tick, .atlas-check-dash,

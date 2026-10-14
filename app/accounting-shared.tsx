@@ -3,7 +3,7 @@
 import {useEffect,useId,useState,type ReactNode} from 'react';
 import type {LucideIcon} from 'lucide-react';
 import {formatSum} from '@/lib/market/format';
-import {Modal} from './market-ui';
+import {Modal} from './modal';
 import {ledgerKinds,type AccountingSettings,type LedgerKind,type MonthSummary,type Obligations,type OrderFinance,type YearSummary} from '@/lib/market/finance';
 import {groupNames,kindsOfGroup,type LedgerEntryView} from './accounting-helpers';
 

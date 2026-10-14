@@ -219,6 +219,16 @@ test('catalog sync raises only unchanged legacy seed weights',()=>{
  assert.equal(synced.document.entries.find(entry=>entry.id===anker.id).draft.boxedWeight,.3);
  assert.equal(synced.document.entries.find(entry=>entry.id===merrell.id).draft.boxedWeight,1.7);
 });
+test('catalog sync renames legacy Russian bundled titles unless the operator edited them',()=>{
+ const doc=initialCatalog(),brushes=doc.entries.find(entry=>entry.id==='real-perfection-brushes'),lego=doc.entries.find(entry=>entry.id==='lego-city-burger-truck');
+ brushes.draft.name='Real Perfection · 16 кистей';brushes.published.name='Real Perfection · 16 кистей';
+ lego.draft.name='LEGO · грузовик';lego.published.name='LEGO · грузовик';
+ const synced=synchronizeBundledCatalog(doc),next=id=>synced.document.entries.find(entry=>entry.id===id);
+ assert.equal(next(brushes.id).draft.name,'Real Perfection · 16 makeup brushes');
+ assert.equal(next(brushes.id).published.name,'Real Perfection · 16 makeup brushes');
+ assert.equal(next(lego.id).published.name,'LEGO · грузовик');
+ assert.equal(synced.document.revision,doc.revision+1);
+});
 test('published catalog carries seeded size choices into the order flow',()=>{
  const shoe=communityCatalogProducts.find(product=>product.id==='merrell-wrapt');
  const feed=publicCatalog(initialCatalog(),tariff,Date.parse('2026-09-13T12:00:00Z'));

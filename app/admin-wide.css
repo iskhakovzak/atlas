@@ -1,8 +1,11 @@
 /* Operator admin: full-width workspace; the catalog is a two-column desk (inputs left, grid of cards right). */
-main[data-view="admin"].site-main{max-width:none;padding-left:clamp(12px,2vw,32px);padding-right:clamp(12px,2vw,32px)}
+main[data-view="admin"].site-main{max-width:none;padding-left:clamp(16px,2vw,32px);padding-right:clamp(16px,2vw,32px)}
 @media(min-width:1100px){
  .catalog-workspace{grid-template-columns:minmax(340px,400px) minmax(0,1fr);align-items:start;column-gap:22px}
- .catalog-workspace>.catalog-importer{grid-column:1;grid-row:1;padding:20px}
+ .catalog-workspace>.catalog-importer{grid-column:1;grid-row:1}
+ /* .operator-admin prefix: operator.css is a shared chunk linked after this page file, and its
+    .operator-admin .surface{padding:24px} would win a tie. */
+ .operator-admin .catalog-workspace>.catalog-importer{padding:20px}
  .catalog-workspace>.catalog-importer textarea{min-height:200px}
  .catalog-workspace>.catalog-importer .catalog-import-options{grid-template-columns:minmax(0,1fr)}
  .catalog-workspace>.admin-section:nth-child(2){grid-column:1;grid-row:2;max-height:70vh;overflow:auto}
@@ -22,3 +25,55 @@ main[data-view="admin"].site-main{max-width:none;padding-left:clamp(12px,2vw,32p
  .operator-admin>:is(section.surface,.admin-section):not(.admin-legacy){flex:1 1 min(100%,560px)}
  .operator-admin>:is(.page-heading,.admin-tabs,.catalog-workspace,.notice,details){flex-basis:100%}
 }
+
+/* Operator queue (/operations): whose move a row waits for, the next action first in an opened order, the buyout facts. */
+main[data-view="operations"] .ops-next{display:inline-flex;align-items:flex-start;gap:4px;font-size:13px;line-height:1.3;margin-top:2px;min-width:0;overflow-wrap:anywhere}
+main[data-view="operations"] .ops-next svg{flex:none;margin-top:1px}
+main[data-view="operations"] .compact-order-name>.ops-next.is-yours{color:var(--day-accent,#1f4d3b);font-weight:600}
+main[data-view="operations"] .compact-order-name>.ops-next.is-waiting{color:var(--day-muted,#58635c)}
+main[data-view="operations"] .status-badge.is-waiting{background:transparent;border:1px solid var(--day-line-strong,#cbccc3);color:var(--day-muted,#58635c)}
+main[data-view="operations"] .ops-action-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;margin:12px 0 16px;padding:12px 14px;border:1px solid var(--day-line,#e2e2da);border-radius:12px;background:var(--day-surface,#fff)}
+main[data-view="operations"] .ops-action-bar>.micro{flex:1 1 240px;margin:0}
+main[data-view="operations"] .ops-buyout{flex:1 1 100%;display:grid;gap:8px;min-width:0}
+main[data-view="operations"] .ops-buyout>b{font-size:13px;font-weight:600;color:var(--day-ink,#16211c)}
+main[data-view="operations"] .ops-buyout-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px 16px;margin:0}
+main[data-view="operations"] .ops-buyout-facts>div{min-width:0}
+main[data-view="operations"] .ops-buyout-facts dt{font-size:12px;color:var(--day-muted,#58635c)}
+main[data-view="operations"] .ops-buyout-facts dd{margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-weight:600;overflow-wrap:anywhere;min-width:0}
+main[data-view="operations"] .ops-buyout-facts dd small{font-weight:400;color:var(--day-muted,#58635c)}
+main[data-view="operations"] .ops-buyout-facts .text-link{display:inline-flex;align-items:center;gap:3px;min-width:0;overflow-wrap:anywhere}
+/* A value with its copy button (the store host, a long SKU like CN8490-002-9): the value wraps inside its column and the
+   button stays on its first line instead of dropping to a row of its own. */
+main[data-view="operations"] .ops-buyout-facts dd:has(>.copy-text-btn){flex-wrap:nowrap}
+main[data-view="operations"] .ops-buyout-facts .ops-sku{min-width:0;overflow-wrap:anywhere}
+main[data-view="operations"] .ops-buyout-facts dd>.copy-text-btn{flex:none}
+/* Beside the tabs (a row from 851 px) the search takes the free width; below that .order-controls is a column, where a
+   420 px basis would turn into a 420 px tall gap above the list. */
+.site-main[data-view="operations"] .ops-search-row{display:flex;gap:12px;align-items:center;flex:0 0 auto;min-width:0}
+@media(min-width:851px){.site-main[data-view="operations"] .ops-search-row{flex:1 1 420px}}
+.site-main[data-view="operations"] .ops-search-row .search-field{flex:1 1 auto;max-width:none;min-width:0}
+.site-main[data-view="operations"] .ops-search-row .order-refresh{flex:0 0 auto}
+html[data-theme="dark"] main[data-view="operations"] .compact-order-name>.ops-next.is-yours{color:var(--night-jade)}
+html[data-theme="dark"] main[data-view="operations"] .compact-order-name>.ops-next.is-waiting,html[data-theme="dark"] main[data-view="operations"] .status-badge.is-waiting{color:var(--night-muted);border-color:var(--night-line-strong);background:transparent}
+html[data-theme="dark"] main[data-view="operations"] .ops-action-bar{background:var(--night-raised);border-color:var(--night-line)}
+html[data-theme="dark"] main[data-view="operations"] .ops-buyout>b{color:var(--night-ink)}
+html[data-theme="dark"] main[data-view="operations"] .ops-buyout-facts :is(dt,dd small){color:var(--night-muted)}
+/* Support queue (/admin?tab=support): status first, the customer's last message on one line, and the conversation in the reply dialog. */
+.operator-admin .support-list article>div{flex:1 1 260px;min-width:0}
+.operator-admin .support-list article.is-open .support-status{color:var(--day-warn,#8a5a00);font-weight:600}
+.operator-admin .support-list .support-preview{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--day-ink,#16211c)}
+.atlas-modal .support-thread{list-style:none;display:grid;gap:10px;margin:16px 0 0;padding:10px;max-height:min(320px,42vh);overflow-y:auto;overscroll-behavior:contain;border:1px solid var(--day-line,#e2e2da);border-radius:12px}
+.atlas-modal .support-thread li{display:grid;gap:4px;max-width:88%;min-width:0;padding:10px 12px;border:1px solid var(--day-line,#e2e2da);border-radius:12px;background:var(--day-surface,#fff)}
+.atlas-modal .support-thread li.is-customer{justify-self:start}
+.atlas-modal .support-thread li.is-support{justify-self:end;background:var(--day-tint,#e8f1ea);border-color:transparent}
+.atlas-modal .support-thread li>div{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 10px;font-size:12px;color:var(--day-muted,#58635c)}
+.atlas-modal .support-thread li b{font-weight:600;color:var(--day-ink,#16211c)}
+.atlas-modal .support-thread li time{font-variant-numeric:tabular-nums}
+.atlas-modal .support-thread li p{margin:0;font-size:14px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--day-ink,#16211c)}
+.atlas-modal .support-reply-count{justify-self:end;font-variant-numeric:tabular-nums;color:var(--day-muted,#58635c)}
+html[data-theme="dark"] .operator-admin .support-list article.is-open .support-status{color:var(--night-warn-ink,#e8bd70)}
+html[data-theme="dark"] .operator-admin .support-list .support-preview,html[data-theme="dark"] .atlas-modal .support-thread li :is(b,p){color:var(--night-ink)}
+html[data-theme="dark"] .atlas-modal .support-thread{border-color:var(--night-line)}
+html[data-theme="dark"] .atlas-modal .support-thread li{background:var(--night-raised);border-color:var(--night-line)}
+html[data-theme="dark"] .atlas-modal .support-thread li.is-support{background:var(--night-hover);border-color:transparent}
+html[data-theme="dark"] .atlas-modal .support-thread li>div,html[data-theme="dark"] .atlas-modal .support-reply-count{color:var(--night-muted)}

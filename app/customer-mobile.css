@@ -1,86 +1,14 @@
 /* Customer tools on phones. Keep long account and document data readable. */
 @media (max-width: 600px) {
 
-  .support-reply-form input {
-    width: 100%;
-    min-height: 48px;
-    padding: 10px 12px;
-    border: 1px solid var(--atlas-line);
-    border-radius: 6px;
-    background: var(--atlas-surface, #fff);
-    color: var(--atlas-ink);
-    font-size: 16px;
-  }
-
   .identity-confirm .two-fields {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .identity-confirm .field,
-  .identity-confirm input,
-  .identity-confirm select {
-    min-width: 0;
-    max-width: 100%;
   }
 
   .batch-import .btn, .batch-review .btn, .access-actions .btn {
     min-height: 48px;
     white-space: normal;
     line-height: 1.4;
-  }
-
-  .batch-import,
-  .batch-review {
-    min-width: 0;
-  }
-
-  .batch-result li {
-    overflow-wrap: anywhere;
-    line-height: 1.5;
-  }
-
-  .batch-result {
-    color: var(--atlas-copy-muted, var(--muted-foreground));
-  }
-
-  .batch-candidate {
-    min-width: 0;
-    gap: 10px;
-    padding: 12px;
-  }
-
-  .batch-candidate-info b,
-  .batch-candidate-info small {
-    white-space: normal;
-    overflow-wrap: anywhere;
-    text-overflow: clip;
-    line-height: 1.45;
-  }
-
-  .batch-candidate-info a {
-    min-height: 44px;
-    font-size: 14px;
-  }
-
-  .batch-candidate > label,
-  .batch-candidate select {
-    min-width: 0;
-    max-width: 100%;
-  }
-
-  .batch-candidate select {
-    min-height: 48px;
-    font-size: 16px;
-  }
-
-  .batch-candidate > svg {
-    grid-column: 3;
-    grid-row: 1;
-    align-self: start;
-  }
-
-  .batch-import > .btn {
-    width: 100%;
   }
 
   .access-card {

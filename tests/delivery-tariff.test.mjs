@@ -57,37 +57,40 @@ test('a tariff saved before the owner decisions gets $15.98/$13.98 per kg, exact
   const legacy = pricingSchema.parse({ ...tariff, perKgUsd: undefined, standardPerKgUsd: undefined, perKg: 90000, fx: 12600, margin: 0.12, fxSource: undefined, revision: undefined, version: 'managed-1' });
   assert.equal(legacy.fxSource, 'manual');
   const upgraded = upgradePricing(legacy);
-  assert.deepEqual([upgraded.perKgUsd, upgraded.standardPerKgUsd, upgraded.margin, upgraded.fxSource, upgraded.fxMarkup, upgraded.revision], [15.98, 13.98, 0.0998, 'cbu', 1.012, 5]);
+  assert.deepEqual([upgraded.perKgUsd, upgraded.standardPerKgUsd, upgraded.margin, upgraded.fxSource, upgraded.fxMarkup, upgraded.revision], [15.98, 13.98, 0.0998, 'cbu', 1.03, 6]);
   // Until the server reads the bank's rate, the stored rate stands.
   assert.equal(upgraded.fx, 12600);
   assert.equal(upgraded.perKg, Math.round(15.98 * 12600));
-  assert.equal(upgraded.version, 'managed-1+r5');
+  assert.equal(upgraded.version, 'managed-1+r6');
   // Revisions 3–5: no international reserve, customs through Atlas at 4.98%, and a saved 1% conversion or
   // buyout no longer turns the fee into 10.98%; per-country rates give way to $15.98 everywhere.
   const second = upgradePricing(pricingSchema.parse({ ...tariff, revision: 3, margin: 0.1, conversionFee: 0.01, buyoutFee: 0.01, deliveryMargin: 0.1, reserve: 0.2, customsHelpFee: 0.03, countryOverrides: { Китай: { perKgUsd: 14, reserve: 0.3 }, США: { perKgUsd: 16, optionalServices: 5000 } }, version: 'managed-3' }));
-  assert.deepEqual([second.reserve, second.customsHelpFee, second.margin, second.buyoutFee, second.conversionFee, second.deliveryMargin, second.perKgUsd, second.standardPerKgUsd, second.version], [0, 0.0498, 0.0998, 0, 0, 0, 15.98, 13.98, 'managed-3+r5']);
+  assert.deepEqual([second.reserve, second.customsHelpFee, second.margin, second.buyoutFee, second.conversionFee, second.deliveryMargin, second.perKgUsd, second.standardPerKgUsd, second.version], [0, 0.0498, 0.0998, 0, 0, 0, 15.98, 13.98, 'managed-3+r6']);
   assert.deepEqual(second.countryOverrides, { США: { optionalServices: 5000 } });
   assert.equal(deliveryPerKgUsdFor(second, 'Китай'), 15.98);
   // Revision 2 with a 1% conversion fee showed "10,98%" on the home page: the commission folds into the 9.98% fee.
   const tenNinetyEight = upgradePricing(pricingSchema.parse({ ...tariff, perKgUsd: 15, standardPerKgUsd: undefined, fx: 12600, margin: 0.0998, conversionFee: 0.01, revision: 2, version: 'managed-2' }));
-  assert.deepEqual([tenNinetyEight.margin, tenNinetyEight.buyoutFee, tenNinetyEight.conversionFee, tenNinetyEight.perKgUsd, tenNinetyEight.standardPerKgUsd, tenNinetyEight.revision, tenNinetyEight.version], [0.0998, 0, 0, 15.98, 13.98, 5, 'managed-2+r5']);
+  assert.deepEqual([tenNinetyEight.margin, tenNinetyEight.buyoutFee, tenNinetyEight.conversionFee, tenNinetyEight.perKgUsd, tenNinetyEight.standardPerKgUsd, tenNinetyEight.revision, tenNinetyEight.version], [0.0998, 0, 0, 15.98, 13.98, 6, 'managed-2+r6']);
   // Revision 4 ($14.98 everywhere) becomes $15.98 express with $13.98 standard; a rate the owner set by hand at that revision stays.
   const fourteen = upgradePricing(pricingSchema.parse({ ...tariff, perKgUsd: 14.98, standardPerKgUsd: undefined, fx: 12600, fxSource: 'manual', revision: 4, version: 'managed-4' }));
-  assert.deepEqual([fourteen.perKgUsd, fourteen.standardPerKgUsd, fourteen.perKg, fourteen.revision, fourteen.version], [15.98, 13.98, Math.round(15.98 * 12600), 5, 'managed-4+r5']);
+  assert.deepEqual([fourteen.perKgUsd, fourteen.standardPerKgUsd, fourteen.perKg, fourteen.revision, fourteen.version], [15.98, 13.98, Math.round(15.98 * 12600), 6, 'managed-4+r6']);
   const custom = upgradePricing(pricingSchema.parse({ ...tariff, perKgUsd: 13, standardPerKgUsd: 11, fx: 12600, fxSource: 'manual', revision: 4, version: 'managed-4' }));
-  assert.deepEqual([custom.perKgUsd, custom.standardPerKgUsd, custom.perKg, custom.revision], [13, 11, 13 * 12600, 5]);
+  assert.deepEqual([custom.perKgUsd, custom.standardPerKgUsd, custom.perKg, custom.revision], [13, 11, 13 * 12600, 6]);
   const saved = upgradePricing(pricingSchema.parse({ ...tariff, perKgUsd: 13, fx: 12600, fxSource: 'manual', margin: 0.1, version: 'managed-5' }));
   assert.deepEqual([saved.perKg, saved.margin, saved.version], [13 * 12600, 0.1, 'managed-5'], 'a tariff saved after them keeps its own values');
+  // Revision 6: a tariff saved at revision 5 keeps the owner's values and only gets the 3% conversion markup.
+  const five = upgradePricing(pricingSchema.parse({ ...tariff, perKgUsd: 13, fx: 12600, fxSource: 'cbu', fxCbuRate: 12000, fxMarkup: 1.012, margin: 0.1, customsHelpFee: 0.03, revision: 5, version: 'managed-5' }));
+  assert.deepEqual([five.perKgUsd, five.margin, five.customsHelpFee, five.fxMarkup, five.fx, five.revision, five.version], [13, 0.1, 0.03, 1.03, Math.round(12000 * 1.03), 6, 'managed-5+r6']);
   assert.ok(upgradePricing({ ...legacy, version: 'v'.repeat(80) }).version.length <= 80);
 });
 
-test('the CBU rate × 1.012 sets the soum rate; a changed rate is a new tariff version', () => {
+test('the CBU rate × 1.03 sets the soum rate; a changed rate is a new tariff version', () => {
   assert.deepEqual(parseCbuRate([{ Ccy: 'USD', Rate: '11772.95', Nominal: '1', Date: '03.10.2026' }]), { rate: 11772.95, date: '2026-10-03' });
   for (const bad of [null, [], [{ Ccy: 'EUR', Rate: '13000', Date: '03.10.2026' }], [{ Ccy: 'USD', Rate: 'abc', Date: '03.10.2026' }], [{ Ccy: 'USD', Rate: '50', Date: '03.10.2026' }]])
     assert.equal(parseCbuRate(bad), null);
   const cbu = { ...tariff, fxSource: 'cbu', fxCbuRate: undefined, version: 'v1' };
   const next = withCbuRate(cbu, { rate: 11772.95, date: '2026-10-03' }, 1000);
-  assert.equal(next.fx, Math.round(11772.95 * 1.012));
+  assert.equal(next.fx, Math.round(11772.95 * 1.03));
   assert.equal(next.perKg, Math.round(15.98 * next.fx));
   assert.equal(effectiveFx(next), next.fx);
   assert.equal(next.version, 'cbu-2026-10-03-1000');

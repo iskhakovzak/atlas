@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
-import {products, blank, addToCart, cartSignature, checkoutCart as checkoutCore, confirmDemoPayment, advanceOrder, inspectWarehouseOrder, cancelOrder, saveDeliveryProfile, updateOrderIssueCase, parseState} from '../lib/market/domain.ts';
+import {products, blank, addToCart, cartSignature, checkoutCart as checkoutCore, confirmDemoPayment, advanceOrder, inspectWarehouseOrder, cancelOrder, saveDeliveryProfile, updateOrderIssueCase, parseState, setParcel, receiveOrder, requestExtraCharge, readyToWeigh} from '../lib/market/domain.ts';
 import {customsVersion} from '../lib/market/world.ts';
 import {operatorQueue, operatorQueueCounts, queueSummaries} from '../lib/market/operator-queue-server.ts';
-import {orderCredit, parseQueueCursor, queueCursor, queueMatches, queueSearchFields, queueTabsOf, slimQueueAccount} from '../lib/market/operator-queue.ts';
+import {orderCredit, operatorNextStep, orderIdleDays, parseQueueCursor, queueTabTotals, queueCursor, queueMatches, queueSearchFields, queueTabsOf, slimQueueAccount} from '../lib/market/operator-queue.ts';
 
 const checkout = (s, key, now) => checkoutCore(s, key, cartSignature(s.cart), false, now, customsVersion);
 const storeItem = (id, extra = {}) => ({...products[0], id, name: 'Item ' + id, usd: 30, weight: 0.8, boxedWeight: 0.5, sourceUrl: 'https://shop.example.com/products/' + id, country: 'США', shippingKnown: true, sourceShippingUsd: 0, ...extra});
@@ -149,4 +149,88 @@ test('load more merges pages of one customer: newer copy wins, nothing is lost',
   assert.equal(new Set(merged.map((account) => account.id)).size, merged.length);
   const carl = merged.find((account) => account.id === accounts[2].id);
   assert.equal(carl.revision, accounts[2].revision);
+});
+
+// The queue row says whose move an order waits for (app/order-workspace.tsx): "yours" with a moving step exactly where
+// the operator's main button can move the order on the server (advanceOrder, or weighing via readyToWeigh).
+test('operatorNextStep: the operator step is shown exactly where the order can move on', () => {
+  const moving = new Set(['buyout', 'receive', 'weigh', 'ship', 'deliver']);
+  const canMove = (state, order) => {
+    if (order.status === 2) return readyToWeigh(order);
+    try { advanceOrder(state, order.id, order.status, 9000); return true; } catch { return false; }
+  };
+  const seen = [];
+  const look = (state, id, expected) => {
+    const order = state.orders.find((item) => item.id === id);
+    const step = operatorNextStep(order);
+    seen.push(step?.key ?? null);
+    assert.deepEqual(step && {kind: step.kind, key: step.key}, expected, `${order.id} status ${order.status}`);
+    if (!order.cancelled && order.status < 5) assert.equal(step.kind === 'yours' && moving.has(step.key), canMove(state, order), `${step.key} vs main button`);
+  };
+  let s = saveDeliveryProfile(blank(), profile('Анна Каримова', '+998 90 123 45 67'), 'Дом');
+  s = checkout(addToCart(s, storeItem('p1'), 'US 9', 1000), 'p1', 1001);
+  const id = s.orders[0].id;
+  look(s, id, {kind: 'waiting', key: 'payment'});
+  s = confirmDemoPayment(s, id, 1100);
+  look(s, id, {kind: 'yours', key: 'buyout'});
+  const withExtra = requestExtraCharge(s, id, 5, 'Цена в магазине выросла', 1150);
+  look(withExtra, id, {kind: 'waiting', key: 'decision'});
+  s = advanceOrder(s, id, 0, 1200);
+  look(s, id, {kind: 'yours', key: 'receive'});
+  s = advanceOrder(s, id, 1, 1300);
+  look(s, id, {kind: 'yours', key: 'inspect'});
+  const damaged = inspectWarehouseOrder(s, id, {condition: 'damaged', quantityReceived: 1, notes: 'Порван', services: [], packageGroup: ''}, 1400);
+  look(damaged, id, {kind: 'yours', key: 'problem'});
+  s = inspectWarehouseOrder(s, id, {condition: 'ok', quantityReceived: 1, notes: '', services: [], packageGroup: ''}, 1400);
+  look(s, id, {kind: 'yours', key: 'weigh'});
+  assert.deepEqual(operatorNextStep(s.orders[0], {weighLeadId: 'AT-LEAD'}), {kind: 'waiting', key: 'weighTogether', leadId: 'AT-LEAD'});
+  s = receiveOrder(s, id, [0.3, 10, 10, 10], 1500);
+  look(s, id, {kind: 'yours', key: 'tracking'});
+  s = setParcel(s, id, 'DHL', 'TRK123', 'TAS-1', 1600);
+  look(s, id, {kind: 'yours', key: 'ship'});
+  s = advanceOrder(s, id, 3, 1700);
+  look(s, id, {kind: 'yours', key: 'deliver'});
+  s = advanceOrder(s, id, 4, 1800);
+  look(s, id, null);
+  assert.deepEqual(seen, ['payment', 'buyout', 'decision', 'receive', 'inspect', 'problem', 'weigh', 'tracking', 'ship', 'deliver', null]);
+
+  // A store charges its own shipping: confirming it comes before the buyout.
+  let t = saveDeliveryProfile(blank(), profile('Бобур Алиев', '+998 93 000 11 22'), 'Дом');
+  t = checkout(addToCart(t, storeItem('p2', {sourceShippingEstimated: true, sourceShippingUsd: 8}), 'US 9', 2000), 'p2', 2001);
+  t = confirmDemoPayment(t, t.orders[0].id, 2100);
+  look(t, t.orders[0].id, {kind: 'yours', key: 'storeShipping'});
+  // A cancelled order is done, unless an issue is still open.
+  const cancelled = cancelOrder(t, t.orders[0].id, 2200);
+  assert.equal(operatorNextStep(cancelled.orders[0]), null);
+  assert.deepEqual(operatorNextStep(updateOrderIssueCase(cancelled, cancelled.orders[0].id, 'merchant', 'open', undefined, 2300).orders[0]), {kind: 'yours', key: 'problem'});
+});
+
+test('operatorNextStep: a delivered order whose duty Atlas pays but never settled is the operator\'s customs step', () => {
+  let s = saveDeliveryProfile(blank(), profile('Анна Каримова', '+998 90 123 45 67'), 'Дом');
+  s = checkout(addToCart(s, storeItem('p3'), 'US 9', 1000), 'p3', 1001);
+  const base = s.orders[0];
+  // Older orders reached status 5 before the duty rule; the card still shows the "confirm duty" button.
+  const delivered = {...base, status: 5, quote: {...base.quote, customsHelp: 4000, customsDuty: 120000}};
+  assert.deepEqual(operatorNextStep(delivered), {kind: 'yours', key: 'customs'});
+  // Settled duty, or no customs help at all: nothing left to do.
+  assert.equal(operatorNextStep({...delivered, customsSettlement: {estimated: 120000, actual: 120000, actualUsd: 10, refund: 0, extra: 0, at: 2000}}), null);
+  assert.equal(operatorNextStep({...base, status: 5}), null);
+  // An open problem still comes first; a cancelled order never asks for the duty.
+  assert.deepEqual(operatorNextStep(updateOrderIssueCase({...s, orders: [delivered]}, delivered.id, 'merchant', 'open', undefined, 2300).orders[0]), {kind: 'yours', key: 'problem'});
+  assert.equal(operatorNextStep({...delivered, cancelled: true}), null);
+});
+
+test('orderIdleDays counts whole days since the last order event', () => {
+  const order = {createdAt: 0, history: [{at: 1000}, {at: 86400000 * 2 + 1000}]};
+  assert.equal(orderIdleDays(order, 86400000 * 2 + 1000), 0);
+  assert.equal(orderIdleDays(order, 86400000 * 5), 2);
+  assert.equal(orderIdleDays({createdAt: 0, history: []}, 86400000 * 3.5), 3);
+  assert.equal(orderIdleDays({createdAt: 5000, history: []}, 0), 0);
+});
+
+test('queueTabTotals: the admin overview counts the same orders as the /operations tabs', async () => {
+  const {db, accounts} = seed();
+  const counts = await operatorQueueCounts(db);
+  assert.deepEqual(queueTabTotals(accounts), {active: counts.active, attention: counts.attention});
+  assert.deepEqual(queueTabTotals([]), {active: 0, attention: 0});
 });

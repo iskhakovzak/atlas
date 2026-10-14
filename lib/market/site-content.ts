@@ -22,6 +22,8 @@ export type SiteContent = {
     instagram: string | null;
     /** Support mailbox shown on /support; null until the owner has one. */
     supportEmail: string | null;
+    /** Support working hours as the owner writes them ("Du–Sha 9:00–18:00"); null hides the line. */
+    supportHours: Record<TextLocale, string> | null;
     pickupAddress: Record<TextLocale, string> | null;
   };
   legal: { entityName: string | null; inn: string | null; address: Record<TextLocale, string> | null };
@@ -31,6 +33,8 @@ export type SiteContent = {
   deliveryDays: Record<DeliveryRegion, readonly [number, number] | null>;
   /** Approximate standard (slower, cheaper) delivery in business days per dispatch region. */
   standardDeliveryDays: Record<DeliveryRegion, readonly [number, number] | null>;
+  /** Courier delivery in Tashkent, price and coverage as the owner states them; null hides the line on the home page. */
+  courierNote: Record<TextLocale, string> | null;
   /** Only methods that are actually connected. Payments are simulated until a provider is live. */
   paymentMethods: PaymentMethod[];
   /** Real customer reviews only, with the customer's consent (`consent: true` is enforced on save). */
@@ -55,13 +59,14 @@ export function deliveryDaysFor(
 
 /** Code defaults: nothing is filled here. Pages read the stored document through `useMarket().siteContent`. */
 export const siteContent: SiteContent = {
-  contacts: { telegramSupport: null, telegramChannel: null, phone: null, instagram: null, supportEmail: null, pickupAddress: null },
+  contacts: { telegramSupport: null, telegramChannel: null, phone: null, instagram: null, supportEmail: null, supportHours: null, pickupAddress: null },
   legal: { entityName: null, inn: null, address: null },
   apps: { appStoreUrl: null, playStoreUrl: null },
   // Express routes and approximate times from the owner (6 October 2026): 5–9 business days from the US, 7–9 elsewhere,
   // $15.98 per kg; standard delivery is 9–14 business days at $13.98 per kg (lib/market/domain.ts).
   deliveryDays: { us: [5, 9], uk: [7, 9], cn: [7, 9], de: [7, 9], it: [7, 9], es: [7, 9] },
   standardDeliveryDays: { us: [9, 14], uk: [9, 14], cn: [9, 14], de: [9, 14], it: [9, 14], es: [9, 14] },
+  courierNote: null,
   paymentMethods: [],
   reviews: [],
   parcelPhotos: [],

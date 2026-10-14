@@ -4,6 +4,7 @@ import {apiErrorMessage,requestLocale} from '@/lib/market/i18n';
 import {isAuthorizedCatalogRefresh} from '@/lib/market/catalog-refresh-auth';
 import {refreshDueCatalog} from '@/lib/market/catalog-refresh';
 import {refreshProviderBooks} from '@/lib/market/provider-usage';
+import {purgePassportScans} from '@/lib/market/passport-scans-server';
 import {catalogMerchantRequest as merchantRequest} from '@/lib/importer/worker-fetch';
 
 async function acquireRefreshLease(){
@@ -27,7 +28,9 @@ export async function POST(request:Request){
     const result=await refreshDueCatalog(Date.now(),merchantRequest);
     // Hourly: settle Bright Data jobs nobody waited for and post yesterday's paid records to the books.
     const providers=await refreshProviderBooks();
-    return json({ok:true,...result,providerEntries:providers.inserted});
+    // Passport scans are no longer kept (13.10.2026): each run clears a batch of the old ones until none remain.
+    const scans=await purgePassportScans(100).catch(error=>{console.error('Passport scan purge failed',error);return null});
+    return json({ok:true,...result,providerEntries:providers.inserted,passportScansRemoved:scans?.removed??0});
   }catch(error){return failure(error,request)}finally{try{await release?.()}catch{}}
 }
 

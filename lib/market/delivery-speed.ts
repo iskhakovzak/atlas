@@ -1,5 +1,5 @@
 import type { Locale } from './i18n.ts';
-import { formatSum, formatUsd } from './format.ts';
+import { formatUsd } from './format.ts';
 import { deliveryRegions, deliveryDaysFor, type DeliveryRegion } from './site-content.ts';
 import { cartDeliverySpeed, deliveryPerKgUsdFor, deliverySpeeds, repriceCart, totalOf, type CartItem, type DeliverySpeed, type Pricing } from './domain.ts';
 import {withCyrillic} from './uz-cyrl.ts';
@@ -12,8 +12,8 @@ export type DeliverySpeedCopy = {
   days: (from: number, to: number) => string;
   daysUnknown: string;
   perKg: (rate: string) => string;
-  cheaperBy: (sum: string) => string;
-  samePrice: string;
+  /** Under the switch (owner, 14.10.2026: speed, not the price difference): "4–5" or "4" days sooner; `to` picks the word form. */
+  faster: (range: string, to: number) => string;
   appliesToCart: string;
   saving: string;
 };
@@ -26,8 +26,7 @@ export const deliverySpeedCopy: Record<Locale, DeliverySpeedCopy> = /*@__PURE__*
     days: (from, to) => `${from}–${to} раб. дней`,
     daysUnknown: 'сроки уточняются',
     perKg: rate => `${rate}/кг`,
-    cheaperBy: sum => `Обычная дешевле на ${sum}`,
-    samePrice: 'Для этой посылки цена одинаковая',
+    faster: (range, to) => `Экспресс быстрее на ${range} раб. ${to % 10 === 1 && to % 100 !== 11 ? 'день' : [2, 3, 4].includes(to % 10) && ![12, 13, 14].includes(to % 100) ? 'дня' : 'дней'}`,
     appliesToCart: 'Скорость одна на всю корзину: она применится ко всем посылкам.',
     saving: 'Сохраняем…',
   },
@@ -38,8 +37,7 @@ export const deliverySpeedCopy: Record<Locale, DeliverySpeedCopy> = /*@__PURE__*
     days: (from, to) => `${from}–${to} ish kuni`,
     daysUnknown: 'muddat aniqlanmoqda',
     perKg: rate => `${rate}/kg`,
-    cheaperBy: sum => `Oddiy yetkazish ${sum} ga arzon`,
-    samePrice: 'Bu jo‘natma uchun narx bir xil',
+    faster: range => `Ekspress ${range} ish kuni tezroq`,
     appliesToCart: 'Tezlik butun savat uchun bitta: u barcha jo‘natmalarga qo‘llanadi.',
     saving: 'Saqlanmoqda…',
   },
@@ -50,8 +48,7 @@ export const deliverySpeedCopy: Record<Locale, DeliverySpeedCopy> = /*@__PURE__*
     days: (from, to) => `${from}–${to} business days`,
     daysUnknown: 'times to be confirmed',
     perKg: rate => `${rate}/kg`,
-    cheaperBy: sum => `Standard is ${sum} cheaper`,
-    samePrice: 'Same price for this parcel',
+    faster: (range, to) => `Express is ${range} business ${to === 1 ? 'day' : 'days'} faster`,
     appliesToCart: 'One speed for the whole cart: it applies to every parcel.',
     saving: 'Saving…',
   },
@@ -99,13 +96,16 @@ export function totalsBySpeed(items: CartItem[], pricing: Pricing, now = Date.no
   return { express: at('express'), standard: at('standard') };
 }
 
-/** "Standard is N soum cheaper" for the cart, or the same-price note; empty when nothing can be priced. */
-export function savingText(items: CartItem[], pricing: Pricing, locale: Locale, now = Date.now()): string {
-  if (!items.length) return '';
-  const totals = totalsBySpeed(items, pricing, now);
-  if (!Number.isFinite(totals.express) || !Number.isFinite(totals.standard)) return '';
-  const diff = totals.express - totals.standard;
-  return diff > 0 ? deliverySpeedCopy[locale].cheaperBy(formatSum(diff, locale)) : deliverySpeedCopy[locale].samePrice;
+/**
+ * "Express is 4–5 business days faster": the standard window minus the express one over the same dispatch countries
+ * (the windows the cards show). Empty when the tariff gives express no lead, so the line never overstates it.
+ */
+export function fasterText(pricing: Pricing, countries: readonly (string | undefined)[], locale: Locale): string {
+  const express = daysRangeFor(pricing, countries, 'express'), standard = daysRangeFor(pricing, countries, 'standard');
+  if (!express || !standard) return '';
+  const [from, to] = [standard[0] - express[0], standard[1] - express[1]].sort((a, b) => a - b);
+  if (from <= 0) return '';
+  return deliverySpeedCopy[locale].faster(from === to ? String(to) : `${from}–${to}`, to);
 }
 
 export { cartDeliverySpeed };

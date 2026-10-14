@@ -36,12 +36,6 @@ async function request(path, { email = customerEmail, method = "GET", body } = {
   if (!response.ok) throw Error(`${method} ${path}: ${response.status} ${data.error ?? "failed"}`);
   return data;
 }
-async function requestForm(path, form, method = "POST") {
-  const response = await fetch(new URL(path, base), { method, headers: { ...auth(customerEmail), Origin: base.origin }, body: form });
-  const data = await response.json();
-  if (!response.ok) throw Error(`${method} ${path}: ${response.status} ${data.error ?? "failed"}`);
-  return data;
-}
 
 let account = await request("/api/account");
 const apply = async (action) => {
@@ -98,8 +92,10 @@ catalog=(await request('/api/catalog',{email:operatorEmail,method:'POST',body:{r
 const liveImport=process.env.ATLAS_SMOKE_SKIP_LIVE_IMPORT!=='1';
 if(!liveImport)process.stdout.write('Skipping the live stevemadden.com import (ATLAS_SMOKE_SKIP_LIVE_IMPORT=1).\n');
 if(liveImport){
-const imported=await request('/api/catalog',{email:operatorEmail,method:'POST',body:{revision:catalog.revision,command:{kind:'import',url:'https://www.stevemadden.com/products/possession-black',collectionIds:[collectionId],country:'США'}}});
-catalog=imported.document;const importedEntry=catalog.entries.find(item=>item.id===imported.importedId);assert(importedEntry.draft.images.length>1);assert(importedEntry.draft.variants.some(item=>item.available));assert.equal(importedEntry.draft.price,79.99);
+// Store products come and go: compare with the store's own live price instead of a fixed number.
+const liveUrl='https://www.stevemadden.com/products/divy-lime-leather';const livePrice=(await (await fetch(liveUrl+'.js',{headers:{'User-Agent':'Mozilla/5.0'}})).json()).price/100;
+const imported=await request('/api/catalog',{email:operatorEmail,method:'POST',body:{revision:catalog.revision,command:{kind:'import',url:liveUrl,collectionIds:[collectionId],country:'США'}}});
+catalog=imported.document;const importedEntry=catalog.entries.find(item=>item.id===imported.importedId);assert(importedEntry.draft.images.length>1);assert(importedEntry.draft.variants.some(item=>item.available));assert.equal(importedEntry.draft.price,livePrice);
 if(importedEntry.draft.reviewReasons?.length||importedEntry.draft.lastCheckError)catalog=(await request('/api/catalog',{email:operatorEmail,method:'POST',body:{revision:catalog.revision,command:{kind:'edit',id:imported.importedId,draft:importedEntry.draft}}})).document;
 catalog=(await request('/api/catalog',{email:operatorEmail,method:'POST',body:{revision:catalog.revision,command:{kind:'publish',ids:[imported.importedId]}}})).document;
 const publicCatalog=await request('/api/catalog');assert(publicCatalog.products.some(item=>item.id===imported.importedId));assert(publicCatalog.collections.some(item=>item.id===collectionId&&item.productIds.includes(imported.importedId)));
@@ -115,13 +111,14 @@ const orderForm=new FormData();orderForm.append('orderId',orderId);orderForm.app
 const orderUploadResponse=await fetch(new URL('/api/order-documents',base),{method:'POST',headers:{...auth(operatorEmail),Origin:base.origin},body:orderForm});assert.equal(orderUploadResponse.status,201);
 const customerDocuments=await request('/api/order-documents');assert(customerDocuments.documents.some(item=>item.order_id===orderId&&item.kind==='purchase-proof'));
 const backupResponse=await fetch(new URL('/api/backup',base),{headers:auth(operatorEmail)});assert.equal(backupResponse.status,200);assert.match(backupResponse.headers.get('x-atlas-checksum')??'',/^[a-f0-9]{64}$/);assert.equal((await backupResponse.json()).format,'atlas-backup-v1');
+// Passport scans are refused since 13.10.2026: the details are typed and the server keeps them as text.
 const scan = new Uint8Array(128);scan[0]=0xff;scan[1]=0xd8;scan[127]=0xd9;
 const form = new FormData();form.append("file",new File([scan],"passport-smoke.jpg",{type:"image/jpeg"}));
-const uploaded = await requestForm("/api/passport",form);
-await apply({type:"identity-confirm",documentId:uploaded.document.id,firstName:"ATLAS",lastName:"CUSTOMER",birthDate:"1990-01-01",passportNumber:"AA1234567",nationality:"UZB"});
-assert.equal(account.state.identityProfile.passportMasked,"•••• 4567");
+const scanResponse=await fetch(new URL("/api/passport",base),{method:"POST",headers:{...auth(customerEmail),Origin:base.origin},body:form});assert.equal(scanResponse.status,410);
+await apply({type:"identity-confirm",recipientProfileId:account.state.deliveryProfiles[0]?.id,firstName:"ATLAS",lastName:"CUSTOMER",birthDate:"1990-01-01",passportNumber:"AA1234567",nationality:"UZB"});
+assert.equal(account.state.identityProfile.passportMasked,"•••• 4567");const typedId=account.state.identityProfile.documentId;assert.match(typedId,/^ID-/);
 await apply({type:"declaration-preview",orderIds:[orderId]});
 assert.equal(account.state.declarations[0].orderIds[0],orderId);
-await request(`/api/passport?id=${encodeURIComponent(uploaded.document.id)}`,{method:"DELETE",body:{}});
+await request(`/api/passport?id=${encodeURIComponent(typedId)}`,{method:"DELETE",body:{}});
 process.stdout.write(`Authenticated pre-release smoke passed: checkout, fees, ${liveImport?'catalog import/publish, ':''}private order documents, backup export, passport, declaration, operations and delivery.\n`);
 process.exit(0);

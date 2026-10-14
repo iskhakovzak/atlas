@@ -2,10 +2,11 @@
    account deletion. Loaded after the theme files and before the phone overrides (app/layout.tsx).
    Light theme first (Atlas Day tokens), Night rules at the end under html[data-theme="dark"]. */
 
-.page-block { max-width: 980px; margin: 0 auto 36px; }
+/* Left-aligned under the page heading (it is not centred either), so the blocks do not drift right on a computer. */
+.page-block { max-width: 980px; margin: 0 0 36px; }
 .page-block > h2 { margin: 0 0 14px; font-size: clamp(22px, 3.6vw, 28px); line-height: 1.2; letter-spacing: -.02em; }
 .page-lead { max-width: 720px; margin: 0; color: var(--day-muted, #4f6057); line-height: 1.65; }
-.page-more { margin: 14px 0 0; }
+.page-more { max-width: 72ch; margin: 14px 0 0; }
 .page-more a, .page-card-links a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--day-accent, #1f4d3b); font-weight: 600; text-decoration: none; }
 .page-more a:hover, .page-card-links a:hover { text-decoration: underline; text-underline-offset: 4px; }
 
@@ -27,7 +28,7 @@
 .page-contact > svg:last-child { flex-shrink: 0; margin-left: auto; color: var(--day-muted, #4f6057); }
 .page-contact > div { display: grid; gap: 4px; min-width: 0; }
 .page-contact h3 { margin: 0; font-size: 17px; line-height: 1.3; }
-.page-contact p { margin: 0; color: var(--day-muted, #4f6057); line-height: 1.55; overflow-wrap: anywhere; }
+.page-contact p { max-width: 72ch; margin: 0; color: var(--day-muted, #4f6057); line-height: 1.55; overflow-wrap: anywhere; }
 .page-contact .btn { margin-top: 10px; width: max-content; max-width: 100%; }
 a.page-contact:hover h3 { text-decoration: underline; text-underline-offset: 4px; }
 
@@ -47,13 +48,39 @@ a.page-contact:hover h3 { text-decoration: underline; text-underline-offset: 4px
 .legal-related a { display: inline-flex; align-items: center; min-height: 40px; color: var(--day-accent, #1f4d3b); font-weight: 600; text-decoration: none; }
 .legal-related a:hover { text-decoration: underline; text-underline-offset: 4px; }
 
+/* Contents of /terms and /privacy (14.10.2026): a card above the document, folded on phones and opened on wide
+   screens after mount (legal-pages.tsx); each entry is a 44 px row, the sections stop below the sticky header. */
+.legal-toc { max-width: 980px; margin: 0 auto 18px; border: 1px solid var(--day-line, #dbe8db); border-radius: 13px; background: var(--day-surface, #fff); }
+.legal-toc > summary { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 12px 18px; list-style: none; cursor: pointer; color: var(--day-ink, #17221d); font-weight: 600; }
+.legal-toc > summary::-webkit-details-marker { display: none; }
+.legal-toc > summary > svg:first-child { flex-shrink: 0; width: 20px; height: 20px; color: var(--day-accent, #1f4d3b); }
+.legal-toc > summary:focus-visible { outline: 2px solid var(--day-accent, #1f4d3b); outline-offset: -2px; border-radius: 13px; }
+.legal-toc ul { margin: 0; padding: 6px 18px 12px; list-style: none; border-top: 1px solid var(--day-line, #dbe8db); column-gap: 28px; }
+.legal-toc li { margin: 0; break-inside: avoid; }
+.legal-toc a { display: flex; align-items: center; min-height: 44px; color: var(--day-accent, #1f4d3b); font-size: 15px; line-height: 1.35; text-decoration: none; }
+.legal-toc a:hover { text-decoration: underline; text-underline-offset: 4px; }
+/* /terms holds two documents (offer, payment and refunds): each part of the contents starts with its document's name. */
+.legal-toc .legal-toc-doc { padding: 4px 18px 0; border-top: 1px solid var(--day-line, #dbe8db); color: var(--day-ink, #17221d); font-weight: 650; }
+.legal-toc .legal-toc-doc + ul { padding-top: 0; border-top: 0; }
+.legal-document section[id] { scroll-margin-top: 96px; }
+
 @media (min-width: 720px) {
   .page-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .page-contacts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .page-contact-main { grid-column: 1 / -1; }
+  .legal-toc ul { column-count: 2; }
+}
+/* Five feature cards on /app close without a hole: 1 + 2 + 2 on a tablet, 2 + 1 / 3 on a computer. */
+@media (min-width: 720px) and (max-width: 1099px) {
+  .page-grid.app-features > .page-card:first-child { grid-column: 1 / -1; }
 }
 @media (min-width: 1100px) {
   .page-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* Four cards (/delete-account): two by two, not three and one left alone. */
+  .page-grid.two-by-two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .page-grid.app-features > .page-card:first-child { grid-column: span 2; }
+  /* The legal blocks start at the heading's left edge, like .page-block (globals.css repeats this for /legal). */
+  :is(.page-block, .legal-document, .legal-sources, .legal-related, .legal-nav, .legal-toc) { margin-left: 0; margin-right: auto; }
 }
 @media (max-width: 600px) {
   .page-block { margin-bottom: 28px; }
@@ -68,3 +95,9 @@ html[data-theme="dark"] .page-card > svg, html[data-theme="dark"] .page-contact 
 html[data-theme="dark"] .page-more a, html[data-theme="dark"] .page-card-links a, html[data-theme="dark"] .legal-related a { color: var(--night-jade); }
 html[data-theme="dark"] .page-step-number { border-color: var(--night-jade); color: var(--night-jade); }
 html[data-theme="dark"] .legal-related { border-color: var(--night-line); background: var(--night-surface, transparent); }
+html[data-theme="dark"] .legal-toc { border-color: var(--night-line); background: var(--night-surface, transparent); }
+html[data-theme="dark"] .legal-toc > summary { color: var(--night-ink); }
+html[data-theme="dark"] .legal-toc ul { border-top-color: var(--night-line); }
+html[data-theme="dark"] .legal-toc > summary > svg:first-child, html[data-theme="dark"] .legal-toc a { color: var(--night-jade); }
+html[data-theme="dark"] .legal-toc > summary:focus-visible { outline-color: var(--night-jade); }
+html[data-theme="dark"] .legal-toc .legal-toc-doc { border-top-color: var(--night-line); color: var(--night-ink); }

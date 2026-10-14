@@ -38,6 +38,8 @@ import {
   storedAccount,
 } from "@/lib/market/server";
 import {apiErrorMessage,requestLocale} from "@/lib/market/i18n";
+import { telegramNoticesLive } from "@/lib/auth/server";
+import { purgePassportScans } from "@/lib/market/passport-scans-server";
 import { vitalsSummary } from "@/lib/market/telemetry-store";
 import { database } from "@/lib/market/server";
 import { operatorQueue, operatorQueueCounts } from "@/lib/market/operator-queue-server";
@@ -92,6 +94,7 @@ const updateSchema = z.discriminatedUnion("kind", [
     }),
   }),
   z.object({kind:z.literal("projection-rebuild")}),
+  z.object({kind:z.literal("passport-scans-purge")}),
   z.object({kind:z.literal("fx-refresh")}),
   z.object({kind:z.literal("customer-status"),accountId:z.string().min(1).max(320),status:z.enum(["active","review","blocked"])}),
   z.object({kind:z.literal("customer-note"),accountId:z.string().min(1).max(320),text:z.string().trim().min(1).max(1000)}),
@@ -206,6 +209,7 @@ export async function POST(request: Request) {
     if (!payload.success) throw new HttpError(400, 'err_16');
     // Every update kind needs its own right; actions are checked per action type below.
     if (payload.data.kind !== 'action') assertPermission(access, operationsKindPermissions[payload.data.kind]);
+    if(payload.data.kind==='passport-scans-purge'){const result=await purgePassportScans(500);await recordAudit(user,'passport.scans.purge','system',undefined,result);return json({...await healthAndAudit(),scans:result});}
     if(payload.data.kind==='projection-rebuild'){const count=await rebuildOperationalProjection();await recordAudit(user,'projection.rebuild','system',undefined,{accounts:count});return json(await healthAndAudit());}
     if(payload.data.kind==='customer-status'){if(!customerStatusAllowed(access,payload.data.status))throw new HttpError(403, 'err_51');await setCustomerStatus(payload.data.accountId,payload.data.status);await recordAudit(user,'customer.status','customer',payload.data.accountId,{status:payload.data.status});return json(await healthAndAudit());}
     if(payload.data.kind==='customer-note'){
@@ -286,7 +290,8 @@ export async function POST(request: Request) {
     } catch (error) {
       throw new HttpError(400, (error as Error).message);
     }
-    await persist(current.id, next, current.revision, current.state);
+    // Atlas's own step: new notices may also go to the customer's Telegram (their consent; the live site only).
+    await persist(current.id, next, current.revision, current.state, { notify: telegramNoticesLive(request) });
     const orderId='id' in parsedAction.data?String(parsedAction.data.id):undefined;
     await recordAudit(user,`order.${parsedAction.data.type}`,'order',orderId,{accountId:current.id});
     return json({

@@ -1,0 +1,51 @@
+/* «How we handle your money» (TrustSection, app/home-sections.tsx). Owner, 14.10.2026: "it can be even better".
+   The five money rules are cards with an icon and a short title instead of one wall of text; the tracking demo names
+   the product with its store and says where the parcel is now. Loaded after day-folio.css, theme-night.css and
+   home-chapters.css; selectors start at :root body #trust to win over their theme-scoped rules. */
+#trust { --tr-card: var(--day-surface, #fff); --tr-line: var(--day-line, #e2e2da); --tr-shadow: var(--day-shadow); --tr-radius: var(--day-r-card, 18px);
+  --tr-ink: var(--day-ink, #16211c); --tr-text: #39443e; --tr-muted: var(--day-muted, #58635c);
+  --tr-icon-bg: var(--day-tint, #e8f1ea); --tr-icon: var(--day-accent, #1f4d3b); --tr-tile: var(--day-soft, #efefe9);
+  --tr-pill: var(--day-tint, #e8f1ea); --tr-pill-ink: var(--day-ok, #1d6b47); --tr-pulse: var(--day-ok, #1d6b47); }
+html[data-theme="dark"] #trust { --tr-card: var(--night-sheen), var(--night-surface, #111714); --tr-line: var(--night-line); --tr-shadow: var(--night-shadow);
+  --tr-ink: var(--night-ink, #f1eee5); --tr-text: var(--night-ink-2, #d5d9d4); --tr-muted: var(--night-muted, #9ba6a0);
+  --tr-icon-bg: var(--night-jade-soft); --tr-icon: var(--night-jade, #80d0ac); --tr-tile: rgba(241, 238, 229, .07);
+  --tr-pill: var(--night-jade-soft); --tr-pill-ink: var(--night-ok-ink, #8fd8b1); --tr-pulse: var(--night-jade, #80d0ac); }
+
+/* The rules: one column on phones, two on tablets, and on wide screens three cards over the long reserve rule and the
+   weighing rule. Each card: the icon on a mint tile next to the title, the text under both. */
+:root body #trust .home-fact-cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; max-width: none; margin: 22px 0 0; padding: 0; border: 0; background: none; box-shadow: none; list-style: none; }
+:root body #trust .home-fact-cards > li { display: grid; grid-template-columns: auto minmax(0, 1fr); align-content: start; align-items: center; gap: 12px 14px; margin: 0; padding: 20px 22px 22px;
+  border: 1px solid var(--tr-line); border-radius: var(--tr-radius); background: var(--tr-card); box-shadow: var(--tr-shadow); }
+:root body #trust .home-fact-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--tr-icon-bg); color: var(--tr-icon); }
+:root body #trust .home-fact-cards h3 { margin: 0; color: var(--tr-ink); font-size: 16.5px; font-weight: 650; line-height: 1.3; letter-spacing: 0; }
+:root body #trust .home-fact-cards p { grid-column: 1 / -1; margin: 0; color: var(--tr-text); font-size: 15px; line-height: 1.55; }
+
+/* The tracking demo: the store's mark on a tile, the product and order number, and where the parcel is now. */
+:root body #trust .home-tracking-item { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; margin: 14px 0 24px; color: var(--tr-ink); font-size: 15px; }
+:root body #trust .home-tracking-mark { display: grid; flex: none; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--tr-tile); color: var(--tr-ink); }
+:root body #trust .home-tracking-name { display: grid; gap: 1px; min-width: 0; margin-right: auto; }
+:root body #trust .home-tracking-name b { color: var(--tr-ink); font-size: 15.5px; font-weight: 650; line-height: 1.3; }
+:root body #trust .home-tracking-name span { color: var(--tr-muted); font-size: 13.5px; line-height: 1.35; font-variant-numeric: tabular-nums; }
+:root body #trust .home-tracking-now { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px 5px 10px; border-radius: 999px; background: var(--tr-pill); color: var(--tr-pill-ink); font-size: 13.5px; font-weight: 650; line-height: 1.35; }
+:root body #trust .home-tracking-pulse { position: relative; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--tr-pulse); }
+
+/* Atlas Night as Atlas Day: «Пример» is a chip next to the title, and from 900px the statuses run across the card on
+   one line (before, Night did this only from 1440px, app/home-wide-content.css, and listed them down the card below). */
+:root[data-theme="dark"] body #trust .home-tracking header { justify-content: flex-start; gap: 12px; }
+:root[data-theme="dark"] body #trust .home-tracking .home-badge { padding: 3px 10px; border-radius: 999px; background: rgba(128, 208, 172, .14); color: var(--night-jade, #80d0ac); font-size: 13px; font-weight: 700; }
+
+@media (max-width: 760px) {
+  :root body #trust .home-fact-cards { gap: 8px; margin-top: 14px; }
+  :root body #trust .home-fact-cards > li { gap: 6px 10px; padding: 12px 14px 13px; border-radius: 14px; }
+  :root body #trust .home-fact-icon { width: 30px; height: 30px; border-radius: 9px; }
+  :root body #trust .home-fact-icon > svg { width: 17px; height: 17px; }
+  :root body #trust .home-fact-cards h3 { font-size: 15px; }
+  :root body #trust .home-fact-cards p { font-size: 14px; line-height: 1.45; }
+  :root body #trust .home-tracking-item { margin: 12px 0 20px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* A few calm rings around the "now" dot, then it rests: the demo shows a live order without moving forever. */
+  :root body #trust .home-tracking-pulse::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--tr-pulse); animation: trust-pulse 1.8s cubic-bezier(.2, .7, .2, 1) .6s 4 both; }
+}
+@keyframes trust-pulse { from { opacity: .45; transform: scale(1); } to { opacity: 0; transform: scale(2.6); } }

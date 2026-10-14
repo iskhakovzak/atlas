@@ -1,3 +1,4 @@
+import {withoutAuthor} from '@/lib/market/pricing-equal';
 import {z} from 'zod';
 import {database,identity,requirePermission,sameOrigin,requestJson,json,failure,HttpError,pricing} from '@/lib/market/server';
 import {readCatalog,persistCatalog} from '@/lib/market/catalog-server';
@@ -72,7 +73,7 @@ export async function GET(request:Request){try{
   const admin=new URL(request.url).searchParams.get('admin')==='1';
   if(admin){const user=await identity();await requirePermission(user,'catalog.manage');}
   const [{document},currentPricing]=await Promise.all([readCatalog(),pricing()]);
-  return json(admin?{document}:{...publicCatalog(document,currentPricing),pricing:currentPricing});
+  return json(admin?{document}:{...publicCatalog(document,currentPricing),pricing:withoutAuthor(currentPricing)});
 }catch(error){return failure(error,request)}}
 export async function POST(request:Request){try{
   sameOrigin(request);const user=await identity();await requirePermission(user,'catalog.manage');

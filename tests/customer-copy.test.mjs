@@ -109,5 +109,34 @@ test('checkout copy says what happens next once and lets the button accept custo
     assert.match(calc.customs.choice.fee('120 000', '100 000', '4,98%'), /120 000.*100 000.*4,98%/);
   }
   assert.doesNotMatch(cartCopy.ru.success.pending, /не списыва/);
-  assert.equal(cartCopy.uz.summary.payable, 'To‘lov uchun');
+  assert.equal(cartCopy.uz.summary.payable, 'To‘lovga');
+});
+
+test('with the Atlas balance on, checkout copy says how much it takes when the order is placed, and never says "pay"', () => {
+  for (const locale of ['ru', 'uz', 'oz', 'en']) {
+    const checkout = cartCopy[locale].checkout;
+    const part = checkout.trustBalance('120 000 сум', true), whole = checkout.trustBalance('120 000 сум', false);
+    // The server debits the balance in checkoutCart, so "no money is taken until you confirm" would not be true here.
+    assert.match(whole, /120 000 сум/);
+    assert.ok(part.startsWith(whole) && part.length > whole.length, `${locale}: the rest is mentioned only when something is left`);
+    assert.ok(checkout.nextStepPaid.trim() && cartCopy[locale].success.paid.trim());
+    assert.doesNotMatch(checkout.rechecked, /подтвердите заказ|confirm\.$/);
+  }
+  assert.doesNotMatch(cartCopy.ru.checkout.trustBalance('1 сум', true) + cartCopy.ru.checkout.nextStepPaid, /Оплатить|карт/);
+});
+
+test('empty orders page with a full cart names the real item count and leads to checkout, never to "pay"', () => {
+  for (const locale of ['ru', 'uz', 'oz', 'en']) {
+    const copy = ordersCopy[locale], items = itemCount(2, locale);
+    assert.ok(copy.cartWaiting(items).includes(items), `${locale}: the count from the cart is said as is`);
+    assert.ok(copy.toCart.trim());
+    assert.doesNotMatch(copy.cartWaiting(items) + copy.toCart, /Оплат|To‘la|Тўла|\bpay\b/i);
+  }
+  assert.equal(ordersCopy.ru.cartWaiting(itemCount(1, 'ru')), 'В корзине 1 товар — осталось оформить заказ.');
+});
+
+test('the passport page title keeps "ID-card" whole with a non-breaking hyphen, also in Cyrillic Uzbek', () => {
+  for (const locale of ['ru', 'uz', 'oz']) assert.match(docsCopy[locale].title, /ID\u2011/, locale);
+  assert.equal(docsCopy.en.title, 'Recipient passport or ID card');
+  for (const locale of ['ru', 'uz', 'oz', 'en']) assert.ok(docsCopy[locale].backToOrders.trim());
 });

@@ -1,0 +1,64 @@
+/* Rules of the layout files that only the home page uses. Split out of the layout CSS (14.10.2026) so other pages do not load these rules; they keep the order
+   they had there (layout files in import order, then the home page's files), and every rule a later layout rule of the same
+   weight overrides stayed in the layout. Edit them here. */
+
+/* ── app/home.css ── */
+/* Example estimate. */
+.home-example { display: grid; gap: 20px; }
+@media (min-width: 900px) {
+  .home-example { grid-template-columns: 1fr 1.1fr; align-items: start; }
+}
+
+/* ── app/theme-night.css ── */
+/* ---------- Folio markup (home, cart, link order) in Atlas Night ----------
+   The light theme's look lives in day-folio.css; these rules give the same markup a Night finish. */
+@media (min-width: 1100px) {
+  html[data-theme="dark"] .home-top { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(400px, .92fr); column-gap: 56px; align-items: center; padding-bottom: 40px; }
+  html[data-theme="dark"] .home-top .home-hero { max-width: none; }
+}
+html[data-theme="dark"] .home-top { display: grid; gap: 32px; }
+
+/* ── app/day-folio.css ── */
+/* ---------- Home: the hero beside the example bill ---------- */
+.home-top > * { min-width: 0; }
+html:not([data-theme="dark"]) .home-top { display: grid; gap: 32px; padding: 24px 0 calc(var(--day-section) / 2); }
+@media (min-width: 1100px) {
+  html:not([data-theme="dark"]) .home-top { grid-template-columns: minmax(0, 1.08fr) minmax(400px, .92fr); column-gap: 64px; align-items: center; padding: 36px 0 40px; }
+}
+@media (min-width: 761px) and (max-width: 1099px) {
+  html:not([data-theme="dark"]) .home-top { max-width: 720px; }
+}
+/* Stores: a quiet list with their own marks, not a wall of chips. */
+@media (max-width: 600px) {
+  html:not([data-theme="dark"]) .home-top { padding-top: 20px; gap: 32px; }
+}
+
+/* ── app/store-marks.css ── */
+/* Around the home picks (#finds, app/home-sections.tsx): routes sweep behind the cards and show in the gaps. */
+.home-finds-sky { inset: -24px 0 -24px; }
+/* Wide screens: the sheet is a whole screen tall, so the sky gets the room above and below the cards. */
+@media (min-width: 1440px) and (min-height: 820px) {
+  .home-finds-sky { inset: 0; -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent); }
+  .home-finds-sky .sky-spark { zoom: 1.4; }
+}
+.home-finds-sky::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; filter: blur(40px);
+  background:
+    radial-gradient(26% 36% at 16% 20%, rgba(var(--sky-mint), .16), transparent 72%),
+    radial-gradient(24% 36% at 84% 80%, rgba(var(--sky-gold), .14), transparent 72%);
+}
+
+/* ── app/ambient.css ── */
+/* Work screens and the home page on wide screens (it has its own decor, app/home-wide-decor.css) go without it. */
+@media (min-width: 1440px) and (min-height: 820px) {
+  html[data-view="catalog"]:is(html) .ambient { display: none; }
+}
+
+/* ── app/link-inputs.css ── */
+/* One focus frame around the whole composite field, rather than a second square around the input. */
+html[data-view="catalog"] body .catalog-home #how .hw-demo-input > .paste-button { display: inline-flex; flex: none; width: auto; height: auto; min-height: 44px; padding: 6px; background: transparent; color: inherit; }
+html[data-view="catalog"] body .catalog-home #how .hw-demo-input > button[type="submit"] { min-width: 44px; min-height: 44px; }
+/* A focused link field already supplies the action; the floating duplicate must not cover the keyboard/form. */
+@media (max-width: 760px) {
+  html[data-view="catalog"]:has(#finds-product-url:focus, #how-product-url:focus) .storage-notice { bottom: calc(var(--atlas-mobile-nav-clearance) + 8px); }
+}

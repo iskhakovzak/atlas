@@ -3,7 +3,7 @@
 import {useMemo,useState,type FormEvent} from 'react';
 import {Bot,Eye,Pencil,Plus,X} from 'lucide-react';
 import {convertToUzs,filterLedger,ledgerPageSize,paginate,type LedgerKind} from '@/lib/market/finance';
-import {Modal} from './market-ui';
+import {Modal} from './modal';
 import {Amount,Badge,ConfirmDialog,currencies,dateTime,KindSelect,money,post,type AccountingContext} from './accounting-shared';
 import {entryDirection,entrySourceLabel,filterLedgerView,groupNames,isAutoEntry,isBankEntry,isEditableEntry,todayTashkent,validateDraft,type EntryDraft,type LedgerEntryView} from './accounting-helpers';
 

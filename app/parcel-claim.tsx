@@ -17,6 +17,7 @@ import type { Locale } from "@/lib/market/i18n";
 import { formatSum } from "@/lib/market/format";
 import { formatDateTime } from "@/lib/market/customer-copy";
 import { withCyrillic } from "@/lib/market/uz-cyrl";
+import { OperatorTelegramHint } from "./telegram-notices-link";
 
 /**
  * Claims on a lost or damaged parcel (since 10 October 2026). Atlas insures parcels itself: an insured line gets back
@@ -31,8 +32,8 @@ export const claimCopy = /*@__PURE__*/withCyrillic({
     describe: "Что случилось",
     placeholder: "Например: коробка пришла вскрытой, на экране трещина",
     photos: "Фото повреждений пришлите в поддержку — так проверим быстрее.",
-    insured: (limit: string) => `Посылка застрахована: вернём до ${limit} — полную стоимость товара и доставки.`,
-    uninsured: (limit: string) => `Посылка без страховки: возмещаем $${uninsuredLossPerKgUsd} за кг при утере и $${uninsuredDamagePerKgUsd} за кг при порче — здесь до ${limit}.`,
+    insured: (limit: string) => `Посылка под гарантией сохранности: вернём до ${limit} — полную стоимость товара и доставки.`,
+    uninsured: (limit: string) => `Посылка без гарантии сохранности: возмещаем $${uninsuredLossPerKgUsd} за кг при утере и $${uninsuredDamagePerKgUsd} за кг при порче — здесь до ${limit}.`,
     window: `О порче сообщите в течение ${claimWindowDays} дней после получения.`,
     send: "Отправить претензию",
     sending: "Отправляем…",
@@ -47,8 +48,8 @@ export const claimCopy = /*@__PURE__*/withCyrillic({
     describe: "Nima bo‘ldi",
     placeholder: "Masalan: quti ochilgan holda keldi, ekranda yoriq bor",
     photos: "Shikast fotosuratlarini qo‘llab-quvvatlashga yuboring — tezroq tekshiramiz.",
-    insured: (limit: string) => `Posilka sug‘urtalangan: ${limit} gacha — mahsulot va yetkazib berishning to‘liq narxini qaytaramiz.`,
-    uninsured: (limit: string) => `Posilka sug‘urtasiz: yo‘qolsa kg uchun $${uninsuredLossPerKgUsd}, shikastlansa kg uchun $${uninsuredDamagePerKgUsd} — bu yerda ${limit} gacha.`,
+    insured: (limit: string) => `Posilka saqlash kafolati bilan: ${limit} gacha — mahsulot va yetkazib berishning to‘liq narxini qaytaramiz.`,
+    uninsured: (limit: string) => `Posilka kafolatsiz: yo‘qolsa kg uchun $${uninsuredLossPerKgUsd}, shikastlansa kg uchun $${uninsuredDamagePerKgUsd} — bu yerda ${limit} gacha.`,
     window: `Shikast haqida olganingizdan keyin ${claimWindowDays} kun ichida xabar bering.`,
     send: "Da’voni yuborish",
     sending: "Yuborilmoqda…",
@@ -63,8 +64,8 @@ export const claimCopy = /*@__PURE__*/withCyrillic({
     describe: "What happened",
     placeholder: "For example: the box arrived open, the screen is cracked",
     photos: "Send photos of the damage to support — it speeds up the check.",
-    insured: (limit: string) => `The parcel is insured: we return up to ${limit}, the full value of the goods and delivery.`,
-    uninsured: (limit: string) => `The parcel is not insured: we pay $${uninsuredLossPerKgUsd} per kg on a loss and $${uninsuredDamagePerKgUsd} per kg on damage — up to ${limit} here.`,
+    insured: (limit: string) => `The parcel has the safe-arrival guarantee: we return up to ${limit}, the full value of the goods and delivery.`,
+    uninsured: (limit: string) => `The parcel has no safe-arrival guarantee: we pay $${uninsuredLossPerKgUsd} per kg on a loss and $${uninsuredDamagePerKgUsd} per kg on damage — up to ${limit} here.`,
     window: `Report damage within ${claimWindowDays} days of receipt.`,
     send: "Send the claim",
     sending: "Sending…",
@@ -119,7 +120,7 @@ export function CustomerParcelClaim({ order, locale, busy, run, label }: { order
 }
 
 /** The operator's side: every claim on the line, and the decision on the one waiting. */
-export function OperatorParcelClaims({ order, run, locale }: { order: Order; run: (action: Action) => Promise<boolean>; locale: Locale }) {
+export function OperatorParcelClaims({ order, run, locale, telegram = false }: { order: Order; run: (action: Action) => Promise<boolean>; locale: Locale; /** The customer's Telegram notices are on: the comment goes there too, as typed. */ telegram?: boolean }) {
   const claims = order.claims ?? [];
   const waiting = claims.find((claim) => claim.status === "submitted");
   const [amount, setAmount] = useState(waiting ? String(waiting.limit) : "");
@@ -143,7 +144,7 @@ export function OperatorParcelClaims({ order, run, locale }: { order: Order; run
     <div>
       <h3>Претензия по посылке</h3>
       <ul className="micro">{claims.map((claim) => <li key={claim.id}>
-        <b>{kinds[claim.kind]}</b> · {formatDateTime(claim.reportedAt, locale)} · {claim.insured ? "застрахована" : "без страховки"} · лимит {formatSum(claim.limit, "ru")} · {statuses[claim.status]}
+        <b>{kinds[claim.kind]}</b> · {formatDateTime(claim.reportedAt, locale)} · {claim.insured ? "под гарантией" : "без гарантии"} · лимит {formatSum(claim.limit, "ru")} · {statuses[claim.status]}
         {claim.amount ? ` · выплачено ${formatSum(claim.amount, "ru")}` : ""}{claim.note ? ` · ${claim.note}` : ""}
         <br />«{claim.description}»
       </li>)}</ul>
@@ -156,7 +157,8 @@ export function OperatorParcelClaims({ order, run, locale }: { order: Order; run
           <button type="button" className="btn secondary" disabled={busy || note.trim().length < 5} onClick={() => void decide("declined")}>Отклонить</button>
           <button className="btn primary" disabled={busy || !(Number(amount) > 0) || Number(amount) > waiting.limit}>{busy ? "…" : "Одобрить и зачислить"}</button>
         </div>
-        <p className="micro">{waiting.insured ? "Посылка застрахована: до полной стоимости товара и застрахованной доставки." : `Без страховки: $${uninsuredLossPerKgUsd}/кг при утере, $${uninsuredDamagePerKgUsd}/кг при порче, не больше стоимости товара.`} Сумма зачисляется на внутренний баланс покупателя; деньги на карту не отправляются.</p>
+        <p className="micro">{waiting.insured ? "Посылка под гарантией сохранности: до полной стоимости товара и доставки, зафиксированной при оформлении." : `Без гарантии сохранности: $${uninsuredLossPerKgUsd}/кг при утере, $${uninsuredDamagePerKgUsd}/кг при порче, не больше стоимости товара.`} Сумма зачисляется на внутренний баланс покупателя; вернуть её можно только на карту, с которой он платил.</p>
+        <OperatorTelegramHint on={telegram} locale={locale} />
       </form>}
     </div>
   </section>;

@@ -5,6 +5,8 @@ import {defaultPolicy,policySchema,type Policy} from './policy';
 import {cbuUsdUrl,fxRefreshDue,parseCbuRate,withCbuRate} from './fx';
 import {foreignOrderIds,writeProjection} from './projection';
 import {apiErrorMessage,requestLocale,serverError} from './i18n';
+import {translateDomainError} from './domain-errors.ts';
+import {shouldNotifyTelegram} from './telegram-state';
 import {emailVerifiedSignIn,hasPermission,resolveAccess,type Permission,type StaffAccess,type StaffRole,type StaffStatus} from './access';
 export type {Permission,StaffAccess,StaffRole,StaffStatus};
 export function database(){if(!env.DB)throw Error('Серверное хранилище пока недоступно.');return env.DB}
@@ -56,13 +58,20 @@ export async function account(user:{userId:string;platformUserId?:string|null;di
  * Saves the account document when `revision` still matches. `previous` is the document this save replaces (the
  * caller already holds it): the projection then writes only the orders that changed. Without it, a full sync.
  */
-export async function persist(id:string,state:State,revision:number,previous?:State){
+// `notify`: this write is Atlas's (POST /api/operations on the live site), so new notices also go to the customer's
+// Telegram when they turned that on. Never set for the customer's own actions or for projection syncs.
+export async function persist(id:string,state:State,revision:number,previous?:State,options:{notify?:boolean}={}){
  const serialized=JSON.stringify(state);if(serialized.length>1000000)throw new HttpError(413, 'err_3');
  // A document the next read cannot parse would lock the customer out of the account: refuse to save it.
  try{parseState(serialized)}catch(error){throw new Error('Refused to save an account state that does not parse: '+(error as Error).message.slice(0,400))}
  const now=Date.now(),result=await database().prepare('UPDATE market_accounts SET state=?, revision=revision+1, updated_at=? WHERE user_id=? AND revision=?').bind(serialized,now,id,revision).run();
  if(!result.meta.changes)throw new HttpError(409, 'err_4');
  deferBackground(syncLatestOperationalProjection(id,previous),'Operational projection sync failed');
+ // The cheap check first: the Telegram code loads only when there is something to send.
+ if(previous&&shouldNotifyTelegram(options.notify,previous,state,now)){
+  const before=previous;
+  deferBackground(import('./telegram-notices-server').then(({deliverTelegramNotices})=>deliverTelegramNotices(id,before,state,now)),'Telegram notice failed');
+ }
 }
 
 /**
@@ -191,7 +200,8 @@ export async function failure(error:unknown,request?:Request){
  const locale=requestLocale(request);
  if(error instanceof HttpError){
   const errorCode=/^err_\d+$/.test(error.message)?error.message:undefined;
-  const message=errorCode?serverError(locale,errorCode):locale==='ru'?error.message:apiErrorMessage(error.status,locale);
+  // A Russian domain refusal ("Корзина изменилась…") is answered in the customer's language when lib/market/domain-errors.ts knows it.
+  const message=errorCode?serverError(locale,errorCode):locale==='ru'?error.message:translateDomainError(error.message,locale)??apiErrorMessage(error.status,locale);
   return json({error:message,...(errorCode?{errorCode}:{})},error.status);
  }
  console.error(error);

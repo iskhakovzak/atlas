@@ -21,7 +21,7 @@ html[data-view="catalog"]:is(html) {
 @media (max-width: 760px) {
   html[data-view="catalog"]:is(html) {
     --ch-header: calc(80px + env(safe-area-inset-top));
-    --ch-nav: calc(61px + env(safe-area-inset-bottom)); /* .mobile-nav: 1px border + 4 + 56 */
+    --ch-nav: var(--atlas-mobile-nav-clearance, calc(64px + env(safe-area-inset-bottom))); /* .mobile-nav is exactly this tall (mobile.css) */
     --ch-dock: 56px;                                     /* 1px border + 5 + 44px button + 6 */
     --ch-pad: clamp(16px, 3svh, 32px);
     --ch-gap: 20px;
@@ -35,10 +35,6 @@ html[data-view="catalog"]:is(html) {
 @media (max-width: 760px) and (max-height: 840px) {
   html[data-view="catalog"]:is(html) { --ch-pad: 14px; }
 }
-/* Short wide windows (1280x800 and similar): less air, so the taller Atlas Night sheets still fit one screen. */
-@media (min-width: 761px) and (max-height: 860px) {
-  html[data-view="catalog"]:is(html) { --ch-pad: clamp(20px, 3svh, 32px); }
-}
 
 /* ---------- Magnet ---------- */
 /* Mandatory where every sheet fits; proximity on short windows (phones with Safari's toolbars out,
@@ -48,16 +44,6 @@ html[data-view="catalog"]:is(html) {
 }
 @media (prefers-reduced-motion: no-preference) and (max-height: 700px) {
   html[data-view="catalog"]:is(html) { scroll-snap-type: y proximity; }
-}
-/* Fallback if one Windows wheel notch snaps back on real hardware (not enabled):
-   @media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
-     html[data-view="catalog"]:is(html) { scroll-snap-type: y proximity; }
-   } */
-
-/* The store chips under the hero snap only while their row scrolls sideways (phones). From 640px the row wraps and
-   is no scroller, so the chips would attach to the page and stop the magnet halfway between sheets 1 and 2. */
-@media (min-width: 640px) {
-  html[data-view="catalog"]:is(html) .catalog-home .home-stores li { scroll-snap-align: none; }
 }
 
 /* Sheet 1 starts at the very top: the header is its snap edge. */
@@ -75,22 +61,7 @@ html[data-view="catalog"]:is(html) .catalog-home :where(#how, #finds, #tariffs, 
 }
 html[data-view="catalog"]:is(html) main.catalog-home { padding-bottom: 0; }
 
-/* Chapter titles: one size for every sheet, larger than the old section titles on wide screens. */
-@media (min-width: 1100px) {
-  html[data-view="catalog"]:is(html) main.catalog-home { --day-fs-h2: clamp(36px, 3vw, 46px); }
-}
-
 /* ---------- Sheet 1 (+2 below 1100px): the hero, then the example bill ---------- */
-@media (min-width: 1100px) {
-  html[data-view="catalog"]:is(html) .catalog-home .home-top { box-sizing: border-box; position: relative; min-height: var(--ch-h1); padding-block: var(--ch-pad); align-content: center; }
-  html[data-view="catalog"]:is(html) .catalog-home .home-example { display: block; min-height: 0; padding: 0; scroll-snap-align: none; }
-  /* Atlas Night pads the hero; the sheet's own padding already gives it room. */
-  html[data-theme="dark"][data-view="catalog"]:is(html) .catalog-home .home-hero { padding-block: 0; }
-}
-@media (min-width: 1100px) and (max-height: 860px) {
-  /* Atlas Night's title is larger: on short wide windows it keeps to three lines (English would take four). */
-  html[data-theme="dark"][data-view="catalog"]:is(html) .catalog-home .home-hero h1 { font-size: clamp(40px, 6.4svh, 56px); }
-}
 @media (max-width: 1099px) {
   /* The cue shares the hero's grid cell and sits at its bottom; the bill is the next sheet. */
   html[data-view="catalog"]:is(html) .catalog-home .home-top { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0; }
@@ -100,9 +71,6 @@ html[data-view="catalog"]:is(html) main.catalog-home { padding-bottom: 0; }
   }
   html[data-view="catalog"]:is(html) .catalog-home .home-example { grid-area: 2 / 1; }
   html[data-view="catalog"]:is(html) .catalog-home .home-next-bill { grid-area: 1 / 1; align-self: end; justify-self: center; margin-bottom: max(4px, calc(var(--ch-pad) - 8px)); }
-}
-@media (min-width: 761px) and (max-width: 1099px) {
-  html[data-view="catalog"]:is(html) .catalog-home .home-example > .home-folio { width: 100%; max-width: 640px; margin-inline: auto; }
 }
 
 /* Next-sheet cues: a quiet anchor built from existing copy (the nav label "How it works", the bill title). */
@@ -115,10 +83,6 @@ html[data-view="catalog"]:is(html) .catalog-home .home-next:hover { color: var(-
 html[data-view="catalog"]:is(html) .catalog-home .home-next:focus-visible { outline: 2px solid var(--cat-accent, #1f4d3b); outline-offset: 2px; }
 html[data-theme="dark"][data-view="catalog"]:is(html) .catalog-home .home-next { color: var(--night-muted); }
 html[data-theme="dark"][data-view="catalog"]:is(html) .catalog-home .home-next:hover { color: var(--night-ink, #fff); }
-@media (min-width: 1100px) and (min-height: 760px) {
-  html[data-view="catalog"]:is(html) .catalog-home .home-top { padding-bottom: max(var(--ch-pad), 60px); } /* room for the cue: 8 + 44 + 8 */
-  html[data-view="catalog"]:is(html) .catalog-home .home-next-how { display: inline-flex; position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); }
-}
 @media (max-width: 1099px) and (min-height: 641px) {
   html[data-view="catalog"]:is(html) .catalog-home .home-next-bill { display: inline-flex; }
 }
@@ -133,12 +97,6 @@ html[data-theme="dark"][data-view="catalog"]:is(html) .catalog-home .home-next:h
 /* ---------- How it works ---------- */
 html[data-view="catalog"]:is(html) .catalog-home #how > h2 { margin-bottom: 0; }
 html[data-view="catalog"]:is(html) .catalog-home #how .home-steps { margin-top: var(--ch-gap); }
-@media (min-width: 1024px) {
-  html[data-view="catalog"]:is(html) .catalog-home #how .home-step { min-height: clamp(220px, 30svh, 290px); padding: 30px 28px 32px; }
-  html[data-view="catalog"]:is(html) .catalog-home #how .home-step-station { width: 44px; height: 44px; margin-bottom: clamp(20px, 4svh, 40px); font-size: 16px; }
-  html[data-view="catalog"]:is(html) .catalog-home #how .home-step h3 { font-size: 21px; }
-  html[data-view="catalog"]:is(html) .catalog-home #how .home-step p { max-width: none; font-size: 16.5px; line-height: 1.6; }
-}
 
 /* ---------- Product selection: one row of all 8 cards; phones swipe it, wider screens also page it with ‹ › ---------- */
 html[data-view="catalog"]:is(html) .catalog-home #finds > header { margin-bottom: var(--ch-gap); }
@@ -157,15 +115,6 @@ html[data-view="catalog"]:is(html) .catalog-home #finds .finds-grid {
 }
 html[data-view="catalog"]:is(html) .catalog-home #finds .finds-grid::-webkit-scrollbar { display: none; }
 html[data-view="catalog"]:is(html) .catalog-home #finds .finds-grid > .find-card { display: flex; scroll-snap-align: start; }
-@media (min-width: 1280px) {
-  html[data-view="catalog"]:is(html) .catalog-home #finds .finds-grid { grid-auto-columns: calc((100% - 60px) / 4); gap: 20px; padding: 4px 2px 14px; margin-inline: -2px; scroll-padding-inline: 2px; }
-}
-@media (min-width: 851px) and (max-width: 1279px) {
-  html[data-view="catalog"]:is(html) .catalog-home #finds .finds-grid { grid-auto-columns: calc((100% - 40px) / 3); gap: 20px; padding: 4px 2px 14px; margin-inline: -2px; scroll-padding-inline: 2px; }
-}
-@media (min-width: 761px) and (max-width: 850px) {
-  html[data-view="catalog"]:is(html) .catalog-home #finds .finds-grid { grid-auto-columns: calc((100% - 20px) / 2); gap: 20px; padding: 4px 2px 14px; margin-inline: -2px; scroll-padding-inline: 2px; }
-}
 @media (max-width: 760px) {
   html[data-view="catalog"]:is(html) .catalog-home #finds .finds-grid {
     grid-auto-columns: calc((100% - 12px) / 1.62); gap: 12px;
@@ -179,53 +128,19 @@ html[data-view="catalog"]:is(html) .catalog-home #finds .finds-grid > .find-card
   html[data-view="catalog"]:is(html) .catalog-home #finds .finds-pager { display: none; }
 }
 
-/* ---------- Rates: text left, country cards right (two per row) on wide screens ---------- */
-@media (min-width: 1100px) {
-  html[data-view="catalog"]:is(html) .catalog-home #tariffs {
-    /* 580px keeps two cards per row at ~282px each, enough for the days and the price side by side (1100-1190px windows). */
-    grid-template-columns: minmax(0, 5fr) minmax(580px, 7fr); grid-template-rows: 1fr auto auto auto 1fr;
-    column-gap: clamp(48px, 6vw, 112px); align-content: stretch;
-  }
-  html[data-view="catalog"]:is(html) .catalog-home #tariffs > h2 { grid-area: 2 / 1; }
-  html[data-view="catalog"]:is(html) .catalog-home #tariffs > .home-section-lead { grid-area: 3 / 1; margin-bottom: 0; }
-  html[data-view="catalog"]:is(html) .catalog-home #tariffs > .home-note { grid-area: 4 / 1; margin-top: 20px; max-width: 46ch; }
-  /* The cards take the whole right column; three per row would squeeze the days under the price. */
-  html[data-view="catalog"]:is(html) .catalog-home #tariffs > .tariff-grid { grid-area: 1 / 2 / 6 / 3; align-self: center; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  html[data-view="catalog"]:is(html) .catalog-home #tariffs > .home-missing { grid-area: 5 / 1; align-self: start; }
-}
+/* ---------- Rates: text left, the rates table right on wide screens ---------- */
 @media (max-width: 760px) {
   html[data-view="catalog"]:is(html) .catalog-home #tariffs { --ch-tile-line: var(--day-line, var(--home-line)); --ch-tile-surface: var(--day-surface, var(--home-surface)); }
   html[data-theme="dark"][data-view="catalog"]:is(html) .catalog-home #tariffs { --ch-tile-line: var(--home-line); --ch-tile-surface: var(--home-surface); }
   html[data-view="catalog"]:is(html) .catalog-home #tariffs .home-section-lead { margin-bottom: 16px; }
-  html[data-view="catalog"]:is(html) .catalog-home #tariffs .home-table-wrap { overflow: hidden; }
-  html[data-view="catalog"]:is(html) .catalog-home #tariffs .home-tariffs { display: block; }
-  html[data-view="catalog"]:is(html) .catalog-home #tariffs .home-tariffs thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  html[data-view="catalog"]:is(html) .catalog-home #tariffs .home-tariffs tbody { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1px; background: var(--ch-tile-line); }
-  html[data-view="catalog"]:is(html) .catalog-home #tariffs .home-tariffs tbody tr {
-    display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; row-gap: 2px;
-    padding: 12px 14px; border: 0; background: var(--ch-tile-surface);
-  }
-  html[data-view="catalog"]:is(html) .catalog-home #tariffs .home-tariffs tbody :where(th, td) { grid-column: 1; grid-row: auto; padding: 0; border: 0; text-align: left; }
-  html[data-view="catalog"]:is(html) .catalog-home #tariffs .home-tariffs tbody td:not(.home-tariff-price) { font-size: 13.5px; font-weight: 500; }
-  html[data-view="catalog"]:is(html) .catalog-home #tariffs .home-tariff-price { order: -1; white-space: normal; }
-  html[data-view="catalog"]:is(html) .catalog-home #tariffs .home-tariff-price :where(b, small) { display: inline; }
-  html[data-view="catalog"]:is(html) .catalog-home #tariffs .home-tariff-price small { margin: 0 0 0 6px; }
-  html[data-view="catalog"]:is(html) .catalog-home #tariffs .home-tariff-price small::before { content: "·"; content: "·" / ""; margin-right: 6px; }
-  html[data-view="catalog"]:is(html) .catalog-home #tariffs .days-bar { max-width: none; margin-top: 6px; }
   html[data-view="catalog"]:is(html) .catalog-home #tariffs .home-note { margin-top: 12px; font-size: 13px; line-height: 1.5; }
 }
 
 /* ---------- Money: one sheet on wide screens; on phones two (the facts, then the proof) ---------- */
-@media (min-width: 761px) {
-  html[data-view="catalog"]:is(html) .catalog-home :where(.home-trust-money, .home-trust-proof) { display: block; min-height: 0; padding: 0; scroll-snap-align: none; }
-}
 html[data-view="catalog"]:is(html) .catalog-home .home-trust-money > h2 { margin: 0 0 12px; }
 @media (max-width: 760px) {
   html[data-view="catalog"]:is(html) .catalog-home #trust { display: block; min-height: 0; padding: 0; scroll-snap-align: none; }
   html[data-view="catalog"]:is(html) .catalog-home .home-trust-proof > .home-trust-grid { margin-top: 0; }
-  html[data-view="catalog"]:is(html) .catalog-home .home-facts { margin-top: 8px; }
-  html[data-view="catalog"]:is(html) .catalog-home .home-facts li { padding-block: 12px; font-size: 15px; line-height: 1.45; }
-  html:not([data-theme="dark"])[data-view="catalog"]:is(html) .catalog-home .home-facts li::after { top: 18px; }
   /* The tracking demo has a sheet of its own: give it room. */
   html[data-view="catalog"]:is(html) .catalog-home .home-trust-proof .home-tracking { padding: 24px; }
   html[data-view="catalog"]:is(html) .catalog-home .home-trust-proof .home-tracking h3 { font-size: 19px; }
@@ -235,13 +150,10 @@ html[data-view="catalog"]:is(html) .catalog-home .home-trust-money > h2 { margin
 @media (max-width: 760px) and (max-height: 840px) {
   /* The bill is the tallest phone sheet (Uzbek in Atlas Night needs 659px of 683): a little less air around it. */
   html[data-view="catalog"]:is(html) .catalog-home .home-example { padding-block: 10px; }
-  html[data-view="catalog"]:is(html) .catalog-home .home-facts li { padding-block: 10px; font-size: 14.5px; }
-  html:not([data-theme="dark"])[data-view="catalog"]:is(html) .catalog-home .home-facts li::after { top: 16px; }
 }
 
 /* ---------- FAQ: aligned from the top so opening an answer never moves the question you tapped ---------- */
 html[data-view="catalog"]:is(html) .catalog-home #faq { align-content: start; padding-top: max(var(--ch-pad), calc((var(--ch-h) - var(--ch-faq, 30rem)) / 2)); }
-@media (min-width: 1024px) { html[data-view="catalog"]:is(html) .catalog-home #faq { --ch-faq: 27rem; } }
 html[data-view="catalog"]:is(html) .catalog-home .home-faq-head { position: static; top: auto; }
 
 /* ---------- The end: closing card above the footer, both on the last screen ---------- */
@@ -256,6 +168,8 @@ html[data-view="catalog"]:is(html) .home-end {
 }
 html[data-view="catalog"]:is(html) .home-end > .home-closing { grid-row: 1; align-self: center; margin: 0; }
 html[data-view="catalog"]:is(html) .home-end > .home-footer { grid-row: 2; margin-top: 0; }
+/* A second snap point at the very bottom: the footer's last lines are reachable, not held back by the sheet's start. */
+html[data-view="catalog"]:is(html) .home-end > .home-footer { scroll-snap-align: end; }
 
 /* ---------- Phones: the sticky button becomes a dock on the bottom bar ---------- */
 /* No sliver of the next sheet shows between the button and the bar. */
@@ -272,8 +186,16 @@ html[data-view="catalog"]:is(html) .home-end > .home-footer { grid-row: 2; margi
   html[data-view="catalog"]:is(html) .home-sticky.above-nav .home-cta { min-height: 44px; padding-block: 8px; box-shadow: none; }
   html[data-view="catalog"]:has(.home-sticky.above-nav) .storage-notice { bottom: calc(var(--atlas-mobile-nav-clearance) + var(--ch-dock) + 8px); }
   html:has(main.catalog-home .home-sticky.above-nav) .mobile-nav { border-top-color: transparent; }
+  /* The footer's last line clears the dock by 16px (env() is already inside --ch-nav). */
+  html[data-view="catalog"]:is(html) .home-end { padding-bottom: calc(var(--ch-nav) + var(--ch-dock) + 16px); }
+  /* The footer's snap point counts those 16px, so it lands on the very bottom of the page, not 16px short of it. */
+  html[data-view="catalog"]:is(html) .home-end > .home-footer { scroll-margin-bottom: 16px; }
 }
 @media (max-width: 760px) and (prefers-reduced-motion: no-preference) {
   html[data-view="catalog"]:is(html) .home-sticky.above-nav { animation: ch-dock-in .22s cubic-bezier(.2, .7, .2, 1); }
 }
 @keyframes ch-dock-in { from { transform: translateY(100%); opacity: 0; } to { transform: none; opacity: 1; } }
+/* ---------- Hero: the signed-in customer's "continue" card (app/home-resume.tsx) ---------- */
+/* One quiet white card under the link field's note: what waits (a decision, the payment, the cart), no sums or timers. */
+html[data-theme="dark"] :is(.home-resume-text small, .home-resume-arrow) { color: var(--night-muted); }
+@keyframes home-resume-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }

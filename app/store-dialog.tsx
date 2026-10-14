@@ -13,8 +13,9 @@ import { tashkentDay } from '@/lib/market/world';
 import type { storesCopy } from '@/lib/market/stores-copy';
 import { storeNote } from '@/lib/market/store-notes';
 import type { StoreCountryTerms } from '@/lib/market/store-geo';
-import { popularBrandKeys, storeBrands, storeCountryNames, storeFocusNames, type StoreBrand, type StoreCountry } from '@/lib/market/store-brands';
+import { popularBrandKeys, storeBrands, storeCountryNames, storeFocusNames, storefrontUrl, type StoreBrand, type StoreCountry } from '@/lib/market/store-brands';
 import type { CatalogItem } from '@/lib/market/catalog-query';
+import { catalogItemHref } from '@/lib/market/catalog-links';
 import type { Locale } from '@/lib/market/i18n';
 import { Money } from './money';
 import { CountryFlag } from './flags';
@@ -90,7 +91,7 @@ export function StoreDialog({ brand, c, locale, pricing, terms, catalog, mark, o
 
         {/* Keyed by store: another store opened from "similar stores" starts with a clean field. */}
         <DialogLinkForm key={brand.key} c={c} domain={main.root} />
-        <a className="btn secondary store-dialog-open" href={`https://${main.root}`} target="_blank" rel="noopener noreferrer">{c.open(main.root)}<ArrowUpRight size={18} aria-hidden="true" /><span className="sr-only"> ({c.newTab})</span></a>
+        <a className="btn secondary store-dialog-open" href={storefrontUrl(main.root)} target="_blank" rel="noopener noreferrer">{c.open(main.root)}<ArrowUpRight size={18} aria-hidden="true" /><span className="sr-only"> ({c.newTab})</span></a>
 
         <section className="store-dialog-terms" aria-labelledby="store-dialog-terms-title">
           <h3 id="store-dialog-terms-title">{t.region ? c.termsTitle(c.fromCountry[t.region]) : c.termsGeneric}</h3>
@@ -108,7 +109,7 @@ export function StoreDialog({ brand, c, locale, pricing, terms, catalog, mark, o
         {catalog && catalog.count > 0 && <section className="store-dialog-section store-dialog-shelf" aria-labelledby="store-dialog-shelf-title">
           <h3 id="store-dialog-shelf-title">{c.catalogShelf(catalog.count)}</h3>
           <ul className="store-dialog-products">{catalog.items.slice(0, shelfSize).map((item) => <li key={item.product.id}>
-            <Link href={catalogHref}><span className="store-dialog-photo"><ProductImage product={item.product} decorative locale={locale} size={200} /></span><span className="store-dialog-product-name">{item.product.name}</span>{item.costs && <Money value={item.costs.total} locale={locale} />}</Link>
+            <Link href={catalogItemHref(catalogHref, item.product.id)}><span className="store-dialog-photo"><ProductImage product={item.product} decorative locale={locale} size={200} /></span><span className="store-dialog-product-name">{item.product.name}</span>{item.costs && <Money value={item.costs.total} locale={locale} />}</Link>
           </li>)}</ul>
           {catalog.count > shelfSize && <Link className="store-dialog-all" href={catalogHref}>{c.allProducts(catalog.count)}<ArrowRight size={16} aria-hidden="true" /></Link>}
         </section>}
@@ -117,7 +118,7 @@ export function StoreDialog({ brand, c, locale, pricing, terms, catalog, mark, o
           <h3 id="store-dialog-fronts-title">{c.storefronts}</h3>
           <ul className="store-dialog-fronts">{brand.storefronts.map((front) => {
             const ft = terms[front.country];
-            return <li key={front.root}><a href={`https://${front.root}`} target="_blank" rel="noopener noreferrer">
+            return <li key={front.root}><a href={storefrontUrl(front.root)} target="_blank" rel="noopener noreferrer">
               <CountryFlag code={front.country} />
               <span className="store-dialog-front-main"><span>{storeCountryNames[front.country][locale]}</span><small>{front.root}</small><span className="sr-only"> ({c.newTab})</span></span>
               <ArrowUpRight size={16} aria-hidden="true" />

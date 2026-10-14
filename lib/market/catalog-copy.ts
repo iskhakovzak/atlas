@@ -204,10 +204,17 @@ export function countryLabel(country: string | undefined, locale: Locale) {
 }
 
 /** "13 сен", "13-sen", "13 Sept": the day a store price was recorded, as a card prints it. */
+const uzShortMonths = ['yan', 'fev', 'mar', 'apr', 'may', 'iyun', 'iyul', 'avg', 'sen', 'okt', 'noy', 'dek'];
+
 export function shortDate(time: number, locale: Locale) {
   if (!Number.isFinite(time) || time <= 0) return '';
+  // Browsers often ship without Uzbek month names and print "M09 13": Uzbek uses its own short months.
+  if (isUzbek(locale)) {
+    const date = new Date(time + 5 * 3_600_000);
+    return uzText(locale, `${date.getUTCDate()}-${uzShortMonths[date.getUTCMonth()]}`);
+  }
   try {
-    const text = new Intl.DateTimeFormat(locale === 'ru' ? 'ru-RU' : isUzbek(locale) ? uzText(locale, 'uz-UZ') : 'en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Tashkent' }).format(time);
+    const text = new Intl.DateTimeFormat(locale === 'ru' ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Tashkent' }).format(time);
     return text.replace(/\.$/, '');
   } catch {
     const date = new Date(time + 5 * 3_600_000);

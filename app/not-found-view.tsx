@@ -1,5 +1,5 @@
 'use client';
-import {ArrowRight,ClipboardPaste,Compass} from 'lucide-react';
+import {ArrowRight,ClipboardPaste,Compass,Store} from 'lucide-react';
 import Link from '@/components/site-link';
 import {useMarket} from '@/lib/market/store';
 import {notFoundCopy} from '@/lib/market/not-found-copy';
@@ -14,7 +14,7 @@ export function NotFoundView(){
     <div className="access-actions">
       <Link className="btn primary" href="/">{t.home}<ArrowRight size={18} aria-hidden="true"/></Link>
       <Link className="btn secondary" href="/order-by-link"><ClipboardPaste size={18} aria-hidden="true"/>{t.paste}</Link>
-      <Link className="btn secondary" href="/stores">{t.stores}</Link>
+      <Link className="btn secondary" href="/stores"><Store size={18} aria-hidden="true"/>{t.stores}</Link>
     </div>
   </section>;
 }

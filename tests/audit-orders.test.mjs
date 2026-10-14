@@ -300,3 +300,19 @@ test('an older order without a batch weighs alone, as before', () => {
   assert.equal(settlement.parcelOrderIds, undefined);
   assert.equal(weighed.orders[0].status, 3);
 });
+
+test('passport details are typed as text (13.10.2026): series and number and PINFL keep only their last digits in the account', async () => {
+  const { actionSchema } = await import('../lib/market/actions.ts');
+  // No scan: the action needs no document id (the server assigns "ID-…"), and the PINFL is optional.
+  const typed = { type: 'identity-confirm', recipientProfileId: 'r1', firstName: 'Анна', lastName: 'Каримова', birthDate: '1990-01-01', passportNumber: 'aa 123 45 67', pinfl: '3010 1990 1234 56', nationality: 'Узбекистан' };
+  assert.equal(actionSchema.safeParse(typed).success, true);
+  assert.equal(actionSchema.safeParse({ ...typed, pinfl: undefined }).success, true);
+  const s = confirmIdentity(blank(), { ...typed, documentId: 'ID-1' }, NOW);
+  assert.deepEqual([s.identityProfile.passportMasked, s.identityProfile.pinflMasked], ['•••• 4567', '•••• 3456']);
+  assert.ok(!JSON.stringify(s).includes('AA1234567') && !JSON.stringify(s).includes('30101990123456'), 'full numbers stay out of the account JSON');
+  assert.throws(() => confirmIdentity(blank(), { ...typed, documentId: 'ID-1', pinfl: '12345' }, NOW), /ПИНФЛ — 14 цифр/);
+  assert.equal(confirmIdentity(blank(), { ...typed, documentId: 'ID-1', pinfl: '' }, NOW).identityProfile.pinflMasked, undefined);
+  // A correction for the same recipient replaces the earlier entry.
+  const again = confirmIdentity(s, { ...typed, documentId: 'ID-1', passportNumber: 'AB7654321' }, NOW + 1);
+  assert.deepEqual(again.identityProfiles.map((profile) => profile.passportMasked), ['•••• 4321']);
+});

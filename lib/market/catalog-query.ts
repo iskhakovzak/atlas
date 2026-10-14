@@ -4,6 +4,10 @@ import type { MerchantFind } from './catalog.ts';
 import { brandForHost, storefrontLabel } from './store-brands.ts';
 import { normalizeSearch, wordMatches } from './catalog-synonyms.ts';
 import type { Locale } from './i18n.ts';
+import { compareSizes, letterSizes } from './size-order.ts';
+
+// Shared with the link-order page, which must not load the catalog: lib/market/size-order.ts.
+export { compareSizes };
 
 /** Catalog categories as stored in product snapshots, with the URL slug of each. */
 export const categorySlugs: Record<string, string> = {
@@ -104,22 +108,12 @@ export function storeLabel(host: string, locale: Locale = 'ru') {
   return brandForHost(host) ? storefrontLabel(host, locale) : host;
 }
 
-const letterSizes = ['XXXS', 'XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', 'XXXL', '3XL', '4XL', '5XL'];
 /** "US 9" and "9" from different US stores are the same size; letter sizes are upper-cased. */
 export function normalizeSize(raw: string | undefined) {
   const value = (raw ?? '').replace(/\s+/g, ' ').trim().replace(/^US\s*/i, '').replace(/^(\d+),(\d)$/, '$1.$2');
   if (!value || value.length > 24) return '';
   const [first, ...rest] = value.split(' ');
   return letterSizes.includes(first.toUpperCase()) ? [first.toUpperCase(), ...rest].join(' ') : value;
-}
-export function compareSizes(a: string, b: string) {
-  const na = Number(a), nb = Number(b);
-  if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
-  if (Number.isFinite(na) !== Number.isFinite(nb)) return Number.isFinite(na) ? -1 : 1;
-  const la = letterSizes.indexOf(a.split(' ')[0]), lb = letterSizes.indexOf(b.split(' ')[0]);
-  if (la >= 0 && lb >= 0 && la !== lb) return la - lb;
-  if ((la >= 0) !== (lb >= 0)) return la >= 0 ? -1 : 1;
-  return a.localeCompare(b);
 }
 /** Sizes the store lists; a size the store marked unavailable is left out. */
 export function productSizes(product: Product) {

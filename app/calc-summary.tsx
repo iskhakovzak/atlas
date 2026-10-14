@@ -1,6 +1,6 @@
 'use client';
-import {useId,useState} from 'react';
-import {Check,HandCoins,Scale,Wallet} from 'lucide-react';
+import {Fragment,useId,useState} from 'react';
+import {Check,HandCoins,Scale,ShieldCheck,Star,Wallet,Zap} from 'lucide-react';
 import {formatKg,formatPercent,formatSum,formatUsd} from '@/lib/market/format';
 import {calcCopy} from '@/lib/market/calc-copy';
 import {allowanceAfterCartUsd,courierAllowanceUsd} from '@/lib/market/customs';
@@ -14,16 +14,21 @@ import {InfoTip} from '@/components/info-tip';
 
 type Sums=Pick<Quote,'merchandise'|'service'|'shipping'|'reserve'|'total'>&{buyout?:number;conversion?:number;sourceShipping?:number;deliveryMargin?:number;optionalServices?:number;storeShippingHold?:number;customsHelp?:number;customsDuty?:number;/** Parcel insurance (value-percent services), part of the total. */insurance?:number};
 
+/** The guarantee's rate when every guaranteed line shares one (a parcel over the threshold takes the higher rate). */
+type GuaranteeRate={insuranceRate?:number};
+
 /** Sum of quote lines, for a cart or the link-order preview. */
-export function sumQuotes(quotes:(Partial<Sums>&Pick<Partial<Quote>,'serviceFees'>)[]):Required<Sums>{
+export function sumQuotes(quotes:(Partial<Sums>&Pick<Partial<Quote>,'serviceFees'>)[]):Required<Sums>&GuaranteeRate{
  const keys=['merchandise','service','shipping','reserve','total','buyout','conversion','sourceShipping','deliveryMargin','optionalServices','storeShippingHold','customsHelp','customsDuty'] as const;
  const sums=Object.fromEntries(keys.map(key=>[key,quotes.reduce((sum,quote)=>sum+(quote[key]??0),0)])) as Omit<Required<Sums>,'insurance'>;
- return {...sums,insurance:quotes.reduce((sum,quote)=>sum+(quote.serviceFees??[]).reduce((fees,fee)=>fees+fee.amount,0),0)};
+ const rates=new Set(quotes.flatMap(quote=>(quote.serviceFees??[]).filter(fee=>fee.amount>0).map(fee=>fee.rate)));
+ return {...sums,insurance:quotes.reduce((sum,quote)=>sum+(quote.serviceFees??[]).reduce((fees,fee)=>fees+fee.amount,0),0),...(rates.size===1?{insuranceRate:[...rates][0]}:{})};
 }
 
 const kgText=(weightKg:number|undefined,locale:Locale)=>weightKg===undefined?'':new Intl.NumberFormat(locale==='en'?'en-US':'ru-RU',{maximumFractionDigits:2}).format(weightKg);
 const percent=(value:number,locale:Locale)=>new Intl.NumberFormat(locale==='en'?'en-US':'ru-RU',{maximumFractionDigits:2}).format(value*100)+'%';
-export const usdText=(value:number,locale:Locale)=>new Intl.NumberFormat(locale==='en'?'en-US':'ru-RU',{style:'currency',currency:'USD',minimumFractionDigits:Number.isInteger(Math.round(value*100)/100)?0:2,maximumFractionDigits:2}).format(value);
+/** Dollars as the rest of the site writes them, sign first: "$101", "$126,03" ("126,03 $" read oddly next to "$69"). */
+export const usdText=(value:number,locale:Locale)=>'$'+new Intl.NumberFormat(locale==='en'?'en-US':'ru-RU',{minimumFractionDigits:Number.isInteger(Math.round(value*100)/100)?0:2,maximumFractionDigits:2}).format(value);
 
 /**
  * The calculation as the customer reads it: the items, one "Atlas service" line (owner, 10.10.2026: a pile of fee lines
@@ -31,7 +36,7 @@ export const usdText=(value:number,locale:Locale)=>new Intl.NumberFormat(locale=
  * store delivery, the reserve and customs on their own lines; then the store-delivery hold (never in the total).
  * Same grouping as the item card (app/cost-lines.tsx, lib/market/quote-presentation.ts).
  */
-export function CalcLines({sums,locale,pricing,weightKg,speed,children}:{sums:Required<Sums>;locale:Locale;pricing:Pricing;weightKg?:number;storeShippingState:'stated'|'free'|'hold'|'none';anyFree?:boolean;/** Names the chosen delivery speed on the international line. */speed?:DeliverySpeed;children?:React.ReactNode}){
+export function CalcLines({sums,locale,pricing,weightKg,speed,children}:{sums:Required<Sums>&GuaranteeRate;locale:Locale;pricing:Pricing;weightKg?:number;storeShippingState:'stated'|'free'|'hold'|'none';anyFree?:boolean;/** Names the chosen delivery speed on the international line. */speed?:DeliverySpeed;children?:React.ReactNode}){
  const c=calcCopy[locale];
  const internationalLabel=speed?`${c.lines.international(kgText(weightKg,locale))} · ${c.speeds[speed]}`:c.lines.international(kgText(weightKg,locale));
  // Free or held store delivery is not a line (owner, 12 October 2026): a held amount has its own block outside the
@@ -48,7 +53,9 @@ export function CalcLines({sums,locale,pricing,weightKg,speed,children}:{sums:Re
     <span className="basket-line-label">{c.lines.service}</span>
     <b>{formatSum(serviceTotal,locale)}</b>
     <details className="cost-service-breakdown basket-service-breakdown">
-     <summary>{c.lines.serviceBreakdown}</summary>
+     {/* The link names what the amount holds (14.10.2026: "Сервис Atlas 493 813" read as a ~40 % fee); with buyout or
+         conversion in the tariff, or no weight (nothing ticked), it stays the plain "Service breakdown". */}
+     <summary>{sums.buyout+sums.conversion>0||!weightKg?c.lines.serviceBreakdown:c.lines.serviceSummary(kgText(weightKg,locale),fee,sums.customsHelp>0)}</summary>
      <div className="basket-lines">
       <SummaryLine label={c.lines.atlasFee(fee)} amount={sums.service} locale={locale} help={c.feeHelp(fee)} helpLabel={c.lines.atlasFee('')}/>
       {sums.buyout>0&&<SummaryLine label={c.lines.buyout} amount={sums.buyout} locale={locale}/>}
@@ -60,7 +67,9 @@ export function CalcLines({sums,locale,pricing,weightKg,speed,children}:{sums:Re
    </div>
    {sums.sourceShipping>0&&<SummaryLine label={c.lines.storeShipping} amount={sums.sourceShipping} locale={locale}/>}
    {sums.reserve>0&&<SummaryLine label={c.lines.intlReserve} amount={sums.reserve} locale={locale} help={c.intlReserveHelp} helpLabel={c.lines.intlReserve}/>}
-   {sums.insurance>0&&<SummaryLine label={c.lines.insurance} amount={sums.insurance} locale={locale}/>}
+   {/* The rate as on the order card (app/cost-lines.tsx); left out when the cart's parcels have different rates. */}
+   {/* The rate is a small chip after the name: "· 2,9%" used to wrap to a line of its own in the narrow summary. */}
+   {sums.insurance>0&&<SummaryLine label={c.lines.insurance} note={sums.insuranceRate===undefined?undefined:c.lines.insuranceRate(formatPercent(sums.insuranceRate,locale))} amount={sums.insurance} locale={locale}/>}
    {sums.optionalServices>0&&<SummaryLine label={c.lines.optional} amount={sums.optionalServices} locale={locale}/>}
    {sums.customsDuty>0&&<SummaryLine label={c.lines.customsDuty} amount={sums.customsDuty} locale={locale} help={c.customsDutyHelp} helpLabel={c.lines.customsDuty}/>}
   </div>
@@ -72,17 +81,19 @@ export function CalcLines({sums,locale,pricing,weightKg,speed,children}:{sums:Re
  * Express or standard delivery: two buttons that read as one control, each with its window and per-kg rate.
  * The cart saves the choice on the server (one speed per cart); the link-order page keeps it for the add.
  */
-export function DeliverySpeedSwitch({value,options,locale,onChange,busy=false,note,tip,compact=false}:{value:DeliverySpeed;options:DeliverySpeedOption[];locale:Locale;onChange:(speed:DeliverySpeed)=>void;busy?:boolean;note?:string;/** A secondary rule: in place on wide screens, behind a "?" by the title on phones. */tip?:string;compact?:boolean}){
+export function DeliverySpeedSwitch({value,options,locale,onChange,busy=false,note,tip,compact=false}:{value:DeliverySpeed;options:DeliverySpeedOption[];locale:Locale;onChange:(speed:DeliverySpeed)=>void;busy?:boolean;/** How much sooner express arrives (fasterText), under the cards. */note?:string;/** A secondary rule: in place on wide screens, behind a "?" by the title on phones. */tip?:string;compact?:boolean}){
  const c=deliverySpeedCopy[locale];
  const id=useId();
  return <div className={'speed-switch'+(compact?' compact':'')} aria-busy={busy||undefined}>
   <p className="speed-switch-title" id={id+'-title'}>{c.title}{tip&&<InfoTip locale={locale}>{tip}</InfoTip>}{busy&&<span className="speed-switch-saving" role="status">{c.saving}</span>}</p>
   <div className="speed-switch-options" role="radiogroup" aria-labelledby={id+'-title'}>
-   {options.map(option=><button key={option.speed} type="button" role="radio" aria-checked={value===option.speed} className={'speed-option'+(value===option.speed?' selected':'')} disabled={busy} onClick={()=>{if(value!==option.speed)onChange(option.speed)}}>
-    <b>{option.name}</b><span>{option.days}</span><small>{option.rate}</small>
-   </button>)}
+   {options.map(option=>{const selected=value===option.speed;return <button key={option.speed} type="button" role="radio" aria-checked={selected} className={'speed-option'+(selected?' selected':'')} disabled={busy} onClick={()=>{if(!selected)onChange(option.speed)}}>
+    {/* A radio mark in the corner (owner, 14.10.2026: the chosen card read only by its tint); express wears a star. */}
+    <i className="speed-option-mark" aria-hidden="true">{selected&&<Check size={11} strokeWidth={3}/>}</i>
+    <b>{option.name}{option.speed==='express'&&<Star size={13} className="speed-option-star" aria-hidden="true"/>}</b><span>{option.days}</span><small>{option.rate}</small>
+   </button>;})}
   </div>
-  {note&&<p className="speed-switch-note">{note}</p>}
+  {note&&<p className="speed-switch-note speed-faster"><Zap size={14} aria-hidden="true"/>{note}</p>}
   {tip&&<p className="speed-switch-note tip-text">{tip}</p>}
  </div>;
 }
@@ -99,26 +110,31 @@ export function HoldNote({amount,locale}:{amount:number;locale:Locale;/** Kept f
 }
 
 /**
- * The bill before a link is pasted: the same rows as a real bill, the amounts left as blanks, each row
- * stating its live rule from the tariff. It shows the shape of the answer instead of a list of promises.
+/**
+ * The bill before a link is pasted: the same rows as a real bill (CalcLines) — the items, one "Atlas service" row with
+ * its parts (the Atlas fee and international delivery) — the amounts left as blanks, each row stating its live rule
+ * from the tariff. It shows the shape of the answer instead of a list of promises.
  */
 export function BlankBill({pricing,locale}:{pricing:Pricing;locale:Locale}){
  const c=calcCopy[locale],b=c.blank;
- const cbu=pricing.fxSource==='cbu'&&Boolean(pricing.fxCbuRate);
  // Both speeds from the US window (the blank bill has no country yet).
  const daysText=(speed:DeliverySpeed)=>{const range=daysRangeFor(pricing,[],speed);const sc=deliverySpeedCopy[locale];return range?sc.days(range[0],range[1]):sc.daysUnknown;};
- const rows:[string,string][]=[
-  [b.item,cbu?b.itemCbu(formatPercent((pricing.fxMarkup??1.012)-1,locale)):b.itemSet],
-  [b.fee,b.feeRule(formatPercent(pricing.margin+pricing.buyoutFee+pricing.conversionFee,locale))],
-  [b.delivery,b.deliveryRule(c.speedRule(formatUsd(deliveryPerKgUsdFor(pricing),locale),daysText('express'),formatUsd(deliveryPerKgUsdFor(pricing,undefined,'standard'),locale),daysText('standard')),formatKg(packagingKg,locale))],
+ // The parts of "Atlas service", labelled as in the real bill's breakdown.
+ const serviceParts:[string,string][]=[
+  [c.lines.atlasFee(''),b.feeRule(formatPercent(pricing.margin+pricing.buyoutFee+pricing.conversionFee,locale))],
+  [c.lines.international(''),b.deliveryRule(c.speedRule(formatUsd(deliveryPerKgUsdFor(pricing),locale),daysText('express'),formatUsd(deliveryPerKgUsdFor(pricing,undefined,'standard'),locale),daysText('standard')),formatKg(packagingKg,locale))],
+ ];
+ const rows:[string,React.ReactNode][]=[
+  [c.lines.items,b.itemSet],
+  [c.lines.service,<>{c.lines.serviceBreakdown}:{serviceParts.map(([label,rule])=><Fragment key={label}><br/>{label} — {rule}</Fragment>)}</>],
   // A reserve on top of delivery only when the tariff still sets one (none since 5 October 2026).
-  ...(pricing.reserve>0?[[b.reserve,b.reserveRule] as [string,string]]:[]),
+  ...(pricing.reserve>0?[[c.lines.intlReserve,b.reserveRule] as [string,string]]:[]),
  ];
  return <section className="bill-blank" aria-labelledby="bill-blank-title">
   <h2 id="bill-blank-title">{b.title}<InfoTip locale={locale}>{b.lead}</InfoTip></h2>
   <p className="bill-blank-lead tip-text">{b.lead}</p>
   <dl className="bill">{rows.map(([label,rule])=><div key={label}><dt>{label}</dt><dd className="bill-fill" aria-hidden="true"/><dd className="bill-note">{rule}</dd></div>)}</dl>
-  <p className="bill-total"><span>{b.total}</span><span className="bill-fill" aria-hidden="true"/></p>
+  <p className="bill-total"><span>{c.lines.total}</span><span className="bill-fill" aria-hidden="true"/></p>
   <div className="bill-blank-outside"><h3>{c.outside}</h3><ul>
    <li>{b.storeRule(formatUsd(pricing.storeShippingFreeFromUsd??50,locale),formatUsd(unknownStoreShippingUsd,locale))}</li>
    <li>{b.customsRule(formatUsd(pricing.customsAllowanceUsd??courierAllowanceUsd,locale))}</li>
@@ -140,11 +156,12 @@ export const customsDutyAmount=(estimate:Pick<CustomsEstimate,'estimateUsd'>,pri
  * first and chosen unless the customer picked otherwise. A choice remembered from an earlier cart shows as one line
  * with "Change" until the customer opens it.
  */
-export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipientId,onRecipient,onChoices,helpAmount,remembered=false,compact=false,busy=false}:{estimate:CustomsEstimate;choices:CartCustoms;locale:Locale;pricing:Pricing;profiles:SavedDeliveryProfile[];recipientId?:string;onRecipient?:(id:string)=>void;onChoices?:(next:CartCustoms)=>void;helpAmount?:number;/** The choice comes from "remember for next orders", not from this cart. */remembered?:boolean;compact?:boolean;busy?:boolean}){
+export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipientId,onRecipient,onChoices,helpAmount,remembered=false,compact=false,busy=false,remember:rememberProp,onRemember}:{estimate:CustomsEstimate;choices:CartCustoms;locale:Locale;pricing:Pricing;profiles:SavedDeliveryProfile[];recipientId?:string;onRecipient?:(id:string)=>void;onChoices?:(next:CartCustoms)=>void;helpAmount?:number;/** The choice comes from "remember for next orders", not from this cart. */remembered?:boolean;compact?:boolean;busy?:boolean;/** Shared by the cart's panel and the review's copy, so a cleared "remember" stays cleared in both. */remember?:boolean;onRemember?:(next:boolean)=>void}){
  const c=calcCopy[locale].customs;
  const id=useId();
  const [open,setOpen]=useState(false);
- const [remember,setRemember]=useState(true);
+ const [ownRemember,setOwnRemember]=useState(true);
+ const remember=rememberProp??ownRemember,setRemember=onRemember??setOwnRemember;
  const usd=(value:number)=>usdText(value,locale);
  const duty=customsDutyAmount(estimate,pricing),over=duty>0;
  // "Atlas pays customs" adds the duty and its fee: the card names the whole addition, not the fee alone.
@@ -155,7 +172,11 @@ export function CustomsPanel({estimate,choices,locale,pricing,profiles,recipient
   {/* No duty: one line says so (the allowance left is in it). Over the allowance: the allowance, then the excess and the duty. */}
   {over?<><header><Scale size={17} aria-hidden="true"/><h3 id={id+'-title'}>{c.allowanceTitle(usd(estimate.allowanceUsd))}</h3></header>
    <p className="calc-customs-over">{(!onChoices?c.overPreview:choices.help?c.overIncluded:c.overNote)(usd(estimate.dutiableUsd),formatSum(duty,locale))}</p></>
-   :<header className="calc-customs-none"><Check size={17} aria-hidden="true"/><h3 id={id+'-title'}>{c.choice.noDuty(usd(allowanceAfterCartUsd(estimate)))}</h3></header>}
+   // No duty (owner, 14.10.2026): a short title with a shield, then how much of the month's allowance this order leaves,
+   // as a bar like the home page's example (app/home-sections.tsx). The bar repeats the caption, so it is hidden from readers.
+   :<><header className="calc-customs-none"><ShieldCheck size={18} aria-hidden="true"/><h3 id={id+'-title'}>{c.choice.noDutyTitle}</h3></header>
+    <div className="calc-customs-meter"><span className="calc-customs-track" aria-hidden="true"><span style={{width:`${estimate.allowanceUsd>0?Math.min(100,Math.max(3,(1-allowanceAfterCartUsd(estimate)/estimate.allowanceUsd)*100)):100}%`}}/></span>
+     <p>{c.choice.noDuty(usd(allowanceAfterCartUsd(estimate)),usd(estimate.allowanceUsd))}</p></div></>}
   {profiles.length>1&&onRecipient&&<div className="field calc-customs-recipient"><label htmlFor={id+'-recipient'}>{c.recipient}</label><select id={id+'-recipient'} value={recipientId} onChange={event=>onRecipient(event.target.value)}>{profiles.map(profile=><option key={profile.id} value={profile.id}>{profile.recipient}</option>)}</select></div>}
   {over&&onChoices&&helpAmount!==undefined&&(remembered&&!open
    ?<p className="customs-remembered">{choices.help?<HandCoins size={15} aria-hidden="true"/>:null}<span>{choices.help?c.choice.rememberedAtlas:c.choice.rememberedSelf}{choices.help&&<small>{helpFee}</small>}</span><button type="button" onClick={()=>setOpen(true)}>{c.choice.change}</button></p>

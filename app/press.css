@@ -67,73 +67,15 @@ html[data-navigating] .nav-progress { opacity: 1; animation: nav-progress 9s cub
 /* ---------- Order by link: checking the product with the store ---------- */
 /* The page keeps its shape while the store answers: the product stays, the option picker becomes the check,
    the bill and the price are outlined; when the answer comes the real parts fade in where the outlines were. */
-.lo-page {
-  --skel-a: color-mix(in srgb, var(--home-ink) 6%, var(--home-surface));
-  --skel-b: color-mix(in srgb, var(--home-ink) 12%, var(--home-surface));
-}
-.lo-skel {
-  display: block; height: 14px; border-radius: 8px;
-  background: linear-gradient(90deg, var(--skel-a) 25%, var(--skel-b) 50%, var(--skel-a) 75%) 0 0 / 220% 100%;
-  animation: lo-shimmer 1.5s ease-in-out infinite;
-}
 @keyframes lo-shimmer { from { background-position: 110% 0; } to { background-position: -110% 0; } }
-.lo-skel-photo { width: 100%; height: auto; aspect-ratio: 1; max-height: 260px; border-radius: 14px; }
-.lo-skel-brand { width: 38%; height: 12px; margin: 4px 0 12px; }
-.lo-skel-title { width: min(82%, 360px); height: 22px; margin: 4px 0 10px; }
-.lo-store-price .lo-skel-price { display: inline-block; width: 88px; height: 16px; vertical-align: -2px; }
-.lo-skel-sum { display: inline-block; width: 120px; height: 20px; vertical-align: middle; }
-
-.lo-skel-bill { display: grid; gap: 15px; margin-top: 18px; }
-.lo-skel-bill > div { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
-.lo-skel-bill > div > .lo-skel:first-child { width: 46%; }
-.lo-skel-bill > div:nth-child(2) > .lo-skel:first-child { width: 58%; }
-.lo-skel-bill > div:nth-child(3) > .lo-skel:first-child { width: 36%; }
-.lo-skel-bill > div > .lo-skel:last-child { width: 22%; }
-.lo-skel-bill > div:nth-child(2) .lo-skel { animation-delay: .08s; }
-.lo-skel-bill > div:nth-child(3) .lo-skel { animation-delay: .16s; }
-.lo-skel-bill > .lo-skel-total { margin-top: 4px; padding-top: 16px; border-top: 1px solid var(--home-line); }
-.lo-skel-bill > .lo-skel-total .lo-skel { animation-delay: .24s; }
-.lo-skel-bill > .lo-skel-total > .lo-skel:first-child { width: 30%; }
-.lo-skel-bill > .lo-skel-total > .lo-skel:last-child { width: 44%; height: 30px; border-radius: 10px; }
-
-.lo-check { display: grid; gap: 16px; }
-.lo-check-head { display: flex; align-items: center; gap: 12px; }
-.lo-check-head > span:last-child { display: grid; gap: 2px; min-width: 0; }
-.lo-check-head b { color: var(--home-ink); font-size: 16px; font-weight: 700; line-height: 1.35; }
-.lo-check-head small { color: var(--home-muted); font-size: 13px; line-height: 1.45; }
-.lo-check-orb {
-  display: grid; flex-shrink: 0; place-items: center; width: 42px; height: 42px; border-radius: 50%;
-  background: color-mix(in srgb, var(--home-accent) 11%, var(--home-surface)); color: var(--home-accent);
-  animation: lo-orb 2s ease-out infinite;
-}
 @keyframes lo-orb {
   0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--home-accent) 26%, transparent); }
   70%, 100% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--home-accent) 0%, transparent); }
 }
-.lo-check-steps { display: grid; gap: 11px; margin: 0; padding: 0; list-style: none; }
-.lo-check-steps li { display: flex; align-items: center; gap: 10px; color: var(--home-muted); font-size: 14px; line-height: 1.4; transition: color .3s ease, opacity .3s ease; }
-.lo-check-mark {
-  display: grid; flex-shrink: 0; place-items: center; width: 20px; height: 20px; border: 1.5px solid var(--home-line); border-radius: 50%;
-  color: var(--home-accent-ink); transition: background-color .3s ease, border-color .3s ease;
-}
-.lo-check-steps li[data-state="done"] { color: var(--home-ink); }
-.lo-check-steps li[data-state="done"] .lo-check-mark { border-color: var(--home-accent); background: var(--home-accent); animation: lo-check-pop .4s cubic-bezier(.2, .9, .3, 1.4); }
-.lo-check-steps li[data-state="current"] { color: var(--home-ink); font-weight: 600; }
-.lo-check-steps li[data-state="current"] .lo-check-mark { border-color: var(--home-accent); border-top-color: transparent; animation: spin .9s linear infinite; }
-.lo-check-steps li[data-state="next"] { opacity: .75; }
 @keyframes lo-check-pop { from { scale: .4; } }
-.lo-check-bar { height: 3px; overflow: hidden; border-radius: 3px; background: color-mix(in srgb, var(--home-accent) 12%, transparent); }
-.lo-check-bar i { display: block; width: 38%; height: 100%; border-radius: inherit; background: var(--home-accent); animation: lo-indeterminate 1.5s cubic-bezier(.4, 0, .2, 1) infinite; }
 @keyframes lo-indeterminate { from { transform: translateX(-105%); } to { transform: translateX(270%); } }
 
 /* The answer arrives: what was outlined fades in, one part after another; the product card itself stays still. */
-.lo-reveal,
-.lo-layout.is-ready :is(.lo-variant, .lo-data, .lo-comment, .lo-confirm),
-.lo-layout.is-ready .lo-summary .folio-sheet > :not(h2) { animation: lo-reveal .4s cubic-bezier(.2, .8, .2, 1) both; }
-.lo-layout.is-ready .lo-summary .folio-sheet > :not(h2) { animation-delay: .06s; }
-.lo-layout.is-ready .lo-data { animation-delay: .12s; }
-.lo-layout.is-ready .lo-comment { animation-delay: .16s; }
-.lo-layout.is-ready .lo-confirm { animation-delay: .2s; }
 @keyframes lo-reveal { from { opacity: 0; transform: translateY(6px); } }
 
 /* ---------- Bottom bar: the tapped tab lights at once ---------- */

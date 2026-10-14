@@ -16,6 +16,8 @@ import { courierAllowanceUsd } from '@/lib/market/customs';
 import { storeBrands } from '@/lib/market/store-brands';
 import { signalsFor } from '@/lib/market/catalog-signals';
 import { searchWords } from '@/lib/market/catalog-synonyms';
+import { browserStorage, distinctCovers, itemParam, pendingFavoriteToSave, takePendingFavorite, withoutItemParam } from '@/lib/market/catalog-links';
+import { toast } from '@/lib/market/toast';
 import {
   activeFilterCount, activeFilters, applyCatalogQuery, catalogFacets, catalogItems, catalogQueryString, cartParcelStores,
   categorySlugs, emptyCatalogQuery, parcelExtra, priceBands, readCatalogQuery, relaxations, sameCatalogProduct, sizedCategories, storeLabel, withoutFilter,
@@ -37,8 +39,14 @@ const limitUsd = courierAllowanceUsd;
 type Copy = (typeof catalogCopy)['ru'];
 type Facets = ReturnType<typeof catalogFacets>;
 type Collection = { id: string; name: string; nameUz?: string; nameEn?: string; productIds: string[] };
-/** A set on the strip: a query preset with the products it shows (covers come from the first four). */
-type CatalogSet = { id: string; name: string; patch: Partial<CatalogQuery>; items: CatalogItem[] };
+/** A set on the strip: a query preset with the products it shows and its collage (photos the sets before it did not use). */
+type CatalogSet = { id: string; name: string; patch: Partial<CatalogQuery>; items: CatalogItem[]; cover: string[] };
+
+/** Drops `?item=` from the address once its sheet is closed (or its product is gone); the filters stay. */
+function dropItemParam() {
+  const next = withoutItemParam(window.location.href);
+  if (next !== window.location.pathname + window.location.search + window.location.hash) window.history.replaceState(window.history.state, '', next);
+}
 
 const collectionName = (set: { name: string; nameUz?: string; nameEn?: string }, locale: Locale) => locale === 'en' ? set.nameEn || set.name : isUzbek(locale) ? uzText(locale, set.nameUz || set.name) : set.name;
 
@@ -70,6 +78,26 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
   const setQuery = (next: CatalogQuery) => { setQueryState(next); setLimit(pageSize); };
 
   const items = useMemo(() => catalogItems(catalogProducts, pricing), [catalogProducts, pricing]);
+  // `?item=<id>` (a product row of a store card) opens that product's sheet once the catalog is in; the sheet drops it on close.
+  const itemOpened = useRef(false);
+  useEffect(() => {
+    if (itemOpened.current || !catalogReady) return;
+    itemOpened.current = true;
+    const id = itemParam(window.location.search);
+    if (!id) return;
+    const found = items.find((item) => item.product.id === id);
+    // The address is the external system here: it is read once, after the catalog has arrived.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (found) setSelected(found.product); else dropItemParam();
+  }, [catalogReady, items]);
+  // A guest who tapped a heart and signed in comes back to that product saved: once, only a fresh note, only if not saved yet.
+  const pendingChecked = useRef(false);
+  useEffect(() => {
+    if (pendingChecked.current || !ready || !catalogReady || !items.length) return;
+    pendingChecked.current = true;
+    const id = pendingFavoriteToSave(takePendingFavorite(browserStorage()), { now: Date.now(), catalogIds: new Set(items.map((item) => item.product.id)), favorites: state.favorites });
+    if (id) void act({ type: 'favorite', id }).then((ok) => { if (ok) toast.success(copy.savedAfterLogin); });
+  }, [ready, catalogReady, items, state.favorites, act, copy.savedAfterLogin]);
   const pool = mode === 'favorites' ? items.filter((item) => state.favorites.includes(item.product.id)) : items;
   const allowance = ready ? catalogAllowance(state, pricing.fx) : null;
   const context: CatalogContext = { dutyLimitUsd: allowance?.remainingUsd ?? courierAllowanceUsd, collections, words: (item) => [cc.categories[item.product.category] ?? '', searchWords(item, locale)].join(' ') };
@@ -90,6 +118,8 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
   const filterCount = activeFilterCount(query) - Number(Boolean(query.category)) - Number(Boolean(query.collection));
   const storesInCatalog = new Set(items.map((item) => item.store)).size;
   const sets = mode === 'catalog' ? buildSets(pool, context, collections, Boolean(allowance && allowance.remainingUsd > 0), cc, locale) : [];
+  // An empty "Saved" is not a dead end: the first products of the catalog's own "On sale" set, ready to save.
+  const suggest = mode === 'favorites' && catalogReady && pool.length === 0 ? applyCatalogQuery(items, { ...emptyCatalogQuery, sale: true }, context).slice(0, 4) : [];
   const setsRow = useRowAtStart<HTMLElement>(sets.map((set) => set.id).join(' '));
 
   async function save(product: Product) {
@@ -131,7 +161,7 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
       <button ref={setsToggleRef} type="button" className="catalog-sets-toggle" aria-expanded={setsOpen} aria-controls={setsId} onClick={() => setSetsOpen((open) => !open)}>{cc.collections}<ChevronDown size={18} aria-hidden="true" /></button>
       <nav {...setsRow} id={setsId} className="catalog-sets" data-open={setsOpen || undefined} aria-label={cc.collections}>
       {sets.map((set) => <button type="button" key={set.id} className="catalog-set" aria-pressed={setActive(query, set.patch)} onClick={() => toggleSet(set)}>
-        <SetCover images={set.items.slice(0, 4).map((item) => item.product.image).filter(Boolean)} />
+        <SetCover images={set.cover} />
         <b>{set.name}</b><span>{cc.setCount(set.items.length)}</span>
       </button>)}
       </nav>
@@ -154,10 +184,17 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
       <section className="catalog-results" aria-label={mode === 'favorites' ? copy.saved : cc.title}>
         {!catalogReady ? <CatalogSkeleton label={cc.loading} /> : visible.length > 0 ? <div className="finds-grid" onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>
           {visible.map((item) => <CatalogCard key={item.product.id} item={item} locale={locale} select={setSelected}
-            saved={state.favorites.includes(item.product.id)} canSave={ready} saving={saving !== null} onSave={() => void save(item.product)}
+            saved={state.favorites.includes(item.product.id)} canSave={ready} guestSave={status === 'guest'} saving={saving !== null} onSave={() => void save(item.product)}
             signals={signalsOf(item)} inCart={inCart(item.product)} speed={speed} />)}
         </div> : <EmptyResult mode={mode} empty={!pool.length} query={query} setQuery={setQuery} cc={cc} copy={copy} options={relaxations(pool, query, context)} collections={collections} locale={locale} />}
-        {visible.length < list.length && <div className="finds-pagination"><span role="status">{cc.showing(visible.length, list.length)}</span><button type="button" className="btn secondary" onClick={() => setLimit(limit + pageSize)}>{cc.more}<ArrowRight size={17} /></button></div>}
+        {suggest.length > 0 && <section className="favorites-suggest" aria-labelledby="favorites-suggest-title">
+          <div className="favorites-suggest-head"><h2 id="favorites-suggest-title">{copy.suggestTitle}</h2><Link className="text-link" href="/catalog?sale=1">{copy.suggestAll}<ArrowRight size={16} aria-hidden="true" /></Link></div>
+          <div className="finds-grid finds-grid-compact" onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>
+            {suggest.map((item) => <CatalogCard key={item.product.id} variant="compact" item={item} locale={locale} select={setSelected}
+              saved={state.favorites.includes(item.product.id)} canSave={ready} guestSave={status === 'guest'} saving={saving !== null} onSave={() => void save(item.product)} speed={speed} />)}
+          </div>
+        </section>}
+        {visible.length < list.length && <div className="finds-pagination"><span role="status">{cc.showing(visible.length, list.length)}</span><button type="button" className="btn secondary" onClick={() => setLimit(limit + pageSize)}>{cc.more}<ChevronDown size={17} aria-hidden="true" /></button></div>}
         {visible.length > 0 && <p className="finds-price-note">{copy.priceNote}</p>}
         {status === 'guest' && mode === 'catalog' && <p className="finds-signin"><Link href="/login?return_to=%2Fcatalog"><Heart size={15} />{copy.signin}</Link></p>}
         {mode === 'catalog' && catalogReady && <section className="catalog-end">
@@ -173,7 +210,7 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
         <footer>{filterCount > 0 && <button type="button" className="btn secondary" onClick={() => setQuery({ ...emptyCatalogQuery, q: query.q, category: query.category, sort: query.sort, collection: query.collection })}>{cc.reset}</button>}<button type="button" className="btn primary" onClick={() => setFiltersOpen(false)}>{cc.show(list.length)}</button></footer>
       </SheetContent>
     </Sheet>
-    <LazyProductSheet product={selected} onClose={() => setSelected(null)} />
+    <LazyProductSheet product={selected} onClose={() => { setSelected(null); dropItemParam(); }} />
   </div></TooltipProvider>;
 }
 
@@ -198,7 +235,7 @@ function buildSets(pool: CatalogItem[], context: CatalogContext, collections: Co
   for (const item of pool) storeCounts.set(item.store, (storeCounts.get(item.store) ?? 0) + 1);
   const topStores = [...storeCounts].filter(([, count]) => count >= 3).sort((a, b) => b[1] - a[1] || storeLabel(a[0], locale).localeCompare(storeLabel(b[0], locale))).slice(0, 4);
   const hasRecent = pool.some((item) => item.addedAt >= now - thirtyDays);
-  const sets: CatalogSet[] = [
+  const sets: Omit<CatalogSet, 'cover'>[] = [
     ...collections.map((set) => ({ id: 'set:' + set.id, name: collectionName(set, locale), patch: { collection: set.id }, items: of({ collection: set.id }) })),
     ...(withAllowance ? [{ id: 'limit', name: cc.sets.limit(limitUsd), patch: { duty: true }, items: of({ duty: true }) }] : []),
     { id: 'cheap', name: cc.sets.cheap, patch: { price: 'to-300k' as const }, items: of({ price: 'to-300k' }) },
@@ -206,7 +243,9 @@ function buildSets(pool: CatalogItem[], context: CatalogContext, collections: Co
     ...(hasRecent ? [{ id: 'new', name: cc.sets.new, patch: { sort: 'new' as const }, items: of({ sort: 'new' }) }] : []),
     ...topStores.map(([store]) => ({ id: 'store:' + store, name: cc.sets.from(storeLabel(store, locale)), patch: { stores: [store] }, items: of({ stores: [store] }) })),
   ];
-  return sets.filter((set) => set.items.length >= 3);
+  const shown = sets.filter((set) => set.items.length >= 3);
+  const covers = distinctCovers(shown);
+  return shown.map((set, index) => ({ ...set, cover: covers[index] }));
 }
 
 /** A 2×2 collage of the set's first four photos on a white stage; fewer than four (a failed one dropped) shows the first large. */

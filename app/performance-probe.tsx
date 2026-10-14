@@ -2,13 +2,14 @@
 
 import { useEffect } from 'react';
 import { parsePerformanceSamples, performancePercentile, performanceRoute, performanceStorageKey, performanceUpdateEvent, telemetryPath, upsertPerformanceSample, type PerformanceSample } from '@/lib/market/performance';
+import { errorFromEvent, errorFromRejection, reportedErrorLimit, takeEarlyErrors, type ReportedError } from '@/lib/market/early-errors';
 
 type TimedEntry = PerformanceEntry & { value?: number; hadRecentInput?: boolean; interactionId?: number };
-type ReportedError = { kind: 'error' | 'rejection'; message: string; source?: string; line?: number };
 
 // Besides the local summary for the operator's own browser, each page view sends one anonymous
 // beacon to /api/telemetry: page speed when the page is hidden, and up to five script errors.
 // It carries the path and device class only; the server keeps fixed route names and scrubs messages.
+// Errors from before this mounts (it loads after hydration, app/shell-extras.tsx) come from lib/market/early-errors.ts.
 export function PerformanceProbe() {
   useEffect(() => {
     let current: PerformanceSample = {
@@ -30,17 +31,18 @@ export function PerformanceProbe() {
       try { if (!navigator.sendBeacon?.(telemetryPath, body)) void fetch(telemetryPath, { method: 'POST', body, keepalive: true }).catch(() => undefined); } catch { /* Monitoring is optional. */ }
     };
     const report = (error: ReportedError) => {
-      if (reported >= 5 || !error.message.trim()) return;
+      if (reported >= reportedErrorLimit || !error.message.trim()) return;
       reported++;
       pending.push(error);
       window.clearTimeout(flushTimer);
       flushTimer = window.setTimeout(() => send(false), 2000);
     };
-    const onError = (event: ErrorEvent) => report({ kind: 'error', message: (event.message || String(event.error ?? '')).slice(0, 500), ...(event.filename ? { source: event.filename.split(/[?#]/)[0].slice(0, 300) } : {}), ...(event.lineno ? { line: event.lineno } : {}) });
-    const onRejection = (event: PromiseRejectionEvent) => report({ kind: 'rejection', message: (event.reason instanceof Error ? `${event.reason.name}: ${event.reason.message}` : String(event.reason ?? '')).slice(0, 500) });
+    const onError = (event: ErrorEvent) => report(errorFromEvent(event));
+    const onRejection = (event: PromiseRejectionEvent) => report(errorFromRejection(event));
     const onHidden = () => { if (document.visibilityState === 'hidden') send(true); };
     window.addEventListener('error', onError);
     window.addEventListener('unhandledrejection', onRejection);
+    takeEarlyErrors().forEach(report);
     document.addEventListener('visibilitychange', onHidden);
     let cls = 0;
     const apiEntries = new Set<string>();
