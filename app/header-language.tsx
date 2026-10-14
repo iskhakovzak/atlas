@@ -35,7 +35,9 @@ export function HeaderLanguage({locale,label,onChange}:{locale:Locale;label:stri
     const next=event.key==='Home'?0:event.key==='End'?items.length-1:(at+(event.key==='ArrowDown'?1:-1)+items.length)%items.length;
     event.preventDefault();items[next]?.focus();
   };
-  return <div className="lang-menu" ref={wrap} onBlur={event=>{if(open&&!wrap.current?.contains(event.relatedTarget as Node))setOpen(false)}}>
+  // iOS/WebKit blurs the focused choice to null before dispatching a touch click on another button.
+  // Only a known focus destination outside closes here; outside taps are handled by pointerdown above.
+  return <div className="lang-menu" ref={wrap} onBlur={event=>{if(open&&event.relatedTarget&&!wrap.current?.contains(event.relatedTarget as Node))setOpen(false)}}>
     <button type="button" ref={trigger} className="lang-trigger" aria-expanded={open} aria-controls={listId} aria-label={`${label}: ${current.name}${current.script?' — '+current.script:''}`} title={label} onClick={()=>setOpen(value=>!value)} onKeyDown={event=>{if(event.key==='ArrowDown'){event.preventDefault();setOpen(true)}}}>
       <Globe size={17} aria-hidden="true"/><span lang={current.lang}>{current.short}</span><ChevronDown size={14} aria-hidden="true" className="lang-chevron"/>
     </button>
