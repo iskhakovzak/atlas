@@ -45,6 +45,10 @@ body { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 600px) {
   .home-footer :is(nav, section) ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; }
 }
+/* Under 360 px a column is narrower than "конфиденциальности", which broke mid-word; the three legal links stack. */
+@media (max-width: 359px) {
+  .home-footer section[aria-labelledby="footer-legal"] ul { grid-template-columns: minmax(0, 1fr); }
+}
 
 /* Fingers: small text buttons keep their look but take taps from a little around them (an invisible frame). */
 @media (pointer: coarse) {

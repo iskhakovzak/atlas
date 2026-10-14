@@ -169,6 +169,10 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
    The breakdown reuses .cost-service-breakdown from the item card; its rows are quieter than the bill's own lines. */
 .basket-service-breakdown { flex-basis: 100%; margin: -6px 0 2px; }
 .basket-service-breakdown > .basket-lines { margin: 0 0 4px; padding-left: 12px; border-left: 2px solid var(--home-line); }
+/* The breakdown's 36 px tap row already leaves room under the bill lines; with the card's own 12 px the gap read ~40 px. */
+.basket-lines + .calc-customs, .folio-sheet .basket-lines + .calc-customs { margin-top: 4px; }
+/* Wide screens: the data notice sat bottom-right over the sticky "Checkout" button; on the cart it moves left. */
+@media (min-width: 761px) { body:has(.basket-summary) .storage-notice { right: auto; left: 24px; } }
 .basket-service-line .basket-service-breakdown .basket-lines .basket-line { min-height: 36px; padding: 2px 0; border-bottom: 0; }
 .basket-service-line .basket-service-breakdown .basket-lines :is(.basket-line-label, .basket-line > b) { color: var(--home-muted); font-size: 13.5px; font-weight: 500; }
 .basket-total { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; }
@@ -227,7 +231,7 @@ html[data-theme="dark"] .single-colorway-source > span { color: var(--night-ink)
 .cabinet-empty { margin: 0 0 12px; padding: 14px; border-radius: 12px; background: var(--home-soft); color: var(--home-muted); font-size: 14px; }
 
 /* ---------- Orders, balance, notifications ---------- */
-.orders-head p { margin: 4px 0 0; color: var(--home-muted); font-size: 15px; }
+.orders-head p { max-width: 72ch; margin: 4px 0 0; color: var(--home-muted); font-size: 15px; }
 .orders-head .btn { min-height: 44px; border-radius: 12px; }
 
 /* Notifications. */

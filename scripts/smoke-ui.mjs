@@ -157,7 +157,8 @@ try {
   const catalogLink = "/order-by-link?url=" + encodeURIComponent("https://www.target.com/p/nyx-professional-makeup-butter-lip-gloss-16-praline-0-27-fl-oz/-/A-51033539") + "&catalog=nyx-butter-gloss";
   await evaluate(`location.assign(${JSON.stringify(catalogLink)})`);
   await eventually(
-    "location.pathname === '/order-by-link' && document.querySelector('.lo-guest')?.textContent?.includes('без входа')",
+    // The note's wording changed on 14.10.2026; what matters is the guest note plus a total shown before sign-in.
+    "location.pathname === '/order-by-link' && !!document.querySelector('.lo-guest') && /\\d/.test(document.querySelector('.lo-sticky.guest')?.textContent ?? '')",
     "guest order-by-link: the estimate works without signing in",
   );
   await evaluate("location.assign('/e2e-missing-page')");

@@ -26,6 +26,9 @@
 .legal-document section p+p{margin-top:10px}
 .legal-document section ul{margin:12px 0 0;padding-left:22px;color:#4f6057;list-style:disc}
 .legal-document section li{margin:8px 0;line-height:1.65}
+/* A readable measure on wide screens: lines ran to ~105 characters at 1280 px and wider. */
+.legal-document section :is(p,ul){max-width:72ch}
+.legal-status p{max-width:80ch}
 .legal-requisites{padding:20px!important;border:1px solid #dbe8db!important;border-radius:13px;background:#f7f9fd}
 .legal-requisites dl{margin:0}
 .legal-requisites dl>div{display:grid;grid-template-columns:1fr 1.2fr;gap:20px;padding:10px 0}
@@ -390,9 +393,11 @@ html:has(.store-dialog[open]) { overflow: hidden; }
   .stores-group:not(.open) .stores-grid > li:nth-child(n + 10) { display: none; }
   .stores-group.le9 .stores-more { display: none; }
   .stores-missing { grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 20px 24px; }
-  .stores-regions-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; overflow: visible; -webkit-mask-image: none; mask-image: none; }
+  .stores-regions-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; padding: 0; overflow: visible; -webkit-mask-image: none; mask-image: none; }
   .stores-region-card { width: auto; }
 }
+/* Three cards a row once a long name ("Германия") and "13 магазинов" fit side by side; at 768 px the name was cut. */
+@media (min-width: 900px) { .stores-regions-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 760px) {
   /* The storefront row scrolls sideways with every card in it: nothing to show or fold. */
   .stores-showcase .stores-more { display: none; }
