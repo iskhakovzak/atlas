@@ -586,6 +586,10 @@ function mapSingleItem(item: EbayItem, listingId: string, url: URL, shipToCountr
     ...(referencePrice !== undefined ? {referencePrice} : {}),
     currency,
     variants: [variant],
+    variantScope: 'item',
+    // A true standalone Browse item has the exact REST id ending in |0.
+    // A single child retained after a failed group read is still incomplete.
+    variantsComplete: itemId === `v1|${listingId}|0` && status.known,
     ...context.fields,
     country: itemCountry(item),
     warnings: [
