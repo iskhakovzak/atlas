@@ -40,6 +40,7 @@ test('exact eBay variation remains importable when the full group exceeds the bo
   assert.equal(product.price,91.25);assert.equal(product.selectedVariantId,'9002');
   assert.equal(product.variants.length,1);assert.equal(product.variants[0].id,'9002');
   assert.equal(product.variants[0].size,'9');assert.equal(product.currency,'USD');
+  assert.equal(product.variantsComplete,false,'an exact child is not the whole group after a failed group request');
 });
 
 test('eBay parent does not select a child when the full group exceeds the body limit',async()=>{
@@ -146,6 +147,9 @@ test('regional eBay marketplace is sent explicitly and a standalone item keeps i
   assert.equal(product?.currency, 'EUR');
   assert.equal(product?.country, 'Испания');
   assert.equal(product?.variants?.[0].price, 24.5);
+  assert.equal(product?.variantScope,'item');
+  assert.equal(product?.variantsComplete,true,'an in-stock standalone item is complete without a variation group');
+  assert.equal(importDraft(product,[],'Испания').variantsComplete,true);
   assert.equal(calls.find(call => call.url.pathname.endsWith('/get_item_by_legacy_id')).init.headers['X-EBAY-C-MARKETPLACE-ID'], 'EBAY_ES');
 });
 

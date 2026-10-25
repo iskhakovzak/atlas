@@ -18,13 +18,20 @@ test('admin auto import publishes exact available prices and preserves options t
  globalThis.__adminAutoTestDb=db;
  const stub='data:text/javascript,'+encodeURIComponent('export const database=()=>globalThis.__adminAutoTestDb; export class HttpError extends Error {constructor(status,message){super(message);this.status=status}}');
  let code=await readFile(new URL('../lib/market/catalog-server.ts',import.meta.url),'utf8');
- code=code.replace("'./server'",JSON.stringify(stub)).replace("'./catalog-editor'",JSON.stringify(new URL('../lib/market/catalog-editor.ts',import.meta.url).href));
+ code=code.replace("'./server'",JSON.stringify(stub)).replace("'./catalog-editor'",JSON.stringify(new URL('../lib/market/catalog-editor.ts',import.meta.url).href)).replace("'./catalog-storage'",JSON.stringify(new URL('../lib/market/catalog-storage.ts',import.meta.url).href));
  const server=await import('data:text/javascript,'+encodeURIComponent(stripTypeScriptTypes(code)));
  await server.persistCatalog(doc,null,{userId:'operator',email:'operator@example.test'},'catalog.import-batch');
  const read=await server.readCatalog();const persisted=read.document.entries.find(e=>e.id===outcome.id);assert.ok(persisted);
  const visible=publicCatalog({...doc,entries:[persisted]},tariff,now).products[0];assert.equal(visible.sourcePrice,25);assert.equal(visible.sourceGroupId,'123456789012');assert.equal(visible.sourceVariants[0].offerId,'offer-red');assert.deepEqual(visible.sourceVariants[0].options,[{name:'Width',value:'Wide'}]);assert.equal(visible.sourceVariants[1].price,32);
  await assert.rejects(server.persistCatalog(doc,'stale-value',{userId:'operator',email:'operator@example.test'},'catalog.import-batch'),e=>e.status===409);
- assert.equal(sqlite.prepare("SELECT count(*) AS count FROM market_audit_events WHERE action='catalog.import-batch'").get().count,1);sqlite.close();delete globalThis.__adminAutoTestDb;
+ assert.equal(sqlite.prepare("SELECT count(*) AS count FROM market_audit_events WHERE action='catalog.import-batch'").get().count,1);
+ const large={...read.document,revision:read.document.revision+1,entries:Array.from({length:400},(_,i)=>({...structuredClone(persisted),id:`large-${i}`,draft:{...persisted.draft,description:'Размер и цвет. '.repeat(30).trim()},published:{...persisted.published,description:'Published item. '.repeat(30).trim()}}))};
+ assert.ok(Buffer.byteLength(JSON.stringify(large))>1_500_000);
+ await server.persistCatalog(large,read.raw,{userId:'operator',email:'operator@example.test'},'catalog.capacity');
+ const restored=await server.readCatalog();assert.deepEqual(restored.document.entries.find(e=>e.id==='large-399').draft,large.entries[399].draft);
+ assert.ok(sqlite.prepare("SELECT value FROM market_settings WHERE key='catalog'").get().value.startsWith('atlas.catalog.gzip.v1:'));
+ await assert.rejects(server.persistCatalog(doc,read.raw,{userId:'operator',email:'operator@example.test'},'catalog.capacity'),e=>e.status===409);
+ sqlite.close();delete globalThis.__adminAutoTestDb;
 });
 test('admin automatic unknown or partial imports wait for retry and cannot be manually confirmed',()=>{
  for(const extra of [{variantsComplete:false},{variants:[{...source().variants[0],availabilityKnown:false}]},{variants:[{...source().variants[0],image:undefined,images:[]}]},{variants:[{...source().variants[0],price:undefined}]}]){
@@ -90,3 +97,5 @@ test('a size excluded on a hand-kept card is not brought back by a store recheck
  const refreshed=applyScheduledCatalogRefresh(edited,id,draft(),now+3).document.entries[0];
  assert.deepEqual(refreshed.draft.variants.map(v=>v.color),['Red']);
 });
+
+

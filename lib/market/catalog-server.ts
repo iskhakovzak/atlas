@@ -2,14 +2,16 @@ import {database,HttpError} from './server';
 import {catalogDocumentSchema,initialCatalog,synchronizeBundledCatalog,type CatalogDocument,canonicalCatalogUrl,catalogMaxEntries,customerLinkDraft} from './catalog-editor';
 import type {Product} from './domain';
 import type {Extracted} from '../importer/extract';
+import {encodeCatalogStorage,decodeCatalogStorage,CatalogCapacityError} from './catalog-storage';
 
 export async function readCatalog(){
   const db=database();
   for(let attempt=0;attempt<2;attempt++){
     const row=await db.prepare("SELECT value FROM market_settings WHERE key='catalog'").first<{value:string}>();
-    const current=row?catalogDocumentSchema.parse(JSON.parse(row.value)):initialCatalog();
-    const synced=synchronizeBundledCatalog(current),value=JSON.stringify(synced.document),now=Date.now();
+    const current=row?catalogDocumentSchema.parse(await decodeCatalogStorage(row.value)):initialCatalog();
+    const synced=synchronizeBundledCatalog(current),now=Date.now();
     if(row&&!synced.added&&!synced.updated)return {raw:row.value,document:synced.document};
+    const value=await encodeCatalogStorage(synced.document);
     const result=row
       ?await db.prepare("UPDATE market_settings SET value=?,updated_at=?,updated_by='atlas.catalog.sync' WHERE key='catalog' AND value=?").bind(value,now,row.value).run()
       :await db.prepare("INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES ('catalog',?,?, 'atlas.catalog.sync') ON CONFLICT(key) DO NOTHING").bind(value,now).run();
@@ -17,11 +19,12 @@ export async function readCatalog(){
   }
   const row=await db.prepare("SELECT value FROM market_settings WHERE key='catalog'").first<{value:string}>();
   if(!row)return {raw:null,document:initialCatalog()};
-  return {raw:row.value,document:catalogDocumentSchema.parse(JSON.parse(row.value))};
+  return {raw:row.value,document:catalogDocumentSchema.parse(await decodeCatalogStorage(row.value))};
 }
 export async function persistCatalog(next:CatalogDocument,previous:string|null,user:{userId:string;email:string},action:string,details?:Record<string,unknown>){
-  const value=JSON.stringify(catalogDocumentSchema.parse(next));
-  if(new TextEncoder().encode(value).length>1_500_000)throw new HttpError(413,'Каталог заполнен. Сократите количество черновиков.');
+  let value:string;
+  try{value=await encodeCatalogStorage(catalogDocumentSchema.parse(next));}
+  catch(error){if(error instanceof CatalogCapacityError)throw new HttpError(413,error.message);throw error;}
   const now=Date.now(),db=database();
   const results=await db.batch([
     db.prepare("INSERT INTO market_settings (key,value,updated_at,updated_by) VALUES ('catalog',?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at,updated_by=excluded.updated_by WHERE market_settings.value=?").bind(value,now,user.userId,previous??''),
