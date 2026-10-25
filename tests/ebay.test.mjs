@@ -148,6 +148,8 @@ test('regional eBay marketplace is sent explicitly and a standalone item keeps i
   assert.equal(product?.country, 'Испания');
   assert.equal(product?.variants?.[0].price, 24.5);
   assert.equal(product?.variantScope,'item');
+  assert.equal(product?.variants?.[0].id,`v1|${listingId}|0`);
+  assert.equal(product?.variants?.[0].productId,listingId);
   assert.equal(product?.variantsComplete,true,'an in-stock standalone item is complete without a variation group');
   assert.equal(importDraft(product,[],'Испания').variantsComplete,true);
   assert.equal(calls.find(call => call.url.pathname.endsWith('/get_item_by_legacy_id')).init.headers['X-EBAY-C-MARKETPLACE-ID'], 'EBAY_ES');
