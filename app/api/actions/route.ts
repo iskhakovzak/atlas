@@ -5,10 +5,9 @@ import {fetchProduct} from '@/lib/importer/fetch';
 import {merchantRequest} from '@/lib/importer/worker-fetch';
 import {recentCheckMs,withRecentImport} from '@/lib/market/cart-check';
 import {codedActionError,editorialShippingFor,prepareAction,staleRevision,type EditorialShipping,type PreparedAction} from '@/lib/market/actions-server';
-import {catalogDocumentSchema,initialCatalog,synchronizeBundledCatalog,type CatalogDocument} from '@/lib/market/catalog-editor';
+import {initialCatalog,synchronizeBundledCatalog,type CatalogDocument} from '@/lib/market/catalog-editor';
 import {cleanPassportNumber,cleanPinfl,type Product,type State} from '@/lib/market/domain';
-import {addCustomerLinkDraft} from '@/lib/market/catalog-server';
-import {decodeCatalogStorage} from '@/lib/market/catalog-storage';
+import {addCustomerLinkDraft,readStoredCatalogDocument} from '@/lib/market/catalog-server';
 /**
  * The catalog's delivery record for a product link, read once per request and only when an action needs it.
  * Read-only: the bundled cards are merged in memory, nothing is written. Without the stored catalog
@@ -20,7 +19,7 @@ function editorialShippingLookup(){
     let stored:CatalogDocument|undefined;
     try{
       const row=await database().prepare("SELECT value FROM market_settings WHERE key='catalog'").first<{value:string}>();
-      if(row)stored=catalogDocumentSchema.parse(await decodeCatalogStorage(row.value));
+      if(row)stored=await readStoredCatalogDocument(row.value);
     }catch(error){console.error('Catalog read for store delivery failed',error)}
     return synchronizeBundledCatalog(stored??initialCatalog()).document;
   };

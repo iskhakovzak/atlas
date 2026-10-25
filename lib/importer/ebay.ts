@@ -330,6 +330,19 @@ async function browseGet(path: string | URL, token: string, marketplace: Marketp
   return readJson(response, stage === 'browse_variants' ? MAX_GROUP_JSON_BYTES : MAX_JSON_BYTES, stage);
 }
 
+/** Fixed official seller search; never accepts an API URL or a provider-supplied next link. */
+export async function fetchEbaySellerSearchPage(config:EbayBrowseConfig,fetcher:EbayFetch,query:{seller:string;categoryId:string;offset:number},signal=AbortSignal.timeout(12_000)) {
+  if(!/^[a-zA-Z0-9_.-]{1,80}$/.test(query.seller)||!/^\d{1,10}$/.test(query.categoryId)||!Number.isInteger(query.offset)||query.offset<0||query.offset>9950||query.offset%50!==0)throw new Error('Invalid eBay seller search.');
+  if(!config.clientId?.trim()||!config.clientSecret||!config.environment)throw new EbayBrowseApiError('configuration');
+  const base=config.environment==='sandbox'?'https://api.sandbox.ebay.com':'https://api.ebay.com';
+  const token=await tokenFor(config,base,fetcher,signal);if(!token)throw new EbayBrowseApiError('configuration');
+  const url=new URL(`${base}/buy/browse/v1/item_summary/search`);
+  url.searchParams.set('category_ids',query.categoryId);
+  url.searchParams.set('filter',`sellers:{${query.seller}},buyingOptions:{FIXED_PRICE}`);
+  url.searchParams.set('sort','price');url.searchParams.set('limit','50');url.searchParams.set('offset',String(query.offset));
+  return browseGet(url,token,{id:'EBAY_US'},fetcher,signal,'browse_item',false,ebayEndUserContext(config)?.header);
+}
+
 function aspectsFor(item: EbayItem) {
   const aspects = new Map<string, string>();
   if (Array.isArray(item.localizedAspects)) {
