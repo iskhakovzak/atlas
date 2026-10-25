@@ -78,7 +78,7 @@ export const catalogAvailabilityReportSchema=z.object({
   createdAt:z.number().int().nonnegative(),resolvedAt:z.number().int().nonnegative().optional(),
 });
 export type CatalogAvailabilityReport=z.infer<typeof catalogAvailabilityReportSchema>;
-export const catalogMaxEntries=500;
+export const catalogMaxEntries=2000;
 const bundledCatalogIds=new Set(bundledMerchantFinds.map(item=>item.id));
 export function isBundledCatalogEntry(id:string){return bundledCatalogIds.has(id)}
 export const catalogDocumentSchema=z.object({revision:z.number().int().nonnegative(),entries:z.array(catalogEntrySchema).max(catalogMaxEntries),collections:z.array(collectionSchema).max(30),availabilityReports:z.array(catalogAvailabilityReportSchema).max(300).optional()});

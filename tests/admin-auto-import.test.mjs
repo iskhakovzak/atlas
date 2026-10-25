@@ -5,6 +5,7 @@ import {readFile} from 'node:fs/promises';
 import {stripTypeScriptTypes} from 'node:module';
 import {applyAutomaticCatalogImport,applyScheduledCatalogRefresh,catalogDocumentSchema,changeCatalog,dueCatalogEntries,importDraft,publicCatalog} from '../lib/market/catalog-editor.ts';
 import {tariff} from '../lib/market/domain.ts';
+import {encodeCatalogStorage} from '../lib/market/catalog-storage.ts';
 const now=1770000000000;
 const source=(extra={})=>({sourceUrl:'https://www.ebay.com/itm/123456789012?var=111111',title:'Adidas shoes',brand:'adidas',category:'Обувь',country:'США',currency:'USD',groupId:'123456789012',variantScope:'group',variantsComplete:true,image:'https://i.ebayimg.com/images/g/red/s-l1600.jpg',images:['https://i.ebayimg.com/images/g/red/s-l1600.jpg'],variants:[{id:'111111',label:'Red · 11',color:'Red',size:'11',available:true,availabilityKnown:true,price:25,image:'https://i.ebayimg.com/images/g/red/s-l1600.jpg',sourceUrl:'https://www.ebay.com/itm/123456789012?var=111111',productId:'123456789012',sellerId:'seller-a',offerId:'offer-red',colorId:'red',options:[{name:'Width',value:'Wide'}],images:['https://i.ebayimg.com/images/g/red/s-l1600.jpg']},{id:'222222',label:'Blue · 11',color:'Blue',size:'11',available:true,availabilityKnown:true,price:32,image:'https://i.ebayimg.com/images/g/blue/s-l1600.jpg'}],warnings:[],...extra});
 const draft=(extra={})=>importDraft(source(extra),[],'США',now);
@@ -13,8 +14,9 @@ test('admin auto import publishes exact available prices and preserves options t
  const doc=document();const outcome=applyAutomaticCatalogImport(doc,draft(),now);assert.equal(outcome.published,true);
  assert.equal(doc.entries[0].published.price,25);assert.deepEqual(doc.entries[0].published.variants.map(v=>v.price),[25,32]);
  const sqlite=new DatabaseSync(':memory:');sqlite.exec('CREATE TABLE market_settings(key TEXT PRIMARY KEY,value TEXT,updated_at INTEGER,updated_by TEXT); CREATE TABLE market_audit_events(id TEXT,actor_id TEXT,actor_email TEXT,action TEXT,entity_type TEXT,entity_id TEXT,details TEXT,created_at INTEGER);');
- const statement=(sql,args=[])=>({bind:(...values)=>statement(sql,values),first:async()=>sqlite.prepare(sql).get(...args)??null,run:async()=>({meta:{changes:Number(sqlite.prepare(sql).run(...args).changes)}})});
- const db={prepare:sql=>statement(sql),batch:async statements=>{sqlite.exec('BEGIN');try{const results=[];for(const item of statements)results.push(await item.run());sqlite.exec('COMMIT');return results}catch(e){sqlite.exec('ROLLBACK');throw e}}};
+ const reads={all:0,chunkFirst:0,maxChunkBinds:0};
+ const statement=(sql,args=[])=>({bind:(...values)=>statement(sql,values),first:async()=>{if(sql==='SELECT value FROM market_settings WHERE key=?')reads.chunkFirst++;return sqlite.prepare(sql).get(...args)??null},all:async()=>{reads.all++;reads.maxChunkBinds=Math.max(reads.maxChunkBinds,args.length);assert.ok(args.length<=80,'bounded D1 chunk read parameters');return {results:sqlite.prepare(sql).all(...args)}},run:async()=>({meta:{changes:Number(sqlite.prepare(sql).run(...args).changes)}})});
+ const db={prepare:sql=>statement(sql),batch:async statements=>{assert.ok(statements.length<=80,'bounded D1 batch');sqlite.exec('BEGIN');try{const results=[];for(const item of statements)results.push(await item.run());sqlite.exec('COMMIT');return results}catch(e){sqlite.exec('ROLLBACK');throw e}}};
  globalThis.__adminAutoTestDb=db;
  const stub='data:text/javascript,'+encodeURIComponent('export const database=()=>globalThis.__adminAutoTestDb; export class HttpError extends Error {constructor(status,message){super(message);this.status=status}}');
  let code=await readFile(new URL('../lib/market/catalog-server.ts',import.meta.url),'utf8');
@@ -25,12 +27,33 @@ test('admin auto import publishes exact available prices and preserves options t
  const visible=publicCatalog({...doc,entries:[persisted]},tariff,now).products[0];assert.equal(visible.sourcePrice,25);assert.equal(visible.sourceGroupId,'123456789012');assert.equal(visible.sourceVariants[0].offerId,'offer-red');assert.deepEqual(visible.sourceVariants[0].options,[{name:'Width',value:'Wide'}]);assert.equal(visible.sourceVariants[1].price,32);
  await assert.rejects(server.persistCatalog(doc,'stale-value',{userId:'operator',email:'operator@example.test'},'catalog.import-batch'),e=>e.status===409);
  assert.equal(sqlite.prepare("SELECT count(*) AS count FROM market_audit_events WHERE action='catalog.import-batch'").get().count,1);
- const large={...read.document,revision:read.document.revision+1,entries:Array.from({length:400},(_,i)=>({...structuredClone(persisted),id:`large-${i}`,draft:{...persisted.draft,description:'Размер и цвет. '.repeat(30).trim()},published:{...persisted.published,description:'Published item. '.repeat(30).trim()}}))};
+ const large={...read.document,revision:read.document.revision+1,entries:Array.from({length:600},(_,i)=>({...structuredClone(persisted),id:`large-${i}`,draft:{...persisted.draft,description:'Размер и цвет. '.repeat(30).trim()},published:{...persisted.published,description:'Published item. '.repeat(30).trim()}}))};
  assert.ok(Buffer.byteLength(JSON.stringify(large))>1_500_000);
  await server.persistCatalog(large,read.raw,{userId:'operator',email:'operator@example.test'},'catalog.capacity');
- const restored=await server.readCatalog();assert.deepEqual(restored.document.entries.find(e=>e.id==='large-399').draft,large.entries[399].draft);
- assert.ok(sqlite.prepare("SELECT value FROM market_settings WHERE key='catalog'").get().value.startsWith('atlas.catalog.gzip.v1:'));
+ const restored=await server.readCatalog();assert.deepEqual(restored.document.entries.find(e=>e.id==='large-599').draft,large.entries[599].draft);
+ const head=sqlite.prepare("SELECT value FROM market_settings WHERE key='catalog'").get().value;assert.equal(JSON.parse(head).atlasCatalogStorage,'atlas.catalog.chunks.v1');
+ const chunkCount=sqlite.prepare("SELECT COUNT(*) AS count FROM market_settings WHERE key LIKE 'catalog.chunk.%'").get().count;
  await assert.rejects(server.persistCatalog(doc,read.raw,{userId:'operator',email:'operator@example.test'},'catalog.capacity'),e=>e.status===409);
+ await assert.rejects(server.persistCatalog(large,read.raw,{userId:'operator',email:'operator@example.test'},'catalog.capacity'),e=>e.status===409);
+ assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM market_settings WHERE key LIKE 'catalog.chunk.%'").get().count,chunkCount,'losing staged chunks removed, live generations preserved');
+ assert.equal(sqlite.prepare("SELECT value FROM market_settings WHERE key='catalog'").get().value,head);
+ const oldKeys=JSON.parse(head).chunks;
+ for(const key of oldKeys)sqlite.prepare('UPDATE market_settings SET updated_at=0 WHERE key=?').run(key);
+ await server.persistCatalog({...large,revision:large.revision+1},head,{userId:'operator',email:'operator@example.test'},'catalog.retirement');
+ for(const key of oldKeys)assert.ok(sqlite.prepare('SELECT updated_at FROM market_settings WHERE key=?').get(key).updated_at>Date.now()-60000,'old active generation receives a new retirement timestamp');
+ assert.equal((await server.readStoredCatalogDocument(head)).entries.length,restored.document.entries.length,'in-flight old-head readers still work after replacement');
+ // Legacy gzip snapshots remain readable and migrate without truncating entries on their next write.
+ const legacyGzip=await encodeCatalogStorage(large);assert.ok(legacyGzip.startsWith('atlas.catalog.gzip.v1:'));
+ sqlite.prepare("UPDATE market_settings SET value=? WHERE key='catalog'").run(legacyGzip);
+ assert.equal((await server.readStoredCatalogDocument(legacyGzip)).entries.length,600);
+ // Cleanup is bounded and never touches other setting namespaces, including the storefront job.
+ sqlite.prepare('INSERT INTO market_settings VALUES (?,?,?,?)').run('catalog-sale:operator','keep',0,'test');
+ for(let i=0;i<60;i++)sqlite.prepare('INSERT INTO market_settings VALUES (?,?,?,?)').run(`catalog.chunk.${'f'.repeat(32)}.${i}`,'{}',0,'test');
+ await server.persistCatalog(large,legacyGzip,{userId:'operator',email:'operator@example.test'},'catalog.capacity');
+ assert.equal(sqlite.prepare("SELECT value FROM market_settings WHERE key='catalog-sale:operator'").get().value,'keep');
+ assert.equal(sqlite.prepare("SELECT COUNT(*) AS count FROM market_settings WHERE updated_at=0 AND key LIKE 'catalog.chunk.%'").get().count,10);
+ assert.equal((await server.readStoredCatalogDocument(sqlite.prepare("SELECT value FROM market_settings WHERE key='catalog'").get().value)).entries.length,600);
+ assert.ok(reads.all>0,'manifest chunks are read with bounded multi-row SELECTs');assert.equal(reads.chunkFirst,0,'no D1 subrequest for every individual chunk');assert.ok(reads.maxChunkBinds<=80);
  sqlite.close();delete globalThis.__adminAutoTestDb;
 });
 test('admin automatic unknown or partial imports wait for retry and cannot be manually confirmed',()=>{

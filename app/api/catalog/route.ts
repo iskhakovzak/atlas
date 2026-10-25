@@ -1,6 +1,7 @@
 import {withoutAuthor} from '@/lib/market/pricing-equal';
 import {z} from 'zod';
-import {database,identity,requirePermission,sameOrigin,requestJson,json,failure,HttpError,pricing} from '@/lib/market/server';
+import {database,identity,requirePermission,sameOrigin,requestJson,json,failure,HttpError,pricing,rateLimit} from '@/lib/market/server';
+import {catalogSaleRunner,validatedSaleSource} from '@/lib/market/catalog-sale-server';
 import {readCatalog,persistCatalog} from '@/lib/market/catalog-server';
 import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,manualFallbackCatalogDraft,recheckedDraft,changeCatalog,publicCatalog,applyAutomaticCatalogImport,catalogRecheckBatchSize} from '@/lib/market/catalog-editor';
 import type {CatalogDraft} from '@/lib/market/catalog-editor';
@@ -60,6 +61,9 @@ async function mapMerchantConcurrent<T>(urls:string[],task:(url:string)=>Promise
  return results;
 }
 const commandSchema=z.discriminatedUnion('kind',[
+  z.object({kind:z.literal('sale-start'),url:z.string().max(3000),collectionIds:z.array(z.string().max(80)).max(20),country:z.string().max(80)}),
+  z.object({kind:z.literal('sale-step'),id:z.string().min(1).max(100)}),
+  z.object({kind:z.literal('sale-control'),id:z.string().min(1).max(100),resume:z.boolean()}),
   z.object({kind:z.literal('import'),url:z.string().max(3000),collectionIds:z.array(z.string().max(80)).max(20),country:z.string().max(80)}),
   z.object({kind:z.literal('import-batch'),urls:z.array(z.string().max(3000)).min(1).max(catalogImportBatchMax),collectionIds:z.array(z.string().max(80)).max(20),country:z.string().max(80)}),
   z.object({kind:z.literal('discover'),url:z.string().max(3000)}),
@@ -71,15 +75,28 @@ const commandSchema=z.discriminatedUnion('kind',[
 ]);
 export async function GET(request:Request){try{
   const admin=new URL(request.url).searchParams.get('admin')==='1';
-  if(admin){const user=await identity();await requirePermission(user,'catalog.manage');}
+  let saleJob;
+  if(admin){const user=await identity();await requirePermission(user,'catalog.manage');saleJob=await catalogSaleRunner(user).read(user.userId);}
   const [{document},currentPricing]=await Promise.all([readCatalog(),pricing()]);
-  return json(admin?{document}:{...publicCatalog(document,currentPricing),pricing:withoutAuthor(currentPricing)});
+  return json(admin?{document,saleJob,catalogFormat:'chunks-v2'}:{...publicCatalog(document,currentPricing),pricing:withoutAuthor(currentPricing)});
 }catch(error){return failure(error,request)}}
 export async function POST(request:Request){try{
   sameOrigin(request);const user=await identity();await requirePermission(user,'catalog.manage');
   const payload=z.object({revision:z.number().int().nonnegative(),command:commandSchema}).safeParse(await requestJson(request,200000));
   if(!payload.success)throw new HttpError(400, 'err_30');
-  const {command,revision}=payload.data,{document,raw}=await readCatalog();
+  const {command,revision}=payload.data;
+  if(command.kind==='sale-start'||command.kind==='sale-step'||command.kind==='sale-control'){
+    await rateLimit(user.userId+':catalog-sale',30,60000);
+    const runner=catalogSaleRunner(user);
+    if(command.kind==='sale-start'){
+      const {document}=await readCatalog();if(command.collectionIds.some(id=>!document.collections.some(c=>c.id===id)))throw new HttpError(400,'err_33');
+      return json({saleJob:await runner.start(user.userId,{sourceUrl:validatedSaleSource(command.url),country:command.country,collectionIds:command.collectionIds})});
+    }
+    if(command.kind==='sale-control')return json({saleJob:await runner.control(user.userId,command.id,command.resume)});
+    const saleJob=await runner.step(user.userId,command.id);
+    return json({saleJob});
+  }
+  const {document,raw}=await readCatalog();
   if(document.revision!==revision)throw new HttpError(409, 'err_31');
   if(command.kind==='refresh-due'){
     const refreshResult=await refreshDueCatalog(Date.now(),merchantRequest),next=await readCatalog();

@@ -10,9 +10,10 @@ import {pickLocale} from '@/lib/market/uz-cyrl';
 import {catalogCategories,catalogIssues,catalogRefreshDueAt,cleanGeneratedCatalogDescription,dueCatalogEntries,isBundledCatalogEntry,isWatchedCatalogEntry,type CatalogCollection,type CatalogDocument,type CatalogDraft,type CatalogEntry} from '@/lib/market/catalog-editor';
 import {chunkCatalogIds,parseCatalogImportQueue,removeImportedCatalogLinks} from '@/lib/market/catalog-import-queue';
 import {dedupeSafeImages,safeImage} from '@/lib/importer/extract';
+import {isEbayStorefrontLink,type CatalogSaleJob} from '@/lib/market/catalog-sale';
 
 type ImportOutcome={url:string;status:'saved'|'failed';id?:string;published?:boolean;note?:string;reason?:string};
-type Result={published?:number;skipped?:string[];document?:CatalogDocument;urls?:string[];importedId?:string;importNote?:string;results?:ImportOutcome[];recheckResults?:string[];refreshResult?:{selected:number;checked:number;available:number;soldOut:number;unknown:number;failed:number;skipped:number};error?:string};
+type Result={saleJob?:CatalogSaleJob;catalogFormat?:string;published?:number;skipped?:string[];document?:CatalogDocument;urls?:string[];importedId?:string;importNote?:string;results?:ImportOutcome[];recheckResults?:string[];refreshResult?:{selected:number;checked:number;available:number;soldOut:number;unknown:number;failed:number;skipped:number};error?:string};
 type ImportStatus='queued'|'importing'|'saved'|'review'|'failed';
 type ImportProgress={url:string;status:ImportStatus;detail?:string};
 type CatalogScope='queue'|'customer'|'published'|'previous'|'all';
@@ -35,21 +36,37 @@ const collectionCopy={
 };
 type CollectionWords=typeof collectionCopy.ru;
 class CatalogRequestError extends Error{constructor(message:string,readonly status?:number){super(message)}}
+async function catalogRequest(command:unknown,revision:number){const r=await fetch('/api/catalog',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({revision,command})});let data:Result={};try{data=await r.json() as Result}catch{}if(!r.ok)throw new CatalogRequestError(data.error??'Не удалось сохранить каталог.',r.status);return data;}
 function hostLabel(url:string){try{return new URL(url).hostname.replace(/^www\./,'')}catch{return url.slice(0,72)}}
 function originLabel(origin:CatalogDocument['entries'][number]['origin']){return origin==='customer-link'?'Ссылка клиента':origin==='operator-import'?'Импорт админом':origin==='bundled'?'Стартовый каталог':'Ранее добавлен'}
 function inheritedCollections(url:string,document:CatalogDocument){try{const host=new URL(url).hostname.replace(/^www\./,'');const counts=new Map<string,number>();for(const entry of document.entries){try{if(new URL(entry.draft.sourceUrl).hostname.replace(/^www\./,'')===host)for(const id of entry.draft.collectionIds)counts.set(id,(counts.get(id)??0)+1)}catch{}}return [...counts].sort((a,b)=>b[1]-a[1]).slice(0,2).map(([id])=>id)}catch{return []}}
 export function CatalogAdmin(){
+ const [saleJob,setSaleJob]=useState<CatalogSaleJob|undefined>();
  const [document,setDocument]=useState<CatalogDocument|null>(null),[urls,setUrls]=useState(''),[country,setCountry]=useState('США'),[collectionIds,setCollectionIds]=useState<string[]>([]),[busy,setBusy]=useState(''),[selected,setSelected]=useState<string[]>([]),[open,setOpen]=useState<string|null>(null),[importProgress,setImportProgress]=useState<ImportProgress[]>([]);
  const [search,setSearch]=useState(''),[filter,setFilter]=useState('all'),[scope,setScope]=useState<CatalogScope>('queue'),[visibleCount,setVisibleCount]=useState(24),[deleteDraftIds,setDeleteDraftIds]=useState<string[]>([]),[refreshClock]=useState(()=>Date.now());
  const [newCollection,setNewCollection]=useState<{name:string;nameUz:string;nameEn:string}|null>(null);
  const {state}=useMarket(),lang=state.communication.language,cw=pickLocale(collectionCopy,lang);
- const load=useCallback(async()=>{const r=await fetch('/api/catalog?admin=1',{cache:'no-store'}),data=await r.json() as Result;if(!r.ok||!data.document)throw Error(data.error??'Не удалось загрузить витрину.');setDocument(data.document);return data.document},[]);
- // Loading is the external synchronization performed by this effect.
- // eslint-disable-next-line react-hooks/set-state-in-effect
+ const load=useCallback(async()=>{const r=await fetch('/api/catalog?admin=1',{cache:'no-store'}),data=await r.json() as Result;if(!r.ok||!data.document)throw Error(data.error??'Не удалось загрузить витрину.');setDocument(data.document);setSaleJob(data.saleJob);return data.document},[]);
  useEffect(()=>{void load().catch(error=>toast.error((error as Error).message))},[load]);
- const call=async(command:unknown,revision=document?.revision)=>{if(!document||revision===undefined)throw new Error('Каталог загружается.');const r=await fetch('/api/catalog',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({revision,command})});let data:Result={};try{data=await r.json() as Result}catch{}if(!r.ok)throw new CatalogRequestError(data.error??'Не удалось сохранить каталог.',r.status);if(data.document)setDocument(data.document);return data};
+ const call=async(command:unknown,revision=document?.revision)=>{if(!document||revision===undefined)throw new Error('Каталог загружается.');const data=await catalogRequest(command,revision);if(data.document)setDocument(data.document);if(data.saleJob)setSaleJob(data.saleJob);return data};
+ useEffect(()=>{
+  if(!saleJob||saleJob.status!=='running'||busy)return;
+  const timer=window.setTimeout(async()=>{
+   setBusy('sale-step');
+   try{const data=await catalogRequest({kind:'sale-step',id:saleJob.id},0);setSaleJob(data.saleJob);if(data.saleJob?.status!=='running')await load();}
+   catch(error){setSaleJob(previous=>previous?{...previous,message:(error as Error).message,retryAt:Date.now()+((error as CatalogRequestError).status===429?61000:15000)}:previous);}
+   finally{setBusy('');}
+  },Math.max(2500,(saleJob.retryAt??0)-Date.now()));
+  return()=>window.clearTimeout(timer);
+ },[saleJob,busy,load]);
+ async function controlSale(resume:boolean){if(!saleJob)return;try{const data=await catalogRequest({kind:'sale-control',id:saleJob.id,resume},0);setSaleJob(data.saleJob);if(!resume)await load();}catch(error){toast.error((error as Error).message)}}
  async function importAll(){
    const queue=parseCatalogImportQueue(urls).links;if(!queue.length||!document)return;
+   if(queue.length===1&&isEbayStorefrontLink(queue[0])){
+    setBusy('sale-start');setImportProgress([]);
+    try{await call({kind:'sale-start',url:queue[0],collectionIds,country});toast.success('Начали поиск скидок в витрине eBay. Товары будут добавляться автоматически.');}
+    catch(error){toast.error((error as Error).message)}finally{setBusy('')}return;
+   }
    setBusy('import');setImportProgress(queue.map(url=>({url,status:'queued'})));
    let revision=document.revision,latest=document;const allResults:ImportOutcome[]=[];
    try{
@@ -124,14 +141,15 @@ export function CatalogAdmin(){
   const reports=(document.availabilityReports??[]).filter(report=>!report.resolvedAt);
  const due=dueCatalogEntries(document,refreshClock).length;
  return <section className="catalog-workspace">
-  <section className="surface catalog-importer"><div><span className="eyebrow">БЫСТРОЕ ДОБАВЛЕНИЕ</span><h2>Вставьте ссылки — товары попадут в каталог</h2><p>Список, текст из чата или таблицы — лишнее отбросится. Что прочиталось без сомнений, публикуется сразу; остальное ждёт вашей проверки.</p></div>
+  <section className="surface catalog-importer"><div><span className="eyebrow">БЫСТРОЕ ДОБАВЛЕНИЕ</span><h2>Вставьте ссылки — товары попадут в каталог</h2><p>Ссылки на товары добавляются пачкой. Одна ссылка категории витрины adidas на eBay — пройдём все страницы, найдём скидки и опубликуем товары с подтверждёнными вариантами.</p></div>
    <div className="paste-field-head"><label htmlFor="catalog-import-urls">Ссылки товаров или коллекции</label><PasteButton targetId="catalog-import-urls" locale="ru" multiline disabled={!!busy} onPaste={text=>{setUrls(text);setImportProgress([])}}/></div>
    <textarea id="catalog-import-urls" aria-label="Ссылки товаров или коллекции" disabled={busy==='import'} value={urls} onChange={e=>{setUrls(e.target.value);setImportProgress([])}} placeholder={'https://магазин.com/products/товар-1\nhttps://магазин.com/products/товар-2'}/>
    <div className="catalog-import-queue-summary" aria-live="polite"><span>{importQueue.links.length} уникальных ссылок</span><span>По {catalogAdminImportBatchSize} ссылок в запросе</span>{importQueue.duplicates>0&&<span>Повторы пропущены: {importQueue.duplicates}</span>}{importQueue.invalid.length>0&&<span>Строк без ссылки: {importQueue.invalid.length}</span>}{importQueue.links.length>catalogAdminImportBatchSize&&<span>Следом автоматически: {importQueue.links.length-catalogAdminImportBatchSize}</span>}</div>
    {importQueue.links.length>catalogAdminImportBatchSize&&<p className="catalog-import-hint">Все ссылки обрабатываются автоматически порциями по {catalogAdminImportBatchSize}. Дождитесь завершения; при ограничении магазина Atlas сделает паузу и продолжит.</p>}
    {importProgress.length>0&&<div className="catalog-import-progress" aria-live="polite"><div className="catalog-import-progress-head"><strong>Импорт: {settledImports} из {importProgress.length}</strong><span>Обработано: {savedImports}</span></div><progress max={importProgress.length} value={settledImports}/><ul>{importProgress.map(item=><li key={item.url} className={`import-${item.status}`}><span>{hostLabel(item.url)}</span><small>{item.detail??(item.status==='importing'?'Читаем магазин…':item.status==='queued'?'В очереди':'')}</small></li>)}</ul></div>}
    <details className="catalog-import-options"><summary>Страна и подборки — по умолчанию подбираются сами</summary><label>Страна отправки<input value={country} maxLength={80} onChange={e=>setCountry(e.target.value)}/></label><fieldset><legend>Подборки</legend><div>{document.collections.map(c=><label key={c.id}><input type="checkbox" checked={collectionIds.includes(c.id)} onChange={e=>setCollectionIds(e.target.checked?[...collectionIds,c.id]:collectionIds.filter(id=>id!==c.id))}/>{c.name}</label>)}<button type="button" className="text-button" onClick={()=>setNewCollection({name:'',nameUz:'',nameEn:''})}><FolderPlus size={16}/>Новая подборка</button></div></fieldset></details>
-   <div className="catalog-import-actions"><button className="btn primary" disabled={!!busy||!importBatch.length} onClick={()=>void importAll()}>{busy==='import'?<Loader2 className="spin"/>:<Link2/>}{busy==='import'?`Читаем ${importBatch.length} магазинов…`:`Добавить в каталог (${importQueue.links.length})`}</button><button className="btn secondary" disabled={!!busy||importQueue.links.length!==1} onClick={()=>void discover()}><RefreshCw/>Найти товары на странице коллекции</button></div>
+   <div className="catalog-import-actions"><button className="btn primary" disabled={!!busy||!importBatch.length||saleJob?.status==='running'} onClick={()=>void importAll()}>{busy==='import'?<Loader2 className="spin"/>:<Link2/>}{importQueue.links.length===1&&isEbayStorefrontLink(importQueue.links[0])?'Добавить все товары со скидкой':busy==='import'?`Читаем ${importBatch.length} магазинов…`:`Добавить в каталог (${importQueue.links.length})`}</button><button className="btn secondary" hidden={importQueue.links.length===1&&isEbayStorefrontLink(importQueue.links[0])} disabled={!!busy||importQueue.links.length!==1} onClick={()=>void discover()}><RefreshCw/>Найти товары на странице коллекции</button></div>
+   {saleJob&&<div className="catalog-import-progress" role="status" aria-live="polite"><div className="catalog-import-progress-head"><strong>{saleJob.status==='completed'?'Витрина обработана':saleJob.status==='paused'?'Импорт на паузе':'Импорт скидок eBay'}</strong><span>Опубликовано: {saleJob.published}</span></div><progress max={saleJob.total??Math.max(saleJob.scanned,1)} value={saleJob.scanned}/><p>Просмотрено: {saleJob.scanned}{saleJob.total!==undefined?` из ${saleJob.total}`:''} · Со скидкой: {saleJob.matched} · Обработано: {saleJob.processed}</p><p>Ожидают данных магазина: {saleJob.review} · Пропущено после проверки: {saleJob.skipped}</p>{saleJob.message&&<p>{saleJob.message}{saleJob.status==='running'?' Повторим автоматически.':''}</p>}{saleJob.limited&&<p>Достигнут предел выдачи eBay. Обработаны не все товары — выберите более узкую категорию.</p>}<p className="micro">Держите эту страницу открытой: проверяем товары небольшими пачками. Прогресс сохраняется; после возвращения продолжим с того же места.</p>{saleJob.status!=='completed'&&<button type="button" className="btn secondary" onClick={()=>void controlSale(saleJob.status==='paused')}>{saleJob.status==='paused'?'Продолжить автоматически':'Приостановить'}</button>}{saleJob.recent.length>0&&<ul>{saleJob.recent.map((item,index)=><li key={index}><span>{hostLabel(item.url)}</span><small>{item.message}</small></li>)}</ul>}</div>}
   </section>
   <section className="surface admin-section"><div className="admin-section-head"><div><h2>{cw.title}</h2><p>{cw.intro}</p></div><button className="btn secondary" onClick={()=>setNewCollection({name:'',nameUz:'',nameEn:''})}><FolderPlus/>{cw.create}</button></div>
    <div className="catalog-collections">{document.collections.length?[...document.collections].sort((a,b)=>a.position-b.position).map(c=><CollectionRow key={`${c.id}:${document.revision}`} value={c} words={cw} disabled={!!busy} onSave={collection=>void command({kind:'collection',collection},cw.saved)}/>):<p className="micro">{cw.empty}</p>}</div>
