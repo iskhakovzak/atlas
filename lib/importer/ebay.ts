@@ -558,7 +558,9 @@ function mapSingleItem(item: EbayItem, listingId: string, url: URL, shipToCountr
   const brand = clean(item.brand, 80) || undefined;
   const category = inferCategory(item, title);
   const variant: ProductVariant = {
-    id: variationId(item, listingId),
+    id: variationId(item, listingId) ?? (itemId === `v1|${listingId}|0` ? itemId : undefined),
+    productId: listingId,
+    sourceUrl: url.href,
     label: clean(item.color, 100) || clean(item.size, 100) || 'Объявление eBay',
     available: status.available,
     availabilityKnown: status.known,
