@@ -31,6 +31,22 @@ html:active-view-transition-type(atlas-page)::view-transition-group(atlas-mobile
 .atlas-skeleton-card:nth-child(3) { opacity: .75; }
 .atlas-skeleton-card:nth-child(4) { opacity: .5; }
 @keyframes atlas-skeleton-shine { to { background-position-x: -240%; } }
+/* Page-shaped placeholders (LoadingCards shape): the cart — lines and the total; my orders — order cards. */
+.atlas-skeleton-card :is(em, u, s) { display: block; border-radius: 10px; background: linear-gradient(100deg, #efefe9 30%, #f8f8f4 50%, #efefe9 70%); background-size: 240% 100%; animation: atlas-skeleton-shine 1.4s linear infinite; text-decoration: none; }
+.sk-basket { grid-template-columns: minmax(0, 1fr); }
+.sk-basket-lines { display: grid; gap: 12px; }
+.sk-basket-line { grid-template-columns: 88px minmax(0, 1fr) 96px; }
+.sk-basket-line > i { width: 88px; height: 88px; border-radius: 14px; }
+.sk-basket-line > em { height: 20px; margin-top: 3px; }
+.sk-basket-total { grid-template-columns: minmax(0, 1fr); }
+.sk-basket-total > u { height: 48px; border-radius: 14px; }
+.sk-order { grid-template-columns: minmax(0, 1fr) 96px; }
+.sk-order > em { height: 26px; border-radius: 999px; }
+.sk-order > s { grid-column: 1 / -1; height: 8px; border-radius: 999px; }
+.sk-order > span:last-child { grid-column: 1 / -1; grid-template-columns: 1fr 1fr; }
+@media (min-width: 900px) { .sk-basket { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; } }
+@media (max-width: 480px) { .sk-basket-line { grid-template-columns: 72px minmax(0, 1fr); } .sk-basket-line > i { width: 72px; height: 72px; } .sk-basket-line > em { grid-column: 2; width: 60%; } }
+html[data-theme="dark"] .atlas-skeleton-card :is(em, u, s) { background-image: linear-gradient(100deg, rgba(255, 255, 255, .05) 30%, rgba(255, 255, 255, .1) 50%, rgba(255, 255, 255, .05) 70%); }
 html[data-theme="dark"] .atlas-skeleton-card { border-color: var(--night-line, rgba(226, 238, 231, .085)); background: var(--night-surface, #111714); box-shadow: none; }
 html[data-theme="dark"] :is(.atlas-skeleton-card > i, .atlas-skeleton-card b) { background-image: linear-gradient(100deg, rgba(255, 255, 255, .05) 30%, rgba(255, 255, 255, .1) 50%, rgba(255, 255, 255, .05) 70%); }
 
@@ -49,7 +65,11 @@ details[id]:is(:target, [data-linked]) > summary { animation: atlas-target-glow 
 /* ---------- Private pages: placeholders, then the page rises in ---------- */
 /* app/access-view.tsx shows page-shaped placeholders while the account loads (they appear only if it takes a moment),
    then marks <main> with .access-arrived for a second so the page's blocks rise in one after another. */
-.access-loading { min-height: 360px; margin: 8px 0 48px; }
+/* A page that is still loading fills the screen, so the footer waits below the fold instead of jumping down when
+   the content arrives (mobile CLS 0.9 on the cart, 26 October 2026). */
+/* No top margin: it collapsed through <main> and every page moved up 8 px when its content replaced the placeholder. */
+.access-loading { min-height: max(360px, calc(100dvh - 60px)); margin: 0 0 48px; }
+.basket-page:has(> .atlas-skeleton) { min-height: calc(100dvh - 60px); }
 #main.access-arrived > :not(.breadcrumb, footer, script, .cabinet) { animation: atlas-rise-in .44s cubic-bezier(.22, 1, .36, 1) both; }
 #main.access-arrived > :nth-child(3) { animation-delay: 50ms; }
 #main.access-arrived > :nth-child(4) { animation-delay: 100ms; }
@@ -179,7 +199,7 @@ img.product-img[data-fade] { opacity: 0; }
   .site-header :is(.wallet-link, .notice-link, .cart-link), .atlas-skeleton, .basket-loading,
   :is(.basket-layout, .basket-empty, .compact-order, .notices-page > .notice-filters, .wallet-grid),
   details[id]:is(:target, [data-linked]) > summary, .atlas-modal .basket-checkout > *, .review-layout > *, .basket-steps li[data-state="current"] > span, .checkout-placed { animation: none; }
-  .atlas-skeleton-card > i, .atlas-skeleton-card b { animation: none; }
+  .atlas-skeleton-card > i, .atlas-skeleton-card b, .atlas-skeleton-card :is(em, u, s) { animation: none; }
   #main.access-arrived *, #main.access-arrived > *, .cabinet-bar span, .cabinet-ticket-form, .support-reply-form, .cabinet-tickets > li { animation: none; }
   /* As specific as the opening rule above, or it never won. */
   details:not(.quote-cost-help, .customs-estimate-help)::details-content { transition: none; }

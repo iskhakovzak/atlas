@@ -1461,6 +1461,9 @@ export const stateSchema = z.object({
   orders: z.array(orderSchema),
   entries: z.array(entrySchema),
   cart: z.array(cartSchema).default([]),
+  /** Recently removed cart lines with their place in the cart, kept by the server so «Вернуть» restores exactly those
+   *  lines where they were (cartRestoreMs); each removal adds to the list, so an older toast still works. */
+  cartRemoved: z.array(z.object({ at: amount, index: z.number().int().nonnegative(), item: cartSchema })).max(20).optional(),
   favorites: z.array(z.string()).default([]),
   checkoutKeys: z.array(z.string()).default([]),
   notifications: z.array(notificationSchema).default([]),

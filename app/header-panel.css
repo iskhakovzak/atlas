@@ -44,7 +44,7 @@ html[data-theme="dark"] :is(.lang-trigger, .lang-menu-list button):focus-visible
   .lang-trigger { min-width: 40px; min-height: 40px; padding: 0 7px; gap: 3px; }
   .lang-trigger .lang-chevron { display: none; }
   .site-header .header-theme .theme-toggle { min-width: 40px; min-height: 40px; }
-  .lang-menu-list { position: fixed; top: 64px; right: 12px; left: auto; max-width: calc(100vw - 24px); }
+  .lang-menu-list { position: fixed; top: calc(64px + env(safe-area-inset-top, 0px)); right: 12px; left: auto; max-width: calc(100vw - 24px); }
 }
 @media (max-width: 359px) {
   .lang-trigger { padding: 0 5px; font-size: 12px; }

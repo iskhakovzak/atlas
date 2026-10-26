@@ -5,6 +5,8 @@ import { XIcon } from "lucide-react"
 import { Dialog as SheetPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
+// The width presets travel with the component, so every page that opens a sheet has them.
+import "../../app/sheet-sizes.css"
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -50,17 +52,23 @@ function SheetContent({
   side = "right",
   showCloseButton = true,
   overlayClassName,
+  size,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
   overlayClassName?: string
+  /** Width preset of a side sheet (app/sheet-sizes.css); the sheet is then an inline-size container named `sheet`,
+   * so what is inside reflows with the sheet's own width, not the window's. */
+  size?: "md" | "lg" | "xl"
 }) {
   return (
     <SheetPortal>
       <SheetOverlay className={overlayClassName} />
       <SheetPrimitive.Content
         data-slot="sheet-content"
+        data-size={size}
+        data-side={side}
         className={cn(
           "fixed z-50 flex flex-col gap-4 bg-background shadow-lg transition ease-in-out data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:animate-in data-[state=open]:duration-500",
           side === "right" &&

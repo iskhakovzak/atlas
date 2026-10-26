@@ -164,13 +164,15 @@ function HomeLinkForm({formId,inputId,errorId,noteId,takesSticky=false}:{formId:
 const HomeResume=lazy(()=>loadChunk(()=>import('./home-resume')).then(module=>({default:module.HomeResume})));
 
 export function HomeHero({showCatalogLink}:{showCatalogLink:boolean}){
- const {status,ready}=useMarket();
+ const {status,ready,sessionHint}=useMarket();
  const {c,locale}=useHomeCopy();
  return <section className="home-hero" aria-labelledby="home-title">
   <h1 id="home-title">{c.hero.title}</h1>
   <p className="home-hero-lead">{c.hero.lead}</p>
   <HomeLinkForm formId="home-link-form" inputId="finds-product-url" errorId="home-link-error" noteId="home-link-note" takesSticky/>
-  {ready&&status==='authenticated'&&<Suspense fallback={null}><HomeResume/></Suspense>}
+  {/* A signed-in visitor (session cookie) keeps the card's place while the account loads, so the stores and links
+      below do not jump down when it arrives (mobile CLS, 26 October 2026). */}
+  {ready&&status==='authenticated'?<Suspense fallback={<div className="home-resume-slot" aria-hidden="true"/>}><HomeResume/></Suspense>:sessionHint&&!ready&&<div className="home-resume-slot" aria-hidden="true"/>}
   <div className="home-stores home-stores-marquee">
    <StoreMarquee label={c.hero.popular} openStore={c.hero.openStore} allStores={c.hero.allStores(storeBrands.length)} hint={c.hero.storesHint} locale={locale}/>
    <p className="home-stores-hint tip-text">{c.hero.storesHint}</p>

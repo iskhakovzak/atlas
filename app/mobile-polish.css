@@ -1,6 +1,6 @@
 /* Photo gestures preserve vertical document scrolling and browser pinch zoom. */
 /* The informational notice returns when the dialog closes; it cannot cover a trapped form. */
-body:has([role=dialog][data-state=open]) .storage-notice{visibility:hidden}
+body:has([role=dialog][data-state=open],[role=listbox][data-state=open]) .storage-notice{visibility:hidden}
 
 @media(max-width:600px){
   /* Let copy reflow instead of creating hidden page overflow. */
@@ -24,3 +24,17 @@ body:has([role=dialog][data-state=open]) .storage-notice{visibility:hidden}
    still stops where the finger leaves it). The product gallery and the home catalog row snap on their own. */
 :is(.home-stores ul,.find-collections,.catalog-sets,.stores-chips,.orders-recipients,.notice-filters,.product-gallery-thumbnails,.import-gallery,.catalog-photo-gallery>div,.audit-folders,.admin-tabs,.legal-nav){scroll-snap-type:x proximity;scroll-padding-inline:16px}
 :is(.home-stores ul,.find-collections,.catalog-sets,.stores-chips,.orders-recipients,.notice-filters,.product-gallery-thumbnails,.import-gallery,.catalog-photo-gallery>div,.audit-folders,.admin-tabs,.legal-nav)>*{scroll-snap-align:start}
+/* Sideways rows fade at an edge only while more is hidden that way, so a row that ends at the screen edge reads as
+   "there is more". No script: a scroll-driven animation moves the fade; a row that fits, an older browser, or a row
+   with its own mask (home stores) shows no fade at all. */
+@property --edge-start{syntax:'<length>';inherits:false;initial-value:0px}
+@property --edge-end{syntax:'<length>';inherits:false;initial-value:0px}
+@keyframes atlas-edge-fade{0%{--edge-start:0px;--edge-end:28px}8%{--edge-start:28px}92%{--edge-end:28px}100%{--edge-start:28px;--edge-end:0px}}
+@supports (animation-timeline: scroll()){
+  :is(.catalog-categories,.find-collections,.catalog-sets,.stores-chips,.orders-recipients,.product-gallery-thumbnails,.import-gallery,.audit-folders,.admin-tabs,.legal-nav){
+    -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 var(--edge-start),#000 calc(100% - var(--edge-end)),transparent 100%);
+    mask-image:linear-gradient(90deg,transparent 0,#000 var(--edge-start),#000 calc(100% - var(--edge-end)),transparent 100%);
+    animation:atlas-edge-fade linear both;animation-timeline:scroll(self inline)}
+}
+/* The fade follows the finger, it is not motion: the reduced-motion reset (experience.css) must not turn it into a timed one. */
+@media (prefers-reduced-motion: reduce){@supports (animation-timeline: scroll()){:is(.catalog-categories,.find-collections,.catalog-sets,.stores-chips,.orders-recipients,.product-gallery-thumbnails,.import-gallery,.audit-folders,.admin-tabs,.legal-nav){animation-duration:auto!important}}}

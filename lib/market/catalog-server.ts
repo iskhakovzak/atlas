@@ -4,7 +4,17 @@ import type {Product} from './domain';
 import type {Extracted} from '../importer/extract';
 import {prepareCatalogStorage,decodeCatalogStorage,catalogStorageChunkKeys,CatalogCapacityError} from './catalog-storage';
 
+// The last catalog this isolate read, keyed by the stored head. Chunk generations are immutable and a changed catalog
+// gets a new head, so the same head means the same document: no chunk reads and no schema check again. Callers get a
+// copy, since some of them edit the document before saving it.
+let lastRead:{head:string;document:CatalogDocument}|undefined;
 export async function readStoredCatalogDocument(value:string,db=database()){
+  if(lastRead?.head===value)return structuredClone(lastRead.document);
+  const document=await readCatalogChunks(value,db);
+  lastRead={head:value,document};
+  return structuredClone(document);
+}
+async function readCatalogChunks(value:string,db:ReturnType<typeof database>){
   const keys=catalogStorageChunkKeys(value),chunks=new Map<string,string>();
   // D1 limits both bind parameters and Worker subrequests. Fetch a bounded set of immutable rows per RPC,
   // then let the decoder parse one logical chunk at a time from the cache.

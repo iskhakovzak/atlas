@@ -22,7 +22,20 @@ export function ProductImage({product,className='',decorative=false,locale='ru',
 export function PageHeading({overline,title,description,children}:{overline:string;title:string;description:string;children?:ReactNode}){return <div className="page-heading"><div><div className="eyebrow">{overline}</div><h1>{title.replace(/\.$/,'')}</h1><p>{description}</p></div>{children}</div>}
 export function Empty({title,description,href,label,children}:{title:string;description:string;href?:string;label?:string;children?:ReactNode}){return <div className="empty-state"><span className="empty-icon"><Package size={30}/></span><h2>{title}</h2><p>{description}</p>{href&&<Link href={href} className="btn primary">{label??'В каталог'}<ArrowUpRight size={18}/></Link>}{children}</div>}
 /** Loading placeholder: shimmering cards in the shape of the page's list, with the text for screen readers only. */
-export function LoadingCards({label,rows=3}:{label:string;rows?:number}){return <div className="atlas-skeleton" role="status" aria-live="polite"><span className="sr-only">{label}</span>{Array.from({length:rows},(_,index)=><div key={index} className="atlas-skeleton-card" aria-hidden="true"><i/><span><b/><b/><b/></span></div>)}</div>}
+/**
+ * Placeholders shaped like the page that is loading, so nothing jumps when it arrives: `basket` — cart lines (photo, name,
+ * price, controls) and the total; `order` — order cards (number and status, progress, sum); `list` — plain rows.
+ */
+export function LoadingCards({label,rows=3,shape='list'}:{label:string;rows?:number;shape?:'list'|'basket'|'order'}){
+ const items=Array.from({length:rows},(_,index)=>index);
+ if(shape==='basket')return <div className="atlas-skeleton sk-basket" role="status" aria-live="polite"><span className="sr-only">{label}</span>
+  <div className="sk-basket-lines" aria-hidden="true">{items.map(index=><div key={index} className="atlas-skeleton-card sk-basket-line"><i/><span><b/><b/><b/></span><em/></div>)}</div>
+  <div className="atlas-skeleton-card sk-basket-total" aria-hidden="true"><span><b/><b/><b/></span><u/></div>
+ </div>;
+ if(shape==='order')return <div className="atlas-skeleton sk-orders" role="status" aria-live="polite"><span className="sr-only">{label}</span>
+  {items.map(index=><div key={index} className="atlas-skeleton-card sk-order" aria-hidden="true"><span><b/><b/></span><em/><s/><span><b/><b/></span></div>)}
+ </div>;
+ return <div className="atlas-skeleton" role="status" aria-live="polite"><span className="sr-only">{label}</span>{items.map(index=><div key={index} className="atlas-skeleton-card" aria-hidden="true"><i/><span><b/><b/><b/></span></div>)}</div>}
 export function Expiry({expiresAt,locale='ru'}:{expiresAt:number;locale?:Locale}){const [now,setNow]=useState(0);useEffect(()=>{const t=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(t)},[]);const c=locale==='ru'?{checking:'Проверяем срок расчёта…',active:'Расчёт действует',expired:'Расчёт истёк'}:isUzbek(locale)?uzText(locale, {checking:'Hisob muddati tekshirilmoqda…',active:'Hisob amal qiladi',expired:'Hisob muddati tugadi'}):{checking:'Checking estimate validity…',active:'Estimate valid for',expired:'Estimate expired'};if(!now)return <span className="expiry">{c.checking}</span>;const seconds=Math.max(0,Math.floor((expiresAt-now)/1000));return <span className={seconds?'expiry':'expiry expired'}>{seconds?c.active+' '+Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0'):c.expired}</span>}
 export function SectionLink({href,children}:{href:string;children:ReactNode}){return <Link className="text-link" href={href}>{children}<ChevronRight size={17}/></Link>}
 

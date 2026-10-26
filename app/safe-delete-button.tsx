@@ -5,7 +5,7 @@ import { AlertTriangle, Trash2 } from "lucide-react";
 import {pickLocale} from '@/lib/market/uz-cyrl';
 import type {Locale} from '@/lib/market/i18n';
 
-export function SafeDeleteButton({ onConfirm, label, itemName, locale, confirmLabel, onArm }: {
+export function SafeDeleteButton({ onConfirm, label, itemName, locale, confirmLabel, onArm, instant }: {
   onConfirm: () => Promise<boolean> | boolean;
   label: string;
   itemName: string;
@@ -14,6 +14,8 @@ export function SafeDeleteButton({ onConfirm, label, itemName, locale, confirmLa
   confirmLabel?: string;
   /** Told when the button waits for the second tap (true) and when it stops waiting (false), e.g. to show a warning. */
   onArm?: (armed: boolean) => void;
+  /** One tap is enough: the action itself offers «Вернуть» afterwards (cart lines), so a second tap only slows people down. */
+  instant?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
@@ -29,7 +31,7 @@ export function SafeDeleteButton({ onConfirm, label, itemName, locale, confirmLa
   return <button type="button" className={`remove-item${confirming ? " confirming" : ""}`} disabled={pending}
     aria-label={`${confirming ? text : label}: ${itemName}`}
     onClick={async () => {
-      if (!confirming) { setConfirming(true); onArm?.(true); return; }
+      if (!confirming && !instant) { setConfirming(true); onArm?.(true); return; }
       setPending(true);
       try { await onConfirm(); } finally { setPending(false); setConfirming(false); onArm?.(false); }
     }}>

@@ -149,3 +149,8 @@ test('the app link and the Apple state cookie are shaped for the handoff',()=>{
  assert.equal(appAuthLink(code,'/orders?x=1'),`uz.atlasmarket.app://auth?code=${code}&return_to=${encodeURIComponent('/orders?x=1')}`);
  assert.equal(cookie(APPLE_STATE_COOKIE,'st',600,'None'),'__Host-atlas_apple=st; Path=/; Max-Age=600; HttpOnly; Secure; SameSite=None');
 });
+
+test('a return path that normalises to another site goes home instead', () => {
+ for (const value of ['/.//evil.com', '/%2e//evil.com', '/x/..//evil.com', '//evil.com', '/\\evil.com']) assert.equal(safeReturnTo(value), '/', value);
+ assert.equal(safeReturnTo('/cart?x=1#a'), '/cart?x=1#a');
+});

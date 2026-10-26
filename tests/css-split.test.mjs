@@ -32,20 +32,23 @@ const LAYOUT_CSS = [
 const OPERATOR = 'operator.css', CATALOG = 'catalog-pages.css', STORES = 'stores-pages.css', LINK = 'link-pages.css',
   MEMBER = 'member-pages.css', CARDS = 'catalog-cards.css';
 const MEMBER_ROUTE = [CATALOG, STORES, LINK, MEMBER, CARDS];
+// The customer's own pages use no rule of the catalog and store directory files (CSS coverage of every state, 26.10.2026):
+// they skip ~50 KB of styles there, which the phone matched against every element on each style recalculation.
+const CUSTOMER_ROUTE = [LINK, MEMBER, CARDS];
 /** Page → the split files it imports, in order, at the top of its CSS imports. */
 const PAGES = {
   'app/page.tsx': ['home-only.css'],
   'app/admin/page.tsx': [OPERATOR, ...MEMBER_ROUTE],
   'app/analytics/page.tsx': [OPERATOR, STORES, MEMBER, CARDS],
   'app/batch-import/page.tsx': [OPERATOR, CATALOG, MEMBER, CARDS],
-  'app/account/page.tsx': MEMBER_ROUTE,
-  'app/balance/page.tsx': MEMBER_ROUTE,
-  'app/cart/page.tsx': MEMBER_ROUTE,
-  'app/declaration/page.tsx': MEMBER_ROUTE,
-  'app/identity/page.tsx': MEMBER_ROUTE,
-  'app/notifications/page.tsx': MEMBER_ROUTE,
+  'app/account/page.tsx': CUSTOMER_ROUTE,
+  'app/balance/page.tsx': CUSTOMER_ROUTE,
+  'app/cart/page.tsx': CUSTOMER_ROUTE,
+  'app/declaration/page.tsx': CUSTOMER_ROUTE,
+  'app/identity/page.tsx': CUSTOMER_ROUTE,
+  'app/notifications/page.tsx': CUSTOMER_ROUTE,
   'app/operations/page.tsx': MEMBER_ROUTE,
-  'app/orders/page.tsx': MEMBER_ROUTE,
+  'app/orders/page.tsx': CUSTOMER_ROUTE,
   'app/catalog/page.tsx': [CATALOG, CARDS],
   'app/favorites/page.tsx': [CATALOG, CARDS],
   'app/login/page.tsx': [CATALOG, MEMBER],

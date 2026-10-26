@@ -6,7 +6,9 @@ export function safeReturnTo(value:string|null|undefined):string{
  if(!value||!value.startsWith('/')||value.startsWith('//')||value.includes('\\'))return '/';
  let url:URL;
  try{url=new URL(value,'https://atlas.local')}catch{return '/'}
- if(url.origin!=='https://atlas.local'||reservedPaths.has(url.pathname)||url.pathname.startsWith('/api/'))return '/';
+ // Checked after normalising too: "/.//evil.com" or "/x/..//evil.com" resolve to the path "//evil.com", which a
+ // browser reads as another site.
+ if(url.origin!=='https://atlas.local'||url.pathname.startsWith('//')||reservedPaths.has(url.pathname)||url.pathname.startsWith('/api/'))return '/';
  return url.pathname+url.search+url.hash;
 }
 

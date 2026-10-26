@@ -7,7 +7,7 @@
 .order-group { margin-bottom: 14px; padding: 12px 12px 4px; border: 1px solid var(--home-line); border-radius: 22px; background: var(--home-soft); }
 .order-group-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 6px 16px; padding: 2px 4px 12px; }
 .order-group-main { display: grid; gap: 4px; min-width: 0; flex: 1 1 200px; }
-.order-group-title { font-size: 16px; font-weight: 800; line-height: 1.25; color: var(--home-ink); }
+.order-group-title { margin: 0; font-size: 16px; font-weight: 800; line-height: 1.25; color: var(--home-ink); }
 .order-group-main > small { color: var(--home-muted); font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
 .order-group-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
 .order-group-badges .order-x-status { gap: 4px; }
