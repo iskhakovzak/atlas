@@ -1,0 +1,10 @@
+/* Side-sheet width presets (SheetContent size): md for a short form, lg for a product or an order, xl for an operator table.
+   Each sized sheet is a container, so its content uses @container sheet (...) and reflows with the sheet's own width. */
+[data-slot="sheet-content"][data-size] { container: sheet / inline-size; }
+@media (min-width: 640px) {
+  [data-slot="sheet-content"][data-size="md"]:is([data-side="left"], [data-side="right"]) { width: min(100%, 30rem) !important; max-width: 30rem !important; }
+}
+@media (min-width: 1280px) {
+  [data-slot="sheet-content"][data-size="lg"]:is([data-side="left"], [data-side="right"]) { width: min(72rem, max(42rem, 64vw)) !important; max-width: calc(100vw - 48px) !important; }
+  [data-slot="sheet-content"][data-size="xl"]:is([data-side="left"], [data-side="right"]) { width: min(90rem, max(48rem, 82vw)) !important; max-width: calc(100vw - 32px) !important; }
+}

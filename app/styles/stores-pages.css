@@ -118,7 +118,6 @@ html[data-theme="dark"] .legal-document > header > svg {
 }
 
 /* globals.css draws these with the light #e5e9f1, which read as bright stripes on the Night page. */
-html[data-theme="dark"] .warehouse-customer-note span,
 html[data-theme="dark"] .legal-document section p,
 html[data-theme="dark"] .legal-document section ul,
 html[data-theme="dark"] .legal-document section li,
@@ -487,3 +486,9 @@ html:not([data-theme="dark"]) .store-tile-mark { background: var(--day-ink); bor
 @media (max-width: 599px) {
   html:not([data-theme="dark"]) .stores-hero { --day-h1-size: 24px; padding: 14px 14px 12px; }
 }
+
+/* "Your stores" outline while the account loads: tiles of the same size as the real buttons. */
+.stores-mine-placeholder { display: block; width: 84px; height: 88px; border-radius: 16px; background: linear-gradient(100deg, #efefe9 30%, #f8f8f4 50%, #efefe9 70%); background-size: 240% 100%; animation: atlas-skeleton-shine 1.4s linear infinite; }
+html[data-theme="dark"] .stores-mine-placeholder { background-image: linear-gradient(100deg, rgba(255, 255, 255, .05) 30%, rgba(255, 255, 255, .1) 50%, rgba(255, 255, 255, .05) 70%); }
+@media (prefers-reduced-motion: reduce) { .stores-mine-placeholder { animation: none; } }
+@media (min-width: 761px) { .stores-mine-placeholder { width: 100%; } }

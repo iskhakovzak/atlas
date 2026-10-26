@@ -16,7 +16,7 @@ html body :is(.home-link-field, .lo-link-field, .stores-link-field, .hw-demo-inp
 html body :is(.home-link-field, .lo-link-field, .stores-link-field, .hw-demo-input) > input:is(:focus, :focus-visible) {
   border: 0; outline: none; box-shadow: none; background: transparent;
 }
-html body :is(.home-link-form, .lo-link):focus-within { border-color: var(--home-accent, #204e3d); box-shadow: 0 0 0 2px color-mix(in srgb, var(--home-accent, #204e3d) 16%, transparent); }
+html body :is(.home-link-form, .lo-link):focus-within { border-color: var(--home-accent, #204e3d); box-shadow: 0 0 0 2px var(--home-accent, #204e3d); }
 /* A focused link field already supplies the action; the floating duplicate must not cover the keyboard/form. */
 @media (max-width: 760px) {
   body:has(#finds-product-url:focus, #how-product-url:focus) .home-sticky { visibility: hidden; pointer-events: none; }

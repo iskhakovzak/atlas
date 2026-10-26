@@ -14,7 +14,8 @@ export function ToasterSlot({theme,label}:{theme:'dark'|'light'|'system';label:s
     const id=setTimeout(show,2500);return()=>clearTimeout(id);
   },[]);
   // Wide screens: under the 80px header, so a toast after a cart action does not cover the cart and the account. Phones
-  // keep sonner's own top offset (the bottom holds the sticky totals, the paste dock and the consent banner).
+  // keep the top too (the bottom holds the sticky totals, the paste dock and the consent banner), below the header and
+  // the notch, which the app shell draws under (viewportFit: cover).
   // The toast region's screen-reader name in the page language (sonner's default is the English "Notifications").
-  return on?<Suspense fallback={null}><Toaster position="top-right" richColors theme={theme} offset={{top:88,right:24}} containerAriaLabel={label}/><Mounted/></Suspense>:null;
+  return on?<Suspense fallback={null}><Toaster position="top-right" richColors theme={theme} offset={{top:88,right:24}} mobileOffset={{top:"calc(68px + env(safe-area-inset-top))",left:12,right:12}} containerAriaLabel={label}/><Mounted/></Suspense>:null;
 }

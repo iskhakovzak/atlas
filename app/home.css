@@ -229,3 +229,5 @@ html body .home-faq details[open] summary::after { content: "+"; transform: rota
 @media (prefers-reduced-motion: reduce) {
   .theme-toggle :is(.tt-icon, .tt-half) { transition: none !important; }
 }
+/* The place of the signed-in "continue" card (app/home-resume.tsx) while it loads: its height and top margin. */
+.home-resume-slot { min-height: 56px; margin-top: 14px; }

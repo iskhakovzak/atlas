@@ -424,6 +424,26 @@ html[data-theme="dark"] .lo-speed-chip { border-color: var(--night-line); backgr
   .lo-product { grid-template-columns: 240px minmax(0, 1fr); align-items: start; }
   .lo-product.lo-product-plain { grid-template-columns: minmax(0, 1fr); }
 }
+/* Wide screens: a larger photo, and beside it the facts Atlas read from the store (.lo-store-facts), so the half of the
+   card next to the photo is not empty (owner, 26 October 2026). Phones: one column, facts stay in the data card. */
+.lo-store-facts { display: none; }
+@media (min-width: 640px) {
+  .lo-store-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px 16px; margin: 16px 0 0; padding: 14px 0 0; border-top: 1px solid var(--home-line); }
+  /* .lo-product raises these above the home quote card rules (.home-quote dl > div, dd) the page also wears. */
+  .lo-product .lo-store-facts > div { display: grid; gap: 2px; min-width: 0; padding: 0; border: 0; }
+  .lo-product .lo-store-facts dt { color: var(--home-muted); font-size: 12.5px; font-weight: 600; }
+  .lo-product .lo-store-facts dd { margin: 0; text-align: left; white-space: normal; color: var(--home-ink); font-size: 14.5px; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+  .lo-store-facts .lo-store-facts-link { grid-column: 1 / -1; }
+  /* The facts already say the store does not report stock: the same line under the option card would repeat it. */
+  .lo-product:has(.lo-store-facts) .lo-stock-hint { display: none; }
+  .lo-store-facts .lo-source-link { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; }
+}
+@media (min-width: 1100px) {
+  .lo-product:not(.lo-product-plain) { grid-template-columns: clamp(280px, 38%, 380px) minmax(0, 1fr); gap: 14px 28px; }
+  .lo-product .lo-gallery .product-gallery-stage { height: 380px; }
+  .lo-product h2 { font-size: 24px; }
+}
+
 /* Beside the photo, in the space that stayed empty: small colour buttons; sizes and the rest stay in the option card,
    which hides its own colour row (owner, 11 October 2026). Phones keep the colours in the card. */
 .lo-colours-aside { display: none; }
@@ -541,10 +561,15 @@ html[data-theme="dark"] .lo-added { border-color: rgba(128, 208, 172, .35); back
 .calc-customs.compact { padding: 10px 12px; }
 .calc-customs.compact .calc-customs-lines { display: none; }
 .lo-gallery { min-width: 0; }
-.lo-gallery .product-gallery-stage { max-height: 300px; margin-inline: auto; }
+/* An explicit height, not aspect-ratio: 1 capped by max-height. With that pair the box was 306 × 240 on a phone, and
+   Safari resolves the slides' and photos' 100 % heights against the uncapped square, so photos showed cropped or shifted.
+   The product sheet's gallery uses a fixed height for the same reason (catalog-cards.css). */
+.lo-gallery .product-gallery-stage { aspect-ratio: auto; height: 300px; margin-inline: auto; }
+.lo-gallery .product-gallery-slide .product-img { max-height: 100%; }
 .lo-gallery .product-gallery-hint { display: none; }
 @media (max-width: 639px) {
-  .lo-gallery .product-gallery-stage { max-height: 240px; }
+  /* Store photos are mostly portrait (4:5, 3:4): a taller box on phones keeps them from shrinking to a stripe. */
+  .lo-gallery .product-gallery-stage { height: clamp(240px, 84vw, 360px); }
   .lo-gallery .product-gallery-thumbnails { display: none; }
   .lo-gallery .product-gallery-controls { margin-top: 4px; }
 }
@@ -947,7 +972,9 @@ button.atlas-check:disabled { opacity: 1; cursor: not-allowed; }
   background: linear-gradient(90deg, var(--skel-a) 25%, var(--skel-b) 50%, var(--skel-a) 75%) 0 0 / 220% 100%;
   animation: lo-shimmer 1.5s ease-in-out infinite;
 }
-.lo-skel-photo { width: 100%; height: auto; aspect-ratio: 1; max-height: 260px; border-radius: 14px; }
+/* The same box as the gallery that replaces it (.lo-gallery), so the page does not jump when the photos arrive. */
+.lo-skel-photo { width: 100%; height: 300px; border-radius: 14px; }
+@media (max-width: 639px) { .lo-skel-photo { height: clamp(240px, 84vw, 360px); } }
 .lo-skel-brand { width: 38%; height: 12px; margin: 4px 0 12px; }
 .lo-skel-title { width: min(82%, 360px); height: 22px; margin: 4px 0 10px; }
 .lo-store-price .lo-skel-price { display: inline-block; width: 88px; height: 16px; vertical-align: -2px; }
@@ -1014,3 +1041,7 @@ html.atlas-step-morph .atlas-modal { view-transition-name: atlas-step; }
 /* Back to the app (app/auth-return-view.tsx): the brand arrow inside a turning arc. */
 .atlas-loader { position: relative; display: grid; place-items: center; width: 56px; height: 56px; color: #1f4d3b; }
 html[data-theme="dark"] .atlas-loader { color: var(--night-jade, #80d0ac); }
+html[data-theme="dark"] .lo-store-facts { border-top-color: var(--night-line); }
+
+/* Mobile CLS (26 October 2026): the link's buttons wait hidden while the store is read, holding their row. */
+.lo-source-actions.is-waiting { visibility: hidden; }

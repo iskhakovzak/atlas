@@ -47,7 +47,7 @@ const byShowcase = (a: CatalogItem, b: CatalogItem) =>
  * store card (deep-linked as ?brand=) that explains how to order from the store.
  */
 export function StoresDirectory() {
-  const { state, pricing, catalogProducts, loadCatalog } = useMarket();
+  const { state, pricing, catalogProducts, loadCatalog, sessionHint, ready } = useMarket();
   const locale = state.communication.language as Locale;
   const c = storesCopy[locale];
   const [query, setQuery] = useState('');
@@ -178,9 +178,12 @@ export function StoresDirectory() {
       </div>
     </header>
 
-    {mine.length > 0 && <section className="stores-shelf stores-mine" aria-labelledby="stores-mine-title">
+    {/* A signed-in visitor gets the shelf's outline while the account loads, so the storefronts below do not jump
+        down when "your stores" arrive (mobile CLS, 26 October 2026). */}
+    {(mine.length > 0 || (sessionHint && !ready)) && <section className={"stores-shelf stores-mine" + (ready ? "" : " is-loading")} aria-labelledby="stores-mine-title" aria-busy={!ready || undefined}>
       <h2 id="stores-mine-title">{c.mine}</h2>
-      <ul>{mine.map((brand) => <li key={brand.key}><button type="button" onClick={() => setOpen(brand)}><StoreLogo brand={brand} size={44} loading="eager" /><span>{brand.name}</span></button></li>)}</ul>
+      <ul>{ready ? mine.map((brand) => <li key={brand.key}><button type="button" onClick={() => setOpen(brand)}><StoreLogo brand={brand} size={44} loading="eager" /><span>{brand.name}</span></button></li>)
+        : [0, 1, 2, 3].map((key) => <li key={key} aria-hidden="true"><span className="stores-mine-placeholder" /></li>)}</ul>
     </section>}
 
     {showcase.length >= showcaseMin && <section className={'stores-showcase' + (showcaseOpen ? ' open' : '') + (showcase.length <= 8 ? ' le8' : '')} aria-labelledby="stores-showcase-title">

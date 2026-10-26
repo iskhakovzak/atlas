@@ -1098,7 +1098,10 @@ html:not([data-theme="dark"]) .cabinet-next.info .cabinet-next-icon { background
 .cabinet-next-cart { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .cabinet-next-thumbs { display: flex; gap: 6px; }
 .cabinet-next-thumb { display: grid; place-items: center; flex: none; width: 44px; height: 44px; overflow: hidden; border: 1px solid var(--home-line); border-radius: 10px; background: #fff; }
-.cabinet-next-thumb img { width: 100%; height: 100%; object-fit: cover; }
+/* Absolutely filled: in the grid cell a 100 % height resolved to the photo's own height (150 px), the photo was centred
+   in a 44 px window and showed as an empty tile (26 October 2026). */
+.cabinet-next-thumb { position: relative; }
+.cabinet-next-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .cabinet-next-thumb .no-photo { display: grid; place-items: center; width: 100%; height: 100%; color: var(--home-muted); }
 .cabinet-next-thumb .no-photo svg { width: 20px; height: 20px; }
 .cabinet-next-thumb .no-photo span { display: none; }
@@ -1903,3 +1906,11 @@ html[data-theme="dark"] .login-done-bar::after { background: var(--night-jade, #
   .login-done-bar::after { animation: none; transform: scaleX(.92); }
   .login-card > .login-panel, .login-panel > .login-form, .login-form .login-sent, .tg-login-wait, .login-card > .notice, .tg-login-wait > svg { animation: none; }
 }
+
+/* Moved here from catalog-pages.css and stores-pages.css (26.10.2026): the orders page shows them, and the member pages no
+   longer load the catalog and store directory styles. */
+.payment-reserve-hint{display:flex;align-items:flex-start;gap:9px;margin-top:12px;padding:11px;border:1px solid var(--border);border-radius:10px;background:var(--background)}
+.payment-reserve-hint b{font-size:13px}
+.payment-reserve-hint small{font-size:11px}
+/* globals.css draws it with the light #e5e9f1, which read as a bright stripe on the Night page. */
+html[data-theme="dark"] .warehouse-customer-note span { color: var(--atlas-dark-ink); }

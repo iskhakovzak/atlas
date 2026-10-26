@@ -22,7 +22,8 @@ const noon = Date.UTC(2026, 9, 14, 7, 0); // 12:00 in Tashkent
 const origin = 'https://atlasmarket.uz';
 const notice = (id, at, extra = {}) => ({ id, at, title: id, message: '', read: false, ...extra });
 const withCommunication = (extra, state = blank()) => ({ ...state, communication: { ...state.communication, ...extra } });
-const read = (path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
+// Source-text assertions slice on "\n}\n"; a Windows checkout (core.autocrlf) must not break them.
+const read = (path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 
 test('new notices: by id, unread, fresh, oldest first; the same list is nothing new', () => {
   const previous = { notifications: [notice('a', noon - 5_000)] };

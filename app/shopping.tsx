@@ -45,9 +45,9 @@ const placedCopy = /*@__PURE__*/withCyrillic({
   en: { opening: "Opening your orders" },
 });
 const keepCopy = /*@__PURE__*/withCyrillic({
-  ru: { save: "В избранное", saved: "В избранном", later: "Отложить", laterLabel: "Отложить в избранное", laterDone: "Отложено в избранное", open: "Открыть избранное", removeVariant: "Удалить вариант", removeAll: (n: number) => `Удалить все (${n})`, variants: "Варианты этого товара" },
-  uz: { save: "Saqlanganlarga", saved: "Saqlanganlarda", later: "Qoldirish", laterLabel: "Saqlanganlarga qoldirish", laterDone: "Saqlanganlarga qoldirildi", open: "Saqlanganlarni ochish", removeVariant: "Variantni o‘chirish", removeAll: (n: number) => `Hammasini o‘chirish (${n})`, variants: "Shu tovar variantlari" },
-  en: { save: "Save", saved: "Saved", later: "Later", laterLabel: "Save for later", laterDone: "Moved to favourites", open: "Open favourites", removeVariant: "Remove option", removeAll: (n: number) => `Remove all (${n})`, variants: "Options of this product" },
+  ru: { save: "В избранное", saved: "В избранном", later: "Отложить", laterLabel: "Отложить в избранное", laterDone: "Отложено в избранное", open: "Открыть избранное", removed: (name: string) => `Удалено из корзины: ${name}`, undo: "Вернуть", removeVariant: "Удалить вариант", removeAll: (n: number) => `Удалить все (${n})`, variants: "Варианты этого товара" },
+  uz: { save: "Saqlanganlarga", saved: "Saqlanganlarda", later: "Qoldirish", laterLabel: "Saqlanganlarga qoldirish", laterDone: "Saqlanganlarga qoldirildi", open: "Saqlanganlarni ochish", removed: (name: string) => `Savatdan olib tashlandi: ${name}`, undo: "Qaytarish", removeVariant: "Variantni o‘chirish", removeAll: (n: number) => `Hammasini o‘chirish (${n})`, variants: "Shu tovar variantlari" },
+  en: { save: "Save", saved: "Saved", later: "Later", laterLabel: "Save for later", laterDone: "Moved to favourites", open: "Open favourites", removed: (name: string) => `Removed from cart: ${name}`, undo: "Undo", removeVariant: "Remove option", removeAll: (n: number) => `Remove all (${n})`, variants: "Options of this product" },
 });
 import { useStickyFit } from "./sticky-fit";
 import { CheckoutChecklist, CheckoutReviewTable, ReviewConfirmBar, productGroups, shownVariant, storeName } from "./checkout-review";
@@ -464,6 +464,17 @@ export function CartView() {
     const ids = lines.map((line) => line.id);
     if (await act({ type: "cart-remove", id: ids[0], ids: ids.length > 1 ? ids : undefined })) toast.success(kc.laterDone, { action: { label: kc.open, onClick: () => window.location.assign("/favorites") } });
   }
+  /** Removes the lines, then offers «Вернуть» for 8 s: the server restores its own copy of them (cart-restore).
+   *  Both wait for a save already under way (`queue`) instead of being dropped, since one tap now removes. */
+  async function removeWithUndo(ids: string[], name: string) {
+    const removed = await act({ type: "cart-remove", id: ids[0], ids: ids.length > 1 ? ids : undefined }, { queue: true });
+    if (removed) toast.message(kc.removed(name), { duration: 8000, action: { label: kc.undo, onClick: () => void restoreLines(ids, name) } });
+    return removed;
+  }
+  async function restoreLines(ids: string[], name: string) {
+    // The toast closes on its button; if the restore did not go through, a new toast offers it again.
+    if (!await act({ type: "cart-restore", ids }, { queue: true })) toast.error(kc.removed(name), { duration: 8000, action: { label: kc.undo, onClick: () => void restoreLines(ids, name) } });
+  }
   /** The heart (keeps the line) and "save for later" (saves, then removes), for a catalog product only. */
   function keepActions(lines: CartItem[]) {
     const match = catalogMatch(lines[0]);
@@ -512,7 +523,7 @@ export function CartView() {
       <div className="basket-controls">
         <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} pending={pendingQuantities} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity }, { queue: true })} />
         {keepActions([item])}
-        <SafeDeleteButton label={c.item.remove} itemName={item.product.name} locale={locale} onConfirm={() => act({ type: "cart-remove", id: item.id })} />
+        <SafeDeleteButton label={c.item.remove} itemName={item.product.name} locale={locale} instant onConfirm={() => removeWithUndo([item.id], item.product.name)} />
       </div>
       {renderNote(item)}
     </article>;
@@ -546,7 +557,7 @@ export function CartView() {
         <div className="basket-price"><strong>{formatSum(total, locale)}</strong><small>{c.item.forQuantity(units)}</small></div>
         <div className="basket-controls">
           {keepActions(lines)}
-          <SafeDeleteButton label={kc.removeAll(lines.length)} itemName={lead.product.name} locale={locale} onConfirm={() => act({ type: "cart-remove", id: lead.id, ids })} />
+          <SafeDeleteButton label={kc.removeAll(lines.length)} itemName={lead.product.name} locale={locale} instant onConfirm={() => removeWithUndo(ids, lead.product.name)} />
         </div>
       </article>
       <ul className="basket-variants" aria-label={kc.variants}>{lines.map((item) => {
@@ -559,7 +570,7 @@ export function CartView() {
           </div>
           <QuantityControl key={`${item.id}:${item.quantity}`} item={item} c={c} pending={pendingQuantities} save={(quantity) => act({ type: "cart-quantity", id: item.id, quantity }, { queue: true })} />
           <strong className="basket-variant-sum">{formatSum(lineTotal(item), locale)}</strong>
-          <SafeDeleteButton label={kc.removeVariant} itemName={[item.product.name, shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ")} locale={locale} onConfirm={() => act({ type: "cart-remove", id: item.id })} />
+          <SafeDeleteButton label={kc.removeVariant} itemName={[item.product.name, shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · ")} locale={locale} instant onConfirm={() => removeWithUndo([item.id], [item.product.name, shownVariant(item.variant, item.product.sourceOptions)].filter(Boolean).join(" · "))} />
           {itemNotes(item)}
           {renderNote(item)}
         </li>;
@@ -683,7 +694,7 @@ export function CartView() {
     <header className="basket-head"><h1>{c.title}</h1></header>
     {error
       ? <section className="basket-empty"><span className="basket-empty-icon" aria-hidden="true"><ShoppingBag size={28} /></span><h2>{c.signin.title}</h2><p>{c.signin.text}</p><div className="basket-empty-actions"><Link className="btn primary" href="/login?return_to=%2Fcart">{c.signin.action}<ArrowRight size={18} aria-hidden="true" /></Link></div></section>
-      : <LoadingCards label={c.loading} />}
+      : <LoadingCards label={c.loading} rows={2} shape="basket" />}
   </div>;
 
   // Placed: a short confirmation (a drawn check and a filling bar) while My orders opens; the link is there if it takes long.
@@ -762,7 +773,7 @@ export function CartView() {
           {summaryLines}
           {customsPanel}
           {balance > 0 && <div className="basket-balance"><Checkbox id="use-balance" checked={useBalance} onCheckedChange={(value) => setUseBalance(value === true)} /><label htmlFor="use-balance">{c.summary.balance}<small>{c.summary.available}: {formatSum(balance, locale)}</small></label></div>}
-          <div className="basket-total bill-total"><span>{c.summary.payable}</span><strong><Money value={payable} locale={locale} /></strong></div>
+          <div className="basket-total bill-total"><span>{c.summary.payable}</span><strong><Money value={payable} locale={locale} animate /></strong></div>
           {lines.length > 0 && <PriceHold expiresAt={earliestExpiry} c={c} />}
           <button ref={setSummaryCta} type="button" className="btn primary basket-cta" disabled={verifying} aria-busy={verifying || selecting} aria-disabled={!lines.length || selecting || undefined} aria-describedby={!lines.length ? "basket-none-hint" : undefined} onClick={() => void openCheckout()}>{verifying ? <>{c.summary.verifying}<Loader2 size={18} className="spin" aria-hidden="true" /></> : selecting ? <>{s.saving}<Loader2 size={18} className="spin" aria-hidden="true" /></> : <>{s.checkoutN(count)}<ArrowRight size={18} aria-hidden="true" /></>}</button>
           {/* What the button leads to (14.10.2026): the recipient and the checks come first; nothing is paid without a yes. */}

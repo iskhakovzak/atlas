@@ -79,7 +79,11 @@ export async function POST(request:Request){try{
     if(e instanceof HttpError)throw e;
     const coded=codedActionError(e);
     if(coded)throw new HttpError(coded.status,coded.code);
-    throw new HttpError(400,(e as Error).message)
+    // Domain refusals are Russian sentences written for the customer; anything else (a TypeError, a Zod report) is a
+    // fault: failure() logs it and answers with the generic message instead of showing its internals.
+    const message=e instanceof Error?e.message.trim():'';
+    if(message&&/[А-Яа-яЁё]/.test(message))throw new HttpError(400,message.slice(0,500));
+    throw e;
   }
   await persist(user.userId,next,current.revision,current.state);
   if(refusal)return json({error:serverError(requestLocale(request),refusal),errorCode:refusal,state:next,revision:current.revision+1},409);

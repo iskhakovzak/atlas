@@ -5,5 +5,7 @@ export async function importRateBuckets(userId: string | undefined, edgeIp: stri
   if (userId) return [{key: `${userId}:import:${minute}`, limit: 12}];
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(edgeIp?.trim().slice(0,80) || 'unknown'));
   const hash = Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2,'0')).join('');
-  return [{key: `guest:import:global:${minute}`, limit: 60}, {key: `guest:import:${hash}:${minute}`, limit: 6}];
+  // The visitor's own bucket first: a request it refuses never reaches (and never spends) the shared one, so one
+  // address cannot use up the guests' common minute.
+  return [{key: `guest:import:${hash}:${minute}`, limit: 6}, {key: `guest:import:global:${minute}`, limit: 60}];
 }

@@ -149,7 +149,9 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
   return <TooltipProvider delayDuration={300}><div className="catalog-page finds-page" data-mode={mode}>
     <header className="catalog-head">
       <div><h1>{mode === 'favorites' ? copy.savedTitle : cc.title}</h1><p>{mode === 'favorites' ? copy.savedIntro : cc.intro}</p></div>
-      {mode === 'catalog' && catalogReady && items.length > 0 && <div className="catalog-head-side"><p className="catalog-stats"><Store size={16} aria-hidden="true" />{cc.stats(items.length, storesInCatalog)}</p>{ready && <Link className="catalog-saved" href="/favorites"><Heart size={16} aria-hidden="true" />{copy.saved}<b>{state.favorites.filter((id) => items.some((item) => item.product.id === id)).length}</b></Link>}</div>}
+      {/* The row is there from the first paint (empty until the catalog arrives), so the collections and the search below
+         do not move down 40 px when the stats appear (mobile CLS, 26 October 2026). */}
+      {mode === 'catalog' && <div className="catalog-head-side">{catalogReady && items.length > 0 && <><p className="catalog-stats"><Store size={16} aria-hidden="true" />{cc.stats(items.length, storesInCatalog)}</p>{ready && <Link className="catalog-saved" href="/favorites"><Heart size={16} aria-hidden="true" /><span className="catalog-saved-label">{copy.saved}</span><b>{state.favorites.filter((id) => items.some((item) => item.product.id === id)).length}</b></Link>}</>}</div>}
     </header>
     {catalogError && <div className="notice catalog-fallback-message" role="status"><span>{catalogError}</span><button type="button" className="text-button catalog-retry" disabled={retrying} onClick={() => void retry()}>{retrying ? (locale === 'ru' ? 'Обновляем…' : isUzbek(locale) ? uzText(locale, 'Yangilanmoqda…') : 'Refreshing…') : (locale === 'ru' ? 'Повторить' : isUzbek(locale) ? uzText(locale, 'Qayta urinish') : 'Retry')}</button></div>}
     {mode === 'catalog' && allowance && allowance.usedUsd > 0 && <CompactBanner tone={allowance.remainingUsd > 0 ? 'ok' : 'warn'} icon={ShieldCheck} cc={cc}

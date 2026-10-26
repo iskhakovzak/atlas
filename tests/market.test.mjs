@@ -211,3 +211,23 @@ test('removing every option of one product is one action and one repricing; othe
  assert.equal(state.cart.length,0,'a single remove without ids still works');
  assert.throws(()=>actionSchema.parse({type:'cart-remove',id:nine.id,ids:[]}),'ids, when sent, is not empty');
 });
+test('«Вернуть» restores the server copy of removed lines in place, priced again, and only for a short while',()=>{
+ let state=addToCart(blank(),products[0],'US 9',1000);state=addToCart(state,products[0],'US 10',1000);state=addToCart(state,products[1],products[1].variants[0],1000);
+ const [nine,ten,other]=state.cart,before=state.cart.map(line=>line.id);
+ state=applyAction(state,actionSchema.parse({type:'cart-remove',id:nine.id,ids:[nine.id,ten.id]}),false);
+ assert.deepEqual(state.cartRemoved.map(entry=>[entry.item.id,entry.index]),[[nine.id,0],[ten.id,1]]);
+ const restored=applyAction(state,actionSchema.parse({type:'cart-restore',ids:[nine.id,ten.id]}),false);
+ assert.deepEqual(restored.cart.map(line=>line.id),before,'the lines come back to their old places');
+ assert.equal(restored.cartRemoved,undefined,'a restore is used once');
+ assert.equal(restored.cart.find(line=>line.id===nine.id).variant,'US 9','the very line comes back, not one sent by the browser');
+ assert.equal(applyAction(restored,actionSchema.parse({type:'cart-restore',ids:[nine.id]}),false).cart.length,3,'a second tap adds nothing');
+ // Two removals in a row: the first toast still works.
+ let twice=applyAction(state,actionSchema.parse({type:'cart-remove',id:other.id}),false);
+ assert.equal(twice.cart.length,0);
+ twice=applyAction(twice,actionSchema.parse({type:'cart-restore',ids:[nine.id,ten.id]}),false);
+ assert.deepEqual(twice.cart.map(line=>line.id),[nine.id,ten.id]);assert.deepEqual(twice.cartRemoved.map(entry=>entry.item.id),[other.id]);
+ const stale={...state,cartRemoved:state.cartRemoved.map(entry=>({...entry,at:Date.now()-61_000}))};
+ assert.throws(()=>applyAction(stale,actionSchema.parse({type:'cart-restore',ids:[nine.id]}),false),error=>error.code==='err_85');
+ assert.throws(()=>applyAction(blank(),actionSchema.parse({type:'cart-restore',ids:[nine.id]}),false),error=>error.code==='err_85','nothing removed, nothing to restore');
+ assert.equal(parseState(JSON.stringify(state)).cartRemoved.length,2,'the copy survives the saved account JSON');
+});

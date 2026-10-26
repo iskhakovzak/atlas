@@ -178,7 +178,9 @@ export function MarketProvider({children,initialLocale='uz',initialPricing=null,
   try{localStorage.setItem('atlas-language',next)}catch{}
   setLocaleCookie(next);
  },[]);
- return <Context.Provider value={{sessionHint,catalogProducts,catalogReady,collections,catalogError,loadCatalog,catalogSeed,adoptCatalog,state,pricing,policy,siteContent,setSiteContent,ready,status,error,user,setLocale,act,lastActionError,refresh}}>{children}</Context.Provider>;
+ // One object per change, not per render: the ~70 screens that call useMarket() re-render only when something they read changed.
+ const value=useMemo(()=>({sessionHint,catalogProducts,catalogReady,collections,catalogError,loadCatalog,catalogSeed,adoptCatalog,state,pricing,policy,siteContent,setSiteContent,ready,status,error,user,setLocale,act,lastActionError,refresh}),[sessionHint,catalogProducts,catalogReady,collections,catalogError,loadCatalog,catalogSeed,adoptCatalog,state,pricing,policy,siteContent,setSiteContent,ready,status,error,user,setLocale,act,lastActionError,refresh]);
+ return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 /**
  * Wraps a page rendered with the public catalog (app/stores/page.tsx; null keeps the old way).

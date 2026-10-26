@@ -4,7 +4,8 @@ import { brandForHost, storefrontLabel } from './store-brands.ts';
 /**
  * Catalog search in the customer's own words: category synonyms in Russian, Uzbek and English,
  * Russian spellings of brand and store names ("найк" → Nike) and a plain Cyrillic → Latin
- * transliteration for everything the dictionary does not list ("пума" → "puma").
+ * transliteration for everything the dictionary does not list ("пума" → "puma"), a word typed on the
+ * wrong keyboard layout ("тшлу" → "nike") and, from five letters, a typo or two ("adiads" → "adidas").
  * Pure; the catalog query passes the extra words through `CatalogContext.words`.
  */
 
@@ -71,10 +72,64 @@ export function searchWords(item: { product: { name: string; brand: string; cate
   return [...new Set(words)].join(' ');
 }
 
-/** Whether one normalized query word occurs in the normalized text, as typed or (from three letters) transliterated. */
+// The same physical keys on the Russian ЙЦУКЕН and the US QWERTY layouts.
+const russianKeys = 'йцукенгшщзхъфывапролджэячсмитьбюё';
+const latinKeys = "qwertyuiop[]asdfghjkl;'zxcvbnm,.`";
+const keyToLatin = new Map([...russianKeys].map((key, i) => [key, latinKeys[i]]));
+const keyToRussian = new Map([...latinKeys].map((key, i) => [key, russianKeys[i]]));
+
+/**
+ * The word as it was meant when typed with the wrong keyboard layout: "тшлу" → "nike",
+ * "rhjccjdrb" → "кроссовки". Undefined when the word has no letters on the other layout.
+ */
+export function switchLayout(word: string): string | undefined {
+  const toLatin = /[а-яё]/.test(word), map = toLatin ? keyToLatin : keyToRussian;
+  if (!toLatin && !/[a-z]/.test(word)) return undefined;
+  const switched = [...word].map((key) => map.get(key) ?? key).join('');
+  return switched === word ? undefined : switched;
+}
+
+/** Edits allowed for a mistyped word: none below five letters, then one, and two from eight letters. */
+const typoBudget = (length: number) => (length < 5 ? 0 : length < 8 ? 1 : 2);
+
+/** Optimal-string-alignment distance (insert, delete, replace, swap of neighbours), stopping early above `max`. */
+export function editDistance(a: string, b: string, max = Infinity): number {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let before: number[] = [], previous = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const row = [i];
+    let best = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      let value = Math.min(previous[j] + 1, row[j - 1] + 1, previous[j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) value = Math.min(value, before[j - 2] + 1);
+      row.push(value);
+      best = Math.min(best, value);
+    }
+    if (best > max) return max + 1;
+    before = previous;
+    previous = row;
+  }
+  return previous[b.length];
+}
+
+/** A word of the text within the typo budget of the query word ("adiads" → "adidas", "кросовки" → "кроссовки"). */
+function closeWord(text: string, word: string): boolean {
+  const budget = typoBudget(word.length);
+  if (!budget || /\s/.test(word)) return false;
+  return text.split(/[^a-z0-9а-яёўқғҳ']+/).some((token) => token.length >= 4 && editDistance(token, word, budget) <= budget);
+}
+
+/**
+ * Whether one normalized query word occurs in the normalized text: as typed, transliterated (from three letters),
+ * typed on the other keyboard layout, or, for longer words, with a typo or two.
+ */
 export function wordMatches(text: string, word: string): boolean {
   if (text.includes(word)) return true;
   if (word.length < 3) return false;
   const latin = transliterate(word);
-  return latin !== word && text.includes(latin);
+  if (latin !== word && text.includes(latin)) return true;
+  const switched = switchLayout(word);
+  if (switched && (text.includes(switched) || text.includes(transliterate(switched)))) return true;
+  return closeWord(text, word) || (latin !== word && closeWord(text, latin));
 }

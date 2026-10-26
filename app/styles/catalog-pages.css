@@ -26,12 +26,6 @@
 .tg-login-hint{margin-top:-4px;color:#64746c;font-size:13px;line-height:1.45;text-align:center}
 html[data-theme="dark"] .tg-login-hint{color:var(--night-muted)}
 
-/* ── app/experience.css ── */
-/* Mobile operator access and admin tables: override the older fixed 90px columns. */
-.payment-reserve-hint{display:flex;align-items:flex-start;gap:9px;margin-top:12px;padding:11px;border:1px solid var(--border);border-radius:10px;background:var(--background)}
-.payment-reserve-hint b{font-size:13px}
-.payment-reserve-hint small{font-size:11px}
-
 /* ── app/home-polish.css ── */
 .finds-pagination { display:flex; flex-direction:column; align-items:center; gap:12px; margin:24px 0 12px; }
 .finds-pagination>span { font-size:13px; color:var(--atlas-copy-muted); font-variant-numeric:tabular-nums; }
@@ -292,6 +286,12 @@ html[data-theme="dark"] .catalog-page .catalog-banner.catalog-banner-parcel { bo
   .catalog-head h1 { margin-bottom: 6px; }
   .catalog-head-side { flex-direction: row; gap: 6px; }
   .catalog-stats, .catalog-saved { gap: 6px; min-height: 36px; padding: 0 11px; font-size: 12.5px; }
+  .catalog-head-side { min-height: 36px; }
+  /* Narrow phones (≤ 380 px): the counters stay one row — "Saved" keeps its heart and count, the word goes to the label. */
+  @media (max-width: 380px) {
+    .catalog-head-side { flex-wrap: nowrap; }
+    .catalog-saved .catalog-saved-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  }
   .catalog-stats svg { display: none; }
   .catalog-head h1 + p { font-size: 14px; }
   .catalog-banner { gap: 2px 10px; margin-bottom: 10px; padding: 10px 12px; border-radius: 12px; font-size: 14px; }
