@@ -28,7 +28,7 @@ const navigate=(href:string)=>window.location.assign(href);
  * A bottom sheet on phones (handle, sticky total), a side panel elsewhere. */
 export function ProductSheet({product,onClose}:{product:Product|null;onClose:()=>void}){
   const side=useSheetSide();
-  return <Sheet open={!!product} onOpenChange={open=>{if(!open)onClose()}}><SheetContent side={side} showCloseButton={false} className={'product-sheet product-sheet-'+side}>{side==='bottom'&&<span className="sheet-handle" aria-hidden="true"/>}{product&&<ProductDetails key={product.id+(product.sourceUrl??'')} product={product} onClose={onClose}/>}</SheetContent></Sheet>;
+  return <Sheet open={!!product} onOpenChange={open=>{if(!open)onClose()}}><SheetContent side={side} size={side==='right'?'lg':undefined} showCloseButton={false} className={'product-sheet product-sheet-'+side}>{side==='bottom'&&<span className="sheet-handle" aria-hidden="true"/>}{product&&<ProductDetails key={product.id+(product.sourceUrl??'')} product={product} onClose={onClose}/>}</SheetContent></Sheet>;
 }
 
 function ProductDetails({product:selected,onClose}:{product:Product;onClose:()=>void}){
@@ -59,7 +59,8 @@ function ProductDetails({product:selected,onClose}:{product:Product;onClose:()=>
   const save=!curated?null:ready?<button type="button" className="icon-btn sheet-save" aria-pressed={saved} aria-label={(saved?dc.remove:dc.save)+': '+selected.name} title={saved?dc.remove:dc.save} disabled={saving} onClick={()=>void toggleSave()}><Heart size={20} aria-hidden="true"/></button>:status==='guest'?<a className="icon-btn sheet-save" href={loginPath('/catalog')} aria-label={dc.signinToSave+': '+selected.name} title={dc.signinToSave} onClick={guestSave}><Heart size={20} aria-hidden="true"/></a>:null;
   // Close and heart ride a zero-height sticky bar (app/catalog.css .sheet-actions): over the photo at first, still in
   // reach once the details are scrolled (owner's review, 14.10.2026: on phones "×" went up with the content).
-  return <><div className="sheet-actions"><SheetClose asChild><button className="icon-btn sheet-close" aria-label={modalWords.close}><X size={20}/></button></SheetClose>{save}</div>
+  // .sheet-layout: one column; two (photo | details) once the sheet itself is wide enough (@container sheet).
+  return <div className="sheet-layout"><div className="sheet-actions"><SheetClose asChild><button className="icon-btn sheet-close" aria-label={modalWords.close}><X size={20}/></button></SheetClose>{save}</div>
    <div className={'detail-image detail-'+selected.id}><ProductGallery product={selected} locale={locale}/><span className="floating-label">{selected.sourceUrl?label:modalWords.item}</span></div>
    <div className="sheet-body">{/* The photo already carries the country for a store product: the line above the name says the store once. */}<div className="eyebrow">{selected.sourceUrl||selected.brand.includes(country)?selected.brand:selected.brand+' · '+label}</div><SheetTitle className="product-title">{selected.name}</SheetTitle>
     {(()=>{
@@ -89,5 +90,5 @@ function ProductDetails({product:selected,onClose}:{product:Product;onClose:()=>
     <div className="notice tip-text"><ShieldCheck size={19}/><span>{modalWords.delivery}</span></div>
    </div>
    <div className="sheet-total"><span>{stale?cc.totalStale:modalWords.withDelivery}<InfoTip locale={locale}>{modalWords.delivery}</InfoTip><strong>{priced?formatSum(estimate.total,locale):cc.afterCheck}</strong></span>{status==='guest'?<a className="btn primary" href={curated?findOrderUrl(selected):'/order-by-link'}>{modalWords.continue}<ArrowRight size={18}/></a>:<button className="btn primary" disabled={!ready||adding} onClick={add}><ShoppingBag size={18}/>{adding?modalWords.adding:curated?modalWords.continue:modalWords.add}</button>}</div>
-   </>;
+   </div>;
 }

@@ -1090,7 +1090,7 @@ function OrderGroupCard({ group, locale, busy, allowanceUsd, passports, parcel, 
     <header className="order-group-head">
       <div className="order-group-main">
         {/* The total beside the date: the side column keeps the recipient and the passport, the heading has no empty corner. */}
-        <span className="og-title-row"><b className="order-group-title">{title}</b>{showTotal && <span className="order-group-sum"><small>{gc.total}</small><strong><Money value={group.payable} locale={locale} /></strong></span>}</span>
+        <span className="og-title-row"><h2 className="order-group-title">{title}</h2>{showTotal && <span className="order-group-sum"><small>{gc.total}</small><strong><Money value={group.payable} locale={locale} /></strong></span>}</span>
         <small>{[itemCount(group.items || live, locale), stores.join(", ")].filter(Boolean).join(" · ")}</small>
         {/* One order: its number on the card for support, copied in one tap. Several keep theirs on each line. */}
         {group.orders.length === 1 && <span className="og-head-id"><span className="sr-only">{c.orderNumber}: </span><span className="order-x-id">{group.orders[0].id}</span><CopyText text={group.orders[0].id} locale={locale} /></span>}
@@ -1135,7 +1135,7 @@ function OrderGroupCard({ group, locale, busy, allowanceUsd, passports, parcel, 
       <CreditCard size={20} aria-hidden="true" />
       <div>
         {/* Level 2 for screen readers: the group card has no heading of its own above this one. */}
-        <h3 aria-level={2}>{gc.payTitle}</h3>
+        <h3>{gc.payTitle}</h3>
         {/* The balance part is said here, so "Итого" or a row's sum above the button never reads as a different bill. */}
         <p>{gc.payCovers(itemCount(group.orders.reduce((sum, order) => sum + (!order.cancelled && order.payment?.status === "pending" ? order.quantity : 0), 0), locale))}{group.payment.fromBalance ? ` ${gc.payBalance(formatSum(group.payment.fromBalance, locale))}` : ""}</p>
       </div>
@@ -1661,7 +1661,7 @@ export function OrdersView({ operations }: { operations: boolean }) {
             label={locale === "ru" ? "Повторить" : isUzbek(locale) ? uzText(locale, "Qayta urinish") : "Try again"}
           />
         ) : (
-          <LoadingCards label={ow.loading} />
+          <LoadingCards label={ow.loading} shape="order" />
         )
       ) : !orders.length && !operations ? (
         // No orders yet but items wait in the cart: lead to checkout first, not to another import. Same count as the header badge.

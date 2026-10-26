@@ -14,7 +14,7 @@
 .notice-panel-head p { margin: 4px 0 0; color: var(--day-muted, #58635c); font-size: 14px; }
 .notice-panel-read { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; margin: 8px 0 -6px -8px; padding: 0 10px; border: 0; border-radius: 99px; background: transparent; color: var(--day-accent, #1f4d3b); font: inherit; font-size: 13.5px; font-weight: 650; cursor: pointer; transition: background-color .15s ease; }
 .notice-panel-read:hover { background: rgba(31, 77, 59, .08); }
-.notice-panel-close { display: inline-grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--day-line, #e2e2da); border-radius: 50%; background: var(--day-surface, #fff); color: var(--day-ink, #16211c); cursor: pointer; transition: background-color .15s ease, transform .2s ease, border-color .15s ease; }
+.notice-panel-close { display: inline-grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--day-line, #e2e2da); border-radius: 50%; background: var(--day-surface, #fff); color: var(--day-ink, #16211c); cursor: pointer; transition: background-color .15s ease, transform .2s ease, border-color .15s ease; }
 .notice-panel-close:hover { background: var(--day-soft, #efefe9); border-color: var(--day-line-strong, #cbccc3); }
 .notice-panel-close:active { transform: scale(.92); }
 .notice-panel-scroll { flex: 1; min-height: 0; padding: 20px 20px 24px; overflow: auto; overscroll-behavior: contain; }

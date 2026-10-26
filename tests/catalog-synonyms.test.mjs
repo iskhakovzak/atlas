@@ -61,3 +61,27 @@ test('brand aliases match whole words in the text and the squashed store host, n
   assert.equal(wordMatches('ikea billy', 'и'), false);
   assert.ok(wordMatches('ikea billy', 'икеа'));
 });
+
+test('a word typed on the wrong keyboard layout still finds the product', async () => {
+  const { switchLayout } = await import('../lib/market/catalog-synonyms.ts');
+  assert.equal(switchLayout('тшлу'), 'nike');
+  assert.equal(switchLayout('rhjccjdrb'), 'кроссовки');
+  assert.equal(switchLayout('123'), undefined);
+  assert.ok(wordMatches('nike air max', 'тшлу'));
+  assert.ok(wordMatches('gato lv8 nike кроссовки sneakers', 'rhjccjdrb'));
+  assert.equal(wordMatches('adidas samba', 'тшлу'), false);
+});
+
+test('longer words survive a typo or two; short ones must be exact', async () => {
+  const { editDistance } = await import('../lib/market/catalog-synonyms.ts');
+  assert.equal(editDistance('adiads', 'adidas'), 1, 'swapped neighbours count once');
+  assert.equal(editDistance('кросовки', 'кроссовки'), 1);
+  assert.ok(editDistance('nike', 'adidas', 1) > 1, 'stops early above the budget');
+  assert.ok(wordMatches('adidas samba og', 'adiads'));
+  assert.ok(wordMatches('обувь кроссовки sneakers', 'кросовки'));
+  assert.ok(wordMatches('new balance 990v6', 'ballance'));
+  assert.ok(wordMatches('new balance 990v6', 'баланc'), 'mixed alphabets fall back to transliteration');
+  assert.equal(wordMatches('mike shoes', 'nike'), false, 'four letters stay exact');
+  assert.equal(wordMatches('adidas samba', 'sambo'), true, 'one edit in five letters');
+  assert.equal(wordMatches('adidas samba', 'zumba'), false);
+});

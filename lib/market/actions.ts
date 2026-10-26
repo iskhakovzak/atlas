@@ -74,6 +74,9 @@ import { cartCustomsEstimate } from "./allowance.ts";
 import { assertCartPolicy, defaultPolicy, productRestriction, type Policy } from "./policy.ts";
 import { customsVersion, paddedWeight, toUsd } from "./world.ts";
 import { safeImage } from "../importer/extract.ts";
+
+/** How long the server keeps removed cart lines for «Вернуть»: the toast shows for 8 s, the rest covers a slow network. */
+export const cartRestoreMs = 60_000;
 const id = z.string().max(5000),
   amount = z.number().finite().nonnegative();
 export const actionSchema = z.discriminatedUnion("type", [
@@ -102,6 +105,8 @@ export const actionSchema = z.discriminatedUnion("type", [
   }),
   // `ids`: every option of one product at once ("remove all", "save for later"): one request, one repricing.
   z.object({ type: z.literal("cart-remove"), id, ids: z.array(id).min(1).max(20).optional() }),
+  // «Вернуть» in the toast after a removal: the server's own copy of those lines, never one sent by the browser.
+  z.object({ type: z.literal("cart-restore"), ids: z.array(id).min(1).max(20) }),
   z.object({ type: z.literal("cart-services"), id, serviceIds: z.array(z.string().min(2).max(80)).max(40), serviceUnits: z.record(z.string().min(2).max(80), z.number().int().min(1).max(100)).optional(), ids: z.array(id).min(1).max(20).optional() }),
   // Checkboxes in the cart: unticked lines stay in the cart for later and are left out of the next checkout.
   z.object({ type: z.literal("cart-select"), ids: z.array(id).min(1).max(20), selected: z.boolean() }),
@@ -333,8 +338,28 @@ export function applyAction(
       { const next = changeQuantity(s, a.id, a.quantity, Date.now(), pricing); assertCartPolicy(next.cart, policy); return next; }
     case "cart-remove":
       // The rest of that store's parcel is priced again: its shipping share and store-delivery reserve change.
-      { const gone = new Set(a.ids ?? [a.id]);
-        return { ...s, cart: repriceCart(s.cart.filter((i) => !gone.has(i.id)), Date.now(), pricing, customsHelpChosen(s)) }; }
+      { const gone = new Set(a.ids ?? [a.id]), now = Date.now();
+        const removed = s.cart.flatMap((item, index) => gone.has(item.id) ? [{ at: now, index, item }] : []);
+        // Earlier removals stay restorable while their toast can still be pressed; the newest twenty lines are kept.
+        const kept = (s.cartRemoved ?? []).filter((entry) => now - entry.at <= cartRestoreMs && !gone.has(entry.item.id));
+        const held = [...kept, ...removed].slice(-20);
+        return { ...s, cart: repriceCart(s.cart.filter((i) => !gone.has(i.id)), now, pricing, customsHelpChosen(s)),
+          cartRemoved: held.length ? held : undefined }; }
+    case "cart-restore": {
+      // Only lines the server removed itself, only for a short while, each back at its old place in the cart.
+      const now = Date.now(), wanted = new Set(a.ids), inCart = new Set(s.cart.map((i) => i.id));
+      // A repeated tap after a successful restore changes nothing and is not an error.
+      if (a.ids.every((line) => inCart.has(line))) return s;
+      const fresh = (s.cartRemoved ?? []).filter((entry) => now - entry.at <= cartRestoreMs);
+      const back = fresh.filter((entry) => wanted.has(entry.item.id) && !inCart.has(entry.item.id)).sort((x, y) => x.index - y.index);
+      if (!back.length) throw Object.assign(new Error("Вернуть товар уже нельзя. Добавьте его снова со страницы товара."), { code: "err_85" });
+      const cart = [...s.cart];
+      for (const entry of back) cart.splice(Math.min(entry.index, cart.length), 0, entry.item);
+      const left = fresh.filter((entry) => !back.includes(entry));
+      const next = { ...s, cart: repriceCart(cart, now, pricing, customsHelpChosen(s)), cartRemoved: left.length ? left : undefined };
+      assertCartPolicy(next.cart, policy);
+      return next;
+    }
     case "cart-services":
       return (a.ids ?? [a.id]).reduce((state, line) => setCartServices(state, line, a.serviceIds, pricing, a.serviceUnits), s);
     case "cart-select":

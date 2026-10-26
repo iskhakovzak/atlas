@@ -1242,18 +1242,24 @@ export function GlobalLinkOrder() {
       if (!side) return;
       const stuckAt = parseFloat(getComputedStyle(side).top);
       const top = Math.max(side.getBoundingClientRect().top, Number.isFinite(stuckAt) ? stuckAt : 0);
-      side.style.setProperty("--lo-side-room", `${Math.max(360, Math.round(window.innerHeight - top - 16))}px`);
-      for (const card of Array.from(side.children)) observer.observe(card);
-      // The scroll box would cut the cards' shadows, so it is on only while the column is taller than the room.
-      side.toggleAttribute("data-fits", side.scrollHeight <= side.clientHeight + 1);
-      // Tab into the column scrolls a field into view above the pinned button, not under it.
+      // Every read comes before any write, and a value is written only when it changed: this runs on every scroll frame,
+      // and a write between reads lays the page out again.
+      const room = `${Math.max(360, Math.round(window.innerHeight - top - 16))}px`;
+      const fits = side.scrollHeight <= side.clientHeight + 1;
       const confirm = side.querySelector<HTMLElement>(".lo-confirm");
-      side.style.scrollPaddingBottom = confirm ? `${confirm.offsetHeight + 12}px` : "";
+      const padding = confirm ? `${confirm.offsetHeight + 12}px` : "";
+      for (const card of Array.from(side.children)) observer.observe(card);
+      if (side.style.getPropertyValue("--lo-side-room") !== room) side.style.setProperty("--lo-side-room", room);
+      // The scroll box would cut the cards' shadows, so it is on only while the column is taller than the room.
+      if (side.hasAttribute("data-fits") !== fits) side.toggleAttribute("data-fits", fits);
+      // Tab into the column scrolls a field into view above the pinned button, not under it.
+      if (side.style.scrollPaddingBottom !== padding) side.style.scrollPaddingBottom = padding;
     }
     observer.observe(document.body);
     observer.observe(side);
     cards.observe(side, { childList: true });
-    fit();
+    // In the next frame, not during mount: the page is laid out by then, so reading the column costs nothing extra.
+    queue();
     window.addEventListener("scroll", queue, { passive: true });
     window.addEventListener("resize", queue);
     return () => {
@@ -1331,10 +1337,12 @@ export function GlobalLinkOrder() {
           ? <a className="lo-source-host" href={source} target="_blank" rel="noopener noreferrer" title={source}><Link2 size={16} aria-hidden="true" /><span>{sourceShort}</span><ExternalLink size={13} aria-hidden="true" /><span className="sr-only"> ({lc.openStore})</span></a>
           : <span className="lo-source-host"><Link2 size={16} aria-hidden="true" /><span>{sourceShort}</span></span>}
         {/* The check itself is told in the card below; here only the way back to another link, once it is done. */}
-        {!checking && <span className="lo-source-actions">
+        {/* Rendered while the store is read too, only hidden: the row keeps its height, so the card below does not jump
+            down when the check ends (mobile CLS, 26 October 2026). */}
+        <span className={"lo-source-actions" + (checking ? " is-waiting" : "")} aria-hidden={checking || undefined} inert={checking || undefined}>
           <button type="button" className="lo-source-link" onClick={editLink}>{lc.change}</button>
           <button type="button" className="lo-source-link" title={lc.replaceHint} onClick={() => void replaceLink()}><ClipboardPaste size={15} aria-hidden="true" />{lc.replace}</button>
-        </span>}
+        </span>
       </div>}
 
       {resumedFrom && resumedFrom === requestedUrl && !added && <div className="lo-resumed" role="status">
@@ -1519,6 +1527,16 @@ export function GlobalLinkOrder() {
                 : sourceCheckStatus === "manual" && !(Number(amount) > 0) ? null : <p className="lo-store-price lo-reveal">{lc.storePrice}: <b>{storePriceText}</b>{discount && <WasPrice was={discount.was} percent={discount.percent} format={sourceFormat} />}{sourceCheckStatus === "verified" && checkedTime && <small className="lo-checked">{" "}· {lc.checkedAt(checkedTime)}</small>}</p>}
               {!checking && sourceCheckStatus === "failed" && <p className="lo-note warn" role="status"><AlertCircle size={16} aria-hidden="true" />{soldOutAtStore ? soldOutText : tx('Автоматическая проверка не завершена. Сохранённые данные предварительные.','Avtomatik tekshirish tugamadi. Saqlangan ma’lumotlar taxminiy.','Automatic verification is incomplete. Saved details are preliminary.')}</p>}
               {!checking && orderable && variants.length > 1 && variantColors.length > 1 && <div className="variant-step lo-colours-aside"><div><b>{c.color}</b><span>{selectedColor || c.selectColor}</span></div>{colourOptions}</div>}
+              {/* Wide screens: what Atlas read from the store, beside the photo, so the card has no empty half
+                  (owner, 26 October 2026). Phones keep it in the "Calculation data" card only. */}
+              {!checking && orderable && dataMode !== "manual" && <dl className="lo-store-facts">
+                {countryText && <div><dt>{tx('Отправка из','Jo‘natish joyi','Ships from')}</dt><dd>{countryText}</dd></div>}
+                {validBoxedWeight(weight) !== undefined && <div><dt>{tx('Вес для расчёта','Hisob uchun og‘irlik','Weight for the estimate')}</dt><dd>{formatKg(validBoxedWeight(weight)!, lang)} {lc.kg}</dd></div>}
+                <div><dt>{tx('Доставка магазина','Do‘kon yetkazishi','Store delivery')}</dt><dd>{lockedShippingText}</dd></div>
+                <div><dt>{tx('Наличие','Mavjudlik','Stock')}</dt><dd>{variants.some(item => item.quantity !== undefined || item.quantityMoreThan !== undefined) ? tx('Магазин сообщает остаток по вариантам','Do‘kon variantlar bo‘yicha qoldiqni ko‘rsatadi','The store shows stock per option') : k.stockUnknown}</dd></div>
+                {sourceCheckStatus === "verified" && checkedTime && <div><dt>{tx('Цена сверена','Narx tekshirildi','Price checked')}</dt><dd>{tx(`сегодня в ${checkedTime}`,`bugun ${checkedTime} da`,`today at ${checkedTime}`)}</dd></div>}
+                {(source || url) && <div className="lo-store-facts-link"><a className="lo-source-link" href={source || url} target="_blank" rel="noopener noreferrer">{c.original}<ExternalLink size={14} aria-hidden="true" /></a></div>}
+              </dl>}
             </div>
 
           {/* The choice sits inside the item card, across its full width under the photo and colours (owner, 12 October 2026). */}
@@ -1573,7 +1591,7 @@ export function GlobalLinkOrder() {
                 </li>;
               })}</ul>}
             </>}
-            {variants.length > 0 && !variants.some(item => item.quantity !== undefined || item.quantityMoreThan !== undefined) && <p className="lo-hint-line muted">{k.stockUnknown}</p>}
+            {variants.length > 0 && !variants.some(item => item.quantity !== undefined || item.quantityMoreThan !== undefined) && <p className="lo-hint-line muted lo-stock-hint">{k.stockUnknown}</p>}
             {/* The comment sits right under the chosen options (owner, 12 October 2026). */}
             <div className="lo-comment">
               <label htmlFor="order-comment"><b>{k.blocks.comment}</b><small>{k.commentHint}</small></label>

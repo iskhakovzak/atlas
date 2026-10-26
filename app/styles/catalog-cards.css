@@ -519,7 +519,7 @@ html[data-theme="dark"] .product-gallery-controls button { border-color: var(--n
 .product-sheet.product-sheet-bottom .detail-tabs [data-slot=tabs-content] { min-height: 0; }
 .product-sheet.product-sheet-bottom .sheet-total { position: sticky; bottom: 0; z-index: 2; display: flex; flex: none; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; margin: 16px 0 0; padding: 12px 20px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--cat-line); background: var(--cat-surface); }
 /* Side sheet: the total and its button stay at the bottom edge while the sheet scrolls (they were below the fold at 1280×900). */
-.product-sheet.product-sheet-right > .sheet-total { position: sticky; bottom: 0; z-index: 2; flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; margin: 16px 0 0; padding: 14px 30px 18px; border-top: 1px solid var(--cat-line); background: var(--cat-surface); }
+.product-sheet.product-sheet-right .sheet-layout > .sheet-total { position: sticky; bottom: 0; z-index: 2; flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; margin: 16px 0 0; padding: 14px 30px 18px; border-top: 1px solid var(--cat-line); background: var(--cat-surface); }
 .product-sheet.product-sheet-bottom .sheet-total > span { flex: 1 1 140px; }
 .product-sheet.product-sheet-bottom .sheet-total .btn { flex: 1 1 150px; width: auto; min-height: 48px; }
 /* Narrow phones: the sum on one line, the button below it at full width and on one line («Уточнить и продолжить»
@@ -708,3 +708,16 @@ html[data-theme="dark"] .site-main .find-card .find-purchase { margin-top: auto;
   html[data-theme="dark"] .site-main .find-card .find-content .find-total { padding: 8px 0 0; }
   html[data-theme="dark"] .site-main .find-card .find-purchase { padding-top: 10px; }
 }
+
+/* .sheet-layout wraps the details; by default it adds nothing. A wide sheet (the lg preset on large screens) shows the
+   photo on the left, sticky while the details on the right scroll, with the total at the bottom of the right column. */
+.product-sheet .sheet-layout { display: flex; flex: 1 0 auto; flex-direction: column; }
+@container sheet (min-width: 760px) {
+  .product-sheet .sheet-layout { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); grid-template-rows: 0 auto 1fr auto; column-gap: 8px; }
+  .product-sheet .sheet-layout > .sheet-actions { grid-column: 1 / -1; grid-row: 1; }
+  .product-sheet .sheet-layout > .detail-image { grid-column: 1; grid-row: 2 / 5; position: sticky; top: 0; align-self: start; }
+  .product-sheet .sheet-layout > .sheet-body { grid-column: 2; grid-row: 2; }
+  .product-sheet .sheet-layout > .sheet-total { grid-column: 2; grid-row: 4; }
+}
+/* «Открыть источник» in the sheet was a 21 px tall text link: a full 44 px tap row on touch screens. */
+@media (pointer: coarse) { .product-sheet a.text-link { display: inline-flex; align-items: center; min-height: 44px; } }

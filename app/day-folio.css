@@ -37,9 +37,14 @@ html:not([data-theme="dark"]) :is(.home-tariffs th, .home-footer-title, .catalog
 
 /* ---------- Money: bold lining digits, the unit smaller ---------- */
 .money { white-space: nowrap; font-variant-numeric: lining-nums proportional-nums; }
+/* A changing total (Money animate): the final value, hidden, holds the width; the counting one sits on top. */
+.money-glide { display: inline-grid; }
+/* font-size: inherit — the wrappers are spans too, and ".basket-total span" would set them to 16 px. */
+.money-glide > .money-ghost, .money-glide > .money-live { grid-area: 1 / 1; justify-self: end; font: inherit; color: inherit; }
+.money-glide > .money-ghost { visibility: hidden; }
 /* Older rules size every span inside a total (.basket-total span): the digits follow the total, the unit stays small. */
-.money > .money-n { font-size: 1em; }
-.money > .money-unit { font-size: max(13px, .5em); }
+.money .money-n { font-size: 1em; }
+.money .money-unit { font-size: max(13px, .5em); }
 html:not([data-theme="dark"]) .money-n { font-family: var(--day-sans); font-weight: 700; letter-spacing: -.02em; font-feature-settings: "lnum" 1; }
 /* With the tight tracking the no-break space between digit groups shrank to a hairline ("1708 642", "1 201785"). */
 html:not([data-theme="dark"]) .money-n { word-spacing: .07em; }

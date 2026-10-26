@@ -33,7 +33,7 @@ export function AccessView({view,children}:{view:string;children:ReactNode}){
  useEffect(()=>{if(toSignIn)window.location.replace(signInPath(window.location.pathname+window.location.search+window.location.hash))},[toSignIn]);
  if(access==='allow')return children;
  // Page-shaped placeholders instead of a "checking your session" card; they only show if the answer takes a moment.
- if(access==='loading'||access==='signin')return view==='account'?<AccountSkeleton label={c.loading}/>:<div className="access-loading"><LoadingCards label={c.loading} rows={4}/></div>;
+ if(access==='loading'||access==='signin')return view==='account'?<AccountSkeleton label={c.loading}/>:<div className="access-loading"><LoadingCards label={c.loading} rows={view==='cart'?2:view==='orders'?3:4} shape={view==='cart'?'basket':view==='orders'?'order':'list'}/></div>;
  // Only a failed session check or a role without access gets a card; a guest has already been sent to sign-in.
  return <section className="surface access-card" data-access={access}>
   <span className="access-icon">{access==='forbidden'?<ShieldCheck/>:<LockKeyhole/>}</span>
