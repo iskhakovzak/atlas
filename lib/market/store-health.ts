@@ -11,7 +11,7 @@ export const storeHealthKey = 'catalog-store-health';
 const maxHosts = 400, window = 50;
 
 export function storeHost(url: string) {
-  try { return new URL(url).hostname.toLowerCase().replace(/^www\./, ''); } catch { return ''; }
+  try { return new URL(url).hostname.toLowerCase().replace(/^(?:www|m)\./, ''); } catch { return ''; }
 }
 
 /** Adds a batch's outcomes; old counts fade (each row keeps at most the last `window` reads in proportion). */
