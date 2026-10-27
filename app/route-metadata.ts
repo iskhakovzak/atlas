@@ -147,5 +147,8 @@ export function rootMetadata(locale: Locale, codes: SiteVerification = {}): Meta
       apple: '/apple-touch-icon.png',
     },
     manifest: '/manifest.webmanifest',
+    // Added to an iPhone home screen, Atlas opens as its own app with its name and a light status bar; Web Push on iOS
+    // works only from such an installed copy (iOS 16.4+).
+    appleWebApp: { capable: true, title: 'Atlas', statusBarStyle: 'default' },
   };
 }

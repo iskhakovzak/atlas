@@ -226,6 +226,7 @@ html[data-theme="dark"] .cost-lines dd, html[data-theme="dark"] .sheet-total str
 html[data-theme="dark"] .mobile-nav {
   background: rgb(20 30 25 / 94%);
   border-color: var(--atlas-line);
+  -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }
 

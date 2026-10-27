@@ -6,17 +6,23 @@ import {withCyrillic} from '@/lib/market/uz-cyrl';
 import {toast} from '@/lib/market/toast';
 
 const copy=/*@__PURE__*/withCyrillic({
-  ru:{bell:'Присылать уведомления в браузер',row:'Уведомления в этом браузере',on:'включены',off:'выключены',turnOn:'Включить',turnOff:'Выключить',denied:'Браузер запретил уведомления для Atlas: разрешите их в настройках сайта.',done:'Уведомления в этом браузере включены',failed:'Не удалось включить уведомления. Попробуйте ещё раз.'},
-  uz:{bell:'Bildirishnomalarni brauzerga yuborish',row:'Shu brauzerdagi bildirishnomalar',on:'yoqilgan',off:'o‘chirilgan',turnOn:'Yoqish',turnOff:'O‘chirish',denied:'Brauzer Atlas uchun bildirishnomalarni taqiqlagan: ularni sayt sozlamalarida ruxsat bering.',done:'Shu brauzerda bildirishnomalar yoqildi',failed:'Bildirishnomalarni yoqib bo‘lmadi. Qayta urinib ko‘ring.'},
-  en:{bell:'Send notifications to this browser',row:'Notifications in this browser',on:'on',off:'off',turnOn:'Turn on',turnOff:'Turn off',denied:'The browser blocked notifications for Atlas: allow them in the site settings.',done:'Notifications are on in this browser',failed:'Could not turn notifications on. Please try again.'},
+  ru:{bell:'Присылать уведомления в браузер',row:'Уведомления в этом браузере',on:'включены',off:'выключены',turnOn:'Включить',turnOff:'Выключить',denied:'Браузер запретил уведомления для Atlas: разрешите их в настройках сайта.',ios:'На iPhone уведомления приходят, если добавить Atlas на экран «Домой»: «Поделиться» → «На экран „Домой“».',done:'Уведомления в этом браузере включены',failed:'Не удалось включить уведомления. Попробуйте ещё раз.'},
+  uz:{bell:'Bildirishnomalarni brauzerga yuborish',row:'Shu brauzerdagi bildirishnomalar',on:'yoqilgan',off:'o‘chirilgan',turnOn:'Yoqish',turnOff:'O‘chirish',denied:'Brauzer Atlas uchun bildirishnomalarni taqiqlagan: ularni sayt sozlamalarida ruxsat bering.',ios:'iPhone’da bildirishnomalar Atlas «Bosh ekran»ga qo‘shilganda keladi: «Ulashish» → «Bosh ekranga».',done:'Shu brauzerda bildirishnomalar yoqildi',failed:'Bildirishnomalarni yoqib bo‘lmadi. Qayta urinib ko‘ring.'},
+  en:{bell:'Send notifications to this browser',row:'Notifications in this browser',on:'on',off:'off',turnOn:'Turn on',turnOff:'Turn off',denied:'The browser blocked notifications for Atlas: allow them in the site settings.',ios:'On iPhone, notifications arrive once Atlas is on the Home Screen: Share → Add to Home Screen.',done:'Notifications are on in this browser',failed:'Could not turn notifications on. Please try again.'},
 });
 
-type Push={kind:'hidden'}|{kind:'ready';publicKey:string;on:boolean;denied:boolean};
+type Push={kind:'hidden'}|{kind:'ios-install'}|{kind:'ready';publicKey:string;on:boolean;denied:boolean};
 const workerUrl='/push-sw.js';
 
 /** Web Push where it works: a browser with a service worker and PushManager, not the app shell (its WebView has none). */
 function supported(){
   return typeof window!=='undefined'&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window&&!(window as {Capacitor?:unknown}).Capacitor;
+}
+/** Safari on an iPhone or iPad outside a Home Screen copy: Web Push exists there only once Atlas is added to the Home Screen. */
+function iosBrowserTab(){
+  if(typeof window==='undefined'||'PushManager' in window)return false;
+  const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  return ios&&(navigator as {standalone?:boolean}).standalone!==true&&!(window as {Capacitor?:unknown}).Capacitor;
 }
 function keyBytes(base64Url:string){
   const normal=base64Url.replace(/-/g,'+').replace(/_/g,'/');
@@ -28,8 +34,12 @@ function usePush(){
   const [push,setPush]=useState<Push>({kind:'hidden'});
   const [busy,setBusy]=useState(false);
   useEffect(()=>{
-    if(!supported())return;
     let live=true;
+    if(!supported()){
+      // The iPhone hint only where push is set up on the server, so it never promises something the site cannot send.
+      if(iosBrowserTab())void fetch('/api/push',{credentials:'same-origin'}).then(response=>(response.ok?response.json():null) as Promise<{publicKey?:string|null}|null>).then(data=>{if(live&&data?.publicKey)setPush({kind:'ios-install'})}).catch(()=>undefined);
+      return()=>{live=false};
+    }
     void (async()=>{
       try{
         const response=await fetch('/api/push',{credentials:'same-origin'});
@@ -77,6 +87,7 @@ function usePush(){
 /** A quiet line in the bell's footer while this browser does not get Atlas notifications. */
 export function PushBellLink({locale}:{locale:Locale}){
   const {push,busy,turnOn}=usePush();
+  if(push.kind==='ios-install')return <p className="notice-panel-tg notice-panel-push-ios"><BellRing size={15} aria-hidden="true"/>{copy[locale].ios}</p>;
   if(push.kind!=='ready'||push.on||push.denied)return null;
   return <button type="button" className="notice-panel-tg notice-panel-push" disabled={busy} aria-busy={busy} onClick={()=>void turnOn(locale)}>{busy?<Loader2 className="spin" size={15} aria-hidden="true"/>:<BellRing size={15} aria-hidden="true"/>}{copy[locale].bell}</button>;
 }
@@ -84,8 +95,9 @@ export function PushBellLink({locale}:{locale:Locale}){
 /** The settings row on /notifications: on or off in this browser, with the switch. */
 export function PushSettingsRow({locale}:{locale:Locale}){
   const {push,busy,turnOn,turnOff}=usePush();
-  if(push.kind!=='ready')return null;
   const c=copy[locale];
+  if(push.kind==='ios-install')return <div className="notice-tg-row"><span className="notice-tg-row-label"><BellRing size={17} aria-hidden="true"/>{c.ios}</span></div>;
+  if(push.kind!=='ready')return null;
   return <div className="notice-tg-row">
     <span className="notice-tg-row-label"><BellRing size={17} aria-hidden="true"/>{c.row}: {push.on?c.on:c.off}</span>
     {push.denied&&!push.on?<small className="micro">{c.denied}</small>
