@@ -249,3 +249,8 @@ test('store health counts reads per store and says which stores fail', async () 
   assert.ok(health['tartecosmetics.com'].ok + health['tartecosmetics.com'].partial <= 51, 'old reads fade');
   assert.equal(health['tartecosmetics.com'].reason, undefined);
 });
+
+test('store health keeps a phone link under its store', async () => {
+  const { mergeStoreHealth } = await import('../lib/market/store-health.ts');
+  assert.deepEqual(Object.keys(mergeStoreHealth({}, [{ url: 'https://m.zara.com/es/en/x-p1.html', result: 'failed' }, { url: 'https://www.zara.com/es/en/y-p2.html', result: 'ok' }], 1)), ['zara.com']);
+});
