@@ -351,9 +351,13 @@ html:not([data-theme="dark"]) .catalog-page .catalog-sets > .catalog-set[aria-pr
 .catalog-recent { margin: 0 0 22px; }
 .catalog-recent .favorites-suggest-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .catalog-recent h2 { margin: 0; font-size: 18px; }
-.catalog-page .catalog-recent-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-@media (min-width: 761px) { .catalog-page .catalog-recent-row > .find-card:nth-child(n + 5) { display: none; } }
+.site-main .catalog-page .catalog-recent .catalog-recent-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (min-width: 761px) { .site-main .catalog-page .catalog-recent .catalog-recent-row > .find-card:nth-child(n + 5) { display: none; } }
 @media (max-width: 760px) {
-  .catalog-page .catalog-recent-row { display: grid; grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 42%; gap: 10px; margin: 0 -16px; padding: 2px 16px 6px; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; scroll-padding-inline: 16px; }
+  /* About two and a half cards in view, so the strip reads as scrollable and "so‘m" fits beside an eight-digit total
+     (the catalog grid’s two-column rule is more specific than .catalog-recent-row alone). */
+  .site-main .catalog-page .catalog-recent .catalog-recent-row { display: grid; grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 37%; gap: 10px; margin: 0 -16px; padding: 2px 16px 6px; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; scroll-padding-inline: 16px; }
   .catalog-page .catalog-recent-row > .find-card { scroll-snap-align: start; }
+  .catalog-recent { margin-bottom: 16px; }
+  .catalog-recent h2 { font-size: 16px; }
 }
