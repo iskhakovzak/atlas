@@ -16,7 +16,7 @@ import { courierAllowanceUsd } from '@/lib/market/customs';
 import { storeBrands } from '@/lib/market/store-brands';
 import { signalsFor } from '@/lib/market/catalog-signals';
 import { searchWords } from '@/lib/market/catalog-synonyms';
-import { browserStorage, distinctCovers, itemParam, pendingFavoriteToSave, takePendingFavorite, withoutItemParam } from '@/lib/market/catalog-links';
+import { browserStorage, clearRecentProducts, distinctCovers, readRecentProducts, rememberRecentProduct, itemParam, pendingFavoriteToSave, takePendingFavorite, withoutItemParam } from '@/lib/market/catalog-links';
 import { toast } from '@/lib/market/toast';
 import {
   activeFilterCount, activeFilters, applyCatalogQuery, catalogFacets, catalogItems, catalogQueryString, cartParcelStores,
@@ -68,6 +68,10 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
   const [saving, setSaving] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   const side = useSheetSide();
+  // "Recently viewed": ids kept on this device, read after hydration so the first render matches the server's.
+  const [recentIds, setRecentIds] = useState<string[]>([]);
+  useEffect(() => { queueMicrotask(() => setRecentIds(readRecentProducts(browserStorage()))); }, []);
+  const select = (product: Product) => { setSelected(product); setRecentIds(rememberRecentProduct(browserStorage(), product.id)); };
   useEffect(() => { void loadCatalog(); }, [loadCatalog]);
   // Pages rendered without a server query (or opened from history) take it from the address.
   useEffect(() => { if (!initial) queueMicrotask(() => setQueryState(readCatalogQuery(window.location.search))); }, [initial]);
@@ -121,6 +125,8 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
   // An empty "Saved" is not a dead end: the first products of the catalog's own "On sale" set, ready to save.
   const suggest = mode === 'favorites' && catalogReady && pool.length === 0 ? applyCatalogQuery(items, { ...emptyCatalogQuery, sale: true }, context).slice(0, 4) : [];
   const setsRow = useRowAtStart<HTMLElement>(sets.map((set) => set.id).join(' '));
+  // Shown on the unfiltered catalog once two or more opened products are still in it; the one open now waits for the next visit.
+  const recent = mode === 'catalog' && catalogReady && activeFilterCount(query) === 0 && !query.q ? recentIds.filter((id) => id !== selected?.id).map((id) => items.find((item) => item.product.id === id)).filter((item): item is CatalogItem => Boolean(item)).slice(0, 8) : [];
 
   async function save(product: Product) {
     setSaving(product.id);
@@ -159,6 +165,9 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
       detail={allowance.remainingUsd > 0 ? cc.allowanceLeft(allowance.remainingUsd, allowance.name, allowanceMonth(locale), limitUsd) : cc.allowanceSpent(allowance.name, allowanceMonth(locale))}
       action={allowance.remainingUsd > 0 && !query.duty ? <button type="button" className="text-button" onClick={() => setQuery({ ...query, duty: true })}>{cc.allowanceShow}</button> : null}
       more={<Link className="text-link" href="/customs">{cc.allowanceHow}</Link>} />}
+    {/* On a phone the collections toggle sits beside the search (one row instead of two); on a wider screen this
+       wrapper does not exist for the layout (display: contents) and the tiles stay above the search. */}
+    <div className="catalog-controls" data-sets={sets.length > 0 || undefined}>
     {sets.length > 0 && <div className="catalog-collections">
       <button ref={setsToggleRef} type="button" className="catalog-sets-toggle" aria-expanded={setsOpen} aria-controls={setsId} onClick={() => setSetsOpen((open) => !open)}>{cc.collections}<ChevronDown size={18} aria-hidden="true" /></button>
       <nav {...setsRow} id={setsId} className="catalog-sets" data-open={setsOpen || undefined} aria-label={cc.collections}>
@@ -169,7 +178,7 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
       </nav>
     </div>}
     {showControls && <section className="catalog-bar" aria-label={cc.search}>
-      <label className="catalog-search"><Search size={20} aria-hidden="true" /><span className="sr-only">{cc.search}</span><input type="search" aria-label={cc.search} value={query.q} maxLength={80} placeholder={cc.searchPlaceholder} onChange={(event) => setQuery({ ...query, q: event.target.value })} />{query.q && <button type="button" className="icon-btn" aria-label={cc.clearSearch} onClick={() => setQuery({ ...query, q: '' })}><X size={18} /></button>}</label>
+      <label className="catalog-search"><Search size={20} aria-hidden="true" /><span className="sr-only">{cc.search}</span><input type="search" aria-label={cc.search} value={query.q} maxLength={80} placeholder={side === 'bottom' && sets.length > 0 ? cc.searchPlaceholderShort : cc.searchPlaceholder} onChange={(event) => setQuery({ ...query, q: event.target.value })} />{query.q && <button type="button" className="icon-btn" aria-label={cc.clearSearch} onClick={() => setQuery({ ...query, q: '' })}><X size={18} /></button>}</label>
       {categoryEntries.length > 1 && <div className="catalog-categories" role="group" aria-label={cc.categoriesLabel}>
         <button type="button" aria-pressed={!query.category} onClick={() => setQuery({ ...query, category: '', sizes: [] })}>{cc.all}<span>{categoryAll}</span></button>
         {categoryEntries.map(([category, count]) => <button type="button" key={category} data-empty={count === 0 || undefined} aria-pressed={query.category === category} onClick={() => setQuery({ ...query, category: query.category === category ? '' : category, sizes: [] })}>{cc.categories[category] ?? category}<span>{count}</span></button>)}
@@ -181,18 +190,26 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
       </div>
       <ActiveFilters query={query} setQuery={setQuery} cc={cc} collections={collections} locale={locale} />
     </section>}
+    </div>
     <div className={'catalog-layout' + (showControls ? '' : ' catalog-layout-plain')}>
       {showControls && <aside className="catalog-sidebar" aria-label={cc.filtersTitle}><FilterPanel query={query} setQuery={setQuery} facets={facets} cc={cc} pool={pool.length} locale={locale} dutyHint={dutyHint} /></aside>}
       <section className="catalog-results" aria-label={mode === 'favorites' ? copy.saved : cc.title}>
+        {recent.length >= 2 && <section className="catalog-recent" aria-labelledby="catalog-recent-title">
+          <div className="favorites-suggest-head"><h2 id="catalog-recent-title">{cc.recentTitle}</h2><button type="button" className="text-button" onClick={() => { clearRecentProducts(browserStorage()); setRecentIds([]); }}>{cc.recentClear}</button></div>
+          <div className="finds-grid finds-grid-compact catalog-recent-row" onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>
+            {recent.map((item) => <CatalogCard key={item.product.id} variant="compact" item={item} locale={locale} select={select}
+              saved={state.favorites.includes(item.product.id)} canSave={ready} guestSave={status === 'guest'} saving={saving !== null} onSave={() => void save(item.product)} speed={speed} />)}
+          </div>
+        </section>}
         {!catalogReady ? <CatalogSkeleton label={cc.loading} /> : visible.length > 0 ? <div className="finds-grid" onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>
-          {visible.map((item) => <CatalogCard key={item.product.id} item={item} locale={locale} select={setSelected}
+          {visible.map((item) => <CatalogCard key={item.product.id} item={item} locale={locale} select={select}
             saved={state.favorites.includes(item.product.id)} canSave={ready} guestSave={status === 'guest'} saving={saving !== null} onSave={() => void save(item.product)}
             signals={signalsOf(item)} inCart={inCart(item.product)} speed={speed} />)}
         </div> : <EmptyResult mode={mode} empty={!pool.length} query={query} setQuery={setQuery} cc={cc} copy={copy} options={relaxations(pool, query, context)} collections={collections} locale={locale} />}
         {suggest.length > 0 && <section className="favorites-suggest" aria-labelledby="favorites-suggest-title">
           <div className="favorites-suggest-head"><h2 id="favorites-suggest-title">{copy.suggestTitle}</h2><Link className="text-link" href="/catalog?sale=1">{copy.suggestAll}<ArrowRight size={16} aria-hidden="true" /></Link></div>
           <div className="finds-grid finds-grid-compact" onPointerEnter={preloadProductSheet} onFocus={preloadProductSheet}>
-            {suggest.map((item) => <CatalogCard key={item.product.id} variant="compact" item={item} locale={locale} select={setSelected}
+            {suggest.map((item) => <CatalogCard key={item.product.id} variant="compact" item={item} locale={locale} select={select}
               saved={state.favorites.includes(item.product.id)} canSave={ready} guestSave={status === 'guest'} saving={saving !== null} onSave={() => void save(item.product)} speed={speed} />)}
           </div>
         </section>}

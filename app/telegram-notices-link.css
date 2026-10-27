@@ -20,3 +20,8 @@ html[data-theme="dark"] .operator-tg-hint.on { color: var(--home-ink, #eceef2); 
 :root body .notice-tg-row-link:hover { background: var(--home-soft, #f5f3ee); }
 html[data-theme="dark"] .notice-tg-row { border-color: var(--home-line, #3d424a); }
 html[data-theme="dark"] .notice-tg-row-link { color: var(--night-jade, #80d0ac); }
+/* The browser-notifications line under the Telegram one is a button, not a link (app/push-toggle.tsx). */
+:root body button.notice-panel-push { width: 100%; border: 0; background: transparent; font: inherit; font-weight: 600; cursor: pointer; }
+:root body button.notice-panel-push:disabled { opacity: .6; cursor: progress; }
+:root body p.notice-panel-push-ios { margin-bottom: 0; padding: 8px 6px; font-size: 13px; font-weight: 500; line-height: 1.4; text-align: center; }
+:root body p.notice-panel-push-ios > svg { flex: none; }

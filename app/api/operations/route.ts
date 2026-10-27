@@ -291,7 +291,7 @@ export async function POST(request: Request) {
       throw new HttpError(400, (error as Error).message);
     }
     // Atlas's own step: new notices may also go to the customer's Telegram (their consent; the live site only).
-    await persist(current.id, next, current.revision, current.state, { notify: telegramNoticesLive(request) });
+    await persist(current.id, next, current.revision, current.state, { notify: telegramNoticesLive(request), push: true });
     const orderId='id' in parsedAction.data?String(parsedAction.data.id):undefined;
     await recordAudit(user,`order.${parsedAction.data.type}`,'order',orderId,{accountId:current.id});
     return json({

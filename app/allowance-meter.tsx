@@ -8,9 +8,9 @@ import {uzMonths} from '@/lib/market/notices-copy';
 
 type Part={key:string;kind:'order'|'cart'|'left';usd:number;label:string};
 const copy=/*@__PURE__*/withCyrillic({
- ru:{order:(date:string)=>`Заказ от ${date}`,orderPlain:'Заказ',orders:'Заказы',inCart:'В корзине',afterCart:'Останется после корзины',cart:'В корзине, ещё не учтено',left:'Остаток без пошлины',over:'Сверх лимита',limit:'лимит'},
- uz:{order:(date:string)=>`${date} buyurtmasi`,orderPlain:'Buyurtma',orders:'Buyurtmalar',inCart:'Savatda',afterCart:'Savatdan keyin qoladi',cart:'Savatda, hali hisobga olinmagan',left:'Bojsiz qoldiq',over:'Limitdan oshgan',limit:'limit'},
- en:{order:(date:string)=>`Order of ${date}`,orderPlain:'Order',orders:'Orders',inCart:'In the cart',afterCart:'Left after the cart',cart:'In the cart, not counted yet',left:'Left duty-free',over:'Over the allowance',limit:'limit'},
+ ru:{order:(date:string)=>`Заказ от ${date}`,orderPlain:'Заказ',orders:'Заказы',inCart:'В корзине',afterCart:'Останется после корзины',cart:'В корзине, ещё не учтено',left:'Остаток без пошлины',over:'Сверх лимита',overCart:'Сверх лимита с корзиной',limit:'лимит'},
+ uz:{order:(date:string)=>`${date} buyurtmasi`,orderPlain:'Buyurtma',orders:'Buyurtmalar',inCart:'Savatda',afterCart:'Savatdan keyin qoladi',cart:'Savatda, hali hisobga olinmagan',left:'Bojsiz qoldiq',over:'Limitdan oshgan',overCart:'Savat bilan limitdan oshgan',limit:'limit'},
+ en:{order:(date:string)=>`Order of ${date}`,orderPlain:'Order',orders:'Orders',inCart:'In the cart',afterCart:'Left after the cart',cart:'In the cart, not counted yet',left:'Left duty-free',over:'Over the allowance',overCart:'Over with the cart',limit:'limit'},
 }) satisfies Record<Locale,unknown>;
 const money=(usd:number)=>'$'+(Math.round(usd*100)/100).toLocaleString('en-US',{maximumFractionDigits:2});
 /** "$1,011.7": the one dollar format of the allowance card, for its headline too. */
@@ -60,7 +60,7 @@ export function AllowanceMeter({limit,orders,cartUsd=0,locale,label,headline=fal
    {current?<span className={'allowance-key '+current.kind}><i/><b>{current.label}</b> {money(current.usd)}</span>:<>
     {used>0&&<span className="allowance-key order"><i/>{c.orders}{orders.length>1?` · ${orders.length}`:''} <b>{money(used)}</b></span>}
     {cartUsd>0&&<span className="allowance-key cart"><i/>{c.inCart} <b>{money(cartUsd)}</b></span>}
-    {overUsd>0?<span className="allowance-key over"><i/>{c.over} <b>{money(overUsd)}</b></span>:headline&&cartUsd===0?null:<span className="allowance-key left"><i/>{cartUsd>0?c.afterCart:c.left} <b>{money(limit-total)}</b></span>}
+    {/* With a cart the excess counts it too; the headline above names the orders' own excess, so the two read apart. */}{overUsd>0?<span className="allowance-key over"><i/>{cartUsd>0?c.overCart:c.over} <b>{money(overUsd)}</b></span>:headline&&cartUsd===0?null:<span className="allowance-key left"><i/>{cartUsd>0?c.afterCart:c.left} <b>{money(limit-total)}</b></span>}
    </>}
   </p>
  </div>;

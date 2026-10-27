@@ -132,7 +132,10 @@ export function MarketProvider({children,initialLocale='uz',initialPricing=null,
   // Coming back to the tab or back online reloads the account, at most every 10 seconds.
   const wake=()=>{if(!busy.current&&document.visibilityState!=='hidden'&&Date.now()-lastRefresh.current>10000)void refresh()};
   window.addEventListener('focus',wake);window.addEventListener('online',wake);document.addEventListener('visibilitychange',wake);
-  return()=>{window.removeEventListener('focus',wake);window.removeEventListener('online',wake);document.removeEventListener('visibilitychange',wake);if(retryTimer.current)clearTimeout(retryTimer.current)};
+  // A signed-in tab that stays open also looks once a minute, so a new extra payment or status reaches the bell
+  // without a reload (27 October 2026). A hidden tab and a guest do not ask.
+  const poll=window.setInterval(()=>{if(signedIn.current)wake()},60_000);
+  return()=>{window.clearInterval(poll);window.removeEventListener('focus',wake);window.removeEventListener('online',wake);document.removeEventListener('visibilitychange',wake);if(retryTimer.current)clearTimeout(retryTimer.current)};
  },[readStoredLocale,refresh,initialLocale,sessionHint]);
  useEffect(()=>{document.documentElement.lang=htmlLang(state.communication.language)},[state.communication.language]);
  const act=useCallback(async(action:Action,options?:{queue?:boolean})=>{

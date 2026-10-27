@@ -587,7 +587,7 @@ export const ordersCopy: Record<Locale, OrdersCopy> = /*@__PURE__*/withCyrillic(
     atCheckout: amount => `при оформлении ${amount}`, delivery: 'Получатель', tracking: 'Отслеживание', payment: 'Оплата',
     orderNumber: 'Номер заказа', newOrder: 'Заказать по ссылке', cart: 'Корзина',
     cartWaiting: items => `В корзине ${items} — осталось оформить заказ.`, toCart: 'Перейти в корзину',
-    repeat: 'Повторить заказ', ask: 'Вопрос по заказу', allowance: 'Лимит получателя', allowanceValue: (used, limit) => `$${used} из $${limit} в этом месяце`, recipients: 'Получатель', allRecipients: 'Все',
+    repeat: 'Повторить заказ', ask: 'Вопрос по заказу', allowance: 'Лимит получателя', allowanceValue: (used, limit) => used > limit ? `использовано $${used} из $${limit} — лимит превышен` : `использовано $${used} из $${limit} в этом месяце`, recipients: 'Получатель', allRecipients: 'Все',
   },
   uz: {
     title: 'Buyurtmalarim', active: count => `${count} ta jarayonda`,
@@ -596,7 +596,7 @@ export const ordersCopy: Record<Locale, OrdersCopy> = /*@__PURE__*/withCyrillic(
     atCheckout: amount => `rasmiylashtirishda ${amount}`, delivery: 'Qabul qiluvchi', tracking: 'Kuzatish', payment: 'To‘lov',
     orderNumber: 'Buyurtma raqami', newOrder: 'Havola orqali buyurtma', cart: 'Savat',
     cartWaiting: items => `Savatda ${items} bor — buyurtmani rasmiylashtirish qoldi.`, toCart: 'Savatga o‘tish',
-    repeat: 'Qayta buyurtma', ask: 'Buyurtma bo‘yicha savol', allowance: 'Qabul qiluvchi limiti', allowanceValue: (used, limit) => `bu oy $${used} / $${limit}`, recipients: 'Qabul qiluvchi', allRecipients: 'Barchasi',
+    repeat: 'Qayta buyurtma', ask: 'Buyurtma bo‘yicha savol', allowance: 'Qabul qiluvchi limiti', allowanceValue: (used, limit) => used > limit ? `$${limit} dan $${used} ishlatildi — limitdan oshdi` : `bu oy $${limit} dan $${used} ishlatildi`, recipients: 'Qabul qiluvchi', allRecipients: 'Barchasi',
   },
   en: {
     title: 'My orders', active: count => `${count} in progress`,
@@ -605,7 +605,7 @@ export const ordersCopy: Record<Locale, OrdersCopy> = /*@__PURE__*/withCyrillic(
     atCheckout: amount => `${amount} at checkout`, delivery: 'Recipient', tracking: 'Tracking', payment: 'Payment',
     orderNumber: 'Order number', newOrder: 'Order by link', cart: 'Cart',
     cartWaiting: items => `${items} in your cart — only checkout is left.`, toCart: 'Go to cart',
-    repeat: 'Order again', ask: 'Ask about this order', allowance: 'Recipient allowance', allowanceValue: (used, limit) => `$${used} of $${limit} this month`, recipients: 'Recipient', allRecipients: 'All',
+    repeat: 'Order again', ask: 'Ask about this order', allowance: 'Recipient allowance', allowanceValue: (used, limit) => used > limit ? `$${used} of $${limit} used — over the limit` : `$${used} of $${limit} used this month`, recipients: 'Recipient', allRecipients: 'All',
   },
 });
 

@@ -100,7 +100,8 @@ export function ProductGallery({ product, images, activeImage, onImageChange, lo
         <span aria-live="polite" aria-atomic="true">{index + 1} / {photos.length}</span>
         <button type="button" aria-label={copy.next} disabled={index === photos.length - 1} onClick={() => scrollTo(index + 1)}><ChevronRight size={20}/></button>
       </div>
-      {!compact && <><p className="product-gallery-hint">{copy.hint}</p><div className="product-gallery-thumbnails">
+      {/* The arrows, the counter and the thumbnails already say the photos turn; the hint stays in the gallery's label. */}
+      {!compact && <><div className="product-gallery-thumbnails">
         {photos.map((item, position) => <button type="button" key={item} aria-label={`${copy.photo} ${position + 1}`} aria-pressed={position === index} onClick={() => scrollTo(position)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={sizedImage(item, 200)} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" draggable={false} onError={event => { retryOriginal(event.currentTarget, item); }}/>

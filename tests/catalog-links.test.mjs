@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   catalogItemHref, itemParam, withoutItemParam, rememberPendingFavorite, takePendingFavorite, pendingFavoriteToSave,
-  pendingFavoriteKey, pendingFavoriteTtlMs, distinctCovers,
+  pendingFavoriteKey, pendingFavoriteTtlMs, distinctCovers, readRecentProducts, rememberRecentProduct, clearRecentProducts,
 } from '../lib/market/catalog-links.ts';
 import { readCatalogQuery } from '../lib/market/catalog-query.ts';
 
@@ -69,4 +69,18 @@ test('set covers prefer photos the earlier sets have not used', () => {
   assert.deepEqual(third, ['/img/a.jpg', '/img/b.jpg', '/img/c.jpg', '/img/g.jpg']);
   // Products without a photo are skipped; a three-product set keeps three (one large photo on the strip).
   assert.deepEqual(distinctCovers([{ items: [item('x', ''), item('y'), item('z'), item('w')] }]), [['/img/y.jpg', '/img/z.jpg', '/img/w.jpg']]);
+});
+
+test('recently viewed keeps the newest twelve distinct ids and survives broken storage', () => {
+  const data = new Map();
+  const storage = { getItem: (key) => data.get(key) ?? null, setItem: (key, value) => data.set(key, value), removeItem: (key) => data.delete(key) };
+  for (let index = 0; index < 14; index++) rememberRecentProduct(storage, 'p' + index);
+  assert.deepEqual(rememberRecentProduct(storage, 'p5').slice(0, 3), ['p5', 'p13', 'p12']);
+  assert.equal(readRecentProducts(storage).length, 12);
+  assert.equal(readRecentProducts(storage).filter((id) => id === 'p5').length, 1);
+  data.set('atlas-recent-products', '{not json');
+  assert.deepEqual(readRecentProducts(storage), []);
+  clearRecentProducts(storage);
+  assert.deepEqual(readRecentProducts(storage), []);
+  assert.deepEqual(readRecentProducts(null), []);
 });

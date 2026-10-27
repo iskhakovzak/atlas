@@ -94,3 +94,10 @@ export const customerNotes=sqliteTable('market_customer_notes',{
 export const providerJobs=sqliteTable('market_provider_jobs',{
  snapshotId:text('snapshot_id').primaryKey(),provider:text('provider').notNull(),store:text('store').notNull(),dataset:text('dataset').notNull(),itemKey:text('item_key').notNull(),url:text('url').notNull(),purpose:text('purpose').notNull(),status:text('status').notNull(),records:integer('records').notNull().default(0),error:text('error'),month:text('month').notNull(),day:text('day'),createdAt:integer('created_at').notNull(),finishedAt:integer('finished_at'),
 },table=>[index('idx_market_provider_jobs_item').on(table.itemKey,table.createdAt),index('idx_market_provider_jobs_month').on(table.provider,table.month),index('idx_market_provider_jobs_day').on(table.provider,table.day),index('idx_market_provider_jobs_status').on(table.provider,table.status,table.createdAt)]);
+
+// Browser push subscriptions (Web Push, 27 October 2026): one row per browser that turned on Atlas notifications.
+// The endpoint is the push service address of that browser; p256dh/auth are its public encryption keys, not secrets
+// of the customer. Deleted with the account, when the browser drops it (404/410) or when the customer turns it off.
+export const pushSubscriptions=sqliteTable('market_push_subscriptions',{
+ endpoint:text('endpoint').primaryKey(),userId:text('user_id').notNull(),p256dh:text('p256dh').notNull(),auth:text('auth').notNull(),createdAt:integer('created_at').notNull(),
+},table=>[index('idx_market_push_subscriptions_user').on(table.userId,table.createdAt)]);
