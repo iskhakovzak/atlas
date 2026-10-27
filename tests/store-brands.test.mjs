@@ -54,3 +54,12 @@ test('the eight hero stores (home hero, empty link-order page) are real listed b
   assert.deepEqual(heroStores.map((brand) => brand.key), ['nike', 'zara', 'amazon', 'apple', 'iherb', 'adidas', 'hm', 'sephora']);
   for (const brand of heroStores) assert.ok(storeBrands.includes(brand), brand.key);
 });
+
+test('the catalog import can fall back to the store list for where a link ships from', async () => {
+  const { storeCountryLabelForUrl } = await import('../lib/market/store-brands.ts');
+  assert.equal(storeCountryLabelForUrl('https://tartecosmetics.com/products/bb-blur-tinted-moisturizer-spf-30'), 'США');
+  assert.equal(storeCountryLabelForUrl('https://us.puma.com/us/en/pd/suede-classic-sneakers/399781'), 'США');
+  assert.equal(storeCountryLabelForUrl('https://www.zara.com/es/en/x-p1.html') !== '', true);
+  assert.equal(storeCountryLabelForUrl('https://example.org/item'), '');
+  assert.equal(storeCountryLabelForUrl('not a url'), '');
+});

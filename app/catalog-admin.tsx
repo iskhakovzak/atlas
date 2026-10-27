@@ -12,7 +12,7 @@ import {chunkCatalogIds,parseCatalogImportQueue,removeImportedCatalogLinks} from
 import {dedupeSafeImages,safeImage} from '@/lib/importer/extract';
 import {isEbayStorefrontLink,type CatalogSaleJob} from '@/lib/market/catalog-sale';
 
-type ImportOutcome={url:string;status:'saved'|'failed';id?:string;published?:boolean;note?:string;reason?:string};
+type ImportOutcome={url:string;status:'saved'|'failed';id?:string;published?:boolean;note?:string;reason?:string;importFailureReason?:string};
 type Result={saleJob?:CatalogSaleJob;catalogFormat?:string;published?:number;skipped?:string[];document?:CatalogDocument;urls?:string[];importedId?:string;importNote?:string;results?:ImportOutcome[];recheckResults?:string[];refreshResult?:{selected:number;checked:number;available:number;soldOut:number;unknown:number;failed:number;skipped:number};error?:string};
 type ImportStatus='queued'|'importing'|'saved'|'review'|'failed';
 type ImportProgress={url:string;status:ImportStatus;detail?:string};
@@ -90,7 +90,9 @@ export function CatalogAdmin(){
     }
     const saved=allResults.filter(item=>item.status==='saved'),failed=allResults.filter(item=>item.status==='failed'),firstImportedId=saved[0]?.id;
     if(firstImportedId){setScope('all');setOpen(firstImportedId);window.setTimeout(()=>window.document.getElementById(`catalog-${firstImportedId}`)?.scrollIntoView({behavior:'smooth',block:'center'}),80)}
-    const summary=`Опубликовано: ${saved.filter(item=>item.published).length}; ожидают повторной проверки: ${saved.filter(item=>item.note).length}.`;
+    // A store that could not be read leaves an empty draft: it is counted apart from the cards that only wait for a recheck.
+    const unread=saved.filter(item=>item.importFailureReason).length,waiting=saved.filter(item=>item.note&&!item.importFailureReason).length;
+    const summary=`Опубликовано: ${saved.filter(item=>item.published).length}; ждут повторной проверки: ${waiting}`+(unread?`; магазин не прочитан — пустые черновики для ручной проверки: ${unread}`:'')+'.';
     if(failed.length)toast.warning(`${summary} Не добавлено: ${failed.length} — ссылки остались в поле.`);else toast.success(summary);
    }finally{setBusy('')}
  }

@@ -1,3 +1,4 @@
+import {storeCountryLabelForUrl} from '@/lib/market/store-brands';
 import {withoutAuthor} from '@/lib/market/pricing-equal';
 import {z} from 'zod';
 import {database,identity,requirePermission,sameOrigin,requestJson,json,failure,HttpError,pricing,rateLimit} from '@/lib/market/server';
@@ -42,9 +43,11 @@ async function readForImport(sourceUrl:string,collectionIds:string[],country:str
     data=error instanceof ManualEntryFallbackError?error.partial:undefined;
   }
   const now=Date.now();
+  // Where it ships from: the store's own page first (importDraft), then the operator's choice, then the store list.
+  const shipsFrom=country||storeCountryLabelForUrl(sourceUrl);
   const draft=sourceUnavailable
-    ?manualFallbackCatalogDraft(data,sourceUrl,collectionIds,country,now,failureMessage,failureReason)
-    :importDraft(data!,collectionIds,country,now);
+    ?manualFallbackCatalogDraft(data,sourceUrl,collectionIds,shipsFrom,now,failureMessage,failureReason)
+    :importDraft(data!,collectionIds,shipsFrom,now);
   return {draft,sourceUnavailable,failureMessage,failureReason};
 }
 async function mapConcurrent<T,R>(items:T[],limit:number,task:(item:T,index:number)=>Promise<R>){
