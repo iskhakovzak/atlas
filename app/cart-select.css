@@ -60,7 +60,9 @@
 .review-layout { display: grid; gap: 18px; }
 @container (min-width: 820px) {
   .review-layout { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; gap: 24px; }
-  .review-aside { position: sticky; top: 0; max-height: calc(92dvh - 120px); overflow: auto; }
+  /* 92dvh is the dialog; ~210 px of it are its title, intro, steps and padding above and below the columns. With 120 px the
+     aside was taller than the dialog's visible part, so on an 800 px laptop the sticky confirm bar sat under its bottom edge. */
+  .review-aside { position: sticky; top: 0; max-height: calc(92dvh - 210px); overflow: auto; }
   /* A short laptop screen: the aside scrolls inside it, and the button with its amount stays at its bottom edge. */
   .review-aside .review-confirm-bar { position: sticky; bottom: 0; z-index: 1; padding-top: 8px; background: var(--background, #fff); }
 }
