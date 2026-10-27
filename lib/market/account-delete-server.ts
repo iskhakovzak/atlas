@@ -66,6 +66,8 @@ export async function deleteAccount(user:{userId:string;email:string;contact?:st
  const contacts=[...new Set([user.email,user.contact??'',...linked.map(row=>row.contact)].filter(Boolean))];
  const optional:Array<[string,string,unknown[]]>=[
   ['auth links','DELETE FROM market_auth_links WHERE user_id=? OR subject=?',[id,id]],
+  // Browser push addresses of this account's devices (lib/market/push-server.ts): nothing is sent there any more.
+  ['push subscriptions','DELETE FROM market_push_subscriptions WHERE user_id=?',[id]],
   ['order finance','UPDATE market_order_finance SET customer_id=?,updated_at=? WHERE customer_id=?',[alias,now,id]],
   ['ledger author','UPDATE market_ledger_entries SET created_by=? WHERE created_by=?',[alias,id]],
   ['ledger voider','UPDATE market_ledger_entries SET voided_by=? WHERE voided_by=?',[alias,id]],

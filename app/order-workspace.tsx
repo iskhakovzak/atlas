@@ -94,6 +94,7 @@ import { usdText } from "./calc-summary";
 import { Money } from "./money";
 import { CustomerExtraCharge, ExtraChargeHistory, OperatorExtraCharges, insuranceShare } from "./order-extra-charges";
 import { OperatorTelegramHint, TelegramSettingsRow } from "./telegram-notices-link";
+import { PushSettingsRow } from "./push-toggle";
 import { CustomerParcelClaim, OperatorParcelClaims } from "./parcel-claim";
 import {
   PageHeading,
@@ -2879,7 +2880,7 @@ export function NotificationsView() {
           </ul>}
         </>
       )}
-      {ready && <details className="notice-settings"><summary>{c.settings}</summary><TelegramSettingsRow locale={locale} /><CommunicationPanel key={`${state.communication.emailEnabled}-${state.communication.smsEnabled}-${state.communication.email}-${state.communication.phone}-${state.communication.language}`} value={state.communication} email={user?.email ?? ""} phone={state.deliveryProfile?.phone ?? ""} save={(value) => act({ type: "communication-save", value })} /></details>}
+      {ready && <details className="notice-settings"><summary>{c.settings}</summary><TelegramSettingsRow locale={locale} /><PushSettingsRow locale={locale} /><CommunicationPanel key={`${state.communication.emailEnabled}-${state.communication.smsEnabled}-${state.communication.email}-${state.communication.phone}-${state.communication.language}`} value={state.communication} email={user?.email ?? ""} phone={state.deliveryProfile?.phone ?? ""} save={(value) => act({ type: "communication-save", value })} /></details>}
       {ready && user?.operator && (
         <section className="message-log-section">
           <div className="section-heading"><h2>Журнал внешних сообщений</h2><span>{state.messageDeliveries.length} подготовлено</span></div>

@@ -14,6 +14,7 @@ import {groupOrders,orderGroupCopy} from '@/lib/market/order-groups';
 import {sizedImage} from '@/lib/market/image-size';
 import type {Order} from '@/lib/market/domain';
 import {TelegramBellLink} from './telegram-notices-link';
+import {PushBellLink} from './push-toggle';
 import './notice-panel.css';
 
 const panelCopy=/*@__PURE__*/withCyrillic({
@@ -102,7 +103,7 @@ export function NotificationsSheet({open,onOpenChange,bell}:{open:boolean;onOpen
       {/* With nothing to show, the full inbox is a quiet link: the empty card holds the one call to action. */}
       <footer className="notice-panel-footer"><Link className={'notice-panel-all'+(ready&&panel.total===0?' quiet':'')} href="/notifications" onClick={close}>{p.all}<ArrowRight size={17} aria-hidden="true"/></Link>
         {/* Order statuses in Telegram: a quiet line to the account's setting while they are off (nothing without the bot). */}
-        <TelegramBellLink locale={locale} onNavigate={close}/></footer>
+        <TelegramBellLink locale={locale} onNavigate={close}/>{ready&&<PushBellLink locale={locale}/>}</footer>
     </SheetContent>
   </Sheet>;
 }

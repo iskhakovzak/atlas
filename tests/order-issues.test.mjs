@@ -53,5 +53,5 @@ test('operator API keeps issue updates inside the authenticated operator allowli
   assert.match(route, /operatorActionTypes\.includes\(parsedAction\.data\.type\)/);
   assert.match(route, /sameOrigin\(request\)/);
   // The operator's write may also send the customer's new notices to Telegram (their consent; the live site only).
-  assert.match(route, /persist\(current\.id, next, current\.revision, current\.state, \{ notify: telegramNoticesLive\(request\) \}\)/);
+  assert.match(route, /persist\(current\.id, next, current\.revision, current\.state, \{ notify: telegramNoticesLive\(request\), push: true \}\)/);
 });

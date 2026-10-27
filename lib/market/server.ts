@@ -6,7 +6,7 @@ import {cbuUsdUrl,fxRefreshDue,parseCbuRate,withCbuRate} from './fx';
 import {foreignOrderIds,writeProjection} from './projection';
 import {apiErrorMessage,requestLocale,serverError} from './i18n';
 import {translateDomainError} from './domain-errors.ts';
-import {shouldNotifyTelegram} from './telegram-state';
+import {hasNewNotice,shouldNotifyTelegram} from './telegram-state';
 import {emailVerifiedSignIn,hasPermission,resolveAccess,type Permission,type StaffAccess,type StaffRole,type StaffStatus} from './access';
 export type {Permission,StaffAccess,StaffRole,StaffStatus};
 export function database(){if(!env.DB)throw Error('Серверное хранилище пока недоступно.');return env.DB}
@@ -60,7 +60,8 @@ export async function account(user:{userId:string;platformUserId?:string|null;di
  */
 // `notify`: this write is Atlas's (POST /api/operations on the live site), so new notices also go to the customer's
 // Telegram when they turned that on. Never set for the customer's own actions or for projection syncs.
-export async function persist(id:string,state:State,revision:number,previous?:State,options:{notify?:boolean}={}){
+// `push`: the same Atlas write on any deployment: browser subscriptions belong to the site they were made on.
+export async function persist(id:string,state:State,revision:number,previous?:State,options:{notify?:boolean;push?:boolean}={}){
  const serialized=JSON.stringify(state);if(serialized.length>1000000)throw new HttpError(413, 'err_3');
  // A document the next read cannot parse would lock the customer out of the account: refuse to save it.
  try{parseState(serialized)}catch(error){throw new Error('Refused to save an account state that does not parse: '+(error as Error).message.slice(0,400))}
@@ -71,6 +72,11 @@ export async function persist(id:string,state:State,revision:number,previous?:St
  if(previous&&shouldNotifyTelegram(options.notify,previous,state,now)){
   const before=previous;
   deferBackground(import('./telegram-notices-server').then(({deliverTelegramNotices})=>deliverTelegramNotices(id,before,state,now)),'Telegram notice failed');
+ }
+ // Browser notifications for the same Atlas write (lib/market/push-server.ts); nothing loads without a new notice.
+ if(previous&&options.push===true&&hasNewNotice(previous,state,now)){
+  const before=previous;
+  deferBackground(import('./push-server').then(({deliverPushNotices})=>deliverPushNotices(id,before,state,now)),'Push notice failed');
  }
 }
 

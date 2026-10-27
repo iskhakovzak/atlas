@@ -86,3 +86,20 @@ export function distinctCovers(sets: readonly { items: readonly { product: { id:
     return picked.map((item) => item.product.image as string);
   });
 }
+
+/** Products this device opened in the catalog, newest first (ids, at most 12): the "Recently viewed" row. */
+const recentKey = 'atlas-recent-products';
+export function readRecentProducts(storage: Pick<Storage, 'getItem'> | null): string[] {
+  try {
+    const list = JSON.parse(storage?.getItem(recentKey) ?? '[]');
+    return Array.isArray(list) ? list.filter((id): id is string => typeof id === 'string').slice(0, 12) : [];
+  } catch { return []; }
+}
+export function rememberRecentProduct(storage: Pick<Storage, 'getItem' | 'setItem'> | null, id: string): string[] {
+  const next = [id, ...readRecentProducts(storage).filter((item) => item !== id)].slice(0, 12);
+  try { storage?.setItem(recentKey, JSON.stringify(next)); } catch { /* private mode: the row just stays empty */ }
+  return next;
+}
+export function clearRecentProducts(storage: Pick<Storage, 'removeItem'> | null) {
+  try { storage?.removeItem(recentKey); } catch { /* nothing to clear */ }
+}
