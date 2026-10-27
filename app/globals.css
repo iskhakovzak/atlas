@@ -188,3 +188,8 @@ body > section[aria-live][tabindex="-1"] { position: fixed; z-index: 999999999; 
    arrives and moves it, nothing visible jumps, and it simply appears where it belongs (mobile CLS 0.13–0.93 on the cart,
    orders and notifications, 26 October 2026). */
 .site-main:has(.access-loading, .atlas-skeleton, .catalog-skeleton) > .home-footer { visibility: hidden; }
+
+/* Prices and totals keep every digit the same width, so a total that changes (the cart's glide, a quantity step)
+   does not shuffle its neighbours, and columns of sums line up (27 October 2026). Zero specificity: any rule that
+   sets the figures itself still wins. */
+:where(.money, [class*="price"], [class*="total"], [class*="-sum"]) { font-variant-numeric: tabular-nums; }

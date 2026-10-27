@@ -1914,3 +1914,4 @@ html[data-theme="dark"] .login-done-bar::after { background: var(--night-jade, #
 .payment-reserve-hint small{font-size:11px}
 /* globals.css draws it with the light #e5e9f1, which read as a bright stripe on the Night page. */
 html[data-theme="dark"] .warehouse-customer-note span { color: var(--atlas-dark-ink); }
+.allowance-readout:empty { min-height: 0; margin: 0; }

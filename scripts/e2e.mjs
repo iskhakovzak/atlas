@@ -345,7 +345,9 @@ try {
   await open("/stores?brand=zara&lang=ru");
   await eventually("document.querySelector('.store-dialog[open] a.store-dialog-open')?.getAttribute('href') === 'https://zara.com'", "store deep link opens the card");
   await open("/order-by-link");
-  if (!(await evaluate("!!document.querySelector('main input')"))) fail("guest /order-by-link", "link field missing");
+  // The guest opened an item by link earlier in this run, so the page may resume that draft (its link with "Replace
+  // link") instead of an empty field; either way there is a way to give a link. Waited for, not read once.
+  await eventually("!!document.querySelector('main input') || !!document.querySelector('main .lo-source-host')", "link field or the resumed link on /order-by-link");
 
   // 2. Customer: sign in, cart, three-step checkout through the interface, order list.
   await setViewport(1280); await setPreferences("light"); await signIn(customerEmail);
