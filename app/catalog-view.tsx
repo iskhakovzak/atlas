@@ -159,6 +159,9 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
       detail={allowance.remainingUsd > 0 ? cc.allowanceLeft(allowance.remainingUsd, allowance.name, allowanceMonth(locale), limitUsd) : cc.allowanceSpent(allowance.name, allowanceMonth(locale))}
       action={allowance.remainingUsd > 0 && !query.duty ? <button type="button" className="text-button" onClick={() => setQuery({ ...query, duty: true })}>{cc.allowanceShow}</button> : null}
       more={<Link className="text-link" href="/customs">{cc.allowanceHow}</Link>} />}
+    {/* On a phone the collections toggle sits beside the search (one row instead of two); on a wider screen this
+       wrapper does not exist for the layout (display: contents) and the tiles stay above the search. */}
+    <div className="catalog-controls" data-sets={sets.length > 0 || undefined}>
     {sets.length > 0 && <div className="catalog-collections">
       <button ref={setsToggleRef} type="button" className="catalog-sets-toggle" aria-expanded={setsOpen} aria-controls={setsId} onClick={() => setSetsOpen((open) => !open)}>{cc.collections}<ChevronDown size={18} aria-hidden="true" /></button>
       <nav {...setsRow} id={setsId} className="catalog-sets" data-open={setsOpen || undefined} aria-label={cc.collections}>
@@ -169,7 +172,7 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
       </nav>
     </div>}
     {showControls && <section className="catalog-bar" aria-label={cc.search}>
-      <label className="catalog-search"><Search size={20} aria-hidden="true" /><span className="sr-only">{cc.search}</span><input type="search" aria-label={cc.search} value={query.q} maxLength={80} placeholder={cc.searchPlaceholder} onChange={(event) => setQuery({ ...query, q: event.target.value })} />{query.q && <button type="button" className="icon-btn" aria-label={cc.clearSearch} onClick={() => setQuery({ ...query, q: '' })}><X size={18} /></button>}</label>
+      <label className="catalog-search"><Search size={20} aria-hidden="true" /><span className="sr-only">{cc.search}</span><input type="search" aria-label={cc.search} value={query.q} maxLength={80} placeholder={side === 'bottom' && sets.length > 0 ? cc.searchPlaceholderShort : cc.searchPlaceholder} onChange={(event) => setQuery({ ...query, q: event.target.value })} />{query.q && <button type="button" className="icon-btn" aria-label={cc.clearSearch} onClick={() => setQuery({ ...query, q: '' })}><X size={18} /></button>}</label>
       {categoryEntries.length > 1 && <div className="catalog-categories" role="group" aria-label={cc.categoriesLabel}>
         <button type="button" aria-pressed={!query.category} onClick={() => setQuery({ ...query, category: '', sizes: [] })}>{cc.all}<span>{categoryAll}</span></button>
         {categoryEntries.map(([category, count]) => <button type="button" key={category} data-empty={count === 0 || undefined} aria-pressed={query.category === category} onClick={() => setQuery({ ...query, category: query.category === category ? '' : category, sizes: [] })}>{cc.categories[category] ?? category}<span>{count}</span></button>)}
@@ -181,6 +184,7 @@ export function CatalogView({ mode, initial }: { mode: 'catalog' | 'favorites'; 
       </div>
       <ActiveFilters query={query} setQuery={setQuery} cc={cc} collections={collections} locale={locale} />
     </section>}
+    </div>
     <div className={'catalog-layout' + (showControls ? '' : ' catalog-layout-plain')}>
       {showControls && <aside className="catalog-sidebar" aria-label={cc.filtersTitle}><FilterPanel query={query} setQuery={setQuery} facets={facets} cc={cc} pool={pool.length} locale={locale} dutyHint={dutyHint} /></aside>}
       <section className="catalog-results" aria-label={mode === 'favorites' ? copy.saved : cc.title}>

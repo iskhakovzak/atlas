@@ -12,3 +12,7 @@
 .btn.apple svg{width:18px;height:18px;flex-shrink:0;fill:currentColor}
 /* The expired-link card: the lowercase "atlas↗" mark as in the header. */
 .login-return-card .wordmark svg{width:.7em;height:.7em;vertical-align:.12em}
+
+/* Once the code is sent, "← Change" next to the address is the one way back; "← All sign-in methods" above it
+   would be a second back link on the same card (27 October 2026). */
+.login-panel:has(.login-sent) > .login-back { display: none; }

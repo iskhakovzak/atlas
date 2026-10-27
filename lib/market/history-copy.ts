@@ -607,6 +607,13 @@ export function renderNotification(notice: Coded & { title: string; message: str
   return { title: localizeLegacyStoredCopy(notice.title, locale), message: localizeLegacyStoredCopy(notice.message, locale) };
 }
 
+/** A notice as a list row shows it: an order's status change leads with the status itself ("Доставлено") and names
+ *  the product under it; "Статус заказа изменён" over every status repeated one line on each row. */
+export function renderNoticeRow(notice: Coded & { title: string; message: string }, locale: Locale, product?: string): { title: string; message: string } {
+  const text = renderNotification(notice, locale);
+  return notice.code === 'status' && product ? { title: text.message, message: product } : text;
+}
+
 /** Every code the renderers know, for tests and for keeping ru/uz/en in step. */
 export const historyCodes = Object.keys(historyCopy);
 export const notificationCodes = Object.keys(noticeCopy);

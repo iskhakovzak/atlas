@@ -136,7 +136,7 @@ export function CatalogCard({ item, locale, select, saved, canSave, saving, onSa
         {showDiscount && <>{' '}<del title={copy.referenceLabel}>{fmt(referenceUsd!, 'USD')}</del>{' '}<em className="find-discount" title={copy.compareHint}>−{discount}&#x202F;%</em></>}
       </div>
       {costs
-        ? <FindPrice costs={costs} product={product} stale={needsPrice} speed={speed} label={needsPrice ? cc.totalStale : cc.total} breakdownLabel={cc.breakdown} fmt={fmt} numberLocale={numberLocale} locale={locale} note='' storeLine={{ label: storePriceLabel, value: storePriceText }} facts={factsText(product, speed, locale, pricing)} />
+        ? <FindPrice costs={costs} product={product} stale={needsPrice} speed={speed} label={needsPrice ? cc.totalStale : cc.total} shortLabel={needsPrice ? cc.totalStaleShort : cc.totalShort} breakdownLabel={cc.breakdown} fmt={fmt} numberLocale={numberLocale} locale={locale} note='' storeLine={{ label: storePriceLabel, value: storePriceText }} facts={factsText(product, speed, locale, pricing)} />
         : <div className="find-total"><div className="find-total-head"><span>{cc.totalStale}</span></div><strong className="find-total-pending"><span>{cc.afterCheck}</span></strong><small className="find-total-note" /></div>}
       <Facts product={product} speed={speed} locale={locale} />
       <div className="find-chips">
@@ -160,8 +160,8 @@ function costsAt(item: CatalogItem, speed: DeliverySpeed, pricing = tariff): Cos
 }
 
 /** Delivered total in soum with an in-flow "i" button that opens the line-by-line breakdown. */
-function FindPrice({ costs, product, stale, speed, label, breakdownLabel, fmt, numberLocale, locale, note, storeLine, facts }: {
-  costs: Costs; product: Product; stale: boolean; speed: DeliverySpeed; label: string; breakdownLabel: string;
+function FindPrice({ costs, product, stale, speed, label, shortLabel, breakdownLabel, fmt, numberLocale, locale, note, storeLine, facts }: {
+  costs: Costs; product: Product; stale: boolean; speed: DeliverySpeed; label: string; shortLabel?: string; breakdownLabel: string;
   fmt: (n: number, currency?: string) => string; numberLocale: string; locale: Locale; note: string;
   /** The store price with its label and date: on a phone the card shows only the price, the rest lives here. */
   storeLine?: { label: string; value: string };
@@ -179,7 +179,8 @@ function FindPrice({ costs, product, stale, speed, label, breakdownLabel, fmt, n
   const freeFrom = fmt(pricing.storeShippingFreeFromUsd ?? 50, 'USD');
   return <div className="find-total">
     <div className="find-total-head">
-      <span>{label}</span>
+      {/* A phone card is too narrow for "С доставкой в Ташкент": it shows "До Ташкента", screen readers keep the full label. */}
+      <span>{shortLabel ? <><span className="find-total-label">{label}</span><span className="find-total-label-short" aria-hidden="true">{shortLabel}</span></> : label}</span>
       <Popover>
         <PopoverTrigger asChild><button type="button" className="find-info" aria-label={breakdownLabel}><Info size={18} aria-hidden="true" /></button></PopoverTrigger>
         <PopoverContent className="find-breakdown-popover" align="end" sideOffset={6} collisionPadding={12}>

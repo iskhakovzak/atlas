@@ -145,7 +145,8 @@ export function LoginView(){
    {methods.telegram&&(methods.telegramBot?<TelegramBotLogin locale={locale} onDone={done} onError={showError}/>:<TelegramLogin bot={methods.telegram} hint={c.telegramHint} onDone={done} onError={showError}/>)}
    {methods.telegram&&tabs.length>1&&<div className="login-or" role="separator"><span>{w.or}</span></div>}
    <div className="login-choices">
-    {methods.phone&&<button type="button" className="btn secondary login-choice" onClick={()=>{setTab('phone');setError(null)}}><Smartphone size={18} aria-hidden="true"/>{w.phone}</button>}
+    {/* Without Telegram (its button is the main way when it is on) the phone code is the one filled button: one clear first choice. */}
+    {methods.phone&&<button type="button" className={'btn '+(methods.telegram?'secondary':'primary')+' login-choice'} onClick={()=>{setTab('phone');setError(null)}}><Smartphone size={18} aria-hidden="true"/>{w.phone}</button>}
     {methods.email&&<button type="button" className="btn secondary login-choice" onClick={()=>{setTab('email');setError(null)}}><Mail size={18} aria-hidden="true"/>{w.email}</button>}
     {methods.google&&<ProviderLink provider="google" returnTo={returnTo} className="btn secondary login-choice"><GoogleMark/>{c.googleButton}</ProviderLink>}
     {appleOffered(methods)&&<AppleButton methods={methods} returnTo={returnTo} label={c.appleButton} className="btn login-choice apple" onDone={done} onError={showError}/>}

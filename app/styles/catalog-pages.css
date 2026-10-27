@@ -317,3 +317,31 @@ html:not([data-theme="dark"]) .catalog-page .catalog-sets > .catalog-set[aria-pr
    the hint, which says why it is off, keeps its colour (impeccable detector, 27 October 2026). */
 .catalog-switch[data-disabled] :is(.catalog-switch-text, .catalog-count) { opacity: 1; }
 .catalog-switch[data-disabled] .catalog-switch-text b { color: var(--cat-muted); }
+
+/* ---------- Phones: the head in fewer rows (27 October 2026) ---------- */
+/* The first products came at ~480 px of an 812 px screen. Now "Saved" sits on the title's line, the stores
+   counter (the same number as "N products" above the grid) is gone from phones, and the collections toggle
+   shares the search's row; the intro stays (owner, 6 October). */
+.catalog-controls { display: contents; }
+@media (max-width: 760px) {
+  .catalog-page .catalog-head { position: relative; }
+  .catalog-page .catalog-head > div:first-child { padding-right: 0; }
+  .catalog-page .catalog-head > div:first-child > h1 { padding-right: 96px; }
+  .catalog-page .catalog-head-side { position: absolute; top: 0; right: 0; min-height: 0; }
+  .catalog-page .catalog-head-side .catalog-stats { display: none; }
+  .catalog-controls[data-sets] { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; }
+  .catalog-controls[data-sets] > .catalog-collections, .catalog-controls[data-sets] > .catalog-bar { display: contents; }
+  .catalog-controls[data-sets] .catalog-sets-toggle { grid-column: 2; grid-row: 1; align-self: stretch; min-height: 44px; border-radius: 14px; }
+  .catalog-controls[data-sets] .catalog-search { grid-column: 1; grid-row: 1; }
+  .catalog-controls[data-sets] > .catalog-collections > .catalog-sets[data-open] { grid-column: 1 / -1; grid-row: 2; margin: 8px -16px 0; }
+  .catalog-controls[data-sets] > .catalog-bar > :not(.catalog-search) { grid-column: 1 / -1; margin-top: 8px; }
+  .catalog-controls[data-sets] > .catalog-bar > :last-child { margin-bottom: 12px; }
+}
+/* The bar dissolves into the grid on phones, so the scroll magnet moves to the search row. */
+@media (prefers-reduced-motion: no-preference) and (max-width: 760px) {
+  html:has(.catalog-page) .catalog-controls[data-sets] .catalog-search { scroll-snap-align: start; scroll-margin-top: 8px; }
+}
+/* Wide screens: four cards per row beside the filters (~230 px each from 1400 px, enough for an eight-digit total). */
+@media (min-width: 1400px) {
+  .catalog-page .finds-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}

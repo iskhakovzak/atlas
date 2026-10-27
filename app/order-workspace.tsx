@@ -83,7 +83,7 @@ import { localizedStatuses, navCopy, type Locale } from "@/lib/market/i18n";
 import {requestImport} from "@/lib/market/import-client";
 import { homeCopy } from "@/lib/market/home-copy";
 import { formatKg, formatPercent, formatSum } from "@/lib/market/format";
-import { localizeLegacyStoredCopy, renderHistory, renderNotification } from "@/lib/market/history-copy";
+import { localizeLegacyStoredCopy, renderHistory, renderNoticeRow, renderNotification } from "@/lib/market/history-copy";
 import { deliveryDaysFor, deliveryRegions, siteContent, type DeliveryRegion } from "@/lib/market/site-content";
 import { groupOrders, groupStageText, groupStoreNames, isParcelServiceRequest, orderCustomerTotal, orderGroupCopy, parcelServicesFor, shipAddressText, storeGroupName, storeShortName, type OrderGroup, type ParcelServiceRequest } from "@/lib/market/order-groups";
 import { balanceCopy, countryLabel, formatDateTime, formatShortDate, itemCount, noticesCopy, orderCount, ordersCopy } from "@/lib/market/customer-copy";
@@ -946,7 +946,9 @@ function CustomerOrderLine({ lines, panelId, progress = true, siblings, showThum
   const region = deliveryRegions.find(item => item.countries.includes(lead.product.country ?? "США"))?.id as DeliveryRegion | undefined;
   const days = region ? deliveryDaysFor(pricing, region, speed) : null;
   const where = lead.delivery ? [lead.delivery.city || lead.delivery.region, lead.delivery.address].filter(Boolean).join(", ") : "";
-  return <details className={"og-line" + (many ? " og-parcel-more" : "")} id={many ? panelId : o.id} data-action={needsAction || undefined} data-cancelled={(!many && o.cancelled) || undefined} onToggle={event => onToggle(event.currentTarget.open)}>
+  // A line waiting for the customer (an extra payment, a change to answer) opens by itself: its buttons were behind
+  // the fold and "Your action is needed" pointed at nothing visible (27 October 2026).
+  return <details className={"og-line" + (many ? " og-parcel-more" : "")} open={needsAction || undefined} id={many ? panelId : o.id} data-action={needsAction || undefined} data-cancelled={(!many && o.cancelled) || undefined} onToggle={event => onToggle(event.currentTarget.open)}>
     {many
       ? <summary className="og-line-summary og-parcel-summary" aria-label={`${pc.details}: ${itemCount(items, locale)}${needsAction ? `, ${gc.action(acting.length)}` : ""}`}>
         <span className="og-line-variant">{pc.details}</span>
@@ -958,7 +960,7 @@ function CustomerOrderLine({ lines, panelId, progress = true, siblings, showThum
         {lineCells(o, showThumb, headerStage, locale)}
         <ChevronDown className="og-line-chevron" size={18} aria-hidden="true" />
       </summary>}
-    {expanded && <div className="order-x-body og-line-body">
+    {(expanded || needsAction) && <div className="order-x-body og-line-body">
       {!many && <div className="og-line-head">
           <div className="og-line-what">
             {/* The line's summary just above names the product, variant and quantity; the open line does not say them again. */}
@@ -2868,8 +2870,8 @@ export function NotificationsView() {
             {groups.map(([item, ...history]) => <li key={item.id} id={"notice-" + item.id} tabIndex={-1} className={"notice-x" + (!item.read ? " unread" : "") + (linked === item.id ? " linked" : "")}>
               <span className="notice-x-icon" aria-hidden="true"><Bell size={18} /></span>
               <div className="notice-x-body">
-                <div className="notice-x-head"><h2>{renderNotification(item, locale).title}</h2>{!item.read && <span className="notice-x-new">{c.newBadge}</span>}</div>
-                <p>{renderNotification(item, locale).message}</p>
+                <div className="notice-x-head"><h2>{renderNoticeRow(item, locale, item.orderId ? state.orders.find(order => order.id === item.orderId)?.product.name : undefined).title}</h2>{!item.read && <span className="notice-x-new">{c.newBadge}</span>}</div>
+                <p>{renderNoticeRow(item, locale, item.orderId ? state.orders.find(order => order.id === item.orderId)?.product.name : undefined).message}</p>
                 <div className="notice-x-foot"><time dateTime={new Date(item.at).toISOString()}>{formatDateTime(item.at, locale)}</time>{item.orderId && <Link className="order-x-link" href={"/orders#" + item.orderId}>{c.openOrder} {item.orderId}<ArrowRight size={14} aria-hidden="true" /></Link>}</div>
                 {history.length > 0 && <details className="notice-x-history"><summary>{c.more(history.length)}</summary><ol>{history.map(previous => <li key={previous.id} id={"notice-" + previous.id} tabIndex={-1} className={linked === previous.id ? "linked" : undefined}><b>{renderNotification(previous, locale).title}</b><p>{renderNotification(previous, locale).message}</p><time dateTime={new Date(previous.at).toISOString()}>{formatDateTime(previous.at, locale)}</time></li>)}</ol></details>}
               </div>

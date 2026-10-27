@@ -153,3 +153,18 @@ html[data-theme="dark"] .notice-panel-item:hover { border-color: var(--night-lin
 .notice-panel-all.quiet:hover { background: var(--day-soft, #efefe9); box-shadow: none; }
 html[data-theme="dark"] .notice-panel-all.quiet { border-color: transparent; background: transparent; color: var(--night-jade, #80d0ac); box-shadow: none; }
 html[data-theme="dark"] .notice-panel-all.quiet:hover { background: rgba(255, 255, 255, .05); color: var(--night-jade, #80d0ac); }
+
+/* ---------- Product photos and day groups (27 October 2026) ---------- */
+/* An order's notice shows its product photo on a white plate in place of the generic icon; the icon stays
+   underneath and shows again if the photo fails. A small status corner keeps the unread/attention colour. */
+.notice-panel-icon { position: relative; overflow: hidden; }
+.notice-panel-icon > img { position: absolute; inset: 0; width: 100%; height: 100%; padding: 3px; object-fit: contain; background: #fff; }
+.notice-panel-icon.has-photo { box-shadow: inset 0 0 0 1px var(--day-line, #e2e2da); }
+.notice-panel-item.unread .notice-panel-icon.has-photo { box-shadow: inset 0 0 0 2px var(--day-accent, #1f4d3b); }
+.notice-panel-item.attention .notice-panel-icon.has-photo { box-shadow: inset 0 0 0 2px #c55235; }
+.notice-panel-day + .notice-panel-day { margin-top: 14px; }
+.notice-panel-day > h4 { margin: 0 0 8px; color: var(--day-muted, #58635c); font-size: 12.5px; font-weight: 650; letter-spacing: .02em; }
+html[data-theme="dark"] .notice-panel-icon.has-photo { box-shadow: inset 0 0 0 1px var(--night-line, rgba(255,255,255,.12)); }
+html[data-theme="dark"] .notice-panel-icon > img { background: var(--night-ivory, #ebe4d2); }
+html[data-theme="dark"] .notice-panel-item.unread .notice-panel-icon.has-photo { box-shadow: inset 0 0 0 2px var(--night-jade, #80d0ac); }
+html[data-theme="dark"] .notice-panel-day > h4 { color: var(--night-muted, #9ba6a0); }

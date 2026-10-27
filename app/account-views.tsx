@@ -154,12 +154,14 @@ export function AccountView() {
           </div>
         </section>
 
-        <nav className="cabinet-tiles" aria-label={c.tiles.label}>
+        {/* A brand-new account would see four zeros under "Place your first order": the tiles wait for the first
+            order, cart line, balance or notice (the header and the bottom bar lead to the same pages). */}
+        {(groups.length > 0 || cartCount > 0 || balance !== 0 || state.notifications.length > 0) && <nav className="cabinet-tiles" aria-label={c.tiles.label}>
           <Link href="/orders"><Package aria-hidden="true" /><span>{c.tiles.orders}</span><strong>{groups.length}</strong><small>{activeGroups.length ? c.tiles.ordersActive(activeGroups.length) : groups.length ? c.tiles.ordersTotal(groups.length) : c.tiles.none}</small></Link>
           <Link href="/cart"><ShoppingBag aria-hidden="true" /><span>{c.tiles.cart}</span><strong>{cartCount}</strong><small>{cartCount ? formatSum(totalOf(state.cart), lang) : c.tiles.cartEmpty}</small></Link>
           <Link href="/balance"><Wallet aria-hidden="true" /><span>{c.tiles.balance}</span><strong className="cabinet-money">{formatSum(balance, lang)}</strong><small>{c.tiles.balanceSub}</small></Link>
           <Link href="/notifications"><Bell aria-hidden="true" /><span>{c.tiles.notifications}</span><strong>{state.notifications.length}</strong><small>{unread ? c.tiles.unread(unread) : c.tiles.noUnread}</small></Link>
-        </nav>
+        </nav>}
         {/* The header heart is desktop-only and the phone's bottom bar has no favourites: the way there from the account.
             No count — saved ids may point at items no longer in the catalogue, and /favorites would show fewer. */}
         {state.favorites.length > 0 && <Link className="cabinet-link cabinet-favorites" href="/favorites"><Heart size={16} aria-hidden="true" />{c.tiles.favorites}<ArrowRight size={16} aria-hidden="true" /></Link>}
