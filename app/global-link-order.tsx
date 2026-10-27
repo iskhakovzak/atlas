@@ -57,7 +57,7 @@ import { heroStores, storeBrands, storefrontUrl } from "@/lib/market/store-brand
 import { dealCopy } from "@/lib/market/deal-copy";
 import { StoreLogo } from "./store-logo";
 import { adidasMenSize } from "@/lib/market/adidas-size-chart";
-import {isConfirmedVariantAvailable} from '@/lib/importer/variant-normalization';
+import {isOrderableVariant, isStockUnconfirmed} from '@/lib/importer/variant-normalization';
 import { optionStock } from "@/lib/market/link-order-stock";
 import { variantsForSourceColor, variantSourceUrl, variantGallery, variantDisplayPrices } from "@/lib/importer/link-selection";
 import { findNikeFootwearSizeRow, getNikeFootwearSizeRows, inferNikeFootwearSizeSystem } from "@/lib/market/nike-size-chart";
@@ -144,7 +144,7 @@ function Stepper({ value, max, label, k, onChange }: { value: number; max: numbe
 
 /** Options without a color/size matrix, as buttons the customer can pick several of. */
 function OptionChips({ variants, picked, k, onToggle, format }: { format:(value:number)=>string; variants: ProductVariant[]; picked: Record<string, number>; k: CalcCopy; onToggle: (item: ProductVariant) => void }) {
-  return <div className="variant-options lo-option-chips">{variants.map(item => <button type="button" key={item.label} aria-pressed={Boolean(picked[item.label])} disabled={!isConfirmedVariantAvailable(item)} onClick={() => onToggle(item)}>
+  return <div className="variant-options lo-option-chips">{variants.map(item => <button type="button" key={item.label} aria-pressed={Boolean(picked[item.label])} disabled={!isOrderableVariant(item)} onClick={() => onToggle(item)}>
     <span>{item.label}</span>{item.price!==undefined&&<small>{format(item.price)}</small>}{item.options?.length? <small>{item.options.map(o=>`${o.name}: ${o.value}`).join(" · ")}</small>:null}{item.quantity !== undefined && item.quantity <= 5 && <small className="lo-stock">{item.quantity ? k.stockLeft(item.quantity) : k.outOfStock}</small>}
   </button>)}</div>;
 }
@@ -490,7 +490,7 @@ export function GlobalLinkOrder() {
   }
   /** Toggle an option in the selection; the last one touched sets the price shown in the form. */
   function togglePick(item:ProductVariant){
-    if(!isConfirmedVariantAvailable(item))return;
+    if(!isOrderableVariant(item))return;
     setFormIssue("");
     setPicked(current=>{if(!manyMode)return current[item.label]&&Object.keys(current).length===1?current:{[item.label]:1};const next={...current};if(next[item.label])delete next[item.label];else next[item.label]=1;return next});
     applyVariantChoice(item);
@@ -678,7 +678,7 @@ export function GlobalLinkOrder() {
         const receivedPartialVariants=data.variants?.length?data.variants:linkFallbackOptions;
         const partialVariants=variantsForSourceColor(receivedPartialVariants,data.selectedVariantColor,data.sourceUrl??link,data.variantScope);
         const partialSelected=partialVariants.find(item=>item.id&&(item.id===data.selectedVariantId||item.id===data.sku));
-        setVariants(partialVariants.filter(isConfirmedVariantAvailable));
+        setVariants(partialVariants.filter(isOrderableVariant));
         setStoreSoldOut(optionStock(partialVariants)==='sold-out');
         setVariant(partialSelected?.label??(partialVariants.length===1?partialVariants[0].label:""));
         setPicked(partialVariants.length===1?{[partialVariants[0].label]:1}:{});
@@ -735,7 +735,7 @@ export function GlobalLinkOrder() {
       const importedVariants = variantsForSourceColor(allImportedVariants,data.selectedVariantColor,data.sourceUrl,data.variantScope);
       const safeVariants = knownCurrency ? importedVariants : importedVariants.map(item => ({...item, price: undefined}));
       
-      const selectableVariants=safeVariants.filter(isConfirmedVariantAvailable).filter(item=>{const value=item.price??(data.variantScope==='group'?undefined:data.price);return typeof value==='number'&&Number.isFinite(value)&&value>0;});
+      const selectableVariants=safeVariants.filter(isOrderableVariant).filter(item=>{const value=item.price??(data.variantScope==='group'?undefined:data.price);return typeof value==='number'&&Number.isFinite(value)&&value>0;});
       setVariants(selectableVariants);
       // Every option the store lists at this link is sold out: said as such, not as a price still to come.
       setStoreSoldOut(optionStock(safeVariants)==='sold-out');
@@ -1041,7 +1041,7 @@ export function GlobalLinkOrder() {
   const fromSums = (() => {
     if (picks.length || variants.length < 2 || !orderable || checking) return null;
     const pool = variantsForColor.length ? variantsForColor : variants;
-    const cheapest = pool.filter(item => isConfirmedVariantAvailable(item) && item.quantity !== 0 && priceOf(item.label) > 0)
+    const cheapest = pool.filter(item => isOrderableVariant(item) && item.quantity !== 0 && priceOf(item.label) > 0)
       .sort((a, b) => priceOf(a.label) - priceOf(b.label))[0];
     const items = cheapest ? previewFor([[cheapest.label, 1]]) : [];
     return items.length ? sumQuotes(items.map(item => item.quote)) : null;
@@ -1597,7 +1597,7 @@ export function GlobalLinkOrder() {
                 </li>;
               })}</ul>}
             </>}
-            {variants.length > 0 && !variants.some(item => item.quantity !== undefined || item.quantityMoreThan !== undefined) && <p className="lo-hint-line muted lo-stock-hint">{k.stockUnknown}</p>}
+            {variants.length > 0 && !variants.some(item => item.quantity !== undefined || item.quantityMoreThan !== undefined) && <p className="lo-hint-line muted lo-stock-hint">{variants.some(isStockUnconfirmed) ? k.stockCheckFirst : k.stockUnknown}</p>}
             {/* The comment sits right under the chosen options (owner, 12 October 2026). */}
             <div className="lo-comment">
               <label htmlFor="order-comment"><b>{k.blocks.comment}</b><small>{k.commentHint}</small></label>

@@ -6,7 +6,7 @@ import {z} from 'zod';
 import {database,identity,requirePermission,sameOrigin,requestJson,json,failure,HttpError,pricing,rateLimit} from '@/lib/market/server';
 import {catalogSaleRunner,validatedSaleSource} from '@/lib/market/catalog-sale-server';
 import {readCatalog,persistCatalog} from '@/lib/market/catalog-server';
-import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,manualFallbackCatalogDraft,recheckedDraft,changeCatalog,publicCatalog,applyAutomaticCatalogImport,catalogRecheckBatchSize} from '@/lib/market/catalog-editor';
+import {catalogDraftSchema,collectionSchema,canonicalCatalogUrl,importDraft,manualFallbackCatalogDraft,isManualCatalogSource,recheckedDraft,changeCatalog,publicCatalog,applyAutomaticCatalogImport,catalogRecheckBatchSize} from '@/lib/market/catalog-editor';
 import type {CatalogDraft} from '@/lib/market/catalog-editor';
 import {fetchProduct,fetchCollectionLinks,ManualEntryFallbackError,describeImportDiagnostic} from '@/lib/importer/fetch';
 import type {Extracted} from '@/lib/importer/extract';
@@ -26,7 +26,7 @@ function importFailureText(error:unknown){
 function invalidLinkText(error:unknown){
   return error instanceof Error&&error.message.startsWith('Используйте')?error.message:'Это не ссылка на страницу товара. Нужна HTTPS-ссылка поддерживаемого магазина.';
 }
-type ImportOutcome={url:string;status:'saved'|'failed';id?:string;published?:boolean;note?:string;reason?:string;importFailureReason?:CatalogDraft['importFailureReason']};
+type ImportOutcome={url:string;status:'saved'|'failed';manual?:boolean;id?:string;published?:boolean;note?:string;reason?:string;importFailureReason?:CatalogDraft['importFailureReason']};
 /** Read one store page; never throws for recoverable merchant failures — those become a reviewable draft. */
 async function readForImport(sourceUrl:string,collectionIds:string[],country:string){
   let data:Extracted|undefined,sourceUnavailable=false,failureMessage='',failureReason:CatalogDraft['importFailureReason']='unknown';
@@ -48,8 +48,15 @@ async function readForImport(sourceUrl:string,collectionIds:string[],country:str
   const draft=sourceUnavailable
     ?manualFallbackCatalogDraft(data,sourceUrl,collectionIds,shipsFrom,now,failureMessage,failureReason)
     :importDraft(data!,collectionIds,shipsFrom,now);
-  return {draft,sourceUnavailable,failureMessage,failureReason};
+  // Best Buy and the other stores Atlas does not read become a card for the operator to fill in, not a failure.
+  const manual=sourceUnavailable&&isManualCatalogSource(sourceUrl);
+  return {draft,sourceUnavailable,failureMessage,failureReason,manual};
 }
+/** A manual card is the operator's to fill in and publish: the scheduler and automatic publication leave it alone. */
+function handOverManual(document:{entries:{id:string;autoManaged?:boolean}[]},id:string){
+  const entry=document.entries.find(item=>item.id===id);if(entry)entry.autoManaged=false;
+}
+const manualNote='Ручной ввод: откройте карточку и заполните её со страницы магазина.';
 /** A phone's share link (m.zara.com) or a store short link (a.co, amzn.to, ebay.us) reads as the store page, as for customers. */
 async function storePageUrl(value:string){
   try{return desktopStoreUrl(await expandShortLink(new URL(value.trim()))).href}catch{return value}
@@ -143,7 +150,7 @@ export async function POST(request:Request){try{
         try{
           const read=await readForImport(sourceUrl,command.collectionIds,command.country);
           // A store that answered nothing usable leaves no empty card: the link stays in the field with the reason.
-          if(read.sourceUnavailable&&!read.draft.name)return {url,status:'failed',reason:read.failureMessage||'Магазин не отдал данные товара.',importFailureReason:read.failureReason};
+          if(read.sourceUnavailable&&!read.draft.name&&!read.manual)return {url,status:'failed',reason:read.failureMessage||'Магазин не отдал данные товара.',importFailureReason:read.failureReason};
           return {url,sourceUrl,read};
         }
         catch(error){return {url,status:'failed',reason:error instanceof HttpError?error.message:importFailureText(error)}}
@@ -154,12 +161,13 @@ export async function POST(request:Request){try{
         if('status' in item){results.push(item);continue}
         try{
           const outcome=applyAutomaticCatalogImport(document,item.read.draft,Date.now(),currentPricing.rates);saved++;
+          if(item.read.manual){handOverManual(document,outcome.id);results.push({url:item.url,status:'saved',id:outcome.id,published:false,note:manualNote,manual:true});continue}
           results.push({url:item.url,status:'saved',...outcome,...(item.read.sourceUnavailable?{importFailureReason:item.read.failureReason}:{})});
         }catch(error){results.push({url:item.url,status:'failed',reason:error instanceof HttpError?error.message:importFailureText(error)})}
       }
       if(saved){document.revision++;await persistCatalog(document,raw,user,'catalog.import-batch',{count:saved,failed:results.length-saved});}
       // Dead or malformed links say nothing about the store; only reads count (lib/market/store-health.ts).
-      await recordStoreHealth(results.flatMap((item):StoreReadOutcome[]=>item.status==='failed'
+      await recordStoreHealth(results.filter(item=>!item.manual).flatMap((item):StoreReadOutcome[]=>item.status==='failed'
         ?(item.importFailureReason?[{url:item.url,result:'failed',reason:item.reason}]:[])
         :[{url:item.url,result:item.importFailureReason||(!item.published&&item.note)?'partial':'ok',reason:item.importFailureReason??item.note}]),user.userId);
       return json({document,results});
@@ -173,8 +181,9 @@ export async function POST(request:Request){try{
     }
     if(command.collectionIds.some(id=>!document.collections.some(c=>c.id===id)))throw new HttpError(400, 'err_33');
     const read=await readForImport(sourceUrl,command.collectionIds,command.country);
-    if(read.sourceUnavailable&&!read.draft.name)throw new HttpError(422,read.failureMessage||'Магазин не отдал данные товара.');
+    if(read.sourceUnavailable&&!read.draft.name&&!read.manual)throw new HttpError(422,read.failureMessage||'Магазин не отдал данные товара.');
     const outcome=applyAutomaticCatalogImport(document,read.draft,Date.now(),(await pricing()).rates),importedId=outcome.id;
+    if(read.manual){handOverManual(document,importedId);document.revision++;await persistCatalog(document,raw,user,'catalog.import');return json({document,importedId,published:false,importNote:manualNote,manual:true})}
     document.revision++;
     await persistCatalog(document,raw,user,'catalog.import');
     return json({document,importedId,published:outcome.published,importNote:outcome.note,...(read.sourceUnavailable?{importNote:read.failureMessage.slice(0,500),importFailureReason:read.failureReason}:{})});

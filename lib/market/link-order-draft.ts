@@ -253,7 +253,7 @@ export function keepPicks(saved: Record<string, number>, variants: ReadonlyArray
   const picked: Record<string, number> = {}, missing: string[] = [];
   for (const [label, quantity] of Object.entries(cleanPicks(saved))) {
     const option = variants.find(item => item.label === label);
-    if (!option || option.quantity === 0 || option.available===false || option.availabilityKnown===false) { missing.push(label); continue; }
+    if (!option || option.quantity === 0 || (option.available===false && option.availabilityKnown!==false)) { missing.push(label); continue; }
     picked[label] = Math.max(1, Math.min(quantity, maxQuantity, option.quantity ?? maxQuantity));
   }
   return { picked, missing };

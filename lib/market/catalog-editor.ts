@@ -3,7 +3,8 @@ import {bundledMerchantFinds, type MerchantFind} from './catalog.ts';
 import {toUsd,paddedWeight,currencies} from './world.ts';
 import {tariff,sourceVariantSchema,sourceColorwayGallerySchema,type Pricing,type Product} from './domain.ts';
 import {dedupeSafeImages,safeImage,type Extracted} from '../importer/extract.ts';
-import {isSupportedStoreHost} from '../importer/stores.ts';
+import {isManualEntryStoreHost,isSupportedStoreHost} from '../importer/stores.ts';
+import {isOrderableVariant} from '../importer/variant-normalization.ts';
 import {estimatedBoxedWeight} from './weight.ts';
 
 export const catalogCategories=['Обувь','Одежда','Электроника','Аксессуары','Красота и уход','Дом и быт','Спорт','Другое'] as const;
@@ -166,6 +167,11 @@ export function importDraft(data:Extracted,collectionIds:string[],country:string
 }
 
 /** Keep a supported merchant link reviewable when its public importer is blocked. */
+/** A store Atlas does not read (lib/importer/stores.ts manualEntryStoreRoots, Best Buy): the operator types the card in. */
+export const manualStoreReviewReason='Ручной ввод: магазин не отдаёт данные — заполните название, цену, фото и варианты со страницы магазина';
+export function isManualCatalogSource(url:string){
+ try{return isManualEntryStoreHost(new URL(url).hostname)}catch{return false}
+}
 export function manualFallbackCatalogDraft(data:Extracted|undefined,sourceUrl:string,collectionIds:string[],country:string,now=Date.now(),failureMessage?:string,failureReason:CatalogDraft['importFailureReason']='unknown'):CatalogDraft{
  const host=new URL(sourceUrl).hostname.replace(/^www\./,'');
  const draft=importDraft({
@@ -173,7 +179,7 @@ export function manualFallbackCatalogDraft(data:Extracted|undefined,sourceUrl:st
   variants:(data?.variants??[]).map(variant=>({...variant,price:undefined,available:false,availabilityKnown:false})),
   warnings:[...(data?.warnings??[]),'Автоимпорт не подтвердил данные магазина. Проверьте карточку вручную перед публикацией.'],
  },collectionIds,country,now);
- return catalogDraftSchema.parse({...draft,weightBasis:'estimate',reviewReasons:['Требуется ручная проверка цены, варианта и фото перед публикацией.'],lastCheckError:(failureMessage||'Магазин не подтвердил цену и наличие.').slice(0,500),importFailureReason:failureReason});
+ return catalogDraftSchema.parse({...draft,weightBasis:'estimate',reviewReasons:[isManualCatalogSource(sourceUrl)?manualStoreReviewReason:'Требуется ручная проверка цены, варианта и фото перед публикацией.'],lastCheckError:(failureMessage||'Магазин не подтвердил цену и наличие.').slice(0,500),importFailureReason:failureReason});
 }
 
 const generatedCatalogDescriptions = new Set([
@@ -235,9 +241,9 @@ export function catalogIssues(draft:CatalogDraft,now=Date.now(),rates=tariff.rat
   if(!draft.country)issues.push('Страна отправки');
   if(!draft.variants.length)issues.push('Доступный вариант');
   if(draft.variants.some(variant=>!variant.label.trim()))issues.push('Название варианта');
-  if(draft.variants.length&&!draft.variants.some(variant=>variant.available&&variant.availabilityKnown!==false))issues.push('Подтвердите доступный вариант');
+  if(draft.variants.length&&!draft.variants.some(isOrderableVariant))issues.push('Подтвердите доступный вариант');
   if(draft.soldOut)issues.push('Нет доступных вариантов');
-  if(draft.variants.some(variant=>variant.availabilityKnown===false))issues.push('Наличие не подтверждено магазином');
+  // Options without a stock answer are sold subject to stock (owner, 27 October 2026); pendingCatalogIssues notes them.
   if(draft.lastCheckError)issues.push('Ошибка проверки магазина');
   if(draft.reviewReasons?.length)issues.push(...draft.reviewReasons);
   // The operator's own stock confirmation keeps a card current for one lifetime; the price keeps its own date (checkedAt).
@@ -256,14 +262,15 @@ export function catalogIssues(draft:CatalogDraft,now=Date.now(),rates=tariff.rat
 export function pendingCatalogIssues(draft:CatalogDraft){
  const pending:string[]=[];
  if(draft.variantsComplete!==true)pending.push('Магазин ещё не подтвердил полноту вариантов');
- if(draft.variants.some(v=>!v.id||v.availabilityKnown!==true||!v.available||v.quantity===0))pending.push('Не подтверждены точные доступные варианты');
+ if(draft.variants.some(v=>!v.id))pending.push('Не подтверждены точные доступные варианты');
+ if(draft.variants.some(v=>v.availabilityKnown!==true))pending.push('Наличие части вариантов уточним перед выкупом');
  if(draft.variants.some(v=>!safeImage(v.image,draft.sourceUrl)&&!v.images?.some(image=>safeImage(image,draft.sourceUrl))))pending.push('Нет фотографии конкретного варианта');
  return pending;
 }
 /** Automatic publication is based on store evidence, never the editor's stock override. Only what blocks a sale. */
 export function automaticCatalogIssues(draft:CatalogDraft,now=Date.now(),rates=tariff.rates){
  const issues=catalogIssues({...draft,reviewReasons:[]},now,rates);
- if(!draft.variants.some(v=>v.available&&v.availabilityKnown===true&&v.quantity!==0))issues.push('Нет подтверждённого доступного варианта');
+ if(!draft.variants.some(isOrderableVariant))issues.push('Нет подтверждённого доступного варианта');
  if(draft.variants.some(v=>!v.price||v.price<=0||toUsd(v.price,draft.currency,rates)>10000))issues.push('Не подтверждена цена каждого варианта');
  const identities=draft.variants.map(v=>JSON.stringify([v.productId??'',v.id??'',v.sellerId??'',v.offerId??'']));
  if(new Set(identities).size!==identities.length)issues.push('Повторяются идентификаторы вариантов');
@@ -280,20 +287,22 @@ export function sameCatalogGroup(left:CatalogDraft,right:CatalogDraft){
 /** Apply a server-imported observation; persistence is the caller's single authenticated CAS write. */
 export function applyAutomaticCatalogImport(document:CatalogDocument,fresh:CatalogDraft,now=Date.now(),rates=tariff.rates){
  // The public minimum is a group summary; each exact option retains its own price.
- const variants=fresh.variants.filter(v=>v.available&&v.availabilityKnown===true&&v.quantity!==0);
+ const variants=fresh.variants.filter(isOrderableVariant);
  const prices=variants.map(v=>v.price).filter((p):p is number=>typeof p==='number'&&p>0);
  // One option the store confirms is the whole product: nothing else to be complete about.
- const single=fresh.variantsComplete!==false&&fresh.variants.length===1&&fresh.variants[0].availabilityKnown===true;
- const draft=catalogDraftSchema.parse({...fresh,variantsComplete:fresh.variants.some(v=>v.availabilityKnown!==true)?false:single?true:fresh.variantsComplete,variants,price:prices.length===variants.length&&prices.length?Math.min(...prices):fresh.price});
+ const single=fresh.variantsComplete!==false&&fresh.variants.length===1;
+ const draft=catalogDraftSchema.parse({...fresh,variantsComplete:single?true:fresh.variantsComplete,variants,price:prices.length===variants.length&&prices.length?Math.min(...prices):fresh.price});
  let entry=document.entries.find(item=>sameCatalogGroup(item.draft,draft));
  if(!entry){if(document.entries.length>=catalogMaxEntries)throw Error(`В каталоге уже ${catalogMaxEntries} товаров.`);entry={id:'find-'+crypto.randomUUID(),draft,createdAt:now,origin:'operator-import',queueState:'queued',autoManaged:true};document.entries.push(entry)}
  else{const collections=[...new Set([...entry.draft.collectionIds,...draft.collectionIds])];entry.draft={...recheckedDraft(entry.draft,draft),collectionIds:collections,reviewReasons:[]};if(entry.queueState!=='archived')entry.autoManaged=true;}
  const issues=automaticCatalogIssues(entry.draft,now,rates);
  if(entry.queueState==='archived')return {id:entry.id,published:false,note:'Карточка скрыта редактором; автоматическая публикация отключена.'};
  const pending=issues.length?[]:pendingCatalogIssues(entry.draft);
- // A card with options still to confirm goes out only when it is new and claims no discount: a published card is replaced
- // by a complete answer alone (a partial one must not drop options it showed), and a crossed-out price needs the whole group.
- const keepPublished=Boolean(pending.length&&entry.published),strict=Boolean(pending.length&&entry.draft.referencePrice);
+ // A card with options still to confirm goes out when it claims no discount (a crossed-out price needs the whole group).
+ // A published card takes such an answer only when it keeps every option the card showed: a partial answer must not
+ // drop options, but a new price or a stock note on the same options is taken (PUMA never states stock).
+ const shown=entry.published?.variants??[],drops=shown.some(old=>!entry!.draft.variants.some(item=>item.label===old.label));
+ const keepPublished=Boolean(pending.length&&entry.published&&drops),strict=Boolean(entry.draft.referencePrice&&entry.draft.variantsComplete!==true);
  const publishable=!issues.length&&!keepPublished&&!strict;
  // A card published with options still to confirm is checked again soon, not after the full interval.
  entry.refresh={lastAttemptAt:now,...(publishable?{lastSuccessAt:now}:{}),nextCheckAt:now+(publishable&&!pending.length?catalogRefreshInterval:catalogRefreshRetryBase),status:publishable?'available':'unknown',availableVariantCount:entry.draft.variants.length,lastError:(issues.length?issues:pending).join(' · ').slice(0,500)||undefined,consecutiveFailures:0};
@@ -341,6 +350,8 @@ export function dueCatalogEntries(document:CatalogDocument,now=Date.now(),limit=
   const selected:CatalogEntry[]=[],hosts=new Set<string>();
   const candidates=document.entries
     .filter(entry=>isWatchedCatalogEntry(entry))
+    // A manual-entry store never answers the scheduler; its card stays current by the operator's confirmation.
+    .filter(entry=>!isManualCatalogSource(entry.draft.sourceUrl))
     .filter(entry=>catalogRefreshDueAt(entry)<=now)
     .sort((left,right)=>catalogRefreshDueAt(left)-catalogRefreshDueAt(right));
   for(const entry of candidates){
@@ -373,7 +384,7 @@ export type ScheduledRefreshOutcome='available'|'sold-out'|'unknown'|'failed'|'s
 export function applyScheduledCatalogRefresh(current:CatalogDocument,id:string,fresh:CatalogDraft,now=Date.now(),rates=tariff.rates):{document:CatalogDocument;outcome:ScheduledRefreshOutcome}{
   const next=structuredClone(current),entry=next.entries.find(item=>item.id===id);
   if(!entry)return {document:catalogDocumentSchema.parse(next),outcome:'skipped'};
-  if(entry.autoManaged&&fresh.variants.some(v=>v.available&&v.availabilityKnown===true&&v.quantity!==0)){const outcome=applyAutomaticCatalogImport(next,fresh,now,rates);next.revision++;return {document:catalogDocumentSchema.parse(next),outcome:outcome.published?'available':'unknown'};}
+  if(entry.autoManaged&&fresh.variants.some(isOrderableVariant)){const outcome=applyAutomaticCatalogImport(next,fresh,now,rates);next.revision++;return {document:catalogDocumentSchema.parse(next),outcome:outcome.published?'available':'unknown'};}
   const checked=recheckedDraft(entry.draft,fresh);
   const changes=(checked.reviewReasons??[]).join(' · ').slice(0,500)||undefined;
   const candidate=catalogDraftSchema.parse({...checked,reviewReasons:[],lastCheckError:undefined});

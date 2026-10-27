@@ -20,6 +20,20 @@ export function isConfirmedVariantAvailable(variant: Pick<ProductVariant,'availa
   return variant.available===true&&variant.availabilityKnown===true&&variant.quantity!==0;
 }
 
+/**
+ * Can be ordered (owner, 27 October 2026): on sale by the store's answer, or listed without a stock answer at all
+ * (PUMA lists sizes, not stock). Only the store's own "sold out" (out of stock, 0 left) closes an option; an option
+ * without a stock answer is bought "subject to stock" and the stock is checked before the purchase.
+ */
+export function isOrderableVariant(variant: Pick<ProductVariant,'available'|'availabilityKnown'|'quantity'>): boolean {
+  if(variant.quantity===0) return false;
+  return variant.availabilityKnown===false||variant.available===true;
+}
+/** The store listed the option without saying whether it is in stock. */
+export function isStockUnconfirmed(variant: Pick<ProductVariant,'availabilityKnown'|'quantity'>): boolean {
+  return variant.availabilityKnown===false&&variant.quantity===undefined;
+}
+
 /** Bounded normalization; no invented combinations, prices, availability or group relationships. */
 export function normalizeMerchantVariants(extracted: Extracted): Extracted {
   const variants=extracted.variants?.slice(0,250).map(variant=>{

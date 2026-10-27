@@ -68,12 +68,12 @@ export function compareProductSnapshot(product: Product, selectedLabel: string, 
   // price; a returned, explicitly sold-out option is blocked below.
   if (!variant && !product.sourceManuallyConfirmed)
     return { status: 'blocked', kind: 'variant', code: 'err_69', message: 'Выбранный вариант не удалось сверить с данными магазина. Загрузите товар заново.' };
-  if(variant?.availabilityKnown===false)
-    return {status:'blocked',kind:'variant',code:'err_69',message:'Магазин не подтвердил наличие выбранного варианта. Повторите загрузку позже.'};
+  // A store that lists the option without a stock answer (PUMA) is ordered subject to stock (owner, 27 October 2026):
+  // the price is still checked here, the stock before the purchase. Only an explicit "sold out" blocks below.
   const price = extracted.variantScope==='group'&&(extracted.variants?.length??0)>1?variant?.price:variant?.price ?? extracted.price;
   if (price === undefined) return { status: 'blocked', kind: 'price', code: 'err_70', message: 'Магазин не подтвердил цену выбранного варианта. Выберите другой цвет или размер либо вставьте ссылку заново.' };
   // Stock is known only when the store reports a count (eBay); otherwise it stays unknown, never guessed.
-  if (variant?.quantity === 0 || variant?.available === false)
+  if (variant?.quantity === 0 || (variant?.available === false && variant.availabilityKnown !== false))
     return { status: 'blocked', kind: 'stock', code: 'err_71', message: 'Этого варианта сейчас нет в наличии у магазина. Выберите другой цвет или размер.' };
   const stockKnown = variant?.quantity !== undefined || variant?.quantityMoreThan !== undefined;
   const checkedUrl=extracted.sourceUrl??product.sourceUrl;

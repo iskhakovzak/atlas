@@ -56,8 +56,14 @@ test('admin auto import publishes exact available prices and preserves options t
  assert.ok(reads.all>0,'manifest chunks are read with bounded multi-row SELECTs');assert.equal(reads.chunkFirst,0,'no D1 subrequest for every individual chunk');assert.ok(reads.maxChunkBinds<=80);
  sqlite.close();delete globalThis.__adminAutoTestDb;
 });
-test('admin automatic imports without a confirmed price or available option wait for retry and cannot be manually confirmed',()=>{
- for(const extra of [{variants:[{...source().variants[0],availabilityKnown:false}]},{variants:[{...source().variants[0],price:undefined}]}]){
+test('an option the store lists without a stock answer is sold subject to stock (27 October 2026)',()=>{
+ const doc=document(),outcome=applyAutomaticCatalogImport(doc,draft({variants:[{...source().variants[0],availabilityKnown:false}]}),now);
+ assert.equal(outcome.published,true);assert.match(outcome.note,/уточним перед выкупом/);assert.equal(dueCatalogEntries(doc,now+3600001).length,1);
+ // An explicit "sold out" still closes the option.
+ const gone=document();assert.equal(applyAutomaticCatalogImport(gone,draft({variants:[{...source().variants[0],available:false,availabilityKnown:true}]}),now).published,false);
+});
+test('admin automatic imports without a confirmed price wait for retry and cannot be manually confirmed',()=>{
+ for(const extra of [{variants:[{...source().variants[0],price:undefined}]}]){
  const doc=document(),outcome=applyAutomaticCatalogImport(doc,draft(extra),now);assert.equal(outcome.published,false);assert.ok(outcome.note);assert.equal(dueCatalogEntries(doc,now+3600001).length,1);assert.throws(()=>changeCatalog(doc,{kind:'confirm',ids:[outcome.id]},now+1));
  }
 });

@@ -1,12 +1,12 @@
 import type {ProductVariant} from '../importer/extract.ts';
-import {isConfirmedVariantAvailable} from '../importer/variant-normalization.ts';
+import {isOrderableVariant} from '../importer/variant-normalization.ts';
 
 type Stock = Pick<ProductVariant, 'available' | 'availabilityKnown' | 'quantity'>;
 
 /**
  * What the options of a product leave to choose on the order-by-link page.
  * - 'none': the store listed no options (the customer types one, or the product has none);
- * - 'open': at least one option is confirmed as on sale and can be chosen;
+ * - 'open': at least one option can be chosen: on sale, or listed without a stock answer (isOrderableVariant);
  * - 'sold-out': every listed option is sold out by the store's own answer (out of stock, or 0 left):
  *   the page says «Нет в наличии в магазине» and its button stays inactive instead of leading to an empty choice;
  * - 'unconfirmed': options are listed, none is confirmed as on sale and some have no stock answer at all:
@@ -21,6 +21,6 @@ function soldOut(variant: Stock): boolean {
 
 export function optionStock(variants: readonly Stock[]): OptionStock {
   if (!variants.length) return 'none';
-  if (variants.some(isConfirmedVariantAvailable)) return 'open';
+  if (variants.some(isOrderableVariant)) return 'open';
   return variants.every(soldOut) ? 'sold-out' : 'unconfirmed';
 }
