@@ -224,3 +224,28 @@ test('"Top price" marks the best fifth by discount, never under 40 %', () => {
   // Only one item clears 40 %: it alone gets the badge, whatever the share says.
   assert.equal(topDealThreshold([45, 30, 20, 10, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 45);
 });
+
+test('the admin queue names one reason and one action for a waiting card', async () => {
+  const { catalogQueueVerdict } = await import('../lib/market/catalog-queue-verdict.ts');
+  assert.deepEqual(catalogQueueVerdict('Название · Фото · Цена · Валюта · Страна отправки · Доступный вариант · Ошибка проверки магазина'), { text: 'Магазин не ответил — данных нет.', action: 'recheck', label: 'Перечитать' });
+  assert.equal(catalogQueueVerdict('Страна отправки').action, 'edit');
+  assert.equal(catalogQueueVerdict('Доступный вариант · Нет доступных вариантов').action, 'delete');
+  assert.equal(catalogQueueVerdict('Опубликовано; уточняем у магазина: Магазин ещё не подтвердил полноту вариантов').action, undefined);
+});
+
+test('store health counts reads per store and says which stores fail', async () => {
+  const { mergeStoreHealth, storeReadability } = await import('../lib/market/store-health.ts');
+  let health = mergeStoreHealth({}, [
+    { url: 'https://www.mango.com/a', result: 'failed', reason: 'blocked' }, { url: 'https://shop.mango.com/b', result: 'failed' },
+    { url: 'https://tartecosmetics.com/x', result: 'ok' }, { url: 'https://tartecosmetics.com/y', result: 'partial', reason: 'country' },
+    { url: 'not a url', result: 'ok' },
+  ], 1);
+  assert.equal(storeReadability(health['mango.com']), 'fails');
+  assert.equal(health['mango.com'].reason, 'blocked');
+  assert.equal(storeReadability(health['tartecosmetics.com']), 'partial');
+  assert.equal(storeReadability(health['nike.com']), 'unknown');
+  for (let i = 0; i < 60; i++) health = mergeStoreHealth(health, [{ url: 'https://tartecosmetics.com/z', result: 'ok' }], 2 + i);
+  assert.equal(storeReadability(health['tartecosmetics.com']), 'reads');
+  assert.ok(health['tartecosmetics.com'].ok + health['tartecosmetics.com'].partial <= 51, 'old reads fade');
+  assert.equal(health['tartecosmetics.com'].reason, undefined);
+});

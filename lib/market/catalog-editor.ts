@@ -247,13 +247,24 @@ export function catalogIssues(draft:CatalogDraft,now=Date.now(),rates=tariff.rat
 }
 
 
-/** Automatic publication is based on store evidence, never the editor's stock override. */
+/**
+ * What the store has not confirmed but a card can still be sold without (27 October 2026, owner: the catalog is a
+ * showcase, the final truth comes at the order): the shown options are the confirmed ones, the card says other options
+ * are checked when ordering, and the scheduler keeps rechecking it sooner. Price, photo, country and at least one
+ * confirmed available option still block publication (automaticCatalogIssues).
+ */
+export function pendingCatalogIssues(draft:CatalogDraft){
+ const pending:string[]=[];
+ if(draft.variantsComplete!==true)pending.push('Магазин ещё не подтвердил полноту вариантов');
+ if(draft.variants.some(v=>!v.id||v.availabilityKnown!==true||!v.available||v.quantity===0))pending.push('Не подтверждены точные доступные варианты');
+ if(draft.variants.some(v=>!safeImage(v.image,draft.sourceUrl)&&!v.images?.some(image=>safeImage(image,draft.sourceUrl))))pending.push('Нет фотографии конкретного варианта');
+ return pending;
+}
+/** Automatic publication is based on store evidence, never the editor's stock override. Only what blocks a sale. */
 export function automaticCatalogIssues(draft:CatalogDraft,now=Date.now(),rates=tariff.rates){
  const issues=catalogIssues({...draft,reviewReasons:[]},now,rates);
- if(draft.variantsComplete!==true)issues.push('Магазин ещё не подтвердил полноту вариантов');
- if(draft.variants.some(v=>!v.id||v.availabilityKnown!==true||!v.available||v.quantity===0))issues.push('Не подтверждены точные доступные варианты');
+ if(!draft.variants.some(v=>v.available&&v.availabilityKnown===true&&v.quantity!==0))issues.push('Нет подтверждённого доступного варианта');
  if(draft.variants.some(v=>!v.price||v.price<=0||toUsd(v.price,draft.currency,rates)>10000))issues.push('Не подтверждена цена каждого варианта');
- if(draft.variants.some(v=>!safeImage(v.image,draft.sourceUrl)&&!v.images?.some(image=>safeImage(image,draft.sourceUrl))))issues.push('Нет фотографии конкретного варианта');
  const identities=draft.variants.map(v=>JSON.stringify([v.productId??'',v.id??'',v.sellerId??'',v.offerId??'']));
  if(new Set(identities).size!==identities.length)issues.push('Повторяются идентификаторы вариантов');
  if(draft.confirmedBy)issues.push('Ожидается подтверждение магазина');
@@ -271,19 +282,27 @@ export function applyAutomaticCatalogImport(document:CatalogDocument,fresh:Catal
  // The public minimum is a group summary; each exact option retains its own price.
  const variants=fresh.variants.filter(v=>v.available&&v.availabilityKnown===true&&v.quantity!==0);
  const prices=variants.map(v=>v.price).filter((p):p is number=>typeof p==='number'&&p>0);
- const draft=catalogDraftSchema.parse({...fresh,variantsComplete:fresh.variants.some(v=>v.availabilityKnown!==true)?false:fresh.variantsComplete,variants,price:prices.length===variants.length&&prices.length?Math.min(...prices):fresh.price});
+ // One option the store confirms is the whole product: nothing else to be complete about.
+ const single=fresh.variantsComplete!==false&&fresh.variants.length===1&&fresh.variants[0].availabilityKnown===true;
+ const draft=catalogDraftSchema.parse({...fresh,variantsComplete:fresh.variants.some(v=>v.availabilityKnown!==true)?false:single?true:fresh.variantsComplete,variants,price:prices.length===variants.length&&prices.length?Math.min(...prices):fresh.price});
  let entry=document.entries.find(item=>sameCatalogGroup(item.draft,draft));
  if(!entry){if(document.entries.length>=catalogMaxEntries)throw Error(`В каталоге уже ${catalogMaxEntries} товаров.`);entry={id:'find-'+crypto.randomUUID(),draft,createdAt:now,origin:'operator-import',queueState:'queued',autoManaged:true};document.entries.push(entry)}
  else{const collections=[...new Set([...entry.draft.collectionIds,...draft.collectionIds])];entry.draft={...recheckedDraft(entry.draft,draft),collectionIds:collections,reviewReasons:[]};if(entry.queueState!=='archived')entry.autoManaged=true;}
  const issues=automaticCatalogIssues(entry.draft,now,rates);
  if(entry.queueState==='archived')return {id:entry.id,published:false,note:'Карточка скрыта редактором; автоматическая публикация отключена.'};
- const publishable=!issues.length;
- entry.refresh={lastAttemptAt:now,...(publishable?{lastSuccessAt:now}:{}),nextCheckAt:now+(publishable?catalogRefreshInterval:catalogRefreshRetryBase),status:publishable?'available':'unknown',availableVariantCount:entry.draft.variants.length,lastError:issues.join(' · ').slice(0,500)||undefined,consecutiveFailures:0};
+ const pending=issues.length?[]:pendingCatalogIssues(entry.draft);
+ // A card with options still to confirm goes out only when it is new and claims no discount: a published card is replaced
+ // by a complete answer alone (a partial one must not drop options it showed), and a crossed-out price needs the whole group.
+ const keepPublished=Boolean(pending.length&&entry.published),strict=Boolean(pending.length&&entry.draft.referencePrice);
+ const publishable=!issues.length&&!keepPublished&&!strict;
+ // A card published with options still to confirm is checked again soon, not after the full interval.
+ entry.refresh={lastAttemptAt:now,...(publishable?{lastSuccessAt:now}:{}),nextCheckAt:now+(publishable&&!pending.length?catalogRefreshInterval:catalogRefreshRetryBase),status:publishable?'available':'unknown',availableVariantCount:entry.draft.variants.length,lastError:(issues.length?issues:pending).join(' · ').slice(0,500)||undefined,consecutiveFailures:0};
  const confirmedSoldOut=fresh.variantsComplete===true&&fresh.variants.length>0&&fresh.variants.every(v=>v.availabilityKnown===true&&(!v.available||v.quantity===0));
  if(confirmedSoldOut){delete entry.published;delete entry.publishedAt;entry.queueState='queued';entry.refresh.status='sold-out';}
  if(publishable){entry.published=structuredClone(entry.draft);entry.publishedAt=now;entry.queueState='published';delete entry.autoHiddenAt;delete entry.autoHideReason;}
  else{if(!entry.published)entry.queueState='queued';entry.draft.lastCheckError=entry.refresh.lastError;}
- return {id:entry.id,published:publishable,note:publishable?undefined:entry.refresh.lastError};
+ if(keepPublished)return {id:entry.id,published:false,note:'Опубликованная карточка сохранена; новый ответ магазина неполный: '+pending.join(' · ')};
+ return {id:entry.id,published:publishable,note:publishable?(pending.length?'Опубликовано; уточняем у магазина: '+pending.join(' · '):undefined):entry.refresh.lastError};
 }
 
 export function recheckedDraft(previous:CatalogDraft,store:CatalogDraft){
